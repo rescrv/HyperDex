@@ -39,7 +39,7 @@ namespace
 // Create and destroy queries of various sizes.
 TEST(QueryTest, CtorAndDtor)
 {
-    for (size_t i = 0; i < 65536; ++i)
+    for (size_t i = 1; i < 65536; i *= 2)
     {
         hyperdex::query q(i);
     }
