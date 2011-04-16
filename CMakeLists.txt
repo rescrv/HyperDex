@@ -38,6 +38,7 @@ set(hyperdex_headers
 
 # Setup the sources
 set(hyperdex_srcs
+    src/hyperdex/city.cc
     src/hyperdex/query.cc
 )
 

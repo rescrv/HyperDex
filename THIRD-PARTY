@@ -1,0 +1,9 @@
+Third party code included in this distribution:
+
+Google's CityHash
+    URL:  http://code.google.com/p/cityhash/
+    License:  MIT
+    Copyright:  See headers.
+    Files:
+     - src/hyperdex/city.h
+     - src/hyperdex/city.cc
