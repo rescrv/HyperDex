@@ -61,6 +61,13 @@ hyperdex :: query :: unset(size_t idx)
     m_values[idx] = "";
 }
 
+void
+hyperdex :: query :: clear()
+{
+    m_values = std::vector<std::string>(m_values.size());
+    m_mask = std::vector<bool>(m_mask.size(), false);
+}
+
 bool
 hyperdex :: query :: matches(const std::vector<std::string>& row)
 {

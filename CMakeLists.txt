@@ -77,6 +77,8 @@ add_test(QueryTest.CtorAndDtor testrunner
     --gtest_filter=QueryTest.CtorAndDtor)
 add_test(QueryTest.SetAndUnset testrunner
     --gtest_filter=QueryTest.SetAndUnset)
+add_test(QueryTest.Clear testrunner
+    --gtest_filter=QueryTest.Clear)
 add_test(QueryTest.NegativeMatch testrunner
     --gtest_filter=QueryTest.NegativeMatch)
 add_test(QueryTest.SetDeathTest testrunner

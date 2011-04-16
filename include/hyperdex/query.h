@@ -45,6 +45,7 @@ class query
         void set(size_t idx, const std::string& val);
         void unset(size_t idx);
         bool matches(const std::vector<std::string>& row);
+        void clear();
 
     private:
         std::vector<std::string> m_values;

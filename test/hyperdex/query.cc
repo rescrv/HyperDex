@@ -69,6 +69,21 @@ TEST(QueryTest, SetAndUnset)
     EXPECT_TRUE(q.matches(row));
 }
 
+TEST(QueryTest, Clear)
+{
+    hyperdex::query q(2);
+    std::vector<std::string> r;
+
+    r.push_back("key");
+    r.push_back("val");
+    EXPECT_TRUE(q.matches(r));
+    q.set(0, "not-key");
+    q.set(1, "not-val");
+    EXPECT_FALSE(q.matches(r));
+    q.clear();
+    EXPECT_TRUE(q.matches(r));
+}
+
 // Test non-matches
 TEST(QueryTest, NegativeMatch)
 {
