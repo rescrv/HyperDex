@@ -28,6 +28,9 @@
 #ifndef hyperdex_query_h_
 #define hyperdex_query_h_
 
+// C
+#include <cassert>
+
 // STL
 #include <string>
 #include <vector>
@@ -44,8 +47,26 @@ class query
     public:
         void set(size_t idx, const std::string& val);
         void unset(size_t idx);
-        bool matches(const std::vector<std::string>& row);
         void clear();
+
+    public:
+        bool matches(const std::vector<std::string>& row) const;
+        bool is_specified(size_t idx) const
+        {
+            return m_mask[idx];
+        }
+
+        // This is undefined if !m_mask[idx]
+        const std::string& value(size_t idx) const
+        {
+            return m_values[idx];
+        }
+
+        size_t size() const
+        {
+            assert(m_values.size() == m_mask.size());
+            return m_values.size();
+        }
 
     private:
         std::vector<std::string> m_values;

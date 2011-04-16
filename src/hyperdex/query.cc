@@ -70,6 +70,7 @@ hyperdex :: query :: clear()
 
 bool
 hyperdex :: query :: matches(const std::vector<std::string>& row)
+                     const
 {
     assert(m_values.size() == row.size());
     assert(m_mask.size() == row.size());
