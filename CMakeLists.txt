@@ -35,12 +35,14 @@ include_directories(src)
 # Setup the headers
 set(hyperdex_headers
     include/hyperdex/query.h
+    include/hyperdex/mapper.h
 )
 
 # Setup the sources
 set(hyperdex_srcs
     src/hyperdex/bloom.cc
     src/hyperdex/city.cc
+    src/hyperdex/mapper.cc
     src/hyperdex/query.cc
 )
 
@@ -62,6 +64,7 @@ ENABLE_TESTING()
 
 set(hyperdex_test_srcs
     test/hyperdex/bloom.cc
+    test/hyperdex/mapper.cc
     test/hyperdex/query.cc
 )
 
@@ -98,5 +101,14 @@ add_test(BloomTest.CopyConstructor testrunner
     --gtest_filter=BloomTest.CopyConstructor)
 add_test(BloomTest.Serialization testrunner
     --gtest_filter=BloomTest.Serialization)
+
+add_test(MapperTest.CtorAndDtor testrunner
+    --gtest_filter=MapperTest.CtorAndDtor)
+add_test(MapperTest.ThreeColumnTableOneColumnQuery testrunner
+    --gtest_filter=MapperTest.ThreeColumnTableOneColumnQuery)
+add_test(MapperTest.ThreeColumnTableTwoColumnQuery testrunner
+    --gtest_filter=MapperTest.ThreeColumnTableTwoColumnQuery)
+add_test(MapperTest.ThreeColumnTableThreeColumnQuery testrunner
+    --gtest_filter=MapperTest.ThreeColumnTableThreeColumnQuery)
 
 # Installation targets.
