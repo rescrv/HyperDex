@@ -42,6 +42,7 @@ set(hyperdex_headers
 set(hyperdex_srcs
     src/hyperdex/bloom.cc
     src/hyperdex/city.cc
+    src/hyperdex/log.cc
     src/hyperdex/mapper.cc
     src/hyperdex/query.cc
 )
@@ -64,6 +65,7 @@ ENABLE_TESTING()
 
 set(hyperdex_test_srcs
     test/hyperdex/bloom.cc
+    test/hyperdex/log.cc
     test/hyperdex/mapper.cc
     test/hyperdex/query.cc
 )
@@ -110,5 +112,20 @@ add_test(MapperTest.ThreeColumnTableTwoColumnQuery testrunner
     --gtest_filter=MapperTest.ThreeColumnTableTwoColumnQuery)
 add_test(MapperTest.ThreeColumnTableThreeColumnQuery testrunner
     --gtest_filter=MapperTest.ThreeColumnTableThreeColumnQuery)
+
+add_test(LogTest.CtorAndDtor testrunner
+    --gtest_filter=LogTest.CtorAndDtor)
+add_test(LogTest.CtorAndDtorDeathTest testrunner
+    --gtest_filter=LogTest.CtorAndDtorDeathTest)
+add_test(LogTest.NonEmptyLogDeathTest testrunner
+    --gtest_filter=LogTest.NonEmptyLogDeathTest)
+add_test(LogTest.SimpleIteration testrunner
+    --gtest_filter=LogTest.SimpleIteration)
+add_test(LogTest.IterateAddIterate testrunner
+    --gtest_filter=LogTest.IterateAddIterate)
+add_test(LogTest.IterateDrainIterate testrunner
+    --gtest_filter=LogTest.IterateDrainIterate)
+add_test(LogTest.ConcurrentIteration testrunner
+    --gtest_filter=LogTest.ConcurrentIteration)
 
 # Installation targets.
