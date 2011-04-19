@@ -42,6 +42,7 @@ set(hyperdex_headers
 set(hyperdex_srcs
     src/hyperdex/bloom.cc
     src/hyperdex/city.cc
+    src/hyperdex/hyperdexd.cc
     src/hyperdex/log.cc
     src/hyperdex/mapper.cc
     src/hyperdex/query.cc
@@ -60,6 +61,15 @@ target_link_libraries(hyperdex
     LINK_INTERFACE_LIBRARIES
 )
 
+# Build hyperdexd
+add_executable(hyperdexd src/bin/hyperdexd.cc)
+# TODO properly detect gtest.
+target_link_libraries(hyperdexd
+    hyperdex
+    glog
+    pthread
+)
+
 # Tests
 ENABLE_TESTING()
 
@@ -75,6 +85,7 @@ add_executable(testrunner test/runner.cc ${hyperdex_test_srcs})
 target_link_libraries(testrunner
     hyperdex
     gtest
+    glog
     pthread
 )
 
