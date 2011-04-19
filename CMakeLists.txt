@@ -45,6 +45,7 @@ set(hyperdex_srcs
     src/hyperdex/hyperdexd.cc
     src/hyperdex/log.cc
     src/hyperdex/mapper.cc
+    src/hyperdex/network_worker.cc
     src/hyperdex/query.cc
 )
 
@@ -63,11 +64,13 @@ target_link_libraries(hyperdex
 
 # Build hyperdexd
 add_executable(hyperdexd src/bin/hyperdexd.cc)
-# TODO properly detect gtest.
+# TODO properly detect glog.
+# TODO properly detect sctp.
 target_link_libraries(hyperdexd
     hyperdex
     glog
     pthread
+    sctp
 )
 
 # Tests
@@ -81,12 +84,15 @@ set(hyperdex_test_srcs
 )
 
 add_executable(testrunner test/runner.cc ${hyperdex_test_srcs})
+# TODO properly detect glog.
 # TODO properly detect gtest.
+# TODO properly detect sctp.
 target_link_libraries(testrunner
     hyperdex
     gtest
     glog
     pthread
+    sctp
 )
 
 add_test(QueryTest.CtorAndDtor testrunner

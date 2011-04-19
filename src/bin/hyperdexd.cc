@@ -100,6 +100,8 @@ main(int argc, char* argv[])
     }
 
     // Add arguments to the daemon.
+    // TODO:  These are constant for now.
+    hyperdexd.set_location(po6::net::location("127.0.0.1", 6970));
 
     // Run the daemon.
     try

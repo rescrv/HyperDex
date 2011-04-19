@@ -28,6 +28,9 @@
 #ifndef hyperdex_hyperdexd_h_
 #define hyperdex_hyperdexd_h_
 
+// po6
+#include <po6/net/location.h>
+
 namespace hyperdex
 {
 
@@ -38,6 +41,8 @@ class hyperdexd
         ~hyperdexd();
 
     public:
+        void set_location(po6::net::location bind_to);
+
         // This method blocks until the daemon is done running.
         // It is safe to call the "signal handlers" of this class from within
         // the signal handler delivered to the thread which calls this run
@@ -55,6 +60,7 @@ class hyperdexd
         void USR2();
 
     private:
+        po6::net::location m_bind_to;
         bool m_continue;
 };
 
