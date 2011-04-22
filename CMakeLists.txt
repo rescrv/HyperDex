@@ -51,6 +51,7 @@ set(hyperdex_srcs
     src/hyperdex/city.cc
     src/hyperdex/hyperdexd.cc
     src/hyperdex/log.cc
+    src/hyperdex/logical.cc
     src/hyperdex/mapper.cc
     src/hyperdex/network_worker.cc
     src/hyperdex/physical.cc
