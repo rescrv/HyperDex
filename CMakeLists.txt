@@ -28,9 +28,14 @@ set(HyperDex_wanal "${HyperDex_wanal} -Wwrite-strings")
 
 set(CMAKE_CXX_FLAGS "${HyperDex_wanal} ${CMAKE_CXX_FLAGS}")
 
+# Find dependencies
+find_package(PkgConfig REQUIRED)
+pkg_search_module(GLOG REQUIRED libglog)
+
 # Setup the include paths
 include_directories(include)
 include_directories(src)
+include_directories(SYSTEM ${GLOG_INCLUDE_DIRS})
 
 # Setup the headers
 set(hyperdex_headers
@@ -60,16 +65,15 @@ set_target_properties(hyperdex
 )
 target_link_libraries(hyperdex
     LINK_INTERFACE_LIBRARIES
+    ${GLOG_LIBRARIES}
+    pthread
 )
 
 # Build hyperdexd
 add_executable(hyperdexd src/bin/hyperdexd.cc)
-# TODO properly detect glog.
 # TODO properly detect sctp.
 target_link_libraries(hyperdexd
     hyperdex
-    glog
-    pthread
     sctp
 )
 
@@ -85,14 +89,11 @@ set(hyperdex_test_srcs
 )
 
 add_executable(testrunner test/runner.cc ${hyperdex_test_srcs})
-# TODO properly detect glog.
 # TODO properly detect gtest.
 # TODO properly detect sctp.
 target_link_libraries(testrunner
     hyperdex
     gtest
-    glog
-    pthread
     sctp
 )
 
