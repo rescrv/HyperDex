@@ -49,12 +49,14 @@ namespace hyperdex
 class logical
 {
     public:
-        logical(ev::loop_ref lr, const po6::net::location& us);
+        logical(ev::loop_ref lr, const po6::net::location& us, const uint16_t version);
         ~logical();
 
     // Change the mapping.
     public:
-        void map(const hyperdex::entity& logical, const po6::net::location& physical);
+        void map(const hyperdex::entity& logical,
+                 const po6::net::location& physical,
+                 const uint16_t version);
         void unmap(const hyperdex::entity& logical);
 
     // Send and recv messages.
@@ -71,9 +73,9 @@ class logical
         logical& operator = (const logical&);
 
     private:
-        const po6::net::location m_us;
+        const std::pair<po6::net::location, uint16_t> m_us;
         po6::threads::rwlock m_lock;
-        std::map<entity, po6::net::location> m_mapping;
+        std::map<entity, std::pair<po6::net::location, uint16_t> > m_mapping;
         hyperdex::physical m_physical;
 };
 
