@@ -79,6 +79,7 @@ ENABLE_TESTING()
 set(hyperdex_test_srcs
     test/hyperdex/bloom.cc
     test/hyperdex/log.cc
+    test/hyperdex/lockingq.cc
     test/hyperdex/mapper.cc
     test/hyperdex/query.cc
 )
@@ -144,5 +145,10 @@ add_test(LogTest.IterateDrainIterate testrunner
     --gtest_filter=LogTest.IterateDrainIterate)
 add_test(LogTest.ConcurrentIteration testrunner
     --gtest_filter=LogTest.ConcurrentIteration)
+
+add_test(LockingqTest.CtorAndDtor testrunner
+    --gtest_filter=LockingqTest.CtorAndDtor)
+add_test(LockingqTest.NormalQueue testrunner
+    --gtest_filter=LockingqTest.NormalQueue)
 
 # Installation targets.
