@@ -61,9 +61,19 @@ class physical
         bool recv(po6::net::location* from, std::vector<char>* msg);
 
     private:
+        struct message
+        {
+            message();
+            ~message();
+
+            po6::net::location loc;
+            std::vector<char> buf;
+        };
+
         struct channel
         {
             channel(ev::loop_ref lr,
+                    physical* m,
                     const po6::net::location& from,
                     const po6::net::location& to);
             ~channel();
@@ -78,15 +88,13 @@ class physical
             std::vector<char> inprogress; // When reading from the network, we buffer partial reads here.
             std::vector<char> outprogress; // When writing to the network, we buffer partial writes here.
             std::queue<std::vector<char> > outgoing; // Messages buffered for writing.
-        };
+            physical* manager; // The outer manager class.
 
-        struct message
-        {
-            message();
-            ~message();
+            private:
+                channel(const channel&);
 
-            po6::net::location loc;
-            std::vector<char> buf;
+            private:
+                channel& operator = (const channel&);
         };
 
     private:
@@ -94,6 +102,7 @@ class physical
 
     private:
         std::tr1::shared_ptr<channel> create_connection(const po6::net::location& to);
+        void remove_connection(channel* to_remove);
         void refresh(ev::async& a, int revent);
 
     private:

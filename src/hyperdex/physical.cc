@@ -115,7 +115,7 @@ hyperdex :: physical :: create_connection(const po6::net::location& to)
     try
     {
         std::tr1::shared_ptr<channel> chan;
-        chan.reset(new channel(m_lr, m_us, to));
+        chan.reset(new channel(m_lr, this, m_us, to));
 
         // Find an empty slot.
         for (size_t i = 0; i < m_channels.size(); ++i)
@@ -137,6 +137,33 @@ hyperdex :: physical :: create_connection(const po6::net::location& to)
     {
         return std::tr1::shared_ptr<channel>();
     }
+}
+
+// Invariant:  no locks may be held.
+void
+hyperdex :: physical :: remove_connection(channel* to_remove)
+{
+    m_lock.wrlock();
+    po6::net::location loc = to_remove->loc;
+    std::map<po6::net::location, size_t>::iterator iter = m_location_map.find(loc);
+
+    if (iter == m_location_map.end())
+    {
+        LOG(FATAL) << "The physical layer's address map got out of sync with its open channels.";
+    }
+
+    size_t index = iter->second;
+    m_location_map.erase(iter);
+    // This lock/unlock pair is necessary to ensure the channel is no longer in
+    // use.  As we know that we are the only one who can use m_location_map and
+    // m_channels, the only other possibility is that a send is in-progress
+    // (after the rdlock is released, but before the chan lock is released).
+    // Once this succeeds, we know that no one else may possibly use this
+    // channel.
+    m_channels[index]->mtx.lock();
+    m_channels[index]->mtx.unlock();
+    m_channels[index] = std::tr1::shared_ptr<channel>();
+    m_lock.unlock();
 }
 
 void
@@ -168,6 +195,7 @@ hyperdex :: physical :: refresh(ev::async&, int)
 }
 
 hyperdex :: physical :: channel :: channel(ev::loop_ref lr,
+                                           physical* m,
                                            const po6::net::location& from,
                                            const po6::net::location& to)
     : mtx()
@@ -177,6 +205,7 @@ hyperdex :: physical :: channel :: channel(ev::loop_ref lr,
     , inprogress()
     , outprogress()
     , outgoing()
+    , manager(m)
 {
     io.set<channel, &channel::io_cb>(this);
     io.set(soc.get(), ev::READ);
@@ -221,7 +250,9 @@ hyperdex :: physical :: channel :: read_cb(ev::io&)
 
         if (ret == 0)
         {
-            // XXX close
+            mtx.unlock();
+            manager->remove_connection(this);
+            return;
         }
 
         while (inprogress.size() >= sizeof(uint32_t))
@@ -241,7 +272,7 @@ hyperdex :: physical :: channel :: read_cb(ev::io&)
             message m;
             m.loc = loc;
             m.buf.swap(buf);
-            // XXX lockingq.push(m);
+            manager->m_incoming.push(m);
             memmove(&inprogress.front(), &inprogress.front() + end, inprogress.size() - end);
         }
     }
@@ -250,7 +281,9 @@ hyperdex :: physical :: channel :: read_cb(ev::io&)
         if (e != EAGAIN && e != EINTR && e != EWOULDBLOCK)
         {
             LOG(ERROR) << "could not read from " << loc << "; closing";
-            // XXX close.
+            mtx.unlock();
+            manager->remove_connection(this);
+            return;
         }
     }
 
@@ -289,7 +322,9 @@ hyperdex :: physical :: channel :: write_cb(ev::io&)
         if (e != EAGAIN && e != EINTR && e != EWOULDBLOCK)
         {
             LOG(ERROR) << "could not write to " << loc << "; closing";
-            // XXX close.
+            mtx.unlock();
+            manager->remove_connection(this);
+            return;
         }
     }
 
