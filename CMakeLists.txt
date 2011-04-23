@@ -49,6 +49,7 @@ set(hyperdex_headers
 set(hyperdex_srcs
     src/hyperdex/bloom.cc
     src/hyperdex/city.cc
+    src/hyperdex/entity.cc
     src/hyperdex/hyperdexd.cc
     src/hyperdex/log.cc
     src/hyperdex/logical.cc
@@ -56,6 +57,7 @@ set(hyperdex_srcs
     src/hyperdex/network_worker.cc
     src/hyperdex/physical.cc
     src/hyperdex/query.cc
+    src/hyperdex/shard.cc
 )
 
 # Build libhyperdex
@@ -87,6 +89,7 @@ ENABLE_TESTING()
 
 set(hyperdex_test_srcs
     test/hyperdex/bloom.cc
+    test/hyperdex/entity.cc
     test/hyperdex/log.cc
     test/hyperdex/lockingq.cc
     test/hyperdex/mapper.cc
@@ -156,5 +159,14 @@ add_test(LockingqTest.CtorAndDtor testrunner
     --gtest_filter=LockingqTest.CtorAndDtor)
 add_test(LockingqTest.NormalQueue testrunner
     --gtest_filter=LockingqTest.NormalQueue)
+
+add_test(EntityTest.CtorAndDtor testrunner
+    --gtest_filter=EntityTest.CtorAndDtor)
+add_test(EntityTest.SerializedConstructor testrunner
+    --gtest_filter=EntityTest.SerializedConstructor)
+add_test(EntityTest.Serialization testrunner
+    --gtest_filter=EntityTest.Serialization)
+add_test(EntityTest.BadType testrunner
+    --gtest_filter=EntityTest.BadType)
 
 # Installation targets.

@@ -25,60 +25,57 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_entity_h_
-#define hyperdex_entity_h_
+// STL
+#include <stdexcept>
 
-// C
-#include <cstddef>
-#include <stdint.h>
+// Google Test
+#include <gtest/gtest.h>
 
-namespace hyperdex
+// HyperDex
+#include <hyperdex/entity.h>
+
+#pragma GCC diagnostic ignored "-Wswitch-default"
+
+namespace
 {
 
-class entity
+TEST(EntityTest, CtorAndDtor)
 {
-    public:
-        enum entity_type
-        {
-            UNDEF         = 0x0,
-            MASTER        = 0x1,
-            CLIENT_PROXY  = 0x2,
-            CHAIN_HEAD    = 0x3,
-            CHAIN_TAIL    = 0x4,
-            CHAIN_REPLICA = 0x5
-        };
+    hyperdex::entity e;
+}
 
-    public:
-        static const size_t SERIALIZEDSIZE = 10;
+TEST(EntityTest, SerializedConstructor)
+{
+    hyperdex::entity e("\x05\x12\x34\x56\x78\xaa\xbb\xcc\xdd\xee");
+    EXPECT_EQ(hyperdex::entity::CHAIN_REPLICA, e.type);
+    EXPECT_EQ(0x12345678, e.table);
+    EXPECT_EQ(0xaabb, e.subspace);
+    EXPECT_EQ(0xccdd, e.zone);
+    EXPECT_EQ(0xee, e.number);
+}
 
-    public:
-        entity();
-        entity(entity_type type, uint32_t table = 0, uint16_t subspace = 0,
-               uint16_t zone = 0, uint8_t number = 0);
-        entity(const char* buf);
-        ~entity();
+TEST(EntityTest, Serialization)
+{
+    hyperdex::entity e(hyperdex::entity::CHAIN_REPLICA, 0x12345678, 0xaabb, 0xccdd, 0xee);
+    char buf[10];
+    e.serialize(buf);
+    EXPECT_EQ(0, memcmp(buf, "\x05\x12\x34\x56\x78\xaa\xbb\xcc\xdd\xee", 10));
+}
 
-    public:
-        // Assume buf is large enough (SERIALIZEDSIZE characters) to hold the data.
-        void serialize(char* buf) const;
-        int compare(const entity& rhs) const;
+TEST(EntityTest, BadType)
+{
+    bool caught = false;
 
-    public:
-        bool operator < (const entity& rhs) const { return compare(rhs) < 0; }
-        bool operator <= (const entity& rhs) const { return compare(rhs) <= 0; }
-        bool operator == (const entity& rhs) const { return compare(rhs) == 0; }
-        bool operator >= (const entity& rhs) const { return compare(rhs) >= 0; }
-        bool operator > (const entity& rhs) const { return compare(rhs) > 0; }
-        bool operator != (const entity& rhs) const { return compare(rhs) != 0; }
+    try
+    {
+        hyperdex::entity e("\x06\x12\x34\x56\x78\xaa\xbb\xcc\xdd\xee");
+    }
+    catch (std::invalid_argument& e)
+    {
+        caught = true;
+    }
 
-    public:
-        entity_type type;
-        uint32_t table;
-        uint16_t subspace;
-        uint16_t zone;
-        uint8_t number;
-};
+    EXPECT_TRUE(caught);
+}
 
-} // namespace hyperdex
-
-#endif // hyperdex_entity_h_
+} // namespace

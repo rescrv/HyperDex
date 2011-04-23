@@ -25,6 +25,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// STL
+#include <stdexcept>
+
 // HyperDex
 #include <hyperdex/logical.h>
 
@@ -62,11 +65,11 @@ hyperdex :: logical :: unmap(const hyperdex::entity& log)
 
 typedef std::map<hyperdex::entity, std::pair<po6::net::location, uint16_t> >::iterator mapiter;
 
-#define HEADER_SIZE 26
-#define LOCVER_A_OFFSET 2
-#define LOCVER_B_OFFSET 4
-#define ENTITY_A_OFFSET 6
-#define ENTITY_B_OFFSET 16
+#define VERSION_A_OFFSET (sizeof(uint8_t))
+#define VERSION_B_OFFSET (VERSION_A_OFFSET + sizeof(uint16_t))
+#define ENTITY_A_OFFSET (VERSION_B_OFFSET + sizeof(uint16_t))
+#define ENTITY_B_OFFSET (ENTITY_A_OFFSET + entity::SERIALIZEDSIZE)
+#define HEADER_SIZE (ENTITY_B_OFFSET + entity::SERIALIZEDSIZE)
 
 bool
 hyperdex :: logical :: send(const hyperdex::entity& from, const hyperdex::entity& to,
@@ -85,15 +88,14 @@ hyperdex :: logical :: send(const hyperdex::entity& from, const hyperdex::entity
 
     std::vector<char> finalmsg(msg.size() + HEADER_SIZE);
     char* buf = &finalmsg.front();
-    hyperdex::entity::entity_type a = from.serialize(buf + ENTITY_A_OFFSET);
-    hyperdex::entity::entity_type b = to.serialize(buf + ENTITY_B_OFFSET);
     buf[0] = msg_type;
-    buf[1] = static_cast<uint8_t>(a) | (static_cast<uint8_t>(b) << 4);
     uint16_t fromver = htons(f->second.second);
+    memmove(buf + VERSION_A_OFFSET, &fromver, sizeof(uint16_t));
     uint16_t tover = htons(t->second.second);
-    memmove(&finalmsg.front() + LOCVER_A_OFFSET, &fromver, sizeof(uint16_t));
-    memmove(&finalmsg.front() + LOCVER_B_OFFSET, &tover, sizeof(uint16_t));
-    memmove(&finalmsg.front() + HEADER_SIZE, &msg.front(), msg.size());
+    memmove(buf + VERSION_B_OFFSET, &tover, sizeof(uint16_t));
+    from.serialize(buf + ENTITY_A_OFFSET);
+    to.serialize(buf + ENTITY_B_OFFSET);
+    memmove(buf + HEADER_SIZE, &msg.front(), msg.size());
     m_physical.send(t->second.first, finalmsg);
     m_lock.unlock();
     return true;
@@ -111,6 +113,14 @@ hyperdex :: logical :: recv(hyperdex::entity* from, hyperdex::entity* to,
     uint16_t fromver;
     uint16_t tover;
 
+    // Read messages from the network until we get one which meets the following
+    // constraints:
+    //  - We have a mapping for the source entity.
+    //  - We have a mapping for the destination entity.
+    //  - We have a mapping for the source entity which corresponds to the
+    //    underlying network location and version number of this message.
+    //  - The destination entity maps to our network location.
+    //  - The message is to the correct version of our port bindings.
     do
     {
         if (!m_physical.recv(&loc, msg))
@@ -118,15 +128,20 @@ hyperdex :: logical :: recv(hyperdex::entity* from, hyperdex::entity* to,
             return false;
         }
 
-        hyperdex::entity::entity_type a = static_cast<hyperdex::entity::entity_type>((*msg)[1] & 0x0f);
-        hyperdex::entity::entity_type b = static_cast<hyperdex::entity::entity_type>(((*msg)[1] & 0xf0) >> 4);
-        *from = entity(a, &msg->front() + ENTITY_A_OFFSET);
-        *to = entity(b, &msg->front() + ENTITY_B_OFFSET);
+        try
+        {
+            *from = entity(&msg->front() + ENTITY_A_OFFSET);
+            *to = entity(&msg->front() + ENTITY_B_OFFSET);
+        }
+        catch (std::invalid_argument& e)
+        {
+            continue;
+        }
+
         f = m_mapping.find(*from);
         t = m_mapping.find(*to);
-
-        memmove(&fromver, &msg->front() + LOCVER_A_OFFSET, sizeof(uint16_t));
-        memmove(&tover, &msg->front() + LOCVER_B_OFFSET, sizeof(uint16_t));
+        memmove(&fromver, &msg->front() + VERSION_A_OFFSET, sizeof(uint16_t));
+        memmove(&tover, &msg->front() + VERSION_B_OFFSET, sizeof(uint16_t));
         fromver = ntohs(fromver);
         tover = ntohs(tover);
     }
