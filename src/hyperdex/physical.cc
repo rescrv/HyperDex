@@ -300,7 +300,7 @@ hyperdex :: physical :: channel :: write_cb(ev::io&)
         io.set(ev::READ);
     }
 
-    // Pop one message to flush to disk.
+    // Pop one message to flush to network.
     if (outprogress.size() == 0)
     {
         uint32_t message_size = htonl(outgoing.front().size());
