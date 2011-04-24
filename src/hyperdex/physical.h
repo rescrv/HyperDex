@@ -38,7 +38,7 @@
 #include <ev++.h>
 
 // po6
-#include <po6/net/location.h>
+#include <po6/net/ipaddr.h>
 #include <po6/net/socket.h>
 #include <po6/threads/mutex.h>
 #include <po6/threads/rwlock.h>
@@ -52,13 +52,15 @@ namespace hyperdex
 class physical
 {
     public:
-        physical(ev::loop_ref lr, const po6::net::location& us);
+        physical(ev::loop_ref lr, const po6::net::ipaddr& ip);
         ~physical();
 
     // Send and recv messages.
     public:
         void send(const po6::net::location& to, const std::vector<char>& msg);
         bool recv(po6::net::location* from, std::vector<char>* msg);
+        po6::net::location inbound() { return m_listen.getsockname(); }
+        po6::net::location outbound() { return m_bindto; }
 
     private:
         struct message
@@ -72,6 +74,9 @@ class physical
 
         struct channel
         {
+            channel(ev::loop_ref lr,
+                    physical* m,
+                    po6::net::socket* accept_from);
             channel(ev::loop_ref lr,
                     physical* m,
                     const po6::net::location& from,
@@ -104,6 +109,8 @@ class physical
         std::tr1::shared_ptr<channel> create_connection(const po6::net::location& to);
         void remove_connection(channel* to_remove);
         void refresh(ev::async& a, int revent);
+        void accept_connection(ev::io& i, int revent);
+        void place_channel(std::tr1::shared_ptr<channel> chan);
 
     private:
         physical& operator = (const physical&);
@@ -111,7 +118,9 @@ class physical
     private:
         ev::loop_ref m_lr;
         ev::async m_wakeup;
-        po6::net::location m_us;
+        po6::net::socket m_listen;
+        ev::io m_listen_event;
+        po6::net::location m_bindto;
         po6::threads::rwlock m_lock; // Hold this when changing the location map.
         std::vector<std::tr1::shared_ptr<channel> > m_channels; // The channels we have.
         std::map<po6::net::location, size_t> m_location_map; // A mapping from locations to indices in m_channels.

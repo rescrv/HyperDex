@@ -31,17 +31,39 @@
 // HyperDex
 #include <hyperdex/physical.h>
 
-hyperdex :: physical :: physical(ev::loop_ref lr, const po6::net::location& us)
+hyperdex :: physical :: physical(ev::loop_ref lr, const po6::net::ipaddr& ip)
     : m_lr(lr)
     , m_wakeup(lr)
-    , m_us(us)
+    , m_listen(ip.family(), SOCK_STREAM, IPPROTO_TCP)
+    , m_listen_event(lr)
+    , m_bindto()
     , m_lock()
     , m_channels()
     , m_location_map()
     , m_incoming()
 {
+    // Enable other threads to wake us from the event loop.
     m_wakeup.set<physical, &physical::refresh>(this);
     m_wakeup.start();
+
+    // Enable other hosts to connect to us.
+    m_listen.bind(po6::net::location(ip, 0));
+    m_listen.listen(4);
+    m_listen_event.set<physical, &physical::accept_connection>(this);
+    m_listen_event.start();
+
+    // Setup a channel which connects to ourself.  The purpose of this channel
+    // is two-fold:  first, it gives a really cheap way of doing self-messaging
+    // without the queue at the higher layer (at the expense of a bigger
+    // performance hit); second, it gives us a way to get a port to which we
+    // may bind repeatedly when establishing connections.
+    //
+    // TODO:  Make establishing this channel only serve the second purpose.
+    std::tr1::shared_ptr<channel> chan;
+    chan.reset(new channel(m_lr, this, po6::net::location(ip, 0), m_listen.getsockname()));
+    m_location_map[chan->loc] = m_channels.size();
+    m_channels.push_back(chan);
+    m_bindto = chan->soc.getsockname();
 }
 
 hyperdex :: physical :: ~physical()
@@ -115,22 +137,8 @@ hyperdex :: physical :: create_connection(const po6::net::location& to)
     try
     {
         std::tr1::shared_ptr<channel> chan;
-        chan.reset(new channel(m_lr, this, m_us, to));
-
-        // Find an empty slot.
-        for (size_t i = 0; i < m_channels.size(); ++i)
-        {
-            if (!m_channels[i])
-            {
-                m_channels[i] = chan;
-                m_location_map[chan->loc] = i;
-                return chan;
-            }
-        }
-
-        // Resize to create new slots.
-        m_location_map[chan->loc] = m_channels.size();
-        m_channels.push_back(chan);
+        chan.reset(new channel(m_lr, this, m_bindto, to));
+        place_channel(chan);
         return chan;
     }
     catch (...)
@@ -192,6 +200,73 @@ hyperdex :: physical :: refresh(ev::async&, int)
     }
 
     m_lock.unlock();
+}
+
+void
+hyperdex :: physical :: accept_connection(ev::io&, int)
+{
+    std::tr1::shared_ptr<channel> chan;
+
+    try
+    {
+        chan.reset(new channel(m_lr, this, &m_listen));
+    }
+    catch (po6::error& e)
+    {
+        return;
+    }
+
+    m_lock.wrlock();
+
+    try
+    {
+        place_channel(chan);
+    }
+    catch (...)
+    {
+        m_lock.unlock();
+        throw;
+    }
+
+    m_lock.unlock();
+}
+
+// Invariant:  m_lock.wrlock must be held.
+void
+hyperdex :: physical :: place_channel(std::tr1::shared_ptr<channel> chan)
+{
+    // Find an empty slot.
+    for (size_t i = 0; i < m_channels.size(); ++i)
+    {
+        if (!m_channels[i])
+        {
+            m_channels[i] = chan;
+            m_location_map[chan->loc] = i;
+            return;
+        }
+    }
+
+    // Resize to create new slots.
+    m_location_map[chan->loc] = m_channels.size();
+    m_channels.push_back(chan);
+}
+
+hyperdex :: physical :: channel :: channel(ev::loop_ref lr,
+                                           physical* m,
+                                           po6::net::socket* accept_from)
+    : mtx()
+    , soc()
+    , loc()
+    , io(lr)
+    , inprogress()
+    , outprogress()
+    , outgoing()
+    , manager(m)
+{
+    accept_from->accept(&soc);
+    io.set<channel, &channel::io_cb>(this);
+    io.set(soc.get(), ev::READ);
+    io.start();
 }
 
 hyperdex :: physical :: channel :: channel(ev::loop_ref lr,

@@ -32,13 +32,18 @@
 #include <hyperdex/logical.h>
 
 hyperdex :: logical :: logical(ev::loop_ref lr,
-                               const po6::net::location& us,
-                               const uint16_t version)
-    : m_us(std::make_pair(us, version))
+                               const po6::net::ipaddr& ip)
+    : m_us()
     , m_lock()
     , m_mapping()
-    , m_physical(lr, us)
+    , m_physical(lr, ip)
 {
+    // XXX Get the addresses of the underlying layer, and message the master to
+    // get the versions.
+    m_us.inbound = m_physical.inbound();
+    m_us.inbound_version = 0;
+    m_us.outbound = m_physical.outbound();
+    m_us.outbound_version = 0;
 }
 
 hyperdex :: logical :: ~logical()
@@ -47,11 +52,10 @@ hyperdex :: logical :: ~logical()
 
 void
 hyperdex :: logical :: map(const hyperdex::entity& log,
-                           const po6::net::location& physical,
-                           const uint16_t version)
+                           const instance& where)
 {
     m_lock.wrlock();
-    m_mapping[log] = std::make_pair(physical, version);
+    m_mapping[log] = where;
     m_lock.unlock();
 }
 
@@ -63,7 +67,7 @@ hyperdex :: logical :: unmap(const hyperdex::entity& log)
     m_lock.unlock();
 }
 
-typedef std::map<hyperdex::entity, std::pair<po6::net::location, uint16_t> >::iterator mapiter;
+typedef std::map<hyperdex::entity, hyperdex::logical::instance>::iterator mapiter;
 
 #define VERSION_A_OFFSET (sizeof(uint8_t))
 #define VERSION_B_OFFSET (VERSION_A_OFFSET + sizeof(uint16_t))
@@ -89,14 +93,14 @@ hyperdex :: logical :: send(const hyperdex::entity& from, const hyperdex::entity
     std::vector<char> finalmsg(msg.size() + HEADER_SIZE);
     char* buf = &finalmsg.front();
     buf[0] = msg_type;
-    uint16_t fromver = htons(f->second.second);
+    uint16_t fromver = htons(f->second.outbound_version);
     memmove(buf + VERSION_A_OFFSET, &fromver, sizeof(uint16_t));
-    uint16_t tover = htons(t->second.second);
+    uint16_t tover = htons(t->second.inbound_version);
     memmove(buf + VERSION_B_OFFSET, &tover, sizeof(uint16_t));
     from.serialize(buf + ENTITY_A_OFFSET);
     to.serialize(buf + ENTITY_B_OFFSET);
     memmove(buf + HEADER_SIZE, &msg.front(), msg.size());
-    m_physical.send(t->second.first, finalmsg);
+    m_physical.send(t->second.inbound, finalmsg);
     m_lock.unlock();
     return true;
 }
@@ -146,8 +150,8 @@ hyperdex :: logical :: recv(hyperdex::entity* from, hyperdex::entity* to,
         tover = ntohs(tover);
     }
     while (f == m_mapping.end() || t == m_mapping.end() ||
-           f->second != std::make_pair(loc, fromver) || t->second != m_us ||
-           m_us.second != tover);
+           f->second.outbound != loc || f->second.outbound_version != fromver ||
+           t->second != m_us || m_us.inbound_version != tover);
 
     *msg_type = static_cast<uint8_t>((*msg)[0]);
     memmove(&msg->front(), &msg->front() + HEADER_SIZE, msg->size() - HEADER_SIZE);

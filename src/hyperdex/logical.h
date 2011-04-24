@@ -48,15 +48,46 @@ namespace hyperdex
 
 class logical
 {
+    private:
+        struct instance
+        {
+            instance()
+                : inbound(), inbound_version(), outbound(), outbound_version()
+            {
+            }
+
+            bool operator == (const instance& rhs) const
+            {
+                const instance& lhs(*this);
+                return lhs.inbound == rhs.inbound &&
+                       lhs.inbound_version == rhs.inbound_version &&
+                       lhs.outbound == rhs.outbound &&
+                       lhs.outbound_version == rhs.outbound_version;
+            }
+
+            bool operator != (const instance& rhs) const
+            {
+                const instance& lhs(*this);
+                return lhs.inbound != rhs.inbound &&
+                       lhs.inbound_version != rhs.inbound_version &&
+                       lhs.outbound != rhs.outbound &&
+                       lhs.outbound_version != rhs.outbound_version;
+            }
+
+            po6::net::location inbound;
+            uint16_t inbound_version;
+            po6::net::location outbound;
+            uint16_t outbound_version;
+        };
+
     public:
-        logical(ev::loop_ref lr, const po6::net::location& us, const uint16_t version);
+        logical(ev::loop_ref lr, const po6::net::ipaddr& us);
         ~logical();
 
     // Change the mapping.
     public:
         void map(const hyperdex::entity& logical,
-                 const po6::net::location& physical,
-                 const uint16_t version);
+                 const instance& where);
         void unmap(const hyperdex::entity& logical);
 
     // Send and recv messages.
@@ -73,9 +104,9 @@ class logical
         logical& operator = (const logical&);
 
     private:
-        const std::pair<po6::net::location, uint16_t> m_us;
+        instance m_us;
         po6::threads::rwlock m_lock;
-        std::map<entity, std::pair<po6::net::location, uint16_t> > m_mapping;
+        std::map<entity, instance> m_mapping;
         hyperdex::physical m_physical;
 };
 
