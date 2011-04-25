@@ -59,6 +59,7 @@ class physical
     public:
         void send(const po6::net::location& to, const std::vector<char>& msg);
         bool recv(po6::net::location* from, std::vector<char>* msg);
+        void shutdown();
         po6::net::location inbound() { return m_listen.getsockname(); }
         po6::net::location outbound() { return m_bindto; }
 

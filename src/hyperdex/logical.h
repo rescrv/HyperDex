@@ -96,6 +96,7 @@ class logical
                   const uint8_t msg_type, const std::vector<char>& msg);
         bool recv(hyperdex::entity* from, hyperdex::entity* to,
                   uint8_t* msg_type, std::vector<char>* msg);
+        void shutdown();
 
     private:
         logical(const logical&);

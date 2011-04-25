@@ -42,11 +42,9 @@
 #include <hyperdex/network_worker.h>
 #include <hyperdex/stream_no.h>
 
-hyperdex :: network_worker :: network_worker(po6::net::location us,
-                                             po6::net::socket* sock)
+hyperdex :: network_worker :: network_worker(hyperdex::logical* comm)
     : m_continue(true)
-    , m_us(us)
-    , m_sock(sock)
+    , m_comm(comm)
 {
 }
 
@@ -71,32 +69,14 @@ hyperdex :: network_worker :: run()
         return;
     }
 
-    int ret;
-    int flags;
-    sockaddr_in6 sa;
-    socklen_t salen;
-    sctp_sndrcvinfo sinfo;
-    std::vector<uint8_t> buf(hyperdex::MESSAGE_SIZE, 0);
+    hyperdex::entity from;
+    hyperdex::entity to;
+    uint8_t msg_type;
+    std::vector<char> msg;
 
-    while (m_continue)
+    while (m_continue && m_comm->recv(&from, &to, &msg_type, &msg))
     {
-        // Receive one message, and dispatch it appropriately.
-        salen = sizeof(sa);
-
-        if ((ret = sctp_recvmsg(m_sock->get(), &buf.front(), buf.size(),
-                                reinterpret_cast<sockaddr*>(&sa), &salen,
-                                &sinfo, &flags)) < 0)
-        {
-            PLOG(ERROR) << "receiving message";
-        }
-
-        switch (sinfo.sinfo_stream)
-        {
-            case stream_no::NONE:
-                break;
-            default:
-                LOG(INFO) << "receiving message";
-        }
+        LOG(INFO) << "receiving message";
     }
 }
 

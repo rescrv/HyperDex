@@ -40,10 +40,14 @@
 // Google Log
 #include <glog/logging.h>
 
+// Libev
+#include <ev++.h>
+
 // po6
 #include <po6/threads/thread.h>
 
 // HyperDex
+#include <hyperdex/logical.h>
 #include <hyperdex/hyperdexd.h>
 #include <hyperdex/network_worker.h>
 
@@ -52,8 +56,7 @@ typedef std::tr1::shared_ptr<po6::threads::thread> thread_ptr;
 #define NUM_THREADS 64
 
 hyperdex :: hyperdexd :: hyperdexd()
-    : m_bind_to()
-    , m_continue(true)
+    : m_continue(true)
 {
 }
 
@@ -62,32 +65,39 @@ hyperdex :: hyperdexd :: ~hyperdexd()
 }
 
 void
-hyperdex :: hyperdexd :: set_location(po6::net::location bind_to)
-{
-    m_bind_to = bind_to;
-}
-
-void
 hyperdex :: hyperdexd :: run()
 {
-    // Actually run HyperDex from within here.
-    // Open a listening socket.
-    po6::net::socket sock(AF_INET6, SOCK_SEQPACKET, IPPROTO_SCTP);
-    sockaddr_in6 sa6;
-    sockaddr* sa = reinterpret_cast<sockaddr*>(&sa6);
-    socklen_t salen = sizeof(sa6);
-    m_bind_to.pack(sa, &salen);
-
-    if (sctp_bindx(sock.get(), sa, 1, SCTP_BINDX_ADD_ADDR) < 0)
-    {
-        PLOG(ERROR) << "sctp_bindx";
-        return;
-    }
-
-    sock.listen(1024);
-
+    // Setup HyperDex.
+    ev::default_loop dl;
+    // Catch signals.
+    ev::sig sighup(dl);
+    sighup.set<hyperdexd, &hyperdexd::HUP>(this);
+    sighup.set(SIGHUP);
+    sighup.start();
+    ev::sig sigint(dl);
+    sigint.set<hyperdexd, &hyperdexd::INT>(this);
+    sigint.set(SIGINT);
+    sigint.start();
+    ev::sig sigquit(dl);
+    sigquit.set<hyperdexd, &hyperdexd::QUIT>(this);
+    sigquit.set(SIGQUIT);
+    sigquit.start();
+    ev::sig sigterm(dl);
+    sigterm.set<hyperdexd, &hyperdexd::TERM>(this);
+    sigterm.set(SIGTERM);
+    sigterm.start();
+    ev::sig sigusr1(dl);
+    sigusr1.set<hyperdexd, &hyperdexd::USR1>(this);
+    sigusr1.set(SIGUSR1);
+    sigusr1.start();
+    ev::sig sigusr2(dl);
+    sigusr2.set<hyperdexd, &hyperdexd::USR2>(this);
+    sigusr2.set(SIGUSR2);
+    sigusr2.start();
+    // Setup the communications layer.
+    hyperdex::logical comm(dl, "127.0.0.1"); // XXX don't hardcode localhost
     // Start the network_worker threads.
-    hyperdex::network_worker nw(m_bind_to, &sock);
+    hyperdex::network_worker nw(&comm);
     std::tr1::function<void (hyperdex::network_worker*)> fnw(&hyperdex::network_worker::run);
     std::vector<thread_ptr> threads;
 
@@ -98,70 +108,68 @@ hyperdex :: hyperdexd :: run()
         threads.push_back(t);
     }
 
-    // Wait for a signal to interrupt us.
     while (m_continue)
     {
-        pause();
+        dl.loop(EVLOOP_ONESHOT);
     }
 
     // Cleanup HyperDex.
+    //
+    // XXX This is not proper network procedure.  A proper shutdown is:
+    //  - The server receives the shutdown notice.
+    //  - Every row leader agrees not to accept more updates.
+    //  - Every row leader notifies the master when stable.
+    //  - All instances flush to disk.
+    //  - All instances terminate.
+    //
+    // Turn off the network.
+    comm.shutdown();
     // Cleanup the network_worker threads.
     nw.shutdown();
-
-    for (size_t i = 0; i < threads.size(); ++i)
-    {
-        if (sctp_sendmsg(sock.get(), "A", 2, sa, salen, 0, SCTP_UNORDERED|SCTP_ADDR_OVER, 0, 0, 0) < 0)
-        {
-            PLOG(ERROR) << "sctp_bindx";
-        }
-    }
 
     for (std::vector<thread_ptr>::iterator t = threads.begin();
             t != threads.end(); ++t)
     {
         (*t)->join();
     }
-
-    // Cleanup the listening socket.
-    sock.close();
 }
 
 void
-hyperdex :: hyperdexd :: HUP()
+hyperdex :: hyperdexd :: HUP(ev::sig&, int)
 {
     LOG(ERROR) << "SIGHUP received; exiting.";
     m_continue = false;
 }
 
 void
-hyperdex :: hyperdexd :: INT()
+hyperdex :: hyperdexd :: INT(ev::sig&, int)
 {
     LOG(ERROR) << "SIGINT received; exiting.";
     m_continue = false;
 }
 
 void
-hyperdex :: hyperdexd :: QUIT()
+hyperdex :: hyperdexd :: QUIT(ev::sig&, int)
 {
     LOG(ERROR) << "SIGQUIT received; exiting.";
     m_continue = false;
 }
 
 void
-hyperdex :: hyperdexd :: TERM()
+hyperdex :: hyperdexd :: TERM(ev::sig&, int)
 {
     LOG(ERROR) << "SIGTERM received; exiting.";
     m_continue = false;
 }
 
 void
-hyperdex :: hyperdexd :: USR1()
+hyperdex :: hyperdexd :: USR1(ev::sig&, int)
 {
     LOG(INFO) << "SIGUSR1 received.  This does nothing.";
 }
 
 void
-hyperdex :: hyperdexd :: USR2()
+hyperdex :: hyperdexd :: USR2(ev::sig&, int)
 {
     LOG(INFO) << "SIGUSR2 received.  This does nothing.";
 }

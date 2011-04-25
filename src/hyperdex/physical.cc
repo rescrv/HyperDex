@@ -50,6 +50,7 @@ hyperdex :: physical :: physical(ev::loop_ref lr, const po6::net::ipaddr& ip)
     m_listen.bind(po6::net::location(ip, 0));
     m_listen.listen(4);
     m_listen_event.set<physical, &physical::accept_connection>(this);
+    m_listen_event.set(m_listen.get(), ev::READ);
     m_listen_event.start();
 
     // Setup a channel which connects to ourself.  The purpose of this channel
@@ -121,6 +122,12 @@ hyperdex :: physical :: recv(po6::net::location* from,
     *from = m.loc;
     msg->swap(m.buf);
     return ret;
+}
+
+void
+hyperdex :: physical :: shutdown()
+{
+    m_incoming.shutdown();
 }
 
 // Invariant:  m_lock.wrlock must be held.
@@ -314,7 +321,11 @@ hyperdex :: physical :: channel :: io_cb(ev::io& w, int revents)
 void
 hyperdex :: physical :: channel :: read_cb(ev::io&)
 {
-    mtx.lock();
+    if (!mtx.trylock())
+    {
+        return;
+    }
+
     size_t startpos = inprogress.size();
     inprogress.resize(startpos + IO_BLOCKSIZE);
 
@@ -368,7 +379,10 @@ hyperdex :: physical :: channel :: read_cb(ev::io&)
 void
 hyperdex :: physical :: channel :: write_cb(ev::io&)
 {
-    mtx.lock();
+    if (!mtx.trylock())
+    {
+        return;
+    }
 
     if (outgoing.size() == 0 && outprogress.size() == 0)
     {

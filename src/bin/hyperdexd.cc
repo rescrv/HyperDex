@@ -40,68 +40,12 @@
 // HyperDex
 #include <hyperdex/hyperdexd.h>
 
-void
-handle_signal(int signum);
-
-hyperdex::hyperdexd hyperdexd;
-
 int
 main(int argc, char* argv[])
 {
     google::InitGoogleLogging(argv[0]);
-    google::InstallFailureSignalHandler();
 
-    // Install signal handlers
-    struct sigaction sa;
-    sa.sa_handler = handle_signal;
-    sa.sa_flags = SA_RESTART;
-    sa.sa_restorer = NULL;
-
-    if (sigemptyset(&sa.sa_mask) < 0)
-    {
-        perror("sigemptyset");
-        return EXIT_FAILURE;
-    }
-
-    if (sigaction(SIGHUP, &sa, NULL) < 0)
-    {
-        perror("sigaction(SIGHUP)");
-        return EXIT_FAILURE;
-    }
-
-    if (sigaction(SIGINT, &sa, NULL) < 0)
-    {
-        perror("sigaction(SIGINT)");
-        return EXIT_FAILURE;
-    }
-
-    if (sigaction(SIGQUIT, &sa, NULL) < 0)
-    {
-        perror("sigaction(SIGQUIT)");
-        return EXIT_FAILURE;
-    }
-
-    if (sigaction(SIGTERM, &sa, NULL) < 0)
-    {
-        perror("sigaction(SIGTERM)");
-        return EXIT_FAILURE;
-    }
-
-    if (sigaction(SIGUSR1, &sa, NULL) < 0)
-    {
-        perror("sigaction(SIGUSR1)");
-        return EXIT_FAILURE;
-    }
-
-    if (sigaction(SIGUSR2, &sa, NULL) < 0)
-    {
-        perror("sigaction(SIGUSR2)");
-        return EXIT_FAILURE;
-    }
-
-    // Add arguments to the daemon.
-    // TODO:  These are constant for now.
-    hyperdexd.set_location(po6::net::location("127.0.0.1", 6970));
+    hyperdex::hyperdexd hyperdexd;
 
     // Run the daemon.
     try
@@ -122,32 +66,4 @@ main(int argc, char* argv[])
     }
 
     return EXIT_SUCCESS;
-}
-
-void
-handle_signal(int signum)
-{
-    switch (signum)
-    {
-        case SIGHUP:
-            hyperdexd.HUP();
-            break;
-        case SIGINT:
-            hyperdexd.INT();
-            break;
-        case SIGQUIT:
-            hyperdexd.QUIT();
-            break;
-        case SIGTERM:
-            hyperdexd.TERM();
-            break;
-        case SIGUSR1:
-            hyperdexd.USR1();
-            break;
-        case SIGUSR2:
-            hyperdexd.USR2();
-            break;
-        default:
-            break;
-    }
 }

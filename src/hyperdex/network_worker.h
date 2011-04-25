@@ -26,8 +26,10 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // po6
-#include <po6/net/socket.h>
 #include <po6/threads/rwlock.h>
+
+// HyperDex
+#include <hyperdex/logical.h>
 
 namespace hyperdex
 {
@@ -36,7 +38,7 @@ namespace hyperdex
 class network_worker
 {
     public:
-        network_worker(po6::net::location us, po6::net::socket* sock);
+        network_worker(hyperdex::logical* comm);
         ~network_worker();
 
     public:
@@ -51,8 +53,7 @@ class network_worker
 
     private:
         bool m_continue;
-        po6::net::location m_us;
-        po6::net::socket* m_sock;
+        hyperdex::logical* m_comm;
 };
 
 } // namespace hyperdex

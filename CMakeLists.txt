@@ -78,10 +78,8 @@ target_link_libraries(hyperdex
 
 # Build hyperdexd
 add_executable(hyperdexd src/bin/hyperdexd.cc)
-# TODO properly detect sctp.
 target_link_libraries(hyperdexd
     hyperdex
-    sctp
 )
 
 # Tests
@@ -98,11 +96,9 @@ set(hyperdex_test_srcs
 
 add_executable(testrunner test/runner.cc ${hyperdex_test_srcs})
 # TODO properly detect gtest.
-# TODO properly detect sctp.
 target_link_libraries(testrunner
     hyperdex
     gtest
-    sctp
 )
 
 add_test(QueryTest.CtorAndDtor testrunner

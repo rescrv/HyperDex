@@ -28,6 +28,9 @@
 #ifndef hyperdex_hyperdexd_h_
 #define hyperdex_hyperdexd_h_
 
+// Libev
+#include <ev++.h>
+
 // po6
 #include <po6/net/location.h>
 
@@ -41,26 +44,19 @@ class hyperdexd
         ~hyperdexd();
 
     public:
-        void set_location(po6::net::location bind_to);
-
         // This method blocks until the daemon is done running.
-        // It is safe to call the "signal handlers" of this class from within
-        // the signal handler delivered to the thread which calls this run
-        // method.  The run method does not install signal handlers, so that it
-        // does not alter the state of the process embedding hyperdexd.
-        // Internal threads, created by hyperdexd, will block all signals.
+        // The signal handlers of the calling thread will be affected.
         void run();
 
-    public:
-        void HUP();
-        void INT();
-        void QUIT();
-        void TERM();
-        void USR1();
-        void USR2();
+    private:
+        void HUP(ev::sig& s, int sig);
+        void INT(ev::sig& s, int sig);
+        void QUIT(ev::sig& s, int sig);
+        void TERM(ev::sig& s, int sig);
+        void USR1(ev::sig& s, int sig);
+        void USR2(ev::sig& s, int sig);
 
     private:
-        po6::net::location m_bind_to;
         bool m_continue;
 };
 

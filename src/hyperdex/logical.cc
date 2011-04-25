@@ -159,3 +159,9 @@ hyperdex :: logical :: recv(hyperdex::entity* from, hyperdex::entity* to,
     m_lock.unlock();
     return true;
 }
+
+void
+hyperdex :: logical :: shutdown()
+{
+    m_physical.shutdown();
+}
