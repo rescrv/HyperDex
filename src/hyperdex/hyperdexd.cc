@@ -47,6 +47,7 @@
 #include <po6/threads/thread.h>
 
 // HyperDex
+#include <hyperdex/datalayer.h>
 #include <hyperdex/logical.h>
 #include <hyperdex/hyperdexd.h>
 #include <hyperdex/network_worker.h>
@@ -96,8 +97,10 @@ hyperdex :: hyperdexd :: run()
     sigusr2.start();
     // Setup the communications layer.
     hyperdex::logical comm(dl, "127.0.0.1"); // XXX don't hardcode localhost
+    // Setup the data layer.
+    hyperdex::datalayer data;
     // Start the network_worker threads.
-    hyperdex::network_worker nw(&comm);
+    hyperdex::network_worker nw(&comm, &data);
     std::tr1::function<void (hyperdex::network_worker*)> fnw(&hyperdex::network_worker::run);
     std::vector<thread_ptr> threads;
 

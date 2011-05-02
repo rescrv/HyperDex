@@ -29,6 +29,7 @@
 #include <po6/threads/rwlock.h>
 
 // HyperDex
+#include <hyperdex/datalayer.h>
 #include <hyperdex/logical.h>
 
 namespace hyperdex
@@ -38,7 +39,7 @@ namespace hyperdex
 class network_worker
 {
     public:
-        network_worker(hyperdex::logical* comm);
+        network_worker(hyperdex::logical* comm, hyperdex::datalayer* data);
         ~network_worker();
 
     public:
@@ -54,6 +55,7 @@ class network_worker
     private:
         bool m_continue;
         hyperdex::logical* m_comm;
+        hyperdex::datalayer* m_data;
 };
 
 } // namespace hyperdex

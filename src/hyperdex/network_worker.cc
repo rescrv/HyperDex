@@ -42,9 +42,11 @@
 #include <hyperdex/network_worker.h>
 #include <hyperdex/stream_no.h>
 
-hyperdex :: network_worker :: network_worker(hyperdex::logical* comm)
+hyperdex :: network_worker :: network_worker(hyperdex::logical* comm,
+                                             hyperdex::datalayer* data)
     : m_continue(true)
     , m_comm(comm)
+    , m_data(data)
 {
 }
 
@@ -76,7 +78,30 @@ hyperdex :: network_worker :: run()
 
     while (m_continue && m_comm->recv(&from, &to, &msg_type, &msg))
     {
-        LOG(INFO) << "receiving message";
+        hyperdex::stream_no::stream_no_t type;
+        type = static_cast<hyperdex::stream_no::stream_no_t>(msg_type);
+
+        switch (type)
+        {
+            case hyperdex::stream_no::NONE:
+                LOG(INFO) << "NONE";
+                break;
+            case hyperdex::stream_no::GET:
+                LOG(INFO) << "GET";
+                break;
+            case hyperdex::stream_no::PUT:
+                LOG(INFO) << "PUT";
+                break;
+            case hyperdex::stream_no::DEL:
+                LOG(INFO) << "DEL";
+                break;
+            case hyperdex::stream_no::SEARCH:
+                LOG(INFO) << "SEARCH";
+                break;
+            default:
+                LOG(INFO) << "unknown message type";
+                break;
+        }
     }
 }
 

@@ -32,7 +32,11 @@ namespace stream_no
 
 enum stream_no_t
 {
-    NONE = 0
+    NONE    = 0,
+    GET     = 1,
+    PUT     = 2,
+    DEL     = 3,
+    SEARCH  = 4
 };
 
 } // namespace stream_no
