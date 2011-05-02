@@ -25,17 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// POSIX
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/sctp.h>
-
-// C++
-#include <iostream>
-
-// STL
-#include <tr1/functional>
-#include <tr1/memory>
+// ZooKeeper
+#include <zookeeper.h>
 
 // Google Log
 #include <glog/logging.h>
@@ -43,18 +34,16 @@
 // Libev
 #include <ev++.h>
 
-// po6
-#include <po6/threads/thread.h>
-
 // HyperDex
-#include <hyperdex/datalayer.h>
 #include <hyperdex/logical.h>
 #include <hyperdex/hyperdexm.h>
-#include <hyperdex/network_worker.h>
 
-typedef std::tr1::shared_ptr<po6::threads::thread> thread_ptr;
+static void
+watcher(zhandle_t *zh, int type, int state, const char *path, void *watcherCtx)
+{
+    LOG(INFO) << "change on " << path;
+}
 
-#define NUM_THREADS 64
 
 hyperdex :: hyperdexm :: hyperdexm()
     : m_continue(true)
@@ -97,11 +86,17 @@ hyperdex :: hyperdexm :: run()
     sigusr2.start();
     // Setup the communications layer.
     hyperdex::logical comm(dl, "127.0.0.1"); // XXX don't hardcode localhost
+    // Setup the ZooKeeper connection.
+    clientid_t ci;
+    memset(&ci, 0, sizeof(ci));
+    zhandle_t* zk = zookeeper_init("127.0.0.1:2181", watcher, 10000, &ci, NULL, 0);
 
     while (m_continue)
     {
         dl.loop(EVLOOP_ONESHOT);
     }
+
+    zookeeper_close(zk);
 }
 
 void
