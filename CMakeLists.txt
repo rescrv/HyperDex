@@ -52,6 +52,7 @@ set(hyperdex_srcs
     src/hyperdex/datalayer.cc
     src/hyperdex/entity.cc
     src/hyperdex/hyperdexd.cc
+    src/hyperdex/hyperdexm.cc
     src/hyperdex/log.cc
     src/hyperdex/logical.cc
     src/hyperdex/mapper.cc
@@ -81,6 +82,12 @@ target_link_libraries(hyperdex
 # Build hyperdexd
 add_executable(hyperdexd src/bin/hyperdexd.cc)
 target_link_libraries(hyperdexd
+    hyperdex
+)
+
+# Build hyperdexm
+add_executable(hyperdexm src/bin/hyperdexm.cc)
+target_link_libraries(hyperdexm
     hyperdex
 )
 
