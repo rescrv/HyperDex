@@ -49,6 +49,7 @@ set(hyperdex_headers
 set(hyperdex_srcs
     src/hyperdex/bloom.cc
     src/hyperdex/city.cc
+    src/hyperdex/datalayer.cc
     src/hyperdex/entity.cc
     src/hyperdex/hyperdexd.cc
     src/hyperdex/log.cc
@@ -58,6 +59,7 @@ set(hyperdex_srcs
     src/hyperdex/physical.cc
     src/hyperdex/query.cc
     src/hyperdex/shard.cc
+    src/hyperdex/zone.cc
 )
 
 # Build libhyperdex
