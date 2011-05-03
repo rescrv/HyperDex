@@ -28,6 +28,11 @@
 #ifndef hyperdex_hyperdexm_h_
 #define hyperdex_hyperdexm_h_
 
+// ZooKeeper
+#define THREADED
+#include <zookeeper.h>
+#undef THREADED
+
 // Libev
 #include <ev++.h>
 
@@ -36,6 +41,15 @@
 
 namespace hyperdex
 {
+
+void
+watcher(zhandle_t* zk, int type, int state, const char* path, void* ctx);
+
+void
+daemons_watcher(zhandle_t* zk, int type, int state, const char* path, void* ctx);
+
+void
+daemons_update(int rc, const struct String_vector *strings, const void *data);
 
 class hyperdexm
 {
@@ -49,14 +63,21 @@ class hyperdexm
         void run();
 
     private:
+        friend void hyperdex::watcher(zhandle_t*, int, int, const char*, void*);
+        friend void hyperdex::daemons_watcher(zhandle_t*, int, int, const char*, void*);
+
+    private:
+        void watch_for_daemons(zhandle_t* zk);
         void HUP(ev::sig& s, int sig);
         void INT(ev::sig& s, int sig);
         void QUIT(ev::sig& s, int sig);
         void TERM(ev::sig& s, int sig);
         void USR1(ev::sig& s, int sig);
         void USR2(ev::sig& s, int sig);
+        void abort();
 
     private:
+        ev::async m_wakeup;
         bool m_continue;
 };
 

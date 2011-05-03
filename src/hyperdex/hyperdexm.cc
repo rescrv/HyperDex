@@ -25,9 +25,6 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// ZooKeeper
-#include <zookeeper.h>
-
 // Google Log
 #include <glog/logging.h>
 
@@ -38,15 +35,76 @@
 #include <hyperdex/logical.h>
 #include <hyperdex/hyperdexm.h>
 
-static void
-watcher(zhandle_t *zh, int type, int state, const char *path, void *watcherCtx)
+void
+hyperdex :: watcher(zhandle_t* zk,
+                    int type,
+                    int state,
+                    const char* path,
+                    void* ctx)
 {
-    LOG(INFO) << "change on " << path;
+    hyperdex::hyperdexm* master = static_cast<hyperdex::hyperdexm*>(ctx);
+
+    if (state == ZOO_EXPIRED_SESSION_STATE)
+    {
+            LOG(ERROR) << "ZooKeeper session expired.";
+            master->abort();
+    }
+    else if (state == ZOO_AUTH_FAILED_STATE)
+    {
+            LOG(ERROR) << "Could not authenticated to ZooKeeper.";
+            master->abort();
+    }
+    else if (state == ZOO_CONNECTING_STATE)
+    {
+            LOG(INFO) << "Connecting to ZooKeeper.";
+    }
+    else if (state == ZOO_ASSOCIATING_STATE)
+    {
+            LOG(INFO) << "Associating with ZooKeeper.";
+    }
+    else if (state == ZOO_CONNECTED_STATE)
+    {
+            LOG(INFO) << "Connected with ZooKeeper.";
+    }
+    else
+    {
+            LOG(ERROR) << "Unknown ZooKeeper state: " << state;
+            master->abort();
+    }
 }
 
+void
+hyperdex :: daemons_watcher(zhandle_t* zk,
+                            int type,
+                            int state,
+                            const char* path,
+                            void* ctx)
+{
+    hyperdex::hyperdexm* master = static_cast<hyperdex::hyperdexm*>(ctx);
+    master->watch_for_daemons(zk);
+}
+
+void
+hyperdex :: daemons_update(int rc, const struct String_vector *strings, const void *data)
+{
+    std::vector<std::string> daemons;
+
+    for (int32_t i = 0; i < strings->count; ++i)
+    {
+        daemons.push_back(strings->data[i]);
+    }
+
+    LOG(INFO) << "there are now " << daemons.size() << " daemons";
+
+    for (size_t i = 0; i < daemons.size(); ++i)
+    {
+        LOG(INFO) << "daemon: " << daemons[i];
+    }
+}
 
 hyperdex :: hyperdexm :: hyperdexm()
-    : m_continue(true)
+    : m_wakeup()
+    , m_continue(true)
 {
 }
 
@@ -59,6 +117,7 @@ hyperdex :: hyperdexm :: run()
 {
     // Setup HyperDex.
     ev::default_loop dl;
+    m_wakeup.set(dl);
     // Catch signals.
     ev::sig sighup(dl);
     sighup.set<hyperdexm, &hyperdexm::HUP>(this);
@@ -89,7 +148,24 @@ hyperdex :: hyperdexm :: run()
     // Setup the ZooKeeper connection.
     clientid_t ci;
     memset(&ci, 0, sizeof(ci));
-    zhandle_t* zk = zookeeper_init("127.0.0.1:2181", watcher, 10000, &ci, NULL, 0);
+    zhandle_t* zk = zookeeper_init("127.0.0.1:2181", watcher, 30000, &ci, 0, 0);
+    // Allow daemons to start.
+    // XXX Do not use the unsafe acl.
+    char buf[1024];
+    int status = zoo_create(zk, "/daemons", "", 0, &ZOO_OPEN_ACL_UNSAFE, 0, buf, 1024);
+
+    switch (status)
+    {
+        case ZOK:
+        case ZNODEEXISTS:
+            break;
+        default:
+            LOG(ERROR) << "Could not create \"/daemons\" in ZooKeeper: " << zerror(status);
+            return;
+    }
+
+    // Watch for new daemons.
+    this->watch_for_daemons(zk);
 
     while (m_continue)
     {
@@ -97,6 +173,22 @@ hyperdex :: hyperdexm :: run()
     }
 
     zookeeper_close(zk);
+}
+
+void
+hyperdex :: hyperdexm :: watch_for_daemons(zhandle_t* zk)
+{
+    int status;
+
+    switch ((status = zoo_awget_children(zk, "/daemons", hyperdex::daemons_watcher, this,
+                                                         hyperdex::daemons_update, this)))
+    {
+        case ZOK:
+            break;
+        default:
+            LOG(ERROR) << "error setting watch for daemons: " << zerror(status);
+            this->abort();
+    }
 }
 
 void
@@ -137,4 +229,10 @@ void
 hyperdex :: hyperdexm :: USR2(ev::sig&, int)
 {
     LOG(INFO) << "SIGUSR2 received.  This does nothing.";
+}
+
+void
+hyperdex :: hyperdexm :: abort()
+{
+    LOG(ERROR) << "Internally generated abort; exiting.";
 }
