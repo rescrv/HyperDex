@@ -34,8 +34,9 @@ import threading
 
 class server(asyncore.dispatcher):
 
-    def __init__(self, address, port, clients):
+    def __init__(self, lock, address, port, clients):
         asyncore.dispatcher.__init__(self)
+        self.lock = lock
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.set_reuse_addr()
         self.bind((address, port))
@@ -49,19 +50,26 @@ class server(asyncore.dispatcher):
             return
         sock, addr = pair
         print 'XXX connection from %s' % repr(addr)
-        self.clients.add(client(sock, addr, self.clients))
+        client(self.lock, sock, addr, self.clients)
 
 
 class client(asyncore.dispatcher_with_send):
 
-    def __init__(self, sock, addr, clients):
+    def __init__(self, lock, sock, addr, clients):
         asyncore.dispatcher_with_send.__init__(self, sock)
+        self.lock = lock
         self.clients = clients
         self.address = addr
         self.data = ''
+        with self.lock:
+            self.clients.add(self)
 
     def handle_close(self):
-        self.clients.remove(self)
+        print 'XXX closing %s' % repr(self.address)
+        self.close()
+        with self.lock:
+            self.clients.remove(self)
+        del self
 
     def handle_read(self):
         self.data += self.recv(1024)
@@ -75,9 +83,9 @@ class client(asyncore.dispatcher_with_send):
 
 class asyncthread(threading.Thread):
 
-    def __init__(self, address, port, clients):
+    def __init__(self, lock, address, port, clients):
         threading.Thread.__init__(self)
-        self.lock = threading.RLock()
+        self.lock = lock
         self.address = address
         self.port = port
         self.clients = clients
@@ -108,8 +116,9 @@ class asyncthread(threading.Thread):
 
 def main(address, client, control):
     clients = set()
-    s = server(address, client, clients)
-    thread = asyncthread(address, control, clients);
+    lock = threading.RLock()
+    s = server(lock, address, client, clients)
+    thread = asyncthread(lock, address, control, clients);
     thread.start()
     while True:
         with thread.lock:
