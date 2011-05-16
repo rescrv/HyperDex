@@ -73,7 +73,7 @@ hyperdex :: physical :: ~physical()
 
 void
 hyperdex :: physical :: send(const po6::net::location& to,
-                             const std::vector<char>& msg)
+                             const e::buffer& msg)
 {
     // Get a reference to the channel for "to" with mtx held.
     m_lock.rdlock();
@@ -115,12 +115,12 @@ hyperdex :: physical :: send(const po6::net::location& to,
 
 bool
 hyperdex :: physical :: recv(po6::net::location* from,
-                             std::vector<char>* msg)
+                             e::buffer* msg)
 {
     message m;
     bool ret = m_incoming.pop(&m);
     *from = m.loc;
-    msg->swap(m.buf);
+    *msg = m.buf;
     return ret;
 }
 
@@ -326,13 +326,12 @@ hyperdex :: physical :: channel :: read_cb(ev::io&)
         return;
     }
 
-    size_t startpos = inprogress.size();
-    inprogress.resize(startpos + IO_BLOCKSIZE);
+    char block[IO_BLOCKSIZE];
 
     try
     {
-        size_t ret = soc.read(&inprogress.front() + startpos, IO_BLOCKSIZE);
-        inprogress.resize(startpos + ret);
+        size_t ret = soc.read(block, IO_BLOCKSIZE);
+        inprogress += e::buffer(block, ret);
 
         if (ret == 0)
         {
@@ -343,23 +342,22 @@ hyperdex :: physical :: channel :: read_cb(ev::io&)
 
         while (inprogress.size() >= sizeof(uint32_t))
         {
+            e::buffer::unpacker up(inprogress);
             uint32_t message_size;
-            memmove(&message_size, &inprogress.front(), sizeof(uint32_t));
-            message_size = ntohl(message_size);
-            size_t end = message_size + sizeof(uint32_t);
+            up >> message_size;
 
-            if (inprogress.size() < end)
+            if (inprogress.size() < message_size + sizeof(uint32_t))
             {
                 break;
             }
 
-            std::vector<char> buf(inprogress.front() + sizeof(uint32_t),
-                                  inprogress.front() + end);
+            e::buffer buf;
+            up >> buf;
             message m;
             m.loc = loc;
-            m.buf.swap(buf);
+            m.buf = buf;
             manager->m_incoming.push(m);
-            memmove(&inprogress.front(), &inprogress.front() + end, inprogress.size() - end);
+            inprogress.trim_prefix(message_size + sizeof(uint32_t));
         }
     }
     catch (po6::error& e)
@@ -384,27 +382,26 @@ hyperdex :: physical :: channel :: write_cb(ev::io&)
         return;
     }
 
-    if (outgoing.size() == 0 && outprogress.size() == 0)
+    if (outgoing.empty() && outprogress.empty())
     {
         io.set(ev::READ);
+        mtx.unlock();
+        // XXX this probably means we need to shut it down.
+        return;
     }
 
     // Pop one message to flush to network.
-    if (outprogress.size() == 0)
+    if (outprogress.empty())
     {
-        uint32_t message_size = htonl(outgoing.front().size());
-        outprogress.resize(sizeof(uint32_t) + outgoing.front().size());
-        memmove(&outprogress.front(), &message_size, sizeof(uint32_t));
-        memmove(&outprogress.front() + sizeof(uint32_t),
-                &outgoing.front().front(), outgoing.front().size());
+        uint32_t size = outgoing.front().size();
+        e::buffer::packer(&outprogress) << size << outgoing.front();
         outgoing.pop();
     }
 
     try
     {
-        size_t ret = soc.write(&outprogress.front(), outprogress.size());
-        memmove(&outprogress.front(), &outprogress.front() + ret, outprogress.size() - ret);
-        outprogress.resize(outprogress.size() - ret);
+        size_t ret = soc.write(outprogress.get(), outprogress.size());
+        outprogress.trim_prefix(ret);
     }
     catch (po6::error& e)
     {

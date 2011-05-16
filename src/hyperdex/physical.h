@@ -32,7 +32,6 @@
 #include <map>
 #include <queue>
 #include <tr1/memory>
-#include <vector>
 
 // libev
 #include <ev++.h>
@@ -42,6 +41,9 @@
 #include <po6/net/socket.h>
 #include <po6/threads/mutex.h>
 #include <po6/threads/rwlock.h>
+
+// e
+#include <e/buffer.h>
 
 // HyperDex
 #include <hyperdex/lockingq.h>
@@ -57,8 +59,8 @@ class physical
 
     // Send and recv messages.
     public:
-        void send(const po6::net::location& to, const std::vector<char>& msg);
-        bool recv(po6::net::location* from, std::vector<char>* msg);
+        void send(const po6::net::location& to, const e::buffer& msg);
+        bool recv(po6::net::location* from, e::buffer* msg);
         void shutdown();
         po6::net::location inbound() { return m_listen.getsockname(); }
         po6::net::location outbound() { return m_bindto; }
@@ -70,7 +72,7 @@ class physical
             ~message();
 
             po6::net::location loc;
-            std::vector<char> buf;
+            e::buffer buf;
         };
 
         struct channel
@@ -91,9 +93,9 @@ class physical
             po6::net::socket soc; // The socket over which we are communicating.
             po6::net::location loc; // Cached soc.getpeername().
             ev::io io; // The libev watcher.
-            std::vector<char> inprogress; // When reading from the network, we buffer partial reads here.
-            std::vector<char> outprogress; // When writing to the network, we buffer partial writes here.
-            std::queue<std::vector<char> > outgoing; // Messages buffered for writing.
+            e::buffer inprogress; // When reading from the network, we buffer partial reads here.
+            e::buffer outprogress; // When writing to the network, we buffer partial writes here.
+            std::queue<e::buffer> outgoing; // Messages buffered for writing.
             physical* manager; // The outer manager class.
 
             private:
