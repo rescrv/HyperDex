@@ -30,7 +30,6 @@
 
 // STL
 #include <map>
-#include <vector>
 
 // libev
 #include <ev++.h>
@@ -38,6 +37,9 @@
 // po6
 #include <po6/net/location.h>
 #include <po6/threads/rwlock.h>
+
+// e
+#include <e/buffer.h>
 
 // HyperDex
 #include <hyperdex/entity.h>
@@ -55,9 +57,9 @@ class logical
     // Send and recv messages.
     public:
         bool send(const hyperdex::entity& from, const hyperdex::entity& to,
-                  const uint8_t msg_type, const std::vector<char>& msg);
+                  const uint8_t msg_type, const e::buffer& msg);
         bool recv(hyperdex::entity* from, hyperdex::entity* to,
-                  uint8_t* msg_type, std::vector<char>* msg);
+                  uint8_t* msg_type, e::buffer* msg);
         void shutdown();
 
     private:

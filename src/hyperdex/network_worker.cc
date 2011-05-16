@@ -74,7 +74,7 @@ hyperdex :: network_worker :: run()
     hyperdex::entity from;
     hyperdex::entity to;
     uint8_t msg_type;
-    std::vector<char> msg;
+    e::buffer msg;
 
     while (m_continue && m_comm->recv(&from, &to, &msg_type, &msg))
     {

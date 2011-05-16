@@ -32,6 +32,9 @@
 #include <cstddef>
 #include <stdint.h>
 
+// e
+#include <e/buffer.h>
+
 namespace hyperdex
 {
 
@@ -45,12 +48,10 @@ class entity
     public:
         entity(uint32_t table = 0, uint16_t subspace = 0, uint8_t prefix = 0,
                uint64_t mask = 0, uint8_t number = 0);
-        entity(const char* buf);
         ~entity();
 
     public:
         // Assume buf is large enough (SERIALIZEDSIZE characters) to hold the data.
-        void serialize(char* buf) const;
         int compare(const entity& rhs) const;
 
     public:
@@ -68,6 +69,25 @@ class entity
         const uint64_t mask;
         const uint8_t number;
 };
+
+// Serialize the buffer.
+inline e::buffer::packer&
+operator << (e::buffer::packer& lhs, const entity& rhs)
+{
+    lhs << rhs.table << rhs.subspace << rhs.prefix << rhs.mask << rhs.number;
+    return lhs;
+}
+
+inline e::buffer::unpacker&
+operator >> (e::buffer::unpacker& lhs, entity& rhs)
+{
+    lhs >> const_cast<uint32_t&>(rhs.table)
+        >> const_cast<uint16_t&>(rhs.subspace)
+        >> const_cast<uint8_t&>(rhs.prefix)
+        >> const_cast<uint64_t&>(rhs.mask)
+        >> const_cast<uint8_t&>(rhs.number);
+    return lhs;
+}
 
 } // namespace hyperdex
 

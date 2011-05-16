@@ -31,6 +31,10 @@
 // HyperDex
 #include <hyperdex/logical.h>
 
+using e::buffer;
+using po6::net::location;
+using po6::threads::rwlock;
+
 hyperdex :: logical :: logical(ev::loop_ref lr,
                                const po6::net::ipaddr& ip)
     : m_us()
@@ -52,52 +56,38 @@ hyperdex :: logical :: ~logical()
 
 typedef std::map<hyperdex::entity, hyperdex::logical::instance>::iterator mapiter;
 
-#define VERSION_A_OFFSET (sizeof(uint8_t))
-#define VERSION_B_OFFSET (VERSION_A_OFFSET + sizeof(uint16_t))
-#define ENTITY_A_OFFSET (VERSION_B_OFFSET + sizeof(uint16_t))
-#define ENTITY_B_OFFSET (ENTITY_A_OFFSET + entity::SERIALIZEDSIZE)
-#define HEADER_SIZE (ENTITY_B_OFFSET + entity::SERIALIZEDSIZE)
-
 bool
 hyperdex :: logical :: send(const hyperdex::entity& from, const hyperdex::entity& to,
                             const uint8_t msg_type,
-                            const std::vector<char>& msg)
+                            const e::buffer& msg)
 {
-#if 0
-    m_lock.rdlock();
+    rwlock::rdhold rd(&m_lock);
     mapiter f = m_mapping.find(from);
     mapiter t = m_mapping.find(to);
 
     if (f == m_mapping.end() || t == m_mapping.end() || f->second != m_us)
     {
-        m_lock.unlock();
         return false;
     }
 
-    std::vector<char> finalmsg(msg.size() + HEADER_SIZE);
-    char* buf = &finalmsg.front();
-    buf[0] = msg_type;
-    uint16_t fromver = htons(f->second.outbound_version);
-    memmove(buf + VERSION_A_OFFSET, &fromver, sizeof(uint16_t));
-    uint16_t tover = htons(t->second.inbound_version);
-    memmove(buf + VERSION_B_OFFSET, &tover, sizeof(uint16_t));
-    from.serialize(buf + ENTITY_A_OFFSET);
-    to.serialize(buf + ENTITY_B_OFFSET);
-    memmove(buf + HEADER_SIZE, &msg.front(), msg.size());
+    buffer finalmsg(msg.size() + 32);
+    buffer::packer(&finalmsg) << msg_type
+                              << f->second.outbound_version
+                              << t->second.inbound_version
+                              << from
+                              << to
+                              << msg;
     m_physical.send(t->second.inbound, finalmsg);
-    m_lock.unlock();
     return true;
-#endif
 }
 
 bool
 hyperdex :: logical :: recv(hyperdex::entity* from, hyperdex::entity* to,
                             uint8_t* msg_type,
-                            std::vector<char>* msg)
+                            e::buffer* msg)
 {
-#if 0
-    m_lock.rdlock();
-    po6::net::location loc;
+    rwlock::rdhold rd(&m_lock);
+    location loc;
     mapiter f;
     mapiter t;
     uint16_t fromver;
@@ -113,44 +103,34 @@ hyperdex :: logical :: recv(hyperdex::entity* from, hyperdex::entity* to,
     //  - The message is to the correct version of our port bindings.
     do
     {
-        if (!m_physical.recv(&loc, msg))
+        buffer packed;
+        buffer::unpacker up(packed);
+
+        if (!m_physical.recv(&loc, &packed))
         {
             return false;
         }
 
-        try
-        {
-            *from = entity(&msg->front() + ENTITY_A_OFFSET);
-            *to = entity(&msg->front() + ENTITY_B_OFFSET);
-        }
-        catch (std::invalid_argument& e)
+        if (packed.size() < sizeof(uint8_t) + 2 * sizeof(uint16_t) +
+                         2 * entity::SERIALIZEDSIZE)
         {
             continue;
         }
 
+        // This should not throw thanks to the size check above.
+        msg->clear();
+        up >> *msg_type >> fromver >> tover >> *from >> *to >> *msg;
         f = m_mapping.find(*from);
         t = m_mapping.find(*to);
-        memmove(&fromver, &msg->front() + VERSION_A_OFFSET, sizeof(uint16_t));
-        memmove(&tover, &msg->front() + VERSION_B_OFFSET, sizeof(uint16_t));
-        fromver = ntohs(fromver);
-        tover = ntohs(tover);
     }
     while (f == m_mapping.end() || t == m_mapping.end() ||
            f->second.outbound != loc || f->second.outbound_version != fromver ||
            t->second != m_us || m_us.inbound_version != tover);
-
-    *msg_type = static_cast<uint8_t>((*msg)[0]);
-    memmove(&msg->front(), &msg->front() + HEADER_SIZE, msg->size() - HEADER_SIZE);
-    msg->resize(msg->size() - HEADER_SIZE);
-    m_lock.unlock();
     return true;
-#endif
 }
 
 void
 hyperdex :: logical :: shutdown()
 {
-#if 0
     m_physical.shutdown();
-#endif
 }

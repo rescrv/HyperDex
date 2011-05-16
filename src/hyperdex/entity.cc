@@ -57,32 +57,8 @@ hyperdex :: entity :: entity(uint32_t _table,
 {
 }
 
-hyperdex :: entity :: entity(const char* b)
-    : table(0)
-    , subspace(0)
-    , prefix(0)
-    , mask(0)
-    , number(0)
-{
-    // Use a const cast here to preserve const-ness of the public members.
-    buffer buf(b, SERIALIZEDSIZE);
-    buffer::unpacker(buf) >> const_cast<uint32_t&>(table)
-                          >> const_cast<uint16_t&>(subspace)
-                          >> const_cast<uint8_t&>(prefix)
-                          >> const_cast<uint64_t&>(mask)
-                          >> const_cast<uint8_t&>(number);
-}
-
 hyperdex :: entity :: ~entity()
 {
-}
-
-void
-hyperdex :: entity :: serialize(char* b) const
-{
-    buffer buf(SERIALIZEDSIZE);
-    buffer::packer(&buf) << table << subspace << prefix << mask << number;
-    memmove(b, buf.get(), SERIALIZEDSIZE);
 }
 
 int
