@@ -28,24 +28,24 @@
 // HyperDex
 #include <hyperdex/zone.h>
 
+using e::buffer;
 using std::string;
 using std::vector;
 
-hyperdex :: zone :: zone(const string& iid, uint16_t nc)
-    : m_instanceid(iid)
-    , m_numcolumns(nc)
+hyperdex :: zone :: zone(uint16_t nc)
+    : m_numcolumns(nc)
     , m_shard()
 {
 }
 
 bool
-hyperdex :: zone :: get(const vector<char>& key, vector<vector<char> >* value)
+hyperdex :: zone :: get(const buffer& key, vector<buffer>* value)
 {
     return m_shard.get(key, value);
 }
 
 bool
-hyperdex :: zone :: put(const vector<char>& key, const vector<vector<char> >& value)
+hyperdex :: zone :: put(const buffer& key, const vector<buffer>& value)
 {
     if (value.size() != m_numcolumns)
     {
@@ -56,7 +56,7 @@ hyperdex :: zone :: put(const vector<char>& key, const vector<vector<char> >& va
 }
 
 bool
-hyperdex :: zone :: del(const vector<char>& key)
+hyperdex :: zone :: del(const buffer& key)
 {
     return m_shard.del(key);
 }

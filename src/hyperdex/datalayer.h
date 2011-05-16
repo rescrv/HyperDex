@@ -33,12 +33,14 @@
 
 // STL
 #include <map>
-#include <string>
 #include <tr1/memory>
 #include <vector>
 
 // po6
 #include <po6/threads/rwlock.h>
+
+// e
+#include <e/buffer.h>
 
 // HyperDex
 #include <hyperdex/zone.h>
@@ -53,35 +55,36 @@ class datalayer
 
     // Table operations.
     public:
-        void create(const std::string& instanceid, uint32_t table,
-                    uint16_t subspace, uint16_t zone, uint16_t numcolumns);
-        void drop(const std::string& instanceid, uint32_t table,
-                  uint16_t subspace, uint16_t zone);
-        void reattach(const std::string& oldinstanceid, const std::string& newinstanceid,
-                      uint32_t table, uint16_t subspace, uint16_t zone);
+        void create(uint32_t table, uint16_t subspace, uint8_t prefix,
+                    uint64_t mask, uint16_t numcolumns);
+        void drop(uint32_t table, uint16_t subspace, uint8_t prefix,
+                  uint64_t mask);
 
     // Key-Value store operations.
     public:
-        bool get(uint32_t table, uint16_t subspace, uint16_t zone,
-                 const std::vector<char>& key, std::vector<std::vector<char> >* value);
-        bool put(uint32_t table, uint16_t subspace, uint16_t zone,
-                 const std::vector<char>& key, const std::vector<std::vector<char> >& value);
-        bool del(uint32_t table, uint16_t subspace, uint16_t zone,
-                 const std::vector<char>& key);
+        bool get(uint32_t table, uint16_t subspace, uint8_t prefix, uint64_t mask,
+                 const e::buffer& key, std::vector<e::buffer>* value);
+        bool put(uint32_t table, uint16_t subspace, uint8_t prefix, uint64_t mask,
+                 const e::buffer& key, const std::vector<e::buffer>& value);
+        bool del(uint32_t table, uint16_t subspace, uint8_t prefix, uint64_t mask,
+                 const e::buffer& key);
 
     private:
         struct zoneid
         {
-            zoneid() : table(), subspace(), zone() {}
-            zoneid(uint32_t t, uint16_t s, uint16_t z)
-                : table(t), subspace(s), zone(z) {}
+            zoneid(uint32_t t, uint16_t s, uint8_t p, uint64_t m)
+                : table(t), subspace(s), prefix(p), mask(m) {}
 
             bool operator < (const zoneid& other) const;
+            bool operator == (const zoneid& other) const;
+            bool operator != (const zoneid& other) const;
 
-            uint32_t table;
-            uint16_t subspace;
-            uint16_t zone;
+            const uint32_t table;
+            const uint16_t subspace;
+            const uint8_t prefix;
+            const uint64_t mask;
         };
+
 
     private:
         datalayer(const datalayer&);

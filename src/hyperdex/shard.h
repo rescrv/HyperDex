@@ -35,6 +35,9 @@
 // po6
 #include <po6/threads/rwlock.h>
 
+// e
+#include <e/buffer.h>
+
 namespace hyperdex
 {
 
@@ -45,15 +48,13 @@ class shard
         ~shard();
 
     public:
-        bool get(const std::vector<char>& key,
-                 std::vector<std::vector<char> >* value);
-        bool put(const std::vector<char>& key,
-                 const std::vector<std::vector<char> >& value);
-        bool del(const std::vector<char>& key);
+        bool get(const e::buffer& key, std::vector<e::buffer>* value);
+        bool put(const e::buffer& key, const std::vector<e::buffer>& value);
+        bool del(const e::buffer& key);
 
     private:
         po6::threads::rwlock m_lock;
-        typedef std::map<std::vector<char>, std::vector<std::vector<char> > > map_t;
+        typedef std::map<e::buffer, std::vector<e::buffer> > map_t;
         map_t m_map;
 };
 

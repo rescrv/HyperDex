@@ -32,8 +32,10 @@
 #include <stdint.h>
 
 // STL
-#include <string>
 #include <vector>
+
+// e
+#include <e/buffer.h>
 
 // HyperDex
 #include <hyperdex/shard.h>
@@ -44,16 +46,15 @@ namespace hyperdex
 class zone
 {
     public:
-        zone(const std::string& instanceid, uint16_t numcolumns);
+        zone(uint16_t numcolumns);
 
     public:
-        std::string instanceid() const { return m_instanceid; }
         uint16_t numcolumns() const { return m_numcolumns; }
 
     public:
-        bool get(const std::vector<char>& key, std::vector<std::vector<char> >* value);
-        bool put(const std::vector<char>& key, const std::vector<std::vector<char> >& value);
-        bool del(const std::vector<char>& key);
+        bool get(const e::buffer& key, std::vector<e::buffer>* value);
+        bool put(const e::buffer& key, const std::vector<e::buffer>& value);
+        bool del(const e::buffer& key);
 
     private:
         zone(const zone&);
@@ -62,9 +63,8 @@ class zone
         zone& operator = (const zone);
 
     private:
-        const std::string m_instanceid;
         const uint16_t m_numcolumns;
-        hyperdex::shard m_shard;
+        hyperdex::shard m_shard; // XXX this should be many shards.
 };
 
 } // namespace hyperdex

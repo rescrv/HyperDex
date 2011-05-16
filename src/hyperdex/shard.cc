@@ -28,6 +28,8 @@
 // HyperDex
 #include <hyperdex/shard.h>
 
+using e::buffer;
+
 hyperdex :: shard :: shard()
     : m_lock()
     , m_map()
@@ -39,8 +41,7 @@ hyperdex :: shard :: ~shard()
 }
 
 bool
-hyperdex :: shard :: get(const std::vector<char>& key,
-                         std::vector<std::vector<char> >* value)
+hyperdex :: shard :: get(const buffer& key, std::vector<buffer>* value)
 {
     m_lock.rdlock();
     map_t::iterator i = m_map.find(key);
@@ -57,8 +58,7 @@ hyperdex :: shard :: get(const std::vector<char>& key,
 }
 
 bool
-hyperdex :: shard :: put(const std::vector<char>& key,
-                         const std::vector<std::vector<char> >& value)
+hyperdex :: shard :: put(const buffer& key, const std::vector<buffer>& value)
 {
     m_lock.wrlock();
     m_map[key] = value;
@@ -67,7 +67,7 @@ hyperdex :: shard :: put(const std::vector<char>& key,
 }
 
 bool
-hyperdex :: shard :: del(const std::vector<char>& key)
+hyperdex :: shard :: del(const buffer& key)
 {
     m_lock.wrlock();
     bool ret = m_map.erase(key) > 0;

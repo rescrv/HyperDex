@@ -31,9 +31,8 @@
 // HyperDex
 #include <hyperdex/datalayer.h>
 
-using std::string;
+using po6::threads::rwlock;
 using std::tr1::shared_ptr;
-using std::vector;
 
 hyperdex :: datalayer :: datalayer()
     : m_lock()
@@ -42,163 +41,106 @@ hyperdex :: datalayer :: datalayer()
 }
 
 void
-hyperdex :: datalayer :: create(const string& instanceid,
-                                uint32_t table,
+hyperdex :: datalayer :: create(uint32_t table,
                                 uint16_t subspace,
-                                uint16_t zone,
+                                uint8_t prefix,
+                                uint64_t mask,
                                 uint16_t numcolumns)
 {
-    m_lock.wrlock();
+    rwlock::wrhold hold(&m_lock);
 
-    // Check if the zone already exists.
-    if (m_zones.find(zoneid(table, subspace, zone)) != m_zones.end())
+    if (m_zones.find(zoneid(table, subspace, prefix, mask)) != m_zones.end())
     {
-        m_lock.unlock();
         throw std::runtime_error("Zone already exists.");
     }
 
-    shared_ptr<hyperdex::zone> zd(new hyperdex::zone(instanceid, numcolumns));
-    m_zones.insert(std::make_pair(zoneid(table, subspace, zone), zd));
-    m_lock.unlock();
+    shared_ptr<hyperdex::zone> zd(new hyperdex::zone(numcolumns));
+    m_zones.insert(std::make_pair(zoneid(table, subspace, prefix, mask), zd));
 }
 
 void
-hyperdex :: datalayer :: drop(const string& instanceid,
-                              uint32_t table,
+hyperdex :: datalayer :: drop(uint32_t table,
                               uint16_t subspace,
-                              uint16_t zone)
+                              uint8_t prefix,
+                              uint64_t mask)
 {
-    m_lock.wrlock();
+    rwlock::wrhold hold(&m_lock);
 
     // Check if the zone actually exists.
-    std::map<zoneid, std::tr1::shared_ptr<hyperdex::zone> >::iterator i;
-    i = m_zones.find(zoneid(table, subspace, zone));
+    std::map<zoneid, shared_ptr<hyperdex::zone> >::iterator i;
+    i = m_zones.find(zoneid(table, subspace, prefix, mask));
 
     if (i == m_zones.end())
     {
-        m_lock.unlock();
         throw std::runtime_error("Zone does not exist.");
     }
 
-    if (i->second->instanceid() != instanceid)
-    {
-        m_lock.unlock();
-        throw std::runtime_error("Zone instanceid does not match.");
-    }
-
     m_zones.erase(i);
-    m_lock.unlock();
-}
-
-void
-hyperdex :: datalayer :: reattach(const string& /*oldinstanceid*/,
-                                  const string& /*newinstanceid*/,
-                                  uint32_t /*table*/,
-                                  uint16_t /*subspace*/,
-                                  uint16_t /*zone*/)
-{
-    assert(false); // XXX Actually implement later.
 }
 
 bool
-hyperdex :: datalayer :: get(uint32_t table, uint16_t subspace, uint16_t zone,
-                             const vector<char>& key,
-                             vector<vector<char> >* value)
+hyperdex :: datalayer :: get(uint32_t table,
+                             uint16_t subspace,
+                             uint8_t prefix,
+                             uint64_t mask,
+                             const e::buffer& key,
+                             std::vector<e::buffer>* value)
 {
-    m_lock.rdlock();
+    rwlock::rdhold hold(&m_lock);
 
     // Check to see if the zone actually exists.
-    std::map<zoneid, std::tr1::shared_ptr<hyperdex::zone> >::iterator i;
-    i = m_zones.find(zoneid(table, subspace, zone));
+    std::map<zoneid, shared_ptr<hyperdex::zone> >::iterator i;
+    i = m_zones.find(zoneid(table, subspace, prefix, mask));
 
     if (i == m_zones.end())
     {
-        // Throw if it doesn't.
-        m_lock.unlock();
         throw std::runtime_error("Unknown zone.");
     }
 
-    bool ret;
-
-    try
-    {
-        ret = i->second->get(key, value);
-    }
-    catch (...)
-    {
-        m_lock.unlock();
-        throw;
-    }
-
-    m_lock.unlock();
-    return ret;
+    return i->second->get(key, value);
 }
 
 bool
-hyperdex :: datalayer :: put(uint32_t table, uint16_t subspace, uint16_t zone,
-                             const vector<char>& key,
-                             const vector<vector<char> >& value)
+hyperdex :: datalayer :: put(uint32_t table,
+                             uint16_t subspace,
+                             uint8_t prefix,
+                             uint64_t mask,
+                             const e::buffer& key,
+                             const std::vector<e::buffer>& value)
 {
-    m_lock.rdlock();
+    rwlock::rdhold hold(&m_lock);
 
     // Check to see if the zone actually exists.
-    std::map<zoneid, std::tr1::shared_ptr<hyperdex::zone> >::iterator i;
-    i = m_zones.find(zoneid(table, subspace, zone));
+    std::map<zoneid, shared_ptr<hyperdex::zone> >::iterator i;
+    i = m_zones.find(zoneid(table, subspace, prefix, mask));
 
     if (i == m_zones.end())
     {
-        // Throw if it doesn't.
-        m_lock.unlock();
         throw std::runtime_error("Unknown zone.");
     }
 
-    bool ret;
-
-    try
-    {
-        ret = i->second->put(key, value);
-    }
-    catch (...)
-    {
-        m_lock.unlock();
-        throw;
-    }
-
-    m_lock.unlock();
-    return ret;
+    return i->second->put(key, value);
 }
 
 bool
-hyperdex :: datalayer :: del(uint32_t table, uint16_t subspace, uint16_t zone,
-                             const vector<char>& key)
+hyperdex :: datalayer :: del(uint32_t table,
+                             uint16_t subspace,
+                             uint8_t prefix,
+                             uint64_t mask,
+                             const e::buffer& key)
 {
-    m_lock.rdlock();
+    rwlock::rdhold hold(&m_lock);
 
     // Check to see if the zone actually exists.
-    std::map<zoneid, std::tr1::shared_ptr<hyperdex::zone> >::iterator i;
-    i = m_zones.find(zoneid(table, subspace, zone));
+    std::map<zoneid, shared_ptr<hyperdex::zone> >::iterator i;
+    i = m_zones.find(zoneid(table, subspace, prefix, mask));
 
     if (i == m_zones.end())
     {
-        // Throw if it doesn't.
-        m_lock.unlock();
         throw std::runtime_error("Unknown zone.");
     }
 
-    bool ret;
-
-    try
-    {
-        ret = i->second->del(key);
-    }
-    catch (...)
-    {
-        m_lock.unlock();
-        throw;
-    }
-
-    m_lock.unlock();
-    return ret;
+    return i->second->del(key);
 }
 
 bool
@@ -225,5 +167,14 @@ hyperdex :: datalayer :: zoneid :: operator < (const zoneid& rhs)
         return false;
     }
 
-    return lhs.zone < rhs.zone;
+    if (lhs.prefix < rhs.prefix)
+    {
+        return true;
+    }
+    else if (lhs.prefix > rhs.prefix)
+    {
+        return false;
+    }
+
+    return lhs.mask < rhs.mask;
 }
