@@ -48,6 +48,24 @@ namespace hyperdex
 
 class logical
 {
+    public:
+        logical(ev::loop_ref lr, const po6::net::ipaddr& us);
+        ~logical();
+
+    // Change the mapping.
+    public:
+        void map(const hyperdex::entity& logical,
+                 const instance& where);
+        void unmap(const hyperdex::entity& logical);
+
+    // Send and recv messages.
+    public:
+        bool send(const hyperdex::entity& from, const hyperdex::entity& to,
+                  const uint8_t msg_type, const std::vector<char>& msg);
+        bool recv(hyperdex::entity* from, hyperdex::entity* to,
+                  uint8_t* msg_type, std::vector<char>* msg);
+        void shutdown();
+
     private:
         struct instance
         {
@@ -79,24 +97,6 @@ class logical
             po6::net::location outbound;
             uint16_t outbound_version;
         };
-
-    public:
-        logical(ev::loop_ref lr, const po6::net::ipaddr& us);
-        ~logical();
-
-    // Change the mapping.
-    public:
-        void map(const hyperdex::entity& logical,
-                 const instance& where);
-        void unmap(const hyperdex::entity& logical);
-
-    // Send and recv messages.
-    public:
-        bool send(const hyperdex::entity& from, const hyperdex::entity& to,
-                  const uint8_t msg_type, const std::vector<char>& msg);
-        bool recv(hyperdex::entity* from, hyperdex::entity* to,
-                  uint8_t* msg_type, std::vector<char>* msg);
-        void shutdown();
 
     private:
         logical(const logical&);
