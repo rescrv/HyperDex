@@ -28,6 +28,8 @@
 #ifndef hyperdex_entity_h_
 #define hyperdex_entity_h_
 
+#define __STDC_LIMIT_MACROS
+
 // C
 #include <cstddef>
 #include <stdint.h>
@@ -69,6 +71,8 @@ class entity
         const uint64_t mask;
         const uint8_t number;
 };
+
+const entity CLIENT = entity(UINT32_MAX, UINT16_MAX, UINT8_MAX, UINT64_MAX, UINT8_MAX);
 
 // Serialize the buffer.
 inline e::buffer::packer&
