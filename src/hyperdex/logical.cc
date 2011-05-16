@@ -54,17 +54,21 @@ void
 hyperdex :: logical :: map(const hyperdex::entity& log,
                            const instance& where)
 {
+#if 0
     m_lock.wrlock();
     m_mapping[log] = where;
     m_lock.unlock();
+#endif
 }
 
 void
 hyperdex :: logical :: unmap(const hyperdex::entity& log)
 {
+#if 0
     m_lock.wrlock();
     m_mapping.erase(log);
     m_lock.unlock();
+#endif
 }
 
 typedef std::map<hyperdex::entity, hyperdex::logical::instance>::iterator mapiter;
@@ -80,6 +84,7 @@ hyperdex :: logical :: send(const hyperdex::entity& from, const hyperdex::entity
                             const uint8_t msg_type,
                             const std::vector<char>& msg)
 {
+#if 0
     m_lock.rdlock();
     mapiter f = m_mapping.find(from);
     mapiter t = m_mapping.find(to);
@@ -103,6 +108,7 @@ hyperdex :: logical :: send(const hyperdex::entity& from, const hyperdex::entity
     m_physical.send(t->second.inbound, finalmsg);
     m_lock.unlock();
     return true;
+#endif
 }
 
 bool
@@ -110,6 +116,7 @@ hyperdex :: logical :: recv(hyperdex::entity* from, hyperdex::entity* to,
                             uint8_t* msg_type,
                             std::vector<char>* msg)
 {
+#if 0
     m_lock.rdlock();
     po6::net::location loc;
     mapiter f;
@@ -158,10 +165,13 @@ hyperdex :: logical :: recv(hyperdex::entity* from, hyperdex::entity* to,
     msg->resize(msg->size() - HEADER_SIZE);
     m_lock.unlock();
     return true;
+#endif
 }
 
 void
 hyperdex :: logical :: shutdown()
 {
+#if 0
     m_physical.shutdown();
+#endif
 }

@@ -38,23 +38,13 @@ namespace hyperdex
 class entity
 {
     public:
-        enum entity_type
-        {
-            UNDEF         = 0x0,
-            MASTER        = 0x1,
-            CLIENT_PROXY  = 0x2,
-            CHAIN_HEAD    = 0x3,
-            CHAIN_TAIL    = 0x4,
-            CHAIN_REPLICA = 0x5
-        };
+        static const size_t SERIALIZEDSIZE = sizeof(uint32_t) + sizeof(uint16_t)
+                                           + sizeof(uint8_t) + sizeof(uint64_t)
+                                           + sizeof(uint8_t);
 
     public:
-        static const size_t SERIALIZEDSIZE = 10;
-
-    public:
-        entity();
-        entity(entity_type type, uint32_t table = 0, uint16_t subspace = 0,
-               uint16_t zone = 0, uint8_t number = 0);
+        entity(uint32_t table = 0, uint16_t subspace = 0, uint8_t prefix = 0,
+               uint64_t mask = 0, uint8_t number = 0);
         entity(const char* buf);
         ~entity();
 
@@ -72,11 +62,11 @@ class entity
         bool operator != (const entity& rhs) const { return compare(rhs) != 0; }
 
     public:
-        entity_type type;
-        uint32_t table;
-        uint16_t subspace;
-        uint16_t zone;
-        uint8_t number;
+        const uint32_t table;
+        const uint16_t subspace;
+        const uint8_t prefix;
+        const uint64_t mask;
+        const uint8_t number;
 };
 
 } // namespace hyperdex

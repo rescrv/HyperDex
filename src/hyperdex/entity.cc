@@ -36,80 +36,41 @@
 // STL
 #include <stdexcept>
 
+// e
+#include <e/buffer.h>
+
 // HyperDex
 #include <hyperdex/entity.h>
 
-hyperdex :: entity :: entity()
-    : type(UNDEF)
-    , table(0)
-    , subspace(0)
-    , zone(0)
-    , number(0)
-{
-}
+using e::buffer;
 
-hyperdex :: entity :: entity(entity_type _type,
-                             uint32_t _table,
+hyperdex :: entity :: entity(uint32_t _table,
                              uint16_t _subspace,
-                             uint16_t _zone,
+                             uint8_t _prefix,
+                             uint64_t _mask,
                              uint8_t _number)
-    : type(_type)
-    , table(_table)
+    : table(_table)
     , subspace(_subspace)
-    , zone(_zone)
+    , prefix(_prefix)
+    , mask(_mask)
     , number(_number)
 {
 }
 
-static inline void
-unpack_32_16_16(const char* buf, uint32_t* a, uint16_t* b, uint16_t* c)
-{
-    *a = htonl(*a);
-    *b = htons(*b);
-    *c = htons(*c);
-    memmove(a, buf, sizeof(uint32_t));
-    memmove(b, buf + sizeof(uint32_t), sizeof(uint16_t));
-    memmove(c, buf + sizeof(uint32_t) + sizeof(uint16_t), sizeof(uint16_t));
-}
-
-hyperdex :: entity :: entity(const char* buf)
-    : type(UNDEF)
-    , table(0)
+hyperdex :: entity :: entity(const char* b)
+    : table(0)
     , subspace(0)
-    , zone(0)
+    , prefix(0)
+    , mask(0)
     , number(0)
 {
-    size_t offset = 0;
-    uint8_t t;
-
-    memmove(&t, buf, sizeof(uint8_t));
-    offset += sizeof(uint8_t);
-    memmove(&table, buf + offset, sizeof(uint32_t));
-    offset += sizeof(uint32_t);
-    memmove(&subspace, buf + offset, sizeof(uint16_t));
-    offset += sizeof(uint16_t);
-    memmove(&zone, buf + offset, sizeof(uint16_t));
-    offset += sizeof(uint16_t);
-    memmove(&number, buf + offset, sizeof(uint8_t));
-
-    type = static_cast<entity_type>(t);
-
-    switch (type)
-    {
-        case UNDEF:
-        case MASTER:
-        case CLIENT_PROXY:
-        case CHAIN_HEAD:
-        case CHAIN_TAIL:
-        case CHAIN_REPLICA:
-            break;
-        default:
-            throw std::invalid_argument("Invalid entity type.");
-    }
-
-    table = ntohl(table);
-    subspace = ntohs(subspace);
-    zone = ntohs(zone);
+    // Use a const cast here to preserve const-ness of the public members.
+    buffer buf(b, SERIALIZEDSIZE);
+    buffer::unpacker(buf) >> const_cast<uint32_t&>(table)
+                          >> const_cast<uint16_t&>(subspace)
+                          >> const_cast<uint8_t&>(prefix)
+                          >> const_cast<uint64_t&>(mask)
+                          >> const_cast<uint8_t&>(number);
 }
 
 hyperdex :: entity :: ~entity()
@@ -117,39 +78,17 @@ hyperdex :: entity :: ~entity()
 }
 
 void
-hyperdex :: entity :: serialize(char* buf) const
+hyperdex :: entity :: serialize(char* b) const
 {
-    uint8_t t = type & 0xff;
-    uint32_t a = htonl(table);
-    uint16_t b = htons(subspace);
-    uint16_t c = htons(zone);
-    uint8_t d = number;
-    size_t offset = 0;
-
-    memmove(buf, &t, sizeof(uint8_t));
-    offset += sizeof(uint8_t);
-    memmove(buf + offset, &a, sizeof(uint32_t));
-    offset += sizeof(uint32_t);
-    memmove(buf + offset, &b, sizeof(uint16_t));
-    offset += sizeof(uint16_t);
-    memmove(buf + offset, &c, sizeof(uint16_t));
-    offset += sizeof(uint16_t);
-    memmove(buf + offset, &d, sizeof(uint8_t));
+    buffer buf(SERIALIZEDSIZE);
+    buffer::packer(&buf) << table << subspace << prefix << mask << number;
+    memmove(b, buf.get(), SERIALIZEDSIZE);
 }
 
 int
 hyperdex :: entity :: compare(const entity& rhs) const
 {
     const entity& lhs(*this);
-
-    if (lhs.type < rhs.type)
-    {
-        return -1;
-    }
-    else if (lhs.type > rhs.type)
-    {
-        return 1;
-    }
 
     if (lhs.table < rhs.table)
     {
@@ -169,11 +108,20 @@ hyperdex :: entity :: compare(const entity& rhs) const
         return 1;
     }
 
-    if (lhs.zone < rhs.zone)
+    if (lhs.prefix < rhs.prefix)
     {
         return -1;
     }
-    else if (lhs.zone > rhs.zone)
+    else if (lhs.prefix > rhs.prefix)
+    {
+        return 1;
+    }
+
+    if (lhs.mask < rhs.mask)
+    {
+        return -1;
+    }
+    else if (lhs.mask > rhs.mask)
     {
         return 1;
     }
