@@ -52,12 +52,6 @@ class logical
         logical(ev::loop_ref lr, const po6::net::ipaddr& us);
         ~logical();
 
-    // Change the mapping.
-    public:
-        void map(const hyperdex::entity& logical,
-                 const instance& where);
-        void unmap(const hyperdex::entity& logical);
-
     // Send and recv messages.
     public:
         bool send(const hyperdex::entity& from, const hyperdex::entity& to,

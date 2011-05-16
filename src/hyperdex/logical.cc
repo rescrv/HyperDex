@@ -50,27 +50,6 @@ hyperdex :: logical :: ~logical()
 {
 }
 
-void
-hyperdex :: logical :: map(const hyperdex::entity& log,
-                           const instance& where)
-{
-#if 0
-    m_lock.wrlock();
-    m_mapping[log] = where;
-    m_lock.unlock();
-#endif
-}
-
-void
-hyperdex :: logical :: unmap(const hyperdex::entity& log)
-{
-#if 0
-    m_lock.wrlock();
-    m_mapping.erase(log);
-    m_lock.unlock();
-#endif
-}
-
 typedef std::map<hyperdex::entity, hyperdex::logical::instance>::iterator mapiter;
 
 #define VERSION_A_OFFSET (sizeof(uint8_t))
