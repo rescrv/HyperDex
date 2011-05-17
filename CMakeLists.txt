@@ -59,8 +59,6 @@ set(hyperdex_srcs
     src/hyperdex/network_worker.cc
     src/hyperdex/physical.cc
     src/hyperdex/query.cc
-    src/hyperdex/shard.cc
-    src/hyperdex/zone.cc
 )
 
 # Build libhyperdex

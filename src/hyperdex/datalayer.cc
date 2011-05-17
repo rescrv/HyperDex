@@ -35,8 +35,6 @@ using po6::threads::rwlock;
 using std::tr1::shared_ptr;
 
 hyperdex :: datalayer :: datalayer()
-    : m_lock()
-    , m_zones()
 {
 }
 
@@ -47,15 +45,6 @@ hyperdex :: datalayer :: create(uint32_t table,
                                 uint64_t mask,
                                 uint16_t numcolumns)
 {
-    rwlock::wrhold hold(&m_lock);
-
-    if (m_zones.find(zoneid(table, subspace, prefix, mask)) != m_zones.end())
-    {
-        throw std::runtime_error("Zone already exists.");
-    }
-
-    shared_ptr<hyperdex::zone> zd(new hyperdex::zone(numcolumns));
-    m_zones.insert(std::make_pair(zoneid(table, subspace, prefix, mask), zd));
 }
 
 void
@@ -64,18 +53,6 @@ hyperdex :: datalayer :: drop(uint32_t table,
                               uint8_t prefix,
                               uint64_t mask)
 {
-    rwlock::wrhold hold(&m_lock);
-
-    // Check if the zone actually exists.
-    std::map<zoneid, shared_ptr<hyperdex::zone> >::iterator i;
-    i = m_zones.find(zoneid(table, subspace, prefix, mask));
-
-    if (i == m_zones.end())
-    {
-        throw std::runtime_error("Zone does not exist.");
-    }
-
-    m_zones.erase(i);
 }
 
 bool
@@ -86,18 +63,8 @@ hyperdex :: datalayer :: get(uint32_t table,
                              const e::buffer& key,
                              std::vector<e::buffer>* value)
 {
-    rwlock::rdhold hold(&m_lock);
-
-    // Check to see if the zone actually exists.
-    std::map<zoneid, shared_ptr<hyperdex::zone> >::iterator i;
-    i = m_zones.find(zoneid(table, subspace, prefix, mask));
-
-    if (i == m_zones.end())
-    {
-        throw std::runtime_error("Unknown zone.");
-    }
-
-    return i->second->get(key, value);
+    // XXX
+    return false;
 }
 
 bool
@@ -108,18 +75,8 @@ hyperdex :: datalayer :: put(uint32_t table,
                              const e::buffer& key,
                              const std::vector<e::buffer>& value)
 {
-    rwlock::rdhold hold(&m_lock);
-
-    // Check to see if the zone actually exists.
-    std::map<zoneid, shared_ptr<hyperdex::zone> >::iterator i;
-    i = m_zones.find(zoneid(table, subspace, prefix, mask));
-
-    if (i == m_zones.end())
-    {
-        throw std::runtime_error("Unknown zone.");
-    }
-
-    return i->second->put(key, value);
+    // XXX
+    return false;
 }
 
 bool
@@ -129,18 +86,8 @@ hyperdex :: datalayer :: del(uint32_t table,
                              uint64_t mask,
                              const e::buffer& key)
 {
-    rwlock::rdhold hold(&m_lock);
-
-    // Check to see if the zone actually exists.
-    std::map<zoneid, shared_ptr<hyperdex::zone> >::iterator i;
-    i = m_zones.find(zoneid(table, subspace, prefix, mask));
-
-    if (i == m_zones.end())
-    {
-        throw std::runtime_error("Unknown zone.");
-    }
-
-    return i->second->del(key);
+    // XXX
+    return false;
 }
 
 bool

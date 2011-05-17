@@ -42,9 +42,6 @@
 // e
 #include <e/buffer.h>
 
-// HyperDex
-#include <hyperdex/zone.h>
-
 namespace hyperdex
 {
 
@@ -91,10 +88,6 @@ class datalayer
 
     private:
         datalayer& operator = (const datalayer&);
-
-    private:
-        po6::threads::rwlock m_lock;
-        std::map<zoneid, std::tr1::shared_ptr<hyperdex::zone> > m_zones;
 };
 
 } // namespace hyperdex
