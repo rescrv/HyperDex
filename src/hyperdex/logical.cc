@@ -56,7 +56,7 @@ hyperdex :: logical :: ~logical()
 {
 }
 
-typedef std::map<hyperdex::entity, hyperdex::logical::instance>::iterator mapiter;
+typedef std::map<hyperdex::entity, hyperdex::configuration::instance>::iterator mapiter;
 
 bool
 hyperdex :: logical :: send(const hyperdex::entity& from, const hyperdex::entity& to,

@@ -49,6 +49,7 @@ set(hyperdex_headers
 set(hyperdex_srcs
     src/hyperdex/bloom.cc
     src/hyperdex/city.cc
+    src/hyperdex/configuration.cc
     src/hyperdex/datalayer.cc
     src/hyperdex/entity.cc
     src/hyperdex/hyperdexd.cc
