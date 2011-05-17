@@ -28,6 +28,15 @@
 #ifndef hyperdex_configuration_h_
 #define hyperdex_configuration_h_
 
+// STL
+#include <map>
+
+// po6
+#include <po6/net/location.h>
+
+// HyperDex
+#include <hyperdex/entity.h>
+
 namespace hyperdex
 {
 
@@ -81,10 +90,11 @@ class configuration
         configuration();
 
     public:
-        void add_line(const std::string& line);
+        bool add_line(const std::string& line);
 
     public:
         bool is_complete() const;
+        std::map<entity, instance> entity_mapping() const;
 };
 
 } // namespace hyperdex

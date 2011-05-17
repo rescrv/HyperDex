@@ -24,3 +24,39 @@
 // CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
+
+#define __STDC_LIMIT_MACROS
+
+// STL
+#include <sstream>
+#include <vector>
+
+// Google Log
+#include <glog/logging.h>
+
+// HyperDex
+#include <hyperdex/configuration.h>
+
+hyperdex :: configuration :: configuration()
+{
+}
+
+bool
+hyperdex :: configuration :: add_line(const std::string& line)
+{
+    // XXX
+    return true;
+}
+
+bool
+hyperdex :: configuration :: is_complete() const
+{
+    // XXX
+    return false;
+}
+
+std::map<hyperdex::entity, hyperdex::configuration::instance>
+hyperdex :: configuration :: entity_mapping() const
+{
+    return std::map<hyperdex::entity, hyperdex::configuration::instance>();
+}
