@@ -46,19 +46,25 @@ TEST(ConfigurationTest, CtorAndDtor)
 TEST(ConfigurationTest, SimpleHost)
 {
     hyperdex::configuration c;
+    EXPECT_TRUE(c.is_complete());
     EXPECT_TRUE(c.add_line("host\t0xdeadbeef\t127.0.0.1\t6970\t0\t6971\t2"));
     EXPECT_TRUE(c.add_line("host\t0xcafebabe\t127.0.0.1\t6972\t1\t6973\t1"));
     EXPECT_TRUE(c.add_line("host\t0x8badf00d\t127.0.0.1\t6974\t0\t6975\t0"));
     EXPECT_TRUE(c.add_line("host\t0xfee1dead\t127.0.0.1\t6976\t0\t6977\t0"));
+    EXPECT_TRUE(c.is_complete());
     EXPECT_TRUE(c.add_line("space\t0xdefec8ed\tkv\tkey\tvalue"));
+    EXPECT_FALSE(c.is_complete());
     EXPECT_TRUE(c.add_line("subspace\tkv\t0\tkey"));
+    EXPECT_FALSE(c.is_complete());
     EXPECT_TRUE(c.add_line("subspace\tkv\t1\tvalue"));
     EXPECT_TRUE(c.add_line("region\tkv\t0\t2\t0x0000000000000000\t0xdeadbeef"));
     EXPECT_TRUE(c.add_line("region\tkv\t0\t2\t0x4000000000000000\t0xcafebabe"));
     EXPECT_TRUE(c.add_line("region\tkv\t0\t2\t0x8000000000000000\t0x8badf00d"));
     EXPECT_TRUE(c.add_line("region\tkv\t0\t2\t0xc000000000000000\t0xfee1dead"));
     EXPECT_TRUE(c.add_line("region\tkv\t1\t1\t0x0000000000000000\t0xdeadbeef\t0xcafebabe"));
+    EXPECT_FALSE(c.is_complete());
     EXPECT_TRUE(c.add_line("region\tkv\t1\t1\t0x8000000000000000\t0x8badf00d\t0xfee1dead"));
+    EXPECT_TRUE(c.is_complete());
 
     hyperdex::configuration::instance i_deadbeef(po6::net::location("127.0.0.1", 6970), 0,
                                                  po6::net::location("127.0.0.1", 6971), 2);
@@ -78,18 +84,17 @@ TEST(ConfigurationTest, SimpleHost)
                                    i_8badf00d));
     expected.insert(std::make_pair(hyperdex::entity(0xdefec8ed, 0, 2, 0xc000000000000000, 0),
                                    i_fee1dead));
-    expected.insert(std::make_pair(hyperdex::entity(0xdefec8ed, 0, 1, 0x0000000000000000, 0),
+    expected.insert(std::make_pair(hyperdex::entity(0xdefec8ed, 1, 1, 0x0000000000000000, 0),
                                    i_deadbeef));
-    expected.insert(std::make_pair(hyperdex::entity(0xdefec8ed, 0, 1, 0x0000000000000000, 1),
+    expected.insert(std::make_pair(hyperdex::entity(0xdefec8ed, 1, 1, 0x0000000000000000, 1),
                                    i_cafebabe));
-    expected.insert(std::make_pair(hyperdex::entity(0xdefec8ed, 0, 1, 0x8000000000000000, 0),
+    expected.insert(std::make_pair(hyperdex::entity(0xdefec8ed, 1, 1, 0x8000000000000000, 0),
                                    i_8badf00d));
-    EXPECT_FALSE(c.is_complete());
-    expected.insert(std::make_pair(hyperdex::entity(0xdefec8ed, 0, 1, 0x8000000000000000, 1),
+    expected.insert(std::make_pair(hyperdex::entity(0xdefec8ed, 1, 1, 0x8000000000000000, 1),
                                    i_fee1dead));
 
-    EXPECT_TRUE(c.is_complete());
-    EXPECT_TRUE(expected == c.entity_mapping());
+    std::map<hyperdex::entity, hyperdex::configuration::instance> returned = c.entity_mapping();
+    EXPECT_TRUE(expected == returned);
 }
 
 TEST(ConfigurationTest, BadHostLine)
@@ -103,11 +108,12 @@ TEST(ConfigurationTest, BadHostLine)
     EXPECT_FALSE(c.add_line("host\t0xdeadbeef\t127.0.0.1\t6970\t0"));
     EXPECT_FALSE(c.add_line("host\t0xdeadbeef\t127.0.0.1\t6970\t0\t6971"));
     EXPECT_FALSE(c.add_line("host\t0xdeadbeef\t\t6970\t0\t6971\t2"));
+    EXPECT_FALSE(c.add_line("host\t0xdeadbeef\t\t6970\t0\t6971\t2\tmore"));
     // Bad IP
     EXPECT_FALSE(c.add_line("host\t0xdeadbeef\t127.0.0\t6970\t0\t6971\t2"));
     // Duplicate
-    EXPECT_TRUE(c.add_line("host\t0xdeadbeef\t127.0.0.1\t6970\t0\t6971\t2"));
-    EXPECT_FALSE(c.add_line("host\t0xdeadbeef\t127.0.0.1\t6970\t0\t6971\t2"));
+    EXPECT_TRUE(c.add_line("host\t0xdeadbeef\t127.0.0.1\t6970\t0\t6971\t0"));
+    EXPECT_FALSE(c.add_line("host\t0xdeadbeef\t127.0.0.1\t6970\t0\t6971\t0"));
 }
 
 TEST(ConfigurationTest, IPv6Ready)
@@ -161,6 +167,15 @@ TEST(ConfigurationTest, BadRegionLine)
     EXPECT_FALSE(c.add_line("region\tset\t1\t0\t0x0000000000000000\t0xdeadbeef"));
     // Regions must reference hosts.
     EXPECT_FALSE(c.add_line("region\tset\t0\t0\t0x0000000000000000\t0xfacefeed"));
+    // Regions must not reference hosts many times.
+    EXPECT_FALSE(c.add_line("region\tset\t0\t0\t0x0000000000000000\t0xdeadbeef\t0xdeadbeef"));
+    // Regions must not be added twice
+    EXPECT_TRUE(c.add_line("region\tset\t0\t1\t0x0000000000000000\t0xdeadbeef"));
+    EXPECT_FALSE(c.add_line("region\tset\t0\t1\t0x0000000000000000\t0xdeadbeef"));
+    // Overlapping regions should not be added
+    EXPECT_TRUE(c.add_line("region\tset\t0\t2\t0x8000000000000000\t0xdeadbeef"));
+    EXPECT_FALSE(c.add_line("region\tset\t0\t3\t0xa000000000000000\t0xdeadbeef"));
+    EXPECT_FALSE(c.add_line("region\tset\t0\t1\t0x8000000000000000\t0xdeadbeef"));
 }
 
 } // namespace
