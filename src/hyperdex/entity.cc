@@ -46,12 +46,12 @@
 
 using e::buffer;
 
-hyperdex :: entity :: entity(uint32_t _table,
+hyperdex :: entity :: entity(uint32_t _space,
                              uint16_t _subspace,
                              uint8_t _prefix,
                              uint64_t _mask,
                              uint8_t _number)
-    : table(_table)
+    : space(_space)
     , subspace(_subspace)
     , prefix(_prefix)
     , mask(_mask)
@@ -68,11 +68,11 @@ hyperdex :: entity :: compare(const entity& rhs) const
 {
     const entity& lhs(*this);
 
-    if (lhs.table < rhs.table)
+    if (lhs.space < rhs.space)
     {
         return -1;
     }
-    else if (lhs.table > rhs.table)
+    else if (lhs.space > rhs.space)
     {
         return 1;
     }

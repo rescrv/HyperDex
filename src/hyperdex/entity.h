@@ -48,7 +48,7 @@ class entity
                                            + sizeof(uint8_t);
 
     public:
-        entity(uint32_t table = 0, uint16_t subspace = 0, uint8_t prefix = 0,
+        entity(uint32_t space = 0, uint16_t subspace = 0, uint8_t prefix = 0,
                uint64_t mask = 0, uint8_t number = 0);
         ~entity();
 
@@ -65,7 +65,7 @@ class entity
         bool operator != (const entity& rhs) const { return compare(rhs) != 0; }
 
     public:
-        const uint32_t table;
+        const uint32_t space;
         const uint16_t subspace;
         const uint8_t prefix;
         const uint64_t mask;
@@ -78,14 +78,14 @@ const entity CLIENT = entity(UINT32_MAX, UINT16_MAX, UINT8_MAX, UINT64_MAX, UINT
 inline e::buffer::packer&
 operator << (e::buffer::packer& lhs, const entity& rhs)
 {
-    lhs << rhs.table << rhs.subspace << rhs.prefix << rhs.mask << rhs.number;
+    lhs << rhs.space << rhs.subspace << rhs.prefix << rhs.mask << rhs.number;
     return lhs;
 }
 
 inline e::buffer::unpacker&
 operator >> (e::buffer::unpacker& lhs, entity& rhs)
 {
-    lhs >> const_cast<uint32_t&>(rhs.table)
+    lhs >> const_cast<uint32_t&>(rhs.space)
         >> const_cast<uint16_t&>(rhs.subspace)
         >> const_cast<uint8_t&>(rhs.prefix)
         >> const_cast<uint64_t&>(rhs.mask)
