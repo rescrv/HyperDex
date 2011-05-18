@@ -36,6 +36,7 @@
 
 // HyperDex
 #include <hyperdex/entity.h>
+#include <hyperdex/space.h>
 
 namespace hyperdex
 {
@@ -74,10 +75,7 @@ class configuration
             bool operator != (const instance& rhs) const
             {
                 const instance& lhs(*this);
-                return lhs.inbound != rhs.inbound &&
-                       lhs.inbound_version != rhs.inbound_version &&
-                       lhs.outbound != rhs.outbound &&
-                       lhs.outbound_version != rhs.outbound_version;
+                return !(lhs == rhs);
             }
 
             po6::net::location inbound;
@@ -95,6 +93,11 @@ class configuration
     public:
         bool is_complete() const;
         std::map<entity, instance> entity_mapping() const;
+
+    private:
+        std::map<std::string, instance> m_hosts;
+        std::map<std::string, uint32_t> m_space_assignment;
+        std::map<uint32_t, hyperdex::space> m_spaces;
 };
 
 } // namespace hyperdex

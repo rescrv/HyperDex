@@ -59,6 +59,9 @@ set(hyperdex_srcs
     src/hyperdex/network_worker.cc
     src/hyperdex/physical.cc
     src/hyperdex/query.cc
+    src/hyperdex/region.cc
+    src/hyperdex/space.cc
+    src/hyperdex/subspace.cc
 )
 
 # Build libhyperdex
