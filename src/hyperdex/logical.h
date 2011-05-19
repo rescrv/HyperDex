@@ -57,6 +57,8 @@ class logical
 
     public:
         const configuration::instance& instance() const { return m_us; }
+        // Install a new mapping.
+        void remap(std::map<entity, configuration::instance> mapping);
 
     // Send and recv messages.
     public:

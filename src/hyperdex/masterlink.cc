@@ -154,6 +154,10 @@ hyperdex :: masterlink :: read()
                 {
                     LOG(INFO) << "Installing new configuration file.";
                     // XXX
+                    std::map<entity, configuration::instance> entity_mapping
+                        = m_config.entity_mapping();
+                    m_comm->remap(entity_mapping);
+                    // XXX
                 }
                 else
                 {

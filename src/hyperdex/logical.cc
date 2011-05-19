@@ -58,6 +58,13 @@ hyperdex :: logical :: ~logical()
 
 typedef std::map<hyperdex::entity, hyperdex::configuration::instance>::iterator mapiter;
 
+void
+hyperdex :: logical :: remap(std::map<entity, configuration::instance> mapping)
+{
+    rwlock::wrhold wr(&m_lock);
+    m_mapping.swap(mapping);
+}
+
 bool
 hyperdex :: logical :: send(const hyperdex::entity& from, const hyperdex::entity& to,
                             const uint8_t msg_type,
