@@ -54,6 +54,11 @@ hyperdex :: network_worker :: network_worker(hyperdex::logical* comm,
 
 hyperdex :: network_worker :: ~network_worker()
 {
+    if (m_continue)
+    {
+        m_continue = false;
+        LOG(INFO) << "Network worker object not cleanly shutdown.";
+    }
 }
 
 void
