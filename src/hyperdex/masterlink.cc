@@ -40,30 +40,29 @@
 // HyperDex
 #include <hyperdex/masterlink.h>
 
+#define RECONNECT_INTERVAL (1.)
+
 hyperdex :: masterlink :: masterlink(const po6::net::location& loc,
                                      hyperdex::datalayer* data,
                                      hyperdex::logical* comm)
     : m_continue(true)
+    , m_loc(loc)
+    , m_data(data)
+    , m_comm(comm)
     , m_sock(loc.address.family(), SOCK_STREAM, IPPROTO_TCP)
     , m_thread(std::tr1::bind(std::tr1::function<void (hyperdex::masterlink*)>(&hyperdex::masterlink::run), this))
     , m_dl()
     , m_wake(m_dl)
+    , m_io(m_dl)
+    , m_timer(m_dl)
+    , m_partial()
+    , m_config()
+    , m_config_valid(true)
 {
     m_wake.set<masterlink, &masterlink::wake>(this);
     m_wake.start();
-    m_sock.connect(loc);
-    std::ostringstream ostr;
-    ostr << "instance on " << comm->instance().inbound << " "
-                           << comm->instance().inbound_version << " "
-                           << comm->instance().outbound << " "
-                           << comm->instance().outbound_version
-                           << "\n";
-
-    if (m_sock.xwrite(ostr.str().c_str(), ostr.str().size()) != ostr.str().size())
-    {
-        throw po6::error(errno);
-    }
-
+    m_timer.set<masterlink, &masterlink::time>(this);
+    connect();
     m_thread.start();
 }
 
@@ -82,6 +81,94 @@ void
 hyperdex :: masterlink :: shutdown()
 {
     m_wake.send();
+}
+
+void
+hyperdex :: masterlink :: connect()
+{
+    m_sock.connect(m_loc);
+    std::ostringstream ostr;
+    ostr << "instance on " << m_comm->instance().inbound << " "
+                           << m_comm->instance().outbound
+                           << "\n";
+
+    if (m_sock.xwrite(ostr.str().c_str(), ostr.str().size()) != ostr.str().size())
+    {
+        throw po6::error(errno);
+    }
+
+    m_sock.nonblocking();
+    m_io.set<masterlink, &masterlink::io>(this);
+    m_io.set(m_sock.get(), ev::READ);
+    m_io.start();
+}
+
+void
+hyperdex :: masterlink :: io(ev::io&, int revents)
+{
+    if ((revents & ev::READ))
+    {
+        read();
+    }
+    else if ((revents & ev::WRITE))
+    {
+        LOG(INFO) << "Write event";
+    }
+}
+
+void
+hyperdex :: masterlink :: read()
+{
+    size_t ret = e::read(&m_sock, &m_partial, 2048);
+
+    if (ret == 0)
+    {
+        m_io.stop();
+        m_sock.close();
+
+        try
+        {
+            m_sock.reset(m_loc.address.family(), SOCK_STREAM, IPPROTO_TCP);
+            connect();
+        }
+        catch (po6::error& e)
+        {
+            m_sock.close();
+            m_timer.set(RECONNECT_INTERVAL, 0);
+            m_timer.start();
+            LOG(INFO) << "could not connect to master";
+        }
+    }
+    else
+    {
+        size_t index;
+
+        while ((index = m_partial.index('\n')) < m_partial.size())
+        {
+            std::string s(static_cast<const char*>(m_partial.get()), index);
+            m_partial.trim_prefix(index + 1);
+
+            if (s == "end\tof\tline")
+            {
+                if (m_config_valid)
+                {
+                    LOG(INFO) << "Installing new configuration file.";
+                    // XXX
+                }
+                else
+                {
+                    LOG(WARNING) << "Coordinator sent us a bad configuration file.";
+                }
+
+                m_config = hyperdex::configuration();
+                m_config_valid = true;
+            }
+            else
+            {
+                m_config_valid &= m_config.add_line(s);
+            }
+        }
+    }
 }
 
 void
@@ -104,6 +191,24 @@ hyperdex :: masterlink :: run()
     while (m_continue)
     {
         m_dl.loop(EVLOOP_ONESHOT);
+    }
+}
+
+void
+hyperdex :: masterlink :: time(ev::timer&, int)
+{
+    try
+    {
+        m_sock.reset(m_loc.address.family(), SOCK_STREAM, IPPROTO_TCP);
+        connect();
+        m_timer.stop();
+    }
+    catch (po6::error& e)
+    {
+        m_sock.close();
+        m_timer.set(RECONNECT_INTERVAL, 0);
+        m_timer.start();
+        LOG(INFO) << "could not connect to master";
     }
 }
 

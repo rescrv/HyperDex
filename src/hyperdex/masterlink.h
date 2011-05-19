@@ -52,15 +52,33 @@ class masterlink
         void shutdown();
 
     private:
+        masterlink(const masterlink&);
+
+    private:
+        void connect();
+        void io(ev::io& i, int revents);
+        void read();
         void run();
+        void time(ev::timer& t, int revents);
         void wake(ev::async& a, int revents);
 
     private:
+        masterlink& operator = (const masterlink&);
+
+    private:
         bool m_continue;
+        po6::net::location m_loc;
+        hyperdex::datalayer* m_data;
+        hyperdex::logical* m_comm;
         po6::net::socket m_sock;
         po6::threads::thread m_thread;
         ev::dynamic_loop m_dl;
         ev::async m_wake;
+        ev::io m_io;
+        ev::timer m_timer;
+        e::buffer m_partial;
+        hyperdex::configuration m_config;
+        bool m_config_valid;
 };
 
 } // namespace hyperdex
