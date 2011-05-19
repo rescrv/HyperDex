@@ -56,6 +56,7 @@ set(hyperdex_srcs
     src/hyperdex/log.cc
     src/hyperdex/logical.cc
     src/hyperdex/mapper.cc
+    src/hyperdex/masterlink.cc
     src/hyperdex/network_worker.cc
     src/hyperdex/physical.cc
     src/hyperdex/query.cc

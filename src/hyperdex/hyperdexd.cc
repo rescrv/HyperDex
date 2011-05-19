@@ -52,6 +52,7 @@
 #include <hyperdex/datalayer.h>
 #include <hyperdex/logical.h>
 #include <hyperdex/hyperdexd.h>
+#include <hyperdex/masterlink.h>
 #include <hyperdex/network_worker.h>
 
 typedef std::tr1::shared_ptr<po6::threads::thread> thread_ptr;
@@ -97,10 +98,12 @@ hyperdex :: hyperdexd :: run()
     sigusr2.set<hyperdexd, &hyperdexd::USR2>(this);
     sigusr2.set(SIGUSR2);
     sigusr2.start();
-    // Setup the communications layer.
-    hyperdex::logical comm(dl, "127.0.0.1"); // XXX don't hardcode localhost
     // Setup the data layer.
     hyperdex::datalayer data;
+    // Setup the communications layer.
+    hyperdex::logical comm(dl, "127.0.0.1"); // XXX don't hardcode localhost
+    // Setup the link with the master.
+    hyperdex::masterlink ml(po6::net::location("127.0.0.1", 1234), &data, &comm);
     // Start the network_worker threads.
     hyperdex::network_worker nw(&comm, &data);
     std::tr1::function<void (hyperdex::network_worker*)> fnw(&hyperdex::network_worker::run);
@@ -131,6 +134,8 @@ hyperdex :: hyperdexd :: run()
     comm.shutdown();
     // Cleanup the network_worker threads.
     nw.shutdown();
+    // Cleanup the master thread.
+    ml.shutdown();
 
     for (std::vector<thread_ptr>::iterator t = threads.begin();
             t != threads.end(); ++t)

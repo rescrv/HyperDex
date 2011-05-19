@@ -126,4 +126,4 @@ def main(address, client, control):
 
 
 if __name__ == '__main__':
-    main('127.0.0.1', 6970, 6971);
+    main('127.0.0.1', 1234, 6970);

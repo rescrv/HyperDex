@@ -25,60 +25,44 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_logical_h_
-#define hyperdex_logical_h_
+#ifndef hyperdex_masterlink_h_
+#define hyperdex_masterlink_h_
 
-// STL
-#include <map>
-
-// libev
-#include <ev++.h>
+#define __STDC_LIMIT_MACROS
 
 // po6
 #include <po6/net/location.h>
-#include <po6/threads/rwlock.h>
-
-// e
-#include <e/buffer.h>
 
 // HyperDex
-#include <hyperdex/configuration.h>
-#include <hyperdex/entity.h>
-#include <hyperdex/physical.h>
+#include <hyperdex/datalayer.h>
+#include <hyperdex/logical.h>
 
 namespace hyperdex
 {
 
-class logical
+class masterlink
 {
     public:
-        logical(ev::loop_ref lr, const po6::net::ipaddr& us);
-        ~logical();
+        masterlink(const po6::net::location& loc,
+                   hyperdex::datalayer* data,
+                   hyperdex::logical* comm);
+        ~masterlink();
 
     public:
-        const configuration::instance& instance() const { return m_us; }
-
-    // Send and recv messages.
-    public:
-        bool send(const hyperdex::entity& from, const hyperdex::entity& to,
-                  const uint8_t msg_type, const e::buffer& msg);
-        bool recv(hyperdex::entity* from, hyperdex::entity* to,
-                  uint8_t* msg_type, e::buffer* msg);
         void shutdown();
 
     private:
-        logical(const logical&);
+        void run();
+        void wake(ev::async& a, int revents);
 
     private:
-        logical& operator = (const logical&);
-
-    private:
-        configuration::instance m_us;
-        po6::threads::rwlock m_lock;
-        std::map<entity, configuration::instance> m_mapping;
-        hyperdex::physical m_physical;
+        bool m_continue;
+        po6::net::socket m_sock;
+        po6::threads::thread m_thread;
+        ev::dynamic_loop m_dl;
+        ev::async m_wake;
 };
 
 } // namespace hyperdex
 
-#endif // hyperdex_logical_h_
+#endif // hyperdex_masterlink_h_
