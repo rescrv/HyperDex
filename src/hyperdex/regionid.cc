@@ -25,49 +25,41 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// C
-#include <cassert>
-
 // HyperDex
-#include <hyperdex/datalayer.h>
+#include <hyperdex/regionid.h>
 
-hyperdex :: datalayer :: datalayer()
+int
+hyperdex :: regionid :: compare (const regionid& rhs)
+                        const
 {
-}
+    const regionid& lhs(*this);
 
-void
-hyperdex :: datalayer :: create(const regionid& ri,
-                                uint16_t numcolumns)
-{
-}
+    if (lhs.space < rhs.space)
+    {
+        return -1;
+    }
+    else if (lhs.space > rhs.space)
+    {
+        return 1;
+    }
 
-void
-hyperdex :: datalayer :: drop(const regionid& ri)
-{
-}
+    if (lhs.subspace < rhs.subspace)
+    {
+        return -1;
+    }
+    else if (lhs.subspace > rhs.subspace)
+    {
+        return 1;
+    }
 
-bool
-hyperdex :: datalayer :: get(const regionid& ri,
-                             const e::buffer& key,
-                             std::vector<e::buffer>* value)
-{
-    // XXX
-    return false;
-}
+    if (lhs.prefix < rhs.prefix)
+    {
+        return -1;
+    }
+    else if (lhs.prefix > rhs.prefix)
+    {
+        return 1;
+    }
 
-bool
-hyperdex :: datalayer :: put(const regionid& ri,
-                             const e::buffer& key,
-                             const std::vector<e::buffer>& value)
-{
-    // XXX
-    return false;
-}
-
-bool
-hyperdex :: datalayer :: del(const regionid& ri,
-                             const e::buffer& key)
-{
-    // XXX
-    return false;
+    return lhs.mask - rhs.mask;
 }

@@ -61,6 +61,7 @@ set(hyperdex_srcs
     src/hyperdex/physical.cc
     src/hyperdex/query.cc
     src/hyperdex/region.cc
+    src/hyperdex/regionid.cc
     src/hyperdex/space.cc
     src/hyperdex/subspace.cc
 )

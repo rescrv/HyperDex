@@ -28,25 +28,14 @@
 #ifndef hyperdex_datalayer_h_
 #define hyperdex_datalayer_h_
 
-#define __STDC_LIMIT_MACROS
-
-// C
-#include <stdint.h>
-
 // STL
-#include <map>
-#include <set>
-#include <tr1/memory>
 #include <vector>
-
-// po6
-#include <po6/threads/rwlock.h>
 
 // e
 #include <e/buffer.h>
 
 // HyperDex
-#include <hyperdex/entity.h>
+#include <hyperdex/regionid.h>
 
 namespace hyperdex
 {
@@ -54,34 +43,10 @@ namespace hyperdex
 class datalayer
 {
     public:
-        struct regionid
-        {
-            regionid(uint32_t t, uint16_t s, uint8_t p, uint64_t m)
-                : space(t), subspace(s), prefix(p), mask(m) {}
-            regionid(const entity& e)
-                : space(e.space), subspace(e.subspace), prefix(e.prefix), mask(e.mask) {}
-
-            int compare(const regionid& other) const;
-
-            bool operator < (const regionid& other) const
-            { return compare(other) < 0; }
-            bool operator == (const regionid& other) const
-            { return compare(other) == 0; }
-            bool operator != (const regionid& other) const
-            { return compare(other) != 0; }
-
-            const uint32_t space;
-            const uint16_t subspace;
-            const uint8_t prefix;
-            const uint64_t mask;
-        };
-
-    public:
         datalayer();
 
     // Space operations.
     public:
-        std::set<regionid> regions();
         void create(const regionid& ri, uint16_t numcolumns);
         void drop(const regionid& ri);
 

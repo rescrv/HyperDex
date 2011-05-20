@@ -25,49 +25,44 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#ifndef hyperdex_regionid_h_
+#define hyperdex_regionid_h_
+
 // C
-#include <cassert>
+#include <stdint.h>
 
-// HyperDex
-#include <hyperdex/datalayer.h>
-
-hyperdex :: datalayer :: datalayer()
+namespace hyperdex
 {
-}
 
-void
-hyperdex :: datalayer :: create(const regionid& ri,
-                                uint16_t numcolumns)
+class regionid
 {
-}
+    public:
+        regionid(uint32_t t, uint16_t s, uint8_t p, uint64_t m)
+            : space(t)
+            , subspace(s)
+            , prefix(p)
+            , mask(m)
+        {
+        }
 
-void
-hyperdex :: datalayer :: drop(const regionid& ri)
-{
-}
+    public:
+        int compare(const regionid& other) const;
 
-bool
-hyperdex :: datalayer :: get(const regionid& ri,
-                             const e::buffer& key,
-                             std::vector<e::buffer>* value)
-{
-    // XXX
-    return false;
-}
+    public:
+        bool operator < (const regionid& other) const
+        { return compare(other) < 0; }
+        bool operator == (const regionid& other) const
+        { return compare(other) == 0; }
+        bool operator != (const regionid& other) const
+        { return compare(other) != 0; }
 
-bool
-hyperdex :: datalayer :: put(const regionid& ri,
-                             const e::buffer& key,
-                             const std::vector<e::buffer>& value)
-{
-    // XXX
-    return false;
-}
+    public:
+        const uint32_t space;
+        const uint16_t subspace;
+        const uint8_t prefix;
+        const uint64_t mask;
+};
 
-bool
-hyperdex :: datalayer :: del(const regionid& ri,
-                             const e::buffer& key)
-{
-    // XXX
-    return false;
-}
+} // namespace hyperdex
+
+#endif // hyperdex_regionid_h_
