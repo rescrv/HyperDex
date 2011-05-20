@@ -31,6 +31,9 @@
 // C
 #include <stdint.h>
 
+// C++
+#include <iostream>
+
 namespace hyperdex
 {
 
@@ -62,6 +65,18 @@ class regionid
         const uint8_t prefix;
         const uint64_t mask;
 };
+
+inline std::ostream&
+operator << (std::ostream& lhs, const regionid& rhs)
+{
+    std::ios_base::fmtflags fl = lhs.flags();
+    lhs << "region(space=" << rhs.space
+        << ", subspace=" << rhs.subspace
+        << ", prefix=" << rhs.prefix
+        << ", mask=" << std::showbase << std::hex << rhs.mask << ")";
+    lhs.flags(fl);
+    return lhs;
+}
 
 } // namespace hyperdex
 

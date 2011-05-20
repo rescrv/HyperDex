@@ -29,6 +29,7 @@
 #define hyperdex_datalayer_h_
 
 // STL
+#include <set>
 #include <vector>
 
 // e
@@ -47,6 +48,7 @@ class datalayer
 
     // Space operations.
     public:
+        std::set<regionid> regions();
         void create(const regionid& ri, uint16_t numcolumns);
         void drop(const regionid& ri);
 

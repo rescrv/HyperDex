@@ -153,11 +153,41 @@ hyperdex :: masterlink :: read()
                 if (m_config_valid)
                 {
                     LOG(INFO) << "Installing new configuration file.";
-                    // XXX
+                    std::set<hyperdex::regionid> existing;
+                    existing = m_data->regions();
+                    std::map<hyperdex::regionid, size_t> declared;
+                    declared = m_config.regions();
                     std::map<entity, configuration::instance> entity_mapping
                         = m_config.entity_mapping();
+                    // XXX only create regions to which we are mapped.  This is
+                    // not a big deal right now, just a few extra regions
+                    // mapped.  The communication layer ensures that none of
+                    // them will ever be used, and so it's a negligible cost.
+                    // I'm not too pleased with how alike the different classes
+                    // (e.g. entity vs. regionid) feel, and so may make changes
+                    // which resolve both of these issues together.
+
+                    // For each declared region, create it if it doesn't exist.
+                    for (std::map<hyperdex::regionid, size_t>::iterator d = declared.begin();
+                            d != declared.end(); ++d)
+                    {
+                        if (existing.find(d->first) == existing.end())
+                        {
+                            m_data->create(d->first, d->second);
+                        }
+                    }
+
                     m_comm->remap(entity_mapping);
-                    // XXX
+
+                    // For each existing region, drop it if it wasn't declared.
+                    for (std::set<hyperdex::regionid>::iterator e = existing.begin();
+                            e != existing.end(); ++e)
+                    {
+                        if (declared.find(*e) == declared.end())
+                        {
+                            m_data->drop(*e);
+                        }
+                    }
                 }
                 else
                 {
