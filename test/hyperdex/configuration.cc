@@ -172,6 +172,8 @@ TEST(ConfigurationTest, BadRegionLine)
     EXPECT_TRUE(c.add_line("host\t0xdeadbeef\t127.0.0.1\t6970\t0\t6971\t2"));
     EXPECT_TRUE(c.add_line("space\t0xdeadbeef\tset\titem"));
     EXPECT_TRUE(c.add_line("subspace\tset\t0\titem"));
+    EXPECT_TRUE(c.add_line("space\t0xbeefdead\ttes\titem"));
+    EXPECT_TRUE(c.add_line("subspace\ttes\t0\titem"));
     // Regions must reference spaces.
     EXPECT_FALSE(c.add_line("region\tnonspace\t0\t0\t0x0000000000000000\t0xdeadbeef"));
     // Regions must reference subspaces.
@@ -187,6 +189,10 @@ TEST(ConfigurationTest, BadRegionLine)
     EXPECT_TRUE(c.add_line("region\tset\t0\t2\t0x8000000000000000\t0xdeadbeef"));
     EXPECT_FALSE(c.add_line("region\tset\t0\t3\t0xa000000000000000\t0xdeadbeef"));
     EXPECT_FALSE(c.add_line("region\tset\t0\t1\t0x8000000000000000\t0xdeadbeef"));
+    // "Overlapping" cannot happen for regions from different tables.
+    EXPECT_TRUE(c.add_line("region\ttes\t0\t2\t0x8000000000000000\t0xdeadbeef"));
+    EXPECT_FALSE(c.add_line("region\ttes\t0\t3\t0xa000000000000000\t0xdeadbeef"));
+    EXPECT_FALSE(c.add_line("region\ttes\t0\t1\t0x8000000000000000\t0xdeadbeef"));
 }
 
 } // namespace

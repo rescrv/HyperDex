@@ -53,14 +53,6 @@ class spaceid
         }
 
     public:
-        template <typename T> bool operator < (const T& rhs) const { return compare(*this, rhs) < 0; }
-        template <typename T> bool operator <= (const T& rhs) const { return compare(*this, rhs) <= 0; }
-        template <typename T> bool operator == (const T& rhs) const { return compare(*this, rhs) == 0; }
-        template <typename T> bool operator >= (const T& rhs) const { return compare(*this, rhs) >= 0; }
-        template <typename T> bool operator > (const T& rhs) const { return compare(*this, rhs) > 0; }
-        template <typename T> bool operator != (const T& rhs) const { return compare(*this, rhs) != 0; }
-
-    public:
         uint32_t space;
 };
 
@@ -71,6 +63,12 @@ class subspaceid : public spaceid
 
     public:
         subspaceid(uint32_t s = 0, uint16_t ss = 0)
+            : spaceid(s)
+            , subspace(ss)
+        {
+        }
+
+        subspaceid(spaceid s, uint16_t ss = 0)
             : spaceid(s)
             , subspace(ss)
         {
@@ -97,6 +95,13 @@ class regionid : public subspaceid
         {
         }
 
+        regionid(subspaceid ss, uint8_t p = 0, uint64_t m = 0)
+            : subspaceid(ss)
+            , prefix(p)
+            , mask(m)
+        {
+        }
+
         ~regionid()
         {
         }
@@ -115,6 +120,12 @@ class entityid : public regionid
         entityid(uint32_t s = 0, uint16_t ss = 0,
                  uint8_t p = 0, uint64_t m = 0, uint8_t n = 0)
             : regionid(s, ss, p, m)
+            , number(n)
+        {
+        }
+
+        entityid(regionid r, uint8_t n = 0)
+            : regionid(r)
             , number(n)
         {
         }
@@ -240,6 +251,49 @@ compare(const entityid& lhs, const entityid& rhs)
     }
 
     return lhs.number - rhs.number;
+}
+
+// Operators
+template <typename T>
+bool
+operator < (const T& lhs, const T& rhs)
+{
+    return compare(lhs, rhs) < 0;
+}
+
+template <typename T>
+bool
+operator <= (const T& lhs, const T& rhs)
+{
+    return compare(lhs, rhs) <= 0;
+}
+
+template <typename T>
+bool
+operator == (const T& lhs, const T& rhs)
+{
+    return compare(lhs, rhs) == 0;
+}
+
+template <typename T>
+bool
+operator >= (const T& lhs, const T& rhs)
+{
+    return compare(lhs, rhs) >= 0;
+}
+
+template <typename T>
+bool
+operator > (const T& lhs, const T& rhs)
+{
+    return compare(lhs, rhs) > 0;
+}
+
+template <typename T>
+bool
+operator != (const T& lhs, const T& rhs)
+{
+    return compare(lhs, rhs) != 0;
 }
 
 // Output stream operators

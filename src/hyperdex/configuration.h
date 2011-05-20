@@ -36,7 +36,7 @@
 
 // HyperDex
 #include <hyperdex/datalayer.h>
-#include <hyperdex/space.h>
+#include <hyperdex/ids.h>
 
 namespace hyperdex
 {
@@ -91,13 +91,23 @@ class configuration
         bool add_line(const std::string& line);
 
     public:
-        std::map<entityid, instance> entity_mapping() const;
+        const std::map<entityid, instance>& entity_mapping() const { return m_entities; }
         std::map<regionid, size_t> regions() const;
 
     private:
         std::map<std::string, instance> m_hosts;
-        std::map<std::string, uint32_t> m_space_assignment;
-        std::map<uint32_t, hyperdex::space> m_spaces;
+        std::map<std::string, spaceid> m_space_assignment;
+
+        // Map a spaceid to the strings labeling the dimensions.
+        std::map<spaceid, std::vector<std::string> > m_spaces;
+        // Map a subspaceid to the bitmask of the dimensions of the space which
+        // are used as dimensions in the subspace.
+        std::map<subspaceid, std::vector<bool> > m_subspaces;
+        // A set of regions.  Elements of this set are guaranteed to be
+        // non-overlapping.
+        std::set<regionid> m_regions;
+        // Map an entity id onto the hyperdex instance.
+        std::map<entityid, instance> m_entities;
 };
 
 } // namespace hyperdex

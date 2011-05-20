@@ -58,7 +58,8 @@ nonoverlapping(const T& regions)
         {
             uint64_t mask = prefixmask(std::min(i->prefix, j->prefix));
 
-            if ((i->mask & mask) == (j->mask & mask))
+            if (i->space == j->space && i->subspace == j->subspace
+                    && (i->mask & mask) == (j->mask & mask))
             {
                 return false;
             }
@@ -77,7 +78,8 @@ nonoverlapping(const T& regions, R region)
         uint8_t prefix = std::min(i->prefix, region.prefix);
         uint64_t mask = prefixmask(prefix);
 
-        if ((i->mask & mask) == (region.mask & mask))
+        if (i->space == region.space && i->subspace == region.subspace
+                && (i->mask & mask) == (region.mask & mask))
         {
             return false;
         }

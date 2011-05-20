@@ -36,6 +36,7 @@
 
 // e
 #include <e/convert.h>
+#include <e/iterators.h>
 
 // HyperDex
 #include <hyperdex/configuration.h>
@@ -45,6 +46,9 @@ hyperdex :: configuration :: configuration()
     : m_hosts()
     , m_space_assignment()
     , m_spaces()
+    , m_subspaces()
+    , m_regions()
+    , m_entities()
 {
 }
 
@@ -109,11 +113,11 @@ hyperdex :: configuration :: add_line(const std::string& line)
 
         if (istr.eof() && !istr.bad() && !istr.fail()
                 && m_space_assignment.find(name) == m_space_assignment.end()
-                && m_spaces.find(id) == m_spaces.end()
+                && m_spaces.find(spaceid(id)) == m_spaces.end()
                 && dimensions.size() > 0)
         {
-            m_space_assignment[name] = id;
-            m_spaces.insert(std::make_pair(id, hyperdex::space(name, dimensions)));
+            m_space_assignment[name] = spaceid(id);
+            m_spaces.insert(std::make_pair(spaceid(id), dimensions));
             return true;
         }
         else
@@ -139,27 +143,36 @@ hyperdex :: configuration :: add_line(const std::string& line)
             }
         }
 
-        std::map<std::string, uint32_t>::iterator sai = m_space_assignment.find(spacename);
-        std::map<uint32_t, hyperdex::space>::iterator si;
+        std::map<std::string, spaceid>::iterator sai = m_space_assignment.find(spacename);
+        std::map<spaceid, std::vector<std::string> >::iterator si;
 
         if (istr.eof() && !istr.bad() && !istr.fail()
                 && sai != m_space_assignment.end()
                 && (si = m_spaces.find(sai->second)) != m_spaces.end()
-                && si->second.subspaces.size() == subspacenum
+                && e::iterator_distance(m_subspaces.lower_bound(si->first),
+                                        m_subspaces.upper_bound(si->first)) == subspacenum
                 && dimensions.size() > 0
                 && (subspacenum != 0 || dimensions.size() == 1))
         {
-            const std::vector<std::string>& spacedims(si->second.dimensions);
+            const std::vector<std::string>& spacedims(si->second);
+            std::vector<bool> bitmask(spacedims.size(), false);
 
             for (size_t i = 0; i < dimensions.size(); ++i)
             {
-                if (std::find(spacedims.begin(), spacedims.end(), dimensions[i]) == spacedims.end())
+                std::vector<std::string>::const_iterator d;
+                d = std::find(spacedims.begin(), spacedims.end(), dimensions[i]);
+
+                if (d == spacedims.end())
                 {
                     return false;
                 }
+                else
+                {
+                    bitmask[d - spacedims.begin()] = true;
+                }
             }
 
-            si->second.subspaces.push_back(hyperdex::subspace(dimensions));
+            m_subspaces.insert(std::make_pair(subspaceid(si->first, subspacenum), bitmask));
             return true;
         }
         else
@@ -215,19 +228,26 @@ hyperdex :: configuration :: add_line(const std::string& line)
             }
         }
 
-        hyperdex::region r(prefix, mask, hosts);
-        std::map<std::string, uint32_t>::iterator sai = m_space_assignment.find(spacename);
-        std::map<uint32_t, hyperdex::space>::iterator si;
+        std::map<std::string, spaceid>::iterator sai = m_space_assignment.find(spacename);
+        std::map<spaceid, std::vector<std::string> >::iterator si;
+        std::map<subspaceid, std::vector<bool> >::iterator ssi;
 
         if (istr.eof() && !istr.bad() && !istr.fail()
                 && sai != m_space_assignment.end()
                 && (si = m_spaces.find(sai->second)) != m_spaces.end()
-                && subspacenum < si->second.subspaces.size()
-                && si->second.subspaces[subspacenum].regions.find(r) == si->second.subspaces[subspacenum].regions.end())
+                && (ssi = m_subspaces.find(subspaceid(si->first, subspacenum))) != m_subspaces.end())
         {
-            if (hyperdex::nonoverlapping(si->second.subspaces[subspacenum].regions, r))
+            regionid r(ssi->first, prefix, mask);
+
+            if (hyperdex::nonoverlapping(m_regions, r))
             {
-                si->second.subspaces[subspacenum].regions.insert(r);
+                m_regions.insert(r);
+
+                for (size_t i = 0; i < hosts.size(); ++i)
+                {
+                    m_entities.insert(std::make_pair(entityid(r, i), m_hosts[hosts[i]]));
+                }
+
                 return true;
             }
             else
@@ -246,73 +266,15 @@ hyperdex :: configuration :: add_line(const std::string& line)
     }
 }
 
-std::map<hyperdex::entityid, hyperdex::configuration::instance>
-hyperdex :: configuration :: entity_mapping() const
-{
-    typedef std::map<uint32_t, hyperdex::space>::const_iterator space_iterator;
-    typedef std::vector<hyperdex::subspace>::const_iterator subspace_iterator;
-    typedef std::set<hyperdex::region>::const_iterator region_iterator;
-    typedef std::vector<std::string>::const_iterator host_iterator;
-    std::map<hyperdex::entityid, hyperdex::configuration::instance> ret;
-
-    for (space_iterator si = m_spaces.begin(); si != m_spaces.end(); ++si)
-    {
-        uint32_t space = si->first;
-
-        for (subspace_iterator ssi = si->second.subspaces.begin();
-                ssi != si->second.subspaces.end(); ++ssi)
-        {
-            uint16_t subspace = ssi - si->second.subspaces.begin();
-
-            for (region_iterator ri = ssi->regions.begin();
-                    ri != ssi->regions.end(); ++ri)
-            {
-                uint8_t prefix = ri->prefix;
-                uint64_t mask = ri->mask;
-
-                for (host_iterator hi = ri->hosts.begin();
-                        hi != ri->hosts.end(); ++hi)
-                {
-                    uint8_t number = hi - ri->hosts.begin();
-                    ret.insert(std::make_pair(hyperdex::entityid(space, subspace, prefix, mask, number),
-                                              m_hosts.find(*hi)->second));
-                }
-            }
-        }
-    }
-
-    return ret;
-}
-
 std::map<hyperdex::regionid, size_t>
 hyperdex :: configuration :: regions() const
 {
-    typedef std::map<uint32_t, hyperdex::space>::const_iterator space_iterator;
-    typedef std::vector<hyperdex::subspace>::const_iterator subspace_iterator;
-    typedef std::set<hyperdex::region>::const_iterator region_iterator;
-    typedef std::vector<std::string>::const_iterator host_iterator;
     std::map<regionid, size_t> ret;
 
-    for (space_iterator si = m_spaces.begin(); si != m_spaces.end(); ++si)
+    for (std::set<regionid>::iterator i = m_regions.begin();
+            i != m_regions.end(); ++i)
     {
-        uint32_t space = si->first;
-        size_t dims = si->second.dimensions.size();
-
-        for (subspace_iterator ssi = si->second.subspaces.begin();
-                ssi != si->second.subspaces.end(); ++ssi)
-        {
-            uint16_t subspace = ssi - si->second.subspaces.begin();
-
-            for (region_iterator ri = ssi->regions.begin();
-                    ri != ssi->regions.end(); ++ri)
-            {
-                uint8_t prefix = ri->prefix;
-                uint64_t mask = ri->mask;
-
-                ret.insert(std::make_pair(hyperdex::regionid(space, subspace, prefix, mask),
-                                          dims));
-            }
-        }
+        ret[*i] = m_spaces.find(*i)->second.size();
     }
 
     return ret;
