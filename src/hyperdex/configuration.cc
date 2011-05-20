@@ -246,13 +246,6 @@ hyperdex :: configuration :: add_line(const std::string& line)
     }
 }
 
-bool
-hyperdex :: configuration :: is_complete() const
-{
-    // XXX
-    return false;
-}
-
 std::map<hyperdex::entityid, hyperdex::configuration::instance>
 hyperdex :: configuration :: entity_mapping() const
 {

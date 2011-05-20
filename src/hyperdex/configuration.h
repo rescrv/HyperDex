@@ -91,7 +91,6 @@ class configuration
         bool add_line(const std::string& line);
 
     public:
-        bool is_complete() const;
         std::map<entityid, instance> entity_mapping() const;
         std::map<regionid, size_t> regions() const;
 

@@ -46,25 +46,19 @@ TEST(ConfigurationTest, CtorAndDtor)
 TEST(ConfigurationTest, SimpleHost)
 {
     hyperdex::configuration c;
-    EXPECT_TRUE(c.is_complete());
     EXPECT_TRUE(c.add_line("host\t0xdeadbeef\t127.0.0.1\t6970\t0\t6971\t2"));
     EXPECT_TRUE(c.add_line("host\t0xcafebabe\t127.0.0.1\t6972\t1\t6973\t1"));
     EXPECT_TRUE(c.add_line("host\t0x8badf00d\t127.0.0.1\t6974\t0\t6975\t0"));
     EXPECT_TRUE(c.add_line("host\t0xfee1dead\t127.0.0.1\t6976\t0\t6977\t0"));
-    EXPECT_TRUE(c.is_complete());
     EXPECT_TRUE(c.add_line("space\t0xdefec8ed\tkv\tkey\tvalue"));
-    EXPECT_FALSE(c.is_complete());
     EXPECT_TRUE(c.add_line("subspace\tkv\t0\tkey"));
-    EXPECT_FALSE(c.is_complete());
     EXPECT_TRUE(c.add_line("subspace\tkv\t1\tvalue"));
     EXPECT_TRUE(c.add_line("region\tkv\t0\t2\t0x0000000000000000\t0xdeadbeef"));
     EXPECT_TRUE(c.add_line("region\tkv\t0\t2\t0x4000000000000000\t0xcafebabe"));
     EXPECT_TRUE(c.add_line("region\tkv\t0\t2\t0x8000000000000000\t0x8badf00d"));
     EXPECT_TRUE(c.add_line("region\tkv\t0\t2\t0xc000000000000000\t0xfee1dead"));
     EXPECT_TRUE(c.add_line("region\tkv\t1\t1\t0x0000000000000000\t0xdeadbeef\t0xcafebabe"));
-    EXPECT_FALSE(c.is_complete());
     EXPECT_TRUE(c.add_line("region\tkv\t1\t1\t0x8000000000000000\t0x8badf00d\t0xfee1dead"));
-    EXPECT_TRUE(c.is_complete());
 
     hyperdex::configuration::instance i_deadbeef(po6::net::location("127.0.0.1", 6970), 0,
                                                  po6::net::location("127.0.0.1", 6971), 2);
