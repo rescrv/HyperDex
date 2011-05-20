@@ -28,11 +28,14 @@
 #ifndef hyperdex_datalayer_h_
 #define hyperdex_datalayer_h_
 
+#define __STDC_LIMIT_MACROS
+
 // C
 #include <stdint.h>
 
 // STL
 #include <map>
+#include <set>
 #include <tr1/memory>
 #include <vector>
 
@@ -41,6 +44,9 @@
 
 // e
 #include <e/buffer.h>
+
+// HyperDex
+#include <hyperdex/entity.h>
 
 namespace hyperdex
 {
@@ -52,10 +58,17 @@ class datalayer
         {
             regionid(uint32_t t, uint16_t s, uint8_t p, uint64_t m)
                 : space(t), subspace(s), prefix(p), mask(m) {}
+            regionid(const entity& e)
+                : space(e.space), subspace(e.subspace), prefix(e.prefix), mask(e.mask) {}
 
-            bool operator < (const regionid& other) const;
-            bool operator == (const regionid& other) const;
-            bool operator != (const regionid& other) const;
+            int compare(const regionid& other) const;
+
+            bool operator < (const regionid& other) const
+            { return compare(other) < 0; }
+            bool operator == (const regionid& other) const
+            { return compare(other) == 0; }
+            bool operator != (const regionid& other) const
+            { return compare(other) != 0; }
 
             const uint32_t space;
             const uint16_t subspace;
@@ -68,19 +81,15 @@ class datalayer
 
     // Space operations.
     public:
-        void create(uint32_t space, uint16_t subspace, uint8_t prefix,
-                    uint64_t mask, uint16_t numcolumns);
-        void drop(uint32_t space, uint16_t subspace, uint8_t prefix,
-                  uint64_t mask);
+        std::set<regionid> regions();
+        void create(const regionid& ri, uint16_t numcolumns);
+        void drop(const regionid& ri);
 
     // Key-Value store operations.
     public:
-        bool get(uint32_t space, uint16_t subspace, uint8_t prefix, uint64_t mask,
-                 const e::buffer& key, std::vector<e::buffer>* value);
-        bool put(uint32_t space, uint16_t subspace, uint8_t prefix, uint64_t mask,
-                 const e::buffer& key, const std::vector<e::buffer>& value);
-        bool del(uint32_t space, uint16_t subspace, uint8_t prefix, uint64_t mask,
-                 const e::buffer& key);
+        bool get(const regionid& ri, const e::buffer& key, std::vector<e::buffer>* value);
+        bool put(const regionid& ri, const e::buffer& key, const std::vector<e::buffer>& value);
+        bool del(const regionid& ri, const e::buffer& key);
 
     private:
         datalayer(const datalayer&);

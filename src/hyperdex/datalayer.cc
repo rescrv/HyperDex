@@ -34,40 +34,40 @@
 using po6::threads::rwlock;
 using std::tr1::shared_ptr;
 
-bool
-hyperdex :: datalayer :: regionid :: operator < (const regionid& rhs)
+int
+hyperdex :: datalayer :: regionid :: compare (const regionid& rhs)
                                      const
 {
     const regionid& lhs(*this);
 
     if (lhs.space < rhs.space)
     {
-        return true;
+        return -1;
     }
     else if (lhs.space > rhs.space)
     {
-        return false;
+        return 1;
     }
 
     if (lhs.subspace < rhs.subspace)
     {
-        return true;
+        return -1;
     }
     else if (lhs.subspace > rhs.subspace)
     {
-        return false;
+        return 1;
     }
 
     if (lhs.prefix < rhs.prefix)
     {
-        return true;
+        return -1;
     }
     else if (lhs.prefix > rhs.prefix)
     {
-        return false;
+        return 1;
     }
 
-    return lhs.mask < rhs.mask;
+    return lhs.mask - rhs.mask;
 }
 
 hyperdex :: datalayer :: datalayer()
@@ -75,27 +75,18 @@ hyperdex :: datalayer :: datalayer()
 }
 
 void
-hyperdex :: datalayer :: create(uint32_t space,
-                                uint16_t subspace,
-                                uint8_t prefix,
-                                uint64_t mask,
+hyperdex :: datalayer :: create(const regionid& ri,
                                 uint16_t numcolumns)
 {
 }
 
 void
-hyperdex :: datalayer :: drop(uint32_t space,
-                              uint16_t subspace,
-                              uint8_t prefix,
-                              uint64_t mask)
+hyperdex :: datalayer :: drop(const regionid& ri)
 {
 }
 
 bool
-hyperdex :: datalayer :: get(uint32_t space,
-                             uint16_t subspace,
-                             uint8_t prefix,
-                             uint64_t mask,
+hyperdex :: datalayer :: get(const regionid& ri,
                              const e::buffer& key,
                              std::vector<e::buffer>* value)
 {
@@ -104,10 +95,7 @@ hyperdex :: datalayer :: get(uint32_t space,
 }
 
 bool
-hyperdex :: datalayer :: put(uint32_t space,
-                             uint16_t subspace,
-                             uint8_t prefix,
-                             uint64_t mask,
+hyperdex :: datalayer :: put(const regionid& ri,
                              const e::buffer& key,
                              const std::vector<e::buffer>& value)
 {
@@ -116,10 +104,7 @@ hyperdex :: datalayer :: put(uint32_t space,
 }
 
 bool
-hyperdex :: datalayer :: del(uint32_t space,
-                             uint16_t subspace,
-                             uint8_t prefix,
-                             uint64_t mask,
+hyperdex :: datalayer :: del(const regionid& ri,
                              const e::buffer& key)
 {
     // XXX
