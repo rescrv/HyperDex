@@ -36,7 +36,7 @@
 #include <e/buffer.h>
 
 // HyperDex
-#include <hyperdex/regionid.h>
+#include <hyperdex/ids.h>
 
 namespace hyperdex
 {

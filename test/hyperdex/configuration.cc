@@ -75,25 +75,25 @@ TEST(ConfigurationTest, SimpleHost)
     hyperdex::configuration::instance i_fee1dead(po6::net::location("127.0.0.1", 6976), 0,
                                                  po6::net::location("127.0.0.1", 6977), 0);
 
-    std::map<hyperdex::entity, hyperdex::configuration::instance> expected_em;
-    expected_em.insert(std::make_pair(hyperdex::entity(0xdefec8ed, 0, 2, 0x0000000000000000, 0),
+    std::map<hyperdex::entityid, hyperdex::configuration::instance> expected_em;
+    expected_em.insert(std::make_pair(hyperdex::entityid(0xdefec8ed, 0, 2, 0x0000000000000000, 0),
                                       i_deadbeef));
-    expected_em.insert(std::make_pair(hyperdex::entity(0xdefec8ed, 0, 2, 0x4000000000000000, 0),
+    expected_em.insert(std::make_pair(hyperdex::entityid(0xdefec8ed, 0, 2, 0x4000000000000000, 0),
                                       i_cafebabe));
-    expected_em.insert(std::make_pair(hyperdex::entity(0xdefec8ed, 0, 2, 0x8000000000000000, 0),
+    expected_em.insert(std::make_pair(hyperdex::entityid(0xdefec8ed, 0, 2, 0x8000000000000000, 0),
                                       i_8badf00d));
-    expected_em.insert(std::make_pair(hyperdex::entity(0xdefec8ed, 0, 2, 0xc000000000000000, 0),
+    expected_em.insert(std::make_pair(hyperdex::entityid(0xdefec8ed, 0, 2, 0xc000000000000000, 0),
                                       i_fee1dead));
-    expected_em.insert(std::make_pair(hyperdex::entity(0xdefec8ed, 1, 1, 0x0000000000000000, 0),
+    expected_em.insert(std::make_pair(hyperdex::entityid(0xdefec8ed, 1, 1, 0x0000000000000000, 0),
                                       i_deadbeef));
-    expected_em.insert(std::make_pair(hyperdex::entity(0xdefec8ed, 1, 1, 0x0000000000000000, 1),
+    expected_em.insert(std::make_pair(hyperdex::entityid(0xdefec8ed, 1, 1, 0x0000000000000000, 1),
                                       i_cafebabe));
-    expected_em.insert(std::make_pair(hyperdex::entity(0xdefec8ed, 1, 1, 0x8000000000000000, 0),
+    expected_em.insert(std::make_pair(hyperdex::entityid(0xdefec8ed, 1, 1, 0x8000000000000000, 0),
                                       i_8badf00d));
-    expected_em.insert(std::make_pair(hyperdex::entity(0xdefec8ed, 1, 1, 0x8000000000000000, 1),
+    expected_em.insert(std::make_pair(hyperdex::entityid(0xdefec8ed, 1, 1, 0x8000000000000000, 1),
                                       i_fee1dead));
 
-    std::map<hyperdex::entity, hyperdex::configuration::instance> returned_em = c.entity_mapping();
+    std::map<hyperdex::entityid, hyperdex::configuration::instance> returned_em = c.entity_mapping();
     EXPECT_TRUE(expected_em == returned_em);
 
     std::map<hyperdex::regionid, size_t> expected_r;

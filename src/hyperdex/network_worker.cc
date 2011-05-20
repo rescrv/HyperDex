@@ -78,8 +78,8 @@ hyperdex :: network_worker :: run()
         return;
     }
 
-    hyperdex::entity from;
-    hyperdex::entity to;
+    hyperdex::entityid from;
+    hyperdex::entityid to;
     uint8_t msg_type;
     e::buffer msg;
 

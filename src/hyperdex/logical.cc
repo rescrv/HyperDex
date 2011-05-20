@@ -56,17 +56,17 @@ hyperdex :: logical :: ~logical()
 {
 }
 
-typedef std::map<hyperdex::entity, hyperdex::configuration::instance>::iterator mapiter;
+typedef std::map<hyperdex::entityid, hyperdex::configuration::instance>::iterator mapiter;
 
 void
-hyperdex :: logical :: remap(std::map<entity, configuration::instance> mapping)
+hyperdex :: logical :: remap(std::map<entityid, configuration::instance> mapping)
 {
     rwlock::wrhold wr(&m_lock);
     m_mapping.swap(mapping);
 }
 
 bool
-hyperdex :: logical :: send(const hyperdex::entity& from, const hyperdex::entity& to,
+hyperdex :: logical :: send(const hyperdex::entityid& from, const hyperdex::entityid& to,
                             const uint8_t msg_type,
                             const e::buffer& msg)
 {
@@ -91,7 +91,7 @@ hyperdex :: logical :: send(const hyperdex::entity& from, const hyperdex::entity
 }
 
 bool
-hyperdex :: logical :: recv(hyperdex::entity* from, hyperdex::entity* to,
+hyperdex :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
                             uint8_t* msg_type,
                             e::buffer* msg)
 {
@@ -104,11 +104,11 @@ hyperdex :: logical :: recv(hyperdex::entity* from, hyperdex::entity* to,
 
     // Read messages from the network until we get one which meets the following
     // constraints:
-    //  - We have a mapping for the source entity.
-    //  - We have a mapping for the destination entity.
-    //  - We have a mapping for the source entity which corresponds to the
+    //  - We have a mapping for the source entityid.
+    //  - We have a mapping for the destination entityid.
+    //  - We have a mapping for the source entityid which corresponds to the
     //    underlying network location and version number of this message.
-    //  - The destination entity maps to our network location.
+    //  - The destination entityid maps to our network location.
     //  - The message is to the correct version of our port bindings.
     do
     {
@@ -121,7 +121,7 @@ hyperdex :: logical :: recv(hyperdex::entity* from, hyperdex::entity* to,
         }
 
         if (packed.size() < sizeof(uint8_t) + 2 * sizeof(uint16_t) +
-                         2 * entity::SERIALIZEDSIZE)
+                         2 * entityid::SERIALIZEDSIZE)
         {
             continue;
         }

@@ -253,14 +253,14 @@ hyperdex :: configuration :: is_complete() const
     return false;
 }
 
-std::map<hyperdex::entity, hyperdex::configuration::instance>
+std::map<hyperdex::entityid, hyperdex::configuration::instance>
 hyperdex :: configuration :: entity_mapping() const
 {
     typedef std::map<uint32_t, hyperdex::space>::const_iterator space_iterator;
     typedef std::vector<hyperdex::subspace>::const_iterator subspace_iterator;
     typedef std::set<hyperdex::region>::const_iterator region_iterator;
     typedef std::vector<std::string>::const_iterator host_iterator;
-    std::map<hyperdex::entity, hyperdex::configuration::instance> ret;
+    std::map<hyperdex::entityid, hyperdex::configuration::instance> ret;
 
     for (space_iterator si = m_spaces.begin(); si != m_spaces.end(); ++si)
     {
@@ -281,7 +281,7 @@ hyperdex :: configuration :: entity_mapping() const
                         hi != ri->hosts.end(); ++hi)
                 {
                     uint8_t number = hi - ri->hosts.begin();
-                    ret.insert(std::make_pair(hyperdex::entity(space, subspace, prefix, mask, number),
+                    ret.insert(std::make_pair(hyperdex::entityid(space, subspace, prefix, mask, number),
                                               m_hosts.find(*hi)->second));
                 }
             }

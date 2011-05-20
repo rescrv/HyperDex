@@ -36,7 +36,6 @@
 
 // HyperDex
 #include <hyperdex/datalayer.h>
-#include <hyperdex/entity.h>
 #include <hyperdex/space.h>
 
 namespace hyperdex
@@ -93,7 +92,7 @@ class configuration
 
     public:
         bool is_complete() const;
-        std::map<entity, instance> entity_mapping() const;
+        std::map<entityid, instance> entity_mapping() const;
         std::map<regionid, size_t> regions() const;
 
     private:

@@ -157,14 +157,14 @@ hyperdex :: masterlink :: read()
                     existing = m_data->regions();
                     std::map<hyperdex::regionid, size_t> declared;
                     declared = m_config.regions();
-                    std::map<entity, configuration::instance> entity_mapping
+                    std::map<entityid, configuration::instance> entity_mapping
                         = m_config.entity_mapping();
                     // XXX only create regions to which we are mapped.  This is
                     // not a big deal right now, just a few extra regions
                     // mapped.  The communication layer ensures that none of
                     // them will ever be used, and so it's a negligible cost.
                     // I'm not too pleased with how alike the different classes
-                    // (e.g. entity vs. regionid) feel, and so may make changes
+                    // (e.g. entityid vs. regionid) feel, and so may make changes
                     // which resolve both of these issues together.
 
                     // For each declared region, create it if it doesn't exist.

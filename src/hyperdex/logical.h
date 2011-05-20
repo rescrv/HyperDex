@@ -43,7 +43,6 @@
 
 // HyperDex
 #include <hyperdex/configuration.h>
-#include <hyperdex/entity.h>
 #include <hyperdex/physical.h>
 
 namespace hyperdex
@@ -58,13 +57,13 @@ class logical
     public:
         const configuration::instance& instance() const { return m_us; }
         // Install a new mapping.
-        void remap(std::map<entity, configuration::instance> mapping);
+        void remap(std::map<entityid, configuration::instance> mapping);
 
     // Send and recv messages.
     public:
-        bool send(const hyperdex::entity& from, const hyperdex::entity& to,
+        bool send(const hyperdex::entityid& from, const hyperdex::entityid& to,
                   const uint8_t msg_type, const e::buffer& msg);
-        bool recv(hyperdex::entity* from, hyperdex::entity* to,
+        bool recv(hyperdex::entityid* from, hyperdex::entityid* to,
                   uint8_t* msg_type, e::buffer* msg);
         void shutdown();
 
@@ -77,7 +76,7 @@ class logical
     private:
         configuration::instance m_us;
         po6::threads::rwlock m_lock;
-        std::map<entity, configuration::instance> m_mapping;
+        std::map<entityid, configuration::instance> m_mapping;
         hyperdex::physical m_physical;
 };
 

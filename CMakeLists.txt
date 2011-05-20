@@ -51,7 +51,6 @@ set(hyperdex_srcs
     src/hyperdex/city.cc
     src/hyperdex/configuration.cc
     src/hyperdex/datalayer.cc
-    src/hyperdex/entity.cc
     src/hyperdex/hyperdexd.cc
     src/hyperdex/log.cc
     src/hyperdex/logical.cc
@@ -61,7 +60,6 @@ set(hyperdex_srcs
     src/hyperdex/physical.cc
     src/hyperdex/query.cc
     src/hyperdex/region.cc
-    src/hyperdex/regionid.cc
     src/hyperdex/space.cc
     src/hyperdex/subspace.cc
 )
