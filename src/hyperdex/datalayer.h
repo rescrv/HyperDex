@@ -48,40 +48,39 @@ namespace hyperdex
 class datalayer
 {
     public:
-        datalayer();
-
-    // Table operations.
-    public:
-        void create(uint32_t table, uint16_t subspace, uint8_t prefix,
-                    uint64_t mask, uint16_t numcolumns);
-        void drop(uint32_t table, uint16_t subspace, uint8_t prefix,
-                  uint64_t mask);
-
-    // Key-Value store operations.
-    public:
-        bool get(uint32_t table, uint16_t subspace, uint8_t prefix, uint64_t mask,
-                 const e::buffer& key, std::vector<e::buffer>* value);
-        bool put(uint32_t table, uint16_t subspace, uint8_t prefix, uint64_t mask,
-                 const e::buffer& key, const std::vector<e::buffer>& value);
-        bool del(uint32_t table, uint16_t subspace, uint8_t prefix, uint64_t mask,
-                 const e::buffer& key);
-
-    private:
-        struct zoneid
+        struct regionid
         {
-            zoneid(uint32_t t, uint16_t s, uint8_t p, uint64_t m)
-                : table(t), subspace(s), prefix(p), mask(m) {}
+            regionid(uint32_t t, uint16_t s, uint8_t p, uint64_t m)
+                : space(t), subspace(s), prefix(p), mask(m) {}
 
-            bool operator < (const zoneid& other) const;
-            bool operator == (const zoneid& other) const;
-            bool operator != (const zoneid& other) const;
+            bool operator < (const regionid& other) const;
+            bool operator == (const regionid& other) const;
+            bool operator != (const regionid& other) const;
 
-            const uint32_t table;
+            const uint32_t space;
             const uint16_t subspace;
             const uint8_t prefix;
             const uint64_t mask;
         };
 
+    public:
+        datalayer();
+
+    // Space operations.
+    public:
+        void create(uint32_t space, uint16_t subspace, uint8_t prefix,
+                    uint64_t mask, uint16_t numcolumns);
+        void drop(uint32_t space, uint16_t subspace, uint8_t prefix,
+                  uint64_t mask);
+
+    // Key-Value store operations.
+    public:
+        bool get(uint32_t space, uint16_t subspace, uint8_t prefix, uint64_t mask,
+                 const e::buffer& key, std::vector<e::buffer>* value);
+        bool put(uint32_t space, uint16_t subspace, uint8_t prefix, uint64_t mask,
+                 const e::buffer& key, const std::vector<e::buffer>& value);
+        bool del(uint32_t space, uint16_t subspace, uint8_t prefix, uint64_t mask,
+                 const e::buffer& key);
 
     private:
         datalayer(const datalayer&);

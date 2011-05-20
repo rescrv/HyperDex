@@ -34,73 +34,17 @@
 using po6::threads::rwlock;
 using std::tr1::shared_ptr;
 
-hyperdex :: datalayer :: datalayer()
-{
-}
-
-void
-hyperdex :: datalayer :: create(uint32_t table,
-                                uint16_t subspace,
-                                uint8_t prefix,
-                                uint64_t mask,
-                                uint16_t numcolumns)
-{
-}
-
-void
-hyperdex :: datalayer :: drop(uint32_t table,
-                              uint16_t subspace,
-                              uint8_t prefix,
-                              uint64_t mask)
-{
-}
-
 bool
-hyperdex :: datalayer :: get(uint32_t table,
-                             uint16_t subspace,
-                             uint8_t prefix,
-                             uint64_t mask,
-                             const e::buffer& key,
-                             std::vector<e::buffer>* value)
+hyperdex :: datalayer :: regionid :: operator < (const regionid& rhs)
+                                     const
 {
-    // XXX
-    return false;
-}
+    const regionid& lhs(*this);
 
-bool
-hyperdex :: datalayer :: put(uint32_t table,
-                             uint16_t subspace,
-                             uint8_t prefix,
-                             uint64_t mask,
-                             const e::buffer& key,
-                             const std::vector<e::buffer>& value)
-{
-    // XXX
-    return false;
-}
-
-bool
-hyperdex :: datalayer :: del(uint32_t table,
-                             uint16_t subspace,
-                             uint8_t prefix,
-                             uint64_t mask,
-                             const e::buffer& key)
-{
-    // XXX
-    return false;
-}
-
-bool
-hyperdex :: datalayer :: zoneid :: operator < (const zoneid& rhs)
-                                   const
-{
-    const zoneid& lhs(*this);
-
-    if (lhs.table < rhs.table)
+    if (lhs.space < rhs.space)
     {
         return true;
     }
-    else if (lhs.table > rhs.table)
+    else if (lhs.space > rhs.space)
     {
         return false;
     }
@@ -124,4 +68,60 @@ hyperdex :: datalayer :: zoneid :: operator < (const zoneid& rhs)
     }
 
     return lhs.mask < rhs.mask;
+}
+
+hyperdex :: datalayer :: datalayer()
+{
+}
+
+void
+hyperdex :: datalayer :: create(uint32_t space,
+                                uint16_t subspace,
+                                uint8_t prefix,
+                                uint64_t mask,
+                                uint16_t numcolumns)
+{
+}
+
+void
+hyperdex :: datalayer :: drop(uint32_t space,
+                              uint16_t subspace,
+                              uint8_t prefix,
+                              uint64_t mask)
+{
+}
+
+bool
+hyperdex :: datalayer :: get(uint32_t space,
+                             uint16_t subspace,
+                             uint8_t prefix,
+                             uint64_t mask,
+                             const e::buffer& key,
+                             std::vector<e::buffer>* value)
+{
+    // XXX
+    return false;
+}
+
+bool
+hyperdex :: datalayer :: put(uint32_t space,
+                             uint16_t subspace,
+                             uint8_t prefix,
+                             uint64_t mask,
+                             const e::buffer& key,
+                             const std::vector<e::buffer>& value)
+{
+    // XXX
+    return false;
+}
+
+bool
+hyperdex :: datalayer :: del(uint32_t space,
+                             uint16_t subspace,
+                             uint8_t prefix,
+                             uint64_t mask,
+                             const e::buffer& key)
+{
+    // XXX
+    return false;
 }
