@@ -35,6 +35,7 @@
 #include <po6/net/location.h>
 
 // HyperDex
+#include <hyperdex/datalayer.h>
 #include <hyperdex/entity.h>
 #include <hyperdex/space.h>
 
@@ -93,6 +94,7 @@ class configuration
     public:
         bool is_complete() const;
         std::map<entity, instance> entity_mapping() const;
+        std::map<regionid, size_t> regions() const;
 
     private:
         std::map<std::string, instance> m_hosts;

@@ -290,3 +290,37 @@ hyperdex :: configuration :: entity_mapping() const
 
     return ret;
 }
+
+std::map<hyperdex::regionid, size_t>
+hyperdex :: configuration :: regions() const
+{
+    typedef std::map<uint32_t, hyperdex::space>::const_iterator space_iterator;
+    typedef std::vector<hyperdex::subspace>::const_iterator subspace_iterator;
+    typedef std::set<hyperdex::region>::const_iterator region_iterator;
+    typedef std::vector<std::string>::const_iterator host_iterator;
+    std::map<regionid, size_t> ret;
+
+    for (space_iterator si = m_spaces.begin(); si != m_spaces.end(); ++si)
+    {
+        uint32_t space = si->first;
+        size_t dims = si->second.dimensions.size();
+
+        for (subspace_iterator ssi = si->second.subspaces.begin();
+                ssi != si->second.subspaces.end(); ++ssi)
+        {
+            uint16_t subspace = ssi - si->second.subspaces.begin();
+
+            for (region_iterator ri = ssi->regions.begin();
+                    ri != ssi->regions.end(); ++ri)
+            {
+                uint8_t prefix = ri->prefix;
+                uint64_t mask = ri->mask;
+
+                ret.insert(std::make_pair(hyperdex::regionid(space, subspace, prefix, mask),
+                                          dims));
+            }
+        }
+    }
+
+    return ret;
+}
