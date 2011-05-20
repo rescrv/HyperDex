@@ -157,4 +157,19 @@ add_test(LockingqTest.CtorAndDtor testrunner
 add_test(LockingqTest.NormalQueue testrunner
     --gtest_filter=LockingqTest.NormalQueue)
 
+add_test(ConfigurationTest.CtorAndDtor testrunner
+    --gtest_filter=ConfigurationTest.CtorAndDtor)
+add_test(ConfigurationTest.SimpleHost testrunner
+    --gtest_filter=ConfigurationTest.SimpleHost)
+add_test(ConfigurationTest.BadHostLine testrunner
+    --gtest_filter=ConfigurationTest.BadHostLine)
+add_test(ConfigurationTest.IPv6Ready testrunner
+    --gtest_filter=ConfigurationTest.IPv6Ready)
+add_test(ConfigurationTest.BadSpaceLine testrunner
+    --gtest_filter=ConfigurationTest.BadSpaceLine)
+add_test(ConfigurationTest.BadSubspaceLine testrunner
+    --gtest_filter=ConfigurationTest.BadSubspaceLine)
+add_test(ConfigurationTest.BadRegionLine testrunner
+    --gtest_filter=ConfigurationTest.BadRegionLine)
+
 # Installation targets.
