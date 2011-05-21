@@ -195,4 +195,44 @@ TEST(ConfigurationTest, BadRegionLine)
     EXPECT_FALSE(c.add_line("region\ttes\t0\t1\t0x8000000000000000\t0xdeadbeef"));
 }
 
+TEST(ConfigurationTest, OrderAgnostic)
+{
+    // This test case arose from a bug in converting between regionid/entityid.
+    // The map was not using the entityid comparison functions, but instead was
+    // using the regionid or subspaceid comparison function, and so entities
+    // were lost.  This test checks to make sure this doesn't happen.
+    hyperdex::configuration c;
+    EXPECT_TRUE(c.add_line("host\t0xdeadbeef\t127.0.0.1\t44876\t0\t49585\t0"));
+    EXPECT_TRUE(c.add_line("host\t0xcafebabe\t127.0.0.1\t44444\t0\t55555\t0"));
+    EXPECT_TRUE(c.add_line("space\t0xdefec8ed\tkv\tkey\tvalue"));
+    EXPECT_TRUE(c.add_line("subspace\tkv\t0\tkey"));
+    EXPECT_TRUE(c.add_line("region\tkv\t0\t1\t0x0000000000000000\t0xdeadbeef"));
+    EXPECT_TRUE(c.add_line("region\tkv\t0\t1\t0x8000000000000000\t0xcafebabe"));
+
+    hyperdex::configuration::instance i_deadbeef(po6::net::location("127.0.0.1", 44876), 0,
+                                                 po6::net::location("127.0.0.1", 49585), 0);
+    hyperdex::configuration::instance i_cafebabe(po6::net::location("127.0.0.1", 44444), 0,
+                                                 po6::net::location("127.0.0.1", 55555), 0);
+
+    // Order of these matters.  They must be inserted into the map in reverse
+    // order of the above "add_line" statements.
+    std::map<hyperdex::entityid, hyperdex::configuration::instance> expected_em;
+    expected_em.insert(std::make_pair(hyperdex::entityid(0xdefec8ed, 0, 1, 0x8000000000000000, 0),
+                                      i_cafebabe));
+    expected_em.insert(std::make_pair(hyperdex::entityid(0xdefec8ed, 0, 1, 0x0000000000000000, 0),
+                                      i_deadbeef));
+
+    std::map<hyperdex::entityid, hyperdex::configuration::instance> returned_em = c.entity_mapping();
+    EXPECT_TRUE(expected_em == returned_em);
+
+    std::map<hyperdex::regionid, size_t> expected_r;
+    expected_r.insert(std::make_pair(hyperdex::regionid(0xdefec8ed, 0, 1, 0x0000000000000000),
+                                     2));
+    expected_r.insert(std::make_pair(hyperdex::regionid(0xdefec8ed, 0, 1, 0x8000000000000000),
+                                     2));
+
+    std::map<hyperdex::regionid, size_t> returned_r = c.regions();
+    EXPECT_TRUE(expected_r == returned_r);
+}
+
 } // namespace
