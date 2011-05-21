@@ -110,6 +110,14 @@ class configuration
         std::map<entityid, instance> m_entities;
 };
 
+inline std::ostream&
+operator << (std::ostream& lhs, const configuration::instance& rhs)
+{
+    lhs << "instance(" << rhs.inbound << ", " << rhs.inbound_version
+        << rhs.outbound << ", " << rhs.outbound_version << ")";
+    return lhs;
+}
+
 } // namespace hyperdex
 
 #endif // hyperdex_configuration_h_
