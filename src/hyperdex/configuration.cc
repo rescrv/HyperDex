@@ -274,7 +274,7 @@ hyperdex :: configuration :: regions() const
     for (std::set<regionid>::iterator i = m_regions.begin();
             i != m_regions.end(); ++i)
     {
-        ret[*i] = m_spaces.find(*i)->second.size();
+        ret[*i] = m_spaces.find(i->get_space())->second.size();
     }
 
     return ret;

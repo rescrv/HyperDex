@@ -63,6 +63,9 @@ class datalayer
 
     private:
         datalayer& operator = (const datalayer&);
+
+    private:
+        std::set<hyperdex::regionid> m_tmp;
 };
 
 } // namespace hyperdex

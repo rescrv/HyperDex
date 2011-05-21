@@ -157,33 +157,43 @@ hyperdex :: masterlink :: read()
                     existing = m_data->regions();
                     std::map<hyperdex::regionid, size_t> declared;
                     declared = m_config.regions();
-                    std::map<entityid, configuration::instance> entity_mapping
-                        = m_config.entity_mapping();
-                    // XXX only create regions to which we are mapped.  This is
-                    // not a big deal right now, just a few extra regions
-                    // mapped.  The communication layer ensures that none of
-                    // them will ever be used, and so it's a negligible cost.
-                    // I'm not too pleased with how alike the different classes
-                    // (e.g. entityid vs. regionid) feel, and so may make changes
-                    // which resolve both of these issues together.
+                    std::map<entityid, configuration::instance> entity_mapping;
+                    entity_mapping = m_config.entity_mapping();
 
-                    // For each declared region, create it if it doesn't exist.
-                    for (std::map<hyperdex::regionid, size_t>::iterator d = declared.begin();
-                            d != declared.end(); ++d)
+                    // For each declared region which matches the comm layer,
+                    // create it if it doesn't exist.
+                    for (std::map<entityid, configuration::instance>::iterator e = entity_mapping.begin();
+                            e != entity_mapping.end(); ++e)
                     {
-                        if (existing.find(d->first) == existing.end())
+                        if (e->second == m_comm->instance()
+                                && existing.find(e->first.get_region()) == existing.end())
                         {
-                            m_data->create(d->first, d->second);
+                            m_data->create(e->first.get_region(), declared[e->first.get_region()]);
                         }
                     }
 
                     m_comm->remap(entity_mapping);
 
-                    // For each existing region, drop it if it wasn't declared.
+                    // For each existing region, drop it if it wasn't declared
+                    // to match our comm layer.
                     for (std::set<hyperdex::regionid>::iterator e = existing.begin();
                             e != existing.end(); ++e)
                     {
-                        if (declared.find(*e) == declared.end())
+                        std::map<entityid, configuration::instance>::iterator start;
+                        std::map<entityid, configuration::instance>::iterator end;
+                        start = entity_mapping.lower_bound(entityid(*e, 0));
+                        end = entity_mapping.upper_bound(entityid(*e, 255));
+                        bool keep = false;
+
+                        for (; start != end; ++start)
+                        {
+                            if (start->second == m_comm->instance())
+                            {
+                                keep = true;
+                            }
+                        }
+
+                        if (!keep)
                         {
                             m_data->drop(*e);
                         }

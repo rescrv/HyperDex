@@ -30,6 +30,9 @@
 // STL
 #include <stdexcept>
 
+// Google Log
+#include <glog/logging.h>
+
 // HyperDex
 #include <hyperdex/logical.h>
 
@@ -62,6 +65,7 @@ void
 hyperdex :: logical :: remap(std::map<entityid, configuration::instance> mapping)
 {
     rwlock::wrhold wr(&m_lock);
+    LOG(INFO) << "Installing new mapping.";
     m_mapping.swap(mapping);
 }
 

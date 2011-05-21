@@ -38,14 +38,14 @@
 #include <hyperdex/datalayer.h>
 
 hyperdex :: datalayer :: datalayer()
+    : m_tmp()
 {
 }
 
 std::set<hyperdex::regionid>
 hyperdex :: datalayer :: regions()
 {
-    // XXX
-    return std::set<hyperdex::regionid>();
+    return m_tmp;
 }
 
 void
@@ -54,12 +54,16 @@ hyperdex :: datalayer :: create(const regionid& ri,
 {
     LOG(INFO) << "If I were implemented I would create " << ri << " with "
               << numcolumns << " columns";
+    // XXX
+    m_tmp.insert(ri);
 }
 
 void
 hyperdex :: datalayer :: drop(const regionid& ri)
 {
     LOG(INFO) << "If I were implemented I would drop " << ri;
+    // XXX
+    m_tmp.erase(ri);
 }
 
 bool
