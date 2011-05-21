@@ -122,7 +122,7 @@ def main(address, client, control):
     thread.start()
     while True:
         with thread.lock:
-            asyncore.loop(1, count=1)
+            asyncore.loop(timeout=0.1, count=1)
 
 
 if __name__ == '__main__':
