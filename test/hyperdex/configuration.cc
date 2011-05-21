@@ -88,6 +88,7 @@ TEST(ConfigurationTest, SimpleHost)
                                       i_fee1dead));
 
     std::map<hyperdex::entityid, hyperdex::configuration::instance> returned_em = c.entity_mapping();
+    EXPECT_EQ(8, expected_em.size());
     EXPECT_TRUE(expected_em == returned_em);
 
     std::map<hyperdex::regionid, size_t> expected_r;
@@ -105,6 +106,7 @@ TEST(ConfigurationTest, SimpleHost)
                                      2));
 
     std::map<hyperdex::regionid, size_t> returned_r = c.regions();
+    EXPECT_EQ(6, expected_r.size());
     EXPECT_TRUE(expected_r == returned_r);
 }
 
@@ -223,6 +225,7 @@ TEST(ConfigurationTest, OrderAgnostic)
                                       i_deadbeef));
 
     std::map<hyperdex::entityid, hyperdex::configuration::instance> returned_em = c.entity_mapping();
+    EXPECT_EQ(2, expected_em.size());
     EXPECT_TRUE(expected_em == returned_em);
 
     std::map<hyperdex::regionid, size_t> expected_r;
@@ -232,6 +235,7 @@ TEST(ConfigurationTest, OrderAgnostic)
                                      2));
 
     std::map<hyperdex::regionid, size_t> returned_r = c.regions();
+    EXPECT_EQ(2, expected_r.size());
     EXPECT_TRUE(expected_r == returned_r);
 }
 
