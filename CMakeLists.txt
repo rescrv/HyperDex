@@ -89,6 +89,7 @@ ENABLE_TESTING()
 set(hyperdex_test_srcs
     test/hyperdex/bloom.cc
     test/hyperdex/configuration.cc
+    test/hyperdex/ids.cc
     test/hyperdex/log.cc
     test/hyperdex/lockingq.cc
     test/hyperdex/mapper.cc
