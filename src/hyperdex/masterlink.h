@@ -28,8 +28,6 @@
 #ifndef hyperdex_masterlink_h_
 #define hyperdex_masterlink_h_
 
-#define __STDC_LIMIT_MACROS
-
 // po6
 #include <po6/net/location.h>
 
