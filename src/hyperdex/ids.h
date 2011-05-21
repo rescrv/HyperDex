@@ -37,6 +37,9 @@
 namespace hyperdex
 {
 
+// Ideally I'd like these to be related via subclassing, but it screws up the
+// comparison operators when used with STL containers.
+
 class spaceid
 {
     public:
@@ -56,20 +59,20 @@ class spaceid
         uint32_t space;
 };
 
-class subspaceid : public spaceid
+class subspaceid
 {
     public:
-        static const size_t SERIALIZEDSIZE = spaceid::SERIALIZEDSIZE + sizeof(uint16_t);
+        static const size_t SERIALIZEDSIZE = sizeof(uint32_t) + sizeof(uint16_t);
 
     public:
         subspaceid(uint32_t s = 0, uint16_t ss = 0)
-            : spaceid(s)
+            : space(s)
             , subspace(ss)
         {
         }
 
         subspaceid(spaceid s, uint16_t ss = 0)
-            : spaceid(s)
+            : space(s.space)
             , subspace(ss)
         {
         }
@@ -79,24 +82,34 @@ class subspaceid : public spaceid
         }
 
     public:
+        spaceid get_space() const
+        {
+            return spaceid(space);
+        }
+
+    public:
+        uint32_t space;
         uint16_t subspace;
 };
 
-class regionid : public subspaceid
+class regionid
 {
     public:
-        static const size_t SERIALIZEDSIZE = subspaceid::SERIALIZEDSIZE + sizeof(uint8_t) + sizeof(uint64_t);
+        static const size_t SERIALIZEDSIZE = sizeof(uint32_t) + sizeof(uint16_t)
+                                           + sizeof(uint8_t) + sizeof(uint64_t);
 
     public:
         regionid(uint32_t s = 0, uint16_t ss = 0, uint8_t p = 0, uint64_t m = 0)
-            : subspaceid(s, ss)
+            : space(s)
+            , subspace(ss)
             , prefix(p)
             , mask(m)
         {
         }
 
         regionid(subspaceid ss, uint8_t p = 0, uint64_t m = 0)
-            : subspaceid(ss)
+            : space(ss.space)
+            , subspace(ss.subspace)
             , prefix(p)
             , mask(m)
         {
@@ -107,25 +120,46 @@ class regionid : public subspaceid
         }
 
     public:
+        subspaceid get_subspace() const
+        {
+            return subspaceid(space, subspace);
+        }
+
+        spaceid get_space() const
+        {
+            return spaceid(space);
+        }
+
+    public:
+        uint32_t space;
+        uint16_t subspace;
         uint8_t prefix;
         uint64_t mask;
 };
 
-class entityid : public regionid
+class entityid
 {
     public:
-        static const size_t SERIALIZEDSIZE = regionid::SERIALIZEDSIZE + sizeof(uint8_t);
+        static const size_t SERIALIZEDSIZE = sizeof(uint32_t) + sizeof(uint16_t)
+                                           + sizeof(uint8_t) + sizeof(uint64_t)
+                                           + sizeof(uint8_t);
 
     public:
         entityid(uint32_t s = 0, uint16_t ss = 0,
                  uint8_t p = 0, uint64_t m = 0, uint8_t n = 0)
-            : regionid(s, ss, p, m)
+            : space(s)
+            , subspace(ss)
+            , prefix(p)
+            , mask(m)
             , number(n)
         {
         }
 
         entityid(regionid r, uint8_t n = 0)
-            : regionid(r)
+            : space(r.space)
+            , subspace(r.subspace)
+            , prefix(r.prefix)
+            , mask(r.mask)
             , number(n)
         {
         }
@@ -135,6 +169,26 @@ class entityid : public regionid
         }
 
     public:
+        regionid get_region() const
+        {
+            return regionid(space, subspace, prefix, mask);
+        }
+
+        subspaceid get_subspace() const
+        {
+            return subspaceid(space, subspace);
+        }
+
+        spaceid get_space() const
+        {
+            return spaceid(space);
+        }
+
+    public:
+        uint32_t space;
+        uint16_t subspace;
+        uint8_t prefix;
+        uint64_t mask;
         uint8_t number;
 };
 
@@ -149,21 +203,21 @@ operator << (e::buffer::packer& lhs, const spaceid& rhs)
 inline e::buffer::packer&
 operator << (e::buffer::packer& lhs, const subspaceid& rhs)
 {
-    lhs << dynamic_cast<const spaceid&>(rhs) << rhs.subspace;
+    lhs << rhs.get_space() << rhs.subspace;
     return lhs;
 }
 
 inline e::buffer::packer&
 operator << (e::buffer::packer& lhs, const regionid& rhs)
 {
-    lhs << dynamic_cast<const subspaceid&>(rhs) << rhs.prefix << rhs.mask;
+    lhs << rhs.get_subspace() << rhs.prefix << rhs.mask;
     return lhs;
 }
 
 inline e::buffer::packer&
 operator << (e::buffer::packer& lhs, const entityid& rhs)
 {
-    lhs << dynamic_cast<const regionid&>(rhs) << rhs.number;
+    lhs << rhs.get_region() << rhs.number;
     return lhs;
 }
 
@@ -178,21 +232,21 @@ operator >> (e::buffer::unpacker& lhs, spaceid& rhs)
 inline e::buffer::unpacker&
 operator >> (e::buffer::unpacker& lhs, subspaceid& rhs)
 {
-    lhs >> dynamic_cast<spaceid&>(rhs) >> rhs.subspace;
+    lhs >> rhs.space >> rhs.subspace;
     return lhs;
 }
 
 inline e::buffer::unpacker&
 operator >> (e::buffer::unpacker& lhs, regionid& rhs)
 {
-    lhs >> dynamic_cast<subspaceid&>(rhs) >> rhs.prefix >> rhs.mask;
+    lhs >> rhs.space >> rhs.subspace >> rhs.prefix >> rhs.mask;
     return lhs;
 }
 
 inline e::buffer::unpacker&
 operator >> (e::buffer::unpacker& lhs, entityid& rhs)
 {
-    lhs >> dynamic_cast<regionid&>(rhs) >> rhs.number;
+    lhs >> rhs.space >> rhs.subspace >> rhs.prefix >> rhs.mask >> rhs.number;
     return lhs;
 }
 
@@ -200,26 +254,48 @@ operator >> (e::buffer::unpacker& lhs, entityid& rhs)
 inline int
 compare(const spaceid& lhs, const spaceid& rhs)
 {
-    return lhs.space - rhs.space;
+    if (lhs.space < rhs.space)
+    {
+        return -1;
+    }
+    else if (lhs.space > rhs.space)
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 inline int
 compare(const subspaceid& lhs, const subspaceid& rhs)
 {
-    int super = compare(dynamic_cast<const spaceid&>(lhs), dynamic_cast<const spaceid&>(rhs));
+    int super = compare(lhs.get_space(), rhs.get_space());
 
     if (super)
     {
         return super;
     }
 
-    return lhs.subspace - rhs.subspace;
+    if (lhs.subspace < rhs.subspace)
+    {
+        return -1;
+    }
+    else if (lhs.subspace > rhs.subspace)
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 inline int
 compare(const regionid& lhs, const regionid& rhs)
 {
-    int super = compare(dynamic_cast<const subspaceid&>(lhs), dynamic_cast<const subspaceid&>(rhs));
+    int super = compare(lhs.get_subspace(), rhs.get_subspace());
 
     if (super)
     {
@@ -236,21 +312,43 @@ compare(const regionid& lhs, const regionid& rhs)
     }
     else
     {
-        return lhs.mask - rhs.mask;
+        if (lhs.mask < rhs.mask)
+        {
+            return -1;
+        }
+        else if (lhs.mask > rhs.mask)
+        {
+            return 1;
+        }
+        else
+        {
+            return 0;
+        }
     }
 }
 
 inline int
 compare(const entityid& lhs, const entityid& rhs)
 {
-    int super = compare(dynamic_cast<const regionid&>(lhs), dynamic_cast<const regionid&>(rhs));
+    int super = compare(lhs.get_region(), rhs.get_region());
 
     if (super)
     {
         return super;
     }
 
-    return lhs.number - rhs.number;
+    if (lhs.number < rhs.number)
+    {
+        return -1;
+    }
+    else if (lhs.number > rhs.number)
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 // Operators
@@ -324,7 +422,7 @@ operator << (std::ostream& lhs, const regionid& rhs)
     std::ios_base::fmtflags fl = lhs.flags();
     lhs << "region(space=" << rhs.space
         << ", subspace=" << rhs.subspace
-        << ", prefix=" << rhs.prefix
+        << ", prefix=" << (unsigned int) rhs.prefix
         << ", mask=" << rhs.mask
         << ")";
     lhs.flags(fl);
@@ -337,9 +435,9 @@ operator << (std::ostream& lhs, const entityid& rhs)
     std::ios_base::fmtflags fl = lhs.flags();
     lhs << "entity(space=" << rhs.space
         << ", subspace=" << rhs.subspace
-        << ", prefix=" << rhs.prefix
+        << ", prefix=" << (unsigned int) rhs.prefix
         << ", mask=" << rhs.mask
-        << ", number=" << rhs.number
+        << ", number=" << (unsigned int) rhs.number
         << ")";
     lhs.flags(fl);
     return lhs;
