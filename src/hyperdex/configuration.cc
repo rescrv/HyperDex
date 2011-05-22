@@ -26,6 +26,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // STL
+#include <algorithm>
 #include <sstream>
 #include <vector>
 
@@ -34,7 +35,6 @@
 
 // e
 #include <e/convert.h>
-#include <e/iterators.h>
 
 // HyperDex
 #include <hyperdex/configuration.h>
@@ -147,8 +147,8 @@ hyperdex :: configuration :: add_line(const std::string& line)
         if (istr.eof() && !istr.bad() && !istr.fail()
                 && sai != m_space_assignment.end()
                 && (si = m_spaces.find(sai->second)) != m_spaces.end()
-                && e::iterator_distance(m_subspaces.lower_bound(si->first),
-                                        m_subspaces.upper_bound(si->first)) == subspacenum
+                && std::distance(m_subspaces.lower_bound(si->first),
+                                 m_subspaces.upper_bound(si->first)) == subspacenum
                 && dimensions.size() > 0
                 && (subspacenum != 0 || dimensions.size() == 1))
         {
