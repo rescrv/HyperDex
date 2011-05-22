@@ -342,7 +342,7 @@ hyperdex :: physical :: channel :: read_cb(ev::io&)
 
         while (inprogress.size() >= sizeof(uint32_t))
         {
-            e::buffer::unpacker up(inprogress);
+            e::unpacker up(inprogress);
             uint32_t message_size;
             up >> message_size;
 
@@ -394,7 +394,7 @@ hyperdex :: physical :: channel :: write_cb(ev::io&)
     if (outprogress.empty())
     {
         uint32_t size = outgoing.front().size();
-        e::buffer::packer(&outprogress) << size << outgoing.front();
+        outprogress.pack() << size << outgoing.front();
         outgoing.pop();
     }
 

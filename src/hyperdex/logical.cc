@@ -82,12 +82,12 @@ hyperdex :: logical :: send(const hyperdex::entityid& from, const hyperdex::enti
     }
 
     buffer finalmsg(msg.size() + 32);
-    buffer::packer(&finalmsg) << msg_type
-                              << f->second.outbound_version
-                              << t->second.inbound_version
-                              << from
-                              << to
-                              << msg;
+    finalmsg.pack() << msg_type
+                    << f->second.outbound_version
+                    << t->second.inbound_version
+                    << from
+                    << to
+                    << msg;
     m_physical.send(t->second.inbound, finalmsg);
     return true;
 }
@@ -115,7 +115,6 @@ hyperdex :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
     do
     {
         buffer packed;
-        buffer::unpacker up(packed);
 
         if (!m_physical.recv(&loc, &packed))
         {
@@ -123,14 +122,14 @@ hyperdex :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
         }
 
         if (packed.size() < sizeof(uint8_t) + 2 * sizeof(uint16_t) +
-                         2 * entityid::SERIALIZEDSIZE)
+                            2 * entityid::SERIALIZEDSIZE)
         {
             continue;
         }
 
         // This should not throw thanks to the size check above.
         msg->clear();
-        up >> *msg_type >> fromver >> tover >> *from >> *to >> *msg;
+        packed.unpack() >> *msg_type >> fromver >> tover >> *from >> *to >> *msg;
         f = m_mapping.find(*from);
         t = m_mapping.find(*to);
     }

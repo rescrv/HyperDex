@@ -193,58 +193,58 @@ class entityid
 };
 
 // Serialization functions.
-inline e::buffer::packer&
-operator << (e::buffer::packer& lhs, const spaceid& rhs)
+inline e::packer&
+operator << (e::packer& lhs, const spaceid& rhs)
 {
     lhs << rhs.space;
     return lhs;
 }
 
-inline e::buffer::packer&
-operator << (e::buffer::packer& lhs, const subspaceid& rhs)
+inline e::packer&
+operator << (e::packer& lhs, const subspaceid& rhs)
 {
     lhs << rhs.get_space() << rhs.subspace;
     return lhs;
 }
 
-inline e::buffer::packer&
-operator << (e::buffer::packer& lhs, const regionid& rhs)
+inline e::packer&
+operator << (e::packer& lhs, const regionid& rhs)
 {
     lhs << rhs.get_subspace() << rhs.prefix << rhs.mask;
     return lhs;
 }
 
-inline e::buffer::packer&
-operator << (e::buffer::packer& lhs, const entityid& rhs)
+inline e::packer&
+operator << (e::packer& lhs, const entityid& rhs)
 {
     lhs << rhs.get_region() << rhs.number;
     return lhs;
 }
 
 // Deserialization functions.
-inline e::buffer::unpacker&
-operator >> (e::buffer::unpacker& lhs, spaceid& rhs)
+inline e::unpacker&
+operator >> (e::unpacker& lhs, spaceid& rhs)
 {
     lhs >> rhs.space;
     return lhs;
 }
 
-inline e::buffer::unpacker&
-operator >> (e::buffer::unpacker& lhs, subspaceid& rhs)
+inline e::unpacker&
+operator >> (e::unpacker& lhs, subspaceid& rhs)
 {
     lhs >> rhs.space >> rhs.subspace;
     return lhs;
 }
 
-inline e::buffer::unpacker&
-operator >> (e::buffer::unpacker& lhs, regionid& rhs)
+inline e::unpacker&
+operator >> (e::unpacker& lhs, regionid& rhs)
 {
     lhs >> rhs.space >> rhs.subspace >> rhs.prefix >> rhs.mask;
     return lhs;
 }
 
-inline e::buffer::unpacker&
-operator >> (e::buffer::unpacker& lhs, entityid& rhs)
+inline e::unpacker&
+operator >> (e::unpacker& lhs, entityid& rhs)
 {
     lhs >> rhs.space >> rhs.subspace >> rhs.prefix >> rhs.mask >> rhs.number;
     return lhs;
