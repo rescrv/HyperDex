@@ -25,6 +25,11 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#define __STDC_LIMIT_MACROS
+
+// C
+#include <stdint.h>
+
 // STL
 #include <stdexcept>
 
@@ -41,8 +46,9 @@ using po6::threads::rwlock;
 hyperdex :: logical :: logical(ev::loop_ref lr,
                                const po6::net::ipaddr& ip)
     : m_us()
-    , m_lock()
+    , m_mapping_lock()
     , m_mapping()
+    , m_clients()
     , m_physical(lr, ip)
 {
     // XXX Get the addresses of the underlying layer, and message the master to
@@ -62,7 +68,13 @@ typedef std::map<hyperdex::entityid, hyperdex::configuration::instance>::iterato
 void
 hyperdex :: logical :: remap(std::map<entityid, configuration::instance> mapping)
 {
-    rwlock::wrhold wr(&m_lock);
+    for (std::map<entityid, configuration::instance>::iterator ci = m_clients.begin();
+            ci != m_clients.end(); ++ci)
+    {
+        mapping.insert(*ci);
+    }
+
+    rwlock::wrhold wr(&m_mapping_lock);
     LOG(INFO) << "Installing new mapping.";
     m_mapping.swap(mapping);
 }
@@ -72,7 +84,7 @@ hyperdex :: logical :: send(const hyperdex::entityid& from, const hyperdex::enti
                             const uint8_t msg_type,
                             const e::buffer& msg)
 {
-    rwlock::rdhold rd(&m_lock);
+    rwlock::rdhold rd(&m_mapping_lock);
     mapiter f = m_mapping.find(from);
     mapiter t = m_mapping.find(to);
 
@@ -97,12 +109,13 @@ hyperdex :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
                             uint8_t* msg_type,
                             e::buffer* msg)
 {
-    rwlock::rdhold rd(&m_lock);
     location loc;
-    mapiter f;
-    mapiter t;
-    uint16_t fromver;
-    uint16_t tover;
+    bool fromvalid = false;
+    bool tovalid = false;
+    configuration::instance frominst;
+    configuration::instance toinst;
+    uint16_t fromver = 0;
+    uint16_t tover = 0;
 
     // Read messages from the network until we get one which meets the following
     // constraints:
@@ -130,12 +143,48 @@ hyperdex :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
         // This should not throw thanks to the size check above.
         msg->clear();
         packed.unpack() >> *msg_type >> fromver >> tover >> *from >> *to >> *msg;
-        f = m_mapping.find(*from);
-        t = m_mapping.find(*to);
+
+        // If the message is from someone claiming to be a client.
+        if (from->space == UINT32_MAX)
+        {
+            // XXX Install a new entity
+            // If the entity is (UINT32_MAX, 0, 0, 0, 0), then grab a wrlock on
+            // entities and give this entity a new id.  The client should pick
+            // up on this, and start using this tag for our convenience.  If the
+            // entity is not filled with zeroes, then the client assumes we've
+            // talked before, and we can go for a read lock.
+        }
+        else
+        {
+            // Grab a read lock on the entity mapping.
+            rwlock::rdhold rd(&m_mapping_lock);
+
+            // Find the from/to mappings.
+            mapiter f;
+            mapiter t;
+            f = m_mapping.find(*from);
+            t = m_mapping.find(*to);
+            fromvalid = f != m_mapping.end();
+            tovalid = t != m_mapping.end();
+
+            if (fromvalid)
+            {
+                frominst = f->second;
+            }
+
+            if (fromvalid)
+            {
+                toinst = t->second;
+            }
+        }
     }
-    while (f == m_mapping.end() || t == m_mapping.end() ||
-           f->second.outbound != loc || f->second.outbound_version != fromver ||
-           t->second != m_us || m_us.inbound_version != tover);
+    while (!fromvalid // Try again because we don't know the source.
+            || !tovalid // Try again because we don't know the destination.
+            || frominst.outbound != loc // Try again because the sender isn't who it should be.
+            || frominst.outbound_version != fromver // Try again because an older sender is sending the message.
+            || toinst != m_us // Try again because we don't believe ourselves to be the dest entity.
+            || m_us.inbound_version != tover); // Try again because it is to an older version of us.
+
     return true;
 }
 

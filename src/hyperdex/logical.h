@@ -75,8 +75,9 @@ class logical
 
     private:
         configuration::instance m_us;
-        po6::threads::rwlock m_lock;
+        po6::threads::rwlock m_mapping_lock;
         std::map<entityid, configuration::instance> m_mapping;
+        std::map<entityid, configuration::instance> m_clients;
         hyperdex::physical m_physical;
 };
 
