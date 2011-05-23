@@ -29,20 +29,35 @@
 #define hyperdex_datalayer_h_
 
 // STL
+#include <map>
 #include <set>
+#include <tr1/memory>
 #include <vector>
+
+// po6
+#include <po6/threads/rwlock.h>
 
 // e
 #include <e/buffer.h>
 
 // HyperDex
 #include <hyperdex/ids.h>
+#include <hyperdex/region.h>
 
 namespace hyperdex
 {
 
 class datalayer
 {
+    public:
+        enum result_t
+        {
+            SUCCESS  = 0,
+            NOTFOUND = 1,
+            INVALID  = 2,
+            ERROR    = 4
+        };
+
     public:
         datalayer();
 
@@ -54,9 +69,9 @@ class datalayer
 
     // Key-Value store operations.
     public:
-        bool get(const regionid& ri, const e::buffer& key, std::vector<e::buffer>* value);
-        bool put(const regionid& ri, const e::buffer& key, const std::vector<e::buffer>& value);
-        bool del(const regionid& ri, const e::buffer& key);
+        result_t get(const regionid& ri, const e::buffer& key, std::vector<e::buffer>* value);
+        result_t put(const regionid& ri, const e::buffer& key, const std::vector<e::buffer>& value);
+        result_t del(const regionid& ri, const e::buffer& key);
 
     private:
         datalayer(const datalayer&);
@@ -65,7 +80,8 @@ class datalayer
         datalayer& operator = (const datalayer&);
 
     private:
-        std::set<hyperdex::regionid> m_tmp;
+        po6::threads::rwlock m_lock;
+        std::map<regionid, std::tr1::shared_ptr<hyperdex::region> > m_regions;
 };
 
 } // namespace hyperdex

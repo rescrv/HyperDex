@@ -25,19 +25,44 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#ifndef hyperdex_buffer_h_
+#define hyperdex_buffer_h_
+
+// e
+#include <e/buffer.h>
+
 namespace hyperdex
 {
-namespace stream_no
-{
 
-enum stream_no_t
+inline e::packer&
+operator << (e::packer& lhs, const std::vector<e::buffer>& rhs)
 {
-    GET     = 0,
-    PUT     = 1,
-    DEL     = 2,
-    SEARCH  = 3,
-    RESULT  = 4
-};
+    for (size_t i = 0; i < rhs.size(); ++i)
+    {
+        uint32_t size = rhs[i].size();
+        lhs << size << rhs[i];
+    }
 
-} // namespace stream_no
+    return lhs;
+}
+
+inline e::unpacker&
+operator >> (e::unpacker& lhs, std::vector<e::buffer>& rhs)
+{
+    uint16_t cols;
+    lhs >> cols;
+
+    for (size_t i = 0; i < cols; ++i)
+    {
+        uint32_t size;
+        e::buffer tmp;
+        lhs >> size >> e::buffer::sized(size, &tmp);
+        rhs.push_back(tmp);
+    }
+
+    return lhs;
+}
+
 } // namespace hyperdex
+
+#endif // hyperdex_buffer_h_

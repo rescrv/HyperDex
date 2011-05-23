@@ -38,6 +38,7 @@
 #include <po6/net/location.h>
 
 // HyperDex
+#include <hyperdex/buffer.h>
 #include <hyperdex/limits.h>
 #include <hyperdex/network_worker.h>
 #include <hyperdex/stream_no.h>
@@ -85,27 +86,45 @@ hyperdex :: network_worker :: run()
     {
         hyperdex::stream_no::stream_no_t type;
         type = static_cast<hyperdex::stream_no::stream_no_t>(msg_type);
+        uint32_t nonce;
 
-        switch (type)
+        if (type == stream_no::GET)
         {
-            case hyperdex::stream_no::NONE:
-                LOG(INFO) << "NONE";
-                break;
-            case hyperdex::stream_no::GET:
-                LOG(INFO) << "GET";
-                break;
-            case hyperdex::stream_no::PUT:
-                LOG(INFO) << "PUT";
-                break;
-            case hyperdex::stream_no::DEL:
-                LOG(INFO) << "DEL";
-                break;
-            case hyperdex::stream_no::SEARCH:
-                LOG(INFO) << "SEARCH";
-                break;
-            default:
-                LOG(INFO) << "unknown message type";
-                break;
+            e::buffer key;
+            std::vector<e::buffer> value;
+            msg.unpack() >> nonce >> key;
+            datalayer::result_t result = m_data->get(to.get_region(), key, &value);
+            msg.clear();
+            msg.pack() << nonce << static_cast<uint8_t>(result) << value;
+            m_comm->send(to, from, stream_no::RESULT, msg);
+        }
+        else if (type == hyperdex::stream_no::PUT)
+        {
+            uint32_t size;
+            e::buffer key;
+            std::vector<e::buffer> value;
+            msg.unpack() >> nonce >> size >> e::buffer::sized(size, &key) >> value;
+            datalayer::result_t result = m_data->put(to.get_region(), key, value);
+            msg.clear();
+            msg.pack() << nonce << static_cast<uint8_t>(result);
+            m_comm->send(to, from, stream_no::RESULT, msg);
+        }
+        else if (type == hyperdex::stream_no::DEL)
+        {
+            e::buffer key;
+            msg.unpack() >> nonce >> key;
+            datalayer::result_t result = m_data->del(to.get_region(), key);
+            msg.clear();
+            msg.pack() << nonce << static_cast<uint8_t>(result);
+            m_comm->send(to, from, stream_no::RESULT, msg);
+        }
+        else if (type == hyperdex::stream_no::SEARCH)
+        {
+            // XXX
+        }
+        else
+        {
+            VLOG(0) << "Message of unknown type received.";
         }
     }
 }

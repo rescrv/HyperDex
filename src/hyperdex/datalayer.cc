@@ -37,57 +37,218 @@
 // HyperDex
 #include <hyperdex/datalayer.h>
 
+typedef std::tr1::shared_ptr<hyperdex::region> region_ptr;
+
 hyperdex :: datalayer :: datalayer()
-    : m_tmp()
+    : m_lock()
+    , m_regions()
 {
 }
 
 std::set<hyperdex::regionid>
 hyperdex :: datalayer :: regions()
 {
-    return m_tmp;
+    po6::threads::rwlock::rdhold hold(&m_lock);
+    std::set<hyperdex::regionid> ret;
+
+    for (std::map<regionid, region_ptr>::iterator i = m_regions.begin();
+            i != m_regions.end(); ++i)
+    {
+        ret.insert(i->first);
+    }
+
+    return ret;
 }
 
 void
 hyperdex :: datalayer :: create(const regionid& ri,
                                 uint16_t numcolumns)
 {
-    LOG(INFO) << "If I were implemented I would create " << ri << " with "
-              << numcolumns << " columns";
-    // XXX
-    m_tmp.insert(ri);
+    po6::threads::rwlock::wrhold hold(&m_lock);
+    std::map<regionid, region_ptr>::iterator i;
+    i = m_regions.find(ri);
+
+    if (i == m_regions.end())
+    {
+        LOG(INFO) << "Creating " << ri << " with " << numcolumns << " columns";
+        region_ptr reg;
+        reg.reset(new region(numcolumns));
+        m_regions.insert(std::make_pair(ri, reg));
+    }
+    else
+    {
+        LOG(INFO) << ri << " already exists; cannot create region";
+    }
 }
 
 void
 hyperdex :: datalayer :: drop(const regionid& ri)
 {
-    LOG(INFO) << "If I were implemented I would drop " << ri;
-    // XXX
-    m_tmp.erase(ri);
+    po6::threads::rwlock::wrhold hold(&m_lock);
+    std::map<regionid, region_ptr>::iterator i;
+    i = m_regions.find(ri);
+
+    if (i != m_regions.end())
+    {
+        LOG(INFO) << "Dropping " << ri;
+        m_regions.erase(i);
+    }
+    else
+    {
+        LOG(INFO) << ri << " doesn't exist; cannot drop region";
+    }
 }
 
-bool
+hyperdex :: datalayer :: result_t
 hyperdex :: datalayer :: get(const regionid& ri,
                              const e::buffer& key,
                              std::vector<e::buffer>* value)
 {
-    // XXX
-    return false;
+    po6::threads::rwlock::rdhold hold(&m_lock);
+
+    try
+    {
+        std::map<regionid, region_ptr>::iterator i;
+        i = m_regions.find(ri);
+
+        if (i == m_regions.end())
+        {
+            return INVALID;
+        }
+
+        region_ptr r = i->second;
+        std::map<e::buffer, std::vector<e::buffer> >::iterator p;
+        p = r->points.find(key);
+
+        if (p != r->points.end())
+        {
+            *value = p->second;
+            return SUCCESS;
+        }
+        else
+        {
+            return NOTFOUND;
+        }
+    }
+    catch (po6::error& e)
+    {
+        // XXX
+    }
+    catch (std::logic_error& e)
+    {
+        // XXX
+    }
+    catch (std::runtime_error& e)
+    {
+        // XXX
+    }
+    catch (std::bad_alloc& e)
+    {
+        // XXX
+    }
+    catch (std::exception& e)
+    {
+        // XXX
+    }
+
+    return ERROR;
 }
 
-bool
+hyperdex :: datalayer :: result_t
 hyperdex :: datalayer :: put(const regionid& ri,
                              const e::buffer& key,
                              const std::vector<e::buffer>& value)
 {
-    // XXX
-    return false;
+    po6::threads::rwlock::rdhold hold(&m_lock);
+
+    try
+    {
+        std::map<regionid, region_ptr>::iterator i;
+        i = m_regions.find(ri);
+
+        if (i == m_regions.end())
+        {
+            return INVALID;
+        }
+
+        region_ptr r = i->second;
+        r->points[key] = value;
+        return SUCCESS;
+    }
+    catch (po6::error& e)
+    {
+        // XXX
+    }
+    catch (std::logic_error& e)
+    {
+        // XXX
+    }
+    catch (std::runtime_error& e)
+    {
+        // XXX
+    }
+    catch (std::bad_alloc& e)
+    {
+        // XXX
+    }
+    catch (std::exception& e)
+    {
+        // XXX
+    }
+
+    return ERROR;
 }
 
-bool
+hyperdex :: datalayer :: result_t
 hyperdex :: datalayer :: del(const regionid& ri,
                              const e::buffer& key)
 {
-    // XXX
-    return false;
+    po6::threads::rwlock::rdhold hold(&m_lock);
+
+    try
+    {
+        std::map<regionid, region_ptr>::iterator i;
+        i = m_regions.find(ri);
+
+        if (i == m_regions.end())
+        {
+            return INVALID;
+        }
+
+        region_ptr r = i->second;
+        std::map<e::buffer, std::vector<e::buffer> >::iterator p;
+        p = r->points.find(key);
+
+        if (p == r->points.end())
+        {
+            return NOTFOUND;
+        }
+        else
+        {
+            r->points.erase(p);
+            return SUCCESS;
+        }
+    }
+    catch (po6::error& e)
+    {
+        // XXX
+    }
+    catch (std::logic_error& e)
+    {
+        // XXX
+    }
+    catch (std::runtime_error& e)
+    {
+        // XXX
+    }
+    catch (std::bad_alloc& e)
+    {
+        // XXX
+    }
+    catch (std::exception& e)
+    {
+        // XXX
+    }
+
+    return ERROR;
 }

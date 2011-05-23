@@ -25,19 +25,26 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#ifndef hyperdex_region_h_
+#define hyperdex_region_h_
+
 namespace hyperdex
 {
-namespace stream_no
-{
 
-enum stream_no_t
+class region
 {
-    GET     = 0,
-    PUT     = 1,
-    DEL     = 2,
-    SEARCH  = 3,
-    RESULT  = 4
+    public:
+        region(uint16_t nc)
+            : numcolumns(nc)
+            , points()
+        {
+        }
+
+    public:
+        size_t numcolumns;
+        std::map<e::buffer, std::vector<e::buffer> > points;
 };
 
-} // namespace stream_no
 } // namespace hyperdex
+
+#endif // hyperdex_region_h_
