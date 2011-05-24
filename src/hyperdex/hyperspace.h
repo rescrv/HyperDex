@@ -88,14 +88,6 @@ nonoverlapping(const T& regions, R region)
     return true;
 }
 
-template <typename T>
-bool
-complete(const T& regions)
-{
-    // XXX Actually check if the regions complete the space.
-    return false;
-}
-
 } // namespace hyperdex
 
 #endif // hyperdex_hyperspace_h_
