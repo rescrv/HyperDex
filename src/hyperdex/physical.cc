@@ -31,7 +31,7 @@
 // HyperDex
 #include <hyperdex/physical.h>
 
-hyperdex :: physical :: physical(ev::loop_ref lr, const po6::net::ipaddr& ip)
+hyperdex :: physical :: physical(ev::loop_ref lr, const po6::net::ipaddr& ip, bool listen)
     : m_lr(lr)
     , m_wakeup(lr)
     , m_listen(ip.family(), SOCK_STREAM, IPPROTO_TCP)
@@ -46,12 +46,19 @@ hyperdex :: physical :: physical(ev::loop_ref lr, const po6::net::ipaddr& ip)
     m_wakeup.set<physical, &physical::refresh>(this);
     m_wakeup.start();
 
-    // Enable other hosts to connect to us.
-    m_listen.bind(po6::net::location(ip, 0));
-    m_listen.listen(4);
-    m_listen_event.set<physical, &physical::accept_connection>(this);
-    m_listen_event.set(m_listen.get(), ev::READ);
-    m_listen_event.start();
+    if (listen)
+    {
+        // Enable other hosts to connect to us.
+        m_listen.bind(po6::net::location(ip, 0));
+        m_listen.listen(4);
+        m_listen_event.set<physical, &physical::accept_connection>(this);
+        m_listen_event.set(m_listen.get(), ev::READ);
+        m_listen_event.start();
+    }
+    else
+    {
+        m_listen.close();
+    }
 
     // Setup a channel which connects to ourself.  The purpose of this channel
     // is two-fold:  first, it gives a really cheap way of doing self-messaging
@@ -60,11 +67,18 @@ hyperdex :: physical :: physical(ev::loop_ref lr, const po6::net::ipaddr& ip)
     // may bind repeatedly when establishing connections.
     //
     // TODO:  Make establishing this channel only serve the second purpose.
-    std::tr1::shared_ptr<channel> chan;
-    chan.reset(new channel(m_lr, this, po6::net::location(ip, 0), m_listen.getsockname()));
-    m_location_map[chan->loc] = m_channels.size();
-    m_channels.push_back(chan);
-    m_bindto = chan->soc.getsockname();
+    if (listen)
+    {
+        std::tr1::shared_ptr<channel> chan;
+        chan.reset(new channel(m_lr, this, po6::net::location(ip, 0), m_listen.getsockname()));
+        m_location_map[chan->loc] = m_channels.size();
+        m_channels.push_back(chan);
+        m_bindto = chan->soc.getsockname();
+    }
+    else
+    {
+        m_bindto = po6::net::location(ip, 0);
+    }
 }
 
 hyperdex :: physical :: ~physical()

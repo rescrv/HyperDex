@@ -54,7 +54,7 @@ namespace hyperdex
 class physical
 {
     public:
-        physical(ev::loop_ref lr, const po6::net::ipaddr& ip);
+        physical(ev::loop_ref lr, const po6::net::ipaddr& ip, bool listen = true);
         ~physical();
 
     // Send and recv messages.
