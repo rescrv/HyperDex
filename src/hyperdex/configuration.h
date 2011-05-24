@@ -30,6 +30,7 @@
 
 // STL
 #include <map>
+#include <tr1/functional>
 
 // po6
 #include <po6/net/location.h>

@@ -28,10 +28,14 @@
 #ifndef hyperdex_masterlink_h_
 #define hyperdex_masterlink_h_
 
+// STL
+#include <tr1/functional>
+
 // po6
 #include <po6/net/location.h>
 
 // HyperDex
+#include <hyperdex/configuration.h>
 #include <hyperdex/datalayer.h>
 #include <hyperdex/logical.h>
 
@@ -42,8 +46,8 @@ class masterlink
 {
     public:
         masterlink(const po6::net::location& loc,
-                   hyperdex::datalayer* data,
-                   hyperdex::logical* comm);
+                   const std::string& announce,
+                   std::tr1::function<void (const hyperdex::configuration&)> inst);
         ~masterlink();
 
     public:
@@ -59,6 +63,7 @@ class masterlink
         void run();
         void time(ev::timer& t, int revents);
         void wake(ev::async& a, int revents);
+        void install();
 
     private:
         masterlink& operator = (const masterlink&);
@@ -66,8 +71,6 @@ class masterlink
     private:
         bool m_continue;
         po6::net::location m_loc;
-        hyperdex::datalayer* m_data;
-        hyperdex::logical* m_comm;
         po6::net::socket m_sock;
         po6::threads::thread m_thread;
         ev::dynamic_loop m_dl;
@@ -77,6 +80,8 @@ class masterlink
         e::buffer m_partial;
         hyperdex::configuration m_config;
         bool m_config_valid;
+        std::tr1::function<void (const hyperdex::configuration&)> m_inst;
+        std::string m_announce;
 };
 
 } // namespace hyperdex

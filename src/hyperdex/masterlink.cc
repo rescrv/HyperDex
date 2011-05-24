@@ -25,10 +25,6 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// STL
-#include <sstream>
-#include <tr1/functional>
-
 // Google Log
 #include <glog/logging.h>
 
@@ -41,12 +37,10 @@
 #define RECONNECT_INTERVAL (1.)
 
 hyperdex :: masterlink :: masterlink(const po6::net::location& loc,
-                                     hyperdex::datalayer* data,
-                                     hyperdex::logical* comm)
+                                     const std::string& announce,
+                                     std::tr1::function<void (const hyperdex::configuration&)> inst)
     : m_continue(true)
     , m_loc(loc)
-    , m_data(data)
-    , m_comm(comm)
     , m_sock(loc.address.family(), SOCK_STREAM, IPPROTO_TCP)
     , m_thread(std::tr1::bind(std::tr1::function<void (hyperdex::masterlink*)>(&hyperdex::masterlink::run), this))
     , m_dl()
@@ -56,6 +50,8 @@ hyperdex :: masterlink :: masterlink(const po6::net::location& loc,
     , m_partial()
     , m_config()
     , m_config_valid(true)
+    , m_inst(inst)
+    , m_announce(announce)
 {
     m_wake.set<masterlink, &masterlink::wake>(this);
     m_wake.start();
@@ -85,12 +81,8 @@ void
 hyperdex :: masterlink :: connect()
 {
     m_sock.connect(m_loc);
-    std::ostringstream ostr;
-    ostr << "instance on " << m_comm->instance().inbound << " "
-                           << m_comm->instance().outbound
-                           << "\n";
 
-    if (m_sock.xwrite(ostr.str().c_str(), ostr.str().size()) != ostr.str().size())
+    if (m_sock.xwrite(m_announce.c_str(), m_announce.size()) != m_announce.size())
     {
         throw po6::error(errno);
     }
@@ -151,51 +143,7 @@ hyperdex :: masterlink :: read()
                 if (m_config_valid)
                 {
                     LOG(INFO) << "Installing new configuration file.";
-                    std::set<hyperdex::regionid> existing;
-                    existing = m_data->regions();
-                    std::map<hyperdex::regionid, size_t> declared;
-                    declared = m_config.regions();
-                    std::map<entityid, configuration::instance> entity_mapping;
-                    entity_mapping = m_config.entity_mapping();
-
-                    // For each declared region which matches the comm layer,
-                    // create it if it doesn't exist.
-                    for (std::map<entityid, configuration::instance>::iterator e = entity_mapping.begin();
-                            e != entity_mapping.end(); ++e)
-                    {
-                        if (e->second == m_comm->instance()
-                                && existing.find(e->first.get_region()) == existing.end())
-                        {
-                            m_data->create(e->first.get_region(), declared[e->first.get_region()]);
-                        }
-                    }
-
-                    m_comm->remap(entity_mapping);
-
-                    // For each existing region, drop it if it wasn't declared
-                    // to match our comm layer.
-                    for (std::set<hyperdex::regionid>::iterator e = existing.begin();
-                            e != existing.end(); ++e)
-                    {
-                        std::map<entityid, configuration::instance>::iterator start;
-                        std::map<entityid, configuration::instance>::iterator end;
-                        start = entity_mapping.lower_bound(entityid(*e, 0));
-                        end = entity_mapping.upper_bound(entityid(*e, 255));
-                        bool keep = false;
-
-                        for (; start != end; ++start)
-                        {
-                            if (start->second == m_comm->instance())
-                            {
-                                keep = true;
-                            }
-                        }
-
-                        if (!keep)
-                        {
-                            m_data->drop(*e);
-                        }
-                    }
+                    install();
                 }
                 else
                 {
@@ -258,4 +206,10 @@ void
 hyperdex :: masterlink :: wake(ev::async&, int)
 {
     m_continue = false;
+}
+
+void
+hyperdex :: masterlink :: install()
+{
+    m_inst(m_config);
 }

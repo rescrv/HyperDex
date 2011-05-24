@@ -34,6 +34,7 @@
 #include <iostream>
 
 // STL
+#include <sstream>
 #include <tr1/functional>
 #include <tr1/memory>
 
@@ -56,6 +57,73 @@
 typedef std::tr1::shared_ptr<po6::threads::thread> thread_ptr;
 
 #define NUM_THREADS 64
+
+class install_mapping
+{
+    public:
+        install_mapping(hyperdex::datalayer* data, hyperdex::logical* comm)
+            : m_data(data)
+            , m_comm(comm)
+        {
+        }
+
+    public:
+        void operator () (const hyperdex::configuration& config)
+        {
+            using hyperdex::entityid;
+            using hyperdex::configuration;
+
+            std::set<hyperdex::regionid> existing;
+            existing = m_data->regions();
+            std::map<hyperdex::regionid, size_t> declared;
+            declared = config.regions();
+            std::map<entityid, configuration::instance> entity_mapping;
+            entity_mapping = config.entity_mapping();
+
+            // For each declared region which matches the comm layer,
+            // create it if it doesn't exist.
+            for (std::map<entityid, configuration::instance>::iterator e = entity_mapping.begin();
+                    e != entity_mapping.end(); ++e)
+            {
+                if (e->second == m_comm->instance()
+                        && existing.find(e->first.get_region()) == existing.end())
+                {
+                    m_data->create(e->first.get_region(), declared[e->first.get_region()]);
+                }
+            }
+
+            m_comm->remap(entity_mapping);
+
+            // For each existing region, drop it if it wasn't declared
+            // to match our comm layer.
+            for (std::set<hyperdex::regionid>::iterator e = existing.begin();
+                    e != existing.end(); ++e)
+            {
+                std::map<entityid, configuration::instance>::iterator start;
+                std::map<entityid, configuration::instance>::iterator end;
+                start = entity_mapping.lower_bound(entityid(*e, 0));
+                end = entity_mapping.upper_bound(entityid(*e, 255));
+                bool keep = false;
+
+                for (; start != end; ++start)
+                {
+                    if (start->second == m_comm->instance())
+                    {
+                        keep = true;
+                    }
+                }
+
+                if (!keep)
+                {
+                    m_data->drop(*e);
+                }
+            }
+        }
+
+    private:
+        hyperdex::datalayer* m_data;
+        hyperdex::logical* m_comm;
+};
 
 hyperdex :: hyperdexd :: hyperdexd()
     : m_continue(true)
@@ -101,7 +169,13 @@ hyperdex :: hyperdexd :: run()
     // Setup the communications layer.
     hyperdex::logical comm(dl, "127.0.0.1"); // XXX don't hardcode localhost
     // Setup the link with the master.
-    hyperdex::masterlink ml(po6::net::location("127.0.0.1", 1234), &data, &comm);
+    std::ostringstream ostr;
+    ostr << "instance\t" << comm.instance().inbound << "\t"
+                           << comm.instance().outbound
+                           << "\n";
+    hyperdex::masterlink ml(po6::net::location("127.0.0.1", 1234),
+                            ostr.str(),
+                            install_mapping(&data, &comm));
     // Start the network_worker threads.
     hyperdex::network_worker nw(&comm, &data);
     std::tr1::function<void (hyperdex::network_worker*)> fnw(&hyperdex::network_worker::run);
