@@ -46,6 +46,17 @@ prefixmask(uint8_t prefix)
     return m;
 }
 
+template <typename R, typename P>
+bool
+overlap(const R& r1, const P& r2)
+{
+    uint8_t prefix = std::min(r1.prefix, r2.prefix);
+    uint64_t mask = prefixmask(prefix);
+    return (r1.space == r2.space
+            && r1.subspace == r2.subspace
+            && (r1.mask & mask) == (r2.mask & mask));
+}
+
 template <typename T>
 bool
 nonoverlapping(const T& regions)
@@ -56,10 +67,7 @@ nonoverlapping(const T& regions)
        
         for (++ j; j != regions.end(); ++j)
         {
-            uint64_t mask = prefixmask(std::min(i->prefix, j->prefix));
-
-            if (i->space == j->space && i->subspace == j->subspace
-                    && (i->mask & mask) == (j->mask & mask))
+            if (overlap(*i, *j))
             {
                 return false;
             }
@@ -75,11 +83,7 @@ nonoverlapping(const T& regions, R region)
 {
     for (typename T::iterator i = regions.begin(); i != regions.end(); ++i)
     {
-        uint8_t prefix = std::min(i->prefix, region.prefix);
-        uint64_t mask = prefixmask(prefix);
-
-        if (i->space == region.space && i->subspace == region.subspace
-                && (i->mask & mask) == (region.mask & mask))
+        if (overlap(*i, region))
         {
             return false;
         }
