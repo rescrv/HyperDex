@@ -25,8 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_datalayer_h_
-#define hyperdex_datalayer_h_
+#ifndef hyperdex_result_t_h_
+#define hyperdex_result_t_h_
 
 // STL
 #include <map>
@@ -43,39 +43,18 @@
 // HyperDex
 #include <hyperdex/ids.h>
 #include <hyperdex/region.h>
-#include <hyperdex/result_t.h>
 
 namespace hyperdex
 {
 
-class datalayer
+enum result_t
 {
-    public:
-        datalayer();
-
-    // Space operations.
-    public:
-        std::set<regionid> regions();
-        void create(const regionid& ri, uint16_t numcolumns);
-        void drop(const regionid& ri);
-
-    // Key-Value store operations.
-    public:
-        result_t get(const regionid& ri, const e::buffer& key, std::vector<e::buffer>* value);
-        result_t put(const regionid& ri, const e::buffer& key, const std::vector<e::buffer>& value);
-        result_t del(const regionid& ri, const e::buffer& key);
-
-    private:
-        datalayer(const datalayer&);
-
-    private:
-        datalayer& operator = (const datalayer&);
-
-    private:
-        po6::threads::rwlock m_lock;
-        std::map<regionid, std::tr1::shared_ptr<hyperdex::region> > m_regions;
+    SUCCESS  = 0,
+    NOTFOUND = 1,
+    INVALID  = 2,
+    ERROR    = 4
 };
 
 } // namespace hyperdex
 
-#endif // hyperdex_datalayer_h_
+#endif // hyperdex_result_t_h_

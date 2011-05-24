@@ -99,7 +99,7 @@ hyperdex :: datalayer :: drop(const regionid& ri)
     }
 }
 
-hyperdex :: datalayer :: result_t
+hyperdex :: result_t
 hyperdex :: datalayer :: get(const regionid& ri,
                              const e::buffer& key,
                              std::vector<e::buffer>* value)
@@ -154,7 +154,7 @@ hyperdex :: datalayer :: get(const regionid& ri,
     return ERROR;
 }
 
-hyperdex :: datalayer :: result_t
+hyperdex :: result_t
 hyperdex :: datalayer :: put(const regionid& ri,
                              const e::buffer& key,
                              const std::vector<e::buffer>& value)
@@ -199,7 +199,7 @@ hyperdex :: datalayer :: put(const regionid& ri,
     return ERROR;
 }
 
-hyperdex :: datalayer :: result_t
+hyperdex :: result_t
 hyperdex :: datalayer :: del(const regionid& ri,
                              const e::buffer& key)
 {

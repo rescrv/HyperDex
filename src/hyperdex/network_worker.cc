@@ -93,7 +93,7 @@ hyperdex :: network_worker :: run()
             e::buffer key;
             std::vector<e::buffer> value;
             msg.unpack() >> nonce >> key;
-            datalayer::result_t result = m_data->get(to.get_region(), key, &value);
+            result_t result = m_data->get(to.get_region(), key, &value);
             msg.clear();
             msg.pack() << nonce << static_cast<uint8_t>(result) << value;
             m_comm->send(to, from, stream_no::RESULT, msg);
@@ -104,7 +104,7 @@ hyperdex :: network_worker :: run()
             e::buffer key;
             std::vector<e::buffer> value;
             msg.unpack() >> nonce >> size >> e::buffer::sized(size, &key) >> value;
-            datalayer::result_t result = m_data->put(to.get_region(), key, value);
+            result_t result = m_data->put(to.get_region(), key, value);
             msg.clear();
             msg.pack() << nonce << static_cast<uint8_t>(result);
             m_comm->send(to, from, stream_no::RESULT, msg);
@@ -113,7 +113,7 @@ hyperdex :: network_worker :: run()
         {
             e::buffer key;
             msg.unpack() >> nonce >> key;
-            datalayer::result_t result = m_data->del(to.get_region(), key);
+            result_t result = m_data->del(to.get_region(), key);
             msg.clear();
             msg.pack() << nonce << static_cast<uint8_t>(result);
             m_comm->send(to, from, stream_no::RESULT, msg);

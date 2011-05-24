@@ -43,6 +43,7 @@ include_directories(SYSTEM ${EV_INCLUDE_DIRS})
 set(hyperdex_headers
     include/hyperdex/query.h
     include/hyperdex/mapper.h
+    include/hyperdex/result_t.h
 )
 
 # Setup the sources
