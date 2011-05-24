@@ -50,6 +50,7 @@ set(hyperdex_headers
 set(hyperdex_srcs
     src/hyperdex/bloom.cc
     src/hyperdex/city.cc
+    src/hyperdex/client.cc
     src/hyperdex/configuration.cc
     src/hyperdex/datalayer.cc
     src/hyperdex/hyperdexd.cc
@@ -81,6 +82,12 @@ target_link_libraries(hyperdex
 # Build hyperdexd
 add_executable(hyperdexd src/bin/hyperdexd.cc)
 target_link_libraries(hyperdexd
+    hyperdex
+)
+
+# Build count benchmark
+add_executable(count src/bin/count.cc)
+target_link_libraries(count
     hyperdex
 )
 
