@@ -42,7 +42,7 @@ hyperdex :: query :: ~query()
 }
 
 void
-hyperdex :: query :: set(size_t idx, const std::string& val)
+hyperdex :: query :: set(size_t idx, const e::buffer& val)
 {
     assert(m_values.size() > idx);
     assert(m_mask.size() > idx);
@@ -58,18 +58,18 @@ hyperdex :: query :: unset(size_t idx)
     assert(m_mask.size() > idx);
 
     m_mask[idx] = false;
-    m_values[idx] = "";
+    m_values[idx] = e::buffer();
 }
 
 void
 hyperdex :: query :: clear()
 {
-    m_values = std::vector<std::string>(m_values.size());
+    m_values = std::vector<e::buffer>(m_values.size());
     m_mask = std::vector<bool>(m_mask.size(), false);
 }
 
 bool
-hyperdex :: query :: matches(const std::vector<std::string>& row)
+hyperdex :: query :: matches(const std::vector<e::buffer>& row)
                      const
 {
     assert(m_values.size() == row.size());

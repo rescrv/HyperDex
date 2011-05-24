@@ -32,8 +32,10 @@
 #include <cassert>
 
 // STL
-#include <string>
 #include <vector>
+
+// e
+#include <e/buffer.h>
 
 namespace hyperdex
 {
@@ -45,19 +47,19 @@ class query
         ~query();
 
     public:
-        void set(size_t idx, const std::string& val);
+        void set(size_t idx, const e::buffer& val);
         void unset(size_t idx);
         void clear();
 
     public:
-        bool matches(const std::vector<std::string>& row) const;
+        bool matches(const std::vector<e::buffer>& row) const;
         bool is_specified(size_t idx) const
         {
             return m_mask[idx];
         }
 
         // This is undefined if !m_mask[idx]
-        const std::string& value(size_t idx) const
+        const e::buffer& value(size_t idx) const
         {
             return m_values[idx];
         }
@@ -69,7 +71,7 @@ class query
         }
 
     private:
-        std::vector<std::string> m_values;
+        std::vector<e::buffer> m_values;
         std::vector<bool> m_mask;
 };
 

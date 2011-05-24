@@ -50,12 +50,12 @@ TEST(QueryTest, CtorAndDtor)
 TEST(QueryTest, SetAndUnset)
 {
     hyperdex::query q(10);
-    std::vector<std::string> row(10, "value");
+    std::vector<e::buffer> row(10, e::buffer("value", 5));
 
     for (size_t i = 0; i < 10; ++i)
     {
         EXPECT_TRUE(q.matches(row));
-        q.set(i, "value");
+        q.set(i, e::buffer("value", 5));
     }
 
     EXPECT_TRUE(q.matches(row));
@@ -63,7 +63,7 @@ TEST(QueryTest, SetAndUnset)
     for (size_t i = 0; i < 10; ++i)
     {
         EXPECT_TRUE(q.matches(row));
-        q.set(i, "value");
+        q.set(i, e::buffer("value", 5));
     }
 
     EXPECT_TRUE(q.matches(row));
@@ -72,13 +72,13 @@ TEST(QueryTest, SetAndUnset)
 TEST(QueryTest, Clear)
 {
     hyperdex::query q(2);
-    std::vector<std::string> r;
+    std::vector<e::buffer> r;
 
-    r.push_back("key");
-    r.push_back("val");
+    r.push_back(e::buffer("key", 3));
+    r.push_back(e::buffer("val", 4));
     EXPECT_TRUE(q.matches(r));
-    q.set(0, "not-key");
-    q.set(1, "not-val");
+    q.set(0, e::buffer("not-key", 7));
+    q.set(1, e::buffer("not-val", 7));
     EXPECT_FALSE(q.matches(r));
     q.clear();
     EXPECT_TRUE(q.matches(r));
@@ -88,16 +88,16 @@ TEST(QueryTest, Clear)
 TEST(QueryTest, NegativeMatch)
 {
     hyperdex::query q(2);
-    std::vector<std::string> r;
+    std::vector<e::buffer> r;
 
-    r.push_back("key");
-    r.push_back("val");
+    r.push_back(e::buffer("key", 3));
+    r.push_back(e::buffer("val", 3));
     EXPECT_TRUE(q.matches(r));
-    q.set(0, "not-key");
+    q.set(0, e::buffer("not-key", 7));
     EXPECT_FALSE(q.matches(r));
     q.unset(0);
     EXPECT_TRUE(q.matches(r));
-    q.set(1, "not-val");
+    q.set(1, e::buffer("not-val", 7));
     EXPECT_FALSE(q.matches(r));
 }
 
@@ -107,7 +107,7 @@ TEST(QueryTest, SetDeathTest)
     hyperdex::query q(5);
 
     ASSERT_DEATH(
-        q.set(5, "out of bounds");
+        q.set(5, e::buffer("out of bounds", 13));
     , "Assertion");
 }
 
@@ -127,7 +127,7 @@ TEST(QueryTest, MatchDeathTest)
     hyperdex::query q(5);
 
     ASSERT_DEATH(
-        q.matches(std::vector<std::string>(4));
+        q.matches(std::vector<e::buffer>(4));
     , "Assertion");
 }
 
