@@ -140,12 +140,6 @@ add_test(BloomTest.Serialization testrunner
 
 add_test(MapperTest.CtorAndDtor testrunner
     --gtest_filter=MapperTest.CtorAndDtor)
-add_test(MapperTest.ThreeColumnTableOneColumnQuery testrunner
-    --gtest_filter=MapperTest.ThreeColumnTableOneColumnQuery)
-add_test(MapperTest.ThreeColumnTableTwoColumnQuery testrunner
-    --gtest_filter=MapperTest.ThreeColumnTableTwoColumnQuery)
-add_test(MapperTest.ThreeColumnTableThreeColumnQuery testrunner
-    --gtest_filter=MapperTest.ThreeColumnTableThreeColumnQuery)
 
 add_test(LogTest.CtorAndDtor testrunner
     --gtest_filter=LogTest.CtorAndDtor)

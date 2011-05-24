@@ -29,9 +29,12 @@
 #define hyperdex_mapper_h_
 
 // STL
+#include <map>
 #include <vector>
 
 // HyperDex
+#include <hyperdex/ids.h>
+#include <hyperdex/instance.h>
 #include <hyperdex/query.h>
 
 namespace hyperdex
@@ -42,28 +45,15 @@ class mapper
     public:
         // Dimensions is a vector <d1, d2, d3, ...> which specifies the number
         // of entities in each dimension of the hyperspace.
-        mapper(const std::vector<size_t>& dimensions);
+        mapper(const std::map<entityid, instance>& entities);
         ~mapper();
 
     public:
-        // Map the specified row into a hyperspace represented by dimensions
-        // assuming there exist only modulus entities in the space.
         void map(const hyperdex::query& query,
-                 size_t modulus,
-                 std::vector<size_t>* result) const;
+                 std::vector<instance>* instances) const;
 
     private:
-        void uniquify(std::vector<size_t>* vec) const;
-
-        void map(const std::vector<size_t>& coord,
-                 const std::vector<bool>& mask,
-                 size_t dimension,
-                 size_t modulus,
-                 std::vector<size_t>* result) const;
-
-    private:
-        std::vector<size_t> m_dimensions;
-        std::vector<size_t> m_offsets;
+        std::map<entityid, instance> m_entities;
 };
 
 } // namespace hyperdex
