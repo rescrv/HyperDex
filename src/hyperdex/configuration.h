@@ -38,53 +38,13 @@
 // HyperDex
 #include <hyperdex/datalayer.h>
 #include <hyperdex/ids.h>
+#include <hyperdex/instance.h>
 
 namespace hyperdex
 {
 
 class configuration
 {
-    public:
-        struct instance
-        {
-            instance()
-                : inbound()
-                , inbound_version()
-                , outbound()
-                , outbound_version()
-            {
-            }
-
-            instance(const po6::net::location& i, uint16_t iv,
-                     const po6::net::location& o, uint16_t ov)
-                : inbound(i)
-                , inbound_version(iv)
-                , outbound(o)
-                , outbound_version(ov)
-            {
-            }
-
-            bool operator == (const instance& rhs) const
-            {
-                const instance& lhs(*this);
-                return lhs.inbound == rhs.inbound &&
-                       lhs.inbound_version == rhs.inbound_version &&
-                       lhs.outbound == rhs.outbound &&
-                       lhs.outbound_version == rhs.outbound_version;
-            }
-
-            bool operator != (const instance& rhs) const
-            {
-                const instance& lhs(*this);
-                return !(lhs == rhs);
-            }
-
-            po6::net::location inbound;
-            uint16_t inbound_version;
-            po6::net::location outbound;
-            uint16_t outbound_version;
-        };
-
     public:
         configuration();
 
@@ -112,7 +72,7 @@ class configuration
 };
 
 inline std::ostream&
-operator << (std::ostream& lhs, const configuration::instance& rhs)
+operator << (std::ostream& lhs, const instance& rhs)
 {
     lhs << "instance(" << rhs.inbound << ", " << rhs.inbound_version
         << rhs.outbound << ", " << rhs.outbound_version << ")";

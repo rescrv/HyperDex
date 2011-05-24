@@ -66,10 +66,10 @@ hyperdex :: logical :: ~logical()
 {
 }
 
-typedef std::map<hyperdex::entityid, hyperdex::configuration::instance>::iterator mapiter;
+typedef std::map<hyperdex::entityid, hyperdex::instance>::iterator mapiter;
 
 void
-hyperdex :: logical :: remap(std::map<entityid, configuration::instance> mapping)
+hyperdex :: logical :: remap(std::map<entityid, instance> mapping)
 {
     rwlock::wrhold wr(&m_mapping_lock);
     LOG(INFO) << "Installing new mapping.";
@@ -147,8 +147,8 @@ hyperdex :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
     location loc;
     bool fromvalid = false;
     bool tovalid = false;
-    configuration::instance frominst;
-    configuration::instance toinst;
+    instance frominst;
+    instance toinst;
     uint16_t fromver = 0;
     uint16_t tover = 0;
 

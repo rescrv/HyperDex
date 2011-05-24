@@ -30,6 +30,7 @@
 
 // HyperDex
 #include <hyperdex/client.h>
+#include <hyperdex/instance.h>
 #include <hyperdex/masterlink.h>
 #include <hyperdex/physical.h>
 
@@ -48,7 +49,7 @@ struct hyperdex :: client :: priv
     hyperdex::physical phys;
     hyperdex::masterlink ml;
     po6::threads::rwlock mapping_lock;
-    std::map<entityid, configuration::instance> mapping;
+    std::map<entityid, instance> mapping;
 };
 
 hyperdex :: client :: client(po6::net::location coordinator)

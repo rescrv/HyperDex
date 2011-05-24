@@ -51,6 +51,7 @@
 #include <hyperdex/datalayer.h>
 #include <hyperdex/logical.h>
 #include <hyperdex/hyperdexd.h>
+#include <hyperdex/instance.h>
 #include <hyperdex/masterlink.h>
 #include <hyperdex/network_worker.h>
 
@@ -70,22 +71,23 @@ class hyperdexd_install_mapping
     public:
         void operator () (const hyperdex::configuration& config)
         {
-            using hyperdex::entityid;
             using hyperdex::configuration;
+            using hyperdex::entityid;
+            using hyperdex::instance;
 
             std::set<hyperdex::regionid> existing;
             existing = m_data->regions();
             std::map<hyperdex::regionid, size_t> declared;
             declared = config.regions();
-            std::map<entityid, configuration::instance> entity_mapping;
+            std::map<entityid, instance> entity_mapping;
             entity_mapping = config.entity_mapping();
 
             // For each declared region which matches the comm layer,
             // create it if it doesn't exist.
-            for (std::map<entityid, configuration::instance>::iterator e = entity_mapping.begin();
+            for (std::map<entityid, instance>::iterator e = entity_mapping.begin();
                     e != entity_mapping.end(); ++e)
             {
-                if (e->second == m_comm->instance()
+                if (e->second == m_comm->inst()
                         && existing.find(e->first.get_region()) == existing.end())
                 {
                     m_data->create(e->first.get_region(), declared[e->first.get_region()]);
@@ -99,15 +101,15 @@ class hyperdexd_install_mapping
             for (std::set<hyperdex::regionid>::iterator e = existing.begin();
                     e != existing.end(); ++e)
             {
-                std::map<entityid, configuration::instance>::iterator start;
-                std::map<entityid, configuration::instance>::iterator end;
+                std::map<entityid, instance>::iterator start;
+                std::map<entityid, instance>::iterator end;
                 start = entity_mapping.lower_bound(entityid(*e, 0));
                 end = entity_mapping.upper_bound(entityid(*e, 255));
                 bool keep = false;
 
                 for (; start != end; ++start)
                 {
-                    if (start->second == m_comm->instance())
+                    if (start->second == m_comm->inst())
                     {
                         keep = true;
                     }
@@ -170,9 +172,9 @@ hyperdex :: hyperdexd :: run()
     hyperdex::logical comm(dl, "127.0.0.1"); // XXX don't hardcode localhost
     // Setup the link with the master.
     std::ostringstream ostr;
-    ostr << "instance\t" << comm.instance().inbound << "\t"
-                           << comm.instance().outbound
-                           << "\n";
+    ostr << "instance\t" << comm.inst().inbound << "\t"
+                         << comm.inst().outbound
+                         << "\n";
     hyperdex::masterlink ml(po6::net::location("127.0.0.1", 1234),
                             ostr.str(),
                             hyperdexd_install_mapping(&data, &comm));

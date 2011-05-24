@@ -25,65 +25,55 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_logical_h_
-#define hyperdex_logical_h_
-
-// STL
-#include <map>
-
-// libev
-#include <ev++.h>
+#ifndef hyperdex_instance_h_
+#define hyperdex_instance_h_
 
 // po6
 #include <po6/net/location.h>
-#include <po6/threads/rwlock.h>
-
-// e
-#include <e/buffer.h>
-
-// HyperDex
-#include <hyperdex/configuration.h>
-#include <hyperdex/physical.h>
 
 namespace hyperdex
 {
 
-class logical
+struct instance
 {
-    public:
-        logical(ev::loop_ref lr, const po6::net::ipaddr& us);
-        ~logical();
+    instance()
+        : inbound()
+        , inbound_version()
+        , outbound()
+        , outbound_version()
+    {
+    }
 
-    public:
-        const instance& inst() const { return m_us; }
-        // Install a new mapping.
-        void remap(std::map<entityid, instance> mapping);
+    instance(const po6::net::location& i, uint16_t iv,
+             const po6::net::location& o, uint16_t ov)
+        : inbound(i)
+        , inbound_version(iv)
+        , outbound(o)
+        , outbound_version(ov)
+    {
+    }
 
-    // Send and recv messages.
-    public:
-        bool send(const hyperdex::entityid& from, const hyperdex::entityid& to,
-                  const uint8_t msg_type, const e::buffer& msg);
-        bool recv(hyperdex::entityid* from, hyperdex::entityid* to,
-                  uint8_t* msg_type, e::buffer* msg);
-        void shutdown();
+    bool operator == (const instance& rhs) const
+    {
+        const instance& lhs(*this);
+        return lhs.inbound == rhs.inbound &&
+               lhs.inbound_version == rhs.inbound_version &&
+               lhs.outbound == rhs.outbound &&
+               lhs.outbound_version == rhs.outbound_version;
+    }
 
-    private:
-        logical(const logical&);
+    bool operator != (const instance& rhs) const
+    {
+        const instance& lhs(*this);
+        return !(lhs == rhs);
+    }
 
-    private:
-        logical& operator = (const logical&);
-
-    private:
-        instance m_us;
-        po6::threads::rwlock m_mapping_lock;
-        po6::threads::rwlock m_client_lock;
-        std::map<entityid, instance> m_mapping;
-        std::map<po6::net::location, uint64_t> m_client_nums;
-        std::map<uint64_t, po6::net::location> m_client_locs;
-        uint64_t m_client_counter;
-        hyperdex::physical m_physical;
+    po6::net::location inbound;
+    uint16_t inbound_version;
+    po6::net::location outbound;
+    uint16_t outbound_version;
 };
 
 } // namespace hyperdex
 
-#endif // hyperdex_logical_h_
+#endif // hyperdex_instance_h_
