@@ -25,10 +25,34 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// Libev
+#include <ev++.h>
+
 // HyperDex
 #include <hyperdex/client.h>
+#include <hyperdex/masterlink.h>
+#include <hyperdex/physical.h>
+
+struct hyperdex :: client :: priv
+{
+    priv(po6::net::location coordinator)
+        : dl()
+        , phys(dl, po6::net::ipaddr::ANY())
+        , ml(coordinator, "client\n", std::tr1::function<void (const hyperdex::configuration&)>())
+        , mapping_lock()
+        , mapping()
+    {
+    }
+
+    ev::dynamic_loop dl;
+    hyperdex::physical phys;
+    hyperdex::masterlink ml;
+    po6::threads::rwlock mapping_lock;
+    std::map<entityid, configuration::instance> mapping;
+};
 
 hyperdex :: client :: client(po6::net::location coordinator)
+    : p(new priv(coordinator))
 {
 }
 

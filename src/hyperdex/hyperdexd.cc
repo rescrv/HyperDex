@@ -58,10 +58,10 @@ typedef std::tr1::shared_ptr<po6::threads::thread> thread_ptr;
 
 #define NUM_THREADS 64
 
-class install_mapping
+class hyperdexd_install_mapping
 {
     public:
-        install_mapping(hyperdex::datalayer* data, hyperdex::logical* comm)
+        hyperdexd_install_mapping(hyperdex::datalayer* data, hyperdex::logical* comm)
             : m_data(data)
             , m_comm(comm)
         {
@@ -175,7 +175,7 @@ hyperdex :: hyperdexd :: run()
                            << "\n";
     hyperdex::masterlink ml(po6::net::location("127.0.0.1", 1234),
                             ostr.str(),
-                            install_mapping(&data, &comm));
+                            hyperdexd_install_mapping(&data, &comm));
     // Start the network_worker threads.
     hyperdex::network_worker nw(&comm, &data);
     std::tr1::function<void (hyperdex::network_worker*)> fnw(&hyperdex::network_worker::run);

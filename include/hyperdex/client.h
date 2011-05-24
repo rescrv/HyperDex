@@ -47,6 +47,10 @@ class client
         result_t get(const std::string& space, const e::buffer& key, std::vector<e::buffer>* value);
         result_t put(const std::string& space, const e::buffer& key, const std::vector<e::buffer>& value);
         result_t del(const std::string& space, const e::buffer& key);
+
+    private:
+        struct priv;
+        const std::auto_ptr<priv> p;
 };
 
 } // namespace hyperdex

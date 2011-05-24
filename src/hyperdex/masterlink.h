@@ -33,6 +33,7 @@
 
 // po6
 #include <po6/net/location.h>
+#include <po6/threads/thread.h>
 
 // HyperDex
 #include <hyperdex/configuration.h>
