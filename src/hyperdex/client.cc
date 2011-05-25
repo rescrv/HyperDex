@@ -151,6 +151,61 @@ struct hyperdex :: client :: priv
         }
     }
 
+    // Do a request/response operation to the row leader for key in space.  This
+    // could be GET/PUT/DEL or similar.  This is not a fanout/aggregate
+    // operation.  in/out may be the same buffer instance.
+    bool reqrep(const std::string& space,
+                const e::buffer& key,
+                stream_no::stream_no_t act,
+                const e::buffer& in,
+                stream_no::stream_no_t* type,
+                e::buffer* out)
+    {
+        std::map<std::string, spaceid>::iterator sai;
+
+        // Map the string description to a number.
+        if ((sai = space_assignment.find(space)) == space_assignment.end())
+        {
+            LOG(INFO) << "space name does not translate to space number.";
+            return false;
+        }
+
+        // Create the most restrictive region possible for this point.
+        uint32_t spacenum = sai->second.space;
+        uint64_t hash = CityHash64(static_cast<const char*>(key.get()), key.size());
+        regionid r(spacenum, /*subspace*/ 0, /*prefix*/ 64, /*mask*/ hash);
+
+        // Figure out who to talk with.
+        entityid dst_ent;
+        instance dst_inst;
+
+        if (!find_entity(r, &dst_ent, &dst_inst))
+        {
+            LOG(INFO) << "no entry matches the given point.";
+            return false;
+        }
+
+        // Send the messasge
+        if (!send(dst_ent, dst_inst, act, in))
+        {
+            LOG(INFO) << "could not send message.";
+            return false;
+        }
+
+        // Receive the message
+        entityid from;
+        out->clear();
+
+        if (recv(&from, type, out))
+        {
+            // XXX BAD
+            return true;
+        }
+
+        LOG(INFO) << "could not recv message.";
+        return false;
+    }
+
     ev::dynamic_loop dl;
     ev::async wakeup;
     hyperdex::physical phys;
@@ -174,60 +229,21 @@ hyperdex :: client :: get(const std::string& space,
                           const e::buffer& key,
                           std::vector<e::buffer>* value)
 {
-    std::map<std::string, spaceid>::iterator sai;
-
-    // Map the string description to a number.
-    if ((sai = p->space_assignment.find(space)) == p->space_assignment.end())
-    {
-        LOG(INFO) << "space name does not translate to space number.";
-        return INVALID;
-    }
-
-    // Create the most restrictive region possible for this point.
-    uint32_t spacenum = sai->second.space;
-    uint64_t hash = CityHash64(static_cast<const char*>(key.get()), key.size());
-    regionid r(spacenum, /*subspace*/ 0, /*prefix*/ 64, /*mask*/ hash);
-
-    // Figure out who to talk with.
-    entityid dst_ent;
-    instance dst_inst;
-
-    if (!p->find_entity(r, &dst_ent, &dst_inst))
-    {
-        LOG(INFO) << "no entry matches the given point.";
-        return INVALID;
-    }
-
-    // Send the get messasge
-    e::buffer msg;
     uint32_t nonce = 0;
+    e::buffer msg;
     msg.pack() << nonce << key;
+    stream_no::stream_no_t response;
 
-    if (!p->send(dst_ent, dst_inst, stream_no::GET, msg))
+    if (p->reqrep(space, key, stream_no::GET, msg, &response, &msg))
     {
-        LOG(INFO) << "could not send message.";
-        return ERROR;
-    }
-
-    // Receive the message
-    stream_no::stream_no_t type;
-    entityid from;
-    msg.clear();
-
-    if (p->recv(&from, &type, &msg))
-    {
-        if (type == stream_no::RESULT)
+        if (response == stream_no::RESULT)
         {
             uint8_t result;
             msg.unpack() >> nonce >> result >> *value;
             return static_cast<result_t>(result);
         }
-
-        LOG(INFO) << "received non-result message.";
-        return ERROR;
     }
 
-    LOG(INFO) << "could not recv message.";
     return ERROR;
 }
 
@@ -236,61 +252,22 @@ hyperdex :: client :: put(const std::string& space,
                           const e::buffer& key,
                           const std::vector<e::buffer>& value)
 {
-    std::map<std::string, spaceid>::iterator sai;
-
-    // Map the string description to a number.
-    if ((sai = p->space_assignment.find(space)) == p->space_assignment.end())
-    {
-        LOG(INFO) << "space name does not translate to space number.";
-        return INVALID;
-    }
-
-    // Create the most restrictive region possible for this point.
-    uint32_t spacenum = sai->second.space;
-    uint64_t hash = CityHash64(static_cast<const char*>(key.get()), key.size());
-    regionid r(spacenum, /*subspace*/ 0, /*prefix*/ 64, /*mask*/ hash);
-
-    // Figure out who to talk with.
-    entityid dst_ent;
-    instance dst_inst;
-
-    if (!p->find_entity(r, &dst_ent, &dst_inst))
-    {
-        LOG(INFO) << "no entry matches the given point.";
-        return INVALID;
-    }
-
-    // Send the put messasge
-    e::buffer msg;
     uint32_t nonce = 0;
     uint32_t size = key.size();
+    e::buffer msg;
     msg.pack() << nonce << size << key << value;
+    stream_no::stream_no_t response;
 
-    if (!p->send(dst_ent, dst_inst, stream_no::PUT, msg))
+    if (p->reqrep(space, key, stream_no::PUT, msg, &response, &msg))
     {
-        LOG(INFO) << "could not send message.";
-        return ERROR;
-    }
-
-    // Receive the message
-    stream_no::stream_no_t type;
-    entityid from;
-    msg.clear();
-
-    if (p->recv(&from, &type, &msg))
-    {
-        if (type == stream_no::RESULT)
+        if (response == stream_no::RESULT)
         {
             uint8_t result;
             msg.unpack() >> nonce >> result;
             return static_cast<result_t>(result);
         }
-
-        LOG(INFO) << "received non-result message.";
-        return ERROR;
     }
 
-    LOG(INFO) << "could not recv message.";
     return ERROR;
 }
 
@@ -298,6 +275,20 @@ hyperdex :: result_t
 hyperdex :: client :: del(const std::string& space,
                           const e::buffer& key)
 {
-    // XXX
-    return INVALID;
+    uint32_t nonce = 0;
+    e::buffer msg;
+    msg.pack() << nonce << key;
+    stream_no::stream_no_t response;
+
+    if (p->reqrep(space, key, stream_no::DEL, msg, &response, &msg))
+    {
+        if (response == stream_no::RESULT)
+        {
+            uint8_t result;
+            msg.unpack() >> nonce >> result;
+            return static_cast<result_t>(result);
+        }
+    }
+
+    return ERROR;
 }
