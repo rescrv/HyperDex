@@ -84,47 +84,57 @@ hyperdex :: network_worker :: run()
 
     while (m_continue && m_comm->recv(&from, &to, &msg_type, &msg))
     {
-        hyperdex::stream_no::stream_no_t type;
-        type = static_cast<hyperdex::stream_no::stream_no_t>(msg_type);
-        uint32_t nonce;
+        try
+        {
+            hyperdex::stream_no::stream_no_t type;
+            type = static_cast<hyperdex::stream_no::stream_no_t>(msg_type);
+            uint32_t nonce;
 
-        if (type == stream_no::GET)
-        {
-            e::buffer key;
-            std::vector<e::buffer> value;
-            msg.unpack() >> nonce >> key;
-            result_t result = m_data->get(to.get_region(), key, &value);
-            msg.clear();
-            msg.pack() << nonce << static_cast<uint8_t>(result) << value;
-            m_comm->send(to, from, stream_no::RESULT, msg);
+            if (type == stream_no::GET)
+            {
+                e::buffer key;
+                std::vector<e::buffer> value;
+                msg.unpack() >> nonce >> key;
+                result_t result = m_data->get(to.get_region(), key, &value);
+                msg.clear();
+                msg.pack() << nonce << static_cast<uint8_t>(result) << value;
+                m_comm->send(to, from, stream_no::RESULT, msg);
+            }
+            else if (type == hyperdex::stream_no::PUT)
+            {
+                uint32_t size;
+                e::buffer key;
+                std::vector<e::buffer> value;
+                e::unpacker up = msg.unpack();
+                up >> nonce >> size;
+                up >> e::buffer::sized(size, &key) >> value;
+                result_t result = m_data->put(to.get_region(), key, value);
+                msg.clear();
+                msg.pack() << nonce << static_cast<uint8_t>(result);
+                m_comm->send(to, from, stream_no::RESULT, msg);
+            }
+            else if (type == hyperdex::stream_no::DEL)
+            {
+                e::buffer key;
+                msg.unpack() >> nonce >> key;
+                result_t result = m_data->del(to.get_region(), key);
+                msg.clear();
+                msg.pack() << nonce << static_cast<uint8_t>(result);
+                m_comm->send(to, from, stream_no::RESULT, msg);
+            }
+            else if (type == hyperdex::stream_no::SEARCH)
+            {
+                // XXX
+            }
+            else
+            {
+                VLOG(0) << "Message of unknown type received.";
+            }
         }
-        else if (type == hyperdex::stream_no::PUT)
+        catch (std::out_of_range& e)
         {
-            uint32_t size;
-            e::buffer key;
-            std::vector<e::buffer> value;
-            msg.unpack() >> nonce >> size >> e::buffer::sized(size, &key) >> value;
-            result_t result = m_data->put(to.get_region(), key, value);
-            msg.clear();
-            msg.pack() << nonce << static_cast<uint8_t>(result);
-            m_comm->send(to, from, stream_no::RESULT, msg);
-        }
-        else if (type == hyperdex::stream_no::DEL)
-        {
-            e::buffer key;
-            msg.unpack() >> nonce >> key;
-            result_t result = m_data->del(to.get_region(), key);
-            msg.clear();
-            msg.pack() << nonce << static_cast<uint8_t>(result);
-            m_comm->send(to, from, stream_no::RESULT, msg);
-        }
-        else if (type == hyperdex::stream_no::SEARCH)
-        {
-            // XXX
-        }
-        else
-        {
-            VLOG(0) << "Message of unknown type received.";
+            // Unpack error
+            VLOG(0) << "Message does not properly unpack.";
         }
     }
 }
