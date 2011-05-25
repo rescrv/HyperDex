@@ -104,4 +104,19 @@ TEST(HyperspaceTest, SpacingTest)
     EXPECT_EQ(0x8000000000000000, hyperdex::spacing(0xdeadbeefcafebabe, 64));
 }
 
+TEST(HyperspaceTest, InterlaceTest)
+{
+    std::vector<uint64_t> v;
+
+    v.push_back(0xbeffbfff00000000);
+    v.push_back(0xe36b8e4600000000);
+    EXPECT_EQ(0xdeadbeefcafebabe, hyperdex::interlace(v));
+
+    v.clear();
+    v.push_back(0xefbbe80000000000);
+    v.push_back(0xdfe7580000000000);
+    v.push_back(0x62eeb80000000000);
+    EXPECT_EQ(0xdeadbeefcafebabe, hyperdex::interlace(v));
+}
+
 } // namespace

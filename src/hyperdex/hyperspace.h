@@ -55,6 +55,21 @@ spacing(uint64_t number, uint8_t spacing)
     return ret;
 }
 
+// Interlace in a modified morton order (high-order bits preserved).
+inline uint64_t
+interlace(const std::vector<uint64_t>& nums)
+{
+    uint64_t ret = 0;
+
+    for (size_t i = 0; i < nums.size(); ++i)
+    {
+        uint64_t spaced = spacing(nums[i], nums.size());
+        ret |= (spaced >> i);
+    }
+
+    return ret;
+}
+
 inline uint64_t
 prefixmask(uint8_t prefix)
 {
