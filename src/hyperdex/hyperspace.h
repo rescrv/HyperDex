@@ -28,8 +28,32 @@
 #ifndef hyperdex_hyperspace_h_
 #define hyperdex_hyperspace_h_
 
+// C
+#include <stdint.h>
+
 namespace hyperdex
 {
+
+// A spacing of 1 corresponds to the identity function.  A spacing of 0 is
+// undefined.  A spacing > 64 is undefined.
+inline uint64_t
+spacing(uint64_t number, uint8_t spacing)
+{
+    uint64_t ret = 0;
+
+    for (uint8_t i = 0; i * spacing < 64; ++i)
+    {
+        // Don't do this inline so that it will use the full 64-bit int.
+        // It's also much easier to read this way.
+        uint64_t bit = 1;
+        bit <<= (63 - i);
+        bit &= number;
+        bit >>= (i * (spacing - 1));
+        ret |= bit;
+    }
+
+    return ret;
+}
 
 inline uint64_t
 prefixmask(uint8_t prefix)
