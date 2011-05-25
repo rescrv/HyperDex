@@ -59,7 +59,8 @@ operator >> (e::unpacker& lhs, std::vector<e::buffer>& rhs)
     {
         uint32_t size;
         e::buffer tmp;
-        lhs >> size >> e::buffer::sized(size, &tmp);
+        lhs >> size;
+        lhs >> e::buffer::sized(size, &tmp);
         rhs.push_back(tmp);
     }
 
