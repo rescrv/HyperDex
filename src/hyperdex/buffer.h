@@ -37,6 +37,9 @@ namespace hyperdex
 inline e::packer&
 operator << (e::packer& lhs, const std::vector<e::buffer>& rhs)
 {
+    uint16_t elem = rhs.size();
+    lhs << elem;
+
     for (size_t i = 0; i < rhs.size(); ++i)
     {
         uint32_t size = rhs[i].size();
