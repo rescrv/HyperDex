@@ -25,6 +25,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// STL
+#include <string>
+
 // po6
 #include <po6/net/ipaddr.h>
 #include <po6/net/location.h>
@@ -41,7 +44,7 @@ usage();
 int
 main(int argc, char* argv[])
 {
-    if (argc != 4)
+    if (argc != 6)
     {
         return usage();
     }
@@ -49,6 +52,8 @@ main(int argc, char* argv[])
     po6::net::ipaddr ip;
     uint16_t port;
     std::string space = argv[3];
+    uint32_t loopiter;
+    std::string payload;
 
     try
     {
@@ -77,12 +82,48 @@ main(int argc, char* argv[])
 
     try
     {
+        loopiter = e::convert::to_uint32_t(argv[4]);
+    }
+    catch (std::domain_error& e)
+    {
+        std::cerr << "The loop iteration count must be an integer." << std::endl;
+        return EXIT_FAILURE;
+    }
+    catch (std::out_of_range& e)
+    {
+        std::cerr << "The loop iteration count must be suitably small." << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    try
+    {
+        payload = std::string(e::convert::to_uint32_t(argv[5]), 'A');
+    }
+    catch (std::domain_error& e)
+    {
+        std::cerr << "The payload size must be an integer." << std::endl;
+        return EXIT_FAILURE;
+    }
+    catch (std::out_of_range& e)
+    {
+        std::cerr << "The payload size must be suitably small." << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    try
+    {
         hyperdex::client cl(po6::net::location(ip, port));
         std::vector<e::buffer> val;
+        timespec start;
+        timespec end;
 
-        for (uint64_t i = 1; i <= 1000; ++i)
+        clock_gettime(CLOCK_REALTIME, &start);
+
+        for (uint64_t i = 1; i <= loopiter; ++i)
         {
             e::buffer key;
+            val.clear();
+            val.push_back(e::buffer(payload.c_str(), payload.size()));
 
             switch (cl.put(space, key, val))
             {
@@ -101,7 +142,44 @@ main(int argc, char* argv[])
                     std::cerr << "Put returned unknown status." << std::endl;
                     break;
             }
+
+            val.clear();
+
+            switch (cl.get(space, key, &val))
+            {
+                case hyperdex::SUCCESS:
+                    break;
+                case hyperdex::NOTFOUND:
+                    std::cerr << "Get returned NOTFOUND." << std::endl;
+                    break;
+                case hyperdex::INVALID:
+                    std::cerr << "Get returned INVALID." << std::endl;
+                    break;
+                case hyperdex::ERROR:
+                    std::cerr << "Get returned ERROR." << std::endl;
+                    break;
+                default:
+                    std::cerr << "Get returned unknown status." << std::endl;
+                    break;
+            }
         }
+
+        clock_gettime(CLOCK_REALTIME, &end);
+        timespec diff;
+
+        if ((end.tv_nsec < start.tv_nsec) < 0)
+        {
+            diff.tv_sec = end.tv_sec - start.tv_sec - 1;
+            diff.tv_nsec = 1000000000 + end.tv_nsec - start.tv_nsec;
+        }
+        else
+        {
+            diff.tv_sec = end.tv_sec - start.tv_sec;
+            diff.tv_nsec = end.tv_nsec - start.tv_nsec;
+        }
+
+        uint64_t nanosecs = diff.tv_sec * 1000000000 + diff.tv_nsec;
+        std::cerr << "test took " << nanosecs << " nanoseconds for " << loopiter << " PUT/GET pairs" << std::endl;
     }
     catch (po6::error& e)
     {
@@ -130,7 +208,7 @@ main(int argc, char* argv[])
 int
 usage()
 {
-    std::cerr << "Usage:  count <coordinator ip> <coordinator port> <space name>"
+    std::cerr << "Usage:  count <coordinator ip> <coordinator port> <space name> <loop iter> <payload size (b)>"
               << std::endl;
     return EXIT_FAILURE;
 }

@@ -62,6 +62,7 @@ class physical
         void send(const po6::net::location& to, const e::buffer& msg);
         bool recv(po6::net::location* from, e::buffer* msg);
         void shutdown();
+        bool pending() { return m_incoming.size() > 0; }
         po6::net::location inbound() { return m_listen.getsockname(); }
         po6::net::location outbound() { return m_bindto; }
 

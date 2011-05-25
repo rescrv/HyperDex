@@ -90,6 +90,7 @@ target_link_libraries(hyperdexd
 add_executable(count src/bin/count.cc)
 target_link_libraries(count
     hyperdex
+    rt
 )
 
 # Tests
