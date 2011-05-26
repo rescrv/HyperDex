@@ -25,6 +25,7 @@ set(HyperDex_wanal "${HyperDex_wanal} -Wswitch-default")
 set(HyperDex_wanal "${HyperDex_wanal} -Wswitch-enum")
 set(HyperDex_wanal "${HyperDex_wanal} -Wunsafe-loop-optimizations")
 set(HyperDex_wanal "${HyperDex_wanal} -Wwrite-strings")
+set(HyperDex_wanal "${HyperDex_wanal} -Wno-long-long")
 
 set(CMAKE_CXX_FLAGS "${HyperDex_wanal} ${CMAKE_CXX_FLAGS}")
 
