@@ -207,7 +207,7 @@ TEST(LogTest, IterateDrainIterate)
         i.step();
     }
 
-    EXPECT_EQ(false, i.step());
+    EXPECT_FALSE(i.step());
     ASSERT_EQ(10, seqnos.size());
     ASSERT_EQ(10, values.size());
 
@@ -246,8 +246,8 @@ TEST(LogTest, ConcurrentIteration)
         i2.step();
     }
 
-    EXPECT_EQ(false, i1.step());
-    EXPECT_EQ(false, i2.step());
+    EXPECT_FALSE(i1.step());
+    EXPECT_FALSE(i2.step());
 
     ASSERT_EQ(20, seqnos.size());
     ASSERT_EQ(20, values.size());
