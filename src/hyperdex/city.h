@@ -47,6 +47,9 @@
 #include <stdint.h>
 #include <utility>
 
+// e
+#include <e/buffer.h>
+
 typedef uint8_t uint8;
 typedef uint32_t uint32;
 typedef uint64_t uint64;
@@ -57,6 +60,9 @@ inline uint64 Uint128High64(const uint128& x) { return x.second; }
 
 // Hash function for a byte array.
 uint64 CityHash64(const char *buf, size_t len);
+inline uint64 CityHash64(const e::buffer& buf) {
+    return CityHash64(static_cast<const char*>(buf.get()), buf.size());
+}
 
 // Hash function for a byte array.  For convenience, a 64-bit seed is also
 // hashed into the result.
