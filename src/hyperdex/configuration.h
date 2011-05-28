@@ -52,6 +52,34 @@ class configuration
         bool add_line(const std::string& line);
 
     public:
+        // Return the number of subspaces within the space.
+        bool subspaces(const spaceid& s, size_t* sz) const;
+
+        // Returns the number of dimensions (including the key) which describe a
+        // point in the space.
+        bool dimensionality(const spaceid& s, size_t* sz) const;
+
+        // Return the number of dimensions  which describe a point within a
+        // region.  The number of dimensions which describe the point within a
+        // region are defined to be those dimension from the parent space which
+        // were specified at creation time.  Example:
+        //
+        // Config:
+        //      space   0x0 kv  key value1  value2
+        //      subspace    kv  0   key
+        //      subspace    kv  1   value1  value2
+        //
+        // Calls:
+        //      dimensionality(subspace(0x0, 0)) == 1
+        //      dimensionality(subspace(0x0, 1)) == 2
+        bool dimensionality(const subspaceid& r, size_t* sz) const;
+
+        // Return a bitmask indicating which dimensions of a space are used to
+        // create the subspace.  If the subspace doesn't exist, an empty vector
+        // is returned.
+        bool dimensions(const subspaceid& ss, std::vector<bool>* dims) const;
+
+        // Perhaps these should be a little less transparent.
         const std::map<entityid, instance>& entity_mapping() const { return m_entities; }
         const std::map<std::string, spaceid>& space_assignment() const { return m_space_assignment; }
         std::map<regionid, size_t> regions() const;

@@ -57,6 +57,30 @@ TEST(ConfigurationTest, SimpleHost)
     EXPECT_TRUE(c.add_line("region\tkv\t0\t2\t0xc000000000000000\t0xfee1dead"));
     EXPECT_TRUE(c.add_line("region\tkv\t1\t1\t0x0000000000000000\t0xdeadbeef\t0xcafebabe"));
     EXPECT_TRUE(c.add_line("region\tkv\t1\t1\t0x8000000000000000\t0x8badf00d\t0xfee1dead"));
+    size_t sz;
+
+    EXPECT_TRUE(c.subspaces(hyperdex::spaceid(0xdefec8ed), &sz));
+    EXPECT_EQ(2, sz);
+    EXPECT_FALSE(c.subspaces(hyperdex::spaceid(0xdeadbeef), &sz));
+
+    EXPECT_TRUE(c.dimensionality(hyperdex::spaceid(0xdefec8ed), &sz));
+    EXPECT_EQ(2, sz);
+    EXPECT_FALSE(c.dimensionality(hyperdex::spaceid(0xdeadbeef), &sz));
+
+    std::vector<bool> expected(2, false);
+    std::vector<bool> dims;
+
+    expected[0] = true;
+    expected[1] = false;
+    EXPECT_TRUE(c.dimensions(hyperdex::subspaceid(0xdefec8ed, 0), &dims));
+    EXPECT_TRUE(expected == dims);
+    EXPECT_FALSE(c.dimensions(hyperdex::subspaceid(0xdeadbeef, 0), &dims));
+
+    expected[0] = false;
+    expected[1] = true;
+    EXPECT_TRUE(c.dimensions(hyperdex::subspaceid(0xdefec8ed, 1), &dims));
+    EXPECT_TRUE(expected == dims);
+    EXPECT_FALSE(c.dimensions(hyperdex::subspaceid(0xdeadbeef, 1), &dims));
 
     hyperdex::instance i_deadbeef(po6::net::location("127.0.0.1", 6970), 0,
                                   po6::net::location("127.0.0.1", 6971), 2);

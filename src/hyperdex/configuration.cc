@@ -25,6 +25,11 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#define __STDC_LIMIT_MACROS
+
+// C
+#include <stdint.h>
+
 // STL
 #include <algorithm>
 #include <sstream>
@@ -87,7 +92,7 @@ hyperdex :: configuration :: add_line(const std::string& line)
         std::string id_s;
         uint32_t id;
         std::string dim;
-        std::vector<std::string> dimensions;
+        std::vector<std::string> dims;
         istr >> id_s >> name;
 
         try
@@ -105,17 +110,17 @@ hyperdex :: configuration :: add_line(const std::string& line)
 
             if (!istr.fail())
             {
-                dimensions.push_back(dim);
+                dims.push_back(dim);
             }
         }
 
         if (istr.eof() && !istr.bad() && !istr.fail()
                 && m_space_assignment.find(name) == m_space_assignment.end()
                 && m_spaces.find(spaceid(id)) == m_spaces.end()
-                && dimensions.size() > 0)
+                && dims.size() > 0)
         {
             m_space_assignment[name] = spaceid(id);
-            m_spaces.insert(std::make_pair(spaceid(id), dimensions));
+            m_spaces.insert(std::make_pair(spaceid(id), dims));
             return true;
         }
         else
@@ -128,7 +133,7 @@ hyperdex :: configuration :: add_line(const std::string& line)
         std::string spacename;
         uint32_t subspacenum;
         std::string dim;
-        std::vector<std::string> dimensions;
+        std::vector<std::string> dims;
         istr >> spacename >> subspacenum;
 
         while (istr.good())
@@ -137,7 +142,7 @@ hyperdex :: configuration :: add_line(const std::string& line)
 
             if (!istr.fail())
             {
-                dimensions.push_back(dim);
+                dims.push_back(dim);
             }
         }
 
@@ -149,16 +154,16 @@ hyperdex :: configuration :: add_line(const std::string& line)
                 && (si = m_spaces.find(sai->second)) != m_spaces.end()
                 && std::distance(m_subspaces.lower_bound(si->first),
                                  m_subspaces.upper_bound(si->first)) == subspacenum
-                && dimensions.size() > 0
-                && (subspacenum != 0 || dimensions.size() == 1))
+                && dims.size() > 0
+                && (subspacenum != 0 || dims.size() == 1))
         {
             const std::vector<std::string>& spacedims(si->second);
             std::vector<bool> bitmask(spacedims.size(), false);
 
-            for (size_t i = 0; i < dimensions.size(); ++i)
+            for (size_t i = 0; i < dims.size(); ++i)
             {
                 std::vector<std::string>::const_iterator d;
-                d = std::find(spacedims.begin(), spacedims.end(), dimensions[i]);
+                d = std::find(spacedims.begin(), spacedims.end(), dims[i]);
 
                 if (d == spacedims.end())
                 {
@@ -257,6 +262,61 @@ hyperdex :: configuration :: add_line(const std::string& line)
         {
             return false;
         }
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool
+hyperdex :: configuration :: subspaces(const spaceid& s, size_t* sz) const
+{
+    std::map<subspaceid, std::vector<bool> >::const_iterator lower;
+    std::map<subspaceid, std::vector<bool> >::const_iterator upper;
+    lower = m_subspaces.lower_bound(subspaceid(s, 0));
+    upper = m_subspaces.upper_bound(subspaceid(s, UINT16_MAX));
+
+    if (lower != upper)
+    {
+        *sz = std::distance(lower, upper);
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool
+hyperdex :: configuration :: dimensionality(const spaceid& s, size_t* sz) const
+{
+    std::map<spaceid, std::vector<std::string> >::const_iterator space;
+    space = m_spaces.find(s);
+
+    if (space != m_spaces.end())
+    {
+        *sz = space->second.size();
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool
+hyperdex :: configuration :: dimensions(const subspaceid& ss,
+                                        std::vector<bool>* dims)
+                             const
+{
+    std::map<subspaceid, std::vector<bool> >::const_iterator subspace;
+    subspace = m_subspaces.find(ss);
+
+    if (subspace != m_subspaces.end())
+    {
+        *dims = subspace->second;
+        return true;
     }
     else
     {
