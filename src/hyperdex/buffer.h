@@ -42,8 +42,7 @@ operator << (e::packer& lhs, const std::vector<e::buffer>& rhs)
 
     for (size_t i = 0; i < rhs.size(); ++i)
     {
-        uint32_t size = rhs[i].size();
-        lhs << size << rhs[i];
+        lhs << rhs[i];
     }
 
     return lhs;
@@ -55,12 +54,10 @@ operator >> (e::unpacker& lhs, std::vector<e::buffer>& rhs)
     uint16_t cols;
     lhs >> cols;
 
-    for (size_t i = 0; i < cols; ++i)
+    for (uint16_t i = 0; i < cols; ++i)
     {
-        uint32_t size;
         e::buffer tmp;
-        lhs >> size;
-        lhs >> e::buffer::sized(size, &tmp);
+        lhs >> tmp;
         rhs.push_back(tmp);
     }
 
