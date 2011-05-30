@@ -28,6 +28,9 @@
 #ifndef hyperdex_region_h_
 #define hyperdex_region_h_
 
+// STL
+#include <map>
+
 namespace hyperdex
 {
 
@@ -42,7 +45,7 @@ class region
 
     public:
         size_t numcolumns;
-        std::map<e::buffer, std::vector<e::buffer> > points;
+        std::map<e::buffer, std::pair<uint64_t, std::vector<e::buffer> > > points;
 };
 
 } // namespace hyperdex

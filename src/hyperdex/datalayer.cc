@@ -38,6 +38,7 @@
 #include <hyperdex/datalayer.h>
 
 typedef std::tr1::shared_ptr<hyperdex::region> region_ptr;
+typedef std::map<e::buffer, std::pair<uint64_t, std::vector<e::buffer> > > region_map_t;
 
 hyperdex :: datalayer :: datalayer()
     : m_lock()
@@ -102,7 +103,8 @@ hyperdex :: datalayer :: drop(const regionid& ri)
 hyperdex :: result_t
 hyperdex :: datalayer :: get(const regionid& ri,
                              const e::buffer& key,
-                             std::vector<e::buffer>* value)
+                             std::vector<e::buffer>* value,
+                             uint64_t* version)
 {
     po6::threads::rwlock::rdhold hold(&m_lock);
 
@@ -117,12 +119,13 @@ hyperdex :: datalayer :: get(const regionid& ri,
         }
 
         region_ptr r = i->second;
-        std::map<e::buffer, std::vector<e::buffer> >::iterator p;
+        region_map_t::iterator p;
         p = r->points.find(key);
 
         if (p != r->points.end())
         {
-            *value = p->second;
+            *value = p->second.second;
+            *version = p->second.first;
             return SUCCESS;
         }
         else
@@ -157,7 +160,8 @@ hyperdex :: datalayer :: get(const regionid& ri,
 hyperdex :: result_t
 hyperdex :: datalayer :: put(const regionid& ri,
                              const e::buffer& key,
-                             const std::vector<e::buffer>& value)
+                             const std::vector<e::buffer>& value,
+                             uint64_t version)
 {
     po6::threads::rwlock::rdhold hold(&m_lock);
 
@@ -172,7 +176,7 @@ hyperdex :: datalayer :: put(const regionid& ri,
         }
 
         region_ptr r = i->second;
-        r->points[key] = value;
+        r->points[key] = std::make_pair(version, value);
         return SUCCESS;
     }
     catch (po6::error& e)
@@ -216,7 +220,7 @@ hyperdex :: datalayer :: del(const regionid& ri,
         }
 
         region_ptr r = i->second;
-        std::map<e::buffer, std::vector<e::buffer> >::iterator p;
+        region_map_t::iterator p;
         p = r->points.find(key);
 
         if (p == r->points.end())
