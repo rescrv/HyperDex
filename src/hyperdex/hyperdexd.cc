@@ -54,6 +54,7 @@
 #include <hyperdex/instance.h>
 #include <hyperdex/masterlink.h>
 #include <hyperdex/network_worker.h>
+#include <hyperdex/replication.h>
 
 typedef std::tr1::shared_ptr<po6::threads::thread> thread_ptr;
 
@@ -62,9 +63,12 @@ typedef std::tr1::shared_ptr<po6::threads::thread> thread_ptr;
 class hyperdexd_install_mapping
 {
     public:
-        hyperdexd_install_mapping(hyperdex::datalayer* data, hyperdex::logical* comm)
+        hyperdexd_install_mapping(hyperdex::datalayer* data,
+                                  hyperdex::logical* comm,
+                                  hyperdex::replication* repl)
             : m_data(data)
             , m_comm(comm)
+            , m_repl(repl)
         {
         }
 
@@ -94,7 +98,9 @@ class hyperdexd_install_mapping
                 }
             }
 
-            m_comm->remap(entity_mapping);
+            // We let the replication layer reconfigure the
+            // communication layer.
+            m_repl->reconfigure(config);
 
             // For each existing region, drop it if it wasn't declared
             // to match our comm layer.
@@ -118,6 +124,7 @@ class hyperdexd_install_mapping
                 if (!keep)
                 {
                     m_data->drop(*e);
+                    m_repl->drop(*e);
                 }
             }
         }
@@ -125,6 +132,7 @@ class hyperdexd_install_mapping
     private:
         hyperdex::datalayer* m_data;
         hyperdex::logical* m_comm;
+        hyperdex::replication* m_repl;
 };
 
 hyperdex :: hyperdexd :: hyperdexd()
@@ -170,6 +178,8 @@ hyperdex :: hyperdexd :: run()
     hyperdex::datalayer data;
     // Setup the communications layer.
     hyperdex::logical comm(dl, "127.0.0.1"); // XXX don't hardcode localhost
+    // Setup the replication layer.
+    hyperdex::replication repl(&data, &comm);
     // Setup the link with the master.
     std::ostringstream ostr;
     ostr << "instance\t" << comm.inst().inbound << "\t"
@@ -177,9 +187,9 @@ hyperdex :: hyperdexd :: run()
                          << "\n";
     hyperdex::masterlink ml(po6::net::location("127.0.0.1", 1234),
                             ostr.str(),
-                            hyperdexd_install_mapping(&data, &comm));
+                            hyperdexd_install_mapping(&data, &comm, &repl));
     // Start the network_worker threads.
-    hyperdex::network_worker nw(&comm, &data);
+    hyperdex::network_worker nw(&data, &comm, &repl);
     std::tr1::function<void (hyperdex::network_worker*)> fnw(&hyperdex::network_worker::run);
     std::vector<thread_ptr> threads;
 

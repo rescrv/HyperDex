@@ -43,11 +43,13 @@
 #include <hyperdex/network_worker.h>
 #include <hyperdex/stream_no.h>
 
-hyperdex :: network_worker :: network_worker(hyperdex::logical* comm,
-                                             hyperdex::datalayer* data)
+hyperdex :: network_worker :: network_worker(datalayer* data,
+                                             logical* comm,
+                                             replication* repl)
     : m_continue(true)
-    , m_comm(comm)
     , m_data(data)
+    , m_comm(comm)
+    , m_repl(repl)
 {
 }
 
@@ -94,37 +96,52 @@ hyperdex :: network_worker :: run()
             {
                 e::buffer key;
                 std::vector<e::buffer> value;
+                uint64_t version;
                 msg.unpack() >> nonce >> key;
-                result_t result = m_data->get(to.get_region(), key, &value);
+                result_t result = m_data->get(to.get_region(), key, &value, &version);
                 msg.clear();
-                msg.pack() << nonce << static_cast<uint8_t>(result) << value;
+                msg.pack() << nonce << static_cast<uint8_t>(result) << version << value;
                 m_comm->send(to, from, stream_no::RESULT, msg);
             }
             else if (type == hyperdex::stream_no::PUT)
             {
-                uint32_t size;
                 e::buffer key;
                 std::vector<e::buffer> value;
-                e::unpacker up = msg.unpack();
-                up >> nonce >> size;
-                up >> e::buffer::sized(size, &key) >> value;
-                result_t result = m_data->put(to.get_region(), key, value);
-                msg.clear();
-                msg.pack() << nonce << static_cast<uint8_t>(result);
-                m_comm->send(to, from, stream_no::RESULT, msg);
+                msg.unpack() >> nonce >> key >> value;
+                m_repl->client_put(from, to.get_region(), nonce, key, value);
             }
             else if (type == hyperdex::stream_no::DEL)
             {
                 e::buffer key;
                 msg.unpack() >> nonce >> key;
-                result_t result = m_data->del(to.get_region(), key);
-                msg.clear();
-                msg.pack() << nonce << static_cast<uint8_t>(result);
-                m_comm->send(to, from, stream_no::RESULT, msg);
+                m_repl->client_del(from, to.get_region(), nonce, key);
             }
             else if (type == hyperdex::stream_no::SEARCH)
             {
                 // XXX
+            }
+            else if (type == hyperdex::stream_no::PUT_PENDING)
+            {
+                e::buffer key;
+                std::vector<e::buffer> value;
+                uint64_t version;
+                msg.unpack() >> version >> key >> value;
+                m_repl->chain_put(from, to, version, key, value);
+            }
+            else if (type == hyperdex::stream_no::DEL_PENDING)
+            {
+                e::buffer key;
+                uint64_t version;
+                msg.unpack() >> version >> key;
+                m_repl->chain_del(from, to, version, key);
+            }
+            else if (type == hyperdex::stream_no::PUT_ACK)
+            {
+                LOG(INFO) << "PUT_ACK";
+            }
+            else if (type == hyperdex::stream_no::DEL_ACK)
+            {
+                LOG(INFO) << "DEL_ACK";
             }
             else
             {

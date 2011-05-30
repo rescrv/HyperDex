@@ -29,7 +29,12 @@
 #define hyperdex_hyperspace_h_
 
 // C
+#include <cassert>
 #include <stdint.h>
+
+// HyperDex
+#include <hyperdex/city.h>
+#include <hyperdex/ids.h>
 
 namespace hyperdex
 {
@@ -68,6 +73,25 @@ interlace(const std::vector<uint64_t>& nums)
     }
 
     return ret;
+}
+
+// Compute a 64-bit point in space from the 64-bits representing each
+// dimension.
+inline uint64_t
+makepoint(const std::vector<uint64_t>& hashes, const std::vector<bool>& mask)
+{
+    assert(hashes.size() == mask.size());
+    std::vector<uint64_t> used;
+
+    for (size_t i = 0; i < hashes.size(); ++i)
+    {
+        if (mask[i])
+        {
+            used.push_back(hashes[i]);
+        }
+    }
+
+    return interlace(used);
 }
 
 inline uint64_t
