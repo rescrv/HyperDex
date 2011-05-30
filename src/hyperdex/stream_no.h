@@ -36,7 +36,11 @@ enum stream_no_t
     PUT     = 1,
     DEL     = 2,
     SEARCH  = 3,
-    RESULT  = 4
+    RESULT  = 4,
+    PUT_PENDING = 32,
+    PUT_ACK     = 33,
+    DEL_PENDING = 34,
+    DEL_ACK     = 35
 };
 
 } // namespace stream_no
