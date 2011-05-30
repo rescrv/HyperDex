@@ -25,6 +25,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// STL
+#include <tr1/functional>
+
 // Google Log
 #include <glog/logging.h>
 
@@ -36,249 +39,10 @@
 #include <hyperdex/city.h>
 #include <hyperdex/hyperspace.h>
 #include <hyperdex/replication.h>
+#include <hyperdex/stream_no.h>
 
-hyperdex :: replication :: replication(datalayer* data, logical* comm)
-    : m_data(data)
-    , m_comm(comm)
-    , m_lock()
-    , m_config()
-    , m_clientops()
-    , m_pending()
-{
-}
-
-void
-hyperdex :: replication :: reconfigure(const configuration& config)
-{
-    po6::threads::mutex::hold hold(&m_lock);
-    m_config = config;
-    m_comm->remap(config.entity_mapping());
-    // XXX Drop all pieces which we no longer are responsible for.
-}
-
-void
-hyperdex :: replication :: drop(const regionid&)
-{
-    po6::threads::mutex::hold hold(&m_lock);
-    // XXX maybe do it here.
-}
-
-void
-hyperdex :: replication :: client_put(const entityid& from,
-                                      const regionid& to,
-                                      uint32_t nonce,
-                                      const e::buffer& key,
-                                      const std::vector<e::buffer>& newvalue)
-{
-    client_common(PUT, from, to, nonce, key, newvalue);
-}
-
-void
-hyperdex :: replication :: client_del(const entityid& from,
-                                      const regionid& to,
-                                      uint32_t nonce,
-                                      const e::buffer& key)
-{
-    client_common(DEL, from, to, nonce, key, std::vector<e::buffer>());
-}
-
-void
-hyperdex :: replication :: client_common(op_t op,
-                                         const entityid& from,
-                                         const regionid& to,
-                                         uint32_t nonce,
-                                         const e::buffer& key,
-                                         const std::vector<e::buffer>& newvalue)
-{
-    clientop co(to, from, nonce);
-    // Automatically respond with "ERROR" whenever we return without
-    // g.dismiss()
-    e::guard g = e::makeobjguard(*this, &replication::respond_negatively_to_client, co, ERROR);
-
-    // Grab the lock.
-    po6::threads::mutex::hold hold(&m_lock);
-
-    // If we have seen this (from, nonce) before and it is still active.
-    if (m_clientops.find(co) != m_clientops.end())
-    {
-        // Silently ignore this message.
-        g.dismiss();
-        return;
-    }
-
-    // Count the number of subspaces for this space.
-    size_t subspaces;
-
-    if (!m_config.subspaces(to.get_space(), &subspaces))
-    {
-        LOG(INFO) << "Unable to discover the number of subspaces in " << to.get_space();
-        return;
-    }
-
-    // Discover the dimensions of the space which correspond to the
-    // subspace in which "to" is located, and the subspaces before and
-    // after it.
-    std::vector<bool> prev_dims;
-    std::vector<bool> this_dims;
-    std::vector<bool> next_dims;
-
-    uint16_t prev_subspace = to.subspace > 0 ? to.subspace - 1 : subspaces - 1;
-    uint16_t next_subspace = to.subspace < subspaces - 1 ? to.subspace + 1 : 0;
-
-    if (!m_config.dimensions(to.get_subspace(), &this_dims)
-        || !m_config.dimensions(subspaceid(to.space, prev_subspace), &prev_dims)
-        || !m_config.dimensions(subspaceid(to.space, next_subspace), &next_dims))
-    {
-        LOG(INFO) << "Could determine dimensions subsets for " << to;
-        return;
-    }
-
-    // Figure out if the client's PUT represents a point.
-    if (op == PUT && this_dims.size() != newvalue.size() + 1)
-    {
-        return;
-    }
-
-    // Read the older version from disk.
-    uint64_t oldversion = 0;
-    bool have_oldvalue = false;
-    std::vector<e::buffer> oldvalue;
-
-    if (!check_oldversion(to, key, &have_oldvalue, &oldversion, &oldvalue))
-    {
-        respond_negatively_to_client(co, INVALID);
-        g.dismiss();
-        return;
-    }
-
-    // Prepare a pending operation.
-    e::intrusive_ptr<pending> pend;
-    std::tr1::function<void (void)>
-        notify(std::tr1::bind(&hyperdex::replication::respond_positively_to_client,
-                              this, co, oldversion + 1));
-
-    if (!have_oldvalue && op == DEL)
-    {
-        // We don't bother to store this as pending as there is no one
-        // to tell about it.
-        respond_positively_to_client(co, 0);
-        g.dismiss();
-        return;
-    }
-    else if (have_oldvalue && op == DEL)
-    {
-        pend = new pending(to, DEL, oldversion + 1, key, oldvalue, notify, prev_subspace, next_subspace, prev_dims, this_dims, next_dims);
-    }
-    else if (!have_oldvalue && op == PUT)
-    {
-        pend = new pending(to, PUT, oldversion + 1, key, newvalue, notify, prev_subspace, next_subspace, prev_dims, this_dims, next_dims);
-    }
-    else if (have_oldvalue && op == PUT)
-    {
-        pend = new pending(to, oldversion + 1, key, oldvalue, newvalue, notify, prev_subspace, next_subspace, prev_dims, this_dims, next_dims);
-    }
-
-    // Store the operation as pending.
-    // XXX Do not enable if something else is pending.  Furthermore, do
-    // enable when the other pending operation finishes.
-    pend->enable();
-    pend->tryforward(m_comm);
-    m_clientops.insert(co);
-    m_pending.insert(std::make_pair(to, pend));
-    g.dismiss();
-}
-
-bool
-hyperdex :: replication :: check_oldversion(const regionid& to, const e::buffer& key,
-                                            bool* have_value, uint64_t* version,
-                                            std::vector<e::buffer>* value)
-{
-    // Read the current value from the list of previous pending values
-    // or disk.
-    *version = 0;
-    *have_value = false;
-
-    std::multimap<regionid, e::intrusive_ptr<pending> >::iterator lower;
-    std::multimap<regionid, e::intrusive_ptr<pending> >::iterator upper;
-    lower = m_pending.lower_bound(to);
-    upper = m_pending.upper_bound(to);
-
-    for (; lower != upper; ++lower)
-    {
-        pending& pend(*(lower->second));
-
-        if (pend.key == key && pend.version > *version)
-        {
-            *version = pend.version;
-
-            if (pend.op == PUT)
-            {
-                *have_value = true;
-                *value = pend.value;
-            }
-            else
-            {
-                *have_value = false;
-                *value = std::vector<e::buffer>();
-            }
-        }
-    }
-
-    if (*version != 0)
-    {
-        return true;
-    }
-
-    switch (m_data->get(to, key, value, version))
-    {
-        case SUCCESS:
-            *have_value = true;
-            return true;
-        case NOTFOUND:
-            *version = 0;
-            *have_value = false;
-            return true;
-        case INVALID:
-            LOG(INFO) << "Data layer returned INVALID when queried for old value.";
-            return false;
-        case ERROR:
-            LOG(INFO) << "Data layer returned ERROR when queried for old value.";
-            return false;
-        default:
-            LOG(WARNING) << "Data layer returned unknown result when queried for old value.";
-            return false;
-    }
-}
-
-bool
-hyperdex :: replication :: clientop :: operator < (const clientop& rhs) const
-{
-    const clientop& lhs(*this);
-
-    if (lhs.region < rhs.region)
-    {
-        return true;
-    }
-    else if (lhs.region == rhs.region)
-    {
-        if (lhs.from < rhs.from)
-        {
-            return true;
-        }
-        else if (lhs.from == rhs.from)
-        {
-            return lhs.nonce < rhs.nonce;
-        }
-        else
-        {
-            return false;
-        }
-    }
-    else
-    {
-        return false;
-    }
-}
+static void
+nop(uint64_t) {}
 
 // Note:  Computing the four possible locations to send the data makes a
 // heavy assumption that subspaces do not change.  If subspaces can
@@ -328,77 +92,780 @@ hyperdex :: replication :: clientop :: operator < (const clientop& rhs) const
 // instance.  Thus, the sending does not happen here, but happens
 // elsewhere.
 
-hyperdex :: replication :: pending :: pending(const regionid& r,
-                                              op_t o,
-                                              uint64_t ver,
-                                              const e::buffer& k,
-                                              const std::vector<e::buffer>& val,
-                                              std::tr1::function<void (void)> n,
-                                              uint16_t prev_subspace,
-                                              uint16_t next_subspace,
-                                              const std::vector<bool>& prev_dims,
-                                              const std::vector<bool>& this_dims,
-                                              const std::vector<bool>& next_dims)
-    : region(r)
-    , op(o)
-    , version(ver)
-    , key(k)
-    , value(val)
-    , notify(n)
-    , m_ref(0)
-    , m_enabled(false)
-    , m_fresh(op == PUT)
-    , m_prev(r)
-    , m_thisold(r)
-    , m_thisnew(r)
-    , m_next(r)
+hyperdex :: replication :: replication(datalayer* data, logical* comm)
+    : m_data(data)
+    , m_comm(comm)
+    , m_config()
+    , m_lock()
+    , m_keyholders_lock()
+    , m_keyholders()
+    , m_clientops_lock()
+    , m_clientops()
 {
-    std::vector<uint64_t> hashes;
-    hashes.push_back(CityHash64(key));
-
-    for (size_t i = 0; i < value.size(); ++i)
-    {
-        hashes.push_back(CityHash64(value[i]));
-    }
-
-    m_prev.subspace = prev_subspace;
-    m_prev.prefix = 64;
-    m_prev.mask = makepoint(hashes, prev_dims);
-
-    m_thisold.prefix = 64;
-    m_thisold.mask = makepoint(hashes, this_dims);
-    m_thisnew = m_thisold;
-
-    m_next.subspace = next_subspace;
-    m_next.prefix = 64;
-    m_next.mask = makepoint(hashes, next_dims);
 }
 
-hyperdex :: replication :: pending :: pending(const regionid& r,
-                                              uint64_t ver,
-                                              const e::buffer& k,
-                                              const std::vector<e::buffer>& oldval,
-                                              const std::vector<e::buffer>& newval,
-                                              std::tr1::function<void (void)> n,
-                                              uint16_t prev_subspace,
-                                              uint16_t next_subspace,
-                                              const std::vector<bool>& prev_dims,
-                                              const std::vector<bool>& this_dims,
-                                              const std::vector<bool>& next_dims)
-    : region(r)
+void
+hyperdex :: replication :: reconfigure(const configuration& config)
+{
+    po6::threads::mutex::hold hold(&m_lock);
+    m_config = config;
+    m_comm->remap(config.entity_mapping());
+    // XXX Drop all pieces which we no longer are responsible for.
+}
+
+void
+hyperdex :: replication :: drop(const regionid&)
+{
+    po6::threads::mutex::hold hold(&m_lock);
+    // XXX maybe do it here.
+}
+
+void
+hyperdex :: replication :: client_put(const entityid& from,
+                                      const regionid& to,
+                                      uint32_t nonce,
+                                      const e::buffer& key,
+                                      const std::vector<e::buffer>& newvalue)
+{
+    client_common(PUT, from, to, nonce, key, newvalue);
+}
+
+void
+hyperdex :: replication :: client_del(const entityid& from,
+                                      const regionid& to,
+                                      uint32_t nonce,
+                                      const e::buffer& key)
+{
+    client_common(DEL, from, to, nonce, key, std::vector<e::buffer>());
+}
+
+void
+hyperdex :: replication :: chain_put(const entityid& from,
+                                     const entityid& to,
+                                     uint64_t newversion,
+                                     bool fresh,
+                                     const e::buffer& key,
+                                     const std::vector<e::buffer>& newvalue)
+{
+    chain_common(PUT, from, to, newversion, fresh, key, newvalue);
+}
+
+void
+hyperdex :: replication :: chain_del(const entityid& from,
+                                     const entityid& to,
+                                     uint64_t newversion,
+                                     const e::buffer& key)
+{
+    chain_common(DEL, from, to, newversion, false, key, std::vector<e::buffer>());
+}
+
+void
+hyperdex :: replication :: client_common(op_t op,
+                                         const entityid& from,
+                                         const regionid& to,
+                                         uint32_t nonce,
+                                         const e::buffer& key,
+                                         const std::vector<e::buffer>& value)
+{
+    clientop co(to, from, nonce);
+    keypair kp(to, key);
+    // Automatically respond with "ERROR" whenever we return without
+    // g.dismiss()
+    e::guard g = e::makeobjguard(*this, &replication::respond_negatively_to_client, co, ERROR);
+    m_clientops.insert(co);
+
+    // Grab the lock that protects this keypair.
+    po6::threads::mutex::hold hold(get_lock(kp));
+
+    // Get a reference to the keyholder.
+    e::intrusive_ptr<keyholder> kh = get_keyholder(kp);
+
+    if (!kh)
+    {
+        return;
+    }
+
+    // If we have seen this (from, nonce) before and it is still active.
+    if (have_seen_clientop(co))
+    {
+        // Silently ignore this message.
+        g.dismiss();
+        return;
+    }
+
+    // Check that a client's put matches the dimensions of the space.
+    if (op == PUT && kh->expected_dimensions() != value.size() + 1)
+    {
+        // Tell the client they sent an invalid message.
+        respond_negatively_to_client(co, INVALID);
+        g.dismiss();
+        return;
+    }
+
+    std::tr1::function<result_t (std::vector<e::buffer>*, uint64_t*)> read_from_disk;
+    read_from_disk = std::tr1::bind(&datalayer::get, m_data, to, key, std::tr1::placeholders::_1, std::tr1::placeholders::_2);
+    std::tr1::function<void (uint64_t)> notify;
+    notify = std::tr1::bind(&hyperdex::replication::respond_positively_to_client,
+                            this, co, std::tr1::placeholders::_1);
+
+    if (op == PUT)
+    {
+        if (!kh->add_pending(read_from_disk, key, value, notify))
+        {
+            // Do not dismiss the guard.  This will automatically
+            // trigger sending an error to the user.
+            return;
+        }
+    }
+    else
+    {
+        if (!kh->add_pending(read_from_disk, key, notify))
+        {
+            // Do not dismiss the guard.  This will automatically
+            // trigger sending an error to the user.
+            return;
+        }
+    }
+
+    g.dismiss();
+}
+
+void
+hyperdex :: replication :: chain_common(op_t op,
+                                        const entityid& from,
+                                        const entityid& to,
+                                        uint64_t version,
+                                        bool fresh,
+                                        const e::buffer& key,
+                                        const std::vector<e::buffer>& value)
+{
+    keypair kp(to.get_region(), key);
+
+    // Grab the lock that protects this keypair.
+    po6::threads::mutex::hold hold(get_lock(kp));
+
+    // Get a reference to the keyholder.
+    e::intrusive_ptr<keyholder> kh = get_keyholder(kp);
+
+    if (!kh)
+    {
+        return;
+    }
+
+    // Check that a chains's put matches the dimensions of the space.
+    if (op == PUT && kh->expected_dimensions() != value.size() + 1)
+    {
+        return;
+    }
+
+    std::tr1::function<result_t (std::vector<e::buffer>*, uint64_t*)> read_from_disk;
+    read_from_disk = std::tr1::bind(&datalayer::get, m_data, to.get_region(), key, std::tr1::placeholders::_1, std::tr1::placeholders::_2);
+
+    // XXX check here if we are a point leader, and if we are, then
+    // initiate ACKs.
+    if (op == PUT)
+    {
+        kh->add_pending(read_from_disk, from, to, version, fresh, key, value);
+    }
+    else
+    {
+        kh->add_pending(read_from_disk, from, to, version, key);
+    }
+}
+
+po6::threads::mutex*
+hyperdex :: replication :: get_lock(const keypair& /*kp*/)
+{
+    return &m_lock;
+}
+
+e::intrusive_ptr<hyperdex::replication::keyholder>
+hyperdex :: replication :: get_keyholder(const keypair& kp)
+{
+    po6::threads::mutex::hold hold(&m_keyholders_lock);
+    std::map<keypair, e::intrusive_ptr<keyholder> >::iterator i;
+
+    if ((i = m_keyholders.find(kp)) != m_keyholders.end())
+    {
+        return i->second;
+    }
+    else
+    {
+        e::intrusive_ptr<keyholder> kh(new keyholder(m_config, kp.region.get_subspace(), m_comm));
+        m_keyholders.insert(std::make_pair(kp, kh));
+        return kh;
+    }
+}
+
+bool
+hyperdex :: replication :: have_seen_clientop(const clientop& co)
+{
+    po6::threads::mutex::hold hold(&m_clientops_lock);
+    return m_clientops.find(co) != m_clientops.end();
+}
+
+void
+hyperdex :: replication :: respond_positively_to_client(clientop co,
+                                                        uint64_t /*version*/)
+{
+    e::buffer msg;
+    uint8_t result = static_cast<uint8_t>(SUCCESS);
+    msg.pack() << co.nonce << result;
+    m_comm->send(co.region, co.from, stream_no::RESULT, msg);
+}
+
+void
+hyperdex :: replication :: respond_negatively_to_client(clientop co,
+                                                        result_t r)
+{
+    e::buffer msg;
+    uint8_t result = static_cast<uint8_t>(r);
+    msg.pack() << co.nonce << result;
+    m_comm->send(co.region, co.from, stream_no::RESULT, msg);
+}
+
+bool
+hyperdex :: replication :: clientop :: operator < (const clientop& rhs) const
+{
+    const clientop& lhs(*this);
+
+    if (lhs.region < rhs.region)
+    {
+        return true;
+    }
+    else if (lhs.region == rhs.region)
+    {
+        if (lhs.from < rhs.from)
+        {
+            return true;
+        }
+        else if (lhs.from == rhs.from)
+        {
+            return lhs.nonce < rhs.nonce;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool
+hyperdex :: replication :: keypair :: operator < (const keypair& rhs) const
+{
+    const keypair& lhs(*this);
+
+    if (lhs.region < rhs.region)
+    {
+        return true;
+    }
+    else if (lhs.region > rhs.region)
+    {
+        return false;
+    }
+
+    return lhs.key < rhs.key;
+}
+
+hyperdex :: replication :: pending :: pending(bool f,
+                                              const std::vector<e::buffer>& v,
+                                              std::tr1::function<void (uint64_t)> n,
+                                              const regionid& prev,
+                                              const regionid& thisold,
+                                              const regionid& thisnew,
+                                              const regionid& next)
+    : enabled(false)
+    , fresh(f)
     , op(PUT)
-    , version(ver)
-    , key(k)
-    , value(newval)
+    , value(v)
     , notify(n)
     , m_ref(0)
-    , m_enabled(false)
-    , m_fresh(false)
-    , m_prev(r)
-    , m_thisold(r)
-    , m_thisnew(r)
-    , m_next(r)
+    , m_prev(prev)
+    , m_thisold(thisold)
+    , m_thisnew(thisnew)
+    , m_next(next)
 {
+}
+
+hyperdex :: replication :: pending :: pending(std::tr1::function<void (uint64_t)> n,
+                                              const regionid& prev,
+                                              const regionid& thisold,
+                                              const regionid& thisnew,
+                                              const regionid& next)
+    : enabled(false)
+    , fresh(false)
+    , op(DEL)
+    , value()
+    , notify(n)
+    , m_ref(0)
+    , m_prev(prev)
+    , m_thisold(thisold)
+    , m_thisnew(thisnew)
+    , m_next(next)
+{
+}
+
+void
+hyperdex :: replication :: pending :: forward_msg(e::buffer* msg,
+                                                  uint64_t version,
+                                                  const e::buffer& key)
+{
+    uint8_t f = fresh ? 1 : 0;
+
+    if (op == PUT)
+    {
+        msg->pack() << version << f << key << value;
+    }
+    else
+    {
+        msg->pack() << version << f << key;
+    }
+}
+
+void
+hyperdex :: replication :: pending :: ack_msg(e::buffer* msg,
+                                              uint64_t version,
+                                              const e::buffer& key)
+{
+    msg->pack() << version << key;
+}
+
+hyperdex :: replication :: keyholder :: keyholder(const configuration& config,
+                                                  const regionid& r,
+                                                  logical* comm)
+    : m_ref(0)
+    , m_comm(comm)
+    , m_region(r)
+    , m_prev_subspace(0)
+    , m_next_subspace(0)
+    , m_prev_dims()
+    , m_this_dims()
+    , m_next_dims()
+    , m_pending()
+{
+    // Count the number of subspaces for this space.
+    size_t subspaces;
+
+    if (!config.subspaces(r.get_space(), &subspaces))
+    {
+        throw std::runtime_error("Creating keyholder for non-existant subspace");
+    }
+
+    // Discover the dimensions of the space which correspond to the
+    // subspace in which "to" is located, and the subspaces before and
+    // after it.
+    const_cast<uint16_t&>(m_prev_subspace) = r.subspace > 0 ? r.subspace - 1 : subspaces - 1;
+    const_cast<uint16_t&>(m_next_subspace) = r.subspace < subspaces - 1 ? r.subspace + 1 : 0;
+
+    if (!config.dimensions(r.get_subspace(), const_cast<std::vector<bool>*>(&m_this_dims))
+        || !config.dimensions(subspaceid(r.space, m_prev_subspace), const_cast<std::vector<bool>*>(&m_prev_dims))
+        || !config.dimensions(subspaceid(r.space, m_next_subspace), const_cast<std::vector<bool>*>(&m_next_dims)))
+    {
+        throw std::runtime_error("Could not determine dimensions of neighboring subspaces.");
+    }
+}
+
+bool
+hyperdex :: replication :: keyholder :: add_pending(std::tr1::function<result_t (std::vector<e::buffer>*, uint64_t*)> read_from_disk,
+                                                    const e::buffer& key,
+                                                    const std::vector<e::buffer>& value,
+                                                    std::tr1::function<void (uint64_t)> notify)
+{
+    uint64_t oldversion = 0;
+    bool have_oldvalue = false;
+    std::vector<e::buffer> oldvalue;
+
+    if (m_pending.empty())
+    {
+        // Get old version from disk.
+        if (!from_disk(read_from_disk, &have_oldvalue, &oldvalue, &oldversion))
+        {
+            return false;
+        }
+    }
+    else
+    {
+        // Get old version from memory.
+        std::map<uint64_t, e::intrusive_ptr<pending> >::reverse_iterator biggest;
+        biggest = m_pending.rbegin();
+        oldversion = biggest->first;
+        have_oldvalue = biggest->second->op == PUT;
+        oldvalue = biggest->second->value;
+    }
+
+    // Figure out the four regions we could send to.
+    regionid prev;
+    regionid thisold;
+    regionid thisnew;
+    regionid next;
+
+    if (have_oldvalue)
+    {
+        four_regions(key, oldvalue, value, &prev, &thisold, &thisnew, &next);
+    }
+    else
+    {
+        four_regions(key, value, &prev, &thisold, &thisnew, &next);
+    }
+
+    e::intrusive_ptr<pending> newpend;
+    newpend = new pending(!have_oldvalue, value, notify, prev, thisold, thisnew, next);
+    newpend->enabled = true;
+    m_pending.insert(std::make_pair(oldversion + 1, newpend));
+    e::buffer msg;
+    newpend->forward_msg(&msg, oldversion + 1, key);
+
+    if (overlap(m_region, thisnew))
+    {
+        return m_comm->send_forward(m_region, next, stream_no::PUT_PENDING, msg);
+    }
+    else if (overlap(m_region, thisold))
+    {
+        return m_comm->send_forward(m_region, thisnew, stream_no::PUT_PENDING, msg);
+    }
+    else
+    {
+        LOG(INFO) << "Message doesn't hash to this region.";
+        return false;
+    }
+}
+
+bool
+hyperdex :: replication :: keyholder :: add_pending(std::tr1::function<result_t (std::vector<e::buffer>*, uint64_t*)> read_from_disk,
+                                                    const e::buffer& key,
+                                                    std::tr1::function<void (uint64_t)> notify)
+{
+    uint64_t oldversion = 0;
+    bool have_oldvalue = false;
+    std::vector<e::buffer> oldvalue;
+
+    if (m_pending.empty())
+    {
+        // Get old version from disk.
+        if (!from_disk(read_from_disk, &have_oldvalue, &oldvalue, &oldversion))
+        {
+            return false;
+        }
+    }
+    else
+    {
+        // Get old version from memory.
+        std::map<uint64_t, e::intrusive_ptr<pending> >::reverse_iterator biggest;
+        biggest = m_pending.rbegin();
+        oldversion = biggest->first;
+        have_oldvalue = biggest->second->op == PUT;
+        oldvalue = biggest->second->value;
+    }
+
+    // Figure out the four regions we could send to.
+    regionid prev;
+    regionid thisold;
+    regionid thisnew;
+    regionid next;
+
+    if (have_oldvalue)
+    {
+        four_regions(key, oldvalue, &prev, &thisold, &thisnew, &next);
+    }
+    else
+    {
+        notify(0);
+        return true;
+    }
+
+    e::intrusive_ptr<pending> newpend;
+    newpend = new pending(notify, prev, thisold, thisnew, next);
+    newpend->enabled = true;
+    m_pending.insert(std::make_pair(oldversion + 1, newpend));
+    e::buffer msg;
+    newpend->forward_msg(&msg, oldversion + 1, key);
+
+    if (overlap(m_region, thisnew))
+    {
+        return m_comm->send_forward(m_region, next, stream_no::DEL_PENDING, msg);
+    }
+    else if (overlap(m_region, thisold))
+    {
+        return m_comm->send_forward(m_region, thisnew, stream_no::DEL_PENDING, msg);
+    }
+    else
+    {
+        LOG(INFO) << "Message doesn't hash to this region.";
+        return false;
+    }
+}
+
+void
+hyperdex :: replication :: keyholder :: add_pending(std::tr1::function<result_t (std::vector<e::buffer>*, uint64_t*)> read_from_disk,
+                                                    const entityid& from,
+                                                    const entityid& to,
+                                                    uint64_t version,
+                                                    bool fresh,
+                                                    const e::buffer& key,
+                                                    const std::vector<e::buffer>& value)
+{
+    uint64_t oldversion = 0;
+    bool have_oldvalue = false;
+    std::vector<e::buffer> oldvalue;
+    bool sendack = false;
+
+    if (m_pending.empty())
+    {
+        if (!from_disk(read_from_disk, &have_oldvalue, &oldvalue, &oldversion))
+        {
+            return;
+        }
+
+        // If we don't have the old value, and the message wasn't tagged
+        // "fresh" (as in, OK to apply without an old value), then we
+        // just drop the message.
+        if (!have_oldvalue && !fresh)
+        {
+            return;
+        }
+
+        // Make sure we apply updates in order
+        if (oldversion != version - 1)
+        {
+            return;
+        }
+    }
+    else
+    {
+        // If we've already put this in as a pending update.
+        if (m_pending.find(version) != m_pending.end())
+        {
+            return;
+        }
+
+        // Find the update at version -1.
+        std::map<uint64_t, e::intrusive_ptr<pending> >::iterator old;
+        old = m_pending.find(version - 1);
+
+        // If we've not got the previous update to it
+        if (old == m_pending.end())
+        {
+            if (!from_disk(read_from_disk, &have_oldvalue, &oldvalue, &oldversion))
+            {
+                return;
+            }
+
+            if (oldversion >= version)
+            {
+                sendack = true;
+                return;
+            }
+            else if (oldversion != version - 1)
+            {
+                return;
+            }
+        }
+        else
+        {
+            oldversion = old->first;
+            have_oldvalue = old->second->op == PUT;
+            oldvalue = old->second->value;
+        }
+    }
+
+    // Figure out the four regions we could send to.
+    regionid prev;
+    regionid thisold;
+    regionid thisnew;
+    regionid next;
+
+    if (have_oldvalue)
+    {
+        four_regions(key, oldvalue, value, &prev, &thisold, &thisnew, &next);
+    }
+    else
+    {
+        four_regions(key, value, &prev, &thisold, &thisnew, &next);
+    }
+
+    e::intrusive_ptr<pending> newpend;
+    newpend = new pending(!have_oldvalue, value, nop, prev, thisold, thisnew, next);
+    newpend->enabled = true;
+
+    // Send an ack message if we've already committed this update.
+    if (sendack)
+    {
+        e::buffer msg;
+        newpend->ack_msg(&msg, version, key);
+        m_comm->send(to, from, stream_no::ACK, msg);
+        return;
+    }
+
+    newpend->enabled = true;
+    m_pending.insert(std::make_pair(version, newpend));
+    e::buffer msg;
+    newpend->forward_msg(&msg, version, key);
+
+    if (overlap(m_region, thisnew))
+    {
+        m_comm->send_forward(m_region, next, stream_no::PUT_PENDING, msg);
+    }
+    else if (overlap(m_region, thisold))
+    {
+        m_comm->send_forward(m_region, thisnew, stream_no::PUT_PENDING, msg);
+    }
+    else
+    {
+        LOG(INFO) << "Message doesn't hash to this region.";
+    }
+}
+
+void
+hyperdex :: replication :: keyholder :: add_pending(std::tr1::function<result_t (std::vector<e::buffer>*, uint64_t*)> read_from_disk,
+                                                    const entityid& from,
+                                                    const entityid& to,
+                                                    uint64_t version,
+                                                    const e::buffer& key)
+{
+    uint64_t oldversion = 0;
+    bool have_oldvalue = false;
+    std::vector<e::buffer> oldvalue;
+    bool sendack = false;
+
+    if (m_pending.empty())
+    {
+        if (!from_disk(read_from_disk, &have_oldvalue, &oldvalue, &oldversion))
+        {
+            return;
+        }
+
+        // Make sure we apply updates in order
+        if (oldversion != version - 1)
+        {
+            return;
+        }
+    }
+    else
+    {
+        // If we've already put this in as a pending update.
+        if (m_pending.find(version) != m_pending.end())
+        {
+            return;
+        }
+
+        // Find the update at version -1.
+        std::map<uint64_t, e::intrusive_ptr<pending> >::iterator old;
+        old = m_pending.find(version - 1);
+
+        // If we've not got the previous update to it
+        if (old == m_pending.end())
+        {
+            if (!from_disk(read_from_disk, &have_oldvalue, &oldvalue, &oldversion))
+            {
+                return;
+            }
+
+            if (oldversion >= version)
+            {
+                sendack = true;
+                return;
+            }
+            else if (oldversion != version - 1)
+            {
+                return;
+            }
+        }
+        else
+        {
+            oldversion = old->first;
+            have_oldvalue = old->second->op == PUT;
+            oldvalue = old->second->value;
+        }
+    }
+
+    // Figure out the four regions we could send to.
+    regionid prev;
+    regionid thisold;
+    regionid thisnew;
+    regionid next;
+
+    if (have_oldvalue)
+    {
+        four_regions(key, oldvalue, &prev, &thisold, &thisnew, &next);
+    }
+    else
+    {
+        return;
+    }
+
+    e::intrusive_ptr<pending> newpend;
+    newpend = new pending(nop, prev, thisold, thisnew, next);
+    newpend->enabled = true;
+
+    // Send an ack message if we've already committed this update.
+    if (sendack)
+    {
+        e::buffer msg;
+        newpend->ack_msg(&msg, version, key);
+        m_comm->send(to, from, stream_no::ACK, msg);
+        return;
+    }
+
+    newpend->enabled = true;
+    m_pending.insert(std::make_pair(version, newpend));
+    e::buffer msg;
+    newpend->forward_msg(&msg, version, key);
+
+    if (overlap(m_region, thisnew))
+    {
+        m_comm->send_forward(m_region, next, stream_no::DEL_PENDING, msg);
+    }
+    else if (overlap(m_region, thisold))
+    {
+        m_comm->send_forward(m_region, thisnew, stream_no::DEL_PENDING, msg);
+    }
+    else
+    {
+        LOG(INFO) << "Message doesn't hash to this region.";
+    }
+}
+
+bool
+hyperdex :: replication :: keyholder :: from_disk(std::tr1::function<result_t (std::vector<e::buffer>*, uint64_t*)> read_from_disk,
+                                                  bool* have_value,
+                                                  std::vector<e::buffer>* value,
+                                                  uint64_t* version)
+{
+    switch (read_from_disk(value, version))
+    {
+        case SUCCESS:
+            *have_value = true;
+            return true;
+        case NOTFOUND:
+            *version = 0;
+            *have_value = false;
+            return true;
+        case INVALID:
+            LOG(INFO) << "Data layer returned INVALID when queried for old value.";
+            return false;
+        case ERROR:
+            LOG(INFO) << "Data layer returned ERROR when queried for old value.";
+            return false;
+        default:
+            LOG(WARNING) << "Data layer returned unknown result when queried for old value.";
+            return false;
+    }
+}
+
+void
+hyperdex :: replication :: keyholder :: four_regions(const e::buffer& key,
+                                                     const std::vector<e::buffer>& oldvalue,
+                                                     const std::vector<e::buffer>& value,
+                                                     regionid* prev,
+                                                     regionid* thisold,
+                                                     regionid* thisnew,
+                                                     regionid* next)
+{
+    assert(oldvalue.size() == value.size());
     std::vector<uint64_t> oldhashes;
     std::vector<uint64_t> newhashes;
     uint64_t keyhash = CityHash64(key);
@@ -407,42 +874,36 @@ hyperdex :: replication :: pending :: pending(const regionid& r,
 
     for (size_t i = 0; i < value.size(); ++i)
     {
-        oldhashes.push_back(CityHash64(oldval[i]));
-        newhashes.push_back(CityHash64(newval[i]));
+        oldhashes.push_back(CityHash64(oldvalue[i]));
+        newhashes.push_back(CityHash64(value[i]));
     }
 
-    m_prev.subspace = prev_subspace;
-    m_prev.prefix = 64;
-    m_prev.mask = makepoint(newhashes, prev_dims);
-
-    m_thisold.prefix = 64;
-    m_thisold.mask = makepoint(oldhashes, this_dims);
-
-    m_thisnew.prefix = 64;
-    m_thisnew.mask = makepoint(newhashes, this_dims);
-
-    m_next.subspace = next_subspace;
-    m_next.prefix = 64;
-    m_next.mask = makepoint(oldhashes, next_dims);
+    *prev = regionid(m_region.get_subspace(), 64, makepoint(newhashes, m_prev_dims));
+    *thisold = regionid(m_region.get_subspace(), 64, makepoint(oldhashes, m_this_dims));
+    *thisnew = regionid(m_region.get_subspace(), 64, makepoint(newhashes, m_this_dims));
+    *next = regionid(m_region.get_subspace(), 64, makepoint(oldhashes, m_next_dims));
 }
 
+
 void
-hyperdex :: replication :: pending :: tryforward(logical* comm)
+hyperdex :: replication :: keyholder :: four_regions(const e::buffer& key,
+                                                     const std::vector<e::buffer>& value,
+                                                     regionid* prev,
+                                                     regionid* thisold,
+                                                     regionid* thisnew,
+                                                     regionid* next)
 {
-    if (!m_enabled)
+    std::vector<uint64_t> hashes;
+    uint64_t keyhash = CityHash64(key);
+    hashes.push_back(keyhash);
+
+    for (size_t i = 0; i < value.size(); ++i)
     {
-        return;
+        hashes.push_back(CityHash64(value[i]));
     }
 
-    // Pack the message.
-    e::buffer msg;
-
-    if (op == PUT)
-    {
-        msg.pack() << version << key << value;
-    }
-    else if (op == DEL)
-    {
-        msg.pack() << version << key;
-    }
+    *prev = regionid(m_region.get_subspace(), 64, makepoint(hashes, m_prev_dims));
+    *thisold = regionid(m_region.get_subspace(), 64, makepoint(hashes, m_this_dims));
+    *thisnew = regionid(m_region.get_subspace(), 64, makepoint(hashes, m_this_dims));
+    *next = regionid(m_region.get_subspace(), 64, makepoint(hashes, m_next_dims));
 }

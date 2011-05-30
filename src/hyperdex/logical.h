@@ -61,8 +61,19 @@ class logical
 
     // Send and recv messages.
     public:
+        // Send from one specific entity to another specific entity.
         bool send(const hyperdex::entityid& from, const hyperdex::entityid& to,
                   const uint8_t msg_type, const e::buffer& msg);
+        // Send from one region to a specific entity.  This will find
+        // our offset in the chain for the "from" region, and use that
+        // entity as the source.
+        bool send(const hyperdex::regionid& from, const hyperdex::entityid& to,
+                  const uint8_t msg_type, const e::buffer& msg);
+        // Send forward in a chain.  If our position in from corresponds
+        // to the end of a chain, then send to the region containing
+        // "to"; else, send to our successor in the chain.
+        bool send_forward(const hyperdex::regionid& from, const hyperdex::regionid& to,
+                          const uint8_t msg_type, const e::buffer& msg);
         bool recv(hyperdex::entityid* from, hyperdex::entityid* to,
                   uint8_t* msg_type, e::buffer* msg);
         void shutdown();

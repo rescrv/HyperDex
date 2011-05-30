@@ -38,6 +38,7 @@
 
 // HyperDex
 #include <hyperdex/logical.h>
+#include <hyperdex/hyperspace.h>
 
 using e::buffer;
 using po6::net::location;
@@ -137,6 +138,98 @@ hyperdex :: logical :: send(const hyperdex::entityid& from, const hyperdex::enti
                     << msg;
     m_physical.send(dst, finalmsg);
     return true;
+}
+
+bool
+hyperdex :: logical :: send(const hyperdex::regionid& from,
+                            const hyperdex::entityid& to,
+                            const uint8_t msg_type, const e::buffer& msg)
+{
+    entityid realfrom;
+
+    // We don't need to look up the block at exactly the same time.  If
+    // a change occurs between now and when the inner send acquires the
+    // read lock, it is likely that the message will be thrown out at
+    // the above layer.
+    {
+        po6::threads::rwlock::rdhold hold(&m_mapping_lock);
+        mapiter f = m_mapping.lower_bound(entityid(from, 0));
+        mapiter t = m_mapping.upper_bound(entityid(from, UINT8_MAX));
+
+        for (; f != t; ++f)
+        {
+            if (f->second == m_us)
+            {
+                realfrom = f->first;
+                break;
+            }
+        }
+
+        if (f == t)
+        {
+            return false;
+        }
+    }
+
+    return send(realfrom, to, msg_type, msg);
+}
+
+bool
+hyperdex :: logical :: send_forward(const hyperdex::regionid& from,
+                                    const hyperdex::regionid& to,
+                                    const uint8_t msg_type,
+                                    const e::buffer& msg)
+{
+    entityid realfrom;
+    entityid realto;
+
+    // Same reasoning about locking applies.
+    {
+        po6::threads::rwlock::rdhold hold(&m_mapping_lock);
+        mapiter f = m_mapping.lower_bound(entityid(from, 0));
+        mapiter t = m_mapping.upper_bound(entityid(from, UINT8_MAX));
+
+        for (; f != t; ++f)
+        {
+            if (f->second == m_us)
+            {
+                realfrom = f->first;
+                break;
+            }
+        }
+
+        if (f == t)
+        {
+            return false;
+        }
+
+        ++f;
+
+        if (f == t)
+        {
+            mapiter i = m_mapping.begin();
+
+            for (; i != m_mapping.end(); ++i)
+            {
+                if (overlap(i->first.get_region(), to))
+                {
+                    realto = i->first;
+                    break;
+                }
+            }
+
+            if (i == m_mapping.end())
+            {
+                return false;
+            }
+        }
+        else
+        {
+            realto = f->first;
+        }
+    }
+
+    return send(realfrom, realto, msg_type, msg);
 }
 
 bool

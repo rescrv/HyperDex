@@ -125,8 +125,9 @@ hyperdex :: network_worker :: run()
                 e::buffer key;
                 std::vector<e::buffer> value;
                 uint64_t version;
-                msg.unpack() >> version >> key >> value;
-                m_repl->chain_put(from, to, version, key, value);
+                uint8_t fresh;
+                msg.unpack() >> version >> fresh >> key >> value;
+                m_repl->chain_put(from, to, version, fresh == 1, key, value);
             }
             else if (type == hyperdex::stream_no::DEL_PENDING)
             {
@@ -135,13 +136,9 @@ hyperdex :: network_worker :: run()
                 msg.unpack() >> version >> key;
                 m_repl->chain_del(from, to, version, key);
             }
-            else if (type == hyperdex::stream_no::PUT_ACK)
+            else if (type == hyperdex::stream_no::ACK)
             {
-                LOG(INFO) << "PUT_ACK";
-            }
-            else if (type == hyperdex::stream_no::DEL_ACK)
-            {
-                LOG(INFO) << "DEL_ACK";
+                LOG(INFO) << "ACK";
             }
             else
             {
