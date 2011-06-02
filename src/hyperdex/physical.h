@@ -61,6 +61,8 @@ class physical
     public:
         void send(const po6::net::location& to, const e::buffer& msg);
         bool recv(po6::net::location* from, e::buffer* msg);
+        // Deliver a message (put it on the queue) as if it came from "from".
+        void deliver(const po6::net::location& from, const e::buffer& msg);
         void shutdown();
         bool pending() { return m_incoming.size() > 0; }
         po6::net::location inbound() { return m_listen.getsockname(); }

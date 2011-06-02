@@ -139,6 +139,16 @@ hyperdex :: physical :: recv(po6::net::location* from,
 }
 
 void
+hyperdex :: physical :: deliver(const po6::net::location& from,
+                                const e::buffer& msg)
+{
+    message m;
+    m.loc = from;
+    m.buf = msg;
+    m_incoming.push(m);
+}
+
+void
 hyperdex :: physical :: shutdown()
 {
     m_incoming.shutdown();

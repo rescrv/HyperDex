@@ -136,7 +136,16 @@ hyperdex :: logical :: send(const hyperdex::entityid& from, const hyperdex::enti
                     << from
                     << to
                     << msg;
-    m_physical.send(dst, finalmsg);
+
+    if (dst == m_us.inbound)
+    {
+        m_physical.deliver(m_us.outbound, finalmsg);
+    }
+    else
+    {
+        m_physical.send(dst, finalmsg);
+    }
+
     return true;
 }
 
