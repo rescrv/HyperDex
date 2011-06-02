@@ -58,9 +58,9 @@ class replication
 
         // These are called when the client initiates the action.  This implies
         // that only the point leader will call these methods.
-        void client_put(const entityid& from, const regionid& to, uint32_t nonce,
+        void client_put(const entityid& from, const entityid& to, uint32_t nonce,
                         const e::buffer& key, const std::vector<e::buffer>& value);
-        void client_del(const entityid& from, const regionid& to, uint32_t nonce,
+        void client_del(const entityid& from, const entityid& to, uint32_t nonce,
                         const e::buffer& key);
         // These are called in response to messages from other hosts.
         void chain_put(const entityid& from, const entityid& to, uint64_t rev,
@@ -84,9 +84,9 @@ class replication
             clientop() : region(), from(), nonce() {}
             clientop(regionid r, entityid f, uint32_t n) : region(r), from(f), nonce(n) {}
             bool operator < (const clientop& rhs) const;
-            const regionid region;
-            const entityid from;
-            const uint32_t nonce;
+            regionid region;
+            entityid from;
+            uint32_t nonce;
         };
 
         struct keypair
@@ -101,80 +101,41 @@ class replication
         class pending
         {
             public:
-                pending(bool f, const std::vector<e::buffer>& v,
-                        std::tr1::function<void (uint64_t)> n,
-                        const regionid& prev, const regionid& thisold,
-                        const regionid& thisnew, const regionid& next);
-                pending(std::tr1::function<void (uint64_t)> n,
-                        const regionid& prev, const regionid& thisold,
-                        const regionid& thisnew, const regionid& next);
+                pending(op_t op, uint64_t version,
+                        const e::buffer& key,
+                        const std::vector<e::buffer>& value,
+                        const clientop& co = clientop());
 
             public:
-                void forward_msg(e::buffer* msg, uint64_t version, const e::buffer& key);
-                void ack_msg(e::buffer* msg, uint64_t version, const e::buffer& key);
-
-            public:
-                bool enabled;
+                const op_t op;
+                const uint64_t version;
+                const e::buffer& key;
+                const std::vector<e::buffer> value;
+                clientop co;
                 bool fresh;
-                op_t op;
-                std::vector<e::buffer> value;
-                std::tr1::function<void (uint64_t)> notify;
+                bool acked;
+                regionid prev;
+                regionid thisold;
+                regionid thisnew;
+                regionid next;
 
             private:
                 friend class e::intrusive_ptr<pending>;
 
             private:
                 size_t m_ref;
-                regionid m_prev;
-                regionid m_thisold;
-                regionid m_thisnew;
-                regionid m_next;
         };
 
-        class keyholder
+        class chainlink_calculator
         {
             public:
-                keyholder(const configuration& config, const regionid& r, logical* comm);
-
-            public:
-                // Return true if the operation succeeded.  Return false if the
-                // operation failed.
-                bool add_pending(std::tr1::function<result_t (std::vector<e::buffer>*, uint64_t*)> read_from_disk,
-                                 const e::buffer& key,
-                                 const std::vector<e::buffer>& value,
-                                 std::tr1::function<void (uint64_t)> notify);
-                bool add_pending(std::tr1::function<result_t (std::vector<e::buffer>*, uint64_t*)> read_from_disk,
-                                 const e::buffer& key,
-                                 std::tr1::function<void (uint64_t)> notify);
-                void add_pending(std::tr1::function<result_t (std::vector<e::buffer>*, uint64_t*)> read_from_disk,
-                                 const entityid& from,
-                                 const entityid& to,
-                                 uint64_t version,
-                                 bool fresh,
-                                 const e::buffer& key,
-                                 const std::vector<e::buffer>& value);
-                void add_pending(std::tr1::function<result_t (std::vector<e::buffer>*, uint64_t*)> read_from_disk,
-                                 const entityid& from,
-                                 const entityid& to,
-                                 uint64_t version,
-                                 const e::buffer& key);
+                chainlink_calculator(const configuration& config,
+                                     const regionid& r);
 
             public:
                 size_t expected_dimensions() const { return m_prev_dims.size(); }
 
-            private:
-                friend class e::intrusive_ptr<keyholder>;
-
-            private:
-                keyholder(const keyholder&);
-
-            private:
-                // A wrapper to log error messages from the disk layer in a
-                // consistent fashion.
-                bool from_disk(std::tr1::function<result_t (std::vector<e::buffer>*, uint64_t*)> read_from_disk,
-                               bool* have_value,
-                               std::vector<e::buffer>* value,
-                               uint64_t* version);
+            public:
                 void four_regions(const e::buffer& key,
                                   const std::vector<e::buffer>& oldvalue,
                                   const std::vector<e::buffer>& value,
@@ -190,18 +151,33 @@ class replication
                                   regionid* next);
 
             private:
-                keyholder& operator = (const keyholder&);
+                friend class e::intrusive_ptr<chainlink_calculator>;
 
             private:
                 size_t m_ref;
-                logical* m_comm;
-                const regionid m_region;
+                regionid m_region;
                 const uint16_t m_prev_subspace;
                 const uint16_t m_next_subspace;
                 const std::vector<bool> m_prev_dims;
                 const std::vector<bool> m_this_dims;
                 const std::vector<bool> m_next_dims;
-                std::map<uint64_t, e::intrusive_ptr<pending> > m_pending;
+        };
+
+        class keyholder
+        {
+            public:
+                keyholder();
+
+            public:
+                std::map<uint64_t, e::intrusive_ptr<pending> > pending_updates;
+                std::map<uint64_t, e::intrusive_ptr<pending> > blocked_updates;
+                std::map<uint64_t, e::intrusive_ptr<pending> > deferred_updates;
+
+            private:
+                friend class e::intrusive_ptr<keyholder>;
+
+            private:
+                size_t m_ref;
         };
 
     private:
@@ -211,14 +187,44 @@ class replication
         replication& operator = (const replication&);
 
     private:
-        void client_common(op_t op, const entityid& from, const regionid& to,
+        void client_common(op_t op, const entityid& from, const entityid& to,
                            uint32_t nonce, const e::buffer& key,
                            const std::vector<e::buffer>& newvalue);
         void chain_common(op_t op, const entityid& from, const entityid& to,
                           uint64_t newversion, bool fresh, const e::buffer& key,
                           const std::vector<e::buffer>& newvalue);
         po6::threads::mutex* get_lock(const keypair& kp);
+        e::intrusive_ptr<chainlink_calculator> get_chainlink_calculator(const regionid& r);
         e::intrusive_ptr<keyholder> get_keyholder(const keypair& kp);
+        bool from_disk(const regionid& r, const e::buffer& key,
+                       bool* have_value, std::vector<e::buffer>* value,
+                       uint64_t* version);
+        // If there are no messages in the pending queue, move all blocked
+        // messages (up until the first DEL/PUT) to the queue of pending
+        // messages, and send out messages to the next individuals in the chain.
+        // The first form will only unblock messages when there are no pending
+        // updates.  The second form trusts that the caller knows that it is
+        // safe to unblock even though messages may still be pending.
+        void unblock_messages(const regionid& r, e::intrusive_ptr<keyholder> kh);
+        void unconditionally_unblock_messages(const regionid& r, e::intrusive_ptr<keyholder> kh);
+        // Move as many messages as possible from the deferred queue to the
+        // pending queue.
+        void move_deferred_to_pending(e::intrusive_ptr<keyholder> kh);
+        // Send an ACK and notify the client.  If this is the last pending
+        // message for the keypair, then it is safe to unblock more messages.
+        void handle_point_leader_work(op_t op, const entityid& from,
+                                      const entityid& to, uint64_t newversion,
+                                      bool fresh, const e::buffer& key,
+                                      const std::vector<e::buffer>& newvalue);
+        void send_update(const hyperdex::regionid& pending_in,
+                         e::intrusive_ptr<pending> update);
+        // Send an ack based on a pending object using chain rules.  That is,
+        // use the send_backward function of the communication layer.
+        void send_ack(const regionid& from, const e::buffer& key,
+                      uint64_t version, e::intrusive_ptr<pending> update);
+        // Send directly.
+        void send_ack(const regionid& from, const entityid& to,
+                      const e::buffer& key, uint64_t version);
         bool have_seen_clientop(const clientop& co);
         void respond_positively_to_client(clientop co, uint64_t version);
         void respond_negatively_to_client(clientop co, result_t result);
@@ -240,6 +246,8 @@ class replication
         // config than the layer making the judgement calls about messages is a
         // good idea.
         po6::threads::mutex m_lock;
+        po6::threads::mutex m_chainlink_calculators_lock;
+        std::map<regionid, e::intrusive_ptr<chainlink_calculator> > m_chainlink_calculators;
         po6::threads::mutex m_keyholders_lock;
         std::map<keypair, e::intrusive_ptr<keyholder> > m_keyholders;
         po6::threads::mutex m_clientops_lock;
