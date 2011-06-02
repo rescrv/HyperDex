@@ -285,6 +285,7 @@ hyperdex :: physical :: channel :: channel(ev::loop_ref lr,
     , manager(m)
 {
     accept_from->accept(&soc);
+    loc = soc.getpeername();
     io.set<channel, &channel::io_cb>(this);
     io.set(soc.get(), ev::READ);
     io.start();
