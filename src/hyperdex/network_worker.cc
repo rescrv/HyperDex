@@ -138,7 +138,10 @@ hyperdex :: network_worker :: run()
             }
             else if (type == hyperdex::stream_no::ACK)
             {
-                LOG(INFO) << "ACK";
+                e::buffer key;
+                uint64_t version;
+                msg.unpack() >> version >> key;
+                m_repl->chain_ack(from, to, version, key);
             }
             else
             {

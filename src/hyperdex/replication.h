@@ -68,6 +68,9 @@ class replication
                        const std::vector<e::buffer>& value);
         void chain_del(const entityid& from, const entityid& to, uint64_t rev,
                        const e::buffer& key);
+        void chain_ack(const entityid& from, const entityid& to, uint64_t rev,
+                       const e::buffer& key);
+
 
     private:
         enum op_t
