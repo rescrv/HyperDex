@@ -253,9 +253,8 @@ hyperdex :: client :: put(const std::string& space,
                           const std::vector<e::buffer>& value)
 {
     uint32_t nonce = 0;
-    uint32_t size = key.size();
     e::buffer msg;
-    msg.pack() << nonce << size << key << value;
+    msg.pack() << nonce << key << value;
     stream_no::stream_no_t response;
 
     if (p->reqrep(space, key, stream_no::PUT, msg, &response, &msg))
