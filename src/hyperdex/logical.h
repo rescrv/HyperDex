@@ -74,6 +74,11 @@ class logical
         // "to"; else, send to our successor in the chain.
         bool send_forward(const hyperdex::regionid& from, const hyperdex::regionid& to,
                           const uint8_t msg_type, const e::buffer& msg);
+        // Send backward in a chain.  If our position in from corresponds to the
+        // beginning of a chain, then send to the region containing "to"; else
+        // send to our predecessor in the chain.
+        bool send_backward(const hyperdex::regionid& from, const hyperdex::regionid& to,
+                           const uint8_t msg_type, const e::buffer& msg);
         bool recv(hyperdex::entityid* from, hyperdex::entityid* to,
                   uint8_t* msg_type, e::buffer* msg);
         void shutdown();

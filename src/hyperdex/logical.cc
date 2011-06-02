@@ -233,6 +233,88 @@ hyperdex :: logical :: send_forward(const hyperdex::regionid& from,
 }
 
 bool
+hyperdex :: logical :: send_backward(const hyperdex::regionid& from,
+                                     const hyperdex::regionid& to,
+                                     const uint8_t msg_type,
+                                     const e::buffer& msg)
+{
+    entityid realfrom;
+    entityid realto;
+
+    // Same reasoning about locking applies.
+    {
+        po6::threads::rwlock::rdhold hold(&m_mapping_lock);
+        mapiter f = m_mapping.lower_bound(entityid(from, 0));
+        mapiter t = m_mapping.upper_bound(entityid(from, UINT8_MAX));
+
+        for (; f != t; ++f)
+        {
+            if (f->second == m_us)
+            {
+                realfrom = f->first;
+                break;
+            }
+        }
+
+        if (f == t)
+        {
+            return false;
+        }
+
+        if (realfrom.number == 0)
+        {
+            mapiter i = m_mapping.begin();
+
+            for (; i != m_mapping.end(); ++i)
+            {
+                if (overlap(i->first.get_region(), to))
+                {
+                    realto = i->first;
+                    break;
+                }
+            }
+
+            if (i == m_mapping.end())
+            {
+                return false;
+            }
+        }
+        else
+        {
+            realto = entityid(realfrom.get_region(), realfrom.number - 1);
+        }
+
+        ++f;
+
+        if (f == t)
+        {
+            typedef std::map<hyperdex::entityid, hyperdex::instance>::reverse_iterator reverse_mapiter;
+            reverse_mapiter i = m_mapping.rbegin();
+
+            for (; i != m_mapping.rend(); ++i)
+            {
+                if (overlap(i->first.get_region(), to))
+                {
+                    realto = i->first;
+                    break;
+                }
+            }
+
+            if (i == m_mapping.rend())
+            {
+                return false;
+            }
+        }
+        else
+        {
+            realto = f->first;
+        }
+    }
+
+    return send(realfrom, realto, msg_type, msg);
+}
+
+bool
 hyperdex :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
                             uint8_t* msg_type,
                             e::buffer* msg)
