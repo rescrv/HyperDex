@@ -327,7 +327,8 @@ hyperdex :: physical :: channel :: io_cb(ev::io& w, int revents)
     {
         read_cb(w);
     }
-    else if (revents & ev::WRITE)
+
+    if (revents & ev::WRITE)
     {
         write_cb(w);
     }
