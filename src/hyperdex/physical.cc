@@ -358,20 +358,17 @@ hyperdex :: physical :: channel :: read_cb(ev::io&)
 
         while (inprogress.size() >= sizeof(uint32_t))
         {
-            e::unpacker up(inprogress);
             uint32_t message_size;
-            up >> message_size;
+            inprogress.unpack() >> message_size;
 
             if (inprogress.size() < message_size + sizeof(uint32_t))
             {
                 break;
             }
 
-            e::buffer buf;
-            up >> buf;
             message m;
+            inprogress.unpack() >> m.buf; // Different unpacker.
             m.loc = loc;
-            m.buf = buf;
             manager->m_incoming.push(m);
             inprogress.trim_prefix(message_size + sizeof(uint32_t));
         }
@@ -401,16 +398,15 @@ hyperdex :: physical :: channel :: write_cb(ev::io&)
     if (outgoing.empty() && outprogress.empty())
     {
         io.set(ev::READ);
+        io.start();
         mtx.unlock();
-        // XXX this probably means we need to shut it down.
         return;
     }
 
     // Pop one message to flush to network.
     if (outprogress.empty())
     {
-        uint32_t size = outgoing.front().size();
-        outprogress.pack() << size << outgoing.front();
+        outprogress.pack() << outgoing.front();
         outgoing.pop();
     }
 
