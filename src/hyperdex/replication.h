@@ -114,6 +114,7 @@ class replication
                 clientop co;
                 bool fresh;
                 bool acked;
+                bool ondisk; // True if the pending update is already on disk.
                 regionid prev;
                 regionid thisold;
                 regionid thisnew;

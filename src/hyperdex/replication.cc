@@ -155,12 +155,11 @@ hyperdex :: replication :: chain_ack(const entityid& /*from*/,
 
         kh->pending_updates.erase(kh->pending_updates.begin());
 
-        // XXX Make this leverage the pre-computed oldvalue points.
-        if (commit->op == PUT)
+        if (!commit->ondisk && commit->op == PUT)
         {
             m_data->put(to.get_region(), key, commit->value, ver);
         }
-        else
+        else if (!commit->ondisk && commit->op == DEL)
         {
             m_data->del(to.get_region(), key);
         }
@@ -683,6 +682,22 @@ hyperdex :: replication :: handle_point_leader_work(op_t /*op*/,
         e::intrusive_ptr<pending> update = penditer->second;
         send_ack(to.get_region(), key, version, update);
 
+        if (!update->ondisk && update->op == PUT)
+        {
+            m_data->put(to.get_region(), key, update->value, version);
+        }
+        else if (!update->ondisk && update->op == DEL)
+        {
+            m_data->del(to.get_region(), key);
+        }
+
+        for (; penditer != kh->pending_updates.begin(); -- penditer)
+        {
+            penditer->second->ondisk = true;
+        }
+
+        penditer->second->ondisk = true;
+
         if (update->co.from.space == UINT32_MAX)
         {
             respond_positively_to_client(update->co, version);
@@ -861,6 +876,7 @@ hyperdex :: replication :: pending :: pending(op_t o,
     , co(c)
     , fresh(false)
     , acked(false)
+    , ondisk(false)
     , prev()
     , thisold()
     , thisnew()
