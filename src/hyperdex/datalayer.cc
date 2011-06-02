@@ -163,7 +163,7 @@ hyperdex :: datalayer :: put(const regionid& ri,
                              const std::vector<e::buffer>& value,
                              uint64_t version)
 {
-    po6::threads::rwlock::rdhold hold(&m_lock);
+    po6::threads::rwlock::wrhold hold(&m_lock);
 
     try
     {
@@ -207,7 +207,7 @@ hyperdex :: result_t
 hyperdex :: datalayer :: del(const regionid& ri,
                              const e::buffer& key)
 {
-    po6::threads::rwlock::rdhold hold(&m_lock);
+    po6::threads::rwlock::wrhold hold(&m_lock);
 
     try
     {
