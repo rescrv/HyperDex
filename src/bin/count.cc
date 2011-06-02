@@ -113,7 +113,6 @@ main(int argc, char* argv[])
     try
     {
         hyperdex::client cl(po6::net::location(ip, port));
-        std::vector<e::buffer> val;
         timespec start;
         timespec end;
 
@@ -122,7 +121,8 @@ main(int argc, char* argv[])
         for (uint64_t i = 1; i <= loopiter; ++i)
         {
             e::buffer key;
-            val.clear();
+            key.pack() << i;
+            std::vector<e::buffer> val;
             val.push_back(e::buffer(payload.c_str(), payload.size()));
 
             switch (cl.put(space, key, val))
