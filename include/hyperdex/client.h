@@ -28,11 +28,18 @@
 #ifndef hyperdex_client_h_
 #define hyperdex_client_h_
 
+// STL
+#include <memory>
+#include <string>
+#include <vector>
+
 // po6
 #include <po6/net/location.h>
 
+// e
+#include <e/buffer.h>
+
 // HyperDex
-#include <hyperdex/client.h>
 #include <hyperdex/result_t.h>
 
 namespace hyperdex

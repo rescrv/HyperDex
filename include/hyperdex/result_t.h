@@ -28,22 +28,6 @@
 #ifndef hyperdex_result_t_h_
 #define hyperdex_result_t_h_
 
-// STL
-#include <map>
-#include <set>
-#include <tr1/memory>
-#include <vector>
-
-// po6
-#include <po6/threads/rwlock.h>
-
-// e
-#include <e/buffer.h>
-
-// HyperDex
-#include <hyperdex/ids.h>
-#include <hyperdex/region.h>
-
 namespace hyperdex
 {
 
