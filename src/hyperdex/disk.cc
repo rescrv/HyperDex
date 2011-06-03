@@ -64,30 +64,30 @@ hyperdex :: disk :: disk(const char* filename)
     , m_offset(INDEX_SEGMENT_SIZE)
     , m_search(0)
 {
-    po6::io::fd fd(open(filename, O_RDWR|O_CREAT|O_EXCL, S_IRUSR|S_IWUSR));
+    po6::io::fd fd(open(filename, O_RDWR, S_IRUSR|S_IWUSR));
 
     if (fd.get() < 0)
     {
         throw po6::error(errno);
     }
 
-    char buf[INIT_BLOCK_SIZE];
-    memset(buf, 0, sizeof(buf));
+    struct stat buf;
 
-    for (uint64_t i = 0; i < INIT_ITERATIONS; ++i)
-    {
-        fd.xwrite(buf, sizeof(buf));
-    }
-
-    if (fsync(fd.get()) < 0)
+    if (fstat(fd.get(), &buf) < 0)
     {
         throw po6::error(errno);
+    }
+
+    if (buf.st_size < TOTAL_FILE_SIZE)
+    {
+        throw std::runtime_error("File is too small.");
     }
 
     m_base = static_cast<char*>(mmap(NULL, TOTAL_FILE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd.get(), 0));
 
     if (m_base == MAP_FAILED
-        || madvise(m_base, INDEX_SEGMENT_SIZE, MADV_WILLNEED) < 0
+        || madvise(m_base, HASH_TABLE_SIZE, MADV_WILLNEED) < 0
+        || madvise(m_base + HASH_TABLE_SIZE, SEARCH_INDEX_SIZE, MADV_SEQUENTIAL) < 0
         || madvise(m_base + INDEX_SEGMENT_SIZE, DATA_SEGMENT_SIZE, MADV_RANDOM) < 0)
     {
         int saved = errno;
