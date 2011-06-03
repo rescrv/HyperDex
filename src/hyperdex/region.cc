@@ -25,44 +25,48 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_region_h_
-#define hyperdex_region_h_
-
-// STL
-#include <map>
-
-// po6
-#include <po6/threads/mutex.h>
-
 // HyperDex
-#include <hyperdex/disk.h>
-#include <hyperdex/result_t.h>
+#include <hyperdex/city.h>
+#include <hyperdex/region.h>
 
-namespace hyperdex
+hyperdex :: region :: region(const char* file, uint16_t nc)
+    : m_ref(0)
+    , m_numcolumns(nc)
+    , m_lock()
+    , m_disk(file)
 {
+}
 
-class region
+hyperdex :: result_t
+hyperdex :: region :: get(const e::buffer& key,
+                          std::vector<e::buffer>* value,
+                          uint64_t* version)
 {
-    public:
-        region(const char* file, uint16_t nc);
+    uint64_t key_hash = CityHash64(key);
+    return m_disk.get(key, key_hash, value, version);
+}
 
-    public:
-        result_t get(const e::buffer& key, std::vector<e::buffer>* value,
-                     uint64_t* version);
-        result_t put(const e::buffer& key, const std::vector<e::buffer>& value,
-                     uint64_t version);
-        result_t del(const e::buffer& key);
+hyperdex :: result_t
+hyperdex :: region :: put(const e::buffer& key,
+                          const std::vector<e::buffer>& value,
+                          uint64_t version)
+{
+    uint64_t key_hash = CityHash64(key);
+    std::vector<uint64_t> value_hashes;
 
-    private:
-        friend class e::intrusive_ptr<region>;
+    for (size_t i = 0; i < value.size(); ++i)
+    {
+        value_hashes.push_back(CityHash64(value[i]));
+    }
 
-    private:
-        size_t m_ref;
-        size_t m_numcolumns;
-        po6::threads::mutex m_lock;
-        hyperdex::disk m_disk;
-};
+    po6::threads::mutex::hold hold(&m_lock);
+    return m_disk.put(key, key_hash, value, value_hashes, version);
+}
 
-} // namespace hyperdex
-
-#endif // hyperdex_region_h_
+hyperdex :: result_t
+hyperdex :: region :: del(const e::buffer& key)
+{
+    uint64_t key_hash = CityHash64(key);
+    po6::threads::mutex::hold hold(&m_lock);
+    return m_disk.del(key, key_hash);
+}

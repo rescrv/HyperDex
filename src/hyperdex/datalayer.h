@@ -69,11 +69,14 @@ class datalayer
         datalayer(const datalayer&);
 
     private:
+        e::intrusive_ptr<hyperdex::region> get_region(const regionid& ri);
+
+    private:
         datalayer& operator = (const datalayer&);
 
     private:
         po6::threads::rwlock m_lock;
-        std::map<regionid, std::tr1::shared_ptr<hyperdex::region> > m_regions;
+        std::map<regionid, e::intrusive_ptr<hyperdex::region> > m_regions;
 };
 
 } // namespace hyperdex

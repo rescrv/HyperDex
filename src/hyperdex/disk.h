@@ -28,6 +28,10 @@
 #ifndef hyperdex_disk_h_
 #define hyperdex_disk_h_
 
+// e
+#include <e/buffer.h>
+#include <e/intrusive_ptr.h>
+
 // HyperDex
 #include <hyperdex/result_t.h>
 
@@ -60,6 +64,9 @@ class disk
         void sync();
 
     private:
+        friend class e::intrusive_ptr<disk>;
+
+    private:
         disk(const disk&);
 
     private:
@@ -77,6 +84,7 @@ class disk
         disk& operator = (const disk&);
 
     private:
+        size_t m_ref;
         char* m_base;
         uint32_t m_offset;
         uint32_t m_search;

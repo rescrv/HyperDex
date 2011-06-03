@@ -60,7 +60,8 @@
 #define INIT_ITERATIONS (TOTAL_FILE_SIZE / INIT_BLOCK_SIZE)
 
 hyperdex :: disk :: disk(const char* filename)
-    : m_base(NULL)
+    : m_ref(0)
+    , m_base(NULL)
     , m_offset(INDEX_SEGMENT_SIZE)
     , m_search(0)
 {

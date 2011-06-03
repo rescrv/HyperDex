@@ -29,7 +29,9 @@
 #include <cassert>
 
 // STL
+#include <iomanip>
 #include <set>
+#include <sstream>
 
 // Google Log
 #include <glog/logging.h>
@@ -37,7 +39,7 @@
 // HyperDex
 #include <hyperdex/datalayer.h>
 
-typedef std::tr1::shared_ptr<hyperdex::region> region_ptr;
+typedef e::intrusive_ptr<hyperdex::region> region_ptr;
 typedef std::map<e::buffer, std::pair<uint64_t, std::vector<e::buffer> > > region_map_t;
 
 hyperdex :: datalayer :: datalayer()
@@ -71,9 +73,14 @@ hyperdex :: datalayer :: create(const regionid& ri,
 
     if (i == m_regions.end())
     {
-        LOG(INFO) << "Creating " << ri << " with " << numcolumns << " columns";
+        std::ostringstream ostr;
+        ostr << "REGION:" << std::showbase << std::hex << ri.space << "-"
+             << ri.subspace << "-" << (int) ri.prefix << "-" << ri.mask;
+        zero_fill(ostr.str().c_str());
+        LOG(INFO) << "Creating " << ri << " with " << numcolumns << " columns "
+                  << "on disk " << ostr.str();
         region_ptr reg;
-        reg.reset(new region(numcolumns));
+        reg = new region(ostr.str().c_str(), numcolumns);
         m_regions.insert(std::make_pair(ri, reg));
     }
     else
@@ -106,55 +113,14 @@ hyperdex :: datalayer :: get(const regionid& ri,
                              std::vector<e::buffer>* value,
                              uint64_t* version)
 {
-    po6::threads::rwlock::rdhold hold(&m_lock);
+    e::intrusive_ptr<hyperdex::region> r = get_region(ri);
 
-    try
+    if (!r)
     {
-        std::map<regionid, region_ptr>::iterator i;
-        i = m_regions.find(ri);
-
-        if (i == m_regions.end())
-        {
-            return INVALID;
-        }
-
-        region_ptr r = i->second;
-        region_map_t::iterator p;
-        p = r->points.find(key);
-
-        if (p != r->points.end())
-        {
-            *value = p->second.second;
-            *version = p->second.first;
-            return SUCCESS;
-        }
-        else
-        {
-            return NOTFOUND;
-        }
-    }
-    catch (po6::error& e)
-    {
-        // XXX
-    }
-    catch (std::logic_error& e)
-    {
-        // XXX
-    }
-    catch (std::runtime_error& e)
-    {
-        // XXX
-    }
-    catch (std::bad_alloc& e)
-    {
-        // XXX
-    }
-    catch (std::exception& e)
-    {
-        // XXX
+        return INVALID;
     }
 
-    return ERROR;
+    return r->get(key, value, version);
 }
 
 hyperdex :: result_t
@@ -163,96 +129,43 @@ hyperdex :: datalayer :: put(const regionid& ri,
                              const std::vector<e::buffer>& value,
                              uint64_t version)
 {
-    po6::threads::rwlock::wrhold hold(&m_lock);
+    e::intrusive_ptr<hyperdex::region> r = get_region(ri);
 
-    try
+    if (!r)
     {
-        std::map<regionid, region_ptr>::iterator i;
-        i = m_regions.find(ri);
-
-        if (i == m_regions.end())
-        {
-            return INVALID;
-        }
-
-        region_ptr r = i->second;
-        r->points[key] = std::make_pair(version, value);
-        return SUCCESS;
-    }
-    catch (po6::error& e)
-    {
-        // XXX
-    }
-    catch (std::logic_error& e)
-    {
-        // XXX
-    }
-    catch (std::runtime_error& e)
-    {
-        // XXX
-    }
-    catch (std::bad_alloc& e)
-    {
-        // XXX
-    }
-    catch (std::exception& e)
-    {
-        // XXX
+        return INVALID;
     }
 
-    return ERROR;
+    return r->put(key, value, version);
 }
 
 hyperdex :: result_t
 hyperdex :: datalayer :: del(const regionid& ri,
                              const e::buffer& key)
 {
-    po6::threads::rwlock::wrhold hold(&m_lock);
+    e::intrusive_ptr<hyperdex::region> r = get_region(ri);
 
-    try
+    if (!r)
     {
-        std::map<regionid, region_ptr>::iterator i;
-        i = m_regions.find(ri);
-
-        if (i == m_regions.end())
-        {
-            return INVALID;
-        }
-
-        region_ptr r = i->second;
-        region_map_t::iterator p;
-        p = r->points.find(key);
-
-        if (p == r->points.end())
-        {
-            return NOTFOUND;
-        }
-        else
-        {
-            r->points.erase(p);
-            return SUCCESS;
-        }
-    }
-    catch (po6::error& e)
-    {
-        // XXX
-    }
-    catch (std::logic_error& e)
-    {
-        // XXX
-    }
-    catch (std::runtime_error& e)
-    {
-        // XXX
-    }
-    catch (std::bad_alloc& e)
-    {
-        // XXX
-    }
-    catch (std::exception& e)
-    {
-        // XXX
+        return INVALID;
     }
 
-    return ERROR;
+    return r->del(key);
+}
+
+e::intrusive_ptr<hyperdex::region>
+hyperdex :: datalayer :: get_region(const regionid& ri)
+{
+    po6::threads::rwlock::rdhold hold(&m_lock);
+    std::map<regionid, e::intrusive_ptr<region> >::iterator i;
+    i = m_regions.find(ri);
+
+    if (i == m_regions.end())
+    {
+        return e::intrusive_ptr<hyperdex::region>();
+    }
+    else
+    {
+        return i->second;
+    }
 }
