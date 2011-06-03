@@ -232,7 +232,7 @@ hyperdex :: disk :: put(const e::buffer& key,
     ++m_search;
     *hash = 0xffffffff & key_hash;
     *offset = m_offset;
-    m_offset = curr_offset;
+    m_offset = (m_offset + 7) & ~7; // Keep it aligned.
     return SUCCESS;
 }
 
