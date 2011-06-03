@@ -80,7 +80,7 @@ hyperdex :: disk :: disk(const char* filename)
 
     if (buf.st_size < TOTAL_FILE_SIZE)
     {
-        throw std::runtime_error("File is too small.");
+        throw std::runtime_error("Disk is too small.");
     }
 
     m_base = static_cast<char*>(mmap(NULL, TOTAL_FILE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd.get(), 0));
@@ -209,6 +209,9 @@ hyperdex :: disk :: put(const e::buffer& key,
     curr_offset += sizeof(key_size);
     memmove(m_base + curr_offset, key.get(), key_size);
     curr_offset += key_size;
+    uint16_t num_values = value.size();
+    *reinterpret_cast<uint16_t*>(m_base + curr_offset) = num_values;
+    curr_offset += sizeof(num_values);
 
     for (size_t i = 0; i < value.size(); ++i)
     {
@@ -227,6 +230,7 @@ hyperdex :: disk :: put(const e::buffer& key,
     *reinterpret_cast<uint32_t*>(m_base + m_search * 12 + sizeof(uint32_t)) = m_offset;
     *reinterpret_cast<uint32_t*>(m_base + m_search * 12 + sizeof(uint32_t) * 2) = 0;
     ++m_search;
+    *hash = 0xffffffff & key_hash;
     *offset = m_offset;
     m_offset = curr_offset;
     return SUCCESS;
