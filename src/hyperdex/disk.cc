@@ -342,3 +342,27 @@ hyperdex :: disk :: invalidate_search_index(uint32_t to_invalidate)
         }
     }
 }
+
+void
+hyperdex :: zero_fill(const char* filename)
+{
+    po6::io::fd fd(open(filename, O_RDWR|O_CREAT|O_EXCL, S_IRUSR|S_IWUSR));
+
+    if (fd.get() < 0)
+    {
+        throw po6::error(errno);
+    }
+
+    char buf[INIT_BLOCK_SIZE];
+    memset(buf, 0, sizeof(buf));
+
+    for (uint64_t i = 0; i < INIT_ITERATIONS; ++i)
+    {
+        fd.xwrite(buf, sizeof(buf));
+    }
+
+    if (fsync(fd.get()) < 0)
+    {
+        throw po6::error(errno);
+    }
+}

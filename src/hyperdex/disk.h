@@ -82,6 +82,9 @@ class disk
         uint32_t m_search;
 };
 
+void
+zero_fill(const char* filename);
+
 } // namespace hyperdex
 
 #endif // hyperdex_disk_h_
