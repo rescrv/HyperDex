@@ -55,6 +55,7 @@ set(hyperdex_srcs
     src/hyperdex/client.cc
     src/hyperdex/configuration.cc
     src/hyperdex/datalayer.cc
+    src/hyperdex/disk.cc
     src/hyperdex/hyperdexd.cc
     src/hyperdex/log.cc
     src/hyperdex/logical.cc
