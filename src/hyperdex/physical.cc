@@ -87,7 +87,7 @@ hyperdex :: physical :: ~physical()
 
 void
 hyperdex :: physical :: send(const po6::net::location& to,
-                             const e::buffer& msg)
+                             e::buffer* msg)
 {
     // Get a reference to the channel for "to" with mtx held.
     m_lock.rdlock();
@@ -116,7 +116,8 @@ hyperdex :: physical :: send(const po6::net::location& to,
 
     // Add msg to the outgoing buffer.
     bool notify = chan->outgoing.empty() && chan->outprogress.empty();
-    chan->outgoing.push(msg);
+    chan->outgoing.push(e::buffer());
+    chan->outgoing.back().swap(*msg);
 
     // Notify the event loop thread.
     if (notify)

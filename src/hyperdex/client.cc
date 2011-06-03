@@ -118,7 +118,7 @@ struct hyperdex :: client :: priv
         e::buffer packed;
 
         packed.pack() << msg_type << fromver << tover << from << to << msg;
-        phys.send(inst.inbound, packed);
+        phys.send(inst.inbound, &packed);
         return true;
     }
 

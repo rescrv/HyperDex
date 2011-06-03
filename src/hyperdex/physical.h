@@ -59,7 +59,7 @@ class physical
 
     // Send and recv messages.
     public:
-        void send(const po6::net::location& to, const e::buffer& msg);
+        void send(const po6::net::location& to, e::buffer* msg); // Consumes msg.
         bool recv(po6::net::location* from, e::buffer* msg);
         // Deliver a message (put it on the queue) as if it came from "from".
         void deliver(const po6::net::location& from, const e::buffer& msg);

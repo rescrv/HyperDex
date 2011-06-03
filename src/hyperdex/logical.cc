@@ -143,7 +143,7 @@ hyperdex :: logical :: send(const hyperdex::entityid& from, const hyperdex::enti
     }
     else
     {
-        m_physical.send(dst, finalmsg);
+        m_physical.send(dst, &finalmsg);
     }
 
     return true;
