@@ -40,6 +40,7 @@
 // HyperDex
 #include <hyperdex/datalayer.h>
 #include <hyperdex/logical.h>
+#include <hyperdex/op_t.h>
 
 namespace hyperdex
 {
@@ -73,12 +74,6 @@ class replication
 
 
     private:
-        enum op_t
-        {
-            PUT,
-            DEL
-        };
-
         struct clientop
         {
             clientop() : region(), from(), nonce() {}
