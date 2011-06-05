@@ -94,7 +94,7 @@ TEST(DiskTest, MultiPut)
     value_hashes.clear();
     value.push_back(e::buffer("value-two-a", 11));
     value_hashes.push_back(3863907495625339794);
-    value.push_back(e::buffer("value-two-a", 11));
+    value.push_back(e::buffer("value-two-b", 11));
     value_hashes.push_back(1626659109720743906);
     ASSERT_EQ(hyperdex::SUCCESS, d.put(e::buffer("two", 3), 0x4a38a1aea3a81e5f, value, value_hashes, version));
 

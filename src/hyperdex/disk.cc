@@ -28,6 +28,7 @@
 #define __STDC_LIMIT_MACROS
 
 // POSIX
+#include <endian.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -43,15 +44,9 @@
 #include <hyperdex/disk.h>
 #include <hyperdex/hyperspace.h>
 
-// XXX It might be a good idea to add bounds checking in here to prevent
-// corrupted files from causing us to access out-of-bounds memory.
-
-// Where possible, we use pointers instead of memmove, but if alignment is not
-// guaranteed, memmove is preferred.
-
 #define HASH_TABLE_ENTRIES 262144
 #define HASH_TABLE_SIZE (HASH_TABLE_ENTRIES * 8)
-#define SEARCH_INDEX_ENTRIES (HASH_TABLE_ENTRIES * 4)
+#define SEARCH_INDEX_ENTRIES HASH_TABLE_ENTRIES
 #define SEARCH_INDEX_SIZE (SEARCH_INDEX_ENTRIES * 12)
 #define INDEX_SEGMENT_SIZE (HASH_TABLE_SIZE + SEARCH_INDEX_SIZE)
 #define DATA_SEGMENT_SIZE 268435456
@@ -141,7 +136,8 @@ hyperdex :: disk :: get(const e::buffer& key,
 
     // Load the version.
     uint32_t curr_offset = *offset;
-    *version = *reinterpret_cast<uint64_t*>(m_base + curr_offset);
+    memmove(version, m_base + curr_offset, sizeof(uint64_t));
+    *version = be64toh(*version);
     // Fast-forward past the key (checked by find_bucket_for_key).
     curr_offset += sizeof(*version) + sizeof(uint32_t) + key.size();
     // Load the value.
@@ -149,11 +145,13 @@ hyperdex :: disk :: get(const e::buffer& key,
     uint16_t num_values;
     memmove(&num_values, m_base + curr_offset, sizeof(num_values));
     curr_offset += sizeof(num_values);
+    num_values = be16toh(num_values);
 
     for (uint16_t i = 0; i < num_values; ++i)
     {
         uint32_t size;
         memmove(&size, m_base + curr_offset, sizeof(size));
+        size = be32toh(size);
         curr_offset += sizeof(size);
         value->push_back(e::buffer());
         e::buffer buf(m_base + curr_offset, size);
@@ -201,39 +199,42 @@ hyperdex :: disk :: put(const e::buffer& key,
         return ERROR;
     }
 
-    // We have our index position.
+    // Values to pack.
+    uint64_t pack_version = htobe64(version);
+    uint32_t pack_keysize = htobe32(key.size());
+    uint16_t pack_value_arity = htobe16(value.size());
+
+    // Pack the values on disk.
     uint32_t curr_offset = m_offset;
-    *reinterpret_cast<uint64_t*>(m_base + curr_offset) = version;
-    curr_offset += sizeof(version);
-    uint32_t key_size = key.size();
-    *reinterpret_cast<uint32_t*>(m_base + curr_offset) = key_size;
-    curr_offset += sizeof(key_size);
-    memmove(m_base + curr_offset, key.get(), key_size);
-    curr_offset += key_size;
-    uint16_t num_values = value.size();
-    *reinterpret_cast<uint16_t*>(m_base + curr_offset) = num_values;
-    curr_offset += sizeof(num_values);
+    memmove(m_base + curr_offset, &pack_version, sizeof(pack_version));
+    curr_offset += sizeof(pack_version);
+    memmove(m_base + curr_offset, &pack_keysize, sizeof(pack_keysize));
+    curr_offset += sizeof(pack_keysize);
+    memmove(m_base + curr_offset, key.get(), key.size());
+    curr_offset += key.size();
+    memmove(m_base + curr_offset, &pack_value_arity, sizeof(pack_value_arity));
+    curr_offset += sizeof(pack_value_arity);
 
     for (size_t i = 0; i < value.size(); ++i)
     {
-        uint32_t size = value[i].size();
+        uint32_t size = htobe32(value[i].size());
         memmove(m_base + curr_offset, &size, sizeof(size));
         curr_offset += sizeof(size);
-        memmove(m_base + curr_offset, value[i].get(), size);
-        curr_offset += size;
+        memmove(m_base + curr_offset, value[i].get(), value[i].size());
+        curr_offset += value[i].size();
     }
 
-    // Invalidate anything point to the old version.  Update the offset to point
-    // to the new version.  Update the search index.
+    // Invalidate anything pointing to the old version.
     invalidate_search_index(*offset);
-    *reinterpret_cast<uint32_t*>(m_base + m_search * 12) =
-        0xffffffff & interlace(value_hashes);
-    *reinterpret_cast<uint32_t*>(m_base + m_search * 12 + sizeof(uint32_t)) = m_offset;
-    *reinterpret_cast<uint32_t*>(m_base + m_search * 12 + sizeof(uint32_t) * 2) = 0;
-    ++m_search;
+
+    // Update our write-ahead pointer.
+    const uint32_t entry_offset = m_offset;
+    m_offset = (curr_offset + 15) & ~15; // Keep it aligned.
+
+    // Make it possible to find the new version.
+    store_search_index(value_hashes, entry_offset);
     *hash = 0xffffffff & key_hash;
-    *offset = m_offset;
-    m_offset = (m_offset + 7) & ~7; // Keep it aligned.
+    *offset = entry_offset;
     return SUCCESS;
 }
 
@@ -309,7 +310,9 @@ hyperdex :: disk :: find_bucket_for_key(const e::buffer& key,
         if (*tmp_hash == short_key_hash)
         {
             uint64_t curr_offset = *tmp_offset + sizeof(uint64_t);
-            uint32_t key_size = *reinterpret_cast<uint32_t*>(m_base + curr_offset);
+            uint32_t key_size;
+            memmove(&key_size, m_base + curr_offset, sizeof(key_size));
+            key_size = be32toh(key_size);
             curr_offset += sizeof(key_size);
 
             // If the key doesn't match because of a hash collision.
@@ -346,6 +349,26 @@ hyperdex :: disk :: invalidate_search_index(uint32_t to_invalidate)
             *invalidator = m_offset;
         }
     }
+}
+
+void
+hyperdex :: disk :: store_search_index(const std::vector<uint64_t>& value_hashes,
+                                       uint32_t offset)
+{
+    // Write the point hash.
+    uint32_t point_hash = htobe32(0xffffffff & interlace(value_hashes));
+    memmove(m_base + HASH_TABLE_SIZE + m_search * 12, &point_hash, sizeof(point_hash));
+
+    // Write the data offset.
+    offset = htobe32(offset);
+    memmove(m_base + HASH_TABLE_SIZE + m_search * 12 + sizeof(uint32_t), &offset, sizeof(offset));
+
+    // Write the "invalidated by" offset.
+    offset = 0;
+    memmove(m_base + HASH_TABLE_SIZE + m_search * 12 + 2 * sizeof(uint32_t), &offset, sizeof(offset));
+
+    // Increment the m_search counter.
+    ++m_search;
 }
 
 void

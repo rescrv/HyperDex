@@ -79,6 +79,10 @@ class disk
         // This will invalidate any entry in the search index which references
         // the specified offset.
         void invalidate_search_index(uint32_t to_invalidate);
+        // Store a point in the search index by interleaving the hash values and
+        // pointing to offset m_offset.
+        void store_search_index(const std::vector<uint64_t>& value_hashes,
+                                uint32_t offset);
 
     private:
         disk& operator = (const disk&);
