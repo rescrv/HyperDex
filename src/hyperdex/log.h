@@ -38,123 +38,162 @@
 #include <po6/threads/mutex.h>
 #include <po6/threads/rwlock.h>
 
+// e
+#include <e/buffer.h>
+#include <e/intrusive_ptr.h>
+
+// HyperDex
+#include <hyperdex/op_t.h>
+
 namespace hyperdex
 {
 
 class log
 {
-    protected:
+    private:
         class node;
 
     public:
-        class record
-        {
-            public:
-                record();
-                virtual ~record();
-
-            private:
-                record(const record&);
-                record& operator = (const record&);
-        };
-
         class iterator
         {
             public:
-                iterator(log* l);
-                virtual ~iterator();
+                iterator(const iterator&);
+                ~iterator() throw ();
 
             public:
-                bool step();
+                bool advance();
+
+            public:
+                op_t op() const { return m_n->op; }
+                const e::buffer& key() const { return m_n->key; }
+                const std::vector<e::buffer>& value() const { return m_n->value; }
+                uint64_t version() const { return m_n->version; }
 
             private:
-                iterator(const iterator&);
+                friend class log;
+
+            private:
+                iterator(log* l);
+
+            private:
                 iterator& operator = (const iterator&);
 
             private:
-                virtual void callback(uint64_t seqno, record* rec);
-
-            private:
                 log* m_l;
-                node* m_n;
-                bool m_called;
-        };
-
-        class drain
-        {
-            public:
-                drain();
-                virtual ~drain();
-
-            public:
-                virtual void one(uint64_t seqno, record* rec);
-
-            private:
-                drain(const iterator&);
-                drain& operator = (const iterator&);
+                e::intrusive_ptr<node> m_n;
+                bool m_seen;
         };
 
     public:
-        log(std::tr1::shared_ptr<hyperdex::log::drain> d = std::tr1::shared_ptr<hyperdex::log::drain>());
-        ~log();
+        log();
+        ~log() throw ();
 
     public:
-        bool append(std::auto_ptr<record> rec);
-        void flush();
-        void shutdown() { m_shutdown = true; }
+        iterator iterate() { return iterator(this); }
+        bool append(uint64_t point, uint64_t point_mask, uint64_t version,
+                    const e::buffer& key, const std::vector<e::buffer>& value);
+        bool append(uint64_t point, uint64_t point_mask, const e::buffer& key);
 
     public:
-        bool is_shutdown() const throw () { return m_shutdown; }
-        bool is_flushed() const throw () { return (m_head == m_tail); }
+        //void flush();
 
-    protected:
-        node* append_empty();
-        node* get_head();
-        node* step_list(node* pos);
+    public:
+        //bool is_flushed() const throw () { return (m_head == m_tail); }
 
-    protected:
+    private:
+        friend class iterator;
+
+    private:
         class node
         {
             public:
                 node()
-                    : seqno(0), rec(), next(NULL), refcount(0) {}
-                node(uint64_t _seqno, std::auto_ptr<record> _rec)
-                    : seqno(_seqno), rec(_rec), next(NULL), refcount(0) {}
-                ~node() {}
+                    : seqno(0)
+                    , next(NULL)
+                    , op(DEL)
+                    , point()
+                    , point_mask()
+                    , version()
+                    , key()
+                    , value()
+                    , m_ref(0)
+                {
+                }
+
+                node(uint64_t p,
+                     uint64_t pm,
+                     uint64_t ver,
+                     const e::buffer& k,
+                     const std::vector<e::buffer>& val)
+                    : seqno(0)
+                    , next(NULL)
+                    , op(PUT)
+                    , point(p)
+                    , point_mask(pm)
+                    , version(ver)
+                    , key(k)
+                    , value(val)
+                    , m_ref(0)
+                {
+                }
+
+                node(uint64_t p,
+                     uint64_t pm,
+                     const e::buffer& k)
+                    : seqno(0)
+                    , next(NULL)
+                    , op(DEL)
+                    , point(p)
+                    , point_mask(pm)
+                    , version()
+                    , key(k)
+                    , value()
+                    , m_ref(0)
+                {
+                }
+
+                ~node() throw ()
+                {
+                }
 
             public:
-                const uint64_t seqno;
-                const std::auto_ptr<record> rec;
-                node* next;
+                uint64_t seqno;
+                e::intrusive_ptr<node> next;
+                op_t op;
+                uint64_t point;
+                uint64_t point_mask;
+                uint64_t version;
+                e::buffer key;
+                std::vector<e::buffer> value;
 
-            // Reference counting operations.
-            // The value after the operation is returned.
-            public:
-                int inc() { return __sync_add_and_fetch(&refcount, 1); }
-                int dec() { return __sync_add_and_fetch(&refcount, -1); }
+            private:
+                friend class e::intrusive_ptr<node>;
 
             private:
                 node(const node&);
-                node& operator = (const node&);
-                int refcount;
-        };
 
-    private:
-        friend class iterator;
+            private:
+                node& operator = (const node&);
+
+            private:
+                size_t m_ref;
+        };
 
     private:
         log(const log&);
         log& operator = (const log&);
 
     private:
-        std::tr1::shared_ptr<hyperdex::log::drain> m_drain;
+        bool common_append(e::intrusive_ptr<node> n);
+        e::intrusive_ptr<node> get_head();
+
+    private:
         uint64_t m_seqno;
         po6::threads::rwlock m_head_lock;
         po6::threads::mutex m_tail_lock;
-        node* m_head;
-        node* m_tail;
+        e::intrusive_ptr<node> m_head;
+        e::intrusive_ptr<node> m_tail;
         po6::threads::mutex m_flush_lock;
-        bool m_shutdown;
 };
 
 } // namespace hyperdex

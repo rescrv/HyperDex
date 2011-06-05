@@ -36,197 +36,96 @@
 // HyperDex
 #include <hyperdex/log.h>
 
-hyperdex :: log :: log(std::tr1::shared_ptr<hyperdex::log::drain> d)
-    : m_drain(d)
-    , m_seqno(1)
+hyperdex :: log :: log()
+    : m_seqno(1)
     , m_head_lock()
     , m_tail_lock()
     , m_head(NULL)
     , m_tail(NULL)
     , m_flush_lock()
-    , m_shutdown(false)
 {
     m_head = m_tail = new node();
-    int ref = m_head->inc();
-    assert(ref == 1);
 }
 
-hyperdex :: log :: ~log()
+hyperdex :: log :: ~log() throw ()
 {
-    assert(m_shutdown);
-    assert(m_head == m_tail);
-    assert(m_head != NULL);
-
-    delete m_head;
+    while (m_head)
+    {
+        m_head = m_head->next;
+    }
 }
 
 bool
-hyperdex :: log :: append(std::auto_ptr<record> rec)
+hyperdex :: log :: append(uint64_t point, uint64_t point_mask, uint64_t version,
+                          const e::buffer& key,
+                          const std::vector<e::buffer>& value)
 {
-    if (m_shutdown)
-    {
-        return false;
-    }
-
-    m_tail_lock.lock();
-    node* n = new node(m_seqno, rec);
-    int ref = n->inc();
-    assert(ref == 1);
-    m_tail->next = n;
-    m_tail = n;
-    ++ m_seqno;
-    m_tail_lock.unlock();
-    return true;
+    e::intrusive_ptr<node> n = new node(point, point_mask, version, key, value);
+    return common_append(n);
 }
 
-void
-hyperdex :: log :: flush()
+bool
+hyperdex :: log :: append(uint64_t point, uint64_t point_mask,
+                          const e::buffer& key)
 {
-    m_flush_lock.lock();
-    m_head_lock.wrlock();
-    node* pos = m_head;
-    m_head_lock.unlock();
-    node* end = append_empty();
-
-    while (pos != end)
-    {
-        if (pos->seqno > 0 && m_drain)
-        {
-            m_drain->one(pos->seqno, pos->rec.get());
-        }
-
-        m_head_lock.wrlock();
-        m_head = pos->next;
-        m_head_lock.unlock();
-        pos = step_list(pos);
-    }
-
-    m_flush_lock.unlock();
+    e::intrusive_ptr<node> n = new node(point, point_mask, key);
+    return common_append(n);
 }
 
-hyperdex :: log :: node*
-hyperdex :: log :: append_empty()
-{
-    m_tail_lock.lock();
-    node* n = new node();
-    int ref = n->inc();
-    assert(ref == 1);
-    m_tail->next = n;
-    m_tail = n;
-    m_tail_lock.unlock();
-    return n;
-}
-
-hyperdex :: log :: node*
+e::intrusive_ptr<hyperdex::log::node>
 hyperdex :: log :: get_head()
 {
-    m_head_lock.rdlock();
-    node* ret = m_head;
-
-    if (ret)
-    {
-        ret->inc();
-    }
-
-    m_head_lock.unlock();
-    return ret;
+    po6::threads::rwlock::rdhold hold(&m_head_lock);
+    return m_head;
 }
 
-hyperdex :: log :: node*
-hyperdex :: log :: step_list(node* pos)
+bool
+hyperdex :: log :: common_append(e::intrusive_ptr<node> n)
 {
-    node* next = pos->next;
-
-    if (next)
-    {
-        next->inc();
-    }
-
-    int ref = pos->dec();
-
-    if (ref == 0)
-    {
-        if (next)
-        {
-            next->dec();
-        }
-
-        pos->next = NULL;
-        delete pos;
-    }
-
-    return next;
-}
-
-hyperdex :: log :: record :: record()
-{
-}
-
-hyperdex :: log :: record :: ~record()
-{
+    po6::threads::mutex::hold hold(&m_tail_lock);
+    n->seqno = m_seqno;
+    ++m_seqno;
+    m_tail->next = n;
+    m_tail = n;
+    return true;
 }
 
 hyperdex :: log :: iterator :: iterator(hyperdex::log* l)
     : m_l(l)
     , m_n(l->get_head())
-    , m_called(false)
+    , m_seen(false)
 {
-    if (l->is_shutdown())
-    {
-        throw std::runtime_error("Cannot iterate over a shutdown log.");
-    }
 }
 
-hyperdex :: log :: iterator :: ~iterator()
+hyperdex :: log :: iterator :: ~iterator() throw ()
 {
     while (m_n)
     {
-        m_n = m_l->step_list(m_n);
+        m_n = m_n->next;
     }
 }
 
 bool
-hyperdex :: log :: iterator :: step()
+hyperdex :: log :: iterator :: advance()
 {
-    // Invariants which hold at the beginning of step:
-    //  - The current node has been passed to the callback if and only if
-    //    m_called.
-    //  - m_n points to a valid list node.
+    // - m_n should always point to a node.
+    // - m_seen is set to false when advancing to a node, and true when it is
+    //   impossible to advance.
 
     // Find the earliest node for which we have not called the callback and
     // which also has a non-zero sequence number.
-    while (m_n->next && (m_called || m_n->seqno == 0))
+    while (m_n->next && (m_seen || m_n->seqno == 0))
     {
-        m_called = false;
-        m_n = m_l->step_list(m_n);
+        m_seen = false;
+        m_n = m_n->next;
     }
 
     // If said node doesn't exist, return false
-    if (m_called || m_n->seqno == 0)
+    if (m_seen || m_n->seqno == 0)
     {
         return false;
     }
 
-    // Otherwise call the iterator callback
-    this->callback(m_n->seqno, m_n->rec.get());
-    m_called = true;
+    m_seen = true;
     return true;
-}
-
-void
-hyperdex :: log :: iterator :: callback(uint64_t, record*)
-{
-}
-
-hyperdex :: log :: drain :: drain()
-{
-}
-
-hyperdex :: log :: drain :: ~drain()
-{
-}
-
-void
-hyperdex :: log :: drain :: one(uint64_t, hyperdex::log::record*)
-{
 }

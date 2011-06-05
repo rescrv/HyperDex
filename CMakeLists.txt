@@ -106,7 +106,6 @@ set(hyperdex_test_srcs
     test/hyperdex/disk.cc
     test/hyperdex/hyperspace.cc
     test/hyperdex/ids.cc
-    test/hyperdex/log.cc
     test/hyperdex/lockingq.cc
     test/hyperdex/mapper.cc
     test/hyperdex/query.cc
@@ -147,21 +146,6 @@ add_test(BloomTest.Serialization testrunner
 
 add_test(MapperTest.CtorAndDtor testrunner
     --gtest_filter=MapperTest.CtorAndDtor)
-
-add_test(LogTest.CtorAndDtor testrunner
-    --gtest_filter=LogTest.CtorAndDtor)
-add_test(LogTest.CtorAndDtorDeathTest testrunner
-    --gtest_filter=LogTest.CtorAndDtorDeathTest)
-add_test(LogTest.NonEmptyLogDeathTest testrunner
-    --gtest_filter=LogTest.NonEmptyLogDeathTest)
-add_test(LogTest.SimpleIteration testrunner
-    --gtest_filter=LogTest.SimpleIteration)
-add_test(LogTest.IterateAddIterate testrunner
-    --gtest_filter=LogTest.IterateAddIterate)
-add_test(LogTest.IterateDrainIterate testrunner
-    --gtest_filter=LogTest.IterateDrainIterate)
-add_test(LogTest.ConcurrentIteration testrunner
-    --gtest_filter=LogTest.ConcurrentIteration)
 
 add_test(LockingqTest.CtorAndDtor testrunner
     --gtest_filter=LockingqTest.CtorAndDtor)
