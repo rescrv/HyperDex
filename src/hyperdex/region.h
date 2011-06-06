@@ -68,8 +68,12 @@ class region
         friend class e::intrusive_ptr<region>;
 
     private:
+        void get_value_hashes(const std::vector<e::buffer>& value, std::vector<uint64_t>* value_hashes);
         uint64_t get_point_for(uint64_t key_hash);
-        uint64_t get_point_for(uint64_t key_hash, const std::vector<e::buffer>& value_hashes);
+        uint64_t get_point_for(uint64_t key_hash, const std::vector<uint64_t>& value_hashes);
+        void flush_one(op_t op, uint64_t point, const e::buffer& key,
+                       uint64_t key_hash, const std::vector<e::buffer>& value,
+                       const std::vector<uint64_t>& value_hashes, uint64_t version);
 
     private:
         size_t m_ref;

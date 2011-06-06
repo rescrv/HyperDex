@@ -91,10 +91,19 @@ hyperdex :: region :: get(const e::buffer& key,
     std::vector<e::buffer> tmp_value;
     uint64_t tmp_version = 0;
     uint64_t key_hash = CityHash64(key);
+    uint64_t key_point = get_point_for(key_hash);
     po6::threads::rwlock::rdhold hold(&m_rwlock);
 
     for (disk_vector::iterator i = m_disks.begin(); i != m_disks.end(); ++i)
     {
+        uint64_t pmask = prefixmask(i->first.prefix);
+
+        if ((i->first.mask & m_point_mask & pmask)
+                != (key_point & pmask))
+        {
+            continue;
+        }
+
         result_t res = i->second->get(key, key_hash, &tmp_value, &tmp_version);
 
         if (res == SUCCESS)
@@ -139,13 +148,15 @@ hyperdex :: region :: put(const e::buffer& key,
                           uint64_t version)
 {
     uint64_t key_hash = CityHash64(key);
-    uint64_t point = get_point_for(key_hash, value);
+    std::vector<uint64_t> value_hashes;
+    get_value_hashes(value, &value_hashes);
+    uint64_t point = get_point_for(key_hash, value_hashes);
 
     if (value.size() + 1 != m_numcolumns)
     {
         return INVALID;
     }
-    else if (m_log.append(key_hash, point, m_point_mask, version, key, value))
+    else if (m_log.append(point, key, key_hash, value, value_hashes, version))
     {
         return SUCCESS;
     }
@@ -162,7 +173,7 @@ hyperdex :: region :: del(const e::buffer& key)
     uint64_t key_hash = CityHash64(key);
     uint64_t point = get_point_for(key_hash);
 
-    if (m_log.append(key_hash, point, m_point_mask, key))
+    if (m_log.append(point, key, key_hash))
     {
         return SUCCESS;
     }
@@ -176,8 +187,70 @@ hyperdex :: region :: del(const e::buffer& key)
 size_t
 hyperdex :: region :: flush()
 {
-    LOG(INFO) << "FLUSHING";
-    return 0;
+    using std::tr1::placeholders::_1;
+    using std::tr1::placeholders::_2;
+    using std::tr1::placeholders::_3;
+    using std::tr1::placeholders::_4;
+    using std::tr1::placeholders::_5;
+    using std::tr1::placeholders::_6;
+    using std::tr1::placeholders::_7;
+    return m_log.flush(std::tr1::bind(&region::flush_one, this, _1, _2, _3, _4, _5, _6, _7));
+}
+
+void
+hyperdex :: region :: flush_one(op_t op, uint64_t point, const e::buffer& key,
+                                uint64_t key_hash,
+                                const std::vector<e::buffer>& value,
+                                const std::vector<uint64_t>& value_hashes,
+                                uint64_t version)
+{
+    // XXX to prevent excessive failures, we should probably add some logic here
+    // to block until a split occurs to resolve disk space issues.
+
+    // Delete from every disk
+    po6::threads::rwlock::rdhold hold(&m_rwlock);
+
+    for (disk_vector::iterator i = m_disks.begin(); i != m_disks.end(); ++i)
+    {
+        // Use m_point_mask because we want every disk which could have this
+        // key.
+        uint64_t pmask = prefixmask(i->first.prefix) & m_point_mask;
+
+        if ((i->first.mask & pmask) != (point & pmask))
+        {
+            continue;
+        }
+
+        result_t res = i->second->del(key, key_hash);
+
+        if (res != SUCCESS && res != NOTFOUND)
+        {
+            // XXX FAIL DISK
+            LOG(INFO) << "Disk has failed.";
+        }
+    }
+
+    // Put to one disk
+    if (op == PUT)
+    {
+        for (disk_vector::iterator i = m_disks.begin(); i != m_disks.end(); ++i)
+        {
+            uint64_t pmask = prefixmask(i->first.prefix);
+
+            if ((i->first.mask & pmask) != (point & pmask))
+            {
+                continue;
+            }
+
+            result_t res = i->second->put(key, key_hash, value, value_hashes, version);
+
+            if (res != SUCCESS)
+            {
+                // XXX FAIL DISK
+                LOG(INFO) << "Disk has failed.";
+            }
+        }
+    }
 }
 
 void
@@ -202,6 +275,16 @@ hyperdex :: region :: sync()
     }
 }
 
+void
+hyperdex :: region :: get_value_hashes(const std::vector<e::buffer>& value,
+                                       std::vector<uint64_t>* value_hashes)
+{
+    for (size_t i = 0; i < value.size(); ++i)
+    {
+        value_hashes->push_back(CityHash64(value[i]));
+    }
+}
+
 uint64_t
 hyperdex :: region :: get_point_for(uint64_t key_hash)
 {
@@ -217,14 +300,14 @@ hyperdex :: region :: get_point_for(uint64_t key_hash)
 }
 
 uint64_t
-hyperdex :: region :: get_point_for(uint64_t key_hash, const std::vector<e::buffer>& value_hashes)
+hyperdex :: region :: get_point_for(uint64_t key_hash, const std::vector<uint64_t>& value_hashes)
 {
     std::vector<uint64_t> points;
     points.push_back(key_hash);
 
     for (size_t i = 0; i < value_hashes.size(); ++i)
     {
-        points.push_back(CityHash64(value_hashes[i]));
+        points.push_back(value_hashes[i]);
     }
 
     return interlace(points);

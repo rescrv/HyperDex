@@ -33,6 +33,9 @@
 #include <stdexcept>
 #include <string>
 
+// Google Log
+#include <glog/logging.h>
+
 // HyperDex
 #include <hyperdex/log.h>
 
@@ -45,6 +48,7 @@ hyperdex :: log :: log()
     , m_flush_lock()
 {
     m_head = m_tail = new node();
+    m_head->seqno = 0;
 }
 
 hyperdex :: log :: ~log() throw ()
@@ -56,55 +60,60 @@ hyperdex :: log :: ~log() throw ()
 }
 
 bool
-hyperdex :: log :: append(uint64_t key_hash, uint64_t point,
-                          uint64_t point_mask, uint64_t version,
+hyperdex :: log :: append(uint64_t point,
                           const e::buffer& key,
-                          const std::vector<e::buffer>& value)
+                          uint64_t key_hash,
+                          const std::vector<e::buffer>& value,
+                          const std::vector<uint64_t>& value_hashes,
+                          uint64_t version)
 {
-    e::intrusive_ptr<node> n = new node(key_hash, point, point_mask, version, key, value);
+    e::intrusive_ptr<node> n = new node(point, key, key_hash, value, value_hashes, version);
     return common_append(n);
 }
 
 bool
-hyperdex :: log :: append(uint64_t key_hash, uint64_t point,
-                          uint64_t point_mask, const e::buffer& key)
+hyperdex :: log :: append(uint64_t point,
+                          const e::buffer& key,
+                          uint64_t key_hash)
 {
-    e::intrusive_ptr<node> n = new node(key_hash, point, point_mask, key);
+    e::intrusive_ptr<node> n = new node(point, key, key_hash);
     return common_append(n);
 }
 
 size_t
-hyperdex :: log :: flush(std::tr1::function<void (op_t /* op */, uint64_t /* key_hash*/,
-                                                  uint64_t /* point */,
-                                                  uint64_t /* point_mask */,
-                                                  uint64_t /* version */,
-                                                  const e::buffer& /* key */,
-                                                  const std::vector<e::buffer>& /* value */)>save_one)
+hyperdex :: log :: flush(std::tr1::function<void (op_t op,
+                                                  uint64_t point,
+                                                  const e::buffer& key,
+                                                  uint64_t key_hash,
+                                                  const std::vector<e::buffer>& value,
+                                                  const std::vector<uint64_t>& value_hashes,
+                                                  uint64_t version)> save_one)
 {
     po6::threads::mutex::hold hold(&m_flush_lock);
     m_head_lock.wrlock();
     e::intrusive_ptr<node> pos = m_head;
     m_head_lock.unlock();
     e::intrusive_ptr<node> end = new node();
-    common_append(end);
+    end->seqno = 0;
+    common_append(end, false);
     size_t flushed = 0;
 
     while (pos != end)
     {
         if (pos->seqno > 0)
         {
-            save_one(pos->op, pos->key_hash, pos->point, pos->point_mask,
-                     pos->version, pos->key, pos->value);
+            save_one(pos->op, pos->point, pos->key, pos->key_hash,
+                     pos->value, pos->value_hashes, pos->version);
         }
 
         m_head_lock.wrlock();
         m_head = m_head->next;
+        pos = m_head;
         m_head_lock.unlock();
-        pos = pos->next;
         ++ flushed;
     }
 
-    return flushed;
+    return flushed - 1;
 }
 
 e::intrusive_ptr<hyperdex::log::node>
@@ -115,11 +124,16 @@ hyperdex :: log :: get_head()
 }
 
 bool
-hyperdex :: log :: common_append(e::intrusive_ptr<node> n)
+hyperdex :: log :: common_append(e::intrusive_ptr<node> n, bool seqno)
 {
     po6::threads::mutex::hold hold(&m_tail_lock);
-    n->seqno = m_seqno;
-    ++m_seqno;
+
+    if (seqno)
+    {
+        n->seqno = m_seqno;
+        ++m_seqno;
+    }
+
     m_tail->next = n;
     m_tail = n;
     return true;
@@ -136,6 +150,7 @@ hyperdex :: log :: iterator :: ~iterator() throw ()
 {
     while (m_n)
     {
+        e::intrusive_ptr<node> tmp = m_n;
         m_n = m_n->next;
     }
 }
@@ -152,6 +167,8 @@ hyperdex :: log :: iterator :: advance()
     while (m_n->next && (m_seen || m_n->seqno == 0))
     {
         m_seen = false;
+        e::intrusive_ptr<node> tmp;
+        tmp = m_n;
         m_n = m_n->next;
     }
 

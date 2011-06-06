@@ -91,19 +91,19 @@ class log
 
     public:
         iterator iterate() { return iterator(this); }
-        bool append(uint64_t key_hash, uint64_t point, uint64_t point_mask,
-                    uint64_t version, const e::buffer& key,
-                    const std::vector<e::buffer>& value);
-        bool append(uint64_t key_hash, uint64_t point, uint64_t point_mask,
-                    const e::buffer& key);
+        bool append(uint64_t point, const e::buffer& key, uint64_t key_hash,
+                    const std::vector<e::buffer>& value,
+                    const std::vector<uint64_t>& value_hashes, uint64_t version);
+        bool append(uint64_t point, const e::buffer& key, uint64_t key_hash);
 
     public:
-        size_t flush(std::tr1::function<void (op_t op, uint64_t /* key_hash*/,
-                                              uint64_t /* point */,
-                                              uint64_t /* point_mask */,
-                                              uint64_t /* version */,
-                                              const e::buffer& /* key */,
-                                              const std::vector<e::buffer>& /* value */)>save_one);
+        size_t flush(std::tr1::function<void (op_t op,
+                                              uint64_t point,
+                                              const e::buffer& key,
+                                              uint64_t key_hash,
+                                              const std::vector<e::buffer>& value,
+                                              const std::vector<uint64_t>& value_hashes,
+                                              uint64_t version)> save_one);
 
     private:
         friend class iterator;
@@ -116,48 +116,42 @@ class log
                     : seqno(0)
                     , next(NULL)
                     , op(DEL)
-                    , key_hash(0)
                     , point()
-                    , point_mask()
-                    , version()
                     , key()
+                    , key_hash(0)
                     , value()
+                    , value_hashes()
+                    , version()
                     , m_ref(0)
                 {
                 }
 
-                node(uint64_t kh,
-                     uint64_t p,
-                     uint64_t pm,
-                     uint64_t ver,
-                     const e::buffer& k,
-                     const std::vector<e::buffer>& val)
+                node(uint64_t p, const e::buffer& k,
+                     uint64_t kh, const std::vector<e::buffer>& val,
+                     const std::vector<uint64_t>& valh, uint64_t ver)
                     : seqno(0)
                     , next(NULL)
                     , op(PUT)
-                    , key_hash(kh)
                     , point(p)
-                    , point_mask(pm)
-                    , version(ver)
                     , key(k)
+                    , key_hash(kh)
                     , value(val)
+                    , value_hashes(valh)
+                    , version(ver)
                     , m_ref(0)
                 {
                 }
 
-                node(uint64_t kh,
-                     uint64_t p,
-                     uint64_t pm,
-                     const e::buffer& k)
+                node(uint64_t p, const e::buffer& k, uint64_t kh)
                     : seqno(0)
                     , next(NULL)
                     , op(DEL)
-                    , key_hash(kh)
                     , point(p)
-                    , point_mask(pm)
-                    , version()
                     , key(k)
+                    , key_hash(kh)
                     , value()
+                    , value_hashes()
+                    , version()
                     , m_ref(0)
                 {
                 }
@@ -170,12 +164,12 @@ class log
                 uint64_t seqno;
                 e::intrusive_ptr<node> next;
                 op_t op;
-                uint64_t key_hash;
                 uint64_t point;
-                uint64_t point_mask;
-                uint64_t version;
                 e::buffer key;
+                uint64_t key_hash;
                 std::vector<e::buffer> value;
+                std::vector<uint64_t> value_hashes;
+                uint64_t version;
 
             private:
                 friend class e::intrusive_ptr<node>;
@@ -195,7 +189,7 @@ class log
         log& operator = (const log&);
 
     private:
-        bool common_append(e::intrusive_ptr<node> n);
+        bool common_append(e::intrusive_ptr<node> n, bool seqno = true);
         e::intrusive_ptr<node> get_head();
 
     private:
