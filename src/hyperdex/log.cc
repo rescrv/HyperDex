@@ -73,6 +73,40 @@ hyperdex :: log :: append(uint64_t key_hash, uint64_t point,
     return common_append(n);
 }
 
+size_t
+hyperdex :: log :: flush(std::tr1::function<void (op_t /* op */, uint64_t /* key_hash*/,
+                                                  uint64_t /* point */,
+                                                  uint64_t /* point_mask */,
+                                                  uint64_t /* version */,
+                                                  const e::buffer& /* key */,
+                                                  const std::vector<e::buffer>& /* value */)>save_one)
+{
+    po6::threads::mutex::hold hold(&m_flush_lock);
+    m_head_lock.wrlock();
+    e::intrusive_ptr<node> pos = m_head;
+    m_head_lock.unlock();
+    e::intrusive_ptr<node> end = new node();
+    common_append(end);
+    size_t flushed = 0;
+
+    while (pos != end)
+    {
+        if (pos->seqno > 0)
+        {
+            save_one(pos->op, pos->key_hash, pos->point, pos->point_mask,
+                     pos->version, pos->key, pos->value);
+        }
+
+        m_head_lock.wrlock();
+        m_head = m_head->next;
+        m_head_lock.unlock();
+        pos = pos->next;
+        ++ flushed;
+    }
+
+    return flushed;
+}
+
 e::intrusive_ptr<hyperdex::log::node>
 hyperdex :: log :: get_head()
 {

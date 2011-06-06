@@ -32,6 +32,7 @@
 #include <stdint.h>
 
 // STL
+#include <tr1/functional>
 #include <tr1/memory>
 
 // po6
@@ -97,10 +98,12 @@ class log
                     const e::buffer& key);
 
     public:
-        //void flush();
-
-    public:
-        //bool is_flushed() const throw () { return (m_head == m_tail); }
+        size_t flush(std::tr1::function<void (op_t op, uint64_t /* key_hash*/,
+                                              uint64_t /* point */,
+                                              uint64_t /* point_mask */,
+                                              uint64_t /* version */,
+                                              const e::buffer& /* key */,
+                                              const std::vector<e::buffer>& /* value */)>save_one);
 
     private:
         friend class iterator;
