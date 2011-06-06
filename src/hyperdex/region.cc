@@ -173,9 +173,11 @@ hyperdex :: region :: del(const e::buffer& key)
     }
 }
 
-void
-flush()
+size_t
+hyperdex :: region :: flush()
 {
+    LOG(INFO) << "FLUSHING";
+    return 0;
 }
 
 void

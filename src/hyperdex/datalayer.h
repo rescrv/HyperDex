@@ -60,6 +60,7 @@ class datalayer
         std::set<regionid> regions();
         void create(const regionid& ri, uint16_t numcolumns);
         void drop(const regionid& ri);
+        void shutdown();
 
     // Key-Value store operations.
     public:
@@ -72,11 +73,14 @@ class datalayer
 
     private:
         e::intrusive_ptr<hyperdex::region> get_region(const regionid& ri);
+        void flush_loop();
 
     private:
         datalayer& operator = (const datalayer&);
 
     private:
+        bool m_shutdown;
+        po6::threads::thread m_flusher;
         po6::threads::rwlock m_lock;
         std::map<regionid, e::intrusive_ptr<hyperdex::region> > m_regions;
 };

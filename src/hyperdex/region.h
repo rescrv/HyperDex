@@ -60,7 +60,7 @@ class region
         result_t put(const e::buffer& key, const std::vector<e::buffer>& value,
                      uint64_t version);
         result_t del(const e::buffer& key);
-        void flush();
+        size_t flush();
         void async();
         void sync();
 

@@ -36,6 +36,7 @@
 #include <iomanip>
 #include <set>
 #include <sstream>
+#include <tr1/functional>
 
 // Google Log
 #include <glog/logging.h>
@@ -47,13 +48,22 @@ typedef e::intrusive_ptr<hyperdex::region> region_ptr;
 typedef std::map<e::buffer, std::pair<uint64_t, std::vector<e::buffer> > > region_map_t;
 
 hyperdex :: datalayer :: datalayer()
-    : m_lock()
+    : m_shutdown(false)
+    , m_flusher(std::tr1::bind(&datalayer::flush_loop, this))
+    , m_lock()
     , m_regions()
 {
+    m_flusher.start();
 }
 
 hyperdex :: datalayer :: ~datalayer() throw ()
 {
+    if (!m_shutdown)
+    {
+        shutdown();
+    }
+
+    m_flusher.join();
 }
 
 std::set<hyperdex::regionid>
@@ -120,6 +130,13 @@ hyperdex :: datalayer :: drop(const regionid& ri)
     }
 }
 
+void
+hyperdex :: datalayer :: shutdown()
+{
+    m_shutdown = true;
+    __sync_synchronize();
+}
+
 hyperdex :: result_t
 hyperdex :: datalayer :: get(const regionid& ri,
                              const e::buffer& key,
@@ -180,5 +197,44 @@ hyperdex :: datalayer :: get_region(const regionid& ri)
     else
     {
         return i->second;
+    }
+}
+
+void
+hyperdex :: datalayer :: flush_loop()
+{
+    while (!m_shutdown)
+    {
+        std::set<e::intrusive_ptr<region> > to_flush;
+        bool sleep = true;
+
+        { // Hold the lock only in this scope.
+            po6::threads::rwlock::rdhold hold(&m_lock);
+
+            for (std::map<regionid, e::intrusive_ptr<region> >::iterator i = m_regions.begin();
+                    i != m_regions.end(); ++i)
+            {
+                to_flush.insert(i->second);
+            }
+        }
+
+        for (std::set<e::intrusive_ptr<region> >::iterator i = to_flush.begin();
+                    i != to_flush.end(); ++i)
+        {
+            if ((*i)->flush() > 0)
+            {
+                sleep = false;
+            }
+
+            (*i)->async();
+        }
+
+        if (sleep)
+        {
+            timespec ts;
+            ts.tv_sec = 0;
+            ts.tv_nsec = 10000000; // 10ms
+            nanosleep(&ts, &ts); // If interrupted, it is no big deal.
+        }
     }
 }
