@@ -319,10 +319,8 @@ hyperdex :: disk :: find_bucket_for_key(const e::buffer& key,
         {
             dead_hash = tmp_hash;
             dead_offset = tmp_offset;
-            continue;
         }
-
-        if (*tmp_hash == short_key_hash)
+        else if (*tmp_offset != UINT32_MAX && *tmp_hash == short_key_hash)
         {
             uint64_t curr_offset = *tmp_offset + sizeof(uint64_t);
             uint32_t key_size;
