@@ -48,6 +48,10 @@ hyperdex :: datalayer :: datalayer()
 {
 }
 
+hyperdex :: datalayer :: ~datalayer() throw ()
+{
+}
+
 std::set<hyperdex::regionid>
 hyperdex :: datalayer :: regions()
 {

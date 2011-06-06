@@ -52,6 +52,7 @@ class datalayer
 {
     public:
         datalayer();
+        ~datalayer() throw ();
 
     // Space operations.
     public:
