@@ -61,6 +61,8 @@ class region
                      uint64_t version);
         result_t del(const e::buffer& key);
         void flush();
+        void async();
+        void sync();
 
     private:
         friend class e::intrusive_ptr<region>;

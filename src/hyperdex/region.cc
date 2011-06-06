@@ -178,6 +178,28 @@ flush()
 {
 }
 
+void
+hyperdex :: region :: async()
+{
+    po6::threads::rwlock::rdhold hold(&m_rwlock);
+
+    for (disk_vector::iterator i = m_disks.begin(); i != m_disks.end(); ++i)
+    {
+        i->second->async();
+    }
+}
+
+void
+hyperdex :: region :: sync()
+{
+    po6::threads::rwlock::rdhold hold(&m_rwlock);
+
+    for (disk_vector::iterator i = m_disks.begin(); i != m_disks.end(); ++i)
+    {
+        i->second->sync();
+    }
+}
+
 uint64_t
 hyperdex :: region :: get_point_for(uint64_t key_hash)
 {
