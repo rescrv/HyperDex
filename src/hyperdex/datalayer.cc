@@ -233,7 +233,7 @@ hyperdex :: datalayer :: flush_loop()
         {
             timespec ts;
             ts.tv_sec = 0;
-            ts.tv_nsec = 10000000; // 10ms
+            ts.tv_nsec = 100000000; // 100ms
             nanosleep(&ts, &ts); // If interrupted, it is no big deal.
         }
     }
