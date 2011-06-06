@@ -111,4 +111,54 @@ TEST(DiskTest, MultiPut)
     ASSERT_TRUE(e::buffer("value-two-b", 11) == value[1]);
 }
 
+TEST(DiskTest, DelPutDelPut)
+{
+    hyperdex::zero_fill("tmp-disk");
+    hyperdex::disk d("tmp-disk");
+    unlink("tmp-disk");
+	e::buffer key("key", 3);
+	uint64_t key_hash = 11062368440904502521UL;
+    std::vector<e::buffer> value;
+    std::vector<uint64_t> value_hashes;
+    uint64_t version = 0xdeadbeefcafebabe;
+
+	// Prepare the point.
+	value.push_back(e::buffer("value", 5));
+	value_hashes.push_back(17168316521448127654UL);
+
+	// Alternate put/delete.
+	ASSERT_EQ(hyperdex::SUCCESS, d.del(key, key_hash));
+	ASSERT_EQ(hyperdex::SUCCESS, d.put(key, key_hash, value, value_hashes, version));
+	ASSERT_EQ(hyperdex::SUCCESS, d.del(key, key_hash));
+	ASSERT_EQ(hyperdex::SUCCESS, d.put(key, key_hash, value, value_hashes, version));
+	ASSERT_EQ(hyperdex::SUCCESS, d.del(key, key_hash));
+	ASSERT_EQ(hyperdex::SUCCESS, d.put(key, key_hash, value, value_hashes, version));
+	ASSERT_EQ(hyperdex::SUCCESS, d.del(key, key_hash));
+	ASSERT_EQ(hyperdex::SUCCESS, d.put(key, key_hash, value, value_hashes, version));
+	ASSERT_EQ(hyperdex::SUCCESS, d.del(key, key_hash));
+	ASSERT_EQ(hyperdex::SUCCESS, d.put(key, key_hash, value, value_hashes, version));
+	ASSERT_EQ(hyperdex::SUCCESS, d.del(key, key_hash));
+	ASSERT_EQ(hyperdex::SUCCESS, d.put(key, key_hash, value, value_hashes, version));
+	ASSERT_EQ(hyperdex::SUCCESS, d.del(key, key_hash));
+	ASSERT_EQ(hyperdex::SUCCESS, d.put(key, key_hash, value, value_hashes, version));
+	ASSERT_EQ(hyperdex::SUCCESS, d.del(key, key_hash));
+	ASSERT_EQ(hyperdex::SUCCESS, d.put(key, key_hash, value, value_hashes, version));
+	ASSERT_EQ(hyperdex::SUCCESS, d.del(key, key_hash));
+	ASSERT_EQ(hyperdex::SUCCESS, d.put(key, key_hash, value, value_hashes, version));
+	ASSERT_EQ(hyperdex::SUCCESS, d.del(key, key_hash));
+	ASSERT_EQ(hyperdex::SUCCESS, d.put(key, key_hash, value, value_hashes, version));
+
+    // A GET should succeed.
+	ASSERT_EQ(hyperdex::SUCCESS, d.get(key, key_hash, &value, &version));
+	ASSERT_EQ(1, value.size());
+	ASSERT_TRUE(e::buffer("value", 5) == value[0]);
+	ASSERT_EQ(0xdeadbeefcafebabe, version);
+
+	// One last delete.
+	ASSERT_EQ(hyperdex::SUCCESS, d.del(key, key_hash));
+
+    // A GET should fail.
+	ASSERT_EQ(hyperdex::SUCCESS, d.get(key, key_hash, &value, &version));
+}
+
 } // namespace
