@@ -64,6 +64,7 @@ class disk
                      const std::vector<uint64_t>& value_hashes,
                      uint64_t version);
         result_t del(const e::buffer& key, uint64_t key_hash);
+        void async();
         void sync();
 
     private:

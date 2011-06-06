@@ -278,6 +278,15 @@ hyperdex :: disk :: sync()
     }
 }
 
+void
+hyperdex :: disk :: async()
+{
+    if (msync(m_base, TOTAL_FILE_SIZE, MS_ASYNC) < 0)
+    {
+        PLOG(INFO) << "Could not sync disk";
+    }
+}
+
 bool
 hyperdex :: disk :: find_bucket_for_key(const e::buffer& key,
                                         uint64_t key_hash,
