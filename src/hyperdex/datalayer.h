@@ -36,6 +36,7 @@
 
 // po6
 #include <po6/threads/rwlock.h>
+#include <po6/threads/thread.h>
 
 // e
 #include <e/buffer.h>

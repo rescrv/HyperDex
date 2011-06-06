@@ -28,6 +28,10 @@
 // C
 #include <cassert>
 
+// POSIX
+#include <sys/stat.h>
+#include <sys/types.h>
+
 // STL
 #include <iomanip>
 #include <set>
@@ -78,13 +82,18 @@ hyperdex :: datalayer :: create(const regionid& ri,
     if (i == m_regions.end())
     {
         std::ostringstream ostr;
-        ostr << "REGION:" << std::showbase << std::hex << ri.space << "-"
-             << ri.subspace << "-" << (int) ri.prefix << "-" << ri.mask;
-        zero_fill(ostr.str().c_str());
+        ostr << ri;
+
+        if (mkdir(ostr.str().c_str(), S_IRWXU) < 0 && errno != EEXIST)
+        {
+            LOG(INFO) << "TRACE";
+            throw po6::error(errno);
+        }
+
         LOG(INFO) << "Creating " << ri << " with " << numcolumns << " columns "
-                  << "on disk " << ostr.str();
+                  << "in directory " << ostr.str();
         region_ptr reg;
-        reg = new region(ostr.str().c_str(), numcolumns);
+        reg = new region(ri, ostr.str().c_str(), numcolumns);
         m_regions.insert(std::make_pair(ri, reg));
     }
     else

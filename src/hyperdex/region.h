@@ -30,12 +30,20 @@
 
 // STL
 #include <map>
+#include <utility>
+#include <vector>
 
 // po6
-#include <po6/threads/mutex.h>
+#include <po6/pathname.h>
+#include <po6/threads/rwlock.h>
+
+// e
+#include <e/intrusive_ptr.h>
 
 // HyperDex
 #include <hyperdex/disk.h>
+#include <hyperdex/ids.h>
+#include <hyperdex/log.h>
 #include <hyperdex/result_t.h>
 
 namespace hyperdex
@@ -44,7 +52,7 @@ namespace hyperdex
 class region
 {
     public:
-        region(const char* file, uint16_t nc);
+        region(const regionid& ri, const po6::pathname& directory, uint16_t nc);
 
     public:
         result_t get(const e::buffer& key, std::vector<e::buffer>* value,
@@ -52,15 +60,23 @@ class region
         result_t put(const e::buffer& key, const std::vector<e::buffer>& value,
                      uint64_t version);
         result_t del(const e::buffer& key);
+        void flush();
 
     private:
         friend class e::intrusive_ptr<region>;
 
     private:
+        uint64_t get_point_for(uint64_t key_hash);
+        uint64_t get_point_for(uint64_t key_hash, const std::vector<e::buffer>& value_hashes);
+
+    private:
         size_t m_ref;
         size_t m_numcolumns;
-        po6::threads::mutex m_lock;
-        hyperdex::disk m_disk;
+        uint64_t m_point_mask;
+        log m_log;
+        po6::threads::rwlock m_rwlock;
+        typedef std::vector<std::pair<regionid, e::intrusive_ptr<disk> > > disk_vector;
+        disk_vector m_disks;
 };
 
 } // namespace hyperdex
