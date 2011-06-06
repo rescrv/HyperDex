@@ -60,12 +60,17 @@ hyperdex :: disk :: disk(const po6::pathname& filename)
     , m_offset(INDEX_SEGMENT_SIZE)
     , m_search(0)
 {
-    // XXX Create if non-exists; Open if exists.
-    po6::io::fd fd(open(filename.get(), O_RDWR, S_IRUSR|S_IWUSR));
+    po6::io::fd fd(open(filename.get(), O_RDWR));
 
     if (fd.get() < 0)
     {
-        throw po6::error(errno);
+        zero_fill(filename);
+        fd = open(filename.get(), O_RDWR);
+
+        if (fd.get() < 0)
+        {
+            throw po6::error(errno);
+        }
     }
 
     struct stat buf;

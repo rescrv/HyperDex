@@ -48,7 +48,6 @@ hyperdex :: region :: region(const regionid& ri, const po6::pathname& directory,
     // Create one disk to start.  It will split as necessary.
     // XXX Implement splitting.
     po6::pathname path = join(directory, ostr.str());
-    zero_fill(path);
     e::intrusive_ptr<disk> d = new disk(join(directory, ostr.str()));
     m_disks.push_back(std::make_pair(ri, d));
 }
