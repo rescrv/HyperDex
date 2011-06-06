@@ -54,13 +54,13 @@
 #define INIT_BLOCK_SIZE 16384
 #define INIT_ITERATIONS (TOTAL_FILE_SIZE / INIT_BLOCK_SIZE)
 
-hyperdex :: disk :: disk(const char* filename)
+hyperdex :: disk :: disk(const po6::pathname& filename)
     : m_ref(0)
     , m_base(NULL)
     , m_offset(INDEX_SEGMENT_SIZE)
     , m_search(0)
 {
-    po6::io::fd fd(open(filename, O_RDWR, S_IRUSR|S_IWUSR));
+    po6::io::fd fd(open(filename.get(), O_RDWR, S_IRUSR|S_IWUSR));
 
     if (fd.get() < 0)
     {
@@ -372,9 +372,9 @@ hyperdex :: disk :: store_search_index(const std::vector<uint64_t>& value_hashes
 }
 
 void
-hyperdex :: zero_fill(const char* filename)
+hyperdex :: zero_fill(const po6::pathname& filename)
 {
-    po6::io::fd fd(open(filename, O_RDWR|O_CREAT|O_EXCL, S_IRUSR|S_IWUSR));
+    po6::io::fd fd(open(filename.get(), O_RDWR|O_CREAT|O_EXCL, S_IRUSR|S_IWUSR));
 
     if (fd.get() < 0)
     {

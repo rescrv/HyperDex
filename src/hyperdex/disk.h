@@ -28,6 +28,9 @@
 #ifndef hyperdex_disk_h_
 #define hyperdex_disk_h_
 
+// po6
+#include <po6/pathname.h>
+
 // e
 #include <e/buffer.h>
 #include <e/intrusive_ptr.h>
@@ -50,7 +53,7 @@ namespace hyperdex
 class disk
 {
     public:
-        disk(const char* filename);
+        disk(const po6::pathname& filename);
         ~disk() throw ();
 
     public:
@@ -95,7 +98,7 @@ class disk
 };
 
 void
-zero_fill(const char* filename);
+zero_fill(const po6::pathname& filename);
 
 } // namespace hyperdex
 
