@@ -56,19 +56,20 @@ hyperdex :: log :: ~log() throw ()
 }
 
 bool
-hyperdex :: log :: append(uint64_t point, uint64_t point_mask, uint64_t version,
+hyperdex :: log :: append(uint64_t key_hash, uint64_t point,
+                          uint64_t point_mask, uint64_t version,
                           const e::buffer& key,
                           const std::vector<e::buffer>& value)
 {
-    e::intrusive_ptr<node> n = new node(point, point_mask, version, key, value);
+    e::intrusive_ptr<node> n = new node(key_hash, point, point_mask, version, key, value);
     return common_append(n);
 }
 
 bool
-hyperdex :: log :: append(uint64_t point, uint64_t point_mask,
-                          const e::buffer& key)
+hyperdex :: log :: append(uint64_t key_hash, uint64_t point,
+                          uint64_t point_mask, const e::buffer& key)
 {
-    e::intrusive_ptr<node> n = new node(point, point_mask, key);
+    e::intrusive_ptr<node> n = new node(key_hash, point, point_mask, key);
     return common_append(n);
 }
 

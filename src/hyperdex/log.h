@@ -90,9 +90,11 @@ class log
 
     public:
         iterator iterate() { return iterator(this); }
-        bool append(uint64_t point, uint64_t point_mask, uint64_t version,
-                    const e::buffer& key, const std::vector<e::buffer>& value);
-        bool append(uint64_t point, uint64_t point_mask, const e::buffer& key);
+        bool append(uint64_t key_hash, uint64_t point, uint64_t point_mask,
+                    uint64_t version, const e::buffer& key,
+                    const std::vector<e::buffer>& value);
+        bool append(uint64_t key_hash, uint64_t point, uint64_t point_mask,
+                    const e::buffer& key);
 
     public:
         //void flush();
@@ -111,6 +113,7 @@ class log
                     : seqno(0)
                     , next(NULL)
                     , op(DEL)
+                    , key_hash(0)
                     , point()
                     , point_mask()
                     , version()
@@ -120,7 +123,8 @@ class log
                 {
                 }
 
-                node(uint64_t p,
+                node(uint64_t kh,
+                     uint64_t p,
                      uint64_t pm,
                      uint64_t ver,
                      const e::buffer& k,
@@ -128,6 +132,7 @@ class log
                     : seqno(0)
                     , next(NULL)
                     , op(PUT)
+                    , key_hash(kh)
                     , point(p)
                     , point_mask(pm)
                     , version(ver)
@@ -137,12 +142,14 @@ class log
                 {
                 }
 
-                node(uint64_t p,
+                node(uint64_t kh,
+                     uint64_t p,
                      uint64_t pm,
                      const e::buffer& k)
                     : seqno(0)
                     , next(NULL)
                     , op(DEL)
+                    , key_hash(kh)
                     , point(p)
                     , point_mask(pm)
                     , version()
@@ -160,6 +167,7 @@ class log
                 uint64_t seqno;
                 e::intrusive_ptr<node> next;
                 op_t op;
+                uint64_t key_hash;
                 uint64_t point;
                 uint64_t point_mask;
                 uint64_t version;
