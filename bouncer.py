@@ -37,6 +37,7 @@ class server(asyncore.dispatcher):
     def __init__(self, lock, address, port, clients):
         asyncore.dispatcher.__init__(self)
         self.lock = lock
+        self.data = ''
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.set_reuse_addr()
         self.bind((address, port))
@@ -50,7 +51,13 @@ class server(asyncore.dispatcher):
             return
         sock, addr = pair
         print 'XXX connection from %s' % repr(addr)
-        client(self.lock, sock, addr, self.clients)
+        c = client(self.lock, sock, addr, self.clients)
+        with self.lock:
+            c.send(self.data)
+
+    def set_data(self, data):
+        with self.lock:
+            self.data = data
 
 
 class client(asyncore.dispatcher_with_send):
@@ -83,11 +90,12 @@ class client(asyncore.dispatcher_with_send):
 
 class asyncthread(threading.Thread):
 
-    def __init__(self, lock, address, port, clients):
+    def __init__(self, lock, address, port, server, clients):
         threading.Thread.__init__(self)
         self.lock = lock
         self.address = address
         self.port = port
+        self.server = server
         self.clients = clients
 
     def run(self):
@@ -110,6 +118,7 @@ class asyncthread(threading.Thread):
             with self.lock:
                 for client in self.clients:
                     client.send(data)
+            self.server.set_data(data)
             controller.shutdown(socket.SHUT_RDWR)
             controller.close()
 
@@ -118,7 +127,7 @@ def main(address, client, control):
     clients = set()
     lock = threading.RLock()
     s = server(lock, address, client, clients)
-    thread = asyncthread(lock, address, control, clients);
+    thread = asyncthread(lock, address, control, s, clients);
     thread.start()
     while True:
         with thread.lock:
