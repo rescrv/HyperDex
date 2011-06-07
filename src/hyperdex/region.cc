@@ -49,7 +49,7 @@ hyperdex :: region :: region(const regionid& ri, const po6::pathname& directory,
     // XXX Implement splitting.
     po6::pathname path = join(directory, ostr.str());
     e::intrusive_ptr<disk> d = new disk(join(directory, ostr.str()));
-    m_disks.push_back(std::make_pair(ri, d));
+    m_disks.push_back(std::make_pair(regionid(ri.get_subspace(), 0, 0), d));
 }
 
 hyperdex :: result_t
