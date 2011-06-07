@@ -144,7 +144,7 @@ hyperdex :: log :: iterator :: iterator(hyperdex::log* l)
     , m_n(l->get_head())
     , m_valid(true)
 {
-    m_valid = valid();
+    valid();
 }
 
 hyperdex :: log :: iterator :: ~iterator() throw ()
