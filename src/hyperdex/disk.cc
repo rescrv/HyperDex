@@ -141,7 +141,7 @@ hyperdex :: disk :: get(const e::buffer& key,
     }
 
     // Load the version.
-    uint32_t curr_offset = *offset;
+    uint32_t curr_offset = be32toh(*offset);
     memmove(version, m_base + curr_offset, sizeof(uint64_t));
     *version = be64toh(*version);
     // Fast-forward past the key (checked by find_bucket_for_key).
@@ -234,12 +234,13 @@ hyperdex :: disk :: put(const e::buffer& key,
     invalidate_search_index(*offset);
 
     // Update our write-ahead pointer.
-    const uint32_t entry_offset = m_offset;
+    uint32_t entry_hash = htobe32(0xffffffff & key_hash);
+    uint32_t entry_offset = htobe32(m_offset);
     m_offset = (curr_offset + 15) & ~15; // Keep it aligned.
 
     // Make it possible to find the new version.
     store_search_index(value_hashes, entry_offset);
-    *hash = 0xffffffff & key_hash;
+    *hash = entry_hash;
     *offset = entry_offset;
     return SUCCESS;
 }
@@ -303,14 +304,23 @@ hyperdex :: disk :: find_bucket_for_key(const e::buffer& key,
 
     for (uint64_t entry = 0; entry < HASH_TABLE_ENTRIES; ++entry)
     {
-        uint32_t* tmp_hash = reinterpret_cast<uint32_t*>(m_base + (bucket + entry % HASH_TABLE_ENTRIES) * 8);
-        uint32_t* tmp_offset = reinterpret_cast<uint32_t*>(m_base + (bucket + entry % HASH_TABLE_ENTRIES) * 8 + 4);
+        uint32_t* tmp_hash = reinterpret_cast<uint32_t*>(m_base + ((bucket + entry) % HASH_TABLE_ENTRIES) * 8);
+        uint32_t* tmp_offset = reinterpret_cast<uint32_t*>(m_base + ((bucket + entry) % HASH_TABLE_ENTRIES) * 8 + 4);
 
         // If we've found an empty bucket.
         if (*tmp_offset == 0)
         {
-            *hash = tmp_hash;
-            *offset = tmp_offset;
+            if (dead_hash)
+            {
+                *hash = dead_hash;
+                *offset = dead_offset;
+            }
+            else
+            {
+                *hash = tmp_hash;
+                *offset = tmp_offset;
+            }
+
             return true;
         }
 
@@ -320,9 +330,9 @@ hyperdex :: disk :: find_bucket_for_key(const e::buffer& key,
             dead_hash = tmp_hash;
             dead_offset = tmp_offset;
         }
-        else if (*tmp_offset != UINT32_MAX && *tmp_hash == short_key_hash)
+        else if (*tmp_offset != UINT32_MAX && be32toh(*tmp_hash) == short_key_hash)
         {
-            uint64_t curr_offset = *tmp_offset + sizeof(uint64_t);
+            uint64_t curr_offset = be32toh(*tmp_offset) + sizeof(uint64_t);
             uint32_t key_size;
             memmove(&key_size, m_base + curr_offset, sizeof(key_size));
             key_size = be32toh(key_size);
@@ -350,8 +360,8 @@ hyperdex :: disk :: invalidate_search_index(uint32_t to_invalidate)
 {
     for (uint64_t entry = 0; entry < SEARCH_INDEX_ENTRIES; ++entry)
     {
-        uint32_t* offset = reinterpret_cast<uint32_t*>(m_base + entry * 12 + sizeof(uint32_t));
-        uint32_t* invalidator = reinterpret_cast<uint32_t*>(m_base + entry * 12 + sizeof(uint32_t));
+        uint32_t* offset = reinterpret_cast<uint32_t*>(m_base + HASH_TABLE_SIZE + entry * 12 + sizeof(uint32_t));
+        uint32_t* invalidator = reinterpret_cast<uint32_t*>(m_base + HASH_TABLE_SIZE + entry * 12 + 2 * sizeof(uint32_t));
 
         if (*offset == 0)
         {
@@ -373,7 +383,6 @@ hyperdex :: disk :: store_search_index(const std::vector<uint64_t>& value_hashes
     memmove(m_base + HASH_TABLE_SIZE + m_search * 12, &point_hash, sizeof(point_hash));
 
     // Write the data offset.
-    offset = htobe32(offset);
     memmove(m_base + HASH_TABLE_SIZE + m_search * 12 + sizeof(uint32_t), &offset, sizeof(offset));
 
     // Write the "invalidated by" offset.

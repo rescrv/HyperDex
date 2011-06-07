@@ -127,7 +127,7 @@ TEST(DiskTest, DelPutDelPut)
 	value_hashes.push_back(17168316521448127654UL);
 
 	// Alternate put/delete.
-	ASSERT_EQ(hyperdex::SUCCESS, d.del(key, key_hash));
+	ASSERT_EQ(hyperdex::NOTFOUND, d.del(key, key_hash));
 	ASSERT_EQ(hyperdex::SUCCESS, d.put(key, key_hash, value, value_hashes, version));
 	ASSERT_EQ(hyperdex::SUCCESS, d.del(key, key_hash));
 	ASSERT_EQ(hyperdex::SUCCESS, d.put(key, key_hash, value, value_hashes, version));
@@ -158,7 +158,7 @@ TEST(DiskTest, DelPutDelPut)
 	ASSERT_EQ(hyperdex::SUCCESS, d.del(key, key_hash));
 
     // A GET should fail.
-	ASSERT_EQ(hyperdex::SUCCESS, d.get(key, key_hash, &value, &version));
+	ASSERT_EQ(hyperdex::NOTFOUND, d.get(key, key_hash, &value, &version));
 }
 
 } // namespace
