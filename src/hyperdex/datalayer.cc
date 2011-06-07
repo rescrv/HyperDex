@@ -134,7 +134,6 @@ void
 hyperdex :: datalayer :: shutdown()
 {
     m_shutdown = true;
-    __sync_synchronize();
 }
 
 hyperdex :: result_t
