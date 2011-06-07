@@ -58,6 +58,7 @@ hyperdex :: region :: get(const e::buffer& key,
                           uint64_t* version)
 {
     log::iterator it(m_log.iterate());
+    bool found = false;
     *version = 0;
 
     // Scan the in-memory WAL.
@@ -74,6 +75,8 @@ hyperdex :: region :: get(const e::buffer& key,
             {
                 *version = 0;
             }
+
+            found = true;
         }
     }
 
@@ -83,9 +86,9 @@ hyperdex :: region :: get(const e::buffer& key,
     // case this means that we'll not have to touch memory-mapped files.  We
     // have to iterate this part of the log anyway so it's not a big deal to do
     // part of it before touching disk.
-    if (*version > 0)
+    if (found)
     {
-        return SUCCESS;
+        return *version == 0 ? NOTFOUND : SUCCESS;
     }
 
     std::vector<e::buffer> tmp_value;
@@ -122,17 +125,29 @@ hyperdex :: region :: get(const e::buffer& key,
         }
     }
 
+
+    found = false;
+
     // Scan the in-memory WAL again.
     for (; it.valid(); it.next())
     {
         if (it.key() == key)
         {
-            *value = it.value();
-            *version = it.version();
+            if (it.op() == PUT)
+            {
+                *value = it.value();
+                *version = it.version();
+            }
+            else if (it.op() == DEL)
+            {
+                *version = 0;
+            }
+
+            found = true;
         }
     }
 
-    if (*version > 0)
+    if (*version > 0 || found)
     {
         return SUCCESS;
     }
