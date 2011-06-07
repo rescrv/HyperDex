@@ -949,10 +949,10 @@ chainlink_calculator :: four_regions(const e::buffer& key,
         newhashes.push_back(CityHash64(value[i]));
     }
 
-    *prev = regionid(m_region.get_subspace(), 64, makepoint(newhashes, m_prev_dims));
+    *prev = regionid(m_region.space, m_prev_subspace, 64, makepoint(newhashes, m_prev_dims));
     *thisold = regionid(m_region.get_subspace(), 64, makepoint(oldhashes, m_this_dims));
     *thisnew = regionid(m_region.get_subspace(), 64, makepoint(newhashes, m_this_dims));
-    *next = regionid(m_region.get_subspace(), 64, makepoint(oldhashes, m_next_dims));
+    *next = regionid(m_region.space, m_next_subspace, 64, makepoint(oldhashes, m_next_dims));
 }
 
 
@@ -974,10 +974,10 @@ chainlink_calculator :: four_regions(const e::buffer& key,
         hashes.push_back(CityHash64(value[i]));
     }
 
-    *prev = regionid(m_region.get_subspace(), 64, makepoint(hashes, m_prev_dims));
+    *prev = regionid(m_region.space, m_prev_subspace, 64, makepoint(hashes, m_prev_dims));
     *thisold = regionid(m_region.get_subspace(), 64, makepoint(hashes, m_this_dims));
     *thisnew = regionid(m_region.get_subspace(), 64, makepoint(hashes, m_this_dims));
-    *next = regionid(m_region.get_subspace(), 64, makepoint(hashes, m_next_dims));
+    *next = regionid(m_region.space, m_next_subspace, 64, makepoint(hashes, m_next_dims));
 }
 
 hyperdex :: replication :: keyholder :: keyholder()
