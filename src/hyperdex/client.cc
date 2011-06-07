@@ -239,7 +239,14 @@ hyperdex :: client :: get(const std::string& space,
         if (response == stream_no::RESULT)
         {
             uint8_t result;
-            msg.unpack() >> nonce >> result >> *value;
+            e::unpacker up(msg.unpack());
+            up >> nonce >> result;
+
+            if (result == SUCCESS)
+            {
+                up >> *value;
+            }
+
             return static_cast<result_t>(result);
         }
     }
