@@ -55,6 +55,7 @@ hyperdex :: log :: ~log() throw ()
 {
     while (m_head)
     {
+        e::intrusive_ptr<node> tmp = m_head;
         m_head = m_head->next;
     }
 }
@@ -104,7 +105,13 @@ hyperdex :: log :: flush(std::tr1::function<void (op_t op,
     }
 
     m_head_lock.wrlock();
-    m_head = end;
+
+    while (m_head != end)
+    {
+        e::intrusive_ptr<node> tmp = m_head;
+        m_head = m_head->next;
+    }
+
     m_head_lock.unlock();
     return flushed;
 }
