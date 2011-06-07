@@ -90,40 +90,22 @@ hyperdex :: log :: flush(std::tr1::function<void (op_t op,
                                                   uint64_t version)> save_one)
 {
     po6::threads::mutex::hold hold(&m_flush_lock);
-    m_head_lock.rdlock();
-    e::intrusive_ptr<node> pos = m_head;
-    m_head_lock.unlock();
+    iterator cleanup(iterate());
+    iterator flushing(iterate());
     e::intrusive_ptr<node> end = new node();
-    end->seqno = 0;
     common_append(end, false);
     size_t flushed = 0;
 
-    while (pos != end)
+    for (; flushing.valid(); flushing.next())
     {
-        if (pos->seqno > 0)
-        {
-            save_one(pos->op, pos->point, pos->key, pos->key_hash,
-                     pos->value, pos->value_hashes, pos->version);
-            ++ flushed;
-        }
-
-        e::intrusive_ptr<node> tmp;
-        tmp = pos;
-        pos = pos->next;
+        save_one(flushing.op(), flushing.point(), flushing.key(),
+                 flushing.key_hash(), flushing.value(), flushing.value_hashes(),
+                 flushing.version());
     }
 
     m_head_lock.wrlock();
-    pos = m_head;
     m_head = end;
     m_head_lock.unlock();
-
-    while (pos != end)
-    {
-        e::intrusive_ptr<node> tmp;
-        tmp = pos;
-        pos = pos->next;
-    }
-
     return flushed;
 }
 

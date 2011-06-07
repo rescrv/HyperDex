@@ -68,8 +68,11 @@ class log
             public:
                 uint64_t seqno() const { return m_n->seqno; }
                 op_t op() const { return m_n->op; }
+                uint64_t point() const { return m_n->point; }
                 const e::buffer& key() const { return m_n->key; }
+                uint64_t key_hash() const { return m_n->key_hash; }
                 const std::vector<e::buffer>& value() const { return m_n->value; }
+                const std::vector<uint64_t>& value_hashes() const { return m_n->value_hashes; }
                 uint64_t version() const { return m_n->version; }
 
             private:
