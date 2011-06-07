@@ -107,6 +107,7 @@ set(hyperdex_test_srcs
     test/hyperdex/hyperspace.cc
     test/hyperdex/ids.cc
     test/hyperdex/lockingq.cc
+    test/hyperdex/log.cc
     test/hyperdex/mapper.cc
     test/hyperdex/query.cc
 )
