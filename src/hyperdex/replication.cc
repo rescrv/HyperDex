@@ -536,6 +536,7 @@ hyperdex :: replication :: chain_common(op_t op,
     }
 
     kh->pending_updates.insert(std::make_pair(version, newpend));
+    send_update(to.get_region(), newpend);
     move_deferred_to_pending(kh);
 }
 
