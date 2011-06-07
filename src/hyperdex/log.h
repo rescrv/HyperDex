@@ -62,9 +62,11 @@ class log
                 ~iterator() throw ();
 
             public:
-                bool advance();
+                bool valid();
+                void next();
 
             public:
+                uint64_t seqno() const { return m_n->seqno; }
                 op_t op() const { return m_n->op; }
                 const e::buffer& key() const { return m_n->key; }
                 const std::vector<e::buffer>& value() const { return m_n->value; }
@@ -77,12 +79,15 @@ class log
                 iterator(log* l);
 
             private:
+                void skip_dead_nodes();
+
+            private:
                 iterator& operator = (const iterator&);
 
             private:
                 log* m_l;
                 e::intrusive_ptr<node> m_n;
-                bool m_seen;
+                bool m_valid;
         };
 
     public:

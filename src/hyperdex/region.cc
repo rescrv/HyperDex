@@ -61,7 +61,7 @@ hyperdex :: region :: get(const e::buffer& key,
     *version = 0;
 
     // Scan the in-memory WAL.
-    while (it.advance());
+    for (; it.valid(); it.next())
     {
         if (it.key() == key)
         {
@@ -123,7 +123,7 @@ hyperdex :: region :: get(const e::buffer& key,
     }
 
     // Scan the in-memory WAL again.
-    while (it.advance())
+    for (; it.valid(); it.next())
     {
         if (it.key() == key)
         {

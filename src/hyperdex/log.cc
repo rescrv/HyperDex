@@ -90,7 +90,7 @@ hyperdex :: log :: flush(std::tr1::function<void (op_t op,
                                                   uint64_t version)> save_one)
 {
     po6::threads::mutex::hold hold(&m_flush_lock);
-    m_head_lock.wrlock();
+    m_head_lock.rdlock();
     e::intrusive_ptr<node> pos = m_head;
     m_head_lock.unlock();
     e::intrusive_ptr<node> end = new node();
@@ -104,16 +104,27 @@ hyperdex :: log :: flush(std::tr1::function<void (op_t op,
         {
             save_one(pos->op, pos->point, pos->key, pos->key_hash,
                      pos->value, pos->value_hashes, pos->version);
+            ++ flushed;
         }
 
-        m_head_lock.wrlock();
-        m_head = m_head->next;
-        pos = m_head;
-        m_head_lock.unlock();
-        ++ flushed;
+        e::intrusive_ptr<node> tmp;
+        tmp = pos;
+        pos = pos->next;
     }
 
-    return flushed - 1;
+    m_head_lock.wrlock();
+    pos = m_head;
+    m_head = end;
+    m_head_lock.unlock();
+
+    while (pos != end)
+    {
+        e::intrusive_ptr<node> tmp;
+        tmp = pos;
+        pos = pos->next;
+    }
+
+    return flushed;
 }
 
 e::intrusive_ptr<hyperdex::log::node>
@@ -142,8 +153,9 @@ hyperdex :: log :: common_append(e::intrusive_ptr<node> n, bool seqno)
 hyperdex :: log :: iterator :: iterator(hyperdex::log* l)
     : m_l(l)
     , m_n(l->get_head())
-    , m_seen(false)
+    , m_valid(true)
 {
+    m_valid = valid();
 }
 
 hyperdex :: log :: iterator :: ~iterator() throw ()
@@ -156,28 +168,21 @@ hyperdex :: log :: iterator :: ~iterator() throw ()
 }
 
 bool
-hyperdex :: log :: iterator :: advance()
+hyperdex :: log :: iterator :: valid()
 {
-    // - m_n should always point to a node.
-    // - m_seen is set to false when advancing to a node, and true when it is
-    //   impossible to advance.
-
-    // Find the earliest node for which we have not called the callback and
-    // which also has a non-zero sequence number.
-    while (m_n->next && (m_seen || m_n->seqno == 0))
+    while (m_n->next && (!m_valid || m_n->seqno == 0))
     {
-        m_seen = false;
-        e::intrusive_ptr<node> tmp;
-        tmp = m_n;
+        m_valid = true;
+        e::intrusive_ptr<node> tmp = m_n;
         m_n = m_n->next;
     }
 
-    // If said node doesn't exist, return false
-    if (m_seen || m_n->seqno == 0)
-    {
-        return false;
-    }
+    return m_valid && m_n->seqno != 0;
+}
 
-    m_seen = true;
-    return true;
+void
+hyperdex :: log :: iterator :: next()
+{
+    m_valid = false;
+    valid();
 }
