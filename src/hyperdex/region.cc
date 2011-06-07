@@ -306,7 +306,7 @@ hyperdex :: region :: get_point_for(uint64_t key_hash)
     std::vector<uint64_t> points;
     points.push_back(key_hash);
 
-    for (size_t i = 0; i < m_numcolumns; ++i)
+    for (size_t i = 1; i < m_numcolumns; ++i)
     {
         points.push_back(0);
     }
