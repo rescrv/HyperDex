@@ -357,8 +357,15 @@ hyperdex :: replication :: chain_common(op_t op,
         return;
     }
 
+    // We need to get it from our predecessor if in a chain.
+    if (from.get_region() == to.get_region() && from.number + 1 != to.number)
+    {
+        LOG(INFO) << "Someone is skipping ahead in the chain " << to.get_region();
+        return;
+    }
+
     // We cannot receive fresh messages from others within our subspace.
-    if (fresh && from.get_subspace() == to.get_subspace())
+    if (fresh && from.get_subspace() == to.get_subspace() && from.get_region() != to.get_region())
     {
         LOG(INFO) << "Fresh message from someone in the same subspace as us " << to.get_subspace();
         return;
