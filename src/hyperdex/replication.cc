@@ -115,6 +115,57 @@ hyperdex :: replication :: chain_del(const entityid& from,
 }
 
 void
+hyperdex :: replication :: chain_pending(const entityid& /*from*/,
+                                         const entityid& to,
+                                         uint64_t version,
+                                         const e::buffer& key)
+{
+    // PENDING messages may only go to the first subspace.
+    if (to.subspace != 0)
+    {
+        return;
+    }
+
+    // Grab the lock that protects this keypair.
+    keypair kp(to.get_region(), key);
+    po6::threads::mutex::hold hold(get_lock(kp));
+
+    // Get a reference to the keyholder for the keypair.
+    e::intrusive_ptr<keyholder> kh = get_keyholder(kp);
+
+    // Check that the reference is valid.
+    if (!kh)
+    {
+        return;
+    }
+
+    std::map<uint64_t, e::intrusive_ptr<pending> >::iterator to_allow_ack;
+    to_allow_ack = kh->pending_updates.find(version);
+
+    if (to_allow_ack == kh->pending_updates.end())
+    {
+        return;
+    }
+
+    // XXX We should possibly check that the PENDING comes from a valid party, but
+    // it's not essential for now.
+    e::intrusive_ptr<pending> pend = to_allow_ack->second;
+    pend->mayack = true;
+
+    // We are point-leader for this subspace.
+    if (to.number == 0)
+    {
+        handle_point_leader_work(to.get_region(), version, key, kh, pend);
+    }
+    else
+    {
+        e::buffer info;
+        info.pack() << version << key;
+        m_comm->send(to, entityid(to.get_region(), to.number - 1), stream_no::PENDING, info);
+    }
+}
+
+void
 hyperdex :: replication :: chain_ack(const entityid& /*from*/,
                                      const entityid& to,
                                      uint64_t version,
@@ -145,6 +196,13 @@ hyperdex :: replication :: chain_ack(const entityid& /*from*/,
     // it's not essential for now.
 
     e::intrusive_ptr<pending> pend = to_ack->second;
+
+    // If we may not ack the message yet, just drop it.
+    if (!pend->mayack)
+    {
+        return;
+    }
+
     send_ack(to.get_region(), key, version, pend);
     pend->acked = true;
 
@@ -344,13 +402,6 @@ hyperdex :: replication :: chain_common(op_t op,
         return;
     }
 
-    // We are point-leader for our subspace.
-    if (to.subspace == 0 && to.number == 0)
-    {
-        handle_point_leader_work(op, from, to, version, fresh, key, value);
-        return;
-    }
-
     if (to.number != 0 && from.get_region() != to.get_region())
     {
         LOG(INFO) << "Dropping message from another region which doesn't go to region-leader.";
@@ -528,6 +579,9 @@ hyperdex :: replication :: chain_common(op_t op,
         return;
     }
 
+    // We may ack this if we are not currently in subspace 0.
+    newpend->mayack = newpend->thisold.subspace != 0;
+
     // Clear out dead deferred updates
     while (kh->deferred_updates.begin() != kh->deferred_updates.end()
            && kh->deferred_updates.begin()->first <= version)
@@ -650,67 +704,36 @@ hyperdex :: replication :: move_deferred_to_pending(e::intrusive_ptr<keyholder> 
 }
 
 void
-hyperdex :: replication :: handle_point_leader_work(op_t /*op*/,
-                                                    const entityid& /*from*/,
-                                                    const entityid& to,
+hyperdex :: replication :: handle_point_leader_work(const regionid& pending_in,
                                                     uint64_t version,
-                                                    bool /*fresh*/,
                                                     const e::buffer& key,
-                                                    const std::vector<e::buffer>& /*value*/)
+                                                    e::intrusive_ptr<keyholder> kh,
+                                                    e::intrusive_ptr<pending> update)
 {
-    // Grab the lock that protects this keypair.
-    keypair kp(to.get_region(), key);
-    po6::threads::mutex::hold hold(get_lock(kp));
+    send_ack(pending_in, key, version, update);
 
-    // Get a reference to the keyholder for the keypair.
-    e::intrusive_ptr<keyholder> kh = get_keyholder(kp);
-
-    // Check that the reference is valid.
-    if (!kh)
+    if (!update->ondisk && update->op == PUT)
     {
-        return;
+        m_data->put(pending_in, key, update->value, version);
+    }
+    else if (!update->ondisk && update->op == DEL)
+    {
+        m_data->del(pending_in, key);
     }
 
     std::map<uint64_t, e::intrusive_ptr<pending> >::iterator penditer;
-    penditer = kh->pending_updates.lower_bound(version);
 
-    if (penditer == kh->pending_updates.end())
+    for (penditer = kh->pending_updates.begin();
+         penditer != kh->pending_updates.end() && penditer->first <= version;
+         ++penditer)
     {
-        LOG(INFO) << "Point leader received PUT_PENDING without having an actual pending update.";
-        return;
-    }
-    else if (penditer->first > version)
-    {
-        // We must have already received an ack ourselves.  Which means we must
-        // have already sent an ack ourselves.  Just ignore this message.
-        return;
-    }
-    else // if (penditer->first == newversion)
-    {
-        e::intrusive_ptr<pending> update = penditer->second;
-        send_ack(to.get_region(), key, version, update);
-
-        if (!update->ondisk && update->op == PUT)
-        {
-            m_data->put(to.get_region(), key, update->value, version);
-        }
-        else if (!update->ondisk && update->op == DEL)
-        {
-            m_data->del(to.get_region(), key);
-        }
-
-        for (; penditer != kh->pending_updates.begin(); -- penditer)
-        {
-            penditer->second->ondisk = true;
-        }
-
         penditer->second->ondisk = true;
+    }
 
-        if (update->co.from.space == UINT32_MAX)
-        {
-            respond_positively_to_client(update->co, version);
-            update->co = clientop();
-        }
+    if (update->co.from.space == UINT32_MAX)
+    {
+        respond_positively_to_client(update->co, version);
+        update->co = clientop();
     }
 }
 
@@ -719,6 +742,10 @@ hyperdex :: replication :: send_update(const hyperdex::regionid& pending_in,
                                        e::intrusive_ptr<pending> update)
 {
     uint8_t fresh = update->fresh ? 1 : 0;
+
+    e::buffer info;
+    info.pack() << update->version << update->key;
+
     e::buffer msg;
     e::packer pack(&msg);
     pack << update->version << fresh << update->key;
@@ -742,14 +769,30 @@ hyperdex :: replication :: send_update(const hyperdex::regionid& pending_in,
         return;
     }
 
+    stream_no::stream_no_t act;
+
     if (update->op == PUT)
     {
         pack << update->value;
-        m_comm->send_forward(pending_in, next, stream_no::PUT_PENDING, msg);
+        act = stream_no::PUT_PENDING;
     }
     else
     {
-        m_comm->send_forward(pending_in, next, stream_no::DEL_PENDING, msg);
+        act = stream_no::DEL_PENDING;
+    }
+
+    // If we are at the last subspace in the chain.
+    if (next.subspace == 0)
+    {
+        // If we there is someone else in the chain, send the PUT or DEL pending
+        // message to them.  If not, then send a PENDING message to the tail of
+        // the first subspace.
+        m_comm->send_forward_else_tail(pending_in, act, msg, next, stream_no::PENDING, info);
+    }
+    // Else we're in the middle of the chain.
+    else
+    {
+        m_comm->send_forward_else_head(pending_in, act, msg, next, act, msg);
     }
 }
 
@@ -780,7 +823,8 @@ hyperdex :: replication :: send_ack(const regionid& pending_in,
         return;
     }
 
-    m_comm->send_backward(pending_in, prev, stream_no::ACK, msg);
+    m_comm->send_backward_else_tail(pending_in, stream_no::ACK, msg,
+                                    prev, stream_no::ACK, msg);
 }
 
 void
@@ -885,6 +929,7 @@ hyperdex :: replication :: pending :: pending(op_t o,
     , fresh(false)
     , acked(false)
     , ondisk(false)
+    , mayack(false)
     , prev()
     , thisold()
     , thisnew()

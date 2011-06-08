@@ -136,6 +136,13 @@ hyperdex :: network_worker :: run()
                 msg.unpack() >> version >> key;
                 m_repl->chain_del(from, to, version, key);
             }
+            else if (type == hyperdex::stream_no::PENDING)
+            {
+                e::buffer key;
+                uint64_t version;
+                msg.unpack() >> version >> key;
+                m_repl->chain_pending(from, to, version, key);
+            }
             else if (type == hyperdex::stream_no::ACK)
             {
                 e::buffer key;

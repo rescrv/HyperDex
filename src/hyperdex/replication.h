@@ -69,6 +69,8 @@ class replication
                        const std::vector<e::buffer>& value);
         void chain_del(const entityid& from, const entityid& to, uint64_t rev,
                        const e::buffer& key);
+        void chain_pending(const entityid& from, const entityid& to,
+                           uint64_t rev, const e::buffer& key);
         void chain_ack(const entityid& from, const entityid& to, uint64_t rev,
                        const e::buffer& key);
 
@@ -110,6 +112,7 @@ class replication
                 bool fresh;
                 bool acked;
                 bool ondisk; // True if the pending update is already on disk.
+                bool mayack; // True if it is OK to receive ACK messages.
                 regionid prev;
                 regionid thisold;
                 regionid thisnew;
@@ -207,10 +210,12 @@ class replication
         void move_deferred_to_pending(e::intrusive_ptr<keyholder> kh);
         // Send an ACK and notify the client.  If this is the last pending
         // message for the keypair, then it is safe to unblock more messages.
-        void handle_point_leader_work(op_t op, const entityid& from,
-                                      const entityid& to, uint64_t newversion,
-                                      bool fresh, const e::buffer& key,
-                                      const std::vector<e::buffer>& newvalue);
+        void handle_point_leader_work(const regionid& pending_in,
+                                      uint64_t version, const e::buffer& key,
+                                      e::intrusive_ptr<keyholder> kh,
+                                      e::intrusive_ptr<pending> update);
+        // Send the message that the pending object needs to send in order to
+        // make system-wide progress.
         void send_update(const hyperdex::regionid& pending_in,
                          e::intrusive_ptr<pending> update);
         // Send an ack based on a pending object using chain rules.  That is,
