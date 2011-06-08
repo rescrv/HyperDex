@@ -73,7 +73,7 @@ class logical
         // Send msg1 along a chain in the direction indicated (forward =
         // ascending numbers, backward = descending numbers).  If we hit the end
         // of the chain in that direction, then send msg2 to the head or tail of
-        // the "otherwise" region.
+        // the region which overlaps with the "otherwise" region.
         bool send_forward_else_head(const hyperdex::regionid& chain,
                                     stream_no::stream_no_t msg1_type,
                                     const e::buffer& msg1,
@@ -110,6 +110,7 @@ class logical
                                 const e::buffer& msg);
         bool our_position(const regionid& r, entityid* e);
         bool chain_tail(const regionid& r, entityid* e);
+        bool find_overlapping(const regionid& r, regionid* over);
 
     private:
         instance m_us;

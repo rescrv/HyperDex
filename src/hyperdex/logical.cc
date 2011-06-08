@@ -122,7 +122,14 @@ hyperdex :: logical :: send_forward_else_head(const hyperdex::regionid& chain,
     }
     else
     {
-        entityid ent(otherwise, 0);
+        regionid overlaps;
+
+        if (!find_overlapping(otherwise, &overlaps))
+        {
+            return false;
+        }
+
+        entityid ent(overlaps, 0);
         return send_you_hold_lock(from, ent, msg2_type, msg2);
     }
 }
@@ -151,9 +158,16 @@ hyperdex :: logical :: send_forward_else_tail(const hyperdex::regionid& chain,
     }
     else
     {
+        regionid overlaps;
+
+        if (!find_overlapping(otherwise, &overlaps))
+        {
+            return false;
+        }
+
         entityid ent;
 
-        if (!chain_tail(otherwise, &ent))
+        if (!chain_tail(overlaps, &ent))
         {
             return false;
         }
@@ -185,9 +199,16 @@ hyperdex :: logical :: send_backward_else_tail(const hyperdex::regionid& chain,
     }
     else
     {
+        regionid overlaps;
+
+        if (!find_overlapping(otherwise, &overlaps))
+        {
+            return false;
+        }
+
         entityid ent;
 
-        if (!chain_tail(otherwise, &ent))
+        if (!chain_tail(overlaps, &ent))
         {
             return false;
         }
@@ -442,4 +463,19 @@ hyperdex :: logical :: chain_tail(const regionid& r, entityid* e)
     }
 
     return i != m_mapping.rend();
+}
+
+bool
+hyperdex :: logical :: find_overlapping(const regionid& r, regionid* over)
+{
+    for (mapiter f = m_mapping.begin(); f != m_mapping.end(); ++f)
+    {
+        if (overlap(f->first.get_region(), r))
+        {
+            *over = f->first.get_region();
+            return true;
+        }
+    }
+
+    return false;
 }
