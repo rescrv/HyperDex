@@ -202,7 +202,14 @@ hyperdex :: hyperdexd :: run()
 
     while (m_continue)
     {
-        dl.loop(EVLOOP_ONESHOT);
+        try
+        {
+            dl.loop(EVLOOP_ONESHOT);
+        }
+        catch (std::exception& e)
+        {
+            LOG(INFO) << "Uncaught exception in event loop: " << e.what();
+        }
     }
 
     // Cleanup HyperDex.
