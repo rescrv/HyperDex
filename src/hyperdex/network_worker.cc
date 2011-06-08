@@ -152,13 +152,12 @@ hyperdex :: network_worker :: run()
             }
             else
             {
-                VLOG(0) << "Message of unknown type received.";
+                LOG(INFO) << "Message of unknown type received.";
             }
         }
         catch (std::out_of_range& e)
         {
             // Unpack error
-            VLOG(0) << "Message does not properly unpack.";
         }
     }
 }
