@@ -57,14 +57,24 @@ class physical
         physical(ev::loop_ref lr, const po6::net::ipaddr& ip, bool listen = true);
         ~physical();
 
+    // Pause/unpause or completely stop recv of messages.  Paused threads will
+    // not hold locks, and therefore will not pose risk of deadlock.
+    public:
+        void pause() { m_incoming.pause(); }
+        void unpause() { m_incoming.unpause(); }
+        size_t num_paused() { return m_incoming.num_paused(); }
+        void shutdown();
+
     // Send and recv messages.
     public:
         void send(const po6::net::location& to, e::buffer* msg); // Consumes msg.
         bool recv(po6::net::location* from, e::buffer* msg);
         // Deliver a message (put it on the queue) as if it came from "from".
         void deliver(const po6::net::location& from, const e::buffer& msg);
-        void shutdown();
         bool pending() { return m_incoming.size() > 0; }
+
+    // Figure out our own socket info.
+    public:
         po6::net::location inbound() { return m_listen.getsockname(); }
         po6::net::location outbound() { return m_bindto; }
 

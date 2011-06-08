@@ -50,6 +50,9 @@ class lockingq
         ~lockingq() throw ();
 
     public:
+        void pause();
+        void unpause();
+        size_t num_paused();
         void shutdown();
         bool is_shutdown();
         size_t size();
@@ -59,7 +62,9 @@ class lockingq
     private:
         std::queue<T> m_queue;
         po6::threads::mutex m_lock;
-        po6::threads::cond m_cond;
+        po6::threads::cond m_may_pop;
+        bool m_paused;
+        size_t m_num_paused;
         bool m_shutdown;
 };
 
@@ -67,7 +72,9 @@ template<typename T>
 lockingq<T> :: lockingq()
     : m_queue()
     , m_lock()
-    , m_cond(&m_lock)
+    , m_may_pop(&m_lock)
+    , m_paused(false)
+    , m_num_paused(0)
     , m_shutdown(false)
 {
 }
@@ -80,11 +87,41 @@ lockingq<T> :: ~lockingq()
 
 template<typename T>
 void
+lockingq<T> :: pause()
+{
+    m_lock.lock();
+    m_paused = true;
+    m_lock.unlock();
+}
+
+template<typename T>
+void
+lockingq<T> :: unpause()
+{
+    m_lock.lock();
+    m_paused = false;
+    m_may_pop.broadcast();
+    m_lock.unlock();
+}
+
+template<typename T>
+size_t
+lockingq<T> :: num_paused()
+{
+    size_t ret;
+    m_lock.lock();
+    ret = m_num_paused;
+    m_lock.unlock();
+    return ret;
+}
+
+template<typename T>
+void
 lockingq<T> :: shutdown()
 {
     m_lock.lock();
     m_shutdown = true;
-    m_cond.broadcast();
+    m_may_pop.broadcast();
     m_lock.unlock();
 }
 
@@ -123,7 +160,7 @@ lockingq<T> :: push(const T& t)
     }
 
     m_queue.push(t);
-    m_cond.signal();
+    m_may_pop.signal();
     m_lock.unlock();
     return true;
 }
@@ -134,9 +171,11 @@ lockingq<T> :: pop(T* t)
 {
     m_lock.lock();
 
-    while (m_queue.empty() && !m_shutdown)
+    while (m_paused || (m_queue.empty() && !m_shutdown))
     {
-        m_cond.wait();
+        ++m_num_paused;
+        m_may_pop.wait();
+        --m_num_paused;
     }
 
     if (m_queue.empty() && m_shutdown)

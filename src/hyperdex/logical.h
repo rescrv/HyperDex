@@ -60,6 +60,14 @@ class logical
         // Install a new mapping.
         void remap(std::map<entityid, instance> mapping);
 
+    // Pause/unpause or completely stop recv of messages.  Paused threads will
+    // not hold locks, and therefore will not pose risk of deadlock.
+    public:
+        void pause() { m_physical.pause(); }
+        void unpause() { m_physical.unpause(); }
+        size_t num_paused() { return m_physical.num_paused(); }
+        void shutdown() { m_physical.shutdown(); }
+
     // Send and recv messages.
     public:
         // Send from one specific entity to another specific entity.
@@ -94,7 +102,6 @@ class logical
                                      const e::buffer& msg2);
         bool recv(hyperdex::entityid* from, hyperdex::entityid* to,
                   uint8_t* msg_type, e::buffer* msg);
-        void shutdown();
 
     private:
         logical(const logical&);

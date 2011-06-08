@@ -352,12 +352,6 @@ hyperdex :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
     return true;
 }
 
-void
-hyperdex :: logical :: shutdown()
-{
-    m_physical.shutdown();
-}
-
 bool
 hyperdex :: logical :: send_you_hold_lock(const hyperdex::entityid& from,
                                           const hyperdex::entityid& to,
