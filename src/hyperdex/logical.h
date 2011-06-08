@@ -44,6 +44,7 @@
 // HyperDex
 #include <hyperdex/configuration.h>
 #include <hyperdex/physical.h>
+#include <hyperdex/stream_no.h>
 
 namespace hyperdex
 {
@@ -69,16 +70,28 @@ class logical
         // entity as the source.
         bool send(const hyperdex::regionid& from, const hyperdex::entityid& to,
                   const uint8_t msg_type, const e::buffer& msg);
-        // Send forward in a chain.  If our position in from corresponds
-        // to the end of a chain, then send to the region containing
-        // "to"; else, send to our successor in the chain.
-        bool send_forward(const hyperdex::regionid& from, const hyperdex::regionid& to,
-                          const uint8_t msg_type, const e::buffer& msg);
-        // Send backward in a chain.  If our position in from corresponds to the
-        // beginning of a chain, then send to the region containing "to"; else
-        // send to our predecessor in the chain.
-        bool send_backward(const hyperdex::regionid& from, const hyperdex::regionid& to,
-                           const uint8_t msg_type, const e::buffer& msg);
+        // Send msg1 along a chain in the direction indicated (forward =
+        // ascending numbers, backward = descending numbers).  If we hit the end
+        // of the chain in that direction, then send msg2 to the head or tail of
+        // the "otherwise" region.
+        bool send_forward_else_head(const hyperdex::regionid& chain,
+                                    stream_no::stream_no_t msg1_type,
+                                    const e::buffer& msg1,
+                                    const hyperdex::regionid& otherwise,
+                                    stream_no::stream_no_t msg2_type,
+                                    const e::buffer& msg2);
+        bool send_forward_else_tail(const hyperdex::regionid& chain,
+                                    stream_no::stream_no_t msg1_type,
+                                    const e::buffer& msg1,
+                                    const hyperdex::regionid& otherwise,
+                                    stream_no::stream_no_t msg2_type,
+                                    const e::buffer& msg2);
+        bool send_backward_else_tail(const hyperdex::regionid& chain,
+                                     stream_no::stream_no_t msg1_type,
+                                     const e::buffer& msg1,
+                                     const hyperdex::regionid& otherwise,
+                                     stream_no::stream_no_t msg2_type,
+                                     const e::buffer& msg2);
         bool recv(hyperdex::entityid* from, hyperdex::entityid* to,
                   uint8_t* msg_type, e::buffer* msg);
         void shutdown();
@@ -88,6 +101,15 @@ class logical
 
     private:
         logical& operator = (const logical&);
+
+    private:
+        // These assume that the mapping lock is held for at least reading.
+        bool send_you_hold_lock(const entityid& from,
+                                const entityid& to,
+                                const uint8_t msg_type,
+                                const e::buffer& msg);
+        bool our_position(const regionid& r, entityid* e);
+        bool chain_tail(const regionid& r, entityid* e);
 
     private:
         instance m_us;

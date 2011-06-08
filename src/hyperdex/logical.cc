@@ -40,10 +40,6 @@
 #include <hyperdex/logical.h>
 #include <hyperdex/hyperspace.h>
 
-using e::buffer;
-using po6::net::location;
-using po6::threads::rwlock;
-
 hyperdex :: logical :: logical(ev::loop_ref lr,
                                const po6::net::ipaddr& ip)
     : m_us()
@@ -72,7 +68,7 @@ typedef std::map<hyperdex::entityid, hyperdex::instance>::iterator mapiter;
 void
 hyperdex :: logical :: remap(std::map<entityid, instance> mapping)
 {
-    rwlock::wrhold wr(&m_mapping_lock);
+    po6::threads::rwlock::wrhold wr(&m_mapping_lock);
     LOG(INFO) << "Installing new mapping.";
     m_mapping.swap(mapping);
 }
@@ -82,71 +78,8 @@ hyperdex :: logical :: send(const hyperdex::entityid& from, const hyperdex::enti
                             const uint8_t msg_type,
                             const e::buffer& msg)
 {
-    uint16_t fromver = 0;
-    uint16_t tover = 0;
-    po6::net::location dst;
-
-    // If we are sending to a client
-    if (to.space == UINT32_MAX)
-    {
-        {
-            rwlock::rdhold rd(&m_client_lock);
-            std::map<uint64_t, po6::net::location>::iterator cli;
-            cli = m_client_locs.find(to.mask);
-
-            if (cli == m_client_locs.end())
-            {
-                return false;
-            }
-
-            dst = cli->second;
-        }
-        {
-            rwlock::rdhold rd(&m_mapping_lock);
-            mapiter f = m_mapping.find(from);
-
-            if (f == m_mapping.end() || f->second != m_us)
-            {
-                return false;
-            }
-
-            fromver = f->second.outbound_version;
-        }
-    }
-    else
-    {
-        rwlock::rdhold rd(&m_mapping_lock);
-        mapiter f = m_mapping.find(from);
-        mapiter t = m_mapping.find(to);
-
-        if (f == m_mapping.end() || t == m_mapping.end() || f->second != m_us)
-        {
-            return false;
-        }
-
-        fromver = f->second.outbound_version;
-        tover = t->second.inbound_version;
-        dst = t->second.inbound;
-    }
-
-    buffer finalmsg(msg.size() + 32);
-    finalmsg.pack() << msg_type
-                    << fromver
-                    << tover
-                    << from
-                    << to
-                    << msg;
-
-    if (dst == m_us.inbound)
-    {
-        m_physical.deliver(m_us.outbound, finalmsg);
-    }
-    else
-    {
-        m_physical.send(dst, &finalmsg);
-    }
-
-    return true;
+    po6::threads::rwlock::rdhold hold_c(&m_client_lock);
+    return send_you_hold_lock(from, to, msg_type, msg);
 }
 
 bool
@@ -154,173 +87,113 @@ hyperdex :: logical :: send(const hyperdex::regionid& from,
                             const hyperdex::entityid& to,
                             const uint8_t msg_type, const e::buffer& msg)
 {
+    po6::threads::rwlock::rdhold hold(&m_mapping_lock);
     entityid realfrom;
 
-    // We don't need to look up the block at exactly the same time.  If
-    // a change occurs between now and when the inner send acquires the
-    // read lock, it is likely that the message will be thrown out at
-    // the above layer.
+    if (!our_position(from, &realfrom))
     {
-        po6::threads::rwlock::rdhold hold(&m_mapping_lock);
-        mapiter f = m_mapping.lower_bound(entityid(from, 0));
-        mapiter t = m_mapping.upper_bound(entityid(from, UINT8_MAX));
-
-        for (; f != t; ++f)
-        {
-            if (f->second == m_us)
-            {
-                realfrom = f->first;
-                break;
-            }
-        }
-
-        if (f == t)
-        {
-            return false;
-        }
+        return false;
     }
 
-    return send(realfrom, to, msg_type, msg);
+    return send_you_hold_lock(realfrom, to, msg_type, msg);
 }
 
 bool
-hyperdex :: logical :: send_forward(const hyperdex::regionid& from,
-                                    const hyperdex::regionid& to,
-                                    const uint8_t msg_type,
-                                    const e::buffer& msg)
+hyperdex :: logical :: send_forward_else_head(const hyperdex::regionid& chain,
+                                              stream_no::stream_no_t msg1_type,
+                                              const e::buffer& msg1,
+                                              const hyperdex::regionid& otherwise,
+                                              stream_no::stream_no_t msg2_type,
+                                              const e::buffer& msg2)
 {
-    entityid realfrom;
-    entityid realto;
+    po6::threads::rwlock::rdhold hold(&m_mapping_lock);
+    entityid from;
 
-    // Same reasoning about locking applies.
+    if (!our_position(chain, &from))
     {
-        po6::threads::rwlock::rdhold hold(&m_mapping_lock);
-        mapiter f = m_mapping.lower_bound(entityid(from, 0));
-        mapiter t = m_mapping.upper_bound(entityid(from, UINT8_MAX));
-
-        for (; f != t; ++f)
-        {
-            if (f->second == m_us)
-            {
-                realfrom = f->first;
-                break;
-            }
-        }
-
-        if (f == t)
-        {
-            return false;
-        }
-
-        ++f;
-
-        if (f == t)
-        {
-            mapiter i = m_mapping.begin();
-
-            for (; i != m_mapping.end(); ++i)
-            {
-                if (overlap(i->first.get_region(), to))
-                {
-                    realto = i->first;
-                    break;
-                }
-            }
-
-            if (i == m_mapping.end())
-            {
-                return false;
-            }
-        }
-        else
-        {
-            realto = f->first;
-        }
+        return false;
     }
 
-    return send(realfrom, realto, msg_type, msg);
+    entityid chain_next = entityid(from.get_region(), from.number + 1);
+
+    if (m_mapping.find(chain_next) != m_mapping.end())
+    {
+        return send_you_hold_lock(from, chain_next, msg1_type, msg1);
+    }
+    else
+    {
+        entityid ent(otherwise, 0);
+        return send_you_hold_lock(from, ent, msg2_type, msg2);
+    }
 }
 
 bool
-hyperdex :: logical :: send_backward(const hyperdex::regionid& from,
-                                     const hyperdex::regionid& to,
-                                     const uint8_t msg_type,
-                                     const e::buffer& msg)
+hyperdex :: logical :: send_forward_else_tail(const hyperdex::regionid& chain,
+                                              stream_no::stream_no_t msg1_type,
+                                              const e::buffer& msg1,
+                                              const hyperdex::regionid& otherwise,
+                                              stream_no::stream_no_t msg2_type,
+                                              const e::buffer& msg2)
 {
-    entityid realfrom;
-    entityid realto;
+    po6::threads::rwlock::rdhold hold(&m_mapping_lock);
+    entityid from;
 
-    // Same reasoning about locking applies.
+    if (!our_position(chain, &from))
     {
-        po6::threads::rwlock::rdhold hold(&m_mapping_lock);
-        mapiter f = m_mapping.lower_bound(entityid(from, 0));
-        mapiter t = m_mapping.upper_bound(entityid(from, UINT8_MAX));
+        return false;
+    }
 
-        for (; f != t; ++f)
-        {
-            if (f->second == m_us)
-            {
-                realfrom = f->first;
-                break;
-            }
-        }
+    entityid chain_next = entityid(from.get_region(), from.number + 1);
 
-        if (f == t)
+    if (m_mapping.find(chain_next) != m_mapping.end())
+    {
+        return send_you_hold_lock(from, chain_next, msg1_type, msg1);
+    }
+    else
+    {
+        entityid ent;
+
+        if (!chain_tail(otherwise, &ent))
         {
             return false;
         }
 
-        if (realfrom.number == 0)
-        {
-            mapiter i = m_mapping.begin();
+        return send_you_hold_lock(from, ent, msg2_type, msg2);
+    }
+}
 
-            for (; i != m_mapping.end(); ++i)
-            {
-                if (overlap(i->first.get_region(), to))
-                {
-                    realto = i->first;
-                    break;
-                }
-            }
+bool
+hyperdex :: logical :: send_backward_else_tail(const hyperdex::regionid& chain,
+                                               stream_no::stream_no_t msg1_type,
+                                               const e::buffer& msg1,
+                                               const hyperdex::regionid& otherwise,
+                                               stream_no::stream_no_t msg2_type,
+                                               const e::buffer& msg2)
+{
+    po6::threads::rwlock::rdhold hold(&m_mapping_lock);
+    entityid from;
 
-            if (i == m_mapping.end())
-            {
-                return false;
-            }
-        }
-        else
-        {
-            realto = entityid(realfrom.get_region(), realfrom.number - 1);
-        }
-
-        ++f;
-
-        if (f == t)
-        {
-            typedef std::map<hyperdex::entityid, hyperdex::instance>::reverse_iterator reverse_mapiter;
-            reverse_mapiter i = m_mapping.rbegin();
-
-            for (; i != m_mapping.rend(); ++i)
-            {
-                if (overlap(i->first.get_region(), to))
-                {
-                    realto = i->first;
-                    break;
-                }
-            }
-
-            if (i == m_mapping.rend())
-            {
-                return false;
-            }
-        }
-        else
-        {
-            realto = f->first;
-        }
+    if (!our_position(chain, &from))
+    {
+        return false;
     }
 
-    return send(realfrom, realto, msg_type, msg);
+    if (from.number > 0)
+    {
+        entityid chain_prev = entityid(from.get_region(), from.number - 1);
+        return send_you_hold_lock(from, chain_prev, msg1_type, msg1);
+    }
+    else
+    {
+        entityid ent;
+
+        if (!chain_tail(otherwise, &ent))
+        {
+            return false;
+        }
+
+        return send_you_hold_lock(from, ent, msg2_type, msg2);
+    }
 }
 
 bool
@@ -328,7 +201,7 @@ hyperdex :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
                             uint8_t* msg_type,
                             e::buffer* msg)
 {
-    location loc;
+    po6::net::location loc;
     bool fromvalid = false;
     bool tovalid = false;
     instance frominst;
@@ -346,7 +219,7 @@ hyperdex :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
     //  - The message is to the correct version of our port bindings.
     do
     {
-        buffer packed;
+        e::buffer packed;
 
         if (!m_physical.recv(&loc, &packed))
         {
@@ -376,7 +249,7 @@ hyperdex :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
 
             if (from->mask == 0)
             {
-                rwlock::wrhold wr(&m_client_lock);
+                po6::threads::rwlock::wrhold wr(&m_client_lock);
                 std::map<po6::net::location, uint64_t>::iterator cni;
                 cni = m_client_nums.find(loc);
 
@@ -401,7 +274,7 @@ hyperdex :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
             }
             else
             {
-                rwlock::rdhold rd(&m_client_lock);
+                po6::threads::rwlock::rdhold rd(&m_client_lock);
 
                 if (m_client_locs.find(from->mask) == m_client_locs.end())
                 {
@@ -415,7 +288,7 @@ hyperdex :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
                 }
             }
 
-            rwlock::rdhold rd(&m_mapping_lock);
+            po6::threads::rwlock::rdhold rd(&m_mapping_lock);
             mapiter t = m_mapping.find(*to);
             tovalid = t != m_mapping.end();
 
@@ -427,7 +300,7 @@ hyperdex :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
         else
         {
             // Grab a read lock on the entity mapping.
-            rwlock::rdhold rd(&m_mapping_lock);
+            po6::threads::rwlock::rdhold rd(&m_mapping_lock);
 
             // Find the from/to mappings.
             mapiter f;
@@ -462,4 +335,111 @@ void
 hyperdex :: logical :: shutdown()
 {
     m_physical.shutdown();
+}
+
+bool
+hyperdex :: logical :: send_you_hold_lock(const hyperdex::entityid& from,
+                                          const hyperdex::entityid& to,
+                                          const uint8_t msg_type,
+                                          const e::buffer& msg)
+{
+    uint16_t fromver = 0;
+    uint16_t tover = 0;
+    po6::net::location dst;
+
+    // If we are sending to a client
+    if (to.space == UINT32_MAX)
+    {
+        {
+            po6::threads::rwlock::rdhold rd(&m_client_lock);
+            std::map<uint64_t, po6::net::location>::iterator cli;
+            cli = m_client_locs.find(to.mask);
+
+            if (cli == m_client_locs.end())
+            {
+                return false;
+            }
+
+            dst = cli->second;
+        }
+        {
+            mapiter f = m_mapping.find(from);
+
+            if (f == m_mapping.end() || f->second != m_us)
+            {
+                return false;
+            }
+
+            fromver = f->second.outbound_version;
+        }
+    }
+    else
+    {
+        mapiter f = m_mapping.find(from);
+        mapiter t = m_mapping.find(to);
+
+        if (f == m_mapping.end() || t == m_mapping.end() || f->second != m_us)
+        {
+            return false;
+        }
+
+        fromver = f->second.outbound_version;
+        tover = t->second.inbound_version;
+        dst = t->second.inbound;
+    }
+
+    e::buffer finalmsg(msg.size() + 32);
+    finalmsg.pack() << msg_type
+                    << fromver
+                    << tover
+                    << from
+                    << to
+                    << msg;
+
+    if (dst == m_us.inbound)
+    {
+        m_physical.deliver(m_us.outbound, finalmsg);
+    }
+    else
+    {
+        m_physical.send(dst, &finalmsg);
+    }
+
+    return true;
+}
+
+bool
+hyperdex :: logical :: our_position(const regionid& r, entityid* e)
+{
+    mapiter f = m_mapping.lower_bound(entityid(r, 0));
+    mapiter t = m_mapping.upper_bound(entityid(r, UINT8_MAX));
+
+    for (; f != t; ++f)
+    {
+        if (f->second == m_us)
+        {
+            *e = f->first;
+            break;
+        }
+    }
+
+    return f != t;
+}
+
+bool
+hyperdex :: logical :: chain_tail(const regionid& r, entityid* e)
+{
+    typedef std::map<hyperdex::entityid, hyperdex::instance>::reverse_iterator reverse_mapiter;
+    reverse_mapiter i = m_mapping.rbegin();
+
+    for (; i != m_mapping.rend(); ++i)
+    {
+        if (overlap(i->first.get_region(), r))
+        {
+            *e = i->first;
+            break;
+        }
+    }
+
+    return i != m_mapping.rend();
 }
