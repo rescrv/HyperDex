@@ -42,7 +42,8 @@ enum stream_no_t
     RESULT  = 4,
     PUT_PENDING = 32,
     DEL_PENDING = 33,
-    ACK         = 34
+    PENDING     = 34,
+    ACK         = 35
 };
 
 } // namespace stream_no
