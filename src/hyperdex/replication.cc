@@ -529,7 +529,7 @@ hyperdex :: replication :: chain_common(op_t op,
     }
 
     // Clear out dead deferred updates
-    while (kh->deferred_updates.begin() != kh->deferred_updates.begin()
+    while (kh->deferred_updates.begin() != kh->deferred_updates.end()
            && kh->deferred_updates.begin()->first <= version)
     {
         kh->deferred_updates.erase(kh->deferred_updates.begin());
