@@ -25,6 +25,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#ifndef hyperdex_stream_no_h_
+#define hyperdex_stream_no_h_
+
 namespace hyperdex
 {
 namespace stream_no
@@ -44,3 +47,5 @@ enum stream_no_t
 
 } // namespace stream_no
 } // namespace hyperdex
+
+#endif // hyperdex_stream_no_h_
