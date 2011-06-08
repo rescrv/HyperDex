@@ -202,7 +202,6 @@ class replication
         // updates.  The second form trusts that the caller knows that it is
         // safe to unblock even though messages may still be pending.
         void unblock_messages(const regionid& r, e::intrusive_ptr<keyholder> kh);
-        void unconditionally_unblock_messages(const regionid& r, e::intrusive_ptr<keyholder> kh);
         // Move as many messages as possible from the deferred queue to the
         // pending queue.
         void move_deferred_to_pending(e::intrusive_ptr<keyholder> kh);
