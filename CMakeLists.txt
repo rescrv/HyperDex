@@ -44,7 +44,6 @@ include_directories(SYSTEM ${EV_INCLUDE_DIRS})
 set(hyperdex_headers
     include/hyperdex/instance.h
     include/hyperdex/query.h
-    include/hyperdex/mapper.h
     include/hyperdex/result_t.h
 )
 
@@ -59,7 +58,6 @@ set(hyperdex_srcs
     src/hyperdex/hyperdexd.cc
     src/hyperdex/log.cc
     src/hyperdex/logical.cc
-    src/hyperdex/mapper.cc
     src/hyperdex/masterlink.cc
     src/hyperdex/network_worker.cc
     src/hyperdex/physical.cc
@@ -108,7 +106,6 @@ set(hyperdex_test_srcs
     test/hyperdex/ids.cc
     test/hyperdex/lockingq.cc
     test/hyperdex/log.cc
-    test/hyperdex/mapper.cc
     test/hyperdex/query.cc
 )
 
@@ -144,9 +141,6 @@ add_test(BloomTest.CopyConstructor testrunner
     --gtest_filter=BloomTest.CopyConstructor)
 add_test(BloomTest.Serialization testrunner
     --gtest_filter=BloomTest.Serialization)
-
-add_test(MapperTest.CtorAndDtor testrunner
-    --gtest_filter=MapperTest.CtorAndDtor)
 
 add_test(LockingqTest.CtorAndDtor testrunner
     --gtest_filter=LockingqTest.CtorAndDtor)
