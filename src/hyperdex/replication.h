@@ -198,6 +198,7 @@ class replication
         po6::threads::mutex* get_lock(const keypair& kp);
         e::intrusive_ptr<chainlink_calculator> get_chainlink_calculator(const regionid& r);
         e::intrusive_ptr<keyholder> get_keyholder(const keypair& kp);
+        void erase_keyholder(const keypair& kp);
         bool from_disk(const regionid& r, const e::buffer& key,
                        bool* have_value, std::vector<e::buffer>* value,
                        uint64_t* version);

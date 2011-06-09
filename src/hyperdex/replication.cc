@@ -282,6 +282,11 @@ hyperdex :: replication :: chain_ack(const entityid& /*from*/,
             m_data->del(to.get_region(), key);
         }
     }
+
+    if (kh->pending_updates.empty())
+    {
+        erase_keyholder(kp);
+    }
 }
 
 // XXX It'd be a good idea to have the same thread which does periodic
@@ -698,6 +703,13 @@ hyperdex :: replication :: get_keyholder(const keypair& kp)
         m_keyholders.insert(std::make_pair(kp, kh));
         return kh;
     }
+}
+
+void
+hyperdex :: replication :: erase_keyholder(const keypair& kp)
+{
+    po6::threads::mutex::hold hold(&m_keyholders_lock);
+    m_keyholders.erase(kp);
 }
 
 bool
