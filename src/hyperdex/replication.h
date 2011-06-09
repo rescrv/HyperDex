@@ -242,12 +242,6 @@ class replication
         // a reader-writer lock here because we need ordering.  The bucketlock
         // will provide the ordering for keys which hash to the same value, and
         // threadsafe datastructures will provide us with the protection.
-        //
-        // When the other datastructures become lock-free, m_config should be
-        // passed in per-call rather than be a member variable.  XXX Even as-is
-        // I'm not convinced that having the data layer operate on a different
-        // config than the layer making the judgement calls about messages is a
-        // good idea.
         po6::threads::mutex m_lock;
         po6::threads::mutex m_chainlink_calculators_lock;
         std::map<regionid, e::intrusive_ptr<chainlink_calculator> > m_chainlink_calculators;
