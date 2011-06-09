@@ -126,7 +126,6 @@ class logical
 
     private:
         instance m_us;
-        po6::threads::rwlock m_mapping_lock;
         po6::threads::rwlock m_client_lock;
         std::map<entityid, instance> m_mapping;
         std::map<po6::net::location, uint64_t> m_client_nums;

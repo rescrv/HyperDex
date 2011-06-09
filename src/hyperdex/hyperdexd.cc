@@ -101,9 +101,13 @@ class hyperdexd_install_mapping
                 e::sleep_ms(10);
             }
 
+            __sync_synchronize();
+
             m_comm->reconfigure(config);
             m_data->reconfigure(config, m_comm->inst());
             m_repl->reconfigure(config, m_comm->inst());
+
+            __sync_synchronize();
 
             m_comm->unpause();
             LOG(INFO) << "Reconfiguration complete; unpausing communication.";

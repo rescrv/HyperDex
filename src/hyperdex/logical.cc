@@ -43,7 +43,6 @@
 hyperdex :: logical :: logical(ev::loop_ref lr,
                                const po6::net::ipaddr& ip)
     : m_us()
-    , m_mapping_lock()
     , m_client_lock()
     , m_mapping()
     , m_client_nums()
@@ -74,9 +73,6 @@ hyperdex :: logical :: prepare(const configuration&)
 void
 hyperdex :: logical :: reconfigure(const configuration& newconfig)
 {
-    // We grab the write lock because the event loop thread is not subject to
-    // pauses in this layer.
-    po6::threads::rwlock::wrhold wr(&m_mapping_lock);
     m_mapping = newconfig.entity_mapping();
 }
 
@@ -100,7 +96,6 @@ hyperdex :: logical :: send(const hyperdex::regionid& from,
                             const hyperdex::entityid& to,
                             const uint8_t msg_type, const e::buffer& msg)
 {
-    po6::threads::rwlock::rdhold hold(&m_mapping_lock);
     entityid realfrom;
 
     if (!our_position(from, &realfrom))
@@ -119,7 +114,6 @@ hyperdex :: logical :: send_forward_else_head(const hyperdex::regionid& chain,
                                               stream_no::stream_no_t msg2_type,
                                               const e::buffer& msg2)
 {
-    po6::threads::rwlock::rdhold hold(&m_mapping_lock);
     entityid from;
 
     if (!our_position(chain, &from))
@@ -155,7 +149,6 @@ hyperdex :: logical :: send_forward_else_tail(const hyperdex::regionid& chain,
                                               stream_no::stream_no_t msg2_type,
                                               const e::buffer& msg2)
 {
-    po6::threads::rwlock::rdhold hold(&m_mapping_lock);
     entityid from;
 
     if (!our_position(chain, &from))
@@ -197,7 +190,6 @@ hyperdex :: logical :: send_backward_else_tail(const hyperdex::regionid& chain,
                                                stream_no::stream_no_t msg2_type,
                                                const e::buffer& msg2)
 {
-    po6::threads::rwlock::rdhold hold(&m_mapping_lock);
     entityid from;
 
     if (!our_position(chain, &from))
@@ -322,7 +314,6 @@ hyperdex :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
                 }
             }
 
-            po6::threads::rwlock::rdhold rd(&m_mapping_lock);
             mapiter t = m_mapping.find(*to);
             tovalid = t != m_mapping.end();
 
@@ -334,7 +325,6 @@ hyperdex :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
         else
         {
             // Grab a read lock on the entity mapping.
-            po6::threads::rwlock::rdhold rd(&m_mapping_lock);
 
             // Find the from/to mappings.
             mapiter f;
