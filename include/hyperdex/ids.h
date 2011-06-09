@@ -33,6 +33,7 @@
 
 // e
 #include <e/buffer.h>
+#include <e/tuple_compare.h>
 
 namespace hyperdex
 {
@@ -254,101 +255,31 @@ operator >> (e::unpacker& lhs, entityid& rhs)
 inline int
 compare(const spaceid& lhs, const spaceid& rhs)
 {
-    if (lhs.space < rhs.space)
-    {
-        return -1;
-    }
-    else if (lhs.space > rhs.space)
-    {
-        return 1;
-    }
-    else
-    {
-        return 0;
-    }
+    return e::tuple_compare(lhs.space,
+                            rhs.space);
 }
 
 inline int
 compare(const subspaceid& lhs, const subspaceid& rhs)
 {
-    int super = compare(lhs.get_space(), rhs.get_space());
-
-    if (super)
-    {
-        return super;
-    }
-
-    if (lhs.subspace < rhs.subspace)
-    {
-        return -1;
-    }
-    else if (lhs.subspace > rhs.subspace)
-    {
-        return 1;
-    }
-    else
-    {
-        return 0;
-    }
+    return e::tuple_compare(lhs.space, lhs.subspace,
+                            rhs.space, rhs.subspace);
 }
 
 inline int
 compare(const regionid& lhs, const regionid& rhs)
 {
-    int super = compare(lhs.get_subspace(), rhs.get_subspace());
-
-    if (super)
-    {
-        return super;
-    }
-
-    if (lhs.prefix < rhs.prefix)
-    {
-        return -1;
-    }
-    else if (lhs.prefix > rhs.prefix)
-    {
-        return 1;
-    }
-    else
-    {
-        if (lhs.mask < rhs.mask)
-        {
-            return -1;
-        }
-        else if (lhs.mask > rhs.mask)
-        {
-            return 1;
-        }
-        else
-        {
-            return 0;
-        }
-    }
+    // XXX Order by mask then prefix.
+    return e::tuple_compare(lhs.space, lhs.subspace, lhs.prefix, lhs.mask,
+                            rhs.space, rhs.subspace, rhs.prefix, rhs.mask);
 }
 
 inline int
 compare(const entityid& lhs, const entityid& rhs)
 {
-    int super = compare(lhs.get_region(), rhs.get_region());
-
-    if (super)
-    {
-        return super;
-    }
-
-    if (lhs.number < rhs.number)
-    {
-        return -1;
-    }
-    else if (lhs.number > rhs.number)
-    {
-        return 1;
-    }
-    else
-    {
-        return 0;
-    }
+    // XXX Order by mask then prefix.
+    return e::tuple_compare(lhs.space, lhs.subspace, lhs.prefix, lhs.mask, lhs.number,
+                            rhs.space, rhs.subspace, rhs.prefix, rhs.mask, rhs.number);
 }
 
 // Operators
