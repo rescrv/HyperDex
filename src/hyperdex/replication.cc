@@ -792,8 +792,9 @@ hyperdex :: replication :: handle_point_leader_work(const regionid& pending_in,
 
     if (update->co.from.space == UINT32_MAX)
     {
-        respond_positively_to_client(update->co, version);
+        clientop co = update->co;
         update->co = clientop();
+        respond_positively_to_client(co, version);
     }
 }
 
@@ -912,9 +913,13 @@ hyperdex :: replication :: respond_positively_to_client(clientop co,
     e::buffer msg;
     uint8_t result = static_cast<uint8_t>(SUCCESS);
     msg.pack() << co.nonce << result;
+
+    {
+        po6::threads::mutex::hold hold(&m_clientops_lock);
+        m_clientops.erase(co);
+    }
+
     m_comm->send(co.region, co.from, stream_no::RESULT, msg);
-    po6::threads::mutex::hold hold(&m_clientops_lock);
-    m_clientops.erase(co);
 }
 
 void
@@ -924,9 +929,13 @@ hyperdex :: replication :: respond_negatively_to_client(clientop co,
     e::buffer msg;
     uint8_t result = static_cast<uint8_t>(r);
     msg.pack() << co.nonce << result;
+
+    {
+        po6::threads::mutex::hold hold(&m_clientops_lock);
+        m_clientops.erase(co);
+    }
+
     m_comm->send(co.region, co.from, stream_no::RESULT, msg);
-    po6::threads::mutex::hold hold(&m_clientops_lock);
-    m_clientops.erase(co);
 }
 
 bool
