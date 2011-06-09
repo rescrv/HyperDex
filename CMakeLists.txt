@@ -49,7 +49,6 @@ set(hyperdex_headers
 
 # Setup the sources
 set(hyperdex_srcs
-    src/hyperdex/bloom.cc
     src/hyperdex/city.cc
     src/hyperdex/client.cc
     src/hyperdex/configuration.cc
@@ -99,7 +98,6 @@ target_link_libraries(count
 ENABLE_TESTING()
 
 set(hyperdex_test_srcs
-    test/hyperdex/bloom.cc
     test/hyperdex/configuration.cc
     test/hyperdex/disk.cc
     test/hyperdex/hyperspace.cc
@@ -130,17 +128,6 @@ add_test(QueryTest.UnsetDeathTest testrunner
     --gtest_filter=QueryTest.UnsetDeathTest)
 add_test(QueryTest.MatchDeathTest testrunner
     --gtest_filter=QueryTest.MatchDeathTest)
-
-add_test(BloomTest.CtorAndDtor testrunner
-    --gtest_filter=BloomTest.CtorAndDtor)
-add_test(BloomTest.AddAndCheck testrunner
-    --gtest_filter=BloomTest.AddAndCheck)
-add_test(BloomTest.Assignment testrunner
-    --gtest_filter=BloomTest.Assignment)
-add_test(BloomTest.CopyConstructor testrunner
-    --gtest_filter=BloomTest.CopyConstructor)
-add_test(BloomTest.Serialization testrunner
-    --gtest_filter=BloomTest.Serialization)
 
 add_test(LockingqTest.CtorAndDtor testrunner
     --gtest_filter=LockingqTest.CtorAndDtor)
