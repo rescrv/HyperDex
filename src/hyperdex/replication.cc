@@ -664,7 +664,7 @@ e::intrusive_ptr<hyperdex::replication::chainlink_calculator>
 hyperdex :: replication :: get_chainlink_calculator(const regionid& r)
 {
     typedef std::map<regionid, e::intrusive_ptr<chainlink_calculator> >::iterator clc_iter_t;
-    po6::threads::mutex::hold hold(&m_keyholders_lock);
+    po6::threads::mutex::hold hold(&m_chainlink_calculators_lock);
     clc_iter_t i;
 
     if ((i = m_chainlink_calculators.find(r)) != m_chainlink_calculators.end())
