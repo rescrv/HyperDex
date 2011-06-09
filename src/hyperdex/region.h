@@ -46,6 +46,9 @@
 #include <hyperdex/log.h>
 #include <hyperdex/result_t.h>
 
+// XXX The whole "region" class and subclasses (e.g., disk) do not have a
+// "shutdown" method.  This means that it's not possible to safely shutdown a
+// hyperdex cluster.
 namespace hyperdex
 {
 
@@ -63,11 +66,13 @@ class region
         size_t flush();
         void async();
         void sync();
+        void drop();
 
     private:
         friend class e::intrusive_ptr<region>;
 
     private:
+        e::intrusive_ptr<disk> create_disk(const regionid& ri);
         void get_value_hashes(const std::vector<e::buffer>& value, std::vector<uint64_t>* value_hashes);
         uint64_t get_point_for(uint64_t key_hash);
         uint64_t get_point_for(uint64_t key_hash, const std::vector<uint64_t>& value_hashes);
@@ -83,6 +88,7 @@ class region
         po6::threads::rwlock m_rwlock;
         typedef std::vector<std::pair<regionid, e::intrusive_ptr<disk> > > disk_vector;
         disk_vector m_disks;
+        po6::pathname m_base;
 };
 
 } // namespace hyperdex

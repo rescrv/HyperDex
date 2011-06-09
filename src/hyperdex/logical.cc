@@ -66,11 +66,24 @@ hyperdex :: logical :: ~logical()
 typedef std::map<hyperdex::entityid, hyperdex::instance>::iterator mapiter;
 
 void
-hyperdex :: logical :: remap(std::map<entityid, instance> mapping)
+hyperdex :: logical :: prepare(const configuration&)
 {
+    // Do nothing.
+}
+
+void
+hyperdex :: logical :: reconfigure(const configuration& newconfig)
+{
+    // We grab the write lock because the event loop thread is not subject to
+    // pauses in this layer.
     po6::threads::rwlock::wrhold wr(&m_mapping_lock);
-    LOG(INFO) << "Installing new mapping.";
-    m_mapping.swap(mapping);
+    m_mapping = newconfig.entity_mapping();
+}
+
+void
+hyperdex :: logical :: cleanup(const configuration&)
+{
+    // Do nothing.
 }
 
 bool

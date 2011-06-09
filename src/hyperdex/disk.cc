@@ -288,6 +288,12 @@ hyperdex :: disk :: async()
     }
 }
 
+void
+hyperdex :: disk :: drop()
+{
+    // XXX
+}
+
 bool
 hyperdex :: disk :: find_bucket_for_key(const e::buffer& key,
                                         uint64_t key_hash,

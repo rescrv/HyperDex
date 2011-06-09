@@ -38,7 +38,9 @@
 #include <e/intrusive_ptr.h>
 
 // HyperDex
+#include <hyperdex/configuration.h>
 #include <hyperdex/datalayer.h>
+#include <hyperdex/instance.h>
 #include <hyperdex/logical.h>
 #include <hyperdex/op_t.h>
 
@@ -51,12 +53,14 @@ class replication
     public:
         replication(datalayer* dl, logical* comm);
 
+    // Reconfigure this layer.
     public:
-        // Install the new configuration.  This implicitly remaps the logical
-        // communcation layer.
-        void reconfigure(const configuration& config);
-        void drop(const regionid& reg);
+        void prepare(const configuration& newconfig, const instance& us);
+        void reconfigure(const configuration& newconfig, const instance& us);
+        void cleanup(const configuration& newconfig, const instance& us);
 
+    // Netowrk workers call these methods.
+    public:
         // These are called when the client initiates the action.  This implies
         // that only the point leader will call these methods.
         void client_put(const entityid& from, const entityid& to, uint32_t nonce,
@@ -73,7 +77,6 @@ class replication
                            uint64_t rev, const e::buffer& key);
         void chain_ack(const entityid& from, const entityid& to, uint64_t rev,
                        const e::buffer& key);
-
 
     private:
         struct clientop

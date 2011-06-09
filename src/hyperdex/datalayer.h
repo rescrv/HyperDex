@@ -42,7 +42,9 @@
 #include <e/buffer.h>
 
 // HyperDex
+#include <hyperdex/configuration.h>
 #include <hyperdex/ids.h>
+#include <hyperdex/instance.h>
 #include <hyperdex/region.h>
 #include <hyperdex/result_t.h>
 
@@ -55,11 +57,10 @@ class datalayer
         datalayer();
         ~datalayer() throw ();
 
-    // Space operations.
     public:
-        std::set<regionid> regions();
-        void create(const regionid& ri, uint16_t numcolumns);
-        void drop(const regionid& ri);
+        void prepare(const configuration& newconfig, const instance& us);
+        void reconfigure(const configuration& newconfig, const instance& us);
+        void cleanup(const configuration& newconfig, const instance& us);
         void shutdown();
 
     // Key-Value store operations.
@@ -74,12 +75,15 @@ class datalayer
     private:
         e::intrusive_ptr<hyperdex::region> get_region(const regionid& ri);
         void flush_loop();
+        void create_region(const regionid& ri, uint16_t num_columns);
+        void drop_region(const regionid& ri);
 
     private:
         datalayer& operator = (const datalayer&);
 
     private:
         bool m_shutdown;
+        po6::pathname m_base;
         po6::threads::thread m_flusher;
         po6::threads::rwlock m_lock;
         std::map<regionid, e::intrusive_ptr<hyperdex::region> > m_regions;

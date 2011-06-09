@@ -47,6 +47,10 @@
 // po6
 #include <po6/threads/thread.h>
 
+// e
+#include <e/guard.h>
+#include <e/timer.h>
+
 // HyperDex
 #include <hyperdex/datalayer.h>
 #include <hyperdex/logical.h>
@@ -76,57 +80,40 @@ class hyperdexd_install_mapping
         void operator () (const hyperdex::configuration& config)
         {
             using hyperdex::configuration;
-            using hyperdex::entityid;
-            using hyperdex::instance;
 
-            std::set<hyperdex::regionid> existing;
-            existing = m_data->regions();
-            std::map<hyperdex::regionid, size_t> declared;
-            declared = config.regions();
-            std::map<entityid, instance> entity_mapping;
-            entity_mapping = config.entity_mapping();
+            // Prepare for our new configuration.
+            // These operations should assume that there will be network
+            // activity, and that the network threads will be in full force..
+            m_comm->prepare(config);
+            m_data->prepare(config, m_comm->inst());
+            m_repl->prepare(config, m_comm->inst());
 
-            // For each declared region which matches the comm layer,
-            // create it if it doesn't exist.
-            for (std::map<entityid, instance>::iterator e = entity_mapping.begin();
-                    e != entity_mapping.end(); ++e)
+            // Reconfigure to the new configuration.
+            // These operations may assume that there will be no network
+            // activity.
+            e::guard g = e::makeobjguard(*m_comm, &hyperdex::logical::unpause);
+            LOG(INFO) << "Pausing communication to reconfigure.";
+            m_comm->pause();
+
+            // Make sure that we wait until everyone is paused.
+            while (m_comm->num_paused() < NUM_THREADS)
             {
-                if (e->second == m_comm->inst()
-                        && existing.find(e->first.get_region()) == existing.end())
-                {
-                    m_data->create(e->first.get_region(), declared[e->first.get_region()]);
-                }
+                e::sleep_ms(10);
             }
 
-            // We let the replication layer reconfigure the
-            // communication layer.
-            m_repl->reconfigure(config);
+            m_comm->reconfigure(config);
+            m_data->reconfigure(config, m_comm->inst());
+            m_repl->reconfigure(config, m_comm->inst());
 
-            // For each existing region, drop it if it wasn't declared
-            // to match our comm layer.
-            for (std::set<hyperdex::regionid>::iterator e = existing.begin();
-                    e != existing.end(); ++e)
-            {
-                std::map<entityid, instance>::iterator start;
-                std::map<entityid, instance>::iterator end;
-                start = entity_mapping.lower_bound(entityid(*e, 0));
-                end = entity_mapping.upper_bound(entityid(*e, 255));
-                bool keep = false;
+            m_comm->unpause();
+            LOG(INFO) << "Reconfiguration complete; unpausing communication.";
+            g.dismiss();
 
-                for (; start != end; ++start)
-                {
-                    if (start->second == m_comm->inst())
-                    {
-                        keep = true;
-                    }
-                }
-
-                if (!keep)
-                {
-                    m_data->drop(*e);
-                    m_repl->drop(*e);
-                }
-            }
+            // Cleanup anything not specified by our new configuration.
+            // These operations should assume that there will be network
+            m_repl->cleanup(config, m_comm->inst());
+            m_data->cleanup(config, m_comm->inst());
+            m_comm->cleanup(config);
         }
 
     private:

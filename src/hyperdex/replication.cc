@@ -61,18 +61,78 @@ hyperdex :: replication :: replication(datalayer* data, logical* comm)
 }
 
 void
-hyperdex :: replication :: reconfigure(const configuration& config)
+hyperdex :: replication :: prepare(const configuration&, const instance&)
 {
-    // XXX Find a better way
-    po6::threads::mutex::hold hold(&m_lock);
-    m_config = config;
-    m_comm->remap(config.entity_mapping());
+    // Do nothing.
 }
 
 void
-hyperdex :: replication :: drop(const regionid&)
+hyperdex :: replication :: reconfigure(const configuration& newconfig, const instance& us)
 {
-    // XXX Actually drop shit so memory is recovered.
+    // When reconfiguring, we need to drop all messages which we deferred (e.g.,
+    // for arriving out-of-order) because they may no longer be from a valid
+    // sender.
+    //
+    // We also drop all resources associated with regions for which we no longer
+    // hold responsibility.
+    //
+    // XXX If we track the old/new entity->instance mappings for deferred
+    // messages, we can selectively drop them.
+    m_config = newconfig;
+    std::set<regionid> regions;
+
+    for (std::map<entityid, instance>::const_iterator e = m_config.entity_mapping().begin();
+            e != m_config.entity_mapping().end(); ++e)
+    {
+        if (e->second == us)
+        {
+            regions.insert(e->first.get_region());
+        }
+    }
+
+    std::map<keypair, e::intrusive_ptr<keyholder> >::iterator khiter;
+    khiter = m_keyholders.begin();
+
+    while (khiter != m_keyholders.end())
+    {
+        khiter->second->deferred_updates.clear();
+
+        if (regions.find(khiter->first.region) == regions.end())
+        {
+            std::map<keypair, e::intrusive_ptr<keyholder> >::iterator to_erase;
+            to_erase = khiter;
+            ++khiter;
+            m_keyholders.erase(to_erase);
+        }
+        else
+        {
+            ++khiter;
+        }
+    }
+
+    std::map<regionid, e::intrusive_ptr<chainlink_calculator> >::iterator clciter;
+    clciter = m_chainlink_calculators.begin();
+
+    while (clciter != m_chainlink_calculators.end())
+    {
+        if (regions.find(clciter->first) == regions.end())
+        {
+            std::map<regionid, e::intrusive_ptr<chainlink_calculator> >::iterator to_erase;
+            to_erase = clciter;
+            ++clciter;
+            m_chainlink_calculators.erase(to_erase);
+        }
+        else
+        {
+            ++clciter;
+        }
+    }
+}
+
+void
+hyperdex :: replication :: cleanup(const configuration&, const instance&)
+{
+    // Do nothing.
 }
 
 void

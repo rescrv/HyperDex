@@ -43,6 +43,7 @@
 
 // HyperDex
 #include <hyperdex/configuration.h>
+#include <hyperdex/instance.h>
 #include <hyperdex/physical.h>
 #include <hyperdex/stream_no.h>
 
@@ -57,8 +58,12 @@ class logical
 
     public:
         const instance& inst() const { return m_us; }
-        // Install a new mapping.
-        void remap(std::map<entityid, instance> mapping);
+
+    // Reconfigure this layer.
+    public:
+        void prepare(const configuration& newconfig);
+        void reconfigure(const configuration& newconfig);
+        void cleanup(const configuration& newconfig);
 
     // Pause/unpause or completely stop recv of messages.  Paused threads will
     // not hold locks, and therefore will not pose risk of deadlock.

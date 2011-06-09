@@ -25,6 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#define __STDC_LIMIT_MACROS
+
 // C
 #include <cassert>
 
@@ -49,6 +51,7 @@ typedef std::map<e::buffer, std::pair<uint64_t, std::vector<e::buffer> > > regio
 
 hyperdex :: datalayer :: datalayer()
     : m_shutdown(false)
+    , m_base("")
     , m_flusher(std::tr1::bind(&datalayer::flush_loop, this))
     , m_lock()
     , m_regions()
@@ -66,67 +69,78 @@ hyperdex :: datalayer :: ~datalayer() throw ()
     m_flusher.join();
 }
 
-std::set<hyperdex::regionid>
-hyperdex :: datalayer :: regions()
+void
+hyperdex :: datalayer :: prepare(const configuration& newconfig, const instance& us)
 {
-    po6::threads::rwlock::rdhold hold(&m_lock);
-    std::set<hyperdex::regionid> ret;
+    // Create new regions which we do not currently have.
+    std::map<regionid, e::intrusive_ptr<hyperdex::region> > regions;
 
-    for (std::map<regionid, region_ptr>::iterator i = m_regions.begin();
-            i != m_regions.end(); ++i)
+    // Grab a copy of all the regions we do have.
     {
-        ret.insert(i->first);
+        po6::threads::rwlock::rdhold hold(&m_lock);
+        regions = m_regions;
     }
 
-    return ret;
+    for (std::map<entityid, instance>::const_iterator e = newconfig.entity_mapping().begin();
+            e != newconfig.entity_mapping().end(); ++e)
+    {
+        if (e->second == us
+            && regions.find(e->first.get_region()) == regions.end())
+        {
+            std::map<hyperdex::regionid, size_t>::iterator region_size;
+            region_size = newconfig.regions().find(e->first.get_region());
+
+            if (region_size != newconfig.regions().end())
+            {
+                create_region(e->first.get_region(), region_size->second);
+            }
+            else
+            {
+                LOG(ERROR) << "There is a logic error in the configuration object.";
+            }
+        }
+    }
 }
 
 void
-hyperdex :: datalayer :: create(const regionid& ri,
-                                uint16_t numcolumns)
+hyperdex :: datalayer :: reconfigure(const configuration&, const instance&)
 {
-    po6::threads::rwlock::wrhold hold(&m_lock);
-    std::map<regionid, region_ptr>::iterator i;
-    i = m_regions.find(ri);
+    // Do nothing.
+}
 
-    if (i == m_regions.end())
+void
+hyperdex :: datalayer :: cleanup(const configuration& newconfig, const instance& us)
+{
+    // Delete regions which are no longer in the config.
+    std::map<regionid, e::intrusive_ptr<hyperdex::region> > regions;
+
+    // Grab a copy of all the regions we do have.
     {
-        std::ostringstream ostr;
-        ostr << ri;
+        po6::threads::rwlock::rdhold hold(&m_lock);
+        regions = m_regions;
+    }
 
-        if (mkdir(ostr.str().c_str(), S_IRWXU) < 0 && errno != EEXIST)
+    for (std::map<regionid, e::intrusive_ptr<hyperdex::region> >::iterator r = regions.begin();
+            r != regions.end(); ++r)
+    {
+        bool keep = false;
+        std::map<entityid, instance>::const_iterator start;
+        std::map<entityid, instance>::const_iterator end;
+        start = newconfig.entity_mapping().lower_bound(entityid(r->first, 0));
+        end = newconfig.entity_mapping().upper_bound(entityid(r->first, UINT8_MAX));
+
+        for (; start != end; ++start)
         {
-            LOG(INFO) << "TRACE";
-            throw po6::error(errno);
+            if (start->second == us)
+            {
+                keep = true;
+            }
         }
 
-        LOG(INFO) << "Creating " << ri << " with " << numcolumns << " columns "
-                  << "in directory " << ostr.str();
-        region_ptr reg;
-        reg = new region(ri, ostr.str().c_str(), numcolumns);
-        m_regions.insert(std::make_pair(ri, reg));
-    }
-    else
-    {
-        LOG(INFO) << ri << " already exists; cannot create region";
-    }
-}
-
-void
-hyperdex :: datalayer :: drop(const regionid& ri)
-{
-    po6::threads::rwlock::wrhold hold(&m_lock);
-    std::map<regionid, region_ptr>::iterator i;
-    i = m_regions.find(ri);
-
-    if (i != m_regions.end())
-    {
-        LOG(INFO) << "Dropping " << ri;
-        m_regions.erase(i);
-    }
-    else
-    {
-        LOG(INFO) << ri << " doesn't exist; cannot drop region";
+        if (!keep)
+        {
+            drop_region(r->first);
+        }
     }
 }
 
@@ -235,5 +249,29 @@ hyperdex :: datalayer :: flush_loop()
             ts.tv_nsec = 100000000; // 100ms
             nanosleep(&ts, &ts); // If interrupted, it is no big deal.
         }
+    }
+}
+
+void
+hyperdex :: datalayer :: create_region(const regionid& ri, uint16_t num_columns)
+{
+    LOG(INFO) << "Creating region " << ri << " with " << num_columns << " columns.";
+    region_ptr reg;
+    reg = new region(ri, m_base, num_columns);
+    po6::threads::rwlock::wrhold hold(&m_lock);
+    m_regions.insert(std::make_pair(ri, reg));
+}
+
+void
+hyperdex :: datalayer :: drop_region(const regionid& ri)
+{
+    po6::threads::rwlock::wrhold hold(&m_lock);
+    std::map<regionid, region_ptr>::iterator i;
+    i = m_regions.find(ri);
+
+    if (i != m_regions.end())
+    {
+        i->second->drop();
+        m_regions.erase(i);
     }
 }

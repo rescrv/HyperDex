@@ -66,6 +66,7 @@ class disk
         result_t del(const e::buffer& key, uint64_t key_hash);
         void async();
         void sync();
+        void drop();
 
     private:
         friend class e::intrusive_ptr<disk>;

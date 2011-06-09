@@ -27,29 +27,52 @@
 
 #define __STDC_LIMIT_MACROS
 
+// POSIX
+#include <sys/stat.h>
+#include <sys/types.h>
+
 // Google Log
 #include <glog/logging.h>
+
+// e
+#include <e/guard.h>
 
 // HyperDex
 #include <hyperdex/city.h>
 #include <hyperdex/hyperspace.h>
 #include <hyperdex/region.h>
 
-hyperdex :: region :: region(const regionid& ri, const po6::pathname& directory, uint16_t nc)
+// XXX Implement splitting.
+
+hyperdex :: region :: region(const regionid& ri, const po6::pathname& base, uint16_t nc)
     : m_ref(0)
     , m_numcolumns(nc)
     , m_point_mask(get_point_for(UINT64_MAX))
     , m_log()
     , m_rwlock()
     , m_disks()
+    , m_base()
 {
+    // The base directory for this region.
     std::ostringstream ostr;
     ostr << ri;
-    // Create one disk to start.  It will split as necessary.
-    // XXX Implement splitting.
-    po6::pathname path = join(directory, ostr.str());
-    e::intrusive_ptr<disk> d = new disk(join(directory, ostr.str()));
-    m_disks.push_back(std::make_pair(regionid(ri.get_subspace(), 0, 0), d));
+    m_base = po6::join(base, po6::pathname(ostr.str()));
+
+    if (mkdir(m_base.get(), S_IRWXU) < 0 && errno != EEXIST)
+    {
+        LOG(INFO) << "Could not create region " << ri << " because mkdir failed";
+        throw po6::error(errno);
+    }
+
+    e::guard rmdir_guard = e::makeguard(rmdir, m_base.get());
+
+    // Create a starting disk which holds everything.
+    regionid starting(regionid(ri.get_subspace(), 0));
+    e::intrusive_ptr<disk> newdisk = create_disk(starting);
+    e::guard disk_guard = e::makeobjguard(*newdisk, &disk::drop);
+    m_disks.push_back(std::make_pair(starting, newdisk));
+    disk_guard.dismiss();
+    rmdir_guard.dismiss();
 }
 
 hyperdex :: result_t
@@ -213,6 +236,82 @@ hyperdex :: region :: flush()
 }
 
 void
+hyperdex :: region :: async()
+{
+    po6::threads::rwlock::rdhold hold(&m_rwlock);
+
+    for (disk_vector::iterator i = m_disks.begin(); i != m_disks.end(); ++i)
+    {
+        i->second->async();
+    }
+}
+
+void
+hyperdex :: region :: sync()
+{
+    po6::threads::rwlock::rdhold hold(&m_rwlock);
+
+    for (disk_vector::iterator i = m_disks.begin(); i != m_disks.end(); ++i)
+    {
+        i->second->sync();
+    }
+}
+
+void
+hyperdex :: region :: drop()
+{
+    // XXX
+}
+
+e::intrusive_ptr<hyperdex::disk>
+hyperdex :: region :: create_disk(const regionid& ri)
+{
+    std::ostringstream ostr;
+    ostr << ri;
+    po6::pathname path = po6::join(m_base, po6::pathname(ostr.str()));
+    e::intrusive_ptr<disk> newdisk = new disk(path);
+    return newdisk;
+}
+
+void
+hyperdex :: region :: get_value_hashes(const std::vector<e::buffer>& value,
+                                       std::vector<uint64_t>* value_hashes)
+{
+    for (size_t i = 0; i < value.size(); ++i)
+    {
+        value_hashes->push_back(CityHash64(value[i]));
+    }
+}
+
+uint64_t
+hyperdex :: region :: get_point_for(uint64_t key_hash)
+{
+    std::vector<uint64_t> points;
+    points.push_back(key_hash);
+
+    for (size_t i = 1; i < m_numcolumns; ++i)
+    {
+        points.push_back(0);
+    }
+
+    return interlace(points);
+}
+
+uint64_t
+hyperdex :: region :: get_point_for(uint64_t key_hash, const std::vector<uint64_t>& value_hashes)
+{
+    std::vector<uint64_t> points;
+    points.push_back(key_hash);
+
+    for (size_t i = 0; i < value_hashes.size(); ++i)
+    {
+        points.push_back(value_hashes[i]);
+    }
+
+    return interlace(points);
+}
+
+void
 hyperdex :: region :: flush_one(op_t op, uint64_t point, const e::buffer& key,
                                 uint64_t key_hash,
                                 const std::vector<e::buffer>& value,
@@ -266,64 +365,4 @@ hyperdex :: region :: flush_one(op_t op, uint64_t point, const e::buffer& key,
             }
         }
     }
-}
-
-void
-hyperdex :: region :: async()
-{
-    po6::threads::rwlock::rdhold hold(&m_rwlock);
-
-    for (disk_vector::iterator i = m_disks.begin(); i != m_disks.end(); ++i)
-    {
-        i->second->async();
-    }
-}
-
-void
-hyperdex :: region :: sync()
-{
-    po6::threads::rwlock::rdhold hold(&m_rwlock);
-
-    for (disk_vector::iterator i = m_disks.begin(); i != m_disks.end(); ++i)
-    {
-        i->second->sync();
-    }
-}
-
-void
-hyperdex :: region :: get_value_hashes(const std::vector<e::buffer>& value,
-                                       std::vector<uint64_t>* value_hashes)
-{
-    for (size_t i = 0; i < value.size(); ++i)
-    {
-        value_hashes->push_back(CityHash64(value[i]));
-    }
-}
-
-uint64_t
-hyperdex :: region :: get_point_for(uint64_t key_hash)
-{
-    std::vector<uint64_t> points;
-    points.push_back(key_hash);
-
-    for (size_t i = 1; i < m_numcolumns; ++i)
-    {
-        points.push_back(0);
-    }
-
-    return interlace(points);
-}
-
-uint64_t
-hyperdex :: region :: get_point_for(uint64_t key_hash, const std::vector<uint64_t>& value_hashes)
-{
-    std::vector<uint64_t> points;
-    points.push_back(key_hash);
-
-    for (size_t i = 0; i < value_hashes.size(); ++i)
-    {
-        points.push_back(value_hashes[i]);
-    }
-
-    return interlace(points);
 }

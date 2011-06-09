@@ -30,13 +30,13 @@
 
 // STL
 #include <map>
+#include <set>
 #include <tr1/functional>
 
 // po6
 #include <po6/net/location.h>
 
 // HyperDex
-#include <hyperdex/datalayer.h>
 #include <hyperdex/ids.h>
 #include <hyperdex/instance.h>
 
