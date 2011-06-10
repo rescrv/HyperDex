@@ -36,6 +36,7 @@
 
 // e
 #include <e/intrusive_ptr.h>
+#include <e/set.h>
 
 // HyperDex
 #include <hyperdex/configuration.h>
@@ -229,7 +230,6 @@ class replication
         // Send directly.
         void send_ack(const regionid& from, const entityid& to,
                       const e::buffer& key, uint64_t version);
-        bool have_seen_clientop(const clientop& co);
         void respond_positively_to_client(clientop co, uint64_t version);
         void respond_negatively_to_client(clientop co, result_t result);
         // Retransmit current pending values.
@@ -250,8 +250,7 @@ class replication
         std::map<regionid, e::intrusive_ptr<chainlink_calculator> > m_chainlink_calculators;
         po6::threads::mutex m_keyholders_lock;
         std::map<keypair, e::intrusive_ptr<keyholder> > m_keyholders;
-        po6::threads::mutex m_clientops_lock;
-        std::set<clientop> m_clientops;
+        e::set<clientop> m_clientops;
         bool m_shutdown;
         po6::threads::thread m_retransmitter;
 };

@@ -56,7 +56,6 @@ hyperdex :: replication :: replication(datalayer* data, logical* comm)
     , m_chainlink_calculators()
     , m_keyholders_lock()
     , m_keyholders()
-    , m_clientops_lock()
     , m_clientops()
     , m_shutdown(false)
     , m_retransmitter(std::tr1::bind(&replication::retransmit, this))
@@ -344,7 +343,7 @@ hyperdex :: replication :: client_common(op_t op,
     }
 
     // If we have seen this (from, nonce) before and it is still active.
-    if (have_seen_clientop(co))
+    if (m_clientops.contains(co))
     {
         return;
     }
@@ -939,13 +938,6 @@ hyperdex :: replication :: send_ack(const regionid& from,
     m_comm->send(from, to, stream_no::ACK, msg);
 }
 
-bool
-hyperdex :: replication :: have_seen_clientop(const clientop& co)
-{
-    po6::threads::mutex::hold hold(&m_clientops_lock);
-    return m_clientops.find(co) != m_clientops.end();
-}
-
 void
 hyperdex :: replication :: respond_positively_to_client(clientop co,
                                                         uint64_t /*version*/)
@@ -953,12 +945,7 @@ hyperdex :: replication :: respond_positively_to_client(clientop co,
     e::buffer msg;
     uint8_t result = static_cast<uint8_t>(SUCCESS);
     msg.pack() << co.nonce << result;
-
-    {
-        po6::threads::mutex::hold hold(&m_clientops_lock);
-        m_clientops.erase(co);
-    }
-
+    m_clientops.remove(co);
     m_comm->send(co.region, co.from, stream_no::RESULT, msg);
 }
 
@@ -969,12 +956,7 @@ hyperdex :: replication :: respond_negatively_to_client(clientop co,
     e::buffer msg;
     uint8_t result = static_cast<uint8_t>(r);
     msg.pack() << co.nonce << result;
-
-    {
-        po6::threads::mutex::hold hold(&m_clientops_lock);
-        m_clientops.erase(co);
-    }
-
+    m_clientops.remove(co);
     m_comm->send(co.region, co.from, stream_no::RESULT, msg);
 }
 
