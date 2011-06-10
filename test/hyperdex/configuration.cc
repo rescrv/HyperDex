@@ -297,9 +297,9 @@ TEST(ConfigurationTest, TransferIds)
     EXPECT_TRUE(expected_em == returned_em);
 
     // Test that it properly picks up all the transfers.
-    std::set<uint16_t> transfers;
+    std::map<uint16_t, hyperdex::regionid> transfers;
     EXPECT_TRUE(transfers == c.transfers(i_deadbeef));
-    transfers.insert(0x1eaf);
+    transfers.insert(std::make_pair(0x1eaf, hyperdex::regionid(0xdefec8ed, 0, 0, 0)));
     EXPECT_TRUE(transfers == c.transfers(i_cafebabe));
 }
 

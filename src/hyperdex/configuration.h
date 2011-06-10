@@ -80,7 +80,7 @@ class configuration
         bool dimensions(const subspaceid& ss, std::vector<bool>* dims) const;
 
         // Return the set of transfers in progress to a particular host.
-        std::set<uint16_t> transfers(const instance& i) const;
+        std::map<uint16_t, regionid> transfers(const instance& i) const;
 
         // Perhaps these should be a little less transparent.
         const std::map<entityid, instance>& entity_mapping() const { return m_entities; }
@@ -101,6 +101,8 @@ class configuration
         std::set<regionid> m_regions;
         // Map an entity id onto the hyperdex instance.
         std::map<entityid, instance> m_entities;
+        // Track currently specified transfers.
+        std::map<uint16_t, regionid> m_transfers;
 };
 
 inline std::ostream&

@@ -52,6 +52,7 @@ hyperdex :: configuration :: configuration()
     , m_subspaces()
     , m_regions()
     , m_entities()
+    , m_transfers()
 {
 }
 
@@ -317,6 +318,7 @@ hyperdex :: configuration :: add_line(const std::string& line)
                 return false;
             }
 
+            m_transfers.insert(std::make_pair(xfer_id, r));
             m_entities.insert(std::make_pair(entityid(UINT32_MAX - 1, xfer_id, 0, 0, 0), m_hosts[host]));
             return true;
         }
@@ -386,18 +388,19 @@ hyperdex :: configuration :: dimensions(const subspaceid& ss,
     }
 }
 
-std::set<uint16_t>
+std::map<uint16_t, hyperdex::regionid>
 hyperdex :: configuration :: transfers(const instance& i)
                              const
 {
-    std::set<uint16_t> ret;
+    std::map<uint16_t, hyperdex::regionid> ret;
 
     for (std::map<entityid, instance>::const_iterator e = m_entities.begin();
             e != m_entities.end(); ++e)
     {
         if (e->first.space == UINT32_MAX - 1 && e->second == i)
         {
-            ret.insert(e->first.subspace);
+            uint16_t xfer_id = e->first.subspace;
+            ret.insert(std::make_pair(xfer_id, m_transfers.find(xfer_id)->second));
         }
     }
 
