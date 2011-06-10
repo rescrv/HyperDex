@@ -101,15 +101,12 @@ class replication
         class pending
         {
             public:
-                pending(op_t op, uint64_t version,
-                        const e::buffer& key,
+                pending(op_t op,
                         const std::vector<e::buffer>& value,
                         const clientop& co = clientop());
 
             public:
                 const op_t op;
-                const uint64_t version;
-                const e::buffer& key;
                 const std::vector<e::buffer> value;
                 clientop co;
                 bool fresh;
@@ -208,7 +205,7 @@ class replication
         // The first form will only unblock messages when there are no pending
         // updates.  The second form trusts that the caller knows that it is
         // safe to unblock even though messages may still be pending.
-        void unblock_messages(const regionid& r, e::intrusive_ptr<keyholder> kh);
+        void unblock_messages(const regionid& r, const e::buffer& key, e::intrusive_ptr<keyholder> kh);
         // Move as many messages as possible from the deferred queue to the
         // pending queue.
         void move_deferred_to_pending(e::intrusive_ptr<keyholder> kh);
@@ -221,11 +218,12 @@ class replication
         // Send the message that the pending object needs to send in order to
         // make system-wide progress.
         void send_update(const hyperdex::regionid& pending_in,
+                         uint64_t version, const e::buffer& key,
                          e::intrusive_ptr<pending> update);
         // Send an ack based on a pending object using chain rules.  That is,
         // use the send_backward function of the communication layer.
-        void send_ack(const regionid& from, const e::buffer& key,
-                      uint64_t version, e::intrusive_ptr<pending> update);
+        void send_ack(const regionid& from, uint64_t version,
+                      const e::buffer& key, e::intrusive_ptr<pending> update);
         // Send directly.
         void send_ack(const regionid& from, const entityid& to,
                       const e::buffer& key, uint64_t version);

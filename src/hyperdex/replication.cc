@@ -263,7 +263,7 @@ hyperdex :: replication :: chain_ack(const entityid& /*from*/,
         return;
     }
 
-    send_ack(to.get_region(), key, version, pend);
+    send_ack(to.get_region(), version, key, pend);
     pend->acked = true;
 
     while (!kh->pending_updates.empty() && kh->pending_updates.begin()->second->acked)
@@ -393,7 +393,7 @@ hyperdex :: replication :: client_common(op_t op,
     }
 
     e::intrusive_ptr<pending> newpend;
-    newpend = new pending(op, oldversion + 1, key, value, co);
+    newpend = new pending(op, value, co);
 
     // Figure out the four regions we could send to.
     if (op == PUT && have_oldvalue)
@@ -442,12 +442,12 @@ hyperdex :: replication :: client_common(op_t op,
     if (blocked)
     {
         kh->blocked_updates.insert(std::make_pair(oldversion + 1, newpend));
-        unblock_messages(to.get_region(), kh);
+        unblock_messages(to.get_region(), key, kh);
     }
     else
     {
         kh->pending_updates.insert(std::make_pair(oldversion + 1, newpend));
-        send_update(to.get_region(), newpend);
+        send_update(to.get_region(), oldversion + 1, key, newpend);
     }
 
     g.dismiss();
@@ -585,7 +585,7 @@ hyperdex :: replication :: chain_common(op_t op,
 
     // Create a new pending object to set as pending.
     e::intrusive_ptr<pending> newpend;
-    newpend = new pending(op, version, key, value);
+    newpend = new pending(op, value);
 
     // Figure out the four regions we could send to.
     if (op == PUT && have_oldvalue)
@@ -655,7 +655,7 @@ hyperdex :: replication :: chain_common(op_t op,
     }
 
     kh->pending_updates.insert(std::make_pair(version, newpend));
-    send_update(to.get_region(), newpend);
+    send_update(to.get_region(), version, key, newpend);
     move_deferred_to_pending(kh);
 }
 
@@ -741,7 +741,9 @@ hyperdex :: replication :: from_disk(const regionid& r,
 }
 
 void
-hyperdex :: replication :: unblock_messages(const regionid& r, e::intrusive_ptr<keyholder> kh)
+hyperdex :: replication :: unblock_messages(const regionid& r,
+                                            const e::buffer& key,
+                                            e::intrusive_ptr<keyholder> kh)
 {
     // We cannot unblock so long as there are messages pending.
     if (!kh->pending_updates.empty())
@@ -761,7 +763,7 @@ hyperdex :: replication :: unblock_messages(const regionid& r, e::intrusive_ptr<
         std::map<uint64_t, e::intrusive_ptr<pending> >::iterator pend;
         pend = kh->blocked_updates.begin();
         kh->pending_updates.insert(std::make_pair(pend->first, pend->second));
-        send_update(r, pend->second);
+        send_update(r, pend->first, key, pend->second);
         kh->blocked_updates.erase(pend);
     }
     while (!kh->blocked_updates.empty() && !kh->blocked_updates.begin()->second->fresh);
@@ -782,7 +784,7 @@ hyperdex :: replication :: handle_point_leader_work(const regionid& pending_in,
                                                     e::intrusive_ptr<keyholder> kh,
                                                     e::intrusive_ptr<pending> update)
 {
-    send_ack(pending_in, key, version, update);
+    send_ack(pending_in, version, key, update);
 
     if (!update->ondisk && update->op == PUT)
     {
@@ -812,16 +814,17 @@ hyperdex :: replication :: handle_point_leader_work(const regionid& pending_in,
 
 void
 hyperdex :: replication :: send_update(const hyperdex::regionid& pending_in,
+                                       uint64_t version, const e::buffer& key,
                                        e::intrusive_ptr<pending> update)
 {
     uint8_t fresh = update->fresh ? 1 : 0;
 
     e::buffer info;
-    info.pack() << update->version << update->key;
+    info.pack() << version << key;
 
     e::buffer msg;
     e::packer pack(&msg);
-    pack << update->version << fresh << update->key;
+    pack << version << fresh << key;
 
     hyperdex::regionid next;
 
@@ -871,8 +874,8 @@ hyperdex :: replication :: send_update(const hyperdex::regionid& pending_in,
 
 void
 hyperdex :: replication :: send_ack(const regionid& pending_in,
-                                    const e::buffer& key,
                                     uint64_t version,
+                                    const e::buffer& key,
                                     e::intrusive_ptr<pending> update)
 {
     e::buffer msg;
@@ -998,13 +1001,9 @@ hyperdex :: replication :: keypair :: operator < (const keypair& rhs) const
 }
 
 hyperdex :: replication :: pending :: pending(op_t o,
-                                              uint64_t ver,
-                                              const e::buffer& k,
                                               const std::vector<e::buffer>& val,
                                               const clientop& c)
     : op(o)
-    , version(ver)
-    , key(k)
     , value(val)
     , co(c)
     , fresh(false)
