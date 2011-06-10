@@ -79,6 +79,9 @@ class configuration
         // is returned.
         bool dimensions(const subspaceid& ss, std::vector<bool>* dims) const;
 
+        // Return the set of transfers in progress to a particular host.
+        std::set<uint16_t> transfers(const instance& i) const;
+
         // Perhaps these should be a little less transparent.
         const std::map<entityid, instance>& entity_mapping() const { return m_entities; }
         const std::map<std::string, spaceid>& space_assignment() const { return m_space_assignment; }

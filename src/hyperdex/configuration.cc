@@ -263,6 +263,68 @@ hyperdex :: configuration :: add_line(const std::string& line)
             return false;
         }
     }
+    else if (command == "transfer")
+    {
+        std::string spacename;
+        uint32_t subspacenum;
+        std::string xfer_id_s;
+        uint16_t xfer_id;
+        std::string prefix_s;
+        uint8_t prefix;
+        std::string mask_s;
+        uint64_t mask;
+        std::string host;
+
+        istr >> xfer_id_s >> spacename >> subspacenum >> prefix_s >> mask_s;
+
+        try
+        {
+            xfer_id = e::convert::to_uint16_t(xfer_id_s);
+            prefix = e::convert::to_uint8_t(prefix_s);
+            mask = e::convert::to_uint64_t(mask_s);
+        }
+        catch (...)
+        {
+            return false;
+        }
+
+        istr >> host;
+
+        if (istr.fail() || istr.bad())
+        {
+            return false;
+        }
+
+        // If we find a host that hasn't been declared
+        if (m_hosts.find(host) == m_hosts.end())
+        {
+            return false;
+        }
+
+        std::map<std::string, spaceid>::iterator sai = m_space_assignment.find(spacename);
+        std::map<spaceid, std::vector<std::string> >::iterator si;
+        std::map<subspaceid, std::vector<bool> >::iterator ssi;
+
+        if (istr.eof() && !istr.bad() && !istr.fail()
+                && sai != m_space_assignment.end()
+                && (si = m_spaces.find(sai->second)) != m_spaces.end()
+                && (ssi = m_subspaces.find(subspaceid(si->first, subspacenum))) != m_subspaces.end())
+        {
+            regionid r(ssi->first, prefix, mask);
+
+            if (m_regions.find(r) == m_regions.end())
+            {
+                return false;
+            }
+
+            m_entities.insert(std::make_pair(entityid(UINT32_MAX - 1, xfer_id, 0, 0, 0), m_hosts[host]));
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
     else
     {
         return false;
@@ -322,6 +384,24 @@ hyperdex :: configuration :: dimensions(const subspaceid& ss,
     {
         return false;
     }
+}
+
+std::set<uint16_t>
+hyperdex :: configuration :: transfers(const instance& i)
+                             const
+{
+    std::set<uint16_t> ret;
+
+    for (std::map<entityid, instance>::const_iterator e = m_entities.begin();
+            e != m_entities.end(); ++e)
+    {
+        if (e->first.space == UINT32_MAX - 1 && e->second == i)
+        {
+            ret.insert(e->first.subspace);
+        }
+    }
+
+    return ret;
 }
 
 std::map<hyperdex::regionid, size_t>

@@ -25,6 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#define __STDC_LIMIT_MACROS
+
 // Google Test
 #include <gtest/gtest.h>
 
@@ -259,6 +261,46 @@ TEST(ConfigurationTest, OrderAgnostic)
     std::map<hyperdex::regionid, size_t> returned_r = c.regions();
     EXPECT_EQ(2, expected_r.size());
     EXPECT_TRUE(expected_r == returned_r);
+}
+
+TEST(ConfigurationTest, TransferIds)
+{
+    // This tests whether transfer ids are properly parsed, and if the
+    // appropriate entity is in the entity mapping.
+    hyperdex::configuration c;
+    const char* transfer = "transfer\t0x1eaf\tkv\t0\t0\t0x0000000000000000\t0xcafebabe";
+    // Cannot add transfer without region.
+    EXPECT_FALSE(c.add_line(transfer));
+    // Cannot add transfer without host.
+    EXPECT_TRUE(c.add_line("host\t0xdeadbeef\t127.0.0.1\t44876\t0\t49585\t0"));
+    EXPECT_TRUE(c.add_line("space\t0xdefec8ed\tkv\tkey\tvalue"));
+    EXPECT_TRUE(c.add_line("subspace\tkv\t0\tkey"));
+    EXPECT_TRUE(c.add_line("region\tkv\t0\t0\t0x0000000000000000\t0xdeadbeef"));
+    EXPECT_FALSE(c.add_line(transfer));
+    // With both it is acceptable to add the transfer line.
+    EXPECT_TRUE(c.add_line("host\t0xcafebabe\t127.0.0.1\t44444\t0\t55555\t0"));
+    EXPECT_TRUE(c.add_line(transfer));
+
+    // Test that the entity for the transfer is created.
+    std::map<hyperdex::entityid, hyperdex::instance> expected_em;
+    hyperdex::instance i_deadbeef(po6::net::location("127.0.0.1", 44876), 0,
+                                  po6::net::location("127.0.0.1", 49585), 0);
+    hyperdex::instance i_cafebabe(po6::net::location("127.0.0.1", 44444), 0,
+                                  po6::net::location("127.0.0.1", 55555), 0);
+    expected_em.insert(std::make_pair(hyperdex::entityid(0xdefec8ed, 0, 0, 0, 0),
+                                      i_deadbeef));
+    expected_em.insert(std::make_pair(hyperdex::entityid(UINT32_MAX - 1, 0x1eaf, 0, 0, 0),
+                                      i_cafebabe));
+
+    std::map<hyperdex::entityid, hyperdex::instance> returned_em = c.entity_mapping();
+    EXPECT_EQ(2, returned_em.size());
+    EXPECT_TRUE(expected_em == returned_em);
+
+    // Test that it properly picks up all the transfers.
+    std::set<uint16_t> transfers;
+    EXPECT_TRUE(transfers == c.transfers(i_deadbeef));
+    transfers.insert(0x1eaf);
+    EXPECT_TRUE(transfers == c.transfers(i_cafebabe));
 }
 
 } // namespace
