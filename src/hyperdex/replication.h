@@ -52,12 +52,14 @@ class replication
 {
     public:
         replication(datalayer* dl, logical* comm);
+        ~replication() throw ();
 
     // Reconfigure this layer.
     public:
         void prepare(const configuration& newconfig, const instance& us);
         void reconfigure(const configuration& newconfig, const instance& us);
         void cleanup(const configuration& newconfig, const instance& us);
+        void shutdown();
 
     // Netowrk workers call these methods.
     public:
@@ -230,6 +232,8 @@ class replication
         bool have_seen_clientop(const clientop& co);
         void respond_positively_to_client(clientop co, uint64_t version);
         void respond_negatively_to_client(clientop co, result_t result);
+        // Retransmit current pending values.
+        void retransmit();
 
     private:
         datalayer* m_data;
@@ -248,6 +252,8 @@ class replication
         std::map<keypair, e::intrusive_ptr<keyholder> > m_keyholders;
         po6::threads::mutex m_clientops_lock;
         std::set<clientop> m_clientops;
+        bool m_shutdown;
+        po6::threads::thread m_retransmitter;
 };
 
 } // namespace hyperdex

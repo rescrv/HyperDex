@@ -38,6 +38,7 @@
 
 // e
 #include <e/guard.h>
+#include <e/timer.h>
 
 // HyperDex
 #include <hyperdex/buffer.h>
@@ -57,7 +58,20 @@ hyperdex :: replication :: replication(datalayer* data, logical* comm)
     , m_keyholders()
     , m_clientops_lock()
     , m_clientops()
+    , m_shutdown(false)
+    , m_retransmitter(std::tr1::bind(&replication::retransmit, this))
 {
+    m_retransmitter.start();
+}
+
+hyperdex :: replication :: ~replication() throw ()
+{
+    if (!m_shutdown)
+    {
+        shutdown();
+    }
+
+    m_retransmitter.join();
 }
 
 void
@@ -133,6 +147,12 @@ void
 hyperdex :: replication :: cleanup(const configuration&, const instance&)
 {
     // Do nothing.
+}
+
+void
+hyperdex :: replication :: shutdown()
+{
+    m_shutdown = true;
 }
 
 void
@@ -953,6 +973,72 @@ hyperdex :: replication :: respond_negatively_to_client(clientop co,
     }
 
     m_comm->send(co.region, co.from, stream_no::RESULT, msg);
+}
+
+void
+hyperdex :: replication :: retransmit()
+{
+    while (!m_shutdown)
+    {
+        try
+        {
+            std::set<keypair> kps;
+
+            // Hold the lock just long enough to copy of all current key pairs.
+            {
+                po6::threads::mutex::hold hold(&m_keyholders_lock);
+                std::map<keypair, e::intrusive_ptr<keyholder> >::iterator khiter;
+
+                for (khiter = m_keyholders.begin(); khiter != m_keyholders.end(); ++khiter)
+                {
+                    kps.insert(khiter->first);
+                }
+            }
+
+            for (std::set<keypair>::iterator kp = kps.begin(); kp != kps.end(); ++kp)
+            {
+                // Grab the lock that protects this keypair.
+                po6::threads::mutex::hold hold(get_lock(*kp));
+
+                // Get a reference to the keyholder for the keypair.
+                e::intrusive_ptr<keyholder> kh = get_keyholder(*kp);
+
+                if (!kh)
+                {
+                    continue;
+                }
+
+                if (kh->pending_updates.empty())
+                {
+                    unblock_messages(kp->region, kp->key, kh);
+                }
+
+                if (kh->pending_updates.empty())
+                {
+                    erase_keyholder(*kp);
+                    continue;
+                }
+
+                uint64_t version = kh->pending_updates.begin()->first;
+                e::intrusive_ptr<pending> pend = kh->pending_updates.begin()->second;
+
+                send_update(kp->region, version, kp->key, pend);
+
+                if (kp->region.subspace == 0)
+                {
+                    e::buffer info;
+                    info.pack() << version << kp->key;
+                    m_comm->send_backward(kp->region, stream_no::PENDING, info);
+                }
+            }
+        }
+        catch (std::exception& e)
+        {
+            LOG(INFO) << "Uncaught exception in retransmit thread: " << e.what();
+        }
+
+        e::sleep_ms(250);
+    }
 }
 
 bool
