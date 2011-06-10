@@ -83,6 +83,9 @@ hyperdex :: replication :: prepare(const configuration&, const instance&)
 void
 hyperdex :: replication :: reconfigure(const configuration& newconfig, const instance& us)
 {
+    // XXX need to convert "mayack" messages to disk for every region for which
+    // we are the row leader.
+
     // When reconfiguring, we need to drop all messages which we deferred (e.g.,
     // for arriving out-of-order) because they may no longer be from a valid
     // sender.
