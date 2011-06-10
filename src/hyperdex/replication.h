@@ -165,22 +165,7 @@ class replication
                 const std::vector<bool> m_next_dims;
         };
 
-        class keyholder
-        {
-            public:
-                keyholder();
-
-            public:
-                std::map<uint64_t, e::intrusive_ptr<pending> > pending_updates;
-                std::map<uint64_t, e::intrusive_ptr<pending> > blocked_updates;
-                std::map<uint64_t, e::intrusive_ptr<pending> > deferred_updates;
-
-            private:
-                friend class e::intrusive_ptr<keyholder>;
-
-            private:
-                size_t m_ref;
-        };
+        class keyholder;
 
     private:
         replication(const replication&);
@@ -256,5 +241,7 @@ class replication
 };
 
 } // namespace hyperdex
+
+#include <hyperdex/replication/keyholder.h>
 
 #endif // hyperdex_replication_h_

@@ -1177,11 +1177,3 @@ chainlink_calculator :: four_regions(const e::buffer& key,
     *thisnew = regionid(m_region.get_subspace(), 64, makepoint(hashes, m_this_dims));
     *next = regionid(m_region.space, m_next_subspace, 64, makepoint(hashes, m_next_dims));
 }
-
-hyperdex :: replication :: keyholder :: keyholder()
-    : pending_updates()
-    , blocked_updates()
-    , deferred_updates()
-    , m_ref(0)
-{
-}
