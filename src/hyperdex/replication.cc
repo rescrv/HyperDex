@@ -52,8 +52,6 @@ hyperdex :: replication :: replication(datalayer* data, logical* comm)
     , m_comm(comm)
     , m_config()
     , m_lock()
-    , m_chainlink_calculators_lock()
-    , m_chainlink_calculators()
     , m_keyholders_lock()
     , m_keyholders()
     , m_clientops()
@@ -123,24 +121,6 @@ hyperdex :: replication :: reconfigure(const configuration& newconfig, const ins
         else
         {
             ++khiter;
-        }
-    }
-
-    std::map<regionid, e::intrusive_ptr<chainlink_calculator> >::iterator clciter;
-    clciter = m_chainlink_calculators.begin();
-
-    while (clciter != m_chainlink_calculators.end())
-    {
-        if (regions.find(clciter->first) == regions.end())
-        {
-            std::map<regionid, e::intrusive_ptr<chainlink_calculator> >::iterator to_erase;
-            to_erase = clciter;
-            ++clciter;
-            m_chainlink_calculators.erase(to_erase);
-        }
-        else
-        {
-            ++clciter;
         }
     }
 }
@@ -352,9 +332,6 @@ hyperdex :: replication :: client_common(op_t op,
     e::guard g = e::makeobjguard(*this, &replication::respond_negatively_to_client, co, ERROR);
     m_clientops.insert(co);
 
-    // Get a reference to the chainlink calculator.
-    e::intrusive_ptr<chainlink_calculator> clc = get_chainlink_calculator(to.get_region());
-
     // Grab the lock that protects this keypair.
     keypair kp(to.get_region(), key);
     po6::threads::mutex::hold hold(get_lock(kp));
@@ -362,14 +339,14 @@ hyperdex :: replication :: client_common(op_t op,
     // Get a reference to the keyholder for the keypair.
     e::intrusive_ptr<keyholder> kh = get_keyholder(kp);
 
-    // Check that the two references are valid.
-    if (!clc || !kh)
+    // Check that the reference is valid.
+    if (!kh)
     {
         return;
     }
 
     // Check that a client's put matches the dimensions of the space.
-    if (op == PUT && clc->expected_dimensions() != value.size() + 1)
+    if (op == PUT && expected_dimensions(kp.region) != value.size() + 1)
     {
         // Tell the client they sent an invalid message.
         respond_negatively_to_client(co, INVALID);
@@ -422,13 +399,19 @@ hyperdex :: replication :: client_common(op_t op,
     // Figure out the four regions we could send to.
     if (op == PUT && have_oldvalue)
     {
-        clc->four_regions(key, oldvalue, value, &newpend->prev,
-                          &newpend->thisold, &newpend->thisnew, &newpend->next);
+        if (!prev_and_next(kp.region, key, oldvalue, value,
+                           &newpend->_prev, &newpend->_next))
+        {
+            return;
+        }
     }
     else if (op == PUT && !have_oldvalue)
     {
-        clc->four_regions(key, value, &newpend->prev,
-                          &newpend->thisold, &newpend->thisnew, &newpend->next);
+        if (!prev_and_next(kp.region, key, value,
+                           &newpend->_prev, &newpend->_next))
+        {
+            return;
+        }
         // This is a put without a previous value.  If this is the result of it
         // being the first put for this key, then we need to tag it as fresh.
         // If it is the result of a PUT that is concurrent with a DEL (client's
@@ -438,28 +421,15 @@ hyperdex :: replication :: client_common(op_t op,
     }
     else if (op == DEL && have_oldvalue)
     {
-        clc->four_regions(key, oldvalue, &newpend->prev,
-                          &newpend->thisold, &newpend->thisnew, &newpend->next);
+        if (!prev_and_next(kp.region, key, oldvalue,
+                           &newpend->_prev, &newpend->_next))
+        {
+            return;
+        }
     }
     else if (op == DEL && !have_oldvalue)
     {
         respond_positively_to_client(co, 0);
-        return;
-    }
-    else
-    {
-        LOG(INFO) << "Unhandled case in client_common.";
-        return;
-    }
-
-    // Check that the message was sent to the appropriate region.
-    // Puts must not cause a change of region in the first subspace, therefore
-    // we check that the put maps to both (which is a sanity check on our code
-    // and not strictly necessary).
-    if (!overlap(to, newpend->thisold) || !overlap(to, newpend->thisnew))
-    {
-        respond_negatively_to_client(co, INVALID);
-        g.dismiss();
         return;
     }
 
@@ -511,9 +481,6 @@ hyperdex :: replication :: chain_common(op_t op,
         return;
     }
 
-    // Get a reference to the chainlink calculator.
-    e::intrusive_ptr<chainlink_calculator> clc = get_chainlink_calculator(to.get_region());
-
     // Grab the lock that protects this keypair.
     keypair kp(to.get_region(), key);
     po6::threads::mutex::hold hold(get_lock(kp));
@@ -521,14 +488,14 @@ hyperdex :: replication :: chain_common(op_t op,
     // Get a reference to the keyholder for the keypair.
     e::intrusive_ptr<keyholder> kh = get_keyholder(kp);
 
-    // Check that the two references are valid.
-    if (!clc || !kh)
+    // Check that the reference is valid.
+    if (!kh)
     {
         return;
     }
 
     // Check that a chain's put matches the dimensions of the space.
-    if (op == PUT && clc->expected_dimensions() != value.size() + 1)
+    if (op == PUT && expected_dimensions(kp.region) != value.size() + 1)
     {
         return;
     }
@@ -614,62 +581,38 @@ hyperdex :: replication :: chain_common(op_t op,
     // Figure out the four regions we could send to.
     if (op == PUT && have_oldvalue)
     {
-        clc->four_regions(key, oldvalue, value, &newpend->prev,
-                          &newpend->thisold, &newpend->thisnew, &newpend->next);
+        if (!prev_and_next(kp.region, key, oldvalue, value,
+                           &newpend->_prev, &newpend->_next))
+        {
+            return;
+        }
     }
     else if (op == PUT && !have_oldvalue)
     {
-        clc->four_regions(key, value, &newpend->prev,
-                          &newpend->thisold, &newpend->thisnew, &newpend->next);
+        if (!prev_and_next(kp.region, key, value,
+                           &newpend->_prev, &newpend->_next))
+        {
+            return;
+        }
     }
     else if (op == DEL && have_oldvalue)
     {
-        clc->four_regions(key, oldvalue, &newpend->prev,
-                          &newpend->thisold, &newpend->thisnew, &newpend->next);
+        if (!prev_and_next(kp.region, key, oldvalue,
+                           &newpend->_prev, &newpend->_next))
+        {
+            return;
+        }
     }
     else if (op == DEL && !have_oldvalue)
     {
         LOG(INFO) << "Chain region sees double-delete.";
         return;
     }
-    else
-    {
-        LOG(INFO) << "Unhandled case in chain_common.";
-        return;
-    }
 
-    if (overlap(to, newpend->thisold) && overlap(to, newpend->thisnew))
-    {
-        if (to.number == 0 && !overlap(from, newpend->prev))
-        {
-            LOG(INFO) << "Dropping message from region which doesn't contain point.";
-            return;
-        }
-    }
-    else if (overlap(to, newpend->thisold))
-    {
-        if (to.number == 0 && !overlap(from, newpend->prev))
-        {
-            LOG(INFO) << "Dropping message from region which doesn't contain point.";
-            return;
-        }
-    }
-    else if (overlap(to, newpend->thisnew))
-    {
-        if (to.number == 0 && !overlap(from, newpend->thisold))
-        {
-            LOG(INFO) << "Dropping message from region which doesn't contain point.";
-            return;
-        }
-    }
-    else
-    {
-        LOG(INFO) << "Dropping message which doesn't fall within our responsibility.";
-        return;
-    }
+    // XXX drop if it doesn't hash here.
 
     // We may ack this if we are not currently in subspace 0.
-    newpend->mayack = newpend->thisold.subspace != 0;
+    newpend->mayack = kp.region.subspace != 0;
 
     // Clear out dead deferred updates
     while (kh->deferred_updates.begin() != kh->deferred_updates.end()
@@ -687,26 +630,6 @@ po6::threads::mutex*
 hyperdex :: replication :: get_lock(const keypair& /*kp*/)
 {
     return &m_lock;
-}
-
-e::intrusive_ptr<hyperdex::replication::chainlink_calculator>
-hyperdex :: replication :: get_chainlink_calculator(const regionid& r)
-{
-    typedef std::map<regionid, e::intrusive_ptr<chainlink_calculator> >::iterator clc_iter_t;
-    po6::threads::mutex::hold hold(&m_chainlink_calculators_lock);
-    clc_iter_t i;
-
-    if ((i = m_chainlink_calculators.find(r)) != m_chainlink_calculators.end())
-    {
-        return i->second;
-    }
-    else
-    {
-        e::intrusive_ptr<chainlink_calculator> clc;
-        clc = new chainlink_calculator(m_config, r);
-        m_chainlink_calculators.insert(std::make_pair(r, clc));
-        return clc;
-    }
 }
 
 e::intrusive_ptr<hyperdex::replication::keyholder>
@@ -762,6 +685,140 @@ hyperdex :: replication :: from_disk(const regionid& r,
             LOG(WARNING) << "Data layer returned unknown result when queried for old value.";
             return false;
     }
+}
+
+size_t
+hyperdex :: replication :: expected_dimensions(const regionid& ri) const
+{
+    size_t dims = 0;
+    return m_config.dimensionality(ri.get_space(), &dims) ? dims : -1;
+}
+
+static bool
+prev_and_next_helper(const hyperdex::configuration& config,
+                     const hyperdex::regionid& r,
+                     uint16_t* prev_subspace,
+                     uint16_t* next_subspace,
+                     std::vector<bool>* prev_dims,
+                     std::vector<bool>* this_dims,
+                     std::vector<bool>* next_dims)
+{
+    // Count the number of subspaces for this space.
+    size_t subspaces;
+
+    if (!config.subspaces(r.get_space(), &subspaces))
+    {
+        return false;
+    }
+
+    // Discover the dimensions of the space which correspond to the
+    // subspace in which "to" is located, and the subspaces before and
+    // after it.
+    *prev_subspace = r.subspace > 0 ? r.subspace - 1 : subspaces - 1;
+    *next_subspace = r.subspace < subspaces - 1 ? r.subspace + 1 : 0;
+
+    if (!config.dimensions(r.get_subspace(), this_dims)
+        || !config.dimensions(hyperdex::subspaceid(r.space, *prev_subspace), prev_dims)
+        || !config.dimensions(hyperdex::subspaceid(r.space, *next_subspace), next_dims))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+
+bool
+hyperdex :: replication :: prev_and_next(const regionid& r,
+                                         const e::buffer& key,
+                                         const std::vector<e::buffer>& value,
+                                         regionid* prev,
+                                         regionid* next)
+{
+    uint16_t prev_subspace;
+    uint16_t next_subspace;
+    std::vector<bool> prev_dims;
+    std::vector<bool> this_dims;
+    std::vector<bool> next_dims;
+
+    if (!prev_and_next_helper(m_config, r, &prev_subspace, &next_subspace,
+                              &prev_dims, &this_dims, &next_dims))
+    {
+        return false;
+    }
+
+    std::vector<uint64_t> hashes;
+    uint64_t keyhash = CityHash64(key);
+    hashes.push_back(keyhash);
+
+    for (size_t i = 0; i < value.size(); ++i)
+    {
+        hashes.push_back(CityHash64(value[i]));
+    }
+
+    *prev = regionid(r.space, prev_subspace, 64, makepoint(hashes, prev_dims));
+    *next = regionid(r.space, next_subspace, 64, makepoint(hashes, next_dims));
+    return true;
+}
+
+bool
+hyperdex :: replication :: prev_and_next(const regionid& r,
+                                         const e::buffer& key,
+                                         const std::vector<e::buffer>& oldvalue,
+                                         const std::vector<e::buffer>& value,
+                                         regionid* prev,
+                                         regionid* next)
+{
+    uint16_t prev_subspace;
+    uint16_t next_subspace;
+    std::vector<bool> prev_dims;
+    std::vector<bool> this_dims;
+    std::vector<bool> next_dims;
+
+    if (!prev_and_next_helper(m_config, r, &prev_subspace, &next_subspace,
+                              &prev_dims, &this_dims, &next_dims))
+    {
+        return false;
+    }
+
+    assert(oldvalue.size() == value.size());
+    std::vector<uint64_t> oldhashes;
+    std::vector<uint64_t> newhashes;
+    uint64_t keyhash = CityHash64(key);
+    oldhashes.push_back(keyhash);
+    newhashes.push_back(keyhash);
+
+    for (size_t i = 0; i < value.size(); ++i)
+    {
+        oldhashes.push_back(CityHash64(oldvalue[i]));
+        newhashes.push_back(CityHash64(value[i]));
+    }
+
+    uint64_t oldpoint = makepoint(oldhashes, this_dims);
+    uint64_t newpoint = makepoint(newhashes, this_dims);
+
+    if ((oldpoint & prefixmask(r.prefix)) == r.mask
+        && (newpoint & prefixmask(r.prefix)) == r.mask)
+    {
+        *prev = regionid(r.space, prev_subspace, 64, makepoint(newhashes, prev_dims));
+        *next = regionid(r.space, next_subspace, 64, makepoint(oldhashes, next_dims));
+    }
+    else if ((oldpoint & prefixmask(r.prefix)) == r.mask)
+    {
+        *prev = regionid(r.space, prev_subspace, 64, makepoint(newhashes, prev_dims));
+        *next = regionid(r.get_subspace(), 64, makepoint(newhashes, this_dims));
+    }
+    else if ((newpoint & prefixmask(r.prefix)) == r.mask)
+    {
+        *prev = regionid(r.get_subspace(), 64, makepoint(oldhashes, this_dims));
+        *next = regionid(r.space, next_subspace, 64, makepoint(oldhashes, next_dims));
+    }
+    else
+    {
+        return false;
+    }
+
+    return true;
 }
 
 void
@@ -850,25 +907,6 @@ hyperdex :: replication :: send_update(const hyperdex::regionid& pending_in,
     e::packer pack(&msg);
     pack << version << fresh << key;
 
-    hyperdex::regionid next;
-
-    if (overlap(pending_in, update->thisold) && overlap(pending_in, update->thisnew))
-    {
-        next = update->next;
-    }
-    else if (overlap(pending_in, update->thisold))
-    {
-        next = update->thisnew;
-    }
-    else if (overlap(pending_in, update->thisnew))
-    {
-        next = update->next;
-    }
-    else
-    {
-        return;
-    }
-
     stream_no::stream_no_t act;
 
     if (update->op == PUT)
@@ -882,17 +920,17 @@ hyperdex :: replication :: send_update(const hyperdex::regionid& pending_in,
     }
 
     // If we are at the last subspace in the chain.
-    if (next.subspace == 0)
+    if (update->_next.subspace == 0)
     {
         // If we there is someone else in the chain, send the PUT or DEL pending
         // message to them.  If not, then send a PENDING message to the tail of
         // the first subspace.
-        m_comm->send_forward_else_tail(pending_in, act, msg, next, stream_no::PENDING, info);
+        m_comm->send_forward_else_tail(pending_in, act, msg, update->_next, stream_no::PENDING, info);
     }
     // Else we're in the middle of the chain.
     else
     {
-        m_comm->send_forward_else_head(pending_in, act, msg, next, act, msg);
+        m_comm->send_forward_else_head(pending_in, act, msg, update->_next, act, msg);
     }
 }
 
@@ -904,27 +942,8 @@ hyperdex :: replication :: send_ack(const regionid& pending_in,
 {
     e::buffer msg;
     msg.pack() << version << key;
-    hyperdex::regionid prev;
-
-    if (overlap(pending_in, update->thisold) && overlap(pending_in, update->thisnew))
-    {
-        prev = update->prev;
-    }
-    else if (overlap(pending_in, update->thisnew))
-    {
-        prev = update->thisold;
-    }
-    else if (overlap(pending_in, update->thisold))
-    {
-        prev = update->prev;
-    }
-    else
-    {
-        return;
-    }
-
     m_comm->send_backward_else_tail(pending_in, stream_no::ACK, msg,
-                                    prev, stream_no::ACK, msg);
+                                    update->_prev, stream_no::ACK, msg);
 }
 
 void
@@ -1083,97 +1102,8 @@ hyperdex :: replication :: pending :: pending(op_t o,
     , acked(false)
     , ondisk(false)
     , mayack(false)
-    , prev()
-    , thisold()
-    , thisnew()
-    , next()
+    , _prev()
+    , _next()
     , m_ref(0)
 {
-}
-
-hyperdex :: replication ::
-chainlink_calculator :: chainlink_calculator(const configuration& config,
-                                             const regionid& r)
-    : m_ref(0)
-    , m_region(r)
-    , m_prev_subspace(0)
-    , m_next_subspace(0)
-    , m_prev_dims()
-    , m_this_dims()
-    , m_next_dims()
-{
-    // Count the number of subspaces for this space.
-    size_t subspaces;
-
-    if (!config.subspaces(r.get_space(), &subspaces))
-    {
-        throw std::runtime_error("Creating keyholder for non-existant subspace");
-    }
-
-    // Discover the dimensions of the space which correspond to the
-    // subspace in which "to" is located, and the subspaces before and
-    // after it.
-    const_cast<uint16_t&>(m_prev_subspace) = r.subspace > 0 ? r.subspace - 1 : subspaces - 1;
-    const_cast<uint16_t&>(m_next_subspace) = r.subspace < subspaces - 1 ? r.subspace + 1 : 0;
-
-    if (!config.dimensions(r.get_subspace(), const_cast<std::vector<bool>*>(&m_this_dims))
-        || !config.dimensions(subspaceid(r.space, m_prev_subspace), const_cast<std::vector<bool>*>(&m_prev_dims))
-        || !config.dimensions(subspaceid(r.space, m_next_subspace), const_cast<std::vector<bool>*>(&m_next_dims)))
-    {
-        throw std::runtime_error("Could not determine dimensions of neighboring subspaces.");
-    }
-}
-
-void
-hyperdex :: replication ::
-chainlink_calculator :: four_regions(const e::buffer& key,
-                                     const std::vector<e::buffer>& oldvalue,
-                                     const std::vector<e::buffer>& value,
-                                     regionid* prev,
-                                     regionid* thisold,
-                                     regionid* thisnew,
-                                     regionid* next)
-{
-    assert(oldvalue.size() == value.size());
-    std::vector<uint64_t> oldhashes;
-    std::vector<uint64_t> newhashes;
-    uint64_t keyhash = CityHash64(key);
-    oldhashes.push_back(keyhash);
-    newhashes.push_back(keyhash);
-
-    for (size_t i = 0; i < value.size(); ++i)
-    {
-        oldhashes.push_back(CityHash64(oldvalue[i]));
-        newhashes.push_back(CityHash64(value[i]));
-    }
-
-    *prev = regionid(m_region.space, m_prev_subspace, 64, makepoint(newhashes, m_prev_dims));
-    *thisold = regionid(m_region.get_subspace(), 64, makepoint(oldhashes, m_this_dims));
-    *thisnew = regionid(m_region.get_subspace(), 64, makepoint(newhashes, m_this_dims));
-    *next = regionid(m_region.space, m_next_subspace, 64, makepoint(oldhashes, m_next_dims));
-}
-
-
-void
-hyperdex :: replication ::
-chainlink_calculator :: four_regions(const e::buffer& key,
-                                     const std::vector<e::buffer>& value,
-                                     regionid* prev,
-                                     regionid* thisold,
-                                     regionid* thisnew,
-                                     regionid* next)
-{
-    std::vector<uint64_t> hashes;
-    uint64_t keyhash = CityHash64(key);
-    hashes.push_back(keyhash);
-
-    for (size_t i = 0; i < value.size(); ++i)
-    {
-        hashes.push_back(CityHash64(value[i]));
-    }
-
-    *prev = regionid(m_region.space, m_prev_subspace, 64, makepoint(hashes, m_prev_dims));
-    *thisold = regionid(m_region.get_subspace(), 64, makepoint(hashes, m_this_dims));
-    *thisnew = regionid(m_region.get_subspace(), 64, makepoint(hashes, m_this_dims));
-    *next = regionid(m_region.space, m_next_subspace, 64, makepoint(hashes, m_next_dims));
 }

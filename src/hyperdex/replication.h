@@ -116,53 +116,14 @@ class replication
                 bool acked;
                 bool ondisk; // True if the pending update is already on disk.
                 bool mayack; // True if it is OK to receive ACK messages.
-                regionid prev;
-                regionid thisold;
-                regionid thisnew;
-                regionid next;
+                regionid _prev;
+                regionid _next;
 
             private:
                 friend class e::intrusive_ptr<pending>;
 
             private:
                 size_t m_ref;
-        };
-
-        class chainlink_calculator
-        {
-            public:
-                chainlink_calculator(const configuration& config,
-                                     const regionid& r);
-
-            public:
-                size_t expected_dimensions() const { return m_prev_dims.size(); }
-
-            public:
-                void four_regions(const e::buffer& key,
-                                  const std::vector<e::buffer>& oldvalue,
-                                  const std::vector<e::buffer>& value,
-                                  regionid* prev,
-                                  regionid* thisold,
-                                  regionid* thisnew,
-                                  regionid* next);
-                void four_regions(const e::buffer& key,
-                                  const std::vector<e::buffer>& value,
-                                  regionid* prev,
-                                  regionid* thisold,
-                                  regionid* thisnew,
-                                  regionid* next);
-
-            private:
-                friend class e::intrusive_ptr<chainlink_calculator>;
-
-            private:
-                size_t m_ref;
-                regionid m_region;
-                const uint16_t m_prev_subspace;
-                const uint16_t m_next_subspace;
-                const std::vector<bool> m_prev_dims;
-                const std::vector<bool> m_this_dims;
-                const std::vector<bool> m_next_dims;
         };
 
         class keyholder;
@@ -181,12 +142,21 @@ class replication
                           uint64_t newversion, bool fresh, const e::buffer& key,
                           const std::vector<e::buffer>& newvalue);
         po6::threads::mutex* get_lock(const keypair& kp);
-        e::intrusive_ptr<chainlink_calculator> get_chainlink_calculator(const regionid& r);
         e::intrusive_ptr<keyholder> get_keyholder(const keypair& kp);
         void erase_keyholder(const keypair& kp);
         bool from_disk(const regionid& r, const e::buffer& key,
                        bool* have_value, std::vector<e::buffer>* value,
                        uint64_t* version);
+        size_t expected_dimensions(const regionid& ri) const;
+        // Figure out the previous and next individuals to send to/receive from
+        // for messages.
+        bool prev_and_next(const regionid& r, const e::buffer& key,
+                           const std::vector<e::buffer>& value,
+                           regionid* prev, regionid* next);
+        bool prev_and_next(const regionid& r, const e::buffer& key,
+                           const std::vector<e::buffer>& oldvalue,
+                           const std::vector<e::buffer>& value,
+                           regionid* prev, regionid* next);
         // If there are no messages in the pending queue, move all blocked
         // messages (up until the first DEL/PUT) to the queue of pending
         // messages, and send out messages to the next individuals in the chain.
@@ -231,8 +201,6 @@ class replication
         // will provide the ordering for keys which hash to the same value, and
         // threadsafe datastructures will provide us with the protection.
         po6::threads::mutex m_lock;
-        po6::threads::mutex m_chainlink_calculators_lock;
-        std::map<regionid, e::intrusive_ptr<chainlink_calculator> > m_chainlink_calculators;
         po6::threads::mutex m_keyholders_lock;
         std::map<keypair, e::intrusive_ptr<keyholder> > m_keyholders;
         e::set<clientop> m_clientops;
