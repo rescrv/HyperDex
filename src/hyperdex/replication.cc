@@ -283,6 +283,8 @@ hyperdex :: replication :: chain_ack(const entityid& /*from*/,
         }
     }
 
+    unblock_messages(to.get_region(), key, kh);
+
     if (kh->pending_updates.empty())
     {
         erase_keyholder(kp);
