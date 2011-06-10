@@ -183,6 +183,29 @@ hyperdex :: logical :: send_forward_else_tail(const hyperdex::regionid& chain,
 }
 
 bool
+hyperdex :: logical :: send_backward(const hyperdex::regionid& chain,
+                                     stream_no::stream_no_t msg_type,
+                                     const e::buffer& msg)
+{
+    entityid from;
+
+    if (!our_position(chain, &from))
+    {
+        return false;
+    }
+
+    if (from.number > 0)
+    {
+        entityid chain_prev = entityid(from.get_region(), from.number - 1);
+        return send_you_hold_lock(from, chain_prev, msg_type, msg);
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool
 hyperdex :: logical :: send_backward_else_tail(const hyperdex::regionid& chain,
                                                stream_no::stream_no_t msg1_type,
                                                const e::buffer& msg1,

@@ -99,6 +99,9 @@ class logical
                                     const hyperdex::regionid& otherwise,
                                     stream_no::stream_no_t msg2_type,
                                     const e::buffer& msg2);
+        bool send_backward(const hyperdex::regionid& chain,
+                           stream_no::stream_no_t msg_type,
+                           const e::buffer& msg);
         bool send_backward_else_tail(const hyperdex::regionid& chain,
                                      stream_no::stream_no_t msg1_type,
                                      const e::buffer& msg1,
