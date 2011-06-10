@@ -212,12 +212,16 @@ hyperdex :: hyperdexd :: run()
     //  - All instances flush to disk.
     //  - All instances terminate.
     //
+    // Stop replication.
+    repl.shutdown();
     // Turn off the network.
     comm.shutdown();
     // Cleanup the network_worker threads.
     nw.shutdown();
     // Cleanup the master thread.
     ml.shutdown();
+    // Stop the data layer.
+    data.shutdown();
 
     for (std::vector<thread_ptr>::iterator t = threads.begin();
             t != threads.end(); ++t)
