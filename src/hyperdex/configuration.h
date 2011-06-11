@@ -84,7 +84,8 @@ class configuration
         bool dimensions(const subspaceid& ss, std::vector<bool>* dims) const;
 
         // Return the set of transfers in progress to a particular host.
-        std::map<uint16_t, regionid> transfers(const instance& i) const;
+        std::map<uint16_t, regionid> transfers_to(const instance& i) const;
+        std::map<uint16_t, regionid> transfers_from(const instance& i) const;
 
         // Perhaps these should be a little less transparent.
         const std::map<entityid, instance>& entity_mapping() const { return m_entities; }

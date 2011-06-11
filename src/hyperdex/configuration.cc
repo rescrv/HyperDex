@@ -423,7 +423,7 @@ hyperdex :: configuration :: dimensions(const subspaceid& ss,
 }
 
 std::map<uint16_t, hyperdex::regionid>
-hyperdex :: configuration :: transfers(const instance& i)
+hyperdex :: configuration :: transfers_to(const instance& i)
                              const
 {
     std::map<uint16_t, hyperdex::regionid> ret;
@@ -435,6 +435,28 @@ hyperdex :: configuration :: transfers(const instance& i)
         {
             uint16_t xfer_id = e->first.subspace;
             ret.insert(std::make_pair(xfer_id, m_transfers.find(xfer_id)->second));
+        }
+    }
+
+    return ret;
+}
+
+std::map<uint16_t, hyperdex::regionid>
+hyperdex :: configuration :: transfers_from(const instance& i)
+                             const
+{
+    std::map<uint16_t, regionid> ret;
+
+    for (std::map<uint16_t, regionid>::const_iterator t = m_transfers.begin();
+            t != m_transfers.end(); ++t)
+    {
+        // This should always succeed.
+        std::map<entityid, instance>::const_iterator e = m_entities.find(tailof(t->second));
+        assert(e != m_entities.end());
+
+        if (e->second == i)
+        {
+            ret.insert(*t);
         }
     }
 

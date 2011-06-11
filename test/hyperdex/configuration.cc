@@ -298,9 +298,11 @@ TEST(ConfigurationTest, TransferIds)
 
     // Test that it properly picks up all the transfers.
     std::map<uint16_t, hyperdex::regionid> transfers;
-    EXPECT_TRUE(transfers == c.transfers(i_deadbeef));
+    EXPECT_TRUE(transfers == c.transfers_to(i_deadbeef));
+    EXPECT_TRUE(transfers == c.transfers_from(i_cafebabe));
     transfers.insert(std::make_pair(0x1eaf, hyperdex::regionid(0xdefec8ed, 0, 0, 0)));
-    EXPECT_TRUE(transfers == c.transfers(i_cafebabe));
+    EXPECT_TRUE(transfers == c.transfers_to(i_cafebabe));
+    EXPECT_TRUE(transfers == c.transfers_from(i_deadbeef));
 }
 
 } // namespace
