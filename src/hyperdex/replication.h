@@ -189,6 +189,13 @@ class replication
         void respond_negatively_to_client(clientop co, result_t result);
         // Retransmit current pending values.
         void retransmit();
+        // Check that chain rules are followed very closely.
+        bool sent_backward_or_from_head(const entityid& from, const entityid& to,
+                                        const regionid& chain, const regionid& tail);
+        bool sent_backward_or_from_tail(const entityid& from, const entityid& to,
+                                        const regionid& chain, const regionid& tail);
+        bool sent_forward_or_from_tail(const entityid& from, const entityid& to,
+                                       const regionid& chain, const regionid& tail);
 
     private:
         datalayer* m_data;

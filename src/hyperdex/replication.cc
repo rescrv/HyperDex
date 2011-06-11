@@ -177,7 +177,7 @@ hyperdex :: replication :: chain_del(const entityid& from,
 }
 
 void
-hyperdex :: replication :: chain_pending(const entityid& /*from*/,
+hyperdex :: replication :: chain_pending(const entityid& from,
                                          const entityid& to,
                                          uint64_t version,
                                          const e::buffer& key)
@@ -209,9 +209,13 @@ hyperdex :: replication :: chain_pending(const entityid& /*from*/,
         return;
     }
 
-    // XXX We should possibly check that the PENDING comes from a valid party, but
-    // it's not essential for now.
     e::intrusive_ptr<pending> pend = to_allow_ack->second;
+
+    if (!sent_backward_or_from_tail(from, to, kp.region, pend->_prev))
+    {
+        return;
+    }
+
     pend->mayack = true;
 
     // We are point-leader for this subspace.
@@ -223,12 +227,12 @@ hyperdex :: replication :: chain_pending(const entityid& /*from*/,
     {
         e::buffer info;
         info.pack() << version << key;
-        m_comm->send(to, entityid(to.get_region(), to.number - 1), stream_no::PENDING, info);
+        m_comm->send_backward(to.get_region(), stream_no::PENDING, info);
     }
 }
 
 void
-hyperdex :: replication :: chain_ack(const entityid& /*from*/,
+hyperdex :: replication :: chain_ack(const entityid& from,
                                      const entityid& to,
                                      uint64_t version,
                                      const e::buffer& key)
@@ -254,10 +258,13 @@ hyperdex :: replication :: chain_ack(const entityid& /*from*/,
         return;
     }
 
-    // XXX We should possibly check that the ACK comes from a valid party, but
-    // it's not essential for now.
-
     e::intrusive_ptr<pending> pend = to_ack->second;
+
+    // Check that the ack came from someone authorized to send it.
+    if (!sent_backward_or_from_head(from, to, kp.region, pend->_next))
+    {
+        return;
+    }
 
     // If we may not ack the message yet, just drop it.
     if (!pend->mayack)
@@ -456,24 +463,6 @@ hyperdex :: replication :: chain_common(op_t op,
                                         const e::buffer& key,
                                         const std::vector<e::buffer>& value)
 {
-    if (from.get_space() != to.get_space())
-    {
-        return;
-    }
-
-    if (to.number != 0 && from.get_region() != to.get_region())
-    {
-        LOG(INFO) << "Dropping message from another region which doesn't go to region-leader.";
-        return;
-    }
-
-    // We need to get it from our predecessor if in a chain.
-    if (from.get_region() == to.get_region() && from.number + 1 != to.number)
-    {
-        LOG(INFO) << "Someone is skipping ahead in the chain " << to.get_region();
-        return;
-    }
-
     // We cannot receive fresh messages from others within our subspace.
     if (fresh && from.get_subspace() == to.get_subspace() && from.get_region() != to.get_region())
     {
@@ -609,7 +598,10 @@ hyperdex :: replication :: chain_common(op_t op,
         return;
     }
 
-    // XXX drop if it doesn't hash here.
+    if (!sent_forward_or_from_tail(from, to, kp.region, newpend->_prev))
+    {
+        return;
+    }
 
     // We may ack this if we are not currently in subspace 0.
     newpend->mayack = kp.region.subspace != 0;
@@ -726,7 +718,6 @@ prev_and_next_helper(const hyperdex::configuration& config,
 
     return true;
 }
-
 
 bool
 hyperdex :: replication :: prev_and_next(const regionid& r,
@@ -1043,6 +1034,45 @@ hyperdex :: replication :: retransmit()
 
         e::sleep_ms(250);
     }
+}
+
+bool
+hyperdex :: replication :: sent_backward_or_from_head(const entityid& from,
+                                                      const entityid& to,
+                                                      const regionid& chain,
+                                                      const regionid& head)
+{
+    return (from.get_region() == to.get_region()
+            && chain == from.get_region()
+            && from.number == to.number + 1)
+           ||
+           (from == m_config.headof(head));
+}
+
+bool
+hyperdex :: replication :: sent_backward_or_from_tail(const entityid& from,
+                                                      const entityid& to,
+                                                      const regionid& chain,
+                                                      const regionid& tail)
+{
+    return (from.get_region() == to.get_region()
+            && chain == from.get_region()
+            && from.number == to.number + 1)
+           ||
+           (from == m_config.tailof(tail));
+}
+
+bool
+hyperdex :: replication :: sent_forward_or_from_tail(const entityid& from,
+                                                     const entityid& to,
+                                                     const regionid& chain,
+                                                     const regionid& tail)
+{
+    return (from.get_region() == to.get_region()
+            && chain == from.get_region()
+            && from.number + 1 == to.number)
+           ||
+           (from == m_config.tailof(tail));
 }
 
 bool
