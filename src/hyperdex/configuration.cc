@@ -333,6 +333,40 @@ hyperdex :: configuration :: add_line(const std::string& line)
     }
 }
 
+hyperdex::entityid
+hyperdex :: configuration :: headof(const regionid& r) const
+{
+    typedef std::map<hyperdex::entityid, hyperdex::instance>::const_iterator mapiter;
+    mapiter i = m_entities.begin();
+
+    for (; i != m_entities.end(); ++i)
+    {
+        if (overlap(i->first.get_region(), r))
+        {
+            return i->first;
+        }
+    }
+
+    return entityid();
+}
+
+hyperdex::entityid
+hyperdex :: configuration :: tailof(const regionid& r) const
+{
+    typedef std::map<hyperdex::entityid, hyperdex::instance>::const_reverse_iterator mapiter;
+    mapiter i = m_entities.rbegin();
+
+    for (; i != m_entities.rend(); ++i)
+    {
+        if (overlap(i->first.get_region(), r))
+        {
+            return i->first;
+        }
+    }
+
+    return entityid();
+}
+
 bool
 hyperdex :: configuration :: subspaces(const spaceid& s, size_t* sz) const
 {

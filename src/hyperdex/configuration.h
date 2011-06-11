@@ -52,6 +52,10 @@ class configuration
         bool add_line(const std::string& line);
 
     public:
+        entityid headof(const regionid& r) const;
+        entityid tailof(const regionid& r) const;
+
+    public:
         // Return the number of subspaces within the space.
         bool subspaces(const spaceid& s, size_t* sz) const;
 
