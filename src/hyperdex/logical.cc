@@ -44,6 +44,7 @@ hyperdex :: logical :: logical(ev::loop_ref lr,
                                const po6::net::ipaddr& ip)
     : m_us()
     , m_client_lock()
+    , m_config()
     , m_mapping()
     , m_client_nums()
     , m_client_locs()
@@ -73,6 +74,7 @@ hyperdex :: logical :: prepare(const configuration&)
 void
 hyperdex :: logical :: reconfigure(const configuration& newconfig)
 {
+    m_config = newconfig;
     m_mapping = newconfig.entity_mapping();
 }
 
@@ -129,15 +131,8 @@ hyperdex :: logical :: send_forward_else_head(const hyperdex::regionid& chain,
     }
     else
     {
-        regionid overlaps;
-
-        if (!find_overlapping(otherwise, &overlaps))
-        {
-            return false;
-        }
-
-        entityid ent(overlaps, 0);
-        return send_you_hold_lock(from, ent, msg2_type, msg2);
+        entityid head = m_config.headof(otherwise);
+        return send_you_hold_lock(from, head, msg2_type, msg2);
     }
 }
 
@@ -164,21 +159,8 @@ hyperdex :: logical :: send_forward_else_tail(const hyperdex::regionid& chain,
     }
     else
     {
-        regionid overlaps;
-
-        if (!find_overlapping(otherwise, &overlaps))
-        {
-            return false;
-        }
-
-        entityid ent;
-
-        if (!chain_tail(overlaps, &ent))
-        {
-            return false;
-        }
-
-        return send_you_hold_lock(from, ent, msg2_type, msg2);
+        entityid tail = m_config.tailof(otherwise);
+        return send_you_hold_lock(from, tail, msg2_type, msg2);
     }
 }
 
@@ -227,21 +209,8 @@ hyperdex :: logical :: send_backward_else_tail(const hyperdex::regionid& chain,
     }
     else
     {
-        regionid overlaps;
-
-        if (!find_overlapping(otherwise, &overlaps))
-        {
-            return false;
-        }
-
-        entityid ent;
-
-        if (!chain_tail(overlaps, &ent))
-        {
-            return false;
-        }
-
-        return send_you_hold_lock(from, ent, msg2_type, msg2);
+        entityid tail = m_config.tailof(otherwise);
+        return send_you_hold_lock(from, tail, msg2_type, msg2);
     }
 }
 
@@ -465,37 +434,4 @@ hyperdex :: logical :: our_position(const regionid& r, entityid* e)
     }
 
     return f != t;
-}
-
-bool
-hyperdex :: logical :: chain_tail(const regionid& r, entityid* e)
-{
-    typedef std::map<hyperdex::entityid, hyperdex::instance>::reverse_iterator reverse_mapiter;
-    reverse_mapiter i = m_mapping.rbegin();
-
-    for (; i != m_mapping.rend(); ++i)
-    {
-        if (overlap(i->first.get_region(), r))
-        {
-            *e = i->first;
-            break;
-        }
-    }
-
-    return i != m_mapping.rend();
-}
-
-bool
-hyperdex :: logical :: find_overlapping(const regionid& r, regionid* over)
-{
-    for (mapiter f = m_mapping.begin(); f != m_mapping.end(); ++f)
-    {
-        if (overlap(f->first.get_region(), r))
-        {
-            *over = f->first.get_region();
-            return true;
-        }
-    }
-
-    return false;
 }

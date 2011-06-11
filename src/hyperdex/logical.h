@@ -124,12 +124,11 @@ class logical
                                 const uint8_t msg_type,
                                 const e::buffer& msg);
         bool our_position(const regionid& r, entityid* e);
-        bool chain_tail(const regionid& r, entityid* e);
-        bool find_overlapping(const regionid& r, regionid* over);
 
     private:
         instance m_us;
         po6::threads::rwlock m_client_lock;
+        configuration m_config;
         std::map<entityid, instance> m_mapping;
         std::map<po6::net::location, uint64_t> m_client_nums;
         std::map<uint64_t, po6::net::location> m_client_locs;
