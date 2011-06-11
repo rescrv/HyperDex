@@ -82,50 +82,9 @@ class replication
                        const e::buffer& key);
 
     private:
-        struct clientop
-        {
-            clientop() : region(), from(), nonce() {}
-            clientop(regionid r, entityid f, uint32_t n) : region(r), from(f), nonce(n) {}
-            bool operator < (const clientop& rhs) const;
-            regionid region;
-            entityid from;
-            uint32_t nonce;
-        };
-
-        struct keypair
-        {
-            keypair() : region(), key() {}
-            keypair(const regionid& r, const e::buffer& k) : region(r), key(k) {}
-            bool operator < (const keypair& rhs) const;
-            const regionid region;
-            const e::buffer key;
-        };
-
-        class pending
-        {
-            public:
-                pending(op_t op,
-                        const std::vector<e::buffer>& value,
-                        const clientop& co = clientop());
-
-            public:
-                const op_t op;
-                const std::vector<e::buffer> value;
-                clientop co;
-                bool fresh;
-                bool acked;
-                bool ondisk; // True if the pending update is already on disk.
-                bool mayack; // True if it is OK to receive ACK messages.
-                regionid _prev;
-                regionid _next;
-
-            private:
-                friend class e::intrusive_ptr<pending>;
-
-            private:
-                size_t m_ref;
-        };
-
+        class clientop;
+        class keypair;
+        class pending;
         class keyholder;
 
     private:
@@ -217,6 +176,9 @@ class replication
 
 } // namespace hyperdex
 
+#include <hyperdex/replication/clientop.h>
+#include <hyperdex/replication/keypair.h>
+#include <hyperdex/replication/pending.h>
 #include <hyperdex/replication/keyholder.h>
 
 #endif // hyperdex_replication_h_
