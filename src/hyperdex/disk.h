@@ -37,6 +37,9 @@
 
 // HyperDex
 #include <hyperdex/result_t.h>
+#include <hyperdex/op_t.h>
+
+// XXX Only allow disks to be created under e::intrusive_ptr.
 
 namespace hyperdex
 {
@@ -53,6 +56,36 @@ namespace hyperdex
 class disk
 {
     public:
+        class snapshot
+        {
+            public:
+                bool valid();
+                void next();
+
+            public:
+                uint64_t version();
+                e::buffer key();
+                std::vector<e::buffer> value();
+
+            private:
+                friend class e::intrusive_ptr<snapshot>;
+                friend class disk;
+
+            private:
+                snapshot(disk* d);
+
+            private:
+                uint32_t get_offset();
+
+            private:
+                size_t m_ref;
+                bool m_valid;
+                const char* const m_base;
+                const uint32_t m_limit;
+                uint32_t m_entry;
+        };
+
+    public:
         disk(const po6::pathname& filename);
         ~disk() throw ();
 
@@ -67,9 +100,11 @@ class disk
         void async();
         void sync();
         void drop();
+        e::intrusive_ptr<snapshot> make_snapshot();
 
     private:
         friend class e::intrusive_ptr<disk>;
+        friend class snapshot;
 
     private:
         disk(const disk&);

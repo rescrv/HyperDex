@@ -25,6 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// XXX there is duplicate parsing code.
+
 #define __STDC_LIMIT_MACROS
 
 // POSIX
@@ -294,6 +296,13 @@ hyperdex :: disk :: drop()
     // XXX
 }
 
+e::intrusive_ptr<hyperdex::disk::snapshot>
+hyperdex :: disk :: make_snapshot()
+{
+    e::intrusive_ptr<snapshot> ret = new snapshot(this);
+    return ret;
+}
+
 bool
 hyperdex :: disk :: find_bucket_for_key(const e::buffer& key,
                                         uint64_t key_hash,
@@ -375,7 +384,7 @@ hyperdex :: disk :: invalidate_search_index(uint32_t to_invalidate)
         }
         else if (*offset == to_invalidate)
         {
-            *invalidator = m_offset;
+            *invalidator = htobe32(m_offset);
         }
     }
 }
@@ -397,6 +406,131 @@ hyperdex :: disk :: store_search_index(const std::vector<uint64_t>& value_hashes
 
     // Increment the m_search counter.
     ++m_search;
+}
+
+bool
+hyperdex :: disk :: snapshot :: valid()
+{
+    uint32_t data_offset = 0;
+    uint32_t invalidated = 0;
+
+    while (m_entry < SEARCH_INDEX_ENTRIES)
+    {
+        uint32_t entry_offset = HASH_TABLE_SIZE + m_entry * 12;
+        memmove(&data_offset, m_base + entry_offset + sizeof(uint32_t), sizeof(uint32_t));
+        memmove(&invalidated, m_base + entry_offset + 2 * sizeof(uint32_t), sizeof(uint32_t));
+        data_offset = be32toh(data_offset);
+        invalidated = be32toh(invalidated);
+
+        // If the m_valid flag is set; the data_offset is within the subsection
+        // of data we may observe; and the data was never
+        // invalidated, or was invalidated after we scanned it, then we may
+        // return true;
+        if (m_valid && data_offset > 0 && data_offset < m_limit && (invalidated == 0 || invalidated >= m_limit))
+        {
+            return true;
+        }
+
+        ++m_entry;
+        m_valid = true;
+    }
+
+    return m_entry < SEARCH_INDEX_ENTRIES && m_valid;
+}
+
+void
+hyperdex :: disk :: snapshot :: next()
+{
+    m_valid = false;
+}
+
+uint64_t
+hyperdex :: disk :: snapshot :: version()
+{
+    uint32_t offset = get_offset();
+
+    if (!offset)
+    {
+        return uint64_t();
+    }
+
+    uint64_t ver;
+    memmove(&ver, m_base + offset, sizeof(uint64_t));
+    ver = be64toh(ver);
+    return ver;
+}
+
+e::buffer
+hyperdex :: disk :: snapshot :: key()
+{
+    uint32_t offset = get_offset();
+
+    if (!offset)
+    {
+        return e::buffer();
+    }
+
+    offset += sizeof(uint64_t);
+    uint32_t key_size;
+    memmove(&key_size, m_base + offset, sizeof(uint32_t));
+    key_size = be32toh(key_size);
+    offset += sizeof(uint32_t);
+    return e::buffer(m_base + offset, key_size);
+}
+
+std::vector<e::buffer>
+hyperdex :: disk :: snapshot :: value()
+{
+    uint32_t offset = get_offset();
+
+    if (!offset)
+    {
+        return std::vector<e::buffer>();
+    }
+
+    offset += sizeof(uint64_t);
+    uint32_t key_size;
+    memmove(&key_size, m_base + offset, sizeof(uint32_t));
+    key_size = be32toh(key_size);
+    offset += sizeof(uint32_t) + key_size;
+    uint16_t num_values;
+    memmove(&num_values, m_base + offset, sizeof(uint16_t));
+    offset += sizeof(num_values);
+    num_values = be16toh(num_values);
+    std::vector<e::buffer> val;
+
+    for (uint16_t i = 0; i < num_values; ++i)
+    {
+        uint32_t size;
+        memmove(&size, m_base + offset, sizeof(size));
+        size = be32toh(size);
+        offset += sizeof(size);
+        val.push_back(e::buffer());
+        e::buffer buf(m_base + offset, size);
+        val.back().swap(buf);
+        offset += size;
+    }
+
+    return val;
+}
+
+// XXX When disks become entirely intrusive_ptr-based, we should hold an
+// intrusive_ptr here.
+hyperdex :: disk :: snapshot :: snapshot(disk* d)
+    : m_ref(0)
+    , m_valid(true)
+    , m_base(d->m_base)
+    , m_limit(d->m_offset)
+    , m_entry(0)
+{
+}
+
+uint32_t
+hyperdex :: disk :: snapshot :: get_offset()
+{
+    uint32_t offset;
+    memmove(&offset, m_base + HASH_TABLE_SIZE + m_entry * 12 + sizeof(uint32_t), sizeof(uint32_t));
+    return be32toh(offset);
 }
 
 void

@@ -161,4 +161,125 @@ TEST(DiskTest, DelPutDelPut)
 	ASSERT_EQ(hyperdex::NOTFOUND, d.get(key, key_hash, &value, &version));
 }
 
+TEST(DiskTest, Snapshot)
+{
+    hyperdex::zero_fill("tmp-disk");
+    hyperdex::disk d("tmp-disk");
+    unlink("tmp-disk");
+    bool valid = true;
+
+    // Snapshot empty disk.
+    e::intrusive_ptr<hyperdex::disk::snapshot> s1a = d.make_snapshot();
+    e::intrusive_ptr<hyperdex::disk::snapshot> s1b = d.make_snapshot();
+    EXPECT_FALSE(s1a->valid());
+
+    // Put one element and snaphot the disk.
+	const e::buffer key("key", 3);
+	const uint64_t key_hash = 11062368440904502521UL;
+    const std::vector<e::buffer> value;
+    const std::vector<uint64_t> value_hashes;
+    const uint64_t version = 0xdeadbeefcafebabe;
+    ASSERT_EQ(hyperdex::SUCCESS, d.put(key, key_hash, value, value_hashes, version));
+    e::intrusive_ptr<hyperdex::disk::snapshot> s2a = d.make_snapshot();
+    e::intrusive_ptr<hyperdex::disk::snapshot> s2b = d.make_snapshot();
+
+    for (int i = 0; i < 1000000; ++i)
+    {
+        valid &= s2a->valid();
+    }
+
+    ASSERT_TRUE(valid);
+    EXPECT_EQ(version, s2a->version());
+    EXPECT_TRUE(s2a->key() == key);
+    EXPECT_TRUE(s2a->value() == value);
+    s2a->next();
+    valid = false;
+
+    for (int i = 0; i < 1000000; ++i)
+    {
+        valid |= s2a->valid();
+    }
+
+    EXPECT_FALSE(valid);
+
+    // Do a put which overwrites the value.
+    const std::vector<e::buffer> value2(1, e::buffer("value", 5));
+    const std::vector<uint64_t> value2_hashes(1, 17168316521448127654UL);
+    const uint64_t version2 = 0xcafebabedeadbeef;
+    ASSERT_EQ(hyperdex::SUCCESS, d.put(key, key_hash, value2, value2_hashes, version2));
+    e::intrusive_ptr<hyperdex::disk::snapshot> s3a = d.make_snapshot();
+    e::intrusive_ptr<hyperdex::disk::snapshot> s3b = d.make_snapshot();
+    ASSERT_TRUE(s3a->valid());
+    EXPECT_EQ(version2, s3a->version());
+    EXPECT_TRUE(s3a->key() == key);
+    EXPECT_TRUE(s3a->value() == value2);
+    s3a->next();
+    EXPECT_FALSE(s3a->valid());
+
+    // Delete that value.
+    EXPECT_EQ(hyperdex::SUCCESS, d.del(key, key_hash));
+    e::intrusive_ptr<hyperdex::disk::snapshot> s4a = d.make_snapshot();
+    e::intrusive_ptr<hyperdex::disk::snapshot> s4b = d.make_snapshot();
+    EXPECT_FALSE(s4a->valid());
+
+    // Perform back-to-back PUTs.
+    const e::buffer b2b_key1("one", 3);
+    const uint64_t b2b_key1_hash = 0xe1001e63b5e57068L;
+    const uint64_t b2b_version1 = 0x42424242;
+    const std::vector<e::buffer> b2b_value1(2, e::buffer("value-1", 7));
+    const std::vector<uint64_t> b2b_value1_hashes(2, 2821271447910696549L);
+    const e::buffer b2b_key2("two", 3);
+    const uint64_t b2b_key2_hash = 0x4a38a1aea3a81e5fL;
+    const uint64_t b2b_version2 = 0x41414141;
+    const std::vector<e::buffer> b2b_value2(2, e::buffer("value-2", 7));
+    const std::vector<uint64_t> b2b_value2_hashes(2, 9047582705417063893L);
+    ASSERT_EQ(hyperdex::SUCCESS, d.put(b2b_key1, b2b_key1_hash, b2b_value1, b2b_value1_hashes, b2b_version1));
+    ASSERT_EQ(hyperdex::SUCCESS, d.put(b2b_key2, b2b_key2_hash, b2b_value2, b2b_value2_hashes, b2b_version2));
+    e::intrusive_ptr<hyperdex::disk::snapshot> s5a = d.make_snapshot();
+    e::intrusive_ptr<hyperdex::disk::snapshot> s5b = d.make_snapshot();
+    ASSERT_TRUE(s5a->valid());
+    EXPECT_EQ(b2b_version1, s5a->version());
+    EXPECT_TRUE(s5a->key() == b2b_key1);
+    EXPECT_TRUE(s5a->value() == b2b_value1);
+    s5a->next();
+    ASSERT_TRUE(s5a->valid());
+    EXPECT_EQ(b2b_version2, s5a->version());
+    EXPECT_TRUE(s5a->key() == b2b_key2);
+    EXPECT_TRUE(s5a->value() == b2b_value2);
+    s5a->next();
+    EXPECT_FALSE(s5a->valid());
+
+    // Check snapshots again after other activity.
+    // ---
+    EXPECT_FALSE(s1b->valid());
+    // ---
+    ASSERT_TRUE(s2b->valid());
+    EXPECT_EQ(version, s2b->version());
+    EXPECT_TRUE(s2b->key() == key);
+    EXPECT_TRUE(s2b->value() == value);
+    s2b->next();
+    EXPECT_FALSE(s2b->valid());
+    // ---
+    ASSERT_TRUE(s3b->valid());
+    EXPECT_EQ(s3b->version(), version2);
+    EXPECT_TRUE(s3b->key() == key);
+    EXPECT_TRUE(s3b->value() == value2);
+    s3b->next();
+    EXPECT_FALSE(s3b->valid());
+    // ---
+    EXPECT_FALSE(s4b->valid());
+    // ---
+    ASSERT_TRUE(s5b->valid());
+    EXPECT_EQ(b2b_version1, s5b->version());
+    EXPECT_TRUE(s5b->key() == b2b_key1);
+    EXPECT_TRUE(s5b->value() == b2b_value1);
+    s5b->next();
+    ASSERT_TRUE(s5b->valid());
+    EXPECT_EQ(b2b_version2, s5b->version());
+    EXPECT_TRUE(s5b->key() == b2b_key2);
+    EXPECT_TRUE(s5b->value() == b2b_value2);
+    s5b->next();
+    EXPECT_FALSE(s5b->valid());
+}
+
 } // namespace
