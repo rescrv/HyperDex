@@ -55,6 +55,65 @@ namespace hyperdex
 class region
 {
     public:
+        // A snapshot will iterate all disks, frozen at a particular point in
+        // time.
+        class snapshot
+        {
+            public:
+                bool valid();
+                void next();
+
+            public:
+                op_t op();
+                uint64_t version();
+                e::buffer key();
+                std::vector<e::buffer> value();
+
+            private:
+                friend class e::intrusive_ptr<snapshot>;
+
+            private:
+                snapshot();
+                snapshot(const snapshot&);
+
+            private:
+                snapshot& operator = (const snapshot&);
+
+            private:
+                std::vector<e::intrusive_ptr<disk::snapshot> > m_snaps;
+                size_t m_ref;
+        };
+
+        // A rolling snapshot will replay m_log after iterating all disks.
+        class rolling_snapshot
+        {
+            public:
+                bool valid();
+                void next();
+
+            public:
+                op_t op();
+                uint64_t version();
+                e::buffer key();
+                std::vector<e::buffer> value();
+
+            private:
+                friend class e::intrusive_ptr<rolling_snapshot>;
+
+            private:
+                rolling_snapshot(const log::iterator& iter, e::intrusive_ptr<snapshot> snap);
+                rolling_snapshot(const rolling_snapshot&);
+
+            private:
+                rolling_snapshot& operator = (const rolling_snapshot&);
+
+            private:
+                log::iterator m_iter;
+                e::intrusive_ptr<snapshot> m_snap;
+                size_t m_ref;
+        };
+
+    public:
         region(const regionid& ri, const po6::pathname& directory, uint16_t nc);
 
     public:

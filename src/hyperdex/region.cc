@@ -366,3 +366,178 @@ hyperdex :: region :: flush_one(op_t op, uint64_t point, const e::buffer& key,
         }
     }
 }
+
+bool
+hyperdex :: region :: snapshot :: valid()
+{
+    while (!m_snaps.empty())
+    {
+        if (m_snaps.back()->valid())
+        {
+            return true;
+        }
+        else
+        {
+            m_snaps.pop_back();
+        }
+    }
+
+    return false;
+}
+
+void
+hyperdex :: region :: snapshot :: next()
+{
+    if (!m_snaps.empty())
+    {
+        m_snaps.back()->next();
+    }
+}
+
+hyperdex::op_t
+hyperdex :: region :: snapshot :: op()
+{
+    if (!m_snaps.empty())
+    {
+        return PUT;
+    }
+    else
+    {
+        return op_t();
+    }
+}
+
+uint64_t
+hyperdex :: region :: snapshot :: version()
+{
+    if (!m_snaps.empty())
+    {
+        return m_snaps.back()->version();
+    }
+    else
+    {
+        return uint64_t();
+    }
+}
+
+e::buffer
+hyperdex :: region :: snapshot :: key()
+{
+    if (!m_snaps.empty())
+    {
+        return m_snaps.back()->key();
+    }
+    else
+    {
+        return e::buffer();
+    }
+}
+
+std::vector<e::buffer>
+hyperdex :: region :: snapshot :: value()
+{
+    if (!m_snaps.empty())
+    {
+        return m_snaps.back()->value();
+    }
+    else
+    {
+        return std::vector<e::buffer>();
+    }
+}
+
+hyperdex :: region :: rolling_snapshot :: rolling_snapshot(const log::iterator& iter,
+                                                           e::intrusive_ptr<snapshot> snap)
+    : m_iter(iter)
+    , m_snap(snap)
+    , m_ref(0)
+{
+    valid();
+}
+
+bool
+hyperdex :: region :: rolling_snapshot :: valid()
+{
+    return m_snap->valid() || m_iter.valid();
+}
+
+void
+hyperdex :: region :: rolling_snapshot :: next()
+{
+    if (m_snap->valid())
+    {
+        m_snap->next();
+    }
+    else if (m_iter.valid())
+    {
+        m_iter.next();
+    }
+}
+
+hyperdex::op_t
+hyperdex :: region :: rolling_snapshot :: op()
+{
+    if (m_snap->valid())
+    {
+        return m_snap->op();
+    }
+    else if (m_iter.valid())
+    {
+        return m_iter.op();
+    }
+    else
+    {
+        return op_t();
+    }
+}
+
+uint64_t
+hyperdex :: region :: rolling_snapshot :: version()
+{
+    if (m_snap->valid())
+    {
+        return m_snap->version();
+    }
+    else if (m_iter.valid())
+    {
+        return m_iter.version();
+    }
+    else
+    {
+        return uint64_t();
+    }
+}
+
+e::buffer
+hyperdex :: region :: rolling_snapshot :: key()
+{
+    if (m_snap->valid())
+    {
+        return m_snap->key();
+    }
+    else if (m_iter.valid())
+    {
+        return m_iter.key();
+    }
+    else
+    {
+        return e::buffer();
+    }
+}
+
+std::vector<e::buffer>
+hyperdex :: region :: rolling_snapshot :: value()
+{
+    if (m_snap->valid())
+    {
+        return m_snap->value();
+    }
+    else if (m_iter.valid())
+    {
+        return m_iter.value();
+    }
+    else
+    {
+        return std::vector<e::buffer>();
+    }
+}
