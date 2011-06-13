@@ -29,6 +29,7 @@
 
 // C
 #include <cassert>
+#include <cstdlib>
 
 // POSIX
 #include <sys/stat.h>
@@ -42,6 +43,9 @@
 
 // Google Log
 #include <glog/logging.h>
+
+// po6
+#include <po6/pathname.h>
 
 // HyperDex
 #include <hyperdex/datalayer.h>
@@ -148,6 +152,23 @@ void
 hyperdex :: datalayer :: shutdown()
 {
     m_shutdown = true;
+}
+
+e::intrusive_ptr<hyperdex::region>
+hyperdex :: datalayer :: tmp_region(const regionid& ri, uint16_t dimensions)
+{
+    po6::pathname tmp_path = join(m_base, "tmp-regionXXXXXX");
+    char buf[PATH_MAX];
+    strncpy(buf, tmp_path.get(), PATH_MAX);
+    char* dir = mkdtemp(buf);
+
+    if (dir == NULL)
+    {
+        throw po6::error(errno);
+    }
+
+    e::intrusive_ptr<hyperdex::region> r = new region(ri, dir, dimensions);
+    return r;
 }
 
 hyperdex :: result_t

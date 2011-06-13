@@ -62,6 +62,7 @@ class datalayer
         void reconfigure(const configuration& newconfig, const instance& us);
         void cleanup(const configuration& newconfig, const instance& us);
         void shutdown();
+        e::intrusive_ptr<region> tmp_region(const regionid& ri, uint16_t dimensions);
 
     // Key-Value store operations.
     public:
