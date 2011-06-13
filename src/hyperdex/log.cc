@@ -147,6 +147,14 @@ hyperdex :: log :: iterator :: iterator(hyperdex::log* l)
     valid();
 }
 
+hyperdex :: log :: iterator :: iterator(const log::iterator& i)
+    : m_l(i.m_l)
+    , m_n(i.m_n)
+    , m_valid(i.m_valid)
+{
+    valid();
+}
+
 hyperdex :: log :: iterator :: ~iterator() throw ()
 {
     while (m_n)

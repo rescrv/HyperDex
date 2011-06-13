@@ -180,4 +180,64 @@ TEST(LogTest, IterateFlushIterate)
     EXPECT_FALSE(it.valid());
 }
 
+TEST(LogTest, CopyIterator)
+{
+    hyperdex::log l;
+
+    // Add one thousand put/del pairs to the queue.
+    for (uint64_t i = 0; i < 1000; ++i)
+    {
+        e::buffer buf;
+        buf.pack() << i;
+        l.append(i + 1000, buf, i + 2000, std::vector<e::buffer>(i, buf), std::vector<uint64_t>(i, i), i + 3000);
+        l.append(i + 1000, buf, i + 2000);
+    }
+
+    // Verify that we get them back.
+    hyperdex::log::iterator it(l.iterate());
+    hyperdex::log::iterator copy(it);
+
+    for (uint64_t i = 0; i < 1000; ++i)
+    {
+        e::buffer buf;
+        buf.pack() << i;
+
+        // Check the PUT.
+        EXPECT_TRUE(it.valid());
+        EXPECT_TRUE(copy.valid());
+        EXPECT_EQ(hyperdex::PUT, it.op());
+        EXPECT_EQ(hyperdex::PUT, copy.op());
+        EXPECT_TRUE(buf == it.key());
+        EXPECT_TRUE(buf == copy.key());
+        ASSERT_EQ(i, it.value().size());
+        ASSERT_EQ(i, copy.value().size());
+
+        for (uint64_t j = 0; j < i; ++j)
+        {
+            EXPECT_TRUE(buf == it.value()[j]);
+            EXPECT_TRUE(buf == copy.value()[j]);
+        }
+
+        EXPECT_EQ(i + 3000, it.version());
+        EXPECT_EQ(i + 3000, copy.version());
+
+        // Check the DEL.
+        it.next();
+        copy.next();
+        ASSERT_TRUE(it.valid());
+        ASSERT_TRUE(copy.valid());
+        EXPECT_EQ(hyperdex::DEL, it.op());
+        EXPECT_EQ(hyperdex::DEL, copy.op());
+        EXPECT_TRUE(buf == it.key());
+        EXPECT_TRUE(buf == copy.key());
+
+        // Advance for next iteration
+        it.next();
+        copy.next();
+    }
+
+    EXPECT_FALSE(it.valid());
+    EXPECT_FALSE(copy.valid());
+}
+
 } // namespace
