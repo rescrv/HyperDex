@@ -43,7 +43,10 @@ enum stream_no_t
     PUT_PENDING = 32,
     DEL_PENDING = 33,
     PENDING     = 34,
-    ACK         = 35
+    ACK         = 35,
+    XFER_MORE   = 48,
+    XFER_DATA   = 49,
+    XFER_DONE   = 50
 };
 
 } // namespace stream_no
