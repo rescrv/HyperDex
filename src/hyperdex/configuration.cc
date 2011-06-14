@@ -451,10 +451,28 @@ hyperdex :: configuration :: transfers_from(const instance& i)
             t != m_transfers.end(); ++t)
     {
         // This should always succeed.
-        std::map<entityid, instance>::const_iterator e = m_entities.find(tailof(t->second));
-        assert(e != m_entities.end());
+        std::map<entityid, instance>::const_iterator tail = m_entities.find(tailof(t->second));
+        assert(tail != m_entities.end());
 
-        if (e->second == i)
+        // See if there is a predecessor to tail.
+        std::map<entityid, instance>::const_iterator pred = m_entities.find(entityid(tail->first.get_region(), tail->first.number - 1));
+
+        // Read the transfer entity.
+        std::map<entityid, instance>::const_iterator trans = m_entities.find(entityid(UINT32_MAX - 1, t->first, 0, 0, 0));
+        assert(trans != m_entities.end());
+
+        // If the entity to which the transfer is happening is the tail and
+        // we are the predecessor.
+        if (tail->second == trans->second && pred != m_entities.end() && pred->second == i)
+        {
+            ret.insert(*t);
+        }
+        else if (tail->second == trans->second && pred == m_entities.end())
+        {
+            // XXX
+            LOG(ERROR) << "There is an error in the configuration object's logic.";
+        }
+        else if (tail->second == i)
         {
             ret.insert(*t);
         }
