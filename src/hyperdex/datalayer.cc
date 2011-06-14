@@ -154,23 +154,6 @@ hyperdex :: datalayer :: shutdown()
     m_shutdown = true;
 }
 
-e::intrusive_ptr<hyperdex::region>
-hyperdex :: datalayer :: tmp_region(const regionid& ri, uint16_t dimensions)
-{
-    po6::pathname tmp_path = join(m_base, "tmp-regionXXXXXX");
-    char buf[PATH_MAX];
-    strncpy(buf, tmp_path.get(), PATH_MAX);
-    char* dir = mkdtemp(buf);
-
-    if (dir == NULL)
-    {
-        throw po6::error(errno);
-    }
-
-    e::intrusive_ptr<hyperdex::region> r = new region(ri, dir, dimensions);
-    return r;
-}
-
 e::intrusive_ptr<hyperdex::region::rolling_snapshot>
 hyperdex :: datalayer :: make_rolling_snapshot(const regionid& ri)
 {
