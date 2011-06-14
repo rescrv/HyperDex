@@ -263,6 +263,22 @@ hyperdex :: region :: drop()
     // XXX
 }
 
+e::intrusive_ptr<hyperdex::region::snapshot>
+hyperdex :: region :: make_snapshot()
+{
+    po6::threads::rwlock::rdhold hold(&m_rwlock);
+    return inner_make_snapshot();
+}
+
+e::intrusive_ptr<hyperdex::region::rolling_snapshot>
+hyperdex :: region :: make_rolling_snapshot()
+{
+    po6::threads::rwlock::rdhold hold(&m_rwlock);
+    log::iterator it(m_log.iterate());
+    e::intrusive_ptr<snapshot> snap(inner_make_snapshot());
+    return new rolling_snapshot(it, snap);
+}
+
 e::intrusive_ptr<hyperdex::disk>
 hyperdex :: region :: create_disk(const regionid& ri)
 {
@@ -322,7 +338,7 @@ hyperdex :: region :: flush_one(op_t op, uint64_t point, const e::buffer& key,
     // to block until a split occurs to resolve disk space issues.
 
     // Delete from every disk
-    po6::threads::rwlock::rdhold hold(&m_rwlock);
+    po6::threads::rwlock::wrhold hold(&m_rwlock);
 
     for (disk_vector::iterator i = m_disks.begin(); i != m_disks.end(); ++i)
     {
@@ -365,6 +381,27 @@ hyperdex :: region :: flush_one(op_t op, uint64_t point, const e::buffer& key,
             }
         }
     }
+}
+
+e::intrusive_ptr<hyperdex::region::snapshot>
+hyperdex :: region :: inner_make_snapshot()
+{
+    std::vector<e::intrusive_ptr<disk::snapshot> > snaps;
+
+    for (disk_vector::iterator d = m_disks.begin(); d != m_disks.end(); ++d)
+    {
+        snaps.push_back(d->second->make_snapshot());
+    }
+
+    e::intrusive_ptr<snapshot> ret(new snapshot(&snaps));
+    return ret;
+}
+
+hyperdex :: region :: snapshot :: snapshot(std::vector<e::intrusive_ptr<disk::snapshot> >* ss)
+    : m_snaps()
+    , m_ref(0)
+{
+    m_snaps.swap(*ss);
 }
 
 bool

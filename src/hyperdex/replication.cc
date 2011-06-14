@@ -57,6 +57,9 @@ hyperdex :: replication :: replication(datalayer* data, logical* comm)
     , m_clientops()
     , m_shutdown(false)
     , m_retransmitter(std::tr1::bind(&replication::retransmit, this))
+    , m_transfers_in()
+    , m_transfers_in_by_region()
+    , m_transfers_out()
 {
     m_retransmitter.start();
 }
@@ -77,9 +80,102 @@ hyperdex :: replication :: prepare(const configuration&, const instance&)
     // Do nothing.
 }
 
+template <typename T>
+static void
+erase_transfers(const std::map<uint16_t, hyperdex::regionid>& transfers,
+                std::map<uint16_t, T>* map)
+{
+    using namespace hyperdex;
+
+    for (typename std::map<uint16_t, T>::iterator t = map->begin(); t != map->end(); )
+    {
+        if (transfers.find(t->first) == transfers.end())
+        {
+            LOG(INFO) << "Stopping transfer #" << t->first << ".";
+            typename std::map<uint16_t, T>::iterator to_erase;
+            to_erase = t;
+            ++t;
+            map->erase(to_erase);
+        }
+        else
+        {
+            ++t;
+        }
+    }
+}
+
+template <typename T>
+static void
+erase_transfers(const std::map<uint16_t, hyperdex::regionid>& transfers,
+                std::map<hyperdex::regionid, T>* map)
+{
+    using namespace hyperdex;
+
+    for (typename std::map<regionid, T>::iterator t = map->begin(); t != map->end(); )
+    {
+        bool inc = false;
+
+        for (std::map<uint16_t, regionid>::const_iterator titer = transfers.begin();
+                titer != transfers.end(); ++titer)
+        {
+            if (titer->second == t->first)
+            {
+                LOG(INFO) << "Stopping transfer of " << t->first << ".";
+                typename std::map<regionid, T>::iterator to_erase;
+                to_erase = t;
+                ++t;
+                map->erase(to_erase);
+                inc = true;
+                break;
+            }
+        }
+
+        if (!inc)
+        {
+            ++t;
+        }
+    }
+}
+
 void
 hyperdex :: replication :: reconfigure(const configuration& newconfig, const instance& us)
 {
+    // Figure out the inbound and outbound transfers which affect us.
+    std::map<uint16_t, regionid> in_transfers = newconfig.transfers_to(us);
+    std::map<uint16_t, regionid> out_transfers = newconfig.transfers_from(us);
+
+    // Make sure that an inbound "transfer" object exists for each in-progress
+    // transfer to "us".
+    for (std::map<uint16_t, regionid>::iterator t = in_transfers.begin(); t != in_transfers.end(); ++t)
+    {
+        if (m_transfers_in.find(t->first) == m_transfers_in.end())
+        {
+            LOG(INFO) << "Initiating inbound transfer #" << t->first << ".";
+            e::intrusive_ptr<region> tmpreg = m_data->tmp_region(t->second, newconfig.regions().find(t->second)->second);
+            e::intrusive_ptr<transfer_in> xfer = new transfer_in(t->first, newconfig.tailof(t->second), tmpreg);
+            m_transfers_in.insert(std::make_pair(t->first, xfer));
+            m_transfers_in_by_region.insert(std::make_pair(t->second, xfer));
+        }
+    }
+
+    // Make sure that an outbound "transfer" object exists for each in-progress
+    // transfer from "us".
+    for (std::map<uint16_t, regionid>::iterator t = out_transfers.begin(); t != out_transfers.end(); ++t)
+    {
+        if (m_transfers_out.find(t->first) == m_transfers_out.end())
+        {
+            LOG(INFO) << "Initiating outbound transfer #" << t->first << ".";
+            e::intrusive_ptr<region::rolling_snapshot> snap = m_data->make_rolling_snapshot(t->second);
+            e::intrusive_ptr<transfer_out> xfer = new transfer_out(snap);
+            m_transfers_out.insert(std::make_pair(t->first, xfer));
+        }
+    }
+
+    // Remove those transfers which we no longer need.
+    erase_transfers(in_transfers, &m_transfers_in);
+    erase_transfers(in_transfers, &m_transfers_in_by_region);
+    erase_transfers(out_transfers, &m_transfers_out);
+
     // XXX need to convert "mayack" messages to disk for every region for which
     // we are the row leader.
 

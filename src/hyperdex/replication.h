@@ -29,6 +29,7 @@
 #define hyperdex_replication_h_
 
 // STL
+#include <limits>
 #include <tr1/functional>
 
 // po6
@@ -86,6 +87,8 @@ class replication
         class keypair;
         class pending;
         class keyholder;
+        class transfer_in;
+        class transfer_out;
 
     private:
         replication(const replication&);
@@ -172,6 +175,9 @@ class replication
         e::set<clientop> m_clientops;
         bool m_shutdown;
         po6::threads::thread m_retransmitter;
+        std::map<uint16_t, e::intrusive_ptr<transfer_in> > m_transfers_in;
+        std::map<regionid, e::intrusive_ptr<transfer_in> > m_transfers_in_by_region;
+        std::map<uint16_t, e::intrusive_ptr<transfer_out> > m_transfers_out;
 };
 
 } // namespace hyperdex
@@ -180,5 +186,7 @@ class replication
 #include <hyperdex/replication/keypair.h>
 #include <hyperdex/replication/pending.h>
 #include <hyperdex/replication/keyholder.h>
+#include <hyperdex/replication/transfer_in.h>
+#include <hyperdex/replication/transfer_out.h>
 
 #endif // hyperdex_replication_h_

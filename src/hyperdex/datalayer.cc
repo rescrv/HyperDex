@@ -171,6 +171,13 @@ hyperdex :: datalayer :: tmp_region(const regionid& ri, uint16_t dimensions)
     return r;
 }
 
+e::intrusive_ptr<hyperdex::region::rolling_snapshot>
+hyperdex :: datalayer :: make_rolling_snapshot(const regionid& ri)
+{
+    e::intrusive_ptr<hyperdex::region> r = get_region(ri);
+    return r->make_rolling_snapshot();
+}
+
 hyperdex :: result_t
 hyperdex :: datalayer :: get(const regionid& ri,
                              const e::buffer& key,

@@ -71,9 +71,10 @@ class region
 
             private:
                 friend class e::intrusive_ptr<snapshot>;
+                friend class region;
 
             private:
-                snapshot();
+                snapshot(std::vector<e::intrusive_ptr<disk::snapshot> >* ss);
                 snapshot(const snapshot&);
 
             private:
@@ -99,6 +100,7 @@ class region
 
             private:
                 friend class e::intrusive_ptr<rolling_snapshot>;
+                friend class region;
 
             private:
                 rolling_snapshot(const log::iterator& iter, e::intrusive_ptr<snapshot> snap);
@@ -126,6 +128,8 @@ class region
         void async();
         void sync();
         void drop();
+        e::intrusive_ptr<snapshot> make_snapshot();
+        e::intrusive_ptr<rolling_snapshot> make_rolling_snapshot();
 
     private:
         friend class e::intrusive_ptr<region>;
@@ -138,6 +142,7 @@ class region
         void flush_one(op_t op, uint64_t point, const e::buffer& key,
                        uint64_t key_hash, const std::vector<e::buffer>& value,
                        const std::vector<uint64_t>& value_hashes, uint64_t version);
+        e::intrusive_ptr<snapshot> inner_make_snapshot();
 
     private:
         size_t m_ref;
