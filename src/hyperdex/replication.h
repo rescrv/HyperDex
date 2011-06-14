@@ -149,6 +149,8 @@ class replication
                       const e::buffer& key, uint64_t version);
         void respond_positively_to_client(clientop co, uint64_t version);
         void respond_negatively_to_client(clientop co, result_t result);
+        // Periodically do things related to replication.
+        void periodic();
         // Retransmit current pending values.
         void retransmit();
         // Check that chain rules are followed very closely.
@@ -174,7 +176,7 @@ class replication
         std::map<keypair, e::intrusive_ptr<keyholder> > m_keyholders;
         e::set<clientop> m_clientops;
         bool m_shutdown;
-        po6::threads::thread m_retransmitter;
+        po6::threads::thread m_periodic_thread;
         std::map<uint16_t, e::intrusive_ptr<transfer_in> > m_transfers_in;
         std::map<regionid, e::intrusive_ptr<transfer_in> > m_transfers_in_by_region;
         std::map<uint16_t, e::intrusive_ptr<transfer_out> > m_transfers_out;
