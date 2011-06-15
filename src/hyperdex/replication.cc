@@ -47,13 +47,15 @@
 #include <hyperdex/replication.h>
 #include <hyperdex/stream_no.h>
 
+// XXX Make this configurable.
+#define LOCK_STRIPING 1024
 #define TRANSFERS_IN_FLIGHT 1000
 
 hyperdex :: replication :: replication(datalayer* data, logical* comm)
     : m_data(data)
     , m_comm(comm)
     , m_config()
-    , m_lock()
+    , m_locks(LOCK_STRIPING)
     , m_keyholders_lock()
     , m_keyholders()
     , m_clientops()
@@ -263,7 +265,7 @@ hyperdex :: replication :: chain_pending(const entityid& from,
 
     // Grab the lock that protects this keypair.
     keypair kp(to.get_region(), key);
-    po6::threads::mutex::hold hold(get_lock(kp));
+    e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, get_lock_num(kp));
 
     // Get a reference to the keyholder for the keypair.
     e::intrusive_ptr<keyholder> kh = get_keyholder(kp);
@@ -312,7 +314,7 @@ hyperdex :: replication :: chain_ack(const entityid& from,
 {
     // Grab the lock that protects this keypair.
     keypair kp(to.get_region(), key);
-    po6::threads::mutex::hold hold(get_lock(kp));
+    e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, get_lock_num(kp));
 
     // Get a reference to the keyholder for the keypair.
     e::intrusive_ptr<keyholder> kh = get_keyholder(kp);
@@ -461,7 +463,8 @@ hyperdex :: replication :: region_transfer(const entityid& from,
     e::intrusive_ptr<transfer_in> t = titer->second;
 
     // Grab a lock to ensure that we order the puts to disk correctly.
-    po6::threads::mutex::hold hold_k(get_lock(keypair(t->replicate_from.get_region(), key)));
+    keypair kp(t->replicate_from.get_region(), key);
+    e::striped_lock<po6::threads::mutex>::hold hold_k(&m_locks, get_lock_num(kp));
 
     // Grab a lock to ensure we can safely update the transfer object.
     po6::threads::mutex::hold hold_t(&t->lock);
@@ -614,7 +617,7 @@ hyperdex :: replication :: client_common(op_t op,
 
     // Grab the lock that protects this keypair.
     keypair kp(to.get_region(), key);
-    po6::threads::mutex::hold hold(get_lock(kp));
+    e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, get_lock_num(kp));
 
     // Get a reference to the keyholder for the keypair.
     e::intrusive_ptr<keyholder> kh = get_keyholder(kp);
@@ -745,7 +748,7 @@ hyperdex :: replication :: chain_common(op_t op,
 
     // Grab the lock that protects this keypair.
     keypair kp(to.get_region(), key);
-    po6::threads::mutex::hold hold(get_lock(kp));
+    e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, get_lock_num(kp));
 
     // Get a reference to the keyholder for the keypair.
     e::intrusive_ptr<keyholder> kh = get_keyholder(kp);
@@ -891,10 +894,13 @@ hyperdex :: replication :: chain_common(op_t op,
     move_deferred_to_pending(kh);
 }
 
-po6::threads::mutex*
-hyperdex :: replication :: get_lock(const keypair& /*kp*/)
+size_t
+hyperdex :: replication :: get_lock_num(const keypair& kp)
 {
-    return &m_lock;
+    uint64_t region_hash = kp.region.space + kp.region.subspace
+                           + kp.region.prefix + kp.region.mask;
+    uint64_t key_hash = CityHash64(kp.key);
+    return region_hash + key_hash;
 }
 
 e::intrusive_ptr<hyperdex::replication::keyholder>
@@ -1306,7 +1312,7 @@ hyperdex :: replication :: retransmit()
     for (std::set<keypair>::iterator kp = kps.begin(); kp != kps.end(); ++kp)
     {
         // Grab the lock that protects this keypair.
-        po6::threads::mutex::hold hold(get_lock(*kp));
+        e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, get_lock_num(*kp));
 
         // Get a reference to the keyholder for the keypair.
         e::intrusive_ptr<keyholder> kh = get_keyholder(*kp);

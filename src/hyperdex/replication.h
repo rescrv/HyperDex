@@ -38,6 +38,7 @@
 // e
 #include <e/intrusive_ptr.h>
 #include <e/set.h>
+#include <e/striped_lock.h>
 
 // HyperDex
 #include <hyperdex/configuration.h>
@@ -111,7 +112,7 @@ class replication
         void chain_common(op_t op, const entityid& from, const entityid& to,
                           uint64_t newversion, bool fresh, const e::buffer& key,
                           const std::vector<e::buffer>& newvalue);
-        po6::threads::mutex* get_lock(const keypair& kp);
+        size_t get_lock_num(const keypair& kp);
         e::intrusive_ptr<keyholder> get_keyholder(const keypair& kp);
         void erase_keyholder(const keypair& kp);
         bool from_disk(const regionid& r, const e::buffer& key,
@@ -177,13 +178,7 @@ class replication
         datalayer* m_data;
         logical* m_comm;
         configuration m_config;
-        // XXX a universal lock is a bad idea.  Convert this to a bucket lock.
-        // To do this requires that all datastructures below be capable of
-        // handling concurrent readers and writers without issue.  We do not use
-        // a reader-writer lock here because we need ordering.  The bucketlock
-        // will provide the ordering for keys which hash to the same value, and
-        // threadsafe datastructures will provide us with the protection.
-        po6::threads::mutex m_lock;
+        e::striped_lock<po6::threads::mutex> m_locks;
         po6::threads::mutex m_keyholders_lock;
         std::map<keypair, e::intrusive_ptr<keyholder> > m_keyholders;
         e::set<clientop> m_clientops;
