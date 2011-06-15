@@ -46,7 +46,7 @@
 #include <e/buffer.h>
 
 // HyperDex
-#include <hyperdex/lockingq.h>
+#include <hyperdex/fifo_work_queue.h>
 
 namespace hyperdex
 {
@@ -71,7 +71,10 @@ class physical
         bool recv(po6::net::location* from, e::buffer* msg);
         // Deliver a message (put it on the queue) as if it came from "from".
         void deliver(const po6::net::location& from, const e::buffer& msg);
-        bool pending() { return m_incoming.size() > 0; }
+        // This is lossy.  The only time you can rely upon this is when there is
+        // only one thread touching the object, and that same thread is calling
+        // pending.
+        bool pending() { return !m_incoming.optimistically_empty(); }
 
     // Figure out our own socket info.
     public:
@@ -140,7 +143,7 @@ class physical
         po6::threads::rwlock m_lock; // Hold this when changing the location map.
         std::vector<std::tr1::shared_ptr<channel> > m_channels; // The channels we have.
         std::map<po6::net::location, size_t> m_location_map; // A mapping from locations to indices in m_channels.
-        hyperdex::lockingq<message> m_incoming; // Messages buffered for reading.
+        hyperdex::fifo_work_queue<message> m_incoming; // Messages buffered for reading.
 };
 
 } // namespace hyperdex

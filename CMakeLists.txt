@@ -100,9 +100,9 @@ ENABLE_TESTING()
 set(hyperdex_test_srcs
     test/hyperdex/configuration.cc
     test/hyperdex/disk.cc
+    test/hyperdex/fifo_work_queue.cc
     test/hyperdex/hyperspace.cc
     test/hyperdex/ids.cc
-    test/hyperdex/lockingq.cc
     test/hyperdex/log.cc
     test/hyperdex/query.cc
 )

@@ -25,8 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_lockingq_h_
-#define hyperdex_lockingq_h_
+#ifndef hyperdex_fifo_work_queue_h_
+#define hyperdex_fifo_work_queue_h_
 
 // C includes
 #include <cassert>
@@ -39,15 +39,18 @@
 // po6
 #include <po6/threads/cond.h>
 
+// e
+#include <e/lockfree_fifo.h>
+
 namespace hyperdex
 {
 
 template<typename T>
-class lockingq
+class fifo_work_queue
 {
     public:
-        lockingq();
-        ~lockingq() throw ();
+        fifo_work_queue();
+        ~fifo_work_queue() throw ();
 
     public:
         void pause();
@@ -55,141 +58,141 @@ class lockingq
         size_t num_paused();
         void shutdown();
         bool is_shutdown();
-        size_t size();
         bool push(const T& t);
         bool pop(T* t);
+        bool optimistically_empty() { return m_queue.optimistically_empty(); }
 
     private:
-        std::queue<T> m_queue;
+        e::lockfree_fifo<T> m_queue;
         po6::threads::mutex m_lock;
         po6::threads::cond m_may_pop;
         bool m_paused;
-        size_t m_num_paused;
+        size_t m_num_blocked;
         bool m_shutdown;
 };
 
 template<typename T>
-lockingq<T> :: lockingq()
+fifo_work_queue<T> :: fifo_work_queue()
     : m_queue()
     , m_lock()
     , m_may_pop(&m_lock)
     , m_paused(false)
-    , m_num_paused(0)
+    , m_num_blocked(0)
     , m_shutdown(false)
 {
 }
 
 template<typename T>
-lockingq<T> :: ~lockingq()
+fifo_work_queue<T> :: ~fifo_work_queue()
                throw ()
 {
 }
 
 template<typename T>
 void
-lockingq<T> :: pause()
+fifo_work_queue<T> :: pause()
 {
-    m_lock.lock();
+    po6::threads::mutex::hold hold(&m_lock);
     m_paused = true;
-    m_lock.unlock();
+    __sync_synchronize();
 }
 
 template<typename T>
 void
-lockingq<T> :: unpause()
+fifo_work_queue<T> :: unpause()
 {
-    m_lock.lock();
+    po6::threads::mutex::hold hold(&m_lock);
     m_paused = false;
     m_may_pop.broadcast();
-    m_lock.unlock();
+    __sync_synchronize();
 }
 
 template<typename T>
 size_t
-lockingq<T> :: num_paused()
+fifo_work_queue<T> :: num_paused()
 {
-    size_t ret;
-    m_lock.lock();
-    ret = m_num_paused;
-    m_lock.unlock();
-    return ret;
+    po6::threads::mutex::hold hold(&m_lock);
+    return m_num_blocked;
 }
 
 template<typename T>
 void
-lockingq<T> :: shutdown()
+fifo_work_queue<T> :: shutdown()
 {
-    m_lock.lock();
+    po6::threads::mutex::hold hold(&m_lock);
     m_shutdown = true;
     m_may_pop.broadcast();
-    m_lock.unlock();
+    __sync_synchronize();
 }
 
 template<typename T>
 bool
-lockingq<T> :: is_shutdown()
+fifo_work_queue<T> :: is_shutdown()
 {
-    bool ret;
-    m_lock.lock();
-    ret = m_shutdown;
-    m_lock.unlock();
-    return ret;
-}
-
-template<typename T>
-size_t
-lockingq<T> :: size()
-{
-    size_t ret;
-    m_lock.lock();
-    ret = m_queue.size();
-    m_lock.unlock();
-    return ret;
+    po6::threads::mutex::hold hold(&m_lock);
+    return m_shutdown;
 }
 
 template<typename T>
 bool
-lockingq<T> :: push(const T& t)
+fifo_work_queue<T> :: push(const T& t)
 {
-    m_lock.lock();
-
-    if (m_shutdown)
+    if (__sync_and_and_fetch(&m_shutdown, true))
     {
-        m_lock.unlock();
         return false;
     }
 
     m_queue.push(t);
-    m_may_pop.signal();
-    m_lock.unlock();
+
+    if (__sync_add_and_fetch(&m_num_blocked, 0) > 0)
+    {
+        po6::threads::mutex::hold hold(&m_lock);
+        m_may_pop.signal();
+    }
+
     return true;
 }
 
 template<typename T>
 bool
-lockingq<T> :: pop(T* t)
+fifo_work_queue<T> :: pop(T* t)
 {
-    m_lock.lock();
-
-    while (m_paused || (m_queue.empty() && !m_shutdown))
+    while (true)
     {
-        ++m_num_paused;
+        if (__sync_and_and_fetch(&m_paused, true))
+        {
+            po6::threads::mutex::hold hold(&m_lock);
+            __sync_add_and_fetch(&m_num_blocked, 1);
+            m_may_pop.wait();
+            __sync_sub_and_fetch(&m_num_blocked, 1);
+        }
+
+        bool popped = m_queue.pop(t);
+
+        if (popped)
+        {
+            return true;
+        }
+
+        if (__sync_and_and_fetch(&m_shutdown, true))
+        {
+            return false;
+        }
+
+        po6::threads::mutex::hold hold(&m_lock);
+        popped = m_queue.pop(t);
+
+        if (popped)
+        {
+            return true;
+        }
+
+        __sync_add_and_fetch(&m_num_blocked, 1);
         m_may_pop.wait();
-        --m_num_paused;
+        __sync_sub_and_fetch(&m_num_blocked, 1);
     }
-
-    if (m_queue.empty() && m_shutdown)
-    {
-        m_lock.unlock();
-        return false;
-    }
-
-    *t = m_queue.front();
-    m_queue.pop();
-    m_lock.unlock();
-    return true;
 }
 
 } // namespace hyperdex
 
-#endif // hyperdex_lockingq_h_
+#endif // hyperdex_fifo_work_queue_h_

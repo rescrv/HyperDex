@@ -29,7 +29,7 @@
 #include <gtest/gtest.h>
 
 // HyperDex
-#include <hyperdex/lockingq.h>
+#include <hyperdex/fifo_work_queue.h>
 
 #pragma GCC diagnostic ignored "-Wswitch-default"
 
@@ -38,12 +38,12 @@ namespace
 
 TEST(LockingqTest, CtorAndDtor)
 {
-    hyperdex::lockingq<int> q;
+    hyperdex::fifo_work_queue<int> q;
 }
 
 TEST(LockingqTest, NormalQueue)
 {
-    hyperdex::lockingq<int> q;
+    hyperdex::fifo_work_queue<int> q;
 
     for (int i = 0; i < 1024; ++i)
     {
