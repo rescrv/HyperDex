@@ -81,6 +81,14 @@ class replication
                            uint64_t rev, const e::buffer& key);
         void chain_ack(const entityid& from, const entityid& to, uint64_t rev,
                        const e::buffer& key);
+        // When a transfer is in progress, this will add messages from the
+        // transferring host.
+        void region_transfer(const entityid& from, const entityid& to);
+        void region_transfer(const entityid& from, uint16_t xfer_id,
+                             uint64_t xfer_num, op_t op, uint64_t version,
+                             const e::buffer& key,
+                             const std::vector<e::buffer>& value);
+        void region_transfer_done(const entityid& from, const entityid& to);
 
     private:
         class clientop;
@@ -153,6 +161,10 @@ class replication
         void periodic();
         // Retransmit current pending values.
         void retransmit();
+        // Kick-off unstarted transfers.
+        void start_transfers();
+        // Finish transfers which have gone live.
+        void finish_transfers();
         // Check that chain rules are followed very closely.
         bool sent_backward_or_from_head(const entityid& from, const entityid& to,
                                         const regionid& chain, const regionid& tail);

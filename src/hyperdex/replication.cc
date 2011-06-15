@@ -47,6 +47,8 @@
 #include <hyperdex/replication.h>
 #include <hyperdex/stream_no.h>
 
+#define TRANSFERS_IN_FLIGHT 1000
+
 hyperdex :: replication :: replication(datalayer* data, logical* comm)
     : m_data(data)
     , m_comm(comm)
@@ -80,63 +82,6 @@ hyperdex :: replication :: prepare(const configuration&, const instance&)
     // Do nothing.
 }
 
-template <typename T>
-static void
-erase_transfers(const std::map<uint16_t, hyperdex::regionid>& transfers,
-                std::map<uint16_t, T>* map)
-{
-    using namespace hyperdex;
-
-    for (typename std::map<uint16_t, T>::iterator t = map->begin(); t != map->end(); )
-    {
-        if (transfers.find(t->first) == transfers.end())
-        {
-            LOG(INFO) << "Stopping transfer #" << t->first << ".";
-            typename std::map<uint16_t, T>::iterator to_erase;
-            to_erase = t;
-            ++t;
-            map->erase(to_erase);
-        }
-        else
-        {
-            ++t;
-        }
-    }
-}
-
-template <typename T>
-static void
-erase_transfers(const std::map<uint16_t, hyperdex::regionid>& transfers,
-                std::map<hyperdex::regionid, T>* map)
-{
-    using namespace hyperdex;
-
-    for (typename std::map<regionid, T>::iterator t = map->begin(); t != map->end(); )
-    {
-        bool inc = false;
-
-        for (std::map<uint16_t, regionid>::const_iterator titer = transfers.begin();
-                titer != transfers.end(); ++titer)
-        {
-            if (titer->second == t->first)
-            {
-                LOG(INFO) << "Stopping transfer of " << t->first << ".";
-                typename std::map<regionid, T>::iterator to_erase;
-                to_erase = t;
-                ++t;
-                map->erase(to_erase);
-                inc = true;
-                break;
-            }
-        }
-
-        if (!inc)
-        {
-            ++t;
-        }
-    }
-}
-
 void
 hyperdex :: replication :: reconfigure(const configuration& newconfig, const instance& us)
 {
@@ -151,8 +96,7 @@ hyperdex :: replication :: reconfigure(const configuration& newconfig, const ins
         if (m_transfers_in.find(t->first) == m_transfers_in.end())
         {
             LOG(INFO) << "Initiating inbound transfer #" << t->first << ".";
-            e::intrusive_ptr<region> tmpreg = m_data->tmp_region(t->second, newconfig.regions().find(t->second)->second);
-            e::intrusive_ptr<transfer_in> xfer = new transfer_in(t->first, newconfig.tailof(t->second), tmpreg);
+            e::intrusive_ptr<transfer_in> xfer = new transfer_in(t->first, newconfig.tailof(t->second), t->second);
             m_transfers_in.insert(std::make_pair(t->first, xfer));
             m_transfers_in_by_region.insert(std::make_pair(t->second, xfer));
         }
@@ -162,19 +106,52 @@ hyperdex :: replication :: reconfigure(const configuration& newconfig, const ins
     // transfer from "us".
     for (std::map<uint16_t, regionid>::iterator t = out_transfers.begin(); t != out_transfers.end(); ++t)
     {
-        if (m_transfers_out.find(t->first) == m_transfers_out.end())
+        if (m_transfers_out.find(t->first) == m_transfers_out.end()
+            && m_transfers_in.find(t->first) == m_transfers_in.end())
         {
             LOG(INFO) << "Initiating outbound transfer #" << t->first << ".";
             e::intrusive_ptr<region::rolling_snapshot> snap = m_data->make_rolling_snapshot(t->second);
-            e::intrusive_ptr<transfer_out> xfer = new transfer_out(snap);
+            e::intrusive_ptr<transfer_out> xfer = new transfer_out(newconfig.tailof(t->second), t->first, snap);
             m_transfers_out.insert(std::make_pair(t->first, xfer));
         }
     }
 
     // Remove those transfers which we no longer need.
-    erase_transfers(in_transfers, &m_transfers_in);
-    erase_transfers(in_transfers, &m_transfers_in_by_region);
-    erase_transfers(out_transfers, &m_transfers_out);
+    for (std::map<uint16_t, e::intrusive_ptr<transfer_in> >::iterator t = m_transfers_in.begin();
+            t != m_transfers_in.end(); )
+    {
+        // If the transfer no longer exists.
+        if (in_transfers.find(t->first) == in_transfers.end())
+        {
+            LOG(INFO) << "Stopping transfer #" << t->first << ".";
+            std::map<uint16_t, e::intrusive_ptr<transfer_in> >::iterator to_erase;
+            to_erase = t;
+            ++t;
+            m_transfers_in_by_region.erase(to_erase->second->replicate_from.get_region());
+            m_transfers_in.erase(to_erase);
+        }
+        else
+        {
+            ++t;
+        }
+    }
+
+    for (std::map<uint16_t, e::intrusive_ptr<transfer_out> >::iterator t = m_transfers_out.begin();
+            t != m_transfers_out.end(); )
+    {
+        if (out_transfers.find(t->first) == out_transfers.end())
+        {
+            LOG(INFO) << "Stopping transfer #" << t->first << ".";
+            std::map<uint16_t, e::intrusive_ptr<transfer_out> >::iterator to_erase;
+            to_erase = t;
+            ++t;
+            m_transfers_out.erase(to_erase);
+        }
+        else
+        {
+            ++t;
+        }
+    }
 
     // XXX need to convert "mayack" messages to disk for every region for which
     // we are the row leader.
@@ -368,6 +345,23 @@ hyperdex :: replication :: chain_ack(const entityid& from,
         return;
     }
 
+    // If there exists a "transfers in" for this region, then add this acked key
+    // to the set of completion triggers for the region.  This must happen
+    // before the put to disk of the ack.  By doing so it blocks the transfer
+    // from overwriting the same key.
+    std::map<regionid, e::intrusive_ptr<transfer_in> >::iterator titer;
+    titer = m_transfers_in_by_region.find(kp.region);
+
+    if (titer != m_transfers_in_by_region.end())
+    {
+        e::intrusive_ptr<transfer_in> t = titer->second;
+        // Grab a lock to ensure we can safely update it.
+        po6::threads::mutex::hold hold_xfer(&t->lock);
+
+        // Add this key/version to the set of triggers.
+        t->triggers.insert(std::make_pair(key, version));
+    }
+
     send_ack(to.get_region(), version, key, pend);
     pend->acked = true;
 
@@ -393,6 +387,189 @@ hyperdex :: replication :: chain_ack(const entityid& from,
     if (kh->pending_updates.empty())
     {
         erase_keyholder(kp);
+    }
+}
+
+void
+hyperdex :: replication :: region_transfer(const entityid& from,
+                                           const entityid& to)
+{
+    // Find the transfer_out object.
+    std::map<uint16_t, e::intrusive_ptr<transfer_out> >::iterator titer;
+    titer = m_transfers_out.find(from.subspace);
+
+    if (titer == m_transfers_out.end())
+    {
+        return;
+    }
+
+    e::intrusive_ptr<transfer_out> t = titer->second;
+
+    if (from != t->transfer_entity || to != t->replicate_from)
+    {
+        return;
+    }
+
+    // Grab a lock to ensure we can safely update it.
+    po6::threads::mutex::hold hold(&t->lock);
+
+    if (t->snap->valid())
+    {
+        uint8_t op = t->snap->op() == PUT ? 1 : 0;
+        e::buffer msg;
+        msg.pack() << t->xfer_num << op << t->snap->version()
+                   << t->snap->key() << t->snap->value();
+        ++t->xfer_num;
+        t->snap->next();
+
+        if (!m_comm->send(to, from, stream_no::XFER_DATA, msg))
+        {
+            // XXX
+            LOG(ERROR) << "FAIL TRANSFER " << from.subspace;
+        }
+    }
+    else
+    {
+        e::buffer msg;
+
+        if (!m_comm->send(to, from, stream_no::XFER_DONE, msg))
+        {
+            // XXX
+            LOG(ERROR) << "FAIL TRANSFER " << from.subspace;
+        }
+    }
+}
+
+void
+hyperdex :: replication :: region_transfer(const entityid& from,
+                                           uint16_t xfer_id,
+                                           uint64_t xfer_num,
+                                           op_t op,
+                                           uint64_t version,
+                                           const e::buffer& key,
+                                           const std::vector<e::buffer>& value)
+{
+    // Find the transfer_in object.
+    std::map<uint16_t, e::intrusive_ptr<transfer_in> >::iterator titer;
+    titer = m_transfers_in.find(xfer_id);
+
+    if (titer == m_transfers_in.end())
+    {
+        return;
+    }
+
+    e::intrusive_ptr<transfer_in> t = titer->second;
+
+    // Grab a lock to ensure that we order the puts to disk correctly.
+    po6::threads::mutex::hold hold_k(get_lock(keypair(t->replicate_from.get_region(), key)));
+
+    // Grab a lock to ensure we can safely update the transfer object.
+    po6::threads::mutex::hold hold_t(&t->lock);
+
+    if (from != t->replicate_from)
+    {
+        return;
+    }
+
+    if (t->triggered)
+    {
+        return;
+    }
+
+    // This is a probabilistic test of the remote end's failure.  If we have
+    // queued more than 1000 messages, then somewhere one got dropped as the
+    // other end inserts them into the queue in FIFO order, and they are
+    // delivered to threads in FIFO order.  There is always a chance that what
+    // really happened was one thread pulled off the missing message, and then
+    // was blocked arbitrarily long while other threads worked through several
+    // messages.  The large constant ensures that this is exceedingly unlikely
+    // (but admittedly still possible).
+    if (t->ops.size() > TRANSFERS_IN_FLIGHT)
+    {
+        // XXX FAIL THIS TRANSFER
+        LOG(ERROR) << "FAIL TRANSFER " << xfer_id;
+        return;
+    }
+
+    // Insert the new operation.
+    e::intrusive_ptr<transfer_in::op> o = new transfer_in::op(op, version, key, value);
+    t->ops.insert(std::make_pair(xfer_num, o));
+
+    while (!t->ops.empty() && t->ops.begin()->first == t->xferred_so_far + 1)
+    {
+        transfer_in::op& one(*t->ops.begin()->second);
+
+        if (t->triggers.find(std::make_pair(one.key, one.version)) != t->triggers.end())
+        {
+            t->triggered = true;
+            LOG(INFO) << "COMPLETE TRANSFER " << xfer_id;
+            return;
+        }
+
+        if (t->triggers.lower_bound(std::make_pair(one.key, 0)) ==
+                t->triggers.upper_bound(std::make_pair(one.key, std::numeric_limits<uint64_t>::max() - 1)))
+        {
+            result_t res;
+
+            if (one.operation == PUT)
+            {
+                res = m_data->put(t->replicate_from.get_region(), one.key, one.value, one.version);
+            }
+            else
+            {
+                res = m_data->del(t->replicate_from.get_region(), one.key);
+            }
+
+            if (res != SUCCESS)
+            {
+                // XXX FAIL THIS TRANSFER
+                LOG(ERROR) << "FAIL TRANSFER " << xfer_id;
+                return;
+            }
+        }
+
+        ++t->xferred_so_far;
+        t->ops.erase(t->ops.begin());
+    }
+
+    t->started = true;
+    e::buffer msg;
+
+    if (!m_comm->send(t->transfer_entity, t->replicate_from, stream_no::XFER_MORE, msg))
+    {
+        // XXX FAIL
+        LOG(ERROR) << "FAIL TRANSFER " << xfer_id;
+    }
+}
+
+void
+hyperdex :: replication :: region_transfer_done(const entityid& from, const entityid& to)
+{
+    // Find the transfer_in object.
+    std::map<uint16_t, e::intrusive_ptr<transfer_in> >::iterator titer;
+    titer = m_transfers_in.find(to.subspace);
+
+    if (titer == m_transfers_in.end())
+    {
+        return;
+    }
+
+    e::intrusive_ptr<transfer_in> t = titer->second;
+
+    // Grab a lock to ensure we can safely update it.
+    po6::threads::mutex::hold hold(&t->lock);
+
+    if (from != t->replicate_from)
+    {
+        return;
+    }
+
+    t->started = true;
+
+    if (!t->go_live)
+    {
+        t->go_live = true;
+        LOG(INFO) << "REGION GO LIVE " << to.subspace;
     }
 }
 
@@ -1069,7 +1246,7 @@ hyperdex :: replication :: respond_negatively_to_client(clientop co,
 void
 hyperdex :: replication :: periodic()
 {
-    while (!m_shutdown)
+    for (uint64_t i = 0; !m_shutdown; ++i)
     {
         try
         {
@@ -1078,6 +1255,32 @@ hyperdex :: replication :: periodic()
         catch (std::exception& e)
         {
             LOG(INFO) << "Uncaught exception when retransmitting: " << e.what();
+        }
+
+        try
+        {
+            // Every second.
+            if (i % 4 == 0)
+            {
+                start_transfers();
+            }
+        }
+        catch (std::exception& e)
+        {
+            LOG(INFO) << "Uncaught exception when starting transfers: " << e.what();
+        }
+
+        try
+        {
+            // Every ten seconds.
+            if (i % 40 == 0)
+            {
+                finish_transfers();
+            }
+        }
+        catch (std::exception& e)
+        {
+            LOG(INFO) << "Uncaught exception when finishing transfers: " << e.what();
         }
 
         e::sleep_ms(250);
@@ -1134,6 +1337,38 @@ hyperdex :: replication :: retransmit()
             e::buffer info;
             info.pack() << version << kp->key;
             m_comm->send_backward(kp->region, stream_no::PENDING, info);
+        }
+    }
+}
+
+void
+hyperdex :: replication :: start_transfers()
+{
+    for (std::map<uint16_t, e::intrusive_ptr<transfer_in> >::iterator t = m_transfers_in.begin();
+            t != m_transfers_in.end(); ++t)
+    {
+        if (!t->second->started)
+        {
+            e::buffer msg;
+
+            for (int i = 0; i < TRANSFERS_IN_FLIGHT; ++i)
+            {
+                m_comm->send(t->second->transfer_entity, t->second->replicate_from, stream_no::XFER_MORE, msg);
+            }
+        }
+    }
+}
+
+void
+hyperdex :: replication :: finish_transfers()
+{
+    for (std::map<uint16_t, e::intrusive_ptr<transfer_in> >::iterator t = m_transfers_in.begin();
+            t != m_transfers_in.end(); ++t)
+    {
+        if (t->second->go_live)
+        {
+            e::buffer msg;
+            m_comm->send(t->second->transfer_entity, t->second->replicate_from, stream_no::XFER_MORE, msg);
         }
     }
 }

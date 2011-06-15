@@ -35,6 +35,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+// C++
+#include <limits>
+
 // STL
 #include <iomanip>
 #include <set>
@@ -88,7 +91,7 @@ hyperdex :: datalayer :: prepare(const configuration& newconfig, const instance&
     for (std::map<entityid, instance>::const_iterator e = newconfig.entity_mapping().begin();
             e != newconfig.entity_mapping().end(); ++e)
     {
-        if (e->second == us
+        if (e->first.space != std::numeric_limits<uint32_t>::max() - 1 && e->second == us
             && regions.find(e->first.get_region()) == regions.end())
         {
             std::map<hyperdex::regionid, size_t>::iterator region_size;
@@ -97,6 +100,27 @@ hyperdex :: datalayer :: prepare(const configuration& newconfig, const instance&
             if (region_size != newconfig.regions().end())
             {
                 create_region(e->first.get_region(), region_size->second);
+            }
+            else
+            {
+                LOG(ERROR) << "There is a logic error in the configuration object.";
+            }
+        }
+    }
+
+    std::map<uint16_t, regionid> transfers = newconfig.transfers_to(us);
+
+    for (std::map<uint16_t, regionid>::const_iterator t = transfers.begin();
+            t != transfers.end(); ++t)
+    {
+        if (regions.find(t->second) == regions.end())
+        {
+            std::map<hyperdex::regionid, size_t>::iterator region_size;
+            region_size = newconfig.regions().find(t->second);
+
+            if (region_size != newconfig.regions().end())
+            {
+                create_region(t->second, region_size->second);
             }
             else
             {
@@ -117,6 +141,7 @@ hyperdex :: datalayer :: cleanup(const configuration& newconfig, const instance&
 {
     // Delete regions which are no longer in the config.
     std::map<regionid, e::intrusive_ptr<hyperdex::region> > regions;
+    std::map<uint16_t, regionid> transfers = newconfig.transfers_to(us);
 
     // Grab a copy of all the regions we do have.
     {
@@ -136,6 +161,15 @@ hyperdex :: datalayer :: cleanup(const configuration& newconfig, const instance&
         for (; start != end; ++start)
         {
             if (start->second == us)
+            {
+                keep = true;
+            }
+        }
+
+        for (std::map<uint16_t, regionid>::const_iterator t = transfers.begin();
+                t != transfers.end(); ++t)
+        {
+            if (t->second == r->first)
             {
                 keep = true;
             }
@@ -282,6 +316,7 @@ hyperdex :: datalayer :: drop_region(const regionid& ri)
 
     if (i != m_regions.end())
     {
+        LOG(INFO) << "Dropping region " << ri << ".";
         i->second->drop();
         m_regions.erase(i);
     }

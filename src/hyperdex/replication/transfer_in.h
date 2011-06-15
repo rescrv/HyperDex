@@ -42,8 +42,8 @@ class replication :: transfer_in
 
                 op_t operation;
                 uint64_t version;
-                const e::buffer& key;
-                const std::vector<e::buffer>& value;
+                const e::buffer key;
+                const std::vector<e::buffer> value;
 
             private:
                 friend class e::intrusive_ptr<op>;
@@ -53,19 +53,19 @@ class replication :: transfer_in
         };
 
     public:
-        transfer_in(uint16_t xfer_id, const entityid& from, e::intrusive_ptr<region> tmpreg);
+        transfer_in(uint16_t xfer_id, const entityid& from, const regionid& r);
 
     public:
         po6::threads::mutex lock;
         std::map<uint64_t, e::intrusive_ptr<op> > ops;
         uint64_t xferred_so_far;
-        e::intrusive_ptr<region> reg;
+        regionid reg;
         const entityid replicate_from;
         const entityid transfer_entity;
         bool started;
         bool go_live;
         bool triggered;
-        std::set<std::pair<uint64_t, e::buffer> > triggers;
+        std::set<std::pair<e::buffer, uint64_t> > triggers;
 
     private:
         friend class e::intrusive_ptr<transfer_in>;
@@ -78,13 +78,13 @@ class replication :: transfer_in
 inline
 replication :: transfer_in :: transfer_in(uint16_t xfer_id,
                                           const entityid& from,
-                                          e::intrusive_ptr<region> tmpreg)
+                                          const regionid& r)
     : lock()
     , ops()
     , xferred_so_far(0)
-    , reg(tmpreg)
+    , reg(r)
     , replicate_from(from)
-    , transfer_entity(std::numeric_limits<uint64_t>::max() - 1, xfer_id, 0, 0, 0)
+    , transfer_entity(std::numeric_limits<uint32_t>::max() - 1, xfer_id, 0, 0, 0)
     , started(false)
     , go_live(false)
     , triggered(false)

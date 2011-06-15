@@ -34,12 +34,16 @@ namespace hyperdex
 class replication :: transfer_out
 {
     public:
-        transfer_out(e::intrusive_ptr<region::rolling_snapshot> s);
+        transfer_out(const entityid& from,
+                     uint16_t xfer_id,
+                     e::intrusive_ptr<region::rolling_snapshot> s);
 
     public:
         po6::threads::mutex lock;
         e::intrusive_ptr<region::rolling_snapshot> snap;
         uint64_t xfer_num;
+        const entityid replicate_from;
+        const entityid transfer_entity;
 
     private:
         friend class e::intrusive_ptr<transfer_out>;
@@ -50,10 +54,14 @@ class replication :: transfer_out
 
 
 inline
-replication :: transfer_out :: transfer_out(e::intrusive_ptr<region::rolling_snapshot> s)
+replication :: transfer_out :: transfer_out(const entityid& from,
+                                            uint16_t xfer_id,
+                                            e::intrusive_ptr<region::rolling_snapshot> s)
     : lock()
     , snap(s)
-    , xfer_num(0)
+    , xfer_num(1)
+    , replicate_from(from)
+    , transfer_entity(std::numeric_limits<uint32_t>::max() - 1, xfer_id, 0, 0, 0)
     , m_ref(0)
 {
 }

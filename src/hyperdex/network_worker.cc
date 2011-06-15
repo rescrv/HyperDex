@@ -150,6 +150,25 @@ hyperdex :: network_worker :: run()
                 msg.unpack() >> version >> key;
                 m_repl->chain_ack(from, to, version, key);
             }
+            else if (type == hyperdex::stream_no::XFER_MORE)
+            {
+                m_repl->region_transfer(from, to);
+            }
+            else if (type == hyperdex::stream_no::XFER_DONE)
+            {
+                m_repl->region_transfer_done(from, to);
+            }
+            else if (type == hyperdex::stream_no::XFER_DATA)
+            {
+                uint64_t xfer_num;
+                uint8_t op;
+                uint64_t version;
+                e::buffer key;
+                std::vector<e::buffer> value;
+                msg.unpack() >> xfer_num >> op >> version >> key >> value;
+                m_repl->region_transfer(from, to.subspace, xfer_num,
+                                        (op == 1 ? PUT : DEL), version, key, value);
+            }
             else
             {
                 LOG(INFO) << "Message of unknown type received.";
