@@ -373,18 +373,27 @@ hyperdex :: disk :: find_bucket_for_key(const e::buffer& key,
 void
 hyperdex :: disk :: invalidate_search_index(uint32_t to_invalidate)
 {
-    for (uint64_t entry = 0; entry < SEARCH_INDEX_ENTRIES; ++entry)
-    {
-        uint32_t* offset = reinterpret_cast<uint32_t*>(m_base + HASH_TABLE_SIZE + entry * 12 + sizeof(uint32_t));
-        uint32_t* invalidator = reinterpret_cast<uint32_t*>(m_base + HASH_TABLE_SIZE + entry * 12 + 2 * sizeof(uint32_t));
+    int64_t low = 0;
+    int64_t high = SEARCH_INDEX_ENTRIES - 1;
 
-        if (*offset == 0)
+    while (low <= high)
+    {
+        int64_t mid = low + ((high - low) / 2);
+        uint32_t offset = *reinterpret_cast<uint32_t*>(m_base + HASH_TABLE_SIZE + mid * 12 + sizeof(uint32_t));
+        uint32_t* invalidator = reinterpret_cast<uint32_t*>(m_base + HASH_TABLE_SIZE + mid * 12 + 2 * sizeof(uint32_t));
+
+        if (offset == 0 || offset > to_invalidate)
         {
-            return;
+            high = mid - 1;
         }
-        else if (*offset == to_invalidate)
+        else if (offset < to_invalidate)
+        {
+            low = mid + 1;
+        }
+        else if (offset == to_invalidate)
         {
             *invalidator = htobe32(m_offset);
+            return;
         }
     }
 }
