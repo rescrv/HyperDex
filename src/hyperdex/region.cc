@@ -431,6 +431,19 @@ hyperdex :: region :: snapshot :: next()
     }
 }
 
+uint32_t
+hyperdex :: region :: snapshot :: secondary_point()
+{
+    if (!m_snaps.empty())
+    {
+        return m_snaps.back()->secondary_point();
+    }
+    else
+    {
+        return uint64_t();
+    }
+}
+
 hyperdex::op_t
 hyperdex :: region :: snapshot :: op()
 {

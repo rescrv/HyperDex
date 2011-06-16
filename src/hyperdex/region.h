@@ -64,6 +64,7 @@ class region
                 void next();
 
             public:
+                uint32_t secondary_point();
                 op_t op();
                 uint64_t version();
                 e::buffer key();
