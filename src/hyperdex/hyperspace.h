@@ -75,25 +75,6 @@ interlace(const std::vector<uint64_t>& nums)
     return ret;
 }
 
-// Compute a 64-bit point in space from the 64-bits representing each
-// dimension.
-inline uint64_t
-makepoint(const std::vector<uint64_t>& hashes, const std::vector<bool>& mask)
-{
-    assert(hashes.size() == mask.size());
-    std::vector<uint64_t> used;
-
-    for (size_t i = 0; i < hashes.size(); ++i)
-    {
-        if (mask[i])
-        {
-            used.push_back(hashes[i]);
-        }
-    }
-
-    return interlace(used);
-}
-
 inline uint64_t
 prefixmask(uint8_t prefix)
 {
@@ -120,26 +101,6 @@ overlap(const R& r1, const P& r2)
             && (r1.mask & mask) == (r2.mask & mask));
 }
 
-template <typename T>
-bool
-nonoverlapping(const T& regions)
-{
-    for (typename T::iterator i = regions.begin(); i != regions.end(); ++i)
-    {
-        typename T::iterator j = i;
-       
-        for (++ j; j != regions.end(); ++j)
-        {
-            if (overlap(*i, *j))
-            {
-                return false;
-            }
-        }
-    }
-
-    return true;
-}
-
 template <typename T, typename R>
 bool
 nonoverlapping(const T& regions, R region)
@@ -155,6 +116,56 @@ nonoverlapping(const T& regions, R region)
     return true;
 }
 
+namespace hyperspace
+{
+
+inline void
+point_hashes(const e::buffer& key, const std::vector<e::buffer>& value,
+             uint64_t* key_hash, std::vector<uint64_t>* value_hashes)
+{
+    *key_hash = CityHash64(key);
+
+    for (size_t i = 0; i < value.size(); ++i)
+    {
+        value_hashes->push_back(CityHash64(value[i]));
+    }
+}
+
+inline uint32_t
+primary_point(uint64_t key_hash)
+{
+    return 0xffffffff & key_hash;
+}
+
+inline uint32_t
+secondary_point(const std::vector<uint64_t>& value_hashes)
+{
+    return 0xffffffff & interlace(value_hashes);
+}
+
+inline uint64_t
+replication_point(uint64_t key_hash, std::vector<uint64_t> value_hashes, std::vector<bool> which_dims)
+{
+    assert(which_dims.size() == value_hashes.size() + 1);
+    std::vector<uint64_t> hashes;
+
+    if (which_dims[0])
+    {
+        hashes.push_back(key_hash);
+    }
+
+    for (size_t i = 0; i < value_hashes.size(); ++i)
+    {
+        if (which_dims[i])
+        {
+            hashes.push_back(value_hashes[i]);
+        }
+    }
+
+    return interlace(hashes);
+}
+
+} // namespace hyperspace
 } // namespace hyperdex
 
 #endif // hyperdex_hyperspace_h_

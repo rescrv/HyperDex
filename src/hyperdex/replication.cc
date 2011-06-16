@@ -1017,28 +1017,23 @@ hyperdex :: replication :: prev_and_next(const regionid& r,
         return false;
     }
 
-    std::vector<uint64_t> hashes;
-    uint64_t keyhash = CityHash64(key);
-    hashes.push_back(keyhash);
-
-    for (size_t i = 0; i < value.size(); ++i)
-    {
-        hashes.push_back(CityHash64(value[i]));
-    }
-
-    *prev = regionid(r.space, prev_subspace, 64, makepoint(hashes, prev_dims));
-    *next = regionid(r.space, next_subspace, 64, makepoint(hashes, next_dims));
+    uint64_t key_hash;
+    std::vector<uint64_t> value_hashes;
+    hyperspace::point_hashes(key, value, &key_hash, &value_hashes);
+    *prev = regionid(r.space, prev_subspace, 64, hyperspace::replication_point(key_hash, value_hashes, prev_dims));
+    *next = regionid(r.space, next_subspace, 64, hyperspace::replication_point(key_hash, value_hashes, next_dims));
     return true;
 }
 
 bool
 hyperdex :: replication :: prev_and_next(const regionid& r,
                                          const e::buffer& key,
-                                         const std::vector<e::buffer>& oldvalue,
-                                         const std::vector<e::buffer>& value,
+                                         const std::vector<e::buffer>& old_value,
+                                         const std::vector<e::buffer>& new_value,
                                          regionid* prev,
                                          regionid* next)
 {
+    using hyperspace::replication_point;
     uint16_t prev_subspace;
     uint16_t next_subspace;
     std::vector<bool> prev_dims;
@@ -1051,37 +1046,31 @@ hyperdex :: replication :: prev_and_next(const regionid& r,
         return false;
     }
 
-    assert(oldvalue.size() == value.size());
-    std::vector<uint64_t> oldhashes;
-    std::vector<uint64_t> newhashes;
-    uint64_t keyhash = CityHash64(key);
-    oldhashes.push_back(keyhash);
-    newhashes.push_back(keyhash);
+    uint64_t old_key_hash;
+    std::vector<uint64_t> old_value_hashes;
+    hyperspace::point_hashes(key, old_value, &old_key_hash, &old_value_hashes);
+    uint64_t new_key_hash;
+    std::vector<uint64_t> new_value_hashes;
+    hyperspace::point_hashes(key, new_value, &new_key_hash, &new_value_hashes);
 
-    for (size_t i = 0; i < value.size(); ++i)
-    {
-        oldhashes.push_back(CityHash64(oldvalue[i]));
-        newhashes.push_back(CityHash64(value[i]));
-    }
-
-    uint64_t oldpoint = makepoint(oldhashes, this_dims);
-    uint64_t newpoint = makepoint(newhashes, this_dims);
+    uint64_t oldpoint = replication_point(old_key_hash, old_value_hashes, this_dims);
+    uint64_t newpoint = replication_point(new_key_hash, new_value_hashes, this_dims);
 
     if ((oldpoint & prefixmask(r.prefix)) == r.mask
         && (newpoint & prefixmask(r.prefix)) == r.mask)
     {
-        *prev = regionid(r.space, prev_subspace, 64, makepoint(newhashes, prev_dims));
-        *next = regionid(r.space, next_subspace, 64, makepoint(oldhashes, next_dims));
+        *prev = regionid(r.space, prev_subspace, 64, replication_point(new_key_hash, new_value_hashes, prev_dims));
+        *next = regionid(r.space, next_subspace, 64, replication_point(old_key_hash, old_value_hashes, next_dims));
     }
     else if ((oldpoint & prefixmask(r.prefix)) == r.mask)
     {
-        *prev = regionid(r.space, prev_subspace, 64, makepoint(newhashes, prev_dims));
-        *next = regionid(r.get_subspace(), 64, makepoint(newhashes, this_dims));
+        *prev = regionid(r.space, prev_subspace, 64, replication_point(new_key_hash, new_value_hashes, prev_dims));
+        *next = regionid(r.get_subspace(), 64, newpoint);
     }
     else if ((newpoint & prefixmask(r.prefix)) == r.mask)
     {
-        *prev = regionid(r.get_subspace(), 64, makepoint(oldhashes, this_dims));
-        *next = regionid(r.space, next_subspace, 64, makepoint(oldhashes, next_dims));
+        *prev = regionid(r.get_subspace(), 64, oldpoint);
+        *next = regionid(r.space, next_subspace, 64, replication_point(old_key_hash, old_value_hashes, next_dims));
     }
     else
     {
