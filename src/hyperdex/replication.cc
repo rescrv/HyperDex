@@ -1252,6 +1252,8 @@ hyperdex :: replication :: respond_negatively_to_client(clientop co,
 void
 hyperdex :: replication :: periodic()
 {
+    LOG(WARNING) << "Replication \"cron\" thread started.";
+
     for (uint64_t i = 0; !m_shutdown; ++i)
     {
         try

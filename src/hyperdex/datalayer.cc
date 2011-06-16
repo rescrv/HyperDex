@@ -261,6 +261,8 @@ hyperdex :: datalayer :: get_region(const regionid& ri)
 void
 hyperdex :: datalayer :: flush_loop()
 {
+    LOG(WARNING) << "Flush thread started.";
+
     while (!m_shutdown)
     {
         std::set<e::intrusive_ptr<region> > to_flush;

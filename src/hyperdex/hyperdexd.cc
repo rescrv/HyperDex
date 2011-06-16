@@ -191,6 +191,8 @@ hyperdex :: hyperdexd :: run()
         threads.push_back(t);
     }
 
+    LOG(WARNING) << "Starting network event loop.";
+
     while (m_continue)
     {
         try
