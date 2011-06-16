@@ -236,7 +236,7 @@ hyperdex :: disk :: put(const e::buffer& key,
     invalidate_search_index(*offset);
 
     // Update our write-ahead pointer.
-    uint32_t entry_hash = htobe32(0xffffffff & key_hash);
+    uint32_t entry_hash = htobe32(hyperspace::primary_point(key_hash));
     uint32_t entry_offset = htobe32(m_offset);
     m_offset = (curr_offset + 15) & ~15; // Keep it aligned.
 
@@ -315,7 +315,7 @@ hyperdex :: disk :: find_bucket_for_key(const e::buffer& key,
 
     // Figure out the bucket.
     uint64_t bucket = key_hash % HASH_TABLE_ENTRIES;
-    uint32_t short_key_hash = 0xffffffff & key_hash;
+    uint32_t primary_point = hyperspace::primary_point(key_hash);
 
     for (uint64_t entry = 0; entry < HASH_TABLE_ENTRIES; ++entry)
     {
@@ -345,7 +345,7 @@ hyperdex :: disk :: find_bucket_for_key(const e::buffer& key,
             dead_hash = tmp_hash;
             dead_offset = tmp_offset;
         }
-        else if (*tmp_offset != UINT32_MAX && be32toh(*tmp_hash) == short_key_hash)
+        else if (*tmp_offset != UINT32_MAX && be32toh(*tmp_hash) == primary_point)
         {
             uint64_t curr_offset = be32toh(*tmp_offset) + sizeof(uint64_t);
             uint32_t key_size;
