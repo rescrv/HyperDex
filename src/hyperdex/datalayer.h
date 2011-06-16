@@ -62,6 +62,7 @@ class datalayer
         void reconfigure(const configuration& newconfig, const instance& us);
         void cleanup(const configuration& newconfig, const instance& us);
         void shutdown();
+        e::intrusive_ptr<region::snapshot> make_snapshot(const regionid& ri);
         e::intrusive_ptr<region::rolling_snapshot> make_rolling_snapshot(const regionid& ri);
 
     // Key-Value store operations.

@@ -188,10 +188,29 @@ hyperdex :: datalayer :: shutdown()
     m_shutdown = true;
 }
 
+e::intrusive_ptr<hyperdex::region::snapshot>
+hyperdex :: datalayer :: make_snapshot(const regionid& ri)
+{
+    e::intrusive_ptr<hyperdex::region> r = get_region(ri);
+
+    if (!r)
+    {
+        return e::intrusive_ptr<hyperdex::region::snapshot>();
+    }
+
+    return r->make_snapshot();
+}
+
 e::intrusive_ptr<hyperdex::region::rolling_snapshot>
 hyperdex :: datalayer :: make_rolling_snapshot(const regionid& ri)
 {
     e::intrusive_ptr<hyperdex::region> r = get_region(ri);
+
+    if (!r)
+    {
+        return e::intrusive_ptr<hyperdex::region::rolling_snapshot>();
+    }
+
     return r->make_rolling_snapshot();
 }
 
