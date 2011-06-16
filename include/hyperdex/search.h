@@ -71,6 +71,9 @@ class search
             return m_values.size();
         }
 
+        uint64_t secondary_point() const;
+        uint64_t secondary_mask() const;
+
     private:
         friend e::packer& operator << (e::packer& lhs, const search& rhs);
         friend e::unpacker& operator >> (e::unpacker& lhs, search& rhs);

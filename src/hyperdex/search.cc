@@ -29,6 +29,7 @@
 #include <cassert>
 
 // HyperDex
+#include "hyperdex/hyperspace.h"
 #include "hyperdex/search.h"
 
 hyperdex :: search :: search(size_t n)
@@ -90,4 +91,44 @@ hyperdex :: search :: matches(const e::buffer& key,
     }
 
     return true;
+}
+
+uint64_t
+hyperdex :: search :: secondary_point() const
+{
+    std::vector<uint64_t> hashes;
+
+    for (size_t i = 1; i < m_values.size(); ++i)
+    {
+        if (m_mask.get(i))
+        {
+            hashes.push_back(CityHash64(m_values[i]));
+        }
+        else
+        {
+            hashes.push_back(0);
+        }
+    }
+
+    return hyperspace::secondary_point(hashes);
+}
+
+uint64_t
+hyperdex :: search :: secondary_mask() const
+{
+    std::vector<uint64_t> hashes;
+
+    for (size_t i = 1; i < m_values.size(); ++i)
+    {
+        if (m_mask.get(i))
+        {
+            hashes.push_back(-1);
+        }
+        else
+        {
+            hashes.push_back(0);
+        }
+    }
+
+    return hyperspace::secondary_point(hashes);
 }
