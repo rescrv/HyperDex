@@ -63,6 +63,7 @@ class disk
                 void next();
 
             public:
+                uint32_t secondary_point();
                 uint64_t version();
                 e::buffer key();
                 std::vector<e::buffer> value();

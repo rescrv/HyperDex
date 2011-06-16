@@ -453,6 +453,14 @@ hyperdex :: disk :: snapshot :: next()
     m_valid = false;
 }
 
+uint32_t
+hyperdex :: disk :: snapshot :: secondary_point()
+{
+    uint32_t point;
+    memmove(&point, m_base + HASH_TABLE_SIZE + m_entry * 12, sizeof(uint32_t));
+    return be32toh(point);
+}
+
 uint64_t
 hyperdex :: disk :: snapshot :: version()
 {
