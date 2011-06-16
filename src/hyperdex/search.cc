@@ -25,56 +25,69 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_query_h_
-#define hyperdex_query_h_
-
 // C
 #include <cassert>
 
-// STL
-#include <vector>
+// HyperDex
+#include "hyperdex/search.h"
 
-// e
-#include <e/buffer.h>
-
-namespace hyperdex
+hyperdex :: search :: search(size_t n)
+    : m_values(n)
+    , m_mask(n)
 {
+}
 
-class query
+hyperdex :: search :: ~search()
 {
-    public:
-        query(size_t n);
-        ~query();
+}
 
-    public:
-        void set(size_t idx, const e::buffer& val);
-        void unset(size_t idx);
-        void clear();
+void
+hyperdex :: search :: set(size_t idx, const e::buffer& val)
+{
+    assert(m_values.size() > idx);
+    assert(m_mask.bits() > idx);
 
-    public:
-        bool matches(const std::vector<e::buffer>& row) const;
-        bool is_specified(size_t idx) const
+    m_mask.set(idx);
+    m_values[idx] = val;
+}
+
+void
+hyperdex :: search :: unset(size_t idx)
+{
+    assert(m_values.size() > idx);
+    assert(m_mask.bits() > idx);
+
+    m_mask.unset(idx);
+    m_values[idx] = e::buffer();
+}
+
+void
+hyperdex :: search :: clear()
+{
+    m_values = std::vector<e::buffer>(m_values.size());
+    m_mask = e::bitfield(m_values.size());
+}
+
+bool
+hyperdex :: search :: matches(const e::buffer& key,
+                              const std::vector<e::buffer>& value)
+                      const
+{
+    assert(m_values.size() == value.size() + 1);
+    assert(m_mask.bits() == value.size() + 1);
+
+    if (m_mask.get(0) && m_values[0] != key)
+    {
+        return false;
+    }
+
+    for (size_t i = 1; i < m_mask.bits(); ++i)
+    {
+        if (m_mask.get(i) && m_values[i] != value[i - 1])
         {
-            return m_mask[idx];
+            return false;
         }
+    }
 
-        // This is undefined if !m_mask[idx]
-        const e::buffer& value(size_t idx) const
-        {
-            return m_values[idx];
-        }
-
-        size_t size() const
-        {
-            assert(m_values.size() == m_mask.size());
-            return m_values.size();
-        }
-
-    private:
-        std::vector<e::buffer> m_values;
-        std::vector<bool> m_mask;
-};
-
-} // namespace hyperdex
-
-#endif // hyperdex_query_h_
+    return true;
+}

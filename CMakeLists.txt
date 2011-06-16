@@ -43,8 +43,8 @@ include_directories(SYSTEM ${EV_INCLUDE_DIRS})
 # Setup the headers
 set(hyperdex_headers
     include/hyperdex/instance.h
-    include/hyperdex/query.h
     include/hyperdex/result_t.h
+    include/hyperdex/search.h
 )
 
 # Setup the sources
@@ -60,9 +60,9 @@ set(hyperdex_srcs
     src/hyperdex/masterlink.cc
     src/hyperdex/network_worker.cc
     src/hyperdex/physical.cc
-    src/hyperdex/query.cc
     src/hyperdex/region.cc
     src/hyperdex/replication.cc
+    src/hyperdex/search.cc
 )
 
 # Build libhyperdex
@@ -104,7 +104,7 @@ set(hyperdex_test_srcs
     test/hyperdex/hyperspace.cc
     test/hyperdex/ids.cc
     test/hyperdex/log.cc
-    test/hyperdex/query.cc
+    test/hyperdex/search.cc
 )
 
 add_executable(testrunner test/runner.cc ${hyperdex_test_srcs})
@@ -114,20 +114,20 @@ target_link_libraries(testrunner
     gtest
 )
 
-add_test(QueryTest.CtorAndDtor testrunner
-    --gtest_filter=QueryTest.CtorAndDtor)
-add_test(QueryTest.SetAndUnset testrunner
-    --gtest_filter=QueryTest.SetAndUnset)
-add_test(QueryTest.Clear testrunner
-    --gtest_filter=QueryTest.Clear)
-add_test(QueryTest.NegativeMatch testrunner
-    --gtest_filter=QueryTest.NegativeMatch)
-add_test(QueryTest.SetDeathTest testrunner
-    --gtest_filter=QueryTest.SetDeathTest)
-add_test(QueryTest.UnsetDeathTest testrunner
-    --gtest_filter=QueryTest.UnsetDeathTest)
-add_test(QueryTest.MatchDeathTest testrunner
-    --gtest_filter=QueryTest.MatchDeathTest)
+add_test(SearchTest.CtorAndDtor testrunner
+    --gtest_filter=SearchTest.CtorAndDtor)
+add_test(SearchTest.SetAndUnset testrunner
+    --gtest_filter=SearchTest.SetAndUnset)
+add_test(SearchTest.Clear testrunner
+    --gtest_filter=SearchTest.Clear)
+add_test(SearchTest.NegativeMatch testrunner
+    --gtest_filter=SearchTest.NegativeMatch)
+add_test(SearchTest.SetDeathTest testrunner
+    --gtest_filter=SearchTest.SetDeathTest)
+add_test(SearchTest.UnsetDeathTest testrunner
+    --gtest_filter=SearchTest.UnsetDeathTest)
+add_test(SearchTest.MatchDeathTest testrunner
+    --gtest_filter=SearchTest.MatchDeathTest)
 
 add_test(LockingqTest.CtorAndDtor testrunner
     --gtest_filter=LockingqTest.CtorAndDtor)

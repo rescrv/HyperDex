@@ -29,7 +29,7 @@
 #include <gtest/gtest.h>
 
 // HyperDex
-#include <hyperdex/query.h>
+#include <hyperdex/search.h>
 
 #pragma GCC diagnostic ignored "-Wswitch-default"
 
@@ -37,74 +37,73 @@ namespace
 {
 
 // Create and destroy queries of various sizes.
-TEST(QueryTest, CtorAndDtor)
+TEST(SearchTest, CtorAndDtor)
 {
     for (size_t i = 1; i < 65536; i *= 2)
     {
-        hyperdex::query q(i);
+        hyperdex::search q(i);
     }
 }
 
-// Create a query and set/unset the values while testing that it still matches
+// Create a search and set/unset the values while testing that it still matches
 // the row.
-TEST(QueryTest, SetAndUnset)
+TEST(SearchTest, SetAndUnset)
 {
-    hyperdex::query q(10);
-    std::vector<e::buffer> row(10, e::buffer("value", 5));
+    hyperdex::search q(10);
+    e::buffer key("value", 5);
+    std::vector<e::buffer> value(9, e::buffer("value", 5));
 
     for (size_t i = 0; i < 10; ++i)
     {
-        EXPECT_TRUE(q.matches(row));
+        EXPECT_TRUE(q.matches(key, value));
         q.set(i, e::buffer("value", 5));
     }
 
-    EXPECT_TRUE(q.matches(row));
+    EXPECT_TRUE(q.matches(key, value));
 
     for (size_t i = 0; i < 10; ++i)
     {
-        EXPECT_TRUE(q.matches(row));
-        q.set(i, e::buffer("value", 5));
+        EXPECT_TRUE(q.matches(key, value));
+        q.unset(i);
     }
 
-    EXPECT_TRUE(q.matches(row));
+    EXPECT_TRUE(q.matches(key, value));
 }
 
-TEST(QueryTest, Clear)
+TEST(SearchTest, Clear)
 {
-    hyperdex::query q(2);
-    std::vector<e::buffer> r;
-
-    r.push_back(e::buffer("key", 3));
-    r.push_back(e::buffer("val", 4));
-    EXPECT_TRUE(q.matches(r));
+    hyperdex::search q(2);
+    e::buffer key("key", 3);
+    std::vector<e::buffer> val;
+    val.push_back(e::buffer("val", 4));
+    EXPECT_TRUE(q.matches(key, val));
     q.set(0, e::buffer("not-key", 7));
     q.set(1, e::buffer("not-val", 7));
-    EXPECT_FALSE(q.matches(r));
+    EXPECT_FALSE(q.matches(key, val));
     q.clear();
-    EXPECT_TRUE(q.matches(r));
+    EXPECT_TRUE(q.matches(key, val));
 }
 
 // Test non-matches
-TEST(QueryTest, NegativeMatch)
+TEST(SearchTest, NegativeMatch)
 {
-    hyperdex::query q(2);
-    std::vector<e::buffer> r;
-
-    r.push_back(e::buffer("key", 3));
-    r.push_back(e::buffer("val", 3));
-    EXPECT_TRUE(q.matches(r));
+    hyperdex::search q(2);
+    e::buffer key("key", 3);
+    std::vector<e::buffer> val;
+    val.push_back(e::buffer("val", 3));
+    EXPECT_TRUE(q.matches(key, val));
     q.set(0, e::buffer("not-key", 7));
-    EXPECT_FALSE(q.matches(r));
+    EXPECT_FALSE(q.matches(key, val));
     q.unset(0);
-    EXPECT_TRUE(q.matches(r));
+    EXPECT_TRUE(q.matches(key, val));
     q.set(1, e::buffer("not-val", 7));
-    EXPECT_FALSE(q.matches(r));
+    EXPECT_FALSE(q.matches(key, val));
 }
 
 // If we try to set out of bounds we fail an assertion.
-TEST(QueryTest, SetDeathTest)
+TEST(SearchTest, SetDeathTest)
 {
-    hyperdex::query q(5);
+    hyperdex::search q(5);
 
     ASSERT_DEATH(
         q.set(5, e::buffer("out of bounds", 13));
@@ -112,9 +111,9 @@ TEST(QueryTest, SetDeathTest)
 }
 
 // If we try to unset out of bounds we fail an assertion.
-TEST(QueryTest, UnsetDeathTest)
+TEST(SearchTest, UnsetDeathTest)
 {
-    hyperdex::query q(5);
+    hyperdex::search q(5);
 
     ASSERT_DEATH(
         q.unset(5);
@@ -122,12 +121,12 @@ TEST(QueryTest, UnsetDeathTest)
 }
 
 // If we try to match with improper arity we fail an assertion.
-TEST(QueryTest, MatchDeathTest)
+TEST(SearchTest, MatchDeathTest)
 {
-    hyperdex::query q(5);
+    hyperdex::search q(5);
 
     ASSERT_DEATH(
-        q.matches(std::vector<e::buffer>(4));
+        q.matches(e::buffer(), std::vector<e::buffer>(3));
     , "Assertion");
 }
 
