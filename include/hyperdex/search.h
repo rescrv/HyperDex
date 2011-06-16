@@ -72,9 +72,27 @@ class search
         }
 
     private:
+        friend e::packer& operator << (e::packer& lhs, const search& rhs);
+        friend e::unpacker& operator >> (e::unpacker& lhs, search& rhs);
+
+    private:
         std::vector<e::buffer> m_values;
         e::bitfield m_mask;
 };
+
+inline e::packer&
+operator << (e::packer& lhs, const search& rhs)
+{
+    lhs << rhs.m_mask << rhs.m_values;
+    return lhs;
+}
+
+inline e::unpacker&
+operator >> (e::unpacker& lhs, search& rhs)
+{
+    lhs >> rhs.m_mask >> rhs.m_values;
+    return lhs;
+}
 
 } // namespace hyperdex
 
