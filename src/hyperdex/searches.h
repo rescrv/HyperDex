@@ -25,35 +25,72 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_stream_no_h_
-#define hyperdex_stream_no_h_
+#ifndef hyperdex_searches_h_
+#define hyperdex_searches_h_
+
+// po6
+#include <po6/threads/mutex.h>
+
+// e
+#include <e/map.h>
+
+// HyperDex
+#include <hyperdex/datalayer.h>
+#include <hyperdex/ids.h>
+#include <hyperdex/logical.h>
+#include <hyperdex/search.h>
 
 namespace hyperdex
 {
-namespace stream_no
-{
 
-enum stream_no_t
+class searches
 {
-    GET     = 0,
-    PUT     = 1,
-    DEL     = 2,
-    SEARCH_START = 3,
-    SEARCH_NEXT  = 4,
-    SEARCH_STOP  = 5,
-    SEARCH_ITEM  = 6,
-    SEARCH_DONE  = 7,
-    RESULT       = 8,
-    PUT_PENDING = 32,
-    DEL_PENDING = 33,
-    PENDING     = 34,
-    ACK         = 35,
-    XFER_MORE   = 48,
-    XFER_DATA   = 49,
-    XFER_DONE   = 50
+    public:
+        searches(datalayer* data, logical* comm);
+        ~searches() throw ();
+
+    public:
+        void start(const entityid& client, uint32_t nonce, const regionid& r, const search& s);
+        void next(const entityid& client, uint32_t nonce);
+        void stop(const entityid& client, uint32_t nonce);
+
+    private:
+        class search_state
+        {
+            public:
+                search_state(const regionid& region,
+                             const search& terms,
+                             e::intrusive_ptr<region::snapshot> snap);
+                ~search_state() throw ();
+
+            public:
+                po6::threads::mutex lock;
+                const regionid& region;
+                const uint64_t point;
+                const uint64_t mask;
+                const search terms;
+                e::intrusive_ptr<region::snapshot> snap;
+                uint64_t count;
+
+            private:
+                friend class e::intrusive_ptr<search_state>;
+
+            private:
+                size_t m_ref;
+        };
+
+    private:
+        searches(const searches&);
+
+    private:
+        searches& operator = (const searches&);
+
+    private:
+        datalayer* m_data;
+        logical* m_comm;
+        e::map<std::pair<entityid, uint32_t>, e::intrusive_ptr<search_state> > m_searches;
 };
 
-} // namespace stream_no
 } // namespace hyperdex
 
-#endif // hyperdex_stream_no_h_
+#endif // hyperdex_searches_h_

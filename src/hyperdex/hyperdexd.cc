@@ -169,6 +169,8 @@ hyperdex :: hyperdexd :: run()
     hyperdex::datalayer data;
     // Setup the communications layer.
     hyperdex::logical comm(dl, "127.0.0.1"); // XXX don't hardcode localhost
+    // Setup the search layer.
+    hyperdex::searches ssss(&data, &comm);
     // Setup the replication layer.
     hyperdex::replication repl(&data, &comm);
     // Setup the link with the master.
@@ -180,7 +182,7 @@ hyperdex :: hyperdexd :: run()
                             ostr.str(),
                             hyperdexd_install_mapping(&data, &comm, &repl));
     // Start the network_worker threads.
-    hyperdex::network_worker nw(&data, &comm, &repl);
+    hyperdex::network_worker nw(&data, &comm, &ssss, &repl);
     std::tr1::function<void (hyperdex::network_worker*)> fnw(&hyperdex::network_worker::run);
     std::vector<thread_ptr> threads;
 

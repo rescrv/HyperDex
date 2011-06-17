@@ -32,6 +32,7 @@
 #include <hyperdex/datalayer.h>
 #include <hyperdex/logical.h>
 #include <hyperdex/replication.h>
+#include <hyperdex/searches.h>
 
 namespace hyperdex
 {
@@ -40,7 +41,7 @@ namespace hyperdex
 class network_worker
 {
     public:
-        network_worker(datalayer* data, logical* comm, replication* repl);
+        network_worker(datalayer* data, logical* comm, searches* ssss, replication* repl);
         ~network_worker();
 
     public:
@@ -57,6 +58,7 @@ class network_worker
         bool m_continue;
         hyperdex::datalayer* m_data;
         hyperdex::logical* m_comm;
+        hyperdex::searches* m_ssss;
         hyperdex::replication* m_repl;
 };
 

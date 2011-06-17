@@ -63,6 +63,7 @@ set(hyperdex_srcs
     src/hyperdex/region.cc
     src/hyperdex/replication.cc
     src/hyperdex/search.cc
+    src/hyperdex/searches.cc
 )
 
 # Build libhyperdex

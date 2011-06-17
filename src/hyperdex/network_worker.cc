@@ -45,10 +45,12 @@
 
 hyperdex :: network_worker :: network_worker(datalayer* data,
                                              logical* comm,
+                                             searches* ssss,
                                              replication* repl)
     : m_continue(true)
     , m_data(data)
     , m_comm(comm)
+    , m_ssss(ssss)
     , m_repl(repl)
 {
 }
@@ -116,9 +118,21 @@ hyperdex :: network_worker :: run()
                 msg.unpack() >> nonce >> key;
                 m_repl->client_del(from, to.get_region(), nonce, key);
             }
-            else if (type == hyperdex::stream_no::SEARCH)
+            else if (type == hyperdex::stream_no::SEARCH_START)
             {
-                // XXX
+                search s;
+                msg.unpack() >> nonce >> s;
+                m_ssss->start(from, nonce, to.get_region(), s);
+            }
+            else if (type == hyperdex::stream_no::SEARCH_NEXT)
+            {
+                msg.unpack() >> nonce;
+                m_ssss->next(from, nonce);
+            }
+            else if (type == hyperdex::stream_no::SEARCH_STOP)
+            {
+                msg.unpack() >> nonce;
+                m_ssss->next(from, nonce);
             }
             else if (type == hyperdex::stream_no::PUT_PENDING)
             {
