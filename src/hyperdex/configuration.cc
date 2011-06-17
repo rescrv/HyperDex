@@ -153,8 +153,8 @@ hyperdex :: configuration :: add_line(const std::string& line)
         if (istr.eof() && !istr.bad() && !istr.fail()
                 && sai != m_space_assignment.end()
                 && (si = m_spaces.find(sai->second)) != m_spaces.end()
-                && std::distance(m_subspaces.lower_bound(si->first),
-                                 m_subspaces.upper_bound(si->first)) == subspacenum
+                && std::distance(m_subspaces.lower_bound(subspaceid(si->first, 0)),
+                                 m_subspaces.upper_bound(subspaceid(si->first, UINT16_MAX))) == subspacenum
                 && dims.size() > 0
                 && (subspacenum != 0 || dims.size() == 1))
         {
