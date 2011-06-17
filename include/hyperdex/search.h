@@ -73,6 +73,8 @@ class search
 
         uint32_t secondary_point() const;
         uint32_t secondary_mask() const;
+        uint64_t replication_point(const std::vector<bool>& dims) const;
+        uint64_t replication_mask(const std::vector<bool>& dims) const;
 
     private:
         friend e::packer& operator << (e::packer& lhs, const search& rhs);

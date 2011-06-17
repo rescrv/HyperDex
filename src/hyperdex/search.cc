@@ -132,3 +132,63 @@ hyperdex :: search :: secondary_mask() const
 
     return hyperspace::secondary_point(hashes);
 }
+
+uint64_t
+hyperdex :: search :: replication_point(const std::vector<bool>& dims) const
+{
+    uint64_t key_hash;
+    std::vector<uint64_t> value_hashes;
+
+    if (m_mask.get(0))
+    {
+        key_hash = CityHash64(m_values[0]);
+    }
+    else
+    {
+        key_hash = 0;
+    }
+
+    for (size_t i = 1; i < m_values.size(); ++i)
+    {
+        if (m_mask.get(i))
+        {
+            value_hashes.push_back(CityHash64(m_values[i]));
+        }
+        else
+        {
+            value_hashes.push_back(0);
+        }
+    }
+
+    return hyperspace::replication_point(key_hash, value_hashes, dims);
+}
+
+uint64_t
+hyperdex :: search :: replication_mask(const std::vector<bool>& dims) const
+{
+    uint64_t key_hash;
+    std::vector<uint64_t> value_hashes;
+
+    if (m_mask.get(0))
+    {
+        key_hash = -1;
+    }
+    else
+    {
+        key_hash = 0;
+    }
+
+    for (size_t i = 1; i < m_values.size(); ++i)
+    {
+        if (m_mask.get(i))
+        {
+            value_hashes.push_back(-1);
+        }
+        else
+        {
+            value_hashes.push_back(0);
+        }
+    }
+
+    return hyperspace::replication_point(key_hash, value_hashes, dims);
+}
