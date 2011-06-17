@@ -25,6 +25,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#ifndef hyperdex_network_worker_h_
+#define hyperdex_network_worker_h_
+
 // po6
 #include <po6/threads/rwlock.h>
 
@@ -63,3 +66,5 @@ class network_worker
 };
 
 } // namespace hyperdex
+
+#endif // hyperdex_network_worker_h_
