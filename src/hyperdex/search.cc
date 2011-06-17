@@ -93,7 +93,7 @@ hyperdex :: search :: matches(const e::buffer& key,
     return true;
 }
 
-uint64_t
+uint32_t
 hyperdex :: search :: secondary_point() const
 {
     std::vector<uint64_t> hashes;
@@ -113,7 +113,7 @@ hyperdex :: search :: secondary_point() const
     return hyperspace::secondary_point(hashes);
 }
 
-uint64_t
+uint32_t
 hyperdex :: search :: secondary_mask() const
 {
     std::vector<uint64_t> hashes;
