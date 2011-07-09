@@ -58,7 +58,7 @@ hyperdex :: replication :: replication(datalayer* data, logical* comm)
     , m_locks(LOCK_STRIPING)
     , m_keyholders_lock()
     , m_keyholders()
-    , m_clientops()
+    , m_clientops(10)
     , m_shutdown(false)
     , m_periodic_thread(std::tr1::bind(&replication::periodic, this))
     , m_transfers_in()
@@ -581,6 +581,12 @@ hyperdex :: replication :: region_transfer_done(const entityid& from, const enti
 // At any time it's acceptable to drop a deferred update, so this won't hurt
 // correctness, and does make it easy to reclaim keyholders (if
 // pending/blocked/deferred are empty then drop it).
+uint64_t
+hyperdex :: replication :: clientop_hash(const clientop& co)
+{
+    uint64_t nonce = co.nonce;
+    return co.region.hash() ^ co.from.hash() ^ nonce;
+}
 
 void
 hyperdex :: replication :: client_common(op_t op,
@@ -606,14 +612,13 @@ hyperdex :: replication :: client_common(op_t op,
     }
 
     // If we have seen this (from, nonce) before and it is still active.
-    if (m_clientops.contains(co))
+    if (!m_clientops.insert(co))
     {
         return;
     }
 
     // Automatically respond with "ERROR" whenever we return without g.dismiss()
     e::guard g = e::makeobjguard(*this, &replication::respond_negatively_to_client, co, ERROR);
-    m_clientops.insert(co);
 
     // Grab the lock that protects this keypair.
     keypair kp(to.get_region(), key);

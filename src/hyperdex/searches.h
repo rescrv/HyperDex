@@ -32,7 +32,7 @@
 #include <po6/threads/mutex.h>
 
 // e
-#include <e/map.h>
+#include <e/lockfree_hash_map.h>
 
 // HyperDex
 #include <hyperdex/datalayer.h>
@@ -53,6 +53,9 @@ class searches
         void start(const entityid& client, uint32_t nonce, const regionid& r, const search& s);
         void next(const entityid& client, uint32_t nonce);
         void stop(const entityid& client, uint32_t nonce);
+
+    private:
+        static uint64_t hash(const std::pair<entityid, uint32_t>&);
 
     private:
         class search_state
@@ -88,7 +91,7 @@ class searches
     private:
         datalayer* m_data;
         logical* m_comm;
-        e::map<std::pair<entityid, uint32_t>, e::intrusive_ptr<search_state> > m_searches;
+        e::lockfree_hash_map<std::pair<entityid, uint32_t>, e::intrusive_ptr<search_state>, hash> m_searches;
 };
 
 } // namespace hyperdex

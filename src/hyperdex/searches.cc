@@ -34,7 +34,7 @@
 hyperdex :: searches :: searches(datalayer* data, logical* comm)
     : m_data(data)
     , m_comm(comm)
-    , m_searches()
+    , m_searches(16)
 {
 }
 
@@ -106,6 +106,13 @@ hyperdex :: searches :: stop(const entityid& client,
 {
     m_searches.remove(std::make_pair(client, nonce));
 }
+
+uint64_t
+hyperdex :: searches :: hash(const std::pair<entityid, uint32_t>& key)
+{
+    return key.first.hash() + key.second;
+}
+
 
 hyperdex :: searches :: search_state :: search_state(const regionid& r,
                                                      const search& t,

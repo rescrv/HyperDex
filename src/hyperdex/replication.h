@@ -37,7 +37,7 @@
 
 // e
 #include <e/intrusive_ptr.h>
-#include <e/set.h>
+#include <e/lockfree_hash_set.h>
 #include <e/striped_lock.h>
 
 // HyperDex
@@ -98,6 +98,9 @@ class replication
         class keyholder;
         class transfer_in;
         class transfer_out;
+
+    private:
+        static uint64_t clientop_hash(const clientop& co);
 
     private:
         replication(const replication&);
@@ -181,7 +184,7 @@ class replication
         e::striped_lock<po6::threads::mutex> m_locks;
         po6::threads::mutex m_keyholders_lock;
         std::map<keypair, e::intrusive_ptr<keyholder> > m_keyholders;
-        e::set<clientop> m_clientops;
+        e::lockfree_hash_set<clientop, clientop_hash> m_clientops;
         bool m_shutdown;
         po6::threads::thread m_periodic_thread;
         std::map<uint16_t, e::intrusive_ptr<transfer_in> > m_transfers_in;

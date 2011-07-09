@@ -42,6 +42,10 @@ class replication :: clientop
 
     public:
         bool operator < (const clientop& rhs) const;
+        bool operator == (const clientop& rhs) const
+        {
+            return region == rhs.region && from == rhs.from && nonce == rhs.nonce;
+        }
 
     public:
         regionid region;
