@@ -57,6 +57,12 @@ class spaceid
         }
 
     public:
+        uint64_t hash() const
+        {
+            return space;
+        }
+
+    public:
         uint32_t space;
 };
 
@@ -86,6 +92,11 @@ class subspaceid
         spaceid get_space() const
         {
             return spaceid(space);
+        }
+
+        uint64_t hash() const
+        {
+            return (space << 16) | subspace;
         }
 
     public:
@@ -129,6 +140,11 @@ class regionid
         spaceid get_space() const
         {
             return spaceid(space);
+        }
+
+        uint64_t hash() const
+        {
+            return ((space << 16) | subspace) | mask;
         }
 
     public:
@@ -183,6 +199,13 @@ class entityid
         spaceid get_space() const
         {
             return spaceid(space);
+        }
+
+        uint64_t hash() const
+        {
+            uint64_t newprefix = prefix;
+            newprefix <<= 8;
+            return (((space << 16) | subspace) | mask) + (newprefix + number);
         }
 
     public:
