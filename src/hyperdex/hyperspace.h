@@ -156,7 +156,7 @@ replication_point(uint64_t key_hash, std::vector<uint64_t> value_hashes, std::ve
 
     for (size_t i = 0; i < value_hashes.size(); ++i)
     {
-        if (which_dims[i])
+        if (which_dims[i + 1])
         {
             hashes.push_back(value_hashes[i]);
         }
