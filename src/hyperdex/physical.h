@@ -44,6 +44,8 @@
 
 // e
 #include <e/buffer.h>
+#include <e/intrusive_ptr.h>
+#include <e/lockfree_hash_map.h>
 
 // HyperDex
 #include <hyperdex/fifo_work_queue.h>
@@ -84,8 +86,8 @@ class physical
     private:
         struct message
         {
-            message();
-            ~message();
+            message() : loc(), buf() {}
+            ~message() throw () {}
 
             po6::net::location loc;
             e::buffer buf;
@@ -93,43 +95,54 @@ class physical
 
         struct channel
         {
-            channel(ev::loop_ref lr,
-                    physical* m,
-                    po6::net::socket* accept_from);
-            channel(ev::loop_ref lr,
-                    physical* m,
-                    const po6::net::location& from,
-                    const po6::net::location& to);
-            ~channel();
-            void io_cb(ev::io& w, int revents);
-            void read_cb(ev::io& w);
-            void write_cb(ev::io& w);
+            public:
+                channel(ev::loop_ref lr,
+                        po6::net::socket* conn,
+                        physical* manager);
+                ~channel();
 
-            po6::threads::mutex mtx; // Anyone touching a channel should hold this.
-            po6::net::socket soc; // The socket over which we are communicating.
-            po6::net::location loc; // Cached soc.getpeername().
-            ev::io io; // The libev watcher.
-            e::buffer inprogress; // When reading from the network, we buffer partial reads here.
-            e::buffer outprogress; // When writing to the network, we buffer partial writes here.
-            std::queue<e::buffer> outgoing; // Messages buffered for writing.
-            physical* manager; // The outer manager class.
+            public:
+                void io_cb(ev::io& w, int revents);
+                void read_cb(ev::io& w);
+                void write_cb(ev::io& w);
+                void write_step(); // mtx must be held by caller.
+                void shutdown();
+
+            public:
+                po6::threads::mutex mtx; // Anyone touching a channel should hold this.
+                po6::net::socket soc; // The socket over which we are communicating.
+                po6::net::location loc; // A cached soc.getpeername.
+                e::lockfree_fifo<e::buffer> outgoing; // Messages buffered for writing.
+                e::buffer outprogress; // When writing to the network, we buffer partial writes here.
+                e::buffer inprogress; // When reading from the network, we buffer partial reads here.
+                ev::io io; // The libev watcher.
+                physical* manager; // The outer manager class.
+
+            private:
+                friend class e::intrusive_ptr<channel>;
 
             private:
                 channel(const channel&);
 
             private:
                 channel& operator = (const channel&);
+
+            private:
+                size_t m_ref;
+                bool m_shutdown;
         };
 
     private:
         physical(const physical&);
 
     private:
-        std::tr1::shared_ptr<channel> create_connection(const po6::net::location& to);
-        void remove_connection(channel* to_remove);
+        // get_channel creates a new channel, or finds an existing one matching
+        // the specific parameter.
+        e::intrusive_ptr<channel> get_channel(const po6::net::location& to);
+        e::intrusive_ptr<channel> get_channel(po6::net::socket* soc);
+        void drop_channel(e::intrusive_ptr<channel> chan);
         void refresh(ev::async& a, int revent);
         void accept_connection(ev::io& i, int revent);
-        void place_channel(std::tr1::shared_ptr<channel> chan);
 
     private:
         physical& operator = (const physical&);
@@ -140,10 +153,10 @@ class physical
         po6::net::socket m_listen;
         ev::io m_listen_event;
         po6::net::location m_bindto;
-        po6::threads::rwlock m_lock; // Hold this when changing the location map.
-        std::vector<std::tr1::shared_ptr<channel> > m_channels; // The channels we have.
-        std::map<po6::net::location, size_t> m_location_map; // A mapping from locations to indices in m_channels.
         hyperdex::fifo_work_queue<message> m_incoming; // Messages buffered for reading.
+        e::lockfree_hash_map<po6::net::location, e::intrusive_ptr<channel>, po6::net::location::hash> m_channels;
+        po6::threads::mutex m_location_set_lock;
+        std::set<po6::net::location> m_location_set;
 };
 
 } // namespace hyperdex

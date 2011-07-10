@@ -28,19 +28,26 @@
 // Google Log
 #include <glog/logging.h>
 
+// e
+#include <e/guard.h>
+
 // HyperDex
 #include <hyperdex/physical.h>
+
+// XXX This code is likely to break if clients or other nodes suddenly
+// disconnect.  This can be fixed by making sure that only the evloop thread
+// touches channel::io.
 
 hyperdex :: physical :: physical(ev::loop_ref lr, const po6::net::ipaddr& ip, bool listen)
     : m_lr(lr)
     , m_wakeup(lr)
     , m_listen(ip.family(), SOCK_STREAM, IPPROTO_TCP)
     , m_listen_event(lr)
-    , m_bindto()
-    , m_lock()
-    , m_channels()
-    , m_location_map()
+    , m_bindto(ip, 0)
     , m_incoming()
+    , m_channels(10)
+    , m_location_set_lock()
+    , m_location_set()
 {
     // Enable other threads to wake us from the event loop.
     m_wakeup.set<physical, &physical::refresh>(this);
@@ -54,30 +61,13 @@ hyperdex :: physical :: physical(ev::loop_ref lr, const po6::net::ipaddr& ip, bo
         m_listen_event.set<physical, &physical::accept_connection>(this);
         m_listen_event.set(m_listen.get(), ev::READ);
         m_listen_event.start();
-    }
-    else
-    {
-        m_listen.close();
-    }
-
-    // Setup a channel which connects to ourself.  The purpose of this channel
-    // is two-fold:  first, it gives a really cheap way of doing self-messaging
-    // without the queue at the higher layer (at the expense of a bigger
-    // performance hit); second, it gives us a way to get a port to which we
-    // may bind repeatedly when establishing connections.
-    //
-    // TODO:  Make establishing this channel only serve the second purpose.
-    if (listen)
-    {
-        std::tr1::shared_ptr<channel> chan;
-        chan.reset(new channel(m_lr, this, po6::net::location(ip, 0), m_listen.getsockname()));
-        m_location_map[chan->loc] = m_channels.size();
-        m_channels.push_back(chan);
+        e::intrusive_ptr<channel> chan;
+        chan = get_channel(m_listen.getsockname());
         m_bindto = chan->soc.getsockname();
     }
     else
     {
-        m_bindto = po6::net::location(ip, 0);
+        m_listen.close();
     }
 }
 
@@ -89,43 +79,40 @@ void
 hyperdex :: physical :: send(const po6::net::location& to,
                              e::buffer* msg)
 {
-    // Get a reference to the channel for "to" with mtx held.
-    m_lock.rdlock();
-    std::map<po6::net::location, size_t>::iterator position;
-    std::tr1::shared_ptr<channel> chan;
+    e::intrusive_ptr<channel> chan = get_channel(to);
 
-    if ((position = m_location_map.find(to)) == m_location_map.end())
+    if (!chan)
     {
-        m_lock.unlock();
-        m_lock.wrlock();
-        chan = create_connection(to);
+        return;
+    }
 
-        if (!chan)
+    if (chan->mtx.trylock())
+    {
+        e::guard g = e::makeobjguard(chan->mtx, &po6::threads::mutex::unlock);
+
+        if (chan->outprogress.empty())
         {
-            m_lock.unlock();
-            return;
+            chan->outprogress.pack() << *msg;
         }
+        else
+        {
+            e::buffer buf;
+            buf.pack() << *msg;
+            chan->outgoing.push(buf);
+        }
+
+        chan->write_step();
+        m_wakeup.send();
+        return;
     }
     else
     {
-        chan = m_channels[position->second];
+        e::buffer buf;
+        buf.pack() << *msg;
+        chan->outgoing.push(buf);
     }
 
-    chan->mtx.lock();
-    m_lock.unlock();
-
-    // Add msg to the outgoing buffer.
-    bool notify = chan->outgoing.empty() && chan->outprogress.empty();
-    chan->outgoing.push(e::buffer());
-    chan->outgoing.back().swap(*msg);
-
-    // Notify the event loop thread.
-    if (notify)
-    {
-        m_wakeup.send();
-    }
-
-    chan->mtx.unlock();
+    m_wakeup.send();
 }
 
 bool
@@ -135,7 +122,7 @@ hyperdex :: physical :: recv(po6::net::location* from,
     message m;
     bool ret = m_incoming.pop(&m);
     *from = m.loc;
-    *msg = m.buf;
+    msg->swap(m.buf);
     return ret;
 }
 
@@ -155,178 +142,154 @@ hyperdex :: physical :: shutdown()
     m_incoming.shutdown();
 }
 
-// Invariant:  m_lock.wrlock must be held.
-std::tr1::shared_ptr<hyperdex :: physical :: channel>
-hyperdex :: physical :: create_connection(const po6::net::location& to)
+e::intrusive_ptr<hyperdex::physical::channel>
+hyperdex :: physical :: get_channel(const po6::net::location& to)
 {
-    std::map<po6::net::location, size_t>::iterator position;
+    e::intrusive_ptr<channel> chan;
 
-    if ((position = m_location_map.find(to)) != m_location_map.end())
+    if (m_channels.lookup(to, &chan))
     {
-        return m_channels[position->second];
-    }
-
-    try
-    {
-        std::tr1::shared_ptr<channel> chan;
-        chan.reset(new channel(m_lr, this, m_bindto, to));
-        place_channel(chan);
         return chan;
     }
-    catch (...)
+    else
     {
-        return std::tr1::shared_ptr<channel>();
+        try
+        {
+            po6::net::socket soc(to.address.family(), SOCK_STREAM, IPPROTO_TCP);
+            soc.reuseaddr(true);
+            soc.bind(m_bindto);
+            soc.connect(to);
+            return get_channel(&soc);
+        }
+        catch (po6::error& e)
+        {
+            LOG(WARNING) << "Cannot connect to " << to << ":  " << e.what();
+        }
+        catch (std::bad_alloc& ba)
+        {
+            LOG(ERROR) << "Cannot allocate memory in get_channel.";
+        }
     }
+
+    return NULL;
 }
 
-// Invariant:  no locks may be held.
-void
-hyperdex :: physical :: remove_connection(channel* to_remove)
+e::intrusive_ptr<hyperdex::physical::channel>
+hyperdex :: physical :: get_channel(po6::net::socket* soc)
 {
-    m_lock.wrlock();
-    po6::net::location loc = to_remove->loc;
-    std::map<po6::net::location, size_t>::iterator iter = m_location_map.find(loc);
+    soc->nonblocking();
+    soc->tcp_nodelay(true);
+    e::intrusive_ptr<channel> chan = new channel(m_lr, soc, this);
 
-    if (iter == m_location_map.end())
+    if (m_channels.insert(chan->loc, chan))
     {
-        LOG(FATAL) << "The physical layer's address map got out of sync with its open channels.";
+        po6::threads::mutex::hold hold(&m_location_set_lock);
+        m_location_set.insert(chan->loc);
+        return chan;
     }
 
-    size_t index = iter->second;
-    m_location_map.erase(iter);
-    // This lock/unlock pair is necessary to ensure the channel is no longer in
-    // use.  As we know that we are the only one who can use m_location_map and
-    // m_channels, the only other possibility is that a send is in-progress
-    // (after the rdlock is released, but before the chan lock is released).
-    // Once this succeeds, we know that no one else may possibly use this
-    // channel.
-    m_channels[index]->mtx.lock();
-    m_channels[index]->mtx.unlock();
-    m_channels[index] = std::tr1::shared_ptr<channel>();
-    m_lock.unlock();
+    return NULL;
+}
+
+void
+hyperdex :: physical :: drop_channel(e::intrusive_ptr<channel> chan)
+{
+    if (m_channels.remove(chan->loc))
+    {
+        chan->shutdown();
+        po6::threads::mutex::hold hold(&m_location_set_lock);
+        m_location_set.erase(chan->loc);
+    }
 }
 
 void
 hyperdex :: physical :: refresh(ev::async&, int)
 {
-    m_lock.rdlock();
+    std::set<po6::net::location> locs;
 
-    for (std::map<po6::net::location, size_t>::iterator i = m_location_map.begin();
-            i != m_location_map.end(); ++ i)
     {
-        if (m_channels[i->second])
+        po6::threads::mutex::hold hold(&m_location_set_lock);
+        locs = m_location_set;
+    }
+
+    for (std::set<po6::net::location>::iterator i = locs.begin(); i != locs.end(); ++i)
+    {
+        e::intrusive_ptr<channel> chan;
+
+        if (m_channels.lookup(*i, &chan))
         {
-            m_channels[i->second]->mtx.lock();
+            po6::threads::mutex::hold hold(&chan->mtx);
             int flags = ev::READ;
 
-            // If there is data to write.
-            if (m_channels[i->second]->outprogress.size() > 0 ||
-                m_channels[i->second]->outgoing.size() > 0)
+            if (chan->outprogress.empty())
+            {
+                if (chan->outgoing.pop(&chan->outprogress))
+                {
+                    flags |= ev::WRITE;
+                }
+            }
+            else
             {
                 flags |= ev::WRITE;
             }
 
-            m_channels[i->second]->io.set(flags);
-            m_channels[i->second]->mtx.unlock();
+            chan->io.set(flags);
         }
     }
-
-    m_lock.unlock();
 }
 
 void
 hyperdex :: physical :: accept_connection(ev::io&, int)
 {
-    std::tr1::shared_ptr<channel> chan;
-
     try
     {
-        chan.reset(new channel(m_lr, this, &m_listen));
-    }
-    catch (po6::error& e)
-    {
-        return;
-    }
+        po6::net::socket soc;
 
-    m_lock.wrlock();
-
-    try
-    {
-        place_channel(chan);
-    }
-    catch (...)
-    {
-        m_lock.unlock();
-        throw;
-    }
-
-    m_lock.unlock();
-}
-
-// Invariant:  m_lock.wrlock must be held.
-void
-hyperdex :: physical :: place_channel(std::tr1::shared_ptr<channel> chan)
-{
-    // Find an empty slot.
-    for (size_t i = 0; i < m_channels.size(); ++i)
-    {
-        if (!m_channels[i])
+        try
         {
-            m_channels[i] = chan;
-            m_location_map[chan->loc] = i;
+            m_listen.accept(&soc);
+        }
+        catch (po6::error& e)
+        {
+            LOG(INFO) << "Error accepting connection:  " << e.what();
             return;
         }
-    }
 
-    // Resize to create new slots.
-    m_location_map[chan->loc] = m_channels.size();
-    m_channels.push_back(chan);
+        e::intrusive_ptr<channel> chan = get_channel(&soc);
+    }
+    catch (std::bad_alloc& ba)
+    {
+        LOG(ERROR) << "Memory allocation failed in accept_connection.";
+    }
+    catch (std::exception& e)
+    {
+        LOG(ERROR) << "Uncaught exception in accept_connection:  " << e.what();
+    }
 }
 
 hyperdex :: physical :: channel :: channel(ev::loop_ref lr,
-                                           physical* m,
-                                           po6::net::socket* accept_from)
+                                           po6::net::socket* conn,
+                                           physical* m)
     : mtx()
     , soc()
-    , loc()
-    , io(lr)
-    , inprogress()
-    , outprogress()
+    , loc(conn->getpeername())
     , outgoing()
-    , manager(m)
-{
-    accept_from->accept(&soc);
-    loc = soc.getpeername();
-    io.set<channel, &channel::io_cb>(this);
-    io.set(soc.get(), ev::READ);
-    io.start();
-}
-
-hyperdex :: physical :: channel :: channel(ev::loop_ref lr,
-                                           physical* m,
-                                           const po6::net::location& from,
-                                           const po6::net::location& to)
-    : mtx()
-    , soc(to.address.family(), SOCK_STREAM, IPPROTO_TCP)
-    , loc(to)
-    , io(lr)
-    , inprogress()
     , outprogress()
-    , outgoing()
+    , inprogress()
+    , io(lr)
     , manager(m)
+    , m_ref(0)
+    , m_shutdown(false)
 {
-    io.set<channel, &channel::io_cb>(this);
+    soc.swap(conn);
     io.set(soc.get(), ev::READ);
+    io.set<channel, &channel::io_cb>(this);
     io.start();
-
-    soc.reuseaddr(true);
-    soc.bind(from);
-    soc.connect(to);
 }
 
 hyperdex :: physical :: channel :: ~channel()
 {
-    io.stop();
+    shutdown();
 }
 
 #define IO_BLOCKSIZE 65536
@@ -334,15 +297,28 @@ hyperdex :: physical :: channel :: ~channel()
 void
 hyperdex :: physical :: channel :: io_cb(ev::io& w, int revents)
 {
-    if (revents & ev::READ)
+    try
     {
-        read_cb(w);
+        if (revents & ev::READ)
+        {
+            read_cb(w);
+        }
+
+        if (revents & ev::WRITE)
+        {
+            write_cb(w);
+        }
+    }
+    catch (std::bad_alloc& ba)
+    {
+        LOG(ERROR) << "Memory allocation failed in io_cb.";
+    }
+    catch (std::exception& e)
+    {
+        LOG(ERROR) << "Uncaught exception in io_cb:  " << e.what();
     }
 
-    if (revents & ev::WRITE)
-    {
-        write_cb(w);
-    }
+    manager->m_wakeup.send();
 }
 
 void
@@ -353,17 +329,16 @@ hyperdex :: physical :: channel :: read_cb(ev::io&)
         return;
     }
 
-    char block[IO_BLOCKSIZE];
+    e::guard g = e::makeobjguard(mtx, &po6::threads::mutex::unlock);
 
     try
     {
-        size_t ret = soc.read(block, IO_BLOCKSIZE);
-        inprogress += e::buffer(block, ret);
+        size_t ret = read(&soc, &inprogress, IO_BLOCKSIZE);
 
         if (ret == 0)
         {
-            mtx.unlock();
-            manager->remove_connection(this);
+            e::intrusive_ptr<channel> ourselves(this);
+            manager->drop_channel(ourselves);
             return;
         }
 
@@ -389,13 +364,11 @@ hyperdex :: physical :: channel :: read_cb(ev::io&)
         if (e != EAGAIN && e != EINTR && e != EWOULDBLOCK)
         {
             LOG(ERROR) << "could not read from " << loc << "; closing";
-            mtx.unlock();
-            manager->remove_connection(this);
+            e::intrusive_ptr<channel> ourselves(this);
+            manager->drop_channel(ourselves);
             return;
         }
     }
-
-    mtx.unlock();
 }
 
 void
@@ -406,19 +379,21 @@ hyperdex :: physical :: channel :: write_cb(ev::io&)
         return;
     }
 
-    if (outgoing.empty() && outprogress.empty())
-    {
-        io.set(ev::READ);
-        io.start();
-        mtx.unlock();
-        return;
-    }
+    e::guard g = e::makeobjguard(mtx, &po6::threads::mutex::unlock);
+    write_step();
+}
 
-    // Pop one message to flush to network.
+void
+hyperdex :: physical :: channel :: write_step()
+{
     if (outprogress.empty())
     {
-        outprogress.pack() << outgoing.front();
-        outgoing.pop();
+        if (!outgoing.pop(&outprogress))
+        {
+            io.set(ev::READ);
+            io.start();
+            return;
+        }
     }
 
     try
@@ -431,21 +406,27 @@ hyperdex :: physical :: channel :: write_cb(ev::io&)
         if (e != EAGAIN && e != EINTR && e != EWOULDBLOCK)
         {
             LOG(ERROR) << "could not write to " << loc << "; closing";
-            mtx.unlock();
-            manager->remove_connection(this);
+            e::intrusive_ptr<channel> ourselves(this);
+            manager->drop_channel(ourselves);
             return;
         }
     }
-
-    mtx.unlock();
 }
 
-hyperdex :: physical :: message :: message()
-    : loc()
-    , buf()
+void
+hyperdex :: physical :: channel :: shutdown()
 {
-}
+    if (!m_shutdown)
+    {
+        try
+        {
+            soc.shutdown(SHUT_RDWR);
+        }
+        catch (po6::error& e)
+        {
+        }
 
-hyperdex :: physical :: message :: ~message()
-{
+        io.stop();
+        io.set<channel, &channel::io_cb>(NULL);
+    }
 }
