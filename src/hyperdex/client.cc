@@ -77,7 +77,7 @@ struct hyperdex :: client :: priv
     priv(po6::net::location coordinator)
         : dl()
         , wakeup(dl)
-        , phys(dl, po6::net::ipaddr::ANY())
+        , phys(dl, po6::net::ipaddr::ANY(), false)
         , mapping()
         , space_assignment()
         , ml(coordinator, "client\n", client_install_mapping(&mapping, &space_assignment, &wakeup))
