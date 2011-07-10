@@ -180,6 +180,7 @@ fifo_work_queue<T> :: pop(T* t)
         }
 
         po6::threads::mutex::hold hold(&m_lock);
+        __sync_add_and_fetch(&m_num_blocked, 1);
         popped = m_queue.pop(t);
 
         if (popped)
@@ -187,7 +188,6 @@ fifo_work_queue<T> :: pop(T* t)
             return true;
         }
 
-        __sync_add_and_fetch(&m_num_blocked, 1);
         m_may_pop.wait();
         __sync_sub_and_fetch(&m_num_blocked, 1);
     }
