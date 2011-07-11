@@ -25,8 +25,6 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// XXX there is duplicate parsing code.
-
 #define __STDC_LIMIT_MACROS
 
 // POSIX
@@ -45,16 +43,6 @@
 // HyperDex
 #include <hyperdex/disk.h>
 #include <hyperdex/hyperspace.h>
-
-#define HASH_TABLE_ENTRIES 262144
-#define HASH_TABLE_SIZE (HASH_TABLE_ENTRIES * 8)
-#define SEARCH_INDEX_ENTRIES HASH_TABLE_ENTRIES
-#define SEARCH_INDEX_SIZE (SEARCH_INDEX_ENTRIES * 12)
-#define INDEX_SEGMENT_SIZE (HASH_TABLE_SIZE + SEARCH_INDEX_SIZE)
-#define DATA_SEGMENT_SIZE (HASH_TABLE_ENTRIES * 1024)
-#define TOTAL_FILE_SIZE (INDEX_SEGMENT_SIZE + DATA_SEGMENT_SIZE)
-#define INIT_BLOCK_SIZE 1024
-#define INIT_ITERATIONS (TOTAL_FILE_SIZE / INIT_BLOCK_SIZE)
 
 hyperdex :: disk :: disk(const po6::pathname& filename)
     : m_ref(0)
@@ -82,7 +70,7 @@ hyperdex :: disk :: disk(const po6::pathname& filename)
         throw po6::error(errno);
     }
 
-    if (buf.st_size < TOTAL_FILE_SIZE)
+    if (buf.st_size < static_cast<off_t>(TOTAL_FILE_SIZE))
     {
         throw std::runtime_error("Disk is too small.");
     }
@@ -129,44 +117,26 @@ hyperdex :: disk :: get(const e::buffer& key,
                         std::vector<e::buffer>* value,
                         uint64_t* version)
 {
-    uint32_t* hash;
-    uint32_t* offset;
+    size_t entry;
 
-    if (!find_bucket_for_key(key, key_hash, &hash, &offset))
+    if (!find_bucket(key, key_hash, &entry))
     {
         return NOTFOUND;
     }
 
-    if (!offset || *offset == 0 || *offset == UINT32_MAX)
+    const uint32_t offset = hashtable_offset(entry);
+
+    if (offset == 0 || offset == UINT32_MAX)
     {
         return NOTFOUND;
     }
 
-    // Load the version.
-    uint32_t curr_offset = be32toh(*offset);
-    memmove(version, m_base + curr_offset, sizeof(uint64_t));
-    *version = be64toh(*version);
-    // Fast-forward past the key (checked by find_bucket_for_key).
-    curr_offset += sizeof(*version) + sizeof(uint32_t) + key.size();
-    // Load the value.
-    value->clear();
-    uint16_t num_values;
-    memmove(&num_values, m_base + curr_offset, sizeof(num_values));
-    curr_offset += sizeof(num_values);
-    num_values = be16toh(num_values);
-
-    for (uint16_t i = 0; i < num_values; ++i)
-    {
-        uint32_t size;
-        memmove(&size, m_base + curr_offset, sizeof(size));
-        size = be32toh(size);
-        curr_offset += sizeof(size);
-        value->push_back(e::buffer());
-        e::buffer buf(m_base + curr_offset, size);
-        value->back().swap(buf);
-        curr_offset += size;
-    }
-
+    // Load the information.
+    *version = data_version(offset);
+    // const size_t key_size = data_key_size(offset);
+    // data_key(offset, &key);
+    // ^ Skipped because find_bucket ensures that the key matches.
+    data_value(offset, key.size(), value);
     return SUCCESS;
 }
 
@@ -177,47 +147,41 @@ hyperdex :: disk :: put(const e::buffer& key,
                         const std::vector<uint64_t>& value_hashes,
                         uint64_t version)
 {
-    // Figure out if the PUT will fit in memory.
-    uint64_t hypothetical_size = sizeof(uint64_t) + sizeof(uint32_t) + sizeof(uint16_t) + key.size();
+    size_t required = data_size(key, value);
 
-    for (size_t i = 0; i < value.size(); ++i)
+    if (required + m_offset > TOTAL_FILE_SIZE)
     {
-        hypothetical_size += sizeof(uint32_t) + value[i].size();
-    }
-
-    if (hypothetical_size + m_offset > TOTAL_FILE_SIZE)
-    {
-        LOG(INFO) << "Put failed because disk is full.";
-        return ERROR;
+        LOG(INFO) << "PUT failed because disk data segment is full.";
+        return DISKFULL;
     }
 
     if (m_search == SEARCH_INDEX_ENTRIES - 1)
     {
-        LOG(INFO) << "Put failed because disk is full.";
-        return ERROR;
+        LOG(INFO) << "PUT failed because disk search index is full.";
+        return DISKFULL;
     }
 
     // Find the bucket.
-    uint32_t* hash;
-    uint32_t* offset;
+    size_t entry;
+    bool overwrite = find_bucket(key, key_hash, &entry);
 
-    if (!find_bucket_for_key(key, key_hash, &hash, &offset))
+    if (entry == HASH_TABLE_SIZE)
     {
-        LOG(INFO) << "Put failed because index is full.";
-        return ERROR;
+        LOG(INFO) << "PUT failed because disk hash table is full.";
+        return DISKFULL;
     }
 
     // Values to pack.
     uint64_t pack_version = htobe64(version);
-    uint32_t pack_keysize = htobe32(key.size());
+    uint32_t pack_key_size = htobe32(key.size());
     uint16_t pack_value_arity = htobe16(value.size());
 
     // Pack the values on disk.
     uint32_t curr_offset = m_offset;
     memmove(m_base + curr_offset, &pack_version, sizeof(pack_version));
     curr_offset += sizeof(pack_version);
-    memmove(m_base + curr_offset, &pack_keysize, sizeof(pack_keysize));
-    curr_offset += sizeof(pack_keysize);
+    memmove(m_base + curr_offset, &pack_key_size, sizeof(pack_key_size));
+    curr_offset += sizeof(pack_key_size);
     memmove(m_base + curr_offset, key.get(), key.size());
     curr_offset += key.size();
     memmove(m_base + curr_offset, &pack_value_arity, sizeof(pack_value_arity));
@@ -232,18 +196,28 @@ hyperdex :: disk :: put(const e::buffer& key,
         curr_offset += value[i].size();
     }
 
+
     // Invalidate anything pointing to the old version.
-    invalidate_search_index(*offset);
+    if (overwrite)
+    {
+        invalidate_search_index(hashtable_offset(entry), m_offset);
+    }
 
-    // Update our write-ahead pointer.
-    uint32_t entry_hash = htobe32(hyperspace::primary_point(key_hash));
-    uint32_t entry_offset = htobe32(m_offset);
-    m_offset = (curr_offset + 15) & ~15; // Keep it aligned.
+    // Do an mfence to make sure that everything we've written is visible.
+    __sync_synchronize();
 
-    // Make it possible to find the new version.
-    store_search_index(value_hashes, entry_offset);
-    *hash = entry_hash;
-    *offset = entry_offset;
+    // Insert into the search index.
+    searchindex_hash(m_search, hyperspace::secondary_point(value_hashes));
+    searchindex_invalid(m_search, 0);
+    searchindex_offset(m_search, m_offset);
+
+    // Insert into the hash table.
+    hashtable_hash(entry, hyperspace::primary_point(key_hash));
+    hashtable_offset(entry, m_offset);
+
+    // Update the offsets
+    ++m_search;
+    m_offset = (curr_offset + 7) & ~7; // Keep everything 8-byte aligned.
     return SUCCESS;
 }
 
@@ -251,25 +225,30 @@ hyperdex :: result_t
 hyperdex :: disk :: del(const e::buffer& key,
                         uint64_t key_hash)
 {
-    // Find the bucket.
-    uint32_t* hash;
-    uint32_t* offset;
+    size_t entry;
 
-    if (!find_bucket_for_key(key, key_hash, &hash, &offset))
+    if (!find_bucket(key, key_hash, &entry))
     {
-        LOG(INFO) << "Put failed because index is full.";
-        return ERROR;
+        return NOTFOUND;
     }
 
-    if (*offset != 0 && *offset != UINT32_MAX)
+    if (entry == HASH_TABLE_ENTRIES)
     {
-        invalidate_search_index(*offset);
-        *offset = UINT32_MAX;
-        m_offset += sizeof(uint64_t);
-        return SUCCESS;
+        return NOTFOUND;
     }
 
-    return NOTFOUND;
+    if (m_offset + sizeof(uint64_t) > TOTAL_FILE_SIZE)
+    {
+        LOG(INFO) << "DEL failed because disk data segment is full.";
+        return DISKFULL;
+    }
+
+    const uint32_t offset = hashtable_offset(entry);
+    assert(offset != 0 && offset != UINT32_MAX);
+    invalidate_search_index(offset, m_offset);
+    m_offset += sizeof(uint64_t);
+    hashtable_offset(entry, UINT32_MAX);
+    return SUCCESS;
 }
 
 void
@@ -303,75 +282,131 @@ hyperdex :: disk :: make_snapshot()
     return ret;
 }
 
-bool
-hyperdex :: disk :: find_bucket_for_key(const e::buffer& key,
-                                        uint64_t key_hash,
-                                        uint32_t** hash,
-                                        uint32_t** offset)
+size_t
+hyperdex :: disk :: data_size(const e::buffer& key,
+                              const std::vector<e::buffer>& value) const
 {
-    // First "dead" bucket.
-    uint32_t* dead_hash = NULL;
-    uint32_t* dead_offset = NULL;
+    size_t hypothetical_size = sizeof(uint64_t) + sizeof(uint32_t)
+                             + sizeof(uint16_t) + key.size()
+                             + sizeof(uint32_t) * value.size();
 
-    // Figure out the bucket.
-    uint64_t bucket = key_hash % HASH_TABLE_ENTRIES;
-    uint32_t primary_point = hyperspace::primary_point(key_hash);
-
-    for (uint64_t entry = 0; entry < HASH_TABLE_ENTRIES; ++entry)
+    for (size_t i = 0; i < value.size(); ++i)
     {
-        uint32_t* tmp_hash = reinterpret_cast<uint32_t*>(m_base + ((bucket + entry) % HASH_TABLE_ENTRIES) * 8);
-        uint32_t* tmp_offset = reinterpret_cast<uint32_t*>(m_base + ((bucket + entry) % HASH_TABLE_ENTRIES) * 8 + 4);
-
-        // If we've found an empty bucket.
-        if (*tmp_offset == 0)
-        {
-            if (dead_hash)
-            {
-                *hash = dead_hash;
-                *offset = dead_offset;
-            }
-            else
-            {
-                *hash = tmp_hash;
-                *offset = tmp_offset;
-            }
-
-            return true;
-        }
-
-        // If we've found our first dead bucket.
-        if (*tmp_offset == UINT32_MAX && dead_hash == NULL)
-        {
-            dead_hash = tmp_hash;
-            dead_offset = tmp_offset;
-        }
-        else if (*tmp_offset != UINT32_MAX && be32toh(*tmp_hash) == primary_point)
-        {
-            uint64_t curr_offset = be32toh(*tmp_offset) + sizeof(uint64_t);
-            uint32_t key_size;
-            memmove(&key_size, m_base + curr_offset, sizeof(key_size));
-            key_size = be32toh(key_size);
-            curr_offset += sizeof(key_size);
-
-            // If the key doesn't match because of a hash collision.
-            if (key_size != key.size() || memcmp(m_base + curr_offset, key.get(), key_size) != 0)
-            {
-                continue;
-            }
-
-            *hash = tmp_hash;
-            *offset = tmp_offset;
-            return true;
-        }
+        hypothetical_size += value[i].size();
     }
 
-    *hash = dead_hash;
-    *offset = dead_offset;
-    return hash != NULL;
+    return hypothetical_size;
+}
+
+uint64_t
+hyperdex :: disk :: data_version(uint32_t offset) const
+{
+    assert(((offset + 7) & ~7) == offset);
+    return be64toh(*reinterpret_cast<uint64_t*>(m_base + offset));
+}
+
+size_t
+hyperdex :: disk :: data_key_size(uint32_t offset) const
+{
+    assert(((offset + 7) & ~7) == offset);
+    return be32toh(*reinterpret_cast<uint32_t*>(m_base + offset + sizeof(uint64_t)));
 }
 
 void
-hyperdex :: disk :: invalidate_search_index(uint32_t to_invalidate)
+hyperdex :: disk :: data_key(uint32_t offset,
+                             size_t keysize,
+                             e::buffer* key) const
+{
+    assert(((offset + 7) & ~7) == offset);
+    uint32_t cur_offset = offset + sizeof(uint64_t) + sizeof(uint32_t);
+    *key = e::buffer(m_base + cur_offset, keysize);
+}
+
+void
+hyperdex :: disk :: data_value(uint32_t offset,
+                               size_t keysize,
+                               std::vector<e::buffer>* value) const
+{
+    assert(((offset + 7) & ~7) == offset);
+    uint32_t cur_offset = offset + sizeof(uint64_t) + sizeof(uint32_t) + keysize;
+    uint16_t num_dims;
+    memmove(&num_dims, m_base + cur_offset, sizeof(uint16_t));
+    num_dims = be16toh(num_dims);
+    cur_offset += sizeof(uint16_t);
+    value->clear();
+
+    for (uint16_t i = 0; i < num_dims; ++i)
+    {
+        uint32_t size;
+        memmove(&size, m_base + cur_offset, sizeof(size));
+        size = be32toh(size);
+        cur_offset += sizeof(size);
+        value->push_back(e::buffer());
+        e::buffer buf(m_base + cur_offset, size);
+        value->back().swap(buf);
+        cur_offset += size;
+    }
+}
+
+bool
+hyperdex :: disk :: find_bucket(const e::buffer& key,
+                                uint64_t key_hash,
+                                size_t* entry)
+{
+    // The first dead bucket.
+    size_t dead = HASH_TABLE_ENTRIES;
+
+    // The bucket/hash we want to use.
+    *entry = key_hash % HASH_TABLE_ENTRIES;
+    uint32_t primary_point = hyperspace::primary_point(key_hash);
+
+    for (size_t off = 0; off < HASH_TABLE_ENTRIES; ++off)
+    {
+        size_t bucket = *entry + off;
+        uint32_t hash = hashtable_hash(bucket);
+        uint32_t offset = hashtable_offset(bucket);
+
+        if (hash == primary_point && offset == UINT32_MAX)
+        {
+            dead = bucket;
+        }
+        else if (hash == primary_point)
+        {
+            const size_t key_size = data_key_size(offset);
+
+            if (key_size == key.size() && memcmp(m_base + data_key_offset(offset), key.get(), key_size) == 0)
+            {
+                *entry = bucket;
+                return true;
+            }
+        }
+
+        if (offset == 0)
+        {
+            if (dead == HASH_TABLE_ENTRIES)
+            {
+                *entry = bucket;
+            }
+            else
+            {
+                *entry = dead;
+            }
+
+            return false;
+        }
+
+        if (offset == UINT32_MAX && dead == HASH_TABLE_ENTRIES)
+        {
+            dead = bucket;
+        }
+    }
+
+    *entry = dead;
+    return false;
+}
+
+void
+hyperdex :: disk :: invalidate_search_index(uint32_t to_invalidate, uint32_t invalidate_with)
 {
     int64_t low = 0;
     int64_t high = SEARCH_INDEX_ENTRIES - 1;
@@ -379,65 +414,51 @@ hyperdex :: disk :: invalidate_search_index(uint32_t to_invalidate)
     while (low <= high)
     {
         int64_t mid = low + ((high - low) / 2);
-        uint32_t offset = *reinterpret_cast<uint32_t*>(m_base + HASH_TABLE_SIZE + mid * 12 + sizeof(uint32_t));
-        uint32_t* invalidator = reinterpret_cast<uint32_t*>(m_base + HASH_TABLE_SIZE + mid * 12 + 2 * sizeof(uint32_t));
+        const uint32_t mid_offset = searchindex_offset(mid);
 
-        if (offset == 0 || offset > to_invalidate)
+        if (mid_offset == 0 || mid_offset > to_invalidate)
         {
             high = mid - 1;
         }
-        else if (offset < to_invalidate)
+        else if (mid_offset < to_invalidate)
         {
             low = mid + 1;
         }
-        else if (offset == to_invalidate)
+        else if (mid_offset == to_invalidate)
         {
-            *invalidator = htobe32(m_offset);
+            searchindex_invalid(mid, invalidate_with);
             return;
         }
     }
 }
 
-void
-hyperdex :: disk :: store_search_index(const std::vector<uint64_t>& value_hashes,
-                                       uint32_t offset)
-{
-    // Write the point hash.
-    uint32_t point_hash = htobe32(0xffffffff & interlace(value_hashes));
-    memmove(m_base + HASH_TABLE_SIZE + m_search * 12, &point_hash, sizeof(point_hash));
-
-    // Write the data offset.
-    memmove(m_base + HASH_TABLE_SIZE + m_search * 12 + sizeof(uint32_t), &offset, sizeof(offset));
-
-    // Write the "invalidated by" offset.
-    offset = 0;
-    memmove(m_base + HASH_TABLE_SIZE + m_search * 12 + 2 * sizeof(uint32_t), &offset, sizeof(offset));
-
-    // Increment the m_search counter.
-    ++m_search;
-}
-
 bool
 hyperdex :: disk :: snapshot :: valid()
 {
-    uint32_t data_offset = 0;
-    uint32_t invalidated = 0;
+    uint32_t offset = 0;
+    uint32_t invalid = 0;
 
     while (m_entry < SEARCH_INDEX_ENTRIES)
     {
-        uint32_t entry_offset = HASH_TABLE_SIZE + m_entry * 12;
-        memmove(&data_offset, m_base + entry_offset + sizeof(uint32_t), sizeof(uint32_t));
-        memmove(&invalidated, m_base + entry_offset + 2 * sizeof(uint32_t), sizeof(uint32_t));
-        data_offset = be32toh(data_offset);
-        invalidated = be32toh(invalidated);
+        offset = m_disk->searchindex_offset(m_entry);
+        invalid = m_disk->searchindex_invalid(m_entry);
 
-        // If the m_valid flag is set; the data_offset is within the subsection
-        // of data we may observe; and the data was never
-        // invalidated, or was invalidated after we scanned it, then we may
-        // return true;
-        if (m_valid && data_offset > 0 && data_offset < m_limit && (invalidated == 0 || invalidated >= m_limit))
+        // If the m_valid flag is set; the offset is within the subsection of
+        // data we may observe; and the data was never invalidated, or was
+        // invalidated after we scanned it, then we may return true;
+        if (m_valid && offset > 0 && offset < m_limit &&
+                (invalid == 0 || invalid >= m_limit))
         {
             return true;
+        }
+
+        // If offset is 0, then we know that there are no more entries further
+        // on.  Stop iterating.  If offset is >= m_limit, we know that the
+        // operation (and all succeeding it) happened after the snapshot.
+        if (offset == 0 || offset >= m_limit)
+        {
+            m_valid = false;
+            break;
         }
 
         ++m_entry;
@@ -456,79 +477,52 @@ hyperdex :: disk :: snapshot :: next()
 uint32_t
 hyperdex :: disk :: snapshot :: secondary_point()
 {
-    uint32_t point;
-    memmove(&point, m_base + HASH_TABLE_SIZE + m_entry * 12, sizeof(uint32_t));
-    return be32toh(point);
+    return m_disk->searchindex_hash(m_entry);
 }
 
 uint64_t
 hyperdex :: disk :: snapshot :: version()
 {
-    uint32_t offset = get_offset();
+    uint32_t offset = m_disk->searchindex_offset(m_entry);
 
     if (!offset)
     {
         return uint64_t();
     }
 
-    uint64_t ver;
-    memmove(&ver, m_base + offset, sizeof(uint64_t));
-    ver = be64toh(ver);
-    return ver;
+    return m_disk->data_version(offset);
 }
 
 e::buffer
 hyperdex :: disk :: snapshot :: key()
 {
-    uint32_t offset = get_offset();
+    uint32_t offset = m_disk->searchindex_offset(m_entry);
 
     if (!offset)
     {
         return e::buffer();
     }
 
-    offset += sizeof(uint64_t);
-    uint32_t key_size;
-    memmove(&key_size, m_base + offset, sizeof(uint32_t));
-    key_size = be32toh(key_size);
-    offset += sizeof(uint32_t);
-    return e::buffer(m_base + offset, key_size);
+    e::buffer k;
+    size_t key_size = m_disk->data_key_size(offset);
+    m_disk->data_key(offset, key_size, &k);
+    return k;
 }
 
 std::vector<e::buffer>
 hyperdex :: disk :: snapshot :: value()
 {
-    uint32_t offset = get_offset();
+    uint32_t offset = m_disk->searchindex_offset(m_entry);
 
     if (!offset)
     {
         return std::vector<e::buffer>();
     }
 
-    offset += sizeof(uint64_t);
-    uint32_t key_size;
-    memmove(&key_size, m_base + offset, sizeof(uint32_t));
-    key_size = be32toh(key_size);
-    offset += sizeof(uint32_t) + key_size;
-    uint16_t num_values;
-    memmove(&num_values, m_base + offset, sizeof(uint16_t));
-    offset += sizeof(num_values);
-    num_values = be16toh(num_values);
-    std::vector<e::buffer> val;
-
-    for (uint16_t i = 0; i < num_values; ++i)
-    {
-        uint32_t size;
-        memmove(&size, m_base + offset, sizeof(size));
-        size = be32toh(size);
-        offset += sizeof(size);
-        val.push_back(e::buffer());
-        e::buffer buf(m_base + offset, size);
-        val.back().swap(buf);
-        offset += size;
-    }
-
-    return val;
+    std::vector<e::buffer> v;
+    size_t key_size = m_disk->data_key_size(offset);
+    m_disk->data_value(offset, key_size, &v);
+    return v;
 }
 
 // XXX When disks become entirely intrusive_ptr-based, we should hold an
@@ -536,18 +530,10 @@ hyperdex :: disk :: snapshot :: value()
 hyperdex :: disk :: snapshot :: snapshot(disk* d)
     : m_ref(0)
     , m_valid(true)
-    , m_base(d->m_base)
+    , m_disk(d)
     , m_limit(d->m_offset)
     , m_entry(0)
 {
-}
-
-uint32_t
-hyperdex :: disk :: snapshot :: get_offset()
-{
-    uint32_t offset;
-    memmove(&offset, m_base + HASH_TABLE_SIZE + m_entry * 12 + sizeof(uint32_t), sizeof(uint32_t));
-    return be32toh(offset);
 }
 
 void
@@ -555,20 +541,7 @@ hyperdex :: zero_fill(const po6::pathname& filename)
 {
     po6::io::fd fd(open(filename.get(), O_RDWR|O_CREAT|O_EXCL, S_IRUSR|S_IWUSR));
 
-    if (fd.get() < 0)
-    {
-        throw po6::error(errno);
-    }
-
-    char buf[INIT_BLOCK_SIZE];
-    memset(buf, 0, sizeof(buf));
-
-    for (uint64_t i = 0; i < INIT_ITERATIONS; ++i)
-    {
-        fd.xwrite(buf, sizeof(buf));
-    }
-
-    if (fsync(fd.get()) < 0)
+    if (ftruncate(fd.get(), disk::TOTAL_FILE_SIZE) < 0)
     {
         throw po6::error(errno);
     }

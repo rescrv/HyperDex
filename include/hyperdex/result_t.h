@@ -36,7 +36,8 @@ enum result_t
     SUCCESS  = 0,
     NOTFOUND = 1,
     INVALID  = 2,
-    ERROR    = 4
+    ERROR    = 4,
+    DISKFULL = 16
 };
 
 } // namespace hyperdex

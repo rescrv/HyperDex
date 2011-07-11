@@ -76,12 +76,9 @@ class disk
                 snapshot(disk* d);
 
             private:
-                uint32_t get_offset();
-
-            private:
                 size_t m_ref;
                 bool m_valid;
-                const char* const m_base;
+                disk* m_disk;
                 const uint32_t m_limit;
                 uint32_t m_entry;
         };
@@ -103,6 +100,15 @@ class disk
         void drop();
         e::intrusive_ptr<snapshot> make_snapshot();
 
+    public:
+        static const size_t HASH_TABLE_ENTRIES = 262144;
+        static const size_t HASH_TABLE_SIZE = HASH_TABLE_ENTRIES * 8;
+        static const size_t SEARCH_INDEX_ENTRIES = HASH_TABLE_ENTRIES;
+        static const size_t SEARCH_INDEX_SIZE = SEARCH_INDEX_ENTRIES * 12;
+        static const size_t INDEX_SEGMENT_SIZE = HASH_TABLE_SIZE + SEARCH_INDEX_SIZE;
+        static const size_t DATA_SEGMENT_SIZE = HASH_TABLE_ENTRIES * 1024;
+        static const size_t TOTAL_FILE_SIZE = INDEX_SEGMENT_SIZE + DATA_SEGMENT_SIZE;
+
     private:
         friend class e::intrusive_ptr<disk>;
         friend class snapshot;
@@ -111,19 +117,65 @@ class disk
         disk(const disk&);
 
     private:
-        // Find the bucket for the given key.  If the key is not already in the
-        // hash table, then return the first dead bucket.  If no dead bucket was
-        // found, return the empty bucket which was found.  Returns false if
-        // there is no bucket available.
-        bool find_bucket_for_key(const e::buffer& key, uint64_t key_hash,
-                                 uint32_t** hash, uint32_t** offset);
+        uint32_t* hashtable_base(size_t entry) const
+        {
+            uint32_t offset = entry * 8;
+            assert(offset < HASH_TABLE_SIZE);
+            return reinterpret_cast<uint32_t*>(m_base + offset);
+        }
+
+        uint32_t hashtable_hash(size_t entry) const
+        { return be32toh(hashtable_base(entry)[0]); }
+        uint32_t hashtable_offset(size_t entry) const
+        { return be32toh(hashtable_base(entry)[1]); }
+
+        uint32_t* searchindex_base(size_t entry) const
+        {
+            uint32_t offset = HASH_TABLE_SIZE + entry * 12;
+            assert(HASH_TABLE_SIZE <= offset && offset < INDEX_SEGMENT_SIZE);
+            return reinterpret_cast<uint32_t*>(m_base + offset);
+        }
+        uint32_t searchindex_hash(size_t entry) const
+        { return be32toh(searchindex_base(entry)[0]); }
+        uint32_t searchindex_offset(size_t entry) const
+        { return be32toh(searchindex_base(entry)[1]); }
+        uint32_t searchindex_invalid(size_t entry) const
+        { return be32toh(searchindex_base(entry)[2]); }
+
+    private:
+        void hashtable_hash(size_t entry, uint32_t value)
+        { hashtable_base(entry)[0] = htobe32(value); }
+        void hashtable_offset(size_t entry, uint32_t value)
+        { hashtable_base(entry)[1] = htobe32(value); }
+        void searchindex_hash(size_t entry, uint32_t value)
+        { searchindex_base(entry)[0] = htobe32(value); }
+        void searchindex_offset(size_t entry, uint32_t value)
+        { searchindex_base(entry)[1] = htobe32(value); }
+        void searchindex_invalid(size_t entry, uint32_t value)
+        { searchindex_base(entry)[2] = htobe32(value); }
+
+    private:
+        size_t data_size(const e::buffer& key, const std::vector<e::buffer>& value) const;
+        uint64_t data_version(uint32_t offset) const;
+        size_t data_key_size(uint32_t offset) const;
+        size_t data_key_offset(uint32_t offset) const
+        { return offset + sizeof(uint64_t) + sizeof(uint32_t); }
+        void data_key(uint32_t offset, size_t keysize, e::buffer* key) const;
+        void data_value(uint32_t offset, size_t keysize, std::vector<e::buffer>* value) const;
+
+    private:
+        // Find the bucket for the given key.  If the key is already in the
+        // table, then bucket will be stored in entry (and hence, the hash and
+        // offset of that bucket will be from the older version of the key).  If
+        // the key is not in the table, then a dead (deleted) or empty (never
+        // used) bucket will be stored in entry.  If no bucket is available,
+        // HASH_TABLE_ENTRIES will be stored in entry.  If a non-dead bucket was
+        // found (as in, old/new keys match), true is returned; else, false is
+        // returned.
+        bool find_bucket(const e::buffer& key, uint64_t key_hash, size_t* entry);
         // This will invalidate any entry in the search index which references
         // the specified offset.
-        void invalidate_search_index(uint32_t to_invalidate);
-        // Store a point in the search index by interleaving the hash values and
-        // pointing to offset m_offset.
-        void store_search_index(const std::vector<uint64_t>& value_hashes,
-                                uint32_t offset);
+        void invalidate_search_index(uint32_t to_invalidate, uint32_t invalidate_with);
 
     private:
         disk& operator = (const disk&);
