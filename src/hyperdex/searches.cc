@@ -95,7 +95,7 @@ hyperdex :: searches :: next(const entityid& client,
     }
 
     e::buffer msg;
-    m_comm->send(state->region, client, stream_no::SEARCH_ITEM, msg);
+    m_comm->send(state->region, client, stream_no::SEARCH_DONE, msg);
     ++state->count;
     stop(client, nonce);
 }
