@@ -66,7 +66,6 @@ class log
                 void next();
 
             public:
-                uint64_t seqno() const { return m_n->seqno; }
                 op_t op() const { return m_n->op; }
                 uint64_t point() const { return m_n->point; }
                 const e::buffer& key() const { return m_n->key; }
@@ -121,7 +120,7 @@ class log
         {
             public:
                 node()
-                    : seqno(0)
+                    : real(false)
                     , next(NULL)
                     , op(DEL)
                     , point()
@@ -137,7 +136,7 @@ class log
                 node(uint64_t p, const e::buffer& k,
                      uint64_t kh, const std::vector<e::buffer>& val,
                      const std::vector<uint64_t>& valh, uint64_t ver)
-                    : seqno(0)
+                    : real(false)
                     , next(NULL)
                     , op(PUT)
                     , point(p)
@@ -151,7 +150,7 @@ class log
                 }
 
                 node(uint64_t p, const e::buffer& k, uint64_t kh)
-                    : seqno(0)
+                    : real(false)
                     , next(NULL)
                     , op(DEL)
                     , point(p)
@@ -169,7 +168,7 @@ class log
                 }
 
             public:
-                uint64_t seqno;
+                bool real;
                 e::intrusive_ptr<node> next;
                 op_t op;
                 uint64_t point;
@@ -197,11 +196,10 @@ class log
         log& operator = (const log&);
 
     private:
-        bool common_append(e::intrusive_ptr<node> n, bool seqno = true);
+        bool common_append(e::intrusive_ptr<node> n, bool real = true);
         e::intrusive_ptr<node> get_head();
 
     private:
-        uint64_t m_seqno;
         po6::threads::rwlock m_head_lock;
         po6::threads::mutex m_tail_lock;
         e::intrusive_ptr<node> m_head;

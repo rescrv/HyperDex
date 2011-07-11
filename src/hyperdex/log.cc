@@ -40,15 +40,13 @@
 #include <hyperdex/log.h>
 
 hyperdex :: log :: log()
-    : m_seqno(1)
-    , m_head_lock()
+    : m_head_lock()
     , m_tail_lock()
     , m_head(NULL)
     , m_tail(NULL)
     , m_flush_lock()
 {
     m_head = m_tail = new node();
-    m_head->seqno = 0;
 }
 
 hyperdex :: log :: ~log() throw ()
@@ -124,16 +122,10 @@ hyperdex :: log :: get_head()
 }
 
 bool
-hyperdex :: log :: common_append(e::intrusive_ptr<node> n, bool seqno)
+hyperdex :: log :: common_append(e::intrusive_ptr<node> n, bool real)
 {
     po6::threads::mutex::hold hold(&m_tail_lock);
-
-    if (seqno)
-    {
-        n->seqno = m_seqno;
-        ++m_seqno;
-    }
-
+    n->real = real;
     m_tail->next = n;
     m_tail = n;
     return true;
@@ -167,14 +159,14 @@ hyperdex :: log :: iterator :: ~iterator() throw ()
 bool
 hyperdex :: log :: iterator :: valid()
 {
-    while (m_n->next && (!m_valid || m_n->seqno == 0))
+    while (m_n->next && (!m_valid || !m_n->real))
     {
         m_valid = true;
         e::intrusive_ptr<node> tmp = m_n;
         m_n = m_n->next;
     }
 
-    return m_valid && m_n->seqno != 0;
+    return m_valid && m_n->real;
 }
 
 void

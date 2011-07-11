@@ -107,7 +107,6 @@ TEST(LogTest, IterateAddIterate)
     {
         EXPECT_TRUE(it.valid());
         EXPECT_EQ(i, it.version());
-        EXPECT_EQ(i, it.seqno());
         it.next();
     }
 
@@ -127,7 +126,6 @@ TEST(LogTest, IterateAddIterate)
     {
         EXPECT_TRUE(it.valid());
         EXPECT_EQ(i, it.version());
-        EXPECT_EQ(i, it.seqno());
         it.next();
     }
 
@@ -161,7 +159,6 @@ TEST(LogTest, IterateFlushIterate)
     {
         EXPECT_TRUE(it.valid());
         EXPECT_EQ(i, it.version());
-        EXPECT_EQ(i, it.seqno());
         it.next();
     }
 
@@ -173,7 +170,6 @@ TEST(LogTest, IterateFlushIterate)
     {
         EXPECT_TRUE(it.valid());
         EXPECT_EQ(i, it.version());
-        EXPECT_EQ(i, it.seqno());
         it.next();
     }
 
