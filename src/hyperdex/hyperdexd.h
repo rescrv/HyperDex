@@ -44,6 +44,8 @@ class hyperdexd
         ~hyperdexd();
 
     public:
+        void set_bind_to(const po6::net::ipaddr& addr) { m_bind = addr; }
+        void set_master(const po6::net::location& loc) { m_master = loc; }
         // This method blocks until the daemon is done running.
         // The signal handlers of the calling thread will be affected.
         void run();
@@ -58,6 +60,8 @@ class hyperdexd
 
     private:
         bool m_continue;
+        po6::net::ipaddr m_bind;
+        po6::net::location m_master;
 };
 
 #endif // hyperdex_hyperdexd_h_

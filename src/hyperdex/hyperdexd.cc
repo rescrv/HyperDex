@@ -128,6 +128,8 @@ class hyperdexd_install_mapping
 
 hyperdex :: hyperdexd :: hyperdexd()
     : m_continue(true)
+    , m_bind()
+    , m_master()
 {
 }
 
@@ -168,7 +170,7 @@ hyperdex :: hyperdexd :: run()
     // Setup the data layer.
     hyperdex::datalayer data;
     // Setup the communications layer.
-    hyperdex::logical comm(dl, "127.0.0.1"); // XXX don't hardcode localhost
+    hyperdex::logical comm(dl, m_bind);
     // Setup the search layer.
     hyperdex::searches ssss(&data, &comm);
     // Setup the replication layer.
@@ -178,7 +180,7 @@ hyperdex :: hyperdexd :: run()
     ostr << "instance\t" << comm.inst().inbound << "\t"
                          << comm.inst().outbound
                          << "\n";
-    hyperdex::masterlink ml(po6::net::location("127.0.0.1", 1234),
+    hyperdex::masterlink ml(m_master,
                             ostr.str(),
                             hyperdexd_install_mapping(&data, &comm, &repl));
     // Start the network_worker threads.

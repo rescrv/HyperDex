@@ -41,11 +41,21 @@
 #include <hyperdex/hyperdexd.h>
 
 int
+usage();
+
+int
 main(int argc, char* argv[])
 {
     google::InitGoogleLogging(argv[0]);
 
+    if (argc != 4)
+    {
+        return usage();
+    }
+
     hyperdex::hyperdexd hyperdexd;
+    hyperdexd.set_master(po6::net::location(argv[1], atoi(argv[2])));
+    hyperdexd.set_bind_to(argv[3]);
 
     // Run the daemon.
     try
@@ -66,4 +76,12 @@ main(int argc, char* argv[])
     }
 
     return EXIT_SUCCESS;
+}
+
+int
+usage()
+{
+    std::cerr << "Usage:  hyperdexd <coordinator ip> <coordinator port> <bind to>"
+              << std::endl;
+    return EXIT_FAILURE;
 }
