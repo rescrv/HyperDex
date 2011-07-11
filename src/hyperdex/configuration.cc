@@ -367,6 +367,20 @@ hyperdex :: configuration :: tailof(const regionid& r) const
     return entityid();
 }
 
+hyperdex::instance
+hyperdex :: configuration :: lookup(const entityid& e) const
+{
+    typedef std::map<hyperdex::entityid, hyperdex::instance>::const_iterator mapiter;
+    mapiter i = m_entities.find(e);
+
+    if (i != m_entities.end())
+    {
+        return i->second;
+    }
+
+    return instance();
+}
+
 bool
 hyperdex :: configuration :: subspaces(const spaceid& s, size_t* sz) const
 {

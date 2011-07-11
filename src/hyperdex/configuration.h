@@ -54,6 +54,7 @@ class configuration
     public:
         entityid headof(const regionid& r) const;
         entityid tailof(const regionid& r) const;
+        instance lookup(const entityid& e) const;
 
     public:
         // Return the number of subspaces within the space.
