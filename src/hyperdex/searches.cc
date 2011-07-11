@@ -84,8 +84,9 @@ hyperdex :: searches :: next(const entityid& client,
             if (state->terms.matches(value))
             {
                 e::buffer msg;
-                msg.pack() << nonce << state-> count << key << value;
+                msg.pack() << nonce << state->count << key << value;
                 m_comm->send(state->region, client, stream_no::SEARCH_ITEM, msg);
+                state->snap->next();
                 ++state->count;
                 return;
             }

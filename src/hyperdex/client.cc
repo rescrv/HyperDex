@@ -49,10 +49,12 @@
 class client_install_mapping
 {
     public:
-        client_install_mapping(std::map<hyperdex::entityid, hyperdex::instance>* mapping,
+        client_install_mapping(hyperdex::configuration* config,
+                               std::map<hyperdex::entityid, hyperdex::instance>* mapping,
                                std::map<std::string, hyperdex::spaceid>* space_assignment,
                                ev::async* wakeup)
-            : m_mapping(mapping)
+            : m_config(config)
+            , m_mapping(mapping)
             , m_space_assignment(space_assignment)
             , m_wakeup(wakeup)
         {
@@ -61,12 +63,14 @@ class client_install_mapping
     public:
         void operator () (const hyperdex::configuration& config)
         {
+            *m_config = config;
             *m_mapping = config.entity_mapping();
             *m_space_assignment = config.space_assignment();
             m_wakeup->send();
         }
 
     private:
+        hyperdex::configuration* m_config;
         std::map<hyperdex::entityid, hyperdex::instance>* m_mapping;
         std::map<std::string, hyperdex::spaceid>* m_space_assignment;
         ev::async* m_wakeup;
@@ -78,9 +82,10 @@ struct hyperdex :: client :: priv
         : dl()
         , wakeup(dl)
         , phys(dl, po6::net::ipaddr::ANY(), false)
+        , config()
         , mapping()
         , space_assignment()
-        , ml(coordinator, "client\n", client_install_mapping(&mapping, &space_assignment, &wakeup))
+        , ml(coordinator, "client\n", client_install_mapping(&config, &mapping, &space_assignment, &wakeup))
         , id(UINT32_MAX, 0, 0, 0, 0)
     {
         wakeup.set<priv, &priv::nil>(this);
@@ -209,6 +214,7 @@ struct hyperdex :: client :: priv
     ev::dynamic_loop dl;
     ev::async wakeup;
     hyperdex::physical phys;
+    hyperdex::configuration config;
     std::map<entityid, instance> mapping;
     std::map<std::string, spaceid> space_assignment;
     hyperdex::masterlink ml;
@@ -297,4 +303,222 @@ hyperdex :: client :: del(const std::string& space,
     }
 
     return ERROR;
+}
+
+hyperdex :: client :: search_results
+hyperdex :: client :: search(const std::string& space,
+                             const hyperdex::search& terms)
+{
+    std::map<std::string, spaceid>::iterator sai;
+
+    // Map the string description to a number.
+    if ((sai = p->space_assignment.find(space)) == p->space_assignment.end())
+    {
+        LOG(INFO) << "space name does not translate to space number.";
+        return search_results();
+    }
+
+    // Create the most restrictive region possible for this point.
+    uint32_t spacenum = sai->second.space;
+    std::map<regionid, size_t> regions = p->config.regions();
+    std::map<uint16_t, std::vector<entityid> > candidates;
+
+    for (std::map<regionid, size_t>::iterator r = regions.begin();
+            r != regions.end(); ++r)
+    {
+        if (r->first.space == spacenum)
+        {
+            candidates[r->first.subspace].push_back(p->config.headof(r->first));
+        }
+    }
+
+    bool set = false;
+    std::vector<entityid> hosts;
+
+    for (std::map<uint16_t, std::vector<entityid> >::iterator c = candidates.begin();
+            c != candidates.end(); ++c)
+    {
+        if (c->second.size() < hosts.size() || !set)
+        {
+            hosts.swap(c->second);
+        }
+    }
+
+    return search_results(p.get(), 0, terms, hosts);
+}
+
+// XXX Client code SUCKS.  Rather than storing entity, we should store instance,
+// and somehow alert the user of search_results that an instance we took a
+// snapshot on is no longer responsible for the entity.  Among other things, we
+// don't retransmit when things don't respond, and all that good stuff.
+
+struct hyperdex :: client :: search_results :: priv
+{
+    priv()
+        : sr(NULL)
+        , nonce(0)
+        , valid(false)
+        , hosts()
+        , key()
+        , value()
+    {
+    }
+
+    priv(client::priv* p, uint32_t n, const std::vector<entityid>& h)
+        : sr(p)
+        , nonce(n)
+        , valid(true)
+        , hosts(h.begin(), h.end())
+        , key()
+        , value()
+    {
+    }
+
+    client::priv* sr;
+    uint32_t nonce;
+    bool valid;
+    std::set<entityid> hosts;
+    e::buffer key;
+    std::vector<e::buffer> value;
+
+    private:
+        priv(const priv&);
+        priv& operator = (const priv&);
+};
+
+hyperdex :: client :: search_results :: search_results()
+    : p(new priv())
+{
+}
+
+hyperdex :: client :: search_results :: search_results(client::priv* sr,
+                                                       uint32_t nonce,
+                                                       const hyperdex::search& s,
+                                                       const std::vector<entityid>& h)
+    : p(new priv(sr, nonce, h))
+{
+    e::buffer msg;
+    msg.pack() << nonce << s;
+
+    for (size_t i = 0; i < h.size(); ++i)
+    {
+        p->sr->send(h[i], p->sr->config.lookup(h[i]), stream_no::SEARCH_START, msg);
+    }
+
+    next();
+}
+
+hyperdex :: client :: search_results :: ~search_results()
+                                        throw ()
+{
+    e::buffer msg;
+    msg.pack() << p->nonce;
+
+    for (std::set<entityid>::iterator e = p->hosts.begin(); e != p->hosts.end(); ++e)
+    {
+        p->sr->send(*e, p->sr->config.lookup(*e), stream_no::SEARCH_STOP, msg);
+    }
+}
+
+bool
+hyperdex :: client :: search_results :: valid()
+{
+    return p->valid;
+}
+
+void
+hyperdex :: client :: search_results :: next()
+{
+    while (p->valid && !p->hosts.empty())
+    {
+        entityid from;
+        stream_no::stream_no_t act;
+        e::buffer msg;
+
+        if (!p->sr->recv(&from, &act, &msg))
+        {
+            LOG(INFO) << "Recv failed?";
+        }
+
+        switch (act)
+        {
+            case stream_no::GET:
+                LOG(INFO) << "Did not expect GET message.";
+                continue;
+            case stream_no::PUT:
+                LOG(INFO) << "Did not expect PUT message.";
+                continue;
+            case stream_no::DEL:
+                LOG(INFO) << "Did not expect DEL message.";
+                continue;
+            case stream_no::SEARCH_START:
+                LOG(INFO) << "Did not expect SEARCH_START message.";
+                continue;
+            case stream_no::SEARCH_NEXT:
+                LOG(INFO) << "Did not expect SEARCH_NEXT message.";
+                continue;
+            case stream_no::SEARCH_STOP:
+                LOG(INFO) << "Did not expect SEARCH_STOP message.";
+                continue;
+            case stream_no::SEARCH_ITEM:
+                break;
+            case stream_no::SEARCH_DONE:
+                p->hosts.erase(from);
+                continue;
+            case stream_no::RESULT:
+                LOG(INFO) << "Did not expect RESULT message.";
+                continue;
+            case stream_no::PUT_PENDING:
+                LOG(INFO) << "Did not expect PUT_PENDING message.";
+                continue;
+            case stream_no::DEL_PENDING:
+                LOG(INFO) << "Did not expect DEL_PENDING message.";
+                continue;
+            case stream_no::PENDING:
+                LOG(INFO) << "Did not expect PENDING message.";
+                continue;
+            case stream_no::ACK:
+                LOG(INFO) << "Did not expect ACK message.";
+                continue;
+            case stream_no::XFER_MORE:
+                LOG(INFO) << "Did not expect XFER_MORE message.";
+                continue;
+            case stream_no::XFER_DATA:
+                LOG(INFO) << "Did not expect XFER_DATA message.";
+                continue;
+            case stream_no::XFER_DONE:
+                LOG(INFO) << "Did not expect XFER_DONE message.";
+                continue;
+            default:
+                LOG(INFO) << "Unknown stream_no.";
+                continue;
+        }
+
+        uint32_t nonce;
+        uint64_t count;
+        p->key.clear();
+        p->value.clear();
+
+        msg.unpack() >> nonce >> count >> p->key >> p->value;
+        p->valid = true;
+        msg.clear();
+        msg.pack() << p->nonce;
+        p->sr->send(from, p->sr->config.lookup(from), stream_no::SEARCH_NEXT, msg);
+        return;
+    }
+
+    p->valid = false;
+    return;
+}
+
+const e::buffer&
+hyperdex :: client :: search_results :: key()
+{
+    return p->key;
+}
+
+const std::vector<e::buffer>&
+hyperdex :: client :: search_results :: value()
+{
+    return p->value;
 }

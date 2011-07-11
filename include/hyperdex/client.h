@@ -29,7 +29,7 @@
 #define hyperdex_client_h_
 
 // STL
-#include <memory>
+#include <tr1/memory>
 #include <string>
 #include <vector>
 
@@ -40,7 +40,9 @@
 #include <e/buffer.h>
 
 // HyperDex
+#include <hyperdex/ids.h>
 #include <hyperdex/result_t.h>
+#include <hyperdex/search.h>
 
 namespace hyperdex
 {
@@ -48,16 +50,44 @@ namespace hyperdex
 class client
 {
     public:
+        class search_results;
+
+    public:
         client(po6::net::location coordinator);
 
     public:
         result_t get(const std::string& space, const e::buffer& key, std::vector<e::buffer>* value);
         result_t put(const std::string& space, const e::buffer& key, const std::vector<e::buffer>& value);
         result_t del(const std::string& space, const e::buffer& key);
+        search_results search(const std::string& space, const hyperdex::search& terms);
+
+    private:
+        friend class search_results;
 
     private:
         struct priv;
         const std::auto_ptr<priv> p;
+
+    public:
+        class search_results
+        {
+            public:
+                search_results();
+                search_results(client::priv* sr, uint32_t nonce,
+                               const hyperdex::search& s, const std::vector<entityid>& h);
+                search_results(const search_results& other);
+                ~search_results() throw ();
+
+            public:
+                bool valid();
+                void next();
+                const e::buffer& key();
+                const std::vector<e::buffer>& value();
+
+            private:
+                struct priv;
+                const std::tr1::shared_ptr<priv> p;
+        };
 };
 
 } // namespace hyperdex

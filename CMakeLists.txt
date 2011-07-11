@@ -95,6 +95,13 @@ target_link_libraries(count
     rt
 )
 
+# Build binary test
+add_executable(binary src/bin/binary.cc)
+target_link_libraries(binary
+    hyperdex
+    rt
+)
+
 # Tests
 ENABLE_TESTING()
 
