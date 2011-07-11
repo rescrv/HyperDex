@@ -53,7 +53,7 @@ class search
         void clear();
 
     public:
-        bool matches(const e::buffer& key, const std::vector<e::buffer>& value) const;
+        bool matches(const std::vector<e::buffer>& value) const;
         bool is_specified(size_t idx) const
         {
             return m_mask.get(idx);
@@ -62,13 +62,13 @@ class search
         // This is undefined if !m_mask[idx]
         const e::buffer& dimension(size_t idx) const
         {
-            return m_values[idx];
+            return m_value[idx];
         }
 
         size_t size() const
         {
-            assert(m_values.size() == m_mask.bits());
-            return m_values.size();
+            assert(m_value.size() == m_mask.bits());
+            return m_value.size();
         }
 
         uint32_t secondary_point() const;
@@ -81,21 +81,21 @@ class search
         friend e::unpacker& operator >> (e::unpacker& lhs, search& rhs);
 
     private:
-        std::vector<e::buffer> m_values;
+        std::vector<e::buffer> m_value;
         e::bitfield m_mask;
 };
 
 inline e::packer&
 operator << (e::packer& lhs, const search& rhs)
 {
-    lhs << rhs.m_mask << rhs.m_values;
+    lhs << rhs.m_mask << rhs.m_value;
     return lhs;
 }
 
 inline e::unpacker&
 operator >> (e::unpacker& lhs, search& rhs)
 {
-    lhs >> rhs.m_mask >> rhs.m_values;
+    lhs >> rhs.m_mask >> rhs.m_value;
     return lhs;
 }
 

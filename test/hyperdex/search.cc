@@ -49,55 +49,48 @@ TEST(SearchTest, CtorAndDtor)
 // the row.
 TEST(SearchTest, SetAndUnset)
 {
-    hyperdex::search q(10);
-    e::buffer key("value", 5);
+    hyperdex::search q(9);
     std::vector<e::buffer> value(9, e::buffer("value", 5));
 
-    for (size_t i = 0; i < 10; ++i)
+    for (size_t i = 0; i < 9; ++i)
     {
-        EXPECT_TRUE(q.matches(key, value));
+        EXPECT_TRUE(q.matches(value));
         q.set(i, e::buffer("value", 5));
     }
 
-    EXPECT_TRUE(q.matches(key, value));
+    EXPECT_TRUE(q.matches(value));
 
-    for (size_t i = 0; i < 10; ++i)
+    for (size_t i = 0; i < 9; ++i)
     {
-        EXPECT_TRUE(q.matches(key, value));
+        EXPECT_TRUE(q.matches(value));
         q.unset(i);
     }
 
-    EXPECT_TRUE(q.matches(key, value));
+    EXPECT_TRUE(q.matches(value));
 }
 
 TEST(SearchTest, Clear)
 {
-    hyperdex::search q(2);
-    e::buffer key("key", 3);
+    hyperdex::search q(1);
     std::vector<e::buffer> val;
     val.push_back(e::buffer("val", 4));
-    EXPECT_TRUE(q.matches(key, val));
-    q.set(0, e::buffer("not-key", 7));
-    q.set(1, e::buffer("not-val", 7));
-    EXPECT_FALSE(q.matches(key, val));
+    EXPECT_TRUE(q.matches(val));
+    q.set(0, e::buffer("not-val", 7));
+    EXPECT_FALSE(q.matches(val));
     q.clear();
-    EXPECT_TRUE(q.matches(key, val));
+    EXPECT_TRUE(q.matches(val));
 }
 
 // Test non-matches
 TEST(SearchTest, NegativeMatch)
 {
-    hyperdex::search q(2);
-    e::buffer key("key", 3);
+    hyperdex::search q(1);
     std::vector<e::buffer> val;
     val.push_back(e::buffer("val", 3));
-    EXPECT_TRUE(q.matches(key, val));
-    q.set(0, e::buffer("not-key", 7));
-    EXPECT_FALSE(q.matches(key, val));
-    q.unset(0);
-    EXPECT_TRUE(q.matches(key, val));
-    q.set(1, e::buffer("not-val", 7));
-    EXPECT_FALSE(q.matches(key, val));
+    EXPECT_TRUE(q.matches(val));
+    EXPECT_TRUE(q.matches(val));
+    q.set(0, e::buffer("not-val", 7));
+    EXPECT_FALSE(q.matches(val));
 }
 
 // If we try to set out of bounds we fail an assertion.
@@ -126,7 +119,7 @@ TEST(SearchTest, MatchDeathTest)
     hyperdex::search q(5);
 
     ASSERT_DEATH(
-        q.matches(e::buffer(), std::vector<e::buffer>(3));
+        q.matches(std::vector<e::buffer>(3));
     , "Assertion");
 }
 

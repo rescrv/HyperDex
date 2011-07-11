@@ -33,7 +33,7 @@
 #include "hyperdex/search.h"
 
 hyperdex :: search :: search(size_t n)
-    : m_values(n)
+    : m_value(n)
     , m_mask(n)
 {
 }
@@ -45,46 +45,40 @@ hyperdex :: search :: ~search()
 void
 hyperdex :: search :: set(size_t idx, const e::buffer& val)
 {
-    assert(m_values.size() > idx);
+    assert(m_value.size() > idx);
     assert(m_mask.bits() > idx);
 
     m_mask.set(idx);
-    m_values[idx] = val;
+    m_value[idx] = val;
 }
 
 void
 hyperdex :: search :: unset(size_t idx)
 {
-    assert(m_values.size() > idx);
+    assert(m_value.size() > idx);
     assert(m_mask.bits() > idx);
 
     m_mask.unset(idx);
-    m_values[idx] = e::buffer();
+    m_value[idx] = e::buffer();
 }
 
 void
 hyperdex :: search :: clear()
 {
-    m_values = std::vector<e::buffer>(m_values.size());
-    m_mask = e::bitfield(m_values.size());
+    m_value = std::vector<e::buffer>(m_value.size());
+    m_mask = e::bitfield(m_value.size());
 }
 
 bool
-hyperdex :: search :: matches(const e::buffer& key,
-                              const std::vector<e::buffer>& value)
+hyperdex :: search :: matches(const std::vector<e::buffer>& value)
                       const
 {
-    assert(m_values.size() == value.size() + 1);
-    assert(m_mask.bits() == value.size() + 1);
+    assert(m_value.size() == value.size());
+    assert(m_mask.bits() == value.size());
 
-    if (m_mask.get(0) && m_values[0] != key)
+    for (size_t i = 0; i < m_mask.bits(); ++i)
     {
-        return false;
-    }
-
-    for (size_t i = 1; i < m_mask.bits(); ++i)
-    {
-        if (m_mask.get(i) && m_values[i] != value[i - 1])
+        if (m_mask.get(i) && m_value[i] != value[i])
         {
             return false;
         }
@@ -98,11 +92,11 @@ hyperdex :: search :: secondary_point() const
 {
     std::vector<uint64_t> hashes;
 
-    for (size_t i = 1; i < m_values.size(); ++i)
+    for (size_t i = 0; i < m_value.size(); ++i)
     {
         if (m_mask.get(i))
         {
-            hashes.push_back(CityHash64(m_values[i]));
+            hashes.push_back(CityHash64(m_value[i]));
         }
         else
         {
@@ -118,7 +112,7 @@ hyperdex :: search :: secondary_mask() const
 {
     std::vector<uint64_t> hashes;
 
-    for (size_t i = 1; i < m_values.size(); ++i)
+    for (size_t i = 0; i < m_value.size(); ++i)
     {
         if (m_mask.get(i))
         {
@@ -136,23 +130,13 @@ hyperdex :: search :: secondary_mask() const
 uint64_t
 hyperdex :: search :: replication_point(const std::vector<bool>& dims) const
 {
-    uint64_t key_hash;
     std::vector<uint64_t> value_hashes;
 
-    if (m_mask.get(0))
-    {
-        key_hash = CityHash64(m_values[0]);
-    }
-    else
-    {
-        key_hash = 0;
-    }
-
-    for (size_t i = 1; i < m_values.size(); ++i)
+    for (size_t i = 0; i < m_value.size(); ++i)
     {
         if (m_mask.get(i))
         {
-            value_hashes.push_back(CityHash64(m_values[i]));
+            value_hashes.push_back(CityHash64(m_value[i]));
         }
         else
         {
@@ -160,25 +144,15 @@ hyperdex :: search :: replication_point(const std::vector<bool>& dims) const
         }
     }
 
-    return hyperspace::replication_point(key_hash, value_hashes, dims);
+    return hyperspace::replication_point(0, value_hashes, dims);
 }
 
 uint64_t
 hyperdex :: search :: replication_mask(const std::vector<bool>& dims) const
 {
-    uint64_t key_hash;
     std::vector<uint64_t> value_hashes;
 
-    if (m_mask.get(0))
-    {
-        key_hash = -1;
-    }
-    else
-    {
-        key_hash = 0;
-    }
-
-    for (size_t i = 1; i < m_values.size(); ++i)
+    for (size_t i = 0; i < m_value.size(); ++i)
     {
         if (m_mask.get(i))
         {
@@ -190,5 +164,5 @@ hyperdex :: search :: replication_mask(const std::vector<bool>& dims) const
         }
     }
 
-    return hyperspace::replication_point(key_hash, value_hashes, dims);
+    return hyperspace::replication_point(0, value_hashes, dims);
 }
