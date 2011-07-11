@@ -81,7 +81,7 @@ hyperdex :: searches :: next(const entityid& client,
             e::buffer key(state->snap->key());
             std::vector<e::buffer> value(state->snap->value());
 
-            if (state->terms.matches(key, value))
+            if (state->terms.matches(value))
             {
                 e::buffer msg;
                 msg.pack() << nonce << state-> count << key << value;
