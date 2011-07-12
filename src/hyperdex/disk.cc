@@ -362,7 +362,7 @@ hyperdex :: disk :: find_bucket(const e::buffer& key,
 
     for (size_t off = 0; off < HASH_TABLE_ENTRIES; ++off)
     {
-        size_t bucket = *entry + off;
+        size_t bucket = (*entry + off) % HASH_TABLE_ENTRIES;
         uint32_t hash = hashtable_hash(bucket);
         uint32_t offset = hashtable_offset(bucket);
 
