@@ -41,7 +41,6 @@
 
 // e
 #include <e/buffer.h>
-#include <e/intrusive_ptr.h>
 
 // HyperDex
 #include <hyperdex/op_t.h>
@@ -88,7 +87,7 @@ class log
 
             private:
                 log* m_l;
-                e::intrusive_ptr<node> m_n;
+                node* m_n;
                 bool m_valid;
         };
 
@@ -169,7 +168,7 @@ class log
 
             public:
                 bool real;
-                e::intrusive_ptr<node> next;
+                node* next;
                 op_t op;
                 uint64_t point;
                 e::buffer key;
@@ -178,8 +177,9 @@ class log
                 std::vector<uint64_t> value_hashes;
                 uint64_t version;
 
-            private:
-                friend class e::intrusive_ptr<node>;
+            public:
+                int inc() { return __sync_add_and_fetch(&m_ref, 1); }
+                int dec() { return __sync_sub_and_fetch(&m_ref, 1); }
 
             private:
                 node(const node&);
@@ -196,14 +196,16 @@ class log
         log& operator = (const log&);
 
     private:
-        bool common_append(e::intrusive_ptr<node> n, bool real = true);
-        e::intrusive_ptr<node> get_head();
+        bool common_append(std::auto_ptr<node> n, bool real = true);
+        node* get_head();
+        void step_list(node** pos);
+        void release(node* pos);
 
     private:
         po6::threads::rwlock m_head_lock;
         po6::threads::mutex m_tail_lock;
-        e::intrusive_ptr<node> m_head;
-        e::intrusive_ptr<node> m_tail;
+        node* m_head;
+        node* m_tail;
         po6::threads::mutex m_flush_lock;
 };
 

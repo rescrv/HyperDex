@@ -47,15 +47,13 @@ hyperdex :: log :: log()
     , m_flush_lock()
 {
     m_head = m_tail = new node();
+    int ref = m_head->inc();
+    assert(ref == 1);
 }
 
 hyperdex :: log :: ~log() throw ()
 {
-    while (m_head)
-    {
-        e::intrusive_ptr<node> tmp = m_head;
-        m_head = m_head->next;
-    }
+    release(m_head);
 }
 
 bool
@@ -66,7 +64,7 @@ hyperdex :: log :: append(uint64_t point,
                           const std::vector<uint64_t>& value_hashes,
                           uint64_t version)
 {
-    e::intrusive_ptr<node> n = new node(point, key, key_hash, value, value_hashes, version);
+    std::auto_ptr<node> n(new node(point, key, key_hash, value, value_hashes, version));
     return common_append(n);
 }
 
@@ -75,7 +73,7 @@ hyperdex :: log :: append(uint64_t point,
                           const e::buffer& key,
                           uint64_t key_hash)
 {
-    e::intrusive_ptr<node> n = new node(point, key, key_hash);
+    std::auto_ptr<node> n(new node(point, key, key_hash));
     return common_append(n);
 }
 
@@ -88,13 +86,17 @@ hyperdex :: log :: flush(std::tr1::function<void (op_t op,
                                                   const std::vector<uint64_t>& value_hashes,
                                                   uint64_t version)> save_one)
 {
-    po6::threads::mutex::hold hold(&m_flush_lock);
+    po6::threads::mutex::hold hold_flush(&m_flush_lock);
     iterator cleanup(iterate());
     iterator flushing(iterate());
-    e::intrusive_ptr<node> end = new node();
-    common_append(end, false);
+    std::auto_ptr<node> n(new node());
+    node* end = n.get();
+    common_append(n, false);
     size_t flushed = 0;
 
+    // XXX This flushes past "end".  This is a performance problem, not a
+    // correctness problem (as anyone who iterates the log, and refers to where
+    // it flushes to must be able to replay the log anyway).
     for (; flushing.valid(); flushing.next())
     {
         save_one(flushing.op(), flushing.point(), flushing.key(),
@@ -102,32 +104,100 @@ hyperdex :: log :: flush(std::tr1::function<void (op_t op,
                  flushing.version());
     }
 
-    m_head_lock.wrlock();
+    po6::threads::rwlock::wrhold hold_head(&m_head_lock);
 
     while (m_head != end)
     {
-        e::intrusive_ptr<node> tmp = m_head;
-        m_head = m_head->next;
+        step_list(&m_head);
     }
 
-    m_head_lock.unlock();
     return flushed;
 }
 
-e::intrusive_ptr<hyperdex::log::node>
+hyperdex::log::node*
 hyperdex :: log :: get_head()
 {
     po6::threads::rwlock::rdhold hold(&m_head_lock);
+    node* ret = m_head;
+
+    if (ret)
+    {
+        ret->inc();
+    }
+
     return m_head;
 }
 
+void
+hyperdex :: log :: step_list(node** pos)
+{
+    node* cur = *pos;
+    node* next = cur->next;
+
+    if (next)
+    {
+        next->inc();
+    }
+
+    *pos = next;
+
+    int ref = cur->dec();
+
+    if (ref == 0)
+    {
+        if (next)
+        {
+            int ref = next->dec();
+            assert(ref > 0);
+        }
+
+        cur->next = NULL;
+        delete cur;
+    }
+}
+
+void
+hyperdex :: log :: release(node* pos)
+{
+    while (pos)
+    {
+        node* next = pos->next;
+
+        if (next)
+        {
+            next->inc();
+        }
+
+        int ref = pos->dec();
+
+        if (ref == 0)
+        {
+            if (next)
+            {
+                next->dec();
+            }
+
+            pos->next = NULL;
+            delete pos;
+            pos = next;
+        }
+        else
+        {
+            break;
+        }
+    }
+}
+
 bool
-hyperdex :: log :: common_append(e::intrusive_ptr<node> n, bool real)
+hyperdex :: log :: common_append(std::auto_ptr<node> n, bool real)
 {
     po6::threads::mutex::hold hold(&m_tail_lock);
     n->real = real;
-    m_tail->next = n;
-    m_tail = n;
+    int ref = n->inc();
+    assert(ref == 1);
+    m_tail->next = n.get();
+    m_tail = n.get();
+    n.release();
     return true;
 }
 
@@ -144,16 +214,17 @@ hyperdex :: log :: iterator :: iterator(const log::iterator& i)
     , m_n(i.m_n)
     , m_valid(i.m_valid)
 {
+    if (m_n)
+    {
+        m_n->inc();
+    }
+
     valid();
 }
 
 hyperdex :: log :: iterator :: ~iterator() throw ()
 {
-    while (m_n)
-    {
-        e::intrusive_ptr<node> tmp = m_n;
-        m_n = m_n->next;
-    }
+    m_l->release(m_n);
 }
 
 bool
@@ -162,8 +233,7 @@ hyperdex :: log :: iterator :: valid()
     while (m_n->next && (!m_valid || !m_n->real))
     {
         m_valid = true;
-        e::intrusive_ptr<node> tmp = m_n;
-        m_n = m_n->next;
+        m_l->step_list(&m_n);
     }
 
     return m_valid && m_n->real;
