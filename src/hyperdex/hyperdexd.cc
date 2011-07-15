@@ -170,7 +170,7 @@ hyperdex :: hyperdexd :: run()
     // Setup the data layer.
     hyperdex::datalayer data;
     // Setup the communications layer.
-    hyperdex::logical comm(dl, m_bind);
+    hyperdex::logical comm(m_bind);
     // Setup the search layer.
     hyperdex::searches ssss(&data, &comm);
     // Setup the replication layer.

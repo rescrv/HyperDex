@@ -33,22 +33,18 @@
 #include <queue>
 #include <tr1/memory>
 
-// libev
-#include <ev++.h>
-
 // po6
 #include <po6/net/ipaddr.h>
 #include <po6/net/socket.h>
+#include <po6/threads/cond.h>
 #include <po6/threads/mutex.h>
 #include <po6/threads/rwlock.h>
 
 // e
 #include <e/buffer.h>
-#include <e/intrusive_ptr.h>
+#include <e/hazard_ptrs.h>
+#include <e/lockfree_fifo.h>
 #include <e/lockfree_hash_map.h>
-
-// HyperDex
-#include <hyperdex/fifo_work_queue.h>
 
 namespace hyperdex
 {
@@ -56,27 +52,34 @@ namespace hyperdex
 class physical
 {
     public:
-        physical(ev::loop_ref lr, const po6::net::ipaddr& ip, bool listen = true);
-        ~physical();
+        enum result_t
+        {
+            SHUTDOWN    = 0,
+            SUCCESS     = 1,
+            QUEUED      = 2,
+            CONNECTFAIL = 3,
+            DISCONNECT  = 4,
+            LOGICERROR  = 5
+        };
+
+    public:
+        physical(const po6::net::ipaddr& ip, bool listen = true);
+        ~physical() throw ();
 
     // Pause/unpause or completely stop recv of messages.  Paused threads will
     // not hold locks, and therefore will not pose risk of deadlock.
     public:
-        void pause() { m_incoming.pause(); }
-        void unpause() { m_incoming.unpause(); }
-        size_t num_paused() { return m_incoming.num_paused(); }
+        void pause();
+        void unpause();
+        size_t num_paused();
         void shutdown();
 
     // Send and recv messages.
     public:
-        void send(const po6::net::location& to, e::buffer* msg); // Consumes msg.
-        bool recv(po6::net::location* from, e::buffer* msg);
+        result_t send(const po6::net::location& to, e::buffer* msg);
+        result_t recv(po6::net::location* from, e::buffer* msg);
         // Deliver a message (put it on the queue) as if it came from "from".
         void deliver(const po6::net::location& from, const e::buffer& msg);
-        // This is lossy.  The only time you can rely upon this is when there is
-        // only one thread touching the object, and that same thread is calling
-        // pending.
-        bool pending() { return !m_incoming.optimistically_empty(); }
 
     // Figure out our own socket info.
     public:
@@ -93,44 +96,28 @@ class physical
             e::buffer buf;
         };
 
-        struct channel
+        class channel
         {
             public:
-                channel(ev::loop_ref lr,
-                        po6::net::socket* conn,
-                        physical* manager);
-                ~channel();
+                channel(po6::net::socket* conn);
+                ~channel() throw ();
 
             public:
-                void io_cb(ev::io& w, int revents);
-                void read_cb(ev::io& w);
-                void write_cb(ev::io& w);
-                void write_step(); // mtx must be held by caller.
-                void shutdown();
-
-            public:
-                po6::threads::mutex mtx; // Anyone touching a channel should hold this.
+                po6::threads::mutex mtx; // Anyone touching the socket should hold this.
                 po6::net::socket soc; // The socket over which we are communicating.
                 po6::net::location loc; // A cached soc.getpeername.
                 e::lockfree_fifo<e::buffer> outgoing; // Messages buffered for writing.
                 e::buffer outprogress; // When writing to the network, we buffer partial writes here.
                 e::buffer inprogress; // When reading from the network, we buffer partial reads here.
-                ev::io io; // The libev watcher.
-                physical* manager; // The outer manager class.
-
-            private:
-                friend class e::intrusive_ptr<channel>;
 
             private:
                 channel(const channel&);
 
             private:
                 channel& operator = (const channel&);
-
-            private:
-                size_t m_ref;
-                bool m_shutdown;
         };
+
+        typedef std::auto_ptr<typename e::hazard_ptrs<channel, 1>::hazard_ptr> hazard_ptr;
 
     private:
         physical(const physical&);
@@ -138,25 +125,30 @@ class physical
     private:
         // get_channel creates a new channel, or finds an existing one matching
         // the specific parameter.
-        e::intrusive_ptr<channel> get_channel(const po6::net::location& to);
-        e::intrusive_ptr<channel> get_channel(po6::net::socket* soc);
-        void drop_channel(e::intrusive_ptr<channel> chan);
-        void refresh(ev::async& a, int revent);
-        void accept_connection(ev::io& i, int revent);
+        hyperdex::physical::result_t get_channel(const hazard_ptr& hptr, const po6::net::location& to, channel** chan);
+        hyperdex::physical::result_t get_channel(const hazard_ptr& hptr, po6::net::socket* to, channel** chan);
+        // worker functions.
+        int work_accept(const hazard_ptr& hptr);
+        void work_close(const hazard_ptr& hptr, channel* chan);
+        bool work_read(const hazard_ptr& hptr, channel* chan, po6::net::location* from, e::buffer* msg, result_t* res);
+        bool work_write(channel* chan);
 
     private:
         physical& operator = (const physical&);
 
     private:
-        ev::loop_ref m_lr;
-        ev::async m_wakeup;
+        const long m_max_fds;
+        bool m_shutdown;
         po6::net::socket m_listen;
-        ev::io m_listen_event;
         po6::net::location m_bindto;
-        hyperdex::fifo_work_queue<message> m_incoming; // Messages buffered for reading.
-        e::lockfree_hash_map<po6::net::location, e::intrusive_ptr<channel>, po6::net::location::hash> m_channels;
-        po6::threads::mutex m_location_set_lock;
-        std::set<po6::net::location> m_location_set;
+        e::lockfree_fifo<message> m_incoming;
+        e::lockfree_hash_map<po6::net::location, int, po6::net::location::hash> m_locations;
+        e::hazard_ptrs<channel, 1> m_hazard_ptrs;
+        std::vector<channel*> m_channels;
+        bool m_paused;
+        po6::threads::mutex m_not_paused_lock;
+        po6::threads::cond m_not_paused;
+        size_t m_count_paused;
 };
 
 } // namespace hyperdex

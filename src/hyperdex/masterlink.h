@@ -31,6 +31,9 @@
 // STL
 #include <tr1/functional>
 
+// libev
+#include <ev++.h>
+
 // po6
 #include <po6/net/location.h>
 #include <po6/threads/thread.h>

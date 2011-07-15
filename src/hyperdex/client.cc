@@ -81,7 +81,7 @@ struct hyperdex :: client :: priv
     priv(po6::net::location coordinator)
         : dl()
         , wakeup(dl)
-        , phys(dl, po6::net::ipaddr::ANY(), false)
+        , phys(po6::net::ipaddr::ANY(), false)
         , config()
         , mapping()
         , space_assignment()
@@ -123,37 +123,53 @@ struct hyperdex :: client :: priv
         e::buffer packed;
 
         packed.pack() << msg_type << fromver << tover << from << to << msg;
-        phys.send(inst.inbound, &packed);
+
+        switch (phys.send(inst.inbound, &packed))
+        {
+            case physical::SUCCESS:
+            case physical::QUEUED:
+                return true;
+            case physical::CONNECTFAIL:
+            case physical::DISCONNECT:
+                return false;
+            case physical::SHUTDOWN:
+            case physical::LOGICERROR:
+            default:
+                assert(0);
+        }
+
         return true;
     }
 
     bool recv(entityid* ent, stream_no::stream_no_t* act, e::buffer* msg)
     {
-        while (!phys.pending())
-        {
-            dl.loop(EVLOOP_ONESHOT);
-        }
-
         po6::net::location loc;
         e::buffer packed;
 
-        if (phys.recv(&loc, &packed))
+        switch(phys.recv(&loc, &packed))
         {
-            uint8_t msg_type;
-            uint16_t fromver;
-            uint16_t tover;
-            entityid from;
-            entityid to;
+            case physical::SUCCESS:
+                break;
+            case physical::CONNECTFAIL:
+            case physical::DISCONNECT:
+                return false;
+            case physical::QUEUED:
+            case physical::SHUTDOWN:
+            case physical::LOGICERROR:
+            default:
+                assert(0);
+        }
 
-            packed.unpack() >> msg_type >> fromver >> tover >> from >> to >> *msg;
-            *ent = from;
-            *act = static_cast<stream_no::stream_no_t>(msg_type);
-            return true;
-        }
-        else
-        {
-            return false;
-        }
+        uint8_t msg_type;
+        uint16_t fromver;
+        uint16_t tover;
+        entityid from;
+        entityid to;
+
+        packed.unpack() >> msg_type >> fromver >> tover >> from >> to >> *msg;
+        *ent = from;
+        *act = static_cast<stream_no::stream_no_t>(msg_type);
+        return true;
     }
 
     // Do a request/response operation to the row leader for key in space.  This

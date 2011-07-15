@@ -31,9 +31,6 @@
 // STL
 #include <map>
 
-// libev
-#include <ev++.h>
-
 // po6
 #include <po6/net/location.h>
 #include <po6/threads/rwlock.h>
@@ -53,7 +50,7 @@ namespace hyperdex
 class logical
 {
     public:
-        logical(ev::loop_ref lr, const po6::net::ipaddr& us);
+        logical(const po6::net::ipaddr& us);
         ~logical();
 
     public:
