@@ -52,9 +52,10 @@ set(hyperdex_srcs
     src/hyperdex/city.cc
     src/hyperdex/client.cc
     src/hyperdex/configuration.cc
+    src/hyperdex/coordinatorlink.cc
+    src/hyperdex/daemon.cc
     src/hyperdex/datalayer.cc
     src/hyperdex/disk.cc
-    src/hyperdex/hyperdexd.cc
     src/hyperdex/log.cc
     src/hyperdex/logical.cc
     src/hyperdex/masterlink.cc

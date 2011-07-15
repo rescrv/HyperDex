@@ -25,53 +25,63 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// C
-#include <cstdio>
+#ifndef hyperdex_coordinatorlink_h_
+#define hyperdex_coordinatorlink_h_
 
-// POSIX
-#include <signal.h>
-
-// Google Log
-#include <glog/logging.h>
+// STL
+#include <string>
 
 // po6
-#include <po6/error.h>
+#include <po6/net/location.h>
+#include <po6/net/socket.h>
 
 // HyperDex
-#include <hyperdex/daemon.h>
+#include <hyperdex/configuration.h>
 
-int
-usage();
-
-int
-main(int argc, char* argv[])
+namespace hyperdex
 {
-    google::InitGoogleLogging(argv[0]);
 
-    if (argc != 4)
-    {
-        return usage();
-    }
-
-    // Run the daemon.
-    try
-    {
-        po6::net::location coordinator = po6::net::location(argv[1], atoi(argv[2]));
-        po6::net::ipaddr bind_to = argv[3];
-        return hyperdex::daemon(".", coordinator, bind_to, 4);
-    }
-    catch (std::exception& e)
-    {
-        LOG(ERROR) << "Uncaught exception:  " << e.what();
-    }
-
-    return EXIT_SUCCESS;
-}
-
-int
-usage()
+class coordinatorlink
 {
-    std::cerr << "Usage:  hyperdexd <coordinator ip> <coordinator port> <bind to>"
-              << std::endl;
-    return EXIT_FAILURE;
-}
+    public:
+        coordinatorlink(const po6::net::location& coordinator,
+                        const std::string& announce);
+        ~coordinatorlink() throw ();
+
+    // Unacknowledged is true if the current configuration has not been
+    // acknowledged.  Once acknowledge is called, it flips the state of
+    // "unacknowledged" to false until a new config is received.
+    public:
+        bool unacknowledged() const;
+        void acknowledge();
+
+    public:
+        void loop();
+        void shutdown();
+
+    public:
+        const hyperdex::configuration& config() const;
+
+    private:
+        coordinatorlink(const coordinatorlink&);
+
+    private:
+        bool send_to_coordinator(const char* msg, size_t len);
+
+    private:
+        coordinatorlink& operator = (const coordinatorlink&);
+
+    private:
+        const po6::net::location m_coordinator;
+        const std::string m_announce;
+        bool m_shutdown;
+        bool m_sent_ack;
+        bool m_config_valid;
+        configuration m_config;
+        po6::net::socket m_sock;
+        e::buffer m_partial;
+};
+
+} // namespace hyperdex
+
+#endif // hyperdex_coordinatorlink_h_

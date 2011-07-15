@@ -25,45 +25,25 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_hyperdexd_h_
-#define hyperdex_hyperdexd_h_
+// Only one thread should enter daemon at a time.  It creates other threads, and
+// relies upon static variables to communicate with signal handlers.
 
-// Libev
-#include <ev++.h>
+#ifndef hyperdex_daemon_h_
+#define hyperdex_daemon_h_
 
 // po6
 #include <po6/net/location.h>
+#include <po6/pathname.h>
 
 namespace hyperdex
 {
 
-class hyperdexd
-{
-    public:
-        hyperdexd();
-        ~hyperdexd();
-
-    public:
-        void set_bind_to(const po6::net::ipaddr& addr) { m_bind = addr; }
-        void set_master(const po6::net::location& loc) { m_master = loc; }
-        // This method blocks until the daemon is done running.
-        // The signal handlers of the calling thread will be affected.
-        void run();
-
-    private:
-        void HUP(ev::sig& s, int sig);
-        void INT(ev::sig& s, int sig);
-        void QUIT(ev::sig& s, int sig);
-        void TERM(ev::sig& s, int sig);
-        void USR1(ev::sig& s, int sig);
-        void USR2(ev::sig& s, int sig);
-
-    private:
-        bool m_continue;
-        po6::net::ipaddr m_bind;
-        po6::net::location m_master;
-};
-
-#endif // hyperdex_hyperdexd_h_
+int
+daemon(po6::pathname datadir,
+       po6::net::location coordinator,
+       po6::net::ipaddr bind_to,
+       uint16_t num_threads);
 
 } // namespace hyperdex
+
+#endif // hyperdex_daemon_h_
