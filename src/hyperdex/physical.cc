@@ -195,12 +195,15 @@ hyperdex :: physical :: recv(po6::net::location* from,
             }
         }
 
-        while (m_paused)
         {
             po6::threads::mutex::hold hold(&m_not_paused_lock);
-            ++m_count_paused;
-            m_not_paused.wait();
-            --m_count_paused;
+
+            while (m_paused)
+            {
+                ++m_count_paused;
+                m_not_paused.wait();
+                --m_count_paused;
+            }
         }
 
         if (poll(&pfds.front(), m_max_fds, 1000) < 0)
