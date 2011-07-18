@@ -58,6 +58,7 @@ hyperdex :: physical :: physical(const po6::net::ipaddr& ip, bool listen)
         // Enable other hosts to connect to us.
         m_listen.bind(po6::net::location(ip, 0));
         m_listen.listen(4);
+        m_listen.nonblocking();
 
         switch (get_channel(hptr, m_listen.getsockname(), &chan))
         {
@@ -374,7 +375,10 @@ hyperdex :: physical :: work_accept(const hazard_ptr& hptr)
     }
     catch (po6::error& e)
     {
-        LOG(INFO) << "Error accepting connection:  " << e.what();
+        if (e != EAGAIN && e != EINTR && e != EWOULDBLOCK)
+        {
+            LOG(INFO) << "Error accepting connection:  " << e.what();
+        }
     }
 
     return -1;
