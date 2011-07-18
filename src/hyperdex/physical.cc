@@ -280,6 +280,8 @@ hyperdex :: physical :: recv(po6::net::location* from,
 
             if (pfds[i].revents & POLLOUT)
             {
+                po6::threads::mutex::hold hold(&chan->mtx);
+
                 if (!work_write(chan))
                 {
                     pfds[i].events &= ~POLLOUT;
@@ -390,6 +392,12 @@ hyperdex :: physical :: work_close(const hazard_ptr& hptr, channel* chan)
     if (chan)
     {
         int fd = chan->soc.get();
+
+        if (fd == -1)
+        {
+            return;
+        }
+
         m_channels[fd] = NULL;
         m_locations.remove(chan->loc);
         chan->soc.close();
