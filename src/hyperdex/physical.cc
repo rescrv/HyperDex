@@ -209,8 +209,11 @@ hyperdex :: physical :: recv(po6::net::location* from,
 
         if (poll(&pfds.front(), m_max_fds, 1000) < 0)
         {
-            PLOG(INFO) << "poll failed";
-            return LOGICERROR;
+            if (errno != EAGAIN && errno != EINTR && errno != EWOULDBLOCK)
+            {
+                PLOG(INFO) << "poll failed";
+                return LOGICERROR;
+            }
         }
 
         for (int i = 0; i < m_max_fds; ++i)
