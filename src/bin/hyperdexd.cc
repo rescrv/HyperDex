@@ -38,7 +38,7 @@
 #include <po6/error.h>
 
 // HyperDex
-#include <hyperdex/hyperdexd.h>
+#include <hyperdex/daemon.h>
 
 int
 usage();
@@ -53,22 +53,12 @@ main(int argc, char* argv[])
         return usage();
     }
 
-    hyperdex::hyperdexd hyperdexd;
-    hyperdexd.set_master(po6::net::location(argv[1], atoi(argv[2])));
-    hyperdexd.set_bind_to(argv[3]);
-
     // Run the daemon.
     try
     {
-        hyperdexd.run();
-    }
-    catch (po6::error& e)
-    {
-        LOG(ERROR) << "Uncaught system error:  " << e.what();
-    }
-    catch (std::bad_alloc& ba)
-    {
-        LOG(ERROR) << "Out of memory:  " << ba.what();
+        po6::net::location coordinator = po6::net::location(argv[1], atoi(argv[2]));
+        po6::net::ipaddr bind_to = argv[3];
+        return hyperdex::daemon(".", coordinator, bind_to, 4);
     }
     catch (std::exception& e)
     {

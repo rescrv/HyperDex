@@ -30,9 +30,6 @@
 // C
 #include <stdint.h>
 
-// Libev
-#include <ev++.h>
-
 // Google Log
 #include <glog/logging.h>
 
@@ -40,66 +37,31 @@
 #include <hyperdex/buffer.h>
 #include <hyperdex/city.h>
 #include <hyperdex/client.h>
+#include <hyperdex/coordinatorlink.h>
 #include <hyperdex/hyperspace.h>
 #include <hyperdex/instance.h>
-#include <hyperdex/masterlink.h>
 #include <hyperdex/physical.h>
 #include <hyperdex/stream_no.h>
 
-class client_install_mapping
-{
-    public:
-        client_install_mapping(hyperdex::configuration* config,
-                               std::map<hyperdex::entityid, hyperdex::instance>* mapping,
-                               std::map<std::string, hyperdex::spaceid>* space_assignment,
-                               ev::async* wakeup)
-            : m_config(config)
-            , m_mapping(mapping)
-            , m_space_assignment(space_assignment)
-            , m_wakeup(wakeup)
-        {
-        }
-
-    public:
-        void operator () (const hyperdex::configuration& config)
-        {
-            *m_config = config;
-            *m_mapping = config.entity_mapping();
-            *m_space_assignment = config.space_assignment();
-            m_wakeup->send();
-        }
-
-    private:
-        hyperdex::configuration* m_config;
-        std::map<hyperdex::entityid, hyperdex::instance>* m_mapping;
-        std::map<std::string, hyperdex::spaceid>* m_space_assignment;
-        ev::async* m_wakeup;
-};
+// XXX TODO  This code does not receive more updates from the coordinator, and
+// so it will not survive across crashes.  That is OK, because it didn't survive
+// crashes before using the new coordinator.
 
 struct hyperdex :: client :: priv
 {
     priv(po6::net::location coordinator)
-        : dl()
-        , wakeup(dl)
-        , phys(dl, po6::net::ipaddr::ANY(), false)
+        : phys(po6::net::ipaddr::ANY(), false)
+        , cl(coordinator, "client\n")
         , config()
-        , mapping()
-        , space_assignment()
-        , ml(coordinator, "client\n", client_install_mapping(&config, &mapping, &space_assignment, &wakeup))
-        , id(UINT32_MAX, 0, 0, 0, 0)
     {
-        wakeup.set<priv, &priv::nil>(this);
-        wakeup.start();
     }
-
-    void nil(ev::async&, int) {}
 
     bool find_entity(const regionid& r, entityid* ent, instance* inst)
     {
         bool found = false;
 
-        for (std::map<entityid, instance>::iterator e = mapping.begin();
-                e != mapping.end(); ++e)
+        for (std::map<entityid, instance>::const_iterator e = config.entity_mapping().begin();
+                e != config.entity_mapping().end(); ++e)
         {
             if (overlap(e->first, r))
             {
@@ -123,37 +85,53 @@ struct hyperdex :: client :: priv
         e::buffer packed;
 
         packed.pack() << msg_type << fromver << tover << from << to << msg;
-        phys.send(inst.inbound, &packed);
+
+        switch (phys.send(inst.inbound, &packed))
+        {
+            case physical::SUCCESS:
+            case physical::QUEUED:
+                return true;
+            case physical::CONNECTFAIL:
+            case physical::DISCONNECT:
+                return false;
+            case physical::SHUTDOWN:
+            case physical::LOGICERROR:
+            default:
+                assert(0);
+        }
+
         return true;
     }
 
     bool recv(entityid* ent, stream_no::stream_no_t* act, e::buffer* msg)
     {
-        while (!phys.pending())
-        {
-            dl.loop(EVLOOP_ONESHOT);
-        }
-
         po6::net::location loc;
         e::buffer packed;
 
-        if (phys.recv(&loc, &packed))
+        switch(phys.recv(&loc, &packed))
         {
-            uint8_t msg_type;
-            uint16_t fromver;
-            uint16_t tover;
-            entityid from;
-            entityid to;
+            case physical::SUCCESS:
+                break;
+            case physical::CONNECTFAIL:
+            case physical::DISCONNECT:
+                return false;
+            case physical::QUEUED:
+            case physical::SHUTDOWN:
+            case physical::LOGICERROR:
+            default:
+                assert(0);
+        }
 
-            packed.unpack() >> msg_type >> fromver >> tover >> from >> to >> *msg;
-            *ent = from;
-            *act = static_cast<stream_no::stream_no_t>(msg_type);
-            return true;
-        }
-        else
-        {
-            return false;
-        }
+        uint8_t msg_type;
+        uint16_t fromver;
+        uint16_t tover;
+        entityid from;
+        entityid to;
+
+        packed.unpack() >> msg_type >> fromver >> tover >> from >> to >> *msg;
+        *ent = from;
+        *act = static_cast<stream_no::stream_no_t>(msg_type);
+        return true;
     }
 
     // Do a request/response operation to the row leader for key in space.  This
@@ -166,10 +144,10 @@ struct hyperdex :: client :: priv
                 stream_no::stream_no_t* type,
                 e::buffer* out)
     {
-        std::map<std::string, spaceid>::iterator sai;
+        std::map<std::string, spaceid>::const_iterator sai;
 
         // Map the string description to a number.
-        if ((sai = space_assignment.find(space)) == space_assignment.end())
+        if ((sai = config.space_assignment().find(space)) == config.space_assignment().end())
         {
             LOG(INFO) << "space name does not translate to space number.";
             return false;
@@ -211,23 +189,21 @@ struct hyperdex :: client :: priv
         return false;
     }
 
-    ev::dynamic_loop dl;
-    ev::async wakeup;
     hyperdex::physical phys;
+    hyperdex::coordinatorlink cl;
     hyperdex::configuration config;
-    std::map<entityid, instance> mapping;
-    std::map<std::string, spaceid> space_assignment;
-    hyperdex::masterlink ml;
-    entityid id;
 };
 
 hyperdex :: client :: client(po6::net::location coordinator)
     : p(new priv(coordinator))
 {
-    while (p->mapping.empty())
+    while (!p->cl.unacknowledged())
     {
-        p->dl.loop(EVLOOP_ONESHOT);
+        p->cl.loop();
     }
+
+    p->config = p->cl.config();
+    p->cl.acknowledge();
 }
 
 hyperdex :: result_t
@@ -309,10 +285,10 @@ hyperdex :: client :: search_results
 hyperdex :: client :: search(const std::string& space,
                              const hyperdex::search& terms)
 {
-    std::map<std::string, spaceid>::iterator sai;
+    std::map<std::string, spaceid>::const_iterator sai;
 
     // Map the string description to a number.
-    if ((sai = p->space_assignment.find(space)) == p->space_assignment.end())
+    if ((sai = p->config.space_assignment().find(space)) == p->config.space_assignment().end())
     {
         LOG(INFO) << "space name does not translate to space number.";
         return search_results();

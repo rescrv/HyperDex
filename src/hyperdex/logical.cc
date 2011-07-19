@@ -40,8 +40,7 @@
 #include <hyperdex/logical.h>
 #include <hyperdex/hyperspace.h>
 
-hyperdex :: logical :: logical(ev::loop_ref lr,
-                               const po6::net::ipaddr& ip)
+hyperdex :: logical :: logical(const po6::net::ipaddr& ip)
     : m_us()
     , m_client_lock()
     , m_config()
@@ -49,7 +48,7 @@ hyperdex :: logical :: logical(ev::loop_ref lr,
     , m_client_nums()
     , m_client_locs()
     , m_client_counter(0)
-    , m_physical(lr, ip)
+    , m_physical(ip)
 {
     // XXX Get the addresses of the underlying layer, and message the master to
     // get the versions.
@@ -239,9 +238,27 @@ hyperdex :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
     {
         e::buffer packed;
 
-        if (!m_physical.recv(&loc, &packed))
+        switch(m_physical.recv(&loc, &packed))
         {
-            return false;
+            case physical::SHUTDOWN:
+                return false;
+            case physical::SUCCESS:
+                break;
+            case physical::DISCONNECT:
+                LOG(INFO) << "XXX Tell the master we observed a disconnect.";
+                continue;
+            case physical::CONNECTFAIL:
+                LOG(ERROR) << "physical::recv unexpectedly returned CONNECTFAIL.";
+                continue;
+            case physical::QUEUED:
+                LOG(ERROR) << "physical::recv unexpectedly returned QUEUED.";
+                continue;
+            case physical::LOGICERROR:
+                LOG(ERROR) << "physical::recv unexpectedly returned LOGICERROR.";
+                continue;
+            default:
+                LOG(ERROR) << "physical::recv unexpectedly returned unknown state.";
+                continue;
         }
 
         if (packed.size() < sizeof(uint8_t) + 2 * sizeof(uint16_t) +
@@ -412,7 +429,27 @@ hyperdex :: logical :: send_you_hold_lock(const hyperdex::entityid& from,
     }
     else
     {
-        m_physical.send(dst, &finalmsg);
+        switch (m_physical.send(dst, &finalmsg))
+        {
+            case physical::SUCCESS:
+            case physical::QUEUED:
+                break;
+            case physical::CONNECTFAIL:
+                LOG(INFO) << "XXX Tell the master we observed a connection failure.";
+                return false;
+            case physical::DISCONNECT:
+                LOG(INFO) << "XXX Tell the master we observed a disconnect.";
+                return false;
+            case physical::SHUTDOWN:
+                LOG(ERROR) << "physical::recv unexpectedly returned SHUTDOWN.";
+                return false;
+            case physical::LOGICERROR:
+                LOG(ERROR) << "physical::recv unexpectedly returned LOGICERROR.";
+                return false;
+            default:
+                LOG(ERROR) << "physical::recv unexpectedly returned unknown state.";
+                return false;
+        }
     }
 
     return true;

@@ -32,13 +32,11 @@ set(CMAKE_CXX_FLAGS "${HyperDex_wanal} ${CMAKE_CXX_FLAGS}")
 # Find dependencies
 find_package(PkgConfig REQUIRED)
 pkg_search_module(GLOG REQUIRED libglog)
-pkg_search_module(EV REQUIRED libev)
 
 # Setup the include paths
 include_directories(include)
 include_directories(src)
 include_directories(SYSTEM ${GLOG_INCLUDE_DIRS})
-include_directories(SYSTEM ${EV_INCLUDE_DIRS})
 
 # Setup the headers
 set(hyperdex_headers
@@ -52,12 +50,12 @@ set(hyperdex_srcs
     src/hyperdex/city.cc
     src/hyperdex/client.cc
     src/hyperdex/configuration.cc
+    src/hyperdex/coordinatorlink.cc
+    src/hyperdex/daemon.cc
     src/hyperdex/datalayer.cc
     src/hyperdex/disk.cc
-    src/hyperdex/hyperdexd.cc
     src/hyperdex/log.cc
     src/hyperdex/logical.cc
-    src/hyperdex/masterlink.cc
     src/hyperdex/network_worker.cc
     src/hyperdex/physical.cc
     src/hyperdex/region.cc
@@ -77,7 +75,6 @@ set_target_properties(hyperdex
 )
 target_link_libraries(hyperdex
     LINK_INTERFACE_LIBRARIES
-    ${EV_LIBRARIES}
     ${GLOG_LIBRARIES}
     pthread
 )

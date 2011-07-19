@@ -25,66 +25,63 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_masterlink_h_
-#define hyperdex_masterlink_h_
+#ifndef hyperdex_coordinatorlink_h_
+#define hyperdex_coordinatorlink_h_
 
 // STL
-#include <tr1/functional>
+#include <string>
 
 // po6
 #include <po6/net/location.h>
-#include <po6/threads/thread.h>
+#include <po6/net/socket.h>
 
 // HyperDex
 #include <hyperdex/configuration.h>
-#include <hyperdex/datalayer.h>
-#include <hyperdex/logical.h>
 
 namespace hyperdex
 {
 
-class masterlink
+class coordinatorlink
 {
     public:
-        masterlink(const po6::net::location& loc,
-                   const std::string& announce,
-                   std::tr1::function<void (const hyperdex::configuration&)> inst);
-        ~masterlink();
+        coordinatorlink(const po6::net::location& coordinator,
+                        const std::string& announce);
+        ~coordinatorlink() throw ();
+
+    // Unacknowledged is true if the current configuration has not been
+    // acknowledged.  Once acknowledge is called, it flips the state of
+    // "unacknowledged" to false until a new config is received.
+    public:
+        bool unacknowledged() const;
+        void acknowledge();
 
     public:
+        void loop();
         void shutdown();
 
-    private:
-        masterlink(const masterlink&);
+    public:
+        const hyperdex::configuration& config() const;
 
     private:
-        void connect();
-        void io(ev::io& i, int revents);
-        void read();
-        void run();
-        void time(ev::timer& t, int revents);
-        void wake(ev::async& a, int revents);
-        void install();
+        coordinatorlink(const coordinatorlink&);
 
     private:
-        masterlink& operator = (const masterlink&);
+        bool send_to_coordinator(const char* msg, size_t len);
 
     private:
-        bool m_continue;
-        po6::net::location m_loc;
-        po6::net::socket m_sock;
-        po6::threads::thread m_thread;
-        ev::dynamic_loop m_dl;
-        ev::async m_wake;
-        ev::io m_io;
-        ev::timer m_timer;
-        e::buffer m_partial;
-        hyperdex::configuration m_config;
+        coordinatorlink& operator = (const coordinatorlink&);
+
+    private:
+        const po6::net::location m_coordinator;
+        const std::string m_announce;
+        bool m_shutdown;
+        bool m_sent_ack;
         bool m_config_valid;
-        std::tr1::function<void (const hyperdex::configuration&)> m_inst;
-        std::string m_announce;
+        configuration m_config;
+        po6::net::socket m_sock;
+        e::buffer m_partial;
 };
 
 } // namespace hyperdex
 
-#endif // hyperdex_masterlink_h_
+#endif // hyperdex_coordinatorlink_h_
