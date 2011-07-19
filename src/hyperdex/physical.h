@@ -138,7 +138,7 @@ class physical
 
     private:
         const long m_max_fds;
-        bool m_shutdown;
+        volatile bool m_shutdown;
         po6::net::socket m_listen;
         po6::net::location m_bindto;
         e::lockfree_fifo<message> m_incoming;

@@ -53,7 +53,7 @@ static bool s_continue = true;
 void
 sig_handle(int /*signum*/)
 {
-    LOG(ERROR) << "signal received; exiting.";
+    LOG(ERROR) << "signal received; triggering exit..";
     s_continue = false;
 }
 
@@ -93,6 +93,7 @@ hyperdex :: daemon(po6::pathname datadir,
                              << comm.inst().outbound;
     // Setup our link to the coordinator.
     coordinatorlink cl(coordinator, announce.str());
+    LOG(INFO) << "Receiving initial configuration from the coordinator.";
 
     while (s_continue && !cl.unacknowledged())
     {
@@ -100,6 +101,8 @@ hyperdex :: daemon(po6::pathname datadir,
     }
 
     // Start the network workers.
+    LOG(INFO) << "Starting network workers.";
+    num_threads = s_continue ? num_threads : 0;
     network_worker nw(&data, &comm, &ssss, &repl);
     std::tr1::function<void (hyperdex::network_worker*)> fnw(&hyperdex::network_worker::run);
     std::vector<thread_ptr> threads;
@@ -110,6 +113,8 @@ hyperdex :: daemon(po6::pathname datadir,
         t->start();
         threads.push_back(t);
     }
+
+    LOG(INFO) << "Network workers started.";
 
     while (s_continue)
     {
@@ -157,6 +162,8 @@ hyperdex :: daemon(po6::pathname datadir,
 
         cl.loop();
     }
+
+    LOG(INFO) << "Exiting daemon.";
 
     // Stop replication.
     repl.shutdown();
