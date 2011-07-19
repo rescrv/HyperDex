@@ -37,7 +37,6 @@
 
 // po6
 #include <po6/threads/mutex.h>
-#include <po6/threads/rwlock.h>
 
 // e
 #include <e/buffer.h>
@@ -188,7 +187,7 @@ class log
                 node& operator = (const node&);
 
             private:
-                size_t m_ref;
+                int m_ref;
         };
 
     private:
@@ -202,7 +201,7 @@ class log
         void release(node* pos);
 
     private:
-        po6::threads::rwlock m_head_lock;
+        po6::threads::mutex m_head_lock;
         po6::threads::mutex m_tail_lock;
         node* m_head;
         node* m_tail;
