@@ -30,9 +30,6 @@
 // C
 #include <stdint.h>
 
-// Libev
-#include <ev++.h>
-
 // Google Log
 #include <glog/logging.h>
 
