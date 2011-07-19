@@ -87,28 +87,31 @@ hyperdex :: log :: flush(std::tr1::function<void (op_t op,
                                                   uint64_t version)> save_one)
 {
     po6::threads::mutex::hold hold_flush(&m_flush_lock);
-    iterator cleanup(iterate());
-    iterator flushing(iterate());
-    std::auto_ptr<node> n(new node());
-    node* end = n.get();
-    common_append(n, false);
+    std::auto_ptr<node> end_(new node());
+    node* end = end_.get();
+    common_append(end_, false);
     size_t flushed = 0;
 
-    // XXX This flushes past "end".  This is a performance problem, not a
-    // correctness problem (as anyone who iterates the log, and refers to where
-    // it flushes to must be able to replay the log anyway).
-    for (; flushing.valid(); flushing.next())
+    node* head;
+
+    // Get a reference to the head.
     {
-        save_one(flushing.op(), flushing.point(), flushing.key(),
-                 flushing.key_hash(), flushing.value(), flushing.value_hashes(),
-                 flushing.version());
+        po6::threads::mutex::hold hold_head(&m_head_lock);
+        head = m_head;
     }
 
-    po6::threads::rwlock::wrhold hold_head(&m_head_lock);
-
-    while (m_head != end)
+    while (head != end)
     {
+        if (head->real)
+        {
+            save_one(head->op, head->point, head->key, head->key_hash,
+                     head->value, head->value_hashes, head->version);
+            ++flushed;
+        }
+
+        po6::threads::mutex::hold hold_head(&m_head_lock);
         step_list(&m_head);
+        head = m_head;
     }
 
     return flushed;
@@ -117,15 +120,16 @@ hyperdex :: log :: flush(std::tr1::function<void (op_t op,
 hyperdex::log::node*
 hyperdex :: log :: get_head()
 {
-    po6::threads::rwlock::rdhold hold(&m_head_lock);
+    po6::threads::mutex::hold hold(&m_head_lock);
     node* ret = m_head;
 
     if (ret)
     {
-        ret->inc();
+        int ref = ret->inc();
+        assert(ref >= 2);
     }
 
-    return m_head;
+    return ret;
 }
 
 void
@@ -133,22 +137,29 @@ hyperdex :: log :: step_list(node** pos)
 {
     node* cur = *pos;
     node* next = cur->next;
+    bool incr = false;
+    int ref;
 
     if (next)
     {
-        next->inc();
+        ref = next->inc();
+        assert(ref >= 2);
+        incr = true;
     }
 
     *pos = next;
 
-    int ref = cur->dec();
+    ref = cur->dec();
+    assert(ref >= 0);
 
     if (ref == 0)
     {
-        if (next)
+        __sync_synchronize();
+
+        if (cur->next && incr)
         {
-            int ref = next->dec();
-            assert(ref > 0);
+            ref = cur->next->dec();
+            assert(ref >= 1);
         }
 
         cur->next = NULL;
@@ -159,32 +170,21 @@ hyperdex :: log :: step_list(node** pos)
 void
 hyperdex :: log :: release(node* pos)
 {
+// XXX This way is super slow compared to what we could do.  On the other hand,
+// it's much easier to maintain.  This implementation requires iterating
+// iterating the whole log, which we shouldn't have to do; on the other hand,
+// the typical usage pattern of an iterator is to iterate until the end anyway,
+// so this is not a big concern).
+    while (pos && pos->next)
+    {
+        step_list(&pos);
+    }
+
+    po6::threads::mutex::hold hold(&m_tail_lock);
+
     while (pos)
     {
-        node* next = pos->next;
-
-        if (next)
-        {
-            next->inc();
-        }
-
-        int ref = pos->dec();
-
-        if (ref == 0)
-        {
-            if (next)
-            {
-                next->dec();
-            }
-
-            pos->next = NULL;
-            delete pos;
-            pos = next;
-        }
-        else
-        {
-            break;
-        }
+        step_list(&pos);
     }
 }
 
@@ -216,7 +216,8 @@ hyperdex :: log :: iterator :: iterator(const log::iterator& i)
 {
     if (m_n)
     {
-        m_n->inc();
+        int ref = m_n->inc();
+        assert(ref >= 2);
     }
 
     valid();
