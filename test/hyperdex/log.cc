@@ -132,11 +132,12 @@ TEST(LogTest, IterateAddIterate)
     EXPECT_FALSE(it.valid());
 }
 
-static void
+static bool
 NOP(hyperdex::op_t, uint64_t, const e::buffer&, uint64_t,
     const std::vector<e::buffer>&, const std::vector<uint64_t>&,
     uint64_t)
 {
+    return true;
 }
 
 TEST(LogTest, IterateFlushIterate)

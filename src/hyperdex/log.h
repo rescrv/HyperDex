@@ -102,7 +102,7 @@ class log
         bool append(uint64_t point, const e::buffer& key, uint64_t key_hash);
 
     public:
-        size_t flush(std::tr1::function<void (op_t op,
+        size_t flush(std::tr1::function<bool (op_t op,
                                               uint64_t point,
                                               const e::buffer& key,
                                               uint64_t key_hash,

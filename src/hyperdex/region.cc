@@ -335,16 +335,13 @@ hyperdex :: region :: get_point_for(uint64_t key_hash, const std::vector<uint64_
     return interlace(points);
 }
 
-void
+bool
 hyperdex :: region :: flush_one(op_t op, uint64_t point, const e::buffer& key,
                                 uint64_t key_hash,
                                 const std::vector<e::buffer>& value,
                                 const std::vector<uint64_t>& value_hashes,
                                 uint64_t version)
 {
-    // XXX to prevent excessive failures, we should probably add some logic here
-    // to block until a split occurs to resolve disk space issues.
-
     // Delete from every disk
     po6::threads::rwlock::wrhold hold(&m_rwlock);
 
@@ -361,10 +358,18 @@ hyperdex :: region :: flush_one(op_t op, uint64_t point, const e::buffer& key,
 
         result_t res = i->second->del(key, key_hash);
 
-        if (res != SUCCESS && res != NOTFOUND)
+        switch (res)
         {
-            // XXX FAIL DISK
-            LOG(INFO) << "Disk has failed.";
+            case SUCCESS:
+            case NOTFOUND:
+                break;
+            case DISKFULL:
+                return false;
+            case INVALID:
+            case ERROR:
+            default:
+                // XXX FAIL DISK
+                LOG(INFO) << "Disk has failed.";
         }
     }
 
@@ -382,13 +387,24 @@ hyperdex :: region :: flush_one(op_t op, uint64_t point, const e::buffer& key,
 
             result_t res = i->second->put(key, key_hash, value, value_hashes, version);
 
-            if (res != SUCCESS)
+            switch (res)
             {
-                // XXX FAIL DISK
-                LOG(INFO) << "Disk has failed.";
+                case SUCCESS:
+                    break;
+                case DISKFULL:
+                    return false;
+                case NOTFOUND:
+                    LOG(INFO) << "PUT returned NOTFOUND? Rediculous.";
+                case INVALID:
+                case ERROR:
+                default:
+                    // XXX FAIL DISK
+                    LOG(INFO) << "Disk has failed.";
             }
         }
     }
+
+    return true;
 }
 
 e::intrusive_ptr<hyperdex::region::snapshot>

@@ -78,7 +78,7 @@ hyperdex :: log :: append(uint64_t point,
 }
 
 size_t
-hyperdex :: log :: flush(std::tr1::function<void (op_t op,
+hyperdex :: log :: flush(std::tr1::function<bool (op_t op,
                                                   uint64_t point,
                                                   const e::buffer& key,
                                                   uint64_t key_hash,
@@ -104,8 +104,12 @@ hyperdex :: log :: flush(std::tr1::function<void (op_t op,
     {
         if (head->real)
         {
-            save_one(head->op, head->point, head->key, head->key_hash,
-                     head->value, head->value_hashes, head->version);
+            if (!save_one(head->op, head->point, head->key, head->key_hash,
+                          head->value, head->value_hashes, head->version))
+            {
+                return flushed;
+            }
+
             ++flushed;
         }
 
