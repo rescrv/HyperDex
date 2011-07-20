@@ -100,7 +100,7 @@ class disk
         void drop();
         e::intrusive_ptr<snapshot> make_snapshot();
 
-    public:
+    private:
         static const size_t HASH_TABLE_ENTRIES = 262144;
         static const size_t HASH_TABLE_SIZE = HASH_TABLE_ENTRIES * 8;
         static const size_t SEARCH_INDEX_ENTRIES = HASH_TABLE_ENTRIES;
