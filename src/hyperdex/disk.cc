@@ -27,6 +27,9 @@
 
 #define __STDC_LIMIT_MACROS
 
+// C
+#include <cstdio>
+
 // POSIX
 #include <endian.h>
 #include <sys/mman.h>
@@ -44,71 +47,39 @@
 #include <hyperdex/disk.h>
 #include <hyperdex/hyperspace.h>
 
-hyperdex :: disk :: disk(const po6::pathname& filename)
-    : m_ref(0)
-    , m_base(NULL)
-    , m_offset(INDEX_SEGMENT_SIZE)
-    , m_search(0)
+e::intrusive_ptr<hyperdex::disk>
+hyperdex :: disk :: create(const po6::pathname& filename)
 {
-    po6::io::fd fd(open(filename.get(), O_RDWR));
+    // XXX Open a temporary file in fd with path tmp.
+    po6::io::fd fd;
+    po6::pathname tmp = filename;
 
-    if (fd.get() < 0)
-    {
-        zero_fill(filename);
-        fd = open(filename.get(), O_RDWR);
-
-        if (fd.get() < 0)
-        {
-            throw po6::error(errno);
-        }
-    }
-
-    struct stat buf;
-
-    if (fstat(fd.get(), &buf) < 0)
+    if (!po6::mkstemp(&fd, &tmp))
     {
         throw po6::error(errno);
     }
 
-    if (buf.st_size < static_cast<off_t>(TOTAL_FILE_SIZE))
+    // Make sure that tmp is unlinked under all normal circumstances.
+    e::guard g_unlink = e::makeguard(unlink, tmp.get());
+
+    // Truncate it to the correct size.
+    if (ftruncate(fd.get(), TOTAL_FILE_SIZE) < 0)
     {
-        throw std::runtime_error("Disk is too small.");
+        throw po6::error(errno);
     }
 
-    m_base = static_cast<char*>(mmap(NULL, TOTAL_FILE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd.get(), 0));
+    // Create the disk object.
+    e::intrusive_ptr<disk> ret = new disk(&fd, filename);
 
-    if (m_base == MAP_FAILED
-        || madvise(m_base, HASH_TABLE_SIZE, MADV_WILLNEED) < 0
-        || madvise(m_base + HASH_TABLE_SIZE, SEARCH_INDEX_SIZE, MADV_SEQUENTIAL) < 0
-        || madvise(m_base + INDEX_SEGMENT_SIZE, DATA_SEGMENT_SIZE, MADV_RANDOM) < 0)
+    // Move the filename.
+    if (rename(tmp.get(), filename.get()) < 0)
     {
-        int saved = errno;
-
-        if (m_base != MAP_FAILED)
-        {
-            if (munmap(m_base, TOTAL_FILE_SIZE) < 0)
-            {
-                PLOG(WARNING) << "Could not mmap disk";
-            }
-        }
-
-        throw po6::error(saved);
+        LOG(INFO) << "Could not rename disk.";
+        throw po6::error(errno);
     }
-}
 
-hyperdex :: disk :: ~disk()
-                    throw ()
-{
-    try
-    {
-        if (munmap(m_base, TOTAL_FILE_SIZE) < 0)
-        {
-            PLOG(WARNING) << "Could not munmap disk";
-        }
-    }
-    catch (...)
-    {
-    }
+    g_unlink.dismiss();
+    return ret;
 }
 
 hyperdex :: result_t
@@ -272,14 +243,49 @@ hyperdex :: disk :: async()
 void
 hyperdex :: disk :: drop()
 {
-    // XXX
+    if (unlink(m_filename.get()) < 0)
+    {
+        PLOG(WARNING) << "Could not drop disk \"" << m_filename << "\"";
+    }
 }
 
 e::intrusive_ptr<hyperdex::disk::snapshot>
 hyperdex :: disk :: make_snapshot()
 {
-    e::intrusive_ptr<snapshot> ret = new snapshot(this);
+    e::intrusive_ptr<disk> d = this;
+    assert(m_ref >= 2);
+    e::intrusive_ptr<snapshot> ret = new snapshot(d);
     return ret;
+}
+
+hyperdex :: disk :: disk(po6::io::fd* fd, const po6::pathname& filename)
+    : m_ref(0)
+    , m_base(NULL)
+    , m_offset(INDEX_SEGMENT_SIZE)
+    , m_search(0)
+    , m_filename(filename)
+{
+    m_base = static_cast<char*>(mmap(NULL, TOTAL_FILE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd->get(), 0));
+
+    if (m_base == MAP_FAILED)
+    {
+        throw po6::error(errno);
+    }
+}
+
+hyperdex :: disk :: ~disk()
+                    throw ()
+{
+    try
+    {
+        if (munmap(m_base, TOTAL_FILE_SIZE) < 0)
+        {
+            PLOG(WARNING) << "Could not munmap disk";
+        }
+    }
+    catch (...)
+    {
+    }
 }
 
 size_t
@@ -525,24 +531,11 @@ hyperdex :: disk :: snapshot :: value()
     return v;
 }
 
-// XXX When disks become entirely intrusive_ptr-based, we should hold an
-// intrusive_ptr here.
-hyperdex :: disk :: snapshot :: snapshot(disk* d)
+hyperdex :: disk :: snapshot :: snapshot(e::intrusive_ptr<disk> d)
     : m_ref(0)
     , m_valid(true)
     , m_disk(d)
     , m_limit(d->m_offset)
     , m_entry(0)
 {
-}
-
-void
-hyperdex :: zero_fill(const po6::pathname& filename)
-{
-    po6::io::fd fd(open(filename.get(), O_RDWR|O_CREAT|O_EXCL, S_IRUSR|S_IWUSR));
-
-    if (ftruncate(fd.get(), disk::TOTAL_FILE_SIZE) < 0)
-    {
-        throw po6::error(errno);
-    }
 }

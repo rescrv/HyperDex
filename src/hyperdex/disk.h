@@ -39,12 +39,10 @@
 #include <hyperdex/result_t.h>
 #include <hyperdex/op_t.h>
 
-// XXX Only allow disks to be created under e::intrusive_ptr.
-
 namespace hyperdex
 {
 
-// This allocates a zero-filled 1GB + 4MB file at "filename".  The initial 4MB
+// This allocates a zero-filled 256MB + 5MB file at "filename".  The initial 5MB
 // is used for a hash table and a log-style index which index the disk.  The
 // first hash table indexes solely by the key, while the second is an
 // append-only log used for answering searches in a history-preserving way.
@@ -73,19 +71,21 @@ class disk
                 friend class disk;
 
             private:
-                snapshot(disk* d);
+                snapshot(e::intrusive_ptr<disk> d);
 
             private:
                 size_t m_ref;
                 bool m_valid;
-                disk* m_disk;
+                e::intrusive_ptr<disk> m_disk;
                 const uint32_t m_limit;
                 uint32_t m_entry;
         };
 
     public:
-        disk(const po6::pathname& filename);
-        ~disk() throw ();
+        // Create will create a newly initialized disk at the given filename,
+        // even if it already exists.  That is, it will overwrite the existing
+        // disk (or other file) at "filename".
+        static e::intrusive_ptr<disk> create(const po6::pathname& filename);
 
     public:
         result_t get(const e::buffer& key, uint64_t key_hash,
@@ -114,7 +114,9 @@ class disk
         friend class snapshot;
 
     private:
+        disk(po6::io::fd* fd, const po6::pathname& filename);
         disk(const disk&);
+        ~disk() throw ();
 
     private:
         uint32_t* hashtable_base(size_t entry) const
@@ -185,10 +187,8 @@ class disk
         char* m_base;
         uint32_t m_offset;
         uint32_t m_search;
+        po6::pathname m_filename;
 };
-
-void
-zero_fill(const po6::pathname& filename);
 
 } // namespace hyperdex
 

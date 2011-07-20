@@ -260,7 +260,15 @@ hyperdex :: region :: sync()
 void
 hyperdex :: region :: drop()
 {
-    // XXX
+    for (disk_vector::iterator d = m_disks.begin(); d != m_disks.end(); ++d)
+    {
+        d->second->drop();
+    }
+
+    if (rmdir(m_base.get()) < 0)
+    {
+        PLOG(INFO) << "Could not remove region directory.";
+    }
 }
 
 e::intrusive_ptr<hyperdex::region::snapshot>
@@ -285,7 +293,7 @@ hyperdex :: region :: create_disk(const regionid& ri)
     std::ostringstream ostr;
     ostr << ri;
     po6::pathname path = po6::join(m_base, po6::pathname(ostr.str()));
-    e::intrusive_ptr<disk> newdisk = new disk(path);
+    e::intrusive_ptr<disk> newdisk = disk::create(path);
     return newdisk;
 }
 
