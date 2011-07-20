@@ -321,7 +321,7 @@ hyperdex :: datalayer :: flush_loop()
 void
 hyperdex :: datalayer :: create_region(const regionid& ri, uint16_t num_columns)
 {
-    LOG(INFO) << "Creating region " << ri << " with " << num_columns << " columns.";
+    LOG(INFO) << "Creating " << ri << " with " << num_columns << " columns.";
     region_ptr reg;
     reg = new region(ri, m_base, num_columns);
     po6::threads::rwlock::wrhold hold(&m_lock);
@@ -337,7 +337,7 @@ hyperdex :: datalayer :: drop_region(const regionid& ri)
 
     if (i != m_regions.end())
     {
-        LOG(INFO) << "Dropping region " << ri << ".";
+        LOG(INFO) << "Dropping " << ri << ".";
         i->second->drop();
         m_regions.erase(i);
     }
