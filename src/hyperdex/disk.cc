@@ -50,7 +50,7 @@
 e::intrusive_ptr<hyperdex::disk>
 hyperdex :: disk :: create(const po6::pathname& filename)
 {
-    // XXX Open a temporary file in fd with path tmp.
+    // Open a temporary file in fd with path tmp.
     po6::io::fd fd;
     po6::pathname tmp = filename;
 
