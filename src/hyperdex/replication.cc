@@ -33,6 +33,9 @@
 // STL
 #include <tr1/functional>
 
+// Google CityHash
+#include <city/city.h>
+
 // Google Log
 #include <glog/logging.h>
 
@@ -42,7 +45,6 @@
 
 // HyperDex
 #include <hyperdex/buffer.h>
-#include <hyperdex/city.h>
 #include <hyperdex/hyperspace.h>
 #include <hyperdex/replication.h>
 #include <hyperdex/stream_no.h>

@@ -5,5 +5,5 @@ Google's CityHash
     License:  MIT
     Copyright:  See headers.
     Files:
-     - src/hyperdex/city.h
-     - src/hyperdex/city.cc
+     - src/city/city.h
+     - src/city/city.cc
