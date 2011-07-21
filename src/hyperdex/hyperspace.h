@@ -32,8 +32,10 @@
 #include <cassert>
 #include <stdint.h>
 
+// Google CityHash
+#include <city/city.h>
+
 // HyperDex
-#include <hyperdex/city.h>
 #include <hyperdex/ids.h>
 
 namespace hyperdex

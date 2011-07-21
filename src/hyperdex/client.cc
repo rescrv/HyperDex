@@ -30,12 +30,14 @@
 // C
 #include <stdint.h>
 
+// Google CityHash
+#include <city/city.h>
+
 // Google Log
 #include <glog/logging.h>
 
 // HyperDex
 #include <hyperdex/buffer.h>
-#include <hyperdex/city.h>
 #include <hyperdex/client.h>
 #include <hyperdex/coordinatorlink.h>
 #include <hyperdex/hyperspace.h>

@@ -38,6 +38,24 @@ include_directories(include)
 include_directories(src)
 include_directories(SYSTEM ${GLOG_INCLUDE_DIRS})
 
+# Enable shared libraries
+set(BUILD_SHARED_LIBS ON)
+
+###############################################################################
+###############################  CityHash  ####################################
+###############################################################################
+
+# The CityHash project courtesy of Google
+set(cityhash_srcs
+    src/city/city.cc
+)
+
+add_library(cityhash STATIC ${cityhash_srcs})
+
+###############################################################################
+##################################  Old  ######################################
+###############################################################################
+
 # Setup the headers
 set(hyperdex_headers
     include/hyperdex/instance.h
@@ -47,7 +65,6 @@ set(hyperdex_headers
 
 # Setup the sources
 set(hyperdex_srcs
-    src/hyperdex/city.cc
     src/hyperdex/client.cc
     src/hyperdex/configuration.cc
     src/hyperdex/coordinatorlink.cc
@@ -65,7 +82,6 @@ set(hyperdex_srcs
 )
 
 # Build libhyperdex
-set(BUILD_SHARED_LIBS ON)
 add_library(hyperdex ${hyperdex_srcs})
 set_target_properties(hyperdex
     PROPERTIES
@@ -75,6 +91,7 @@ set_target_properties(hyperdex
 )
 target_link_libraries(hyperdex
     LINK_INTERFACE_LIBRARIES
+    cityhash
     ${GLOG_LIBRARIES}
     pthread
 )
@@ -83,12 +100,14 @@ target_link_libraries(hyperdex
 add_executable(hyperdexd src/bin/hyperdexd.cc)
 target_link_libraries(hyperdexd
     hyperdex
+    cityhash
 )
 
 # Build count benchmark
 add_executable(count src/bin/count.cc)
 target_link_libraries(count
     hyperdex
+    cityhash
     rt
 )
 
@@ -96,6 +115,7 @@ target_link_libraries(count
 add_executable(binary src/bin/binary.cc)
 target_link_libraries(binary
     hyperdex
+    cityhash
     rt
 )
 
@@ -116,6 +136,7 @@ add_executable(testrunner test/runner.cc ${hyperdex_test_srcs})
 # TODO properly detect gtest.
 target_link_libraries(testrunner
     hyperdex
+    cityhash
     gtest
 )
 

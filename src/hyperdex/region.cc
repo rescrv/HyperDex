@@ -34,6 +34,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+// Google CityHash
+#include <city/city.h>
+
 // Google Log
 #include <glog/logging.h>
 
@@ -41,7 +44,6 @@
 #include <e/guard.h>
 
 // HyperDex
-#include <hyperdex/city.h>
 #include <hyperdex/hyperspace.h>
 #include <hyperdex/region.h>
 
