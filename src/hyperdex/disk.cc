@@ -258,12 +258,12 @@ hyperdex :: disk :: make_snapshot()
     return ret;
 }
 
-hyperdex :: disk :: disk(po6::io::fd* fd, const po6::pathname& filename)
+hyperdex :: disk :: disk(po6::io::fd* fd, const po6::pathname& fn)
     : m_ref(0)
     , m_base(NULL)
     , m_offset(INDEX_SEGMENT_SIZE)
     , m_search(0)
-    , m_filename(filename)
+    , m_filename(fn)
 {
     m_base = static_cast<char*>(mmap(NULL, TOTAL_FILE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd->get(), 0));
 

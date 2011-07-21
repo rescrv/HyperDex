@@ -27,6 +27,9 @@
 
 #define __STDC_LIMIT_MACROS
 
+// C
+#include <cstdio>
+
 // POSIX
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -42,8 +45,6 @@
 #include <hyperdex/hyperspace.h>
 #include <hyperdex/region.h>
 
-// XXX Implement splitting.
-
 hyperdex :: region :: region(const regionid& ri, const po6::pathname& base, uint16_t nc)
     : m_ref(0)
     , m_numcolumns(nc)
@@ -52,6 +53,7 @@ hyperdex :: region :: region(const regionid& ri, const po6::pathname& base, uint
     , m_rwlock()
     , m_disks()
     , m_base()
+    , m_needs_more_space()
 {
     // The base directory for this region.
     std::ostringstream ostr;
@@ -68,10 +70,7 @@ hyperdex :: region :: region(const regionid& ri, const po6::pathname& base, uint
 
     // Create a starting disk which holds everything.
     regionid starting(regionid(ri.get_subspace(), 0));
-    e::intrusive_ptr<disk> newdisk = create_disk(starting);
-    e::guard disk_guard = e::makeobjguard(*newdisk, &disk::drop);
-    m_disks.push_back(std::make_pair(starting, newdisk));
-    disk_guard.dismiss();
+    create_disk(starting);
     rmdir_guard.dismiss();
 }
 
@@ -121,7 +120,7 @@ hyperdex :: region :: get(const e::buffer& key,
     uint64_t key_point = get_point_for(key_hash);
     po6::threads::rwlock::rdhold hold(&m_rwlock);
 
-    for (disk_vector::iterator i = m_disks.begin(); i != m_disks.end(); ++i)
+    for (disk_collection::iterator i = m_disks.begin(); i != m_disks.end(); ++i)
     {
         uint64_t pmask = prefixmask(i->first.prefix);
 
@@ -223,7 +222,7 @@ hyperdex :: region :: del(const e::buffer& key)
     }
 }
 
-size_t
+bool
 hyperdex :: region :: flush()
 {
     using std::tr1::placeholders::_1;
@@ -233,7 +232,34 @@ hyperdex :: region :: flush()
     using std::tr1::placeholders::_5;
     using std::tr1::placeholders::_6;
     using std::tr1::placeholders::_7;
-    return m_log.flush(std::tr1::bind(&region::flush_one, this, _1, _2, _3, _4, _5, _6, _7));
+    size_t flushed = m_log.flush(std::tr1::bind(&region::flush_one, this, _1, _2, _3, _4, _5, _6, _7));
+    bool split = false;
+
+    for (std::set<regionid>::iterator i = m_needs_more_space.begin();
+            i != m_needs_more_space.end(); ++i)
+    {
+        disk_collection::iterator di = m_disks.find(*i);
+
+        if (di == m_disks.end())
+        {
+            continue;
+        }
+
+        split = true;
+        e::intrusive_ptr<disk> d = di->second;
+
+        if (d->needs_cleaning())
+        {
+            clean_disk(*i);
+        }
+        else
+        {
+            split_disk(*i);
+        }
+    }
+
+    m_needs_more_space.clear();
+    return split || flushed > 0;
 }
 
 void
@@ -241,7 +267,7 @@ hyperdex :: region :: async()
 {
     po6::threads::rwlock::rdhold hold(&m_rwlock);
 
-    for (disk_vector::iterator i = m_disks.begin(); i != m_disks.end(); ++i)
+    for (disk_collection::iterator i = m_disks.begin(); i != m_disks.end(); ++i)
     {
         i->second->async();
     }
@@ -252,7 +278,7 @@ hyperdex :: region :: sync()
 {
     po6::threads::rwlock::rdhold hold(&m_rwlock);
 
-    for (disk_vector::iterator i = m_disks.begin(); i != m_disks.end(); ++i)
+    for (disk_collection::iterator i = m_disks.begin(); i != m_disks.end(); ++i)
     {
         i->second->sync();
     }
@@ -261,7 +287,7 @@ hyperdex :: region :: sync()
 void
 hyperdex :: region :: drop()
 {
-    for (disk_vector::iterator d = m_disks.begin(); d != m_disks.end(); ++d)
+    for (disk_collection::iterator d = m_disks.begin(); d != m_disks.end(); ++d)
     {
         d->second->drop();
     }
@@ -295,6 +321,9 @@ hyperdex :: region :: create_disk(const regionid& ri)
     ostr << ri;
     po6::pathname path = po6::join(m_base, po6::pathname(ostr.str()));
     e::intrusive_ptr<disk> newdisk = disk::create(path);
+    e::guard disk_guard = e::makeobjguard(*newdisk, &disk::drop);
+    m_disks.insert(std::make_pair(ri, newdisk));
+    disk_guard.dismiss();
     return newdisk;
 }
 
@@ -346,7 +375,7 @@ hyperdex :: region :: flush_one(op_t op, uint64_t point, const e::buffer& key,
     // Delete from every disk
     po6::threads::rwlock::wrhold hold(&m_rwlock);
 
-    for (disk_vector::iterator i = m_disks.begin(); i != m_disks.end(); ++i)
+    for (disk_collection::iterator i = m_disks.begin(); i != m_disks.end(); ++i)
     {
         // Use m_point_mask because we want every disk which could have this
         // key.
@@ -365,6 +394,7 @@ hyperdex :: region :: flush_one(op_t op, uint64_t point, const e::buffer& key,
             case NOTFOUND:
                 break;
             case DISKFULL:
+                m_needs_more_space.insert(i->first);
                 return false;
             case INVALID:
             case ERROR:
@@ -377,7 +407,7 @@ hyperdex :: region :: flush_one(op_t op, uint64_t point, const e::buffer& key,
     // Put to one disk
     if (op == PUT)
     {
-        for (disk_vector::iterator i = m_disks.begin(); i != m_disks.end(); ++i)
+        for (disk_collection::iterator i = m_disks.begin(); i != m_disks.end(); ++i)
         {
             uint64_t pmask = prefixmask(i->first.prefix);
 
@@ -393,6 +423,7 @@ hyperdex :: region :: flush_one(op_t op, uint64_t point, const e::buffer& key,
                 case SUCCESS:
                     break;
                 case DISKFULL:
+                    m_needs_more_space.insert(i->first);
                     return false;
                 case NOTFOUND:
                     LOG(INFO) << "PUT returned NOTFOUND? Rediculous.";
@@ -413,13 +444,57 @@ hyperdex :: region :: inner_make_snapshot()
 {
     std::vector<e::intrusive_ptr<disk::snapshot> > snaps;
 
-    for (disk_vector::iterator d = m_disks.begin(); d != m_disks.end(); ++d)
+    for (disk_collection::iterator d = m_disks.begin(); d != m_disks.end(); ++d)
     {
         snaps.push_back(d->second->make_snapshot());
     }
 
     e::intrusive_ptr<snapshot> ret(new snapshot(&snaps));
     return ret;
+}
+
+void
+hyperdex :: region :: clean_disk(const regionid& ri)
+{
+    disk_collection::iterator di = m_disks.find(ri);
+
+    if (di == m_disks.end())
+    {
+        return;
+    }
+
+    e::intrusive_ptr<disk::snapshot> snap = di->second->make_snapshot();
+    po6::pathname path = po6::join(m_base, "tmp");
+    e::intrusive_ptr<disk> newdisk = disk::create(path);
+    e::guard disk_guard = e::makeobjguard(*newdisk, &disk::drop);
+
+    for (; snap->valid(); snap->next())
+    {
+        e::buffer key(snap->key());
+        std::vector<e::buffer> value(snap->value());
+        uint64_t key_hash;
+        std::vector<uint64_t> value_hashes;
+        hyperspace::point_hashes(key, value, &key_hash, &value_hashes);
+        newdisk->put(key, key_hash, value, value_hashes, snap->version());
+    }
+
+    if (rename(path.get(), di->second->filename().get()) < 0)
+    {
+        PLOG(WARNING) << "Could not rename newly cleaned disk.";
+        return;
+    }
+
+    disk_guard.dismiss();
+    newdisk->filename(di->second->filename());
+    LOG(INFO) << "Successfully cleaned " << di->second->filename();
+    po6::threads::rwlock::wrhold hold(&m_rwlock);
+    m_disks[ri] = newdisk;
+}
+
+void
+hyperdex :: region :: split_disk(const regionid& ri)
+{
+    LOG(FATAL) << "THIS IS NOT IMPLEMENTED"; // XXX;
 }
 
 hyperdex :: region :: snapshot :: snapshot(std::vector<e::intrusive_ptr<disk::snapshot> >* ss)

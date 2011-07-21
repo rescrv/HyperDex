@@ -300,7 +300,7 @@ hyperdex :: datalayer :: flush_loop()
         for (std::set<e::intrusive_ptr<region> >::iterator i = to_flush.begin();
                     i != to_flush.end(); ++i)
         {
-            if ((*i)->flush() > 0)
+            if ((*i)->flush())
             {
                 sleep = false;
             }

@@ -30,6 +30,7 @@
 
 // STL
 #include <map>
+#include <set>
 #include <utility>
 #include <vector>
 
@@ -45,6 +46,11 @@
 #include <hyperdex/ids.h>
 #include <hyperdex/log.h>
 #include <hyperdex/result_t.h>
+
+// XXX The use of the rwlock makes things take a performance hit when cleaning
+// or splitting regions.  This shouldn't be necessary.  Instead, what we should
+// do is ensure that disks allow many readers/one writer, and then just protect
+// the writers (a single mutex around flush will do this just fine).
 
 // XXX The whole "region" class and subclasses (e.g., disk) do not have a
 // "shutdown" method.  This means that it's not possible to safely shutdown a
@@ -125,7 +131,7 @@ class region
         result_t put(const e::buffer& key, const std::vector<e::buffer>& value,
                      uint64_t version);
         result_t del(const e::buffer& key);
-        size_t flush();
+        bool flush();
         void async();
         void sync();
         void drop();
@@ -136,6 +142,8 @@ class region
         friend class e::intrusive_ptr<region>;
 
     private:
+        // Create disk requires exclusive access to m_disks (m_rwlock as a write
+        // lock).
         e::intrusive_ptr<disk> create_disk(const regionid& ri);
         void get_value_hashes(const std::vector<e::buffer>& value, std::vector<uint64_t>* value_hashes);
         uint64_t get_point_for(uint64_t key_hash);
@@ -144,6 +152,8 @@ class region
                        uint64_t key_hash, const std::vector<e::buffer>& value,
                        const std::vector<uint64_t>& value_hashes, uint64_t version);
         e::intrusive_ptr<snapshot> inner_make_snapshot();
+        void clean_disk(const regionid& ri);
+        void split_disk(const regionid& ri);
 
     private:
         size_t m_ref;
@@ -151,9 +161,10 @@ class region
         uint64_t m_point_mask;
         log m_log;
         po6::threads::rwlock m_rwlock;
-        typedef std::vector<std::pair<regionid, e::intrusive_ptr<disk> > > disk_vector;
-        disk_vector m_disks;
+        typedef std::map<regionid, e::intrusive_ptr<disk> > disk_collection;
+        disk_collection m_disks;
         po6::pathname m_base;
+        std::set<regionid> m_needs_more_space;
 };
 
 } // namespace hyperdex

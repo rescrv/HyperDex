@@ -95,10 +95,16 @@ class disk
                      const std::vector<uint64_t>& value_hashes,
                      uint64_t version);
         result_t del(const e::buffer& key, uint64_t key_hash);
+        // Judge whether there would be a suitably large amount of space on this
+        // disk after cleaning all dead segments.  If not, and the disk still
+        // gives "DISKFULL" errors, we need to split the disk instead.
+        bool needs_cleaning() const { return true; }
         void async();
         void sync();
         void drop();
         e::intrusive_ptr<snapshot> make_snapshot();
+        po6::pathname filename() const { return m_filename; }
+        void filename(const po6::pathname& fn) { m_filename = fn; }
 
     private:
         static const size_t HASH_TABLE_ENTRIES = 262144;
