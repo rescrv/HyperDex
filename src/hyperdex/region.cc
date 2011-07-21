@@ -75,6 +75,7 @@ hyperdex :: region :: region(const regionid& ri, const po6::pathname& base, uint
     rmdir_guard.dismiss();
 }
 
+// XXX Double check the logic of GET to make sure it is indeed linearizable.
 hyperdex :: result_t
 hyperdex :: region :: get(const e::buffer& key,
                           std::vector<e::buffer>* value,
