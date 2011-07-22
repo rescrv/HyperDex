@@ -181,7 +181,7 @@ class replication_manager
         configuration m_config;
         e::striped_lock<po6::threads::mutex> m_locks;
         po6::threads::mutex m_keyholders_lock;
-        std::map<replication::keypair, e::intrusive_ptr<replication::keyholder> > m_keyholders;
+        std::tr1::unordered_map<replication::keypair, e::intrusive_ptr<replication::keyholder>, replication::keypair::hash> m_keyholders;
         e::lockfree_hash_set<replication::clientop, replication::clientop::hash> m_clientops;
         bool m_shutdown;
         po6::threads::thread m_periodic_thread;

@@ -31,6 +31,7 @@
 // e
 #include <e/buffer.h>
 #include <e/intrusive_ptr.h>
+#include <e/tuple_compare.h>
 
 // HyperDex
 #include <hyperdex/ids.h>
@@ -43,11 +44,24 @@ namespace replication
 class keypair
 {
     public:
+        struct hash
+        {
+            size_t operator () (const keypair& k) const
+            {
+                uint64_t hs = 0;
+                memmove(&hs, k.key.get(), std::min(k.key.size(), static_cast<size_t>(8)));
+                hs ^= k.region.hash();
+                return hs;
+            }
+        };
+
+    public:
         keypair();
         keypair(const regionid& r, const e::buffer& k);
 
     public:
         bool operator < (const keypair& rhs) const;
+        bool operator == (const keypair& rhs) const;
 
     public:
         const regionid region;
@@ -83,6 +97,13 @@ keypair :: operator < (const keypair& rhs) const
     }
 
     return lhs.key < rhs.key;
+}
+
+inline bool
+keypair :: operator == (const keypair& rhs) const
+{
+    const keypair& lhs(*this);
+    return lhs.region == rhs.region && lhs.key == rhs.key;
 }
 
 } // namespace replication

@@ -188,7 +188,7 @@ hyperdex :: replication_manager :: reconfigure(const configuration& newconfig, c
         }
     }
 
-    std::map<keypair, e::intrusive_ptr<keyholder> >::iterator khiter;
+    std::tr1::unordered_map<keypair, e::intrusive_ptr<keyholder>, keypair::hash>::iterator khiter;
     khiter = m_keyholders.begin();
 
     while (khiter != m_keyholders.end())
@@ -197,7 +197,7 @@ hyperdex :: replication_manager :: reconfigure(const configuration& newconfig, c
 
         if (regions.find(khiter->first.region) == regions.end())
         {
-            std::map<keypair, e::intrusive_ptr<keyholder> >::iterator to_erase;
+            std::tr1::unordered_map<keypair, e::intrusive_ptr<keyholder>, keypair::hash>::iterator to_erase;
             to_erase = khiter;
             ++khiter;
             m_keyholders.erase(to_erase);
@@ -914,7 +914,7 @@ hyperdex :: replication_manager :: get_lock_num(const keypair& kp)
 e::intrusive_ptr<hyperdex::replication::keyholder>
 hyperdex :: replication_manager :: get_keyholder(const keypair& kp)
 {
-    typedef std::map<keypair, e::intrusive_ptr<keyholder> >::iterator kh_iter_t;
+    typedef std::tr1::unordered_map<keypair, e::intrusive_ptr<keyholder>, keypair::hash>::iterator kh_iter_t;
     po6::threads::mutex::hold hold(&m_keyholders_lock);
     kh_iter_t i;
 //LOG(INFO) << "KHSIZE " << m_keyholders.size();
@@ -1301,7 +1301,7 @@ hyperdex :: replication_manager :: retransmit()
     // Hold the lock just long enough to copy of all current key pairs.
     {
         po6::threads::mutex::hold hold(&m_keyholders_lock);
-        std::map<keypair, e::intrusive_ptr<keyholder> >::iterator khiter;
+        std::tr1::unordered_map<keypair, e::intrusive_ptr<keyholder>, keypair::hash>::iterator khiter;
 
         for (khiter = m_keyholders.begin(); khiter != m_keyholders.end(); ++khiter)
         {

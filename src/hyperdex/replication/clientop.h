@@ -58,7 +58,7 @@ class clientop
         uint32_t nonce;
 };
 
-uint64_t
+inline uint64_t
 clientop :: hash(const clientop& co)
 {
     uint64_t nonce = co.nonce;
