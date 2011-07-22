@@ -25,12 +25,13 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_replication_h_
-#define hyperdex_replication_h_
+#ifndef hyperdex_replication_manager_h_
+#define hyperdex_replication_manager_h_
 
 // STL
 #include <limits>
 #include <tr1/functional>
+#include <tr1/unordered_map>
 
 // po6
 #include <po6/threads/rwlock.h>
@@ -47,15 +48,23 @@
 #include <hyperdex/logical.h>
 #include <hyperdex/op_t.h>
 
+// Replication
+#include <hyperdex/replication/clientop.h>
+#include <hyperdex/replication/keypair.h>
+#include <hyperdex/replication/pending.h>
+#include <hyperdex/replication/keyholder.h>
+#include <hyperdex/replication/transfer_in.h>
+#include <hyperdex/replication/transfer_out.h>
+
 namespace hyperdex
 {
 
 // Manage replication.
-class replication
+class replication_manager
 {
     public:
-        replication(datalayer* dl, logical* comm);
-        ~replication() throw ();
+        replication_manager(datalayer* dl, logical* comm);
+        ~replication_manager() throw ();
 
     // Reconfigure this layer.
     public:
@@ -92,21 +101,10 @@ class replication
         void region_transfer_done(const entityid& from, const entityid& to);
 
     private:
-        class clientop;
-        class keypair;
-        class pending;
-        class keyholder;
-        class transfer_in;
-        class transfer_out;
+        replication_manager(const replication_manager&);
 
     private:
-        static uint64_t clientop_hash(const clientop& co);
-
-    private:
-        replication(const replication&);
-
-    private:
-        replication& operator = (const replication&);
+        replication_manager& operator = (const replication_manager&);
 
     private:
         void client_common(op_t op, const entityid& from, const entityid& to,
@@ -115,9 +113,9 @@ class replication
         void chain_common(op_t op, const entityid& from, const entityid& to,
                           uint64_t newversion, bool fresh, const e::buffer& key,
                           const std::vector<e::buffer>& newvalue);
-        size_t get_lock_num(const keypair& kp);
-        e::intrusive_ptr<keyholder> get_keyholder(const keypair& kp);
-        void erase_keyholder(const keypair& kp);
+        size_t get_lock_num(const replication::keypair& kp);
+        e::intrusive_ptr<replication::keyholder> get_keyholder(const replication::keypair& kp);
+        void erase_keyholder(const replication::keypair& kp);
         bool from_disk(const regionid& r, const e::buffer& key,
                        bool* have_value, std::vector<e::buffer>* value,
                        uint64_t* version);
@@ -137,30 +135,30 @@ class replication
         // The first form will only unblock messages when there are no pending
         // updates.  The second form trusts that the caller knows that it is
         // safe to unblock even though messages may still be pending.
-        void unblock_messages(const regionid& r, const e::buffer& key, e::intrusive_ptr<keyholder> kh);
+        void unblock_messages(const regionid& r, const e::buffer& key, e::intrusive_ptr<replication::keyholder> kh);
         // Move as many messages as possible from the deferred queue to the
         // pending queue.
-        void move_deferred_to_pending(e::intrusive_ptr<keyholder> kh);
+        void move_deferred_to_pending(e::intrusive_ptr<replication::keyholder> kh);
         // Send an ACK and notify the client.  If this is the last pending
         // message for the keypair, then it is safe to unblock more messages.
         void handle_point_leader_work(const regionid& pending_in,
                                       uint64_t version, const e::buffer& key,
-                                      e::intrusive_ptr<keyholder> kh,
-                                      e::intrusive_ptr<pending> update);
+                                      e::intrusive_ptr<replication::keyholder> kh,
+                                      e::intrusive_ptr<replication::pending> update);
         // Send the message that the pending object needs to send in order to
         // make system-wide progress.
         void send_update(const hyperdex::regionid& pending_in,
                          uint64_t version, const e::buffer& key,
-                         e::intrusive_ptr<pending> update);
+                         e::intrusive_ptr<replication::pending> update);
         // Send an ack based on a pending object using chain rules.  That is,
         // use the send_backward function of the communication layer.
         void send_ack(const regionid& from, uint64_t version,
-                      const e::buffer& key, e::intrusive_ptr<pending> update);
+                      const e::buffer& key, e::intrusive_ptr<replication::pending> update);
         // Send directly.
         void send_ack(const regionid& from, const entityid& to,
                       const e::buffer& key, uint64_t version);
-        void respond_positively_to_client(clientop co, uint64_t version);
-        void respond_negatively_to_client(clientop co, result_t result);
+        void respond_positively_to_client(replication::clientop co, uint64_t version);
+        void respond_negatively_to_client(replication::clientop co, result_t result);
         // Periodically do things related to replication.
         void periodic();
         // Retransmit current pending values.
@@ -183,22 +181,15 @@ class replication
         configuration m_config;
         e::striped_lock<po6::threads::mutex> m_locks;
         po6::threads::mutex m_keyholders_lock;
-        std::map<keypair, e::intrusive_ptr<keyholder> > m_keyholders;
-        e::lockfree_hash_set<clientop, clientop_hash> m_clientops;
+        std::map<replication::keypair, e::intrusive_ptr<replication::keyholder> > m_keyholders;
+        e::lockfree_hash_set<replication::clientop, replication::clientop::hash> m_clientops;
         bool m_shutdown;
         po6::threads::thread m_periodic_thread;
-        std::map<uint16_t, e::intrusive_ptr<transfer_in> > m_transfers_in;
-        std::map<regionid, e::intrusive_ptr<transfer_in> > m_transfers_in_by_region;
-        std::map<uint16_t, e::intrusive_ptr<transfer_out> > m_transfers_out;
+        std::map<uint16_t, e::intrusive_ptr<replication::transfer_in> > m_transfers_in;
+        std::map<regionid, e::intrusive_ptr<replication::transfer_in> > m_transfers_in_by_region;
+        std::map<uint16_t, e::intrusive_ptr<replication::transfer_out> > m_transfers_out;
 };
 
 } // namespace hyperdex
 
-#include <hyperdex/replication/clientop.h>
-#include <hyperdex/replication/keypair.h>
-#include <hyperdex/replication/pending.h>
-#include <hyperdex/replication/keyholder.h>
-#include <hyperdex/replication/transfer_in.h>
-#include <hyperdex/replication/transfer_out.h>
-
-#endif // hyperdex_replication_h_
+#endif // hyperdex_replication_manager_h_

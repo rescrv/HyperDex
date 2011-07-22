@@ -30,8 +30,10 @@
 
 namespace hyperdex
 {
+namespace replication
+{
 
-class replication :: transfer_in
+class transfer_in
 {
     public:
         class op
@@ -76,9 +78,9 @@ class replication :: transfer_in
 
 
 inline
-replication :: transfer_in :: transfer_in(uint16_t xfer_id,
-                                          const entityid& from,
-                                          const regionid& r)
+transfer_in :: transfer_in(uint16_t xfer_id,
+                           const entityid& from,
+                           const regionid& r)
     : lock()
     , ops()
     , xferred_so_far(0)
@@ -94,10 +96,10 @@ replication :: transfer_in :: transfer_in(uint16_t xfer_id,
 }
 
 inline
-replication :: transfer_in :: op :: op(op_t o,
-                                       uint64_t ver,
-                                       const e::buffer& k,
-                                       const std::vector<e::buffer>& val)
+transfer_in :: op :: op(op_t o,
+                        uint64_t ver,
+                        const e::buffer& k,
+                        const std::vector<e::buffer>& val)
     : operation(o)
     , version(ver)
     , key(k)
@@ -106,6 +108,7 @@ replication :: transfer_in :: op :: op(op_t o,
 {
 }
 
+} // namespace replication
 } // namespace hyperdex
 
 #endif // hyperdex_replication_transfer_in_h_

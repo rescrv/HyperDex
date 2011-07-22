@@ -29,12 +29,18 @@
 #define hyperdex_replication_keypair_h_
 
 // e
+#include <e/buffer.h>
 #include <e/intrusive_ptr.h>
+
+// HyperDex
+#include <hyperdex/ids.h>
 
 namespace hyperdex
 {
+namespace replication
+{
 
-class replication :: keypair
+class keypair
 {
     public:
         keypair();
@@ -49,21 +55,21 @@ class replication :: keypair
 };
 
 inline
-replication :: keypair :: keypair()
+keypair :: keypair()
     : region()
     , key()
 {
 }
 
 inline
-replication :: keypair :: keypair(const regionid& r, const e::buffer& k)
+keypair :: keypair(const hyperdex::regionid& r, const e::buffer& k)
     : region(r)
     , key(k)
 {
 }
 
 inline bool
-hyperdex :: replication :: keypair :: operator < (const keypair& rhs) const
+keypair :: operator < (const keypair& rhs) const
 {
     const keypair& lhs(*this);
 
@@ -79,6 +85,7 @@ hyperdex :: replication :: keypair :: operator < (const keypair& rhs) const
     return lhs.key < rhs.key;
 }
 
+} // namespace replication
 } // namespace hyperdex
 
 #endif // hyperdex_replication_keypair_h_

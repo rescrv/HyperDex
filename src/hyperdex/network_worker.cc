@@ -46,7 +46,7 @@
 hyperdex :: network_worker :: network_worker(datalayer* data,
                                              logical* comm,
                                              searches* ssss,
-                                             replication* repl)
+                                             replication_manager* repl)
     : m_continue(true)
     , m_data(data)
     , m_comm(comm)

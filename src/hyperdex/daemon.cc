@@ -43,7 +43,7 @@
 #include <hyperdex/datalayer.h>
 #include <hyperdex/logical.h>
 #include <hyperdex/network_worker.h>
-#include <hyperdex/replication.h>
+#include <hyperdex/replication_manager.h>
 #include <hyperdex/searches.h>
 
 typedef std::tr1::shared_ptr<po6::threads::thread> thread_ptr;
@@ -86,7 +86,7 @@ hyperdex :: daemon(po6::pathname datadir,
     // Setup the search component.
     searches ssss(&data, &comm);
     // Setup the replication component.
-    replication repl(&data, &comm);
+    replication_manager repl(&data, &comm);
     // Create our announce string.
     std::ostringstream announce;
     announce << "instance\t" << comm.inst().inbound << "\t"

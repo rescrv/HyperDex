@@ -76,7 +76,7 @@ set(hyperdex_srcs
     src/hyperdex/network_worker.cc
     src/hyperdex/physical.cc
     src/hyperdex/region.cc
-    src/hyperdex/replication.cc
+    src/hyperdex/replication_manager.cc
     src/hyperdex/search.cc
     src/hyperdex/searches.cc
 )

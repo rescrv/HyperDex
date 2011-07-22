@@ -30,8 +30,10 @@
 
 namespace hyperdex
 {
+namespace replication
+{
 
-class replication :: transfer_out
+class transfer_out
 {
     public:
         transfer_out(const entityid& from,
@@ -54,9 +56,9 @@ class replication :: transfer_out
 
 
 inline
-replication :: transfer_out :: transfer_out(const entityid& from,
-                                            uint16_t xfer_id,
-                                            e::intrusive_ptr<region::rolling_snapshot> s)
+transfer_out :: transfer_out(const entityid& from,
+                             uint16_t xfer_id,
+                             e::intrusive_ptr<region::rolling_snapshot> s)
     : lock()
     , snap(s)
     , xfer_num(1)
@@ -66,6 +68,7 @@ replication :: transfer_out :: transfer_out(const entityid& from,
 {
 }
 
+} // namespace replication
 } // namespace hyperdex
 
 #endif // hyperdex_replication_transfer_out_h_

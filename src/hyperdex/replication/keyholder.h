@@ -31,18 +31,23 @@
 // e
 #include <e/intrusive_ptr.h>
 
+// Replication
+#include <hyperdex/replication/pending.h>
+
 namespace hyperdex
 {
+namespace replication
+{
 
-class replication :: keyholder
+class keyholder
 {
     public:
         keyholder();
 
     public:
-        std::map<uint64_t, e::intrusive_ptr<pending> > pending_updates;
-        std::map<uint64_t, e::intrusive_ptr<pending> > blocked_updates;
-        std::map<uint64_t, e::intrusive_ptr<pending> > deferred_updates;
+        std::map<uint64_t, e::intrusive_ptr<replication::pending> > pending_updates;
+        std::map<uint64_t, e::intrusive_ptr<replication::pending> > blocked_updates;
+        std::map<uint64_t, e::intrusive_ptr<replication::pending> > deferred_updates;
 
     private:
         friend class e::intrusive_ptr<keyholder>;
@@ -52,7 +57,7 @@ class replication :: keyholder
 };
 
 inline
-replication :: keyholder :: keyholder()
+keyholder :: keyholder()
     : pending_updates()
     , blocked_updates()
     , deferred_updates()
@@ -60,6 +65,7 @@ replication :: keyholder :: keyholder()
 {
 }
 
+} // namespace replication
 } // namespace hyperdex
 
 #endif // hyperdex_replication_keyholder_h_

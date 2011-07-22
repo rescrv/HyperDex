@@ -46,14 +46,21 @@
 // HyperDex
 #include <hyperdex/buffer.h>
 #include <hyperdex/hyperspace.h>
-#include <hyperdex/replication.h>
+#include <hyperdex/replication_manager.h>
 #include <hyperdex/stream_no.h>
 
 // XXX Make this configurable.
 #define LOCK_STRIPING 1024
 #define TRANSFERS_IN_FLIGHT 1000
 
-hyperdex :: replication :: replication(datalayer* data, logical* comm)
+using hyperdex::replication::clientop;
+using hyperdex::replication::keyholder;
+using hyperdex::replication::keypair;
+using hyperdex::replication::pending;
+using hyperdex::replication::transfer_in;
+using hyperdex::replication::transfer_out;
+
+hyperdex :: replication_manager :: replication_manager(datalayer* data, logical* comm)
     : m_data(data)
     , m_comm(comm)
     , m_config()
@@ -62,7 +69,7 @@ hyperdex :: replication :: replication(datalayer* data, logical* comm)
     , m_keyholders()
     , m_clientops(10)
     , m_shutdown(false)
-    , m_periodic_thread(std::tr1::bind(&replication::periodic, this))
+    , m_periodic_thread(std::tr1::bind(&replication_manager::periodic, this))
     , m_transfers_in()
     , m_transfers_in_by_region()
     , m_transfers_out()
@@ -70,7 +77,7 @@ hyperdex :: replication :: replication(datalayer* data, logical* comm)
     m_periodic_thread.start();
 }
 
-hyperdex :: replication :: ~replication() throw ()
+hyperdex :: replication_manager :: ~replication_manager() throw ()
 {
     if (!m_shutdown)
     {
@@ -81,13 +88,13 @@ hyperdex :: replication :: ~replication() throw ()
 }
 
 void
-hyperdex :: replication :: prepare(const configuration&, const instance&)
+hyperdex :: replication_manager :: prepare(const configuration&, const instance&)
 {
     // Do nothing.
 }
 
 void
-hyperdex :: replication :: reconfigure(const configuration& newconfig, const instance& us)
+hyperdex :: replication_manager :: reconfigure(const configuration& newconfig, const instance& us)
 {
     // Figure out the inbound and outbound transfers which affect us.
     std::map<uint16_t, regionid> in_transfers = newconfig.transfers_to(us);
@@ -203,61 +210,61 @@ hyperdex :: replication :: reconfigure(const configuration& newconfig, const ins
 }
 
 void
-hyperdex :: replication :: cleanup(const configuration&, const instance&)
+hyperdex :: replication_manager :: cleanup(const configuration&, const instance&)
 {
     // Do nothing.
 }
 
 void
-hyperdex :: replication :: shutdown()
+hyperdex :: replication_manager :: shutdown()
 {
     m_shutdown = true;
 }
 
 void
-hyperdex :: replication :: client_put(const entityid& from,
-                                      const entityid& to,
-                                      uint32_t nonce,
-                                      const e::buffer& key,
-                                      const std::vector<e::buffer>& newvalue)
+hyperdex :: replication_manager :: client_put(const entityid& from,
+                                              const entityid& to,
+                                              uint32_t nonce,
+                                              const e::buffer& key,
+                                              const std::vector<e::buffer>& newvalue)
 {
     client_common(PUT, from, to, nonce, key, newvalue);
 }
 
 void
-hyperdex :: replication :: client_del(const entityid& from,
-                                      const entityid& to,
-                                      uint32_t nonce,
-                                      const e::buffer& key)
+hyperdex :: replication_manager :: client_del(const entityid& from,
+                                              const entityid& to,
+                                              uint32_t nonce,
+                                              const e::buffer& key)
 {
     client_common(DEL, from, to, nonce, key, std::vector<e::buffer>());
 }
 
 void
-hyperdex :: replication :: chain_put(const entityid& from,
-                                     const entityid& to,
-                                     uint64_t newversion,
-                                     bool fresh,
-                                     const e::buffer& key,
-                                     const std::vector<e::buffer>& newvalue)
+hyperdex :: replication_manager :: chain_put(const entityid& from,
+                                             const entityid& to,
+                                             uint64_t newversion,
+                                             bool fresh,
+                                             const e::buffer& key,
+                                             const std::vector<e::buffer>& newvalue)
 {
     chain_common(PUT, from, to, newversion, fresh, key, newvalue);
 }
 
 void
-hyperdex :: replication :: chain_del(const entityid& from,
-                                     const entityid& to,
-                                     uint64_t newversion,
-                                     const e::buffer& key)
+hyperdex :: replication_manager :: chain_del(const entityid& from,
+                                             const entityid& to,
+                                             uint64_t newversion,
+                                             const e::buffer& key)
 {
     chain_common(DEL, from, to, newversion, false, key, std::vector<e::buffer>());
 }
 
 void
-hyperdex :: replication :: chain_pending(const entityid& from,
-                                         const entityid& to,
-                                         uint64_t version,
-                                         const e::buffer& key)
+hyperdex :: replication_manager :: chain_pending(const entityid& from,
+                                                 const entityid& to,
+                                                 uint64_t version,
+                                                 const e::buffer& key)
 {
     // PENDING messages may only go to the first subspace.
     if (to.subspace != 0)
@@ -309,10 +316,10 @@ hyperdex :: replication :: chain_pending(const entityid& from,
 }
 
 void
-hyperdex :: replication :: chain_ack(const entityid& from,
-                                     const entityid& to,
-                                     uint64_t version,
-                                     const e::buffer& key)
+hyperdex :: replication_manager :: chain_ack(const entityid& from,
+                                             const entityid& to,
+                                             uint64_t version,
+                                             const e::buffer& key)
 {
     // Grab the lock that protects this keypair.
     keypair kp(to.get_region(), key);
@@ -395,8 +402,8 @@ hyperdex :: replication :: chain_ack(const entityid& from,
 }
 
 void
-hyperdex :: replication :: region_transfer(const entityid& from,
-                                           const entityid& to)
+hyperdex :: replication_manager :: region_transfer(const entityid& from,
+                                                   const entityid& to)
 {
     // Find the transfer_out object.
     std::map<uint16_t, e::intrusive_ptr<transfer_out> >::iterator titer;
@@ -445,13 +452,13 @@ hyperdex :: replication :: region_transfer(const entityid& from,
 }
 
 void
-hyperdex :: replication :: region_transfer(const entityid& from,
-                                           uint16_t xfer_id,
-                                           uint64_t xfer_num,
-                                           op_t op,
-                                           uint64_t version,
-                                           const e::buffer& key,
-                                           const std::vector<e::buffer>& value)
+hyperdex :: replication_manager :: region_transfer(const entityid& from,
+                                                   uint16_t xfer_id,
+                                                   uint64_t xfer_num,
+                                                   op_t op,
+                                                   uint64_t version,
+                                                   const e::buffer& key,
+                                                   const std::vector<e::buffer>& value)
 {
     // Find the transfer_in object.
     std::map<uint16_t, e::intrusive_ptr<transfer_in> >::iterator titer;
@@ -548,7 +555,7 @@ hyperdex :: replication :: region_transfer(const entityid& from,
 }
 
 void
-hyperdex :: replication :: region_transfer_done(const entityid& from, const entityid& to)
+hyperdex :: replication_manager :: region_transfer_done(const entityid& from, const entityid& to)
 {
     // Find the transfer_in object.
     std::map<uint16_t, e::intrusive_ptr<transfer_in> >::iterator titer;
@@ -583,20 +590,14 @@ hyperdex :: replication :: region_transfer_done(const entityid& from, const enti
 // At any time it's acceptable to drop a deferred update, so this won't hurt
 // correctness, and does make it easy to reclaim keyholders (if
 // pending/blocked/deferred are empty then drop it).
-uint64_t
-hyperdex :: replication :: clientop_hash(const clientop& co)
-{
-    uint64_t nonce = co.nonce;
-    return co.region.hash() ^ co.from.hash() ^ nonce;
-}
 
 void
-hyperdex :: replication :: client_common(op_t op,
-                                         const entityid& from,
-                                         const entityid& to,
-                                         uint32_t nonce,
-                                         const e::buffer& key,
-                                         const std::vector<e::buffer>& value)
+hyperdex :: replication_manager :: client_common(op_t op,
+                                                 const entityid& from,
+                                                 const entityid& to,
+                                                 uint32_t nonce,
+                                                 const e::buffer& key,
+                                                 const std::vector<e::buffer>& value)
 {
     // Make sure this message is from a client.
     if (from.space != UINT32_MAX)
@@ -620,7 +621,7 @@ hyperdex :: replication :: client_common(op_t op,
     }
 
     // Automatically respond with "ERROR" whenever we return without g.dismiss()
-    e::guard g = e::makeobjguard(*this, &replication::respond_negatively_to_client, co, ERROR);
+    e::guard g = e::makeobjguard(*this, &replication_manager::respond_negatively_to_client, co, ERROR);
 
     // Grab the lock that protects this keypair.
     keypair kp(to.get_region(), key);
@@ -738,13 +739,13 @@ hyperdex :: replication :: client_common(op_t op,
 }
 
 void
-hyperdex :: replication :: chain_common(op_t op,
-                                        const entityid& from,
-                                        const entityid& to,
-                                        uint64_t version,
-                                        bool fresh,
-                                        const e::buffer& key,
-                                        const std::vector<e::buffer>& value)
+hyperdex :: replication_manager :: chain_common(op_t op,
+                                                const entityid& from,
+                                                const entityid& to,
+                                                uint64_t version,
+                                                bool fresh,
+                                                const e::buffer& key,
+                                                const std::vector<e::buffer>& value)
 {
     // We cannot receive fresh messages from others within our subspace.
     if (fresh && from.get_subspace() == to.get_subspace() && from.get_region() != to.get_region())
@@ -902,7 +903,7 @@ hyperdex :: replication :: chain_common(op_t op,
 }
 
 size_t
-hyperdex :: replication :: get_lock_num(const keypair& kp)
+hyperdex :: replication_manager :: get_lock_num(const keypair& kp)
 {
     uint64_t region_hash = kp.region.space + kp.region.subspace
                            + kp.region.prefix + kp.region.mask;
@@ -911,11 +912,12 @@ hyperdex :: replication :: get_lock_num(const keypair& kp)
 }
 
 e::intrusive_ptr<hyperdex::replication::keyholder>
-hyperdex :: replication :: get_keyholder(const keypair& kp)
+hyperdex :: replication_manager :: get_keyholder(const keypair& kp)
 {
     typedef std::map<keypair, e::intrusive_ptr<keyholder> >::iterator kh_iter_t;
     po6::threads::mutex::hold hold(&m_keyholders_lock);
     kh_iter_t i;
+//LOG(INFO) << "KHSIZE " << m_keyholders.size();
 
     if ((i = m_keyholders.find(kp)) != m_keyholders.end())
     {
@@ -931,18 +933,18 @@ hyperdex :: replication :: get_keyholder(const keypair& kp)
 }
 
 void
-hyperdex :: replication :: erase_keyholder(const keypair& kp)
+hyperdex :: replication_manager :: erase_keyholder(const keypair& kp)
 {
     po6::threads::mutex::hold hold(&m_keyholders_lock);
     m_keyholders.erase(kp);
 }
 
 bool
-hyperdex :: replication :: from_disk(const regionid& r,
-                                     const e::buffer& key,
-                                     bool* have_value,
-                                     std::vector<e::buffer>* value,
-                                     uint64_t* version)
+hyperdex :: replication_manager :: from_disk(const regionid& r,
+                                             const e::buffer& key,
+                                             bool* have_value,
+                                             std::vector<e::buffer>* value,
+                                             uint64_t* version)
 {
     switch (m_data->get(r, key, value, version))
     {
@@ -966,7 +968,7 @@ hyperdex :: replication :: from_disk(const regionid& r,
 }
 
 size_t
-hyperdex :: replication :: expected_dimensions(const regionid& ri) const
+hyperdex :: replication_manager :: expected_dimensions(const regionid& ri) const
 {
     size_t dims = 0;
     return m_config.dimensionality(ri.get_space(), &dims) ? dims : -1;
@@ -1006,11 +1008,11 @@ prev_and_next_helper(const hyperdex::configuration& config,
 }
 
 bool
-hyperdex :: replication :: prev_and_next(const regionid& r,
-                                         const e::buffer& key,
-                                         const std::vector<e::buffer>& value,
-                                         regionid* prev,
-                                         regionid* next)
+hyperdex :: replication_manager :: prev_and_next(const regionid& r,
+                                                 const e::buffer& key,
+                                                 const std::vector<e::buffer>& value,
+                                                 regionid* prev,
+                                                 regionid* next)
 {
     uint16_t prev_subspace;
     uint16_t next_subspace;
@@ -1033,12 +1035,12 @@ hyperdex :: replication :: prev_and_next(const regionid& r,
 }
 
 bool
-hyperdex :: replication :: prev_and_next(const regionid& r,
-                                         const e::buffer& key,
-                                         const std::vector<e::buffer>& old_value,
-                                         const std::vector<e::buffer>& new_value,
-                                         regionid* prev,
-                                         regionid* next)
+hyperdex :: replication_manager :: prev_and_next(const regionid& r,
+                                                 const e::buffer& key,
+                                                 const std::vector<e::buffer>& old_value,
+                                                 const std::vector<e::buffer>& new_value,
+                                                 regionid* prev,
+                                                 regionid* next)
 {
     using hyperspace::replication_point;
     uint16_t prev_subspace;
@@ -1088,9 +1090,9 @@ hyperdex :: replication :: prev_and_next(const regionid& r,
 }
 
 void
-hyperdex :: replication :: unblock_messages(const regionid& r,
-                                            const e::buffer& key,
-                                            e::intrusive_ptr<keyholder> kh)
+hyperdex :: replication_manager :: unblock_messages(const regionid& r,
+                                                    const e::buffer& key,
+                                                    e::intrusive_ptr<keyholder> kh)
 {
     // We cannot unblock so long as there are messages pending.
     if (!kh->pending_updates.empty())
@@ -1117,7 +1119,7 @@ hyperdex :: replication :: unblock_messages(const regionid& r,
 }
 
 void
-hyperdex :: replication :: move_deferred_to_pending(e::intrusive_ptr<keyholder> kh)
+hyperdex :: replication_manager :: move_deferred_to_pending(e::intrusive_ptr<keyholder> kh)
 {
     // XXX We just drop deferred messages as it doesn't hurt correctness
     // (however, a bad move from deferred to pending will).
@@ -1125,11 +1127,11 @@ hyperdex :: replication :: move_deferred_to_pending(e::intrusive_ptr<keyholder> 
 }
 
 void
-hyperdex :: replication :: handle_point_leader_work(const regionid& pending_in,
-                                                    uint64_t version,
-                                                    const e::buffer& key,
-                                                    e::intrusive_ptr<keyholder> kh,
-                                                    e::intrusive_ptr<pending> update)
+hyperdex :: replication_manager :: handle_point_leader_work(const regionid& pending_in,
+                                                            uint64_t version,
+                                                            const e::buffer& key,
+                                                            e::intrusive_ptr<keyholder> kh,
+                                                            e::intrusive_ptr<pending> update)
 {
     send_ack(pending_in, version, key, update);
 
@@ -1160,9 +1162,9 @@ hyperdex :: replication :: handle_point_leader_work(const regionid& pending_in,
 }
 
 void
-hyperdex :: replication :: send_update(const hyperdex::regionid& pending_in,
-                                       uint64_t version, const e::buffer& key,
-                                       e::intrusive_ptr<pending> update)
+hyperdex :: replication_manager :: send_update(const hyperdex::regionid& pending_in,
+                                               uint64_t version, const e::buffer& key,
+                                               e::intrusive_ptr<pending> update)
 {
     uint8_t fresh = update->fresh ? 1 : 0;
 
@@ -1201,10 +1203,10 @@ hyperdex :: replication :: send_update(const hyperdex::regionid& pending_in,
 }
 
 void
-hyperdex :: replication :: send_ack(const regionid& pending_in,
-                                    uint64_t version,
-                                    const e::buffer& key,
-                                    e::intrusive_ptr<pending> update)
+hyperdex :: replication_manager :: send_ack(const regionid& pending_in,
+                                            uint64_t version,
+                                            const e::buffer& key,
+                                            e::intrusive_ptr<pending> update)
 {
     e::buffer msg;
     msg.pack() << version << key;
@@ -1213,10 +1215,10 @@ hyperdex :: replication :: send_ack(const regionid& pending_in,
 }
 
 void
-hyperdex :: replication :: send_ack(const regionid& from,
-                                    const entityid& to,
-                                    const e::buffer& key,
-                                    uint64_t version)
+hyperdex :: replication_manager :: send_ack(const regionid& from,
+                                            const entityid& to,
+                                            const e::buffer& key,
+                                            uint64_t version)
 {
     e::buffer msg;
     msg.pack() << version << key;
@@ -1224,8 +1226,8 @@ hyperdex :: replication :: send_ack(const regionid& from,
 }
 
 void
-hyperdex :: replication :: respond_positively_to_client(clientop co,
-                                                        uint64_t /*version*/)
+hyperdex :: replication_manager :: respond_positively_to_client(clientop co,
+                                                                uint64_t /*version*/)
 {
     e::buffer msg;
     uint8_t result = static_cast<uint8_t>(SUCCESS);
@@ -1235,8 +1237,8 @@ hyperdex :: replication :: respond_positively_to_client(clientop co,
 }
 
 void
-hyperdex :: replication :: respond_negatively_to_client(clientop co,
-                                                        result_t r)
+hyperdex :: replication_manager :: respond_negatively_to_client(clientop co,
+                                                                result_t r)
 {
     e::buffer msg;
     uint8_t result = static_cast<uint8_t>(r);
@@ -1246,7 +1248,7 @@ hyperdex :: replication :: respond_negatively_to_client(clientop co,
 }
 
 void
-hyperdex :: replication :: periodic()
+hyperdex :: replication_manager :: periodic()
 {
     LOG(WARNING) << "Replication \"cron\" thread started.";
 
@@ -1292,7 +1294,7 @@ hyperdex :: replication :: periodic()
 }
 
 void
-hyperdex :: replication :: retransmit()
+hyperdex :: replication_manager :: retransmit()
 {
     std::set<keypair> kps;
 
@@ -1346,7 +1348,7 @@ hyperdex :: replication :: retransmit()
 }
 
 void
-hyperdex :: replication :: start_transfers()
+hyperdex :: replication_manager :: start_transfers()
 {
     for (std::map<uint16_t, e::intrusive_ptr<transfer_in> >::iterator t = m_transfers_in.begin();
             t != m_transfers_in.end(); ++t)
@@ -1364,7 +1366,7 @@ hyperdex :: replication :: start_transfers()
 }
 
 void
-hyperdex :: replication :: finish_transfers()
+hyperdex :: replication_manager :: finish_transfers()
 {
     for (std::map<uint16_t, e::intrusive_ptr<transfer_in> >::iterator t = m_transfers_in.begin();
             t != m_transfers_in.end(); ++t)
@@ -1378,10 +1380,10 @@ hyperdex :: replication :: finish_transfers()
 }
 
 bool
-hyperdex :: replication :: sent_backward_or_from_head(const entityid& from,
-                                                      const entityid& to,
-                                                      const regionid& chain,
-                                                      const regionid& head)
+hyperdex :: replication_manager :: sent_backward_or_from_head(const entityid& from,
+                                                              const entityid& to,
+                                                              const regionid& chain,
+                                                              const regionid& head)
 {
     return (from.get_region() == to.get_region()
             && chain == from.get_region()
@@ -1391,10 +1393,10 @@ hyperdex :: replication :: sent_backward_or_from_head(const entityid& from,
 }
 
 bool
-hyperdex :: replication :: sent_backward_or_from_tail(const entityid& from,
-                                                      const entityid& to,
-                                                      const regionid& chain,
-                                                      const regionid& tail)
+hyperdex :: replication_manager :: sent_backward_or_from_tail(const entityid& from,
+                                                              const entityid& to,
+                                                              const regionid& chain,
+                                                              const regionid& tail)
 {
     return (from.get_region() == to.get_region()
             && chain == from.get_region()
@@ -1404,10 +1406,10 @@ hyperdex :: replication :: sent_backward_or_from_tail(const entityid& from,
 }
 
 bool
-hyperdex :: replication :: sent_forward_or_from_tail(const entityid& from,
-                                                     const entityid& to,
-                                                     const regionid& chain,
-                                                     const regionid& tail)
+hyperdex :: replication_manager :: sent_forward_or_from_tail(const entityid& from,
+                                                             const entityid& to,
+                                                             const regionid& chain,
+                                                             const regionid& tail)
 {
     return (from.get_region() == to.get_region()
             && chain == from.get_region()

@@ -33,9 +33,14 @@
 
 namespace hyperdex
 {
-
-class replication :: clientop
+namespace replication
 {
+
+class clientop
+{
+    public:
+        static uint64_t hash(const replication::clientop& co);
+
     public:
         clientop();
         clientop(const regionid& r, const entityid& f, uint32_t n);
@@ -53,8 +58,15 @@ class replication :: clientop
         uint32_t nonce;
 };
 
+uint64_t
+clientop :: hash(const clientop& co)
+{
+    uint64_t nonce = co.nonce;
+    return co.region.hash() ^ co.from.hash() ^ nonce;
+}
+
 inline
-replication :: clientop :: clientop()
+clientop :: clientop()
     : region()
     , from()
     , nonce()
@@ -62,9 +74,9 @@ replication :: clientop :: clientop()
 }
 
 inline
-replication :: clientop :: clientop(const regionid& r,
-                                    const entityid& f,
-                                    uint32_t n)
+clientop :: clientop(const regionid& r,
+                     const entityid& f,
+                     uint32_t n)
     : region(r)
     , from(f)
     , nonce(n)
@@ -72,7 +84,7 @@ replication :: clientop :: clientop(const regionid& r,
 }
 
 inline bool
-replication :: clientop :: operator < (const clientop& rhs) const
+clientop :: operator < (const clientop& rhs) const
 {
     const clientop& lhs(*this);
 
@@ -101,6 +113,7 @@ replication :: clientop :: operator < (const clientop& rhs) const
     }
 }
 
+} // namespace replication
 } // namespace hyperdex
 
 #endif // hyperdex_replication_clientop_h_

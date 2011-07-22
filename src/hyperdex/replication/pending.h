@@ -33,8 +33,10 @@
 
 namespace hyperdex
 {
+namespace replication
+{
 
-class replication :: pending
+class pending
 {
     public:
         pending(op_t op,
@@ -60,9 +62,9 @@ class replication :: pending
 };
 
 inline
-replication :: pending :: pending(op_t o,
-                                  const std::vector<e::buffer>& val,
-                                  const clientop& c)
+pending :: pending(op_t o,
+                   const std::vector<e::buffer>& val,
+                   const clientop& c)
     : op(o)
     , value(val)
     , co(c)
@@ -76,6 +78,7 @@ replication :: pending :: pending(op_t o,
 {
 }
 
+} // namespace replication
 } // namespace hyperdex
 
 #endif // hyperdex_replication_pending_h_
