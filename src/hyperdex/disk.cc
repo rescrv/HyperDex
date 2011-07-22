@@ -231,6 +231,38 @@ hyperdex :: disk :: sync()
     }
 }
 
+bool
+hyperdex :: disk :: needs_cleaning() const
+{
+    size_t i;
+    size_t freeable = 0;
+    uint32_t prev = searchindex_offset(0);
+
+    for (i = 1; i < SEARCH_INDEX_ENTRIES; ++i)
+    {
+        uint32_t cur = searchindex_offset(i);
+
+        if (cur == 0)
+        {
+            break;
+        }
+
+        if (searchindex_invalid(i - 1) > 0)
+        {
+            freeable += cur - prev;
+        }
+
+        prev = cur;
+    }
+
+    if (i == SEARCH_INDEX_ENTRIES && searchindex_invalid(SEARCH_INDEX_ENTRIES - 1) > 0)
+    {
+        freeable += m_offset - prev;
+    }
+
+    return freeable > (DATA_SEGMENT_SIZE >> 1);
+}
+
 void
 hyperdex :: disk :: async()
 {

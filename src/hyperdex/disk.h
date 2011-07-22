@@ -98,7 +98,7 @@ class disk
         // Judge whether there would be a suitably large amount of space on this
         // disk after cleaning all dead segments.  If not, and the disk still
         // gives "DISKFULL" errors, we need to split the disk instead.
-        bool needs_cleaning() const { return true; }
+        bool needs_cleaning() const;
         void async();
         void sync();
         void drop();
