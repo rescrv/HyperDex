@@ -122,13 +122,11 @@ hyperdex :: disk :: put(const e::buffer& key,
 
     if (required + m_offset > TOTAL_FILE_SIZE)
     {
-        LOG(INFO) << "PUT failed because disk data segment is full.";
         return DISKFULL;
     }
 
     if (m_search == SEARCH_INDEX_ENTRIES - 1)
     {
-        LOG(INFO) << "PUT failed because disk search index is full.";
         return DISKFULL;
     }
 
@@ -138,7 +136,6 @@ hyperdex :: disk :: put(const e::buffer& key,
 
     if (entry == HASH_TABLE_SIZE)
     {
-        LOG(INFO) << "PUT failed because disk hash table is full.";
         return DISKFULL;
     }
 
@@ -210,7 +207,6 @@ hyperdex :: disk :: del(const e::buffer& key,
 
     if (m_offset + sizeof(uint64_t) > TOTAL_FILE_SIZE)
     {
-        LOG(INFO) << "DEL failed because disk data segment is full.";
         return DISKFULL;
     }
 

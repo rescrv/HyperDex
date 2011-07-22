@@ -330,6 +330,21 @@ hyperdex :: region :: create_disk(const regionid& ri)
 }
 
 void
+hyperdex :: region :: drop_disk(const regionid& ri)
+{
+    disk_collection::iterator di = m_disks.find(ri);
+
+    if (di == m_disks.end())
+    {
+        return;
+    }
+
+    e::intrusive_ptr<disk> d = di->second;
+    m_disks.erase(di);
+    di->second->drop();
+}
+
+void
 hyperdex :: region :: get_value_hashes(const std::vector<e::buffer>& value,
                                        std::vector<uint64_t>* value_hashes)
 {
@@ -474,9 +489,9 @@ hyperdex :: region :: clean_disk(const regionid& ri)
     {
         e::buffer key(snap->key());
         std::vector<e::buffer> value(snap->value());
-        uint64_t key_hash;
+        uint64_t key_hash = CityHash64(key);
         std::vector<uint64_t> value_hashes;
-        hyperspace::point_hashes(key, value, &key_hash, &value_hashes);
+        get_value_hashes(value, &value_hashes);
         newdisk->put(key, key_hash, value, value_hashes, snap->version());
     }
 
@@ -493,10 +508,90 @@ hyperdex :: region :: clean_disk(const regionid& ri)
     m_disks[ri] = newdisk;
 }
 
+// XXX Split disk will only create more space if there is enough variation among
+// values to ensure that some are spun off into other disks.  This means that we
+// need to somehow split disks without splitting regions if the data becomes so
+// large (or so constructively worst-case) that it needs all 64 bits of the
+// region mask to identify disks.
+
 void
 hyperdex :: region :: split_disk(const regionid& ri)
 {
-    LOG(FATAL) << "THIS IS NOT IMPLEMENTED"; // XXX;
+    if (ri.prefix >= 64)
+    {
+        LOG(ERROR) << "We've hit a worst case that hasn't been coded for!";
+        return;
+    }
+
+    disk_collection::iterator di = m_disks.find(ri);
+
+    if (di == m_disks.end())
+    {
+        return;
+    }
+
+    uint64_t new_bit = 1;
+    new_bit = new_bit << (64 - ri.prefix - 1);
+    e::intrusive_ptr<disk::snapshot> snap = di->second->make_snapshot();
+    regionid lower_reg(ri.get_subspace(), ri.prefix + 1, ri.mask);
+    regionid upper_reg(ri.get_subspace(), ri.prefix + 1, ri.mask | new_bit);
+    e::intrusive_ptr<disk> lower;
+    e::intrusive_ptr<disk> upper;
+
+    {
+        po6::threads::rwlock::wrhold hold(&m_rwlock);
+        lower = create_disk(lower_reg);
+        upper = create_disk(upper_reg);
+    }
+
+    e::guard lower_disk_guard = e::makeobjguard(*this, &region::drop_disk, lower_reg);
+    e::guard upper_disk_guard = e::makeobjguard(*this, &region::drop_disk, upper_reg);
+
+    if (!lower || !upper)
+    {
+        return;
+    }
+
+    uint64_t prefix = prefixmask(ri.prefix + 1);
+    std::vector<bool> which_dims(m_numcolumns, true);
+
+    for (; snap->valid(); snap->next())
+    {
+        e::buffer key(snap->key());
+        std::vector<e::buffer> value(snap->value());
+        uint64_t key_hash = CityHash64(key);
+        std::vector<uint64_t> value_hashes;
+        get_value_hashes(value, &value_hashes);
+        uint64_t point = get_point_for(key_hash, value_hashes);
+#ifndef NDEBUG
+        bool set = false;
+#endif
+
+        if ((prefix & point) == lower_reg.mask)
+        {
+            assert(!set);
+            lower->put(key, key_hash, value, value_hashes, snap->version());
+#ifndef NDEBUG
+            set = true;
+#endif
+        }
+
+        if ((prefix & point) == upper_reg.mask)
+        {
+            assert(!set);
+            upper->put(key, key_hash, value, value_hashes, snap->version());
+#ifndef NDEBUG
+            set = true;
+#endif
+        }
+    }
+
+    po6::threads::rwlock::wrhold hold(&m_rwlock);
+    drop_disk(ri);
+    lower_disk_guard.dismiss();
+    upper_disk_guard.dismiss();
+    LOG(INFO) << "Successfully split " << di->second->filename();
+    return;
 }
 
 hyperdex :: region :: snapshot :: snapshot(std::vector<e::intrusive_ptr<disk::snapshot> >* ss)

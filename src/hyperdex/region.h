@@ -142,9 +142,10 @@ class region
         friend class e::intrusive_ptr<region>;
 
     private:
-        // Create disk requires exclusive access to m_disks (m_rwlock as a write
-        // lock).
+        // Create/drop disk requires exclusive access to m_disks (m_rwlock as a
+        // write lock).
         e::intrusive_ptr<disk> create_disk(const regionid& ri);
+        void drop_disk(const regionid& ri);
         void get_value_hashes(const std::vector<e::buffer>& value, std::vector<uint64_t>* value_hashes);
         uint64_t get_point_for(uint64_t key_hash);
         uint64_t get_point_for(uint64_t key_hash, const std::vector<uint64_t>& value_hashes);
