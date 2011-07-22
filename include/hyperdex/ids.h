@@ -305,48 +305,33 @@ compare(const entityid& lhs, const entityid& rhs)
                             rhs.space, rhs.subspace, rhs.prefix, rhs.mask, rhs.number);
 }
 
-// Operators
-template <typename T>
-bool
-operator < (const T& lhs, const T& rhs)
-{
-    return compare(lhs, rhs) < 0;
-}
+inline bool operator < (const spaceid& lhs, const spaceid& rhs) { return compare(lhs, rhs) < 0; }
+inline bool operator <= (const spaceid& lhs, const spaceid& rhs) { return compare(lhs, rhs) <= 0; }
+inline bool operator == (const spaceid& lhs, const spaceid& rhs) { return compare(lhs, rhs) == 0; }
+inline bool operator != (const spaceid& lhs, const spaceid& rhs) { return compare(lhs, rhs) != 0; }
+inline bool operator >= (const spaceid& lhs, const spaceid& rhs) { return compare(lhs, rhs) >= 0; }
+inline bool operator > (const spaceid& lhs, const spaceid& rhs) { return compare(lhs, rhs) > 0; }
 
-template <typename T>
-bool
-operator <= (const T& lhs, const T& rhs)
-{
-    return compare(lhs, rhs) <= 0;
-}
+inline bool operator < (const subspaceid& lhs, const subspaceid& rhs) { return compare(lhs, rhs) < 0; }
+inline bool operator <= (const subspaceid& lhs, const subspaceid& rhs) { return compare(lhs, rhs) <= 0; }
+inline bool operator == (const subspaceid& lhs, const subspaceid& rhs) { return compare(lhs, rhs) == 0; }
+inline bool operator != (const subspaceid& lhs, const subspaceid& rhs) { return compare(lhs, rhs) != 0; }
+inline bool operator >= (const subspaceid& lhs, const subspaceid& rhs) { return compare(lhs, rhs) >= 0; }
+inline bool operator > (const subspaceid& lhs, const subspaceid& rhs) { return compare(lhs, rhs) > 0; }
 
-template <typename T>
-bool
-operator == (const T& lhs, const T& rhs)
-{
-    return compare(lhs, rhs) == 0;
-}
+inline bool operator < (const regionid& lhs, const regionid& rhs) { return compare(lhs, rhs) < 0; }
+inline bool operator <= (const regionid& lhs, const regionid& rhs) { return compare(lhs, rhs) <= 0; }
+inline bool operator == (const regionid& lhs, const regionid& rhs) { return compare(lhs, rhs) == 0; }
+inline bool operator != (const regionid& lhs, const regionid& rhs) { return compare(lhs, rhs) != 0; }
+inline bool operator >= (const regionid& lhs, const regionid& rhs) { return compare(lhs, rhs) >= 0; }
+inline bool operator > (const regionid& lhs, const regionid& rhs) { return compare(lhs, rhs) > 0; }
 
-template <typename T>
-bool
-operator >= (const T& lhs, const T& rhs)
-{
-    return compare(lhs, rhs) >= 0;
-}
-
-template <typename T>
-bool
-operator > (const T& lhs, const T& rhs)
-{
-    return compare(lhs, rhs) > 0;
-}
-
-template <typename T>
-bool
-operator != (const T& lhs, const T& rhs)
-{
-    return compare(lhs, rhs) != 0;
-}
+inline bool operator < (const entityid& lhs, const entityid& rhs) { return compare(lhs, rhs) < 0; }
+inline bool operator <= (const entityid& lhs, const entityid& rhs) { return compare(lhs, rhs) <= 0; }
+inline bool operator == (const entityid& lhs, const entityid& rhs) { return compare(lhs, rhs) == 0; }
+inline bool operator != (const entityid& lhs, const entityid& rhs) { return compare(lhs, rhs) != 0; }
+inline bool operator >= (const entityid& lhs, const entityid& rhs) { return compare(lhs, rhs) >= 0; }
+inline bool operator > (const entityid& lhs, const entityid& rhs) { return compare(lhs, rhs) > 0; }
 
 // Output stream operators
 inline std::ostream&
