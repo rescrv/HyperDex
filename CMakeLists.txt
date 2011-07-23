@@ -111,6 +111,14 @@ target_link_libraries(count
     rt
 )
 
+# Build cli
+add_executable(hyperdex-cli src/bin/hyperdex-cli.cc)
+target_link_libraries(hyperdex-cli
+    hyperdex
+    cityhash
+    rt
+)
+
 # Build binary test
 add_executable(binary src/bin/binary.cc)
 target_link_libraries(binary
