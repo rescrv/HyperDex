@@ -117,7 +117,7 @@ class physical
                 channel& operator = (const channel&);
         };
 
-        typedef std::auto_ptr<typename e::hazard_ptrs<channel, 1>::hazard_ptr> hazard_ptr;
+        typedef std::auto_ptr<e::hazard_ptrs<channel, 1>::hazard_ptr> hazard_ptr;
 
     private:
         physical(const physical&);
