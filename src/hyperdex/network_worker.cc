@@ -27,7 +27,6 @@
 
 // POSIX
 #include <netinet/in.h>
-#include <netinet/sctp.h>
 #include <signal.h>
 #include <sys/socket.h>
 
