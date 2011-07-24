@@ -435,10 +435,10 @@ hyperdex :: logical :: send_you_hold_lock(const hyperdex::entityid& from,
             case physical::QUEUED:
                 break;
             case physical::CONNECTFAIL:
-                LOG(INFO) << "XXX Tell the master we observed a connection failure.";
+                LOG(INFO) << "XXX Tell the master we observed a connection failure to " << dst;
                 return false;
             case physical::DISCONNECT:
-                LOG(INFO) << "XXX Tell the master we observed a disconnect.";
+                LOG(INFO) << "XXX Tell the master we observed a disconnect from " << dst;
                 return false;
             case physical::SHUTDOWN:
                 LOG(ERROR) << "physical::recv unexpectedly returned SHUTDOWN.";
