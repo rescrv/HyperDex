@@ -129,8 +129,11 @@ class physical
         hyperdex::physical::result_t get_channel(const hazard_ptr& hptr, po6::net::socket* to, channel** chan);
         // worker functions.
         int work_accept(const hazard_ptr& hptr);
+        // work_close must be called without holding chan->mtx.
         void work_close(const hazard_ptr& hptr, channel* chan);
+        // work_read must be called without holding chan->mtx.
         bool work_read(const hazard_ptr& hptr, channel* chan, po6::net::location* from, e::buffer* msg, result_t* res);
+        // work_write must be called while holding chan->mtx.
         bool work_write(channel* chan);
 
     private:

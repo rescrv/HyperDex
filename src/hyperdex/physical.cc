@@ -389,21 +389,26 @@ hyperdex :: physical :: work_accept(const hazard_ptr& hptr)
     return -1;
 }
 
+
 void
 hyperdex :: physical :: work_close(const hazard_ptr& hptr, channel* chan)
 {
     if (chan)
     {
-        int fd = chan->soc.get();
-
-        if (fd == -1)
         {
-            return;
+            po6::threads::mutex::hold hold(&chan->mtx);
+            int fd = chan->soc.get();
+
+            if (fd < 0)
+            {
+                return;
+            }
+
+            m_channels[fd] = NULL;
+            m_locations.remove(chan->loc);
+            chan->soc.close();
         }
 
-        m_channels[fd] = NULL;
-        m_locations.remove(chan->loc);
-        chan->soc.close();
         hptr->retire(chan);
     }
 }
@@ -420,6 +425,11 @@ hyperdex :: physical :: work_read(const hazard_ptr& hptr, channel* chan, po6::ne
 
     e::guard g = e::makeobjguard(chan->mtx, &po6::threads::mutex::unlock);
 
+    if (chan->soc.get() < 0)
+    {
+        return false;
+    }
+
     try
     {
         size_t ret = read(&chan->soc, &chan->inprogress, IO_BLOCKSIZE);
@@ -428,6 +438,8 @@ hyperdex :: physical :: work_read(const hazard_ptr& hptr, channel* chan, po6::ne
         {
             *from = chan->loc;
             *res = DISCONNECT;
+            chan->mtx.unlock();
+            g.dismiss();
             work_close(hptr, chan);
             return true;
         }
@@ -473,6 +485,8 @@ hyperdex :: physical :: work_read(const hazard_ptr& hptr, channel* chan, po6::ne
             LOG(ERROR) << "could not read from " << chan->loc << "; closing";
             *from = chan->loc;
             *res = DISCONNECT;
+            chan->mtx.unlock();
+            g.dismiss();
             work_close(hptr, chan);
             return true;
         }
@@ -484,6 +498,11 @@ hyperdex :: physical :: work_read(const hazard_ptr& hptr, channel* chan, po6::ne
 bool
 hyperdex :: physical :: work_write(channel* chan)
 {
+    if (chan->soc.get() < 0)
+    {
+        return false;
+    }
+
     if (chan->outprogress.empty())
     {
         if (!chan->outgoing.pop(&chan->outprogress))
@@ -501,7 +520,7 @@ hyperdex :: physical :: work_write(channel* chan)
     {
         if (e != EAGAIN && e != EINTR && e != EWOULDBLOCK)
         {
-            LOG(ERROR) << "could not write to " << chan->loc << "; closing";
+            PLOG(ERROR) << "could not write to " << chan->loc << "(fd:"  << chan->soc.get() << ")";
             return false;
         }
     }
