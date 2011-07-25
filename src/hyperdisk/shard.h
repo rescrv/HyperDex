@@ -35,8 +35,8 @@
 #include <e/buffer.h>
 #include <e/intrusive_ptr.h>
 
-// HyperDex
-#include <hyperdex/result_t.h>
+// HyperDisk
+#include <hyperdisk/returncode.h>
 
 namespace hyperdisk
 {
@@ -78,20 +78,20 @@ class shard
         static e::intrusive_ptr<shard> create(const po6::pathname& filename);
 
     public:
-        hyperdex::result_t get(const e::buffer& key, uint64_t key_hash,
-                     std::vector<e::buffer>* value, uint64_t* version);
-        hyperdex::result_t put(const e::buffer& key, uint64_t key_hash,
-                     const std::vector<e::buffer>& value,
-                     const std::vector<uint64_t>& value_hashes,
-                     uint64_t version);
-        hyperdex::result_t del(const e::buffer& key, uint64_t key_hash);
+        returncode get(const e::buffer& key, uint64_t key_hash,
+                       std::vector<e::buffer>* value, uint64_t* version);
+        returncode put(const e::buffer& key, uint64_t key_hash,
+                       const std::vector<e::buffer>& value,
+                       const std::vector<uint64_t>& value_hashes,
+                       uint64_t version);
+        returncode del(const e::buffer& key, uint64_t key_hash);
         // Judge whether there would be a suitably large amount of space on this
         // shard after cleaning all dead segments.  If not, and the shard still
         // gives "DISKFULL" errors, we need to split the shard instead.
         bool needs_cleaning() const;
-        void async();
-        void sync();
-        void drop();
+        returncode async();
+        returncode sync();
+        returncode drop();
         e::intrusive_ptr<snapshot> make_snapshot();
         po6::pathname filename() const { return m_filename; }
         void filename(const po6::pathname& fn) { m_filename = fn; }

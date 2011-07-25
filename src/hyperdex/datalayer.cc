@@ -213,7 +213,7 @@ hyperdex :: datalayer :: make_rolling_snapshot(const regionid& ri)
     return r->make_rolling_snapshot();
 }
 
-hyperdex :: result_t
+hyperdisk::returncode
 hyperdex :: datalayer :: get(const regionid& ri,
                              const e::buffer& key,
                              std::vector<e::buffer>* value,
@@ -223,13 +223,13 @@ hyperdex :: datalayer :: get(const regionid& ri,
 
     if (!r)
     {
-        return INVALID;
+        return hyperdisk::NODISK;
     }
 
     return r->get(key, value, version);
 }
 
-hyperdex :: result_t
+hyperdisk::returncode
 hyperdex :: datalayer :: put(const regionid& ri,
                              const e::buffer& key,
                              const std::vector<e::buffer>& value,
@@ -239,13 +239,13 @@ hyperdex :: datalayer :: put(const regionid& ri,
 
     if (!r)
     {
-        return INVALID;
+        return hyperdisk::NODISK;
     }
 
     return r->put(key, value, version);
 }
 
-hyperdex :: result_t
+hyperdisk::returncode
 hyperdex :: datalayer :: del(const regionid& ri,
                              const e::buffer& key)
 {
@@ -253,7 +253,7 @@ hyperdex :: datalayer :: del(const regionid& ri,
 
     if (!r)
     {
-        return INVALID;
+        return hyperdisk::NODISK;
     }
 
     return r->del(key);

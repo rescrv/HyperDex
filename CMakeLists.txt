@@ -93,7 +93,6 @@ target_link_libraries(hyperdisk-tests
     hyperdisk
     cityhash
     gtest
-    glog
     pthread
 )
 # XXX No glog/pthread

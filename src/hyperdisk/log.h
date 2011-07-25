@@ -93,10 +93,10 @@ class log
 
     public:
         iterator iterate() { return iterator(this); }
-        bool append(uint64_t point, const e::buffer& key, uint64_t key_hash,
+        void append(uint64_t point, const e::buffer& key, uint64_t key_hash,
                     const std::vector<e::buffer>& value,
                     const std::vector<uint64_t>& value_hashes, uint64_t version);
-        bool append(uint64_t point, const e::buffer& key, uint64_t key_hash);
+        void append(uint64_t point, const e::buffer& key, uint64_t key_hash);
 
     public:
         size_t flush(std::tr1::function<bool (bool has_value,
@@ -192,7 +192,7 @@ class log
         log& operator = (const log&);
 
     private:
-        bool common_append(std::auto_ptr<node> n, bool real = true);
+        void common_append(std::auto_ptr<node> n, bool real = true);
         node* get_head();
         void step_list(node** pos);
         void release(node* pos);

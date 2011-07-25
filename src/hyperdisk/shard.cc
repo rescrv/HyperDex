@@ -37,9 +37,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-// Google Log
-#include <glog/logging.h>
-
 // po6
 #include <po6/io/fd.h>
 
@@ -76,7 +73,6 @@ hyperdisk :: shard :: create(const po6::pathname& filename)
     // Move the filename.
     if (rename(tmp.get(), filename.get()) < 0)
     {
-        LOG(INFO) << "Could not rename shard.";
         throw po6::error(errno);
     }
 
@@ -84,7 +80,7 @@ hyperdisk :: shard :: create(const po6::pathname& filename)
     return ret;
 }
 
-hyperdex :: result_t
+hyperdisk::returncode
 hyperdisk :: shard :: get(const e::buffer& key,
                         uint64_t key_hash,
                         std::vector<e::buffer>* value,
@@ -94,14 +90,14 @@ hyperdisk :: shard :: get(const e::buffer& key,
 
     if (!find_bucket(key, key_hash, &entry))
     {
-        return hyperdex::NOTFOUND;
+        return NOTFOUND;
     }
 
     const uint32_t offset = hashtable_offset(entry);
 
     if (offset == 0 || offset == UINT32_MAX)
     {
-        return hyperdex::NOTFOUND;
+        return NOTFOUND;
     }
 
     // Load the information.
@@ -110,10 +106,10 @@ hyperdisk :: shard :: get(const e::buffer& key,
     // data_key(offset, &key);
     // ^ Skipped because find_bucket ensures that the key matches.
     data_value(offset, key.size(), value);
-    return hyperdex::SUCCESS;
+    return SUCCESS;
 }
 
-hyperdex :: result_t
+hyperdisk::returncode
 hyperdisk :: shard :: put(const e::buffer& key,
                         uint64_t key_hash,
                         const std::vector<e::buffer>& value,
@@ -124,12 +120,12 @@ hyperdisk :: shard :: put(const e::buffer& key,
 
     if (required + m_offset > TOTAL_FILE_SIZE)
     {
-        return hyperdex::DISKFULL;
+        return DATAFULL;
     }
 
     if (m_search == SEARCH_INDEX_ENTRIES - 1)
     {
-        return hyperdex::DISKFULL;
+        return SEARCHFULL;
     }
 
     // Find the bucket.
@@ -138,7 +134,7 @@ hyperdisk :: shard :: put(const e::buffer& key,
 
     if (entry == HASH_TABLE_SIZE)
     {
-        return hyperdex::DISKFULL;
+        return HASHFULL;
     }
 
     // Values to pack.
@@ -187,10 +183,10 @@ hyperdisk :: shard :: put(const e::buffer& key,
     // Update the offsets
     ++m_search;
     m_offset = (curr_offset + 7) & ~7; // Keep everything 8-byte aligned.
-    return hyperdex::SUCCESS;
+    return SUCCESS;
 }
 
-hyperdex :: result_t
+hyperdisk::returncode
 hyperdisk :: shard :: del(const e::buffer& key,
                         uint64_t key_hash)
 {
@@ -198,17 +194,17 @@ hyperdisk :: shard :: del(const e::buffer& key,
 
     if (!find_bucket(key, key_hash, &entry))
     {
-        return hyperdex::NOTFOUND;
+        return NOTFOUND;
     }
 
     if (entry == HASH_TABLE_ENTRIES)
     {
-        return hyperdex::NOTFOUND;
+        return NOTFOUND;
     }
 
     if (m_offset + sizeof(uint64_t) > TOTAL_FILE_SIZE)
     {
-        return hyperdex::DISKFULL;
+        return DATAFULL;
     }
 
     const uint32_t offset = hashtable_offset(entry);
@@ -216,16 +212,18 @@ hyperdisk :: shard :: del(const e::buffer& key,
     invalidate_search_index(offset, m_offset);
     m_offset += sizeof(uint64_t);
     hashtable_offset(entry, UINT32_MAX);
-    return hyperdex::SUCCESS;
+    return SUCCESS;
 }
 
-void
+hyperdisk::returncode
 hyperdisk :: shard :: sync()
 {
     if (msync(m_base, TOTAL_FILE_SIZE, MS_SYNC) < 0)
     {
-        PLOG(INFO) << "Could not sync disk";
+        return SEEERRNO;
     }
+
+    return SUCCESS;
 }
 
 bool
@@ -260,22 +258,26 @@ hyperdisk :: shard :: needs_cleaning() const
     return freeable > (DATA_SEGMENT_SIZE >> 1);
 }
 
-void
+hyperdisk::returncode
 hyperdisk :: shard :: async()
 {
     if (msync(m_base, TOTAL_FILE_SIZE, MS_ASYNC) < 0)
     {
-        PLOG(INFO) << "Could not sync disk";
+        return SEEERRNO;
     }
+
+    return SUCCESS;
 }
 
-void
+hyperdisk::returncode
 hyperdisk :: shard :: drop()
 {
     if (unlink(m_filename.get()) < 0)
     {
-        PLOG(WARNING) << "Could not drop disk \"" << m_filename << "\"";
+        return SEEERRNO;
     }
+
+    return SUCCESS;
 }
 
 e::intrusive_ptr<hyperdisk::shard::snapshot>
@@ -305,16 +307,7 @@ hyperdisk :: shard :: shard(po6::io::fd* fd, const po6::pathname& fn)
 hyperdisk :: shard :: ~shard()
                     throw ()
 {
-    try
-    {
-        if (munmap(m_base, TOTAL_FILE_SIZE) < 0)
-        {
-            PLOG(WARNING) << "Could not munmap disk";
-        }
-    }
-    catch (...)
-    {
-    }
+    munmap(m_base, TOTAL_FILE_SIZE);
 }
 
 size_t

@@ -56,22 +56,22 @@ TEST(DiskTest, Simple)
     std::vector<uint64_t> value_hashes;
     uint64_t version;
 
-    ASSERT_EQ(hyperdex::NOTFOUND, d->get(e::buffer("key", 3), 11062368440904502521UL, &value, &version));
+    ASSERT_EQ(hyperdisk::NOTFOUND, d->get(e::buffer("key", 3), 11062368440904502521UL, &value, &version));
     version = 0xdeadbeefcafebabe;
-    ASSERT_EQ(hyperdex::SUCCESS, d->put(e::buffer("key", 3), 11062368440904502521UL, value, value_hashes, version));
-    ASSERT_EQ(hyperdex::SUCCESS, d->get(e::buffer("key", 3), 11062368440904502521UL, &value, &version));
+    ASSERT_EQ(hyperdisk::SUCCESS, d->put(e::buffer("key", 3), 11062368440904502521UL, value, value_hashes, version));
+    ASSERT_EQ(hyperdisk::SUCCESS, d->get(e::buffer("key", 3), 11062368440904502521UL, &value, &version));
     version = 0xdefec8edcafef00d;
     value.clear();
     value.push_back(e::buffer("value", 5));
     value_hashes.clear();
     value_hashes.push_back(17168316521448127654UL);
-    ASSERT_EQ(hyperdex::SUCCESS, d->put(e::buffer("key", 3), 11062368440904502521UL, value, value_hashes, version));
+    ASSERT_EQ(hyperdisk::SUCCESS, d->put(e::buffer("key", 3), 11062368440904502521UL, value, value_hashes, version));
     value.clear();
-    ASSERT_EQ(hyperdex::SUCCESS, d->get(e::buffer("key", 3), 11062368440904502521UL, &value, &version));
+    ASSERT_EQ(hyperdisk::SUCCESS, d->get(e::buffer("key", 3), 11062368440904502521UL, &value, &version));
     ASSERT_EQ(1, value.size());
     ASSERT_TRUE(e::buffer("value", 5) == value[0]);
-    ASSERT_EQ(hyperdex::SUCCESS, d->del(e::buffer("key", 3), 11062368440904502521UL));
-    ASSERT_EQ(hyperdex::NOTFOUND, d->get(e::buffer("key", 3), 11062368440904502521UL, &value, &version));
+    ASSERT_EQ(hyperdisk::SUCCESS, d->del(e::buffer("key", 3), 11062368440904502521UL));
+    ASSERT_EQ(hyperdisk::NOTFOUND, d->get(e::buffer("key", 3), 11062368440904502521UL, &value, &version));
 }
 
 TEST(DiskTest, MultiPut)
@@ -86,7 +86,7 @@ TEST(DiskTest, MultiPut)
     version = 64;
     value.push_back(e::buffer("value-one", 9));
     value_hashes.push_back(13379687116905876655UL);
-    ASSERT_EQ(hyperdex::SUCCESS, d->put(e::buffer("one", 3), 0xe1001e63b5e57068L, value, value_hashes, version));
+    ASSERT_EQ(hyperdisk::SUCCESS, d->put(e::buffer("one", 3), 0xe1001e63b5e57068L, value, value_hashes, version));
 
     // Put a second point.
     version = 128;
@@ -96,15 +96,15 @@ TEST(DiskTest, MultiPut)
     value_hashes.push_back(3863907495625339794);
     value.push_back(e::buffer("value-two-b", 11));
     value_hashes.push_back(1626659109720743906);
-    ASSERT_EQ(hyperdex::SUCCESS, d->put(e::buffer("two", 3), 0x4a38a1aea3a81e5f, value, value_hashes, version));
+    ASSERT_EQ(hyperdisk::SUCCESS, d->put(e::buffer("two", 3), 0x4a38a1aea3a81e5f, value, value_hashes, version));
 
     // Make sure we can get both.
-    ASSERT_EQ(hyperdex::SUCCESS, d->get(e::buffer("one", 3), 0xe1001e63b5e57068L, &value, &version));
+    ASSERT_EQ(hyperdisk::SUCCESS, d->get(e::buffer("one", 3), 0xe1001e63b5e57068L, &value, &version));
     ASSERT_EQ(64, version);
     ASSERT_EQ(1, value.size());
     ASSERT_TRUE(e::buffer("value-one", 9) == value[0]);
 
-    ASSERT_EQ(hyperdex::SUCCESS, d->get(e::buffer("two", 3), 0x4a38a1aea3a81e5f, &value, &version));
+    ASSERT_EQ(hyperdisk::SUCCESS, d->get(e::buffer("two", 3), 0x4a38a1aea3a81e5f, &value, &version));
     ASSERT_EQ(128, version);
     ASSERT_EQ(2, value.size());
     ASSERT_TRUE(e::buffer("value-two-a", 11) == value[0]);
@@ -126,38 +126,38 @@ TEST(DiskTest, DelPutDelPut)
 	value_hashes.push_back(17168316521448127654UL);
 
 	// Alternate put/delete.
-	ASSERT_EQ(hyperdex::NOTFOUND, d->del(key, key_hash));
-	ASSERT_EQ(hyperdex::SUCCESS, d->put(key, key_hash, value, value_hashes, version));
-	ASSERT_EQ(hyperdex::SUCCESS, d->del(key, key_hash));
-	ASSERT_EQ(hyperdex::SUCCESS, d->put(key, key_hash, value, value_hashes, version));
-	ASSERT_EQ(hyperdex::SUCCESS, d->del(key, key_hash));
-	ASSERT_EQ(hyperdex::SUCCESS, d->put(key, key_hash, value, value_hashes, version));
-	ASSERT_EQ(hyperdex::SUCCESS, d->del(key, key_hash));
-	ASSERT_EQ(hyperdex::SUCCESS, d->put(key, key_hash, value, value_hashes, version));
-	ASSERT_EQ(hyperdex::SUCCESS, d->del(key, key_hash));
-	ASSERT_EQ(hyperdex::SUCCESS, d->put(key, key_hash, value, value_hashes, version));
-	ASSERT_EQ(hyperdex::SUCCESS, d->del(key, key_hash));
-	ASSERT_EQ(hyperdex::SUCCESS, d->put(key, key_hash, value, value_hashes, version));
-	ASSERT_EQ(hyperdex::SUCCESS, d->del(key, key_hash));
-	ASSERT_EQ(hyperdex::SUCCESS, d->put(key, key_hash, value, value_hashes, version));
-	ASSERT_EQ(hyperdex::SUCCESS, d->del(key, key_hash));
-	ASSERT_EQ(hyperdex::SUCCESS, d->put(key, key_hash, value, value_hashes, version));
-	ASSERT_EQ(hyperdex::SUCCESS, d->del(key, key_hash));
-	ASSERT_EQ(hyperdex::SUCCESS, d->put(key, key_hash, value, value_hashes, version));
-	ASSERT_EQ(hyperdex::SUCCESS, d->del(key, key_hash));
-	ASSERT_EQ(hyperdex::SUCCESS, d->put(key, key_hash, value, value_hashes, version));
+	ASSERT_EQ(hyperdisk::NOTFOUND, d->del(key, key_hash));
+	ASSERT_EQ(hyperdisk::SUCCESS, d->put(key, key_hash, value, value_hashes, version));
+	ASSERT_EQ(hyperdisk::SUCCESS, d->del(key, key_hash));
+	ASSERT_EQ(hyperdisk::SUCCESS, d->put(key, key_hash, value, value_hashes, version));
+	ASSERT_EQ(hyperdisk::SUCCESS, d->del(key, key_hash));
+	ASSERT_EQ(hyperdisk::SUCCESS, d->put(key, key_hash, value, value_hashes, version));
+	ASSERT_EQ(hyperdisk::SUCCESS, d->del(key, key_hash));
+	ASSERT_EQ(hyperdisk::SUCCESS, d->put(key, key_hash, value, value_hashes, version));
+	ASSERT_EQ(hyperdisk::SUCCESS, d->del(key, key_hash));
+	ASSERT_EQ(hyperdisk::SUCCESS, d->put(key, key_hash, value, value_hashes, version));
+	ASSERT_EQ(hyperdisk::SUCCESS, d->del(key, key_hash));
+	ASSERT_EQ(hyperdisk::SUCCESS, d->put(key, key_hash, value, value_hashes, version));
+	ASSERT_EQ(hyperdisk::SUCCESS, d->del(key, key_hash));
+	ASSERT_EQ(hyperdisk::SUCCESS, d->put(key, key_hash, value, value_hashes, version));
+	ASSERT_EQ(hyperdisk::SUCCESS, d->del(key, key_hash));
+	ASSERT_EQ(hyperdisk::SUCCESS, d->put(key, key_hash, value, value_hashes, version));
+	ASSERT_EQ(hyperdisk::SUCCESS, d->del(key, key_hash));
+	ASSERT_EQ(hyperdisk::SUCCESS, d->put(key, key_hash, value, value_hashes, version));
+	ASSERT_EQ(hyperdisk::SUCCESS, d->del(key, key_hash));
+	ASSERT_EQ(hyperdisk::SUCCESS, d->put(key, key_hash, value, value_hashes, version));
 
     // A GET should succeed.
-	ASSERT_EQ(hyperdex::SUCCESS, d->get(key, key_hash, &value, &version));
+	ASSERT_EQ(hyperdisk::SUCCESS, d->get(key, key_hash, &value, &version));
 	ASSERT_EQ(1, value.size());
 	ASSERT_TRUE(e::buffer("value", 5) == value[0]);
 	ASSERT_EQ(0xdeadbeefcafebabe, version);
 
 	// One last delete.
-	ASSERT_EQ(hyperdex::SUCCESS, d->del(key, key_hash));
+	ASSERT_EQ(hyperdisk::SUCCESS, d->del(key, key_hash));
 
     // A GET should fail.
-	ASSERT_EQ(hyperdex::NOTFOUND, d->get(key, key_hash, &value, &version));
+	ASSERT_EQ(hyperdisk::NOTFOUND, d->get(key, key_hash, &value, &version));
 }
 
 TEST(DiskTest, Snapshot)
@@ -177,7 +177,7 @@ TEST(DiskTest, Snapshot)
     const std::vector<e::buffer> value;
     const std::vector<uint64_t> value_hashes;
     const uint64_t version = 0xdeadbeefcafebabe;
-    ASSERT_EQ(hyperdex::SUCCESS, d->put(key, key_hash, value, value_hashes, version));
+    ASSERT_EQ(hyperdisk::SUCCESS, d->put(key, key_hash, value, value_hashes, version));
     e::intrusive_ptr<hyperdisk::shard::snapshot> s2a = d->make_snapshot();
     e::intrusive_ptr<hyperdisk::shard::snapshot> s2b = d->make_snapshot();
 
@@ -204,7 +204,7 @@ TEST(DiskTest, Snapshot)
     const std::vector<e::buffer> value2(1, e::buffer("value", 5));
     const std::vector<uint64_t> value2_hashes(1, 17168316521448127654UL);
     const uint64_t version2 = 0xcafebabedeadbeef;
-    ASSERT_EQ(hyperdex::SUCCESS, d->put(key, key_hash, value2, value2_hashes, version2));
+    ASSERT_EQ(hyperdisk::SUCCESS, d->put(key, key_hash, value2, value2_hashes, version2));
     e::intrusive_ptr<hyperdisk::shard::snapshot> s3a = d->make_snapshot();
     e::intrusive_ptr<hyperdisk::shard::snapshot> s3b = d->make_snapshot();
     ASSERT_TRUE(s3a->valid());
@@ -215,7 +215,7 @@ TEST(DiskTest, Snapshot)
     EXPECT_FALSE(s3a->valid());
 
     // Delete that value.
-    EXPECT_EQ(hyperdex::SUCCESS, d->del(key, key_hash));
+    EXPECT_EQ(hyperdisk::SUCCESS, d->del(key, key_hash));
     e::intrusive_ptr<hyperdisk::shard::snapshot> s4a = d->make_snapshot();
     e::intrusive_ptr<hyperdisk::shard::snapshot> s4b = d->make_snapshot();
     EXPECT_FALSE(s4a->valid());
@@ -231,8 +231,8 @@ TEST(DiskTest, Snapshot)
     const uint64_t b2b_version2 = 0x41414141;
     const std::vector<e::buffer> b2b_value2(2, e::buffer("value-2", 7));
     const std::vector<uint64_t> b2b_value2_hashes(2, 9047582705417063893L);
-    ASSERT_EQ(hyperdex::SUCCESS, d->put(b2b_key1, b2b_key1_hash, b2b_value1, b2b_value1_hashes, b2b_version1));
-    ASSERT_EQ(hyperdex::SUCCESS, d->put(b2b_key2, b2b_key2_hash, b2b_value2, b2b_value2_hashes, b2b_version2));
+    ASSERT_EQ(hyperdisk::SUCCESS, d->put(b2b_key1, b2b_key1_hash, b2b_value1, b2b_value1_hashes, b2b_version1));
+    ASSERT_EQ(hyperdisk::SUCCESS, d->put(b2b_key2, b2b_key2_hash, b2b_value2, b2b_value2_hashes, b2b_version2));
     e::intrusive_ptr<hyperdisk::shard::snapshot> s5a = d->make_snapshot();
     e::intrusive_ptr<hyperdisk::shard::snapshot> s5b = d->make_snapshot();
     ASSERT_TRUE(s5a->valid());

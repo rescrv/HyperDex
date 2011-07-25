@@ -37,9 +37,6 @@
 // Google CityHash
 #include <city/city.h>
 
-// Google Log
-#include <glog/logging.h>
-
 // e
 #include <e/guard.h>
 
@@ -70,7 +67,7 @@ hyperdisk :: disk :: disk(const po6::pathname& directory, uint16_t arity)
 }
 
 // XXX Double check the logic of GET to make sure it is indeed linearizable.
-hyperdex :: result_t
+hyperdisk::returncode
 hyperdisk :: disk :: get(const e::buffer& key,
                           std::vector<e::buffer>* value,
                           uint64_t* version)
@@ -106,7 +103,7 @@ hyperdisk :: disk :: get(const e::buffer& key,
     // part of it before touching disk.
     if (found)
     {
-        return *version == 0 ? hyperdex::NOTFOUND : hyperdex::SUCCESS;
+        return *version == 0 ? NOTFOUND : SUCCESS;
     }
 
     std::vector<e::buffer> tmp_value;
@@ -125,9 +122,9 @@ hyperdisk :: disk :: get(const e::buffer& key,
             continue;
         }
 
-        hyperdex::result_t res = i->second->get(key, key_hash, &tmp_value, &tmp_version);
+        returncode res = i->second->get(key, key_hash, &tmp_value, &tmp_version);
 
-        if (res == hyperdex::SUCCESS)
+        if (res == SUCCESS)
         {
             if (tmp_version > *version)
             {
@@ -137,7 +134,7 @@ hyperdisk :: disk :: get(const e::buffer& key,
 
             break;
         }
-        else if (res != hyperdex::NOTFOUND)
+        else if (res != NOTFOUND)
         {
             return res;
         }
@@ -167,15 +164,15 @@ hyperdisk :: disk :: get(const e::buffer& key,
 
     if (*version > 0 || found)
     {
-        return hyperdex::SUCCESS;
+        return SUCCESS;
     }
     else
     {
-        return hyperdex::NOTFOUND;
+        return NOTFOUND;
     }
 }
 
-hyperdex :: result_t
+hyperdisk::returncode
 hyperdisk :: disk :: put(const e::buffer& key,
                          const std::vector<e::buffer>& value,
                          uint64_t version)
@@ -187,34 +184,23 @@ hyperdisk :: disk :: put(const e::buffer& key,
 
     if (value.size() + 1 != m_numcolumns)
     {
-        return hyperdex::INVALID;
-    }
-    else if (m_log.append(point, key, key_hash, value, value_hashes, version))
-    {
-        return hyperdex::SUCCESS;
+        return WRONGARITY;
     }
     else
     {
-        LOG(INFO) << "Could not append to in-memory WAL.";
-        return hyperdex::ERROR;
+        m_log.append(point, key, key_hash, value, value_hashes, version);
+        return SUCCESS;
     }
 }
 
-hyperdex :: result_t
+hyperdisk::returncode
 hyperdisk :: disk :: del(const e::buffer& key)
 {
     uint64_t key_hash = CityHash64(key);
     uint64_t point = get_point_for(key_hash);
 
-    if (m_log.append(point, key, key_hash))
-    {
-        return hyperdex::SUCCESS;
-    }
-    else
-    {
-        LOG(INFO) << "Could not append to in-memory WAL.";
-        return hyperdex::ERROR;
-    }
+    m_log.append(point, key, key_hash);
+    return SUCCESS;
 }
 
 bool
@@ -257,7 +243,9 @@ hyperdisk :: disk :: flush()
     return split || flushed > 0;
 }
 
-void
+// XXX Only return SUCCESS if all pass.
+
+hyperdisk::returncode
 hyperdisk :: disk :: async()
 {
     po6::threads::rwlock::rdhold hold(&m_rwlock);
@@ -266,9 +254,11 @@ hyperdisk :: disk :: async()
     {
         i->second->async();
     }
+
+    return SUCCESS;
 }
 
-void
+hyperdisk::returncode
 hyperdisk :: disk :: sync()
 {
     po6::threads::rwlock::rdhold hold(&m_rwlock);
@@ -277,9 +267,11 @@ hyperdisk :: disk :: sync()
     {
         i->second->sync();
     }
+
+    return SUCCESS;
 }
 
-void
+hyperdisk::returncode
 hyperdisk :: disk :: drop()
 {
     for (shard_collection::iterator d = m_shards.begin(); d != m_shards.end(); ++d)
@@ -289,8 +281,10 @@ hyperdisk :: disk :: drop()
 
     if (rmdir(m_base.get()) < 0)
     {
-        PLOG(INFO) << "Could not remove region directory.";
+        return SEEERRNO;
     }
+
+    return SUCCESS;
 }
 
 e::intrusive_ptr<hyperdisk::disk::snapshot>
@@ -396,21 +390,23 @@ hyperdisk :: disk :: flush_one(bool has_value, uint64_t point, const e::buffer& 
             continue;
         }
 
-        hyperdex::result_t res = i->second->del(key, key_hash);
+        returncode res = i->second->del(key, key_hash);
 
         switch (res)
         {
-            case hyperdex::SUCCESS:
-            case hyperdex::NOTFOUND:
+            case SUCCESS:
+            case NOTFOUND:
                 break;
-            case hyperdex::DISKFULL:
+            case DATAFULL:
+            case HASHFULL:
+            case SEARCHFULL:
                 m_needs_more_space.insert(i->first);
                 return false;
-            case hyperdex::INVALID:
-            case hyperdex::ERROR:
+            case NODISK:
+            case WRONGARITY:
+            case SEEERRNO:
             default:
-                // XXX FAIL DISK
-                LOG(INFO) << "Disk has failed.";
+                assert(!"Programming error.");
         }
     }
 
@@ -426,22 +422,23 @@ hyperdisk :: disk :: flush_one(bool has_value, uint64_t point, const e::buffer& 
                 continue;
             }
 
-            hyperdex::result_t res = i->second->put(key, key_hash, value, value_hashes, version);
+            returncode res = i->second->put(key, key_hash, value, value_hashes, version);
 
             switch (res)
             {
-                case hyperdex::SUCCESS:
+                case SUCCESS:
                     break;
-                case hyperdex::DISKFULL:
+                case DATAFULL:
+                case HASHFULL:
+                case SEARCHFULL:
                     m_needs_more_space.insert(i->first);
                     return false;
-                case hyperdex::NOTFOUND:
-                    LOG(INFO) << "PUT returned NOTFOUND? Rediculous.";
-                case hyperdex::INVALID:
-                case hyperdex::ERROR:
+                case NODISK:
+                case NOTFOUND:
+                case WRONGARITY:
+                case SEEERRNO:
                 default:
-                    // XXX FAIL DISK
-                    LOG(INFO) << "Disk has failed.";
+                    assert(!"Programming error.");
             }
         }
     }
@@ -463,14 +460,14 @@ hyperdisk :: disk :: inner_make_snapshot()
     return ret;
 }
 
-void
+hyperdisk::returncode
 hyperdisk :: disk :: clean_shard(const hyperdex::regionid& ri)
 {
     shard_collection::iterator di = m_shards.find(ri);
 
     if (di == m_shards.end())
     {
-        return;
+        return NOTFOUND;
     }
 
     e::intrusive_ptr<hyperdisk::shard::snapshot> snap = di->second->make_snapshot();
@@ -490,15 +487,14 @@ hyperdisk :: disk :: clean_shard(const hyperdex::regionid& ri)
 
     if (rename(path.get(), di->second->filename().get()) < 0)
     {
-        PLOG(WARNING) << "Could not rename newly cleaned disk.";
-        return;
+        return SEEERRNO;
     }
 
     disk_guard.dismiss();
     newdisk->filename(di->second->filename());
-    LOG(INFO) << "Successfully cleaned " << di->second->filename();
     po6::threads::rwlock::wrhold hold(&m_rwlock);
     m_shards[ri] = newdisk;
+    return SUCCESS;
 }
 
 // XXX Split disk will only create more space if there is enough variation among
@@ -507,20 +503,19 @@ hyperdisk :: disk :: clean_shard(const hyperdex::regionid& ri)
 // large (or so constructively worst-case) that it needs all 64 bits of the
 // region mask to identify disks.
 
-void
+hyperdisk::returncode
 hyperdisk :: disk :: split_shard(const hyperdex::regionid& ri)
 {
     if (ri.prefix >= 64)
     {
-        LOG(ERROR) << "We've hit a worst case that hasn't been coded for!";
-        return;
+        assert(!"Programming error."); // XXX
     }
 
     shard_collection::iterator di = m_shards.find(ri);
 
     if (di == m_shards.end())
     {
-        return;
+        return NOTFOUND;
     }
 
     uint64_t new_bit = 1;
@@ -542,7 +537,7 @@ hyperdisk :: disk :: split_shard(const hyperdex::regionid& ri)
 
     if (!lower || !upper)
     {
-        return;
+        return SEEERRNO;
     }
 
     uint64_t prefix = hyperdex::prefixmask(ri.prefix + 1);
@@ -584,8 +579,7 @@ hyperdisk :: disk :: split_shard(const hyperdex::regionid& ri)
     drop_shard(ri);
     lower_disk_guard.dismiss();
     upper_disk_guard.dismiss();
-    LOG(INFO) << "Successfully split " << old_fn;
-    return;
+    return SUCCESS;
 }
 
 hyperdisk :: disk :: snapshot :: snapshot(std::vector<e::intrusive_ptr<hyperdisk::shard::snapshot> >* ss)

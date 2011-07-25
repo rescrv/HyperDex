@@ -56,7 +56,7 @@ hyperdisk :: log :: ~log() throw ()
     release(m_head);
 }
 
-bool
+void
 hyperdisk :: log :: append(uint64_t point,
                            const e::buffer& key,
                            uint64_t key_hash,
@@ -65,16 +65,16 @@ hyperdisk :: log :: append(uint64_t point,
                            uint64_t version)
 {
     std::auto_ptr<node> n(new node(point, key, key_hash, value, value_hashes, version));
-    return common_append(n);
+    common_append(n);
 }
 
-bool
+void
 hyperdisk :: log :: append(uint64_t point,
                            const e::buffer& key,
                            uint64_t key_hash)
 {
     std::auto_ptr<node> n(new node(point, key, key_hash));
-    return common_append(n);
+    common_append(n);
 }
 
 size_t
@@ -193,7 +193,7 @@ hyperdisk :: log :: release(node* pos)
     }
 }
 
-bool
+void
 hyperdisk :: log :: common_append(std::auto_ptr<node> n, bool real)
 {
     po6::threads::mutex::hold hold(&m_tail_lock);
@@ -203,7 +203,6 @@ hyperdisk :: log :: common_append(std::auto_ptr<node> n, bool real)
     m_tail->next = n.get();
     m_tail = n.get();
     n.release();
-    return true;
 }
 
 hyperdisk :: log :: iterator :: iterator(hyperdisk::log* l)

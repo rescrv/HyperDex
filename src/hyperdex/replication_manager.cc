@@ -525,11 +525,49 @@ hyperdex :: replication_manager :: region_transfer(const entityid& from,
 
             if (one.operation == PUT)
             {
-                res = m_data->put(t->replicate_from.get_region(), one.key, one.value, one.version);
+                switch (m_data->put(t->replicate_from.get_region(), one.key, one.value, one.version))
+                {
+                    case hyperdisk::SUCCESS:
+                        res = SUCCESS;
+                        break;
+                    case hyperdisk::NOTFOUND:
+                        res = NOTFOUND;
+                        break;
+                    case hyperdisk::WRONGARITY:
+                        res = INVALID;
+                        break;
+                    case hyperdisk::HASHFULL:
+                    case hyperdisk::DATAFULL:
+                    case hyperdisk::SEARCHFULL:
+                    case hyperdisk::SEEERRNO:
+                    case hyperdisk::NODISK:
+                    default:
+                        res = ERROR;
+                        break;
+                }
             }
             else
             {
-                res = m_data->del(t->replicate_from.get_region(), one.key);
+                switch (m_data->del(t->replicate_from.get_region(), one.key))
+                {
+                    case hyperdisk::SUCCESS:
+                        res = SUCCESS;
+                        break;
+                    case hyperdisk::NOTFOUND:
+                        res = NOTFOUND;
+                        break;
+                    case hyperdisk::WRONGARITY:
+                        res = INVALID;
+                        break;
+                    case hyperdisk::HASHFULL:
+                    case hyperdisk::DATAFULL:
+                    case hyperdisk::SEARCHFULL:
+                    case hyperdisk::SEEERRNO:
+                    case hyperdisk::NODISK:
+                    default:
+                        res = ERROR;
+                        break;
+                }
             }
 
             if (res != SUCCESS)
@@ -948,17 +986,21 @@ hyperdex :: replication_manager :: from_disk(const regionid& r,
 {
     switch (m_data->get(r, key, value, version))
     {
-        case SUCCESS:
+        case hyperdisk::SUCCESS:
             *have_value = true;
             return true;
-        case NOTFOUND:
+        case hyperdisk::NOTFOUND:
             *version = 0;
             *have_value = false;
             return true;
-        case INVALID:
-            LOG(INFO) << "Data layer returned INVALID when queried for old value.";
+        case hyperdisk::WRONGARITY:
+            LOG(INFO) << "Data layer returned WRONGARITY when queried for old value.";
             return false;
-        case ERROR:
+        case hyperdisk::HASHFULL:
+        case hyperdisk::DATAFULL:
+        case hyperdisk::SEARCHFULL:
+        case hyperdisk::SEEERRNO:
+        case hyperdisk::NODISK:
             LOG(INFO) << "Data layer returned ERROR when queried for old value.";
             return false;
         default:

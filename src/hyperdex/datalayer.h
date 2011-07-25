@@ -48,7 +48,6 @@
 #include <hyperdex/configuration.h>
 #include <hyperdex/ids.h>
 #include <hyperdex/instance.h>
-#include <hyperdex/result_t.h>
 
 namespace hyperdex
 {
@@ -69,9 +68,11 @@ class datalayer
 
     // Key-Value store operations.
     public:
-        result_t get(const regionid& ri, const e::buffer& key, std::vector<e::buffer>* value, uint64_t* version);
-        result_t put(const regionid& ri, const e::buffer& key, const std::vector<e::buffer>& value, uint64_t version);
-        result_t del(const regionid& ri, const e::buffer& key);
+        hyperdisk::returncode get(const regionid& ri, const e::buffer& key,
+                                  std::vector<e::buffer>* value, uint64_t* version);
+        hyperdisk::returncode put(const regionid& ri, const e::buffer& key,
+                                  const std::vector<e::buffer>& value, uint64_t version);
+        hyperdisk::returncode del(const regionid& ri, const e::buffer& key);
 
     private:
         datalayer(const datalayer&);
