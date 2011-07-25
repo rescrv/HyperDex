@@ -93,9 +93,11 @@ hyperdex :: coordinatorlink :: loop()
                 {
                     PLOG(WARNING) << "could not send whole annouce string to coordinator";
                     m_sock.close();
-                    e::sleep_ms(10, 0);
+                    e::sleep_ms(1, 0);
                     return;
                 }
+
+                LOG(INFO) << "connected to coordinator";
             }
             catch (po6::error& e)
             {
@@ -104,7 +106,7 @@ hyperdex :: coordinatorlink :: loop()
                 PLOG(WARNING) << "could not connect to coordinator";
                 errno = saved_errno;
                 m_sock.close();
-                e::sleep_ms(10, 0);
+                e::sleep_ms(1, 0);
                 return;
             }
         }
@@ -116,7 +118,7 @@ hyperdex :: coordinatorlink :: loop()
 
         if (polled < 0 && errno != EINTR)
         {
-            PLOG(WARNING) << "could not poll coordinator; disconnecting";
+            PLOG(WARNING) << "could not poll coordinator";
             m_sock.close();
             return;
         }
@@ -126,7 +128,18 @@ hyperdex :: coordinatorlink :: loop()
             return;
         }
 
-        size_t ret = e::read(&m_sock, &m_partial, 2048);
+        size_t ret;
+
+        try
+        {
+            ret = e::read(&m_sock, &m_partial, 2048);
+        }
+        catch (po6::error& e)
+        {
+            PLOG(WARNING) << "could not read from coordinator";
+            m_sock.close();
+            continue;
+        }
 
         if (ret == 0)
         {
