@@ -49,33 +49,24 @@
 // HyperDex
 #include <hyperdex/hyperspace.h>
 
-hyperdisk :: disk :: disk(const hyperdex::regionid& ri, const po6::pathname& base, uint16_t nc)
+hyperdisk :: disk :: disk(const po6::pathname& directory, uint16_t arity)
     : m_ref(0)
-    , m_numcolumns(nc)
+    , m_numcolumns(arity)
     , m_point_mask(get_point_for(UINT64_MAX))
     , m_log()
     , m_rwlock()
     , m_shards()
-    , m_base()
+    , m_base(directory)
     , m_needs_more_space()
 {
-    // The base directory for this region.
-    std::ostringstream ostr;
-    ostr << ri;
-    m_base = po6::join(base, po6::pathname(ostr.str()));
-
     if (mkdir(m_base.get(), S_IRWXU) < 0 && errno != EEXIST)
     {
-        LOG(INFO) << "Could not create region " << ri << " because mkdir failed";
         throw po6::error(errno);
     }
 
-    e::guard rmdir_guard = e::makeguard(rmdir, m_base.get());
-
     // Create a starting disk which holds everything.
-    hyperdex::regionid starting(hyperdex::regionid(ri.get_subspace(), 0));
+    hyperdex::regionid starting(hyperdex::regionid(0, 0, 0, 0));
     create_shard(starting);
-    rmdir_guard.dismiss();
 }
 
 // XXX Double check the logic of GET to make sure it is indeed linearizable.

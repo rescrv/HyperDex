@@ -321,8 +321,10 @@ void
 hyperdex :: datalayer :: create_disk(const regionid& ri, uint16_t num_columns)
 {
     LOG(INFO) << "Creating " << ri << " with " << num_columns << " columns.";
-    disk_ptr d;
-    d = new hyperdisk::disk(ri, m_base, num_columns);
+    std::ostringstream ostr;
+    ostr << ri;
+    po6::pathname path = po6::join(m_base, po6::pathname(ostr.str()));
+    disk_ptr d = new hyperdisk::disk(path, num_columns);
     po6::threads::rwlock::wrhold hold(&m_lock);
     m_disks.insert(std::make_pair(ri, d));
 }

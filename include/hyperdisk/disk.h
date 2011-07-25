@@ -117,7 +117,7 @@ class disk
         };
 
     public:
-        disk(const hyperdex::regionid& ri, const po6::pathname& directory, uint16_t nc);
+        disk(const po6::pathname& directory, uint16_t arity);
 
     public:
         hyperdex::result_t get(const e::buffer& key, std::vector<e::buffer>* value,
