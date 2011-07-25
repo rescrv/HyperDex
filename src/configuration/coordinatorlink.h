@@ -28,6 +28,9 @@
 #ifndef hyperdex_coordinatorlink_h_
 #define hyperdex_coordinatorlink_h_
 
+// POSIX
+#include <poll.h>
+
 // STL
 #include <string>
 
@@ -44,6 +47,16 @@ namespace hyperdex
 class coordinatorlink
 {
     public:
+        enum returncode
+        {
+            SHUTDOWN    = 0,
+            SUCCESS     = 1,
+            CONNECTFAIL = 2,
+            DISCONNECT  = 3,
+            LOGICERROR  = 4
+        };
+
+    public:
         coordinatorlink(const po6::net::location& coordinator,
                         const std::string& announce);
         ~coordinatorlink() throw ();
@@ -53,10 +66,11 @@ class coordinatorlink
     // "unacknowledged" to false until a new config is received.
     public:
         bool unacknowledged() const;
-        void acknowledge();
+        returncode acknowledge();
 
     public:
-        void loop();
+        returncode connect();
+        returncode loop(size_t iterations, int timeout);
         void shutdown();
 
     public:
@@ -66,7 +80,9 @@ class coordinatorlink
         coordinatorlink(const coordinatorlink&);
 
     private:
-        bool send_to_coordinator(const char* msg, size_t len);
+        returncode send_to_coordinator(const char* msg, size_t len);
+        void reset(); // Reset the config and socket (calls reset_config).
+        void reset_config(); // Prepare a new config.
 
     private:
         coordinatorlink& operator = (const coordinatorlink&);
@@ -75,11 +91,12 @@ class coordinatorlink
         const po6::net::location m_coordinator;
         const std::string m_announce;
         bool m_shutdown;
-        bool m_sent_ack;
+        bool m_acknowledged;
         bool m_config_valid;
         configuration m_config;
         po6::net::socket m_sock;
-        e::buffer m_partial;
+        pollfd m_pfd;
+        e::buffer m_buffer;
 };
 
 } // namespace hyperdex

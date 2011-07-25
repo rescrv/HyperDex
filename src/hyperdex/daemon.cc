@@ -95,11 +95,11 @@ hyperdex :: daemon(po6::pathname datadir,
                              << comm.inst().outbound;
     // Setup our link to the coordinator.
     coordinatorlink cl(coordinator, announce.str());
-    LOG(INFO) << "Receiving initial configuration from the coordinator.";
+    LOG(INFO) << "Connecting to the coordinator.";
 
-    while (s_continue && !cl.unacknowledged())
+    while (s_continue && cl.connect() != coordinatorlink::SUCCESS)
     {
-        cl.loop();
+        PLOG(INFO) << "Coordinator connection failed";
     }
 
     // Start the network workers.
@@ -122,6 +122,7 @@ hyperdex :: daemon(po6::pathname datadir,
     {
         if (cl.unacknowledged())
         {
+            LOG(INFO) << "Installing new configuration.";
             // Prepare for our new configuration.
             // These operations should assume that there will be network
             // activity, and that the network threads will be in full force..
@@ -133,7 +134,7 @@ hyperdex :: daemon(po6::pathname datadir,
             e::guard g1 = e::makeobjguard(comm, &hyperdex::logical::unpause);
             e::guard g2 = e::makeobjguard(comm, &hyperdex::logical::shutdown);
 
-            LOG(INFO) << "Pausing communication to reconfigure.";
+            LOG(INFO) << "Pausing communication for reconfiguration.";
 
             // Make sure that we wait until everyone is paused.
             comm.pause();
@@ -162,7 +163,25 @@ hyperdex :: daemon(po6::pathname datadir,
             cl.acknowledge();
         }
 
-        cl.loop();
+        switch (cl.loop(100, -1))
+        {
+            case coordinatorlink::SHUTDOWN:
+                s_continue = false;
+                break;
+            case coordinatorlink::SUCCESS:
+                break;
+            case coordinatorlink::CONNECTFAIL:
+            case coordinatorlink::DISCONNECT:
+                if (cl.connect() != coordinatorlink::SUCCESS)
+                {
+                    PLOG(INFO) << "Coordinator connection failed";
+                }
+
+                break;
+            case coordinatorlink::LOGICERROR:
+            default:
+                assert(!"Programming error.");
+        }
     }
 
     LOG(INFO) << "Exiting daemon.";

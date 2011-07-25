@@ -28,13 +28,7 @@
 // POSIX
 #include <poll.h>
 
-// Google Log
-#include <glog/logging.h>
-
-// e
-#include <e/timer.h>
-
-// HyperDex
+// Configuration
 #include <configuration/coordinatorlink.h>
 
 hyperdex :: coordinatorlink :: coordinatorlink(const po6::net::location& coordinator,
@@ -42,12 +36,14 @@ hyperdex :: coordinatorlink :: coordinatorlink(const po6::net::location& coordin
     : m_coordinator(coordinator)
     , m_announce(announce + "\n")
     , m_shutdown(false)
-    , m_sent_ack(true)
+    , m_acknowledged(true)
     , m_config_valid(true)
     , m_config()
     , m_sock()
-    , m_partial()
+    , m_pfd()
+    , m_buffer()
 {
+    reset();
 }
 
 hyperdex :: coordinatorlink :: ~coordinatorlink() throw ()
@@ -58,124 +54,133 @@ hyperdex :: coordinatorlink :: ~coordinatorlink() throw ()
 bool
 hyperdex :: coordinatorlink :: unacknowledged() const
 {
-    return !m_sent_ack;
+    return !m_acknowledged;
 }
 
-void
+hyperdex::coordinatorlink::returncode
 hyperdex :: coordinatorlink :: acknowledge()
 {
-    if (!m_shutdown)
+    if (m_shutdown)
     {
-        m_sent_ack = true;
-        send_to_coordinator("ACK\n", 4);
-        m_config = hyperdex::configuration();
-        m_config_valid = true;
+        return SHUTDOWN;
+    }
+
+    returncode ret = send_to_coordinator("ACK\n", 4);
+
+    if (ret == SUCCESS)
+    {
+        reset_config();
+    }
+
+    return ret;
+}
+
+hyperdex::coordinatorlink::returncode
+hyperdex :: coordinatorlink :: connect()
+{
+    if (m_sock.get() >= 0)
+    {
+        return SUCCESS;
+    }
+
+    reset_config();
+    m_sock.reset(m_coordinator.address.family(), SOCK_STREAM, IPPROTO_TCP);
+
+    try
+    {
+        m_sock.connect(m_coordinator);
+        return send_to_coordinator(m_announce.c_str(), m_announce.size());
+    }
+    catch (po6::error& e)
+    {
+        return CONNECTFAIL;
     }
 }
 
-void
-hyperdex :: coordinatorlink :: loop()
+hyperdex::coordinatorlink::returncode
+hyperdex :: coordinatorlink :: loop(size_t iterations, int timeout)
 {
-    while (!m_shutdown && m_sent_ack)
+    size_t iter = 0;
+
+    while (m_acknowledged && iter < iterations)
     {
+        if (m_shutdown)
+        {
+            return SHUTDOWN;
+        }
+
         if (m_sock.get() < 0)
         {
-            m_config = hyperdex::configuration();
-            m_config_valid = true;
-            m_partial.clear();
-            m_sock.reset(m_coordinator.address.family(), SOCK_STREAM, IPPROTO_TCP);
-
-            try
-            {
-                m_sock.connect(m_coordinator);
-
-                if (m_sock.xwrite(m_announce.c_str(), m_announce.size()) != m_announce.size())
-                {
-                    PLOG(WARNING) << "could not send whole annouce string to coordinator";
-                    m_sock.close();
-                    e::sleep_ms(1, 0);
-                    return;
-                }
-
-                LOG(INFO) << "connected to coordinator";
-            }
-            catch (po6::error& e)
-            {
-                int saved_errno = errno;
-                errno = e;
-                PLOG(WARNING) << "could not connect to coordinator";
-                errno = saved_errno;
-                m_sock.close();
-                e::sleep_ms(1, 0);
-                return;
-            }
+            reset();
+            return DISCONNECT;
         }
 
-        pollfd pfd;
-        pfd.fd = m_sock.get();
-        pfd.events = POLLIN;
-        int polled = poll(&pfd, 1, 100);
+        int polled = poll(&m_pfd, 1, timeout);
 
-        if (polled < 0 && errno != EINTR)
+        if (polled < 0)
         {
-            PLOG(WARNING) << "could not poll coordinator";
-            m_sock.close();
-            return;
-        }
-
-        if (polled <= 0)
-        {
-            return;
+            if (errno == EINTR)
+            {
+                continue;
+            }
+            else
+            {
+                reset();
+                return DISCONNECT;
+            }
         }
 
         size_t ret;
 
         try
         {
-            ret = e::read(&m_sock, &m_partial, 2048);
+            ret = e::read(&m_sock, &m_buffer, 2048);
         }
         catch (po6::error& e)
         {
-            PLOG(WARNING) << "could not read from coordinator";
-            m_sock.close();
-            continue;
+            reset();
+            return DISCONNECT;
         }
 
         if (ret == 0)
         {
-            m_sock.close();
-            continue;
+            reset();
+            return DISCONNECT;
         }
 
         size_t index;
 
-        while ((index = m_partial.index('\n')) < m_partial.size())
+        while ((index = m_buffer.index('\n')) < m_buffer.size())
         {
-            std::string s(static_cast<const char*>(m_partial.get()), index);
-            m_partial.trim_prefix(index + 1);
+            std::string line(static_cast<const char*>(m_buffer.get()), index);
+            m_buffer.trim_prefix(index + 1);
 
-            if (s == "end\tof\tline")
+            if (line == "end\tof\tline")
             {
                 if (m_config_valid)
                 {
-                    LOG(INFO) << "Installing new configuration file.";
-                    m_sent_ack = false;
-                    break;
+                    m_acknowledged = false;
+                    return SUCCESS;
                 }
                 else
                 {
-                    LOG(WARNING) << "Coordinator sent us a bad configuration file.";
-                    send_to_coordinator("BAD\n", 4);
-                    m_config = hyperdex::configuration();
-                    m_config_valid = true;
+                    reset_config();
+                    returncode code = send_to_coordinator("BAD\n", 4);
+
+                    if (code != SUCCESS)
+                    {
+                        return code;
+                    }
                 }
             }
             else
             {
-                m_config_valid &= m_config.add_line(s);
+                m_config_valid &= m_config.add_line(line);
             }
         }
     }
+
+    return SUCCESS;
 }
 
 void
@@ -193,29 +198,40 @@ hyperdex :: coordinatorlink :: config() const
     return m_config;
 }
 
-bool
+hyperdex::coordinatorlink::returncode
 hyperdex :: coordinatorlink :: send_to_coordinator(const char* msg, size_t len)
 {
     try
     {
         if (m_sock.xwrite(msg, len) != len)
         {
-            PLOG(WARNING) << "could not communicate with coordinator; dropping connection";
-            m_sent_ack = true;
-            m_sock.close();
-            return false;
+            reset();
+            return DISCONNECT;
         }
     }
     catch (po6::error& e)
     {
-        int saved_errno = errno;
-        errno = e;
-        PLOG(WARNING) << "could not communicate with coordinator; dropping connection";
-        errno = saved_errno;
-        m_sent_ack = true;
-        m_sock.close();
-        return false;
+        reset();
+        return DISCONNECT;
     }
 
-    return true;
+    return SUCCESS;
+}
+
+void
+hyperdex :: coordinatorlink :: reset()
+{
+    reset_config();
+    m_sock.close();
+    m_pfd.fd = -1;
+    m_pfd.events = 0;
+    m_buffer.clear();
+}
+
+void
+hyperdex :: coordinatorlink :: reset_config()
+{
+    m_acknowledged = true;
+    m_config_valid = true;
+    m_config = configuration();
 }

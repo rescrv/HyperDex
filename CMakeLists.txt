@@ -115,9 +115,7 @@ target_link_libraries(configuration-tests
     gtest
     pthread
     configuration
-    glog
 )
-# XXX Remove glog
 
 add_library(configuration STATIC ${configuration_srcs})
 add_dependencies(configuration hyperdisk-tests)

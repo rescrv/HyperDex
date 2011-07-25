@@ -28,15 +28,13 @@
 #define __STDC_LIMIT_MACROS
 
 // C
+#include <cassert>
 #include <stdint.h>
 
 // STL
 #include <algorithm>
 #include <sstream>
 #include <vector>
-
-// Google Log
-#include <glog/logging.h>
 
 // e
 #include <e/convert.h>
@@ -485,8 +483,7 @@ hyperdex :: configuration :: transfers_from(const instance& i)
         }
         else if (tail->second == trans->second && pred == m_entities.end())
         {
-            // XXX
-            LOG(ERROR) << "There is an error in the configuration object's logic.";
+            assert(!"There is an error in the configuration object's logic.");
         }
         else if (tail->second == i)
         {
