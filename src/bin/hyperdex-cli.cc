@@ -391,11 +391,3 @@ worker()
     po6::threads::mutex::hold hold(&unblock_lock);
     ++blocked;
 }
-#if 0
-            if (wellformed)
-            {
-                c.get_partial(table, cols, query, partial_cb, &complete);
-            }
-        }
-    }
-#endif

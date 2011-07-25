@@ -327,7 +327,9 @@ hyperdex :: client :: search(const std::string& space,
         }
     }
 
-    return search_results(p.get(), 0, terms, hosts);
+    uint64_t nonce = p->nonce;
+    ++nonce;
+    return search_results(p.get(), nonce, terms, hosts);
 }
 
 // XXX Client code SUCKS.  Rather than storing entity, we should store instance,
