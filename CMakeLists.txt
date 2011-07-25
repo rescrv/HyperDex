@@ -41,6 +41,9 @@ include_directories(SYSTEM ${GLOG_INCLUDE_DIRS})
 # Enable shared libraries
 set(BUILD_SHARED_LIBS ON)
 
+# Enable testing
+ENABLE_TESTING()
+
 ###############################################################################
 ###############################  CityHash  ####################################
 ###############################################################################
@@ -51,6 +54,48 @@ set(cityhash_srcs
 )
 
 add_library(cityhash STATIC ${cityhash_srcs})
+
+###############################################################################
+###############################  HyperDisk  ###################################
+###############################################################################
+
+# The installed headers for HyperDisk
+set (hyperdisk_headers
+)
+
+# The source files for HyperDisk
+set (hyperdisk_srcs
+    src/hyperdisk/disk.cc
+    src/hyperdisk/log.cc
+    src/hyperdisk/shard.cc
+)
+
+add_library(hyperdisk ${hyperdisk_srcs})
+set_target_properties(hyperdisk
+    PROPERTIES
+    VERSION         0.1.0
+    SOVERSION       0
+    DEFINE_SYMBOL   MAKE_HYPERDEX_LIB
+)
+target_link_libraries(hyperdisk
+    LINK_INTERFACE_LIBRARIES
+    cityhash
+)
+
+set(hyperdisk_test_srcs
+    test/hyperdisk/log.cc
+    test/hyperdisk/shard.cc
+)
+
+add_executable(hyperdisk-tests test/runner.cc ${hyperdisk_test_srcs})
+# TODO properly detect gtest.
+target_link_libraries(hyperdisk-tests
+    hyperdisk
+    cityhash
+    gtest
+    pthread
+)
+# XXX No glog/pthread
 
 ###############################################################################
 ##################################  Old  ######################################
@@ -70,12 +115,9 @@ set(hyperdex_srcs
     src/hyperdex/coordinatorlink.cc
     src/hyperdex/daemon.cc
     src/hyperdex/datalayer.cc
-    src/hyperdex/disk.cc
-    src/hyperdex/log.cc
     src/hyperdex/logical.cc
     src/hyperdex/network_worker.cc
     src/hyperdex/physical.cc
-    src/hyperdex/region.cc
     src/hyperdex/replication_manager.cc
     src/hyperdex/search.cc
     src/hyperdex/searches.cc
@@ -83,6 +125,7 @@ set(hyperdex_srcs
 
 # Build libhyperdex
 add_library(hyperdex ${hyperdex_srcs})
+add_dependencies(hyperdex hyperdisk)
 set_target_properties(hyperdex
     PROPERTIES
     VERSION         0.1.0
@@ -101,6 +144,7 @@ add_executable(hyperdexd src/bin/hyperdexd.cc)
 target_link_libraries(hyperdexd
     hyperdex
     cityhash
+    hyperdisk
 )
 
 # Build count benchmark
@@ -109,6 +153,7 @@ target_link_libraries(count
     hyperdex
     cityhash
     rt
+    hyperdisk
 )
 
 # Build cli
@@ -117,6 +162,7 @@ target_link_libraries(hyperdex-cli
     hyperdex
     cityhash
     rt
+    hyperdisk
 )
 
 # Build binary test
@@ -125,18 +171,16 @@ target_link_libraries(binary
     hyperdex
     cityhash
     rt
+    hyperdisk
 )
 
 # Tests
-ENABLE_TESTING()
 
 set(hyperdex_test_srcs
     test/hyperdex/configuration.cc
-    test/hyperdex/disk.cc
     test/hyperdex/fifo_work_queue.cc
     test/hyperdex/hyperspace.cc
     test/hyperdex/ids.cc
-    test/hyperdex/log.cc
     test/hyperdex/search.cc
 )
 
@@ -146,6 +190,7 @@ target_link_libraries(testrunner
     hyperdex
     cityhash
     gtest
+    hyperdisk
 )
 
 add_test(SearchTest.CtorAndDtor testrunner

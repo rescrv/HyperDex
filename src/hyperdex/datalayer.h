@@ -41,12 +41,13 @@
 // e
 #include <e/buffer.h>
 
+// HyperDisk
+#include <hyperdisk/disk.h>
+
 // HyperDex
 #include <hyperdex/configuration.h>
 #include <hyperdex/ids.h>
 #include <hyperdex/instance.h>
-#include <hyperdex/region.h>
-#include <hyperdex/result_t.h>
 
 namespace hyperdex
 {
@@ -62,23 +63,25 @@ class datalayer
         void reconfigure(const configuration& newconfig, const instance& us);
         void cleanup(const configuration& newconfig, const instance& us);
         void shutdown();
-        e::intrusive_ptr<region::snapshot> make_snapshot(const regionid& ri);
-        e::intrusive_ptr<region::rolling_snapshot> make_rolling_snapshot(const regionid& ri);
+        e::intrusive_ptr<hyperdisk::disk::snapshot> make_snapshot(const regionid& ri);
+        e::intrusive_ptr<hyperdisk::disk::rolling_snapshot> make_rolling_snapshot(const regionid& ri);
 
     // Key-Value store operations.
     public:
-        result_t get(const regionid& ri, const e::buffer& key, std::vector<e::buffer>* value, uint64_t* version);
-        result_t put(const regionid& ri, const e::buffer& key, const std::vector<e::buffer>& value, uint64_t version);
-        result_t del(const regionid& ri, const e::buffer& key);
+        hyperdisk::returncode get(const regionid& ri, const e::buffer& key,
+                                  std::vector<e::buffer>* value, uint64_t* version);
+        hyperdisk::returncode put(const regionid& ri, const e::buffer& key,
+                                  const std::vector<e::buffer>& value, uint64_t version);
+        hyperdisk::returncode del(const regionid& ri, const e::buffer& key);
 
     private:
         datalayer(const datalayer&);
 
     private:
-        e::intrusive_ptr<hyperdex::region> get_region(const regionid& ri);
+        e::intrusive_ptr<hyperdisk::disk> get_region(const regionid& ri);
         void flush_loop();
-        void create_region(const regionid& ri, uint16_t num_columns);
-        void drop_region(const regionid& ri);
+        void create_disk(const regionid& ri, uint16_t num_columns);
+        void drop_disk(const regionid& ri);
 
     private:
         datalayer& operator = (const datalayer&);
@@ -88,7 +91,7 @@ class datalayer
         po6::pathname m_base;
         po6::threads::thread m_flusher;
         po6::threads::rwlock m_lock;
-        std::map<regionid, e::intrusive_ptr<hyperdex::region> > m_regions;
+        std::map<regionid, e::intrusive_ptr<hyperdisk::disk> > m_disks;
 };
 
 } // namespace hyperdex

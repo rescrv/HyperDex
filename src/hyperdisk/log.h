@@ -25,8 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_log_h_
-#define hyperdex_log_h_
+#ifndef hyperdisk_log_h_
+#define hyperdisk_log_h_
 
 // C
 #include <stdint.h>
@@ -41,10 +41,7 @@
 // e
 #include <e/buffer.h>
 
-// HyperDex
-#include <hyperdex/op_t.h>
-
-namespace hyperdex
+namespace hyperdisk
 {
 
 class log
@@ -64,7 +61,7 @@ class log
                 void next();
 
             public:
-                op_t op() const { return m_n->op; }
+                bool has_value() const { return m_n->has_value; }
                 uint64_t point() const { return m_n->point; }
                 const e::buffer& key() const { return m_n->key; }
                 uint64_t key_hash() const { return m_n->key_hash; }
@@ -96,13 +93,13 @@ class log
 
     public:
         iterator iterate() { return iterator(this); }
-        bool append(uint64_t point, const e::buffer& key, uint64_t key_hash,
+        void append(uint64_t point, const e::buffer& key, uint64_t key_hash,
                     const std::vector<e::buffer>& value,
                     const std::vector<uint64_t>& value_hashes, uint64_t version);
-        bool append(uint64_t point, const e::buffer& key, uint64_t key_hash);
+        void append(uint64_t point, const e::buffer& key, uint64_t key_hash);
 
     public:
-        size_t flush(std::tr1::function<bool (op_t op,
+        size_t flush(std::tr1::function<bool (bool has_value,
                                               uint64_t point,
                                               const e::buffer& key,
                                               uint64_t key_hash,
@@ -120,7 +117,7 @@ class log
                 node()
                     : real(false)
                     , next(NULL)
-                    , op(DEL)
+                    , has_value(false)
                     , point()
                     , key()
                     , key_hash(0)
@@ -136,7 +133,7 @@ class log
                      const std::vector<uint64_t>& valh, uint64_t ver)
                     : real(false)
                     , next(NULL)
-                    , op(PUT)
+                    , has_value(true)
                     , point(p)
                     , key(k)
                     , key_hash(kh)
@@ -150,7 +147,7 @@ class log
                 node(uint64_t p, const e::buffer& k, uint64_t kh)
                     : real(false)
                     , next(NULL)
-                    , op(DEL)
+                    , has_value(false)
                     , point(p)
                     , key(k)
                     , key_hash(kh)
@@ -168,7 +165,7 @@ class log
             public:
                 bool real;
                 node* next;
-                op_t op;
+                bool has_value;
                 uint64_t point;
                 e::buffer key;
                 uint64_t key_hash;
@@ -195,7 +192,7 @@ class log
         log& operator = (const log&);
 
     private:
-        bool common_append(std::auto_ptr<node> n, bool real = true);
+        void common_append(std::auto_ptr<node> n, bool real = true);
         node* get_head();
         void step_list(node** pos);
         void release(node* pos);
@@ -208,6 +205,6 @@ class log
         po6::threads::mutex m_flush_lock;
 };
 
-} // namespace hyperdex
+} // namespace hyperdisk
 
-#endif // hyperdex_log_h_
+#endif // hyperdisk_log_h_

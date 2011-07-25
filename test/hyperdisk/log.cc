@@ -29,7 +29,7 @@
 #include <gtest/gtest.h>
 
 // HyperDex
-#include <hyperdex/log.h>
+#include <hyperdisk/log.h>
 
 #pragma GCC diagnostic ignored "-Wswitch-default"
 
@@ -38,12 +38,12 @@ namespace
 
 TEST(LogTest, CtorAndDtor)
 {
-    hyperdex::log l;
+    hyperdisk::log l;
 }
 
 TEST(LogTest, SimpleIteration)
 {
-    hyperdex::log l;
+    hyperdisk::log l;
 
     // Add one thousand put/del pairs to the queue.
     for (uint64_t i = 0; i < 1000; ++i)
@@ -55,7 +55,7 @@ TEST(LogTest, SimpleIteration)
     }
 
     // Verify that we get them back.
-    hyperdex::log::iterator it(l.iterate());
+    hyperdisk::log::iterator it(l.iterate());
 
     for (uint64_t i = 0; i < 1000; ++i)
     {
@@ -64,7 +64,7 @@ TEST(LogTest, SimpleIteration)
 
         // Check the PUT.
         EXPECT_TRUE(it.valid());
-        EXPECT_EQ(hyperdex::PUT, it.op());
+        EXPECT_TRUE(it.has_value());
         EXPECT_TRUE(buf == it.key());
         ASSERT_EQ(i, it.value().size());
 
@@ -78,7 +78,7 @@ TEST(LogTest, SimpleIteration)
         // Check the DEL.
         it.next();
         ASSERT_TRUE(it.valid());
-        EXPECT_EQ(hyperdex::DEL, it.op());
+        EXPECT_FALSE(it.has_value());
         EXPECT_TRUE(buf == it.key());
 
         // Advance for next iteration
@@ -90,9 +90,9 @@ TEST(LogTest, SimpleIteration)
 
 TEST(LogTest, IterateAddIterate)
 {
-    hyperdex::log l;
+    hyperdisk::log l;
     uint64_t count = 1;
-    hyperdex::log::iterator it(l.iterate());
+    hyperdisk::log::iterator it(l.iterate());
 
     // Add 10 items to the queue.
     for (; count <= 10; ++count)
@@ -133,7 +133,7 @@ TEST(LogTest, IterateAddIterate)
 }
 
 static bool
-NOP(hyperdex::op_t, uint64_t, const e::buffer&, uint64_t,
+NOP(bool, uint64_t, const e::buffer&, uint64_t,
     const std::vector<e::buffer>&, const std::vector<uint64_t>&,
     uint64_t)
 {
@@ -142,10 +142,10 @@ NOP(hyperdex::op_t, uint64_t, const e::buffer&, uint64_t,
 
 TEST(LogTest, IterateFlushIterate)
 {
-    hyperdex::log l;
+    hyperdisk::log l;
 
     // Grab an iterator
-    hyperdex::log::iterator it(l.iterate());
+    hyperdisk::log::iterator it(l.iterate());
 
     // Add 20 items to the queue.
     for (uint64_t count = 1; count <= 20; ++count)
@@ -179,7 +179,7 @@ TEST(LogTest, IterateFlushIterate)
 
 TEST(LogTest, CopyIterator)
 {
-    hyperdex::log l;
+    hyperdisk::log l;
 
     // Add one thousand put/del pairs to the queue.
     for (uint64_t i = 0; i < 1000; ++i)
@@ -191,8 +191,8 @@ TEST(LogTest, CopyIterator)
     }
 
     // Verify that we get them back.
-    hyperdex::log::iterator it(l.iterate());
-    hyperdex::log::iterator copy(it);
+    hyperdisk::log::iterator it(l.iterate());
+    hyperdisk::log::iterator copy(it);
 
     for (uint64_t i = 0; i < 1000; ++i)
     {
@@ -202,8 +202,8 @@ TEST(LogTest, CopyIterator)
         // Check the PUT.
         EXPECT_TRUE(it.valid());
         EXPECT_TRUE(copy.valid());
-        EXPECT_EQ(hyperdex::PUT, it.op());
-        EXPECT_EQ(hyperdex::PUT, copy.op());
+        EXPECT_TRUE(it.has_value());
+        EXPECT_TRUE(copy.has_value());
         EXPECT_TRUE(buf == it.key());
         EXPECT_TRUE(buf == copy.key());
         ASSERT_EQ(i, it.value().size());
@@ -223,8 +223,8 @@ TEST(LogTest, CopyIterator)
         copy.next();
         ASSERT_TRUE(it.valid());
         ASSERT_TRUE(copy.valid());
-        EXPECT_EQ(hyperdex::DEL, it.op());
-        EXPECT_EQ(hyperdex::DEL, copy.op());
+        EXPECT_FALSE(it.has_value());
+        EXPECT_FALSE(copy.has_value());
         EXPECT_TRUE(buf == it.key());
         EXPECT_TRUE(buf == copy.key());
 

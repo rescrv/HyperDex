@@ -47,6 +47,7 @@
 #include <hyperdex/instance.h>
 #include <hyperdex/logical.h>
 #include <hyperdex/op_t.h>
+#include <hyperdex/result_t.h>
 
 // Replication
 #include <hyperdex/replication/clientop.h>

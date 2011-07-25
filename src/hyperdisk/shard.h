@@ -25,8 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_disk_h_
-#define hyperdex_disk_h_
+#ifndef hyperdisk_shard_h_
+#define hyperdisk_shard_h_
 
 // po6
 #include <po6/pathname.h>
@@ -35,23 +35,13 @@
 #include <e/buffer.h>
 #include <e/intrusive_ptr.h>
 
-// HyperDex
-#include <hyperdex/result_t.h>
-#include <hyperdex/op_t.h>
+// HyperDisk
+#include <hyperdisk/returncode.h>
 
-namespace hyperdex
+namespace hyperdisk
 {
 
-// This allocates a zero-filled 256MB + 5MB file at "filename".  The initial 5MB
-// is used for a hash table and a log-style index which index the disk.  The
-// first hash table indexes solely by the key, while the second is an
-// append-only log used for answering searches in a history-preserving way.
-//
-// Synchronization:  Any number of threads may be in the "GET" method
-// simulatenously, but only one may use PUT or DEL at a time (it may be
-// concurrent with GET).
-
-class disk
+class shard
 {
     public:
         class snapshot
@@ -68,40 +58,40 @@ class disk
 
             private:
                 friend class e::intrusive_ptr<snapshot>;
-                friend class disk;
+                friend class shard;
 
             private:
-                snapshot(e::intrusive_ptr<disk> d);
+                snapshot(e::intrusive_ptr<shard> d);
 
             private:
                 size_t m_ref;
                 bool m_valid;
-                e::intrusive_ptr<disk> m_disk;
+                e::intrusive_ptr<shard> m_shard;
                 const uint32_t m_limit;
                 uint32_t m_entry;
         };
 
     public:
-        // Create will create a newly initialized disk at the given filename,
+        // Create will create a newly initialized shard at the given filename,
         // even if it already exists.  That is, it will overwrite the existing
-        // disk (or other file) at "filename".
-        static e::intrusive_ptr<disk> create(const po6::pathname& filename);
+        // shard (or other file) at "filename".
+        static e::intrusive_ptr<shard> create(const po6::pathname& filename);
 
     public:
-        result_t get(const e::buffer& key, uint64_t key_hash,
-                     std::vector<e::buffer>* value, uint64_t* version);
-        result_t put(const e::buffer& key, uint64_t key_hash,
-                     const std::vector<e::buffer>& value,
-                     const std::vector<uint64_t>& value_hashes,
-                     uint64_t version);
-        result_t del(const e::buffer& key, uint64_t key_hash);
+        returncode get(const e::buffer& key, uint64_t key_hash,
+                       std::vector<e::buffer>* value, uint64_t* version);
+        returncode put(const e::buffer& key, uint64_t key_hash,
+                       const std::vector<e::buffer>& value,
+                       const std::vector<uint64_t>& value_hashes,
+                       uint64_t version);
+        returncode del(const e::buffer& key, uint64_t key_hash);
         // Judge whether there would be a suitably large amount of space on this
-        // disk after cleaning all dead segments.  If not, and the disk still
-        // gives "DISKFULL" errors, we need to split the disk instead.
+        // shard after cleaning all dead segments.  If not, and the shard still
+        // gives "DISKFULL" errors, we need to split the shard instead.
         bool needs_cleaning() const;
-        void async();
-        void sync();
-        void drop();
+        returncode async();
+        returncode sync();
+        returncode drop();
         e::intrusive_ptr<snapshot> make_snapshot();
         po6::pathname filename() const { return m_filename; }
         void filename(const po6::pathname& fn) { m_filename = fn; }
@@ -116,13 +106,13 @@ class disk
         static const size_t TOTAL_FILE_SIZE = INDEX_SEGMENT_SIZE + DATA_SEGMENT_SIZE;
 
     private:
-        friend class e::intrusive_ptr<disk>;
+        friend class e::intrusive_ptr<shard>;
         friend class snapshot;
 
     private:
-        disk(po6::io::fd* fd, const po6::pathname& filename);
-        disk(const disk&);
-        ~disk() throw ();
+        shard(po6::io::fd* fd, const po6::pathname& filename);
+        shard(const shard&);
+        ~shard() throw ();
 
     private:
         uint32_t* hashtable_base(size_t entry) const
@@ -186,7 +176,7 @@ class disk
         void invalidate_search_index(uint32_t to_invalidate, uint32_t invalidate_with);
 
     private:
-        disk& operator = (const disk&);
+        shard& operator = (const shard&);
 
     private:
         size_t m_ref;
@@ -196,6 +186,6 @@ class disk
         po6::pathname m_filename;
 };
 
-} // namespace hyperdex
+} // namespace hyperdisk
 
-#endif // hyperdex_disk_h_
+#endif // hyperdisk_shard_h_

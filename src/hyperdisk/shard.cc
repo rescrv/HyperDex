@@ -37,18 +37,17 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-// Google Log
-#include <glog/logging.h>
-
 // po6
 #include <po6/io/fd.h>
 
+// HyperDisk
+#include <hyperdisk/shard.h>
+
 // HyperDex
-#include <hyperdex/disk.h>
 #include <hyperdex/hyperspace.h>
 
-e::intrusive_ptr<hyperdex::disk>
-hyperdex :: disk :: create(const po6::pathname& filename)
+e::intrusive_ptr<hyperdisk::shard>
+hyperdisk :: shard :: create(const po6::pathname& filename)
 {
     // Open a temporary file in fd with path tmp.
     po6::io::fd fd;
@@ -68,13 +67,12 @@ hyperdex :: disk :: create(const po6::pathname& filename)
         throw po6::error(errno);
     }
 
-    // Create the disk object.
-    e::intrusive_ptr<disk> ret = new disk(&fd, filename);
+    // Create the shard object.
+    e::intrusive_ptr<shard> ret = new shard(&fd, filename);
 
     // Move the filename.
     if (rename(tmp.get(), filename.get()) < 0)
     {
-        LOG(INFO) << "Could not rename disk.";
         throw po6::error(errno);
     }
 
@@ -82,8 +80,8 @@ hyperdex :: disk :: create(const po6::pathname& filename)
     return ret;
 }
 
-hyperdex :: result_t
-hyperdex :: disk :: get(const e::buffer& key,
+hyperdisk::returncode
+hyperdisk :: shard :: get(const e::buffer& key,
                         uint64_t key_hash,
                         std::vector<e::buffer>* value,
                         uint64_t* version)
@@ -111,8 +109,8 @@ hyperdex :: disk :: get(const e::buffer& key,
     return SUCCESS;
 }
 
-hyperdex :: result_t
-hyperdex :: disk :: put(const e::buffer& key,
+hyperdisk::returncode
+hyperdisk :: shard :: put(const e::buffer& key,
                         uint64_t key_hash,
                         const std::vector<e::buffer>& value,
                         const std::vector<uint64_t>& value_hashes,
@@ -122,12 +120,12 @@ hyperdex :: disk :: put(const e::buffer& key,
 
     if (required + m_offset > TOTAL_FILE_SIZE)
     {
-        return DISKFULL;
+        return DATAFULL;
     }
 
     if (m_search == SEARCH_INDEX_ENTRIES - 1)
     {
-        return DISKFULL;
+        return SEARCHFULL;
     }
 
     // Find the bucket.
@@ -136,7 +134,7 @@ hyperdex :: disk :: put(const e::buffer& key,
 
     if (entry == HASH_TABLE_SIZE)
     {
-        return DISKFULL;
+        return HASHFULL;
     }
 
     // Values to pack.
@@ -164,7 +162,6 @@ hyperdex :: disk :: put(const e::buffer& key,
         curr_offset += value[i].size();
     }
 
-
     // Invalidate anything pointing to the old version.
     if (overwrite)
     {
@@ -175,12 +172,12 @@ hyperdex :: disk :: put(const e::buffer& key,
     __sync_synchronize();
 
     // Insert into the search index.
-    searchindex_hash(m_search, hyperspace::secondary_point(value_hashes));
+    searchindex_hash(m_search, hyperdex::hyperspace::secondary_point(value_hashes));
     searchindex_invalid(m_search, 0);
     searchindex_offset(m_search, m_offset);
 
     // Insert into the hash table.
-    hashtable_hash(entry, hyperspace::primary_point(key_hash));
+    hashtable_hash(entry, hyperdex::hyperspace::primary_point(key_hash));
     hashtable_offset(entry, m_offset);
 
     // Update the offsets
@@ -189,8 +186,8 @@ hyperdex :: disk :: put(const e::buffer& key,
     return SUCCESS;
 }
 
-hyperdex :: result_t
-hyperdex :: disk :: del(const e::buffer& key,
+hyperdisk::returncode
+hyperdisk :: shard :: del(const e::buffer& key,
                         uint64_t key_hash)
 {
     size_t entry;
@@ -207,7 +204,7 @@ hyperdex :: disk :: del(const e::buffer& key,
 
     if (m_offset + sizeof(uint64_t) > TOTAL_FILE_SIZE)
     {
-        return DISKFULL;
+        return DATAFULL;
     }
 
     const uint32_t offset = hashtable_offset(entry);
@@ -218,17 +215,19 @@ hyperdex :: disk :: del(const e::buffer& key,
     return SUCCESS;
 }
 
-void
-hyperdex :: disk :: sync()
+hyperdisk::returncode
+hyperdisk :: shard :: sync()
 {
     if (msync(m_base, TOTAL_FILE_SIZE, MS_SYNC) < 0)
     {
-        PLOG(INFO) << "Could not sync disk";
+        return SEEERRNO;
     }
+
+    return SUCCESS;
 }
 
 bool
-hyperdex :: disk :: needs_cleaning() const
+hyperdisk :: shard :: needs_cleaning() const
 {
     size_t i;
     size_t freeable = 0;
@@ -259,34 +258,38 @@ hyperdex :: disk :: needs_cleaning() const
     return freeable > (DATA_SEGMENT_SIZE >> 1);
 }
 
-void
-hyperdex :: disk :: async()
+hyperdisk::returncode
+hyperdisk :: shard :: async()
 {
     if (msync(m_base, TOTAL_FILE_SIZE, MS_ASYNC) < 0)
     {
-        PLOG(INFO) << "Could not sync disk";
+        return SEEERRNO;
     }
+
+    return SUCCESS;
 }
 
-void
-hyperdex :: disk :: drop()
+hyperdisk::returncode
+hyperdisk :: shard :: drop()
 {
     if (unlink(m_filename.get()) < 0)
     {
-        PLOG(WARNING) << "Could not drop disk \"" << m_filename << "\"";
+        return SEEERRNO;
     }
+
+    return SUCCESS;
 }
 
-e::intrusive_ptr<hyperdex::disk::snapshot>
-hyperdex :: disk :: make_snapshot()
+e::intrusive_ptr<hyperdisk::shard::snapshot>
+hyperdisk :: shard :: make_snapshot()
 {
-    e::intrusive_ptr<disk> d = this;
+    e::intrusive_ptr<shard> d = this;
     assert(m_ref >= 2);
     e::intrusive_ptr<snapshot> ret = new snapshot(d);
     return ret;
 }
 
-hyperdex :: disk :: disk(po6::io::fd* fd, const po6::pathname& fn)
+hyperdisk :: shard :: shard(po6::io::fd* fd, const po6::pathname& fn)
     : m_ref(0)
     , m_base(NULL)
     , m_offset(INDEX_SEGMENT_SIZE)
@@ -301,23 +304,14 @@ hyperdex :: disk :: disk(po6::io::fd* fd, const po6::pathname& fn)
     }
 }
 
-hyperdex :: disk :: ~disk()
+hyperdisk :: shard :: ~shard()
                     throw ()
 {
-    try
-    {
-        if (munmap(m_base, TOTAL_FILE_SIZE) < 0)
-        {
-            PLOG(WARNING) << "Could not munmap disk";
-        }
-    }
-    catch (...)
-    {
-    }
+    munmap(m_base, TOTAL_FILE_SIZE);
 }
 
 size_t
-hyperdex :: disk :: data_size(const e::buffer& key,
+hyperdisk :: shard :: data_size(const e::buffer& key,
                               const std::vector<e::buffer>& value) const
 {
     size_t hypothetical_size = sizeof(uint64_t) + sizeof(uint32_t)
@@ -333,21 +327,21 @@ hyperdex :: disk :: data_size(const e::buffer& key,
 }
 
 uint64_t
-hyperdex :: disk :: data_version(uint32_t offset) const
+hyperdisk :: shard :: data_version(uint32_t offset) const
 {
     assert(((offset + 7) & ~7) == offset);
     return be64toh(*reinterpret_cast<uint64_t*>(m_base + offset));
 }
 
 size_t
-hyperdex :: disk :: data_key_size(uint32_t offset) const
+hyperdisk :: shard :: data_key_size(uint32_t offset) const
 {
     assert(((offset + 7) & ~7) == offset);
     return be32toh(*reinterpret_cast<uint32_t*>(m_base + offset + sizeof(uint64_t)));
 }
 
 void
-hyperdex :: disk :: data_key(uint32_t offset,
+hyperdisk :: shard :: data_key(uint32_t offset,
                              size_t keysize,
                              e::buffer* key) const
 {
@@ -357,7 +351,7 @@ hyperdex :: disk :: data_key(uint32_t offset,
 }
 
 void
-hyperdex :: disk :: data_value(uint32_t offset,
+hyperdisk :: shard :: data_value(uint32_t offset,
                                size_t keysize,
                                std::vector<e::buffer>* value) const
 {
@@ -383,7 +377,7 @@ hyperdex :: disk :: data_value(uint32_t offset,
 }
 
 bool
-hyperdex :: disk :: find_bucket(const e::buffer& key,
+hyperdisk :: shard :: find_bucket(const e::buffer& key,
                                 uint64_t key_hash,
                                 size_t* entry)
 {
@@ -392,7 +386,7 @@ hyperdex :: disk :: find_bucket(const e::buffer& key,
 
     // The bucket/hash we want to use.
     *entry = key_hash % HASH_TABLE_ENTRIES;
-    uint32_t primary_point = hyperspace::primary_point(key_hash);
+    uint32_t primary_point = hyperdex::hyperspace::primary_point(key_hash);
 
     for (size_t off = 0; off < HASH_TABLE_ENTRIES; ++off)
     {
@@ -440,7 +434,7 @@ hyperdex :: disk :: find_bucket(const e::buffer& key,
 }
 
 void
-hyperdex :: disk :: invalidate_search_index(uint32_t to_invalidate, uint32_t invalidate_with)
+hyperdisk :: shard :: invalidate_search_index(uint32_t to_invalidate, uint32_t invalidate_with)
 {
     int64_t low = 0;
     int64_t high = SEARCH_INDEX_ENTRIES - 1;
@@ -467,15 +461,15 @@ hyperdex :: disk :: invalidate_search_index(uint32_t to_invalidate, uint32_t inv
 }
 
 bool
-hyperdex :: disk :: snapshot :: valid()
+hyperdisk :: shard :: snapshot :: valid()
 {
     uint32_t offset = 0;
     uint32_t invalid = 0;
 
     while (m_entry < SEARCH_INDEX_ENTRIES)
     {
-        offset = m_disk->searchindex_offset(m_entry);
-        invalid = m_disk->searchindex_invalid(m_entry);
+        offset = m_shard->searchindex_offset(m_entry);
+        invalid = m_shard->searchindex_invalid(m_entry);
 
         // If the m_valid flag is set; the offset is within the subsection of
         // data we may observe; and the data was never invalidated, or was
@@ -503,34 +497,34 @@ hyperdex :: disk :: snapshot :: valid()
 }
 
 void
-hyperdex :: disk :: snapshot :: next()
+hyperdisk :: shard :: snapshot :: next()
 {
     m_valid = false;
 }
 
 uint32_t
-hyperdex :: disk :: snapshot :: secondary_point()
+hyperdisk :: shard :: snapshot :: secondary_point()
 {
-    return m_disk->searchindex_hash(m_entry);
+    return m_shard->searchindex_hash(m_entry);
 }
 
 uint64_t
-hyperdex :: disk :: snapshot :: version()
+hyperdisk :: shard :: snapshot :: version()
 {
-    uint32_t offset = m_disk->searchindex_offset(m_entry);
+    uint32_t offset = m_shard->searchindex_offset(m_entry);
 
     if (!offset)
     {
         return uint64_t();
     }
 
-    return m_disk->data_version(offset);
+    return m_shard->data_version(offset);
 }
 
 e::buffer
-hyperdex :: disk :: snapshot :: key()
+hyperdisk :: shard :: snapshot :: key()
 {
-    uint32_t offset = m_disk->searchindex_offset(m_entry);
+    uint32_t offset = m_shard->searchindex_offset(m_entry);
 
     if (!offset)
     {
@@ -538,15 +532,15 @@ hyperdex :: disk :: snapshot :: key()
     }
 
     e::buffer k;
-    size_t key_size = m_disk->data_key_size(offset);
-    m_disk->data_key(offset, key_size, &k);
+    size_t key_size = m_shard->data_key_size(offset);
+    m_shard->data_key(offset, key_size, &k);
     return k;
 }
 
 std::vector<e::buffer>
-hyperdex :: disk :: snapshot :: value()
+hyperdisk :: shard :: snapshot :: value()
 {
-    uint32_t offset = m_disk->searchindex_offset(m_entry);
+    uint32_t offset = m_shard->searchindex_offset(m_entry);
 
     if (!offset)
     {
@@ -554,15 +548,15 @@ hyperdex :: disk :: snapshot :: value()
     }
 
     std::vector<e::buffer> v;
-    size_t key_size = m_disk->data_key_size(offset);
-    m_disk->data_value(offset, key_size, &v);
+    size_t key_size = m_shard->data_key_size(offset);
+    m_shard->data_value(offset, key_size, &v);
     return v;
 }
 
-hyperdex :: disk :: snapshot :: snapshot(e::intrusive_ptr<disk> d)
+hyperdisk :: shard :: snapshot :: snapshot(e::intrusive_ptr<shard> d)
     : m_ref(0)
     , m_valid(true)
-    , m_disk(d)
+    , m_shard(d)
     , m_limit(d->m_offset)
     , m_entry(0)
 {

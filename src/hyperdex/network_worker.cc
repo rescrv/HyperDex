@@ -99,7 +99,29 @@ hyperdex :: network_worker :: run()
                 std::vector<e::buffer> value;
                 uint64_t version;
                 msg.unpack() >> nonce >> key;
-                result_t result = m_data->get(to.get_region(), key, &value, &version);
+                result_t result;
+
+                switch (m_data->get(to.get_region(), key, &value, &version))
+                {
+                    case hyperdisk::SUCCESS:
+                        result = SUCCESS;
+                        break;
+                    case hyperdisk::NOTFOUND:
+                        result = NOTFOUND;
+                        break;
+                    case hyperdisk::WRONGARITY:
+                        result = INVALID;
+                        break;
+                    case hyperdisk::HASHFULL:
+                    case hyperdisk::DATAFULL:
+                    case hyperdisk::SEARCHFULL:
+                    case hyperdisk::SEEERRNO:
+                    case hyperdisk::NODISK:
+                    default:
+                        result = ERROR;
+                        break;
+                }
+
                 msg.clear();
                 msg.pack() << nonce << static_cast<uint8_t>(result) << version << value;
                 m_comm->send(to, from, stream_no::RESULT, msg);

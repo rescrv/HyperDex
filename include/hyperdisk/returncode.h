@@ -25,53 +25,25 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_replication_transfer_out_h_
-#define hyperdex_replication_transfer_out_h_
+#ifndef hyperdisk_returncode_h_
+#define hyperdisk_returncode_h_
 
-// HyperDisk
-#include <hyperdisk/disk.h>
-
-namespace hyperdex
-{
-namespace replication
+namespace hyperdisk
 {
 
-class transfer_out
+// HyperDisk returncode occupies 8192 - 8320
+enum returncode
 {
-    public:
-        transfer_out(const entityid& from,
-                     uint16_t xfer_id,
-                     e::intrusive_ptr<hyperdisk::disk::rolling_snapshot> s);
-
-    public:
-        po6::threads::mutex lock;
-        e::intrusive_ptr<hyperdisk::disk::rolling_snapshot> snap;
-        uint64_t xfer_num;
-        const entityid replicate_from;
-        const entityid transfer_entity;
-
-    private:
-        friend class e::intrusive_ptr<transfer_out>;
-
-    private:
-        size_t m_ref;
+    SUCCESS     = 8192,
+    NOTFOUND    = 8193,
+    WRONGARITY  = 8194,
+    HASHFULL    = 8195,
+    DATAFULL    = 8196,
+    SEARCHFULL  = 8197,
+    SEEERRNO    = 8198,
+    NODISK      = 8199
 };
 
+} // namespace hyperdisk
 
-inline
-transfer_out :: transfer_out(const entityid& from,
-                             uint16_t xfer_id,
-                             e::intrusive_ptr<hyperdisk::disk::rolling_snapshot> s)
-    : lock()
-    , snap(s)
-    , xfer_num(1)
-    , replicate_from(from)
-    , transfer_entity(std::numeric_limits<uint32_t>::max() - 1, xfer_id, 0, 0, 0)
-    , m_ref(0)
-{
-}
-
-} // namespace replication
-} // namespace hyperdex
-
-#endif // hyperdex_replication_transfer_out_h_
+#endif // hyperdisk_returncode_h_

@@ -121,7 +121,7 @@ hyperdex :: replication_manager :: reconfigure(const configuration& newconfig, c
             && m_transfers_in.find(t->first) == m_transfers_in.end())
         {
             LOG(INFO) << "Initiating outbound transfer #" << t->first << ".";
-            e::intrusive_ptr<region::rolling_snapshot> snap = m_data->make_rolling_snapshot(t->second);
+            e::intrusive_ptr<hyperdisk::disk::rolling_snapshot> snap = m_data->make_rolling_snapshot(t->second);
             e::intrusive_ptr<transfer_out> xfer = new transfer_out(newconfig.tailof(t->second), t->first, snap);
             m_transfers_out.insert(std::make_pair(t->first, xfer));
         }
@@ -426,7 +426,7 @@ hyperdex :: replication_manager :: region_transfer(const entityid& from,
 
     if (t->snap->valid())
     {
-        uint8_t op = t->snap->op() == PUT ? 1 : 0;
+        uint8_t op = t->snap->has_value() ? 1 : 0;
         e::buffer msg;
         msg.pack() << t->xfer_num << op << t->snap->version()
                    << t->snap->key() << t->snap->value();
@@ -525,11 +525,49 @@ hyperdex :: replication_manager :: region_transfer(const entityid& from,
 
             if (one.operation == PUT)
             {
-                res = m_data->put(t->replicate_from.get_region(), one.key, one.value, one.version);
+                switch (m_data->put(t->replicate_from.get_region(), one.key, one.value, one.version))
+                {
+                    case hyperdisk::SUCCESS:
+                        res = SUCCESS;
+                        break;
+                    case hyperdisk::NOTFOUND:
+                        res = NOTFOUND;
+                        break;
+                    case hyperdisk::WRONGARITY:
+                        res = INVALID;
+                        break;
+                    case hyperdisk::HASHFULL:
+                    case hyperdisk::DATAFULL:
+                    case hyperdisk::SEARCHFULL:
+                    case hyperdisk::SEEERRNO:
+                    case hyperdisk::NODISK:
+                    default:
+                        res = ERROR;
+                        break;
+                }
             }
             else
             {
-                res = m_data->del(t->replicate_from.get_region(), one.key);
+                switch (m_data->del(t->replicate_from.get_region(), one.key))
+                {
+                    case hyperdisk::SUCCESS:
+                        res = SUCCESS;
+                        break;
+                    case hyperdisk::NOTFOUND:
+                        res = NOTFOUND;
+                        break;
+                    case hyperdisk::WRONGARITY:
+                        res = INVALID;
+                        break;
+                    case hyperdisk::HASHFULL:
+                    case hyperdisk::DATAFULL:
+                    case hyperdisk::SEARCHFULL:
+                    case hyperdisk::SEEERRNO:
+                    case hyperdisk::NODISK:
+                    default:
+                        res = ERROR;
+                        break;
+                }
             }
 
             if (res != SUCCESS)
@@ -948,17 +986,21 @@ hyperdex :: replication_manager :: from_disk(const regionid& r,
 {
     switch (m_data->get(r, key, value, version))
     {
-        case SUCCESS:
+        case hyperdisk::SUCCESS:
             *have_value = true;
             return true;
-        case NOTFOUND:
+        case hyperdisk::NOTFOUND:
             *version = 0;
             *have_value = false;
             return true;
-        case INVALID:
-            LOG(INFO) << "Data layer returned INVALID when queried for old value.";
+        case hyperdisk::WRONGARITY:
+            LOG(INFO) << "Data layer returned WRONGARITY when queried for old value.";
             return false;
-        case ERROR:
+        case hyperdisk::HASHFULL:
+        case hyperdisk::DATAFULL:
+        case hyperdisk::SEARCHFULL:
+        case hyperdisk::SEEERRNO:
+        case hyperdisk::NODISK:
             LOG(INFO) << "Data layer returned ERROR when queried for old value.";
             return false;
         default:
