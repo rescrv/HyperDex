@@ -350,7 +350,36 @@ worker()
         }
         else if (command == "QUERY")
         {
-            std::cerr << "Query command not implemented.";
+            std::string arity;
+            std::string attr;
+            std::string val;
+            bool wellformed = true;
+
+            if (!std::getline(istr, arity, '\t'))
+            {
+                wellformed = false;
+            }
+
+            hyperdex::search s(e::convert::to_uint16_t(arity));
+
+            while (wellformed && std::getline(istr, attr, '\t'))
+            {
+                if (!std::getline(istr, val, '\t'))
+                {
+                    wellformed = false;
+                }
+
+                uint16_t ind = e::convert::to_uint16_t(attr.c_str());
+                s.set(ind, e::buffer(val.c_str(), val.size()));
+            }
+
+            if (wellformed)
+            {
+                hyperdex::client::search_results r = cl.search(space, s);
+
+                for (size_t i = 0; i < 1000 && r.valid(); ++i, r.next())
+                    ;
+            }
         }
         else
         {
@@ -363,25 +392,6 @@ worker()
     ++blocked;
 }
 #if 0
-        else if (command == "QUERY")
-        {
-            std::string key;
-            std::string val;
-            hyperdex::query query;
-            bool wellformed = true;
-
-            while (std::getline(istr, key, '\t'))
-            {
-                if (!std::getline(istr, val, '\t'))
-                {
-                    wellformed = false;
-                }
-
-                query.add_terms();
-                query.mutable_terms(query.terms_size() - 1)->set_key(key);
-                query.mutable_terms(query.terms_size() - 1)->set_val(val);
-            }
-
             if (wellformed)
             {
                 c.get_partial(table, cols, query, partial_cb, &complete);

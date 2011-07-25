@@ -55,6 +55,7 @@ struct hyperdex :: client :: priv
         : phys(po6::net::ipaddr::ANY(), false)
         , cl(coordinator, "client\n")
         , config()
+        , nonce(1)
     {
     }
 
@@ -194,6 +195,7 @@ struct hyperdex :: client :: priv
     hyperdex::physical phys;
     hyperdex::coordinatorlink cl;
     hyperdex::configuration config;
+    uint64_t nonce;
 };
 
 hyperdex :: client :: client(po6::net::location coordinator)
@@ -213,7 +215,8 @@ hyperdex :: client :: get(const std::string& space,
                           const e::buffer& key,
                           std::vector<e::buffer>* value)
 {
-    uint32_t nonce = 0;
+    uint32_t nonce = p->nonce;
+    ++p->nonce;
     e::buffer msg;
     msg.pack() << nonce << key;
     stream_no::stream_no_t response;
@@ -243,7 +246,8 @@ hyperdex :: client :: put(const std::string& space,
                           const e::buffer& key,
                           const std::vector<e::buffer>& value)
 {
-    uint32_t nonce = 0;
+    uint32_t nonce = p->nonce;
+    ++p->nonce;
     e::buffer msg;
     msg.pack() << nonce << key << value;
     stream_no::stream_no_t response;
@@ -265,7 +269,8 @@ hyperdex :: result_t
 hyperdex :: client :: del(const std::string& space,
                           const e::buffer& key)
 {
-    uint32_t nonce = 0;
+    uint32_t nonce = p->nonce;
+    ++p->nonce;
     e::buffer msg;
     msg.pack() << nonce << key;
     stream_no::stream_no_t response;
