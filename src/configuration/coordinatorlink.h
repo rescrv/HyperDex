@@ -36,7 +36,7 @@
 #include <po6/net/socket.h>
 
 // HyperDex
-#include <hyperdex/configuration.h>
+#include <configuration/configuration.h>
 
 namespace hyperdex
 {

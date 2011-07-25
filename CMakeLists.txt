@@ -101,8 +101,23 @@ target_link_libraries(hyperdisk-tests
 ###############################################################################
 
 set(configuration_srcs
+    src/configuration/configuration.cc
     src/configuration/coordinatorlink.cc
 )
+
+set(configuration_test_srcs
+    test/configuration/configuration.cc
+)
+
+add_executable(configuration-tests test/runner.cc ${configuration_test_srcs})
+# TODO properly detect gtest.
+target_link_libraries(configuration-tests
+    gtest
+    pthread
+    configuration
+    glog
+)
+# XXX Remove glog
 
 add_library(configuration STATIC ${configuration_srcs})
 add_dependencies(configuration hyperdisk-tests)
@@ -121,7 +136,6 @@ set(hyperdex_headers
 # Setup the sources
 set(hyperdex_srcs
     src/hyperdex/client.cc
-    src/hyperdex/configuration.cc
     src/hyperdex/daemon.cc
     src/hyperdex/datalayer.cc
     src/hyperdex/logical.cc
@@ -191,7 +205,6 @@ target_link_libraries(binary
 # Tests
 
 set(hyperdex_test_srcs
-    test/hyperdex/configuration.cc
     test/hyperdex/fifo_work_queue.cc
     test/hyperdex/hyperspace.cc
     test/hyperdex/ids.cc
@@ -226,20 +239,5 @@ add_test(LockingqTest.CtorAndDtor testrunner
     --gtest_filter=LockingqTest.CtorAndDtor)
 add_test(LockingqTest.NormalQueue testrunner
     --gtest_filter=LockingqTest.NormalQueue)
-
-add_test(ConfigurationTest.CtorAndDtor testrunner
-    --gtest_filter=ConfigurationTest.CtorAndDtor)
-add_test(ConfigurationTest.SimpleHost testrunner
-    --gtest_filter=ConfigurationTest.SimpleHost)
-add_test(ConfigurationTest.BadHostLine testrunner
-    --gtest_filter=ConfigurationTest.BadHostLine)
-add_test(ConfigurationTest.IPv6Ready testrunner
-    --gtest_filter=ConfigurationTest.IPv6Ready)
-add_test(ConfigurationTest.BadSpaceLine testrunner
-    --gtest_filter=ConfigurationTest.BadSpaceLine)
-add_test(ConfigurationTest.BadSubspaceLine testrunner
-    --gtest_filter=ConfigurationTest.BadSubspaceLine)
-add_test(ConfigurationTest.BadRegionLine testrunner
-    --gtest_filter=ConfigurationTest.BadRegionLine)
 
 # Installation targets.

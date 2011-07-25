@@ -38,8 +38,10 @@
 // e
 #include <e/buffer.h>
 
+// Configuration
+#include <configuration/configuration.h>
+
 // HyperDex
-#include <hyperdex/configuration.h>
 #include <hyperdex/instance.h>
 #include <hyperdex/physical.h>
 #include <hyperdex/stream_no.h>

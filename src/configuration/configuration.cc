@@ -41,8 +41,10 @@
 // e
 #include <e/convert.h>
 
+// Configuration
+#include <configuration/configuration.h>
+
 // HyperDex
-#include <hyperdex/configuration.h>
 #include <hyperdex/hyperspace.h>
 
 hyperdex :: configuration :: configuration()

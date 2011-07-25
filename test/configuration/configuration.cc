@@ -31,7 +31,7 @@
 #include <gtest/gtest.h>
 
 // HyperDex
-#include <hyperdex/configuration.h>
+#include <configuration/configuration.h>
 
 #pragma GCC diagnostic ignored "-Wswitch-default"
 

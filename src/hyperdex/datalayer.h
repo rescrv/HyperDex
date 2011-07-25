@@ -44,8 +44,10 @@
 // HyperDisk
 #include <hyperdisk/disk.h>
 
+// Configuration
+#include <configuration/configuration.h>
+
 // HyperDex
-#include <hyperdex/configuration.h>
 #include <hyperdex/ids.h>
 #include <hyperdex/instance.h>
 

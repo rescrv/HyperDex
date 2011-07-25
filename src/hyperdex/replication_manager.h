@@ -41,8 +41,10 @@
 #include <e/lockfree_hash_set.h>
 #include <e/striped_lock.h>
 
+// Configuration
+#include <configuration/configuration.h>
+
 // HyperDex
-#include <hyperdex/configuration.h>
 #include <hyperdex/datalayer.h>
 #include <hyperdex/instance.h>
 #include <hyperdex/logical.h>
