@@ -65,6 +65,7 @@ set (hyperdisk_headers
 
 # The source files for HyperDisk
 set (hyperdisk_srcs
+    src/hyperdisk/log.cc
     src/hyperdisk/shard.cc
 )
 
@@ -81,6 +82,7 @@ target_link_libraries(hyperdisk
 )
 
 set(hyperdisk_test_srcs
+    test/hyperdisk/log.cc
     test/hyperdisk/shard.cc
 )
 
@@ -113,7 +115,6 @@ set(hyperdex_srcs
     src/hyperdex/coordinatorlink.cc
     src/hyperdex/daemon.cc
     src/hyperdex/datalayer.cc
-    src/hyperdex/log.cc
     src/hyperdex/logical.cc
     src/hyperdex/network_worker.cc
     src/hyperdex/physical.cc
@@ -181,7 +182,6 @@ set(hyperdex_test_srcs
     test/hyperdex/fifo_work_queue.cc
     test/hyperdex/hyperspace.cc
     test/hyperdex/ids.cc
-    test/hyperdex/log.cc
     test/hyperdex/search.cc
 )
 

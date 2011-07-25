@@ -82,7 +82,7 @@ hyperdex :: region :: get(const e::buffer& key,
                           std::vector<e::buffer>* value,
                           uint64_t* version)
 {
-    log::iterator it(m_log.iterate());
+    hyperdisk::log::iterator it(m_log.iterate());
     bool found = false;
     *version = 0;
 
@@ -311,7 +311,7 @@ e::intrusive_ptr<hyperdex::region::rolling_snapshot>
 hyperdex :: region :: make_rolling_snapshot()
 {
     po6::threads::rwlock::rdhold hold(&m_rwlock);
-    log::iterator it(m_log.iterate());
+    hyperdisk::log::iterator it(m_log.iterate());
     e::intrusive_ptr<snapshot> snap(inner_make_snapshot());
     return new rolling_snapshot(it, snap);
 }
@@ -694,7 +694,7 @@ hyperdex :: region :: snapshot :: value()
     }
 }
 
-hyperdex :: region :: rolling_snapshot :: rolling_snapshot(const log::iterator& iter,
+hyperdex :: region :: rolling_snapshot :: rolling_snapshot(const hyperdisk::log::iterator& iter,
                                                            e::intrusive_ptr<snapshot> snap)
     : m_iter(iter)
     , m_snap(snap)

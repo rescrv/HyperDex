@@ -42,11 +42,11 @@
 #include <e/intrusive_ptr.h>
 
 // HyperDisk
+#include <hyperdisk/log.h>
 #include <hyperdisk/shard.h>
 
 // HyperDex
 #include <hyperdex/ids.h>
-#include <hyperdex/log.h>
 #include <hyperdex/result_t.h>
 
 // XXX The use of the rwlock makes things take a performance hit when cleaning
@@ -112,14 +112,14 @@ class region
                 friend class region;
 
             private:
-                rolling_snapshot(const log::iterator& iter, e::intrusive_ptr<snapshot> snap);
+                rolling_snapshot(const hyperdisk::log::iterator& iter, e::intrusive_ptr<snapshot> snap);
                 rolling_snapshot(const rolling_snapshot&);
 
             private:
                 rolling_snapshot& operator = (const rolling_snapshot&);
 
             private:
-                log::iterator m_iter;
+                hyperdisk::log::iterator m_iter;
                 e::intrusive_ptr<snapshot> m_snap;
                 size_t m_ref;
         };
@@ -162,7 +162,7 @@ class region
         size_t m_ref;
         size_t m_numcolumns;
         uint64_t m_point_mask;
-        log m_log;
+        hyperdisk::log m_log;
         po6::threads::rwlock m_rwlock;
         typedef std::map<regionid, e::intrusive_ptr<hyperdisk::shard> > shard_collection;
         shard_collection m_shards;

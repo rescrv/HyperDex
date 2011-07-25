@@ -25,8 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_log_h_
-#define hyperdex_log_h_
+#ifndef hyperdisk_log_h_
+#define hyperdisk_log_h_
 
 // C
 #include <stdint.h>
@@ -44,7 +44,7 @@
 // HyperDex
 #include <hyperdex/op_t.h>
 
-namespace hyperdex
+namespace hyperdisk
 {
 
 class log
@@ -64,7 +64,7 @@ class log
                 void next();
 
             public:
-                op_t op() const { return m_n->op; }
+                hyperdex::op_t op() const { return m_n->op; }
                 uint64_t point() const { return m_n->point; }
                 const e::buffer& key() const { return m_n->key; }
                 uint64_t key_hash() const { return m_n->key_hash; }
@@ -102,7 +102,7 @@ class log
         bool append(uint64_t point, const e::buffer& key, uint64_t key_hash);
 
     public:
-        size_t flush(std::tr1::function<bool (op_t op,
+        size_t flush(std::tr1::function<bool (hyperdex::op_t op,
                                               uint64_t point,
                                               const e::buffer& key,
                                               uint64_t key_hash,
@@ -120,7 +120,7 @@ class log
                 node()
                     : real(false)
                     , next(NULL)
-                    , op(DEL)
+                    , op(hyperdex::DEL)
                     , point()
                     , key()
                     , key_hash(0)
@@ -136,7 +136,7 @@ class log
                      const std::vector<uint64_t>& valh, uint64_t ver)
                     : real(false)
                     , next(NULL)
-                    , op(PUT)
+                    , op(hyperdex::PUT)
                     , point(p)
                     , key(k)
                     , key_hash(kh)
@@ -150,7 +150,7 @@ class log
                 node(uint64_t p, const e::buffer& k, uint64_t kh)
                     : real(false)
                     , next(NULL)
-                    , op(DEL)
+                    , op(hyperdex::DEL)
                     , point(p)
                     , key(k)
                     , key_hash(kh)
@@ -168,7 +168,7 @@ class log
             public:
                 bool real;
                 node* next;
-                op_t op;
+                hyperdex::op_t op;
                 uint64_t point;
                 e::buffer key;
                 uint64_t key_hash;
@@ -208,6 +208,6 @@ class log
         po6::threads::mutex m_flush_lock;
 };
 
-} // namespace hyperdex
+} // namespace hyperdisk
 
-#endif // hyperdex_log_h_
+#endif // hyperdisk_log_h_

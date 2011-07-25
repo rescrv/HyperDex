@@ -36,10 +36,10 @@
 // Google Log
 #include <glog/logging.h>
 
-// HyperDex
-#include <hyperdex/log.h>
+// HyperDisk
+#include <hyperdisk/log.h>
 
-hyperdex :: log :: log()
+hyperdisk :: log :: log()
     : m_head_lock()
     , m_tail_lock()
     , m_head(NULL)
@@ -51,40 +51,40 @@ hyperdex :: log :: log()
     assert(ref == 1);
 }
 
-hyperdex :: log :: ~log() throw ()
+hyperdisk :: log :: ~log() throw ()
 {
     release(m_head);
 }
 
 bool
-hyperdex :: log :: append(uint64_t point,
-                          const e::buffer& key,
-                          uint64_t key_hash,
-                          const std::vector<e::buffer>& value,
-                          const std::vector<uint64_t>& value_hashes,
-                          uint64_t version)
+hyperdisk :: log :: append(uint64_t point,
+                           const e::buffer& key,
+                           uint64_t key_hash,
+                           const std::vector<e::buffer>& value,
+                           const std::vector<uint64_t>& value_hashes,
+                           uint64_t version)
 {
     std::auto_ptr<node> n(new node(point, key, key_hash, value, value_hashes, version));
     return common_append(n);
 }
 
 bool
-hyperdex :: log :: append(uint64_t point,
-                          const e::buffer& key,
-                          uint64_t key_hash)
+hyperdisk :: log :: append(uint64_t point,
+                           const e::buffer& key,
+                           uint64_t key_hash)
 {
     std::auto_ptr<node> n(new node(point, key, key_hash));
     return common_append(n);
 }
 
 size_t
-hyperdex :: log :: flush(std::tr1::function<bool (op_t op,
-                                                  uint64_t point,
-                                                  const e::buffer& key,
-                                                  uint64_t key_hash,
-                                                  const std::vector<e::buffer>& value,
-                                                  const std::vector<uint64_t>& value_hashes,
-                                                  uint64_t version)> save_one)
+hyperdisk :: log :: flush(std::tr1::function<bool (hyperdex::op_t op,
+                                                   uint64_t point,
+                                                   const e::buffer& key,
+                                                   uint64_t key_hash,
+                                                   const std::vector<e::buffer>& value,
+                                                   const std::vector<uint64_t>& value_hashes,
+                                                   uint64_t version)> save_one)
 {
     po6::threads::mutex::hold hold_flush(&m_flush_lock);
     std::auto_ptr<node> end_(new node());
@@ -121,8 +121,8 @@ hyperdex :: log :: flush(std::tr1::function<bool (op_t op,
     return flushed;
 }
 
-hyperdex::log::node*
-hyperdex :: log :: get_head()
+hyperdisk::log::node*
+hyperdisk :: log :: get_head()
 {
     po6::threads::mutex::hold hold(&m_head_lock);
     node* ret = m_head;
@@ -137,7 +137,7 @@ hyperdex :: log :: get_head()
 }
 
 void
-hyperdex :: log :: step_list(node** pos)
+hyperdisk :: log :: step_list(node** pos)
 {
     node* cur = *pos;
     node* next = cur->next;
@@ -172,7 +172,7 @@ hyperdex :: log :: step_list(node** pos)
 }
 
 void
-hyperdex :: log :: release(node* pos)
+hyperdisk :: log :: release(node* pos)
 {
 // XXX This way is super slow compared to what we could do.  On the other hand,
 // it's much easier to maintain.  This implementation requires iterating
@@ -193,7 +193,7 @@ hyperdex :: log :: release(node* pos)
 }
 
 bool
-hyperdex :: log :: common_append(std::auto_ptr<node> n, bool real)
+hyperdisk :: log :: common_append(std::auto_ptr<node> n, bool real)
 {
     po6::threads::mutex::hold hold(&m_tail_lock);
     n->real = real;
@@ -205,7 +205,7 @@ hyperdex :: log :: common_append(std::auto_ptr<node> n, bool real)
     return true;
 }
 
-hyperdex :: log :: iterator :: iterator(hyperdex::log* l)
+hyperdisk :: log :: iterator :: iterator(hyperdisk::log* l)
     : m_l(l)
     , m_n(l->get_head())
     , m_valid(true)
@@ -213,7 +213,7 @@ hyperdex :: log :: iterator :: iterator(hyperdex::log* l)
     valid();
 }
 
-hyperdex :: log :: iterator :: iterator(const log::iterator& i)
+hyperdisk :: log :: iterator :: iterator(const log::iterator& i)
     : m_l(i.m_l)
     , m_n(i.m_n)
     , m_valid(i.m_valid)
@@ -227,13 +227,13 @@ hyperdex :: log :: iterator :: iterator(const log::iterator& i)
     valid();
 }
 
-hyperdex :: log :: iterator :: ~iterator() throw ()
+hyperdisk :: log :: iterator :: ~iterator() throw ()
 {
     m_l->release(m_n);
 }
 
 bool
-hyperdex :: log :: iterator :: valid()
+hyperdisk :: log :: iterator :: valid()
 {
     while (m_n->next && (!m_valid || !m_n->real))
     {
@@ -245,7 +245,7 @@ hyperdex :: log :: iterator :: valid()
 }
 
 void
-hyperdex :: log :: iterator :: next()
+hyperdisk :: log :: iterator :: next()
 {
     m_valid = false;
     valid();
