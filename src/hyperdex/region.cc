@@ -586,11 +586,12 @@ hyperdex :: region :: split_disk(const regionid& ri)
         }
     }
 
+    po6::pathname old_fn = di->second->filename();
     po6::threads::rwlock::wrhold hold(&m_rwlock);
     drop_disk(ri);
     lower_disk_guard.dismiss();
     upper_disk_guard.dismiss();
-    LOG(INFO) << "Successfully split " << di->second->filename();
+    LOG(INFO) << "Successfully split " << old_fn;
     return;
 }
 
