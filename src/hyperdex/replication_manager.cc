@@ -426,7 +426,7 @@ hyperdex :: replication_manager :: region_transfer(const entityid& from,
 
     if (t->snap->valid())
     {
-        uint8_t op = t->snap->op() == PUT ? 1 : 0;
+        uint8_t op = t->snap->has_value() ? 1 : 0;
         e::buffer msg;
         msg.pack() << t->xfer_num << op << t->snap->version()
                    << t->snap->key() << t->snap->value();

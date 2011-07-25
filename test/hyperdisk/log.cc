@@ -64,7 +64,7 @@ TEST(LogTest, SimpleIteration)
 
         // Check the PUT.
         EXPECT_TRUE(it.valid());
-        EXPECT_EQ(hyperdex::PUT, it.op());
+        EXPECT_TRUE(it.has_value());
         EXPECT_TRUE(buf == it.key());
         ASSERT_EQ(i, it.value().size());
 
@@ -78,7 +78,7 @@ TEST(LogTest, SimpleIteration)
         // Check the DEL.
         it.next();
         ASSERT_TRUE(it.valid());
-        EXPECT_EQ(hyperdex::DEL, it.op());
+        EXPECT_FALSE(it.has_value());
         EXPECT_TRUE(buf == it.key());
 
         // Advance for next iteration
@@ -133,7 +133,7 @@ TEST(LogTest, IterateAddIterate)
 }
 
 static bool
-NOP(hyperdex::op_t, uint64_t, const e::buffer&, uint64_t,
+NOP(bool, uint64_t, const e::buffer&, uint64_t,
     const std::vector<e::buffer>&, const std::vector<uint64_t>&,
     uint64_t)
 {
@@ -202,8 +202,8 @@ TEST(LogTest, CopyIterator)
         // Check the PUT.
         EXPECT_TRUE(it.valid());
         EXPECT_TRUE(copy.valid());
-        EXPECT_EQ(hyperdex::PUT, it.op());
-        EXPECT_EQ(hyperdex::PUT, copy.op());
+        EXPECT_TRUE(it.has_value());
+        EXPECT_TRUE(copy.has_value());
         EXPECT_TRUE(buf == it.key());
         EXPECT_TRUE(buf == copy.key());
         ASSERT_EQ(i, it.value().size());
@@ -223,8 +223,8 @@ TEST(LogTest, CopyIterator)
         copy.next();
         ASSERT_TRUE(it.valid());
         ASSERT_TRUE(copy.valid());
-        EXPECT_EQ(hyperdex::DEL, it.op());
-        EXPECT_EQ(hyperdex::DEL, copy.op());
+        EXPECT_FALSE(it.has_value());
+        EXPECT_FALSE(copy.has_value());
         EXPECT_TRUE(buf == it.key());
         EXPECT_TRUE(buf == copy.key());
 

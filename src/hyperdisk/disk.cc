@@ -93,12 +93,12 @@ hyperdisk :: disk :: get(const e::buffer& key,
     {
         if (it.key() == key)
         {
-            if (it.op() == hyperdex::PUT)
+            if (it.has_value())
             {
                 *value = it.value();
                 *version = it.version();
             }
-            else if (it.op() == hyperdex::DEL)
+            else
             {
                 *version = 0;
             }
@@ -160,12 +160,12 @@ hyperdisk :: disk :: get(const e::buffer& key,
     {
         if (it.key() == key)
         {
-            if (it.op() == hyperdex::PUT)
+            if (it.has_value())
             {
                 *value = it.value();
                 *version = it.version();
             }
-            else if (it.op() == hyperdex::DEL)
+            else
             {
                 *version = 0;
             }
@@ -385,7 +385,7 @@ hyperdisk :: disk :: get_point_for(uint64_t key_hash, const std::vector<uint64_t
 }
 
 bool
-hyperdisk :: disk :: flush_one(hyperdex::op_t op, uint64_t point, const e::buffer& key,
+hyperdisk :: disk :: flush_one(bool has_value, uint64_t point, const e::buffer& key,
                                uint64_t key_hash,
                                const std::vector<e::buffer>& value,
                                const std::vector<uint64_t>& value_hashes,
@@ -424,7 +424,7 @@ hyperdisk :: disk :: flush_one(hyperdex::op_t op, uint64_t point, const e::buffe
     }
 
     // Put to one disk
-    if (op == hyperdex::PUT)
+    if (has_value)
     {
         for (shard_collection::iterator i = m_shards.begin(); i != m_shards.end(); ++i)
         {
@@ -644,16 +644,16 @@ hyperdisk :: disk :: snapshot :: secondary_point()
     }
 }
 
-hyperdex::op_t
-hyperdisk :: disk :: snapshot :: op()
+bool
+hyperdisk :: disk :: snapshot :: has_value()
 {
     if (!m_snaps.empty())
     {
-        return hyperdex::PUT;
+        return true;
     }
     else
     {
-        return hyperdex::op_t();
+        return false;
     }
 }
 
@@ -724,20 +724,20 @@ hyperdisk :: disk :: rolling_snapshot :: next()
     }
 }
 
-hyperdex::op_t
-hyperdisk :: disk :: rolling_snapshot :: op()
+bool
+hyperdisk :: disk :: rolling_snapshot :: has_value()
 {
     if (m_snap->valid())
     {
-        return m_snap->op();
+        return m_snap->has_value();
     }
     else if (m_iter.valid())
     {
-        return m_iter.op();
+        return m_iter.has_value();
     }
     else
     {
-        return hyperdex::op_t();
+        return false;
     }
 }
 

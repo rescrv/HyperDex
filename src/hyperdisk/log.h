@@ -41,9 +41,6 @@
 // e
 #include <e/buffer.h>
 
-// HyperDex
-#include <hyperdex/op_t.h>
-
 namespace hyperdisk
 {
 
@@ -64,7 +61,7 @@ class log
                 void next();
 
             public:
-                hyperdex::op_t op() const { return m_n->op; }
+                bool has_value() const { return m_n->has_value; }
                 uint64_t point() const { return m_n->point; }
                 const e::buffer& key() const { return m_n->key; }
                 uint64_t key_hash() const { return m_n->key_hash; }
@@ -102,7 +99,7 @@ class log
         bool append(uint64_t point, const e::buffer& key, uint64_t key_hash);
 
     public:
-        size_t flush(std::tr1::function<bool (hyperdex::op_t op,
+        size_t flush(std::tr1::function<bool (bool has_value,
                                               uint64_t point,
                                               const e::buffer& key,
                                               uint64_t key_hash,
@@ -120,7 +117,7 @@ class log
                 node()
                     : real(false)
                     , next(NULL)
-                    , op(hyperdex::DEL)
+                    , has_value(false)
                     , point()
                     , key()
                     , key_hash(0)
@@ -136,7 +133,7 @@ class log
                      const std::vector<uint64_t>& valh, uint64_t ver)
                     : real(false)
                     , next(NULL)
-                    , op(hyperdex::PUT)
+                    , has_value(true)
                     , point(p)
                     , key(k)
                     , key_hash(kh)
@@ -150,7 +147,7 @@ class log
                 node(uint64_t p, const e::buffer& k, uint64_t kh)
                     : real(false)
                     , next(NULL)
-                    , op(hyperdex::DEL)
+                    , has_value(false)
                     , point(p)
                     , key(k)
                     , key_hash(kh)
@@ -168,7 +165,7 @@ class log
             public:
                 bool real;
                 node* next;
-                hyperdex::op_t op;
+                bool has_value;
                 uint64_t point;
                 e::buffer key;
                 uint64_t key_hash;

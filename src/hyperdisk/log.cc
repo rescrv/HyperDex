@@ -78,7 +78,7 @@ hyperdisk :: log :: append(uint64_t point,
 }
 
 size_t
-hyperdisk :: log :: flush(std::tr1::function<bool (hyperdex::op_t op,
+hyperdisk :: log :: flush(std::tr1::function<bool (bool has_value,
                                                    uint64_t point,
                                                    const e::buffer& key,
                                                    uint64_t key_hash,
@@ -104,8 +104,9 @@ hyperdisk :: log :: flush(std::tr1::function<bool (hyperdex::op_t op,
     {
         if (head->real)
         {
-            if (!save_one(head->op, head->point, head->key, head->key_hash,
-                          head->value, head->value_hashes, head->version))
+            if (!save_one(head->has_value, head->point, head->key,
+                          head->key_hash, head->value, head->value_hashes,
+                          head->version))
             {
                 return flushed;
             }

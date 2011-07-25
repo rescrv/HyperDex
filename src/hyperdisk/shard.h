@@ -37,7 +37,6 @@
 
 // HyperDex
 #include <hyperdex/result_t.h>
-#include <hyperdex/op_t.h>
 
 namespace hyperdisk
 {
