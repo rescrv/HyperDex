@@ -70,10 +70,13 @@ class datalayer
 
     // Key-Value store operations.
     public:
+        // May return SUCCESS, NOTFOUND or MISSINGDISK.
         hyperdisk::returncode get(const regionid& ri, const e::buffer& key,
                                   std::vector<e::buffer>* value, uint64_t* version);
+        // May return SUCCESS, WRONGARITY or MISSINGDISK.
         hyperdisk::returncode put(const regionid& ri, const e::buffer& key,
                                   const std::vector<e::buffer>& value, uint64_t version);
+        // May return SUCCESS or MISSINGDISK.
         hyperdisk::returncode del(const regionid& ri, const e::buffer& key);
 
     private:

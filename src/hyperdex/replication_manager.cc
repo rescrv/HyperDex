@@ -373,9 +373,6 @@ hyperdex :: replication_manager :: chain_ack(const entityid& from,
         t->triggers.insert(std::make_pair(key, version));
     }
 
-    send_ack(to.get_region(), version, key, pend);
-    pend->acked = true;
-
     while (!kh->pending_updates.empty() && kh->pending_updates.begin()->second->acked)
     {
         uint64_t ver = kh->pending_updates.begin()->first;
@@ -385,14 +382,52 @@ hyperdex :: replication_manager :: chain_ack(const entityid& from,
 
         if (!commit->ondisk && commit->op == PUT)
         {
-            m_data->put(to.get_region(), key, commit->value, ver);
+            switch (m_data->put(to.get_region(), key, commit->value, ver))
+            {
+                case hyperdisk::SUCCESS:
+                    break;
+                case hyperdisk::WRONGARITY:
+                    LOG(ERROR) << "WRONGARITY returned when committing to disk.";
+                    return;
+                case hyperdisk::MISSINGDISK:
+                    LOG(ERROR) << "MISSINGDISK returned when committing to disk.";
+                    return;
+                case hyperdisk::NOTFOUND:
+                case hyperdisk::HASHFULL:
+                case hyperdisk::DATAFULL:
+                case hyperdisk::SEARCHFULL:
+                case hyperdisk::SYNCFAILED:
+                case hyperdisk::DROPFAILED:
+                default:
+                    LOG(ERROR) << "m_data returned unexpected error code.";
+                    return;
+            }
         }
         else if (!commit->ondisk && commit->op == DEL)
         {
-            m_data->del(to.get_region(), key);
+            switch (m_data->del(to.get_region(), key))
+            {
+                case hyperdisk::SUCCESS:
+                    break;
+                case hyperdisk::MISSINGDISK:
+                    LOG(ERROR) << "MISSINGDISK returned when committing to disk.";
+                    return;
+                case hyperdisk::WRONGARITY:
+                case hyperdisk::NOTFOUND:
+                case hyperdisk::HASHFULL:
+                case hyperdisk::DATAFULL:
+                case hyperdisk::SEARCHFULL:
+                case hyperdisk::SYNCFAILED:
+                case hyperdisk::DROPFAILED:
+                default:
+                    LOG(ERROR) << "m_data returned unexpected error code.";
+                    return;
+            }
         }
     }
 
+    send_ack(to.get_region(), version, key, pend);
+    pend->acked = true;
     unblock_messages(to.get_region(), key, kh);
 
     if (kh->pending_updates.empty())
@@ -530,18 +565,21 @@ hyperdex :: replication_manager :: region_transfer(const entityid& from,
                     case hyperdisk::SUCCESS:
                         res = SUCCESS;
                         break;
-                    case hyperdisk::NOTFOUND:
-                        res = NOTFOUND;
-                        break;
                     case hyperdisk::WRONGARITY:
                         res = INVALID;
                         break;
+                    case hyperdisk::MISSINGDISK:
+                        LOG(ERROR) << "m_data returned MISSINGDISK.";
+                        res = ERROR;
+                        break;
+                    case hyperdisk::NOTFOUND:
                     case hyperdisk::HASHFULL:
                     case hyperdisk::DATAFULL:
                     case hyperdisk::SEARCHFULL:
-                    case hyperdisk::SEEERRNO:
-                    case hyperdisk::NODISK:
+                    case hyperdisk::SYNCFAILED:
+                    case hyperdisk::DROPFAILED:
                     default:
+                        LOG(ERROR) << "m_data returned unexpected error code.";
                         res = ERROR;
                         break;
                 }
@@ -553,18 +591,19 @@ hyperdex :: replication_manager :: region_transfer(const entityid& from,
                     case hyperdisk::SUCCESS:
                         res = SUCCESS;
                         break;
-                    case hyperdisk::NOTFOUND:
-                        res = NOTFOUND;
+                    case hyperdisk::MISSINGDISK:
+                        LOG(ERROR) << "m_data returned MISSINGDISK.";
+                        res = ERROR;
                         break;
                     case hyperdisk::WRONGARITY:
-                        res = INVALID;
-                        break;
+                    case hyperdisk::NOTFOUND:
                     case hyperdisk::HASHFULL:
                     case hyperdisk::DATAFULL:
                     case hyperdisk::SEARCHFULL:
-                    case hyperdisk::SEEERRNO:
-                    case hyperdisk::NODISK:
+                    case hyperdisk::SYNCFAILED:
+                    case hyperdisk::DROPFAILED:
                     default:
+                        LOG(ERROR) << "m_data returned unexpected error code.";
                         res = ERROR;
                         break;
                 }
@@ -993,18 +1032,17 @@ hyperdex :: replication_manager :: from_disk(const regionid& r,
             *version = 0;
             *have_value = false;
             return true;
-        case hyperdisk::WRONGARITY:
-            LOG(INFO) << "Data layer returned WRONGARITY when queried for old value.";
+        case hyperdisk::MISSINGDISK:
+            LOG(ERROR) << "m_data returned MISSINGDISK.";
             return false;
+        case hyperdisk::WRONGARITY:
         case hyperdisk::HASHFULL:
         case hyperdisk::DATAFULL:
         case hyperdisk::SEARCHFULL:
-        case hyperdisk::SEEERRNO:
-        case hyperdisk::NODISK:
-            LOG(INFO) << "Data layer returned ERROR when queried for old value.";
-            return false;
+        case hyperdisk::SYNCFAILED:
+        case hyperdisk::DROPFAILED:
         default:
-            LOG(WARNING) << "Data layer returned unknown result when queried for old value.";
+            LOG(WARNING) << "Data layer returned unexpected result when reading old value.";
             return false;
     }
 }
@@ -1179,11 +1217,47 @@ hyperdex :: replication_manager :: handle_point_leader_work(const regionid& pend
 
     if (!update->ondisk && update->op == PUT)
     {
-        m_data->put(pending_in, key, update->value, version);
+        switch (m_data->put(pending_in, key, update->value, version))
+        {
+            case hyperdisk::SUCCESS:
+                break;
+            case hyperdisk::WRONGARITY:
+                LOG(ERROR) << "WRONGARITY returned when committing to disk.";
+                return;
+            case hyperdisk::MISSINGDISK:
+                LOG(ERROR) << "MISSINGDISK returned when committing to disk.";
+                return;
+            case hyperdisk::NOTFOUND:
+            case hyperdisk::HASHFULL:
+            case hyperdisk::DATAFULL:
+            case hyperdisk::SEARCHFULL:
+            case hyperdisk::SYNCFAILED:
+            case hyperdisk::DROPFAILED:
+            default:
+                LOG(ERROR) << "m_data returned unexpected error code.";
+                return;
+        }
     }
     else if (!update->ondisk && update->op == DEL)
     {
-        m_data->del(pending_in, key);
+        switch (m_data->del(pending_in, key))
+        {
+            case hyperdisk::SUCCESS:
+                break;
+            case hyperdisk::MISSINGDISK:
+                LOG(ERROR) << "MISSINGDISK returned when committing to disk.";
+                return;
+            case hyperdisk::WRONGARITY:
+            case hyperdisk::NOTFOUND:
+            case hyperdisk::HASHFULL:
+            case hyperdisk::DATAFULL:
+            case hyperdisk::SEARCHFULL:
+            case hyperdisk::SYNCFAILED:
+            case hyperdisk::DROPFAILED:
+            default:
+                LOG(ERROR) << "m_data returned unexpected error code.";
+                return;
+        }
     }
 
     std::map<uint64_t, e::intrusive_ptr<pending> >::iterator penditer;

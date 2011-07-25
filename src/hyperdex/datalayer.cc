@@ -223,7 +223,7 @@ hyperdex :: datalayer :: get(const regionid& ri,
 
     if (!r)
     {
-        return hyperdisk::NODISK;
+        return hyperdisk::MISSINGDISK;
     }
 
     return r->get(key, value, version);
@@ -239,7 +239,7 @@ hyperdex :: datalayer :: put(const regionid& ri,
 
     if (!r)
     {
-        return hyperdisk::NODISK;
+        return hyperdisk::MISSINGDISK;
     }
 
     return r->put(key, value, version);
@@ -253,7 +253,7 @@ hyperdex :: datalayer :: del(const regionid& ri,
 
     if (!r)
     {
-        return hyperdisk::NODISK;
+        return hyperdisk::MISSINGDISK;
     }
 
     return r->del(key);

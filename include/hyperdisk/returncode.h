@@ -31,7 +31,7 @@
 namespace hyperdisk
 {
 
-// HyperDisk returncode occupies 8192 - 8320
+// HyperDisk returncode occupies [8192, 8320)
 enum returncode
 {
     SUCCESS     = 8192,
@@ -40,8 +40,9 @@ enum returncode
     HASHFULL    = 8195,
     DATAFULL    = 8196,
     SEARCHFULL  = 8197,
-    SEEERRNO    = 8198,
-    NODISK      = 8199
+    SYNCFAILED  = 8198,
+    DROPFAILED  = 8199,
+    MISSINGDISK = 8200
 };
 
 } // namespace hyperdisk

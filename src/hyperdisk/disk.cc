@@ -248,43 +248,56 @@ hyperdisk :: disk :: flush()
 hyperdisk::returncode
 hyperdisk :: disk :: async()
 {
+    returncode ret = SUCCESS;
     po6::threads::rwlock::rdhold hold(&m_rwlock);
 
     for (shard_collection::iterator i = m_shards.begin(); i != m_shards.end(); ++i)
     {
-        i->second->async();
+        if (i->second->async() != SUCCESS)
+        {
+            ret = SYNCFAILED;
+        }
     }
 
-    return SUCCESS;
+    return ret;
 }
 
 hyperdisk::returncode
 hyperdisk :: disk :: sync()
 {
+    returncode ret = SUCCESS;
     po6::threads::rwlock::rdhold hold(&m_rwlock);
 
     for (shard_collection::iterator i = m_shards.begin(); i != m_shards.end(); ++i)
     {
-        i->second->sync();
+        if (i->second->sync() != SUCCESS)
+        {
+            ret = SYNCFAILED;
+        }
     }
 
-    return SUCCESS;
+    return ret;
 }
 
 hyperdisk::returncode
 hyperdisk :: disk :: drop()
 {
+    returncode ret = SUCCESS;
+
     for (shard_collection::iterator d = m_shards.begin(); d != m_shards.end(); ++d)
     {
-        d->second->drop();
+        if (d->second->drop() != SUCCESS)
+        {
+            ret = DROPFAILED;
+        }
     }
 
     if (rmdir(m_base.get()) < 0)
     {
-        return SEEERRNO;
+        ret = DROPFAILED;
     }
 
-    return SUCCESS;
+    return ret;
 }
 
 e::intrusive_ptr<hyperdisk::disk::snapshot>
@@ -398,13 +411,14 @@ hyperdisk :: disk :: flush_one(bool has_value, uint64_t point, const e::buffer& 
             case NOTFOUND:
                 break;
             case DATAFULL:
-            case HASHFULL:
-            case SEARCHFULL:
                 m_needs_more_space.insert(i->first);
                 return false;
-            case NODISK:
+            case HASHFULL:
+            case SEARCHFULL:
+            case MISSINGDISK:
             case WRONGARITY:
-            case SEEERRNO:
+            case SYNCFAILED:
+            case DROPFAILED:
             default:
                 assert(!"Programming error.");
         }
@@ -433,10 +447,11 @@ hyperdisk :: disk :: flush_one(bool has_value, uint64_t point, const e::buffer& 
                 case SEARCHFULL:
                     m_needs_more_space.insert(i->first);
                     return false;
-                case NODISK:
+                case MISSINGDISK:
                 case NOTFOUND:
                 case WRONGARITY:
-                case SEEERRNO:
+                case SYNCFAILED:
+                case DROPFAILED:
                 default:
                     assert(!"Programming error.");
             }
@@ -467,7 +482,7 @@ hyperdisk :: disk :: clean_shard(const hyperdex::regionid& ri)
 
     if (di == m_shards.end())
     {
-        return NOTFOUND;
+        return MISSINGDISK;
     }
 
     e::intrusive_ptr<hyperdisk::shard::snapshot> snap = di->second->make_snapshot();
@@ -487,7 +502,7 @@ hyperdisk :: disk :: clean_shard(const hyperdex::regionid& ri)
 
     if (rename(path.get(), di->second->filename().get()) < 0)
     {
-        return SEEERRNO;
+        return DROPFAILED;
     }
 
     disk_guard.dismiss();
@@ -515,7 +530,7 @@ hyperdisk :: disk :: split_shard(const hyperdex::regionid& ri)
 
     if (di == m_shards.end())
     {
-        return NOTFOUND;
+        return MISSINGDISK;
     }
 
     uint64_t new_bit = 1;
@@ -537,7 +552,7 @@ hyperdisk :: disk :: split_shard(const hyperdex::regionid& ri)
 
     if (!lower || !upper)
     {
-        return SEEERRNO;
+        return MISSINGDISK; // XXX This is not the real reason for failure.
     }
 
     uint64_t prefix = hyperdex::prefixmask(ri.prefix + 1);

@@ -119,14 +119,23 @@ class disk
         disk(const po6::pathname& directory, uint16_t arity);
 
     public:
+        // May return SUCCESS or NOTFOUND.
         returncode get(const e::buffer& key, std::vector<e::buffer>* value,
                        uint64_t* version);
+        // May return SUCCESS or WRONGARITY.
         returncode put(const e::buffer& key, const std::vector<e::buffer>& value,
                        uint64_t version);
+        // May return SUCCESS.
         returncode del(const e::buffer& key);
         bool flush();
+        // May return SUCCESS or SYNCFAILED.  errno will be set to the reason
+        // the sync failed.
         returncode async();
+        // May return SUCCESS or SYNCFAILED.  errno will be set to the reason
+        // the sync failed.
         returncode sync();
+        // May return SUCCESS or DROPFAILED.  errno will be set to the reason
+        // the remove failed.
         returncode drop();
         e::intrusive_ptr<snapshot> make_snapshot();
         e::intrusive_ptr<rolling_snapshot> make_rolling_snapshot();
@@ -146,6 +155,7 @@ class disk
                        uint64_t key_hash, const std::vector<e::buffer>& value,
                        const std::vector<uint64_t>& value_hashes, uint64_t version);
         e::intrusive_ptr<snapshot> inner_make_snapshot();
+        // XXX Better characterize the failures of these.
         returncode clean_shard(const hyperdex::regionid& ri);
         returncode split_shard(const hyperdex::regionid& ri);
 

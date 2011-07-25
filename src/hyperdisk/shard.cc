@@ -220,7 +220,7 @@ hyperdisk :: shard :: sync()
 {
     if (msync(m_base, TOTAL_FILE_SIZE, MS_SYNC) < 0)
     {
-        return SEEERRNO;
+        return SYNCFAILED;
     }
 
     return SUCCESS;
@@ -263,7 +263,7 @@ hyperdisk :: shard :: async()
 {
     if (msync(m_base, TOTAL_FILE_SIZE, MS_ASYNC) < 0)
     {
-        return SEEERRNO;
+        return SYNCFAILED;
     }
 
     return SUCCESS;
@@ -274,7 +274,7 @@ hyperdisk :: shard :: drop()
 {
     if (unlink(m_filename.get()) < 0)
     {
-        return SEEERRNO;
+        return DROPFAILED;
     }
 
     return SUCCESS;

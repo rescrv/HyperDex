@@ -115,8 +115,9 @@ hyperdex :: network_worker :: run()
                     case hyperdisk::HASHFULL:
                     case hyperdisk::DATAFULL:
                     case hyperdisk::SEARCHFULL:
-                    case hyperdisk::SEEERRNO:
-                    case hyperdisk::NODISK:
+                    case hyperdisk::SYNCFAILED:
+                    case hyperdisk::DROPFAILED:
+                    case hyperdisk::MISSINGDISK:
                     default:
                         result = ERROR;
                         break;

@@ -78,18 +78,25 @@ class shard
         static e::intrusive_ptr<shard> create(const po6::pathname& filename);
 
     public:
+        // May return SUCCESS or NOTFOUND.
         returncode get(const e::buffer& key, uint64_t key_hash,
                        std::vector<e::buffer>* value, uint64_t* version);
+        // May return SUCCESS, DATAFULL, HASHFULL, or SEARCHFULL.
         returncode put(const e::buffer& key, uint64_t key_hash,
                        const std::vector<e::buffer>& value,
                        const std::vector<uint64_t>& value_hashes,
                        uint64_t version);
+        // May return SUCCESS, NOTFOUND, or DATAFULL.
         returncode del(const e::buffer& key, uint64_t key_hash);
         // Judge whether there would be a suitably large amount of space on this
         // shard after cleaning all dead segments.  If not, and the shard still
         // gives "DISKFULL" errors, we need to split the shard instead.
         bool needs_cleaning() const;
+        // May return SUCCESS or SYNCFAILED.  errno will be set to the reason
+        // the sync failed.
         returncode async();
+        // May return SUCCESS or SYNCFAILED.  errno will be set to the reason
+        // the sync failed.
         returncode sync();
         returncode drop();
         e::intrusive_ptr<snapshot> make_snapshot();
