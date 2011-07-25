@@ -114,14 +114,14 @@ hyperdex :: physical :: shutdown()
     m_shutdown = true;
 }
 
-hyperdex::physical::result_t
+hyperdex::physical::returncode
 hyperdex :: physical :: send(const po6::net::location& to,
                              e::buffer* msg)
 {
     hazard_ptr hptr = m_hazard_ptrs.get();
     channel* chan;
 
-    result_t res = get_channel(hptr, to, &chan);
+    returncode res = get_channel(hptr, to, &chan);
 
     if (res != SUCCESS)
     {
@@ -155,7 +155,7 @@ hyperdex :: physical :: send(const po6::net::location& to,
     }
 }
 
-hyperdex::physical::result_t
+hyperdex::physical::returncode
 hyperdex :: physical :: recv(po6::net::location* from,
                              e::buffer* msg)
 {
@@ -272,7 +272,7 @@ hyperdex :: physical :: recv(po6::net::location* from,
                 }
                 else
                 {
-                    result_t res;
+                    returncode res;
 
                     if (work_read(hptr, chan, from, msg, &res))
                     {
@@ -304,7 +304,7 @@ hyperdex :: physical :: deliver(const po6::net::location& from,
     m_incoming.push(m);
 }
 
-hyperdex::physical::result_t
+hyperdex::physical::returncode
 hyperdex :: physical :: get_channel(const hazard_ptr& hptr, const po6::net::location& to, channel** chan)
 {
     int fd;
@@ -346,7 +346,7 @@ hyperdex :: physical :: get_channel(const hazard_ptr& hptr, const po6::net::loca
     }
 }
 
-hyperdex::physical::result_t
+hyperdex::physical::returncode
 hyperdex :: physical :: get_channel(const hazard_ptr& hptr, po6::net::socket* soc, channel** ret)
 {
     soc->nonblocking();
@@ -416,7 +416,7 @@ hyperdex :: physical :: work_close(const hazard_ptr& hptr, channel* chan)
 #define IO_BLOCKSIZE 65536
 
 bool
-hyperdex :: physical :: work_read(const hazard_ptr& hptr, channel* chan, po6::net::location* from, e::buffer* msg, result_t* res)
+hyperdex :: physical :: work_read(const hazard_ptr& hptr, channel* chan, po6::net::location* from, e::buffer* msg, returncode* res)
 {
     if (!chan->mtx.trylock())
     {

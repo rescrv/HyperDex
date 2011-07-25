@@ -52,7 +52,7 @@ namespace hyperdex
 class physical
 {
     public:
-        enum result_t
+        enum returncode
         {
             SHUTDOWN    = 0,
             SUCCESS     = 1,
@@ -76,8 +76,8 @@ class physical
 
     // Send and recv messages.
     public:
-        result_t send(const po6::net::location& to, e::buffer* msg);
-        result_t recv(po6::net::location* from, e::buffer* msg);
+        returncode send(const po6::net::location& to, e::buffer* msg);
+        returncode recv(po6::net::location* from, e::buffer* msg);
         // Deliver a message (put it on the queue) as if it came from "from".
         void deliver(const po6::net::location& from, const e::buffer& msg);
 
@@ -125,14 +125,14 @@ class physical
     private:
         // get_channel creates a new channel, or finds an existing one matching
         // the specific parameter.
-        hyperdex::physical::result_t get_channel(const hazard_ptr& hptr, const po6::net::location& to, channel** chan);
-        hyperdex::physical::result_t get_channel(const hazard_ptr& hptr, po6::net::socket* to, channel** chan);
+        returncode get_channel(const hazard_ptr& hptr, const po6::net::location& to, channel** chan);
+        returncode get_channel(const hazard_ptr& hptr, po6::net::socket* to, channel** chan);
         // worker functions.
         int work_accept(const hazard_ptr& hptr);
         // work_close must be called without holding chan->mtx.
         void work_close(const hazard_ptr& hptr, channel* chan);
         // work_read must be called without holding chan->mtx.
-        bool work_read(const hazard_ptr& hptr, channel* chan, po6::net::location* from, e::buffer* msg, result_t* res);
+        bool work_read(const hazard_ptr& hptr, channel* chan, po6::net::location* from, e::buffer* msg, returncode* res);
         // work_write must be called while holding chan->mtx.
         bool work_write(channel* chan);
 
