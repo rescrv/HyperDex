@@ -39,12 +39,12 @@ namespace replication
 class pending
 {
     public:
-        pending(op_t op,
+        pending(bool has_value,
                 const std::vector<e::buffer>& value,
                 const clientop& co = clientop());
 
     public:
-        const op_t op;
+        const bool has_value;
         const std::vector<e::buffer> value;
         clientop co;
         bool fresh;
@@ -62,10 +62,10 @@ class pending
 };
 
 inline
-pending :: pending(op_t o,
+pending :: pending(bool hv,
                    const std::vector<e::buffer>& val,
                    const clientop& c)
-    : op(o)
+    : has_value(hv)
     , value(val)
     , co(c)
     , fresh(false)

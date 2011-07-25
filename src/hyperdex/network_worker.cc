@@ -200,7 +200,7 @@ hyperdex :: network_worker :: run()
                 std::vector<e::buffer> value;
                 msg.unpack() >> xfer_num >> op >> version >> key >> value;
                 m_repl->region_transfer(from, to.subspace, xfer_num,
-                                        (op == 1 ? PUT : DEL), version, key, value);
+                                        op == 1, version, key, value);
             }
             else
             {

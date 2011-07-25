@@ -48,7 +48,6 @@
 #include <hyperdex/datalayer.h>
 #include <hyperdex/instance.h>
 #include <hyperdex/logical.h>
-#include <hyperdex/op_t.h>
 #include <hyperdex/result_t.h>
 
 // Replication
@@ -98,8 +97,8 @@ class replication_manager
         // transferring host.
         void region_transfer(const entityid& from, const entityid& to);
         void region_transfer(const entityid& from, uint16_t xfer_id,
-                             uint64_t xfer_num, op_t op, uint64_t version,
-                             const e::buffer& key,
+                             uint64_t xfer_num, bool has_value,
+                             uint64_t version, const e::buffer& key,
                              const std::vector<e::buffer>& value);
         void region_transfer_done(const entityid& from, const entityid& to);
 
@@ -110,10 +109,10 @@ class replication_manager
         replication_manager& operator = (const replication_manager&);
 
     private:
-        void client_common(op_t op, const entityid& from, const entityid& to,
+        void client_common(bool has_value, const entityid& from, const entityid& to,
                            uint32_t nonce, const e::buffer& key,
                            const std::vector<e::buffer>& newvalue);
-        void chain_common(op_t op, const entityid& from, const entityid& to,
+        void chain_common(bool has_value, const entityid& from, const entityid& to,
                           uint64_t newversion, bool fresh, const e::buffer& key,
                           const std::vector<e::buffer>& newvalue);
         size_t get_lock_num(const replication::keypair& kp);

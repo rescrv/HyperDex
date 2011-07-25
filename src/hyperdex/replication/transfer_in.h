@@ -39,10 +39,10 @@ class transfer_in
         class op
         {
             public:
-                op(op_t o, uint64_t ver, const e::buffer& k,
+                op(bool has_value, uint64_t ver, const e::buffer& k,
                    const std::vector<e::buffer>& val);
 
-                op_t operation;
+                bool has_value;
                 uint64_t version;
                 const e::buffer key;
                 const std::vector<e::buffer> value;
@@ -96,11 +96,11 @@ transfer_in :: transfer_in(uint16_t xfer_id,
 }
 
 inline
-transfer_in :: op :: op(op_t o,
+transfer_in :: op :: op(bool hv,
                         uint64_t ver,
                         const e::buffer& k,
                         const std::vector<e::buffer>& val)
-    : operation(o)
+    : has_value(hv)
     , version(ver)
     , key(k)
     , value(val)

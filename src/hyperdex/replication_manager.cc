@@ -228,7 +228,7 @@ hyperdex :: replication_manager :: client_put(const entityid& from,
                                               const e::buffer& key,
                                               const std::vector<e::buffer>& newvalue)
 {
-    client_common(PUT, from, to, nonce, key, newvalue);
+    client_common(true, from, to, nonce, key, newvalue);
 }
 
 void
@@ -237,7 +237,7 @@ hyperdex :: replication_manager :: client_del(const entityid& from,
                                               uint32_t nonce,
                                               const e::buffer& key)
 {
-    client_common(DEL, from, to, nonce, key, std::vector<e::buffer>());
+    client_common(false, from, to, nonce, key, std::vector<e::buffer>());
 }
 
 void
@@ -248,7 +248,7 @@ hyperdex :: replication_manager :: chain_put(const entityid& from,
                                              const e::buffer& key,
                                              const std::vector<e::buffer>& newvalue)
 {
-    chain_common(PUT, from, to, newversion, fresh, key, newvalue);
+    chain_common(true, from, to, newversion, fresh, key, newvalue);
 }
 
 void
@@ -257,7 +257,7 @@ hyperdex :: replication_manager :: chain_del(const entityid& from,
                                              uint64_t newversion,
                                              const e::buffer& key)
 {
-    chain_common(DEL, from, to, newversion, false, key, std::vector<e::buffer>());
+    chain_common(false, from, to, newversion, false, key, std::vector<e::buffer>());
 }
 
 void
@@ -380,7 +380,7 @@ hyperdex :: replication_manager :: chain_ack(const entityid& from,
 
         kh->pending_updates.erase(kh->pending_updates.begin());
 
-        if (!commit->ondisk && commit->op == PUT)
+        if (!commit->ondisk && commit->has_value)
         {
             switch (m_data->put(to.get_region(), key, commit->value, ver))
             {
@@ -403,7 +403,7 @@ hyperdex :: replication_manager :: chain_ack(const entityid& from,
                     return;
             }
         }
-        else if (!commit->ondisk && commit->op == DEL)
+        else if (!commit->ondisk && !commit->has_value)
         {
             switch (m_data->del(to.get_region(), key))
             {
@@ -490,7 +490,7 @@ void
 hyperdex :: replication_manager :: region_transfer(const entityid& from,
                                                    uint16_t xfer_id,
                                                    uint64_t xfer_num,
-                                                   op_t op,
+                                                   bool has_value,
                                                    uint64_t version,
                                                    const e::buffer& key,
                                                    const std::vector<e::buffer>& value)
@@ -539,7 +539,7 @@ hyperdex :: replication_manager :: region_transfer(const entityid& from,
     }
 
     // Insert the new operation.
-    e::intrusive_ptr<transfer_in::op> o = new transfer_in::op(op, version, key, value);
+    e::intrusive_ptr<transfer_in::op> o = new transfer_in::op(has_value, version, key, value);
     t->ops.insert(std::make_pair(xfer_num, o));
 
     while (!t->ops.empty() && t->ops.begin()->first == t->xferred_so_far + 1)
@@ -558,7 +558,7 @@ hyperdex :: replication_manager :: region_transfer(const entityid& from,
         {
             result_t res;
 
-            if (one.operation == PUT)
+            if (one.has_value)
             {
                 switch (m_data->put(t->replicate_from.get_region(), one.key, one.value, one.version))
                 {
@@ -669,7 +669,7 @@ hyperdex :: replication_manager :: region_transfer_done(const entityid& from, co
 // pending/blocked/deferred are empty then drop it).
 
 void
-hyperdex :: replication_manager :: client_common(op_t op,
+hyperdex :: replication_manager :: client_common(bool has_value,
                                                  const entityid& from,
                                                  const entityid& to,
                                                  uint32_t nonce,
@@ -687,7 +687,7 @@ hyperdex :: replication_manager :: client_common(op_t op,
     // Make sure this message is to the point-leader.
     if (to.subspace != 0 || to.number != 0)
     {
-        respond_to_client(co, op == PUT ? RESP_PUT : RESP_DEL, NET_NOTUS);
+        respond_to_client(co, has_value ? RESP_PUT : RESP_DEL, NET_NOTUS);
         return;
     }
 
@@ -698,7 +698,7 @@ hyperdex :: replication_manager :: client_common(op_t op,
     }
 
     // Automatically respond with "ERROR" whenever we return without g.dismiss()
-    e::guard g = e::makeobjguard(*this, &replication_manager::respond_to_client, co, op == PUT ? RESP_PUT : RESP_DEL, NET_SERVERERROR);
+    e::guard g = e::makeobjguard(*this, &replication_manager::respond_to_client, co, has_value ? RESP_PUT : RESP_DEL, NET_SERVERERROR);
 
     // Grab the lock that protects this keypair.
     keypair kp(to.get_region(), key);
@@ -714,7 +714,7 @@ hyperdex :: replication_manager :: client_common(op_t op,
     }
 
     // Check that a client's put matches the dimensions of the space.
-    if (op == PUT && expected_dimensions(kp.region) != value.size() + 1)
+    if (has_value && expected_dimensions(kp.region) != value.size() + 1)
     {
         respond_to_client(co, RESP_PUT, NET_WRONGARITY);
         g.dismiss();
@@ -743,7 +743,7 @@ hyperdex :: replication_manager :: client_common(op_t op,
             std::map<uint64_t, e::intrusive_ptr<pending> >::reverse_iterator biggest;
             biggest = kh->pending_updates.rbegin();
             oldversion = biggest->first;
-            have_oldvalue = biggest->second->op == PUT;
+            have_oldvalue = biggest->second->has_value;
             oldvalue = biggest->second->value;
         }
 
@@ -755,16 +755,16 @@ hyperdex :: replication_manager :: client_common(op_t op,
         std::map<uint64_t, e::intrusive_ptr<pending> >::reverse_iterator biggest;
         biggest = kh->blocked_updates.rbegin();
         oldversion = biggest->first;
-        have_oldvalue = biggest->second->op == PUT;
+        have_oldvalue = biggest->second->has_value;
         oldvalue = biggest->second->value;
         blocked = true;
     }
 
     e::intrusive_ptr<pending> newpend;
-    newpend = new pending(op, value, co);
+    newpend = new pending(has_value, value, co);
 
     // Figure out the four regions we could send to.
-    if (op == PUT && have_oldvalue)
+    if (has_value && have_oldvalue)
     {
         if (!prev_and_next(kp.region, key, oldvalue, value,
                            &newpend->_prev, &newpend->_next))
@@ -772,7 +772,7 @@ hyperdex :: replication_manager :: client_common(op_t op,
             return;
         }
     }
-    else if (op == PUT && !have_oldvalue)
+    else if (has_value && !have_oldvalue)
     {
         if (!prev_and_next(kp.region, key, value,
                            &newpend->_prev, &newpend->_next))
@@ -786,7 +786,7 @@ hyperdex :: replication_manager :: client_common(op_t op,
         blocked = true;
         newpend->fresh = true;
     }
-    else if (op == DEL && have_oldvalue)
+    else if (!has_value && have_oldvalue)
     {
         if (!prev_and_next(kp.region, key, oldvalue,
                            &newpend->_prev, &newpend->_next))
@@ -794,7 +794,7 @@ hyperdex :: replication_manager :: client_common(op_t op,
             return;
         }
     }
-    else if (op == DEL && !have_oldvalue)
+    else if (!has_value && !have_oldvalue)
     {
         respond_to_client(co, RESP_PUT, NET_SUCCESS);
         return;
@@ -815,7 +815,7 @@ hyperdex :: replication_manager :: client_common(op_t op,
 }
 
 void
-hyperdex :: replication_manager :: chain_common(op_t op,
+hyperdex :: replication_manager :: chain_common(bool has_value,
                                                 const entityid& from,
                                                 const entityid& to,
                                                 uint64_t version,
@@ -844,7 +844,7 @@ hyperdex :: replication_manager :: chain_common(op_t op,
     }
 
     // Check that a chain's put matches the dimensions of the space.
-    if (op == PUT && expected_dimensions(kp.region) != value.size() + 1)
+    if (has_value && expected_dimensions(kp.region) != value.size() + 1)
     {
         return;
     }
@@ -901,7 +901,7 @@ hyperdex :: replication_manager :: chain_common(op_t op,
     // Fresh updates or oldversion is pending
     else if (fresh || (olditer = kh->pending_updates.find(oldversion)) != kh->pending_updates.end())
     {
-        have_oldvalue = olditer->second->op == PUT;
+        have_oldvalue = olditer->second->has_value;
         oldvalue = olditer->second->value;
         // Fallthrough to set pending.
     }
@@ -925,10 +925,10 @@ hyperdex :: replication_manager :: chain_common(op_t op,
 
     // Create a new pending object to set as pending.
     e::intrusive_ptr<pending> newpend;
-    newpend = new pending(op, value);
+    newpend = new pending(has_value, value);
 
     // Figure out the four regions we could send to.
-    if (op == PUT && have_oldvalue)
+    if (has_value && have_oldvalue)
     {
         if (!prev_and_next(kp.region, key, oldvalue, value,
                            &newpend->_prev, &newpend->_next))
@@ -936,7 +936,7 @@ hyperdex :: replication_manager :: chain_common(op_t op,
             return;
         }
     }
-    else if (op == PUT && !have_oldvalue)
+    else if (has_value && !have_oldvalue)
     {
         if (!prev_and_next(kp.region, key, value,
                            &newpend->_prev, &newpend->_next))
@@ -944,7 +944,7 @@ hyperdex :: replication_manager :: chain_common(op_t op,
             return;
         }
     }
-    else if (op == DEL && have_oldvalue)
+    else if (!has_value && have_oldvalue)
     {
         if (!prev_and_next(kp.region, key, oldvalue,
                            &newpend->_prev, &newpend->_next))
@@ -952,7 +952,7 @@ hyperdex :: replication_manager :: chain_common(op_t op,
             return;
         }
     }
-    else if (op == DEL && !have_oldvalue)
+    else if (!has_value && !have_oldvalue)
     {
         LOG(INFO) << "Chain region sees double-delete.";
         return;
@@ -1214,7 +1214,7 @@ hyperdex :: replication_manager :: handle_point_leader_work(const regionid& pend
 {
     send_ack(pending_in, version, key, update);
 
-    if (!update->ondisk && update->op == PUT)
+    if (!update->ondisk && update->has_value)
     {
         switch (m_data->put(pending_in, key, update->value, version))
         {
@@ -1237,7 +1237,7 @@ hyperdex :: replication_manager :: handle_point_leader_work(const regionid& pend
                 return;
         }
     }
-    else if (!update->ondisk && update->op == DEL)
+    else if (!update->ondisk && !update->has_value)
     {
         switch (m_data->del(pending_in, key))
         {
@@ -1272,7 +1272,7 @@ hyperdex :: replication_manager :: handle_point_leader_work(const regionid& pend
     {
         clientop co = update->co;
         update->co = clientop();
-        respond_to_client(co, update->op == PUT ? RESP_PUT : RESP_DEL, NET_SUCCESS);
+        respond_to_client(co, update->has_value ? RESP_PUT : RESP_DEL, NET_SUCCESS);
     }
 }
 
@@ -1292,7 +1292,7 @@ hyperdex :: replication_manager :: send_update(const hyperdex::regionid& pending
 
     network_msgtype type;
 
-    if (update->op == PUT)
+    if (update->has_value)
     {
         pack << update->value;
         type = CHAIN_PUT;
