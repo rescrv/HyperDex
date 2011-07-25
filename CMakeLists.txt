@@ -65,6 +65,7 @@ set (hyperdisk_headers
 
 # The source files for HyperDisk
 set (hyperdisk_srcs
+    src/hyperdisk/disk.cc
     src/hyperdisk/log.cc
     src/hyperdisk/shard.cc
 )
@@ -118,7 +119,6 @@ set(hyperdex_srcs
     src/hyperdex/logical.cc
     src/hyperdex/network_worker.cc
     src/hyperdex/physical.cc
-    src/hyperdex/region.cc
     src/hyperdex/replication_manager.cc
     src/hyperdex/search.cc
     src/hyperdex/searches.cc

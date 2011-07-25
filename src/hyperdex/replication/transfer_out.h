@@ -28,6 +28,9 @@
 #ifndef hyperdex_replication_transfer_out_h_
 #define hyperdex_replication_transfer_out_h_
 
+// HyperDisk
+#include <hyperdisk/disk.h>
+
 namespace hyperdex
 {
 namespace replication
@@ -38,11 +41,11 @@ class transfer_out
     public:
         transfer_out(const entityid& from,
                      uint16_t xfer_id,
-                     e::intrusive_ptr<region::rolling_snapshot> s);
+                     e::intrusive_ptr<hyperdisk::disk::rolling_snapshot> s);
 
     public:
         po6::threads::mutex lock;
-        e::intrusive_ptr<region::rolling_snapshot> snap;
+        e::intrusive_ptr<hyperdisk::disk::rolling_snapshot> snap;
         uint64_t xfer_num;
         const entityid replicate_from;
         const entityid transfer_entity;
@@ -58,7 +61,7 @@ class transfer_out
 inline
 transfer_out :: transfer_out(const entityid& from,
                              uint16_t xfer_id,
-                             e::intrusive_ptr<region::rolling_snapshot> s)
+                             e::intrusive_ptr<hyperdisk::disk::rolling_snapshot> s)
     : lock()
     , snap(s)
     , xfer_num(1)
