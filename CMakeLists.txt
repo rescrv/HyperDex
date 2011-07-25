@@ -127,7 +127,6 @@ add_dependencies(configuration hyperdisk-tests)
 # Setup the headers
 set(hyperdex_headers
     include/hyperdex/instance.h
-    include/hyperdex/result_t.h
     include/hyperdex/search.h
 )
 

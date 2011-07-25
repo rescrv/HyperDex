@@ -96,27 +96,31 @@ hyperdex :: network_worker :: run()
                 std::vector<e::buffer> value;
                 uint64_t version;
                 msg.unpack() >> nonce >> key;
-                result_t result;
+                network_returncode result;
 
                 switch (m_data->get(to.get_region(), key, &value, &version))
                 {
                     case hyperdisk::SUCCESS:
-                        result = SUCCESS;
+                        result = NET_SUCCESS;
                         break;
                     case hyperdisk::NOTFOUND:
-                        result = NOTFOUND;
+                        result = NET_NOTFOUND;
                         break;
                     case hyperdisk::WRONGARITY:
-                        result = INVALID;
+                        result = NET_WRONGARITY;
+                        break;
+                    case hyperdisk::MISSINGDISK:
+                        LOG(ERROR) << "GET caused a MISSINGDISK at the data layer.";
+                        result = NET_SERVERERROR;
                         break;
                     case hyperdisk::HASHFULL:
                     case hyperdisk::DATAFULL:
                     case hyperdisk::SEARCHFULL:
                     case hyperdisk::SYNCFAILED:
                     case hyperdisk::DROPFAILED:
-                    case hyperdisk::MISSINGDISK:
                     default:
-                        result = ERROR;
+                        LOG(ERROR) << "GET returned unacceptable error code.";
+                        result = NET_SERVERERROR;
                         break;
                 }
 

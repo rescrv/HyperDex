@@ -556,21 +556,19 @@ hyperdex :: replication_manager :: region_transfer(const entityid& from,
         if (t->triggers.lower_bound(std::make_pair(one.key, 0)) ==
                 t->triggers.upper_bound(std::make_pair(one.key, std::numeric_limits<uint64_t>::max() - 1)))
         {
-            result_t res;
+            hyperdisk::returncode res;
 
             if (one.has_value)
             {
-                switch (m_data->put(t->replicate_from.get_region(), one.key, one.value, one.version))
+                switch ((res = m_data->put(t->replicate_from.get_region(), one.key, one.value, one.version)))
                 {
                     case hyperdisk::SUCCESS:
-                        res = SUCCESS;
                         break;
                     case hyperdisk::WRONGARITY:
-                        res = INVALID;
+                        LOG(ERROR) << "Transfer caused WRONGARITY.";
                         break;
                     case hyperdisk::MISSINGDISK:
-                        LOG(ERROR) << "m_data returned MISSINGDISK.";
-                        res = ERROR;
+                        LOG(ERROR) << "Transfer returned MISSINGDISK.";
                         break;
                     case hyperdisk::NOTFOUND:
                     case hyperdisk::HASHFULL:
@@ -580,20 +578,17 @@ hyperdex :: replication_manager :: region_transfer(const entityid& from,
                     case hyperdisk::DROPFAILED:
                     default:
                         LOG(ERROR) << "m_data returned unexpected error code.";
-                        res = ERROR;
                         break;
                 }
             }
             else
             {
-                switch (m_data->del(t->replicate_from.get_region(), one.key))
+                switch ((res = m_data->del(t->replicate_from.get_region(), one.key)))
                 {
                     case hyperdisk::SUCCESS:
-                        res = SUCCESS;
                         break;
                     case hyperdisk::MISSINGDISK:
-                        LOG(ERROR) << "m_data returned MISSINGDISK.";
-                        res = ERROR;
+                        LOG(ERROR) << "Transfer returned MISSINGDISK.";
                         break;
                     case hyperdisk::WRONGARITY:
                     case hyperdisk::NOTFOUND:
@@ -604,12 +599,11 @@ hyperdex :: replication_manager :: region_transfer(const entityid& from,
                     case hyperdisk::DROPFAILED:
                     default:
                         LOG(ERROR) << "m_data returned unexpected error code.";
-                        res = ERROR;
                         break;
                 }
             }
 
-            if (res != SUCCESS)
+            if (res != hyperdisk::SUCCESS)
             {
                 // XXX FAIL THIS TRANSFER
                 LOG(ERROR) << "FAIL TRANSFER " << xfer_id;

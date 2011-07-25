@@ -48,7 +48,6 @@
 #include <hyperdex/datalayer.h>
 #include <hyperdex/instance.h>
 #include <hyperdex/logical.h>
-#include <hyperdex/result_t.h>
 
 // Replication
 #include <hyperdex/replication/clientop.h>

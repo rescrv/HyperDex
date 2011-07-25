@@ -41,7 +41,6 @@
 
 // HyperDex
 #include <hyperdex/ids.h>
-#include <hyperdex/result_t.h>
 #include <hyperdex/search.h>
 
 namespace hyperdex
@@ -51,14 +50,17 @@ class client
 {
     public:
         class search_results;
+        enum returncode
+        {
+        };
 
     public:
         client(po6::net::location coordinator);
 
     public:
-        result_t get(const std::string& space, const e::buffer& key, std::vector<e::buffer>* value);
-        result_t put(const std::string& space, const e::buffer& key, const std::vector<e::buffer>& value);
-        result_t del(const std::string& space, const e::buffer& key);
+        returncode get(const std::string& space, const e::buffer& key, std::vector<e::buffer>* value);
+        returncode put(const std::string& space, const e::buffer& key, const std::vector<e::buffer>& value);
+        returncode del(const std::string& space, const e::buffer& key);
         search_results search(const std::string& space, const hyperdex::search& terms);
 
     private:
