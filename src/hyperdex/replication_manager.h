@@ -160,8 +160,7 @@ class replication_manager
         // Send directly.
         void send_ack(const regionid& from, const entityid& to,
                       const e::buffer& key, uint64_t version);
-        void respond_positively_to_client(replication::clientop co, uint64_t version);
-        void respond_negatively_to_client(replication::clientop co, result_t result);
+        void respond_to_client(replication::clientop co, network_msgtype, network_returncode);
         // Periodically do things related to replication.
         void periodic();
         // Retransmit current pending values.

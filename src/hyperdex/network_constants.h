@@ -25,35 +25,51 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_stream_no_h_
-#define hyperdex_stream_no_h_
+#ifndef hyperdex_network_constants_h_
+#define hyperdex_network_constants_h_
 
 namespace hyperdex
 {
-namespace stream_no
-{
 
-enum stream_no_t
+// HyperDisk returncode occupies [8320, 8448)
+enum network_returncode
 {
-    GET     = 0,
-    PUT     = 1,
-    DEL     = 2,
-    SEARCH_START = 3,
-    SEARCH_NEXT  = 4,
-    SEARCH_STOP  = 5,
-    SEARCH_ITEM  = 6,
-    SEARCH_DONE  = 7,
-    RESULT       = 8,
-    PUT_PENDING = 32,
-    DEL_PENDING = 33,
-    PENDING     = 34,
-    ACK         = 35,
-    XFER_MORE   = 48,
-    XFER_DATA   = 49,
-    XFER_DONE   = 50
+    NET_SUCCESS     = 8320,
+    NET_NOTFOUND    = 8321,
+    NET_WRONGARITY  = 8322,
+    NET_NOTUS       = 8323,
+    NET_SERVERERROR = 8324
 };
 
-} // namespace stream_no
+enum network_msgtype
+{
+    REQ_GET         = 8,
+    RESP_GET        = 9,
+
+    REQ_PUT         = 10,
+    RESP_PUT        = 11,
+
+    REQ_DEL         = 12,
+    RESP_DEL        = 13,
+
+    REQ_SEARCH_START    = 32,
+    REQ_SEARCH_NEXT     = 33,
+    REQ_SEARCH_STOP     = 34,
+    RESP_SEARCH_ITEM    = 35,
+    RESP_SEARCH_DONE    = 36,
+
+    CHAIN_PUT       = 64,
+    CHAIN_DEL       = 65,
+    CHAIN_PENDING   = 66,
+    CHAIN_ACK       = 67,
+
+    XFER_MORE       = 96,
+    XFER_DATA       = 97,
+    XFER_DONE       = 98,
+
+    PACKET_NOP      = 255
+};
+
 } // namespace hyperdex
 
-#endif // hyperdex_stream_no_h_
+#endif // hyperdex_network_constants_h_

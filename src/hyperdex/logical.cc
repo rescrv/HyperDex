@@ -85,7 +85,7 @@ hyperdex :: logical :: cleanup(const configuration&)
 
 bool
 hyperdex :: logical :: send(const hyperdex::entityid& from, const hyperdex::entityid& to,
-                            const uint8_t msg_type,
+                            const network_msgtype msg_type,
                             const e::buffer& msg)
 {
     po6::threads::rwlock::rdhold hold_c(&m_client_lock);
@@ -95,7 +95,7 @@ hyperdex :: logical :: send(const hyperdex::entityid& from, const hyperdex::enti
 bool
 hyperdex :: logical :: send(const hyperdex::regionid& from,
                             const hyperdex::entityid& to,
-                            const uint8_t msg_type, const e::buffer& msg)
+                            const network_msgtype msg_type, const e::buffer& msg)
 {
     entityid realfrom;
 
@@ -109,10 +109,10 @@ hyperdex :: logical :: send(const hyperdex::regionid& from,
 
 bool
 hyperdex :: logical :: send_forward_else_head(const hyperdex::regionid& chain,
-                                              stream_no::stream_no_t msg1_type,
+                                              network_msgtype msg1_type,
                                               const e::buffer& msg1,
                                               const hyperdex::regionid& otherwise,
-                                              stream_no::stream_no_t msg2_type,
+                                              network_msgtype msg2_type,
                                               const e::buffer& msg2)
 {
     entityid from;
@@ -137,10 +137,10 @@ hyperdex :: logical :: send_forward_else_head(const hyperdex::regionid& chain,
 
 bool
 hyperdex :: logical :: send_forward_else_tail(const hyperdex::regionid& chain,
-                                              stream_no::stream_no_t msg1_type,
+                                              network_msgtype msg1_type,
                                               const e::buffer& msg1,
                                               const hyperdex::regionid& otherwise,
-                                              stream_no::stream_no_t msg2_type,
+                                              network_msgtype msg2_type,
                                               const e::buffer& msg2)
 {
     entityid from;
@@ -165,7 +165,7 @@ hyperdex :: logical :: send_forward_else_tail(const hyperdex::regionid& chain,
 
 bool
 hyperdex :: logical :: send_backward(const hyperdex::regionid& chain,
-                                     stream_no::stream_no_t msg_type,
+                                     network_msgtype msg_type,
                                      const e::buffer& msg)
 {
     entityid from;
@@ -188,10 +188,10 @@ hyperdex :: logical :: send_backward(const hyperdex::regionid& chain,
 
 bool
 hyperdex :: logical :: send_backward_else_tail(const hyperdex::regionid& chain,
-                                               stream_no::stream_no_t msg1_type,
+                                               network_msgtype msg1_type,
                                                const e::buffer& msg1,
                                                const hyperdex::regionid& otherwise,
-                                               stream_no::stream_no_t msg2_type,
+                                               network_msgtype msg2_type,
                                                const e::buffer& msg2)
 {
     entityid from;
@@ -215,7 +215,7 @@ hyperdex :: logical :: send_backward_else_tail(const hyperdex::regionid& chain,
 
 bool
 hyperdex :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
-                            uint8_t* msg_type,
+                            network_msgtype* msg_type,
                             e::buffer* msg)
 {
     po6::net::location loc;
@@ -269,7 +269,9 @@ hyperdex :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
 
         // This should not throw thanks to the size check above.
         msg->clear();
-        packed.unpack() >> *msg_type >> fromver >> tover >> *from >> *to >> *msg;
+        uint8_t mt;
+        packed.unpack() >> mt >> fromver >> tover >> *from >> *to >> *msg;
+        *msg_type = static_cast<network_msgtype>(mt);
 
         // If the message is from someone claiming to be a client.
         if (from->space == UINT32_MAX)
@@ -367,7 +369,7 @@ hyperdex :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
 bool
 hyperdex :: logical :: send_you_hold_lock(const hyperdex::entityid& from,
                                           const hyperdex::entityid& to,
-                                          const uint8_t msg_type,
+                                          const network_msgtype msg_type,
                                           const e::buffer& msg)
 {
     uint16_t fromver = 0;
@@ -415,8 +417,9 @@ hyperdex :: logical :: send_you_hold_lock(const hyperdex::entityid& from,
         dst = t->second.inbound;
     }
 
+    uint8_t mt = static_cast<uint8_t>(msg_type);
     e::buffer finalmsg(msg.size() + 32);
-    finalmsg.pack() << msg_type
+    finalmsg.pack() << mt
                     << fromver
                     << tover
                     << from

@@ -39,8 +39,8 @@
 // HyperDex
 #include <hyperdex/buffer.h>
 #include <hyperdex/limits.h>
+#include <hyperdex/network_constants.h>
 #include <hyperdex/network_worker.h>
-#include <hyperdex/stream_no.h>
 
 hyperdex :: network_worker :: network_worker(datalayer* data,
                                              logical* comm,
@@ -82,18 +82,15 @@ hyperdex :: network_worker :: run()
 
     hyperdex::entityid from;
     hyperdex::entityid to;
-    uint8_t msg_type;
+    network_msgtype type;
     e::buffer msg;
+    uint32_t nonce;
 
-    while (m_continue && m_comm->recv(&from, &to, &msg_type, &msg))
+    while (m_continue && m_comm->recv(&from, &to, &type, &msg))
     {
         try
         {
-            hyperdex::stream_no::stream_no_t type;
-            type = static_cast<hyperdex::stream_no::stream_no_t>(msg_type);
-            uint32_t nonce;
-
-            if (type == stream_no::GET)
+            if (type == REQ_GET)
             {
                 e::buffer key;
                 std::vector<e::buffer> value;
@@ -125,38 +122,38 @@ hyperdex :: network_worker :: run()
 
                 msg.clear();
                 msg.pack() << nonce << static_cast<uint8_t>(result) << version << value;
-                m_comm->send(to, from, stream_no::RESULT, msg);
+                m_comm->send(to, from, RESP_GET, msg);
             }
-            else if (type == hyperdex::stream_no::PUT)
+            else if (type == REQ_PUT)
             {
                 e::buffer key;
                 std::vector<e::buffer> value;
                 msg.unpack() >> nonce >> key >> value;
                 m_repl->client_put(from, to.get_region(), nonce, key, value);
             }
-            else if (type == hyperdex::stream_no::DEL)
+            else if (type == REQ_DEL)
             {
                 e::buffer key;
                 msg.unpack() >> nonce >> key;
                 m_repl->client_del(from, to.get_region(), nonce, key);
             }
-            else if (type == hyperdex::stream_no::SEARCH_START)
+            else if (type == REQ_SEARCH_START)
             {
                 search s;
                 msg.unpack() >> nonce >> s;
                 m_ssss->start(from, nonce, to.get_region(), s);
             }
-            else if (type == hyperdex::stream_no::SEARCH_NEXT)
+            else if (type == REQ_SEARCH_NEXT)
             {
                 msg.unpack() >> nonce;
                 m_ssss->next(from, nonce);
             }
-            else if (type == hyperdex::stream_no::SEARCH_STOP)
+            else if (type == REQ_SEARCH_STOP)
             {
                 msg.unpack() >> nonce;
-                m_ssss->next(from, nonce);
+                m_ssss->stop(from, nonce);
             }
-            else if (type == hyperdex::stream_no::PUT_PENDING)
+            else if (type == CHAIN_PUT)
             {
                 e::buffer key;
                 std::vector<e::buffer> value;
@@ -165,36 +162,36 @@ hyperdex :: network_worker :: run()
                 msg.unpack() >> version >> fresh >> key >> value;
                 m_repl->chain_put(from, to, version, fresh == 1, key, value);
             }
-            else if (type == hyperdex::stream_no::DEL_PENDING)
+            else if (type == CHAIN_DEL)
             {
                 e::buffer key;
                 uint64_t version;
                 msg.unpack() >> version >> key;
                 m_repl->chain_del(from, to, version, key);
             }
-            else if (type == hyperdex::stream_no::PENDING)
+            else if (type == CHAIN_PENDING)
             {
                 e::buffer key;
                 uint64_t version;
                 msg.unpack() >> version >> key;
                 m_repl->chain_pending(from, to, version, key);
             }
-            else if (type == hyperdex::stream_no::ACK)
+            else if (type == CHAIN_ACK)
             {
                 e::buffer key;
                 uint64_t version;
                 msg.unpack() >> version >> key;
                 m_repl->chain_ack(from, to, version, key);
             }
-            else if (type == hyperdex::stream_no::XFER_MORE)
+            else if (type == XFER_MORE)
             {
                 m_repl->region_transfer(from, to);
             }
-            else if (type == hyperdex::stream_no::XFER_DONE)
+            else if (type == XFER_DONE)
             {
                 m_repl->region_transfer_done(from, to);
             }
-            else if (type == hyperdex::stream_no::XFER_DATA)
+            else if (type == XFER_DATA)
             {
                 uint64_t xfer_num;
                 uint8_t op;

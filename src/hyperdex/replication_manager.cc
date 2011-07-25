@@ -46,8 +46,8 @@
 // HyperDex
 #include <hyperdex/buffer.h>
 #include <hyperdex/hyperspace.h>
+#include <hyperdex/network_constants.h>
 #include <hyperdex/replication_manager.h>
-#include <hyperdex/stream_no.h>
 
 // XXX Make this configurable.
 #define LOCK_STRIPING 1024
@@ -311,7 +311,7 @@ hyperdex :: replication_manager :: chain_pending(const entityid& from,
     {
         e::buffer info;
         info.pack() << version << key;
-        m_comm->send_backward(to.get_region(), stream_no::PENDING, info);
+        m_comm->send_backward(to.get_region(), CHAIN_PENDING, info);
     }
 }
 
@@ -468,7 +468,7 @@ hyperdex :: replication_manager :: region_transfer(const entityid& from,
         ++t->xfer_num;
         t->snap->next();
 
-        if (!m_comm->send(to, from, stream_no::XFER_DATA, msg))
+        if (!m_comm->send(to, from, XFER_DATA, msg))
         {
             // XXX
             LOG(ERROR) << "FAIL TRANSFER " << from.subspace;
@@ -478,7 +478,7 @@ hyperdex :: replication_manager :: region_transfer(const entityid& from,
     {
         e::buffer msg;
 
-        if (!m_comm->send(to, from, stream_no::XFER_DONE, msg))
+        if (!m_comm->send(to, from, XFER_DONE, msg))
         {
             // XXX
             LOG(ERROR) << "FAIL TRANSFER " << from.subspace;
@@ -624,7 +624,7 @@ hyperdex :: replication_manager :: region_transfer(const entityid& from,
     t->started = true;
     e::buffer msg;
 
-    if (!m_comm->send(t->transfer_entity, t->replicate_from, stream_no::XFER_MORE, msg))
+    if (!m_comm->send(t->transfer_entity, t->replicate_from, XFER_MORE, msg))
     {
         // XXX FAIL
         LOG(ERROR) << "FAIL TRANSFER " << xfer_id;
@@ -687,7 +687,7 @@ hyperdex :: replication_manager :: client_common(op_t op,
     // Make sure this message is to the point-leader.
     if (to.subspace != 0 || to.number != 0)
     {
-        respond_negatively_to_client(co, ERROR);
+        respond_to_client(co, op == PUT ? RESP_PUT : RESP_DEL, NET_NOTUS);
         return;
     }
 
@@ -698,7 +698,7 @@ hyperdex :: replication_manager :: client_common(op_t op,
     }
 
     // Automatically respond with "ERROR" whenever we return without g.dismiss()
-    e::guard g = e::makeobjguard(*this, &replication_manager::respond_negatively_to_client, co, ERROR);
+    e::guard g = e::makeobjguard(*this, &replication_manager::respond_to_client, co, op == PUT ? RESP_PUT : RESP_DEL, NET_SERVERERROR);
 
     // Grab the lock that protects this keypair.
     keypair kp(to.get_region(), key);
@@ -716,8 +716,7 @@ hyperdex :: replication_manager :: client_common(op_t op,
     // Check that a client's put matches the dimensions of the space.
     if (op == PUT && expected_dimensions(kp.region) != value.size() + 1)
     {
-        // Tell the client they sent an invalid message.
-        respond_negatively_to_client(co, INVALID);
+        respond_to_client(co, RESP_PUT, NET_WRONGARITY);
         g.dismiss();
         return;
     }
@@ -797,7 +796,7 @@ hyperdex :: replication_manager :: client_common(op_t op,
     }
     else if (op == DEL && !have_oldvalue)
     {
-        respond_positively_to_client(co, 0);
+        respond_to_client(co, RESP_PUT, NET_SUCCESS);
         return;
     }
 
@@ -1273,7 +1272,7 @@ hyperdex :: replication_manager :: handle_point_leader_work(const regionid& pend
     {
         clientop co = update->co;
         update->co = clientop();
-        respond_positively_to_client(co, version);
+        respond_to_client(co, update->op == PUT ? RESP_PUT : RESP_DEL, NET_SUCCESS);
     }
 }
 
@@ -1291,16 +1290,16 @@ hyperdex :: replication_manager :: send_update(const hyperdex::regionid& pending
     e::packer pack(&msg);
     pack << version << fresh << key;
 
-    stream_no::stream_no_t act;
+    network_msgtype type;
 
     if (update->op == PUT)
     {
         pack << update->value;
-        act = stream_no::PUT_PENDING;
+        type = CHAIN_PUT;
     }
     else
     {
-        act = stream_no::DEL_PENDING;
+        type = CHAIN_DEL;
     }
 
     // If we are at the last subspace in the chain.
@@ -1309,12 +1308,12 @@ hyperdex :: replication_manager :: send_update(const hyperdex::regionid& pending
         // If we there is someone else in the chain, send the PUT or DEL pending
         // message to them.  If not, then send a PENDING message to the tail of
         // the first subspace.
-        m_comm->send_forward_else_tail(pending_in, act, msg, update->_next, stream_no::PENDING, info);
+        m_comm->send_forward_else_tail(pending_in, type, msg, update->_next, CHAIN_PENDING, info);
     }
     // Else we're in the middle of the chain.
     else
     {
-        m_comm->send_forward_else_head(pending_in, act, msg, update->_next, act, msg);
+        m_comm->send_forward_else_head(pending_in, type, msg, update->_next, type, msg);
     }
 }
 
@@ -1326,8 +1325,8 @@ hyperdex :: replication_manager :: send_ack(const regionid& pending_in,
 {
     e::buffer msg;
     msg.pack() << version << key;
-    m_comm->send_backward_else_tail(pending_in, stream_no::ACK, msg,
-                                    update->_prev, stream_no::ACK, msg);
+    m_comm->send_backward_else_tail(pending_in, CHAIN_ACK, msg,
+                                    update->_prev, CHAIN_ACK, msg);
 }
 
 void
@@ -1338,29 +1337,19 @@ hyperdex :: replication_manager :: send_ack(const regionid& from,
 {
     e::buffer msg;
     msg.pack() << version << key;
-    m_comm->send(from, to, stream_no::ACK, msg);
+    m_comm->send(from, to, CHAIN_ACK, msg);
 }
 
 void
-hyperdex :: replication_manager :: respond_positively_to_client(clientop co,
-                                                                uint64_t /*version*/)
+hyperdex :: replication_manager :: respond_to_client(clientop co,
+                                                     network_msgtype type,
+                                                     network_returncode ret)
 {
-    e::buffer msg;
-    uint8_t result = static_cast<uint8_t>(SUCCESS);
+    e::buffer msg(5);
+    uint8_t result = static_cast<uint8_t>(ret);
     msg.pack() << co.nonce << result;
     m_clientops.remove(co);
-    m_comm->send(co.region, co.from, stream_no::RESULT, msg);
-}
-
-void
-hyperdex :: replication_manager :: respond_negatively_to_client(clientop co,
-                                                                result_t r)
-{
-    e::buffer msg;
-    uint8_t result = static_cast<uint8_t>(r);
-    msg.pack() << co.nonce << result;
-    m_clientops.remove(co);
-    m_comm->send(co.region, co.from, stream_no::RESULT, msg);
+    m_comm->send(co.region, co.from, type, msg);
 }
 
 void
@@ -1458,7 +1447,7 @@ hyperdex :: replication_manager :: retransmit()
         {
             e::buffer info;
             info.pack() << version << kp->key;
-            m_comm->send_backward(kp->region, stream_no::PENDING, info);
+            m_comm->send_backward(kp->region, CHAIN_PENDING, info);
         }
     }
 }
@@ -1475,7 +1464,7 @@ hyperdex :: replication_manager :: start_transfers()
 
             for (int i = 0; i < TRANSFERS_IN_FLIGHT; ++i)
             {
-                m_comm->send(t->second->transfer_entity, t->second->replicate_from, stream_no::XFER_MORE, msg);
+                m_comm->send(t->second->transfer_entity, t->second->replicate_from, XFER_MORE, msg);
             }
         }
     }
@@ -1490,7 +1479,7 @@ hyperdex :: replication_manager :: finish_transfers()
         if (t->second->go_live)
         {
             e::buffer msg;
-            m_comm->send(t->second->transfer_entity, t->second->replicate_from, stream_no::XFER_MORE, msg);
+            m_comm->send(t->second->transfer_entity, t->second->replicate_from, XFER_MORE, msg);
         }
     }
 }
