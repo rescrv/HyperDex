@@ -25,6 +25,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#if 0
 #define __STDC_LIMIT_MACROS
 
 // C
@@ -509,3 +510,4 @@ hyperdex :: client :: search_results :: value()
 {
     return p->value;
 }
+#endif
