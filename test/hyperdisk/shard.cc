@@ -35,7 +35,7 @@
 #include <e/guard.h>
 
 // HyperDex
-#include <hyperdex/disk.h>
+#include <hyperdisk/shard.h>
 
 #pragma GCC diagnostic ignored "-Wswitch-default"
 
@@ -44,14 +44,14 @@ namespace
 
 TEST(DiskTest, CtorAndDtor)
 {
-    e::intrusive_ptr<hyperdex::disk> d = hyperdex::disk::create("tmp-disk");
-    e::guard g = e::makeobjguard(*d, &hyperdex::disk::drop);
+    e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create("tmp-disk");
+    e::guard g = e::makeobjguard(*d, &hyperdisk::shard::drop);
 }
 
 TEST(DiskTest, Simple)
 {
-    e::intrusive_ptr<hyperdex::disk> d = hyperdex::disk::create("tmp-disk");
-    e::guard g = e::makeobjguard(*d, &hyperdex::disk::drop);
+    e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create("tmp-disk");
+    e::guard g = e::makeobjguard(*d, &hyperdisk::shard::drop);
     std::vector<e::buffer> value;
     std::vector<uint64_t> value_hashes;
     uint64_t version;
@@ -76,8 +76,8 @@ TEST(DiskTest, Simple)
 
 TEST(DiskTest, MultiPut)
 {
-    e::intrusive_ptr<hyperdex::disk> d = hyperdex::disk::create("tmp-disk");
-    e::guard g = e::makeobjguard(*d, &hyperdex::disk::drop);
+    e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create("tmp-disk");
+    e::guard g = e::makeobjguard(*d, &hyperdisk::shard::drop);
     std::vector<e::buffer> value;
     std::vector<uint64_t> value_hashes;
     uint64_t version;
@@ -113,8 +113,8 @@ TEST(DiskTest, MultiPut)
 
 TEST(DiskTest, DelPutDelPut)
 {
-    e::intrusive_ptr<hyperdex::disk> d = hyperdex::disk::create("tmp-disk");
-    e::guard g = e::makeobjguard(*d, &hyperdex::disk::drop);
+    e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create("tmp-disk");
+    e::guard g = e::makeobjguard(*d, &hyperdisk::shard::drop);
 	e::buffer key("key", 3);
 	uint64_t key_hash = 11062368440904502521UL;
     std::vector<e::buffer> value;
@@ -162,13 +162,13 @@ TEST(DiskTest, DelPutDelPut)
 
 TEST(DiskTest, Snapshot)
 {
-    e::intrusive_ptr<hyperdex::disk> d = hyperdex::disk::create("tmp-disk");
-    e::guard g = e::makeobjguard(*d, &hyperdex::disk::drop);
+    e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create("tmp-disk");
+    e::guard g = e::makeobjguard(*d, &hyperdisk::shard::drop);
     bool valid = true;
 
     // Snapshot empty disk.
-    e::intrusive_ptr<hyperdex::disk::snapshot> s1a = d->make_snapshot();
-    e::intrusive_ptr<hyperdex::disk::snapshot> s1b = d->make_snapshot();
+    e::intrusive_ptr<hyperdisk::shard::snapshot> s1a = d->make_snapshot();
+    e::intrusive_ptr<hyperdisk::shard::snapshot> s1b = d->make_snapshot();
     EXPECT_FALSE(s1a->valid());
 
     // Put one element and snaphot the disk.
@@ -178,8 +178,8 @@ TEST(DiskTest, Snapshot)
     const std::vector<uint64_t> value_hashes;
     const uint64_t version = 0xdeadbeefcafebabe;
     ASSERT_EQ(hyperdex::SUCCESS, d->put(key, key_hash, value, value_hashes, version));
-    e::intrusive_ptr<hyperdex::disk::snapshot> s2a = d->make_snapshot();
-    e::intrusive_ptr<hyperdex::disk::snapshot> s2b = d->make_snapshot();
+    e::intrusive_ptr<hyperdisk::shard::snapshot> s2a = d->make_snapshot();
+    e::intrusive_ptr<hyperdisk::shard::snapshot> s2b = d->make_snapshot();
 
     for (int i = 0; i < 1000000; ++i)
     {
@@ -205,8 +205,8 @@ TEST(DiskTest, Snapshot)
     const std::vector<uint64_t> value2_hashes(1, 17168316521448127654UL);
     const uint64_t version2 = 0xcafebabedeadbeef;
     ASSERT_EQ(hyperdex::SUCCESS, d->put(key, key_hash, value2, value2_hashes, version2));
-    e::intrusive_ptr<hyperdex::disk::snapshot> s3a = d->make_snapshot();
-    e::intrusive_ptr<hyperdex::disk::snapshot> s3b = d->make_snapshot();
+    e::intrusive_ptr<hyperdisk::shard::snapshot> s3a = d->make_snapshot();
+    e::intrusive_ptr<hyperdisk::shard::snapshot> s3b = d->make_snapshot();
     ASSERT_TRUE(s3a->valid());
     EXPECT_EQ(version2, s3a->version());
     EXPECT_TRUE(s3a->key() == key);
@@ -216,8 +216,8 @@ TEST(DiskTest, Snapshot)
 
     // Delete that value.
     EXPECT_EQ(hyperdex::SUCCESS, d->del(key, key_hash));
-    e::intrusive_ptr<hyperdex::disk::snapshot> s4a = d->make_snapshot();
-    e::intrusive_ptr<hyperdex::disk::snapshot> s4b = d->make_snapshot();
+    e::intrusive_ptr<hyperdisk::shard::snapshot> s4a = d->make_snapshot();
+    e::intrusive_ptr<hyperdisk::shard::snapshot> s4b = d->make_snapshot();
     EXPECT_FALSE(s4a->valid());
 
     // Perform back-to-back PUTs.
@@ -233,8 +233,8 @@ TEST(DiskTest, Snapshot)
     const std::vector<uint64_t> b2b_value2_hashes(2, 9047582705417063893L);
     ASSERT_EQ(hyperdex::SUCCESS, d->put(b2b_key1, b2b_key1_hash, b2b_value1, b2b_value1_hashes, b2b_version1));
     ASSERT_EQ(hyperdex::SUCCESS, d->put(b2b_key2, b2b_key2_hash, b2b_value2, b2b_value2_hashes, b2b_version2));
-    e::intrusive_ptr<hyperdex::disk::snapshot> s5a = d->make_snapshot();
-    e::intrusive_ptr<hyperdex::disk::snapshot> s5b = d->make_snapshot();
+    e::intrusive_ptr<hyperdisk::shard::snapshot> s5a = d->make_snapshot();
+    e::intrusive_ptr<hyperdisk::shard::snapshot> s5b = d->make_snapshot();
     ASSERT_TRUE(s5a->valid());
     EXPECT_EQ(b2b_version1, s5a->version());
     EXPECT_TRUE(s5a->key() == b2b_key1);

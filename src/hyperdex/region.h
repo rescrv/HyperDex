@@ -41,8 +41,10 @@
 // e
 #include <e/intrusive_ptr.h>
 
+// HyperDisk
+#include <hyperdisk/shard.h>
+
 // HyperDex
-#include <hyperdex/disk.h>
 #include <hyperdex/ids.h>
 #include <hyperdex/log.h>
 #include <hyperdex/result_t.h>
@@ -61,7 +63,7 @@ namespace hyperdex
 class region
 {
     public:
-        // A snapshot will iterate all disks, frozen at a particular point in
+        // A snapshot will iterate all shards, frozen at a particular point in
         // time.
         class snapshot
         {
@@ -81,18 +83,18 @@ class region
                 friend class region;
 
             private:
-                snapshot(std::vector<e::intrusive_ptr<disk::snapshot> >* ss);
+                snapshot(std::vector<e::intrusive_ptr<hyperdisk::shard::snapshot> >* ss);
                 snapshot(const snapshot&);
 
             private:
                 snapshot& operator = (const snapshot&);
 
             private:
-                std::vector<e::intrusive_ptr<disk::snapshot> > m_snaps;
+                std::vector<e::intrusive_ptr<hyperdisk::shard::snapshot> > m_snaps;
                 size_t m_ref;
         };
 
-        // A rolling snapshot will replay m_log after iterating all disks.
+        // A rolling snapshot will replay m_log after iterating all shard.
         class rolling_snapshot
         {
             public:
@@ -142,10 +144,10 @@ class region
         friend class e::intrusive_ptr<region>;
 
     private:
-        // Create/drop disk requires exclusive access to m_disks (m_rwlock as a
+        // Create/drop shard requires exclusive access to m_shards (m_rwlock as a
         // write lock).
-        e::intrusive_ptr<disk> create_disk(const regionid& ri);
-        void drop_disk(const regionid& ri);
+        e::intrusive_ptr<hyperdisk::shard> create_shard(const regionid& ri);
+        void drop_shard(const regionid& ri);
         void get_value_hashes(const std::vector<e::buffer>& value, std::vector<uint64_t>* value_hashes);
         uint64_t get_point_for(uint64_t key_hash);
         uint64_t get_point_for(uint64_t key_hash, const std::vector<uint64_t>& value_hashes);
@@ -153,8 +155,8 @@ class region
                        uint64_t key_hash, const std::vector<e::buffer>& value,
                        const std::vector<uint64_t>& value_hashes, uint64_t version);
         e::intrusive_ptr<snapshot> inner_make_snapshot();
-        void clean_disk(const regionid& ri);
-        void split_disk(const regionid& ri);
+        void clean_shard(const regionid& ri);
+        void split_shard(const regionid& ri);
 
     private:
         size_t m_ref;
@@ -162,8 +164,8 @@ class region
         uint64_t m_point_mask;
         log m_log;
         po6::threads::rwlock m_rwlock;
-        typedef std::map<regionid, e::intrusive_ptr<disk> > disk_collection;
-        disk_collection m_disks;
+        typedef std::map<regionid, e::intrusive_ptr<hyperdisk::shard> > shard_collection;
+        shard_collection m_shards;
         po6::pathname m_base;
         std::set<regionid> m_needs_more_space;
 };
