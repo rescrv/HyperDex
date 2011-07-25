@@ -36,10 +36,12 @@
 // Google Log
 #include <glog/logging.h>
 
+// Configuration
+#include <configuration/coordinatorlink.h>
+
 // HyperDex
 #include <hyperdex/buffer.h>
 #include <hyperdex/client.h>
-#include <hyperdex/coordinatorlink.h>
 #include <hyperdex/hyperspace.h>
 #include <hyperdex/instance.h>
 #include <hyperdex/physical.h>

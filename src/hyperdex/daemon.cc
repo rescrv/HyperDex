@@ -37,8 +37,10 @@
 // e
 #include <e/timer.h>
 
+// Configuration
+#include <configuration/coordinatorlink.h>
+
 // HyperDex
-#include <hyperdex/coordinatorlink.h>
 #include <hyperdex/daemon.h>
 #include <hyperdex/datalayer.h>
 #include <hyperdex/logical.h>

@@ -35,7 +35,7 @@
 #include <e/timer.h>
 
 // HyperDex
-#include <hyperdex/coordinatorlink.h>
+#include <configuration/coordinatorlink.h>
 
 hyperdex :: coordinatorlink :: coordinatorlink(const po6::net::location& coordinator,
                                                const std::string& announce)

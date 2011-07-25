@@ -95,7 +95,17 @@ target_link_libraries(hyperdisk-tests
     gtest
     pthread
 )
-# XXX No glog/pthread
+
+###############################################################################
+##############################  Configuration  ################################
+###############################################################################
+
+set(configuration_srcs
+    src/configuration/coordinatorlink.cc
+)
+
+add_library(configuration STATIC ${configuration_srcs})
+add_dependencies(configuration hyperdisk-tests)
 
 ###############################################################################
 ##################################  Old  ######################################
@@ -112,7 +122,6 @@ set(hyperdex_headers
 set(hyperdex_srcs
     src/hyperdex/client.cc
     src/hyperdex/configuration.cc
-    src/hyperdex/coordinatorlink.cc
     src/hyperdex/daemon.cc
     src/hyperdex/datalayer.cc
     src/hyperdex/logical.cc
@@ -125,7 +134,7 @@ set(hyperdex_srcs
 
 # Build libhyperdex
 add_library(hyperdex ${hyperdex_srcs})
-add_dependencies(hyperdex hyperdisk)
+add_dependencies(hyperdex configuration)
 set_target_properties(hyperdex
     PROPERTIES
     VERSION         0.1.0
@@ -137,6 +146,7 @@ target_link_libraries(hyperdex
     cityhash
     ${GLOG_LIBRARIES}
     pthread
+    configuration
 )
 
 # Build hyperdexd
@@ -145,6 +155,7 @@ target_link_libraries(hyperdexd
     hyperdex
     cityhash
     hyperdisk
+    configuration
 )
 
 # Build count benchmark
@@ -154,6 +165,7 @@ target_link_libraries(count
     cityhash
     rt
     hyperdisk
+    configuration
 )
 
 # Build cli
@@ -163,6 +175,7 @@ target_link_libraries(hyperdex-cli
     cityhash
     rt
     hyperdisk
+    configuration
 )
 
 # Build binary test
@@ -172,6 +185,7 @@ target_link_libraries(binary
     cityhash
     rt
     hyperdisk
+    configuration
 )
 
 # Tests
