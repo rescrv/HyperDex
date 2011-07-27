@@ -46,6 +46,7 @@ hyperdex :: physical :: physical(const po6::net::ipaddr& ip, bool listen)
     , m_locations()
     , m_hazard_ptrs()
     , m_channels(static_cast<size_t>(m_max_fds), NULL)
+    , m_channels_mask(m_max_fds, 0)
     , m_paused(false)
     , m_not_paused_lock()
     , m_not_paused(&m_not_paused_lock)
@@ -171,13 +172,26 @@ hyperdex :: physical :: recv(po6::net::location* from,
 
     hazard_ptr hptr = m_hazard_ptrs.get();
     std::vector<pollfd> pfds(m_max_fds);
+    __sync_synchronize();
 
     for (int i = 0; i < m_max_fds; ++i)
     {
-        pfds[i].fd = i;
+        if (m_channels_mask[i])
+        {
+            pfds[i].fd = i;
+        }
+        else
+        {
+            pfds[i].fd = -1;
+        }
+
         pfds[i].events = POLLIN|POLLOUT;
         pfds[i].revents = 0;
     }
+
+    pfds[m_listen.get()].fd = m_listen.get();
+    pfds[m_listen.get()].events = POLLIN;
+    pfds[m_listen.get()].revents = 0;
 
     while (true)
     {
@@ -218,6 +232,11 @@ hyperdex :: physical :: recv(po6::net::location* from,
 
         for (int i = 0; i < m_max_fds; ++i)
         {
+            if (pfds[i].fd == -1)
+            {
+                continue;
+            }
+
             channel* chan;
 
             while (true)
@@ -358,6 +377,7 @@ hyperdex :: physical :: get_channel(const hazard_ptr& hptr, po6::net::socket* so
     if (m_locations.insert(chan->loc, chan->soc.get()))
     {
         assert(m_channels[chan->soc.get()] == NULL);
+        __sync_or_and_fetch(&m_channels_mask[chan->soc.get()], 1);
         m_channels[chan->soc.get()] = chan.get();
         chan.release();
         return SUCCESS;
@@ -404,6 +424,7 @@ hyperdex :: physical :: work_close(const hazard_ptr& hptr, channel* chan)
                 return;
             }
 
+            m_channels_mask[chan->soc.get()] = 0;
             m_channels[fd] = NULL;
             m_locations.remove(chan->loc);
             chan->soc.close();

@@ -148,6 +148,7 @@ class physical
         e::lockfree_hash_map<po6::net::location, int, po6::net::location::hash> m_locations;
         e::hazard_ptrs<channel, 1> m_hazard_ptrs;
         std::vector<channel*> m_channels;
+        std::vector<int> m_channels_mask;
         bool m_paused;
         po6::threads::mutex m_not_paused_lock;
         po6::threads::cond m_not_paused;
