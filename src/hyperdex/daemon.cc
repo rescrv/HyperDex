@@ -163,7 +163,7 @@ hyperdex :: daemon(po6::pathname datadir,
             cl.acknowledge();
         }
 
-        switch (cl.loop(100, -1))
+        switch (cl.loop(1, -1))
         {
             case coordinatorlink::SHUTDOWN:
                 s_continue = false;
