@@ -31,6 +31,9 @@
 // po6
 #include <po6/net/location.h>
 
+// e
+#include <e/tuple_compare.h>
+
 namespace hyperdex
 {
 
@@ -53,13 +56,18 @@ struct instance
     {
     }
 
+    bool operator < (const instance& rhs) const
+    {
+        const instance& lhs(*this);
+        return e::tuple_compare(lhs.inbound, lhs.inbound_version,
+                                rhs.inbound, rhs.inbound_version) < 0;
+    }
+
     bool operator == (const instance& rhs) const
     {
         const instance& lhs(*this);
-        return lhs.inbound == rhs.inbound &&
-               lhs.inbound_version == rhs.inbound_version &&
-               lhs.outbound == rhs.outbound &&
-               lhs.outbound_version == rhs.outbound_version;
+        return e::tuple_compare(lhs.inbound, lhs.inbound_version,
+                                rhs.inbound, rhs.inbound_version) == 0;
     }
 
     bool operator != (const instance& rhs) const
