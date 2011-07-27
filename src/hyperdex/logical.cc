@@ -270,7 +270,9 @@ hyperdex :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
         // This should not throw thanks to the size check above.
         msg->clear();
         uint8_t mt;
-        packed.unpack() >> mt >> fromver >> tover >> *from >> *to >> *msg;
+        e::unpacker up(packed.unpack());
+        up >> mt >> fromver >> tover >> *from >> *to;
+        up.leftovers(msg);
         *msg_type = static_cast<network_msgtype>(mt);
 
         // If the message is from someone claiming to be a client.
@@ -423,8 +425,8 @@ hyperdex :: logical :: send_you_hold_lock(const hyperdex::entityid& from,
                     << fromver
                     << tover
                     << from
-                    << to
-                    << msg;
+                    << to;
+    finalmsg += msg;
 
     if (dst == m_us.inbound)
     {

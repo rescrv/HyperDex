@@ -25,102 +25,603 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#if 0
 #define __STDC_LIMIT_MACROS
 
-// C
-#include <stdint.h>
+// STL
+#include <map>
 
 // Google CityHash
 #include <city/city.h>
 
-// Google Log
-#include <glog/logging.h>
+// e
+#include <e/intrusive_ptr.h>
 
-// Configuration
+// Coordination
 #include <configuration/coordinatorlink.h>
 
 // HyperDex
-#include <hyperdex/buffer.h>
-#include <hyperdex/client.h>
 #include <hyperdex/hyperspace.h>
-#include <hyperdex/instance.h>
+#include <hyperdex/ids.h>
+#include <hyperdex/network_constants.h>
 #include <hyperdex/physical.h>
-#include <hyperdex/stream_no.h>
+#include <hyperdex/search.h>
 
-// XXX TODO  This code does not receive more updates from the coordinator, and
-// so it will not survive across crashes.  That is OK, because it didn't survive
-// crashes before using the new coordinator.
+// HyperClient
+#include <hyperdex/client.h>
 
-struct hyperdex :: client :: priv
+class hyperdex :: client :: priv
 {
-    priv(po6::net::location coordinator)
-        : phys(po6::net::ipaddr::ANY(), false)
-        , cl(coordinator, "client\n")
-        , config()
-        , nonce(1)
+    public:
+        class channel;
+
+    public:
+        priv(const po6::net::location& coordinator);
+        ~priv() throw ();
+
+    public:
+        bool find_entity(const regionid& r, entityid* ent, instance* inst);
+        hyperdex::status send(e::intrusive_ptr<channel> chan,
+                              const instance& inst,
+                              const entityid& ent,
+                              network_msgtype type,
+                              uint32_t nonce,
+                              const e::buffer& msg);
+        hyperdex::status recv(e::intrusive_ptr<channel> chan,
+                              const instance& inst,
+                              const entityid& ent,
+                              network_msgtype resp_type,
+                              uint32_t expected_nonce,
+                              network_returncode* resp_stat,
+                              e::buffer* resp_msg);
+        hyperdex::status reqrep(const std::string& space,
+                                const e::buffer& key,
+                                network_msgtype req_type,
+                                network_msgtype resp_type,
+                                const e::buffer& msg,
+                                network_returncode* resp_status,
+                                e::buffer* resp_msg);
+
+    public:
+        coordinatorlink cl;
+        configuration config;
+        std::map<instance, e::intrusive_ptr<channel> > channels;
+};
+
+class hyperdex :: client :: priv :: channel
+{
+    public:
+        channel(const instance& inst);
+
+    public:
+        po6::net::socket soc;
+        uint64_t nonce;
+        entityid id;
+
+    private:
+        friend class e::intrusive_ptr<channel>;
+
+    private:
+        size_t m_ref;
+};
+
+class hyperdex::client::search_results::priv
+{
+    public:
+        priv();
+        priv(client::priv* c, const std::map<entityid, instance>& hosts, const hyperdex::search& s);
+        ~priv() throw ();
+
+    public:
+        client::priv* c;
+        std::map<entityid, instance> hosts;
+        bool valid;
+        e::buffer key;
+        std::vector<e::buffer> value;
+
+    private:
+        priv(const priv&);
+
+    private:
+        priv& operator = (const priv&);
+};
+
+hyperdex :: client :: client(po6::net::location coordinator)
+    : p(new priv(coordinator))
+{
+}
+
+hyperdex::status
+hyperdex :: client :: connect()
+{
+    switch (p->cl.connect())
     {
+        case coordinatorlink::SUCCESS:
+            break;
+        case coordinatorlink::CONNECTFAIL:
+            return COORDFAIL;
+        case coordinatorlink::DISCONNECT:
+        case coordinatorlink::SHUTDOWN:
+        case coordinatorlink::LOGICERROR:
+        default:
+            return LOGICERROR;
     }
 
-    bool find_entity(const regionid& r, entityid* ent, instance* inst)
+    while (true)
     {
-        bool found = false;
-
-        for (std::map<entityid, instance>::const_iterator e = config.entity_mapping().begin();
-                e != config.entity_mapping().end(); ++e)
+        switch (p->cl.loop(1, -1))
         {
-            if (overlap(e->first, r))
-            {
-                found = true;
-                *ent = e->first;
-                *inst = e->second;
+            case coordinatorlink::SUCCESS:
                 break;
+            case coordinatorlink::CONNECTFAIL:
+                return COORDFAIL;
+            case coordinatorlink::DISCONNECT:
+                return COORDFAIL;
+            case coordinatorlink::SHUTDOWN:
+            case coordinatorlink::LOGICERROR:
+            default:
+                return LOGICERROR;
+        }
+
+        if (p->cl.unacknowledged())
+        {
+            p->config = p->cl.config();
+            p->cl.acknowledge();
+            break;
+        }
+    }
+
+    return SUCCESS;
+}
+
+hyperdex::status
+hyperdex :: client :: get(const std::string& space,
+                          const e::buffer& key,
+                          std::vector<e::buffer>* value)
+{
+    network_returncode resp_status;
+    e::buffer resp_msg;
+    hyperdex::status stat = p->reqrep(space, key, REQ_GET, RESP_GET, key, &resp_status, &resp_msg);
+
+    if (stat == SUCCESS)
+    {
+        switch (resp_status)
+        {
+            case NET_SUCCESS:
+                resp_msg.unpack() >> *value;
+                return SUCCESS;
+            case NET_NOTFOUND:
+                return NOTFOUND;
+            case NET_WRONGARITY:
+                return WRONGARITY;
+            case NET_NOTUS:
+                return LOGICERROR;
+            case NET_SERVERERROR:
+                return SERVERERROR;
+            default:
+                return SERVERERROR;
+        }
+    }
+
+    return stat;
+}
+
+hyperdex::status
+hyperdex :: client :: put(const std::string& space,
+                          const e::buffer& key,
+                          const std::vector<e::buffer>& value)
+{
+    e::buffer msg;
+    msg.pack() << key << value;
+    network_returncode resp_status;
+    e::buffer resp_msg;
+    hyperdex::status stat = p->reqrep(space, key, REQ_PUT, RESP_PUT, msg, &resp_status, &resp_msg);
+
+    if (stat == SUCCESS)
+    {
+        switch (resp_status)
+        {
+            case NET_SUCCESS:
+                return SUCCESS;
+            case NET_NOTFOUND:
+                return NOTFOUND;
+            case NET_WRONGARITY:
+                return WRONGARITY;
+            case NET_NOTUS:
+                return LOGICERROR;
+            case NET_SERVERERROR:
+                return SERVERERROR;
+            default:
+                return SERVERERROR;
+        }
+    }
+
+    return stat;
+}
+
+hyperdex::status
+hyperdex :: client :: del(const std::string& space,
+                          const e::buffer& key)
+{
+    network_returncode resp_status;
+    e::buffer resp_msg;
+    hyperdex::status stat = p->reqrep(space, key, REQ_DEL, RESP_DEL, key, &resp_status, &resp_msg);
+
+    if (stat == SUCCESS)
+    {
+        switch (resp_status)
+        {
+            case NET_SUCCESS:
+                return SUCCESS;
+            case NET_NOTFOUND:
+                return NOTFOUND;
+            case NET_WRONGARITY:
+                return WRONGARITY;
+            case NET_NOTUS:
+                return LOGICERROR;
+            case NET_SERVERERROR:
+                return SERVERERROR;
+            default:
+                return SERVERERROR;
+        }
+    }
+
+    return stat;
+}
+
+#if 0
+hyperdex::status
+hyperdex :: client :: search(const std::string& space,
+                             const std::map<std::string, e::buffer>& params,
+                             search_results* sr)
+{
+    std::map<std::string, spaceid>::const_iterator sai;
+
+    // Map the string description to a number.
+    if ((sai = p->config.space_assignment().find(space)) == p->config.space_assignment().end())
+    {
+        return NOTASPACE;
+    }
+
+    // XXX Map params into a hyperdex::search.
+    hyperdex::search terms;
+
+    // Create the most restrictive region possible for this point.
+    uint32_t spacenum = sai->second.space;
+    std::map<regionid, size_t> regions = p->config.regions();
+    std::map<uint16_t, std::map<entityid, instance> > candidates;
+
+    for (std::map<regionid, size_t>::iterator r = regions.begin();
+            r != regions.end(); ++r)
+    {
+        if (r->first.space == spacenum) // XXX We don't do the HD trick here.  We're contacting every host.
+        {
+            entityid ent = p->config.headof(r->first);
+            instance inst = p->config.lookup(ent);
+            candidates[r->first.subspace][ent] = inst;
+        }
+    }
+
+    bool set = false;
+    std::map<entityid, instance> hosts;
+
+    for (std::map<uint16_t, std::map<entityid, instance> >::iterator c = candidates.begin();
+            c != candidates.end(); ++c)
+    {
+        if (c->second.size() < hosts.size() || !set)
+        {
+            hosts.swap(c->second);
+            set = true;
+        }
+    }
+
+    sr->p.reset(new search_results::priv(p.get(), hosts, terms));
+    return sr->next();
+}
+#endif
+
+hyperdex :: client :: priv :: priv(const po6::net::location& coordinator)
+    : cl(coordinator, "client")
+    , config()
+    , channels()
+{
+}
+
+hyperdex :: client :: priv :: ~priv() throw ()
+{
+}
+
+bool
+hyperdex :: client :: priv :: find_entity(const regionid& r,
+                                          entityid* ent,
+                                          instance* inst)
+{
+    bool found = false;
+
+    for (std::map<entityid, instance>::const_iterator e = config.entity_mapping().begin();
+            e != config.entity_mapping().end(); ++e)
+    {
+        if (overlap(e->first, r))
+        {
+            found = true;
+            *ent = e->first;
+            *inst = e->second;
+            break;
+        }
+    }
+
+    return found;
+}
+
+hyperdex::status
+hyperdex :: client :: priv ::  send(e::intrusive_ptr<channel> chan,
+                                    const instance& inst,
+                                    const entityid& ent,
+                                    network_msgtype type,
+                                    uint32_t nonce,
+                                    const e::buffer& msg)
+{
+    const uint8_t msg_type = static_cast<uint8_t>(type);
+    const uint16_t fromver = 0;
+    const uint16_t tover = inst.inbound_version;
+    const entityid& from(chan->id);
+    const entityid& to(ent);
+    const uint32_t size = sizeof(uint32_t) + sizeof(msg_type) + sizeof(fromver)
+                        + sizeof(tover) + entityid::SERIALIZEDSIZE * 2
+                        + msg.size();
+    e::buffer packed(size);
+    packed.pack() << size << msg_type << fromver << tover << from << to
+                  << nonce;
+    packed += msg;
+
+    try
+    {
+        chan->soc.xsend(packed.get(), packed.size(), MSG_NOSIGNAL);
+    }
+    catch (po6::error& e)
+    {
+        channels.erase(inst);
+        return DISCONNECT;
+    }
+
+    return SUCCESS;
+}
+
+hyperdex::status
+hyperdex :: client :: priv :: recv(e::intrusive_ptr<channel> chan,
+                                   const instance& inst,
+                                   const entityid& ent,
+                                   network_msgtype resp_type,
+                                   uint32_t expected_nonce,
+                                   network_returncode* resp_stat,
+                                   e::buffer* resp_msg)
+{
+    e::buffer partial(4);
+
+    while (true)
+    {
+        if (!cl.connected())
+        {
+            switch (cl.connect())
+            {
+                case coordinatorlink::SUCCESS:
+                    break;
+                case coordinatorlink::CONNECTFAIL:
+                case coordinatorlink::DISCONNECT:
+                    return COORDFAIL;
+                case coordinatorlink::SHUTDOWN:
+                case coordinatorlink::LOGICERROR:
+                default:
+                    return LOGICERROR;
             }
         }
 
-        return found;
-    }
+        pollfd pfds[2];
+        memmove(pfds, &cl.pfd(), sizeof(pollfd));
+        pfds[0].revents = 0;
+        pfds[1].fd = chan->soc.get();
+        pfds[1].events = POLLIN;
+        pfds[1].revents = 0;
 
-    bool send(const entityid& ent, const instance& inst, stream_no::stream_no_t act, const e::buffer& msg)
-    {
-        const uint8_t msg_type = act;
-        const uint16_t fromver = 0;
-        const uint16_t tover = inst.inbound_version;
-        const entityid from(UINT32_MAX, 0, 0, 0, 0);
-        const entityid& to(ent);
-        e::buffer packed;
-
-        packed.pack() << msg_type << fromver << tover << from << to << msg;
-
-        switch (phys.send(inst.inbound, &packed))
+        if (poll(pfds + 0, 2, -1) < 0)
         {
-            case physical::SUCCESS:
-            case physical::QUEUED:
-                return true;
-            case physical::CONNECTFAIL:
-            case physical::DISCONNECT:
-                return false;
-            case physical::SHUTDOWN:
-            case physical::LOGICERROR:
-            default:
-                assert(0);
+            return LOGICERROR;
         }
 
-        return true;
+        if (pfds[0].revents != 0)
+        {
+            switch (cl.loop(1, 0))
+            {
+                case coordinatorlink::SUCCESS:
+                    break;
+                case coordinatorlink::CONNECTFAIL:
+                case coordinatorlink::DISCONNECT:
+                    return COORDFAIL;
+                case coordinatorlink::SHUTDOWN:
+                case coordinatorlink::LOGICERROR:
+                default:
+                    return LOGICERROR;
+            }
+
+            if (cl.unacknowledged())
+            {
+                config = cl.config();
+                cl.acknowledge();
+
+                if (cl.config().lookup(ent) != inst)
+                {
+                    if (!partial.empty())
+                    {
+                        channels.erase(inst);
+                    }
+
+                    return RECONFIGURE;
+                }
+
+                continue;
+            }
+        }
+
+        if ((pfds[1].revents & POLLIN))
+        {
+            try
+            {
+                if (read(&chan->soc, &partial, 1024) <= 0)
+                {
+                    channels.erase(inst);
+                    return DISCONNECT;
+                }
+            }
+            catch (po6::error& e)
+            {
+                channels.erase(inst);
+                return DISCONNECT;
+            }
+
+            if (partial.size() >= 4)
+            {
+                uint32_t size;
+                partial.unpack() >> size;
+
+                if (partial.size() > size + sizeof(uint32_t))
+                {
+                    channels.erase(inst);
+                    return SERVERERROR;
+                }
+                else if (partial.size() < size + sizeof(uint32_t))
+                {
+                    continue;
+                }
+            }
+
+            uint32_t nop;
+            uint8_t msg_type;
+            uint16_t fromver;
+            uint16_t tover;
+            entityid from;
+            entityid to;
+            uint32_t nonce;
+            uint16_t response;
+            e::unpacker up(partial.unpack());
+            up >> nop >> msg_type >> fromver >> tover >> from >> to
+               >> nonce >> response;
+            network_msgtype type = static_cast<network_msgtype>(msg_type);
+            up.leftovers(resp_msg);
+            *resp_stat = static_cast<network_returncode>(response);
+
+            if (type == resp_type &&
+                fromver == inst.inbound_version &&
+                tover == 0 &&
+                from == ent &&
+                (to == chan->id || chan->id == entityid(UINT32_MAX)) &&
+                nonce == expected_nonce)
+            {
+                return SUCCESS;
+            }
+
+            return SERVERERROR;
+        }
+    }
+}
+
+hyperdex::status
+hyperdex :: client :: priv :: reqrep(const std::string& space,
+                                     const e::buffer& key,
+                                     network_msgtype req_type,
+                                     network_msgtype resp_type,
+                                     const e::buffer& msg,
+                                     network_returncode* resp_status,
+                                     e::buffer* resp_msg)
+{
+    std::map<std::string, spaceid>::const_iterator sai;
+
+    // Map the string description to a number.
+    if ((sai = config.space_assignment().find(space)) == config.space_assignment().end())
+    {
+        return NOTASPACE;
     }
 
-    bool recv(entityid* ent, stream_no::stream_no_t* act, e::buffer* msg)
+    // Create the most restrictive region possible for this point.
+    uint32_t spacenum = sai->second.space;
+    uint64_t hash = CityHash64(static_cast<const char*>(key.get()), key.size());
+    regionid r(spacenum, /*subspace*/ 0, /*prefix*/ 64, /*mask*/ hash);
+
+    // Figure out who to talk with.
+    entityid dst_ent;
+    instance dst_inst;
+
+    if (!find_entity(r, &dst_ent, &dst_inst))
+    {
+        return CONNECTFAIL;
+    }
+
+    e::intrusive_ptr<channel> chan = channels[dst_inst];
+
+    if (!chan)
+    {
+        try
+        {
+            channels[dst_inst] = chan = new channel(dst_inst);
+        }
+        catch (po6::error& e)
+        {
+            return CONNECTFAIL;
+        }
+    }
+
+    uint32_t nonce = chan->nonce;
+    ++chan->nonce;
+    status stat = send(chan, dst_inst, dst_ent, req_type, nonce, msg);
+
+    if (stat != SUCCESS)
+    {
+        return stat;
+    }
+
+    return recv(chan, dst_inst, dst_ent, resp_type, nonce, resp_status, resp_msg);
+}
+
+hyperdex :: client :: priv :: channel :: channel(const instance& inst)
+    : soc(inst.inbound.address.family(), SOCK_STREAM, IPPROTO_TCP)
+    , nonce(0)
+    , id(UINT32_MAX)
+    , m_ref(0)
+{
+    soc.connect(inst.inbound);
+}
+
+#if 0
+hyperdex :: client :: search_results :: search_results()
+    : p(new priv())
+{
+}
+
+hyperdex :: client :: search_results :: ~search_results()
+                                        throw ()
+{
+}
+
+bool
+hyperdex :: client :: search_results :: valid()
+{
+    return p->valid;
+}
+
+hyperdex::status
+hyperdex :: client :: search_results :: next()
+{
+    while (p->valid && !p->hosts.empty())
     {
         po6::net::location loc;
         e::buffer packed;
 
-        switch(phys.recv(&loc, &packed))
+        switch (p->c->phys.recv(&loc, &packed))
         {
             case physical::SUCCESS:
                 break;
             case physical::CONNECTFAIL:
+                return CONNECTFAIL;
             case physical::DISCONNECT:
-                return false;
+                return DISCONNECT;
             case physical::QUEUED:
             case physical::SHUTDOWN:
             case physical::LOGICERROR:
@@ -133,370 +634,63 @@ struct hyperdex :: client :: priv
         uint16_t tover;
         entityid from;
         entityid to;
-
-        packed.unpack() >> msg_type >> fromver >> tover >> from >> to >> *msg;
-        *ent = from;
-        *act = static_cast<stream_no::stream_no_t>(msg_type);
-        return true;
-    }
-
-    // Do a request/response operation to the row leader for key in space.  This
-    // could be GET/PUT/DEL or similar.  This is not a fanout/aggregate
-    // operation.  in/out may be the same buffer instance.
-    bool reqrep(const std::string& space,
-                const e::buffer& key,
-                stream_no::stream_no_t act,
-                const e::buffer& in,
-                stream_no::stream_no_t* type,
-                e::buffer* out)
-    {
-        std::map<std::string, spaceid>::const_iterator sai;
-
-        // Map the string description to a number.
-        if ((sai = config.space_assignment().find(space)) == config.space_assignment().end())
-        {
-            LOG(INFO) << "space name does not translate to space number.";
-            return false;
-        }
-
-        // Create the most restrictive region possible for this point.
-        uint32_t spacenum = sai->second.space;
-        uint64_t hash = CityHash64(static_cast<const char*>(key.get()), key.size());
-        regionid r(spacenum, /*subspace*/ 0, /*prefix*/ 64, /*mask*/ hash);
-
-        // Figure out who to talk with.
-        entityid dst_ent;
+        uint32_t nonce;
+        e::buffer msg;
+        packed.unpack() >> msg_type >> fromver >> tover >> from >> to >> nonce >> msg;
+        entityid dst_from;
         instance dst_inst;
 
-        if (!find_entity(r, &dst_ent, &dst_inst))
+        if (!p->c->find_entity(from.get_region(), &dst_from, &dst_inst))
         {
-            LOG(INFO) << "no entry matches the given point.";
-            return false;
         }
 
-        // Send the messasge
-        if (!send(dst_ent, dst_inst, act, in))
+        if (dst_inst.inbound != loc || dst_inst.inbound_version != fromver)
         {
-            LOG(INFO) << "could not send message.";
-            return false;
+            continue;
         }
 
-        // Receive the message
-        entityid from;
-        out->clear();
-
-        if (recv(&from, type, out))
+        switch (static_cast<network_msgtype>(msg_type))
         {
-            // XXX BAD
-            return true;
-        }
-
-        LOG(INFO) << "could not recv message.";
-        return false;
-    }
-
-    hyperdex::physical phys;
-    hyperdex::coordinatorlink cl;
-    hyperdex::configuration config;
-    uint64_t nonce;
-};
-
-hyperdex :: client :: client(po6::net::location coordinator)
-    : p(new priv(coordinator))
-{
-    while (!p->cl.unacknowledged())
-    {
-        p->cl.loop();
-    }
-
-    p->config = p->cl.config();
-    p->cl.acknowledge();
-}
-
-hyperdex :: result_t
-hyperdex :: client :: get(const std::string& space,
-                          const e::buffer& key,
-                          std::vector<e::buffer>* value)
-{
-    uint32_t nonce = p->nonce;
-    ++p->nonce;
-    e::buffer msg;
-    msg.pack() << nonce << key;
-    stream_no::stream_no_t response;
-
-    if (p->reqrep(space, key, stream_no::GET, msg, &response, &msg))
-    {
-        if (response == stream_no::RESULT)
-        {
-            uint8_t result;
-            e::unpacker up(msg.unpack());
-            up >> nonce >> result;
-
-            if (result == SUCCESS)
-            {
-                up >> *value;
-            }
-
-            return static_cast<result_t>(result);
-        }
-    }
-
-    return ERROR;
-}
-
-hyperdex :: result_t
-hyperdex :: client :: put(const std::string& space,
-                          const e::buffer& key,
-                          const std::vector<e::buffer>& value)
-{
-    uint32_t nonce = p->nonce;
-    ++p->nonce;
-    e::buffer msg;
-    msg.pack() << nonce << key << value;
-    stream_no::stream_no_t response;
-
-    if (p->reqrep(space, key, stream_no::PUT, msg, &response, &msg))
-    {
-        if (response == stream_no::RESULT)
-        {
-            uint8_t result;
-            msg.unpack() >> nonce >> result;
-            return static_cast<result_t>(result);
-        }
-    }
-
-    return ERROR;
-}
-
-hyperdex :: result_t
-hyperdex :: client :: del(const std::string& space,
-                          const e::buffer& key)
-{
-    uint32_t nonce = p->nonce;
-    ++p->nonce;
-    e::buffer msg;
-    msg.pack() << nonce << key;
-    stream_no::stream_no_t response;
-
-    if (p->reqrep(space, key, stream_no::DEL, msg, &response, &msg))
-    {
-        if (response == stream_no::RESULT)
-        {
-            uint8_t result;
-            msg.unpack() >> nonce >> result;
-            return static_cast<result_t>(result);
-        }
-    }
-
-    return ERROR;
-}
-
-hyperdex :: client :: search_results
-hyperdex :: client :: search(const std::string& space,
-                             const hyperdex::search& terms)
-{
-    std::map<std::string, spaceid>::const_iterator sai;
-
-    // Map the string description to a number.
-    if ((sai = p->config.space_assignment().find(space)) == p->config.space_assignment().end())
-    {
-        LOG(INFO) << "space name does not translate to space number.";
-        return search_results();
-    }
-
-    // Create the most restrictive region possible for this point.
-    uint32_t spacenum = sai->second.space;
-    std::map<regionid, size_t> regions = p->config.regions();
-    std::map<uint16_t, std::vector<entityid> > candidates;
-
-    for (std::map<regionid, size_t>::iterator r = regions.begin();
-            r != regions.end(); ++r)
-    {
-        if (r->first.space == spacenum)
-        {
-            candidates[r->first.subspace].push_back(p->config.headof(r->first));
-        }
-    }
-
-    bool set = false;
-    std::vector<entityid> hosts;
-
-    for (std::map<uint16_t, std::vector<entityid> >::iterator c = candidates.begin();
-            c != candidates.end(); ++c)
-    {
-        if (c->second.size() < hosts.size() || !set)
-        {
-            hosts.swap(c->second);
-        }
-    }
-
-    uint64_t nonce = p->nonce;
-    ++nonce;
-    return search_results(p.get(), nonce, terms, hosts);
-}
-
-// XXX Client code SUCKS.  Rather than storing entity, we should store instance,
-// and somehow alert the user of search_results that an instance we took a
-// snapshot on is no longer responsible for the entity.  Among other things, we
-// don't retransmit when things don't respond, and all that good stuff.
-
-struct hyperdex :: client :: search_results :: priv
-{
-    priv()
-        : sr(NULL)
-        , nonce(0)
-        , valid(false)
-        , hosts()
-        , key()
-        , value()
-    {
-    }
-
-    priv(client::priv* p, uint32_t n, const std::vector<entityid>& h)
-        : sr(p)
-        , nonce(n)
-        , valid(true)
-        , hosts(h.begin(), h.end())
-        , key()
-        , value()
-    {
-    }
-
-    client::priv* sr;
-    uint32_t nonce;
-    bool valid;
-    std::set<entityid> hosts;
-    e::buffer key;
-    std::vector<e::buffer> value;
-
-    private:
-        priv(const priv&);
-        priv& operator = (const priv&);
-};
-
-hyperdex :: client :: search_results :: search_results()
-    : p(new priv())
-{
-}
-
-hyperdex :: client :: search_results :: search_results(client::priv* sr,
-                                                       uint32_t nonce,
-                                                       const hyperdex::search& s,
-                                                       const std::vector<entityid>& h)
-    : p(new priv(sr, nonce, h))
-{
-    e::buffer msg;
-    msg.pack() << nonce << s;
-
-    for (size_t i = 0; i < h.size(); ++i)
-    {
-        p->sr->send(h[i], p->sr->config.lookup(h[i]), stream_no::SEARCH_START, msg);
-    }
-
-    next();
-}
-
-hyperdex :: client :: search_results :: ~search_results()
-                                        throw ()
-{
-    e::buffer msg;
-    msg.pack() << p->nonce;
-
-    for (std::set<entityid>::iterator e = p->hosts.begin(); e != p->hosts.end(); ++e)
-    {
-        p->sr->send(*e, p->sr->config.lookup(*e), stream_no::SEARCH_STOP, msg);
-    }
-}
-
-bool
-hyperdex :: client :: search_results :: valid()
-{
-    return p->valid;
-}
-
-void
-hyperdex :: client :: search_results :: next()
-{
-    while (p->valid && !p->hosts.empty())
-    {
-        entityid from;
-        stream_no::stream_no_t act;
-        e::buffer msg;
-
-        if (!p->sr->recv(&from, &act, &msg))
-        {
-            LOG(INFO) << "Recv failed?";
-        }
-
-        switch (act)
-        {
-            case stream_no::GET:
-                LOG(INFO) << "Did not expect GET message.";
-                continue;
-            case stream_no::PUT:
-                LOG(INFO) << "Did not expect PUT message.";
-                continue;
-            case stream_no::DEL:
-                LOG(INFO) << "Did not expect DEL message.";
-                continue;
-            case stream_no::SEARCH_START:
-                LOG(INFO) << "Did not expect SEARCH_START message.";
-                continue;
-            case stream_no::SEARCH_NEXT:
-                LOG(INFO) << "Did not expect SEARCH_NEXT message.";
-                continue;
-            case stream_no::SEARCH_STOP:
-                LOG(INFO) << "Did not expect SEARCH_STOP message.";
-                continue;
-            case stream_no::SEARCH_ITEM:
+            case RESP_SEARCH_ITEM:
                 break;
-            case stream_no::SEARCH_DONE:
+            case RESP_SEARCH_DONE:
                 p->hosts.erase(from);
                 continue;
-            case stream_no::RESULT:
-                LOG(INFO) << "Did not expect RESULT message.";
-                continue;
-            case stream_no::PUT_PENDING:
-                LOG(INFO) << "Did not expect PUT_PENDING message.";
-                continue;
-            case stream_no::DEL_PENDING:
-                LOG(INFO) << "Did not expect DEL_PENDING message.";
-                continue;
-            case stream_no::PENDING:
-                LOG(INFO) << "Did not expect PENDING message.";
-                continue;
-            case stream_no::ACK:
-                LOG(INFO) << "Did not expect ACK message.";
-                continue;
-            case stream_no::XFER_MORE:
-                LOG(INFO) << "Did not expect XFER_MORE message.";
-                continue;
-            case stream_no::XFER_DATA:
-                LOG(INFO) << "Did not expect XFER_DATA message.";
-                continue;
-            case stream_no::XFER_DONE:
-                LOG(INFO) << "Did not expect XFER_DONE message.";
-                continue;
+            case REQ_GET:
+            case RESP_GET:
+            case REQ_PUT:
+            case RESP_PUT:
+            case REQ_DEL:
+            case RESP_DEL:
+            case REQ_SEARCH_START:
+            case REQ_SEARCH_NEXT:
+            case REQ_SEARCH_STOP:
+            case CHAIN_PUT:
+            case CHAIN_DEL:
+            case CHAIN_PENDING:
+            case CHAIN_ACK:
+            case XFER_MORE:
+            case XFER_DATA:
+            case XFER_DONE:
+            case PACKET_NOP:
             default:
-                LOG(INFO) << "Unknown stream_no.";
                 continue;
         }
 
-        uint32_t nonce;
         uint64_t count;
         p->key.clear();
         p->value.clear();
-
-        msg.unpack() >> nonce >> count >> p->key >> p->value;
+        msg.unpack() >> count >> p->key >> p->value;
         p->valid = true;
         msg.clear();
-        msg.pack() << p->nonce;
-        p->sr->send(from, p->sr->config.lookup(from), stream_no::SEARCH_NEXT, msg);
-        return;
+        uint32_t newnonce = p->c->nonces[dst_inst] ++;
+        msg.pack() << newnonce;
+        p->c->send(from, dst_inst, REQ_SEARCH_NEXT, newnonce, msg);
+        return SUCCESS;
     }
 
     p->valid = false;
-    return;
+    return SUCCESS;
 }
 
 const e::buffer&
@@ -509,5 +703,46 @@ const std::vector<e::buffer>&
 hyperdex :: client :: search_results :: value()
 {
     return p->value;
+}
+
+hyperdex :: client :: search_results :: priv :: priv()
+    : c()
+    , hosts()
+    , valid(false)
+    , key()
+    , value()
+{
+}
+
+hyperdex :: client :: search_results :: priv :: priv(client::priv* _c,
+                                                     const std::map<entityid, instance>& _hosts,
+                                                     const hyperdex::search& s)
+    : c(_c)
+    , hosts(_hosts)
+    , valid(true)
+    , key()
+    , value()
+{
+    e::buffer msg;
+    e::packer pack(msg.pack());
+    pack << s;
+
+    for (std::map<entityid, instance>::iterator h = hosts.begin(); h != hosts.end(); ++h)
+    {
+        uint32_t nonce = c->nonces[h->second] ++;
+        c->send(h->first, h->second, REQ_SEARCH_START, nonce, msg);
+    }
+}
+
+hyperdex :: client :: search_results :: priv :: ~priv()
+                                                throw ()
+{
+    e::buffer msg;
+
+    for (std::map<entityid, instance>::iterator h = hosts.begin(); h != hosts.end(); ++h)
+    {
+        uint32_t nonce = c->nonces[h->second] ++;
+        c->send(h->first, h->second, REQ_SEARCH_STOP, nonce, msg);
+    }
 }
 #endif

@@ -30,6 +30,7 @@
 
 // STL
 #include <string>
+#include <tr1/memory>
 #include <vector>
 
 // po6
@@ -266,17 +267,32 @@ worker()
                 case hyperdex::SUCCESS:
                 case hyperdex::NOTFOUND:
                     break;
-                case hyperdex::INVALID:
-                    std::cerr << "GET returned INVALID" << std::endl;
+                case hyperdex::WRONGARITY:
+                    std::cerr << "Get returned WRONGARITY." << std::endl;
                     break;
-                case hyperdex::ERROR:
-                    std::cerr << "GET returned ERROR" << std::endl;
+                case hyperdex::NOTASPACE:
+                    std::cerr << "Get returned NOTASPACE." << std::endl;
                     break;
-                case hyperdex::DISKFULL:
-                    std::cerr << "GET returned DISKFULL" << std::endl;
+                case hyperdex::COORDFAIL:
+                    std::cerr << "Get returned COORDFAIL." << std::endl;
+                    break;
+                case hyperdex::SERVERERROR:
+                    std::cerr << "Get returned SERVERERROR." << std::endl;
+                    break;
+                case hyperdex::CONNECTFAIL:
+                    std::cerr << "Get returned CONNECTFAIL." << std::endl;
+                    break;
+                case hyperdex::DISCONNECT:
+                    std::cerr << "Get returned DISCONNECT." << std::endl;
+                    break;
+                case hyperdex::RECONFIGURE:
+                    std::cerr << "Get returned RECONFIGURE." << std::endl;
+                    break;
+                case hyperdex::LOGICERROR:
+                    std::cerr << "Get returned LOGICERROR." << std::endl;
                     break;
                 default:
-                    std::cerr << "GET returned unknown response" << std::endl;
+                    std::cerr << "Get returned unknown status." << std::endl;
                     break;
             }
         }
@@ -302,19 +318,36 @@ worker()
             switch (cl.put(space, key, value))
             {
                 case hyperdex::SUCCESS:
+                    break;
                 case hyperdex::NOTFOUND:
+                    std::cerr << "Put returned NOTFOUND." << std::endl;
                     break;
-                case hyperdex::INVALID:
-                    std::cerr << "PUT returned INVALID" << std::endl;
+                case hyperdex::WRONGARITY:
+                    std::cerr << "Put returned WRONGARITY." << std::endl;
                     break;
-                case hyperdex::ERROR:
-                    std::cerr << "PUT returned ERROR" << std::endl;
+                case hyperdex::NOTASPACE:
+                    std::cerr << "Put returned NOTASPACE." << std::endl;
                     break;
-                case hyperdex::DISKFULL:
-                    std::cerr << "PUT returned DISKFULL" << std::endl;
+                case hyperdex::COORDFAIL:
+                    std::cerr << "Put returned COORDFAIL." << std::endl;
+                    break;
+                case hyperdex::SERVERERROR:
+                    std::cerr << "Put returned SERVERERROR." << std::endl;
+                    break;
+                case hyperdex::CONNECTFAIL:
+                    std::cerr << "Put returned CONNECTFAIL." << std::endl;
+                    break;
+                case hyperdex::DISCONNECT:
+                    std::cerr << "Put returned DISCONNECT." << std::endl;
+                    break;
+                case hyperdex::RECONFIGURE:
+                    std::cerr << "Put returned RECONFIGURE." << std::endl;
+                    break;
+                case hyperdex::LOGICERROR:
+                    std::cerr << "Put returned LOGICERROR." << std::endl;
                     break;
                 default:
-                    std::cerr << "PUT returned unknown response" << std::endl;
+                    std::cerr << "Put returned unknown status." << std::endl;
                     break;
             }
         }
@@ -334,48 +367,87 @@ worker()
                 case hyperdex::SUCCESS:
                 case hyperdex::NOTFOUND:
                     break;
-                case hyperdex::INVALID:
-                    std::cerr << "DEL returned INVALID" << std::endl;
+                case hyperdex::WRONGARITY:
+                    std::cerr << "Del returned WRONGARITY." << std::endl;
                     break;
-                case hyperdex::ERROR:
-                    std::cerr << "DEL returned ERROR" << std::endl;
+                case hyperdex::NOTASPACE:
+                    std::cerr << "Del returned NOTASPACE." << std::endl;
                     break;
-                case hyperdex::DISKFULL:
-                    std::cerr << "DEL returned DISKFULL" << std::endl;
+                case hyperdex::COORDFAIL:
+                    std::cerr << "Del returned COORDFAIL." << std::endl;
+                    break;
+                case hyperdex::SERVERERROR:
+                    std::cerr << "Del returned SERVERERROR." << std::endl;
+                    break;
+                case hyperdex::CONNECTFAIL:
+                    std::cerr << "Del returned CONNECTFAIL." << std::endl;
+                    break;
+                case hyperdex::DISCONNECT:
+                    std::cerr << "Del returned DISCONNECT." << std::endl;
+                    break;
+                case hyperdex::RECONFIGURE:
+                    std::cerr << "Del returned RECONFIGURE." << std::endl;
+                    break;
+                case hyperdex::LOGICERROR:
+                    std::cerr << "Del returned LOGICERROR." << std::endl;
                     break;
                 default:
-                    std::cerr << "DEL returned unknown response" << std::endl;
-                    break;
+                    std::cerr << "Del returned unknown status." << std::endl;
             }
         }
         else if (command == "QUERY")
         {
-            std::string arity;
             std::string attr;
             std::string val;
             bool wellformed = true;
+            std::map<std::string, e::buffer> search;
 
-            if (!std::getline(istr, arity, '\t'))
-            {
-                wellformed = false;
-            }
-
-            hyperdex::search s(e::convert::to_uint16_t(arity));
-
-            while (wellformed && std::getline(istr, attr, '\t'))
+            while (std::getline(istr, attr, '\t'))
             {
                 if (!std::getline(istr, val, '\t'))
                 {
                     wellformed = false;
                 }
 
-                uint16_t ind = e::convert::to_uint16_t(attr.c_str());
-                s.set(ind, e::buffer(val.c_str(), val.size()));
+                search.insert(std::make_pair(attr, e::buffer(val.c_str(), val.size())));
             }
 
             if (wellformed)
             {
-                hyperdex::client::search_results r = cl.search(space, s);
+                hyperdex::client::search_results r;
+
+                switch (cl.search(space, search, &r))
+                {
+                    case hyperdex::SUCCESS:
+                    case hyperdex::NOTFOUND:
+                        break;
+                    case hyperdex::WRONGARITY:
+                        std::cerr << "Del returned WRONGARITY." << std::endl;
+                        break;
+                    case hyperdex::NOTASPACE:
+                        std::cerr << "Del returned NOTASPACE." << std::endl;
+                        break;
+                    case hyperdex::COORDFAIL:
+                        std::cerr << "Del returned COORDFAIL." << std::endl;
+                        break;
+                    case hyperdex::SERVERERROR:
+                        std::cerr << "Del returned SERVERERROR." << std::endl;
+                        break;
+                    case hyperdex::CONNECTFAIL:
+                        std::cerr << "Del returned CONNECTFAIL." << std::endl;
+                        break;
+                    case hyperdex::DISCONNECT:
+                        std::cerr << "Del returned DISCONNECT." << std::endl;
+                        break;
+                    case hyperdex::RECONFIGURE:
+                        std::cerr << "Del returned RECONFIGURE." << std::endl;
+                        break;
+                    case hyperdex::LOGICERROR:
+                        std::cerr << "Del returned LOGICERROR." << std::endl;
+                        break;
+                    default:
+                        std::cerr << "Del returned unknown status." << std::endl;
+                }
 
                 for (size_t i = 0; i < 1000 && r.valid(); ++i, r.next())
                     ;

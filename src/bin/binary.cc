@@ -39,6 +39,11 @@
 // HyperDex
 #include <hyperdex/client.h>
 
+const char* colnames[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
+                          "11", "12", "13", "14", "15", "16", "17", "18", "19",
+                          "20", "21", "22", "23", "24", "25", "26", "27", "28",
+                          "29", "30", "31", "32"};
+
 static int
 usage();
 
@@ -128,11 +133,26 @@ main(int argc, char* argv[])
                 case hyperdex::NOTFOUND:
                     std::cerr << "Put returned NOTFOUND." << std::endl;
                     break;
-                case hyperdex::INVALID:
-                    std::cerr << "Put returned INVALID." << std::endl;
+                case hyperdex::WRONGARITY:
+                    std::cerr << "Put returned WRONGARITY." << std::endl;
                     break;
-                case hyperdex::ERROR:
-                    std::cerr << "Put returned ERROR." << std::endl;
+                case hyperdex::COORDFAIL:
+                    std::cerr << "Put returned COORDFAIL." << std::endl;
+                    break;
+                case hyperdex::SERVERERROR:
+                    std::cerr << "Put returned SERVERERROR." << std::endl;
+                    break;
+                case hyperdex::CONNECTFAIL:
+                    std::cerr << "Put returned CONNECTFAIL." << std::endl;
+                    break;
+                case hyperdex::DISCONNECT:
+                    std::cerr << "Put returned DISCONNECT." << std::endl;
+                    break;
+                case hyperdex::RECONFIGURE:
+                    std::cerr << "Put returned RECONFIGURE." << std::endl;
+                    break;
+                case hyperdex::LOGICERROR:
+                    std::cerr << "Put returned LOGICERROR." << std::endl;
                     break;
                 default:
                     std::cerr << "Put returned unknown status." << std::endl;
@@ -149,23 +169,56 @@ main(int argc, char* argv[])
 
         for (uint32_t num = 0; num < numbers; ++num)
         {
-            hyperdex::search terms(32);
             e::buffer key;
             key.pack() << num;
+            std::map<std::string, e::buffer> search;
 
             for (size_t i = 0; i < 32; ++i)
             {
                 if ((num & (1 << i)))
                 {
-                    terms.set(i, one);
+                    search.insert(std::make_pair(colnames[i], one));
                 }
                 else
                 {
-                    terms.set(i, zero);
+                    search.insert(std::make_pair(colnames[i], zero));
                 }
             }
 
-            hyperdex::client::search_results s = cl.search(argv[3], terms);
+            hyperdex::client::search_results s;
+
+            switch (cl.search(argv[3], search, &s))
+            {
+                case hyperdex::SUCCESS:
+                    break;
+                case hyperdex::NOTFOUND:
+                    std::cerr << "Search returned NOTFOUND." << std::endl;
+                    continue;
+                case hyperdex::WRONGARITY:
+                    std::cerr << "Search returned WRONGARITY." << std::endl;
+                    continue;
+                case hyperdex::COORDFAIL:
+                    std::cerr << "Search returned COORDFAIL." << std::endl;
+                    continue;
+                case hyperdex::SERVERERROR:
+                    std::cerr << "Search returned SERVERERROR." << std::endl;
+                    continue;
+                case hyperdex::CONNECTFAIL:
+                    std::cerr << "Search returned CONNECTFAIL." << std::endl;
+                    continue;
+                case hyperdex::DISCONNECT:
+                    std::cerr << "Search returned DISCONNECT." << std::endl;
+                    continue;
+                case hyperdex::RECONFIGURE:
+                    std::cerr << "Search returned RECONFIGURE." << std::endl;
+                    continue;
+                case hyperdex::LOGICERROR:
+                    std::cerr << "Search returned LOGICERROR." << std::endl;
+                    continue;
+                default:
+                    std::cerr << "Search returned unknown status." << std::endl;
+                    continue;
+            }
 
             if (!s.valid())
             {

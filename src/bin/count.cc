@@ -113,6 +113,43 @@ main(int argc, char* argv[])
     try
     {
         hyperdex::client cl(po6::net::location(ip, port));
+
+        switch (cl.connect())
+        {
+            case hyperdex::SUCCESS:
+                break;
+            case hyperdex::NOTFOUND:
+                std::cerr << "Could not connect to coordinator:  NOTFOUND." << std::endl;
+                return EXIT_FAILURE;
+            case hyperdex::WRONGARITY:
+                std::cerr << "Could not connect to coordinator:  WRONGARITY." << std::endl;
+                return EXIT_FAILURE;
+            case hyperdex::NOTASPACE:
+                std::cerr << "Could not connect to coordinator:  NOTASPACE." << std::endl;
+                return EXIT_FAILURE;
+            case hyperdex::COORDFAIL:
+                std::cerr << "Could not connect to coordinator:  COORDFAIL." << std::endl;
+                return EXIT_FAILURE;
+            case hyperdex::SERVERERROR:
+                std::cerr << "Could not connect to coordinator:  SERVERERROR." << std::endl;
+                return EXIT_FAILURE;
+            case hyperdex::CONNECTFAIL:
+                std::cerr << "Could not connect to coordinator:  CONNECTFAIL." << std::endl;
+                return EXIT_FAILURE;
+            case hyperdex::DISCONNECT:
+                std::cerr << "Could not connect to coordinator:  DISCONNECT." << std::endl;
+                return EXIT_FAILURE;
+            case hyperdex::RECONFIGURE:
+                std::cerr << "Could not connect to coordinator:  RECONFIGURE." << std::endl;
+                return EXIT_FAILURE;
+            case hyperdex::LOGICERROR :
+                std::cerr << "Could not connect to coordinator:  LOGICERROR." << std::endl;
+                return EXIT_FAILURE;
+            default:
+                std::cerr << "Could not connect to coordinator:  unknown status." << std::endl;
+                return EXIT_FAILURE;
+        }
+
         timespec start;
         timespec end;
 
@@ -132,11 +169,29 @@ main(int argc, char* argv[])
                 case hyperdex::NOTFOUND:
                     std::cerr << "Put returned NOTFOUND." << std::endl;
                     break;
-                case hyperdex::INVALID:
-                    std::cerr << "Put returned INVALID." << std::endl;
+                case hyperdex::WRONGARITY:
+                    std::cerr << "Put returned WRONGARITY." << std::endl;
                     break;
-                case hyperdex::ERROR:
-                    std::cerr << "Put returned ERROR." << std::endl;
+                case hyperdex::NOTASPACE:
+                    std::cerr << "Put returned NOTASPACE." << std::endl;
+                    break;
+                case hyperdex::COORDFAIL:
+                    std::cerr << "Put returned COORDFAIL." << std::endl;
+                    break;
+                case hyperdex::SERVERERROR:
+                    std::cerr << "Put returned SERVERERROR." << std::endl;
+                    break;
+                case hyperdex::CONNECTFAIL:
+                    std::cerr << "Put returned CONNECTFAIL." << std::endl;
+                    break;
+                case hyperdex::DISCONNECT:
+                    std::cerr << "Put returned DISCONNECT." << std::endl;
+                    break;
+                case hyperdex::RECONFIGURE:
+                    std::cerr << "Put returned RECONFIGURE." << std::endl;
+                    break;
+                case hyperdex::LOGICERROR:
+                    std::cerr << "Put returned LOGICERROR." << std::endl;
                     break;
                 default:
                     std::cerr << "Put returned unknown status." << std::endl;
@@ -152,11 +207,29 @@ main(int argc, char* argv[])
                 case hyperdex::NOTFOUND:
                     std::cerr << "Get returned NOTFOUND." << std::endl;
                     break;
-                case hyperdex::INVALID:
-                    std::cerr << "Get returned INVALID." << std::endl;
+                case hyperdex::WRONGARITY:
+                    std::cerr << "Get returned WRONGARITY." << std::endl;
                     break;
-                case hyperdex::ERROR:
-                    std::cerr << "Get returned ERROR." << std::endl;
+                case hyperdex::NOTASPACE:
+                    std::cerr << "Get returned NOTASPACE." << std::endl;
+                    break;
+                case hyperdex::COORDFAIL:
+                    std::cerr << "Get returned COORDFAIL." << std::endl;
+                    break;
+                case hyperdex::SERVERERROR:
+                    std::cerr << "Get returned SERVERERROR." << std::endl;
+                    break;
+                case hyperdex::CONNECTFAIL:
+                    std::cerr << "Get returned CONNECTFAIL." << std::endl;
+                    break;
+                case hyperdex::DISCONNECT:
+                    std::cerr << "Get returned DISCONNECT." << std::endl;
+                    break;
+                case hyperdex::RECONFIGURE:
+                    std::cerr << "Get returned RECONFIGURE." << std::endl;
+                    break;
+                case hyperdex::LOGICERROR:
+                    std::cerr << "Get returned LOGICERROR." << std::endl;
                     break;
                 default:
                     std::cerr << "Get returned unknown status." << std::endl;

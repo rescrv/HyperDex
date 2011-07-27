@@ -29,7 +29,8 @@
 #define hyperdex_client_h_
 
 // STL
-#include <tr1/memory>
+#include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -39,29 +40,39 @@
 // e
 #include <e/buffer.h>
 
-// HyperDex
-#include <hyperdex/ids.h>
-#include <hyperdex/search.h>
-
 namespace hyperdex
 {
+
+enum status
+{
+    SUCCESS     = 0,
+    NOTFOUND    = 1,
+    WRONGARITY  = 2,
+    NOTASPACE   = 8,
+    COORDFAIL   = 16,
+    SERVERERROR = 17,
+    CONNECTFAIL = 18,
+    DISCONNECT  = 19,
+    RECONFIGURE = 20,
+    LOGICERROR  = 21
+};
 
 class client
 {
     public:
         class search_results;
-        enum returncode
-        {
-        };
 
     public:
         client(po6::net::location coordinator);
 
     public:
-        returncode get(const std::string& space, const e::buffer& key, std::vector<e::buffer>* value);
-        returncode put(const std::string& space, const e::buffer& key, const std::vector<e::buffer>& value);
-        returncode del(const std::string& space, const e::buffer& key);
-        search_results search(const std::string& space, const hyperdex::search& terms);
+        status connect();
+
+    public:
+        status get(const std::string& space, const e::buffer& key, std::vector<e::buffer>* value);
+        status put(const std::string& space, const e::buffer& key, const std::vector<e::buffer>& value);
+        status del(const std::string& space, const e::buffer& key);
+        status search(const std::string& space, const std::map<std::string, e::buffer>& params, search_results* sr);
 
     private:
         friend class search_results;
@@ -69,27 +80,26 @@ class client
     private:
         struct priv;
         const std::auto_ptr<priv> p;
+};
+
+class client::search_results
+{
+    public:
+        search_results();
+        ~search_results() throw ();
 
     public:
-        class search_results
-        {
-            public:
-                search_results();
-                search_results(client::priv* sr, uint32_t nonce,
-                               const hyperdex::search& s, const std::vector<entityid>& h);
-                search_results(const search_results& other);
-                ~search_results() throw ();
+        bool valid();
+        status next();
+        const e::buffer& key();
+        const std::vector<e::buffer>& value();
 
-            public:
-                bool valid();
-                void next();
-                const e::buffer& key();
-                const std::vector<e::buffer>& value();
+    private:
+        friend class client;
 
-            private:
-                struct priv;
-                const std::tr1::shared_ptr<priv> p;
-        };
+    private:
+        struct priv;
+        std::auto_ptr<priv> p;
 };
 
 } // namespace hyperdex

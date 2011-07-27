@@ -1340,7 +1340,7 @@ hyperdex :: replication_manager :: respond_to_client(clientop co,
                                                      network_returncode ret)
 {
     e::buffer msg(5);
-    uint8_t result = static_cast<uint8_t>(ret);
+    uint16_t result = static_cast<uint16_t>(ret);
     msg.pack() << co.nonce << result;
     m_clientops.remove(co);
     m_comm->send(co.region, co.from, type, msg);

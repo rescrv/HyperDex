@@ -95,7 +95,9 @@ hyperdex :: network_worker :: run()
                 e::buffer key;
                 std::vector<e::buffer> value;
                 uint64_t version;
-                msg.unpack() >> nonce >> key;
+                e::unpacker up(msg.unpack());
+                up >> nonce;
+                up.leftovers(&key);
                 network_returncode result;
 
                 switch (m_data->get(to.get_region(), key, &value, &version))
@@ -125,7 +127,7 @@ hyperdex :: network_worker :: run()
                 }
 
                 msg.clear();
-                msg.pack() << nonce << static_cast<uint8_t>(result) << version << value;
+                msg.pack() << nonce << static_cast<uint16_t>(result) << value;
                 m_comm->send(to, from, RESP_GET, msg);
             }
             else if (type == REQ_PUT)
@@ -138,7 +140,9 @@ hyperdex :: network_worker :: run()
             else if (type == REQ_DEL)
             {
                 e::buffer key;
-                msg.unpack() >> nonce >> key;
+                e::unpacker up(msg.unpack());
+                up >> nonce;
+                up.leftovers(&key);
                 m_repl->client_del(from, to.get_region(), nonce, key);
             }
             else if (type == REQ_SEARCH_START)
