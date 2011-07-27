@@ -89,6 +89,7 @@ class configuration
         std::map<uint16_t, regionid> transfers_from(const instance& i) const;
 
         // Perhaps these should be a little less transparent.
+        const std::map<spaceid, std::vector<std::string> >& spaces() const { return m_spaces; }
         const std::map<entityid, instance>& entity_mapping() const { return m_entities; }
         const std::map<std::string, spaceid>& space_assignment() const { return m_space_assignment; }
         std::map<regionid, size_t> regions() const;

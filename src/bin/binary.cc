@@ -103,6 +103,7 @@ main(int argc, char* argv[])
     try
     {
         hyperdex::client cl(po6::net::location(ip, port));
+        cl.connect();
         e::buffer one("one", 3);
         e::buffer zero("zero", 3);
 
@@ -135,6 +136,9 @@ main(int argc, char* argv[])
                     break;
                 case hyperdex::WRONGARITY:
                     std::cerr << "Put returned WRONGARITY." << std::endl;
+                    break;
+                case hyperdex::NOTASPACE:
+                    std::cerr << "Put returned NOTASPACE." << std::endl;
                     break;
                 case hyperdex::COORDFAIL:
                     std::cerr << "Put returned COORDFAIL." << std::endl;
@@ -197,6 +201,9 @@ main(int argc, char* argv[])
                 case hyperdex::WRONGARITY:
                     std::cerr << "Search returned WRONGARITY." << std::endl;
                     continue;
+                case hyperdex::NOTASPACE:
+                    std::cerr << "Search returned NOTASPACE." << std::endl;
+                    continue;
                 case hyperdex::COORDFAIL:
                     std::cerr << "Search returned COORDFAIL." << std::endl;
                     continue;
@@ -231,7 +238,41 @@ main(int argc, char* argv[])
                     std::cerr << "Number " << num << " returned wrong key: " << key.hex() << " " << s.key().hex() << std::endl;
                 }
 
-                s.next();
+                switch (s.next())
+                {
+                    case hyperdex::SUCCESS:
+                        break;
+                    case hyperdex::NOTFOUND:
+                        std::cerr << "Next returned NOTFOUND." << std::endl;
+                        continue;
+                    case hyperdex::WRONGARITY:
+                        std::cerr << "Next returned WRONGARITY." << std::endl;
+                        continue;
+                    case hyperdex::NOTASPACE:
+                        std::cerr << "Next returned NOTASPACE." << std::endl;
+                        continue;
+                    case hyperdex::COORDFAIL:
+                        std::cerr << "Next returned COORDFAIL." << std::endl;
+                        continue;
+                    case hyperdex::SERVERERROR:
+                        std::cerr << "Next returned SERVERERROR." << std::endl;
+                        continue;
+                    case hyperdex::CONNECTFAIL:
+                        std::cerr << "Next returned CONNECTFAIL." << std::endl;
+                        continue;
+                    case hyperdex::DISCONNECT:
+                        std::cerr << "Next returned DISCONNECT." << std::endl;
+                        continue;
+                    case hyperdex::RECONFIGURE:
+                        std::cerr << "Next returned RECONFIGURE." << std::endl;
+                        continue;
+                    case hyperdex::LOGICERROR:
+                        std::cerr << "Next returned LOGICERROR." << std::endl;
+                        continue;
+                    default:
+                        std::cerr << "Next returned unknown status." << std::endl;
+                        continue;
+                }
 
                 if (s.valid())
                 {
