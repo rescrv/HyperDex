@@ -123,7 +123,7 @@ hyperdex :: coordinatorlink :: loop(size_t iterations, int timeout)
         {
             if (errno == EINTR)
             {
-                continue;
+                return SUCCESS;
             }
             else
             {
@@ -180,6 +180,8 @@ hyperdex :: coordinatorlink :: loop(size_t iterations, int timeout)
                 m_config_valid &= m_config.add_line(line);
             }
         }
+
+        ++ iter;
     }
 
     return SUCCESS;
