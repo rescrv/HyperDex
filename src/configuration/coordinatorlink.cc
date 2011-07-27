@@ -89,6 +89,8 @@ hyperdex :: coordinatorlink :: connect()
     try
     {
         m_sock.connect(m_coordinator);
+        m_pfd.fd = m_sock.get();
+        m_pfd.events = POLLIN;
         return send_to_coordinator(m_announce.c_str(), m_announce.size());
     }
     catch (po6::error& e)
