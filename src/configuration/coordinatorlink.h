@@ -74,6 +74,8 @@ class coordinatorlink
         void shutdown();
 
     public:
+        const pollfd& pfd() const { return m_pfd; }
+        bool connected() { return m_sock.get() >= 0; }
         const hyperdex::configuration& config() const;
 
     private:
