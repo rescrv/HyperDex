@@ -146,7 +146,7 @@ secondary_point(const std::vector<uint64_t>& value_hashes)
 }
 
 inline uint64_t
-replication_point(uint64_t key_hash, std::vector<uint64_t> value_hashes, std::vector<bool> which_dims)
+replication_point(uint64_t key_hash, const std::vector<uint64_t>& value_hashes, const std::vector<bool>& which_dims)
 {
     assert(which_dims.size() == value_hashes.size() + 1);
     std::vector<uint64_t> hashes;
