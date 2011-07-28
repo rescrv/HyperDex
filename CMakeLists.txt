@@ -202,7 +202,6 @@ target_link_libraries(binary
 # Tests
 
 set(hyperdex_test_srcs
-    test/hyperdex/fifo_work_queue.cc
     test/hyperdex/hyperspace.cc
     test/hyperdex/ids.cc
     test/hyperdex/search.cc
