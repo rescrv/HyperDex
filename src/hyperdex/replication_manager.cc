@@ -844,6 +844,7 @@ hyperdex :: replication_manager :: chain_common(bool has_value,
     }
 
     // Figure out what to do with the update
+    bool subspace_transfer = false;
     const uint64_t oldversion = version - 1;
     bool have_oldvalue = false;
     std::vector<e::buffer> oldvalue;
@@ -875,6 +876,13 @@ hyperdex :: replication_manager :: chain_common(bool has_value,
             oldvalue = diskvalue;
             // Fallthrough to set pending.
         }
+        else if (diskversion == 0 && from.get_subspace() == to.get_subspace())
+        {
+            // It's not on disk, but we're being given the value.
+            // Fallthrough to set pending.
+            have_oldvalue = false;
+            subspace_transfer = true;
+        }
         else
         {
             // XXX DEFER THE UPDATE.
@@ -893,7 +901,11 @@ hyperdex :: replication_manager :: chain_common(bool has_value,
         return;
     }
     // Fresh updates or oldversion is pending
-    else if (fresh || (olditer = kh->pending_updates.find(oldversion)) != kh->pending_updates.end())
+    else if (fresh)
+    {
+        // Fallthrough to set pending.
+    }
+    else if ((olditer = kh->pending_updates.find(oldversion)) != kh->pending_updates.end())
     {
         have_oldvalue = olditer->second->has_value;
         oldvalue = olditer->second->value;
@@ -936,6 +948,11 @@ hyperdex :: replication_manager :: chain_common(bool has_value,
                            &newpend->_prev, &newpend->_next))
         {
             return;
+        }
+
+        if (subspace_transfer)
+        {
+            newpend->_prev = from.get_region();
         }
     }
     else if (!has_value && have_oldvalue)
