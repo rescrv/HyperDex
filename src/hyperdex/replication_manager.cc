@@ -987,7 +987,6 @@ hyperdex :: replication_manager :: get_keyholder(const keypair& kp)
     typedef std::tr1::unordered_map<keypair, e::intrusive_ptr<keyholder>, keypair::hash>::iterator kh_iter_t;
     po6::threads::mutex::hold hold(&m_keyholders_lock);
     kh_iter_t i;
-//LOG(INFO) << "KHSIZE " << m_keyholders.size();
 
     if ((i = m_keyholders.find(kp)) != m_keyholders.end())
     {
