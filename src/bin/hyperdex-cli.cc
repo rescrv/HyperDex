@@ -141,6 +141,7 @@ main(int argc, char* argv[])
             ++i;
         }
 
+        lines.shutdown();
         bar.wait();
 
         uint64_t nanosecs = stopwatch.peek();
