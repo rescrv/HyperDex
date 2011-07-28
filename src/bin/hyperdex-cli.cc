@@ -35,23 +35,20 @@
 
 // po6
 #include <po6/net/ipaddr.h>
-#include <po6/threads/cond.h>
-#include <po6/threads/mutex.h>
+#include <po6/threads/barrier.h>
 #include <po6/threads/thread.h>
 
 // e
 #include <e/convert.h>
-#include <e/lockfree_fifo.h>
+#include <e/locking_fifo.h>
 #include <e/timer.h>
 
 // HyperDex
 #include <hyperdex/client.h>
 
-static e::lockfree_fifo<std::string> lines;
-static size_t blocked = 0;
+static e::locking_fifo<std::string> lines;
 static po6::threads::mutex unblock_lock;
 static po6::threads::cond unblock(&unblock_lock);
-static bool done = false;
 static po6::net::ipaddr ip;
 static uint16_t port;
 static std::string space;
@@ -61,7 +58,7 @@ static int
 usage();
 
 static void
-worker();
+worker(po6::threads::barrier*);
 
 int
 main(int argc, char* argv[])
@@ -113,66 +110,38 @@ main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
+    po6::threads::barrier bar(num_threads + 1);
+
     try
     {
-        // XXX Create a map of valuename -> valueindex
-
         std::vector<std::tr1::shared_ptr<po6::threads::thread> > threads;
 
         for (size_t i = 0; i < num_threads; ++i)
         {
-            std::tr1::shared_ptr<po6::threads::thread> t(new po6::threads::thread(worker));
+            std::tr1::shared_ptr<po6::threads::thread> t(new po6::threads::thread(std::tr1::bind(worker, &bar)));
             t->start();
             threads.push_back(t);
         }
 
-        unblock_lock.lock();
-        while (blocked != num_threads)
-        {
-            unblock_lock.unlock();
-            std::cerr << "blocked=" << blocked << ", num_threads=" << num_threads << std::endl;
-            e::sleep_ms(0, 100);
-            unblock_lock.lock();
-        }
-        unblock_lock.unlock();
-
-        std::cerr << "starting..." << std::endl;
-
         e::stopwatch stopwatch;
+        bar.wait();
         stopwatch.start();
-        size_t count = 0;
         std::string line;
-        blocked = 0;
+        size_t i = 0;
 
         while (std::getline(std::cin, line))
         {
-            if (!std::cin)
-            {
-                break;
-            }
-
-            ++count;
             lines.push(line);
 
-            if (count == 1000)
+            if (lines.size() > 10000)
             {
-                unblock.broadcast();
+                e::sleep_ms(0, 1);
             }
+
+            ++i;
         }
 
-        if (count <= 1000)
-        {
-            unblock.broadcast();
-        }
-
-        done = true;
-        __sync_synchronize();
-
-        while (blocked != num_threads)
-        {
-            e::sleep_ms(0, 10);
-            __sync_synchronize();
-        }
+        bar.wait();
 
         uint64_t nanosecs = stopwatch.peek();
         std::cerr << "test took " << nanosecs << " nanoseconds." << std::endl;
@@ -204,6 +173,7 @@ main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
+    return EXIT_SUCCESS;
 }
 
 int
@@ -215,37 +185,16 @@ usage()
 }
 
 void
-worker()
+worker(po6::threads::barrier* bar)
 {
-    bool finish = false;
     hyperdex::client cl(po6::net::location(ip, port));
+    cl.connect();
     std::string line;
 
+    bar->wait();
+
+    while (lines.pop(&line))
     {
-        po6::threads::mutex::hold hold(&unblock_lock);
-        ++blocked;
-        unblock.wait();
-    }
-
-    while (!finish)
-    {
-        while (!lines.pop(&line))
-        {
-            e::sleep_ms(0, 1);
-            __sync_synchronize();
-
-            if (done)
-            {
-                finish = true;
-                break;
-            }
-        }
-
-        if (finish)
-        {
-            continue;
-        }
-
         std::istringstream istr(line);
         std::string command = "";
         std::getline(istr, command, '\t');
@@ -459,7 +408,5 @@ worker()
         }
     }
 
-    std::cout << "DONE" << std::endl;
-    po6::threads::mutex::hold hold(&unblock_lock);
-    ++blocked;
+    bar->wait();
 }
