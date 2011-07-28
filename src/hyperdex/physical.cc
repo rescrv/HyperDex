@@ -195,21 +195,14 @@ hyperdex :: physical :: recv(po6::net::location* from,
 
     while (true)
     {
+        __sync_synchronize();
+
         if (m_shutdown)
         {
             return SHUTDOWN;
         }
 
-        for (int i = 0; i < m_max_fds; ++i)
-        {
-            if (pfds[i].revents & POLLNVAL)
-            {
-                pfds[i].fd = -1;
-                pfds[i].events = 0;
-                pfds[i].revents = 0;
-            }
-        }
-
+        if (m_paused)
         {
             po6::threads::mutex::hold hold(&m_not_paused_lock);
 
@@ -230,7 +223,7 @@ hyperdex :: physical :: recv(po6::net::location* from,
             }
         }
 
-        for (int i = 0; i < m_max_fds; ++i)
+        for (int i = 0; i < static_cast<int>(pfds.size()); ++i)
         {
             if (pfds[i].fd == -1)
             {
@@ -259,6 +252,7 @@ hyperdex :: physical :: recv(po6::net::location* from,
 
             if (pfds[i].revents & POLLNVAL)
             {
+                pfds[i].fd = -1;
                 continue;
             }
 
