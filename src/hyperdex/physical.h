@@ -117,7 +117,7 @@ class physical
                 channel& operator = (const channel&);
         };
 
-        typedef std::auto_ptr<e::hazard_ptrs<channel, 1>::hazard_ptr> hazard_ptr;
+        typedef std::auto_ptr<e::hazard_ptrs<channel, 1, size_t>::hazard_ptr> hazard_ptr;
 
     private:
         physical(const physical&);
@@ -146,7 +146,7 @@ class physical
         po6::net::location m_bindto;
         e::lockfree_fifo<message> m_incoming;
         e::lockfree_hash_map<po6::net::location, int, po6::net::location::hash> m_locations;
-        e::hazard_ptrs<channel, 1> m_hazard_ptrs;
+        e::hazard_ptrs<channel, 1, size_t> m_hazard_ptrs;
         std::vector<channel*> m_channels;
         std::vector<int> m_channels_mask;
         bool m_paused;

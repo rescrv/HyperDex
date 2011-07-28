@@ -171,27 +171,23 @@ hyperdex :: physical :: recv(po6::net::location* from,
     }
 
     hazard_ptr hptr = m_hazard_ptrs.get();
-    std::vector<pollfd> pfds(m_max_fds);
-    __sync_synchronize();
+    std::vector<pollfd> pfds;
 
     for (int i = 0; i < m_max_fds; ++i)
     {
         if (m_channels_mask[i])
         {
-            pfds[i].fd = i;
+            pfds.push_back(pollfd());
+            pfds.back().fd = i;
+            pfds.back().events = POLLIN|POLLOUT;
+            pfds.back().revents = 0;
         }
-        else
-        {
-            pfds[i].fd = -1;
-        }
-
-        pfds[i].events = POLLIN|POLLOUT;
-        pfds[i].revents = 0;
     }
 
-    pfds[m_listen.get()].fd = m_listen.get();
-    pfds[m_listen.get()].events = POLLIN;
-    pfds[m_listen.get()].revents = 0;
+    pfds.push_back(pollfd());
+    pfds.back().fd = m_listen.get();
+    pfds.back().events = POLLIN;
+    pfds.back().revents = 0;
 
     while (true)
     {
@@ -214,7 +210,7 @@ hyperdex :: physical :: recv(po6::net::location* from,
             }
         }
 
-        if (poll(&pfds.front(), m_max_fds, 1000) < 0)
+        if (poll(&pfds.front(), pfds.size(), 10) < 0)
         {
             if (errno != EAGAIN && errno != EINTR && errno != EWOULDBLOCK)
             {
@@ -223,9 +219,13 @@ hyperdex :: physical :: recv(po6::net::location* from,
             }
         }
 
-        for (int i = 0; i < static_cast<int>(pfds.size()); ++i)
+        size_t starting = hptr->state();
+
+        for (size_t i = 0; i < pfds.size(); ++i)
         {
-            if (pfds[i].fd == -1)
+            size_t pfd_idx = hptr->state() = (starting + i) % pfds.size();
+
+            if (pfds[pfd_idx].fd == -1)
             {
                 continue;
             }
@@ -234,53 +234,54 @@ hyperdex :: physical :: recv(po6::net::location* from,
 
             while (true)
             {
-                chan = m_channels[i];
+                chan = m_channels[pfds[pfd_idx].fd];
                 hptr->set(0, chan);
 
-                if (chan == m_channels[i])
+                if (chan == m_channels[pfds[pfd_idx].fd])
                 {
                     break;
                 }
             }
 
             // Protect file descriptors opened elsewhere.
-            if (!chan && i != m_listen.get())
+            if (!chan && pfds[pfd_idx].fd != m_listen.get())
             {
-                pfds[i].fd = -1;
+                pfds[pfd_idx].fd = -1;
                 continue;
             }
 
-            if (pfds[i].revents & POLLNVAL)
+            if (pfds[pfd_idx].revents & POLLNVAL)
             {
-                pfds[i].fd = -1;
+                pfds[pfd_idx].fd = -1;
                 continue;
             }
 
-            if (pfds[i].revents & POLLERR)
+            if (pfds[pfd_idx].revents & POLLERR)
             {
                 *from = chan->loc;
                 work_close(hptr, chan);
                 return DISCONNECT;
             }
 
-            if (pfds[i].revents & POLLHUP)
+            if (pfds[pfd_idx].revents & POLLHUP)
             {
                 *from = chan->loc;
                 work_close(hptr, chan);
                 return DISCONNECT;
             }
 
-            if (pfds[i].revents & POLLIN)
+            if (pfds[pfd_idx].revents & POLLIN)
             {
-                if (i == m_listen.get())
+                if (pfds[pfd_idx].fd == m_listen.get())
                 {
                     int fd = work_accept(hptr);
 
                     if (fd >= 0)
                     {
-                        pfds[fd].fd = fd;
-                        pfds[fd].events |= POLLIN;
-                        pfds[fd].revents = 0;
+                        pfds.push_back(pollfd());
+                        pfds.back().fd = fd;
+                        pfds.back().events |= POLLIN;
+                        pfds.back().revents = 0;
                     }
                 }
                 else
@@ -294,13 +295,13 @@ hyperdex :: physical :: recv(po6::net::location* from,
                 }
             }
 
-            if (pfds[i].revents & POLLOUT)
+            if (pfds[pfd_idx].revents & POLLOUT)
             {
                 po6::threads::mutex::hold hold(&chan->mtx);
 
                 if (!work_write(chan))
                 {
-                    pfds[i].events &= ~POLLOUT;
+                    pfds[pfd_idx].events &= ~POLLOUT;
                 }
             }
         }
