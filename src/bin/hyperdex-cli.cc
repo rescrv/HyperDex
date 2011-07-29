@@ -127,18 +127,10 @@ main(int argc, char* argv[])
         bar.wait();
         stopwatch.start();
         std::string line;
-        size_t i = 0;
 
         while (std::getline(std::cin, line))
         {
             lines.push(line);
-
-            if (lines.size() > 10000)
-            {
-                e::sleep_ms(0, 1);
-            }
-
-            ++i;
         }
 
         lines.shutdown();
