@@ -243,8 +243,6 @@ hyperdisk :: disk :: flush()
     return split || flushed > 0;
 }
 
-// XXX Only return SUCCESS if all pass.
-
 hyperdisk::returncode
 hyperdisk :: disk :: async()
 {
