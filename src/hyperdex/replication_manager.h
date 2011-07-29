@@ -123,6 +123,10 @@ class replication_manager
         bool from_disk(const regionid& r, const e::buffer& key,
                        bool* has_value, std::vector<e::buffer>* value,
                        uint64_t* version);
+        bool put_to_disk(const regionid& pending_in,
+                         const e::buffer& key,
+                         e::intrusive_ptr<replication::keyholder> kh,
+                         uint64_t version);
         size_t expected_dimensions(const regionid& ri) const;
         // Figure out the previous and next individuals to send to/receive from
         // for messages.

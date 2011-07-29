@@ -468,58 +468,11 @@ hyperdex :: replication_manager :: chain_ack(const entityid& from,
     }
 
     pend->acked = true;
+    put_to_disk(kp.region, key, kh, version);
 
     while (!kh->pending_updates.empty() && kh->pending_updates.begin()->second->acked)
     {
-        uint64_t ver = kh->pending_updates.begin()->first;
-        e::intrusive_ptr<pending> to_commit = kh->pending_updates.begin()->second;
-
         kh->pending_updates.erase(kh->pending_updates.begin());
-
-        if (!to_commit->ondisk && to_commit->has_value)
-        {
-            switch (m_data->put(to.get_region(), key, to_commit->value, ver))
-            {
-                case hyperdisk::SUCCESS:
-                    break;
-                case hyperdisk::WRONGARITY:
-                    LOG(ERROR) << "WRONGARITY returned when committing to disk.";
-                    return;
-                case hyperdisk::MISSINGDISK:
-                    LOG(ERROR) << "MISSINGDISK returned when committing to disk.";
-                    return;
-                case hyperdisk::NOTFOUND:
-                case hyperdisk::HASHFULL:
-                case hyperdisk::DATAFULL:
-                case hyperdisk::SEARCHFULL:
-                case hyperdisk::SYNCFAILED:
-                case hyperdisk::DROPFAILED:
-                default:
-                    LOG(ERROR) << "m_data returned unexpected error code.";
-                    return;
-            }
-        }
-        else if (!to_commit->ondisk && !to_commit->has_value)
-        {
-            switch (m_data->del(to.get_region(), key))
-            {
-                case hyperdisk::SUCCESS:
-                    break;
-                case hyperdisk::MISSINGDISK:
-                    LOG(ERROR) << "MISSINGDISK returned when committing to disk.";
-                    return;
-                case hyperdisk::WRONGARITY:
-                case hyperdisk::NOTFOUND:
-                case hyperdisk::HASHFULL:
-                case hyperdisk::DATAFULL:
-                case hyperdisk::SEARCHFULL:
-                case hyperdisk::SYNCFAILED:
-                case hyperdisk::DROPFAILED:
-                default:
-                    LOG(ERROR) << "m_data returned unexpected error code.";
-                    return;
-            }
-        }
     }
 
     send_ack(to.get_region(), version, key, pend);
@@ -1106,6 +1059,134 @@ hyperdex :: replication_manager :: from_disk(const regionid& r,
     }
 }
 
+bool
+hyperdex :: replication_manager :: put_to_disk(const regionid& pending_in,
+                                               const e::buffer& key,
+                                               e::intrusive_ptr<replication::keyholder> kh,
+                                               uint64_t version)
+{
+    std::map<uint64_t, e::intrusive_ptr<pending> >::iterator to_put_to_disk;
+    to_put_to_disk = kh->pending_updates.find(version);
+
+    if (to_put_to_disk == kh->pending_updates.end())
+    {
+        return false;
+    }
+
+    e::intrusive_ptr<pending> update = to_put_to_disk->second;
+
+    // We don't have to mark others as being true as the way in which we set
+    // ondisk guarantees that all lesser versions are ondisk as well.
+    if (update->ondisk)
+    {
+        return true;
+    }
+
+    bool success = true;
+
+    if (!update->has_value || (update->this_old != update->this_new && pending_in == update->this_old))
+    {
+        switch (m_data->del(pending_in, key))
+        {
+            case hyperdisk::SUCCESS:
+                success = true;
+                break;
+            case hyperdisk::MISSINGDISK:
+                LOG(ERROR) << "MISSINGDISK returned when committing to disk.";
+                success = false;
+                break;
+            case hyperdisk::WRONGARITY:
+                LOG(ERROR) << "WRONGARITY returned when committing to disk.";
+                success = false;
+                break;
+            case hyperdisk::NOTFOUND:
+                LOG(ERROR) << "NOTFOUND returned when committing to disk.";
+                success = false;
+                break;
+            case hyperdisk::HASHFULL:
+                LOG(ERROR) << "HASHFULL returned when committing to disk.";
+                success = false;
+                break;
+            case hyperdisk::DATAFULL:
+                LOG(ERROR) << "DATAFULL returned when committing to disk.";
+                success = false;
+                break;
+            case hyperdisk::SEARCHFULL:
+                LOG(ERROR) << "SEARCHFULL returned when committing to disk.";
+                success = false;
+                break;
+            case hyperdisk::SYNCFAILED:
+                LOG(ERROR) << "SYNCFAILED returned when committing to disk.";
+                success = false;
+                break;
+            case hyperdisk::DROPFAILED:
+                LOG(ERROR) << "DROPFAILED returned when committing to disk.";
+                success = false;
+                break;
+            default:
+                LOG(ERROR) << "unknown error when committing to disk.";
+                success = false;
+                break;
+        }
+    }
+    else if (update->has_value)
+    {
+        switch (m_data->put(pending_in, key, update->value, version))
+        {
+            case hyperdisk::SUCCESS:
+                success = true;
+                break;
+            case hyperdisk::MISSINGDISK:
+                LOG(ERROR) << "MISSINGDISK returned when committing to disk.";
+                success = false;
+                break;
+            case hyperdisk::WRONGARITY:
+                LOG(ERROR) << "WRONGARITY returned when committing to disk.";
+                success = false;
+                break;
+            case hyperdisk::NOTFOUND:
+                LOG(ERROR) << "NOTFOUND returned when committing to disk.";
+                success = false;
+                break;
+            case hyperdisk::HASHFULL:
+                LOG(ERROR) << "HASHFULL returned when committing to disk.";
+                success = false;
+                break;
+            case hyperdisk::DATAFULL:
+                LOG(ERROR) << "DATAFULL returned when committing to disk.";
+                success = false;
+                break;
+            case hyperdisk::SEARCHFULL:
+                LOG(ERROR) << "SEARCHFULL returned when committing to disk.";
+                success = false;
+                break;
+            case hyperdisk::SYNCFAILED:
+                LOG(ERROR) << "SYNCFAILED returned when committing to disk.";
+                success = false;
+                break;
+            case hyperdisk::DROPFAILED:
+                LOG(ERROR) << "DROPFAILED returned when committing to disk.";
+                success = false;
+                break;
+            default:
+                LOG(ERROR) << "unknown error when committing to disk.";
+                success = false;
+                break;
+        }
+    }
+
+    std::map<uint64_t, e::intrusive_ptr<pending> >::iterator penditer;
+
+    for (penditer = kh->pending_updates.begin();
+         success && penditer != kh->pending_updates.end() && penditer->first <= version;
+         ++penditer)
+    {
+        penditer->second->ondisk = true;
+    }
+
+    return success;
+}
+
 size_t
 hyperdex :: replication_manager :: expected_dimensions(const regionid& ri) const
 {
@@ -1251,60 +1332,7 @@ hyperdex :: replication_manager :: handle_point_leader_work(const regionid& pend
                                                             e::intrusive_ptr<pending> update)
 {
     send_ack(pending_in, version, key, update);
-
-    if (!update->ondisk && update->has_value)
-    {
-        switch (m_data->put(pending_in, key, update->value, version))
-        {
-            case hyperdisk::SUCCESS:
-                break;
-            case hyperdisk::WRONGARITY:
-                LOG(ERROR) << "WRONGARITY returned when committing to disk.";
-                return;
-            case hyperdisk::MISSINGDISK:
-                LOG(ERROR) << "MISSINGDISK returned when committing to disk.";
-                return;
-            case hyperdisk::NOTFOUND:
-            case hyperdisk::HASHFULL:
-            case hyperdisk::DATAFULL:
-            case hyperdisk::SEARCHFULL:
-            case hyperdisk::SYNCFAILED:
-            case hyperdisk::DROPFAILED:
-            default:
-                LOG(ERROR) << "m_data returned unexpected error code.";
-                return;
-        }
-    }
-    else if (!update->ondisk && !update->has_value)
-    {
-        switch (m_data->del(pending_in, key))
-        {
-            case hyperdisk::SUCCESS:
-                break;
-            case hyperdisk::MISSINGDISK:
-                LOG(ERROR) << "MISSINGDISK returned when committing to disk.";
-                return;
-            case hyperdisk::WRONGARITY:
-            case hyperdisk::NOTFOUND:
-            case hyperdisk::HASHFULL:
-            case hyperdisk::DATAFULL:
-            case hyperdisk::SEARCHFULL:
-            case hyperdisk::SYNCFAILED:
-            case hyperdisk::DROPFAILED:
-            default:
-                LOG(ERROR) << "m_data returned unexpected error code.";
-                return;
-        }
-    }
-
-    std::map<uint64_t, e::intrusive_ptr<pending> >::iterator penditer;
-
-    for (penditer = kh->pending_updates.begin();
-         penditer != kh->pending_updates.end() && penditer->first <= version;
-         ++penditer)
-    {
-        penditer->second->ondisk = true;
-    }
+    put_to_disk(pending_in, key, kh, version);
 
     if (update->co.from.space == UINT32_MAX)
     {
