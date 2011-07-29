@@ -306,7 +306,15 @@ hyperdex :: replication_manager :: chain_pending(const entityid& from,
 
     if (is_point_leader(to))
     {
-        handle_point_leader_work(to.get_region(), version, key, kh, pend);
+        send_ack(kp.region, version, key, pend);
+        put_to_disk(kp.region, key, kh, version);
+
+        if (pend->co.from.space == UINT32_MAX)
+        {
+            clientop co = pend->co;
+            pend->co = clientop();
+            respond_to_client(co, pend->has_value ? RESP_PUT : RESP_DEL, NET_SUCCESS);
+        }
     }
     else
     {
@@ -1322,24 +1330,6 @@ hyperdex :: replication_manager :: move_deferred_to_pending(e::intrusive_ptr<key
     // XXX We just drop deferred messages as it doesn't hurt correctness
     // (however, a bad move from deferred to pending will).
     kh->deferred_updates.clear();
-}
-
-void
-hyperdex :: replication_manager :: handle_point_leader_work(const regionid& pending_in,
-                                                            uint64_t version,
-                                                            const e::buffer& key,
-                                                            e::intrusive_ptr<keyholder> kh,
-                                                            e::intrusive_ptr<pending> update)
-{
-    send_ack(pending_in, version, key, update);
-    put_to_disk(pending_in, key, kh, version);
-
-    if (update->co.from.space == UINT32_MAX)
-    {
-        clientop co = update->co;
-        update->co = clientop();
-        respond_to_client(co, update->has_value ? RESP_PUT : RESP_DEL, NET_SUCCESS);
-    }
 }
 
 void

@@ -144,12 +144,6 @@ class replication_manager
         // Move as many messages as possible from the deferred queue to the
         // pending queue.
         void move_deferred_to_pending(e::intrusive_ptr<replication::keyholder> kh);
-        // Send an ACK and notify the client.  If this is the last pending
-        // message for the keypair, then it is safe to unblock more messages.
-        void handle_point_leader_work(const regionid& pending_in,
-                                      uint64_t version, const e::buffer& key,
-                                      e::intrusive_ptr<replication::keyholder> kh,
-                                      e::intrusive_ptr<replication::pending> update);
         // Send the message that the pending object needs to send in order to
         // make system-wide progress.
         void send_update(const hyperdex::regionid& pending_in,
