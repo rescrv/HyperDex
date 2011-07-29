@@ -294,16 +294,17 @@ hyperdex :: replication_manager :: chain_pending(const entityid& from,
     }
 
     e::intrusive_ptr<pending> pend = to_allow_ack->second;
+    assert(pend->this_old == pend->this_new);
 
-    if (!sent_backward_or_from_tail(from, to, kp.region, pend->_prev))
+    if (!sent_backward_or_from_tail(from, to, pend->this_old, pend->prev))
     {
+        LOG(INFO) << "dropping inappropriately routed CHAIN_PENDING";
         return;
     }
 
     pend->mayack = true;
 
-    // We are point-leader for this subspace.
-    if (to.number == 0)
+    if (is_point_leader(to))
     {
         handle_point_leader_work(to.get_region(), version, key, kh, pend);
     }
@@ -345,14 +346,20 @@ hyperdex :: replication_manager :: chain_ack(const entityid& from,
     e::intrusive_ptr<pending> pend = to_ack->second;
 
     // Check that the ack came from someone authorized to send it.
-    if (!sent_backward_or_from_head(from, to, kp.region, pend->_next))
+    if (!(to.get_region() == pend->this_old &&
+          sent_backward_or_from_head(from, to, pend->this_old, pend->next))
+            &&
+        !(to.get_region() == pend->this_new &&
+          sent_backward_or_from_head(from, to, pend->this_new, pend->next)))
     {
+        LOG(INFO) << "dropping inappropriately routed CHAIN_ACK";
         return;
     }
 
     // If we may not ack the message yet, just drop it.
     if (!pend->mayack)
     {
+        LOG(INFO) << "dropping CHAIN_ACK received before we may ACK.";
         return;
     }
 
@@ -373,16 +380,18 @@ hyperdex :: replication_manager :: chain_ack(const entityid& from,
         t->triggers.insert(std::make_pair(key, version));
     }
 
+    pend->acked = true;
+
     while (!kh->pending_updates.empty() && kh->pending_updates.begin()->second->acked)
     {
         uint64_t ver = kh->pending_updates.begin()->first;
-        e::intrusive_ptr<pending> commit = kh->pending_updates.begin()->second;
+        e::intrusive_ptr<pending> to_commit = kh->pending_updates.begin()->second;
 
         kh->pending_updates.erase(kh->pending_updates.begin());
 
-        if (!commit->ondisk && commit->has_value)
+        if (!to_commit->ondisk && to_commit->has_value)
         {
-            switch (m_data->put(to.get_region(), key, commit->value, ver))
+            switch (m_data->put(to.get_region(), key, to_commit->value, ver))
             {
                 case hyperdisk::SUCCESS:
                     break;
@@ -403,7 +412,7 @@ hyperdex :: replication_manager :: chain_ack(const entityid& from,
                     return;
             }
         }
-        else if (!commit->ondisk && !commit->has_value)
+        else if (!to_commit->ondisk && !to_commit->has_value)
         {
             switch (m_data->del(to.get_region(), key))
             {
@@ -427,7 +436,6 @@ hyperdex :: replication_manager :: chain_ack(const entityid& from,
     }
 
     send_ack(to.get_region(), version, key, pend);
-    pend->acked = true;
     unblock_messages(to.get_region(), key, kh);
 
     if (kh->pending_updates.empty())
@@ -673,13 +681,14 @@ hyperdex :: replication_manager :: client_common(bool has_value,
     // Make sure this message is from a client.
     if (from.space != UINT32_MAX)
     {
+        LOG(INFO) << "dropping client-only message from " << from << " (it is not a client).";
         return;
     }
 
     clientop co(to.get_region(), from, nonce);
 
     // Make sure this message is to the point-leader.
-    if (to.subspace != 0 || to.number != 0)
+    if (!is_point_leader(to))
     {
         respond_to_client(co, has_value ? RESP_PUT : RESP_DEL, NET_NOTUS);
         return;
@@ -691,7 +700,7 @@ hyperdex :: replication_manager :: client_common(bool has_value,
         return;
     }
 
-    // Automatically respond with "ERROR" whenever we return without g.dismiss()
+    // Automatically respond with "SERVERERROR" whenever we return without g.dismiss()
     e::guard g = e::makeobjguard(*this, &replication_manager::respond_to_client, co, has_value ? RESP_PUT : RESP_DEL, NET_SERVERERROR);
 
     // Grab the lock that protects this keypair.
@@ -718,7 +727,7 @@ hyperdex :: replication_manager :: client_common(bool has_value,
     // Find the pending or committed version with the largest number.
     bool blocked = false;
     uint64_t oldversion = 0;
-    bool have_oldvalue = false;
+    bool has_oldvalue = false;
     std::vector<e::buffer> oldvalue;
 
     if (kh->blocked_updates.empty())
@@ -726,18 +735,18 @@ hyperdex :: replication_manager :: client_common(bool has_value,
         if (kh->pending_updates.empty())
         {
             // Get old version from disk.
-            if (!from_disk(to.get_region(), key, &have_oldvalue, &oldvalue, &oldversion))
+            if (!from_disk(to.get_region(), key, &has_oldvalue, &oldvalue, &oldversion))
             {
                 return;
             }
         }
         else
         {
-            // Get old version from memory.
+            // Get old version from pending updates.
             std::map<uint64_t, e::intrusive_ptr<pending> >::reverse_iterator biggest;
             biggest = kh->pending_updates.rbegin();
             oldversion = biggest->first;
-            have_oldvalue = biggest->second->has_value;
+            has_oldvalue = biggest->second->has_value;
             oldvalue = biggest->second->value;
         }
 
@@ -745,11 +754,11 @@ hyperdex :: replication_manager :: client_common(bool has_value,
     }
     else
     {
-        // Get old version from memory.
+        // Get old version from blocked updates.
         std::map<uint64_t, e::intrusive_ptr<pending> >::reverse_iterator biggest;
         biggest = kh->blocked_updates.rbegin();
         oldversion = biggest->first;
-        have_oldvalue = biggest->second->has_value;
+        has_oldvalue = biggest->second->has_value;
         oldvalue = biggest->second->value;
         blocked = true;
     }
@@ -757,22 +766,15 @@ hyperdex :: replication_manager :: client_common(bool has_value,
     e::intrusive_ptr<pending> newpend;
     newpend = new pending(has_value, value, co);
 
-    // Figure out the four regions we could send to.
-    if (has_value && have_oldvalue)
+    if (!has_value && !has_oldvalue)
     {
-        if (!prev_and_next(kp.region, key, oldvalue, value,
-                           &newpend->_prev, &newpend->_next))
-        {
-            return;
-        }
+        respond_to_client(co, RESP_PUT, NET_SUCCESS);
+        g.dismiss();
+        return;
     }
-    else if (has_value && !have_oldvalue)
+
+    if (has_value && !has_oldvalue)
     {
-        if (!prev_and_next(kp.region, key, value,
-                           &newpend->_prev, &newpend->_next))
-        {
-            return;
-        }
         // This is a put without a previous value.  If this is the result of it
         // being the first put for this key, then we need to tag it as fresh.
         // If it is the result of a PUT that is concurrent with a DEL (client's
@@ -780,23 +782,24 @@ hyperdex :: replication_manager :: client_common(bool has_value,
         blocked = true;
         newpend->fresh = true;
     }
-    else if (!has_value && have_oldvalue)
+
+    if (!prev_and_next(kp.region, key, has_value, value, has_oldvalue, oldvalue, newpend))
     {
-        if (!prev_and_next(kp.region, key, oldvalue,
-                           &newpend->_prev, &newpend->_next))
-        {
-            return;
-        }
+        return;
     }
-    else if (!has_value && !have_oldvalue)
+
+    if (kp.region != newpend->this_old && kp.region != newpend->this_new)
     {
-        respond_to_client(co, RESP_PUT, NET_SUCCESS);
+        respond_to_client(co, RESP_PUT, NET_NOTUS);
+        g.dismiss();
         return;
     }
 
     if (blocked)
     {
         kh->blocked_updates.insert(std::make_pair(oldversion + 1, newpend));
+        // This unblock messages will unblock the message we just tagged as
+        // fresh (if any).
         unblock_messages(to.get_region(), key, kh);
     }
     else
@@ -817,13 +820,6 @@ hyperdex :: replication_manager :: chain_common(bool has_value,
                                                 const e::buffer& key,
                                                 const std::vector<e::buffer>& value)
 {
-    // We cannot receive fresh messages from others within our subspace.
-    if (fresh && from.get_subspace() == to.get_subspace() && from.get_region() != to.get_region())
-    {
-        LOG(INFO) << "Fresh message from someone in the same subspace as us " << to.get_subspace();
-        return;
-    }
-
     // Grab the lock that protects this keypair.
     keypair kp(to.get_region(), key);
     e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, get_lock_num(kp));
@@ -843,10 +839,9 @@ hyperdex :: replication_manager :: chain_common(bool has_value,
         return;
     }
 
-    // Figure out what to do with the update
-    bool subspace_transfer = false;
+    // Figure out what to do with the updateI
     const uint64_t oldversion = version - 1;
-    bool have_oldvalue = false;
+    bool has_oldvalue = false;
     std::vector<e::buffer> oldvalue;
     std::map<uint64_t, e::intrusive_ptr<pending> >::iterator smallest_pending;
     std::map<uint64_t, e::intrusive_ptr<pending> >::iterator olditer;
@@ -856,12 +851,13 @@ hyperdex :: replication_manager :: chain_common(bool has_value,
     if (smallest_pending == kh->pending_updates.end())
     {
         uint64_t diskversion = 0;
-        bool have_diskvalue = false;
+        bool has_diskvalue = false;
         std::vector<e::buffer> diskvalue;
 
         // Get old version from disk.
-        if (!from_disk(to.get_region(), key, &have_diskvalue, &diskvalue, &diskversion))
+        if (!from_disk(to.get_region(), key, &has_diskvalue, &diskvalue, &diskversion))
         {
+            LOG(INFO) << "dropping message because we could not read from the hyperdisk.";
             return;
         }
 
@@ -872,16 +868,9 @@ hyperdex :: replication_manager :: chain_common(bool has_value,
         }
         else if (diskversion == oldversion)
         {
-            have_oldvalue = have_diskvalue;
+            has_oldvalue = has_diskvalue;
             oldvalue = diskvalue;
             // Fallthrough to set pending.
-        }
-        else if (diskversion == 0 && from.get_subspace() == to.get_subspace())
-        {
-            // It's not on disk, but we're being given the value.
-            // Fallthrough to set pending.
-            have_oldvalue = false;
-            subspace_transfer = true;
         }
         else
         {
@@ -900,14 +889,16 @@ hyperdex :: replication_manager :: chain_common(bool has_value,
     {
         return;
     }
-    // Fresh updates or oldversion is pending
+    // If the update is "fresh".
     else if (fresh)
     {
+        has_oldvalue = false;
         // Fallthrough to set pending.
     }
+    // If the oldversion is pending.
     else if ((olditer = kh->pending_updates.find(oldversion)) != kh->pending_updates.end())
     {
-        have_oldvalue = olditer->second->has_value;
+        has_oldvalue = olditer->second->has_value;
         oldvalue = olditer->second->value;
         // Fallthrough to set pending.
     }
@@ -920,7 +911,7 @@ hyperdex :: replication_manager :: chain_common(bool has_value,
         // was tagged fresh.  That should only happen when the point-leader has
         // seen the update immediately prior to the fresh one.  This means that
         // the point-leader is misbehaving.
-        LOG(INFO) << "Dropping update which should have come before currently pending updates.";
+        LOG(INFO) << "dropping chain message which violates version ordering.";
         return;
     }
     else
@@ -933,48 +924,20 @@ hyperdex :: replication_manager :: chain_common(bool has_value,
     e::intrusive_ptr<pending> newpend;
     newpend = new pending(has_value, value);
 
-    // Figure out the four regions we could send to.
-    if (has_value && have_oldvalue)
+    if (!prev_and_next(kp.region, key, has_value, value, has_oldvalue, oldvalue, newpend))
     {
-        if (!prev_and_next(kp.region, key, oldvalue, value,
-                           &newpend->_prev, &newpend->_next))
-        {
-            return;
-        }
-    }
-    else if (has_value && !have_oldvalue)
-    {
-        if (!prev_and_next(kp.region, key, value,
-                           &newpend->_prev, &newpend->_next))
-        {
-            return;
-        }
-
-        if (subspace_transfer)
-        {
-            newpend->_prev = from.get_region();
-        }
-    }
-    else if (!has_value && have_oldvalue)
-    {
-        if (!prev_and_next(kp.region, key, oldvalue,
-                           &newpend->_prev, &newpend->_next))
-        {
-            return;
-        }
-    }
-    else if (!has_value && !have_oldvalue)
-    {
-        LOG(INFO) << "Chain region sees double-delete.";
+        LOG(INFO) << "dropping chain message with no value and no previous value.";
         return;
     }
 
-    if (!sent_forward_or_from_tail(from, to, kp.region, newpend->_prev))
+    if (!(to.get_region() == newpend->this_old &&
+          sent_forward_or_from_tail(from, to, newpend->this_old, newpend->prev)))
     {
+        LOG(INFO) << "dropping chain message which didn't come from the right host.";
         return;
     }
 
-    // We may ack this if we are not currently in subspace 0.
+    // We may ack this if we are not subspace 0.
     newpend->mayack = kp.region.subspace != 0;
 
     // Clear out dead deferred updates
@@ -1028,18 +991,18 @@ hyperdex :: replication_manager :: erase_keyholder(const keypair& kp)
 bool
 hyperdex :: replication_manager :: from_disk(const regionid& r,
                                              const e::buffer& key,
-                                             bool* have_value,
+                                             bool* has_value,
                                              std::vector<e::buffer>* value,
                                              uint64_t* version)
 {
     switch (m_data->get(r, key, value, version))
     {
         case hyperdisk::SUCCESS:
-            *have_value = true;
+            *has_value = true;
             return true;
         case hyperdisk::NOTFOUND:
             *version = 0;
-            *have_value = false;
+            *has_value = false;
             return true;
         case hyperdisk::MISSINGDISK:
             LOG(ERROR) << "m_data returned MISSINGDISK.";
@@ -1063,19 +1026,24 @@ hyperdex :: replication_manager :: expected_dimensions(const regionid& ri) const
     return m_config.dimensionality(ri.get_space(), &dims) ? dims : -1;
 }
 
-static bool
-prev_and_next_helper(const hyperdex::configuration& config,
-                     const hyperdex::regionid& r,
-                     uint16_t* prev_subspace,
-                     uint16_t* next_subspace,
-                     std::vector<bool>* prev_dims,
-                     std::vector<bool>* this_dims,
-                     std::vector<bool>* next_dims)
+bool
+hyperdex :: replication_manager :: prev_and_next(const regionid& r,
+                                                 const e::buffer& key,
+                                                 bool has_newvalue,
+                                                 const std::vector<e::buffer>& newvalue,
+                                                 bool has_oldvalue,
+                                                 const std::vector<e::buffer>& oldvalue,
+                                                 e::intrusive_ptr<replication::pending> pend)
 {
-    // Count the number of subspaces for this space.
+    using hyperdex::hyperspace::replication_point;
     size_t subspaces;
+    uint16_t prev_subspace;
+    uint16_t next_subspace;
+    std::vector<bool> prev_dims;
+    std::vector<bool> this_dims;
+    std::vector<bool> next_dims;
 
-    if (!config.subspaces(r.get_space(), &subspaces))
+    if (!m_config.subspaces(r.get_space(), &subspaces))
     {
         return false;
     }
@@ -1083,96 +1051,69 @@ prev_and_next_helper(const hyperdex::configuration& config,
     // Discover the dimensions of the space which correspond to the
     // subspace in which "to" is located, and the subspaces before and
     // after it.
-    *prev_subspace = r.subspace > 0 ? r.subspace - 1 : subspaces - 1;
-    *next_subspace = r.subspace < subspaces - 1 ? r.subspace + 1 : 0;
+    prev_subspace = r.subspace > 0 ? r.subspace - 1 : subspaces - 1;
+    next_subspace = r.subspace < subspaces - 1 ? r.subspace + 1 : 0;
 
-    if (!config.dimensions(r.get_subspace(), this_dims)
-        || !config.dimensions(hyperdex::subspaceid(r.space, *prev_subspace), prev_dims)
-        || !config.dimensions(hyperdex::subspaceid(r.space, *next_subspace), next_dims))
+    if (!m_config.dimensions(r.get_subspace(), &this_dims)
+        || !m_config.dimensions(hyperdex::subspaceid(r.space, prev_subspace), &prev_dims)
+        || !m_config.dimensions(hyperdex::subspaceid(r.space, next_subspace), &next_dims))
     {
         return false;
     }
 
-    return true;
-}
+    uint64_t newkey_hash;
+    uint64_t oldkey_hash;
+    std::vector<uint64_t> newvalue_hashes;
+    std::vector<uint64_t> oldvalue_hashes;
 
-bool
-hyperdex :: replication_manager :: prev_and_next(const regionid& r,
-                                                 const e::buffer& key,
-                                                 const std::vector<e::buffer>& value,
-                                                 regionid* prev,
-                                                 regionid* next)
-{
-    uint16_t prev_subspace;
-    uint16_t next_subspace;
-    std::vector<bool> prev_dims;
-    std::vector<bool> this_dims;
-    std::vector<bool> next_dims;
-
-    if (!prev_and_next_helper(m_config, r, &prev_subspace, &next_subspace,
-                              &prev_dims, &this_dims, &next_dims))
+    if (has_newvalue)
     {
-        return false;
+        hyperspace::point_hashes(key, newvalue, &newkey_hash, &newvalue_hashes);
     }
 
-    uint64_t key_hash;
-    std::vector<uint64_t> value_hashes;
-    hyperspace::point_hashes(key, value, &key_hash, &value_hashes);
-    *prev = regionid(r.space, prev_subspace, 64, hyperspace::replication_point(key_hash, value_hashes, prev_dims));
-    *next = regionid(r.space, next_subspace, 64, hyperspace::replication_point(key_hash, value_hashes, next_dims));
-    return true;
-}
-
-bool
-hyperdex :: replication_manager :: prev_and_next(const regionid& r,
-                                                 const e::buffer& key,
-                                                 const std::vector<e::buffer>& old_value,
-                                                 const std::vector<e::buffer>& new_value,
-                                                 regionid* prev,
-                                                 regionid* next)
-{
-    using hyperspace::replication_point;
-    uint16_t prev_subspace;
-    uint16_t next_subspace;
-    std::vector<bool> prev_dims;
-    std::vector<bool> this_dims;
-    std::vector<bool> next_dims;
-
-    if (!prev_and_next_helper(m_config, r, &prev_subspace, &next_subspace,
-                              &prev_dims, &this_dims, &next_dims))
+    if (has_oldvalue)
     {
-        return false;
+        hyperspace::point_hashes(key, oldvalue, &oldkey_hash, &oldvalue_hashes);
     }
 
-    uint64_t old_key_hash;
-    std::vector<uint64_t> old_value_hashes;
-    hyperspace::point_hashes(key, old_value, &old_key_hash, &old_value_hashes);
-    uint64_t new_key_hash;
-    std::vector<uint64_t> new_value_hashes;
-    hyperspace::point_hashes(key, new_value, &new_key_hash, &new_value_hashes);
-
-    uint64_t oldpoint = replication_point(old_key_hash, old_value_hashes, this_dims);
-    uint64_t newpoint = replication_point(new_key_hash, new_value_hashes, this_dims);
-
-    if ((oldpoint & prefixmask(r.prefix)) == r.mask
-        && (newpoint & prefixmask(r.prefix)) == r.mask)
+    if (has_oldvalue && has_newvalue)
     {
-        *prev = regionid(r.space, prev_subspace, 64, replication_point(new_key_hash, new_value_hashes, prev_dims));
-        *next = regionid(r.space, next_subspace, 64, replication_point(old_key_hash, old_value_hashes, next_dims));
+        pend->prev = regionid(r.space, prev_subspace, 64, replication_point(newkey_hash, newvalue_hashes, prev_dims));
+        pend->this_old = regionid(r.get_subspace(), 64, replication_point(oldkey_hash, oldvalue_hashes, this_dims));
+        pend->this_new = regionid(r.get_subspace(), 64, replication_point(newkey_hash, newvalue_hashes, this_dims));
+        pend->next = regionid(r.space, next_subspace, 64, replication_point(oldkey_hash, oldvalue_hashes, next_dims));
     }
-    else if ((oldpoint & prefixmask(r.prefix)) == r.mask)
+    else if (has_oldvalue)
     {
-        *prev = regionid(r.space, prev_subspace, 64, replication_point(new_key_hash, new_value_hashes, prev_dims));
-        *next = regionid(r.get_subspace(), 64, newpoint);
+        pend->prev = regionid(r.space, prev_subspace, 64, replication_point(oldkey_hash, oldvalue_hashes, prev_dims));
+        pend->this_old = regionid(r.get_subspace(), 64, replication_point(oldkey_hash, oldvalue_hashes, this_dims));
+        pend->this_new = pend->this_old;
+        pend->next = regionid(r.space, next_subspace, 64, replication_point(oldkey_hash, oldvalue_hashes, next_dims));
     }
-    else if ((newpoint & prefixmask(r.prefix)) == r.mask)
+    else if (has_newvalue)
     {
-        *prev = regionid(r.get_subspace(), 64, oldpoint);
-        *next = regionid(r.space, next_subspace, 64, replication_point(old_key_hash, old_value_hashes, next_dims));
+        pend->prev = regionid(r.space, prev_subspace, 64, replication_point(newkey_hash, newvalue_hashes, prev_dims));
+        pend->this_old = regionid(r.get_subspace(), 64, replication_point(newkey_hash, newvalue_hashes, this_dims));
+        pend->this_new = pend->this_old;
+        pend->next = regionid(r.space, next_subspace, 64, replication_point(newkey_hash, newvalue_hashes, next_dims));
     }
     else
     {
         return false;
+    }
+
+    // A 'pending' object will never jump to another region, so if this_old or
+    // this_new intersects with the region now, it will forever.  To simplify
+    // logic elsewhere, we just set them to 'r' if they intersect so that
+    // elsewhere we can use equality tests of this_old and this_new.
+    if (overlap(r, pend->this_old))
+    {
+        pend->this_old = r;
+    }
+
+    if (overlap(r, pend->this_new))
+    {
+        pend->this_new = r;
     }
 
     return true;
@@ -1291,39 +1232,49 @@ hyperdex :: replication_manager :: send_update(const hyperdex::regionid& pending
                                                uint64_t version, const e::buffer& key,
                                                e::intrusive_ptr<pending> update)
 {
-    uint8_t fresh = update->fresh ? 1 : 0;
+    assert(pending_in == update->this_old || pending_in == update->this_new);
 
-    e::buffer info;
-    info.pack() << version << key;
-
-    e::buffer msg;
-    e::packer pack(&msg);
-    pack << version << fresh << key;
-
-    network_msgtype type;
-
-    if (update->has_value)
+    if (update->this_old == update->this_new)
     {
-        pack << update->value;
-        type = CHAIN_PUT;
+        uint8_t fresh = update->fresh ? 1 : 0;
+        e::buffer msg;
+        e::packer pack(&msg);
+        pack << version << fresh << key;
+        network_msgtype type;
+
+        if (update->has_value)
+        {
+            pack << update->value;
+            type = CHAIN_PUT;
+        }
+        else
+        {
+            type = CHAIN_DEL;
+        }
+
+        e::buffer info;
+        info.pack() << version << key;
+
+        if (update->next.subspace == 0)
+        {
+            // If we there is someone else in the chain, send the PUT or DEL pending
+            // message to them.  If not, then send a PENDING message to the tail of
+            // the first subspace.
+            m_comm->send_forward_else_tail(pending_in, type, msg, update->next, CHAIN_PENDING, info);
+        }
+        else
+        {
+            m_comm->send_forward_else_head(pending_in, type, msg, update->next, type, msg);
+        }
+
+        if (update->this_old.subspace == 0 && update->mayack)
+        {
+            m_comm->send_backward(pending_in, CHAIN_PENDING, info);
+        }
     }
     else
     {
-        type = CHAIN_DEL;
-    }
-
-    // If we are at the last subspace in the chain.
-    if (update->_next.subspace == 0)
-    {
-        // If we there is someone else in the chain, send the PUT or DEL pending
-        // message to them.  If not, then send a PENDING message to the tail of
-        // the first subspace.
-        m_comm->send_forward_else_tail(pending_in, type, msg, update->_next, CHAIN_PENDING, info);
-    }
-    // Else we're in the middle of the chain.
-    else
-    {
-        m_comm->send_forward_else_head(pending_in, type, msg, update->_next, type, msg);
+        LOG(FATAL) << "Subspace transfer not implemented!";
     }
 }
 
@@ -1335,8 +1286,17 @@ hyperdex :: replication_manager :: send_ack(const regionid& pending_in,
 {
     e::buffer msg;
     msg.pack() << version << key;
-    m_comm->send_backward_else_tail(pending_in, CHAIN_ACK, msg,
-                                    update->_prev, CHAIN_ACK, msg);
+
+    if (pending_in == update->this_old)
+    {
+        m_comm->send_backward_else_tail(pending_in, CHAIN_ACK, msg,
+                                        update->prev, CHAIN_ACK, msg);
+    }
+    else if (pending_in == update->this_new)
+    {
+        m_comm->send_backward_else_tail(pending_in, CHAIN_ACK, msg,
+                                        update->this_old, CHAIN_ACK, msg);
+    }
 }
 
 void

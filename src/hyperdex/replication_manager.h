@@ -118,18 +118,15 @@ class replication_manager
         e::intrusive_ptr<replication::keyholder> get_keyholder(const replication::keypair& kp);
         void erase_keyholder(const replication::keypair& kp);
         bool from_disk(const regionid& r, const e::buffer& key,
-                       bool* have_value, std::vector<e::buffer>* value,
+                       bool* has_value, std::vector<e::buffer>* value,
                        uint64_t* version);
         size_t expected_dimensions(const regionid& ri) const;
         // Figure out the previous and next individuals to send to/receive from
         // for messages.
         bool prev_and_next(const regionid& r, const e::buffer& key,
-                           const std::vector<e::buffer>& value,
-                           regionid* prev, regionid* next);
-        bool prev_and_next(const regionid& r, const e::buffer& key,
-                           const std::vector<e::buffer>& oldvalue,
-                           const std::vector<e::buffer>& value,
-                           regionid* prev, regionid* next);
+                           bool has_newvalue, const std::vector<e::buffer>& newvalue,
+                           bool has_oldvalue, const std::vector<e::buffer>& oldvalue,
+                           e::intrusive_ptr<replication::pending> pend);
         // If there are no messages in the pending queue, move all blocked
         // messages (up until the first DEL/PUT) to the queue of pending
         // messages, and send out messages to the next individuals in the chain.
@@ -174,6 +171,7 @@ class replication_manager
                                         const regionid& chain, const regionid& tail);
         bool sent_forward_or_from_tail(const entityid& from, const entityid& to,
                                        const regionid& chain, const regionid& tail);
+        bool is_point_leader(const entityid& r) { return r.subspace == 0 && r.number == 0; }
 
     private:
         datalayer* m_data;

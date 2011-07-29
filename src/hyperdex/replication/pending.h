@@ -51,8 +51,10 @@ class pending
         bool acked;
         bool ondisk; // True if the pending update is already on disk.
         bool mayack; // True if it is OK to receive ACK messages.
-        regionid _prev;
-        regionid _next;
+        regionid prev;
+        regionid this_old;
+        regionid this_new;
+        regionid next;
 
     private:
         friend class e::intrusive_ptr<pending>;
@@ -72,8 +74,10 @@ pending :: pending(bool hv,
     , acked(false)
     , ondisk(false)
     , mayack(false)
-    , _prev()
-    , _next()
+    , prev()
+    , this_old()
+    , this_new()
+    , next()
     , m_ref(0)
 {
 }
