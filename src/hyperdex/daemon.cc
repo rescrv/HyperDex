@@ -205,14 +205,3 @@ hyperdex :: daemon(po6::pathname datadir,
 
     return EXIT_SUCCESS;
 }
-
-#if 0
-    catch (po6::error& e)
-    {
-        LOG(ERROR) << "Uncaught system error:  " << e.what();
-    }
-    catch (std::bad_alloc& ba)
-    {
-        LOG(ERROR) << "Out of memory:  " << ba.what();
-    }
-#endif
