@@ -317,6 +317,84 @@ hyperdex :: replication_manager :: chain_pending(const entityid& from,
 }
 
 void
+hyperdex :: replication_manager :: chain_subspace(const entityid& from,
+                                                  const entityid& to,
+                                                  uint64_t version,
+                                                  const e::buffer& key,
+                                                  const std::vector<e::buffer>& value,
+                                                  uint64_t nextpoint)
+{
+    // Grab the lock that protects this keypair.
+    keypair kp(to.get_region(), key);
+    e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, get_lock_num(kp));
+
+    // Get a reference to the keyholder for the keypair.
+    e::intrusive_ptr<keyholder> kh = get_keyholder(kp);
+
+    // Check that the reference is valid.
+    if (!kh)
+    {
+        return;
+    }
+
+    // Check that a chain's put matches the dimensions of the space.
+    if (expected_dimensions(kp.region) != value.size() + 1)
+    {
+        return;
+    }
+
+    std::map<uint64_t, e::intrusive_ptr<pending> >::iterator lower_bound;
+    lower_bound = kh->pending_updates.lower_bound(version);
+
+    if (lower_bound != kh->pending_updates.end() && lower_bound->first > version)
+    {
+        LOG(INFO) << "received a CHAIN_SUBSPACE message for a revision less than what we've seen.";
+    }
+    else if (lower_bound != kh->pending_updates.end())
+    {
+        return; // This is a retransmission.
+    }
+
+    size_t subspaces;
+    uint16_t next_subspace;
+
+    if (!m_config.subspaces(to.get_space(), &subspaces))
+    {
+        return;
+    }
+
+    next_subspace = to.subspace < subspaces - 1 ? to.subspace + 1 : 0;
+
+    // Create a new pending object to set as pending.
+    e::intrusive_ptr<pending> newpend;
+    newpend = new pending(true, value);
+    newpend->prev = regionid();
+    newpend->this_old = from.get_region();
+    newpend->this_new = to.get_region();
+    newpend->next = regionid(to.space, next_subspace, 64, nextpoint);
+
+    if (!sent_forward_or_from_tail(from, to, newpend->this_new, newpend->this_old))
+    {
+        LOG(INFO) << "dropping CHAIN_SUBSPACE message which didn't come from the right host.";
+        return;
+    }
+
+    // We may ack this if we are not subspace 0.
+    newpend->mayack = kp.region.subspace != 0;
+
+    // Clear out dead deferred updates
+    while (kh->deferred_updates.begin() != kh->deferred_updates.end()
+           && kh->deferred_updates.begin()->first <= version)
+    {
+        kh->deferred_updates.erase(kh->deferred_updates.begin());
+    }
+
+    kh->pending_updates.insert(std::make_pair(version, newpend));
+    send_update(to.get_region(), version, key, newpend);
+    move_deferred_to_pending(kh);
+}
+
+void
 hyperdex :: replication_manager :: chain_ack(const entityid& from,
                                              const entityid& to,
                                              uint64_t version,
@@ -344,13 +422,22 @@ hyperdex :: replication_manager :: chain_ack(const entityid& from,
     }
 
     e::intrusive_ptr<pending> pend = to_ack->second;
+    bool drop = false;
 
-    // Check that the ack came from someone authorized to send it.
-    if (!(to.get_region() == pend->this_old &&
-          sent_backward_or_from_head(from, to, pend->this_old, pend->next))
-            &&
-        !(to.get_region() == pend->this_new &&
-          sent_backward_or_from_head(from, to, pend->this_new, pend->next)))
+    if (pend->this_old == pend->this_new && to.get_region() == pend->this_old)
+    {
+        drop = !sent_backward_or_from_head(from, to, pend->this_old, pend->next);
+    }
+    else if (to.get_region() == pend->this_old)
+    {
+        drop = !sent_backward_or_from_head(from, to, pend->this_old, pend->this_new);
+    }
+    else if (to.get_region() == pend->this_new)
+    {
+        drop = !sent_backward_or_from_head(from, to, pend->this_new, pend->next);
+    }
+
+    if (drop)
     {
         LOG(INFO) << "dropping inappropriately routed CHAIN_ACK";
         return;
@@ -1234,7 +1321,7 @@ hyperdex :: replication_manager :: send_update(const hyperdex::regionid& pending
 {
     assert(pending_in == update->this_old || pending_in == update->this_new);
 
-    if (update->this_old == update->this_new)
+    if (update->this_old == update->this_new || pending_in == update->this_new)
     {
         uint8_t fresh = update->fresh ? 1 : 0;
         e::buffer msg;
@@ -1274,7 +1361,15 @@ hyperdex :: replication_manager :: send_update(const hyperdex::regionid& pending
     }
     else
     {
-        LOG(FATAL) << "Subspace transfer not implemented!";
+        assert(pending_in == update->this_old);
+        assert(update->has_value);
+        uint8_t fresh = update->fresh ? 1 : 0;
+        e::buffer oldmsg;
+        oldmsg.pack() << version << fresh << key << update->value;
+        e::buffer newmsg;
+        newmsg.pack() << version << key << update->value << update->next.mask;
+        m_comm->send_forward_else_head(update->this_old, CHAIN_PUT, oldmsg,
+                                       update->this_new, CHAIN_SUBSPACE, newmsg);
     }
 }
 

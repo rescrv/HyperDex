@@ -184,6 +184,15 @@ hyperdex :: network_worker :: run()
                 msg.unpack() >> version >> key;
                 m_repl->chain_pending(from, to, version, key);
             }
+            else if (type == CHAIN_SUBSPACE)
+            {
+                uint64_t version;
+                e::buffer key;
+                std::vector<e::buffer> value;
+                uint64_t nextpoint;
+                msg.unpack() >> version >> key >> value >> nextpoint;
+                m_repl->chain_subspace(from, to, version, key, value, nextpoint);
+            }
             else if (type == CHAIN_ACK)
             {
                 e::buffer key;

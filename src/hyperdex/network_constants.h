@@ -61,7 +61,8 @@ enum network_msgtype
     CHAIN_PUT       = 64,
     CHAIN_DEL       = 65,
     CHAIN_PENDING   = 66,
-    CHAIN_ACK       = 67,
+    CHAIN_SUBSPACE  = 67,
+    CHAIN_ACK       = 68,
 
     XFER_MORE       = 96,
     XFER_DATA       = 97,

@@ -88,6 +88,9 @@ class replication_manager
                        const std::vector<e::buffer>& value);
         void chain_del(const entityid& from, const entityid& to, uint64_t rev,
                        const e::buffer& key);
+        void chain_subspace(const entityid& from, const entityid& to, uint64_t rev,
+                            const e::buffer& key,
+                            const std::vector<e::buffer>& value, uint64_t nextpoint);
         void chain_pending(const entityid& from, const entityid& to,
                            uint64_t rev, const e::buffer& key);
         void chain_ack(const entityid& from, const entityid& to, uint64_t rev,
