@@ -398,10 +398,11 @@ hyperdex :: client :: search(const std::string& space,
 }
 
 hyperdex :: client :: priv :: priv(const po6::net::location& coordinator)
-    : cl(coordinator, "client")
+    : cl(coordinator)
     , config()
     , channels()
 {
+    cl.set_announce("client");
 }
 
 hyperdex :: client :: priv :: ~priv() throw ()

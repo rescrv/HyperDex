@@ -57,8 +57,7 @@ class coordinatorlink
         };
 
     public:
-        coordinatorlink(const po6::net::location& coordinator,
-                        const std::string& announce);
+        coordinatorlink(const po6::net::location& coordinator);
         ~coordinatorlink() throw ();
 
     // Unacknowledged is true if the current configuration has not been
@@ -69,6 +68,7 @@ class coordinatorlink
         returncode acknowledge();
 
     public:
+        void set_announce(const std::string& announce) { m_announce = announce + "\n"; }
         returncode connect();
         returncode loop(size_t iterations, int timeout);
         void shutdown();
@@ -91,7 +91,7 @@ class coordinatorlink
 
     private:
         const po6::net::location m_coordinator;
-        const std::string m_announce;
+        std::string m_announce;
         bool m_shutdown;
         bool m_acknowledged;
         bool m_config_valid;

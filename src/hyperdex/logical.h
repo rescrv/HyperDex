@@ -40,6 +40,7 @@
 
 // Configuration
 #include <configuration/configuration.h>
+#include <configuration/coordinatorlink.h>
 
 // HyperDex
 #include <hyperdex/instance.h>
@@ -52,7 +53,7 @@ namespace hyperdex
 class logical
 {
     public:
-        logical(const po6::net::ipaddr& us);
+        logical(coordinatorlink* cl, const po6::net::ipaddr& us);
         ~logical();
 
     public:
@@ -125,6 +126,7 @@ class logical
         bool our_position(const regionid& r, entityid* e);
 
     private:
+        coordinatorlink* m_cl;
         instance m_us;
         po6::threads::rwlock m_client_lock;
         configuration m_config;

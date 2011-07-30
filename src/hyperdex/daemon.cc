@@ -80,21 +80,23 @@ hyperdex :: daemon(po6::pathname datadir,
         return EXIT_FAILURE;
     }
 
+    // Setup our link to the coordinator.
+    coordinatorlink cl(coordinator);
     // Setup the data component.
-    datalayer data; // XXX Pass in the proper directory
+    datalayer data(&cl); // XXX Pass in the proper directory
     // Setup the communication component.
-    logical comm(bind_to);
+    logical comm(&cl, bind_to);
     comm.pause(); // Pause is idempotent.  The first unpause will cancel this one.
-    // Setup the search component.
-    searches ssss(&data, &comm);
-    // Setup the replication component.
-    replication_manager repl(&data, &comm);
     // Create our announce string.
     std::ostringstream announce;
     announce << "instance\t" << comm.inst().inbound << "\t"
                              << comm.inst().outbound;
-    // Setup our link to the coordinator.
-    coordinatorlink cl(coordinator, announce.str());
+    cl.set_announce(announce.str());
+    // Setup the search component.
+    searches ssss(&cl, &data, &comm);
+    // Setup the replication component.
+    replication_manager repl(&cl, &data, &comm);
+
     LOG(INFO) << "Connecting to the coordinator.";
 
     while (s_continue && cl.connect() != coordinatorlink::SUCCESS)

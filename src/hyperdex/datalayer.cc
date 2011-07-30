@@ -56,8 +56,9 @@
 typedef e::intrusive_ptr<hyperdisk::disk> disk_ptr;
 typedef std::map<hyperdex::regionid, disk_ptr> disk_map_t;
 
-hyperdex :: datalayer :: datalayer()
-    : m_shutdown(false)
+hyperdex :: datalayer :: datalayer(coordinatorlink* cl)
+    : m_cl(cl)
+    , m_shutdown(false)
     , m_base("")
     , m_flusher(std::tr1::bind(&datalayer::flush_loop, this))
     , m_lock()

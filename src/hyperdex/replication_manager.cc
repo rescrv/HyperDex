@@ -60,8 +60,11 @@ using hyperdex::replication::pending;
 using hyperdex::replication::transfer_in;
 using hyperdex::replication::transfer_out;
 
-hyperdex :: replication_manager :: replication_manager(datalayer* data, logical* comm)
-    : m_data(data)
+hyperdex :: replication_manager :: replication_manager(coordinatorlink* cl,
+                                                       datalayer* data,
+                                                       logical* comm)
+    : m_cl(cl)
+    , m_data(data)
     , m_comm(comm)
     , m_config()
     , m_locks(LOCK_STRIPING)

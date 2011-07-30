@@ -43,6 +43,7 @@
 
 // Configuration
 #include <configuration/configuration.h>
+#include <configuration/coordinatorlink.h>
 
 // HyperDex
 #include <hyperdex/datalayer.h>
@@ -64,7 +65,7 @@ namespace hyperdex
 class replication_manager
 {
     public:
-        replication_manager(datalayer* dl, logical* comm);
+        replication_manager(coordinatorlink* cl, datalayer* dl, logical* comm);
         ~replication_manager() throw ();
 
     // Reconfigure this layer.
@@ -175,6 +176,7 @@ class replication_manager
         bool is_point_leader(const entityid& r) { return r.subspace == 0 && r.number == 0; }
 
     private:
+        coordinatorlink* m_cl;
         datalayer* m_data;
         logical* m_comm;
         configuration m_config;

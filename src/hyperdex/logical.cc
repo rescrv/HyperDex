@@ -40,8 +40,9 @@
 #include <hyperdex/logical.h>
 #include <hyperdex/hyperspace.h>
 
-hyperdex :: logical :: logical(const po6::net::ipaddr& ip)
-    : m_us()
+hyperdex :: logical :: logical(coordinatorlink* cl, const po6::net::ipaddr& ip)
+    : m_cl(cl)
+    , m_us()
     , m_client_lock()
     , m_config()
     , m_mapping()

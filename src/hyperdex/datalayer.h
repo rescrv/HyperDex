@@ -46,6 +46,7 @@
 
 // Configuration
 #include <configuration/configuration.h>
+#include <configuration/coordinatorlink.h>
 
 // HyperDex
 #include <hyperdex/ids.h>
@@ -57,7 +58,7 @@ namespace hyperdex
 class datalayer
 {
     public:
-        datalayer();
+        datalayer(coordinatorlink* cl);
         ~datalayer() throw ();
 
     public:
@@ -92,6 +93,7 @@ class datalayer
         datalayer& operator = (const datalayer&);
 
     private:
+        coordinatorlink* m_cl;
         bool m_shutdown;
         po6::pathname m_base;
         po6::threads::thread m_flusher;

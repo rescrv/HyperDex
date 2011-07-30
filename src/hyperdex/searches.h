@@ -34,6 +34,9 @@
 // e
 #include <e/lockfree_hash_map.h>
 
+// Configuration
+#include <configuration/coordinatorlink.h>
+
 // HyperDex
 #include <hyperdex/datalayer.h>
 #include <hyperdex/ids.h>
@@ -46,7 +49,7 @@ namespace hyperdex
 class searches
 {
     public:
-        searches(datalayer* data, logical* comm);
+        searches(coordinatorlink* cl, datalayer* data, logical* comm);
         ~searches() throw ();
 
     public:
@@ -89,6 +92,7 @@ class searches
         searches& operator = (const searches&);
 
     private:
+        coordinatorlink* m_cl;
         datalayer* m_data;
         logical* m_comm;
         e::lockfree_hash_map<std::pair<entityid, uint32_t>, e::intrusive_ptr<search_state>, hash> m_searches;

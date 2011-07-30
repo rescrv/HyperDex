@@ -31,8 +31,11 @@
 // HyperDex
 #include <hyperdex/searches.h>
 
-hyperdex :: searches :: searches(datalayer* data, logical* comm)
-    : m_data(data)
+hyperdex :: searches :: searches(coordinatorlink* cl,
+                                 datalayer* data,
+                                 logical* comm)
+    : m_cl(cl)
+    , m_data(data)
     , m_comm(comm)
     , m_searches(16)
 {

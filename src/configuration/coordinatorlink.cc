@@ -31,10 +31,9 @@
 // Configuration
 #include <configuration/coordinatorlink.h>
 
-hyperdex :: coordinatorlink :: coordinatorlink(const po6::net::location& coordinator,
-                                               const std::string& announce)
+hyperdex :: coordinatorlink :: coordinatorlink(const po6::net::location& coordinator)
     : m_coordinator(coordinator)
-    , m_announce(announce + "\n")
+    , m_announce()
     , m_shutdown(false)
     , m_acknowledged(true)
     , m_config_valid(true)
