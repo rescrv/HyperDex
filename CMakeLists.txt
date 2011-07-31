@@ -199,6 +199,16 @@ target_link_libraries(binary
     configuration
 )
 
+# Build replication test
+add_executable(repl-test src/bin/repl-test.cc)
+target_link_libraries(repl-test
+    hyperdex
+    cityhash
+    rt
+    hyperdisk
+    configuration
+)
+
 # Tests
 
 set(hyperdex_test_srcs
