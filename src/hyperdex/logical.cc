@@ -244,10 +244,10 @@ hyperdex :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
             case physical::SUCCESS:
                 break;
             case physical::DISCONNECT:
-                LOG(INFO) << "XXX Tell the master we observed a disconnect.";
+                handle_disconnect(loc);
                 continue;
             case physical::CONNECTFAIL:
-                LOG(ERROR) << "physical::recv unexpectedly returned CONNECTFAIL.";
+                handle_connectfail(loc);
                 continue;
             case physical::QUEUED:
                 LOG(ERROR) << "physical::recv unexpectedly returned QUEUED.";
@@ -298,8 +298,8 @@ hyperdex :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
                 if (!m_client_nums.lookup(loc, &client_num))
                 {
                     client_num = __sync_add_and_fetch(&m_client_counter, 1);
-                    m_client_nums.insert(loc, client_num);
                     m_client_locs.insert(client_num, loc);
+                    m_client_nums.insert(loc, client_num);
                 }
 
                 from->mask = client_num;
@@ -346,6 +346,38 @@ hyperdex :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
             || m_us.inbound_version != tover); // Try again because it is to an older version of us.
 
     return true;
+}
+
+void
+hyperdex :: logical :: handle_connectfail(const po6::net::location& loc)
+{
+    if (m_client_nums.contains(loc))
+    {
+        uint64_t client_num = 0;
+        m_client_nums.lookup(loc, &client_num);
+        m_client_nums.remove(loc);
+        m_client_locs.remove(client_num);
+    }
+    else
+    {
+        LOG(INFO) << "XXX Tell the master we observed a connection failure to " << loc;
+    }
+}
+
+void
+hyperdex :: logical :: handle_disconnect(const po6::net::location& loc)
+{
+    if (m_client_nums.contains(loc))
+    {
+        uint64_t client_num = 0;
+        m_client_nums.lookup(loc, &client_num);
+        m_client_nums.remove(loc);
+        m_client_locs.remove(client_num);
+    }
+    else
+    {
+        LOG(INFO) << "XXX Tell the master we observed a disconnect from " << loc;
+    }
 }
 
 bool
@@ -411,10 +443,10 @@ hyperdex :: logical :: send_you_hold_lock(const hyperdex::entityid& from,
             case physical::QUEUED:
                 break;
             case physical::CONNECTFAIL:
-                LOG(INFO) << "XXX Tell the master we observed a connection failure to " << dst;
+                handle_connectfail(dst);
                 return false;
             case physical::DISCONNECT:
-                LOG(INFO) << "XXX Tell the master we observed a disconnect from " << dst;
+                handle_disconnect(dst);
                 return false;
             case physical::SHUTDOWN:
                 LOG(ERROR) << "physical::recv unexpectedly returned SHUTDOWN.";

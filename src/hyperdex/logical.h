@@ -122,6 +122,9 @@ class logical
         logical& operator = (const logical&);
 
     private:
+        void handle_connectfail(const po6::net::location& loc);
+        void handle_disconnect(const po6::net::location& loc);
+
         // These assume that the mapping lock is held for at least reading.
         bool send_you_hold_lock(const entityid& from,
                                 const entityid& to,
