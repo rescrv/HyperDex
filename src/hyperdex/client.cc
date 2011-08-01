@@ -587,11 +587,16 @@ hyperdex :: client :: priv :: recv(e::intrusive_ptr<channel> chan,
             up.leftovers(resp_msg);
             *resp_stat = static_cast<network_returncode>(response);
 
+            if (chan->id == entityid(UINT32_MAX))
+            {
+                chan->id = to;
+            }
+
             if (type == resp_type &&
                 fromver == inst.inbound_version &&
                 tover == 0 &&
                 from == ent &&
-                (to == chan->id || chan->id == entityid(UINT32_MAX)) &&
+                to == chan->id &&
                 nonce == expected_nonce)
             {
                 return SUCCESS;
