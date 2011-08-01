@@ -174,7 +174,8 @@ hyperdex :: network_worker :: run()
             {
                 e::buffer key;
                 uint64_t version;
-                msg.unpack() >> version >> key;
+				uint8_t nop; // XXX remove; it's meaningless for a del.
+                msg.unpack() >> version >> nop >> key;
                 m_repl->chain_del(from, to, version, key);
             }
             else if (type == CHAIN_PENDING)
