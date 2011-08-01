@@ -54,6 +54,10 @@ class transfer_out
         friend class e::intrusive_ptr<transfer_out>;
 
     private:
+        void inc() { __sync_add_and_fetch(&m_ref, 1); }
+        void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
+
+    private:
         size_t m_ref;
 };
 

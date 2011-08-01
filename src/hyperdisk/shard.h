@@ -64,6 +64,10 @@ class shard
                 snapshot(e::intrusive_ptr<shard> d);
 
             private:
+                void inc() { __sync_add_and_fetch(&m_ref, 1); }
+                void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
+
+            private:
                 size_t m_ref;
                 bool m_valid;
                 e::intrusive_ptr<shard> m_shard;
@@ -169,6 +173,8 @@ class shard
         void data_value(uint32_t offset, size_t keysize, std::vector<e::buffer>* value) const;
 
     private:
+        void inc() { __sync_add_and_fetch(&m_ref, 1); }
+        void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
         // Find the bucket for the given key.  If the key is already in the
         // table, then bucket will be stored in entry (and hence, the hash and
         // offset of that bucket will be from the older version of the key).  If

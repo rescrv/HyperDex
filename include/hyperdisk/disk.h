@@ -78,6 +78,10 @@ class disk
                 snapshot(const snapshot&);
 
             private:
+                void inc() { __sync_add_and_fetch(&m_ref, 1); }
+                void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
+
+            private:
                 snapshot& operator = (const snapshot&);
 
             private:
@@ -101,6 +105,10 @@ class disk
             private:
                 friend class e::intrusive_ptr<rolling_snapshot>;
                 friend class disk;
+
+            private:
+                void inc() { __sync_add_and_fetch(&m_ref, 1); }
+                void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
 
             private:
                 rolling_snapshot(const hyperdisk::log::iterator& iter, e::intrusive_ptr<snapshot> snap);
@@ -144,6 +152,8 @@ class disk
         friend class e::intrusive_ptr<disk>;
 
     private:
+        void inc() { __sync_add_and_fetch(&m_ref, 1); }
+        void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
         // Create/drop shard requires exclusive access to m_shards (m_rwlock as a
         // write lock).
         e::intrusive_ptr<hyperdisk::shard> create_shard(const hyperdex::regionid& ri);
