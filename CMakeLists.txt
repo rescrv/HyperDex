@@ -44,16 +44,7 @@ set(BUILD_SHARED_LIBS ON)
 # Enable testing
 ENABLE_TESTING()
 
-###############################################################################
-###############################  CityHash  ####################################
-###############################################################################
-
-# The CityHash project courtesy of Google
-set(cityhash_srcs
-    src/city/city.cc
-)
-
-add_library(cityhash STATIC ${cityhash_srcs})
+add_subdirectory(cityhash)
 
 ###############################################################################
 ###############################  HyperDisk  ###################################
