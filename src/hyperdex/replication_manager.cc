@@ -1415,7 +1415,7 @@ hyperdex :: replication_manager :: send_update(const hyperdex::regionid& pending
 {
     assert(pending_in == update->this_old || pending_in == update->this_new);
 
-    if (update->this_old == update->this_new || pending_in == update->this_new)
+    if (update->this_old == update->this_new)
     {
         uint8_t fresh = update->fresh ? 1 : 0;
         e::buffer msg;
@@ -1453,9 +1453,8 @@ hyperdex :: replication_manager :: send_update(const hyperdex::regionid& pending
             m_comm->send_backward(pending_in, CHAIN_PENDING, info);
         }
     }
-    else
+    else if (pending_in == update->this_old)
     {
-        assert(pending_in == update->this_old);
         assert(update->has_value);
         uint8_t fresh = update->fresh ? 1 : 0;
         e::buffer oldmsg;
@@ -1464,6 +1463,21 @@ hyperdex :: replication_manager :: send_update(const hyperdex::regionid& pending
         newmsg.pack() << version << key << update->value << update->next.mask;
         m_comm->send_forward_else_head(update->this_old, CHAIN_PUT, oldmsg,
                                        update->this_new, CHAIN_SUBSPACE, newmsg);
+    }
+    else if (pending_in == update->this_new)
+    {
+        assert(update->has_value);
+        uint8_t fresh = update->fresh ? 1 : 0;
+        e::buffer oldmsg;
+        oldmsg.pack() << version << key << update->value << update->next.mask;
+        e::buffer newmsg;
+        newmsg.pack() << version << fresh << key << update->value;
+        m_comm->send_forward_else_head(update->this_new, CHAIN_SUBSPACE, oldmsg,
+                                       update->next, CHAIN_PUT, newmsg);
+    }
+    else
+    {
+        LOG(INFO) << "There is a case for \"send_update\" which is not handled.";
     }
 }
 
