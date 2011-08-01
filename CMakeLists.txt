@@ -34,8 +34,6 @@ find_package(PkgConfig REQUIRED)
 pkg_search_module(GLOG REQUIRED libglog)
 
 # Setup the include paths
-include_directories(include)
-include_directories(src)
 include_directories(SYSTEM ${GLOG_INCLUDE_DIRS})
 
 # Enable shared libraries
