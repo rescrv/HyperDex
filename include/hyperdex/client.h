@@ -49,7 +49,7 @@ enum status
     NOTFOUND    = 1,
     WRONGARITY  = 2,
     NOTASPACE   = 8,
-    BADSEARCH   = 8,
+    BADSEARCH   = 9,
     COORDFAIL   = 16,
     SERVERERROR = 17,
     CONNECTFAIL = 18,
