@@ -54,6 +54,7 @@
 #define TRANSFERS_IN_FLIGHT 1000
 
 using hyperdex::replication::clientop;
+using hyperdex::replication::deferred;
 using hyperdex::replication::keyholder;
 using hyperdex::replication::keypair;
 using hyperdex::replication::pending;
@@ -393,16 +394,9 @@ hyperdex :: replication_manager :: chain_subspace(const entityid& from,
     // We may ack this if we are not subspace 0.
     newpend->mayack = kp.region.subspace != 0;
 
-    // Clear out dead deferred updates
-    while (kh->deferred_updates.begin() != kh->deferred_updates.end()
-           && kh->deferred_updates.begin()->first <= version)
-    {
-        kh->deferred_updates.erase(kh->deferred_updates.begin());
-    }
-
     kh->pending_updates.insert(std::make_pair(version, newpend));
     send_update(to.get_region(), version, key, newpend);
-    move_deferred_to_pending(kh);
+    move_deferred_to_pending(to, key, kh);
 }
 
 void
@@ -891,6 +885,7 @@ hyperdex :: replication_manager :: chain_common(bool has_value,
     }
 
     // Figure out what to do with the updateI
+    bool defer = false;
     const uint64_t oldversion = version - 1;
     bool has_oldvalue = false;
     std::vector<e::buffer> oldvalue;
@@ -925,8 +920,7 @@ hyperdex :: replication_manager :: chain_common(bool has_value,
         }
         else
         {
-            // XXX DEFER THE UPDATE.
-            return;
+            defer = true;
         }
     }
     // If the version is committed.
@@ -967,7 +961,15 @@ hyperdex :: replication_manager :: chain_common(bool has_value,
     }
     else
     {
-        // XXX DEFER THE UPDATE.
+        defer = true;
+    }
+
+    // If the update needs to be deferred.
+    if (defer)
+    {
+        e::intrusive_ptr<deferred> newdefer;
+        newdefer = new deferred(has_value, value, from, m_config.lookup(from));
+        kh->deferred_updates.insert(std::make_pair(version, newdefer));
         return;
     }
 
@@ -991,16 +993,9 @@ hyperdex :: replication_manager :: chain_common(bool has_value,
     // We may ack this if we are not subspace 0.
     newpend->mayack = kp.region.subspace != 0;
 
-    // Clear out dead deferred updates
-    while (kh->deferred_updates.begin() != kh->deferred_updates.end()
-           && kh->deferred_updates.begin()->first <= version)
-    {
-        kh->deferred_updates.erase(kh->deferred_updates.begin());
-    }
-
     kh->pending_updates.insert(std::make_pair(version, newpend));
     send_update(to.get_region(), version, key, newpend);
-    move_deferred_to_pending(kh);
+    move_deferred_to_pending(to, key, kh);
 }
 
 size_t
@@ -1327,12 +1322,90 @@ hyperdex :: replication_manager :: unblock_messages(const regionid& r,
     while (!kh->blocked_updates.empty() && !kh->blocked_updates.begin()->second->fresh);
 }
 
+// Invariant:  the lock for the keyholder must be held.
 void
-hyperdex :: replication_manager :: move_deferred_to_pending(e::intrusive_ptr<keyholder> kh)
+hyperdex :: replication_manager :: move_deferred_to_pending(const entityid& to,
+                                                            const e::buffer& key,
+                                                            e::intrusive_ptr<keyholder> kh)
 {
-    // XXX We just drop deferred messages as it doesn't hurt correctness
-    // (however, a bad move from deferred to pending will).
-    kh->deferred_updates.clear();
+    while (!kh->deferred_updates.empty())
+    {
+        const uint64_t version = kh->deferred_updates.begin()->first;
+        deferred& defrd(*kh->deferred_updates.begin()->second);
+
+        // Figure out what to do with the updateI
+        const uint64_t oldversion = version - 1;
+        bool has_oldvalue = false;
+        std::vector<e::buffer> oldvalue;
+        std::map<uint64_t, e::intrusive_ptr<pending> >::iterator smallest_pending;
+        std::map<uint64_t, e::intrusive_ptr<pending> >::iterator olditer;
+        smallest_pending = kh->pending_updates.begin();
+
+        // If nothing is pending.
+        if (smallest_pending == kh->pending_updates.end())
+        {
+            // We know that "move_deferred_to_pending" will only be called when
+            // something has just been added to pending.  Thus, this case should
+            // not happen.
+            LOG(ERROR) << "There is a programming error in \"move_deferred_to_pending\".";
+            kh->deferred_updates.clear();
+            return;
+        }
+        // If the version is committed.
+        else if (smallest_pending->first >= version)
+        {
+            kh->deferred_updates.erase(kh->deferred_updates.begin());
+            continue;
+        }
+        // If the update is pending already.
+        else if (kh->pending_updates.find(version) != kh->pending_updates.end())
+        {
+            kh->deferred_updates.erase(kh->deferred_updates.begin());
+            continue;
+        }
+        // If the oldversion is pending.
+        else if ((olditer = kh->pending_updates.find(oldversion)) != kh->pending_updates.end())
+        {
+            has_oldvalue = olditer->second->has_value;
+            oldvalue = olditer->second->value;
+            // Fallthrough to set pending.
+        }
+        // Oldversion is committed
+        else if (smallest_pending->first > oldversion)
+        {
+            kh->deferred_updates.erase(kh->deferred_updates.begin());
+            continue;
+        }
+        else
+        {
+            // We'd still defer this update.
+            break;
+        }
+
+        // Create a new pending object to set as pending.
+        e::intrusive_ptr<pending> newpend;
+        newpend = new pending(defrd.has_value, defrd.value);
+
+        if (!prev_and_next(to.get_region(), key, defrd.has_value, defrd.value,
+                           has_oldvalue, oldvalue, newpend))
+        {
+            kh->deferred_updates.erase(kh->deferred_updates.begin());
+            continue;
+        }
+
+        if (!(defrd.from_ent.get_region() == newpend->this_old &&
+              sent_forward_or_from_tail(defrd.from_ent, to, newpend->this_old, newpend->prev)))
+        {
+            kh->deferred_updates.erase(kh->deferred_updates.begin());
+            continue;
+        }
+
+        // We may ack this if we are not subspace 0.
+        newpend->mayack = to.subspace != 0;
+
+        kh->pending_updates.insert(std::make_pair(version, newpend));
+        send_update(to.get_region(), version, key, newpend);
+    }
 }
 
 void

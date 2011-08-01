@@ -53,6 +53,7 @@
 // Replication
 #include <hyperdex/replication/clientop.h>
 #include <hyperdex/replication/keypair.h>
+#include <hyperdex/replication/deferred.h>
 #include <hyperdex/replication/pending.h>
 #include <hyperdex/replication/keyholder.h>
 #include <hyperdex/replication/transfer_in.h>
@@ -144,7 +145,7 @@ class replication_manager
         void unblock_messages(const regionid& r, const e::buffer& key, e::intrusive_ptr<replication::keyholder> kh);
         // Move as many messages as possible from the deferred queue to the
         // pending queue.
-        void move_deferred_to_pending(e::intrusive_ptr<replication::keyholder> kh);
+        void move_deferred_to_pending(const entityid& to, const e::buffer& key, e::intrusive_ptr<replication::keyholder> kh);
         // Send the message that the pending object needs to send in order to
         // make system-wide progress.
         void send_update(const hyperdex::regionid& pending_in,

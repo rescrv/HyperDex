@@ -25,42 +25,47 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_replication_keyholder_h_
-#define hyperdex_replication_keyholder_h_
+#ifndef hyperdex_replication_deferred_h_
+#define hyperdex_replication_deferred_h_
 
 // e
 #include <e/intrusive_ptr.h>
-
-// Replication
-#include <hyperdex/replication/pending.h>
 
 namespace hyperdex
 {
 namespace replication
 {
 
-class keyholder
+class deferred
 {
     public:
-        keyholder();
+        deferred(const bool has_value,
+                 const std::vector<e::buffer>& value,
+                 const entityid& from_ent,
+                 const instance& from_inst);
 
     public:
-        std::map<uint64_t, e::intrusive_ptr<replication::pending> > pending_updates;
-        std::map<uint64_t, e::intrusive_ptr<replication::pending> > blocked_updates;
-        std::map<uint64_t, e::intrusive_ptr<replication::deferred> > deferred_updates;
+        const bool has_value;
+        const std::vector<e::buffer> value;
+        const entityid from_ent;
+        const instance from_inst;
 
     private:
-        friend class e::intrusive_ptr<keyholder>;
+        friend class e::intrusive_ptr<deferred>;
 
     private:
         size_t m_ref;
 };
 
 inline
-keyholder :: keyholder()
-    : pending_updates()
-    , blocked_updates()
-    , deferred_updates()
+deferred :: deferred(const bool hv,
+                     const std::vector<e::buffer>& val,
+                     const entityid& e,
+                     const instance& i)
+    : has_value(hv)
+    , value(val)
+    , from_ent(e)
+    , from_inst(i)
     , m_ref(0)
 {
 }
@@ -68,4 +73,4 @@ keyholder :: keyholder()
 } // namespace replication
 } // namespace hyperdex
 
-#endif // hyperdex_replication_keyholder_h_
+#endif // hyperdex_replication_deferred_h_
