@@ -58,7 +58,7 @@ hyperdex :: physical :: physical(const po6::net::ipaddr& ip, bool listen)
         channel* chan;
         // Enable other hosts to connect to us.
         m_listen.bind(po6::net::location(ip, 0));
-        m_listen.listen(4);
+        m_listen.listen(128);
         m_listen.nonblocking();
 
         switch (get_channel(hptr, m_listen.getsockname(), &chan))
