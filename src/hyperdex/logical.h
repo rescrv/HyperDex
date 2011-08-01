@@ -37,6 +37,7 @@
 
 // e
 #include <e/buffer.h>
+#include <e/lockfree_hash_map.h>
 
 // Configuration
 #include <configuration/configuration.h>
@@ -112,6 +113,9 @@ class logical
                   network_msgtype* msg_type, e::buffer* msg);
 
     private:
+        static uint64_t id(const uint64_t& i) { return i; }
+
+    private:
         logical(const logical&);
 
     private:
@@ -128,11 +132,10 @@ class logical
     private:
         coordinatorlink* m_cl;
         instance m_us;
-        po6::threads::rwlock m_client_lock;
         configuration m_config;
         std::map<entityid, instance> m_mapping;
-        std::map<po6::net::location, uint64_t> m_client_nums;
-        std::map<uint64_t, po6::net::location> m_client_locs;
+        e::lockfree_hash_map<po6::net::location, uint64_t, po6::net::location::hash> m_client_nums;
+        e::lockfree_hash_map<uint64_t, po6::net::location, id> m_client_locs;
         uint64_t m_client_counter;
         hyperdex::physical m_physical;
 };

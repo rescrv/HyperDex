@@ -43,7 +43,6 @@
 hyperdex :: logical :: logical(coordinatorlink* cl, const po6::net::ipaddr& ip)
     : m_cl(cl)
     , m_us()
-    , m_client_lock()
     , m_config()
     , m_mapping()
     , m_client_nums()
@@ -89,7 +88,6 @@ hyperdex :: logical :: send(const hyperdex::entityid& from, const hyperdex::enti
                             const network_msgtype msg_type,
                             const e::buffer& msg)
 {
-    po6::threads::rwlock::rdhold hold_c(&m_client_lock);
     return send_you_hold_lock(from, to, msg_type, msg);
 }
 
@@ -279,54 +277,37 @@ hyperdex :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
         // If the message is from someone claiming to be a client.
         if (from->space == UINT32_MAX)
         {
-            // If the entity is (UINT32_MAX, X, Y, 0, Z), then grab a wrlock on
-            // entities and give this entity a new id.  The client should pick
-            // up on this, and start using this tag for our convenience.  If the
-            // entity is not filled with zeroes, then the client assumes we've
-            // talked before, and we can go for a read lock.  A bad client does
-            // not hamper our correctness, but can cause us to grab a write lock
-            // much more often than we need to.
+            po6::net::location expected_loc;
 
-            if (from->mask == 0)
+            if (m_client_locs.lookup(from->mask, &expected_loc))
             {
-                po6::threads::rwlock::wrhold wr(&m_client_lock);
-                std::map<po6::net::location, uint64_t>::iterator cni;
-                cni = m_client_nums.find(loc);
-
-                if (cni == m_client_nums.end())
-                {
-                    ++ m_client_counter;
-                    uint64_t id = m_client_counter;
-                    m_client_nums.insert(std::make_pair(loc, id));
-                    m_client_locs.insert(std::make_pair(id, loc));
-                    from->mask = id;
-                }
-                else
-                {
-                    // XXX This case here is where the client just hurt the
-                    // performance of the other clients.
-                    from->mask = cni->second;
-                }
-
-                fromvalid = true;
-                frominst.outbound = loc;
-                frominst.outbound_version = fromver;
-            }
-            else
-            {
-                po6::threads::rwlock::rdhold rd(&m_client_lock);
-
-                if (m_client_locs.find(from->mask) == m_client_locs.end())
+                if (expected_loc != loc)
                 {
                     continue;
                 }
-                else
-                {
-                    fromvalid = true;
-                    frominst.outbound = loc;
-                    frominst.outbound_version = fromver;
-                }
             }
+            else
+            {
+                if (from->mask != 0)
+                {
+                    continue;
+                }
+
+                uint64_t client_num;
+
+                if (!m_client_nums.lookup(loc, &client_num))
+                {
+                    client_num = __sync_add_and_fetch(&m_client_counter, 1);
+                    m_client_nums.insert(loc, client_num);
+                    m_client_locs.insert(client_num, loc);
+                }
+
+                from->mask = client_num;
+            }
+
+            fromvalid = true;
+            frominst.outbound = loc;
+            frominst.outbound_version = fromver;
 
             mapiter t = m_mapping.find(*to);
             tovalid = t != m_mapping.end();
@@ -338,8 +319,6 @@ hyperdex :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
         }
         else
         {
-            // Grab a read lock on the entity mapping.
-
             // Find the from/to mappings.
             mapiter f;
             mapiter t;
@@ -382,28 +361,19 @@ hyperdex :: logical :: send_you_hold_lock(const hyperdex::entityid& from,
     // If we are sending to a client
     if (to.space == UINT32_MAX)
     {
+        if (!m_client_locs.lookup(to.mask, &dst))
         {
-            po6::threads::rwlock::rdhold rd(&m_client_lock);
-            std::map<uint64_t, po6::net::location>::iterator cli;
-            cli = m_client_locs.find(to.mask);
-
-            if (cli == m_client_locs.end())
-            {
-                return false;
-            }
-
-            dst = cli->second;
+            return false;
         }
+
+        mapiter f = m_mapping.find(from);
+
+        if (f == m_mapping.end() || f->second != m_us)
         {
-            mapiter f = m_mapping.find(from);
-
-            if (f == m_mapping.end() || f->second != m_us)
-            {
-                return false;
-            }
-
-            fromver = f->second.outbound_version;
+            return false;
         }
+
+        fromver = f->second.outbound_version;
     }
     else
     {
