@@ -25,84 +25,56 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperclient_client_h_
-#define hyperclient_client_h_
-
-// STL
-#include <map>
-#include <memory>
-#include <string>
-#include <vector>
-
-// po6
-#include <po6/net/location.h>
+#ifndef hyperdaemon_replication_deferred_h_
+#define hyperdaemon_replication_deferred_h_
 
 // e
-#include <e/buffer.h>
+#include <e/intrusive_ptr.h>
 
-namespace hyperclient
+namespace hyperdaemon
+{
+namespace replication
 {
 
-enum status
+class deferred
 {
-    SUCCESS     = 0,
-    NOTFOUND    = 1,
-    WRONGARITY  = 2,
-    NOTASPACE   = 8,
-    BADSEARCH   = 9,
-    COORDFAIL   = 16,
-    SERVERERROR = 17,
-    CONNECTFAIL = 18,
-    DISCONNECT  = 19,
-    RECONFIGURE = 20,
-    LOGICERROR  = 21
+    public:
+        deferred(const bool has_value,
+                 const std::vector<e::buffer>& value,
+                 const hyperdex::entityid& from_ent,
+                 const hyperdex::instance& from_inst);
+
+    public:
+        const bool has_value;
+        const std::vector<e::buffer> value;
+        const hyperdex::entityid from_ent;
+        const hyperdex::instance from_inst;
+
+    private:
+        friend class e::intrusive_ptr<deferred>;
+
+    private:
+        void inc() { __sync_add_and_fetch(&m_ref, 1); }
+        void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
+
+    private:
+        size_t m_ref;
 };
 
-class client
+inline
+deferred :: deferred(const bool hv,
+                     const std::vector<e::buffer>& val,
+                     const hyperdex::entityid& e,
+                     const hyperdex::instance& i)
+    : has_value(hv)
+    , value(val)
+    , from_ent(e)
+    , from_inst(i)
+    , m_ref(0)
 {
-    public:
-        class search_results;
+}
 
-    public:
-        client(po6::net::location coordinator);
+} // namespace replication
+} // namespace hyperdaemon
 
-    public:
-        status connect();
-
-    public:
-        status get(const std::string& space, const e::buffer& key, std::vector<e::buffer>* value);
-        status put(const std::string& space, const e::buffer& key, const std::vector<e::buffer>& value);
-        status del(const std::string& space, const e::buffer& key);
-        status search(const std::string& space, const std::map<std::string, e::buffer>& params, search_results* sr);
-
-    private:
-        friend class search_results;
-
-    private:
-        struct priv;
-        const std::auto_ptr<priv> p;
-};
-
-class client::search_results
-{
-    public:
-        search_results();
-        ~search_results() throw ();
-
-    public:
-        bool valid();
-        status next();
-        const e::buffer& key();
-        const std::vector<e::buffer>& value();
-
-    private:
-        friend class client;
-
-    private:
-        struct priv;
-        std::auto_ptr<priv> p;
-};
-
-} // namespace hyperclient
-
-#endif // hyperclient_client_h_
+#endif // hyperdaemon_replication_deferred_h_

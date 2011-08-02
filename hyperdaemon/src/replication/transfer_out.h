@@ -25,84 +25,57 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperclient_client_h_
-#define hyperclient_client_h_
+#ifndef hyperdaemon_replication_transfer_out_h_
+#define hyperdaemon_replication_transfer_out_h_
 
-// STL
-#include <map>
-#include <memory>
-#include <string>
-#include <vector>
+// HyperDisk
+#include <hyperdisk/disk.h>
 
-// po6
-#include <po6/net/location.h>
-
-// e
-#include <e/buffer.h>
-
-namespace hyperclient
+namespace hyperdaemon
+{
+namespace replication
 {
 
-enum status
+class transfer_out
 {
-    SUCCESS     = 0,
-    NOTFOUND    = 1,
-    WRONGARITY  = 2,
-    NOTASPACE   = 8,
-    BADSEARCH   = 9,
-    COORDFAIL   = 16,
-    SERVERERROR = 17,
-    CONNECTFAIL = 18,
-    DISCONNECT  = 19,
-    RECONFIGURE = 20,
-    LOGICERROR  = 21
+    public:
+        transfer_out(const hyperdex::entityid& from,
+                     uint16_t xfer_id,
+                     e::intrusive_ptr<hyperdisk::disk::rolling_snapshot> s);
+
+    public:
+        po6::threads::mutex lock;
+        e::intrusive_ptr<hyperdisk::disk::rolling_snapshot> snap;
+        uint64_t xfer_num;
+        const hyperdex::entityid replicate_from;
+        const hyperdex::entityid transfer_entity;
+
+    private:
+        friend class e::intrusive_ptr<transfer_out>;
+
+    private:
+        void inc() { __sync_add_and_fetch(&m_ref, 1); }
+        void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
+
+    private:
+        size_t m_ref;
 };
 
-class client
+
+inline
+transfer_out :: transfer_out(const hyperdex::entityid& from,
+                             uint16_t xfer_id,
+                             e::intrusive_ptr<hyperdisk::disk::rolling_snapshot> s)
+    : lock()
+    , snap(s)
+    , xfer_num(1)
+    , replicate_from(from)
+    , transfer_entity(std::numeric_limits<uint32_t>::max() - 1, xfer_id, 0, 0, 0)
+    , m_ref(0)
 {
-    public:
-        class search_results;
+}
 
-    public:
-        client(po6::net::location coordinator);
+} // namespace replication
+} // namespace hyperdaemon
 
-    public:
-        status connect();
-
-    public:
-        status get(const std::string& space, const e::buffer& key, std::vector<e::buffer>* value);
-        status put(const std::string& space, const e::buffer& key, const std::vector<e::buffer>& value);
-        status del(const std::string& space, const e::buffer& key);
-        status search(const std::string& space, const std::map<std::string, e::buffer>& params, search_results* sr);
-
-    private:
-        friend class search_results;
-
-    private:
-        struct priv;
-        const std::auto_ptr<priv> p;
-};
-
-class client::search_results
-{
-    public:
-        search_results();
-        ~search_results() throw ();
-
-    public:
-        bool valid();
-        status next();
-        const e::buffer& key();
-        const std::vector<e::buffer>& value();
-
-    private:
-        friend class client;
-
-    private:
-        struct priv;
-        std::auto_ptr<priv> p;
-};
-
-} // namespace hyperclient
-
-#endif // hyperclient_client_h_
+#endif // hyperdaemon_replication_transfer_out_h_

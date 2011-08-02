@@ -25,84 +25,25 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperclient_client_h_
-#define hyperclient_client_h_
+// Only one thread should enter daemon at a time.  It creates other threads, and
+// relies upon static variables to communicate with signal handlers.
 
-// STL
-#include <map>
-#include <memory>
-#include <string>
-#include <vector>
+#ifndef hyperdaemon_daemon_h_
+#define hyperdaemon_daemon_h_
 
 // po6
 #include <po6/net/location.h>
+#include <po6/pathname.h>
 
-// e
-#include <e/buffer.h>
-
-namespace hyperclient
+namespace hyperdaemon
 {
 
-enum status
-{
-    SUCCESS     = 0,
-    NOTFOUND    = 1,
-    WRONGARITY  = 2,
-    NOTASPACE   = 8,
-    BADSEARCH   = 9,
-    COORDFAIL   = 16,
-    SERVERERROR = 17,
-    CONNECTFAIL = 18,
-    DISCONNECT  = 19,
-    RECONFIGURE = 20,
-    LOGICERROR  = 21
-};
+int
+daemon(po6::pathname datadir,
+       po6::net::location coordinator,
+       po6::net::ipaddr bind_to,
+       uint16_t num_threads);
 
-class client
-{
-    public:
-        class search_results;
+} // namespace hyperdaemon
 
-    public:
-        client(po6::net::location coordinator);
-
-    public:
-        status connect();
-
-    public:
-        status get(const std::string& space, const e::buffer& key, std::vector<e::buffer>* value);
-        status put(const std::string& space, const e::buffer& key, const std::vector<e::buffer>& value);
-        status del(const std::string& space, const e::buffer& key);
-        status search(const std::string& space, const std::map<std::string, e::buffer>& params, search_results* sr);
-
-    private:
-        friend class search_results;
-
-    private:
-        struct priv;
-        const std::auto_ptr<priv> p;
-};
-
-class client::search_results
-{
-    public:
-        search_results();
-        ~search_results() throw ();
-
-    public:
-        bool valid();
-        status next();
-        const e::buffer& key();
-        const std::vector<e::buffer>& value();
-
-    private:
-        friend class client;
-
-    private:
-        struct priv;
-        std::auto_ptr<priv> p;
-};
-
-} // namespace hyperclient
-
-#endif // hyperclient_client_h_
+#endif // hyperdaemon_daemon_h_

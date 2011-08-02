@@ -25,84 +25,49 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperclient_client_h_
-#define hyperclient_client_h_
-
-// STL
-#include <map>
-#include <memory>
-#include <string>
-#include <vector>
+#ifndef hyperdaemon_network_worker_h_
+#define hyperdaemon_network_worker_h_
 
 // po6
-#include <po6/net/location.h>
+#include <po6/threads/rwlock.h>
 
-// e
-#include <e/buffer.h>
+// Forward Declarations
+namespace hyperdaemon
+{
+class datalayer;
+class logical;
+class replication_manager;
+class searches;
+}
 
-namespace hyperclient
+namespace hyperdaemon
 {
 
-enum status
+// One instance can be shared among many threads.
+class network_worker
 {
-    SUCCESS     = 0,
-    NOTFOUND    = 1,
-    WRONGARITY  = 2,
-    NOTASPACE   = 8,
-    BADSEARCH   = 9,
-    COORDFAIL   = 16,
-    SERVERERROR = 17,
-    CONNECTFAIL = 18,
-    DISCONNECT  = 19,
-    RECONFIGURE = 20,
-    LOGICERROR  = 21
+    public:
+        network_worker(datalayer* data, logical* comm, searches* ssss, replication_manager* repl);
+        ~network_worker();
+
+    public:
+        void run();
+        void shutdown();
+
+    private:
+        network_worker(const network_worker&);
+
+    private:
+        network_worker& operator = (const network_worker&);
+
+    private:
+        bool m_continue;
+        datalayer* m_data;
+        logical* m_comm;
+        searches* m_ssss;
+        replication_manager* m_repl;
 };
 
-class client
-{
-    public:
-        class search_results;
+} // namespace hyperdaemon
 
-    public:
-        client(po6::net::location coordinator);
-
-    public:
-        status connect();
-
-    public:
-        status get(const std::string& space, const e::buffer& key, std::vector<e::buffer>* value);
-        status put(const std::string& space, const e::buffer& key, const std::vector<e::buffer>& value);
-        status del(const std::string& space, const e::buffer& key);
-        status search(const std::string& space, const std::map<std::string, e::buffer>& params, search_results* sr);
-
-    private:
-        friend class search_results;
-
-    private:
-        struct priv;
-        const std::auto_ptr<priv> p;
-};
-
-class client::search_results
-{
-    public:
-        search_results();
-        ~search_results() throw ();
-
-    public:
-        bool valid();
-        status next();
-        const e::buffer& key();
-        const std::vector<e::buffer>& value();
-
-    private:
-        friend class client;
-
-    private:
-        struct priv;
-        std::auto_ptr<priv> p;
-};
-
-} // namespace hyperclient
-
-#endif // hyperclient_client_h_
+#endif // hyperdaemon_network_worker_h_

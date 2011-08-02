@@ -44,155 +44,42 @@ ENABLE_TESTING()
 
 add_subdirectory(cityhash)
 add_subdirectory(hyperdisk)
+add_subdirectory(hyperdex)
+add_subdirectory(hyperdaemon)
 add_subdirectory(hyperclient)
 
-###############################################################################
-##############################  Configuration  ################################
-###############################################################################
-
-set(configuration_srcs
-    src/configuration/configuration.cc
-    src/configuration/coordinatorlink.cc
-)
-
-set(configuration_test_srcs
-    test/configuration/configuration.cc
-)
-
-add_executable(configuration-tests test-runner.cc ${configuration_test_srcs})
-# TODO properly detect gtest.
-target_link_libraries(configuration-tests
-    gtest
-    pthread
-    configuration
-)
-
-add_library(configuration STATIC ${configuration_srcs})
-add_dependencies(configuration hyperdisk-tests)
-
-###############################################################################
-##################################  Old  ######################################
-###############################################################################
-
-# Setup the headers
-set(hyperdex_headers
-    include/hyperdex/instance.h
-    include/hyperdex/search.h
-)
-
-# Setup the sources
-set(hyperdex_srcs
-    src/hyperdex/daemon.cc
-    src/hyperdex/datalayer.cc
-    src/hyperdex/logical.cc
-    src/hyperdex/network_worker.cc
-    src/hyperdex/physical.cc
-    src/hyperdex/replication_manager.cc
-    src/hyperdex/search.cc
-    src/hyperdex/searches.cc
-)
-
-# Build libhyperdex
-add_library(hyperdex ${hyperdex_srcs})
-add_dependencies(hyperdex configuration)
-set_target_properties(hyperdex
-    PROPERTIES
-    VERSION         0.1.0
-    SOVERSION       0
-    DEFINE_SYMBOL   MAKE_HYPERDEX_LIB
-)
-target_link_libraries(hyperdex
-    LINK_INTERFACE_LIBRARIES
-    cityhash
-    ${GLOG_LIBRARIES}
-    pthread
-    configuration
-)
+include_directories(hyperdaemon/include)
+include_directories(hyperclient/include)
 
 # Build hyperdexd
-add_executable(hyperdexd src/bin/hyperdexd.cc)
+add_executable(hyperdexd bin/hyperdexd.cc)
 target_link_libraries(hyperdexd
-    hyperdex
-    cityhash
+    glog
     hyperdisk
-    configuration
+    hyperdex
+    hyperdaemon
 )
 
 # Build count benchmark
-add_executable(count src/bin/count.cc)
+add_executable(count bin/count.cc)
 target_link_libraries(count
     hyperdex
-    cityhash
+    hyperclient
     rt
-    hyperdisk
-    configuration
 )
 
 # Build cli
-add_executable(hyperdex-cli src/bin/hyperdex-cli.cc)
+add_executable(hyperdex-cli bin/hyperdex-cli.cc)
 target_link_libraries(hyperdex-cli
     hyperdex
-    cityhash
+    hyperclient
     rt
-    hyperdisk
-    configuration
-)
-
-# Build binary test
-add_executable(binary src/bin/binary.cc)
-target_link_libraries(binary
-    hyperdex
-    cityhash
-    rt
-    hyperdisk
-    configuration
 )
 
 # Build replication test
-add_executable(repl-test src/bin/repl-test.cc)
+add_executable(repl-test bin/repl-test.cc)
 target_link_libraries(repl-test
     hyperdex
-    cityhash
+    hyperclient
     rt
-    hyperdisk
-    configuration
 )
-
-# Tests
-
-set(hyperdex_test_srcs
-    test/hyperdex/hyperspace.cc
-    test/hyperdex/ids.cc
-    test/hyperdex/search.cc
-)
-
-add_executable(testrunner test-runner.cc ${hyperdex_test_srcs})
-# TODO properly detect gtest.
-target_link_libraries(testrunner
-    hyperdex
-    cityhash
-    gtest
-    hyperdisk
-)
-
-add_test(SearchTest.CtorAndDtor testrunner
-    --gtest_filter=SearchTest.CtorAndDtor)
-add_test(SearchTest.SetAndUnset testrunner
-    --gtest_filter=SearchTest.SetAndUnset)
-add_test(SearchTest.Clear testrunner
-    --gtest_filter=SearchTest.Clear)
-add_test(SearchTest.NegativeMatch testrunner
-    --gtest_filter=SearchTest.NegativeMatch)
-add_test(SearchTest.SetDeathTest testrunner
-    --gtest_filter=SearchTest.SetDeathTest)
-add_test(SearchTest.UnsetDeathTest testrunner
-    --gtest_filter=SearchTest.UnsetDeathTest)
-add_test(SearchTest.MatchDeathTest testrunner
-    --gtest_filter=SearchTest.MatchDeathTest)
-
-add_test(LockingqTest.CtorAndDtor testrunner
-    --gtest_filter=LockingqTest.CtorAndDtor)
-add_test(LockingqTest.NormalQueue testrunner
-    --gtest_filter=LockingqTest.NormalQueue)
-
-# Installation targets.

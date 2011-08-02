@@ -25,84 +25,88 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperclient_client_h_
-#define hyperclient_client_h_
-
-// STL
-#include <map>
-#include <memory>
-#include <string>
-#include <vector>
-
-// po6
-#include <po6/net/location.h>
+#ifndef hyperdaemon_replication_keypair_h_
+#define hyperdaemon_replication_keypair_h_
 
 // e
 #include <e/buffer.h>
+#include <e/intrusive_ptr.h>
+#include <e/tuple_compare.h>
 
-namespace hyperclient
+// HyperDex
+#include <hyperdex/ids.h>
+
+namespace hyperdaemon
+{
+namespace replication
 {
 
-enum status
+class keypair
 {
-    SUCCESS     = 0,
-    NOTFOUND    = 1,
-    WRONGARITY  = 2,
-    NOTASPACE   = 8,
-    BADSEARCH   = 9,
-    COORDFAIL   = 16,
-    SERVERERROR = 17,
-    CONNECTFAIL = 18,
-    DISCONNECT  = 19,
-    RECONFIGURE = 20,
-    LOGICERROR  = 21
+    public:
+        struct hash
+        {
+            size_t operator () (const keypair& k) const
+            {
+                uint64_t hs = 0;
+                memmove(&hs, k.key.get(), std::min(k.key.size(), static_cast<size_t>(8)));
+                hs ^= k.region.hash();
+                return hs;
+            }
+        };
+
+    public:
+        keypair();
+        keypair(const hyperdex::regionid& r, const e::buffer& k);
+
+    public:
+        bool operator < (const keypair& rhs) const;
+        bool operator == (const keypair& rhs) const;
+
+    public:
+        const hyperdex::regionid region;
+        const e::buffer key;
 };
 
-class client
+inline
+keypair :: keypair()
+    : region()
+    , key()
 {
-    public:
-        class search_results;
+}
 
-    public:
-        client(po6::net::location coordinator);
-
-    public:
-        status connect();
-
-    public:
-        status get(const std::string& space, const e::buffer& key, std::vector<e::buffer>* value);
-        status put(const std::string& space, const e::buffer& key, const std::vector<e::buffer>& value);
-        status del(const std::string& space, const e::buffer& key);
-        status search(const std::string& space, const std::map<std::string, e::buffer>& params, search_results* sr);
-
-    private:
-        friend class search_results;
-
-    private:
-        struct priv;
-        const std::auto_ptr<priv> p;
-};
-
-class client::search_results
+inline
+keypair :: keypair(const hyperdex::regionid& r, const e::buffer& k)
+    : region(r)
+    , key(k)
 {
-    public:
-        search_results();
-        ~search_results() throw ();
+}
 
-    public:
-        bool valid();
-        status next();
-        const e::buffer& key();
-        const std::vector<e::buffer>& value();
+inline bool
+keypair :: operator < (const keypair& rhs) const
+{
+    const keypair& lhs(*this);
 
-    private:
-        friend class client;
+    if (lhs.region < rhs.region)
+    {
+        return true;
+    }
+    else if (lhs.region > rhs.region)
+    {
+        return false;
+    }
 
-    private:
-        struct priv;
-        std::auto_ptr<priv> p;
-};
+    return lhs.key < rhs.key;
+}
 
-} // namespace hyperclient
+inline bool
+keypair :: operator == (const keypair& rhs) const
+{
+    const keypair& lhs(*this);
+    return lhs.region == rhs.region && lhs.key == rhs.key;
+}
 
-#endif // hyperclient_client_h_
+} // namespace replication
+} // namespace hyperdaemon
+
+#endif // hyperdaemon_replication_keypair_h_

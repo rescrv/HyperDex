@@ -1,8 +1,7 @@
 project(hyperdisk)
 include_directories(include)
 include_directories(../cityhash/include)
-include_directories(../include) # XXX Remove this.
-include_directories(../src) # XXX Remove this.
+include_directories(../hyperdex/include) # XXX Remove this.
 
 # Installed headers.
 set (hyperdisk_headers

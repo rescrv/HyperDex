@@ -54,7 +54,7 @@ hyperdisk :: disk :: disk(const po6::pathname& directory, uint16_t arity)
     : m_ref(0)
     , m_numcolumns(arity)
     , m_point_mask(get_point_for(UINT64_MAX))
-    , m_log()
+    , m_log(new log())
     , m_rwlock()
     , m_shards()
     , m_base(directory)
@@ -68,6 +68,10 @@ hyperdisk :: disk :: disk(const po6::pathname& directory, uint16_t arity)
     // Create a starting disk which holds everything.
     hyperdex::regionid starting(hyperdex::regionid(0, 0, 0, 0));
     create_shard(starting);
+}
+
+hyperdisk :: disk :: ~disk() throw ()
+{
 }
 
 // XXX Double check the logic of GET to make sure it is indeed linearizable.
@@ -606,6 +610,10 @@ hyperdisk :: disk :: snapshot :: snapshot(std::vector<e::intrusive_ptr<hyperdisk
     m_snaps.swap(*ss);
 }
 
+hyperdisk :: disk :: snapshot :: ~snapshot() throw ()
+{
+}
+
 bool
 hyperdisk :: disk :: snapshot :: valid()
 {
@@ -705,6 +713,10 @@ hyperdisk :: disk :: rolling_snapshot :: rolling_snapshot(std::auto_ptr<hyperdis
     , m_ref(0)
 {
     valid();
+}
+
+hyperdisk :: disk :: rolling_snapshot :: ~rolling_snapshot() throw ()
+{
 }
 
 bool

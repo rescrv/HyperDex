@@ -1,13 +1,12 @@
 project(hyperclient)
 include_directories(../cityhash/include)
-include_directories(../include) # XXX Remove this.
-include_directories(../src) # XXX Remove this.
+include_directories(../hyperdex/include)
 
 # Installed headers.
 set (hyperclient_headers
     include/hyperclient/client.h
 )
-#    include/hyperclient/returncode.h
+#XXX include/hyperclient/returncode.h
 
 set (hyperclient_srcs
     src/client.cc

@@ -85,6 +85,7 @@ class disk
             private:
                 snapshot(std::vector<e::intrusive_ptr<hyperdisk::shard_snapshot> >* ss);
                 snapshot(const snapshot&);
+                ~snapshot() throw ();
 
             private:
                 void inc() { __sync_add_and_fetch(&m_ref, 1); }
@@ -122,6 +123,7 @@ class disk
             private:
                 rolling_snapshot(std::auto_ptr<hyperdisk::log_iterator> iter, e::intrusive_ptr<snapshot> snap);
                 rolling_snapshot(const rolling_snapshot&);
+                ~rolling_snapshot() throw ();
 
             private:
                 rolling_snapshot& operator = (const rolling_snapshot&);
@@ -134,6 +136,7 @@ class disk
 
     public:
         disk(const po6::pathname& directory, uint16_t arity);
+        ~disk() throw ();
 
     public:
         // May return SUCCESS or NOTFOUND.
