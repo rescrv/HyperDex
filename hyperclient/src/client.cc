@@ -31,7 +31,7 @@
 #include <map>
 
 // Google CityHash
-#include <city/city.h>
+#include <city.h>
 
 // e
 #include <e/intrusive_ptr.h>
@@ -46,7 +46,7 @@
 #include <hyperdex/search.h>
 
 // HyperClient
-#include <hyperdex/client.h>
+#include "../include/hyperclient/client.h"
 
 class hyperdex :: client :: priv
 {

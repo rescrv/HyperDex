@@ -44,6 +44,7 @@ ENABLE_TESTING()
 
 add_subdirectory(cityhash)
 add_subdirectory(hyperdisk)
+add_subdirectory(hyperclient)
 
 ###############################################################################
 ##############################  Configuration  ################################
@@ -81,7 +82,6 @@ set(hyperdex_headers
 
 # Setup the sources
 set(hyperdex_srcs
-    src/hyperdex/client.cc
     src/hyperdex/daemon.cc
     src/hyperdex/datalayer.cc
     src/hyperdex/logical.cc
