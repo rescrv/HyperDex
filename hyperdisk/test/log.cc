@@ -29,7 +29,7 @@
 #include <gtest/gtest.h>
 
 // HyperDex
-#include <hyperdisk/log.h>
+#include "../src/log.h"
 
 #pragma GCC diagnostic ignored "-Wswitch-default"
 
@@ -55,7 +55,7 @@ TEST(LogTest, SimpleIteration)
     }
 
     // Verify that we get them back.
-    hyperdisk::log::iterator it(l.iterate());
+    hyperdisk::log_iterator it(&l);
 
     for (uint64_t i = 0; i < 1000; ++i)
     {
@@ -92,7 +92,7 @@ TEST(LogTest, IterateAddIterate)
 {
     hyperdisk::log l;
     uint64_t count = 1;
-    hyperdisk::log::iterator it(l.iterate());
+    hyperdisk::log_iterator it(&l);
 
     // Add 10 items to the queue.
     for (; count <= 10; ++count)
@@ -145,7 +145,7 @@ TEST(LogTest, IterateFlushIterate)
     hyperdisk::log l;
 
     // Grab an iterator
-    hyperdisk::log::iterator it(l.iterate());
+    hyperdisk::log_iterator it(&l);
 
     // Add 20 items to the queue.
     for (uint64_t count = 1; count <= 20; ++count)
@@ -191,8 +191,8 @@ TEST(LogTest, CopyIterator)
     }
 
     // Verify that we get them back.
-    hyperdisk::log::iterator it(l.iterate());
-    hyperdisk::log::iterator copy(it);
+    hyperdisk::log_iterator it(&l);
+    hyperdisk::log_iterator copy(it);
 
     for (uint64_t i = 0; i < 1000; ++i)
     {

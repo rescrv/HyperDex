@@ -44,55 +44,18 @@
 namespace hyperdisk
 {
 
+class log_iterator;
+
 class log
 {
     private:
         class node;
 
     public:
-        class iterator
-        {
-            public:
-                iterator(const iterator&);
-                ~iterator() throw ();
-
-            public:
-                bool valid();
-                void next();
-
-            public:
-                bool has_value() const { return m_n->has_value; }
-                uint64_t point() const { return m_n->point; }
-                const e::buffer& key() const { return m_n->key; }
-                uint64_t key_hash() const { return m_n->key_hash; }
-                const std::vector<e::buffer>& value() const { return m_n->value; }
-                const std::vector<uint64_t>& value_hashes() const { return m_n->value_hashes; }
-                uint64_t version() const { return m_n->version; }
-
-            private:
-                friend class log;
-
-            private:
-                iterator(log* l);
-
-            private:
-                void skip_dead_nodes();
-
-            private:
-                iterator& operator = (const iterator&);
-
-            private:
-                log* m_l;
-                node* m_n;
-                bool m_valid;
-        };
-
-    public:
         log();
         ~log() throw ();
 
     public:
-        iterator iterate() { return iterator(this); }
         void append(uint64_t point, const e::buffer& key, uint64_t key_hash,
                     const std::vector<e::buffer>& value,
                     const std::vector<uint64_t>& value_hashes, uint64_t version);
@@ -108,7 +71,7 @@ class log
                                               uint64_t version)> save_one);
 
     private:
-        friend class iterator;
+        friend class log_iterator;
 
     private:
         class node
@@ -203,6 +166,38 @@ class log
         node* m_head;
         node* m_tail;
         po6::threads::mutex m_flush_lock;
+};
+
+class log_iterator
+{
+    public:
+        log_iterator(log* l);
+        log_iterator(const log_iterator&);
+        ~log_iterator() throw ();
+
+    public:
+        bool valid();
+        void next();
+
+    public:
+        bool has_value() const { return m_n->has_value; }
+        uint64_t point() const { return m_n->point; }
+        const e::buffer& key() const { return m_n->key; }
+        uint64_t key_hash() const { return m_n->key_hash; }
+        const std::vector<e::buffer>& value() const { return m_n->value; }
+        const std::vector<uint64_t>& value_hashes() const { return m_n->value_hashes; }
+        uint64_t version() const { return m_n->version; }
+
+    private:
+        void skip_dead_nodes();
+
+    private:
+        log_iterator& operator = (const log_iterator&);
+
+    private:
+        log* m_l;
+        log::node* m_n;
+        bool m_valid;
 };
 
 } // namespace hyperdisk

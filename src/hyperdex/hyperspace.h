@@ -33,7 +33,7 @@
 #include <stdint.h>
 
 // Google CityHash
-#include <city/city.h>
+#include <city.h>
 
 // HyperDex
 #include <hyperdex/ids.h>

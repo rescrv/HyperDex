@@ -36,45 +36,19 @@
 #include <e/intrusive_ptr.h>
 
 // HyperDisk
-#include <hyperdisk/returncode.h>
+#include "../include/hyperdisk/returncode.h"
+
+// Forward Declarations
+namespace hyperdisk
+{
+class shard_snapshot;
+}
 
 namespace hyperdisk
 {
 
 class shard
 {
-    public:
-        class snapshot
-        {
-            public:
-                bool valid();
-                void next();
-
-            public:
-                uint32_t secondary_point();
-                uint64_t version();
-                e::buffer key();
-                std::vector<e::buffer> value();
-
-            private:
-                friend class e::intrusive_ptr<snapshot>;
-                friend class shard;
-
-            private:
-                snapshot(e::intrusive_ptr<shard> d);
-
-            private:
-                void inc() { __sync_add_and_fetch(&m_ref, 1); }
-                void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
-
-            private:
-                size_t m_ref;
-                bool m_valid;
-                e::intrusive_ptr<shard> m_shard;
-                const uint32_t m_limit;
-                uint32_t m_entry;
-        };
-
     public:
         // Create will create a newly initialized shard at the given filename,
         // even if it already exists.  That is, it will overwrite the existing
@@ -103,7 +77,7 @@ class shard
         // the sync failed.
         returncode sync();
         returncode drop();
-        e::intrusive_ptr<snapshot> make_snapshot();
+        e::intrusive_ptr<shard_snapshot> make_snapshot();
         po6::pathname filename() const { return m_filename; }
         void filename(const po6::pathname& fn) { m_filename = fn; }
 
@@ -118,7 +92,7 @@ class shard
 
     private:
         friend class e::intrusive_ptr<shard>;
-        friend class snapshot;
+        friend class shard_snapshot;
 
     private:
         shard(po6::io::fd* fd, const po6::pathname& filename);

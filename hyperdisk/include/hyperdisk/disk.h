@@ -30,8 +30,8 @@
 
 // STL
 #include <map>
+#include <memory>
 #include <set>
-#include <utility>
 #include <vector>
 
 // po6
@@ -42,11 +42,20 @@
 #include <e/intrusive_ptr.h>
 
 // HyperDisk
-#include <hyperdisk/log.h>
-#include <hyperdisk/shard.h>
+#include <hyperdisk/returncode.h>
 
+// XXX Remove this.
 // HyperDex
 #include <hyperdex/ids.h>
+
+// Forward Declarations
+namespace hyperdisk
+{
+class log;
+class log_iterator;
+class shard;
+class shard_snapshot;
+}
 
 namespace hyperdisk
 {
@@ -74,7 +83,7 @@ class disk
                 friend class disk;
 
             private:
-                snapshot(std::vector<e::intrusive_ptr<hyperdisk::shard::snapshot> >* ss);
+                snapshot(std::vector<e::intrusive_ptr<hyperdisk::shard_snapshot> >* ss);
                 snapshot(const snapshot&);
 
             private:
@@ -85,7 +94,7 @@ class disk
                 snapshot& operator = (const snapshot&);
 
             private:
-                std::vector<e::intrusive_ptr<hyperdisk::shard::snapshot> > m_snaps;
+                std::vector<e::intrusive_ptr<hyperdisk::shard_snapshot> > m_snaps;
                 size_t m_ref;
         };
 
@@ -111,14 +120,14 @@ class disk
                 void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
 
             private:
-                rolling_snapshot(const hyperdisk::log::iterator& iter, e::intrusive_ptr<snapshot> snap);
+                rolling_snapshot(std::auto_ptr<hyperdisk::log_iterator> iter, e::intrusive_ptr<snapshot> snap);
                 rolling_snapshot(const rolling_snapshot&);
 
             private:
                 rolling_snapshot& operator = (const rolling_snapshot&);
 
             private:
-                hyperdisk::log::iterator m_iter;
+                const std::auto_ptr<hyperdisk::log_iterator> m_iter;
                 e::intrusive_ptr<snapshot> m_snap;
                 size_t m_ref;
         };
@@ -173,7 +182,7 @@ class disk
         size_t m_ref;
         size_t m_numcolumns;
         uint64_t m_point_mask;
-        hyperdisk::log m_log;
+        const std::auto_ptr<hyperdisk::log> m_log;
         po6::threads::rwlock m_rwlock;
         typedef std::map<hyperdex::regionid, e::intrusive_ptr<hyperdisk::shard> > shard_collection;
         shard_collection m_shards;

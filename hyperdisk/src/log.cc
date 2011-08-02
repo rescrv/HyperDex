@@ -37,7 +37,7 @@
 #include <glog/logging.h>
 
 // HyperDisk
-#include <hyperdisk/log.h>
+#include "log.h"
 
 hyperdisk :: log :: log()
     : m_head_lock()
@@ -205,7 +205,7 @@ hyperdisk :: log :: common_append(std::auto_ptr<node> n, bool real)
     n.release();
 }
 
-hyperdisk :: log :: iterator :: iterator(hyperdisk::log* l)
+hyperdisk :: log_iterator :: log_iterator(hyperdisk::log* l)
     : m_l(l)
     , m_n(l->get_head())
     , m_valid(true)
@@ -213,7 +213,7 @@ hyperdisk :: log :: iterator :: iterator(hyperdisk::log* l)
     valid();
 }
 
-hyperdisk :: log :: iterator :: iterator(const log::iterator& i)
+hyperdisk :: log_iterator :: log_iterator(const log_iterator& i)
     : m_l(i.m_l)
     , m_n(i.m_n)
     , m_valid(i.m_valid)
@@ -227,13 +227,13 @@ hyperdisk :: log :: iterator :: iterator(const log::iterator& i)
     valid();
 }
 
-hyperdisk :: log :: iterator :: ~iterator() throw ()
+hyperdisk :: log_iterator :: ~log_iterator() throw ()
 {
     m_l->release(m_n);
 }
 
 bool
-hyperdisk :: log :: iterator :: valid()
+hyperdisk :: log_iterator :: valid()
 {
     while (m_n->next && (!m_valid || !m_n->real))
     {
@@ -245,7 +245,7 @@ hyperdisk :: log :: iterator :: valid()
 }
 
 void
-hyperdisk :: log :: iterator :: next()
+hyperdisk :: log_iterator :: next()
 {
     m_valid = false;
     valid();

@@ -35,14 +35,18 @@
 #include <sys/types.h>
 
 // Google CityHash
-#include <city/city.h>
+#include <city.h>
 
 // e
 #include <e/guard.h>
 
 // HyperDisk
-#include <hyperdisk/disk.h>
+#include "../include/hyperdisk/disk.h"
+#include "log.h"
+#include "shard.h"
+#include "shard_snapshot.h"
 
+// XXX Remove this.
 // HyperDex
 #include <hyperdex/hyperspace.h>
 
@@ -72,7 +76,7 @@ hyperdisk :: disk :: get(const e::buffer& key,
                           std::vector<e::buffer>* value,
                           uint64_t* version)
 {
-    hyperdisk::log::iterator it(m_log.iterate());
+    hyperdisk::log_iterator it(m_log.get());
     bool found = false;
     *version = 0;
 
@@ -188,7 +192,7 @@ hyperdisk :: disk :: put(const e::buffer& key,
     }
     else
     {
-        m_log.append(point, key, key_hash, value, value_hashes, version);
+        m_log->append(point, key, key_hash, value, value_hashes, version);
         return SUCCESS;
     }
 }
@@ -199,7 +203,7 @@ hyperdisk :: disk :: del(const e::buffer& key)
     uint64_t key_hash = CityHash64(key);
     uint64_t point = get_point_for(key_hash);
 
-    m_log.append(point, key, key_hash);
+    m_log->append(point, key, key_hash);
     return SUCCESS;
 }
 
@@ -213,7 +217,7 @@ hyperdisk :: disk :: flush()
     using std::tr1::placeholders::_5;
     using std::tr1::placeholders::_6;
     using std::tr1::placeholders::_7;
-    size_t flushed = m_log.flush(std::tr1::bind(&disk::flush_one, this, _1, _2, _3, _4, _5, _6, _7));
+    size_t flushed = m_log->flush(std::tr1::bind(&disk::flush_one, this, _1, _2, _3, _4, _5, _6, _7));
     bool split = false;
 
     for (std::set<hyperdex::regionid>::iterator i = m_needs_more_space.begin();
@@ -309,7 +313,7 @@ e::intrusive_ptr<hyperdisk::disk::rolling_snapshot>
 hyperdisk :: disk :: make_rolling_snapshot()
 {
     po6::threads::rwlock::rdhold hold(&m_rwlock);
-    hyperdisk::log::iterator it(m_log.iterate());
+    std::auto_ptr<hyperdisk::log_iterator> it(new log_iterator(m_log.get()));
     e::intrusive_ptr<snapshot> snap(inner_make_snapshot());
     return new rolling_snapshot(it, snap);
 }
@@ -462,7 +466,7 @@ hyperdisk :: disk :: flush_one(bool has_value, uint64_t point, const e::buffer& 
 e::intrusive_ptr<hyperdisk::disk::snapshot>
 hyperdisk :: disk :: inner_make_snapshot()
 {
-    std::vector<e::intrusive_ptr<hyperdisk::shard::snapshot> > snaps;
+    std::vector<e::intrusive_ptr<hyperdisk::shard_snapshot> > snaps;
 
     for (shard_collection::iterator d = m_shards.begin(); d != m_shards.end(); ++d)
     {
@@ -483,7 +487,7 @@ hyperdisk :: disk :: clean_shard(const hyperdex::regionid& ri)
         return MISSINGDISK;
     }
 
-    e::intrusive_ptr<hyperdisk::shard::snapshot> snap = di->second->make_snapshot();
+    e::intrusive_ptr<hyperdisk::shard_snapshot> snap = di->second->make_snapshot();
     po6::pathname path = po6::join(m_base, "tmp");
     e::intrusive_ptr<hyperdisk::shard> newdisk = hyperdisk::shard::create(path);
     e::guard disk_guard = e::makeobjguard(*newdisk, &hyperdisk::shard::drop);
@@ -533,7 +537,7 @@ hyperdisk :: disk :: split_shard(const hyperdex::regionid& ri)
 
     uint64_t new_bit = 1;
     new_bit = new_bit << (64 - ri.prefix - 1);
-    e::intrusive_ptr<hyperdisk::shard::snapshot> snap = di->second->make_snapshot();
+    e::intrusive_ptr<hyperdisk::shard_snapshot> snap = di->second->make_snapshot();
     hyperdex::regionid lower_reg(ri.get_subspace(), ri.prefix + 1, ri.mask);
     hyperdex::regionid upper_reg(ri.get_subspace(), ri.prefix + 1, ri.mask | new_bit);
     e::intrusive_ptr<hyperdisk::shard> lower;
@@ -595,7 +599,7 @@ hyperdisk :: disk :: split_shard(const hyperdex::regionid& ri)
     return SUCCESS;
 }
 
-hyperdisk :: disk :: snapshot :: snapshot(std::vector<e::intrusive_ptr<hyperdisk::shard::snapshot> >* ss)
+hyperdisk :: disk :: snapshot :: snapshot(std::vector<e::intrusive_ptr<hyperdisk::shard_snapshot> >* ss)
     : m_snaps()
     , m_ref(0)
 {
@@ -694,8 +698,8 @@ hyperdisk :: disk :: snapshot :: value()
     }
 }
 
-hyperdisk :: disk :: rolling_snapshot :: rolling_snapshot(const hyperdisk::log::iterator& iter,
-                                                           e::intrusive_ptr<snapshot> snap)
+hyperdisk :: disk :: rolling_snapshot :: rolling_snapshot(std::auto_ptr<hyperdisk::log_iterator> iter,
+                                                          e::intrusive_ptr<snapshot> snap)
     : m_iter(iter)
     , m_snap(snap)
     , m_ref(0)
@@ -706,7 +710,7 @@ hyperdisk :: disk :: rolling_snapshot :: rolling_snapshot(const hyperdisk::log::
 bool
 hyperdisk :: disk :: rolling_snapshot :: valid()
 {
-    return m_snap->valid() || m_iter.valid();
+    return m_snap->valid() || m_iter->valid();
 }
 
 void
@@ -716,9 +720,9 @@ hyperdisk :: disk :: rolling_snapshot :: next()
     {
         m_snap->next();
     }
-    else if (m_iter.valid())
+    else if (m_iter->valid())
     {
-        m_iter.next();
+        m_iter->next();
     }
 }
 
@@ -729,9 +733,9 @@ hyperdisk :: disk :: rolling_snapshot :: has_value()
     {
         return m_snap->has_value();
     }
-    else if (m_iter.valid())
+    else if (m_iter->valid())
     {
-        return m_iter.has_value();
+        return m_iter->has_value();
     }
     else
     {
@@ -746,9 +750,9 @@ hyperdisk :: disk :: rolling_snapshot :: version()
     {
         return m_snap->version();
     }
-    else if (m_iter.valid())
+    else if (m_iter->valid())
     {
-        return m_iter.version();
+        return m_iter->version();
     }
     else
     {
@@ -763,9 +767,9 @@ hyperdisk :: disk :: rolling_snapshot :: key()
     {
         return m_snap->key();
     }
-    else if (m_iter.valid())
+    else if (m_iter->valid())
     {
-        return m_iter.key();
+        return m_iter->key();
     }
     else
     {
@@ -780,9 +784,9 @@ hyperdisk :: disk :: rolling_snapshot :: value()
     {
         return m_snap->value();
     }
-    else if (m_iter.valid())
+    else if (m_iter->valid())
     {
-        return m_iter.value();
+        return m_iter->value();
     }
     else
     {

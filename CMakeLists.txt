@@ -43,47 +43,7 @@ set(BUILD_SHARED_LIBS ON)
 ENABLE_TESTING()
 
 add_subdirectory(cityhash)
-
-###############################################################################
-###############################  HyperDisk  ###################################
-###############################################################################
-
-# The installed headers for HyperDisk
-set (hyperdisk_headers
-)
-
-# The source files for HyperDisk
-set (hyperdisk_srcs
-    src/hyperdisk/disk.cc
-    src/hyperdisk/log.cc
-    src/hyperdisk/shard.cc
-)
-
-add_library(hyperdisk ${hyperdisk_srcs})
-set_target_properties(hyperdisk
-    PROPERTIES
-    VERSION         0.1.0
-    SOVERSION       0
-    DEFINE_SYMBOL   MAKE_HYPERDEX_LIB
-)
-target_link_libraries(hyperdisk
-    LINK_INTERFACE_LIBRARIES
-    cityhash
-)
-
-set(hyperdisk_test_srcs
-    test/hyperdisk/log.cc
-    test/hyperdisk/shard.cc
-)
-
-add_executable(hyperdisk-tests test/runner.cc ${hyperdisk_test_srcs})
-# TODO properly detect gtest.
-target_link_libraries(hyperdisk-tests
-    hyperdisk
-    cityhash
-    gtest
-    pthread
-)
+add_subdirectory(hyperdisk)
 
 ###############################################################################
 ##############################  Configuration  ################################
@@ -98,7 +58,7 @@ set(configuration_test_srcs
     test/configuration/configuration.cc
 )
 
-add_executable(configuration-tests test/runner.cc ${configuration_test_srcs})
+add_executable(configuration-tests test-runner.cc ${configuration_test_srcs})
 # TODO properly detect gtest.
 target_link_libraries(configuration-tests
     gtest
@@ -206,7 +166,7 @@ set(hyperdex_test_srcs
     test/hyperdex/search.cc
 )
 
-add_executable(testrunner test/runner.cc ${hyperdex_test_srcs})
+add_executable(testrunner test-runner.cc ${hyperdex_test_srcs})
 # TODO properly detect gtest.
 target_link_libraries(testrunner
     hyperdex

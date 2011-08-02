@@ -41,7 +41,8 @@
 #include <po6/io/fd.h>
 
 // HyperDisk
-#include <hyperdisk/shard.h>
+#include "shard.h"
+#include "shard_snapshot.h"
 
 // HyperDex
 #include <hyperdex/hyperspace.h>
@@ -280,12 +281,12 @@ hyperdisk :: shard :: drop()
     return SUCCESS;
 }
 
-e::intrusive_ptr<hyperdisk::shard::snapshot>
+e::intrusive_ptr<hyperdisk::shard_snapshot>
 hyperdisk :: shard :: make_snapshot()
 {
     e::intrusive_ptr<shard> d = this;
     assert(m_ref >= 2);
-    e::intrusive_ptr<snapshot> ret = new snapshot(d);
+    e::intrusive_ptr<shard_snapshot> ret = new shard_snapshot(d);
     return ret;
 }
 
@@ -458,106 +459,4 @@ hyperdisk :: shard :: invalidate_search_index(uint32_t to_invalidate, uint32_t i
             return;
         }
     }
-}
-
-bool
-hyperdisk :: shard :: snapshot :: valid()
-{
-    uint32_t offset = 0;
-    uint32_t invalid = 0;
-
-    while (m_entry < SEARCH_INDEX_ENTRIES)
-    {
-        offset = m_shard->searchindex_offset(m_entry);
-        invalid = m_shard->searchindex_invalid(m_entry);
-
-        // If the m_valid flag is set; the offset is within the subsection of
-        // data we may observe; and the data was never invalidated, or was
-        // invalidated after we scanned it, then we may return true;
-        if (m_valid && offset > 0 && offset < m_limit &&
-                (invalid == 0 || invalid >= m_limit))
-        {
-            return true;
-        }
-
-        // If offset is 0, then we know that there are no more entries further
-        // on.  Stop iterating.  If offset is >= m_limit, we know that the
-        // operation (and all succeeding it) happened after the snapshot.
-        if (offset == 0 || offset >= m_limit)
-        {
-            m_valid = false;
-            break;
-        }
-
-        ++m_entry;
-        m_valid = true;
-    }
-
-    return m_entry < SEARCH_INDEX_ENTRIES && m_valid;
-}
-
-void
-hyperdisk :: shard :: snapshot :: next()
-{
-    m_valid = false;
-}
-
-uint32_t
-hyperdisk :: shard :: snapshot :: secondary_point()
-{
-    return m_shard->searchindex_hash(m_entry);
-}
-
-uint64_t
-hyperdisk :: shard :: snapshot :: version()
-{
-    uint32_t offset = m_shard->searchindex_offset(m_entry);
-
-    if (!offset)
-    {
-        return uint64_t();
-    }
-
-    return m_shard->data_version(offset);
-}
-
-e::buffer
-hyperdisk :: shard :: snapshot :: key()
-{
-    uint32_t offset = m_shard->searchindex_offset(m_entry);
-
-    if (!offset)
-    {
-        return e::buffer();
-    }
-
-    e::buffer k;
-    size_t key_size = m_shard->data_key_size(offset);
-    m_shard->data_key(offset, key_size, &k);
-    return k;
-}
-
-std::vector<e::buffer>
-hyperdisk :: shard :: snapshot :: value()
-{
-    uint32_t offset = m_shard->searchindex_offset(m_entry);
-
-    if (!offset)
-    {
-        return std::vector<e::buffer>();
-    }
-
-    std::vector<e::buffer> v;
-    size_t key_size = m_shard->data_key_size(offset);
-    m_shard->data_value(offset, key_size, &v);
-    return v;
-}
-
-hyperdisk :: shard :: snapshot :: snapshot(e::intrusive_ptr<shard> d)
-    : m_ref(0)
-    , m_valid(true)
-    , m_shard(d)
-    , m_limit(d->m_offset)
-    , m_entry(0)
-{
 }
