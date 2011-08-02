@@ -112,7 +112,9 @@ hyperdaemon :: physical :: num_paused()
 void
 hyperdaemon :: physical :: shutdown()
 {
+    po6::threads::mutex::hold hold(&m_not_paused_lock);
     m_shutdown = true;
+    m_not_paused.broadcast();
 }
 
 hyperdaemon::physical::returncode
@@ -193,21 +195,21 @@ hyperdaemon :: physical :: recv(po6::net::location* from,
     {
         __sync_synchronize();
 
-        if (m_shutdown)
-        {
-            return SHUTDOWN;
-        }
-
         if (m_paused)
         {
             po6::threads::mutex::hold hold(&m_not_paused_lock);
 
-            while (m_paused)
+            while (m_paused && !m_shutdown)
             {
                 ++m_count_paused;
                 m_not_paused.wait();
                 --m_count_paused;
             }
+        }
+
+        if (m_shutdown)
+        {
+            return SHUTDOWN;
         }
 
         if (poll(&pfds.front(), pfds.size(), 10) < 0)
