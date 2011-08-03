@@ -112,18 +112,18 @@ class regionid
 
     public:
         regionid(uint32_t s = 0, uint16_t ss = 0, uint8_t p = 0, uint64_t m = 0)
-            : space(s)
+            : mask(m)
+            , space(s)
             , subspace(ss)
             , prefix(p)
-            , mask(m)
         {
         }
 
         regionid(subspaceid ss, uint8_t p = 0, uint64_t m = 0)
-            : space(ss.space)
+            : mask(m)
+            , space(ss.space)
             , subspace(ss.subspace)
             , prefix(p)
-            , mask(m)
         {
         }
 
@@ -148,10 +148,10 @@ class regionid
         }
 
     public:
+        uint64_t mask;
         uint32_t space;
         uint16_t subspace;
         uint8_t prefix;
-        uint64_t mask;
 };
 
 class entityid
@@ -164,19 +164,19 @@ class entityid
     public:
         entityid(uint32_t s = 0, uint16_t ss = 0,
                  uint8_t p = 0, uint64_t m = 0, uint8_t n = 0)
-            : space(s)
+            : mask(m)
+            , space(s)
             , subspace(ss)
             , prefix(p)
-            , mask(m)
             , number(n)
         {
         }
 
         entityid(regionid r, uint8_t n = 0)
-            : space(r.space)
+            : mask(r.mask)
+            , space(r.space)
             , subspace(r.subspace)
             , prefix(r.prefix)
-            , mask(r.mask)
             , number(n)
         {
         }
@@ -209,10 +209,10 @@ class entityid
         }
 
     public:
+        uint64_t mask;
         uint32_t space;
         uint16_t subspace;
         uint8_t prefix;
-        uint64_t mask;
         uint8_t number;
 };
 
