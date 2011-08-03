@@ -44,14 +44,14 @@ class pending
                 const clientop& co = clientop());
 
     public:
-        const bool has_value;
         const std::vector<e::buffer> value;
-        clientop co;
+        const bool has_value;
         bool fresh;
         bool acked;
         bool ondisk; // True if the pending update is already on disk.
         bool mayack; // True if it is OK to receive ACK messages.
         uint8_t retransmit;
+        clientop co;
         hyperdex::regionid prev;
         hyperdex::regionid this_old;
         hyperdex::regionid this_new;
@@ -72,14 +72,14 @@ inline
 pending :: pending(bool hv,
                    const std::vector<e::buffer>& val,
                    const clientop& c)
-    : has_value(hv)
-    , value(val)
-    , co(c)
+    : value(val)
+    , has_value(hv)
     , fresh(false)
     , acked(false)
     , ondisk(false)
     , mayack(false)
     , retransmit(0)
+    , co(c)
     , prev()
     , this_old()
     , this_new()
