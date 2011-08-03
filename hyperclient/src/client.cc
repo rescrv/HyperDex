@@ -477,8 +477,6 @@ hyperclient :: client :: priv :: recv(e::intrusive_ptr<channel> chan,
                                       hyperdex::network_returncode* resp_stat,
                                       e::buffer* resp_msg)
 {
-    e::buffer partial(4);
-
     while (true)
     {
         if (!cl.connected())
@@ -531,11 +529,6 @@ hyperclient :: client :: priv :: recv(e::intrusive_ptr<channel> chan,
 
                 if (cl.config().lookup(ent) != inst)
                 {
-                    if (!partial.empty())
-                    {
-                        channels.erase(inst);
-                    }
-
                     return RECONFIGURE;
                 }
 
@@ -547,10 +540,57 @@ hyperclient :: client :: priv :: recv(e::intrusive_ptr<channel> chan,
         {
             try
             {
-                if (read(&chan->soc, &partial, 1024) <= 0)
+                uint32_t size;
+
+                if (chan->soc.recv(&size, 4, MSG_PEEK) != 4)
+                {
+                    continue;
+                }
+
+                size = be32toh(size);
+                size += sizeof(uint32_t);
+                e::buffer msg(size + sizeof(uint32_t));
+
+                if (xread(&chan->soc, &msg, size) < size)
                 {
                     channels.erase(inst);
                     return DISCONNECT;
+                }
+
+                uint32_t nop;
+                uint8_t msg_type;
+                uint16_t fromver;
+                uint16_t tover;
+                hyperdex::entityid from;
+                hyperdex::entityid to;
+                uint32_t nonce;
+                uint16_t response;
+                e::unpacker up(msg.unpack());
+                up >> nop >> msg_type >> fromver >> tover >> from >> to
+                   >> nonce;
+                hyperdex::network_msgtype type = static_cast<hyperdex::network_msgtype>(msg_type);
+
+                if (chan->id == hyperdex::entityid(UINT32_MAX))
+                {
+                    chan->id = to;
+                }
+
+                if (type == resp_type &&
+                    fromver == inst.inbound_version &&
+                    tover == 0 &&
+                    from == ent &&
+                    to == chan->id &&
+                    nonce == expected_nonce)
+                {
+                    up >> response;
+                    up.leftovers(resp_msg);
+                    *resp_stat = static_cast<hyperdex::network_returncode>(response);
+                    return SUCCESS;
+                }
+
+                if (nonce == expected_nonce)
+                {
+                    return SERVERERROR;
                 }
             }
             catch (po6::error& e)
@@ -558,54 +598,11 @@ hyperclient :: client :: priv :: recv(e::intrusive_ptr<channel> chan,
                 channels.erase(inst);
                 return DISCONNECT;
             }
-
-            if (partial.size() >= 4)
+            catch (std::out_of_range& e)
             {
-                uint32_t size;
-                partial.unpack() >> size;
-
-                if (partial.size() > size + sizeof(uint32_t))
-                {
-                    channels.erase(inst);
-                    return SERVERERROR;
-                }
-                else if (partial.size() < size + sizeof(uint32_t))
-                {
-                    continue;
-                }
+                channels.erase(inst);
+                return DISCONNECT;
             }
-
-            uint32_t nop;
-            uint8_t msg_type;
-            uint16_t fromver;
-            uint16_t tover;
-            hyperdex::entityid from;
-            hyperdex::entityid to;
-            uint32_t nonce;
-            uint16_t response;
-            e::unpacker up(partial.unpack());
-            up >> nop >> msg_type >> fromver >> tover >> from >> to
-               >> nonce >> response;
-            hyperdex::network_msgtype type = static_cast<hyperdex::network_msgtype>(msg_type);
-            up.leftovers(resp_msg);
-            *resp_stat = static_cast<hyperdex::network_returncode>(response);
-
-            if (chan->id == hyperdex::entityid(UINT32_MAX))
-            {
-                chan->id = to;
-            }
-
-            if (type == resp_type &&
-                fromver == inst.inbound_version &&
-                tover == 0 &&
-                from == ent &&
-                to == chan->id &&
-                nonce == expected_nonce)
-            {
-                return SUCCESS;
-            }
-
-            return SERVERERROR;
         }
     }
 }
@@ -889,16 +886,16 @@ hyperclient :: client :: search_results :: priv :: next()
                 {
                     uint32_t size;
 
-                    if (chan->soc.xread(&size, sizeof(size)) != sizeof(size))
+                    if (chan->soc.recv(&size, 4, MSG_PEEK) != 4)
                     {
-                        disconnect(inst, chan);
-                        return DISCONNECT;
+                        continue;
                     }
 
                     size = be32toh(size);
-                    e::buffer msg(size);
+                    size += sizeof(uint32_t);
+                    e::buffer msg;
 
-                    if (xread(&chan->soc, &msg, size) != size)
+                    if (xread(&chan->soc, &msg, size) < size)
                     {
                         disconnect(inst, chan);
                         return DISCONNECT;
@@ -906,6 +903,7 @@ hyperclient :: client :: search_results :: priv :: next()
 
                     e::buffer new_key;
                     std::vector<e::buffer> new_value;
+                    uint32_t nop;
                     uint8_t msg_type;
                     uint16_t fromver;
                     uint16_t tover;
@@ -914,26 +912,31 @@ hyperclient :: client :: search_results :: priv :: next()
                     uint32_t nonce;
                     uint64_t count;
                     e::unpacker up(msg.unpack());
-                    up >> msg_type >> fromver >> tover >> from >> to
+                    up >> nop >> msg_type >> fromver >> tover >> from >> to
                        >> nonce;
                     hyperdex::network_msgtype type = static_cast<hyperdex::network_msgtype>(msg_type);
-                    uint32_t exp_nonce = nonces[from];
+                    uint32_t expected_nonce = nonces[from];
+
+                    if (chan->id == hyperdex::entityid(UINT32_MAX))
+                    {
+                        chan->id = to;
+                    }
 
                     if ((type == hyperdex::RESP_SEARCH_ITEM || type == hyperdex::RESP_SEARCH_DONE) &&
                         fromver == inst.inbound_version &&
                         tover == 0 &&
                         hosts.find(from) != hosts.end() &&
                         hosts[from] == inst &&
-                        (to == chan->id || chan->id == hyperdex::entityid(UINT32_MAX)) &&
-                        nonce == exp_nonce)
+                        to == chan->id &&
+                        nonce == expected_nonce)
                     {
                         if (type == hyperdex::RESP_SEARCH_ITEM)
                         {
-                            e::buffer nop;
                             up >> count >> new_key >> new_value;
                             key.swap(new_key);
                             value.swap(new_value);
-                            c->send(chan, inst, from, hyperdex::REQ_SEARCH_NEXT, nonce, nop);
+                            e::buffer empty;
+                            c->send(chan, inst, from, hyperdex::REQ_SEARCH_NEXT, nonce, empty);
                             return SUCCESS;
                         }
                         else
@@ -943,8 +946,11 @@ hyperclient :: client :: search_results :: priv :: next()
                         }
                     }
 
-                    disconnect(inst, chan);
-                    return SERVERERROR;
+                    if (nonce == expected_nonce)
+                    {
+                        disconnect(inst, chan);
+                        return SERVERERROR;
+                    }
                 }
                 catch (po6::error& e)
                 {
