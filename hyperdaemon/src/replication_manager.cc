@@ -938,6 +938,10 @@ hyperdaemon :: replication_manager :: chain_common(bool has_value,
             oldvalue = diskvalue;
             // Fallthrough to set pending.
         }
+        else if (fresh)
+        {
+            has_oldvalue = false;
+        }
         else
         {
             defer = true;
@@ -996,6 +1000,7 @@ hyperdaemon :: replication_manager :: chain_common(bool has_value,
     // Create a new pending object to set as pending.
     e::intrusive_ptr<pending> newpend;
     newpend = new pending(has_value, value);
+    newpend->fresh = fresh;
 
     if (!prev_and_next(kp.region, key, has_value, value, has_oldvalue, oldvalue, newpend))
     {

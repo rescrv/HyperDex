@@ -160,10 +160,10 @@
 #define MAX_B 256
 #define MAX_C 256
 #define MAX_I 256
-#define INC_A 1
-#define INC_B 1
-#define INC_C 1
-#define INC_I 1
+#define INC_A 16
+#define INC_B 16
+#define INC_C 16
+#define INC_I 16
 
 // These 32-bit values all hash (using CityHash) to be have the same high-order
 // byte as their index.  E.g. index 0 has a hash of 0x00??????????????, while
