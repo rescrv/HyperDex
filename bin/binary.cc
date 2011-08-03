@@ -37,7 +37,7 @@
 #include <e/timer.h>
 
 // HyperDex
-#include <hyperdex/client.h>
+#include <hyperclient/client.h>
 
 const char* colnames[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
                           "11", "12", "13", "14", "15", "16", "17", "18", "19",
@@ -102,7 +102,7 @@ main(int argc, char* argv[])
 
     try
     {
-        hyperdex::client cl(po6::net::location(ip, port));
+        hyperclient::client cl(po6::net::location(ip, port));
         cl.connect();
         e::buffer one("one", 3);
         e::buffer zero("zero", 3);
@@ -129,33 +129,36 @@ main(int argc, char* argv[])
 
             switch (cl.put(space, key, value))
             {
-                case hyperdex::SUCCESS:
+                case hyperclient::SUCCESS:
                     break;
-                case hyperdex::NOTFOUND:
+                case hyperclient::NOTFOUND:
                     std::cerr << "Put returned NOTFOUND." << std::endl;
                     break;
-                case hyperdex::WRONGARITY:
+                case hyperclient::WRONGARITY:
                     std::cerr << "Put returned WRONGARITY." << std::endl;
                     break;
-                case hyperdex::NOTASPACE:
+                case hyperclient::NOTASPACE:
                     std::cerr << "Put returned NOTASPACE." << std::endl;
                     break;
-                case hyperdex::COORDFAIL:
+                case hyperclient::BADSEARCH:
+                    std::cerr << "Put returned BADSEARCH." << std::endl;
+                    break;
+                case hyperclient::COORDFAIL:
                     std::cerr << "Put returned COORDFAIL." << std::endl;
                     break;
-                case hyperdex::SERVERERROR:
+                case hyperclient::SERVERERROR:
                     std::cerr << "Put returned SERVERERROR." << std::endl;
                     break;
-                case hyperdex::CONNECTFAIL:
+                case hyperclient::CONNECTFAIL:
                     std::cerr << "Put returned CONNECTFAIL." << std::endl;
                     break;
-                case hyperdex::DISCONNECT:
+                case hyperclient::DISCONNECT:
                     std::cerr << "Put returned DISCONNECT." << std::endl;
                     break;
-                case hyperdex::RECONFIGURE:
+                case hyperclient::RECONFIGURE:
                     std::cerr << "Put returned RECONFIGURE." << std::endl;
                     break;
-                case hyperdex::LOGICERROR:
+                case hyperclient::LOGICERROR:
                     std::cerr << "Put returned LOGICERROR." << std::endl;
                     break;
                 default:
@@ -189,37 +192,40 @@ main(int argc, char* argv[])
                 }
             }
 
-            hyperdex::client::search_results s;
+            hyperclient::client::search_results s;
 
             switch (cl.search(argv[3], search, &s))
             {
-                case hyperdex::SUCCESS:
+                case hyperclient::SUCCESS:
                     break;
-                case hyperdex::NOTFOUND:
+                case hyperclient::NOTFOUND:
                     std::cerr << "Search returned NOTFOUND." << std::endl;
                     continue;
-                case hyperdex::WRONGARITY:
+                case hyperclient::WRONGARITY:
                     std::cerr << "Search returned WRONGARITY." << std::endl;
                     continue;
-                case hyperdex::NOTASPACE:
+                case hyperclient::NOTASPACE:
                     std::cerr << "Search returned NOTASPACE." << std::endl;
                     continue;
-                case hyperdex::COORDFAIL:
+                case hyperclient::BADSEARCH:
+                    std::cerr << "Search returned BADSEARCH." << std::endl;
+                    continue;
+                case hyperclient::COORDFAIL:
                     std::cerr << "Search returned COORDFAIL." << std::endl;
                     continue;
-                case hyperdex::SERVERERROR:
+                case hyperclient::SERVERERROR:
                     std::cerr << "Search returned SERVERERROR." << std::endl;
                     continue;
-                case hyperdex::CONNECTFAIL:
+                case hyperclient::CONNECTFAIL:
                     std::cerr << "Search returned CONNECTFAIL." << std::endl;
                     continue;
-                case hyperdex::DISCONNECT:
+                case hyperclient::DISCONNECT:
                     std::cerr << "Search returned DISCONNECT." << std::endl;
                     continue;
-                case hyperdex::RECONFIGURE:
+                case hyperclient::RECONFIGURE:
                     std::cerr << "Search returned RECONFIGURE." << std::endl;
                     continue;
-                case hyperdex::LOGICERROR:
+                case hyperclient::LOGICERROR:
                     std::cerr << "Search returned LOGICERROR." << std::endl;
                     continue;
                 default:
@@ -240,33 +246,36 @@ main(int argc, char* argv[])
 
                 switch (s.next())
                 {
-                    case hyperdex::SUCCESS:
+                    case hyperclient::SUCCESS:
                         break;
-                    case hyperdex::NOTFOUND:
+                    case hyperclient::NOTFOUND:
                         std::cerr << "Next returned NOTFOUND." << std::endl;
                         continue;
-                    case hyperdex::WRONGARITY:
+                    case hyperclient::WRONGARITY:
                         std::cerr << "Next returned WRONGARITY." << std::endl;
                         continue;
-                    case hyperdex::NOTASPACE:
+                    case hyperclient::NOTASPACE:
                         std::cerr << "Next returned NOTASPACE." << std::endl;
                         continue;
-                    case hyperdex::COORDFAIL:
+                    case hyperclient::BADSEARCH:
+                        std::cerr << "Next returned BADSEARCH." << std::endl;
+                        continue;
+                    case hyperclient::COORDFAIL:
                         std::cerr << "Next returned COORDFAIL." << std::endl;
                         continue;
-                    case hyperdex::SERVERERROR:
+                    case hyperclient::SERVERERROR:
                         std::cerr << "Next returned SERVERERROR." << std::endl;
                         continue;
-                    case hyperdex::CONNECTFAIL:
+                    case hyperclient::CONNECTFAIL:
                         std::cerr << "Next returned CONNECTFAIL." << std::endl;
                         continue;
-                    case hyperdex::DISCONNECT:
+                    case hyperclient::DISCONNECT:
                         std::cerr << "Next returned DISCONNECT." << std::endl;
                         continue;
-                    case hyperdex::RECONFIGURE:
+                    case hyperclient::RECONFIGURE:
                         std::cerr << "Next returned RECONFIGURE." << std::endl;
                         continue;
-                    case hyperdex::LOGICERROR:
+                    case hyperclient::LOGICERROR:
                         std::cerr << "Next returned LOGICERROR." << std::endl;
                         continue;
                     default:

@@ -68,6 +68,14 @@ target_link_libraries(count
     rt
 )
 
+# Build binary benchmark
+add_executable(binary bin/binary.cc)
+target_link_libraries(binary
+    hyperdex
+    hyperclient
+    rt
+)
+
 # Build cli
 add_executable(hyperdex-cli bin/hyperdex-cli.cc)
 target_link_libraries(hyperdex-cli
