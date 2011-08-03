@@ -494,8 +494,14 @@ hyperdaemon :: replication_manager :: chain_ack(const entityid& from,
         kh->pending_updates.erase(kh->pending_updates.begin());
     }
 
-    send_ack(to.get_region(), version, key, pend);
-    unblock_messages(to.get_region(), key, kh);
+    if (!is_point_leader(to))
+    {
+        send_ack(to.get_region(), version, key, pend);
+    }
+    else
+    {
+        unblock_messages(to.get_region(), key, kh);
+    }
 
     if (kh->pending_updates.empty())
     {
@@ -1484,10 +1490,21 @@ hyperdaemon :: replication_manager :: send_update(const hyperdex::regionid& pend
         uint8_t fresh = update->fresh ? 1 : 0;
         e::buffer oldmsg;
         oldmsg.pack() << version << key << update->value << update->next.mask;
-        e::buffer newmsg;
-        newmsg.pack() << version << fresh << key << update->value;
-        m_comm->send_forward_else_head(update->this_new, hyperdex::CHAIN_SUBSPACE, oldmsg,
-                                       update->next, hyperdex::CHAIN_PUT, newmsg);
+
+        if (update->next.subspace == 0)
+        {
+            e::buffer newmsg;
+            newmsg.pack() << version << key;
+            m_comm->send_forward_else_head(update->this_new, hyperdex::CHAIN_SUBSPACE, oldmsg,
+                                           update->next, hyperdex::CHAIN_PENDING, newmsg);
+        }
+        else
+        {
+            e::buffer newmsg;
+            newmsg.pack() << version << fresh << key << update->value;
+            m_comm->send_forward_else_head(update->this_new, hyperdex::CHAIN_SUBSPACE, oldmsg,
+                                           update->next, hyperdex::CHAIN_PUT, newmsg);
+        }
     }
     else
     {
