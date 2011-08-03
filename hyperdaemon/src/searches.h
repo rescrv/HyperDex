@@ -78,7 +78,7 @@ class searches
 
             public:
                 po6::threads::mutex lock;
-                const hyperdex::regionid& region;
+                const hyperdex::regionid region;
                 const uint64_t point;
                 const uint64_t mask;
                 const hyperdex::search terms;
