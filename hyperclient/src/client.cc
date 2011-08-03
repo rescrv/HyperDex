@@ -922,11 +922,13 @@ hyperclient :: client :: search_results :: priv :: next()
                         chan->id = to;
                     }
 
+                    std::map<hyperdex::entityid, hyperdex::instance>::iterator hi;
+
                     if ((type == hyperdex::RESP_SEARCH_ITEM || type == hyperdex::RESP_SEARCH_DONE) &&
                         fromver == inst.inbound_version &&
                         tover == 0 &&
-                        hosts.find(from) != hosts.end() &&
-                        hosts[from] == inst &&
+                        (hi = hosts.find(from)) != hosts.end() &&
+                        hi->second == inst &&
                         to == chan->id &&
                         nonce == expected_nonce)
                     {
