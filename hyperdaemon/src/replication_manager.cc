@@ -1607,7 +1607,17 @@ hyperdaemon :: replication_manager :: retransmit()
         e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, get_lock_num(*kp));
 
         // Get a reference to the keyholder for the keypair.
-        e::intrusive_ptr<keyholder> kh = get_keyholder(*kp);
+        e::intrusive_ptr<keyholder> kh = NULL;
+
+        {
+            po6::threads::mutex::hold hold_khl(&m_keyholders_lock);
+            std::tr1::unordered_map<keypair, e::intrusive_ptr<keyholder>, keypair::hash>::iterator i;
+
+            if ((i = m_keyholders.find(*kp)) != m_keyholders.end())
+            {
+                kh = i->second;
+            }
+        }
 
         if (!kh)
         {
@@ -1617,24 +1627,32 @@ hyperdaemon :: replication_manager :: retransmit()
         if (kh->pending_updates.empty())
         {
             unblock_messages(kp->region, kp->key, kh);
-        }
+            move_deferred_to_pending(kp->region, kp->key, kh);
 
-        if (kh->pending_updates.empty())
-        {
-            erase_keyholder(*kp);
+            if (kh->pending_updates.empty())
+            {
+                erase_keyholder(*kp);
+            }
+
             continue;
         }
 
+        // We only touch the first pending update.  If there is an issue which
+        // requires retransmission, we shouldn't hit hosts with a number of
+        // excess messages.
         uint64_t version = kh->pending_updates.begin()->first;
         e::intrusive_ptr<pending> pend = kh->pending_updates.begin()->second;
 
-        send_update(kp->region, version, kp->key, pend);
-
-        if (kp->region.subspace == 0)
+        if (pend->retransmit >= 2 && pend->retransmit & (pend->retransmit - 1))
         {
-            e::buffer info;
-            info.pack() << version << kp->key;
-            m_comm->send_backward(kp->region, hyperdex::CHAIN_PENDING, info);
+            send_update(kp->region, version, kp->key, pend);
+        }
+
+        ++pend->retransmit;
+
+        if (pend->retransmit == 64)
+        {
+            pend->retransmit = 32;
         }
     }
 }

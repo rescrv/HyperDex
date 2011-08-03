@@ -51,6 +51,7 @@ class pending
         bool acked;
         bool ondisk; // True if the pending update is already on disk.
         bool mayack; // True if it is OK to receive ACK messages.
+        uint8_t retransmit;
         hyperdex::regionid prev;
         hyperdex::regionid this_old;
         hyperdex::regionid this_new;
@@ -78,6 +79,7 @@ pending :: pending(bool hv,
     , acked(false)
     , ondisk(false)
     , mayack(false)
+    , retransmit(0)
     , prev()
     , this_old()
     , this_new()
