@@ -488,7 +488,54 @@ check(int testno,
             return false;
     }
 
-    return value != gotten_value;
+    std::map<std::string, e::buffer> terms;
+    terms.insert(std::make_pair("B", e::buffer(&nums[B], sizeof(uint32_t))));
+    terms.insert(std::make_pair("C", e::buffer(&nums[C], sizeof(uint32_t))));
+    hyperclient::client::search_results sr;
+    alarm(10);
+
+    switch (cl->search(space, terms, &sr))
+    {
+        case hyperclient::SUCCESS:
+            return true;
+        case hyperclient::NOTFOUND:
+            fail(testno, "check returned NOTFOUND.", lineno);
+            return false;
+        case hyperclient::WRONGARITY:
+            fail(testno, "check returned WRONGARITY.", lineno);
+            return false;
+        case hyperclient::NOTASPACE:
+            fail(testno, "check returned NOTASPACE.", lineno);
+            return false;
+        case hyperclient::BADSEARCH:
+            fail(testno, "check returned BADSEARCH.", lineno);
+            return false;
+        case hyperclient::COORDFAIL:
+            fail(testno, "check returned COORDFAIL.", lineno);
+            return false;
+        case hyperclient::SERVERERROR:
+            fail(testno, "check returned SERVERERROR.", lineno);
+            return false;
+        case hyperclient::CONNECTFAIL:
+            fail(testno, "check returned CONNECTFAIL.", lineno);
+            return false;
+        case hyperclient::DISCONNECT:
+            fail(testno, "check returned DISCONNECT.", lineno);
+            return false;
+        case hyperclient::RECONFIGURE:
+            fail(testno, "check returned RECONFIGURE.", lineno);
+            return false;
+        case hyperclient::LOGICERROR:
+            fail(testno, "check returned LOGICERROR (timeout?).", lineno);
+            return false;
+        default:
+            return false;
+    }
+
+    alarm(10);
+    return value != gotten_value &&
+           sr.valid() && sr.key() == key && sr.value() == value &&
+           sr.next() == hyperclient::SUCCESS && !sr.valid();
 }
 
 static bool
