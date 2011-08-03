@@ -55,24 +55,6 @@
 //              sleep 100us
 //              absent(A, B, C)
 //
-// Test 2:  Do PUT operations which do not change the node on which a point
-// resides.
-//
-//  for A in range(256):
-//      for B in range(256):
-//          for C in range(256):
-//              SUCCESS == put([A, B, C])
-//              check(A, B, C)
-//              for B' in `same region as B`:
-//                  SUCCESS == put([A, B', C])
-//                  check(A, B', C)
-//              SUCCESS == put([A, B, C])
-//              check(A, B, C)
-//              for C' in `same region as C`:
-//                  SUCCESS == put([A, B, C'])
-//                  check(A, B, C')
-//              SUCCESS == del(A)
-//
 // Test 3:  Interleave PUT and DEL operations in a way that the two PUTs on
 // either side of the DEL map to the same region in B.
 //
@@ -145,11 +127,12 @@
 // each update.
 //
 //  for A in range(256):
-//      i = 0;
-//      j = 0
-//      while i < 256:
-//          SUCCESS == put([A, i, j])
-//          check(A, i, j)
+//      for i in range(256):
+//          SUCCESS == put([A, i, i])
+//          check(A, i, i)
+//      for i in range(256):
+//          SUCCESS == put([A, i, 256 - i - 1])
+//          check(A, i, 256 - i - 1)
 //      SUCCESS == del(A)
 
 // C
@@ -176,9 +159,11 @@
 #define MAX_A 256
 #define MAX_B 256
 #define MAX_C 256
-#define INC_A 16
-#define INC_B 16
-#define INC_C 16
+#define MAX_I 256
+#define INC_A 1
+#define INC_B 1
+#define INC_C 1
+#define INC_I 1
 
 // These 32-bit values all hash (using CityHash) to be have the same high-order
 // byte as their index.  E.g. index 0 has a hash of 0x00??????????????, while
@@ -238,8 +223,6 @@ absent(int testno,
 
 static void
 test1(hyperclient::client* cl);
-static void
-test2(hyperclient::client* cl);
 static void
 test3(hyperclient::client* cl);
 static void
@@ -317,13 +300,12 @@ main(int argc, char* argv[])
         cl.connect();
 
         test1(&cl);
-        test2(&cl);
         test3(&cl);
         test4(&cl);
-        //test5(&cl);
-        //test6(&cl);
-        //test7(&cl);
-        //test8(&cl);
+        test5(&cl);
+        test6(&cl);
+        test7(&cl);
+        test8(&cl);
     }
     catch (po6::error& e)
     {
@@ -595,85 +577,6 @@ test1(hyperclient::client* cl)
 }
 
 void
-test2(hyperclient::client* cl)
-{
-    for (size_t A = 0; A < MAX_A; A += INC_A)
-    {
-        for (size_t B = 0; B < MAX_B; B += INC_B)
-        {
-            for (size_t C = 0; C < MAX_C; C += INC_C)
-            {
-                if (!put(2, __LINE__, cl, A, B, C))
-                {
-                    return;
-                }
-
-                if (!check(2, __LINE__, cl, A, B, C))
-                {
-                    return;
-                }
-
-                for (size_t Bprime = 0; Bprime < 256; ++Bprime)
-                {
-                    if ((0xff00000000000000UL & nums[B]) ==
-                        (0xff00000000000000UL & nums[Bprime]))
-                    {
-                        if (!put(2, __LINE__, cl, A, Bprime, C))
-                        {
-                            return;
-                        }
-
-                        if (!check(2, __LINE__, cl, A, Bprime, C))
-                        {
-                            return;
-                        }
-                    }
-                }
-
-                if (!put(2, __LINE__, cl, A, B, C))
-                {
-                    return;
-                }
-
-                if (!check(2, __LINE__, cl, A, B, C))
-                {
-                    return;
-                }
-
-                for (size_t Cprime = 0; Cprime < 256; ++Cprime)
-                {
-                    if ((0xff00000000000000UL & nums[C]) ==
-                        (0xff00000000000000UL & nums[Cprime]))
-                    {
-                        if (!put(2, __LINE__, cl, A, B, Cprime))
-                        {
-                            return;
-                        }
-
-                        if (!check(2, __LINE__, cl, A, B, Cprime))
-                        {
-                            return;
-                        }
-                    }
-                }
-
-                if (!del(2, __LINE__, cl, A))
-                {
-                    return;
-                }
-
-                if (!absent(2, __LINE__, cl, A, B, C))
-                {
-                    return;
-                }
-            }
-        }
-    }
-
-    success(2);
-}
-
-void
 test3(hyperclient::client* cl)
 {
     for (size_t A = 0; A < MAX_A; A += INC_A)
@@ -746,23 +649,149 @@ test4(hyperclient::client* cl)
 void
 test5(hyperclient::client* cl)
 {
-    fail(5, "not implemented", __LINE__);
+    for (size_t A = 0; A < MAX_A; A += INC_A)
+    {
+        for (size_t I = 0; I < MAX_I; I += INC_I)
+        {
+            if (!put(5, __LINE__, cl, A, I, I))
+            {
+                return;
+            }
+
+            if (!check(5, __LINE__, cl, A, I, I))
+            {
+                return;
+            }
+
+            if (!del(5, __LINE__, cl, A))
+            {
+                return;
+            }
+
+            if (!absent(5, __LINE__, cl, A, I, I))
+            {
+                return;
+            }
+        }
+
+        for (size_t I = 0; I < MAX_I; I += INC_I)
+        {
+            if (!put(5, __LINE__, cl, A, I, 256 - I - 1))
+            {
+                return;
+            }
+
+            if (!check(5, __LINE__, cl, A, I, 256 - I - 1))
+            {
+                return;
+            }
+
+            if (!del(5, __LINE__, cl, A))
+            {
+                return;
+            }
+
+            if (!absent(5, __LINE__, cl, A, I, 256 - I - 1))
+            {
+                return;
+            }
+        }
+    }
+
+    success(5);
 }
 
 void
 test6(hyperclient::client* cl)
 {
-    fail(6, "not implemented", __LINE__);
+    for (size_t A = 0; A < MAX_A; A += INC_A)
+    {
+        for (size_t B = 0; B < MAX_B; B += INC_B)
+        {
+            for (size_t C = 0; C < MAX_C; C += INC_C)
+            {
+                if (!put(6, __LINE__, cl, A, B, C))
+                {
+                    return;
+                }
+
+                if (!check(6, __LINE__, cl, A, B, C))
+                {
+                    return;
+                }
+            }
+
+            if (!del(6, __LINE__, cl, A))
+            {
+                return;
+            }
+        }
+    }
+
+    success(6);
 }
 
 void
 test7(hyperclient::client* cl)
 {
-    fail(7, "not implemented", __LINE__);
+    for (size_t A = 0; A < MAX_A; A += INC_A)
+    {
+        for (size_t C = 0; C < MAX_C; C += INC_C)
+        {
+            for (size_t B = 0; B < MAX_B; B += INC_B)
+            {
+                if (!put(7, __LINE__, cl, A, B, C))
+                {
+                    return;
+                }
+
+                if (!check(7, __LINE__, cl, A, B, C))
+                {
+                    return;
+                }
+            }
+
+            if (!del(7, __LINE__, cl, A))
+            {
+                return;
+            }
+        }
+    }
+
+    success(7);
 }
 
 void
 test8(hyperclient::client* cl)
 {
-    fail(8, "not implemented", __LINE__);
+    for (size_t A = 0; A < MAX_A; A += INC_A)
+    {
+        for (size_t I = 0; I < MAX_I; I += INC_I)
+        {
+            if (!put(8, __LINE__, cl, A, I, I))
+            {
+                return;
+            }
+
+            if (!check(8, __LINE__, cl, A, I, I))
+            {
+                return;
+            }
+        }
+
+        for (size_t I = 0; I < MAX_I; I += INC_I)
+        {
+            if (!put(8, __LINE__, cl, A, I, 256 - I - 1))
+            {
+                return;
+            }
+
+            if (!check(8, __LINE__, cl, A, I, 256 - I - 1))
+            {
+                return;
+            }
+        }
+    }
+
+    success(8);
 }
