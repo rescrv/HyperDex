@@ -137,7 +137,8 @@ class hyperclient::client::search_results::priv
         priv(const priv&);
 
     private:
-        void remove(const hyperdex::instance& inst);
+        void complete(const hyperdex::entityid& ent);
+        void disconnect(const hyperdex::instance& inst);
         void disconnect(const hyperdex::instance& inst, channel_ptr chan);
 
     private:
@@ -393,7 +394,14 @@ hyperclient :: client :: search(const std::string& space,
             }
         }
 
-        chansubset[h->second] = chan;
+        if (chan)
+        {
+            chansubset[h->second] = chan;
+        }
+        else
+        {
+            ret = CONNECTFAIL;
+        }
     }
 
     sr->p.reset(new search_results::priv(p.get(), &hosts, &chansubset, terms));
@@ -542,7 +550,7 @@ hyperclient :: client :: priv :: recv(e::intrusive_ptr<channel> chan,
             {
                 uint32_t size;
 
-                if (chan->soc.recv(&size, 4, MSG_PEEK) != 4)
+                if (chan->soc.recv(&size, 4, MSG_DONTWAIT|MSG_PEEK) != 4)
                 {
                     continue;
                 }
@@ -666,7 +674,7 @@ hyperclient :: client :: priv :: reqrep(const std::string& space,
 
 hyperclient :: client :: priv :: channel :: channel(const hyperdex::instance& inst)
     : soc(inst.inbound.address.family(), SOCK_STREAM, IPPROTO_TCP)
-    , nonce(0)
+    , nonce(1)
     , id(UINT32_MAX)
     , m_ref(0)
 {
@@ -750,18 +758,16 @@ hyperclient :: client :: search_results :: priv :: priv(client::priv* _c,
         c->send(chan, h->second, h->first, hyperdex::REQ_SEARCH_START, nonce, msg);
     }
 
-    pfds.resize(chansubset.size() + 1);
-    pfds_idx.resize(chansubset.size() + 1);
-    memmove(&pfds[0], &c->cl.pfd(), sizeof(pollfd));
-    size_t pos = 1;
+    pfds.push_back(c->cl.pfd());
+    pfds_idx.push_back(hyperdex::instance());
 
     for (std::map<hyperdex::instance, channel_ptr>::iterator i = chansubset.begin(); i != chansubset.end(); ++i)
     {
-        pfds[pos].fd = i->second->soc.get();
-        pfds[pos].events = POLLIN;
-        pfds[pos].revents = 0;
-        pfds_idx[pos] = i->first;
-        ++pos;
+        pfds.push_back(pollfd());
+        pfds.back().fd = i->second->soc.get();
+        pfds.back().events = POLLIN;
+        pfds.back().revents = 0;
+        pfds_idx.push_back(i->first);
     }
 }
 
@@ -776,6 +782,7 @@ hyperclient :: client :: search_results :: priv :: ~priv()
 
         if (!chan)
         {
+            chansubset.erase(h->second);
             continue;
         }
 
@@ -804,8 +811,7 @@ hyperclient :: client :: search_results :: priv :: next()
             }
         }
 
-        memmove(&pfds[0], &c->cl.pfd(), sizeof(pollfd));
-        pfds[0].revents = 0;
+        pfds[0] = c->cl.pfd();
 
         if (poll(&pfds.front(), pfds.size(), -1) < 0)
         {
@@ -838,11 +844,7 @@ hyperclient :: client :: search_results :: priv :: next()
                 {
                     if (c->config.lookup(host->first) != host->second)
                     {
-                        hyperdex::entityid ent = host->first;
-                        hyperdex::instance inst = host->second;
-                        hosts.erase(ent);
-                        chansubset.erase(inst);
-                        nonces.erase(ent);
+                        disconnect(host->second);
                         fail = true;
                     }
                 }
@@ -868,8 +870,7 @@ hyperclient :: client :: search_results :: priv :: next()
 
             if (!chan)
             {
-                remove(inst);
-                chansubset.erase(inst);
+                disconnect(inst);
                 pfds[i].fd = -1;
                 continue;
             }
@@ -886,7 +887,7 @@ hyperclient :: client :: search_results :: priv :: next()
                 {
                     uint32_t size;
 
-                    if (chan->soc.recv(&size, 4, MSG_PEEK) != 4)
+                    if (chan->soc.recv(&size, 4, MSG_DONTWAIT|MSG_PEEK) != 4)
                     {
                         continue;
                     }
@@ -943,7 +944,7 @@ hyperclient :: client :: search_results :: priv :: next()
                         }
                         else
                         {
-                            remove(inst);
+                            complete(from);
                             continue;
                         }
                     }
@@ -956,8 +957,11 @@ hyperclient :: client :: search_results :: priv :: next()
                 }
                 catch (po6::error& e)
                 {
-                    disconnect(inst, chan);
-                    return DISCONNECT;
+                    if (e != EAGAIN && e != EWOULDBLOCK && e != EINTR)
+                    {
+                        disconnect(inst, chan);
+                        return DISCONNECT;
+                    }
                 }
                 catch (std::out_of_range& e)
                 {
@@ -973,7 +977,37 @@ hyperclient :: client :: search_results :: priv :: next()
 }
 
 void
-hyperclient :: client :: search_results :: priv :: remove(const hyperdex::instance& inst)
+hyperclient :: client :: search_results :: priv :: complete(const hyperdex::entityid& ent)
+{
+    std::map<hyperdex::entityid, hyperdex::instance>::iterator host;
+    host = hosts.find(ent);
+
+    if (host == hosts.end())
+    {
+        return;
+    }
+
+    hyperdex::instance inst = host->second;
+    bool others = false;
+    hosts.erase(host);
+    nonces.erase(ent);
+
+    for (host = hosts.begin(); host != hosts.end(); ++host)
+    {
+        if (host->second == inst)
+        {
+            others = true;
+        }
+    }
+
+    if (!others)
+    {
+        disconnect(inst);
+    }
+}
+
+void
+hyperclient :: client :: search_results :: priv :: disconnect(const hyperdex::instance& inst)
 {
     std::set<hyperdex::entityid> ents;
 
@@ -993,14 +1027,13 @@ hyperclient :: client :: search_results :: priv :: remove(const hyperdex::instan
     }
 
     chansubset.erase(inst);
+    assert(pfds.size() == pfds_idx.size());
 
-    for (size_t i = 0; i < pfds_idx.size(); ++i)
+    for (size_t i = 0; i < pfds.size(); ++i)
     {
         if (pfds_idx[i] == inst)
         {
             pfds[i].fd = -1;
-            pfds[i].events = 0;
-            pfds[i].revents = 0;
         }
     }
 }
@@ -1009,7 +1042,18 @@ void
 hyperclient :: client :: search_results :: priv :: disconnect(const hyperdex::instance& inst,
                                                               channel_ptr chan)
 {
-    remove(inst);
+    disconnect(inst);
+    assert(pfds.size() == pfds_idx.size());
+
+    for (size_t i = 0; i < pfds.size(); ++i)
+    {
+        if (pfds[i].fd == chan->soc.get())
+        {
+            pfds[i].fd = -1;
+        }
+    }
+
+    chan->soc.shutdown(SHUT_RDWR);
     chan->soc.close();
     c->channels.erase(inst);
 }
