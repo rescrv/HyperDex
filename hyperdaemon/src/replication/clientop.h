@@ -30,6 +30,7 @@
 
 // e
 #include <e/intrusive_ptr.h>
+#include <e/tuple_compare.h>
 
 namespace hyperdaemon
 {
@@ -46,16 +47,20 @@ class clientop
         clientop(const hyperdex::regionid& r, const hyperdex::entityid& f, uint32_t n);
 
     public:
-        bool operator < (const clientop& rhs) const;
-        bool operator == (const clientop& rhs) const
-        {
-            return region == rhs.region && from == rhs.from && nonce == rhs.nonce;
-        }
+        bool operator < (const clientop& rhs) const { return compare(rhs) < 0; }
+        bool operator <= (const clientop& rhs) const { return compare(rhs) <= 0; }
+        bool operator == (const clientop& rhs) const { return compare(rhs) == 0; }
+        bool operator != (const clientop& rhs) const { return compare(rhs) != 0; }
+        bool operator >= (const clientop& rhs) const { return compare(rhs) >= 0; }
+        bool operator > (const clientop& rhs) const { return compare(rhs) > 0; }
 
     public:
         hyperdex::regionid region;
         hyperdex::entityid from;
         uint32_t nonce;
+
+    private:
+        int compare (const clientop& rhs) const;
 };
 
 inline uint64_t
@@ -83,34 +88,12 @@ clientop :: clientop(const hyperdex::regionid& r,
 {
 }
 
-inline bool
-clientop :: operator < (const clientop& rhs) const
+inline int
+clientop :: compare(const clientop& rhs) const
 {
     const clientop& lhs(*this);
-
-    if (lhs.region < rhs.region)
-    {
-        return true;
-    }
-    else if (lhs.region == rhs.region)
-    {
-        if (lhs.from < rhs.from)
-        {
-            return true;
-        }
-        else if (lhs.from == rhs.from)
-        {
-            return lhs.nonce < rhs.nonce;
-        }
-        else
-        {
-            return false;
-        }
-    }
-    else
-    {
-        return false;
-    }
+    return e::tuple_compare(lhs.region, lhs.from, lhs.nonce,
+                            rhs.region, rhs.from, rhs.nonce);
 }
 
 } // namespace replication
