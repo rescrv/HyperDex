@@ -61,7 +61,8 @@ namespace hyperdaemon
 class logical
 {
     public:
-        logical(hyperdex::coordinatorlink* cl, const po6::net::ipaddr& us);
+        logical(hyperdex::coordinatorlink* cl, const po6::net::ipaddr& us,
+                in_port_t incoming, in_port_t outgoing);
         ~logical() throw ();
 
     public:

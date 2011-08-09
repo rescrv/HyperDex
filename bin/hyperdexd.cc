@@ -66,7 +66,7 @@ main(int argc, char* argv[])
             base = argv[4];
         }
 
-        return hyperdaemon::daemon(base, coordinator, bind_to, 4);
+        return hyperdaemon::daemon(base, coordinator, 4, bind_to, 0, 0);
     }
     catch (std::exception& e)
     {

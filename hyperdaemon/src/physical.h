@@ -63,7 +63,10 @@ class physical
         };
 
     public:
-        physical(const po6::net::ipaddr& ip, bool listen = true);
+        physical(const po6::net::ipaddr& ip,
+                 in_port_t incoming,
+                 in_port_t outgoing,
+                 bool listen);
         ~physical() throw ();
 
     // Pause/unpause or completely stop recv of messages.  Paused threads will

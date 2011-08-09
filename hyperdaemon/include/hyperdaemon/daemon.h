@@ -41,8 +41,10 @@ namespace hyperdaemon
 int
 daemon(po6::pathname datadir,
        po6::net::location coordinator,
+       uint16_t num_threads,
        po6::net::ipaddr bind_to,
-       uint16_t num_threads);
+       in_port_t incoming,
+       in_port_t outgoing);
 
 } // namespace hyperdaemon
 

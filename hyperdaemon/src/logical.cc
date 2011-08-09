@@ -49,7 +49,8 @@ using hyperdex::instance;
 using hyperdex::network_msgtype;
 using hyperdex::regionid;
 
-hyperdaemon :: logical :: logical(coordinatorlink* cl, const po6::net::ipaddr& ip)
+hyperdaemon :: logical :: logical(coordinatorlink* cl, const po6::net::ipaddr& ip,
+                                  in_port_t incoming, in_port_t outgoing)
     : m_cl(cl)
     , m_us()
     , m_config()
@@ -57,7 +58,7 @@ hyperdaemon :: logical :: logical(coordinatorlink* cl, const po6::net::ipaddr& i
     , m_client_nums()
     , m_client_locs()
     , m_client_counter(0)
-    , m_physical(ip)
+    , m_physical(ip, incoming, outgoing, true)
 {
     // XXX Get the addresses of the underlying layer, and message the master to
     // get the versions.

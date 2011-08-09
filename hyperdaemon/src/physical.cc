@@ -37,11 +37,14 @@
 // HyperDaemon
 #include "physical.h"
 
-hyperdaemon :: physical :: physical(const po6::net::ipaddr& ip, bool listen)
+hyperdaemon :: physical :: physical(const po6::net::ipaddr& ip,
+                                    in_port_t incoming,
+                                    in_port_t outgoing,
+                                    bool listen)
     : m_max_fds(sysconf(_SC_OPEN_MAX))
     , m_shutdown(false)
     , m_listen(ip.family(), SOCK_STREAM, IPPROTO_TCP)
-    , m_bindto(ip, 0)
+    , m_bindto(ip, outgoing)
     , m_incoming()
     , m_locations()
     , m_hazard_ptrs()
@@ -57,7 +60,7 @@ hyperdaemon :: physical :: physical(const po6::net::ipaddr& ip, bool listen)
         hazard_ptr hptr = m_hazard_ptrs.get();
         channel* chan;
         // Enable other hosts to connect to us.
-        m_listen.bind(po6::net::location(ip, 0));
+        m_listen.bind(po6::net::location(ip, incoming));
         m_listen.listen(128);
         m_listen.nonblocking();
 

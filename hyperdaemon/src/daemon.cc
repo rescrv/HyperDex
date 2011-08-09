@@ -64,8 +64,10 @@ sig_handle(int /*signum*/)
 int
 hyperdaemon :: daemon(po6::pathname datadir,
                       po6::net::location coordinator,
+                      uint16_t num_threads,
                       po6::net::ipaddr bind_to,
-                      uint16_t num_threads)
+                      in_port_t incoming,
+                      in_port_t outgoing)
 {
     // Catch signals.
     struct sigaction handle;
@@ -87,7 +89,7 @@ hyperdaemon :: daemon(po6::pathname datadir,
     // Setup the data component.
     datalayer data(&cl, datadir);
     // Setup the communication component.
-    logical comm(&cl, bind_to);
+    logical comm(&cl, bind_to, incoming, outgoing);
     comm.pause(); // Pause is idempotent.  The first unpause will cancel this one.
     // Create our announce string.
     std::ostringstream announce;
