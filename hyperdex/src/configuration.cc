@@ -191,7 +191,7 @@ hyperdex :: configuration :: add_line(const std::string& line)
         std::string mask_s;
         uint64_t mask;
         std::string host;
-        std::vector<std::string> hosts;
+        std::vector<std::string> _hosts;
 
         istr >> spacename >> subspacenum >> prefix_s >> mask_s;
 
@@ -211,20 +211,20 @@ hyperdex :: configuration :: add_line(const std::string& line)
 
             if (!istr.fail())
             {
-                hosts.push_back(host);
+                _hosts.push_back(host);
             }
         }
 
         // Check for valid hosts lists
-        for (size_t i = 0; i < hosts.size(); ++i)
+        for (size_t i = 0; i < _hosts.size(); ++i)
         {
             // If we find the same host anywhere else after this point
-            if (std::find(hosts.begin() + i + 1, hosts.end(), hosts[i]) != hosts.end())
+            if (std::find(_hosts.begin() + i + 1, _hosts.end(), _hosts[i]) != _hosts.end())
             {
                 return false;
             }
             // If we find a host that hasn't been declared
-            if (m_hosts.find(hosts[i]) == m_hosts.end())
+            if (m_hosts.find(_hosts[i]) == m_hosts.end())
             {
                 return false;
             }
@@ -245,9 +245,9 @@ hyperdex :: configuration :: add_line(const std::string& line)
             {
                 m_regions.insert(r);
 
-                for (size_t i = 0; i < hosts.size(); ++i)
+                for (size_t i = 0; i < _hosts.size(); ++i)
                 {
-                    m_entities.insert(std::make_pair(entityid(r, i), m_hosts[hosts[i]]));
+                    m_entities.insert(std::make_pair(entityid(r, i), m_hosts[_hosts[i]]));
                 }
 
                 return true;
@@ -501,6 +501,20 @@ hyperdex :: configuration :: regions() const
             i != m_regions.end(); ++i)
     {
         ret[*i] = m_spaces.find(i->get_space())->second.size();
+    }
+
+    return ret;
+}
+
+std::set<hyperdex::instance>
+hyperdex :: configuration :: hosts() const
+{
+    std::set<instance> ret;
+
+    for (std::map<std::string, instance>::const_iterator i = m_hosts.begin();
+            i != m_hosts.end(); ++i)
+    {
+        ret.insert(i->second);
     }
 
     return ret;

@@ -93,6 +93,7 @@ class configuration
         const std::map<entityid, instance>& entity_mapping() const { return m_entities; }
         const std::map<std::string, spaceid>& space_assignment() const { return m_space_assignment; }
         std::map<regionid, size_t> regions() const;
+        std::set<instance> hosts() const;
 
     private:
         std::map<std::string, instance> m_hosts;
