@@ -104,6 +104,7 @@ hyperdaemon :: daemon(po6::pathname datadir,
     while (s_continue && cl.connect() != hyperdex::coordinatorlink::SUCCESS)
     {
         PLOG(INFO) << "Coordinator connection failed";
+        e::sleep_ms(1, 0);
     }
 
     // Start the network workers.
@@ -179,6 +180,7 @@ hyperdaemon :: daemon(po6::pathname datadir,
                 if (cl.connect() != hyperdex::coordinatorlink::SUCCESS)
                 {
                     PLOG(INFO) << "Coordinator connection failed";
+                    e::sleep_ms(1, 0);
                 }
 
                 break;

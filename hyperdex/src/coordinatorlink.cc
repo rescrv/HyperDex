@@ -94,6 +94,7 @@ hyperdex :: coordinatorlink :: connect()
     }
     catch (po6::error& e)
     {
+        reset();
         return CONNECTFAIL;
     }
 }
