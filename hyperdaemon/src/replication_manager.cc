@@ -182,19 +182,10 @@ hyperdaemon :: replication_manager :: reconfigure(const configuration& newconfig
         }
     }
 
-    // XXX need to convert "mayack" messages to disk for every region for which
-    // we are the row leader.
-
-    // When reconfiguring, we need to drop all messages which we deferred (e.g.,
-    // for arriving out-of-order) because they may no longer be from a valid
-    // sender.
-    //
-    // We also drop all resources associated with regions for which we no longer
-    // hold responsibility.
-    //
-    // XXX If we track the old/new entity->instance mappings for deferred
-    // messages, we can selectively drop them.
+    // Install a new configuration.
     m_config = newconfig;
+
+    // Get a set of regions over which we hold responsibility.
     std::set<regionid> regions;
 
     for (std::map<entityid, instance>::const_iterator e = m_config.entity_mapping().begin();
@@ -206,13 +197,17 @@ hyperdaemon :: replication_manager :: reconfigure(const configuration& newconfig
         }
     }
 
+    // For each key_holder we drop deferred messages which no longer map the
+    // configuration.  We drop key_holders which are no longer needed because we
+    // are no longer responsible for them.  For each region in which we are now
+    // the row leader, we put "mayack" messages to disk.
+
     std::tr1::unordered_map<keypair, e::intrusive_ptr<keyholder>, keypair::hash>::iterator khiter;
     khiter = m_keyholders.begin();
 
     while (khiter != m_keyholders.end())
     {
-        khiter->second->deferred_updates.clear();
-
+        // Drop the keyholder if we don't need it.
         if (regions.find(khiter->first.region) == regions.end())
         {
             std::tr1::unordered_map<keypair, e::intrusive_ptr<keyholder>, keypair::hash>::iterator to_erase;
@@ -220,10 +215,52 @@ hyperdaemon :: replication_manager :: reconfigure(const configuration& newconfig
             ++khiter;
             m_keyholders.erase(to_erase);
         }
-        else
+
+        e::intrusive_ptr<keyholder> kh = khiter->second;
+
+        // Drop messages which were deferred but are no longer valid.
+        std::map<uint64_t, e::intrusive_ptr<replication::deferred> >::iterator duiter;
+        duiter = kh->deferred_updates.begin();
+
+        while (duiter != kh->deferred_updates.end())
         {
-            ++khiter;
+            if (m_config.lookup(duiter->second->from_ent) != duiter->second->from_inst)
+            {
+                std::map<uint64_t, e::intrusive_ptr<replication::deferred> >::iterator to_erase;
+                to_erase = duiter;
+                ++duiter;
+                kh->deferred_updates.erase(to_erase);
+            }
+            else
+            {
+                ++duiter;
+            }
         }
+
+        // Promote messages which we have tagged as "mayack".
+        if (m_config.lookup(m_config.headof(khiter->first.region)) == us)
+        {
+            // We do NOT send_ack here.  This is not an issue because
+            // retransmission will, and we are in a state where we cannot
+            // transmit messages.
+            std::map<uint64_t, e::intrusive_ptr<pending> >::reverse_iterator penditer;
+            penditer = kh->pending_updates.rbegin();
+
+            while (penditer != kh->pending_updates.rend())
+            {
+                if (penditer->second->mayack && !penditer->second->ondisk)
+                {
+                    put_to_disk(khiter->first.region, khiter->first.key, kh, penditer->first);
+                }
+
+                if (penditer->second->mayack)
+                {
+                    break;
+                }
+            }
+        }
+
+        ++khiter;
     }
 }
 
@@ -728,12 +765,6 @@ hyperdaemon :: replication_manager :: region_transfer_done(const entityid& from,
         LOG(INFO) << "REGION GO LIVE " << to.subspace;
     }
 }
-
-// XXX It'd be a good idea to have the same thread which does periodic
-// retransmission also handle cleaning of deferred updates which are too old.
-// At any time it's acceptable to drop a deferred update, so this won't hurt
-// correctness, and does make it easy to reclaim keyholders (if
-// pending/blocked/deferred are empty then drop it).
 
 void
 hyperdaemon :: replication_manager :: client_common(bool has_value,
@@ -1475,7 +1506,10 @@ hyperdaemon :: replication_manager :: send_update(const hyperdex::regionid& pend
 
         if (update->this_old.subspace == 0 && update->mayack)
         {
-            m_comm->send_backward(pending_in, hyperdex::CHAIN_PENDING, info);
+            e::buffer ackmsg;
+            ackmsg.pack() << version << key;
+            m_comm->send_backward_else_tail(pending_in, hyperdex::CHAIN_PENDING, info,
+                                            update->prev, hyperdex::CHAIN_ACK, ackmsg);
         }
     }
     else if (pending_in == update->this_old)
