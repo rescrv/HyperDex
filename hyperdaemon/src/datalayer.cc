@@ -66,10 +66,10 @@ using hyperdex::coordinatorlink;
 typedef e::intrusive_ptr<hyperdisk::disk> disk_ptr;
 typedef std::map<hyperdex::regionid, disk_ptr> disk_map_t;
 
-hyperdaemon :: datalayer :: datalayer(coordinatorlink* cl)
+hyperdaemon :: datalayer :: datalayer(coordinatorlink* cl, const po6::pathname& base)
     : m_cl(cl)
     , m_shutdown(false)
-    , m_base("")
+    , m_base(base)
     , m_flusher(std::tr1::bind(&datalayer::flush_loop, this))
     , m_lock()
     , m_disks()

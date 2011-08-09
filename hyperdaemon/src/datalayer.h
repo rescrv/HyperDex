@@ -60,7 +60,7 @@ namespace hyperdaemon
 class datalayer
 {
     public:
-        datalayer(hyperdex::coordinatorlink* cl);
+        datalayer(hyperdex::coordinatorlink* cl, const po6::pathname& base);
         ~datalayer() throw ();
 
     public:

@@ -49,7 +49,7 @@ main(int argc, char* argv[])
     google::InitGoogleLogging(argv[0]);
     google::InstallFailureSignalHandler();
 
-    if (argc != 4)
+    if (argc != 4 && argc != 5)
     {
         return usage();
     }
@@ -59,7 +59,14 @@ main(int argc, char* argv[])
     {
         po6::net::location coordinator = po6::net::location(argv[1], atoi(argv[2]));
         po6::net::ipaddr bind_to = argv[3];
-        return hyperdaemon::daemon(".", coordinator, bind_to, 4);
+        po6::pathname base = ".";
+
+        if (argc == 5)
+        {
+            base = argv[4];
+        }
+
+        return hyperdaemon::daemon(base, coordinator, bind_to, 4);
     }
     catch (std::exception& e)
     {
@@ -72,7 +79,7 @@ main(int argc, char* argv[])
 int
 usage()
 {
-    std::cerr << "Usage:  hyperdexd <coordinator ip> <coordinator port> <bind to>"
+    std::cerr << "Usage:  hyperdexd <coordinator ip> <coordinator port> <bind to> [<datadir>]"
               << std::endl;
     return EXIT_FAILURE;
 }

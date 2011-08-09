@@ -85,7 +85,7 @@ hyperdaemon :: daemon(po6::pathname datadir,
     // Setup our link to the coordinator.
     hyperdex::coordinatorlink cl(coordinator);
     // Setup the data component.
-    datalayer data(&cl); // XXX Pass in the proper directory
+    datalayer data(&cl, datadir);
     // Setup the communication component.
     logical comm(&cl, bind_to);
     comm.pause(); // Pause is idempotent.  The first unpause will cancel this one.
