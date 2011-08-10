@@ -76,6 +76,7 @@ struct instance
         return !(lhs == rhs);
     }
 
+    // XXX turn this into ipaddr and to in_port_t instead of two locations.
     po6::net::location inbound;
     uint16_t inbound_version;
     po6::net::location outbound;

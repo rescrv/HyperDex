@@ -93,8 +93,9 @@ hyperdaemon :: daemon(po6::pathname datadir,
     comm.pause(); // Pause is idempotent.  The first unpause will cancel this one.
     // Create our announce string.
     std::ostringstream announce;
-    announce << "instance\t" << comm.inst().inbound << "\t"
-                             << comm.inst().outbound;
+    announce << "instance\t" << comm.inst().inbound.address << "\t"
+                             << comm.inst().inbound.port << "\t"
+                             << comm.inst().outbound.port;
     cl.set_announce(announce.str());
     // Setup the search component.
     searches ssss(&cl, &data, &comm);
