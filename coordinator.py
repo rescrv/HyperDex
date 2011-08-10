@@ -51,7 +51,8 @@ def normalize_address(addr):
 
 
 # XXX When we move to using ConCoord, we need to ensure that each call to
-# add_host is accompanied by an rm_host even in the case where this code fails.
+# add_instance is accompanied by an rm_instance even in the case where this code
+# fails.
 class ActionsLog(object):
 
     class HostExists(Exception): pass
@@ -59,10 +60,10 @@ class ActionsLog(object):
 
     def __init__(self):
         self._portcounters = collections.defaultdict(int)
-        self._hosts = {}
+        self._instances = {}
 
-    def add_host(self, addr, incoming, outgoing):
-        if (addr, incoming, outgoing) in self._hosts:
+    def add_instance(self, addr, incoming, outgoing):
+        if (addr, incoming, outgoing) in self._instances:
             raise ActionsLog.HostExists()
         # Get unique numbers for these ports.
         inc_ver = self._portcounters[(addr, incoming)]
@@ -74,13 +75,13 @@ class ActionsLog(object):
         # Fail if either exceeds the size of a 16-bit int.
         if inc_ver >= 1 << 16 or out_ver >= 1 << 16:
             raise ActionsLog.ExhaustedPorts()
-        self._hosts[(addr, incoming, outgoing)] = (inc_ver, out_ver)
+        self._instances[(addr, incoming, outgoing)] = (inc_ver, out_ver)
 
-    def rm_host(self, addr, incoming, outgoing):
-        del self._hosts[(addr, incoming, outgoing)]
+    def rm_instance(self, addr, incoming, outgoing):
+        del self._instances[(addr, incoming, outgoing)]
 
-    def list_hosts(self):
-        return list(sorted(self._hosts))
+    def list_instances(self):
+        return self._instances
 
 
 class Acceptor(asyncore.dispatcher):
@@ -105,12 +106,12 @@ class Acceptor(asyncore.dispatcher):
     def new_configuration(self, config): pass
 
 
-# XXX Close if throws in init.
 class ControlConnection(asynchat.async_chat):
 
     def __init__(self, actionslog, sock, map):
         asynchat.async_chat.__init__(self, sock=sock, map=map)
         self.set_terminator("\n")
+        self._actionslog = actionslog
         self._ibuffer = []
         self._connectime = datetime.datetime.now()
         self._id = '%s:%i' % sock.getpeername()
@@ -130,9 +131,13 @@ class ControlConnection(asynchat.async_chat):
         commandline = shlex.split("".join(self._ibuffer))
         self._ibuffer = []
         if commandline:
-            if commandline[0] == 'list-clients':
+            if commandline[0] == 'list' and commandline[1] == 'clients':
+                if len(commandline) != 2:
+                    return self.fail("Invalid control command {0}".format(commandline))
                 self.list_clients()
-            elif commandline[0] == 'list-instances':
+            elif commandline[0] == 'list' and commandline[1] == 'instances':
+                if len(commandline) != 2:
+                    return self.fail("Invalid control command {0}".format(commandline))
                 self.list_instances()
             else:
                 return self.fail("Unknown commandline {0}".format(commandline))
@@ -144,9 +149,7 @@ class ControlConnection(asynchat.async_chat):
     def list_clients(self):
         ret = []
         for conn in self._map.values():
-            logging.info("HI")
             identified = getattr(conn, '_identified', None)
-            logging.info("ID " + repr(identified) + " " + getattr(conn, '_id', ''))
             if identified == HostConnection.CLIENT:
                 ret.append((conn._connectime, conn._id))
         resp = "\n".join(["{0} {1}".format(d, i) for d, i in ret])
@@ -154,6 +157,21 @@ class ControlConnection(asynchat.async_chat):
             resp += "\n.\n"
         else:
             resp += ".\n"
+        self.push(resp)
+
+    def list_instances(self):
+        local = {}
+        instances = self._actionslog.list_instances()
+        for conn in self._map.values():
+            identified = getattr(conn, '_identified', None)
+            if identified == HostConnection.INSTANCE:
+                local[conn._instance] = conn._connectime
+        resp = ''
+        for key, val in sorted(instances.items()):
+            time = local.get(key, '')
+            resp += "{0:26} {1} {2}v{3} {4}v{5}\n"\
+                    .format(str(time), key[0], key[1], val[0], key[2], val[1])
+        resp += ".\n"
         self.push(resp)
 
     def new_configuration(self, config): pass
@@ -179,7 +197,7 @@ class HostConnection(asynchat.async_chat):
         asynchat.async_chat.handle_close(self)
         if self._instance:
             addr, incoming, outgoing = self._instance
-            self._actionslog.rm_host(addr, incoming, outgoing)
+            self._actionslog.rm_instance(addr, incoming, outgoing)
         if not self._die:
             logging.info("Disconnect from {0}".format(self._id))
 
@@ -243,7 +261,7 @@ class HostConnection(asynchat.async_chat):
         except ValueError:
             return self.die("Host {0} identifies as an instance with an unparseable incoming port")
         try:
-            self._actionslog.add_host(addr, incoming, outgoing)
+            self._actionslog.add_instance(addr, incoming, outgoing)
             self._instance = (addr, incoming, outgoing)
             logging.info("Host {0} identifies as an instance on {1} {2} {3}"
                          .format(self._id, addr, incoming, outgoing))
@@ -286,7 +304,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-b', '--bindto', default='')
     parser.add_argument('-c', '--control-port', type=int, default=0)
-    parser.add_argument('-d', '--host-port', type=int, default=0)
+    parser.add_argument('-p', '--host-port', type=int, default=0)
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
     cs = CoordinatorServer(args.bindto, args.control_port, args.host_port)
