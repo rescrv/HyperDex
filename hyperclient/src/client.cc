@@ -504,7 +504,7 @@ hyperclient :: client :: priv :: recv(e::intrusive_ptr<channel> chan,
         }
 
         pollfd pfds[2];
-        memmove(pfds, &cl.pfd(), sizeof(pollfd));
+        pfds[0] = cl.pfd();
         pfds[0].revents = 0;
         pfds[1].fd = chan->soc.get();
         pfds[1].events = POLLIN;

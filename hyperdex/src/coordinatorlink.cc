@@ -32,7 +32,8 @@
 #include "../include/hyperdex/coordinatorlink.h"
 
 hyperdex :: coordinatorlink :: coordinatorlink(const po6::net::location& coordinator)
-    : m_coordinator(coordinator)
+    : m_lock()
+    , m_coordinator(coordinator)
     , m_announce()
     , m_shutdown(false)
     , m_acknowledged(true)
@@ -51,14 +52,17 @@ hyperdex :: coordinatorlink :: ~coordinatorlink() throw ()
 }
 
 bool
-hyperdex :: coordinatorlink :: unacknowledged() const
+hyperdex :: coordinatorlink :: unacknowledged()
 {
+    po6::threads::mutex::hold hold(&m_lock);
     return !m_acknowledged;
 }
 
 hyperdex::coordinatorlink::returncode
 hyperdex :: coordinatorlink :: acknowledge()
 {
+    po6::threads::mutex::hold hold(&m_lock);
+
     if (m_shutdown)
     {
         return SHUTDOWN;
@@ -77,6 +81,8 @@ hyperdex :: coordinatorlink :: acknowledge()
 hyperdex::coordinatorlink::returncode
 hyperdex :: coordinatorlink :: connect()
 {
+    po6::threads::mutex::hold hold(&m_lock);
+
     if (m_sock.get() >= 0)
     {
         return SUCCESS;
@@ -106,6 +112,7 @@ hyperdex :: coordinatorlink :: loop(size_t iterations, int timeout)
 
     while (m_acknowledged && iter < iterations)
     {
+        po6::threads::mutex::hold hold(&m_lock);
         if (m_shutdown)
         {
             return SHUTDOWN;
@@ -117,7 +124,9 @@ hyperdex :: coordinatorlink :: loop(size_t iterations, int timeout)
             return DISCONNECT;
         }
 
+        m_lock.unlock();
         int polled = poll(&m_pfd, 1, timeout);
+        m_lock.lock();
 
         if (polled < 0)
         {
@@ -190,15 +199,32 @@ hyperdex :: coordinatorlink :: loop(size_t iterations, int timeout)
 void
 hyperdex :: coordinatorlink :: shutdown()
 {
+    po6::threads::mutex::hold hold(&m_lock);
+
     if (!m_shutdown)
     {
         m_shutdown = true;
     }
 }
 
-const hyperdex::configuration&
-hyperdex :: coordinatorlink :: config() const
+pollfd
+hyperdex :: coordinatorlink :: pfd()
 {
+    po6::threads::mutex::hold hold(&m_lock);
+    return m_pfd;
+}
+
+bool
+hyperdex :: coordinatorlink :: connected()
+{
+    po6::threads::mutex::hold hold(&m_lock);
+    return m_sock.get() >= 0;
+}
+
+hyperdex::configuration
+hyperdex :: coordinatorlink :: config()
+{
+    po6::threads::mutex::hold hold(&m_lock);
     return m_config;
 }
 

@@ -37,6 +37,7 @@
 // po6
 #include <po6/net/location.h>
 #include <po6/net/socket.h>
+#include <po6/threads/mutex.h>
 
 // HyperDex
 #include <hyperdex/configuration.h>
@@ -64,7 +65,7 @@ class coordinatorlink
     // acknowledged.  Once acknowledge is called, it flips the state of
     // "unacknowledged" to false until a new config is received.
     public:
-        bool unacknowledged() const;
+        bool unacknowledged();
         returncode acknowledge();
 
     public:
@@ -74,14 +75,15 @@ class coordinatorlink
         void shutdown();
 
     public:
-        const pollfd& pfd() const { return m_pfd; }
-        bool connected() { return m_sock.get() >= 0; }
-        const hyperdex::configuration& config() const;
+        pollfd pfd();
+        bool connected();
+        hyperdex::configuration config();
 
     private:
         coordinatorlink(const coordinatorlink&);
 
     private:
+        // These internal methods must be protected by the lock.
         returncode send_to_coordinator(const char* msg, size_t len);
         void reset(); // Reset the config and socket (calls reset_config).
         void reset_config(); // Prepare a new config.
@@ -90,6 +92,7 @@ class coordinatorlink
         coordinatorlink& operator = (const coordinatorlink&);
 
     private:
+        po6::threads::mutex m_lock;
         const po6::net::location m_coordinator;
         std::string m_announce;
         bool m_shutdown;
