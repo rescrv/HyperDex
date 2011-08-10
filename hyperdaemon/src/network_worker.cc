@@ -182,8 +182,7 @@ hyperdaemon :: network_worker :: run()
             {
                 e::buffer key;
                 uint64_t version;
-				uint8_t nop; // XXX remove; it's meaningless for a del.
-                msg.unpack() >> version >> nop >> key;
+                msg.unpack() >> version >> key;
                 m_repl->chain_del(from, to, version, key);
             }
             else if (type == hyperdex::CHAIN_PENDING)

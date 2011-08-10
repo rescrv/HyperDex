@@ -1492,23 +1492,23 @@ hyperdaemon :: replication_manager :: send_update(const hyperdex::regionid& pend
                                                   uint64_t version, const e::buffer& key,
                                                   e::intrusive_ptr<pending> update)
 {
+    // XXX Cleanup this logic to avoid all the useless packings.
     assert(pending_in == update->this_old || pending_in == update->this_new);
 
     if (update->this_old == update->this_new)
     {
-        uint8_t fresh = update->fresh ? 1 : 0;
         e::buffer msg;
-        e::packer pack(&msg);
-        pack << version << fresh << key;
         network_msgtype type;
 
         if (update->has_value)
         {
-            pack << update->value;
+            uint8_t fresh = update->fresh ? 1 : 0;
+            msg.pack() << version << fresh << key << update->value;
             type = hyperdex::CHAIN_PUT;
         }
         else
         {
+            msg.pack() << version << key;
             type = hyperdex::CHAIN_DEL;
         }
 
