@@ -48,6 +48,7 @@
 #include <e/timer.h>
 
 // HyperDex
+#include <hyperdex/coordinatorlink.h>
 #include <hyperdex/hyperspace.h>
 #include <hyperdex/network_constants.h>
 
@@ -566,6 +567,12 @@ hyperdaemon :: replication_manager :: region_transfer(const entityid& from,
         return;
     }
 
+    if (t->failed)
+    {
+        m_cl->fail_transfer(from.subspace);
+        return;
+    }
+
     // Grab a lock to ensure we can safely update it.
     po6::threads::mutex::hold hold(&t->lock);
 
@@ -580,8 +587,9 @@ hyperdaemon :: replication_manager :: region_transfer(const entityid& from,
 
         if (!m_comm->send(to, from, hyperdex::XFER_DATA, msg))
         {
-            // XXX
-            LOG(ERROR) << "FAIL TRANSFER " << from.subspace;
+            t->failed = true;
+            m_cl->fail_transfer(from.subspace);
+            return;
         }
     }
     else
@@ -590,8 +598,9 @@ hyperdaemon :: replication_manager :: region_transfer(const entityid& from,
 
         if (!m_comm->send(to, from, hyperdex::XFER_DONE, msg))
         {
-            // XXX
-            LOG(ERROR) << "FAIL TRANSFER " << from.subspace;
+            t->failed = true;
+            m_cl->fail_transfer(from.subspace);
+            return;
         }
     }
 }
@@ -616,6 +625,17 @@ hyperdaemon :: replication_manager :: region_transfer(const entityid& from,
 
     e::intrusive_ptr<transfer_in> t = titer->second;
 
+    if (from != t->replicate_from)
+    {
+        return;
+    }
+
+    if (t->failed)
+    {
+        m_cl->fail_transfer(xfer_id);
+        return;
+    }
+
     // Grab a lock to ensure that we order the puts to disk correctly.
     keypair kp(t->replicate_from.get_region(), key);
     e::striped_lock<po6::threads::mutex>::hold hold_k(&m_locks, get_lock_num(kp));
@@ -623,11 +643,7 @@ hyperdaemon :: replication_manager :: region_transfer(const entityid& from,
     // Grab a lock to ensure we can safely update the transfer object.
     po6::threads::mutex::hold hold_t(&t->lock);
 
-    if (from != t->replicate_from)
-    {
-        return;
-    }
-
+    // If we've triggered, then we can safely drop the message.
     if (t->triggered)
     {
         return;
@@ -643,8 +659,8 @@ hyperdaemon :: replication_manager :: region_transfer(const entityid& from,
     // (but admittedly still possible).
     if (t->ops.size() > TRANSFERS_IN_FLIGHT)
     {
-        // XXX FAIL THIS TRANSFER
-        LOG(ERROR) << "FAIL TRANSFER " << xfer_id;
+        t->failed = true;
+        m_cl->fail_transfer(xfer_id);
         return;
     }
 
@@ -675,10 +691,10 @@ hyperdaemon :: replication_manager :: region_transfer(const entityid& from,
                     case hyperdisk::SUCCESS:
                         break;
                     case hyperdisk::WRONGARITY:
-                        LOG(ERROR) << "Transfer caused WRONGARITY.";
+                        LOG(ERROR) << "Transfer " << xfer_id << " caused WRONGARITY.";
                         break;
                     case hyperdisk::MISSINGDISK:
-                        LOG(ERROR) << "Transfer returned MISSINGDISK.";
+                        LOG(ERROR) << "Transfer " << xfer_id << " caused MISSINGDISK.";
                         break;
                     case hyperdisk::NOTFOUND:
                     case hyperdisk::HASHFULL:
@@ -687,7 +703,7 @@ hyperdaemon :: replication_manager :: region_transfer(const entityid& from,
                     case hyperdisk::SYNCFAILED:
                     case hyperdisk::DROPFAILED:
                     default:
-                        LOG(ERROR) << "m_data returned unexpected error code.";
+                        LOG(ERROR) << "Transfer " << xfer_id << " caused unexpected error code.";
                         break;
                 }
             }
@@ -698,7 +714,7 @@ hyperdaemon :: replication_manager :: region_transfer(const entityid& from,
                     case hyperdisk::SUCCESS:
                         break;
                     case hyperdisk::MISSINGDISK:
-                        LOG(ERROR) << "Transfer returned MISSINGDISK.";
+                        LOG(ERROR) << "Transfer " << xfer_id << " caused MISSINGDISK.";
                         break;
                     case hyperdisk::WRONGARITY:
                     case hyperdisk::NOTFOUND:
@@ -708,15 +724,15 @@ hyperdaemon :: replication_manager :: region_transfer(const entityid& from,
                     case hyperdisk::SYNCFAILED:
                     case hyperdisk::DROPFAILED:
                     default:
-                        LOG(ERROR) << "m_data returned unexpected error code.";
+                        LOG(ERROR) << "Transfer " << xfer_id << " caused unexpected error code.";
                         break;
                 }
             }
 
             if (res != hyperdisk::SUCCESS)
             {
-                // XXX FAIL THIS TRANSFER
-                LOG(ERROR) << "FAIL TRANSFER " << xfer_id;
+                t->failed = true;
+                m_cl->fail_transfer(xfer_id);
                 return;
             }
         }
@@ -730,8 +746,9 @@ hyperdaemon :: replication_manager :: region_transfer(const entityid& from,
 
     if (!m_comm->send(t->transfer_entity, t->replicate_from, hyperdex::XFER_MORE, msg))
     {
-        // XXX FAIL
-        LOG(ERROR) << "FAIL TRANSFER " << xfer_id;
+        t->failed = true;
+        m_cl->fail_transfer(xfer_id);
+        return;
     }
 }
 
@@ -754,6 +771,12 @@ hyperdaemon :: replication_manager :: region_transfer_done(const entityid& from,
 
     if (from != t->replicate_from)
     {
+        return;
+    }
+
+    if (t->failed)
+    {
+        m_cl->fail_transfer(to.subspace);
         return;
     }
 

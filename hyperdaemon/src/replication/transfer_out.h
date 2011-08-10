@@ -49,6 +49,7 @@ class transfer_out
         uint64_t xfer_num;
         const hyperdex::entityid replicate_from;
         const hyperdex::entityid transfer_entity;
+        bool failed;
 
     private:
         friend class e::intrusive_ptr<transfer_out>;
@@ -71,6 +72,7 @@ transfer_out :: transfer_out(const hyperdex::entityid& from,
     , xfer_num(1)
     , replicate_from(from)
     , transfer_entity(std::numeric_limits<uint32_t>::max() - 1, xfer_id, 0, 0, 0)
+    , failed(false)
     , m_ref(0)
 {
 }

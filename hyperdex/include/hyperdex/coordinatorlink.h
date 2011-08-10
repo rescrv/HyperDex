@@ -67,6 +67,7 @@ class coordinatorlink
     public:
         bool unacknowledged();
         returncode acknowledge();
+        returncode fail_transfer(uint16_t xfer_id);
 
     public:
         void set_announce(const std::string& announce) { m_announce = announce + "\n"; }

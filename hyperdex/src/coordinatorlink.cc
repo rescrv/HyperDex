@@ -79,6 +79,21 @@ hyperdex :: coordinatorlink :: acknowledge()
 }
 
 hyperdex::coordinatorlink::returncode
+hyperdex :: coordinatorlink :: fail_transfer(uint16_t xfer_id)
+{
+    po6::threads::mutex::hold hold(&m_lock);
+
+    if (m_shutdown)
+    {
+        return SHUTDOWN;
+    }
+
+    std::ostringstream ostr;
+    ostr << "fail_transfer\t" << xfer_id << "\n";
+    return send_to_coordinator(ostr.str().c_str(), ostr.str().size());
+}
+
+hyperdex::coordinatorlink::returncode
 hyperdex :: coordinatorlink :: connect()
 {
     po6::threads::mutex::hold hold(&m_lock);

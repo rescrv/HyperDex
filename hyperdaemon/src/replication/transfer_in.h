@@ -72,6 +72,7 @@ class transfer_in
         bool go_live;
         bool triggered;
         std::set<std::pair<e::buffer, uint64_t> > triggers;
+        bool failed;
 
     private:
         friend class e::intrusive_ptr<transfer_in>;
@@ -99,6 +100,7 @@ transfer_in :: transfer_in(uint16_t xfer_id,
     , go_live(false)
     , triggered(false)
     , triggers()
+    , failed(false)
     , m_ref(0)
 {
 }
