@@ -78,6 +78,10 @@ class ActionsLog(object):
         self._instances[(addr, incoming, outgoing)] = (inc_ver, out_ver)
 
     def rm_instance(self, addr, incoming, outgoing):
+        # XXX rm_instance should not just wipe out the instance.  When we move
+        # to ConCoord (where we have multiple coordinators) rm_instance should
+        # put the instance "on notice" and wipe it if and only if someone else
+        # reports a failure.
         del self._instances[(addr, incoming, outgoing)]
 
     def list_instances(self):
