@@ -69,19 +69,19 @@ def _fill_to_region(upper_bound, auto_prefix, auto_replication, target):
             assert(index >= 0)
             regions.append(Region(mask=upper_bound,
                                   prefix=index,
-                                  replicas=auto_replication))
+                                  replicas=list(auto_replication)))
         elif boundstr[auto_prefix + 1:].strip('0') == '':
             # We need to create an undivided automatic region.
             regions.append(Region(mask=upper_bound,
                                   prefix=auto_prefix,
-                                  replicas=auto_replication))
+                                  replicas=list(auto_replication)))
         else:
             # We need finish this divided automatic region.
             index = boundstr.rfind('1')
             assert(index >= 0)
             regions.append(Region(mask=upper_bound,
                                   prefix=index,
-                                  replicas=auto_replication))
+                                  replicas=list(auto_replication)))
         upper_bound = _upper_bound_of(regions[-1])
     return regions
 
