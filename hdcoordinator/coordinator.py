@@ -32,11 +32,15 @@ import asyncore
 import collections
 import datetime
 import logging
+import random
 import shlex
 import signal
 import socket
 import uuid
 
+import pyparsing
+
+import hdcoordinator.parser
 
 def normalize_address(addr):
     try:
@@ -56,11 +60,18 @@ def normalize_address(addr):
 class ActionsLog(object):
 
     class HostExists(Exception): pass
+    class DuplicateSpace(Exception): pass
     class ExhaustedPorts(Exception): pass
 
     def __init__(self):
         self._portcounters = collections.defaultdict(int)
         self._instances = {}
+        self._spaces_by_name = {}
+        self._spaces_by_num = {}
+        self._spacenum = 0
+        self._stableconfig = ''
+        self._confignum = 0
+        self._rand = random.Random()
 
     def add_instance(self, addr, incoming, outgoing):
         if (addr, incoming, outgoing) in self._instances:
@@ -82,10 +93,81 @@ class ActionsLog(object):
         # to ConCoord (where we have multiple coordinators) rm_instance should
         # put the instance "on notice" and wipe it if and only if someone else
         # reports a failure.
+
+        # XXX remove the failed instance from the configs.
         del self._instances[(addr, incoming, outgoing)]
 
     def list_instances(self):
         return self._instances
+
+    def add_space(self, space):
+        if space.name in self._spaces_by_name:
+            raise ActionsLog.DuplicateSpace()
+        while True:
+            spacenum = self._spacenum
+            self._spacenum = (self._spacenum + 1) % ((1 << 32) - 3) + 1
+            if spacenum not in self._spaces_by_num:
+                break
+        self._spaces_by_name[space.name] = spacenum
+        self._spaces_by_num[spacenum] = space
+        self.fill_regions(space)
+
+    def fill_regions(self, space):
+        for subspacenum, subspace in enumerate(space.subspaces):
+            for region in subspace.regions:
+                for replicanum in range(len(region.replicas)):
+                    avail = set(self._instances.keys())
+                    avail -= set(region.replicas)
+                    avail = list(sorted(avail))
+                    if avail:
+                        # XXX Using random is probably not a good idea in the
+                        # replicated state machine.
+                        region.replicas[replicanum] = self._rand.choice(avail)
+                    del avail
+
+    def config(self):
+        try:
+            hosts = {}
+            counter = 0
+            config = ''
+            for spacenum, space in self._spaces_by_num.iteritems():
+                space_str = 'space\t{0}\t{1}\t{2}\n'
+                space_str = space_str.format(hex(spacenum).rstrip('L'), space.name,
+                                             '\t'.join(space.dimensions))
+                for subspacenum, subspace in enumerate(space.subspaces):
+                    subspace_str = 'subspace\t{0}\t{1}\t{2}\n'
+                    subspace_str = subspace_str.format(space.name,
+                                                       subspacenum,
+                                                       '\t'.join(subspace.dimensions))
+                    for region in subspace.regions:
+                        region_str = 'region\t{0}\t{1}\t{2}\t{3}'
+                        region_str = region_str.format(space.name,
+                                                       subspacenum,
+                                                       region.prefix,
+                                                       hex(region.mask).rstrip('L'))
+                        for replica in region.replicas:
+                            if replica:
+                                if replica not in hosts:
+                                    hosts[replica] = 'auto_{0}'.format(counter)
+                                    counter += 1
+                                region_str += '\t{0}'.format(hosts[replica])
+                        subspace_str += region_str + '\n'
+                    space_str += subspace_str
+                config += space_str
+            hosts_lines = []
+            for host, codename in hosts.iteritems():
+                inc_ver, out_ver = self._instances[host]
+                host_str = 'host\t{0}\t{1}\t{2}\t{3}\t{4}\t{5}'
+                host_str = host_str.format(codename, host[0], host[1], inc_ver,
+                                                              host[2], out_ver)
+                hosts_lines.append(host_str)
+            hosts_lines.sort()
+            self._stableconfig = '\n'.join(hosts_lines) + '\n' + config
+            self._confignum += 1
+        except Exception as e:
+            # XXX Use the ConCoord logging service.
+            logging.error("Unhandled exception {0} in config()".format(e))
+        return self._stableconfig, self._confignum
 
 
 class Acceptor(asyncore.dispatcher):
@@ -107,8 +189,6 @@ class Acceptor(asyncore.dispatcher):
             self._newinst(self._actionslog, conn, self._map)
             logging.info("{0} connection established from {1}".format(self._desc, addr))
 
-    def new_configuration(self, config): pass
-
 
 class ControlConnection(asynchat.async_chat):
 
@@ -118,6 +198,8 @@ class ControlConnection(asynchat.async_chat):
         self._actionslog = actionslog
         self._ibuffer = []
         self._connectime = datetime.datetime.now()
+        self._mode = "COMMAND"
+        self._act_on_data = None
         self._id = '%s:%i' % sock.getpeername()
 
     def handle_error(self):
@@ -132,19 +214,32 @@ class ControlConnection(asynchat.async_chat):
         self._ibuffer.append(data)
 
     def found_terminator(self):
-        commandline = shlex.split("".join(self._ibuffer))
-        self._ibuffer = []
-        if commandline:
-            if commandline[0] == 'list' and commandline[1] == 'clients':
-                if len(commandline) != 2:
-                    return self.fail("Invalid control command {0}".format(commandline))
-                self.list_clients()
-            elif commandline[0] == 'list' and commandline[1] == 'instances':
-                if len(commandline) != 2:
-                    return self.fail("Invalid control command {0}".format(commandline))
-                self.list_instances()
-            else:
-                return self.fail("Unknown commandline {0}".format(commandline))
+        if self._mode == "COMMAND":
+            commandline = shlex.split("".join(self._ibuffer))
+            self._ibuffer = []
+            if commandline:
+                if commandline[0] == "list" and commandline[1] == "clients":
+                    if len(commandline) != 2:
+                        return self.fail("Invalid control command {0}".format(commandline))
+                    self.list_clients()
+                elif commandline[0] == "list" and commandline[1] == "instances":
+                    if len(commandline) != 2:
+                        return self.fail("Invalid control command {0}".format(commandline))
+                    self.list_instances()
+                elif commandline[0] == "add" and commandline[1] == "space":
+                    if len(commandline) != 2:
+                        return self.fail("Invalid control command {0}".format(commandline))
+                    self.set_terminator('\n.\n')
+                    self._mode = "DATA"
+                    self._act_on_data = self.add_space
+                else:
+                    return self.fail("Unknown commandline {0}".format(commandline))
+        elif self._mode == "DATA":
+            data = "".join(self._ibuffer)
+            self._ibuffer = []
+            self._act_on_data(data)
+            self.set_terminator('\n')
+            self._mode="COMMAND"
 
     def fail(self, msg):
         logging.warning(msg + " from {0}".format(self._id))
@@ -178,7 +273,22 @@ class ControlConnection(asynchat.async_chat):
         resp += ".\n"
         self.push(resp)
 
-    def new_configuration(self, config): pass
+    def add_space(self, data):
+        try:
+            parser = (hdcoordinator.parser.space + pyparsing.stringEnd)
+            space = parser.parseString(data)[0]
+            self._actionslog.add_space(space)
+        except ValueError as e:
+            return self.fail(str(e))
+        except pyparsing.ParseException as e:
+            return self.fail(str(e))
+        except ActionsLog.DuplicateSpace as e:
+            return self.fail("Space already exists")
+        config, num = self._actionslog.config()
+        for fd, desc in self._map.iteritems():
+            if hasattr(desc, 'new_configuration'):
+                desc.new_configuration(config, num)
+        self.push("SUCCESS\n")
 
 
 class HostConnection(asynchat.async_chat):
@@ -275,13 +385,19 @@ class HostConnection(asynchat.async_chat):
         except ActionsLog.ExhaustedPorts:
             return self.die("Host {0} uses a port which has been exhausted")
 
-    def new_configuration(self, num, config):
-        raise NotImplementedError()  # XXX
+    def new_configuration(self, config, num):
+        # XXX Do something more inteligent.
+        self.push(config + 'end\tof\tline\n')
 
     def handle_config_response(self, success):
         if not self._identified:
             return self.die("Host {0} is responding to a configuration before identifying")
-        raise NotImplementedError()  # XXX
+        if success:
+            logging.info("Host {0} acknowledges new configuration".format(self._id))
+        else:
+            logging.error("Host {0} says new configuration is bad".format(self._id))
+        # XXX Do something more inteligent.
+        return
 
 
 class CoordinatorServer(object):
