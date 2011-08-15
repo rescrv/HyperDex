@@ -202,6 +202,14 @@ class ControlConnection(asynchat.async_chat):
         self._act_on_data = None
         self._id = '%s:%i' % sock.getpeername()
 
+    def handle_close(self):
+        try:
+            asynchat.async_chat.handle_close(self)
+            if self._id:
+                logging.info("Control disconnect from {0}".format(self._id))
+        except:
+            pass
+
     def handle_error(self):
         '''Provide polite error messages in case of unhandled exception.'''
         nil, t, v, tbinfo = asyncore.compact_traceback()
