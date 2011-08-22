@@ -37,6 +37,7 @@
 #include <po6/threads/rwlock.h>
 
 // e
+#include <e/bitfield.h>
 #include <e/intrusive_ptr.h>
 #include <e/lockfree_hash_set.h>
 #include <e/striped_lock.h>
@@ -91,6 +92,8 @@ class replication_manager
                         const e::buffer& key, const std::vector<e::buffer>& value);
         void client_del(const hyperdex::entityid& from, const hyperdex::entityid& to, uint32_t nonce,
                         const e::buffer& key);
+        void client_update(const hyperdex::entityid& from, const hyperdex::entityid& to, uint32_t nonce,
+                           const e::buffer& key, const e::bitfield& value_mask, const std::vector<e::buffer>& value);
         // These are called in response to messages from other hosts.
         void chain_put(const hyperdex::entityid& from, const hyperdex::entityid& to, uint64_t rev,
                        bool fresh, const e::buffer& key,
@@ -120,8 +123,11 @@ class replication_manager
         replication_manager& operator = (const replication_manager&);
 
     private:
-        void client_common(bool has_value, const hyperdex::entityid& from, const hyperdex::entityid& to,
+        void client_common(bool has_value, bool has_value_mask,
+                           const hyperdex::entityid& from,
+                           const hyperdex::entityid& to,
                            uint32_t nonce, const e::buffer& key,
+                           const e::bitfield& newvalue_mask,
                            const std::vector<e::buffer>& newvalue);
         void chain_common(bool has_value, const hyperdex::entityid& from, const hyperdex::entityid& to,
                           uint64_t newversion, bool fresh, const e::buffer& key,

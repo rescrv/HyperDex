@@ -284,7 +284,8 @@ hyperdaemon :: replication_manager :: client_put(const entityid& from,
                                                  const e::buffer& key,
                                                  const std::vector<e::buffer>& newvalue)
 {
-    client_common(true, from, to, nonce, key, newvalue);
+    e::bitfield bf(0);
+    client_common(true, false, from, to, nonce, key, bf, newvalue);
 }
 
 void
@@ -293,7 +294,19 @@ hyperdaemon :: replication_manager :: client_del(const entityid& from,
                                                  uint32_t nonce,
                                                  const e::buffer& key)
 {
-    client_common(false, from, to, nonce, key, std::vector<e::buffer>());
+    e::bitfield bf(0);
+    client_common(false, false, from, to, nonce, key, bf, std::vector<e::buffer>());
+}
+
+void
+hyperdaemon :: replication_manager :: client_update(const entityid& from,
+                                                    const entityid& to,
+                                                    uint32_t nonce,
+                                                    const e::buffer& key,
+                                                    const e::bitfield& newvalue_mask,
+                                                    const std::vector<e::buffer>& newvalue)
+{
+    client_common(true, true, from, to, nonce, key, newvalue_mask, newvalue);
 }
 
 void
@@ -369,7 +382,7 @@ hyperdaemon :: replication_manager :: chain_pending(const entityid& from,
         {
             clientop co = pend->co;
             pend->co = clientop();
-            respond_to_client(co, pend->has_value ? hyperdex::RESP_PUT : hyperdex::RESP_DEL, hyperdex::NET_SUCCESS);
+            respond_to_client(co, pend->retcode, hyperdex::NET_SUCCESS);
         }
     }
     else
@@ -791,10 +804,12 @@ hyperdaemon :: replication_manager :: region_transfer_done(const entityid& from,
 
 void
 hyperdaemon :: replication_manager :: client_common(bool has_value,
+                                                    bool has_value_mask,
                                                     const entityid& from,
                                                     const entityid& to,
                                                     uint32_t nonce,
                                                     const e::buffer& key,
+                                                    const e::bitfield& value_mask,
                                                     const std::vector<e::buffer>& value)
 {
     // Make sure this message is from a client.
@@ -805,11 +820,13 @@ hyperdaemon :: replication_manager :: client_common(bool has_value,
     }
 
     clientop co(to.get_region(), from, nonce);
+    hyperdex::network_msgtype retcode = has_value ?
+        (has_value_mask ? hyperdex::RESP_UPDATE : hyperdex::RESP_PUT) : hyperdex::RESP_DEL;
 
     // Make sure this message is to the point-leader.
     if (!is_point_leader(to))
     {
-        respond_to_client(co, has_value ? hyperdex::RESP_PUT : hyperdex::RESP_DEL, hyperdex::NET_NOTUS);
+        respond_to_client(co, retcode, hyperdex::NET_NOTUS);
         return;
     }
 
@@ -820,7 +837,7 @@ hyperdaemon :: replication_manager :: client_common(bool has_value,
     }
 
     // Automatically respond with "SERVERERROR" whenever we return without g.dismiss()
-    e::guard g = e::makeobjguard(*this, &replication_manager::respond_to_client, co, has_value ? hyperdex::RESP_PUT : hyperdex::RESP_DEL, hyperdex::NET_SERVERERROR);
+    e::guard g = e::makeobjguard(*this, &replication_manager::respond_to_client, co, retcode, hyperdex::NET_SERVERERROR);
 
     // Grab the lock that protects this keypair.
     keypair kp(to.get_region(), key);
@@ -838,7 +855,7 @@ hyperdaemon :: replication_manager :: client_common(bool has_value,
     // Check that a client's put matches the dimensions of the space.
     if (has_value && expected_dimensions(kp.region) != value.size() + 1)
     {
-        respond_to_client(co, hyperdex::RESP_PUT, hyperdex::NET_WRONGARITY);
+        respond_to_client(co, retcode, hyperdex::NET_WRONGARITY);
         g.dismiss();
         return;
     }
@@ -884,10 +901,11 @@ hyperdaemon :: replication_manager :: client_common(bool has_value,
 
     e::intrusive_ptr<pending> newpend;
     newpend = new pending(has_value, value, co);
+    newpend->retcode = retcode;
 
     if (!has_value && !has_oldvalue)
     {
-        respond_to_client(co, hyperdex::RESP_PUT, hyperdex::NET_SUCCESS);
+        respond_to_client(co, retcode, hyperdex::NET_SUCCESS);
         g.dismiss();
         return;
     }
@@ -902,14 +920,25 @@ hyperdaemon :: replication_manager :: client_common(bool has_value,
         newpend->fresh = true;
     }
 
-    if (!prev_and_next(kp.region, key, has_value, value, has_oldvalue, oldvalue, newpend))
+    if (has_value && has_value_mask && has_oldvalue)
+    {
+        for (size_t i = 0; i < value.size(); ++i)
+        {
+            if (!value_mask.get(i))
+            {
+                newpend->value[i] = oldvalue[i];
+            }
+        }
+    }
+
+    if (!prev_and_next(kp.region, key, has_value, newpend->value, has_oldvalue, oldvalue, newpend))
     {
         return;
     }
 
     if (kp.region != newpend->this_old && kp.region != newpend->this_new)
     {
-        respond_to_client(co, hyperdex::RESP_PUT, hyperdex::NET_NOTUS);
+        respond_to_client(co, retcode, hyperdex::NET_NOTUS);
         g.dismiss();
         return;
     }

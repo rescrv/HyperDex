@@ -289,6 +289,86 @@ hyperclient :: client :: del(const std::string& space,
 }
 
 hyperclient::status
+hyperclient :: client :: update(const std::string& space,
+                                const e::buffer& key,
+                                const std::map<std::string, e::buffer>& value)
+{
+    std::map<std::string, hyperdex::spaceid>::const_iterator sai;
+    std::map<hyperdex::spaceid, std::vector<std::string> >::const_iterator si;
+    sai = p->config.space_assignment().find(space);
+
+    if (sai == p->config.space_assignment().end())
+    {
+        return NOTASPACE;
+    }
+
+    si = p->config.spaces().find(sai->second);
+
+    if (si == p->config.spaces().end())
+    {
+        return LOGICERROR;
+    }
+
+    e::bitfield bits(si->second.size() - 1);
+    std::vector<e::buffer> realvalue;
+    std::set<std::string> seen;
+
+    for (size_t i = 1; i < si->second.size(); ++i)
+    {
+        std::map<std::string, e::buffer>::const_iterator valiter;
+        valiter = value.find(si->second[i]);
+
+        if (valiter == value.end())
+        {
+            bits.unset(i - 1);
+            realvalue.push_back(e::buffer());
+        }
+        else
+        {
+            seen.insert(valiter->first);
+            bits.set(i - 1);
+            realvalue.push_back(valiter->second);
+        }
+    }
+
+    for (std::map<std::string, e::buffer>::const_iterator i = value.begin();
+            i != value.end(); ++i)
+    {
+        if (seen.find(i->first) == seen.end())
+        {
+            return BADDIMENSION;
+        }
+    }
+
+    e::buffer msg;
+    msg.pack() << key << bits << realvalue;
+    hyperdex::network_returncode resp_status;
+    e::buffer resp_msg;
+    status stat = p->reqrep(space, key, hyperdex::REQ_UPDATE, hyperdex::RESP_UPDATE, msg, &resp_status, &resp_msg);
+
+    if (stat == SUCCESS)
+    {
+        switch (resp_status)
+        {
+            case hyperdex::NET_SUCCESS:
+                return SUCCESS;
+            case hyperdex::NET_NOTFOUND:
+                return NOTFOUND;
+            case hyperdex::NET_WRONGARITY:
+                return WRONGARITY;
+            case hyperdex::NET_NOTUS:
+                return LOGICERROR;
+            case hyperdex::NET_SERVERERROR:
+                return SERVERERROR;
+            default:
+                return SERVERERROR;
+        }
+    }
+
+    return stat;
+}
+
+hyperclient::status
 hyperclient :: client :: search(const std::string& space,
                                 const std::map<std::string, e::buffer>& params,
                                 search_results* sr)

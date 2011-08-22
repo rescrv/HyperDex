@@ -52,6 +52,9 @@ enum network_msgtype
     REQ_DEL         = 12,
     RESP_DEL        = 13,
 
+    REQ_UPDATE      = 14,
+    RESP_UPDATE     = 15,
+
     REQ_SEARCH_START    = 32,
     REQ_SEARCH_NEXT     = 33,
     REQ_SEARCH_STOP     = 34,

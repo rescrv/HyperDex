@@ -153,6 +153,14 @@ hyperdaemon :: network_worker :: run()
                 up.leftovers(&key);
                 m_repl->client_del(from, to.get_region(), nonce, key);
             }
+            else if (type == hyperdex::REQ_UPDATE)
+            {
+                e::buffer key;
+                e::bitfield value_mask(0); // This will resize on unpack
+                std::vector<e::buffer> value;
+                msg.unpack() >> nonce >> key >> value_mask >> value;
+                m_repl->client_update(from, to.get_region(), nonce, key, value_mask, value);
+            }
             else if (type == hyperdex::REQ_SEARCH_START)
             {
                 hyperdex::search s;

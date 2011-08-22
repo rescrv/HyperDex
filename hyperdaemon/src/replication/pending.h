@@ -44,7 +44,7 @@ class pending
                 const clientop& co = clientop());
 
     public:
-        const std::vector<e::buffer> value;
+        std::vector<e::buffer> value;
         const bool has_value;
         bool fresh;
         bool acked;
@@ -52,6 +52,7 @@ class pending
         bool mayack; // True if it is OK to receive ACK messages.
         uint8_t retransmit;
         clientop co;
+        hyperdex::network_msgtype retcode;
         hyperdex::regionid prev;
         hyperdex::regionid this_old;
         hyperdex::regionid this_new;
@@ -80,6 +81,7 @@ pending :: pending(bool hv,
     , mayack(false)
     , retransmit(0)
     , co(c)
+    , retcode()
     , prev()
     , this_old()
     , this_new()
