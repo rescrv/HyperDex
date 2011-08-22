@@ -73,36 +73,22 @@ hyperdaemon :: logical :: ~logical() throw ()
 typedef std::map<hyperdex::entityid, hyperdex::instance>::iterator mapiter;
 
 void
-hyperdaemon :: logical :: prepare(const configuration&)
+hyperdaemon :: logical :: prepare(const configuration&, const hyperdex::instance&)
 {
     // Do nothing.
 }
 
 void
-hyperdaemon :: logical :: reconfigure(const configuration& newconfig)
+hyperdaemon :: logical :: reconfigure(const configuration& newconfig,
+                                      const hyperdex::instance& newinst)
 {
     m_config = newconfig;
     m_mapping = newconfig.entity_mapping();
-    std::set<instance> hosts = m_config.hosts();
-
-    // Zero the versions here.  This ensures that others will ignore us if there
-    // is not an instance which matches.
-    m_us.inbound_version = 0;
-    m_us.outbound_version = 0;
-
-    for (std::set<instance>::iterator h = hosts.begin(); h != hosts.end(); ++h)
-    {
-        if (h->inbound == m_us.inbound && h->outbound == m_us.outbound)
-        {
-            m_us.inbound_version = h->inbound_version;
-            m_us.outbound_version = h->outbound_version;
-            break;
-        }
-    }
+    m_us = newinst;
 }
 
 void
-hyperdaemon :: logical :: cleanup(const configuration&)
+hyperdaemon :: logical :: cleanup(const configuration&, const hyperdex::instance&)
 {
     // Do nothing.
 }

@@ -167,6 +167,9 @@ class ActionsLog(object):
         except Exception as e:
             # XXX Use the ConCoord logging service.
             logging.error("Unhandled exception {0} in config()".format(e))
+        return self.stable_config()
+
+    def stable_config(self):
         return self._stableconfig, self._confignum
 
 
@@ -314,6 +317,8 @@ class HostConnection(asynchat.async_chat):
         self._identified = None
         self._instance = None
         self._die = False
+        config, num = actionslog.stable_config()
+        self.new_configuration(config, num)
 
     def handle_close(self):
         asynchat.async_chat.handle_close(self)

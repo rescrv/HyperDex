@@ -131,12 +131,35 @@ hyperdaemon :: daemon(po6::pathname datadir,
         if (cl.unacknowledged())
         {
             LOG(INFO) << "Installing new configuration.";
+            hyperdex::instance newinst = comm.inst();
+            std::set<hyperdex::instance> hosts = cl.config().hosts();
+            // Zero the versions here.  This ensures that others will ignore us if there
+            // is not an instance which matches.
+            newinst.inbound_version = 0;
+            newinst.outbound_version = 0;
+
+            for (std::set<hyperdex::instance>::iterator h = hosts.begin(); h != hosts.end(); ++h)
+            {
+                if (h->inbound == newinst.inbound && h->outbound == newinst.outbound)
+                {
+                    newinst.inbound_version = h->inbound_version;
+                    newinst.outbound_version = h->outbound_version;
+                    break;
+                }
+            }
+
+            if (newinst.inbound_version == 0 ||
+                newinst.outbound_version == 0)
+            {
+                LOG(ERROR) << "We've been configured to a dummy node.";
+            }
+
             // Prepare for our new configuration.
             // These operations should assume that there will be network
             // activity, and that the network threads will be in full force..
-            comm.prepare(cl.config());
-            data.prepare(cl.config(), comm.inst());
-            repl.prepare(cl.config(), comm.inst());
+            comm.prepare(cl.config(), newinst);
+            data.prepare(cl.config(), newinst);
+            repl.prepare(cl.config(), newinst);
 
             // Protect ourself against exceptions.
             e::guard g1 = e::makeobjguard(comm, &logical::unpause);
@@ -154,7 +177,7 @@ hyperdaemon :: daemon(po6::pathname datadir,
 
             // Here is the critical section.  This is is mutually exclusive with the
             // network workers' loop.
-            comm.reconfigure(cl.config());
+            comm.reconfigure(cl.config(), newinst);
             data.reconfigure(cl.config(), comm.inst());
             repl.reconfigure(cl.config(), comm.inst());
             comm.unpause();
@@ -167,7 +190,7 @@ hyperdaemon :: daemon(po6::pathname datadir,
             // activity, and that the network threads will be in full force..
             repl.cleanup(cl.config(), comm.inst());
             data.cleanup(cl.config(), comm.inst());
-            comm.cleanup(cl.config());
+            comm.cleanup(cl.config(), comm.inst());
             cl.acknowledge();
         }
 

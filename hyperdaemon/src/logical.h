@@ -70,9 +70,9 @@ class logical
 
     // Reconfigure this layer.
     public:
-        void prepare(const hyperdex::configuration& newconfig);
-        void reconfigure(const hyperdex::configuration& newconfig);
-        void cleanup(const hyperdex::configuration& newconfig);
+        void prepare(const hyperdex::configuration& newconfig, const hyperdex::instance& newinst);
+        void reconfigure(const hyperdex::configuration& newconfig, const hyperdex::instance& newinst);
+        void cleanup(const hyperdex::configuration& newconfig, const hyperdex::instance& newinst);
 
     // Pause/unpause or completely stop recv of messages.  Paused threads will
     // not hold locks, and therefore will not pose risk of deadlock.
