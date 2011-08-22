@@ -106,7 +106,7 @@ class hyperclient :: client :: priv :: channel
         size_t m_ref;
 };
 
-class hyperclient::client::search_results::priv
+class hyperclient::search_results::priv
 {
     public:
         typedef e::intrusive_ptr<client::priv::channel> channel_ptr;
@@ -761,41 +761,41 @@ hyperclient :: client :: priv :: channel :: channel(const hyperdex::instance& in
     soc.connect(inst.inbound);
 }
 
-hyperclient :: client :: search_results :: search_results()
+hyperclient :: search_results :: search_results()
     : p(new priv())
 {
 }
 
-hyperclient :: client :: search_results :: ~search_results()
+hyperclient :: search_results :: ~search_results()
                                            throw ()
 {
 }
 
 bool
-hyperclient :: client :: search_results :: valid()
+hyperclient :: search_results :: valid()
 {
     return p->valid;
 }
 
 hyperclient::status
-hyperclient :: client :: search_results :: next()
+hyperclient :: search_results :: next()
 {
     return p->next();
 }
 
 const e::buffer&
-hyperclient :: client :: search_results :: key()
+hyperclient :: search_results :: key()
 {
     return p->key;
 }
 
 const std::vector<e::buffer>&
-hyperclient :: client :: search_results :: value()
+hyperclient :: search_results :: value()
 {
     return p->value;
 }
 
-hyperclient :: client :: search_results :: priv :: priv()
+hyperclient :: search_results :: priv :: priv()
     : c(NULL)
     , hosts()
     , chansubset()
@@ -808,7 +808,7 @@ hyperclient :: client :: search_results :: priv :: priv()
 {
 }
 
-hyperclient :: client :: search_results :: priv :: priv(client::priv* _c,
+hyperclient :: search_results :: priv :: priv(client::priv* _c,
                                                         std::map<hyperdex::entityid, hyperdex::instance>* _h,
                                                         std::map<hyperdex::instance, channel_ptr>* _cs,
                                                         const hyperdex::search& s)
@@ -851,7 +851,7 @@ hyperclient :: client :: search_results :: priv :: priv(client::priv* _c,
     }
 }
 
-hyperclient :: client :: search_results :: priv :: ~priv()
+hyperclient :: search_results :: priv :: ~priv()
                                                    throw ()
 {
     e::buffer msg;
@@ -871,7 +871,7 @@ hyperclient :: client :: search_results :: priv :: ~priv()
 }
 
 hyperclient::status
-hyperclient :: client :: search_results :: priv :: next()
+hyperclient :: search_results :: priv :: next()
 {
     while (valid && !hosts.empty())
     {
@@ -1057,7 +1057,7 @@ hyperclient :: client :: search_results :: priv :: next()
 }
 
 void
-hyperclient :: client :: search_results :: priv :: complete(const hyperdex::entityid& ent)
+hyperclient :: search_results :: priv :: complete(const hyperdex::entityid& ent)
 {
     std::map<hyperdex::entityid, hyperdex::instance>::iterator host;
     host = hosts.find(ent);
@@ -1087,7 +1087,7 @@ hyperclient :: client :: search_results :: priv :: complete(const hyperdex::enti
 }
 
 void
-hyperclient :: client :: search_results :: priv :: disconnect(const hyperdex::instance& inst)
+hyperclient :: search_results :: priv :: disconnect(const hyperdex::instance& inst)
 {
     std::set<hyperdex::entityid> ents;
 
@@ -1119,7 +1119,7 @@ hyperclient :: client :: search_results :: priv :: disconnect(const hyperdex::in
 }
 
 void
-hyperclient :: client :: search_results :: priv :: disconnect(const hyperdex::instance& inst,
+hyperclient :: search_results :: priv :: disconnect(const hyperdex::instance& inst,
                                                               channel_ptr chan)
 {
     disconnect(inst);

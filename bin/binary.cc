@@ -192,7 +192,7 @@ main(int argc, char* argv[])
                 }
             }
 
-            hyperclient::client::search_results s;
+            hyperclient::search_results s;
 
             switch (cl.search(argv[3], search, &s))
             {

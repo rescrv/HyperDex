@@ -491,7 +491,7 @@ check(int testno,
     std::map<std::string, e::buffer> terms;
     terms.insert(std::make_pair("B", e::buffer(&nums[B], sizeof(uint32_t))));
     terms.insert(std::make_pair("C", e::buffer(&nums[C], sizeof(uint32_t))));
-    hyperclient::client::search_results sr;
+    hyperclient::search_results sr;
     alarm(10);
 
     switch (cl->search(space, terms, &sr))

@@ -59,11 +59,10 @@ enum status
     LOGICERROR  = 21
 };
 
+class search_results;
+
 class client
 {
-    public:
-        class search_results;
-
     public:
         client(po6::net::location coordinator);
 
@@ -85,7 +84,7 @@ class client
         const std::auto_ptr<priv> p;
 };
 
-class client::search_results
+class search_results
 {
     public:
         search_results();

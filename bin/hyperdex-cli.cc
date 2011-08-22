@@ -387,7 +387,7 @@ worker(po6::threads::barrier* bar)
 
             if (wellformed)
             {
-                hyperclient::client::search_results r;
+                hyperclient::search_results r;
 
                 switch (cl.search(space, search, &r))
                 {
