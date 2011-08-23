@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.66])
 AC_INIT([HyperDex], [0.1.0], [escriva@cs.cornell.edu])
-AM_INIT_AUTOMAKE([foreign])
+AM_INIT_AUTOMAKE([foreign dist-bzip2 dist-lzma])
 LT_PREREQ([2.2])
 LT_INIT
 AC_CONFIG_SRCDIR([hyperdex/hyperdex/ids.h])

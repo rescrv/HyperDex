@@ -10,6 +10,6 @@ noinst_HEADERS = hyperdaemon/daemon.h datalayer.h logical.h network_worker.h \
 libhyperdaemon_la_SOURCES = daemon.cc datalayer.cc logical.cc \
 							network_worker.cc physical.cc \
 							replication_manager.cc searches.cc
-libhyperdaemon_la_CPPFLAGS = -I../hyperdex -I../hyperdisk
+libhyperdaemon_la_CPPFLAGS = -I${abs_top_srcdir}/hyperdex -I${abs_top_srcdir}/hyperdisk
 libhyperdaemon_la_LIBADD = ../hyperdex/libhyperdex.la
 libhyperdaemon_la_LDFLAGS = -lcityhash
