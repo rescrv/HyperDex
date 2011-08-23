@@ -29,7 +29,7 @@
 #include <poll.h>
 
 // HyperDex
-#include "../include/hyperdex/coordinatorlink.h"
+#include "hyperdex/coordinatorlink.h"
 
 hyperdex :: coordinatorlink :: coordinatorlink(const po6::net::location& coordinator)
     : m_lock()

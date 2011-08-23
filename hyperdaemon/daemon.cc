@@ -41,8 +41,8 @@
 #include <hyperdex/coordinatorlink.h>
 
 // HyperDaemon
-#include "../include/hyperdaemon/daemon.h"
 #include "datalayer.h"
+#include "hyperdaemon/daemon.h"
 #include "logical.h"
 #include "network_worker.h"
 #include "replication_manager.h"

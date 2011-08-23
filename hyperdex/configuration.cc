@@ -40,8 +40,8 @@
 #include <e/convert.h>
 
 // HyperDex
-#include "../include/hyperdex/configuration.h"
-#include "../include/hyperdex/hyperspace.h"
+#include "hyperdex/configuration.h"
+#include "hyperdex/hyperspace.h"
 
 hyperdex :: configuration :: configuration()
     : m_hosts()

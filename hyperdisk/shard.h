@@ -36,7 +36,7 @@
 #include <e/intrusive_ptr.h>
 
 // HyperDisk
-#include "../include/hyperdisk/returncode.h"
+#include "hyperdisk/returncode.h"
 
 // Forward Declarations
 namespace hyperdisk

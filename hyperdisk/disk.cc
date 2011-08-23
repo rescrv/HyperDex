@@ -41,7 +41,7 @@
 #include <e/guard.h>
 
 // HyperDisk
-#include "../include/hyperdisk/disk.h"
+#include "hyperdisk/disk.h"
 #include "log.h"
 #include "shard.h"
 #include "shard_snapshot.h"

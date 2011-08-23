@@ -29,8 +29,8 @@
 #include <cassert>
 
 // HyperDex
-#include "../include/hyperdex/hyperspace.h"
-#include "../include/hyperdex/search.h"
+#include "hyperdex/hyperspace.h"
+#include "hyperdex/search.h"
 
 hyperdex :: search :: search(size_t n)
     : m_value(n)

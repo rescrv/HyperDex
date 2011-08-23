@@ -45,7 +45,7 @@
 #include <hyperdex/search.h>
 
 // HyperClient
-#include "../include/hyperclient/client.h"
+#include "hyperclient/client.h"
 
 class hyperclient :: client :: priv
 {
