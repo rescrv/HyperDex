@@ -31,7 +31,7 @@
 #include <map>
 
 // Google CityHash
-#include "../../cityhash/include/city.h"
+#include <city.h>
 
 // e
 #include <e/intrusive_ptr.h>

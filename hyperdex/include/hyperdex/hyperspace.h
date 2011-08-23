@@ -127,11 +127,11 @@ inline void
 point_hashes(const e::buffer& key, const std::vector<e::buffer>& value,
              uint64_t* key_hash, std::vector<uint64_t>* value_hashes)
 {
-    *key_hash = CityHash64(key);
+    *key_hash = CityHash64(static_cast<const char*>(key.get()), key.size());
 
     for (size_t i = 0; i < value.size(); ++i)
     {
-        value_hashes->push_back(CityHash64(value[i]));
+        value_hashes->push_back(CityHash64(static_cast<const char*>(value[i].get()), value[i].size()));
     }
 }
 

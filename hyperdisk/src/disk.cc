@@ -116,7 +116,7 @@ hyperdisk :: disk :: get(const e::buffer& key,
 
     std::vector<e::buffer> tmp_value;
     uint64_t tmp_version = 0;
-    uint64_t key_hash = CityHash64(key);
+    uint64_t key_hash = CityHash64(static_cast<const char*>(key.get()), key.size());
     uint64_t key_point = get_point_for(key_hash);
     po6::threads::rwlock::rdhold hold(&m_rwlock);
 
@@ -185,7 +185,7 @@ hyperdisk :: disk :: put(const e::buffer& key,
                          const std::vector<e::buffer>& value,
                          uint64_t version)
 {
-    uint64_t key_hash = CityHash64(key);
+    uint64_t key_hash = CityHash64(static_cast<const char*>(key.get()), key.size());
     std::vector<uint64_t> value_hashes;
     get_value_hashes(value, &value_hashes);
     uint64_t point = get_point_for(key_hash, value_hashes);
@@ -204,7 +204,7 @@ hyperdisk :: disk :: put(const e::buffer& key,
 hyperdisk::returncode
 hyperdisk :: disk :: del(const e::buffer& key)
 {
-    uint64_t key_hash = CityHash64(key);
+    uint64_t key_hash = CityHash64(static_cast<const char*>(key.get()), key.size());
     uint64_t point = get_point_for(key_hash);
 
     m_log->append(point, key, key_hash);
@@ -356,7 +356,7 @@ hyperdisk :: disk :: get_value_hashes(const std::vector<e::buffer>& value,
 {
     for (size_t i = 0; i < value.size(); ++i)
     {
-        value_hashes->push_back(CityHash64(value[i]));
+        value_hashes->push_back(CityHash64(static_cast<const char*>(value[i].get()), value[i].size()));
     }
 }
 
@@ -500,7 +500,7 @@ hyperdisk :: disk :: clean_shard(const hyperdex::regionid& ri)
     {
         e::buffer key(snap->key());
         std::vector<e::buffer> value(snap->value());
-        uint64_t key_hash = CityHash64(key);
+        uint64_t key_hash = CityHash64(static_cast<const char*>(key.get()), key.size());
         std::vector<uint64_t> value_hashes;
         get_value_hashes(value, &value_hashes);
         newdisk->put(key, key_hash, value, value_hashes, snap->version());
@@ -568,7 +568,7 @@ hyperdisk :: disk :: split_shard(const hyperdex::regionid& ri)
     {
         e::buffer key(snap->key());
         std::vector<e::buffer> value(snap->value());
-        uint64_t key_hash = CityHash64(key);
+        uint64_t key_hash = CityHash64(static_cast<const char*>(key.get()), key.size());
         std::vector<uint64_t> value_hashes;
         get_value_hashes(value, &value_hashes);
         uint64_t point = get_point_for(key_hash, value_hashes);

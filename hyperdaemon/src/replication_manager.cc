@@ -1111,7 +1111,7 @@ hyperdaemon :: replication_manager :: get_lock_num(const keypair& kp)
 {
     uint64_t region_hash = kp.region.space + kp.region.subspace
                            + kp.region.prefix + kp.region.mask;
-    uint64_t key_hash = CityHash64(kp.key);
+    uint64_t key_hash = CityHash64(static_cast<const char*>(kp.key.get()), kp.key.size());
     return region_hash + key_hash;
 }
 

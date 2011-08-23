@@ -42,13 +42,10 @@ set(BUILD_SHARED_LIBS ON)
 # Enable testing
 ENABLE_TESTING()
 
-add_subdirectory(cityhash)
 add_subdirectory(hyperdisk)
 add_subdirectory(hyperdex)
 add_subdirectory(hyperdaemon)
 add_subdirectory(hyperclient)
-add_dependencies(hyperdisk cityhash)
-add_dependencies(hyperdex cityhash)
 add_dependencies(hyperdaemon hyperdex)
 add_dependencies(hyperclient hyperdex)
 

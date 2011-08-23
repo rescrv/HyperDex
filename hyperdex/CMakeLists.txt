@@ -1,6 +1,5 @@
 project(hyperdex)
 include_directories(include)
-include_directories(../cityhash/include)
 
 # Installed headers.
 set (hyperdex_headers

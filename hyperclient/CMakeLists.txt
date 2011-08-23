@@ -1,5 +1,4 @@
 project(hyperclient)
-include_directories(../cityhash/include)
 include_directories(../hyperdex/include)
 
 # Installed headers.

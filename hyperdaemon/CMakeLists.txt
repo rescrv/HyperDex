@@ -1,6 +1,5 @@
 project(hyperdaemon)
 include_directories(include)
-include_directories(../cityhash/include)
 include_directories(../hyperdisk/include)
 include_directories(../hyperdex/include)
 

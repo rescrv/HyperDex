@@ -96,7 +96,7 @@ hyperdex :: search :: secondary_point() const
     {
         if (m_mask.get(i))
         {
-            hashes.push_back(CityHash64(m_value[i]));
+            hashes.push_back(CityHash64(static_cast<const char*>(m_value[i].get()), m_value[i].size()));
         }
         else
         {
@@ -136,7 +136,7 @@ hyperdex :: search :: replication_point(const std::vector<bool>& dims) const
     {
         if (m_mask.get(i))
         {
-            value_hashes.push_back(CityHash64(m_value[i]));
+            value_hashes.push_back(CityHash64(static_cast<const char*>(m_value[i].get()), m_value[i].size()));
         }
         else
         {
