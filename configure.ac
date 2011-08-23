@@ -46,6 +46,6 @@ AC_FUNC_ERROR_AT_LINE
 AC_FUNC_MMAP
 AC_CHECK_FUNCS([alarm clock_gettime ftruncate memmove mkdir munmap rmdir socket])
 
-AC_CONFIG_FILES([Makefile hyperclient/Makefile hyperdaemon/Makefile
-                 hyperdex/Makefile hyperdisk/Makefile])
+AC_CONFIG_FILES([Makefile hyperclient/Makefile hyperclient/java/Makefile
+                 hyperdaemon/Makefile hyperdex/Makefile hyperdisk/Makefile])
 AC_OUTPUT
