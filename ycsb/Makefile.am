@@ -1,6 +1,7 @@
-JAVAROOT = .
-
 EXTRA_DIST = hyperclient/ycsb/HyperClient.java
+
+if ENABLE_YCSB
+JAVAROOT = .
 
 jarfile = hyperclient.ycsb.jar
 jardir = $(datadir)/java
@@ -12,11 +13,8 @@ $(jarfile): hyperclient/ycsb/HyperClient.class
 hyperclient/ycsb/HyperClient.class: hyperclient/ycsb/HyperClient.java
 	javac -cp $(CLASSPATH):../hyperclient/java/hyperclient.jar:. hyperclient/ycsb/HyperClient.java
 
-if ENABLE_YCSB
 jar_DATA = $(jarfile)
 all-local: $(jarfile)
-else
-all-local:
-endif
 
 CLEANFILES = $(jarfile) hyperclient/ycsb/HyperClient.class
+endif

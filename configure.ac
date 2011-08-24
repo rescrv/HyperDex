@@ -14,17 +14,29 @@ AC_CONFIG_MACRO_DIR([m4])
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_CC
-AC_PROG_JAR
-AC_PROG_JAVAC
-AX_PKG_SWIG
-AX_SWIG_ENABLE_CXX
-AX_SWIG_MULTI_MODULE_SUPPORT
-AX_JNI_INCLUDE_DIR
 
-for JNI_INCLUDE_DIR in $JNI_INCLUDE_DIRS
-do
-    CPPFLAGS="$CPPFLAGS -I$JNI_INCLUDE_DIR"
-done
+AC_ARG_ENABLE([java-bindings], [AS_HELP_STRING([--enable-java-bindings],
+              [enable the Java bindings @<:@default: no@:>@])],
+              [java_bindings=${enableval}], [java_bindings=no])
+need_swig=no
+
+if test x"${java_bindings}" = xyes; then
+    AX_PROG_JAR
+    AX_PROG_JAVAC
+    AX_JNI_INCLUDE_DIR
+    need_swig=yes
+
+    for JNI_INCLUDE_DIR in $JNI_INCLUDE_DIRS
+    do
+        CPPFLAGS="$CPPFLAGS -I$JNI_INCLUDE_DIR"
+    done
+fi
+
+if test x"${need_swig}" = xyes; then
+    AX_PKG_SWIG
+    AX_SWIG_ENABLE_CXX
+    AX_SWIG_MULTI_MODULE_SUPPORT
+fi
 
 # Checks for libraries.
 
@@ -48,9 +60,6 @@ AC_FUNC_MMAP
 AC_CHECK_FUNCS([alarm clock_gettime ftruncate memmove mkdir munmap rmdir socket])
 
 # Optional components
-AC_ARG_ENABLE([java-bindings], [AS_HELP_STRING([--enable-java-bindings],
-              [enable the Java bindings @<:@default: no@:>@])],
-              [java_bindings=${enableval}], [java_bindings=no])
 AC_ARG_ENABLE([ycsb], [AS_HELP_STRING([--enable-ycsb],
               [enable the Yahoo Cloud Serving Benchmark @<:@default: no@:>@])],
               [enable_ycsb=${enableval}], [enable_ycsb=no])
