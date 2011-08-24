@@ -61,6 +61,7 @@ class ActionsLog(object):
 
     class HostExists(Exception): pass
     class DuplicateSpace(Exception): pass
+    class UnknownSpace(Exception): pass
     class ExhaustedPorts(Exception): pass
 
     def __init__(self):
@@ -111,6 +112,13 @@ class ActionsLog(object):
         self._spaces_by_name[space.name] = spacenum
         self._spaces_by_num[spacenum] = space
         self.fill_regions(space)
+
+    def rm_space(self, space):
+        if space not in self._spaces_by_name:
+            raise ActionsLog.UnknownSpace()
+        spacenum = self._spaces_by_name[space]
+        del self._spaces_by_name[space]
+        del self._spaces_by_num[spacenum]
 
     def fill_regions(self, space):
         for subspacenum, subspace in enumerate(space.subspaces):
@@ -243,6 +251,10 @@ class ControlConnection(asynchat.async_chat):
                     self.set_terminator('\n.\n')
                     self._mode = "DATA"
                     self._act_on_data = self.add_space
+                elif commandline[0] == "rm" and commandline[1] == "space":
+                    if len(commandline) != 3:
+                        return self.fail("Invalid control command {0}".format(commandline))
+                    self.rm_space(commandline[2])
                 else:
                     return self.fail("Unknown commandline {0}".format(commandline))
         elif self._mode == "DATA":
@@ -295,6 +307,19 @@ class ControlConnection(asynchat.async_chat):
             return self.fail(str(e))
         except ActionsLog.DuplicateSpace as e:
             return self.fail("Space already exists")
+        config, num = self._actionslog.config()
+        for fd, desc in self._map.iteritems():
+            if hasattr(desc, 'new_configuration'):
+                desc.new_configuration(config, num)
+        self.push("SUCCESS\n")
+
+    def rm_space(self, space):
+        try:
+            self._actionslog.rm_space(space)
+        except ValueError as e:
+            return self.fail(str(e))
+        except ActionsLog.UnknownSpace as e:
+            return self.fail("Space does not exist")
         config, num = self._actionslog.config()
         for fd, desc in self._map.iteritems():
             if hasattr(desc, 'new_configuration'):
