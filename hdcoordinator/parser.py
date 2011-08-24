@@ -139,8 +139,7 @@ def parse_space(space):
     return Space(name=space.name, dimensions=dims, subspaces=subspaces)
 
 
-identifier = Combine(Word(string.ascii_letters + '_'),
-                     Word(string.ascii_letters + string.digits + '_'))
+identifier = Word(string.ascii_letters + string.digits + '_')
 integer = Word(string.digits).setParseAction(lambda t: int(t[0]))
 hexnum  = Combine(Literal("0x") + Word(string.hexdigits)).setParseAction(lambda t: int(t[0][2:], 16))
 dimensions = delimitedList(identifier)
