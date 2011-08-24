@@ -1,5 +1,8 @@
 lib_LTLIBRARIES = libhyperclient-java.la
 
+# XXX This should be put into the correct java path.  On my system it is
+# /usr/lib/java.  If I'm going to change it, I want to auto-detect the correct
+# system path for it.
 nodist_libhyperclient_java_la_SOURCES = hyperclient_wrap.cxx
 libhyperclient_java_la_CPPFLAGS = -I$(abs_top_srcdir)/hyperclient
 libhyperclient_java_la_LIBADD = ../libhyperclient.la

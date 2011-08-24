@@ -8,6 +8,22 @@
 %include "enums.swg"
 %javaconst(1);
 
+%pragma(java) jniclasscode=
+%{
+    static
+    {
+        try
+        {
+            System.loadLibrary("hyperclient-java");
+        }
+        catch (UnsatisfiedLinkError e)
+        {
+            System.err.println("Could not load libhyperclient-java.so:\n" + e);
+            System.exit(1);
+        }
+    }
+%}
+
 namespace hyperclient
 {
 
@@ -33,7 +49,7 @@ class client
         client(po6::net::location coordinator);
 
     public:
-        status connect();
+        int connect();
 
     public:
         int get(const std::string& space, const e::buffer& key, std::vector<e::buffer>* value);

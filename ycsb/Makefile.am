@@ -5,12 +5,12 @@ EXTRA_DIST = hyperclient/ycsb/HyperClient.java
 jarfile = hyperclient.ycsb.jar
 jardir = $(datadir)/java
 
-$(jarfile): $(abs_srcdir)/hyperclient/ycsb/HyperClient.class
+$(jarfile): hyperclient/ycsb/HyperClient.class
 	$(JAR) cf $(JARFLAGS) $@ $<
 
 # XXX This is improper CLASSPATH tracking.
-$(abs_srcdir)/hyperclient/ycsb/HyperClient.class: $(abs_srcdir)/hyperclient/ycsb/HyperClient.java
-	javac -cp $(CLASSPATH):../hyperclient/java/hyperclient.jar:. $(abs_srcdir)/hyperclient/ycsb/HyperClient.java
+hyperclient/ycsb/HyperClient.class: hyperclient/ycsb/HyperClient.java
+	javac -cp $(CLASSPATH):../hyperclient/java/hyperclient.jar:. hyperclient/ycsb/HyperClient.java
 
 if ENABLE_YCSB
 jar_DATA = $(jarfile)
