@@ -27,6 +27,7 @@ do
 done
 
 # Checks for libraries.
+
 # Checks for header files.
 AC_CHECK_HEADERS([netinet/in.h stdint.h stdlib.h sys/socket.h unistd.h])
 
@@ -46,6 +47,27 @@ AC_FUNC_ERROR_AT_LINE
 AC_FUNC_MMAP
 AC_CHECK_FUNCS([alarm clock_gettime ftruncate memmove mkdir munmap rmdir socket])
 
+# Optional components
+AC_ARG_ENABLE([java-bindings], [AS_HELP_STRING([--enable-java-bindings],
+              [enable the Java bindings @<:@default: no@:>@])],
+              [java_bindings=${enableval}], [java_bindings=no])
+AC_ARG_ENABLE([ycsb], [AS_HELP_STRING([--enable-ycsb],
+              [enable the Yahoo Cloud Serving Benchmark @<:@default: no@:>@])],
+              [enable_ycsb=${enableval}], [enable_ycsb=no])
+if test x"${enable_ycsb}" = xyes; then
+    if test x"${java_bindings}" = xno; then
+        AC_MSG_WARN([
+-------------------------------------------------
+Cannot build YCSB without building Java bindings.
+YCSB will not be built.
+-------------------------------------------------])
+        enable_ycsb=no
+    fi
+fi
+AM_CONDITIONAL([ENABLE_JAVA], [test x"${java_bindings}" = xyes])
+AM_CONDITIONAL([ENABLE_YCSB], [test x"${enable_ycsb}" = xyes])
+
 AC_CONFIG_FILES([Makefile hyperclient/Makefile hyperclient/java/Makefile
-                 hyperdaemon/Makefile hyperdex/Makefile hyperdisk/Makefile])
+                 hyperdaemon/Makefile hyperdex/Makefile hyperdisk/Makefile
+                 ycsb/Makefile])
 AC_OUTPUT

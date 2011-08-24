@@ -20,9 +20,12 @@ java.stamp: hyperclient_wrap.cxx
 	javac -cp . hyperclient/*.java
 	echo 'Java bindings compiled' > java.stamp
 
+if ENABLE_JAVA
 jar_DATA = $(jarfile)
-
 all-local: $(jarfile) java.stamp
+else
+all-local:
+endif
 
 CLEANFILES = hyperclient_wrap.cxx $(jarfile) \
 			 hyperclient/*.java \
