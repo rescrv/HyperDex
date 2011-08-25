@@ -56,10 +56,11 @@ public class HyperClient extends DB
 
         location loc = new location(host, port);
         m_client = new client(loc);
+        int ret = 0;
 
-        while (m_client.connect() != 0)
+        while ((ret = m_client.connect()) != 0)
         {
-            System.err.println("Could not connect to HyperDex coordinator... sleeping");
+            System.err.println("Could not connect to HyperDex coordinator (code: " + ret + ") ... sleeping");
 
             try
             {
@@ -92,7 +93,19 @@ public class HyperClient extends DB
     {
         // We do not store the result.  YCSB throws it away, and it will be
         // stored in the vectorbuffer.
-        return m_client.get(table, new buffer(key), new vectorbuffer());
+        int ret = 0;
+
+        for (int i = 0; i < 6; ++i)
+        {
+            ret = m_client.get(table, new buffer(key), new vectorbuffer());
+
+            if (ret == 0)
+            {
+                return 0;
+            }
+        }
+
+        return ret;
     }
 
     /**
@@ -128,7 +141,19 @@ public class HyperClient extends DB
             val.set(entry.getKey(), new buffer(entry.getValue()));
         }
 
-        return m_client.update(table, new buffer(key), val);
+        int ret = 0;
+
+        for (int i = 0; i < 6; ++i)
+        {
+            ret = m_client.update(table, new buffer(key), val);
+
+            if (ret == 0)
+            {
+                return 0;
+            }
+        }
+
+        return ret;
     }
 
     /**
@@ -154,6 +179,18 @@ public class HyperClient extends DB
      */
     public int delete(String table, String key)
     {
-        return m_client.del(table, new buffer(key));
+        int ret = 0;
+
+        for (int i = 0; i < 6; ++i)
+        {
+            ret = m_client.del(table, new buffer(key));
+
+            if (ret == 0)
+            {
+                return 0;
+            }
+        }
+
+        return ret;
     }
 }
