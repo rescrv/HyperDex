@@ -39,6 +39,7 @@ if test x"${need_swig}" = xyes; then
 fi
 
 # Checks for libraries.
+GTEST_LIB_CHECK
 
 # Checks for header files.
 AC_CHECK_HEADERS([netinet/in.h stdint.h stdlib.h sys/socket.h unistd.h])
