@@ -198,27 +198,27 @@ hyperdaemon :: datalayer :: shutdown()
     m_shutdown = true;
 }
 
-e::intrusive_ptr<hyperdisk::disk::snapshot>
+e::intrusive_ptr<hyperdisk::snapshot>
 hyperdaemon :: datalayer :: make_snapshot(const regionid& ri)
 {
     e::intrusive_ptr<hyperdisk::disk> r = get_region(ri);
 
     if (!r)
     {
-        return e::intrusive_ptr<hyperdisk::disk::snapshot>();
+        return e::intrusive_ptr<hyperdisk::snapshot>();
     }
 
     return r->make_snapshot();
 }
 
-e::intrusive_ptr<hyperdisk::disk::rolling_snapshot>
+e::intrusive_ptr<hyperdisk::rolling_snapshot>
 hyperdaemon :: datalayer :: make_rolling_snapshot(const regionid& ri)
 {
     e::intrusive_ptr<hyperdisk::disk> r = get_region(ri);
 
     if (!r)
     {
-        return e::intrusive_ptr<hyperdisk::disk::rolling_snapshot>();
+        return e::intrusive_ptr<hyperdisk::rolling_snapshot>();
     }
 
     return r->make_rolling_snapshot();

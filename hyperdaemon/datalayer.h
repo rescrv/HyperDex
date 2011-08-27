@@ -68,8 +68,8 @@ class datalayer
         void reconfigure(const hyperdex::configuration& newconfig, const hyperdex::instance& us);
         void cleanup(const hyperdex::configuration& newconfig, const hyperdex::instance& us);
         void shutdown();
-        e::intrusive_ptr<hyperdisk::disk::snapshot> make_snapshot(const hyperdex::regionid& ri);
-        e::intrusive_ptr<hyperdisk::disk::rolling_snapshot> make_rolling_snapshot(const hyperdex::regionid& ri);
+        e::intrusive_ptr<hyperdisk::snapshot> make_snapshot(const hyperdex::regionid& ri);
+        e::intrusive_ptr<hyperdisk::rolling_snapshot> make_rolling_snapshot(const hyperdex::regionid& ri);
 
     // Key-Value store operations.
     public:

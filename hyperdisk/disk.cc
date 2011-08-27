@@ -306,14 +306,14 @@ hyperdisk :: disk :: drop()
     return ret;
 }
 
-e::intrusive_ptr<hyperdisk::disk::snapshot>
+e::intrusive_ptr<hyperdisk::snapshot>
 hyperdisk :: disk :: make_snapshot()
 {
     po6::threads::rwlock::rdhold hold(&m_rwlock);
     return inner_make_snapshot();
 }
 
-e::intrusive_ptr<hyperdisk::disk::rolling_snapshot>
+e::intrusive_ptr<hyperdisk::rolling_snapshot>
 hyperdisk :: disk :: make_rolling_snapshot()
 {
     po6::threads::rwlock::rdhold hold(&m_rwlock);
@@ -467,7 +467,7 @@ hyperdisk :: disk :: flush_one(bool has_value, uint64_t point, const e::buffer& 
     return true;
 }
 
-e::intrusive_ptr<hyperdisk::disk::snapshot>
+e::intrusive_ptr<hyperdisk::snapshot>
 hyperdisk :: disk :: inner_make_snapshot()
 {
     std::vector<e::intrusive_ptr<hyperdisk::shard_snapshot> > snaps;
@@ -572,26 +572,15 @@ hyperdisk :: disk :: split_shard(const hyperdex::regionid& ri)
         std::vector<uint64_t> value_hashes;
         get_value_hashes(value, &value_hashes);
         uint64_t point = get_point_for(key_hash, value_hashes);
-#ifndef NDEBUG
-        bool set = false;
-#endif
 
         if ((prefix & point) == lower_reg.mask)
         {
-            assert(!set);
             lower->put(key, key_hash, value, value_hashes, snap->version());
-#ifndef NDEBUG
-            set = true;
-#endif
         }
 
         if ((prefix & point) == upper_reg.mask)
         {
-            assert(!set);
             upper->put(key, key_hash, value, value_hashes, snap->version());
-#ifndef NDEBUG
-            set = true;
-#endif
         }
     }
 
@@ -601,220 +590,4 @@ hyperdisk :: disk :: split_shard(const hyperdex::regionid& ri)
     lower_disk_guard.dismiss();
     upper_disk_guard.dismiss();
     return SUCCESS;
-}
-
-hyperdisk :: disk :: snapshot :: snapshot(std::vector<e::intrusive_ptr<hyperdisk::shard_snapshot> >* ss)
-    : m_snaps()
-    , m_ref(0)
-{
-    m_snaps.swap(*ss);
-}
-
-hyperdisk :: disk :: snapshot :: ~snapshot() throw ()
-{
-}
-
-bool
-hyperdisk :: disk :: snapshot :: valid()
-{
-    while (!m_snaps.empty())
-    {
-        if (m_snaps.back()->valid())
-        {
-            return true;
-        }
-        else
-        {
-            m_snaps.pop_back();
-        }
-    }
-
-    return false;
-}
-
-void
-hyperdisk :: disk :: snapshot :: next()
-{
-    if (!m_snaps.empty())
-    {
-        m_snaps.back()->next();
-    }
-}
-
-uint32_t
-hyperdisk :: disk :: snapshot :: primary_hash()
-{
-    if (!m_snaps.empty())
-    {
-        return m_snaps.back()->primary_hash();
-    }
-    else
-    {
-        return uint64_t();
-    }
-}
-
-uint32_t
-hyperdisk :: disk :: snapshot :: secondary_hash()
-{
-    if (!m_snaps.empty())
-    {
-        return m_snaps.back()->secondary_hash();
-    }
-    else
-    {
-        return uint64_t();
-    }
-}
-
-bool
-hyperdisk :: disk :: snapshot :: has_value()
-{
-    if (!m_snaps.empty())
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-uint64_t
-hyperdisk :: disk :: snapshot :: version()
-{
-    if (!m_snaps.empty())
-    {
-        return m_snaps.back()->version();
-    }
-    else
-    {
-        return uint64_t();
-    }
-}
-
-e::buffer
-hyperdisk :: disk :: snapshot :: key()
-{
-    if (!m_snaps.empty())
-    {
-        return m_snaps.back()->key();
-    }
-    else
-    {
-        return e::buffer();
-    }
-}
-
-std::vector<e::buffer>
-hyperdisk :: disk :: snapshot :: value()
-{
-    if (!m_snaps.empty())
-    {
-        return m_snaps.back()->value();
-    }
-    else
-    {
-        return std::vector<e::buffer>();
-    }
-}
-
-hyperdisk :: disk :: rolling_snapshot :: rolling_snapshot(std::auto_ptr<hyperdisk::log_iterator> iter,
-                                                          e::intrusive_ptr<snapshot> snap)
-    : m_iter(iter)
-    , m_snap(snap)
-    , m_ref(0)
-{
-    valid();
-}
-
-hyperdisk :: disk :: rolling_snapshot :: ~rolling_snapshot() throw ()
-{
-}
-
-bool
-hyperdisk :: disk :: rolling_snapshot :: valid()
-{
-    return m_snap->valid() || m_iter->valid();
-}
-
-void
-hyperdisk :: disk :: rolling_snapshot :: next()
-{
-    if (m_snap->valid())
-    {
-        m_snap->next();
-    }
-    else if (m_iter->valid())
-    {
-        m_iter->next();
-    }
-}
-
-bool
-hyperdisk :: disk :: rolling_snapshot :: has_value()
-{
-    if (m_snap->valid())
-    {
-        return m_snap->has_value();
-    }
-    else if (m_iter->valid())
-    {
-        return m_iter->has_value();
-    }
-    else
-    {
-        return false;
-    }
-}
-
-uint64_t
-hyperdisk :: disk :: rolling_snapshot :: version()
-{
-    if (m_snap->valid())
-    {
-        return m_snap->version();
-    }
-    else if (m_iter->valid())
-    {
-        return m_iter->version();
-    }
-    else
-    {
-        return uint64_t();
-    }
-}
-
-e::buffer
-hyperdisk :: disk :: rolling_snapshot :: key()
-{
-    if (m_snap->valid())
-    {
-        return m_snap->key();
-    }
-    else if (m_iter->valid())
-    {
-        return m_iter->key();
-    }
-    else
-    {
-        return e::buffer();
-    }
-}
-
-std::vector<e::buffer>
-hyperdisk :: disk :: rolling_snapshot :: value()
-{
-    if (m_snap->valid())
-    {
-        return m_snap->value();
-    }
-    else if (m_iter->valid())
-    {
-        return m_iter->value();
-    }
-    else
-    {
-        return std::vector<e::buffer>();
-    }
 }

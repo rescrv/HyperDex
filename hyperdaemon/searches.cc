@@ -69,7 +69,7 @@ hyperdaemon :: searches :: start(const entityid& client,
         return;
     }
 
-    e::intrusive_ptr<hyperdisk::disk::snapshot> snap = m_data->make_snapshot(r);
+    e::intrusive_ptr<hyperdisk::snapshot> snap = m_data->make_snapshot(r);
     e::intrusive_ptr<search_state> state = new search_state(r, s, snap);
     m_searches.insert(key, state);
     next(client, nonce);
@@ -132,7 +132,7 @@ hyperdaemon :: searches :: hash(const std::pair<entityid, uint32_t>& key)
 
 hyperdaemon :: searches :: search_state :: search_state(const regionid& r,
                                                         const search& t,
-                                                        e::intrusive_ptr<hyperdisk::disk::snapshot> s)
+                                                        e::intrusive_ptr<hyperdisk::snapshot> s)
     : lock()
     , region(r)
     , point(t.secondary_point())

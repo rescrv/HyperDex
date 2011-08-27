@@ -30,6 +30,7 @@
 
 // HyperDisk
 #include <hyperdisk/disk.h>
+#include <hyperdisk/snapshot.h>
 
 namespace hyperdaemon
 {
@@ -41,11 +42,11 @@ class transfer_out
     public:
         transfer_out(const hyperdex::entityid& from,
                      uint16_t xfer_id,
-                     e::intrusive_ptr<hyperdisk::disk::rolling_snapshot> s);
+                     e::intrusive_ptr<hyperdisk::rolling_snapshot> s);
 
     public:
         po6::threads::mutex lock;
-        e::intrusive_ptr<hyperdisk::disk::rolling_snapshot> snap;
+        e::intrusive_ptr<hyperdisk::rolling_snapshot> snap;
         uint64_t xfer_num;
         const hyperdex::entityid replicate_from;
         const hyperdex::entityid transfer_entity;
@@ -66,7 +67,7 @@ class transfer_out
 inline
 transfer_out :: transfer_out(const hyperdex::entityid& from,
                              uint16_t xfer_id,
-                             e::intrusive_ptr<hyperdisk::disk::rolling_snapshot> s)
+                             e::intrusive_ptr<hyperdisk::rolling_snapshot> s)
     : lock()
     , snap(s)
     , xfer_num(1)

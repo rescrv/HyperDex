@@ -43,6 +43,7 @@
 
 // HyperDisk
 #include <hyperdisk/returncode.h>
+#include <hyperdisk/snapshot.h>
 
 // XXX Remove this.
 // HyperDex
@@ -62,79 +63,6 @@ namespace hyperdisk
 
 class disk
 {
-    public:
-        // A snapshot will iterate all shards, frozen at a particular point in
-        // time.
-        class snapshot
-        {
-            public:
-                bool valid();
-                void next();
-
-            public:
-                uint32_t primary_hash();
-                uint32_t secondary_hash();
-                bool has_value();
-                uint64_t version();
-                e::buffer key();
-                std::vector<e::buffer> value();
-
-            private:
-                friend class e::intrusive_ptr<snapshot>;
-                friend class disk;
-
-            private:
-                snapshot(std::vector<e::intrusive_ptr<hyperdisk::shard_snapshot> >* ss);
-                snapshot(const snapshot&);
-                ~snapshot() throw ();
-
-            private:
-                void inc() { __sync_add_and_fetch(&m_ref, 1); }
-                void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
-
-            private:
-                snapshot& operator = (const snapshot&);
-
-            private:
-                std::vector<e::intrusive_ptr<hyperdisk::shard_snapshot> > m_snaps;
-                size_t m_ref;
-        };
-
-        // A rolling snapshot will replay m_log after iterating all shard.
-        class rolling_snapshot
-        {
-            public:
-                bool valid();
-                void next();
-
-            public:
-                bool has_value();
-                uint64_t version();
-                e::buffer key();
-                std::vector<e::buffer> value();
-
-            private:
-                friend class e::intrusive_ptr<rolling_snapshot>;
-                friend class disk;
-
-            private:
-                void inc() { __sync_add_and_fetch(&m_ref, 1); }
-                void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
-
-            private:
-                rolling_snapshot(std::auto_ptr<hyperdisk::log_iterator> iter, e::intrusive_ptr<snapshot> snap);
-                rolling_snapshot(const rolling_snapshot&);
-                ~rolling_snapshot() throw ();
-
-            private:
-                rolling_snapshot& operator = (const rolling_snapshot&);
-
-            private:
-                const std::auto_ptr<hyperdisk::log_iterator> m_iter;
-                e::intrusive_ptr<snapshot> m_snap;
-                size_t m_ref;
-        };
-
     public:
         disk(const po6::pathname& directory, uint16_t arity);
         ~disk() throw ();

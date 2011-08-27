@@ -179,7 +179,6 @@ hyperdisk :: shard :: put(const e::buffer& key,
     m_search_index[m_search_offset * 2 + 1] = dataoffset;
 
     // Insert into the hash table.
-    assert(m_data_offset < (1 << 25));
     uint64_t new_hash_entry = key_hash;
     new_hash_entry <<= 25;
     new_hash_entry |= m_data_offset;

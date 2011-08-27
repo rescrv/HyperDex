@@ -140,7 +140,7 @@ hyperdaemon :: replication_manager :: reconfigure(const configuration& newconfig
             && m_transfers_in.find(t->first) == m_transfers_in.end())
         {
             LOG(INFO) << "Initiating outbound transfer #" << t->first << ".";
-            e::intrusive_ptr<hyperdisk::disk::rolling_snapshot> snap = m_data->make_rolling_snapshot(t->second);
+            e::intrusive_ptr<hyperdisk::rolling_snapshot> snap = m_data->make_rolling_snapshot(t->second);
             e::intrusive_ptr<transfer_out> xfer = new transfer_out(newconfig.tailof(t->second), t->first, snap);
             m_transfers_out.insert(std::make_pair(t->first, xfer));
         }

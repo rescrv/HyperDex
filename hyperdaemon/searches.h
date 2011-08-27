@@ -73,7 +73,7 @@ class searches
             public:
                 search_state(const hyperdex::regionid& region,
                              const hyperdex::search& terms,
-                             e::intrusive_ptr<hyperdisk::disk::snapshot> snap);
+                             e::intrusive_ptr<hyperdisk::snapshot> snap);
                 ~search_state() throw ();
 
             public:
@@ -82,7 +82,7 @@ class searches
                 const uint64_t point;
                 const uint64_t mask;
                 const hyperdex::search terms;
-                e::intrusive_ptr<hyperdisk::disk::snapshot> snap;
+                e::intrusive_ptr<hyperdisk::snapshot> snap;
                 uint64_t count;
 
             private:
