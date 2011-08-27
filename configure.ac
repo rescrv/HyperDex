@@ -79,5 +79,5 @@ AM_CONDITIONAL([ENABLE_YCSB], [test x"${enable_ycsb}" = xyes])
 
 AC_CONFIG_FILES([Makefile hyperclient/Makefile hyperclient/java/Makefile
                  hyperdaemon/Makefile hyperdex/Makefile hyperdisk/Makefile
-                 ycsb/Makefile])
+                 hyperdisk/test/Makefile ycsb/Makefile])
 AC_OUTPUT

@@ -28,8 +28,8 @@
 // Google Test
 #include <gtest/gtest.h>
 
-// HyperDex
-#include "../src/log.h"
+// HyperDisk
+#include "log.h"
 
 #pragma GCC diagnostic ignored "-Wswitch-default"
 

@@ -34,22 +34,22 @@
 // e
 #include <e/guard.h>
 
-// HyperDex
-#include "../src/shard.h"
-#include "../src/shard_snapshot.h"
+// HyperDisk
+#include "shard.h"
+#include "shard_snapshot.h"
 
 #pragma GCC diagnostic ignored "-Wswitch-default"
 
 namespace
 {
 
-TEST(DiskTest, CtorAndDtor)
+TEST(ShardTest, CtorAndDtor)
 {
     e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create("tmp-disk");
     e::guard g = e::makeobjguard(*d, &hyperdisk::shard::drop);
 }
 
-TEST(DiskTest, Simple)
+TEST(ShardTest, Simple)
 {
     e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create("tmp-disk");
     e::guard g = e::makeobjguard(*d, &hyperdisk::shard::drop);
@@ -75,7 +75,7 @@ TEST(DiskTest, Simple)
     ASSERT_EQ(hyperdisk::NOTFOUND, d->get(e::buffer("key", 3), 11062368440904502521UL, &value, &version));
 }
 
-TEST(DiskTest, MultiPut)
+TEST(ShardTest, MultiPut)
 {
     e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create("tmp-disk");
     e::guard g = e::makeobjguard(*d, &hyperdisk::shard::drop);
@@ -112,7 +112,7 @@ TEST(DiskTest, MultiPut)
     ASSERT_TRUE(e::buffer("value-two-b", 11) == value[1]);
 }
 
-TEST(DiskTest, DelPutDelPut)
+TEST(ShardTest, DelPutDelPut)
 {
     e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create("tmp-disk");
     e::guard g = e::makeobjguard(*d, &hyperdisk::shard::drop);
@@ -161,7 +161,7 @@ TEST(DiskTest, DelPutDelPut)
 	ASSERT_EQ(hyperdisk::NOTFOUND, d->get(key, key_hash, &value, &version));
 }
 
-TEST(DiskTest, Snapshot)
+TEST(ShardTest, Snapshot)
 {
     e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create("tmp-disk");
     e::guard g = e::makeobjguard(*d, &hyperdisk::shard::drop);

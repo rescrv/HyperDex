@@ -1,3 +1,5 @@
+SUBDIRS = . test
+
 lib_LTLIBRARIES = libhyperdisk.la
 
 nobase_include_HEADERS = hyperdisk/disk.h hyperdisk/returncode.h
