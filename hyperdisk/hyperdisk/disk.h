@@ -72,7 +72,8 @@ class disk
                 void next();
 
             public:
-                uint32_t secondary_point();
+                uint32_t primary_hash();
+                uint32_t secondary_hash();
                 bool has_value();
                 uint64_t version();
                 e::buffer key();

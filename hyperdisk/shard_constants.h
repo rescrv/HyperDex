@@ -25,59 +25,23 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdisk_shard_snapshot_h_
-#define hyperdisk_shard_snapshot_h_
+#ifndef hyperdisk_shard_constants_h_
+#define hyperdisk_shard_constants_h_
 
-// e
-#include <e/buffer.h>
-#include <e/intrusive_ptr.h>
+// Keep this a power of two or else change HASH_INTO_TABLE
+#define HASH_TABLE_ENTRIES 65536
+#define HASH_TABLE_ENTRY_SIZE 8
+#define HASH_TABLE_SIZE (HASH_TABLE_ENTRIES * HASH_TABLE_ENTRY_SIZE)
 
-// HyperDisk
-#include "hyperdisk/returncode.h"
-#include "shard_constants.h"
+#define SEARCH_INDEX_ENTRIES 32768
+#define SEARCH_INDEX_ENTRY_SIZE 16
+#define SEARCH_INDEX_SIZE (SEARCH_INDEX_ENTRIES * SEARCH_INDEX_ENTRY_SIZE)
 
-// Forward Declarations
-namespace hyperdisk
-{
-class shard;
-}
+#define INDEX_SEGMENT_SIZE (HASH_TABLE_SIZE + SEARCH_INDEX_SIZE)
+#define DATA_SEGMENT_SIZE (SEARCH_INDEX_ENTRIES * 1024)
+#define FILE_SIZE (INDEX_SEGMENT_SIZE + DATA_SEGMENT_SIZE)
 
-namespace hyperdisk
-{
+#define OFFSETMASK ((1 << 25) - 1)
+#define HASH_INTO_TABLE(X) (X & (HASH_TABLE_ENTRIES - 1))
 
-class shard_snapshot
-{
-    public:
-        bool valid();
-        void next();
-
-    public:
-        uint32_t primary_hash();
-        uint32_t secondary_hash();
-        uint64_t version();
-        e::buffer key();
-        std::vector<e::buffer> value();
-
-    private:
-        friend class e::intrusive_ptr<shard_snapshot>;
-        friend class shard;
-
-    private:
-        shard_snapshot(e::intrusive_ptr<shard> d);
-        ~shard_snapshot() throw ();
-
-    private:
-        void inc() { __sync_add_and_fetch(&m_ref, 1); }
-        void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
-
-    private:
-        size_t m_ref;
-        bool m_valid;
-        e::intrusive_ptr<shard> m_shard;
-        const uint32_t m_limit;
-        uint32_t m_entry;
-};
-
-} // namespace hyperdisk
-
-#endif // hyperdisk_shard_snapshot_h_
+#endif // hyperdisk_shard_h_

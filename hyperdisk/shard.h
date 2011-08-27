@@ -44,6 +44,19 @@ namespace hyperdisk
 class shard_snapshot;
 }
 
+// The shard class abstracts a memory mapped file on disk and provides an
+// append-only log which may be cheaply snapshotted to allow iteration.  The
+// methods of this class require synchronization.  In particular:
+//  - Performing a GET requires a READ lock.
+//  - Performing a PUT or a DEL requires a WRITE lock.
+//  - Cleaning-related methods should have an acquire barrier prior to entry in
+//    order to return an accurate result and a failure to do so will lead to an
+//    increased number of false negatives.  These are possible anyway so it is
+//    not an issue.
+//  - Async/Sync require no special locking (they just call msync).
+//  - Drop requires no special locking and is idempotent.
+//  - Making a snapshot requires a READ lock.
+
 namespace hyperdisk
 {
 
@@ -66,10 +79,12 @@ class shard
                        uint64_t version);
         // May return SUCCESS, NOTFOUND, or DATAFULL.
         returncode del(const e::buffer& key, uint64_t key_hash);
-        // Judge whether there would be a suitably large amount of space on this
-        // shard after cleaning all dead segments.  If not, and the shard still
-        // gives "DISKFULL" errors, we need to split the shard instead.
-        bool needs_cleaning() const;
+        // How much stale space (as a percentage) may be reclaimed from this log
+        // through cleaning.
+        int stale_space() const;
+        // How much space (as a percentage) is not used by either current or
+        // stale data.
+        int free_space() const;
         // May return SUCCESS or SYNCFAILED.  errno will be set to the reason
         // the sync failed.
         returncode async();
@@ -82,15 +97,6 @@ class shard
         void filename(const po6::pathname& fn) { m_filename = fn; }
 
     private:
-        static const size_t HASH_TABLE_ENTRIES = 262144;
-        static const size_t HASH_TABLE_SIZE = HASH_TABLE_ENTRIES * 8;
-        static const size_t SEARCH_INDEX_ENTRIES = HASH_TABLE_ENTRIES;
-        static const size_t SEARCH_INDEX_SIZE = SEARCH_INDEX_ENTRIES * 12;
-        static const size_t INDEX_SEGMENT_SIZE = HASH_TABLE_SIZE + SEARCH_INDEX_SIZE;
-        static const size_t DATA_SEGMENT_SIZE = HASH_TABLE_ENTRIES * 1024;
-        static const size_t TOTAL_FILE_SIZE = INDEX_SEGMENT_SIZE + DATA_SEGMENT_SIZE;
-
-    private:
         friend class e::intrusive_ptr<shard>;
         friend class shard_snapshot;
 
@@ -98,44 +104,6 @@ class shard
         shard(po6::io::fd* fd, const po6::pathname& filename);
         shard(const shard&);
         ~shard() throw ();
-
-    private:
-        uint32_t* hashtable_base(size_t entry) const
-        {
-            uint32_t offset = entry * 8;
-            assert(offset < HASH_TABLE_SIZE);
-            return reinterpret_cast<uint32_t*>(m_base + offset);
-        }
-
-        uint32_t hashtable_hash(size_t entry) const
-        { return be32toh(hashtable_base(entry)[0]); }
-        uint32_t hashtable_offset(size_t entry) const
-        { return be32toh(hashtable_base(entry)[1]); }
-
-        uint32_t* searchindex_base(size_t entry) const
-        {
-            uint32_t offset = HASH_TABLE_SIZE + entry * 12;
-            assert(HASH_TABLE_SIZE <= offset && offset < INDEX_SEGMENT_SIZE);
-            return reinterpret_cast<uint32_t*>(m_base + offset);
-        }
-        uint32_t searchindex_hash(size_t entry) const
-        { return be32toh(searchindex_base(entry)[0]); }
-        uint32_t searchindex_offset(size_t entry) const
-        { return be32toh(searchindex_base(entry)[1]); }
-        uint32_t searchindex_invalid(size_t entry) const
-        { return be32toh(searchindex_base(entry)[2]); }
-
-    private:
-        void hashtable_hash(size_t entry, uint32_t value)
-        { hashtable_base(entry)[0] = htobe32(value); }
-        void hashtable_offset(size_t entry, uint32_t value)
-        { hashtable_base(entry)[1] = htobe32(value); }
-        void searchindex_hash(size_t entry, uint32_t value)
-        { searchindex_base(entry)[0] = htobe32(value); }
-        void searchindex_offset(size_t entry, uint32_t value)
-        { searchindex_base(entry)[1] = htobe32(value); }
-        void searchindex_invalid(size_t entry, uint32_t value)
-        { searchindex_base(entry)[2] = htobe32(value); }
 
     private:
         size_t data_size(const e::buffer& key, const std::vector<e::buffer>& value) const;
@@ -167,9 +135,11 @@ class shard
 
     private:
         size_t m_ref;
-        char* m_base;
-        uint32_t m_offset;
-        uint32_t m_search;
+        uint64_t* m_hash_table;
+        uint64_t* m_search_index;
+        char* m_data;
+        uint32_t m_data_offset;
+        uint32_t m_search_offset;
         po6::pathname m_filename;
 };
 

@@ -188,6 +188,8 @@ TEST(ShardTest, Snapshot)
     }
 
     ASSERT_TRUE(valid);
+    EXPECT_EQ(static_cast<uint32_t>(key_hash), s2a->primary_hash());
+    EXPECT_EQ(0, s2a->secondary_hash());
     EXPECT_EQ(version, s2a->version());
     EXPECT_TRUE(s2a->key() == key);
     EXPECT_TRUE(s2a->value() == value);
@@ -209,6 +211,8 @@ TEST(ShardTest, Snapshot)
     e::intrusive_ptr<hyperdisk::shard_snapshot> s3a = d->make_snapshot();
     e::intrusive_ptr<hyperdisk::shard_snapshot> s3b = d->make_snapshot();
     ASSERT_TRUE(s3a->valid());
+    EXPECT_EQ(static_cast<uint32_t>(key_hash), s3a->primary_hash());
+    EXPECT_EQ(static_cast<uint32_t>(value2_hashes[0]), s3a->secondary_hash());
     EXPECT_EQ(version2, s3a->version());
     EXPECT_TRUE(s3a->key() == key);
     EXPECT_TRUE(s3a->value() == value2);
@@ -237,11 +241,15 @@ TEST(ShardTest, Snapshot)
     e::intrusive_ptr<hyperdisk::shard_snapshot> s5a = d->make_snapshot();
     e::intrusive_ptr<hyperdisk::shard_snapshot> s5b = d->make_snapshot();
     ASSERT_TRUE(s5a->valid());
+    EXPECT_EQ(static_cast<uint32_t>(b2b_key1_hash), s5a->primary_hash());
+    EXPECT_EQ(809253939, s5a->secondary_hash());
     EXPECT_EQ(b2b_version1, s5a->version());
     EXPECT_TRUE(s5a->key() == b2b_key1);
     EXPECT_TRUE(s5a->value() == b2b_value1);
     s5a->next();
     ASSERT_TRUE(s5a->valid());
+    EXPECT_EQ(static_cast<uint32_t>(b2b_key2_hash), s5a->primary_hash());
+    EXPECT_EQ(15987507, s5a->secondary_hash());
     EXPECT_EQ(b2b_version2, s5a->version());
     EXPECT_TRUE(s5a->key() == b2b_key2);
     EXPECT_TRUE(s5a->value() == b2b_value2);
@@ -253,6 +261,8 @@ TEST(ShardTest, Snapshot)
     EXPECT_FALSE(s1b->valid());
     // ---
     ASSERT_TRUE(s2b->valid());
+    EXPECT_EQ(s2b->primary_hash(), key_hash & 0xffffffffUL);
+    EXPECT_EQ(s2b->secondary_hash(), 0);
     EXPECT_EQ(version, s2b->version());
     EXPECT_TRUE(s2b->key() == key);
     EXPECT_TRUE(s2b->value() == value);
@@ -260,6 +270,8 @@ TEST(ShardTest, Snapshot)
     EXPECT_FALSE(s2b->valid());
     // ---
     ASSERT_TRUE(s3b->valid());
+    EXPECT_EQ(static_cast<uint32_t>(key_hash), s3b->primary_hash());
+    EXPECT_EQ(static_cast<uint32_t>(value2_hashes[0]), s3b->secondary_hash());
     EXPECT_EQ(s3b->version(), version2);
     EXPECT_TRUE(s3b->key() == key);
     EXPECT_TRUE(s3b->value() == value2);
@@ -269,11 +281,15 @@ TEST(ShardTest, Snapshot)
     EXPECT_FALSE(s4b->valid());
     // ---
     ASSERT_TRUE(s5b->valid());
+    EXPECT_EQ(static_cast<uint32_t>(b2b_key1_hash), s5b->primary_hash());
+    EXPECT_EQ(809253939, s5b->secondary_hash());
     EXPECT_EQ(b2b_version1, s5b->version());
     EXPECT_TRUE(s5b->key() == b2b_key1);
     EXPECT_TRUE(s5b->value() == b2b_value1);
     s5b->next();
     ASSERT_TRUE(s5b->valid());
+    EXPECT_EQ(static_cast<uint32_t>(b2b_key2_hash), s5b->primary_hash());
+    EXPECT_EQ(15987507, s5b->secondary_hash());
     EXPECT_EQ(b2b_version2, s5b->version());
     EXPECT_TRUE(s5b->key() == b2b_key2);
     EXPECT_TRUE(s5b->value() == b2b_value2);

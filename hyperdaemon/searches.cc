@@ -90,7 +90,7 @@ hyperdaemon :: searches :: next(const entityid& client,
 
     while (state->snap->valid())
     {
-        if ((state->point & state->mask) == (state->snap->secondary_point() & state->mask))
+        if ((state->point & state->mask) == (state->snap->secondary_hash() & state->mask))
         {
             e::buffer key(state->snap->key());
             std::vector<e::buffer> value(state->snap->value());

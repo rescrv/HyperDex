@@ -91,6 +91,11 @@ hyperdisk/libhyperdisk_la-shard_snapshot.o
 hyperdisk/.libs/
 hyperdisk/Makefile
 hyperdisk/Makefile.in
+hyperdisk/test/hyperdisk-test
+hyperdisk/test/hyperdisk_test-log.o
+hyperdisk/test/hyperdisk_test-runner.o
+hyperdisk/test/hyperdisk_test-shard.o
+hyperdisk/test/tmp-disk
 install-sh
 .libs/
 libtool

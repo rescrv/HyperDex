@@ -237,7 +237,7 @@ hyperdisk :: disk :: flush()
         split = true;
         e::intrusive_ptr<hyperdisk::shard> d = di->second;
 
-        if (d->needs_cleaning())
+        if (d->stale_space() > 50)
         {
             clean_shard(*i);
         }
@@ -642,11 +642,24 @@ hyperdisk :: disk :: snapshot :: next()
 }
 
 uint32_t
-hyperdisk :: disk :: snapshot :: secondary_point()
+hyperdisk :: disk :: snapshot :: primary_hash()
 {
     if (!m_snaps.empty())
     {
-        return m_snaps.back()->secondary_point();
+        return m_snaps.back()->primary_hash();
+    }
+    else
+    {
+        return uint64_t();
+    }
+}
+
+uint32_t
+hyperdisk :: disk :: snapshot :: secondary_hash()
+{
+    if (!m_snaps.empty())
+    {
+        return m_snaps.back()->secondary_hash();
     }
     else
     {

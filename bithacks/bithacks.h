@@ -25,59 +25,31 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdisk_shard_snapshot_h_
-#define hyperdisk_shard_snapshot_h_
+#ifndef bithacks_h_
+#define bithacks_h_
 
-// e
-#include <e/buffer.h>
-#include <e/intrusive_ptr.h>
+// C
+#include <stdint.h>
 
-// HyperDisk
-#include "hyperdisk/returncode.h"
-#include "shard_constants.h"
+// STL
+#include <vector>
 
-// Forward Declarations
-namespace hyperdisk
+uint64_t
+lower_interlace(const std::vector<uint64_t>& nums)
 {
-class shard;
+    size_t sz = nums.size();
+    uint64_t ret = 0;
+
+    for (size_t i = 0; sz && i < 64; ++i)
+    {
+        const size_t quotient = i / sz;
+        const size_t modulus = i % sz;
+        const uint64_t bit = 1 << quotient;
+        const uint64_t hash = nums[modulus];
+        ret |= (bit & hash) << (i - quotient);
+    }
+
+    return ret;
 }
 
-namespace hyperdisk
-{
-
-class shard_snapshot
-{
-    public:
-        bool valid();
-        void next();
-
-    public:
-        uint32_t primary_hash();
-        uint32_t secondary_hash();
-        uint64_t version();
-        e::buffer key();
-        std::vector<e::buffer> value();
-
-    private:
-        friend class e::intrusive_ptr<shard_snapshot>;
-        friend class shard;
-
-    private:
-        shard_snapshot(e::intrusive_ptr<shard> d);
-        ~shard_snapshot() throw ();
-
-    private:
-        void inc() { __sync_add_and_fetch(&m_ref, 1); }
-        void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
-
-    private:
-        size_t m_ref;
-        bool m_valid;
-        e::intrusive_ptr<shard> m_shard;
-        const uint32_t m_limit;
-        uint32_t m_entry;
-};
-
-} // namespace hyperdisk
-
-#endif // hyperdisk_shard_snapshot_h_
+#endif // bithacks_h_
