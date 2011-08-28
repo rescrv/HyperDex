@@ -39,7 +39,7 @@
 // po6
 #include <po6/io/fd.h>
 
-// BitTwiddling
+// Utils
 #include "bithacks.h"
 
 // HyperDisk

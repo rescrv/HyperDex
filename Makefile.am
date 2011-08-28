@@ -3,7 +3,7 @@ SUBDIRS = hyperdex hyperdisk hyperclient hyperdaemon ycsb
 
 bin_PROGRAMS = cli daemon
 noinst_PROGRAMS = binary-test count-test repl-test
-noinst_HEADERS = bithacks/bithacks.h
+noinst_HEADERS = utils/bithacks.h
 
 cli_SOURCES = cli.cc
 cli_CPPFLAGS = -I${abs_top_srcdir}/hyperclient/
