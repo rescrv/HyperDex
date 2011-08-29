@@ -73,6 +73,15 @@ coordinate :: coordinate()
 }
 
 inline
+coordinate :: coordinate(const coordinate& other)
+    : primary_mask(other.primary_mask)
+    , primary_hash(other.primary_hash)
+    , secondary_mask(other.secondary_mask)
+    , secondary_hash(other.secondary_hash)
+{
+}
+
+inline
 coordinate :: ~coordinate() throw ()
 {
 }
