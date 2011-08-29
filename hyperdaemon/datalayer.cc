@@ -50,6 +50,9 @@
 // po6
 #include <po6/pathname.h>
 
+// e
+#include <e/timer.h>
+
 // HyperDex
 #include <hyperdex/configuration.h>
 #include <hyperdex/coordinatorlink.h>
@@ -295,7 +298,6 @@ hyperdaemon :: datalayer :: flush_loop()
     while (!m_shutdown)
     {
         std::set<e::intrusive_ptr<hyperdisk::disk> > to_flush;
-        bool sleep = true;
 
         { // Hold the lock only in this scope.
             po6::threads::rwlock::rdhold hold(&m_lock);
@@ -310,21 +312,11 @@ hyperdaemon :: datalayer :: flush_loop()
         for (std::set<e::intrusive_ptr<hyperdisk::disk> >::iterator i = to_flush.begin();
                     i != to_flush.end(); ++i)
         {
-            if ((*i)->flush())
-            {
-                sleep = false;
-            }
-
+            (*i)->flush();
             (*i)->async();
         }
 
-        if (sleep)
-        {
-            timespec ts;
-            ts.tv_sec = 0;
-            ts.tv_nsec = 100000000; // 100ms
-            nanosleep(&ts, &ts); // If interrupted, it is no big deal.
-        }
+        e::sleep_ms(0, 100);
     }
 }
 
