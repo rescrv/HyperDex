@@ -163,6 +163,9 @@ hyperdisk :: shard :: put(const e::buffer& key,
         curr_offset += value[i].size();
     }
 
+    // We need to synchronize here to ensure that all data is globally visible.
+    __sync_synchronize();
+
     // Invalidate anything pointing to the old version.
     if (overwrite)
     {
@@ -175,13 +178,18 @@ hyperdisk :: shard :: put(const e::buffer& key,
     const uint64_t hashcode = (lower_interlace(value_hashes) << 32)
                             | (key_hash & 0xffffffffULL);
     const uint64_t dataoffset = m_data_offset;
-    m_search_index[m_search_offset * 2] = hashcode;
     m_search_index[m_search_offset * 2 + 1] = dataoffset;
+    // We need to synchronize here to ensure that the data offset is visible
+    // before the hash code.
+    __sync_synchronize();
+    m_search_index[m_search_offset * 2] = hashcode;
 
     // Insert into the hash table.
     uint64_t new_hash_entry = key_hash;
     new_hash_entry <<= 25;
     new_hash_entry |= m_data_offset;
+    // No need to synchronize as we assume a 64-bit platform where a word write
+    // will never partially happen.
     m_hash_table[entry] = new_hash_entry;
 
     // Update the offsets
