@@ -66,19 +66,20 @@ class shard
         // Create will create a newly initialized shard at the given filename,
         // even if it already exists.  That is, it will overwrite the existing
         // shard (or other file) at "filename".
-        static e::intrusive_ptr<shard> create(const po6::pathname& filename);
+        static e::intrusive_ptr<shard> create(const po6::io::fd& dir,
+                                              const po6::pathname& filename);
 
     public:
         // May return SUCCESS or NOTFOUND.
-        returncode get(const e::buffer& key, uint64_t key_hash,
+        returncode get(uint32_t primary_hash, const e::buffer& key,
                        std::vector<e::buffer>* value, uint64_t* version);
         // May return SUCCESS, DATAFULL, HASHFULL, or SEARCHFULL.
-        returncode put(const e::buffer& key, uint64_t key_hash,
+        returncode put(uint32_t primary_hash, uint32_t secondary_hash,
+                       const e::buffer& key,
                        const std::vector<e::buffer>& value,
-                       const std::vector<uint64_t>& value_hashes,
                        uint64_t version);
         // May return SUCCESS, NOTFOUND, or DATAFULL.
-        returncode del(const e::buffer& key, uint64_t key_hash);
+        returncode del(uint32_t primary_hash, const e::buffer& key);
         // How much stale space (as a percentage) may be reclaimed from this log
         // through cleaning.
         int stale_space() const;
@@ -91,17 +92,14 @@ class shard
         // May return SUCCESS or SYNCFAILED.  errno will be set to the reason
         // the sync failed.
         returncode sync();
-        returncode drop();
         e::intrusive_ptr<shard_snapshot> make_snapshot();
-        po6::pathname filename() const { return m_filename; }
-        void filename(const po6::pathname& fn) { m_filename = fn; }
 
     private:
         friend class e::intrusive_ptr<shard>;
         friend class shard_snapshot;
 
     private:
-        shard(po6::io::fd* fd, const po6::pathname& filename);
+        shard(po6::io::fd* fd);
         shard(const shard&);
         ~shard() throw ();
 
@@ -125,7 +123,7 @@ class shard
         // HASH_TABLE_ENTRIES will be stored in entry.  If a non-dead bucket was
         // found (as in, old/new keys match), true is returned; else, false is
         // returned.
-        bool find_bucket(const e::buffer& key, uint64_t key_hash, size_t* entry);
+        bool find_bucket(uint32_t primary_hash, const e::buffer& key, size_t* entry);
         // This will invalidate any entry in the search index which references
         // the specified offset.
         void invalidate_search_index(uint32_t to_invalidate, uint32_t invalidate_with);
@@ -140,7 +138,6 @@ class shard
         char* m_data;
         uint32_t m_data_offset;
         uint32_t m_search_offset;
-        po6::pathname m_filename;
 };
 
 } // namespace hyperdisk

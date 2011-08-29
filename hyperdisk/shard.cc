@@ -48,48 +48,50 @@
 #include "shard_snapshot.h"
 
 e::intrusive_ptr<hyperdisk::shard>
-hyperdisk :: shard :: create(const po6::pathname& filename)
+hyperdisk :: shard :: create(const po6::io::fd& base,
+                             const po6::pathname& filename)
 {
-    // Open a temporary file in fd with path tmp.
-    po6::io::fd fd;
-    po6::pathname tmp = filename;
+    // Try removing the old shard.
+    unlinkat(base.get(), filename.get(), 0);
+    po6::io::fd fd(openat(base.get(), filename.get(), O_CREAT|O_EXCL|O_RDWR, S_IRWXU));
 
-    if (!po6::mkstemp(&fd, &tmp))
+    if (fd.get() < 0)
     {
         throw po6::error(errno);
     }
 
-    // Make sure that tmp is unlinked under all normal circumstances.
-    e::guard g_unlink = e::makeguard(unlink, tmp.get());
+    std::vector<char> buf(1 << 20, '\0');
+    std::vector<iovec> iovs;
+    size_t rem = FILE_SIZE;
 
-    // Truncate it to the correct size.
-    if (ftruncate(fd.get(), FILE_SIZE) < 0)
+    while (rem)
+    {
+        struct iovec iov;
+        iov.iov_base = &buf.front();
+        iov.iov_len = std::min(buf.size(), rem);
+        iovs.push_back(iov);
+        rem -= iov.iov_len;
+    }
+
+    if (writev(fd.get(), &iovs.front(), iovs.size()) != FILE_SIZE)
     {
         throw po6::error(errno);
     }
 
     // Create the shard object.
-    e::intrusive_ptr<shard> ret = new shard(&fd, filename);
-
-    // Move the filename.
-    if (rename(tmp.get(), filename.get()) < 0)
-    {
-        throw po6::error(errno);
-    }
-
-    g_unlink.dismiss();
+    e::intrusive_ptr<shard> ret = new shard(&fd);
     return ret;
 }
 
 hyperdisk::returncode
-hyperdisk :: shard :: get(const e::buffer& key,
-                          uint64_t key_hash,
+hyperdisk :: shard :: get(uint32_t primary_hash,
+                          const e::buffer& key,
                           std::vector<e::buffer>* value,
                           uint64_t* version)
 {
     size_t entry;
 
-    if (!find_bucket(key, key_hash, &entry))
+    if (!find_bucket(primary_hash, key, &entry))
     {
         return NOTFOUND;
     }
@@ -112,10 +114,10 @@ hyperdisk :: shard :: get(const e::buffer& key,
 }
 
 hyperdisk::returncode
-hyperdisk :: shard :: put(const e::buffer& key,
-                          uint64_t key_hash,
+hyperdisk :: shard :: put(uint32_t primary_hash,
+                          uint32_t secondary_hash,
+                          const e::buffer& key,
                           const std::vector<e::buffer>& value,
-                          const std::vector<uint64_t>& value_hashes,
                           uint64_t version)
 {
     size_t required = data_size(key, value);
@@ -132,7 +134,7 @@ hyperdisk :: shard :: put(const e::buffer& key,
 
     // Find the bucket.
     size_t entry;
-    bool overwrite = find_bucket(key, key_hash, &entry);
+    bool overwrite = find_bucket(primary_hash, key, &entry);
 
     if (entry == HASH_TABLE_SIZE)
     {
@@ -163,7 +165,8 @@ hyperdisk :: shard :: put(const e::buffer& key,
         curr_offset += value[i].size();
     }
 
-    // We need to synchronize here to ensure that all data is globally visible.
+    // We need to synchronize here to ensure that all data is globally visible
+    // before anything else becomes visible.
     __sync_synchronize();
 
     // Invalidate anything pointing to the old version.
@@ -175,8 +178,9 @@ hyperdisk :: shard :: put(const e::buffer& key,
     }
 
     // Insert into the search index.
-    const uint64_t hashcode = (lower_interlace(value_hashes) << 32)
-                            | (key_hash & 0xffffffffULL);
+    uint64_t hashcode = secondary_hash;
+    hashcode <<= 32;
+    hashcode |= primary_hash;
     const uint64_t dataoffset = m_data_offset;
     m_search_index[m_search_offset * 2 + 1] = dataoffset;
     // We need to synchronize here to ensure that the data offset is visible
@@ -185,8 +189,8 @@ hyperdisk :: shard :: put(const e::buffer& key,
     m_search_index[m_search_offset * 2] = hashcode;
 
     // Insert into the hash table.
-    uint64_t new_hash_entry = key_hash;
-    new_hash_entry <<= 25;
+    uint64_t new_hash_entry = primary_hash;
+    new_hash_entry <<= 32;
     new_hash_entry |= m_data_offset;
     // No need to synchronize as we assume a 64-bit platform where a word write
     // will never partially happen.
@@ -199,12 +203,12 @@ hyperdisk :: shard :: put(const e::buffer& key,
 }
 
 hyperdisk::returncode
-hyperdisk :: shard :: del(const e::buffer& key,
-                        uint64_t key_hash)
+hyperdisk :: shard :: del(uint32_t primary_hash,
+                          const e::buffer& key)
 {
     size_t entry;
 
-    if (!find_bucket(key, key_hash, &entry))
+    if (!find_bucket(primary_hash, key, &entry))
     {
         return NOTFOUND;
     }
@@ -289,17 +293,6 @@ hyperdisk :: shard :: sync()
     return SUCCESS;
 }
 
-hyperdisk::returncode
-hyperdisk :: shard :: drop()
-{
-    if (unlink(m_filename.get()) < 0)
-    {
-        return DROPFAILED;
-    }
-
-    return SUCCESS;
-}
-
 e::intrusive_ptr<hyperdisk::shard_snapshot>
 hyperdisk :: shard :: make_snapshot()
 {
@@ -309,14 +302,13 @@ hyperdisk :: shard :: make_snapshot()
     return ret;
 }
 
-hyperdisk :: shard :: shard(po6::io::fd* fd, const po6::pathname& fn)
+hyperdisk :: shard :: shard(po6::io::fd* fd)
     : m_ref(0)
     , m_hash_table(NULL)
     , m_search_index(NULL)
     , m_data(NULL)
     , m_data_offset(INDEX_SEGMENT_SIZE)
     , m_search_offset(0)
-    , m_filename(fn)
 {
     m_data = static_cast<char*>(mmap(NULL, FILE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd->get(), 0));
 
@@ -400,16 +392,17 @@ hyperdisk :: shard :: data_value(uint32_t offset,
 }
 
 bool
-hyperdisk :: shard :: find_bucket(const e::buffer& key,
-                                uint64_t key_hash,
-                                size_t* entry)
+hyperdisk :: shard :: find_bucket(uint32_t primary_hash,
+                                  const e::buffer& key,
+                                  size_t* entry)
 {
     // The first dead bucket.
     size_t dead = HASH_TABLE_ENTRIES;
 
     // The bucket/hash we want to use.
-    *entry = HASH_INTO_TABLE(key_hash);
-    key_hash <<= 25;
+    *entry = HASH_INTO_TABLE(primary_hash);
+    uint64_t expected = primary_hash;
+    expected <<= 32;
 
     for (size_t off = 0; off < HASH_TABLE_ENTRIES; ++off)
     {
@@ -418,11 +411,11 @@ hyperdisk :: shard :: find_bucket(const e::buffer& key,
         const uint64_t hash = hash_entry & ~uint64_t(OFFSETMASK);
         const uint32_t offset = hash_entry & OFFSETMASK;
 
-        if (key_hash == hash && offset == OFFSETMASK)
+        if (expected == hash && offset == OFFSETMASK)
         {
             dead = bucket;
         }
-        else if (key_hash == hash)
+        else if (expected == hash)
         {
             const size_t key_size = data_key_size(offset);
 
