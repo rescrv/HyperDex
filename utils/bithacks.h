@@ -34,7 +34,7 @@
 // STL
 #include <vector>
 
-uint64_t
+inline uint64_t
 lower_interlace(const std::vector<uint64_t>& nums)
 {
     size_t sz = nums.size();
