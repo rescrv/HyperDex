@@ -38,6 +38,7 @@
 // Forward Declarations
 namespace hyperdisk
 {
+class write_ahead_log_iterator;
 class write_ahead_log_reference;
 }
 
@@ -77,6 +78,26 @@ class write_ahead_log
 
     private:
         e::locking_iterable_fifo<log_entry> m_log;
+};
+
+class write_ahead_log_iterator
+{
+    public:
+        write_ahead_log_iterator(const write_ahead_log_iterator&);
+        ~write_ahead_log_iterator() throw ();
+
+    public:
+        bool valid();
+        void next();
+
+    public:
+        bool has_value();
+        uint64_t version();
+        e::buffer& key();
+        std::vector<e::buffer>& value();
+
+    private:
+        e::locking_iterable_fifo<write_ahead_log::log_entry>::iterator m_it;
 };
 
 class write_ahead_log_reference

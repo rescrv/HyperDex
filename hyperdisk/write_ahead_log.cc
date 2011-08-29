@@ -158,6 +158,51 @@ hyperdisk :: write_ahead_log :: version()
     return m_log.oldest().version;
 }
 
+hyperdisk :: write_ahead_log_iterator :: write_ahead_log_iterator (const write_ahead_log_iterator& other)
+    : m_it(other.m_it)
+{
+}
+
+hyperdisk :: write_ahead_log_iterator :: ~write_ahead_log_iterator () throw ()
+{
+}
+
+bool
+hyperdisk :: write_ahead_log_iterator :: valid()
+{
+    return m_it.valid();
+}
+
+void
+hyperdisk :: write_ahead_log_iterator :: next()
+{
+    return m_it.next();
+}
+
+bool
+hyperdisk :: write_ahead_log_iterator :: has_value()
+{
+    return m_it->has_value;
+}
+
+uint64_t
+hyperdisk :: write_ahead_log_iterator :: version()
+{
+    return m_it->version;
+}
+
+e::buffer&
+hyperdisk :: write_ahead_log_iterator :: key()
+{
+    return m_it->key;
+}
+
+std::vector<e::buffer>&
+hyperdisk :: write_ahead_log_iterator :: value()
+{
+    return m_it->value;
+}
+
 hyperdisk :: write_ahead_log_reference :: write_ahead_log_reference(const write_ahead_log_reference& other)
     : m_it(other.m_it)
 {

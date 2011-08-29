@@ -29,8 +29,8 @@
 
 // HyperDisk
 #include "hyperdisk/snapshot.h"
-#include "log.h"
 #include "shard_snapshot.h"
+#include "write_ahead_log.h"
 
 hyperdisk :: snapshot :: snapshot(std::vector<e::intrusive_ptr<hyperdisk::shard_snapshot> >* ss)
     : m_snaps()
@@ -148,9 +148,9 @@ hyperdisk :: snapshot :: value()
     }
 }
 
-hyperdisk :: rolling_snapshot :: rolling_snapshot(std::auto_ptr<hyperdisk::log_iterator> iter,
+hyperdisk :: rolling_snapshot :: rolling_snapshot(const write_ahead_log_iterator& iter,
                                                   e::intrusive_ptr<snapshot> snap)
-    : m_iter(iter)
+    : m_iter(new write_ahead_log_iterator(iter))
     , m_snap(snap)
     , m_ref(0)
 {
