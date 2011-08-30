@@ -42,6 +42,6 @@
 #define FILE_SIZE (INDEX_SEGMENT_SIZE + DATA_SEGMENT_SIZE)
 
 #define OFFSETMASK ((1 << 25) - 1)
-#define HASH_INTO_TABLE(X) (X & (HASH_TABLE_ENTRIES - 1))
+#define HASH_INTO_TABLE(X) ((X) & (HASH_TABLE_ENTRIES - 1))
 
 #endif // hyperdisk_shard_h_
