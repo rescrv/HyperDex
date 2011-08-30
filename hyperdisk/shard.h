@@ -123,7 +123,7 @@ class shard
         // HASH_TABLE_ENTRIES will be stored in entry.  If a non-dead bucket was
         // found (as in, old/new keys match), true is returned; else, false is
         // returned.
-        bool find_bucket(uint32_t primary_hash, const e::buffer& key, size_t* entry);
+        bool find_bucket(uint32_t primary_hash, const e::buffer& key, size_t* entry, size_t* offset);
         // This will invalidate any entry in the search index which references
         // the specified offset.
         void invalidate_search_index(uint32_t to_invalidate, uint32_t invalidate_with);

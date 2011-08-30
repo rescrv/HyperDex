@@ -90,14 +90,12 @@ hyperdisk :: shard :: get(uint32_t primary_hash,
                           uint64_t* version)
 {
     size_t entry;
+    size_t offset;
 
-    if (!find_bucket(primary_hash, key, &entry))
+    if (!find_bucket(primary_hash, key, &entry, &offset))
     {
         return NOTFOUND;
     }
-
-    const uint64_t hash_entry = m_hash_table[entry];
-    const uint32_t offset = hash_entry & OFFSETMASK;
 
     if (offset == 0 || offset == OFFSETMASK)
     {
@@ -134,7 +132,8 @@ hyperdisk :: shard :: put(uint32_t primary_hash,
 
     // Find the bucket.
     size_t entry;
-    bool overwrite = find_bucket(primary_hash, key, &entry);
+    size_t offset;
+    bool overwrite = find_bucket(primary_hash, key, &entry, &offset);
 
     if (entry == HASH_TABLE_SIZE)
     {
@@ -207,8 +206,9 @@ hyperdisk :: shard :: del(uint32_t primary_hash,
                           const e::buffer& key)
 {
     size_t entry;
+    size_t offset;
 
-    if (!find_bucket(primary_hash, key, &entry))
+    if (!find_bucket(primary_hash, key, &entry, &offset))
     {
         return NOTFOUND;
     }
@@ -223,7 +223,6 @@ hyperdisk :: shard :: del(uint32_t primary_hash,
         return DATAFULL;
     }
 
-    const uint32_t offset = m_hash_table[entry] & OFFSETMASK;
     assert(offset != 0 && offset != OFFSETMASK);
     invalidate_search_index(offset, m_data_offset);
     m_data_offset += sizeof(uint64_t);
@@ -399,7 +398,8 @@ hyperdisk :: shard :: data_value(uint32_t offset,
 bool
 hyperdisk :: shard :: find_bucket(uint32_t primary_hash,
                                   const e::buffer& key,
-                                  size_t* entry)
+                                  size_t* entry,
+                                  size_t* offset)
 {
     // The first dead bucket.
     size_t dead = HASH_TABLE_ENTRIES;
@@ -414,24 +414,25 @@ hyperdisk :: shard :: find_bucket(uint32_t primary_hash,
         size_t bucket = HASH_INTO_TABLE(*entry + off);
         const uint64_t hash_entry = m_hash_table[bucket];
         const uint64_t hash = hash_entry & ~uint64_t(OFFSETMASK);
-        const uint32_t offset = hash_entry & OFFSETMASK;
+        const uint32_t entry_offset = hash_entry & OFFSETMASK;
 
-        if (expected == hash && offset == OFFSETMASK)
+        if (expected == hash && entry_offset == OFFSETMASK)
         {
             dead = bucket;
         }
         else if (expected == hash)
         {
-            const size_t key_size = data_key_size(offset);
+            const size_t key_size = data_key_size(entry_offset);
 
-            if (key_size == key.size() && memcmp(m_data + data_key_offset(offset), key.get(), key_size) == 0)
+            if (key_size == key.size() && memcmp(m_data + data_key_offset(entry_offset), key.get(), key_size) == 0)
             {
                 *entry = bucket;
+                *offset = entry_offset;
                 return true;
             }
         }
 
-        if (offset == 0)
+        if (entry_offset == 0)
         {
             if (dead == HASH_TABLE_ENTRIES)
             {
@@ -445,7 +446,7 @@ hyperdisk :: shard :: find_bucket(uint32_t primary_hash,
             return false;
         }
 
-        if (offset == OFFSETMASK && dead == HASH_TABLE_ENTRIES)
+        if (entry_offset == OFFSETMASK && dead == HASH_TABLE_ENTRIES)
         {
             dead = bucket;
         }
