@@ -239,6 +239,8 @@ hyperdaemon :: network_worker :: run()
             {
                 LOG(INFO) << "Message of unknown type received.";
             }
+
+            m_data->trickle(to.get_region());
         }
         catch (std::out_of_range& e)
         {
