@@ -234,7 +234,8 @@ hyperdisk :: shard :: del(uint32_t primary_hash,
 int
 hyperdisk :: shard :: stale_space() const
 {
-    size_t stale = 0;
+    size_t stale_data = 0;
+    size_t stale_num = 0;
     uint32_t prev = m_search_index[1] & 0xffffffffUL;
     uint32_t cur;
     size_t i;
@@ -250,7 +251,8 @@ hyperdisk :: shard :: stale_space() const
 
         if (m_search_index[2 * i + 1] >> 32 > 0)
         {
-            stale += cur - prev;
+            stale_data += cur - prev;
+            ++stale_num;
         }
 
         prev = cur;
@@ -258,10 +260,13 @@ hyperdisk :: shard :: stale_space() const
 
     if (i == SEARCH_INDEX_ENTRIES && m_search_index[2 * i + 1] >> 32 > 0)
     {
-        stale += cur - prev;
+        stale_data += cur - prev;
+        ++stale_num;
     }
 
-    return static_cast<double>(100 * stale) / DATA_SEGMENT_SIZE;
+    double data = 100.0 * static_cast<double>(stale_data) / DATA_SEGMENT_SIZE;
+    double num = 100.0 * static_cast<double>(stale_num) / SEARCH_INDEX_ENTRIES;
+    return std::max(data, num);
 }
 
 int
