@@ -82,8 +82,7 @@ uint32_t
 hyperdisk :: shard_snapshot :: secondary_hash()
 {
     uint64_t i = m_shard->m_search_index[m_entry * 2];
-    int j = 2;
-    return i >> 32;
+    return static_cast<uint32_t>(i >> 32);
 }
 
 uint64_t
