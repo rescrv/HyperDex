@@ -227,6 +227,17 @@ hyperdaemon :: datalayer :: make_rolling_snapshot(const regionid& ri)
     return r->make_rolling_snapshot();
 }
 
+void
+hyperdaemon :: datalayer :: trickle(const regionid& ri)
+{
+    e::intrusive_ptr<hyperdisk::disk> r = get_region(ri);
+
+    if (r)
+    {
+        r->trickle();
+    }
+}
+
 hyperdisk::returncode
 hyperdaemon :: datalayer :: get(const regionid& ri,
                                 const e::buffer& key,

@@ -70,6 +70,8 @@ class datalayer
         void shutdown();
         e::intrusive_ptr<hyperdisk::snapshot> make_snapshot(const hyperdex::regionid& ri);
         e::intrusive_ptr<hyperdisk::rolling_snapshot> make_rolling_snapshot(const hyperdex::regionid& ri);
+        // Push data towards the disk.
+        void trickle(const hyperdex::regionid& ri);
 
     // Key-Value store operations.
     public:
