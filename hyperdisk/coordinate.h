@@ -41,26 +41,21 @@ class coordinate
 {
     public:
         coordinate();
+        coordinate(uint32_t primary_mask, uint32_t primary_hash,
+                   uint32_t secondary_mask, uint32_t secondary_hash);
         coordinate(const coordinate& other);
         ~coordinate() throw ();
 
     public:
-        int compare (const coordinate& rhs) const;
-        bool key_matches(uint64_t key_hash) const;
+        bool contains(const coordinate& other) const;
+        bool primary_contains(const coordinate& other) const;
+        bool secondary_contains(const coordinate& other) const;
 
     public:
-        bool operator < (const coordinate& rhs) const { return compare(rhs) < 0; }
-        bool operator <= (const coordinate& rhs) const { return compare(rhs) <= 0; }
-        bool operator == (const coordinate& rhs) const { return compare(rhs) == 0; }
-        bool operator != (const coordinate& rhs) const { return compare(rhs) != 0; }
-        bool operator >= (const coordinate& rhs) const { return compare(rhs) >= 0; }
-        bool operator > (const coordinate& rhs) const { return compare(rhs) > 0; }
-
-    public:
-        uint64_t primary_mask;
-        uint64_t primary_hash;
-        uint64_t secondary_mask;
-        uint64_t secondary_hash;
+        uint32_t primary_mask;
+        uint32_t primary_hash;
+        uint32_t secondary_mask;
+        uint32_t secondary_hash;
 };
 
 inline
@@ -69,6 +64,16 @@ coordinate :: coordinate()
     , primary_hash()
     , secondary_mask()
     , secondary_hash()
+{
+}
+
+inline
+coordinate :: coordinate(uint32_t pm, uint32_t ph,
+                         uint32_t sm, uint32_t sh)
+    : primary_mask(pm)
+    , primary_hash(ph)
+    , secondary_mask(sm)
+    , secondary_hash(sh)
 {
 }
 
@@ -87,16 +92,23 @@ coordinate :: ~coordinate() throw ()
 }
 
 inline bool
-coordinate :: key_matches(uint64_t key_hash) const
+coordinate :: contains(const coordinate& other) const
 {
-    return primary_hash == key_hash;
+    return primary_contains(other) && secondary_contains(other);
 }
 
-inline int
-coordinate :: compare(const coordinate& rhs) const
+inline bool
+coordinate :: primary_contains(const coordinate& other) const
 {
-    return e::tuple_compare(primary_mask, primary_hash, secondary_mask, secondary_hash,
-                            rhs.primary_mask, rhs.primary_hash, rhs.secondary_mask, rhs.secondary_hash);
+    return (primary_mask & other.primary_mask) == primary_mask &&
+           (primary_hash & primary_mask) == (other.primary_hash & primary_mask);
+}
+
+inline bool
+coordinate :: secondary_contains(const coordinate& other) const
+{
+    return (secondary_mask & other.secondary_mask) == secondary_mask &&
+           (secondary_hash & secondary_mask) == (other.secondary_hash & secondary_mask);
 }
 
 } // namespace hyperdisk
