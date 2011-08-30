@@ -29,8 +29,8 @@
 
 // HyperDisk
 #include "hyperdisk/snapshot.h"
+#include "log_entry.h"
 #include "shard_snapshot.h"
-#include "write_ahead_log.h"
 
 hyperdisk :: snapshot :: snapshot(std::vector<e::intrusive_ptr<hyperdisk::shard_snapshot> >* ss)
     : m_snaps()
@@ -148,9 +148,9 @@ hyperdisk :: snapshot :: value()
     }
 }
 
-hyperdisk :: rolling_snapshot :: rolling_snapshot(const write_ahead_log_iterator& iter,
+hyperdisk :: rolling_snapshot :: rolling_snapshot(const e::locking_iterable_fifo<log_entry>::iterator& iter,
                                                   e::intrusive_ptr<snapshot> snap)
-    : m_iter(new write_ahead_log_iterator(iter))
+    : m_iter(iter)
     , m_snap(snap)
     , m_ref(0)
 {
@@ -164,7 +164,7 @@ hyperdisk :: rolling_snapshot :: ~rolling_snapshot() throw ()
 bool
 hyperdisk :: rolling_snapshot :: valid()
 {
-    return m_snap->valid() || m_iter->valid();
+    return m_snap->valid() || m_iter.valid();
 }
 
 void
@@ -174,9 +174,9 @@ hyperdisk :: rolling_snapshot :: next()
     {
         m_snap->next();
     }
-    else if (m_iter->valid())
+    else if (m_iter.valid())
     {
-        m_iter->next();
+        m_iter.next();
     }
 }
 
@@ -187,9 +187,9 @@ hyperdisk :: rolling_snapshot :: has_value()
     {
         return m_snap->has_value();
     }
-    else if (m_iter->valid())
+    else if (m_iter.valid())
     {
-        return m_iter->has_value();
+        return m_iter->coord.secondary_mask == UINT32_MAX;
     }
     else
     {
@@ -204,9 +204,9 @@ hyperdisk :: rolling_snapshot :: version()
     {
         return m_snap->version();
     }
-    else if (m_iter->valid())
+    else if (m_iter.valid())
     {
-        return m_iter->version();
+        return m_iter->version;
     }
     else
     {
@@ -221,9 +221,9 @@ hyperdisk :: rolling_snapshot :: key()
     {
         return m_snap->key();
     }
-    else if (m_iter->valid())
+    else if (m_iter.valid())
     {
-        return m_iter->key();
+        return m_iter->key;
     }
     else
     {
@@ -238,9 +238,9 @@ hyperdisk :: rolling_snapshot :: value()
     {
         return m_snap->value();
     }
-    else if (m_iter->valid())
+    else if (m_iter.valid())
     {
-        return m_iter->value();
+        return m_iter->value;
     }
     else
     {

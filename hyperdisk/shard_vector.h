@@ -53,11 +53,18 @@ class shard_vector
     public:
         const coordinate& get_coordinate(size_t i);
         shard* get_shard(size_t i);
+        e::intrusive_ptr<shard_vector> replace(size_t shard_num, e::intrusive_ptr<shard> s);
+        e::intrusive_ptr<shard_vector> replace(size_t shard_num,
+                                               const coordinate& c1, e::intrusive_ptr<shard> s1,
+                                               const coordinate& c2, e::intrusive_ptr<shard> s2,
+                                               const coordinate& c3, e::intrusive_ptr<shard> s3,
+                                               const coordinate& c4, e::intrusive_ptr<shard> s4);
 
     private:
         friend class e::intrusive_ptr<shard_vector>;
 
     private:
+        shard_vector(std::vector<std::pair<coordinate, e::intrusive_ptr<shard> > >* newvec);
         ~shard_vector() throw ();
 
     private:

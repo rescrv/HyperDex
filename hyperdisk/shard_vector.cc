@@ -52,6 +52,64 @@ hyperdisk :: shard_vector :: get_shard(size_t i)
     return m_shards[i].second.get();
 }
 
+e::intrusive_ptr<hyperdisk::shard_vector>
+hyperdisk :: shard_vector :: replace(size_t shard_num, e::intrusive_ptr<shard> s)
+{
+    std::vector<std::pair<coordinate, e::intrusive_ptr<shard> > > newvec;
+    newvec.reserve(m_shards.size());
+
+    for (size_t i = 0; i < m_shards.size(); ++i)
+    {
+        if (i == shard_num)
+        {
+            newvec.push_back(std::make_pair(m_shards[i].first, s));
+        }
+        else
+        {
+            newvec.push_back(m_shards[i]);
+        }
+    }
+
+    e::intrusive_ptr<hyperdisk::shard_vector> ret;
+    ret = new shard_vector(&newvec);
+    return ret;
+}
+
+e::intrusive_ptr<hyperdisk::shard_vector>
+hyperdisk :: shard_vector :: replace(size_t shard_num,
+                                     const coordinate& c1, e::intrusive_ptr<shard> s1,
+                                     const coordinate& c2, e::intrusive_ptr<shard> s2,
+                                     const coordinate& c3, e::intrusive_ptr<shard> s3,
+                                     const coordinate& c4, e::intrusive_ptr<shard> s4)
+{
+    std::vector<std::pair<coordinate, e::intrusive_ptr<shard> > > newvec;
+    newvec.reserve(m_shards.size() + 3);
+
+    for (size_t i = 0; i < m_shards.size(); ++i)
+    {
+        if (i != shard_num)
+        {
+            newvec.push_back(m_shards[i]);
+        }
+    }
+
+    newvec.push_back(std::make_pair(c1, s1));
+    newvec.push_back(std::make_pair(c2, s2));
+    newvec.push_back(std::make_pair(c3, s3));
+    newvec.push_back(std::make_pair(c4, s4));
+
+    e::intrusive_ptr<hyperdisk::shard_vector> ret;
+    ret = new shard_vector(&newvec);
+    return ret;
+}
+
+hyperdisk :: shard_vector :: shard_vector(std::vector<std::pair<coordinate, e::intrusive_ptr<shard> > >* newvec)
+    : m_ref(0)
+    , m_shards()
+{
+    m_shards.swap(*newvec);
+}
+
 hyperdisk :: shard_vector :: ~shard_vector() throw ()
 {
 }

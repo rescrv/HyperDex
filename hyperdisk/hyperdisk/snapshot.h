@@ -34,13 +34,13 @@
 // e
 #include <e/buffer.h>
 #include <e/intrusive_ptr.h>
+#include <e/locking_iterable_fifo.h>
 
 // Forward Declarations
 namespace hyperdisk
 {
+class log_entry;
 class shard_snapshot;
-class write_ahead_log_iterator;
-class write_ahead_log_reference;
 }
 
 namespace hyperdisk
@@ -105,7 +105,7 @@ class rolling_snapshot
         void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
 
     private:
-        rolling_snapshot(const write_ahead_log_iterator& iter, e::intrusive_ptr<snapshot> snap);
+        rolling_snapshot(const e::locking_iterable_fifo<log_entry>::iterator& iter, e::intrusive_ptr<snapshot> snap);
         rolling_snapshot(const rolling_snapshot&);
         ~rolling_snapshot() throw ();
 
@@ -113,7 +113,7 @@ class rolling_snapshot
         rolling_snapshot& operator = (const rolling_snapshot&);
 
     private:
-        const std::auto_ptr<write_ahead_log_iterator> m_iter;
+        e::locking_iterable_fifo<log_entry>::iterator m_iter;
         e::intrusive_ptr<snapshot> m_snap;
         size_t m_ref;
 };

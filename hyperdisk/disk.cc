@@ -34,150 +34,142 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-// Google CityHash
-#include <city.h>
-
 // e
 #include <e/guard.h>
+#include <e/profiler.h>
+
+// Utils
+#include "bithacks.h"
+#include "hashing.h"
 
 // HyperDisk
+#include "coordinate.h"
 #include "hyperdisk/disk.h"
-#include "log.h"
+#include "log_entry.h"
 #include "shard.h"
 #include "shard_snapshot.h"
+#include "shard_vector.h"
 
-// XXX Remove this.
-// HyperDex
-#include <hyperdex/hyperspace.h>
+e::profiler disk_prof("disk", 20);
+
+// LOCKING:  IF YOU DO ANYTHING WITH THIS CODE, READ THIS FIRST!
+//
+// At any given time, only one thread should be mutating shards.  In this
+// context a mutation to a shard may be either a PUT/DEL, or
+// cleaning/splitting/joining the shard. The m_shard_mutate mutex is used to
+// enforce this constraint.
+//
+// Certain mutations require changing the shard_vector (e.g., to replace a shard
+// with its equivalent that has had dead space collected).  These mutations
+// conflict with reading from the shards (e.g. for a GET).  To that end, the
+// m_shards_lock is a reader-writer lock which provides this synchronization
+// between the readers and single mutator.  We know that there is a single
+// mutator because of the above reasoning.  It is safe for the single mutator to
+// grab a reference to m_shards while holding m_shard_mutate without grabbing a
+// read lock on m_shards_lock.  The mutator must grab a write lock when changing
+// the shards.
+//
+// Note that synchronization around m_shards revolves around the
+// reference-counted *pointer* to a shard_vector, and not the shard_vector
+// itself.  Methods which access the shard_vector are responsible for ensuring
+// proper synchronization.  GET does this by allowing races in shard_vector
+// accesses, but using the WAL to detect them.  PUT/DEL do this by writing to
+// the WAL.  Trickle does this by using locking when exchanging the
+// shard_vectors.
 
 hyperdisk :: disk :: disk(const po6::pathname& directory, uint16_t arity)
     : m_ref(0)
-    , m_numcolumns(arity)
-    , m_point_mask(get_point_for(UINT64_MAX))
-    , m_log(new log())
-    , m_rwlock()
+    , m_arity(arity)
+    , m_shard_mutate()
+    , m_shards_lock()
     , m_shards()
-    , m_base(directory)
-    , m_needs_more_space()
+    , m_log()
+    , m_base()
+    , m_base_filename(directory)
 {
-    if (mkdir(m_base.get(), S_IRWXU) < 0 && errno != EEXIST)
+    if (mkdir(directory.get(), S_IRWXU) < 0 && errno != EEXIST)
     {
         throw po6::error(errno);
     }
 
-    // Create a starting disk which holds everything.
-    hyperdex::regionid starting(hyperdex::regionid(0, 0, 0, 0));
-    create_shard(starting);
+    m_base = open(directory.get(), O_RDONLY);
+
+    if (m_base.get() < 0)
+    {
+        throw po6::error(errno);
+    }
+
+    coordinate start(0, 0, 0, 0);
+    e::intrusive_ptr<shard> s = create_shard(start);
+    m_shards = new shard_vector(start, s);
 }
 
 hyperdisk :: disk :: ~disk() throw ()
 {
 }
 
-// XXX Double check the logic of GET to make sure it is indeed linearizable.
 hyperdisk::returncode
 hyperdisk :: disk :: get(const e::buffer& key,
                           std::vector<e::buffer>* value,
                           uint64_t* version)
 {
-    hyperdisk::log_iterator it(m_log.get());
-    bool found = false;
-    *version = 0;
-
-    // Scan the in-memory WAL.
-    for (; it.valid(); it.next())
-    {
-        if (it.key() == key)
-        {
-            if (it.has_value())
-            {
-                *value = it.value();
-                *version = it.version();
-            }
-            else
-            {
-                *version = 0;
-            }
-
-            found = true;
-        }
-    }
-
-    // We know that the log is a suffix of the linear ordering of all updates to
-    // this region.  If we found something in the log, it is *guaranteed* to be
-    // more recent than anything on-disk, so we just return.  In the uncommon
-    // case this means that we'll not have to touch memory-mapped files.  We
-    // have to iterate this part of the log anyway so it's not a big deal to do
-    // part of it before touching disk.
-    if (found)
-    {
-        return *version == 0 ? NOTFOUND : SUCCESS;
-    }
-
+    coordinate coord = get_coordinate(key);
+    returncode shard_res = NOTFOUND;
+    uint64_t tmp_version;
     std::vector<e::buffer> tmp_value;
-    uint64_t tmp_version = 0;
-    uint64_t key_hash = CityHash64(static_cast<const char*>(key.get()), key.size());
-    uint64_t key_point = get_point_for(key_hash);
-    po6::threads::rwlock::rdhold hold(&m_rwlock);
+    e::locking_iterable_fifo<log_entry>::iterator m_it = m_log.iterate();
+    e::intrusive_ptr<shard_vector> shards;
 
-    for (shard_collection::iterator i = m_shards.begin(); i != m_shards.end(); ++i)
     {
-        uint64_t pmask = hyperdex::prefixmask(i->first.prefix);
+        po6::threads::rwlock::rdhold hold(&m_shards_lock);
+        shards = m_shards;
+    }
 
-        if ((i->first.mask & m_point_mask & pmask)
-                != (key_point & pmask))
+    for (size_t i = 0; i < shards->size(); ++i)
+    {
+        if (!shards->get_coordinate(i).primary_contains(coord))
         {
             continue;
         }
 
-        returncode res = i->second->get(key, key_hash, &tmp_value, &tmp_version);
+        shard* s = shards->get_shard(i);
+        shard_res = s->get(coord.primary_hash, key, &tmp_value, &tmp_version);
 
-        if (res == SUCCESS)
+        if (shard_res == SUCCESS)
         {
-            if (tmp_version > *version)
-            {
-                value->swap(tmp_value);
-                *version = tmp_version;
-            }
-
+            *version = tmp_version;
+            value->swap(tmp_value);
             break;
-        }
-        else if (res != NOTFOUND)
-        {
-            return res;
         }
     }
 
+    returncode wal_res = NOTFOUND;
 
-    found = false;
-
-    // Scan the in-memory WAL again.
-    for (; it.valid(); it.next())
+    for (; m_it.valid(); m_it.next())
     {
-        if (it.key() == key)
+        if (m_it->coord.primary_contains(coord))
         {
-            if (it.has_value())
+            if (m_it->coord.secondary_mask == UINT32_MAX)
             {
-                *value = it.value();
-                *version = it.version();
+                tmp_value = m_it->value;
+                tmp_version = m_it->version;
+                wal_res = SUCCESS;
             }
             else
             {
-                *version = 0;
+                wal_res = NOTFOUND;
             }
-
-            found = true;
         }
     }
 
-    if (*version > 0 || found)
+    if (wal_res == SUCCESS)
     {
+        *version = tmp_version;
+        value->swap(tmp_value);
         return SUCCESS;
     }
-    else
-    {
-        return NOTFOUND;
-    }
+
+    return shard_res;
 }
 
 hyperdisk::returncode
@@ -185,81 +177,182 @@ hyperdisk :: disk :: put(const e::buffer& key,
                          const std::vector<e::buffer>& value,
                          uint64_t version)
 {
-    uint64_t key_hash = CityHash64(static_cast<const char*>(key.get()), key.size());
-    std::vector<uint64_t> value_hashes;
-    get_value_hashes(value, &value_hashes);
-    uint64_t point = get_point_for(key_hash, value_hashes);
-
-    if (value.size() + 1 != m_numcolumns)
+    if (value.size() + 1 != m_arity)
     {
         return WRONGARITY;
     }
-    else
-    {
-        m_log->append(point, key, key_hash, value, value_hashes, version);
-        return SUCCESS;
-    }
+
+    coordinate coord = get_coordinate(key, value);
+    m_log.append(log_entry(coord, key, value, version));
+    return SUCCESS;
 }
 
 hyperdisk::returncode
 hyperdisk :: disk :: del(const e::buffer& key)
 {
-    uint64_t key_hash = CityHash64(static_cast<const char*>(key.get()), key.size());
-    uint64_t point = get_point_for(key_hash);
-
-    m_log->append(point, key, key_hash);
+    coordinate coord = get_coordinate(key);
+    m_log.append(log_entry(coord, key));
     return SUCCESS;
 }
 
-bool
+e::intrusive_ptr<hyperdisk::snapshot>
+hyperdisk :: disk :: make_snapshot()
+{
+    // XXX NOCOMMIT Make snapshot.
+}
+
+e::intrusive_ptr<hyperdisk::rolling_snapshot>
+hyperdisk :: disk :: make_rolling_snapshot()
+{
+    // XXX NOCOMMIT Make snapshot.
+}
+
+hyperdisk::returncode
+hyperdisk :: disk :: drop()
+{
+    returncode ret = SUCCESS;
+    e::intrusive_ptr<shard_vector> shards;
+
+    {
+        po6::threads::rwlock::rdhold hold(&m_shards_lock);
+        shards = m_shards;
+        m_shards = NULL;
+    }
+
+    for (size_t i = 0; i < shards->size(); ++i)
+    {
+        if (drop_shard(shards->get_coordinate(i)) != SUCCESS)
+        {
+            ret = DROPFAILED;
+        }
+    }
+
+    if (ret == SUCCESS)
+    {
+        if (rmdir(m_base_filename.get()) < 0)
+        {
+            ret = DROPFAILED;
+        }
+    }
+
+    return ret;
+}
+
+void
 hyperdisk :: disk :: flush()
 {
-    using std::tr1::placeholders::_1;
-    using std::tr1::placeholders::_2;
-    using std::tr1::placeholders::_3;
-    using std::tr1::placeholders::_4;
-    using std::tr1::placeholders::_5;
-    using std::tr1::placeholders::_6;
-    using std::tr1::placeholders::_7;
-    size_t flushed = m_log->flush(std::tr1::bind(&disk::flush_one, this, _1, _2, _3, _4, _5, _6, _7));
-    bool split = false;
-
-    for (std::set<hyperdex::regionid>::iterator i = m_needs_more_space.begin();
-            i != m_needs_more_space.end(); ++i)
+    while (!m_log.empty())
     {
-        shard_collection::iterator di = m_shards.find(*i);
+        trickle();
+    }
+}
 
-        if (di == m_shards.end())
+// Trickle data from the log into the shards.
+//
+// This operation will return SUCCESS as long as it knows that progress is being
+// made.  Practically this means that if it encounters a full disk, it will
+// deal with the full disk and return without moving any data to the newly
+// changed disks.  In practice, several threads will be hammering this method to
+// push data to disk, so we can expect that not doing the work will not be too
+// costly.
+hyperdisk::returncode
+hyperdisk :: disk :: trickle()
+{
+    if (!m_shard_mutate.trylock())
+    {
+        return SUCCESS;
+    }
+
+    e::guard hold = e::makeobjguard(m_shard_mutate, &po6::threads::mutex::unlock);
+
+    if (m_log.empty())
+    {
+        return SUCCESS;
+    }
+
+    bool deleted = false;
+    const coordinate& coord = m_log.oldest().coord;
+    const e::buffer& key = m_log.oldest().key;
+
+    for (size_t i = 0; !deleted && i < m_shards->size(); ++i)
+    {
+        if (!m_shards->get_coordinate(i).primary_contains(coord))
         {
             continue;
         }
 
-        split = true;
-        e::intrusive_ptr<hyperdisk::shard> d = di->second;
-
-        if (d->stale_space() > 50)
+        switch (m_shards->get_shard(i)->del(coord.primary_hash, key))
         {
-            clean_shard(*i);
-        }
-        else
-        {
-            split_shard(*i);
+            case SUCCESS:
+                deleted = true;
+                break;
+            case NOTFOUND:
+                break;
+            case DATAFULL:
+                return deal_with_full_shard(i);
+            case WRONGARITY:
+            case HASHFULL:
+            case SEARCHFULL:
+            case SYNCFAILED:
+            case DROPFAILED:
+            case MISSINGDISK:
+            default:
+                assert(!"Programming error.");
         }
     }
 
-    m_needs_more_space.clear();
-    return split || flushed > 0;
+    if (coord.secondary_mask == UINT32_MAX)
+    {
+        const std::vector<e::buffer>& value = m_log.oldest().value;
+        const uint64_t version = m_log.oldest().version;
+
+        // We must start at the end and work backwards.
+        for (ssize_t i = m_shards->size() - 1; i >= 0; --i)
+        {
+            if (!m_shards->get_coordinate(i).contains(coord))
+            {
+                continue;
+            }
+
+            switch (m_shards->get_shard(i)->put(coord.primary_hash, coord.secondary_hash,
+                                                key, value, version))
+            {
+                case SUCCESS:
+                    m_log.remove_oldest();
+                    return SUCCESS;
+                case DATAFULL:
+                case HASHFULL:
+                case SEARCHFULL:
+                    return deal_with_full_shard(i);
+                case MISSINGDISK:
+                case NOTFOUND:
+                case WRONGARITY:
+                case SYNCFAILED:
+                case DROPFAILED:
+                default:
+                    assert(!"Programming error.");
+            }
+        }
+    }
+
+    m_log.remove_oldest();
+    return SUCCESS;
 }
 
 hyperdisk::returncode
 hyperdisk :: disk :: async()
 {
+    e::intrusive_ptr<shard_vector> shards;
     returncode ret = SUCCESS;
-    po6::threads::rwlock::rdhold hold(&m_rwlock);
 
-    for (shard_collection::iterator i = m_shards.begin(); i != m_shards.end(); ++i)
     {
-        if (i->second->async() != SUCCESS)
+        po6::threads::rwlock::rdhold hold(&m_shards_lock);
+        shards = m_shards;
+    }
+
+    for (size_t i = 0; i < shards->size(); ++i)
+    {
+        if (shards->get_shard(i)->async() != SUCCESS)
         {
             ret = SYNCFAILED;
         }
@@ -271,12 +364,17 @@ hyperdisk :: disk :: async()
 hyperdisk::returncode
 hyperdisk :: disk :: sync()
 {
+    e::intrusive_ptr<shard_vector> shards;
     returncode ret = SUCCESS;
-    po6::threads::rwlock::rdhold hold(&m_rwlock);
 
-    for (shard_collection::iterator i = m_shards.begin(); i != m_shards.end(); ++i)
     {
-        if (i->second->sync() != SUCCESS)
+        po6::threads::rwlock::rdhold hold(&m_shards_lock);
+        shards = m_shards;
+    }
+
+    for (size_t i = 0; i < shards->size(); ++i)
+    {
+        if (shards->get_shard(i)->sync() != SUCCESS)
         {
             ret = SYNCFAILED;
         }
@@ -285,27 +383,367 @@ hyperdisk :: disk :: sync()
     return ret;
 }
 
-hyperdisk::returncode
-hyperdisk :: disk :: drop()
+po6::pathname
+hyperdisk :: disk :: shard_filename(const coordinate& c)
 {
-    returncode ret = SUCCESS;
+    std::ostringstream ostr;
+    ostr << std::hex << std::setfill('0') << std::setw(16) << c.primary_mask;
+    ostr << "-" << std::setw(16) << c.primary_hash;
+    ostr << "-" << std::setw(16) << c.secondary_mask;
+    ostr << "-" << std::setw(16) << c.secondary_hash;
+    return po6::pathname(ostr.str());
+}
 
-    for (shard_collection::iterator d = m_shards.begin(); d != m_shards.end(); ++d)
+po6::pathname
+hyperdisk :: disk :: shard_tmp_filename(const coordinate& c)
+{
+    std::ostringstream ostr;
+    ostr << std::hex << std::setfill('0') << std::setw(16) << c.primary_mask;
+    ostr << "-" << std::setw(16) << c.primary_hash;
+    ostr << "-" << std::setw(16) << c.secondary_mask;
+    ostr << "-" << std::setw(16) << c.secondary_hash;
+    ostr << "-tmp";
+    return po6::pathname(ostr.str());
+}
+
+e::intrusive_ptr<hyperdisk::shard>
+hyperdisk :: disk :: create_shard(const coordinate& c)
+{
+    po6::pathname path = shard_filename(c);
+    e::intrusive_ptr<hyperdisk::shard> newshard = hyperdisk::shard::create(m_base, path);
+    return newshard;
+}
+
+e::intrusive_ptr<hyperdisk::shard>
+hyperdisk :: disk :: create_tmp_shard(const coordinate& c)
+{
+    po6::pathname path = shard_tmp_filename(c);
+    e::intrusive_ptr<hyperdisk::shard> newshard = hyperdisk::shard::create(m_base, path);
+    return newshard;
+}
+
+hyperdisk::returncode
+hyperdisk :: disk :: drop_shard(const coordinate& c)
+{
+    // What would we do with the error?  It's just going to leave dirty data,
+    // but if we can cleanly save state, then it doesn't matter.
+    if (unlink(shard_filename(c).get()) < 0)
     {
-        if (d->second->drop() != SUCCESS)
+        return DROPFAILED;
+    }
+
+    return SUCCESS;
+}
+
+hyperdisk::returncode
+hyperdisk :: disk :: drop_tmp_shard(const coordinate& c)
+{
+    // What would we do with the error?  It's just going to leave dirty data,
+    // but if we can cleanly save state, then it doesn't matter.
+    if (unlink(shard_tmp_filename(c).get()) < 0)
+    {
+        return DROPFAILED;
+    }
+
+    return SUCCESS;
+}
+
+hyperdisk::coordinate
+hyperdisk :: disk :: get_coordinate(const e::buffer& key)
+{
+    uint64_t key_hash = CityHash64(key);
+    return coordinate(UINT32_MAX, static_cast<uint32_t>(key_hash), 0, 0);
+}
+
+hyperdisk::coordinate
+hyperdisk :: disk :: get_coordinate(const e::buffer& key,
+                                    const std::vector<e::buffer>& value)
+{
+    uint64_t key_hash = CityHash64(key);
+    std::vector<uint64_t> value_hashes;
+    CityHash64(value, &value_hashes);
+    uint64_t value_hash = lower_interlace(value_hashes);
+    return coordinate(UINT32_MAX, static_cast<uint32_t>(key_hash),
+                      UINT32_MAX, static_cast<uint32_t>(value_hash));
+}
+
+hyperdisk::returncode
+hyperdisk :: disk :: deal_with_full_shard(size_t shard_num)
+{
+    coordinate c = m_shards->get_coordinate(shard_num);
+    shard* s = m_shards->get_shard(shard_num);
+
+    if (s->stale_space() > 30)
+    {
+        // Just clean up the shard.
+        return clean_shard(shard_num);
+    }
+    else if (c.primary_mask == UINT32_MAX || c.secondary_mask == UINT32_MAX)
+    {
+        // XXX NOCOMMIT;
+        assert(!"Not implemented");
+        return SPLITFAILED;
+    }
+    else
+    {
+        // Split the shard 4-ways.
+        return split_shard(shard_num);
+    }
+}
+
+hyperdisk::returncode
+hyperdisk :: disk :: clean_shard(size_t shard_num)
+{
+    coordinate c = m_shards->get_coordinate(shard_num);
+    shard* s = m_shards->get_shard(shard_num);
+    e::intrusive_ptr<hyperdisk::shard_snapshot> snap = s->make_snapshot();
+    e::intrusive_ptr<hyperdisk::shard> newshard = create_tmp_shard(c);
+    e::guard disk_guard = e::makeobjguard(*this, &hyperdisk::disk::drop_tmp_shard, c);
+
+    for (; snap->valid(); snap->next())
+    {
+        newshard->put(snap->primary_hash(), snap->secondary_hash(),
+                      snap->key(), snap->value(), snap->version());
+    }
+
+    e::intrusive_ptr<shard_vector> newshard_vector;
+    newshard_vector = m_shards->replace(shard_num, newshard);
+
+    if (renameat(m_base.get(), shard_tmp_filename(c).get(),
+                 m_base.get(), shard_filename(c).get()) < 0)
+    {
+        return DROPFAILED;
+    }
+
+    disk_guard.dismiss();
+    po6::threads::rwlock::wrhold hold(&m_shards_lock);
+    m_shards = newshard_vector;
+    return SUCCESS;
+}
+
+static int
+which_to_split(uint32_t mask, const int* zeros, const int* ones)
+{
+    int32_t diff = INT32_MAX;
+    int32_t pos = 0;
+    diff = (diff < 0) ? (-diff) : diff;
+
+    for (int i = 1; i < 32; ++i)
+    {
+        if (!(mask & (1 << i)))
         {
-            ret = DROPFAILED;
+            int tmpdiff = ones[i] - zeros[i];
+            tmpdiff = (tmpdiff < 0) ? (-tmpdiff) : tmpdiff;
+
+            if (tmpdiff < diff)
+            {
+                pos = i;
+                diff = tmpdiff;
+            }
         }
     }
 
-    if (rmdir(m_base.get()) < 0)
-    {
-        ret = DROPFAILED;
-    }
-
-    return ret;
+    return pos;
 }
 
+hyperdisk::returncode
+hyperdisk :: disk :: split_shard(size_t shard_num)
+{
+e::profiler::pathtimer pt = disk_prof.start();
+pt.measure(0);
+    coordinate c = m_shards->get_coordinate(shard_num);
+    shard* s = m_shards->get_shard(shard_num);
+    e::intrusive_ptr<hyperdisk::shard_snapshot> snap = s->make_snapshot();
+pt.measure(1);
+
+    // Find which bit of the secondary hash is the best to split over.
+    int zeros[32];
+    int ones[32];
+    memset(zeros, 0, sizeof(zeros));
+    memset(ones, 0, sizeof(ones));
+pt.measure(2);
+
+    for (; snap->valid(); snap->next())
+    {
+        for (uint64_t i = 1, j = 0; i < UINT32_MAX; i <<= 1, ++j)
+        {
+            if (c.secondary_mask & i)
+            {
+                continue;
+            }
+
+            if (snap->secondary_hash() & i)
+            {
+                ++ones[j];
+            }
+            else
+            {
+                ++zeros[j];
+            }
+        }
+    }
+
+pt.measure(3);
+    int secondary_split = which_to_split(c.secondary_mask, zeros, ones);
+    uint32_t secondary_bit = 1 << secondary_split;
+    snap = s->make_snapshot();
+pt.measure(4);
+
+    // Determine the splits for the two shards resulting from the split above.
+    int zeros_lower[32];
+    int zeros_upper[32];
+    int ones_lower[32];
+    int ones_upper[32];
+    memset(zeros_lower, 0, sizeof(zeros_lower));
+    memset(zeros_upper, 0, sizeof(zeros_upper));
+    memset(ones_lower, 0, sizeof(ones_lower));
+    memset(ones_upper, 0, sizeof(ones_upper));
+pt.measure(5);
+
+    for (; snap->valid(); snap->next())
+    {
+        for (uint64_t i = 1, j = 0; i < UINT32_MAX; i <<= 1, ++j)
+        {
+            if (c.primary_mask & i)
+            {
+                continue;
+            }
+
+            if (snap->secondary_hash() & secondary_bit)
+            {
+                if (snap->primary_hash() & i)
+                {
+                    ++ones_upper[j];
+                }
+                else
+                {
+                    ++zeros_upper[j];
+                }
+            }
+            else
+            {
+                if (snap->primary_hash() & i)
+                {
+                    ++ones_lower[j];
+                }
+                else
+                {
+                    ++zeros_lower[j];
+                }
+            }
+        }
+    }
+pt.measure(6);
+
+    int primary_lower_split = which_to_split(c.primary_mask, zeros_lower, ones_lower);
+    uint32_t primary_lower_bit = 1 << primary_lower_split;
+    int primary_upper_split = which_to_split(c.primary_mask, zeros_upper, ones_upper);
+    uint32_t primary_upper_bit = 1 << primary_upper_split;
+pt.measure(7);
+
+    // Create four new shards, and scatter the data between them.
+    coordinate zero_zero_coord(c.primary_mask | primary_lower_bit, c.primary_hash,
+                               c.secondary_mask | secondary_bit, c.secondary_hash);
+    coordinate zero_one_coord(c.primary_mask | primary_upper_bit, c.primary_hash,
+                              c.secondary_mask | secondary_bit, c.secondary_hash | secondary_bit);
+    coordinate one_zero_coord(c.primary_mask | primary_lower_bit, c.primary_hash | primary_lower_bit,
+                              c.secondary_mask | secondary_bit, c.secondary_hash);
+    coordinate one_one_coord(c.primary_mask | primary_upper_bit, c.primary_hash | primary_upper_bit,
+                              c.secondary_mask | secondary_bit, c.secondary_hash | secondary_bit);
+pt.measure(8);
+
+std::cout << "SPLITTING " << secondary_bit << " " << primary_lower_bit << " " << primary_upper_bit << std::endl;
+std::cout << "OLD COORDINATE " << c << std::endl;
+std::cout << "NEW COORDINATES:" << std::endl;
+std::cout << "    ZERO ZERO " << zero_zero_coord << std::endl;
+std::cout << "    ONE ZERO  " << one_zero_coord << std::endl;
+std::cout << "    ZERO ONE  " << zero_one_coord << std::endl;
+std::cout << "    ONE ONE   " << one_one_coord << std::endl;
+pt.measure(9);
+
+    try
+    {
+        e::intrusive_ptr<hyperdisk::shard> zero_zero = create_shard(zero_zero_coord);
+        e::guard zzg = e::makeobjguard(*this, &hyperdisk::disk::drop_shard, zero_zero_coord);
+pt.measure(10);
+
+        e::intrusive_ptr<hyperdisk::shard> zero_one = create_shard(zero_one_coord);
+        e::guard zog = e::makeobjguard(*this, &hyperdisk::disk::drop_shard, zero_one_coord);
+pt.measure(11);
+
+        e::intrusive_ptr<hyperdisk::shard> one_zero = create_shard(one_zero_coord);
+        e::guard ozg = e::makeobjguard(*this, &hyperdisk::disk::drop_shard, one_zero_coord);
+pt.measure(12);
+
+        e::intrusive_ptr<hyperdisk::shard> one_one = create_shard(one_one_coord);
+        e::guard oog = e::makeobjguard(*this, &hyperdisk::disk::drop_shard, one_one_coord);
+pt.measure(13);
+
+        snap = s->make_snapshot();
+pt.measure(14);
+
+        for (; snap->valid(); snap->next())
+        {
+            if (snap->secondary_hash() & secondary_bit)
+            {
+                if (snap->primary_hash() & primary_upper_bit)
+                {
+                    one_one->put(snap->primary_hash(), snap->secondary_hash(),
+                                 snap->key(), snap->value(), snap->version());
+                }
+                else
+                {
+                    zero_one->put(snap->primary_hash(), snap->secondary_hash(),
+                                  snap->key(), snap->value(), snap->version());
+                }
+            }
+            else
+            {
+                if (snap->primary_hash() & primary_lower_bit)
+                {
+                    one_zero->put(snap->primary_hash(), snap->secondary_hash(),
+                                  snap->key(), snap->value(), snap->version());
+                }
+                else
+                {
+                    zero_zero->put(snap->primary_hash(), snap->secondary_hash(),
+                                   snap->key(), snap->value(), snap->version());
+                }
+            }
+        }
+pt.measure(15);
+
+        e::intrusive_ptr<shard_vector> newshard_vector;
+        newshard_vector = m_shards->replace(shard_num,
+                                            zero_zero_coord, zero_zero,
+                                            zero_one_coord, zero_one,
+                                            one_zero_coord, one_zero,
+                                            one_one_coord, one_one);
+pt.measure(16);
+
+        {
+            po6::threads::rwlock::wrhold hold(&m_shards_lock);
+            m_shards = newshard_vector;
+        }
+pt.measure(17);
+
+        zzg.dismiss();
+        zog.dismiss();
+        ozg.dismiss();
+        oog.dismiss();
+pt.measure(18);
+        drop_shard(c);
+pt.measure(19);
+        return SUCCESS;
+    }
+    catch (std::exception& e)
+    {
+        return SPLITFAILED;
+    }
+}
+
+
+#if 0
 e::intrusive_ptr<hyperdisk::snapshot>
 hyperdisk :: disk :: make_snapshot()
 {
@@ -322,151 +760,6 @@ hyperdisk :: disk :: make_rolling_snapshot()
     return new rolling_snapshot(it, snap);
 }
 
-e::intrusive_ptr<hyperdisk::shard>
-hyperdisk :: disk :: create_shard(const hyperdex::regionid& ri)
-{
-    std::ostringstream ostr;
-    ostr << ri;
-    po6::pathname path = po6::join(m_base, po6::pathname(ostr.str()));
-    e::intrusive_ptr<hyperdisk::shard> newdisk = hyperdisk::shard::create(path);
-    e::guard disk_guard = e::makeobjguard(*newdisk, &hyperdisk::shard::drop);
-    m_shards.insert(std::make_pair(ri, newdisk));
-    disk_guard.dismiss();
-    return newdisk;
-}
-
-void
-hyperdisk :: disk :: drop_shard(const hyperdex::regionid& ri)
-{
-    shard_collection::iterator di = m_shards.find(ri);
-
-    if (di == m_shards.end())
-    {
-        return;
-    }
-
-    e::intrusive_ptr<hyperdisk::shard> d = di->second;
-    m_shards.erase(di);
-    di->second->drop();
-}
-
-void
-hyperdisk :: disk :: get_value_hashes(const std::vector<e::buffer>& value,
-                                       std::vector<uint64_t>* value_hashes)
-{
-    for (size_t i = 0; i < value.size(); ++i)
-    {
-        value_hashes->push_back(CityHash64(static_cast<const char*>(value[i].get()), value[i].size()));
-    }
-}
-
-uint64_t
-hyperdisk :: disk :: get_point_for(uint64_t key_hash)
-{
-    std::vector<uint64_t> points;
-    points.push_back(key_hash);
-
-    for (size_t i = 1; i < m_numcolumns; ++i)
-    {
-        points.push_back(0);
-    }
-
-    return hyperdex::interlace(points);
-}
-
-uint64_t
-hyperdisk :: disk :: get_point_for(uint64_t key_hash, const std::vector<uint64_t>& value_hashes)
-{
-    std::vector<uint64_t> points;
-    points.push_back(key_hash);
-
-    for (size_t i = 0; i < value_hashes.size(); ++i)
-    {
-        points.push_back(value_hashes[i]);
-    }
-
-    return hyperdex::interlace(points);
-}
-
-bool
-hyperdisk :: disk :: flush_one(bool has_value, uint64_t point, const e::buffer& key,
-                               uint64_t key_hash,
-                               const std::vector<e::buffer>& value,
-                               const std::vector<uint64_t>& value_hashes,
-                               uint64_t version)
-{
-    // Delete from every disk
-    po6::threads::rwlock::wrhold hold(&m_rwlock);
-
-    for (shard_collection::iterator i = m_shards.begin(); i != m_shards.end(); ++i)
-    {
-        // Use m_point_mask because we want every disk which could have this
-        // key.
-        uint64_t pmask = hyperdex::prefixmask(i->first.prefix) & m_point_mask;
-
-        if ((i->first.mask & pmask) != (point & pmask))
-        {
-            continue;
-        }
-
-        returncode res = i->second->del(key, key_hash);
-
-        switch (res)
-        {
-            case SUCCESS:
-            case NOTFOUND:
-                break;
-            case DATAFULL:
-                m_needs_more_space.insert(i->first);
-                return false;
-            case HASHFULL:
-            case SEARCHFULL:
-            case MISSINGDISK:
-            case WRONGARITY:
-            case SYNCFAILED:
-            case DROPFAILED:
-            default:
-                assert(!"Programming error.");
-        }
-    }
-
-    // Put to one disk
-    if (has_value)
-    {
-        for (shard_collection::iterator i = m_shards.begin(); i != m_shards.end(); ++i)
-        {
-            uint64_t pmask = hyperdex::prefixmask(i->first.prefix);
-
-            if ((i->first.mask & pmask) != (point & pmask))
-            {
-                continue;
-            }
-
-            returncode res = i->second->put(key, key_hash, value, value_hashes, version);
-
-            switch (res)
-            {
-                case SUCCESS:
-                    break;
-                case DATAFULL:
-                case HASHFULL:
-                case SEARCHFULL:
-                    m_needs_more_space.insert(i->first);
-                    return false;
-                case MISSINGDISK:
-                case NOTFOUND:
-                case WRONGARITY:
-                case SYNCFAILED:
-                case DROPFAILED:
-                default:
-                    assert(!"Programming error.");
-            }
-        }
-    }
-
-    return true;
-}
-
 e::intrusive_ptr<hyperdisk::snapshot>
 hyperdisk :: disk :: inner_make_snapshot()
 {
@@ -481,113 +774,5 @@ hyperdisk :: disk :: inner_make_snapshot()
     return ret;
 }
 
-hyperdisk::returncode
-hyperdisk :: disk :: clean_shard(const hyperdex::regionid& ri)
-{
-    shard_collection::iterator di = m_shards.find(ri);
 
-    if (di == m_shards.end())
-    {
-        return MISSINGDISK;
-    }
-
-    e::intrusive_ptr<hyperdisk::shard_snapshot> snap = di->second->make_snapshot();
-    po6::pathname path = po6::join(m_base, "tmp");
-    e::intrusive_ptr<hyperdisk::shard> newdisk = hyperdisk::shard::create(path);
-    e::guard disk_guard = e::makeobjguard(*newdisk, &hyperdisk::shard::drop);
-
-    for (; snap->valid(); snap->next())
-    {
-        e::buffer key(snap->key());
-        std::vector<e::buffer> value(snap->value());
-        uint64_t key_hash = CityHash64(static_cast<const char*>(key.get()), key.size());
-        std::vector<uint64_t> value_hashes;
-        get_value_hashes(value, &value_hashes);
-        newdisk->put(key, key_hash, value, value_hashes, snap->version());
-    }
-
-    if (rename(path.get(), di->second->filename().get()) < 0)
-    {
-        return DROPFAILED;
-    }
-
-    disk_guard.dismiss();
-    newdisk->filename(di->second->filename());
-    po6::threads::rwlock::wrhold hold(&m_rwlock);
-    m_shards[ri] = newdisk;
-    return SUCCESS;
-}
-
-// XXX Split disk will only create more space if there is enough variation among
-// values to ensure that some are spun off into other disks.  This means that we
-// need to somehow split disks without splitting regions if the data becomes so
-// large (or so constructively worst-case) that it needs all 64 bits of the
-// region mask to identify disks.
-
-hyperdisk::returncode
-hyperdisk :: disk :: split_shard(const hyperdex::regionid& ri)
-{
-    if (ri.prefix >= 64)
-    {
-        assert(!"Programming error."); // XXX
-    }
-
-    shard_collection::iterator di = m_shards.find(ri);
-
-    if (di == m_shards.end())
-    {
-        return MISSINGDISK;
-    }
-
-    uint64_t new_bit = 1;
-    new_bit = new_bit << (64 - ri.prefix - 1);
-    e::intrusive_ptr<hyperdisk::shard_snapshot> snap = di->second->make_snapshot();
-    hyperdex::regionid lower_reg(ri.get_subspace(), ri.prefix + 1, ri.mask);
-    hyperdex::regionid upper_reg(ri.get_subspace(), ri.prefix + 1, ri.mask | new_bit);
-    e::intrusive_ptr<hyperdisk::shard> lower;
-    e::intrusive_ptr<hyperdisk::shard> upper;
-
-    {
-        po6::threads::rwlock::wrhold hold(&m_rwlock);
-        lower = create_shard(lower_reg);
-        upper = create_shard(upper_reg);
-    }
-
-    e::guard lower_disk_guard = e::makeobjguard(*this, &disk::drop_shard, lower_reg);
-    e::guard upper_disk_guard = e::makeobjguard(*this, &disk::drop_shard, upper_reg);
-
-    if (!lower || !upper)
-    {
-        return MISSINGDISK; // XXX This is not the real reason for failure.
-    }
-
-    uint64_t prefix = hyperdex::prefixmask(ri.prefix + 1);
-    std::vector<bool> which_dims(m_numcolumns, true);
-
-    for (; snap->valid(); snap->next())
-    {
-        e::buffer key(snap->key());
-        std::vector<e::buffer> value(snap->value());
-        uint64_t key_hash = CityHash64(static_cast<const char*>(key.get()), key.size());
-        std::vector<uint64_t> value_hashes;
-        get_value_hashes(value, &value_hashes);
-        uint64_t point = get_point_for(key_hash, value_hashes);
-
-        if ((prefix & point) == lower_reg.mask)
-        {
-            lower->put(key, key_hash, value, value_hashes, snap->version());
-        }
-
-        if ((prefix & point) == upper_reg.mask)
-        {
-            upper->put(key, key_hash, value, value_hashes, snap->version());
-        }
-    }
-
-    po6::pathname old_fn = di->second->filename();
-    po6::threads::rwlock::wrhold hold(&m_rwlock);
-    drop_shard(ri);
-    lower_disk_guard.dismiss();
-    upper_disk_guard.dismiss();
-    return SUCCESS;
-}
+#endif

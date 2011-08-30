@@ -29,41 +29,44 @@
 #define hyperdisk_disk_h_
 
 // STL
-#include <map>
 #include <memory>
-#include <set>
 #include <vector>
 
 // po6
 #include <po6/pathname.h>
+#include <po6/threads/mutex.h>
 #include <po6/threads/rwlock.h>
 
 // e
 #include <e/intrusive_ptr.h>
+#include <e/locking_iterable_fifo.h>
 
 // HyperDisk
 #include <hyperdisk/returncode.h>
 #include <hyperdisk/snapshot.h>
 
-// XXX Remove this.
-// HyperDex
-#include <hyperdex/ids.h>
-
 // Forward Declarations
 namespace hyperdisk
 {
-class log;
-class log_iterator;
+class coordinate;
+class log_entry;
 class shard;
-class shard_snapshot;
+class shard_vector;
 }
 
 namespace hyperdisk
 {
 
+// A simple embeddable disk layer which offers linearizable GET/PUT/DEL
+// operations, and snapshots which exhibit monotonic reads.
+//
+// All public methods are thread-safe, and synchronization is handled
+// internally.
+
 class disk
 {
     public:
+        // XXX Make this right with reference counting.
         disk(const po6::pathname& directory, uint16_t arity);
         ~disk() throw ();
 
@@ -76,50 +79,70 @@ class disk
                        uint64_t version);
         // May return SUCCESS.
         returncode del(const e::buffer& key);
-        bool flush();
-        // May return SUCCESS or SYNCFAILED.  errno will be set to the reason
-        // the sync failed.
-        returncode async();
-        // May return SUCCESS or SYNCFAILED.  errno will be set to the reason
-        // the sync failed.
-        returncode sync();
-        // May return SUCCESS or DROPFAILED.  errno will be set to the reason
-        // the remove failed.
-        returncode drop();
+        // Create a snapshot of the disk.  The snapshot will contain the result
+        // after applying a prefix of the execution history of the disk.
         e::intrusive_ptr<snapshot> make_snapshot();
+        // Create a snapshot of the disk.  This will return every result that
+        // will be returned by make_snapshot(), but will then continue to return
+        // any execution history past the point at which the snapshot was taken.
         e::intrusive_ptr<rolling_snapshot> make_rolling_snapshot();
+        // Drop the disk.  This removes it from the filesystem.  All existing
+        // snapshots will continue to exist, but no calls should be made to the
+        // disk (except the destructor).
+        returncode drop();
+
+    public:
+        // Force all data from the write-ahead log into the shards.  This will
+        // run until the thread calling the method observes an empty write-ahead
+        // log.  For the most part, trickle is a much better option.
+        void flush();
+        // Trickle data from the write-ahead log into the shards.  This is
+        // potentially an expensive operation, but failure to do so is even more
+        // costly.
+        returncode trickle();
+        // Move data either synchronously or asynchronously from operating
+        // system buffers to the underlying FS.  May return SUCCESS or
+        // SYNCFAILED.  errno will be set to the reason the sync failed.
+        returncode async();
+        returncode sync();
 
     private:
         friend class e::intrusive_ptr<disk>;
 
     private:
+        // Reference counting for disks.
         void inc() { __sync_add_and_fetch(&m_ref, 1); }
         void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
-        // Create/drop shard requires exclusive access to m_shards (m_rwlock as a
-        // write lock).
-        e::intrusive_ptr<hyperdisk::shard> create_shard(const hyperdex::regionid& ri);
-        void drop_shard(const hyperdex::regionid& ri);
-        void get_value_hashes(const std::vector<e::buffer>& value, std::vector<uint64_t>* value_hashes);
-        uint64_t get_point_for(uint64_t key_hash);
-        uint64_t get_point_for(uint64_t key_hash, const std::vector<uint64_t>& value_hashes);
-        bool flush_one(bool has_value, uint64_t point, const e::buffer& key,
-                       uint64_t key_hash, const std::vector<e::buffer>& value,
-                       const std::vector<uint64_t>& value_hashes, uint64_t version);
-        e::intrusive_ptr<snapshot> inner_make_snapshot();
-        // XXX Better characterize the failures of these.
-        returncode clean_shard(const hyperdex::regionid& ri);
-        returncode split_shard(const hyperdex::regionid& ri);
+        // The pathname (relative to m_base) of a (tmp) shard at coordinate.
+        po6::pathname shard_filename(const coordinate& c);
+        po6::pathname shard_tmp_filename(const coordinate& c);
+        // Create a shard for the given coordinate.  This only creates/mmaps the
+        // appropriate file.
+        e::intrusive_ptr<shard> create_shard(const coordinate& c);
+        e::intrusive_ptr<shard> create_tmp_shard(const coordinate& c);
+        // Drop the shard for the given coordinate.  This ONLY unlinks the
+        // appropriate file.
+        returncode drop_shard(const coordinate& c);
+        returncode drop_tmp_shard(const coordinate& c);
+        // Turn the hashes associated with an object into a shard's coordinate.
+        coordinate get_coordinate(const e::buffer& key);
+        coordinate get_coordinate(const e::buffer& key, const std::vector<e::buffer>& value);
+        // Deal with shards which cannot hold more data.  The m_shard_mutate
+        // lock must be held prior to calling these functions.
+        returncode deal_with_full_shard(size_t shard_num);
+        returncode clean_shard(size_t shard_num);
+        returncode split_shard(size_t shard_num);
 
     private:
         size_t m_ref;
-        size_t m_numcolumns;
-        uint64_t m_point_mask;
-        const std::auto_ptr<hyperdisk::log> m_log;
-        po6::threads::rwlock m_rwlock;
-        typedef std::map<hyperdex::regionid, e::intrusive_ptr<hyperdisk::shard> > shard_collection;
-        shard_collection m_shards;
-        po6::pathname m_base;
-        std::set<hyperdex::regionid> m_needs_more_space;
+        size_t m_arity;
+        // Read about locking in the source.
+        po6::threads::mutex m_shard_mutate;
+        po6::threads::rwlock m_shards_lock;
+        e::intrusive_ptr<shard_vector> m_shards;
+        e::locking_iterable_fifo<log_entry> m_log;
+        po6::io::fd m_base;
+        po6::pathname m_base_filename;
 };
 
 } // namespace hyperdisk
