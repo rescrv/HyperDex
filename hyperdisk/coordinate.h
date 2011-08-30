@@ -31,6 +31,9 @@
 // C
 #include <stdint.h>
 
+// STL
+#include <iostream>
+
 // e
 #include <e/tuple_compare.h>
 
@@ -109,6 +112,14 @@ coordinate :: secondary_contains(const coordinate& other) const
 {
     return (secondary_mask & other.secondary_mask) == secondary_mask &&
            (secondary_hash & secondary_mask) == (other.secondary_hash & secondary_mask);
+}
+
+inline std::ostream&
+operator << (std::ostream& lhs, const coordinate& rhs)
+{
+    lhs << "coordinate(" << rhs.primary_mask << ", " << rhs.primary_hash
+        << ", " << rhs.secondary_mask << ", " << rhs.secondary_hash << ")";
+    return lhs;
 }
 
 } // namespace hyperdisk
