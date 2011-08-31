@@ -97,7 +97,7 @@ hyperdisk :: shard :: get(uint32_t primary_hash,
         return NOTFOUND;
     }
 
-    if (offset == 0 || offset == OFFSETMASK)
+    if (offset == 0 || offset == UINT32_MAX)
     {
         return NOTFOUND;
     }
@@ -118,9 +118,7 @@ hyperdisk :: shard :: put(uint32_t primary_hash,
                           const std::vector<e::buffer>& value,
                           uint64_t version)
 {
-    size_t required = data_size(key, value);
-
-    if (required + m_data_offset > FILE_SIZE)
+    if (data_size(key, value) + m_data_offset > FILE_SIZE)
     {
         return DATAFULL;
     }
@@ -164,36 +162,25 @@ hyperdisk :: shard :: put(uint32_t primary_hash,
         curr_offset += value[i].size();
     }
 
-    // We need to synchronize here to ensure that all data is globally visible
-    // before anything else becomes visible.
-    __sync_synchronize();
-
     // Invalidate anything pointing to the old version.
     if (overwrite)
     {
-        const uint64_t hash_entry = m_hash_table[entry];
-        const uint32_t invalidated_offset = hash_entry & OFFSETMASK;
-        invalidate_search_index(invalidated_offset, m_data_offset);
+        invalidate_search_index(static_cast<uint32_t>(m_hash_table[entry] >> 32),
+                                m_data_offset);
     }
 
     // Insert into the search index.
-    uint64_t hashcode = secondary_hash;
-    hashcode <<= 32;
-    hashcode |= primary_hash;
-    const uint64_t dataoffset = m_data_offset;
-    m_search_index[m_search_offset * 2 + 1] = dataoffset;
-    // We need to synchronize here to ensure that the data offset is visible
-    // before the hash code.
-    __sync_synchronize();
-    m_search_index[m_search_offset * 2] = hashcode;
+    m_search_index[m_search_offset * 2] = (static_cast<uint64_t>(secondary_hash) << 32)
+                                        | static_cast<uint64_t>(primary_hash);
+    m_search_index[m_search_offset * 2 + 1] = static_cast<uint64_t>(m_data_offset);
+
+    // We need to synchronize here to ensure that all data is globally visible
+    // before the entry in the hash table becomes visible.
+    asm("sfence");
 
     // Insert into the hash table.
-    uint64_t new_hash_entry = primary_hash;
-    new_hash_entry <<= 32;
-    new_hash_entry |= m_data_offset;
-    // No need to synchronize as we assume a 64-bit platform where a word write
-    // will never partially happen.
-    m_hash_table[entry] = new_hash_entry;
+    m_hash_table[entry] = (static_cast<uint64_t>(m_data_offset) << 32)
+                        | static_cast<uint64_t>(primary_hash);
 
     // Update the offsets
     ++m_search_offset;
@@ -223,10 +210,11 @@ hyperdisk :: shard :: del(uint32_t primary_hash,
         return DATAFULL;
     }
 
-    assert(offset != 0 && offset != OFFSETMASK);
+    assert(offset != 0 && offset != UINT32_MAX);
     invalidate_search_index(offset, m_data_offset);
     m_data_offset += sizeof(uint64_t);
-    m_hash_table[entry] |= OFFSETMASK;
+    m_hash_table[entry] = (static_cast<uint64_t>(UINT32_MAX) << 32)
+                        | static_cast<uint64_t>(primary_hash);
     return SUCCESS;
 }
 
@@ -401,38 +389,34 @@ hyperdisk :: shard :: find_bucket(uint32_t primary_hash,
                                   size_t* entry,
                                   size_t* offset)
 {
-    // The first dead bucket.
     size_t dead = HASH_TABLE_ENTRIES;
-
-    // The bucket/hash we want to use.
-    *entry = HASH_INTO_TABLE(primary_hash);
-    uint64_t expected = primary_hash;
-    expected <<= 32;
+    size_t start = HASH_INTO_TABLE(primary_hash);
 
     for (size_t off = 0; off < HASH_TABLE_ENTRIES; ++off)
     {
-        size_t bucket = HASH_INTO_TABLE(*entry + off);
-        const uint64_t hash_entry = m_hash_table[bucket];
-        const uint64_t hash = hash_entry & ~uint64_t(OFFSETMASK);
-        const uint32_t entry_offset = hash_entry & OFFSETMASK;
+        size_t bucket = HASH_INTO_TABLE(start + off);
+        uint64_t this_entry = m_hash_table[bucket];
+        uint32_t this_hash = static_cast<uint32_t>(this_entry);
+        uint32_t this_offset = static_cast<uint32_t>(this_entry >> 32);
 
-        if (expected == hash && entry_offset == OFFSETMASK)
+        if (this_hash == primary_hash && this_offset == UINT32_MAX)
         {
             dead = bucket;
         }
-        else if (expected == hash)
+        else if (this_hash == primary_hash)
         {
-            const size_t key_size = data_key_size(entry_offset);
+            size_t key_size = data_key_size(this_offset);
 
-            if (key_size == key.size() && memcmp(m_data + data_key_offset(entry_offset), key.get(), key_size) == 0)
+            if (key_size == key.size() &&
+                memcmp(m_data + data_key_offset(this_offset), key.get(), key_size) == 0)
             {
                 *entry = bucket;
-                *offset = entry_offset;
+                *offset = this_offset;
                 return true;
             }
         }
 
-        if (entry_offset == 0)
+        if (this_offset == 0)
         {
             if (dead == HASH_TABLE_ENTRIES)
             {
@@ -446,7 +430,7 @@ hyperdisk :: shard :: find_bucket(uint32_t primary_hash,
             return false;
         }
 
-        if (entry_offset == OFFSETMASK && dead == HASH_TABLE_ENTRIES)
+        if (this_offset == UINT32_MAX && dead == HASH_TABLE_ENTRIES)
         {
             dead = bucket;
         }
@@ -477,10 +461,8 @@ hyperdisk :: shard :: invalidate_search_index(uint32_t to_invalidate, uint32_t i
         }
         else if (mid_offset == to_invalidate)
         {
-            uint64_t new_entry = invalidate_with;
-            new_entry <<= 32;
-            new_entry |= to_invalidate;
-            m_search_index[mid * 2 + 1] |= new_entry;
+            m_search_index[mid * 2 + 1] = (static_cast<uint64_t>(invalidate_with) << 32)
+                                        | static_cast<uint64_t>(to_invalidate);
             return;
         }
     }

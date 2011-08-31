@@ -37,9 +37,8 @@ hyperdisk :: shard_snapshot :: valid()
 
     while (m_entry < SEARCH_INDEX_ENTRIES)
     {
-        const uint64_t offsets = m_shard->m_search_index[m_entry * 2 + 1];
-        offset = offsets & 0xffffffffUL;
-        invalid = offsets >> 32;
+        offset = static_cast<uint32_t>(m_shard->m_search_index[m_entry * 2 + 1]);
+        invalid = static_cast<uint32_t>(m_shard->m_search_index[m_entry * 2 + 1] >> 32);
 
         // If the m_valid flag is set; the offset is within the subsection of
         // data we may observe; and the data was never invalidated, or was
@@ -75,14 +74,13 @@ hyperdisk :: shard_snapshot :: next()
 uint32_t
 hyperdisk :: shard_snapshot :: primary_hash()
 {
-    return m_shard->m_search_index[m_entry * 2] & 0xffffffffUL;
+    return static_cast<uint32_t>(m_shard->m_search_index[m_entry * 2]);
 }
 
 uint32_t
 hyperdisk :: shard_snapshot :: secondary_hash()
 {
-    uint64_t i = m_shard->m_search_index[m_entry * 2];
-    return static_cast<uint32_t>(i >> 32);
+    return static_cast<uint32_t>(m_shard->m_search_index[m_entry * 2] >> 32);
 }
 
 uint64_t

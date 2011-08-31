@@ -54,8 +54,30 @@ class shard_snapshot;
 //    increased number of false negatives.  These are possible anyway so it is
 //    not an issue.
 //  - Async/Sync require no special locking (they just call msync).
-//  - Drop requires no special locking and is idempotent.
-//  - Making a snapshot requires a READ lock.
+//  - Making a snapshot requires a READ lock exclusive with PUT or DEL
+//    operations.
+//  - There is no guarantee about GET operations concurrent with PUT or
+//    DEL operations.  The disk layer will patch over any erroneous
+//    NOTFOUND errors.
+//
+// This is simply a memory-mapped file.  The file is indexed by both a hash
+// table and an append-only log.
+//
+// The hash table's entries are 64-bits in size.  The high-order 32-bit
+// number is the offset in the table at which the indexed object may be
+// fount.  The low-order 32-bit number is the hash used to index the
+// table.
+//
+// The append-only log's entries are 128-bits in size.  The first of the
+// 64-bit numbers is a combination of both the primary and secondary
+// hashes of the object.  The secondary hash is stored in the high-order
+// 32-bit number.  The second of the 64-bit numbers is a combination of
+// the offest at which the object is stored, and the offset at which the
+// object was invalidated.  The offset at which the object is
+// invalidated is stored in the high-order 32-bit number.
+//
+// Entries are set/read as 64-bit words and then bitshifting is applied
+// to get high/low numbers.
 
 namespace hyperdisk
 {
