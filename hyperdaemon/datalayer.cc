@@ -305,6 +305,7 @@ void
 hyperdaemon :: datalayer :: flush_loop()
 {
     LOG(WARNING) << "Flush thread started.";
+    uint64_t count = 0;
 
     while (!m_shutdown)
     {
@@ -323,11 +324,17 @@ hyperdaemon :: datalayer :: flush_loop()
         for (std::set<e::intrusive_ptr<hyperdisk::disk> >::iterator i = to_flush.begin();
                     i != to_flush.end(); ++i)
         {
+            if (count % 10 == 0)
+            {
+                (*i)->preallocate();
+            }
+
             (*i)->flush();
             (*i)->async();
         }
 
         e::sleep_ms(0, 100);
+        ++count;
     }
 }
 

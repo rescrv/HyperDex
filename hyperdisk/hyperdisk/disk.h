@@ -30,6 +30,7 @@
 
 // STL
 #include <memory>
+#include <queue>
 #include <vector>
 
 // po6
@@ -100,6 +101,9 @@ class disk
         // potentially an expensive operation, but failure to do so is even more
         // costly.
         returncode trickle();
+        // Preallocate shards to ease the hit we would take from the large
+        // amount of disk I/O at once.
+        returncode preallocate();
         // Move data either synchronously or asynchronously from operating
         // system buffers to the underlying FS.  May return SUCCESS or
         // SYNCFAILED.  errno will be set to the reason the sync failed.
@@ -143,6 +147,9 @@ class disk
         e::locking_iterable_fifo<log_entry> m_log;
         po6::io::fd m_base;
         po6::pathname m_base_filename;
+        po6::threads::mutex m_spare_shards_lock;
+        std::queue<std::pair<po6::pathname, e::intrusive_ptr<shard> > > m_spare_shards;
+        size_t m_spare_shard_counter;
 };
 
 } // namespace hyperdisk

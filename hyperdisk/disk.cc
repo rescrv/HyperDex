@@ -84,6 +84,9 @@ hyperdisk :: disk :: disk(const po6::pathname& directory, uint16_t arity)
     , m_log()
     , m_base()
     , m_base_filename(directory)
+    , m_spare_shards_lock()
+    , m_spare_shards()
+    , m_spare_shard_counter(0)
 {
     if (mkdir(directory.get(), S_IRWXU) < 0 && errno != EEXIST)
     {
@@ -339,6 +342,99 @@ hyperdisk :: disk :: trickle()
 }
 
 hyperdisk::returncode
+hyperdisk :: disk :: preallocate()
+{
+    {
+        po6::threads::mutex::hold hold(&m_spare_shards_lock);
+
+        if (m_spare_shards.size() >= 16)
+        {
+            return SUCCESS;
+        }
+    }
+
+    e::intrusive_ptr<shard_vector> shards;
+
+    {
+        po6::threads::rwlock::rdhold hold(&m_shards_lock);
+        shards = m_shards;
+    }
+
+    size_t num_shards = 0;
+
+    for (size_t i = 0; i < shards->size(); ++i)
+    {
+        shard* s = shards->get_shard(i);
+        int stale = s->stale_space();
+        int free = s->free_space();
+
+        // There is no describable reason for picking these except that you can
+        // be pretty sure that enough shards will exist to do splits.  That
+        // being said, this will waste space when shards are mostly full.  Feel
+        // free to tune this using logic and reason and submit a patch.
+
+        if (free <= 25)
+        {
+            num_shards += 0;
+        }
+        else if (free <= 50)
+        {
+            num_shards += 1;
+        }
+        else if (free <= 75)
+        {
+            if (stale <= 30)
+            {
+                num_shards += 1;
+            }
+            else
+            {
+                num_shards += 2;
+            }
+        }
+        else
+        {
+            if (stale <= 30)
+            {
+                num_shards += 1;
+            }
+            else
+            {
+                num_shards += 4;
+            }
+        }
+    }
+
+    size_t spare_shards_needed;
+
+    {
+        po6::threads::mutex::hold hold(&m_spare_shards_lock);
+        spare_shards_needed = num_shards;
+        num_shards = std::min(num_shards, spare_shards_needed - m_spare_shards.size());
+    }
+
+    for (size_t i = 0; i < num_shards; ++i)
+    {
+        std::ostringstream ostr;
+
+        {
+            po6::threads::mutex::hold hold(&m_spare_shards_lock);
+            ostr << "spare-" << m_spare_shard_counter;
+            ++m_spare_shard_counter;
+        }
+
+        po6::pathname sparepath(ostr.str());
+        e::intrusive_ptr<hyperdisk::shard> spareshard = hyperdisk::shard::create(m_base, sparepath);
+
+        {
+            po6::threads::mutex::hold hold(&m_spare_shards_lock);
+            m_spare_shards.push(std::make_pair(sparepath, spareshard));
+            num_shards = std::min(num_shards, spare_shards_needed - (m_spare_shards.size() - i));
+        }
+    }
+}
+
+hyperdisk::returncode
 hyperdisk :: disk :: async()
 {
     e::intrusive_ptr<shard_vector> shards;
@@ -408,17 +504,77 @@ hyperdisk :: disk :: shard_tmp_filename(const coordinate& c)
 e::intrusive_ptr<hyperdisk::shard>
 hyperdisk :: disk :: create_shard(const coordinate& c)
 {
+    po6::pathname spareshard_fn;
+    e::intrusive_ptr<hyperdisk::shard> spareshard;
+
+    {
+        po6::threads::mutex::hold hold(&m_spare_shards_lock);
+
+        if (!m_spare_shards.empty())
+        {
+            std::pair<po6::pathname, e::intrusive_ptr<hyperdisk::shard> > p;
+            p = m_spare_shards.front();
+            spareshard_fn = p.first;
+            spareshard = p.second;
+            m_spare_shards.pop();
+        }
+    }
+
     po6::pathname path = shard_filename(c);
-    e::intrusive_ptr<hyperdisk::shard> newshard = hyperdisk::shard::create(m_base, path);
-    return newshard;
+
+    if (spareshard)
+    {
+        if (renameat(m_base.get(), spareshard_fn.get(),
+                     m_base.get(), shard_filename(c).get()) < 0)
+        {
+            throw po6::error(errno);
+        }
+
+        return spareshard;
+    }
+    else
+    {
+        e::intrusive_ptr<hyperdisk::shard> newshard = hyperdisk::shard::create(m_base, path);
+        return newshard;
+    }
 }
 
 e::intrusive_ptr<hyperdisk::shard>
 hyperdisk :: disk :: create_tmp_shard(const coordinate& c)
 {
+    po6::pathname spareshard_fn;
+    e::intrusive_ptr<hyperdisk::shard> spareshard;
+
+    {
+        po6::threads::mutex::hold hold(&m_spare_shards_lock);
+
+        if (!m_spare_shards.empty())
+        {
+            std::pair<po6::pathname, e::intrusive_ptr<hyperdisk::shard> > p;
+            p = m_spare_shards.front();
+            spareshard_fn = p.first;
+            spareshard = p.second;
+            m_spare_shards.pop();
+        }
+    }
+
     po6::pathname path = shard_tmp_filename(c);
-    e::intrusive_ptr<hyperdisk::shard> newshard = hyperdisk::shard::create(m_base, path);
-    return newshard;
+
+    if (spareshard)
+    {
+        if (renameat(m_base.get(), spareshard_fn.get(),
+                     m_base.get(), shard_filename(c).get()) < 0)
+        {
+            throw po6::error(errno);
+        }
+
+        return spareshard;
+    }
+    else
+    {
+        e::intrusive_ptr<hyperdisk::shard> newshard = hyperdisk::shard::create(m_base, path);
+        return newshard;
+    }
 }
 
 hyperdisk::returncode
@@ -634,14 +790,6 @@ hyperdisk :: disk :: split_shard(size_t shard_num)
     coordinate one_one_coord(c.primary_mask | primary_upper_bit, c.primary_hash | primary_upper_bit,
                               c.secondary_mask | secondary_bit, c.secondary_hash | secondary_bit);
 
-std::cout << "SPLITTING " << secondary_bit << " " << primary_lower_bit << " " << primary_upper_bit << std::endl;
-std::cout << "OLD COORDINATE " << c << std::endl;
-std::cout << "NEW COORDINATES:" << std::endl;
-std::cout << "    ZERO ZERO " << zero_zero_coord << std::endl;
-std::cout << "    ONE ZERO  " << one_zero_coord << std::endl;
-std::cout << "    ZERO ONE  " << zero_one_coord << std::endl;
-std::cout << "    ONE ONE   " << one_one_coord << std::endl;
-
     try
     {
         e::intrusive_ptr<hyperdisk::shard> zero_zero = create_shard(zero_zero_coord);
@@ -684,7 +832,6 @@ std::cout << "    ONE ONE   " << one_one_coord << std::endl;
         return SPLITFAILED;
     }
 }
-
 
 #if 0
 e::intrusive_ptr<hyperdisk::snapshot>
