@@ -260,8 +260,10 @@ hyperdisk :: shard :: stale_space() const
 int
 hyperdisk :: shard :: free_space() const
 {
-    return static_cast<double>(100 * (m_data_offset - INDEX_SEGMENT_SIZE))
-           / DATA_SEGMENT_SIZE;
+    double data = 100 * static_cast<double>(m_data_offset - INDEX_SEGMENT_SIZE)
+                        / DATA_SEGMENT_SIZE;
+    double num = 100 * static_cast<double>(m_search_offset) / SEARCH_INDEX_ENTRIES;
+    return std::max(data, num);
 }
 
 hyperdisk::returncode
