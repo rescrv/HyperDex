@@ -50,8 +50,6 @@
 #include "shard_snapshot.h"
 #include "shard_vector.h"
 
-e::profiler disk_prof("disk", 20);
-
 // LOCKING:  IF YOU DO ANYTHING WITH THIS CODE, READ THIS FIRST!
 //
 // At any given time, only one thread should be mutating shards.  In this
@@ -496,16 +494,9 @@ hyperdisk :: disk :: clean_shard(size_t shard_num)
 {
     coordinate c = m_shards->get_coordinate(shard_num);
     shard* s = m_shards->get_shard(shard_num);
-    e::intrusive_ptr<hyperdisk::shard_snapshot> snap = s->make_snapshot();
     e::intrusive_ptr<hyperdisk::shard> newshard = create_tmp_shard(c);
     e::guard disk_guard = e::makeobjguard(*this, &hyperdisk::disk::drop_tmp_shard, c);
-
-    for (; snap->valid(); snap->next())
-    {
-        newshard->put(snap->primary_hash(), snap->secondary_hash(),
-                      snap->key(), snap->value(), snap->version());
-    }
-
+    s->copy_to(c, newshard);
     e::intrusive_ptr<shard_vector> newshard_vector;
     newshard_vector = m_shards->replace(shard_num, newshard);
 
@@ -549,19 +540,15 @@ which_to_split(uint32_t mask, const int* zeros, const int* ones)
 hyperdisk::returncode
 hyperdisk :: disk :: split_shard(size_t shard_num)
 {
-e::profiler::pathtimer pt = disk_prof.start();
-pt.measure(0);
     coordinate c = m_shards->get_coordinate(shard_num);
     shard* s = m_shards->get_shard(shard_num);
     e::intrusive_ptr<hyperdisk::shard_snapshot> snap = s->make_snapshot();
-pt.measure(1);
 
     // Find which bit of the secondary hash is the best to split over.
     int zeros[32];
     int ones[32];
     memset(zeros, 0, sizeof(zeros));
     memset(ones, 0, sizeof(ones));
-pt.measure(2);
 
     for (; snap->valid(); snap->next())
     {
@@ -583,11 +570,9 @@ pt.measure(2);
         }
     }
 
-pt.measure(3);
     int secondary_split = which_to_split(c.secondary_mask, zeros, ones);
     uint32_t secondary_bit = 1 << secondary_split;
     snap = s->make_snapshot();
-pt.measure(4);
 
     // Determine the splits for the two shards resulting from the split above.
     int zeros_lower[32];
@@ -598,7 +583,6 @@ pt.measure(4);
     memset(zeros_upper, 0, sizeof(zeros_upper));
     memset(ones_lower, 0, sizeof(ones_lower));
     memset(ones_upper, 0, sizeof(ones_upper));
-pt.measure(5);
 
     for (; snap->valid(); snap->next())
     {
@@ -633,13 +617,11 @@ pt.measure(5);
             }
         }
     }
-pt.measure(6);
 
     int primary_lower_split = which_to_split(c.primary_mask, zeros_lower, ones_lower);
     uint32_t primary_lower_bit = 1 << primary_lower_split;
     int primary_upper_split = which_to_split(c.primary_mask, zeros_upper, ones_upper);
     uint32_t primary_upper_bit = 1 << primary_upper_split;
-pt.measure(7);
 
     // Create four new shards, and scatter the data between them.
     coordinate zero_zero_coord(c.primary_mask | primary_lower_bit, c.primary_hash,
@@ -650,7 +632,6 @@ pt.measure(7);
                               c.secondary_mask | secondary_bit, c.secondary_hash);
     coordinate one_one_coord(c.primary_mask | primary_upper_bit, c.primary_hash | primary_upper_bit,
                               c.secondary_mask | secondary_bit, c.secondary_hash | secondary_bit);
-pt.measure(8);
 
 std::cout << "SPLITTING " << secondary_bit << " " << primary_lower_bit << " " << primary_upper_bit << std::endl;
 std::cout << "OLD COORDINATE " << c << std::endl;
@@ -659,59 +640,24 @@ std::cout << "    ZERO ZERO " << zero_zero_coord << std::endl;
 std::cout << "    ONE ZERO  " << one_zero_coord << std::endl;
 std::cout << "    ZERO ONE  " << zero_one_coord << std::endl;
 std::cout << "    ONE ONE   " << one_one_coord << std::endl;
-pt.measure(9);
 
     try
     {
         e::intrusive_ptr<hyperdisk::shard> zero_zero = create_shard(zero_zero_coord);
         e::guard zzg = e::makeobjguard(*this, &hyperdisk::disk::drop_shard, zero_zero_coord);
-pt.measure(10);
+        s->copy_to(zero_zero_coord, zero_zero);
 
         e::intrusive_ptr<hyperdisk::shard> zero_one = create_shard(zero_one_coord);
         e::guard zog = e::makeobjguard(*this, &hyperdisk::disk::drop_shard, zero_one_coord);
-pt.measure(11);
+        s->copy_to(zero_one_coord, zero_one);
 
         e::intrusive_ptr<hyperdisk::shard> one_zero = create_shard(one_zero_coord);
         e::guard ozg = e::makeobjguard(*this, &hyperdisk::disk::drop_shard, one_zero_coord);
-pt.measure(12);
+        s->copy_to(one_zero_coord, one_zero);
 
         e::intrusive_ptr<hyperdisk::shard> one_one = create_shard(one_one_coord);
         e::guard oog = e::makeobjguard(*this, &hyperdisk::disk::drop_shard, one_one_coord);
-pt.measure(13);
-
-        snap = s->make_snapshot();
-pt.measure(14);
-
-        for (; snap->valid(); snap->next())
-        {
-            if (snap->secondary_hash() & secondary_bit)
-            {
-                if (snap->primary_hash() & primary_upper_bit)
-                {
-                    one_one->put(snap->primary_hash(), snap->secondary_hash(),
-                                 snap->key(), snap->value(), snap->version());
-                }
-                else
-                {
-                    zero_one->put(snap->primary_hash(), snap->secondary_hash(),
-                                  snap->key(), snap->value(), snap->version());
-                }
-            }
-            else
-            {
-                if (snap->primary_hash() & primary_lower_bit)
-                {
-                    one_zero->put(snap->primary_hash(), snap->secondary_hash(),
-                                  snap->key(), snap->value(), snap->version());
-                }
-                else
-                {
-                    zero_zero->put(snap->primary_hash(), snap->secondary_hash(),
-                                   snap->key(), snap->value(), snap->version());
-                }
-            }
-        }
-pt.measure(15);
+        s->copy_to(one_one_coord, one_one);
 
         e::intrusive_ptr<shard_vector> newshard_vector;
         newshard_vector = m_shards->replace(shard_num,
@@ -719,21 +665,17 @@ pt.measure(15);
                                             zero_one_coord, zero_one,
                                             one_zero_coord, one_zero,
                                             one_one_coord, one_one);
-pt.measure(16);
 
         {
             po6::threads::rwlock::wrhold hold(&m_shards_lock);
             m_shards = newshard_vector;
         }
-pt.measure(17);
 
         zzg.dismiss();
         zog.dismiss();
         ozg.dismiss();
         oog.dismiss();
-pt.measure(18);
         drop_shard(c);
-pt.measure(19);
         return SUCCESS;
     }
     catch (std::exception& e)
