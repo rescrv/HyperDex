@@ -1452,12 +1452,8 @@ hyperdaemon :: replication_manager :: move_deferred_to_pending(const entityid& t
         // If nothing is pending.
         if (smallest_pending == kh->pending_updates.end())
         {
-            // We know that "move_deferred_to_pending" will only be called when
-            // something has just been added to pending.  Thus, this case should
-            // not happen.
-            LOG(ERROR) << "There is a programming error in \"move_deferred_to_pending\".";
-            kh->deferred_updates.clear();
-            return;
+            // Cron can call this without adding to pending.
+            break;
         }
         // If the version is committed.
         else if (smallest_pending->first >= version)
