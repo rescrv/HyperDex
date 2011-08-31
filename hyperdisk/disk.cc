@@ -262,78 +262,79 @@ hyperdisk :: disk :: trickle()
     }
 
     e::guard hold = e::makeobjguard(m_shard_mutate, &po6::threads::mutex::unlock);
+    e::locking_iterable_fifo<log_entry>::iterator m_it = m_log.iterate();
 
-    if (m_log.empty())
+    for (int i = 0; i < 10000 && m_it.valid(); ++i, m_it.next())
     {
-        return SUCCESS;
-    }
+        bool deleted = false;
+        const coordinate& coord = m_log.oldest().coord;
+        const e::buffer& key = m_log.oldest().key;
 
-    bool deleted = false;
-    const coordinate& coord = m_log.oldest().coord;
-    const e::buffer& key = m_log.oldest().key;
-
-    for (size_t i = 0; !deleted && i < m_shards->size(); ++i)
-    {
-        if (!m_shards->get_coordinate(i).primary_contains(coord))
+        for (size_t i = 0; !deleted && i < m_shards->size(); ++i)
         {
-            continue;
-        }
-
-        switch (m_shards->get_shard(i)->del(coord.primary_hash, key))
-        {
-            case SUCCESS:
-                deleted = true;
-                break;
-            case NOTFOUND:
-                break;
-            case DATAFULL:
-                return deal_with_full_shard(i);
-            case WRONGARITY:
-            case HASHFULL:
-            case SEARCHFULL:
-            case SYNCFAILED:
-            case DROPFAILED:
-            case MISSINGDISK:
-            default:
-                assert(!"Programming error.");
-        }
-    }
-
-    if (coord.secondary_mask == UINT32_MAX)
-    {
-        const std::vector<e::buffer>& value = m_log.oldest().value;
-        const uint64_t version = m_log.oldest().version;
-
-        // We must start at the end and work backwards.
-        for (ssize_t i = m_shards->size() - 1; i >= 0; --i)
-        {
-            if (!m_shards->get_coordinate(i).contains(coord))
+            if (!m_shards->get_coordinate(i).primary_contains(coord))
             {
                 continue;
             }
 
-            switch (m_shards->get_shard(i)->put(coord.primary_hash, coord.secondary_hash,
-                                                key, value, version))
+            switch (m_shards->get_shard(i)->del(coord.primary_hash, key))
             {
                 case SUCCESS:
-                    m_log.remove_oldest();
-                    return SUCCESS;
+                    deleted = true;
+                    break;
+                case NOTFOUND:
+                    break;
                 case DATAFULL:
+                    return deal_with_full_shard(i);
+                case WRONGARITY:
                 case HASHFULL:
                 case SEARCHFULL:
-                    return deal_with_full_shard(i);
-                case MISSINGDISK:
-                case NOTFOUND:
-                case WRONGARITY:
                 case SYNCFAILED:
                 case DROPFAILED:
+                case MISSINGDISK:
                 default:
                     assert(!"Programming error.");
             }
         }
+
+        if (coord.secondary_mask == UINT32_MAX)
+        {
+            bool inserted = false;
+            const std::vector<e::buffer>& value = m_log.oldest().value;
+            const uint64_t version = m_log.oldest().version;
+
+            // We must start at the end and work backwards.
+            for (ssize_t i = m_shards->size() - 1; !inserted && i >= 0; --i)
+            {
+                if (!m_shards->get_coordinate(i).contains(coord))
+                {
+                    continue;
+                }
+
+                switch (m_shards->get_shard(i)->put(coord.primary_hash, coord.secondary_hash,
+                                                    key, value, version))
+                {
+                    case SUCCESS:
+                        inserted = true;
+                        break;
+                    case DATAFULL:
+                    case HASHFULL:
+                    case SEARCHFULL:
+                        return deal_with_full_shard(i);
+                    case MISSINGDISK:
+                    case NOTFOUND:
+                    case WRONGARITY:
+                    case SYNCFAILED:
+                    case DROPFAILED:
+                    default:
+                        assert(!"Programming error.");
+                }
+            }
+        }
+
+        m_log.remove_oldest();
     }
 
-    m_log.remove_oldest();
     return SUCCESS;
 }
 
