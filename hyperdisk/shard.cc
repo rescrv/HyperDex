@@ -43,6 +43,7 @@
 #include "bithacks.h"
 
 // HyperDisk
+#include "coordinate.h"
 #include "shard.h"
 #include "shard_constants.h"
 #include "shard_snapshot.h"
@@ -294,6 +295,58 @@ hyperdisk :: shard :: make_snapshot()
     return ret;
 }
 
+void
+hyperdisk :: shard :: copy_to(const coordinate& c, e::intrusive_ptr<shard> s)
+{
+    assert(m_data != s->m_data);
+    memset(s->m_hash_table, 0, HASH_TABLE_SIZE);
+    memset(s->m_search_index, 0, SEARCH_INDEX_SIZE);
+    s->m_data_offset = INDEX_SEGMENT_SIZE;
+    s->m_search_offset = 0;
+
+    for (size_t ent = 0; ent < SEARCH_INDEX_ENTRIES; ++ent)
+    {
+        // Skip stale entries.
+        if (static_cast<uint32_t>(m_search_index[ent * 2 + 1] >> 32) != 0)
+        {
+            return;
+        }
+
+        uint32_t primary_hash = static_cast<uint32_t>(m_search_index[ent * 2]);
+        uint32_t secondary_hash = static_cast<uint32_t>(m_search_index[ent * 2] >> 32);
+
+        if (!c.contains(coordinate(UINT32_MAX, primary_hash, UINT32_MAX, secondary_hash)))
+        {
+            continue;
+        }
+
+        // Figure out how big the entry is.
+        size_t entry_start = static_cast<uint32_t>(m_search_index[ent * 2 + 1]);
+        size_t entry_size = m_data_offset;
+
+        if (ent < SEARCH_INDEX_ENTRIES - 1)
+        {
+            size_t next_entry_size = static_cast<uint32_t>(m_search_index[ent * 2 + 3]);
+            entry_size = next_entry_size > 0 ? next_entry_size : entry_size;
+        }
+
+        // Copy the entry's data
+        memmove(s->m_data + s->m_data_offset, m_data + entry_start, entry_size);
+        // Insert into the search index.
+        s->m_search_index[s->m_search_offset * 2] = (static_cast<uint64_t>(secondary_hash) << 32)
+                                                  | static_cast<uint64_t>(primary_hash);
+        s->m_search_index[s->m_search_offset * 2 + 1] = static_cast<uint64_t>(s->m_data_offset);
+        // Insert into the hash table.
+        size_t bucket;
+        find_bucket(primary_hash, &bucket);
+        m_hash_table[bucket] = (static_cast<uint64_t>(s->m_data_offset) << 32)
+                             | static_cast<uint64_t>(primary_hash);
+        // Update the position trackers.
+        ++s->m_search_offset;
+        s->m_data_offset = (entry_start + entry_size + 7) & ~7; // Keep everything 8-byte aligned.
+    }
+}
+
 hyperdisk :: shard :: shard(po6::io::fd* fd)
     : m_ref(0)
     , m_hash_table(NULL)
@@ -438,6 +491,25 @@ hyperdisk :: shard :: find_bucket(uint32_t primary_hash,
 
     *entry = dead;
     return false;
+}
+
+void
+hyperdisk :: shard :: find_bucket(uint32_t primary_hash,
+                                  size_t* entry)
+{
+    size_t start = HASH_INTO_TABLE(primary_hash);
+
+    for (size_t off = 0; off < HASH_TABLE_ENTRIES; ++off)
+    {
+        size_t bucket = HASH_INTO_TABLE(start + off);
+        uint64_t this_entry = m_hash_table[bucket];
+
+        if (!this_entry)
+        {
+            *entry = bucket;
+            return;
+        }
+    }
 }
 
 void

@@ -41,6 +41,7 @@
 // Forward Declarations
 namespace hyperdisk
 {
+class coordinate;
 class shard_snapshot;
 }
 
@@ -115,6 +116,10 @@ class shard
         // the sync failed.
         returncode sync();
         e::intrusive_ptr<shard_snapshot> make_snapshot();
+        // Copy all non-stale data from this shard to the other shard,
+        // completely erasing all the data in the other shard.  Only
+        // entries which match the coordinate will be kept.
+        void copy_to(const coordinate& c, e::intrusive_ptr<shard> s);
 
     private:
         friend class e::intrusive_ptr<shard>;
@@ -146,6 +151,14 @@ class shard
         // found (as in, old/new keys match), true is returned; else, false is
         // returned.
         bool find_bucket(uint32_t primary_hash, const e::buffer& key, size_t* entry, size_t* offset);
+        // This find_bucket assumes that all collisions will be resolved to
+        // *NOT* be the same key.  This is useful when copying from another
+        // shard, as the other shard should only have one non-invalidated
+        // instance of the same key.  This will only work if there are no dead
+        // entries in the hash table.  It also assumes that there will always be
+        // space.  As a result of these additional assumptions it does much
+        // less.
+        void find_bucket(uint32_t primary_hash, size_t* entry);
         // This will invalidate any entry in the search index which references
         // the specified offset.
         void invalidate_search_index(uint32_t to_invalidate, uint32_t invalidate_with);
