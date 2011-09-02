@@ -113,15 +113,13 @@ hyperdisk :: disk :: ~disk() throw ()
 
 hyperdisk::returncode
 hyperdisk :: disk :: get(const e::buffer& key,
-                          std::vector<e::buffer>* value,
-                          uint64_t* version)
+                         std::vector<e::buffer>* value,
+                         uint64_t* version)
 {
     coordinate coord = get_coordinate(key);
     returncode shard_res = NOTFOUND;
-    uint64_t tmp_version;
-    std::vector<e::buffer> tmp_value;
-    e::locking_iterable_fifo<log_entry>::iterator m_it = m_log.iterate();
     e::intrusive_ptr<shard_vector> shards;
+    e::locking_iterable_fifo<log_entry>::iterator it = m_log.iterate();
 
     {
         po6::threads::mutex::hold b(&m_shards_lock);
@@ -135,41 +133,43 @@ hyperdisk :: disk :: get(const e::buffer& key,
             continue;
         }
 
-        shard* s = shards->get_shard(i);
-        shard_res = s->get(coord.primary_hash, key, &tmp_value, &tmp_version);
+        shard_res = shards->get_shard(i)->get(coord.primary_hash, key, value, version);
 
         if (shard_res == SUCCESS)
         {
-            *version = tmp_version;
-            value->swap(tmp_value);
             break;
         }
     }
 
+    bool found = false;
     returncode wal_res = NOTFOUND;
 
-    for (; m_it.valid(); m_it.next())
+    for (; it.valid(); it.next())
     {
-        if (m_it->coord.primary_contains(coord))
+        if (it->coord.primary_contains(coord) && it->key == key)
         {
-            if (m_it->coord.secondary_mask == UINT32_MAX)
+            if (it->coord.secondary_mask == UINT32_MAX)
             {
-                tmp_value = m_it->value;
-                tmp_version = m_it->version;
+                assert(it->coord.primary_mask == UINT32_MAX);
+                assert(it->coord.secondary_mask == UINT32_MAX);
+                *value = it->value;
+                *version = it->version;
                 wal_res = SUCCESS;
             }
             else
             {
+                assert(it->coord.primary_mask == UINT32_MAX);
+                assert(it->coord.secondary_mask == 0);
                 wal_res = NOTFOUND;
             }
+
+            found = true;
         }
     }
 
-    if (wal_res == SUCCESS)
+    if (found)
     {
-        *version = tmp_version;
-        value->swap(tmp_value);
-        return SUCCESS;
+        return wal_res;
     }
 
     return shard_res;
