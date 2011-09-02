@@ -201,13 +201,13 @@ hyperdisk :: disk :: del(const e::buffer& key)
 e::intrusive_ptr<hyperdisk::snapshot>
 hyperdisk :: disk :: make_snapshot()
 {
-    // XXX NOCOMMIT Make snapshot.
+    assert(!"Not implemented."); // XXX
 }
 
 e::intrusive_ptr<hyperdisk::rolling_snapshot>
 hyperdisk :: disk :: make_rolling_snapshot()
 {
-    // XXX NOCOMMIT Make snapshot.
+    assert(!"Not implemented."); // XXX
 }
 
 hyperdisk::returncode
