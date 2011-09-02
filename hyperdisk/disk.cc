@@ -834,37 +834,3 @@ hyperdisk :: disk :: split_shard(size_t shard_num)
         return SPLITFAILED;
     }
 }
-
-#if 0
-e::intrusive_ptr<hyperdisk::snapshot>
-hyperdisk :: disk :: make_snapshot()
-{
-    po6::threads::rwlock::rdhold hold(&m_rwlock);
-    return inner_make_snapshot();
-}
-
-e::intrusive_ptr<hyperdisk::rolling_snapshot>
-hyperdisk :: disk :: make_rolling_snapshot()
-{
-    po6::threads::rwlock::rdhold hold(&m_rwlock);
-    std::auto_ptr<hyperdisk::log_iterator> it(new log_iterator(m_log.get()));
-    e::intrusive_ptr<snapshot> snap(inner_make_snapshot());
-    return new rolling_snapshot(it, snap);
-}
-
-e::intrusive_ptr<hyperdisk::snapshot>
-hyperdisk :: disk :: inner_make_snapshot()
-{
-    std::vector<e::intrusive_ptr<hyperdisk::shard_snapshot> > snaps;
-
-    for (shard_collection::iterator d = m_shards.begin(); d != m_shards.end(); ++d)
-    {
-        snaps.push_back(d->second->make_snapshot());
-    }
-
-    e::intrusive_ptr<snapshot> ret(new snapshot(&snaps));
-    return ret;
-}
-
-
-#endif
