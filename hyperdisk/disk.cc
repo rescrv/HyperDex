@@ -78,7 +78,7 @@
 hyperdisk :: disk :: disk(const po6::pathname& directory, uint16_t arity)
     : m_ref(0)
     , m_arity(arity)
-    , m_shard_mutate()
+    , m_shards_mutate()
     , m_shards_lock()
     , m_shards()
     , m_log()
@@ -122,7 +122,7 @@ hyperdisk :: disk :: get(const e::buffer& key,
     e::intrusive_ptr<shard_vector> shards;
 
     {
-        po6::threads::rwlock::rdhold hold(&m_shards_lock);
+        po6::threads::mutex::hold b(&m_shards_lock);
         shards = m_shards;
     }
 
@@ -259,12 +259,12 @@ hyperdisk :: disk :: flush()
 hyperdisk::returncode
 hyperdisk :: disk :: trickle()
 {
-    if (!m_shard_mutate.trylock())
+    if (!m_shards_mutate.trylock())
     {
         return SUCCESS;
     }
 
-    e::guard hold = e::makeobjguard(m_shard_mutate, &po6::threads::mutex::unlock);
+    e::guard hold = e::makeobjguard(m_shards_mutate, &po6::threads::mutex::unlock);
     e::locking_iterable_fifo<log_entry>::iterator m_it = m_log.iterate();
 
     for (int i = 0; i < 10000 && m_it.valid(); ++i, m_it.next())
@@ -356,7 +356,7 @@ hyperdisk :: disk :: preallocate()
     e::intrusive_ptr<shard_vector> shards;
 
     {
-        po6::threads::rwlock::rdhold hold(&m_shards_lock);
+        po6::threads::mutex::hold hold(&m_shards_lock);
         shards = m_shards;
     }
 
@@ -441,7 +441,7 @@ hyperdisk :: disk :: async()
     returncode ret = SUCCESS;
 
     {
-        po6::threads::rwlock::rdhold hold(&m_shards_lock);
+        po6::threads::mutex::hold b(&m_shards_lock);
         shards = m_shards;
     }
 
@@ -463,7 +463,7 @@ hyperdisk :: disk :: sync()
     returncode ret = SUCCESS;
 
     {
-        po6::threads::rwlock::rdhold hold(&m_shards_lock);
+        po6::threads::mutex::hold b(&m_shards_lock);
         shards = m_shards;
     }
 
@@ -664,7 +664,7 @@ hyperdisk :: disk :: clean_shard(size_t shard_num)
     }
 
     disk_guard.dismiss();
-    po6::threads::rwlock::wrhold hold(&m_shards_lock);
+    po6::threads::mutex::hold hold(&m_shards_lock);
     m_shards = newshard_vector;
     return SUCCESS;
 }
@@ -816,7 +816,7 @@ hyperdisk :: disk :: split_shard(size_t shard_num)
                                             one_one_coord, one_one);
 
         {
-            po6::threads::rwlock::wrhold hold(&m_shards_lock);
+            po6::threads::mutex::hold hold(&m_shards_lock);
             m_shards = newshard_vector;
         }
 

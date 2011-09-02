@@ -36,7 +36,6 @@
 // po6
 #include <po6/pathname.h>
 #include <po6/threads/mutex.h>
-#include <po6/threads/rwlock.h>
 
 // e
 #include <e/intrusive_ptr.h>
@@ -141,8 +140,8 @@ class disk
         size_t m_ref;
         size_t m_arity;
         // Read about locking in the source.
-        po6::threads::mutex m_shard_mutate;
-        po6::threads::rwlock m_shards_lock;
+        po6::threads::mutex m_shards_mutate;
+        po6::threads::mutex m_shards_lock;
         e::intrusive_ptr<shard_vector> m_shards;
         e::locking_iterable_fifo<log_entry> m_log;
         po6::io::fd m_base;
