@@ -36,7 +36,6 @@
 
 // e
 #include <e/guard.h>
-#include <e/profiler.h>
 
 // Utils
 #include "bithacks.h"
