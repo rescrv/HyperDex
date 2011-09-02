@@ -213,14 +213,10 @@ hyperdisk :: disk :: make_rolling_snapshot()
 hyperdisk::returncode
 hyperdisk :: disk :: drop()
 {
+    po6::threads::mutex::hold a(&m_shards_mutate);
+    po6::threads::mutex::hold b(&m_shards_lock);
     returncode ret = SUCCESS;
-    e::intrusive_ptr<shard_vector> shards;
-
-    {
-        po6::threads::rwlock::rdhold hold(&m_shards_lock);
-        shards = m_shards;
-        m_shards = NULL;
-    }
+    e::intrusive_ptr<shard_vector> shards = m_shards;
 
     for (size_t i = 0; i < shards->size(); ++i)
     {
