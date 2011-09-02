@@ -381,7 +381,7 @@ hyperdisk :: disk :: preallocate()
         }
         else if (free <= 75)
         {
-            if (stale <= 30)
+            if (stale >= 30)
             {
                 num_shards += 1;
             }
@@ -392,7 +392,7 @@ hyperdisk :: disk :: preallocate()
         }
         else
         {
-            if (stale <= 30)
+            if (stale >= 30)
             {
                 num_shards += 1;
             }
@@ -626,7 +626,7 @@ hyperdisk :: disk :: deal_with_full_shard(size_t shard_num)
     coordinate c = m_shards->get_coordinate(shard_num);
     shard* s = m_shards->get_shard(shard_num);
 
-    if (s->stale_space() > 30)
+    if (s->stale_space() >= 30)
     {
         // Just clean up the shard.
         return clean_shard(shard_num);
