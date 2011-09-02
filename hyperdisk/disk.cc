@@ -99,6 +99,9 @@ hyperdisk :: disk :: disk(const po6::pathname& directory, uint16_t arity)
         throw po6::error(errno);
     }
 
+    // Create a starting disk which holds everything.
+    po6::threads::mutex::hold a(&m_shards_mutate);
+    po6::threads::mutex::hold b(&m_shards_lock);
     coordinate start(0, 0, 0, 0);
     e::intrusive_ptr<shard> s = create_shard(start);
     m_shards = new shard_vector(start, s);
