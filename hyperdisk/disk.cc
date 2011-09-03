@@ -253,7 +253,7 @@ hyperdisk :: disk :: flush()
 
     e::guard hold = e::makeobjguard(m_shards_mutate, &po6::threads::mutex::unlock);
 
-    while (!m_log.empty())
+    for (size_t i = 0; i < 100 && !m_log.empty(); ++i)
     {
         bool deleted = false;
         const coordinate& coord = m_log.oldest().coord;
