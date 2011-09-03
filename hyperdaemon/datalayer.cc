@@ -234,7 +234,7 @@ hyperdaemon :: datalayer :: trickle(const regionid& ri)
 
     if (r)
     {
-        r->trickle();
+        r->flush();
     }
 }
 
@@ -330,7 +330,6 @@ hyperdaemon :: datalayer :: flush_loop()
             }
 
             (*i)->flush();
-            (*i)->async();
         }
 
         e::sleep_ms(0, 100);
