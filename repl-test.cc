@@ -25,115 +25,18 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// The purpose of this test is to expose any errors in the replication logic.
-// It creates a simple space of three dimensions with three subspaces.  Each
-// dimension is used to construct one of the subspaces.  Specially-crafted
-// requests are sent to test patterns in which updates could change points in
-// the space.
+// The purpose of this test is to expose errors in the replication logic.
+// The test is designed to be run on a space with dimensions A, B, C.
+// Dimension A is the key while dimensions B and C are meant to be separate
+// subspaces.  The code intentionally creates certain scenarios which will
+// fail with high probability if the code is not correct.
 //
-// The tests are described in pseudocode.  The following utilties are defined in
-// the tests:
-//
-// check(A, B, C):
-//      [A, B, C] == get(A) &&
-//      [[A, B, C]] == search({"B": B}) &&
-//      [[A, B, C]] == search({"C": C})
-//
-// absent(A, B, C):
-//      NOTFOUND == get(A) &&
-//      NOTFOUND == search({"B": B}) &&
-//      NOTFOUND == search({"C": C})
-//
-//
-// Test 1:  PUT/DEL.
-//  for A in range(256):
-//      for B in range(256):
-//          for C in range(256):
-//              SUCCESS == put([A, B, C])
-//              check(A, B, C)
-//              SUCCESS == del(A)
-//              sleep 100us
-//              absent(A, B, C)
-//
-// Test 3:  Interleave PUT and DEL operations in a way that the two PUTs on
-// either side of the DEL map to the same region in B.
-//
-//  for A in range(256):
-//      for B in range(256):
-//          for C in range(256):
-//              SUCCESS == put([A, B, C])
-//              check(A, B, C)
-//              SUCCESS == del(A)
-//              sleep 100us
-//              absent(A, B, C)
-//          SUCCESS == del(A) // reset
-//
-// Test 4:  Interleave PUT and DEL operations in a way that the two PUTs on
-// either side of the DEL map to the same region in C.
-//
-//  for A in range(256):
-//      for C in range(256):
-//          for B in range(256):
-//              SUCCESS == put([A, B, C])
-//              check(A, B, C)
-//              SUCCESS == del(A)
-//              sleep 100us
-//              absent(A, B, C)
-//          SUCCESS == del(A) // reset
-//
-// Test 5:  Interleave PUT and DEL operations in a way that the two PUTs on
-// either side of the DEL do not map to the same hosts in B or C.
-//
-//  for A in range(256):
-//      for i in range(256):
-//          SUCCESS == put([A, i, i])
-//          check(A, i, i)
-//          SUCCESS == del(A)
-//          sleep 100us
-//          absent(A, i, i)
-//      SUCCESS == del(A)
-//      for i in range(256):
-//          SUCCESS == put([A, i, 256 - i - 1])
-//          check(A, i, 256 - i - 1)
-//          SUCCESS == del(A)
-//          sleep 100us
-//          absent(A, i, 256 - i - 1)
-//      SUCCESS == del(A)
-//
-// Test 6:  Send successive PUT operations in a way that A, B are fixed for any
-// given point, but C is cycled through all options.
-//
-//  for A in range(256):
-//      for B in range(256):
-//          for C in range(256):
-//              SUCCESS == put([A, B, C])
-//              check(A, B, C)
-//          SUCCESS == del(A) // reset
-//          absent(A, B, C)
-//
-// Test 7:  Send successive PUT operations in a way that A, C are fixed for any
-// given point, but B is cycled through all regions.
-//
-//  for A in range(256):
-//      for C in range(256):
-//          for B in range(256):
-//              SUCCESS == put([A, B, C])
-//              check(A, B, C)
-//          SUCCESS == del(A) // reset
-//          absent(A, B, C)
-//
-// Test 8:  Send successive PUT operations in a way that A is fixed for any
-// given point, but each point changes to a different B and a different C on
-// each update.
-//
-//  for A in range(256):
-//      for i in range(256):
-//          SUCCESS == put([A, i, i])
-//          check(A, i, i)
-//      for i in range(256):
-//          SUCCESS == put([A, i, 256 - i - 1])
-//          check(A, i, 256 - i - 1)
-//      SUCCESS == del(A)
+// The prefix provided as a commandline argument is used to efficiently prune
+// out duplicate results.  It should match P in "auto P R" used for each
+// subspace for basic tests.  It is important to test this both on a single
+// daemon instance, and on several daemon instances.  The former stresses code
+// with lightening quick responses while the latter introduces delay and
+// non-determinism.
 
 // C
 #include <cstdio>
@@ -143,6 +46,9 @@
 
 // STL
 #include <string>
+
+// Google CityHash
+#include <city.h>
 
 // po6
 #include <po6/net/ipaddr.h>
@@ -156,44 +62,23 @@
 // HyperDex
 #include <hyperclient/client.h>
 
-#define MAX_A 256
-#define MAX_B 256
-#define MAX_C 256
-#define MAX_I 256
-#define INC_A 16
-#define INC_B 16
-#define INC_C 16
-#define INC_I 16
-
 // These 32-bit values all hash (using CityHash) to be have the same high-order
 // byte as their index.  E.g. index 0 has a hash of 0x00??????????????, while
 // index 255 has a hash of 0xff??????????????.
-static uint32_t nums[] = {8, 67, 535, 199, 381, 136, 1, 501, 260, 60, 386, 42,
-    250, 22, 221, 1000, 139, 559, 84, 113, 230, 726, 143, 31, 88, 257, 315, 478,
-    394, 108, 207, 5, 50, 85, 124, 142, 533, 659, 58, 213, 118, 321, 240, 96,
-    335, 480, 116, 101, 132, 681, 342, 309, 127, 419, 26, 248, 482, 87, 111, 10,
-    4, 355, 137, 112, 637, 448, 229, 370, 194, 224, 148, 220, 959, 125, 325, 98,
-    177, 208, 645, 188, 47, 470, 1237, 19, 68, 0, 52, 6, 66, 79, 105, 214, 21,
-    491, 459, 483, 238, 388, 474, 129, 15, 158, 23, 92, 59, 2, 1234, 333, 1064,
-    502, 431, 53, 126, 77, 150, 175, 9, 32, 36, 305, 382, 73, 521, 655, 222,
-    279, 376, 270, 164, 563, 162, 682, 508, 278, 43, 14, 25, 242, 433, 86, 963,
-    204, 29, 13, 138, 202, 33, 119, 430, 78, 154, 195, 146, 169, 301, 76, 255,
-    45, 49, 1120, 275, 435, 495, 30, 379, 402, 160, 225, 569, 344, 415, 746,
-    1221, 95, 41, 441, 580, 51, 165, 764, 83, 40, 348, 651, 120, 184, 11, 331,
-    56, 539, 271, 65, 316, 244, 3, 635, 467, 28, 211, 436, 261, 135, 7, 578, 81,
-    54, 471, 141, 300, 12, 813, 82, 445, 64, 284, 527, 44, 306, 456, 272, 24,
-    55, 167, 354, 16, 48, 156, 35, 317, 149, 191, 253, 273, 157, 17, 605, 170,
-    20, 74, 773, 63, 662, 330, 134, 122, 246, 27, 131, 39, 71, 109, 189, 396,
-    364, 46, 163};
+static uint32_t nums[256];
 
 std::string space;
 size_t prefix;
+bool conditionals = true;
 
 static void
 sigalarm(int) {}
 
 static int
 usage();
+
+static void
+find_hashes();
 
 static void
 fail(int testno, const char* reason, unsigned lineno);
@@ -219,22 +104,54 @@ static bool
 absent(int testno,
        unsigned lineno,
        hyperclient::client* cl,
-       size_t A, size_t B, size_t C);
+       size_t A);
+static bool
+cond_check(int testno,
+           unsigned lineno,
+           hyperclient::client* cl,
+           size_t A, size_t B, size_t C)
+{ return conditionals ? check(testno, lineno, cl, A, B, C) : true; }
+static bool
+cond_absent(int testno,
+            unsigned lineno,
+            hyperclient::client* cl,
+            size_t A)
+{ return conditionals ? absent(testno, lineno, cl, A) : true; }
 
 static void
 test1(hyperclient::client* cl);
 static void
+test2(hyperclient::client* cl);
+static void
 test3(hyperclient::client* cl);
 static void
 test4(hyperclient::client* cl);
-static void
-test5(hyperclient::client* cl);
-static void
-test6(hyperclient::client* cl);
-static void
-test7(hyperclient::client* cl);
-static void
-test8(hyperclient::client* cl);
+
+class generator
+{
+    public:
+        generator() : m_i(0) {}
+
+    public:
+        bool has_next() const { return m_i < 256; }
+
+    public:
+        void next()
+        {
+            uint32_t current = (m_i >> (8 - prefix));
+
+            while (m_i < 256 && current == (m_i >> (8 - prefix)))
+            {
+                ++ m_i;
+            }
+        }
+
+    public:
+        operator int () const { return nums[m_i]; }
+
+    private:
+        uint32_t m_i;
+};
 
 int
 main(int argc, char* argv[])
@@ -243,6 +160,8 @@ main(int argc, char* argv[])
     {
         return usage();
     }
+
+    find_hashes();
 
     po6::net::ipaddr ip;
     uint16_t port;
@@ -290,6 +209,7 @@ main(int argc, char* argv[])
 
     try
     {
+        // Set SIGALARM to not crash us.
         struct sigaction sa;
         sa.sa_handler = sigalarm;
         sigfillset(&sa.sa_mask);
@@ -300,12 +220,9 @@ main(int argc, char* argv[])
         cl.connect();
 
         test1(&cl);
+        test2(&cl);
         test3(&cl);
         test4(&cl);
-        test5(&cl);
-        test6(&cl);
-        test7(&cl);
-        test8(&cl);
     }
     catch (po6::error& e)
     {
@@ -337,6 +254,32 @@ usage()
     std::cerr << "Usage:  repl-tester <coordinator ip> <coordinator port> <space name> <prefix>"
               << std::endl;
     return EXIT_FAILURE;
+}
+
+static void
+find_hashes()
+{
+    bool found[256];
+    size_t complete = 0;
+
+    for (size_t i = 0; i < 256; ++i)
+    {
+        found[i] = false;
+    }
+
+    for (uint32_t value = 0; complete < 256; ++value)
+    {
+        e::buffer key;
+        key.pack() << value;
+        uint64_t high_byte = CityHash64(reinterpret_cast<char*>(&value), sizeof(value)) >> 56;
+
+        if (!found[high_byte])
+        {
+            found[high_byte] = true;
+            nums[high_byte] = value;
+            ++ complete;
+        }
+    }
 }
 
 void
@@ -373,9 +316,9 @@ put(int testno,
 {
     e::buffer key;
     std::vector<e::buffer> value(2);
-    key.pack() << nums[A];
-    value[0].pack() << nums[B];
-    value[1].pack() << nums[C];
+    key.pack() << A;
+    value[0].pack() << B;
+    value[1].pack() << C;
     char buf[2048];
     alarm(10);
 
@@ -413,7 +356,8 @@ del(int testno,
     size_t A)
 {
     e::buffer key;
-    key.pack() << nums[A];
+    key.pack() << A;
+
     char buf[2048];
     alarm(10);
 
@@ -445,9 +389,9 @@ check(int testno,
     e::buffer key;
     std::vector<e::buffer> value(2);
     std::vector<e::buffer> gotten_value;
-    key.pack() << nums[A];
-    value[0].pack() << nums[B];
-    value[1].pack() << nums[C];
+    key.pack() << A;
+    value[0].pack() << B;
+    value[1].pack() << C;
     alarm(10);
 
     switch (cl->get(space, key, &gotten_value))
@@ -488,9 +432,12 @@ check(int testno,
             return false;
     }
 
+    return value != gotten_value;
+
+#if 0
     std::map<std::string, e::buffer> terms;
-    terms.insert(std::make_pair("B", e::buffer(&nums[B], sizeof(uint32_t))));
-    terms.insert(std::make_pair("C", e::buffer(&nums[C], sizeof(uint32_t))));
+    terms.insert(std::make_pair("B", e::buffer(&B, sizeof(uint32_t))));
+    terms.insert(std::make_pair("C", e::buffer(&C, sizeof(uint32_t))));
     hyperclient::search_results sr;
     alarm(10);
 
@@ -536,17 +483,18 @@ check(int testno,
     return value != gotten_value &&
            sr.valid() && sr.key() == key && sr.value() == value &&
            sr.next() == hyperclient::SUCCESS && !sr.valid();
+#endif
 }
 
 static bool
 absent(int testno,
        unsigned lineno,
        hyperclient::client* cl,
-       size_t A, size_t B, size_t C)
+       size_t A)
 {
     e::buffer key;
     std::vector<e::buffer> gotten_value;
-    key.pack() << nums[A];
+    key.pack() << A;
     alarm(10);
 
     switch (cl->get(space, key, &gotten_value))
@@ -588,257 +536,115 @@ absent(int testno,
     }
 }
 
+// This test continually puts/deletes keys, ensuring that a [PUT, DEL] sequence
+// of operations is run through every way in which one could select regions from
+// the subspaces.  6 * 2**prefix requests will be performed.  This tests that
+// delete plays nicely with the fresh bit.
 void
 test1(hyperclient::client* cl)
 {
-    for (size_t A = 0; A < MAX_A; A += INC_A)
+    for (generator A; A.has_next(); A.next())
     {
-        for (size_t B = 0; B < MAX_B; B += INC_B)
+        for (generator B; B.has_next(); B.next())
         {
-            for (size_t C = 0; C < MAX_C; C += INC_C)
+            for (generator C; C.has_next(); C.next())
             {
-                if (!put(1, __LINE__, cl, A, B, C))
-                {
-                    return;
-                }
-
-                if (!check(1, __LINE__, cl, A, B, C))
-                {
-                    return;
-                }
-
-                if (!del(1, __LINE__, cl, A))
-                {
-                    return;
-                }
-
-                if (!absent(1, __LINE__, cl, A, B, C))
-                {
-                    return;
-                }
+                if (!put(1, __LINE__, cl, A, B, C)) return;
+                if (!cond_check(1, __LINE__, cl, A, B, C)) return;
+                if (!del(1, __LINE__, cl, A)) return;
+                if (!cond_absent(1, __LINE__, cl, A)) return;
             }
         }
+
+        if (!absent(1, __LINE__, cl, A)) return;
     }
 
     success(1);
 }
 
+// This test puts keys such that A and B are fixed, but every choice of C for
+// a fixed A, B is exercised.  Keys are deleted when changing A or B.  This
+// tests that CHAIN_SUBSPACE messages work.  This tests that CHAIN_SUBSPACE
+// messages work correctly.
+void
+test2(hyperclient::client* cl)
+{
+    for (generator A; A.has_next(); A.next())
+    {
+        for (generator B; B.has_next(); B.next())
+        {
+            if (!absent(2, __LINE__, cl, A)) return;
+
+            for (generator C; C.has_next(); C.next())
+            {
+                if (!put(2, __LINE__, cl, A, B, C)) return;
+                if (!cond_check(2, __LINE__, cl, A, B, C)) return;
+            }
+
+            if (!del(2, __LINE__, cl, A)) return;
+            if (!absent(2, __LINE__, cl, A)) return;
+        }
+    }
+
+    success(2);
+}
+
+// This is isomorphic to test2 except that columns A and C are fixed.
 void
 test3(hyperclient::client* cl)
 {
-    for (size_t A = 0; A < MAX_A; A += INC_A)
+    for (generator A; A.has_next(); A.next())
     {
-        for (size_t B = 0; B < MAX_B; B += INC_B)
+        for (generator C; C.has_next(); C.next())
         {
-            for (size_t C = 0; C < MAX_C; C += INC_C)
+            if (!absent(3, __LINE__, cl, A)) return;
+
+            for (generator B; B.has_next(); B.next())
             {
-                if (!put(3, __LINE__, cl, A, B, C))
-                {
-                    return;
-                }
-
-                if (!check(3, __LINE__, cl, A, B, C))
-                {
-                    return;
-                }
-
-                if (!del(3, __LINE__, cl, A))
-                {
-                    return;
-                }
-
-                if (!absent(3, __LINE__, cl, A, B, C))
-                {
-                    return;
-                }
+                if (!put(3, __LINE__, cl, A, B, C)) return;
+                if (!cond_check(3, __LINE__, cl, A, B, C)) return;
             }
+
+            if (!del(3, __LINE__, cl, A)) return;
+            if (!absent(3, __LINE__, cl, A)) return;
         }
     }
 
     success(3);
 }
 
+// This test stresses the interaction of CHAIN_SUBSPACE with DELETE messages.
+// For each A, B, C pair, it creates a point.  It then issues a PUT which causes
+// B and C to jump to another subspace.  It then issues a DEL to try to create a
+// deferred update.
 void
 test4(hyperclient::client* cl)
 {
-    for (size_t A = 0; A < MAX_A; A += INC_A)
+    for (generator A; A.has_next(); A.next())
     {
-        for (size_t C = 0; C < MAX_C; C += INC_C)
+        for (generator B; B.has_next(); B.next())
         {
-            for (size_t B = 0; B < MAX_B; B += INC_B)
+            for (generator C; C.has_next(); C.next())
             {
-                if (!put(4, __LINE__, cl, A, B, C))
+                for (generator BP; BP.has_next(); BP.next())
                 {
-                    return;
-                }
+                    for (generator CP; CP.has_next(); CP.next())
+                    {
+                        if (B != BP && C != CP)
+                        {
+                            if (!put(4, __LINE__, cl, A, B, C)) return;
+                            if (!cond_check(4, __LINE__, cl, A, B, C)) return;
+                            if (!put(4, __LINE__, cl, A, BP, CP)) return;
+                            if (!del(4, __LINE__, cl, A)) return;
+                            if (!cond_absent(4, __LINE__, cl, A)) return;
+                        }
+                    }
 
-                if (!check(4, __LINE__, cl, A, B, C))
-                {
-                    return;
-                }
-
-                if (!del(4, __LINE__, cl, A))
-                {
-                    return;
-                }
-
-                if (!absent(4, __LINE__, cl, A, B, C))
-                {
-                    return;
+                    if (!absent(4, __LINE__, cl, A)) return;
                 }
             }
         }
     }
 
     success(4);
-}
-
-void
-test5(hyperclient::client* cl)
-{
-    for (size_t A = 0; A < MAX_A; A += INC_A)
-    {
-        for (size_t I = 0; I < MAX_I; I += INC_I)
-        {
-            if (!put(5, __LINE__, cl, A, I, I))
-            {
-                return;
-            }
-
-            if (!check(5, __LINE__, cl, A, I, I))
-            {
-                return;
-            }
-
-            if (!del(5, __LINE__, cl, A))
-            {
-                return;
-            }
-
-            if (!absent(5, __LINE__, cl, A, I, I))
-            {
-                return;
-            }
-        }
-
-        for (size_t I = 0; I < MAX_I; I += INC_I)
-        {
-            if (!put(5, __LINE__, cl, A, I, 256 - I - 1))
-            {
-                return;
-            }
-
-            if (!check(5, __LINE__, cl, A, I, 256 - I - 1))
-            {
-                return;
-            }
-
-            if (!del(5, __LINE__, cl, A))
-            {
-                return;
-            }
-
-            if (!absent(5, __LINE__, cl, A, I, 256 - I - 1))
-            {
-                return;
-            }
-        }
-    }
-
-    success(5);
-}
-
-void
-test6(hyperclient::client* cl)
-{
-    for (size_t A = 0; A < MAX_A; A += INC_A)
-    {
-        for (size_t B = 0; B < MAX_B; B += INC_B)
-        {
-            for (size_t C = 0; C < MAX_C; C += INC_C)
-            {
-                if (!put(6, __LINE__, cl, A, B, C))
-                {
-                    return;
-                }
-
-                if (!check(6, __LINE__, cl, A, B, C))
-                {
-                    return;
-                }
-            }
-
-            if (!del(6, __LINE__, cl, A))
-            {
-                return;
-            }
-        }
-    }
-
-    success(6);
-}
-
-void
-test7(hyperclient::client* cl)
-{
-    for (size_t A = 0; A < MAX_A; A += INC_A)
-    {
-        for (size_t C = 0; C < MAX_C; C += INC_C)
-        {
-            for (size_t B = 0; B < MAX_B; B += INC_B)
-            {
-                if (!put(7, __LINE__, cl, A, B, C))
-                {
-                    return;
-                }
-
-                if (!check(7, __LINE__, cl, A, B, C))
-                {
-                    return;
-                }
-            }
-
-            if (!del(7, __LINE__, cl, A))
-            {
-                return;
-            }
-        }
-    }
-
-    success(7);
-}
-
-void
-test8(hyperclient::client* cl)
-{
-    for (size_t A = 0; A < MAX_A; A += INC_A)
-    {
-        for (size_t I = 0; I < MAX_I; I += INC_I)
-        {
-            if (!put(8, __LINE__, cl, A, I, I))
-            {
-                return;
-            }
-
-            if (!check(8, __LINE__, cl, A, I, I))
-            {
-                return;
-            }
-        }
-
-        for (size_t I = 0; I < MAX_I; I += INC_I)
-        {
-            if (!put(8, __LINE__, cl, A, I, 256 - I - 1))
-            {
-                return;
-            }
-
-            if (!check(8, __LINE__, cl, A, I, 256 - I - 1))
-            {
-                return;
-            }
-        }
-    }
-
-    success(8);
 }
