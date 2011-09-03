@@ -97,11 +97,7 @@ class disk
         // data in the write-ahead log.  It does not immediately flush data to
         // the underlying hard disk, instead letting the OS do so at its own
         // convenience.
-        void flush();
-        // Trickle data from the write-ahead log into the shards.  This is
-        // potentially an expensive operation, but failure to do so is even more
-        // costly.
-        returncode trickle();
+        returncode flush();
         // Preallocate shards to ease the hit we would take from the large
         // amount of disk I/O at once.
         returncode preallocate();

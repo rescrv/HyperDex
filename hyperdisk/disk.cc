@@ -237,17 +237,6 @@ hyperdisk :: disk :: drop()
     return ret;
 }
 
-void
-hyperdisk :: disk :: flush()
-{
-    while (!m_log.empty())
-    {
-        trickle();
-    }
-}
-
-// Trickle data from the log into the shards.
-//
 // This operation will return SUCCESS as long as it knows that progress is being
 // made.  Practically this means that if it encounters a full disk, it will
 // deal with the full disk and return without moving any data to the newly
@@ -255,7 +244,7 @@ hyperdisk :: disk :: flush()
 // push data to disk, so we can expect that not doing the work will not be too
 // costly.
 hyperdisk::returncode
-hyperdisk :: disk :: trickle()
+hyperdisk :: disk :: flush()
 {
     if (!m_shards_mutate.trylock())
     {
@@ -263,9 +252,8 @@ hyperdisk :: disk :: trickle()
     }
 
     e::guard hold = e::makeobjguard(m_shards_mutate, &po6::threads::mutex::unlock);
-    e::locking_iterable_fifo<log_entry>::iterator m_it = m_log.iterate();
 
-    for (int i = 0; i < 10000 && m_it.valid(); ++i, m_it.next())
+    while (!m_log.empty())
     {
         bool deleted = false;
         const coordinate& coord = m_log.oldest().coord;
