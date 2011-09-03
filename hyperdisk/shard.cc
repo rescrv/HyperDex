@@ -79,6 +79,11 @@ hyperdisk :: shard :: create(const po6::io::fd& base,
         throw po6::error(errno);
     }
 
+    if (fsync(fd.get()) < 0)
+    {
+        throw po6::error(errno);
+    }
+
     // Create the shard object.
     e::intrusive_ptr<shard> ret = new shard(&fd);
     return ret;
