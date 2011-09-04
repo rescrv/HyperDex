@@ -577,7 +577,7 @@ hyperdisk :: disk :: drop_shard(const coordinate& c)
 {
     // What would we do with the error?  It's just going to leave dirty data,
     // but if we can cleanly save state, then it doesn't matter.
-    if (unlink(shard_filename(c).get()) < 0)
+    if (unlinkat(m_base.get(), shard_filename(c).get(), 0) < 0)
     {
         return DROPFAILED;
     }
@@ -590,7 +590,7 @@ hyperdisk :: disk :: drop_tmp_shard(const coordinate& c)
 {
     // What would we do with the error?  It's just going to leave dirty data,
     // but if we can cleanly save state, then it doesn't matter.
-    if (unlink(shard_tmp_filename(c).get()) < 0)
+    if (unlinkat(m_base.get(), shard_tmp_filename(c).get(), 0) < 0)
     {
         return DROPFAILED;
     }
