@@ -329,6 +329,12 @@ hyperdisk :: shard :: copy_to(const coordinate& c, e::intrusive_ptr<shard> s)
 
         // Figure out how big the entry is.
         size_t entry_start = static_cast<uint32_t>(m_search_index[ent * 2 + 1]);
+
+        if (entry_start == 0)
+        {
+            break;
+        }
+
         size_t entry_size = m_data_offset - entry_start;
 
         if (ent < SEARCH_INDEX_ENTRIES - 1)
