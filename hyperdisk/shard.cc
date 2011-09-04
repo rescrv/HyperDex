@@ -316,7 +316,7 @@ hyperdisk :: shard :: copy_to(const coordinate& c, e::intrusive_ptr<shard> s)
         // Skip stale entries.
         if (static_cast<uint32_t>(m_search_index[ent * 2 + 1] >> 32) != 0)
         {
-            return;
+            continue;
         }
 
         uint32_t primary_hash = static_cast<uint32_t>(m_search_index[ent * 2]);
