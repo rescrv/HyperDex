@@ -309,6 +309,7 @@ hyperdaemon :: datalayer :: flush_loop()
 
     while (!m_shutdown)
     {
+        bool sleep = true;
         std::set<e::intrusive_ptr<hyperdisk::disk> > to_flush;
 
         { // Hold the lock only in this scope.
@@ -329,10 +330,47 @@ hyperdaemon :: datalayer :: flush_loop()
                 (*i)->preallocate();
             }
 
-            (*i)->flush();
+            switch ((*i)->flush())
+            {
+                case hyperdisk::SUCCESS:
+                    sleep = false;
+                    break;
+                case hyperdisk::FLUSHNONE:
+                    break;
+                case hyperdisk::DATAFULL:
+                    LOG(INFO) << "flush returned DATAFULL";
+                    break;
+                case hyperdisk::HASHFULL:
+                    LOG(INFO) << "flush returned HASHFULL";
+                    break;
+                case hyperdisk::SEARCHFULL:
+                    LOG(INFO) << "flush returned SEARCHFULL";
+                    break;
+                case hyperdisk::MISSINGDISK:
+                    LOG(INFO) << "flush returned MISSINGDISK";
+                    break;
+                case hyperdisk::NOTFOUND:
+                    LOG(INFO) << "flush returned NOTFOUND";
+                    break;
+                case hyperdisk::WRONGARITY:
+                    LOG(INFO) << "flush returned WRONGARITY";
+                    break;
+                case hyperdisk::SYNCFAILED:
+                    LOG(INFO) << "flush returned SYNCFAILED";
+                    break;
+                case hyperdisk::DROPFAILED:
+                    LOG(INFO) << "flush returned DROPFAILED";
+                    break;
+                default:
+                    assert(!"Programming error.");
+            }
         }
 
-        e::sleep_ms(0, 100);
+        if (sleep)
+        {
+            e::sleep_ms(0, 100);
+        }
+
         ++count;
     }
 }

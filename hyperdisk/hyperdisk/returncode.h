@@ -43,7 +43,8 @@ enum returncode
     SYNCFAILED  = 8198,
     DROPFAILED  = 8199,
     MISSINGDISK = 8200,
-    SPLITFAILED = 8201
+    SPLITFAILED = 8201,
+    FLUSHNONE   = 8202
 };
 
 } // namespace hyperdisk
