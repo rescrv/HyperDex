@@ -819,8 +819,7 @@ hyperdisk :: disk :: split_shard(size_t shard_num)
         zog.dismiss();
         ozg.dismiss();
         oog.dismiss();
-        drop_shard(c);
-        return SUCCESS;
+        return drop_shard(c);
     }
     catch (std::exception& e)
     {
