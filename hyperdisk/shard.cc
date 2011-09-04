@@ -343,6 +343,11 @@ hyperdisk :: shard :: copy_to(const coordinate& c, e::intrusive_ptr<shard> s)
             entry_size = next_entry_start > 0 ? next_entry_start - entry_start: entry_size;
         }
 
+        assert(entry_start <= FILE_SIZE);
+        assert(entry_start + entry_size <= FILE_SIZE);
+        assert(s->m_data_offset <= FILE_SIZE);
+        assert(s->m_data_offset + entry_size <= FILE_SIZE);
+
         // Copy the entry's data
         memmove(s->m_data + s->m_data_offset, m_data + entry_start, entry_size);
         // Insert into the search index.
