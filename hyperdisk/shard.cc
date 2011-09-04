@@ -350,7 +350,7 @@ hyperdisk :: shard :: copy_to(const coordinate& c, e::intrusive_ptr<shard> s)
                              | static_cast<uint64_t>(primary_hash);
         // Update the position trackers.
         ++s->m_search_offset;
-        s->m_data_offset = (entry_start + entry_size + 7) & ~7; // Keep everything 8-byte aligned.
+        s->m_data_offset = (s->m_data_offset + entry_size + 7) & ~7; // Keep everything 8-byte aligned.
     }
 }
 
