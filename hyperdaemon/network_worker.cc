@@ -93,11 +93,14 @@ hyperdaemon :: network_worker :: run()
     network_msgtype type;
     e::buffer msg;
     uint32_t nonce;
+    uint64_t count = 0;
 
     while (m_continue && m_comm->recv(&from, &to, &type, &msg))
     {
         try
         {
+            bool trickle = false;
+
             if (type == hyperdex::REQ_GET)
             {
                 e::buffer key;
@@ -215,6 +218,7 @@ hyperdaemon :: network_worker :: run()
                 uint64_t version;
                 msg.unpack() >> version >> key;
                 m_repl->chain_ack(from, to, version, key);
+                trickle = true;
             }
             else if (type == hyperdex::XFER_MORE)
             {
@@ -238,6 +242,16 @@ hyperdaemon :: network_worker :: run()
             else
             {
                 LOG(INFO) << "Message of unknown type received.";
+            }
+
+            if (trickle)
+            {
+                ++count;
+
+                if (count % 100000 == 0)
+                {
+                    m_data->trickle(to.get_region());
+                }
             }
         }
         catch (std::out_of_range& e)
