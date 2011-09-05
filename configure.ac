@@ -15,6 +15,7 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_PROG_CXX
 AC_PROG_CC
 AC_LANG(C++)
+AC_CHECK_PROG(LCOV, lcov, lcov)
 
 AC_ARG_ENABLE([java-bindings], [AS_HELP_STRING([--enable-java-bindings],
               [enable the Java bindings @<:@default: no@:>@])],
@@ -77,6 +78,7 @@ YCSB will not be built.
 fi
 AM_CONDITIONAL([ENABLE_JAVA], [test x"${java_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_YCSB], [test x"${enable_ycsb}" = xyes])
+AM_CONDITIONAL([ENABLE_COVERAGE], [test -n "${LCOV}"])
 
 AC_CONFIG_FILES([Makefile hyperclient/Makefile hyperclient/java/Makefile
                  hyperdaemon/Makefile hyperdex/Makefile hyperdisk/Makefile
