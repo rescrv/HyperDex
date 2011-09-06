@@ -98,7 +98,12 @@ AM_CONDITIONAL([ENABLE_JAVA], [test x"${java_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_YCSB], [test x"${enable_ycsb}" = xyes])
 AM_CONDITIONAL([ENABLE_COVERAGE], [test x"${enable_coverage}" = xyes])
 
-AC_CONFIG_FILES([Makefile hyperclient/Makefile hyperclient/java/Makefile
-                 hyperdaemon/Makefile hyperdex/Makefile hyperdisk/Makefile
-                 hyperdisk/test/Makefile ycsb/Makefile])
+AC_CONFIG_FILES([Makefile
+                 hyperclient/Makefile
+                 hyperclient/java/Makefile
+                 hyperdaemon/Makefile
+                 hyperdex/Makefile
+                 hyperdisk/Makefile
+                 hyperdisk/test/Makefile
+                 ycsb/Makefile])
 AC_OUTPUT
