@@ -106,9 +106,9 @@ class shard
         // How much stale space (as a percentage) may be reclaimed from this log
         // through cleaning.
         int stale_space() const;
-        // How much space (as a percentage) is not used by either current or
-        // stale data.
-        int free_space() const;
+        // How much space (as a percentage) is used by either current or stale
+        // data.
+        int used_space() const;
         // May return SUCCESS or SYNCFAILED.  errno will be set to the reason
         // the sync failed.
         returncode async();

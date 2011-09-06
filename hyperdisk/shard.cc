@@ -263,7 +263,7 @@ hyperdisk :: shard :: stale_space() const
 }
 
 int
-hyperdisk :: shard :: free_space() const
+hyperdisk :: shard :: used_space() const
 {
     double data = 100 * static_cast<double>(m_data_offset - INDEX_SEGMENT_SIZE)
                         / DATA_SEGMENT_SIZE;

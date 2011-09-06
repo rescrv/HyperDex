@@ -169,6 +169,7 @@ TEST(ShardTest, SearchFull)
     for (size_t i = 0; i < 32767; ++i)
     {
         ASSERT_EQ(hyperdisk::SUCCESS, d->put(primary_hash, secondary_hash, key, value, 0));
+        ASSERT_EQ(100 * (i + 1) / 32768, d->used_space());
     }
 
     ASSERT_EQ(hyperdisk::SEARCHFULL, d->put(primary_hash, secondary_hash, key, value, 0));
@@ -188,6 +189,7 @@ TEST(ShardTest, DataFull)
         assert(key.size() == 1026);
 
         ASSERT_EQ(hyperdisk::SUCCESS, d->put(i, 0, key, value, 0));
+        ASSERT_EQ(100 * 1040 * (i + 1) / DATA_SEGMENT_SIZE, d->used_space());
     }
 
     e::buffer keya;

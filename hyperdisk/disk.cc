@@ -361,7 +361,7 @@ hyperdisk :: disk :: preallocate()
     {
         shard* s = shards->get_shard(i);
         int stale = s->stale_space();
-        int free = s->free_space();
+        int free = 100 - s->used_space();
 
         // There is no describable reason for picking these except that you can
         // be pretty sure that enough shards will exist to do splits.  That
