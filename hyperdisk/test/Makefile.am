@@ -1,9 +1,11 @@
+AM_CPPFLAGS = -I$(abs_top_srcdir)/hyperdisk
+AM_CXXFLAGS = $(COVERAGE_CXXFLAGS)
+AM_LDFLAGS = -no-install $(GTEST_LDFLAGS)
+
 if HAVE_GTEST
-check_PROGRAMS = hyperdisk-test
+check_PROGRAMS = shard
 TESTS = $(check_PROGRAMS)
 
-hyperdisk_test_SOURCES = ../../runner.cc shard.cc
-hyperdisk_test_CPPFLAGS = -I$(abs_top_srcdir)/hyperdisk
-hyperdisk_test_LDADD = ../libhyperdisk.la $(GTEST_LIBS)
-hyperdisk_test_LDFLAGS = -no-install
+shard_SOURCES = $(abs_top_srcdir)/runner.cc shard.cc
+shard_LDADD = ../libhyperdisk.la $(COVERAGE_LDADD) $(GTEST_LIBS)
 endif

@@ -51,6 +51,7 @@ if test x"${enable_coverage}" = xyes; then
         COVERAGE_CXXFLAGS="-fprofile-arcs -ftest-coverage"
         COVERAGE_LDADD="-lgcov"
     else
+        AC_MSG_WARN([Could not find lcov for test coverage])
         enable_coverage=no
     fi
 fi

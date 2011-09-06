@@ -37,9 +37,12 @@ if ENABLE_COVERAGE
 coverage: coverage.dat
 	mkdir -p coverage
 	genhtml --function-coverage --branch-coverage --demangle-cpp --output coverage $(abs_top_builddir)/coverage.dat
-clean-local:
+clean-coverage:
 	rm -f coverage.dat
 	rm -rf coverage/
+	find $(abs_top_builddir) -type f -iname '*.gcda' -delete
+clean-local: clean-coverage
+	find $(abs_top_builddir) -type f -iname '*.gcno' -delete
 else
 coverage:
 	@echo Coverage not configured.
