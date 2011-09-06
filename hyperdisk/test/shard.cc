@@ -179,7 +179,7 @@ TEST(ShardTest, DataFull)
 {
     po6::io::fd cwd(AT_FDCWD);
     e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create(cwd, "tmp-disk");
-    //e::guard g = e::makeguard(::unlink, "tmp-disk");
+    e::guard g = e::makeguard(::unlink, "tmp-disk");
     std::vector<e::buffer> value;
 
     for (size_t i = 0; i < 32263; ++i)
