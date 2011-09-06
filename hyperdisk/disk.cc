@@ -277,7 +277,6 @@ hyperdisk :: disk :: flush()
                 case DATAFULL:
                     return deal_with_full_shard(i);
                 case WRONGARITY:
-                case HASHFULL:
                 case SEARCHFULL:
                 case SYNCFAILED:
                 case DROPFAILED:
@@ -308,7 +307,6 @@ hyperdisk :: disk :: flush()
                         inserted = true;
                         break;
                     case DATAFULL:
-                    case HASHFULL:
                     case SEARCHFULL:
                         return deal_with_full_shard(i);
                     case MISSINGDISK:

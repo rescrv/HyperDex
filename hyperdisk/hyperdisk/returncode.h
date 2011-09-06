@@ -37,14 +37,13 @@ enum returncode
     SUCCESS     = 8192,
     NOTFOUND    = 8193,
     WRONGARITY  = 8194,
-    HASHFULL    = 8195,
-    DATAFULL    = 8196,
-    SEARCHFULL  = 8197,
-    SYNCFAILED  = 8198,
-    DROPFAILED  = 8199,
-    MISSINGDISK = 8200,
-    SPLITFAILED = 8201,
-    FLUSHNONE   = 8202
+    DATAFULL    = 8195,
+    SEARCHFULL  = 8196,
+    SYNCFAILED  = 8197,
+    DROPFAILED  = 8198,
+    MISSINGDISK = 8199,
+    SPLITFAILED = 8200,
+    FLUSHNONE   = 8201
 };
 
 } // namespace hyperdisk

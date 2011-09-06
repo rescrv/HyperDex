@@ -710,7 +710,6 @@ hyperdaemon :: replication_manager :: region_transfer(const entityid& from,
                         LOG(ERROR) << "Transfer " << xfer_id << " caused MISSINGDISK.";
                         break;
                     case hyperdisk::NOTFOUND:
-                    case hyperdisk::HASHFULL:
                     case hyperdisk::DATAFULL:
                     case hyperdisk::SEARCHFULL:
                     case hyperdisk::SYNCFAILED:
@@ -731,7 +730,6 @@ hyperdaemon :: replication_manager :: region_transfer(const entityid& from,
                         break;
                     case hyperdisk::WRONGARITY:
                     case hyperdisk::NOTFOUND:
-                    case hyperdisk::HASHFULL:
                     case hyperdisk::DATAFULL:
                     case hyperdisk::SEARCHFULL:
                     case hyperdisk::SYNCFAILED:
@@ -1162,7 +1160,6 @@ hyperdaemon :: replication_manager :: from_disk(const regionid& r,
             LOG(ERROR) << "m_data returned MISSINGDISK.";
             return false;
         case hyperdisk::WRONGARITY:
-        case hyperdisk::HASHFULL:
         case hyperdisk::DATAFULL:
         case hyperdisk::SEARCHFULL:
         case hyperdisk::SYNCFAILED:
@@ -1217,10 +1214,6 @@ hyperdaemon :: replication_manager :: put_to_disk(const regionid& pending_in,
                 LOG(ERROR) << "NOTFOUND returned when committing to disk.";
                 success = false;
                 break;
-            case hyperdisk::HASHFULL:
-                LOG(ERROR) << "HASHFULL returned when committing to disk.";
-                success = false;
-                break;
             case hyperdisk::DATAFULL:
                 LOG(ERROR) << "DATAFULL returned when committing to disk.";
                 success = false;
@@ -1260,10 +1253,6 @@ hyperdaemon :: replication_manager :: put_to_disk(const regionid& pending_in,
                 break;
             case hyperdisk::NOTFOUND:
                 LOG(ERROR) << "NOTFOUND returned when committing to disk.";
-                success = false;
-                break;
-            case hyperdisk::HASHFULL:
-                LOG(ERROR) << "HASHFULL returned when committing to disk.";
                 success = false;
                 break;
             case hyperdisk::DATAFULL:

@@ -340,9 +340,6 @@ hyperdaemon :: datalayer :: flush_loop()
                 case hyperdisk::DATAFULL:
                     LOG(INFO) << "flush returned DATAFULL";
                     break;
-                case hyperdisk::HASHFULL:
-                    LOG(INFO) << "flush returned HASHFULL";
-                    break;
                 case hyperdisk::SEARCHFULL:
                     LOG(INFO) << "flush returned SEARCHFULL";
                     break;

@@ -139,11 +139,6 @@ hyperdisk :: shard :: put(uint32_t primary_hash,
     size_t offset;
     bool overwrite = find_bucket(primary_hash, key, &entry, &offset);
 
-    if (entry == HASH_TABLE_SIZE)
-    {
-        return HASHFULL;
-    }
-
     // Values to pack.
     uint32_t key_size = key.size();
     uint16_t value_arity = value.size();

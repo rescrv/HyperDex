@@ -126,7 +126,6 @@ hyperdaemon :: network_worker :: run()
                         LOG(ERROR) << "GET caused a MISSINGDISK at the data layer.";
                         result = hyperdex::NET_SERVERERROR;
                         break;
-                    case hyperdisk::HASHFULL:
                     case hyperdisk::DATAFULL:
                     case hyperdisk::SEARCHFULL:
                     case hyperdisk::SYNCFAILED:
