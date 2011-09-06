@@ -229,33 +229,36 @@ hyperdisk :: shard :: stale_space() const
 {
     size_t stale_data = 0;
     size_t stale_num = 0;
-    uint32_t prev = m_search_index[1] & 0xffffffffUL;
-    uint32_t cur;
+    uint32_t start = static_cast<uint32_t>(m_search_index[1]);
+    uint32_t end;
     size_t i;
 
-    for (i = 0; i < SEARCH_INDEX_ENTRIES; ++i)
+    for (i = 1; i < SEARCH_INDEX_ENTRIES; ++i)
     {
-        cur = m_search_index[2 * i + 1] & 0xffffffffUL;
+        end = static_cast<uint32_t>(m_search_index[2 * i + 1]);
 
-        if (cur == 0)
+        if (end == 0)
         {
+            end = m_data_offset;
             break;
         }
 
-        if (m_search_index[2 * i + 1] >> 32 > 0)
+        if (static_cast<uint32_t>(m_search_index[2 * i + 1] >> 32) > 0)
         {
-            stale_data += cur - prev;
+            stale_data += end - start;
             ++stale_num;
         }
 
-        prev = cur;
+        start = end;
     }
 
-    if (i == SEARCH_INDEX_ENTRIES && m_search_index[2 * i + 1] >> 32 > 0)
+    if (i == SEARCH_INDEX_ENTRIES)
     {
-        stale_data += cur - prev;
-        ++stale_num;
+        end = m_data_offset;
     }
+
+    stale_data += end - start;
+    stale_num += (end - start) ? 1 : 0;
 
     double data = 100.0 * static_cast<double>(stale_data) / DATA_SEGMENT_SIZE;
     double num = 100.0 * static_cast<double>(stale_num) / SEARCH_INDEX_ENTRIES;

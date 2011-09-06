@@ -203,6 +203,42 @@ TEST(ShardTest, DataFull)
     ASSERT_EQ(hyperdisk::SUCCESS, d->put(32263, 0, keyb, value, 0));
 }
 
+TEST(ShardTest, StaleSpaceByEntries)
+{
+    po6::io::fd cwd(AT_FDCWD);
+    e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create(cwd, "tmp-disk");
+    e::guard g = e::makeguard(::unlink, "tmp-disk");
+
+	e::buffer key("key", 3);
+	uint32_t primary_hash = 0x6e9accf9UL;
+    std::vector<e::buffer> value(1, e::buffer("value", 5));
+    uint32_t secondary_hash = 0x2462bca6UL;
+
+    for (size_t i = 0; i < 32768; ++i)
+    {
+        ASSERT_EQ(hyperdisk::SUCCESS, d->put(primary_hash, secondary_hash, key, value, 0));
+        ASSERT_EQ(hyperdisk::SUCCESS, d->del(primary_hash, key));
+        ASSERT_EQ(100 * (i + 1) / 32768, d->stale_space());
+    }
+}
+
+TEST(ShardTest, StaleSpaceByData)
+{
+    po6::io::fd cwd(AT_FDCWD);
+    e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create(cwd, "tmp-disk");
+    e::guard g = e::makeguard(::unlink, "tmp-disk");
+    e::buffer key;
+    key.pack() << e::buffer::padding(2026);
+    std::vector<e::buffer> value;
+
+    for (size_t i = 0; i < 16384; ++i)
+    {
+        ASSERT_EQ(hyperdisk::SUCCESS, d->put(0, 0, key, value, 0));
+        ASSERT_EQ(hyperdisk::SUCCESS, d->del(0, key));
+        ASSERT_EQ(100 * (i + 1) / 16384, d->stale_space());
+    }
+}
+
 TEST(ShardTest, Snapshot)
 {
     po6::io::fd cwd(AT_FDCWD);

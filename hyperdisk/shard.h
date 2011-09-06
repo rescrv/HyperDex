@@ -103,6 +103,8 @@ class shard
                        uint64_t version);
         // May return SUCCESS, NOTFOUND, or DATAFULL.
         returncode del(uint32_t primary_hash, const e::buffer& key);
+        // The space calc functions are only accurate when mutually exclusive
+        // with GET operations.
         // How much stale space (as a percentage) may be reclaimed from this log
         // through cleaning.
         int stale_space() const;
