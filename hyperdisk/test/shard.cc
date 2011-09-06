@@ -155,6 +155,25 @@ TEST(ShardTest, DelPutDelPut)
 	ASSERT_EQ(hyperdisk::NOTFOUND, d->get(primary_hash, key, &value, &version));
 }
 
+TEST(ShardTest, SearchFull)
+{
+    po6::io::fd cwd(AT_FDCWD);
+    e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create(cwd, "tmp-disk");
+    e::guard g = e::makeguard(::unlink, "tmp-disk");
+
+	e::buffer key("key", 3);
+	uint32_t primary_hash = 0x6e9accf9UL;
+    std::vector<e::buffer> value(1, e::buffer("value", 5));
+    uint32_t secondary_hash = 0x2462bca6UL;
+
+    for (size_t i = 0; i < 32767; ++i)
+    {
+        ASSERT_EQ(hyperdisk::SUCCESS, d->put(primary_hash, secondary_hash, key, value, 0));
+    }
+
+    ASSERT_EQ(hyperdisk::SEARCHFULL, d->put(primary_hash, secondary_hash, key, value, 0));
+}
+
 TEST(ShardTest, Snapshot)
 {
     po6::io::fd cwd(AT_FDCWD);
