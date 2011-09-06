@@ -174,6 +174,33 @@ TEST(ShardTest, SearchFull)
     ASSERT_EQ(hyperdisk::SEARCHFULL, d->put(primary_hash, secondary_hash, key, value, 0));
 }
 
+TEST(ShardTest, DataFull)
+{
+    po6::io::fd cwd(AT_FDCWD);
+    e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create(cwd, "tmp-disk");
+    //e::guard g = e::makeguard(::unlink, "tmp-disk");
+    std::vector<e::buffer> value;
+
+    for (size_t i = 0; i < 32263; ++i)
+    {
+        e::buffer key;
+        key.pack() << static_cast<uint64_t>(i) << e::buffer::padding(1018);
+        assert(key.size() == 1026);
+
+        ASSERT_EQ(hyperdisk::SUCCESS, d->put(i, 0, key, value, 0));
+    }
+
+    e::buffer keya;
+    keya.pack() << static_cast<uint64_t>(32263) << e::buffer::padding(891);
+    assert(keya.size() == 899);
+    ASSERT_EQ(hyperdisk::DATAFULL, d->put(32263, 0, keya, value, 0));
+
+    e::buffer keyb;
+    keyb.pack() << static_cast<uint64_t>(32263) << e::buffer::padding(890);
+    assert(keyb.size() == 898);
+    ASSERT_EQ(hyperdisk::SUCCESS, d->put(32263, 0, keyb, value, 0));
+}
+
 TEST(ShardTest, Snapshot)
 {
     po6::io::fd cwd(AT_FDCWD);
