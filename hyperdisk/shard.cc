@@ -216,7 +216,7 @@ hyperdisk :: shard :: del(uint32_t primary_hash,
         return DATAFULL;
     }
 
-    assert(offset != 0 && offset != UINT32_MAX);
+    assert(offset != 0 && offset != UINT32_MAX); // LCOV_EXCL_LINE
     invalidate_search_index(offset, m_data_offset);
     m_data_offset += sizeof(uint64_t);
     m_hash_table[entry] = (static_cast<uint64_t>(UINT32_MAX) << 32)
@@ -297,7 +297,7 @@ e::intrusive_ptr<hyperdisk::shard_snapshot>
 hyperdisk :: shard :: make_snapshot()
 {
     e::intrusive_ptr<shard> d = this;
-    assert(m_ref >= 2);
+    assert(m_ref >= 2); // LCOV_EXCL_LINE
     e::intrusive_ptr<shard_snapshot> ret = new shard_snapshot(d);
     return ret;
 }
@@ -305,7 +305,7 @@ hyperdisk :: shard :: make_snapshot()
 void
 hyperdisk :: shard :: copy_to(const coordinate& c, e::intrusive_ptr<shard> s)
 {
-    assert(m_data != s->m_data);
+    assert(m_data != s->m_data); // LCOV_EXCL_LINE
     memset(s->m_hash_table, 0, HASH_TABLE_SIZE);
     memset(s->m_search_index, 0, SEARCH_INDEX_SIZE);
     s->m_data_offset = INDEX_SEGMENT_SIZE;
@@ -343,10 +343,10 @@ hyperdisk :: shard :: copy_to(const coordinate& c, e::intrusive_ptr<shard> s)
             entry_size = next_entry_start > 0 ? next_entry_start - entry_start: entry_size;
         }
 
-        assert(entry_start <= FILE_SIZE);
-        assert(entry_start + entry_size <= FILE_SIZE);
-        assert(s->m_data_offset <= FILE_SIZE);
-        assert(s->m_data_offset + entry_size <= FILE_SIZE);
+        assert(entry_start <= FILE_SIZE); // LCOV_EXCL_LINE
+        assert(entry_start + entry_size <= FILE_SIZE); // LCOV_EXCL_LINE
+        assert(s->m_data_offset <= FILE_SIZE); // LCOV_EXCL_LINE
+        assert(s->m_data_offset + entry_size <= FILE_SIZE); // LCOV_EXCL_LINE
 
         // Copy the entry's data
         memmove(s->m_data + s->m_data_offset, m_data + entry_start, entry_size);
@@ -409,14 +409,14 @@ hyperdisk :: shard :: data_size(const e::buffer& key,
 uint64_t
 hyperdisk :: shard :: data_version(uint32_t offset) const
 {
-    assert(((offset + 7) & ~7) == offset);
+    assert(((offset + 7) & ~7) == offset); // LCOV_EXCL_LINE
     return *reinterpret_cast<uint64_t*>(m_data + offset);
 }
 
 size_t
 hyperdisk :: shard :: data_key_size(uint32_t offset) const
 {
-    assert(((offset + 7) & ~7) == offset);
+    assert(((offset + 7) & ~7) == offset); // LCOV_EXCL_LINE
     return *reinterpret_cast<uint32_t*>(m_data + offset + sizeof(uint64_t));
 }
 
@@ -425,7 +425,7 @@ hyperdisk :: shard :: data_key(uint32_t offset,
                              size_t keysize,
                              e::buffer* key) const
 {
-    assert(((offset + 7) & ~7) == offset);
+    assert(((offset + 7) & ~7) == offset); // LCOV_EXCL_LINE
     uint32_t cur_offset = offset + sizeof(uint64_t) + sizeof(uint32_t);
     *key = e::buffer(m_data + cur_offset, keysize);
 }
@@ -435,7 +435,7 @@ hyperdisk :: shard :: data_value(uint32_t offset,
                                size_t keysize,
                                std::vector<e::buffer>* value) const
 {
-    assert(((offset + 7) & ~7) == offset);
+    assert(((offset + 7) & ~7) == offset); // LCOV_EXCL_LINE
     uint32_t cur_offset = offset + sizeof(uint64_t) + sizeof(uint32_t) + keysize;
     uint16_t num_dims;
     memmove(&num_dims, m_data + cur_offset, sizeof(uint16_t));
