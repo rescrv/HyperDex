@@ -15,7 +15,6 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_PROG_CXX
 AC_PROG_CC
 AC_LANG(C++)
-AC_CHECK_PROG(LCOV, lcov, lcov)
 
 AC_ARG_ENABLE([java-bindings], [AS_HELP_STRING([--enable-java-bindings],
               [enable the Java bindings @<:@default: no@:>@])],
@@ -39,6 +38,24 @@ if test x"${need_swig}" = xyes; then
     AX_SWIG_ENABLE_CXX
     AX_SWIG_MULTI_MODULE_SUPPORT
 fi
+
+AC_ARG_ENABLE([coverage], [AS_HELP_STRING([--enable-coverage],
+              [enable code coverage statistics @<:@default: no@:>@])],
+              [enable_coverage=${enableval}], [enable_coverage=no])
+
+COVERAGE_CXXFLAGS=
+COVERAGE_LDADD=
+if test x"${enable_coverage}" = xyes; then
+    AC_CHECK_PROG(LCOV, lcov, lcov)
+    if test x"${LCOV}" = xlcov; then
+        COVERAGE_CXXFLAGS="-fprofile-arcs -ftest-coverage"
+        COVERAGE_LDADD="-lgcov"
+    else
+        enable_coverage=no
+    fi
+fi
+AC_SUBST([COVERAGE_CXXFLAGS], [${COVERAGE_CXXFLAGS}])
+AC_SUBST([COVERAGE_LDADD], [${COVERAGE_LDADD}])
 
 # Checks for libraries.
 GTEST_LIB_CHECK
@@ -78,7 +95,7 @@ YCSB will not be built.
 fi
 AM_CONDITIONAL([ENABLE_JAVA], [test x"${java_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_YCSB], [test x"${enable_ycsb}" = xyes])
-AM_CONDITIONAL([ENABLE_COVERAGE], [test -n "${LCOV}"])
+AM_CONDITIONAL([ENABLE_COVERAGE], [test x"${enable_coverage}" = xyes])
 
 AC_CONFIG_FILES([Makefile hyperclient/Makefile hyperclient/java/Makefile
                  hyperdaemon/Makefile hyperdex/Makefile hyperdisk/Makefile
