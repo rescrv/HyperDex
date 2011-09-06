@@ -166,7 +166,7 @@ TEST(ShardTest, SearchFull)
     std::vector<e::buffer> value(1, e::buffer("value", 5));
     uint32_t secondary_hash = 0x2462bca6UL;
 
-    for (size_t i = 0; i < 32767; ++i)
+    for (size_t i = 0; i < 32768; ++i)
     {
         ASSERT_EQ(hyperdisk::SUCCESS, d->put(primary_hash, secondary_hash, key, value, 0));
         ASSERT_EQ(100 * (i + 1) / 32768, d->used_space());

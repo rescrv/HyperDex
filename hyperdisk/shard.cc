@@ -129,7 +129,7 @@ hyperdisk :: shard :: put(uint32_t primary_hash,
         return DATAFULL;
     }
 
-    if (m_search_offset == SEARCH_INDEX_ENTRIES - 1)
+    if (m_search_offset == SEARCH_INDEX_ENTRIES)
     {
         return SEARCHFULL;
     }
@@ -337,7 +337,7 @@ hyperdisk :: shard :: copy_to(const coordinate& c, e::intrusive_ptr<shard> s)
 
         size_t entry_size = m_data_offset - entry_start;
 
-        if (ent < SEARCH_INDEX_ENTRIES - 1)
+        if (ent < SEARCH_INDEX_ENTRIES)
         {
             size_t next_entry_start = static_cast<uint32_t>(m_search_index[ent * 2 + 3]);
             entry_size = next_entry_start > 0 ? next_entry_start - entry_start: entry_size;
@@ -534,7 +534,7 @@ void
 hyperdisk :: shard :: invalidate_search_index(uint32_t to_invalidate, uint32_t invalidate_with)
 {
     int64_t low = 0;
-    int64_t high = SEARCH_INDEX_ENTRIES - 1;
+    int64_t high = SEARCH_INDEX_ENTRIES;
 
     while (low <= high)
     {
