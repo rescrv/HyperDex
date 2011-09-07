@@ -5,6 +5,8 @@ bin_PROGRAMS = cli daemon
 noinst_PROGRAMS = binary-test count-test repl-test
 noinst_HEADERS = utils/bithacks.h utils/hashing.h
 
+EXTRA_DIST = runner.cc
+
 cli_SOURCES = cli.cc
 cli_CPPFLAGS = -I${abs_top_srcdir}/hyperclient/
 cli_LDADD = hyperclient/libhyperclient.la
