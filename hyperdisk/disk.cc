@@ -253,9 +253,25 @@ hyperdisk :: disk :: flush()
 
     e::guard hold = e::makeobjguard(m_shards_mutate, &po6::threads::mutex::unlock);
     bool flushed = false;
+#ifndef NDEBUG
+    e::locking_iterable_fifo<log_entry>::iterator it = m_log.iterate();
+#endif
 
-    for (size_t nf = 0; nf < 100 && !m_log.empty(); ++nf)
+    for (size_t nf = 0; nf < 10000 && !m_log.empty(); ++nf)
     {
+#ifndef NDEBUG
+        assert(it.valid());
+        assert(it->key == m_log.oldest().key);
+        assert(it->value == m_log.oldest().value);
+        assert(it->version == m_log.oldest().version);
+        assert(it->coord.primary_mask == m_log.oldest().coord.primary_mask);
+        assert(it->coord.primary_hash == m_log.oldest().coord.primary_hash);
+        assert(it->coord.secondary_mask == m_log.oldest().coord.secondary_mask);
+        assert(it->coord.secondary_hash == m_log.oldest().coord.secondary_hash);
+        assert(&(*it) == &(m_log.oldest()));
+        it.next();
+#endif
+
         bool deleted = false;
         const coordinate& coord = m_log.oldest().coord;
         const e::buffer& key = m_log.oldest().key;
