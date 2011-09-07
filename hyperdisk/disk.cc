@@ -516,7 +516,7 @@ hyperdisk :: disk :: create_shard(const coordinate& c)
     if (spareshard)
     {
         if (renameat(m_base.get(), spareshard_fn.get(),
-                     m_base.get(), shard_filename(c).get()) < 0)
+                     m_base.get(), path.get()) < 0)
         {
             throw po6::error(errno);
         }
@@ -554,7 +554,7 @@ hyperdisk :: disk :: create_tmp_shard(const coordinate& c)
     if (spareshard)
     {
         if (renameat(m_base.get(), spareshard_fn.get(),
-                     m_base.get(), shard_filename(c).get()) < 0)
+                     m_base.get(), path.get()) < 0)
         {
             throw po6::error(errno);
         }
