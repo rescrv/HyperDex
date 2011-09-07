@@ -2,7 +2,7 @@ SUBDIRS = . test
 
 AM_CPPFLAGS = -I$(abs_top_srcdir)/utils -I$(abs_top_srcdir)/hyperdex
 AM_CXXFLAGS = $(COVERAGE_CXXFLAGS)
-AM_LDFLAGS = -no-install $(GTEST_LDFLAGS)
+AM_LDFLAGS = $(GTEST_LDFLAGS)
 
 lib_LTLIBRARIES = libhyperdisk.la
 
