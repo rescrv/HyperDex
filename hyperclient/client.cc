@@ -58,20 +58,20 @@ class hyperclient :: client :: priv
 
     public:
         bool find_entity(const hyperdex::regionid& r, hyperdex::entityid* ent, hyperdex::instance* inst);
-        hyperclient::status send(e::intrusive_ptr<channel> chan,
+        hyperclient::returncode send(e::intrusive_ptr<channel> chan,
                                  const hyperdex::instance& inst,
                                  const hyperdex::entityid& ent,
                                  hyperdex::network_msgtype type,
                                  uint32_t nonce,
                                  const e::buffer& msg);
-        hyperclient::status recv(e::intrusive_ptr<channel> chan,
+        hyperclient::returncode recv(e::intrusive_ptr<channel> chan,
                                  const hyperdex::instance& inst,
                                  const hyperdex::entityid& ent,
                                  hyperdex::network_msgtype resp_type,
                                  uint32_t expected_nonce,
                                  hyperdex::network_returncode* resp_stat,
                                  e::buffer* resp_msg);
-        hyperclient::status reqrep(const std::string& space,
+        hyperclient::returncode reqrep(const std::string& space,
                                    const e::buffer& key,
                                    hyperdex::network_msgtype req_type,
                                    hyperdex::network_msgtype resp_type,
@@ -120,7 +120,7 @@ class hyperclient::search_results::priv
         ~priv() throw ();
 
     public:
-        status next();
+        returncode next();
 
     public:
         client::priv* c;
@@ -150,7 +150,7 @@ hyperclient :: client :: client(po6::net::location coordinator)
 {
 }
 
-hyperclient::status
+hyperclient::returncode
 hyperclient :: client :: connect()
 {
     switch (p->cl.connect())
@@ -193,14 +193,14 @@ hyperclient :: client :: connect()
     return SUCCESS;
 }
 
-hyperclient::status
+hyperclient::returncode
 hyperclient :: client :: get(const std::string& space,
                              const e::buffer& key,
                              std::vector<e::buffer>* value)
 {
     hyperdex::network_returncode resp_status;
     e::buffer resp_msg;
-    status stat = p->reqrep(space, key, hyperdex::REQ_GET, hyperdex::RESP_GET, key, &resp_status, &resp_msg);
+    returncode stat = p->reqrep(space, key, hyperdex::REQ_GET, hyperdex::RESP_GET, key, &resp_status, &resp_msg);
 
     if (stat == SUCCESS)
     {
@@ -225,7 +225,7 @@ hyperclient :: client :: get(const std::string& space,
     return stat;
 }
 
-hyperclient::status
+hyperclient::returncode
 hyperclient :: client :: put(const std::string& space,
                              const e::buffer& key,
                              const std::vector<e::buffer>& value)
@@ -234,7 +234,7 @@ hyperclient :: client :: put(const std::string& space,
     msg.pack() << key << value;
     hyperdex::network_returncode resp_status;
     e::buffer resp_msg;
-    status stat = p->reqrep(space, key, hyperdex::REQ_PUT, hyperdex::RESP_PUT, msg, &resp_status, &resp_msg);
+    returncode stat = p->reqrep(space, key, hyperdex::REQ_PUT, hyperdex::RESP_PUT, msg, &resp_status, &resp_msg);
 
     if (stat == SUCCESS)
     {
@@ -258,13 +258,13 @@ hyperclient :: client :: put(const std::string& space,
     return stat;
 }
 
-hyperclient::status
+hyperclient::returncode
 hyperclient :: client :: del(const std::string& space,
                              const e::buffer& key)
 {
     hyperdex::network_returncode resp_status;
     e::buffer resp_msg;
-    status stat = p->reqrep(space, key, hyperdex::REQ_DEL, hyperdex::RESP_DEL, key, &resp_status, &resp_msg);
+    returncode stat = p->reqrep(space, key, hyperdex::REQ_DEL, hyperdex::RESP_DEL, key, &resp_status, &resp_msg);
 
     if (stat == SUCCESS)
     {
@@ -288,7 +288,7 @@ hyperclient :: client :: del(const std::string& space,
     return stat;
 }
 
-hyperclient::status
+hyperclient::returncode
 hyperclient :: client :: update(const std::string& space,
                                 const e::buffer& key,
                                 const std::map<std::string, e::buffer>& value)
@@ -344,7 +344,7 @@ hyperclient :: client :: update(const std::string& space,
     msg.pack() << key << bits << realvalue;
     hyperdex::network_returncode resp_status;
     e::buffer resp_msg;
-    status stat = p->reqrep(space, key, hyperdex::REQ_UPDATE, hyperdex::RESP_UPDATE, msg, &resp_status, &resp_msg);
+    returncode stat = p->reqrep(space, key, hyperdex::REQ_UPDATE, hyperdex::RESP_UPDATE, msg, &resp_status, &resp_msg);
 
     if (stat == SUCCESS)
     {
@@ -368,7 +368,7 @@ hyperclient :: client :: update(const std::string& space,
     return stat;
 }
 
-hyperclient::status
+hyperclient::returncode
 hyperclient :: client :: search(const std::string& space,
                                 const std::map<std::string, e::buffer>& params,
                                 search_results* sr)
@@ -454,7 +454,7 @@ hyperclient :: client :: search(const std::string& space,
         }
     }
 
-    status ret = SUCCESS;
+    returncode ret = SUCCESS;
     std::map<hyperdex::instance, e::intrusive_ptr<priv::channel> > chansubset;
 
     for (std::map<hyperdex::entityid, hyperdex::instance>::iterator h = hosts.begin(); h != hosts.end(); ++h)
@@ -522,7 +522,7 @@ hyperclient :: client :: priv :: find_entity(const hyperdex::regionid& r,
     return found;
 }
 
-hyperclient::status
+hyperclient::returncode
 hyperclient :: client :: priv ::  send(e::intrusive_ptr<channel> chan,
                                        const hyperdex::instance& inst,
                                        const hyperdex::entityid& ent,
@@ -556,7 +556,7 @@ hyperclient :: client :: priv ::  send(e::intrusive_ptr<channel> chan,
     return SUCCESS;
 }
 
-hyperclient::status
+hyperclient::returncode
 hyperclient :: client :: priv :: recv(e::intrusive_ptr<channel> chan,
                                       const hyperdex::instance& inst,
                                       const hyperdex::entityid& ent,
@@ -695,7 +695,7 @@ hyperclient :: client :: priv :: recv(e::intrusive_ptr<channel> chan,
     }
 }
 
-hyperclient::status
+hyperclient::returncode
 hyperclient :: client :: priv :: reqrep(const std::string& space,
                                         const e::buffer& key,
                                         hyperdex::network_msgtype req_type,
@@ -742,7 +742,7 @@ hyperclient :: client :: priv :: reqrep(const std::string& space,
 
     uint32_t nonce = chan->nonce;
     ++chan->nonce;
-    status stat = send(chan, dst_inst, dst_ent, req_type, nonce, msg);
+    returncode stat = send(chan, dst_inst, dst_ent, req_type, nonce, msg);
 
     if (stat != SUCCESS)
     {
@@ -777,7 +777,7 @@ hyperclient :: search_results :: valid()
     return p->valid;
 }
 
-hyperclient::status
+hyperclient::returncode
 hyperclient :: search_results :: next()
 {
     return p->next();
@@ -870,7 +870,7 @@ hyperclient :: search_results :: priv :: ~priv()
     }
 }
 
-hyperclient::status
+hyperclient::returncode
 hyperclient :: search_results :: priv :: next()
 {
     while (valid && !hosts.empty())
