@@ -355,6 +355,9 @@ hyperdaemon :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
             || toinst != m_us // Try again because we don't believe ourselves to be the dest entity.
             || m_us.inbound_version != tover); // Try again because it is to an older version of us.
 
+#ifdef HD_LOG_ALL_MESSAGES
+    LOG(INFO) << "RECV " << *from << "->" << *to << " " << *msg_type << " " << msg->hex();
+#endif
     return true;
 }
 
@@ -396,6 +399,9 @@ hyperdaemon :: logical :: send_you_hold_lock(const hyperdex::entityid& from,
                                              const network_msgtype msg_type,
                                              const e::buffer& msg)
 {
+#ifdef HD_LOG_ALL_MESSAGES
+    LOG(INFO) << "SEND " << from << "->" << to << " " << msg_type << " " << msg.hex();
+#endif
     uint16_t fromver = 0;
     uint16_t tover = 0;
     po6::net::location dst;

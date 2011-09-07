@@ -78,6 +78,9 @@
 /* Define to 1 if the system has the type `_Bool'. */
 #undef HAVE__BOOL
 
+/* Log all network traffic at the INFO level */
+#undef HD_LOG_ALL_MESSAGES
+
 /* Define to the sub-directory in which libtool stores uninstalled libraries.
    */
 #undef LT_OBJDIR

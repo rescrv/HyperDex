@@ -94,6 +94,14 @@ YCSB will not be built.
         enable_ycsb=no
     fi
 fi
+
+AC_ARG_ENABLE([log-all-messages], [AS_HELP_STRING([--enable-log-all-messages],
+              [enable code to log all messages @<:@default: no@:>@])],
+              [enable_logall=${enableval}], [enable_logall=no])
+if test x"${enable_logall}" = xyes; then
+    AC_DEFINE([HD_LOG_ALL_MESSAGES], [], [Log all network traffic at the INFO level])
+fi
+
 AM_CONDITIONAL([ENABLE_JAVA], [test x"${java_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_YCSB], [test x"${enable_ycsb}" = xyes])
 AM_CONDITIONAL([ENABLE_COVERAGE], [test x"${enable_coverage}" = xyes])
