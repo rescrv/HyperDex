@@ -398,15 +398,14 @@ hyperdisk :: disk :: preallocate()
         }
     }
 
-    size_t spare_shards_needed;
+    bool need_shard = false;
 
     {
         po6::threads::mutex::hold hold(&m_spare_shards_lock);
-        spare_shards_needed = num_shards;
-        num_shards = std::min(num_shards, spare_shards_needed - m_spare_shards.size());
+        need_shard = num_shards - m_spare_shards.size() > 0;
     }
 
-    for (size_t i = 0; i < num_shards; ++i)
+    if (need_shard)
     {
         std::ostringstream ostr;
 
@@ -422,7 +421,6 @@ hyperdisk :: disk :: preallocate()
         {
             po6::threads::mutex::hold hold(&m_spare_shards_lock);
             m_spare_shards.push(std::make_pair(sparepath, spareshard));
-            num_shards = std::min(num_shards, spare_shards_needed - (m_spare_shards.size() - i));
         }
     }
 }
