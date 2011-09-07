@@ -120,6 +120,12 @@ class ActionsLog(object):
         del self._spaces_by_name[space]
         del self._spaces_by_num[spacenum]
 
+    def fill_space(self, space):
+        if space not in self._spaces_by_name:
+            raise ActionsLog.UnknownSpace()
+        spacenum = self._spaces_by_name[space]
+        self.fill_regions(self._spaces_by_num[spacenum])
+
     def fill_regions(self, space):
         for subspacenum, subspace in enumerate(space.subspaces):
             for region in subspace.regions:
@@ -127,7 +133,7 @@ class ActionsLog(object):
                     avail = set(self._instances.keys())
                     avail -= set(region.replicas)
                     avail = list(sorted(avail))
-                    if avail:
+                    if avail and not region.replicas[replicanum]:
                         # XXX Using random is probably not a good idea in the
                         # replicated state machine.
                         region.replicas[replicanum] = self._rand.choice(avail)
@@ -255,6 +261,10 @@ class ControlConnection(asynchat.async_chat):
                     if len(commandline) != 3:
                         return self.fail("Invalid control command {0}".format(commandline))
                     self.rm_space(commandline[2])
+                elif commandline[0] == "fill" and commandline[1] == "space":
+                    if len(commandline) != 3:
+                        return self.fail("Invalid control command {0}".format(commandline))
+                    self.fill_space(commandline[2])
                 else:
                     return self.fail("Unknown commandline {0}".format(commandline))
         elif self._mode == "DATA":
@@ -316,6 +326,19 @@ class ControlConnection(asynchat.async_chat):
     def rm_space(self, space):
         try:
             self._actionslog.rm_space(space)
+        except ValueError as e:
+            return self.fail(str(e))
+        except ActionsLog.UnknownSpace as e:
+            return self.fail("Space does not exist")
+        config, num = self._actionslog.config()
+        for fd, desc in self._map.iteritems():
+            if hasattr(desc, 'new_configuration'):
+                desc.new_configuration(config, num)
+        self.push("SUCCESS\n")
+
+    def fill_space(self, space):
+        try:
+            self._actionslog.fill_space(space)
         except ValueError as e:
             return self.fail(str(e))
         except ActionsLog.UnknownSpace as e:
