@@ -335,7 +335,7 @@ hyperdisk :: shard :: copy_to(const coordinate& c, e::intrusive_ptr<shard> s)
 
         size_t entry_size = m_data_offset - entry_start;
 
-        if (ent < SEARCH_INDEX_ENTRIES)
+        if (ent < SEARCH_INDEX_ENTRIES - 1)
         {
             size_t next_entry_start = static_cast<uint32_t>(m_search_index[ent * 2 + 3]);
             entry_size = next_entry_start > 0 ? next_entry_start - entry_start: entry_size;
