@@ -1,5 +1,8 @@
-noinst_LTLIBRARIES = libhyperdaemon.la
+AM_CPPFLAGS = -I$(abs_top_srcdir)/hyperdex -I$(abs_top_srcdir)/hyperdisk
+AM_CXXFLAGS = $(COVERAGE_CXXFLAGS)
+AM_LDFLAGS = $(GTEST_LDFLAGS)
 
+noinst_LTLIBRARIES = libhyperdaemon.la
 noinst_HEADERS = hyperdaemon/daemon.h datalayer.h logical.h network_worker.h \
 				 physical.h replication/clientop.h replication/deferred.h \
 				 replication/keyholder.h replication/keypair.h \
@@ -10,6 +13,4 @@ noinst_HEADERS = hyperdaemon/daemon.h datalayer.h logical.h network_worker.h \
 libhyperdaemon_la_SOURCES = daemon.cc datalayer.cc logical.cc \
 							network_worker.cc physical.cc \
 							replication_manager.cc searches.cc
-libhyperdaemon_la_CPPFLAGS = -I${abs_top_srcdir}/hyperdex -I${abs_top_srcdir}/hyperdisk
-libhyperdaemon_la_LIBADD = ../hyperdex/libhyperdex.la
-libhyperdaemon_la_LDFLAGS = -lcityhash
+libhyperdaemon_la_LIBADD = ../hyperdex/libhyperdex.la -lcityhash $(COVERAGE_LDADD)
