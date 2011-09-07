@@ -28,6 +28,9 @@
 #ifndef hyperdex_network_constants_h_
 #define hyperdex_network_constants_h_
 
+// C++
+#include <iostream>
+
 namespace hyperdex
 {
 
@@ -73,6 +76,49 @@ enum network_msgtype
 
     PACKET_NOP      = 255
 };
+
+#define str(x) #x
+#define xstr(x) str(x)
+#define stringify(x) case (x): lhs << xstr(x); break
+
+inline std::ostream&
+operator << (std::ostream& lhs, const network_msgtype& rhs)
+{
+    switch(rhs)
+    {
+        stringify(REQ_GET);
+        stringify(RESP_GET);
+        stringify(REQ_PUT);
+        stringify(RESP_PUT);
+        stringify(REQ_DEL);
+        stringify(RESP_DEL);
+        stringify(REQ_UPDATE);
+        stringify(RESP_UPDATE);
+        stringify(REQ_SEARCH_START);
+        stringify(REQ_SEARCH_NEXT);
+        stringify(REQ_SEARCH_STOP);
+        stringify(RESP_SEARCH_ITEM);
+        stringify(RESP_SEARCH_DONE);
+        stringify(CHAIN_PUT);
+        stringify(CHAIN_DEL);
+        stringify(CHAIN_PENDING);
+        stringify(CHAIN_SUBSPACE);
+        stringify(CHAIN_ACK);
+        stringify(XFER_MORE);
+        stringify(XFER_DATA);
+        stringify(XFER_DONE);
+        stringify(PACKET_NOP);
+        default:
+            lhs << "unknown network_msgtype";
+            break;
+    }
+
+    return lhs;
+}
+
+#undef stringify
+#undef xstr
+#undef str
 
 } // namespace hyperdex
 
