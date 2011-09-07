@@ -353,10 +353,10 @@ hyperdaemon :: datalayer :: flush_loop()
                     LOG(INFO) << "flush returned WRONGARITY";
                     break;
                 case hyperdisk::SYNCFAILED:
-                    LOG(INFO) << "flush returned SYNCFAILED";
+                    PLOG(INFO) << "flush returned SYNCFAILED";
                     break;
                 case hyperdisk::DROPFAILED:
-                    LOG(INFO) << "flush returned DROPFAILED";
+                    PLOG(INFO) << "flush returned DROPFAILED";
                     break;
                 default:
                     assert(!"Programming error.");
