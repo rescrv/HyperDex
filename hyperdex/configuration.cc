@@ -43,6 +43,10 @@
 #include "hyperdex/configuration.h"
 #include "hyperdex/hyperspace.h"
 
+const hyperdex::spaceid hyperdex::configuration::NULLSPACE;
+const hyperdex::instance hyperdex::configuration::NULLINSTANCE;
+const uint32_t hyperdex::configuration::CLIENTSPACE = UINT32_MAX;
+
 hyperdex :: configuration :: configuration()
     : m_hosts()
     , m_space_assignment()
@@ -331,6 +335,34 @@ hyperdex :: configuration :: add_line(const std::string& line)
     }
 }
 
+hyperdex::spaceid
+hyperdex :: configuration :: lookup_spaceid(const std::string& space) const
+{
+    std::map<std::string, spaceid>::const_iterator sai;
+    sai = m_space_assignment.find(space);
+
+    if (sai == m_space_assignment.end())
+    {
+        return NULLSPACE;
+    }
+
+    return sai->second.space;
+}
+
+std::vector<std::string>
+hyperdex :: configuration :: lookup_space_dimensions(spaceid space) const
+{
+    std::map<spaceid, std::vector<std::string> >::const_iterator si;
+    si = m_spaces.find(space);
+
+    if (si == m_spaces.end())
+    {
+        return std::vector<std::string>();
+    }
+
+    return si->second;
+}
+
 hyperdex::entityid
 hyperdex :: configuration :: headof(const regionid& r) const
 {
@@ -366,7 +398,7 @@ hyperdex :: configuration :: tailof(const regionid& r) const
 }
 
 hyperdex::instance
-hyperdex :: configuration :: lookup(const entityid& e) const
+hyperdex :: configuration :: instancefor(const entityid& e) const
 {
     typedef std::map<hyperdex::entityid, hyperdex::instance>::const_iterator mapiter;
     mapiter i = m_entities.find(e);

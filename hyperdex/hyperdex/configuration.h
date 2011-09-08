@@ -46,16 +46,28 @@ namespace hyperdex
 class configuration
 {
     public:
+        const static spaceid NULLSPACE;
+        const static instance NULLINSTANCE;
+        const static uint32_t CLIENTSPACE;
+
+    public:
         configuration();
 
     public:
         bool add_line(const std::string& line);
 
     public:
+        spaceid lookup_spaceid(const std::string& space) const;
+        std::vector<std::string> lookup_space_dimensions(spaceid space) const;
+
+    public:
         entityid headof(const regionid& r) const;
         entityid tailof(const regionid& r) const;
-        instance lookup(const entityid& e) const;
+        instance instancefor(const entityid& e) const;
 
+    // Everything below this line is deprecated.
+    // XXX Remove stuff below this line in favor of easier APIs.
+        instance lookup(const entityid& e) const { return instancefor(e); }
     public:
         // Return the number of subspaces within the space.
         bool subspaces(const spaceid& s, size_t* sz) const;
