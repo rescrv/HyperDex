@@ -27,6 +27,10 @@
 
 #define __STDC_LIMIT_MACROS
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 // C
 #include <stdint.h>
 
