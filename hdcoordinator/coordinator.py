@@ -69,9 +69,9 @@ class ActionsLog(object):
         self._instances = {}
         self._spaces_by_name = {}
         self._spaces_by_num = {}
-        self._spacenum = 0
+        self._spacenum = 1
         self._stableconfig = ''
-        self._confignum = 0
+        self._confignum = 1
         self._rand = random.Random()
 
     def add_instance(self, addr, incoming, outgoing):
@@ -106,7 +106,7 @@ class ActionsLog(object):
             raise ActionsLog.DuplicateSpace()
         while True:
             spacenum = self._spacenum
-            self._spacenum = (self._spacenum + 1) % ((1 << 32) - 3) + 1
+            self._spacenum = (self._spacenum + 1) % ((1 << 32) - 4) + 1
             if spacenum not in self._spaces_by_num:
                 break
         self._spaces_by_name[space.name] = spacenum
