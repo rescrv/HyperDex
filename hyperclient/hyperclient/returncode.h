@@ -48,6 +48,40 @@ enum returncode
     TIMEOUT     = 22
 };
 
+#define str(x) #x
+#define xstr(x) str(x)
+#define stringify(x) case (x): lhs << xstr(x); break
+
+inline std::ostream&
+operator << (std::ostream& lhs, const returncode& rhs)
+{
+    switch(rhs)
+    {
+        stringify(SUCCESS);
+        stringify(NOTFOUND);
+        stringify(WRONGARITY);
+        stringify(NOTASPACE);
+        stringify(BADSEARCH);
+        stringify(BADDIMENSION);
+        stringify(COORDFAIL);
+        stringify(SERVERERROR);
+        stringify(CONNECTFAIL);
+        stringify(DISCONNECT);
+        stringify(RECONFIGURE);
+        stringify(LOGICERROR);
+        stringify(TIMEOUT);
+        default:
+            lhs << "unknown returncode";
+            break;
+    }
+
+    return lhs;
+}
+
+#undef stringify
+#undef xstr
+#undef str
+
 } // namespace hyperclient
 
 #endif // hyperclient_returncode_h_
