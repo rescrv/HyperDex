@@ -36,6 +36,11 @@
 // po6
 #include <po6/net/location.h>
 
+// HyperspaceHashing
+#include <hyperspacehashing/equality_wildcard.h>
+#include <hyperspacehashing/mask.h>
+#include <hyperspacehashing/prefix.h>
+
 // HyperDex
 #include <hyperdex/ids.h>
 #include <hyperdex/instance.h>
@@ -65,7 +70,14 @@ class configuration
         entityid tailof(const regionid& r) const;
         instance instancefor(const entityid& e) const;
 
-    // Everything below this line is deprecated.
+    // Search-related functions.
+    public:
+        std::map<entityid, instance> search_entities(const spaceid& space,
+                                                     const hyperspacehashing::equality_wildcard& wc) const;
+        std::map<entityid, instance> search_entities(const subspaceid& subspace,
+                                                     const hyperspacehashing::equality_wildcard& wc) const;
+
+    // Everything public below this line is deprecated.
     // XXX Remove stuff below this line in favor of easier APIs.
         instance lookup(const entityid& e) const { return instancefor(e); }
     public:
@@ -107,6 +119,12 @@ class configuration
         std::map<regionid, size_t> regions() const;
         std::set<instance> hosts() const;
 
+    // Below this line is not deprecated.
+    private:
+        std::map<entityid, instance> _search_entities(std::map<entityid, instance>::const_iterator start,
+                                                      std::map<entityid, instance>::const_iterator end,
+                                                      const hyperspacehashing::equality_wildcard& terms) const;
+
     private:
         std::map<std::string, instance> m_hosts;
         std::map<std::string, spaceid> m_space_assignment;
@@ -123,6 +141,10 @@ class configuration
         std::map<entityid, instance> m_entities;
         // Track currently specified transfers.
         std::map<uint16_t, regionid> m_transfers;
+        // Hash-calculating objects that work for the replication layer.
+        std::map<subspaceid, hyperspacehashing::prefix::hasher> m_repl_hashers;
+        // Hash-calculating objects that work for the disk layer.
+        std::map<subspaceid, hyperspacehashing::mask::hasher> m_disk_hashers;
 };
 
 inline std::ostream&
