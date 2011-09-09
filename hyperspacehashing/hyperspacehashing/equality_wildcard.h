@@ -25,11 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_search_h_
-#define hyperdex_search_h_
-
-// C
-#include <cassert>
+#ifndef hyperspacehashing_equality_wildcard_h_
+#define hyperspacehashing_equality_wildcard_h_
 
 // STL
 #include <vector>
@@ -38,67 +35,36 @@
 #include <e/bitfield.h>
 #include <e/buffer.h>
 
-namespace hyperdex
+namespace hyperspacehashing
 {
 
-class search
+class equality_wildcard
 {
     public:
-        search(size_t n = 0);
-        ~search();
+        equality_wildcard(size_t n);
+        ~equality_wildcard() throw ();
+
+    public:
+        size_t size() const { return m_value.size(); }
+        bool isset(size_t idx) const { return m_mask.get(idx); }
+        const e::buffer& get(size_t idx) const { return m_value[idx]; }
 
     public:
         void set(size_t idx, const e::buffer& val);
         void unset(size_t idx);
         void clear();
 
-    public:
-        bool matches(const std::vector<e::buffer>& value) const;
-        bool is_specified(size_t idx) const
-        {
-            return m_mask.get(idx);
-        }
-
-        // This is undefined if !m_mask[idx]
-        const e::buffer& dimension(size_t idx) const
-        {
-            return m_value[idx];
-        }
-
-        size_t size() const
-        {
-            assert(m_value.size() == m_mask.bits());
-            return m_value.size();
-        }
-
-        uint32_t secondary_point() const;
-        uint32_t secondary_mask() const;
-        uint64_t replication_point(const std::vector<bool>& dims) const;
-        uint64_t replication_mask(const std::vector<bool>& dims) const;
-
     private:
-        friend e::packer& operator << (e::packer& lhs, const search& rhs);
-        friend e::unpacker& operator >> (e::unpacker& lhs, search& rhs);
-
-    private:
-        std::vector<e::buffer> m_value;
         e::bitfield m_mask;
+        std::vector<e::buffer> m_value;
 };
 
-inline e::packer&
-operator << (e::packer& lhs, const search& rhs)
-{
-    lhs << rhs.m_mask << rhs.m_value;
-    return lhs;
-}
+e::packer&
+operator << (e::packer& lhs, const equality_wildcard& rhs);
 
-inline e::unpacker&
-operator >> (e::unpacker& lhs, search& rhs)
-{
-    lhs >> rhs.m_mask >> rhs.m_value;
-    return lhs;
-}
+e::unpacker&
+operator >> (e::unpacker& lhs, equality_wildcard& rhs);
 
-} // namespace hyperdex
+} // namespace hyperspacehashing
 
-#endif // hyperdex_search_h_
+#endif // hyperspacehashing_equality_wildcard_h_

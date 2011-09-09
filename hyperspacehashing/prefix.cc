@@ -61,6 +61,37 @@ hyperspacehashing :: prefix :: coordinate :: contains(const coordinate& other) c
     return prefix <= other.prefix && ((mask & point) == (mask & other.point));
 }
 
+
+hyperspacehashing :: prefix :: ewc_coordinate :: ewc_coordinate()
+    : mask(0)
+    , point(0)
+{
+}
+
+hyperspacehashing :: prefix :: ewc_coordinate :: ewc_coordinate(uint64_t m,
+                                                                uint64_t p)
+    : mask(m)
+    , point(p)
+{
+}
+
+hyperspacehashing :: prefix :: ewc_coordinate :: ewc_coordinate(const ewc_coordinate& other)
+    : mask(other.mask)
+    , point(other.point)
+{
+}
+
+hyperspacehashing :: prefix :: ewc_coordinate :: ~ewc_coordinate() throw ()
+{
+}
+
+bool
+hyperspacehashing :: prefix :: ewc_coordinate :: matches(const coordinate& other) const
+{
+    uint64_t intersection = lookup_msb_mask[other.prefix] & mask;
+    return (point & intersection) == (other.point & intersection);
+}
+
 hyperspacehashing :: prefix :: hasher :: hasher(const e::bitfield& dims,
                                                 const std::vector<hash_t> funcs)
     : m_dims(dims)

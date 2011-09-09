@@ -25,62 +25,41 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperspacehashing_mask_h_
-#define hyperspacehashing_mask_h_
-
-// STL
-#include <iostream>
-
 // HyperspaceHashing
-#include <hyperspacehashing/equality_wildcard.h>
-#include <hyperspacehashing/hashes.h>
+#include "hyperspacehashing/equality_wildcard.h"
 
-namespace hyperspacehashing
+hyperspacehashing :: equality_wildcard :: equality_wildcard(size_t n)
+    : m_mask(n)
+    , m_value(n)
 {
-namespace mask
+}
+
+hyperspacehashing :: equality_wildcard :: ~equality_wildcard() throw ()
 {
+}
 
-class coordinate
+void
+hyperspacehashing :: equality_wildcard :: set(size_t idx, const e::buffer& val)
 {
-    public:
-        coordinate();
-        coordinate(uint32_t primary_mask, uint32_t primary_hash,
-                   uint32_t secondary_mask, uint32_t secondary_hash);
-        coordinate(const coordinate& other);
-        ~coordinate() throw ();
+    assert(idx < m_value.size());
+    assert(idx < m_mask.bits());
 
-    public:
-        bool contains(const coordinate& other) const;
-        bool primary_contains(const coordinate& other) const;
-        bool secondary_contains(const coordinate& other) const;
+    m_mask.set(idx);
+    m_value[idx] = val;
+}
 
-    public:
-        uint32_t primary_mask;
-        uint32_t primary_hash;
-        uint32_t secondary_mask;
-        uint32_t secondary_hash;
-};
-
-class hasher
+void
+hyperspacehashing :: equality_wildcard :: unset(size_t idx)
 {
-    public:
-        hasher(const std::vector<hash_t> funcs);
-        ~hasher() throw ();
+    assert(idx < m_value.size());
+    assert(idx < m_mask.bits());
 
-    public:
-        coordinate hash(const e::buffer& key);
-        coordinate hash(const e::buffer& key, const std::vector<e::buffer>& value);
-        coordinate hash(const std::vector<e::buffer>& value);
-        coordinate hash(const equality_wildcard& ewc) const;
+    m_mask.unset(idx);
+}
 
-    private:
-        const std::vector<hash_t> m_funcs;
-};
-
-std::ostream&
-operator << (std::ostream& lhs, const coordinate& rhs);
-
-} // namespace mask
-} // namespace hyperspacehashing
-
-#endif // hyperspacehashing_mask_h_
+void
+hyperspacehashing :: equality_wildcard :: clear()
+{
+    m_value = std::vector<e::buffer>(m_value.size());
+    m_mask = e::bitfield(m_value.size());
+}

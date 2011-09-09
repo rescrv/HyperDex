@@ -34,6 +34,7 @@
 #include <e/bitfield.h>
 
 // HyperspaceHashing
+#include <hyperspacehashing/equality_wildcard.h>
 #include <hyperspacehashing/hashes.h>
 
 namespace hyperspacehashing
@@ -57,6 +58,22 @@ class coordinate
         uint64_t point;
 };
 
+class ewc_coordinate
+{
+    public:
+        ewc_coordinate();
+        ewc_coordinate(uint64_t mask, uint64_t point);
+        ewc_coordinate(const ewc_coordinate& other);
+        ~ewc_coordinate() throw ();
+
+    public:
+        bool matches(const coordinate& other) const;
+
+    public:
+        uint64_t mask;
+        uint64_t point;
+};
+
 class hasher
 {
     public:
@@ -66,6 +83,7 @@ class hasher
 
     public:
         coordinate hash(const e::buffer& key, const std::vector<e::buffer>& value) const;
+        ewc_coordinate hash(const equality_wildcard& ewc) const;
 
     private:
         const e::bitfield& m_dims;
