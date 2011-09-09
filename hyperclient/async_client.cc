@@ -25,6 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#define __STDC_LIMIT_MACROS
+
 // STL
 #include <queue>
 
@@ -39,6 +41,9 @@
 // Utils
 #include "hashing.h"
 
+// HyperspaceHashing
+#include <hyperspacehashing/equality_wildcard.h>
+
 // HyperDex
 #include <hyperdex/configuration.h>
 #include <hyperdex/coordinatorlink.h>
@@ -49,6 +54,8 @@
 
 namespace hyperclient
 {
+
+class async_client_impl;
 
 class channel
 {
@@ -80,9 +87,9 @@ class pending
 
     public:
         virtual void result(returncode ret) = 0;
-        virtual e::intrusive_ptr<pending> result(returncode status,
-                                                 hyperdex::network_msgtype msg_type,
-                                                 const e::buffer& msg) = 0;
+        virtual e::intrusive_ptr<pending> result(hyperdex::network_msgtype msg_type,
+                                                 const e::buffer& msg,
+                                                 bool* called_back) = 0;
 
     public:
         e::intrusive_ptr<channel> chan;
@@ -110,9 +117,9 @@ class pending_get : public pending
 
     public:
         virtual void result(returncode ret);
-        virtual e::intrusive_ptr<pending> result(returncode status,
-                                                 hyperdex::network_msgtype msg_type,
-                                                 const e::buffer& msg);
+        virtual e::intrusive_ptr<pending> result(hyperdex::network_msgtype msg_type,
+                                                 const e::buffer& msg,
+                                                 bool* called_back);
 
     private:
         std::tr1::function<void (returncode, const std::vector<e::buffer>&)> m_callback;
@@ -127,13 +134,43 @@ class pending_mutate : public pending
 
     public:
         virtual void result(returncode ret);
-        virtual e::intrusive_ptr<pending> result(returncode status,
-                                                 hyperdex::network_msgtype msg_type,
-                                                 const e::buffer& msg);
+        virtual e::intrusive_ptr<pending> result(hyperdex::network_msgtype msg_type,
+                                                 const e::buffer& msg,
+                                                 bool* called_back);
 
     private:
         hyperdex::network_msgtype m_expected;
         std::tr1::function<void (returncode)> m_callback;
+};
+
+class pending_search : public pending
+{
+    public:
+        pending_search(uint64_t searchid,
+                       async_client_impl* aci,
+                       std::tr1::function<void (returncode,
+                                                const e::buffer&,
+                                                const std::vector<e::buffer>&)> callback);
+        virtual ~pending_search() throw ();
+
+    public:
+        virtual void result(returncode ret);
+        virtual e::intrusive_ptr<pending> result(hyperdex::network_msgtype msg_type,
+                                                 const e::buffer& msg,
+                                                 bool* called_back);
+
+    private:
+        pending_search(const pending_search&);
+
+    public:
+        pending_search& operator = (const pending_search&);
+
+    private:
+        uint64_t m_searchid;
+        async_client_impl* m_aci;
+        std::tr1::function<void (returncode,
+                                 const e::buffer&,
+                                 const std::vector<e::buffer>&)> m_callback;
 };
 
 class async_client_impl : public hyperclient :: async_client
@@ -156,6 +193,17 @@ class async_client_impl : public hyperclient :: async_client
         virtual void update(const std::string& space, const e::buffer& key,
                             const std::map<std::string, e::buffer>& value,
                             std::tr1::function<void (returncode)> callback);
+        virtual void search(const std::string& space,
+                            const std::map<std::string, e::buffer>& params,
+                            std::tr1::function<void (returncode,
+                                                     const e::buffer&,
+                                                     const std::vector<e::buffer>&)> callback);
+        virtual void search(const std::string& space,
+                            const std::map<std::string, e::buffer>& params,
+                            std::tr1::function<void (returncode,
+                                                     const e::buffer&,
+                                                     const std::vector<e::buffer>&)> callback,
+                            uint16_t subspace_hint);
         virtual size_t outstanding();
         virtual returncode flush(int timeout);
         virtual returncode flush_one(int timeout);
@@ -178,6 +226,7 @@ class async_client_impl : public hyperclient :: async_client
         hyperdex::configuration m_config;
         std::map<hyperdex::instance, e::intrusive_ptr<channel> > m_channels;
         std::deque<e::intrusive_ptr<pending> > m_requests;
+        uint64_t m_searchid;
 };
 
 } // hyperclient
@@ -198,6 +247,7 @@ hyperclient :: async_client_impl :: async_client_impl(po6::net::location coordin
     , m_config()
     , m_channels()
     , m_requests()
+    , m_searchid(1)
 {
     m_coord.set_announce("client");
 }
@@ -331,6 +381,109 @@ hyperclient :: async_client_impl :: update(const std::string& space,
     msg.pack() << key << bits << realvalue;
     e::intrusive_ptr<pending> op = new pending_mutate(hyperdex::RESP_UPDATE, callback);
     add_reqrep(space, key, hyperdex::REQ_UPDATE, msg, op);
+}
+
+void
+hyperclient :: async_client_impl :: search(const std::string& space,
+                                           const std::map<std::string, e::buffer>& params,
+                                           std::tr1::function<void (returncode,
+                                                                    const e::buffer&,
+                                                                    const std::vector<e::buffer>&)> callback)
+{
+    search(space, params, callback, UINT16_MAX);
+}
+
+void
+hyperclient :: async_client_impl :: search(const std::string& space,
+                                           const std::map<std::string, e::buffer>& params,
+                                           std::tr1::function<void (returncode,
+                                                                    const e::buffer&,
+                                                                    const std::vector<e::buffer>&)> callback,
+                                           uint16_t subspace_hint)
+{
+    e::buffer pseudokey;
+    std::vector<e::buffer> pseudovalue;
+
+    // Lookup the space
+    hyperdex::spaceid si = m_config.lookup_spaceid(space);
+
+    if (si == hyperdex::configuration::NULLSPACE)
+    {
+        callback(NOTASPACE, pseudokey, pseudovalue);
+        return;
+    }
+
+    std::vector<std::string> dimension_names = m_config.lookup_space_dimensions(si);
+    assert(dimension_names.size() > 0);
+
+    // Create a search object from the search terms.
+    hyperspacehashing::equality_wildcard terms(dimension_names.size());
+
+    for (std::map<std::string, e::buffer>::const_iterator param = params.begin();
+            param != params.end(); ++param)
+    {
+        std::vector<std::string>::const_iterator dim;
+        dim = std::find(dimension_names.begin(), dimension_names.end(), param->first);
+
+        if (dim == dimension_names.begin() || dim == dimension_names.end())
+        {
+            callback(BADSEARCH, pseudokey, pseudovalue);
+            return;
+        }
+
+        terms.set((dim - dimension_names.begin()), param->second);
+    }
+
+    // Get the hosts that match our search terms.
+    std::map<hyperdex::entityid, hyperdex::instance> search_entities;
+
+    if (subspace_hint == UINT16_MAX)
+    {
+        search_entities = m_config.search_entities(si, terms);
+    }
+    else
+    {
+        search_entities = m_config.search_entities(hyperdex::subspaceid(si, subspace_hint), terms);
+    }
+
+    uint64_t searchid = m_searchid;
+    ++m_searchid;
+    e::buffer req;
+    req.pack() << searchid << terms;
+
+    for (std::map<hyperdex::entityid, hyperdex::instance>::const_iterator ent_inst = search_entities.begin();
+            ent_inst != search_entities.end(); ++ ent_inst)
+    {
+        e::intrusive_ptr<pending> op = new pending_search(searchid, this, callback);
+        e::intrusive_ptr<channel> chan = m_channels[ent_inst->second];
+        m_requests.push_back(op);
+
+        if (!chan)
+        {
+            try
+            {
+                m_channels[ent_inst->second] = chan = new channel(ent_inst->second);
+            }
+            catch (po6::error& e)
+            {
+                op->result(CONNECTFAIL);
+                m_requests.pop_back();
+                continue;
+            }
+        }
+
+        uint32_t nonce = chan->nonce;
+        ++chan->nonce;
+        op->chan = chan;
+        op->ent = ent_inst->first;
+        op->inst = ent_inst->second;
+        op->nonce = nonce;
+
+        if (!send(chan, op, op->ent, op->inst, nonce, hyperdex::REQ_SEARCH_START, req))
+        {
+            m_requests.pop_back();
+        }
+    }
 }
 
 void
@@ -698,8 +851,13 @@ hyperclient :: async_client_impl :: flush_one(int timeout)
                         to == chan->id &&
                         nonce == (*req)->nonce)
                     {
-                        *req = (*req)->result(SUCCESS, msg_type, msg);
-                        return SUCCESS;
+                        bool called_back = false;
+                        *req = (*req)->result(msg_type, msg, &called_back);
+
+                        if (called_back)
+                        {
+                            return SUCCESS;
+                        }
                     }
                 }
             }
@@ -774,17 +932,12 @@ hyperclient :: pending_get :: result(returncode ret)
 }
 
 e::intrusive_ptr<hyperclient::pending>
-hyperclient :: pending_get :: result(returncode ret,
-                                     hyperdex::network_msgtype msg_type,
-                                     const e::buffer& msg)
+hyperclient :: pending_get :: result(hyperdex::network_msgtype msg_type,
+                                     const e::buffer& msg,
+                                     bool* called_back)
 {
+    *called_back = true;
     std::vector<e::buffer> value;
-
-    if (ret != SUCCESS)
-    {
-        m_callback(ret, value);
-        return NULL;
-    }
 
     if (msg_type != hyperdex::RESP_GET)
     {
@@ -847,15 +1000,11 @@ hyperclient :: pending_mutate :: result(returncode ret)
 }
 
 e::intrusive_ptr<hyperclient::pending>
-hyperclient :: pending_mutate :: result(returncode ret,
-                                        hyperdex::network_msgtype msg_type,
-                                        const e::buffer& msg)
+hyperclient :: pending_mutate :: result(hyperdex::network_msgtype msg_type,
+                                        const e::buffer& msg,
+                                        bool* called_back)
 {
-    if (ret != SUCCESS)
-    {
-        m_callback(ret);
-        return NULL;
-    }
+    *called_back = true;
 
     if (msg_type != m_expected)
     {
@@ -897,4 +1046,74 @@ hyperclient :: pending_mutate :: result(returncode ret,
     }
 
     return NULL;
+}
+
+hyperclient :: pending_search :: pending_search(uint64_t searchid,
+                                                async_client_impl* aci,
+                                                std::tr1::function<void (returncode,
+                                                                   const e::buffer&,
+                                                                   const std::vector<e::buffer>&)> callback)
+    : m_searchid(searchid)
+    , m_aci(aci)
+    , m_callback(callback)
+{
+}
+
+hyperclient :: pending_search :: ~pending_search() throw ()
+{
+}
+
+void
+hyperclient :: pending_search :: result(returncode ret)
+{
+    e::buffer pseudokey;
+    std::vector<e::buffer> pseudovalue;
+    m_callback(ret, pseudokey, pseudovalue);
+}
+
+e::intrusive_ptr<hyperclient::pending>
+hyperclient :: pending_search :: result(hyperdex::network_msgtype msg_type,
+                                        const e::buffer& msg,
+                                        bool* called_back)
+{
+    *called_back = true;
+    e::buffer key;
+    std::vector<e::buffer> value;
+
+    if (msg_type == hyperdex::RESP_SEARCH_ITEM)
+    {
+        try
+        {
+            msg.unpack() >> key >> value;
+            nonce = chan->nonce;
+            ++chan->nonce;
+            e::buffer req;
+            req.pack() << m_searchid;
+
+            if (m_aci->send(chan, this, ent, inst, nonce, hyperdex::REQ_SEARCH_NEXT, req))
+            {
+                m_callback(SUCCESS, key, value);
+                return this;
+            }
+            else
+            {
+                return NULL;
+            }
+        }
+        catch (std::out_of_range& e)
+        {
+            m_callback(SERVERERROR, key, value);
+            return NULL;
+        }
+    }
+    else if (msg_type == hyperdex::RESP_SEARCH_DONE)
+    {
+        *called_back = false;
+        return NULL;
+    }
+    else
+    {
+        m_callback(SERVERERROR, key, value);
+        return NULL;
+    }
 }

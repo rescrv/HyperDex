@@ -68,6 +68,17 @@ class async_client
         virtual void update(const std::string& space, const e::buffer& key,
                             const std::map<std::string, e::buffer>& value,
                             std::tr1::function<void (returncode)> callback) = 0;
+        virtual void search(const std::string& space,
+                            const std::map<std::string, e::buffer>& params,
+                            std::tr1::function<void (returncode,
+                                                     const e::buffer&,
+                                                     const std::vector<e::buffer>&)> callback) = 0;
+        virtual void search(const std::string& space,
+                            const std::map<std::string, e::buffer>& params,
+                            std::tr1::function<void (returncode,
+                                                     const e::buffer&,
+                                                     const std::vector<e::buffer>&)> callback,
+                            uint16_t subspace_hint) = 0;
         virtual size_t outstanding() = 0;
         virtual returncode flush(int timeout) = 0;
         virtual returncode flush_one(int timeout) = 0;
