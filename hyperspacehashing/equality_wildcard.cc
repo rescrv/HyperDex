@@ -63,3 +63,17 @@ hyperspacehashing :: equality_wildcard :: clear()
     m_value = std::vector<e::buffer>(m_value.size());
     m_mask = e::bitfield(m_value.size());
 }
+
+e::packer&
+hyperspacehashing :: operator << (e::packer& lhs, const equality_wildcard& rhs)
+{
+    lhs << rhs.m_mask << rhs.m_value;
+    return lhs;
+}
+
+e::unpacker&
+hyperspacehashing :: operator >> (e::unpacker& lhs, equality_wildcard& rhs)
+{
+    lhs >> rhs.m_mask >> rhs.m_value;
+    return lhs;
+}

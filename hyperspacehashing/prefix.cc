@@ -127,3 +127,30 @@ hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key, const std::v
 
     return coordinate(64, upper_interlace(hashes));
 }
+
+hyperspacehashing::prefix::ewc_coordinate
+hyperspacehashing :: prefix :: hasher :: hash(const equality_wildcard& ewc) const
+{
+    assert(ewc.size() == m_funcs.size());
+    std::vector<uint64_t> hashes;
+    hashes.reserve(m_funcs.size());
+    std::vector<uint64_t> masks;
+    masks.reserve(m_funcs.size());
+
+    if (m_dims.get(0) && ewc.isset(0))
+    {
+        hashes.push_back(m_funcs[0](ewc.get(0)));
+        masks.push_back(UINT64_MAX);
+    }
+
+    for (size_t i = 1; i < m_funcs.size(); ++i)
+    {
+        if (m_dims.get(i) && ewc.isset(i))
+        {
+            hashes.push_back(m_funcs[i](ewc.get(i)));
+            masks.push_back(UINT64_MAX);
+        }
+    }
+
+    return ewc_coordinate(upper_interlace(masks), upper_interlace(hashes));
+}

@@ -55,6 +55,10 @@ class equality_wildcard
         void clear();
 
     private:
+        friend e::packer& operator << (e::packer& lhs, const equality_wildcard& rhs);
+        friend e::unpacker& operator >> (e::unpacker& lhs, equality_wildcard& rhs);
+
+    private:
         e::bitfield m_mask;
         std::vector<e::buffer> m_value;
 };
