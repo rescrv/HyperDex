@@ -68,6 +68,7 @@ class async_client
         virtual void update(const std::string& space, const e::buffer& key,
                             const std::map<std::string, e::buffer>& value,
                             std::tr1::function<void (returncode)> callback) = 0;
+        virtual size_t outstanding() = 0;
         virtual returncode flush(int timeout) = 0;
         virtual returncode flush_one(int timeout) = 0;
 };

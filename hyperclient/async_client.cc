@@ -156,6 +156,7 @@ class async_client_impl : public hyperclient :: async_client
         virtual void update(const std::string& space, const e::buffer& key,
                             const std::map<std::string, e::buffer>& value,
                             std::tr1::function<void (returncode)> callback);
+        virtual size_t outstanding();
         virtual returncode flush(int timeout);
         virtual returncode flush_one(int timeout);
 
@@ -423,6 +424,23 @@ hyperclient :: async_client_impl :: send(e::intrusive_ptr<channel> chan,
     }
 
     return true;
+}
+
+size_t
+hyperclient :: async_client_impl :: outstanding()
+{
+    size_t ret = 0;
+
+    for (std::deque<e::intrusive_ptr<pending> >::iterator req = m_requests.begin();
+            req != m_requests.end(); ++req)
+    {
+        if (*req)
+        {
+            ++ret;
+        }
+    }
+
+    return ret;
 }
 
 hyperclient::returncode
