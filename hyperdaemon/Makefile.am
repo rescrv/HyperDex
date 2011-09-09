@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I$(abs_top_srcdir)/hyperdex -I$(abs_top_srcdir)/hyperdisk
+AM_CPPFLAGS = -I$(abs_top_srcdir)/hyperspacehashing -I$(abs_top_srcdir)/hyperdex -I$(abs_top_srcdir)/hyperdisk
 AM_CXXFLAGS = $(COVERAGE_CXXFLAGS)
 AM_LDFLAGS = $(GTEST_LDFLAGS)
 
@@ -13,4 +13,4 @@ noinst_HEADERS = hyperdaemon/daemon.h datalayer.h logical.h network_worker.h \
 libhyperdaemon_la_SOURCES = daemon.cc datalayer.cc logical.cc \
 							network_worker.cc physical.cc \
 							replication_manager.cc searches.cc
-libhyperdaemon_la_LIBADD = ../hyperdex/libhyperdex.la -lcityhash $(COVERAGE_LDADD)
+libhyperdaemon_la_LIBADD = ../hyperspacehashing/libhyperspacehashing.la ../hyperdex/libhyperdex.la -lcityhash $(COVERAGE_LDADD)

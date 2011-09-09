@@ -35,9 +35,11 @@
 #include <e/intrusive_ptr.h>
 #include <e/lockfree_hash_map.h>
 
+// HyperspaceHashing
+#include <hyperspacehashing/equality_wildcard.h>
+
 // HyperDex
 #include <hyperdex/ids.h>
-#include <hyperdex/search.h>
 
 // Forward Declarations
 namespace hyperdex
@@ -66,6 +68,9 @@ class searches
 
     public:
         void start(const hyperdex::entityid& client, uint32_t nonce, const hyperdex::regionid& r, const hyperdex::search& s);
+        void start(const hyperdex::entityid& client, uint32_t nonce,
+                   const hyperdex::regionid& r,
+                   const hyperspacehashing::equality_wildcard& wc);
         void next(const hyperdex::entityid& client, uint32_t nonce);
         void stop(const hyperdex::entityid& client, uint32_t nonce);
 
@@ -77,16 +82,14 @@ class searches
         {
             public:
                 search_state(const hyperdex::regionid& region,
-                             const hyperdex::search& terms,
+                             const hyperspacehashing::equality_wildcard& wc,
                              e::intrusive_ptr<hyperdisk::snapshot> snap);
                 ~search_state() throw ();
 
             public:
                 po6::threads::mutex lock;
                 const hyperdex::regionid region;
-                const uint64_t point;
-                const uint64_t mask;
-                const hyperdex::search terms;
+                const hyperspacehashing::equality_wildcard wc;
                 e::intrusive_ptr<hyperdisk::snapshot> snap;
                 uint64_t count;
 
@@ -111,6 +114,7 @@ class searches
         hyperdex::coordinatorlink* m_cl;
         datalayer* m_data;
         logical* m_comm;
+        hyperdex::configuration m_config;
         e::lockfree_hash_map<std::pair<hyperdex::entityid, uint32_t>, e::intrusive_ptr<search_state>, hash> m_searches;
 };
 

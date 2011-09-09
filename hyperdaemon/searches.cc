@@ -40,7 +40,7 @@
 using hyperdex::coordinatorlink;
 using hyperdex::entityid;
 using hyperdex::regionid;
-using hyperdex::search;
+using hyperspacehashing::equality_wildcard;
 
 hyperdaemon :: searches :: searches(coordinatorlink* cl,
                                     datalayer* data,
@@ -48,6 +48,7 @@ hyperdaemon :: searches :: searches(coordinatorlink* cl,
     : m_cl(cl)
     , m_data(data)
     , m_comm(comm)
+    , m_config()
     , m_searches(16)
 {
 }
@@ -79,7 +80,7 @@ void
 hyperdaemon :: searches :: start(const entityid& client,
                                  uint32_t nonce,
                                  const regionid& r,
-                                 const search& s)
+                                 const equality_wildcard& wc)
 {
     std::pair<entityid, uint32_t> key(client, nonce);
 
@@ -89,7 +90,7 @@ hyperdaemon :: searches :: start(const entityid& client,
     }
 
     e::intrusive_ptr<hyperdisk::snapshot> snap = m_data->make_snapshot(r);
-    e::intrusive_ptr<search_state> state = new search_state(r, s, snap);
+    e::intrusive_ptr<search_state> state = new search_state(r, wc, snap);
     m_searches.insert(key, state);
     next(client, nonce);
 }
@@ -98,6 +99,7 @@ void
 hyperdaemon :: searches :: next(const entityid& client,
                                 uint32_t nonce)
 {
+#if 0
     e::intrusive_ptr<search_state> state;
 
     if (!m_searches.lookup(std::make_pair(client, nonce), &state))
@@ -109,12 +111,12 @@ hyperdaemon :: searches :: next(const entityid& client,
 
     while (state->snap->valid())
     {
-        if ((state->point & state->mask) == (state->snap->secondary_hash() & state->mask))
+        if (state->wc.intersects(state->snap->coord))
         {
             e::buffer key(state->snap->key());
             std::vector<e::buffer> value(state->snap->value());
 
-            if (state->terms.matches(value))
+            if (state->wc.matches(value))
             {
                 e::buffer msg;
                 msg.pack() << nonce << state->count << key << value;
@@ -133,6 +135,7 @@ hyperdaemon :: searches :: next(const entityid& client,
     m_comm->send(state->region, client, hyperdex::RESP_SEARCH_DONE, msg);
     ++state->count;
     stop(client, nonce);
+#endif
 }
 
 void
@@ -150,8 +153,9 @@ hyperdaemon :: searches :: hash(const std::pair<entityid, uint32_t>& key)
 
 
 hyperdaemon :: searches :: search_state :: search_state(const regionid& r,
-                                                        const search& t,
+                                                        const equality_wildcard& t,
                                                         e::intrusive_ptr<hyperdisk::snapshot> s)
+#if 0
     : lock()
     , region(r)
     , point(t.secondary_point())
@@ -160,6 +164,7 @@ hyperdaemon :: searches :: search_state :: search_state(const regionid& r,
     , snap(s)
     , count(0)
     , m_ref(0)
+#endif
 {
 }
 

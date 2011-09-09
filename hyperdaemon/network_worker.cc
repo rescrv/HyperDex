@@ -165,9 +165,9 @@ hyperdaemon :: network_worker :: run()
             }
             else if (type == hyperdex::REQ_SEARCH_START)
             {
-                hyperdex::search s;
-                msg.unpack() >> nonce >> s;
-                m_ssss->start(from, nonce, to.get_region(), s);
+                hyperspacehashing::equality_wildcard wc(0);
+                msg.unpack() >> nonce >> wc;
+                m_ssss->start(from, nonce, to.get_region(), wc);
             }
             else if (type == hyperdex::REQ_SEARCH_NEXT)
             {
