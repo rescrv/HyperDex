@@ -1,5 +1,5 @@
 ACLOCAL_AMFLAGS = -I m4
-SUBDIRS = hyperdex hyperdisk hyperclient hyperdaemon ycsb
+SUBDIRS = hyperspacehashing hyperdex hyperdisk hyperclient hyperdaemon ycsb
 
 bin_PROGRAMS = cli daemon
 noinst_PROGRAMS = binary-test count-test repl-test
