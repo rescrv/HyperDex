@@ -60,6 +60,11 @@ class searches
         ~searches() throw ();
 
     public:
+        void prepare(const hyperdex::configuration& newconfig, const hyperdex::instance& us);
+        void reconfigure(const hyperdex::configuration& newconfig, const hyperdex::instance& us);
+        void cleanup(const hyperdex::configuration& newconfig, const hyperdex::instance& us);
+
+    public:
         void start(const hyperdex::entityid& client, uint32_t nonce, const hyperdex::regionid& r, const hyperdex::search& s);
         void next(const hyperdex::entityid& client, uint32_t nonce);
         void stop(const hyperdex::entityid& client, uint32_t nonce);

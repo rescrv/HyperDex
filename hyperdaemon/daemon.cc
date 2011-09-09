@@ -160,6 +160,7 @@ hyperdaemon :: daemon(po6::pathname datadir,
             comm.prepare(cl.config(), newinst);
             data.prepare(cl.config(), newinst);
             repl.prepare(cl.config(), newinst);
+            ssss.prepare(cl.config(), newinst);
 
             // Protect ourself against exceptions.
             e::guard g1 = e::makeobjguard(comm, &logical::unpause);
@@ -180,6 +181,7 @@ hyperdaemon :: daemon(po6::pathname datadir,
             comm.reconfigure(cl.config(), newinst);
             data.reconfigure(cl.config(), comm.inst());
             repl.reconfigure(cl.config(), comm.inst());
+            ssss.reconfigure(cl.config(), comm.inst());
             comm.unpause();
             g1.dismiss();
             g2.dismiss();
@@ -188,6 +190,7 @@ hyperdaemon :: daemon(po6::pathname datadir,
             // Cleanup anything not specified by our new configuration.
             // These operations should assume that there will be network
             // activity, and that the network threads will be in full force..
+            ssss.prepare(cl.config(), comm.inst());
             repl.cleanup(cl.config(), comm.inst());
             data.cleanup(cl.config(), comm.inst());
             comm.cleanup(cl.config(), comm.inst());

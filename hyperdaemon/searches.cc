@@ -57,6 +57,25 @@ hyperdaemon :: searches :: ~searches() throw ()
 }
 
 void
+hyperdaemon :: searches :: prepare(const hyperdex::configuration& newconfig,
+                                   const hyperdex::instance& us)
+{
+}
+
+void
+hyperdaemon :: searches :: reconfigure(const hyperdex::configuration& newconfig,
+                                       const hyperdex::instance& us)
+{
+    m_config = newconfig;
+}
+
+void
+hyperdaemon :: searches :: cleanup(const hyperdex::configuration& newconfig,
+                                   const hyperdex::instance& us)
+{
+}
+
+void
 hyperdaemon :: searches :: start(const entityid& client,
                                  uint32_t nonce,
                                  const regionid& r,
