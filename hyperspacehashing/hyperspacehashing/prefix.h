@@ -25,31 +25,54 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef bithacks_h_
-#define bithacks_h_
-
-// C
-#include <stdint.h>
+#ifndef hyperspacehashing_prefix_h_
 
 // STL
-#include <vector>
+#include <iostream>
 
-inline uint64_t
-lower_interlace(const std::vector<uint64_t>& nums)
+// e
+#include <e/bitfield.h>
+
+// HyperspaceHashing
+#include <hyperspacehashing/hashes.h>
+
+namespace hyperspacehashing
 {
-    size_t sz = nums.size();
-    uint64_t ret = 0;
+namespace prefix
+{
 
-    for (size_t i = 0; sz && i < 64; ++i)
-    {
-        const size_t quotient = i / sz;
-        const size_t modulus = i % sz;
-        const uint64_t bit = 1 << quotient;
-        const uint64_t hash = nums[modulus];
-        ret |= (bit & hash) << (i - quotient);
-    }
+class coordinate
+{
+    public:
+        coordinate();
+        coordinate(uint8_t prefix, uint64_t point);
+        coordinate(const coordinate& other);
+        ~coordinate() throw ();
 
-    return ret;
-}
+    public:
+        bool contains(const coordinate& other) const;
 
-#endif // bithacks_h_
+    public:
+        uint8_t prefix;
+        uint64_t point;
+};
+
+class hasher
+{
+    public:
+        hasher(const e::bitfield& dims,
+               const std::vector<hash_t> funcs);
+        ~hasher() throw ();
+
+    public:
+        coordinate hash(const e::buffer& key, const std::vector<e::buffer>& value) const;
+
+    private:
+        const e::bitfield& m_dims;
+        const std::vector<hash_t> m_funcs;
+};
+
+} // namespace prefix
+} // namespace hyperspacehashing
+
+#endif // hyperspacehashing_prefix_h
