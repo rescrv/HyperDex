@@ -155,7 +155,8 @@ class async_client_impl : public hyperclient :: async_client
         virtual void update(const std::string& space, const e::buffer& key,
                             const std::map<std::string, e::buffer>& value,
                             std::tr1::function<void (returncode)> callback);
-        returncode flush();
+        virtual returncode flush();
+        virtual returncode flush_one();
 
     public:
         void add_reqrep(const std::string&, const e::buffer& key,
@@ -428,6 +429,28 @@ hyperclient :: async_client_impl :: flush()
 {
     while (!m_requests.empty())
     {
+        returncode ret = flush_one();
+
+        if (ret != SUCCESS)
+        {
+            return ret;
+        }
+    }
+
+    return SUCCESS;
+}
+
+hyperclient::returncode
+hyperclient :: async_client_impl :: flush_one()
+{
+    while (!m_requests.empty())
+    {
+        if (!m_requests.front())
+        {
+            m_requests.pop_front();
+            continue;
+        }
+
         for (int i = 0; i < 7 && !m_coord.connected(); ++i)
         {
             switch (m_coord.connect())
@@ -528,14 +551,14 @@ hyperclient :: async_client_impl :: flush()
                 m_channels.erase(m_requests[i]->inst);
                 m_requests[i]->result(DISCONNECT);
                 m_requests[i] = NULL;
-                continue;
+                return SUCCESS;
             }
 
             if (m_requests[i]->reconfigured)
             {
                 m_requests[i]->result(RECONFIGURE);
                 m_requests[i] = NULL;
-                continue;
+                return SUCCESS;
             }
 
             if (!(pfds[i].revents & POLLIN))
@@ -549,7 +572,7 @@ hyperclient :: async_client_impl :: flush()
             {
                 m_requests[i]->result(DISCONNECT);
                 m_requests[i] = NULL;
-                continue;
+                return SUCCESS;
             }
 
             try
@@ -571,7 +594,7 @@ hyperclient :: async_client_impl :: flush()
                     m_channels.erase(m_requests[i]->inst);
                     m_requests[i]->result(DISCONNECT);
                     m_requests[i] = NULL;
-                    continue;
+                    return SUCCESS;
                 }
 
                 uint32_t nop;
@@ -605,6 +628,7 @@ hyperclient :: async_client_impl :: flush()
                         nonce == (*req)->nonce)
                     {
                         *req = (*req)->result(SUCCESS, msg_type, msg);
+                        return SUCCESS;
                     }
                 }
             }
@@ -614,6 +638,7 @@ hyperclient :: async_client_impl :: flush()
                 m_channels.erase(m_requests[i]->inst);
                 m_requests[i]->result(DISCONNECT);
                 m_requests[i] = NULL;
+                return SUCCESS;
             }
             catch (std::out_of_range& e)
             {
@@ -621,6 +646,7 @@ hyperclient :: async_client_impl :: flush()
                 m_channels.erase(m_requests[i]->inst);
                 m_requests[i]->result(DISCONNECT);
                 m_requests[i] = NULL;
+                return SUCCESS;
             }
         }
 

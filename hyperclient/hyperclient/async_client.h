@@ -69,6 +69,7 @@ class async_client
                             const std::map<std::string, e::buffer>& value,
                             std::tr1::function<void (returncode)> callback) = 0;
         virtual returncode flush() = 0;
+        virtual returncode flush_one() = 0;
 };
 
 } // namespace hyperclient
