@@ -25,6 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#define __STDC_LIMIT_MACROS
+
 // POSIX
 #include <errno.h>
 
@@ -44,7 +46,8 @@
 #include <e/timer.h>
 
 // HyperDex
-#include <hyperclient/client.h>
+#include <hyperclient/async_client.h>
+#include <hyperclient/returncode.h>
 
 static e::locking_fifo<std::string> lines;
 static po6::threads::mutex unblock_lock;
@@ -186,10 +189,66 @@ usage()
 }
 
 void
+handle_get(hyperclient::returncode ret, const std::vector<e::buffer>& value)
+{
+    if (ret == hyperclient::SUCCESS)
+    {
+        for (size_t i = 0; i < value.size(); ++i)
+        {
+            std::cout << "\t" << value[i].hex();
+        }
+
+        std::cout << std::endl;
+    }
+    else
+    {
+        std::cerr << "Get returned " << ret << "." << std::endl;
+    }
+}
+
+void
+handle_put(hyperclient::returncode ret)
+{
+    std::cerr << "Put returned " << ret << "." << std::endl;
+}
+
+void
+handle_del(hyperclient::returncode ret)
+{
+    std::cerr << "Del returned " << ret << "." << std::endl;
+}
+
+void
+handle_search(hyperclient::returncode ret, const e::buffer& key, const std::vector<e::buffer>& value)
+{
+    if (ret == hyperclient::SUCCESS)
+    {
+        std::cout << "\t" << key.hex() << " =";
+
+        for (size_t i = 0; i < value.size(); ++i)
+        {
+            std::cout << "\t" << value[i].hex();
+        }
+
+        std::cout << std::endl;
+    }
+    else
+    {
+        std::cerr << "Search returned " << ret << "." << std::endl;
+    }
+}
+
+void
+handle_update(hyperclient::returncode ret)
+{
+    std::cerr << "Update returned " << ret << "." << std::endl;
+}
+
+void
 worker(po6::threads::barrier* bar)
 {
-    hyperclient::client cl(po6::net::location(ip, port));
-    cl.connect();
+    std::auto_ptr<hyperclient::async_client> cl(hyperclient::async_client::create(po6::net::location(ip, port)));
+    cl->connect();
     std::string line;
 
     bar->wait();
@@ -210,54 +269,8 @@ worker(po6::threads::barrier* bar)
             }
 
             e::buffer key(tmp.c_str(), tmp.size());
-            std::vector<e::buffer> value;
-
-            switch (cl.get(space, key, &value))
-            {
-                case hyperclient::SUCCESS:
-                    std::cerr << "Get returned SUCCESS:  ";
-
-                    for (size_t i = 0; i < value.size(); ++i)
-                    {
-                        std::cerr << "\t" << value[i].hex();
-                    }
-
-                    std::cerr << std::endl;
-                    break;
-                case hyperclient::NOTFOUND:
-                    std::cerr << "Get returned NOTFOUND." << std::endl;
-                    break;
-                case hyperclient::WRONGARITY:
-                    std::cerr << "Get returned WRONGARITY." << std::endl;
-                    break;
-                case hyperclient::NOTASPACE:
-                    std::cerr << "Get returned NOTASPACE." << std::endl;
-                    break;
-                case hyperclient::BADSEARCH:
-                    std::cerr << "Get returned BADSEARCH." << std::endl;
-                    break;
-                case hyperclient::COORDFAIL:
-                    std::cerr << "Get returned COORDFAIL." << std::endl;
-                    break;
-                case hyperclient::SERVERERROR:
-                    std::cerr << "Get returned SERVERERROR." << std::endl;
-                    break;
-                case hyperclient::CONNECTFAIL:
-                    std::cerr << "Get returned CONNECTFAIL." << std::endl;
-                    break;
-                case hyperclient::DISCONNECT:
-                    std::cerr << "Get returned DISCONNECT." << std::endl;
-                    break;
-                case hyperclient::RECONFIGURE:
-                    std::cerr << "Get returned RECONFIGURE." << std::endl;
-                    break;
-                case hyperclient::LOGICERROR:
-                    std::cerr << "Get returned LOGICERROR." << std::endl;
-                    break;
-                default:
-                    std::cerr << "Get returned unknown status." << std::endl;
-                    break;
-            }
+            cl->get(space, key, handle_get);
+            cl->flush(-1);
         }
         else if (command == "PUT")
         {
@@ -278,45 +291,8 @@ worker(po6::threads::barrier* bar)
                 value.back().swap(val);
             }
 
-            switch (cl.put(space, key, value))
-            {
-                case hyperclient::SUCCESS:
-                    std::cerr << "Put returned SUCCESS." << std::endl;
-                    break;
-                case hyperclient::NOTFOUND:
-                    std::cerr << "Put returned NOTFOUND." << std::endl;
-                    break;
-                case hyperclient::WRONGARITY:
-                    std::cerr << "Put returned WRONGARITY." << std::endl;
-                    break;
-                case hyperclient::NOTASPACE:
-                    std::cerr << "Put returned NOTASPACE." << std::endl;
-                    break;
-                case hyperclient::BADSEARCH:
-                    std::cerr << "Put returned BADSEARCH." << std::endl;
-                    break;
-                case hyperclient::COORDFAIL:
-                    std::cerr << "Put returned COORDFAIL." << std::endl;
-                    break;
-                case hyperclient::SERVERERROR:
-                    std::cerr << "Put returned SERVERERROR." << std::endl;
-                    break;
-                case hyperclient::CONNECTFAIL:
-                    std::cerr << "Put returned CONNECTFAIL." << std::endl;
-                    break;
-                case hyperclient::DISCONNECT:
-                    std::cerr << "Put returned DISCONNECT." << std::endl;
-                    break;
-                case hyperclient::RECONFIGURE:
-                    std::cerr << "Put returned RECONFIGURE." << std::endl;
-                    break;
-                case hyperclient::LOGICERROR:
-                    std::cerr << "Put returned LOGICERROR." << std::endl;
-                    break;
-                default:
-                    std::cerr << "Put returned unknown status." << std::endl;
-                    break;
-            }
+            cl->put(space, key, value, handle_put);
+            cl->flush(-1);
         }
         else if (command == "DEL")
         {
@@ -328,45 +304,8 @@ worker(po6::threads::barrier* bar)
             }
 
             e::buffer key(tmp.c_str(), tmp.size());
-
-            switch (cl.del(space, key))
-            {
-                case hyperclient::SUCCESS:
-                    std::cerr << "Del returned SUCCESS." << std::endl;
-                    break;
-                case hyperclient::NOTFOUND:
-                    std::cerr << "Del returned NOTFOUND." << std::endl;
-                    break;
-                case hyperclient::WRONGARITY:
-                    std::cerr << "Del returned WRONGARITY." << std::endl;
-                    break;
-                case hyperclient::NOTASPACE:
-                    std::cerr << "Del returned NOTASPACE." << std::endl;
-                    break;
-                case hyperclient::BADSEARCH:
-                    std::cerr << "Del returned BADSEARCH." << std::endl;
-                    break;
-                case hyperclient::COORDFAIL:
-                    std::cerr << "Del returned COORDFAIL." << std::endl;
-                    break;
-                case hyperclient::SERVERERROR:
-                    std::cerr << "Del returned SERVERERROR." << std::endl;
-                    break;
-                case hyperclient::CONNECTFAIL:
-                    std::cerr << "Del returned CONNECTFAIL." << std::endl;
-                    break;
-                case hyperclient::DISCONNECT:
-                    std::cerr << "Del returned DISCONNECT." << std::endl;
-                    break;
-                case hyperclient::RECONFIGURE:
-                    std::cerr << "Del returned RECONFIGURE." << std::endl;
-                    break;
-                case hyperclient::LOGICERROR:
-                    std::cerr << "Del returned LOGICERROR." << std::endl;
-                    break;
-                default:
-                    std::cerr << "Del returned unknown status." << std::endl;
-            }
+            cl->del(space, key, handle_del);
+            cl->flush(-1);
         }
         else if (command == "QUERY")
         {
@@ -387,100 +326,12 @@ worker(po6::threads::barrier* bar)
 
             if (wellformed)
             {
-                hyperclient::search_results r;
-
-                switch (cl.search(space, search, &r))
-                {
-                    case hyperclient::SUCCESS:
-                        std::cerr << "Query returned SUCCESS." << std::endl;
-                        break;
-                    case hyperclient::NOTFOUND:
-                        std::cerr << "Query returned NOTFOUND." << std::endl;
-                        break;
-                    case hyperclient::WRONGARITY:
-                        std::cerr << "Query returned WRONGARITY." << std::endl;
-                        break;
-                    case hyperclient::NOTASPACE:
-                        std::cerr << "Query returned NOTASPACE." << std::endl;
-                        break;
-                    case hyperclient::BADSEARCH:
-                        std::cerr << "Query returned BADSEARCH." << std::endl;
-                        break;
-                    case hyperclient::COORDFAIL:
-                        std::cerr << "Query returned COORDFAIL." << std::endl;
-                        break;
-                    case hyperclient::SERVERERROR:
-                        std::cerr << "Query returned SERVERERROR." << std::endl;
-                        break;
-                    case hyperclient::CONNECTFAIL:
-                        std::cerr << "Query returned CONNECTFAIL." << std::endl;
-                        break;
-                    case hyperclient::DISCONNECT:
-                        std::cerr << "Query returned DISCONNECT." << std::endl;
-                        break;
-                    case hyperclient::RECONFIGURE:
-                        std::cerr << "Query returned RECONFIGURE." << std::endl;
-                        break;
-                    case hyperclient::LOGICERROR:
-                        std::cerr << "Query returned LOGICERROR." << std::endl;
-                        break;
-                    default:
-                        std::cerr << "Query returned unknown status." << std::endl;
-                }
-
-                while (r.valid())
-                {
-                    e::buffer key = r.key();
-                    std::vector<e::buffer> value = r.value();
-
-                    std::cerr << key.hex();
-
-                    for (size_t i = 0; i < value.size(); ++i)
-                    {
-                        std::cerr << "\t" << value[i].hex();
-                    }
-
-                    std::cerr << std::endl;
-
-                    switch (r.next())
-                    {
-                        case hyperclient::SUCCESS:
-                            std::cerr << "Query returned SUCCESS." << std::endl;
-                            break;
-                        case hyperclient::NOTFOUND:
-                            std::cerr << "Query returned NOTFOUND." << std::endl;
-                            break;
-                        case hyperclient::WRONGARITY:
-                            std::cerr << "Query returned WRONGARITY." << std::endl;
-                            break;
-                        case hyperclient::NOTASPACE:
-                            std::cerr << "Query returned NOTASPACE." << std::endl;
-                            break;
-                        case hyperclient::BADSEARCH:
-                            std::cerr << "Query returned BADSEARCH." << std::endl;
-                            break;
-                        case hyperclient::COORDFAIL:
-                            std::cerr << "Query returned COORDFAIL." << std::endl;
-                            break;
-                        case hyperclient::SERVERERROR:
-                            std::cerr << "Query returned SERVERERROR." << std::endl;
-                            break;
-                        case hyperclient::CONNECTFAIL:
-                            std::cerr << "Query returned CONNECTFAIL." << std::endl;
-                            break;
-                        case hyperclient::DISCONNECT:
-                            std::cerr << "Query returned DISCONNECT." << std::endl;
-                            break;
-                        case hyperclient::RECONFIGURE:
-                            std::cerr << "Query returned RECONFIGURE." << std::endl;
-                            break;
-                        case hyperclient::LOGICERROR:
-                            std::cerr << "Query returned LOGICERROR." << std::endl;
-                            break;
-                        default:
-                            std::cerr << "Query returned unknown status." << std::endl;
-                    }
-                }
+                cl->search(space, search, handle_search, UINT16_MAX);
+                cl->flush(-1);
+            }
+            else
+            {
+                std::cerr << "Search line malformed." << std::endl;
             }
         }
         else if (command == "UPDATE")
@@ -510,45 +361,12 @@ worker(po6::threads::barrier* bar)
 
             if (wellformed)
             {
-                switch (cl.update(space, key, update))
-                {
-                    case hyperclient::SUCCESS:
-                        std::cerr << "Update returned SUCCESS." << std::endl;
-                        break;
-                    case hyperclient::NOTFOUND:
-                        std::cerr << "Update returned NOTFOUND." << std::endl;
-                        break;
-                    case hyperclient::WRONGARITY:
-                        std::cerr << "Update returned WRONGARITY." << std::endl;
-                        break;
-                    case hyperclient::NOTASPACE:
-                        std::cerr << "Update returned NOTASPACE." << std::endl;
-                        break;
-                    case hyperclient::BADSEARCH:
-                        std::cerr << "Update returned BADSEARCH." << std::endl;
-                        break;
-                    case hyperclient::COORDFAIL:
-                        std::cerr << "Update returned COORDFAIL." << std::endl;
-                        break;
-                    case hyperclient::SERVERERROR:
-                        std::cerr << "Update returned SERVERERROR." << std::endl;
-                        break;
-                    case hyperclient::CONNECTFAIL:
-                        std::cerr << "Update returned CONNECTFAIL." << std::endl;
-                        break;
-                    case hyperclient::DISCONNECT:
-                        std::cerr << "Update returned DISCONNECT." << std::endl;
-                        break;
-                    case hyperclient::RECONFIGURE:
-                        std::cerr << "Update returned RECONFIGURE." << std::endl;
-                        break;
-                    case hyperclient::LOGICERROR:
-                        std::cerr << "Update returned LOGICERROR." << std::endl;
-                        break;
-                    default:
-                        std::cerr << "Update returned unknown status." << std::endl;
-                        break;
-                }
+                cl->update(space, key, update, handle_update);
+                cl->flush(-1);
+            }
+            else
+            {
+                std::cerr << "Update line malformed." << std::endl;
             }
         }
         else

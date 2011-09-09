@@ -37,10 +37,28 @@
 #include <e/convert.h>
 
 // HyperDex
-#include <hyperclient/sync_client.h>
+#include <hyperclient/async_client.h>
 
 static int
 usage();
+
+void
+handle_get(hyperclient::returncode ret, const std::vector<e::buffer>& value)
+{
+    if (ret != hyperclient::SUCCESS)
+    {
+        std::cerr << "Get returned " << ret << "." << std::endl;
+    }
+}
+
+void
+handle_put(hyperclient::returncode ret)
+{
+    if (ret != hyperclient::SUCCESS)
+    {
+        std::cerr << "Put returned " << ret << "." << std::endl;
+    }
+}
 
 int
 main(int argc, char* argv[])
@@ -113,46 +131,8 @@ main(int argc, char* argv[])
 
     try
     {
-        std::auto_ptr<hyperclient::sync_client> cl(hyperclient::sync_client::create(po6::net::location(ip, port)));
-
-        switch (cl->connect())
-        {
-            case hyperclient::SUCCESS:
-                break;
-            case hyperclient::NOTFOUND:
-                std::cerr << "Could not connect to coordinator:  NOTFOUND." << std::endl;
-                return EXIT_FAILURE;
-            case hyperclient::WRONGARITY:
-                std::cerr << "Could not connect to coordinator:  WRONGARITY." << std::endl;
-                return EXIT_FAILURE;
-            case hyperclient::NOTASPACE:
-                std::cerr << "Could not connect to coordinator:  NOTASPACE." << std::endl;
-                return EXIT_FAILURE;
-            case hyperclient::BADSEARCH:
-                std::cerr << "Could not connect to coordinator:  BADSEARCH." << std::endl;
-                return EXIT_FAILURE;
-            case hyperclient::COORDFAIL:
-                std::cerr << "Could not connect to coordinator:  COORDFAIL." << std::endl;
-                return EXIT_FAILURE;
-            case hyperclient::SERVERERROR:
-                std::cerr << "Could not connect to coordinator:  SERVERERROR." << std::endl;
-                return EXIT_FAILURE;
-            case hyperclient::CONNECTFAIL:
-                std::cerr << "Could not connect to coordinator:  CONNECTFAIL." << std::endl;
-                return EXIT_FAILURE;
-            case hyperclient::DISCONNECT:
-                std::cerr << "Could not connect to coordinator:  DISCONNECT." << std::endl;
-                return EXIT_FAILURE;
-            case hyperclient::RECONFIGURE:
-                std::cerr << "Could not connect to coordinator:  RECONFIGURE." << std::endl;
-                return EXIT_FAILURE;
-            case hyperclient::LOGICERROR :
-                std::cerr << "Could not connect to coordinator:  LOGICERROR." << std::endl;
-                return EXIT_FAILURE;
-            default:
-                std::cerr << "Could not connect to coordinator:  unknown status." << std::endl;
-                return EXIT_FAILURE;
-        }
+        std::auto_ptr<hyperclient::async_client> cl(hyperclient::async_client::create(po6::net::location(ip, port)));
+        cl->connect();
 
         timespec start;
         timespec end;
@@ -166,85 +146,11 @@ main(int argc, char* argv[])
             std::vector<e::buffer> val;
             val.push_back(e::buffer(payload.c_str(), payload.size()));
 
-            switch (cl->put(space, key, val))
-            {
-                case hyperclient::SUCCESS:
-                    break;
-                case hyperclient::NOTFOUND:
-                    std::cerr << "Put returned NOTFOUND." << std::endl;
-                    break;
-                case hyperclient::WRONGARITY:
-                    std::cerr << "Put returned WRONGARITY." << std::endl;
-                    break;
-                case hyperclient::NOTASPACE:
-                    std::cerr << "Put returned NOTASPACE." << std::endl;
-                    break;
-                case hyperclient::BADSEARCH:
-                    std::cerr << "Put returned BADSEARCH." << std::endl;
-                    break;
-                case hyperclient::COORDFAIL:
-                    std::cerr << "Put returned COORDFAIL." << std::endl;
-                    break;
-                case hyperclient::SERVERERROR:
-                    std::cerr << "Put returned SERVERERROR." << std::endl;
-                    break;
-                case hyperclient::CONNECTFAIL:
-                    std::cerr << "Put returned CONNECTFAIL." << std::endl;
-                    break;
-                case hyperclient::DISCONNECT:
-                    std::cerr << "Put returned DISCONNECT." << std::endl;
-                    break;
-                case hyperclient::RECONFIGURE:
-                    std::cerr << "Put returned RECONFIGURE." << std::endl;
-                    break;
-                case hyperclient::LOGICERROR:
-                    std::cerr << "Put returned LOGICERROR." << std::endl;
-                    break;
-                default:
-                    std::cerr << "Put returned unknown status." << std::endl;
-                    break;
-            }
-
+            cl->put(space, key, val, handle_put);
+            cl->flush(-1);
             val.clear();
-
-            switch (cl->get(space, key, &val))
-            {
-                case hyperclient::SUCCESS:
-                    break;
-                case hyperclient::NOTFOUND:
-                    std::cerr << "Get returned NOTFOUND." << std::endl;
-                    break;
-                case hyperclient::WRONGARITY:
-                    std::cerr << "Get returned WRONGARITY." << std::endl;
-                    break;
-                case hyperclient::NOTASPACE:
-                    std::cerr << "Get returned NOTASPACE." << std::endl;
-                    break;
-                case hyperclient::BADSEARCH:
-                    std::cerr << "Get returned BADSEARCH." << std::endl;
-                    break;
-                case hyperclient::COORDFAIL:
-                    std::cerr << "Get returned COORDFAIL." << std::endl;
-                    break;
-                case hyperclient::SERVERERROR:
-                    std::cerr << "Get returned SERVERERROR." << std::endl;
-                    break;
-                case hyperclient::CONNECTFAIL:
-                    std::cerr << "Get returned CONNECTFAIL." << std::endl;
-                    break;
-                case hyperclient::DISCONNECT:
-                    std::cerr << "Get returned DISCONNECT." << std::endl;
-                    break;
-                case hyperclient::RECONFIGURE:
-                    std::cerr << "Get returned RECONFIGURE." << std::endl;
-                    break;
-                case hyperclient::LOGICERROR:
-                    std::cerr << "Get returned LOGICERROR." << std::endl;
-                    break;
-                default:
-                    std::cerr << "Get returned unknown status." << std::endl;
-                    break;
-            }
+            cl->get(space, key, handle_get);
+            cl->flush(-1);
         }
 
         clock_gettime(CLOCK_REALTIME, &end);

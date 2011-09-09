@@ -26,6 +26,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // STL
+#include <memory>
 #include <string>
 
 // po6
@@ -37,7 +38,7 @@
 #include <e/timer.h>
 
 // HyperDex
-#include <hyperclient/client.h>
+#include <hyperclient/async_client.h>
 
 const char* colnames[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
                           "11", "12", "13", "14", "15", "16", "17", "18", "19",
@@ -46,6 +47,36 @@ const char* colnames[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
 
 static int
 usage();
+
+void
+handle_put(hyperclient::returncode ret)
+{
+    if (ret != hyperclient::SUCCESS)
+    {
+        std::cerr << "Put returned " << ret << "." << std::endl;
+    }
+}
+
+void
+handle_search(size_t* count,
+              const e::buffer& expected_key,
+              hyperclient::returncode ret,
+              const e::buffer& key,
+              const std::vector<e::buffer>& value)
+{
+    ++*count;
+
+    if (*count > 1)
+    {
+        std::cerr << "Search returned more than 1 result." << std::endl;
+    }
+
+    if (expected_key != key)
+    {
+        std::cerr << "Search returned unexpected key:  " << expected_key.hex()
+                  << " != " << key.hex() << std::endl;
+    }
+}
 
 int
 main(int argc, char* argv[])
@@ -102,8 +133,8 @@ main(int argc, char* argv[])
 
     try
     {
-        hyperclient::client cl(po6::net::location(ip, port));
-        cl.connect();
+        std::auto_ptr<hyperclient::async_client> cl(hyperclient::async_client::create(po6::net::location(ip, port)));
+        cl->connect();
         e::buffer one("one", 3);
         e::buffer zero("zero", 3);
 
@@ -127,46 +158,15 @@ main(int argc, char* argv[])
                 }
             }
 
-            switch (cl.put(space, key, value))
+            cl->put(space, key, value, handle_put);
+
+            if (cl->outstanding() > 10000)
             {
-                case hyperclient::SUCCESS:
-                    break;
-                case hyperclient::NOTFOUND:
-                    std::cerr << "Put returned NOTFOUND." << std::endl;
-                    break;
-                case hyperclient::WRONGARITY:
-                    std::cerr << "Put returned WRONGARITY." << std::endl;
-                    break;
-                case hyperclient::NOTASPACE:
-                    std::cerr << "Put returned NOTASPACE." << std::endl;
-                    break;
-                case hyperclient::BADSEARCH:
-                    std::cerr << "Put returned BADSEARCH." << std::endl;
-                    break;
-                case hyperclient::COORDFAIL:
-                    std::cerr << "Put returned COORDFAIL." << std::endl;
-                    break;
-                case hyperclient::SERVERERROR:
-                    std::cerr << "Put returned SERVERERROR." << std::endl;
-                    break;
-                case hyperclient::CONNECTFAIL:
-                    std::cerr << "Put returned CONNECTFAIL." << std::endl;
-                    break;
-                case hyperclient::DISCONNECT:
-                    std::cerr << "Put returned DISCONNECT." << std::endl;
-                    break;
-                case hyperclient::RECONFIGURE:
-                    std::cerr << "Put returned RECONFIGURE." << std::endl;
-                    break;
-                case hyperclient::LOGICERROR:
-                    std::cerr << "Put returned LOGICERROR." << std::endl;
-                    break;
-                default:
-                    std::cerr << "Put returned unknown status." << std::endl;
-                    break;
+                cl->flush(-1);
             }
         }
 
+        cl->flush(-1);
         e::sleep_ms(1, 0);
         std::cerr << "Starting searches." << std::endl;
         timespec start;
@@ -192,102 +192,13 @@ main(int argc, char* argv[])
                 }
             }
 
-            hyperclient::search_results s;
-
-            switch (cl.search(argv[3], search, &s))
-            {
-                case hyperclient::SUCCESS:
-                    break;
-                case hyperclient::NOTFOUND:
-                    std::cerr << "Search returned NOTFOUND." << std::endl;
-                    continue;
-                case hyperclient::WRONGARITY:
-                    std::cerr << "Search returned WRONGARITY." << std::endl;
-                    continue;
-                case hyperclient::NOTASPACE:
-                    std::cerr << "Search returned NOTASPACE." << std::endl;
-                    continue;
-                case hyperclient::BADSEARCH:
-                    std::cerr << "Search returned BADSEARCH." << std::endl;
-                    continue;
-                case hyperclient::COORDFAIL:
-                    std::cerr << "Search returned COORDFAIL." << std::endl;
-                    continue;
-                case hyperclient::SERVERERROR:
-                    std::cerr << "Search returned SERVERERROR." << std::endl;
-                    continue;
-                case hyperclient::CONNECTFAIL:
-                    std::cerr << "Search returned CONNECTFAIL." << std::endl;
-                    continue;
-                case hyperclient::DISCONNECT:
-                    std::cerr << "Search returned DISCONNECT." << std::endl;
-                    continue;
-                case hyperclient::RECONFIGURE:
-                    std::cerr << "Search returned RECONFIGURE." << std::endl;
-                    continue;
-                case hyperclient::LOGICERROR:
-                    std::cerr << "Search returned LOGICERROR." << std::endl;
-                    continue;
-                default:
-                    std::cerr << "Search returned unknown status." << std::endl;
-                    continue;
-            }
-
-            if (!s.valid())
-            {
-                std::cerr << "Number " << num << " found nothing." << std::endl;
-            }
-            else
-            {
-                if (key != s.key())
-                {
-                    std::cerr << "Number " << num << " returned wrong key: " << key.hex() << " " << s.key().hex() << std::endl;
-                }
-
-                switch (s.next())
-                {
-                    case hyperclient::SUCCESS:
-                        break;
-                    case hyperclient::NOTFOUND:
-                        std::cerr << "Next returned NOTFOUND." << std::endl;
-                        continue;
-                    case hyperclient::WRONGARITY:
-                        std::cerr << "Next returned WRONGARITY." << std::endl;
-                        continue;
-                    case hyperclient::NOTASPACE:
-                        std::cerr << "Next returned NOTASPACE." << std::endl;
-                        continue;
-                    case hyperclient::BADSEARCH:
-                        std::cerr << "Next returned BADSEARCH." << std::endl;
-                        continue;
-                    case hyperclient::COORDFAIL:
-                        std::cerr << "Next returned COORDFAIL." << std::endl;
-                        continue;
-                    case hyperclient::SERVERERROR:
-                        std::cerr << "Next returned SERVERERROR." << std::endl;
-                        continue;
-                    case hyperclient::CONNECTFAIL:
-                        std::cerr << "Next returned CONNECTFAIL." << std::endl;
-                        continue;
-                    case hyperclient::DISCONNECT:
-                        std::cerr << "Next returned DISCONNECT." << std::endl;
-                        continue;
-                    case hyperclient::RECONFIGURE:
-                        std::cerr << "Next returned RECONFIGURE." << std::endl;
-                        continue;
-                    case hyperclient::LOGICERROR:
-                        std::cerr << "Next returned LOGICERROR." << std::endl;
-                        continue;
-                    default:
-                        std::cerr << "Next returned unknown status." << std::endl;
-                        continue;
-                }
-
-                if (s.valid())
-                {
-                    std::cerr << "Number " << num << " found more than one result." << std::endl;
-                }
-            }
+            using std::tr1::bind;
+            using std::tr1::placeholders::_1;
+            using std::tr1::placeholders::_2;
+            using std::tr1::placeholders::_3;
+            size_t count = 0;
+            cl->search(argv[3], search, std::tr1::bind(handle_search, &count, key, _1, _2, _3));
+            cl->flush(-1);
         }
 
         clock_gettime(CLOCK_REALTIME, &end);
