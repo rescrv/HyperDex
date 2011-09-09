@@ -8,7 +8,7 @@ nodist_libhyperclient_java_la_SOURCES = hyperclient_wrap.cxx
 libhyperclient_java_la_CPPFLAGS = -I$(abs_top_srcdir)/hyperclient
 libhyperclient_java_la_LIBADD = ../libhyperclient.la
 
-hyperclient_wrap.cxx: $(abs_srcdir)/../hyperclient.i ../hyperclient/client.h
+hyperclient_wrap.cxx: $(abs_srcdir)/../hyperclient.i ../hyperclient/sync_client.h
 	mkdir -p hyperclient
 	${SWIG} -java -package hyperclient -outcurrentdir -outdir hyperclient $(abs_srcdir)/../hyperclient.i
 

@@ -3,7 +3,7 @@
 %include "std_string.i"
 %include "std_vector.i"
 %{
-#include "hyperclient/client.h"
+#include "hyperclient/sync_client.h"
 %}
 %include "enums.swg"
 %javaconst(1);
@@ -27,10 +27,10 @@
 namespace hyperclient
 {
 
-class client
+class sync_client
 {
     public:
-        client(po6::net::location coordinator);
+        sync_client(po6::net::location coordinator);
 
     public:
         int connect();

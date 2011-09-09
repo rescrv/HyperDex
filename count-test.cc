@@ -26,6 +26,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // STL
+#include <memory>
 #include <string>
 
 // po6
@@ -36,7 +37,7 @@
 #include <e/convert.h>
 
 // HyperDex
-#include <hyperclient/client.h>
+#include <hyperclient/sync_client.h>
 
 static int
 usage();
@@ -112,9 +113,9 @@ main(int argc, char* argv[])
 
     try
     {
-        hyperclient::client cl(po6::net::location(ip, port));
+        std::auto_ptr<hyperclient::sync_client> cl(hyperclient::sync_client::create(po6::net::location(ip, port)));
 
-        switch (cl.connect())
+        switch (cl->connect())
         {
             case hyperclient::SUCCESS:
                 break;
@@ -165,7 +166,7 @@ main(int argc, char* argv[])
             std::vector<e::buffer> val;
             val.push_back(e::buffer(payload.c_str(), payload.size()));
 
-            switch (cl.put(space, key, val))
+            switch (cl->put(space, key, val))
             {
                 case hyperclient::SUCCESS:
                     break;
@@ -206,7 +207,7 @@ main(int argc, char* argv[])
 
             val.clear();
 
-            switch (cl.get(space, key, &val))
+            switch (cl->get(space, key, &val))
             {
                 case hyperclient::SUCCESS:
                     break;

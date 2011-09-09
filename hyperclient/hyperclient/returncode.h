@@ -25,72 +25,28 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperclient_client_h_
-#define hyperclient_client_h_
-
-// STL
-#include <map>
-#include <memory>
-#include <string>
-#include <vector>
-
-// po6
-#include <po6/net/location.h>
-
-// e
-#include <e/buffer.h>
-
-// HyperClient
-#include <hyperclient/returncode.h>
+#ifndef hyperclient_returncode_h_
+#define hyperclient_returncode_h_
 
 namespace hyperclient
 {
 
-class search_results;
-
-class client
+enum returncode
 {
-    public:
-        client(po6::net::location coordinator);
-
-    public:
-        returncode connect();
-
-    public:
-        returncode get(const std::string& space, const e::buffer& key, std::vector<e::buffer>* value);
-        returncode put(const std::string& space, const e::buffer& key, const std::vector<e::buffer>& value);
-        returncode del(const std::string& space, const e::buffer& key);
-        returncode update(const std::string& space, const e::buffer& key, const std::map<std::string, e::buffer>& value);
-        returncode search(const std::string& space, const std::map<std::string, e::buffer>& params, search_results* sr);
-
-    private:
-        friend class search_results;
-
-    private:
-        struct priv;
-        const std::auto_ptr<priv> p;
-};
-
-class search_results
-{
-    public:
-        search_results();
-        ~search_results() throw ();
-
-    public:
-        bool valid();
-        returncode next();
-        const e::buffer& key();
-        const std::vector<e::buffer>& value();
-
-    private:
-        friend class client;
-
-    private:
-        struct priv;
-        std::auto_ptr<priv> p;
+    SUCCESS     = 0,
+    NOTFOUND    = 1,
+    WRONGARITY  = 2,
+    NOTASPACE   = 8,
+    BADSEARCH   = 9,
+    BADDIMENSION= 10,
+    COORDFAIL   = 16,
+    SERVERERROR = 17,
+    CONNECTFAIL = 18,
+    DISCONNECT  = 19,
+    RECONFIGURE = 20,
+    LOGICERROR  = 21
 };
 
 } // namespace hyperclient
 
-#endif // hyperclient_client_h_
+#endif // hyperclient_returncode_h_
