@@ -88,6 +88,7 @@ class pending
         hyperdex::entityid ent;
         hyperdex::instance inst;
         uint32_t nonce;
+        bool reconfigured;
 
     private:
         friend class e::intrusive_ptr<pending>;
@@ -507,8 +508,7 @@ hyperclient :: async_client_impl :: flush()
             {
                 if (*i && m_config.instancefor((*i)->ent) != (*i)->inst)
                 {
-                    (*i)->result(RECONFIGURE);
-                    *i = NULL;
+                    (*i)->reconfigured = true;
                 }
             }
 
@@ -527,6 +527,13 @@ hyperclient :: async_client_impl :: flush()
                 m_requests[i]->chan->soc.close();
                 m_channels.erase(m_requests[i]->inst);
                 m_requests[i]->result(DISCONNECT);
+                m_requests[i] = NULL;
+                continue;
+            }
+
+            if (m_requests[i]->reconfigured)
+            {
+                m_requests[i]->result(RECONFIGURE);
                 m_requests[i] = NULL;
                 continue;
             }
@@ -644,6 +651,7 @@ hyperclient :: pending :: pending()
     , ent()
     , inst()
     , nonce()
+    , reconfigured(false)
     , m_ref(0)
 {
 }
