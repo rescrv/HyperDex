@@ -38,6 +38,7 @@
 #include <e/guard.h>
 
 // Utils
+// XXX Use libhyperspacehashing
 #include "bithacks.h"
 #include "hashing.h"
 
