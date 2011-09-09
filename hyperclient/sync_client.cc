@@ -109,7 +109,7 @@ hyperclient :: sync_client_impl :: get(const std::string& space,
     using std::tr1::placeholders::_2;
     hyperclient::returncode ret;
     m_acl->get(space, key, bind(&sync_client_impl::inner_w_value, this, &ret, value, _1, _2));
-    m_acl->flush();
+    m_acl->flush(-1);
     return ret;
 }
 
@@ -122,7 +122,7 @@ hyperclient :: sync_client_impl :: put(const std::string& space,
     using std::tr1::placeholders::_1;
     hyperclient::returncode ret;
     m_acl->put(space, key, value, bind(&sync_client_impl::inner, this, &ret, _1));
-    m_acl->flush();
+    m_acl->flush(-1);
     return ret;
 }
 
@@ -134,7 +134,7 @@ hyperclient :: sync_client_impl :: del(const std::string& space,
     using std::tr1::placeholders::_1;
     hyperclient::returncode ret;
     m_acl->del(space, key, bind(&sync_client_impl::inner, this, &ret, _1));
-    m_acl->flush();
+    m_acl->flush(-1);
     return ret;
 }
 
@@ -147,7 +147,7 @@ hyperclient :: sync_client_impl :: update(const std::string& space,
     using std::tr1::placeholders::_1;
     hyperclient::returncode ret;
     m_acl->update(space, key, value, bind(&sync_client_impl::inner, this, &ret, _1));
-    m_acl->flush();
+    m_acl->flush(-1);
     return ret;
 }
 

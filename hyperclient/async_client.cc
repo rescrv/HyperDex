@@ -34,6 +34,7 @@
 // e
 #include <e/bitfield.h>
 #include <e/intrusive_ptr.h>
+#include <e/timer.h>
 
 // Utils
 #include "hashing.h"
@@ -155,8 +156,8 @@ class async_client_impl : public hyperclient :: async_client
         virtual void update(const std::string& space, const e::buffer& key,
                             const std::map<std::string, e::buffer>& value,
                             std::tr1::function<void (returncode)> callback);
-        virtual returncode flush();
-        virtual returncode flush_one();
+        virtual returncode flush(int timeout);
+        virtual returncode flush_one(int timeout);
 
     public:
         void add_reqrep(const std::string&, const e::buffer& key,
@@ -425,15 +426,43 @@ hyperclient :: async_client_impl :: send(e::intrusive_ptr<channel> chan,
 }
 
 hyperclient::returncode
-hyperclient :: async_client_impl :: flush()
+hyperclient :: async_client_impl :: flush(int timeout)
 {
+    e::stopwatch stopw;
+    stopw.start();
+
     while (!m_requests.empty())
     {
-        returncode ret = flush_one();
+        returncode ret = flush_one(timeout);
 
-        if (ret != SUCCESS)
+        if (ret != SUCCESS && ret != TIMEOUT)
         {
             return ret;
+        }
+
+        if (timeout >= 0)
+        {
+            timeout -= stopw.peek_ms();
+
+            if (timeout < 0)
+            {
+                ret = TIMEOUT;
+            }
+        }
+
+        if (ret == TIMEOUT)
+        {
+            for (std::deque<e::intrusive_ptr<pending> >::iterator req = m_requests.begin();
+                    req != m_requests.end(); ++req)
+            {
+                if (*req)
+                {
+                    (*req)->result(TIMEOUT);
+                }
+            }
+
+            m_requests.clear();
+            return TIMEOUT;
         }
     }
 
@@ -441,7 +470,7 @@ hyperclient :: async_client_impl :: flush()
 }
 
 hyperclient::returncode
-hyperclient :: async_client_impl :: flush_one()
+hyperclient :: async_client_impl :: flush_one(int timeout)
 {
     while (!m_requests.empty())
     {
@@ -499,6 +528,30 @@ hyperclient :: async_client_impl :: flush_one()
 
         pfds[num_pfds] = m_coord.pfd();
         pfds[num_pfds].revents = 0;
+        int polled = poll(&pfds.front(), num_pfds + 1, timeout);
+
+        if (polled < 0)
+        {
+            return LOGICERROR;
+        }
+
+        if (polled == 0)
+        {
+            while (!m_requests.empty())
+            {
+                if (!m_requests.front())
+                {
+                    m_requests.pop_front();
+                    continue;
+                }
+
+                m_requests.front()->result(TIMEOUT);
+                m_requests.pop_front();
+                break;
+            }
+
+            return TIMEOUT;
+        }
 
         if (poll(&pfds.front(), num_pfds + 1, -1) < 0)
         {

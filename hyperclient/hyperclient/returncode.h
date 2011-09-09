@@ -44,7 +44,8 @@ enum returncode
     CONNECTFAIL = 18,
     DISCONNECT  = 19,
     RECONFIGURE = 20,
-    LOGICERROR  = 21
+    LOGICERROR  = 21,
+    TIMEOUT     = 22
 };
 
 } // namespace hyperclient
