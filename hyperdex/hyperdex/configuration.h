@@ -70,8 +70,10 @@ class configuration
         entityid tailof(const regionid& r) const;
         instance instancefor(const entityid& e) const;
 
-    // Search-related functions.
+    // Hashing-related functions.
     public:
+        bool point_leader_entity(const spaceid& space, const e::buffer& key,
+                                 hyperdex::entityid* ent, hyperdex::instance* inst);
         std::map<entityid, instance> search_entities(const spaceid& space,
                                                      const hyperspacehashing::equality_wildcard& wc) const;
         std::map<entityid, instance> search_entities(const subspaceid& subspace,

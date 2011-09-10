@@ -38,9 +38,6 @@
 #include <e/intrusive_ptr.h>
 #include <e/timer.h>
 
-// Utils
-#include "hashing.h"
-
 // HyperspaceHashing
 #include <hyperspacehashing/equality_wildcard.h>
 
@@ -502,11 +499,10 @@ hyperclient :: async_client_impl :: add_reqrep(const std::string& space,
     }
 
     // Figure out who to talk with.
-    hyperdex::regionid point_leader(si.space, 0, 64, CityHash64(key));
-    hyperdex::entityid dst_ent = m_config.headof(point_leader);
-    hyperdex::instance dst_inst = m_config.instancefor(dst_ent);
+    hyperdex::entityid dst_ent;
+    hyperdex::instance dst_inst;
 
-    if (dst_inst == hyperdex::configuration::NULLINSTANCE)
+    if (!m_config.point_leader_entity(si, key, &dst_ent, &dst_inst))
     {
         op->result(CONNECTFAIL);
         return;
