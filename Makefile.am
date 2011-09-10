@@ -3,7 +3,6 @@ SUBDIRS = hyperspacehashing hyperdex hyperdisk hyperclient hyperdaemon ycsb
 
 bin_PROGRAMS = cli daemon
 noinst_PROGRAMS = binary-test count-test repl-test
-noinst_HEADERS = utils/bithacks.h utils/hashing.h
 
 EXTRA_DIST = runner.cc
 
