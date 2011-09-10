@@ -551,9 +551,9 @@ hyperclient :: async_client_impl :: send(e::intrusive_ptr<channel> chan,
     const uint16_t tover = inst.inbound_version;
     const hyperdex::entityid& from(chan->id);
     const hyperdex::entityid& to(ent);
-    const uint32_t size = sizeof(uint32_t) + sizeof(type) + sizeof(fromver)
+    const uint32_t size = sizeof(type) + sizeof(fromver)
                         + sizeof(tover) + hyperdex::entityid::SERIALIZEDSIZE * 2
-                        + send_msg.size();
+                        + sizeof(nonce) + send_msg.size();
     e::buffer packed(size);
     packed.pack() << size << type
                   << fromver << tover
