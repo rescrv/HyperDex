@@ -259,6 +259,7 @@ hyperdaemon :: network_worker :: run()
         catch (std::out_of_range& e)
         {
             // Unpack error
+            LOG(INFO) << "Bad message " << from << "->" << to << " " << type << " " << msg.hex();
         }
     }
 }
