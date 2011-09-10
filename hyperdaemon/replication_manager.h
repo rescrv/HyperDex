@@ -88,11 +88,11 @@ class replication_manager
     public:
         // These are called when the client initiates the action.  This implies
         // that only the point leader will call these methods.
-        void client_put(const hyperdex::entityid& from, const hyperdex::entityid& to, uint32_t nonce,
+        void client_put(const hyperdex::entityid& from, const hyperdex::entityid& to, uint64_t nonce,
                         const e::buffer& key, const std::vector<e::buffer>& value);
-        void client_del(const hyperdex::entityid& from, const hyperdex::entityid& to, uint32_t nonce,
+        void client_del(const hyperdex::entityid& from, const hyperdex::entityid& to, uint64_t nonce,
                         const e::buffer& key);
-        void client_update(const hyperdex::entityid& from, const hyperdex::entityid& to, uint32_t nonce,
+        void client_update(const hyperdex::entityid& from, const hyperdex::entityid& to, uint64_t nonce,
                            const e::buffer& key, const e::bitfield& value_mask, const std::vector<e::buffer>& value);
         // These are called in response to messages from other hosts.
         void chain_put(const hyperdex::entityid& from, const hyperdex::entityid& to, uint64_t rev,
@@ -126,7 +126,7 @@ class replication_manager
         void client_common(bool has_value, bool has_value_mask,
                            const hyperdex::entityid& from,
                            const hyperdex::entityid& to,
-                           uint32_t nonce, const e::buffer& key,
+                           uint64_t nonce, const e::buffer& key,
                            const e::bitfield& newvalue_mask,
                            const std::vector<e::buffer>& newvalue);
         void chain_common(bool has_value, const hyperdex::entityid& from, const hyperdex::entityid& to,

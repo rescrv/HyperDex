@@ -92,7 +92,7 @@ hyperdaemon :: network_worker :: run()
     entityid to;
     network_msgtype type;
     e::buffer msg;
-    uint32_t nonce;
+    uint64_t nonce;
     uint64_t count = 0;
 
     while (m_continue && m_comm->recv(&from, &to, &type, &msg))

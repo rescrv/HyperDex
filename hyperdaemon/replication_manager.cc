@@ -280,7 +280,7 @@ hyperdaemon :: replication_manager :: shutdown()
 void
 hyperdaemon :: replication_manager :: client_put(const entityid& from,
                                                  const entityid& to,
-                                                 uint32_t nonce,
+                                                 uint64_t nonce,
                                                  const e::buffer& key,
                                                  const std::vector<e::buffer>& newvalue)
 {
@@ -291,7 +291,7 @@ hyperdaemon :: replication_manager :: client_put(const entityid& from,
 void
 hyperdaemon :: replication_manager :: client_del(const entityid& from,
                                                  const entityid& to,
-                                                 uint32_t nonce,
+                                                 uint64_t nonce,
                                                  const e::buffer& key)
 {
     e::bitfield bf(0);
@@ -301,7 +301,7 @@ hyperdaemon :: replication_manager :: client_del(const entityid& from,
 void
 hyperdaemon :: replication_manager :: client_update(const entityid& from,
                                                     const entityid& to,
-                                                    uint32_t nonce,
+                                                    uint64_t nonce,
                                                     const e::buffer& key,
                                                     const e::bitfield& newvalue_mask,
                                                     const std::vector<e::buffer>& newvalue)
@@ -805,7 +805,7 @@ hyperdaemon :: replication_manager :: client_common(bool has_value,
                                                     bool has_value_mask,
                                                     const entityid& from,
                                                     const entityid& to,
-                                                    uint32_t nonce,
+                                                    uint64_t nonce,
                                                     const e::buffer& key,
                                                     const e::bitfield& value_mask,
                                                     const std::vector<e::buffer>& value)

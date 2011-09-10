@@ -92,7 +92,7 @@ class pending
         e::intrusive_ptr<channel> chan;
         hyperdex::entityid ent;
         hyperdex::instance inst;
-        uint32_t nonce;
+        uint64_t nonce;
         bool reconfigured;
 
     private:
@@ -213,7 +213,7 @@ class async_client_impl : public hyperclient :: async_client
                   e::intrusive_ptr<pending> op,
                   const hyperdex::entityid& entity,
                   const hyperdex::instance& inst,
-                  uint32_t nonce,
+                  uint64_t nonce,
                   hyperdex::network_msgtype send_type,
                   const e::buffer& send_msg);
 
@@ -469,7 +469,7 @@ hyperclient :: async_client_impl :: search(const std::string& space,
             }
         }
 
-        uint32_t nonce = chan->nonce;
+        uint64_t nonce = chan->nonce;
         ++chan->nonce;
         op->chan = chan;
         op->ent = ent_inst->first;
@@ -523,7 +523,7 @@ hyperclient :: async_client_impl :: add_reqrep(const std::string& space,
         }
     }
 
-    uint32_t nonce = chan->nonce;
+    uint64_t nonce = chan->nonce;
     ++chan->nonce;
     op->chan = chan;
     op->ent = dst_ent;
@@ -542,7 +542,7 @@ hyperclient :: async_client_impl :: send(e::intrusive_ptr<channel> chan,
                                          e::intrusive_ptr<pending> op,
                                          const hyperdex::entityid& ent,
                                          const hyperdex::instance& inst,
-                                         uint32_t nonce,
+                                         uint64_t nonce,
                                          hyperdex::network_msgtype send_type,
                                          const e::buffer& send_msg)
 {
@@ -823,7 +823,7 @@ hyperclient :: async_client_impl :: flush_one(int timeout)
                 uint16_t tover;
                 hyperdex::entityid from;
                 hyperdex::entityid to;
-                uint32_t nonce;
+                uint64_t nonce;
                 e::unpacker up(response.unpack());
                 up >> nop >> type_num >> fromver >> tover >> from >> to >> nonce;
                 hyperdex::network_msgtype msg_type = static_cast<hyperdex::network_msgtype>(type_num);

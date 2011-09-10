@@ -57,7 +57,7 @@ class clientop
     public:
         hyperdex::regionid region;
         hyperdex::entityid from;
-        uint32_t nonce;
+        uint64_t nonce;
 
     private:
         int compare (const clientop& rhs) const;
