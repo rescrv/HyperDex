@@ -36,6 +36,9 @@
 #include <e/intrusive_ptr.h>
 #include <e/locking_iterable_fifo.h>
 
+// HyperspaceHashing
+#include <hyperspacehashing/mask.h>
+
 // Forward Declarations
 namespace hyperdisk
 {
@@ -55,8 +58,7 @@ class snapshot
         void next();
 
     public:
-        uint32_t primary_hash();
-        uint32_t secondary_hash();
+        hyperspacehashing::mask::coordinate coordinate();
         bool has_value();
         uint64_t version();
         e::buffer key();

@@ -58,51 +58,51 @@ hyperdaemon :: searches :: ~searches() throw ()
 }
 
 void
-hyperdaemon :: searches :: prepare(const hyperdex::configuration& newconfig,
-                                   const hyperdex::instance& us)
+hyperdaemon :: searches :: prepare(const hyperdex::configuration&,
+                                   const hyperdex::instance&)
 {
 }
 
 void
 hyperdaemon :: searches :: reconfigure(const hyperdex::configuration& newconfig,
-                                       const hyperdex::instance& us)
+                                       const hyperdex::instance&)
 {
     m_config = newconfig;
 }
 
 void
-hyperdaemon :: searches :: cleanup(const hyperdex::configuration& newconfig,
-                                   const hyperdex::instance& us)
+hyperdaemon :: searches :: cleanup(const hyperdex::configuration&,
+                                   const hyperdex::instance&)
 {
 }
 
 void
-hyperdaemon :: searches :: start(const entityid& client,
-                                 uint32_t nonce,
-                                 const regionid& r,
-                                 const equality_wildcard& wc)
+hyperdaemon :: searches :: start(const hyperdex::entityid& client,
+                                 uint64_t searchid,
+                                 const hyperdex::regionid& region,
+                                 uint64_t nonce,
+                                 const hyperspacehashing::equality_wildcard& wc)
 {
-    std::pair<entityid, uint32_t> key(client, nonce);
+    std::pair<entityid, uint64_t> key(client, searchid);
 
     if (m_searches.contains(key))
     {
         return;
     }
 
-    e::intrusive_ptr<hyperdisk::snapshot> snap = m_data->make_snapshot(r);
-    e::intrusive_ptr<search_state> state = new search_state(r, wc, snap);
+    // XXX Make a snapshot derived from the search query.
+    e::intrusive_ptr<hyperdisk::snapshot> snap = m_data->make_snapshot(region);
+    e::intrusive_ptr<search_state> state = new search_state(region, wc, snap);
     m_searches.insert(key, state);
-    next(client, nonce);
+    next(client, searchid, nonce);
 }
 
 void
-hyperdaemon :: searches :: next(const entityid& client,
-                                uint32_t nonce)
+hyperdaemon :: searches :: next(const hyperdex::entityid& client, uint64_t searchid, uint64_t nonce)
 {
-#if 0
     e::intrusive_ptr<search_state> state;
 
-    if (!m_searches.lookup(std::make_pair(client, nonce), &state))
+    if (!m_searches.lookup(std::make_pair(client, searchid), &state))
     {
         return;
     }
@@ -111,18 +111,17 @@ hyperdaemon :: searches :: next(const entityid& client,
 
     while (state->snap->valid())
     {
-        if (state->wc.intersects(state->snap->coord))
+        if (state->terms.match(state->snap->coordinate()))
         {
             e::buffer key(state->snap->key());
             std::vector<e::buffer> value(state->snap->value());
 
-            if (state->wc.matches(value))
+            if (state->terms.match(key, value))
             {
                 e::buffer msg;
-                msg.pack() << nonce << state->count << key << value;
+                msg.pack() << nonce << key << value;
                 m_comm->send(state->region, client, hyperdex::RESP_SEARCH_ITEM, msg);
                 state->snap->next();
-                ++state->count;
                 return;
             }
         }
@@ -133,16 +132,14 @@ hyperdaemon :: searches :: next(const entityid& client,
     e::buffer msg;
     msg.pack() << nonce;
     m_comm->send(state->region, client, hyperdex::RESP_SEARCH_DONE, msg);
-    ++state->count;
-    stop(client, nonce);
-#endif
+    stop(client, searchid);
 }
 
 void
-hyperdaemon :: searches :: stop(const entityid& client,
-                                uint32_t nonce)
+hyperdaemon :: searches :: stop(const hyperdex::entityid& client,
+                                uint64_t searchid)
 {
-    m_searches.remove(std::make_pair(client, nonce));
+    m_searches.remove(std::make_pair(client, searchid));
 }
 
 uint64_t
@@ -155,16 +152,11 @@ hyperdaemon :: searches :: hash(const std::pair<entityid, uint32_t>& key)
 hyperdaemon :: searches :: search_state :: search_state(const regionid& r,
                                                         const equality_wildcard& t,
                                                         e::intrusive_ptr<hyperdisk::snapshot> s)
-#if 0
     : lock()
     , region(r)
-    , point(t.secondary_point())
-    , mask(t.secondary_mask())
     , terms(t)
     , snap(s)
-    , count(0)
     , m_ref(0)
-#endif
 {
 }
 

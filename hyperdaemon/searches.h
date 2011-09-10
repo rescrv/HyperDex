@@ -67,41 +67,17 @@ class searches
         void cleanup(const hyperdex::configuration& newconfig, const hyperdex::instance& us);
 
     public:
-        void start(const hyperdex::entityid& client, uint32_t nonce,
-                   const hyperdex::regionid& r,
+        void start(const hyperdex::entityid& client, uint64_t searchid,
+                   const hyperdex::regionid& region, uint64_t nonce,
                    const hyperspacehashing::equality_wildcard& wc);
-        void next(const hyperdex::entityid& client, uint32_t nonce);
-        void stop(const hyperdex::entityid& client, uint32_t nonce);
+        void next(const hyperdex::entityid& client, uint64_t searchid, uint64_t nonce);
+        void stop(const hyperdex::entityid& client, uint64_t searchid);
 
     private:
         static uint64_t hash(const std::pair<hyperdex::entityid, uint32_t>&);
 
     private:
-        class search_state
-        {
-            public:
-                search_state(const hyperdex::regionid& region,
-                             const hyperspacehashing::equality_wildcard& wc,
-                             e::intrusive_ptr<hyperdisk::snapshot> snap);
-                ~search_state() throw ();
-
-            public:
-                po6::threads::mutex lock;
-                const hyperdex::regionid region;
-                const hyperspacehashing::equality_wildcard wc;
-                e::intrusive_ptr<hyperdisk::snapshot> snap;
-                uint64_t count;
-
-            private:
-                friend class e::intrusive_ptr<search_state>;
-
-            private:
-                void inc() { __sync_add_and_fetch(&m_ref, 1); }
-                void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
-
-            private:
-                size_t m_ref;
-        };
+        class search_state;
 
     private:
         searches(const searches&);
@@ -115,6 +91,31 @@ class searches
         logical* m_comm;
         hyperdex::configuration m_config;
         e::lockfree_hash_map<std::pair<hyperdex::entityid, uint32_t>, e::intrusive_ptr<search_state>, hash> m_searches;
+};
+
+class searches::search_state
+{
+    public:
+        search_state(const hyperdex::regionid& region,
+                     const hyperspacehashing::equality_wildcard& wc,
+                     e::intrusive_ptr<hyperdisk::snapshot> snap);
+        ~search_state() throw ();
+
+    public:
+        po6::threads::mutex lock;
+        const hyperdex::regionid region;
+        const hyperspacehashing::equality_wildcard terms;
+        e::intrusive_ptr<hyperdisk::snapshot> snap;
+
+    private:
+        friend class e::intrusive_ptr<search_state>;
+
+    private:
+        void inc() { __sync_add_and_fetch(&m_ref, 1); }
+        void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
+
+    private:
+        size_t m_ref;
 };
 
 } // namespace hyperdaemon

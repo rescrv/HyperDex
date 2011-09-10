@@ -165,19 +165,22 @@ hyperdaemon :: network_worker :: run()
             }
             else if (type == hyperdex::REQ_SEARCH_START)
             {
+                uint64_t searchid;
                 hyperspacehashing::equality_wildcard wc(0);
-                msg.unpack() >> nonce >> wc;
-                m_ssss->start(from, nonce, to.get_region(), wc);
+                msg.unpack() >> nonce >> searchid >> wc;
+                m_ssss->start(from, searchid, to.get_region(), nonce, wc);
             }
             else if (type == hyperdex::REQ_SEARCH_NEXT)
             {
-                msg.unpack() >> nonce;
-                m_ssss->next(from, nonce);
+                uint64_t searchid;
+                msg.unpack() >> nonce >> searchid;
+                m_ssss->next(from, searchid, nonce);
             }
             else if (type == hyperdex::REQ_SEARCH_STOP)
             {
-                msg.unpack() >> nonce;
-                m_ssss->stop(from, nonce);
+                uint64_t searchid;
+                msg.unpack() >> nonce >> searchid;
+                m_ssss->stop(from, searchid);
             }
             else if (type == hyperdex::CHAIN_PUT)
             {

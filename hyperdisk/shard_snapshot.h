@@ -54,6 +54,7 @@ class shard_snapshot
     public:
         uint32_t primary_hash();
         uint32_t secondary_hash();
+        hyperspacehashing::mask::coordinate coordinate();
         uint64_t version();
         e::buffer key();
         std::vector<e::buffer> value();

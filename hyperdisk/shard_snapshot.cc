@@ -25,6 +25,11 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#define __STDC_LIMIT_MACROS
+
+// HyperspaceHashing
+#include <hyperspacehashing/mask.h>
+
 // HyperDisk
 #include "shard.h"
 #include "shard_snapshot.h"
@@ -81,6 +86,14 @@ uint32_t
 hyperdisk :: shard_snapshot :: secondary_hash()
 {
     return static_cast<uint32_t>(m_shard->m_search_index[m_entry * 2] >> 32);
+}
+
+hyperspacehashing::mask::coordinate
+hyperdisk :: shard_snapshot :: coordinate()
+{
+    uint64_t hashes = m_shard->m_search_index[m_entry * 2];
+    return hyperspacehashing::mask::coordinate(UINT32_MAX, static_cast<uint32_t>(hashes),
+                                               UINT32_MAX, static_cast<uint32_t>(hashes >> 32));
 }
 
 uint64_t

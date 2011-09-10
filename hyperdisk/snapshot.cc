@@ -70,29 +70,16 @@ hyperdisk :: snapshot :: next()
     }
 }
 
-uint32_t
-hyperdisk :: snapshot :: primary_hash()
+hyperspacehashing::mask::coordinate
+hyperdisk :: snapshot :: coordinate()
 {
     if (!m_snaps.empty())
     {
-        return m_snaps.back()->primary_hash();
+        return m_snaps.back()->coordinate();
     }
     else
     {
-        return uint64_t();
-    }
-}
-
-uint32_t
-hyperdisk :: snapshot :: secondary_hash()
-{
-    if (!m_snaps.empty())
-    {
-        return m_snaps.back()->secondary_hash();
-    }
-    else
-    {
-        return uint64_t();
+        return hyperspacehashing::mask::coordinate();
     }
 }
 
