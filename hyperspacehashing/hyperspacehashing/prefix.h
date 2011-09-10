@@ -87,7 +87,7 @@ class hasher
         ewc_coordinate hash(const equality_wildcard& ewc) const;
 
     private:
-        const e::bitfield& m_dims;
+        const e::bitfield m_dims;
         const std::vector<hash_t> m_funcs;
 };
 
