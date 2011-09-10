@@ -118,7 +118,7 @@ hyperspacehashing :: mask :: hasher :: hash(const std::vector<e::buffer>& value)
 
     for (size_t i = 1; i < m_funcs.size(); ++i)
     {
-        value_hashes[i - 1] = m_funcs[i](value[i]);
+        value_hashes[i - 1] = m_funcs[i](value[i - 1]);
     }
 
     uint32_t value_hash = static_cast<uint32_t>(lower_interlace(value_hashes));
