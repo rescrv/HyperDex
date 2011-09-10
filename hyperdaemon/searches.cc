@@ -111,6 +111,7 @@ hyperdaemon :: searches :: next(const hyperdex::entityid& client, uint64_t searc
 
     while (state->snap->valid())
     {
+#if 0
         if (state->terms.match(state->snap->coordinate()))
         {
             e::buffer key(state->snap->key());
@@ -125,6 +126,7 @@ hyperdaemon :: searches :: next(const hyperdex::entityid& client, uint64_t searc
                 return;
             }
         }
+#endif
 
         state->snap->next();
     }
