@@ -67,7 +67,6 @@ class searches
         void cleanup(const hyperdex::configuration& newconfig, const hyperdex::instance& us);
 
     public:
-        void start(const hyperdex::entityid& client, uint32_t nonce, const hyperdex::regionid& r, const hyperdex::search& s);
         void start(const hyperdex::entityid& client, uint32_t nonce,
                    const hyperdex::regionid& r,
                    const hyperspacehashing::equality_wildcard& wc);

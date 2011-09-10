@@ -113,7 +113,7 @@ hyperdaemon :: datalayer :: prepare(const configuration& newconfig, const instan
 
             if (region_size != newconfig.regions().end())
             {
-                create_disk(e->first.get_region(), region_size->second);
+                create_disk(e->first.get_region(), newconfig.disk_hasher(e->first.get_subspace()), region_size->second);
             }
             else
             {
@@ -134,7 +134,7 @@ hyperdaemon :: datalayer :: prepare(const configuration& newconfig, const instan
 
             if (region_size != newconfig.regions().end())
             {
-                create_disk(t->second, region_size->second);
+                create_disk(t->second, newconfig.disk_hasher(t->second.get_subspace()), region_size->second);
             }
             else
             {
@@ -373,13 +373,15 @@ hyperdaemon :: datalayer :: flush_loop()
 }
 
 void
-hyperdaemon :: datalayer :: create_disk(const regionid& ri, uint16_t num_columns)
+hyperdaemon :: datalayer :: create_disk(const regionid& ri,
+                                        const hyperspacehashing::mask::hasher& hasher,
+                                        uint16_t num_columns)
 {
     LOG(INFO) << "Creating " << ri << " with " << num_columns << " columns.";
     std::ostringstream ostr;
     ostr << ri;
     po6::pathname path = po6::join(m_base, po6::pathname(ostr.str()));
-    disk_ptr d = new hyperdisk::disk(path, num_columns);
+    disk_ptr d = new hyperdisk::disk(path, hasher, num_columns);
     po6::threads::rwlock::wrhold hold(&m_lock);
     m_disks.insert(std::make_pair(ri, d));
 }

@@ -90,7 +90,9 @@ class datalayer
     private:
         e::intrusive_ptr<hyperdisk::disk> get_region(const hyperdex::regionid& ri);
         void flush_loop();
-        void create_disk(const hyperdex::regionid& ri, uint16_t num_columns);
+        void create_disk(const hyperdex::regionid& ri,
+                         const hyperspacehashing::mask::hasher& hasher,
+                         uint16_t num_columns);
         void drop_disk(const hyperdex::regionid& ri);
 
     private:
