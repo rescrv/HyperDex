@@ -28,7 +28,7 @@ count_test_LDFLAGS = -lrt
 
 repl_test_SOURCES = repl-test.cc
 repl_test_CPPFLAGS = -I${abs_top_srcdir}/hyperclient/
-repl_test_LDADD = hyperclient/libhyperclient.la
+repl_test_LDADD = hyperclient/libhyperclient.la -lrt
 
 coverage.dat: check
 	lcov --directory $(abs_top_builddir) --compat-libtool --capture --output $(abs_top_builddir)/coverage.dat

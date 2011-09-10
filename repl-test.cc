@@ -41,10 +41,9 @@
 // C
 #include <cstdio>
 
-// POSIX
-#include <signal.h>
-
 // STL
+#include <tr1/functional>
+#include <memory>
 #include <string>
 
 // Google CityHash
@@ -69,10 +68,7 @@ static uint32_t nums[256];
 
 std::string space;
 size_t prefix;
-bool conditionals = true;
-
-static void
-sigalarm(int) {}
+bool failed = false;
 
 static int
 usage();
@@ -81,43 +77,7 @@ static void
 find_hashes();
 
 static void
-fail(int testno, const char* reason, unsigned lineno);
-static void
-success(int testno);
-
-static bool
-put(int testno,
-    unsigned lineno,
-    hyperclient::async_client* cl,
-    size_t A, size_t B, size_t C);
-static bool
-del(int testno,
-    unsigned lineno,
-    hyperclient::async_client* cl,
-    size_t A);
-static bool
-check(int testno,
-      unsigned lineno,
-      hyperclient::async_client* cl,
-      size_t A, size_t B, size_t C);
-static bool
-absent(int testno,
-       unsigned lineno,
-       hyperclient::async_client* cl,
-       size_t A);
-static bool
-cond_check(int testno,
-           unsigned lineno,
-           hyperclient::async_client* cl,
-           size_t A, size_t B, size_t C)
-{ return conditionals ? check(testno, lineno, cl, A, B, C) : true; }
-static bool
-cond_absent(int testno,
-            unsigned lineno,
-            hyperclient::async_client* cl,
-            size_t A)
-{ return conditionals ? absent(testno, lineno, cl, A) : true; }
-
+test0(hyperclient::async_client* cl);
 static void
 test1(hyperclient::async_client* cl);
 static void
@@ -129,6 +89,22 @@ test4(hyperclient::async_client* cl);
 
 class generator
 {
+    public:
+        static uint32_t end()
+        {
+            bool looped = false;
+            uint32_t ret = 0;
+
+            for (generator i; i.has_next(); i.next())
+            {
+                looped = true;
+                ret = i;
+            }
+
+            assert(looped);
+            return ret;
+        }
+
     public:
         generator() : m_i(0) {}
 
@@ -209,20 +185,14 @@ main(int argc, char* argv[])
 
     try
     {
-        // Set SIGALARM to not crash us.
-        struct sigaction sa;
-        sa.sa_handler = sigalarm;
-        sigfillset(&sa.sa_mask);
-        sa.sa_flags = 0;
-        sigaction(SIGALRM, &sa, NULL);
+        std::auto_ptr<hyperclient::async_client> cl(hyperclient::async_client::create(po6::net::location(ip, port)));
+        cl->connect();
 
-        hyperclient::async_client cl(po6::net::location(ip, port));
-        cl.connect();
-
-        test1(&cl);
-        test2(&cl);
-        test3(&cl);
-        test4(&cl);
+        if (!failed) test0(cl.get());
+        if (!failed) test1(cl.get());
+        if (!failed) test2(cl.get());
+        if (!failed) test3(cl.get());
+        if (!failed) test4(cl.get());
     }
     catch (po6::error& e)
     {
@@ -280,38 +250,78 @@ find_hashes()
             ++ complete;
         }
     }
+
+    const char* terminator = "";
+    const char* sep;
+    std::cout << "Hashes turn out to be:\n";
+
+    for (size_t i = 0; i < 256; ++i)
+    {
+        if (i % 16 == 0)
+        {
+            std::cout << terminator << std::setw(4) << i;
+            sep = " [";
+            terminator = "]\n";
+        }
+
+        std::cout << sep << std::setw(4) << nums[i];
+        sep = ", ";
+    }
+
+    std::cout << "]\n" << std::endl;
 }
 
-void
-fail(int testno, const char* reason, unsigned lineno)
+static void
+fail(int testno, const char* reason)
 {
+    failed = true;
     printf("Test %2i:  [\x1b[31mFAIL\x1b[0m]\n", testno);
-    printf("failure on line %u:  %s\n", lineno, reason);
+    printf("failure:  %s\n", reason);
 }
 
-void
+static void
 success(int testno)
 {
     printf("Test %2i:  [\x1b[32mOK\x1b[0m]\n", testno);
 }
 
-#define str(X) #X
-#define xstr(X) str(X)
+static size_t
+reverse(size_t num)
+{
+    size_t i = 0;
 
-#define PUTFAILCASE(X) \
-    case hyperclient::X: \
-        snprintf(buf, 2048, "point = <%u %u %u> :: PUT returned %s.", \
-                static_cast<unsigned int>(A), \
-                static_cast<unsigned int>(B), \
-                static_cast<unsigned int>(C), \
-                xstr(X)); \
-        fail(testno, buf, lineno); \
-        return false;
+    for (; i < 256; ++i)
+    {
+        if (nums[i] == num)
+        {
+            return i;
+        }
+    }
 
-static bool
+    assert(false);
+}
+
+static void
+handle_put(int testno, bool* succeeded, size_t A, size_t B, size_t C, hyperclient::returncode ret)
+{
+    if (ret == hyperclient::SUCCESS)
+    {
+        return;
+    }
+
+    if (*succeeded)
+    {
+        *succeeded = false;
+        std::ostringstream ostr;
+        ostr << "key = " << reverse(A) << " ; value = <" << reverse(B) << ", " << reverse(C) << "> :: PUT returned " << ret;
+        fail(testno, ostr.str().c_str());
+    }
+}
+
+static void
 put(int testno,
-    unsigned lineno,
     hyperclient::async_client* cl,
+    bool* succeeded,
     size_t A, size_t B, size_t C)
 {
     e::buffer key;
@@ -319,221 +329,169 @@ put(int testno,
     key.pack() << A;
     value[0].pack() << B;
     value[1].pack() << C;
-    char buf[2048];
-    alarm(10);
+    using std::tr1::bind;
+    using std::tr1::placeholders::_1;
+    cl->put(space, key, value, std::tr1::bind(handle_put, testno, succeeded, A, B, C, _1));
+}
 
-    switch (cl->put(space, key, value))
+static void
+handle_del(int testno, bool* succeeded, size_t A, hyperclient::returncode ret)
+{
+    if (ret == hyperclient::SUCCESS)
     {
-        case hyperclient::SUCCESS:
-            return true;
-        PUTFAILCASE(NOTFOUND)
-        PUTFAILCASE(WRONGARITY)
-        PUTFAILCASE(NOTASPACE)
-        PUTFAILCASE(BADSEARCH)
-        PUTFAILCASE(COORDFAIL)
-        PUTFAILCASE(SERVERERROR)
-        PUTFAILCASE(CONNECTFAIL)
-        PUTFAILCASE(DISCONNECT)
-        PUTFAILCASE(RECONFIGURE)
-        PUTFAILCASE(LOGICERROR)
-        default:
-            return false;
+        return;
+    }
+
+    if (*succeeded)
+    {
+        *succeeded = false;
+        std::ostringstream ostr;
+        ostr << "key = " << reverse(A) << " :: DEL returned " << ret;
+        fail(testno, ostr.str().c_str());
     }
 }
 
-#define DELFAILCASE(X) \
-    case hyperclient::X: \
-        snprintf(buf, 2048, "key = %u :: DEL returned %s.", \
-                static_cast<unsigned int>(A), \
-                xstr(X)); \
-        fail(testno, buf, lineno); \
-        return false;
-
-static bool
+static void
 del(int testno,
-    unsigned lineno,
     hyperclient::async_client* cl,
+    bool* succeeded,
     size_t A)
 {
     e::buffer key;
     key.pack() << A;
-
-    char buf[2048];
-    alarm(10);
-
-    switch (cl->del(space, key))
-    {
-        case hyperclient::SUCCESS:
-            return true;
-        DELFAILCASE(NOTFOUND)
-        DELFAILCASE(WRONGARITY)
-        DELFAILCASE(NOTASPACE)
-        DELFAILCASE(BADSEARCH)
-        DELFAILCASE(COORDFAIL)
-        DELFAILCASE(SERVERERROR)
-        DELFAILCASE(CONNECTFAIL)
-        DELFAILCASE(DISCONNECT)
-        DELFAILCASE(RECONFIGURE)
-        DELFAILCASE(LOGICERROR)
-        default:
-            return false;
-    }
+    using std::tr1::bind;
+    using std::tr1::placeholders::_1;
+    cl->del(space, key, std::tr1::bind(handle_del, testno, succeeded, A, _1));
 }
+
+void
+handle_get(hyperclient::returncode* store_ret, std::vector<e::buffer>* store_value,
+           hyperclient::returncode ret, const std::vector<e::buffer>& value)
+{
+    *store_ret = ret;
+    *store_value = value;
+}
+
 
 static bool
 check(int testno,
-      unsigned lineno,
       hyperclient::async_client* cl,
+      bool* succeeded,
       size_t A, size_t B, size_t C)
 {
+    cl->flush((prefix + 1) * 1000);
+
+    if (!*succeeded)
+    {
+        return false;
+    }
+
     e::buffer key;
-    std::vector<e::buffer> value(2);
-    std::vector<e::buffer> gotten_value;
     key.pack() << A;
-    value[0].pack() << B;
-    value[1].pack() << C;
-    alarm(10);
+    hyperclient::returncode ret;
+    std::vector<e::buffer> ret_value(2);
+    std::vector<e::buffer> exp_value(2);
+    exp_value[0].pack() << B;
+    exp_value[1].pack() << C;
+    using std::tr1::bind;
+    using std::tr1::placeholders::_1;
+    using std::tr1::placeholders::_2;
+    cl->get(space, key, bind(handle_get, &ret, &ret_value, _1, _2));
+    cl->flush(1000);
 
-    switch (cl->get(space, key, &gotten_value))
+    if (ret != hyperclient::SUCCESS)
     {
-        case hyperclient::SUCCESS:
-            return true;
-        case hyperclient::NOTFOUND:
-            fail(testno, "check returned NOTFOUND.", lineno);
-            return false;
-        case hyperclient::WRONGARITY:
-            fail(testno, "check returned WRONGARITY.", lineno);
-            return false;
-        case hyperclient::NOTASPACE:
-            fail(testno, "check returned NOTASPACE.", lineno);
-            return false;
-        case hyperclient::BADSEARCH:
-            fail(testno, "check returned BADSEARCH.", lineno);
-            return false;
-        case hyperclient::COORDFAIL:
-            fail(testno, "check returned COORDFAIL.", lineno);
-            return false;
-        case hyperclient::SERVERERROR:
-            fail(testno, "check returned SERVERERROR.", lineno);
-            return false;
-        case hyperclient::CONNECTFAIL:
-            fail(testno, "check returned CONNECTFAIL.", lineno);
-            return false;
-        case hyperclient::DISCONNECT:
-            fail(testno, "check returned DISCONNECT.", lineno);
-            return false;
-        case hyperclient::RECONFIGURE:
-            fail(testno, "check returned RECONFIGURE.", lineno);
-            return false;
-        case hyperclient::LOGICERROR:
-            fail(testno, "check returned LOGICERROR (timeout?).", lineno);
-            return false;
-        default:
-            return false;
+        std::ostringstream ostr;
+        ostr << "key = " << reverse(A) << " :: CHECK returned " << ret;
+        fail(testno, ostr.str().c_str());
+        return false;
     }
 
-    return value != gotten_value;
-
-#if 0
-    std::map<std::string, e::buffer> terms;
-    terms.insert(std::make_pair("B", e::buffer(&B, sizeof(uint32_t))));
-    terms.insert(std::make_pair("C", e::buffer(&C, sizeof(uint32_t))));
-    hyperclient::search_results sr;
-    alarm(10);
-
-    switch (cl->search(space, terms, &sr))
+    if (ret_value != exp_value)
     {
-        case hyperclient::SUCCESS:
-            return true;
-        case hyperclient::NOTFOUND:
-            fail(testno, "check returned NOTFOUND.", lineno);
-            return false;
-        case hyperclient::WRONGARITY:
-            fail(testno, "check returned WRONGARITY.", lineno);
-            return false;
-        case hyperclient::NOTASPACE:
-            fail(testno, "check returned NOTASPACE.", lineno);
-            return false;
-        case hyperclient::BADSEARCH:
-            fail(testno, "check returned BADSEARCH.", lineno);
-            return false;
-        case hyperclient::COORDFAIL:
-            fail(testno, "check returned COORDFAIL.", lineno);
-            return false;
-        case hyperclient::SERVERERROR:
-            fail(testno, "check returned SERVERERROR.", lineno);
-            return false;
-        case hyperclient::CONNECTFAIL:
-            fail(testno, "check returned CONNECTFAIL.", lineno);
-            return false;
-        case hyperclient::DISCONNECT:
-            fail(testno, "check returned DISCONNECT.", lineno);
-            return false;
-        case hyperclient::RECONFIGURE:
-            fail(testno, "check returned RECONFIGURE.", lineno);
-            return false;
-        case hyperclient::LOGICERROR:
-            fail(testno, "check returned LOGICERROR (timeout?).", lineno);
-            return false;
-        default:
-            return false;
+        std::ostringstream ostr;
+        ostr << "key = " << reverse(A) << " ; value = <"
+             << reverse(B) << ", " << reverse(C)
+             << ">\t:: CHECK returned wrong value exp<"
+             << exp_value[0].hex() << ", " << exp_value[1].hex() << "> ret<"
+             << ret_value[0].hex() << ", " << ret_value[1].hex() << ">";
+        fail(testno, ostr.str().c_str());
+        return false;
     }
 
-    alarm(10);
-    return value != gotten_value &&
-           sr.valid() && sr.key() == key && sr.value() == value &&
-           sr.next() == hyperclient::SUCCESS && !sr.valid();
-#endif
+    // XXX Do an empty search in each subspace.
+    return true;
 }
 
 static bool
 absent(int testno,
-       unsigned lineno,
        hyperclient::async_client* cl,
+       bool* succeeded,
        size_t A)
 {
-    e::buffer key;
-    std::vector<e::buffer> gotten_value;
-    key.pack() << A;
-    alarm(10);
+    cl->flush((prefix + 1) * 1000);
 
-    switch (cl->get(space, key, &gotten_value))
+    if (!*succeeded)
     {
-        case hyperclient::SUCCESS:
-            fail(testno, "absent returned NOTFOUND.", lineno);
-            return false;
-        case hyperclient::NOTFOUND:
-            return true;
-        case hyperclient::WRONGARITY:
-            fail(testno, "absent returned WRONGARITY.", lineno);
-            return false;
-        case hyperclient::NOTASPACE:
-            fail(testno, "absent returned NOTASPACE.", lineno);
-            return false;
-        case hyperclient::BADSEARCH:
-            fail(testno, "absent returned BADSEARCH.", lineno);
-            return false;
-        case hyperclient::COORDFAIL:
-            fail(testno, "absent returned COORDFAIL.", lineno);
-            return false;
-        case hyperclient::SERVERERROR:
-            fail(testno, "absent returned SERVERERROR.", lineno);
-            return false;
-        case hyperclient::CONNECTFAIL:
-            fail(testno, "absent returned CONNECTFAIL.", lineno);
-            return false;
-        case hyperclient::DISCONNECT:
-            fail(testno, "absent returned DISCONNECT.", lineno);
-            return false;
-        case hyperclient::RECONFIGURE:
-            fail(testno, "absent returned RECONFIGURE.", lineno);
-            return false;
-        case hyperclient::LOGICERROR:
-            fail(testno, "absent returned LOGICERROR (timeout?).", lineno);
-            return false;
-        default:
-            return false;
+        return false;
     }
+
+    e::buffer key;
+    key.pack() << A;
+    hyperclient::returncode ret;
+    std::vector<e::buffer> ret_value(2);
+    using std::tr1::bind;
+    using std::tr1::placeholders::_1;
+    using std::tr1::placeholders::_2;
+    cl->get(space, key, bind(handle_get, &ret, &ret_value, _1, _2));
+    cl->flush(1000);
+
+    if (ret == hyperclient::SUCCESS)
+    {
+        std::ostringstream ostr;
+        ostr << "key = " << reverse(A) << "\t:: ABSENT returned <"
+             << ret_value[0].hex() << ", " << ret_value[1].hex() << ">";
+        fail(testno, ostr.str().c_str());
+        return false;
+    }
+
+    if (ret != hyperclient::NOTFOUND)
+    {
+        std::ostringstream ostr;
+        ostr << "key = " << reverse(A) << " :: ABSENT returned " << ret;
+        fail(testno, ostr.str().c_str());
+        return false;
+    }
+
+    // XXX Do an empty search in each subspace.
+    return true;
+}
+
+// This test continually puts keys, ensuring that every way in which one could
+// select regions from the subspaces is chosen.
+void
+test0(hyperclient::async_client* cl)
+{
+    bool succeeded = true;
+
+    for (generator A; A.has_next(); A.next())
+    {
+        if (!absent(0, cl, &succeeded, A)) return;
+
+        for (generator B; B.has_next(); B.next())
+        {
+            for (generator C; C.has_next(); C.next())
+            {
+                put(0, cl, &succeeded, A, B, C);
+            }
+        }
+
+        if (!check(0, cl, &succeeded, A, generator::end(), generator::end())) return;
+        del(0, cl, &succeeded, A);
+        if (!absent(0, cl, &succeeded, A)) return;
+    }
+
+    success(0);
 }
 
 // This test continually puts/deletes keys, ensuring that a [PUT, DEL] sequence
@@ -543,20 +501,22 @@ absent(int testno,
 void
 test1(hyperclient::async_client* cl)
 {
+    bool succeeded = true;
+
     for (generator A; A.has_next(); A.next())
     {
+        if (!absent(1, cl, &succeeded, A)) return;
+
         for (generator B; B.has_next(); B.next())
         {
             for (generator C; C.has_next(); C.next())
             {
-                if (!put(1, __LINE__, cl, A, B, C)) return;
-                if (!cond_check(1, __LINE__, cl, A, B, C)) return;
-                if (!del(1, __LINE__, cl, A)) return;
-                if (!cond_absent(1, __LINE__, cl, A)) return;
+                put(1, cl, &succeeded, A, C, C);
+                del(1, cl, &succeeded, A);
             }
         }
 
-        if (!absent(1, __LINE__, cl, A)) return;
+        if (!absent(1, cl, &succeeded, A)) return;
     }
 
     success(1);
@@ -569,20 +529,22 @@ test1(hyperclient::async_client* cl)
 void
 test2(hyperclient::async_client* cl)
 {
+    bool succeeded = true;
+
     for (generator A; A.has_next(); A.next())
     {
         for (generator B; B.has_next(); B.next())
         {
-            if (!absent(2, __LINE__, cl, A)) return;
+            if (!absent(2, cl, &succeeded, A)) return;
 
             for (generator C; C.has_next(); C.next())
             {
-                if (!put(2, __LINE__, cl, A, B, C)) return;
-                if (!cond_check(2, __LINE__, cl, A, B, C)) return;
+                put(2, cl, &succeeded, A, B, C);
             }
 
-            if (!del(2, __LINE__, cl, A)) return;
-            if (!absent(2, __LINE__, cl, A)) return;
+            if (!check(2, cl, &succeeded, A, B, generator::end())) return;
+            del(2, cl, &succeeded, A);
+            if (!absent(2, cl, &succeeded, A)) return;
         }
     }
 
@@ -593,20 +555,22 @@ test2(hyperclient::async_client* cl)
 void
 test3(hyperclient::async_client* cl)
 {
+    bool succeeded = true;
+
     for (generator A; A.has_next(); A.next())
     {
         for (generator C; C.has_next(); C.next())
         {
-            if (!absent(3, __LINE__, cl, A)) return;
+            if (!absent(3, cl, &succeeded, A)) return;
 
             for (generator B; B.has_next(); B.next())
             {
-                if (!put(3, __LINE__, cl, A, B, C)) return;
-                if (!cond_check(3, __LINE__, cl, A, B, C)) return;
+                put(3, cl, &succeeded, A, B, C);
             }
 
-            if (!del(3, __LINE__, cl, A)) return;
-            if (!absent(3, __LINE__, cl, A)) return;
+            if (!check(3, cl, &succeeded, A, generator::end(), C)) return;
+            del(3, cl, &succeeded, A);
+            if (!absent(3, cl, &succeeded, A)) return;
         }
     }
 
@@ -620,28 +584,30 @@ test3(hyperclient::async_client* cl)
 void
 test4(hyperclient::async_client* cl)
 {
+    bool succeeded = true;
+
     for (generator A; A.has_next(); A.next())
     {
         for (generator B; B.has_next(); B.next())
         {
             for (generator C; C.has_next(); C.next())
             {
+                if (!absent(4, cl, &succeeded, A)) return;
+
                 for (generator BP; BP.has_next(); BP.next())
                 {
                     for (generator CP; CP.has_next(); CP.next())
                     {
                         if (B != BP && C != CP)
                         {
-                            if (!put(4, __LINE__, cl, A, B, C)) return;
-                            if (!cond_check(4, __LINE__, cl, A, B, C)) return;
-                            if (!put(4, __LINE__, cl, A, BP, CP)) return;
-                            if (!del(4, __LINE__, cl, A)) return;
-                            if (!cond_absent(4, __LINE__, cl, A)) return;
+                            put(4, cl, &succeeded, A, B, C);
+                            put(4, cl, &succeeded, A, BP, CP);
+                            del(4, cl, &succeeded, A);
                         }
                     }
-
-                    if (!absent(4, __LINE__, cl, A)) return;
                 }
+
+                if (!absent(4, cl, &succeeded, A)) return;
             }
         }
     }
