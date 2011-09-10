@@ -41,6 +41,9 @@
 #include <e/intrusive_ptr.h>
 #include <e/locking_iterable_fifo.h>
 
+// HyperspaceHashing
+#include <hyperspacehashing/mask.h>
+
 // HyperDisk
 #include <hyperdisk/returncode.h>
 #include <hyperdisk/snapshot.h>
@@ -48,7 +51,6 @@
 // Forward Declarations
 namespace hyperdisk
 {
-class coordinate;
 class log_entry;
 class shard;
 class shard_vector;
@@ -67,7 +69,9 @@ class disk
 {
     public:
         // XXX Make this right with reference counting.
-        disk(const po6::pathname& directory, uint16_t arity);
+        disk(const po6::pathname& directory,
+             const hyperspacehashing::mask::hasher& hasher,
+             uint16_t arity);
         ~disk() throw ();
 
     public:
@@ -115,19 +119,16 @@ class disk
         void inc() { __sync_add_and_fetch(&m_ref, 1); }
         void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
         // The pathname (relative to m_base) of a (tmp) shard at coordinate.
-        po6::pathname shard_filename(const coordinate& c);
-        po6::pathname shard_tmp_filename(const coordinate& c);
+        po6::pathname shard_filename(const hyperspacehashing::mask::coordinate& c);
+        po6::pathname shard_tmp_filename(const hyperspacehashing::mask::coordinate& c);
         // Create a shard for the given coordinate.  This only creates/mmaps the
         // appropriate file.
-        e::intrusive_ptr<shard> create_shard(const coordinate& c);
-        e::intrusive_ptr<shard> create_tmp_shard(const coordinate& c);
+        e::intrusive_ptr<shard> create_shard(const hyperspacehashing::mask::coordinate& c);
+        e::intrusive_ptr<shard> create_tmp_shard(const hyperspacehashing::mask::coordinate& c);
         // Drop the shard for the given coordinate.  This ONLY unlinks the
         // appropriate file.
-        returncode drop_shard(const coordinate& c);
-        returncode drop_tmp_shard(const coordinate& c);
-        // Turn the hashes associated with an object into a shard's coordinate.
-        coordinate get_coordinate(const e::buffer& key);
-        coordinate get_coordinate(const e::buffer& key, const std::vector<e::buffer>& value);
+        returncode drop_shard(const hyperspacehashing::mask::coordinate& c);
+        returncode drop_tmp_shard(const hyperspacehashing::mask::coordinate& c);
         // Deal with shards which cannot hold more data.  The m_shard_mutate
         // lock must be held prior to calling these functions.
         returncode deal_with_full_shard(size_t shard_num);
@@ -137,6 +138,7 @@ class disk
     private:
         size_t m_ref;
         size_t m_arity;
+        hyperspacehashing::mask::hasher m_hasher;
         // Read about locking in the source.
         po6::threads::mutex m_shards_mutate;
         po6::threads::mutex m_shards_lock;

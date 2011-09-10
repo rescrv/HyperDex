@@ -35,8 +35,10 @@
 // e
 #include <e/intrusive_ptr.h>
 
+// HyperspaceHashing
+#include <hyperspacehashing/mask.h>
+
 // HyperDisk
-#include "coordinate.h"
 #include "shard.h"
 
 namespace hyperdisk
@@ -45,26 +47,26 @@ namespace hyperdisk
 class shard_vector
 {
     public:
-        shard_vector(const coordinate& coord, e::intrusive_ptr<shard> s);
+        shard_vector(const hyperspacehashing::mask::coordinate& coord, e::intrusive_ptr<shard> s);
 
     public:
         size_t size() const;
 
     public:
-        const coordinate& get_coordinate(size_t i);
+        const hyperspacehashing::mask::coordinate& get_coordinate(size_t i);
         shard* get_shard(size_t i);
         e::intrusive_ptr<shard_vector> replace(size_t shard_num, e::intrusive_ptr<shard> s);
         e::intrusive_ptr<shard_vector> replace(size_t shard_num,
-                                               const coordinate& c1, e::intrusive_ptr<shard> s1,
-                                               const coordinate& c2, e::intrusive_ptr<shard> s2,
-                                               const coordinate& c3, e::intrusive_ptr<shard> s3,
-                                               const coordinate& c4, e::intrusive_ptr<shard> s4);
+                                               const hyperspacehashing::mask::coordinate& c1, e::intrusive_ptr<shard> s1,
+                                               const hyperspacehashing::mask::coordinate& c2, e::intrusive_ptr<shard> s2,
+                                               const hyperspacehashing::mask::coordinate& c3, e::intrusive_ptr<shard> s3,
+                                               const hyperspacehashing::mask::coordinate& c4, e::intrusive_ptr<shard> s4);
 
     private:
         friend class e::intrusive_ptr<shard_vector>;
 
     private:
-        shard_vector(std::vector<std::pair<coordinate, e::intrusive_ptr<shard> > >* newvec);
+        shard_vector(std::vector<std::pair<hyperspacehashing::mask::coordinate, e::intrusive_ptr<shard> > >* newvec);
         ~shard_vector() throw ();
 
     private:
@@ -73,7 +75,7 @@ class shard_vector
 
     private:
         size_t m_ref;
-        std::vector<std::pair<coordinate, e::intrusive_ptr<shard> > > m_shards;
+        std::vector<std::pair<hyperspacehashing::mask::coordinate, e::intrusive_ptr<shard> > > m_shards;
 };
 
 } // namespace hyperdisk

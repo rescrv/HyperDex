@@ -34,8 +34,8 @@
 // e
 #include <e/buffer.h>
 
-// HyperDisk
-#include "coordinate.h"
+// HyperspaceHashing
+#include <hyperspacehashing/mask.h>
 
 namespace hyperdisk
 {
@@ -51,15 +51,15 @@ class log_entry
 {
     public:
         log_entry();
-        log_entry(const coordinate& coord,
+        log_entry(const hyperspacehashing::mask::coordinate& coord,
                   const e::buffer& key,
                   const std::vector<e::buffer>& value,
                   uint64_t version);
-        log_entry(const coordinate& coord,
+        log_entry(const hyperspacehashing::mask::coordinate& coord,
                   const e::buffer& key);
 
     public:
-        coordinate coord;
+        hyperspacehashing::mask::coordinate coord;
         e::buffer key;
         std::vector<e::buffer> value;
         uint64_t version;
@@ -75,7 +75,7 @@ log_entry :: log_entry()
 }
 
 inline
-log_entry :: log_entry(const coordinate& c,
+log_entry :: log_entry(const hyperspacehashing::mask::coordinate& c,
                        const e::buffer& k,
                        const std::vector<e::buffer>& va,
                        uint64_t ve)
@@ -87,7 +87,7 @@ log_entry :: log_entry(const coordinate& c,
 }
 
 inline
-log_entry :: log_entry(const coordinate& c,
+log_entry :: log_entry(const hyperspacehashing::mask::coordinate& c,
                        const e::buffer& k)
     : coord(c)
     , key(k)

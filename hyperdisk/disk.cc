@@ -37,18 +37,17 @@
 // e
 #include <e/guard.h>
 
-// Utils
-// XXX Use libhyperspacehashing
-#include "bithacks.h"
-#include "hashing.h"
+// HyperspaceHashing
+#include <hyperspacehashing/mask.h>
 
 // HyperDisk
-#include "coordinate.h"
 #include "hyperdisk/disk.h"
 #include "log_entry.h"
 #include "shard.h"
 #include "shard_snapshot.h"
 #include "shard_vector.h"
+
+using hyperspacehashing::mask::coordinate;
 
 // LOCKING:  IF YOU DO ANYTHING WITH THIS CODE, READ THIS FIRST!
 //
@@ -75,9 +74,12 @@
 // the WAL.  Trickle does this by using locking when exchanging the
 // shard_vectors.
 
-hyperdisk :: disk :: disk(const po6::pathname& directory, uint16_t arity)
+hyperdisk :: disk :: disk(const po6::pathname& directory,
+                          const hyperspacehashing::mask::hasher& hasher,
+                          const uint16_t arity)
     : m_ref(0)
     , m_arity(arity)
+    , m_hasher(hasher)
     , m_shards_mutate()
     , m_shards_lock()
     , m_shards()
@@ -117,7 +119,7 @@ hyperdisk :: disk :: get(const e::buffer& key,
                          std::vector<e::buffer>* value,
                          uint64_t* version)
 {
-    coordinate coord = get_coordinate(key);
+    coordinate coord = m_hasher.hash(key);
     returncode shard_res = NOTFOUND;
     e::intrusive_ptr<shard_vector> shards;
     e::locking_iterable_fifo<log_entry>::iterator it = m_log.iterate();
@@ -186,7 +188,7 @@ hyperdisk :: disk :: put(const e::buffer& key,
         return WRONGARITY;
     }
 
-    coordinate coord = get_coordinate(key, value);
+    coordinate coord = m_hasher.hash(key, value);
     m_log.append(log_entry(coord, key, value, version));
     return SUCCESS;
 }
@@ -194,7 +196,7 @@ hyperdisk :: disk :: put(const e::buffer& key,
 hyperdisk::returncode
 hyperdisk :: disk :: del(const e::buffer& key)
 {
-    coordinate coord = get_coordinate(key);
+    coordinate coord = m_hasher.hash(key);
     m_log.append(log_entry(coord, key));
     return SUCCESS;
 }
@@ -609,25 +611,6 @@ hyperdisk :: disk :: drop_tmp_shard(const coordinate& c)
     }
 
     return SUCCESS;
-}
-
-hyperdisk::coordinate
-hyperdisk :: disk :: get_coordinate(const e::buffer& key)
-{
-    uint64_t key_hash = CityHash64(key);
-    return coordinate(UINT32_MAX, static_cast<uint32_t>(key_hash), 0, 0);
-}
-
-hyperdisk::coordinate
-hyperdisk :: disk :: get_coordinate(const e::buffer& key,
-                                    const std::vector<e::buffer>& value)
-{
-    uint64_t key_hash = CityHash64(key);
-    std::vector<uint64_t> value_hashes;
-    CityHash64(value, &value_hashes);
-    uint64_t value_hash = lower_interlace(value_hashes);
-    return coordinate(UINT32_MAX, static_cast<uint32_t>(key_hash),
-                      UINT32_MAX, static_cast<uint32_t>(value_hash));
 }
 
 hyperdisk::returncode

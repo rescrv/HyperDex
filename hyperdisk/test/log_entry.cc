@@ -31,7 +31,6 @@
 #include <gtest/gtest.h>
 
 // HyperDisk
-#include "coordinate.h"
 #include "log_entry.h"
 
 #pragma GCC diagnostic ignored "-Wswitch-default"
@@ -53,7 +52,7 @@ TEST(LogEntry, BlankEntry)
 
 TEST(LogEntry, PutEntry)
 {
-    hyperdisk::log_entry le(hyperdisk::coordinate(0, 1, 2, 3),
+    hyperdisk::log_entry le(hyperspacehashing::mask::coordinate(0, 1, 2, 3),
                             e::buffer("key", 3),
                             std::vector<e::buffer>(1, e::buffer("value", 5)),
                             8);
@@ -68,7 +67,7 @@ TEST(LogEntry, PutEntry)
 
 TEST(LogEntry, DelEntry)
 {
-    hyperdisk::log_entry le(hyperdisk::coordinate(0, 1, 2, 3),
+    hyperdisk::log_entry le(hyperspacehashing::mask::coordinate(0, 1, 2, 3),
                             e::buffer("key", 3));
     EXPECT_EQ(0, le.coord.primary_mask);
     EXPECT_EQ(1, le.coord.primary_hash);

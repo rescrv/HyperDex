@@ -39,14 +39,15 @@
 // po6
 #include <po6/io/fd.h>
 
-// Utils
-#include "bithacks.h"
+// HyperspaceHashing
+#include <hyperspacehashing/mask.h>
 
 // HyperDisk
-#include "coordinate.h"
 #include "shard.h"
 #include "shard_constants.h"
 #include "shard_snapshot.h"
+
+using hyperspacehashing::mask::coordinate;
 
 e::intrusive_ptr<hyperdisk::shard>
 hyperdisk :: shard :: create(const po6::io::fd& base,

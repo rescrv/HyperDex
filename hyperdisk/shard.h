@@ -39,9 +39,15 @@
 #include "hyperdisk/returncode.h"
 
 // Forward Declarations
-namespace hyperdisk
+namespace hyperspacehashing
+{
+namespace mask
 {
 class coordinate;
+}
+}
+namespace hyperdisk
+{
 class shard_snapshot;
 }
 
@@ -121,7 +127,7 @@ class shard
         // Copy all non-stale data from this shard to the other shard,
         // completely erasing all the data in the other shard.  Only
         // entries which match the coordinate will be kept.
-        void copy_to(const coordinate& c, e::intrusive_ptr<shard> s);
+        void copy_to(const hyperspacehashing::mask::coordinate& c, e::intrusive_ptr<shard> s);
 
     private:
         friend class e::intrusive_ptr<shard>;

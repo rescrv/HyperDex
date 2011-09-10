@@ -28,6 +28,8 @@
 // HyperDisk
 #include "shard_vector.h"
 
+using hyperspacehashing::mask::coordinate;
+
 hyperdisk :: shard_vector :: shard_vector(const coordinate& coord, e::intrusive_ptr<shard> s)
     : m_ref(0)
     , m_shards(1, std::make_pair(coord, s))
@@ -40,7 +42,7 @@ hyperdisk :: shard_vector :: size() const
     return m_shards.size();
 }
 
-const hyperdisk::coordinate&
+const coordinate&
 hyperdisk :: shard_vector :: get_coordinate(size_t i)
 {
     return m_shards[i].first;
