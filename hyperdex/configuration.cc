@@ -421,6 +421,23 @@ hyperdex :: configuration :: instancefor(const entityid& e) const
     return instance();
 }
 
+bool
+hyperdex :: configuration :: point_leader_entity(const spaceid& space,
+                                                 const e::buffer& key,
+                                                 hyperdex::entityid* ent,
+                                                 hyperdex::instance* inst) const
+{
+    subspaceid ssi(space, 0);
+    std::map<subspaceid, hyperspacehashing::prefix::hasher>::const_iterator hashiter;
+    hashiter = m_repl_hashers.find(ssi);
+    assert(hashiter != m_repl_hashers.end());
+    hyperspacehashing::prefix::coordinate coord = hashiter->second.hash(key);
+    hyperdex::regionid point_leader(ssi, coord.prefix, coord.point);
+    *ent = headof(point_leader);
+    *inst = instancefor(*ent);
+    return *inst != NULLINSTANCE;
+}
+
 std::map<hyperdex::entityid, hyperdex::instance>
 hyperdex :: configuration :: search_entities(const spaceid& space,
                                              const hyperspacehashing::equality_wildcard& wc) const
