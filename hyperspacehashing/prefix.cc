@@ -106,6 +106,28 @@ hyperspacehashing :: prefix :: hasher :: ~hasher() throw ()
 }
 
 hyperspacehashing::prefix::coordinate
+hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key) const
+{
+    assert(m_dims.get(0));
+
+#ifndef NDEBUG
+    bool all_false = true;
+
+    for (size_t i = 1; i < m_dims.bits(); ++i)
+    {
+        if (m_dims.get(i))
+        {
+            all_false = false;
+        }
+    }
+
+    assert(all_false);
+#endif
+
+    return coordinate(64, m_funcs[0](key));
+}
+
+hyperspacehashing::prefix::coordinate
 hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key, const std::vector<e::buffer>& value) const
 {
     assert(value.size() + 1 == m_funcs.size());

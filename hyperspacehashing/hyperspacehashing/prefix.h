@@ -82,6 +82,7 @@ class hasher
         ~hasher() throw ();
 
     public:
+        coordinate hash(const e::buffer& key) const;
         coordinate hash(const e::buffer& key, const std::vector<e::buffer>& value) const;
         ewc_coordinate hash(const equality_wildcard& ewc) const;
 
