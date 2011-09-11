@@ -595,6 +595,7 @@ hyperclient :: async_client_impl :: outstanding()
 hyperclient::returncode
 hyperclient :: async_client_impl :: flush(int timeout)
 {
+    int original_timeout = timeout;
     e::stopwatch stopw;
     stopw.start();
 
@@ -609,7 +610,7 @@ hyperclient :: async_client_impl :: flush(int timeout)
 
         if (timeout >= 0)
         {
-            timeout -= stopw.peek_ms();
+            timeout = original_timeout - stopw.peek_ms();
 
             if (timeout < 0)
             {
