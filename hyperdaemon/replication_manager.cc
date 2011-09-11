@@ -203,6 +203,7 @@ hyperdaemon :: replication_manager :: reconfigure(const configuration& newconfig
     // are no longer responsible for them.  For each region in which we are now
     // the row leader, we put "mayack" messages to disk.
 
+    po6::threads::mutex::hold hold(&m_keyholders_lock);
     std::tr1::unordered_map<keypair, e::intrusive_ptr<keyholder>, keypair::hash>::iterator khiter;
     khiter = m_keyholders.begin();
 
