@@ -47,12 +47,12 @@
 #include <hyperdex/network_constants.h>
 
 // HyperClient
-#include <hyperclient/async_client.h>
+#include <hyperclient/client.h>
 
 namespace hyperclient
 {
 
-class async_client_impl;
+class client_impl;
 
 class channel
 {
@@ -144,7 +144,7 @@ class pending_search : public pending
 {
     public:
         pending_search(uint64_t searchid,
-                       async_client_impl* aci,
+                       client_impl* aci,
                        std::tr1::function<void (returncode,
                                                 const e::buffer&,
                                                 const std::vector<e::buffer>&)> callback);
@@ -164,17 +164,17 @@ class pending_search : public pending
 
     private:
         uint64_t m_searchid;
-        async_client_impl* m_aci;
+        client_impl* m_aci;
         std::tr1::function<void (returncode,
                                  const e::buffer&,
                                  const std::vector<e::buffer>&)> m_callback;
 };
 
-class async_client_impl : public hyperclient :: async_client
+class client_impl : public hyperclient :: client
 {
     public:
-        async_client_impl(po6::net::location coordinator);
-        virtual ~async_client_impl() throw ();
+        client_impl(po6::net::location coordinator);
+        virtual ~client_impl() throw ();
 
     public:
         virtual returncode connect();
@@ -228,17 +228,17 @@ class async_client_impl : public hyperclient :: async_client
 
 } // hyperclient
 
-hyperclient::async_client*
-hyperclient :: async_client :: create(po6::net::location coordinator)
+hyperclient::client*
+hyperclient :: client :: create(po6::net::location coordinator)
 {
-    return new async_client_impl(coordinator);
+    return new client_impl(coordinator);
 }
 
-hyperclient :: async_client :: ~async_client() throw ()
+hyperclient :: client :: ~client() throw ()
 {
 }
 
-hyperclient :: async_client_impl :: async_client_impl(po6::net::location coordinator)
+hyperclient :: client_impl :: client_impl(po6::net::location coordinator)
     : m_initialized(false)
     , m_coord(coordinator)
     , m_config()
@@ -249,12 +249,12 @@ hyperclient :: async_client_impl :: async_client_impl(po6::net::location coordin
     m_coord.set_announce("client");
 }
 
-hyperclient :: async_client_impl :: ~async_client_impl() throw ()
+hyperclient :: client_impl :: ~client_impl() throw ()
 {
 }
 
 hyperclient::returncode
-hyperclient :: async_client_impl :: connect()
+hyperclient :: client_impl :: connect()
 {
     switch (m_coord.connect())
     {
@@ -297,19 +297,19 @@ hyperclient :: async_client_impl :: connect()
 }
 
 void
-hyperclient :: async_client_impl :: get(const std::string& space,
-                                        const e::buffer& key,
-                                        std::tr1::function<void (returncode, const std::vector<e::buffer>&)> callback)
+hyperclient :: client_impl :: get(const std::string& space,
+                                  const e::buffer& key,
+                                  std::tr1::function<void (returncode, const std::vector<e::buffer>&)> callback)
 {
     e::intrusive_ptr<pending> op = new pending_get(callback);
     add_reqrep(space, key, hyperdex::REQ_GET, key, op);
 }
 
 void
-hyperclient :: async_client_impl :: put(const std::string& space,
-                                        const e::buffer& key,
-                                        const std::vector<e::buffer>& value,
-                                        std::tr1::function<void (returncode)> callback)
+hyperclient :: client_impl :: put(const std::string& space,
+                                  const e::buffer& key,
+                                  const std::vector<e::buffer>& value,
+                                  std::tr1::function<void (returncode)> callback)
 {
     e::buffer msg;
     msg.pack() << key << value;
@@ -318,19 +318,19 @@ hyperclient :: async_client_impl :: put(const std::string& space,
 }
 
 void
-hyperclient :: async_client_impl :: del(const std::string& space,
-                                        const e::buffer& key,
-                                        std::tr1::function<void (returncode)> callback)
+hyperclient :: client_impl :: del(const std::string& space,
+                                  const e::buffer& key,
+                                  std::tr1::function<void (returncode)> callback)
 {
     e::intrusive_ptr<pending> op = new pending_mutate(hyperdex::RESP_DEL, callback);
     add_reqrep(space, key, hyperdex::REQ_DEL, key, op);
 }
 
 void
-hyperclient :: async_client_impl :: update(const std::string& space,
-                                           const e::buffer& key,
-                                           const std::map<std::string, e::buffer>& value,
-                                           std::tr1::function<void (returncode)> callback)
+hyperclient :: client_impl :: update(const std::string& space,
+                                     const e::buffer& key,
+                                     const std::map<std::string, e::buffer>& value,
+                                     std::tr1::function<void (returncode)> callback)
 {
     hyperdex::spaceid si = m_config.lookup_spaceid(space);
 
@@ -381,22 +381,22 @@ hyperclient :: async_client_impl :: update(const std::string& space,
 }
 
 void
-hyperclient :: async_client_impl :: search(const std::string& space,
-                                           const std::map<std::string, e::buffer>& params,
-                                           std::tr1::function<void (returncode,
-                                                                    const e::buffer&,
-                                                                    const std::vector<e::buffer>&)> callback)
+hyperclient :: client_impl :: search(const std::string& space,
+                                     const std::map<std::string, e::buffer>& params,
+                                     std::tr1::function<void (returncode,
+                                                              const e::buffer&,
+                                                              const std::vector<e::buffer>&)> callback)
 {
     search(space, params, callback, UINT16_MAX);
 }
 
 void
-hyperclient :: async_client_impl :: search(const std::string& space,
-                                           const std::map<std::string, e::buffer>& params,
-                                           std::tr1::function<void (returncode,
-                                                                    const e::buffer&,
-                                                                    const std::vector<e::buffer>&)> callback,
-                                           uint16_t subspace_hint)
+hyperclient :: client_impl :: search(const std::string& space,
+                                     const std::map<std::string, e::buffer>& params,
+                                     std::tr1::function<void (returncode,
+                                                              const e::buffer&,
+                                                              const std::vector<e::buffer>&)> callback,
+                                     uint16_t subspace_hint)
 {
     e::buffer pseudokey;
     std::vector<e::buffer> pseudovalue;
@@ -484,11 +484,11 @@ hyperclient :: async_client_impl :: search(const std::string& space,
 }
 
 void
-hyperclient :: async_client_impl :: add_reqrep(const std::string& space,
-                                               const e::buffer& key,
-                                               hyperdex::network_msgtype send_type,
-                                               const e::buffer& send_msg,
-                                               e::intrusive_ptr<pending> op)
+hyperclient :: client_impl :: add_reqrep(const std::string& space,
+                                         const e::buffer& key,
+                                         hyperdex::network_msgtype send_type,
+                                         const e::buffer& send_msg,
+                                         e::intrusive_ptr<pending> op)
 {
     hyperdex::spaceid si = m_config.lookup_spaceid(space);
 
@@ -538,13 +538,13 @@ hyperclient :: async_client_impl :: add_reqrep(const std::string& space,
 }
 
 bool
-hyperclient :: async_client_impl :: send(e::intrusive_ptr<channel> chan,
-                                         e::intrusive_ptr<pending> op,
-                                         const hyperdex::entityid& ent,
-                                         const hyperdex::instance& inst,
-                                         uint64_t nonce,
-                                         hyperdex::network_msgtype send_type,
-                                         const e::buffer& send_msg)
+hyperclient :: client_impl :: send(e::intrusive_ptr<channel> chan,
+                                   e::intrusive_ptr<pending> op,
+                                   const hyperdex::entityid& ent,
+                                   const hyperdex::instance& inst,
+                                   uint64_t nonce,
+                                   hyperdex::network_msgtype send_type,
+                                   const e::buffer& send_msg)
 {
     const uint8_t type = static_cast<uint8_t>(send_type);
     const uint16_t fromver = 0;
@@ -576,7 +576,7 @@ hyperclient :: async_client_impl :: send(e::intrusive_ptr<channel> chan,
 }
 
 size_t
-hyperclient :: async_client_impl :: outstanding()
+hyperclient :: client_impl :: outstanding()
 {
     size_t ret = 0;
 
@@ -593,7 +593,7 @@ hyperclient :: async_client_impl :: outstanding()
 }
 
 hyperclient::returncode
-hyperclient :: async_client_impl :: flush(int timeout)
+hyperclient :: client_impl :: flush(int timeout)
 {
     int original_timeout = timeout;
     e::stopwatch stopw;
@@ -638,7 +638,7 @@ hyperclient :: async_client_impl :: flush(int timeout)
 }
 
 hyperclient::returncode
-hyperclient :: async_client_impl :: flush_one(int timeout)
+hyperclient :: client_impl :: flush_one(int timeout)
 {
     while (!m_requests.empty())
     {
@@ -1047,7 +1047,7 @@ hyperclient :: pending_mutate :: result(hyperdex::network_msgtype msg_type,
 }
 
 hyperclient :: pending_search :: pending_search(uint64_t searchid,
-                                                async_client_impl* aci,
+                                                client_impl* aci,
                                                 std::tr1::function<void (returncode,
                                                                    const e::buffer&,
                                                                    const std::vector<e::buffer>&)> callback)

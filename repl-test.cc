@@ -59,7 +59,7 @@
 #include <e/convert.h>
 
 // HyperDex
-#include <hyperclient/async_client.h>
+#include <hyperclient/client.h>
 
 // These 32-bit values all hash (using CityHash) to be have the same high-order
 // byte as their index.  E.g. index 0 has a hash of 0x00??????????????, while
@@ -77,15 +77,15 @@ static void
 find_hashes();
 
 static void
-test0(hyperclient::async_client* cl);
+test0(hyperclient::client* cl);
 static void
-test1(hyperclient::async_client* cl);
+test1(hyperclient::client* cl);
 static void
-test2(hyperclient::async_client* cl);
+test2(hyperclient::client* cl);
 static void
-test3(hyperclient::async_client* cl);
+test3(hyperclient::client* cl);
 static void
-test4(hyperclient::async_client* cl);
+test4(hyperclient::client* cl);
 
 class generator
 {
@@ -185,7 +185,7 @@ main(int argc, char* argv[])
 
     try
     {
-        std::auto_ptr<hyperclient::async_client> cl(hyperclient::async_client::create(po6::net::location(ip, port)));
+        std::auto_ptr<hyperclient::client> cl(hyperclient::client::create(po6::net::location(ip, port)));
         cl->connect();
 
         if (!failed) test0(cl.get());
@@ -320,7 +320,7 @@ handle_put(int testno, bool* succeeded, size_t A, size_t B, size_t C, hyperclien
 
 static void
 put(int testno,
-    hyperclient::async_client* cl,
+    hyperclient::client* cl,
     bool* succeeded,
     size_t A, size_t B, size_t C)
 {
@@ -353,7 +353,7 @@ handle_del(int testno, bool* succeeded, size_t A, hyperclient::returncode ret)
 
 static void
 del(int testno,
-    hyperclient::async_client* cl,
+    hyperclient::client* cl,
     bool* succeeded,
     size_t A)
 {
@@ -375,7 +375,7 @@ handle_get(hyperclient::returncode* store_ret, std::vector<e::buffer>* store_val
 
 static bool
 check(int testno,
-      hyperclient::async_client* cl,
+      hyperclient::client* cl,
       bool* succeeded,
       size_t A, size_t B, size_t C)
 {
@@ -425,7 +425,7 @@ check(int testno,
 
 static bool
 absent(int testno,
-       hyperclient::async_client* cl,
+       hyperclient::client* cl,
        bool* succeeded,
        size_t A)
 {
@@ -470,7 +470,7 @@ absent(int testno,
 // This test continually puts keys, ensuring that every way in which one could
 // select regions from the subspaces is chosen.
 void
-test0(hyperclient::async_client* cl)
+test0(hyperclient::client* cl)
 {
     bool succeeded = true;
 
@@ -499,7 +499,7 @@ test0(hyperclient::async_client* cl)
 // the subspaces.  6 * 2**prefix requests will be performed.  This tests that
 // delete plays nicely with the fresh bit.
 void
-test1(hyperclient::async_client* cl)
+test1(hyperclient::client* cl)
 {
     bool succeeded = true;
 
@@ -527,7 +527,7 @@ test1(hyperclient::async_client* cl)
 // tests that CHAIN_SUBSPACE messages work.  This tests that CHAIN_SUBSPACE
 // messages work correctly.
 void
-test2(hyperclient::async_client* cl)
+test2(hyperclient::client* cl)
 {
     bool succeeded = true;
 
@@ -553,7 +553,7 @@ test2(hyperclient::async_client* cl)
 
 // This is isomorphic to test2 except that columns A and C are fixed.
 void
-test3(hyperclient::async_client* cl)
+test3(hyperclient::client* cl)
 {
     bool succeeded = true;
 
@@ -582,7 +582,7 @@ test3(hyperclient::async_client* cl)
 // B and C to jump to another subspace.  It then issues a DEL to try to create a
 // deferred update.
 void
-test4(hyperclient::async_client* cl)
+test4(hyperclient::client* cl)
 {
     bool succeeded = true;
 

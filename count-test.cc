@@ -37,7 +37,7 @@
 #include <e/convert.h>
 
 // HyperDex
-#include <hyperclient/async_client.h>
+#include <hyperclient/client.h>
 
 static int
 usage();
@@ -131,7 +131,7 @@ main(int argc, char* argv[])
 
     try
     {
-        std::auto_ptr<hyperclient::async_client> cl(hyperclient::async_client::create(po6::net::location(ip, port)));
+        std::auto_ptr<hyperclient::client> cl(hyperclient::client::create(po6::net::location(ip, port)));
         cl->connect();
 
         timespec start;

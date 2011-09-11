@@ -38,7 +38,7 @@
 #include <e/timer.h>
 
 // HyperDex
-#include <hyperclient/async_client.h>
+#include <hyperclient/client.h>
 
 const char* colnames[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
                           "11", "12", "13", "14", "15", "16", "17", "18", "19",
@@ -133,7 +133,7 @@ main(int argc, char* argv[])
 
     try
     {
-        std::auto_ptr<hyperclient::async_client> cl(hyperclient::async_client::create(po6::net::location(ip, port)));
+        std::auto_ptr<hyperclient::client> cl(hyperclient::client::create(po6::net::location(ip, port)));
         cl->connect();
         e::buffer one("one", 3);
         e::buffer zero("zero", 3);

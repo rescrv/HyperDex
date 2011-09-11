@@ -25,8 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperclient_async_client_h_
-#define hyperclient_async_client_h_
+#ifndef hyperclient_client_h_
+#define hyperclient_client_h_
 
 // STL
 #include <tr1/functional>
@@ -46,13 +46,13 @@
 namespace hyperclient
 {
 
-class async_client
+class client
 {
     public:
-        static async_client* create(po6::net::location coordinator);
+        static client* create(po6::net::location coordinator);
 
     public:
-        virtual ~async_client() throw ();
+        virtual ~client() throw ();
 
     public:
         virtual returncode connect() = 0;
@@ -86,4 +86,4 @@ class async_client
 
 } // namespace hyperclient
 
-#endif // hyperclient_async_client_h_
+#endif // hyperclient_client_h_

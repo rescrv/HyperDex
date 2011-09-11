@@ -46,7 +46,7 @@
 #include <e/timer.h>
 
 // HyperDex
-#include <hyperclient/async_client.h>
+#include <hyperclient/client.h>
 #include <hyperclient/returncode.h>
 
 static e::locking_fifo<std::string> lines;
@@ -247,7 +247,7 @@ handle_update(hyperclient::returncode ret)
 void
 worker(po6::threads::barrier* bar)
 {
-    std::auto_ptr<hyperclient::async_client> cl(hyperclient::async_client::create(po6::net::location(ip, port)));
+    std::auto_ptr<hyperclient::client> cl(hyperclient::client::create(po6::net::location(ip, port)));
     cl->connect();
     std::string line;
 
