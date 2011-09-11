@@ -1487,7 +1487,7 @@ hyperdaemon :: replication_manager :: move_deferred_to_pending(const entityid& t
             continue;
         }
 
-        if (!(defrd.from_ent.get_region() == newpend->this_old &&
+        if (!(m_config.instancefor(defrd.from_ent) == defrd.from_inst &&
               sent_forward_or_from_tail(defrd.from_ent, to, newpend->this_old, newpend->prev)))
         {
             kh->deferred_updates.erase(kh->deferred_updates.begin());
