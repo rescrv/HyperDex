@@ -48,6 +48,7 @@ class keyholder
         std::map<uint64_t, e::intrusive_ptr<replication::pending> > pending_updates;
         std::map<uint64_t, e::intrusive_ptr<replication::pending> > blocked_updates;
         std::map<uint64_t, e::intrusive_ptr<replication::deferred> > deferred_updates;
+        uint64_t version_on_disk;
 
     private:
         friend class e::intrusive_ptr<keyholder>;
@@ -65,6 +66,7 @@ keyholder :: keyholder()
     : pending_updates()
     , blocked_updates()
     , deferred_updates()
+    , version_on_disk(0)
     , m_ref(0)
 {
 }

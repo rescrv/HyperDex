@@ -250,13 +250,9 @@ hyperdaemon :: replication_manager :: reconfigure(const configuration& newconfig
 
             while (penditer != kh->pending_updates.rend())
             {
-                if (penditer->second->mayack && !penditer->second->ondisk)
-                {
-                    put_to_disk(khiter->first.region, khiter->first.key, kh, penditer->first);
-                }
-
                 if (penditer->second->mayack)
                 {
+                    put_to_disk(khiter->first.region, khiter->first.key, kh, penditer->first);
                     break;
                 }
             }
@@ -1177,6 +1173,11 @@ hyperdaemon :: replication_manager :: put_to_disk(const regionid& pending_in,
                                                   e::intrusive_ptr<replication::keyholder> kh,
                                                   uint64_t version)
 {
+    if (version <= kh->version_on_disk)
+    {
+        return true;
+    }
+
     std::map<uint64_t, e::intrusive_ptr<pending> >::iterator to_put_to_disk;
     to_put_to_disk = kh->pending_updates.find(version);
 
@@ -1186,13 +1187,6 @@ hyperdaemon :: replication_manager :: put_to_disk(const regionid& pending_in,
     }
 
     e::intrusive_ptr<pending> update = to_put_to_disk->second;
-
-    // We don't have to mark others as being true as the way in which we set
-    // ondisk guarantees that all lesser versions are ondisk as well.
-    if (update->ondisk)
-    {
-        return true;
-    }
 
     bool success = true;
 
@@ -1279,15 +1273,7 @@ hyperdaemon :: replication_manager :: put_to_disk(const regionid& pending_in,
         }
     }
 
-    std::map<uint64_t, e::intrusive_ptr<pending> >::iterator penditer;
-
-    for (penditer = kh->pending_updates.begin();
-         success && penditer != kh->pending_updates.end() && penditer->first <= version;
-         ++penditer)
-    {
-        penditer->second->ondisk = true;
-    }
-
+    kh->version_on_disk = std::max(kh->version_on_disk, version);
     return success;
 }
 
