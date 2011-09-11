@@ -551,7 +551,9 @@ hyperdaemon :: replication_manager :: chain_ack(const entityid& from,
         unblock_messages(to.get_region(), key, kh);
     }
 
-    if (kh->pending_updates.empty())
+    if (kh->pending_updates.empty() &&
+        kh->blocked_updates.empty() &&
+        kh->deferred_updates.empty())
     {
         erase_keyholder(kp);
     }
@@ -1709,7 +1711,9 @@ hyperdaemon :: replication_manager :: retransmit()
             unblock_messages(kp->region, kp->key, kh);
             move_deferred_to_pending(kp->region, kp->key, kh);
 
-            if (kh->pending_updates.empty())
+            if (kh->pending_updates.empty() &&
+                kh->blocked_updates.empty() &&
+                kh->deferred_updates.empty())
             {
                 erase_keyholder(*kp);
             }
