@@ -247,8 +247,8 @@ handle_update(hyperclient::returncode ret)
 void
 worker(po6::threads::barrier* bar)
 {
-    std::auto_ptr<hyperclient::client> cl(hyperclient::client::create(po6::net::location(ip, port)));
-    cl->connect();
+    hyperclient::client cl(po6::net::location(ip, port));
+    cl.connect();
     std::string line;
 
     bar->wait();
@@ -269,8 +269,8 @@ worker(po6::threads::barrier* bar)
             }
 
             e::buffer key(tmp.c_str(), tmp.size());
-            cl->get(space, key, handle_get);
-            cl->flush(-1);
+            cl.get(space, key, handle_get);
+            cl.flush(-1);
         }
         else if (command == "PUT")
         {
@@ -291,8 +291,8 @@ worker(po6::threads::barrier* bar)
                 value.back().swap(val);
             }
 
-            cl->put(space, key, value, handle_put);
-            cl->flush(-1);
+            cl.put(space, key, value, handle_put);
+            cl.flush(-1);
         }
         else if (command == "DEL")
         {
@@ -304,8 +304,8 @@ worker(po6::threads::barrier* bar)
             }
 
             e::buffer key(tmp.c_str(), tmp.size());
-            cl->del(space, key, handle_del);
-            cl->flush(-1);
+            cl.del(space, key, handle_del);
+            cl.flush(-1);
         }
         else if (command == "QUERY")
         {
@@ -326,8 +326,8 @@ worker(po6::threads::barrier* bar)
 
             if (wellformed)
             {
-                cl->search(space, search, handle_search, UINT16_MAX);
-                cl->flush(-1);
+                cl.search(space, search, handle_search, UINT16_MAX);
+                cl.flush(-1);
             }
             else
             {
@@ -361,8 +361,8 @@ worker(po6::threads::barrier* bar)
 
             if (wellformed)
             {
-                cl->update(space, key, update, handle_update);
-                cl->flush(-1);
+                cl.update(space, key, update, handle_update);
+                cl.flush(-1);
             }
             else
             {

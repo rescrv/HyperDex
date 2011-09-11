@@ -185,14 +185,14 @@ main(int argc, char* argv[])
 
     try
     {
-        std::auto_ptr<hyperclient::client> cl(hyperclient::client::create(po6::net::location(ip, port)));
-        cl->connect();
+        hyperclient::client cl(po6::net::location(ip, port));
+        cl.connect();
 
-        if (!failed) test0(cl.get());
-        if (!failed) test1(cl.get());
-        if (!failed) test2(cl.get());
-        if (!failed) test3(cl.get());
-        if (!failed) test4(cl.get());
+        if (!failed) test0(&cl);
+        if (!failed) test1(&cl);
+        if (!failed) test2(&cl);
+        if (!failed) test3(&cl);
+        if (!failed) test4(&cl);
     }
     catch (po6::error& e)
     {

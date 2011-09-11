@@ -131,8 +131,8 @@ main(int argc, char* argv[])
 
     try
     {
-        std::auto_ptr<hyperclient::client> cl(hyperclient::client::create(po6::net::location(ip, port)));
-        cl->connect();
+        hyperclient::client cl(po6::net::location(ip, port));
+        cl.connect();
 
         timespec start;
         timespec end;
@@ -146,11 +146,11 @@ main(int argc, char* argv[])
             std::vector<e::buffer> val;
             val.push_back(e::buffer(payload.c_str(), payload.size()));
 
-            cl->put(space, key, val, handle_put);
-            cl->flush(-1);
+            cl.put(space, key, val, handle_put);
+            cl.flush(-1);
             val.clear();
-            cl->get(space, key, handle_get);
-            cl->flush(-1);
+            cl.get(space, key, handle_get);
+            cl.flush(-1);
         }
 
         clock_gettime(CLOCK_REALTIME, &end);

@@ -133,8 +133,8 @@ main(int argc, char* argv[])
 
     try
     {
-        std::auto_ptr<hyperclient::client> cl(hyperclient::client::create(po6::net::location(ip, port)));
-        cl->connect();
+        hyperclient::client cl(po6::net::location(ip, port));
+        cl.connect();
         e::buffer one("one", 3);
         e::buffer zero("zero", 3);
 
@@ -158,15 +158,15 @@ main(int argc, char* argv[])
                 }
             }
 
-            cl->put(space, key, value, handle_put);
+            cl.put(space, key, value, handle_put);
 
-            if (cl->outstanding() > 10000)
+            if (cl.outstanding() > 10000)
             {
-                cl->flush(-1);
+                cl.flush(-1);
             }
         }
 
-        cl->flush(-1);
+        cl.flush(-1);
         e::sleep_ms(1, 0);
         std::cerr << "Starting searches." << std::endl;
         timespec start;
@@ -197,8 +197,8 @@ main(int argc, char* argv[])
             using std::tr1::placeholders::_2;
             using std::tr1::placeholders::_3;
             size_t count = 0;
-            cl->search(argv[3], search, std::tr1::bind(handle_search, &count, key, _1, _2, _3));
-            cl->flush(-1);
+            cl.search(argv[3], search, std::tr1::bind(handle_search, &count, key, _1, _2, _3));
+            cl.flush(-1);
         }
 
         clock_gettime(CLOCK_REALTIME, &end);

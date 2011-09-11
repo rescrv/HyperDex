@@ -52,8 +52,6 @@
 namespace hyperclient
 {
 
-class client_impl;
-
 class channel
 {
     public:
@@ -144,7 +142,7 @@ class pending_search : public pending
 {
     public:
         pending_search(uint64_t searchid,
-                       client_impl* aci,
+                       client* aci,
                        std::tr1::function<void (returncode,
                                                 const e::buffer&,
                                                 const std::vector<e::buffer>&)> callback);
@@ -164,12 +162,39 @@ class pending_search : public pending
 
     private:
         uint64_t m_searchid;
-        client_impl* m_aci;
+        client* m_aci;
         std::tr1::function<void (returncode,
                                  const e::buffer&,
                                  const std::vector<e::buffer>&)> m_callback;
 };
 
+class client :: priv
+{
+    public:
+        priv(const po6::net::location& coordinator);
+
+    public:
+        void add_reqrep(const std::string&, const e::buffer& key,
+                        hyperdex::network_msgtype send_type,
+                        const e::buffer& send_msg, e::intrusive_ptr<pending> op);
+        bool send(e::intrusive_ptr<channel> chan,
+                  e::intrusive_ptr<pending> op,
+                  const hyperdex::entityid& entity,
+                  const hyperdex::instance& inst,
+                  uint64_t nonce,
+                  hyperdex::network_msgtype send_type,
+                  const e::buffer& send_msg);
+
+    public:
+        bool initialized;
+        hyperdex::coordinatorlink coord;
+        hyperdex::configuration config;
+        std::map<hyperdex::instance, e::intrusive_ptr<channel> > channels;
+        std::deque<e::intrusive_ptr<pending> > requests;
+        uint64_t searchid;
+};
+
+#if 0
 class client_impl : public hyperclient :: client
 {
     public:
@@ -206,57 +231,129 @@ class client_impl : public hyperclient :: client
         virtual returncode flush_one(int timeout);
 
     public:
-        void add_reqrep(const std::string&, const e::buffer& key,
-                        hyperdex::network_msgtype send_type,
-                        const e::buffer& send_msg, e::intrusive_ptr<pending> op);
-        bool send(e::intrusive_ptr<channel> chan,
-                  e::intrusive_ptr<pending> op,
-                  const hyperdex::entityid& entity,
-                  const hyperdex::instance& inst,
-                  uint64_t nonce,
-                  hyperdex::network_msgtype send_type,
-                  const e::buffer& send_msg);
 
     private:
-        bool m_initialized;
-        hyperdex::coordinatorlink m_coord;
-        hyperdex::configuration m_config;
-        std::map<hyperdex::instance, e::intrusive_ptr<channel> > m_channels;
-        std::deque<e::intrusive_ptr<pending> > m_requests;
-        uint64_t m_searchid;
 };
+#endif
 
 } // hyperclient
 
-hyperclient::client*
-hyperclient :: client :: create(po6::net::location coordinator)
+hyperclient :: client :: priv :: priv(const po6::net::location& coordinator)
+    : initialized(false)
+    , coord(coordinator)
+    , config()
+    , channels()
+    , requests()
+    , searchid(1)
 {
-    return new client_impl(coordinator);
+    coord.set_announce("client");
+}
+
+void
+hyperclient :: client :: priv :: add_reqrep(const std::string& space,
+                                            const e::buffer& key,
+                                            hyperdex::network_msgtype send_type,
+                                            const e::buffer& send_msg,
+                                            e::intrusive_ptr<pending> op)
+{
+    hyperdex::spaceid si = config.lookup_spaceid(space);
+
+    if (si == hyperdex::configuration::NULLSPACE)
+    {
+        op->result(NOTASPACE);
+        return;
+    }
+
+    // Figure out who to talk with.
+    hyperdex::entityid dst_ent;
+    hyperdex::instance dst_inst;
+
+    if (!config.point_leader_entity(si, key, &dst_ent, &dst_inst))
+    {
+        op->result(CONNECTFAIL);
+        return;
+    }
+
+    e::intrusive_ptr<channel> chan = channels[dst_inst];
+
+    if (!chan)
+    {
+        try
+        {
+            channels[dst_inst] = chan = new channel(dst_inst);
+        }
+        catch (po6::error& e)
+        {
+            op->result(CONNECTFAIL);
+            return;
+        }
+    }
+
+    uint64_t nonce = chan->nonce;
+    ++chan->nonce;
+    op->chan = chan;
+    op->ent = dst_ent;
+    op->inst = dst_inst;
+    op->nonce = nonce;
+    requests.push_back(op);
+
+    if (!send(chan, op, dst_ent, dst_inst, nonce, send_type, send_msg))
+    {
+        requests.pop_back();
+    }
+}
+
+bool
+hyperclient :: client :: priv :: send(e::intrusive_ptr<channel> chan,
+                                      e::intrusive_ptr<pending> op,
+                                      const hyperdex::entityid& ent,
+                                      const hyperdex::instance& inst,
+                                      uint64_t nonce,
+                                      hyperdex::network_msgtype send_type,
+                                      const e::buffer& send_msg)
+{
+    const uint8_t type = static_cast<uint8_t>(send_type);
+    const uint16_t fromver = 0;
+    const uint16_t tover = inst.inbound_version;
+    const hyperdex::entityid& from(chan->id);
+    const hyperdex::entityid& to(ent);
+    const uint32_t size = sizeof(type) + sizeof(fromver)
+                        + sizeof(tover) + hyperdex::entityid::SERIALIZEDSIZE * 2
+                        + sizeof(nonce) + send_msg.size();
+    e::buffer packed(size);
+    packed.pack() << size << type
+                  << fromver << tover
+                  << from << to
+                  << nonce;
+    packed += send_msg;
+
+    try
+    {
+        chan->soc.xsend(packed.get(), packed.size(), MSG_NOSIGNAL);
+    }
+    catch (po6::error& e)
+    {
+        channels.erase(inst);
+        op->result(DISCONNECT);
+        return false;
+    }
+
+    return true;
+}
+
+hyperclient :: client :: client(po6::net::location coordinator)
+    : p(new priv(coordinator))
+{
 }
 
 hyperclient :: client :: ~client() throw ()
 {
 }
 
-hyperclient :: client_impl :: client_impl(po6::net::location coordinator)
-    : m_initialized(false)
-    , m_coord(coordinator)
-    , m_config()
-    , m_channels()
-    , m_requests()
-    , m_searchid(1)
-{
-    m_coord.set_announce("client");
-}
-
-hyperclient :: client_impl :: ~client_impl() throw ()
-{
-}
-
 hyperclient::returncode
-hyperclient :: client_impl :: connect()
+hyperclient :: client :: connect()
 {
-    switch (m_coord.connect())
+    switch (p->coord.connect())
     {
         case hyperdex::coordinatorlink::SUCCESS:
             break;
@@ -271,7 +368,7 @@ hyperclient :: client_impl :: connect()
 
     while (true)
     {
-        switch (m_coord.loop(1, -1))
+        switch (p->coord.loop(1, -1))
         {
             case hyperdex::coordinatorlink::SUCCESS:
                 break;
@@ -285,10 +382,10 @@ hyperclient :: client_impl :: connect()
                 return LOGICERROR;
         }
 
-        if (m_coord.unacknowledged())
+        if (p->coord.unacknowledged())
         {
-            m_config = m_coord.config();
-            m_coord.acknowledge();
+            p->config = p->coord.config();
+            p->coord.acknowledge();
             break;
         }
     }
@@ -297,42 +394,42 @@ hyperclient :: client_impl :: connect()
 }
 
 void
-hyperclient :: client_impl :: get(const std::string& space,
-                                  const e::buffer& key,
-                                  std::tr1::function<void (returncode, const std::vector<e::buffer>&)> callback)
+hyperclient :: client :: get(const std::string& space,
+                             const e::buffer& key,
+                             std::tr1::function<void (returncode, const std::vector<e::buffer>&)> callback)
 {
     e::intrusive_ptr<pending> op = new pending_get(callback);
-    add_reqrep(space, key, hyperdex::REQ_GET, key, op);
+    p->add_reqrep(space, key, hyperdex::REQ_GET, key, op);
 }
 
 void
-hyperclient :: client_impl :: put(const std::string& space,
-                                  const e::buffer& key,
-                                  const std::vector<e::buffer>& value,
-                                  std::tr1::function<void (returncode)> callback)
+hyperclient :: client :: put(const std::string& space,
+                             const e::buffer& key,
+                             const std::vector<e::buffer>& value,
+                             std::tr1::function<void (returncode)> callback)
 {
     e::buffer msg;
     msg.pack() << key << value;
     e::intrusive_ptr<pending> op = new pending_mutate(hyperdex::RESP_PUT, callback);
-    add_reqrep(space, key, hyperdex::REQ_PUT, msg, op);
+    p->add_reqrep(space, key, hyperdex::REQ_PUT, msg, op);
 }
 
 void
-hyperclient :: client_impl :: del(const std::string& space,
-                                  const e::buffer& key,
-                                  std::tr1::function<void (returncode)> callback)
+hyperclient :: client :: del(const std::string& space,
+                             const e::buffer& key,
+                             std::tr1::function<void (returncode)> callback)
 {
     e::intrusive_ptr<pending> op = new pending_mutate(hyperdex::RESP_DEL, callback);
-    add_reqrep(space, key, hyperdex::REQ_DEL, key, op);
+    p->add_reqrep(space, key, hyperdex::REQ_DEL, key, op);
 }
 
 void
-hyperclient :: client_impl :: update(const std::string& space,
-                                     const e::buffer& key,
-                                     const std::map<std::string, e::buffer>& value,
-                                     std::tr1::function<void (returncode)> callback)
+hyperclient :: client :: update(const std::string& space,
+                                const e::buffer& key,
+                                const std::map<std::string, e::buffer>& value,
+                                std::tr1::function<void (returncode)> callback)
 {
-    hyperdex::spaceid si = m_config.lookup_spaceid(space);
+    hyperdex::spaceid si = p->config.lookup_spaceid(space);
 
     if (si == hyperdex::configuration::NULLSPACE)
     {
@@ -340,7 +437,7 @@ hyperclient :: client_impl :: update(const std::string& space,
         return;
     }
 
-    std::vector<std::string> dimension_names = m_config.lookup_space_dimensions(si);
+    std::vector<std::string> dimension_names = p->config.lookup_space_dimensions(si);
     assert(dimension_names.size() > 0);
 
     e::bitfield bits(dimension_names.size() - 1);
@@ -377,32 +474,32 @@ hyperclient :: client_impl :: update(const std::string& space,
     e::buffer msg;
     msg.pack() << key << bits << realvalue;
     e::intrusive_ptr<pending> op = new pending_mutate(hyperdex::RESP_UPDATE, callback);
-    add_reqrep(space, key, hyperdex::REQ_UPDATE, msg, op);
+    p->add_reqrep(space, key, hyperdex::REQ_UPDATE, msg, op);
 }
 
 void
-hyperclient :: client_impl :: search(const std::string& space,
-                                     const std::map<std::string, e::buffer>& params,
-                                     std::tr1::function<void (returncode,
-                                                              const e::buffer&,
-                                                              const std::vector<e::buffer>&)> callback)
+hyperclient :: client :: search(const std::string& space,
+                                const std::map<std::string, e::buffer>& params,
+                                std::tr1::function<void (returncode,
+                                                         const e::buffer&,
+                                                         const std::vector<e::buffer>&)> callback)
 {
     search(space, params, callback, UINT16_MAX);
 }
 
 void
-hyperclient :: client_impl :: search(const std::string& space,
-                                     const std::map<std::string, e::buffer>& params,
-                                     std::tr1::function<void (returncode,
-                                                              const e::buffer&,
-                                                              const std::vector<e::buffer>&)> callback,
-                                     uint16_t subspace_hint)
+hyperclient :: client :: search(const std::string& space,
+                                const std::map<std::string, e::buffer>& params,
+                                std::tr1::function<void (returncode,
+                                                         const e::buffer&,
+                                                         const std::vector<e::buffer>&)> callback,
+                                uint16_t subspace_hint)
 {
     e::buffer pseudokey;
     std::vector<e::buffer> pseudovalue;
 
     // Lookup the space
-    hyperdex::spaceid si = m_config.lookup_spaceid(space);
+    hyperdex::spaceid si = p->config.lookup_spaceid(space);
 
     if (si == hyperdex::configuration::NULLSPACE)
     {
@@ -410,7 +507,7 @@ hyperclient :: client_impl :: search(const std::string& space,
         return;
     }
 
-    std::vector<std::string> dimension_names = m_config.lookup_space_dimensions(si);
+    std::vector<std::string> dimension_names = p->config.lookup_space_dimensions(si);
     assert(dimension_names.size() > 0);
 
     // Create a search object from the search terms.
@@ -436,15 +533,15 @@ hyperclient :: client_impl :: search(const std::string& space,
 
     if (subspace_hint == UINT16_MAX)
     {
-        search_entities = m_config.search_entities(si, terms);
+        search_entities = p->config.search_entities(si, terms);
     }
     else
     {
-        search_entities = m_config.search_entities(hyperdex::subspaceid(si, subspace_hint), terms);
+        search_entities = p->config.search_entities(hyperdex::subspaceid(si, subspace_hint), terms);
     }
 
-    uint64_t searchid = m_searchid;
-    ++m_searchid;
+    uint64_t searchid = p->searchid;
+    ++p->searchid;
     e::buffer req;
     req.pack() << searchid << terms;
 
@@ -452,19 +549,19 @@ hyperclient :: client_impl :: search(const std::string& space,
             ent_inst != search_entities.end(); ++ ent_inst)
     {
         e::intrusive_ptr<pending> op = new pending_search(searchid, this, callback);
-        e::intrusive_ptr<channel> chan = m_channels[ent_inst->second];
-        m_requests.push_back(op);
+        e::intrusive_ptr<channel> chan = p->channels[ent_inst->second];
+        p->requests.push_back(op);
 
         if (!chan)
         {
             try
             {
-                m_channels[ent_inst->second] = chan = new channel(ent_inst->second);
+                p->channels[ent_inst->second] = chan = new channel(ent_inst->second);
             }
             catch (po6::error& e)
             {
                 op->result(CONNECTFAIL);
-                m_requests.pop_back();
+                p->requests.pop_back();
                 continue;
             }
         }
@@ -476,112 +573,20 @@ hyperclient :: client_impl :: search(const std::string& space,
         op->inst = ent_inst->second;
         op->nonce = nonce;
 
-        if (!send(chan, op, op->ent, op->inst, nonce, hyperdex::REQ_SEARCH_START, req))
+        if (!p->send(chan, op, op->ent, op->inst, nonce, hyperdex::REQ_SEARCH_START, req))
         {
-            m_requests.pop_back();
+            p->requests.pop_back();
         }
     }
-}
-
-void
-hyperclient :: client_impl :: add_reqrep(const std::string& space,
-                                         const e::buffer& key,
-                                         hyperdex::network_msgtype send_type,
-                                         const e::buffer& send_msg,
-                                         e::intrusive_ptr<pending> op)
-{
-    hyperdex::spaceid si = m_config.lookup_spaceid(space);
-
-    if (si == hyperdex::configuration::NULLSPACE)
-    {
-        op->result(NOTASPACE);
-        return;
-    }
-
-    // Figure out who to talk with.
-    hyperdex::entityid dst_ent;
-    hyperdex::instance dst_inst;
-
-    if (!m_config.point_leader_entity(si, key, &dst_ent, &dst_inst))
-    {
-        op->result(CONNECTFAIL);
-        return;
-    }
-
-    e::intrusive_ptr<channel> chan = m_channels[dst_inst];
-
-    if (!chan)
-    {
-        try
-        {
-            m_channels[dst_inst] = chan = new channel(dst_inst);
-        }
-        catch (po6::error& e)
-        {
-            op->result(CONNECTFAIL);
-            return;
-        }
-    }
-
-    uint64_t nonce = chan->nonce;
-    ++chan->nonce;
-    op->chan = chan;
-    op->ent = dst_ent;
-    op->inst = dst_inst;
-    op->nonce = nonce;
-    m_requests.push_back(op);
-
-    if (!send(chan, op, dst_ent, dst_inst, nonce, send_type, send_msg))
-    {
-        m_requests.pop_back();
-    }
-}
-
-bool
-hyperclient :: client_impl :: send(e::intrusive_ptr<channel> chan,
-                                   e::intrusive_ptr<pending> op,
-                                   const hyperdex::entityid& ent,
-                                   const hyperdex::instance& inst,
-                                   uint64_t nonce,
-                                   hyperdex::network_msgtype send_type,
-                                   const e::buffer& send_msg)
-{
-    const uint8_t type = static_cast<uint8_t>(send_type);
-    const uint16_t fromver = 0;
-    const uint16_t tover = inst.inbound_version;
-    const hyperdex::entityid& from(chan->id);
-    const hyperdex::entityid& to(ent);
-    const uint32_t size = sizeof(type) + sizeof(fromver)
-                        + sizeof(tover) + hyperdex::entityid::SERIALIZEDSIZE * 2
-                        + sizeof(nonce) + send_msg.size();
-    e::buffer packed(size);
-    packed.pack() << size << type
-                  << fromver << tover
-                  << from << to
-                  << nonce;
-    packed += send_msg;
-
-    try
-    {
-        chan->soc.xsend(packed.get(), packed.size(), MSG_NOSIGNAL);
-    }
-    catch (po6::error& e)
-    {
-        m_channels.erase(inst);
-        op->result(DISCONNECT);
-        return false;
-    }
-
-    return true;
 }
 
 size_t
-hyperclient :: client_impl :: outstanding()
+hyperclient :: client :: outstanding()
 {
     size_t ret = 0;
 
-    for (std::deque<e::intrusive_ptr<pending> >::iterator req = m_requests.begin();
-            req != m_requests.end(); ++req)
+    for (std::deque<e::intrusive_ptr<pending> >::iterator req = p->requests.begin();
+            req != p->requests.end(); ++req)
     {
         if (*req)
         {
@@ -593,13 +598,13 @@ hyperclient :: client_impl :: outstanding()
 }
 
 hyperclient::returncode
-hyperclient :: client_impl :: flush(int timeout)
+hyperclient :: client :: flush(int timeout)
 {
     int original_timeout = timeout;
     e::stopwatch stopw;
     stopw.start();
 
-    while (!m_requests.empty())
+    while (!p->requests.empty())
     {
         returncode ret = flush_one(timeout);
 
@@ -620,8 +625,8 @@ hyperclient :: client_impl :: flush(int timeout)
 
         if (ret == TIMEOUT)
         {
-            for (std::deque<e::intrusive_ptr<pending> >::iterator req = m_requests.begin();
-                    req != m_requests.end(); ++req)
+            for (std::deque<e::intrusive_ptr<pending> >::iterator req = p->requests.begin();
+                    req != p->requests.end(); ++req)
             {
                 if (*req)
                 {
@@ -629,7 +634,7 @@ hyperclient :: client_impl :: flush(int timeout)
                 }
             }
 
-            m_requests.clear();
+            p->requests.clear();
             return TIMEOUT;
         }
     }
@@ -638,19 +643,19 @@ hyperclient :: client_impl :: flush(int timeout)
 }
 
 hyperclient::returncode
-hyperclient :: client_impl :: flush_one(int timeout)
+hyperclient :: client :: flush_one(int timeout)
 {
-    while (!m_requests.empty())
+    while (!p->requests.empty())
     {
-        if (!m_requests.front())
+        if (!p->requests.front())
         {
-            m_requests.pop_front();
+            p->requests.pop_front();
             continue;
         }
 
-        for (int i = 0; i < 7 && !m_coord.connected(); ++i)
+        for (int i = 0; i < 7 && !p->coord.connected(); ++i)
         {
-            switch (m_coord.connect())
+            switch (p->coord.connect())
             {
                 case hyperdex::coordinatorlink::SUCCESS:
                     break;
@@ -676,14 +681,14 @@ hyperclient :: client_impl :: flush_one(int timeout)
             }
         }
 
-        size_t num_pfds = m_requests.size();
+        size_t num_pfds = p->requests.size();
         std::vector<pollfd> pfds(num_pfds + 1);
 
         for (size_t i = 0; i < num_pfds; ++i)
         {
-            if (m_requests[i])
+            if (p->requests[i])
             {
-                pfds[i].fd = m_requests[i]->chan->soc.get();
+                pfds[i].fd = p->requests[i]->chan->soc.get();
             }
             else
             {
@@ -694,7 +699,7 @@ hyperclient :: client_impl :: flush_one(int timeout)
             pfds[i].revents = 0;
         }
 
-        pfds[num_pfds] = m_coord.pfd();
+        pfds[num_pfds] = p->coord.pfd();
         pfds[num_pfds].revents = 0;
         int polled = poll(&pfds.front(), num_pfds + 1, timeout);
 
@@ -705,16 +710,16 @@ hyperclient :: client_impl :: flush_one(int timeout)
 
         if (polled == 0)
         {
-            while (!m_requests.empty())
+            while (!p->requests.empty())
             {
-                if (!m_requests.front())
+                if (!p->requests.front())
                 {
-                    m_requests.pop_front();
+                    p->requests.pop_front();
                     continue;
                 }
 
-                m_requests.front()->result(TIMEOUT);
-                m_requests.pop_front();
+                p->requests.front()->result(TIMEOUT);
+                p->requests.pop_front();
                 break;
             }
 
@@ -728,7 +733,7 @@ hyperclient :: client_impl :: flush_one(int timeout)
 
         if (pfds[num_pfds].revents != 0)
         {
-            switch (m_coord.loop(1, 0))
+            switch (p->coord.loop(1, 0))
             {
                 case hyperdex::coordinatorlink::SUCCESS:
                     break;
@@ -742,15 +747,15 @@ hyperclient :: client_impl :: flush_one(int timeout)
             }
         }
 
-        if (m_coord.unacknowledged())
+        if (p->coord.unacknowledged())
         {
-            m_config = m_coord.config();
-            m_coord.acknowledge();
+            p->config = p->coord.config();
+            p->coord.acknowledge();
 
-            for (std::deque<e::intrusive_ptr<pending> >::iterator i = m_requests.begin();
-                    i != m_requests.end(); ++i)
+            for (std::deque<e::intrusive_ptr<pending> >::iterator i = p->requests.begin();
+                    i != p->requests.end(); ++i)
             {
-                if (*i && m_config.instancefor((*i)->ent) != (*i)->inst)
+                if (*i && p->config.instancefor((*i)->ent) != (*i)->inst)
                 {
                     (*i)->reconfigured = true;
                 }
@@ -761,24 +766,24 @@ hyperclient :: client_impl :: flush_one(int timeout)
 
         for (size_t i = 0; i < num_pfds; ++i)
         {
-            if (!m_requests[i])
+            if (!p->requests[i])
             {
                 continue;
             }
 
             if ((pfds[i].revents & POLLHUP) || (pfds[i].revents & POLLERR))
             {
-                m_requests[i]->chan->soc.close();
-                m_channels.erase(m_requests[i]->inst);
-                m_requests[i]->result(DISCONNECT);
-                m_requests[i] = NULL;
+                p->requests[i]->chan->soc.close();
+                p->channels.erase(p->requests[i]->inst);
+                p->requests[i]->result(DISCONNECT);
+                p->requests[i] = NULL;
                 return SUCCESS;
             }
 
-            if (m_requests[i]->reconfigured)
+            if (p->requests[i]->reconfigured)
             {
-                m_requests[i]->result(RECONFIGURE);
-                m_requests[i] = NULL;
+                p->requests[i]->result(RECONFIGURE);
+                p->requests[i] = NULL;
                 return SUCCESS;
             }
 
@@ -787,12 +792,12 @@ hyperclient :: client_impl :: flush_one(int timeout)
                 continue;
             }
 
-            e::intrusive_ptr<channel> chan = m_requests[i]->chan;
+            e::intrusive_ptr<channel> chan = p->requests[i]->chan;
 
             if (chan->soc.get() < 0)
             {
-                m_requests[i]->result(DISCONNECT);
-                m_requests[i] = NULL;
+                p->requests[i]->result(DISCONNECT);
+                p->requests[i] = NULL;
                 return SUCCESS;
             }
 
@@ -812,9 +817,9 @@ hyperclient :: client_impl :: flush_one(int timeout)
                 if (xread(&chan->soc, &response, size) < size)
                 {
                     chan->soc.close();
-                    m_channels.erase(m_requests[i]->inst);
-                    m_requests[i]->result(DISCONNECT);
-                    m_requests[i] = NULL;
+                    p->channels.erase(p->requests[i]->inst);
+                    p->requests[i]->result(DISCONNECT);
+                    p->requests[i] = NULL;
                     return SUCCESS;
                 }
 
@@ -837,8 +842,8 @@ hyperclient :: client_impl :: flush_one(int timeout)
                 e::buffer msg;
                 up.leftovers(&msg);
 
-                for (std::deque<e::intrusive_ptr<pending> >::iterator req = m_requests.begin();
-                        req != m_requests.end(); ++req)
+                for (std::deque<e::intrusive_ptr<pending> >::iterator req = p->requests.begin();
+                        req != p->requests.end(); ++req)
                 {
                     if (*req &&
                         chan == (*req)->chan &&
@@ -860,25 +865,25 @@ hyperclient :: client_impl :: flush_one(int timeout)
             }
             catch (po6::error& e)
             {
-                m_requests[i]->chan->soc.close();
-                m_channels.erase(m_requests[i]->inst);
-                m_requests[i]->result(DISCONNECT);
-                m_requests[i] = NULL;
+                p->requests[i]->chan->soc.close();
+                p->channels.erase(p->requests[i]->inst);
+                p->requests[i]->result(DISCONNECT);
+                p->requests[i] = NULL;
                 return SUCCESS;
             }
             catch (std::out_of_range& e)
             {
-                m_requests[i]->chan->soc.close();
-                m_channels.erase(m_requests[i]->inst);
-                m_requests[i]->result(DISCONNECT);
-                m_requests[i] = NULL;
+                p->requests[i]->chan->soc.close();
+                p->channels.erase(p->requests[i]->inst);
+                p->requests[i]->result(DISCONNECT);
+                p->requests[i] = NULL;
                 return SUCCESS;
             }
         }
 
-        while (!m_requests.empty() && !m_requests.front())
+        while (!p->requests.empty() && !p->requests.front())
         {
-            m_requests.pop_front();
+            p->requests.pop_front();
         }
     }
 
@@ -1047,10 +1052,10 @@ hyperclient :: pending_mutate :: result(hyperdex::network_msgtype msg_type,
 }
 
 hyperclient :: pending_search :: pending_search(uint64_t searchid,
-                                                client_impl* aci,
+                                                client* aci,
                                                 std::tr1::function<void (returncode,
-                                                                   const e::buffer&,
-                                                                   const std::vector<e::buffer>&)> callback)
+                                                                         const e::buffer&,
+                                                                         const std::vector<e::buffer>&)> callback)
     : m_searchid(searchid)
     , m_aci(aci)
     , m_callback(callback)
@@ -1088,7 +1093,7 @@ hyperclient :: pending_search :: result(hyperdex::network_msgtype msg_type,
             e::buffer req;
             req.pack() << m_searchid;
 
-            if (m_aci->send(chan, this, ent, inst, nonce, hyperdex::REQ_SEARCH_NEXT, req))
+            if (m_aci->p->send(chan, this, ent, inst, nonce, hyperdex::REQ_SEARCH_NEXT, req))
             {
                 m_callback(SUCCESS, key, value);
                 return this;

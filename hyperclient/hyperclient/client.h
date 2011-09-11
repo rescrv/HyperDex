@@ -31,6 +31,7 @@
 // STL
 #include <tr1/functional>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -49,39 +50,44 @@ namespace hyperclient
 class client
 {
     public:
-        static client* create(po6::net::location coordinator);
+        client(po6::net::location coordinator);
+        ~client() throw ();
 
     public:
-        virtual ~client() throw ();
+        returncode connect();
 
     public:
-        virtual returncode connect() = 0;
+        void get(const std::string& space, const e::buffer& key,
+                 std::tr1::function<void (returncode, const std::vector<e::buffer>&)> callback);
+        void put(const std::string& space, const e::buffer& key,
+                 const std::vector<e::buffer>& value,
+                 std::tr1::function<void (returncode)> callback);
+        void del(const std::string& space, const e::buffer& key,
+                 std::tr1::function<void (returncode)> callback);
+        void update(const std::string& space, const e::buffer& key,
+                    const std::map<std::string, e::buffer>& value,
+                    std::tr1::function<void (returncode)> callback);
+        void search(const std::string& space,
+                    const std::map<std::string, e::buffer>& params,
+                    std::tr1::function<void (returncode,
+                                             const e::buffer&,
+                                             const std::vector<e::buffer>&)> callback);
+        void search(const std::string& space,
+                    const std::map<std::string, e::buffer>& params,
+                    std::tr1::function<void (returncode,
+                                             const e::buffer&,
+                                             const std::vector<e::buffer>&)> callback,
+                    uint16_t subspace_hint);
+        size_t outstanding();
+        returncode flush(int timeout);
+        returncode flush_one(int timeout);
 
-    public:
-        virtual void get(const std::string& space, const e::buffer& key,
-                         std::tr1::function<void (returncode, const std::vector<e::buffer>&)> callback) = 0;
-        virtual void put(const std::string& space, const e::buffer& key,
-                         const std::vector<e::buffer>& value,
-                         std::tr1::function<void (returncode)> callback) = 0;
-        virtual void del(const std::string& space, const e::buffer& key,
-                         std::tr1::function<void (returncode)> callback) = 0;
-        virtual void update(const std::string& space, const e::buffer& key,
-                            const std::map<std::string, e::buffer>& value,
-                            std::tr1::function<void (returncode)> callback) = 0;
-        virtual void search(const std::string& space,
-                            const std::map<std::string, e::buffer>& params,
-                            std::tr1::function<void (returncode,
-                                                     const e::buffer&,
-                                                     const std::vector<e::buffer>&)> callback) = 0;
-        virtual void search(const std::string& space,
-                            const std::map<std::string, e::buffer>& params,
-                            std::tr1::function<void (returncode,
-                                                     const e::buffer&,
-                                                     const std::vector<e::buffer>&)> callback,
-                            uint16_t subspace_hint) = 0;
-        virtual size_t outstanding() = 0;
-        virtual returncode flush(int timeout) = 0;
-        virtual returncode flush_one(int timeout) = 0;
+    private:
+        friend class pending_search;
+
+    private:
+        struct priv;
+        std::auto_ptr<priv> p;
 };
 
 } // namespace hyperclient
