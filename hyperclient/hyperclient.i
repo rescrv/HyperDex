@@ -3,7 +3,8 @@
 %include "std_string.i"
 %include "std_vector.i"
 %{
-#include "hyperclient/sync_client.h"
+#include "hyperclient/client.h"
+#include "hyperclient/result.h"
 %}
 %include "enums.swg"
 %javaconst(1);
@@ -27,23 +28,48 @@
 namespace hyperclient
 {
 
-class sync_client
+class result
 {
     public:
-        sync_client(po6::net::location coordinator);
+        result();
+        ~result() throw ();
+
+    public:
+        int status();
+};
+
+class get_result
+{
+    public:
+        get_result();
+        ~get_result() throw ();
+
+    public:
+        int status();
+        std::vector<e::buffer>& value();
+};
+
+class client
+{
+    public:
+        client(po6::net::location coordinator);
+        ~client() throw ();
 
     public:
         int connect();
 
     public:
-        int get(const std::string& space, const e::buffer& key, std::vector<e::buffer>* value);
-        int put(const std::string& space, const e::buffer& key, const std::vector<e::buffer>& value);
-        int del(const std::string& space, const e::buffer& key);
-        int update(const std::string& space, const e::buffer& key, const std::map<std::string, e::buffer>& value);
+        void get(const std::string& space, const e::buffer& key, get_result* r);
+        void put(const std::string& space, const e::buffer& key,
+                 const std::vector<e::buffer>& value, result* r);
+        void del(const std::string& space, const e::buffer& key, result* r);
+        void update(const std::string& space, const e::buffer& key,
+                    const std::map<std::string, e::buffer>& value, result* r);
 
-    private:
-        struct priv;
-        const std::auto_ptr<priv> p;
+    public:
+        size_t outstanding();
+        int flush(int timeout);
+        int flush_one(int timeout);
 };
 
 }

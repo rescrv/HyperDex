@@ -97,11 +97,17 @@ public class HyperClient extends DB
 
         for (int i = 0; i < 6; ++i)
         {
-            ret = m_client.get(table, new buffer(key), new vectorbuffer());
+            get_result gr = new get_result();
+            m_client.get(table, new buffer(key), gr);
+            m_client.flush(-1);
 
-            if (ret == 0)
+            if (gr.status() == 0)
             {
                 return 0;
+            }
+            else
+            {
+                ret = gr.status();
             }
         }
 
@@ -145,11 +151,16 @@ public class HyperClient extends DB
 
         for (int i = 0; i < 6; ++i)
         {
-            ret = m_client.update(table, new buffer(key), val);
+            result r = new result();
+            m_client.update(table, new buffer(key), val, r);
 
-            if (ret == 0)
+            if (r.status() == 0)
             {
                 return 0;
+            }
+            else
+            {
+                ret = r.status();
             }
         }
 
@@ -183,11 +194,16 @@ public class HyperClient extends DB
 
         for (int i = 0; i < 6; ++i)
         {
-            ret = m_client.del(table, new buffer(key));
+            result r = new result();
+            m_client.del(table, new buffer(key), r);
 
-            if (ret == 0)
+            if (r.status() == 0)
             {
                 return 0;
+            }
+            else
+            {
+                ret = r.status();
             }
         }
 

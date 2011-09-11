@@ -43,6 +43,7 @@
 
 // HyperClient
 #include <hyperclient/returncode.h>
+#include <hyperclient/result.h>
 
 namespace hyperclient
 {
@@ -81,6 +82,15 @@ class client
         size_t outstanding();
         returncode flush(int timeout);
         returncode flush_one(int timeout);
+
+    // Used for SWIG bindings where we don't want to write C callbacks.
+    public:
+        void get(const std::string& space, const e::buffer& key, get_result* r);
+        void put(const std::string& space, const e::buffer& key,
+                 const std::vector<e::buffer>& value, result* r);
+        void del(const std::string& space, const e::buffer& key, result* r);
+        void update(const std::string& space, const e::buffer& key,
+                    const std::map<std::string, e::buffer>& value, result* r);
 
     private:
         friend class pending_search;
