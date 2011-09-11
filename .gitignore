@@ -20,6 +20,8 @@ daemon-daemon.gcno
 daemon-daemon.o
 depcomp
 .deps/
+hdcoordinator/__init__.pyc
+hdcoordinator/parser.pyc
 hyperclient/.deps/
 hyperclient/hyperclient/client.class
 hyperclient/hyperclient/client.java
@@ -47,6 +49,8 @@ hyperclient/libhyperclient-java.la
 hyperclient/libhyperclient_java_la-hyperclient_wrap.lo
 hyperclient/libhyperclient_java_la-hyperclient_wrap.o
 hyperclient/libhyperclient.la
+hyperclient/libhyperclient_la-async_client.lo
+hyperclient/libhyperclient_la-async_client.o
 hyperclient/libhyperclient_la-client.gcno
 hyperclient/libhyperclient_la-client.lo
 hyperclient/libhyperclient_la-client.o
@@ -154,6 +158,15 @@ hyperdisk/test/shard.gcda
 hyperdisk/test/shard.gcno
 hyperdisk/test/shard.o
 hyperdisk/test/tmp-disk
+hyperspacehashing/equality_wildcard.lo
+hyperspacehashing/equality_wildcard.o
+hyperspacehashing/hashes.lo
+hyperspacehashing/hashes.o
+hyperspacehashing/libhyperspacehashing.la
+hyperspacehashing/mask.lo
+hyperspacehashing/mask.o
+hyperspacehashing/prefix.lo
+hyperspacehashing/prefix.o
 install-sh
 .libs/
 libtool
