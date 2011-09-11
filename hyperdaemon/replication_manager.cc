@@ -1487,6 +1487,7 @@ hyperdaemon :: replication_manager :: move_deferred_to_pending(const entityid& t
 
         kh->pending_updates.insert(std::make_pair(version, newpend));
         send_update(to.get_region(), version, key, newpend);
+        kh->deferred_updates.erase(kh->deferred_updates.begin());
     }
 }
 
