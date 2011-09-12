@@ -130,14 +130,22 @@ class ActionsLog(object):
         for subspacenum, subspace in enumerate(space.subspaces):
             for region in subspace.regions:
                 for replicanum in range(len(region.replicas)):
-                    avail = set(self._instances.keys())
-                    avail -= set(region.replicas)
-                    avail = list(sorted(avail))
-                    if avail and not region.replicas[replicanum]:
-                        # XXX Using random is probably not a good idea in the
-                        # replicated state machine.
-                        region.replicas[replicanum] = self._rand.choice(avail)
-                    del avail
+                    if not region.replicas[replicanum]:
+                        region.replicas[replicanum] = self.select_least_loaded(region.replicas)
+
+    def select_least_loaded(self, exclude):
+        hosts = dict([(k, 0) for k in self._instances.keys()])
+        for spacenum, space in self._spaces_by_num.iteritems():
+            for subspacenum, subspace in enumerate(space.subspaces):
+                for region in subspace.regions:
+                    for replica in region.replicas:
+                        if replica:
+                            hosts[replica] += 1
+        frequencies = collections.defaultdict(list)
+        for host, frequency in hosts.iteritems():
+            frequencies[frequency].append(host)
+        least_loaded = min(frequencies.iteritems())[1]
+        return self._rand.choice(least_loaded)
 
     def config(self):
         try:
