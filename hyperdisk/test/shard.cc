@@ -35,6 +35,9 @@
 // e
 #include <e/guard.h>
 
+// HyperspaceHashing
+#include <hyperspacehashing/mask.h>
+
 // HyperDisk
 #include "shard.h"
 #include "shard_snapshot.h"
@@ -237,6 +240,74 @@ TEST(ShardTest, StaleSpaceByData)
         ASSERT_EQ(hyperdisk::SUCCESS, d->del(0, key));
         ASSERT_EQ(100 * (i + 1) / 16384, d->stale_space());
     }
+}
+
+TEST(ShardTest, CopyFromFull)
+{
+    po6::io::fd cwd(AT_FDCWD);
+    e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create(cwd, "tmp-disk");
+    e::guard g = e::makeguard(::unlink, "tmp-disk");
+    hyperspacehashing::mask::hasher h(std::vector<hyperspacehashing::hash_t>(2, hyperspacehashing::city));
+    std::vector<e::buffer> value(1);
+    value[0].pack() << e::buffer::padding(998);
+
+    for (uint64_t i = 0; i < 32768; ++i)
+    {
+        e::buffer key;
+        key.pack() << i;
+        hyperspacehashing::mask::coordinate c = h.hash(key, value);
+        ASSERT_EQ(hyperdisk::SUCCESS, d->put(c.primary_hash, c.secondary_hash, key, value, 1));
+    }
+
+    ASSERT_EQ(0, d->stale_space());
+    ASSERT_EQ(100, d->used_space());
+
+    e::intrusive_ptr<hyperdisk::shard> newd1 = hyperdisk::shard::create(cwd, "tmp-disk2");
+    e::guard g1 = e::makeguard(::unlink, "tmp-disk2");
+    d->copy_to(hyperspacehashing::mask::coordinate(0, 0, 0, 0), newd1);
+    e::intrusive_ptr<hyperdisk::shard_snapshot> dsnap = d->make_snapshot();
+    e::intrusive_ptr<hyperdisk::shard_snapshot> newd1snap = newd1->make_snapshot();
+
+    for (uint64_t i = 0; i < 32768; ++i)
+    {
+        ASSERT_TRUE(dsnap->valid());
+        ASSERT_TRUE(newd1snap->valid());
+        ASSERT_EQ(dsnap->coordinate(), newd1snap->coordinate());
+        ASSERT_EQ(dsnap->version(), newd1snap->version());
+        ASSERT_TRUE(dsnap->key() == newd1snap->key());
+        ASSERT_TRUE(dsnap->value() == newd1snap->value());
+        dsnap->next();
+        newd1snap->next();
+    }
+
+    ASSERT_FALSE(dsnap->valid());
+    ASSERT_FALSE(newd1snap->valid());
+
+    e::intrusive_ptr<hyperdisk::shard> newd2 = hyperdisk::shard::create(cwd, "tmp-disk3");
+    e::guard g2 = e::makeguard(::unlink, "tmp-disk3");
+    d->copy_to(hyperspacehashing::mask::coordinate(1, 1, 0, 0), newd2);
+    dsnap = d->make_snapshot();
+    e::intrusive_ptr<hyperdisk::shard_snapshot> newd2snap = newd2->make_snapshot();
+
+    for (uint64_t i = 0; i < 32768; ++i)
+    {
+        ASSERT_TRUE(dsnap->valid());
+
+        if (dsnap->coordinate().intersects(hyperspacehashing::mask::coordinate(1, 1, 0, 0)))
+        {
+            ASSERT_TRUE(newd2snap->valid());
+            ASSERT_EQ(dsnap->coordinate(), newd2snap->coordinate());
+            ASSERT_EQ(dsnap->version(), newd2snap->version());
+            ASSERT_TRUE(dsnap->key() == newd2snap->key());
+            ASSERT_TRUE(dsnap->value() == newd2snap->value());
+            newd2snap->next();
+        }
+
+        dsnap->next();
+    }
+
+    ASSERT_FALSE(dsnap->valid());
+    ASSERT_FALSE(newd2snap->valid());
 }
 
 TEST(ShardTest, Snapshot)
