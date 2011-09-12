@@ -7,7 +7,7 @@ jarfile = hyperclient.ycsb.jar
 jardir = $(datadir)/java
 
 $(jarfile): $(abs_builddir)/hyperclient/ycsb/HyperClient.class
-	$(JAR) cf $(JARFLAGS) $@ $(abs_builddir)/hyperclient/ycsb/HyperClient.class
+	$(JAR) cf $(JARFLAGS) $@ -C $(abs_srcdir) hyperclient/ycsb/HyperClient.class
 
 # XXX This is improper CLASSPATH tracking.
 $(abs_builddir)/hyperclient/ycsb/HyperClient.class: $(abs_srcdir)/hyperclient/ycsb/HyperClient.java
