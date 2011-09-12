@@ -85,15 +85,19 @@ class client
 
     // Used for SWIG bindings where we don't want to write C callbacks.
     public:
-        void get(const std::string& space, const e::buffer& key, get_result* r);
+        void get(const std::string& space, const e::buffer& key, get_result& r);
         void put(const std::string& space, const e::buffer& key,
-                 const std::vector<e::buffer>& value, result* r);
-        void del(const std::string& space, const e::buffer& key, result* r);
+                 const std::vector<e::buffer>& value, result& r);
+        void del(const std::string& space, const e::buffer& key, result& r);
         void update(const std::string& space, const e::buffer& key,
-                    const std::map<std::string, e::buffer>& value, result* r);
+                    const std::map<std::string, e::buffer>& value, result& r);
 
     private:
         friend class pending_search;
+
+    private:
+        void inner_mutate(result& r, returncode ret);
+        void inner_get(get_result& r, returncode ret, const std::vector<e::buffer>& value);
 
     private:
         struct priv;

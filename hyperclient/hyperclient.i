@@ -59,12 +59,12 @@ class client
         int connect();
 
     public:
-        void get(const std::string& space, const e::buffer& key, get_result* r);
+        void get(const std::string& space, const e::buffer& key, get_result& r);
         void put(const std::string& space, const e::buffer& key,
-                 const std::vector<e::buffer>& value, result* r);
-        void del(const std::string& space, const e::buffer& key, result* r);
+                 const std::vector<e::buffer>& value, result& r);
+        void del(const std::string& space, const e::buffer& key, result& r);
         void update(const std::string& space, const e::buffer& key,
-                    const std::map<std::string, e::buffer>& value, result* r);
+                    const std::map<std::string, e::buffer>& value, result& r);
 
     public:
         size_t outstanding();

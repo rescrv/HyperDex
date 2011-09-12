@@ -43,8 +43,8 @@ namespace hyperclient
 class result
 {
     public:
-        result();
-        ~result() throw ();
+        result() : m_status() {}
+        ~result() throw () {}
 
     public:
         returncode status() { return m_status; }
@@ -59,8 +59,8 @@ class result
 class get_result
 {
     public:
-        get_result();
-        ~get_result() throw ();
+        get_result() : m_status(), m_value() {}
+        ~get_result() throw () {}
 
     public:
         returncode status() { return m_status; }

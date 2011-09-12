@@ -890,6 +890,56 @@ hyperclient :: client :: flush_one(int timeout)
     return SUCCESS;
 }
 
+void
+hyperclient :: client :: get(const std::string& space, const e::buffer& key, get_result& r)
+{
+    using std::tr1::bind;
+    using std::tr1::placeholders::_1;
+    using std::tr1::placeholders::_2;
+    get(space, key, bind(&client::inner_get, this, r, _1, _2));
+}
+
+void
+hyperclient :: client :: put(const std::string& space, const e::buffer& key,
+                             const std::vector<e::buffer>& value, result& r)
+{
+    using std::tr1::bind;
+    using std::tr1::placeholders::_1;
+    put(space, key, value, bind(&client::inner_mutate, this, r, _1));
+}
+
+void
+hyperclient :: client :: del(const std::string& space, const e::buffer& key,
+                             result& r)
+{
+    using std::tr1::bind;
+    using std::tr1::placeholders::_1;
+    del(space, key, bind(&client::inner_mutate, this, r, _1));
+}
+
+void
+hyperclient :: client :: update(const std::string& space, const e::buffer& key,
+                                const std::map<std::string, e::buffer>& value,
+                                result& r)
+{
+    using std::tr1::bind;
+    using std::tr1::placeholders::_1;
+    update(space, key, value, bind(&client::inner_mutate, this, r, _1));
+}
+
+void
+hyperclient :: client :: inner_mutate(result& r, returncode ret)
+{
+    r.m_status = ret;
+}
+
+void
+hyperclient :: client :: inner_get(get_result& r, returncode ret, const std::vector<e::buffer>& value)
+{
+    r.m_status = ret;
+    r.m_value = value;
+}
+
 hyperclient :: channel :: channel(const hyperdex::instance& inst)
     : soc(inst.inbound.address.family(), SOCK_STREAM, IPPROTO_TCP)
     , nonce(1)
