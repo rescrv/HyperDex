@@ -63,23 +63,23 @@ hyperspacehashing :: mask :: coordinate :: ~coordinate() throw ()
 }
 
 bool
-hyperspacehashing :: mask :: coordinate :: contains(const coordinate& other) const
+hyperspacehashing :: mask :: coordinate :: intersects(const coordinate& other) const
 {
-    return primary_contains(other) && secondary_contains(other);
+    return primary_intersects(other) && secondary_intersects(other);
 }
 
 bool
-hyperspacehashing :: mask :: coordinate :: primary_contains(const coordinate& other) const
+hyperspacehashing :: mask :: coordinate :: primary_intersects(const coordinate& other) const
 {
-    return (primary_mask & other.primary_mask) == primary_mask &&
-           (primary_hash & primary_mask) == (other.primary_hash & primary_mask);
+    uint32_t mask = primary_mask & other.primary_mask;
+    return (primary_hash & mask) == (other.primary_hash & mask);
 }
 
 bool
-hyperspacehashing :: mask :: coordinate :: secondary_contains(const coordinate& other) const
+hyperspacehashing :: mask :: coordinate :: secondary_intersects(const coordinate& other) const
 {
-    return (secondary_mask & other.secondary_mask) == secondary_mask &&
-           (secondary_hash & secondary_mask) == (other.secondary_hash & secondary_mask);
+    uint32_t mask = secondary_mask & other.secondary_mask;
+    return (secondary_hash & mask) == (other.secondary_hash & mask);
 }
 
 hyperspacehashing :: mask :: hasher :: hasher(const std::vector<hash_t> funcs)

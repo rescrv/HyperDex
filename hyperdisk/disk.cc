@@ -131,7 +131,7 @@ hyperdisk :: disk :: get(const e::buffer& key,
 
     for (size_t i = 0; i < shards->size(); ++i)
     {
-        if (!shards->get_coordinate(i).primary_contains(coord))
+        if (!shards->get_coordinate(i).primary_intersects(coord))
         {
             continue;
         }
@@ -149,7 +149,7 @@ hyperdisk :: disk :: get(const e::buffer& key,
 
     for (; it.valid(); it.next())
     {
-        if (it->coord.primary_contains(coord) && it->key == key)
+        if (it->coord.primary_intersects(coord) && it->key == key)
         {
             if (it->coord.secondary_mask == UINT32_MAX)
             {
@@ -281,7 +281,7 @@ hyperdisk :: disk :: flush()
 
         for (size_t i = 0; !deleted && i < m_shards->size(); ++i)
         {
-            if (!m_shards->get_coordinate(i).primary_contains(coord))
+            if (!m_shards->get_coordinate(i).primary_intersects(coord))
             {
                 continue;
             }
@@ -314,7 +314,7 @@ hyperdisk :: disk :: flush()
             // We must start at the end and work backwards.
             for (ssize_t i = m_shards->size() - 1; !inserted && i >= 0; --i)
             {
-                if (!m_shards->get_coordinate(i).contains(coord))
+                if (!m_shards->get_coordinate(i).intersects(coord))
                 {
                     continue;
                 }

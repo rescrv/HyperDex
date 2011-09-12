@@ -321,7 +321,7 @@ hyperdisk :: shard :: copy_to(const coordinate& c, e::intrusive_ptr<shard> s)
         uint32_t primary_hash = static_cast<uint32_t>(m_search_index[ent * 2]);
         uint32_t secondary_hash = static_cast<uint32_t>(m_search_index[ent * 2] >> 32);
 
-        if (!c.contains(coordinate(UINT32_MAX, primary_hash, UINT32_MAX, secondary_hash)))
+        if (!c.intersects(coordinate(UINT32_MAX, primary_hash, UINT32_MAX, secondary_hash)))
         {
             continue;
         }

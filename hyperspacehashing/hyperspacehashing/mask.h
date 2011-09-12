@@ -50,9 +50,9 @@ class coordinate
         ~coordinate() throw ();
 
     public:
-        bool contains(const coordinate& other) const;
-        bool primary_contains(const coordinate& other) const;
-        bool secondary_contains(const coordinate& other) const;
+        bool intersects(const coordinate& other) const;
+        bool primary_intersects(const coordinate& other) const;
+        bool secondary_intersects(const coordinate& other) const;
 
     public:
         uint32_t primary_mask;
