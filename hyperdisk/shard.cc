@@ -167,14 +167,14 @@ hyperdisk :: shard :: put(uint32_t primary_hash,
     // Invalidate anything pointing to the old version.
     if (overwrite)
     {
-        invalidate_search_index(static_cast<uint32_t>(m_hash_table[entry] >> 32),
+        invalidate_search_log(static_cast<uint32_t>(m_hash_table[entry] >> 32),
                                 m_data_offset);
     }
 
-    // Insert into the search index.
-    m_search_index[m_search_offset * 2] = (static_cast<uint64_t>(secondary_hash) << 32)
+    // Insert into the search log.
+    m_search_log[m_search_offset * 2] = (static_cast<uint64_t>(secondary_hash) << 32)
                                         | static_cast<uint64_t>(primary_hash);
-    m_search_index[m_search_offset * 2 + 1] = static_cast<uint64_t>(m_data_offset);
+    m_search_log[m_search_offset * 2 + 1] = static_cast<uint64_t>(m_data_offset);
 
     // We need to synchronize here to ensure that all data is globally visible
     // before the entry in the hash table becomes visible.
@@ -213,7 +213,7 @@ hyperdisk :: shard :: del(uint32_t primary_hash,
     }
 
     assert(offset != 0 && offset != UINT32_MAX); // LCOV_EXCL_LINE
-    invalidate_search_index(offset, m_data_offset);
+    invalidate_search_log(offset, m_data_offset);
     m_data_offset += sizeof(uint64_t);
     m_hash_table[entry] = (static_cast<uint64_t>(UINT32_MAX) << 32)
                         | static_cast<uint64_t>(primary_hash);
@@ -225,13 +225,13 @@ hyperdisk :: shard :: stale_space() const
 {
     size_t stale_data = 0;
     size_t stale_num = 0;
-    uint32_t start = static_cast<uint32_t>(m_search_index[1]);
+    uint32_t start = static_cast<uint32_t>(m_search_log[1]);
     uint32_t end;
     size_t i;
 
     for (i = 1; i < SEARCH_INDEX_ENTRIES; ++i)
     {
-        end = static_cast<uint32_t>(m_search_index[2 * i + 1]);
+        end = static_cast<uint32_t>(m_search_log[2 * i + 1]);
 
         if (end == 0)
         {
@@ -239,7 +239,7 @@ hyperdisk :: shard :: stale_space() const
             break;
         }
 
-        if (static_cast<uint32_t>(m_search_index[2 * i + 1] >> 32) > 0)
+        if (static_cast<uint32_t>(m_search_log[2 * i + 1] >> 32) > 0)
         {
             stale_data += end - start;
             ++stale_num;
@@ -306,20 +306,20 @@ hyperdisk :: shard :: copy_to(const coordinate& c, e::intrusive_ptr<shard> s)
 {
     assert(m_data != s->m_data); // LCOV_EXCL_LINE
     memset(s->m_hash_table, 0, HASH_TABLE_SIZE);
-    memset(s->m_search_index, 0, SEARCH_INDEX_SIZE);
+    memset(s->m_search_log, 0, SEARCH_INDEX_SIZE);
     s->m_data_offset = INDEX_SEGMENT_SIZE;
     s->m_search_offset = 0;
 
     for (size_t ent = 0; ent < SEARCH_INDEX_ENTRIES; ++ent)
     {
         // Skip stale entries.
-        if (static_cast<uint32_t>(m_search_index[ent * 2 + 1] >> 32) != 0)
+        if (static_cast<uint32_t>(m_search_log[ent * 2 + 1] >> 32) != 0)
         {
             continue;
         }
 
-        uint32_t primary_hash = static_cast<uint32_t>(m_search_index[ent * 2]);
-        uint32_t secondary_hash = static_cast<uint32_t>(m_search_index[ent * 2] >> 32);
+        uint32_t primary_hash = static_cast<uint32_t>(m_search_log[ent * 2]);
+        uint32_t secondary_hash = static_cast<uint32_t>(m_search_log[ent * 2] >> 32);
 
         if (!c.intersects(coordinate(UINT32_MAX, primary_hash, UINT32_MAX, secondary_hash)))
         {
@@ -327,7 +327,7 @@ hyperdisk :: shard :: copy_to(const coordinate& c, e::intrusive_ptr<shard> s)
         }
 
         // Figure out how big the entry is.
-        size_t entry_start = static_cast<uint32_t>(m_search_index[ent * 2 + 1]);
+        size_t entry_start = static_cast<uint32_t>(m_search_log[ent * 2 + 1]);
 
         if (entry_start == 0)
         {
@@ -338,7 +338,7 @@ hyperdisk :: shard :: copy_to(const coordinate& c, e::intrusive_ptr<shard> s)
 
         if (ent < SEARCH_INDEX_ENTRIES - 1)
         {
-            size_t next_entry_start = static_cast<uint32_t>(m_search_index[ent * 2 + 3]);
+            size_t next_entry_start = static_cast<uint32_t>(m_search_log[ent * 2 + 3]);
             entry_size = next_entry_start > 0 ? next_entry_start - entry_start: entry_size;
         }
 
@@ -349,10 +349,10 @@ hyperdisk :: shard :: copy_to(const coordinate& c, e::intrusive_ptr<shard> s)
 
         // Copy the entry's data
         memmove(s->m_data + s->m_data_offset, m_data + entry_start, entry_size);
-        // Insert into the search index.
-        s->m_search_index[s->m_search_offset * 2] = (static_cast<uint64_t>(secondary_hash) << 32)
+        // Insert into the search log.
+        s->m_search_log[s->m_search_offset * 2] = (static_cast<uint64_t>(secondary_hash) << 32)
                                                   | static_cast<uint64_t>(primary_hash);
-        s->m_search_index[s->m_search_offset * 2 + 1] = static_cast<uint64_t>(s->m_data_offset);
+        s->m_search_log[s->m_search_offset * 2 + 1] = static_cast<uint64_t>(s->m_data_offset);
         // Insert into the hash table.
         size_t bucket;
         find_bucket(primary_hash, &bucket);
@@ -367,7 +367,7 @@ hyperdisk :: shard :: copy_to(const coordinate& c, e::intrusive_ptr<shard> s)
 hyperdisk :: shard :: shard(po6::io::fd* fd)
     : m_ref(0)
     , m_hash_table(NULL)
-    , m_search_index(NULL)
+    , m_search_log(NULL)
     , m_data(NULL)
     , m_data_offset(INDEX_SEGMENT_SIZE)
     , m_search_offset(0)
@@ -380,7 +380,7 @@ hyperdisk :: shard :: shard(po6::io::fd* fd)
     }
 
     m_hash_table = reinterpret_cast<uint64_t*>(m_data);
-    m_search_index = reinterpret_cast<uint64_t*>(m_data + HASH_TABLE_SIZE);
+    m_search_log = reinterpret_cast<uint64_t*>(m_data + HASH_TABLE_SIZE);
 }
 
 hyperdisk :: shard :: ~shard()
@@ -530,7 +530,7 @@ hyperdisk :: shard :: find_bucket(uint32_t primary_hash,
 }
 
 void
-hyperdisk :: shard :: invalidate_search_index(uint32_t to_invalidate, uint32_t invalidate_with)
+hyperdisk :: shard :: invalidate_search_log(uint32_t to_invalidate, uint32_t invalidate_with)
 {
     int64_t low = 0;
     int64_t high = SEARCH_INDEX_ENTRIES;
@@ -538,7 +538,7 @@ hyperdisk :: shard :: invalidate_search_index(uint32_t to_invalidate, uint32_t i
     while (low <= high)
     {
         int64_t mid = low + ((high - low) / 2);
-        const uint32_t mid_offset = m_search_index[mid * 2 + 1] & 0xffffffffUL;
+        const uint32_t mid_offset = m_search_log[mid * 2 + 1] & 0xffffffffUL;
 
         if (mid_offset == 0 || mid_offset > to_invalidate)
         {
@@ -550,7 +550,7 @@ hyperdisk :: shard :: invalidate_search_index(uint32_t to_invalidate, uint32_t i
         }
         else if (mid_offset == to_invalidate)
         {
-            m_search_index[mid * 2 + 1] = (static_cast<uint64_t>(invalidate_with) << 32)
+            m_search_log[mid * 2 + 1] = (static_cast<uint64_t>(invalidate_with) << 32)
                                         | static_cast<uint64_t>(to_invalidate);
             return;
         }

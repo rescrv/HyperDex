@@ -42,8 +42,8 @@ hyperdisk :: shard_snapshot :: valid()
 
     while (m_entry < SEARCH_INDEX_ENTRIES)
     {
-        offset = static_cast<uint32_t>(m_shard->m_search_index[m_entry * 2 + 1]);
-        invalid = static_cast<uint32_t>(m_shard->m_search_index[m_entry * 2 + 1] >> 32);
+        offset = static_cast<uint32_t>(m_shard->m_search_log[m_entry * 2 + 1]);
+        invalid = static_cast<uint32_t>(m_shard->m_search_log[m_entry * 2 + 1] >> 32);
 
         // If the m_valid flag is set; the offset is within the subsection of
         // data we may observe; and the data was never invalidated, or was
@@ -79,19 +79,19 @@ hyperdisk :: shard_snapshot :: next()
 uint32_t
 hyperdisk :: shard_snapshot :: primary_hash()
 {
-    return static_cast<uint32_t>(m_shard->m_search_index[m_entry * 2]);
+    return static_cast<uint32_t>(m_shard->m_search_log[m_entry * 2]);
 }
 
 uint32_t
 hyperdisk :: shard_snapshot :: secondary_hash()
 {
-    return static_cast<uint32_t>(m_shard->m_search_index[m_entry * 2] >> 32);
+    return static_cast<uint32_t>(m_shard->m_search_log[m_entry * 2] >> 32);
 }
 
 hyperspacehashing::mask::coordinate
 hyperdisk :: shard_snapshot :: coordinate()
 {
-    uint64_t hashes = m_shard->m_search_index[m_entry * 2];
+    uint64_t hashes = m_shard->m_search_log[m_entry * 2];
     return hyperspacehashing::mask::coordinate(UINT32_MAX, static_cast<uint32_t>(hashes),
                                                UINT32_MAX, static_cast<uint32_t>(hashes >> 32));
 }
@@ -99,7 +99,7 @@ hyperdisk :: shard_snapshot :: coordinate()
 uint64_t
 hyperdisk :: shard_snapshot :: version()
 {
-    const uint32_t offset = m_shard->m_search_index[m_entry * 2 + 1] & 0xffffffffUL;
+    const uint32_t offset = m_shard->m_search_log[m_entry * 2 + 1] & 0xffffffffUL;
 
     if (!offset)
     {
@@ -112,7 +112,7 @@ hyperdisk :: shard_snapshot :: version()
 e::buffer
 hyperdisk :: shard_snapshot :: key()
 {
-    const uint32_t offset = m_shard->m_search_index[m_entry * 2 + 1] & 0xffffffffUL;
+    const uint32_t offset = m_shard->m_search_log[m_entry * 2 + 1] & 0xffffffffUL;
 
     if (!offset)
     {
@@ -128,7 +128,7 @@ hyperdisk :: shard_snapshot :: key()
 std::vector<e::buffer>
 hyperdisk :: shard_snapshot :: value()
 {
-    const uint32_t offset = m_shard->m_search_index[m_entry * 2 + 1] & 0xffffffffUL;
+    const uint32_t offset = m_shard->m_search_log[m_entry * 2 + 1] & 0xffffffffUL;
 
     if (!offset)
     {

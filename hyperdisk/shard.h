@@ -167,9 +167,9 @@ class shard
         // space.  As a result of these additional assumptions it does much
         // less.
         void find_bucket(uint32_t primary_hash, size_t* entry);
-        // This will invalidate any entry in the search index which references
+        // This will invalidate any entry in the search log which references
         // the specified offset.
-        void invalidate_search_index(uint32_t to_invalidate, uint32_t invalidate_with);
+        void invalidate_search_log(uint32_t to_invalidate, uint32_t invalidate_with);
 
     private:
         shard& operator = (const shard&);
@@ -177,7 +177,7 @@ class shard
     private:
         size_t m_ref;
         uint64_t* m_hash_table;
-        uint64_t* m_search_index;
+        uint64_t* m_search_log;
         char* m_data;
         uint32_t m_data_offset;
         uint32_t m_search_offset;
