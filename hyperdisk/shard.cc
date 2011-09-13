@@ -36,6 +36,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+// C++
+#include <fstream>
+
 // po6
 #include <po6/io/fd.h>
 
@@ -87,6 +90,44 @@ hyperdisk :: shard :: create(const po6::io::fd& base,
 
     // Create the shard object.
     e::intrusive_ptr<shard> ret = new shard(&fd);
+    return ret;
+}
+
+e::intrusive_ptr<hyperdisk::shard>
+hyperdisk :: shard :: open(const po6::io::fd& base,
+                           const po6::pathname& filename)
+{
+    po6::io::fd fd(openat(base.get(), filename.get(), O_RDWR));
+
+    if (fd.get() < 0)
+    {
+        throw po6::error(errno);
+    }
+
+    // Create the shard object.
+    e::intrusive_ptr<shard> ret = new shard(&fd);
+
+    while (ret->m_search_offset < SEARCH_INDEX_ENTRIES &&
+            static_cast<uint32_t>(ret->m_search_log[ret->m_search_offset * 2 + 1]) != 0)
+    {
+        ret->m_data_offset = static_cast<uint32_t>(ret->m_search_log[ret->m_search_offset * 2 + 1]);
+        ++ ret->m_search_offset;
+    }
+
+    // XXX If you're looking for bugs that stem from opening shards, it's
+    // probably in this code block.
+    if (ret->m_search_offset > 0)
+    {
+        e::buffer key;
+        std::vector<e::buffer> value;
+        size_t key_size = ret->data_key_size(ret->m_data_offset);
+        ret->data_key(ret->m_data_offset, key_size, &key);
+        ret->data_value(ret->m_data_offset, key_size, &value);
+        size_t entry_size = ret->data_size(key, value);
+        ret->m_data_offset = (ret->m_data_offset + entry_size + 7) & ~7; // Keep everything 8-byte aligned.
+        assert(ret->m_data_offset <= FILE_SIZE);
+    }
+
     return ret;
 }
 
@@ -357,6 +398,112 @@ hyperdisk :: shard :: copy_to(const coordinate& c, e::intrusive_ptr<shard> s)
         ++s->m_search_offset;
         s->m_data_offset = (s->m_data_offset + (entry_end - entry_start) + 7) & ~7; // Keep everything 8-byte aligned.
     }
+}
+
+bool
+hyperdisk :: shard :: fsck()
+{
+    std::ofstream null("/dev/null");
+    return fsck(null, null);
+}
+
+bool
+hyperdisk :: shard :: fsck(std::ostream& out, std::ostream& err)
+{
+    bool ret = true;
+    bool hash_table[HASH_TABLE_ENTRIES];
+    bool zero = false;
+    uint32_t search_log_entries = 0;
+
+    for (uint32_t i = 0; i < HASH_TABLE_ENTRIES; ++i)
+    {
+        hash_table[i] = false;
+    }
+
+    for (search_log_entries = 0;
+            search_log_entries < SEARCH_INDEX_ENTRIES;
+            ++search_log_entries)
+    {
+        uint64_t hashes = m_search_log[search_log_entries * 2];
+        uint64_t offsets = m_search_log[search_log_entries * 2 + 1];
+
+        if (static_cast<uint32_t>(offsets) == 0)
+        {
+            zero = true;
+        }
+
+        if (zero && offsets != 0)
+        {
+            err << "entry " << search_log_entries << " in log has no offset but is invalidated at "
+                << static_cast<uint32_t>(offsets >> 32) << std::endl;
+            ret = false;
+        }
+
+        if (zero && hashes != 0)
+        {
+            err << "entry " << search_log_entries << " in log has no offset but has non-zero hashes "
+                << static_cast<uint32_t>(hashes) << " " << static_cast<uint32_t>(hashes >> 32)
+                << std::endl;
+            ret = false;
+        }
+
+        if (!zero)
+        {
+            uint32_t offset = static_cast<uint32_t>(offsets);
+            e::buffer key;
+            size_t key_size = data_key_size(offset);
+            data_key(offset, key_size, &key);
+
+            size_t table_entry;
+            uint64_t table_value;
+            hash_lookup(static_cast<uint32_t>(hashes), key, &table_entry, &table_value);
+            uint32_t table_hash = static_cast<uint32_t>(table_value);
+            uint32_t table_offset = static_cast<uint32_t>(table_value >> 32);
+
+            if (table_hash == static_cast<uint32_t>(hashes))
+            {
+                if (offsets < HASH_OFFSET_INVALID && static_cast<uint32_t>(offsets) != table_offset)
+                {
+                    err << "entry " << search_log_entries << " in log and entry " << table_entry
+                        << " in hash table do not match.\n"
+                        << "\tlog offset is " << offset << "\n"
+                        << "\thash offset is " << table_value << std::endl;
+                    ret = false;
+                }
+            }
+            else
+            {
+                bool details = false;
+
+                if (table_offset != 0 )
+                {
+                    err << "entry " << search_log_entries << " does not match hash table entry and the hash table entry's offset is non-zero\n";
+                    details = true;
+                }
+
+                if (static_cast<uint32_t>(offsets >> 32) == 0)
+                {
+                    err << "entry " << search_log_entries << " does not match hash table entry and the search index is not invalidated\n";
+                    details = true;
+                }
+
+                if (details)
+                {
+                    err << "\tsearch log entry           = " << search_log_entries << "\n"
+                        << "\thash table entry           = " << table_entry << "\n"
+                        << "\tprimary_hash(search log)   = " << static_cast<uint32_t>(hashes) << "\n"
+                        << "\tsecondary_hash(search log) = " << static_cast<uint32_t>(hashes >> 32) << "\n"
+                        << "\toffset(search log)         = " << static_cast<uint32_t>(offsets) << "\n"
+                        << "\tinvalidated(search log)    = " << static_cast<uint32_t>(offsets >> 32) << "\n"
+                        << "\tprimary_hash(hash table)   = " << static_cast<uint32_t>(m_hash_table[table_entry]) << "\n"
+                        << "\toffset(hash table)         = " << static_cast<uint32_t>(m_hash_table[table_entry] >> 32) << std::endl;
+                    ret = false;
+                }
+            }
+        }
+    }
+
+    return ret;
 }
 
 hyperdisk :: shard :: shard(po6::io::fd* fd)

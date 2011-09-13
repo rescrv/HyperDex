@@ -52,6 +52,8 @@ TEST(ShardTest, CtorAndDtor)
     po6::io::fd cwd(AT_FDCWD);
     e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create(cwd, "tmp-disk");
     e::guard g = e::makeguard(::unlink, "tmp-disk");
+
+    ASSERT_TRUE(d->fsck());
 }
 
 TEST(ShardTest, Simple)
@@ -77,6 +79,8 @@ TEST(ShardTest, Simple)
     ASSERT_TRUE(e::buffer("value", 5) == value[0]);
     ASSERT_EQ(hyperdisk::SUCCESS, d->del(0x6e9accf9UL, e::buffer("key", 3)));
     ASSERT_EQ(hyperdisk::NOTFOUND, d->get(0x6e9accf9UL, e::buffer("key", 3), &value, &version));
+
+    ASSERT_TRUE(d->fsck(std::cout, std::cerr));
 }
 
 TEST(ShardTest, MultiPut)
@@ -110,6 +114,8 @@ TEST(ShardTest, MultiPut)
     ASSERT_EQ(2, value.size());
     ASSERT_TRUE(e::buffer("value-two-a", 11) == value[0]);
     ASSERT_TRUE(e::buffer("value-two-b", 11) == value[1]);
+
+    ASSERT_TRUE(d->fsck());
 }
 
 TEST(ShardTest, DelPutDelPut)
@@ -156,6 +162,8 @@ TEST(ShardTest, DelPutDelPut)
 
     // A GET should fail.
 	ASSERT_EQ(hyperdisk::NOTFOUND, d->get(primary_hash, key, &value, &version));
+
+    ASSERT_TRUE(d->fsck());
 }
 
 TEST(ShardTest, SearchFull)
@@ -176,6 +184,8 @@ TEST(ShardTest, SearchFull)
     }
 
     ASSERT_EQ(hyperdisk::SEARCHFULL, d->put(primary_hash, secondary_hash, key, value, 0));
+
+    ASSERT_TRUE(d->fsck());
 }
 
 TEST(ShardTest, DataFull)
@@ -204,6 +214,8 @@ TEST(ShardTest, DataFull)
     keyb.pack() << static_cast<uint64_t>(32263) << e::buffer::padding(890);
     assert(keyb.size() == 898);
     ASSERT_EQ(hyperdisk::SUCCESS, d->put(32263, 0, keyb, value, 0));
+
+    ASSERT_TRUE(d->fsck());
 }
 
 TEST(ShardTest, StaleSpaceByEntries)
@@ -223,6 +235,8 @@ TEST(ShardTest, StaleSpaceByEntries)
         ASSERT_EQ(hyperdisk::SUCCESS, d->del(primary_hash, key));
         ASSERT_EQ(100 * (i + 1) / 32768, d->stale_space());
     }
+
+    ASSERT_TRUE(d->fsck());
 }
 
 TEST(ShardTest, StaleSpaceByData)
@@ -240,6 +254,8 @@ TEST(ShardTest, StaleSpaceByData)
         ASSERT_EQ(hyperdisk::SUCCESS, d->del(0, key));
         ASSERT_EQ(100 * (i + 1) / 16384, d->stale_space());
     }
+
+    ASSERT_TRUE(d->fsck());
 }
 
 TEST(ShardTest, CopyFromFull)
@@ -308,6 +324,10 @@ TEST(ShardTest, CopyFromFull)
 
     ASSERT_FALSE(dsnap->valid());
     ASSERT_FALSE(newd2snap->valid());
+
+    ASSERT_TRUE(d->fsck());
+    ASSERT_TRUE(newd1->fsck());
+    ASSERT_TRUE(newd2->fsck());
 }
 
 TEST(ShardTest, Snapshot)

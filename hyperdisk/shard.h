@@ -97,6 +97,10 @@ class shard
         // shard (or other file) at "filename".
         static e::intrusive_ptr<shard> create(const po6::io::fd& dir,
                                               const po6::pathname& filename);
+        // Open an existing shard.  This will fail if the file doesn't exist.
+        // XXX No sanity checking is done on the shard.
+        static e::intrusive_ptr<shard> open(const po6::io::fd& dir,
+                                            const po6::pathname& filename);
 
     public:
         // May return SUCCESS or NOTFOUND.
@@ -128,6 +132,9 @@ class shard
         // completely erasing all the data in the other shard.  Only
         // entries which match the coordinate will be kept.
         void copy_to(const hyperspacehashing::mask::coordinate& c, e::intrusive_ptr<shard> s);
+        // Perform a logical integrity check of the shard.
+        bool fsck();
+        bool fsck(std::ostream& out, std::ostream& err);
 
     private:
         friend class e::intrusive_ptr<shard>;
