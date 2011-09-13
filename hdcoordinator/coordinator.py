@@ -144,8 +144,11 @@ class ActionsLog(object):
         frequencies = collections.defaultdict(list)
         for host, frequency in hosts.iteritems():
             frequencies[frequency].append(host)
-        least_loaded = min(frequencies.iteritems())[1]
-        return self._rand.choice(least_loaded)
+        least_loaded = list(set(min(frequencies.iteritems())[1]) - set(exclude))
+        if least_loaded:
+            return self._rand.choice(least_loaded)
+        else:
+            return None
 
     def config(self):
         try:
