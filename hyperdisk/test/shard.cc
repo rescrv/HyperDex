@@ -330,6 +330,49 @@ TEST(ShardTest, CopyFromFull)
     ASSERT_TRUE(newd2->fsck());
 }
 
+TEST(ShardTest, SameHashDifferentKey)
+{
+    po6::io::fd cwd(AT_FDCWD);
+    e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create(cwd, "tmp-disk");
+    e::guard g = e::makeguard(::unlink, "tmp-disk");
+
+    uint32_t primary_hash = 0xdeadbeef;
+    uint32_t secondary_hash = 0xcafebabe;
+    std::vector<e::buffer> value;
+    uint64_t version = 0x41414141;
+
+    for (uint64_t i = 0; i < 32768; ++i)
+    {
+        e::buffer key;
+        key.pack() << i;
+        ASSERT_EQ(hyperdisk::SUCCESS, d->put(primary_hash, secondary_hash, key, value, version));
+    }
+
+    for (uint64_t i = 0; i < 32768; i += 2)
+    {
+        e::buffer key;
+        key.pack() << i;
+        ASSERT_EQ(hyperdisk::SUCCESS, d->del(primary_hash, key));
+    }
+
+    for (uint64_t i = 0; i < 32768; ++i)
+    {
+        e::buffer key;
+        key.pack() << i;
+
+        if (i % 2 == 0)
+        {
+            ASSERT_EQ(hyperdisk::NOTFOUND, d->get(primary_hash, key, &value, &version));
+        }
+        else
+        {
+            ASSERT_EQ(hyperdisk::SUCCESS, d->get(primary_hash, key, &value, &version));
+            ASSERT_EQ(0, value.size());
+            ASSERT_EQ(0x41414141, version);
+        }
+    }
+}
+
 TEST(ShardTest, Snapshot)
 {
     po6::io::fd cwd(AT_FDCWD);
