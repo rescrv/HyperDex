@@ -153,6 +153,7 @@ public class HyperClient extends DB
         {
             result r = new result();
             m_client.update(table, new buffer(key), val, r);
+            m_client.flush_one(-1);
 
             if (r.status() == 0)
             {
@@ -196,6 +197,7 @@ public class HyperClient extends DB
         {
             result r = new result();
             m_client.del(table, new buffer(key), r);
+            m_client.flush_one(-1);
 
             if (r.status() == 0)
             {
