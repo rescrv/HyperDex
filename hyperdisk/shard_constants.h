@@ -43,4 +43,10 @@
 
 #define HASH_INTO_TABLE(X) ((X) & (HASH_TABLE_ENTRIES - 1))
 
+#if SEARCH_INDEX_ENTRIES > HASH_TABLE_ENTRIES
+#error There must be more entries in the hash table than SEARCH_INDEX_ENTRIES.
+#endif
+
+#define HASH_OFFSET_INVALID static_cast<uint32_t>(1 << 31)
+
 #endif // hyperdisk_shard_h_

@@ -96,25 +96,24 @@ hyperdisk :: shard :: get(uint32_t primary_hash,
                           std::vector<e::buffer>* value,
                           uint64_t* version)
 {
-    size_t entry;
-    size_t offset;
+    // Find the bucket.
+    size_t table_entry;
+    uint64_t table_value;
+    hash_lookup(primary_hash, key, &table_entry, &table_value);
+    uint32_t table_hash = static_cast<uint32_t>(table_value);
+    uint32_t table_offset = static_cast<uint32_t>(table_value >> 32);
 
-    if (!find_bucket(primary_hash, key, &entry, &offset))
-    {
-        return NOTFOUND;
-    }
-
-    if (offset == 0 || offset == UINT32_MAX)
+    if (table_offset == 0 || table_offset >= HASH_OFFSET_INVALID)
     {
         return NOTFOUND;
     }
 
     // Load the information.
-    *version = data_version(offset);
+    *version = data_version(table_offset);
     // const size_t key_size = data_key_size(offset);
     // data_key(offset, &key);
-    // ^ Skipped because find_bucket ensures that the key matches.
-    data_value(offset, key.size(), value);
+    // ^ Skipped because hash_lookup ensures that the key matches.
+    data_value(table_offset, key.size(), value);
     return SUCCESS;
 }
 
@@ -137,8 +136,9 @@ hyperdisk :: shard :: put(uint32_t primary_hash,
 
     // Find the bucket.
     size_t entry;
-    size_t offset;
-    bool overwrite = find_bucket(primary_hash, key, &entry, &offset);
+    uint64_t table_value;
+    hash_lookup(primary_hash, key, &entry, &table_value);
+    uint32_t table_offset = static_cast<uint32_t>(table_value >> 32);
 
     // Values to pack.
     uint32_t key_size = key.size();
@@ -165,20 +165,15 @@ hyperdisk :: shard :: put(uint32_t primary_hash,
     }
 
     // Invalidate anything pointing to the old version.
-    if (overwrite)
+    if (table_offset < HASH_OFFSET_INVALID)
     {
-        invalidate_search_log(static_cast<uint32_t>(m_hash_table[entry] >> 32),
-                                m_data_offset);
+        invalidate_search_log(table_offset, m_data_offset);
     }
 
     // Insert into the search log.
     m_search_log[m_search_offset * 2] = (static_cast<uint64_t>(secondary_hash) << 32)
-                                        | static_cast<uint64_t>(primary_hash);
+                                      | static_cast<uint64_t>(primary_hash);
     m_search_log[m_search_offset * 2 + 1] = static_cast<uint64_t>(m_data_offset);
-
-    // We need to synchronize here to ensure that all data is globally visible
-    // before the entry in the hash table becomes visible.
-    asm("sfence");
 
     // Insert into the hash table.
     m_hash_table[entry] = (static_cast<uint64_t>(m_data_offset) << 32)
@@ -194,15 +189,13 @@ hyperdisk::returncode
 hyperdisk :: shard :: del(uint32_t primary_hash,
                           const e::buffer& key)
 {
-    size_t entry;
-    size_t offset;
+    size_t table_entry;
+    uint64_t table_value;
+    hash_lookup(primary_hash, key, &table_entry, &table_value);
+    uint32_t table_hash = static_cast<uint32_t>(table_value);
+    uint32_t table_offset = static_cast<uint32_t>(table_value >> 32);
 
-    if (!find_bucket(primary_hash, key, &entry, &offset))
-    {
-        return NOTFOUND;
-    }
-
-    if (entry == HASH_TABLE_ENTRIES)
+    if (table_offset == 0 || table_offset >= HASH_OFFSET_INVALID)
     {
         return NOTFOUND;
     }
@@ -212,11 +205,11 @@ hyperdisk :: shard :: del(uint32_t primary_hash,
         return DATAFULL;
     }
 
-    assert(offset != 0 && offset != UINT32_MAX); // LCOV_EXCL_LINE
-    invalidate_search_log(offset, m_data_offset);
+    invalidate_search_log(table_offset, m_data_offset);
     m_data_offset += sizeof(uint64_t);
-    m_hash_table[entry] = (static_cast<uint64_t>(UINT32_MAX) << 32)
-                        | static_cast<uint64_t>(primary_hash);
+    m_hash_table[table_entry] = (static_cast<uint64_t>(table_offset) << 32)
+                              | (static_cast<uint64_t>(HASH_OFFSET_INVALID) << 32)
+                              | static_cast<uint64_t>(primary_hash);
     return SUCCESS;
 }
 
@@ -327,40 +320,42 @@ hyperdisk :: shard :: copy_to(const coordinate& c, e::intrusive_ptr<shard> s)
         }
 
         // Figure out how big the entry is.
-        size_t entry_start = static_cast<uint32_t>(m_search_log[ent * 2 + 1]);
+        uint32_t entry_start = static_cast<uint32_t>(m_search_log[ent * 2 + 1]);
 
         if (entry_start == 0)
         {
             break;
         }
 
-        size_t entry_size = m_data_offset - entry_start;
+        uint32_t entry_end = 0;
 
-        if (ent < SEARCH_INDEX_ENTRIES - 1)
+        if (ent < SEARCH_INDEX_ENTRIES - 1 && m_search_log[(ent + 1) * 2 + 1])
         {
-            size_t next_entry_start = static_cast<uint32_t>(m_search_log[ent * 2 + 3]);
-            entry_size = next_entry_start > 0 ? next_entry_start - entry_start: entry_size;
+            entry_end = static_cast<uint32_t>(m_search_log[(ent + 1) * 2 + 1]);
+        }
+        else
+        {
+            entry_end = m_data_offset;
         }
 
-        assert(entry_start <= FILE_SIZE); // LCOV_EXCL_LINE
-        assert(entry_start + entry_size <= FILE_SIZE); // LCOV_EXCL_LINE
-        assert(s->m_data_offset <= FILE_SIZE); // LCOV_EXCL_LINE
-        assert(s->m_data_offset + entry_size <= FILE_SIZE); // LCOV_EXCL_LINE
+        assert(entry_start <= entry_end); // LCOV_EXCL_LINE
+        assert(entry_end <= FILE_SIZE); // LCOV_EXCL_LINE
+        assert(s->m_data_offset + (entry_end - entry_start) <= FILE_SIZE); // LCOV_EXCL_LINE
 
         // Copy the entry's data
-        memmove(s->m_data + s->m_data_offset, m_data + entry_start, entry_size);
+        memmove(s->m_data + s->m_data_offset, m_data + entry_start, (entry_end - entry_start));
         // Insert into the search log.
         s->m_search_log[s->m_search_offset * 2] = (static_cast<uint64_t>(secondary_hash) << 32)
-                                                  | static_cast<uint64_t>(primary_hash);
+                                                | static_cast<uint64_t>(primary_hash);
         s->m_search_log[s->m_search_offset * 2 + 1] = static_cast<uint64_t>(s->m_data_offset);
         // Insert into the hash table.
         size_t bucket;
-        find_bucket(primary_hash, &bucket);
-        m_hash_table[bucket] = (static_cast<uint64_t>(s->m_data_offset) << 32)
-                             | static_cast<uint64_t>(primary_hash);
+        s->hash_lookup(primary_hash, &bucket);
+        s->m_hash_table[bucket] = (static_cast<uint64_t>(s->m_data_offset) << 32)
+                                | static_cast<uint64_t>(primary_hash);
         // Update the position trackers.
         ++s->m_search_offset;
-        s->m_data_offset = (s->m_data_offset + entry_size + 7) & ~7; // Keep everything 8-byte aligned.
+        s->m_data_offset = (s->m_data_offset + (entry_end - entry_start) + 7) & ~7; // Keep everything 8-byte aligned.
     }
 }
 
@@ -453,13 +448,12 @@ hyperdisk :: shard :: data_value(uint32_t offset,
     }
 }
 
-bool
-hyperdisk :: shard :: find_bucket(uint32_t primary_hash,
-                                  const e::buffer& key,
-                                  size_t* entry,
-                                  size_t* offset)
+// This hash lookup preserves the property that once a location in the table is
+// assigned to a particular key, it remains assigned to that key forever.
+void
+hyperdisk :: shard :: hash_lookup(uint32_t primary_hash, const e::buffer& key,
+                                  size_t* entry, uint64_t* value)
 {
-    size_t dead = HASH_TABLE_ENTRIES;
     size_t start = HASH_INTO_TABLE(primary_hash);
 
     for (size_t off = 0; off < HASH_TABLE_ENTRIES; ++off)
@@ -467,13 +461,9 @@ hyperdisk :: shard :: find_bucket(uint32_t primary_hash,
         size_t bucket = HASH_INTO_TABLE(start + off);
         uint64_t this_entry = m_hash_table[bucket];
         uint32_t this_hash = static_cast<uint32_t>(this_entry);
-        uint32_t this_offset = static_cast<uint32_t>(this_entry >> 32);
+        uint32_t this_offset = static_cast<uint32_t>(this_entry >> 32) & (HASH_OFFSET_INVALID - 1);
 
-        if (this_hash == primary_hash && this_offset == UINT32_MAX)
-        {
-            dead = bucket;
-        }
-        else if (this_hash == primary_hash)
+        if (this_hash == primary_hash)
         {
             size_t key_size = data_key_size(this_offset);
 
@@ -481,38 +471,24 @@ hyperdisk :: shard :: find_bucket(uint32_t primary_hash,
                 memcmp(m_data + data_key_offset(this_offset), key.get(), key_size) == 0)
             {
                 *entry = bucket;
-                *offset = this_offset;
-                return true;
+                *value = this_entry;
+                return;
             }
         }
 
-        if (this_offset == 0)
+        if (static_cast<uint32_t>(this_entry >> 32) == 0)
         {
-            if (dead == HASH_TABLE_ENTRIES)
-            {
-                *entry = bucket;
-            }
-            else
-            {
-                *entry = dead;
-            }
-
-            return false;
-        }
-
-        if (this_offset == UINT32_MAX && dead == HASH_TABLE_ENTRIES)
-        {
-            dead = bucket;
+            *entry = bucket;
+            *value = this_entry;
+            return;
         }
     }
 
-    *entry = dead;
-    return false;
+    assert(false);
 }
 
 void
-hyperdisk :: shard :: find_bucket(uint32_t primary_hash,
-                                  size_t* entry)
+hyperdisk :: shard :: hash_lookup(uint32_t primary_hash, size_t* entry)
 {
     size_t start = HASH_INTO_TABLE(primary_hash);
 
@@ -521,12 +497,14 @@ hyperdisk :: shard :: find_bucket(uint32_t primary_hash,
         size_t bucket = HASH_INTO_TABLE(start + off);
         uint64_t this_entry = m_hash_table[bucket];
 
-        if (!this_entry)
+        if (static_cast<uint32_t>(this_entry >> 32) == 0)
         {
             *entry = bucket;
             return;
         }
     }
+
+    assert(false);
 }
 
 void

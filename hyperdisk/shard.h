@@ -150,23 +150,17 @@ class shard
     private:
         void inc() { __sync_add_and_fetch(&m_ref, 1); }
         void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
-        // Find the bucket for the given key.  If the key is already in the
-        // table, then bucket will be stored in entry (and hence, the hash and
-        // offset of that bucket will be from the older version of the key).  If
-        // the key is not in the table, then a dead (deleted) or empty (never
-        // used) bucket will be stored in entry.  If no bucket is available,
-        // HASH_TABLE_ENTRIES will be stored in entry.  If a non-dead bucket was
-        // found (as in, old/new keys match), true is returned; else, false is
-        // returned.
-        bool find_bucket(uint32_t primary_hash, const e::buffer& key, size_t* entry, size_t* offset);
-        // This find_bucket assumes that all collisions will be resolved to
-        // *NOT* be the same key.  This is useful when copying from another
-        // shard, as the other shard should only have one non-invalidated
-        // instance of the same key.  This will only work if there are no dead
-        // entries in the hash table.  It also assumes that there will always be
-        // space.  As a result of these additional assumptions it does much
-        // less.
-        void find_bucket(uint32_t primary_hash, size_t* entry);
+        // Find the hash entry which matches the hash/key pair.  The index in
+        // the hash table (suitable for indexing m_hash_table) is stored in the
+        // location pointed to by 'entry'.  The value read from the entry at
+        // some point in the lookup process is stored in the location pointed to
+        // by 'value'.  This will always find a free location in the table as
+        // the shard_constants are set to guarantee it.
+        void hash_lookup(uint32_t primary_hash, const e::buffer& key,
+                         size_t* entry, uint64_t* value);
+        // This variant assumes that all previously inserted entries with the
+        // same primary hash are distinct.
+        void hash_lookup(uint32_t primary_hash, size_t* entry);
         // This will invalidate any entry in the search log which references
         // the specified offset.
         void invalidate_search_log(uint32_t to_invalidate, uint32_t invalidate_with);
