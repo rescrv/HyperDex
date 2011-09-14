@@ -37,9 +37,9 @@
 #include <po6/net/location.h>
 
 // HyperspaceHashing
-#include <hyperspacehashing/equality_wildcard.h>
 #include <hyperspacehashing/mask.h>
 #include <hyperspacehashing/prefix.h>
+#include <hyperspacehashing/search.h>
 
 // HyperDex
 #include <hyperdex/ids.h>
@@ -76,9 +76,9 @@ class configuration
         bool point_leader_entity(const spaceid& space, const e::buffer& key,
                                  hyperdex::entityid* ent, hyperdex::instance* inst) const;
         std::map<entityid, instance> search_entities(const spaceid& space,
-                                                     const hyperspacehashing::equality_wildcard& wc) const;
+                                                     const hyperspacehashing::search& s) const;
         std::map<entityid, instance> search_entities(const subspaceid& subspace,
-                                                     const hyperspacehashing::equality_wildcard& wc) const;
+                                                     const hyperspacehashing::search& s) const;
 
     // Everything public below this line is deprecated.
     // XXX Remove stuff below this line in favor of easier APIs.
@@ -126,7 +126,7 @@ class configuration
     private:
         std::map<entityid, instance> _search_entities(std::map<entityid, instance>::const_iterator start,
                                                       std::map<entityid, instance>::const_iterator end,
-                                                      const hyperspacehashing::equality_wildcard& terms) const;
+                                                      const hyperspacehashing::search& s) const;
 
     private:
         std::map<std::string, instance> m_hosts;

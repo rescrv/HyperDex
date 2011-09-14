@@ -32,8 +32,8 @@
 #include <iostream>
 
 // HyperspaceHashing
-#include <hyperspacehashing/equality_wildcard.h>
 #include <hyperspacehashing/hashes.h>
+#include <hyperspacehashing/search.h>
 
 namespace hyperspacehashing
 {
@@ -68,6 +68,16 @@ class coordinate
         uint32_t secondary_hash;
 };
 
+class search_coordinate
+{
+    public:
+        search_coordinate();
+        search_coordinate(const search_coordinate&);
+
+    public:
+        bool matches(const coordinate& other) const;
+};
+
 class hasher
 {
     public:
@@ -78,7 +88,7 @@ class hasher
         coordinate hash(const e::buffer& key);
         coordinate hash(const e::buffer& key, const std::vector<e::buffer>& value);
         coordinate hash(const std::vector<e::buffer>& value);
-        coordinate hash(const equality_wildcard& ewc) const;
+        search_coordinate hash(const search& s) const;
 
     private:
         const std::vector<hash_t> m_funcs;

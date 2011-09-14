@@ -35,6 +35,9 @@
 #include <e/buffer.h>
 #include <e/tuple_compare.h>
 
+// HyperspaceHashing
+#include <hyperspacehashing/prefix.h>
+
 namespace hyperdex
 {
 
@@ -148,6 +151,10 @@ class regionid
         }
 
     public:
+        // XXX Turn this into a member of the object
+        hyperspacehashing::prefix::coordinate coord() const;
+
+    public:
         uint64_t mask;
         uint32_t space;
         uint16_t subspace;
@@ -207,6 +214,10 @@ class entityid
             newprefix <<= 8;
             return (((space << 16) | subspace) | mask) + (newprefix + number);
         }
+
+    public:
+        // XXX Turn this into a member of the object
+        hyperspacehashing::prefix::coordinate coord() const;
 
     public:
         uint64_t mask;

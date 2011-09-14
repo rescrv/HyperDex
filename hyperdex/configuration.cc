@@ -449,24 +449,24 @@ hyperdex :: configuration :: point_leader_entity(const spaceid& space,
 
 std::map<hyperdex::entityid, hyperdex::instance>
 hyperdex :: configuration :: search_entities(const spaceid& space,
-                                             const hyperspacehashing::equality_wildcard& wc) const
+                                             const hyperspacehashing::search& s) const
 {
     std::map<entityid, instance>::const_iterator start;
     std::map<entityid, instance>::const_iterator end;
     start = m_entities.lower_bound(hyperdex::regionid(space.space, 1, 0, 0));
     end   = m_entities.upper_bound(hyperdex::regionid(space.space, UINT16_MAX, UINT8_MAX, UINT64_MAX));
-    return _search_entities(start, end, wc);
+    return _search_entities(start, end, s);
 }
 
 std::map<hyperdex::entityid, hyperdex::instance>
 hyperdex :: configuration :: search_entities(const subspaceid& subspace,
-                                             const hyperspacehashing::equality_wildcard& wc) const
+                                             const hyperspacehashing::search& s) const
 {
     std::map<entityid, instance>::const_iterator start;
     std::map<entityid, instance>::const_iterator end;
     start = m_entities.lower_bound(hyperdex::regionid(subspace, 0, 0));
     end   = m_entities.upper_bound(hyperdex::regionid(subspace, UINT8_MAX, UINT64_MAX));
-    return _search_entities(start, end, wc);
+    return _search_entities(start, end, s);
 }
 
 bool
@@ -613,14 +613,14 @@ hyperdex :: configuration :: hosts() const
 std::map<hyperdex::entityid, hyperdex::instance>
 hyperdex :: configuration :: _search_entities(std::map<entityid, instance>::const_iterator iter,
                                               std::map<entityid, instance>::const_iterator end,
-                                              const hyperspacehashing::equality_wildcard& wc) const
+                                              const hyperspacehashing::search& s) const
 {
     typedef std::map<uint16_t, std::map<hyperdex::entityid, hyperdex::instance> > candidates_map;
     candidates_map candidates;
 
     bool hashed = false;
     uint16_t hashed_subspace = 0;
-    hyperspacehashing::prefix::ewc_coordinate ewcc;
+    hyperspacehashing::prefix::search_coordinate sc;
 
     for (; iter != end; ++iter)
     {
@@ -630,12 +630,12 @@ hyperdex :: configuration :: _search_entities(std::map<entityid, instance>::cons
 
         if (!hashed || hashed_subspace != iter->first.subspace)
         {
-            ewcc = hashiter->second.hash(wc);
+            sc = hashiter->second.hash(s);
             hashed = true;
             hashed_subspace = iter->first.subspace;
         }
 
-        if (ewcc.matches(hyperspacehashing::prefix::coordinate(iter->first.prefix, iter->first.mask)))
+        if (sc.matches(iter->first.coord()))
         {
             candidates[iter->first.subspace].insert(*iter);
         }

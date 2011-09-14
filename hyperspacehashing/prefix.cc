@@ -62,36 +62,6 @@ hyperspacehashing :: prefix :: coordinate :: contains(const coordinate& other) c
 }
 
 
-hyperspacehashing :: prefix :: ewc_coordinate :: ewc_coordinate()
-    : mask(0)
-    , point(0)
-{
-}
-
-hyperspacehashing :: prefix :: ewc_coordinate :: ewc_coordinate(uint64_t m,
-                                                                uint64_t p)
-    : mask(m)
-    , point(p)
-{
-}
-
-hyperspacehashing :: prefix :: ewc_coordinate :: ewc_coordinate(const ewc_coordinate& other)
-    : mask(other.mask)
-    , point(other.point)
-{
-}
-
-hyperspacehashing :: prefix :: ewc_coordinate :: ~ewc_coordinate() throw ()
-{
-}
-
-bool
-hyperspacehashing :: prefix :: ewc_coordinate :: matches(const coordinate& other) const
-{
-    uint64_t intersection = lookup_msb_mask[other.prefix] & mask;
-    return (point & intersection) == (other.point & intersection);
-}
-
 hyperspacehashing :: prefix :: hasher :: hasher(const e::bitfield& dims,
                                                 const std::vector<hash_t> funcs)
     : m_dims(dims)
@@ -148,31 +118,4 @@ hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key, const std::v
     }
 
     return coordinate(64, upper_interlace(hashes));
-}
-
-hyperspacehashing::prefix::ewc_coordinate
-hyperspacehashing :: prefix :: hasher :: hash(const equality_wildcard& ewc) const
-{
-    assert(ewc.size() == m_funcs.size());
-    std::vector<uint64_t> hashes;
-    hashes.reserve(m_funcs.size());
-    std::vector<uint64_t> masks;
-    masks.reserve(m_funcs.size());
-
-    if (m_dims.get(0) && ewc.isset(0))
-    {
-        hashes.push_back(m_funcs[0](ewc.get(0)));
-        masks.push_back(UINT64_MAX);
-    }
-
-    for (size_t i = 1; i < m_funcs.size(); ++i)
-    {
-        if (m_dims.get(i) && ewc.isset(i))
-        {
-            hashes.push_back(m_funcs[i](ewc.get(i)));
-            masks.push_back(UINT64_MAX);
-        }
-    }
-
-    return ewc_coordinate(upper_interlace(masks), upper_interlace(hashes));
 }

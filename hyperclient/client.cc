@@ -39,7 +39,7 @@
 #include <e/timer.h>
 
 // HyperspaceHashing
-#include <hyperspacehashing/equality_wildcard.h>
+#include <hyperspacehashing/search.h>
 
 // HyperDex
 #include <hyperdex/configuration.h>
@@ -511,7 +511,7 @@ hyperclient :: client :: search(const std::string& space,
     assert(dimension_names.size() > 0);
 
     // Create a search object from the search terms.
-    hyperspacehashing::equality_wildcard terms(dimension_names.size());
+    hyperspacehashing::search s(dimension_names.size());
 
     for (std::map<std::string, e::buffer>::const_iterator param = params.begin();
             param != params.end(); ++param)
@@ -525,7 +525,7 @@ hyperclient :: client :: search(const std::string& space,
             return;
         }
 
-        terms.set((dim - dimension_names.begin()), param->second);
+        s.equality_set((dim - dimension_names.begin()), param->second);
     }
 
     // Get the hosts that match our search terms.
@@ -533,17 +533,17 @@ hyperclient :: client :: search(const std::string& space,
 
     if (subspace_hint == UINT16_MAX)
     {
-        search_entities = p->config.search_entities(si, terms);
+        search_entities = p->config.search_entities(si, s);
     }
     else
     {
-        search_entities = p->config.search_entities(hyperdex::subspaceid(si, subspace_hint), terms);
+        search_entities = p->config.search_entities(hyperdex::subspaceid(si, subspace_hint), s);
     }
 
     uint64_t searchid = p->searchid;
     ++p->searchid;
     e::buffer req;
-    req.pack() << searchid << terms;
+    req.pack() << searchid << s;
 
     for (std::map<hyperdex::entityid, hyperdex::instance>::const_iterator ent_inst = search_entities.begin();
             ent_inst != search_entities.end(); ++ ent_inst)

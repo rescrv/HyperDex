@@ -26,6 +26,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef hyperspacehashing_prefix_h_
+#define hyperspacehashing_prefix_h_
 
 // STL
 #include <iostream>
@@ -34,8 +35,8 @@
 #include <e/bitfield.h>
 
 // HyperspaceHashing
-#include <hyperspacehashing/equality_wildcard.h>
 #include <hyperspacehashing/hashes.h>
+#include <hyperspacehashing/search.h>
 
 namespace hyperspacehashing
 {
@@ -58,20 +59,14 @@ class coordinate
         uint64_t point;
 };
 
-class ewc_coordinate
+class search_coordinate
 {
     public:
-        ewc_coordinate();
-        ewc_coordinate(uint64_t mask, uint64_t point);
-        ewc_coordinate(const ewc_coordinate& other);
-        ~ewc_coordinate() throw ();
+        search_coordinate();
+        search_coordinate(const search_coordinate&);
 
     public:
         bool matches(const coordinate& other) const;
-
-    public:
-        uint64_t mask;
-        uint64_t point;
 };
 
 class hasher
@@ -84,7 +79,7 @@ class hasher
     public:
         coordinate hash(const e::buffer& key) const;
         coordinate hash(const e::buffer& key, const std::vector<e::buffer>& value) const;
-        ewc_coordinate hash(const equality_wildcard& ewc) const;
+        search_coordinate hash(const search& s) const;
 
     private:
         const e::bitfield m_dims;

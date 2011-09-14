@@ -25,55 +25,43 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// HyperspaceHashing
-#include "hyperspacehashing/equality_wildcard.h"
+#ifndef hyperspacehashing_search_h_
+#define hyperspacehashing_search_h_
 
-hyperspacehashing :: equality_wildcard :: equality_wildcard(size_t n)
-    : m_mask(n)
-    , m_value(n)
+// STL
+#include <vector>
+
+// e
+#include <e/bitfield.h>
+#include <e/buffer.h>
+
+namespace hyperspacehashing
 {
-}
 
-hyperspacehashing :: equality_wildcard :: ~equality_wildcard() throw ()
+class search
 {
-}
+    public:
+        search(size_t n);
+        ~search() throw ();
 
-void
-hyperspacehashing :: equality_wildcard :: set(size_t idx, const e::buffer& val)
-{
-    assert(idx < m_value.size());
-    assert(idx < m_mask.bits());
+    public:
+        size_t size() const;
 
-    m_mask.set(idx);
-    m_value[idx] = val;
-}
+    public:
+        void equality_set(size_t idx, const e::buffer& val);
+        void range_set(size_t idx, uint64_t start, uint64_t end);
 
-void
-hyperspacehashing :: equality_wildcard :: unset(size_t idx)
-{
-    assert(idx < m_value.size());
-    assert(idx < m_mask.bits());
-
-    m_mask.unset(idx);
-}
-
-void
-hyperspacehashing :: equality_wildcard :: clear()
-{
-    m_value = std::vector<e::buffer>(m_value.size());
-    m_mask = e::bitfield(m_value.size());
-}
+    private:
+        friend e::packer& operator << (e::packer& lhs, const search& rhs);
+        friend e::unpacker& operator >> (e::unpacker& lhs, search& rhs);
+};
 
 e::packer&
-hyperspacehashing :: operator << (e::packer& lhs, const equality_wildcard& rhs)
-{
-    lhs << rhs.m_mask << rhs.m_value;
-    return lhs;
-}
+operator << (e::packer& lhs, const search& rhs);
 
 e::unpacker&
-hyperspacehashing :: operator >> (e::unpacker& lhs, equality_wildcard& rhs)
-{
-    lhs >> rhs.m_mask >> rhs.m_value;
-    return lhs;
-}
+operator >> (e::unpacker& lhs, search& rhs);
+
+} // namespace hyperspacehashing
+
+#endif // hyperspacehashing_search_h_
