@@ -80,7 +80,7 @@ TEST(ShardTest, Simple)
     ASSERT_EQ(hyperdisk::SUCCESS, d->del(0x6e9accf9UL, e::buffer("key", 3)));
     ASSERT_EQ(hyperdisk::NOTFOUND, d->get(0x6e9accf9UL, e::buffer("key", 3), &value, &version));
 
-    ASSERT_TRUE(d->fsck(std::cout, std::cerr));
+    ASSERT_TRUE(d->fsck());
 }
 
 TEST(ShardTest, MultiPut)
