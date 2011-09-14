@@ -1,3 +1,5 @@
+SUBDIRS = . test
+
 AM_CXXFLAGS = $(COVERAGE_CXXFLAGS)
 
 lib_LTLIBRARIES = libhyperspacehashing.la
