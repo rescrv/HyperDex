@@ -25,79 +25,63 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperspacehashing_prefix_h_
-#define hyperspacehashing_prefix_h_
-
-// STL
-#include <iostream>
-
-// e
-#include <e/bitfield.h>
-
 // HyperspaceHashing
-#include <hyperspacehashing/hashes.h>
 #include <hyperspacehashing/search.h>
 
-namespace hyperspacehashing
+hyperspacehashing :: search :: search(size_t n)
+    : m_equality_bits(n)
+    , m_equality(n)
 {
-namespace prefix
+}
+
+hyperspacehashing :: search :: ~search() throw ()
 {
+}
 
-class coordinate
+size_t
+hyperspacehashing :: search :: size() const
 {
-    public:
-        coordinate();
-        coordinate(uint8_t prefix, uint64_t point);
-        coordinate(const coordinate& other);
-        ~coordinate() throw ();
+    assert(m_equality_bits.bits() == m_equality.size());
+    return m_equality.size();
+}
 
-    public:
-        bool contains(const coordinate& other) const;
-
-    public:
-        uint8_t prefix;
-        uint64_t point;
-};
-
-class search_coordinate
+bool
+hyperspacehashing :: search :: is_equality(size_t idx) const
 {
-    public:
-        search_coordinate();
-        search_coordinate(const search_coordinate& other);
-        ~search_coordinate() throw ();
+    assert(idx < m_equality_bits.bits());
+    assert(m_equality_bits.bits() == m_equality.size());
+    return m_equality_bits.get(idx);
+}
 
-    public:
-        bool matches(const coordinate& other) const;
-
-    private:
-        friend class hasher;
-
-    private:
-        search_coordinate(uint64_t mask, uint64_t point);
-
-    private:
-        uint64_t m_mask;
-        uint64_t m_point;
-};
-
-class hasher
+const e::buffer&
+hyperspacehashing :: search :: equality_value(size_t idx) const
 {
-    public:
-        hasher(const e::bitfield& dims,
-               const std::vector<hash_t> funcs);
-        ~hasher() throw ();
+    assert(idx < m_equality_bits.bits());
+    assert(m_equality_bits.bits() == m_equality.size());
+    assert(m_equality_bits.get(idx));
+    return m_equality[idx];
+}
 
-    public:
-        coordinate hash(const e::buffer& key) const;
-        coordinate hash(const e::buffer& key, const std::vector<e::buffer>& value) const;
-        search_coordinate hash(const search& s) const;
+void
+hyperspacehashing :: search :: equality_set(size_t idx, const e::buffer& val)
+{
+    assert(idx < m_equality_bits.bits());
+    assert(m_equality_bits.bits() == m_equality.size());
+    assert(!m_equality_bits.get(idx));
+    m_equality_bits.set(idx);
+    m_equality[idx] = val;
+}
 
-    private:
-        const e::bitfield m_dims;
-        const std::vector<hash_t> m_funcs;
-};
+e::packer&
+hyperspacehashing :: operator << (e::packer& lhs, const search& rhs)
+{
+    lhs << rhs.m_equality_bits << rhs.m_equality;
+    return lhs;
+}
 
-} // namespace prefix
-} // namespace hyperspacehashing
-
-#endif // hyperspacehashing_prefix_h
+e::unpacker&
+hyperspacehashing :: operator >> (e::unpacker& lhs, search& rhs)
+{
+    lhs >> rhs.m_equality_bits >> rhs.m_equality;
+    return lhs;
+}

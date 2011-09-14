@@ -217,7 +217,8 @@ class entityid
 
     public:
         // XXX Turn this into a member of the object
-        hyperspacehashing::prefix::coordinate coord() const;
+        hyperspacehashing::prefix::coordinate coord() const
+        { return hyperspacehashing::prefix::coordinate(prefix, mask); }
 
     public:
         uint64_t mask;

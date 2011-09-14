@@ -36,7 +36,7 @@
 #include <e/lockfree_hash_map.h>
 
 // HyperspaceHashing
-#include <hyperspacehashing/equality_wildcard.h>
+#include <hyperspacehashing/search.h>
 
 // HyperDex
 #include <hyperdex/ids.h>
@@ -69,7 +69,7 @@ class searches
     public:
         void start(const hyperdex::entityid& client, uint64_t searchid,
                    const hyperdex::regionid& region, uint64_t nonce,
-                   const hyperspacehashing::equality_wildcard& wc);
+                   const hyperspacehashing::search& wc);
         void next(const hyperdex::entityid& client, uint64_t searchid, uint64_t nonce);
         void stop(const hyperdex::entityid& client, uint64_t searchid);
 
@@ -97,14 +97,14 @@ class searches::search_state
 {
     public:
         search_state(const hyperdex::regionid& region,
-                     const hyperspacehashing::equality_wildcard& wc,
+                     const hyperspacehashing::mask::search_coordinate& search_coord,
                      e::intrusive_ptr<hyperdisk::snapshot> snap);
         ~search_state() throw ();
 
     public:
         po6::threads::mutex lock;
         const hyperdex::regionid region;
-        const hyperspacehashing::equality_wildcard terms;
+        const hyperspacehashing::mask::search_coordinate search_coord;
         e::intrusive_ptr<hyperdisk::snapshot> snap;
 
     private:

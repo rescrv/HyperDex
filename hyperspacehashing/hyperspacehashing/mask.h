@@ -72,10 +72,22 @@ class search_coordinate
 {
     public:
         search_coordinate();
-        search_coordinate(const search_coordinate&);
+        search_coordinate(const search_coordinate& other);
+        ~search_coordinate() throw ();
 
     public:
         bool matches(const coordinate& other) const;
+        bool matches(const e::buffer& key, const std::vector<e::buffer>& value) const;
+
+    private:
+        friend class hasher;
+
+    private:
+        search_coordinate(const search& terms, const coordinate& equality);
+
+    private:
+        search m_terms;
+        coordinate m_equality;
 };
 
 class hasher
@@ -85,9 +97,9 @@ class hasher
         ~hasher() throw ();
 
     public:
-        coordinate hash(const e::buffer& key);
-        coordinate hash(const e::buffer& key, const std::vector<e::buffer>& value);
-        coordinate hash(const std::vector<e::buffer>& value);
+        coordinate hash(const e::buffer& key) const;
+        coordinate hash(const e::buffer& key, const std::vector<e::buffer>& value) const;
+        coordinate hash(const std::vector<e::buffer>& value) const;
         search_coordinate hash(const search& s) const;
 
     private:

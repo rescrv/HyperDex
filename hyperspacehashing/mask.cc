@@ -82,6 +82,55 @@ hyperspacehashing :: mask :: coordinate :: secondary_intersects(const coordinate
     return (secondary_hash & mask) == (other.secondary_hash & mask);
 }
 
+hyperspacehashing :: mask :: search_coordinate :: search_coordinate()
+    : m_terms(0)
+    , m_equality()
+{
+}
+
+hyperspacehashing :: mask :: search_coordinate :: search_coordinate(const search_coordinate& other)
+    : m_terms(other.m_terms)
+    , m_equality(other.m_equality)
+{
+}
+
+hyperspacehashing :: mask :: search_coordinate :: ~search_coordinate() throw ()
+{
+}
+
+bool
+hyperspacehashing :: mask :: search_coordinate :: matches(const coordinate& other) const
+{
+    return m_equality.intersects(other);
+}
+
+bool
+hyperspacehashing :: mask :: search_coordinate :: matches(const e::buffer& key,
+                                                          const std::vector<e::buffer>& value) const
+{
+    if (m_terms.is_equality(0) && m_terms.equality_value(0) != key)
+    {
+        return false;
+    }
+
+    for (size_t i = 1; i < m_terms.size(); ++i)
+    {
+        if (m_terms.is_equality(i) && m_terms.equality_value(i) != value[i - 1])
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+hyperspacehashing :: mask :: search_coordinate :: search_coordinate(const search& terms,
+                                                                    const coordinate& equality)
+    : m_terms(terms)
+    , m_equality(equality)
+{
+}
+
 hyperspacehashing :: mask :: hasher :: hasher(const std::vector<hash_t> funcs)
     : m_funcs(funcs)
 {
@@ -93,7 +142,7 @@ hyperspacehashing :: mask :: hasher :: ~hasher() throw ()
 }
 
 hyperspacehashing::mask::coordinate
-hyperspacehashing :: mask :: hasher :: hash(const e::buffer& key)
+hyperspacehashing :: mask :: hasher :: hash(const e::buffer& key) const
 {
     assert(m_funcs.size() >= 1);
     uint32_t key_hash = static_cast<uint32_t>(m_funcs[0](key));
@@ -102,7 +151,7 @@ hyperspacehashing :: mask :: hasher :: hash(const e::buffer& key)
 
 hyperspacehashing::mask::coordinate
 hyperspacehashing :: mask :: hasher :: hash(const e::buffer& key,
-                                            const std::vector<e::buffer>& value)
+                                            const std::vector<e::buffer>& value) const
 {
     coordinate primary = hash(key);
     coordinate secondary = hash(value);
@@ -111,7 +160,7 @@ hyperspacehashing :: mask :: hasher :: hash(const e::buffer& key,
 }
 
 hyperspacehashing::mask::coordinate
-hyperspacehashing :: mask :: hasher :: hash(const std::vector<e::buffer>& value)
+hyperspacehashing :: mask :: hasher :: hash(const std::vector<e::buffer>& value) const
 {
     assert(value.size() + 1 == m_funcs.size());
     std::vector<uint64_t> value_hashes(value.size());
@@ -123,6 +172,43 @@ hyperspacehashing :: mask :: hasher :: hash(const std::vector<e::buffer>& value)
 
     uint32_t value_hash = static_cast<uint32_t>(lower_interlace(value_hashes));
     return coordinate(0, 0, UINT32_MAX, value_hash);
+}
+
+hyperspacehashing::mask::search_coordinate
+hyperspacehashing :: mask :: hasher :: hash(const search& s) const
+{
+    assert(s.size() == m_funcs.size());
+
+    uint32_t primary_mask = 0;
+    uint32_t primary_hash = 0;
+
+    if (s.is_equality(0))
+    {
+        primary_mask = UINT32_MAX;
+        primary_hash = static_cast<uint32_t>(m_funcs[0](s.equality_value(0)));
+    }
+
+    std::vector<uint64_t> value_masks(s.size());
+    std::vector<uint64_t> value_hashes(s.size());
+
+    for (size_t i = 1; i < m_funcs.size(); ++i)
+    {
+        if (s.is_equality(i))
+        {
+            value_masks[i - 1] = UINT64_MAX;
+            value_hashes[i - 1] = m_funcs[i](s.equality_value(i));
+        }
+        else
+        {
+            value_masks[i - 1] = 0;
+            value_hashes[i - 1] = 0;
+        }
+    }
+
+    uint32_t secondary_mask = static_cast<uint32_t>(lower_interlace(value_masks));
+    uint32_t secondary_hash = static_cast<uint32_t>(lower_interlace(value_hashes));
+    coordinate coord(primary_mask, primary_hash, secondary_mask, secondary_hash);
+    return search_coordinate(s, coord);
 }
 
 std::ostream&

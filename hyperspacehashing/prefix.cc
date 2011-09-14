@@ -61,6 +61,34 @@ hyperspacehashing :: prefix :: coordinate :: contains(const coordinate& other) c
     return prefix <= other.prefix && ((mask & point) == (mask & other.point));
 }
 
+hyperspacehashing :: prefix :: search_coordinate :: search_coordinate()
+    : m_mask(0)
+    , m_point(0)
+{
+}
+
+hyperspacehashing :: prefix :: search_coordinate :: search_coordinate(const search_coordinate& other)
+    : m_mask(other.m_mask)
+    , m_point(other.m_point)
+{
+}
+
+hyperspacehashing :: prefix :: search_coordinate :: ~search_coordinate() throw ()
+{
+}
+
+bool
+hyperspacehashing :: prefix :: search_coordinate :: matches(const coordinate& other) const
+{
+    uint64_t intersection = lookup_msb_mask[other.prefix] & m_mask;
+    return (m_point & intersection) == (other.point & intersection);
+}
+
+hyperspacehashing :: prefix :: search_coordinate :: search_coordinate(uint64_t mask, uint64_t point)
+    : m_mask(mask)
+    , m_point(point)
+{
+}
 
 hyperspacehashing :: prefix :: hasher :: hasher(const e::bitfield& dims,
                                                 const std::vector<hash_t> funcs)
@@ -118,4 +146,25 @@ hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key, const std::v
     }
 
     return coordinate(64, upper_interlace(hashes));
+}
+
+hyperspacehashing::prefix::search_coordinate
+hyperspacehashing :: prefix :: hasher :: hash(const search& s) const
+{
+    assert(s.size() == m_funcs.size());
+    std::vector<uint64_t> hashes;
+    hashes.reserve(m_funcs.size());
+    std::vector<uint64_t> masks;
+    masks.reserve(m_funcs.size());
+
+    for (size_t i = 0; i < m_funcs.size(); ++i)
+    {
+        if (m_dims.get(i) && s.is_equality(i))
+        {
+            hashes.push_back(m_funcs[i](s.equality_value(i)));
+            masks.push_back(UINT64_MAX);
+        }
+    }
+
+    return search_coordinate(upper_interlace(masks), upper_interlace(hashes));
 }

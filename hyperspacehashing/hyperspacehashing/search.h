@@ -46,7 +46,13 @@ class search
 
     public:
         size_t size() const;
+        bool is_equality(size_t idx) const;
+        const e::buffer& equality_value(size_t idx) const;
 
+    // It is an error to call equality_set or range_set on an index which has
+    // already been provided as an index to equality_set or range_set.  It will
+    // fail an assertion.  This is to prevent misconceptions about the way in
+    // which these two interact.
     public:
         void equality_set(size_t idx, const e::buffer& val);
         void range_set(size_t idx, uint64_t start, uint64_t end);
@@ -54,6 +60,10 @@ class search
     private:
         friend e::packer& operator << (e::packer& lhs, const search& rhs);
         friend e::unpacker& operator >> (e::unpacker& lhs, search& rhs);
+
+    private:
+        e::bitfield m_equality_bits;
+        std::vector<e::buffer> m_equality;
 };
 
 e::packer&
