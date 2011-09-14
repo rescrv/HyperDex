@@ -190,6 +190,8 @@ hyperspacehashing/mask.lo
 hyperspacehashing/mask.o
 hyperspacehashing/prefix.lo
 hyperspacehashing/prefix.o
+hyperspacehashing/search.lo
+hyperspacehashing/search.o
 install-sh
 .libs/
 libtool
