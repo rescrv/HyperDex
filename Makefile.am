@@ -27,7 +27,7 @@ count_test_LDADD = hyperclient/libhyperclient.la
 count_test_LDFLAGS = -lrt
 
 repl_test_SOURCES = repl-test.cc
-repl_test_CPPFLAGS = -I${abs_top_srcdir}/hyperclient/
+repl_test_CPPFLAGS = -I${abs_top_srcdir}/hyperclient/ -I${abs_top_srcdir}/hyperspacehashing/
 repl_test_LDADD = hyperclient/libhyperclient.la -lrt
 
 coverage.dat: check
