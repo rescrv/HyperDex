@@ -159,6 +159,24 @@ hyperdisk :: shard :: get(uint32_t primary_hash,
 }
 
 hyperdisk::returncode
+hyperdisk :: shard :: get(uint32_t primary_hash,
+                          const e::buffer& key)
+{
+    // Find the bucket.
+    size_t table_entry;
+    uint64_t table_value;
+    hash_lookup(primary_hash, key, &table_entry, &table_value);
+    uint32_t table_offset = static_cast<uint32_t>(table_value >> 32);
+
+    if (table_offset == 0 || table_offset >= HASH_OFFSET_INVALID)
+    {
+        return NOTFOUND;
+    }
+
+    return SUCCESS;
+}
+
+hyperdisk::returncode
 hyperdisk :: shard :: put(uint32_t primary_hash,
                           uint32_t secondary_hash,
                           const e::buffer& key,

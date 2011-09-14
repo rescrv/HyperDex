@@ -107,6 +107,7 @@ class shard
         // May return SUCCESS or NOTFOUND.
         returncode get(uint32_t primary_hash, const e::buffer& key,
                        std::vector<e::buffer>* value, uint64_t* version);
+        returncode get(uint32_t primary_hash, const e::buffer& key);
         // May return SUCCESS, DATAFULL, HASHFULL, or SEARCHFULL.
         returncode put(uint32_t primary_hash, uint32_t secondary_hash,
                        const e::buffer& key,
