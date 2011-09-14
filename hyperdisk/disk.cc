@@ -279,6 +279,8 @@ hyperdisk :: disk :: flush()
                 case SYNCFAILED:
                 case DROPFAILED:
                 case MISSINGDISK:
+                case SPLITFAILED:
+                case FLUSHNONE:
                 default:
                     assert(!"Programming error.");
             }
@@ -312,6 +314,8 @@ hyperdisk :: disk :: flush()
                     case WRONGARITY:
                     case SYNCFAILED:
                     case DROPFAILED:
+                    case SPLITFAILED:
+                    case FLUSHNONE:
                     default:
                         assert(!"Programming error.");
                 }

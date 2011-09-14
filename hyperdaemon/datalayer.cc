@@ -360,6 +360,9 @@ hyperdaemon :: datalayer :: flush_loop()
                 case hyperdisk::DROPFAILED:
                     PLOG(INFO) << "flush returned DROPFAILED";
                     break;
+                case hyperdisk::SPLITFAILED:
+                    PLOG(INFO) << "flush returned SPLITFAILED";
+                    break;
                 default:
                     assert(!"Programming error.");
             }

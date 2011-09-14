@@ -713,6 +713,8 @@ hyperdaemon :: replication_manager :: region_transfer(const entityid& from,
                     case hyperdisk::SEARCHFULL:
                     case hyperdisk::SYNCFAILED:
                     case hyperdisk::DROPFAILED:
+                    case hyperdisk::SPLITFAILED:
+                    case hyperdisk::FLUSHNONE:
                     default:
                         LOG(ERROR) << "Transfer " << xfer_id << " caused unexpected error code.";
                         break;
@@ -733,6 +735,8 @@ hyperdaemon :: replication_manager :: region_transfer(const entityid& from,
                     case hyperdisk::SEARCHFULL:
                     case hyperdisk::SYNCFAILED:
                     case hyperdisk::DROPFAILED:
+                    case hyperdisk::SPLITFAILED:
+                    case hyperdisk::FLUSHNONE:
                     default:
                         LOG(ERROR) << "Transfer " << xfer_id << " caused unexpected error code.";
                         break;
@@ -1163,6 +1167,8 @@ hyperdaemon :: replication_manager :: from_disk(const regionid& r,
         case hyperdisk::SEARCHFULL:
         case hyperdisk::SYNCFAILED:
         case hyperdisk::DROPFAILED:
+        case hyperdisk::SPLITFAILED:
+        case hyperdisk::FLUSHNONE:
         default:
             LOG(WARNING) << "Data layer returned unexpected result when reading old value.";
             return false;
@@ -1227,6 +1233,14 @@ hyperdaemon :: replication_manager :: put_to_disk(const regionid& pending_in,
                 LOG(ERROR) << "DROPFAILED returned when committing to disk.";
                 success = false;
                 break;
+            case hyperdisk::SPLITFAILED:
+                LOG(ERROR) << "SPLITFAILED returned when committing to disk.";
+                success = false;
+                break;
+            case hyperdisk::FLUSHNONE:
+                LOG(ERROR) << "FLUSHNONE returned when committing to disk.";
+                success = false;
+                break;
             default:
                 LOG(ERROR) << "unknown error when committing to disk.";
                 success = false;
@@ -1266,6 +1280,14 @@ hyperdaemon :: replication_manager :: put_to_disk(const regionid& pending_in,
                 break;
             case hyperdisk::DROPFAILED:
                 LOG(ERROR) << "DROPFAILED returned when committing to disk.";
+                success = false;
+                break;
+            case hyperdisk::SPLITFAILED:
+                LOG(ERROR) << "SPLITFAILED returned when committing to disk.";
+                success = false;
+                break;
+            case hyperdisk::FLUSHNONE:
+                LOG(ERROR) << "FLUSHNONE returned when committing to disk.";
                 success = false;
                 break;
             default:
