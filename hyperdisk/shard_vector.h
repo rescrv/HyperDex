@@ -55,6 +55,8 @@ class shard_vector
     public:
         const hyperspacehashing::mask::coordinate& get_coordinate(size_t i);
         shard* get_shard(size_t i);
+        uint32_t get_offset(size_t i);
+        void set_offset(size_t i, uint32_t offset);
         e::intrusive_ptr<shard_vector> replace(size_t shard_num, e::intrusive_ptr<shard> s);
         e::intrusive_ptr<shard_vector> replace(size_t shard_num,
                                                const hyperspacehashing::mask::coordinate& c1, e::intrusive_ptr<shard> s1,
@@ -76,6 +78,7 @@ class shard_vector
     private:
         size_t m_ref;
         std::vector<std::pair<hyperspacehashing::mask::coordinate, e::intrusive_ptr<shard> > > m_shards;
+        std::vector<uint32_t> m_offsets;
 };
 
 } // namespace hyperdisk

@@ -139,6 +139,7 @@ class shard
     private:
         friend class e::intrusive_ptr<shard>;
         friend class shard_snapshot;
+        friend class shard_vector;
 
     private:
         shard(po6::io::fd* fd);

@@ -33,25 +33,47 @@ using hyperspacehashing::mask::coordinate;
 hyperdisk :: shard_vector :: shard_vector(const coordinate& coord, e::intrusive_ptr<shard> s)
     : m_ref(0)
     , m_shards(1, std::make_pair(coord, s))
+    , m_offsets(1, 0)
 {
 }
 
 size_t
 hyperdisk :: shard_vector :: size() const
 {
+    assert(m_shards.size() == m_offsets.size());
     return m_shards.size();
 }
 
 const coordinate&
 hyperdisk :: shard_vector :: get_coordinate(size_t i)
 {
+    assert(i < m_shards.size());
+    assert(m_shards.size() == m_offsets.size());
     return m_shards[i].first;
 }
 
 hyperdisk::shard*
 hyperdisk :: shard_vector :: get_shard(size_t i)
 {
+    assert(i < m_shards.size());
+    assert(m_shards.size() == m_offsets.size());
     return m_shards[i].second.get();
+}
+
+uint32_t
+hyperdisk :: shard_vector :: get_offset(size_t i)
+{
+    assert(i < m_offsets.size());
+    assert(m_shards.size() == m_offsets.size());
+    return m_offsets[i];
+}
+
+void
+hyperdisk :: shard_vector :: set_offset(size_t i, uint32_t offset)
+{
+    assert(i < m_offsets.size());
+    assert(m_shards.size() == m_offsets.size());
+    m_offsets[i] = offset;
 }
 
 e::intrusive_ptr<hyperdisk::shard_vector>
@@ -108,8 +130,15 @@ hyperdisk :: shard_vector :: replace(size_t shard_num,
 hyperdisk :: shard_vector :: shard_vector(std::vector<std::pair<coordinate, e::intrusive_ptr<shard> > >* newvec)
     : m_ref(0)
     , m_shards()
+    , m_offsets()
 {
     m_shards.swap(*newvec);
+    m_offsets.resize(m_shards.size());
+
+    for (size_t i = 0; i < m_shards.size(); ++i)
+    {
+        m_offsets[i] = m_shards[i].second->m_data_offset;
+    }
 }
 
 hyperdisk :: shard_vector :: ~shard_vector() throw ()
