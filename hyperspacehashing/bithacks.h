@@ -64,12 +64,18 @@ lower_interlace(const std::vector<uint64_t>& nums)
     size_t sz = nums.size();
     uint64_t ret = 0;
 
-    for (size_t i = 0; sz && i < 64; ++i)
+    if (!sz)
     {
-        const size_t quotient = i / sz;
-        const size_t modulus = i % sz;
-        const uint64_t bit = 1 << quotient;
-        const uint64_t hash = nums[modulus];
+        return 0;
+    }
+
+    for (int i = 0; i < 64; ++i)
+    {
+        size_t quotient = i / sz;
+        size_t modulus = i % sz;
+        uint64_t bit = 1;
+        bit <<= quotient;
+        uint64_t hash = nums[modulus];
         ret |= (bit & hash) << (i - quotient);
     }
 
