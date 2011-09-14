@@ -235,28 +235,13 @@ hyperdisk :: disk :: flush()
 
     e::guard hold = e::makeobjguard(m_shards_mutate, &po6::threads::mutex::unlock);
     bool flushed = false;
-#ifndef NDEBUG
     e::locking_iterable_fifo<log_entry>::iterator it = m_log.iterate();
-#endif
 
-    for (size_t nf = 0; nf < 10000 && !m_log.empty(); ++nf)
+    for (size_t nf = 0; nf < 10000 && it.valid(); ++nf, it.next())
     {
-#ifndef NDEBUG
-        assert(it.valid());
-        assert(it->key == m_log.oldest().key);
-        assert(it->value == m_log.oldest().value);
-        assert(it->version == m_log.oldest().version);
-        assert(it->coord.primary_mask == m_log.oldest().coord.primary_mask);
-        assert(it->coord.primary_hash == m_log.oldest().coord.primary_hash);
-        assert(it->coord.secondary_mask == m_log.oldest().coord.secondary_mask);
-        assert(it->coord.secondary_hash == m_log.oldest().coord.secondary_hash);
-        assert(&(*it) == &(m_log.oldest()));
-        it.next();
-#endif
-
         bool deleted = false;
-        const coordinate& coord = m_log.oldest().coord;
-        const e::buffer& key = m_log.oldest().key;
+        const coordinate& coord = it->coord;
+        const e::buffer& key = it->key;
 
         for (size_t i = 0; !deleted && i < m_shards->size(); ++i)
         {
@@ -273,7 +258,6 @@ hyperdisk :: disk :: flush()
                 case NOTFOUND:
                     break;
                 case DATAFULL:
-                    return deal_with_full_shard(i);
                 case WRONGARITY:
                 case SEARCHFULL:
                 case SYNCFAILED:
@@ -289,8 +273,8 @@ hyperdisk :: disk :: flush()
         if (coord.secondary_mask == UINT32_MAX)
         {
             bool inserted = false;
-            const std::vector<e::buffer>& value = m_log.oldest().value;
-            const uint64_t version = m_log.oldest().version;
+            const std::vector<e::buffer>& value = it->value;
+            const uint64_t version = it->version;
 
             // We must start at the end and work backwards.
             for (ssize_t i = m_shards->size() - 1; !inserted && i >= 0; --i)
@@ -322,9 +306,10 @@ hyperdisk :: disk :: flush()
             }
         }
 
-        m_log.remove_oldest();
         flushed = true;
     }
+
+    m_log.advance_to(it);
 
     if (flushed)
     {
