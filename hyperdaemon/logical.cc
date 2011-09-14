@@ -40,9 +40,6 @@
 // Google Log
 #include <glog/logging.h>
 
-// HyperDex
-#include <hyperdex/hyperspace.h>
-
 // HyperDaemon
 #include "logical.h"
 
