@@ -56,7 +56,12 @@
 #include <glog/logging.h>
 
 // e
+#include <e/bitfield.h>
 #include <e/convert.h>
+
+// HyperspaceHashing
+#include <hyperspacehashing/hashes.h>
+#include <hyperspacehashing/prefix.h>
 
 // HyperDex
 #include <hyperclient/client.h>
@@ -237,11 +242,17 @@ find_hashes()
         found[i] = false;
     }
 
+    e::bitfield dims(1);
+    dims.set(0);
+    std::vector<hyperspacehashing::hash_t> hashes(1, hyperspacehashing::city);
+    hyperspacehashing::prefix::hasher hasher(dims, hashes);
+
     for (uint32_t value = 0; complete < 256; ++value)
     {
         e::buffer key;
         key.pack() << value;
-        uint64_t high_byte = CityHash64(reinterpret_cast<char*>(&value), sizeof(value)) >> 56;
+        uint64_t hash = hasher.hash(key).point;
+        int high_byte = (hash >> 56) & 0xff;
 
         if (!found[high_byte])
         {
