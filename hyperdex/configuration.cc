@@ -430,6 +430,15 @@ hyperdex :: configuration :: disk_hasher(const subspaceid& subspace) const
     return hashiter->second;
 }
 
+hyperspacehashing::prefix::hasher
+hyperdex :: configuration :: repl_hasher(const subspaceid& subspace) const
+{
+    std::map<subspaceid, hyperspacehashing::prefix::hasher>::const_iterator hashiter;
+    hashiter = m_repl_hashers.find(subspace);
+    assert(hashiter != m_repl_hashers.end());
+    return hashiter->second;
+}
+
 bool
 hyperdex :: configuration :: point_leader_entity(const spaceid& space,
                                                  const e::buffer& key,

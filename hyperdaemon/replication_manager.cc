@@ -1295,13 +1295,9 @@ hyperdaemon :: replication_manager :: prev_and_next(const regionid& r,
                                                     const std::vector<e::buffer>& oldvalue,
                                                     e::intrusive_ptr<replication::pending> pend)
 {
-    using hyperdex::hyperspace::replication_point;
     size_t subspaces;
     uint16_t prev_subspace;
     uint16_t next_subspace;
-    std::vector<bool> prev_dims;
-    std::vector<bool> this_dims;
-    std::vector<bool> next_dims;
 
     if (!m_config.subspaces(r.get_space(), &subspaces))
     {
@@ -1314,66 +1310,59 @@ hyperdaemon :: replication_manager :: prev_and_next(const regionid& r,
     prev_subspace = r.subspace > 0 ? r.subspace - 1 : subspaces - 1;
     next_subspace = r.subspace < subspaces - 1 ? r.subspace + 1 : 0;
 
-    if (!m_config.dimensions(r.get_subspace(), &this_dims)
-        || !m_config.dimensions(hyperdex::subspaceid(r.space, prev_subspace), &prev_dims)
-        || !m_config.dimensions(hyperdex::subspaceid(r.space, next_subspace), &next_dims))
-    {
-        return false;
-    }
-
-    uint64_t newkey_hash;
-    uint64_t oldkey_hash;
-    std::vector<uint64_t> newvalue_hashes;
-    std::vector<uint64_t> oldvalue_hashes;
-
-    if (has_newvalue)
-    {
-        hyperdex::hyperspace::point_hashes(key, newvalue, &newkey_hash, &newvalue_hashes);
-    }
-
-    if (has_oldvalue)
-    {
-        hyperdex::hyperspace::point_hashes(key, oldvalue, &oldkey_hash, &oldvalue_hashes);
-    }
+    hyperspacehashing::prefix::hasher prev_hasher = m_config.repl_hasher(hyperdex::subspaceid(r.space, prev_subspace));
+    hyperspacehashing::prefix::hasher this_hasher = m_config.repl_hasher(r.get_subspace());
+    hyperspacehashing::prefix::hasher next_hasher = m_config.repl_hasher(hyperdex::subspaceid(r.space, next_subspace));
+    hyperspacehashing::prefix::coordinate prev_coord;
+    hyperspacehashing::prefix::coordinate this_old_coord;
+    hyperspacehashing::prefix::coordinate this_new_coord;
+    hyperspacehashing::prefix::coordinate next_coord;
 
     if (has_oldvalue && has_newvalue)
     {
-        pend->prev = regionid(r.space, prev_subspace, 64, replication_point(newkey_hash, newvalue_hashes, prev_dims));
-        pend->this_old = regionid(r.get_subspace(), 64, replication_point(oldkey_hash, oldvalue_hashes, this_dims));
-        pend->this_new = regionid(r.get_subspace(), 64, replication_point(newkey_hash, newvalue_hashes, this_dims));
-        pend->next = regionid(r.space, next_subspace, 64, replication_point(oldkey_hash, oldvalue_hashes, next_dims));
+        prev_coord = prev_hasher.hash(key, newvalue);
+        this_old_coord = this_hasher.hash(key, oldvalue);
+        this_new_coord = this_hasher.hash(key, newvalue);
+        next_coord = next_hasher.hash(key, oldvalue);
     }
     else if (has_oldvalue)
     {
-        pend->prev = regionid(r.space, prev_subspace, 64, replication_point(oldkey_hash, oldvalue_hashes, prev_dims));
-        pend->this_old = regionid(r.get_subspace(), 64, replication_point(oldkey_hash, oldvalue_hashes, this_dims));
-        pend->this_new = pend->this_old;
-        pend->next = regionid(r.space, next_subspace, 64, replication_point(oldkey_hash, oldvalue_hashes, next_dims));
+        prev_coord = prev_hasher.hash(key, oldvalue);
+        this_old_coord = this_hasher.hash(key, oldvalue);
+        this_new_coord = this_old_coord;
+        next_coord = next_hasher.hash(key, oldvalue);
     }
     else if (has_newvalue)
     {
-        pend->prev = regionid(r.space, prev_subspace, 64, replication_point(newkey_hash, newvalue_hashes, prev_dims));
-        pend->this_old = regionid(r.get_subspace(), 64, replication_point(newkey_hash, newvalue_hashes, this_dims));
-        pend->this_new = pend->this_old;
-        pend->next = regionid(r.space, next_subspace, 64, replication_point(newkey_hash, newvalue_hashes, next_dims));
+        prev_coord = prev_hasher.hash(key, newvalue);
+        this_old_coord = this_hasher.hash(key, newvalue);
+        this_new_coord = this_old_coord;
+        next_coord = next_hasher.hash(key, newvalue);
     }
     else
     {
-        return false;
+        assert(!"programming error");
     }
 
-    // A 'pending' object will never jump to another region, so if this_old or
-    // this_new intersects with the region now, it will forever.  To simplify
-    // logic elsewhere, we just set them to 'r' if they intersect so that
-    // elsewhere we can use equality tests of this_old and this_new.
-    if (overlap(r, pend->this_old))
+    pend->prev = regionid(r.space, prev_subspace, prev_coord.prefix, prev_coord.point);
+    pend->next = regionid(r.space, next_subspace, next_coord.prefix, next_coord.point);
+
+    if (r.coord().contains(this_old_coord))
     {
         pend->this_old = r;
     }
+    else
+    {
+        pend->this_old = regionid(r.get_subspace(), this_old_coord.prefix, this_old_coord.point);
+    }
 
-    if (overlap(r, pend->this_new))
+    if (r.coord().contains(this_new_coord))
     {
         pend->this_new = r;
+    }
+    else
+    {
+        pend->this_new = regionid(r.get_subspace(), this_new_coord.prefix, this_new_coord.point);
     }
 
     return true;
