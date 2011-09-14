@@ -85,8 +85,25 @@ lower_interlace(const std::vector<uint64_t>& nums)
 inline uint64_t
 upper_interlace(const std::vector<uint64_t>& nums)
 {
-    // XXX Really code this up.  It will help scatter things.
-    return lower_interlace(nums);
+    size_t sz = nums.size();
+    uint64_t ret = 0;
+
+    if (!sz)
+    {
+        return 0;
+    }
+
+    for (int i = 0; i < 64; ++i)
+    {
+        size_t quotient = i / sz;
+        size_t modulus = i % sz;
+        uint64_t bit = 1;
+        bit <<= 63 - quotient;
+        uint64_t hash = nums[modulus];
+        ret |= (bit & hash) >> (i - quotient);
+    }
+
+    return ret;
 }
 
 #endif // bithacks_h_
