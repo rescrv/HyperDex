@@ -218,8 +218,19 @@ hyperdisk :: disk :: drop()
 {
     po6::threads::mutex::hold a(&m_shards_mutate);
     po6::threads::mutex::hold b(&m_shards_lock);
+    po6::threads::mutex::hold c(&m_spare_shards_lock);
     returncode ret = SUCCESS;
     e::intrusive_ptr<shard_vector> shards = m_shards;
+
+    while (!m_spare_shards.empty())
+    {
+        if (unlinkat(m_base.get(), m_spare_shards.front().first.get(), 0) < 0)
+        {
+            ret = DROPFAILED;
+        }
+
+        m_spare_shards.pop();
+    }
 
     for (size_t i = 0; i < shards->size(); ++i)
     {
