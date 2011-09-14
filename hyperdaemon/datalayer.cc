@@ -102,6 +102,8 @@ hyperdaemon :: datalayer :: prepare(const configuration& newconfig, const instan
         disks = m_disks;
     }
 
+    std::map<regionid, size_t> regions = newconfig.regions();
+
     for (std::map<entityid, instance>::const_iterator e = newconfig.entity_mapping().begin();
             e != newconfig.entity_mapping().end(); ++e)
     {
@@ -109,9 +111,9 @@ hyperdaemon :: datalayer :: prepare(const configuration& newconfig, const instan
             && disks.find(e->first.get_region()) == disks.end())
         {
             std::map<regionid, size_t>::iterator region_size;
-            region_size = newconfig.regions().find(e->first.get_region());
+            region_size = regions.find(e->first.get_region());
 
-            if (region_size != newconfig.regions().end())
+            if (region_size != regions.end())
             {
                 create_disk(e->first.get_region(), newconfig.disk_hasher(e->first.get_subspace()), region_size->second);
             }
@@ -130,9 +132,9 @@ hyperdaemon :: datalayer :: prepare(const configuration& newconfig, const instan
         if (disks.find(t->second) == disks.end())
         {
             std::map<regionid, size_t>::iterator region_size;
-            region_size = newconfig.regions().find(t->second);
+            region_size = regions.find(t->second);
 
-            if (region_size != newconfig.regions().end())
+            if (region_size != regions.end())
             {
                 create_disk(t->second, newconfig.disk_hasher(t->second.get_subspace()), region_size->second);
             }
