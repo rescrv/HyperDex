@@ -222,7 +222,15 @@ hyperdisk :: shard :: put(uint32_t primary_hash,
 
     // Update the offsets
     ++m_search_offset;
-    m_data_offset = (curr_offset + 7) & ~7; // Keep everything 8-byte aligned.
+    uint32_t new_data_offset = (curr_offset + 7) & ~7; // Keep everything 8-byte aligned.
+
+    // Flush if we've written over 4MB without flushing.
+    if ((m_data_offset & ~(1 << 22)) != (new_data_offset & ~(1 << 22)))
+    {
+        async();
+    }
+
+    m_data_offset = new_data_offset;
     return SUCCESS;
 }
 
