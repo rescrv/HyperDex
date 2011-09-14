@@ -141,7 +141,6 @@ hyperdisk :: shard :: get(uint32_t primary_hash,
     size_t table_entry;
     uint64_t table_value;
     hash_lookup(primary_hash, key, &table_entry, &table_value);
-    uint32_t table_hash = static_cast<uint32_t>(table_value);
     uint32_t table_offset = static_cast<uint32_t>(table_value >> 32);
 
     if (table_offset == 0 || table_offset >= HASH_OFFSET_INVALID)
@@ -241,7 +240,6 @@ hyperdisk :: shard :: del(uint32_t primary_hash,
     size_t table_entry;
     uint64_t table_value;
     hash_lookup(primary_hash, key, &table_entry, &table_value);
-    uint32_t table_hash = static_cast<uint32_t>(table_value);
     uint32_t table_offset = static_cast<uint32_t>(table_value >> 32);
 
     if (table_offset == 0 || table_offset >= HASH_OFFSET_INVALID)
@@ -412,11 +410,11 @@ bool
 hyperdisk :: shard :: fsck()
 {
     std::ofstream null("/dev/null");
-    return fsck(null, null);
+    return fsck(null);
 }
 
 bool
-hyperdisk :: shard :: fsck(std::ostream& out, std::ostream& err)
+hyperdisk :: shard :: fsck(std::ostream& err)
 {
     bool ret = true;
     bool hash_table[HASH_TABLE_ENTRIES];

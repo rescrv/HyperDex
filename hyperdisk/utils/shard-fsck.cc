@@ -47,7 +47,7 @@ main(int argc, char* argv[])
             po6::io::fd cwd(AT_FDCWD);
             e::intrusive_ptr<hyperdisk::shard> shard;
             shard = hyperdisk::shard::open(cwd, argv[i]);
-            shard->fsck(std::cout, std::cerr);
+            shard->fsck(std::cerr);
         }
         catch (po6::error& e)
         {

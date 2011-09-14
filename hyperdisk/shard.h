@@ -134,7 +134,7 @@ class shard
         void copy_to(const hyperspacehashing::mask::coordinate& c, e::intrusive_ptr<shard> s);
         // Perform a logical integrity check of the shard.
         bool fsck();
-        bool fsck(std::ostream& out, std::ostream& err);
+        bool fsck(std::ostream& err);
 
     private:
         friend class e::intrusive_ptr<shard>;
