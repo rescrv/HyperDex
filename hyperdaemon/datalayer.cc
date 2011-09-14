@@ -383,7 +383,7 @@ hyperdaemon :: datalayer :: create_disk(const regionid& ri,
     std::ostringstream ostr;
     ostr << ri;
     po6::pathname path = po6::join(m_base, po6::pathname(ostr.str()));
-    disk_ptr d = new hyperdisk::disk(path, hasher, num_columns);
+    disk_ptr d = hyperdisk::disk::create(path, hasher, num_columns);
     po6::threads::rwlock::wrhold hold(&m_lock);
     m_disks.insert(std::make_pair(ri, d));
 }

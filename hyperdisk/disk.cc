@@ -74,44 +74,12 @@ using hyperspacehashing::mask::coordinate;
 // the WAL.  Trickle does this by using locking when exchanging the
 // shard_vectors.
 
-hyperdisk :: disk :: disk(const po6::pathname& directory,
-                          const hyperspacehashing::mask::hasher& hasher,
-                          const uint16_t arity)
-    : m_ref(0)
-    , m_arity(arity)
-    , m_hasher(hasher)
-    , m_shards_mutate()
-    , m_shards_lock()
-    , m_shards()
-    , m_log()
-    , m_base()
-    , m_base_filename(directory)
-    , m_spare_shards_lock()
-    , m_spare_shards()
-    , m_spare_shard_counter(0)
+e::intrusive_ptr<hyperdisk::disk>
+hyperdisk :: disk :: create(const po6::pathname& directory,
+                            const hyperspacehashing::mask::hasher& hasher,
+                            uint16_t arity)
 {
-    if (mkdir(directory.get(), S_IRWXU) < 0 && errno != EEXIST)
-    {
-        throw po6::error(errno);
-    }
-
-    m_base = open(directory.get(), O_RDONLY);
-
-    if (m_base.get() < 0)
-    {
-        throw po6::error(errno);
-    }
-
-    // Create a starting disk which holds everything.
-    po6::threads::mutex::hold a(&m_shards_mutate);
-    po6::threads::mutex::hold b(&m_shards_lock);
-    coordinate start(0, 0, 0, 0);
-    e::intrusive_ptr<shard> s = create_shard(start);
-    m_shards = new shard_vector(start, s);
-}
-
-hyperdisk :: disk :: ~disk() throw ()
-{
+    return new disk(directory, hasher, arity);
 }
 
 hyperdisk::returncode
@@ -480,6 +448,46 @@ hyperdisk :: disk :: sync()
     }
 
     return ret;
+}
+
+hyperdisk :: disk :: disk(const po6::pathname& directory,
+                          const hyperspacehashing::mask::hasher& hasher,
+                          const uint16_t arity)
+    : m_ref(0)
+    , m_arity(arity)
+    , m_hasher(hasher)
+    , m_shards_mutate()
+    , m_shards_lock()
+    , m_shards()
+    , m_log()
+    , m_base()
+    , m_base_filename(directory)
+    , m_spare_shards_lock()
+    , m_spare_shards()
+    , m_spare_shard_counter(0)
+{
+    if (mkdir(directory.get(), S_IRWXU) < 0 && errno != EEXIST)
+    {
+        throw po6::error(errno);
+    }
+
+    m_base = open(directory.get(), O_RDONLY);
+
+    if (m_base.get() < 0)
+    {
+        throw po6::error(errno);
+    }
+
+    // Create a starting disk which holds everything.
+    po6::threads::mutex::hold a(&m_shards_mutate);
+    po6::threads::mutex::hold b(&m_shards_lock);
+    coordinate start(0, 0, 0, 0);
+    e::intrusive_ptr<shard> s = create_shard(start);
+    m_shards = new shard_vector(start, s);
+}
+
+hyperdisk :: disk :: ~disk() throw ()
+{
 }
 
 po6::pathname

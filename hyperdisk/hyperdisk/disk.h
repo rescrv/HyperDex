@@ -68,11 +68,9 @@ namespace hyperdisk
 class disk
 {
     public:
-        // XXX Make this right with reference counting.
-        disk(const po6::pathname& directory,
-             const hyperspacehashing::mask::hasher& hasher,
-             uint16_t arity);
-        ~disk() throw ();
+        static e::intrusive_ptr<disk> create(const po6::pathname& directory,
+                                             const hyperspacehashing::mask::hasher& hasher,
+                                             uint16_t arity);
 
     public:
         // May return SUCCESS or NOTFOUND.
@@ -113,6 +111,12 @@ class disk
 
     private:
         friend class e::intrusive_ptr<disk>;
+
+    private:
+        disk(const po6::pathname& directory,
+             const hyperspacehashing::mask::hasher& hasher,
+             uint16_t arity);
+        ~disk() throw ();
 
     private:
         // Reference counting for disks.
