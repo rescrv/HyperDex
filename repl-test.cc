@@ -379,7 +379,7 @@ check(int testno,
       bool* succeeded,
       size_t A, size_t B, size_t C)
 {
-    cl->flush((prefix + 1) * 1000);
+    cl->flush((1 << prefix) * 1000);
 
     if (!*succeeded)
     {
@@ -429,7 +429,7 @@ absent(int testno,
        bool* succeeded,
        size_t A)
 {
-    cl->flush((prefix + 1) * 1000);
+    cl->flush((1 << prefix) * 1000);
 
     if (!*succeeded)
     {
