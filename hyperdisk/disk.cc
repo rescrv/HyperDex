@@ -383,47 +383,28 @@ hyperdisk :: disk :: preallocate()
         shards = m_shards;
     }
 
-    size_t num_shards = 0;
+    ssize_t needed_shards = 0;
 
     for (size_t i = 0; i < shards->size(); ++i)
     {
         shard* s = shards->get_shard(i);
         int stale = s->stale_space();
-        int free = 100 - s->used_space();
+        int used = s->used_space();
 
         // There is no describable reason for picking these except that you can
         // be pretty sure that enough shards will exist to do splits.  That
         // being said, this will waste space when shards are mostly full.  Feel
         // free to tune this using logic and reason and submit a patch.
 
-        if (free <= 25)
+        if (used >= 75)
         {
-            num_shards += 0;
-        }
-        else if (free <= 50)
-        {
-            num_shards += 1;
-        }
-        else if (free <= 75)
-        {
-            if (stale >= 30)
+            if (stale >= 10)
             {
-                num_shards += 1;
+                needed_shards += 1;
             }
             else
             {
-                num_shards += 2;
-            }
-        }
-        else
-        {
-            if (stale >= 30)
-            {
-                num_shards += 1;
-            }
-            else
-            {
-                num_shards += 4;
+                needed_shards += static_cast<double>((100 - used) * 4) / 25.;
             }
         }
     }
@@ -432,7 +413,7 @@ hyperdisk :: disk :: preallocate()
 
     {
         po6::threads::mutex::hold hold(&m_spare_shards_lock);
-        need_shard = num_shards - m_spare_shards.size() > 0;
+        need_shard = needed_shards - static_cast<ssize_t>(m_spare_shards.size()) > 0;
     }
 
     if (need_shard)
@@ -453,6 +434,8 @@ hyperdisk :: disk :: preallocate()
             m_spare_shards.push(std::make_pair(sparepath, spareshard));
         }
     }
+
+    return SUCCESS;
 }
 
 hyperdisk::returncode
