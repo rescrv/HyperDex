@@ -39,6 +39,9 @@
 // C++
 #include <fstream>
 
+// STL
+#include <algorithm>
+
 // po6
 #include <po6/io/fd.h>
 
@@ -396,7 +399,7 @@ hyperdisk :: shard :: copy_to(const coordinate& c, e::intrusive_ptr<shard> s)
         }
         else
         {
-            entry_end = m_data_offset;
+            entry_end = std::min(m_data_offset, static_cast<uint32_t>(FILE_SIZE));
         }
 
         assert(entry_start <= entry_end); // LCOV_EXCL_LINE
