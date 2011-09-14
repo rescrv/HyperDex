@@ -107,6 +107,7 @@ hyperdisk :: shard :: open(const po6::io::fd& base,
     // Create the shard object.
     e::intrusive_ptr<shard> ret = new shard(&fd);
 
+    // XXX We don't correctly restore the offsets.
     while (ret->m_search_offset < SEARCH_INDEX_ENTRIES &&
             static_cast<uint32_t>(ret->m_search_log[ret->m_search_offset * 2 + 1]) != 0)
     {
@@ -245,11 +246,6 @@ hyperdisk :: shard :: del(uint32_t primary_hash,
     if (table_offset == 0 || table_offset >= HASH_OFFSET_INVALID)
     {
         return NOTFOUND;
-    }
-
-    if (m_data_offset + sizeof(uint64_t) > FILE_SIZE)
-    {
-        return DATAFULL;
     }
 
     invalidate_search_log(table_offset, m_data_offset);

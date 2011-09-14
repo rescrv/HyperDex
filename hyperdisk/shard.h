@@ -99,6 +99,7 @@ class shard
                                               const po6::pathname& filename);
         // Open an existing shard.  This will fail if the file doesn't exist.
         // XXX No sanity checking is done on the shard.
+        // XXX This method is broken.  It does not restore the offsets.
         static e::intrusive_ptr<shard> open(const po6::io::fd& dir,
                                             const po6::pathname& filename);
 
@@ -111,7 +112,9 @@ class shard
                        const e::buffer& key,
                        const std::vector<e::buffer>& value,
                        uint64_t version);
-        // May return SUCCESS, NOTFOUND, or DATAFULL.
+        // May return SUCCESS or NOTFOUND.  This used to return DATAFULL, but we
+        // allow the data offset to extend beyond the end of the shard for
+        // deletion entries.
         returncode del(uint32_t primary_hash, const e::buffer& key);
         // The space calc functions are only accurate when mutually exclusive
         // with GET operations.
