@@ -14,7 +14,7 @@ cli_LDFLAGS = -lpthread -lrt
 daemon_SOURCES = daemon.cc
 daemon_CPPFLAGS = -I${abs_top_srcdir}/hyperdaemon/
 daemon_LDADD = hyperdisk/libhyperdisk.la hyperdaemon/libhyperdaemon.la
-daemon_LDFLAGS = -lpthread -lglog
+daemon_LDFLAGS = -lpthread -lglog -lrt -lm
 
 binary_test_SOURCES = binary-test.cc
 binary_test_CPPFLAGS = -I${abs_top_srcdir}/hyperclient/

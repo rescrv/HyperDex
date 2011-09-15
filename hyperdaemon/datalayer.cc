@@ -76,6 +76,10 @@ hyperdaemon :: datalayer :: datalayer(coordinatorlink* cl, const po6::pathname& 
     , m_flusher(std::tr1::bind(&datalayer::flush_loop, this))
     , m_lock()
     , m_disks()
+    , m_preallocate_rr()
+    , m_last_preallocation(0)
+    , m_optimistic_rr()
+    , m_last_dose_of_optimism(0)
 {
     m_flusher.start();
 }
@@ -306,37 +310,115 @@ hyperdaemon :: datalayer :: get_region(const regionid& ri)
 void
 hyperdaemon :: datalayer :: flush_loop()
 {
+    typedef std::map<hyperdex::regionid, e::intrusive_ptr<hyperdisk::disk> > disk_map_t;
+    typedef std::queue<hyperdex::regionid> disk_queue_t;
     LOG(WARNING) << "Flush thread started.";
     uint64_t count = 0;
 
     while (!m_shutdown)
     {
         bool sleep = true;
-        std::set<e::intrusive_ptr<hyperdisk::disk> > to_flush;
+        disk_map_t disks;
 
         { // Hold the lock only in this scope.
             po6::threads::rwlock::rdhold hold(&m_lock);
+            disks = m_disks;
+        }
 
-            for (disk_map_t::iterator i = m_disks.begin();
-                    i != m_disks.end(); ++i)
+        for (disk_map_t::iterator i = disks.begin(); i != disks.end(); ++i)
+        {
+            if (std::find(m_preallocate_rr.begin(), m_preallocate_rr.end(), i->first)
+                    == m_preallocate_rr.end())
             {
-                to_flush.insert(i->second);
+                m_preallocate_rr.push_back(i->first);
+            }
+
+            if (std::find(m_optimistic_rr.begin(), m_optimistic_rr.end(), i->first)
+                    == m_optimistic_rr.end())
+            {
+                m_optimistic_rr.push_back(i->first);
             }
         }
 
-        for (std::set<e::intrusive_ptr<hyperdisk::disk> >::iterator i = to_flush.begin();
-                    i != to_flush.end(); ++i)
+        // We try to do only two preallocations per second.
+        if ((e::time() - m_last_preallocation) / 500000000. > 1)
         {
-            if (count % 10 == 0)
+            for (size_t i = 0; i < m_preallocate_rr.size(); ++i)
             {
-                (*i)->preallocate();
+                disk_map_t::iterator diter = disks.find(m_preallocate_rr.front());
+
+                if (diter != disks.end())
+                {
+                    m_preallocate_rr.push_back(m_preallocate_rr.front());
+                }
+
+                m_preallocate_rr.pop_front();
+
+                if (diter != disks.end())
+                {
+                    hyperdisk::returncode ret = diter->second->preallocate();
+
+                    if (ret == hyperdisk::SUCCESS)
+                    {
+                        sleep = false;
+                        break;
+                    }
+                    else if (ret == hyperdisk::DIDNOTHING)
+                    {
+                    }
+                    else
+                    {
+                        PLOG(WARNING) << "Disk preallocation failed";
+                    }
+                }
             }
 
-            hyperdisk::returncode ret = (*i)->flush(-1);
+            m_last_preallocation = e::time();
+        }
+
+        // We try to be optimistic at most twice per second.
+        if ((e::time() - m_last_dose_of_optimism) / 500000000. > 1)
+        {
+            for (size_t i = 0; i < m_optimistic_rr.size(); ++i)
+            {
+                disk_map_t::iterator diter = disks.find(m_optimistic_rr.front());
+
+                if (diter != disks.end())
+                {
+                    m_optimistic_rr.push_back(m_optimistic_rr.front());
+                }
+
+                m_optimistic_rr.pop_front();
+
+                if (diter != disks.end())
+                {
+                    hyperdisk::returncode ret = diter->second->do_optimistic_io();
+
+                    if (ret == hyperdisk::SUCCESS)
+                    {
+                        sleep = false;
+                        break;
+                    }
+                    else if (ret == hyperdisk::DIDNOTHING)
+                    {
+                    }
+                    else
+                    {
+                        PLOG(WARNING) << "Optimistic disk I/O failed";
+                    }
+                }
+            }
+
+            m_last_dose_of_optimism = e::time();
+        }
+
+        for (disk_map_t::iterator i = disks.begin(); i != disks.end(); ++i)
+        {
+            hyperdisk::returncode ret = i->second->flush(10000);
 
             if (ret == hyperdisk::SUCCESS)
             {
-                sleep == false;
+                sleep = false;
             }
             else if (ret == hyperdisk::DIDNOTHING)
             {
@@ -344,9 +426,9 @@ hyperdaemon :: datalayer :: flush_loop()
             else if (ret == hyperdisk::DATAFULL || ret == hyperdisk::SEARCHFULL)
             {
                 hyperdisk::returncode ioret;
-                ioret = (*i)->do_mandatory_io();
+                ioret = i->second->do_mandatory_io();
 
-                if (ioret != hyperdisk::SUCCESS)
+                if (ioret != hyperdisk::SUCCESS && ioret != hyperdisk::DIDNOTHING)
                 {
                     PLOG(ERROR) << "Disk I/O returned " << ioret;
                 }

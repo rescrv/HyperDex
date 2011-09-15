@@ -29,6 +29,7 @@
 #define hyperdaemon_datalayer_h_
 
 // STL
+#include <list>
 #include <map>
 #include <set>
 #include <tr1/memory>
@@ -105,6 +106,10 @@ class datalayer
         po6::threads::thread m_flusher;
         po6::threads::rwlock m_lock;
         std::map<hyperdex::regionid, e::intrusive_ptr<hyperdisk::disk> > m_disks;
+        std::list<hyperdex::regionid> m_preallocate_rr;
+        uint64_t m_last_preallocation;
+        std::list<hyperdex::regionid> m_optimistic_rr;
+        uint64_t m_last_dose_of_optimism;
 };
 
 } // namespace hyperdaemon
