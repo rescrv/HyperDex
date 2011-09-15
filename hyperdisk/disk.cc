@@ -442,15 +442,22 @@ hyperdisk :: disk :: preallocate()
         // being said, this will waste space when shards are mostly full.  Feel
         // free to tune this using logic and reason and submit a patch.
 
-        if (used >= 75)
+        if (used < 25)
         {
-            if (stale >= 10)
+        }
+        else if (used < 50)
+        {
+            needed_shards += 1;
+        }
+        else
+        {
+            if (stale >= 30)
             {
                 needed_shards += 1;
             }
             else
             {
-                needed_shards += static_cast<double>((100 - used) * 4) / 25.;
+                needed_shards += 4;
             }
         }
     }
