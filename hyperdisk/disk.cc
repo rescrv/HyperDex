@@ -418,7 +418,7 @@ hyperdisk :: disk :: preallocate()
 
         if (m_spare_shards.size() >= 16)
         {
-            return SUCCESS;
+            return DIDNOTHING;
         }
     }
 
@@ -481,7 +481,7 @@ hyperdisk :: disk :: preallocate()
         }
     }
 
-    return SUCCESS;
+    return need_shard ? SUCCESS : DIDNOTHING;
 }
 
 hyperdisk::returncode
