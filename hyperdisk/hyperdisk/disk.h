@@ -52,6 +52,7 @@
 namespace hyperdisk
 {
 class log_entry;
+class offset_update;
 class shard;
 class shard_vector;
 }
@@ -156,6 +157,7 @@ class disk
         po6::threads::mutex m_shards_lock;
         e::intrusive_ptr<shard_vector> m_shards;
         e::locking_iterable_fifo<log_entry> m_log;
+        e::locking_iterable_fifo<offset_update> m_offsets;
         po6::io::fd m_base;
         po6::pathname m_base_filename;
         po6::threads::mutex m_spare_shards_lock;

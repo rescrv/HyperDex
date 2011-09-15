@@ -44,6 +44,7 @@
 // HyperDisk
 #include "hyperdisk/disk.h"
 #include "log_entry.h"
+#include "offset_update.h"
 #include "shard.h"
 #include "shard_snapshot.h"
 #include "shard_vector.h"
@@ -331,6 +332,45 @@ hyperdisk :: disk :: flush(size_t num)
         }
 
         flushed = true;
+
+        // Here we prepare two offset_updates that we can push onto the offsets
+        // log.  We then make the offset changes to the shard_vector, and then
+        // finish by removing the items we put on the log.
+        std::vector<offset_update> updates;
+
+        if (del_needed && del_num != put_num)
+        {
+            updates.push_back(offset_update());
+            updates.back().shard_generation = m_shards->generation();
+            updates.back().shard_num = del_num;
+            updates.back().new_offset = del_offset;
+        }
+
+        if (put_succeeded)
+        {
+            updates.push_back(offset_update());
+            updates.back().shard_generation = m_shards->generation();
+            updates.back().shard_num = put_num;
+            updates.back().new_offset = put_offset;
+        }
+
+        // Log our intentions.
+        m_offsets.batch_append(updates);
+
+        // Do our updates.
+        for (size_t i = 0; i < updates.size(); ++i)
+        {
+            assert(updates[i].shard_generation == m_shards->generation());
+            assert(updates[i].new_offset > m_shards->get_offset(updates[i].shard_num));
+            m_shards->set_offset(updates[i].shard_num, updates[i].new_offset);
+        }
+
+        // Remove our updates from the log.
+        for (size_t i = 0; i < updates.size(); ++i)
+        {
+            assert(m_offsets.oldest() == updates[i]);
+            m_offsets.remove_oldest();
+        }
     }
 
     m_log.advance_to(it);
@@ -545,6 +585,7 @@ hyperdisk :: disk :: disk(const po6::pathname& directory,
     , m_shards_lock()
     , m_shards()
     , m_log()
+    , m_offsets()
     , m_base()
     , m_base_filename(directory)
     , m_spare_shards_lock()
