@@ -51,6 +51,7 @@ class shard_vector
 
     public:
         size_t size() const;
+        uint64_t generation() const;
 
     public:
         const hyperspacehashing::mask::coordinate& get_coordinate(size_t i);
@@ -68,7 +69,8 @@ class shard_vector
         friend class e::intrusive_ptr<shard_vector>;
 
     private:
-        shard_vector(std::vector<std::pair<hyperspacehashing::mask::coordinate, e::intrusive_ptr<shard> > >* newvec);
+        shard_vector(uint64_t generation,
+                     std::vector<std::pair<hyperspacehashing::mask::coordinate, e::intrusive_ptr<shard> > >* newvec);
         ~shard_vector() throw ();
 
     private:
@@ -77,6 +79,7 @@ class shard_vector
 
     private:
         size_t m_ref;
+        uint64_t m_generation;
         std::vector<std::pair<hyperspacehashing::mask::coordinate, e::intrusive_ptr<shard> > > m_shards;
         std::vector<uint32_t> m_offsets;
 };

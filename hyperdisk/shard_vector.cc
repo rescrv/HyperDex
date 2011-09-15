@@ -32,6 +32,7 @@ using hyperspacehashing::mask::coordinate;
 
 hyperdisk :: shard_vector :: shard_vector(const coordinate& coord, e::intrusive_ptr<shard> s)
     : m_ref(0)
+    , m_generation(1)
     , m_shards(1, std::make_pair(coord, s))
     , m_offsets(1, 0)
 {
@@ -42,6 +43,13 @@ hyperdisk :: shard_vector :: size() const
 {
     assert(m_shards.size() == m_offsets.size());
     return m_shards.size();
+}
+
+uint64_t
+hyperdisk :: shard_vector :: generation() const
+{
+    assert(m_shards.size() == m_offsets.size());
+    return m_generation;
 }
 
 const coordinate&
@@ -95,7 +103,7 @@ hyperdisk :: shard_vector :: replace(size_t shard_num, e::intrusive_ptr<shard> s
     }
 
     e::intrusive_ptr<hyperdisk::shard_vector> ret;
-    ret = new shard_vector(&newvec);
+    ret = new shard_vector(m_generation + 1, &newvec);
     return ret;
 }
 
@@ -123,12 +131,14 @@ hyperdisk :: shard_vector :: replace(size_t shard_num,
     newvec.push_back(std::make_pair(c4, s4));
 
     e::intrusive_ptr<hyperdisk::shard_vector> ret;
-    ret = new shard_vector(&newvec);
+    ret = new shard_vector(m_generation + 1, &newvec);
     return ret;
 }
 
-hyperdisk :: shard_vector :: shard_vector(std::vector<std::pair<coordinate, e::intrusive_ptr<shard> > >* newvec)
+hyperdisk :: shard_vector :: shard_vector(uint64_t gen,
+                                          std::vector<std::pair<coordinate, e::intrusive_ptr<shard> > >* newvec)
     : m_ref(0)
+    , m_generation(gen)
     , m_shards()
     , m_offsets()
 {
