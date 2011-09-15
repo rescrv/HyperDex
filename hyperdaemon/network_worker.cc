@@ -131,7 +131,7 @@ hyperdaemon :: network_worker :: run()
                     case hyperdisk::SYNCFAILED:
                     case hyperdisk::DROPFAILED:
                     case hyperdisk::SPLITFAILED:
-                    case hyperdisk::FLUSHNONE:
+                    case hyperdisk::DIDNOTHING:
                     default:
                         LOG(ERROR) << "GET returned unacceptable error code.";
                         result = hyperdex::NET_SERVERERROR;

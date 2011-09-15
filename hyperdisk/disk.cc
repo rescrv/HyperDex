@@ -220,7 +220,7 @@ hyperdisk :: disk :: drop()
 }
 
 // This operation will return SUCCESS as long as it knows that progress is being
-// made.  It will return FLUSHNONE if there was nothing to do.
+// made.  It will return DIDNOTHING if there was nothing to do.
 hyperdisk::returncode
 hyperdisk :: disk :: flush(size_t num)
 {
@@ -323,7 +323,7 @@ hyperdisk :: disk :: flush(size_t num)
                 case DROPFAILED:
                 case MISSINGDISK:
                 case SPLITFAILED:
-                case FLUSHNONE:
+                case DIDNOTHING:
                 default:
                     assert(!"Programming error.");
             }
@@ -345,7 +345,7 @@ hyperdisk :: disk :: flush(size_t num)
     }
     else
     {
-        return FLUSHNONE;
+        return DIDNOTHING;
     }
 }
 

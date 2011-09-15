@@ -338,7 +338,7 @@ hyperdaemon :: datalayer :: flush_loop()
             {
                 sleep == false;
             }
-            else if (ret == hyperdisk::FLUSHNONE)
+            else if (ret == hyperdisk::DIDNOTHING)
             {
             }
             else if (ret == hyperdisk::DATAFULL || ret == hyperdisk::SEARCHFULL)
