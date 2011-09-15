@@ -252,6 +252,11 @@ hyperdisk :: shard :: put(uint32_t primary_hash,
         async();
     }
 
+    if (cached)
+    {
+        *cached = new_data_offset;
+    }
+
     m_data_offset = new_data_offset;
     return SUCCESS;
 }
@@ -276,6 +281,12 @@ hyperdisk :: shard :: del(uint32_t primary_hash,
     m_hash_table[table_entry] = (static_cast<uint64_t>(table_offset) << 32)
                               | (static_cast<uint64_t>(HASH_OFFSET_INVALID) << 32)
                               | static_cast<uint64_t>(primary_hash);
+
+    if (cached)
+    {
+        *cached = m_data_offset;
+    }
+
     return SUCCESS;
 }
 
