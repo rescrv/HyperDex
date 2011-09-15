@@ -546,6 +546,21 @@ hyperdisk :: shard :: shard(po6::io::fd* fd)
         throw po6::error(errno);
     }
 
+    if (madvise(m_data, HASH_TABLE_SIZE, MADV_RANDOM) < 0)
+    {
+        throw po6::error(errno);
+    }
+
+    if (madvise(m_data + HASH_TABLE_SIZE, SEARCH_INDEX_SIZE, MADV_SEQUENTIAL) < 0)
+    {
+        throw po6::error(errno);
+    }
+
+    if (madvise(m_data + INDEX_SEGMENT_SIZE, DATA_SEGMENT_SIZE, MADV_SEQUENTIAL) < 0)
+    {
+        throw po6::error(errno);
+    }
+
     m_hash_table = reinterpret_cast<uint64_t*>(m_data);
     m_search_log = reinterpret_cast<uint64_t*>(m_data + HASH_TABLE_SIZE);
 }
