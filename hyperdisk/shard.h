@@ -112,11 +112,11 @@ class shard
         returncode put(uint32_t primary_hash, uint32_t secondary_hash,
                        const e::buffer& key,
                        const std::vector<e::buffer>& value,
-                       uint64_t version);
+                       uint64_t version, uint32_t* cached = NULL);
         // May return SUCCESS or NOTFOUND.  This used to return DATAFULL, but we
         // allow the data offset to extend beyond the end of the shard for
         // deletion entries.
-        returncode del(uint32_t primary_hash, const e::buffer& key);
+        returncode del(uint32_t primary_hash, const e::buffer& key, uint32_t* cached = NULL);
         // The space calc functions are only accurate when mutually exclusive
         // with GET operations.
         // How much stale space (as a percentage) may be reclaimed from this log

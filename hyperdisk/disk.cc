@@ -220,43 +220,102 @@ hyperdisk :: disk :: drop()
 }
 
 // This operation will return SUCCESS as long as it knows that progress is being
-// made.  Practically this means that if it encounters a full disk, it will
-// deal with the full disk and return without moving any data to the newly
-// changed disks.  In practice, several threads will be hammering this method to
-// push data to disk, so we can expect that not doing the work will not be too
-// costly.
+// made.  It will return FLUSHNONE if there was nothing to do.
 hyperdisk::returncode
-hyperdisk :: disk :: flush()
+hyperdisk :: disk :: flush(size_t num)
 {
     if (!m_shards_mutate.trylock())
     {
         return SUCCESS;
     }
 
-    e::guard hold = e::makeobjguard(m_shards_mutate, &po6::threads::mutex::unlock);
     bool flushed = false;
+    returncode flush_status = SUCCESS;
+    e::guard hold = e::makeobjguard(m_shards_mutate, &po6::threads::mutex::unlock);
     e::locking_iterable_fifo<log_entry>::iterator it = m_log.iterate();
 
-    for (size_t nf = 0; nf < 10000 && it.valid(); ++nf, it.next())
+    for (size_t nf = 0; nf < num && it.valid(); ++nf, it.next())
     {
-        bool deleted = false;
         const coordinate& coord = it->coord;
         const e::buffer& key = it->key;
+        bool del_needed = false;
+        size_t del_num = 0;
+        uint32_t del_offset = 0;
 
-        for (size_t i = 0; !deleted && i < m_shards->size(); ++i)
+        for (size_t i = 0; !del_needed && i < m_shards->size(); ++i)
         {
             if (!m_shards->get_coordinate(i).primary_intersects(coord))
             {
                 continue;
             }
 
-            switch (m_shards->get_shard(i)->del(coord.primary_hash, key))
+            returncode ret;
+            ret = m_shards->get_shard(i)->get(coord.primary_hash, key);
+
+            if (ret == SUCCESS)
+            {
+                del_needed = true;
+                del_num = i;
+            }
+            else if (ret == NOTFOUND)
+            {
+            }
+            else
+            {
+                assert(false);
+            }
+        }
+
+        bool put_succeeded = false;
+        size_t put_num = 0;
+        uint32_t put_offset = 0;
+
+        if (coord.secondary_mask == UINT32_MAX)
+        {
+            const std::vector<e::buffer>& value = it->value;
+            const uint64_t version = it->version;
+
+            for (ssize_t i = m_shards->size() - 1; !put_succeeded && i >= 0; --i)
+            {
+                if (!m_shards->get_coordinate(i).intersects(coord))
+                {
+                    continue;
+                }
+
+                returncode ret;
+                ret = m_shards->get_shard(i)->put(coord.primary_hash, coord.secondary_hash,
+                                                  key, value, version, &put_offset);
+
+                if (ret == SUCCESS)
+                {
+                    put_succeeded = true;
+                    put_num = i;
+                }
+                else if (ret == DATAFULL || ret == SEARCHFULL)
+                {
+                    m_needs_io = i;
+                    flush_status = ret;
+                    break;
+                }
+                else
+                {
+                    assert(false);
+                }
+            }
+
+            if (!put_succeeded)
+            {
+                break;
+            }
+        }
+
+        if (del_needed && del_num != put_num)
+        {
+            switch (m_shards->get_shard(del_num)->del(coord.primary_hash, key, &del_offset))
             {
                 case SUCCESS:
-                    deleted = true;
                     break;
                 case NOTFOUND:
-                    break;
                 case DATAFULL:
                 case WRONGARITY:
                 case SEARCHFULL:
@@ -270,46 +329,15 @@ hyperdisk :: disk :: flush()
             }
         }
 
-        if (coord.secondary_mask == UINT32_MAX)
-        {
-            bool inserted = false;
-            const std::vector<e::buffer>& value = it->value;
-            const uint64_t version = it->version;
-
-            // We must start at the end and work backwards.
-            for (ssize_t i = m_shards->size() - 1; !inserted && i >= 0; --i)
-            {
-                if (!m_shards->get_coordinate(i).intersects(coord))
-                {
-                    continue;
-                }
-
-                switch (m_shards->get_shard(i)->put(coord.primary_hash, coord.secondary_hash,
-                                                    key, value, version))
-                {
-                    case SUCCESS:
-                        inserted = true;
-                        break;
-                    case DATAFULL:
-                    case SEARCHFULL:
-                        return deal_with_full_shard(i);
-                    case MISSINGDISK:
-                    case NOTFOUND:
-                    case WRONGARITY:
-                    case SYNCFAILED:
-                    case DROPFAILED:
-                    case SPLITFAILED:
-                    case FLUSHNONE:
-                    default:
-                        assert(!"Programming error.");
-                }
-            }
-        }
-
         flushed = true;
     }
 
     m_log.advance_to(it);
+
+    if (flush_status != SUCCESS)
+    {
+        return flush_status;
+    }
 
     if (flushed)
     {
@@ -319,6 +347,22 @@ hyperdisk :: disk :: flush()
     {
         return FLUSHNONE;
     }
+}
+
+hyperdisk::returncode
+hyperdisk :: disk :: do_mandatory_io()
+{
+    po6::threads::mutex::hold hold(&m_shards_mutate);
+
+    if (m_needs_io != static_cast<size_t>(-1))
+    {
+        assert(m_needs_io <= m_shards->size());
+        size_t needs_io = m_needs_io;
+        m_needs_io = -1;
+        return deal_with_full_shard(needs_io);
+    }
+
+    return SUCCESS;
 }
 
 hyperdisk::returncode
@@ -454,6 +498,7 @@ hyperdisk :: disk :: disk(const po6::pathname& directory,
     , m_spare_shards_lock()
     , m_spare_shards()
     , m_spare_shard_counter(0)
+    , m_needs_io(-1)
 {
     if (mkdir(directory.get(), S_IRWXU) < 0 && errno != EEXIST)
     {

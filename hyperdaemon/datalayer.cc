@@ -236,7 +236,7 @@ hyperdaemon :: datalayer :: trickle(const regionid& ri)
 
     if (r)
     {
-        r->flush();
+        r->flush(1000);
     }
 }
 
@@ -332,39 +332,28 @@ hyperdaemon :: datalayer :: flush_loop()
                 (*i)->preallocate();
             }
 
-            switch ((*i)->flush())
+            hyperdisk::returncode ret = (*i)->flush(-1);
+
+            if (ret == hyperdisk::SUCCESS)
             {
-                case hyperdisk::SUCCESS:
-                    sleep = false;
-                    break;
-                case hyperdisk::FLUSHNONE:
-                    break;
-                case hyperdisk::DATAFULL:
-                    LOG(INFO) << "flush returned DATAFULL";
-                    break;
-                case hyperdisk::SEARCHFULL:
-                    LOG(INFO) << "flush returned SEARCHFULL";
-                    break;
-                case hyperdisk::MISSINGDISK:
-                    LOG(INFO) << "flush returned MISSINGDISK";
-                    break;
-                case hyperdisk::NOTFOUND:
-                    LOG(INFO) << "flush returned NOTFOUND";
-                    break;
-                case hyperdisk::WRONGARITY:
-                    LOG(INFO) << "flush returned WRONGARITY";
-                    break;
-                case hyperdisk::SYNCFAILED:
-                    PLOG(INFO) << "flush returned SYNCFAILED";
-                    break;
-                case hyperdisk::DROPFAILED:
-                    PLOG(INFO) << "flush returned DROPFAILED";
-                    break;
-                case hyperdisk::SPLITFAILED:
-                    PLOG(INFO) << "flush returned SPLITFAILED";
-                    break;
-                default:
-                    assert(!"Programming error.");
+                sleep == false;
+            }
+            else if (ret == hyperdisk::FLUSHNONE)
+            {
+            }
+            else if (ret == hyperdisk::DATAFULL || ret == hyperdisk::SEARCHFULL)
+            {
+                hyperdisk::returncode ioret;
+                ioret = (*i)->do_mandatory_io();
+
+                if (ioret != hyperdisk::SUCCESS)
+                {
+                    PLOG(ERROR) << "Disk I/O returned " << ioret;
+                }
+            }
+            else
+            {
+                PLOG(ERROR) << "Disk flush returned " << ret;
             }
         }
 

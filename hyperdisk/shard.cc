@@ -184,7 +184,8 @@ hyperdisk :: shard :: put(uint32_t primary_hash,
                           uint32_t secondary_hash,
                           const e::buffer& key,
                           const std::vector<e::buffer>& value,
-                          uint64_t version)
+                          uint64_t version,
+                          uint32_t* cached)
 {
     if (data_size(key, value) + m_data_offset > FILE_SIZE)
     {
@@ -257,7 +258,8 @@ hyperdisk :: shard :: put(uint32_t primary_hash,
 
 hyperdisk::returncode
 hyperdisk :: shard :: del(uint32_t primary_hash,
-                          const e::buffer& key)
+                          const e::buffer& key,
+                          uint32_t* cached)
 {
     size_t table_entry;
     uint64_t table_value;

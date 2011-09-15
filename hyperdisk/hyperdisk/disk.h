@@ -98,8 +98,14 @@ class disk
         // operation incurs disk I/O in proportion to the amount of backed-up
         // data in the write-ahead log.  It does not immediately flush data to
         // the underlying hard disk, instead letting the OS do so at its own
-        // convenience.
-        returncode flush();
+        // convenience.  It will flush at most 'num' items to the underlying
+        // disk.  This will not split underlying shards which need to be split
+        // to make more space.  If this returns a *FULL error, then you must
+        // call either 'do_mandatory_io' or 'do_optimistic_io'.
+        returncode flush(size_t num);
+        // Do only the amount of shard-splitting necessary to split shards which
+        // are 100% used.
+        returncode do_mandatory_io();
         // Preallocate shards to ease the hit we would take from the large
         // amount of disk I/O at once.
         returncode preallocate();
@@ -153,6 +159,7 @@ class disk
         po6::threads::mutex m_spare_shards_lock;
         std::queue<std::pair<po6::pathname, e::intrusive_ptr<shard> > > m_spare_shards;
         size_t m_spare_shard_counter;
+        size_t m_needs_io;
 };
 
 } // namespace hyperdisk
