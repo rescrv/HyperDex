@@ -106,6 +106,8 @@ class disk
         // Do only the amount of shard-splitting necessary to split shards which
         // are 100% used.
         returncode do_mandatory_io();
+        // Possibly split one shard if our disk is getting full.
+        returncode do_optimistic_io();
         // Preallocate shards to ease the hit we would take from the large
         // amount of disk I/O at once.
         returncode preallocate();
@@ -160,6 +162,7 @@ class disk
         std::queue<std::pair<po6::pathname, e::intrusive_ptr<shard> > > m_spare_shards;
         size_t m_spare_shard_counter;
         size_t m_needs_io;
+        unsigned int m_seed;
 };
 
 } // namespace hyperdisk

@@ -29,6 +29,7 @@
 
 // C
 #include <cstdio>
+#include <cmath>
 
 // POSIX
 #include <sys/stat.h>
@@ -366,6 +367,50 @@ hyperdisk :: disk :: do_mandatory_io()
 }
 
 hyperdisk::returncode
+hyperdisk :: disk :: do_optimistic_io()
+{
+    e::intrusive_ptr<shard_vector> shards;
+
+    {
+        po6::threads::mutex::hold b(&m_shards_lock);
+        shards = m_shards;
+    }
+
+    size_t most_loaded = 0;
+    int most_loaded_amt = 0;
+    uint64_t used = 0;
+    uint64_t capacity = 0;
+
+    for (size_t i = 0; i < shards->size(); ++i)
+    {
+        int loaded = shards->get_shard(i)->used_space();
+
+        if (loaded > most_loaded_amt)
+        {
+            most_loaded = i;
+            most_loaded_amt = loaded;
+        }
+
+        used += loaded;
+        capacity += 100;
+    }
+
+    if (capacity)
+    {
+        double flip = static_cast<double>(rand_r(&m_seed)) / static_cast<double>(RAND_MAX);
+        double thresh = 1 / pow(1.01, 100 - used);
+        po6::threads::mutex::hold holdm(&m_shards_mutate);
+
+        if (shards == m_shards && flip < thresh && most_loaded_amt >= 75)
+        {
+            return deal_with_full_shard(most_loaded);
+        }
+    }
+
+    return DIDNOTHING;
+}
+
+hyperdisk::returncode
 hyperdisk :: disk :: preallocate()
 {
     {
@@ -499,6 +544,7 @@ hyperdisk :: disk :: disk(const po6::pathname& directory,
     , m_spare_shards()
     , m_spare_shard_counter(0)
     , m_needs_io(-1)
+    , m_seed(0)
 {
     if (mkdir(directory.get(), S_IRWXU) < 0 && errno != EEXIST)
     {
