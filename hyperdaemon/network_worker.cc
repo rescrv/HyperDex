@@ -252,7 +252,7 @@ hyperdaemon :: network_worker :: run()
             {
                 ++count;
 
-                if (count % 100000 == 0)
+                if (count % 10000 == 0)
                 {
                     m_data->trickle(to.get_region());
                 }
