@@ -94,7 +94,7 @@ class hasher
 
     private:
         const e::bitfield m_dims;
-        const std::vector<hash_t> m_funcs;
+        std::vector<uint64_t (*)(const e::buffer&)> m_funcs;
 };
 
 } // namespace prefix

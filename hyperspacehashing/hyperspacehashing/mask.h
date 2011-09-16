@@ -103,7 +103,7 @@ class hasher
         search_coordinate hash(const search& s) const;
 
     private:
-        const std::vector<hash_t> m_funcs;
+        std::vector<uint64_t (*)(const e::buffer&)> m_funcs;
 };
 
 std::ostream&

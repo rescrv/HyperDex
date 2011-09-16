@@ -263,7 +263,7 @@ TEST(ShardTest, CopyFromFull)
     po6::io::fd cwd(AT_FDCWD);
     e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create(cwd, "tmp-disk");
     e::guard g = e::makeguard(::unlink, "tmp-disk");
-    hyperspacehashing::mask::hasher h(std::vector<hyperspacehashing::hash_t>(2, hyperspacehashing::city));
+    hyperspacehashing::mask::hasher h(std::vector<hyperspacehashing::hash_t>(2, hyperspacehashing::CITYHASH));
     std::vector<e::buffer> value(1);
     value[0].pack() << e::buffer::padding(998);
 

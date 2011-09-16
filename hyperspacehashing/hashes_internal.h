@@ -25,73 +25,26 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// POSIX
-#include <endian.h>
+#ifndef hyperspacehashing_hashes_internal_h_
+#define hyperspacehashing_hashes_internal_h_
 
 // STL
-#include <algorithm>
+#include <vector>
 
-// Google CityHash
-#include <city.h>
+// e
+#include <e/buffer.h>
 
 // HyperspaceHashing
-#include "hashes_internal.h"
 #include "hyperspacehashing/hashes.h"
 
 namespace hyperspacehashing
 {
 
-uint64_t
-cityhash(const e::buffer& buf);
-uint64_t
-lendian(const e::buffer& buf);
-uint64_t
-bendian(const e::buffer& buf);
+typedef uint64_t (*hash_func)(const e::buffer& buf);
+
+void
+convert(const std::vector<hash_t>& in, std::vector<hash_func>* out);
 
 } // namespace hyperspacehashing
 
-uint64_t
-hyperspacehashing :: cityhash(const e::buffer& buf)
-{
-    return CityHash64(static_cast<const char*>(buf.get()), buf.size());
-}
-
-uint64_t
-hyperspacehashing :: lendian(const e::buffer& buf)
-{
-    uint64_t ret = 0;
-    memmove(&ret, buf.get(), std::min(buf.size(), sizeof(ret)));
-    return le64toh(ret);
-}
-
-uint64_t
-hyperspacehashing :: bendian(const e::buffer& buf)
-{
-    uint64_t ret = 0;
-    memmove(&ret, buf.get(), std::min(buf.size(), sizeof(ret)));
-    return be64toh(ret);
-}
-
-void
-hyperspacehashing :: convert(const std::vector<hash_t>& in, std::vector<hash_func>* out)
-{
-    out->resize(in.size());
-
-    for (size_t i = 0; i < in.size(); ++i)
-    {
-        switch (in[i])
-        {
-            case CITYHASH:
-                (*out)[i] = cityhash;
-                break;
-            case LENDIAN:
-                (*out)[i] = lendian;
-                break;
-            case BENDIAN:
-                (*out)[i] = bendian;
-                break;
-            default:
-                assert(false);
-        }
-    }
-}
+#endif // hyperspacehashing_hashes_internal_h_

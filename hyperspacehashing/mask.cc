@@ -29,6 +29,7 @@
 
 // HyperspaceHashing
 #include "bithacks.h"
+#include "hashes_internal.h"
 #include "hyperspacehashing/mask.h"
 
 hyperspacehashing :: mask :: coordinate :: coordinate()
@@ -132,8 +133,9 @@ hyperspacehashing :: mask :: search_coordinate :: search_coordinate(const search
 }
 
 hyperspacehashing :: mask :: hasher :: hasher(const std::vector<hash_t> funcs)
-    : m_funcs(funcs)
+    : m_funcs()
 {
+    convert(funcs, &m_funcs);
     assert(m_funcs.size() >= 1);
 }
 

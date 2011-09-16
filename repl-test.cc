@@ -46,9 +46,6 @@
 #include <memory>
 #include <string>
 
-// Google CityHash
-#include <city.h>
-
 // po6
 #include <po6/net/ipaddr.h>
 #include <po6/net/location.h>
@@ -244,7 +241,7 @@ find_hashes()
 
     e::bitfield dims(1);
     dims.set(0);
-    std::vector<hyperspacehashing::hash_t> hashes(1, hyperspacehashing::city);
+    std::vector<hyperspacehashing::hash_t> hashes(1, hyperspacehashing::CITYHASH);
     hyperspacehashing::prefix::hasher hasher(dims, hashes);
 
     for (uint32_t value = 0; complete < 256; ++value)

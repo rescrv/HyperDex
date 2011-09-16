@@ -28,17 +28,15 @@
 #ifndef hyperspacehashing_hashes_h_
 #define hyperspacehashing_hashes_h_
 
-// e
-#include <e/buffer.h>
-
 namespace hyperspacehashing
 {
 
-typedef uint64_t (*hash_t)(const e::buffer& buf);
-
-uint64_t city(const e::buffer& buf);
-uint64_t lendian(const e::buffer& buf);
-uint64_t bendian(const e::buffer& buf);
+enum hash_t
+{
+    CITYHASH,
+    LENDIAN,
+    BENDIAN
+};
 
 } // namespace hyperspacehashing
 

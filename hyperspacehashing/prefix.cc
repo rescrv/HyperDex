@@ -29,6 +29,7 @@
 
 // HyperspaceHashing
 #include "bithacks.h"
+#include "hashes_internal.h"
 #include "hyperspacehashing/prefix.h"
 
 hyperspacehashing :: prefix :: coordinate :: coordinate()
@@ -93,8 +94,9 @@ hyperspacehashing :: prefix :: search_coordinate :: search_coordinate(uint64_t m
 hyperspacehashing :: prefix :: hasher :: hasher(const e::bitfield& dims,
                                                 const std::vector<hash_t> funcs)
     : m_dims(dims)
-    , m_funcs(funcs)
+    , m_funcs()
 {
+    convert(funcs, &m_funcs);
     assert(m_dims.bits() == m_funcs.size());
     assert(m_funcs.size() >= 1);
 }
