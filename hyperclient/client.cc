@@ -194,48 +194,6 @@ class client :: priv
         uint64_t searchid;
 };
 
-#if 0
-class client_impl : public hyperclient :: client
-{
-    public:
-        client_impl(po6::net::location coordinator);
-        virtual ~client_impl() throw ();
-
-    public:
-        virtual returncode connect();
-
-    public:
-        virtual void get(const std::string& space, const e::buffer& key,
-                         std::tr1::function<void (returncode, const std::vector<e::buffer>&)> callback);
-        virtual void put(const std::string& space, const e::buffer& key,
-                         const std::vector<e::buffer>& value,
-                         std::tr1::function<void (returncode)> callback);
-        virtual void del(const std::string& space, const e::buffer& key,
-                         std::tr1::function<void (returncode)> callback);
-        virtual void update(const std::string& space, const e::buffer& key,
-                            const std::map<std::string, e::buffer>& value,
-                            std::tr1::function<void (returncode)> callback);
-        virtual void search(const std::string& space,
-                            const std::map<std::string, e::buffer>& params,
-                            std::tr1::function<void (returncode,
-                                                     const e::buffer&,
-                                                     const std::vector<e::buffer>&)> callback);
-        virtual void search(const std::string& space,
-                            const std::map<std::string, e::buffer>& params,
-                            std::tr1::function<void (returncode,
-                                                     const e::buffer&,
-                                                     const std::vector<e::buffer>&)> callback,
-                            uint16_t subspace_hint);
-        virtual size_t outstanding();
-        virtual returncode flush(int timeout);
-        virtual returncode flush_one(int timeout);
-
-    public:
-
-    private:
-};
-#endif
-
 } // hyperclient
 
 hyperclient :: client :: priv :: priv(const po6::net::location& coordinator)
