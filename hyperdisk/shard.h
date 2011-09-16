@@ -131,7 +131,6 @@ class shard
         // May return SUCCESS or SYNCFAILED.  errno will be set to the reason
         // the sync failed.
         returncode sync();
-        e::intrusive_ptr<shard_snapshot> make_snapshot();
         // Copy all non-stale data from this shard to the other shard,
         // completely erasing all the data in the other shard.  Only
         // entries which match the coordinate will be kept.
@@ -139,6 +138,9 @@ class shard
         // Perform a logical integrity check of the shard.
         bool fsck();
         bool fsck(std::ostream& err);
+        // Create a snapshot of this shard.  The caller must ensure that the
+        // shard outlasts the snapshot.  This is really just for testing.
+        shard_snapshot make_snapshot();
 
     private:
         friend class e::intrusive_ptr<shard>;

@@ -34,6 +34,26 @@
 #include "shard.h"
 #include "shard_snapshot.h"
 
+hyperdisk :: shard_snapshot :: shard_snapshot(uint32_t offset, shard* s)
+    : m_shard(s)
+    , m_limit(offset)
+    , m_entry(0)
+    , m_valid(true)
+{
+}
+
+hyperdisk :: shard_snapshot :: shard_snapshot(const shard_snapshot& other)
+    : m_shard(other.m_shard)
+    , m_limit(other.m_limit)
+    , m_entry(other.m_entry)
+    , m_valid(other.m_valid)
+{
+}
+
+hyperdisk :: shard_snapshot :: ~shard_snapshot() throw ()
+{
+}
+
 bool
 hyperdisk :: shard_snapshot :: valid()
 {
@@ -141,15 +161,14 @@ hyperdisk :: shard_snapshot :: value()
     return v;
 }
 
-hyperdisk :: shard_snapshot :: shard_snapshot(e::intrusive_ptr<shard> d)
-    : m_ref(0)
-    , m_valid(true)
-    , m_shard(d)
-    , m_limit(d->m_data_offset)
-    , m_entry(0)
+hyperdisk::shard_snapshot&
+hyperdisk :: shard_snapshot :: operator = (const shard_snapshot& rhs)
 {
-}
-
-hyperdisk :: shard_snapshot :: ~shard_snapshot() throw ()
-{
+    if (this != &rhs)
+    {
+        m_shard = rhs.m_shard;
+        m_limit = rhs.m_limit;
+        m_entry = rhs.m_entry;
+        m_valid = rhs.m_valid;
+    }
 }

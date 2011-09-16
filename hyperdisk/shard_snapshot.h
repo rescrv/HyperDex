@@ -48,6 +48,11 @@ namespace hyperdisk
 class shard_snapshot
 {
     public:
+        shard_snapshot(uint32_t offset, shard* s);
+        shard_snapshot(const shard_snapshot& other);
+        ~shard_snapshot() throw ();
+
+    public:
         bool valid();
         void next();
 
@@ -59,24 +64,14 @@ class shard_snapshot
         e::buffer key();
         std::vector<e::buffer> value();
 
-    private:
-        friend class e::intrusive_ptr<shard_snapshot>;
-        friend class shard;
+    public:
+        shard_snapshot& operator = (const shard_snapshot& rhs);
 
     private:
-        shard_snapshot(e::intrusive_ptr<shard> d);
-        ~shard_snapshot() throw ();
-
-    private:
-        void inc() { __sync_add_and_fetch(&m_ref, 1); }
-        void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
-
-    private:
-        size_t m_ref;
-        bool m_valid;
-        e::intrusive_ptr<shard> m_shard;
-        const uint32_t m_limit;
+        shard* m_shard;
+        uint32_t m_limit;
         uint32_t m_entry;
+        bool m_valid;
 };
 
 } // namespace hyperdisk

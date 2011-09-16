@@ -217,7 +217,7 @@ hyperdaemon :: datalayer :: make_snapshot(const regionid& ri)
         return e::intrusive_ptr<hyperdisk::snapshot>();
     }
 
-    return r->make_snapshot();
+    return r->make_snapshot(hyperspacehashing::mask::coordinate());
 }
 
 e::intrusive_ptr<hyperdisk::rolling_snapshot>

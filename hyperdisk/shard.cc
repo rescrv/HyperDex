@@ -362,15 +362,6 @@ hyperdisk :: shard :: sync()
     return SUCCESS;
 }
 
-e::intrusive_ptr<hyperdisk::shard_snapshot>
-hyperdisk :: shard :: make_snapshot()
-{
-    e::intrusive_ptr<shard> d = this;
-    assert(m_ref >= 2); // LCOV_EXCL_LINE
-    e::intrusive_ptr<shard_snapshot> ret = new shard_snapshot(d);
-    return ret;
-}
-
 void
 hyperdisk :: shard :: copy_to(const coordinate& c, e::intrusive_ptr<shard> s)
 {
@@ -540,6 +531,12 @@ hyperdisk :: shard :: fsck(std::ostream& err)
     }
 
     return ret;
+}
+
+hyperdisk::shard_snapshot
+hyperdisk :: shard :: make_snapshot()
+{
+    return shard_snapshot(m_data_offset, this);
 }
 
 hyperdisk :: shard :: shard(po6::io::fd* fd)

@@ -172,9 +172,45 @@ hyperdisk :: disk :: del(const e::buffer& key)
 }
 
 e::intrusive_ptr<hyperdisk::snapshot>
-hyperdisk :: disk :: make_snapshot()
+hyperdisk :: disk :: make_snapshot(const coordinate& coord)
 {
-    assert(!"Not implemented."); // XXX
+    e::intrusive_ptr<shard_vector> shards;
+    e::locking_iterable_fifo<offset_update>::iterator it = m_offsets.iterate();
+
+    {
+        po6::threads::mutex::hold b(&m_shards_lock);
+        shards = m_shards;
+    }
+
+    std::vector<uint32_t> offsets(shards->size());
+
+    for (size_t i = 0; i < shards->size(); ++i)
+    {
+        offsets[i] = shards->get_offset(i);
+    }
+
+    for (; it.valid() && it->shard_generation <= shards->generation(); it.next())
+    {
+        if (it->shard_generation == shards->generation())
+        {
+            offsets[it->shard_num] = it->new_offset;
+        }
+    }
+
+    std::vector<hyperdisk::shard_snapshot> snaps;
+    snaps.reserve(shards->size());
+
+    for (size_t i = 0; i < shards->size(); ++i)
+    {
+        if (coord.intersects(shards->get_coordinate(i)))
+        {
+            snaps.push_back(shard_snapshot(offsets[i], shards->get_shard(i)));
+        }
+    }
+
+    e::intrusive_ptr<hyperdisk::snapshot> ret;
+    ret = new snapshot(shards, &snaps);
+    return ret;
 }
 
 e::intrusive_ptr<hyperdisk::rolling_snapshot>
@@ -820,7 +856,7 @@ hyperdisk :: disk :: split_shard(size_t shard_num)
 {
     coordinate c = m_shards->get_coordinate(shard_num);
     shard* s = m_shards->get_shard(shard_num);
-    e::intrusive_ptr<hyperdisk::shard_snapshot> snap = s->make_snapshot();
+    hyperdisk::shard_snapshot snap = s->make_snapshot();
 
     // Find which bit of the secondary hash is the best to split over.
     int zeros[32];
@@ -828,7 +864,7 @@ hyperdisk :: disk :: split_shard(size_t shard_num)
     memset(zeros, 0, sizeof(zeros));
     memset(ones, 0, sizeof(ones));
 
-    for (; snap->valid(); snap->next())
+    for (; snap.valid(); snap.next())
     {
         for (uint64_t i = 1, j = 0; i < UINT32_MAX; i <<= 1, ++j)
         {
@@ -837,7 +873,7 @@ hyperdisk :: disk :: split_shard(size_t shard_num)
                 continue;
             }
 
-            if (snap->secondary_hash() & i)
+            if (snap.secondary_hash() & i)
             {
                 ++ones[j];
             }
@@ -862,7 +898,7 @@ hyperdisk :: disk :: split_shard(size_t shard_num)
     memset(ones_lower, 0, sizeof(ones_lower));
     memset(ones_upper, 0, sizeof(ones_upper));
 
-    for (; snap->valid(); snap->next())
+    for (; snap.valid(); snap.next())
     {
         for (uint64_t i = 1, j = 0; i < UINT32_MAX; i <<= 1, ++j)
         {
@@ -871,9 +907,9 @@ hyperdisk :: disk :: split_shard(size_t shard_num)
                 continue;
             }
 
-            if (snap->secondary_hash() & secondary_bit)
+            if (snap.secondary_hash() & secondary_bit)
             {
-                if (snap->primary_hash() & i)
+                if (snap.primary_hash() & i)
                 {
                     ++ones_upper[j];
                 }
@@ -884,7 +920,7 @@ hyperdisk :: disk :: split_shard(size_t shard_num)
             }
             else
             {
-                if (snap->primary_hash() & i)
+                if (snap.primary_hash() & i)
                 {
                     ++ones_lower[j];
                 }

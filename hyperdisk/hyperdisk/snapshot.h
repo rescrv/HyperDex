@@ -44,6 +44,7 @@ namespace hyperdisk
 {
 class log_entry;
 class shard_snapshot;
+class shard_vector;
 }
 
 namespace hyperdisk
@@ -69,7 +70,8 @@ class snapshot
         friend class disk;
 
     private:
-        snapshot(std::vector<e::intrusive_ptr<hyperdisk::shard_snapshot> >* ss);
+        snapshot(e::intrusive_ptr<shard_vector> shards,
+                 std::vector<hyperdisk::shard_snapshot>* snaps);
         snapshot(const snapshot&);
         ~snapshot() throw ();
 
@@ -81,8 +83,9 @@ class snapshot
         snapshot& operator = (const snapshot&);
 
     private:
-        std::vector<e::intrusive_ptr<hyperdisk::shard_snapshot> > m_snaps;
         size_t m_ref;
+        e::intrusive_ptr<shard_vector> m_shards;
+        std::vector<hyperdisk::shard_snapshot> m_snaps;
 };
 
 // A rolling snapshot will replay the disks' log after iterating all shards.
@@ -107,7 +110,8 @@ class rolling_snapshot
         void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
 
     private:
-        rolling_snapshot(const e::locking_iterable_fifo<log_entry>::iterator& iter, e::intrusive_ptr<snapshot> snap);
+        rolling_snapshot(const e::locking_iterable_fifo<log_entry>::iterator& iter,
+                         const e::intrusive_ptr<snapshot>& snap);
         rolling_snapshot(const rolling_snapshot&);
         ~rolling_snapshot() throw ();
 
@@ -115,9 +119,9 @@ class rolling_snapshot
         rolling_snapshot& operator = (const rolling_snapshot&);
 
     private:
+        size_t m_ref;
         e::locking_iterable_fifo<log_entry>::iterator m_iter;
         e::intrusive_ptr<snapshot> m_snap;
-        size_t m_ref;
 };
 
 } // namespace hyperdisk

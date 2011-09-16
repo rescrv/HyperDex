@@ -31,10 +31,13 @@
 #include "hyperdisk/snapshot.h"
 #include "log_entry.h"
 #include "shard_snapshot.h"
+#include "shard_vector.h"
 
-hyperdisk :: snapshot :: snapshot(std::vector<e::intrusive_ptr<hyperdisk::shard_snapshot> >* ss)
-    : m_snaps()
-    , m_ref(0)
+hyperdisk :: snapshot :: snapshot(e::intrusive_ptr<shard_vector> shards,
+                                  std::vector<hyperdisk::shard_snapshot>* ss)
+    : m_ref(0)
+    , m_shards(shards)
+    , m_snaps()
 {
     m_snaps.swap(*ss);
 }
@@ -48,7 +51,7 @@ hyperdisk :: snapshot :: valid()
 {
     while (!m_snaps.empty())
     {
-        if (m_snaps.back()->valid())
+        if (m_snaps.back().valid())
         {
             return true;
         }
@@ -66,7 +69,7 @@ hyperdisk :: snapshot :: next()
 {
     if (!m_snaps.empty())
     {
-        m_snaps.back()->next();
+        m_snaps.back().next();
     }
 }
 
@@ -75,7 +78,7 @@ hyperdisk :: snapshot :: coordinate()
 {
     if (!m_snaps.empty())
     {
-        return m_snaps.back()->coordinate();
+        return m_snaps.back().coordinate();
     }
     else
     {
@@ -101,7 +104,7 @@ hyperdisk :: snapshot :: version()
 {
     if (!m_snaps.empty())
     {
-        return m_snaps.back()->version();
+        return m_snaps.back().version();
     }
     else
     {
@@ -114,7 +117,7 @@ hyperdisk :: snapshot :: key()
 {
     if (!m_snaps.empty())
     {
-        return m_snaps.back()->key();
+        return m_snaps.back().key();
     }
     else
     {
@@ -127,7 +130,7 @@ hyperdisk :: snapshot :: value()
 {
     if (!m_snaps.empty())
     {
-        return m_snaps.back()->value();
+        return m_snaps.back().value();
     }
     else
     {
@@ -136,10 +139,10 @@ hyperdisk :: snapshot :: value()
 }
 
 hyperdisk :: rolling_snapshot :: rolling_snapshot(const e::locking_iterable_fifo<log_entry>::iterator& iter,
-                                                  e::intrusive_ptr<snapshot> snap)
-    : m_iter(iter)
+                                                  const e::intrusive_ptr<snapshot>& snap)
+    : m_ref(0)
+    , m_iter(iter)
     , m_snap(snap)
-    , m_ref(0)
 {
     valid();
 }

@@ -281,49 +281,49 @@ TEST(ShardTest, CopyFromFull)
     e::intrusive_ptr<hyperdisk::shard> newd1 = hyperdisk::shard::create(cwd, "tmp-disk2");
     e::guard g1 = e::makeguard(::unlink, "tmp-disk2");
     d->copy_to(hyperspacehashing::mask::coordinate(0, 0, 0, 0), newd1);
-    e::intrusive_ptr<hyperdisk::shard_snapshot> dsnap = d->make_snapshot();
-    e::intrusive_ptr<hyperdisk::shard_snapshot> newd1snap = newd1->make_snapshot();
+    hyperdisk::shard_snapshot dsnap = d->make_snapshot();
+    hyperdisk::shard_snapshot newd1snap = newd1->make_snapshot();
 
     for (uint64_t i = 0; i < 32768; ++i)
     {
-        ASSERT_TRUE(dsnap->valid());
-        ASSERT_TRUE(newd1snap->valid());
-        ASSERT_EQ(dsnap->coordinate(), newd1snap->coordinate());
-        ASSERT_EQ(dsnap->version(), newd1snap->version());
-        ASSERT_TRUE(dsnap->key() == newd1snap->key());
-        ASSERT_TRUE(dsnap->value() == newd1snap->value());
-        dsnap->next();
-        newd1snap->next();
+        ASSERT_TRUE(dsnap.valid());
+        ASSERT_TRUE(newd1snap.valid());
+        ASSERT_EQ(dsnap.coordinate(), newd1snap.coordinate());
+        ASSERT_EQ(dsnap.version(), newd1snap.version());
+        ASSERT_TRUE(dsnap.key() == newd1snap.key());
+        ASSERT_TRUE(dsnap.value() == newd1snap.value());
+        dsnap.next();
+        newd1snap.next();
     }
 
-    ASSERT_FALSE(dsnap->valid());
-    ASSERT_FALSE(newd1snap->valid());
+    ASSERT_FALSE(dsnap.valid());
+    ASSERT_FALSE(newd1snap.valid());
 
     e::intrusive_ptr<hyperdisk::shard> newd2 = hyperdisk::shard::create(cwd, "tmp-disk3");
     e::guard g2 = e::makeguard(::unlink, "tmp-disk3");
     d->copy_to(hyperspacehashing::mask::coordinate(1, 1, 0, 0), newd2);
     dsnap = d->make_snapshot();
-    e::intrusive_ptr<hyperdisk::shard_snapshot> newd2snap = newd2->make_snapshot();
+    hyperdisk::shard_snapshot newd2snap = newd2->make_snapshot();
 
     for (uint64_t i = 0; i < 32768; ++i)
     {
-        ASSERT_TRUE(dsnap->valid());
+        ASSERT_TRUE(dsnap.valid());
 
-        if (dsnap->coordinate().intersects(hyperspacehashing::mask::coordinate(1, 1, 0, 0)))
+        if (dsnap.coordinate().intersects(hyperspacehashing::mask::coordinate(1, 1, 0, 0)))
         {
-            ASSERT_TRUE(newd2snap->valid());
-            ASSERT_EQ(dsnap->coordinate(), newd2snap->coordinate());
-            ASSERT_EQ(dsnap->version(), newd2snap->version());
-            ASSERT_TRUE(dsnap->key() == newd2snap->key());
-            ASSERT_TRUE(dsnap->value() == newd2snap->value());
-            newd2snap->next();
+            ASSERT_TRUE(newd2snap.valid());
+            ASSERT_EQ(dsnap.coordinate(), newd2snap.coordinate());
+            ASSERT_EQ(dsnap.version(), newd2snap.version());
+            ASSERT_TRUE(dsnap.key() == newd2snap.key());
+            ASSERT_TRUE(dsnap.value() == newd2snap.value());
+            newd2snap.next();
         }
 
-        dsnap->next();
+        dsnap.next();
     }
 
-    ASSERT_FALSE(dsnap->valid());
-    ASSERT_FALSE(newd2snap->valid());
+    ASSERT_FALSE(dsnap.valid());
+    ASSERT_FALSE(newd2snap.valid());
 
     ASSERT_TRUE(d->fsck());
     ASSERT_TRUE(newd1->fsck());
@@ -381,9 +381,9 @@ TEST(ShardTest, Snapshot)
     bool valid = true;
 
     // Snapshot empty disk.
-    e::intrusive_ptr<hyperdisk::shard_snapshot> s1a = d->make_snapshot();
-    e::intrusive_ptr<hyperdisk::shard_snapshot> s1b = d->make_snapshot();
-    EXPECT_FALSE(s1a->valid());
+    hyperdisk::shard_snapshot s1a = d->make_snapshot();
+    hyperdisk::shard_snapshot s1b = d->make_snapshot();
+    EXPECT_FALSE(s1a.valid());
 
     // Put one element and snaphot the disk.
 	const e::buffer key("key", 3);
@@ -391,26 +391,26 @@ TEST(ShardTest, Snapshot)
     const std::vector<e::buffer> value;
     const uint64_t version = 0xdeadbeefcafebabe;
     ASSERT_EQ(hyperdisk::SUCCESS, d->put(primary_hash, 0, key, value, version));
-    e::intrusive_ptr<hyperdisk::shard_snapshot> s2a = d->make_snapshot();
-    e::intrusive_ptr<hyperdisk::shard_snapshot> s2b = d->make_snapshot();
+    hyperdisk::shard_snapshot s2a = d->make_snapshot();
+    hyperdisk::shard_snapshot s2b = d->make_snapshot();
 
     for (int i = 0; i < 1000000; ++i)
     {
-        valid &= s2a->valid();
+        valid &= s2a.valid();
     }
 
     ASSERT_TRUE(valid);
-    EXPECT_EQ(primary_hash, s2a->primary_hash());
-    EXPECT_EQ(0, s2a->secondary_hash());
-    EXPECT_EQ(version, s2a->version());
-    EXPECT_TRUE(s2a->key() == key);
-    EXPECT_TRUE(s2a->value() == value);
-    s2a->next();
+    EXPECT_EQ(primary_hash, s2a.primary_hash());
+    EXPECT_EQ(0, s2a.secondary_hash());
+    EXPECT_EQ(version, s2a.version());
+    EXPECT_TRUE(s2a.key() == key);
+    EXPECT_TRUE(s2a.value() == value);
+    s2a.next();
     valid = false;
 
     for (int i = 0; i < 1000000; ++i)
     {
-        valid |= s2a->valid();
+        valid |= s2a.valid();
     }
 
     EXPECT_FALSE(valid);
@@ -419,22 +419,22 @@ TEST(ShardTest, Snapshot)
     const std::vector<e::buffer> value2(1, e::buffer("value", 5));
     const uint64_t version2 = 0xcafebabedeadbeef;
     ASSERT_EQ(hyperdisk::SUCCESS, d->put(primary_hash, 0x2462bca6UL, key, value2, version2));
-    e::intrusive_ptr<hyperdisk::shard_snapshot> s3a = d->make_snapshot();
-    e::intrusive_ptr<hyperdisk::shard_snapshot> s3b = d->make_snapshot();
-    ASSERT_TRUE(s3a->valid());
-    EXPECT_EQ(primary_hash, s3a->primary_hash());
-    EXPECT_EQ(0x2462bca6UL, s3a->secondary_hash());
-    EXPECT_EQ(version2, s3a->version());
-    EXPECT_TRUE(s3a->key() == key);
-    EXPECT_TRUE(s3a->value() == value2);
-    s3a->next();
-    EXPECT_FALSE(s3a->valid());
+    hyperdisk::shard_snapshot s3a = d->make_snapshot();
+    hyperdisk::shard_snapshot s3b = d->make_snapshot();
+    ASSERT_TRUE(s3a.valid());
+    EXPECT_EQ(primary_hash, s3a.primary_hash());
+    EXPECT_EQ(0x2462bca6UL, s3a.secondary_hash());
+    EXPECT_EQ(version2, s3a.version());
+    EXPECT_TRUE(s3a.key() == key);
+    EXPECT_TRUE(s3a.value() == value2);
+    s3a.next();
+    EXPECT_FALSE(s3a.valid());
 
     // Delete that value.
     EXPECT_EQ(hyperdisk::SUCCESS, d->del(primary_hash, key));
-    e::intrusive_ptr<hyperdisk::shard_snapshot> s4a = d->make_snapshot();
-    e::intrusive_ptr<hyperdisk::shard_snapshot> s4b = d->make_snapshot();
-    EXPECT_FALSE(s4a->valid());
+    hyperdisk::shard_snapshot s4a = d->make_snapshot();
+    hyperdisk::shard_snapshot s4b = d->make_snapshot();
+    EXPECT_FALSE(s4a.valid());
 
     // Perform back-to-back PUTs.
     const e::buffer b2b_key1("one", 3);
@@ -445,63 +445,63 @@ TEST(ShardTest, Snapshot)
     const std::vector<e::buffer> b2b_value2(2, e::buffer("value-2", 7));
     ASSERT_EQ(hyperdisk::SUCCESS, d->put(0xb5e57068UL, 0x303c3c33UL, b2b_key1, b2b_value1, b2b_version1));
     ASSERT_EQ(hyperdisk::SUCCESS, d->put(0xa3a81e5fUL, 0xf3f333UL, b2b_key2, b2b_value2, b2b_version2));
-    e::intrusive_ptr<hyperdisk::shard_snapshot> s5a = d->make_snapshot();
-    e::intrusive_ptr<hyperdisk::shard_snapshot> s5b = d->make_snapshot();
-    ASSERT_TRUE(s5a->valid());
-    EXPECT_EQ(0xb5e57068UL, s5a->primary_hash());
-    EXPECT_EQ(0x303c3c33UL, s5a->secondary_hash());
-    EXPECT_EQ(b2b_version1, s5a->version());
-    EXPECT_TRUE(s5a->key() == b2b_key1);
-    EXPECT_TRUE(s5a->value() == b2b_value1);
-    s5a->next();
-    ASSERT_TRUE(s5a->valid());
-    EXPECT_EQ(0xa3a81e5fUL, s5a->primary_hash());
-    EXPECT_EQ(0xf3f333UL, s5a->secondary_hash());
-    EXPECT_EQ(b2b_version2, s5a->version());
-    EXPECT_TRUE(s5a->key() == b2b_key2);
-    EXPECT_TRUE(s5a->value() == b2b_value2);
-    s5a->next();
-    EXPECT_FALSE(s5a->valid());
+    hyperdisk::shard_snapshot s5a = d->make_snapshot();
+    hyperdisk::shard_snapshot s5b = d->make_snapshot();
+    ASSERT_TRUE(s5a.valid());
+    EXPECT_EQ(0xb5e57068UL, s5a.primary_hash());
+    EXPECT_EQ(0x303c3c33UL, s5a.secondary_hash());
+    EXPECT_EQ(b2b_version1, s5a.version());
+    EXPECT_TRUE(s5a.key() == b2b_key1);
+    EXPECT_TRUE(s5a.value() == b2b_value1);
+    s5a.next();
+    ASSERT_TRUE(s5a.valid());
+    EXPECT_EQ(0xa3a81e5fUL, s5a.primary_hash());
+    EXPECT_EQ(0xf3f333UL, s5a.secondary_hash());
+    EXPECT_EQ(b2b_version2, s5a.version());
+    EXPECT_TRUE(s5a.key() == b2b_key2);
+    EXPECT_TRUE(s5a.value() == b2b_value2);
+    s5a.next();
+    EXPECT_FALSE(s5a.valid());
 
     // Check snapshots again after other activity.
     // ---
-    EXPECT_FALSE(s1b->valid());
+    EXPECT_FALSE(s1b.valid());
     // ---
-    ASSERT_TRUE(s2b->valid());
-    EXPECT_EQ(primary_hash, s2b->primary_hash());
-    EXPECT_EQ(0, s2b->secondary_hash());
-    EXPECT_EQ(version, s2b->version());
-    EXPECT_TRUE(s2b->key() == key);
-    EXPECT_TRUE(s2b->value() == value);
-    s2b->next();
-    EXPECT_FALSE(s2b->valid());
+    ASSERT_TRUE(s2b.valid());
+    EXPECT_EQ(primary_hash, s2b.primary_hash());
+    EXPECT_EQ(0, s2b.secondary_hash());
+    EXPECT_EQ(version, s2b.version());
+    EXPECT_TRUE(s2b.key() == key);
+    EXPECT_TRUE(s2b.value() == value);
+    s2b.next();
+    EXPECT_FALSE(s2b.valid());
     // ---
-    ASSERT_TRUE(s3b->valid());
-    EXPECT_EQ(primary_hash, s3b->primary_hash());
-    EXPECT_EQ(0x2462bca6UL, s3b->secondary_hash());
-    EXPECT_EQ(s3b->version(), version2);
-    EXPECT_TRUE(s3b->key() == key);
-    EXPECT_TRUE(s3b->value() == value2);
-    s3b->next();
-    EXPECT_FALSE(s3b->valid());
+    ASSERT_TRUE(s3b.valid());
+    EXPECT_EQ(primary_hash, s3b.primary_hash());
+    EXPECT_EQ(0x2462bca6UL, s3b.secondary_hash());
+    EXPECT_EQ(s3b.version(), version2);
+    EXPECT_TRUE(s3b.key() == key);
+    EXPECT_TRUE(s3b.value() == value2);
+    s3b.next();
+    EXPECT_FALSE(s3b.valid());
     // ---
-    EXPECT_FALSE(s4b->valid());
+    EXPECT_FALSE(s4b.valid());
     // ---
-    ASSERT_TRUE(s5b->valid());
-    EXPECT_EQ(0xb5e57068UL, s5b->primary_hash());
-    EXPECT_EQ(0x303c3c33UL, s5b->secondary_hash());
-    EXPECT_EQ(b2b_version1, s5b->version());
-    EXPECT_TRUE(s5b->key() == b2b_key1);
-    EXPECT_TRUE(s5b->value() == b2b_value1);
-    s5b->next();
-    ASSERT_TRUE(s5b->valid());
-    EXPECT_EQ(0xa3a81e5fUL, s5b->primary_hash());
-    EXPECT_EQ(0xf3f333UL, s5b->secondary_hash());
-    EXPECT_EQ(b2b_version2, s5b->version());
-    EXPECT_TRUE(s5b->key() == b2b_key2);
-    EXPECT_TRUE(s5b->value() == b2b_value2);
-    s5b->next();
-    EXPECT_FALSE(s5b->valid());
+    ASSERT_TRUE(s5b.valid());
+    EXPECT_EQ(0xb5e57068UL, s5b.primary_hash());
+    EXPECT_EQ(0x303c3c33UL, s5b.secondary_hash());
+    EXPECT_EQ(b2b_version1, s5b.version());
+    EXPECT_TRUE(s5b.key() == b2b_key1);
+    EXPECT_TRUE(s5b.value() == b2b_value1);
+    s5b.next();
+    ASSERT_TRUE(s5b.valid());
+    EXPECT_EQ(0xa3a81e5fUL, s5b.primary_hash());
+    EXPECT_EQ(0xf3f333UL, s5b.secondary_hash());
+    EXPECT_EQ(b2b_version2, s5b.version());
+    EXPECT_TRUE(s5b.key() == b2b_key2);
+    EXPECT_TRUE(s5b.value() == b2b_value2);
+    s5b.next();
+    EXPECT_FALSE(s5b.valid());
 }
 
 } // namespace
