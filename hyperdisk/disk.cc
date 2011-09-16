@@ -172,8 +172,9 @@ hyperdisk :: disk :: del(const e::buffer& key)
 }
 
 e::intrusive_ptr<hyperdisk::snapshot>
-hyperdisk :: disk :: make_snapshot(const coordinate& coord)
+hyperdisk :: disk :: make_snapshot(const hyperspacehashing::search& terms)
 {
+    hyperspacehashing::mask::search_coordinate coord(m_hasher.hash(terms));
     e::intrusive_ptr<shard_vector> shards;
     e::locking_iterable_fifo<offset_update>::iterator it = m_offsets.iterate();
 
@@ -202,7 +203,7 @@ hyperdisk :: disk :: make_snapshot(const coordinate& coord)
 
     for (size_t i = 0; i < shards->size(); ++i)
     {
-        if (coord.intersects(shards->get_coordinate(i)))
+        if (coord.matches(shards->get_coordinate(i)))
         {
             snaps.push_back(shard_snapshot(offsets[i], shards->get_shard(i)));
         }

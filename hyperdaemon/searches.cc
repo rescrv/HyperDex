@@ -91,10 +91,9 @@ hyperdaemon :: searches :: start(const hyperdex::entityid& client,
         return;
     }
 
-    // XXX Make a snapshot derived from the search query.
     hyperspacehashing::mask::hasher hasher(m_config.disk_hasher(region.get_subspace()));
     hyperspacehashing::mask::search_coordinate coord(hasher.hash(terms));
-    e::intrusive_ptr<hyperdisk::snapshot> snap = m_data->make_snapshot(region);
+    e::intrusive_ptr<hyperdisk::snapshot> snap = m_data->make_snapshot(region, terms);
     e::intrusive_ptr<search_state> state = new search_state(region, coord, snap);
     m_searches.insert(key, state);
     next(client, searchid, nonce);

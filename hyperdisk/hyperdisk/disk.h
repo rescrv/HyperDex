@@ -84,7 +84,7 @@ class disk
         returncode del(const e::buffer& key);
         // Create a snapshot of the disk.  The snapshot will contain the result
         // after applying a prefix of the execution history of the disk.
-        e::intrusive_ptr<snapshot> make_snapshot(const hyperspacehashing::mask::coordinate& coord);
+        e::intrusive_ptr<snapshot> make_snapshot(const hyperspacehashing::search& terms);
         // Create a snapshot of the disk.  This will return every result that
         // will be returned by make_snapshot(), but will then continue to return
         // any execution history past the point at which the snapshot was taken.

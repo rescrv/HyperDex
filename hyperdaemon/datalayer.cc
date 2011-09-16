@@ -208,7 +208,8 @@ hyperdaemon :: datalayer :: shutdown()
 }
 
 e::intrusive_ptr<hyperdisk::snapshot>
-hyperdaemon :: datalayer :: make_snapshot(const regionid& ri)
+hyperdaemon :: datalayer :: make_snapshot(const regionid& ri,
+                                          const hyperspacehashing::search& terms)
 {
     e::intrusive_ptr<hyperdisk::disk> r = get_region(ri);
 
@@ -217,7 +218,7 @@ hyperdaemon :: datalayer :: make_snapshot(const regionid& ri)
         return e::intrusive_ptr<hyperdisk::snapshot>();
     }
 
-    return r->make_snapshot(hyperspacehashing::mask::coordinate());
+    return r->make_snapshot(terms);
 }
 
 e::intrusive_ptr<hyperdisk::rolling_snapshot>
