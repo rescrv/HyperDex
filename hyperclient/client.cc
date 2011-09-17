@@ -442,12 +442,36 @@ hyperclient :: client :: search(const std::string& space,
                                                          const e::buffer&,
                                                          const std::vector<e::buffer>&)> callback)
 {
-    search(space, params, callback, UINT16_MAX);
+    std::map<std::string, std::pair<uint64_t, uint64_t> > range;
+    search(space, params, range, callback, UINT16_MAX);
 }
 
 void
 hyperclient :: client :: search(const std::string& space,
-                                const std::map<std::string, e::buffer>& params,
+                                const std::map<std::string, std::pair<uint64_t, uint64_t> >& params,
+                                std::tr1::function<void (returncode,
+                                                         const e::buffer&,
+                                                         const std::vector<e::buffer>&)> callback)
+{
+    std::map<std::string, e::buffer> equality;
+    search(space, equality, params, callback, UINT16_MAX);
+}
+
+void
+hyperclient :: client :: search(const std::string& space,
+                                const std::map<std::string, e::buffer>& equality,
+                                const std::map<std::string, std::pair<uint64_t, uint64_t> >& range,
+                                std::tr1::function<void (returncode,
+                                                         const e::buffer&,
+                                                         const std::vector<e::buffer>&)> callback)
+{
+    return search(space, equality, range, callback, UINT16_MAX);
+}
+
+void
+hyperclient :: client :: search(const std::string& space,
+                                const std::map<std::string, e::buffer>& equality,
+                                const std::map<std::string, std::pair<uint64_t, uint64_t> >& range,
                                 std::tr1::function<void (returncode,
                                                          const e::buffer&,
                                                          const std::vector<e::buffer>&)> callback,
@@ -465,14 +489,15 @@ hyperclient :: client :: search(const std::string& space,
         return;
     }
 
+    std::set<std::string> specified_dimensions;
     std::vector<std::string> dimension_names = p->config.lookup_space_dimensions(si);
     assert(dimension_names.size() > 0);
 
     // Create a search object from the search terms.
     hyperspacehashing::search s(dimension_names.size());
 
-    for (std::map<std::string, e::buffer>::const_iterator param = params.begin();
-            param != params.end(); ++param)
+    for (std::map<std::string, e::buffer>::const_iterator param = equality.begin();
+            param != equality.end(); ++param)
     {
         std::vector<std::string>::const_iterator dim;
         dim = std::find(dimension_names.begin(), dimension_names.end(), param->first);
@@ -483,7 +508,29 @@ hyperclient :: client :: search(const std::string& space,
             return;
         }
 
+        specified_dimensions.insert(param->first);
         s.equality_set((dim - dimension_names.begin()), param->second);
+    }
+
+    for (std::map<std::string, std::pair<uint64_t, uint64_t> >::const_iterator param = range.begin();
+            param != range.end(); ++param)
+    {
+        if (specified_dimensions.find(param->first) != specified_dimensions.end())
+        {
+            callback(BADSEARCH, pseudokey, pseudovalue);
+            return;
+        }
+
+        std::vector<std::string>::const_iterator dim;
+        dim = std::find(dimension_names.begin(), dimension_names.end(), param->first);
+
+        if (dim == dimension_names.end())
+        {
+            callback(BADSEARCH, pseudokey, pseudovalue);
+            return;
+        }
+
+        s.range_set((dim - dimension_names.begin()), param->second.first, param->second.second);
     }
 
     // Get the hosts that match our search terms.

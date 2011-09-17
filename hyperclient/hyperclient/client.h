@@ -74,7 +74,19 @@ class client
                                              const e::buffer&,
                                              const std::vector<e::buffer>&)> callback);
         void search(const std::string& space,
-                    const std::map<std::string, e::buffer>& params,
+                    const std::map<std::string, std::pair<uint64_t, uint64_t> >& params,
+                    std::tr1::function<void (returncode,
+                                             const e::buffer&,
+                                             const std::vector<e::buffer>&)> callback);
+        void search(const std::string& space,
+                    const std::map<std::string, e::buffer>& equality,
+                    const std::map<std::string, std::pair<uint64_t, uint64_t> >& range,
+                    std::tr1::function<void (returncode,
+                                             const e::buffer&,
+                                             const std::vector<e::buffer>&)> callback);
+        void search(const std::string& space,
+                    const std::map<std::string, e::buffer>& equality,
+                    const std::map<std::string, std::pair<uint64_t, uint64_t> >& range,
                     std::tr1::function<void (returncode,
                                              const e::buffer&,
                                              const std::vector<e::buffer>&)> callback,
