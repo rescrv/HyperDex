@@ -170,7 +170,15 @@ hyperdaemon :: network_worker :: run()
                 uint64_t searchid;
                 hyperspacehashing::search s(0);
                 msg.unpack() >> nonce >> searchid >> s;
-                m_ssss->start(from, searchid, to.get_region(), nonce, s);
+
+                if (s.sanity_check())
+                {
+                    m_ssss->start(from, searchid, to.get_region(), nonce, s);
+                }
+                else
+                {
+                    LOG(INFO) << "Dropping search which fails sanity_check.";
+                }
             }
             else if (type == hyperdex::REQ_SEARCH_NEXT)
             {
