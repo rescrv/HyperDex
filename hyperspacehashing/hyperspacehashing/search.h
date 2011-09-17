@@ -45,9 +45,12 @@ class search
         ~search() throw ();
 
     public:
+        bool sanity_check() const;
         size_t size() const;
         bool is_equality(size_t idx) const;
         const e::buffer& equality_value(size_t idx) const;
+        bool is_range(size_t idx) const;
+        void range_value(size_t idx, uint64_t* lower, uint64_t* upper) const;
 
     // It is an error to call equality_set or range_set on an index which has
     // already been provided as an index to equality_set or range_set.  It will
@@ -64,6 +67,9 @@ class search
     private:
         e::bitfield m_equality_bits;
         std::vector<e::buffer> m_equality;
+        e::bitfield m_range_bits;
+        std::vector<uint64_t> m_range_lower;
+        std::vector<uint64_t> m_range_upper;
 };
 
 e::packer&

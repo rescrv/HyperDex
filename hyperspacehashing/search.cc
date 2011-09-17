@@ -31,6 +31,9 @@
 hyperspacehashing :: search :: search(size_t n)
     : m_equality_bits(n)
     , m_equality(n)
+    , m_range_bits(n)
+    , m_range_lower(n)
+    , m_range_upper(n)
 {
 }
 
@@ -38,50 +41,92 @@ hyperspacehashing :: search :: ~search() throw ()
 {
 }
 
+bool
+hyperspacehashing :: search :: sanity_check() const
+{
+    return m_equality_bits.bits() == m_equality.size() &&
+           m_equality.size() == m_range_bits.bits() &&
+           m_range_bits.bits() == m_range_lower.size() &&
+           m_range_lower.size() == m_range_upper.size();
+}
+
 size_t
 hyperspacehashing :: search :: size() const
 {
-    assert(m_equality_bits.bits() == m_equality.size());
+    assert(sanity_check());
     return m_equality.size();
 }
 
 bool
 hyperspacehashing :: search :: is_equality(size_t idx) const
 {
+    assert(sanity_check());
     assert(idx < m_equality_bits.bits());
-    assert(m_equality_bits.bits() == m_equality.size());
     return m_equality_bits.get(idx);
 }
 
 const e::buffer&
 hyperspacehashing :: search :: equality_value(size_t idx) const
 {
+    assert(sanity_check());
     assert(idx < m_equality_bits.bits());
-    assert(m_equality_bits.bits() == m_equality.size());
     assert(m_equality_bits.get(idx));
     return m_equality[idx];
+}
+
+bool
+hyperspacehashing :: search :: is_range(size_t idx) const
+{
+    assert(sanity_check());
+    assert(idx < m_range_bits.bits());
+    return m_range_bits.get(idx);
+}
+
+void
+hyperspacehashing :: search :: range_value(size_t idx, uint64_t* lower, uint64_t* upper) const
+{
+    assert(sanity_check());
+    assert(idx < m_range_bits.bits());
+    assert(m_range_bits.get(idx));
+    *lower = m_range_lower[idx];
+    *upper = m_range_upper[idx];
 }
 
 void
 hyperspacehashing :: search :: equality_set(size_t idx, const e::buffer& val)
 {
+    assert(sanity_check());
     assert(idx < m_equality_bits.bits());
-    assert(m_equality_bits.bits() == m_equality.size());
     assert(!m_equality_bits.get(idx));
+    assert(!m_range_bits.get(idx));
     m_equality_bits.set(idx);
     m_equality[idx] = val;
+}
+
+void
+hyperspacehashing :: search :: range_set(size_t idx, uint64_t start, uint64_t end)
+{
+    assert(sanity_check());
+    assert(idx < m_equality_bits.bits());
+    assert(!m_equality_bits.get(idx));
+    assert(!m_range_bits.get(idx));
+    m_range_bits.set(idx);
+    m_range_lower[idx] = start;
+    m_range_upper[idx] = end;
 }
 
 e::packer&
 hyperspacehashing :: operator << (e::packer& lhs, const search& rhs)
 {
-    lhs << rhs.m_equality_bits << rhs.m_equality;
+    lhs << rhs.m_equality_bits << rhs.m_equality
+        << rhs.m_range_bits << rhs.m_range_lower << rhs.m_range_upper;
     return lhs;
 }
 
 e::unpacker&
 hyperspacehashing :: operator >> (e::unpacker& lhs, search& rhs)
 {
-    lhs >> rhs.m_equality_bits >> rhs.m_equality;
+    lhs >> rhs.m_equality_bits >> rhs.m_equality
+        >> rhs.m_range_bits >> rhs.m_range_lower >> rhs.m_range_upper;
     return lhs;
 }
