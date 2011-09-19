@@ -31,10 +31,12 @@
 namespace hyperspacehashing
 {
 
+// 0 is reserved for internal use.
 enum hash_t
 {
-    EQUALITY,
-    RANGE
+    EQUALITY = 1,
+    RANGE    = 2,
+    NONE     = 3
 };
 
 } // namespace hyperspacehashing
