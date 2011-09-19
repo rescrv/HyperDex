@@ -160,7 +160,7 @@ main(int argc, char* argv[])
 
             cl.put(space, key, value, handle_put);
 
-            if (cl.outstanding() > 10000)
+            if (cl.outstanding() > 1000)
             {
                 cl.flush(-1);
             }
