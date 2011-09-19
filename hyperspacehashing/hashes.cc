@@ -45,8 +45,6 @@ uint64_t
 cityhash(const e::buffer& buf);
 uint64_t
 lendian(const e::buffer& buf);
-uint64_t
-bendian(const e::buffer& buf);
 
 } // namespace hyperspacehashing
 
@@ -64,14 +62,6 @@ hyperspacehashing :: lendian(const e::buffer& buf)
     return le64toh(ret);
 }
 
-uint64_t
-hyperspacehashing :: bendian(const e::buffer& buf)
-{
-    uint64_t ret = 0;
-    memmove(&ret, buf.get(), std::min(buf.size(), sizeof(ret)));
-    return be64toh(ret);
-}
-
 void
 hyperspacehashing :: convert(const std::vector<hash_t>& in, std::vector<hash_func>* out)
 {
@@ -81,14 +71,11 @@ hyperspacehashing :: convert(const std::vector<hash_t>& in, std::vector<hash_fun
     {
         switch (in[i])
         {
-            case CITYHASH:
+            case EQUALITY:
                 (*out)[i] = cityhash;
                 break;
-            case LENDIAN:
+            case RANGE:
                 (*out)[i] = lendian;
-                break;
-            case BENDIAN:
-                (*out)[i] = bendian;
                 break;
             default:
                 assert(false);
@@ -104,10 +91,6 @@ hyperspacehashing :: is_range_func(hash_func hf)
         return false;
     }
     else if (hf == lendian)
-    {
-        return true;
-    }
-    else if (hf == bendian)
     {
         return true;
     }

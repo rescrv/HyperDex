@@ -183,10 +183,10 @@ hyperdex :: configuration :: add_line(const std::string& line)
             }
 
             m_subspaces.insert(std::make_pair(subspaceid(si->first, subspacenum), bitmask));
-            std::vector<hyperspacehashing::hash_t> m_repl_funcs(bitmask.size(), hyperspacehashing::CITYHASH);
+            std::vector<hyperspacehashing::hash_t> m_repl_funcs(bitmask.size(), hyperspacehashing::EQUALITY);
             m_repl_hashers.insert(std::make_pair(subspaceid(si->first, subspacenum),
                                                  hyperspacehashing::prefix::hasher(bitf, m_repl_funcs)));
-            std::vector<hyperspacehashing::hash_t> m_disk_funcs(bitmask.size(), hyperspacehashing::CITYHASH);
+            std::vector<hyperspacehashing::hash_t> m_disk_funcs(bitmask.size(), hyperspacehashing::EQUALITY);
             m_disk_hashers.insert(std::make_pair(subspaceid(si->first, subspacenum),
                                                  hyperspacehashing::mask::hasher(m_disk_funcs)));
             return true;

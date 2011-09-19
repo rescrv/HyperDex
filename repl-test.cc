@@ -241,7 +241,7 @@ find_hashes()
 
     e::bitfield dims(1);
     dims.set(0);
-    std::vector<hyperspacehashing::hash_t> hashes(1, hyperspacehashing::CITYHASH);
+    std::vector<hyperspacehashing::hash_t> hashes(1, hyperspacehashing::EQUALITY);
     hyperspacehashing::prefix::hasher hasher(dims, hashes);
 
     for (uint32_t value = 0; complete < 256; ++value)

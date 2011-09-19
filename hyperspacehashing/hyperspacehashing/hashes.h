@@ -33,9 +33,8 @@ namespace hyperspacehashing
 
 enum hash_t
 {
-    CITYHASH,
-    LENDIAN,
-    BENDIAN
+    EQUALITY,
+    RANGE
 };
 
 } // namespace hyperspacehashing
