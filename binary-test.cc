@@ -68,13 +68,36 @@ handle_search(size_t* count,
 
     if (*count > 1)
     {
-        std::cerr << "Search returned more than 1 result." << std::endl;
+        std::cerr << "Equality returned more than 1 result." << std::endl;
     }
 
     if (expected_key != key)
     {
-        std::cerr << "Search returned unexpected key:  " << expected_key.hex()
-                  << " != " << key.hex() << std::endl;
+        std::cerr << "Equality returned unexpected key:  "
+                  << expected_key.size() << ":" << expected_key.hex()
+                  << " != " << key.size() << ":" << key.hex() << std::endl;
+    }
+}
+
+void
+handle_range(size_t* count,
+             const e::buffer& expected_key,
+             hyperclient::returncode ret,
+             const e::buffer& key,
+             const std::vector<e::buffer>& value)
+{
+    ++*count;
+
+    if (*count > 1)
+    {
+        std::cerr << "Range returned more than 1 result." << std::endl;
+    }
+
+    if (expected_key != key)
+    {
+        std::cerr << "Range returned unexpected key:  "
+                  << expected_key.size() << ":" << expected_key.hex()
+                  << " != " << key.size() << ":" << key.hex() << std::endl;
     }
 }
 
@@ -158,6 +181,10 @@ main(int argc, char* argv[])
                 }
             }
 
+            char buf[4];
+            memmove(buf, &num, sizeof(4));
+            value.push_back(e::buffer(buf, 4));
+
             cl.put(space, key, value, handle_put);
 
             if (cl.outstanding() > 1000)
@@ -198,7 +225,23 @@ main(int argc, char* argv[])
             using std::tr1::placeholders::_3;
             size_t count = 0;
             cl.search(argv[3], search, std::tr1::bind(handle_search, &count, key, _1, _2, _3));
-            cl.flush(-1);
+            cl.flush(100);
+
+            if (count < 1)
+            {
+                std::cerr << "Search returned less than 1 result." << std::endl;
+            }
+
+            count = 0;
+            std::map<std::string, std::pair<uint64_t, uint64_t> > range;
+            range.insert(std::make_pair("range", std::make_pair(num, num + 1)));
+            cl.search(argv[3], range, std::tr1::bind(handle_range, &count, key, _1, _2, _3));
+            cl.flush(100);
+
+            if (count < 1)
+            {
+                std::cerr << "Range returned less than 1 result." << std::endl;
+            }
         }
 
         clock_gettime(CLOCK_REALTIME, &end);
