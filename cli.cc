@@ -307,7 +307,7 @@ worker(po6::threads::barrier* bar)
             cl.del(space, key, handle_del);
             cl.flush(-1);
         }
-        else if (command == "QUERY")
+        else if (command == "EQUALITY")
         {
             std::string attr;
             std::string val;
@@ -326,7 +326,43 @@ worker(po6::threads::barrier* bar)
 
             if (wellformed)
             {
-                cl.search(space, search, handle_search, UINT16_MAX);
+                cl.search(space, search, handle_search);
+                cl.flush(-1);
+            }
+            else
+            {
+                std::cerr << "Search line malformed." << std::endl;
+            }
+        }
+        else if (command == "RANGE")
+        {
+            std::string attr;
+            std::string lower_str;
+            std::string upper_str;
+            bool wellformed = true;
+            std::map<std::string, std::pair<uint64_t, uint64_t> > search;
+
+            while (std::getline(istr, attr, '\t'))
+            {
+                if (!std::getline(istr, lower_str, '\t'))
+                {
+                    wellformed = false;
+                }
+
+                if (!std::getline(istr, upper_str, '\t'))
+                {
+                    wellformed = false;
+                }
+
+                // XXX Be safer with this.
+                uint64_t lower = atoi(lower_str.c_str());
+                uint64_t upper = atoi(upper_str.c_str());
+                search.insert(std::make_pair(attr, std::make_pair(lower, upper)));
+            }
+
+            if (wellformed)
+            {
+                cl.search(space, search, handle_search);
                 cl.flush(-1);
             }
             else
