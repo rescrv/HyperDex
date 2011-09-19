@@ -171,4 +171,6 @@ hyperdisk :: shard_snapshot :: operator = (const shard_snapshot& rhs)
         m_entry = rhs.m_entry;
         m_valid = rhs.m_valid;
     }
+
+    return *this;
 }
