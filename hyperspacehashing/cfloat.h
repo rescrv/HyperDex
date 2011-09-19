@@ -40,6 +40,13 @@ cfloat(uint64_t dec, unsigned int sz);
 uint64_t
 cfloat(uint64_t dec, unsigned int exp_sz, unsigned int frac_sz);
 
+void
+cfloat_range(uint64_t clower,
+             uint64_t cupper,
+             unsigned int space,
+             uint64_t* mask,
+             uint64_t* range);
+
 } // namespace hyperspacehashing
 
 #endif // hyperspacehashing_cfloat_h

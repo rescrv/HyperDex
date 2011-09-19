@@ -115,3 +115,42 @@ hyperspacehashing :: cfloat(uint64_t dec,
 
     return enc;
 }
+
+void
+hyperspacehashing :: cfloat_range(uint64_t clower,
+                                  uint64_t cupper,
+                                  unsigned int space,
+                                  uint64_t* mask,
+                                  uint64_t* range)
+{
+    uint64_t m = UINT64_MAX;
+    m <<= (64 - space);
+    m >>= (64 - space);
+    m = (~(clower ^ cupper)) & m;
+    bool seen_one = false;
+    bool seen_zero = false;
+
+    for (ssize_t b = 63; b >= 0; --b)
+    {
+        uint64_t bit = 1;
+        bit <<= b;
+
+        if ((m & bit))
+        {
+            seen_one = true;
+        }
+
+        if (seen_one && !(m & bit))
+        {
+            seen_zero = true;
+        }
+
+        if (seen_zero)
+        {
+            m &= ~bit;
+        }
+    }
+
+    *mask = m;
+    *range = clower & m;
+}
