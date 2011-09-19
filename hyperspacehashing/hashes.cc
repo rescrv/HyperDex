@@ -95,3 +95,24 @@ hyperspacehashing :: convert(const std::vector<hash_t>& in, std::vector<hash_fun
         }
     }
 }
+
+bool
+hyperspacehashing :: is_range_func(hash_func hf)
+{
+    if (hf == cityhash)
+    {
+        return false;
+    }
+    else if (hf == lendian)
+    {
+        return true;
+    }
+    else if (hf == bendian)
+    {
+        return true;
+    }
+    else
+    {
+        assert(false);
+    }
+}

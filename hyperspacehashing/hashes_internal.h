@@ -45,6 +45,9 @@ typedef uint64_t (*hash_func)(const e::buffer& buf);
 void
 convert(const std::vector<hash_t>& in, std::vector<hash_func>* out);
 
+bool
+is_range_func(hash_func hf);
+
 } // namespace hyperspacehashing
 
 #endif // hyperspacehashing_hashes_internal_h_
