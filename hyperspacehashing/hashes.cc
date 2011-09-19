@@ -38,16 +38,6 @@
 #include "hashes_internal.h"
 #include "hyperspacehashing/hashes.h"
 
-namespace hyperspacehashing
-{
-
-uint64_t
-cityhash(const e::buffer& buf);
-uint64_t
-lendian(const e::buffer& buf);
-
-} // namespace hyperspacehashing
-
 uint64_t
 hyperspacehashing :: cityhash(const e::buffer& buf)
 {

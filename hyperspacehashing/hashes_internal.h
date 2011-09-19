@@ -41,6 +41,10 @@ namespace hyperspacehashing
 {
 
 typedef uint64_t (*hash_func)(const e::buffer& buf);
+uint64_t
+cityhash(const e::buffer& buf);
+uint64_t
+lendian(const e::buffer& buf);
 
 void
 convert(const std::vector<hash_t>& in, std::vector<hash_func>* out);
