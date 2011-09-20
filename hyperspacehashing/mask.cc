@@ -210,17 +210,21 @@ hyperspacehashing::mask::coordinate
 hyperspacehashing :: mask :: hasher :: hash(const std::vector<e::buffer>& value) const
 {
     assert(value.size() + 1 == m_funcs.size());
-    std::vector<uint64_t> hashes;
+    size_t sz = std::min(static_cast<size_t>(64), m_funcs.size());
+    size_t num = 0;
+    uint64_t hashes[64];
 
-    for (size_t i = 1; i < m_funcs.size(); ++i)
+    for (size_t i = 1; i < sz; ++i)
     {
         switch (m_funcs[i])
         {
             case EQUALITY:
-                hashes.push_back(cityhash(value[i - 1]));
+                hashes[num] = cityhash(value[i - 1]);
+                ++num;
                 break;
             case RANGE:
-                hashes.push_back(0);
+                hashes[num] = 0;
+                ++num;
                 break;
             case NONE:
                 break;
@@ -229,17 +233,17 @@ hyperspacehashing :: mask :: hasher :: hash(const std::vector<e::buffer>& value)
         }
     }
 
-    if (hashes.empty())
+    if (num == 0)
     {
         return coordinate(0, 0, 0, 0);
     }
 
-    unsigned int numbits = 32 / hashes.size();
-    unsigned int plusones = 32 % hashes.size();
+    unsigned int numbits = 32 / num;
+    unsigned int plusones = 32 % num;
     unsigned int space;
     size_t idx = 0;
 
-    for (size_t i = 1; i < m_funcs.size(); ++i)
+    for (size_t i = 1; i < sz; ++i)
     {
         switch (m_funcs[i])
         {
@@ -259,7 +263,7 @@ hyperspacehashing :: mask :: hasher :: hash(const std::vector<e::buffer>& value)
     }
 
     uint64_t value_mask = UINT32_MAX;
-    uint64_t value_hash = lower_interlace(hashes);
+    uint64_t value_hash = lower_interlace(hashes, num);
     return coordinate(0, 0, value_mask, value_hash);
 }
 
