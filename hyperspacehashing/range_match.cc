@@ -80,8 +80,9 @@ hyperspacehashing :: range_match :: matches(const mask::coordinate& coord) const
         {
             assert(m_clower == static_cast<uint32_t>(m_clower));
             assert(m_cupper == static_cast<uint32_t>(m_cupper));
-            return (static_cast<uint32_t>(m_clower) <= coord.primary_hash) &&
-                   (coord.primary_hash <= static_cast<uint32_t>(m_cupper));
+            uint32_t hash = coord.primary_hash & static_cast<uint32_t>(m_cmask);
+            return (static_cast<uint32_t>(m_clower) <= hash) &&
+                   (hash <= static_cast<uint32_t>(m_cupper));
         }
         // Partial-tolerant comparison handled in equality check.
         else

@@ -163,8 +163,9 @@ hyperdex :: configuration :: add_line(const std::string& line)
                 && (subspacenum != 0 || dims.size() == 1))
         {
             const std::vector<std::string>& spacedims(si->second);
+            std::vector<hyperspacehashing::hash_t> repl_funcs(spacedims.size(), hyperspacehashing::NONE);
+            std::vector<hyperspacehashing::hash_t> disk_funcs(spacedims.size(), hyperspacehashing::EQUALITY);
             std::vector<bool> bitmask(spacedims.size(), false);
-            e::bitfield bitf(spacedims.size(), false);
 
             for (size_t i = 0; i < dims.size(); ++i)
             {
@@ -178,17 +179,15 @@ hyperdex :: configuration :: add_line(const std::string& line)
                 else
                 {
                     bitmask[d - spacedims.begin()] = true;
-                    bitf.set(d - spacedims.begin());
+                    repl_funcs[d - spacedims.begin()] = hyperspacehashing::EQUALITY;
                 }
             }
 
             m_subspaces.insert(std::make_pair(subspaceid(si->first, subspacenum), bitmask));
-            std::vector<hyperspacehashing::hash_t> m_repl_funcs(bitmask.size(), hyperspacehashing::EQUALITY);
             m_repl_hashers.insert(std::make_pair(subspaceid(si->first, subspacenum),
-                                                 hyperspacehashing::prefix::hasher(bitf, m_repl_funcs)));
-            std::vector<hyperspacehashing::hash_t> m_disk_funcs(bitmask.size(), hyperspacehashing::EQUALITY);
+                                                 hyperspacehashing::prefix::hasher(repl_funcs)));
             m_disk_hashers.insert(std::make_pair(subspaceid(si->first, subspacenum),
-                                                 hyperspacehashing::mask::hasher(m_disk_funcs)));
+                                                 hyperspacehashing::mask::hasher(disk_funcs)));
             return true;
         }
         else

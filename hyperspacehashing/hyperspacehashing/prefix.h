@@ -75,6 +75,9 @@ class search_coordinate
     public:
         bool matches(const coordinate& other) const;
 
+    public:
+        search_coordinate& operator = (const search_coordinate& rhs);
+
     private:
         friend class hasher;
 
@@ -91,13 +94,17 @@ class search_coordinate
 class hasher
 {
     public:
-        hasher(const std::vector<hash_t> funcs);
+        hasher(const std::vector<hash_t>& funcs);
+        hasher(const hasher& other);
         ~hasher() throw ();
 
     public:
         coordinate hash(const e::buffer& key) const;
         coordinate hash(const e::buffer& key, const std::vector<e::buffer>& value) const;
         search_coordinate hash(const search& s) const;
+
+    public:
+        hasher& operator = (const hasher& rhs);
 
     private:
         std::vector<hash_t> m_funcs;

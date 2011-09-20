@@ -134,8 +134,8 @@ validate(const std::vector<hash_t> hf, const e::buffer& key, const std::vector<e
 {
     prefix::hasher ph(hf);
     prefix::coordinate pc = ph.hash(key, value);
-    //mask::hasher mh(hf);
-    //mask::coordinate mc = mh.hash(key, value);
+    mask::hasher mh(hf);
+    mask::coordinate mc = mh.hash(key, value);
 
     // Do an equality search for each attribute
     for (size_t i = 0; i < value.size() + 1; ++i)
@@ -152,33 +152,34 @@ validate(const std::vector<hash_t> hf, const e::buffer& key, const std::vector<e
         }
 
         prefix::search_coordinate psc = ph.hash(s);
-        //mask::search_coordinate msc = mh.hash(s);
+        mask::search_coordinate msc = mh.hash(s);
         assert(psc.matches(pc));
-        //assert(msc.matches(mc));
-        //assert(msc.matches(key, value));
+        assert(msc.matches(mc));
+        assert(msc.matches(key, value));
     }
 
     // Do a range search for each attribute
     for (size_t i = 0; i < value.size() + 1; ++i)
     {
         search s(value.size() + 1);
+        uint64_t num;
 
         if (i == 0)
         {
-            uint64_t num = lendian(key);
+            num = lendian(key);
             s.range_set(0, num, num + 1);
         }
         else
         {
-            uint64_t num = lendian(value[i - 1]);
+            num = lendian(value[i - 1]);
             s.range_set(i, num, num + 1);
         }
 
         prefix::search_coordinate psc = ph.hash(s);
-        //mask::search_coordinate msc = mh.hash(s);
+        mask::search_coordinate msc = mh.hash(s);
         assert(psc.matches(pc));
-        //assert(msc.matches(mc));
-        //assert(msc.matches(key, value));
+        assert(msc.matches(mc));
+        assert(msc.matches(key, value));
     }
 
     // Do an equality/range search for two attributes
@@ -214,10 +215,10 @@ validate(const std::vector<hash_t> hf, const e::buffer& key, const std::vector<e
             }
 
             prefix::search_coordinate psc = ph.hash(s);
-            //mask::search_coordinate msc = mh.hash(s);
+            mask::search_coordinate msc = mh.hash(s);
             assert(psc.matches(pc));
-            //assert(msc.matches(mc));
-            //assert(msc.matches(key, value));
+            assert(msc.matches(mc));
+            assert(msc.matches(key, value));
         }
     }
 }

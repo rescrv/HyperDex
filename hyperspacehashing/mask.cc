@@ -159,8 +159,14 @@ hyperspacehashing :: mask :: search_coordinate :: search_coordinate(const search
 {
 }
 
-hyperspacehashing :: mask :: hasher :: hasher(const std::vector<hash_t> funcs)
+hyperspacehashing :: mask :: hasher :: hasher(const std::vector<hash_t>& funcs)
     : m_funcs(funcs)
+{
+    assert(m_funcs.size() >= 1);
+}
+
+hyperspacehashing :: mask :: hasher :: hasher(const hasher& other)
+    : m_funcs(other.m_funcs)
 {
     assert(m_funcs.size() >= 1);
 }
@@ -270,7 +276,150 @@ hyperspacehashing :: mask :: hasher :: hash(const std::vector<e::buffer>& value)
 hyperspacehashing::mask::search_coordinate
 hyperspacehashing :: mask :: hasher :: hash(const search& s) const
 {
-    assert(false);
+    assert(s.size() == m_funcs.size());
+    size_t sz = std::min(static_cast<size_t>(32), m_funcs.size());
+    std::vector<range_match> range;
+    uint32_t primary_mask = 0;
+    uint32_t primary_hash = 0;
+
+    // First create the primary search components
+    switch (m_funcs[0])
+    {
+        case EQUALITY:
+
+            if (s.is_equality(0))
+            {
+                primary_mask = UINT32_MAX;
+                primary_hash = cityhash(s.equality_value(0));
+            }
+            else if (s.is_range(0))
+            {
+                uint64_t lower;
+                uint64_t upper;
+                s.range_value(0, &lower, &upper);
+                range.push_back(range_match(0, lower, upper, 0, 0, 0));
+            }
+
+            break;
+        case RANGE:
+
+            if (s.is_range(0))
+            {
+                uint64_t lower;
+                uint64_t upper;
+                s.range_value(0, &lower, &upper);
+                uint64_t clower = cfloat(lower, 32);
+                uint64_t cupper = cfloat(upper, 32);
+                uint64_t m;
+                uint64_t h;
+                cfloat_range(clower, cupper, 32, &m, &h);
+                primary_mask = static_cast<uint32_t>(m);
+                primary_hash = static_cast<uint32_t>(h);
+                range.push_back(range_match(0, lower, upper, UINT32_MAX, clower, cupper));
+            }
+
+            break;
+        case NONE:
+            break;
+        default:
+            assert(false);
+    }
+
+    // Then create the secondary search components
+    size_t num = 0;
+    uint64_t masks[32];
+    uint64_t hashes[32];
+
+    for (size_t i = 1; i < sz; ++i)
+    {
+        switch (m_funcs[i])
+        {
+            case EQUALITY:
+
+                if (s.is_equality(i))
+                {
+                    masks[num] = UINT64_MAX;
+                    hashes[num] = cityhash(s.equality_value(i));
+                }
+                else
+                {
+                    masks[num] = 0;
+                    hashes[num] = 0;
+                }
+
+                ++num;
+                break;
+            case RANGE:
+                masks[num] = 0;
+                hashes[num] = 0;
+                ++num;
+                break;
+            case NONE:
+                break;
+            default:
+                assert(false);
+        }
+    }
+
+    if (num > 0)
+    {
+        uint64_t scratch[32];
+        memset(scratch, 0, sizeof(scratch));
+        unsigned int numbits = 32 / num;
+        unsigned int plusones = 32 % num;
+        unsigned int space;
+        size_t idx = 0;
+
+        for (size_t i = 1; i < sz; ++i)
+        {
+            if (s.is_range(i) && m_funcs[i] == RANGE)
+            {
+                uint64_t lower;
+                uint64_t upper;
+                s.range_value(i, &lower, &upper);
+                space = numbits + (idx < plusones ? 1 : 0);
+                uint64_t clower = cfloat(lower, space);
+                uint64_t cupper = cfloat(upper, space);
+                cfloat_range(clower, cupper, space, &masks[idx], &hashes[idx]);
+                // There is nothing to be done to make the cfloat_range result
+                // fold correctly into the equality coordinate.  It will happen
+                // on its own.
+                scratch[idx] = clower;
+                clower = lower_interlace(scratch, num);
+                scratch[idx] = cupper;
+                cupper = lower_interlace(scratch, num);
+                scratch[idx] = UINT64_MAX;
+                uint64_t cmask = lower_interlace(scratch, num);
+                range.push_back(range_match(i, lower, upper, cmask, clower, cupper));
+                scratch[idx] = 0;
+            }
+            else if (s.is_range(i))
+            {
+                uint64_t lower;
+                uint64_t upper;
+                s.range_value(i, &lower, &upper);
+                range.push_back(range_match(i, lower, upper, 0, 0, 0));
+            }
+
+            switch (m_funcs[i])
+            {
+                case EQUALITY:
+                    ++idx;
+                    break;
+                case RANGE:
+                    ++idx;
+                    break;
+                case NONE:
+                    break;
+                default:
+                    assert(false);
+            }
+        }
+    }
+
+    coordinate c(primary_mask, primary_hash,
+                 lower_interlace(masks, num), lower_interlace(hashes, num));
+    return search_coordinate(s, c, range);
 }
 
 std::ostream&

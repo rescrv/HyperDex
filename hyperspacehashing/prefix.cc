@@ -82,6 +82,17 @@ hyperspacehashing :: prefix :: search_coordinate :: ~search_coordinate() throw (
 {
 }
 
+hyperspacehashing::prefix::search_coordinate&
+hyperspacehashing :: prefix :: search_coordinate :: operator = (const search_coordinate& rhs)
+{
+    // We rely upon others catching self-assignment.
+    m_mask = rhs.m_mask;
+    m_point = rhs.m_point;
+    m_range = rhs.m_range;
+    return *this;
+}
+
+
 bool
 hyperspacehashing :: prefix :: search_coordinate :: matches(const coordinate& other) const
 {
@@ -111,8 +122,13 @@ hyperspacehashing :: prefix :: search_coordinate :: search_coordinate(uint64_t m
 {
 }
 
-hyperspacehashing :: prefix :: hasher :: hasher(const std::vector<hash_t> funcs)
+hyperspacehashing :: prefix :: hasher :: hasher(const std::vector<hash_t>& funcs)
     : m_funcs(funcs)
+{
+}
+
+hyperspacehashing :: prefix :: hasher :: hasher(const hasher& other)
+    : m_funcs(other.m_funcs)
 {
 }
 
@@ -319,6 +335,7 @@ hyperspacehashing :: prefix :: hasher :: hash(const search& s) const
                 scratch[idx] = UINT64_MAX;
                 uint64_t cmask = upper_interlace(scratch, num);
                 range.push_back(range_match(i, lower, upper, cmask, clower, cupper));
+                scratch[idx] = 0;
             }
             else if (s.is_range(i))
             {
@@ -345,4 +362,11 @@ hyperspacehashing :: prefix :: hasher :: hash(const search& s) const
     }
 
     return search_coordinate(upper_interlace(masks, num), upper_interlace(hashes, num), range);
+}
+
+hyperspacehashing::prefix::hasher&
+hyperspacehashing :: prefix :: hasher :: operator = (const hasher& rhs)
+{
+    m_funcs = rhs.m_funcs;
+    return *this;
 }
