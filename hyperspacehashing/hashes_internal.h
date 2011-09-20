@@ -46,11 +46,6 @@ cityhash(const e::buffer& buf);
 uint64_t
 lendian(const e::buffer& buf);
 
-void
-convert(const std::vector<hash_t>& in, std::vector<hash_func>* out);
-
-bool
-is_range_func(hash_func hf);
 
 } // namespace hyperspacehashing
 

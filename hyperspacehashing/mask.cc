@@ -29,8 +29,10 @@
 
 // HyperspaceHashing
 #include "bithacks.h"
+#include "cfloat.h"
 #include "hashes_internal.h"
 #include "hyperspacehashing/mask.h"
+#include "range_match.h"
 
 hyperspacehashing :: mask :: coordinate :: coordinate()
     : primary_mask(0)
@@ -86,12 +88,14 @@ hyperspacehashing :: mask :: coordinate :: secondary_intersects(const coordinate
 hyperspacehashing :: mask :: search_coordinate :: search_coordinate()
     : m_terms(0)
     , m_equality()
+    , m_range()
 {
 }
 
 hyperspacehashing :: mask :: search_coordinate :: search_coordinate(const search_coordinate& other)
     : m_terms(other.m_terms)
     , m_equality(other.m_equality)
+    , m_range(other.m_range)
 {
 }
 
@@ -102,7 +106,20 @@ hyperspacehashing :: mask :: search_coordinate :: ~search_coordinate() throw ()
 bool
 hyperspacehashing :: mask :: search_coordinate :: matches(const coordinate& other) const
 {
-    return m_equality.intersects(other);
+    if (!m_equality.intersects(other))
+    {
+        return false;
+    }
+
+    for (size_t i = 0; i < m_range.size(); ++i)
+    {
+        if (!m_range[i].matches(other))
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 bool
@@ -122,20 +139,29 @@ hyperspacehashing :: mask :: search_coordinate :: matches(const e::buffer& key,
         }
     }
 
+    for (size_t i = 0; i < m_range.size(); ++i)
+    {
+        if (!m_range[i].matches(key, value))
+        {
+            return false;
+        }
+    }
+
     return true;
 }
 
 hyperspacehashing :: mask :: search_coordinate :: search_coordinate(const search& terms,
-                                                                    const coordinate& equality)
+                                                                    const coordinate& equality,
+                                                                    const std::vector<range_match>& range)
     : m_terms(terms)
     , m_equality(equality)
+    , m_range(range)
 {
 }
 
 hyperspacehashing :: mask :: hasher :: hasher(const std::vector<hash_t> funcs)
-    : m_funcs()
+    : m_funcs(funcs)
 {
-    convert(funcs, &m_funcs);
     assert(m_funcs.size() >= 1);
 }
 
@@ -146,9 +172,28 @@ hyperspacehashing :: mask :: hasher :: ~hasher() throw ()
 hyperspacehashing::mask::coordinate
 hyperspacehashing :: mask :: hasher :: hash(const e::buffer& key) const
 {
-    assert(m_funcs.size() >= 1);
-    uint32_t key_hash = static_cast<uint32_t>(m_funcs[0](key));
-    return coordinate(UINT32_MAX, key_hash, 0, 0);
+    uint32_t key_mask = 0;
+    uint32_t key_hash = 0;
+
+    switch (m_funcs[0])
+    {
+        case EQUALITY:
+            key_mask = UINT32_MAX;
+            key_hash = static_cast<uint32_t>(cityhash(key));
+            break;
+        case RANGE:
+            key_mask = UINT32_MAX;
+            key_hash = static_cast<uint32_t>(cfloat(lendian(key), 32));
+            break;
+        case NONE:
+            key_mask = 0;
+            key_hash = 0;
+            break;
+        default:
+            assert(false);
+    }
+
+    return coordinate(key_mask, key_hash, 0, 0);
 }
 
 hyperspacehashing::mask::coordinate
@@ -165,52 +210,63 @@ hyperspacehashing::mask::coordinate
 hyperspacehashing :: mask :: hasher :: hash(const std::vector<e::buffer>& value) const
 {
     assert(value.size() + 1 == m_funcs.size());
-    std::vector<uint64_t> value_hashes(value.size());
+    std::vector<uint64_t> hashes;
 
     for (size_t i = 1; i < m_funcs.size(); ++i)
     {
-        value_hashes[i - 1] = m_funcs[i](value[i - 1]);
+        switch (m_funcs[i])
+        {
+            case EQUALITY:
+                hashes.push_back(cityhash(value[i - 1]));
+                break;
+            case RANGE:
+                hashes.push_back(0);
+                break;
+            case NONE:
+                break;
+            default:
+                assert(false);
+        }
     }
 
-    uint32_t value_hash = static_cast<uint32_t>(lower_interlace(value_hashes));
-    return coordinate(0, 0, UINT32_MAX, value_hash);
+    if (hashes.empty())
+    {
+        return coordinate(0, 0, 0, 0);
+    }
+
+    unsigned int numbits = 32 / hashes.size();
+    unsigned int plusones = 32 % hashes.size();
+    unsigned int space;
+    size_t idx = 0;
+
+    for (size_t i = 1; i < m_funcs.size(); ++i)
+    {
+        switch (m_funcs[i])
+        {
+            case EQUALITY:
+                ++idx;
+                break;
+            case RANGE:
+                space = numbits + (idx < plusones ? 1 : 0);
+                hashes[idx] = cfloat(lendian(value[i - 1]), space);
+                ++idx;
+                break;
+            case NONE:
+                break;
+            default:
+                assert(false);
+        }
+    }
+
+    uint64_t value_mask = UINT32_MAX;
+    uint64_t value_hash = lower_interlace(hashes);
+    return coordinate(0, 0, value_mask, value_hash);
 }
 
 hyperspacehashing::mask::search_coordinate
 hyperspacehashing :: mask :: hasher :: hash(const search& s) const
 {
-    assert(s.size() == m_funcs.size());
-
-    uint32_t primary_mask = 0;
-    uint32_t primary_hash = 0;
-
-    if (s.is_equality(0))
-    {
-        primary_mask = UINT32_MAX;
-        primary_hash = static_cast<uint32_t>(m_funcs[0](s.equality_value(0)));
-    }
-
-    std::vector<uint64_t> value_masks(s.size());
-    std::vector<uint64_t> value_hashes(s.size());
-
-    for (size_t i = 1; i < m_funcs.size(); ++i)
-    {
-        if (s.is_equality(i))
-        {
-            value_masks[i - 1] = UINT64_MAX;
-            value_hashes[i - 1] = m_funcs[i](s.equality_value(i));
-        }
-        else
-        {
-            value_masks[i - 1] = 0;
-            value_hashes[i - 1] = 0;
-        }
-    }
-
-    uint32_t secondary_mask = static_cast<uint32_t>(lower_interlace(value_masks));
-    uint32_t secondary_hash = static_cast<uint32_t>(lower_interlace(value_hashes));
-    coordinate coord(primary_mask, primary_hash, secondary_mask, secondary_hash);
-    return search_coordinate(s, coord);
+    assert(false);
 }
 
 std::ostream&

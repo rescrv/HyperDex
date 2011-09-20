@@ -7,7 +7,7 @@ nobase_include_HEADERS = hyperspacehashing/hashes.h \
 						 hyperspacehashing/mask.h \
 						 hyperspacehashing/prefix.h \
 						 hyperspacehashing/search.h
-noinst_HEADERS = bithacks.h cfloat.h
+noinst_HEADERS = bithacks.h cfloat.h range_match.h
 
-libhyperspacehashing_la_SOURCES = cfloat.cc hashes.cc mask.cc prefix.cc search.cc
+libhyperspacehashing_la_SOURCES = cfloat.cc hashes.cc mask.cc prefix.cc range_match.cc search.cc
 libhyperspacehashing_la_LIBADD = -lcityhash $(COVERAGE_LDADD)

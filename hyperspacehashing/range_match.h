@@ -25,85 +25,37 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperspacehashing_prefix_h_
-#define hyperspacehashing_prefix_h_
-
-// STL
-#include <iostream>
-
-// e
-#include <e/bitfield.h>
+#ifndef hyperspacehashing_range_match_h_
+#define hyperspacehashing_range_match_h_
 
 // HyperspaceHashing
-#include <hyperspacehashing/hashes.h>
-#include <hyperspacehashing/search.h>
-
-// Forward Declarations
-namespace hyperspacehashing
-{
-class range_match;
-}
+#include "hyperspacehashing/mask.h"
+#include "hyperspacehashing/prefix.h"
 
 namespace hyperspacehashing
 {
-namespace prefix
-{
 
-class coordinate
+class range_match
 {
     public:
-        coordinate();
-        coordinate(uint8_t prefix, uint64_t point);
-        coordinate(const coordinate& other);
-        ~coordinate() throw ();
+        range_match(unsigned int idx, unsigned int space, uint64_t lower, uint64_t upper);
 
     public:
-        bool contains(const coordinate& other) const;
+        bool matches(const mask::coordinate& coord) const;
+        bool matches(const prefix::coordinate& coord) const;
+        bool matches(const e::buffer& key,
+                     const std::vector<e::buffer>& value) const;
 
     public:
-        uint8_t prefix;
-        uint64_t point;
+        unsigned int m_idx;
+        uint64_t m_lower;
+        uint64_t m_upper;
+        uint64_t m_clower;
+        uint64_t m_cupper;
+        uint64_t m_crange_mask;
+        uint64_t m_crange_hash;
 };
 
-class search_coordinate
-{
-    public:
-        search_coordinate();
-        search_coordinate(const search_coordinate& other);
-        ~search_coordinate() throw ();
-
-    public:
-        bool matches(const coordinate& other) const;
-
-    private:
-        friend class hasher;
-
-    private:
-        search_coordinate(uint64_t mask, uint64_t point,
-                          const std::vector<range_match>& range);
-
-    private:
-        uint64_t m_mask;
-        uint64_t m_point;
-        std::vector<range_match> m_range;
-};
-
-class hasher
-{
-    public:
-        hasher(const std::vector<hash_t> funcs);
-        ~hasher() throw ();
-
-    public:
-        coordinate hash(const e::buffer& key) const;
-        coordinate hash(const e::buffer& key, const std::vector<e::buffer>& value) const;
-        search_coordinate hash(const search& s) const;
-
-    private:
-        std::vector<hash_t> m_funcs;
-};
-
-} // namespace prefix
 } // namespace hyperspacehashing
 
-#endif // hyperspacehashing_prefix_h
+#endif // hyperspacehashing_range_match_h

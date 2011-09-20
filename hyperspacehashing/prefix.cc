@@ -29,8 +29,10 @@
 
 // HyperspaceHashing
 #include "bithacks.h"
+#include "cfloat.h"
 #include "hashes_internal.h"
 #include "hyperspacehashing/prefix.h"
+#include "range_match.h"
 
 hyperspacehashing :: prefix :: coordinate :: coordinate()
     : prefix(0)
@@ -65,12 +67,14 @@ hyperspacehashing :: prefix :: coordinate :: contains(const coordinate& other) c
 hyperspacehashing :: prefix :: search_coordinate :: search_coordinate()
     : m_mask(0)
     , m_point(0)
+    , m_range()
 {
 }
 
 hyperspacehashing :: prefix :: search_coordinate :: search_coordinate(const search_coordinate& other)
     : m_mask(other.m_mask)
     , m_point(other.m_point)
+    , m_range(other.m_range)
 {
 }
 
@@ -82,23 +86,34 @@ bool
 hyperspacehashing :: prefix :: search_coordinate :: matches(const coordinate& other) const
 {
     uint64_t intersection = lookup_msb_mask[other.prefix] & m_mask;
-    return (m_point & intersection) == (other.point & intersection);
+
+    if ((m_point & intersection) != (other.point & intersection))
+    {
+        return false;
+    }
+
+    for (size_t i = 0; i < m_range.size(); ++i)
+    {
+        if (!m_range[i].matches(other))
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
-hyperspacehashing :: prefix :: search_coordinate :: search_coordinate(uint64_t mask, uint64_t point)
+hyperspacehashing :: prefix :: search_coordinate :: search_coordinate(uint64_t mask, uint64_t point,
+                                                                      const std::vector<range_match>& range)
     : m_mask(mask)
     , m_point(point)
+    , m_range(range)
 {
 }
 
-hyperspacehashing :: prefix :: hasher :: hasher(const e::bitfield& dims,
-                                                const std::vector<hash_t> funcs)
-    : m_dims(dims)
-    , m_funcs()
+hyperspacehashing :: prefix :: hasher :: hasher(const std::vector<hash_t> funcs)
+    : m_funcs(funcs)
 {
-    convert(funcs, &m_funcs);
-    assert(m_dims.bits() == m_funcs.size());
-    assert(m_funcs.size() >= 1);
 }
 
 hyperspacehashing :: prefix :: hasher :: ~hasher() throw ()
@@ -108,23 +123,31 @@ hyperspacehashing :: prefix :: hasher :: ~hasher() throw ()
 hyperspacehashing::prefix::coordinate
 hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key) const
 {
-    assert(m_dims.get(0));
-
 #ifndef NDEBUG
-    bool all_false = true;
+    bool all_none = true;
 
-    for (size_t i = 1; i < m_dims.bits(); ++i)
+    for (size_t i = 1; i < m_funcs.size(); ++i)
     {
-        if (m_dims.get(i))
+        if (m_funcs[i] != NONE)
         {
-            all_false = false;
+            all_none = false;
         }
     }
 
-    assert(all_false);
+    assert(all_none);
 #endif
 
-    return coordinate(64, m_funcs[0](key));
+    switch (m_funcs[0])
+    {
+        case EQUALITY:
+            return coordinate(64, cityhash(key));
+        case RANGE:
+            return coordinate(64, cfloat(lendian(key), 64));
+        case NONE:
+            assert(false);
+        default:
+            assert(false);
+    }
 }
 
 hyperspacehashing::prefix::coordinate
@@ -132,18 +155,82 @@ hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key, const std::v
 {
     assert(value.size() + 1 == m_funcs.size());
     std::vector<uint64_t> hashes;
-    hashes.reserve(m_funcs.size());
 
-    if (m_dims.get(0))
+    switch (m_funcs[0])
     {
-        hashes.push_back(m_funcs[0](key));
+        case EQUALITY:
+            hashes.push_back(cityhash(key));
+            break;
+        case RANGE:
+            hashes.push_back(0);
+            break;
+        case NONE:
+            break;
+        default:
+            assert(false);
     }
 
     for (size_t i = 1; i < m_funcs.size(); ++i)
     {
-        if (m_dims.get(i))
+        switch (m_funcs[i])
         {
-            hashes.push_back(m_funcs[i](value[i - 1]));
+            case EQUALITY:
+                hashes.push_back(cityhash(value[i - 1]));
+                break;
+            case RANGE:
+                hashes.push_back(0);
+                break;
+            case NONE:
+                break;
+            default:
+                assert(false);
+        }
+    }
+
+    if (hashes.empty())
+    {
+        return coordinate(0, 0);
+    }
+
+    unsigned int numbits = 64 / hashes.size();
+    unsigned int plusones = 64 % hashes.size();
+    unsigned int space;
+    size_t idx = 0;
+
+    switch (m_funcs[0])
+    {
+        case EQUALITY:
+            ++idx;
+            break;
+        case RANGE:
+            space = numbits + (idx < plusones ? 1 : 0);
+            hashes[idx] = cfloat(lendian(key), space);
+            hashes[idx] <<= 64 - space;
+            ++idx;
+            break;
+        case NONE:
+            break;
+        default:
+            assert(false);
+    }
+
+    for (size_t i = 1; i < m_funcs.size(); ++i)
+    {
+        switch (m_funcs[i])
+        {
+            case EQUALITY:
+                ++idx;
+                break;
+            case RANGE:
+                space = numbits + (idx < plusones ? 1 : 0);
+                hashes[idx] = cfloat(lendian(value[i - 1]), space);
+                hashes[idx] <<= 64 - space;
+                ++idx;
+                break;
+            case NONE:
+                break;
+            default:
+                assert(false);
         }
     }
 
@@ -153,20 +240,5 @@ hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key, const std::v
 hyperspacehashing::prefix::search_coordinate
 hyperspacehashing :: prefix :: hasher :: hash(const search& s) const
 {
-    assert(s.size() == m_funcs.size());
-    std::vector<uint64_t> hashes;
-    hashes.reserve(m_funcs.size());
-    std::vector<uint64_t> masks;
-    masks.reserve(m_funcs.size());
-
-    for (size_t i = 0; i < m_funcs.size(); ++i)
-    {
-        if (m_dims.get(i) && s.is_equality(i))
-        {
-            hashes.push_back(m_funcs[i](s.equality_value(i)));
-            masks.push_back(UINT64_MAX);
-        }
-    }
-
-    return search_coordinate(upper_interlace(masks), upper_interlace(hashes));
+    assert(false);
 }

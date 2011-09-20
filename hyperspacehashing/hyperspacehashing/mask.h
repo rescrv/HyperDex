@@ -35,6 +35,12 @@
 #include <hyperspacehashing/hashes.h>
 #include <hyperspacehashing/search.h>
 
+// Forward Declarations
+namespace hyperspacehashing
+{
+class range_match;
+}
+
 namespace hyperspacehashing
 {
 namespace mask
@@ -83,11 +89,14 @@ class search_coordinate
         friend class hasher;
 
     private:
-        search_coordinate(const search& terms, const coordinate& equality);
+        search_coordinate(const search& terms,
+                          const coordinate& equality,
+                          const std::vector<range_match>& range);
 
     private:
         search m_terms;
         coordinate m_equality;
+        std::vector<range_match> m_range;
 };
 
 class hasher
@@ -103,7 +112,7 @@ class hasher
         search_coordinate hash(const search& s) const;
 
     private:
-        std::vector<uint64_t (*)(const e::buffer&)> m_funcs;
+        std::vector<hash_t> m_funcs;
 };
 
 std::ostream&
