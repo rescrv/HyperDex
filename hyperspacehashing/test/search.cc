@@ -52,13 +52,13 @@ main(int, char* [])
 {
     srand(time(NULL));
 
-    for (size_t i = 0; i < 10; ++i)
+    for (size_t i = 0; i < 100; ++i)
     {
         uint32_t nums[5];
 
         for (int j = 0; j < 5; ++j)
         {
-            nums[i] = static_cast<uint32_t>(rand());
+            nums[j] = static_cast<uint32_t>(rand());
         }
 
         for (size_t k = EQUALITY; k <= NONE; ++k)
