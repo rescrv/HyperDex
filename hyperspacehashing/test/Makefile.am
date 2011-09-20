@@ -3,7 +3,7 @@ AM_CXXFLAGS = $(COVERAGE_CXXFLAGS)
 AM_LDFLAGS = -no-install $(GTEST_LDFLAGS)
 
 if HAVE_GTEST
-check_PROGRAMS = bithacks cfloat mask prefix
+check_PROGRAMS = bithacks cfloat mask prefix search
 TESTS = $(check_PROGRAMS)
 
 bithacks_SOURCES = ../../runner.cc bithacks.cc
@@ -14,4 +14,6 @@ mask_SOURCES = ../../runner.cc mask.cc
 mask_LDADD = ../libhyperspacehashing.la $(COVERAGE_LDADD) $(GTEST_LIBS)
 prefix_SOURCES = ../../runner.cc prefix.cc
 prefix_LDADD = ../libhyperspacehashing.la $(COVERAGE_LDADD) $(GTEST_LIBS)
+search_SOURCES = search.cc
+search_LDADD = ../libhyperspacehashing.la $(COVERAGE_LDADD)
 endif
