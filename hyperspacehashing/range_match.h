@@ -38,7 +38,10 @@ namespace hyperspacehashing
 class range_match
 {
     public:
-        range_match(unsigned int idx, unsigned int space, uint64_t lower, uint64_t upper);
+        range_match(unsigned int idx,
+                    uint64_t lower, uint64_t upper,
+                    uint64_t cmask,
+                    uint64_t clower, uint64_t cupper);
 
     public:
         bool matches(const mask::coordinate& coord) const;
@@ -50,10 +53,9 @@ class range_match
         unsigned int m_idx;
         uint64_t m_lower;
         uint64_t m_upper;
+        uint64_t m_cmask;
         uint64_t m_clower;
         uint64_t m_cupper;
-        uint64_t m_crange_mask;
-        uint64_t m_crange_hash;
 };
 
 } // namespace hyperspacehashing

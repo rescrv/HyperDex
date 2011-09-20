@@ -53,21 +53,20 @@
 //      If the mask does not specify a full coordinate, ordering-based
 //      comparisons do not work.  In this case, the best we can do is
 //      compare bits that are the same in the cloat-mapped lower and
-//      upper ranges to the hash.
+//      upper ranges to the hash.  This case is folded into the equality
+//      comparison and thus is not handled by range_match.
 
 hyperspacehashing :: range_match :: range_match(unsigned int idx,
-                                                unsigned int space,
-                                                uint64_t lower,
-                                                uint64_t upper)
+                                                uint64_t lower, uint64_t upper,
+                                                uint64_t cmask,
+                                                uint64_t clower, uint64_t cupper)
     : m_idx(idx)
     , m_lower(lower)
     , m_upper(upper)
-    , m_clower(cfloat(lower, space))
-    , m_cupper(cfloat(upper, space))
-    , m_crange_mask()
-    , m_crange_hash()
+    , m_cmask(cmask)
+    , m_clower(clower)
+    , m_cupper(cupper)
 {
-    cfloat_range(m_clower, m_cupper, space, &m_crange_mask, &m_crange_hash);
 }
 
 bool
@@ -84,13 +83,10 @@ hyperspacehashing :: range_match :: matches(const mask::coordinate& coord) const
             return (static_cast<uint32_t>(m_clower) <= coord.primary_hash) &&
                    (coord.primary_hash <= static_cast<uint32_t>(m_cupper));
         }
-        // Partial-tolerant comparison
+        // Partial-tolerant comparison handled in equality check.
         else
         {
-            assert(m_crange_mask == static_cast<uint32_t>(m_crange_mask));
-            assert(m_crange_hash == static_cast<uint32_t>(m_crange_hash));
-            uint32_t mask = coord.primary_mask & static_cast<uint32_t>(m_crange_mask);
-            return (coord.primary_hash & mask) == (static_cast<uint32_t>(m_crange_hash) & mask);
+            return true;
         }
     }
     else
@@ -100,18 +96,14 @@ hyperspacehashing :: range_match :: matches(const mask::coordinate& coord) const
         {
             assert(m_clower == static_cast<uint32_t>(m_clower));
             assert(m_cupper == static_cast<uint32_t>(m_cupper));
-            assert(m_crange_mask == static_cast<uint32_t>(m_crange_mask));
-            uint32_t hash = coord.secondary_hash & static_cast<uint32_t>(m_crange_mask);
+            uint32_t hash = coord.secondary_hash & static_cast<uint32_t>(m_cmask);
             return (static_cast<uint32_t>(m_clower) <= hash) &&
                    (hash <= static_cast<uint32_t>(m_cupper));
         }
-        // Partial-tolerant comparison
+        // Partial-tolerant comparison handled in equality check.
         else
         {
-            assert(m_crange_mask == static_cast<uint32_t>(m_crange_mask));
-            assert(m_crange_hash == static_cast<uint32_t>(m_crange_hash));
-            uint32_t mask = coord.secondary_mask & static_cast<uint32_t>(m_crange_mask);
-            return (coord.secondary_hash & mask) == (static_cast<uint32_t>(m_crange_hash) & mask);
+            return true;
         }
     }
 }
@@ -122,16 +114,15 @@ hyperspacehashing :: range_match :: matches(const prefix::coordinate& coord) con
     uint64_t prefix = lookup_msb_mask[coord.prefix];
 
     // Interlace-tolerant comparison
-    if ((prefix & m_crange_mask) == m_crange_mask)
+    if ((prefix & m_cmask) == m_cmask)
     {
-        uint64_t hash = coord.point & m_crange_mask;
+        uint64_t hash = coord.point & m_cmask;
         return (m_clower <= hash) && (hash <= m_cupper);
     }
-    // Partial-tolerant comparison
+    // Partial-tolerant comparison handled in equality check.
     else
     {
-        uint64_t mask = prefix & m_crange_mask;
-        return (coord.point & mask) == (m_crange_hash & mask);
+        return true;
     }
 }
 

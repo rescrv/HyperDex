@@ -154,15 +154,19 @@ hyperspacehashing::prefix::coordinate
 hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key, const std::vector<e::buffer>& value) const
 {
     assert(value.size() + 1 == m_funcs.size());
-    std::vector<uint64_t> hashes;
+    size_t sz = std::min(static_cast<size_t>(64), m_funcs.size());
+    size_t num = 0;
+    uint64_t hashes[64];
 
     switch (m_funcs[0])
     {
         case EQUALITY:
-            hashes.push_back(cityhash(key));
+            hashes[num] = cityhash(key);
+            ++num;
             break;
         case RANGE:
-            hashes.push_back(0);
+            hashes[num] = 0;
+            ++num;
             break;
         case NONE:
             break;
@@ -170,15 +174,17 @@ hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key, const std::v
             assert(false);
     }
 
-    for (size_t i = 1; i < m_funcs.size(); ++i)
+    for (size_t i = 1; i < sz; ++i)
     {
         switch (m_funcs[i])
         {
             case EQUALITY:
-                hashes.push_back(cityhash(value[i - 1]));
+                hashes[num] = cityhash(value[i - 1]);
+                ++num;
                 break;
             case RANGE:
-                hashes.push_back(0);
+                hashes[num] = 0;
+                ++num;
                 break;
             case NONE:
                 break;
@@ -187,13 +193,13 @@ hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key, const std::v
         }
     }
 
-    if (hashes.empty())
+    if (num == 0)
     {
         return coordinate(0, 0);
     }
 
-    unsigned int numbits = 64 / hashes.size();
-    unsigned int plusones = 64 % hashes.size();
+    unsigned int numbits = 64 / num;
+    unsigned int plusones = 64 % num;
     unsigned int space;
     size_t idx = 0;
 
@@ -214,7 +220,7 @@ hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key, const std::v
             assert(false);
     }
 
-    for (size_t i = 1; i < m_funcs.size(); ++i)
+    for (size_t i = 1; i < sz; ++i)
     {
         switch (m_funcs[i])
         {
@@ -234,11 +240,109 @@ hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key, const std::v
         }
     }
 
-    return coordinate(64, upper_interlace(hashes));
+    return coordinate(64, upper_interlace(hashes, num));
 }
 
 hyperspacehashing::prefix::search_coordinate
 hyperspacehashing :: prefix :: hasher :: hash(const search& s) const
 {
-    assert(false);
+    assert(s.size() == m_funcs.size());
+    size_t sz = std::min(static_cast<size_t>(64), m_funcs.size());
+    size_t num = 0;
+    uint64_t masks[64];
+    uint64_t hashes[64];
+
+    for (size_t i = 0; i < sz; ++i)
+    {
+        switch (m_funcs[i])
+        {
+            case EQUALITY:
+
+                if (s.is_equality(i))
+                {
+                    masks[num] = UINT64_MAX;
+                    hashes[num] = cityhash(s.equality_value(i));
+                }
+                else
+                {
+                    masks[num] = 0;
+                    hashes[num] = 0;
+                }
+
+                ++num;
+                break;
+            case RANGE:
+                masks[num] = 0;
+                hashes[num] = 0;
+                ++num;
+                break;
+            case NONE:
+                break;
+            default:
+                assert(false);
+        }
+    }
+
+    std::vector<range_match> range;
+
+    if (num > 0)
+    {
+        uint64_t scratch[64];
+        memset(scratch, 0, sizeof(scratch));
+        unsigned int numbits = 64 / num;
+        unsigned int plusones = 64 % num;
+        unsigned int space;
+        size_t idx = 0;
+
+        for (size_t i = 0; i < sz; ++i)
+        {
+            if (s.is_range(i) && m_funcs[i] == RANGE)
+            {
+                uint64_t lower;
+                uint64_t upper;
+                s.range_value(i, &lower, &upper);
+                space = numbits + (idx < plusones ? 1 : 0);
+                uint64_t clower = cfloat(lower, space);
+                uint64_t cupper = cfloat(upper, space);
+                cfloat_range(clower, cupper, space, &masks[idx], &hashes[idx]);
+                // Create the partial matching which is folded into
+                // equality coordinate.
+                masks[idx] <<= (64 - space);
+                hashes[idx] <<= (64 - space);
+                // Create interleaved variations of the clower, cupper.
+                clower <<= (64 - space);
+                cupper <<= (64 - space);
+                scratch[idx] = clower;
+                clower = upper_interlace(scratch, num);
+                scratch[idx] = cupper;
+                cupper = upper_interlace(scratch, num);
+                scratch[idx] = UINT64_MAX;
+                uint64_t cmask = upper_interlace(scratch, num);
+                range.push_back(range_match(i, lower, upper, cmask, clower, cupper));
+            }
+            else if (s.is_range(i))
+            {
+                uint64_t lower;
+                uint64_t upper;
+                s.range_value(i, &lower, &upper);
+                range.push_back(range_match(i, lower, upper, 0, 0, 0));
+            }
+
+            switch (m_funcs[i])
+            {
+                case EQUALITY:
+                    ++idx;
+                    break;
+                case RANGE:
+                    ++idx;
+                    break;
+                case NONE:
+                    break;
+                default:
+                    assert(false);
+            }
+        }
+    }
+
+    return search_coordinate(upper_interlace(masks, num), upper_interlace(hashes, num), range);
 }
