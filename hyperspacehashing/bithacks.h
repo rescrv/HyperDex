@@ -29,10 +29,8 @@
 #define bithacks_h_
 
 // C
+#include <cstdlib>
 #include <stdint.h>
-
-// STL
-#include <vector>
 
 const uint64_t
 lookup_msb_mask[] = {0ULL, 9223372036854775808ULL, 13835058055282163712ULL,
@@ -59,9 +57,8 @@ lookup_msb_mask[] = {0ULL, 9223372036854775808ULL, 13835058055282163712ULL,
     18446744073709551614ULL, 18446744073709551615ULL};
 
 inline uint64_t
-lower_interlace(const std::vector<uint64_t>& nums)
+lower_interlace(uint64_t* nums, size_t sz)
 {
-    size_t sz = nums.size();
     uint64_t ret = 0;
 
     if (!sz)
@@ -83,9 +80,8 @@ lower_interlace(const std::vector<uint64_t>& nums)
 }
 
 inline uint64_t
-upper_interlace(const std::vector<uint64_t>& nums)
+upper_interlace(uint64_t* nums, size_t sz)
 {
-    size_t sz = nums.size();
     uint64_t ret = 0;
 
     if (!sz)

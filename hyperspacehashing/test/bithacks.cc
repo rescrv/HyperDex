@@ -40,40 +40,36 @@ namespace
 
 TEST(BithacksTest, LowerInterlace)
 {
-    std::vector<uint64_t> nums;
-    ASSERT_EQ(0, lower_interlace(nums));
-    nums.push_back(UINT64_MAX);
-    ASSERT_EQ(UINT64_MAX, lower_interlace(nums));
-    nums.push_back(0);
-    ASSERT_EQ(0x5555555555555555ULL, lower_interlace(nums));
+    uint64_t nums0[] = {0};
+    uint64_t nums1[] = {UINT64_MAX};
+    uint64_t nums2[] = {UINT64_MAX, 0};
+    ASSERT_EQ(0, lower_interlace(nums0, 0));
+    ASSERT_EQ(UINT64_MAX, lower_interlace(nums1, 1));
+    ASSERT_EQ(0x5555555555555555ULL, lower_interlace(nums2, 2));
 
-    nums.clear();
-    ASSERT_EQ(0, lower_interlace(nums));
-    nums.push_back(0xdeadbeefcafebabeULL);
-    ASSERT_EQ(0xdeadbeefcafebabeULL, lower_interlace(nums));
-    nums.push_back(0x1eaff00ddefec8edULL);
-    ASSERT_EQ(0xf2ecfffce5c4edf6ULL, lower_interlace(nums));
-    nums.push_back(0);
-    ASSERT_EQ(0xb6d86896086996caULL, lower_interlace(nums));
+    uint64_t nums3[] = {0xdeadbeefcafebabeULL};
+    uint64_t nums4[] = {0xdeadbeefcafebabeULL, 0x1eaff00ddefec8edULL};
+    uint64_t nums5[] = {0xdeadbeefcafebabeULL, 0x1eaff00ddefec8edULL, 0};
+    ASSERT_EQ(0xdeadbeefcafebabeULL, lower_interlace(nums3, 1));
+    ASSERT_EQ(0xf2ecfffce5c4edf6ULL, lower_interlace(nums4, 2));
+    ASSERT_EQ(0xb6d86896086996caULL, lower_interlace(nums5, 3));
 }
 
 TEST(BithacksTest, UpperInterlace)
 {
-    std::vector<uint64_t> nums;
-    ASSERT_EQ(0, upper_interlace(nums));
-    nums.push_back(UINT64_MAX);
-    ASSERT_EQ(UINT64_MAX, upper_interlace(nums));
-    nums.push_back(0);
-    ASSERT_EQ(0xaaaaaaaaaaaaaaaaULL, upper_interlace(nums));
+    uint64_t nums0[] = {0};
+    uint64_t nums1[] = {UINT64_MAX};
+    uint64_t nums2[] = {UINT64_MAX, 0};
+    ASSERT_EQ(0, upper_interlace(nums0, 0));
+    ASSERT_EQ(UINT64_MAX, upper_interlace(nums1, 1));
+    ASSERT_EQ(0xaaaaaaaaaaaaaaaaULL, upper_interlace(nums2, 2));
 
-    nums.clear();
-    ASSERT_EQ(0, upper_interlace(nums));
-    nums.push_back(0xdeadbeefcafebabeULL);
-    ASSERT_EQ(0xdeadbeefcafebabeULL, upper_interlace(nums));
-    nums.push_back(0x1eaff00ddefec8edULL);
-    ASSERT_EQ(0xa3fcccf7dfa8a8fbULL, upper_interlace(nums));
-    nums.push_back(0);
-    ASSERT_EQ(0x906db0c30d96cb69ULL, upper_interlace(nums));
+    uint64_t nums3[] = {0xdeadbeefcafebabeULL};
+    uint64_t nums4[] = {0xdeadbeefcafebabeULL, 0x1eaff00ddefec8edULL};
+    uint64_t nums5[] = {0xdeadbeefcafebabeULL, 0x1eaff00ddefec8edULL, 0};
+    ASSERT_EQ(0xdeadbeefcafebabeULL, upper_interlace(nums3, 1));
+    ASSERT_EQ(0xa3fcccf7dfa8a8fbULL, upper_interlace(nums4, 2));
+    ASSERT_EQ(0x906db0c30d96cb69ULL, upper_interlace(nums5, 3));
 }
 
 } // namespace
