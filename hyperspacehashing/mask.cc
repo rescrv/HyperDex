@@ -216,7 +216,7 @@ hyperspacehashing::mask::coordinate
 hyperspacehashing :: mask :: hasher :: hash(const std::vector<e::buffer>& value) const
 {
     assert(value.size() + 1 == m_funcs.size());
-    size_t sz = std::min(static_cast<size_t>(64), m_funcs.size());
+    size_t sz = std::min(static_cast<size_t>(33), m_funcs.size());
     size_t num = 0;
     uint64_t hashes[64];
 
@@ -277,7 +277,7 @@ hyperspacehashing::mask::search_coordinate
 hyperspacehashing :: mask :: hasher :: hash(const search& s) const
 {
     assert(s.size() == m_funcs.size());
-    size_t sz = std::min(static_cast<size_t>(32), m_funcs.size());
+    size_t sz = std::min(static_cast<size_t>(33), m_funcs.size());
     std::vector<range_match> range;
     uint32_t primary_mask = 0;
     uint32_t primary_hash = 0;
@@ -393,13 +393,6 @@ hyperspacehashing :: mask :: hasher :: hash(const search& s) const
                 range.push_back(range_match(i, lower, upper, cmask, clower, cupper));
                 scratch[idx] = 0;
             }
-            else if (s.is_range(i))
-            {
-                uint64_t lower;
-                uint64_t upper;
-                s.range_value(i, &lower, &upper);
-                range.push_back(range_match(i, lower, upper, 0, 0, 0));
-            }
 
             switch (m_funcs[i])
             {
@@ -414,6 +407,17 @@ hyperspacehashing :: mask :: hasher :: hash(const search& s) const
                 default:
                     assert(false);
             }
+        }
+    }
+
+    for (size_t i = 1; i < s.size(); ++i)
+    {
+        if (s.is_range(i) && (i >= sz || m_funcs[i] != RANGE))
+        {
+            uint64_t lower;
+            uint64_t upper;
+            s.range_value(i, &lower, &upper);
+            range.push_back(range_match(i, lower, upper, 0, 0, 0));
         }
     }
 
