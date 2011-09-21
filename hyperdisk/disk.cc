@@ -348,7 +348,7 @@ hyperdisk :: disk :: flush(size_t num)
             }
         }
 
-        if (del_needed && del_num != put_num)
+        if (del_needed && (!put_succeeded || del_num != put_num))
         {
             switch (m_shards->get_shard(del_num)->del(coord.primary_hash, key, &del_offset))
             {
