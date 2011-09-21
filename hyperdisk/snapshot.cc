@@ -76,66 +76,29 @@ hyperdisk :: snapshot :: next()
 hyperspacehashing::mask::coordinate
 hyperdisk :: snapshot :: coordinate()
 {
-    if (!m_snaps.empty())
-    {
-        return m_snaps.back().coordinate();
-    }
-    else
-    {
-        return hyperspacehashing::mask::coordinate();
-    }
-}
-
-bool
-hyperdisk :: snapshot :: has_value()
-{
-    if (!m_snaps.empty())
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    assert(!m_snaps.empty());
+    return m_snaps.back().coordinate();
 }
 
 uint64_t
 hyperdisk :: snapshot :: version()
 {
-    if (!m_snaps.empty())
-    {
-        return m_snaps.back().version();
-    }
-    else
-    {
-        return uint64_t();
-    }
+    assert(!m_snaps.empty());
+    return m_snaps.back().version();
 }
 
-e::buffer
+const e::buffer&
 hyperdisk :: snapshot :: key()
 {
-    if (!m_snaps.empty())
-    {
-        return m_snaps.back().key();
-    }
-    else
-    {
-        return e::buffer();
-    }
+    assert(!m_snaps.empty());
+    return m_snaps.back().key();
 }
 
-std::vector<e::buffer>
+const std::vector<e::buffer>&
 hyperdisk :: snapshot :: value()
 {
-    if (!m_snaps.empty())
-    {
-        return m_snaps.back().value();
-    }
-    else
-    {
-        return std::vector<e::buffer>();
-    }
+    assert (!m_snaps.empty());
+    return m_snaps.back().value();
 }
 
 hyperdisk :: rolling_snapshot :: rolling_snapshot(const e::locking_iterable_fifo<log_entry>::iterator& iter,
@@ -175,7 +138,7 @@ hyperdisk :: rolling_snapshot :: has_value()
 {
     if (m_snap->valid())
     {
-        return m_snap->has_value();
+        return true;
     }
     else if (m_iter.valid())
     {

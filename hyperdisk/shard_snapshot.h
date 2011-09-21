@@ -57,21 +57,28 @@ class shard_snapshot
         void next();
 
     public:
-        uint32_t primary_hash();
-        uint32_t secondary_hash();
-        hyperspacehashing::mask::coordinate coordinate();
-        uint64_t version();
-        e::buffer key();
-        std::vector<e::buffer> value();
+        uint32_t primary_hash() { return m_coord.primary_hash; }
+        uint32_t secondary_hash() { return m_coord.secondary_hash; }
+        hyperspacehashing::mask::coordinate coordinate() { return m_coord; }
+        uint64_t version() { return m_version; }
+        const e::buffer& key() { return m_key; }
+        const std::vector<e::buffer>& value() { return m_value; }
 
     public:
         shard_snapshot& operator = (const shard_snapshot& rhs);
+
+    private:
+        void parse();
 
     private:
         shard* m_shard;
         uint32_t m_limit;
         uint32_t m_entry;
         bool m_valid;
+        hyperspacehashing::mask::coordinate m_coord;
+        uint64_t m_version;
+        e::buffer m_key;
+        std::vector<e::buffer> m_value;
 };
 
 } // namespace hyperdisk

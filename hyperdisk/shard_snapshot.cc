@@ -39,7 +39,12 @@ hyperdisk :: shard_snapshot :: shard_snapshot(uint32_t offset, shard* s)
     , m_limit(offset)
     , m_entry(0)
     , m_valid(true)
+    , m_coord()
+    , m_version()
+    , m_key()
+    , m_value()
 {
+    valid();
 }
 
 hyperdisk :: shard_snapshot :: shard_snapshot(const shard_snapshot& other)
@@ -47,6 +52,10 @@ hyperdisk :: shard_snapshot :: shard_snapshot(const shard_snapshot& other)
     , m_limit(other.m_limit)
     , m_entry(other.m_entry)
     , m_valid(other.m_valid)
+    , m_coord(other.m_coord)
+    , m_version(other.m_version)
+    , m_key(other.m_key)
+    , m_value(other.m_value)
 {
 }
 
@@ -71,6 +80,7 @@ hyperdisk :: shard_snapshot :: valid()
         if (m_valid && offset > 0 && offset < m_limit &&
                 (invalid == 0 || invalid >= m_limit))
         {
+            parse();
             return true;
         }
 
@@ -79,6 +89,7 @@ hyperdisk :: shard_snapshot :: valid()
         // operation (and all succeeding it) happened after the snapshot.
         if (offset == 0 || offset >= m_limit)
         {
+            m_entry = SEARCH_INDEX_ENTRIES;
             m_valid = false;
             break;
         }
@@ -87,7 +98,7 @@ hyperdisk :: shard_snapshot :: valid()
         m_valid = true;
     }
 
-    return m_entry < SEARCH_INDEX_ENTRIES && m_valid;
+    return false;
 }
 
 void
@@ -96,69 +107,18 @@ hyperdisk :: shard_snapshot :: next()
     m_valid = false;
 }
 
-uint32_t
-hyperdisk :: shard_snapshot :: primary_hash()
+void
+hyperdisk :: shard_snapshot :: parse()
 {
-    return static_cast<uint32_t>(m_shard->m_search_log[m_entry * 2]);
-}
-
-uint32_t
-hyperdisk :: shard_snapshot :: secondary_hash()
-{
-    return static_cast<uint32_t>(m_shard->m_search_log[m_entry * 2] >> 32);
-}
-
-hyperspacehashing::mask::coordinate
-hyperdisk :: shard_snapshot :: coordinate()
-{
+    uint32_t offset = static_cast<uint32_t>(m_shard->m_search_log[m_entry * 2 + 1]);
+    assert(offset);
     uint64_t hashes = m_shard->m_search_log[m_entry * 2];
-    return hyperspacehashing::mask::coordinate(UINT32_MAX, static_cast<uint32_t>(hashes),
-                                               UINT32_MAX, static_cast<uint32_t>(hashes >> 32));
-}
-
-uint64_t
-hyperdisk :: shard_snapshot :: version()
-{
-    const uint32_t offset = m_shard->m_search_log[m_entry * 2 + 1] & 0xffffffffUL;
-
-    if (!offset)
-    {
-        return uint64_t();
-    }
-
-    return m_shard->data_version(offset);
-}
-
-e::buffer
-hyperdisk :: shard_snapshot :: key()
-{
-    const uint32_t offset = m_shard->m_search_log[m_entry * 2 + 1] & 0xffffffffUL;
-
-    if (!offset)
-    {
-        return e::buffer();
-    }
-
-    e::buffer k;
+    m_coord =  hyperspacehashing::mask::coordinate(UINT32_MAX, static_cast<uint32_t>(hashes),
+                                                   UINT32_MAX, static_cast<uint32_t>(hashes >> 32));
+    m_version = m_shard->data_version(offset);
     size_t key_size = m_shard->data_key_size(offset);
-    m_shard->data_key(offset, key_size, &k);
-    return k;
-}
-
-std::vector<e::buffer>
-hyperdisk :: shard_snapshot :: value()
-{
-    const uint32_t offset = m_shard->m_search_log[m_entry * 2 + 1] & 0xffffffffUL;
-
-    if (!offset)
-    {
-        return std::vector<e::buffer>();
-    }
-
-    std::vector<e::buffer> v;
-    size_t key_size = m_shard->data_key_size(offset);
-    m_shard->data_value(offset, key_size, &v);
-    return v;
+    m_shard->data_key(offset, key_size, &m_key);
+    m_shard->data_value(offset, key_size, &m_value);
 }
 
 hyperdisk::shard_snapshot&

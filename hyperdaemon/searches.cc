@@ -115,13 +115,10 @@ hyperdaemon :: searches :: next(const hyperdex::entityid& client, uint64_t searc
     {
         if (state->search_coord.matches(state->snap->coordinate()))
         {
-            e::buffer key(state->snap->key());
-            std::vector<e::buffer> value(state->snap->value());
-
-            if (state->search_coord.matches(key, value))
+            if (state->search_coord.matches(state->snap->key(), state->snap->value()))
             {
                 e::buffer msg;
-                msg.pack() << nonce << key << value;
+                msg.pack() << nonce << state->snap->key() << state->snap->value();
                 m_comm->send(state->region, client, hyperdex::RESP_SEARCH_ITEM, msg);
                 state->snap->next();
                 return;

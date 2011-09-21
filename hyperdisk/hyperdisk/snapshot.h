@@ -60,10 +60,9 @@ class snapshot
 
     public:
         hyperspacehashing::mask::coordinate coordinate();
-        bool has_value();
         uint64_t version();
-        e::buffer key();
-        std::vector<e::buffer> value();
+        const e::buffer& key();
+        const std::vector<e::buffer>& value();
 
     private:
         friend class e::intrusive_ptr<snapshot>;
