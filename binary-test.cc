@@ -66,11 +66,6 @@ handle_search(size_t* count,
 {
     ++*count;
 
-    if (*count > 1)
-    {
-        std::cerr << "Equality returned more than 1 result." << std::endl;
-    }
-
     if (expected_key != key)
     {
         std::cerr << "Equality returned unexpected key:  "
@@ -87,11 +82,6 @@ handle_range(size_t* count,
              const std::vector<e::buffer>& value)
 {
     ++*count;
-
-    if (*count > 1)
-    {
-        std::cerr << "Range returned more than 1 result." << std::endl;
-    }
 
     if (expected_key != key)
     {
@@ -159,7 +149,7 @@ main(int argc, char* argv[])
         hyperclient::client cl(po6::net::location(ip, port));
         cl.connect();
         e::buffer one("one", 3);
-        e::buffer zero("zero", 3);
+        e::buffer zero("zero", 4);
 
         for (uint32_t num = 0; num < numbers; ++num)
         {
@@ -229,7 +219,12 @@ main(int argc, char* argv[])
 
             if (count < 1)
             {
-                std::cerr << "Search returned less than 1 result." << std::endl;
+                std::cerr << "Equality returned less than 1 result." << std::endl;
+            }
+
+            if (count > 1)
+            {
+                std::cerr << "Equality returned more than 1 result." << std::endl;
             }
 
             count = 0;
@@ -241,6 +236,11 @@ main(int argc, char* argv[])
             if (count < 1)
             {
                 std::cerr << "Range returned less than 1 result." << std::endl;
+            }
+
+            if (count > 1)
+            {
+                std::cerr << "Range returned more than 1 result." << std::endl;
             }
         }
 
