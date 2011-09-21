@@ -143,5 +143,5 @@ hyperspacehashing :: range_match :: matches(const e::buffer& key,
         hash = lendian(value[m_idx - 1]);
     }
 
-    return (m_lower <= hash) && (hash <= m_upper);
+    return (m_lower <= hash) && (hash < m_upper);
 }
