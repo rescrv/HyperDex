@@ -137,17 +137,17 @@ hyperdex :: configuration :: add_line(const std::string& line)
     {
         std::string spacename;
         uint32_t subspacenum;
-        std::string dim;
-        std::vector<std::string> dims;
+        std::string hash;
+        std::vector<std::string> hashes;
         istr >> spacename >> subspacenum;
 
         while (istr.good())
         {
-            istr >> dim;
+            istr >> hash;
 
             if (!istr.fail())
             {
-                dims.push_back(dim);
+                hashes.push_back(hash);
             }
         }
 
@@ -159,27 +159,63 @@ hyperdex :: configuration :: add_line(const std::string& line)
                 && (si = m_spaces.find(sai->second)) != m_spaces.end()
                 && std::distance(m_subspaces.lower_bound(subspaceid(si->first, 0)),
                                  m_subspaces.upper_bound(subspaceid(si->first, UINT16_MAX))) == subspacenum
-                && dims.size() > 0
-                && (subspacenum != 0 || dims.size() == 1))
+                && hashes.size() > 0)
         {
             const std::vector<std::string>& spacedims(si->second);
             std::vector<hyperspacehashing::hash_t> repl_funcs(spacedims.size(), hyperspacehashing::NONE);
-            std::vector<hyperspacehashing::hash_t> disk_funcs(spacedims.size(), hyperspacehashing::EQUALITY);
-            std::vector<bool> bitmask(spacedims.size(), false);
+            std::vector<hyperspacehashing::hash_t> disk_funcs(spacedims.size(), hyperspacehashing::NONE);
+            std::vector<bool> bitmask(spacedims.size(), true);
 
-            for (size_t i = 0; i < dims.size(); ++i)
+            if (spacedims.size() * 2 != hashes.size())
             {
-                std::vector<std::string>::const_iterator d;
-                d = std::find(spacedims.begin(), spacedims.end(), dims[i]);
+                return false;
+            }
 
-                if (d == spacedims.end())
+            for (size_t i = 0; i < spacedims.size(); ++i)
+            {
+                if (subspacenum == 0 && i > 0 && hashes[2 * i] != "none")
                 {
                     return false;
                 }
+
+                if (subspacenum == 0 && i == 0 && hashes[2 * i] == "none")
+                {
+                    return false;
+                }
+
+                if (hashes[2 * i] == "equality")
+                {
+                    repl_funcs[i] = hyperspacehashing::EQUALITY;
+                }
+                else if (hashes[2 * i] == "range")
+                {
+                    repl_funcs[i] = hyperspacehashing::RANGE;
+                }
+                else if (hashes[2 * i] == "none")
+                {
+                    bitmask[i] = false;
+                    repl_funcs[i] = hyperspacehashing::NONE;
+                }
                 else
                 {
-                    bitmask[d - spacedims.begin()] = true;
-                    repl_funcs[d - spacedims.begin()] = hyperspacehashing::EQUALITY;
+                    return false;
+                }
+
+                if (hashes[2 * i + 1] == "equality")
+                {
+                    disk_funcs[i] = hyperspacehashing::EQUALITY;
+                }
+                else if (hashes[2 * i + 1] == "range")
+                {
+                    disk_funcs[i] = hyperspacehashing::RANGE;
+                }
+                else if (hashes[2 * i + 1] == "none")
+                {
+                    disk_funcs[i] = hyperspacehashing::NONE;
+                }
+                else
+                {
+                    return false;
                 }
             }
 

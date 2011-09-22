@@ -157,14 +157,26 @@ class ActionsLog(object):
             counter = 0
             config = ''
             for spacenum, space in self._spaces_by_num.iteritems():
+                spacedims = dict([(d.name, d) for d in space.dimensions])
                 space_str = 'space\t{0}\t{1}\t{2}\n'
                 space_str = space_str.format(hex(spacenum).rstrip('L'), space.name,
-                                             '\t'.join(space.dimensions))
+                                             '\t'.join([d.name for d in space.dimensions]))
                 for subspacenum, subspace in enumerate(space.subspaces):
+                    subdims = dict([(d.name, d) for d in subspace.dimensions])
+                    hashes = []
+                    for dim in space.dimensions:
+                        if dim.name in subdims:
+                            repl = subdims[dim.name].replhash or dim.replhash
+                            disk = subdims[dim.name].diskhash or dim.diskhash
+                        else:
+                            repl = dim.replhash
+                            disk = dim.diskhash
+                        hashes.append((repl, disk))
+                    hashes_str = '\t'.join(n + '\t' + h for n, h in hashes)
                     subspace_str = 'subspace\t{0}\t{1}\t{2}\n'
                     subspace_str = subspace_str.format(space.name,
                                                        subspacenum,
-                                                       '\t'.join(subspace.dimensions))
+                                                       hashes_str)
                     for region in subspace.regions:
                         region_str = 'region\t{0}\t{1}\t{2}\t{3}'
                         region_str = region_str.format(space.name,
@@ -188,7 +200,7 @@ class ActionsLog(object):
                                                               host[2], out_ver)
                 hosts_lines.append(host_str)
             hosts_lines.sort()
-            self._stableconfig = '\n'.join(hosts_lines) + '\n' + config
+            self._stableconfig = ('\n'.join(hosts_lines) + '\n' + config).strip()
             self._confignum += 1
         except Exception as e:
             # XXX Use the ConCoord logging service.
@@ -385,6 +397,7 @@ class HostConnection(asynchat.async_chat):
         if self._instance:
             addr, incoming, outgoing = self._instance
             self._actionslog.rm_instance(addr, incoming, outgoing)
+            self._instance = None
         if not self._die:
             logging.info("Disconnect from {0}".format(self._id))
 
@@ -460,7 +473,7 @@ class HostConnection(asynchat.async_chat):
 
     def new_configuration(self, config, num):
         # XXX Do something more inteligent.
-        self.push(config + 'end\tof\tline\n')
+        self.push((config + '\nend\tof\tline').strip() + '\n')
 
     def handle_config_response(self, success):
         if not self._identified:

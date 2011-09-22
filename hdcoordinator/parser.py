@@ -31,9 +31,10 @@ import collections
 import string
 import unittest
 
-from pyparsing import Combine, Forward, Group, Literal, Optional, ZeroOrMore, Word, delimitedList, stringEnd
+from pyparsing import Combine, Forward, Group, Literal, Optional, Suppress, ZeroOrMore, Word, delimitedList, stringEnd
 
 
+Dimension = collections.namedtuple("Dimension", ["name", "replhash", "diskhash"])
 Region = collections.namedtuple("Region", ["mask", "prefix", "replicas"])
 Subspace = collections.namedtuple("Subspace", ["dimensions", "regions"])
 Space = collections.namedtuple("Space", ["name", "dimensions", "subspaces"])
@@ -86,6 +87,10 @@ def _fill_to_region(upper_bound, auto_prefix, auto_replication, target):
     return regions
 
 
+def parse_dimension(dim):
+    return Dimension(dim[0], dim[1][0], dim[1][1])
+
+
 def parse_regions(regions):
     # Determine the automatic interval.
     auto_prefix = None
@@ -127,31 +132,50 @@ def parse_subspace(subspace):
 
 
 def parse_space(space):
-    dims = list(space.dimensions)
+    dims = [dim.name for dim in list(space.dimensions)]
     if space.key not in dims:
         raise ValueError("Space key must be one of its dimensions.")
     for subspace in space.subspaces:
         for dim in set(subspace.dimensions):
-            if dim not in dims:
-                raise ValueError("Subspace dimension {0} must be one of its dimensions.".format(repr(dim)))
-    keysubspace = Subspace(dimensions=[space.key], regions=list(space.keyregions))
+            if dim.name not in dims:
+                raise ValueError("Subspace dimension {0} must be one of its dimensions.".format(repr(name)))
+    if space.keyhash[0] == "none":
+        raise ValueError("Cannot specify \"none\" as a replication hash for dimension {0}".format(repr(space.key)))
+    keysubspace = Subspace(dimensions=[Dimension(space.key, *space.keyhash)], regions=list(space.keyregions))
     subspaces = [keysubspace] + list(space.subspaces)
-    return Space(name=space.name, dimensions=dims, subspaces=subspaces)
+    return Space(name=space.name, dimensions=space.dimensions, subspaces=subspaces)
 
 
 identifier = Word(string.ascii_letters + string.digits + '_')
 integer = Word(string.digits).setParseAction(lambda t: int(t[0]))
 hexnum  = Combine(Literal("0x") + Word(string.hexdigits)).setParseAction(lambda t: int(t[0][2:], 16))
-dimensions = delimitedList(identifier)
+hashequal = Literal("equality")
+hashrange = Literal("range")
+hashnone  = Literal("none")
+hashtype  = hashequal|hashrange|hashnone
+
+def hash_specifier(repl_default, disk_default):
+    return Optional(Group(Optional(hashtype, default=repl_default) +
+                          Suppress(":") +
+                          Optional(hashtype, default=disk_default)),
+                    default=[repl_default, disk_default])
+
+def dimensions(repl_default, disk_default):
+    dimension = identifier.setResultsName("name") + \
+                hash_specifier(repl_default, disk_default).setResultsName("hash")
+    dimension.setParseAction(parse_dimension)
+    return delimitedList(dimension)
+
 autoregion = Literal("auto") + integer + integer
 staticregion = Literal("region") + integer + hexnum + integer
 region = ZeroOrMore(Group(staticregion)) + Optional(Group(autoregion))
 region.setParseAction(parse_regions)
-subspace = Literal("subspace").suppress() + Group(dimensions) + Group(region)
+subspace = Literal("subspace").suppress() + Group(dimensions("equality", None)) + Group(region)
 subspace.setParseAction(parse_subspace)
 space = Literal("space").suppress() + identifier.setResultsName("name") + \
-        Literal("dimensions").suppress() + Group(dimensions).setResultsName("dimensions") + \
+        Literal("dimensions").suppress() + Group(dimensions("none", "equality")).setResultsName("dimensions") + \
         Literal("key").suppress() + identifier.setResultsName("key") + \
+        hash_specifier("equality", None).setResultsName("keyhash") + \
         Group(region).setResultsName("keyregions") + \
         ZeroOrMore(subspace).setResultsName("subspaces")
 space.setParseAction(parse_space)
