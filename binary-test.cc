@@ -64,6 +64,12 @@ handle_search(size_t* count,
               const e::buffer& key,
               const std::vector<e::buffer>& value)
 {
+    if (ret != hyperclient::SUCCESS)
+    {
+        std::cerr << "Equality returned !SUCCESS:  " << ret << std::endl;
+        return;
+    }
+
     ++*count;
 
     if (expected_key != key)
@@ -81,6 +87,12 @@ handle_range(size_t* count,
              const e::buffer& key,
              const std::vector<e::buffer>& value)
 {
+    if (ret != hyperclient::SUCCESS)
+    {
+        std::cerr << "Range returned !SUCCESS:  " << ret << std::endl;
+        return;
+    }
+
     ++*count;
 
     if (expected_key != key)
