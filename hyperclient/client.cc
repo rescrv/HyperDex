@@ -361,6 +361,17 @@ hyperclient :: client :: get(const std::string& space,
 }
 
 void
+hyperclient :: client :: get(const std::string& space,
+                             const e::buffer& key,
+                             returncode* ret, std::vector<e::buffer>* value)
+{
+    using std::tr1::bind;
+    using std::tr1::placeholders::_1;
+    using std::tr1::placeholders::_2;
+    get(space, key, bind(&client::inner_get, this, ret, value, _1, _2));
+}
+
+void
 hyperclient :: client :: put(const std::string& space,
                              const e::buffer& key,
                              const std::vector<e::buffer>& value,
@@ -373,12 +384,33 @@ hyperclient :: client :: put(const std::string& space,
 }
 
 void
+hyperclient :: client :: put(const std::string& space,
+                             const e::buffer& key,
+                             const std::vector<e::buffer>& value,
+                             returncode* ret)
+{
+    using std::tr1::bind;
+    using std::tr1::placeholders::_1;
+    put(space, key, value, bind(&client::inner_mutate, this, ret, _1));
+}
+
+void
 hyperclient :: client :: del(const std::string& space,
                              const e::buffer& key,
                              std::tr1::function<void (returncode)> callback)
 {
     e::intrusive_ptr<pending> op = new pending_mutate(hyperdex::RESP_DEL, callback);
     p->add_reqrep(space, key, hyperdex::REQ_DEL, key, op);
+}
+
+void
+hyperclient :: client :: del(const std::string& space,
+                             const e::buffer& key,
+                             returncode* ret)
+{
+    using std::tr1::bind;
+    using std::tr1::placeholders::_1;
+    del(space, key, bind(&client::inner_mutate, this, ret, _1));
 }
 
 void
@@ -433,6 +465,17 @@ hyperclient :: client :: update(const std::string& space,
     msg.pack() << key << bits << realvalue;
     e::intrusive_ptr<pending> op = new pending_mutate(hyperdex::RESP_UPDATE, callback);
     p->add_reqrep(space, key, hyperdex::REQ_UPDATE, msg, op);
+}
+
+void
+hyperclient :: client :: update(const std::string& space,
+                                const e::buffer& key,
+                                const std::map<std::string, e::buffer>& value,
+                                returncode* ret)
+{
+    using std::tr1::bind;
+    using std::tr1::placeholders::_1;
+    update(space, key, value, bind(&client::inner_mutate, this, ret, _1));
 }
 
 void
@@ -596,6 +639,10 @@ hyperclient :: client :: outstanding()
         if (*req)
         {
             ++ret;
+        }
+        else
+        {
+            req = p->requests.erase(req);
         }
     }
 
@@ -895,54 +942,141 @@ hyperclient :: client :: flush_one(int timeout)
     return SUCCESS;
 }
 
-void
-hyperclient :: client :: get(const std::string& space, const e::buffer& key, get_result& r)
+hyperclient::returncode
+hyperclient :: client :: get(const std::string& space, const e::buffer& key,
+                             std::map<std::string, e::buffer>* value)
 {
+    hyperdex::spaceid si = p->config.lookup_spaceid(space);
+
+    if (si == hyperdex::configuration::NULLSPACE)
+    {
+        return NOTASPACE;
+    }
+
+    std::vector<std::string> dimension_names = p->config.lookup_space_dimensions(si);
+    assert(dimension_names.size() > 0);
+    hyperclient::returncode ret;
+    std::vector<e::buffer> realvalue;
+    get(space, key, &ret, &realvalue);
+    flush(-1);
+
+    if (ret != SUCCESS)
+    {
+        return ret;
+    }
+
+    if (realvalue.size() + 1 != dimension_names.size())
+    {
+        return SERVERERROR;
+    }
+
+    value->clear();
+
+    for (size_t i = 1; i < dimension_names.size(); ++i)
+    {
+        value->insert(std::make_pair(dimension_names[i], realvalue[i - 1]));
+    }
+
+    return SUCCESS;
+}
+
+hyperclient::returncode
+hyperclient :: client :: put(const std::string& space, const e::buffer& key,
+                             const std::map<std::string, e::buffer>& value)
+{
+    hyperclient::returncode ret;
+    update(space, key, value, &ret);
+    flush(-1);
+    return ret;
+}
+
+hyperclient::returncode
+hyperclient :: client :: del(const std::string& space, const e::buffer& key)
+{
+    hyperclient::returncode ret;
+    del(space, key, &ret);
+    flush(-1);
+    return ret;
+}
+
+hyperclient::returncode
+hyperclient :: client :: search(const std::string& space,
+                                const std::map<std::string, e::buffer>& equality,
+                                const std::map<std::string, std::pair<uint64_t, uint64_t> >& range,
+                                std::vector<std::map<std::string, e::buffer> >* results)
+{
+    hyperdex::spaceid si = p->config.lookup_spaceid(space);
+
+    if (si == hyperdex::configuration::NULLSPACE)
+    {
+        return NOTASPACE;
+    }
+
+    std::vector<std::string> dimension_names = p->config.lookup_space_dimensions(si);
+    assert(dimension_names.size() > 0);
+    hyperclient::returncode ret = NOTFOUND;
+    e::buffer key;
+    std::vector<e::buffer> value;
+    results->clear();
+
     using std::tr1::bind;
     using std::tr1::placeholders::_1;
     using std::tr1::placeholders::_2;
-    get(space, key, bind(&client::inner_get, this, r, _1, _2));
+    using std::tr1::placeholders::_3;
+    search(space, equality, range, bind(&client::inner_search, this, &ret, &key, &value, _1, _2, _3));
+
+    while (outstanding() > 0)
+    {
+        flush_one(-1);
+
+        if (ret == SUCCESS && value.size() + 1 == dimension_names.size())
+        {
+            std::map<std::string, e::buffer> namedvalue;
+            namedvalue.insert(std::make_pair(dimension_names[0], key));
+
+            for (size_t i = 1; i < dimension_names.size(); ++i)
+            {
+                namedvalue.insert(std::make_pair(dimension_names[i], value[i - 1]));
+            }
+
+            results->push_back(namedvalue);
+        }
+    }
+
+    return SUCCESS;
 }
 
 void
-hyperclient :: client :: put(const std::string& space, const e::buffer& key,
-                             const std::vector<e::buffer>& value, result& r)
+hyperclient :: client :: inner_get(returncode* ret,
+                                   std::vector<e::buffer>* value,
+                                   returncode _ret,
+                                   const std::vector<e::buffer>& _value)
 {
-    using std::tr1::bind;
-    using std::tr1::placeholders::_1;
-    put(space, key, value, bind(&client::inner_mutate, this, r, _1));
+    *ret = _ret;
+    *value = _value;
 }
 
 void
-hyperclient :: client :: del(const std::string& space, const e::buffer& key,
-                             result& r)
+hyperclient :: client :: inner_mutate(returncode* ret, returncode _ret)
 {
-    using std::tr1::bind;
-    using std::tr1::placeholders::_1;
-    del(space, key, bind(&client::inner_mutate, this, r, _1));
+    *ret = _ret;
 }
 
 void
-hyperclient :: client :: update(const std::string& space, const e::buffer& key,
-                                const std::map<std::string, e::buffer>& value,
-                                result& r)
+hyperclient :: client :: inner_search(returncode* ret,
+                                      e::buffer* key,
+                                      std::vector<e::buffer>* value,
+                                      returncode _ret,
+                                      const e::buffer& _key,
+                                      const std::vector<e::buffer>& _value)
 {
-    using std::tr1::bind;
-    using std::tr1::placeholders::_1;
-    update(space, key, value, bind(&client::inner_mutate, this, r, _1));
-}
+    if (_ret == SUCCESS)
+    {
+        *key = _key;
+        *value = _value;
+    }
 
-void
-hyperclient :: client :: inner_mutate(result& r, returncode ret)
-{
-    r.m_status = ret;
-}
-
-void
-hyperclient :: client :: inner_get(get_result& r, returncode ret, const std::vector<e::buffer>& value)
-{
-    r.m_status = ret;
-    r.m_value = value;
+    *ret = _ret;
 }
 
 hyperclient :: channel :: channel(const hyperdex::instance& inst)

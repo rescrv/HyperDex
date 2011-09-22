@@ -43,7 +43,6 @@
 
 // HyperClient
 #include <hyperclient/returncode.h>
-#include <hyperclient/result.h>
 
 namespace hyperclient
 {
@@ -60,14 +59,23 @@ class client
     public:
         void get(const std::string& space, const e::buffer& key,
                  std::tr1::function<void (returncode, const std::vector<e::buffer>&)> callback);
+        void get(const std::string& space, const e::buffer& key,
+                 returncode* ret, std::vector<e::buffer>* value);
         void put(const std::string& space, const e::buffer& key,
                  const std::vector<e::buffer>& value,
                  std::tr1::function<void (returncode)> callback);
+        void put(const std::string& space, const e::buffer& key,
+                 const std::vector<e::buffer>& value, returncode* ret);
         void del(const std::string& space, const e::buffer& key,
                  std::tr1::function<void (returncode)> callback);
+        void del(const std::string& space, const e::buffer& key,
+                 returncode* ret);
         void update(const std::string& space, const e::buffer& key,
                     const std::map<std::string, e::buffer>& value,
                     std::tr1::function<void (returncode)> callback);
+        void update(const std::string& space, const e::buffer& key,
+                    const std::map<std::string, e::buffer>& value,
+                    returncode* ret);
         void search(const std::string& space,
                     const std::map<std::string, e::buffer>& params,
                     std::tr1::function<void (returncode,
@@ -95,21 +103,27 @@ class client
         returncode flush(int timeout);
         returncode flush_one(int timeout);
 
-    // Used for SWIG bindings where we don't want to write C callbacks.
+    // These will block.
     public:
-        void get(const std::string& space, const e::buffer& key, get_result& r);
-        void put(const std::string& space, const e::buffer& key,
-                 const std::vector<e::buffer>& value, result& r);
-        void del(const std::string& space, const e::buffer& key, result& r);
-        void update(const std::string& space, const e::buffer& key,
-                    const std::map<std::string, e::buffer>& value, result& r);
+        returncode get(const std::string& space, const e::buffer& key,
+                       std::map<std::string, e::buffer>* value);
+        returncode put(const std::string& space, const e::buffer& key,
+                       const std::map<std::string, e::buffer>& value);
+        returncode del(const std::string& space, const e::buffer& key);
+        returncode search(const std::string& space,
+                          const std::map<std::string, e::buffer>& equality,
+                          const std::map<std::string, std::pair<uint64_t, uint64_t> >& range,
+                          std::vector<std::map<std::string, e::buffer> >* results);
 
     private:
         friend class pending_search;
 
     private:
-        void inner_mutate(result& r, returncode ret);
-        void inner_get(get_result& r, returncode ret, const std::vector<e::buffer>& value);
+        void inner_get(returncode* ret, std::vector<e::buffer>* value,
+                       returncode _ret, const std::vector<e::buffer>& _value);
+        void inner_mutate(returncode* ret, returncode _ret);
+        void inner_search(returncode* ret, e::buffer* key, std::vector<e::buffer>* value,
+                          returncode _ret, const e::buffer& _key, const std::vector<e::buffer>& _value);
 
     private:
         struct priv;
