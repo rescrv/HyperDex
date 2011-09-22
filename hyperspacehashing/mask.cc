@@ -216,11 +216,10 @@ hyperspacehashing::mask::coordinate
 hyperspacehashing :: mask :: hasher :: hash(const std::vector<e::buffer>& value) const
 {
     assert(value.size() + 1 == m_funcs.size());
-    size_t sz = std::min(static_cast<size_t>(33), m_funcs.size());
     size_t num = 0;
     uint64_t hashes[64];
 
-    for (size_t i = 1; i < sz; ++i)
+    for (size_t i = 1; num < 32 && i < m_funcs.size(); ++i)
     {
         switch (m_funcs[i])
         {
@@ -249,7 +248,7 @@ hyperspacehashing :: mask :: hasher :: hash(const std::vector<e::buffer>& value)
     unsigned int space;
     size_t idx = 0;
 
-    for (size_t i = 1; i < sz; ++i)
+    for (size_t i = 1; idx < num && i < m_funcs.size(); ++i)
     {
         switch (m_funcs[i])
         {

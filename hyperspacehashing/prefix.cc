@@ -170,7 +170,6 @@ hyperspacehashing::prefix::coordinate
 hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key, const std::vector<e::buffer>& value) const
 {
     assert(value.size() + 1 == m_funcs.size());
-    size_t sz = std::min(static_cast<size_t>(64), m_funcs.size());
     size_t num = 0;
     uint64_t hashes[64];
 
@@ -190,7 +189,7 @@ hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key, const std::v
             assert(false);
     }
 
-    for (size_t i = 1; i < sz; ++i)
+    for (size_t i = 1; num < 64 && i < m_funcs.size(); ++i)
     {
         switch (m_funcs[i])
         {
@@ -236,7 +235,7 @@ hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key, const std::v
             assert(false);
     }
 
-    for (size_t i = 1; i < sz; ++i)
+    for (size_t i = 1; idx < num && i < m_funcs.size(); ++i)
     {
         switch (m_funcs[i])
         {
