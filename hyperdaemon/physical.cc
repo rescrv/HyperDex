@@ -438,7 +438,7 @@ hyperdaemon :: physical :: work_close(const hazard_ptr& hptr, channel* chan)
     }
 }
 
-#define IO_BLOCKSIZE 65536
+#define IO_BLOCKSIZE 4096
 
 bool
 hyperdaemon :: physical :: work_read(const hazard_ptr& hptr,
