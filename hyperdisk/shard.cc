@@ -554,12 +554,12 @@ hyperdisk :: shard :: shard(po6::io::fd* fd)
         throw po6::error(errno);
     }
 
-    if (madvise(m_data, HASH_TABLE_SIZE, MADV_RANDOM) < 0)
+    if (madvise(m_data, HASH_TABLE_SIZE, MADV_WILLNEED) < 0)
     {
         throw po6::error(errno);
     }
 
-    if (madvise(m_data + HASH_TABLE_SIZE, SEARCH_INDEX_SIZE, MADV_SEQUENTIAL) < 0)
+    if (madvise(m_data + HASH_TABLE_SIZE, SEARCH_INDEX_SIZE, MADV_WILLNEED) < 0)
     {
         throw po6::error(errno);
     }
