@@ -60,9 +60,9 @@ class shard_snapshot
         uint32_t primary_hash() { return m_coord.primary_hash; }
         uint32_t secondary_hash() { return m_coord.secondary_hash; }
         hyperspacehashing::mask::coordinate coordinate() { return m_coord; }
-        uint64_t version() { return m_version; }
-        const e::buffer& key() { return m_key; }
-        const std::vector<e::buffer>& value() { return m_value; }
+        uint64_t version();
+        const e::buffer& key();
+        const std::vector<e::buffer>& value();
 
     public:
         shard_snapshot& operator = (const shard_snapshot& rhs);
@@ -75,6 +75,7 @@ class shard_snapshot
         uint32_t m_limit;
         uint32_t m_entry;
         bool m_valid;
+        bool m_parsed;
         hyperspacehashing::mask::coordinate m_coord;
         uint64_t m_version;
         e::buffer m_key;

@@ -39,6 +39,7 @@ hyperdisk :: shard_snapshot :: shard_snapshot(uint32_t offset, shard* s)
     , m_limit(offset)
     , m_entry(0)
     , m_valid(true)
+    , m_parsed(false)
     , m_coord()
     , m_version()
     , m_key()
@@ -52,6 +53,7 @@ hyperdisk :: shard_snapshot :: shard_snapshot(const shard_snapshot& other)
     , m_limit(other.m_limit)
     , m_entry(other.m_entry)
     , m_valid(other.m_valid)
+    , m_parsed(other.m_parsed)
     , m_coord(other.m_coord)
     , m_version(other.m_version)
     , m_key(other.m_key)
@@ -80,7 +82,10 @@ hyperdisk :: shard_snapshot :: valid()
         if (m_valid && offset > 0 && offset < m_limit &&
                 (invalid == 0 || invalid >= m_limit))
         {
-            parse();
+            m_parsed = false;
+            uint64_t hashes = m_shard->m_search_log[m_entry * 2];
+            m_coord =  hyperspacehashing::mask::coordinate(UINT32_MAX, static_cast<uint32_t>(hashes),
+                                                           UINT32_MAX, static_cast<uint32_t>(hashes >> 32));
             return true;
         }
 
@@ -105,6 +110,40 @@ void
 hyperdisk :: shard_snapshot :: next()
 {
     m_valid = false;
+    m_parsed = false;
+}
+
+uint64_t
+hyperdisk :: shard_snapshot :: version()
+{
+    if (!m_parsed)
+    {
+        parse();
+    }
+
+    return m_version;
+}
+
+const e::buffer&
+hyperdisk :: shard_snapshot :: key()
+{
+    if (!m_parsed)
+    {
+        parse();
+    }
+
+    return m_key;
+}
+
+const std::vector<e::buffer>&
+hyperdisk :: shard_snapshot :: value()
+{
+    if (!m_parsed)
+    {
+        parse();
+    }
+
+    return m_value;
 }
 
 void
@@ -112,13 +151,11 @@ hyperdisk :: shard_snapshot :: parse()
 {
     uint32_t offset = static_cast<uint32_t>(m_shard->m_search_log[m_entry * 2 + 1]);
     assert(offset);
-    uint64_t hashes = m_shard->m_search_log[m_entry * 2];
-    m_coord =  hyperspacehashing::mask::coordinate(UINT32_MAX, static_cast<uint32_t>(hashes),
-                                                   UINT32_MAX, static_cast<uint32_t>(hashes >> 32));
     m_version = m_shard->data_version(offset);
     size_t key_size = m_shard->data_key_size(offset);
     m_shard->data_key(offset, key_size, &m_key);
     m_shard->data_value(offset, key_size, &m_value);
+    m_parsed = true;
 }
 
 hyperdisk::shard_snapshot&
