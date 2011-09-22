@@ -123,7 +123,8 @@ hyperspacehashing :: cfloat_range(uint64_t clower,
                                   uint64_t* mask,
                                   uint64_t* range)
 {
-    uint64_t m = (1 << space) - 1;
+    uint64_t m = UINT64_MAX;
+    m >>= (64 - space);
     m = (~(clower ^ cupper)) & m;
     bool seen_one = false;
     bool seen_zero = false;
