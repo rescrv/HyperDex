@@ -78,13 +78,13 @@ hyperdaemon :: searches :: cleanup(const hyperdex::configuration&,
 }
 
 void
-hyperdaemon :: searches :: start(const hyperdex::entityid& client,
-                                 uint64_t searchid,
-                                 const hyperdex::regionid& region,
+hyperdaemon :: searches :: start(const hyperdex::regionid& region,
+                                 const hyperdex::entityid& client,
+                                 uint64_t search_num,
                                  uint64_t nonce,
                                  const hyperspacehashing::search& terms)
 {
-    std::pair<entityid, uint64_t> key(client, searchid);
+    search_id key(region, client, search_num);
 
     if (m_searches.contains(key))
     {
@@ -96,15 +96,19 @@ hyperdaemon :: searches :: start(const hyperdex::entityid& client,
     e::intrusive_ptr<hyperdisk::snapshot> snap = m_data->make_snapshot(region, terms);
     e::intrusive_ptr<search_state> state = new search_state(region, coord, snap);
     m_searches.insert(key, state);
-    next(client, searchid, nonce);
+    next(region, client, search_num, nonce);
 }
 
 void
-hyperdaemon :: searches :: next(const hyperdex::entityid& client, uint64_t searchid, uint64_t nonce)
+hyperdaemon :: searches :: next(const hyperdex::regionid& region,
+                                const hyperdex::entityid& client,
+                                uint64_t search_num,
+                                uint64_t nonce)
 {
+    search_id key(region, client, search_num);
     e::intrusive_ptr<search_state> state;
 
-    if (!m_searches.lookup(std::make_pair(client, searchid), &state))
+    if (!m_searches.lookup(key, &state))
     {
         return;
     }
@@ -131,20 +135,21 @@ hyperdaemon :: searches :: next(const hyperdex::entityid& client, uint64_t searc
     e::buffer msg;
     msg.pack() << nonce;
     m_comm->send(state->region, client, hyperdex::RESP_SEARCH_DONE, msg);
-    stop(client, searchid);
+    stop(region, client, search_num);
 }
 
 void
-hyperdaemon :: searches :: stop(const hyperdex::entityid& client,
-                                uint64_t searchid)
+hyperdaemon :: searches :: stop(const hyperdex::regionid& region,
+                                const hyperdex::entityid& client,
+                                uint64_t search_num)
 {
-    m_searches.remove(std::make_pair(client, searchid));
+    m_searches.remove(search_id(region, client, search_num));
 }
 
 uint64_t
-hyperdaemon :: searches :: hash(const std::pair<entityid, uint32_t>& key)
+hyperdaemon :: searches :: hash(const search_id& si)
 {
-    return key.first.hash() + key.second;
+    return si.region.hash() + si.client.hash() + si.search_number;
 }
 
 

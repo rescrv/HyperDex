@@ -34,6 +34,7 @@
 // e
 #include <e/intrusive_ptr.h>
 #include <e/lockfree_hash_map.h>
+#include <e/tuple_compare.h>
 
 // HyperspaceHashing
 #include <hyperspacehashing/search.h>
@@ -67,17 +68,25 @@ class searches
         void cleanup(const hyperdex::configuration& newconfig, const hyperdex::instance& us);
 
     public:
-        void start(const hyperdex::entityid& client, uint64_t searchid,
-                   const hyperdex::regionid& region, uint64_t nonce,
+        void start(const hyperdex::regionid& region,
+                   const hyperdex::entityid& client,
+                   uint64_t searchid,
+                   uint64_t nonce,
                    const hyperspacehashing::search& wc);
-        void next(const hyperdex::entityid& client, uint64_t searchid, uint64_t nonce);
-        void stop(const hyperdex::entityid& client, uint64_t searchid);
-
-    private:
-        static uint64_t hash(const std::pair<hyperdex::entityid, uint32_t>&);
+        void next(const hyperdex::regionid& region,
+                  const hyperdex::entityid& client,
+                  uint64_t searchid,
+                  uint64_t nonce);
+        void stop(const hyperdex::regionid& region,
+                  const hyperdex::entityid& client,
+                  uint64_t searchid);
 
     private:
         class search_state;
+        class search_id;
+
+    private:
+        static uint64_t hash(const search_id&);
 
     private:
         searches(const searches&);
@@ -90,7 +99,7 @@ class searches
         datalayer* m_data;
         logical* m_comm;
         hyperdex::configuration m_config;
-        e::lockfree_hash_map<std::pair<hyperdex::entityid, uint32_t>, e::intrusive_ptr<search_state>, hash> m_searches;
+        e::lockfree_hash_map<search_id, e::intrusive_ptr<search_state>, hash> m_searches;
 };
 
 class searches::search_state
@@ -116,6 +125,34 @@ class searches::search_state
 
     private:
         size_t m_ref;
+};
+
+class searches::search_id
+{
+    public:
+        search_id(const hyperdex::regionid re,
+                  const hyperdex::entityid cl,
+                  uint64_t sn)
+        : region(re), client(cl), search_number(sn) {}
+        ~search_id() throw () {}
+
+    public:
+        int compare(const search_id& other) const
+        { return e::tuple_compare(region, client, search_number,
+                                  other.region, other.client, other.search_number); }
+
+    public:
+        bool operator < (const search_id& rhs) const { return compare(rhs) < 0; }
+        bool operator <= (const search_id& rhs) const { return compare(rhs) <= 0; }
+        bool operator == (const search_id& rhs) const { return compare(rhs) == 0; }
+        bool operator != (const search_id& rhs) const { return compare(rhs) != 0; }
+        bool operator >= (const search_id& rhs) const { return compare(rhs) >= 0; }
+        bool operator > (const search_id& rhs) const { return compare(rhs) > 0; }
+
+    public:
+        hyperdex::regionid region;
+        hyperdex::entityid client;
+        uint64_t search_number;
 };
 
 } // namespace hyperdaemon

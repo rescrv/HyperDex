@@ -173,7 +173,7 @@ hyperdaemon :: network_worker :: run()
 
                 if (s.sanity_check())
                 {
-                    m_ssss->start(from, searchid, to.get_region(), nonce, s);
+                    m_ssss->start(to.get_region(), from, searchid, nonce, s);
                 }
                 else
                 {
@@ -184,13 +184,13 @@ hyperdaemon :: network_worker :: run()
             {
                 uint64_t searchid;
                 msg.unpack() >> nonce >> searchid;
-                m_ssss->next(from, searchid, nonce);
+                m_ssss->next(to.get_region(), from, searchid, nonce);
             }
             else if (type == hyperdex::REQ_SEARCH_STOP)
             {
                 uint64_t searchid;
                 msg.unpack() >> nonce >> searchid;
-                m_ssss->stop(from, searchid);
+                m_ssss->stop(to.get_region(), from, searchid);
             }
             else if (type == hyperdex::CHAIN_PUT)
             {
