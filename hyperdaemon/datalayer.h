@@ -91,7 +91,8 @@ class datalayer
 
     private:
         e::intrusive_ptr<hyperdisk::disk> get_region(const hyperdex::regionid& ri);
-        void flush_loop();
+        void optimistic_io_thread();
+        void flush_thread();
         void create_disk(const hyperdex::regionid& ri,
                          const hyperspacehashing::mask::hasher& hasher,
                          uint16_t num_columns);
@@ -102,11 +103,13 @@ class datalayer
 
     private:
         hyperdex::coordinatorlink* m_cl;
-        bool m_shutdown;
+        volatile bool m_shutdown;
         po6::pathname m_base;
-        po6::threads::thread m_flusher;
+        po6::threads::thread m_optimistic_io_thread;
+        po6::threads::thread m_flush_thread;
         po6::threads::rwlock m_lock;
         std::map<hyperdex::regionid, e::intrusive_ptr<hyperdisk::disk> > m_disks;
+        volatile uint64_t m_last_flush;
         std::list<hyperdex::regionid> m_preallocate_rr;
         uint64_t m_last_preallocation;
         std::list<hyperdex::regionid> m_optimistic_rr;

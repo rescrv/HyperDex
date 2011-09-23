@@ -60,6 +60,10 @@
 // HyperDaemon
 #include "datalayer.h"
 
+// XXX Make this configurable
+#define PREALLOCATIONS_PER_SECOND 1
+#define OPTIMISM_BURSTS_PER_SECOND 1
+
 using hyperdex::regionid;
 using hyperdex::entityid;
 using hyperdex::instance;
@@ -73,7 +77,8 @@ hyperdaemon :: datalayer :: datalayer(coordinatorlink* cl, const po6::pathname& 
     : m_cl(cl)
     , m_shutdown(false)
     , m_base(base)
-    , m_flusher(std::tr1::bind(&datalayer::flush_loop, this))
+    , m_optimistic_io_thread(std::tr1::bind(&datalayer::optimistic_io_thread, this))
+    , m_flush_thread(std::tr1::bind(&datalayer::flush_thread, this))
     , m_lock()
     , m_disks()
     , m_preallocate_rr()
@@ -81,7 +86,8 @@ hyperdaemon :: datalayer :: datalayer(coordinatorlink* cl, const po6::pathname& 
     , m_optimistic_rr()
     , m_last_dose_of_optimism(0)
 {
-    m_flusher.start();
+    m_optimistic_io_thread.start();
+    m_flush_thread.start();
 }
 
 hyperdaemon :: datalayer :: ~datalayer() throw ()
@@ -91,7 +97,8 @@ hyperdaemon :: datalayer :: ~datalayer() throw ()
         shutdown();
     }
 
-    m_flusher.join();
+    m_optimistic_io_thread.join();
+    m_flush_thread.join();
 }
 
 void
@@ -241,7 +248,7 @@ hyperdaemon :: datalayer :: trickle(const regionid& ri)
 
     if (r)
     {
-        r->flush(1000);
+        r->flush(10000);
     }
 }
 
@@ -308,17 +315,16 @@ hyperdaemon :: datalayer :: get_region(const regionid& ri)
     }
 }
 
+typedef std::map<hyperdex::regionid, e::intrusive_ptr<hyperdisk::disk> > disk_map_t;
+typedef std::queue<hyperdex::regionid> disk_queue_t;
+
 void
-hyperdaemon :: datalayer :: flush_loop()
+hyperdaemon :: datalayer :: optimistic_io_thread()
 {
-    typedef std::map<hyperdex::regionid, e::intrusive_ptr<hyperdisk::disk> > disk_map_t;
-    typedef std::queue<hyperdex::regionid> disk_queue_t;
-    LOG(WARNING) << "Flush thread started.";
-    uint64_t count = 0;
+    LOG(WARNING) << "Started optimistic-I/O thread.";
 
     while (!m_shutdown)
     {
-        bool sleep = true;
         disk_map_t disks;
 
         { // Hold the lock only in this scope.
@@ -326,6 +332,8 @@ hyperdaemon :: datalayer :: flush_loop()
             disks = m_disks;
         }
 
+        // Ensure that all regions are in the preallocation and optimistic-I/O
+        // queues.
         for (disk_map_t::iterator i = disks.begin(); i != disks.end(); ++i)
         {
             if (std::find(m_preallocate_rr.begin(), m_preallocate_rr.end(), i->first)
@@ -341,8 +349,11 @@ hyperdaemon :: datalayer :: flush_loop()
             }
         }
 
-        // We try to do only two preallocations per second.
-        if ((e::time() - m_last_preallocation) / 500000000. > 1)
+        // We rate-limit the number of preallocations we do each second.
+        uint64_t nanos_since_last_prealloc = e::time() - m_last_preallocation;
+        uint64_t preallocation_interval = 1000000000. / PREALLOCATIONS_PER_SECOND;
+
+        if (nanos_since_last_prealloc / preallocation_interval >= 1)
         {
             for (size_t i = 0; i < m_preallocate_rr.size(); ++i)
             {
@@ -361,7 +372,6 @@ hyperdaemon :: datalayer :: flush_loop()
 
                     if (ret == hyperdisk::SUCCESS)
                     {
-                        sleep = false;
                         break;
                     }
                     else if (ret == hyperdisk::DIDNOTHING)
@@ -377,8 +387,11 @@ hyperdaemon :: datalayer :: flush_loop()
             m_last_preallocation = e::time();
         }
 
-        // We try to be optimistic at most twice per second.
-        if ((e::time() - m_last_dose_of_optimism) / 500000000. > 1)
+        // We rate-limit the number of preallocations we do each second.
+        uint64_t nanos_since_last_optimism = e::time() - m_last_dose_of_optimism;
+        uint64_t optimism_interval = 1000000000. / OPTIMISM_BURSTS_PER_SECOND;
+
+        if (nanos_since_last_optimism / optimism_interval >= 1)
         {
             for (size_t i = 0; i < m_optimistic_rr.size(); ++i)
             {
@@ -397,7 +410,6 @@ hyperdaemon :: datalayer :: flush_loop()
 
                     if (ret == hyperdisk::SUCCESS)
                     {
-                        sleep = false;
                         break;
                     }
                     else if (ret == hyperdisk::DIDNOTHING)
@@ -413,9 +425,34 @@ hyperdaemon :: datalayer :: flush_loop()
             m_last_dose_of_optimism = e::time();
         }
 
+        uint64_t last_flush = m_last_flush;
+
+        do
+        {
+            e::sleep_ms(0, 100);
+        }
+        while (!m_shutdown && last_flush == m_last_flush);
+    }
+}
+
+void
+hyperdaemon :: datalayer :: flush_thread()
+{
+    LOG(WARNING) << "Started data-flush thread.";
+
+    while (!m_shutdown)
+    {
+        bool sleep = true;
+        disk_map_t disks;
+
+        { // Hold the lock only in this scope.
+            po6::threads::rwlock::rdhold hold(&m_lock);
+            disks = m_disks;
+        }
+
         for (disk_map_t::iterator i = disks.begin(); i != disks.end(); ++i)
         {
-            hyperdisk::returncode ret = i->second->flush(10000);
+            hyperdisk::returncode ret = i->second->flush(1000);
 
             if (ret == hyperdisk::SUCCESS)
             {
@@ -444,8 +481,10 @@ hyperdaemon :: datalayer :: flush_loop()
         {
             e::sleep_ms(0, 100);
         }
-
-        ++count;
+        else
+        {
+            m_last_flush = e::time();
+        }
     }
 }
 
