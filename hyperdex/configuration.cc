@@ -615,7 +615,7 @@ hyperdex :: configuration :: transfers_from(const instance& i)
         }
         else if (tail->second == trans->second && pred == m_entities.end())
         {
-            assert(!"There is an error in the configuration object's logic.");
+            abort();
         }
         else if (tail->second == i)
         {

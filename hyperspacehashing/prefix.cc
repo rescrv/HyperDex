@@ -160,9 +160,9 @@ hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key) const
         case RANGE:
             return coordinate(64, cfloat(lendian(key), 64));
         case NONE:
-            assert(false);
+            abort();
         default:
-            assert(false);
+            abort();
     }
 }
 
@@ -186,7 +186,7 @@ hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key, const std::v
         case NONE:
             break;
         default:
-            assert(false);
+            abort();
     }
 
     for (size_t i = 1; num < 64 && i < m_funcs.size(); ++i)
@@ -204,7 +204,7 @@ hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key, const std::v
             case NONE:
                 break;
             default:
-                assert(false);
+                abort();
         }
     }
 
@@ -232,7 +232,7 @@ hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key, const std::v
         case NONE:
             break;
         default:
-            assert(false);
+            abort();
     }
 
     for (size_t i = 1; idx < num && i < m_funcs.size(); ++i)
@@ -251,7 +251,7 @@ hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key, const std::v
             case NONE:
                 break;
             default:
-                assert(false);
+                abort();
         }
     }
 
@@ -294,7 +294,7 @@ hyperspacehashing :: prefix :: hasher :: hash(const search& s) const
             case NONE:
                 break;
             default:
-                assert(false);
+                abort();
         }
     }
 
@@ -355,7 +355,7 @@ hyperspacehashing :: prefix :: hasher :: hash(const search& s) const
                 case NONE:
                     break;
                 default:
-                    assert(false);
+                    abort();
             }
         }
     }

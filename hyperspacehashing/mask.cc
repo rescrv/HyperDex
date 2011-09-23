@@ -196,7 +196,7 @@ hyperspacehashing :: mask :: hasher :: hash(const e::buffer& key) const
             key_hash = 0;
             break;
         default:
-            assert(false);
+            abort();
     }
 
     return coordinate(key_mask, key_hash, 0, 0);
@@ -234,7 +234,7 @@ hyperspacehashing :: mask :: hasher :: hash(const std::vector<e::buffer>& value)
             case NONE:
                 break;
             default:
-                assert(false);
+                abort();
         }
     }
 
@@ -263,7 +263,7 @@ hyperspacehashing :: mask :: hasher :: hash(const std::vector<e::buffer>& value)
             case NONE:
                 break;
             default:
-                assert(false);
+                abort();
         }
     }
 
@@ -321,7 +321,7 @@ hyperspacehashing :: mask :: hasher :: hash(const search& s) const
         case NONE:
             break;
         default:
-            assert(false);
+            abort();
     }
 
     // Then create the secondary search components
@@ -356,7 +356,7 @@ hyperspacehashing :: mask :: hasher :: hash(const search& s) const
             case NONE:
                 break;
             default:
-                assert(false);
+                abort();
         }
     }
 
@@ -404,7 +404,7 @@ hyperspacehashing :: mask :: hasher :: hash(const search& s) const
                 case NONE:
                     break;
                 default:
-                    assert(false);
+                    abort();
             }
         }
     }

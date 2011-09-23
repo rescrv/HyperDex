@@ -1363,7 +1363,7 @@ hyperdaemon :: replication_manager :: prev_and_next(const regionid& r,
     }
     else
     {
-        assert(!"programming error");
+        abort();
     }
 
     pend->prev = regionid(r.space, prev_subspace, prev_coord.prefix, prev_coord.point);

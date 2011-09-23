@@ -217,7 +217,7 @@ hyperdisk :: disk :: make_snapshot(const hyperspacehashing::search& terms)
 e::intrusive_ptr<hyperdisk::rolling_snapshot>
 hyperdisk :: disk :: make_rolling_snapshot()
 {
-    assert(!"Not implemented."); // XXX
+    abort();
 }
 
 hyperdisk::returncode
@@ -301,7 +301,7 @@ hyperdisk :: disk :: flush(size_t num)
             }
             else
             {
-                assert(false);
+                abort();
             }
         }
 
@@ -338,7 +338,7 @@ hyperdisk :: disk :: flush(size_t num)
                 }
                 else
                 {
-                    assert(false);
+                    abort();
                 }
             }
 
@@ -364,7 +364,7 @@ hyperdisk :: disk :: flush(size_t num)
                 case SPLITFAILED:
                 case DIDNOTHING:
                 default:
-                    assert(!"Programming error.");
+                    abort();
             }
         }
 
@@ -794,7 +794,7 @@ hyperdisk :: disk :: deal_with_full_shard(size_t shard_num)
     else if (c.primary_mask == UINT32_MAX || c.secondary_mask == UINT32_MAX)
     {
         // XXX NOCOMMIT;
-        assert(!"Not implemented");
+        abort();
         return SPLITFAILED;
     }
     else

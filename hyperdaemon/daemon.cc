@@ -215,7 +215,7 @@ hyperdaemon :: daemon(po6::pathname datadir,
                 break;
             case hyperdex::coordinatorlink::LOGICERROR:
             default:
-                assert(!"Programming error.");
+                abort();
         }
     }
 

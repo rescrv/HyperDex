@@ -679,7 +679,7 @@ hyperdisk :: shard :: hash_lookup(uint32_t primary_hash, const e::buffer& key,
         }
     }
 
-    assert(false);
+    abort();
 }
 
 void
@@ -699,7 +699,7 @@ hyperdisk :: shard :: hash_lookup(uint32_t primary_hash, size_t* entry)
         }
     }
 
-    assert(false);
+    abort();
 }
 
 void
