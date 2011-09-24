@@ -78,7 +78,7 @@ public class HyperClient extends DB
 
         m_pat = Pattern.compile("([a-zA-Z]*)([0-9]*)");
         m_mat = m_pat.matcher("user1");
-        m_scannable = true;
+        m_scannable = getProperties().getProperty("hyperclient.scannable", "false").equals("true");
     }
 
     /**
@@ -114,6 +114,7 @@ public class HyperClient extends DB
             }
         }
 
+        System.err.println("READ returned " + ret);
         return ret;
     }
 
@@ -131,6 +132,7 @@ public class HyperClient extends DB
     {
         if (!m_scannable)
         {
+            System.err.println("SCAN returned " + 1000);
             return 1000;
         }
 
@@ -144,6 +146,7 @@ public class HyperClient extends DB
 
         if (!m_mat.matches())
         {
+            System.err.println("SCAN returned " + 1001);
             return 1001;
         }
 
@@ -170,6 +173,7 @@ public class HyperClient extends DB
             }
         }
 
+        System.err.println("SCAN returned " + ret);
         return ret;
     }
 
@@ -197,6 +201,7 @@ public class HyperClient extends DB
 
             if (!m_mat.matches())
             {
+                System.err.println("UPDATE returned " + 1000);
                 return 1000;
             }
 
@@ -230,6 +235,7 @@ public class HyperClient extends DB
             }
         }
 
+        System.err.println("UPDATE returned " + ret);
         return ret;
     }
 
@@ -268,6 +274,7 @@ public class HyperClient extends DB
             }
         }
 
+        System.err.println("DELETE returned " + ret);
         return ret;
     }
 
