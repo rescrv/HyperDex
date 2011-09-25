@@ -321,12 +321,14 @@ class ControlConnection(asynchat.async_chat):
         for conn in self._map.values():
             identified = getattr(conn, '_identified', None)
             if identified == HostConnection.INSTANCE:
-                local[conn._instance] = conn._connectime
+                local[conn._instance] = (conn._connectime, conn._config_state)
         resp = ''
         for key, val in sorted(instances.items()):
-            time = local.get(key, '')
-            resp += "{0:26} {1} {2}v{3} {4}v{5}\n"\
-                    .format(str(time), key[0], key[1], val[0], key[2], val[1])
+            time = local.get(key, ('', ''))[0]
+            state = local.get(key, ('', ''))[1]
+            state = ('\t' + state).rstrip()
+            resp += "{0:26} {1} {2}v{3} {4}v{5}{6}\n"\
+                    .format(str(time), key[0], key[1], val[0], key[2], val[1], state)
         resp += ".\n"
         self.push(resp)
 
@@ -389,8 +391,11 @@ class HostConnection(asynchat.async_chat):
         self._identified = None
         self._instance = None
         self._die = False
-        config, num = actionslog.stable_config()
-        self.new_configuration(config, num)
+        self._config_state = 'UNCONFIGURED'
+        self._config_stable = (None, None)
+        self._config_rejected = (None, None)
+        self._config_pending = (None, None)
+        self._config_next = (None, None)
 
     def handle_close(self):
         asynchat.async_chat.handle_close(self)
@@ -444,6 +449,9 @@ class HostConnection(asynchat.async_chat):
             return self.die("Host {0} is identifying multiple times")
         self._identified = HostConnection.CLIENT
         logging.info("Host {0} identifies as a client.".format(self._id))
+        self._config_state = 'CONFIGURED'
+        config, num = self._actionslog.stable_config()
+        self.new_configuration(config, num)
 
     def identify_as_instance(self, addr, incoming, outgoing):
         if self._identified:
@@ -465,6 +473,9 @@ class HostConnection(asynchat.async_chat):
             self._instance = (addr, incoming, outgoing)
             logging.info("Host {0} identifies as an instance on {1} {2} {3}"
                          .format(self._id, addr, incoming, outgoing))
+            self._config_state = 'CONFIGURED'
+            config, num = self._actionslog.stable_config()
+            self.new_configuration(config, num)
         except ActionsLog.HostExists:
             return self.die("Host {{0}} identifies as instance ({0}, {1}, {2}) which is already conected"
                             .format(addr, incoming, outgoing))
@@ -472,18 +483,47 @@ class HostConnection(asynchat.async_chat):
             return self.die("Host {0} uses a port which has been exhausted")
 
     def new_configuration(self, config, num):
-        # XXX Do something more inteligent.
-        self.push((config + '\nend\tof\tline').strip() + '\n')
+        if self._config_state == 'UNCONFIGURED':
+            pass
+        elif self._config_state in ('CONFIGURED', 'CONFIGFAILED'):
+            self._config_state = 'CONFIGPENDING'
+            self._config_pending = (config, num)
+            self._config_next = (None, None)
+            self._send_config(config)
+        elif self._config_state == 'CONFIGPENDING':
+            if self._config_pending == (None, None):
+                self._config_pending = (config, num)
+                self._config_next = (None, None)
+                self._send_config(config)
+            else:
+                self._config_next = (config, num)
+            self._config_state = 'CONFIGPENDING'
+        else:
+            assert False
 
     def handle_config_response(self, success):
         if not self._identified:
             return self.die("Host {0} is responding to a configuration before identifying")
-        if success:
-            logging.info("Host {0} acknowledges new configuration".format(self._id))
-        else:
+        if self._config_state != 'CONFIGPENDING':
+            return self.die("Host {0} is responding to a configuration we didn't issue")
+        if not success:
             logging.error("Host {0} says new configuration is bad".format(self._id))
-        # XXX Do something more inteligent.
-        return
+            self._config_stable = (None, None)
+            self._config_rejected = self._config_pending
+            self._config_state = 'CONFIGFAILED'
+        else:
+            self._config_stable = self._config_pending
+            self._config_rejected = (None, None)
+            self._config_state = 'CONFIGURED'
+        self._config_pending = self._config_next
+        self._config_next = (None, None)
+        if self._config_pending != (None, None):
+            config = self._config_pending[0]
+            self._send_config(config)
+            self._config_state = 'CONFIGPENDING'
+
+    def _send_config(self, config):
+        self.push((config + '\nend\tof\tline').strip() + '\n')
 
 
 class CoordinatorServer(object):
