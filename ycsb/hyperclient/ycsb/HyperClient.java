@@ -151,8 +151,9 @@ public class HyperClient extends DB
         }
 
         e.set("username", new buffer(m_mat.group(1)));
-        BigInteger bi = new BigInteger(m_mat.group(2));
-        r.set("recno", new rangepair(bi, bi.add(new BigInteger("1"))));
+        BigInteger lower = new BigInteger(m_mat.group(2));
+        BigInteger upper = lower.add(BigInteger.valueOf(recordcount));
+        r.set("recno", new rangepair(lower, upper));
 
         for (int i = 0; i < 6; ++i)
         {
@@ -217,7 +218,7 @@ public class HyperClient extends DB
 
             for (int i = 0; i < be.length; ++i)
             {
-                le[8 - i - 1] = be[i];
+                le[be.length - i - 1] = be[i];
             }
 
             val.set("recno", new buffer(le, le.length));
