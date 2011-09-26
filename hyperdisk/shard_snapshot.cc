@@ -68,6 +68,13 @@ hyperdisk :: shard_snapshot :: ~shard_snapshot() throw ()
 bool
 hyperdisk :: shard_snapshot :: valid()
 {
+    hyperspacehashing::mask::coordinate coord;
+    return valid(coord);
+}
+
+bool
+hyperdisk :: shard_snapshot :: valid(const hyperspacehashing::mask::coordinate& coord)
+{
     uint32_t offset = 0;
     uint32_t invalid = 0;
 

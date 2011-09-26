@@ -210,7 +210,7 @@ hyperdisk :: disk :: make_snapshot(const hyperspacehashing::search& terms)
     }
 
     e::intrusive_ptr<hyperdisk::snapshot> ret;
-    ret = new snapshot(shards, &snaps);
+    ret = new snapshot(coord.coord(), shards, &snaps);
     return ret;
 }
 

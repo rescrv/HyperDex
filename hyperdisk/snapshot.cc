@@ -33,9 +33,11 @@
 #include "shard_snapshot.h"
 #include "shard_vector.h"
 
-hyperdisk :: snapshot :: snapshot(e::intrusive_ptr<shard_vector> shards,
+hyperdisk :: snapshot :: snapshot(const hyperspacehashing::mask::coordinate& coord,
+                                  e::intrusive_ptr<shard_vector> shards,
                                   std::vector<hyperdisk::shard_snapshot>* ss)
     : m_ref(0)
+    , m_coord(coord)
     , m_shards(shards)
     , m_snaps()
 {
@@ -51,7 +53,7 @@ hyperdisk :: snapshot :: valid()
 {
     while (!m_snaps.empty())
     {
-        if (m_snaps.back().valid())
+        if (m_snaps.back().valid(m_coord))
         {
             return true;
         }

@@ -69,7 +69,8 @@ class snapshot
         friend class disk;
 
     private:
-        snapshot(e::intrusive_ptr<shard_vector> shards,
+        snapshot(const hyperspacehashing::mask::coordinate& coord,
+                 e::intrusive_ptr<shard_vector> shards,
                  std::vector<hyperdisk::shard_snapshot>* snaps);
         snapshot(const snapshot&);
         ~snapshot() throw ();
@@ -83,6 +84,7 @@ class snapshot
 
     private:
         size_t m_ref;
+        hyperspacehashing::mask::coordinate m_coord;
         e::intrusive_ptr<shard_vector> m_shards;
         std::vector<hyperdisk::shard_snapshot> m_snaps;
 };

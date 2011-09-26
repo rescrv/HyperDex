@@ -54,6 +54,7 @@ class shard_snapshot
 
     public:
         bool valid();
+        bool valid(const hyperspacehashing::mask::coordinate& coord);
         void next();
 
     public:

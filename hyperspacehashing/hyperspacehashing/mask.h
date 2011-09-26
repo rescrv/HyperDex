@@ -82,6 +82,7 @@ class search_coordinate
         ~search_coordinate() throw ();
 
     public:
+        const coordinate& coord() const { return m_equality; }
         bool matches(const coordinate& other) const;
         bool matches(const e::buffer& key, const std::vector<e::buffer>& value) const;
 
