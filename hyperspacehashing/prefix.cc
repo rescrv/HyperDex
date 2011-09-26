@@ -262,12 +262,11 @@ hyperspacehashing::prefix::search_coordinate
 hyperspacehashing :: prefix :: hasher :: hash(const search& s) const
 {
     assert(s.size() == m_funcs.size());
-    size_t sz = std::min(static_cast<size_t>(64), m_funcs.size());
     size_t num = 0;
     uint64_t masks[64];
     uint64_t hashes[64];
 
-    for (size_t i = 0; i < sz; ++i)
+    for (size_t i = 0; num < 64 && i < s.size(); ++i)
     {
         switch (m_funcs[i])
         {
@@ -309,7 +308,7 @@ hyperspacehashing :: prefix :: hasher :: hash(const search& s) const
         unsigned int space;
         size_t idx = 0;
 
-        for (size_t i = 0; i < sz; ++i)
+        for (size_t i = 0; idx < num && i < s.size(); ++i)
         {
             if (s.is_range(i) && m_funcs[i] == RANGE)
             {
@@ -357,6 +356,33 @@ hyperspacehashing :: prefix :: hasher :: hash(const search& s) const
                 default:
                     abort();
             }
+        }
+    }
+
+    size_t idx = 0;
+
+    for (size_t i = 0; i < s.size(); ++i)
+    {
+        if (s.is_range(i) && (idx >= num || m_funcs[i] != RANGE))
+        {
+            uint64_t lower;
+            uint64_t upper;
+            s.range_value(i, &lower, &upper);
+            range.push_back(range_match(i, lower, upper, 0, 0, 0));
+        }
+
+        switch (m_funcs[i])
+        {
+            case EQUALITY:
+                ++idx;
+                break;
+            case RANGE:
+                ++idx;
+                break;
+            case NONE:
+                break;
+            default:
+                abort();
         }
     }
 

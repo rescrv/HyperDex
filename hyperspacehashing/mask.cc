@@ -276,7 +276,6 @@ hyperspacehashing::mask::search_coordinate
 hyperspacehashing :: mask :: hasher :: hash(const search& s) const
 {
     assert(s.size() == m_funcs.size());
-    size_t sz = std::min(static_cast<size_t>(33), m_funcs.size());
     std::vector<range_match> range;
     uint32_t primary_mask = 0;
     uint32_t primary_hash = 0;
@@ -329,7 +328,7 @@ hyperspacehashing :: mask :: hasher :: hash(const search& s) const
     uint64_t masks[32];
     uint64_t hashes[32];
 
-    for (size_t i = 1; i < sz; ++i)
+    for (size_t i = 1; num < 32 && i < s.size(); ++i)
     {
         switch (m_funcs[i])
         {
@@ -369,7 +368,7 @@ hyperspacehashing :: mask :: hasher :: hash(const search& s) const
         unsigned int space;
         size_t idx = 0;
 
-        for (size_t i = 1; i < sz; ++i)
+        for (size_t i = 1; idx < num && i < s.size(); ++i)
         {
             if (s.is_range(i) && m_funcs[i] == RANGE)
             {
@@ -409,14 +408,30 @@ hyperspacehashing :: mask :: hasher :: hash(const search& s) const
         }
     }
 
+    size_t idx = 0;
+
     for (size_t i = 1; i < s.size(); ++i)
     {
-        if (s.is_range(i) && (i >= sz || m_funcs[i] != RANGE))
+        if (s.is_range(i) && (idx >= num || m_funcs[i] != RANGE))
         {
             uint64_t lower;
             uint64_t upper;
             s.range_value(i, &lower, &upper);
             range.push_back(range_match(i, lower, upper, 0, 0, 0));
+        }
+
+        switch (m_funcs[i])
+        {
+            case EQUALITY:
+                ++idx;
+                break;
+            case RANGE:
+                ++idx;
+                break;
+            case NONE:
+                break;
+            default:
+                abort();
         }
     }
 
