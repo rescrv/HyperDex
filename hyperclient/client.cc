@@ -632,13 +632,14 @@ size_t
 hyperclient :: client :: outstanding()
 {
     size_t ret = 0;
+    std::deque<e::intrusive_ptr<pending> >::iterator req = p->requests.begin();
 
-    for (std::deque<e::intrusive_ptr<pending> >::iterator req = p->requests.begin();
-            req != p->requests.end(); ++req)
+    while (req != p->requests.end())
     {
         if (*req)
         {
             ++ret;
+            ++req;
         }
         else
         {
