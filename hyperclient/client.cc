@@ -1042,9 +1042,13 @@ hyperclient :: client :: search(const std::string& space,
 
             results->push_back(namedvalue);
         }
+        else if (ret == SUCCESS)
+        {
+            return SERVERERROR;
+        }
     }
 
-    return SUCCESS;
+    return ret;
 }
 
 void
