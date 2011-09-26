@@ -227,7 +227,7 @@ main(int argc, char* argv[])
             using std::tr1::placeholders::_3;
             size_t count = 0;
             cl.search(argv[3], search, std::tr1::bind(handle_search, &count, key, _1, _2, _3));
-            cl.flush(100);
+            cl.flush(-1);
 
             if (count < 1)
             {
@@ -243,7 +243,7 @@ main(int argc, char* argv[])
             std::map<std::string, std::pair<uint64_t, uint64_t> > range;
             range.insert(std::make_pair("range", std::make_pair(num, num + 1)));
             cl.search(argv[3], range, std::tr1::bind(handle_range, &count, key, _1, _2, _3));
-            cl.flush(100);
+            cl.flush(-1);
 
             if (count < 1)
             {
