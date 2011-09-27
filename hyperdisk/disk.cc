@@ -659,10 +659,10 @@ po6::pathname
 hyperdisk :: disk :: shard_filename(const coordinate& c)
 {
     std::ostringstream ostr;
-    ostr << std::hex << std::setfill('0') << std::setw(16) << c.primary_mask;
-    ostr << "-" << std::setw(16) << c.primary_hash;
-    ostr << "-" << std::setw(16) << c.secondary_mask;
-    ostr << "-" << std::setw(16) << c.secondary_hash;
+    ostr << std::hex << std::setfill('0') << std::setw(8) << c.primary_mask;
+    ostr << "-" << std::setw(8) << c.primary_hash;
+    ostr << "-" << std::setw(8) << c.secondary_mask;
+    ostr << "-" << std::setw(8) << c.secondary_hash;
     return po6::pathname(ostr.str());
 }
 
@@ -670,10 +670,10 @@ po6::pathname
 hyperdisk :: disk :: shard_tmp_filename(const coordinate& c)
 {
     std::ostringstream ostr;
-    ostr << std::hex << std::setfill('0') << std::setw(16) << c.primary_mask;
-    ostr << "-" << std::setw(16) << c.primary_hash;
-    ostr << "-" << std::setw(16) << c.secondary_mask;
-    ostr << "-" << std::setw(16) << c.secondary_hash;
+    ostr << std::hex << std::setfill('0') << std::setw(8) << c.primary_mask;
+    ostr << "-" << std::setw(8) << c.primary_hash;
+    ostr << "-" << std::setw(8) << c.secondary_mask;
+    ostr << "-" << std::setw(8) << c.secondary_hash;
     ostr << "-tmp";
     return po6::pathname(ostr.str());
 }
