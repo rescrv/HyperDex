@@ -75,22 +75,28 @@ hyperdisk :: shard_snapshot :: valid()
 bool
 hyperdisk :: shard_snapshot :: valid(const hyperspacehashing::mask::coordinate& coord)
 {
+    uint64_t mask = (static_cast<uint64_t>(coord.secondary_mask) << 32)
+                  | static_cast<uint64_t>(coord.primary_mask);
+    uint64_t hash = (static_cast<uint64_t>(coord.secondary_hash) << 32)
+                  | static_cast<uint64_t>(coord.primary_hash);
+
     uint32_t offset = 0;
     uint32_t invalid = 0;
 
     while (m_entry < SEARCH_INDEX_ENTRIES)
     {
+        uint64_t hashes = m_shard->m_search_log[m_entry * 2];
         offset = static_cast<uint32_t>(m_shard->m_search_log[m_entry * 2 + 1]);
         invalid = static_cast<uint32_t>(m_shard->m_search_log[m_entry * 2 + 1] >> 32);
 
         // If the m_valid flag is set; the offset is within the subsection of
         // data we may observe; and the data was never invalidated, or was
         // invalidated after we scanned it, then we may return true;
-        if (m_valid && offset > 0 && offset < m_limit &&
+        if ((hashes & mask) == hash &&
+                m_valid && offset > 0 && offset < m_limit &&
                 (invalid == 0 || invalid >= m_limit))
         {
             m_parsed = false;
-            uint64_t hashes = m_shard->m_search_log[m_entry * 2];
             m_coord =  hyperspacehashing::mask::coordinate(UINT32_MAX, static_cast<uint32_t>(hashes),
                                                            UINT32_MAX, static_cast<uint32_t>(hashes >> 32));
             return true;
