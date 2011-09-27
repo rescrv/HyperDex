@@ -49,9 +49,9 @@ int
 main(int, char* [])
 {
     uint64_t enc;
-    enc = cfloat(0, 6, 58);
+    enc = cfloat(0, 6, 6, 58);
     assert(enc == 0);
-    enc = cfloat(UINT64_MAX, 6, 58);
+    enc = cfloat(UINT64_MAX, 6, 6, 58);
     assert(enc == UINT64_MAX);
 
     // Numbers which have caused problems in debugging.
@@ -63,7 +63,7 @@ main(int, char* [])
     unsigned int seed = time(NULL);
     uint64_t old = 0;
 
-    for (size_t c = 0; c < 10; ++c)
+    for (size_t c = 0; c < 100; ++c)
     {
         int random = rand_r(&seed);
         uint64_t cur = UINT64_MAX * (static_cast<double>(random) / RAND_MAX);
@@ -86,12 +86,12 @@ main(int, char* [])
 void
 validate(uint64_t a, uint64_t b)
 {
-    for (unsigned int float_sz = 1; float_sz < 64; ++float_sz)
+    for (unsigned int exp_sz = 0; exp_sz <= 6; ++exp_sz)
     {
-        for (unsigned int exp_sz = 0; exp_sz <= float_sz; ++exp_sz)
+        for (unsigned int float_sz = 0; float_sz < 64 - exp_sz; ++float_sz)
         {
-            uint64_t enc_a = cfloat(a, exp_sz, float_sz - exp_sz);
-            uint64_t enc_b = cfloat(b, exp_sz, float_sz - exp_sz);
+            uint64_t enc_a = cfloat(a, 6, exp_sz, float_sz);
+            uint64_t enc_b = cfloat(b, 6, exp_sz, float_sz);
 
             if (a < b && enc_a > enc_b)
             {
@@ -107,6 +107,27 @@ validate(uint64_t a, uint64_t b)
             {
                 abort();
             }
+        }
+    }
+
+    for (size_t sz = 0; sz < 64; ++sz)
+    {
+        uint64_t enc_a = cfloat(a, sz);
+        uint64_t enc_b = cfloat(b, sz);
+
+        if (a < b && enc_a > enc_b)
+        {
+            abort();
+        }
+
+        if (a > b && enc_a < enc_b)
+        {
+            abort();
+        }
+
+        if (a == b && enc_a != enc_b)
+        {
+            abort();
         }
     }
 }

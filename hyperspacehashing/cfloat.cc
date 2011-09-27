@@ -40,59 +40,101 @@
 uint64_t
 hyperspacehashing :: cfloat(uint64_t dec, unsigned int sz)
 {
-    unsigned int exp_sz = std::min(static_cast<unsigned int>(6), sz / 4);
-    unsigned int frac_sz = sz - exp_sz;
-    return cfloat(dec, exp_sz, frac_sz);
+    if (sz == 1)
+    {
+        return dec > UINT16_MAX ? 1 : 0;
+    }
+
+    sz -= 2;
+    unsigned int exp_sz = 0;
+    unsigned int frac_sz = 0;
+    unsigned int log2_of_input_sz = 0;
+    uint64_t tag = 0;
+
+    if (dec > UINT32_MAX)
+    {
+        log2_of_input_sz = 6U;
+        tag = 3;
+    }
+    else if (dec > UINT16_MAX)
+    {
+        log2_of_input_sz = 5U;
+        tag = 2;
+    }
+    else if (dec > UINT8_MAX)
+    {
+        log2_of_input_sz = 4U;
+        tag = 1;
+    }
+    else
+    {
+        log2_of_input_sz = 3U;
+        tag = 0;
+    }
+
+    exp_sz = std::min(log2_of_input_sz, sz / 2);
+    frac_sz = sz - exp_sz;
+
+    if (sz == 2)
+    {
+        return tag;
+    }
+
+    return tag << sz | cfloat(dec, log2_of_input_sz, exp_sz, frac_sz);
 }
 
 uint64_t
 hyperspacehashing :: cfloat(uint64_t dec,
+                            unsigned int log2_of_input_sz,
                             unsigned int exp_sz,
                             unsigned int frac_sz)
 {
-    if (exp_sz > 6)
-    {
-        frac_sz += exp_sz - 6;
-        exp_sz = 6;
-    }
-
+    assert(log2_of_input_sz <= 64);
+    assert(log2_of_input_sz >= exp_sz);
+    unsigned int input_sz = 1U << log2_of_input_sz;
+    assert(input_sz == 64 || 1ULL << input_sz > dec);
     uint64_t enc = 0;
     uint64_t frac_range = UINT64_MAX;
 
+    if (!dec)
+    {
+        return 0;
+    }
+
     if (exp_sz > 0)
     {
-        uint64_t pos = 0;
-        uint64_t lower = 0;
-        uint64_t upper = 1;
-        unsigned int exp_bound = 1 << exp_sz;
-        unsigned int exp_shift = 6 - exp_sz;
+        unsigned int exp_pos = 0;
+        uint64_t exp_num = 1;
 
-        for (pos = 0; pos < exp_bound; ++pos)
+        // Shift exp_num until its set bit is in the same position as the
+        // highest bit of dec.
+        while (exp_pos + 1 < input_sz && (exp_num ^ dec) > exp_num)
         {
-            upper = 1ULL;
-            upper <<= (pos << exp_shift);
-
-            if (upper > dec)
-            {
-                break;
-            }
-
-            lower = upper;
+            ++exp_pos;
+            exp_num <<= 1;
         }
 
-        if (upper == lower)
+        assert(exp_pos < input_sz);
+        assert(exp_pos == 63 || (exp_num <= dec && exp_num * 2 > dec));
+
+        // We find the looser-fitting lower and upper bounds.
+        unsigned int incr = 1U << (log2_of_input_sz - exp_sz);
+        exp_pos &= ~(incr - 1);
+        exp_num = 1U << exp_pos;
+        unsigned int next_pos = exp_pos + incr;
+
+        if (next_pos >= 64)
         {
-            frac_range = (UINT64_MAX - lower) + 1;
-            --pos;
+            frac_range = UINT64_MAX - exp_num + 1;
         }
         else
         {
-            frac_range = upper - lower;
-            pos = pos > 0 ? pos - 1 : 0;
+            frac_range = (1ULL << next_pos) - exp_num;
         }
 
-        dec -= lower;
-        enc |= pos << frac_sz;
+        dec -= exp_num;
+        enc = exp_pos >> (log2_of_input_sz - exp_sz);
+        enc <<= frac_sz;
     }
 
     if (frac_sz > 0)
@@ -101,12 +143,10 @@ hyperspacehashing :: cfloat(uint64_t dec,
                          / static_cast<double>(frac_range);
         assert(frac_used >= 0);
         assert(frac_used <= 1);
-
         uint64_t frac_bound = 1;
         frac_bound <<= frac_sz;
         assert(frac_bound > 0);
-        uint64_t frac = frac_bound - 1;
-        assert(frac <= frac_bound - 1);
+        uint64_t frac = frac_bound;
         frac *= frac_used;
         frac = frac >= frac_bound ? frac_bound - 1 : frac;
         assert(frac <= frac_bound - 1);

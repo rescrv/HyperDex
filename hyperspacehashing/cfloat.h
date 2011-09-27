@@ -38,7 +38,7 @@ uint64_t
 cfloat(uint64_t dec, unsigned int sz);
 
 uint64_t
-cfloat(uint64_t dec, unsigned int exp_sz, unsigned int frac_sz);
+cfloat(uint64_t dec, unsigned int log2_of_input_sz, unsigned int exp_sz, unsigned int frac_sz);
 
 void
 cfloat_range(uint64_t clower,
