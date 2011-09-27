@@ -116,5 +116,6 @@ AC_CONFIG_FILES([Makefile
                  hyperdisk/utils/Makefile
                  hyperspacehashing/Makefile
                  hyperspacehashing/test/Makefile
+                 hyperspacehashing/utils/Makefile
                  ycsb/Makefile])
 AC_OUTPUT

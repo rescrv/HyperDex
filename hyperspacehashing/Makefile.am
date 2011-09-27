@@ -1,4 +1,4 @@
-SUBDIRS = . test
+SUBDIRS = . test utils
 
 AM_CXXFLAGS = $(COVERAGE_CXXFLAGS)
 
