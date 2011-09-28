@@ -857,19 +857,35 @@ hyperdisk :: disk :: split_shard(size_t shard_num)
 {
     coordinate c = m_shards->get_coordinate(shard_num);
     shard* s = m_shards->get_shard(shard_num);
-    assert(c.primary_mask != UINT32_MAX);
-    assert(c.secondary_mask != UINT32_MAX);
     hyperdisk::shard_snapshot snap = s->make_snapshot();
 
-    // Find which bit of the secondary hash should be split.
-    int secondary_split = 31;
+    // Find which bit of the secondary hash is the best to split over.
+    int zeros[32];
+    int ones[32];
+    memset(zeros, 0, sizeof(zeros));
+    memset(ones, 0, sizeof(ones));
 
-    while (secondary_split >= 0 && (c.secondary_mask & (1 << secondary_split)))
+    for (; snap.valid(); snap.next())
     {
-        --secondary_split;
+        for (uint64_t i = 1, j = 0; i < UINT32_MAX; i <<= 1, ++j)
+        {
+            if (c.secondary_mask & i)
+            {
+                continue;
+            }
+
+            if (snap.secondary_hash() & i)
+            {
+                ++ones[j];
+            }
+            else
+            {
+                ++zeros[j];
+            }
+        }
     }
 
-    assert(secondary_split >= 0);
+    int secondary_split = which_to_split(c.secondary_mask, zeros, ones);
     uint32_t secondary_bit = 1 << secondary_split;
     snap = s->make_snapshot();
 
