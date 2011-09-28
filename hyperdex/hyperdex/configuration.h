@@ -57,6 +57,7 @@ class configuration
 
     public:
         configuration();
+        ~configuration() throw ();
 
     public:
         bool add_line(const std::string& line);

@@ -60,6 +60,10 @@ hyperdex :: configuration :: configuration()
 {
 }
 
+hyperdex :: configuration :: ~configuration() throw ()
+{
+}
+
 bool
 hyperdex :: configuration :: add_line(const std::string& line)
 {
