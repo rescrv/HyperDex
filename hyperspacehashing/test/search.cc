@@ -152,10 +152,9 @@ validate(const std::vector<hash_t> hf, const e::buffer& key, const std::vector<e
         }
 
         prefix::search_coordinate psc = ph.hash(s);
-        mask::search_coordinate msc = mh.hash(s);
+        mask::coordinate msc = mh.hash(s);
         assert(psc.matches(pc));
-        assert(msc.matches(mc));
-        assert(msc.matches(key, value));
+        assert(msc.intersects(mc));
     }
 
     // Do a range search for each attribute
@@ -176,10 +175,9 @@ validate(const std::vector<hash_t> hf, const e::buffer& key, const std::vector<e
         }
 
         prefix::search_coordinate psc = ph.hash(s);
-        mask::search_coordinate msc = mh.hash(s);
+        mask::coordinate msc = mh.hash(s);
         assert(psc.matches(pc));
-        assert(msc.matches(mc));
-        assert(msc.matches(key, value));
+        assert(msc.intersects(mc));
     }
 
     // Do an equality/range search for two attributes
@@ -215,10 +213,9 @@ validate(const std::vector<hash_t> hf, const e::buffer& key, const std::vector<e
             }
 
             prefix::search_coordinate psc = ph.hash(s);
-            mask::search_coordinate msc = mh.hash(s);
+            mask::coordinate msc = mh.hash(s);
             assert(psc.matches(pc));
-            assert(msc.matches(mc));
-            assert(msc.matches(key, value));
+            assert(msc.intersects(mc));
         }
     }
 }
