@@ -144,7 +144,7 @@ hyperdisk :: rolling_snapshot :: has_value()
     }
     else if (m_iter.valid())
     {
-        return m_iter->coord.secondary_mask == UINT32_MAX;
+        return m_iter->is_put;
     }
     else
     {

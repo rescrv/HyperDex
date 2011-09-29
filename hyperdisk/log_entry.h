@@ -60,6 +60,7 @@ class log_entry
 
     public:
         hyperspacehashing::mask::coordinate coord;
+        bool is_put;
         e::buffer key;
         std::vector<e::buffer> value;
         uint64_t version;
@@ -68,6 +69,7 @@ class log_entry
 inline
 log_entry :: log_entry()
     : coord()
+    , is_put()
     , key()
     , value()
     , version()
@@ -80,6 +82,7 @@ log_entry :: log_entry(const hyperspacehashing::mask::coordinate& c,
                        const std::vector<e::buffer>& va,
                        uint64_t ve)
     : coord(c)
+    , is_put(true)
     , key(k)
     , value(va)
     , version(ve)
@@ -90,6 +93,7 @@ inline
 log_entry :: log_entry(const hyperspacehashing::mask::coordinate& c,
                        const e::buffer& k)
     : coord(c)
+    , is_put(false)
     , key(k)
     , value()
     , version()

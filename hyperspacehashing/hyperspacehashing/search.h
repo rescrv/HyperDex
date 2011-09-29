@@ -51,6 +51,7 @@ class search
         const e::buffer& equality_value(size_t idx) const;
         bool is_range(size_t idx) const;
         void range_value(size_t idx, uint64_t* lower, uint64_t* upper) const;
+        bool matches(const e::buffer& key, const std::vector<e::buffer>& value) const;
 
     // It is an error to call equality_set or range_set on an index which has
     // already been provided as an index to equality_set or range_set.  It will

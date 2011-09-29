@@ -57,8 +57,9 @@ main(int argc, char* argv[])
             while (snap.valid())
             {
                 std::cout << argv[i]
-                          << " " << std::setw(8) << std::setfill('0') << snap.coordinate().primary_hash
-                          << " " << std::setw(8) << std::setfill('0') << snap.coordinate().secondary_hash
+                          << " " << std::setw(16) << std::setfill('0') << snap.coordinate().primary_hash
+                          << " " << std::setw(16) << std::setfill('0') << snap.coordinate().secondary_upper_hash
+                          << " " << std::setw(16) << std::setfill('0') << snap.coordinate().secondary_lower_hash
                           << std::endl;
                 snap.next();
             }

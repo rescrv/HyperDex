@@ -26,6 +26,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // HyperspaceHashing
+#include "hashes_internal.h"
 #include <hyperspacehashing/search.h>
 
 hyperspacehashing :: search :: search(size_t n)
@@ -90,6 +91,51 @@ hyperspacehashing :: search :: range_value(size_t idx, uint64_t* lower, uint64_t
     assert(m_range_bits.get(idx));
     *lower = m_range_lower[idx];
     *upper = m_range_upper[idx];
+}
+
+bool
+hyperspacehashing :: search :: matches(const e::buffer& key, const std::vector<e::buffer>& value) const
+{
+    assert(sanity_check());
+
+    if (m_equality_bits.get(0))
+    {
+        if (m_equality[0] != key)
+        {
+            return false;
+        }
+    }
+    else if (m_range_bits.get(0))
+    {
+        uint64_t hash = lendian(key);
+
+        if (m_range_lower[0] > hash || hash >= m_range_upper[0])
+        {
+            return false;
+        }
+    }
+
+    for (size_t i = 1; i < m_equality.size(); ++i)
+    {
+        if (m_equality_bits.get(i))
+        {
+            if (m_equality[i] != value[i - 1])
+            {
+                return false;
+            }
+        }
+        else if (m_range_bits.get(i))
+        {
+            uint64_t hash = lendian(value[i - 1]);
+
+            if (m_range_lower[i] > hash || hash >= m_range_upper[i])
+            {
+                return false;
+            }
+        }
+    }
+
+    return true;
 }
 
 void

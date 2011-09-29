@@ -41,7 +41,7 @@ using hyperdex::coordinatorlink;
 using hyperdex::entityid;
 using hyperdex::regionid;
 using hyperspacehashing::search;
-using hyperspacehashing::mask::search_coordinate;
+using hyperspacehashing::mask::coordinate;
 
 hyperdaemon :: searches :: searches(coordinatorlink* cl,
                                     datalayer* data,
@@ -92,9 +92,9 @@ hyperdaemon :: searches :: start(const hyperdex::regionid& region,
     }
 
     hyperspacehashing::mask::hasher hasher(m_config.disk_hasher(region.get_subspace()));
-    hyperspacehashing::mask::search_coordinate coord(hasher.hash(terms));
+    hyperspacehashing::mask::coordinate coord(hasher.hash(terms));
     e::intrusive_ptr<hyperdisk::snapshot> snap = m_data->make_snapshot(region, terms);
-    e::intrusive_ptr<search_state> state = new search_state(region, coord, snap);
+    e::intrusive_ptr<search_state> state = new search_state(region, coord, terms, snap);
     m_searches.insert(key, state);
     next(region, client, search_num, nonce);
 }
@@ -117,9 +117,9 @@ hyperdaemon :: searches :: next(const hyperdex::regionid& region,
 
     while (state->snap->valid())
     {
-        if (state->search_coord.matches(state->snap->coordinate()))
+        if (state->search_coord.intersects(state->snap->coordinate()))
         {
-            if (state->search_coord.matches(state->snap->key(), state->snap->value()))
+            if (state->terms.matches(state->snap->key(), state->snap->value()))
             {
                 e::buffer msg;
                 msg.pack() << nonce << state->snap->key() << state->snap->value();
@@ -154,11 +154,13 @@ hyperdaemon :: searches :: hash(const search_id& si)
 
 
 hyperdaemon :: searches :: search_state :: search_state(const regionid& r,
-                                                        const search_coordinate& sc,
+                                                        const coordinate& sc,
+                                                        const hyperspacehashing::search& t,
                                                         e::intrusive_ptr<hyperdisk::snapshot> s)
     : lock()
     , region(r)
     , search_coord(sc)
+    , terms(t)
     , snap(s)
     , m_ref(0)
 {

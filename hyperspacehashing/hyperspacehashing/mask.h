@@ -56,6 +56,9 @@ class coordinate
         bool secondary_intersects(const coordinate& other) const;
 
     public:
+        bool operator == (const coordinate& rhs) const;
+
+    public:
         uint64_t primary_mask;
         uint64_t primary_hash;
         uint64_t secondary_lower_mask;

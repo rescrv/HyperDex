@@ -58,8 +58,6 @@ class shard_snapshot
         void next();
 
     public:
-        uint32_t primary_hash() { return m_coord.primary_hash; }
-        uint32_t secondary_hash() { return m_coord.secondary_hash; }
         hyperspacehashing::mask::coordinate coordinate() { return m_coord; }
         uint64_t version();
         const e::buffer& key();

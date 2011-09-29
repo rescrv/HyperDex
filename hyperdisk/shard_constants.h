@@ -28,13 +28,16 @@
 #ifndef hyperdisk_shard_constants_h_
 #define hyperdisk_shard_constants_h_
 
+// HyperspaceHashing
+#include "shard.h"
+
 // Keep this a power of two or else change HASH_INTO_TABLE
 #define HASH_TABLE_ENTRIES 65536
 #define HASH_TABLE_ENTRY_SIZE 8
 #define HASH_TABLE_SIZE (HASH_TABLE_ENTRIES * HASH_TABLE_ENTRY_SIZE)
 
 #define SEARCH_INDEX_ENTRIES 32768
-#define SEARCH_INDEX_ENTRY_SIZE 16
+#define SEARCH_INDEX_ENTRY_SIZE 32
 #define SEARCH_INDEX_SIZE (SEARCH_INDEX_ENTRIES * SEARCH_INDEX_ENTRY_SIZE)
 
 #define INDEX_SEGMENT_SIZE (HASH_TABLE_SIZE + SEARCH_INDEX_SIZE)

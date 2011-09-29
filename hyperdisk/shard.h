@@ -35,17 +35,13 @@
 #include <e/buffer.h>
 #include <e/intrusive_ptr.h>
 
+// HyperspaceHashing
+#include <hyperspacehashing/mask.h>
+
 // HyperDisk
 #include "hyperdisk/returncode.h"
 
 // Forward Declarations
-namespace hyperspacehashing
-{
-namespace mask
-{
-class coordinate;
-}
-}
 namespace hyperdisk
 {
 class shard_snapshot;
@@ -109,7 +105,7 @@ class shard
                        std::vector<e::buffer>* value, uint64_t* version);
         returncode get(uint32_t primary_hash, const e::buffer& key);
         // May return SUCCESS, DATAFULL, HASHFULL, or SEARCHFULL.
-        returncode put(uint32_t primary_hash, uint32_t secondary_hash,
+        returncode put(const hyperspacehashing::mask::coordinate& coord,
                        const e::buffer& key,
                        const std::vector<e::buffer>& value,
                        uint64_t version, uint32_t* cached = NULL);
@@ -146,6 +142,16 @@ class shard
         friend class e::intrusive_ptr<shard>;
         friend class shard_snapshot;
         friend class shard_vector;
+
+    private:
+        struct log_entry
+        {
+            uint32_t offset;
+            uint32_t invalid;
+            uint64_t primary;
+            uint64_t lower;
+            uint64_t upper;
+        } __attribute__ ((packed));
 
     private:
         shard(po6::io::fd* fd);
@@ -185,7 +191,7 @@ class shard
     private:
         size_t m_ref;
         uint64_t* m_hash_table;
-        uint64_t* m_search_log;
+        log_entry* m_search_log;
         char* m_data;
         uint32_t m_data_offset;
         uint32_t m_search_offset;

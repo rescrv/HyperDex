@@ -91,6 +91,17 @@ hyperspacehashing :: mask :: coordinate :: secondary_intersects(const coordinate
            (secondary_upper_hash & umask) == (other.secondary_upper_hash & umask);
 }
 
+bool
+hyperspacehashing :: mask :: coordinate :: operator == (const coordinate& rhs) const
+{
+    return primary_mask == rhs.primary_mask &&
+           primary_hash == rhs.primary_hash &&
+           secondary_lower_mask == rhs.secondary_lower_mask &&
+           secondary_lower_hash == rhs.secondary_lower_hash &&
+           secondary_upper_mask == rhs.secondary_upper_mask &&
+           secondary_upper_hash == rhs.secondary_upper_hash;
+}
+
 hyperspacehashing :: mask :: hasher :: hasher(const std::vector<hash_t>& funcs)
     : m_funcs(funcs)
     , m_num()

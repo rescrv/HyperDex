@@ -121,18 +121,14 @@ hyperdisk :: disk :: get(const e::buffer& key,
     {
         if (it->coord.primary_intersects(coord) && it->key == key)
         {
-            if (it->coord.secondary_mask == UINT32_MAX)
+            if (it->is_put)
             {
-                assert(it->coord.primary_mask == UINT32_MAX);
-                assert(it->coord.secondary_mask == UINT32_MAX);
                 *value = it->value;
                 *version = it->version;
                 wal_res = SUCCESS;
             }
             else
             {
-                assert(it->coord.primary_mask == UINT32_MAX);
-                assert(it->coord.secondary_mask == 0);
                 wal_res = NOTFOUND;
             }
 
@@ -174,7 +170,7 @@ hyperdisk :: disk :: del(const e::buffer& key)
 e::intrusive_ptr<hyperdisk::snapshot>
 hyperdisk :: disk :: make_snapshot(const hyperspacehashing::search& terms)
 {
-    hyperspacehashing::mask::search_coordinate coord(m_hasher.hash(terms));
+    hyperspacehashing::mask::coordinate coord(m_hasher.hash(terms));
     e::intrusive_ptr<shard_vector> shards;
     e::locking_iterable_fifo<offset_update>::iterator it = m_offsets.iterate();
 
@@ -203,14 +199,14 @@ hyperdisk :: disk :: make_snapshot(const hyperspacehashing::search& terms)
 
     for (size_t i = 0; i < shards->size(); ++i)
     {
-        if (coord.matches(shards->get_coordinate(i)))
+        if (coord.intersects(shards->get_coordinate(i)))
         {
             snaps.push_back(shard_snapshot(offsets[i], shards->get_shard(i)));
         }
     }
 
     e::intrusive_ptr<hyperdisk::snapshot> ret;
-    ret = new snapshot(coord.coord(), shards, &snaps);
+    ret = new snapshot(coord, shards, &snaps);
     return ret;
 }
 
@@ -309,7 +305,7 @@ hyperdisk :: disk :: flush(size_t num)
         size_t put_num = 0;
         uint32_t put_offset = 0;
 
-        if (coord.secondary_mask == UINT32_MAX)
+        if (it->is_put)
         {
             const std::vector<e::buffer>& value = it->value;
             const uint64_t version = it->version;
@@ -322,8 +318,8 @@ hyperdisk :: disk :: flush(size_t num)
                 }
 
                 returncode ret;
-                ret = m_shards->get_shard(i)->put(coord.primary_hash, coord.secondary_hash,
-                                                  key, value, version, &put_offset);
+                ret = m_shards->get_shard(i)->put(coord, key, value,
+                                                  version, &put_offset);
 
                 if (ret == SUCCESS)
                 {
@@ -646,7 +642,7 @@ hyperdisk :: disk :: disk(const po6::pathname& directory,
     // Create a starting disk which holds everything.
     po6::threads::mutex::hold a(&m_shards_mutate);
     po6::threads::mutex::hold b(&m_shards_lock);
-    coordinate start(0, 0, 0, 0);
+    coordinate start;
     e::intrusive_ptr<shard> s = create_shard(start);
     m_shards = new shard_vector(start, s);
 }
@@ -659,10 +655,12 @@ po6::pathname
 hyperdisk :: disk :: shard_filename(const coordinate& c)
 {
     std::ostringstream ostr;
-    ostr << std::hex << std::setfill('0') << std::setw(8) << c.primary_mask;
-    ostr << "-" << std::setw(8) << c.primary_hash;
-    ostr << "-" << std::setw(8) << c.secondary_mask;
-    ostr << "-" << std::setw(8) << c.secondary_hash;
+    ostr << std::hex << std::setfill('0') << std::setw(16) << c.primary_mask;
+    ostr << "-" << std::setw(16) << c.primary_hash;
+    ostr << "-" << std::setw(16) << c.secondary_upper_mask;
+    ostr << "-" << std::setw(16) << c.secondary_upper_hash;
+    ostr << "-" << std::setw(16) << c.secondary_lower_mask;
+    ostr << "-" << std::setw(16) << c.secondary_lower_hash;
     return po6::pathname(ostr.str());
 }
 
@@ -670,10 +668,12 @@ po6::pathname
 hyperdisk :: disk :: shard_tmp_filename(const coordinate& c)
 {
     std::ostringstream ostr;
-    ostr << std::hex << std::setfill('0') << std::setw(8) << c.primary_mask;
-    ostr << "-" << std::setw(8) << c.primary_hash;
-    ostr << "-" << std::setw(8) << c.secondary_mask;
-    ostr << "-" << std::setw(8) << c.secondary_hash;
+    ostr << std::hex << std::setfill('0') << std::setw(16) << c.primary_mask;
+    ostr << "-" << std::setw(16) << c.primary_hash;
+    ostr << "-" << std::setw(16) << c.secondary_upper_mask;
+    ostr << "-" << std::setw(16) << c.secondary_upper_hash;
+    ostr << "-" << std::setw(16) << c.secondary_lower_mask;
+    ostr << "-" << std::setw(16) << c.secondary_lower_hash;
     ostr << "-tmp";
     return po6::pathname(ostr.str());
 }

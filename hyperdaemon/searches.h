@@ -106,14 +106,16 @@ class searches::search_state
 {
     public:
         search_state(const hyperdex::regionid& region,
-                     const hyperspacehashing::mask::search_coordinate& search_coord,
+                     const hyperspacehashing::mask::coordinate& search_coord,
+                     const hyperspacehashing::search& terms,
                      e::intrusive_ptr<hyperdisk::snapshot> snap);
         ~search_state() throw ();
 
     public:
         po6::threads::mutex lock;
         const hyperdex::regionid region;
-        const hyperspacehashing::mask::search_coordinate search_coord;
+        const hyperspacehashing::mask::coordinate search_coord;
+        hyperspacehashing::search terms;
         e::intrusive_ptr<hyperdisk::snapshot> snap;
 
     private:

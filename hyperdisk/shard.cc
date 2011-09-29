@@ -112,9 +112,9 @@ hyperdisk :: shard :: open(const po6::io::fd& base,
 
     // XXX We don't correctly restore the offsets.
     while (ret->m_search_offset < SEARCH_INDEX_ENTRIES &&
-            static_cast<uint32_t>(ret->m_search_log[ret->m_search_offset * 2 + 1]) != 0)
+           ret->m_search_log[ret->m_search_offset].offset != 0)
     {
-        ret->m_data_offset = static_cast<uint32_t>(ret->m_search_log[ret->m_search_offset * 2 + 1]);
+        ret->m_data_offset = ret->m_search_log[ret->m_search_offset].offset;
         ++ ret->m_search_offset;
     }
 
@@ -180,8 +180,7 @@ hyperdisk :: shard :: get(uint32_t primary_hash,
 }
 
 hyperdisk::returncode
-hyperdisk :: shard :: put(uint32_t primary_hash,
-                          uint32_t secondary_hash,
+hyperdisk :: shard :: put(const hyperspacehashing::mask::coordinate& coord,
                           const e::buffer& key,
                           const std::vector<e::buffer>& value,
                           uint64_t version,
@@ -200,7 +199,7 @@ hyperdisk :: shard :: put(uint32_t primary_hash,
     // Find the bucket.
     size_t entry;
     uint64_t table_value;
-    hash_lookup(primary_hash, key, &entry, &table_value);
+    hash_lookup(static_cast<uint32_t>(coord.primary_hash), key, &entry, &table_value);
     uint32_t table_offset = static_cast<uint32_t>(table_value >> 32);
 
     // Values to pack.
@@ -234,13 +233,15 @@ hyperdisk :: shard :: put(uint32_t primary_hash,
     }
 
     // Insert into the search log.
-    m_search_log[m_search_offset * 2] = (static_cast<uint64_t>(secondary_hash) << 32)
-                                      | static_cast<uint64_t>(primary_hash);
-    m_search_log[m_search_offset * 2 + 1] = static_cast<uint64_t>(m_data_offset);
+    m_search_log[m_search_offset].offset = m_data_offset;
+    m_search_log[m_search_offset].invalid = 0;
+    m_search_log[m_search_offset].primary = coord.primary_hash;
+    m_search_log[m_search_offset].lower = coord.secondary_lower_hash;
+    m_search_log[m_search_offset].upper = coord.secondary_upper_hash;
 
     // Insert into the hash table.
     m_hash_table[entry] = (static_cast<uint64_t>(m_data_offset) << 32)
-                        | static_cast<uint64_t>(primary_hash);
+                        | (static_cast<uint64_t>(coord.primary_hash) & 0xffffffffULL);
 
     // Update the offsets
     ++m_search_offset;
@@ -295,21 +296,21 @@ hyperdisk :: shard :: stale_space() const
 {
     size_t stale_data = 0;
     size_t stale_num = 0;
-    uint32_t start = static_cast<uint32_t>(m_search_log[1]);
+    uint32_t start = m_search_log[0].offset;
     uint32_t end;
     size_t i;
 
     for (i = 1; i < SEARCH_INDEX_ENTRIES; ++i)
     {
-        end = static_cast<uint32_t>(m_search_log[2 * i + 1]);
+        end = m_search_log[i].offset;
 
         if (end == 0)
         {
-            end = m_data_offset;
+            end = std::min(m_data_offset, static_cast<uint32_t>(FILE_SIZE));
             break;
         }
 
-        if (static_cast<uint32_t>(m_search_log[2 * i + 1] >> 32) > 0)
+        if (m_search_log[i].invalid > 0)
         {
             stale_data += end - start;
             ++stale_num;
@@ -320,7 +321,7 @@ hyperdisk :: shard :: stale_space() const
 
     if (i == SEARCH_INDEX_ENTRIES)
     {
-        end = m_data_offset;
+        end = std::min(m_data_offset, static_cast<uint32_t>(FILE_SIZE));
     }
 
     stale_data += end - start;
@@ -374,21 +375,20 @@ hyperdisk :: shard :: copy_to(const coordinate& c, e::intrusive_ptr<shard> s)
     for (size_t ent = 0; ent < SEARCH_INDEX_ENTRIES; ++ent)
     {
         // Skip stale entries.
-        if (static_cast<uint32_t>(m_search_log[ent * 2 + 1] >> 32) != 0)
+        if (m_search_log[ent].invalid != 0)
         {
             continue;
         }
 
-        uint32_t primary_hash = static_cast<uint32_t>(m_search_log[ent * 2]);
-        uint32_t secondary_hash = static_cast<uint32_t>(m_search_log[ent * 2] >> 32);
-
-        if (!c.intersects(coordinate(UINT32_MAX, primary_hash, UINT32_MAX, secondary_hash)))
+        if (!c.intersects(coordinate(UINT64_MAX, m_search_log[ent].primary,
+                                     UINT64_MAX, m_search_log[ent].lower,
+                                     UINT64_MAX, m_search_log[ent].upper)))
         {
             continue;
         }
 
         // Figure out how big the entry is.
-        uint32_t entry_start = static_cast<uint32_t>(m_search_log[ent * 2 + 1]);
+        uint32_t entry_start = m_search_log[ent].offset;
 
         if (entry_start == 0)
         {
@@ -397,9 +397,9 @@ hyperdisk :: shard :: copy_to(const coordinate& c, e::intrusive_ptr<shard> s)
 
         uint32_t entry_end = 0;
 
-        if (ent < SEARCH_INDEX_ENTRIES - 1 && m_search_log[(ent + 1) * 2 + 1])
+        if (ent < SEARCH_INDEX_ENTRIES - 1 && m_search_log[ent + 1].offset)
         {
-            entry_end = static_cast<uint32_t>(m_search_log[(ent + 1) * 2 + 1]);
+            entry_end = m_search_log[ent + 1].offset;
         }
         else
         {
@@ -413,14 +413,16 @@ hyperdisk :: shard :: copy_to(const coordinate& c, e::intrusive_ptr<shard> s)
         // Copy the entry's data
         memmove(s->m_data + s->m_data_offset, m_data + entry_start, (entry_end - entry_start));
         // Insert into the search log.
-        s->m_search_log[s->m_search_offset * 2] = (static_cast<uint64_t>(secondary_hash) << 32)
-                                                | static_cast<uint64_t>(primary_hash);
-        s->m_search_log[s->m_search_offset * 2 + 1] = static_cast<uint64_t>(s->m_data_offset);
+        s->m_search_log[s->m_search_offset].offset = s->m_data_offset;
+        s->m_search_log[s->m_search_offset].invalid = 0;
+        s->m_search_log[s->m_search_offset].primary = m_search_log[ent].primary;
+        s->m_search_log[s->m_search_offset].lower = m_search_log[ent].lower;
+        s->m_search_log[s->m_search_offset].upper = m_search_log[ent].upper;
         // Insert into the hash table.
         size_t bucket;
-        s->hash_lookup(primary_hash, &bucket);
+        s->hash_lookup(static_cast<uint32_t>(m_search_log[ent].primary), &bucket);
         s->m_hash_table[bucket] = (static_cast<uint64_t>(s->m_data_offset) << 32)
-                                | static_cast<uint64_t>(primary_hash);
+                                | (static_cast<uint64_t>(m_search_log[ent].primary) & 0xffffffffULL);
         // Update the position trackers.
         ++s->m_search_offset;
         s->m_data_offset = (s->m_data_offset + (entry_end - entry_start) + 7) & ~7; // Keep everything 8-byte aligned.
@@ -440,58 +442,53 @@ hyperdisk :: shard :: fsck(std::ostream& err)
     bool ret = true;
     bool hash_table[HASH_TABLE_ENTRIES];
     bool zero = false;
-    uint32_t search_log_entries = 0;
+    uint32_t ent = 0;
 
     for (uint32_t i = 0; i < HASH_TABLE_ENTRIES; ++i)
     {
         hash_table[i] = false;
     }
 
-    for (search_log_entries = 0;
-            search_log_entries < SEARCH_INDEX_ENTRIES;
-            ++search_log_entries)
+    for (ent = 0; ent < SEARCH_INDEX_ENTRIES; ++ent)
     {
-        uint64_t hashes = m_search_log[search_log_entries * 2];
-        uint64_t offsets = m_search_log[search_log_entries * 2 + 1];
-
-        if (static_cast<uint32_t>(offsets) == 0)
+        if (m_search_log[ent].offset == 0)
         {
             zero = true;
         }
 
-        if (zero && offsets != 0)
+        if (zero && m_search_log[ent].invalid != 0)
         {
-            err << "entry " << search_log_entries << " in log has no offset but is invalidated at "
-                << static_cast<uint32_t>(offsets >> 32) << std::endl;
+            err << "entry " << ent << " in log has no offset but is invalidated at "
+                << m_search_log[ent].invalid << std::endl;
             ret = false;
         }
 
-        if (zero && hashes != 0)
+        if (zero && (m_search_log[ent].primary || m_search_log[ent].lower || m_search_log[ent].upper))
         {
-            err << "entry " << search_log_entries << " in log has no offset but has non-zero hashes "
-                << static_cast<uint32_t>(hashes) << " " << static_cast<uint32_t>(hashes >> 32)
-                << std::endl;
+            err << "entry " << ent << " in log has no offset but has non-zero hashes "
+                << m_search_log[ent].primary << " " <<  m_search_log[ent].lower
+                << " " <<  m_search_log[ent].upper << std::endl;
             ret = false;
         }
 
         if (!zero)
         {
-            uint32_t offset = static_cast<uint32_t>(offsets);
+            uint32_t offset = m_search_log[ent].offset;
             e::buffer key;
             size_t key_size = data_key_size(offset);
             data_key(offset, key_size, &key);
 
             size_t table_entry;
             uint64_t table_value;
-            hash_lookup(static_cast<uint32_t>(hashes), key, &table_entry, &table_value);
+            hash_lookup(static_cast<uint32_t>(m_search_log[ent].primary), key, &table_entry, &table_value);
             uint32_t table_hash = static_cast<uint32_t>(table_value);
             uint32_t table_offset = static_cast<uint32_t>(table_value >> 32);
 
-            if (table_hash == static_cast<uint32_t>(hashes))
+            if (table_hash == static_cast<uint32_t>(m_search_log[ent].primary))
             {
-                if (offsets < HASH_OFFSET_INVALID && static_cast<uint32_t>(offsets) != table_offset)
+                if (table_offset < HASH_OFFSET_INVALID && m_search_log[ent].offset != table_offset)
                 {
-                    err << "entry " << search_log_entries << " in log and entry " << table_entry
+                    err << "entry " << ent << " in log and entry " << table_entry
                         << " in hash table do not match.\n"
                         << "\tlog offset is " << offset << "\n"
                         << "\thash offset is " << table_value << std::endl;
@@ -502,26 +499,27 @@ hyperdisk :: shard :: fsck(std::ostream& err)
             {
                 bool details = false;
 
-                if (table_offset != 0 )
+                if (table_offset != 0)
                 {
-                    err << "entry " << search_log_entries << " does not match hash table entry and the hash table entry's offset is non-zero\n";
+                    err << "entry " << ent << " does not match hash table entry and the hash table entry's offset is non-zero\n";
                     details = true;
                 }
 
-                if (static_cast<uint32_t>(offsets >> 32) == 0)
+                if (m_search_log[ent].invalid == 0)
                 {
-                    err << "entry " << search_log_entries << " does not match hash table entry and the search index is not invalidated\n";
+                    err << "entry " << ent << " does not match hash table entry and the search index is not invalidated\n";
                     details = true;
                 }
 
                 if (details)
                 {
-                    err << "\tsearch log entry           = " << search_log_entries << "\n"
+                    err << "\tsearch log entry           = " << ent << "\n"
                         << "\thash table entry           = " << table_entry << "\n"
-                        << "\tprimary_hash(search log)   = " << static_cast<uint32_t>(hashes) << "\n"
-                        << "\tsecondary_hash(search log) = " << static_cast<uint32_t>(hashes >> 32) << "\n"
-                        << "\toffset(search log)         = " << static_cast<uint32_t>(offsets) << "\n"
-                        << "\tinvalidated(search log)    = " << static_cast<uint32_t>(offsets >> 32) << "\n"
+                        << "\tprimary_hash(search log)   = " << m_search_log[ent].primary << "\n"
+                        << "\tlower_hash(search log)     = " << m_search_log[ent].lower << "\n"
+                        << "\tupper_hash(search log)     = " << m_search_log[ent].upper << "\n"
+                        << "\toffset(search log)         = " << m_search_log[ent].offset << "\n"
+                        << "\tinvalidated(search log)    = " << m_search_log[ent].invalid << "\n"
                         << "\tprimary_hash(hash table)   = " << static_cast<uint32_t>(m_hash_table[table_entry]) << "\n"
                         << "\toffset(hash table)         = " << static_cast<uint32_t>(m_hash_table[table_entry] >> 32) << std::endl;
                     ret = false;
@@ -547,6 +545,7 @@ hyperdisk :: shard :: shard(po6::io::fd* fd)
     , m_data_offset(INDEX_SEGMENT_SIZE)
     , m_search_offset(0)
 {
+    assert(SEARCH_INDEX_ENTRY_SIZE == sizeof(hyperdisk::shard::log_entry));
     m_data = static_cast<char*>(mmap(NULL, FILE_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd->get(), 0));
 
     if (m_data == MAP_FAILED)
@@ -570,7 +569,7 @@ hyperdisk :: shard :: shard(po6::io::fd* fd)
     }
 
     m_hash_table = reinterpret_cast<uint64_t*>(m_data);
-    m_search_log = reinterpret_cast<uint64_t*>(m_data + HASH_TABLE_SIZE);
+    m_search_log = reinterpret_cast<log_entry*>(m_data + HASH_TABLE_SIZE);
 }
 
 hyperdisk :: shard :: ~shard()
@@ -711,7 +710,7 @@ hyperdisk :: shard :: invalidate_search_log(uint32_t to_invalidate, uint32_t inv
     while (low <= high)
     {
         int64_t mid = low + ((high - low) / 2);
-        const uint32_t mid_offset = m_search_log[mid * 2 + 1] & 0xffffffffUL;
+        const uint32_t mid_offset = m_search_log[mid].offset;
 
         if (mid_offset == 0 || mid_offset > to_invalidate)
         {
@@ -723,8 +722,7 @@ hyperdisk :: shard :: invalidate_search_log(uint32_t to_invalidate, uint32_t inv
         }
         else if (mid_offset == to_invalidate)
         {
-            m_search_log[mid * 2 + 1] = (static_cast<uint64_t>(invalidate_with) << 32)
-                                        | static_cast<uint64_t>(to_invalidate);
+            m_search_log[mid].invalid = invalidate_with;
             return;
         }
     }
