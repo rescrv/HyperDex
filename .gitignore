@@ -179,6 +179,7 @@ hyperdisk/test/shard.gcda
 hyperdisk/test/shard.gcno
 hyperdisk/test/shard.o
 hyperdisk/test/tmp-disk
+hyperdisk/utils/shard-dumphashes.o
 hyperdisk/utils/shard-fsck
 hyperdisk/utils/shard-fsck.o
 hyperspacehashing/cfloat.lo
@@ -188,6 +189,18 @@ hyperspacehashing/equality_wildcard.o
 hyperspacehashing/hashes.lo
 hyperspacehashing/hashes.o
 hyperspacehashing/libhyperspacehashing.la
+hyperspacehashing/libhyperspacehashing_la-cfloat.lo
+hyperspacehashing/libhyperspacehashing_la-cfloat.o
+hyperspacehashing/libhyperspacehashing_la-hashes.lo
+hyperspacehashing/libhyperspacehashing_la-hashes.o
+hyperspacehashing/libhyperspacehashing_la-mask.lo
+hyperspacehashing/libhyperspacehashing_la-mask.o
+hyperspacehashing/libhyperspacehashing_la-prefix.lo
+hyperspacehashing/libhyperspacehashing_la-prefix.o
+hyperspacehashing/libhyperspacehashing_la-range_match.lo
+hyperspacehashing/libhyperspacehashing_la-range_match.o
+hyperspacehashing/libhyperspacehashing_la-search.lo
+hyperspacehashing/libhyperspacehashing_la-search.o
 hyperspacehashing/mask.lo
 hyperspacehashing/mask.o
 hyperspacehashing/prefix.lo
@@ -208,6 +221,10 @@ hyperspacehashing/test/prefix.o
 hyperspacehashing/test/runner.o
 hyperspacehashing/test/search
 hyperspacehashing/test/search.o
+hyperspacehashing/test/variable
+hyperspacehashing/utils/cfloat
+hyperspacehashing/utils/cfloat.o
+hyperspacehashing/utils/cfloat-optimize
 install-sh
 .libs/
 libtool
