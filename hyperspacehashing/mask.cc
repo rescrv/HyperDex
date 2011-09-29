@@ -78,15 +78,15 @@ hyperspacehashing :: mask :: coordinate :: intersects(const coordinate& other) c
 bool
 hyperspacehashing :: mask :: coordinate :: primary_intersects(const coordinate& other) const
 {
-    uint32_t mask = primary_mask & other.primary_mask;
+    uint64_t mask = primary_mask & other.primary_mask;
     return (primary_hash & mask) == (other.primary_hash & mask);
 }
 
 bool
 hyperspacehashing :: mask :: coordinate :: secondary_intersects(const coordinate& other) const
 {
-    uint32_t lmask = secondary_lower_mask & other.secondary_lower_mask;
-    uint32_t umask = secondary_upper_mask & other.secondary_upper_mask;
+    uint64_t lmask = secondary_lower_mask & other.secondary_lower_mask;
+    uint64_t umask = secondary_upper_mask & other.secondary_upper_mask;
     return (secondary_lower_hash & lmask) == (other.secondary_lower_hash & lmask) &&
            (secondary_upper_hash & umask) == (other.secondary_upper_hash & umask);
 }
