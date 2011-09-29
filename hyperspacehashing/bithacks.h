@@ -102,4 +102,52 @@ upper_interlace(uint64_t* nums, size_t sz)
     return ret;
 }
 
+inline void
+double_lower_interlace(uint64_t* nums, size_t sz, uint64_t* lower, uint64_t* upper)
+{
+    *lower = 0;
+    *upper = 0;
+
+    if (!sz)
+    {
+        return;
+    }
+
+    uint64_t result[2] = {0, 0};
+
+    for (int i = 0; i < 128; ++i)
+    {
+        size_t quotient = i / sz;
+        size_t modulus = i % sz;
+
+        if (quotient >= 64)
+        {
+            break;
+        }
+
+        uint64_t bit = 1;
+        bit <<= quotient;
+        uint64_t hash = nums[modulus];
+
+        if (i >= 64)
+        {
+            if (quotient > (i - 64))
+            {
+                result[1] |= (bit & hash) >> (quotient - (i - 64));
+            }
+            else
+            {
+                result[1] |= (bit & hash) << ((i - 64) - quotient);
+            }
+        }
+        else
+        {
+            result[0] |= (bit & hash) << (i - quotient);
+        }
+    }
+
+    *lower = result[0];
+    *upper = result[1];
+}
+
 #endif // bithacks_h_

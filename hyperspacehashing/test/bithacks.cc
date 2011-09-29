@@ -72,4 +72,35 @@ TEST(BithacksTest, UpperInterlace)
     ASSERT_EQ(0x906db0c30d96cb69ULL, upper_interlace(nums5, 3));
 }
 
+TEST(BithacksTest, DoubleLowerInterlace)
+{
+    uint64_t lower = 0;
+    uint64_t upper = 0;
+    uint64_t nums0[] = {0};
+    uint64_t nums1[] = {UINT64_MAX};
+    uint64_t nums2[] = {UINT64_MAX, 0};
+    double_lower_interlace(nums0, 0, &lower, &upper);
+    ASSERT_EQ(0, lower);
+    ASSERT_EQ(0, upper);
+    double_lower_interlace(nums1, 1, &lower, &upper);
+    ASSERT_EQ(UINT64_MAX, lower);
+    ASSERT_EQ(0, upper);
+    double_lower_interlace(nums2, 2, &lower, &upper);
+    ASSERT_EQ(0x5555555555555555, lower);
+    ASSERT_EQ(0x5555555555555555, upper);
+
+    uint64_t nums3[] = {0xdeadbeefcafebabeULL};
+    uint64_t nums4[] = {0xdeadbeefcafebabeULL, 0x1eaff00ddefec8edULL};
+    uint64_t nums5[] = {0xdeadbeefcafebabeULL, 0x1eaff00ddefec8edULL, 0};
+    double_lower_interlace(nums3, 1, &lower, &upper);
+    ASSERT_EQ(0xdeadbeefcafebabeULL, lower);
+    ASSERT_EQ(0, upper);
+    double_lower_interlace(nums4, 2, &lower, &upper);
+    ASSERT_EQ(0xf2ecfffce5c4edf6ULL, lower);
+    ASSERT_EQ(0x53fcccfbef5454f7ULL, upper);
+    double_lower_interlace(nums5, 3, &lower, &upper);
+    ASSERT_EQ(0xb6d86896086996caULL, lower);
+    ASSERT_EQ(0x482486cb6c26986dULL, upper);
+}
+
 } // namespace
