@@ -53,18 +53,18 @@ main(int argc, char* argv[])
     }
     catch (std::domain_error& e)
     {
-        std::cerr << "The amount of space must be an integer in the range [0, 64)." << std::endl;
+        std::cerr << "The amount of space must be an integer in the range [0, 64]." << std::endl;
         return EXIT_FAILURE;
     }
     catch (std::out_of_range& e)
     {
-        std::cerr << "The amount of space must be an integer in the range [0, 64)." << std::endl;
+        std::cerr << "The amount of space must be an integer in the range [0, 64]." << std::endl;
         return EXIT_FAILURE;
     }
 
-    if (space >= 64)
+    if (space > 64)
     {
-        std::cerr << "The amount of space must be an integer in the range [0, 64)." << std::endl;
+        std::cerr << "The amount of space must be an integer in the range [0, 64]." << std::endl;
         return EXIT_FAILURE;
     }
 
