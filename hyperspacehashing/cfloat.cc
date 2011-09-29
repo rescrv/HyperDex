@@ -54,25 +54,25 @@ hyperspacehashing :: cfloat(uint64_t dec, unsigned int sz)
     if (dec > UINT32_MAX)
     {
         log2_of_input_sz = 6U;
-        exp_sz = std::min(4U, sz / 2);
+        exp_sz = std::min(6U, sz / 2);
         tag = 3;
     }
     else if (dec > UINT16_MAX)
     {
         log2_of_input_sz = 5U;
-        exp_sz = std::min(3U, sz / 2);
+        exp_sz = std::min(5U, sz / 2);
         tag = 2;
     }
     else if (dec > UINT8_MAX)
     {
         log2_of_input_sz = 4U;
-        exp_sz = std::min(2U, sz / 2);
+        exp_sz = std::min(4U, sz / 2);
         tag = 1;
     }
     else
     {
         log2_of_input_sz = 3U;
-        exp_sz = 0;
+        exp_sz = 3;
         tag = 0;
     }
 
