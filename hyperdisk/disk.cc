@@ -791,11 +791,12 @@ hyperdisk :: disk :: deal_with_full_shard(size_t shard_num)
         // Just clean up the shard.
         return clean_shard(shard_num);
     }
-    else if (c.primary_mask == UINT32_MAX || c.secondary_mask == UINT32_MAX)
+    // XXX Handle the case where the masks have been maxed.
+    else if (c.primary_mask == UINT64_MAX ||
+             c.secondary_lower_mask == UINT64_MAX ||
+             c.secondary_upper_mask == UINT64_MAX)
     {
-        // XXX NOCOMMIT;
         abort();
-        return SPLITFAILED;
     }
     else
     {
@@ -828,20 +829,19 @@ hyperdisk :: disk :: clean_shard(size_t shard_num)
 }
 
 static int
-which_to_split(uint32_t mask, const int* zeros, const int* ones)
+which_to_split(uint64_t mask, const int* zeros, const int* ones)
 {
-    int32_t diff = INT32_MAX;
-    int32_t pos = 0;
-    diff = (diff < 0) ? (-diff) : diff;
+    int64_t diff = INT32_MAX;
+    int64_t pos = 63;
 
-    for (int i = 1; i < 32; ++i)
+    for (int i = 0; i < 64; ++i)
     {
-        if (!(mask & (1 << i)))
+        if (!(mask & (1ULL << i)))
         {
             int tmpdiff = ones[i] - zeros[i];
             tmpdiff = (tmpdiff < 0) ? (-tmpdiff) : tmpdiff;
 
-            if (tmpdiff < diff)
+            if (tmpdiff * 1.25 < diff)
             {
                 pos = i;
                 diff = tmpdiff;
@@ -860,21 +860,23 @@ hyperdisk :: disk :: split_shard(size_t shard_num)
     hyperdisk::shard_snapshot snap = s->make_snapshot();
 
     // Find which bit of the secondary hash is the best to split over.
-    int zeros[32];
-    int ones[32];
+    int zeros[64];
+    int ones[64];
     memset(zeros, 0, sizeof(zeros));
     memset(ones, 0, sizeof(ones));
 
     for (; snap.valid(); snap.next())
     {
-        for (uint64_t i = 1, j = 0; i < UINT32_MAX; i <<= 1, ++j)
+        for (int j = 0; j < 63; ++j)
         {
-            if (c.secondary_mask & i)
+            uint64_t bit = 1ULL << j;
+
+            if (c.secondary_upper_mask & bit)
             {
                 continue;
             }
 
-            if (snap.secondary_hash() & i)
+            if (snap.coordinate().secondary_upper_hash & bit)
             {
                 ++ones[j];
             }
@@ -885,15 +887,15 @@ hyperdisk :: disk :: split_shard(size_t shard_num)
         }
     }
 
-    int secondary_split = which_to_split(c.secondary_mask, zeros, ones);
-    uint32_t secondary_bit = 1 << secondary_split;
+    int secondary_split = which_to_split(c.secondary_upper_mask, zeros, ones);
+    uint64_t secondary_bit = 1ULL << secondary_split;
     snap = s->make_snapshot();
 
     // Determine the splits for the two shards resulting from the split above.
-    int zeros_lower[32];
-    int zeros_upper[32];
-    int ones_lower[32];
-    int ones_upper[32];
+    int zeros_lower[64];
+    int zeros_upper[64];
+    int ones_lower[64];
+    int ones_upper[64];
     memset(zeros_lower, 0, sizeof(zeros_lower));
     memset(zeros_upper, 0, sizeof(zeros_upper));
     memset(ones_lower, 0, sizeof(ones_lower));
@@ -901,16 +903,18 @@ hyperdisk :: disk :: split_shard(size_t shard_num)
 
     for (; snap.valid(); snap.next())
     {
-        for (uint64_t i = 1, j = 0; i < UINT32_MAX; i <<= 1, ++j)
+        for (int j = 0; j < 63; ++j)
         {
-            if (c.primary_mask & i)
+            uint64_t bit = 1ULL << j;
+
+            if (c.primary_mask & bit)
             {
                 continue;
             }
 
-            if (snap.secondary_hash() & secondary_bit)
+            if (snap.coordinate().secondary_upper_hash & secondary_bit)
             {
-                if (snap.primary_hash() & i)
+                if (snap.coordinate().primary_hash & bit)
                 {
                     ++ones_upper[j];
                 }
@@ -921,7 +925,7 @@ hyperdisk :: disk :: split_shard(size_t shard_num)
             }
             else
             {
-                if (snap.primary_hash() & i)
+                if (snap.coordinate().primary_hash & bit)
                 {
                     ++ones_lower[j];
                 }
@@ -934,19 +938,23 @@ hyperdisk :: disk :: split_shard(size_t shard_num)
     }
 
     int primary_lower_split = which_to_split(c.primary_mask, zeros_lower, ones_lower);
-    uint32_t primary_lower_bit = 1 << primary_lower_split;
+    uint64_t primary_lower_bit = 1ULL << primary_lower_split;
     int primary_upper_split = which_to_split(c.primary_mask, zeros_upper, ones_upper);
-    uint32_t primary_upper_bit = 1 << primary_upper_split;
+    uint64_t primary_upper_bit = 1ULL << primary_upper_split;
 
     // Create four new shards, and scatter the data between them.
     coordinate zero_zero_coord(c.primary_mask | primary_lower_bit, c.primary_hash,
-                               c.secondary_mask | secondary_bit, c.secondary_hash);
+                               c.secondary_lower_mask, c.secondary_lower_hash,
+                               c.secondary_upper_mask | secondary_bit, c.secondary_upper_hash);
     coordinate zero_one_coord(c.primary_mask | primary_upper_bit, c.primary_hash,
-                              c.secondary_mask | secondary_bit, c.secondary_hash | secondary_bit);
+                              c.secondary_lower_mask, c.secondary_lower_hash,
+                              c.secondary_upper_mask | secondary_bit, c.secondary_upper_hash | secondary_bit);
     coordinate one_zero_coord(c.primary_mask | primary_lower_bit, c.primary_hash | primary_lower_bit,
-                              c.secondary_mask | secondary_bit, c.secondary_hash);
+                              c.secondary_lower_mask, c.secondary_lower_hash,
+                              c.secondary_upper_mask | secondary_bit, c.secondary_upper_hash);
     coordinate one_one_coord(c.primary_mask | primary_upper_bit, c.primary_hash | primary_upper_bit,
-                              c.secondary_mask | secondary_bit, c.secondary_hash | secondary_bit);
+                             c.secondary_lower_mask, c.secondary_lower_hash,
+                             c.secondary_upper_mask | secondary_bit, c.secondary_upper_hash | secondary_bit);
 
     try
     {
