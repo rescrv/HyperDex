@@ -32,32 +32,36 @@
 #include "cfloat.h"
 #include "hashes_internal.h"
 #include "hyperspacehashing/mask.h"
-#include "range_match.h"
 
 hyperspacehashing :: mask :: coordinate :: coordinate()
-    : primary_mask(0)
-    , primary_hash(0)
-    , secondary_mask(0)
-    , secondary_hash(0)
+    : primary_mask()
+    , primary_hash()
+    , secondary_lower_mask()
+    , secondary_lower_hash()
+    , secondary_upper_mask()
+    , secondary_upper_hash()
 {
 }
 
-hyperspacehashing :: mask :: coordinate :: coordinate(uint32_t pm,
-                                                      uint32_t ph,
-                                                      uint32_t sm,
-                                                      uint32_t sh)
-    : primary_mask(pm)
-    , primary_hash(ph)
-    , secondary_mask(sm)
-    , secondary_hash(sh)
+hyperspacehashing :: mask :: coordinate :: coordinate(uint64_t pmask, uint64_t phash,
+                                                      uint64_t slmask, uint64_t slhash,
+                                                      uint64_t sumask, uint64_t suhash)
+    : primary_mask(pmask)
+    , primary_hash(phash)
+    , secondary_lower_mask(slmask)
+    , secondary_lower_hash(slhash)
+    , secondary_upper_mask(sumask)
+    , secondary_upper_hash(suhash)
 {
 }
 
 hyperspacehashing :: mask :: coordinate :: coordinate(const coordinate& other)
     : primary_mask(other.primary_mask)
     , primary_hash(other.primary_hash)
-    , secondary_mask(other.secondary_mask)
-    , secondary_hash(other.secondary_hash)
+    , secondary_lower_mask(other.secondary_lower_mask)
+    , secondary_lower_hash(other.secondary_lower_hash)
+    , secondary_upper_mask(other.secondary_upper_mask)
+    , secondary_upper_hash(other.secondary_upper_hash)
 {
 }
 
@@ -81,94 +85,60 @@ hyperspacehashing :: mask :: coordinate :: primary_intersects(const coordinate& 
 bool
 hyperspacehashing :: mask :: coordinate :: secondary_intersects(const coordinate& other) const
 {
-    uint32_t mask = secondary_mask & other.secondary_mask;
-    return (secondary_hash & mask) == (other.secondary_hash & mask);
-}
-
-hyperspacehashing :: mask :: search_coordinate :: search_coordinate()
-    : m_terms(0)
-    , m_equality()
-    , m_range()
-{
-}
-
-hyperspacehashing :: mask :: search_coordinate :: search_coordinate(const search_coordinate& other)
-    : m_terms(other.m_terms)
-    , m_equality(other.m_equality)
-    , m_range(other.m_range)
-{
-}
-
-hyperspacehashing :: mask :: search_coordinate :: ~search_coordinate() throw ()
-{
-}
-
-bool
-hyperspacehashing :: mask :: search_coordinate :: matches(const coordinate& other) const
-{
-    if (!m_equality.intersects(other))
-    {
-        return false;
-    }
-
-    for (size_t i = 0; i < m_range.size(); ++i)
-    {
-        if (!m_range[i].matches(other))
-        {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-bool
-hyperspacehashing :: mask :: search_coordinate :: matches(const e::buffer& key,
-                                                          const std::vector<e::buffer>& value) const
-{
-    if (m_terms.is_equality(0) && m_terms.equality_value(0) != key)
-    {
-        return false;
-    }
-
-    for (size_t i = 1; i < m_terms.size(); ++i)
-    {
-        if (m_terms.is_equality(i) && m_terms.equality_value(i) != value[i - 1])
-        {
-            return false;
-        }
-    }
-
-    for (size_t i = 0; i < m_range.size(); ++i)
-    {
-        if (!m_range[i].matches(key, value))
-        {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-hyperspacehashing :: mask :: search_coordinate :: search_coordinate(const search& terms,
-                                                                    const coordinate& equality,
-                                                                    const std::vector<range_match>& range)
-    : m_terms(terms)
-    , m_equality(equality)
-    , m_range(range)
-{
+    uint32_t lmask = secondary_lower_mask & other.secondary_lower_mask;
+    uint32_t umask = secondary_upper_mask & other.secondary_upper_mask;
+    return (secondary_lower_hash & lmask) == (other.secondary_lower_hash & lmask) &&
+           (secondary_upper_hash & umask) == (other.secondary_upper_hash & umask);
 }
 
 hyperspacehashing :: mask :: hasher :: hasher(const std::vector<hash_t>& funcs)
     : m_funcs(funcs)
+    , m_num()
+    , m_nums(funcs.size(), -1)
+    , m_space(funcs.size(), 64)
 {
     assert(m_funcs.size() >= 1);
+
+    for (size_t i = 1; m_num < 128 && i < m_funcs.size(); ++i)
+    {
+        switch (m_funcs[i])
+        {
+            case EQUALITY:
+                m_nums[i] = m_num;
+                ++m_num;
+                break;
+            case RANGE:
+                m_nums[i] = m_num;
+                ++m_num;
+                break;
+            case NONE:
+                break;
+            default:
+                abort();
+        }
+    }
+
+    if (m_num > 0)
+    {
+        unsigned int numbits = 128 / m_num;
+        unsigned int plusones = 128 % m_num;
+
+        for (size_t i = 0; i < m_funcs.size(); ++i)
+        {
+            m_space[i] = std::min(64U, numbits + (m_nums[i] < plusones ? 1 : 0));
+        }
+    }
 }
 
 hyperspacehashing :: mask :: hasher :: hasher(const hasher& other)
     : m_funcs(other.m_funcs)
+    , m_num(other.m_num)
+    , m_nums(other.m_nums)
+    , m_space(other.m_space)
 {
     assert(m_funcs.size() >= 1);
+    assert(m_funcs.size() == m_nums.size());
+    assert(m_nums.size() == m_space.size());
 }
 
 hyperspacehashing :: mask :: hasher :: ~hasher() throw ()
@@ -178,18 +148,18 @@ hyperspacehashing :: mask :: hasher :: ~hasher() throw ()
 hyperspacehashing::mask::coordinate
 hyperspacehashing :: mask :: hasher :: hash(const e::buffer& key) const
 {
-    uint32_t key_mask = 0;
-    uint32_t key_hash = 0;
+    uint64_t key_mask = 0;
+    uint64_t key_hash = 0;
 
     switch (m_funcs[0])
     {
         case EQUALITY:
-            key_mask = UINT32_MAX;
-            key_hash = static_cast<uint32_t>(cityhash(key));
+            key_mask = UINT64_MAX;
+            key_hash = cityhash(key);
             break;
         case RANGE:
-            key_mask = UINT32_MAX;
-            key_hash = static_cast<uint32_t>(cfloat(lendian(key), 32));
+            key_mask = UINT64_MAX;
+            key_hash = cfloat(lendian(key), 64);
             break;
         case NONE:
             key_mask = 0;
@@ -199,7 +169,7 @@ hyperspacehashing :: mask :: hasher :: hash(const e::buffer& key) const
             abort();
     }
 
-    return coordinate(key_mask, key_hash, 0, 0);
+    return coordinate(key_mask, key_hash, 0, 0, 0, 0);
 }
 
 hyperspacehashing::mask::coordinate
@@ -209,241 +179,154 @@ hyperspacehashing :: mask :: hasher :: hash(const e::buffer& key,
     coordinate primary = hash(key);
     coordinate secondary = hash(value);
     return coordinate(primary.primary_mask, primary.primary_hash,
-                      secondary.secondary_mask, secondary.secondary_hash);
+                      secondary.secondary_lower_mask, secondary.secondary_lower_hash,
+                      secondary.secondary_upper_mask, secondary.secondary_upper_hash);
 }
 
 hyperspacehashing::mask::coordinate
 hyperspacehashing :: mask :: hasher :: hash(const std::vector<e::buffer>& value) const
 {
     assert(value.size() + 1 == m_funcs.size());
-    size_t num = 0;
-    uint64_t hashes[64];
+    assert(m_nums.size() == m_funcs.size());
+    assert(m_nums.size() == m_space.size());
+    uint64_t masks[128];
+    uint64_t hashes[128];
+    memset(masks, 0, sizeof(masks));
+    memset(hashes, 0, sizeof(hashes));
 
-    for (size_t i = 1; num < 32 && i < m_funcs.size(); ++i)
+    for (size_t i = 1; i < m_funcs.size(); ++i)
     {
-        switch (m_funcs[i])
+        if (m_nums[i] != static_cast<unsigned int>(-1))
         {
-            case EQUALITY:
-                hashes[num] = cityhash(value[i - 1]);
-                ++num;
-                break;
-            case RANGE:
-                hashes[num] = 0;
-                ++num;
-                break;
-            case NONE:
-                break;
-            default:
-                abort();
-        }
-    }
-
-    if (num == 0)
-    {
-        return coordinate(0, 0, 0, 0);
-    }
-
-    unsigned int numbits = 32 / num;
-    unsigned int plusones = 32 % num;
-    unsigned int space;
-    size_t idx = 0;
-
-    for (size_t i = 1; idx < num && i < m_funcs.size(); ++i)
-    {
-        switch (m_funcs[i])
-        {
-            case EQUALITY:
-                ++idx;
-                break;
-            case RANGE:
-                space = numbits + (idx < plusones ? 1 : 0);
-                hashes[idx] = cfloat(lendian(value[i - 1]), space);
-                ++idx;
-                break;
-            case NONE:
-                break;
-            default:
-                abort();
-        }
-    }
-
-    uint64_t value_mask = UINT32_MAX;
-    uint64_t value_hash = lower_interlace(hashes, num);
-    return coordinate(0, 0, value_mask, value_hash);
-}
-
-hyperspacehashing::mask::search_coordinate
-hyperspacehashing :: mask :: hasher :: hash(const search& s) const
-{
-    assert(s.size() == m_funcs.size());
-    std::vector<range_match> range;
-    uint32_t primary_mask = 0;
-    uint32_t primary_hash = 0;
-
-    // First create the primary search components
-    switch (m_funcs[0])
-    {
-        case EQUALITY:
-
-            if (s.is_equality(0))
-            {
-                primary_mask = UINT32_MAX;
-                primary_hash = cityhash(s.equality_value(0));
-            }
-            else if (s.is_range(0))
-            {
-                uint64_t lower;
-                uint64_t upper;
-                s.range_value(0, &lower, &upper);
-                range.push_back(range_match(0, lower, upper, 0, 0, 0));
-            }
-
-            break;
-        case RANGE:
-
-            if (s.is_range(0))
-            {
-                uint64_t lower;
-                uint64_t upper;
-                s.range_value(0, &lower, &upper);
-                uint64_t clower = cfloat(lower, 32);
-                uint64_t cupper = cfloat(upper, 32);
-                uint64_t m;
-                uint64_t h;
-                cfloat_range(clower, cupper, 32, &m, &h);
-                primary_mask = static_cast<uint32_t>(m);
-                primary_hash = static_cast<uint32_t>(h);
-                range.push_back(range_match(0, lower, upper, UINT32_MAX, clower, cupper));
-            }
-
-            break;
-        case NONE:
-            break;
-        default:
-            abort();
-    }
-
-    // Then create the secondary search components
-    size_t num = 0;
-    uint64_t masks[32];
-    uint64_t hashes[32];
-
-    for (size_t i = 1; num < 32 && i < s.size(); ++i)
-    {
-        switch (m_funcs[i])
-        {
-            case EQUALITY:
-
-                if (s.is_equality(i))
-                {
-                    masks[num] = UINT64_MAX;
-                    hashes[num] = cityhash(s.equality_value(i));
-                }
-                else
-                {
-                    masks[num] = 0;
-                    hashes[num] = 0;
-                }
-
-                ++num;
-                break;
-            case RANGE:
-                masks[num] = 0;
-                hashes[num] = 0;
-                ++num;
-                break;
-            case NONE:
-                break;
-            default:
-                abort();
-        }
-    }
-
-    if (num > 0)
-    {
-        uint64_t scratch[32];
-        memset(scratch, 0, sizeof(scratch));
-        unsigned int numbits = 32 / num;
-        unsigned int plusones = 32 % num;
-        unsigned int space;
-        size_t idx = 0;
-
-        for (size_t i = 1; idx < num && i < s.size(); ++i)
-        {
-            if (s.is_range(i) && m_funcs[i] == RANGE)
-            {
-                uint64_t lower;
-                uint64_t upper;
-                s.range_value(i, &lower, &upper);
-                space = numbits + (idx < plusones ? 1 : 0);
-                uint64_t clower = cfloat(lower, space);
-                uint64_t cupper = cfloat(upper, space);
-                cfloat_range(clower, cupper, space, &masks[idx], &hashes[idx]);
-                // There is nothing to be done to make the cfloat_range result
-                // fold correctly into the equality coordinate.  It will happen
-                // on its own.
-                scratch[idx] = clower;
-                clower = lower_interlace(scratch, num);
-                scratch[idx] = cupper;
-                cupper = lower_interlace(scratch, num);
-                scratch[idx] = UINT64_MAX;
-                uint64_t cmask = lower_interlace(scratch, num);
-                range.push_back(range_match(i, lower, upper, cmask, clower, cupper));
-                scratch[idx] = 0;
-            }
+            uint64_t cfl;
 
             switch (m_funcs[i])
             {
                 case EQUALITY:
-                    ++idx;
+                    masks[m_nums[i]] = UINT64_MAX;
+                    hashes[m_nums[i]] = cityhash(value[i - 1]);
                     break;
                 case RANGE:
-                    ++idx;
+                    assert(m_space[i] <= 64);
+                    cfl = cfloat(lendian(value[i - 1]), m_space[i]);
+                    masks[m_nums[i]] = UINT64_MAX;
+                    hashes[m_nums[i]] = cfl;
                     break;
                 case NONE:
-                    break;
+                    abort();
                 default:
                     abort();
             }
         }
     }
 
-    size_t idx = 0;
+    uint64_t lower_mask = 0;
+    uint64_t upper_mask = 0;
+    double_lower_interlace(masks, m_num, &lower_mask, &upper_mask);
+    uint64_t lower_hash = 0;
+    uint64_t upper_hash = 0;
+    double_lower_interlace(hashes, m_num, &lower_hash, &upper_hash);
+    return coordinate(0, 0, lower_mask, lower_hash, upper_mask, upper_hash);
+}
 
-    for (size_t i = 1; i < s.size(); ++i)
+hyperspacehashing::mask::coordinate
+hyperspacehashing :: mask :: hasher :: hash(const search& s) const
+{
+    assert(value.size() + 1 == m_funcs.size());
+    assert(m_nums.size() == m_funcs.size());
+    assert(m_nums.size() == m_space.size());
+    assert(m_nums.size() == s.size());
+
+    // First create the primary search components
+    uint64_t primary_mask = 0;
+    uint64_t primary_hash = 0;
+
+    if (m_nums[0] != static_cast<unsigned int>(-1))
     {
-        if (s.is_range(i) && (idx >= num || m_funcs[i] != RANGE))
-        {
-            uint64_t lower;
-            uint64_t upper;
-            s.range_value(i, &lower, &upper);
-            range.push_back(range_match(i, lower, upper, 0, 0, 0));
-        }
+        uint64_t lower = 0;
+        uint64_t upper = 0;
+        uint64_t clower = 0;
+        uint64_t cupper = 0;
 
-        switch (m_funcs[i])
+        switch (m_funcs[0])
         {
             case EQUALITY:
-                ++idx;
+
+                if (s.is_equality(0))
+                {
+                    primary_mask = UINT64_MAX;
+                    primary_hash = cityhash(s.equality_value(0));
+                }
+
                 break;
             case RANGE:
-                ++idx;
+
+                if (s.is_range(0))
+                {
+                    s.range_value(0, &lower, &upper);
+                    clower = cfloat(lower, 64);
+                    cupper = cfloat(upper, 64);
+                    cfloat_range(clower, cupper, 64, &primary_mask, &primary_hash);
+                }
+
                 break;
             case NONE:
-                break;
+                abort();
             default:
                 abort();
         }
     }
 
-    coordinate c(primary_mask, primary_hash,
-                 lower_interlace(masks, num), lower_interlace(hashes, num));
-    return search_coordinate(s, c, range);
-}
+    // Then create the secondary search components
+    uint64_t masks[128];
+    uint64_t hashes[128];
+    memset(masks, 0, sizeof(masks));
+    memset(hashes, 0, sizeof(hashes));
 
-std::ostream&
-hyperspacehashing :: mask :: operator << (std::ostream& lhs, const coordinate& rhs)
-{
-    lhs << "coordinate(" << rhs.primary_mask << ", " << rhs.primary_hash
-        << ", " << rhs.secondary_mask << ", " << rhs.secondary_hash << ")";
-    return lhs;
+    for (size_t i = 1; i < s.size(); ++i)
+    {
+        if (m_nums[i] != static_cast<unsigned int>(-1))
+        {
+            uint64_t lower = 0;
+            uint64_t upper = 0;
+            uint64_t clower = 0;
+            uint64_t cupper = 0;
+
+            switch (m_funcs[i])
+            {
+                case EQUALITY:
+
+                    if (s.is_equality(i))
+                    {
+                        masks[m_nums[i]] = UINT64_MAX;
+                        hashes[m_nums[i]] = cityhash(s.equality_value(i));
+                    }
+
+                    break;
+                case RANGE:
+
+                    if (s.is_range(i))
+                    {
+                        s.range_value(i, &lower, &upper);
+                        clower = cfloat(lower, m_space[i]);
+                        cupper = cfloat(upper, m_space[i]);
+                        cfloat_range(clower, cupper, m_space[i], &masks[m_nums[i]], &hashes[m_nums[i]]);
+                    }
+
+                    break;
+                case NONE:
+                    abort();
+                default:
+                    abort();
+            }
+        }
+    }
+
+    uint64_t lower_mask = 0;
+    uint64_t lower_hash = 0;
+    uint64_t upper_mask = 0;
+    uint64_t upper_hash = 0;
+    double_lower_interlace(masks, m_num, &lower_mask, &upper_mask);
+    double_lower_interlace(hashes, m_num, &lower_hash, &upper_hash);
+    return coordinate(0, 0, lower_mask, lower_hash, upper_mask, upper_hash);
 }

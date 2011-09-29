@@ -45,26 +45,34 @@ using namespace hyperspacehashing::mask;
 // hash(key, value) is the combination of the two simpler hashes.
 static void
 all_permutations(const std::vector<hash_t>& hf,
-                 uint32_t pmask, uint32_t phash, const e::buffer& key,
-                 uint32_t smask, uint32_t shash, const std::vector<e::buffer>& value)
+                 uint64_t pmask, uint64_t phash, const e::buffer& key,
+                 uint64_t slmask, uint64_t slhash,
+                 uint64_t sumask, uint64_t suhash,
+                 const std::vector<e::buffer>& value)
 {
     hasher h(hf);
     coordinate c;
     c = h.hash(key);
     ASSERT_EQ(pmask, c.primary_mask);
     ASSERT_EQ(phash, c.primary_hash);
-    ASSERT_EQ(0, c.secondary_mask);
-    ASSERT_EQ(0, c.secondary_hash);
+    ASSERT_EQ(0, c.secondary_lower_mask);
+    ASSERT_EQ(0, c.secondary_lower_hash);
+    ASSERT_EQ(0, c.secondary_upper_mask);
+    ASSERT_EQ(0, c.secondary_upper_hash);
     c = h.hash(value);
     ASSERT_EQ(0, c.primary_mask);
     ASSERT_EQ(0, c.primary_hash);
-    ASSERT_EQ(smask, c.secondary_mask);
-    ASSERT_EQ(shash, c.secondary_hash);
+    ASSERT_EQ(slmask, c.secondary_lower_mask);
+    ASSERT_EQ(slhash, c.secondary_lower_hash);
+    ASSERT_EQ(sumask, c.secondary_upper_mask);
+    ASSERT_EQ(suhash, c.secondary_upper_hash);
     c = h.hash(key, value);
     ASSERT_EQ(pmask, c.primary_mask);
     ASSERT_EQ(phash, c.primary_hash);
-    ASSERT_EQ(smask, c.secondary_mask);
-    ASSERT_EQ(shash, c.secondary_hash);
+    ASSERT_EQ(slmask, c.secondary_lower_mask);
+    ASSERT_EQ(slhash, c.secondary_lower_hash);
+    ASSERT_EQ(sumask, c.secondary_upper_mask);
+    ASSERT_EQ(suhash, c.secondary_upper_hash);
 }
 
 namespace
@@ -74,8 +82,8 @@ TEST(MaskTest, KeyOnly)
 {
     std::vector<hash_t> hf(1, EQUALITY);
     all_permutations(hf,
-                     UINT32_MAX, 1855638777UL, e::buffer("key", 3),
-                     0, 0, std::vector<e::buffer>());
+                     UINT64_MAX, 0x99856d7c6e9accf9, e::buffer("key", 3),
+                     0, 0, 0, 0, std::vector<e::buffer>());
 }
 
 TEST(MaskTest, KeyOnlyWValue)
@@ -84,8 +92,8 @@ TEST(MaskTest, KeyOnlyWValue)
     hf[0] = EQUALITY;
     hf[1] = NONE;
     all_permutations(hf,
-                     UINT32_MAX, 1855638777UL, e::buffer("key", 3),
-                     0, 0, std::vector<e::buffer>(1));
+                     UINT64_MAX, 0x99856d7c6e9accf9, e::buffer("key", 3),
+                     0, 0, 0, 0, std::vector<e::buffer>());
 }
 
 TEST(MaskTest, KeyValue)
@@ -96,15 +104,15 @@ TEST(MaskTest, KeyValue)
     hf[0] = EQUALITY;
     hf[1] = EQUALITY;
     all_permutations(hf,
-                     UINT32_MAX, 1855638777UL, e::buffer("key", 3),
-                     UINT32_MAX, 610450598UL, std::vector<e::buffer>(1, e::buffer("value", 5)));
+                     UINT64_MAX, 0x99856d7c6e9accf9ULL, e::buffer("key", 3),
+                     UINT64_MAX, 0xee421cea2462bca6ULL, 0, 0, std::vector<e::buffer>(1, e::buffer("value", 5)));
 
     // Key/Value: The key is not used.
     hf[0] = NONE;
     hf[1] = EQUALITY;
     all_permutations(hf,
                      0, 0, e::buffer("key", 3),
-                     UINT32_MAX, 610450598UL, std::vector<e::buffer>(1, e::buffer("value", 5)));
+                     UINT64_MAX, 0xee421cea2462bca6ULL, 0, 0, std::vector<e::buffer>(1, e::buffer("value", 5)));
 
     // Key/<Value1,Value2>: both used
     hf.resize(3);
@@ -115,16 +123,16 @@ TEST(MaskTest, KeyValue)
     value.push_back(e::buffer("value1", 6));
     value.push_back(e::buffer("value2", 6));
     all_permutations(hf,
-                     UINT32_MAX, 1855638777UL, e::buffer("key", 3),
-                     UINT32_MAX, 1081884102UL, value);
+                     UINT64_MAX, 0x99856d7c6e9accf9ULL, e::buffer("key", 3),
+                     UINT64_MAX, 0xaa73898f407c3dc6ULL, UINT64_MAX, 0xe778f22e1d8638a3ULL, value);
 }
 
 TEST(MaskTest, KeyOnlyRange)
 {
     std::vector<hash_t> hf(1, RANGE);
     all_permutations(hf,
-                     UINT32_MAX, 4277497334UL, e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8),
-                     0, 0, std::vector<e::buffer>());
+                     UINT64_MAX, 0xff7ab6fbbf23a640ULL, e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8),
+                     0, 0, 0, 0, std::vector<e::buffer>());
 }
 
 TEST(MaskTest, KeyOnlyWValueRange)
@@ -133,8 +141,8 @@ TEST(MaskTest, KeyOnlyWValueRange)
     hf[0] = RANGE;
     hf[1] = NONE;
     all_permutations(hf,
-                     UINT32_MAX, 4277497334UL, e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8),
-                     0, 0, std::vector<e::buffer>(1));
+                     UINT64_MAX, 0xff7ab6fbbf23a640ULL, e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8),
+                     0, 0, 0, 0, std::vector<e::buffer>());
 }
 
 TEST(MaskTest, KeyValueRange)
@@ -142,26 +150,19 @@ TEST(MaskTest, KeyValueRange)
     std::vector<hash_t> hf(2);
     std::vector<e::buffer> value;
 
-    // Key/Value: hash on value (key is range)
-    hf[0] = RANGE;
-    hf[1] = EQUALITY;
-    all_permutations(hf,
-                     UINT32_MAX, 4277497334UL, e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8),
-                     UINT32_MAX, 1855638777UL, std::vector<e::buffer>(1, e::buffer("key", 3)));
-
-    // Key/Value: hash on value (value is range)
-    hf[0] = EQUALITY;
-    hf[1] = RANGE;
-    all_permutations(hf,
-                     UINT32_MAX, 1855638777UL, e::buffer("key", 3),
-                     UINT32_MAX, 4277497334UL, std::vector<e::buffer>(1, e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8)));
-
     // Key/Value: hash on both (key is range)
     hf[0] = RANGE;
     hf[1] = EQUALITY;
     all_permutations(hf,
-                     UINT32_MAX, 4277497334UL, e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8),
-                     UINT32_MAX, 1855638777UL, std::vector<e::buffer>(1, e::buffer("key", 3)));
+                     UINT64_MAX, 0xff7ab6fbbf23a640ULL, e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8),
+                     UINT64_MAX, 0xee421cea2462bca6ULL, 0, 0, std::vector<e::buffer>(1, e::buffer("value", 5)));
+
+    // Key/Value: hash on both (value is range)
+    hf[0] = EQUALITY;
+    hf[1] = RANGE;
+    all_permutations(hf,
+                     UINT64_MAX, 0x99856d7c6e9accf9ULL, e::buffer("key", 3),
+                     UINT64_MAX, 0xff7ab6fbbf23a640ULL, 0, 0, std::vector<e::buffer>(1, e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8)));
 
     // Key/<Value1,Value2>: hash on value1/value2 (value1 is range)
     hf.resize(3);
@@ -173,7 +174,7 @@ TEST(MaskTest, KeyValueRange)
     value.push_back(e::buffer("value2", 6));
     all_permutations(hf,
                      0, 0, e::buffer(),
-                     UINT32_MAX, 1434024086UL, value);
+                     UINT64_MAX, 0xef778c8f443c3882ULL, UINT64_MAX, 0xf77db76e4d967de7, value);
 
     // Key/<Value1,Value2>: hash on value1/value2 (value2 is range)
     hf.resize(3);
@@ -185,7 +186,7 @@ TEST(MaskTest, KeyValueRange)
     value.push_back(e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8));
     all_permutations(hf,
                      0, 0, e::buffer(),
-                     UINT32_MAX, 3942036844UL, value);
+                     UINT64_MAX, 0x8afb090fc87c3544ULL, UINT64_MAX, 0xeffa7a8c9f2cba8bULL, value);
 
     // Key/<Value1,Value2>: hash on value1/value2 (both are range)
     hf.resize(3);
@@ -197,7 +198,7 @@ TEST(MaskTest, KeyValueRange)
     value.push_back(e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8));
     all_permutations(hf,
                      0, 0, e::buffer(),
-                     UINT32_MAX, 4294176828UL, value);
+                     UINT64_MAX, 0xcfff0c0fcc3c3000ULL, UINT64_MAX, 0xffff3fcccf3cffcfULL, value);
 }
 
 } // namespace

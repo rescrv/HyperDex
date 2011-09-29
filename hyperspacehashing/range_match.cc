@@ -70,46 +70,6 @@ hyperspacehashing :: range_match :: range_match(unsigned int idx,
 }
 
 bool
-hyperspacehashing :: range_match :: matches(const mask::coordinate& coord) const
-{
-    // If we are dealing with the key
-    if (m_idx == 0)
-    {
-        // Simple comparison
-        if (coord.primary_mask == UINT32_MAX)
-        {
-            assert(m_clower == static_cast<uint32_t>(m_clower));
-            assert(m_cupper == static_cast<uint32_t>(m_cupper));
-            uint32_t hash = coord.primary_hash & static_cast<uint32_t>(m_cmask);
-            return (static_cast<uint32_t>(m_clower) <= hash) &&
-                   (hash <= static_cast<uint32_t>(m_cupper));
-        }
-        // Partial-tolerant comparison handled in equality check.
-        else
-        {
-            return true;
-        }
-    }
-    else
-    {
-        // Interlace-tolerant comparison
-        if (coord.secondary_mask == UINT32_MAX)
-        {
-            assert(m_clower == static_cast<uint32_t>(m_clower));
-            assert(m_cupper == static_cast<uint32_t>(m_cupper));
-            uint32_t hash = coord.secondary_hash & static_cast<uint32_t>(m_cmask);
-            return (static_cast<uint32_t>(m_clower) <= hash) &&
-                   (hash <= static_cast<uint32_t>(m_cupper));
-        }
-        // Partial-tolerant comparison handled in equality check.
-        else
-        {
-            return true;
-        }
-    }
-}
-
-bool
 hyperspacehashing :: range_match :: matches(const prefix::coordinate& coord) const
 {
     uint64_t prefix = lookup_msb_mask[coord.prefix];

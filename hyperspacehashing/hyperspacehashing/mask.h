@@ -35,12 +35,6 @@
 #include <hyperspacehashing/hashes.h>
 #include <hyperspacehashing/search.h>
 
-// Forward Declarations
-namespace hyperspacehashing
-{
-class range_match;
-}
-
 namespace hyperspacehashing
 {
 namespace mask
@@ -50,8 +44,9 @@ class coordinate
 {
     public:
         coordinate();
-        coordinate(uint32_t primary_mask, uint32_t primary_hash,
-                   uint32_t secondary_mask, uint32_t secondary_hash);
+        coordinate(uint64_t pmask, uint64_t phash,
+                   uint64_t slmask, uint64_t slhash,
+                   uint64_t sumask, uint64_t suhash);
         coordinate(const coordinate& other);
         ~coordinate() throw ();
 
@@ -61,46 +56,12 @@ class coordinate
         bool secondary_intersects(const coordinate& other) const;
 
     public:
-        bool operator == (const coordinate& rhs) const
-        { return primary_mask == rhs.primary_mask &&
-                 primary_hash == rhs.primary_hash &&
-                 secondary_mask == rhs.secondary_mask &&
-                 secondary_hash == rhs.secondary_hash; }
-
-    public:
-        uint32_t primary_mask;
-        uint32_t primary_hash;
-        uint32_t secondary_mask;
-        uint32_t secondary_hash;
-};
-
-class search_coordinate
-{
-    public:
-        search_coordinate();
-        search_coordinate(const search_coordinate& other);
-        ~search_coordinate() throw ();
-
-    public:
-        const coordinate& coord() const { return m_equality; }
-        bool matches(const coordinate& other) const;
-        bool matches(const e::buffer& key, const std::vector<e::buffer>& value) const;
-
-    public:
-        search_coordinate& operator = (const search_coordinate& rhs);
-
-    private:
-        friend class hasher;
-
-    private:
-        search_coordinate(const search& terms,
-                          const coordinate& equality,
-                          const std::vector<range_match>& range);
-
-    private:
-        search m_terms;
-        coordinate m_equality;
-        std::vector<range_match> m_range;
+        uint64_t primary_mask;
+        uint64_t primary_hash;
+        uint64_t secondary_lower_mask;
+        uint64_t secondary_lower_hash;
+        uint64_t secondary_upper_mask;
+        uint64_t secondary_upper_hash;
 };
 
 class hasher
@@ -114,17 +75,17 @@ class hasher
         coordinate hash(const e::buffer& key) const;
         coordinate hash(const e::buffer& key, const std::vector<e::buffer>& value) const;
         coordinate hash(const std::vector<e::buffer>& value) const;
-        search_coordinate hash(const search& s) const;
+        coordinate hash(const search& s) const;
 
     public:
         hasher& operator = (const hasher& rhs);
 
     private:
         std::vector<hash_t> m_funcs;
+        unsigned int m_num;
+        std::vector<unsigned int> m_nums;
+        std::vector<unsigned int> m_space;
 };
-
-std::ostream&
-operator << (std::ostream& lhs, const coordinate& rhs);
 
 } // namespace mask
 } // namespace hyperspacehashing

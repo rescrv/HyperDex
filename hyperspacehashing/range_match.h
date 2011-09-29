@@ -44,7 +44,6 @@ class range_match
                     uint64_t clower, uint64_t cupper);
 
     public:
-        bool matches(const mask::coordinate& coord) const;
         bool matches(const prefix::coordinate& coord) const;
         bool matches(const e::buffer& key,
                      const std::vector<e::buffer>& value) const;
