@@ -29,7 +29,7 @@
 
 // HyperspaceHashing
 #include "bithacks.h"
-#include "cfloat.h"
+#include "copint.h"
 #include "hashes_internal.h"
 #include "hyperspacehashing/mask.h"
 
@@ -170,7 +170,7 @@ hyperspacehashing :: mask :: hasher :: hash(const e::buffer& key) const
             break;
         case RANGE:
             key_mask = UINT64_MAX;
-            key_hash = cfloat(lendian(key), 64);
+            key_hash = copint(lendian(key), 64);
             break;
         case NONE:
             key_mask = 0;
@@ -219,7 +219,7 @@ hyperspacehashing :: mask :: hasher :: hash(const std::vector<e::buffer>& value)
                     break;
                 case RANGE:
                     assert(m_space[i] <= 64);
-                    cfl = cfloat(lendian(value[i - 1]), m_space[i]);
+                    cfl = copint(lendian(value[i - 1]), m_space[i]);
                     masks[m_nums[i]] = UINT64_MAX;
                     hashes[m_nums[i]] = cfl;
                     break;
@@ -275,9 +275,9 @@ hyperspacehashing :: mask :: hasher :: hash(const search& s) const
                 if (s.is_range(0))
                 {
                     s.range_value(0, &lower, &upper);
-                    clower = cfloat(lower, 64);
-                    cupper = cfloat(upper, 64);
-                    cfloat_range(clower, cupper, 64, &primary_mask, &primary_hash);
+                    clower = copint(lower, 64);
+                    cupper = copint(upper, 64);
+                    copint_range(clower, cupper, 64, &primary_mask, &primary_hash);
                 }
 
                 break;
@@ -319,9 +319,9 @@ hyperspacehashing :: mask :: hasher :: hash(const search& s) const
                     if (s.is_range(i))
                     {
                         s.range_value(i, &lower, &upper);
-                        clower = cfloat(lower, m_space[i]);
-                        cupper = cfloat(upper, m_space[i]);
-                        cfloat_range(clower, cupper, m_space[i], &masks[m_nums[i]], &hashes[m_nums[i]]);
+                        clower = copint(lower, m_space[i]);
+                        cupper = copint(upper, m_space[i]);
+                        copint_range(clower, cupper, m_space[i], &masks[m_nums[i]], &hashes[m_nums[i]]);
                     }
 
                     break;

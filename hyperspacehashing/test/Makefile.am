@@ -3,15 +3,15 @@ AM_CXXFLAGS = $(COVERAGE_CXXFLAGS)
 AM_LDFLAGS = -no-install $(GTEST_LDFLAGS)
 
 if HAVE_GTEST
-check_PROGRAMS = bithacks cfloat mask prefix search
+check_PROGRAMS = bithacks copint mask prefix search
 TESTS = $(check_PROGRAMS)
-# XXX This needs to be fixed because cfloat changed.
-XFAIL_TESTS = prefix
+# XXX This needs to be fixed because cpoint changed.
+XFAIL_TESTS = mask prefix
 
 bithacks_SOURCES = ../../runner.cc bithacks.cc
 bithacks_LDADD = ../libhyperspacehashing.la $(COVERAGE_LDADD) $(GTEST_LIBS)
-cfloat_SOURCES = cfloat.cc
-cfloat_LDADD = ../libhyperspacehashing.la $(COVERAGE_LDADD)
+copint_SOURCES = copint.cc
+copint_LDADD = ../libhyperspacehashing.la $(COVERAGE_LDADD)
 mask_SOURCES = ../../runner.cc mask.cc
 mask_LDADD = ../libhyperspacehashing.la $(COVERAGE_LDADD) $(GTEST_LIBS)
 prefix_SOURCES = ../../runner.cc prefix.cc

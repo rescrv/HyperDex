@@ -32,7 +32,7 @@
 #include <e/convert.h>
 
 // HyperspaceHashing
-#include "cfloat.h"
+#include "copint.h"
 
 static int
 usage();
@@ -40,31 +40,53 @@ usage();
 int
 main(int argc, char* argv[])
 {
-    if (argc != 2)
+    if (argc != 3)
     {
         return usage();
     }
 
-    uint16_t space;
+    uint16_t outsz;
+    uint16_t insz;
 
     try
     {
-        space = e::convert::to_uint16_t(argv[1]);
+        insz = e::convert::to_uint16_t(argv[1]);
     }
     catch (std::domain_error& e)
     {
-        std::cerr << "The amount of space must be an integer in the range [0, 64]." << std::endl;
+        std::cerr << "insz must be an integer in the range [0, 64]." << std::endl;
         return EXIT_FAILURE;
     }
     catch (std::out_of_range& e)
     {
-        std::cerr << "The amount of space must be an integer in the range [0, 64]." << std::endl;
+        std::cerr << "insz must be an integer in the range [0, 64]." << std::endl;
         return EXIT_FAILURE;
     }
 
-    if (space > 64)
+    if (insz > 64)
     {
-        std::cerr << "The amount of space must be an integer in the range [0, 64]." << std::endl;
+        std::cerr << "insz must be an integer in the range [0, 64]." << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    try
+    {
+        outsz = e::convert::to_uint16_t(argv[2]);
+    }
+    catch (std::domain_error& e)
+    {
+        std::cerr << "outsz must be an integer in the range [0, 64]." << std::endl;
+        return EXIT_FAILURE;
+    }
+    catch (std::out_of_range& e)
+    {
+        std::cerr << "outsz must be an integer in the range [0, 64]." << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    if (outsz > 64)
+    {
+        std::cerr << "outsz must be an integer in the range [0, 64]." << std::endl;
         return EXIT_FAILURE;
     }
 
@@ -72,7 +94,14 @@ main(int argc, char* argv[])
 
     while (std::cin >> num)
     {
-        std::cout << hyperspacehashing::cfloat(num, space) << "\n";
+        if (insz != 64 && num > (1ULL << insz))
+        {
+            std::cout << "XXX\n";
+        }
+        else
+        {
+            std::cout << hyperspacehashing::copint(num, insz, outsz) << "\n";
+        }
     }
 
     std::cout << std::flush;
@@ -82,7 +111,7 @@ main(int argc, char* argv[])
 int
 usage()
 {
-    std::cerr << "Usage:  cfloat <space>" << std::endl;
+    std::cerr << "Usage:  copint <insz> <outsz>" << std::endl;
     std::cerr << "Filters numbers on stdin." << std::endl;
     return EXIT_FAILURE;
 }

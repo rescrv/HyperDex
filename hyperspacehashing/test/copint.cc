@@ -33,13 +33,13 @@
 #include <ctime>
 
 // HyperspaceHashing
-#include "cfloat.h"
+#include "copint.h"
 
-using hyperspacehashing::cfloat;
+using hyperspacehashing::copint;
 
-// Validate that (a < b) => (cfloat(a) <= cfloat(b)) and
-//               (a > b) => (cfloat(a) >= cfloat(b)) and
-//               (a == b) => (cfloat(a) == cfloat(b))
+// Validate that (a < b) => (copint(a) <= copint(b)) and
+//               (a > b) => (copint(a) >= copint(b)) and
+//               (a == b) => (copint(a) == copint(b))
 //
 // This will abort on failure.
 void
@@ -49,15 +49,6 @@ int
 main(int, char* [])
 {
     uint64_t enc;
-    enc = cfloat(0, 6, 6, 58);
-    assert(enc == 0);
-    enc = cfloat(UINT64_MAX, 6, 6, 58);
-    assert(enc == UINT64_MAX);
-
-    // Numbers which have caused problems in debugging.
-    validate(9761969916800595968ULL, 18446744073709551615ULL);
-    validate(11077654559231277056ULL, 1594140867147271424ULL);
-    validate(6463934167266165760ULL, 10353031058514688000ULL);
 
     // Randomly go through some other numbers.
     unsigned int seed = time(NULL);
@@ -86,34 +77,10 @@ main(int, char* [])
 void
 validate(uint64_t a, uint64_t b)
 {
-    for (unsigned int exp_sz = 0; exp_sz <= 6; ++exp_sz)
+    for (size_t sz = 1; sz <= 64; ++sz)
     {
-        for (unsigned int float_sz = 0; float_sz < 64 - exp_sz; ++float_sz)
-        {
-            uint64_t enc_a = cfloat(a, 6, exp_sz, float_sz);
-            uint64_t enc_b = cfloat(b, 6, exp_sz, float_sz);
-
-            if (a < b && enc_a > enc_b)
-            {
-                abort();
-            }
-
-            if (a > b && enc_a < enc_b)
-            {
-                abort();
-            }
-
-            if (a == b && enc_a != enc_b)
-            {
-                abort();
-            }
-        }
-    }
-
-    for (size_t sz = 0; sz < 64; ++sz)
-    {
-        uint64_t enc_a = cfloat(a, sz);
-        uint64_t enc_b = cfloat(b, sz);
+        uint64_t enc_a = copint(a, sz);
+        uint64_t enc_b = copint(b, sz);
 
         if (a < b && enc_a > enc_b)
         {

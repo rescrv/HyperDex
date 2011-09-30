@@ -29,7 +29,7 @@
 
 // HyperspaceHashing
 #include "bithacks.h"
-#include "cfloat.h"
+#include "copint.h"
 #include "hashes_internal.h"
 #include "hyperspacehashing/prefix.h"
 #include "range_match.h"
@@ -158,7 +158,7 @@ hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key) const
         case EQUALITY:
             return coordinate(64, cityhash(key));
         case RANGE:
-            return coordinate(64, cfloat(lendian(key), 64));
+            return coordinate(64, copint(lendian(key), 64));
         case NONE:
             abort();
         default:
@@ -225,7 +225,7 @@ hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key, const std::v
             break;
         case RANGE:
             space = numbits + (idx < plusones ? 1 : 0);
-            hashes[idx] = cfloat(lendian(key), space);
+            hashes[idx] = copint(lendian(key), space);
             hashes[idx] <<= 64 - space;
             ++idx;
             break;
@@ -244,7 +244,7 @@ hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key, const std::v
                 break;
             case RANGE:
                 space = numbits + (idx < plusones ? 1 : 0);
-                hashes[idx] = cfloat(lendian(value[i - 1]), space);
+                hashes[idx] = copint(lendian(value[i - 1]), space);
                 hashes[idx] <<= 64 - space;
                 ++idx;
                 break;
@@ -316,9 +316,9 @@ hyperspacehashing :: prefix :: hasher :: hash(const search& s) const
                 uint64_t upper;
                 s.range_value(i, &lower, &upper);
                 space = numbits + (idx < plusones ? 1 : 0);
-                uint64_t clower = cfloat(lower, space);
-                uint64_t cupper = cfloat(upper, space);
-                cfloat_range(clower, cupper, space, &masks[idx], &hashes[idx]);
+                uint64_t clower = copint(lower, space);
+                uint64_t cupper = copint(upper, space);
+                copint_range(clower, cupper, space, &masks[idx], &hashes[idx]);
                 // Create the partial matching which is folded into
                 // equality coordinate.
                 masks[idx] <<= (64 - space);
