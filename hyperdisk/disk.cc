@@ -867,16 +867,16 @@ hyperdisk :: disk :: split_shard(size_t shard_num)
 
     for (; snap.valid(); snap.next())
     {
-        for (int j = 0; j < 63; ++j)
+        for (int j = 0; j < 64; ++j)
         {
             uint64_t bit = 1ULL << j;
 
-            if (c.secondary_upper_mask & bit)
+            if (c.secondary_lower_mask & bit)
             {
                 continue;
             }
 
-            if (snap.coordinate().secondary_upper_hash & bit)
+            if (snap.coordinate().secondary_lower_hash & bit)
             {
                 ++ones[j];
             }
@@ -887,7 +887,7 @@ hyperdisk :: disk :: split_shard(size_t shard_num)
         }
     }
 
-    int secondary_split = which_to_split(c.secondary_upper_mask, zeros, ones);
+    int secondary_split = which_to_split(c.secondary_lower_mask, zeros, ones);
     uint64_t secondary_bit = 1ULL << secondary_split;
     snap = s->make_snapshot();
 
@@ -903,7 +903,7 @@ hyperdisk :: disk :: split_shard(size_t shard_num)
 
     for (; snap.valid(); snap.next())
     {
-        for (int j = 0; j < 63; ++j)
+        for (int j = 0; j < 64; ++j)
         {
             uint64_t bit = 1ULL << j;
 
@@ -912,7 +912,7 @@ hyperdisk :: disk :: split_shard(size_t shard_num)
                 continue;
             }
 
-            if (snap.coordinate().secondary_upper_hash & secondary_bit)
+            if (snap.coordinate().secondary_lower_hash & secondary_bit)
             {
                 if (snap.coordinate().primary_hash & bit)
                 {
@@ -944,17 +944,17 @@ hyperdisk :: disk :: split_shard(size_t shard_num)
 
     // Create four new shards, and scatter the data between them.
     coordinate zero_zero_coord(c.primary_mask | primary_lower_bit, c.primary_hash,
-                               c.secondary_lower_mask, c.secondary_lower_hash,
-                               c.secondary_upper_mask | secondary_bit, c.secondary_upper_hash);
+                               c.secondary_lower_mask | secondary_bit, c.secondary_lower_hash,
+                               c.secondary_upper_mask, c.secondary_upper_hash);
     coordinate zero_one_coord(c.primary_mask | primary_upper_bit, c.primary_hash,
-                              c.secondary_lower_mask, c.secondary_lower_hash,
-                              c.secondary_upper_mask | secondary_bit, c.secondary_upper_hash | secondary_bit);
+                              c.secondary_lower_mask | secondary_bit, c.secondary_lower_hash | secondary_bit,
+                              c.secondary_upper_mask, c.secondary_upper_hash);
     coordinate one_zero_coord(c.primary_mask | primary_lower_bit, c.primary_hash | primary_lower_bit,
-                              c.secondary_lower_mask, c.secondary_lower_hash,
-                              c.secondary_upper_mask | secondary_bit, c.secondary_upper_hash);
+                              c.secondary_lower_mask | secondary_bit, c.secondary_lower_hash,
+                              c.secondary_upper_mask, c.secondary_upper_hash);
     coordinate one_one_coord(c.primary_mask | primary_upper_bit, c.primary_hash | primary_upper_bit,
-                             c.secondary_lower_mask, c.secondary_lower_hash,
-                             c.secondary_upper_mask | secondary_bit, c.secondary_upper_hash | secondary_bit);
+                             c.secondary_lower_mask | secondary_bit, c.secondary_lower_hash | secondary_bit,
+                             c.secondary_upper_mask, c.secondary_upper_hash);
 
     try
     {
