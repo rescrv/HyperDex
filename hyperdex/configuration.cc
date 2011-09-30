@@ -669,6 +669,7 @@ hyperdex :: configuration :: _search_entities(std::map<entityid, instance>::cons
     bool hashed = false;
     uint16_t hashed_subspace = 0;
     hyperspacehashing::prefix::search_coordinate sc;
+    hyperdex::regionid prevreg;
 
     for (; iter != end; ++iter)
     {
@@ -683,9 +684,10 @@ hyperdex :: configuration :: _search_entities(std::map<entityid, instance>::cons
             hashed_subspace = iter->first.subspace;
         }
 
-        if (sc.matches(iter->first.coord()))
+        if (iter->first.get_region() != prevreg && sc.matches(iter->first.coord()))
         {
             candidates[iter->first.subspace].insert(*iter);
+            prevreg = iter->first.get_region();
         }
     }
 
