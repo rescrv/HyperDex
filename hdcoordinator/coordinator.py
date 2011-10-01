@@ -267,27 +267,17 @@ class ControlConnection(asynchat.async_chat):
             commandline = shlex.split("".join(self._ibuffer))
             self._ibuffer = []
             if commandline:
-                if commandline[0] == "list" and commandline[1] == "clients":
-                    if len(commandline) != 2:
-                        return self.fail("Invalid control command {0}".format(commandline))
+                if commandline[:2] == ['list', 'clients'] and len(commandline) == 2:
                     self.list_clients()
-                elif commandline[0] == "list" and commandline[1] == "instances":
-                    if len(commandline) != 2:
-                        return self.fail("Invalid control command {0}".format(commandline))
+                elif commandline[:2] == ['list', 'instances'] and len(commandline) == 2:
                     self.list_instances()
-                elif commandline[0] == "add" and commandline[1] == "space":
-                    if len(commandline) != 2:
-                        return self.fail("Invalid control command {0}".format(commandline))
+                elif commandline[:2] == ['add', 'space'] and len(commandline) == 2:
                     self.set_terminator('\n.\n')
                     self._mode = "DATA"
                     self._act_on_data = self.add_space
-                elif commandline[0] == "rm" and commandline[1] == "space":
-                    if len(commandline) != 3:
-                        return self.fail("Invalid control command {0}".format(commandline))
+                elif commandline[:2] == ['rm', 'space'] and len(commandline) == 3:
                     self.rm_space(commandline[2])
-                elif commandline[0] == "fill" and commandline[1] == "space":
-                    if len(commandline) != 3:
-                        return self.fail("Invalid control command {0}".format(commandline))
+                elif commandline[:2] == ['fill', 'space'] and len(commandline) == 3:
                     self.fill_space(commandline[2])
                 else:
                     return self.fail("Unknown commandline {0}".format(commandline))
