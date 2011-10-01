@@ -73,6 +73,7 @@ class ActionsLog(object):
         self._stableconfig = ''
         self._confignum = 1
         self._rand = random.Random()
+        self._limit = None
 
     def add_instance(self, addr, incoming, outgoing):
         if (addr, incoming, outgoing) in self._instances:
@@ -134,7 +135,7 @@ class ActionsLog(object):
                         region.replicas[replicanum] = self.select_least_loaded(region.replicas)
 
     def select_least_loaded(self, exclude):
-        hosts = dict([(k, 0) for k in self._instances.keys()])
+        hosts = dict(sorted([(k, 0) for k in self._instances.keys()])[:self._limit])
         for spacenum, space in self._spaces_by_num.iteritems():
             for subspacenum, subspace in enumerate(space.subspaces):
                 for region in subspace.regions:
@@ -210,6 +211,9 @@ class ActionsLog(object):
     def stable_config(self):
         return self._stableconfig, self._confignum
 
+    def limit_hosts(self, num):
+        self._limit = num
+
 
 class Acceptor(asyncore.dispatcher):
 
@@ -279,6 +283,8 @@ class ControlConnection(asynchat.async_chat):
                     self.rm_space(commandline[2])
                 elif commandline[:2] == ['fill', 'space'] and len(commandline) == 3:
                     self.fill_space(commandline[2])
+                elif commandline[:2] == ['limit', 'hosts'] and len(commandline) == 3:
+                    self.limit_hosts(commandline[2])
                 else:
                     return self.fail("Unknown commandline {0}".format(commandline))
         elif self._mode == "DATA":
@@ -363,6 +369,13 @@ class ControlConnection(asynchat.async_chat):
         for fd, desc in self._map.iteritems():
             if hasattr(desc, 'new_configuration'):
                 desc.new_configuration(config, num)
+        self.push("SUCCESS\n")
+
+    def limit_hosts(self, num):
+        try:
+            self._actionslog.limit_hosts(int(num))
+        except ValueError as e:
+            return self.fail(str(e))
         self.push("SUCCESS\n")
 
 
