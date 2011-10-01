@@ -32,7 +32,7 @@
 #include <e/convert.h>
 
 // HyperspaceHashing
-#include "copint.h"
+#include "cfloat.h"
 
 static int
 usage();
@@ -40,38 +40,16 @@ usage();
 int
 main(int argc, char* argv[])
 {
-    if (argc != 3)
+    if (argc != 2)
     {
         return usage();
     }
 
     uint16_t outsz;
-    uint16_t insz;
 
     try
     {
-        insz = e::convert::to_uint16_t(argv[1]);
-    }
-    catch (std::domain_error& e)
-    {
-        std::cerr << "insz must be an integer in the range [0, 64]." << std::endl;
-        return EXIT_FAILURE;
-    }
-    catch (std::out_of_range& e)
-    {
-        std::cerr << "insz must be an integer in the range [0, 64]." << std::endl;
-        return EXIT_FAILURE;
-    }
-
-    if (insz > 64)
-    {
-        std::cerr << "insz must be an integer in the range [0, 64]." << std::endl;
-        return EXIT_FAILURE;
-    }
-
-    try
-    {
-        outsz = e::convert::to_uint16_t(argv[2]);
+        outsz = e::convert::to_uint16_t(argv[1]);
     }
     catch (std::domain_error& e)
     {
@@ -94,14 +72,7 @@ main(int argc, char* argv[])
 
     while (std::cin >> num)
     {
-        if (insz != 64 && num > (1ULL << insz))
-        {
-            std::cout << "XXX\n";
-        }
-        else
-        {
-            std::cout << hyperspacehashing::copint(num, insz, outsz) << "\n";
-        }
+        std::cout << "cfloat(" << num << ", " << outsz << ") = " << hyperspacehashing::cfloat(num, outsz) << "\n";
     }
 
     std::cout << std::flush;
@@ -111,7 +82,7 @@ main(int argc, char* argv[])
 int
 usage()
 {
-    std::cerr << "Usage:  copint <insz> <outsz>" << std::endl;
+    std::cerr << "Usage:  cfloat <outsz>" << std::endl;
     std::cerr << "Filters numbers on stdin." << std::endl;
     return EXIT_FAILURE;
 }

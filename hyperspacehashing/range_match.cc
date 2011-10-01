@@ -38,12 +38,12 @@
 // Simple comparison:
 //      If the mask specifies the full coordinate and we know that no
 //      interlacing took place, we can just compare the hash against the
-//      copint-mapped lower and upper bounds.
+//      cfloat-mapped lower and upper bounds.
 //
 // Interlace-tolerant comparison:
 //      If the mask specifies the full coordinate, and interlacing took
 //      place, we need to first pull out which bits are from the
-//      copint-mapped number.  For this form, the lower and upper bounds
+//      cfloat-mapped number.  For this form, the lower and upper bounds
 //      are pre-interlaced so that the number extracted from the full
 //      coordinate's hash is directly comparable to m_clower and
 //      m_cupper.

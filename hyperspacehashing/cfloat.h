@@ -25,8 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperspacehashing_copint_h_
-#define hyperspacehashing_copint_h_
+#ifndef hyperspacehashing_cfloat_h_
+#define hyperspacehashing_cfloat_h_
 
 // C
 #include <stdint.h>
@@ -35,13 +35,10 @@ namespace hyperspacehashing
 {
 
 uint64_t
-copint(uint64_t input, unsigned int outsz);
-
-uint64_t
-copint(uint64_t input, unsigned int insz, unsigned int outsz);
+cfloat(uint64_t input, unsigned int outsz);
 
 void
-copint_range(uint64_t clower,
+cfloat_range(uint64_t clower,
              uint64_t cupper,
              unsigned int space,
              uint64_t* mask,
@@ -49,4 +46,4 @@ copint_range(uint64_t clower,
 
 } // namespace hyperspacehashing
 
-#endif // hyperspacehashing_copint_h
+#endif // hyperspacehashing_cfloat_h

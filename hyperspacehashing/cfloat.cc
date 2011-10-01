@@ -29,72 +29,68 @@
 
 // C
 #include <cassert>
-#include <cstdlib>
-#include <ctime>
+#include <cmath>
+
+// STL
+#include <algorithm>
 
 // HyperspaceHashing
-#include "copint.h"
+#include "cfloat.h"
 
-using hyperspacehashing::copint;
-
-// Validate that (a < b) => (copint(a) <= copint(b)) and
-//               (a > b) => (copint(a) >= copint(b)) and
-//               (a == b) => (copint(a) == copint(b))
-//
-// This will abort on failure.
-void
-validate(uint64_t a, uint64_t b);
-
-int
-main(int, char* [])
+uint64_t
+hyperspacehashing :: cfloat(uint64_t in, unsigned int outsz)
 {
-    uint64_t enc;
+    int e = 0;
+    double f = frexp(static_cast<double>(in), &e);
 
-    // Randomly go through some other numbers.
-    unsigned int seed = time(NULL);
-    uint64_t old = 0;
-
-    for (size_t c = 0; c < 100; ++c)
+    if (outsz >= 6)
     {
-        int random = rand_r(&seed);
-        uint64_t cur = UINT64_MAX * (static_cast<double>(random) / RAND_MAX);
-        validate(old, cur);
-        validate(cur, cur);
-        validate(cur, 0);
-        validate(cur, UINT64_MAX);
-
-        for (uint64_t i = cur; i < cur + 1000; ++i)
-        {
-            validate(cur, i);
-        }
-
-        old = cur;
+        unsigned int bits = outsz - 6;
+        uint64_t frac = f * (1ULL << (bits + 1)) - (1ULL << bits);
+        uint64_t exp = e;
+        exp <<= (outsz - 6);
+        return exp | frac;
     }
-
-    return EXIT_SUCCESS;
+    else
+    {
+        return e >> (6 - outsz);
+    }
 }
 
 void
-validate(uint64_t a, uint64_t b)
+hyperspacehashing :: cfloat_range(uint64_t clower,
+                                  uint64_t cupper,
+                                  unsigned int space,
+                                  uint64_t* mask,
+                                  uint64_t* range)
 {
-    for (size_t sz = 1; sz <= 64; ++sz)
+    uint64_t m = UINT64_MAX;
+    m >>= (64 - space);
+    m = (~(clower ^ cupper)) & m;
+    bool seen_one = false;
+    bool seen_zero = false;
+
+    for (ssize_t b = 63; b >= 0; --b)
     {
-        uint64_t enc_a = copint(a, sz);
-        uint64_t enc_b = copint(b, sz);
+        uint64_t bit = 1;
+        bit <<= b;
 
-        if (a < b && enc_a > enc_b)
+        if ((m & bit))
         {
-            abort();
+            seen_one = true;
         }
 
-        if (a > b && enc_a < enc_b)
+        if (seen_one && !(m & bit))
         {
-            abort();
+            seen_zero = true;
         }
 
-        if (a == b && enc_a != enc_b)
+        if (seen_zero)
         {
-            abort();
+            m &= ~bit;
         }
     }
+
+    *mask = m;
+    *range = clower & m;
 }
