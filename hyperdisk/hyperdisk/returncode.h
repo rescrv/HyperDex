@@ -28,6 +28,9 @@
 #ifndef hyperdisk_returncode_h_
 #define hyperdisk_returncode_h_
 
+// C++
+#include <iostream>
+
 namespace hyperdisk
 {
 
@@ -45,6 +48,37 @@ enum returncode
     SPLITFAILED = 8200,
     DIDNOTHING  = 8201
 };
+
+#define str(x) #x
+#define xstr(x) str(x)
+#define stringify(x) case (x): lhs << xstr(x); break
+
+inline std::ostream&
+operator << (std::ostream& lhs, const returncode& rhs)
+{
+    switch(rhs)
+    {
+        stringify(SUCCESS);
+        stringify(NOTFOUND);
+        stringify(WRONGARITY);
+        stringify(DATAFULL);
+        stringify(SEARCHFULL);
+        stringify(SYNCFAILED);
+        stringify(DROPFAILED);
+        stringify(MISSINGDISK);
+        stringify(SPLITFAILED);
+        stringify(DIDNOTHING);
+        default:
+            lhs << "unknown returncode";
+            break;
+    }
+
+    return lhs;
+}
+
+#undef stringify
+#undef xstr
+#undef str
 
 } // namespace hyperdisk
 
