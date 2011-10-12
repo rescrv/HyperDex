@@ -42,6 +42,7 @@ hyperdex :: coordinatorlink :: coordinatorlink(const po6::net::location& coordin
     , m_sock()
     , m_pfd()
     , m_buffer()
+    , m_reported_failures()
 {
     reset();
 }
@@ -73,6 +74,28 @@ hyperdex :: coordinatorlink :: acknowledge()
     if (ret == SUCCESS)
     {
         reset_config();
+    }
+
+    return ret;
+}
+
+hyperdex::coordinatorlink::returncode
+hyperdex :: coordinatorlink :: fail_location(const po6::net::location& loc)
+{
+    po6::threads::mutex::hold hold(&m_lock);
+
+    if (m_shutdown)
+    {
+        return SHUTDOWN;
+    }
+
+    std::ostringstream ostr;
+    ostr << "fail_location\t" << loc << "\n";
+    returncode ret = send_to_coordinator(ostr.str().c_str(), ostr.str().size());
+
+    if (ret == SUCCESS)
+    {
+        m_reported_failures.insert(loc);
     }
 
     return ret;
@@ -279,4 +302,5 @@ hyperdex :: coordinatorlink :: reset_config()
     m_acknowledged = true;
     m_config_valid = true;
     m_config = configuration();
+    m_reported_failures.clear();
 }

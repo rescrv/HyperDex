@@ -67,6 +67,7 @@ class coordinatorlink
     public:
         bool unacknowledged();
         returncode acknowledge();
+        returncode fail_location(const po6::net::location& loc);
         returncode fail_transfer(uint16_t xfer_id);
 
     public:
@@ -103,6 +104,7 @@ class coordinatorlink
         po6::net::socket m_sock;
         pollfd m_pfd;
         e::buffer m_buffer;
+        std::set<po6::net::location> m_reported_failures;
 };
 
 } // namespace hyperdex
