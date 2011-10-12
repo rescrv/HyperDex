@@ -64,6 +64,13 @@ hyperspacehashing :: prefix :: coordinate :: contains(const coordinate& other) c
     return prefix <= other.prefix && ((mask & point) == (mask & other.point));
 }
 
+bool
+hyperspacehashing :: prefix :: coordinate :: intersects(const coordinate& other) const
+{
+    uint64_t mask = lookup_msb_mask[std::min(prefix, other.prefix)];
+    return (mask & point) == (mask & other.point);
+}
+
 hyperspacehashing :: prefix :: search_coordinate :: search_coordinate()
     : m_mask(0)
     , m_point(0)

@@ -41,7 +41,6 @@
 
 // HyperDex
 #include "hyperdex/configuration.h"
-#include "hyperdex/hyperspace.h"
 
 const hyperdex::spaceid hyperdex::configuration::NULLSPACE;
 const hyperdex::instance hyperdex::configuration::NULLINSTANCE;
@@ -293,8 +292,17 @@ hyperdex :: configuration :: add_line(const std::string& line)
                 && (ssi = m_subspaces.find(subspaceid(si->first, subspacenum))) != m_subspaces.end())
         {
             regionid r(ssi->first, prefix, mask);
+            bool overlaps = false;
+            typedef std::set<hyperdex::regionid>::const_iterator regiter;
+            regiter iter = m_regions.begin();
+            hyperspacehashing::prefix::coordinate c = r.coord();
 
-            if (hyperdex::nonoverlapping(m_regions, r))
+            for (; iter != m_regions.end(); ++iter)
+            {
+                overlaps |= c.intersects(iter->coord());
+            }
+
+            if (!overlaps)
             {
                 m_regions.insert(r);
 
@@ -417,10 +425,11 @@ hyperdex :: configuration :: headof(const regionid& r) const
 {
     typedef std::map<hyperdex::entityid, hyperdex::instance>::const_iterator mapiter;
     mapiter i = m_entities.begin();
+    hyperspacehashing::prefix::coordinate c = r.coord();
 
     for (; i != m_entities.end(); ++i)
     {
-        if (overlap(i->first.get_region(), r))
+        if (c.intersects(i->first.get_region().coord()))
         {
             return i->first;
         }
@@ -434,10 +443,11 @@ hyperdex :: configuration :: tailof(const regionid& r) const
 {
     typedef std::map<hyperdex::entityid, hyperdex::instance>::const_reverse_iterator mapiter;
     mapiter i = m_entities.rbegin();
+    hyperspacehashing::prefix::coordinate c = r.coord();
 
     for (; i != m_entities.rend(); ++i)
     {
-        if (overlap(i->first.get_region(), r))
+        if (c.intersects(i->first.get_region().coord()))
         {
             return i->first;
         }

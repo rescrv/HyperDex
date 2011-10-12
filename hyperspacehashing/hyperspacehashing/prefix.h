@@ -59,6 +59,7 @@ class coordinate
 
     public:
         bool contains(const coordinate& other) const;
+        bool intersects(const coordinate& other) const;
 
     public:
         uint8_t prefix;

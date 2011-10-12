@@ -49,7 +49,6 @@
 
 // HyperDex
 #include <hyperdex/coordinatorlink.h>
-#include <hyperdex/hyperspace.h>
 #include <hyperdex/network_constants.h>
 
 // HyperDaemon
