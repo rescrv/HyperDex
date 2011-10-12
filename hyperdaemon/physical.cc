@@ -60,7 +60,7 @@ hyperdaemon :: physical :: physical(const po6::net::ipaddr& ip,
         // Enable other hosts to connect to us.
         m_listen.reuseaddr(true);
         m_listen.bind(po6::net::location(ip, incoming));
-        m_listen.listen(128);
+        m_listen.listen(sysconf(_SC_OPEN_MAX));
         m_listen.nonblocking();
 
         switch (get_channel(hptr, m_listen.getsockname(), &chan))
