@@ -212,6 +212,7 @@ hyperdaemon :: replication_manager :: reconfigure(const configuration& newconfig
             to_erase = khiter;
             ++khiter;
             m_keyholders.erase(to_erase);
+            continue;
         }
 
         e::intrusive_ptr<keyholder> kh = khiter->second;
