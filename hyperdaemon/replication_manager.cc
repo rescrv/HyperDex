@@ -252,6 +252,8 @@ hyperdaemon :: replication_manager :: reconfigure(const configuration& newconfig
                     put_to_disk(khiter->first.region, khiter->first.key, kh, penditer->first);
                     break;
                 }
+
+                ++penditer;
             }
         }
 
