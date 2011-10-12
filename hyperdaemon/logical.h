@@ -62,7 +62,7 @@ class logical
 {
     public:
         logical(hyperdex::coordinatorlink* cl, const po6::net::ipaddr& us,
-                in_port_t incoming, in_port_t outgoing);
+                in_port_t incoming, in_port_t outgoing, size_t num_threads);
         ~logical() throw ();
 
     public:
@@ -79,7 +79,6 @@ class logical
     public:
         void pause() { m_physical.pause(); }
         void unpause() { m_physical.unpause(); }
-        size_t num_paused() { return m_physical.num_paused(); }
         void shutdown() { m_physical.shutdown(); }
 
     // Send and recv messages.

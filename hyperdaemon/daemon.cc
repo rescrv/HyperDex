@@ -84,13 +84,14 @@ hyperdaemon :: daemon(po6::pathname datadir,
         return EXIT_FAILURE;
     }
 
+    num_threads = s_continue ? num_threads : 0;
+
     // Setup our link to the coordinator.
     hyperdex::coordinatorlink cl(coordinator);
     // Setup the data component.
     datalayer data(&cl, datadir);
     // Setup the communication component.
-    logical comm(&cl, bind_to, incoming, outgoing);
-    comm.pause(); // Pause is idempotent.  The first unpause will cancel this one.
+    logical comm(&cl, bind_to, incoming, outgoing, num_threads);
     // Create our announce string.
     std::ostringstream announce;
     announce << "instance\t" << comm.inst().inbound.address << "\t"
@@ -112,7 +113,6 @@ hyperdaemon :: daemon(po6::pathname datadir,
 
     // Start the network workers.
     LOG(INFO) << "Starting network workers.";
-    num_threads = s_continue ? num_threads : 0;
     network_worker nw(&data, &comm, &ssss, &repl);
     std::tr1::function<void (network_worker*)> fnw(&network_worker::run);
     std::vector<thread_ptr> threads;
@@ -170,11 +170,6 @@ hyperdaemon :: daemon(po6::pathname datadir,
 
             // Make sure that we wait until everyone is paused.
             comm.pause();
-
-            while (comm.num_paused() < num_threads)
-            {
-                e::sleep_ms(0, 10);
-            }
 
             // Here is the critical section.  This is is mutually exclusive with the
             // network workers' loop.

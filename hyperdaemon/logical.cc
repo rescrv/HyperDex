@@ -51,7 +51,7 @@ using hyperdex::network_msgtype;
 using hyperdex::regionid;
 
 hyperdaemon :: logical :: logical(coordinatorlink* cl, const po6::net::ipaddr& ip,
-                                  in_port_t incoming, in_port_t outgoing)
+                                  in_port_t incoming, in_port_t outgoing, size_t num_threads)
     : m_cl(cl)
     , m_us()
     , m_config()
@@ -59,7 +59,7 @@ hyperdaemon :: logical :: logical(coordinatorlink* cl, const po6::net::ipaddr& i
     , m_client_nums()
     , m_client_locs()
     , m_client_counter(0)
-    , m_physical(ip, incoming, outgoing, true)
+    , m_physical(ip, incoming, outgoing, true, num_threads)
 {
     m_us.inbound = m_physical.inbound();
     m_us.inbound_version = 0;

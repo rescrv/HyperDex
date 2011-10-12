@@ -45,6 +45,7 @@
 #include <e/hazard_ptrs.h>
 #include <e/lockfree_fifo.h>
 #include <e/lockfree_hash_map.h>
+#include <e/worker_barrier.h>
 
 namespace hyperdaemon
 {
@@ -66,7 +67,8 @@ class physical
         physical(const po6::net::ipaddr& ip,
                  in_port_t incoming,
                  in_port_t outgoing,
-                 bool listen);
+                 bool listen,
+                 size_t num_threads);
         ~physical() throw ();
 
     // Pause/unpause or completely stop recv of messages.  Paused threads will
@@ -74,7 +76,6 @@ class physical
     public:
         void pause();
         void unpause();
-        size_t num_paused();
         void shutdown();
 
     // Send and recv messages.
@@ -152,10 +153,7 @@ class physical
         e::hazard_ptrs<channel, 1, size_t> m_hazard_ptrs;
         std::vector<channel*> m_channels;
         std::vector<int> m_channels_mask;
-        bool m_paused;
-        po6::threads::mutex m_not_paused_lock;
-        po6::threads::cond m_not_paused;
-        size_t m_count_paused;
+        e::worker_barrier m_pause_barrier;
 };
 
 } // namespace hyperdaemon

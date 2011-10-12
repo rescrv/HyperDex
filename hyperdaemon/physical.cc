@@ -40,7 +40,8 @@
 hyperdaemon :: physical :: physical(const po6::net::ipaddr& ip,
                                     in_port_t incoming,
                                     in_port_t outgoing,
-                                    bool listen)
+                                    bool listen,
+                                    size_t num_threads)
     : m_max_fds(sysconf(_SC_OPEN_MAX))
     , m_shutdown(false)
     , m_listen(ip.family(), SOCK_STREAM, IPPROTO_TCP)
@@ -50,10 +51,7 @@ hyperdaemon :: physical :: physical(const po6::net::ipaddr& ip,
     , m_hazard_ptrs()
     , m_channels(static_cast<size_t>(m_max_fds), NULL)
     , m_channels_mask(m_max_fds, 0)
-    , m_paused(false)
-    , m_not_paused_lock()
-    , m_not_paused(&m_not_paused_lock)
-    , m_count_paused(0)
+    , m_pause_barrier(num_threads)
 {
     if (listen)
     {
@@ -94,31 +92,20 @@ hyperdaemon :: physical :: ~physical()
 void
 hyperdaemon :: physical :: pause()
 {
-    po6::threads::mutex::hold hold(&m_not_paused_lock);
-    m_paused = true;
+    m_pause_barrier.pause();
 }
 
 void
 hyperdaemon :: physical :: unpause()
 {
-    po6::threads::mutex::hold hold(&m_not_paused_lock);
-    m_paused = false;
-    m_not_paused.broadcast();
-}
-
-size_t
-hyperdaemon :: physical :: num_paused()
-{
-    po6::threads::mutex::hold hold(&m_not_paused_lock);
-    return m_count_paused;
+    m_pause_barrier.unpause();
 }
 
 void
 hyperdaemon :: physical :: shutdown()
 {
-    po6::threads::mutex::hold hold(&m_not_paused_lock);
     m_shutdown = true;
-    m_not_paused.broadcast();
+    m_pause_barrier.shutdown();
 }
 
 hyperdaemon::physical::returncode
@@ -197,19 +184,7 @@ hyperdaemon :: physical :: recv(po6::net::location* from,
 
     while (true)
     {
-        __sync_synchronize();
-
-        if (m_paused)
-        {
-            po6::threads::mutex::hold hold(&m_not_paused_lock);
-
-            while (m_paused && !m_shutdown)
-            {
-                ++m_count_paused;
-                m_not_paused.wait();
-                --m_count_paused;
-            }
-        }
+        m_pause_barrier.pausepoint();
 
         if (m_shutdown)
         {
