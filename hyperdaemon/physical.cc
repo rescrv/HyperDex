@@ -60,6 +60,7 @@ hyperdaemon :: physical :: physical(const po6::net::ipaddr& ip,
         hazard_ptr hptr = m_hazard_ptrs.get();
         channel* chan;
         // Enable other hosts to connect to us.
+        m_listen.reuseaddr(true);
         m_listen.bind(po6::net::location(ip, incoming));
         m_listen.listen(128);
         m_listen.nonblocking();
