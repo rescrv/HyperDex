@@ -40,6 +40,9 @@
 // Google Log
 #include <glog/logging.h>
 
+// HyperDex
+#include <hyperdex/coordinatorlink.h>
+
 // HyperDaemon
 #include "logical.h"
 
@@ -374,7 +377,26 @@ hyperdaemon :: logical :: handle_connectfail(const po6::net::location& loc)
     }
     else
     {
-        LOG(INFO) << "XXX Tell the master we observed a connection failure to " << loc;
+        switch (m_cl->fail_location(loc))
+        {
+            case hyperdex::coordinatorlink::SUCCESS:
+                break;
+            case hyperdex::coordinatorlink::SHUTDOWN:
+                LOG(WARNING) << "Could not report connection failure to " << loc << ":  error(SHUTDOWN)";
+                break;
+            case hyperdex::coordinatorlink::CONNECTFAIL:
+                LOG(WARNING) << "Could not report connection failure to " << loc << ":  error(CONNECTFAIL)";
+                break;
+            case hyperdex::coordinatorlink::DISCONNECT:
+                LOG(WARNING) << "Could not report connection failure to " << loc << ":  error(DISCONNECT)";
+                break;
+            case hyperdex::coordinatorlink::LOGICERROR:
+                LOG(WARNING) << "Could not report connection failure to " << loc << ":  error(LOGICERROR)";
+                break;
+            default:
+                LOG(WARNING) << "Could not report connection failure to " << loc << ":  error unknown";
+                break;
+        }
     }
 }
 
@@ -390,7 +412,26 @@ hyperdaemon :: logical :: handle_disconnect(const po6::net::location& loc)
     }
     else
     {
-        LOG(INFO) << "XXX Tell the master we observed a disconnect from " << loc;
+        switch (m_cl->fail_location(loc))
+        {
+            case hyperdex::coordinatorlink::SUCCESS:
+                break;
+            case hyperdex::coordinatorlink::SHUTDOWN:
+                LOG(WARNING) << "Could not report disconnect from " << loc << ":  error(SHUTDOWN)";
+                break;
+            case hyperdex::coordinatorlink::CONNECTFAIL:
+                LOG(WARNING) << "Could not report disconnect from " << loc << ":  error(CONNECTFAIL)";
+                break;
+            case hyperdex::coordinatorlink::DISCONNECT:
+                LOG(WARNING) << "Could not report disconnect from " << loc << ":  error(DISCONNECT)";
+                break;
+            case hyperdex::coordinatorlink::LOGICERROR:
+                LOG(WARNING) << "Could not report disconnect from " << loc << ":  error(LOGICERROR)";
+                break;
+            default:
+                LOG(WARNING) << "Could not report disconnect from " << loc << ":  error unknown";
+                break;
+        }
     }
 }
 
