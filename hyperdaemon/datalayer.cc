@@ -59,10 +59,7 @@
 
 // HyperDaemon
 #include "datalayer.h"
-
-// XXX Make this configurable
-#define PREALLOCATIONS_PER_SECOND 1
-#define OPTIMISM_BURSTS_PER_SECOND 1
+#include "runtimeconfig.h"
 
 using hyperdex::regionid;
 using hyperdex::entityid;

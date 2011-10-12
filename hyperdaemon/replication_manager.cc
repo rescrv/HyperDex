@@ -55,10 +55,7 @@
 #include "datalayer.h"
 #include "logical.h"
 #include "replication_manager.h"
-
-// XXX Make this configurable.
-#define LOCK_STRIPING 1024
-#define TRANSFERS_IN_FLIGHT 1000
+#include "runtimeconfig.h"
 
 using hyperdex::configuration;
 using hyperdex::coordinatorlink;
@@ -1762,7 +1759,7 @@ hyperdaemon :: replication_manager :: start_transfers()
         {
             e::buffer msg;
 
-            for (int i = 0; i < TRANSFERS_IN_FLIGHT; ++i)
+            for (size_t i = 0; i < TRANSFERS_IN_FLIGHT; ++i)
             {
                 m_comm->send(t->second->transfer_entity, t->second->replicate_from, hyperdex::XFER_MORE, msg);
             }
