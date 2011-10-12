@@ -377,7 +377,7 @@ hyperdaemon :: logical :: handle_connectfail(const po6::net::location& loc)
     }
     else
     {
-        switch (m_cl->fail_location(loc))
+        switch (m_cl->warn_location(loc))
         {
             case hyperdex::coordinatorlink::SUCCESS:
                 break;

@@ -67,6 +67,7 @@ class coordinatorlink
     public:
         bool unacknowledged();
         returncode acknowledge();
+        returncode warn_location(const po6::net::location& loc);
         returncode fail_location(const po6::net::location& loc);
         returncode fail_transfer(uint16_t xfer_id);
 
@@ -86,6 +87,7 @@ class coordinatorlink
 
     private:
         // These internal methods must be protected by the lock.
+        returncode send_failure(const po6::net::location& loc);
         returncode send_to_coordinator(const char* msg, size_t len);
         void reset(); // Reset the config and socket (calls reset_config).
         void reset_config(); // Prepare a new config.
@@ -105,6 +107,7 @@ class coordinatorlink
         pollfd m_pfd;
         e::buffer m_buffer;
         std::set<po6::net::location> m_reported_failures;
+        std::map<po6::net::location, uint64_t> m_warnings_issued;
 };
 
 } // namespace hyperdex
