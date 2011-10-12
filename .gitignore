@@ -102,6 +102,8 @@ hyperdaemon/physical.lo
 hyperdaemon/physical.o
 hyperdaemon/replication_manager.lo
 hyperdaemon/replication_manager.o
+hyperdaemon/runtimeconfig.lo
+hyperdaemon/runtimeconfig.o
 hyperdaemon/searches.lo
 hyperdaemon/searches.o
 hyperdex/configuration.gcno
@@ -179,6 +181,7 @@ hyperdisk/test/shard.gcda
 hyperdisk/test/shard.gcno
 hyperdisk/test/shard.o
 hyperdisk/test/tmp-disk
+hyperdisk/utils/shard-dumphashes
 hyperdisk/utils/shard-dumphashes.o
 hyperdisk/utils/shard-fsck
 hyperdisk/utils/shard-fsck.o
