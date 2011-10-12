@@ -125,6 +125,7 @@ hyperdaemon :: daemon(po6::pathname datadir,
     }
 
     LOG(INFO) << "Network workers started.";
+    uint64_t disconnected_at = e::time();
 
     while (s_continue)
     {
@@ -192,6 +193,8 @@ hyperdaemon :: daemon(po6::pathname datadir,
             cl.acknowledge();
         }
 
+        uint64_t now;
+
         switch (cl.loop(1, -1))
         {
             case hyperdex::coordinatorlink::SHUTDOWN:
@@ -201,12 +204,20 @@ hyperdaemon :: daemon(po6::pathname datadir,
                 break;
             case hyperdex::coordinatorlink::CONNECTFAIL:
             case hyperdex::coordinatorlink::DISCONNECT:
+                now = e::time();
+
+                if (now - disconnected_at < 1000000000)
+                {
+                    e::sleep_ns(0, 1000000000 - (now - disconnected_at));
+                }
+
                 if (cl.connect() != hyperdex::coordinatorlink::SUCCESS)
                 {
                     PLOG(INFO) << "Coordinator connection failed";
                     e::sleep_ms(1, 0);
                 }
 
+                disconnected_at = e::time();
                 break;
             case hyperdex::coordinatorlink::LOGICERROR:
             default:
