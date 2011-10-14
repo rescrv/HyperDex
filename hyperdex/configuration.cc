@@ -299,7 +299,7 @@ hyperdex :: configuration :: add_line(const std::string& line)
 
             for (; iter != m_regions.end(); ++iter)
             {
-                overlaps |= c.intersects(iter->coord());
+                overlaps |= ssi->first == iter->get_subspace() && c.intersects(iter->coord());
             }
 
             if (!overlaps)
@@ -429,7 +429,8 @@ hyperdex :: configuration :: headof(const regionid& r) const
 
     for (; i != m_entities.end(); ++i)
     {
-        if (c.intersects(i->first.get_region().coord()))
+        if (r.get_subspace() == i->first.get_subspace() &&
+                c.intersects(i->first.get_region().coord()))
         {
             return i->first;
         }
@@ -447,7 +448,8 @@ hyperdex :: configuration :: tailof(const regionid& r) const
 
     for (; i != m_entities.rend(); ++i)
     {
-        if (c.intersects(i->first.get_region().coord()))
+        if (r.get_subspace() == i->first.get_subspace() &&
+                c.intersects(i->first.get_region().coord()))
         {
             return i->first;
         }
