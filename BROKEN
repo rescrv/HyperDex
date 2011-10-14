@@ -1,6 +1,0 @@
- - The disk layer does not create snapshots.
- - Snapshots at the disk layer are all-or-nothing.
- - Hashing at the disk layer does not use hyperspacehashing.
- - Hashing at the repl layer does not use hyperspacehashing.
- - Searching needs to take into account both the nonce and the searchid.
- - Searching needs to be implemented.
