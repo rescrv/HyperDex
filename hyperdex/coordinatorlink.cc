@@ -294,6 +294,11 @@ hyperdex :: coordinatorlink :: send_failure(const po6::net::location& loc)
         return SHUTDOWN;
     }
 
+    if (m_reported_failures.find(loc) != m_reported_failures.end())
+    {
+        return SUCCESS;
+    }
+
     std::ostringstream ostr;
     ostr << "fail_location\t" << loc << "\n";
     returncode ret = send_to_coordinator(ostr.str().c_str(), ostr.str().size());
