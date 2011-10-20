@@ -315,6 +315,7 @@ void
 hyperdex :: coordinatorlink :: reset()
 {
     reset_config();
+    ::shutdown(m_sock.get(), SHUT_RDWR);
     m_sock.close();
     m_pfd.fd = -1;
     m_pfd.events = 0;
