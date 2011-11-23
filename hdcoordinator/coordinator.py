@@ -27,20 +27,19 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-import asynchat
-import asyncore
 import collections
 import datetime
 import logging
 import random
+import select
 import shlex
-import signal
 import socket
-import uuid
+import sys
 
 import pyparsing
 
 import hdcoordinator.parser
+
 
 def normalize_address(addr):
     try:
@@ -54,507 +53,503 @@ def normalize_address(addr):
             return None
 
 
-# XXX When we move to using ConCoord, we need to ensure that each call to
-# add_instance is accompanied by an rm_instance even in the case where this code
-# fails.
-class ActionsLog(object):
+class EndConnection(Exception): pass
+class KillConnection(Exception): pass
 
-    class HostExists(Exception): pass
+
+class Coordinator(object):
+
     class DuplicateSpace(Exception): pass
     class UnknownSpace(Exception): pass
     class ExhaustedPorts(Exception): pass
+    class ExhaustedSpaces(Exception): pass
 
     def __init__(self):
-        self._portcounters = collections.defaultdict(int)
-        self._instances = {}
+        self._assigned = {}
+        self._portcounters = collections.defaultdict(lambda: 1)
         self._spaces_by_name = {}
         self._spaces_by_num = {}
-        self._spacenum = 1
-        self._stableconfig = ''
-        self._confignum = 1
+        self._restricted_spaces = {0, 2**32 - 1, 2**32 - 2, 2**32 - 3, 2**32 - 4}
+        self._spacenum = 0
         self._rand = random.Random()
-        self._limit = None
+        self._confdata = ''
+        self._confnum = 0
 
-    def add_instance(self, addr, incoming, outgoing):
-        if (addr, incoming, outgoing) in self._instances:
-            raise ActionsLog.HostExists()
+    def assign_epoch_id(self, addr, incoming, outgoing, pid, token):
+        if (addr, incoming, outgoing, pid, token) in self._assigned:
+            return self._assigned[(addr, incoming, outgoing, pid, token)]
         # Get unique numbers for these ports.
         inc_ver = self._portcounters[(addr, incoming)]
         out_ver = self._portcounters[(addr, outgoing)]
-        inc_ver += 1
-        out_ver += 1
-        self._portcounters[(addr, incoming)] = inc_ver
-        self._portcounters[(addr, outgoing)] = out_ver
+        self._portcounters[(addr, incoming)] += 1
+        self._portcounters[(addr, outgoing)] += 1
         # Fail if either exceeds the size of a 16-bit int.
         if inc_ver >= 1 << 16 or out_ver >= 1 << 16:
-            raise ActionsLog.ExhaustedPorts()
-        self._instances[(addr, incoming, outgoing)] = (inc_ver, out_ver)
+            raise Coordinator.ExhaustedPorts()
+        # Add it to the assigned epoch ids.
+        self._assigned[(addr, incoming, outgoing, pid, token)] = inc_ver, out_ver
+        return inc_ver, out_ver
 
-    def rm_instance(self, addr, incoming, outgoing):
-        # XXX rm_instance should not just wipe out the instance.  When we move
-        # to ConCoord (where we have multiple coordinators) rm_instance should
-        # put the instance "on notice" and wipe it if and only if someone else
-        # reports a failure.
-
-        # XXX remove the failed instance from the configs.
-        del self._instances[(addr, incoming, outgoing)]
+    def keepalive_instance(self, addr, incoming, outgoing, pid, token): pass
 
     def list_instances(self):
-        return self._instances
+        for (addr, incoming, outgoing, pid, token), (inc_ver, out_ver) in self._assigned.items():
+            yield addr, incoming, inc_ver, outgoing, out_ver, pid, token
 
     def add_space(self, space):
         if space.name in self._spaces_by_name:
-            raise ActionsLog.DuplicateSpace()
-        while True:
-            spacenum = self._spacenum
-            self._spacenum = (self._spacenum + 1) % ((1 << 32) - 4) + 1
-            if spacenum not in self._spaces_by_num:
+            raise Coordinator.DuplicateSpace()
+        spacenum = None
+        for i in xrange(1 << 32):
+            tmp = self._spacenum
+            self._spacenum = (self._spacenum + 1) % 2**32
+            if spacenum not in self._spaces_by_num and spacenum not in self._restricted_spaces:
+                spacenum = tmp
                 break
+        if spacenum is None:
+            raise Coordinator.ExhaustedSpaces()
         self._spaces_by_name[space.name] = spacenum
         self._spaces_by_num[spacenum] = space
-        self.fill_regions(space)
+        self._fill(space)
+        self._regenerate()
 
-    def rm_space(self, space):
+    def del_space(self, space):
         if space not in self._spaces_by_name:
-            raise ActionsLog.UnknownSpace()
+            raise Coordinator.UnknownSpace()
         spacenum = self._spaces_by_name[space]
         del self._spaces_by_name[space]
         del self._spaces_by_num[spacenum]
+        self._regenerate()
 
-    def fill_space(self, space):
-        if space not in self._spaces_by_name:
-            raise ActionsLog.UnknownSpace()
-        spacenum = self._spaces_by_name[space]
-        self.fill_regions(self._spaces_by_num[spacenum])
+    def configuration(self):
+        return self._confnum, self._confdata
 
-    def fill_regions(self, space):
+    def _fill(self, space):
         for subspacenum, subspace in enumerate(space.subspaces):
             for region in subspace.regions:
                 for replicanum in range(len(region.replicas)):
-                    if not region.replicas[replicanum]:
-                        region.replicas[replicanum] = self.select_least_loaded(region.replicas)
+                    if region.replicas[replicanum] is None:
+                        region.replicas[replicanum] = self._select_replica(region.replicas)
 
-    def select_least_loaded(self, exclude):
-        hosts = dict(sorted([(k, 0) for k in self._instances.keys()])[:self._limit])
+    def _select_replica(self, exclude):
+        hosts = dict([(i, 0) for i in self.list_instances()])
         for spacenum, space in self._spaces_by_num.iteritems():
             for subspacenum, subspace in enumerate(space.subspaces):
                 for region in subspace.regions:
                     for replica in region.replicas:
-                        if replica:
+                        if replica is not None:
                             hosts[replica] += 1
         frequencies = collections.defaultdict(list)
         for host, frequency in hosts.iteritems():
-            frequencies[frequency].append(host)
+            if host not in exclude:
+                frequencies[frequency].append(host)
         if not frequencies:
             return None
-        least_loaded = list(set(min(frequencies.iteritems())[1]) - set(exclude))
-        if not least_loaded:
-            return None
+        least_loaded = min(frequencies.iteritems())[1]
         return self._rand.choice(least_loaded)
 
-    def config(self):
-        try:
-            hosts = {}
-            counter = 0
-            config = ''
-            for spacenum, space in self._spaces_by_num.iteritems():
-                spacedims = dict([(d.name, d) for d in space.dimensions])
-                space_str = 'space\t{0}\t{1}\t{2}\n'
-                space_str = space_str.format(hex(spacenum).rstrip('L'), space.name,
-                                             '\t'.join([d.name for d in space.dimensions]))
-                for subspacenum, subspace in enumerate(space.subspaces):
-                    subdims = dict([(d.name, d) for d in subspace.dimensions])
-                    hashes = []
-                    for dim in space.dimensions:
-                        if dim.name in subdims:
-                            repl = subdims[dim.name].replhash or dim.replhash
-                            disk = subdims[dim.name].diskhash or dim.diskhash
-                        else:
-                            repl = dim.replhash
-                            disk = dim.diskhash
-                        hashes.append((repl, disk))
-                    hashes_str = '\t'.join(n + '\t' + h for n, h in hashes)
-                    subspace_str = 'subspace\t{0}\t{1}\t{2}\n'
-                    subspace_str = subspace_str.format(space.name,
-                                                       subspacenum,
-                                                       hashes_str)
-                    for region in subspace.regions:
-                        region_str = 'region\t{0}\t{1}\t{2}\t{3}'
-                        region_str = region_str.format(space.name,
-                                                       subspacenum,
-                                                       region.prefix,
-                                                       hex(region.mask).rstrip('L'))
-                        for replica in region.replicas:
-                            if replica:
-                                if replica not in hosts:
-                                    hosts[replica] = 'auto_{0}'.format(counter)
-                                    counter += 1
-                                region_str += '\t{0}'.format(hosts[replica])
-                        subspace_str += region_str + '\n'
-                    space_str += subspace_str
-                config += space_str
-            hosts_lines = []
-            for host, codename in hosts.iteritems():
-                inc_ver, out_ver = self._instances[host]
-                host_str = 'host\t{0}\t{1}\t{2}\t{3}\t{4}\t{5}'
-                host_str = host_str.format(codename, host[0], host[1], inc_ver,
-                                                              host[2], out_ver)
-                hosts_lines.append(host_str)
-            hosts_lines.sort()
-            self._stableconfig = ('\n'.join(hosts_lines) + '\n' + config).strip()
-            self._confignum += 1
-        except Exception as e:
-            # XXX Use the ConCoord logging service.
-            logging.error("Unhandled exception {0} in config()".format(e))
-        return self.stable_config()
-
-    def stable_config(self):
-        return self._stableconfig, self._confignum
-
-    def limit_hosts(self, num):
-        self._limit = num
+    def _regenerate(self):
+        hosts = {}
+        counter = 0
+        config = ''
+        for spacenum, space in self._spaces_by_num.iteritems():
+            spacedims = dict([(d.name, d) for d in space.dimensions])
+            space_str = 'space\t{num}\t{name}\t{dims}\n' \
+                        .format(num=spacenum, name=space.name,
+                                dims='\t'.join([d.name for d in space.dimensions]))
+            for subspacenum, subspace in enumerate(space.subspaces):
+                subdims = dict([(d.name, d) for d in subspace.dimensions])
+                hashes = []
+                for dim in space.dimensions:
+                    if dim.name in subdims:
+                        repl = subdims[dim.name].replhash or dim.replhash
+                        disk = subdims[dim.name].diskhash or dim.diskhash
+                    else:
+                        repl = dim.replhash
+                        disk = dim.diskhash
+                    hashes.append((repl, disk))
+                    hashes_str = '\t'.join(r + '\t' + d for r, d in hashes)
+                subspace_str = 'subspace\t{name}\t{num}\t{hashes}\n' \
+                               .format(name=space.name, num=subspacenum,
+                                       hashes=hashes_str)
+                for region in subspace.regions:
+                    region_str = 'region\t{name}\t{num}\t{prefix}\t{mask}' \
+                                 .format(name=space.name,
+                                         num=subspacenum,
+                                         prefix=region.prefix,
+                                         mask=hex(region.mask).rstrip('L'))
+                    for replica in region.replicas:
+                        if replica is not None:
+                            if replica not in hosts:
+                                hosts[replica] = 'auto_{0}'.format(counter)
+                                counter += 1
+                            region_str += '\t{repl}'.format(repl=hosts[replica])
+                    subspace_str += region_str + '\n'
+                space_str += subspace_str
+            config += space_str
+        hosts_lines = []
+        for host, codename in hosts.iteritems():
+            addr, incoming, inc_ver, outgoing, out_ver, pid, token = host
+            host_str = 'host\t{name}\t{ip}\t{iport}\t{iver}\t{oport}\t{over}' \
+                       .format(name=codename, ip=addr, iport=incoming,
+                               iver=inc_ver, oport=outgoing, over=out_ver)
+            hosts_lines.append(host_str)
+        hosts_lines.sort()
+        self._confdata = ('\n'.join(hosts_lines) + '\n' + config).strip()
+        self._confnum += 1
 
 
-class Acceptor(asyncore.dispatcher):
+class HostConnection(object):
 
-    def __init__(self, actionslog, desc, newinst, bindto, port, map):
-        asyncore.dispatcher.__init__(self, map=map)
-        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.set_reuse_addr()
-        self.bind((bindto, port))
-        self.listen(5)
-        self._actionslog = actionslog
-        self._desc = desc
-        self._newinst = newinst
+    class CLIENT: pass
+    class INSTANCE: pass
 
-    def handle_accept(self):
-        accepted = self.accept()
-        if accepted:
-            conn, addr = accepted
-            self._newinst(self._actionslog, conn, self._map)
-            logging.info("{0} connection established from {1}".format(self._desc, addr))
-
-
-class ControlConnection(asynchat.async_chat):
-
-    def __init__(self, actionslog, sock, map):
-        asynchat.async_chat.__init__(self, sock=sock, map=map)
-        self.set_terminator("\n")
-        self._actionslog = actionslog
-        self._ibuffer = []
+    def __init__(self, coordinator, sock):
         self._connectime = datetime.datetime.now()
-        self._mode = "COMMAND"
-        self._act_on_data = None
-        self._id = '%s:%i' % sock.getpeername()
+        self._coordinator = coordinator
+        self._sock = sock
+        self._ibuffer = []
+        self.outgoing = ''
+        self._identified = None
+        self._instance = None # Must be None unless self._identified is INSTANCE
+        self._epoch_id = None # Must be None unless self._identified is INSTANCE
+        self._state = 'UNCONFIGURED'
+        self._config = None
+        self._pending = []
+        self._id = 'ID XXX' # XXX
 
-    def handle_close(self):
-        try:
-            asynchat.async_chat.handle_close(self)
-            if self._id:
-                logging.info("Control disconnect from {0}".format(self._id))
-        except:
-            pass
-
-    def handle_error(self):
-        '''Provide polite error messages in case of unhandled exception.'''
-        nil, t, v, tbinfo = asyncore.compact_traceback()
-        error_id = uuid.uuid4()
-        logging.error('uncaptured python exception {0} ({1}:{2} {3})'
-                      .format(error_id, t, v, tbinfo))
-        self.push('Request generated an unhandled exception:  {0}\n'.format(error_id))
-
-    def collect_incoming_data(self, data):
+    def handle_in(self):
+        data = self._sock.recv(select.PIPE_BUF)
+        if len(data) == 0:
+            raise EndConnection()
         self._ibuffer.append(data)
+        while '\n' in data:
+            data, rem = ''.join(self._ibuffer).split('\n', 1)
+            self._ibuffer = [rem]
+            commandline = shlex.split(data)
+            if len(commandline) == 1 and commandline[0] == 'client':
+                logging.debug('Host {0} identifies as client'.format(self._id))
+                self.identify_as_client()
+            elif len(commandline) == 1 and commandline[0] == 'ACK':
+                logging.debug('Host {0} acknowledges config'.format(self._id))
+                self.acknowledge_config()
+            elif len(commandline) == 1 and commandline[0] == 'BAD':
+                logging.debug('Host {0} rejects config'.format(self._id))
+                self.reject_config()
+            elif len(commandline) == 2 and commandline[0] == 'fail_location':
+                logging.info("Report of failure for {0}".format(commandline[1]))
+            elif len(commandline) == 6 and commandline[0] == 'instance':
+                logging.info('Host {0} identifies as instance'.format(self._id))
+                self.identify_as_instance(*commandline[1:])
+            else:
+                raise KillConnection('Unrecognized command {0}'.format(repr(data)))
 
-    def found_terminator(self):
-        if self._mode == "COMMAND":
-            commandline = shlex.split("".join(self._ibuffer))
-            self._ibuffer = []
-            if commandline:
-                if commandline[:2] == ['list', 'clients'] and len(commandline) == 2:
+    def handle_out(self):
+        data = self.outgoing[:select.PIPE_BUF]
+        sz = self._sock.send(data)
+        self.outgoing = self.outgoing[sz:]
+
+    def handle_err(self):
+        pass
+
+    def handle_hup(self):
+        pass
+
+    def handle_nval(self):
+        pass
+
+    def identify_as_client(self):
+        if self._identified:
+            raise KillConnection('Client identifying twice')
+        self._identified = HostConnection.CLIENT
+        self._state = 'CONFIGURED'
+        self.reconfigure(self._coordinator.configuration())
+
+    def identify_as_instance(self, addr, incoming, outgoing, pid, token):
+        if self._identified:
+            raise KillConnection('Client identifying twice')
+        self._identified = HostConnection.INSTANCE
+        addr = normalize_address(addr)
+        if not addr:
+            raise KillConnection('Client claims to bind to unparseable address')
+        try:
+            incoming = int(incoming)
+        except ValueError:
+            raise KillConnection('Client claims to bind to non-numeric incoming port')
+        try:
+            outgoing = int(outgoing)
+        except ValueError:
+            raise KillConnection('Client claims to bind to non-numeric outgoing port')
+        try:
+            pid = int(pid)
+        except ValueError:
+            raise KillConnection('Client claims to have non-numeric PID')
+        self._instance = addr, incoming, outgoing, pid, token
+        self._epoch_id = self._coordinator.assign_epoch_id(addr, incoming, outgoing, pid, token)
+        self._state = 'CONFIGURED'
+        self.reconfigure(self._coordinator.configuration())
+
+    def reconfigure(self, newconfig):
+        if self._state == 'UNCONFIGURED':
+            logging.debug('Host {0} is UNCONFIGURED; not following reconfiguration'.format(self._id))
+            pass
+        elif self._state in ('CONFIGURED', 'CONFIGFAILED'):
+            self._state = 'CONFIGPENDING'
+            if len(self._pending) != 0:
+                raise KillConnection('Connection is configured with pending config')
+            self._pending.append(newconfig)
+            self.send_config(newconfig)
+            logging.debug('Host {0} is {1}; reconfiguring'.format(self._id, self._state))
+        elif self._state == 'CONFIGPENDING':
+            self._pending.append(newconfig)
+            logging.debug('Host {0} is CONFIGPENDING; appending config'.format(self._id, self._state))
+        else:
+            raise KillConnection('Connection wandered into state {0}'.format(self._state))
+
+    def acknowledge_config(self):
+        if not self._identified:
+            raise KillConnection('Host responds to a configuration before identiying')
+        if self._state != 'CONFIGPENDING':
+            raise KillConnection('Host acknowledges a new configuration when none were issued.')
+        if len(self._pending) < 1:
+            raise KillConnection('Connection should have pending config but has none.')
+        self._config = self._pending[0]
+        self._pending = self._pending[1:]
+        self._state = 'CONFIGURED'
+        if len(self._pending) > 0:
+            self.send_config(self._pending[0])
+            self._state = 'CONFIGPENDING'
+            logging.debug('Host {0} has pending configs; moving to CONFIGPENDING'.format(self._id, self._state))
+
+    def reject_config(self):
+        if not self._identified:
+            raise KillConnection('Host responds to a configuration before identiying')
+        if self._state != 'CONFIGPENDING':
+            raise KillConnection('Host rejects a new configuration when none were issued.')
+        if len(self._pending) < 1:
+            raise KillConnection('Host should have pending config but has none.')
+        logging.warning('Host {0} rejects configuration'.format(self._id))
+        self._pending = self._pending[1:]
+        self._state = 'CONFIGURED'
+        if len(self._pending) > 0:
+            self.send_config(self._pending[0])
+            self._state = 'CONFIGPENDING'
+            logging.debug('Host {0} has pending configs; moving to CONFIGPENDING'.format(self._id, self._state))
+
+    def send_config(self, config):
+        num, data = config
+        self.outgoing += (data + '\nend\tof\tline').strip() + '\n'
+
+
+class ControlConnection(object):
+
+    def __init__(self, coordinator, sock, conns):
+        self._connectime = datetime.datetime.now()
+        self._coordinator = coordinator
+        self._sock = sock
+        self._ibuffer = ''
+        self.outgoing = ''
+        self._delim = '\n'
+        self._mode = "COMMAND"
+        self._action = None
+        self._id = 'ID XXX' # XXX
+        self._conns = conns
+
+    def handle_in(self):
+        data = self._sock.recv(select.PIPE_BUF)
+        if len(data) == 0:
+            raise EndConnection()
+        self._ibuffer += data
+        while self._delim in self._ibuffer:
+            data, self._ibuffer = self._ibuffer.split(self._delim, 1)
+            if self._mode == 'COMMAND':
+                commandline = shlex.split(data)
+                if len(commandline) == 2 and commandline == ['list', 'clients']:
                     self.list_clients()
-                elif commandline[:2] == ['list', 'instances'] and len(commandline) == 2:
+                elif len(commandline) == 2 and commandline == ['list', 'instances']:
                     self.list_instances()
-                elif commandline[:2] == ['add', 'space'] and len(commandline) == 2:
-                    self.set_terminator('\n.\n')
-                    self._mode = "DATA"
-                    self._act_on_data = self.add_space
-                elif commandline[:2] == ['rm', 'space'] and len(commandline) == 3:
-                    self.rm_space(commandline[2])
-                elif commandline[:2] == ['fill', 'space'] and len(commandline) == 3:
-                    self.fill_space(commandline[2])
-                elif commandline[:2] == ['limit', 'hosts'] and len(commandline) == 3:
-                    self.limit_hosts(commandline[2])
-                else:
-                    return self.fail("Unknown commandline {0}".format(commandline))
-        elif self._mode == "DATA":
-            data = "".join(self._ibuffer)
-            self._ibuffer = []
-            self._act_on_data(data)
-            self.set_terminator('\n')
-            self._mode="COMMAND"
+                elif len(commandline) == 2 and commandline == ['add', 'space']:
+                    self._delim = '\n.\n'
+                    self._mode = 'DATA'
+                    self._action = self.add_space
+                elif len(commandline) == 3 and commandline[:2] == ['del', 'space']:
+                    self.del_space(commandline[2])
+            elif self._mode == 'DATA':
+                self._action(data)
+                self._delim = '\n'
+                self._mode = 'COMMAND'
+            else:
+                raise KillConnection('Control connection with unknown mode {0}'.format(repr(self._mode)))
 
-    def fail(self, msg):
-        logging.warning(msg + " from {0}".format(self._id))
-        self.push(msg + '\n')
+    def handle_out(self):
+        data = self.outgoing[:select.PIPE_BUF]
+        sz = self._sock.send(data)
+        self.outgoing = self.outgoing[sz:]
+
+    def handle_err(self):
+        pass
+
+    def handle_hup(self):
+        pass
+
+    def handle_nval(self):
+        pass
 
     def list_clients(self):
         ret = []
-        for conn in self._map.values():
-            identified = getattr(conn, '_identified', None)
-            if identified == HostConnection.CLIENT:
+        for sock, conn in self._conns.values():
+            if getattr(conn, '_identified', None) == HostConnection.CLIENT:
                 ret.append((conn._connectime, conn._id))
-        resp = "\n".join(["{0} {1}".format(d, i) for d, i in ret])
+        resp = '\n'.join(['{0} {1}'.format(d, i) for d, i in ret])
         if resp:
-            resp += "\n.\n"
+            self.outgoing += resp + '\n.\n'
         else:
-            resp += ".\n"
-        self.push(resp)
+            self.outgoing += '.\n'
 
     def list_instances(self):
         local = {}
-        instances = self._actionslog.list_instances()
-        for conn in self._map.values():
-            identified = getattr(conn, '_identified', None)
-            if identified == HostConnection.INSTANCE:
-                local[conn._instance] = (conn._connectime, conn._config_state)
+        for sock, conn in self._conns.values():
+            if getattr(conn, '_identified', None) == HostConnection.INSTANCE:
+                local[conn._instance] = conn._connectime, conn._state
         resp = ''
-        for key, val in sorted(instances.items()):
-            time = local.get(key, ('', ''))[0]
-            state = local.get(key, ('', ''))[1]
-            state = ('\t' + state).rstrip()
-            resp += "{0:26} {1} {2}v{3} {4}v{5}{6}\n"\
-                    .format(str(time), key[0], key[1], val[0], key[2], val[1], state)
-        resp += ".\n"
-        self.push(resp)
+        for inst in sorted(self._coordinator.list_instances()):
+            addr, incoming, inc_ver, outgoing, out_ver, pid, token = inst
+            if (addr, incoming, outgoing, pid, token) in local:
+                connectime = local[(addr, incoming, outgoing, pid, token)][0]
+                state = local[(addr, incoming, outgoing, pid, token)][1]
+            else:
+                connectime = ''
+                state = ''
+            fmt = '{connectime:26} {addr} {incoming}:{inc_ver} {outgoing}:{out_ver} {pid} {token} {state}\n'
+            resp += fmt.format(connectime=str(connectime), addr=addr,
+                    incoming=incoming, inc_ver=inc_ver, outgoing=outgoing,
+                    out_ver=out_ver, pid=pid, token=token, state=state)
+        self.outgoing += resp + '.\n'
 
     def add_space(self, data):
         try:
             parser = (hdcoordinator.parser.space + pyparsing.stringEnd)
             space = parser.parseString(data)[0]
-            self._actionslog.add_space(space)
+            self._coordinator.add_space(space)
         except ValueError as e:
-            return self.fail(str(e))
+            return self._fail(str(e))
         except pyparsing.ParseException as e:
-            return self.fail(str(e))
-        except ActionsLog.DuplicateSpace as e:
-            return self.fail("Space already exists")
-        config, num = self._actionslog.config()
-        for fd, desc in self._map.iteritems():
-            if hasattr(desc, 'new_configuration'):
-                desc.new_configuration(config, num)
-        self.push("SUCCESS\n")
+            return self._fail(str(e))
+        except Coordinator.DuplicateSpace as e:
+            return self._fail("Space already exists")
+        self._reconfigure_all()
+        self.outgoing += 'SUCCESS\n'
 
-    def rm_space(self, space):
+    def del_space(self, space):
         try:
-            self._actionslog.rm_space(space)
+            self._coordinator.del_space(space)
         except ValueError as e:
-            return self.fail(str(e))
-        except ActionsLog.UnknownSpace as e:
-            return self.fail("Space does not exist")
-        config, num = self._actionslog.config()
-        for fd, desc in self._map.iteritems():
-            if hasattr(desc, 'new_configuration'):
-                desc.new_configuration(config, num)
-        self.push("SUCCESS\n")
+            return self._fail(str(e))
+        except Coordinator.UnknownSpace as e:
+            return self._fail("Space does not exist")
+        self._reconfigure_all()
+        self.outgoing += 'SUCCESS\n'
 
-    def fill_space(self, space):
-        try:
-            self._actionslog.fill_space(space)
-        except ValueError as e:
-            return self.fail(str(e))
-        except ActionsLog.UnknownSpace as e:
-            return self.fail("Space does not exist")
-        config, num = self._actionslog.config()
-        for fd, desc in self._map.iteritems():
-            if hasattr(desc, 'new_configuration'):
-                desc.new_configuration(config, num)
-        self.push("SUCCESS\n")
+    def _reconfigure_all(self):
+        config = self._coordinator.configuration()
+        for sock, conn in self._conns.values():
+            if hasattr(conn, 'reconfigure'):
+                conn.reconfigure(config)
 
-    def limit_hosts(self, num):
-        try:
-            self._actionslog.limit_hosts(int(num))
-        except ValueError as e:
-            return self.fail(str(e))
-        self.push("SUCCESS\n")
-
-
-class HostConnection(asynchat.async_chat):
-
-    class CLIENT: pass
-    class INSTANCE: pass
-
-    def __init__(self, actionslog, sock, map):
-        asynchat.async_chat.__init__(self, sock=sock, map=map)
-        self.set_terminator("\n")
-        self._actionslog = actionslog
-        self._ibuffer = []
-        self._connectime = datetime.datetime.now()
-        self._id = '%s:%i' % sock.getpeername()
-        self._identified = None
-        self._instance = None
-        self._die = False
-        self._config_state = 'UNCONFIGURED'
-        self._config_stable = (None, None)
-        self._config_rejected = (None, None)
-        self._config_pending = (None, None)
-        self._config_next = (None, None)
-
-    def handle_close(self):
-        asynchat.async_chat.handle_close(self)
-        if self._instance:
-            addr, incoming, outgoing = self._instance
-            self._actionslog.rm_instance(addr, incoming, outgoing)
-            self._instance = None
-        if not self._die:
-            logging.info("Disconnect from {0}".format(self._id))
-
-    def handle_error(self):
-        'This is necessary because of loose exception handling in asyncore.'
-        try:
-            asynchat.async_chat.handle_error(self)
-        except:
-            pass
-
-    def collect_incoming_data(self, data):
-        self._ibuffer.append(data)
-
-    def found_terminator(self):
-        commandline = shlex.split("".join(self._ibuffer))
-        self._ibuffer = []
-        if commandline:
-            if commandline[0] == "client":
-                if len(commandline) != 1:
-                    return self.die("Invalid client command {0} from {{0}}".format(commandline))
-                self.identify_as_client()
-            elif commandline[0] == "instance":
-                if len(commandline) != 4:
-                    return self.die("Invalid instance command {0} from {{0}}".format(commandline))
-                self.identify_as_instance(commandline[1], commandline[2], commandline[3])
-            elif commandline[0] == "ACK":
-                if len(commandline) != 1:
-                    return self.die("Invalid ACK command {0} from {{0}}".format(commandline))
-                self.handle_config_response(True)
-            elif commandline[0] == "BAD":
-                if len(commandline) != 1:
-                    return self.die("Invalid BAD command {0} from {{0}}".format(commandline))
-                self.handle_config_response(False)
-            else:
-                return self.die("Unknown commandline {0} from {{0}}".format(commandline))
-
-    def die(self, msg):
-        logging.error(msg.format(self._id) + ":  dumping connection")
-        self.socket.close()
-        self._die = True
-
-    def identify_as_client(self):
-        if self._identified:
-            return self.die("Host {0} is identifying multiple times")
-        self._identified = HostConnection.CLIENT
-        logging.info("Host {0} identifies as a client.".format(self._id))
-        self._config_state = 'CONFIGURED'
-        config, num = self._actionslog.stable_config()
-        self.new_configuration(config, num)
-
-    def identify_as_instance(self, addr, incoming, outgoing):
-        if self._identified:
-            return self.die("Host {0} is identifying multiple times")
-        self._identified = HostConnection.INSTANCE
-        addr = normalize_address(addr)
-        if not addr:
-            return self.die("Host {0} identifies as an instance with an unparseable address")
-        try:
-            incoming = int(incoming)
-        except ValueError:
-            return self.die("Host {0} identifies as an instance with an unparseable incoming port")
-        try:
-            outgoing = int(outgoing)
-        except ValueError:
-            return self.die("Host {0} identifies as an instance with an unparseable incoming port")
-        try:
-            self._actionslog.add_instance(addr, incoming, outgoing)
-            self._instance = (addr, incoming, outgoing)
-            logging.info("Host {0} identifies as an instance on {1} {2} {3}"
-                         .format(self._id, addr, incoming, outgoing))
-            self._config_state = 'CONFIGURED'
-            config, num = self._actionslog.stable_config()
-            self.new_configuration(config, num)
-        except ActionsLog.HostExists:
-            return self.die("Host {{0}} identifies as instance ({0}, {1}, {2}) which is already conected"
-                            .format(addr, incoming, outgoing))
-        except ActionsLog.ExhaustedPorts:
-            return self.die("Host {0} uses a port which has been exhausted")
-
-    def new_configuration(self, config, num):
-        if self._config_state == 'UNCONFIGURED':
-            pass
-        elif self._config_state in ('CONFIGURED', 'CONFIGFAILED'):
-            self._config_state = 'CONFIGPENDING'
-            self._config_pending = (config, num)
-            self._config_next = (None, None)
-            self._send_config(config)
-        elif self._config_state == 'CONFIGPENDING':
-            if self._config_pending == (None, None):
-                self._config_pending = (config, num)
-                self._config_next = (None, None)
-                self._send_config(config)
-            else:
-                self._config_next = (config, num)
-            self._config_state = 'CONFIGPENDING'
-        else:
-            assert False
-
-    def handle_config_response(self, success):
-        if not self._identified:
-            return self.die("Host {0} is responding to a configuration before identifying")
-        if self._config_state != 'CONFIGPENDING':
-            return self.die("Host {0} is responding to a configuration we didn't issue")
-        if not success:
-            logging.error("Host {0} says new configuration is bad".format(self._id))
-            self._config_stable = (None, None)
-            self._config_rejected = self._config_pending
-            self._config_state = 'CONFIGFAILED'
-        else:
-            self._config_stable = self._config_pending
-            self._config_rejected = (None, None)
-            self._config_state = 'CONFIGURED'
-        self._config_pending = self._config_next
-        self._config_next = (None, None)
-        if self._config_pending != (None, None):
-            config = self._config_pending[0]
-            self._send_config(config)
-            self._config_state = 'CONFIGPENDING'
-
-    def _send_config(self, config):
-        self.push((config + '\nend\tof\tline').strip() + '\n')
+    def _fail(self, msg):
+        error = 'Host {0}: {1}'.format(self._id, msg)
+        logging.error(error)
+        self.outgoing += msg + '\n'
 
 
 class CoordinatorServer(object):
 
     def __init__(self, bindto, control_port, host_port):
-        self._map = {}
-        self._actionslog = ActionsLog()
-        self._control = Acceptor(self._actionslog, 'Control', ControlConnection, bindto, control_port, self._map)
-        logging.info("Control port established on {0}".format(self._control.getsockname()))
-        self._host = Acceptor(self._actionslog, 'Host', HostConnection, bindto, host_port, self._map)
-        logging.info("Host port established on {0}".format(self._host.getsockname()))
+        self._control_listen = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
+        self._control_listen.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self._control_listen.bind((bindto, control_port))
+        self._control_listen.listen(128)
+        self._host_listen = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
+        self._host_listen.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self._host_listen.bind((bindto, host_port))
+        self._host_listen.listen(128)
+        self._p = select.poll()
+        self._p.register(self._host_listen)
+        self._p.register(self._control_listen)
+        self._conns = {}
+        self._coord = Coordinator()
 
     def run(self):
-        try:
-            while self._map:
-                asyncore.loop(0.1, True, self._map, 1)
-        except KeyboardInterrupt:
-            logging.critical("KeyboardInterrupt received:  exiting")
-            pass
+        while True:
+            fds = self._p.poll()
+            for fd, ev in fds:
+                if fd == self._control_listen.fileno():
+                    conn = self._control_listen.accept()
+                    if conn:
+                        sock, addr = conn
+                        self._p.register(sock)
+                        self._conns[sock.fileno()] = sock, ControlConnection(self._coord, sock, self._conns)
+                if fd == self._host_listen.fileno():
+                    conn = self._host_listen.accept()
+                    if conn:
+                        sock, addr = conn
+                        self._p.register(sock)
+                        self._conns[sock.fileno()] = sock, HostConnection(self._coord, sock)
+                if fd in self._conns:
+                    sock, conn = self._conns[fd]
+                    remove = False
+                    try:
+                        if ev & select.POLLERR:
+                            conn.handle_err()
+                            remove = True
+                        elif ev & select.POLLHUP:
+                            conn.handle_hup()
+                            remove = True
+                        elif ev & select.POLLNVAL:
+                            conn.handle_nval()
+                            remove = True
+                        if not remove and ev & select.POLLIN:
+                            conn.handle_in()
+                        if not remove and ev & select.POLLOUT:
+                            conn.handle_out()
+                    except KillConnection as kc:
+                        logging.error('connection closed unexpectedly: ' + str(kc))
+                        remove = True
+                    except EndConnection as ec:
+                        remove = True
+                    if remove:
+                        del self._conns[fd]
+                        self._p.unregister(fd)
+                        sock.shutdown(socket.SHUT_RDWR)
+                        sock.close()
+            for fd, conn in self._conns.iteritems():
+                sock, conn = conn
+                if len(conn.outgoing) > 0:
+                    self._p.modify(fd, select.POLLIN | select.POLLOUT)
+                else:
+                    self._p.modify(fd, select.POLLIN)
 
 
-if __name__ == '__main__':
+def main(argv):
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('-b', '--bindto', default='')
     parser.add_argument('-c', '--control-port', type=int, default=0)
     parser.add_argument('-p', '--host-port', type=int, default=0)
-    args = parser.parse_args()
-    logging.basicConfig(level=logging.INFO)
+    parser.add_argument('-l', '--logging', default='info',
+            choices=['debug', 'info', 'warn', 'error', 'critical',
+                     'DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL'])
+    args = parser.parse_args(argv)
+    level = {'debug': logging.DEBUG
+            ,'info': logging.INFO
+            ,'warn': logging.WARN
+            ,'error': logging.ERROR
+            ,'critical': logging.CRITICAL
+            }.get(args.logging.lower(), None)
+    logging.basicConfig(level=level)
     cs = CoordinatorServer(args.bindto, args.control_port, args.host_port)
     cs.run()
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))
