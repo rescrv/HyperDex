@@ -513,7 +513,7 @@ hyperdex :: configuration :: search_entities(const spaceid& space,
 {
     std::map<entityid, instance>::const_iterator start;
     std::map<entityid, instance>::const_iterator end;
-    start = m_entities.lower_bound(hyperdex::regionid(space.space, 1, 0, 0));
+    start = m_entities.lower_bound(hyperdex::regionid(space.space, 0, 0, 0));
     end   = m_entities.upper_bound(hyperdex::regionid(space.space, UINT16_MAX, UINT8_MAX, UINT64_MAX));
     return _search_entities(start, end, s);
 }
