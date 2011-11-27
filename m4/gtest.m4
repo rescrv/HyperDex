@@ -31,7 +31,7 @@ AC_ARG_VAR([GTEST_VERSION],
 HAVE_GTEST="no"
 AS_IF([test "x${enable_gtest}" != "xno"],
   [AC_MSG_CHECKING([for 'gtest-config'])
-   AS_IF([test "x${enable_gtest}" != "xyes"],
+   AS_IF([test "x${enable_gtest}" != "xyes" -a "x${enable_gtest}" != "x"],
      [AS_IF([test -x "${enable_gtest}/scripts/gtest-config"],
         [GTEST_CONFIG="${enable_gtest}/scripts/gtest-config"],
         [GTEST_CONFIG="${enable_gtest}/bin/gtest-config"])
@@ -67,8 +67,4 @@ Google Test, but no 'gtest-config' script could be found at this location.])
 Google Test was enabled, but no viable version could be found.])
          ])])])
 AC_SUBST([HAVE_GTEST])
-AM_CONDITIONAL([HAVE_GTEST],[test "x$HAVE_GTEST" = "xyes"])
-dnl AS_IF([test "x$HAVE_GTEST" = "xyes"],
-dnl   [m4_ifval([$2], [$2])],
-dnl   [m4_ifval([$3], [$3])])
-])
+AM_CONDITIONAL([HAVE_GTEST],[test "x$HAVE_GTEST" = "xyes"])])
