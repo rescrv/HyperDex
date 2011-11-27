@@ -8,7 +8,7 @@ noinst_HEADERS = hyperdaemon/daemon.h datalayer.h logical.h network_worker.h \
 				 replication/keyholder.h replication/keypair.h \
 				 replication_manager.cc replication_manager.h \
 				 replication/pending.h replication/transfer_in.h \
-				 replication/transfer_out.h searches.h
+				 replication/transfer_out.h runtimeconfig.h searches.h
 
 libhyperdaemon_la_SOURCES = daemon.cc datalayer.cc logical.cc \
 							network_worker.cc physical.cc \
