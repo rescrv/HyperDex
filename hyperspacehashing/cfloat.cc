@@ -41,12 +41,23 @@ uint64_t
 hyperspacehashing :: cfloat(uint64_t in, unsigned int outsz)
 {
     int e = 0;
-    double f = frexp(static_cast<double>(in), &e);
+    double f = frexpl(static_cast<double>(in), &e);
+    e = e > 0 ? e - 1 : 0;
+
+    if (e >= 64)
+    {
+        if (outsz >= 64)
+        {
+            return UINT64_MAX;
+        }
+
+        return (1ULL << outsz) - 1;
+    }
 
     if (outsz >= 6)
     {
         unsigned int bits = outsz - 6;
-        uint64_t frac = f * (1ULL << (bits + 1)) - (1ULL << bits);
+        uint64_t frac = f * (1ULL << bits);
         uint64_t exp = e;
         exp <<= (outsz - 6);
         return exp | frac;
