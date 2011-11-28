@@ -131,7 +131,7 @@ TEST(MaskTest, KeyOnlyRange)
 {
     std::vector<hash_t> hf(1, RANGE);
     all_permutations(hf,
-                     UINT64_MAX, 0xff7ab6fbbf23a640ULL, e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8),
+                     UINT64_MAX, 0xff7ab6fbbf2bfae0ULL, e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8),
                      0, 0, 0, 0, std::vector<e::buffer>());
 }
 
@@ -141,7 +141,7 @@ TEST(MaskTest, KeyOnlyWValueRange)
     hf[0] = RANGE;
     hf[1] = NONE;
     all_permutations(hf,
-                     UINT64_MAX, 0xff7ab6fbbf23a640ULL, e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8),
+                     UINT64_MAX, 0xff7ab6fbbf2bfae0ULL, e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8),
                      0, 0, 0, 0, std::vector<e::buffer>());
 }
 
@@ -154,7 +154,7 @@ TEST(MaskTest, KeyValueRange)
     hf[0] = RANGE;
     hf[1] = EQUALITY;
     all_permutations(hf,
-                     UINT64_MAX, 0xff7ab6fbbf23a640ULL, e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8),
+                     UINT64_MAX, 0xff7ab6fbbf2bfae0ULL, e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8),
                      UINT64_MAX, 0xee421cea2462bca6ULL, 0, 0, std::vector<e::buffer>(1, e::buffer("value", 5)));
 
     // Key/Value: hash on both (value is range)
@@ -162,7 +162,7 @@ TEST(MaskTest, KeyValueRange)
     hf[1] = RANGE;
     all_permutations(hf,
                      UINT64_MAX, 0x99856d7c6e9accf9ULL, e::buffer("key", 3),
-                     UINT64_MAX, 0xff7ab6fbbf23a640ULL, 0, 0, std::vector<e::buffer>(1, e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8)));
+                     UINT64_MAX, 0xff7ab6fbbf2bfae0ULL, 0, 0, std::vector<e::buffer>(1, e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8)));
 
     // Key/<Value1,Value2>: hash on value1/value2 (value1 is range)
     hf.resize(3);
@@ -174,7 +174,7 @@ TEST(MaskTest, KeyValueRange)
     value.push_back(e::buffer("value2", 6));
     all_permutations(hf,
                      0, 0, e::buffer(),
-                     UINT64_MAX, 0xef778c8f443c3882ULL, UINT64_MAX, 0xf77db76e4d967de7, value);
+                     UINT64_MAX, 0xef778ccf556c7c82ULL, UINT64_MAX, 0xf77db76e4d967de7, value);
 
     // Key/<Value1,Value2>: hash on value1/value2 (value2 is range)
     hf.resize(3);
@@ -186,7 +186,7 @@ TEST(MaskTest, KeyValueRange)
     value.push_back(e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8));
     all_permutations(hf,
                      0, 0, e::buffer(),
-                     UINT64_MAX, 0x8afb090fc87c3544ULL, UINT64_MAX, 0xeffa7a8c9f2cba8bULL, value);
+                     UINT64_MAX, 0x8afb098feadcbd44ULL, UINT64_MAX, 0xeffa7a8c9f2cba8bULL, value);
 
     // Key/<Value1,Value2>: hash on value1/value2 (both are range)
     hf.resize(3);
@@ -198,7 +198,7 @@ TEST(MaskTest, KeyValueRange)
     value.push_back(e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8));
     all_permutations(hf,
                      0, 0, e::buffer(),
-                     UINT64_MAX, 0xcfff0c0fcc3c3000ULL, UINT64_MAX, 0xffff3fcccf3cffcfULL, value);
+                     UINT64_MAX, 0xcfff0ccfffccfc00ULL, UINT64_MAX, 0xffff3fcccf3cffcfULL, value);
 }
 
 } // namespace

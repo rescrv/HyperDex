@@ -5,8 +5,6 @@ AM_LDFLAGS = -no-install $(GTEST_LDFLAGS)
 if HAVE_GTEST
 check_PROGRAMS = bithacks cfloat mask prefix search
 TESTS = $(check_PROGRAMS)
-# XXX This needs to be fixed because cpoint changed.
-XFAIL_TESTS = mask prefix
 
 bithacks_SOURCES = ../../runner.cc bithacks.cc
 bithacks_LDADD = ../libhyperspacehashing.la $(COVERAGE_LDADD) $(GTEST_LIBS)

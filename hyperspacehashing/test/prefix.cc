@@ -112,10 +112,10 @@ TEST(PrefixTest, KeyOnlyRange)
     coordinate c;
     c = h.hash(e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8));
     ASSERT_EQ(64, c.prefix);
-    ASSERT_EQ(18371711164671849952ULL, c.point);
+    ASSERT_EQ(18409227619190700768ULL, c.point);
     c = h.hash(e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8), std::vector<e::buffer>());
     ASSERT_EQ(64, c.prefix);
-    ASSERT_EQ(18371711164671849952ULL, c.point);
+    ASSERT_EQ(18409227619190700768ULL, c.point);
 }
 
 TEST(PrefixTest, KeyOnlyWValueRange)
@@ -127,11 +127,11 @@ TEST(PrefixTest, KeyOnlyWValueRange)
     coordinate c;
     c = h.hash(e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8));
     ASSERT_EQ(64, c.prefix);
-    ASSERT_EQ(18371711164671849952ULL, c.point);
+    ASSERT_EQ(18409227619190700768ULL, c.point);
     c = h.hash(e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8),
                std::vector<e::buffer>(1));
     ASSERT_EQ(64, c.prefix);
-    ASSERT_EQ(18371711164671849952ULL, c.point);
+    ASSERT_EQ(18409227619190700768ULL, c.point);
 }
 
 TEST(PrefixTest, KeyValueRange)
@@ -147,7 +147,7 @@ TEST(PrefixTest, KeyValueRange)
     c = h.hash(e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8),
                std::vector<e::buffer>(1, e::buffer("key", 3)));
     ASSERT_EQ(64, c.prefix);
-    ASSERT_EQ(18371711164671849952ULL, c.point);
+    ASSERT_EQ(18409227619190700768ULL, c.point);
 
     // Key/Value: hash on value (value is range)
     hf[0] = NONE;
@@ -156,7 +156,7 @@ TEST(PrefixTest, KeyValueRange)
     c = h.hash(e::buffer("key", 3),
                std::vector<e::buffer>(1, e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8)));
     ASSERT_EQ(64, c.prefix);
-    ASSERT_EQ(18371711164671849952ULL, c.point);
+    ASSERT_EQ(18409227619190700768ULL, c.point);
 
     // Key/Value: hash on both (key is range)
     hf[0] = RANGE;
@@ -165,7 +165,7 @@ TEST(PrefixTest, KeyValueRange)
     c = h.hash(e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8),
                std::vector<e::buffer>(1, e::buffer("key", 3)));
     ASSERT_EQ(64, c.prefix);
-    ASSERT_EQ(16999375774273486712ULL, c.point);
+    ASSERT_EQ(16999798426461388762ULL, c.point);
 
     // Key/Value: hash on both (value is range)
     hf[0] = EQUALITY;
@@ -174,7 +174,7 @@ TEST(PrefixTest, KeyValueRange)
     c = h.hash(e::buffer("key", 3),
                std::vector<e::buffer>(1, e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8)));
     ASSERT_EQ(64, c.prefix);
-    ASSERT_EQ(15552852779213225908ULL, c.point);
+    ASSERT_EQ(15553064105307176933ULL, c.point);
 
     // Key/<Value1,Value2>: hash on value1/value2 (value1 is range)
     hf.resize(3);
@@ -187,7 +187,7 @@ TEST(PrefixTest, KeyValueRange)
     value.push_back(e::buffer("value2", 6));
     c = h.hash(e::buffer("key", 3), value);
     ASSERT_EQ(64, c.prefix);
-    ASSERT_EQ(18139649613536411257ULL, c.point);
+    ASSERT_EQ(18140072265724313307ULL, c.point);
 
     // Key/<Value1,Value2>: hash on value1/value2 (value2 is range)
     hf.resize(3);
@@ -200,7 +200,7 @@ TEST(PrefixTest, KeyValueRange)
     value.push_back(e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8));
     c = h.hash(e::buffer("key", 3), value);
     ASSERT_EQ(64, c.prefix);
-    ASSERT_EQ(16137792853544367382ULL, c.point);
+    ASSERT_EQ(16138004179638318407ULL, c.point);
 
     // Key/<Value1,Value2>: hash on value1/value2 (both are range)
     hf.resize(3);
@@ -213,7 +213,7 @@ TEST(PrefixTest, KeyValueRange)
     value.push_back(e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8));
     c = h.hash(e::buffer("key", 3), value);
     ASSERT_EQ(64, c.prefix);
-    ASSERT_EQ(18445898769333747516ULL, c.point);
+    ASSERT_EQ(18446532747615600591ULL, c.point);
 }
 
 } // namespace
