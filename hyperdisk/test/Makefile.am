@@ -5,6 +5,7 @@ AM_LDFLAGS = -no-install $(GTEST_LDFLAGS)
 if HAVE_GTEST
 check_PROGRAMS = log_entry shard
 TESTS = $(check_PROGRAMS)
+XFAIL_TESTS = shard
 
 log_entry_SOURCES = ../../runner.cc log_entry.cc
 log_entry_LDADD = ../libhyperdisk.la $(COVERAGE_LDADD) $(GTEST_LIBS)
