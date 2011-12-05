@@ -41,6 +41,9 @@ import pyparsing
 import hdcoordinator.parser
 
 
+PIPE_BUF = getattr(select, 'PIPE_BUF', 512)
+
+
 def normalize_address(addr):
     try:
         tmp = socket.inet_pton(socket.AF_INET, addr)
@@ -69,7 +72,7 @@ class Coordinator(object):
         self._portcounters = collections.defaultdict(lambda: 1)
         self._spaces_by_name = {}
         self._spaces_by_num = {}
-        self._restricted_spaces = {0, 2**32 - 1, 2**32 - 2, 2**32 - 3, 2**32 - 4}
+        self._restricted_spaces = set([0, 2**32 - 1, 2**32 - 2, 2**32 - 3, 2**32 - 4])
         self._spacenum = 0
         self._rand = random.Random()
         self._confdata = ''
@@ -219,7 +222,7 @@ class HostConnection(object):
         self._id = 'ID XXX' # XXX
 
     def handle_in(self):
-        data = self._sock.recv(select.PIPE_BUF)
+        data = self._sock.recv(PIPE_BUF)
         if len(data) == 0:
             raise EndConnection()
         self._ibuffer.append(data)
@@ -245,7 +248,7 @@ class HostConnection(object):
                 raise KillConnection('Unrecognized command {0}'.format(repr(data)))
 
     def handle_out(self):
-        data = self.outgoing[:select.PIPE_BUF]
+        data = self.outgoing[:PIPE_BUF]
         sz = self._sock.send(data)
         self.outgoing = self.outgoing[sz:]
 
@@ -356,7 +359,7 @@ class ControlConnection(object):
         self._conns = conns
 
     def handle_in(self):
-        data = self._sock.recv(select.PIPE_BUF)
+        data = self._sock.recv(PIPE_BUF)
         if len(data) == 0:
             raise EndConnection()
         self._ibuffer += data
@@ -382,7 +385,7 @@ class ControlConnection(object):
                 raise KillConnection('Control connection with unknown mode {0}'.format(repr(self._mode)))
 
     def handle_out(self):
-        data = self.outgoing[:select.PIPE_BUF]
+        data = self.outgoing[:PIPE_BUF]
         sz = self._sock.send(data)
         self.outgoing = self.outgoing[sz:]
 
