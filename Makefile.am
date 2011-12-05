@@ -4,7 +4,9 @@ SUBDIRS = hyperspacehashing hyperdex hyperdisk hyperclient hyperdaemon ycsb
 bin_PROGRAMS = cli daemon
 noinst_PROGRAMS = binary-test count-test repl-test
 
-EXTRA_DIST = LICENSE runner.cc hdcoordinator/__init__.py hdcoordinator/coordinator.py hdcoordinator/parser.py
+EXTRA_DIST = LICENSE runner.cc
+
+nobase_python_PYTHON = hdcoordinator/__init__.py hdcoordinator/coordinator.py hdcoordinator/parser.py
 
 cli_SOURCES = cli.cc
 cli_CPPFLAGS = -I${abs_top_srcdir}/hyperclient/
