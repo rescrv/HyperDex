@@ -23,9 +23,9 @@ AC_ARG_ENABLE([java-bindings], [AS_HELP_STRING([--enable-java-bindings],
 need_swig=no
 
 if test x"${java_bindings}" = xyes; then
-    AX_PROG_JAR
-    AX_PROG_JAVAC
-    AX_JNI_INCLUDE_DIR
+    AC_PROG_JAR
+    AC_PROG_JAVAC
+    AC_JNI_INCLUDE_DIR
     need_swig=yes
 
     for JNI_INCLUDE_DIR in $JNI_INCLUDE_DIRS
@@ -35,9 +35,9 @@ if test x"${java_bindings}" = xyes; then
 fi
 
 if test x"${need_swig}" = xyes; then
-    AX_PKG_SWIG
-    AX_SWIG_ENABLE_CXX
-    AX_SWIG_MULTI_MODULE_SUPPORT
+    AC_PROG_SWIG(2.0)
+    SWIG_ENABLE_CXX
+    SWIG_MULTI_MODULE_SUPPORT
 fi
 
 AC_ARG_ENABLE([coverage], [AS_HELP_STRING([--enable-coverage],
@@ -64,6 +64,26 @@ GTEST_LIB_CHECK
 
 # Checks for header files.
 AC_CHECK_HEADERS([netinet/in.h stdint.h stdlib.h sys/socket.h unistd.h])
+AC_CHECK_HEADER([city.h],,[AC_MSG_ERROR([
+-------------------------------------------------
+HyperDex relies upon the cityhash library.
+Please install cityhash to continue.
+-------------------------------------------------])])
+AC_CHECK_HEADER([glog/logging.h],,[AC_MSG_ERROR([
+-------------------------------------------------
+HyperDex relies upon the glog library.
+Please install glog to continue.
+-------------------------------------------------])])
+AC_CHECK_HEADER([po6/error.h],,[AC_MSG_ERROR([
+-------------------------------------------------
+HyperDex relies upon the po6 library.
+Please install po6 to continue.
+-------------------------------------------------])])
+AC_CHECK_HEADER([e/buffer.h],,[AC_MSG_ERROR([
+-------------------------------------------------
+HyperDex relies upon the e library.
+Please install e to continue.
+-------------------------------------------------])])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
@@ -85,9 +105,19 @@ AC_CHECK_FUNCS([alarm clock_gettime ftruncate memmove mkdir munmap rmdir socket]
 AC_ARG_ENABLE([ycsb], [AS_HELP_STRING([--enable-ycsb],
               [enable the Yahoo Cloud Serving Benchmark @<:@default: no@:>@])],
               [enable_ycsb=${enableval}], [enable_ycsb=no])
+if test x"${swig_version}" = x; then
+    if test x"${java_bindings}" = xyes; then
+        AC_MSG_ERROR([
+-------------------------------------------------
+Cannot build Java bindings without SWIG
+Java bindings will not be built.
+-------------------------------------------------])
+        java_bindings=no
+    fi
+fi
 if test x"${enable_ycsb}" = xyes; then
     if test x"${java_bindings}" = xno; then
-        AC_MSG_WARN([
+        AC_MSG_ERROR([
 -------------------------------------------------
 Cannot build YCSB without building Java bindings.
 YCSB will not be built.
