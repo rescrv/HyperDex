@@ -58,10 +58,10 @@ hyperdaemon :: physical :: physical(const po6::net::ipaddr& ip,
         hazard_ptr hptr = m_hazard_ptrs.get();
         channel* chan;
         // Enable other hosts to connect to us.
-        m_listen.reuseaddr(true);
+        m_listen.set_reuseaddr();
         m_listen.bind(po6::net::location(ip, incoming));
         m_listen.listen(sysconf(_SC_OPEN_MAX));
-        m_listen.nonblocking();
+        m_listen.set_nonblocking();
 
         switch (get_channel(hptr, m_listen.getsockname(), &chan))
         {
@@ -330,7 +330,7 @@ hyperdaemon :: physical :: get_channel(const hazard_ptr& hptr,
             try
             {
                 po6::net::socket soc(to.address.family(), SOCK_STREAM, IPPROTO_TCP);
-                soc.reuseaddr(true);
+                soc.set_reuseaddr();
                 soc.bind(m_bindto);
                 soc.connect(to);
                 return get_channel(hptr, &soc, chan);
@@ -348,8 +348,8 @@ hyperdaemon :: physical :: get_channel(const hazard_ptr& hptr,
                                        po6::net::socket* soc,
                                        channel** ret)
 {
-    soc->nonblocking();
-    soc->tcp_nodelay(true);
+    soc->set_nonblocking();
+    soc->set_tcp_nodelay();
     std::auto_ptr<channel> chan(new channel(soc));
     hptr->set(0, chan.get());
     *ret = chan.get();

@@ -58,7 +58,7 @@ main(int argc, char* argv[])
     try
     {
         po6::net::location coordinator = po6::net::location(argv[1], atoi(argv[2]));
-        po6::net::ipaddr bind_to = argv[3];
+        po6::net::ipaddr bind_to = po6::net::ipaddr(argv[3]);
         po6::pathname base = ".";
 
         if (argc == 5)

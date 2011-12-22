@@ -1091,7 +1091,7 @@ hyperclient :: channel :: channel(const hyperdex::instance& inst)
     , m_ref(0)
 {
     soc.connect(inst.inbound);
-    soc.tcp_nodelay(true);
+    soc.set_tcp_nodelay();
 }
 
 hyperclient :: channel :: ~channel() throw ()

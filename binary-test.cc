@@ -118,7 +118,7 @@ main(int argc, char* argv[])
 
     try
     {
-        ip = argv[1];
+        ip = po6::net::ipaddr(argv[1]);
     }
     catch (std::invalid_argument& e)
     {
