@@ -1,13 +1,3 @@
 HyperDex is a distributed, searchable, and consistent key-value store.
 
-In addition to supporting traditional GET/PUT/DEL key-value store methods,
-HyperDex supports the GET_PARTIAL method which can efficiently search secondary
-attributes (collectively the "values" of the store).
-
-The key features of HyperDex:
-
- - Efficient GET_PARTIAL implementation which only contacts a subset of nodes.
- - Familiar table-like abstraction with rows and columns.
- - Strong consistency for GET/PUT/DEL operations.
- - Eventual consistency for GET_PARTIAL operations.
- - Automatic replica management, including recovery from failures.
+More information is available at http://hyperdex.org/
