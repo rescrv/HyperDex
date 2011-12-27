@@ -66,7 +66,7 @@ hyperspacehashing :: search :: is_equality(size_t idx) const
     return m_equality_bits.get(idx);
 }
 
-const e::buffer&
+const e::slice&
 hyperspacehashing :: search :: equality_value(size_t idx) const
 {
     assert(sanity_check());
@@ -94,7 +94,7 @@ hyperspacehashing :: search :: range_value(size_t idx, uint64_t* lower, uint64_t
 }
 
 bool
-hyperspacehashing :: search :: matches(const e::buffer& key, const std::vector<e::buffer>& value) const
+hyperspacehashing :: search :: matches(const e::slice& key, const std::vector<e::slice>& value) const
 {
     assert(sanity_check());
 
@@ -139,7 +139,7 @@ hyperspacehashing :: search :: matches(const e::buffer& key, const std::vector<e
 }
 
 void
-hyperspacehashing :: search :: equality_set(size_t idx, const e::buffer& val)
+hyperspacehashing :: search :: equality_set(size_t idx, const e::slice& val)
 {
     assert(sanity_check());
     assert(idx < m_equality_bits.bits());
@@ -161,6 +161,7 @@ hyperspacehashing :: search :: range_set(size_t idx, uint64_t start, uint64_t en
     m_range_upper[idx] = end;
 }
 
+#if 0
 e::packer&
 hyperspacehashing :: operator << (e::packer& lhs, const search& rhs)
 {
@@ -176,3 +177,4 @@ hyperspacehashing :: operator >> (e::unpacker& lhs, search& rhs)
         >> rhs.m_range_bits >> rhs.m_range_lower >> rhs.m_range_upper;
     return lhs;
 }
+#endif

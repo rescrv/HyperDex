@@ -47,10 +47,10 @@ TEST(PrefixTest, KeyOnly)
     std::vector<hash_t> hf(1, EQUALITY);
     hasher h(hf);
     coordinate c;
-    c = h.hash(e::buffer("key", 3));
+    c = h.hash(e::slice("key", 3));
     ASSERT_EQ(64, c.prefix);
     ASSERT_EQ(11062368440904502521ULL, c.point);
-    c = h.hash(e::buffer("key", 3), std::vector<e::buffer>());
+    c = h.hash(e::slice("key", 3), std::vector<e::slice>());
     ASSERT_EQ(64, c.prefix);
     ASSERT_EQ(11062368440904502521ULL, c.point);
 }
@@ -62,10 +62,10 @@ TEST(PrefixTest, KeyOnlyWValue)
     hf[1] = NONE;
     hasher h(hf);
     coordinate c;
-    c = h.hash(e::buffer("key", 3));
+    c = h.hash(e::slice("key", 3));
     ASSERT_EQ(64, c.prefix);
     ASSERT_EQ(11062368440904502521ULL, c.point);
-    c = h.hash(e::buffer("key", 3), std::vector<e::buffer>(1));
+    c = h.hash(e::slice("key", 3), std::vector<e::slice>(1));
     ASSERT_EQ(64, c.prefix);
     ASSERT_EQ(11062368440904502521ULL, c.point);
 }
@@ -79,7 +79,7 @@ TEST(PrefixTest, KeyValue)
     hf[0] = EQUALITY;
     hf[1] = NONE;
     hasher h(hf);
-    c = h.hash(e::buffer("key", 3), std::vector<e::buffer>(1, e::buffer("key", 3)));
+    c = h.hash(e::slice("key", 3), std::vector<e::slice>(1, e::slice("key", 3)));
     ASSERT_EQ(64, c.prefix);
     ASSERT_EQ(11062368440904502521ULL, c.point);
 
@@ -87,7 +87,7 @@ TEST(PrefixTest, KeyValue)
     hf[0] = EQUALITY;
     hf[1] = EQUALITY;
     h = hasher(hf);
-    c = h.hash(e::buffer("key", 3), std::vector<e::buffer>(1, e::buffer("key", 3)));
+    c = h.hash(e::slice("key", 3), std::vector<e::slice>(1, e::slice("key", 3)));
     ASSERT_EQ(64, c.prefix);
     ASSERT_EQ(14106329784152965104ULL, c.point);
 
@@ -97,10 +97,10 @@ TEST(PrefixTest, KeyValue)
     hf[1] = EQUALITY;
     hf[2] = EQUALITY;
     h = hasher(hf);
-    std::vector<e::buffer> value;
-    value.push_back(e::buffer("value1", 6));
-    value.push_back(e::buffer("value2", 6));
-    c = h.hash(e::buffer("key", 3), value);
+    std::vector<e::slice> value;
+    value.push_back(e::slice("value1", 6));
+    value.push_back(e::slice("value2", 6));
+    c = h.hash(e::slice("key", 3), value);
     ASSERT_EQ(64, c.prefix);
     ASSERT_EQ(15831543697747031123ULL, c.point);
 }
@@ -110,10 +110,10 @@ TEST(PrefixTest, KeyOnlyRange)
     std::vector<hash_t> hf(1, RANGE);
     hasher h(hf);
     coordinate c;
-    c = h.hash(e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8));
+    c = h.hash(e::slice("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8));
     ASSERT_EQ(64, c.prefix);
     ASSERT_EQ(18409227619190700768ULL, c.point);
-    c = h.hash(e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8), std::vector<e::buffer>());
+    c = h.hash(e::slice("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8), std::vector<e::slice>());
     ASSERT_EQ(64, c.prefix);
     ASSERT_EQ(18409227619190700768ULL, c.point);
 }
@@ -125,11 +125,11 @@ TEST(PrefixTest, KeyOnlyWValueRange)
     hf[1] = NONE;
     hasher h(hf);
     coordinate c;
-    c = h.hash(e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8));
+    c = h.hash(e::slice("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8));
     ASSERT_EQ(64, c.prefix);
     ASSERT_EQ(18409227619190700768ULL, c.point);
-    c = h.hash(e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8),
-               std::vector<e::buffer>(1));
+    c = h.hash(e::slice("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8),
+               std::vector<e::slice>(1));
     ASSERT_EQ(64, c.prefix);
     ASSERT_EQ(18409227619190700768ULL, c.point);
 }
@@ -138,14 +138,14 @@ TEST(PrefixTest, KeyValueRange)
 {
     std::vector<hash_t> hf(2);
     coordinate c;
-    std::vector<e::buffer> value;
+    std::vector<e::slice> value;
 
     // Key/Value: hash on key (key is range)
     hf[0] = RANGE;
     hf[1] = NONE;
     hasher h(hf);
-    c = h.hash(e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8),
-               std::vector<e::buffer>(1, e::buffer("key", 3)));
+    c = h.hash(e::slice("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8),
+               std::vector<e::slice>(1, e::slice("key", 3)));
     ASSERT_EQ(64, c.prefix);
     ASSERT_EQ(18409227619190700768ULL, c.point);
 
@@ -153,8 +153,8 @@ TEST(PrefixTest, KeyValueRange)
     hf[0] = NONE;
     hf[1] = RANGE;
     h = hasher(hf);
-    c = h.hash(e::buffer("key", 3),
-               std::vector<e::buffer>(1, e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8)));
+    c = h.hash(e::slice("key", 3),
+               std::vector<e::slice>(1, e::slice("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8)));
     ASSERT_EQ(64, c.prefix);
     ASSERT_EQ(18409227619190700768ULL, c.point);
 
@@ -162,8 +162,8 @@ TEST(PrefixTest, KeyValueRange)
     hf[0] = RANGE;
     hf[1] = EQUALITY;
     h = hasher(hf);
-    c = h.hash(e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8),
-               std::vector<e::buffer>(1, e::buffer("key", 3)));
+    c = h.hash(e::slice("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8),
+               std::vector<e::slice>(1, e::slice("key", 3)));
     ASSERT_EQ(64, c.prefix);
     ASSERT_EQ(16999798426461388762ULL, c.point);
 
@@ -171,8 +171,8 @@ TEST(PrefixTest, KeyValueRange)
     hf[0] = EQUALITY;
     hf[1] = RANGE;
     h = hasher(hf);
-    c = h.hash(e::buffer("key", 3),
-               std::vector<e::buffer>(1, e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8)));
+    c = h.hash(e::slice("key", 3),
+               std::vector<e::slice>(1, e::slice("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8)));
     ASSERT_EQ(64, c.prefix);
     ASSERT_EQ(15553064105307176933ULL, c.point);
 
@@ -183,9 +183,9 @@ TEST(PrefixTest, KeyValueRange)
     hf[2] = EQUALITY;
     h = hasher(hf);
     value.clear();
-    value.push_back(e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8));
-    value.push_back(e::buffer("value2", 6));
-    c = h.hash(e::buffer("key", 3), value);
+    value.push_back(e::slice("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8));
+    value.push_back(e::slice("value2", 6));
+    c = h.hash(e::slice("key", 3), value);
     ASSERT_EQ(64, c.prefix);
     ASSERT_EQ(18140072265724313307ULL, c.point);
 
@@ -196,9 +196,9 @@ TEST(PrefixTest, KeyValueRange)
     hf[2] = RANGE;
     h = hasher(hf);
     value.clear();
-    value.push_back(e::buffer("value1", 6));
-    value.push_back(e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8));
-    c = h.hash(e::buffer("key", 3), value);
+    value.push_back(e::slice("value1", 6));
+    value.push_back(e::slice("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8));
+    c = h.hash(e::slice("key", 3), value);
     ASSERT_EQ(64, c.prefix);
     ASSERT_EQ(16138004179638318407ULL, c.point);
 
@@ -209,9 +209,9 @@ TEST(PrefixTest, KeyValueRange)
     hf[2] = RANGE;
     h = hasher(hf);
     value.clear();
-    value.push_back(e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8));
-    value.push_back(e::buffer("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8));
-    c = h.hash(e::buffer("key", 3), value);
+    value.push_back(e::slice("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8));
+    value.push_back(e::slice("\xbe\xba\xfe\xca\xef\xbe\xad\xde", 8));
+    c = h.hash(e::slice("key", 3), value);
     ASSERT_EQ(64, c.prefix);
     ASSERT_EQ(18446532747615600591ULL, c.point);
 }

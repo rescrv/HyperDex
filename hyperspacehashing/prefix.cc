@@ -144,7 +144,7 @@ hyperspacehashing :: prefix :: hasher :: ~hasher() throw ()
 }
 
 hyperspacehashing::prefix::coordinate
-hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key) const
+hyperspacehashing :: prefix :: hasher :: hash(const e::slice& key) const
 {
 #ifndef NDEBUG
     bool all_none = true;
@@ -174,7 +174,7 @@ hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key) const
 }
 
 hyperspacehashing::prefix::coordinate
-hyperspacehashing :: prefix :: hasher :: hash(const e::buffer& key, const std::vector<e::buffer>& value) const
+hyperspacehashing :: prefix :: hasher :: hash(const e::slice& key, const std::vector<e::slice>& value) const
 {
     assert(value.size() + 1 == m_funcs.size());
     size_t num = 0;

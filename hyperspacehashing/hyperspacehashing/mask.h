@@ -75,9 +75,9 @@ class hasher
         ~hasher() throw ();
 
     public:
-        coordinate hash(const e::buffer& key) const;
-        coordinate hash(const e::buffer& key, const std::vector<e::buffer>& value) const;
-        coordinate hash(const std::vector<e::buffer>& value) const;
+        coordinate hash(const e::slice& key) const;
+        coordinate hash(const e::slice& key, const std::vector<e::slice>& value) const;
+        coordinate hash(const std::vector<e::slice>& value) const;
         coordinate hash(const search& s) const;
 
     public:

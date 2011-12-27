@@ -28,11 +28,14 @@
 #ifndef hyperspacehashing_hashes_internal_h_
 #define hyperspacehashing_hashes_internal_h_
 
+// C
+#include <stdint.h>
+
 // STL
 #include <vector>
 
 // e
-#include <e/buffer.h>
+#include <e/slice.h>
 
 // HyperspaceHashing
 #include "hyperspacehashing/hashes.h"
@@ -40,11 +43,11 @@
 namespace hyperspacehashing
 {
 
-typedef uint64_t (*hash_func)(const e::buffer& buf);
+typedef uint64_t (*hash_func)(const e::slice& buf);
 uint64_t
-cityhash(const e::buffer& buf);
+cityhash(const e::slice& buf);
 uint64_t
-lendian(const e::buffer& buf);
+lendian(const e::slice& buf);
 
 
 } // namespace hyperspacehashing

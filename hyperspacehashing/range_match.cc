@@ -87,8 +87,8 @@ hyperspacehashing :: range_match :: matches(const prefix::coordinate& coord) con
 }
 
 bool
-hyperspacehashing :: range_match :: matches(const e::buffer& key,
-                                            const std::vector<e::buffer>& value) const
+hyperspacehashing :: range_match :: matches(const e::slice& key,
+                                            const std::vector<e::slice>& value) const
 {
     uint64_t hash;
 

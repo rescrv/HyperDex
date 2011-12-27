@@ -157,7 +157,7 @@ hyperspacehashing :: mask :: hasher :: ~hasher() throw ()
 }
 
 hyperspacehashing::mask::coordinate
-hyperspacehashing :: mask :: hasher :: hash(const e::buffer& key) const
+hyperspacehashing :: mask :: hasher :: hash(const e::slice& key) const
 {
     uint64_t key_mask = 0;
     uint64_t key_hash = 0;
@@ -184,8 +184,8 @@ hyperspacehashing :: mask :: hasher :: hash(const e::buffer& key) const
 }
 
 hyperspacehashing::mask::coordinate
-hyperspacehashing :: mask :: hasher :: hash(const e::buffer& key,
-                                            const std::vector<e::buffer>& value) const
+hyperspacehashing :: mask :: hasher :: hash(const e::slice& key,
+                                            const std::vector<e::slice>& value) const
 {
     coordinate primary = hash(key);
     coordinate secondary = hash(value);
@@ -195,7 +195,7 @@ hyperspacehashing :: mask :: hasher :: hash(const e::buffer& key,
 }
 
 hyperspacehashing::mask::coordinate
-hyperspacehashing :: mask :: hasher :: hash(const std::vector<e::buffer>& value) const
+hyperspacehashing :: mask :: hasher :: hash(const std::vector<e::slice>& value) const
 {
     assert(value.size() + 1 == m_funcs.size());
     assert(m_nums.size() == m_funcs.size());

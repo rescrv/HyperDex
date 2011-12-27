@@ -25,6 +25,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// C
+#include <cstring>
+
 // POSIX
 #include <endian.h>
 
@@ -39,15 +42,16 @@
 #include "hyperspacehashing/hashes.h"
 
 uint64_t
-hyperspacehashing :: cityhash(const e::buffer& buf)
+hyperspacehashing :: cityhash(const e::slice& buf)
+
 {
-    return CityHash64(static_cast<const char*>(buf.get()), buf.size());
+    return CityHash64(reinterpret_cast<const char*>(buf.data()), buf.size());
 }
 
 uint64_t
-hyperspacehashing :: lendian(const e::buffer& buf)
+hyperspacehashing :: lendian(const e::slice& buf)
 {
     uint64_t ret = 0;
-    memmove(&ret, buf.get(), std::min(buf.size(), sizeof(ret)));
+    memmove(&ret, buf.data(), std::min(buf.size(), sizeof(ret)));
     return le64toh(ret);
 }

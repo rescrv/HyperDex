@@ -34,6 +34,7 @@
 // e
 #include <e/bitfield.h>
 #include <e/buffer.h>
+#include <e/slice.h>
 
 namespace hyperspacehashing
 {
@@ -48,36 +49,36 @@ class search
         bool sanity_check() const;
         size_t size() const;
         bool is_equality(size_t idx) const;
-        const e::buffer& equality_value(size_t idx) const;
+        const e::slice& equality_value(size_t idx) const;
         bool is_range(size_t idx) const;
         void range_value(size_t idx, uint64_t* lower, uint64_t* upper) const;
-        bool matches(const e::buffer& key, const std::vector<e::buffer>& value) const;
+        bool matches(const e::slice& key, const std::vector<e::slice>& value) const;
 
     // It is an error to call equality_set or range_set on an index which has
     // already been provided as an index to equality_set or range_set.  It will
     // fail an assertion.  This is to prevent misconceptions about the way in
     // which these two interact.
     public:
-        void equality_set(size_t idx, const e::buffer& val);
+        void equality_set(size_t idx, const e::slice& val);
         void range_set(size_t idx, uint64_t start, uint64_t end);
 
     private:
-        friend e::packer& operator << (e::packer& lhs, const search& rhs);
-        friend e::unpacker& operator >> (e::unpacker& lhs, search& rhs);
+        friend e::buffer::packer operator << (const e::buffer::packer& lhs, const search& rhs);
+        friend e::buffer::unpacker operator >> (const e::buffer::unpacker& lhs, search& rhs);
 
     private:
         e::bitfield m_equality_bits;
-        std::vector<e::buffer> m_equality;
+        std::vector<e::slice> m_equality;
         e::bitfield m_range_bits;
         std::vector<uint64_t> m_range_lower;
         std::vector<uint64_t> m_range_upper;
 };
 
-e::packer&
-operator << (e::packer& lhs, const search& rhs);
+e::buffer::packer
+operator << (const e::buffer::packer& lhs, const search& rhs);
 
-e::unpacker&
-operator >> (e::unpacker& lhs, search& rhs);
+e::buffer::unpacker
+operator >> (const e::buffer::unpacker& lhs, search& rhs);
 
 } // namespace hyperspacehashing
 

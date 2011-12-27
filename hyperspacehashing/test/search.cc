@@ -45,7 +45,22 @@ using hyperspacehashing::NONE;
 using namespace hyperspacehashing;
 
 void
-validate(const std::vector<hash_t> hf, const e::buffer& key, const std::vector<e::buffer>& value);
+validate(const std::vector<hash_t> hf, const e::slice& key, const std::vector<e::slice>& value);
+
+#define TESTPOS(X) \
+    assert(hf.size() == ((X) + 1)); \
+    assert(value.size() == (X)); \
+    hf[(X)] = static_cast<hash_t>(v##X); \
+    value[(X) - 1] = e::slice(&nums[(X)], sizeof(nums[(X)])); \
+    validate(hf, key, value)
+
+#define EXPAND \
+    hf.push_back(NONE); \
+    value.push_back(e::slice())
+
+#define SHRINK \
+    value.pop_back(); \
+    hf.pop_back()
 
 int
 main(int, char* [])
@@ -66,62 +81,38 @@ main(int, char* [])
             std::vector<hash_t> hf(1);
             hf[0] = static_cast<hash_t>(k);
 
-            std::vector<e::buffer> value;
-            e::buffer key;
-            key.pack() << nums[0];
+            std::vector<e::slice> value;
+            e::slice key(&nums[0], sizeof(nums[0]));
             validate(hf, key, value);
-            hf.push_back(NONE);
-            value.push_back(e::buffer());
+            EXPAND;
 
             for (size_t v1 = EQUALITY; v1 <= NONE; ++v1)
             {
-                assert(hf.size() == 2);
-                assert(value.size() == 1);
-                hf[1] = static_cast<hash_t>(v1);
-                value[0].pack() << nums[1];
-                validate(hf, key, value);
-                hf.push_back(NONE);
-                value.push_back(e::buffer());
+                TESTPOS(1);
+                EXPAND;
 
                 for (size_t v2 = EQUALITY; v2 <= NONE; ++v2)
                 {
-                    assert(hf.size() == 3);
-                    assert(value.size() == 2);
-                    hf[2] = static_cast<hash_t>(v2);
-                    value[1].pack() << nums[2];
-                    validate(hf, key, value);
-                    hf.push_back(NONE);
-                    value.push_back(e::buffer());
+                    TESTPOS(2);
+                    EXPAND;
 
                     for (size_t v3 = EQUALITY; v3 <= NONE; ++v3)
                     {
-                        assert(hf.size() == 4);
-                        assert(value.size() == 3);
-                        hf[3] = static_cast<hash_t>(v3);
-                        value[2].pack() << nums[3];
-                        validate(hf, key, value);
-                        hf.push_back(NONE);
-                        value.push_back(e::buffer());
+                        TESTPOS(3);
+                        EXPAND;
 
                         for (size_t v4 = EQUALITY; v4 <= NONE; ++v4)
                         {
-                            assert(hf.size() == 5);
-                            assert(value.size() == 4);
-                            hf[4] = static_cast<hash_t>(v4);
-                            value[3].pack() << nums[4];
-                            validate(hf, key, value);
+                            TESTPOS(4);
                         }
 
-                        value.pop_back();
-                        hf.pop_back();
+                        SHRINK;
                     }
 
-                    value.pop_back();
-                    hf.pop_back();
+                    SHRINK;
                 }
 
-                value.pop_back();
-                hf.pop_back();
+                SHRINK;
             }
         }
     }
@@ -130,7 +121,7 @@ main(int, char* [])
 }
 
 void
-validate(const std::vector<hash_t> hf, const e::buffer& key, const std::vector<e::buffer>& value)
+validate(const std::vector<hash_t> hf, const e::slice& key, const std::vector<e::slice>& value)
 {
     prefix::hasher ph(hf);
     prefix::coordinate pc = ph.hash(key, value);

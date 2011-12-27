@@ -45,8 +45,8 @@ class range_match
 
     public:
         bool matches(const prefix::coordinate& coord) const;
-        bool matches(const e::buffer& key,
-                     const std::vector<e::buffer>& value) const;
+        bool matches(const e::slice& key,
+                     const std::vector<e::slice>& value) const;
 
     public:
         unsigned int m_idx;
