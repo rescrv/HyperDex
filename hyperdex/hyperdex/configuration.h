@@ -75,7 +75,7 @@ class configuration
     public:
         hyperspacehashing::mask::hasher disk_hasher(const subspaceid& subspace) const;
         hyperspacehashing::prefix::hasher repl_hasher(const subspaceid& subspace) const;
-        bool point_leader_entity(const spaceid& space, const e::buffer& key,
+        bool point_leader_entity(const spaceid& space, const e::slice& key,
                                  hyperdex::entityid* ent, hyperdex::instance* inst) const;
         std::map<entityid, instance> search_entities(const spaceid& space,
                                                      const hyperspacehashing::search& s) const;

@@ -492,7 +492,7 @@ hyperdex :: configuration :: repl_hasher(const subspaceid& subspace) const
 
 bool
 hyperdex :: configuration :: point_leader_entity(const spaceid& space,
-                                                 const e::buffer& key,
+                                                 const e::slice& key,
                                                  hyperdex::entityid* ent,
                                                  hyperdex::instance* inst) const
 {
