@@ -28,6 +28,9 @@
 // POSIX
 #include <poll.h>
 
+// e
+#include <e/bufferio.h>
+
 // HyperDex
 #include "hyperdex/coordinatorlink.h"
 
@@ -41,7 +44,7 @@ hyperdex :: coordinatorlink :: coordinatorlink(const po6::net::location& coordin
     , m_config()
     , m_sock()
     , m_pfd()
-    , m_buffer()
+    , m_buffer(e::buffer::create(2048))
     , m_reported_failures()
     , m_warnings_issued()
 {
@@ -179,19 +182,9 @@ hyperdex :: coordinatorlink :: loop(size_t iterations, int timeout)
             }
         }
 
-        size_t ret;
+        ssize_t ret = e::bufferio::read(&m_sock, m_buffer.get(), m_buffer->capacity());
 
-        try
-        {
-            ret = e::read(&m_sock, &m_buffer, 2048);
-        }
-        catch (po6::error& e)
-        {
-            reset();
-            return DISCONNECT;
-        }
-
-        if (ret == 0)
+        if (ret <= 0)
         {
             reset();
             return DISCONNECT;
@@ -199,10 +192,10 @@ hyperdex :: coordinatorlink :: loop(size_t iterations, int timeout)
 
         size_t index;
 
-        while ((index = m_buffer.index('\n')) < m_buffer.size())
+        while ((index = m_buffer->index('\n')) < m_buffer->size())
         {
-            std::string line(static_cast<const char*>(m_buffer.get()), index);
-            m_buffer.trim_prefix(index + 1);
+            std::string line(reinterpret_cast<const char*>(m_buffer->data()), index);
+            m_buffer->shift(index + 1);
 
             if (line == "end\tof\tline")
             {
@@ -269,15 +262,7 @@ hyperdex :: coordinatorlink :: config()
 hyperdex::coordinatorlink::returncode
 hyperdex :: coordinatorlink :: send_to_coordinator(const char* msg, size_t len)
 {
-    try
-    {
-        if (m_sock.xwrite(msg, len) != len)
-        {
-            reset();
-            return DISCONNECT;
-        }
-    }
-    catch (po6::error& e)
+    if (m_sock.xwrite(msg, len) != static_cast<ssize_t>(len))
     {
         reset();
         return DISCONNECT;
@@ -319,7 +304,7 @@ hyperdex :: coordinatorlink :: reset()
     m_sock.close();
     m_pfd.fd = -1;
     m_pfd.events = 0;
-    m_buffer.clear();
+    m_buffer->clear();
 }
 
 void
