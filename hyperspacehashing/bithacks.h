@@ -131,7 +131,7 @@ double_lower_interlace(uint64_t* nums, size_t sz, uint64_t* lower, uint64_t* upp
 
         if (i >= 64)
         {
-            if (quotient > (i - 64))
+            if (quotient > static_cast<size_t>(i - 64))
             {
                 result[1] |= (bit & hash) >> (quotient - (i - 64));
             }
