@@ -134,7 +134,7 @@ hyperdisk :: shard_snapshot :: version()
     return m_version;
 }
 
-const e::buffer&
+const e::slice&
 hyperdisk :: shard_snapshot :: key()
 {
     if (!m_parsed)
@@ -145,7 +145,7 @@ hyperdisk :: shard_snapshot :: key()
     return m_key;
 }
 
-const std::vector<e::buffer>&
+const std::vector<e::slice>&
 hyperdisk :: shard_snapshot :: value()
 {
     if (!m_parsed)

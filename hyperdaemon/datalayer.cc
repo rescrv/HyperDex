@@ -76,8 +76,8 @@ hyperdaemon :: datalayer :: datalayer(coordinatorlink* cl, const po6::pathname& 
     , m_base(base)
     , m_optimistic_io_thread(std::tr1::bind(&datalayer::optimistic_io_thread, this))
     , m_flush_thread(std::tr1::bind(&datalayer::flush_thread, this))
-    , m_lock()
     , m_disks()
+    , m_last_flush(0)
     , m_preallocate_rr()
     , m_last_preallocation(0)
     , m_optimistic_rr()
@@ -101,55 +101,15 @@ hyperdaemon :: datalayer :: ~datalayer() throw ()
 void
 hyperdaemon :: datalayer :: prepare(const configuration& newconfig, const instance& us)
 {
-    // Create new disks which we do not currently have.
-    std::map<regionid, e::intrusive_ptr<hyperdisk::disk> > disks;
+    std::set<regionid> regions = newconfig.regions_for(us);
 
-    // Grab a copy of all the disks we do have.
+    for (std::set<regionid>::const_iterator r = regions.begin();
+            r != regions.end(); ++r)
     {
-        po6::threads::rwlock::rdhold hold(&m_lock);
-        disks = m_disks;
-    }
-
-    std::map<regionid, size_t> regions = newconfig.regions();
-
-    for (std::map<entityid, instance>::const_iterator e = newconfig.entity_mapping().begin();
-            e != newconfig.entity_mapping().end(); ++e)
-    {
-        if (e->first.space != std::numeric_limits<uint32_t>::max() - 1 && e->second == us
-            && disks.find(e->first.get_region()) == disks.end())
+        if (!m_disks.contains(*r))
         {
-            std::map<regionid, size_t>::iterator region_size;
-            region_size = regions.find(e->first.get_region());
-
-            if (region_size != regions.end())
-            {
-                create_disk(e->first.get_region(), newconfig.disk_hasher(e->first.get_subspace()), region_size->second);
-            }
-            else
-            {
-                LOG(ERROR) << "There is a logic error in the configuration object.";
-            }
-        }
-    }
-
-    std::map<uint16_t, regionid> transfers = newconfig.transfers_to(us);
-
-    for (std::map<uint16_t, regionid>::const_iterator t = transfers.begin();
-            t != transfers.end(); ++t)
-    {
-        if (disks.find(t->second) == disks.end())
-        {
-            std::map<regionid, size_t>::iterator region_size;
-            region_size = regions.find(t->second);
-
-            if (region_size != regions.end())
-            {
-                create_disk(t->second, newconfig.disk_hasher(t->second.get_subspace()), region_size->second);
-            }
-            else
-            {
-                LOG(ERROR) << "There is a logic error in the configuration object.";
-            }
+            create_disk(*r, newconfig.disk_hasher(r->get_subspace()),
+                        newconfig.dimensions(r->get_space()));
         }
     }
 }
@@ -163,44 +123,13 @@ hyperdaemon :: datalayer :: reconfigure(const configuration&, const instance&)
 void
 hyperdaemon :: datalayer :: cleanup(const configuration& newconfig, const instance& us)
 {
-    // Delete disks which are no longer in the config.
-    disk_map_t disks;
-    std::map<uint16_t, regionid> transfers = newconfig.transfers_to(us);
+    std::set<regionid> regions = newconfig.regions_for(us);
 
-    // Grab a copy of all the regions we do have.
+    for (disk_map_t::iterator d = m_disks.begin(); d != m_disks.end(); d.next())
     {
-        po6::threads::rwlock::rdhold hold(&m_lock);
-        disks = m_disks;
-    }
-
-    for (disk_map_t::iterator d = disks.begin(); d != disks.end(); ++d)
-    {
-        bool keep = false;
-        std::map<entityid, instance>::const_iterator start;
-        std::map<entityid, instance>::const_iterator end;
-        start = newconfig.entity_mapping().lower_bound(entityid(d->first, 0));
-        end = newconfig.entity_mapping().upper_bound(entityid(d->first, UINT8_MAX));
-
-        for (; start != end; ++start)
+        if (regions.find(d.key()) == regions.end())
         {
-            if (start->second == us)
-            {
-                keep = true;
-            }
-        }
-
-        for (std::map<uint16_t, regionid>::const_iterator t = transfers.begin();
-                t != transfers.end(); ++t)
-        {
-            if (t->second == d->first)
-            {
-                keep = true;
-            }
-        }
-
-        if (!keep)
-        {
-            drop_disk(d->first);
+            drop_disk(d.key());
         }
     }
 }
@@ -215,101 +144,78 @@ e::intrusive_ptr<hyperdisk::snapshot>
 hyperdaemon :: datalayer :: make_snapshot(const regionid& ri,
                                           const hyperspacehashing::search& terms)
 {
-    e::intrusive_ptr<hyperdisk::disk> r = get_region(ri);
+    e::intrusive_ptr<hyperdisk::disk> r;
 
-    if (!r)
+    if (!m_disks.lookup(ri, &r))
     {
         return e::intrusive_ptr<hyperdisk::snapshot>();
     }
 
-    return r->make_snapshot(terms);
+    //return r->make_snapshot(terms);
+    return NULL;
 }
 
 e::intrusive_ptr<hyperdisk::rolling_snapshot>
 hyperdaemon :: datalayer :: make_rolling_snapshot(const regionid& ri)
 {
-    e::intrusive_ptr<hyperdisk::disk> r = get_region(ri);
+    e::intrusive_ptr<hyperdisk::disk> r;
 
-    if (!r)
+    if (!m_disks.lookup(ri, &r))
     {
         return e::intrusive_ptr<hyperdisk::rolling_snapshot>();
     }
 
-    return r->make_rolling_snapshot();
-}
-
-void
-hyperdaemon :: datalayer :: trickle(const regionid& ri)
-{
-    e::intrusive_ptr<hyperdisk::disk> r = get_region(ri);
-
-    if (r)
-    {
-        r->flush(10000);
-    }
+    //return r->make_rolling_snapshot();
+    return NULL;
 }
 
 hyperdisk::returncode
 hyperdaemon :: datalayer :: get(const regionid& ri,
-                                const e::buffer& key,
-                                std::vector<e::buffer>* value,
-                                uint64_t* version)
+                                const e::slice& key,
+                                std::vector<e::slice>* value,
+                                uint64_t* version,
+                                hyperdisk::reference* ref)
 {
-    e::intrusive_ptr<hyperdisk::disk> r = get_region(ri);
+    e::intrusive_ptr<hyperdisk::disk> r;
 
-    if (!r)
+    if (!m_disks.lookup(ri, &r))
     {
         return hyperdisk::MISSINGDISK;
     }
 
-    return r->get(key, value, version);
+    return r->get(key, value, version, ref);
 }
 
 hyperdisk::returncode
 hyperdaemon :: datalayer :: put(const regionid& ri,
-                                const e::buffer& key,
-                                const std::vector<e::buffer>& value,
+                                std::tr1::shared_ptr<e::buffer> backing,
+                                const e::slice& key,
+                                const std::vector<e::slice>& value,
                                 uint64_t version)
 {
-    e::intrusive_ptr<hyperdisk::disk> r = get_region(ri);
+    e::intrusive_ptr<hyperdisk::disk> r;
 
-    if (!r)
+    if (!m_disks.lookup(ri, &r))
     {
         return hyperdisk::MISSINGDISK;
     }
 
-    return r->put(key, value, version);
+    return r->put(backing, key, value, version);
 }
 
 hyperdisk::returncode
 hyperdaemon :: datalayer :: del(const regionid& ri,
-                                const e::buffer& key)
+                                std::tr1::shared_ptr<e::buffer> backing,
+                                const e::slice& key)
 {
-    e::intrusive_ptr<hyperdisk::disk> r = get_region(ri);
+    e::intrusive_ptr<hyperdisk::disk> r;
 
-    if (!r)
+    if (!m_disks.lookup(ri, &r))
     {
         return hyperdisk::MISSINGDISK;
     }
 
-    return r->del(key);
-}
-
-e::intrusive_ptr<hyperdisk::disk>
-hyperdaemon :: datalayer :: get_region(const regionid& ri)
-{
-    po6::threads::rwlock::rdhold hold(&m_lock);
-    disk_map_t::iterator i;
-    i = m_disks.find(ri);
-
-    if (i == m_disks.end())
-    {
-        return e::intrusive_ptr<hyperdisk::disk>();
-    }
-    else
-    {
-        return i->second;
-    }
+    return r->del(backing, key);
 }
 
 typedef std::map<hyperdex::regionid, e::intrusive_ptr<hyperdisk::disk> > disk_map_t;
@@ -322,27 +228,20 @@ hyperdaemon :: datalayer :: optimistic_io_thread()
 
     while (!m_shutdown)
     {
-        disk_map_t disks;
-
-        { // Hold the lock only in this scope.
-            po6::threads::rwlock::rdhold hold(&m_lock);
-            disks = m_disks;
-        }
-
         // Ensure that all regions are in the preallocation and optimistic-I/O
         // queues.
-        for (disk_map_t::iterator i = disks.begin(); i != disks.end(); ++i)
+        for (disk_map_t::iterator d = m_disks.begin(); d != m_disks.end(); d.next())
         {
-            if (std::find(m_preallocate_rr.begin(), m_preallocate_rr.end(), i->first)
+            if (std::find(m_preallocate_rr.begin(), m_preallocate_rr.end(), d.key())
                     == m_preallocate_rr.end())
             {
-                m_preallocate_rr.push_back(i->first);
+                m_preallocate_rr.push_back(d.key());
             }
 
-            if (std::find(m_optimistic_rr.begin(), m_optimistic_rr.end(), i->first)
+            if (std::find(m_optimistic_rr.begin(), m_optimistic_rr.end(), d.key())
                     == m_optimistic_rr.end())
             {
-                m_optimistic_rr.push_back(i->first);
+                m_optimistic_rr.push_back(d.key());
             }
         }
 
@@ -354,18 +253,12 @@ hyperdaemon :: datalayer :: optimistic_io_thread()
         {
             for (size_t i = 0; i < m_preallocate_rr.size(); ++i)
             {
-                disk_map_t::iterator diter = disks.find(m_preallocate_rr.front());
+                e::intrusive_ptr<hyperdisk::disk> d;
 
-                if (diter != disks.end())
+                if (m_disks.lookup(m_preallocate_rr.front(), &d))
                 {
                     m_preallocate_rr.push_back(m_preallocate_rr.front());
-                }
-
-                m_preallocate_rr.pop_front();
-
-                if (diter != disks.end())
-                {
-                    hyperdisk::returncode ret = diter->second->preallocate();
+                    hyperdisk::returncode ret = d->preallocate();
 
                     if (ret == hyperdisk::SUCCESS)
                     {
@@ -379,12 +272,14 @@ hyperdaemon :: datalayer :: optimistic_io_thread()
                         PLOG(WARNING) << "Disk preallocation failed";
                     }
                 }
+
+                m_preallocate_rr.pop_front();
             }
 
             m_last_preallocation = e::time();
         }
 
-        // We rate-limit the number of preallocations we do each second.
+        // We rate-limit the number of optimistic splits we do each second.
         uint64_t nanos_since_last_optimism = e::time() - m_last_dose_of_optimism;
         uint64_t optimism_interval = 1000000000. / OPTIMISM_BURSTS_PER_SECOND;
 
@@ -392,18 +287,12 @@ hyperdaemon :: datalayer :: optimistic_io_thread()
         {
             for (size_t i = 0; i < m_optimistic_rr.size(); ++i)
             {
-                disk_map_t::iterator diter = disks.find(m_optimistic_rr.front());
+                e::intrusive_ptr<hyperdisk::disk> d;
 
-                if (diter != disks.end())
+                if (m_disks.lookup(m_optimistic_rr.front(), &d))
                 {
                     m_optimistic_rr.push_back(m_optimistic_rr.front());
-                }
-
-                m_optimistic_rr.pop_front();
-
-                if (diter != disks.end())
-                {
-                    hyperdisk::returncode ret = diter->second->do_optimistic_io();
+                    hyperdisk::returncode ret = d->do_optimistic_io();
 
                     if (ret == hyperdisk::SUCCESS)
                     {
@@ -417,6 +306,8 @@ hyperdaemon :: datalayer :: optimistic_io_thread()
                         PLOG(WARNING) << "Optimistic disk I/O failed";
                     }
                 }
+
+                m_optimistic_rr.pop_front();
             }
 
             m_last_dose_of_optimism = e::time();
@@ -426,7 +317,7 @@ hyperdaemon :: datalayer :: optimistic_io_thread()
 
         do
         {
-            e::sleep_ms(0, 100);
+            e::sleep_ms(0, 10);
         }
         while (!m_shutdown && last_flush == m_last_flush);
     }
@@ -440,16 +331,11 @@ hyperdaemon :: datalayer :: flush_thread()
     while (!m_shutdown)
     {
         bool sleep = true;
-        disk_map_t disks;
 
-        { // Hold the lock only in this scope.
-            po6::threads::rwlock::rdhold hold(&m_lock);
-            disks = m_disks;
-        }
-
-        for (disk_map_t::iterator i = disks.begin(); i != disks.end(); ++i)
+        for (disk_map_t::iterator d = m_disks.begin();
+                d != m_disks.end(); d.next())
         {
-            hyperdisk::returncode ret = i->second->flush(1000);
+            hyperdisk::returncode ret = d.value()->flush(1000);
 
             if (ret == hyperdisk::SUCCESS)
             {
@@ -461,7 +347,7 @@ hyperdaemon :: datalayer :: flush_thread()
             else if (ret == hyperdisk::DATAFULL || ret == hyperdisk::SEARCHFULL)
             {
                 hyperdisk::returncode ioret;
-                ioret = i->second->do_mandatory_io();
+                ioret = d.value()->do_mandatory_io();
 
                 if (ioret != hyperdisk::SUCCESS && ioret != hyperdisk::DIDNOTHING)
                 {
@@ -476,7 +362,7 @@ hyperdaemon :: datalayer :: flush_thread()
 
         if (sleep)
         {
-            e::sleep_ms(0, 100);
+            e::sleep_ms(0, 10);
         }
         else
         {
@@ -490,26 +376,30 @@ hyperdaemon :: datalayer :: create_disk(const regionid& ri,
                                         const hyperspacehashing::mask::hasher& hasher,
                                         uint16_t num_columns)
 {
-    LOG(INFO) << "Creating " << ri << " with " << num_columns << " columns.";
     std::ostringstream ostr;
     ostr << ri;
     po6::pathname path = po6::join(m_base, po6::pathname(ostr.str()));
     disk_ptr d = hyperdisk::disk::create(path, hasher, num_columns);
-    po6::threads::rwlock::wrhold hold(&m_lock);
-    m_disks.insert(std::make_pair(ri, d));
+
+    if (m_disks.insert(ri, d))
+    {
+        LOG(INFO) << "Created disk " << ri << " with " << num_columns << " columns";
+    }
+    else
+    {
+        LOG(ERROR) << "Could not create disk " << ri << " because it already exists";
+    }
 }
 
 void
 hyperdaemon :: datalayer :: drop_disk(const regionid& ri)
 {
-    po6::threads::rwlock::wrhold hold(&m_lock);
-    disk_map_t::iterator i;
-    i = m_disks.find(ri);
-
-    if (i != m_disks.end())
+    if (m_disks.remove(ri))
     {
-        LOG(INFO) << "Dropping " << ri << ".";
-        i->second->drop();
-        m_disks.erase(i);
+        LOG(INFO) << "Dropped disk " << ri;
+    }
+    else
+    {
+        LOG(ERROR) << "Could not drop disk " << ri << " because it already exists";
     }
 }

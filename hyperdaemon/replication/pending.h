@@ -40,11 +40,20 @@ class pending
 {
     public:
         pending(bool has_value,
-                const std::vector<e::buffer>& value,
+                std::auto_ptr<e::buffer> backing,
+                const e::slice& key,
+                const std::vector<e::slice>& value,
+                const clientop& co = clientop());
+        pending(bool has_value,
+                std::tr1::shared_ptr<e::buffer> backing,
+                const e::slice& key,
+                const std::vector<e::slice>& value,
                 const clientop& co = clientop());
 
     public:
-        std::vector<e::buffer> value;
+        std::tr1::shared_ptr<e::buffer> backing;
+        e::slice key;
+        std::vector<e::slice> value;
         const bool has_value;
         bool fresh;
         bool acked;
@@ -56,6 +65,8 @@ class pending
         hyperdex::regionid this_old;
         hyperdex::regionid this_new;
         hyperdex::regionid next;
+        e::intrusive_ptr<pending> backing2;
+        hyperdisk::reference ref;
 
     private:
         friend class e::intrusive_ptr<pending>;
@@ -70,9 +81,13 @@ class pending
 
 inline
 pending :: pending(bool hv,
-                   const std::vector<e::buffer>& val,
+                   std::auto_ptr<e::buffer> b,
+                   const e::slice& k,
+                   const std::vector<e::slice>& val,
                    const clientop& c)
-    : value(val)
+    : backing(b.release())
+    , key(k)
+    , value(val)
     , has_value(hv)
     , fresh(false)
     , acked(false)
@@ -84,6 +99,34 @@ pending :: pending(bool hv,
     , this_old()
     , this_new()
     , next()
+    , backing2()
+    , ref()
+    , m_ref(0)
+{
+}
+
+inline
+pending :: pending(bool hv,
+                   std::tr1::shared_ptr<e::buffer> b,
+                   const e::slice& k,
+                   const std::vector<e::slice>& val,
+                   const clientop& c)
+    : backing(b)
+    , key(k)
+    , value(val)
+    , has_value(hv)
+    , fresh(false)
+    , acked(false)
+    , mayack(false)
+    , retransmit(0)
+    , co(c)
+    , retcode()
+    , prev()
+    , this_old()
+    , this_new()
+    , next()
+    , backing2()
+    , ref()
     , m_ref(0)
 {
 }

@@ -67,6 +67,7 @@ class logical
 
     public:
         hyperdex::instance inst() const { return m_us; }
+        size_t header_size() const;
 
     // Reconfigure this layer.
     public:
@@ -85,39 +86,43 @@ class logical
     public:
         // Send from one specific entity to another specific entity.
         bool send(const hyperdex::entityid& from, const hyperdex::entityid& to,
-                  const hyperdex::network_msgtype msg_type, const e::buffer& msg);
+                  const hyperdex::network_msgtype msg_type,
+                  std::auto_ptr<e::buffer> msg);
         // Send from one region to a specific entity.  This will find
         // our offset in the chain for the "from" region, and use that
         // entity as the source.
         bool send(const hyperdex::regionid& from, const hyperdex::entityid& to,
-                  const hyperdex::network_msgtype msg_type, const e::buffer& msg);
+                  const hyperdex::network_msgtype msg_type,
+                  std::auto_ptr<e::buffer> msg);
         // Send msg1 along a chain in the direction indicated (forward =
         // ascending numbers, backward = descending numbers).  If we hit the end
         // of the chain in that direction, then send msg2 to the head or tail of
         // the region which overlaps with the "otherwise" region.
         bool send_forward_else_head(const hyperdex::regionid& chain,
                                     hyperdex::network_msgtype msg1_type,
-                                    const e::buffer& msg1,
+                                    std::auto_ptr<e::buffer> msg1,
                                     const hyperdex::regionid& otherwise,
                                     hyperdex::network_msgtype msg2_type,
-                                    const e::buffer& msg2);
+                                    std::auto_ptr<e::buffer> msg2);
         bool send_forward_else_tail(const hyperdex::regionid& chain,
                                     hyperdex::network_msgtype msg1_type,
-                                    const e::buffer& msg1,
+                                    std::auto_ptr<e::buffer> msg1,
                                     const hyperdex::regionid& otherwise,
                                     hyperdex::network_msgtype msg2_type,
-                                    const e::buffer& msg2);
+                                    std::auto_ptr<e::buffer> msg2);
         bool send_backward(const hyperdex::regionid& chain,
                            hyperdex::network_msgtype msg_type,
-                           const e::buffer& msg);
+                           std::auto_ptr<e::buffer> msg);
         bool send_backward_else_tail(const hyperdex::regionid& chain,
                                      hyperdex::network_msgtype msg1_type,
-                                     const e::buffer& msg1,
+                                     std::auto_ptr<e::buffer> msg1,
                                      const hyperdex::regionid& otherwise,
                                      hyperdex::network_msgtype msg2_type,
-                                     const e::buffer& msg2);
+                                     std::auto_ptr<e::buffer> msg2);
+        // Receive one message.
         bool recv(hyperdex::entityid* from, hyperdex::entityid* to,
-                  hyperdex::network_msgtype* msg_type, e::buffer* msg);
+                  hyperdex::network_msgtype* msg_type,
+                  std::auto_ptr<e::buffer>* msg);
 
     private:
         static uint64_t id(const uint64_t& i) { return i; }
@@ -136,14 +141,12 @@ class logical
         bool send_you_hold_lock(const hyperdex::entityid& from,
                                 const hyperdex::entityid& to,
                                 const hyperdex::network_msgtype msg_type,
-                                const e::buffer& msg);
-        bool our_position(const hyperdex::regionid& r, hyperdex::entityid* e);
+                                std::auto_ptr<e::buffer> msg);
 
     private:
         hyperdex::coordinatorlink* m_cl;
         hyperdex::instance m_us;
         hyperdex::configuration m_config;
-        std::map<hyperdex::entityid, hyperdex::instance> m_mapping;
         e::lockfree_hash_map<po6::net::location, uint64_t, po6::net::location::hash> m_client_nums;
         e::lockfree_hash_map<uint64_t, po6::net::location, id> m_client_locs;
         uint64_t m_client_counter;

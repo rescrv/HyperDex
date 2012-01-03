@@ -11,7 +11,7 @@ noinst_HEADERS = hyperdaemon/daemon.h datalayer.h logical.h network_worker.h \
 				 replication/transfer_out.h runtimeconfig.h searches.h
 
 libhyperdaemon_la_SOURCES = daemon.cc datalayer.cc logical.cc \
-							network_worker.cc physical.cc \
-							replication_manager.cc runtimeconfig.cc \
-							searches.cc
+							network_worker.cc ongoing_state_transfers.cc \
+							physical.cc replication_manager.cc \
+							runtimeconfig.cc searches.cc
 libhyperdaemon_la_LIBADD = ../hyperspacehashing/libhyperspacehashing.la ../hyperdex/libhyperdex.la -lcityhash $(COVERAGE_LDADD)

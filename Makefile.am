@@ -1,36 +1,31 @@
 ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = hyperspacehashing hyperdex hyperdisk hyperclient hyperdaemon ycsb
 
-bin_PROGRAMS = cli daemon
-noinst_PROGRAMS = binary-test count-test repl-test
+bin_PROGRAMS = daemon
+noinst_PROGRAMS = count-test
 
 EXTRA_DIST = LICENSE runner.cc
 
 nobase_python_PYTHON = hdcoordinator/__init__.py hdcoordinator/coordinator.py hdcoordinator/parser.py
 
-cli_SOURCES = cli.cc
-cli_CPPFLAGS = -I${abs_top_srcdir}/hyperclient/
-cli_LDADD = hyperclient/libhyperclient.la
-cli_LDFLAGS = -lpthread -lrt
-
 daemon_SOURCES = daemon.cc
 daemon_CPPFLAGS = -I${abs_top_srcdir}/hyperdaemon/
 daemon_LDADD = hyperdisk/libhyperdisk.la hyperdaemon/libhyperdaemon.la
-daemon_LDFLAGS = -lpthread -lglog -lrt -lm
+daemon_LDFLAGS = -lpthread -lglog -lrt -lm -le -no-install
 
-binary_test_SOURCES = binary-test.cc
-binary_test_CPPFLAGS = -I${abs_top_srcdir}/hyperclient/
-binary_test_LDADD = hyperclient/libhyperclient.la
-binary_test_LDFLAGS = -lrt
+#binary_test_SOURCES = binary-test.cc
+#binary_test_CPPFLAGS = -I${abs_top_srcdir}/hyperclient/
+#binary_test_LDADD = hyperclient/libhyperclient.la
+#binary_test_LDFLAGS = -lrt
 
 count_test_SOURCES = count-test.cc
 count_test_CPPFLAGS = -I${abs_top_srcdir}/hyperclient/
 count_test_LDADD = hyperclient/libhyperclient.la
-count_test_LDFLAGS = -lrt
+count_test_LDFLAGS = -lrt -le
 
-repl_test_SOURCES = repl-test.cc
-repl_test_CPPFLAGS = -I${abs_top_srcdir}/hyperclient/ -I${abs_top_srcdir}/hyperspacehashing/
-repl_test_LDADD = hyperclient/libhyperclient.la -lrt
+#repl_test_SOURCES = repl-test.cc
+#repl_test_CPPFLAGS = -I${abs_top_srcdir}/hyperclient/ -I${abs_top_srcdir}/hyperspacehashing/
+#repl_test_LDADD = hyperclient/libhyperclient.la -lrt
 
 coverage.dat: check
 	lcov --directory $(abs_top_builddir) --compat-libtool --capture --output $(abs_top_builddir)/coverage.dat

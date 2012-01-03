@@ -32,9 +32,9 @@
 #include <memory>
 
 // e
-#include <e/buffer.h>
 #include <e/intrusive_ptr.h>
 #include <e/locking_iterable_fifo.h>
+#include <e/slice.h>
 
 // HyperspaceHashing
 #include <hyperspacehashing/mask.h>
@@ -61,8 +61,8 @@ class snapshot
     public:
         hyperspacehashing::mask::coordinate coordinate();
         uint64_t version();
-        const e::buffer& key();
-        const std::vector<e::buffer>& value();
+        const e::slice& key();
+        const std::vector<e::slice>& value();
 
     private:
         friend class e::intrusive_ptr<snapshot>;
@@ -99,8 +99,8 @@ class rolling_snapshot
     public:
         bool has_value();
         uint64_t version();
-        e::buffer key();
-        std::vector<e::buffer> value();
+        const e::slice& key();
+        const std::vector<e::slice>& value();
 
     private:
         friend class e::intrusive_ptr<rolling_snapshot>;

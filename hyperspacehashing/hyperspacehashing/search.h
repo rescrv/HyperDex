@@ -63,8 +63,8 @@ class search
         void range_set(size_t idx, uint64_t start, uint64_t end);
 
     private:
-        friend e::buffer::packer operator << (const e::buffer::packer& lhs, const search& rhs);
-        friend e::buffer::unpacker operator >> (const e::buffer::unpacker& lhs, search& rhs);
+        friend e::buffer::packer operator << (e::buffer::packer lhs, const search& rhs);
+        friend e::buffer::unpacker operator >> (e::buffer::unpacker lhs, search& rhs);
 
     private:
         e::bitfield m_equality_bits;
@@ -75,10 +75,10 @@ class search
 };
 
 e::buffer::packer
-operator << (const e::buffer::packer& lhs, const search& rhs);
+operator << (e::buffer::packer lhs, const search& rhs);
 
 e::buffer::unpacker
-operator >> (const e::buffer::unpacker& lhs, search& rhs);
+operator >> (e::buffer::unpacker lhs, search& rhs);
 
 } // namespace hyperspacehashing
 

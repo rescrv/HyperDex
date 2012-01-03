@@ -161,20 +161,16 @@ hyperspacehashing :: search :: range_set(size_t idx, uint64_t start, uint64_t en
     m_range_upper[idx] = end;
 }
 
-#if 0
-e::packer&
-hyperspacehashing :: operator << (e::packer& lhs, const search& rhs)
+e::buffer::packer
+hyperspacehashing :: operator << (e::buffer::packer lhs, const search& rhs)
 {
-    lhs << rhs.m_equality_bits << rhs.m_equality
-        << rhs.m_range_bits << rhs.m_range_lower << rhs.m_range_upper;
-    return lhs;
+    return lhs << rhs.m_equality_bits << rhs.m_equality
+               << rhs.m_range_bits << rhs.m_range_lower << rhs.m_range_upper;
 }
 
-e::unpacker&
-hyperspacehashing :: operator >> (e::unpacker& lhs, search& rhs)
+e::buffer::unpacker
+hyperspacehashing :: operator >> (e::buffer::unpacker lhs, search& rhs)
 {
-    lhs >> rhs.m_equality_bits >> rhs.m_equality
-        >> rhs.m_range_bits >> rhs.m_range_lower >> rhs.m_range_upper;
-    return lhs;
+    return lhs >> rhs.m_equality_bits >> rhs.m_equality
+               >> rhs.m_range_bits >> rhs.m_range_lower >> rhs.m_range_upper;
 }
-#endif

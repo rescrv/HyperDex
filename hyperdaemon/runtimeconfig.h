@@ -28,6 +28,9 @@
 #ifndef hyperdaemon_runtimeconfig_h_
 #define hyperdaemon_runtimeconfig_h_
 
+// C
+#include <stdint.h>
+
 // e
 #include <e/envconfig.h>
 
@@ -40,6 +43,8 @@ extern e::envconfig<unsigned int> PREALLOCATIONS_PER_SECOND;
 extern e::envconfig<unsigned int> OPTIMISM_BURSTS_PER_SECOND;
 extern e::envconfig<size_t> LOCK_STRIPING;
 extern e::envconfig<size_t> TRANSFERS_IN_FLIGHT;
+extern e::envconfig<uint16_t> REPLICATION_HASHTABLE_SIZE;
+extern e::envconfig<uint16_t> STATE_TRANSFER_HASHTABLE_SIZE;
 
 } // namespace hyperdaemon
 

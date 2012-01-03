@@ -45,6 +45,7 @@
 #include "hyperdaemon/daemon.h"
 #include "logical.h"
 #include "network_worker.h"
+#include "ongoing_state_transfers.h"
 #include "replication_manager.h"
 #include "searches.h"
 
@@ -101,8 +102,12 @@ hyperdaemon :: daemon(po6::pathname datadir,
     cl.set_announce(announce.str());
     // Setup the search component.
     searches ssss(&cl, &data, &comm);
+    // Setup the recovery component.
+    ongoing_state_transfers ost(&data);
     // Setup the replication component.
-    replication_manager repl(&cl, &data, &comm);
+    replication_manager repl(&cl, &data, &comm, &ost);
+    // Give the ongoing_state_transfers a view into the replication component
+    ost.set_replication_manager(&repl);
 
     LOG(INFO) << "Connecting to the coordinator.";
 
@@ -114,7 +119,7 @@ hyperdaemon :: daemon(po6::pathname datadir,
 
     // Start the network workers.
     LOG(INFO) << "Starting network workers.";
-    network_worker nw(&data, &comm, &ssss, &repl);
+    network_worker nw(&data, &comm, &ssss, &ost, &repl);
     std::tr1::function<void (network_worker*)> fnw(&network_worker::run);
     std::vector<thread_ptr> threads;
 
@@ -134,21 +139,9 @@ hyperdaemon :: daemon(po6::pathname datadir,
         {
             LOG(INFO) << "Installing new configuration.";
             hyperdex::instance newinst = comm.inst();
-            std::set<hyperdex::instance> hosts = cl.config().hosts();
-            // Zero the versions here.  This ensures that others will ignore us if there
-            // is not an instance which matches.
-            newinst.inbound_version = 0;
-            newinst.outbound_version = 0;
 
-            for (std::set<hyperdex::instance>::iterator h = hosts.begin(); h != hosts.end(); ++h)
-            {
-                if (h->inbound == newinst.inbound && h->outbound == newinst.outbound)
-                {
-                    newinst.inbound_version = h->inbound_version;
-                    newinst.outbound_version = h->outbound_version;
-                    break;
-                }
-            }
+            // Figure out which versions we were assigned.
+            cl.config().instance_versions(&newinst);
 
             if (newinst.inbound_version == 0 ||
                 newinst.outbound_version == 0)
@@ -158,7 +151,7 @@ hyperdaemon :: daemon(po6::pathname datadir,
 
             // Prepare for our new configuration.
             // These operations should assume that there will be network
-            // activity, and that the network threads will be in full force..
+            // activity, and that the network threads will be in full force.
             comm.prepare(cl.config(), newinst);
             data.prepare(cl.config(), newinst);
             repl.prepare(cl.config(), newinst);

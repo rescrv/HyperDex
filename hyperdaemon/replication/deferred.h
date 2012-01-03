@@ -40,15 +40,20 @@ class deferred
 {
     public:
         deferred(const bool has_value,
-                 const std::vector<e::buffer>& value,
+                 std::auto_ptr<e::buffer> backing,
+                 const e::slice& key,
+                 const std::vector<e::slice>& value,
                  const hyperdex::entityid& from_ent,
                  const hyperdex::instance& from_inst);
 
     public:
+        std::tr1::shared_ptr<e::buffer> backing;
         const bool has_value;
-        const std::vector<e::buffer> value;
+        const e::slice key;
+        const std::vector<e::slice> value;
         const hyperdex::entityid from_ent;
         const hyperdex::instance from_inst;
+        hyperdisk::reference ref;
 
     private:
         friend class e::intrusive_ptr<deferred>;
@@ -63,13 +68,18 @@ class deferred
 
 inline
 deferred :: deferred(const bool hv,
-                     const std::vector<e::buffer>& val,
+                     std::auto_ptr<e::buffer> b,
+                     const e::slice& k,
+                     const std::vector<e::slice>& val,
                      const hyperdex::entityid& e,
                      const hyperdex::instance& i)
-    : has_value(hv)
+    : backing(b.release())
+    , has_value(hv)
+    , key(k)
     , value(val)
     , from_ent(e)
     , from_inst(i)
+    , ref()
     , m_ref(0)
 {
 }

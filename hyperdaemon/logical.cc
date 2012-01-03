@@ -58,7 +58,6 @@ hyperdaemon :: logical :: logical(coordinatorlink* cl, const po6::net::ipaddr& i
     : m_cl(cl)
     , m_us()
     , m_config()
-    , m_mapping()
     , m_client_nums()
     , m_client_locs()
     , m_client_counter(0)
@@ -76,6 +75,12 @@ hyperdaemon :: logical :: ~logical() throw ()
 
 typedef std::map<hyperdex::entityid, hyperdex::instance>::iterator mapiter;
 
+size_t
+hyperdaemon :: logical :: header_size() const
+{
+    return sizeof(uint8_t) + m_physical.header_size() + 2 * sizeof(uint16_t) + 2 * entityid::SERIALIZEDSIZE;
+}
+
 void
 hyperdaemon :: logical :: prepare(const configuration&, const hyperdex::instance&)
 {
@@ -87,7 +92,6 @@ hyperdaemon :: logical :: reconfigure(const configuration& newconfig,
                                       const hyperdex::instance& newinst)
 {
     m_config = newconfig;
-    m_mapping = newconfig.entity_mapping();
     m_us = newinst;
 }
 
@@ -100,7 +104,7 @@ hyperdaemon :: logical :: cleanup(const configuration&, const hyperdex::instance
 bool
 hyperdaemon :: logical :: send(const hyperdex::entityid& from, const hyperdex::entityid& to,
                                const network_msgtype msg_type,
-                               const e::buffer& msg)
+                               std::auto_ptr<e::buffer> msg)
 {
     return send_you_hold_lock(from, to, msg_type, msg);
 }
@@ -108,11 +112,12 @@ hyperdaemon :: logical :: send(const hyperdex::entityid& from, const hyperdex::e
 bool
 hyperdaemon :: logical :: send(const hyperdex::regionid& from,
                                const hyperdex::entityid& to,
-                               const network_msgtype msg_type, const e::buffer& msg)
+                               const network_msgtype msg_type,
+                               std::auto_ptr<e::buffer> msg)
 {
-    entityid realfrom;
+    entityid realfrom = m_config.entityfor(m_us, from);
 
-    if (!our_position(from, &realfrom))
+    if (realfrom == entityid())
     {
         return false;
     }
@@ -123,75 +128,58 @@ hyperdaemon :: logical :: send(const hyperdex::regionid& from,
 bool
 hyperdaemon :: logical :: send_forward_else_head(const hyperdex::regionid& chain,
                                                  network_msgtype msg1_type,
-                                                 const e::buffer& msg1,
+                                                 std::auto_ptr<e::buffer> msg1,
                                                  const hyperdex::regionid& otherwise,
                                                  network_msgtype msg2_type,
-                                                 const e::buffer& msg2)
+                                                 std::auto_ptr<e::buffer> msg2)
 {
-    entityid from;
+    entityid from = m_config.entityfor(m_us, chain);
 
-    if (!our_position(chain, &from))
+    if (m_config.chain_has_next(from))
     {
-        return false;
-    }
-
-    entityid chain_next = entityid(from.get_region(), from.number + 1);
-
-    if (m_mapping.find(chain_next) != m_mapping.end())
-    {
-        return send_you_hold_lock(from, chain_next, msg1_type, msg1);
+        return send_you_hold_lock(from, m_config.chain_next(from),
+                                  msg1_type, msg1);
     }
     else
     {
-        entityid head = m_config.headof(otherwise);
-        return send_you_hold_lock(from, head, msg2_type, msg2);
+        return send_you_hold_lock(from, m_config.headof(otherwise),
+                                  msg2_type, msg2);
     }
 }
 
 bool
 hyperdaemon :: logical :: send_forward_else_tail(const hyperdex::regionid& chain,
                                                  network_msgtype msg1_type,
-                                                 const e::buffer& msg1,
+                                                 std::auto_ptr<e::buffer> msg1,
                                                  const hyperdex::regionid& otherwise,
                                                  network_msgtype msg2_type,
-                                                 const e::buffer& msg2)
+                                                 std::auto_ptr<e::buffer> msg2)
 {
-    entityid from;
+    entityid from = m_config.entityfor(m_us, chain);
 
-    if (!our_position(chain, &from))
+    if (m_config.chain_has_next(from))
     {
-        return false;
-    }
-
-    entityid chain_next = entityid(from.get_region(), from.number + 1);
-
-    if (m_mapping.find(chain_next) != m_mapping.end())
-    {
-        return send_you_hold_lock(from, chain_next, msg1_type, msg1);
+        return send_you_hold_lock(from, m_config.chain_next(from),
+                                  msg1_type, msg1);
     }
     else
     {
-        entityid tail = m_config.tailof(otherwise);
-        return send_you_hold_lock(from, tail, msg2_type, msg2);
+        return send_you_hold_lock(from, m_config.tailof(otherwise),
+                                  msg2_type, msg2);
     }
 }
 
 bool
 hyperdaemon :: logical :: send_backward(const hyperdex::regionid& chain,
                                         network_msgtype msg_type,
-                                        const e::buffer& msg)
+                                        std::auto_ptr<e::buffer> msg)
 {
-    entityid from;
+    entityid from = m_config.entityfor(m_us, chain);
 
-    if (!our_position(chain, &from))
+    if (m_config.chain_has_prev(from))
     {
-        return false;
-    }
-
-    if (from.number > 0)
-    {
-        entityid chain_prev = entityid(from.get_region(), from.number - 1);
-        return send_you_hold_lock(from, chain_prev, msg_type, msg);
+        return send_you_hold_lock(from, m_config.chain_prev(from),
+                                  msg_type, msg);
     }
     else
     {
@@ -202,34 +190,29 @@ hyperdaemon :: logical :: send_backward(const hyperdex::regionid& chain,
 bool
 hyperdaemon :: logical :: send_backward_else_tail(const hyperdex::regionid& chain,
                                                   network_msgtype msg1_type,
-                                                  const e::buffer& msg1,
+                                                  std::auto_ptr<e::buffer> msg1,
                                                   const hyperdex::regionid& otherwise,
                                                   network_msgtype msg2_type,
-                                                  const e::buffer& msg2)
+                                                  std::auto_ptr<e::buffer> msg2)
 {
-    entityid from;
+    entityid from = m_config.entityfor(m_us, chain);
 
-    if (!our_position(chain, &from))
+    if (m_config.chain_has_prev(from))
     {
-        return false;
-    }
-
-    if (from.number > 0)
-    {
-        entityid chain_prev = entityid(from.get_region(), from.number - 1);
-        return send_you_hold_lock(from, chain_prev, msg1_type, msg1);
+        return send_you_hold_lock(from, m_config.chain_prev(from),
+                                  msg1_type, msg1);
     }
     else
     {
-        entityid tail = m_config.tailof(otherwise);
-        return send_you_hold_lock(from, tail, msg2_type, msg2);
+        return send_you_hold_lock(from, m_config.tailof(otherwise),
+                                  msg2_type, msg2);
     }
 }
 
 bool
 hyperdaemon :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
                                network_msgtype* msg_type,
-                               e::buffer* msg)
+                               std::auto_ptr<e::buffer>* msg)
 {
     po6::net::location loc;
     bool fromvalid = false;
@@ -249,9 +232,7 @@ hyperdaemon :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
     //  - The message is to the correct version of our port bindings.
     do
     {
-        e::buffer packed;
-
-        switch(m_physical.recv(&loc, &packed))
+        switch(m_physical.recv(&loc, msg))
         {
             case physical::SHUTDOWN:
                 return false;
@@ -274,22 +255,19 @@ hyperdaemon :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
                 continue;
         }
 
-        if (packed.size() < sizeof(uint8_t) + 2 * sizeof(uint16_t) +
-                            2 * entityid::SERIALIZEDSIZE)
+        if ((*msg)->size() < header_size())
         {
             continue;
         }
 
         // This should not throw thanks to the size check above.
-        msg->clear();
         uint8_t mt;
-        e::unpacker up(packed.unpack());
-        up >> mt >> fromver >> tover >> *from >> *to;
-        up.leftovers(msg);
+        (*msg)->unpack_from(sizeof(uint32_t))
+            >> mt >> fromver >> tover >> *from >> *to;
         *msg_type = static_cast<network_msgtype>(mt);
 
         // If the message is from someone claiming to be a client.
-        if (from->space == UINT32_MAX)
+        if (from->space == hyperdex::configuration::CLIENTSPACE)
         {
             po6::net::location expected_loc;
 
@@ -319,38 +297,26 @@ hyperdaemon :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
                 from->mask = client_num;
             }
 
-            fromvalid = true;
             frominst.outbound = loc;
             frominst.outbound_version = fromver;
-
-            mapiter t = m_mapping.find(*to);
-            tovalid = t != m_mapping.end();
-
-            if (tovalid)
-            {
-                toinst = t->second;
-            }
+            fromvalid = true;
+            toinst = m_config.instancefor(*to);
+            tovalid = toinst != instance();
         }
         else
         {
-            // Find the from/to mappings.
-            mapiter f;
-            mapiter t;
-            f = m_mapping.find(*from);
-            t = m_mapping.find(*to);
-            fromvalid = f != m_mapping.end();
-            tovalid = t != m_mapping.end();
-
-            if (fromvalid)
-            {
-                frominst = f->second;
-            }
-
-            if (tovalid)
-            {
-                toinst = t->second;
-            }
+            frominst = m_config.instancefor(*from);
+            fromvalid = frominst != instance();
+            toinst = m_config.instancefor(*to);
+            tovalid = toinst != instance();
         }
+
+        if (!fromvalid) LOG(INFO) << "BAD TRACE";
+        if (!tovalid) LOG(INFO) << "BAD TRACE";
+        if (frominst.outbound != loc) LOG(INFO) << "BAD TRACE";
+        if (frominst.outbound_version != fromver) LOG(INFO) << "BAD TRACE";
+        if (toinst != m_us) LOG(INFO) << "BAD TRACE";
+        if (m_us.inbound_version != tover) LOG(INFO) << "BAD TRACE";
     }
     while (!fromvalid // Try again because we don't know the source.
             || !tovalid // Try again because we don't know the destination.
@@ -360,7 +326,7 @@ hyperdaemon :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
             || m_us.inbound_version != tover); // Try again because it is to an older version of us.
 
 #ifdef HD_LOG_ALL_MESSAGES
-    LOG(INFO) << "RECV " << *from << "->" << *to << " " << *msg_type << " " << msg->hex();
+    LOG(INFO) << "RECV " << *from << "->" << *to << " " << *msg_type << " " << (*msg)->hex();
 #endif
     return true;
 }
@@ -439,72 +405,55 @@ bool
 hyperdaemon :: logical :: send_you_hold_lock(const hyperdex::entityid& from,
                                              const hyperdex::entityid& to,
                                              const network_msgtype msg_type,
-                                             const e::buffer& msg)
+                                             std::auto_ptr<e::buffer> msg)
 {
 #ifdef HD_LOG_ALL_MESSAGES
-    LOG(INFO) << "SEND " << from << "->" << to << " " << msg_type << " " << msg.hex();
+    LOG(INFO) << "SEND " << from << "->" << to << " " << msg_type << " " << msg->hex();
 #endif
-    uint16_t fromver = 0;
-    uint16_t tover = 0;
-    po6::net::location dst;
+    instance src = m_config.instancefor(from);
+    instance dst;
 
     // If we are sending to a client
     if (to.space == UINT32_MAX)
     {
-        if (!m_client_locs.lookup(to.mask, &dst))
+        if (!m_client_locs.lookup(to.mask, &dst.inbound))
         {
             return false;
         }
 
-        mapiter f = m_mapping.find(from);
-
-        if (f == m_mapping.end() || f->second != m_us)
-        {
-            return false;
-        }
-
-        fromver = f->second.outbound_version;
+        dst.inbound_version = 1;
     }
     else
     {
-        mapiter f = m_mapping.find(from);
-        mapiter t = m_mapping.find(to);
+        dst = m_config.instancefor(to);
+    }
 
-        if (f == m_mapping.end() || t == m_mapping.end() || f->second != m_us)
-        {
-            return false;
-        }
-
-        fromver = f->second.outbound_version;
-        tover = t->second.inbound_version;
-        dst = t->second.inbound;
+    if (src != m_us || dst == instance())
+    {
+        return false;
     }
 
     uint8_t mt = static_cast<uint8_t>(msg_type);
-    e::buffer finalmsg(msg.size() + 32);
-    finalmsg.pack() << mt
-                    << fromver
-                    << tover
-                    << from
-                    << to;
-    finalmsg += msg;
+    assert(msg->size() >= header_size());
+    msg->pack_at(m_physical.header_size())
+        << mt << src.outbound_version << dst.inbound_version << from << to;
 
-    if (dst == m_us.inbound)
+    if (dst == m_us)
     {
-        m_physical.deliver(m_us.outbound, finalmsg);
+        m_physical.deliver(m_us.outbound, msg);
     }
     else
     {
-        switch (m_physical.send(dst, &finalmsg))
+        switch (m_physical.send(dst.inbound, msg))
         {
             case physical::SUCCESS:
             case physical::QUEUED:
                 break;
             case physical::CONNECTFAIL:
-                handle_connectfail(dst);
+                handle_connectfail(dst.inbound);
                 return false;
             case physical::DISCONNECT:
-                handle_disconnect(dst);
+                handle_disconnect(dst.inbound);
                 return false;
             case physical::SHUTDOWN:
                 LOG(ERROR) << "physical::recv unexpectedly returned SHUTDOWN.";
@@ -519,22 +468,4 @@ hyperdaemon :: logical :: send_you_hold_lock(const hyperdex::entityid& from,
     }
 
     return true;
-}
-
-bool
-hyperdaemon :: logical :: our_position(const regionid& r, entityid* e)
-{
-    mapiter f = m_mapping.lower_bound(entityid(r, 0));
-    mapiter t = m_mapping.upper_bound(entityid(r, UINT8_MAX));
-
-    for (; f != t; ++f)
-    {
-        if (f->second == m_us)
-        {
-            *e = f->first;
-            break;
-        }
-    }
-
-    return f != t;
 }

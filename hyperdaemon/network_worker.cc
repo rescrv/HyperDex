@@ -36,13 +36,18 @@
 // po6
 #include <po6/net/location.h>
 
+// HyperDisk
+#include <hyperdisk/reference.h>
+
 // HyperDex
 #include <hyperdex/network_constants.h>
+#include <hyperdex/packing.h>
 
 // HyperDaemon
 #include "datalayer.h"
 #include "logical.h"
 #include "network_worker.h"
+#include "ongoing_state_transfers.h"
 #include "replication_manager.h"
 #include "searches.h"
 
@@ -53,16 +58,18 @@ using hyperdex::network_returncode;
 hyperdaemon :: network_worker :: network_worker(datalayer* data,
                                                 logical* comm,
                                                 searches* ssss,
+                                                ongoing_state_transfers* ost,
                                                 replication_manager* repl)
     : m_continue(true)
     , m_data(data)
     , m_comm(comm)
     , m_ssss(ssss)
+    , m_ost(ost)
     , m_repl(repl)
 {
 }
 
-hyperdaemon :: network_worker :: ~network_worker()
+hyperdaemon :: network_worker :: ~network_worker() throw ()
 {
     if (m_continue)
     {
@@ -91,185 +98,236 @@ hyperdaemon :: network_worker :: run()
     entityid from;
     entityid to;
     network_msgtype type;
-    e::buffer msg;
-    uint64_t nonce;
-    uint64_t count = 0;
+    std::auto_ptr<e::buffer> msg;
 
     while (m_continue && m_comm->recv(&from, &to, &type, &msg))
     {
-        try
+        e::buffer::unpacker up = msg->unpack_from(m_comm->header_size());
+        uint64_t nonce;
+
+        if (type == hyperdex::REQ_GET)
         {
-            bool trickle = false;
+            e::slice key;
 
-            if (type == hyperdex::REQ_GET)
+            if ((up >> nonce >> key).error())
             {
-                e::buffer key;
-                std::vector<e::buffer> value;
-                uint64_t version;
-                e::unpacker up(msg.unpack());
-                up >> nonce;
-                up.leftovers(&key);
-                network_returncode result;
+                LOG(WARNING) << "unpack of REQ_GET failed; here's some hex:  " << msg->hex();
+                continue;
+            }
 
-                switch (m_data->get(to.get_region(), key, &value, &version))
-                {
-                    case hyperdisk::SUCCESS:
-                        result = hyperdex::NET_SUCCESS;
-                        break;
-                    case hyperdisk::NOTFOUND:
-                        result = hyperdex::NET_NOTFOUND;
-                        break;
-                    case hyperdisk::WRONGARITY:
-                        result = hyperdex::NET_WRONGARITY;
-                        break;
-                    case hyperdisk::MISSINGDISK:
-                        LOG(ERROR) << "GET caused a MISSINGDISK at the data layer.";
-                        result = hyperdex::NET_SERVERERROR;
-                        break;
-                    case hyperdisk::DATAFULL:
-                    case hyperdisk::SEARCHFULL:
-                    case hyperdisk::SYNCFAILED:
-                    case hyperdisk::DROPFAILED:
-                    case hyperdisk::SPLITFAILED:
-                    case hyperdisk::DIDNOTHING:
-                    default:
-                        LOG(ERROR) << "GET returned unacceptable error code.";
-                        result = hyperdex::NET_SERVERERROR;
-                        break;
-                }
+            std::vector<e::slice> value;
+            uint64_t version;
+            hyperdisk::reference ref;
+            network_returncode result;
 
-                msg.clear();
-                msg.pack() << nonce << static_cast<uint16_t>(result) << value;
-                m_comm->send(to, from, hyperdex::RESP_GET, msg);
-            }
-            else if (type == hyperdex::REQ_PUT)
+            switch (m_data->get(to.get_region(), key, &value, &version, &ref))
             {
-                e::buffer key;
-                std::vector<e::buffer> value;
-                msg.unpack() >> nonce >> key >> value;
-                m_repl->client_put(from, to.get_region(), nonce, key, value);
+                case hyperdisk::SUCCESS:
+                    result = hyperdex::NET_SUCCESS;
+                    break;
+                case hyperdisk::NOTFOUND:
+                    result = hyperdex::NET_NOTFOUND;
+                    break;
+                case hyperdisk::WRONGARITY:
+                    result = hyperdex::NET_WRONGARITY;
+                    break;
+                case hyperdisk::MISSINGDISK:
+                    LOG(ERROR) << "GET caused a MISSINGDISK at the data layer.";
+                    result = hyperdex::NET_SERVERERROR;
+                    break;
+                case hyperdisk::DATAFULL:
+                case hyperdisk::SEARCHFULL:
+                case hyperdisk::SYNCFAILED:
+                case hyperdisk::DROPFAILED:
+                case hyperdisk::SPLITFAILED:
+                case hyperdisk::DIDNOTHING:
+                default:
+                    LOG(ERROR) << "GET returned unacceptable error code.";
+                    result = hyperdex::NET_SERVERERROR;
+                    break;
             }
-            else if (type == hyperdex::REQ_DEL)
-            {
-                e::buffer key;
-                e::unpacker up(msg.unpack());
-                up >> nonce;
-                up.leftovers(&key);
-                m_repl->client_del(from, to.get_region(), nonce, key);
-            }
-            else if (type == hyperdex::REQ_UPDATE)
-            {
-                e::buffer key;
-                e::bitfield value_mask(0); // This will resize on unpack
-                std::vector<e::buffer> value;
-                msg.unpack() >> nonce >> key >> value_mask >> value;
-                m_repl->client_update(from, to.get_region(), nonce, key, value_mask, value);
-            }
-            else if (type == hyperdex::REQ_SEARCH_START)
-            {
-                uint64_t searchid;
-                hyperspacehashing::search s(0);
-                msg.unpack() >> nonce >> searchid >> s;
 
-                if (s.sanity_check())
-                {
-                    m_ssss->start(to.get_region(), from, searchid, nonce, s);
-                }
-                else
-                {
-                    LOG(INFO) << "Dropping search which fails sanity_check.";
-                }
-            }
-            else if (type == hyperdex::REQ_SEARCH_NEXT)
+            size_t sz = m_comm->header_size() + sizeof(uint64_t)
+                      + sizeof(uint16_t) + hyperdex::packspace(value);
+            msg.reset(e::buffer::create(sz));
+            e::buffer::packer pa = msg->pack_at(m_comm->header_size());
+            pa = pa << nonce << static_cast<uint16_t>(result) << value;
+            assert(!pa.error());
+            m_comm->send(to, from, hyperdex::RESP_GET, msg);
+        }
+        else if (type == hyperdex::REQ_PUT)
+        {
+            uint32_t attrs_sz;
+            e::slice key;
+            std::vector<std::pair<uint16_t, e::slice> > attrs;
+            up = up >> nonce >> key >> attrs_sz;
+
+            for (uint32_t i = 0; i < attrs_sz; ++i)
             {
-                uint64_t searchid;
-                msg.unpack() >> nonce >> searchid;
-                m_ssss->next(to.get_region(), from, searchid, nonce);
+                uint16_t dimnum;
+                e::slice val;
+                up = up >> dimnum >> val;
+                attrs.push_back(std::make_pair(dimnum, val));
             }
-            else if (type == hyperdex::REQ_SEARCH_STOP)
+
+            m_repl->client_put(from, to, nonce, msg, key, attrs);
+        }
+        else if (type == hyperdex::REQ_DEL)
+        {
+            up = up >> nonce;
+
+            if (up.error())
             {
-                uint64_t searchid;
-                msg.unpack() >> nonce >> searchid;
-                m_ssss->stop(to.get_region(), from, searchid);
+                LOG(WARNING) << "unpack of REQ_DEL failed; here's some hex:  " << msg->hex();
+                continue;
             }
-            else if (type == hyperdex::CHAIN_PUT)
+
+            e::slice key = up.as_slice();
+            m_repl->client_del(from, to.get_region(), nonce, msg, key);
+        }
+        else if (type == hyperdex::REQ_SEARCH_START)
+        {
+            uint64_t searchid;
+            hyperspacehashing::search s(0);
+
+            if ((up >> nonce >> searchid >> s).error())
             {
-                e::buffer key;
-                std::vector<e::buffer> value;
-                uint64_t version;
-                uint8_t fresh;
-                msg.unpack() >> version >> fresh >> key >> value;
-                m_repl->chain_put(from, to, version, fresh == 1, key, value);
+                LOG(WARNING) << "unpack of REQ_SEARCH_START failed; here's some hex:  " << msg->hex();
+                continue;
             }
-            else if (type == hyperdex::CHAIN_DEL)
+
+            if (s.sanity_check())
             {
-                e::buffer key;
-                uint64_t version;
-                msg.unpack() >> version >> key;
-                m_repl->chain_del(from, to, version, key);
-            }
-            else if (type == hyperdex::CHAIN_PENDING)
-            {
-                e::buffer key;
-                uint64_t version;
-                msg.unpack() >> version >> key;
-                m_repl->chain_pending(from, to, version, key);
-            }
-            else if (type == hyperdex::CHAIN_SUBSPACE)
-            {
-                uint64_t version;
-                e::buffer key;
-                std::vector<e::buffer> value;
-                uint64_t nextpoint;
-                msg.unpack() >> version >> key >> value >> nextpoint;
-                m_repl->chain_subspace(from, to, version, key, value, nextpoint);
-            }
-            else if (type == hyperdex::CHAIN_ACK)
-            {
-                e::buffer key;
-                uint64_t version;
-                msg.unpack() >> version >> key;
-                m_repl->chain_ack(from, to, version, key);
-                trickle = true;
-            }
-            else if (type == hyperdex::XFER_MORE)
-            {
-                m_repl->region_transfer(from, to);
-            }
-            else if (type == hyperdex::XFER_DONE)
-            {
-                m_repl->region_transfer_done(from, to);
-            }
-            else if (type == hyperdex::XFER_DATA)
-            {
-                uint64_t xfer_num;
-                uint8_t op;
-                uint64_t version;
-                e::buffer key;
-                std::vector<e::buffer> value;
-                msg.unpack() >> xfer_num >> op >> version >> key >> value;
-                m_repl->region_transfer(from, to.subspace, xfer_num,
-                                        op == 1, version, key, value);
+                m_ssss->start(to.get_region(), from, searchid, nonce, s);
             }
             else
             {
-                LOG(INFO) << "Message of unknown type received.";
-            }
-
-            if (trickle)
-            {
-                ++count;
-
-                if (count % 1000 == 0)
-                {
-                    m_data->trickle(to.get_region());
-                }
+                LOG(INFO) << "Dropping search which fails sanity_check.";
             }
         }
-        catch (std::out_of_range& e)
+        else if (type == hyperdex::REQ_SEARCH_NEXT)
         {
-            // Unpack error
-            LOG(INFO) << "Bad message " << from << "->" << to << " " << type << " " << msg.hex();
+            uint64_t searchid;
+
+            if ((up >> nonce >> searchid).error())
+            {
+                LOG(WARNING) << "unpack of REQ_SEARCH_NEXT failed; here's some hex:  " << msg->hex();
+                continue;
+            }
+
+            m_ssss->next(to.get_region(), from, searchid, nonce);
+        }
+        else if (type == hyperdex::REQ_SEARCH_STOP)
+        {
+            uint64_t searchid;
+
+            if ((up >> nonce >> searchid).error())
+            {
+                LOG(WARNING) << "unpack of REQ_SEARCH_STOP failed; here's some hex:  " << msg->hex();
+                continue;
+            }
+
+            m_ssss->stop(to.get_region(), from, searchid);
+        }
+        else if (type == hyperdex::CHAIN_PUT)
+        {
+            uint64_t version;
+            uint8_t fresh;
+            e::slice key;
+            std::vector<e::slice> value;
+
+            if ((up >> version >> fresh >> key >> value).error())
+            {
+                LOG(WARNING) << "unpack of CHAIN_PUT failed; here's some hex:  " << msg->hex();
+                continue;
+            }
+
+            m_repl->chain_put(from, to, version, fresh == 1, msg, key, value);
+        }
+        else if (type == hyperdex::CHAIN_DEL)
+        {
+            uint64_t version;
+            e::slice key;
+
+            if ((up >> version >> key).error())
+            {
+                LOG(WARNING) << "unpack of CHAIN_DEL failed; here's some hex:  " << msg->hex();
+                continue;
+            }
+
+            m_repl->chain_del(from, to, version, msg, key);
+        }
+        else if (type == hyperdex::CHAIN_PENDING)
+        {
+            uint64_t version;
+            e::slice key;
+
+            if ((up >> version >> key).error())
+            {
+                LOG(WARNING) << "unpack of CHAIN_PENDING failed; here's some hex:  " << msg->hex();
+                continue;
+            }
+
+            m_repl->chain_pending(from, to, version, msg, key);
+        }
+        else if (type == hyperdex::CHAIN_SUBSPACE)
+        {
+            uint64_t version;
+            e::slice key;
+            std::vector<e::slice> value;
+            uint64_t nextpoint;
+
+            if ((up >> version >> key >> value >> nextpoint).error())
+            {
+                LOG(WARNING) << "unpack of CHAIN_SUBSPACE failed; here's some hex:  " << msg->hex();
+                continue;
+            }
+
+            m_repl->chain_subspace(from, to, version, msg, key, value, nextpoint);
+        }
+        else if (type == hyperdex::CHAIN_ACK)
+        {
+            uint64_t version;
+            e::slice key;
+
+            if ((up >> version >> key).error())
+            {
+                LOG(WARNING) << "unpack of CHAIN_ACK failed; here's some hex:  " << msg->hex();
+                continue;
+            }
+
+            m_repl->chain_ack(from, to, version, msg, key);
+        }
+#if 0
+        else if (type == hyperdex::XFER_MORE)
+        {
+            m_ost->region_transfer(from, to);
+        }
+        else if (type == hyperdex::XFER_DONE)
+        {
+            m_ost->region_transfer_done(from, to);
+        }
+        else if (type == hyperdex::XFER_DATA)
+        {
+            uint64_t xfer_num;
+            uint8_t op;
+            uint64_t version;
+            e::slice key;
+            std::vector<e::slice> value;
+
+            if ((up >> xfer_num >> op >> version >> key >> value).error())
+            {
+                LOG(WARNING) << "unpack of XFER_DATA failed; here's some hex:  " << msg->hex();
+                continue;
+            }
+
+            m_ost->region_transfer(from, to.subspace, xfer_num,
+                                   op == 1, version, msg, key, value);
+        }
+#endif
+        else
+        {
+            LOG(INFO) << "Message of unknown type received.";
         }
     }
 }

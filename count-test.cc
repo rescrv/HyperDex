@@ -37,28 +37,10 @@
 #include <e/convert.h>
 
 // HyperDex
-#include <hyperclient/client.h>
+#include <hyperclient.h>
 
 static int
 usage();
-
-void
-handle_get(hyperclient::returncode ret, const std::vector<e::buffer>& value)
-{
-    if (ret != hyperclient::SUCCESS)
-    {
-        std::cerr << "Get returned " << ret << "." << std::endl;
-    }
-}
-
-void
-handle_put(hyperclient::returncode ret)
-{
-    if (ret != hyperclient::SUCCESS)
-    {
-        std::cerr << "Put returned " << ret << "." << std::endl;
-    }
-}
 
 int
 main(int argc, char* argv[])
@@ -131,8 +113,7 @@ main(int argc, char* argv[])
 
     try
     {
-        hyperclient::client cl(po6::net::location(ip, port));
-        cl.connect();
+        hyperclient cl(po6::net::location(ip, port));
 
         timespec start;
         timespec end;
@@ -141,16 +122,31 @@ main(int argc, char* argv[])
 
         for (uint64_t i = 1; i <= loopiter; ++i)
         {
-            e::buffer key;
-            key.pack() << i;
-            std::vector<e::buffer> val;
-            val.push_back(e::buffer(payload.c_str(), payload.size()));
+            hyperclient_returncode status = static_cast<hyperclient_returncode>(0x41);
+            uint64_t bei = htobe64(i);
+            const char* beic = reinterpret_cast<const char*>(&bei);
 
-            cl.put(space, key, val, handle_put);
-            cl.flush(-1);
-            val.clear();
-            cl.get(space, key, handle_get);
-            cl.flush(-1);
+            // Perform the PUT
+            hyperclient_returncode pstatus;
+            hyperclient_attribute pload;
+            pload.attr = "value";
+            pload.value = payload.c_str();
+            pload.value_sz = payload.size();
+            int64_t putid = cl.put(space.c_str(), beic, sizeof(bei),
+                                   &pload, 1, &pstatus);
+            int64_t putdi = cl.loop(-1, &status);
+            assert(putid == putdi);
+            assert(pstatus == HYPERCLIENT_SUCCESS);
+
+            // Perform the GET
+            hyperclient_returncode gstatus;
+            hyperclient_attribute* gload;
+            size_t gload_sz;
+            int64_t getid = cl.get(space.c_str(), beic, sizeof(beic),
+                                   &gstatus, &gload, &gload_sz);
+            int64_t getdi = cl.loop(-1, &status);
+            assert(getid == getdi);
+            assert(gstatus == HYPERCLIENT_SUCCESS);
         }
 
         clock_gettime(CLOCK_REALTIME, &end);

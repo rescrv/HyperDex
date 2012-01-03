@@ -34,6 +34,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/uio.h>
 #include <unistd.h>
 
 // C++
@@ -122,8 +123,8 @@ hyperdisk :: shard :: open(const po6::io::fd& base,
     // probably in this code block.
     if (ret->m_search_offset > 0)
     {
-        e::buffer key;
-        std::vector<e::buffer> value;
+        e::slice key;
+        std::vector<e::slice> value;
         size_t key_size = ret->data_key_size(ret->m_data_offset);
         ret->data_key(ret->m_data_offset, key_size, &key);
         ret->data_value(ret->m_data_offset, key_size, &value);
@@ -137,8 +138,8 @@ hyperdisk :: shard :: open(const po6::io::fd& base,
 
 hyperdisk::returncode
 hyperdisk :: shard :: get(uint32_t primary_hash,
-                          const e::buffer& key,
-                          std::vector<e::buffer>* value,
+                          const e::slice& key,
+                          std::vector<e::slice>* value,
                           uint64_t* version)
 {
     // Find the bucket.
@@ -163,7 +164,7 @@ hyperdisk :: shard :: get(uint32_t primary_hash,
 
 hyperdisk::returncode
 hyperdisk :: shard :: get(uint32_t primary_hash,
-                          const e::buffer& key)
+                          const e::slice& key)
 {
     // Find the bucket.
     size_t table_entry;
@@ -181,8 +182,8 @@ hyperdisk :: shard :: get(uint32_t primary_hash,
 
 hyperdisk::returncode
 hyperdisk :: shard :: put(const hyperspacehashing::mask::coordinate& coord,
-                          const e::buffer& key,
-                          const std::vector<e::buffer>& value,
+                          const e::slice& key,
+                          const std::vector<e::slice>& value,
                           uint64_t version,
                           uint32_t* cached)
 {
@@ -212,7 +213,7 @@ hyperdisk :: shard :: put(const hyperspacehashing::mask::coordinate& coord,
     curr_offset += sizeof(version);
     memmove(m_data + curr_offset, &key_size, sizeof(key_size));
     curr_offset += sizeof(key_size);
-    memmove(m_data + curr_offset, key.get(), key.size());
+    memmove(m_data + curr_offset, key.data(), key.size());
     curr_offset += key.size();
     memmove(m_data + curr_offset, &value_arity, sizeof(value_arity));
     curr_offset += sizeof(value_arity);
@@ -222,7 +223,7 @@ hyperdisk :: shard :: put(const hyperspacehashing::mask::coordinate& coord,
         uint32_t size = value[i].size();
         memmove(m_data + curr_offset, &size, sizeof(size));
         curr_offset += sizeof(size);
-        memmove(m_data + curr_offset, value[i].get(), value[i].size());
+        memmove(m_data + curr_offset, value[i].data(), value[i].size());
         curr_offset += value[i].size();
     }
 
@@ -264,7 +265,7 @@ hyperdisk :: shard :: put(const hyperspacehashing::mask::coordinate& coord,
 
 hyperdisk::returncode
 hyperdisk :: shard :: del(uint32_t primary_hash,
-                          const e::buffer& key,
+                          const e::slice& key,
                           uint32_t* cached)
 {
     size_t table_entry;
@@ -474,7 +475,7 @@ hyperdisk :: shard :: fsck(std::ostream& err)
         if (!zero)
         {
             uint32_t offset = m_search_log[ent].offset;
-            e::buffer key;
+            e::slice key;
             size_t key_size = data_key_size(offset);
             data_key(offset, key_size, &key);
 
@@ -579,8 +580,8 @@ hyperdisk :: shard :: ~shard()
 }
 
 size_t
-hyperdisk :: shard :: data_size(const e::buffer& key,
-                              const std::vector<e::buffer>& value) const
+hyperdisk :: shard :: data_size(const e::slice& key,
+                                const std::vector<e::slice>& value) const
 {
     size_t hypothetical_size = sizeof(uint64_t) + sizeof(uint32_t)
                              + sizeof(uint16_t) + key.size()
@@ -610,18 +611,18 @@ hyperdisk :: shard :: data_key_size(uint32_t offset) const
 
 void
 hyperdisk :: shard :: data_key(uint32_t offset,
-                             size_t keysize,
-                             e::buffer* key) const
+                               size_t keysize,
+                               e::slice* key) const
 {
     assert(((offset + 7) & ~7) == offset); // LCOV_EXCL_LINE
     uint32_t cur_offset = offset + sizeof(uint64_t) + sizeof(uint32_t);
-    *key = e::buffer(m_data + cur_offset, keysize);
+    *key = e::slice(m_data + cur_offset, keysize);
 }
 
 void
 hyperdisk :: shard :: data_value(uint32_t offset,
-                               size_t keysize,
-                               std::vector<e::buffer>* value) const
+                                 size_t keysize,
+                                 std::vector<e::slice>* value) const
 {
     assert(((offset + 7) & ~7) == offset); // LCOV_EXCL_LINE
     uint32_t cur_offset = offset + sizeof(uint64_t) + sizeof(uint32_t) + keysize;
@@ -635,9 +636,7 @@ hyperdisk :: shard :: data_value(uint32_t offset,
         uint32_t size;
         memmove(&size, m_data + cur_offset, sizeof(size));
         cur_offset += sizeof(size);
-        value->push_back(e::buffer());
-        e::buffer buf(m_data + cur_offset, size);
-        value->back().swap(buf);
+        value->push_back(e::slice(m_data + cur_offset, size));
         cur_offset += size;
     }
 }
@@ -645,7 +644,7 @@ hyperdisk :: shard :: data_value(uint32_t offset,
 // This hash lookup preserves the property that once a location in the table is
 // assigned to a particular key, it remains assigned to that key forever.
 void
-hyperdisk :: shard :: hash_lookup(uint32_t primary_hash, const e::buffer& key,
+hyperdisk :: shard :: hash_lookup(uint32_t primary_hash, const e::slice& key,
                                   size_t* entry, uint64_t* value)
 {
     size_t start = HASH_INTO_TABLE(primary_hash);
@@ -662,7 +661,7 @@ hyperdisk :: shard :: hash_lookup(uint32_t primary_hash, const e::buffer& key,
             size_t key_size = data_key_size(this_offset);
 
             if (key_size == key.size() &&
-                memcmp(m_data + data_key_offset(this_offset), key.get(), key_size) == 0)
+                memcmp(m_data + data_key_offset(this_offset), key.data(), key_size) == 0)
             {
                 *entry = bucket;
                 *value = this_entry;

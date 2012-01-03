@@ -25,61 +25,42 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// C
-#include <cstdio>
+#ifndef hyperdisk_reference_h_
+#define hyperdisk_reference_h_
 
-// POSIX
-#include <signal.h>
+// e
+#include <e/intrusive_ptr.h>
+#include <e/locking_iterable_fifo.h>
 
-// Google Log
-#include <glog/logging.h>
-
-// po6
-#include <po6/error.h>
-
-// HyperDex
-#include <hyperdaemon/daemon.h>
-
-int
-usage();
-
-int
-main(int argc, char* argv[])
+// Forward Declarations
+namespace hyperdisk
 {
-    google::InitGoogleLogging(argv[0]);
-    google::InstallFailureSignalHandler();
-
-    if (argc != 4 && argc != 5)
-    {
-        return usage();
-    }
-
-    // Run the daemon.
-    try
-    {
-        po6::net::location coordinator = po6::net::location(argv[1], atoi(argv[2]));
-        po6::net::ipaddr bind_to = po6::net::ipaddr(argv[3]);
-        po6::pathname base = ".";
-
-        if (argc == 5)
-        {
-            base = argv[4];
-        }
-
-        return hyperdaemon::daemon(base, coordinator, 1, bind_to, 0, 0);
-    }
-    catch (std::exception& e)
-    {
-        LOG(ERROR) << "Uncaught exception:  " << e.what();
-    }
-
-    return EXIT_SUCCESS;
+class log_entry;
+class shard;
 }
 
-int
-usage()
+namespace hyperdisk
 {
-    std::cerr << "Usage:  hyperdexd <coordinator ip> <coordinator port> <bind to> [<datadir>]"
-              << std::endl;
-    return EXIT_FAILURE;
-}
+
+class reference
+{
+    public:
+        reference();
+        reference(const reference& other);
+        ~reference() throw ();
+
+    public:
+        void set(const e::locking_iterable_fifo<log_entry>::iterator& it);
+        void set(const e::intrusive_ptr<shard>& shard);
+
+    public:
+        reference& operator = (const reference& rhs);
+
+    private:
+        std::auto_ptr<e::locking_iterable_fifo<log_entry>::iterator> m_it;
+        e::intrusive_ptr<shard> m_shard;
+};
+
+} // namespace hyperdisk
+
+#endif // hyperdisk_reference_h_

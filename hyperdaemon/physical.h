@@ -80,10 +80,13 @@ class physical
 
     // Send and recv messages.
     public:
-        returncode send(const po6::net::location& to, e::buffer* msg);
-        returncode recv(po6::net::location* from, e::buffer* msg);
+        // Every message has a header of this size.  Senders must allocate this
+        // space.  Receivers may ignore this space.
+        size_t header_size() const { return sizeof(uint32_t); }
+        returncode send(const po6::net::location& to, std::auto_ptr<e::buffer> msg);
+        returncode recv(po6::net::location* from, std::auto_ptr<e::buffer>* msg);
         // Deliver a message (put it on the queue) as if it came from "from".
-        void deliver(const po6::net::location& from, const e::buffer& msg);
+        void deliver(const po6::net::location& from, std::auto_ptr<e::buffer> msg);
 
     // Figure out our own socket info.
     public:
@@ -97,7 +100,7 @@ class physical
             ~message() throw () {}
 
             po6::net::location loc;
-            e::buffer buf;
+            std::auto_ptr<e::buffer> buf;
         };
 
         class channel
@@ -110,9 +113,12 @@ class physical
                 po6::threads::mutex mtx; // Anyone touching the socket should hold this.
                 po6::net::socket soc; // The socket over which we are communicating.
                 po6::net::location loc; // A cached soc.getpeername.
-                e::lockfree_fifo<e::buffer> outgoing; // Messages buffered for writing.
-                e::buffer outprogress; // When writing to the network, we buffer partial writes here.
-                e::buffer inprogress; // When reading from the network, we buffer partial reads here.
+                e::lockfree_fifo<std::auto_ptr<e::buffer> > outgoing; // Messages buffered for writing.
+                std::auto_ptr<e::buffer> outnow; // The current message we are writing to the network.
+                e::slice outprogress; // A pointer into what we've written so far.
+                std::auto_ptr<e::buffer> inprogress; // When reading from the network, we buffer partial reads here.
+                size_t inoffset; // How much we've buffered in inbuffer.
+                char inbuffer[sizeof(uint32_t)]; // We buffer reads here when we haven't read enough to set the size of inprogress.
 
             private:
                 channel(const channel&);
@@ -129,14 +135,20 @@ class physical
     private:
         // get_channel creates a new channel, or finds an existing one matching
         // the specific parameter.
-        returncode get_channel(const hazard_ptr& hptr, const po6::net::location& to, channel** chan);
-        returncode get_channel(const hazard_ptr& hptr, po6::net::socket* to, channel** chan);
+        returncode get_channel(const hazard_ptr& hptr,
+                               const po6::net::location& to,
+                               channel** chan);
+        returncode get_channel(const hazard_ptr& hptr,
+                               po6::net::socket* to,
+                               channel** chan);
         // worker functions.
         int work_accept(const hazard_ptr& hptr);
         // work_close must be called without holding chan->mtx.
         void work_close(const hazard_ptr& hptr, channel* chan);
         // work_read must be called without holding chan->mtx.
-        bool work_read(const hazard_ptr& hptr, channel* chan, po6::net::location* from, e::buffer* msg, returncode* res);
+        bool work_read(const hazard_ptr& hptr, channel* chan,
+                       po6::net::location* from, std::auto_ptr<e::buffer>* msg,
+                       returncode* res);
         // work_write must be called while holding chan->mtx.
         bool work_write(channel* chan);
 

@@ -4,5 +4,5 @@ AM_CXXFLAGS = $(COVERAGE_CXXFLAGS)
 noinst_PROGRAMS = cfloat
 
 cfloat_SOURCES = cfloat.cc
-cfloat_LDADD = ../libhyperspacehashing.la $(COVERAGE_LDADD)
+cfloat_LDADD = ../libhyperspacehashing.la $(COVERAGE_LDADD) -le
 cfloat_LDFLAGS = -no-install

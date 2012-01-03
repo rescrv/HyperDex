@@ -29,8 +29,9 @@
 #define hyperdisk_disk_h_
 
 // STL
-#include <memory>
 #include <queue>
+#include <string>
+#include <tr1/memory>
 #include <vector>
 
 // po6
@@ -39,12 +40,14 @@
 
 // e
 #include <e/intrusive_ptr.h>
+#include <e/lockfree_hash_map.h>
 #include <e/locking_iterable_fifo.h>
 
 // HyperspaceHashing
 #include <hyperspacehashing/mask.h>
 
 // HyperDisk
+#include <hyperdisk/reference.h>
 #include <hyperdisk/returncode.h>
 #include <hyperdisk/snapshot.h>
 
@@ -75,13 +78,13 @@ class disk
 
     public:
         // May return SUCCESS or NOTFOUND.
-        returncode get(const e::buffer& key, std::vector<e::buffer>* value,
-                       uint64_t* version);
+        returncode get(const e::slice& key, std::vector<e::slice>* value,
+                       uint64_t* version, reference* backing);
         // May return SUCCESS or WRONGARITY.
-        returncode put(const e::buffer& key, const std::vector<e::buffer>& value,
-                       uint64_t version);
+        returncode put(std::tr1::shared_ptr<e::buffer> backing, const e::slice& key,
+                       const std::vector<e::slice>& value, uint64_t version);
         // May return SUCCESS.
-        returncode del(const e::buffer& key);
+        returncode del(std::tr1::shared_ptr<e::buffer> backing, const e::slice& key);
         // Create a snapshot of the disk.  The snapshot will contain the result
         // after applying a prefix of the execution history of the disk.
         e::intrusive_ptr<snapshot> make_snapshot(const hyperspacehashing::search& terms);
@@ -120,11 +123,16 @@ class disk
 
     private:
         friend class e::intrusive_ptr<disk>;
+        class stored;
+        static uint64_t hash(const std::string& s);
+        typedef e::lockfree_hash_map<std::string, e::intrusive_ptr<stored>, hash>
+                stored_map_t;
 
     private:
         disk(const po6::pathname& directory,
              const hyperspacehashing::mask::hasher& hasher,
              uint16_t arity);
+        disk();
         ~disk() throw ();
 
     private:

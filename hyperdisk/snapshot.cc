@@ -89,14 +89,14 @@ hyperdisk :: snapshot :: version()
     return m_snaps.back().version();
 }
 
-const e::buffer&
+const e::slice&
 hyperdisk :: snapshot :: key()
 {
     assert(!m_snaps.empty());
     return m_snaps.back().key();
 }
 
-const std::vector<e::buffer>&
+const std::vector<e::slice>&
 hyperdisk :: snapshot :: value()
 {
     assert (!m_snaps.empty());
@@ -169,7 +169,7 @@ hyperdisk :: rolling_snapshot :: version()
     }
 }
 
-e::buffer
+const e::slice&
 hyperdisk :: rolling_snapshot :: key()
 {
     if (m_snap->valid())
@@ -182,11 +182,11 @@ hyperdisk :: rolling_snapshot :: key()
     }
     else
     {
-        return e::buffer();
+        abort();
     }
 }
 
-std::vector<e::buffer>
+const std::vector<e::slice>&
 hyperdisk :: rolling_snapshot :: value()
 {
     if (m_snap->valid())
@@ -199,6 +199,6 @@ hyperdisk :: rolling_snapshot :: value()
     }
     else
     {
-        return std::vector<e::buffer>();
+        abort();
     }
 }

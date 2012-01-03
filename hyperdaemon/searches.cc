@@ -32,6 +32,9 @@
 #include <hyperdisk/disk.h>
 #include <hyperdisk/returncode.h>
 
+// HyperDex
+#include <hyperdex/hyperdex/packing.h>
+
 // HyperDaemon
 #include "datalayer.h"
 #include "logical.h"
@@ -119,10 +122,24 @@ hyperdaemon :: searches :: next(const hyperdex::regionid& region,
     {
         if (state->search_coord.intersects(state->snap->coordinate()))
         {
-            if (state->terms.matches(state->snap->key(), state->snap->value()))
+            std::vector<e::slice> tmp;
+
+            for (size_t i = 0; i < state->snap->value().size(); ++i)
             {
-                e::buffer msg;
-                msg.pack() << nonce << state->snap->key() << state->snap->value();
+                tmp.push_back(state->snap->value()[i]);
+            }
+
+            if (state->terms.matches(state->snap->key(), tmp))
+            {
+                size_t sz = m_comm->header_size() + sizeof(uint64_t)
+                          + state->snap->key().size()
+                          + hyperdex::packspace(state->snap->value());
+                std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+                bool fits = (msg->pack_at(m_comm->header_size())
+                                << nonce
+                                << state->snap->key()
+                                << state->snap->value()).error();
+                assert(fits);
                 m_comm->send(state->region, client, hyperdex::RESP_SEARCH_ITEM, msg);
                 state->snap->next();
                 return;
@@ -132,8 +149,9 @@ hyperdaemon :: searches :: next(const hyperdex::regionid& region,
         state->snap->next();
     }
 
-    e::buffer msg;
-    msg.pack() << nonce;
+    std::auto_ptr<e::buffer> msg(e::buffer::create(m_comm->header_size() + sizeof(uint64_t)));
+    bool fits = (msg->pack_at(m_comm->header_size()) << nonce).error();
+    assert(fits);
     m_comm->send(state->region, client, hyperdex::RESP_SEARCH_DONE, msg);
     stop(region, client, search_num);
 }

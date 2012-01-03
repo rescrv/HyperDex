@@ -25,61 +25,29 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// C
-#include <cstdio>
+#ifndef hyperdex_packing_h_
+#define hyperdex_packing_h_
 
-// POSIX
-#include <signal.h>
+// e
+#include <e/buffer.h>
+#include <e/slice.h>
 
-// Google Log
-#include <glog/logging.h>
-
-// po6
-#include <po6/error.h>
-
-// HyperDex
-#include <hyperdaemon/daemon.h>
-
-int
-usage();
-
-int
-main(int argc, char* argv[])
+namespace hyperdex
 {
-    google::InitGoogleLogging(argv[0]);
-    google::InstallFailureSignalHandler();
 
-    if (argc != 4 && argc != 5)
+inline size_t
+packspace(const std::vector<e::slice>& slices)
+{
+    size_t sum = sizeof(uint32_t);
+
+    for (size_t i = 0; i < slices.size(); ++i)
     {
-        return usage();
+        sum += sizeof(uint32_t) + slices[i].size();
     }
 
-    // Run the daemon.
-    try
-    {
-        po6::net::location coordinator = po6::net::location(argv[1], atoi(argv[2]));
-        po6::net::ipaddr bind_to = po6::net::ipaddr(argv[3]);
-        po6::pathname base = ".";
-
-        if (argc == 5)
-        {
-            base = argv[4];
-        }
-
-        return hyperdaemon::daemon(base, coordinator, 1, bind_to, 0, 0);
-    }
-    catch (std::exception& e)
-    {
-        LOG(ERROR) << "Uncaught exception:  " << e.what();
-    }
-
-    return EXIT_SUCCESS;
+    return sum;
 }
 
-int
-usage()
-{
-    std::cerr << "Usage:  hyperdexd <coordinator ip> <coordinator port> <bind to> [<datadir>]"
-              << std::endl;
-    return EXIT_FAILURE;
-}
+} // namespace hyperdex
+
+#endif // hyperdex_packing_h_

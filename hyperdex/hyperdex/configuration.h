@@ -51,9 +51,8 @@ namespace hyperdex
 class configuration
 {
     public:
-        const static spaceid NULLSPACE;
-        const static instance NULLINSTANCE;
         const static uint32_t CLIENTSPACE;
+        const static uint32_t TRANSFERSPACE;
 
     public:
         configuration();
@@ -62,16 +61,40 @@ class configuration
     public:
         bool add_line(const std::string& line);
 
+    // Data-layout (not hashing)
     public:
-        spaceid lookup_spaceid(const std::string& space) const;
-        std::vector<std::string> lookup_space_dimensions(spaceid space) const;
+        size_t dimensions(const spaceid& s) const;
+        std::vector<std::string> dimension_names(const spaceid& s) const;
+        spaceid space(const char* spacename) const;
+        size_t subspaces(const spaceid& s) const;
 
+    // Entity/instance
     public:
+        // The entity that corresponds to instance i in region r.
+        entityid entityfor(const instance& i, const regionid& r) const;
+        // Returns the correct instance or NULLINSTANCE
+        instance instancefor(const entityid& e) const;
+        // Sets the port versions to the match the given IP/ports, or 0 if there
+        // is no instance with the given IP/ports
+        void instance_versions(instance* i) const;
+        // The set of regions to which an instance is assigned
+        std::set<regionid> regions_for(const instance& i) const;
+        // Is the instance a member of the region's chain?
+        bool in_region(const instance& i, const regionid& r) const;
+        bool is_client(const entityid& e) const;
+        bool is_point_leader(const entityid& e) const;
+
+    // Chain
+    public:
+        bool chain_adjacent(const entityid& f, const entityid& s) const;
+        bool chain_has_next(const entityid& e) const;
+        bool chain_has_prev(const entityid& e) const;
+        entityid chain_next(const entityid& e) const;
+        entityid chain_prev(const entityid& e) const;
         entityid headof(const regionid& r) const;
         entityid tailof(const regionid& r) const;
-        instance instancefor(const entityid& e) const;
 
-    // Hashing-related functions.
+    // Hashing
     public:
         hyperspacehashing::mask::hasher disk_hasher(const subspaceid& subspace) const;
         hyperspacehashing::prefix::hasher repl_hasher(const subspaceid& subspace) const;
@@ -82,49 +105,11 @@ class configuration
         std::map<entityid, instance> search_entities(const subspaceid& subspace,
                                                      const hyperspacehashing::search& s) const;
 
-    // Everything public below this line is deprecated.
-    // XXX Remove stuff below this line in favor of easier APIs.
-        instance lookup(const entityid& e) const { return instancefor(e); }
+    // Transfers
     public:
-        // Return the number of subspaces within the space.
-        bool subspaces(const spaceid& s, size_t* sz) const;
-
-        // Returns the number of dimensions (including the key) which describe a
-        // point in the space.
-        bool dimensionality(const spaceid& s, size_t* sz) const;
-
-        // Return the number of dimensions  which describe a point within a
-        // region.  The number of dimensions which describe the point within a
-        // region are defined to be those dimension from the parent space which
-        // were specified at creation time.  Example:
-        //
-        // Config:
-        //      space   0x0 kv  key value1  value2
-        //      subspace    kv  0   key
-        //      subspace    kv  1   value1  value2
-        //
-        // Calls:
-        //      dimensionality(subspace(0x0, 0)) == 1
-        //      dimensionality(subspace(0x0, 1)) == 2
-        bool dimensionality(const subspaceid& r, size_t* sz) const;
-
-        // Return a bitmask indicating which dimensions of a space are used to
-        // create the subspace.  If the subspace doesn't exist, an empty vector
-        // is returned.
-        bool dimensions(const subspaceid& ss, std::vector<bool>* dims) const;
-
-        // Return the set of transfers in progress to a particular host.
-        std::map<uint16_t, regionid> transfers_to(const instance& i) const;
         std::map<uint16_t, regionid> transfers_from(const instance& i) const;
+        std::map<uint16_t, regionid> transfers_to(const instance& i) const;
 
-        // Perhaps these should be a little less transparent.
-        const std::map<spaceid, std::vector<std::string> >& spaces() const { return m_spaces; }
-        const std::map<entityid, instance>& entity_mapping() const { return m_entities; }
-        const std::map<std::string, spaceid>& space_assignment() const { return m_space_assignment; }
-        std::map<regionid, size_t> regions() const;
-        std::set<instance> hosts() const;
-
-    // Below this line is not deprecated.
     private:
         std::map<entityid, instance> _search_entities(std::map<entityid, instance>::const_iterator start,
                                                       std::map<entityid, instance>::const_iterator end,

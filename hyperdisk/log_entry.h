@@ -29,6 +29,7 @@
 #define hyperdisk_log_entry_h_
 
 // STL
+#include <tr1/memory>
 #include <vector>
 
 // e
@@ -52,17 +53,20 @@ class log_entry
     public:
         log_entry();
         log_entry(const hyperspacehashing::mask::coordinate& coord,
-                  const e::buffer& key,
-                  const std::vector<e::buffer>& value,
+                  std::tr1::shared_ptr<e::buffer> backing,
+                  const e::slice& key,
+                  const std::vector<e::slice>& value,
                   uint64_t version);
         log_entry(const hyperspacehashing::mask::coordinate& coord,
-                  const e::buffer& key);
+                  std::tr1::shared_ptr<e::buffer> backing,
+                  const e::slice& key);
 
     public:
         hyperspacehashing::mask::coordinate coord;
         bool is_put;
-        e::buffer key;
-        std::vector<e::buffer> value;
+        std::tr1::shared_ptr<e::buffer> backing;
+        e::slice key;
+        std::vector<e::slice> value;
         uint64_t version;
 };
 
@@ -70,6 +74,7 @@ inline
 log_entry :: log_entry()
     : coord()
     , is_put()
+    , backing()
     , key()
     , value()
     , version()
@@ -78,11 +83,13 @@ log_entry :: log_entry()
 
 inline
 log_entry :: log_entry(const hyperspacehashing::mask::coordinate& c,
-                       const e::buffer& k,
-                       const std::vector<e::buffer>& va,
+                       std::tr1::shared_ptr<e::buffer> b,
+                       const e::slice& k,
+                       const std::vector<e::slice>& va,
                        uint64_t ve)
     : coord(c)
     , is_put(true)
+    , backing(b)
     , key(k)
     , value(va)
     , version(ve)
@@ -91,9 +98,11 @@ log_entry :: log_entry(const hyperspacehashing::mask::coordinate& c,
 
 inline
 log_entry :: log_entry(const hyperspacehashing::mask::coordinate& c,
-                       const e::buffer& k)
+                       std::tr1::shared_ptr<e::buffer> b,
+                       const e::slice& k)
     : coord(c)
     , is_put(false)
+    , backing(b)
     , key(k)
     , value()
     , version()

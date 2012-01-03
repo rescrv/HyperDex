@@ -41,10 +41,14 @@
 
 // e
 #include <e/buffer.h>
+#include <e/lockfree_hash_map.h>
 
 // HyperDisk
 #include <hyperdisk/disk.h>
 #include <hyperdisk/returncode.h>
+
+// HyperDex
+#include <hyperdex/ids.h>
 
 // Forward Declarations
 namespace hyperdex
@@ -72,25 +76,33 @@ class datalayer
         e::intrusive_ptr<hyperdisk::snapshot> make_snapshot(const hyperdex::regionid& ri,
                                                             const hyperspacehashing::search& terms);
         e::intrusive_ptr<hyperdisk::rolling_snapshot> make_rolling_snapshot(const hyperdex::regionid& ri);
-        // Push data towards the disk.
-        void trickle(const hyperdex::regionid& ri);
 
     // Key-Value store operations.
     public:
         // May return SUCCESS, NOTFOUND or MISSINGDISK.
-        hyperdisk::returncode get(const hyperdex::regionid& ri, const e::buffer& key,
-                                  std::vector<e::buffer>* value, uint64_t* version);
+        hyperdisk::returncode get(const hyperdex::regionid& ri, const e::slice& key,
+                                  std::vector<e::slice>* value, uint64_t* version,
+                                  hyperdisk::reference* ref);
         // May return SUCCESS, WRONGARITY or MISSINGDISK.
-        hyperdisk::returncode put(const hyperdex::regionid& ri, const e::buffer& key,
-                                  const std::vector<e::buffer>& value, uint64_t version);
+        hyperdisk::returncode put(const hyperdex::regionid& ri,
+                                  std::tr1::shared_ptr<e::buffer> backing,
+                                  const e::slice& key,
+                                  const std::vector<e::slice>& value,
+                                  uint64_t version);
         // May return SUCCESS or MISSINGDISK.
-        hyperdisk::returncode del(const hyperdex::regionid& ri, const e::buffer& key);
+        hyperdisk::returncode del(const hyperdex::regionid& ri,
+                                  std::tr1::shared_ptr<e::buffer> backing,
+                                  const e::slice& key);
+
+    private:
+        static uint64_t regionid_hash(const hyperdex::regionid& r) { return r.hash(); }
+        typedef e::lockfree_hash_map<hyperdex::regionid, e::intrusive_ptr<hyperdisk::disk>, regionid_hash>
+                disk_map_t;
 
     private:
         datalayer(const datalayer&);
 
     private:
-        e::intrusive_ptr<hyperdisk::disk> get_region(const hyperdex::regionid& ri);
         void optimistic_io_thread();
         void flush_thread();
         void create_disk(const hyperdex::regionid& ri,
@@ -107,8 +119,7 @@ class datalayer
         po6::pathname m_base;
         po6::threads::thread m_optimistic_io_thread;
         po6::threads::thread m_flush_thread;
-        po6::threads::rwlock m_lock;
-        std::map<hyperdex::regionid, e::intrusive_ptr<hyperdisk::disk> > m_disks;
+        disk_map_t m_disks;
         volatile uint64_t m_last_flush;
         std::list<hyperdex::regionid> m_preallocate_rr;
         uint64_t m_last_preallocation;

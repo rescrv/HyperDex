@@ -32,10 +32,13 @@
 #include <glog/logging.h>
 
 // e
+#include <e/bufferio.h>
 #include <e/guard.h>
 
 // HyperDaemon
 #include "physical.h"
+
+using e::bufferio::read;
 
 hyperdaemon :: physical :: physical(const po6::net::ipaddr& ip,
                                     in_port_t incoming,
@@ -110,8 +113,9 @@ hyperdaemon :: physical :: shutdown()
 
 hyperdaemon::physical::returncode
 hyperdaemon :: physical :: send(const po6::net::location& to,
-                                e::buffer* msg)
+                                std::auto_ptr<e::buffer> msg)
 {
+    assert(msg->capacity() >= sizeof(uint32_t));
     hazard_ptr hptr = m_hazard_ptrs.get();
     channel* chan;
 
@@ -122,19 +126,20 @@ hyperdaemon :: physical :: send(const po6::net::location& to,
         return res;
     }
 
+    *msg << static_cast<uint32_t>(msg->size());
+
     if (chan->mtx.trylock())
     {
         e::guard g = e::makeobjguard(chan->mtx, &po6::threads::mutex::unlock);
 
         if (chan->outprogress.empty())
         {
-            chan->outprogress.pack() << *msg;
+            chan->outnow = msg;
+            chan->outprogress = chan->outnow->as_slice();
         }
         else
         {
-            e::buffer buf;
-            buf.pack() << *msg;
-            chan->outgoing.push(buf);
+            chan->outgoing.push(msg);
         }
 
         work_write(chan);
@@ -142,16 +147,14 @@ hyperdaemon :: physical :: send(const po6::net::location& to,
     }
     else
     {
-        e::buffer buf;
-        buf.pack() << *msg;
-        chan->outgoing.push(buf);
+        chan->outgoing.push(msg);
         return QUEUED;
     }
 }
 
 hyperdaemon::physical::returncode
 hyperdaemon :: physical :: recv(po6::net::location* from,
-                                e::buffer* msg)
+                                std::auto_ptr<e::buffer>* msg)
 {
     message m;
     bool ret = m_incoming.pop(&m);
@@ -159,7 +162,7 @@ hyperdaemon :: physical :: recv(po6::net::location* from,
     if (ret)
     {
         *from = m.loc;
-        msg->swap(m.buf);
+        *msg = m.buf;
         return SUCCESS;
     }
 
@@ -191,7 +194,7 @@ hyperdaemon :: physical :: recv(po6::net::location* from,
             return SHUTDOWN;
         }
 
-        if (poll(&pfds.front(), pfds.size(), 10) < 0)
+        if (poll(&pfds.front(), pfds.size(), 100) < 0)
         {
             if (errno != EAGAIN && errno != EINTR && errno != EWOULDBLOCK)
             {
@@ -291,7 +294,7 @@ hyperdaemon :: physical :: recv(po6::net::location* from,
 
 void
 hyperdaemon :: physical :: deliver(const po6::net::location& from,
-                                   const e::buffer& msg)
+                                   std::auto_ptr<e::buffer> msg)
 {
     message m;
     m.loc = from;
@@ -420,7 +423,7 @@ bool
 hyperdaemon :: physical :: work_read(const hazard_ptr& hptr,
                                      channel* chan,
                                      po6::net::location* from,
-                                     e::buffer* msg,
+                                     std::auto_ptr<e::buffer>* msg,
                                      returncode* res)
 {
     if (!chan->mtx.trylock())
@@ -435,69 +438,96 @@ hyperdaemon :: physical :: work_read(const hazard_ptr& hptr,
         return false;
     }
 
-    try
+    char buffer[IO_BLOCKSIZE];
+    ssize_t rem;
+
+    // Restore leftovers from last time.
+    if (chan->inoffset)
     {
-        size_t ret = read(&chan->soc, &chan->inprogress, IO_BLOCKSIZE);
+        memmove(buffer, chan->inbuffer, chan->inoffset);
+    }
 
-        if (ret == 0)
-        {
-            *from = chan->loc;
-            *res = DISCONNECT;
-            chan->mtx.unlock();
-            g.dismiss();
-            work_close(hptr, chan);
-            return true;
-        }
+    // Read into our temporary local buffer.
+    rem = chan->soc.read(buffer + chan->inoffset, IO_BLOCKSIZE - chan->inoffset);
 
-        std::vector<message> ms;
-
-        while (chan->inprogress.size() >= sizeof(uint32_t))
-        {
-            uint32_t message_size;
-            chan->inprogress.unpack() >> message_size;
-
-            if (chan->inprogress.size() < message_size + sizeof(uint32_t))
-            {
-                break;
-            }
-
-            ms.push_back(message());
-            message& m(ms.back());
-            chan->inprogress.unpack() >> m.buf; // Different unpacker.
-            m.loc = chan->loc;
-            chan->inprogress.trim_prefix(message_size + sizeof(uint32_t));
-        }
-
-        if (ms.empty())
-        {
-            return false;
-        }
-
-        for (size_t i = 1; i < ms.size(); ++i)
-        {
-            m_incoming.push(ms[i]);
-        }
-
-        *from = ms[0].loc;
-        *res = SUCCESS;
-        msg->swap(ms[0].buf);
+    // If it's an error case, we should short-circuit.
+    if ((rem < 0 && errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK)
+            || rem == 0)
+    {
+        LOG(ERROR) << "could not read from " << chan->loc << "; closing";
+        *from = chan->loc;
+        *res = DISCONNECT;
+        chan->mtx.unlock();
+        g.dismiss();
+        work_close(hptr, chan);
         return true;
     }
-    catch (po6::error& e)
+    else if (rem < 0)
     {
-        if (e != EAGAIN && e != EINTR && e != EWOULDBLOCK)
+        return false;
+    }
+
+    // We know rem is >= 0, so add the amount of preexisting data.
+    rem += chan->inoffset;
+    chan->inoffset = 0;
+    char* data = buffer;
+    bool ret = false;
+
+    // XXX If this fails to allocate memory at any time, we need to just close
+    // the channel.
+    while (rem > 0)
+    {
+        if (!chan->inprogress.get())
         {
-            LOG(ERROR) << "could not read from " << chan->loc << "; closing";
-            *from = chan->loc;
-            *res = DISCONNECT;
-            chan->mtx.unlock();
-            g.dismiss();
-            work_close(hptr, chan);
-            return true;
+            if (rem < static_cast<ssize_t>(sizeof(uint32_t)))
+            {
+                memmove(chan->inbuffer, data, rem);
+                chan->inoffset = rem;
+                rem = 0;
+            }
+            else
+            {
+                uint32_t sz;
+                memmove(&sz, data, sizeof(uint32_t));
+                sz = be32toh(sz);
+                // XXX sanity check sz to prevent memory exhaustion.
+                chan->inprogress.reset(e::buffer::create(sz));
+                memmove(chan->inprogress->data(), data, sizeof(uint32_t));
+                chan->inprogress->resize(sizeof(uint32_t));
+                rem -= sizeof(uint32_t);
+                data += sizeof(uint32_t);
+            }
+        }
+        else
+        {
+            uint32_t sz = chan->inprogress->capacity() - chan->inprogress->size();
+            sz = std::min(static_cast<uint32_t>(rem), sz);
+            rem -= sz;
+            memmove(chan->inprogress->data() + chan->inprogress->size(),
+                    data, sz);
+            chan->inprogress->resize(chan->inprogress->size() + sz);
+
+            if (chan->inprogress->size() == chan->inprogress->capacity())
+            {
+                if (ret)
+                {
+                    message m;
+                    m.loc = chan->loc;
+                    m.buf = chan->inprogress;
+                    m_incoming.push(m);
+                }
+                else
+                {
+                    *from = chan->loc;
+                    *msg = chan->inprogress;
+                    *res = SUCCESS;
+                    ret = true;
+                }
+            }
         }
     }
 
-    return false;
+    return ret;
 }
 
 bool
@@ -510,26 +540,23 @@ hyperdaemon :: physical :: work_write(channel* chan)
 
     if (chan->outprogress.empty())
     {
-        if (!chan->outgoing.pop(&chan->outprogress))
+        if (!chan->outgoing.pop(&chan->outnow))
         {
             return false;
         }
+
+        chan->outprogress = chan->outnow->as_slice();
     }
 
-    try
+    ssize_t ret = chan->soc.write(chan->outprogress.data(), chan->outprogress.size());
+
+    if (ret < 0 && errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK)
     {
-        size_t ret = chan->soc.write(chan->outprogress.get(), chan->outprogress.size());
-        chan->outprogress.trim_prefix(ret);
-    }
-    catch (po6::error& e)
-    {
-        if (e != EAGAIN && e != EINTR && e != EWOULDBLOCK)
-        {
-            PLOG(ERROR) << "could not write to " << chan->loc << "(fd:"  << chan->soc.get() << ")";
-            return false;
-        }
+        PLOG(ERROR) << "could not write to " << chan->loc << "(fd:"  << chan->soc.get() << ")";
+        return false;
     }
 
+    chan->outprogress.advance(ret);
     return true;
 }
 
@@ -538,8 +565,11 @@ hyperdaemon :: physical :: channel :: channel(po6::net::socket* conn)
     , soc()
     , loc(conn->getpeername())
     , outgoing()
+    , outnow()
     , outprogress()
     , inprogress()
+    , inoffset(0)
+    , inbuffer()
 {
     soc.swap(conn);
 }

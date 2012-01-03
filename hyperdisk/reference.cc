@@ -25,63 +25,60 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperclient_returncode_h_
-#define hyperclient_returncode_h_
+// HyperDisk
+#include "hyperdisk/reference.h"
+#include "log_entry.h"
+#include "shard.h"
 
-namespace hyperclient
+hyperdisk :: reference :: reference()
+    : m_it()
+    , m_shard()
 {
-
-enum returncode
-{
-    SUCCESS     = 0,
-    NOTFOUND    = 1,
-    WRONGARITY  = 2,
-    NOTASPACE   = 8,
-    BADSEARCH   = 9,
-    BADDIMENSION= 10,
-    COORDFAIL   = 16,
-    SERVERERROR = 17,
-    CONNECTFAIL = 18,
-    DISCONNECT  = 19,
-    RECONFIGURE = 20,
-    LOGICERROR  = 21,
-    TIMEOUT     = 22
-};
-
-#define str(x) #x
-#define xstr(x) str(x)
-#define stringify(x) case (x): lhs << xstr(x); break
-
-inline std::ostream&
-operator << (std::ostream& lhs, const returncode& rhs)
-{
-    switch(rhs)
-    {
-        stringify(SUCCESS);
-        stringify(NOTFOUND);
-        stringify(WRONGARITY);
-        stringify(NOTASPACE);
-        stringify(BADSEARCH);
-        stringify(BADDIMENSION);
-        stringify(COORDFAIL);
-        stringify(SERVERERROR);
-        stringify(CONNECTFAIL);
-        stringify(DISCONNECT);
-        stringify(RECONFIGURE);
-        stringify(LOGICERROR);
-        stringify(TIMEOUT);
-        default:
-            lhs << "unknown returncode";
-            break;
-    }
-
-    return lhs;
 }
 
-#undef stringify
-#undef xstr
-#undef str
+hyperdisk :: reference :: reference(const reference& other)
+    : m_it()
+    , m_shard(other.m_shard)
+{
+    if (other.m_it.get())
+    {
+        m_it.reset(new e::locking_iterable_fifo<log_entry>::iterator(*other.m_it));
+    }
+}
 
-} // namespace hyperclient
+hyperdisk :: reference :: ~reference() throw ()
+{
+}
 
-#endif // hyperclient_returncode_h_
+void
+hyperdisk :: reference :: set(const e::locking_iterable_fifo<log_entry>::iterator& it)
+{
+    m_it.reset(new e::locking_iterable_fifo<log_entry>::iterator(it));
+}
+
+void
+hyperdisk :: reference :: set(const e::intrusive_ptr<shard>& shard)
+{
+    m_shard = shard;
+}
+
+hyperdisk::reference&
+hyperdisk :: reference :: operator = (const reference& rhs)
+{
+    if (this == &rhs)
+    {
+        return *this;
+    }
+
+    if (rhs.m_it.get())
+    {
+        m_it.reset(new e::locking_iterable_fifo<log_entry>::iterator(*rhs.m_it));
+    }
+    else
+    {
+        m_it.reset();
+    }
+
+    m_shard = rhs.m_shard;
+    return *this;
+}

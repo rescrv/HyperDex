@@ -106,7 +106,7 @@ class Coordinator(object):
         for i in xrange(1 << 32):
             tmp = self._spacenum
             self._spacenum = (self._spacenum + 1) % 2**32
-            if spacenum not in self._spaces_by_num and spacenum not in self._restricted_spaces:
+            if tmp not in self._spaces_by_num and tmp not in self._restricted_spaces:
                 spacenum = tmp
                 break
         if spacenum is None:
@@ -125,6 +125,7 @@ class Coordinator(object):
         self._regenerate()
 
     def configuration(self):
+        print repr(self._confdata), repr(self._confnum)
         return self._confnum, self._confdata
 
     def _fill(self, space):
@@ -143,12 +144,14 @@ class Coordinator(object):
                         if replica is not None:
                             hosts[replica] += 1
         frequencies = collections.defaultdict(list)
+        print 'frequencies', frequencies
         for host, frequency in hosts.iteritems():
             if host not in exclude:
                 frequencies[frequency].append(host)
         if not frequencies:
             return None
         least_loaded = min(frequencies.iteritems())[1]
+        print 'least_loaded', least_loaded
         return self._rand.choice(least_loaded)
 
     def _regenerate(self):
@@ -200,6 +203,7 @@ class Coordinator(object):
         hosts_lines.sort()
         self._confdata = ('\n'.join(hosts_lines) + '\n' + config).strip()
         self._confnum += 1
+        print repr(self._confdata), repr(self._confnum)
 
 
 class HostConnection(object):

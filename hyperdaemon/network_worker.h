@@ -28,14 +28,12 @@
 #ifndef hyperdaemon_network_worker_h_
 #define hyperdaemon_network_worker_h_
 
-// po6
-#include <po6/threads/rwlock.h>
-
 // Forward Declarations
 namespace hyperdaemon
 {
 class datalayer;
 class logical;
+class ongoing_state_transfers;
 class replication_manager;
 class searches;
 }
@@ -47,8 +45,12 @@ namespace hyperdaemon
 class network_worker
 {
     public:
-        network_worker(datalayer* data, logical* comm, searches* ssss, replication_manager* repl);
-        ~network_worker();
+        network_worker(datalayer* data,
+                       logical* comm,
+                       searches* ssss,
+                       ongoing_state_transfers* ost,
+                       replication_manager* repl);
+        ~network_worker() throw ();
 
     public:
         void run();
@@ -65,6 +67,7 @@ class network_worker
         datalayer* m_data;
         logical* m_comm;
         searches* m_ssss;
+        ongoing_state_transfers* m_ost;
         replication_manager* m_repl;
 };
 

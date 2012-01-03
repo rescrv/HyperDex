@@ -28,6 +28,12 @@
 #ifndef hyperdaemon_replication_keypair_h_
 #define hyperdaemon_replication_keypair_h_
 
+// STL
+#include <string>
+
+// Google CityHash
+#include <city.h>
+
 // e
 #include <e/buffer.h>
 #include <e/intrusive_ptr.h>
@@ -44,20 +50,11 @@ namespace replication
 class keypair
 {
     public:
-        struct hash
-        {
-            size_t operator () (const keypair& k) const
-            {
-                uint64_t hs = 0;
-                memmove(&hs, k.key.get(), std::min(k.key.size(), static_cast<size_t>(8)));
-                hs ^= k.region.hash();
-                return hs;
-            }
-        };
+        static uint64_t hash(const keypair& kp);
 
     public:
         keypair();
-        keypair(const hyperdex::regionid& r, const e::buffer& k);
+        keypair(const hyperdex::regionid& r, const e::slice& k);
 
     public:
         bool operator < (const keypair& rhs) const;
@@ -65,8 +62,14 @@ class keypair
 
     public:
         const hyperdex::regionid region;
-        const e::buffer key;
+        const std::string key;
 };
+
+inline uint64_t
+keypair :: hash(const keypair& kp)
+{
+    return CityHash64WithSeed(kp.key.data(), kp.key.size(), kp.region.hash());
+}
 
 inline
 keypair :: keypair()
@@ -76,9 +79,9 @@ keypair :: keypair()
 }
 
 inline
-keypair :: keypair(const hyperdex::regionid& r, const e::buffer& k)
+keypair :: keypair(const hyperdex::regionid& r, const e::slice& k)
     : region(r)
-    , key(k)
+    , key(reinterpret_cast<const char*>(k.data()), k.size())
 {
 }
 

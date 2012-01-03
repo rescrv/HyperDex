@@ -85,9 +85,10 @@ hyperdisk :: disk :: create(const po6::pathname& directory,
 }
 
 hyperdisk::returncode
-hyperdisk :: disk :: get(const e::buffer& key,
-                         std::vector<e::buffer>* value,
-                         uint64_t* version)
+hyperdisk :: disk :: get(const e::slice& key,
+                         std::vector<e::slice>* value,
+                         uint64_t* version,
+                         reference* backing)
 {
     coordinate coord = m_hasher.hash(key);
     returncode shard_res = NOTFOUND;
@@ -110,6 +111,7 @@ hyperdisk :: disk :: get(const e::buffer& key,
 
         if (shard_res == SUCCESS)
         {
+            backing->set(shards->get_shard(i));
             break;
         }
     }
@@ -133,6 +135,7 @@ hyperdisk :: disk :: get(const e::buffer& key,
             }
 
             found = true;
+            backing->set(it);
         }
     }
 
@@ -145,8 +148,9 @@ hyperdisk :: disk :: get(const e::buffer& key,
 }
 
 hyperdisk::returncode
-hyperdisk :: disk :: put(const e::buffer& key,
-                         const std::vector<e::buffer>& value,
+hyperdisk :: disk :: put(std::tr1::shared_ptr<e::buffer> backing,
+                         const e::slice& key,
+                         const std::vector<e::slice>& value,
                          uint64_t version)
 {
     if (value.size() + 1 != m_arity)
@@ -155,15 +159,16 @@ hyperdisk :: disk :: put(const e::buffer& key,
     }
 
     coordinate coord = m_hasher.hash(key, value);
-    m_log.append(log_entry(coord, key, value, version));
+    m_log.append(log_entry(coord, backing, key, value, version));
     return SUCCESS;
 }
 
 hyperdisk::returncode
-hyperdisk :: disk :: del(const e::buffer& key)
+hyperdisk :: disk :: del(std::tr1::shared_ptr<e::buffer> backing,
+                         const e::slice& key)
 {
     coordinate coord = m_hasher.hash(key);
-    m_log.append(log_entry(coord, key));
+    m_log.append(log_entry(coord, backing, key));
     return SUCCESS;
 }
 
@@ -252,6 +257,7 @@ hyperdisk :: disk :: drop()
     }
 
     return ret;
+    return SUCCESS;
 }
 
 // This operation will return SUCCESS as long as it knows that progress is being
@@ -272,7 +278,7 @@ hyperdisk :: disk :: flush(size_t num)
     for (size_t nf = 0; nf < num && it.valid(); ++nf, it.next())
     {
         const coordinate& coord = it->coord;
-        const e::buffer& key = it->key;
+        const e::slice& key = it->key;
         bool del_needed = false;
         size_t del_num = 0;
         uint32_t del_offset = 0;
@@ -307,7 +313,7 @@ hyperdisk :: disk :: flush(size_t num)
 
         if (it->is_put)
         {
-            const std::vector<e::buffer>& value = it->value;
+            const std::vector<e::slice>& value = it->value;
             const uint64_t version = it->version;
 
             for (ssize_t i = m_shards->size() - 1; !put_succeeded && i >= 0; --i)
@@ -421,6 +427,7 @@ hyperdisk :: disk :: flush(size_t num)
     {
         return DIDNOTHING;
     }
+    return SUCCESS;
 }
 
 hyperdisk::returncode
@@ -797,6 +804,7 @@ hyperdisk :: disk :: deal_with_full_shard(size_t shard_num)
              c.secondary_upper_mask == UINT64_MAX)
     {
         abort();
+        return DIDNOTHING;
     }
     else
     {

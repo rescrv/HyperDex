@@ -32,8 +32,8 @@
 #include <po6/pathname.h>
 
 // e
-#include <e/buffer.h>
 #include <e/intrusive_ptr.h>
+#include <e/slice.h>
 
 // HyperspaceHashing
 #include <hyperspacehashing/mask.h>
@@ -101,18 +101,18 @@ class shard
 
     public:
         // May return SUCCESS or NOTFOUND.
-        returncode get(uint32_t primary_hash, const e::buffer& key,
-                       std::vector<e::buffer>* value, uint64_t* version);
-        returncode get(uint32_t primary_hash, const e::buffer& key);
+        returncode get(uint32_t primary_hash, const e::slice& key,
+                       std::vector<e::slice>* value, uint64_t* version);
+        returncode get(uint32_t primary_hash, const e::slice& key);
         // May return SUCCESS, DATAFULL, HASHFULL, or SEARCHFULL.
         returncode put(const hyperspacehashing::mask::coordinate& coord,
-                       const e::buffer& key,
-                       const std::vector<e::buffer>& value,
+                       const e::slice& key,
+                       const std::vector<e::slice>& value,
                        uint64_t version, uint32_t* cached = NULL);
         // May return SUCCESS or NOTFOUND.  This used to return DATAFULL, but we
         // allow the data offset to extend beyond the end of the shard for
         // deletion entries.
-        returncode del(uint32_t primary_hash, const e::buffer& key, uint32_t* cached = NULL);
+        returncode del(uint32_t primary_hash, const e::slice& key, uint32_t* cached = NULL);
         // The space calc functions are only accurate when mutually exclusive
         // with GET operations.
         // How much stale space (as a percentage) may be reclaimed from this log
@@ -159,13 +159,13 @@ class shard
         ~shard() throw ();
 
     private:
-        size_t data_size(const e::buffer& key, const std::vector<e::buffer>& value) const;
+        size_t data_size(const e::slice& key, const std::vector<e::slice>& value) const;
         uint64_t data_version(uint32_t offset) const;
         size_t data_key_size(uint32_t offset) const;
         size_t data_key_offset(uint32_t offset) const
         { return offset + sizeof(uint64_t) + sizeof(uint32_t); }
-        void data_key(uint32_t offset, size_t keysize, e::buffer* key) const;
-        void data_value(uint32_t offset, size_t keysize, std::vector<e::buffer>* value) const;
+        void data_key(uint32_t offset, size_t keysize, e::slice* key) const;
+        void data_value(uint32_t offset, size_t keysize, std::vector<e::slice>* value) const;
 
     private:
         void inc() { __sync_add_and_fetch(&m_ref, 1); }
@@ -176,7 +176,7 @@ class shard
         // some point in the lookup process is stored in the location pointed to
         // by 'value'.  This will always find a free location in the table as
         // the shard_constants are set to guarantee it.
-        void hash_lookup(uint32_t primary_hash, const e::buffer& key,
+        void hash_lookup(uint32_t primary_hash, const e::slice& key,
                          size_t* entry, uint64_t* value);
         // This variant assumes that all previously inserted entries with the
         // same primary hash are distinct.

@@ -29,8 +29,8 @@
 #define hyperdisk_shard_snapshot_h_
 
 // e
-#include <e/buffer.h>
 #include <e/intrusive_ptr.h>
+#include <e/slice.h>
 
 // HyperDisk
 #include "hyperdisk/returncode.h"
@@ -60,8 +60,8 @@ class shard_snapshot
     public:
         hyperspacehashing::mask::coordinate coordinate() { return m_coord; }
         uint64_t version();
-        const e::buffer& key();
-        const std::vector<e::buffer>& value();
+        const e::slice& key();
+        const std::vector<e::slice>& value();
 
     public:
         shard_snapshot& operator = (const shard_snapshot& rhs);
@@ -77,8 +77,8 @@ class shard_snapshot
         bool m_parsed;
         hyperspacehashing::mask::coordinate m_coord;
         uint64_t m_version;
-        e::buffer m_key;
-        std::vector<e::buffer> m_value;
+        e::slice m_key;
+        std::vector<e::slice> m_value;
 };
 
 } // namespace hyperdisk
