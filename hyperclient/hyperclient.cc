@@ -45,11 +45,11 @@ extern "C"
 {
 
 struct hyperclient*
-hyperclient_create(struct sockaddr* coordinator, socklen_t salen)
+hyperclient_create(const char* coordinator, in_port_t port)
 {
     try
     {
-        po6::net::location loc(coordinator, salen);
+        po6::net::location loc(coordinator, port);
         std::auto_ptr<hyperclient> ret(new hyperclient(loc));
         return ret.release();
     }

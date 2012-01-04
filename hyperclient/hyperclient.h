@@ -33,7 +33,7 @@
 #include <stdlib.h>
 
 // POSIX
-#include <sys/socket.h>
+#include <netinet/in.h>
 
 #ifdef __cplusplus
 // STL
@@ -102,7 +102,7 @@ enum hyperclient_returncode
 };
 
 struct hyperclient*
-hyperclient_create(struct sockaddr* coordinator, socklen_t salen);
+hyperclient_create(const char* coordinator, in_port_t port);
 void
 hyperclient_destroy(struct hyperclient* client);
 
