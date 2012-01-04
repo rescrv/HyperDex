@@ -123,7 +123,7 @@ hyperclient_destroy(struct hyperclient* client);
 // Retrieve the secondary attributes corresponding to "key" in "space".
 int64_t
 hyperclient_get(struct hyperclient* client, const char* space, const char* key,
-                size_t key_sz, hyperclient_returncode* status,
+                size_t key_sz, enum hyperclient_returncode* status,
                 struct hyperclient_attribute** attrs, size_t* attrs_sz);
 
 // Store the secondary attributes under "key" in "space".
@@ -135,12 +135,12 @@ hyperclient_get(struct hyperclient* client, const char* space, const char* key,
 int64_t
 hyperclient_put(struct hyperclient* client, const char* space, const char* key,
                 size_t key_sz, const struct hyperclient_attribute* attrs,
-                size_t attrs_sz, hyperclient_returncode* status);
+                size_t attrs_sz, enum hyperclient_returncode* status);
 
 // Delete the object under "key".
 int64_t
 hyperclient_del(struct hyperclient* client, const char* space, const char* key,
-                size_t key_sz, hyperclient_returncode* status);
+                size_t key_sz, enum hyperclient_returncode* status);
 
 // Perform a search for objects which match "eq" and "rn".
 // Each call to loop will overwrite "status", "key", "key_sz", "attrs", and
@@ -152,8 +152,9 @@ int64_t
 hyperclient_search(struct hyperclient* client, const char* space,
                    const struct hyperclient_attribute* eq, size_t eq_sz,
                    const struct hyperclient_range_query* rn, size_t rn_sz,
-                   hyperclient_returncode* status, char** key, size_t* key_sz,
-                   struct hyperclient_attribute** attrs, size_t* attrs_sz);
+                   enum hyperclient_returncode* status, char** key,
+                   size_t* key_sz, struct hyperclient_attribute** attrs,
+                   size_t* attrs_sz);
 
 // Handle I/O until at least one event is complete (either a key-op finishes, or
 // a search returns one item).
@@ -164,7 +165,7 @@ hyperclient_search(struct hyperclient* client, const char* space,
 // passed through the "status" parameter to loop.
 int64_t
 hyperclient_loop(struct hyperclient* client, int timeout,
-                 hyperclient_returncode* status);
+                 enum hyperclient_returncode* status);
 
 #ifdef __cplusplus
 }
