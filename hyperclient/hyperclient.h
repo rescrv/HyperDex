@@ -1,38 +1,39 @@
-// Copyright (c) 2011, Cornell University
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-//
-//     * Redistributions of source code must retain the above copyright notice,
-//       this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above copyright
-//       notice, this list of conditions and the following disclaimer in the
-//       documentation and/or other materials provided with the distribution.
-//     * Neither the name of HyperDex nor the names of its contributors may be
-//       used to endorse or promote products derived from this software without
-//       specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-// POSSIBILITY OF SUCH DAMAGE.
+/* Copyright (c) 2011, Cornell University
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *     * Redistributions of source code must retain the above copyright notice,
+ *       this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of HyperDex nor the names of its contributors may be
+ *       used to endorse or promote products derived from this software without
+ *       specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
 
 #ifndef hyperclient_h_
 #define hyperclient_h_
 
-// C
+/* C */
 #include <stdint.h>
 #include <stdlib.h>
 
-// POSIX
+/* POSIX */
 #include <netinet/in.h>
 
 #ifdef __cplusplus
@@ -60,13 +61,13 @@ class instance;
 
 extern "C"
 {
-#endif // __cplusplus
+#endif /* __cplusplus */
 
 struct hyperclient;
 
 struct hyperclient_attribute
 {
-    const char* attr; // NULL-terminated
+    const char* attr; /* NULL-terminated */
     const char* value;
     size_t value_sz;
 };
@@ -79,7 +80,7 @@ struct hyperclient_range_query
     uint64_t upper;
 };
 
-// HyperClient returncode occupies [8448, 8576)
+/* HyperClient returncode occupies [8448, 8576) */
 enum hyperclient_returncode
 {
     HYPERCLIENT_SUCCESS      = 8448,
@@ -120,61 +121,85 @@ hyperclient_create(const char* coordinator, in_port_t port);
 void
 hyperclient_destroy(struct hyperclient* client);
 
-// The user of this API is responsible for freeing objects returned through a **
-// argument, or * return value.  This must be done by using the appropriate
-// typename_destroy() calls.
-//
-// All values return a 64-bit integer, which uniquely identifies the request
-// until its completion.  Positive values indicate valid identifiers.  Negative
-// values indicate that the request fails immediately for the reason stored in
-// status.
-//
-// Each call to "hyperclient_loop" will return the identifier corresponding to
-// the request which made progress.  get/put/del requests are completed
-// immediately after the identifier returns.  search requests continue until the
-// status indicates that the search is done.
+/* All values return a 64-bit integer, which uniquely identifies the request
+ * until its completion.  Positive values indicate valid identifiers.  Negative
+ * values indicate that the request fails immediately for the reason stored in
+ * status.
+ *
+ * Each call to "hyperclient_loop" will return the identifier corresponding to
+ * the request which made progress.  get/put/del requests are completed
+ * immediately after the identifier returns.  search requests continue until the
+ * status indicates that the search is done.
+ */
 
-// Retrieve the secondary attributes corresponding to "key" in "space".
+/* Retrieve the secondary attributes corresponding to "key" in "space".
+ *
+ * Freshly allocated memory will be returned in *attrs.  All memory reachable
+ * from *attrs will be part of a single allocation.  To free the memory, pass
+ * *attrs to free.
+ *
+ * - space, key must point to memory that exists for the duration of this call
+ * - client, status, attrs, attrs_sz must point to memory that exists until the
+ *   request is considered complete
+ */
 int64_t
 hyperclient_get(struct hyperclient* client, const char* space, const char* key,
                 size_t key_sz, enum hyperclient_returncode* status,
                 struct hyperclient_attribute** attrs, size_t* attrs_sz);
 
-// Store the secondary attributes under "key" in "space".
-// If this returns a value < 0 and *status == HYPERCLIENT_UNKNOWNATTR, then
-// abs(returned value) - 1 == the attribute which caused the error.
-//
-// All attributes not specified by the put are left as-is (if the key already
-// exists), or set to "" (if the key doesn't yet exist).
+/* Store the secondary attributes under "key" in "space".
+ * If this returns a value < 0 and *status == HYPERCLIENT_UNKNOWNATTR, then
+ * abs(returned value) - 1 == the attribute which caused the error.
+ *
+ * All attributes not specified by the put are left as-is (if the key already
+ * exists), or set to "" (if the key doesn't yet exist).
+ *
+ * - space, key, attrs must point to memory that exists for the duration of this
+ *   call
+ * - client, status must point to memory that exists until the request is
+ *   considered complete
+ */
 int64_t
 hyperclient_put(struct hyperclient* client, const char* space, const char* key,
                 size_t key_sz, const struct hyperclient_attribute* attrs,
                 size_t attrs_sz, enum hyperclient_returncode* status);
 
-// Delete the object under "key".
+/* Delete the object under "key".
+ *
+ * - space, key point to memory that exists for the duration of this call
+ * - client, status must point to memory that exists until the request is
+ *   considered complete
+ */
 int64_t
 hyperclient_del(struct hyperclient* client, const char* space, const char* key,
                 size_t key_sz, enum hyperclient_returncode* status);
 
-// Perform a search for objects which match "eq" and "rn".
-// Each call to loop will overwrite "status", "key", "key_sz", "attrs", and
-// "attrs_sz".
-// If this returns a value < 0 and *status == HYPERCLIENT_UNKNOWNATTR, then
-// abs(returned value) - 1 == the attribute which caused the error.  If the
-// attr's index >= eq_sz, it is an index into rn.
+/* Perform a search for objects which match "eq" and "rn".
+ *
+ * Each time hyperclient_loop returns an identifier generated by
+ * hyperclient_search, a new node is added to the linked list which is pointed
+ * to by *results.  Each node is a contiguous block of memory, suitable for
+ * passing to free.  When is allocated with status HYPERCLIENT_SEARCHDONE, the
+ * search is completely finished.
+ *
+ * If this returns a value < 0 and *status == HYPERCLIENT_UNKNOWNATTR, then
+ * abs(returned value) - 1 == the attribute which caused the error.  If the
+ * attr's index >= eq_sz, it is an index into rn.
+ */
 int64_t
 hyperclient_search(struct hyperclient* client, const char* space,
                    const struct hyperclient_attribute* eq, size_t eq_sz,
                    const struct hyperclient_range_query* rn, size_t rn_sz,
                    struct hyperclient_search_result** results);
 
-// Handle I/O until at least one event is complete (either a key-op finishes, or
-// a search returns one item).
-//
-// Errors which impact a subset of pending operations are passed through the
-// "status" parameter passed in when the operation started.  Errors which impact
-// all pending operations (e.g., a failure to connect to the coordinator) are
-// passed through the "status" parameter to loop.
+/* Handle I/O until at least one event is complete (either a key-op finishes, or
+ * a search returns one item).
+ *
+ * Errors which impact a subset of pending operations are passed through the
+ * "status" parameter passed in when the operation started.  Errors which impact
+ * all pending operations (e.g., a failure to connect to the coordinator) are
+ * passed through the "status" parameter to loop.
+ */
 int64_t
 hyperclient_loop(struct hyperclient* client, int timeout,
                  enum hyperclient_returncode* status);
@@ -246,6 +271,6 @@ class hyperclient
         bool m_configured;
 };
 
-#endif // __cplusplus
+#endif /* __cplusplus */
 
-#endif // hyperclient_h_
+#endif /* hyperclient_h_ */
