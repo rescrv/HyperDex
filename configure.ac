@@ -142,7 +142,7 @@ if test x"${enable_logall}" = xyes; then
 fi
 
 AC_SUBST([HYPERSPACEHASHING_LDADD], ["-lcityhash -le"])
-AC_SUBST([HYPERDISK_LDADD], ["-lpthread -lcityhash -le"])
+AC_SUBST([HYPERDISK_LDADD], ["-lpthread ${HYPERSPACEHASHING_LDADD}"])
 AC_SUBST([HYPERCLIENT_LDADD], ["${HYPERSPACEHASHING_LDADD} -lrt"])
 AM_CONDITIONAL([ENABLE_JAVA_BINDINGS], [test x"${java_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_YCSB], [test x"${enable_ycsb}" = xyes])

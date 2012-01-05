@@ -353,8 +353,8 @@ daemon_LDADD = \
 			libhyperspacehashing.la \
 			libhyperdisk.la \
 			libhyperdaemon.la \
-			$(HYPERSPACEHASHING_LDADD) \
 			$(HYPERDISK_LDADD) \
+			$(COVERAGE_LDADD) \
 			-lglog -lrt
 
 #binary_test_SOURCES = \
@@ -367,7 +367,8 @@ count_test_SOURCES = \
 count_test_LDADD = \
 			libhyperspacehashing.la \
 			libhyperclient.la \
-			$(HYPERCLIENT_LDADD)
+			$(HYPERCLIENT_LDADD) \
+			$(COVERAGE_LDADD)
 
 #repl_test_SOURCES = \
 #			repl-test.cc
