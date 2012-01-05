@@ -102,6 +102,16 @@ enum hyperclient_returncode
     HYPERCLIENT_ZERO         = 8575
 };
 
+struct hyperclient_search_result
+{
+    struct hyperclient_search_result* next;
+    enum hyperclient_returncode status;
+    const char* key;
+    size_t key_sz;
+    struct hyperclient_attribute* attrs;
+    size_t attrs_sz;
+};
+
 struct hyperclient*
 hyperclient_create(const char* coordinator, in_port_t port);
 void
@@ -153,9 +163,7 @@ int64_t
 hyperclient_search(struct hyperclient* client, const char* space,
                    const struct hyperclient_attribute* eq, size_t eq_sz,
                    const struct hyperclient_range_query* rn, size_t rn_sz,
-                   enum hyperclient_returncode* status, char** key,
-                   size_t* key_sz, struct hyperclient_attribute** attrs,
-                   size_t* attrs_sz);
+                   struct hyperclient_search_result** results);
 
 // Handle I/O until at least one event is complete (either a key-op finishes, or
 // a search returns one item).
@@ -193,9 +201,7 @@ class hyperclient
         int64_t search(const char* space,
                        const struct hyperclient_attribute* eq, size_t eq_sz,
                        const struct hyperclient_range_query* rn, size_t rn_sz,
-                       hyperclient_returncode* status,
-                       char** key, size_t* key_sz,
-                       struct hyperclient_attribute** attrs, size_t* attrs_sz);
+                       hyperclient_search_result** results);
         int64_t loop(int timeout, hyperclient_returncode* status);
 
     private:

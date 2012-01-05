@@ -139,27 +139,9 @@ int64_t
 hyperclient_search(struct hyperclient* client, const char* space,
                    const struct hyperclient_attribute* eq, size_t eq_sz,
                    const struct hyperclient_range_query* rn, size_t rn_sz,
-                   hyperclient_returncode* status, char** key, size_t* key_sz,
-                   struct hyperclient_attribute** attrs, size_t* attrs_sz)
+                   struct hyperclient_search_result** results)
 {
-    try
-    {
-        *status = HYPERCLIENT_EXCEPTION;
-        return -1;
-        //return client->search(space, eq, eq_sz, rn, rn_sz,
-        //                      status, key, key_sz, attrs, attrs_sz);
-    }
-    catch (po6::error& e)
-    {
-        errno = e;
-        *status = HYPERCLIENT_SEEERRNO;
-        return -1;
-    }
-    catch (...)
-    {
-        *status = HYPERCLIENT_EXCEPTION;
-        return -1;
-    }
+    return -1;
 }
 
 int64_t
