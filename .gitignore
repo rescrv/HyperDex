@@ -2,6 +2,7 @@ aclocal.m4
 autom4te.cache/
 config.guess
 config.h
+config.h.in
 config.log
 config.status
 config.sub
@@ -12,12 +13,19 @@ daemon
 daemon.o
 depcomp
 .deps/
+hdcoordinator/coordinator.pyc
+hdcoordinator/__init__.pyc
+hdcoordinator/parser.pyc
 hyperclient/.deps/
 hyperclient/.dirstamp
 hyperclient/libhyperclient_la-hyperclient.lo
 hyperclient/libhyperclient_la-hyperclient.o
 hyperclient/.libs/
+hyperclient/python/.dirstamp
 hyperclient/python/hyperclient.c
+hyperclient/python/hyperclient.la
+hyperclient/python/hyperclient_python_hyperclient_la-hyperclient.lo
+hyperclient/python/hyperclient_python_hyperclient_la-hyperclient.o
 hyperdaemon/.deps/
 hyperdaemon/.dirstamp
 hyperdaemon/libhyperdaemon_la-daemon.lo
