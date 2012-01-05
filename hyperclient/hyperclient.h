@@ -98,7 +98,8 @@ enum hyperclient_returncode
     HYPERCLIENT_NONEPENDING  = 8461,
 
     /* This should never happen.  It indicates a bug */
-    HYPERCLIENT_EXCEPTION    = 8575
+    HYPERCLIENT_EXCEPTION    = 8574,
+    HYPERCLIENT_ZERO         = 8575
 };
 
 struct hyperclient*
@@ -167,6 +168,9 @@ int64_t
 hyperclient_loop(struct hyperclient* client, int timeout,
                  enum hyperclient_returncode* status);
 
+void
+hyperclient_destroy_attrs(struct hyperclient_attribute* attrs, size_t attrs_sz);
+
 #ifdef __cplusplus
 }
 
@@ -232,7 +236,7 @@ class hyperclient
         instances_map_t m_instances;
         requests_list_t m_requests;
         int64_t m_requestid;
-        std::stack<failedop> m_failed;
+        std::queue<failedop> m_failed;
         bool m_configured;
 };
 

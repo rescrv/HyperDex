@@ -182,6 +182,16 @@ hyperclient_loop(struct hyperclient* client, int timeout, hyperclient_returncode
     }
 }
 
+void
+hyperclient_destroy_attrs(struct hyperclient_attribute* attrs,
+                          size_t /*attrs_sz*/)
+{
+    if (attrs)
+    {
+        free(attrs);
+    }
+}
+
 } // extern "C"
 
 ///////////////////////////////// Channel Class ////////////////////////////////
@@ -338,7 +348,8 @@ hyperclient :: pending :: ~pending() throw ()
 class hyperclient::pending_get : public hyperclient::pending
 {
     public:
-        pending_get(hyperclient_returncode* status,
+        pending_get(hyperclient* cl,
+                    hyperclient_returncode* status,
                     struct hyperclient_attribute** attrs,
                     size_t* attrs_sz);
         virtual ~pending_get() throw ();
@@ -354,14 +365,17 @@ class hyperclient::pending_get : public hyperclient::pending
         pending_get& operator = (const pending_get& rhs);
 
     private:
+        hyperclient* m_cl;
         struct hyperclient_attribute** m_attrs;
         size_t* m_attrs_sz;
 };
 
-hyperclient :: pending_get :: pending_get(hyperclient_returncode* status,
+hyperclient :: pending_get :: pending_get(hyperclient* cl,
+                                          hyperclient_returncode* status,
                                           struct hyperclient_attribute** attrs,
                                           size_t* attrs_sz)
     : pending(hyperdex::REQ_GET, hyperdex::RESP_GET, status)
+    , m_cl(cl)
     , m_attrs(attrs)
     , m_attrs_sz(attrs_sz)
 {
@@ -404,8 +418,58 @@ hyperclient :: pending_get :: handle_response(std::auto_ptr<e::buffer> msg,
             return REMOVE;
     }
 
+    std::vector<std::string> dimension_names = m_cl->m_config->dimension_names(entity().get_space());
+    std::vector<e::slice> value;
+    up = up >> value;
+
+    if (up.error())
+    {
+        set_status(HYPERCLIENT_SERVERERROR);
+        return REMOVE;
+    }
+
+    if (value.size() + 1 != dimension_names.size())
+    {
+        set_status(HYPERCLIENT_SERVERERROR);
+        return REMOVE;
+    }
+
+    std::vector<hyperclient_attribute> ha(value.size());
+    size_t sz = sizeof(hyperclient_attribute) * value.size();
+
+    for (size_t i = 0; i < value.size(); ++i)
+    {
+        sz += dimension_names[i + 1].size() + 1 + value[i].size();
+    }
+
+    char* ret = static_cast<char*>(malloc(sz));
+
+    if (!ret)
+    {
+        set_status(HYPERCLIENT_SEEERRNO);
+        return REMOVE;
+    }
+
+    e::guard g = e::makeguard(free, ret);
+    char* data = ret + sizeof(hyperclient_attribute) * value.size();
+
+    for (size_t i = 0; i < value.size(); ++i)
+    {
+        size_t attr_sz = dimension_names[i + 1].size() + 1;
+        ha[i].attr = data;
+        memmove(data, dimension_names[i + 1].c_str(), attr_sz);
+        data += attr_sz;
+        ha[i].value = data;
+        memmove(data, value[i].data(), value[i].size());
+        data += value[i].size();
+        ha[i].value_sz = value[i].size();
+    }
+
+    memmove(ret, &ha.front(), sizeof(hyperclient_attribute) * value.size());
+    *m_attrs = reinterpret_cast<hyperclient_attribute*>(ret);
+    *m_attrs_sz = value.size();
     set_status(HYPERCLIENT_SUCCESS);
-    // XXX Unpack the rest of the value
+    g.dismiss();
     return REMOVE;
 }
 
@@ -501,7 +565,7 @@ hyperclient :: get(const char* space, const char* key, size_t key_sz,
     }
 
     e::intrusive_ptr<pending> op;
-    op = new pending_get(status, attrs, attrs_sz);
+    op = new pending_get(this, status, attrs, attrs_sz);
     size_t sz = HDRSIZE
               + sizeof(uint32_t)
               + key_sz;
@@ -764,8 +828,8 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
     else
     {
         *status = HYPERCLIENT_SUCCESS;
-        int64_t ret = m_failed.top().op->id();
-        m_failed.top().op->set_status(m_failed.top().why);
+        int64_t ret = m_failed.front().op->id();
+        m_failed.front().op->set_status(m_failed.front().why);
         m_failed.pop();
         return ret;
     }
