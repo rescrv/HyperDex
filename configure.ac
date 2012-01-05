@@ -84,6 +84,7 @@ AC_CHECK_HEADER([e/buffer.h],,[AC_MSG_ERROR([
 HyperDex relies upon the e library.
 Please install e to continue.
 -------------------------------------------------])])
+AC_PYTHON_DEVEL([>= 2.6])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL

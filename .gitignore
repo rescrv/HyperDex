@@ -17,6 +17,7 @@ hyperclient/.dirstamp
 hyperclient/libhyperclient_la-hyperclient.lo
 hyperclient/libhyperclient_la-hyperclient.o
 hyperclient/.libs/
+hyperclient/python/hyperclient.c
 hyperdaemon/.deps/
 hyperdaemon/.dirstamp
 hyperdaemon/libhyperdaemon_la-daemon.lo

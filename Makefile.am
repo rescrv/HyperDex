@@ -32,10 +32,16 @@ EXTRA_DIST = \
 			LICENSE \
 			$(libhyperclient_extra_dist)
 
+BUILT_SOURCES = \
+			$(python_bindings_built_sources)
+
 lib_LTLIBRARIES = \
 			libhyperspacehashing.la \
 			libhyperdisk.la \
 			libhyperclient.la
+
+pyexec_LTLIBRARIES = \
+			hyperclient/python/hyperclient.la
 
 noinst_LTLIBRARIES = \
 			libhyperdex.la \
@@ -342,6 +348,29 @@ libhyperclient_la_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
 			-I$(abs_top_srcdir)/hyperdex \
 			$(CPPFLAGS)
+
+################################ Python Bindings ###############################
+
+python_bindings_built_sources = \
+			hyperclient/python/hyperclient.c
+
+hyperclient/python/hyperclient.c: hyperclient/python/hyperclient.pyx
+	cython hyperclient/python/hyperclient.pyx
+
+hyperclient_python_hyperclient_la_SOURCES = \
+			hyperclient/python/hyperclient.c
+hyperclient_python_hyperclient_la_CPPFLAGS = \
+			$(PYTHON_CPPFLAGS)
+hyperclient_python_hyperclient_la_LIBADD = \
+			libhyperspacehashing.la \
+			libhyperclient.la \
+			$(HYPERCLIENT_LDADD) \
+			$(PYTHON_LDFLAGS) \
+			$(COVERAGE_LDADD)
+hyperclient_python_hyperclient_la_LDFLAGS = \
+			-module \
+			-avoid-version \
+			-export-symbols-regex inithyperclient
 
 ################################################################################
 ################################### Binaries ###################################
