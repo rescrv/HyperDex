@@ -31,7 +31,7 @@
 #include <gtest/gtest.h>
 
 // HyperspaceHashing
-#include "bithacks.h"
+#include "hyperspacehashing/bithacks.h"
 
 #pragma GCC diagnostic ignored "-Wswitch-default"
 

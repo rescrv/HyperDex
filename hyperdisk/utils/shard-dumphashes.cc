@@ -36,12 +36,12 @@
 #include <e/intrusive_ptr.h>
 
 // HyperspaceHashing
-#include <hyperspacehashing/mask.h>
+#include "hyperspacehashing/hyperspacehashing/mask.h"
 
 // HyperDisk
-#include "shard.h"
-#include "shard_constants.h"
-#include "shard_snapshot.h"
+#include "hyperdisk/shard.h"
+#include "hyperdisk/shard_constants.h"
+#include "hyperdisk/shard_snapshot.h"
 
 int
 main(int argc, char* argv[])

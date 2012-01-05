@@ -28,10 +28,10 @@
 #define __STDC_LIMIT_MACROS
 
 // HyperDisk
-#include "hyperdisk/snapshot.h"
-#include "log_entry.h"
-#include "shard_snapshot.h"
-#include "shard_vector.h"
+#include "hyperdisk/hyperdisk/snapshot.h"
+#include "hyperdisk/log_entry.h"
+#include "hyperdisk/shard_snapshot.h"
+#include "hyperdisk/shard_vector.h"
 
 hyperdisk :: snapshot :: snapshot(const hyperspacehashing::mask::coordinate& coord,
                                   e::intrusive_ptr<shard_vector> shards,

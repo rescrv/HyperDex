@@ -32,7 +32,7 @@
 #include <e/intrusive_ptr.h>
 
 // Replication
-#include "pending.h"
+#include "hyperdaemon/replication/pending.h"
 
 namespace hyperdaemon
 {

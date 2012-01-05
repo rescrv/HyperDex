@@ -40,12 +40,12 @@
 #include <e/lockfree_hash_map.h>
 
 // HyperDex
-#include <hyperdex/configuration.h>
-#include <hyperdex/instance.h>
-#include <hyperdex/network_constants.h>
+#include "hyperdex/hyperdex/configuration.h"
+#include "hyperdex/hyperdex/instance.h"
+#include "hyperdex/hyperdex/network_constants.h"
 
 // HyperDaemon
-#include "physical.h"
+#include "hyperdaemon/physical.h"
 
 // Forward Declarations
 namespace hyperdex

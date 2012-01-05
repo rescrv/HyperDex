@@ -29,13 +29,13 @@
 #include <e/guard.h>
 
 // HyperDex
-#include <hyperdex/configuration.h>
-#include <hyperdex/coordinatorlink.h>
-#include <hyperdex/instance.h>
-#include <hyperdex/network_constants.h>
+#include "hyperdex/hyperdex/configuration.h"
+#include "hyperdex/hyperdex/coordinatorlink.h"
+#include "hyperdex/hyperdex/instance.h"
+#include "hyperdex/hyperdex/network_constants.h"
 
 // HyperClient
-#include "hyperclient.h"
+#include "hyperclient/hyperclient.h"
 
 #define HDRSIZE (sizeof(uint32_t) + sizeof(uint8_t) + 2 * sizeof(uint16_t) + 2 * hyperdex::entityid::SERIALIZEDSIZE + sizeof(uint64_t))
 

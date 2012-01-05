@@ -38,7 +38,7 @@
 #include <po6/error.h>
 
 // HyperDex
-#include <hyperdaemon/daemon.h>
+#include "hyperdaemon/hyperdaemon/daemon.h"
 
 int
 usage();

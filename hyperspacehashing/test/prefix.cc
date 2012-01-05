@@ -31,8 +31,8 @@
 #include <gtest/gtest.h>
 
 // HyperspaceHashing
-#include "hyperspacehashing/hashes.h"
-#include "hyperspacehashing/prefix.h"
+#include "hyperspacehashing/hyperspacehashing/hashes.h"
+#include "hyperspacehashing/hyperspacehashing/prefix.h"
 
 #pragma GCC diagnostic ignored "-Wswitch-default"
 

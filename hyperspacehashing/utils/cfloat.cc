@@ -32,7 +32,7 @@
 #include <e/convert.h>
 
 // HyperspaceHashing
-#include "cfloat.h"
+#include "hyperspacehashing/cfloat.h"
 
 static int
 usage();

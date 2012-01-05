@@ -40,7 +40,7 @@
 #include <e/convert.h>
 
 // HyperDex
-#include "hyperdex/configuration.h"
+#include "hyperdex/hyperdex/configuration.h"
 
 const uint32_t hyperdex::configuration::CLIENTSPACE = UINT32_MAX;
 const uint32_t hyperdex::configuration::TRANSFERSPACE = UINT32_MAX - 1;

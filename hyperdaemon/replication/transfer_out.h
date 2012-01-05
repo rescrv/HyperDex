@@ -29,8 +29,8 @@
 #define hyperdaemon_replication_transfer_out_h_
 
 // HyperDisk
-#include <hyperdisk/disk.h>
-#include <hyperdisk/snapshot.h>
+#include "hyperdisk/hyperdisk/disk.h"
+#include "hyperdisk/hyperdisk/snapshot.h"
 
 namespace hyperdaemon
 {

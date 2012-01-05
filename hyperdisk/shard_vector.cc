@@ -26,7 +26,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // HyperDisk
-#include "shard_vector.h"
+#include "hyperdisk/shard_vector.h"
 
 using hyperspacehashing::mask::coordinate;
 

@@ -36,7 +36,7 @@
 #include <e/guard.h>
 
 // HyperDaemon
-#include "physical.h"
+#include "hyperdaemon/physical.h"
 
 using e::bufferio::read;
 

@@ -28,11 +28,11 @@
 #define __STDC_LIMIT_MACROS
 
 // HyperspaceHashing
-#include <hyperspacehashing/mask.h>
+#include "hyperspacehashing/hyperspacehashing/mask.h"
 
 // HyperDisk
-#include "shard.h"
-#include "shard_snapshot.h"
+#include "hyperdisk/shard.h"
+#include "hyperdisk/shard_snapshot.h"
 
 hyperdisk :: shard_snapshot :: shard_snapshot(uint32_t offset, shard* s)
     : m_shard(s)

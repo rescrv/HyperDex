@@ -36,7 +36,7 @@
 #include <e/buffer.h>
 
 // HyperspaceHashing
-#include <hyperspacehashing/mask.h>
+#include "hyperspacehashing/hyperspacehashing/mask.h"
 
 namespace hyperdisk
 {

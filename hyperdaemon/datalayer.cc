@@ -54,12 +54,12 @@
 #include <e/timer.h>
 
 // HyperDex
-#include <hyperdex/configuration.h>
-#include <hyperdex/coordinatorlink.h>
+#include "hyperdex/hyperdex/configuration.h"
+#include "hyperdex/hyperdex/coordinatorlink.h"
 
 // HyperDaemon
-#include "datalayer.h"
-#include "runtimeconfig.h"
+#include "hyperdaemon/datalayer.h"
+#include "hyperdaemon/runtimeconfig.h"
 
 using hyperdex::regionid;
 using hyperdex::entityid;

@@ -33,8 +33,8 @@
 #include <e/slice.h>
 
 // HyperDisk
-#include "hyperdisk/returncode.h"
-#include "shard_constants.h"
+#include "hyperdisk/hyperdisk/returncode.h"
+#include "hyperdisk/shard_constants.h"
 
 // Forward Declarations
 namespace hyperdisk

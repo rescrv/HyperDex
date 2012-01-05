@@ -28,10 +28,10 @@
 #define __STDC_LIMIT_MACROS
 
 // HyperspaceHashing
-#include "bithacks.h"
-#include "cfloat.h"
-#include "hashes_internal.h"
-#include "hyperspacehashing/mask.h"
+#include "hyperspacehashing/hyperspacehashing/mask.h"
+#include "hyperspacehashing/bithacks.h"
+#include "hyperspacehashing/cfloat.h"
+#include "hyperspacehashing/hashes_internal.h"
 
 hyperspacehashing :: mask :: coordinate :: coordinate()
     : primary_mask()
@@ -243,7 +243,7 @@ hyperspacehashing :: mask :: hasher :: hash(const std::vector<e::slice>& value) 
 hyperspacehashing::mask::coordinate
 hyperspacehashing :: mask :: hasher :: hash(const search& s) const
 {
-    assert(value.size() + 1 == m_funcs.size());
+    assert(s.size() + 1 == m_funcs.size());
     assert(m_nums.size() == m_funcs.size());
     assert(m_nums.size() == m_space.size());
     assert(m_nums.size() == s.size());

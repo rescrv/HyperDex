@@ -26,7 +26,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // HyperDaemon
-#include "runtimeconfig.h"
+#include "hyperdaemon/runtimeconfig.h"
 
 e::envconfig<unsigned int> hyperdaemon::PREALLOCATIONS_PER_SECOND("HYPERDEX_PREALLOCATIONS_PER_SECOND", 1);
 e::envconfig<unsigned int> hyperdaemon::OPTIMISM_BURSTS_PER_SECOND("HYPERDEX_OPTIMISM_BURSTS_PER_SECOND", 1);

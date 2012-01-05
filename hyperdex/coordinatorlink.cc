@@ -32,7 +32,7 @@
 #include <e/bufferio.h>
 
 // HyperDex
-#include "hyperdex/coordinatorlink.h"
+#include "hyperdex/hyperdex/coordinatorlink.h"
 
 hyperdex :: coordinatorlink :: coordinatorlink(const po6::net::location& coordinator)
     : m_lock()

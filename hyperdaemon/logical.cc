@@ -41,10 +41,10 @@
 #include <glog/logging.h>
 
 // HyperDex
-#include <hyperdex/coordinatorlink.h>
+#include "hyperdex/hyperdex/coordinatorlink.h"
 
 // HyperDaemon
-#include "logical.h"
+#include "hyperdaemon/logical.h"
 
 using hyperdex::configuration;
 using hyperdex::coordinatorlink;

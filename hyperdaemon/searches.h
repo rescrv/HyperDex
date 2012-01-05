@@ -37,10 +37,10 @@
 #include <e/tuple_compare.h>
 
 // HyperspaceHashing
-#include <hyperspacehashing/search.h>
+#include "hyperspacehashing/hyperspacehashing/search.h"
 
 // HyperDex
-#include <hyperdex/ids.h>
+#include "hyperdex/hyperdex/ids.h"
 
 // Forward Declarations
 namespace hyperdex

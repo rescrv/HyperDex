@@ -44,11 +44,11 @@
 #include <e/lockfree_hash_map.h>
 
 // HyperDisk
-#include <hyperdisk/disk.h>
-#include <hyperdisk/returncode.h>
+#include "hyperdisk/hyperdisk/disk.h"
+#include "hyperdisk/hyperdisk/returncode.h"
 
 // HyperDex
-#include <hyperdex/ids.h>
+#include "hyperdex/hyperdex/ids.h"
 
 // Forward Declarations
 namespace hyperdex

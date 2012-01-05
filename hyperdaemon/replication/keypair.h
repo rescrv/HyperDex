@@ -40,7 +40,7 @@
 #include <e/tuple_compare.h>
 
 // HyperDex
-#include <hyperdex/ids.h>
+#include "hyperdex/hyperdex/ids.h"
 
 namespace hyperdaemon
 {

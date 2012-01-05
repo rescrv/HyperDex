@@ -26,9 +26,9 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // HyperDisk
-#include "hyperdisk/reference.h"
-#include "log_entry.h"
-#include "shard.h"
+#include "hyperdisk/hyperdisk/reference.h"
+#include "hyperdisk/log_entry.h"
+#include "hyperdisk/shard.h"
 
 hyperdisk :: reference :: reference()
     : m_it()

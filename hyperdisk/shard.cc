@@ -47,12 +47,12 @@
 #include <po6/io/fd.h>
 
 // HyperspaceHashing
-#include <hyperspacehashing/mask.h>
+#include "hyperspacehashing/hyperspacehashing/mask.h"
 
 // HyperDisk
-#include "shard.h"
-#include "shard_constants.h"
-#include "shard_snapshot.h"
+#include "hyperdisk/shard.h"
+#include "hyperdisk/shard_constants.h"
+#include "hyperdisk/shard_snapshot.h"
 
 using hyperspacehashing::mask::coordinate;
 

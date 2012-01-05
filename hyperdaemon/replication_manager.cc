@@ -48,16 +48,16 @@
 #include <e/timer.h>
 
 // HyperDex
-#include <hyperdex/coordinatorlink.h>
-#include <hyperdex/network_constants.h>
-#include <hyperdex/packing.h>
+#include "hyperdex/hyperdex/coordinatorlink.h"
+#include "hyperdex/hyperdex/network_constants.h"
+#include "hyperdex/hyperdex/packing.h"
 
 // HyperDaemon
-#include "datalayer.h"
-#include "logical.h"
-#include "ongoing_state_transfers.h"
-#include "replication_manager.h"
-#include "runtimeconfig.h"
+#include "hyperdaemon/datalayer.h"
+#include "hyperdaemon/logical.h"
+#include "hyperdaemon/ongoing_state_transfers.h"
+#include "hyperdaemon/replication_manager.h"
+#include "hyperdaemon/runtimeconfig.h"
 
 using hyperdex::configuration;
 using hyperdex::coordinatorlink;

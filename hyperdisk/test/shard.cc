@@ -38,11 +38,11 @@
 #include <e/guard.h>
 
 // HyperspaceHashing
-#include <hyperspacehashing/mask.h>
+#include "hyperspacehashing/hyperspacehashing/mask.h"
 
 // HyperDisk
-#include "shard.h"
-#include "shard_snapshot.h"
+#include "hyperdisk/shard.h"
+#include "hyperdisk/shard_snapshot.h"
 
 #pragma GCC diagnostic ignored "-Wswitch-default"
 

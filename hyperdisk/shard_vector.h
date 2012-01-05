@@ -36,10 +36,10 @@
 #include <e/intrusive_ptr.h>
 
 // HyperspaceHashing
-#include <hyperspacehashing/mask.h>
+#include "hyperspacehashing/hyperspacehashing/mask.h"
 
 // HyperDisk
-#include "shard.h"
+#include "hyperdisk/shard.h"
 
 namespace hyperdisk
 {

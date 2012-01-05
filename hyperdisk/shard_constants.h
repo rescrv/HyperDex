@@ -28,9 +28,6 @@
 #ifndef hyperdisk_shard_constants_h_
 #define hyperdisk_shard_constants_h_
 
-// HyperspaceHashing
-#include "shard.h"
-
 // Keep this a power of two or else change HASH_INTO_TABLE
 #define HASH_TABLE_ENTRIES 65536
 #define HASH_TABLE_ENTRY_SIZE 8

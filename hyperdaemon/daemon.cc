@@ -38,16 +38,16 @@
 #include <e/timer.h>
 
 // HyperDex
-#include <hyperdex/coordinatorlink.h>
+#include "hyperdex/hyperdex/coordinatorlink.h"
 
 // HyperDaemon
-#include "datalayer.h"
-#include "hyperdaemon/daemon.h"
-#include "logical.h"
-#include "network_worker.h"
-#include "ongoing_state_transfers.h"
-#include "replication_manager.h"
-#include "searches.h"
+#include "hyperdaemon/hyperdaemon/daemon.h"
+#include "hyperdaemon/datalayer.h"
+#include "hyperdaemon/logical.h"
+#include "hyperdaemon/network_worker.h"
+#include "hyperdaemon/ongoing_state_transfers.h"
+#include "hyperdaemon/replication_manager.h"
+#include "hyperdaemon/searches.h"
 
 // Configuration
 

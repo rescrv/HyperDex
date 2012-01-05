@@ -33,7 +33,7 @@
 #include <e/intrusive_ptr.h>
 
 // HyperDisk
-#include "shard.h"
+#include "hyperdisk/shard.h"
 
 int
 main(int argc, char* argv[])

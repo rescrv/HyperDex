@@ -37,7 +37,7 @@
 #include <e/convert.h>
 
 // HyperDex
-#include <hyperclient.h>
+#include "hyperclient/hyperclient.h"
 
 static int
 usage();

@@ -36,10 +36,10 @@
 #include <e/slice.h>
 
 // HyperspaceHashing
-#include <hyperspacehashing/mask.h>
+#include "hyperspacehashing/hyperspacehashing/mask.h"
 
 // HyperDisk
-#include "hyperdisk/returncode.h"
+#include "hyperdisk/hyperdisk/returncode.h"
 
 // Forward Declarations
 namespace hyperdisk

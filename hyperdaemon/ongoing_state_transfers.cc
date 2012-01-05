@@ -29,16 +29,16 @@
 #include <glog/logging.h>
 
 // HyperDisk
-#include <hyperdisk/snapshot.h>
+#include "hyperdisk/hyperdisk/snapshot.h"
 
 // HyperDex
-#include <hyperdex/configuration.h>
-#include <hyperdex/ids.h>
+#include "hyperdex/hyperdex/configuration.h"
+#include "hyperdex/hyperdex/ids.h"
 
 // HyperDaemon
-#include "datalayer.h"
-#include "ongoing_state_transfers.h"
-#include "runtimeconfig.h"
+#include "hyperdaemon/datalayer.h"
+#include "hyperdaemon/ongoing_state_transfers.h"
+#include "hyperdaemon/runtimeconfig.h"
 
 using hyperdex::configuration;
 using hyperdex::entityid;

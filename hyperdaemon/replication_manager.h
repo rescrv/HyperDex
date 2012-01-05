@@ -43,17 +43,17 @@
 #include <e/striped_lock.h>
 
 // HyperDex
-#include <hyperdex/configuration.h>
-#include <hyperdex/network_constants.h>
+#include "hyperdex/hyperdex/configuration.h"
+#include "hyperdex/hyperdex/network_constants.h"
 
 // HyperDaemon
-#include "replication/clientop.h"
-#include "replication/keypair.h"
-#include "replication/deferred.h"
-#include "replication/pending.h"
-#include "replication/keyholder.h"
-#include "replication/transfer_in.h"
-#include "replication/transfer_out.h"
+#include "hyperdaemon/replication/clientop.h"
+#include "hyperdaemon/replication/keypair.h"
+#include "hyperdaemon/replication/deferred.h"
+#include "hyperdaemon/replication/pending.h"
+#include "hyperdaemon/replication/keyholder.h"
+#include "hyperdaemon/replication/transfer_in.h"
+#include "hyperdaemon/replication/transfer_out.h"
 
 // Forward Declarations
 namespace hyperdex

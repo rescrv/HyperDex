@@ -33,7 +33,7 @@
 #include <ctime>
 
 // HyperspaceHashing
-#include "cfloat.h"
+#include "hyperspacehashing/cfloat.h"
 
 using hyperspacehashing::cfloat;
 

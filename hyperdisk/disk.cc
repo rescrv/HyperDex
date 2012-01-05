@@ -39,15 +39,15 @@
 #include <e/guard.h>
 
 // HyperspaceHashing
-#include <hyperspacehashing/mask.h>
+#include "hyperspacehashing/hyperspacehashing/mask.h"
 
 // HyperDisk
-#include "hyperdisk/disk.h"
-#include "log_entry.h"
-#include "offset_update.h"
-#include "shard.h"
-#include "shard_snapshot.h"
-#include "shard_vector.h"
+#include "hyperdisk/hyperdisk/disk.h"
+#include "hyperdisk/log_entry.h"
+#include "hyperdisk/offset_update.h"
+#include "hyperdisk/shard.h"
+#include "hyperdisk/shard_snapshot.h"
+#include "hyperdisk/shard_vector.h"
 
 using hyperspacehashing::mask::coordinate;
 
@@ -273,6 +273,7 @@ hyperdisk :: disk :: flush(size_t num)
     bool flushed = false;
     returncode flush_status = SUCCESS;
     e::guard hold = e::makeobjguard(m_shards_mutate, &po6::threads::mutex::unlock);
+    hold.use_variable();
     e::locking_iterable_fifo<log_entry>::iterator it = m_log.iterate();
 
     for (size_t nf = 0; nf < num && it.valid(); ++nf, it.next())

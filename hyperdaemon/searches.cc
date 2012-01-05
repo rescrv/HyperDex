@@ -29,16 +29,16 @@
 #include <glog/logging.h>
 
 // HyperDisk
-#include <hyperdisk/disk.h>
-#include <hyperdisk/returncode.h>
+#include "hyperdisk/hyperdisk/disk.h"
+#include "hyperdisk/hyperdisk/returncode.h"
 
 // HyperDex
-#include <hyperdex/hyperdex/packing.h>
+#include "hyperdex/hyperdex/packing.h"
 
 // HyperDaemon
-#include "datalayer.h"
-#include "logical.h"
-#include "searches.h"
+#include "hyperdaemon/datalayer.h"
+#include "hyperdaemon/logical.h"
+#include "hyperdaemon/searches.h"
 
 using hyperdex::coordinatorlink;
 using hyperdex::entityid;

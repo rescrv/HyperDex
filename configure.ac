@@ -3,12 +3,12 @@
 
 AC_PREREQ([2.66])
 AC_INIT([HyperDex], [0.1.dev], [escriva@cs.cornell.edu])
-AM_INIT_AUTOMAKE([foreign dist-bzip2 dist-lzma])
+AM_INIT_AUTOMAKE([foreign subdir-objects dist-bzip2 dist-lzma])
 AM_SILENT_RULES([yes])
 AM_PATH_PYTHON([2.6])
 LT_PREREQ([2.2])
 LT_INIT
-AC_CONFIG_SRCDIR([hyperdex/hyperdex/ids.h])
+AC_CONFIG_SRCDIR([hyperspacehashing/hashes.cc])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -126,6 +126,14 @@ YCSB will not be built.
     fi
 fi
 
+if test x"${enable_java_bindings}" = xyes; then
+    AC_MSG_ERROR([
+-------------------------------------------------
+Cannot build the Java bindings as the makefile
+is temporarily broken.  XXX fix this.
+-------------------------------------------------])
+fi
+
 AC_ARG_ENABLE([log-all-messages], [AS_HELP_STRING([--enable-log-all-messages],
               [enable code to log all messages @<:@default: no@:>@])],
               [enable_logall=${enableval}], [enable_logall=no])
@@ -133,20 +141,12 @@ if test x"${enable_logall}" = xyes; then
     AC_DEFINE([HD_LOG_ALL_MESSAGES], [], [Log all network traffic at the INFO level])
 fi
 
-AM_CONDITIONAL([ENABLE_JAVA], [test x"${java_bindings}" = xyes])
+AC_SUBST([HYPERSPACEHASHING_LDADD], ["-lcityhash -le"])
+AC_SUBST([HYPERDISK_LDADD], ["-lpthread -lcityhash -le"])
+AC_SUBST([HYPERCLIENT_LDADD], ["${HYPERSPACEHASHING_LDADD} -lrt"])
+AM_CONDITIONAL([ENABLE_JAVA_BINDINGS], [test x"${java_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_YCSB], [test x"${enable_ycsb}" = xyes])
 AM_CONDITIONAL([ENABLE_COVERAGE], [test x"${enable_coverage}" = xyes])
 
-AC_CONFIG_FILES([Makefile
-                 hyperclient/Makefile
-                 hyperclient/java/Makefile
-                 hyperdaemon/Makefile
-                 hyperdex/Makefile
-                 hyperdisk/Makefile
-                 hyperdisk/test/Makefile
-                 hyperdisk/utils/Makefile
-                 hyperspacehashing/Makefile
-                 hyperspacehashing/test/Makefile
-                 hyperspacehashing/utils/Makefile
-                 ycsb/Makefile])
+AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
