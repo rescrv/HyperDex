@@ -164,16 +164,6 @@ hyperclient_loop(struct hyperclient* client, int timeout, hyperclient_returncode
     }
 }
 
-void
-hyperclient_destroy_attrs(struct hyperclient_attribute* attrs,
-                          size_t /*attrs_sz*/)
-{
-    if (attrs)
-    {
-        free(attrs);
-    }
-}
-
 } // extern "C"
 
 ///////////////////////////////// Channel Class ////////////////////////////////

@@ -176,9 +176,6 @@ int64_t
 hyperclient_loop(struct hyperclient* client, int timeout,
                  enum hyperclient_returncode* status);
 
-void
-hyperclient_destroy_attrs(struct hyperclient_attribute* attrs, size_t attrs_sz);
-
 #ifdef __cplusplus
 }
 
