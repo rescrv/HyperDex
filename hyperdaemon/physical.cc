@@ -131,6 +131,7 @@ hyperdaemon :: physical :: send(const po6::net::location& to,
     if (chan->mtx.trylock())
     {
         e::guard g = e::makeobjguard(chan->mtx, &po6::threads::mutex::unlock);
+        g.use_variable();
 
         if (chan->outprogress.empty())
         {
