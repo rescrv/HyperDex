@@ -151,8 +151,7 @@ hyperdaemon :: datalayer :: make_snapshot(const regionid& ri,
         return e::intrusive_ptr<hyperdisk::snapshot>();
     }
 
-    //return r->make_snapshot(terms);
-    return NULL;
+    return r->make_snapshot(terms);
 }
 
 e::intrusive_ptr<hyperdisk::rolling_snapshot>
@@ -165,8 +164,7 @@ hyperdaemon :: datalayer :: make_rolling_snapshot(const regionid& ri)
         return e::intrusive_ptr<hyperdisk::rolling_snapshot>();
     }
 
-    //return r->make_rolling_snapshot();
-    return NULL;
+    return r->make_rolling_snapshot();
 }
 
 hyperdisk::returncode
