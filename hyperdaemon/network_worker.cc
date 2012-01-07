@@ -99,6 +99,7 @@ hyperdaemon :: network_worker :: run()
     entityid to;
     network_msgtype type;
     std::auto_ptr<e::buffer> msg;
+    unsigned int seed = pthread_self();
 
     while (m_continue && m_comm->recv(&from, &to, &type, &msg))
     {
@@ -297,6 +298,11 @@ hyperdaemon :: network_worker :: run()
             }
 
             m_repl->chain_ack(from, to, version, msg, key);
+
+            if (rand_r(&seed) < (0.01 * RAND_MAX))
+            {
+                m_data->flush(to.get_region(), 200);
+            }
         }
 #if 0
         else if (type == hyperdex::XFER_MORE)

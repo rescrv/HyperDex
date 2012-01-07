@@ -216,6 +216,20 @@ hyperdaemon :: datalayer :: del(const regionid& ri,
     return r->del(backing, key);
 }
 
+hyperdisk::returncode
+hyperdaemon :: datalayer :: flush(const regionid& ri,
+                                  size_t n)
+{
+    e::intrusive_ptr<hyperdisk::disk> r;
+
+    if (!m_disks.lookup(ri, &r))
+    {
+        return hyperdisk::MISSINGDISK;
+    }
+
+    return r->flush(n);
+}
+
 typedef std::map<hyperdex::regionid, e::intrusive_ptr<hyperdisk::disk> > disk_map_t;
 typedef std::queue<hyperdex::regionid> disk_queue_t;
 

@@ -93,6 +93,8 @@ class datalayer
         hyperdisk::returncode del(const hyperdex::regionid& ri,
                                   std::tr1::shared_ptr<e::buffer> backing,
                                   const e::slice& key);
+        // May return SUCCESS or DIDNOTHING.
+        hyperdisk::returncode flush(const hyperdex::regionid& ri, size_t n);
 
     private:
         static uint64_t regionid_hash(const hyperdex::regionid& r) { return r.hash(); }
