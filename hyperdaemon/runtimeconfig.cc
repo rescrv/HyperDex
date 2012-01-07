@@ -28,8 +28,8 @@
 // HyperDaemon
 #include "hyperdaemon/runtimeconfig.h"
 
-e::envconfig<unsigned int> hyperdaemon::PREALLOCATIONS_PER_SECOND("HYPERDEX_PREALLOCATIONS_PER_SECOND", 1);
-e::envconfig<unsigned int> hyperdaemon::OPTIMISM_BURSTS_PER_SECOND("HYPERDEX_OPTIMISM_BURSTS_PER_SECOND", 1);
+e::envconfig<unsigned int> hyperdaemon::PREALLOCATIONS_PER_SECOND("HYPERDEX_PREALLOCATIONS_PER_SECOND", 2);
+e::envconfig<unsigned int> hyperdaemon::OPTIMISM_BURSTS_PER_SECOND("HYPERDEX_OPTIMISM_BURSTS_PER_SECOND", 2);
 e::envconfig<size_t> hyperdaemon::LOCK_STRIPING("HYPERDEX_LOCK_STRIPING", 1024);
 e::envconfig<size_t> hyperdaemon::TRANSFERS_IN_FLIGHT("HYPERDEX_TRANSFERS_IN_FLIGHT", 1000);
 e::envconfig<uint16_t> hyperdaemon::REPLICATION_HASHTABLE_SIZE("HYPERDEX_REPLICATION_HASHTABLE_SIZE", 20);
