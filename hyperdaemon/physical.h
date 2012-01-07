@@ -47,6 +47,9 @@
 #include <e/lockfree_hash_map.h>
 #include <e/worker_barrier.h>
 
+// Forward declarations
+struct epoll_event;
+
 namespace hyperdaemon
 {
 
@@ -86,6 +89,8 @@ class physical
         returncode send(const po6::net::location& to, std::auto_ptr<e::buffer> msg);
         returncode recv(po6::net::location* from, std::auto_ptr<e::buffer>* msg);
         // Deliver a message (put it on the queue) as if it came from "from".
+        // This will *not* wake up threads.  This is intentional so the thread
+        // calling deliver will possibly pull the delivered item from the queue.
         void deliver(const po6::net::location& from, std::auto_ptr<e::buffer> msg);
 
     // Figure out our own socket info.
@@ -101,6 +106,16 @@ class physical
 
             po6::net::location loc;
             std::auto_ptr<e::buffer> buf;
+        };
+
+        struct pending
+        {
+            pending() : fd(), events() {}
+            pending(int f, uint32_t e) : fd(f), events(e) {}
+            ~pending() throw () {}
+
+            int fd;
+            uint32_t events;
         };
 
         class channel
@@ -127,17 +142,23 @@ class physical
                 channel& operator = (const channel&);
         };
 
-        typedef std::auto_ptr<e::hazard_ptrs<channel, 1, size_t>::hazard_ptr> hazard_ptr;
+        typedef std::auto_ptr<e::hazard_ptrs<channel, 1>::hazard_ptr> hazard_ptr;
 
     private:
         physical(const physical&);
 
     private:
-        // get_channel creates a new channel, or finds an existing one matching
-        // the specific parameter.
+        // Receive an event to handle.
+        int receive_event(int*fd, uint32_t* events);
+        // Postpone an event to handle later.
+        void postpone_event(int fd, uint32_t events);
+        // Add a new file descriptor to epoll.
+        int add_descriptor(int fd);
+        // Get a reference to an existing channel
         returncode get_channel(const hazard_ptr& hptr,
                                const po6::net::location& to,
                                channel** chan);
+        // Create a new channel using the socket pointed to by 'to'.
         returncode get_channel(const hazard_ptr& hptr,
                                po6::net::socket* to,
                                channel** chan);
@@ -145,11 +166,17 @@ class physical
         int work_accept(const hazard_ptr& hptr);
         // work_close must be called without holding chan->mtx.
         void work_close(const hazard_ptr& hptr, channel* chan);
+
         // work_read must be called without holding chan->mtx.
+        // It will return true if *from, *msg, *res should be returned to the
+        // client and false otherwise.
         bool work_read(const hazard_ptr& hptr, channel* chan,
                        po6::net::location* from, std::auto_ptr<e::buffer>* msg,
                        returncode* res);
         // work_write must be called while holding chan->mtx.
+        // It will return true if progress was made, and false if there is an
+        // error to report (using *res).  If there is an error to report, the
+        // caller must call work_close.
         bool work_write(channel* chan);
 
     private:
@@ -158,14 +185,15 @@ class physical
     private:
         const long m_max_fds;
         volatile bool m_shutdown;
+        po6::io::fd m_epoll;
         po6::net::socket m_listen;
         po6::net::location m_bindto;
+        e::worker_barrier m_pause_barrier;
         e::lockfree_fifo<message> m_incoming;
         e::lockfree_hash_map<po6::net::location, int, po6::net::location::hash> m_locations;
-        e::hazard_ptrs<channel, 1, size_t> m_hazard_ptrs;
+        e::hazard_ptrs<channel, 1> m_hazard_ptrs;
         std::vector<channel*> m_channels;
-        std::vector<int> m_channels_mask;
-        e::worker_barrier m_pause_barrier;
+        e::lockfree_fifo<pending> m_postponed;
 };
 
 } // namespace hyperdaemon

@@ -25,8 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// POSIX
-#include <poll.h>
+// Linux
+#include <sys/epoll.h>
 
 // Google Log
 #include <glog/logging.h>
@@ -47,15 +47,21 @@ hyperdaemon :: physical :: physical(const po6::net::ipaddr& ip,
                                     size_t num_threads)
     : m_max_fds(sysconf(_SC_OPEN_MAX))
     , m_shutdown(false)
+    , m_epoll(epoll_create(1 << 16))
     , m_listen(ip.family(), SOCK_STREAM, IPPROTO_TCP)
     , m_bindto(ip, outgoing)
+    , m_pause_barrier(num_threads)
     , m_incoming()
-    , m_locations()
+    , m_locations(16)
     , m_hazard_ptrs()
     , m_channels(static_cast<size_t>(m_max_fds), NULL)
-    , m_channels_mask(m_max_fds, 0)
-    , m_pause_barrier(num_threads)
+    , m_postponed()
 {
+    if (m_epoll.get() < 0)
+    {
+        throw po6::error(errno);
+    }
+
     if (listen)
     {
         hazard_ptr hptr = m_hazard_ptrs.get();
@@ -80,6 +86,15 @@ hyperdaemon :: physical :: physical(const po6::net::ipaddr& ip,
         }
 
         m_bindto = chan->soc.getsockname();
+
+        epoll_event ee;
+        ee.data.fd = m_listen.get();
+        ee.events = EPOLLIN;
+
+        if (epoll_ctl(m_epoll.get(), EPOLL_CTL_ADD, m_listen.get(), &ee) < 0)
+        {
+            throw po6::error(errno);
+        }
     }
     else
     {
@@ -143,12 +158,20 @@ hyperdaemon :: physical :: send(const po6::net::location& to,
             chan->outgoing.push(msg);
         }
 
-        work_write(chan);
+        if (!work_write(chan))
+        {
+            chan->mtx.unlock();
+            g.dismiss();
+            work_close(hptr, chan);
+            return DISCONNECT;
+        }
+
         return SUCCESS;
     }
     else
     {
         chan->outgoing.push(msg);
+        postpone_event(chan->soc.get(), EPOLLOUT);
         return QUEUED;
     }
 }
@@ -168,23 +191,6 @@ hyperdaemon :: physical :: recv(po6::net::location* from,
     }
 
     hazard_ptr hptr = m_hazard_ptrs.get();
-    std::vector<pollfd> pfds;
-
-    for (int i = 0; i < m_max_fds; ++i)
-    {
-        if (m_channels_mask[i])
-        {
-            pfds.push_back(pollfd());
-            pfds.back().fd = i;
-            pfds.back().events = POLLIN|POLLOUT;
-            pfds.back().revents = 0;
-        }
-    }
-
-    pfds.push_back(pollfd());
-    pfds.back().fd = m_listen.get();
-    pfds.back().events = POLLIN;
-    pfds.back().revents = 0;
 
     while (true)
     {
@@ -195,99 +201,92 @@ hyperdaemon :: physical :: recv(po6::net::location* from,
             return SHUTDOWN;
         }
 
-        if (poll(&pfds.front(), pfds.size(), 100) < 0)
+        int status;
+        int fd;
+        uint32_t events;
+
+        if ((status = receive_event(&fd, &events)) <= 0)
         {
-            if (errno != EAGAIN && errno != EINTR && errno != EWOULDBLOCK)
+            if (status < 0 &&
+                    errno != EAGAIN &&
+                    errno != EINTR &&
+                    errno != EWOULDBLOCK)
             {
                 PLOG(INFO) << "poll failed";
                 return LOGICERROR;
             }
+
+            continue;
         }
 
-        size_t starting = hptr->state();
 
-        for (size_t i = 0; i < pfds.size(); ++i)
+        channel* chan;
+
+        // Grab a safe reference to chan.
+        while (true)
         {
-            size_t pfd_idx = hptr->state() = (starting + i) % pfds.size();
+            chan = m_channels[fd];
+            hptr->set(0, chan);
 
-            if (pfds[pfd_idx].fd == -1)
+            if (chan == m_channels[fd])
             {
-                continue;
+                break;
             }
+        }
 
-            channel* chan;
+        // Ignore file descriptors opened elsewhere.
+        if (!chan && fd != m_listen.get())
+        {
+            continue;
+        }
 
-            while (true)
+        // Close the connection on error or hangup.
+        if ((events & EPOLLERR) || (events & EPOLLHUP))
+        {
+            *from = chan->loc;
+            work_close(hptr, chan);
+            return DISCONNECT;
+        }
+
+        // Handle read I/O.
+        if ((events & EPOLLIN))
+        {
+            if (fd == m_listen.get())
             {
-                chan = m_channels[pfds[pfd_idx].fd];
-                hptr->set(0, chan);
+                int newfd = work_accept(hptr);
+                postpone_event(newfd, EPOLLIN);
+            }
+            else
+            {
+                returncode res;
 
-                if (chan == m_channels[pfds[pfd_idx].fd])
+                if (work_read(hptr, chan, from, msg, &res))
                 {
-                    break;
+                    return res;
                 }
             }
+        }
 
-            // Protect file descriptors opened elsewhere.
-            if (!chan && pfds[pfd_idx].fd != m_listen.get())
+        // Handle write I/O.
+        if ((events & EPOLLOUT))
+        {
+            if (chan->mtx.trylock())
             {
-                pfds[pfd_idx].fd = -1;
-                continue;
-            }
-
-            if (pfds[pfd_idx].revents & POLLNVAL)
-            {
-                pfds[pfd_idx].fd = -1;
-                continue;
-            }
-
-            if (pfds[pfd_idx].revents & POLLERR)
-            {
-                *from = chan->loc;
-                work_close(hptr, chan);
-                return DISCONNECT;
-            }
-
-            if (pfds[pfd_idx].revents & POLLHUP)
-            {
-                *from = chan->loc;
-                work_close(hptr, chan);
-                return DISCONNECT;
-            }
-
-            if (pfds[pfd_idx].revents & POLLIN)
-            {
-                if (pfds[pfd_idx].fd == m_listen.get())
-                {
-                    int fd = work_accept(hptr);
-
-                    if (fd >= 0)
-                    {
-                        pfds.push_back(pollfd());
-                        pfds.back().fd = fd;
-                        pfds.back().events |= POLLIN;
-                        pfds.back().revents = 0;
-                    }
-                }
-                else
-                {
-                    returncode res;
-
-                    if (work_read(hptr, chan, from, msg, &res))
-                    {
-                        return res;
-                    }
-                }
-            }
-
-            if (pfds[pfd_idx].revents & POLLOUT)
-            {
-                po6::threads::mutex::hold hold(&chan->mtx);
+                e::guard g = e::makeobjguard(chan->mtx, &po6::threads::mutex::unlock);
+                g.use_variable();
 
                 if (!work_write(chan))
                 {
-                    pfds[pfd_idx].events &= ~POLLOUT;
+                    *from = chan->loc;
+                    chan->mtx.unlock();
+                    g.dismiss();
+                    work_close(hptr, chan);
+                    return DISCONNECT;
                 }
+            }
+            else
+            {
+                postpone_event(fd, EPOLLOUT);
             }
         }
     }
@@ -301,6 +300,44 @@ hyperdaemon :: physical :: deliver(const po6::net::location& from,
     m.loc = from;
     m.buf = msg;
     m_incoming.push(m);
+}
+
+int
+hyperdaemon :: physical :: receive_event(int* fd, uint32_t* events)
+{
+    pending p;
+
+    if (m_postponed.pop(&p))
+    {
+        *fd = p.fd;
+        *events = p.events;
+        return 1;
+    }
+
+    epoll_event ee;
+    int ret = epoll_wait(m_epoll.get(), &ee, 1, 50);
+    *fd = ee.data.fd;
+    *events = ee.events;
+    return ret;
+}
+
+void
+hyperdaemon :: physical :: postpone_event(int fd, uint32_t events)
+{
+    if (fd >= 0)
+    {
+        pending p(fd, events);
+        m_postponed.push(p);
+    }
+}
+
+int
+hyperdaemon :: physical :: add_descriptor(int fd)
+{
+    epoll_event ee;
+    ee.data.fd = fd;
+    ee.events = EPOLLIN|EPOLLOUT|EPOLLET;
+    return epoll_ctl(m_epoll.get(), EPOLL_CTL_ADD, fd, &ee);
 }
 
 hyperdaemon::physical::returncode
@@ -361,9 +398,16 @@ hyperdaemon :: physical :: get_channel(const hazard_ptr& hptr,
     if (m_locations.insert(chan->loc, chan->soc.get()))
     {
         assert(m_channels[chan->soc.get()] == NULL);
-        __sync_or_and_fetch(&m_channels_mask[chan->soc.get()], 1);
         m_channels[chan->soc.get()] = chan.get();
         chan.release();
+
+        if (add_descriptor((*ret)->soc.get()) < 0)
+        {
+            PLOG(INFO) << "Could not add descriptor to epoll";
+            return LOGICERROR;
+        }
+
+        postpone_event((*ret)->soc.get(), EPOLLIN);
         return SUCCESS;
     }
 
@@ -393,7 +437,6 @@ hyperdaemon :: physical :: work_accept(const hazard_ptr& hptr)
     return -1;
 }
 
-
 void
 hyperdaemon :: physical :: work_close(const hazard_ptr& hptr, channel* chan)
 {
@@ -408,7 +451,6 @@ hyperdaemon :: physical :: work_close(const hazard_ptr& hptr, channel* chan)
                 return;
             }
 
-            m_channels_mask[chan->soc.get()] = 0;
             m_channels[fd] = NULL;
             m_locations.remove(chan->loc);
             chan->soc.close();
@@ -417,8 +459,6 @@ hyperdaemon :: physical :: work_close(const hazard_ptr& hptr, channel* chan)
         hptr->retire(chan);
     }
 }
-
-#define IO_BLOCKSIZE 4096
 
 bool
 hyperdaemon :: physical :: work_read(const hazard_ptr& hptr,
@@ -429,6 +469,7 @@ hyperdaemon :: physical :: work_read(const hazard_ptr& hptr,
 {
     if (!chan->mtx.trylock())
     {
+        postpone_event(chan->soc.get(), EPOLLIN);
         return false;
     }
 
@@ -436,26 +477,32 @@ hyperdaemon :: physical :: work_read(const hazard_ptr& hptr,
 
     if (chan->soc.get() < 0)
     {
+        postpone_event(chan->soc.get(), EPOLLIN);
         return false;
     }
 
-    char buffer[IO_BLOCKSIZE];
+    std::vector<char> buffer(65536, 0);
     ssize_t rem;
 
     // Restore leftovers from last time.
     if (chan->inoffset)
     {
-        memmove(buffer, chan->inbuffer, chan->inoffset);
+        memmove(&buffer.front(), chan->inbuffer, chan->inoffset);
     }
 
     // Read into our temporary local buffer.
-    rem = chan->soc.read(buffer + chan->inoffset, IO_BLOCKSIZE - chan->inoffset);
+    rem = chan->soc.read(&buffer.front() + chan->inoffset,
+                         buffer.size() - chan->inoffset);
 
-    // If it's an error case, we should short-circuit.
+    // If we are done with this socket (error or closed).
     if ((rem < 0 && errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK)
             || rem == 0)
     {
-        LOG(ERROR) << "could not read from " << chan->loc << "; closing";
+        if (rem < 0)
+        {
+            PLOG(ERROR) << "could not read from " << chan->loc << "; closing";
+        }
+
         *from = chan->loc;
         *res = DISCONNECT;
         chan->mtx.unlock();
@@ -468,10 +515,16 @@ hyperdaemon :: physical :: work_read(const hazard_ptr& hptr,
         return false;
     }
 
+    // If we could read more.
+    if (static_cast<size_t>(rem) == buffer.size() - chan->inoffset)
+    {
+        postpone_event(chan->soc.get(), EPOLLIN);
+    }
+
     // We know rem is >= 0, so add the amount of preexisting data.
     rem += chan->inoffset;
     chan->inoffset = 0;
-    char* data = buffer;
+    char* data = &buffer.front();
     bool ret = false;
 
     // XXX If this fails to allocate memory at any time, we need to just close
@@ -536,14 +589,14 @@ hyperdaemon :: physical :: work_write(channel* chan)
 {
     if (chan->soc.get() < 0)
     {
-        return false;
+        return true;
     }
 
     if (chan->outprogress.empty())
     {
         if (!chan->outgoing.pop(&chan->outnow))
         {
-            return false;
+            return true;
         }
 
         chan->outprogress = chan->outnow->as_slice();
