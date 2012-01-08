@@ -298,11 +298,6 @@ hyperdaemon :: network_worker :: run()
             }
 
             m_repl->chain_ack(from, to, version, msg, key);
-
-            if (rand_r(&seed) < (0.01 * RAND_MAX))
-            {
-                m_data->flush(to.get_region(), 200);
-            }
         }
 #if 0
         else if (type == hyperdex::XFER_MORE)
@@ -334,6 +329,11 @@ hyperdaemon :: network_worker :: run()
         else
         {
             LOG(INFO) << "Message of unknown type received.";
+        }
+
+        if (rand_r(&seed) < (0.01 * RAND_MAX))
+        {
+            m_data->flush(to.get_region(), 100000);
         }
     }
 }

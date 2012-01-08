@@ -347,7 +347,7 @@ hyperdaemon :: datalayer :: flush_thread()
         for (disk_map_t::iterator d = m_disks.begin();
                 d != m_disks.end(); d.next())
         {
-            hyperdisk::returncode ret = d.value()->flush(1000);
+            hyperdisk::returncode ret = d.value()->flush(-1);
 
             if (ret == hyperdisk::SUCCESS)
             {
