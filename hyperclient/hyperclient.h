@@ -44,9 +44,6 @@
 #include <stack>
 #include <vector>
 
-// po6
-#include <po6/net/location.h>
-
 // e
 #include <e/buffer.h>
 #include <e/intrusive_ptr.h>
@@ -211,7 +208,7 @@ hyperclient_loop(struct hyperclient* client, int timeout,
 class hyperclient
 {
     public:
-        hyperclient(const po6::net::location& coordinator);
+        hyperclient(const char* coordinator, in_port_t port);
         ~hyperclient() throw ();
 
     public:

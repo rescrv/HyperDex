@@ -113,7 +113,7 @@ main(int argc, char* argv[])
 
     try
     {
-        hyperclient cl(po6::net::location(ip, port));
+        hyperclient cl(argv[1], port);
 
         timespec start;
         timespec end;

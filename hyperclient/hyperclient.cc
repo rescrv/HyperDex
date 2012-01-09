@@ -49,8 +49,7 @@ hyperclient_create(const char* coordinator, in_port_t port)
 {
     try
     {
-        po6::net::location loc(coordinator, port);
-        std::auto_ptr<hyperclient> ret(new hyperclient(loc));
+        std::auto_ptr<hyperclient> ret(new hyperclient(coordinator, port));
         return ret.release();
     }
     catch (po6::error& e)
@@ -509,8 +508,8 @@ hyperclient :: pending_statusonly :: handle_response(std::auto_ptr<e::buffer> ms
 
 ///////////////////////////////// Public Class /////////////////////////////////
 
-hyperclient :: hyperclient(const po6::net::location& coordinator)
-    : m_coord(new hyperdex::coordinatorlink(coordinator))
+hyperclient :: hyperclient(const char* coordinator, in_port_t port)
+    : m_coord(new hyperdex::coordinatorlink(po6::net::location(coordinator, port)))
     , m_config(new hyperdex::configuration())
     , m_fds(sysconf(_SC_OPEN_MAX), e::intrusive_ptr<channel>())
     , m_instances()
