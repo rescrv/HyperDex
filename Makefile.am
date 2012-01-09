@@ -200,6 +200,7 @@ hyperspacehashing_utils_cfloat_LDADD = \
 libhyperdisk_includedir = $(includedir)/hyperdisk
 libhyperdisk_include_HEADERS = \
 			hyperdisk/hyperdisk/disk.h \
+			hyperdisk/hyperdisk/reference.h \
 			hyperdisk/hyperdisk/returncode.h \
 			hyperdisk/hyperdisk/snapshot.h
 
@@ -280,7 +281,8 @@ libhyperdex_noinst_headers = \
 			hyperdex/hyperdex/coordinatorlink.h \
 			hyperdex/hyperdex/ids.h \
 			hyperdex/hyperdex/instance.h \
-			hyperdex/hyperdex/network_constants.h
+			hyperdex/hyperdex/network_constants.h \
+			hyperdex/hyperdex/packing.h
 
 libhyperdex_la_SOURCES = \
 			hyperdex/configuration.cc \
@@ -301,6 +303,7 @@ libhyperdaemon_noinst_headers = \
 			hyperdaemon/datalayer.h \
 			hyperdaemon/logical.h \
 			hyperdaemon/network_worker.h \
+			hyperdaemon/ongoing_state_transfers.h \
 			hyperdaemon/physical.h \
 			hyperdaemon/replication/clientop.h \
 			hyperdaemon/replication/deferred.h \
