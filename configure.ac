@@ -139,6 +139,10 @@ YCSB will not be built.
     fi
 fi
 
+AC_ARG_ENABLE([python_bindings], [AS_HELP_STRING([--enable-python-bindings],
+              [build Python bindings @<:@default: no@:>@])],
+              [python_bindings=${enableval}], [python_bindings=no])
+
 AC_ARG_ENABLE([log-all-messages], [AS_HELP_STRING([--enable-log-all-messages],
               [enable code to log all messages @<:@default: no@:>@])],
               [enable_logall=${enableval}], [enable_logall=no])
@@ -150,6 +154,7 @@ AC_SUBST([HYPERSPACEHASHING_LDADD], ["-lcityhash -le"])
 AC_SUBST([HYPERDISK_LDADD], ["-lpthread ${HYPERSPACEHASHING_LDADD}"])
 AC_SUBST([HYPERCLIENT_LDADD], ["${HYPERSPACEHASHING_LDADD} -lrt"])
 AM_CONDITIONAL([ENABLE_JAVA_BINDINGS], [test x"${java_bindings}" = xyes])
+AM_CONDITIONAL([ENABLE_PYTHON_BINDINGS], [test x"${python_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_YCSB_DRIVER], [test x"${enable_ycsb}" = xyes])
 AM_CONDITIONAL([ENABLE_COVERAGE], [test x"${enable_coverage}" = xyes])
 
