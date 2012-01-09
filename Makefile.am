@@ -28,7 +28,7 @@
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 AM_CXXFLAGS = $(COVERAGE_CXXFLAGS)
 
-SUBDIRS = ${java_bindings_subdir}
+SUBDIRS = . ${java_bindings_subdir} ${ycsb_driver_subdir}
 
 EXTRA_DIST = \
 			LICENSE \
@@ -381,6 +381,18 @@ hyperclient_python_hyperclient_la_LDFLAGS = \
 			-module \
 			-avoid-version \
 			-export-symbols-regex inithyperclient
+
+################################################################################
+################################## Benchmarks ##################################
+################################################################################
+
+##################################### YCSB #####################################
+
+if ENABLE_YCSB_DRIVER
+ycsb_driver_subdir = ycsb
+else
+ycsb_driver_subdir =
+endif
 
 ################################################################################
 ################################### Binaries ###################################

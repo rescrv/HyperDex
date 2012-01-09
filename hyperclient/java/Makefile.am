@@ -15,7 +15,7 @@ hyperclient_wrap.cxx: hyperclient.i ../hyperclient.h syncclient.h
 	${SWIG} -java -package hyperclient -outdir hyperclient -w518 hyperclient.i
 
 JAVAROOT = $(abs_srcdir)
-jarfile = $(PACKAGE)-$(VERSION).jar
+jarfile = hyperclient-$(VERSION).jar
 jardir = $(datadir)/java
 pkgpath = hyperclient
 

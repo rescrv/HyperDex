@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011, Cornell University
+ * Copyright (c) 2011-2012, Cornell University
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,14 +41,17 @@ import java.util.regex.*;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 
-import hyperclient.*;
+import hyperclient.HyperClient;
+import hyperclient.ReturnCode;
+import hyperclient.ssmap;
 
-public class HyperClient extends DB
+public class HyperClientDriver extends DB
 {
-    private client m_client;
+    private HyperClient m_client;
     private Pattern m_pat;
     private Matcher m_mat;
     private boolean m_scannable;
+    private int m_retries;
 
     /**
      * Initialize any state for this DB.
@@ -58,27 +61,11 @@ public class HyperClient extends DB
     {
         String host = getProperties().getProperty("hyperclient.host", "127.0.0.1");
         Integer port = Integer.parseInt(getProperties().getProperty("hyperclient.port", "1234"));
-
-        location loc = new location(host, port);
-        m_client = new client(loc);
-        int ret = 0;
-
-        while ((ret = m_client.connect()) != 0)
-        {
-            System.err.println("Could not connect to HyperDex coordinator (code: " + ret + ") ... sleeping");
-
-            try
-            {
-                Thread.sleep(1000);
-            }
-            catch (InterruptedException e)
-            {
-            }
-        }
-
+        m_client = new HyperClient(host, port);
         m_pat = Pattern.compile("([a-zA-Z]*)([0-9]*)");
         m_mat = m_pat.matcher("user1");
         m_scannable = getProperties().getProperty("hyperclient.scannable", "false").equals("true");
+        m_retries = 10;
     }
 
     /**
@@ -100,22 +87,26 @@ public class HyperClient extends DB
      */
     public int read(String table, String key, Set<String> fields, HashMap<String,String> result)
     {
-        int ret = 0;
-        mapstrbuf res = new mapstrbuf();
+        ssmap r = new ssmap();
+        ReturnCode ret = m_client.get(table, key, r);
 
-        for (int i = 0; i < 6; ++i)
+        for (int i = 0; i < m_retries && ret != ReturnCode.SUCCESS && ret != ReturnCode.NOTFOUND; ++i)
         {
-            ret = m_client.get(table, new buffer(key), res);
-
-            if (ret == 0)
-            {
-                convert(res, result);
-                return 0;
-            }
+            ret = m_client.get(table, key, r);
         }
 
-        System.err.println("READ returned " + ret);
-        return ret;
+        if (ret == ReturnCode.SUCCESS)
+        {
+            convert_to_java(fields, r, result);
+            return 0;
+        }
+
+        if (ret == ReturnCode.NOTFOUND)
+        {
+            return 0;
+        }
+
+        return ret.swigValue();
     }
 
     /**
@@ -130,6 +121,8 @@ public class HyperClient extends DB
      */
     public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,String>> result)
     {
+        return -42;
+        /*
         if (!m_scannable)
         {
             System.err.println("SCAN returned " + 1000);
@@ -176,6 +169,7 @@ public class HyperClient extends DB
 
         System.err.println("SCAN returned " + ret);
         return ret;
+        */
     }
 
     /**
@@ -189,12 +183,8 @@ public class HyperClient extends DB
      */
     public int update(String table, String key, HashMap<String,String> values)
     {
-        mapstrbuf val = new mapstrbuf();
-
-        for (Map.Entry<String, String> entry : values.entrySet())
-        {
-            val.set(entry.getKey(), new buffer(entry.getValue()));
-        }
+        ssmap res = new ssmap();
+        convert_from_java(values, res);
 
         if (m_scannable)
         {
@@ -202,11 +192,10 @@ public class HyperClient extends DB
 
             if (!m_mat.matches())
             {
-                System.err.println("UPDATE returned " + 1000);
-                return 1000;
+                return -1;
             }
 
-            val.set("username", new buffer(m_mat.group(1)));
+            res.set("username", m_mat.group(1));
             BigInteger bi = new BigInteger(m_mat.group(2));
             byte[] be = bi.toByteArray();
             byte[] le = new byte[8];
@@ -221,23 +210,22 @@ public class HyperClient extends DB
                 le[be.length - i - 1] = be[i];
             }
 
-            val.set("recno", new buffer(le, le.length));
+            res.set("recno", new String(le));
         }
 
-        int ret = 0;
+        ReturnCode ret = m_client.put(table, key, res);
 
-        for (int i = 0; i < 6; ++i)
+        for (int i = 0; i < m_retries && ret != ReturnCode.SUCCESS; ++i)
         {
-            ret = m_client.put(table, new buffer(key), val);
-
-            if (ret == 0)
-            {
-                return 0;
-            }
+            ret = m_client.put(table, key, res);
         }
 
-        System.err.println("UPDATE returned " + ret);
-        return ret;
+        if (ret == ReturnCode.SUCCESS)
+        {
+            return 0;
+        }
+
+        return ret.swigValue();
     }
 
     /**
@@ -263,36 +251,37 @@ public class HyperClient extends DB
      */
     public int delete(String table, String key)
     {
-        int ret = 0;
+        ReturnCode ret = m_client.del(table, key);
 
-        for (int i = 0; i < 6; ++i)
+        for (int i = 0; i < m_retries && ret != ReturnCode.SUCCESS && ret != ReturnCode.NOTFOUND; ++i)
         {
-            ret = m_client.del(table, new buffer(key));
-
-            if (ret == 0)
-            {
-                return 0;
-            }
+            ret = m_client.del(table, key);
         }
 
-        System.err.println("DELETE returned " + ret);
-        return ret;
+        if (ret == ReturnCode.SUCCESS || ret == ReturnCode.NOTFOUND)
+        {
+            return 0;
+        }
+
+        return ret.swigValue();
     }
 
-    private void convert(mapstrbuf val, HashMap<String,String> value)
+    private void convert_to_java(Set<String> fields, ssmap interres, Map<String,String> result)
     {
-        if (val.has_key("key")) { value.put("key", val.get("key").str()); }
-        if (val.has_key("username")) { value.put("username", val.get("username").str()); }
-        if (val.has_key("recno")) { value.put("recno", val.get("recno").str()); }
-        if (val.has_key("field0")) { value.put("field0", val.get("field0").str()); }
-        if (val.has_key("field1")) { value.put("field1", val.get("field1").str()); }
-        if (val.has_key("field2")) { value.put("field2", val.get("field2").str()); }
-        if (val.has_key("field3")) { value.put("field3", val.get("field3").str()); }
-        if (val.has_key("field4")) { value.put("field4", val.get("field4").str()); }
-        if (val.has_key("field5")) { value.put("field5", val.get("field5").str()); }
-        if (val.has_key("field6")) { value.put("field6", val.get("field6").str()); }
-        if (val.has_key("field7")) { value.put("field7", val.get("field7").str()); }
-        if (val.has_key("field8")) { value.put("field8", val.get("field8").str()); }
-        if (val.has_key("field9")) { value.put("field9", val.get("field9").str()); }
+        for (String key : fields)
+        {
+            if (interres.has_key(key))
+            {
+                result.put(key, interres.get(key));
+            }
+        }
+    }
+
+    private void convert_from_java(Map<String,String> result, ssmap interres)
+    {
+        for (Map.Entry<String, String> entry : result.entrySet())
+        {
+            interres.set(entry.getKey(), entry.getValue());
+        }
     }
 }

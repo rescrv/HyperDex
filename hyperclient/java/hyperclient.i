@@ -79,7 +79,7 @@ class HyperClient
     public:
         ReturnCode get(const std::string& space,
                        const std::string& key,
-                       std::map<std::string, std::string>* value);
+                       std::map<std::string, std::string>* OUTPUT);
         ReturnCode put(const std::string& space,
                        const std::string& key,
                        const std::map<std::string, std::string>& value);
