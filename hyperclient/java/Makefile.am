@@ -1,36 +1,38 @@
-if ENABLE_JAVA
-lib_LTLIBRARIES = libhyperclient-java.la
+if ENABLE_JAVA_BINDINGS
 
+AM_CPPFLAGS = ${JNI_CPPFLAGS}
 AM_CXXFLAGS = -fno-strict-aliasing
 
-# XXX This should be put into the correct java path.  On my system it is
-# /usr/lib/java.  If I'm going to change it, I want to auto-detect the correct
-# system path for it.
+BUILT_SOURCES = hyperclient_wrap.cxx
+
+lib_LTLIBRARIES = libhyperclient-java.la
+
+libhyperclient_java_la_SOURCES = syncclient.cc
 nodist_libhyperclient_java_la_SOURCES = hyperclient_wrap.cxx
-libhyperclient_java_la_CPPFLAGS = -I$(abs_top_srcdir)/hyperclient
-libhyperclient_java_la_LIBADD = ../libhyperclient.la
 
-hyperclient_wrap.cxx: $(abs_srcdir)/../hyperclient.i ../hyperclient/client.h
+hyperclient_wrap.cxx: hyperclient.i ../hyperclient.h syncclient.h
 	mkdir -p hyperclient
-	${SWIG} -java -package hyperclient -outcurrentdir -outdir hyperclient $(abs_srcdir)/../hyperclient.i
+	${SWIG} -java -package hyperclient -outdir hyperclient -w518 hyperclient.i
 
-JAVAROOT = .
-
-jarfile = hyperclient.jar
+JAVAROOT = $(abs_srcdir)
+jarfile = $(PACKAGE)-$(VERSION).jar
 jardir = $(datadir)/java
-
-$(jarfile): hyperclient_wrap.cxx java.stamp
-	$(JAR) cf $(JARFLAGS) $@ hyperclient/*.class
+pkgpath = hyperclient
 
 java.stamp: hyperclient_wrap.cxx
-	javac -cp . hyperclient/*.java
-	echo 'Java bindings compiled' > java.stamp
+	javac hyperclient/*.java
+	date > java.stamp
+
+$(jarfile): java.stamp
+	$(JAR) cvf $(JARFLAGS) $@ $(pkgpath)/*.class
 
 jar_DATA = $(jarfile)
-all-local: $(jarfile) java.stamp
 
-CLEANFILES = hyperclient_wrap.cxx $(jarfile) \
+all-local: $(jarfile)
+
+CLEANFILES = $(jarfile) hyperclient_wrap.cxx \
 			 hyperclient/*.java \
 			 hyperclient/*.class \
 			 java.stamp
+
 endif

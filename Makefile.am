@@ -28,6 +28,8 @@
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 AM_CXXFLAGS = $(COVERAGE_CXXFLAGS)
 
+SUBDIRS = ${java_bindings_subdir}
+
 EXTRA_DIST = \
 			LICENSE \
 			$(libhyperclient_extra_dist)
@@ -348,6 +350,14 @@ libhyperclient_la_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
 			-I$(abs_top_srcdir)/hyperdex \
 			$(CPPFLAGS)
+
+################################# Java Bindings ################################
+
+if ENABLE_JAVA_BINDINGS
+java_bindings_subdir = hyperclient/java
+else
+java_bindings_subdir =
+endif
 
 ################################ Python Bindings ###############################
 

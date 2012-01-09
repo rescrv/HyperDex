@@ -22,22 +22,34 @@ AC_ARG_ENABLE([java-bindings], [AS_HELP_STRING([--enable-java-bindings],
               [java_bindings=${enableval}], [java_bindings=no])
 need_swig=no
 
+JNI_CPPFLAGS=
 if test x"${java_bindings}" = xyes; then
     AC_PROG_JAR
     AC_PROG_JAVAC
     AC_JNI_INCLUDE_DIR
     need_swig=yes
-
-    for JNI_INCLUDE_DIR in $JNI_INCLUDE_DIRS
+    found_jnidir=no
+    for jnidir in ${JNI_INCLUDE_DIRS}
     do
-        CPPFLAGS="$CPPFLAGS -I$JNI_INCLUDE_DIR"
+        if test x"${found_jnidir}" = xno; then
+            JNI_CPPFLAGS="-I${jnidir}"
+            found_jnidir=yes
+        fi
     done
+    if test x"${found_jnidir}" = xno; then
+        AC_MSG_ERROR([
+-------------------------------------------------
+HyperDex relies upon the JNI for Java bindings.
+No JNI include dir could be found.
+Set JAVAC to point to your Java compiler.
+-------------------------------------------------])
+    fi
 fi
+AC_SUBST([JNI_CPPFLAGS], [${JNI_CPPFLAGS}])
 
 if test x"${need_swig}" = xyes; then
-    AC_PROG_SWIG(2.0)
+    AC_PROG_SWIG(1.3)
     SWIG_ENABLE_CXX
-    SWIG_MULTI_MODULE_SUPPORT
 fi
 
 AC_ARG_ENABLE([coverage], [AS_HELP_STRING([--enable-coverage],
@@ -127,14 +139,6 @@ YCSB will not be built.
     fi
 fi
 
-if test x"${enable_java_bindings}" = xyes; then
-    AC_MSG_ERROR([
--------------------------------------------------
-Cannot build the Java bindings as the makefile
-is temporarily broken.  XXX fix this.
--------------------------------------------------])
-fi
-
 AC_ARG_ENABLE([log-all-messages], [AS_HELP_STRING([--enable-log-all-messages],
               [enable code to log all messages @<:@default: no@:>@])],
               [enable_logall=${enableval}], [enable_logall=no])
@@ -149,5 +153,6 @@ AM_CONDITIONAL([ENABLE_JAVA_BINDINGS], [test x"${java_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_YCSB], [test x"${enable_ycsb}" = xyes])
 AM_CONDITIONAL([ENABLE_COVERAGE], [test x"${enable_coverage}" = xyes])
 
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile
+                 hyperclient/java/Makefile])
 AC_OUTPUT
