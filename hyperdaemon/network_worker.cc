@@ -171,6 +171,12 @@ hyperdaemon :: network_worker :: run()
                 attrs.push_back(std::make_pair(dimnum, val));
             }
 
+            if (up.error())
+            {
+                LOG(WARNING) << "unpack of REQ_DEL failed; here's some hex:  " << msg->hex();
+                continue;
+            }
+
             m_repl->client_put(from, to, nonce, msg, key, attrs);
         }
         else if (type == hyperdex::REQ_DEL)
