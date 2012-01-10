@@ -7,11 +7,10 @@ jarfile = hyperclient-ycsb-$(VERSION).jar
 jardir = $(datadir)/java
 pkgpath = hyperclient/ycsb
 
-java.stamp: hyperclient/HyperClientYCSB.java
-	javac hyperclient/HyperClientYCSB.java
-	date > java.stamp
+hyperclient/HyperClientYCSB.class: hyperclient/HyperClientYCSB.java
+	javac -cp ../hyperclient/java/hyperclient-$(VERSION).jar:$(CLASSPATH) hyperclient/HyperClientYCSB.java
 
-$(jarfile): java.stamp
+$(jarfile): hyperclient/HyperClientYCSB.class
 	$(JAR) cvf $(JARFLAGS) $@ hyperclient/HyperClientYCSB.class
 
 jar_DATA = $(jarfile)
