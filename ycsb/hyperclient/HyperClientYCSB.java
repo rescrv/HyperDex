@@ -29,7 +29,7 @@
 
 /* Descriptions borrowed from YCSB base. */
 
-package hyperclient.ycsb;
+package hyperclient;
 
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -45,7 +45,7 @@ import hyperclient.HyperClient;
 import hyperclient.ReturnCode;
 import hyperclient.ssmap;
 
-public class HyperClientDriver extends DB
+public class HyperClientYCSB extends DB
 {
     private HyperClient m_client;
     private Pattern m_pat;
