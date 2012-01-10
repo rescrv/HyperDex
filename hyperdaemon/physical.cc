@@ -618,7 +618,11 @@ hyperdaemon :: physical :: work_write(channel* chan)
         return false;
     }
 
-    chan->outprogress.advance(ret);
+    if (ret >= 0)
+    {
+        chan->outprogress.advance(ret);
+    }
+
     return true;
 }
 
