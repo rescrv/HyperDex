@@ -560,6 +560,7 @@ hyperdaemon :: physical :: work_read(const hazard_ptr& hptr,
             memmove(chan->inprogress->data() + chan->inprogress->size(),
                     data, sz);
             chan->inprogress->resize(chan->inprogress->size() + sz);
+            data += sz;
 
             if (chan->inprogress->size() == chan->inprogress->capacity())
             {
