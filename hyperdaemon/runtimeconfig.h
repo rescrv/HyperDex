@@ -41,6 +41,7 @@ namespace hyperdaemon
 // starts with the prefix `HYPERDEX_`.
 extern e::envconfig<unsigned int> PREALLOCATIONS_PER_SECOND;
 extern e::envconfig<unsigned int> OPTIMISM_BURSTS_PER_SECOND;
+extern e::envconfig<unsigned int> FLUSH_THREADS;
 extern e::envconfig<size_t> LOCK_STRIPING;
 extern e::envconfig<size_t> TRANSFERS_IN_FLIGHT;
 extern e::envconfig<uint16_t> REPLICATION_HASHTABLE_SIZE;

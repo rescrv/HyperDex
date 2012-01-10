@@ -75,16 +75,22 @@ hyperdaemon :: datalayer :: datalayer(coordinatorlink* cl, const po6::pathname& 
     , m_shutdown(false)
     , m_base(base)
     , m_optimistic_io_thread(std::tr1::bind(&datalayer::optimistic_io_thread, this))
-    , m_flush_thread(std::tr1::bind(&datalayer::flush_thread, this))
+    , m_flush_threads()
     , m_disks()
-    , m_last_flush(0)
     , m_preallocate_rr()
     , m_last_preallocation(0)
     , m_optimistic_rr()
     , m_last_dose_of_optimism(0)
 {
     m_optimistic_io_thread.start();
-    m_flush_thread.start();
+
+    for (size_t i = 0; i < FLUSH_THREADS; ++i)
+    {
+        std::tr1::shared_ptr<po6::threads::thread>
+            t(new po6::threads::thread(std::tr1::bind(&datalayer::flush_thread, this)));
+        t->start();
+        m_flush_threads.push_back(t);
+    }
 }
 
 hyperdaemon :: datalayer :: ~datalayer() throw ()
@@ -95,7 +101,11 @@ hyperdaemon :: datalayer :: ~datalayer() throw ()
     }
 
     m_optimistic_io_thread.join();
-    m_flush_thread.join();
+
+    for (size_t i = 0; i < m_flush_threads.size(); ++i)
+    {
+        m_flush_threads[i]->join();
+    }
 }
 
 void
@@ -325,13 +335,7 @@ hyperdaemon :: datalayer :: optimistic_io_thread()
             m_last_dose_of_optimism = e::time();
         }
 
-        uint64_t last_flush = m_last_flush;
-
-        do
-        {
-            e::sleep_ms(0, 10);
-        }
-        while (!m_shutdown && last_flush == m_last_flush);
+        e::sleep_ms(0, 100);
     }
 }
 
@@ -347,7 +351,7 @@ hyperdaemon :: datalayer :: flush_thread()
         for (disk_map_t::iterator d = m_disks.begin();
                 d != m_disks.end(); d.next())
         {
-            hyperdisk::returncode ret = d.value()->flush(-1);
+            hyperdisk::returncode ret = d.value()->flush(10000);
 
             if (ret == hyperdisk::SUCCESS)
             {
@@ -374,11 +378,7 @@ hyperdaemon :: datalayer :: flush_thread()
 
         if (sleep)
         {
-            e::sleep_ms(0, 10);
-        }
-        else
-        {
-            m_last_flush = e::time();
+            e::sleep_ms(0, 100);
         }
     }
 }

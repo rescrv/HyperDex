@@ -120,9 +120,8 @@ class datalayer
         volatile bool m_shutdown;
         po6::pathname m_base;
         po6::threads::thread m_optimistic_io_thread;
-        po6::threads::thread m_flush_thread;
+        std::vector<std::tr1::shared_ptr<po6::threads::thread> > m_flush_threads;
         disk_map_t m_disks;
-        volatile uint64_t m_last_flush;
         std::list<hyperdex::regionid> m_preallocate_rr;
         uint64_t m_last_preallocation;
         std::list<hyperdex::regionid> m_optimistic_rr;
