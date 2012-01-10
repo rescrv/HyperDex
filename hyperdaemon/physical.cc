@@ -453,7 +453,14 @@ hyperdaemon :: physical :: work_close(const hazard_ptr& hptr, channel* chan)
 
             m_channels[fd] = NULL;
             m_locations.remove(chan->loc);
-            chan->soc.close();
+
+            try
+            {
+                chan->soc.close();
+            }
+            catch (po6::error& e)
+            {
+            }
         }
 
         hptr->retire(chan);
