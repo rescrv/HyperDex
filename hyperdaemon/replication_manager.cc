@@ -1166,7 +1166,8 @@ hyperdaemon :: replication_manager :: send_update(const hyperdex::regionid& pend
                   + sizeof(uint8_t)
                   + sizeof(uint32_t)
                   + key.size()
-                  + hyperdex::packspace(update->value);
+                  + hyperdex::packspace(update->value)
+                  + sizeof(uint64_t);
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz_msg));
 
     if (update->this_old == update->this_new)
@@ -1214,7 +1215,7 @@ hyperdaemon :: replication_manager :: send_update(const hyperdex::regionid& pend
     {
         assert(update->has_value);
         uint8_t fresh = update->fresh ? 1 : 0;
-        std::auto_ptr<e::buffer> msg2(msg->copy());
+        std::auto_ptr<e::buffer> msg2(e::buffer::create(msg->capacity());
         packed = !(msg->pack_at(m_comm->header_size()) << version << fresh << key << update->value).error();
         assert(packed);
         packed = !(msg2->pack_at(m_comm->header_size()) << version << key << update->value << update->next.mask).error();
