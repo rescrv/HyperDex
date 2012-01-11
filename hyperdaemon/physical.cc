@@ -627,9 +627,8 @@ hyperdaemon :: physical :: work_write(channel* chan)
         if (chan->outgoing.pop(&chan->outnow))
         {
             chan->outprogress = chan->outnow->as_slice();
+            postpone_event(chan->soc.get(), EPOLLOUT);
         }
-
-        postpone_event(chan->soc.get(), EPOLLOUT);
     }
 
     return true;
