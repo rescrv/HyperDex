@@ -199,7 +199,6 @@ class hyperclient::channel
         po6::net::socket m_sock;
 };
 
-
 hyperclient :: channel :: channel(const hyperdex::instance& inst)
     : m_ref(0)
     , m_nonce(1)

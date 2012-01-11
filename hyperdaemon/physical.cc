@@ -219,7 +219,6 @@ hyperdaemon :: physical :: recv(po6::net::location* from,
             continue;
         }
 
-
         channel* chan;
 
         // Grab a safe reference to chan.
