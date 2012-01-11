@@ -126,6 +126,7 @@ class datalayer
         uint64_t m_last_preallocation;
         std::list<hyperdex::regionid> m_optimistic_rr;
         uint64_t m_last_dose_of_optimism;
+        volatile bool m_flushed_recently;
 };
 
 } // namespace hyperdaemon
