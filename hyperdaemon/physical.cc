@@ -480,10 +480,10 @@ hyperdaemon :: physical :: work_read(const hazard_ptr& hptr,
     }
 
     e::guard g = e::makeobjguard(chan->mtx, &po6::threads::mutex::unlock);
+    assert(chan->inoffset >= 0 && chan->inoffset <= 4);
 
     if (chan->soc.get() < 0)
     {
-        postpone_event(chan->soc.get(), EPOLLIN);
         return false;
     }
 
