@@ -729,9 +729,6 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
             e::buffer::unpacker up = response->unpack_from(sizeof(size));
             up = up >> type_num >> fromver >> tover >> from >> to >> nonce;
 
-            // to the 2012-01-02 me:  unpacking fails and we end up killing
-            // everything
-
             if (up.error())
             {
                 killall(pfds[i].fd, HYPERCLIENT_SERVERERROR);
