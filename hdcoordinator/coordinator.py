@@ -475,7 +475,7 @@ class CoordinatorServer(object):
         self._host_listen = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
         self._host_listen.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._host_listen.bind((bindto, host_port))
-        self._host_listen.listen(128)
+        self._host_listen.listen(65536)
         self._p = select.poll()
         self._p.register(self._host_listen)
         self._p.register(self._control_listen)
