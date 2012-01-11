@@ -1330,56 +1330,33 @@ hyperdaemon :: replication_manager :: periodic()
 void
 hyperdaemon :: replication_manager :: retransmit()
 {
-    // XXX Need to actually retransmit something.
-#if 0
-    std::set<keypair> kps;
-
-    // Hold the lock just long enough to copy of all current key pairs.
-    {
-        po6::threads::mutex::hold hold(&m_keyholders_lock);
-        std::tr1::unordered_map<keypair, e::intrusive_ptr<keyholder>, keypair::hash>::iterator khiter;
-
-        for (khiter = m_keyholders.begin(); khiter != m_keyholders.end(); ++khiter)
-        {
-            kps.insert(khiter->first);
-        }
-    }
-
-    for (std::set<keypair>::iterator kp = kps.begin(); kp != kps.end(); ++kp)
+    for (keyholder_map_t::iterator khiter = m_keyholders.begin();
+            khiter != m_keyholders.end(); khiter.next())
     {
         // Grab the lock that protects this keypair.
-        e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, get_lock_num(*kp));
+        e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, get_lock_num(khiter.key()));
 
-        // Get a reference to the keyholder for the keypair.
-        e::intrusive_ptr<keyholder> kh = NULL;
-
-        {
-            po6::threads::mutex::hold hold_khl(&m_keyholders_lock);
-            std::tr1::unordered_map<keypair, e::intrusive_ptr<keyholder>, keypair::hash>::iterator i;
-
-            if ((i = m_keyholders.find(*kp)) != m_keyholders.end())
-            {
-                kh = i->second;
-            }
-        }
-
-        if (!kh)
-        {
-            continue;
-        }
+        // Grab some references.
+        e::intrusive_ptr<keyholder> kh = khiter.value();
+        regionid reg = khiter.key().region;
+        e::slice key(khiter.key().key.data(), khiter.key().key.size());
 
         if (kh->pending_updates.empty())
         {
-            unblock_messages(kp->region, kp->key, kh);
-            move_deferred_to_pending(kp->region, kp->key, kh);
+            unblock_messages(khiter.key().region, key, kh);
+            move_deferred_to_pending(khiter.key().region, key, kh);
 
             if (kh->pending_updates.empty() &&
                 kh->blocked_updates.empty() &&
                 kh->deferred_updates.empty())
             {
-                erase_keyholder(*kp);
+                erase_keyholder(khiter.key());
             }
+        }
 
+        // We want to recheck this condition after moving things around.
+        if (kh->pending_updates.empty())
+        {
             continue;
         }
 
@@ -1389,9 +1366,10 @@ hyperdaemon :: replication_manager :: retransmit()
         uint64_t version = kh->pending_updates.begin()->first;
         e::intrusive_ptr<pending> pend = kh->pending_updates.begin()->second;
 
-        if (pend->retransmit >= 2 && pend->retransmit & (pend->retransmit - 1))
+        if (pend->retransmit >= 1 &&
+                ((pend->retransmit != 0) && !(pend->retransmit & (pend->retransmit - 1))))
         {
-            send_update(kp->region, version, kp->key, pend);
+            send_update(reg, version, key, pend);
         }
 
         ++pend->retransmit;
@@ -1401,7 +1379,6 @@ hyperdaemon :: replication_manager :: retransmit()
             pend->retransmit = 32;
         }
     }
-#endif
 }
 
 bool
