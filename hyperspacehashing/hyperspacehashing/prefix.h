@@ -101,6 +101,7 @@ class hasher
 
     public:
         coordinate hash(const e::slice& key) const;
+        coordinate hash(const std::vector<e::slice>& value) const;
         coordinate hash(const e::slice& key, const std::vector<e::slice>& value) const;
         search_coordinate hash(const search& s) const;
 
