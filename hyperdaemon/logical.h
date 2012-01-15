@@ -94,31 +94,6 @@ class logical
         bool send(const hyperdex::regionid& from, const hyperdex::entityid& to,
                   const hyperdex::network_msgtype msg_type,
                   std::auto_ptr<e::buffer> msg);
-        // Send msg1 along a chain in the direction indicated (forward =
-        // ascending numbers, backward = descending numbers).  If we hit the end
-        // of the chain in that direction, then send msg2 to the head or tail of
-        // the region which overlaps with the "otherwise" region.
-        bool send_forward_else_head(const hyperdex::regionid& chain,
-                                    hyperdex::network_msgtype msg1_type,
-                                    std::auto_ptr<e::buffer> msg1,
-                                    const hyperdex::regionid& otherwise,
-                                    hyperdex::network_msgtype msg2_type,
-                                    std::auto_ptr<e::buffer> msg2);
-        bool send_forward_else_tail(const hyperdex::regionid& chain,
-                                    hyperdex::network_msgtype msg1_type,
-                                    std::auto_ptr<e::buffer> msg1,
-                                    const hyperdex::regionid& otherwise,
-                                    hyperdex::network_msgtype msg2_type,
-                                    std::auto_ptr<e::buffer> msg2);
-        bool send_backward(const hyperdex::regionid& chain,
-                           hyperdex::network_msgtype msg_type,
-                           std::auto_ptr<e::buffer> msg);
-        bool send_backward_else_tail(const hyperdex::regionid& chain,
-                                     hyperdex::network_msgtype msg1_type,
-                                     std::auto_ptr<e::buffer> msg1,
-                                     const hyperdex::regionid& otherwise,
-                                     hyperdex::network_msgtype msg2_type,
-                                     std::auto_ptr<e::buffer> msg2);
         // Receive one message.
         bool recv(hyperdex::entityid* from, hyperdex::entityid* to,
                   hyperdex::network_msgtype* msg_type,
