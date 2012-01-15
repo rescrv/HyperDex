@@ -270,7 +270,6 @@ hyperdaemon :: replication_manager :: chain_pending(const entityid& from,
     }
 
     e::intrusive_ptr<pending> pend = to_allow_ack->second;
-    assert(pend->this_old == pend->this_new);
 
     if (!sent_backward_or_from_tail(from, to, pend->this_old, pend->prev))
     {
@@ -577,13 +576,42 @@ hyperdaemon :: replication_manager :: client_common(bool has_value,
 
     if (has_value && has_oldvalue)
     {
+        size_t need_moar = 0;
+
         for (size_t i = 0; i < value.size(); ++i)
         {
             if (!value_mask.get(i))
             {
-                newpend->backing2 = oldpend;
-                newpend->value[i] = oldvalue[i];
+                need_moar += oldvalue[i].size();
             }
+        }
+
+        if (need_moar)
+        {
+#define REBASE(X) \
+            ((X) - newpend->backing->data() + new_backing->data())
+            std::tr1::shared_ptr<e::buffer> new_backing(e::buffer::create(newpend->backing->size() + need_moar));
+            new_backing->resize(newpend->backing->size() + need_moar);
+            memmove(new_backing->data(), newpend->backing->data(), newpend->backing->size());
+            newpend->key = e::slice(REBASE(newpend->key.data()), newpend->key.size());
+            size_t curdata = newpend->backing->size();
+
+            for (size_t i = 0; i < value.size(); ++i)
+            {
+                if (value_mask.get(i))
+                {
+                    newpend->value[i] = e::slice(REBASE(newpend->value[i].data()), newpend->value[i].size());
+                }
+                else
+                {
+                    memmove(new_backing->data() + curdata, oldvalue[i].data(), oldvalue[i].size());
+                    newpend->value[i] = e::slice(new_backing->data() + curdata, oldvalue[i].size());
+                    curdata += oldvalue[i].size();
+                }
+            }
+
+            assert(curdata == newpend->backing->size() + need_moar);
+            newpend->backing = new_backing;
         }
     }
 
