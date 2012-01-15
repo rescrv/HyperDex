@@ -188,14 +188,21 @@ hyperdaemon :: replication_manager :: client_put(const hyperdex::entityid& from,
                                                  const e::slice& key,
                                                  const std::vector<std::pair<uint16_t, e::slice> >& value)
 {
-    size_t dims = m_config.dimensions(to.get_space()) - 1;
-    e::bitfield bf(dims);
-    std::vector<e::slice> realvalue(dims);
+    size_t dims = m_config.dimensions(to.get_space());
+    assert(dims > 0);
+    e::bitfield bf(dims - 1);
+    std::vector<e::slice> realvalue(dims - 1);
 
     for (size_t i = 0; i < value.size(); ++i)
     {
-        // XXX This assert should become a real check.
-        assert(0 < value[i].first && value[i].first <= dims);
+        if (value[i].first == 0 || value[i].first == dims)
+        {
+            respond_to_client(clientop(to.get_region(), from, nonce),
+                              hyperdex::RESP_PUT,
+                              hyperdex::NET_WRONGARITY);
+            return;
+        }
+
         realvalue[value[i].first - 1] = value[i].second;
         bf.set(value[i].first - 1);
     }
@@ -210,8 +217,11 @@ hyperdaemon :: replication_manager :: client_del(const entityid& from,
                                                  std::auto_ptr<e::buffer> backing,
                                                  const e::slice& key)
 {
-    e::bitfield bf(0);
-    client_common(false, from, to, nonce, backing, key, bf, std::vector<e::slice>());
+    size_t dims = m_config.dimensions(to.get_space());
+    assert(dims > 0);
+    e::bitfield b(dims - 1);
+    std::vector<e::slice> v(dims - 1);
+    client_common(false, from, to, nonce, backing, key, b, v);
 }
 
 void
