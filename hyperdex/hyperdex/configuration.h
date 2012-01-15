@@ -89,6 +89,8 @@ class configuration
         bool chain_adjacent(const entityid& f, const entityid& s) const;
         bool chain_has_next(const entityid& e) const;
         bool chain_has_prev(const entityid& e) const;
+        bool is_head(const entityid& e) const { return !chain_has_prev(e); }
+        bool is_tail(const entityid& e) const { return !chain_has_next(e); }
         entityid chain_next(const entityid& e) const;
         entityid chain_prev(const entityid& e) const;
         entityid headof(const regionid& r) const;
