@@ -49,8 +49,8 @@ HyperClient :: get(const std::string& space,
     int64_t id;
     hyperclient_returncode stat1;
     hyperclient_returncode stat2;
-    hyperclient_attribute* attrs;
-    size_t attrs_sz;
+    hyperclient_attribute* attrs = NULL;
+    size_t attrs_sz = 0;
 
     id = m_client.get(space.c_str(),
                       key.data(),
