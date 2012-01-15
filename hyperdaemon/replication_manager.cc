@@ -891,6 +891,7 @@ hyperdaemon :: replication_manager :: put_to_disk(const regionid& pending_in,
     e::intrusive_ptr<pending> update = to_put_to_disk->second;
 
     bool success = true;
+    hyperdisk::returncode rc;
 
     if (!update->has_value || (update->this_old != update->this_new && pending_in == update->this_old))
     {
@@ -900,43 +901,19 @@ hyperdaemon :: replication_manager :: put_to_disk(const regionid& pending_in,
                 success = true;
                 break;
             case hyperdisk::MISSINGDISK:
-                LOG(ERROR) << "MISSINGDISK returned when committing to disk.";
-                success = false;
-                break;
             case hyperdisk::WRONGARITY:
-                LOG(ERROR) << "WRONGARITY returned when committing to disk.";
-                success = false;
-                break;
             case hyperdisk::NOTFOUND:
-                LOG(ERROR) << "NOTFOUND returned when committing to disk.";
-                success = false;
-                break;
             case hyperdisk::DATAFULL:
-                LOG(ERROR) << "DATAFULL returned when committing to disk.";
-                success = false;
-                break;
             case hyperdisk::SEARCHFULL:
-                LOG(ERROR) << "SEARCHFULL returned when committing to disk.";
-                success = false;
-                break;
             case hyperdisk::SYNCFAILED:
-                LOG(ERROR) << "SYNCFAILED returned when committing to disk.";
-                success = false;
-                break;
             case hyperdisk::DROPFAILED:
-                LOG(ERROR) << "DROPFAILED returned when committing to disk.";
-                success = false;
-                break;
             case hyperdisk::SPLITFAILED:
-                LOG(ERROR) << "SPLITFAILED returned when committing to disk.";
-                success = false;
-                break;
             case hyperdisk::DIDNOTHING:
-                LOG(ERROR) << "DIDNOTHING returned when committing to disk.";
+                LOG(ERROR) << "commit caused error " << rc;
                 success = false;
                 break;
             default:
-                LOG(ERROR) << "unknown error when committing to disk.";
+                LOG(ERROR) << "commit caused unknown error";
                 success = false;
                 break;
         }
@@ -949,43 +926,19 @@ hyperdaemon :: replication_manager :: put_to_disk(const regionid& pending_in,
                 success = true;
                 break;
             case hyperdisk::MISSINGDISK:
-                LOG(ERROR) << "MISSINGDISK returned when committing to disk.";
-                success = false;
-                break;
             case hyperdisk::WRONGARITY:
-                LOG(ERROR) << "WRONGARITY returned when committing to disk.";
-                success = false;
-                break;
             case hyperdisk::NOTFOUND:
-                LOG(ERROR) << "NOTFOUND returned when committing to disk.";
-                success = false;
-                break;
             case hyperdisk::DATAFULL:
-                LOG(ERROR) << "DATAFULL returned when committing to disk.";
-                success = false;
-                break;
             case hyperdisk::SEARCHFULL:
-                LOG(ERROR) << "SEARCHFULL returned when committing to disk.";
-                success = false;
-                break;
             case hyperdisk::SYNCFAILED:
-                LOG(ERROR) << "SYNCFAILED returned when committing to disk.";
-                success = false;
-                break;
             case hyperdisk::DROPFAILED:
-                LOG(ERROR) << "DROPFAILED returned when committing to disk.";
-                success = false;
-                break;
             case hyperdisk::SPLITFAILED:
-                LOG(ERROR) << "SPLITFAILED returned when committing to disk.";
-                success = false;
-                break;
             case hyperdisk::DIDNOTHING:
-                LOG(ERROR) << "DIDNOTHING returned when committing to disk.";
+                LOG(ERROR) << "commit caused error " << rc;
                 success = false;
                 break;
             default:
-                LOG(ERROR) << "unknown error when committing to disk.";
+                LOG(ERROR) << "commit caused unknown error";
                 success = false;
                 break;
         }
