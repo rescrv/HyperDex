@@ -41,18 +41,15 @@ class pending
     public:
         pending(bool has_value,
                 std::auto_ptr<e::buffer> backing,
-                const e::slice& key,
                 const std::vector<e::slice>& value,
                 const clientop& co = clientop());
         pending(bool has_value,
                 std::tr1::shared_ptr<e::buffer> backing,
-                const e::slice& key,
                 const std::vector<e::slice>& value,
                 const clientop& co = clientop());
 
     public:
         std::tr1::shared_ptr<e::buffer> backing;
-        e::slice key;
         std::vector<e::slice> value;
         const bool has_value;
         bool fresh;
@@ -82,11 +79,9 @@ class pending
 inline
 pending :: pending(bool hv,
                    std::auto_ptr<e::buffer> b,
-                   const e::slice& k,
                    const std::vector<e::slice>& val,
                    const clientop& c)
     : backing(b.release())
-    , key(k)
     , value(val)
     , has_value(hv)
     , fresh(false)
@@ -108,11 +103,9 @@ pending :: pending(bool hv,
 inline
 pending :: pending(bool hv,
                    std::tr1::shared_ptr<e::buffer> b,
-                   const e::slice& k,
                    const std::vector<e::slice>& val,
                    const clientop& c)
     : backing(b)
-    , key(k)
     , value(val)
     , has_value(hv)
     , fresh(false)

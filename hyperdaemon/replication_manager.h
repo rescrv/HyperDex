@@ -170,6 +170,7 @@ class replication_manager
                        bool* has_value, std::vector<e::slice>* value,
                        uint64_t* version, hyperdisk::reference* ref);
         bool put_to_disk(const hyperdex::regionid& pending_in,
+                         const e::slice& key,
                          e::intrusive_ptr<replication::keyholder> kh,
                          uint64_t version);
         // Figure out the previous and next individuals to send to/receive from

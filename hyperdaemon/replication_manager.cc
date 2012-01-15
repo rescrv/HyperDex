@@ -157,7 +157,8 @@ hyperdaemon :: replication_manager :: reconfigure(const configuration& newconfig
             {
                 if (penditer->second->mayack)
                 {
-                    put_to_disk(khiter.key().region, khiter.value(), penditer->first);
+                    e::slice key(khiter.key().key.data(), khiter.key().key.size());
+                    put_to_disk(khiter.key().region, key, khiter.value(), penditer->first);
                     break;
                 }
 
@@ -282,7 +283,7 @@ hyperdaemon :: replication_manager :: chain_pending(const entityid& from,
     if (m_config.is_point_leader(to))
     {
         send_ack(kp.region, version, key, pend);
-        put_to_disk(kp.region, kh, version);
+        put_to_disk(kp.region, key, kh, version);
 
         if (pend->co.from.space == UINT32_MAX)
         {
@@ -348,7 +349,7 @@ hyperdaemon :: replication_manager :: chain_subspace(const entityid& from,
 
     // Create a new pending object to set as pending.
     e::intrusive_ptr<pending> newpend;
-    newpend = new pending(true, backing, key, value);
+    newpend = new pending(true, backing, value);
     newpend->prev = regionid();
     newpend->this_old = from.get_region();
     newpend->this_new = to.get_region();
@@ -427,7 +428,7 @@ hyperdaemon :: replication_manager :: chain_ack(const entityid& from,
 
     m_ost->add_trigger(kp.region, key, version);
     pend->acked = true;
-    put_to_disk(kp.region, kh, version);
+    put_to_disk(kp.region, key, kh, version);
 
     while (!kh->pending_updates.empty() && kh->pending_updates.begin()->second->acked)
     {
@@ -553,7 +554,7 @@ hyperdaemon :: replication_manager :: client_common(bool has_value,
     }
 
     e::intrusive_ptr<pending> newpend;
-    newpend = new pending(has_value, backing, key, value, co);
+    newpend = new pending(has_value, backing, value, co);
     newpend->retcode = retcode;
     newpend->ref = ref;
 
@@ -593,7 +594,6 @@ hyperdaemon :: replication_manager :: client_common(bool has_value,
             std::tr1::shared_ptr<e::buffer> new_backing(e::buffer::create(newpend->backing->size() + need_moar));
             new_backing->resize(newpend->backing->size() + need_moar);
             memmove(new_backing->data(), newpend->backing->data(), newpend->backing->size());
-            newpend->key = e::slice(REBASE(newpend->key.data()), newpend->key.size());
             size_t curdata = newpend->backing->size();
 
             for (size_t i = 0; i < value.size(); ++i)
@@ -769,7 +769,7 @@ hyperdaemon :: replication_manager :: chain_common(bool has_value,
 
     // Create a new pending object to set as pending.
     e::intrusive_ptr<pending> newpend;
-    newpend = new pending(has_value, backing, key, value);
+    newpend = new pending(has_value, backing, value);
     newpend->fresh = fresh;
     newpend->ref = ref;
 
@@ -861,6 +861,7 @@ hyperdaemon :: replication_manager :: from_disk(const regionid& r,
 
 bool
 hyperdaemon :: replication_manager :: put_to_disk(const regionid& pending_in,
+                                                  const e::slice& key,
                                                   e::intrusive_ptr<replication::keyholder> kh,
                                                   uint64_t version)
 {
@@ -883,7 +884,7 @@ hyperdaemon :: replication_manager :: put_to_disk(const regionid& pending_in,
 
     if (!update->has_value || (update->this_old != update->this_new && pending_in == update->this_old))
     {
-        switch (m_data->del(pending_in, update->backing, update->key))
+        switch (m_data->del(pending_in, update->backing, key))
         {
             case hyperdisk::SUCCESS:
                 success = true;
@@ -932,7 +933,7 @@ hyperdaemon :: replication_manager :: put_to_disk(const regionid& pending_in,
     }
     else if (update->has_value)
     {
-        switch (m_data->put(pending_in, update->backing, update->key, update->value, version))
+        switch (m_data->put(pending_in, update->backing, key, update->value, version))
         {
             case hyperdisk::SUCCESS:
                 success = true;
@@ -1148,7 +1149,7 @@ hyperdaemon :: replication_manager :: move_deferred_to_pending(const entityid& t
 
         // Create a new pending object to set as pending.
         e::intrusive_ptr<pending> newpend;
-        newpend = new pending(defrd.has_value, defrd.backing, defrd.key, defrd.value);
+        newpend = new pending(defrd.has_value, defrd.backing, defrd.value);
 
         if (!prev_and_next(to.get_region(), key, defrd.has_value, defrd.value,
                            has_oldvalue, oldvalue, newpend))
