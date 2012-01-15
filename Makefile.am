@@ -421,6 +421,8 @@ daemon_LDADD = \
 			$(HYPERDISK_LDADD) \
 			$(COVERAGE_LDADD) \
 			-lglog -lrt
+daemon_LDFLAGS = \
+			-no-install
 
 #binary_test_SOURCES = \
 #			binary-test.cc

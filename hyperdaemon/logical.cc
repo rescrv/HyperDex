@@ -110,22 +110,6 @@ hyperdaemon :: logical :: send(const hyperdex::entityid& from, const hyperdex::e
 }
 
 bool
-hyperdaemon :: logical :: send(const hyperdex::regionid& from,
-                               const hyperdex::entityid& to,
-                               const network_msgtype msg_type,
-                               std::auto_ptr<e::buffer> msg)
-{
-    entityid realfrom = m_config.entityfor(m_us, from);
-
-    if (realfrom == entityid())
-    {
-        return false;
-    }
-
-    return send_you_hold_lock(realfrom, to, msg_type, msg);
-}
-
-bool
 hyperdaemon :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
                                network_msgtype* msg_type,
                                std::auto_ptr<e::buffer>* msg)

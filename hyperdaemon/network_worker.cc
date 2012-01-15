@@ -264,19 +264,6 @@ hyperdaemon :: network_worker :: run()
 
             m_repl->chain_del(from, to, version, msg, key);
         }
-        else if (type == hyperdex::CHAIN_PENDING)
-        {
-            uint64_t version;
-            e::slice key;
-
-            if ((up >> version >> key).error())
-            {
-                LOG(WARNING) << "unpack of CHAIN_PENDING failed; here's some hex:  " << msg->hex();
-                continue;
-            }
-
-            m_repl->chain_pending(from, to, version, msg, key);
-        }
         else if (type == hyperdex::CHAIN_SUBSPACE)
         {
             uint64_t version;

@@ -41,29 +41,36 @@ class pending
     public:
         pending(bool has_value,
                 std::auto_ptr<e::buffer> backing,
+                const e::slice& key,
                 const std::vector<e::slice>& value,
                 const clientop& co = clientop());
         pending(bool has_value,
                 std::tr1::shared_ptr<e::buffer> backing,
+                const e::slice& key,
                 const std::vector<e::slice>& value,
                 const clientop& co = clientop());
 
     public:
         std::tr1::shared_ptr<e::buffer> backing;
+        e::slice key;
         std::vector<e::slice> value;
         const bool has_value;
         bool fresh;
         bool acked;
-        bool mayack; // True if it is OK to receive ACK messages.
         uint8_t retransmit;
         clientop co;
         hyperdex::network_msgtype retcode;
-        hyperdex::regionid prev;
-        hyperdex::regionid this_old;
-        hyperdex::regionid this_new;
-        hyperdex::regionid next;
         e::intrusive_ptr<pending> backing2;
         hyperdisk::reference ref;
+
+        hyperdex::entityid recv; // We recv from here
+        hyperdex::entityid sent; // We sent to here
+        uint16_t subspace_prev;
+        uint16_t subspace_next;
+        uint64_t point_prev;
+        uint64_t point_this;
+        uint64_t point_next;
+        uint64_t point_next_next;
 
     private:
         friend class e::intrusive_ptr<pending>;
@@ -79,23 +86,28 @@ class pending
 inline
 pending :: pending(bool hv,
                    std::auto_ptr<e::buffer> b,
+                   const e::slice& k,
                    const std::vector<e::slice>& val,
                    const clientop& c)
     : backing(b.release())
+    , key(k)
     , value(val)
     , has_value(hv)
     , fresh(false)
     , acked(false)
-    , mayack(false)
     , retransmit(0)
     , co(c)
     , retcode()
-    , prev()
-    , this_old()
-    , this_new()
-    , next()
     , backing2()
     , ref()
+    , recv()
+    , sent()
+    , subspace_prev(0)
+    , subspace_next(0)
+    , point_prev(0)
+    , point_this(0)
+    , point_next(0)
+    , point_next_next(0)
     , m_ref(0)
 {
 }
@@ -103,23 +115,28 @@ pending :: pending(bool hv,
 inline
 pending :: pending(bool hv,
                    std::tr1::shared_ptr<e::buffer> b,
+                   const e::slice& k,
                    const std::vector<e::slice>& val,
                    const clientop& c)
     : backing(b)
+    , key(k)
     , value(val)
     , has_value(hv)
     , fresh(false)
     , acked(false)
-    , mayack(false)
     , retransmit(0)
     , co(c)
     , retcode()
-    , prev()
-    , this_old()
-    , this_new()
-    , next()
     , backing2()
     , ref()
+    , recv()
+    , sent()
+    , subspace_prev(0)
+    , subspace_next(0)
+    , point_prev(0)
+    , point_this(0)
+    , point_next(0)
+    , point_next_next(0)
     , m_ref(0)
 {
 }

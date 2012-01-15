@@ -123,11 +123,6 @@ class replication_manager
                             const e::slice& key,
                             const std::vector<e::slice>& value,
                             uint64_t nextpoint);
-        void chain_pending(const hyperdex::entityid& from,
-                           const hyperdex::entityid& to,
-                           uint64_t rev,
-                           std::auto_ptr<e::buffer> backing,
-                           const e::slice& key);
         void chain_ack(const hyperdex::entityid& from,
                        const hyperdex::entityid& to,
                        uint64_t rev,
@@ -170,7 +165,6 @@ class replication_manager
                        bool* has_value, std::vector<e::slice>* value,
                        uint64_t* version, hyperdisk::reference* ref);
         bool put_to_disk(const hyperdex::regionid& pending_in,
-                         const e::slice& key,
                          e::intrusive_ptr<replication::keyholder> kh,
                          uint64_t version);
         // Figure out the previous and next individuals to send to/receive from
@@ -189,30 +183,19 @@ class replication_manager
         // Move as many messages as possible from the deferred queue to the
         // pending queue.
         void move_deferred_to_pending(const hyperdex::entityid& to, const e::slice& key, e::intrusive_ptr<replication::keyholder> kh);
-        // Send the message that the pending object needs to send in order to
-        // make system-wide progress.
-        void send_update(const hyperdex::regionid& pending_in,
-                         uint64_t version, const e::slice& key,
+        void send_update(const hyperdex::entityid& us,
+                         uint64_t version,
+                         const e::slice& key,
                          e::intrusive_ptr<replication::pending> update);
-        // Send an ack based on a pending object using chain rules.  That is,
-        // use the send_backward function of the communication layer.
-        void send_ack(const hyperdex::regionid& from, uint64_t version,
-                      const e::slice& key, e::intrusive_ptr<replication::pending> update);
-        // Send directly.
-        void send_ack(const hyperdex::regionid& from, const hyperdex::entityid& to,
-                      const e::slice& key, uint64_t version);
+        bool send_ack(const hyperdex::entityid& from,
+                      const hyperdex::entityid& to,
+                      uint64_t version,
+                      const e::slice& key);
         void respond_to_client(replication::clientop co, hyperdex::network_msgtype, hyperdex::network_returncode);
         // Periodically do things related to replication.
         void periodic();
         // Retransmit current pending values.
         void retransmit();
-        // Check that chain rules are followed very closely.
-        bool sent_backward_or_from_head(const hyperdex::entityid& from, const hyperdex::entityid& to,
-                                        const hyperdex::regionid& chain, const hyperdex::regionid& tail);
-        bool sent_backward_or_from_tail(const hyperdex::entityid& from, const hyperdex::entityid& to,
-                                        const hyperdex::regionid& chain, const hyperdex::regionid& tail);
-        bool sent_forward_or_from_tail(const hyperdex::entityid& from, const hyperdex::entityid& to,
-                                       const hyperdex::regionid& chain, const hyperdex::regionid& tail);
 
     private:
         hyperdex::coordinatorlink* m_cl;

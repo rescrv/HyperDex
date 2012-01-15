@@ -88,12 +88,6 @@ class logical
         bool send(const hyperdex::entityid& from, const hyperdex::entityid& to,
                   const hyperdex::network_msgtype msg_type,
                   std::auto_ptr<e::buffer> msg);
-        // Send from one region to a specific entity.  This will find
-        // our offset in the chain for the "from" region, and use that
-        // entity as the source.
-        bool send(const hyperdex::regionid& from, const hyperdex::entityid& to,
-                  const hyperdex::network_msgtype msg_type,
-                  std::auto_ptr<e::buffer> msg);
         // Receive one message.
         bool recv(hyperdex::entityid* from, hyperdex::entityid* to,
                   hyperdex::network_msgtype* msg_type,

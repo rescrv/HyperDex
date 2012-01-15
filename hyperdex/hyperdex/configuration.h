@@ -79,6 +79,9 @@ class configuration
         void instance_versions(instance* i) const;
         // The set of regions to which an instance is assigned
         std::set<regionid> regions_for(const instance& i) const;
+        // Return the containing entity (number is preserved).
+        // entityid() is returned if no containing entity is found.
+        entityid sloppy_lookup(const entityid& e) const;
         // Is the instance a member of the region's chain?
         bool in_region(const instance& i, const regionid& r) const;
         bool is_client(const entityid& e) const;

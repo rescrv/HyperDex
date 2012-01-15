@@ -526,6 +526,25 @@ hyperdex :: configuration :: regions_for(const instance& i)
     return ret;
 }
 
+hyperdex::entityid
+hyperdex :: configuration :: sloppy_lookup(const entityid& ent)
+                             const
+{
+    std::map<entityid, instance>::const_iterator e;
+
+    for (e = m_entities.begin(); e != m_entities.end(); ++e)
+    {
+        if (e->first.get_subspace() == ent.get_subspace()
+                && e->first.coord().contains(ent.coord())
+                && e->first.number == ent.number)
+        {
+            return e->first;
+        }
+    }
+
+    return entityid();
+}
+
 bool
 hyperdex :: configuration :: in_region(const instance& i, const regionid& r)
                              const
