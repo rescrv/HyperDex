@@ -37,6 +37,9 @@
 #include <netinet/in.h>
 
 #ifdef __cplusplus
+// C++
+#include <iostream>
+
 // STL
 #include <map>
 #include <memory>
@@ -267,6 +270,9 @@ class hyperclient
         std::queue<failedop> m_failed;
         bool m_configured;
 };
+
+std::ostream&
+operator << (std::ostream& lhs, hyperclient_returncode rhs);
 
 #endif /* __cplusplus */
 

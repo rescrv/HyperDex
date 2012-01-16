@@ -1054,3 +1054,41 @@ hyperclient :: channel_from_fd(int fd)
     assert(0 <= fd && static_cast<unsigned>(fd) < m_fds.size());
     return m_fds[fd];
 }
+
+#define str(x) #x
+#define xstr(x) str(x)
+#define stringify(x) case (x): lhs << xstr(x); break
+
+std::ostream&
+operator << (std::ostream& lhs, hyperclient_returncode rhs)
+{
+    switch (rhs)
+    {
+        stringify(HYPERCLIENT_SUCCESS);
+        stringify(HYPERCLIENT_NOTFOUND);
+        stringify(HYPERCLIENT_SEARCHDONE);
+        stringify(HYPERCLIENT_UNKNOWNSPACE);
+        stringify(HYPERCLIENT_COORDFAIL);
+        stringify(HYPERCLIENT_SERVERERROR);
+        stringify(HYPERCLIENT_CONNECTFAIL);
+        stringify(HYPERCLIENT_DISCONNECT);
+        stringify(HYPERCLIENT_RECONFIGURE);
+        stringify(HYPERCLIENT_LOGICERROR);
+        stringify(HYPERCLIENT_TIMEOUT);
+        stringify(HYPERCLIENT_UNKNOWNATTR);
+        stringify(HYPERCLIENT_DUPEATTR);
+        stringify(HYPERCLIENT_SEEERRNO);
+        stringify(HYPERCLIENT_NONEPENDING);
+        stringify(HYPERCLIENT_EXCEPTION);
+        stringify(HYPERCLIENT_ZERO);
+        default:
+            lhs << "unknown returncode";
+            break;
+    }
+
+    return lhs;
+}
+
+#undef stringify
+#undef xstr
+#undef str
