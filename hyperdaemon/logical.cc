@@ -106,7 +106,67 @@ hyperdaemon :: logical :: send(const hyperdex::entityid& from, const hyperdex::e
                                const network_msgtype msg_type,
                                std::auto_ptr<e::buffer> msg)
 {
-    return send_you_hold_lock(from, to, msg_type, msg);
+#ifdef HD_LOG_ALL_MESSAGES
+    LOG(INFO) << "SEND " << from << "->" << to << " " << msg_type << " " << msg->hex();
+#endif
+    instance src = m_config.instancefor(from);
+    instance dst;
+
+    // If we are sending to a client
+    if (to.space == UINT32_MAX)
+    {
+        if (!m_client_locs.lookup(to.mask, &dst.inbound))
+        {
+            return false;
+        }
+
+        dst.inbound_version = 1;
+    }
+    else
+    {
+        dst = m_config.instancefor(to);
+    }
+
+    if (src != m_us || dst == instance())
+    {
+        return false;
+    }
+
+    uint8_t mt = static_cast<uint8_t>(msg_type);
+    assert(msg->size() >= header_size());
+    msg->pack_at(m_physical.header_size())
+        << mt << src.outbound_version << dst.inbound_version << from << to;
+
+    if (dst == m_us)
+    {
+        m_physical.deliver(m_us.outbound, msg);
+    }
+    else
+    {
+        switch (m_physical.send(dst.inbound, msg))
+        {
+            case physical::SUCCESS:
+            case physical::QUEUED:
+                break;
+            case physical::CONNECTFAIL:
+                handle_connectfail(dst.inbound);
+                return false;
+            case physical::DISCONNECT:
+                handle_disconnect(dst.inbound);
+                return false;
+            case physical::SHUTDOWN:
+                LOG(ERROR) << "physical::recv unexpectedly returned SHUTDOWN.";
+                return false;
+            case physical::LOGICERROR:
+                LOG(ERROR) << "physical::recv unexpectedly returned LOGICERROR.";
+                return false;
+            default:
+                LOG(ERROR) << "physical::recv unexpectedly returned unknown state.";
+                return false;
+        }
+    }
+
+    return true;
 }
 
 bool
@@ -210,13 +270,6 @@ hyperdaemon :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
             toinst = m_config.instancefor(*to);
             tovalid = toinst != instance();
         }
-
-        if (!fromvalid) LOG(INFO) << "BAD TRACE";
-        if (!tovalid) LOG(INFO) << "BAD TRACE";
-        if (frominst.outbound != loc) LOG(INFO) << "BAD TRACE";
-        if (frominst.outbound_version != fromver) LOG(INFO) << "BAD TRACE";
-        if (toinst != m_us) LOG(INFO) << "BAD TRACE";
-        if (m_us.inbound_version != tover) LOG(INFO) << "BAD TRACE";
     }
     while (!fromvalid // Try again because we don't know the source.
             || !tovalid // Try again because we don't know the destination.
@@ -299,73 +352,4 @@ hyperdaemon :: logical :: handle_disconnect(const po6::net::location& loc)
                 break;
         }
     }
-}
-
-bool
-hyperdaemon :: logical :: send_you_hold_lock(const hyperdex::entityid& from,
-                                             const hyperdex::entityid& to,
-                                             const network_msgtype msg_type,
-                                             std::auto_ptr<e::buffer> msg)
-{
-#ifdef HD_LOG_ALL_MESSAGES
-    LOG(INFO) << "SEND " << from << "->" << to << " " << msg_type << " " << msg->hex();
-#endif
-    instance src = m_config.instancefor(from);
-    instance dst;
-
-    // If we are sending to a client
-    if (to.space == UINT32_MAX)
-    {
-        if (!m_client_locs.lookup(to.mask, &dst.inbound))
-        {
-            return false;
-        }
-
-        dst.inbound_version = 1;
-    }
-    else
-    {
-        dst = m_config.instancefor(to);
-    }
-
-    if (src != m_us || dst == instance())
-    {
-        return false;
-    }
-
-    uint8_t mt = static_cast<uint8_t>(msg_type);
-    assert(msg->size() >= header_size());
-    msg->pack_at(m_physical.header_size())
-        << mt << src.outbound_version << dst.inbound_version << from << to;
-
-    if (dst == m_us)
-    {
-        m_physical.deliver(m_us.outbound, msg);
-    }
-    else
-    {
-        switch (m_physical.send(dst.inbound, msg))
-        {
-            case physical::SUCCESS:
-            case physical::QUEUED:
-                break;
-            case physical::CONNECTFAIL:
-                handle_connectfail(dst.inbound);
-                return false;
-            case physical::DISCONNECT:
-                handle_disconnect(dst.inbound);
-                return false;
-            case physical::SHUTDOWN:
-                LOG(ERROR) << "physical::recv unexpectedly returned SHUTDOWN.";
-                return false;
-            case physical::LOGICERROR:
-                LOG(ERROR) << "physical::recv unexpectedly returned LOGICERROR.";
-                return false;
-            default:
-                LOG(ERROR) << "physical::recv unexpectedly returned unknown state.";
-                return false;
-        }
-    }
-
-    return true;
 }

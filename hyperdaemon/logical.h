@@ -106,12 +106,6 @@ class logical
         void handle_connectfail(const po6::net::location& loc);
         void handle_disconnect(const po6::net::location& loc);
 
-        // These assume that the mapping lock is held for at least reading.
-        bool send_you_hold_lock(const hyperdex::entityid& from,
-                                const hyperdex::entityid& to,
-                                const hyperdex::network_msgtype msg_type,
-                                std::auto_ptr<e::buffer> msg);
-
     private:
         hyperdex::coordinatorlink* m_cl;
         hyperdex::instance m_us;
