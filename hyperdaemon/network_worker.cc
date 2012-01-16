@@ -181,7 +181,8 @@ hyperdaemon :: network_worker :: run()
         }
         else if (type == hyperdex::REQ_DEL)
         {
-            up = up >> nonce;
+            e::slice key;
+            up = up >> nonce >> key;
 
             if (up.error())
             {
@@ -189,7 +190,6 @@ hyperdaemon :: network_worker :: run()
                 continue;
             }
 
-            e::slice key = up.as_slice();
             m_repl->client_del(from, to, nonce, msg, key);
         }
         else if (type == hyperdex::REQ_SEARCH_START)
