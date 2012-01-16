@@ -381,7 +381,8 @@ hyperclient/python/hyperclient.c: hyperclient/python/hyperclient.pyx
 hyperclient_python_hyperclient_la_SOURCES = \
 			hyperclient/python/hyperclient.c
 hyperclient_python_hyperclient_la_CPPFLAGS = \
-			$(PYTHON_CPPFLAGS)
+			$(PYTHON_CPPFLAGS) \
+			$(CPPFLAGS)
 hyperclient_python_hyperclient_la_LIBADD = \
 			libhyperspacehashing.la \
 			libhyperclient.la \
