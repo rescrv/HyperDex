@@ -68,16 +68,16 @@ class searches
         void cleanup(const hyperdex::configuration& newconfig, const hyperdex::instance& us);
 
     public:
-        void start(const hyperdex::regionid& region,
+        void start(const hyperdex::entityid& us,
                    const hyperdex::entityid& client,
                    uint64_t searchid,
                    uint64_t nonce,
                    const hyperspacehashing::search& wc);
-        void next(const hyperdex::regionid& region,
+        void next(const hyperdex::entityid& us,
                   const hyperdex::entityid& client,
                   uint64_t searchid,
                   uint64_t nonce);
-        void stop(const hyperdex::regionid& region,
+        void stop(const hyperdex::entityid& us,
                   const hyperdex::entityid& client,
                   uint64_t searchid);
 

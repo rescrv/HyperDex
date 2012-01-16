@@ -81,34 +81,34 @@ hyperdaemon :: searches :: cleanup(const hyperdex::configuration&,
 }
 
 void
-hyperdaemon :: searches :: start(const hyperdex::regionid& region,
+hyperdaemon :: searches :: start(const hyperdex::entityid& us,
                                  const hyperdex::entityid& client,
                                  uint64_t search_num,
                                  uint64_t nonce,
                                  const hyperspacehashing::search& terms)
 {
-    search_id key(region, client, search_num);
+    search_id key(us.get_region(), client, search_num);
 
     if (m_searches.contains(key))
     {
         return;
     }
 
-    hyperspacehashing::mask::hasher hasher(m_config.disk_hasher(region.get_subspace()));
+    hyperspacehashing::mask::hasher hasher(m_config.disk_hasher(us.get_subspace()));
     hyperspacehashing::mask::coordinate coord(hasher.hash(terms));
-    e::intrusive_ptr<hyperdisk::snapshot> snap = m_data->make_snapshot(region, terms);
-    e::intrusive_ptr<search_state> state = new search_state(region, coord, terms, snap);
+    e::intrusive_ptr<hyperdisk::snapshot> snap = m_data->make_snapshot(us.get_region(), terms);
+    e::intrusive_ptr<search_state> state = new search_state(us.get_region(), coord, terms, snap);
     m_searches.insert(key, state);
-    next(region, client, search_num, nonce);
+    next(us, client, search_num, nonce);
 }
 
 void
-hyperdaemon :: searches :: next(const hyperdex::regionid& region,
+hyperdaemon :: searches :: next(const hyperdex::entityid& us,
                                 const hyperdex::entityid& client,
                                 uint64_t search_num,
                                 uint64_t nonce)
 {
-    search_id key(region, client, search_num);
+    search_id key(us.get_region(), client, search_num);
     e::intrusive_ptr<search_state> state;
 
     if (!m_searches.lookup(key, &state))
@@ -140,7 +140,7 @@ hyperdaemon :: searches :: next(const hyperdex::regionid& region,
                                 << state->snap->key()
                                 << state->snap->value()).error();
                 assert(fits);
-                m_comm->send(state->region, client, hyperdex::RESP_SEARCH_ITEM, msg);
+                m_comm->send(us, client, hyperdex::RESP_SEARCH_ITEM, msg);
                 state->snap->next();
                 return;
             }
@@ -152,16 +152,16 @@ hyperdaemon :: searches :: next(const hyperdex::regionid& region,
     std::auto_ptr<e::buffer> msg(e::buffer::create(m_comm->header_size() + sizeof(uint64_t)));
     bool fits = (msg->pack_at(m_comm->header_size()) << nonce).error();
     assert(fits);
-    m_comm->send(state->region, client, hyperdex::RESP_SEARCH_DONE, msg);
-    stop(region, client, search_num);
+    m_comm->send(us, client, hyperdex::RESP_SEARCH_DONE, msg);
+    stop(us, client, search_num);
 }
 
 void
-hyperdaemon :: searches :: stop(const hyperdex::regionid& region,
+hyperdaemon :: searches :: stop(const hyperdex::entityid& us,
                                 const hyperdex::entityid& client,
                                 uint64_t search_num)
 {
-    m_searches.remove(search_id(region, client, search_num));
+    m_searches.remove(search_id(us.get_region(), client, search_num));
 }
 
 uint64_t

@@ -202,7 +202,7 @@ class hyperclient::channel
 hyperclient :: channel :: channel(const hyperdex::instance& inst)
     : m_ref(0)
     , m_nonce(1)
-    , m_ent(hyperdex::configuration::CLIENTSPACE)
+    , m_ent(hyperdex::configuration::CLIENTSPACE, 0, 0, 0, 0)
     , m_sock(inst.inbound.address.family(), SOCK_STREAM, IPPROTO_TCP)
 {
     m_sock.connect(inst.inbound);
@@ -737,7 +737,7 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
 
             hyperdex::network_msgtype msg_type = static_cast<hyperdex::network_msgtype>(type_num);
 
-            if (chan->entity() == hyperdex::entityid(hyperdex::configuration::CLIENTSPACE))
+            if (chan->entity() == hyperdex::entityid(hyperdex::configuration::CLIENTSPACE, 0, 0, 0, 0))
             {
                 chan->set_entity(to);
             }

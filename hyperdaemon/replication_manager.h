@@ -179,7 +179,7 @@ class replication_manager
         // The first form will only unblock messages when there are no pending
         // updates.  The second form trusts that the caller knows that it is
         // safe to unblock even though messages may still be pending.
-        void unblock_messages(const hyperdex::regionid& r, const e::slice& key, e::intrusive_ptr<replication::keyholder> kh);
+        void unblock_messages(const hyperdex::entityid& us, const e::slice& key, e::intrusive_ptr<replication::keyholder> kh);
         // Move as many messages as possible from the deferred queue to the
         // pending queue.
         void move_deferred_to_pending(const hyperdex::entityid& to, const e::slice& key, e::intrusive_ptr<replication::keyholder> kh);
@@ -191,7 +191,11 @@ class replication_manager
                       const hyperdex::entityid& to,
                       uint64_t version,
                       const e::slice& key);
-        void respond_to_client(replication::clientop co, hyperdex::network_msgtype, hyperdex::network_returncode);
+        void respond_to_client(const hyperdex::entityid& us,
+                               const hyperdex::entityid& client,
+                               uint64_t nonce,
+                               hyperdex::network_msgtype type,
+                               hyperdex::network_returncode ret);
         // Periodically do things related to replication.
         void periodic();
         // Retransmit current pending values.
@@ -206,6 +210,7 @@ class replication_manager
         e::striped_lock<po6::threads::mutex> m_locks;
         keyholder_map_t m_keyholders;
         clientop_set_t m_clientops;
+        hyperdex::instance m_us;
         bool m_shutdown;
         po6::threads::thread m_periodic_thread;
 };

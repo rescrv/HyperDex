@@ -190,7 +190,7 @@ hyperdaemon :: network_worker :: run()
             }
 
             e::slice key = up.as_slice();
-            m_repl->client_del(from, to.get_region(), nonce, msg, key);
+            m_repl->client_del(from, to, nonce, msg, key);
         }
         else if (type == hyperdex::REQ_SEARCH_START)
         {
@@ -205,7 +205,7 @@ hyperdaemon :: network_worker :: run()
 
             if (s.sanity_check())
             {
-                m_ssss->start(to.get_region(), from, searchid, nonce, s);
+                m_ssss->start(to, from, searchid, nonce, s);
             }
             else
             {
@@ -222,7 +222,7 @@ hyperdaemon :: network_worker :: run()
                 continue;
             }
 
-            m_ssss->next(to.get_region(), from, searchid, nonce);
+            m_ssss->next(to, from, searchid, nonce);
         }
         else if (type == hyperdex::REQ_SEARCH_STOP)
         {
@@ -234,7 +234,7 @@ hyperdaemon :: network_worker :: run()
                 continue;
             }
 
-            m_ssss->stop(to.get_region(), from, searchid);
+            m_ssss->stop(to, from, searchid);
         }
         else if (type == hyperdex::CHAIN_PUT)
         {

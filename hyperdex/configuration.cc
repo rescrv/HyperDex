@@ -686,19 +686,19 @@ hyperdex :: configuration :: search_entities(const spaceid& si,
 {
     std::map<entityid, instance>::const_iterator start;
     std::map<entityid, instance>::const_iterator end;
-    start = m_entities.lower_bound(hyperdex::regionid(si.space, 0, 0, 0));
-    end   = m_entities.upper_bound(hyperdex::regionid(si.space, UINT16_MAX, UINT8_MAX, UINT64_MAX));
+    start = m_entities.lower_bound(hyperdex::entityid(si.space, 0, 0, 0, 0));
+    end   = m_entities.upper_bound(hyperdex::entityid(si.space, UINT16_MAX, UINT8_MAX, UINT64_MAX, UINT8_MAX));
     return _search_entities(start, end, s);
 }
 
 std::map<hyperdex::entityid, hyperdex::instance>
-hyperdex :: configuration :: search_entities(const subspaceid& subspace,
+hyperdex :: configuration :: search_entities(const subspaceid& ssi,
                                              const hyperspacehashing::search& s) const
 {
     std::map<entityid, instance>::const_iterator start;
     std::map<entityid, instance>::const_iterator end;
-    start = m_entities.lower_bound(hyperdex::regionid(subspace, 0, 0));
-    end   = m_entities.upper_bound(hyperdex::regionid(subspace, UINT8_MAX, UINT64_MAX));
+    start = m_entities.lower_bound(hyperdex::entityid(ssi.space, ssi.subspace, 0, 0, 0));
+    end   = m_entities.upper_bound(hyperdex::entityid(ssi.space, ssi.subspace, UINT8_MAX, UINT64_MAX, UINT8_MAX));
     return _search_entities(start, end, s);
 }
 

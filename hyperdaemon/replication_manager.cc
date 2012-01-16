@@ -87,6 +87,7 @@ hyperdaemon :: replication_manager :: replication_manager(coordinatorlink* cl,
     , m_locks(LOCK_STRIPING)
     , m_keyholders(REPLICATION_HASHTABLE_SIZE)
     , m_clientops(REPLICATION_HASHTABLE_SIZE)
+    , m_us()
     , m_shutdown(false)
     , m_periodic_thread(std::tr1::bind(&replication_manager::periodic, this))
 {
@@ -115,6 +116,7 @@ hyperdaemon :: replication_manager :: reconfigure(const configuration& newconfig
     // Install a new configuration.
     configuration oldconfig(m_config);
     m_config = newconfig;
+    m_us = us;
 
     for (keyholder_map_t::iterator khiter = m_keyholders.begin();
             khiter != m_keyholders.begin(); khiter.next())
@@ -176,7 +178,7 @@ hyperdaemon :: replication_manager :: client_put(const hyperdex::entityid& from,
     {
         if (value[i].first == 0 || value[i].first == dims)
         {
-            respond_to_client(clientop(to.get_region(), from, nonce),
+            respond_to_client(to, from, nonce,
                               hyperdex::RESP_PUT,
                               hyperdex::NET_WRONGARITY);
             return;
@@ -292,7 +294,7 @@ hyperdaemon :: replication_manager :: chain_subspace(const entityid& from,
     }
 
     kh->pending_updates.insert(std::make_pair(version, newpend));
-    send_update(to.get_region(), version, key, newpend);
+    send_update(to, version, key, newpend);
     move_deferred_to_pending(to, key, kh);
 }
 
@@ -344,12 +346,12 @@ hyperdaemon :: replication_manager :: chain_ack(const entityid& from,
     {
         if (pend->co.from.space == UINT32_MAX)
         {
-            clientop co = pend->co;
+            respond_to_client(to, pend->co.from, pend->co.nonce,
+                              pend->retcode, hyperdex::NET_SUCCESS);
             pend->co = clientop();
-            respond_to_client(co, pend->retcode, hyperdex::NET_SUCCESS);
         }
 
-        unblock_messages(to.get_region(), key, kh);
+        unblock_messages(to, key, kh);
     }
 
     if (kh->pending_updates.empty() &&
@@ -384,7 +386,7 @@ hyperdaemon :: replication_manager :: client_common(bool has_value,
     // Make sure this message is to the point-leader.
     if (!m_config.is_point_leader(to))
     {
-        respond_to_client(co, retcode, hyperdex::NET_NOTUS);
+        respond_to_client(to, from, nonce, retcode, hyperdex::NET_NOTUS);
         return;
     }
 
@@ -395,7 +397,7 @@ hyperdaemon :: replication_manager :: client_common(bool has_value,
     }
 
     // Automatically respond with "SERVERERROR" whenever we return without g.dismiss()
-    e::guard g = e::makeobjguard(*this, &replication_manager::respond_to_client, co, retcode, hyperdex::NET_SERVERERROR);
+    e::guard g = e::makeobjguard(*this, &replication_manager::respond_to_client, to, from, nonce, retcode, hyperdex::NET_SERVERERROR);
 
     // Grab the lock that protects this keypair.
     keypair kp(to.get_region(), key);
@@ -407,7 +409,7 @@ hyperdaemon :: replication_manager :: client_common(bool has_value,
     // Check that a client's put matches the dimensions of the space.
     if (has_value && m_config.dimensions(to.get_space()) != value.size() + 1)
     {
-        respond_to_client(co, retcode, hyperdex::NET_WRONGARITY);
+        respond_to_client(to, from, nonce, retcode, hyperdex::NET_WRONGARITY);
         g.dismiss();
         return;
     }
@@ -463,7 +465,7 @@ hyperdaemon :: replication_manager :: client_common(bool has_value,
 
     if (!has_value && !has_oldvalue)
     {
-        respond_to_client(co, retcode, hyperdex::NET_SUCCESS);
+        respond_to_client(to, from, nonce, retcode, hyperdex::NET_SUCCESS);
         g.dismiss();
         return;
     }
@@ -522,7 +524,7 @@ hyperdaemon :: replication_manager :: client_common(bool has_value,
 
     if (!prev_and_next(kp.region, key, has_value, newpend->value, has_oldvalue, oldvalue, newpend))
     {
-        respond_to_client(co, retcode, hyperdex::NET_NOTUS);
+        respond_to_client(to, from, nonce, retcode, hyperdex::NET_NOTUS);
         g.dismiss();
         return;
     }
@@ -532,7 +534,7 @@ hyperdaemon :: replication_manager :: client_common(bool has_value,
         kh->blocked_updates.insert(std::make_pair(oldversion + 1, newpend));
         // This unblock messages will unblock the message we just tagged as
         // fresh (if any).
-        unblock_messages(to.get_region(), key, kh);
+        unblock_messages(to, key, kh);
     }
     else
     {
@@ -955,7 +957,7 @@ hyperdaemon :: replication_manager :: prev_and_next(const regionid& r,
 }
 
 void
-hyperdaemon :: replication_manager :: unblock_messages(const regionid& r,
+hyperdaemon :: replication_manager :: unblock_messages(const entityid& us,
                                                        const e::slice& key,
                                                        e::intrusive_ptr<keyholder> kh)
 {
@@ -977,7 +979,7 @@ hyperdaemon :: replication_manager :: unblock_messages(const regionid& r,
         std::map<uint64_t, e::intrusive_ptr<pending> >::iterator pend;
         pend = kh->blocked_updates.begin();
         kh->pending_updates.insert(std::make_pair(pend->first, pend->second));
-        send_update(r, pend->first, key, pend->second);
+        send_update(us, pend->first, key, pend->second);
         kh->blocked_updates.erase(pend);
     }
     while (!kh->blocked_updates.empty() && !kh->blocked_updates.begin()->second->fresh);
@@ -1127,7 +1129,7 @@ hyperdaemon :: replication_manager :: send_update(const entityid& us,
         // Otherwise its a normal CHAIN_PUT/CHAIN_DEL; fall through.
         else if (pend->subspace_next == us.subspace + 1)
         {
-            dst = entityid(us.space, pend->subspace_next, 64, pend->point_next);
+            dst = entityid(us.space, pend->subspace_next, 64, pend->point_next, 0);
             dst = m_config.sloppy_lookup(dst);
         }
         // We must match one of the above.
@@ -1200,17 +1202,19 @@ hyperdaemon :: replication_manager :: send_ack(const entityid& from,
 }
 
 void
-hyperdaemon :: replication_manager :: respond_to_client(clientop co,
+hyperdaemon :: replication_manager :: respond_to_client(const entityid& us,
+                                                        const entityid& client,
+                                                        uint64_t nonce,
                                                         network_msgtype type,
                                                         network_returncode ret)
 {
     uint16_t result = static_cast<uint16_t>(ret);
     size_t sz = m_comm->header_size() + sizeof(uint64_t) +sizeof(uint16_t);
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    bool packed = !(msg->pack_at(m_comm->header_size()) << co.nonce << result).error();
+    bool packed = !(msg->pack_at(m_comm->header_size()) << nonce << result).error();
     assert(packed);
-    m_clientops.remove(co);
-    m_comm->send(co.region, co.from, type, msg);
+    m_clientops.remove(clientop(us.get_region(), client, nonce));
+    m_comm->send(us, client, type, msg);
 }
 
 void
@@ -1245,13 +1249,13 @@ hyperdaemon :: replication_manager :: retransmit()
 
         // Grab some references.
         e::intrusive_ptr<keyholder> kh = khiter.value();
-        regionid reg = khiter.key().region;
+        entityid ent = m_config.entityfor(m_us, khiter.key().region);
         e::slice key(khiter.key().key.data(), khiter.key().key.size());
 
         if (kh->pending_updates.empty())
         {
-            unblock_messages(khiter.key().region, key, kh);
-            move_deferred_to_pending(khiter.key().region, key, kh);
+            unblock_messages(ent, key, kh);
+            move_deferred_to_pending(ent, key, kh);
 
             if (kh->pending_updates.empty() &&
                 kh->blocked_updates.empty() &&
@@ -1276,7 +1280,7 @@ hyperdaemon :: replication_manager :: retransmit()
         if (pend->sent == entityid() && pend->retransmit >= 1 &&
                 ((pend->retransmit != 0) && !(pend->retransmit & (pend->retransmit - 1))))
         {
-            send_update(reg, version, key, pend);
+            send_update(ent, version, key, pend);
         }
 
         ++pend->retransmit;

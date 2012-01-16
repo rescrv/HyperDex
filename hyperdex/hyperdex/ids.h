@@ -50,7 +50,12 @@ class spaceid
         static const size_t SERIALIZEDSIZE = sizeof(uint32_t);
 
     public:
-        spaceid(uint32_t s = 0)
+        spaceid()
+            : space(0)
+        {
+        }
+
+        spaceid(uint32_t s)
             : space(s)
         {
         }
@@ -75,13 +80,19 @@ class subspaceid
         static const size_t SERIALIZEDSIZE = sizeof(uint32_t) + sizeof(uint16_t);
 
     public:
-        subspaceid(uint32_t s = 0, uint16_t ss = 0)
+        subspaceid()
+            : space(0)
+            , subspace(0)
+        {
+        }
+
+        subspaceid(uint32_t s, uint16_t ss)
             : space(s)
             , subspace(ss)
         {
         }
 
-        subspaceid(spaceid s, uint16_t ss = 0)
+        subspaceid(spaceid s, uint16_t ss)
             : space(s.space)
             , subspace(ss)
         {
@@ -114,7 +125,15 @@ class regionid
                                            + sizeof(uint8_t) + sizeof(uint64_t);
 
     public:
-        regionid(uint32_t s = 0, uint16_t ss = 0, uint8_t p = 0, uint64_t m = 0)
+        regionid()
+            : mask(0)
+            , space(0)
+            , subspace(0)
+            , prefix(0)
+        {
+        }
+
+        regionid(uint32_t s, uint16_t ss, uint8_t p, uint64_t m)
             : mask(m)
             , space(s)
             , subspace(ss)
@@ -122,7 +141,7 @@ class regionid
         {
         }
 
-        regionid(subspaceid ss, uint8_t p = 0, uint64_t m = 0)
+        regionid(subspaceid ss, uint8_t p, uint64_t m)
             : mask(m)
             , space(ss.space)
             , subspace(ss.subspace)
@@ -170,8 +189,17 @@ class entityid
                                            + sizeof(uint8_t);
 
     public:
-        entityid(uint32_t s = 0, uint16_t ss = 0,
-                 uint8_t p = 0, uint64_t m = 0, uint8_t n = 0)
+        entityid()
+            : mask(0)
+            , space(0)
+            , subspace(0)
+            , prefix(0)
+            , number(0)
+        {
+        }
+
+        entityid(uint32_t s, uint16_t ss,
+                 uint8_t p, uint64_t m, uint8_t n)
             : mask(m)
             , space(s)
             , subspace(ss)
@@ -180,7 +208,7 @@ class entityid
         {
         }
 
-        entityid(regionid r, uint8_t n = 0)
+        entityid(regionid r, uint8_t n)
             : mask(r.mask)
             , space(r.space)
             , subspace(r.subspace)
