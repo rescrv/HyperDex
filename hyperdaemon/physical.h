@@ -45,6 +45,7 @@
 #include <e/hazard_ptrs.h>
 #include <e/lockfree_fifo.h>
 #include <e/lockfree_hash_map.h>
+#include <e/striped_lock.h>
 #include <e/worker_barrier.h>
 
 // Forward declarations
@@ -189,6 +190,7 @@ class physical
         po6::net::socket m_listen;
         po6::net::location m_bindto;
         e::worker_barrier m_pause_barrier;
+        e::striped_lock<po6::threads::mutex> m_connectlocks;
         e::lockfree_fifo<message> m_incoming;
         e::lockfree_hash_map<po6::net::location, int, po6::net::location::hash> m_locations;
         e::hazard_ptrs<channel, 1> m_hazard_ptrs;

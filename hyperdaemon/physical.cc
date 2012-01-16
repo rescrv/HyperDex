@@ -51,6 +51,7 @@ hyperdaemon :: physical :: physical(const po6::net::ipaddr& ip,
     , m_listen(ip.family(), SOCK_STREAM, IPPROTO_TCP)
     , m_bindto(ip, outgoing)
     , m_pause_barrier(num_threads)
+    , m_connectlocks(num_threads * 4)
     , m_incoming()
     , m_locations(16)
     , m_hazard_ptrs()
@@ -345,6 +346,7 @@ hyperdaemon :: physical :: get_channel(const hazard_ptr& hptr,
                                        channel** chan)
 {
     int fd;
+    unsigned count = 0;
 
     while (true)
     {
@@ -369,6 +371,8 @@ hyperdaemon :: physical :: get_channel(const hazard_ptr& hptr,
         {
             try
             {
+                uint64_t hash = po6::net::location::hash(to);
+                e::striped_lock<po6::threads::mutex>::hold hold(&m_connectlocks, hash);
                 po6::net::socket soc(to.address.family(), SOCK_STREAM, IPPROTO_TCP);
                 soc.set_reuseaddr();
                 soc.bind(m_bindto);
@@ -377,7 +381,12 @@ hyperdaemon :: physical :: get_channel(const hazard_ptr& hptr,
             }
             catch (po6::error& e)
             {
-                return CONNECTFAIL;
+                if (count != 0)
+                {
+                    return CONNECTFAIL;
+                }
+
+                ++ count;
             }
         }
     }
