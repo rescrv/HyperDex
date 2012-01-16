@@ -523,8 +523,11 @@ class CoordinatorServer(object):
                     if remove:
                         del self._conns[fd]
                         self._p.unregister(fd)
-                        sock.shutdown(socket.SHUT_RDWR)
-                        sock.close()
+                        try:
+                            sock.shutdown(socket.SHUT_RDWR)
+                            sock.close()
+                        except socket.error as e:
+                            pass
             for fd, conn in self._conns.iteritems():
                 sock, conn = conn
                 if len(conn.outgoing) > 0:
