@@ -480,7 +480,7 @@ hyperdaemon :: physical :: work_read(const hazard_ptr& hptr,
     }
 
     e::guard g = e::makeobjguard(chan->mtx, &po6::threads::mutex::unlock);
-    assert(chan->inoffset >= 0 && chan->inoffset <= 4);
+    assert(chan->inoffset <= 4);
 
     if (chan->soc.get() < 0)
     {
@@ -584,6 +584,8 @@ hyperdaemon :: physical :: work_read(const hazard_ptr& hptr,
                     *res = SUCCESS;
                     ret = true;
                 }
+
+                assert(!chan->inprogress.get());
             }
         }
     }
@@ -617,7 +619,7 @@ hyperdaemon :: physical :: work_write(channel* chan)
         return false;
     }
 
-    if (ret >= 0)
+    if (ret > 0)
     {
         chan->outprogress.advance(ret);
     }
