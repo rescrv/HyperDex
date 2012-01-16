@@ -1110,9 +1110,9 @@ hyperdaemon :: replication_manager :: send_update(const entityid& us,
             bool packed = !(revkey->pack_at(m_comm->header_size()) << version << key).error();
             assert(packed);
 
-            if (m_comm->send(us, pend->recv, hyperdex::CHAIN_ACK, revkey))
+            if (m_comm->send(us, us, hyperdex::CHAIN_ACK, revkey))
             {
-                pend->sent = pend->recv;
+                pend->sent = us;
             }
 
             return;
