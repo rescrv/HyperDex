@@ -501,19 +501,26 @@ hyperdaemon :: replication_manager :: client_common(bool has_value,
             std::tr1::shared_ptr<e::buffer> new_backing(e::buffer::create(newpend->backing->size() + need_moar));
             new_backing->resize(newpend->backing->size() + need_moar);
             memmove(new_backing->data(), newpend->backing->data(), newpend->backing->size());
+            e::slice oldkey = newpend->key;
+            newpend->key = e::slice(REBASE(newpend->key.data()), newpend->key.size());
+            assert(oldkey == newpend->key);
             size_t curdata = newpend->backing->size();
 
             for (size_t i = 0; i < value.size(); ++i)
             {
                 if (value_mask.get(i))
                 {
+                    e::slice oldslice = newpend->value[i];
                     newpend->value[i] = e::slice(REBASE(newpend->value[i].data()), newpend->value[i].size());
+                    assert(oldslice == newpend->value[i]);
                 }
                 else
                 {
+                    e::slice oldslice = oldvalue[i];
                     memmove(new_backing->data() + curdata, oldvalue[i].data(), oldvalue[i].size());
                     newpend->value[i] = e::slice(new_backing->data() + curdata, oldvalue[i].size());
                     curdata += oldvalue[i].size();
+                    assert(oldslice == newpend->value[i]);
                 }
             }
 
