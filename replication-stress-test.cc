@@ -1,4 +1,4 @@
-// Copyright (c) 2011, Cornell University
+// Copyright (c) 2011-2012, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // The purpose of this test is to expose errors in the replication logic.
+//
 // The test is designed to be run on a space with dimensions A, B, C.
 // Dimension A is the key while dimensions B and C are meant to be separate
 // subspaces.  The code intentionally creates certain scenarios which will
@@ -42,35 +43,37 @@
 #include <cstdio>
 
 // STL
-#include <tr1/functional>
+#include <iomanip>
+#include <map>
 #include <memory>
 #include <string>
+#include <tr1/functional>
 
 // po6
 #include <po6/net/ipaddr.h>
 #include <po6/net/location.h>
-
-#include <glog/logging.h>
 
 // e
 #include <e/bitfield.h>
 #include <e/convert.h>
 
 // HyperspaceHashing
-#include <hyperspacehashing/hashes.h>
-#include <hyperspacehashing/prefix.h>
+#include "hyperspacehashing/hyperspacehashing/hashes.h"
+#include "hyperspacehashing/hyperspacehashing/prefix.h"
 
 // HyperDex
-#include <hyperclient/client.h>
+#include "hyperclient/hyperclient.h"
 
-// These 32-bit values all hash (using CityHash) to be have the same high-order
-// byte as their index.  E.g. index 0 has a hash of 0x00??????????????, while
-// index 255 has a hash of 0xff??????????????.
+// These 32-bit values all hash (using hyperspacehashing) to be have the same
+// high-order byte as their index.  E.g. index 0 has a hash of
+// 0x00??????????????, while index 255 has a hash of 0xff??????????????.
 static uint32_t nums[256];
 
-std::string space;
+// These are all the incomplete operations
+std::map<int64_t, hyperclient_returncode*> incompleteops;
+
+const char* space;
 size_t prefix;
-bool failed = false;
 
 static int
 usage();
@@ -79,15 +82,15 @@ static void
 find_hashes();
 
 static void
-test0(hyperclient::client* cl);
+test0(hyperclient* cl);
 static void
-test1(hyperclient::client* cl);
+test1(hyperclient* cl);
 static void
-test2(hyperclient::client* cl);
+test2(hyperclient* cl);
 static void
-test3(hyperclient::client* cl);
+test3(hyperclient* cl);
 static void
-test4(hyperclient::client* cl);
+test4(hyperclient* cl);
 
 class generator
 {
@@ -125,7 +128,7 @@ class generator
         }
 
     public:
-        operator int () const { return nums[m_i]; }
+        operator uint32_t () const { return nums[m_i]; }
 
     private:
         uint32_t m_i;
@@ -141,13 +144,13 @@ main(int argc, char* argv[])
 
     find_hashes();
 
-    po6::net::ipaddr ip;
+    const char* ip;
     uint16_t port;
     space = argv[3];
 
     try
     {
-        ip = po6::net::ipaddr(argv[1]);
+        ip = argv[1];
     }
     catch (std::invalid_argument& e)
     {
@@ -187,14 +190,13 @@ main(int argc, char* argv[])
 
     try
     {
-        hyperclient::client cl(po6::net::location(ip, port));
-        cl.connect();
+        hyperclient cl(ip, port);
 
-        if (!failed) test0(&cl);
-        if (!failed) test1(&cl);
-        if (!failed) test2(&cl);
-        if (!failed) test3(&cl);
-        if (!failed) test4(&cl);
+        test0(&cl);
+        test1(&cl);
+        test2(&cl);
+        test3(&cl);
+        test4(&cl);
     }
     catch (po6::error& e)
     {
@@ -223,8 +225,14 @@ main(int argc, char* argv[])
 int
 usage()
 {
-    std::cerr << "Usage:  repl-tester <coordinator ip> <coordinator port> <space name> <prefix>"
-              << std::endl;
+    std::cerr << "Usage:  repl-tester <coordinator ip> <coordinator port> <space name> <prefix>\n"
+              << "You can use something like the following space description (prefix = 4, replication = 2):\n"
+              << "    space repl\n"
+              << "    dimensions A, B, C\n"
+              << "    key A auto 4 2\n"
+              << "    subspace B auto 4 2\n"
+              << "    subspace C auto 4 2\n"
+              << std::flush;
     return EXIT_FAILURE;
 }
 
@@ -244,16 +252,15 @@ find_hashes()
 
     for (uint32_t value = 0; complete < 256; ++value)
     {
-        e::buffer key;
-        key.pack() << value;
+        e::slice key(&value, sizeof(uint32_t));
         uint64_t hash = hasher.hash(key).point;
-        int high_byte = (hash >> 56) & 0xff;
+        unsigned high_byte = (hash >> 56) & 0xff;
 
         if (!found[high_byte])
         {
             found[high_byte] = true;
             nums[high_byte] = value;
-            ++ complete;
+            ++complete;
         }
     }
 
@@ -278,223 +285,225 @@ find_hashes()
 }
 
 static void
-fail(int testno, const char* reason)
-{
-    failed = true;
-    printf("Test %2i:  [\x1b[31mFAIL\x1b[0m]\n", testno);
-    printf("failure:  %s\n", reason);
-}
-
-static void
 success(int testno)
 {
-    printf("Test %2i:  [\x1b[32mOK\x1b[0m]\n", testno);
+    std::cout << "Test " << testno << ":  [\x1b[32mOK\x1b[0m]\n";
 }
 
-static size_t
-reverse(size_t num)
-{
-    size_t i = 0;
-
-    for (; i < 256; ++i)
-    {
-        if (nums[i] == num)
-        {
-            return i;
-        }
-    }
-
-    assert(false);
-}
-
-static void
-handle_put(int testno, bool* succeeded, size_t A, size_t B, size_t C, hyperclient::returncode ret)
-{
-    if (ret == hyperclient::SUCCESS)
-    {
-        return;
-    }
-
-    if (*succeeded)
-    {
-        *succeeded = false;
-        std::ostringstream ostr;
-        ostr << "key = " << reverse(A) << " ; value = <" << reverse(B) << ", " << reverse(C) << "> :: PUT returned " << ret;
-        fail(testno, ostr.str().c_str());
-    }
-}
+#define FAIL(TESTNO, REASON) \
+    do { \
+    std::cout << "Test " << TESTNO << ":  [\x1b[31mFAIL\x1b[0m]\n" \
+              << "location: " << __FILE__ << ":" << __LINE__ << "\n" \
+              << "reason:  " << REASON << "\n"; \
+    abort(); \
+    } while (0)
 
 static void
 put(int testno,
-    hyperclient::client* cl,
-    bool* succeeded,
-    size_t A, size_t B, size_t C)
+    hyperclient* cl,
+    uint32_t A, uint32_t B, uint32_t C)
 {
-    e::buffer key;
-    std::vector<e::buffer> value(2);
-    key.pack() << A;
-    value[0].pack() << B;
-    value[1].pack() << C;
-    using std::tr1::bind;
-    using std::tr1::placeholders::_1;
-    cl->put(space, key, value, std::tr1::bind(handle_put, testno, succeeded, A, B, C, _1));
-}
+    hyperclient_attribute attrs[2];
+    attrs[0].attr = "B";
+    attrs[0].value = reinterpret_cast<const char*>(&B);
+    attrs[0].value_sz = sizeof(uint32_t);
+    attrs[1].attr = "C";
+    attrs[1].value = reinterpret_cast<const char*>(&C);
+    attrs[1].value_sz = sizeof(uint32_t);
+    hyperclient_returncode* status = new hyperclient_returncode();
+    int64_t id = cl->put(space, reinterpret_cast<const char*>(&A), sizeof(uint32_t), attrs, 2, status);
 
-static void
-handle_del(int testno, bool* succeeded, size_t A, hyperclient::returncode ret)
-{
-    if (ret == hyperclient::SUCCESS)
+    if (id < 0)
     {
-        return;
+        FAIL(testno, "put encountered error " << status);
     }
 
-    if (*succeeded)
+    std::pair<std::map<int64_t, hyperclient_returncode*>::iterator, bool> res;
+    res = incompleteops.insert(std::make_pair(id, status));
+
+    if (res.second != true)
     {
-        *succeeded = false;
-        std::ostringstream ostr;
-        ostr << "key = " << reverse(A) << " :: DEL returned " << ret;
-        fail(testno, ostr.str().c_str());
+        FAIL(testno, "put could not insert into incompleteops");
     }
 }
 
 static void
 del(int testno,
-    hyperclient::client* cl,
-    bool* succeeded,
-    size_t A)
+    hyperclient* cl,
+    uint32_t A)
 {
-    e::buffer key;
-    key.pack() << A;
-    using std::tr1::bind;
-    using std::tr1::placeholders::_1;
-    cl->del(space, key, std::tr1::bind(handle_del, testno, succeeded, A, _1));
-}
+    hyperclient_returncode* status = new hyperclient_returncode();
+    int64_t id = cl->del(space, reinterpret_cast<const char*>(&A), sizeof(uint32_t), status);
 
-void
-handle_get(hyperclient::returncode* store_ret, std::vector<e::buffer>* store_value,
-           hyperclient::returncode ret, const std::vector<e::buffer>& value)
-{
-    *store_ret = ret;
-    *store_value = value;
-}
-
-
-static bool
-check(int testno,
-      hyperclient::client* cl,
-      bool* succeeded,
-      size_t A, size_t B, size_t C)
-{
-    cl->flush((1 << prefix) * 1000);
-
-    if (!*succeeded)
+    if (id < 0)
     {
-        return false;
+        FAIL(testno, "del encountered error " << status);
     }
 
-    e::buffer key;
-    key.pack() << A;
-    hyperclient::returncode ret;
-    std::vector<e::buffer> ret_value(2);
-    std::vector<e::buffer> exp_value(2);
-    exp_value[0].pack() << B;
-    exp_value[1].pack() << C;
-    using std::tr1::bind;
-    using std::tr1::placeholders::_1;
-    using std::tr1::placeholders::_2;
-    cl->get(space, key, bind(handle_get, &ret, &ret_value, _1, _2));
-    cl->flush(1000);
+    std::pair<std::map<int64_t, hyperclient_returncode*>::iterator, bool> res;
+    res = incompleteops.insert(std::make_pair(id, status));
 
-    if (ret != hyperclient::SUCCESS)
+    if (res.second != true)
     {
-        std::ostringstream ostr;
-        ostr << "key = " << reverse(A) << " :: CHECK returned " << ret;
-        fail(testno, ostr.str().c_str());
-        return false;
+        FAIL(testno, "del could not insert into incompleteops");
     }
-
-    if (ret_value != exp_value)
-    {
-        std::ostringstream ostr;
-        ostr << "key = " << reverse(A) << " ; value = <"
-             << reverse(B) << ", " << reverse(C)
-             << ">\t:: CHECK returned wrong value exp<"
-             << exp_value[0].hex() << ", " << exp_value[1].hex() << "> ret<"
-             << ret_value[0].hex() << ", " << ret_value[1].hex() << ">";
-        fail(testno, ostr.str().c_str());
-        return false;
-    }
-
-    // XXX Do an empty search in each subspace.
-    return true;
 }
 
-static bool
+static void
+flush(int testno,
+      hyperclient* cl)
+{
+    while (!incompleteops.empty())
+    {
+        hyperclient_returncode status;
+        int64_t id = cl->loop(1000, &status);
+
+        if (id < 0)
+        {
+            FAIL(testno, "loop returned error " << status);
+        }
+        else
+        {
+            std::map<int64_t, hyperclient_returncode*>::iterator incomplete;
+            incomplete = incompleteops.find(id);
+
+            if (incomplete == incompleteops.end())
+            {
+                FAIL(testno, "loop returned unknown id " << id);
+            }
+
+            if (*(incomplete->second) != HYPERCLIENT_SUCCESS)
+            {
+                FAIL(testno, "operation " << id << " returned " << *(incomplete->second));
+            }
+
+            delete incomplete->second;
+            incompleteops.erase(incomplete);
+        }
+    }
+}
+
+static void
+present(int testno,
+        hyperclient* cl,
+        uint32_t A, uint32_t B, uint32_t C)
+{
+    flush(testno, cl);
+
+    hyperclient_returncode gstatus;
+    hyperclient_returncode lstatus;
+    hyperclient_attribute* attrs;
+    size_t attrs_sz;
+    int64_t gid = cl->get(space, reinterpret_cast<char*>(&A), sizeof(uint32_t), &gstatus, &attrs, &attrs_sz);
+
+    if (gid < 0)
+    {
+        FAIL(testno, "get encountered error " << gstatus);
+    }
+
+    int64_t lid = cl->loop(1000, &lstatus);
+
+    if (lid < 0)
+    {
+        FAIL(testno, "loop encountered error " << lstatus);
+    }
+
+    if (gid != lid)
+    {
+        FAIL(testno, "loop id (" << lid << ") does not match get id (" << gid << ")");
+    }
+
+    if (gstatus != HYPERCLIENT_SUCCESS)
+    {
+        FAIL(testno, "operation " << gid << " (a presence check) returned " << gstatus);
+    }
+
+    if (attrs_sz != 2)
+    {
+        FAIL(testno, "presence check: " << attrs_sz << " attributes instead of 2 attributes");
+    }
+
+    if (strcmp(attrs[0].attr, "B") != 0)
+    {
+        FAIL(testno, "presence check: first attribute is \"" << attrs[0].attr << "\" instead of \"B\"");
+    }
+
+    if (e::slice(attrs[0].value, attrs[0].value_sz) != e::slice(&B, sizeof(uint32_t)))
+    {
+        FAIL(testno, "presence check: first attribute does not match " << B);
+    }
+
+    if (strcmp(attrs[1].attr, "C") != 0)
+    {
+        FAIL(testno, "presence check: first attribute is \"" << attrs[1].attr << "\" instead of \"C\"");
+    }
+
+    if (e::slice(attrs[1].value, attrs[1].value_sz) != e::slice(&C, sizeof(uint32_t)))
+    {
+        FAIL(testno, "presence check: first attribute does not match " << C);
+    }
+
+    free(attrs);
+}
+
+static void
 absent(int testno,
-       hyperclient::client* cl,
-       bool* succeeded,
-       size_t A)
+       hyperclient* cl,
+       uint32_t A)
 {
-    cl->flush((1 << prefix) * 1000);
+    flush(testno, cl);
 
-    if (!*succeeded)
+    hyperclient_returncode gstatus;
+    hyperclient_returncode lstatus;
+    hyperclient_attribute* attrs = NULL;
+    size_t attrs_sz = 0;
+    int64_t gid = cl->get(space, reinterpret_cast<char*>(&A), sizeof(uint32_t), &gstatus, &attrs, &attrs_sz);
+
+    if (gid < 0)
     {
-        return false;
+        FAIL(testno, "get encountered error " << gstatus);
     }
 
-    e::buffer key;
-    key.pack() << A;
-    hyperclient::returncode ret;
-    std::vector<e::buffer> ret_value(2);
-    using std::tr1::bind;
-    using std::tr1::placeholders::_1;
-    using std::tr1::placeholders::_2;
-    cl->get(space, key, bind(handle_get, &ret, &ret_value, _1, _2));
-    cl->flush(1000);
+    int64_t lid = cl->loop(1000, &lstatus);
 
-    if (ret == hyperclient::SUCCESS)
+    if (lid < 0)
     {
-        std::ostringstream ostr;
-        ostr << "key = " << reverse(A) << "\t:: ABSENT returned <"
-             << ret_value[0].hex() << ", " << ret_value[1].hex() << ">";
-        fail(testno, ostr.str().c_str());
-        return false;
+        FAIL(testno, "loop returned error " << lstatus);
     }
 
-    if (ret != hyperclient::NOTFOUND)
+    if (gid != lid)
     {
-        std::ostringstream ostr;
-        ostr << "key = " << reverse(A) << " :: ABSENT returned " << ret;
-        fail(testno, ostr.str().c_str());
-        return false;
+        FAIL(testno, "loop id (" << lid << ") does not match get id (" << gid << ")");
     }
 
-    // XXX Do an empty search in each subspace.
-    return true;
+    if (gstatus != HYPERCLIENT_NOTFOUND)
+    {
+        FAIL(testno, "operation " << gid << " (an absence check) returned " << gstatus);
+    }
+
+    assert(!attrs && !attrs_sz);
 }
 
 // This test continually puts keys, ensuring that every way in which one could
 // select regions from the subspaces is chosen.
 void
-test0(hyperclient::client* cl)
+test0(hyperclient* cl)
 {
-    bool succeeded = true;
-
     for (generator A; A.has_next(); A.next())
     {
-        if (!absent(0, cl, &succeeded, A)) return;
+        absent(0, cl, A);
 
         for (generator B; B.has_next(); B.next())
         {
             for (generator C; C.has_next(); C.next())
             {
-                put(0, cl, &succeeded, A, B, C);
+                put(0, cl, A, B, C);
             }
         }
 
-        if (!check(0, cl, &succeeded, A, generator::end(), generator::end())) return;
-        del(0, cl, &succeeded, A);
-        if (!absent(0, cl, &succeeded, A)) return;
+        present(0, cl, A, generator::end(), generator::end());
+        del(0, cl, A);
+        absent(0, cl, A);
     }
 
     success(0);
@@ -505,24 +514,22 @@ test0(hyperclient::client* cl)
 // the subspaces.  6 * 2**prefix requests will be performed.  This tests that
 // delete plays nicely with the fresh bit.
 void
-test1(hyperclient::client* cl)
+test1(hyperclient* cl)
 {
-    bool succeeded = true;
-
     for (generator A; A.has_next(); A.next())
     {
-        if (!absent(1, cl, &succeeded, A)) return;
+        absent(1, cl, A);
 
         for (generator B; B.has_next(); B.next())
         {
             for (generator C; C.has_next(); C.next())
             {
-                put(1, cl, &succeeded, A, C, C);
-                del(1, cl, &succeeded, A);
+                put(1, cl, A, B, C);
+                del(1, cl, A);
             }
         }
 
-        if (!absent(1, cl, &succeeded, A)) return;
+        absent(1, cl, A);
     }
 
     success(1);
@@ -533,24 +540,22 @@ test1(hyperclient::client* cl)
 // tests that CHAIN_SUBSPACE messages work.  This tests that CHAIN_SUBSPACE
 // messages work correctly.
 void
-test2(hyperclient::client* cl)
+test2(hyperclient* cl)
 {
-    bool succeeded = true;
-
     for (generator A; A.has_next(); A.next())
     {
         for (generator B; B.has_next(); B.next())
         {
-            if (!absent(2, cl, &succeeded, A)) return;
+            absent(2, cl, A);
 
             for (generator C; C.has_next(); C.next())
             {
-                put(2, cl, &succeeded, A, B, C);
+                put(2, cl, A, B, C);
             }
 
-            if (!check(2, cl, &succeeded, A, B, generator::end())) return;
-            del(2, cl, &succeeded, A);
-            if (!absent(2, cl, &succeeded, A)) return;
+            present(2, cl, A, B, generator::end());
+            del(2, cl, A);
+            absent(2, cl, A);
         }
     }
 
@@ -559,24 +564,22 @@ test2(hyperclient::client* cl)
 
 // This is isomorphic to test2 except that columns A and C are fixed.
 void
-test3(hyperclient::client* cl)
+test3(hyperclient* cl)
 {
-    bool succeeded = true;
-
     for (generator A; A.has_next(); A.next())
     {
         for (generator C; C.has_next(); C.next())
         {
-            if (!absent(3, cl, &succeeded, A)) return;
+            absent(3, cl, A);
 
             for (generator B; B.has_next(); B.next())
             {
-                put(3, cl, &succeeded, A, B, C);
+                put(3, cl, A, B, C);
             }
 
-            if (!check(3, cl, &succeeded, A, generator::end(), C)) return;
-            del(3, cl, &succeeded, A);
-            if (!absent(3, cl, &succeeded, A)) return;
+            present(3, cl, A, generator::end(), C);
+            del(3, cl, A);
+            absent(3, cl, A);
         }
     }
 
@@ -588,17 +591,15 @@ test3(hyperclient::client* cl)
 // B and C to jump to another subspace.  It then issues a DEL to try to create a
 // deferred update.
 void
-test4(hyperclient::client* cl)
+test4(hyperclient* cl)
 {
-    bool succeeded = true;
-
     for (generator A; A.has_next(); A.next())
     {
         for (generator B; B.has_next(); B.next())
         {
             for (generator C; C.has_next(); C.next())
             {
-                if (!absent(4, cl, &succeeded, A)) return;
+                absent(4, cl, A);
 
                 for (generator BP; BP.has_next(); BP.next())
                 {
@@ -606,14 +607,14 @@ test4(hyperclient::client* cl)
                     {
                         if (B != BP && C != CP)
                         {
-                            put(4, cl, &succeeded, A, B, C);
-                            put(4, cl, &succeeded, A, BP, CP);
-                            del(4, cl, &succeeded, A);
+                            put(4, cl, A, B, C);
+                            put(4, cl, A, BP, CP);
+                            del(4, cl, A);
                         }
                     }
                 }
 
-                if (!absent(4, cl, &succeeded, A)) return;
+                absent(4, cl, A);
             }
         }
     }

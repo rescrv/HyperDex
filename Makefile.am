@@ -64,7 +64,8 @@ bin_PROGRAMS = \
 noinst_PROGRAMS = \
 			$(libhyperspacehashing_noinst_programs) \
 			$(libhyperdisk_noinst_programs) \
-			count-test
+			count-test \
+			replication-stress-test
 
 check_PROGRAMS = \
 			$(libhyperspacehashing_check_programs) \
@@ -437,10 +438,19 @@ count_test_LDADD = \
 			$(HYPERCLIENT_LDADD) \
 			$(COVERAGE_LDADD)
 
-#repl_test_SOURCES = \
-#			repl-test.cc
-#repl_test_LDADD = \
-#			libhyperclient.la
+replication_stress_test_SOURCES = \
+			replication-stress-test.cc
+replication_stress_test_CPPFLAGS = \
+			-I$(abs_top_srcdir)/hyperspacehashing \
+			$(CPPFLAGS)
+replication_stress_test_LDADD = \
+			libhyperspacehashing.la \
+			libhyperclient.la \
+			$(HYPERSPACEHASHING_LDADD) \
+			$(HYPERCLIENT_LDADD) \
+			libhyperclient.la
+replication_stress_test_LDFLAGS = \
+			-no-install
 
 ################################################################################
 ################################### Coverage ###################################

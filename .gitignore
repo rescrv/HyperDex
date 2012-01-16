@@ -125,6 +125,8 @@ Makefile
 Makefile.in
 missing
 py-compile
+replication-stress-test
+replication_stress_test-replication-stress-test.o
 stamp-h1
 ycsb/hyperclient/HyperClientYCSB.class
 ycsb/hyperclient-ycsb-0.1.dev.jar
