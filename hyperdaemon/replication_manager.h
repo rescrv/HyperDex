@@ -158,7 +158,7 @@ class replication_manager
                           std::auto_ptr<e::buffer> backing,
                           const e::slice& key,
                           const std::vector<e::slice>& newvalue);
-        size_t get_lock_num(const replication::keypair& kp);
+        uint64_t get_lock_num(const hyperdex::regionid& reg, const e::slice& key);
         e::intrusive_ptr<replication::keyholder> get_keyholder(const replication::keypair& kp);
         void erase_keyholder(const replication::keypair& kp);
         bool from_disk(const hyperdex::regionid& r, const e::slice& key,

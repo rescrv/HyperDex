@@ -238,7 +238,7 @@ hyperdaemon :: replication_manager :: chain_subspace(const entityid& from,
 {
     // Grab the lock that protects this keypair.
     keypair kp(to.get_region(), key);
-    e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, get_lock_num(kp));
+    e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, get_lock_num(to.get_region(), key));
 
     // Get a reference to the keyholder for the keypair.
     e::intrusive_ptr<keyholder> kh = get_keyholder(kp);
@@ -307,7 +307,7 @@ hyperdaemon :: replication_manager :: chain_ack(const entityid& from,
 {
     // Grab the lock that protects this keypair.
     keypair kp(to.get_region(), key);
-    e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, get_lock_num(kp));
+    e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, get_lock_num(to.get_region(), key));
 
     // Get a reference to the keyholder for the keypair.
     e::intrusive_ptr<keyholder> kh = get_keyholder(kp);
@@ -401,7 +401,7 @@ hyperdaemon :: replication_manager :: client_common(bool has_value,
 
     // Grab the lock that protects this keypair.
     keypair kp(to.get_region(), key);
-    e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, get_lock_num(kp));
+    e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, get_lock_num(to.get_region(), key));
 
     // Get a reference to the keyholder for the keypair.
     e::intrusive_ptr<keyholder> kh = get_keyholder(kp);
@@ -564,7 +564,7 @@ hyperdaemon :: replication_manager :: chain_common(bool has_value,
 {
     // Grab the lock that protects this keypair.
     keypair kp(to.get_region(), key);
-    e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, get_lock_num(kp));
+    e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, get_lock_num(to.get_region(), key));
 
     // Get a reference to the keyholder for the keypair.
     e::intrusive_ptr<keyholder> kh = get_keyholder(kp);
@@ -705,12 +705,13 @@ hyperdaemon :: replication_manager :: chain_common(bool has_value,
     move_deferred_to_pending(to, key, kh);
 }
 
-size_t
-hyperdaemon :: replication_manager :: get_lock_num(const keypair& kp)
+uint64_t
+hyperdaemon :: replication_manager :: get_lock_num(const hyperdex::regionid& reg,
+                                                   const e::slice& key)
 {
-    return CityHash64WithSeed(static_cast<const char*>(kp.key.data()),
-                              kp.key.size(),
-                              kp.region.hash());
+    return CityHash64WithSeed(reinterpret_cast<const char*>(key.data()),
+                              key.size(),
+                              reg.hash());
 }
 
 e::intrusive_ptr<hyperdaemon::replication::keyholder>
@@ -1252,7 +1253,9 @@ hyperdaemon :: replication_manager :: retransmit()
             khiter != m_keyholders.end(); khiter.next())
     {
         // Grab the lock that protects this object.
-        e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, get_lock_num(khiter.key()));
+        uint64_t lock_num = get_lock_num(khiter.key().region,
+                                         e::slice(khiter.key().key.data(), khiter.key().key.size()));
+        e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, lock_num);
 
         // Grab some references.
         e::intrusive_ptr<keyholder> kh = khiter.value();
