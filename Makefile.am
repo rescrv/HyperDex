@@ -307,14 +307,9 @@ libhyperdaemon_noinst_headers = \
 			hyperdaemon/ongoing_state_transfers.h \
 			hyperdaemon/physical.h \
 			hyperdaemon/replication/clientop.h \
-			hyperdaemon/replication/deferred.h \
-			hyperdaemon/replication/keyholder.h \
 			hyperdaemon/replication/keypair.h \
 			hyperdaemon/replication_manager.cc \
 			hyperdaemon/replication_manager.h \
-			hyperdaemon/replication/pending.h \
-			hyperdaemon/replication/transfer_in.h \
-			hyperdaemon/replication/transfer_out.h \
 			hyperdaemon/runtimeconfig.h \
 			hyperdaemon/searches.h
 

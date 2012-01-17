@@ -49,11 +49,6 @@
 // HyperDaemon
 #include "hyperdaemon/replication/clientop.h"
 #include "hyperdaemon/replication/keypair.h"
-#include "hyperdaemon/replication/deferred.h"
-#include "hyperdaemon/replication/pending.h"
-#include "hyperdaemon/replication/keyholder.h"
-#include "hyperdaemon/replication/transfer_in.h"
-#include "hyperdaemon/replication/transfer_out.h"
 
 // Forward Declarations
 namespace hyperdex
@@ -130,10 +125,11 @@ class replication_manager
                        const e::slice& key);
 
     private:
-        typedef e::lockfree_hash_map<replication::keypair, e::intrusive_ptr<replication::keyholder>, replication::keypair::hash>
+        class deferred;
+        class pending;
+        class keyholder;
+        typedef e::lockfree_hash_map<replication::keypair, e::intrusive_ptr<keyholder>, replication::keypair::hash>
                 keyholder_map_t;
-        typedef e::lockfree_hash_set<replication::clientop, replication::clientop::hash>
-                clientop_set_t;
 
     private:
         replication_manager(const replication_manager&);
@@ -159,35 +155,32 @@ class replication_manager
                           const e::slice& key,
                           const std::vector<e::slice>& newvalue);
         uint64_t get_lock_num(const hyperdex::regionid& reg, const e::slice& key);
-        e::intrusive_ptr<replication::keyholder> get_keyholder(const replication::keypair& kp);
-        void erase_keyholder(const replication::keypair& kp);
+        e::intrusive_ptr<keyholder> get_keyholder(const hyperdex::regionid& reg, const e::slice& key);
+        void erase_keyholder(const hyperdex::regionid& reg, const e::slice& key);
         bool from_disk(const hyperdex::regionid& r, const e::slice& key,
                        bool* has_value, std::vector<e::slice>* value,
                        uint64_t* version, hyperdisk::reference* ref);
         bool put_to_disk(const hyperdex::regionid& pending_in,
-                         e::intrusive_ptr<replication::keyholder> kh,
+                         e::intrusive_ptr<keyholder> kh,
                          uint64_t version);
         // Figure out the previous and next individuals to send to/receive from
         // for messages.
         bool prev_and_next(const hyperdex::regionid& r, const e::slice& key,
                            bool has_newvalue, const std::vector<e::slice>& newvalue,
                            bool has_oldvalue, const std::vector<e::slice>& oldvalue,
-                           e::intrusive_ptr<replication::pending> pend);
-        // If there are no messages in the pending queue, move all blocked
-        // messages (up until the first DEL/PUT) to the queue of pending
-        // messages, and send out messages to the next individuals in the chain.
-        // The first form will only unblock messages when there are no pending
-        // updates.  The second form trusts that the caller knows that it is
-        // safe to unblock even though messages may still be pending.
-        void unblock_messages(const hyperdex::entityid& us, const e::slice& key, e::intrusive_ptr<replication::keyholder> kh);
-        // Move as many messages as possible from the deferred queue to the
-        // pending queue.
-        void move_deferred_to_pending(const hyperdex::entityid& to, const e::slice& key, e::intrusive_ptr<replication::keyholder> kh);
-        void send_update(const hyperdex::entityid& us,
-                         uint64_t version,
-                         const e::slice& key,
-                         e::intrusive_ptr<replication::pending> update);
-        bool send_ack(const hyperdex::entityid& from,
+                           e::intrusive_ptr<pending> pend);
+        // Move operations between the queues in the keyholder.  Blocked
+        // operations will have their blocking criteria checked.  Deferred
+        // operations will be checked for continuity with the blocked
+        // operations.
+        void move_operations_between_queues(const hyperdex::entityid& us,
+                                            const e::slice& key,
+                                            e::intrusive_ptr<keyholder> kh);
+        void send_message(const hyperdex::entityid& us,
+                          uint64_t version,
+                          const e::slice& key,
+                          e::intrusive_ptr<pending> op);
+        bool send_ack(const hyperdex::entityid& us,
                       const hyperdex::entityid& to,
                       uint64_t version,
                       const e::slice& key);
@@ -209,7 +202,6 @@ class replication_manager
         hyperdex::configuration m_config;
         e::striped_lock<po6::threads::mutex> m_locks;
         keyholder_map_t m_keyholders;
-        clientop_set_t m_clientops;
         hyperdex::instance m_us;
         bool m_shutdown;
         po6::threads::thread m_periodic_thread;
