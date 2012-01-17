@@ -356,7 +356,7 @@ flush(int testno,
     while (!incompleteops.empty())
     {
         hyperclient_returncode status;
-        int64_t id = cl->loop(1000, &status);
+        int64_t id = cl->loop(10000, &status);
 
         if (id < 0)
         {
@@ -401,7 +401,7 @@ present(int testno,
         FAIL(testno, "get encountered error " << gstatus);
     }
 
-    int64_t lid = cl->loop(1000, &lstatus);
+    int64_t lid = cl->loop(10000, &lstatus);
 
     if (lid < 0)
     {
@@ -464,7 +464,7 @@ absent(int testno,
         FAIL(testno, "get encountered error " << gstatus);
     }
 
-    int64_t lid = cl->loop(1000, &lstatus);
+    int64_t lid = cl->loop(10000, &lstatus);
 
     if (lid < 0)
     {
