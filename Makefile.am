@@ -32,7 +32,7 @@ SUBDIRS = . ${java_bindings_subdir} ${ycsb_driver_subdir}
 
 EXTRA_DIST = \
 			LICENSE \
-			$(libhyperclient_extra_dist)
+			$(libhyperclient_extra_dist) \
 			$(python_bindings_extra_dist)
 
 BUILT_SOURCES = \
@@ -46,6 +46,8 @@ lib_LTLIBRARIES = \
 if ENABLE_PYTHON_BINDINGS
 pyexec_LTLIBRARIES = \
 			hyperclient/python/hyperclient.la
+else
+pyexec_LTLIBRARIES =
 endif
 
 noinst_LTLIBRARIES = \
@@ -363,7 +365,6 @@ endif
 
 ################################ Python Bindings ###############################
 
-if ENABLE_PYTHON_BINDINGS
 python_bindings_extra_dist = \
 			hyperclient/python/hyperclient.pyx
 
@@ -388,10 +389,6 @@ hyperclient_python_hyperclient_la_LDFLAGS = \
 			-module \
 			-avoid-version \
 			-export-symbols-regex inithyperclient
-else
-python_bindings_extra_dist =
-python_bindings_built_sources =
-endif
 
 ################################################################################
 ################################## Benchmarks ##################################
