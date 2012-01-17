@@ -75,6 +75,15 @@ using hyperdaemon::replication::pending;
 using hyperdaemon::replication::transfer_in;
 using hyperdaemon::replication::transfer_out;
 
+#define _CONCAT(x, y) x ## y
+#define CONCAT(x, y) _CONCAT(x, y)
+
+// This macro should be used in the body of non-static members to hold the
+// appropriate lock for the request.  E should be an entity whose region the key
+// resides in.  K is the key for the object being protected.
+#define HOLD_LOCK_FOR_KEY(E, K) \
+    e::striped_lock<po6::threads::mutex>::hold CONCAT(_anon, __LINE__)(&m_locks, get_lock_num(E.get_region(), K))
+
 hyperdaemon :: replication_manager :: replication_manager(coordinatorlink* cl,
                                                           datalayer* data,
                                                           logical* comm,
@@ -237,10 +246,10 @@ hyperdaemon :: replication_manager :: chain_subspace(const entityid& from,
                                                      uint64_t nextpoint)
 {
     // Grab the lock that protects this keypair.
-    keypair kp(to.get_region(), key);
-    e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, get_lock_num(to.get_region(), key));
+    HOLD_LOCK_FOR_KEY(to, key);
 
     // Get a reference to the keyholder for the keypair.
+    keypair kp(to.get_region(), key);
     e::intrusive_ptr<keyholder> kh = get_keyholder(kp);
 
     // Check that a chain's put matches the dimensions of the space.
@@ -306,10 +315,10 @@ hyperdaemon :: replication_manager :: chain_ack(const entityid& from,
                                                 const e::slice& key)
 {
     // Grab the lock that protects this keypair.
-    keypair kp(to.get_region(), key);
-    e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, get_lock_num(to.get_region(), key));
+    HOLD_LOCK_FOR_KEY(to, key);
 
     // Get a reference to the keyholder for the keypair.
+    keypair kp(to.get_region(), key);
     e::intrusive_ptr<keyholder> kh = get_keyholder(kp);
 
     std::map<uint64_t, e::intrusive_ptr<pending> >::iterator to_ack;
@@ -400,10 +409,10 @@ hyperdaemon :: replication_manager :: client_common(bool has_value,
     e::guard g = e::makeobjguard(*this, &replication_manager::respond_to_client, to, from, nonce, retcode, hyperdex::NET_SERVERERROR);
 
     // Grab the lock that protects this keypair.
-    keypair kp(to.get_region(), key);
-    e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, get_lock_num(to.get_region(), key));
+    HOLD_LOCK_FOR_KEY(to, key);
 
     // Get a reference to the keyholder for the keypair.
+    keypair kp(to.get_region(), key);
     e::intrusive_ptr<keyholder> kh = get_keyholder(kp);
 
     // Check that a client's put matches the dimensions of the space.
@@ -563,10 +572,10 @@ hyperdaemon :: replication_manager :: chain_common(bool has_value,
                                                    const std::vector<e::slice>& value)
 {
     // Grab the lock that protects this keypair.
-    keypair kp(to.get_region(), key);
-    e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, get_lock_num(to.get_region(), key));
+    HOLD_LOCK_FOR_KEY(to, key);
 
     // Get a reference to the keyholder for the keypair.
+    keypair kp(to.get_region(), key);
     e::intrusive_ptr<keyholder> kh = get_keyholder(kp);
 
     // Check that a chain's put matches the dimensions of the space.
