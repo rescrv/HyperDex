@@ -231,7 +231,7 @@ class hyperclient
 
     private:
         class channel;
-        class failedop;
+        class completedop;
         class pending;
         class pending_get;
         class pending_statusonly;
@@ -266,8 +266,8 @@ class hyperclient
         std::vector<e::intrusive_ptr<channel> > m_fds;
         instances_map_t m_instances;
         requests_list_t m_requests;
+        std::queue<completedop> m_completed;
         int64_t m_requestid;
-        std::queue<failedop> m_failed;
         bool m_configured;
 };
 

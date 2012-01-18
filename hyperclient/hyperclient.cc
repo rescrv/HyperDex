@@ -215,17 +215,17 @@ hyperclient :: channel :: ~channel() throw ()
 
 //////////////////////////////// Failedop Class ////////////////////////////////
 
-class hyperclient::failedop
+class hyperclient::completedop
 {
     public:
-        failedop(e::intrusive_ptr<pending> _op, hyperclient_returncode _why)
+        completedop(e::intrusive_ptr<pending> _op, hyperclient_returncode _why)
             : op(_op), why(_why) {}
-        failedop(const failedop& other)
+        completedop(const completedop& other)
             : op(other.op), why(other.why) {}
-        ~failedop() throw () {}
+        ~completedop() throw () {}
 
     public:
-        failedop& operator = (const failedop& rhs)
+        completedop& operator = (const completedop& rhs)
         { op = rhs.op; why = rhs.why; return *this; }
 
     public:
@@ -513,8 +513,8 @@ hyperclient :: hyperclient(const char* coordinator, in_port_t port)
     , m_fds(sysconf(_SC_OPEN_MAX), e::intrusive_ptr<channel>())
     , m_instances()
     , m_requests()
+    , m_completed()
     , m_requestid(1)
-    , m_failed()
     , m_configured(false)
 {
     m_coord->set_announce("client");
@@ -600,7 +600,7 @@ hyperclient :: del(const char* space, const char* key, size_t key_sz,
 int64_t
 hyperclient :: loop(int timeout, hyperclient_returncode* status)
 {
-    while (!m_requests.empty() && m_failed.empty())
+    while (!m_requests.empty() && m_completed.empty())
     {
         if (!m_requests.front())
         {
@@ -673,7 +673,7 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
                 {
                     if (*r && m_config->instancefor((*r)->entity()) != (*r)->instance())
                     {
-                        m_failed.push(failedop(*r, HYPERCLIENT_RECONFIGURE));
+                        m_completed.push(completedop(*r, HYPERCLIENT_RECONFIGURE));
                         *r = NULL;
                     }
                 }
@@ -787,7 +787,7 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
         }
     }
 
-    if (m_failed.empty())
+    if (m_completed.empty())
     {
         *status = HYPERCLIENT_NONEPENDING;
         return -1;
@@ -795,9 +795,9 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
     else
     {
         *status = HYPERCLIENT_SUCCESS;
-        int64_t ret = m_failed.front().op->id();
-        m_failed.front().op->set_status(m_failed.front().why);
-        m_failed.pop();
+        int64_t ret = m_completed.front().op->id();
+        m_completed.front().op->set_status(m_completed.front().why);
+        m_completed.pop();
         return ret;
     }
 }
@@ -1001,7 +1001,7 @@ hyperclient :: killall(int fd, hyperclient_returncode status)
     {
         if ((*r)->chan() == chan)
         {
-            m_failed.push(failedop(*r, status));
+            m_completed.push(completedop(*r, status));
             *r = NULL;
         }
     }
