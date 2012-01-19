@@ -138,6 +138,19 @@ hyperspacehashing :: search :: matches(const e::slice& key, const std::vector<e:
     return true;
 }
 
+size_t
+hyperspacehashing :: search :: packed_size() const
+{
+    size_t sz = size() * (sizeof(uint8_t) * 2 + sizeof(uint64_t) * 2 + sizeof(uint32_t));
+
+    for (size_t i = 0; i < size(); ++i)
+    {
+        sz += m_equality[i].size();
+    }
+
+    return sz;
+}
+
 void
 hyperspacehashing :: search :: equality_set(size_t idx, const e::slice& val)
 {

@@ -138,9 +138,24 @@ int64_t
 hyperclient_search(struct hyperclient* client, const char* space,
                    const struct hyperclient_attribute* eq, size_t eq_sz,
                    const struct hyperclient_range_query* rn, size_t rn_sz,
-                   struct hyperclient_search_result** results)
+                   struct hyperclient_search_result** results,
+                   enum hyperclient_returncode* status)
 {
-    return -1;
+    try
+    {
+        return client->search(space, eq, eq_sz, rn, rn_sz, results, status);
+    }
+    catch (po6::error& e)
+    {
+        errno = e;
+        *status = HYPERCLIENT_SEEERRNO;
+        return -1;
+    }
+    catch (...)
+    {
+        *status = HYPERCLIENT_EXCEPTION;
+        return -1;
+    }
 }
 
 int64_t
@@ -163,7 +178,81 @@ hyperclient_loop(struct hyperclient* client, int timeout, hyperclient_returncode
     }
 }
 
+void
+hyperclient_destroy_attrs(struct hyperclient_attribute* attrs, size_t /*attrs_sz*/)
+{
+    free(attrs);
+}
+
+void
+hyperclient_destroy_search_result(struct hyperclient_search_result* result)
+{
+    if (result)
+    {
+        hyperclient_destroy_attrs(result->attrs, result->attrs_sz);
+        free(result);
+    }
+}
+
 } // extern "C"
+
+/////////////////////////////// Utility Functions //////////////////////////////
+
+static bool
+attributes_from_value(const hyperdex::configuration& config,
+                      const hyperdex::entityid& entity,
+                      const std::vector<e::slice>& value,
+                      hyperclient_returncode* status,
+                      hyperclient_attribute** attrs,
+                      size_t* attrs_sz)
+{
+    std::vector<std::string> dimension_names = config.dimension_names(entity.get_space());
+
+    if (value.size() + 1 != dimension_names.size())
+    {
+        *status = HYPERCLIENT_SERVERERROR;
+        return false;
+    }
+
+    std::vector<hyperclient_attribute> ha(value.size());
+    size_t sz = sizeof(hyperclient_attribute) * value.size();
+
+    for (size_t i = 0; i < value.size(); ++i)
+    {
+        sz += dimension_names[i + 1].size() + 1 + value[i].size();
+    }
+
+    char* ret = static_cast<char*>(malloc(sz));
+
+    if (!ret)
+    {
+        *status = HYPERCLIENT_SEEERRNO;
+        return false;
+    }
+
+    e::guard g = e::makeguard(free, ret);
+    char* data = ret + sizeof(hyperclient_attribute) * value.size();
+
+    for (size_t i = 0; i < value.size(); ++i)
+    {
+        size_t attr_sz = dimension_names[i + 1].size() + 1;
+        ha[i].attr = data;
+        memmove(data, dimension_names[i + 1].c_str(), attr_sz);
+        data += attr_sz;
+        ha[i].value = data;
+        memmove(data, value[i].data(), value[i].size());
+        data += value[i].size();
+        ha[i].value_sz = value[i].size();
+    }
+
+    memmove(ret, &ha.front(), sizeof(hyperclient_attribute) * value.size());
+    *status = HYPERCLIENT_SUCCESS;
+    *attrs = reinterpret_cast<hyperclient_attribute*>(ret);
+    *attrs_sz = value.size();
+    g.dismiss();
+    return true;
+}
+
 
 ///////////////////////////////// Channel Class ////////////////////////////////
 
@@ -245,14 +334,10 @@ enum handled_how
 class hyperclient::pending
 {
     public:
-        pending(hyperdex::network_msgtype reqtype,
-                hyperdex::network_msgtype resptype,
-                hyperclient_returncode* status);
+        pending();
         virtual ~pending() throw ();
 
     public:
-        hyperdex::network_msgtype request_type() const { return m_reqtype; }
-        hyperdex::network_msgtype response_type() const { return m_resptype; }
         int64_t id() const { return m_id; }
         uint64_t nonce() const { return m_nonce; }
         e::intrusive_ptr<channel> chan() const { return m_chan; }
@@ -260,14 +345,19 @@ class hyperclient::pending
         const hyperdex::instance& instance() const { return m_inst; }
 
     public:
-        virtual handled_how handle_response(std::auto_ptr<e::buffer> msg,
-                                            hyperclient_returncode* status) = 0;
-        void set_status(hyperclient_returncode status) { *m_status = status; }
         void set_id(int64_t _id) { m_id = _id; }
         void set_nonce(uint64_t _nonce) { m_nonce = _nonce; }
         void set_channel(e::intrusive_ptr<channel> _chan) { m_chan = _chan; }
         void set_entity(hyperdex::entityid ent) { m_ent = ent; }
         void set_instance(hyperdex::instance inst) { m_inst = inst; }
+
+    public:
+        virtual hyperdex::network_msgtype request_type() const = 0;
+        virtual bool matches_response_type(hyperdex::network_msgtype t) const = 0;
+        virtual handled_how handle_response(hyperdex::network_msgtype type,
+                                            std::auto_ptr<e::buffer> msg,
+                                            hyperclient_returncode* status) = 0;
+        virtual void set_status(hyperclient_returncode status) = 0;
 
     private:
         friend class e::intrusive_ptr<pending>;
@@ -284,9 +374,6 @@ class hyperclient::pending
 
     private:
         size_t m_ref;
-        hyperclient_returncode* m_status;
-        hyperdex::network_msgtype m_reqtype;
-        hyperdex::network_msgtype m_resptype;
         e::intrusive_ptr<channel> m_chan;
         int64_t m_id;
         uint64_t m_nonce;
@@ -295,13 +382,8 @@ class hyperclient::pending
         bool m_finished;
 };
 
-hyperclient :: pending :: pending(hyperdex::network_msgtype reqtype,
-                                  hyperdex::network_msgtype resptype,
-                                  hyperclient_returncode* status)
+hyperclient :: pending :: pending()
     : m_ref(0)
-    , m_status(status)
-    , m_reqtype(reqtype)
-    , m_resptype(resptype)
     , m_chan()
     , m_id(-1)
     , m_nonce(0)
@@ -325,8 +407,12 @@ class hyperclient::pending_get : public hyperclient::pending
         virtual ~pending_get() throw ();
 
     public:
-        handled_how handle_response(std::auto_ptr<e::buffer> msg,
-                                    hyperclient_returncode* status);
+        virtual hyperdex::network_msgtype request_type() const;
+        virtual bool matches_response_type(hyperdex::network_msgtype t) const;
+        virtual handled_how handle_response(hyperdex::network_msgtype type,
+                                            std::auto_ptr<e::buffer> msg,
+                                            hyperclient_returncode* status);
+        virtual void set_status(hyperclient_returncode status);
 
     private:
         pending_get(const pending_get& other);
@@ -336,7 +422,8 @@ class hyperclient::pending_get : public hyperclient::pending
 
     private:
         hyperclient* m_cl;
-        struct hyperclient_attribute** m_attrs;
+        hyperclient_returncode* m_status;
+        hyperclient_attribute** m_attrs;
         size_t* m_attrs_sz;
 };
 
@@ -344,8 +431,9 @@ hyperclient :: pending_get :: pending_get(hyperclient* cl,
                                           hyperclient_returncode* status,
                                           struct hyperclient_attribute** attrs,
                                           size_t* attrs_sz)
-    : pending(hyperdex::REQ_GET, hyperdex::RESP_GET, status)
+    : pending()
     , m_cl(cl)
+    , m_status(status)
     , m_attrs(attrs)
     , m_attrs_sz(attrs_sz)
 {
@@ -355,10 +443,25 @@ hyperclient :: pending_get :: ~pending_get() throw ()
 {
 }
 
-handled_how
-hyperclient :: pending_get :: handle_response(std::auto_ptr<e::buffer> msg,
-                                              hyperclient_returncode*)
+hyperdex::network_msgtype
+hyperclient :: pending_get :: request_type() const
 {
+    return hyperdex::REQ_GET;
+}
+
+bool
+hyperclient :: pending_get :: matches_response_type(hyperdex::network_msgtype t) const
+{
+    return t == hyperdex::RESP_GET;
+}
+
+handled_how
+hyperclient :: pending_get :: handle_response(hyperdex::network_msgtype type,
+                                              std::auto_ptr<e::buffer> msg,
+                                              hyperclient_returncode* status)
+{
+    assert(matches_response_type(type));
+
     e::buffer::unpacker up = msg->unpack_from(HDRSIZE);
     uint16_t response;
     up = up >> response;
@@ -388,7 +491,6 @@ hyperclient :: pending_get :: handle_response(std::auto_ptr<e::buffer> msg,
             return REMOVE;
     }
 
-    std::vector<std::string> dimension_names = m_cl->m_config->dimension_names(entity().get_space());
     std::vector<e::slice> value;
     up = up >> value;
 
@@ -398,49 +500,21 @@ hyperclient :: pending_get :: handle_response(std::auto_ptr<e::buffer> msg,
         return REMOVE;
     }
 
-    if (value.size() + 1 != dimension_names.size())
+    if (!attributes_from_value(*m_cl->m_config, entity(), value,
+                               status, m_attrs, m_attrs_sz))
     {
-        set_status(HYPERCLIENT_SERVERERROR);
+        set_status(*status);
         return REMOVE;
     }
 
-    std::vector<hyperclient_attribute> ha(value.size());
-    size_t sz = sizeof(hyperclient_attribute) * value.size();
-
-    for (size_t i = 0; i < value.size(); ++i)
-    {
-        sz += dimension_names[i + 1].size() + 1 + value[i].size();
-    }
-
-    char* ret = static_cast<char*>(malloc(sz));
-
-    if (!ret)
-    {
-        set_status(HYPERCLIENT_SEEERRNO);
-        return REMOVE;
-    }
-
-    e::guard g = e::makeguard(free, ret);
-    char* data = ret + sizeof(hyperclient_attribute) * value.size();
-
-    for (size_t i = 0; i < value.size(); ++i)
-    {
-        size_t attr_sz = dimension_names[i + 1].size() + 1;
-        ha[i].attr = data;
-        memmove(data, dimension_names[i + 1].c_str(), attr_sz);
-        data += attr_sz;
-        ha[i].value = data;
-        memmove(data, value[i].data(), value[i].size());
-        data += value[i].size();
-        ha[i].value_sz = value[i].size();
-    }
-
-    memmove(ret, &ha.front(), sizeof(hyperclient_attribute) * value.size());
-    *m_attrs = reinterpret_cast<hyperclient_attribute*>(ret);
-    *m_attrs_sz = value.size();
     set_status(HYPERCLIENT_SUCCESS);
-    g.dismiss();
     return REMOVE;
+}
+
+void
+hyperclient :: pending_get :: set_status(hyperclient_returncode status)
+{
+    *m_status = status;
 }
 
 class hyperclient::pending_statusonly : public hyperclient::pending
@@ -452,15 +526,33 @@ class hyperclient::pending_statusonly : public hyperclient::pending
         virtual ~pending_statusonly() throw ();
 
     public:
-        handled_how handle_response(std::auto_ptr<e::buffer> msg,
-                                    hyperclient_returncode* status);
+        virtual hyperdex::network_msgtype request_type() const;
+        virtual bool matches_response_type(hyperdex::network_msgtype t) const;
+        virtual handled_how handle_response(hyperdex::network_msgtype type,
+                                            std::auto_ptr<e::buffer> msg,
+                                            hyperclient_returncode* status);
+        virtual void set_status(hyperclient_returncode status);
+
+    private:
+        pending_statusonly(const pending_statusonly& other);
+
+    private:
+        pending_statusonly& operator = (const pending_statusonly& rhs);
+
+    private:
+        hyperdex::network_msgtype m_reqtype;
+        hyperdex::network_msgtype m_resptype;
+        hyperclient_returncode* m_status;
 };
 
 hyperclient :: pending_statusonly :: pending_statusonly(
                             hyperdex::network_msgtype reqtype,
                             hyperdex::network_msgtype resptype,
                             hyperclient_returncode* status)
-    : pending(reqtype, resptype, status)
+    : pending()
+    , m_reqtype(reqtype)
+    , m_resptype(resptype)
+    , m_status(status)
 {
 }
 
@@ -468,10 +560,25 @@ hyperclient :: pending_statusonly :: ~pending_statusonly() throw ()
 {
 }
 
+hyperdex::network_msgtype
+hyperclient :: pending_statusonly :: request_type() const
+{
+    return m_reqtype;
+}
+
+bool
+hyperclient :: pending_statusonly :: matches_response_type(hyperdex::network_msgtype t) const
+{
+    return m_resptype == t;
+}
+
 handled_how
-hyperclient :: pending_statusonly :: handle_response(std::auto_ptr<e::buffer> msg,
+hyperclient :: pending_statusonly :: handle_response(hyperdex::network_msgtype type,
+                                                     std::auto_ptr<e::buffer> msg,
                                                      hyperclient_returncode*)
 {
+    assert(matches_response_type(type));
+
     e::buffer::unpacker up = msg->unpack_from(HDRSIZE);
     uint16_t response;
     up = up >> response;
@@ -505,6 +612,159 @@ hyperclient :: pending_statusonly :: handle_response(std::auto_ptr<e::buffer> ms
     return REMOVE;
 }
 
+void
+hyperclient :: pending_statusonly :: set_status(hyperclient_returncode status)
+{
+    *m_status = status;
+}
+
+class hyperclient::pending_search : public hyperclient::pending
+{
+    public:
+        pending_search(hyperclient* cl,
+                       uint64_t searchid,
+                       hyperclient_search_result** results);
+        virtual ~pending_search() throw ();
+
+    public:
+        virtual hyperdex::network_msgtype request_type() const;
+        virtual bool matches_response_type(hyperdex::network_msgtype t) const;
+        virtual handled_how handle_response(hyperdex::network_msgtype type,
+                                            std::auto_ptr<e::buffer> msg,
+                                            hyperclient_returncode* status);
+        virtual void set_status(hyperclient_returncode status);
+
+    private:
+        pending_search(const pending_search& other);
+
+    private:
+        bool decref() { return false; }
+
+    private:
+        pending_search& operator = (const pending_search& rhs);
+
+    private:
+        hyperclient* m_cl;
+        hyperdex::network_msgtype m_reqtype;
+        hyperclient_search_result** m_results;
+        uint64_t m_searchid;
+};
+
+hyperclient :: pending_search :: pending_search(hyperclient* cl,
+                                                uint64_t searchid,
+                                                hyperclient_search_result** results)
+    : pending()
+    , m_cl(cl)
+    , m_reqtype(hyperdex::REQ_SEARCH_START)
+    , m_results(results)
+    , m_searchid(searchid)
+{
+}
+
+hyperclient :: pending_search :: ~pending_search() throw ()
+{
+}
+
+hyperdex::network_msgtype
+hyperclient :: pending_search :: request_type() const
+{
+    return m_reqtype;
+}
+
+bool
+hyperclient :: pending_search :: matches_response_type(hyperdex::network_msgtype t) const
+{
+    return t == hyperdex::RESP_SEARCH_ITEM || t == hyperdex::RESP_SEARCH_DONE;
+}
+
+handled_how
+hyperclient :: pending_search :: handle_response(hyperdex::network_msgtype type,
+                                                 std::auto_ptr<e::buffer> msg,
+                                                 hyperclient_returncode* status)
+{
+    assert(matches_response_type(type));
+
+    // If it is a SEARCH_DONE message.
+    if (type == hyperdex::RESP_SEARCH_DONE)
+    {
+        decref();
+        return REMOVE;
+    }
+
+    // Otheriwise it is a SEARCH_ITEM message.
+    e::slice key;
+    std::vector<e::slice> value;
+
+    if ((msg->unpack_from(HDRSIZE) >> key >> value).error())
+    {
+        set_status(HYPERCLIENT_SERVERERROR);
+        decref();
+        return REMOVE;
+    }
+
+    hyperclient_attribute* attrs;
+    size_t attrs_sz;
+
+    if (!attributes_from_value(*m_cl->m_config, entity(), value,
+                               status, &attrs, &attrs_sz))
+    {
+        set_status(*status);
+        decref();
+        return REMOVE;
+    }
+
+    e::guard g1 = e::makeguard(hyperclient_destroy_attrs, attrs, attrs_sz);
+    char* ret = static_cast<char*>(malloc(sizeof(hyperclient_search_result) + key.size()));
+    hyperclient_search_result* res = reinterpret_cast<hyperclient_search_result*>(ret);
+
+    if (!res)
+    {
+        set_status(*status);
+        decref();
+        return REMOVE;
+    }
+
+    memmove(ret + sizeof(hyperclient_search_result), key.data(), key.size());
+    res->next = *m_results;
+    res->status = HYPERCLIENT_SUCCESS;
+    res->key = ret + sizeof(hyperclient_search_result);
+    res->key_sz = key.size();
+    res->attrs = attrs;
+    res->attrs_sz = attrs_sz;
+    e::guard g2 = e::makeguard(hyperclient_destroy_search_result, res);
+    g1.dismiss();
+    std::auto_ptr<e::buffer> smsg(e::buffer::create(HDRSIZE + sizeof(uint64_t)));
+    bool packed = !(smsg->pack_at(HDRSIZE) << static_cast<uint64_t>(id())).error();
+    assert(packed);
+    set_nonce(chan()->generate_nonce());
+
+    if (!m_cl->send(chan(), this, smsg.get()))
+    {
+        set_status(*status);
+        decref();
+        return FAIL;
+    }
+
+    *m_results = res;
+    g2.dismiss();
+    return KEEP;
+}
+
+void
+hyperclient :: pending_search :: set_status(hyperclient_returncode status)
+{
+    hyperclient_search_result* ret;
+    ret = reinterpret_cast<hyperclient_search_result*>(malloc(sizeof(hyperclient_search_result)));
+
+    if (ret)
+    {
+        memset(ret, 0, sizeof(hyperclient_search_result));
+        ret->next = *m_results;
+        ret->status = status;
+        *m_results = ret;
+    }
+}
+
 ///////////////////////////////// Public Class /////////////////////////////////
 
 hyperclient :: hyperclient(const char* coordinator, in_port_t port)
@@ -514,6 +774,7 @@ hyperclient :: hyperclient(const char* coordinator, in_port_t port)
     , m_instances()
     , m_requests()
     , m_completed()
+    , m_refcounts()
     , m_requestid(1)
     , m_configured(false)
 {
@@ -595,6 +856,126 @@ hyperclient :: del(const char* space, const char* key, size_t key_sz,
     p = p << e::slice(key, key_sz);
     assert(!p.error());
     return add_keyop(space, key, key_sz, msg, op);
+}
+
+int64_t
+hyperclient :: search(const char* space,
+                      const struct hyperclient_attribute* eq, size_t eq_sz,
+                      const struct hyperclient_range_query* rn, size_t rn_sz,
+                      hyperclient_search_result** results,
+                      hyperclient_returncode* status)
+{
+    hyperdex::spaceid si = m_config->space(space);
+
+    if (si == hyperdex::spaceid())
+    {
+        *status = HYPERCLIENT_UNKNOWNSPACE;
+        return -1;
+    }
+
+    std::vector<std::string> dimension_names = m_config->dimension_names(si);
+    assert(dimension_names.size() > 0);
+    e::bitfield seen(dimension_names.size());
+
+    // Populate the search object.
+    hyperspacehashing::search s(dimension_names.size());
+
+    // Check the equality conditions.
+    for (size_t i = 0; i < eq_sz; ++i)
+    {
+        std::vector<std::string>::const_iterator dim;
+        dim = std::find(dimension_names.begin(), dimension_names.end(), eq[i].attr);
+
+        if (dim == dimension_names.begin())
+        {
+            *status = HYPERCLIENT_DONTUSEKEY;
+            return -1 - i;
+        }
+
+        if (dim == dimension_names.end())
+        {
+            *status = HYPERCLIENT_UNKNOWNATTR;
+            return -1 - i;
+        }
+
+        uint16_t dimnum = dim - dimension_names.begin();
+
+        if (seen.get(dimnum))
+        {
+            *status = HYPERCLIENT_DUPEATTR;
+            return -1 - i;
+        }
+
+        s.equality_set(dimnum, e::slice(eq[i].value, eq[i].value_sz));
+    }
+
+    // Check the range conditions.
+    for (size_t i = 0; i < rn_sz; ++i)
+    {
+        std::vector<std::string>::const_iterator dim;
+        dim = std::find(dimension_names.begin(), dimension_names.end(), rn[i].attr);
+
+        if (dim == dimension_names.begin())
+        {
+            *status = HYPERCLIENT_DONTUSEKEY;
+            return -1 - eq_sz - i;
+        }
+
+        if (dim == dimension_names.end())
+        {
+            *status = HYPERCLIENT_UNKNOWNATTR;
+            return -1 - eq_sz - i;
+        }
+
+        uint16_t dimnum = dim - dimension_names.begin();
+
+        if (seen.get(dimnum))
+        {
+            *status = HYPERCLIENT_DUPEATTR;
+            return -1 - eq_sz - i;
+        }
+
+        s.range_set(dimnum, rn[i].lower, rn[i].upper);
+    }
+
+    // Get the hosts that match our search terms.
+    std::map<hyperdex::entityid, hyperdex::instance> search_entities;
+    search_entities = m_config->search_entities(si, s);
+
+    // Send a search query to each matching host.
+    uint64_t searchid = m_requestid;
+    ++m_requestid;
+
+    // Pack the message to send
+    std::auto_ptr<e::buffer> msg(e::buffer::create(HDRSIZE + sizeof(uint64_t) + s.packed_size()));
+    bool packed = !(*msg << searchid << s).error();
+    assert(packed);
+
+    for (std::map<hyperdex::entityid, hyperdex::instance>::const_iterator ent_inst = search_entities.begin();
+            ent_inst != search_entities.end(); ++ent_inst)
+    {
+        e::intrusive_ptr<pending> op   = new pending_search(this, searchid, results);
+        e::intrusive_ptr<channel> chan = get_channel(ent_inst->second, status);
+
+        if (!chan)
+        {
+            m_completed.push(completedop(op, HYPERCLIENT_CONNECTFAIL));
+            continue;
+        }
+
+        op->set_nonce(chan->generate_nonce());
+        op->set_channel(chan);
+        op->set_entity(ent_inst->first);
+        op->set_instance(ent_inst->second);
+        m_requests.push_back(op);
+
+        if (!send(chan, op, msg.get()))
+        {
+            m_requests.pop_back();
+        }
+    }
+
+    return searchid;
 }
 
 int64_t
@@ -755,14 +1136,13 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
                     to == chan->entity() &&
                     nonce == op->nonce())
                 {
-                    if (msg_type != op->response_type())
+                    if (!op->matches_response_type(msg_type))
                     {
                         killall(pfds[i].fd, HYPERCLIENT_SERVERERROR);
                         break;
                     }
 
-                    // XXX How will this deal with searches?
-                    switch (op->handle_response(response, status))
+                    switch (op->handle_response(msg_type, response, status))
                     {
                         case KEEP:
                             return op->id();
@@ -840,7 +1220,7 @@ hyperclient :: add_keyop(const char* space, const char* key, size_t key_sz,
     m_requests.push_back(op);
     e::guard remove_op = e::makeobjguard(m_requests, &requests_list_t::pop_back);
     e::guard fail_op = e::makeobjguard(*op, &pending::set_status, HYPERCLIENT_SEEERRNO);
-    int64_t ret = send(chan, op, msg);
+    int64_t ret = send(chan, op, msg.get());
     assert(ret <= 0);
 
     // We dismiss the remove_op guard when the operation succeeds within send.
@@ -882,6 +1262,12 @@ hyperclient :: pack_attrs(const char* space, e::buffer::packer p,
         std::vector<std::string>::const_iterator dim;
         dim = std::find(dimension_names.begin(), dimension_names.end(), attrs[i].attr);
 
+        if (dim == dimension_names.begin())
+        {
+            *status = HYPERCLIENT_DONTUSEKEY;
+            return -1 - i;
+        }
+
         if (dim == dimension_names.end())
         {
             *status = HYPERCLIENT_UNKNOWNATTR;
@@ -921,7 +1307,7 @@ hyperclient :: pack_attrs_sz(const struct hyperclient_attribute* attrs,
 int64_t
 hyperclient :: send(e::intrusive_ptr<channel> chan,
                     e::intrusive_ptr<pending> op,
-                    std::auto_ptr<e::buffer> payload)
+                    e::buffer* payload)
 {
     const uint8_t type = static_cast<uint8_t>(op->request_type());
     const uint16_t fromver = 1;
@@ -1079,6 +1465,7 @@ operator << (std::ostream& lhs, hyperclient_returncode rhs)
         stringify(HYPERCLIENT_DUPEATTR);
         stringify(HYPERCLIENT_SEEERRNO);
         stringify(HYPERCLIENT_NONEPENDING);
+        stringify(HYPERCLIENT_DONTUSEKEY);
         stringify(HYPERCLIENT_EXCEPTION);
         stringify(HYPERCLIENT_ZERO);
         default:

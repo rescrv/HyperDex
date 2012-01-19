@@ -147,7 +147,7 @@ main(int argc, char* argv[])
             int64_t getdi = cl.loop(-1, &status);
             assert(getid == getdi);
             assert(gstatus == HYPERCLIENT_SUCCESS);
-            free(gload);
+            hyperclient_destroy_attrs(gload, gload_sz);
         }
 
         clock_gettime(CLOCK_REALTIME, &end);
