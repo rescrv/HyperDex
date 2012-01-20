@@ -87,7 +87,7 @@ hyperdisk :: shard :: create(const po6::io::fd& base,
         throw po6::error(errno);
     }
 
-    if (fsync(fd.get()) < 0)
+    if (0 && fsync(fd.get()) < 0)
     {
         throw po6::error(errno);
     }
@@ -251,7 +251,7 @@ hyperdisk :: shard :: put(const hyperspacehashing::mask::coordinate& coord,
     // Flush if we've written over 4MB without flushing.
     if ((m_data_offset & ~(1 << 22)) != (new_data_offset & ~(1 << 22)))
     {
-        async();
+        //async();
     }
 
     if (cached)
@@ -345,6 +345,7 @@ hyperdisk :: shard :: used_space() const
 hyperdisk::returncode
 hyperdisk :: shard :: async()
 {
+    return SUCCESS;
     if (msync(m_data, FILE_SIZE, MS_ASYNC) < 0)
     {
         return SYNCFAILED;
@@ -356,6 +357,7 @@ hyperdisk :: shard :: async()
 hyperdisk::returncode
 hyperdisk :: shard :: sync()
 {
+    return SUCCESS;
     if (msync(m_data, FILE_SIZE, MS_SYNC) < 0)
     {
         return SYNCFAILED;
