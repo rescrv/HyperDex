@@ -1404,7 +1404,16 @@ hyperclient :: killall(int fd, hyperclient_returncode status)
     }
 
     m_fds[fd] = NULL;
-    chan->sock().shutdown(SHUT_RDWR);
+
+    try
+    {
+        chan->sock().shutdown(SHUT_RDWR);
+        chan->sock().close();
+    }
+    catch (po6::error& e)
+    {
+        // silence errors
+    }
 }
 
 e::intrusive_ptr<hyperclient::channel>
