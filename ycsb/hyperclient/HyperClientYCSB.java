@@ -97,7 +97,7 @@ public class HyperClientYCSB extends DB
 
         if (ret == ReturnCode.SUCCESS)
         {
-            convert_to_java(fields, r, result);
+            //convert_to_java(fields, r, result);
             return 0;
         }
 
