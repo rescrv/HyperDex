@@ -128,11 +128,16 @@ class Coordinator(object):
         return self._confnum, self._confdata
 
     def _fill(self, space):
-        for subspacenum, subspace in enumerate(space.subspaces):
-            for region in subspace.regions:
-                for replicanum in range(len(region.replicas)):
-                    if region.replicas[replicanum] is None:
-                        region.replicas[replicanum] = self._select_replica(region.replicas)
+        still_assigning = True
+        while still_assigning:
+            still_assigning = False
+            for subspacenum, subspace in enumerate(space.subspaces):
+                for region in subspace.regions:
+                    for replicanum in range(len(region.replicas)):
+                        if region.replicas[replicanum] is None:
+                            still_assigning = True
+                            region.replicas[replicanum] = self._select_replica(region.replicas)
+                            break
 
     def _select_replica(self, exclude):
         hosts = dict([(i, 0) for i in self.list_instances()])
