@@ -83,7 +83,8 @@ class HyperClient
                        std::map<std::string, std::string>* OUTPUT);
         ReturnCode put(const std::string& space,
                        const std::string& key,
-                       const std::map<std::string, std::string>& value);
+                       const std::map<std::string, std::string>& svalues,
+                       const std::map<std::string, uint64_t>& nvalues);
         ReturnCode del(const std::string& space,
                        const std::string& key);
         ReturnCode range_search(const std::string& space,
@@ -99,5 +100,6 @@ class HyperClient
 namespace std
 {
     %template(ssmap) map<string, string>;
+    %template(snmap) map<string, unsigned long long>;
     %template(searchresult) vector<map<string, string> >;
 }

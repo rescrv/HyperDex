@@ -136,8 +136,12 @@ public class HyperClientYCSB extends DB
             return 1001;
         }
 
-        BigInteger lower = new BigInteger(m_mat.group(2));
-        BigInteger upper = lower.add(BigInteger.valueOf(recordcount));
+        BigInteger base = new BigInteger(m_mat.group(2));
+        BigInteger lower = base.shiftLeft(32);
+        BigInteger upper = base.add(BigInteger.valueOf(recordcount)).shiftLeft(32);
+
+        assert lower.compareTo(new BigInteger("18446744073709551616")) < 0;
+        assert upper.compareTo(new BigInteger("18446744073709551616")) < 0;
 
         searchresult res = new searchresult();
         ReturnCode ret = m_client.range_search(table, "recno", lower, upper, res);
@@ -167,6 +171,7 @@ public class HyperClientYCSB extends DB
     public int update(String table, String key, HashMap<String,String> values)
     {
         ssmap res = new ssmap();
+        snmap nums = new snmap();
         convert_from_java(values, res);
 
         if (m_scannable)
@@ -179,27 +184,15 @@ public class HyperClientYCSB extends DB
             }
 
             BigInteger bi = new BigInteger(m_mat.group(2));
-            byte[] be = bi.toByteArray();
-            byte[] le = new byte[8];
-
-            for (int i = 0; i < 8; ++i)
-            {
-                le[i] = 0;
-            }
-
-            for (int i = 0; i < be.length; ++i)
-            {
-                le[be.length - i - 1] = be[i];
-            }
-
-            res.set("recno", new String(le));
+            bi = bi.shiftLeft(32);
+            nums.set("recno", bi);
         }
 
-        ReturnCode ret = m_client.put(table, key, res);
+        ReturnCode ret = m_client.put(table, key, res, nums);
 
         for (int i = 0; i < m_retries && ret != ReturnCode.SUCCESS; ++i)
         {
-            ret = m_client.put(table, key, res);
+            ret = m_client.put(table, key, res, nums);
         }
 
         if (ret == ReturnCode.SUCCESS)

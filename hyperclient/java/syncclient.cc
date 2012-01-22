@@ -88,20 +88,34 @@ HyperClient :: get(const std::string& space,
 hyperclient_returncode
 HyperClient :: put(const std::string& space,
                    const std::string& key,
-                   const std::map<std::string, std::string>& value)
+                   const std::map<std::string, std::string>& svalues,
+                   const std::map<std::string, uint64_t>& nvalues)
 {
     int64_t id;
     hyperclient_returncode stat1;
     hyperclient_returncode stat2;
     std::vector<hyperclient_attribute> attrs;
+    std::vector<uint64_t> nums;
+    nums.reserve(nvalues.size());
 
-    for (std::map<std::string, std::string>::const_iterator ci = value.begin();
-            ci != value.end(); ++ci)
+    for (std::map<std::string, std::string>::const_iterator ci = svalues.begin();
+            ci != svalues.end(); ++ci)
     {
         hyperclient_attribute at;
         at.attr = ci->first.c_str();
         at.value = ci->second.data();
         at.value_sz = ci->second.size();
+        attrs.push_back(at);
+    }
+
+    for (std::map<std::string, uint64_t>::const_iterator ci = nvalues.begin();
+            ci != nvalues.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        nums.push_back(htole64(ci->second));
+        at.value = reinterpret_cast<const char*>(&nums.back());
+        at.value_sz = sizeof(uint64_t);
         attrs.push_back(at);
     }
 
@@ -196,6 +210,7 @@ HyperClient :: range_search(const std::string& space,
         }
 
         hyperclient_destroy_search_result(res);
+        res = NULL;
     }
 
     if (status == HYPERCLIENT_SEARCHDONE)
