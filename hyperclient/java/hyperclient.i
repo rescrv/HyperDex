@@ -30,6 +30,7 @@
 
 %include "std_map.i"
 %include "std_string.i"
+%include "std_vector.i"
 %include "stdint.i"
 
 %include "enums.swg"
@@ -85,6 +86,11 @@ class HyperClient
                        const std::map<std::string, std::string>& value);
         ReturnCode del(const std::string& space,
                        const std::string& key);
+        ReturnCode range_search(const std::string& space,
+                                const std::string& attr,
+                                uint64_t lower,
+                                uint64_t upper,
+                                std::vector<std::map<std::string, std::string> >* OUTPUT);
 
     private:
         hyperclient m_client;
@@ -93,4 +99,5 @@ class HyperClient
 namespace std
 {
     %template(ssmap) map<string, string>;
+    %template(searchresult) vector<map<string, string> >;
 }

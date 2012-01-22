@@ -44,6 +44,7 @@ import com.yahoo.ycsb.DBException;
 import hyperclient.HyperClient;
 import hyperclient.ReturnCode;
 import hyperclient.ssmap;
+import hyperclient.searchresult;
 
 public class HyperClientYCSB extends DB
 {
@@ -121,55 +122,37 @@ public class HyperClientYCSB extends DB
      */
     public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,String>> result)
     {
-        return -42;
-        /*
+        // XXX I'm going to be lazy and not support "fields" for now.  Patches
+        // welcome.
         if (!m_scannable)
         {
-            System.err.println("SCAN returned " + 1000);
             return 1000;
         }
 
-        // XXX I'm going to be lazy and not support "fields" for now.  Patches
-        // welcome.
-        int ret = 0;
-        searchresult res = new searchresult();
-        mapstrbuf e = new mapstrbuf();
-        rangesearch r = new rangesearch();
         m_mat.reset(startkey);
 
         if (!m_mat.matches())
         {
-            System.err.println("SCAN returned " + 1001);
             return 1001;
         }
 
-        e.set("username", new buffer(m_mat.group(1)));
         BigInteger lower = new BigInteger(m_mat.group(2));
         BigInteger upper = lower.add(BigInteger.valueOf(recordcount));
-        r.set("recno", new rangepair(lower, upper));
 
-        for (int i = 0; i < 6; ++i)
+        searchresult res = new searchresult();
+        ReturnCode ret = m_client.range_search(table, "recno", lower, upper, res);
+
+        for (int i = 0; i < m_retries && ret != ReturnCode.SUCCESS; ++i)
         {
-            ret = m_client.search(table, e, r, res);
-
-            if (ret == 0)
-            {
-                result.removeAllElements();
-
-                for (int j = 0; j < res.size(); ++j)
-                {
-                    HashMap<String,String> one = new HashMap<String,String>();
-                    convert(res.get(j), one);
-                    result.add(one);
-                }
-
-                return 0;
-            }
+            ret = m_client.range_search(table, "recno", lower, upper, res);
         }
 
-        System.err.println("SCAN returned " + ret);
-        return ret;
-        */
+        if (ret == ReturnCode.SUCCESS)
+        {
+            return 0;
+        }
+
+        return ret.swigValue();
     }
 
     /**
@@ -195,7 +178,6 @@ public class HyperClientYCSB extends DB
                 return -1;
             }
 
-            res.set("username", m_mat.group(1));
             BigInteger bi = new BigInteger(m_mat.group(2));
             byte[] be = bi.toByteArray();
             byte[] le = new byte[8];

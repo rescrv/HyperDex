@@ -48,6 +48,11 @@ class HyperClient
                        const std::map<std::string, std::string>& value);
         ReturnCode del(const std::string& space,
                        const std::string& key);
+        ReturnCode range_search(const std::string& space,
+                                const std::string& attr,
+                                uint64_t lower,
+                                uint64_t upper,
+                                std::vector<std::map<std::string, std::string> >* results);
 
     private:
         hyperclient m_client;
