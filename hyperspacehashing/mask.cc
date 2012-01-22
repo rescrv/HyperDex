@@ -243,7 +243,7 @@ hyperspacehashing :: mask :: hasher :: hash(const std::vector<e::slice>& value) 
 hyperspacehashing::mask::coordinate
 hyperspacehashing :: mask :: hasher :: hash(const search& s) const
 {
-    assert(s.size() + 1 == m_funcs.size());
+    assert(s.size() == m_funcs.size());
     assert(m_nums.size() == m_funcs.size());
     assert(m_nums.size() == m_space.size());
     assert(m_nums.size() == s.size());

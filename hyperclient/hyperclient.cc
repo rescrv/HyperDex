@@ -737,10 +737,11 @@ hyperclient :: pending_search :: handle_response(hyperdex::network_msgtype type,
     bool packed = !(smsg->pack_at(HDRSIZE) << static_cast<uint64_t>(id())).error();
     assert(packed);
     set_nonce(chan()->generate_nonce());
+    m_reqtype = hyperdex::REQ_SEARCH_NEXT;
 
-    if (!m_cl->send(chan(), this, smsg.get()))
+    if (m_cl->send(chan(), this, smsg.get()) < 0)
     {
-        set_status(*status);
+        set_status(HYPERCLIENT_CONNECTFAIL);
         decref();
         return FAIL;
     }
@@ -865,6 +866,11 @@ hyperclient :: search(const char* space,
                       hyperclient_search_result** results,
                       hyperclient_returncode* status)
 {
+    if ((!m_configured || !m_coord->connected()) && try_coord_connect(status) < 0)
+    {
+        return -1;
+    }
+
     hyperdex::spaceid si = m_config->space(space);
 
     if (si == hyperdex::spaceid())
@@ -948,7 +954,7 @@ hyperclient :: search(const char* space,
 
     // Pack the message to send
     std::auto_ptr<e::buffer> msg(e::buffer::create(HDRSIZE + sizeof(uint64_t) + s.packed_size()));
-    bool packed = !(*msg << searchid << s).error();
+    bool packed = !(msg->pack_at(HDRSIZE) << searchid << s).error();
     assert(packed);
 
     for (std::map<hyperdex::entityid, hyperdex::instance>::const_iterator ent_inst = search_entities.begin();
@@ -963,13 +969,14 @@ hyperclient :: search(const char* space,
             continue;
         }
 
+        op->set_id(searchid);
         op->set_nonce(chan->generate_nonce());
         op->set_channel(chan);
         op->set_entity(ent_inst->first);
         op->set_instance(ent_inst->second);
         m_requests.push_back(op);
 
-        if (!send(chan, op, msg.get()))
+        if (send(chan, op, msg.get()) < 0)
         {
             m_requests.pop_back();
         }

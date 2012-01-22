@@ -40,6 +40,7 @@
 uint64_t
 hyperspacehashing :: cfloat(uint64_t in, unsigned int outsz)
 {
+    return in >> (64 - outsz);
     int e = 0;
     double f = frexpl(static_cast<double>(in), &e);
     e = e > 0 ? e - 1 : 0;

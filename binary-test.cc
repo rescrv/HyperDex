@@ -38,7 +38,7 @@
 #include <e/timer.h>
 
 // HyperDex
-#include <hyperclient.h>
+#include "hyperclient/hyperclient.h"
 
 const char* colnames[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
                           "11", "12", "13", "14", "15", "16", "17", "18", "19",
@@ -48,60 +48,15 @@ const char* colnames[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
 static int
 usage();
 
-void
-handle_put(hyperclient::returncode ret)
-{
-    if (ret != hyperclient::SUCCESS)
-    {
-        std::cerr << "Put returned " << ret << "." << std::endl;
-    }
-}
-
-void
-handle_search(size_t* count,
-              const e::buffer& expected_key,
-              hyperclient::returncode ret,
-              const e::buffer& key,
-              const std::vector<e::buffer>& value)
-{
-    if (ret != hyperclient::SUCCESS)
-    {
-        std::cerr << "Equality returned !SUCCESS:  " << ret << std::endl;
-        return;
-    }
-
-    ++*count;
-
-    if (expected_key != key)
-    {
-        std::cerr << "Equality returned unexpected key:  "
-                  << expected_key.size() << ":" << expected_key.hex()
-                  << " != " << key.size() << ":" << key.hex() << std::endl;
-    }
-}
-
-void
-handle_range(size_t* count,
-             const e::buffer& expected_key,
-             hyperclient::returncode ret,
-             const e::buffer& key,
-             const std::vector<e::buffer>& value)
-{
-    if (ret != hyperclient::SUCCESS)
-    {
-        std::cerr << "Range returned !SUCCESS:  " << ret << std::endl;
-        return;
-    }
-
-    ++*count;
-
-    if (expected_key != key)
-    {
-        std::cerr << "Range returned unexpected key:  "
-                  << expected_key.size() << ":" << expected_key.hex()
-                  << " != " << key.size() << ":" << key.hex() << std::endl;
-    }
-}
+static void
+validate_search(hyperclient* cl,
+                uint32_t num,
+                const char* space,
+                const struct hyperclient_attribute* eq,
+                size_t eq_sz,
+                const struct hyperclient_range_query* rn,
+                size_t rn_sz,
+                const char* type);
 
 int
 main(int argc, char* argv[])
@@ -111,14 +66,14 @@ main(int argc, char* argv[])
         return usage();
     }
 
-    po6::net::ipaddr ip;
+    const char* ip;
     uint16_t port;
-    std::string space = argv[3];
+    const char* space = argv[3];
     uint32_t numbers;
 
     try
     {
-        ip = po6::net::ipaddr(argv[1]);
+        ip = argv[1];
     }
     catch (std::invalid_argument& e)
     {
@@ -158,120 +113,87 @@ main(int argc, char* argv[])
 
     try
     {
-        hyperclient::client cl(po6::net::location(ip, port));
-        cl.connect();
-        e::buffer one("one", 3);
-        e::buffer zero("zero", 4);
+        hyperclient cl(ip, port);
 
         for (uint32_t num = 0; num < numbers; ++num)
         {
-            e::buffer key;
-            key.pack() << num;
-            std::vector<e::buffer> value;
+            hyperclient_attribute attrs[33];
 
             for (size_t i = 0; i < 32; ++i)
             {
-                value.push_back(e::buffer());
+                attrs[i].attr = colnames[i];
 
                 if ((num & (1 << i)))
                 {
-                    value.back() = one;
+                    attrs[i].value = "ONE";
+                    attrs[i].value_sz = 3;
                 }
                 else
                 {
-                    value.back() = zero;
+                    attrs[i].value = "ZERO";
+                    attrs[i].value_sz = 4;
                 }
             }
 
-            char buf[4];
-            memmove(buf, &num, sizeof(4));
-            value.push_back(e::buffer(buf, 4));
+            attrs[32].attr = "num";
+            attrs[32].value = reinterpret_cast<const char*>(&num);
+            attrs[32].value_sz = sizeof(uint32_t);
 
-            cl.put(space, key, value, handle_put);
+            hyperclient_returncode pstatus;
+            int64_t pid = cl.put(space, reinterpret_cast<const char*>(&num),
+                                 sizeof(uint32_t), attrs, 33, &pstatus);
 
-            if (cl.outstanding() > 1000)
+            if (pid < 0)
             {
-                cl.flush(-1);
+                std::cerr << "put error " << pstatus;
+                return EXIT_FAILURE;
+            }
+
+            hyperclient_returncode lstatus;
+            int64_t lid = cl.loop(-1, &lstatus);
+
+            if (pid != lid)
+            {
+                std::cerr << "loop error " << pstatus;
+                return EXIT_FAILURE;
             }
         }
 
-        cl.flush(-1);
-        e::sleep_ms(1, 0);
         std::cerr << "Starting searches." << std::endl;
-        timespec start;
-        timespec end;
-
-        clock_gettime(CLOCK_REALTIME, &start);
+        e::stopwatch stopw;
+        stopw.start();
 
         for (uint32_t num = 0; num < numbers; ++num)
         {
-            e::buffer key;
-            key.pack() << num;
-            std::map<std::string, e::buffer> search;
+            hyperclient_attribute attrs[32];
 
             for (size_t i = 0; i < 32; ++i)
             {
+                attrs[i].attr = colnames[i];
+
                 if ((num & (1 << i)))
                 {
-                    search.insert(std::make_pair(colnames[i], one));
+                    attrs[i].value = "ONE";
+                    attrs[i].value_sz = 3;
                 }
                 else
                 {
-                    search.insert(std::make_pair(colnames[i], zero));
+                    attrs[i].value = "ZERO";
+                    attrs[i].value_sz = 4;
                 }
             }
 
-            using std::tr1::bind;
-            using std::tr1::placeholders::_1;
-            using std::tr1::placeholders::_2;
-            using std::tr1::placeholders::_3;
-            size_t count = 0;
-            cl.search(argv[3], search, std::tr1::bind(handle_search, &count, key, _1, _2, _3));
-            cl.flush(-1);
+            validate_search(&cl, num, space, attrs, 32, NULL, 0, "equality");
 
-            if (count < 1)
-            {
-                std::cerr << "Equality returned less than 1 result." << std::endl;
-            }
+            hyperclient_range_query rn;
+            rn.attr = "num";
+            rn.lower = num;
+            rn.upper = num + 1;
 
-            if (count > 1)
-            {
-                std::cerr << "Equality returned more than 1 result." << std::endl;
-            }
-
-            count = 0;
-            std::map<std::string, std::pair<uint64_t, uint64_t> > range;
-            range.insert(std::make_pair("range", std::make_pair(num, num + 1)));
-            cl.search(argv[3], range, std::tr1::bind(handle_range, &count, key, _1, _2, _3));
-            cl.flush(-1);
-
-            if (count < 1)
-            {
-                std::cerr << "Range returned less than 1 result." << std::endl;
-            }
-
-            if (count > 1)
-            {
-                std::cerr << "Range returned more than 1 result." << std::endl;
-            }
+            validate_search(&cl, num, space, NULL, 0, &rn, 1, "range");
         }
 
-        clock_gettime(CLOCK_REALTIME, &end);
-        timespec diff;
-
-        if ((end.tv_nsec < start.tv_nsec) < 0)
-        {
-            diff.tv_sec = end.tv_sec - start.tv_sec - 1;
-            diff.tv_nsec = 1000000000 + end.tv_nsec - start.tv_nsec;
-        }
-        else
-        {
-            diff.tv_sec = end.tv_sec - start.tv_sec;
-            diff.tv_nsec = end.tv_nsec - start.tv_nsec;
-        }
-
-        uint64_t nanosecs = diff.tv_sec * 1000000000 + diff.tv_nsec;
-        std::cerr << "test took " << nanosecs << " nanoseconds for " << numbers << " searches" << std::endl;
+        std::cerr << "test took " << stopw.peek() << " nanoseconds for " << numbers << " searches" << std::endl;
     }
     catch (po6::error& e)
     {
@@ -306,4 +228,109 @@ usage()
               << "secondary dimensions so that all bits of a number may be stored."
               << std::endl;
     return EXIT_FAILURE;
+}
+
+void
+validate_search(hyperclient* cl,
+                uint32_t num,
+                const char* space,
+                const struct hyperclient_attribute* eq,
+                size_t eq_sz,
+                const struct hyperclient_range_query* rn,
+                size_t rn_sz,
+                const char* type)
+{
+    hyperclient_search_result* results = NULL;
+    hyperclient_returncode sstatus;
+    int64_t sid = cl->search(space, eq, eq_sz, rn, rn_sz, &results, &sstatus);
+
+    if (sid < 0)
+    {
+        std::cerr << "invalid " << type << " search returns(" << sid << ", " << sstatus << ")" << std::endl;
+        abort();
+    }
+
+    hyperclient_returncode lstatus;
+    int64_t lid = cl->loop(-1, &lstatus);
+
+    if (lid < 0)
+    {
+        std::cerr << type << " search's loop returns(" << lid << ", " << lstatus << ")" << std::endl;
+        abort();
+    }
+
+    if (lid != sid)
+    {
+        std::cerr << "for the " << type << " search, the ids do not match " << sid << " " << lid << std::endl;
+        abort();
+    }
+
+    if (!results || results->status != HYPERCLIENT_SUCCESS)
+    {
+        std::cerr << "for the " << type << " search, the first loop did not return a result." << std::endl;
+        abort();
+    }
+
+    if (memcmp(&num, results->key, std::min(sizeof(num), results->key_sz)) != 0)
+    {
+        std::cerr << "for the " << type << " search, the result's key does not match" << std::endl;
+        abort();
+    }
+
+    if (results->attrs_sz != 33)
+    {
+        std::cerr << "for the " << type << " search, there are not 33 secondary attributes" << std::endl;
+        abort();
+    }
+
+    for (size_t i = 0; i < 32; ++i)
+    {
+        if (strcmp(results->attrs[i].attr, colnames[i]) != 0)
+        {
+            std::cerr << "for the " << type << " search, attribute " << i << " is not named " << colnames[i] << std::endl;
+            abort();
+        }
+
+        if ((num & (1 << i))
+                && !(results->attrs[i].value_sz == 3 && memcmp(results->attrs[i].value, "ONE", 3) == 0))
+        {
+            std::cerr << "for the " << type << " search, attribute " << i << " != ONE" << std::endl;
+            abort();
+        }
+        else if (!(num & (1 << i))
+                && !(results->attrs[i].value_sz == 4 && memcmp(results->attrs[i].value, "ZERO", 4) == 0))
+        {
+            std::cerr << "for the " << type << " search, attribute " << i << " != ZERO" << std::endl;
+            abort();
+        }
+    }
+
+    if (strcmp(results->attrs[32].attr, "num") != 0)
+    {
+        std::cerr << "for the " << type << " search, attribute 33 is not named num" << std::endl;
+        abort();
+    }
+
+    if (results->attrs[32].value_sz != sizeof(num)
+            || memcmp(&num, results->attrs[32].value, sizeof(num)))
+    {
+        std::cerr << "for the " << type << " search, attribute 33 != " << num << std::endl;
+        abort();
+    }
+
+    hyperclient_destroy_search_result(results);
+
+    lid = cl->loop(-1, &lstatus);
+
+    if (lid < 0)
+    {
+        std::cerr << type << " search's 2nd loop returns(" << lid << ", " << lstatus << ")" << std::endl;
+        abort();
+    }
+
+    if (lid != sid)
+    {
+        std::cerr << "for the " << type << " search's 2nd loop, the ids do not match " << sid << " " << lid << std::endl;
+        abort();
+    }
 }

@@ -91,6 +91,13 @@ hyperdaemon :: searches :: start(const hyperdex::entityid& us,
 
     if (m_searches.contains(key))
     {
+        LOG(INFO) << "DROPPED";
+        return;
+    }
+
+    if (m_config.dimensions(us.get_space()) != terms.size())
+    {
+        LOG(INFO) << "DROPPED";
         return;
     }
 
@@ -113,6 +120,7 @@ hyperdaemon :: searches :: next(const hyperdex::entityid& us,
 
     if (!m_searches.lookup(key, &state))
     {
+        LOG(INFO) << "DROPPED";
         return;
     }
 
@@ -132,10 +140,10 @@ hyperdaemon :: searches :: next(const hyperdex::entityid& us,
             if (state->terms.matches(state->snap->key(), tmp))
             {
                 size_t sz = m_comm->header_size() + sizeof(uint64_t)
-                          + state->snap->key().size()
+                          + sizeof(uint32_t) + state->snap->key().size()
                           + hyperdex::packspace(state->snap->value());
                 std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-                bool fits = (msg->pack_at(m_comm->header_size())
+                bool fits = !(msg->pack_at(m_comm->header_size())
                                 << nonce
                                 << state->snap->key()
                                 << state->snap->value()).error();
@@ -150,7 +158,7 @@ hyperdaemon :: searches :: next(const hyperdex::entityid& us,
     }
 
     std::auto_ptr<e::buffer> msg(e::buffer::create(m_comm->header_size() + sizeof(uint64_t)));
-    bool fits = (msg->pack_at(m_comm->header_size()) << nonce).error();
+    bool fits = !(msg->pack_at(m_comm->header_size()) << nonce).error();
     assert(fits);
     m_comm->send(us, client, hyperdex::RESP_SEARCH_DONE, msg);
     stop(us, client, search_num);

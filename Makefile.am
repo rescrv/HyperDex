@@ -66,6 +66,7 @@ bin_PROGRAMS = \
 noinst_PROGRAMS = \
 			$(libhyperspacehashing_noinst_programs) \
 			$(libhyperdisk_noinst_programs) \
+			binary-test \
 			count-test \
 			replication-stress-test
 
@@ -418,10 +419,16 @@ daemon_LDADD = \
 daemon_LDFLAGS = \
 			-no-install
 
-#binary_test_SOURCES = \
-#			binary-test.cc
-#binary_test_LDADD = \
-#			libhyperclient.la
+binary_test_SOURCES = \
+			binary-test.cc
+binary_test_LDADD = \
+			libhyperspacehashing.la \
+			libhyperclient.la \
+			$(HYPERSPACEHASHING_LDADD) \
+			$(HYPERCLIENT_LDADD) \
+			libhyperclient.la
+binary_test_LDFLAGS = \
+			-no-install
 
 count_test_SOURCES = \
 			count-test.cc
