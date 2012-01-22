@@ -25,6 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#define __STDC_LIMIT_MACROS
+
 // e
 #include <e/guard.h>
 
@@ -638,7 +640,7 @@ class hyperclient::pending_search : public hyperclient::pending
         pending_search(const pending_search& other);
 
     private:
-        bool decref() { return false; }
+        bool decref();
 
     private:
         pending_search& operator = (const pending_search& rhs);
@@ -764,6 +766,22 @@ hyperclient :: pending_search :: set_status(hyperclient_returncode status)
         ret->status = status;
         *m_results = ret;
     }
+}
+
+bool
+hyperclient :: pending_search :: decref()
+{
+    uint64_t refcount = m_cl->m_refcounts[id()]--;
+    assert(refcount != 0); // Check for overflow.
+
+    if (refcount == 1)
+    {
+        set_status(HYPERCLIENT_SEARCHDONE);
+        m_cl->m_refcounts.erase(id());
+        return true;
+    }
+
+    return false;
 }
 
 ///////////////////////////////// Public Class /////////////////////////////////
@@ -956,6 +974,13 @@ hyperclient :: search(const char* space,
     std::auto_ptr<e::buffer> msg(e::buffer::create(HDRSIZE + sizeof(uint64_t) + s.packed_size()));
     bool packed = !(msg->pack_at(HDRSIZE) << searchid << s).error();
     assert(packed);
+    std::pair<refcounts_map_t::iterator, bool> pa = m_refcounts.insert(std::make_pair(searchid, 0));
+
+    if (!pa.second)
+    {
+        *status = HYPERCLIENT_SEEERRNO;
+        return -1;
+    }
 
     for (std::map<hyperdex::entityid, hyperdex::instance>::const_iterator ent_inst = search_entities.begin();
             ent_inst != search_entities.end(); ++ent_inst)
@@ -980,6 +1005,8 @@ hyperclient :: search(const char* space,
         {
             m_requests.pop_back();
         }
+
+        ++(pa.first->second);
     }
 
     return searchid;
