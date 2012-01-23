@@ -201,6 +201,11 @@ HyperClient :: range_search(const std::string& space,
             break;
         }
 
+        if (!attrs)
+        {
+            return HYPERCLIENT_SERVERERROR;
+        }
+
         results->push_back(std::map<std::string, std::string>());
 
         for (size_t i = 0; i < attrs_sz; ++i)
