@@ -348,6 +348,7 @@ class hyperclient::completedop
 enum handled_how
 {
     KEEP,
+    SILENTREMOVE,
     REMOVE,
     FAIL
 };
@@ -703,9 +704,10 @@ hyperclient :: pending_search :: handle_response(hyperdex::network_msgtype type,
         if (--*m_refcount == 0)
         {
             set_status(HYPERCLIENT_SEARCHDONE);
+            return REMOVE;
         }
 
-        return REMOVE;
+        return SILENTREMOVE;
     }
 
     // Otheriwise it is a SEARCH_ITEM message.
@@ -1156,6 +1158,9 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
                     {
                         case KEEP:
                             return op->id();
+                        case SILENTREMOVE:
+                            *r = NULL;
+                            break;
                         case REMOVE:
                             *r = NULL;
                             return op->id();

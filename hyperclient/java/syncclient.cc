@@ -176,8 +176,8 @@ HyperClient :: range_search(const std::string& space,
 
     int64_t id;
     hyperclient_returncode status;
-    hyperclient_attribute* attrs;
-    size_t attrs_sz;
+    hyperclient_attribute* attrs = NULL;
+    size_t attrs_sz = 0;
 
     id = m_client.search(space.c_str(), NULL, 0, &rn, 1, &status, &attrs, &attrs_sz);
 
@@ -201,11 +201,6 @@ HyperClient :: range_search(const std::string& space,
             break;
         }
 
-        if (!attrs)
-        {
-            return HYPERCLIENT_SERVERERROR;
-        }
-
         results->push_back(std::map<std::string, std::string>());
 
         for (size_t i = 0; i < attrs_sz; ++i)
@@ -213,7 +208,18 @@ HyperClient :: range_search(const std::string& space,
             results->back().insert(std::make_pair(attrs[i].attr, std::string(attrs[i].value, attrs[i].value_sz)));
         }
 
-        hyperclient_destroy_attrs(attrs, attrs_sz);
+        if (attrs)
+        {
+            hyperclient_destroy_attrs(attrs, attrs_sz);
+        }
+
+        attrs = NULL;
+        attrs_sz = 0;
+    }
+
+    if (lid != id && lid >= 0)
+    {
+        return HYPERCLIENT_LOGICERROR;
     }
 
     if (lid < 0)
