@@ -240,9 +240,10 @@ validate_search(hyperclient* cl,
                 size_t rn_sz,
                 const char* type)
 {
-    hyperclient_search_result* results = NULL;
     hyperclient_returncode sstatus;
-    int64_t sid = cl->search(space, eq, eq_sz, rn, rn_sz, &results, &sstatus);
+    hyperclient_attribute* attrs;
+    size_t attrs_sz;
+    int64_t sid = cl->search(space, eq, eq_sz, rn, rn_sz, &sstatus, &attrs, &attrs_sz);
 
     if (sid < 0)
     {
@@ -265,60 +266,60 @@ validate_search(hyperclient* cl,
         abort();
     }
 
-    if (!results || results->status != HYPERCLIENT_SUCCESS)
+    if (sstatus != HYPERCLIENT_SUCCESS)
     {
         std::cerr << "for the " << type << " search, the first loop did not return a result." << std::endl;
         abort();
     }
 
-    if (memcmp(&num, results->key, std::min(sizeof(num), results->key_sz)) != 0)
+    if (attrs_sz != 34)
+    {
+        std::cerr << "for the " << type << " search, there are not 1+33 attributes" << std::endl;
+        abort();
+    }
+
+    if (memcmp(&num, attrs[0].value, std::min(sizeof(num), attrs[0].value_sz)) != 0)
     {
         std::cerr << "for the " << type << " search, the result's key does not match" << std::endl;
         abort();
     }
 
-    if (results->attrs_sz != 33)
-    {
-        std::cerr << "for the " << type << " search, there are not 33 secondary attributes" << std::endl;
-        abort();
-    }
-
     for (size_t i = 0; i < 32; ++i)
     {
-        if (strcmp(results->attrs[i].attr, colnames[i]) != 0)
+        if (strcmp(attrs[i + 1].attr, colnames[i]) != 0)
         {
-            std::cerr << "for the " << type << " search, attribute " << i << " is not named " << colnames[i] << std::endl;
+            std::cerr << "for the " << type << " search, secondary attribute " << i << " is not named " << colnames[i] << std::endl;
             abort();
         }
 
         if ((num & (1 << i))
-                && !(results->attrs[i].value_sz == 3 && memcmp(results->attrs[i].value, "ONE", 3) == 0))
+                && !(attrs[i + 1].value_sz == 3 && memcmp(attrs[i + 1].value, "ONE", 3) == 0))
         {
-            std::cerr << "for the " << type << " search, attribute " << i << " != ONE" << std::endl;
+            std::cerr << "for the " << type << " search, secondary attribute " << i << " != ONE" << std::endl;
             abort();
         }
         else if (!(num & (1 << i))
-                && !(results->attrs[i].value_sz == 4 && memcmp(results->attrs[i].value, "ZERO", 4) == 0))
+                && !(attrs[i + 1].value_sz == 4 && memcmp(attrs[i + 1].value, "ZERO", 4) == 0))
         {
-            std::cerr << "for the " << type << " search, attribute " << i << " != ZERO" << std::endl;
+            std::cerr << "for the " << type << " search, secondary attribute " << i << " != ZERO" << std::endl;
             abort();
         }
     }
 
-    if (strcmp(results->attrs[32].attr, "num") != 0)
+    if (strcmp(attrs[33].attr, "num") != 0)
     {
-        std::cerr << "for the " << type << " search, attribute 33 is not named num" << std::endl;
+        std::cerr << "for the " << type << " search, secondary attribute 33 is not named num" << std::endl;
         abort();
     }
 
-    if (results->attrs[32].value_sz != sizeof(num)
-            || memcmp(&num, results->attrs[32].value, sizeof(num)))
+    if (attrs[33].value_sz != sizeof(num)
+            || memcmp(&num, attrs[33].value, sizeof(num)))
     {
-        std::cerr << "for the " << type << " search, attribute 33 != " << num << std::endl;
+        std::cerr << "for the " << type << " search, secondary attribute 33 != " << num << std::endl;
         abort();
     }
 
-    hyperclient_destroy_search_result(results);
+    hyperclient_destroy_attrs(attrs, attrs_sz);
 
     lid = cl->loop(-1, &lstatus);
 
@@ -331,6 +332,12 @@ validate_search(hyperclient* cl,
     if (lid != sid)
     {
         std::cerr << "for the " << type << " search's 2nd loop, the ids do not match " << sid << " " << lid << std::endl;
+        abort();
+    }
+
+    if (sstatus != HYPERCLIENT_SEARCHDONE)
+    {
+        std::cerr << type << " search's 2nd loop is not a SEARCHDONE message";
         abort();
     }
 }

@@ -175,10 +175,11 @@ HyperClient :: range_search(const std::string& space,
     rn.upper = upper;
 
     int64_t id;
-    hyperclient_search_result* res = NULL;
     hyperclient_returncode status;
+    hyperclient_attribute* attrs;
+    size_t attrs_sz;
 
-    id = m_client.search(space.c_str(), NULL, 0, &rn, 1, &res, &status);
+    id = m_client.search(space.c_str(), NULL, 0, &rn, 1, &status, &attrs, &attrs_sz);
 
     if (id < 0)
     {
@@ -186,36 +187,33 @@ HyperClient :: range_search(const std::string& space,
     }
 
     int64_t lid;
+    hyperclient_returncode lstatus;
 
-    while ((lid = m_client.loop(-1, &status)) == id)
+    while ((lid = m_client.loop(-1, &lstatus)) == id)
     {
-        if (!res)
+        if (status == HYPERCLIENT_SEARCHDONE)
         {
-            status = HYPERCLIENT_SERVERERROR;
-            break;
+            return HYPERCLIENT_SUCCESS;
         }
 
-        if (res->status != HYPERCLIENT_SUCCESS)
+        if (status != HYPERCLIENT_SUCCESS)
         {
-            status = res->status;
-            hyperclient_destroy_search_result(res);
             break;
         }
 
         results->push_back(std::map<std::string, std::string>());
 
-        for (size_t i = 0; i < res->attrs_sz; ++i)
+        for (size_t i = 0; i < attrs_sz; ++i)
         {
-            results->back().insert(std::make_pair(res->attrs[i].attr, std::string(res->attrs[i].value, res->attrs[i].value_sz)));
+            results->back().insert(std::make_pair(attrs[i].attr, std::string(attrs[i].value, attrs[i].value_sz)));
         }
 
-        hyperclient_destroy_search_result(res);
-        res = NULL;
+        hyperclient_destroy_attrs(attrs, attrs_sz);
     }
 
-    if (status == HYPERCLIENT_SEARCHDONE)
+    if (lid < 0)
     {
-        return HYPERCLIENT_SUCCESS;
+        return lstatus;
     }
 
     return status;
