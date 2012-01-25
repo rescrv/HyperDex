@@ -61,7 +61,8 @@ noinst_HEADERS = \
 			$(libhyperdaemon_noinst_headers)
 
 bin_PROGRAMS = \
-			daemon
+			daemon \
+			trace-player
 
 noinst_PROGRAMS = \
 			$(libhyperspacehashing_noinst_programs) \
@@ -450,6 +451,17 @@ replication_stress_test_LDADD = \
 			$(HYPERCLIENT_LDADD) \
 			libhyperclient.la
 replication_stress_test_LDFLAGS = \
+			-no-install
+
+trace_player_SOURCES = \
+			trace-player.cc
+trace_player_LDADD = \
+			-lbsd \
+			$(HYPERSPACEHASHING_LDADD) \
+			$(HYPERCLIENT_LDADD) \
+			libhyperspacehashing.la \
+			libhyperclient.la
+trace_player_LDFLAGS = \
 			-no-install
 
 ################################################################################
