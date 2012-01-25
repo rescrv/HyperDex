@@ -378,7 +378,7 @@ class hyperclient::pending
         virtual hyperdex::network_msgtype request_type() const = 0;
         virtual bool matches_response_type(hyperdex::network_msgtype t) const = 0;
         virtual handled_how handle_response(hyperdex::network_msgtype type,
-                                            std::auto_ptr<e::buffer> msg,
+                                            e::buffer* msg,
                                             hyperclient_returncode* status) = 0;
 
     private:
@@ -434,7 +434,7 @@ class hyperclient::pending_get : public hyperclient::pending
         virtual hyperdex::network_msgtype request_type() const;
         virtual bool matches_response_type(hyperdex::network_msgtype t) const;
         virtual handled_how handle_response(hyperdex::network_msgtype type,
-                                            std::auto_ptr<e::buffer> msg,
+                                            e::buffer* msg,
                                             hyperclient_returncode* status);
 
     private:
@@ -478,7 +478,7 @@ hyperclient :: pending_get :: matches_response_type(hyperdex::network_msgtype t)
 
 handled_how
 hyperclient :: pending_get :: handle_response(hyperdex::network_msgtype type,
-                                              std::auto_ptr<e::buffer> msg,
+                                              e::buffer* msg,
                                               hyperclient_returncode* status)
 {
     assert(matches_response_type(type));
@@ -544,7 +544,7 @@ class hyperclient::pending_statusonly : public hyperclient::pending
         virtual hyperdex::network_msgtype request_type() const;
         virtual bool matches_response_type(hyperdex::network_msgtype t) const;
         virtual handled_how handle_response(hyperdex::network_msgtype type,
-                                            std::auto_ptr<e::buffer> msg,
+                                            e::buffer* msg,
                                             hyperclient_returncode* status);
 
     private:
@@ -586,7 +586,7 @@ hyperclient :: pending_statusonly :: matches_response_type(hyperdex::network_msg
 
 handled_how
 hyperclient :: pending_statusonly :: handle_response(hyperdex::network_msgtype type,
-                                                     std::auto_ptr<e::buffer> msg,
+                                                     e::buffer* msg,
                                                      hyperclient_returncode*)
 {
     assert(matches_response_type(type));
@@ -639,7 +639,7 @@ class hyperclient::pending_search : public hyperclient::pending
         virtual hyperdex::network_msgtype request_type() const;
         virtual bool matches_response_type(hyperdex::network_msgtype t) const;
         virtual handled_how handle_response(hyperdex::network_msgtype type,
-                                            std::auto_ptr<e::buffer> msg,
+                                            e::buffer* msg,
                                             hyperclient_returncode* status);
 
     private:
@@ -692,7 +692,7 @@ hyperclient :: pending_search :: matches_response_type(hyperdex::network_msgtype
 
 handled_how
 hyperclient :: pending_search :: handle_response(hyperdex::network_msgtype type,
-                                                 std::auto_ptr<e::buffer> msg,
+                                                 e::buffer* msg,
                                                  hyperclient_returncode* status)
 {
     assert(matches_response_type(type));
@@ -1154,7 +1154,7 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
                         break;
                     }
 
-                    switch (op->handle_response(msg_type, response, status))
+                    switch (op->handle_response(msg_type, response.get(), status))
                     {
                         case KEEP:
                             return op->id();
@@ -1396,11 +1396,12 @@ hyperclient :: killall(int fd, hyperclient_returncode status)
 {
     assert(0 <= fd && static_cast<unsigned>(fd) < m_fds.size());
     e::intrusive_ptr<channel> chan = m_fds[fd];
+    m_fds[fd] = NULL;
 
     for (requests_list_t::iterator r = m_requests.begin();
             r != m_requests.end(); ++r)
     {
-        if ((*r)->chan() == chan)
+        if (*r && (*r)->chan() == chan)
         {
             m_completed.push(completedop(*r, status));
             *r = NULL;
@@ -1417,8 +1418,6 @@ hyperclient :: killall(int fd, hyperclient_returncode status)
             break;
         }
     }
-
-    m_fds[fd] = NULL;
 
     try
     {
