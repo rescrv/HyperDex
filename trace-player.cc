@@ -81,8 +81,7 @@ usage();
 
 static void
 flush(hyperclient* cl,
-      size_t lower,
-      size_t upper,
+      size_t outstanding,
       std::map<int64_t, e::intrusive_ptr<incompleteop> >* incomplete_keyops,
       std::map<int64_t, e::intrusive_ptr<incompleteop> >* incomplete_searches);
 
@@ -98,7 +97,7 @@ handle_line(hyperclient* cl,
 int
 main(int argc, char* argv[])
 {
-    if (argc != 5 && argc != 6)
+    if (argc != 6)
     {
         return usage();
     }
@@ -107,7 +106,7 @@ main(int argc, char* argv[])
     uint16_t port;
     const char* space = argv[3];
     const char* trace = argv[4];
-    size_t procs = 1;
+    uint64_t outstanding = 0;
 
     try
     {
@@ -126,16 +125,16 @@ main(int argc, char* argv[])
 
     try
     {
-        procs = e::convert::to_uint64_t(argv[5]);
+        outstanding = e::convert::to_uint64_t(argv[5]);
     }
     catch (std::domain_error& e)
     {
-        std::cerr << "The number of procs must be an integer." << std::endl;
+        std::cerr << "The number of outstanding ops must be an integer." << std::endl;
         return EXIT_FAILURE;
     }
     catch (std::out_of_range& e)
     {
-        std::cerr << "The number of procs must be suitably small." << std::endl;
+        std::cerr << "The number of outstanding ops must be suitably small." << std::endl;
         return EXIT_FAILURE;
     }
 
@@ -154,21 +153,17 @@ main(int argc, char* argv[])
         std::map<int64_t, e::intrusive_ptr<incompleteop> > incomplete_searches;
         std::string line;
         uint64_t lineno = 0;
-        e::stopwatch stopw;
-        stopw.start();
 
         while (std::getline(fin, line))
         {
             ++lineno;
-            flush(&cl, 50 * procs, 100 * procs, &incomplete_keyops, &incomplete_searches);
+            flush(&cl, outstanding, &incomplete_keyops, &incomplete_searches);
             std::vector<char> buf(line.c_str(), line.c_str() + line.size() + 1);
             handle_line(&cl, space, &incomplete_keyops, &incomplete_searches, lineno,
                         &buf.front(), &buf.back());
         }
 
-        flush(&cl, 0, 0, &incomplete_keyops, &incomplete_searches);
-
-        std::cout << lineno / (stopw.peek() / 1000000000.) << std::endl;
+        flush(&cl, 0, &incomplete_keyops, &incomplete_searches);
     }
     catch (po6::error& e)
     {
@@ -197,43 +192,37 @@ main(int argc, char* argv[])
 int
 usage()
 {
-    std::cerr << "Usage:  trace-player <coordinator ip> <coordinator port> <space name> <trace>" << std::endl;
+    std::cerr << "Usage:  trace-player <coordinator ip> <coordinator port> <space name> <trace> <outstanding>" << std::endl;
     return EXIT_FAILURE;
 }
 
 static uint64_t ops = 0;
-static uint64_t time = 0;
+static uint64_t oldtime = 0;
 
 void
 flush(hyperclient* cl,
-      size_t lower,
-      size_t upper,
+      size_t outstanding,
       std::map<int64_t, e::intrusive_ptr<incompleteop> >* incomplete_keyops,
       std::map<int64_t, e::intrusive_ptr<incompleteop> >* incomplete_searches)
 {
-    uint64_t newtime = e::timer();
+    uint64_t newtime = e::time();
 
-    if (newtime - time > 1000000000)
+    if (newtime - oldtime > 1000000000)
     {
-        std::cout << time / 1000000000 << " " ops << std::endl;
+        std::cout << oldtime / 1000000000 << " " << ops << std::endl;
         ops = 0;
-        time = newtime;
+        oldtime = newtime;
     }
 
-    if (incomplete_keyops->size() + incomplete_searches->size() < upper)
+    while (incomplete_keyops->size() + incomplete_searches->size() > outstanding)
     {
-        return;
-    }
+        newtime = e::time();
 
-    while (incomplete_keyops->size() + incomplete_searches->size() > lower)
-    {
-        newtime = e::timer();
-
-        if (newtime - time > 1000000000)
+        if (newtime - oldtime > 1000000000)
         {
-            std::cout << time / 1000000000 << " " ops << std::endl;
+            std::cout << oldtime / 1000000000 << " " << ops << std::endl;
             ops = 0;
-            time = newtime;
+            oldtime = newtime;
         }
 
         hyperclient_returncode status;
