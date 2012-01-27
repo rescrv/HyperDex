@@ -51,8 +51,8 @@ HyperClient :: get(const std::string& space,
                    std::map<std::string, std::string>* value)
 {
     int64_t id;
-    hyperclient_returncode stat1;
-    hyperclient_returncode stat2;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
     hyperclient_attribute* attrs = NULL;
     size_t attrs_sz = 0;
 
@@ -65,14 +65,21 @@ HyperClient :: get(const std::string& space,
 
     if (id < 0)
     {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
         return stat1;
     }
 
-    if (m_client.loop(-1, &stat2) < 0)
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
     {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
         return stat2;
     }
 
+    assert(id == lid);
     e::guard g = e::makeguard(free, attrs); g.use_variable();
 
     for (size_t i = 0; i < attrs_sz; ++i)
@@ -82,6 +89,8 @@ HyperClient :: get(const std::string& space,
                                                  attrs[i].value_sz)));
     }
 
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
     return stat1;
 }
 
@@ -92,8 +101,8 @@ HyperClient :: put(const std::string& space,
                    const std::map<std::string, uint64_t>& nvalues)
 {
     int64_t id;
-    hyperclient_returncode stat1;
-    hyperclient_returncode stat2;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
     std::vector<hyperclient_attribute> attrs;
     std::vector<uint64_t> nums;
     nums.reserve(nvalues.size());
@@ -128,14 +137,23 @@ HyperClient :: put(const std::string& space,
 
     if (id < 0)
     {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
         return stat1;
     }
 
-    if (m_client.loop(-1, &stat2) < 0)
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
     {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
         return stat2;
     }
 
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
     return stat1;
 }
 
@@ -144,21 +162,30 @@ HyperClient :: del(const std::string& space,
                    const std::string& key)
 {
     int64_t id;
-    hyperclient_returncode stat1;
-    hyperclient_returncode stat2;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
 
     id = m_client.del(space.c_str(), key.data(), key.size(), &stat1);
 
     if (id < 0)
     {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
         return stat1;
     }
 
-    if (m_client.loop(-1, &stat2) < 0)
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
     {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
         return stat2;
     }
 
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
     return stat1;
 }
 
@@ -175,7 +202,7 @@ HyperClient :: range_search(const std::string& space,
     rn.upper = upper;
 
     int64_t id;
-    hyperclient_returncode status;
+    hyperclient_returncode status = HYPERCLIENT_A;
     hyperclient_attribute* attrs = NULL;
     size_t attrs_sz = 0;
 
@@ -187,7 +214,7 @@ HyperClient :: range_search(const std::string& space,
     }
 
     int64_t lid;
-    hyperclient_returncode lstatus;
+    hyperclient_returncode lstatus = HYPERCLIENT_B;
 
     while ((lid = m_client.loop(-1, &lstatus)) == id)
     {
@@ -217,15 +244,15 @@ HyperClient :: range_search(const std::string& space,
         attrs_sz = 0;
     }
 
-    if (lid != id && lid >= 0)
-    {
-        return HYPERCLIENT_LOGICERROR;
-    }
-
     if (lid < 0)
     {
+        assert(static_cast<unsigned>(lstatus) >= 8448);
+        assert(static_cast<unsigned>(lstatus) < 8576);
         return lstatus;
     }
 
+    assert(lid == id);
+    assert(static_cast<unsigned>(status) >= 8448);
+    assert(static_cast<unsigned>(status) < 8576);
     return status;
 }

@@ -107,7 +107,14 @@ enum hyperclient_returncode
 
     /* This should never happen.  It indicates a bug */
     HYPERCLIENT_EXCEPTION    = 8574,
-    HYPERCLIENT_ZERO         = 8575
+    HYPERCLIENT_ZERO         = 8575,
+
+    /* Enums may be initialized to these to trigger assertion failures in the
+     * java code.  Initialize hyperclient_returncode statuses to these if you
+     * suspect there is a bug.
+     */
+    HYPERCLIENT_A            = 8576,
+    HYPERCLIENT_B            = 8577
 };
 
 struct hyperclient*
