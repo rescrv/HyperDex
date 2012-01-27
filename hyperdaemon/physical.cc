@@ -496,7 +496,7 @@ hyperdaemon :: physical :: work_read(const hazard_ptr& hptr,
         return false;
     }
 
-    std::vector<char> buffer(65536, 0);
+    std::vector<char> buffer(8192, 0);
     ssize_t rem;
 
     // Restore leftovers from last time.
