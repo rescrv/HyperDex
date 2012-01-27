@@ -1,5 +1,7 @@
 aclocal.m4
 autom4te.cache/
+binary-test
+binary-test.o
 config.guess
 config.h
 config.h.in
@@ -128,5 +130,7 @@ py-compile
 replication-stress-test
 replication_stress_test-replication-stress-test.o
 stamp-h1
+trace-player
+trace-player.o
 ycsb/hyperclient/HyperClientYCSB.class
 ycsb/hyperclient-ycsb-0.1.dev.jar
