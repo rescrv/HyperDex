@@ -1512,6 +1512,8 @@ operator << (std::ostream& lhs, hyperclient_returncode rhs)
         stringify(HYPERCLIENT_DONTUSEKEY);
         stringify(HYPERCLIENT_EXCEPTION);
         stringify(HYPERCLIENT_ZERO);
+        stringify(HYPERCLIENT_A);
+        stringify(HYPERCLIENT_B);
         default:
             lhs << "unknown returncode";
             break;
