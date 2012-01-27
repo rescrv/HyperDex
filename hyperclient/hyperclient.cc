@@ -27,6 +27,9 @@
 
 #define __STDC_LIMIT_MACROS
 
+// Linux
+#include <sys/epoll.h>
+
 // STL
 #include <tr1/memory>
 
@@ -776,6 +779,7 @@ hyperclient :: pending_search :: handle_response(hyperdex::network_msgtype type,
 hyperclient :: hyperclient(const char* coordinator, in_port_t port)
     : m_coord(new hyperdex::coordinatorlink(po6::net::location(coordinator, port)))
     , m_config(new hyperdex::configuration())
+    , m_epfd()
     , m_fds(sysconf(_SC_OPEN_MAX), e::intrusive_ptr<channel>())
     , m_instances()
     , m_requests()
@@ -784,6 +788,12 @@ hyperclient :: hyperclient(const char* coordinator, in_port_t port)
     , m_configured(false)
 {
     m_coord->set_announce("client");
+    m_epfd = epoll_create(16384);
+
+    if (m_epfd.get() < 0)
+    {
+        throw po6::error(errno);
+    }
 }
 
 hyperclient :: ~hyperclient() throw ()
@@ -979,11 +989,12 @@ hyperclient :: search(const char* space,
         op->set_channel(chan);
         op->set_entity(ent_inst->first);
         op->set_instance(ent_inst->second);
-        m_requests.push_back(op);
+        m_requests.erase(std::make_pair(chan->sock().get(), op->nonce()));
+        m_requests.insert(std::make_pair(std::make_pair(chan->sock().get(), op->nonce()), op));
 
         if (send(chan, op, msg.get()) < 0)
         {
-            m_requests.pop_back();
+            m_requests.erase(std::make_pair(chan->sock().get(), op->nonce()));
         }
     }
 
@@ -995,38 +1006,13 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
 {
     while (!m_requests.empty() && m_completed.empty())
     {
-        if (!m_requests.front())
-        {
-            m_requests.pop_front();
-            continue;
-        }
-
         if ((!m_configured || !m_coord->connected()) && try_coord_connect(status) < 0)
         {
             return -1;
         }
 
-        std::vector<pollfd> pfds;
-        std::set<int> seen;
-        pfds.reserve(m_requests.size());
-
-        for (requests_list_t::iterator r = m_requests.begin();
-                r != m_requests.end(); ++r)
-        {
-            if (*r && seen.find((*r)->chan()->sock().get()) == seen.end())
-            {
-                pfds.push_back(pollfd());
-                pfds.back().fd = (*r)->chan()->sock().get();
-                pfds.back().events = POLLIN;
-                pfds.back().revents = 0;
-                seen.insert((*r)->chan()->sock().get());
-            }
-        }
-
-        pfds.push_back(m_coord->pfd());
-        pfds.back().revents = 0;
-
-        int polled = poll(&pfds.front(), pfds.size(), timeout);
+        epoll_event ee;
+        int polled = epoll_wait(m_epfd.get(), &ee, 1, timeout);
 
         if (polled < 0)
         {
@@ -1040,7 +1026,7 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
             return -1;
         }
 
-        if (pfds.back().revents)
+        if (ee.data.fd == m_coord->pfd().fd)
         {
             switch (m_coord->loop(1, 0))
             {
@@ -1060,14 +1046,19 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
             if (m_coord->unacknowledged())
             {
                 *m_config = m_coord->config();
+                requests_map_t::iterator r = m_requests.begin();
 
-                for (requests_list_t::iterator r = m_requests.begin();
-                        r != m_requests.end(); ++r)
+                while (r != m_requests.end())
                 {
-                    if (*r && m_config->instancefor((*r)->entity()) != (*r)->instance())
+                    if (m_config->instancefor(r->second->entity()) != r->second->instance())
                     {
-                        m_completed.push(completedop(*r, HYPERCLIENT_RECONFIGURE));
-                        *r = NULL;
+                        m_completed.push(completedop(r->second, HYPERCLIENT_RECONFIGURE));
+                        m_requests.erase(r);
+                        r = m_requests.begin();
+                    }
+                    else
+                    {
+                        ++r;
                     }
                 }
 
@@ -1078,107 +1069,115 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
             }
         }
 
-        for (size_t i = 0; i < pfds.size() && m_completed.empty(); ++i)
+        if ((ee.events & EPOLLHUP) || (ee.events & EPOLLERR))
         {
-            if ((pfds[i].revents & POLLHUP) || (pfds[i].revents & POLLERR))
+            killall(ee.data.fd, HYPERCLIENT_DISCONNECT);
+            continue;
+        }
+
+        if (!(ee.events & EPOLLIN))
+        {
+            continue;
+        }
+
+        e::intrusive_ptr<channel> chan = channel_from_fd(ee.data.fd);
+        assert(chan->sock().get() >= 0);
+
+        uint32_t size;
+
+        if (chan->sock().recv(&size, sizeof(size), MSG_DONTWAIT|MSG_PEEK) !=
+                sizeof(size))
+        {
+            continue;
+        }
+
+        size = be32toh(size);
+        std::auto_ptr<e::buffer> response(e::buffer::create(size));
+
+        if (chan->sock().xrecv(response->data(), size, 0) < size)
+        {
+            killall(ee.data.fd, HYPERCLIENT_DISCONNECT);
+            continue;
+        }
+
+        response->resize(size);
+
+        uint8_t type_num;
+        uint16_t fromver;
+        uint16_t tover;
+        hyperdex::entityid from;
+        hyperdex::entityid to;
+        uint64_t nonce;
+        e::buffer::unpacker up = response->unpack_from(sizeof(size));
+        up = up >> type_num >> fromver >> tover >> from >> to >> nonce;
+
+        if (up.error())
+        {
+            killall(ee.data.fd, HYPERCLIENT_SERVERERROR);
+            continue;
+        }
+
+        hyperdex::network_msgtype msg_type = static_cast<hyperdex::network_msgtype>(type_num);
+
+        if (chan->entity() == hyperdex::entityid(hyperdex::configuration::CLIENTSPACE, 0, 0, 0, 0))
+        {
+            chan->set_entity(to);
+        }
+
+        requests_map_t::iterator it = m_requests.find(std::make_pair(chan->sock().get(), nonce));
+
+        if (it == m_requests.end())
+        {
+            killall(ee.data.fd, HYPERCLIENT_SERVERERROR);
+            continue;
+        }
+
+        e::intrusive_ptr<pending> op = it->second;
+        assert(op);
+
+        if (chan == op->chan() &&
+            fromver == op->instance().inbound_version &&
+            tover == 1 &&
+            from == op->entity() &&
+            to == chan->entity() &&
+            nonce == op->nonce())
+        {
+            if (!op->matches_response_type(msg_type))
             {
-                killall(pfds[i].fd, HYPERCLIENT_DISCONNECT);
-                continue;
+                killall(ee.data.fd, HYPERCLIENT_SERVERERROR);
+                break;
             }
 
-            if (!(pfds[i].revents & POLLIN))
+            switch (op->handle_response(msg_type, response.get(), status))
             {
-                continue;
-            }
-
-            e::intrusive_ptr<channel> chan = channel_from_fd(pfds[i].fd);
-            assert(chan->sock().get() >= 0);
-
-            uint32_t size;
-
-            if (chan->sock().recv(&size, sizeof(size), MSG_DONTWAIT|MSG_PEEK) !=
-                    sizeof(size))
-            {
-                continue;
-            }
-
-            size = be32toh(size);
-            std::auto_ptr<e::buffer> response(e::buffer::create(size));
-
-            if (chan->sock().xrecv(response->data(), size, 0) < size)
-            {
-                killall(pfds[i].fd, HYPERCLIENT_DISCONNECT);
-                continue;
-            }
-
-            response->resize(size);
-
-            uint8_t type_num;
-            uint16_t fromver;
-            uint16_t tover;
-            hyperdex::entityid from;
-            hyperdex::entityid to;
-            uint64_t nonce;
-            e::buffer::unpacker up = response->unpack_from(sizeof(size));
-            up = up >> type_num >> fromver >> tover >> from >> to >> nonce;
-
-            if (up.error())
-            {
-                killall(pfds[i].fd, HYPERCLIENT_SERVERERROR);
-                continue;;
-            }
-
-            hyperdex::network_msgtype msg_type = static_cast<hyperdex::network_msgtype>(type_num);
-
-            if (chan->entity() == hyperdex::entityid(hyperdex::configuration::CLIENTSPACE, 0, 0, 0, 0))
-            {
-                chan->set_entity(to);
-            }
-
-            for (requests_list_t::iterator r = m_requests.begin();
-                    r != m_requests.end(); ++r)
-            {
-                e::intrusive_ptr<pending> op = *r;
-
-                if (op &&
-                    chan == op->chan() &&
-                    fromver == op->instance().inbound_version &&
-                    tover == 1 &&
-                    from == op->entity() &&
-                    to == chan->entity() &&
-                    nonce == op->nonce())
-                {
-                    if (!op->matches_response_type(msg_type))
-                    {
-                        killall(pfds[i].fd, HYPERCLIENT_SERVERERROR);
-                        break;
-                    }
-
-                    switch (op->handle_response(msg_type, response.get(), status))
-                    {
-                        case KEEP:
-                            return op->id();
-                        case SILENTREMOVE:
-                            *r = NULL;
-                            break;
-                        case REMOVE:
-                            *r = NULL;
-                            return op->id();
-                        case FAIL:
-                            killall(pfds[i].fd, *status);
-                            break;
-                        default:
-                            abort();
-                    }
-
-                    // We cannot process more than one event.  The first
-                    // event processed will either return above, or kill a
-                    // number of pending operations.  By breaking here, we
-                    // force another iteration of the global while loop,
-                    // where we can return the failed operation(s).
+                case KEEP:
+                    return op->id();
+                case SILENTREMOVE:
+                    m_requests.erase(std::make_pair(chan->sock().get(), nonce));
                     break;
-                }
+                case REMOVE:
+                    m_requests.erase(std::make_pair(chan->sock().get(), nonce));
+                    return op->id();
+                case FAIL:
+                    killall(ee.data.fd, *status);
+                    break;
+                default:
+                    abort();
             }
+
+            // We cannot process more than one event.  The first
+            // event processed will either return above, or kill a
+            // number of pending operations.  By breaking here, we
+            // force another iteration of the global while loop,
+            // where we can return the failed operation(s).
+        }
+        else
+        {
+            // XXX Sometimes it hits here.  Let's just count the op as "done"
+            // with an error, and not kill everything.
+            //killall(ee.data.fd, HYPERCLIENT_SERVERERROR);
+            op->set_status(HYPERCLIENT_SERVERERROR);
+            return op->id();
         }
     }
 
@@ -1232,8 +1231,12 @@ hyperclient :: add_keyop(const char* space, const char* key, size_t key_sz,
     op->set_channel(chan);
     op->set_entity(dst_ent);
     op->set_instance(dst_inst);
-    m_requests.push_back(op);
-    e::guard remove_op = e::makeobjguard(m_requests, &requests_list_t::pop_back);
+    m_requests.erase(std::make_pair(chan->sock().get(), op->nonce()));
+    m_requests.insert(std::make_pair(std::make_pair(chan->sock().get(), op->nonce()), op));
+
+    typedef size_t (requests_map_t::*functype)(const std::pair<int, uint64_t>& t);
+    functype f = &requests_map_t::erase;
+    e::guard remove_op = e::makeobjguard(m_requests, f, std::make_pair(chan->sock().get(), op->nonce()));
     e::guard fail_op = e::makeobjguard(*op, &pending::set_status, HYPERCLIENT_SEEERRNO);
     int64_t ret = send(chan, op, msg.get());
     assert(ret <= 0);
@@ -1397,14 +1400,19 @@ hyperclient :: killall(int fd, hyperclient_returncode status)
     assert(0 <= fd && static_cast<unsigned>(fd) < m_fds.size());
     e::intrusive_ptr<channel> chan = m_fds[fd];
     m_fds[fd] = NULL;
+    requests_map_t::iterator r = m_requests.begin();
 
-    for (requests_list_t::iterator r = m_requests.begin();
-            r != m_requests.end(); ++r)
+    while (r != m_requests.end())
     {
-        if (*r && (*r)->chan() == chan)
+        if (r->second->chan() == chan)
         {
-            m_completed.push(completedop(*r, status));
-            *r = NULL;
+            m_completed.push(completedop(r->second, status));
+            m_requests.erase(r);
+            r = m_requests.begin();
+        }
+        else
+        {
+            ++r;
         }
     }
 
@@ -1445,6 +1453,16 @@ hyperclient :: get_channel(hyperdex::instance inst,
     try
     {
         e::intrusive_ptr<channel> chan = new channel(inst);
+        epoll_event ee;
+        ee.events = EPOLLIN;
+        ee.data.fd = chan->sock().get();
+
+        if (epoll_ctl(m_epfd.get(), EPOLL_CTL_ADD, chan->sock().get(), &ee) < 0)
+        {
+            *status = HYPERCLIENT_CONNECTFAIL;
+            return NULL;
+        }
+
         m_instances[inst] = chan;
         m_fds[chan->sock().get()] = chan;
         return chan;

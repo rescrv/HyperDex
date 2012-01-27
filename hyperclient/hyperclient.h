@@ -47,9 +47,13 @@
 #include <stack>
 #include <vector>
 
+// po6
+#include <po6/io/fd.h>
+
 // e
 #include <e/buffer.h>
 #include <e/intrusive_ptr.h>
+#include <e/lockfree_hash_map.h>
 
 // Forward declarations
 namespace hyperdex
@@ -245,9 +249,9 @@ class hyperclient
         class pending_get;
         class pending_statusonly;
         class pending_search;
+        static uint64_t id(const int64_t& in) { return static_cast<uint64_t>(in); }
         typedef std::map<hyperdex::instance, e::intrusive_ptr<channel> > instances_map_t;
-        typedef std::deque<e::intrusive_ptr<pending> > requests_list_t;
-        typedef std::map<int64_t, uint64_t> refcounts_map_t;
+        typedef std::map<std::pair<int, uint64_t>, e::intrusive_ptr<pending> > requests_map_t;
 
     private:
         int64_t add_keyop(const char* space,
@@ -274,9 +278,10 @@ class hyperclient
     private:
         const std::auto_ptr<hyperdex::coordinatorlink> m_coord;
         const std::auto_ptr<hyperdex::configuration> m_config;
+        po6::io::fd m_epfd;
         std::vector<e::intrusive_ptr<channel> > m_fds;
         instances_map_t m_instances;
-        requests_list_t m_requests;
+        requests_map_t m_requests;
         std::queue<completedop> m_completed;
         int64_t m_requestid;
         bool m_configured;
