@@ -752,6 +752,7 @@ hyperclient :: pending_search :: handle_response(hyperdex::network_msgtype type,
     std::auto_ptr<e::buffer> smsg(e::buffer::create(HDRSIZE + sizeof(uint64_t)));
     bool packed = !(smsg->pack_at(HDRSIZE) << static_cast<uint64_t>(id())).error();
     assert(packed);
+    uint64_t old_nonce = nonce();
     set_nonce(chan()->generate_nonce());
     m_reqtype = hyperdex::REQ_SEARCH_NEXT;
 
@@ -767,6 +768,8 @@ hyperclient :: pending_search :: handle_response(hyperdex::network_msgtype type,
         return FAIL;
     }
 
+    m_cl->m_requests.erase(std::make_pair(chan()->sock().get(), old_nonce));
+    m_cl->m_requests.insert(std::make_pair(std::make_pair(chan()->sock().get(), nonce()), this));
     set_status(HYPERCLIENT_SUCCESS);
     *m_attrs = attrs;
     *m_attrs_sz = attrs_sz;
