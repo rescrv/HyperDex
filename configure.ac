@@ -96,7 +96,6 @@ AC_CHECK_HEADER([e/buffer.h],,[AC_MSG_ERROR([
 HyperDex relies upon the e library.
 Please install e to continue.
 -------------------------------------------------])])
-AC_PYTHON_DEVEL([>= 2.6])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
@@ -142,6 +141,9 @@ fi
 AC_ARG_ENABLE([python_bindings], [AS_HELP_STRING([--enable-python-bindings],
               [build Python bindings @<:@default: no@:>@])],
               [python_bindings=${enableval}], [python_bindings=no])
+if test x"${python_bindings}" = xyes; then
+    AC_PYTHON_DEVEL([>= 2.6])
+fi
 
 AC_ARG_ENABLE([log-all-messages], [AS_HELP_STRING([--enable-log-all-messages],
               [enable code to log all messages @<:@default: no@:>@])],

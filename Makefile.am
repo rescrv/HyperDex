@@ -35,20 +35,14 @@ EXTRA_DIST = \
 			$(libhyperclient_extra_dist) \
 			$(python_bindings_extra_dist)
 
-BUILT_SOURCES = \
-			$(python_bindings_built_sources)
+BUILT_SOURCES =
 
 lib_LTLIBRARIES = \
 			libhyperspacehashing.la \
 			libhyperdisk.la \
 			libhyperclient.la
 
-if ENABLE_PYTHON_BINDINGS
-pyexec_LTLIBRARIES = \
-			hyperclient/python/hyperclient.la
-else
 pyexec_LTLIBRARIES =
-endif
 
 noinst_LTLIBRARIES = \
 			libhyperdex.la \
@@ -370,8 +364,13 @@ endif
 python_bindings_extra_dist = \
 			hyperclient/python/hyperclient.pyx
 
-python_bindings_built_sources = \
+if ENABLE_PYTHON_BINDINGS
+BUILT_SOURCES += \
 			hyperclient/python/hyperclient.c
+
+pyexec_LTLIBRARIES += \
+			hyperclient/python/hyperclient.la
+endif
 
 hyperclient/python/hyperclient.c: hyperclient/python/hyperclient.pyx
 	cython hyperclient/python/hyperclient.pyx
