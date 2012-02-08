@@ -31,6 +31,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+// STL
+#include <memory>
+
 // Google Test
 #include <gtest/gtest.h>
 
@@ -69,24 +72,24 @@ TEST(ShardTest, Simple)
     po6::io::fd cwd(AT_FDCWD);
     e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create(cwd, "tmp-disk");
     e::guard g = e::makeguard(::unlink, "tmp-disk");
-    std::vector<e::buffer> value;
+    std::vector<e::slice> value;
     uint64_t version;
 
-    ASSERT_EQ(hyperdisk::NOTFOUND, d->get(0x6e9accf9UL, e::buffer("key", 3), &value, &version));
+    ASSERT_EQ(hyperdisk::NOTFOUND, d->get(0x6e9accf9UL, e::slice("key", 3), &value, &version));
     version = 0xdeadbeefcafebabe;
-    ASSERT_EQ(hyperdisk::SUCCESS, d->put(coord(0x6e9accf9UL, 0), e::buffer("key", 3), value, version));
-    ASSERT_EQ(hyperdisk::SUCCESS, d->get(0x6e9accf9UL, e::buffer("key", 3), &value, &version));
+    ASSERT_EQ(hyperdisk::SUCCESS, d->put(coord(0x6e9accf9UL, 0), e::slice("key", 3), value, version));
+    ASSERT_EQ(hyperdisk::SUCCESS, d->get(0x6e9accf9UL, e::slice("key", 3), &value, &version));
     version = 0xdefec8edcafef00d;
 
     value.clear();
-    value.push_back(e::buffer("value", 5));
-    ASSERT_EQ(hyperdisk::SUCCESS, d->put(coord(0x6e9accf9UL, 0x2462bca6UL), e::buffer("key", 3), value, version));
+    value.push_back(e::slice("value", 5));
+    ASSERT_EQ(hyperdisk::SUCCESS, d->put(coord(0x6e9accf9UL, 0x2462bca6UL), e::slice("key", 3), value, version));
     value.clear();
-    ASSERT_EQ(hyperdisk::SUCCESS, d->get(0x6e9accf9UL, e::buffer("key", 3), &value, &version));
+    ASSERT_EQ(hyperdisk::SUCCESS, d->get(0x6e9accf9UL, e::slice("key", 3), &value, &version));
     ASSERT_EQ(1, value.size());
-    ASSERT_TRUE(e::buffer("value", 5) == value[0]);
-    ASSERT_EQ(hyperdisk::SUCCESS, d->del(0x6e9accf9UL, e::buffer("key", 3)));
-    ASSERT_EQ(hyperdisk::NOTFOUND, d->get(0x6e9accf9UL, e::buffer("key", 3), &value, &version));
+    ASSERT_TRUE(e::slice("value", 5) == value[0]);
+    ASSERT_EQ(hyperdisk::SUCCESS, d->del(0x6e9accf9UL, e::slice("key", 3)));
+    ASSERT_EQ(hyperdisk::NOTFOUND, d->get(0x6e9accf9UL, e::slice("key", 3), &value, &version));
 
     ASSERT_TRUE(d->fsck());
 }
@@ -96,32 +99,32 @@ TEST(ShardTest, MultiPut)
     po6::io::fd cwd(AT_FDCWD);
     e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create(cwd, "tmp-disk");
     e::guard g = e::makeguard(::unlink, "tmp-disk");
-    std::vector<e::buffer> value;
+    std::vector<e::slice> value;
     uint64_t version;
 
     // Put one point.
     version = 64;
-    value.push_back(e::buffer("value-one", 9));
-    ASSERT_EQ(hyperdisk::SUCCESS, d->put(coord(0xb5e57068UL, 0x510b8cafUL), e::buffer("one", 3), value, version));
+    value.push_back(e::slice("value-one", 9));
+    ASSERT_EQ(hyperdisk::SUCCESS, d->put(coord(0xb5e57068UL, 0x510b8cafUL), e::slice("one", 3), value, version));
 
     // Put a second point.
     version = 128;
     value.clear();
-    value.push_back(e::buffer("value-two-a", 11));
-    value.push_back(e::buffer("value-two-b", 11));
-    ASSERT_EQ(hyperdisk::SUCCESS, d->put(coord(0xa3a81e5fUL, 0xf3ebf849UL), e::buffer("two", 3), value, version));
+    value.push_back(e::slice("value-two-a", 11));
+    value.push_back(e::slice("value-two-b", 11));
+    ASSERT_EQ(hyperdisk::SUCCESS, d->put(coord(0xa3a81e5fUL, 0xf3ebf849UL), e::slice("two", 3), value, version));
 
     // Make sure we can get both.
-    ASSERT_EQ(hyperdisk::SUCCESS, d->get(0xb5e57068UL, e::buffer("one", 3), &value, &version));
+    ASSERT_EQ(hyperdisk::SUCCESS, d->get(0xb5e57068UL, e::slice("one", 3), &value, &version));
     ASSERT_EQ(64, version);
     ASSERT_EQ(1, value.size());
-    ASSERT_TRUE(e::buffer("value-one", 9) == value[0]);
+    ASSERT_TRUE(e::slice("value-one", 9) == value[0]);
 
-    ASSERT_EQ(hyperdisk::SUCCESS, d->get(0xa3a81e5fUL, e::buffer("two", 3), &value, &version));
+    ASSERT_EQ(hyperdisk::SUCCESS, d->get(0xa3a81e5fUL, e::slice("two", 3), &value, &version));
     ASSERT_EQ(128, version);
     ASSERT_EQ(2, value.size());
-    ASSERT_TRUE(e::buffer("value-two-a", 11) == value[0]);
-    ASSERT_TRUE(e::buffer("value-two-b", 11) == value[1]);
+    ASSERT_TRUE(e::slice("value-two-a", 11) == value[0]);
+    ASSERT_TRUE(e::slice("value-two-b", 11) == value[1]);
 
     ASSERT_TRUE(d->fsck());
 }
@@ -131,10 +134,10 @@ TEST(ShardTest, DelPutDelPut)
     po6::io::fd cwd(AT_FDCWD);
     e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create(cwd, "tmp-disk");
     e::guard g = e::makeguard(::unlink, "tmp-disk");
-	e::buffer key("key", 3);
+    e::slice key("key", 3);
 	uint32_t primary_hash = 0x6e9accf9UL;
-    std::vector<e::buffer> value;
-	value.push_back(e::buffer("value", 5));
+    std::vector<e::slice> value;
+	value.push_back(e::slice("value", 5));
     uint64_t version = 0xdeadbeefcafebabe;
 
 	// Alternate put/delete.
@@ -162,7 +165,7 @@ TEST(ShardTest, DelPutDelPut)
     // A GET should succeed.
 	ASSERT_EQ(hyperdisk::SUCCESS, d->get(primary_hash, key, &value, &version));
 	ASSERT_EQ(1, value.size());
-	ASSERT_TRUE(e::buffer("value", 5) == value[0]);
+	ASSERT_TRUE(e::slice("value", 5) == value[0]);
 	ASSERT_EQ(0xdeadbeefcafebabe, version);
 
 	// One last delete.
@@ -180,9 +183,9 @@ TEST(ShardTest, SearchFull)
     e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create(cwd, "tmp-disk");
     e::guard g = e::makeguard(::unlink, "tmp-disk");
 
-	e::buffer key("key", 3);
+    e::slice key("key", 3);
 	uint32_t primary_hash = 0x6e9accf9UL;
-    std::vector<e::buffer> value(1, e::buffer("value", 5));
+    std::vector<e::slice> value(1, e::slice("value", 5));
     uint32_t secondary_hash = 0x2462bca6UL;
 
     for (size_t i = 0; i < 32768; ++i)
@@ -201,27 +204,27 @@ TEST(ShardTest, DataFull)
     po6::io::fd cwd(AT_FDCWD);
     e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create(cwd, "tmp-disk");
     e::guard g = e::makeguard(::unlink, "tmp-disk");
-    std::vector<e::buffer> value;
+    std::vector<e::slice> value;
 
     for (size_t i = 0; i < 32263; ++i)
     {
-        e::buffer key;
-        key.pack() << static_cast<uint64_t>(i) << e::buffer::padding(1018);
-        assert(key.size() == 1026);
+        std::auto_ptr<e::buffer> key(e::buffer::create(1018 + sizeof(uint64_t)));
+        key->pack() << static_cast<uint64_t>(i) << e::buffer::padding(1018);
+        assert(key->size() == 1026);
 
-        ASSERT_EQ(hyperdisk::SUCCESS, d->put(coord(i, 0), key, value, 0));
+        ASSERT_EQ(hyperdisk::SUCCESS, d->put(coord(i, 0), key->as_slice(), value, 0));
         ASSERT_EQ(100 * 1040 * (i + 1) / DATA_SEGMENT_SIZE, d->used_space());
     }
 
-    e::buffer keya;
-    keya.pack() << static_cast<uint64_t>(32263) << e::buffer::padding(891);
-    assert(keya.size() == 899);
-    ASSERT_EQ(hyperdisk::DATAFULL, d->put(coord(32263, 0), keya, value, 0));
+    std::auto_ptr<e::buffer> keya(e::buffer::create(899));
+    keya->pack() << static_cast<uint64_t>(32263) << e::buffer::padding(891);
+    assert(keya->size() == 899);
+    ASSERT_EQ(hyperdisk::DATAFULL, d->put(coord(32263, 0), keya->as_slice(), value, 0));
 
-    e::buffer keyb;
-    keyb.pack() << static_cast<uint64_t>(32263) << e::buffer::padding(890);
-    assert(keyb.size() == 898);
-    ASSERT_EQ(hyperdisk::SUCCESS, d->put(coord(32263, 0), keyb, value, 0));
+    std::auto_ptr<e::buffer> keyb(e::buffer::create(898));
+    keyb->pack() << static_cast<uint64_t>(32263) << e::buffer::padding(890);
+    assert(keyb->size() == 898);
+    ASSERT_EQ(hyperdisk::SUCCESS, d->put(coord(32263, 0), keyb->as_slice(), value, 0));
 
     ASSERT_TRUE(d->fsck());
 }
@@ -232,9 +235,9 @@ TEST(ShardTest, StaleSpaceByEntries)
     e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create(cwd, "tmp-disk");
     e::guard g = e::makeguard(::unlink, "tmp-disk");
 
-	e::buffer key("key", 3);
+    e::slice key("key", 3);
 	uint32_t primary_hash = 0x6e9accf9UL;
-    std::vector<e::buffer> value(1, e::buffer("value", 5));
+    std::vector<e::slice> value(1, e::slice("value", 5));
     uint32_t secondary_hash = 0x2462bca6UL;
 
     for (size_t i = 0; i < 32768; ++i)
@@ -252,14 +255,14 @@ TEST(ShardTest, StaleSpaceByData)
     po6::io::fd cwd(AT_FDCWD);
     e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create(cwd, "tmp-disk");
     e::guard g = e::makeguard(::unlink, "tmp-disk");
-    e::buffer key;
-    key.pack() << e::buffer::padding(2026);
-    std::vector<e::buffer> value;
+    std::auto_ptr<e::buffer> key(e::buffer::create(2026));
+    key->pack() << e::buffer::padding(2026);
+    std::vector<e::slice> value;
 
     for (size_t i = 0; i < 16384; ++i)
     {
-        ASSERT_EQ(hyperdisk::SUCCESS, d->put(coord(0, 0), key, value, 0));
-        ASSERT_EQ(hyperdisk::SUCCESS, d->del(0, key));
+        ASSERT_EQ(hyperdisk::SUCCESS, d->put(coord(0, 0), key->as_slice(), value, 0));
+        ASSERT_EQ(hyperdisk::SUCCESS, d->del(0, key->as_slice()));
         ASSERT_EQ(100 * (i + 1) / 16384, d->stale_space());
     }
 
@@ -272,15 +275,17 @@ TEST(ShardTest, CopyFromFull)
     e::intrusive_ptr<hyperdisk::shard> d = hyperdisk::shard::create(cwd, "tmp-disk");
     e::guard g = e::makeguard(::unlink, "tmp-disk");
     hyperspacehashing::mask::hasher h(std::vector<hyperspacehashing::hash_t>(2, hyperspacehashing::EQUALITY));
-    std::vector<e::buffer> value(1);
-    value[0].pack() << e::buffer::padding(998);
+    std::auto_ptr<e::buffer> value_backing(e::buffer::create(998));
+    std::vector<e::slice> value(1);
+    value_backing->pack() << e::buffer::padding(998);
+    value[0] = value_backing->as_slice();
 
     for (uint64_t i = 0; i < 32768; ++i)
     {
-        e::buffer key;
-        key.pack() << i;
-        hyperspacehashing::mask::coordinate c = h.hash(key, value);
-        ASSERT_EQ(hyperdisk::SUCCESS, d->put(coord(c.primary_hash, c.secondary_lower_hash), key, value, 1));
+        std::auto_ptr<e::buffer> key(e::buffer::create(sizeof(i)));
+        key->pack() << i;
+        hyperspacehashing::mask::coordinate c = h.hash(key->as_slice(), value);
+        ASSERT_EQ(hyperdisk::SUCCESS, d->put(coord(c.primary_hash, c.secondary_lower_hash), key->as_slice(), value, 1));
     }
 
     ASSERT_EQ(0, d->stale_space());
@@ -346,35 +351,35 @@ TEST(ShardTest, SameHashDifferentKey)
 
     uint32_t primary_hash = 0xdeadbeef;
     uint32_t secondary_hash = 0xcafebabe;
-    std::vector<e::buffer> value;
+    std::vector<e::slice> value;
     uint64_t version = 0x41414141;
 
     for (uint64_t i = 0; i < 32768; ++i)
     {
-        e::buffer key;
-        key.pack() << i;
-        ASSERT_EQ(hyperdisk::SUCCESS, d->put(coord(primary_hash, secondary_hash), key, value, version));
+        std::auto_ptr<e::buffer> key(e::buffer::create(sizeof(i)));
+        key->pack() << i;
+        ASSERT_EQ(hyperdisk::SUCCESS, d->put(coord(primary_hash, secondary_hash), key->as_slice(), value, version));
     }
 
     for (uint64_t i = 0; i < 32768; i += 2)
     {
-        e::buffer key;
-        key.pack() << i;
-        ASSERT_EQ(hyperdisk::SUCCESS, d->del(primary_hash, key));
+        std::auto_ptr<e::buffer> key(e::buffer::create(sizeof(i)));
+        key->pack() << i;
+        ASSERT_EQ(hyperdisk::SUCCESS, d->del(primary_hash, key->as_slice()));
     }
 
     for (uint64_t i = 0; i < 32768; ++i)
     {
-        e::buffer key;
-        key.pack() << i;
+        std::auto_ptr<e::buffer> key(e::buffer::create(sizeof(i)));
+        key->pack() << i;
 
         if (i % 2 == 0)
         {
-            ASSERT_EQ(hyperdisk::NOTFOUND, d->get(primary_hash, key, &value, &version));
+            ASSERT_EQ(hyperdisk::NOTFOUND, d->get(primary_hash, key->as_slice(), &value, &version));
         }
         else
         {
-            ASSERT_EQ(hyperdisk::SUCCESS, d->get(primary_hash, key, &value, &version));
+            ASSERT_EQ(hyperdisk::SUCCESS, d->get(primary_hash, key->as_slice(), &value, &version));
             ASSERT_EQ(0, value.size());
             ASSERT_EQ(0x41414141, version);
         }
@@ -394,9 +399,9 @@ TEST(ShardTest, Snapshot)
     EXPECT_FALSE(s1a.valid());
 
     // Put one element and snaphot the disk.
-	const e::buffer key("key", 3);
+	const e::slice key("key", 3);
     const uint32_t primary_hash = 0x6e9accf9UL;
-    const std::vector<e::buffer> value;
+    const std::vector<e::slice> value;
     const uint64_t version = 0xdeadbeefcafebabe;
     ASSERT_EQ(hyperdisk::SUCCESS, d->put(coord(primary_hash, 0), key, value, version));
     hyperdisk::shard_snapshot s2a = d->make_snapshot();
@@ -424,7 +429,7 @@ TEST(ShardTest, Snapshot)
     EXPECT_FALSE(valid);
 
     // Do a put which overwrites the value.
-    const std::vector<e::buffer> value2(1, e::buffer("value", 5));
+    const std::vector<e::slice> value2(1, e::slice("value", 5));
     const uint64_t version2 = 0xcafebabedeadbeef;
     ASSERT_EQ(hyperdisk::SUCCESS, d->put(coord(primary_hash, 0x2462bca6UL), key, value2, version2));
     hyperdisk::shard_snapshot s3a = d->make_snapshot();
@@ -445,12 +450,12 @@ TEST(ShardTest, Snapshot)
     EXPECT_FALSE(s4a.valid());
 
     // Perform back-to-back PUTs.
-    const e::buffer b2b_key1("one", 3);
+    const e::slice b2b_key1("one", 3);
     const uint64_t b2b_version1 = 0x42424242;
-    const std::vector<e::buffer> b2b_value1(2, e::buffer("value-1", 7));
-    const e::buffer b2b_key2("two", 3);
+    const std::vector<e::slice> b2b_value1(2, e::slice("value-1", 7));
+    const e::slice b2b_key2("two", 3);
     const uint64_t b2b_version2 = 0x41414141;
-    const std::vector<e::buffer> b2b_value2(2, e::buffer("value-2", 7));
+    const std::vector<e::slice> b2b_value2(2, e::slice("value-2", 7));
     ASSERT_EQ(hyperdisk::SUCCESS, d->put(coord(0xb5e57068UL, 0x303c3c33UL), b2b_key1, b2b_value1, b2b_version1));
     ASSERT_EQ(hyperdisk::SUCCESS, d->put(coord(0xa3a81e5fUL, 0xf3f333UL), b2b_key2, b2b_value2, b2b_version2));
     hyperdisk::shard_snapshot s5a = d->make_snapshot();
