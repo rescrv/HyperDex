@@ -28,12 +28,10 @@
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 AM_CXXFLAGS = $(COVERAGE_CXXFLAGS)
 
-SUBDIRS = . ${java_bindings_subdir} ${ycsb_driver_subdir}
-
 EXTRA_DIST = \
 			LICENSE \
 			$(libhyperclient_extra_dist) \
-			$(python_bindings_extra_dist)
+			$(ycsb_extra_dist)
 
 BUILT_SOURCES =
 
@@ -52,7 +50,8 @@ noinst_HEADERS = \
 			$(libhyperspacehashing_noinst_headers) \
 			$(libhyperdisk_noinst_headers) \
 			$(libhyperdex_noinst_headers) \
-			$(libhyperdaemon_noinst_headers)
+			$(libhyperdaemon_noinst_headers) \
+			$(java_bindings_noinst_headers)
 
 bin_PROGRAMS = \
 			daemon \
@@ -78,6 +77,12 @@ nobase_python_PYTHON = \
 			hdcoordinator/__init__.py \
 			hdcoordinator/coordinator.py \
 			hdcoordinator/parser.py
+
+CLEANFILES = \
+			$(java_bindings_cleanfiles) \
+			$(ycsb_cleanfiles)
+
+JAVAROOT = $(abs_top_srcdir)
 
 .PHONY: coverage
 
@@ -343,7 +348,8 @@ libhyperdaemon_la_CPPFLAGS = \
 #################################### Library ###################################
 
 libhyperclient_extra_dist = \
-			hyperclient/hyperclient.i
+			hyperclient/java/hyperclient.i \
+			hyperclient/python/hyperclient.pyx
 
 libhyperclient_includedir = $(includedir)
 libhyperclient_include_HEADERS = \
@@ -360,16 +366,49 @@ libhyperclient_la_CPPFLAGS = \
 
 ################################# Java Bindings ################################
 
+java_bindings_noinst_headers = \
+			hyperclient/java/syncclient.h
+java_bindings_cleanfiles = \
+			$(hyperclient_jarfile) \
+			hyperclient/java/hyperclient_wrap.cxx \
+			hyperclient/java/hyperclient/*.java \
+			hyperclient/java/hyperclient/*.class \
+			hyperclient-java.stamp
+
+libhyperclient_java_la_SOURCES = hyperclient/java/syncclient.cc
+nodist_libhyperclient_java_la_SOURCES = hyperclient/java/hyperclient_wrap.cxx
+libhyperclient_java_la_CPPFLAGS = \
+			${JNI_CPPFLAGS}
+libhyperclient_java_la_CXXFLAGS = \
+			-fno-strict-aliasing
+libhyperclient_java_la_LIBADD = \
+			libhyperspacehashing.la \
+			libhyperclient.la \
+			$(HYPERCLIENT_LDADD) \
+			$(PYTHON_LDFLAGS) \
+			$(COVERAGE_LDADD)
+
+hyperclient/java/hyperclient_wrap.cxx: hyperclient/java/hyperclient.i hyperclient/hyperclient.h hyperclient/java/syncclient.h
+	mkdir -p hyperclient/java/hyperclient
+	${SWIG} -java -package hyperclient -outdir $(abs_builddir)/hyperclient/java/hyperclient \
+		-o $(abs_builddir)/hyperclient/java/hyperclient_wrap.cxx -w518 $(abs_top_srcdir)/hyperclient/java/hyperclient.i
+
+hyperclient_jarfile = hyperclient-$(VERSION).jar
+
+hyperclient-java.stamp: hyperclient/java/hyperclient_wrap.cxx
+	javac hyperclient/java/hyperclient/*.java
+	date > hyperclient-java.stamp
+
+$(hyperclient_jarfile): hyperclient-java.stamp
+	cd $(abs_top_builddir)/hyperclient/java ; $(JAR) cvf $(JARFLAGS) $(abs_top_builddir)/$(hyperclient_jarfile) hyperclient/*.class
+
 if ENABLE_JAVA_BINDINGS
-java_bindings_subdir = hyperclient/java
-else
-java_bindings_subdir =
+lib_LTLIBRARIES += libhyperclient-java.la
+hyperclientjardir = $(datadir)/java
+hyperclientjar_DATA = $(hyperclient_jarfile)
 endif
 
 ################################ Python Bindings ###############################
-
-python_bindings_extra_dist = \
-			hyperclient/python/hyperclient.pyx
 
 if ENABLE_PYTHON_BINDINGS
 BUILT_SOURCES += \
@@ -404,10 +443,25 @@ hyperclient_python_hyperclient_la_LDFLAGS = \
 
 ##################################### YCSB #####################################
 
-if ENABLE_YCSB_DRIVER
-ycsb_driver_subdir = ycsb
-else
-ycsb_driver_subdir =
+ycsb_extra_dist = \
+			ycsb/hyperclient/HyperClientYCSB.java
+
+ycsb_cleanfiles = \
+			$(ycsb_jarfile) \
+			ycsb/hyperclient/HyperClientYCSB.class
+
+ycsb_jarfile = hyperclient-ycsb-$(VERSION).jar
+
+ycsb/hyperclient/HyperClientYCSB.class: $(hyperclient_jarfile) ycsb/hyperclient/HyperClientYCSB.java
+	mkdir -p $(abs_top_builddir)/ycsb/hyperclient
+	javac -cp $(abs_top_builddir)/$(hyperclient_jarfile):$(CLASSPATH) -d $(abs_top_builddir)/ycsb $(abs_top_srcdir)/ycsb/hyperclient/HyperClientYCSB.java
+
+$(ycsb_jarfile): ycsb/hyperclient/HyperClientYCSB.class
+	cd $(abs_top_builddir)/ycsb; $(JAR) cvf $(JARFLAGS) $(abs_top_builddir)/$(ycsb_jarfile) hyperclient/HyperClientYCSB.class
+
+if ENABLE_JAVA_BINDINGS
+ycsbjardir = $(datadir)/java
+ycsbjar_DATA = $(ycsb_jarfile)
 endif
 
 ################################################################################

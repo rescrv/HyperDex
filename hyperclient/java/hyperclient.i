@@ -37,7 +37,7 @@
 %javaconst(1);
 
 %{
-#include "syncclient.h"
+#include "hyperclient/java/syncclient.h"
 %}
 
 typedef uint16_t in_port_t;

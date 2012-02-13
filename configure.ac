@@ -160,7 +160,5 @@ AM_CONDITIONAL([ENABLE_PYTHON_BINDINGS], [test x"${python_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_YCSB_DRIVER], [test x"${enable_ycsb}" = xyes])
 AM_CONDITIONAL([ENABLE_COVERAGE], [test x"${enable_coverage}" = xyes])
 
-AC_CONFIG_FILES([Makefile
-                 hyperclient/java/Makefile
-                 ycsb/Makefile])
+AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
