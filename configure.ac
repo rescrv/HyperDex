@@ -152,9 +152,6 @@ if test x"${enable_logall}" = xyes; then
     AC_DEFINE([HD_LOG_ALL_MESSAGES], [], [Log all network traffic at the INFO level])
 fi
 
-AC_SUBST([HYPERSPACEHASHING_LDADD], ["-lcityhash -le"])
-AC_SUBST([HYPERDISK_LDADD], ["-lpthread ${HYPERSPACEHASHING_LDADD}"])
-AC_SUBST([HYPERCLIENT_LDADD], ["${HYPERSPACEHASHING_LDADD} -lrt"])
 AM_CONDITIONAL([ENABLE_JAVA_BINDINGS], [test x"${java_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_PYTHON_BINDINGS], [test x"${python_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_YCSB_DRIVER], [test x"${enable_ycsb}" = xyes])

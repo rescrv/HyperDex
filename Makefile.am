@@ -115,6 +115,9 @@ libhyperspacehashing_la_SOURCES = \
 libhyperspacehashing_la_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
 			$(CPPFLAGS)
+libhyperspacehashing_la_LIBADD = \
+			-lcityhash \
+			-le
 
 ##################################### Tests ####################################
 
@@ -134,8 +137,6 @@ hyperspacehashing_test_bithacks_SOURCES = \
 			hyperspacehashing/test/bithacks.cc
 hyperspacehashing_test_bithacks_LDADD = \
 			libhyperspacehashing.la \
-			$(HYPERSPACEHASHING_LDADD) \
-			$(COVERAGE_LDADD) \
 			$(GTEST_LIBS)
 hyperspacehashing_test_bithacks_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
@@ -145,7 +146,6 @@ hyperspacehashing_test_cfloat_SOURCES = \
 			hyperspacehashing/test/cfloat.cc
 hyperspacehashing_test_cfloat_LDADD = \
 			libhyperspacehashing.la \
-			$(HYPERSPACEHASHING_LDADD) \
 			$(COVERAGE_LDADD)
 hyperspacehashing_test_cfloat_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
@@ -156,7 +156,6 @@ hyperspacehashing_test_mask_SOURCES = \
 			hyperspacehashing/test/mask.cc
 hyperspacehashing_test_mask_LDADD = \
 			libhyperspacehashing.la \
-			$(HYPERSPACEHASHING_LDADD) \
 			$(COVERAGE_LDADD) \
 			$(GTEST_LIBS)
 hyperspacehashing_test_mask_CPPFLAGS = \
@@ -168,7 +167,6 @@ hyperspacehashing_test_prefix_SOURCES = \
 			hyperspacehashing/test/prefix.cc
 hyperspacehashing_test_prefix_LDADD = \
 			libhyperspacehashing.la \
-			$(HYPERSPACEHASHING_LDADD) \
 			$(COVERAGE_LDADD) \
 			$(GTEST_LIBS)
 hyperspacehashing_test_prefix_CPPFLAGS = \
@@ -179,7 +177,6 @@ hyperspacehashing_test_search_SOURCES = \
 			hyperspacehashing/test/search.cc
 hyperspacehashing_test_search_LDADD = \
 			libhyperspacehashing.la \
-			$(HYPERSPACEHASHING_LDADD) \
 			$(COVERAGE_LDADD)
 hyperspacehashing_test_search_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
@@ -195,7 +192,6 @@ hyperspacehashing_utils_cfloat_SOURCES = \
 			hyperspacehashing/utils/cfloat.cc
 hyperspacehashing_utils_cfloat_LDADD = \
 			libhyperspacehashing.la \
-			$(HYPERSPACEHASHING_LDADD) \
 			$(COVERAGE_LDADD)
 
 ################################################################################
@@ -228,7 +224,7 @@ libhyperdisk_la_SOURCES = \
 			hyperdisk/snapshot.cc
 libhyperdisk_la_LIBADD = \
 			libhyperspacehashing.la \
-			$(HYPERSPACEHASHING_LDADD) \
+			-lpthread
 			$(COVERAGE_LDADD)
 libhyperdisk_la_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
@@ -249,7 +245,6 @@ hyperdisk_test_shard_SOURCES = \
 hyperdisk_test_shard_LDADD = \
 			libhyperspacehashing.la \
 			libhyperdisk.la \
-			$(HYPERDISK_LDADD) \
 			$(COVERAGE_LDADD) \
 			$(GTEST_LIBS)
 hyperdisk_test_shard_CPPFLAGS = \
@@ -268,7 +263,6 @@ hyperdisk_utils_shard_dumphashes_SOURCES = \
 hyperdisk_utils_shard_dumphashes_LDADD = \
 			libhyperspacehashing.la \
 			libhyperdisk.la \
-			$(HYPERDISK_LDADD) \
 			$(COVERAGE_LDADD)
 hyperdisk_utils_shard_dumphashes_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
@@ -279,7 +273,6 @@ hyperdisk_utils_shard_fsck_SOURCES = \
 hyperdisk_utils_shard_fsck_LDADD = \
 			libhyperspacehashing.la \
 			libhyperdisk.la \
-			$(HYPERDISK_LDADD) \
 			$(COVERAGE_LDADD)
 hyperdisk_utils_shard_fsck_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
@@ -341,8 +334,6 @@ libhyperdaemon_la_LIBADD = \
 			libhyperdex.la \
 			libhyperspacehashing.la \
 			libhyperdisk.la \
-			$(HYPERSPACEHASHING_LDADD) \
-			$(HYPERDISK_LDADD) \
 			$(COVERAGE_LDADD)
 libhyperdaemon_la_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
@@ -369,7 +360,7 @@ libhyperclient_la_SOURCES = \
 libhyperclient_la_LIBADD = \
 			libhyperspacehashing.la \
 			libhyperdex.la \
-			$(HYPERSPACEHASHING_LDADD) \
+			-le
 			$(COVERAGE_LDADD)
 libhyperclient_la_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
@@ -396,7 +387,6 @@ libhyperclient_java_la_CXXFLAGS = \
 libhyperclient_java_la_LIBADD = \
 			libhyperspacehashing.la \
 			libhyperclient.la \
-			$(HYPERCLIENT_LDADD) \
 			$(PYTHON_LDFLAGS) \
 			$(COVERAGE_LDADD)
 
@@ -441,7 +431,6 @@ hyperclient_python_hyperclient_la_CPPFLAGS = \
 hyperclient_python_hyperclient_la_LIBADD = \
 			libhyperspacehashing.la \
 			libhyperclient.la \
-			$(HYPERCLIENT_LDADD) \
 			$(PYTHON_LDFLAGS) \
 			$(COVERAGE_LDADD)
 hyperclient_python_hyperclient_la_LDFLAGS = \
@@ -483,10 +472,8 @@ endif
 daemon_SOURCES = \
 			daemon.cc
 daemon_LDADD = \
-			libhyperspacehashing.la \
 			libhyperdisk.la \
 			libhyperdaemon.la \
-			$(HYPERDISK_LDADD) \
 			$(COVERAGE_LDADD) \
 			-lglog -lrt
 daemon_LDFLAGS = \
@@ -495,20 +482,16 @@ daemon_LDFLAGS = \
 binary_test_SOURCES = \
 			binary-test.cc
 binary_test_LDADD = \
-			libhyperspacehashing.la \
 			libhyperclient.la \
-			$(HYPERSPACEHASHING_LDADD) \
-			$(HYPERCLIENT_LDADD) \
-			libhyperclient.la
+			-lrt
 binary_test_LDFLAGS = \
 			-no-install
 
 count_test_SOURCES = \
 			count-test.cc
 count_test_LDADD = \
-			libhyperspacehashing.la \
 			libhyperclient.la \
-			$(HYPERCLIENT_LDADD) \
+			-lrt
 			$(COVERAGE_LDADD)
 
 replication_stress_test_SOURCES = \
@@ -518,9 +501,6 @@ replication_stress_test_CPPFLAGS = \
 			$(CPPFLAGS)
 replication_stress_test_LDADD = \
 			libhyperspacehashing.la \
-			libhyperclient.la \
-			$(HYPERSPACEHASHING_LDADD) \
-			$(HYPERCLIENT_LDADD) \
 			libhyperclient.la
 replication_stress_test_LDFLAGS = \
 			-no-install
@@ -528,11 +508,9 @@ replication_stress_test_LDFLAGS = \
 trace_player_SOURCES = \
 			trace-player.cc
 trace_player_LDADD = \
+			libhyperclient.la \
 			-lbsd \
-			$(HYPERSPACEHASHING_LDADD) \
-			$(HYPERCLIENT_LDADD) \
-			libhyperspacehashing.la \
-			libhyperclient.la
+			-lrt
 trace_player_LDFLAGS = \
 			-no-install
 
