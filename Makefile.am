@@ -226,6 +226,10 @@ libhyperdisk_la_SOURCES = \
 			hyperdisk/shard_snapshot.cc \
 			hyperdisk/shard_vector.cc \
 			hyperdisk/snapshot.cc
+libhyperdisk_la_LIBADD = \
+			libhyperspacehashing.la \
+			$(HYPERSPACEHASHING_LDADD) \
+			$(COVERAGE_LDADD)
 libhyperdisk_la_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
 			-I$(abs_top_srcdir)/hyperdisk \
@@ -334,7 +338,12 @@ libhyperdaemon_la_SOURCES = \
 			hyperdaemon/runtimeconfig.cc \
 			hyperdaemon/searches.cc
 libhyperdaemon_la_LIBADD = \
-			libhyperdex.la
+			libhyperdex.la \
+			libhyperspacehashing.la \
+			libhyperdisk.la \
+			$(HYPERSPACEHASHING_LDADD) \
+			$(HYPERDISK_LDADD) \
+			$(COVERAGE_LDADD)
 libhyperdaemon_la_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
 			-I$(abs_top_srcdir)/hyperdisk \
@@ -358,7 +367,10 @@ libhyperclient_include_HEADERS = \
 libhyperclient_la_SOURCES = \
 			hyperclient/hyperclient.cc
 libhyperclient_la_LIBADD = \
-			libhyperdex.la
+			libhyperspacehashing.la \
+			libhyperdex.la \
+			$(HYPERSPACEHASHING_LDADD) \
+			$(COVERAGE_LDADD)
 libhyperclient_la_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
 			-I$(abs_top_srcdir)/hyperdex \
