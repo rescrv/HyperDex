@@ -1,3 +1,9 @@
 HyperDex is a distributed, searchable, and consistent key-value store.
 
 More information is available at http://hyperdex.org/
+
+Dependencies:
+    Google's CityHash 1.0.x (http://code.google.com/p/cityhash/)
+    Google's glog 0.3.x (http://code.google.com/p/google-glog/)
+    e 0.2.x (obtain from HyperDex.org)
+    po6 0.2.x (obtain from HyperDex.org)
