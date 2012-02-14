@@ -340,7 +340,7 @@ hyperdaemon :: datalayer :: optimistic_io_thread()
         do
         {
             e::sleep_ms(0, 10);
-        } while (!__sync_and_and_fetch(&m_flushed_recently, true));
+        } while (!m_shutdown && !__sync_and_and_fetch(&m_flushed_recently, true));
     }
 }
 
