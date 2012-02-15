@@ -73,6 +73,8 @@ AC_SUBST([COVERAGE_LDADD], [${COVERAGE_LDADD}])
 
 # Checks for libraries.
 GTEST_LIB_CHECK
+PKG_CHECK_MODULES([PO6], [libpo6 >= 0.2.1])
+PKG_CHECK_MODULES([E], [libe >= 0.2.2])
 
 # Checks for header files.
 AC_CHECK_HEADERS([netinet/in.h stdint.h stdlib.h sys/socket.h unistd.h])
@@ -85,16 +87,6 @@ AC_CHECK_HEADER([glog/logging.h],,[AC_MSG_ERROR([
 -------------------------------------------------
 HyperDex relies upon the glog library.
 Please install glog to continue.
--------------------------------------------------])])
-AC_CHECK_HEADER([po6/error.h],,[AC_MSG_ERROR([
--------------------------------------------------
-HyperDex relies upon the po6 library.
-Please install po6 to continue.
--------------------------------------------------])])
-AC_CHECK_HEADER([e/buffer.h],,[AC_MSG_ERROR([
--------------------------------------------------
-HyperDex relies upon the e library.
-Please install e to continue.
 -------------------------------------------------])])
 
 # Checks for typedefs, structures, and compiler characteristics.
