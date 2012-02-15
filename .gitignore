@@ -81,6 +81,7 @@ hyperdisk/libhyperdisk_la-snapshot.lo
 hyperdisk/libhyperdisk_la-snapshot.o
 hyperdisk/.libs/
 hyperdisk/test/.deps/
+hyperdisk/test/.dirstamp
 hyperdisk/utils/.deps/
 hyperdisk/utils/.dirstamp
 hyperdisk/utils/hyperdisk_utils_shard_dumphashes-shard-dumphashes.o
@@ -104,6 +105,7 @@ hyperspacehashing/libhyperspacehashing_la-search.lo
 hyperspacehashing/libhyperspacehashing_la-search.o
 hyperspacehashing/.libs/
 hyperspacehashing/test/.deps/
+hyperspacehashing/test/.dirstamp
 hyperspacehashing/utils/cfloat
 hyperspacehashing/utils/cfloat.o
 hyperspacehashing/utils/.deps/
