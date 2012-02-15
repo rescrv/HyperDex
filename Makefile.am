@@ -374,6 +374,7 @@ libhyperclient_la_SOURCES = \
 libhyperclient_la_LIBADD = \
 			libhyperspacehashing.la \
 			libhyperdex.la \
+			$(E_LIBS) \
 			$(COVERAGE_LDADD)
 libhyperclient_la_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
