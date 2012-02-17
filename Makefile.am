@@ -33,8 +33,6 @@ EXTRA_DIST = \
 			$(libhyperclient_extra_dist) \
 			$(ycsb_extra_dist)
 
-BUILT_SOURCES =
-
 lib_LTLIBRARIES = \
 			libhyperspacehashing.la \
 			libhyperdisk.la \
@@ -429,9 +427,6 @@ endif
 ################################ Python Bindings ###############################
 
 if ENABLE_PYTHON_BINDINGS
-BUILT_SOURCES += \
-			hyperclient/python/hyperclient.c
-
 pyexec_LTLIBRARIES += \
 			hyperclient/python/hyperclient.la
 endif
