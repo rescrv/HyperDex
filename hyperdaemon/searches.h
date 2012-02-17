@@ -72,6 +72,7 @@ class searches
                    const hyperdex::entityid& client,
                    uint64_t searchid,
                    uint64_t nonce,
+                   std::auto_ptr<e::buffer> msg,
                    const hyperspacehashing::search& wc);
         void next(const hyperdex::entityid& us,
                   const hyperdex::entityid& client,
@@ -107,6 +108,7 @@ class searches::search_state
     public:
         search_state(const hyperdex::regionid& region,
                      const hyperspacehashing::mask::coordinate& search_coord,
+                     std::auto_ptr<e::buffer> msg,
                      const hyperspacehashing::search& terms,
                      e::intrusive_ptr<hyperdisk::snapshot> snap);
         ~search_state() throw ();
@@ -115,6 +117,7 @@ class searches::search_state
         po6::threads::mutex lock;
         const hyperdex::regionid region;
         const hyperspacehashing::mask::coordinate search_coord;
+        const std::auto_ptr<e::buffer> backing;
         hyperspacehashing::search terms;
         e::intrusive_ptr<hyperdisk::snapshot> snap;
 
