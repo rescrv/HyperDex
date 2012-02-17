@@ -69,7 +69,6 @@ check_PROGRAMS = \
 TESTS = \
 			$(libhyperspacehashing_tests) \
 			$(libhyperdisk_tests)
-XFAIL_TESTS =
 
 nobase_python_PYTHON = \
 			hdcoordinator/__init__.py \
@@ -128,8 +127,6 @@ libhyperspacehashing_check_programs = \
 			hyperspacehashing/test/prefix \
 			hyperspacehashing/test/search
 libhyperspacehashing_tests = $(libhyperspacehashing_check_programs)
-XFAIL_TESTS += hyperspacehashing/test/prefix \
-			hyperspacehashing/test/mask
 
 hyperspacehashing_test_bithacks_SOURCES = \
 			runner.cc \
@@ -243,7 +240,6 @@ if HAVE_GTEST
 libhyperdisk_check_programs = \
 			hyperdisk/test/shard
 libhyperdisk_tests = $(libhyperdisk_check_programs)
-XFAIL_TESTS += hyperdisk/test/shard
 
 hyperdisk_test_shard_SOURCES = \
 			runner.cc \
@@ -487,8 +483,6 @@ daemon_LDADD = \
 			libhyperdaemon.la \
 			$(COVERAGE_LDADD) \
 			-lglog -lrt
-daemon_LDFLAGS = \
-			-no-install
 daemon_CPPFLAGS = \
 			$(PO6_CFLAGS) \
 			$(CPPFLAGS)
