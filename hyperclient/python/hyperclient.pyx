@@ -92,6 +92,7 @@ cdef extern from "../hyperclient.h":
     void hyperclient_destroy_attrs(hyperclient_attribute* attrs, size_t attrs_sz)
 
 import collections
+import struct
 
 class HyperClientException(Exception):
 
@@ -192,9 +193,12 @@ cdef class DeferredInsert(Deferred):
                 malloc(sizeof(hyperclient_attribute) * len(value))
         try:
             for i, a in enumerate(value.iteritems()):
-                attrs[i].attr = a[0]
-                attrs[i].value = a[1]
-                attrs[i].value_sz = len(a[1])
+                a, v = a
+                if isinstance(v, int):
+                    v = struct.pack('Q', v)
+                attrs[i].attr = a
+                attrs[i].value = v
+                attrs[i].value_sz = len(v)
             self._reqid = hyperclient_put(client._client, space_cstr,
                                           key_cstr, len(key),
                                           attrs, len(value),
