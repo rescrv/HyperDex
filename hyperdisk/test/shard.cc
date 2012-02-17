@@ -195,8 +195,6 @@ TEST(ShardTest, SearchFull)
     }
 
     ASSERT_EQ(hyperdisk::SEARCHFULL, d->put(coord(primary_hash, secondary_hash), key, value, 0));
-
-    ASSERT_TRUE(d->fsck());
 }
 
 TEST(ShardTest, DataFull)

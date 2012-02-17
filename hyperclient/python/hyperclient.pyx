@@ -87,13 +87,37 @@ cdef extern from "../hyperclient.h":
     int64_t hyperclient_get(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_returncode* status, hyperclient_attribute** attrs, size_t* attrs_sz)
     int64_t hyperclient_put(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_del(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_returncode* status)
-    int64_t hyperclient_search(hyperclient* client, char* space, hyperclient_attribute* eq, size_t eq_sz, hyperclient_range_query* rn, size_t rn_sz, hyperclient_returncode* status, char** key, size_t* key_sz, hyperclient_attribute** attrs, size_t* attrs_sz)
+    int64_t hyperclient_search(hyperclient* client, char* space, hyperclient_attribute* eq, size_t eq_sz, hyperclient_range_query* rn, size_t rn_sz, hyperclient_returncode* status, hyperclient_attribute** attrs, size_t* attrs_sz)
     int64_t hyperclient_loop(hyperclient* client, int timeout, hyperclient_returncode* status)
     void hyperclient_destroy_attrs(hyperclient_attribute* attrs, size_t attrs_sz)
 
 import collections
+import struct
 
-class HyperClientException(Exception): pass
+class HyperClientException(Exception):
+
+    def __init__(self, status, attr=None):
+        self._s = {HYPERCLIENT_SUCCESS: 'Success'
+                  ,HYPERCLIENT_NOTFOUND: 'Not Found'
+                  ,HYPERCLIENT_SEARCHDONE: 'Search Done'
+                  ,HYPERCLIENT_UNKNOWNSPACE: 'Unknown Space'
+                  ,HYPERCLIENT_COORDFAIL: 'Coordinator Failure'
+                  ,HYPERCLIENT_SERVERERROR: 'Server Error'
+                  ,HYPERCLIENT_CONNECTFAIL: 'Connection Failure'
+                  ,HYPERCLIENT_DISCONNECT: 'Connection Reset'
+                  ,HYPERCLIENT_RECONFIGURE: 'Reconfiguration'
+                  ,HYPERCLIENT_LOGICERROR: 'Logic Error (file a bug)'
+                  ,HYPERCLIENT_TIMEOUT: 'Timeout'
+                  ,HYPERCLIENT_UNKNOWNATTR: 'Unknown attribute "%s"' % attr
+                  ,HYPERCLIENT_DUPEATTR: 'Duplicate attribute "%s"' % attr
+                  ,HYPERCLIENT_SEEERRNO: 'See ERRNO'
+                  ,HYPERCLIENT_NONEPENDING: 'None pending'
+                  ,HYPERCLIENT_DONTUSEKEY: "Don't use the key in the search predicate"
+                  ,HYPERCLIENT_EXCEPTION: 'Internal Error (file a bug)'
+                  }.get(status, 'Unknown Error (file a bug)')
+
+    def __str__(self):
+        return self._s
 
 cdef class Deferred:
 
@@ -140,6 +164,8 @@ cdef class DeferredLookup(Deferred):
                                       key_cstr, len(key),
                                       &self._status,
                                       &self._attrs, &self._attrs_sz)
+        if self._reqid < 0:
+            raise HyperClientException(self._status)
 
     def __dealloc__(self):
         if self._attrs:
@@ -165,15 +191,22 @@ cdef class DeferredInsert(Deferred):
         cdef hyperclient_attribute* attrs = \
                 <hyperclient_attribute*> \
                 malloc(sizeof(hyperclient_attribute) * len(value))
-        for i, a in enumerate(value.iteritems()):
-            attrs[i].attr = a[0]
-            attrs[i].value = a[1]
-            attrs[i].value_sz = len(a[1])
-        self._reqid = hyperclient_put(client._client, space_cstr,
-                                      key_cstr, len(key),
-                                      attrs, len(value),
-                                      &self._status)
-        free(attrs)
+        try:
+            for i, a in enumerate(value.iteritems()):
+                a, v = a
+                if isinstance(v, int):
+                    v = struct.pack('Q', v)
+                attrs[i].attr = a
+                attrs[i].value = v
+                attrs[i].value_sz = len(v)
+            self._reqid = hyperclient_put(client._client, space_cstr,
+                                          key_cstr, len(key),
+                                          attrs, len(value),
+                                          &self._status)
+            if self._reqid < 0:
+                raise HyperClientException(self._status, attrs[-1 - self._reqid].attr)
+        finally:
+            free(attrs)
 
     def wait(self):
         Deferred.wait(self)
@@ -186,18 +219,116 @@ cdef class DeferredRemove(Deferred):
         cdef char* key_cstr = key
         self._reqid = hyperclient_del(client._client, space_cstr,
                                       key_cstr, len(key), &self._status)
+        if self._reqid < 0:
+            raise HyperClientException(self._status)
 
     def wait(self):
         Deferred.wait(self)
         return self._status == HYPERCLIENT_SUCCESS
 
+cdef class Search:
+
+    cdef Client _client
+    cdef int64_t _reqid
+    cdef hyperclient_returncode _status
+    cdef bint _finished
+    cdef hyperclient_attribute* _attrs
+    cdef size_t _attrs_sz
+    cdef bytes _space
+    cdef list _backlogged
+
+    def __cinit__(self, Client client, bytes space, dict predicate):
+        self._client = client
+        self._reqid = 0
+        self._status = HYPERCLIENT_ZERO
+        self._finished = False
+        self._attrs = <hyperclient_attribute*> NULL
+        self._attrs_sz = 0
+        self._space = space
+        self._backlogged = []
+        cdef uint64_t lower
+        cdef uint64_t upper
+        equalities = []
+        ranges = []
+        for attr, params in predicate.iteritems():
+            if isinstance(params, tuple):
+                (lower, upper) = params
+                ranges.append((attr, lower, upper))
+            elif isinstance(params, bytes):
+                equalities.append((attr, params))
+            else:
+                errstr = "Attribute '{attr}' has incorrect type (expected (int, int) or bytes, got {type}"
+                raise TypeError(errstr.format(attr=attr, type=str(type(params))[7:-2]))
+        cdef hyperclient_attribute* eq = NULL
+        cdef hyperclient_range_query* rm = NULL
+        try:
+            eq = <hyperclient_attribute*> \
+                 malloc(sizeof(hyperclient_attribute) * len(equalities))
+            rn = <hyperclient_range_query*> \
+                 malloc(sizeof(hyperclient_range_query) * len(ranges))
+            for i, (attr, value) in enumerate(equalities):
+                eq[i].attr = attr
+                eq[i].value = value
+                eq[i].value_sz = len(value)
+            for i, (attr, lower, upper) in enumerate(ranges):
+                rn[i].attr = attr
+                rn[i].lower = lower
+                rn[i].upper = upper
+            self._reqid = hyperclient_search(client._client,
+                                             self._space,
+                                             eq, len(equalities),
+                                             rn, len(ranges),
+                                             &self._status,
+                                             &self._attrs,
+                                             &self._attrs_sz)
+            if self._reqid < 0:
+                idx = -1 - self._reqid
+                if idx < len(equalities):
+                    attr = eq[idx].attr
+                else:
+                    attr = rn[idx - len(equalities)].attr
+                raise HyperClientException(self._status, attr)
+            client._searches[self._reqid] = self
+        finally:
+            if eq: free(eq)
+            if rn: free(rn)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        while not self._finished and not self._backlogged:
+            self._client.loop()
+        if self._backlogged:
+            return self._backlogged.pop()
+        del self._client._searches[self._reqid]
+        raise StopIteration()
+
+    def _callback(self):
+        if self._status == HYPERCLIENT_SEARCHDONE:
+            self._finished = True
+        elif self._status == HYPERCLIENT_SUCCESS:
+            try:
+                attrs = {}
+                for i in range(self._attrs_sz):
+                    attrs[self._attrs[i].attr] = \
+                            self._attrs[i].value[:self._attrs[i].value_sz]
+            finally:
+                if self._attrs: free(self._attrs)
+            attrstr = ' '.join(sorted(attrs.keys()))
+            self._backlogged.append(collections.namedtuple(self._space, attrstr)(**attrs))
+        else:
+            self._backlogged.append(HyperClientException(self._status))
+
 cdef class Client:
     cdef hyperclient* _client
     cdef set _pending
+    cdef dict _searches
 
     def __cinit__(self, address, port):
         self._client = hyperclient_create(address, port)
         self._pending = set([])
+        self._searches = {}
 
     def __dealloc__(self):
         if self._client:
@@ -216,9 +347,7 @@ cdef class Client:
         return async.wait()
 
     def search(self, bytes space, dict predicate):
-        #async = self.async_search(space, predicate)
-        #return async.wait()
-        return False
+        return Search(self, space, predicate)
 
     def async_lookup(self, bytes space, bytes key):
         return DeferredLookup(self, space, key)
@@ -229,14 +358,13 @@ cdef class Client:
     def async_remove(self, bytes space, bytes key):
         return DeferredRemove(self, space, key)
 
-    def async_search(self, bytes space, dict predicate):
-        #return DeferredSearch(self, space, predicate)
-        return False
-
     def loop(self):
         cdef hyperclient_returncode rc
         ret = hyperclient_loop(self._client, -1, &rc)
         if ret < 0:
             raise HyperClientException(rc)
         else:
-            self._pending.add(ret)
+            if ret in self._searches:
+                self._searches[ret]._callback()
+            else:
+                self._pending.add(ret)

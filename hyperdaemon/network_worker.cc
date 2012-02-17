@@ -205,7 +205,7 @@ hyperdaemon :: network_worker :: run()
 
             if (s.sanity_check())
             {
-                m_ssss->start(to, from, searchid, nonce, s);
+                m_ssss->start(to, from, searchid, nonce, msg, s);
             }
             else
             {

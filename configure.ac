@@ -73,8 +73,8 @@ AC_SUBST([COVERAGE_LDADD], [${COVERAGE_LDADD}])
 
 # Checks for libraries.
 GTEST_LIB_CHECK
-PKG_CHECK_MODULES([PO6], [libpo6 >= 0.2.1])
-PKG_CHECK_MODULES([E], [libe >= 0.2.2])
+PKG_CHECK_MODULES([PO6], [libpo6 >= 0.2])
+PKG_CHECK_MODULES([E], [libe >= 0.2])
 
 # Checks for header files.
 AC_CHECK_HEADERS([netinet/in.h stdint.h stdlib.h sys/socket.h unistd.h])

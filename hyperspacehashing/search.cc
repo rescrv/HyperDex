@@ -29,6 +29,8 @@
 #include "hashes_internal.h"
 #include <hyperspacehashing/search.h>
 
+#include <iostream>
+
 hyperspacehashing :: search :: search(size_t n)
     : m_equality_bits(n)
     , m_equality(n)

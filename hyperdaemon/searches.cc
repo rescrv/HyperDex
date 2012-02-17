@@ -85,6 +85,7 @@ hyperdaemon :: searches :: start(const hyperdex::entityid& us,
                                  const hyperdex::entityid& client,
                                  uint64_t search_num,
                                  uint64_t nonce,
+                                 std::auto_ptr<e::buffer> msg,
                                  const hyperspacehashing::search& terms)
 {
     search_id key(us.get_region(), client, search_num);
@@ -104,7 +105,7 @@ hyperdaemon :: searches :: start(const hyperdex::entityid& us,
     hyperspacehashing::mask::hasher hasher(m_config.disk_hasher(us.get_subspace()));
     hyperspacehashing::mask::coordinate coord(hasher.hash(terms));
     e::intrusive_ptr<hyperdisk::snapshot> snap = m_data->make_snapshot(us.get_region(), terms);
-    e::intrusive_ptr<search_state> state = new search_state(us.get_region(), coord, terms, snap);
+    e::intrusive_ptr<search_state> state = new search_state(us.get_region(), coord, msg, terms, snap);
     m_searches.insert(key, state);
     next(us, client, search_num, nonce);
 }
@@ -130,14 +131,7 @@ hyperdaemon :: searches :: next(const hyperdex::entityid& us,
     {
         if (state->search_coord.intersects(state->snap->coordinate()))
         {
-            std::vector<e::slice> tmp;
-
-            for (size_t i = 0; i < state->snap->value().size(); ++i)
-            {
-                tmp.push_back(state->snap->value()[i]);
-            }
-
-            if (state->terms.matches(state->snap->key(), tmp))
+            if (state->terms.matches(state->snap->key(), state->snap->value()))
             {
                 size_t sz = m_comm->header_size() + sizeof(uint64_t)
                           + sizeof(uint32_t) + state->snap->key().size()
@@ -181,11 +175,13 @@ hyperdaemon :: searches :: hash(const search_id& si)
 
 hyperdaemon :: searches :: search_state :: search_state(const regionid& r,
                                                         const coordinate& sc,
+                                                        std::auto_ptr<e::buffer> msg,
                                                         const hyperspacehashing::search& t,
                                                         e::intrusive_ptr<hyperdisk::snapshot> s)
     : lock()
     , region(r)
     , search_coord(sc)
+    , backing(msg)
     , terms(t)
     , snap(s)
     , m_ref(0)
