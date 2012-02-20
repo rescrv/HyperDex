@@ -66,6 +66,9 @@ check_PROGRAMS = \
 			$(libhyperspacehashing_check_programs) \
 			$(libhyperdisk_check_programs)
 
+bin_SCRIPTS = \
+			coordinator
+
 TESTS = \
 			$(libhyperspacehashing_tests) \
 			$(libhyperdisk_tests)
