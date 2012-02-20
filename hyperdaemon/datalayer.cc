@@ -400,7 +400,18 @@ hyperdaemon :: datalayer :: create_disk(const regionid& ri,
     std::ostringstream ostr;
     ostr << ri;
     po6::pathname path = po6::join(m_base, po6::pathname(ostr.str()));
-    disk_ptr d = hyperdisk::disk::create(path, hasher, num_columns);
+    disk_ptr d;
+
+    try
+    {
+        // XXX fail this region.
+        d = hyperdisk::disk::create(path, hasher, num_columns);
+    }
+    catch (po6::error& e)
+    {
+        PLOG(ERROR) << "Could not create disk " << ri;
+        return;
+    }
 
     if (m_disks.insert(ri, d))
     {
