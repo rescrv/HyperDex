@@ -48,7 +48,7 @@ fi
 AC_SUBST([JNI_CPPFLAGS], [${JNI_CPPFLAGS}])
 
 if test x"${need_swig}" = xyes; then
-    AC_PROG_SWIG(1.3)
+    AX_PKG_SWIG(1.3)
     SWIG_ENABLE_CXX
 fi
 
