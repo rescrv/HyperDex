@@ -448,6 +448,7 @@ class ControlConnection(object):
             return self._fail("Space already exists")
         self._reconfigure_all()
         self.outgoing += 'SUCCESS\n'
+        logging.info("created new space \"{0}\"".format(space.name))
 
     def del_space(self, space):
         try:
@@ -458,6 +459,7 @@ class ControlConnection(object):
             return self._fail("Space does not exist")
         self._reconfigure_all()
         self.outgoing += 'SUCCESS\n'
+        logging.info("removed space \"{0}\"".format(space))
 
     def _reconfigure_all(self):
         config = self._coordinator.configuration()
