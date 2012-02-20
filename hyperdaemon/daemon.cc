@@ -33,6 +33,7 @@
 
 // Google Log
 #include <glog/logging.h>
+#include <glog/raw_logging.h>
 
 // e
 #include <e/timer.h>
@@ -58,7 +59,7 @@ static bool s_continue = true;
 void
 sig_handle(int /*signum*/)
 {
-    LOG(ERROR) << "signal received; triggering exit..";
+    RAW_LOG(ERROR, "signal received; triggering exit..");
     s_continue = false;
 }
 
