@@ -48,7 +48,7 @@ fi
 AC_SUBST([JNI_CPPFLAGS], [${JNI_CPPFLAGS}])
 
 if test x"${need_swig}" = xyes; then
-    AC_PROG_SWIG(1.3)
+    AX_PKG_SWIG(1.3)
     SWIG_ENABLE_CXX
 fi
 
@@ -106,7 +106,7 @@ AC_FUNC_MMAP
 AC_CHECK_FUNCS([alarm clock_gettime ftruncate memmove mkdir munmap rmdir socket])
 
 # Optional components
-AC_ARG_ENABLE([ycsb], [AS_HELP_STRING([--enable-ycsb-driver],
+AC_ARG_ENABLE([ycsb], [AS_HELP_STRING([--enable-ycsb],
               [enable the Yahoo Cloud Serving Benchmark @<:@default: no@:>@])],
               [enable_ycsb=${enableval}], [enable_ycsb=no])
 if test x"${swig_version}" = x; then
