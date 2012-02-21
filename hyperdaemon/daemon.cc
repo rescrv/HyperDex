@@ -71,6 +71,8 @@ hyperdaemon :: daemon(po6::pathname datadir,
                       in_port_t incoming,
                       in_port_t outgoing)
 {
+    google::LogToStderr();
+
     // Catch signals.
     struct sigaction handle;
     handle.sa_handler = sig_handle;
