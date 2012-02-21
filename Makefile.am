@@ -30,6 +30,8 @@ AM_CXXFLAGS = $(COVERAGE_CXXFLAGS)
 
 EXTRA_DIST = \
 			LICENSE \
+			coordinator \
+			coordinator-control \
 			$(libhyperclient_extra_dist) \
 			$(ycsb_extra_dist)
 
