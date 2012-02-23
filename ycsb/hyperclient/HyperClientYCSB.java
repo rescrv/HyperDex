@@ -247,6 +247,11 @@ public class HyperClientYCSB extends DB
 
     private void convert_to_java(Set<String> fields, ssmap interres, HashMap<String,ByteIterator> result)
     {
+        if (fields == null)
+        {
+            return;
+        }
+
         for (String key : fields)
         {
             // Q: under which condition, interres.has_key(key) is false?
