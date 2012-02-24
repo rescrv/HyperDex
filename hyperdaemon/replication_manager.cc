@@ -274,7 +274,8 @@ hyperdaemon :: replication_manager :: chain_subspace(const entityid& from,
     e::intrusive_ptr<pending> newpend;
     std::tr1::shared_ptr<e::buffer> sharedbacking(backing.release());
     newpend = new pending(true, sharedbacking, key, value);
-    newpend->recv = from;
+    newpend->recv_e = from;
+    newpend->recv_i = m_config.instancefor(from);
     newpend->subspace_prev = to.subspace;
     newpend->subspace_next = to.subspace < subspaces - 1 ? to.subspace + 1 : UINT16_MAX;
     newpend->point_prev = from.mask;
@@ -323,13 +324,13 @@ hyperdaemon :: replication_manager :: chain_ack(const entityid& from,
         return;
     }
 
-    if (pend->sent == entityid())
+    if (pend->sent_e == entityid())
     {
         LOG(INFO) << "dropping CHAIN_ACK for update we haven't sent";
         return;
     }
 
-    if (from != pend->sent)
+    if (from != pend->sent_e)
     {
         LOG(INFO) << "dropping CHAIN_ACK that came from the wrong host";
         return;
@@ -358,7 +359,7 @@ hyperdaemon :: replication_manager :: chain_ack(const entityid& from,
     }
     else
     {
-        send_ack(to, pend->recv, version, key);
+        send_ack(to, pend->recv_e, version, key);
     }
 
     if (kh->empty())
@@ -541,7 +542,8 @@ hyperdaemon :: replication_manager :: chain_common(bool has_value,
     if (newop)
     {
         // XXX Check that the saved state and new message match
-        newop->recv = from;
+        newop->recv_e = from;
+        newop->recv_i = m_config.instancefor(from);
         send_ack(to, from, version, key);
         return;
     }
@@ -587,7 +589,8 @@ hyperdaemon :: replication_manager :: chain_common(bool has_value,
     newpend = new pending(has_value, sharedbacking, key, value);
     newpend->fresh = fresh;
     newpend->ref = ref;
-    newpend->recv = from;
+    newpend->recv_e = from;
+    newpend->recv_i = m_config.instancefor(from);
 
     if (!prev_and_next(to.get_region(), key, has_value, value, has_oldvalue, oldvalue, newpend))
     {
@@ -903,7 +906,8 @@ hyperdaemon :: replication_manager :: move_operations_between_queues(const hyper
         newop = new pending(op->has_value, op->backing, op->key, op->value);
         newop->fresh = false;
         newop->ref = op->ref;
-        newop->recv = op->from_ent;
+        newop->recv_e = op->from_ent;
+        newop->recv_i = m_config.instancefor(op->from_ent);
 
         if (!prev_and_next(us.get_region(), key, newop->has_value, newop->value, oldop->has_value, oldop->value, newop))
         {
@@ -911,10 +915,10 @@ hyperdaemon :: replication_manager :: move_operations_between_queues(const hyper
             return;
         }
 
-        if (!(newop->recv.get_region() == us.get_region() && m_config.chain_adjacent(newop->recv, us))
-                && !(newop->recv.space == us.space
-                    && newop->recv.subspace + 1 == us.subspace
-                    && m_config.is_tail(newop->recv)
+        if (!(newop->recv_e.get_region() == us.get_region() && m_config.chain_adjacent(newop->recv_e, us))
+                && !(newop->recv_e.space == us.space
+                    && newop->recv_e.subspace + 1 == us.subspace
+                    && m_config.is_tail(newop->recv_e)
                     && m_config.is_head(us)))
         {
             LOG(INFO) << "dropping deferred CHAIN_* which didn't come from the right host";
@@ -946,6 +950,11 @@ hyperdaemon :: replication_manager :: send_message(const entityid& us,
                                                    const e::slice& key,
                                                    e::intrusive_ptr<pending> op)
 {
+    if (op->sent_e != entityid())
+    {
+        return;
+    }
+
     size_t sz_msg = m_comm->header_size()
                   + sizeof(uint64_t)
                   + sizeof(uint8_t)
@@ -971,7 +980,8 @@ hyperdaemon :: replication_manager :: send_message(const entityid& us,
 
             if (m_comm->send(us, us, hyperdex::CHAIN_ACK, revkey))
             {
-                op->sent = us;
+                op->sent_e = us;
+                op->sent_i = m_us;
             }
 
             return;
@@ -987,7 +997,8 @@ hyperdaemon :: replication_manager :: send_message(const entityid& us,
 
             if (m_comm->send(us, dst, hyperdex::CHAIN_SUBSPACE, msg))
             {
-                op->sent = dst;
+                op->sent_e = dst;
+                op->sent_i = m_config.instancefor(dst);
             }
 
             return;
@@ -1016,7 +1027,8 @@ hyperdaemon :: replication_manager :: send_message(const entityid& us,
 
             if (m_comm->send(us, dst, hyperdex::CHAIN_SUBSPACE, msg))
             {
-                op->sent = dst;
+                op->sent_e = dst;
+                op->sent_i = m_config.instancefor(dst);
             }
 
             return;
@@ -1047,7 +1059,8 @@ hyperdaemon :: replication_manager :: send_message(const entityid& us,
 
     if (m_comm->send(us, dst, type, msg))
     {
-        op->sent = dst;
+        op->sent_e = dst;
+        op->sent_i = m_config.instancefor(dst);
     }
 }
 
