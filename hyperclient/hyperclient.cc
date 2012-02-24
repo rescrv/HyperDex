@@ -316,9 +316,9 @@ hyperclient :: channel :: channel(const hyperdex::instance& inst)
     : m_ref(0)
     , m_nonce(1)
     , m_ent(hyperdex::configuration::CLIENTSPACE, 0, 0, 0, 0)
-    , m_sock(inst.inbound.address.family(), SOCK_STREAM, IPPROTO_TCP)
+    , m_sock(inst.address.family(), SOCK_STREAM, IPPROTO_TCP)
 {
-    m_sock.connect(inst.inbound);
+    m_sock.connect(po6::net::location(inst.address, inst.inbound_port));
     m_sock.set_tcp_nodelay();
 }
 

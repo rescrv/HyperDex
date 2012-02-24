@@ -98,9 +98,9 @@ hyperdaemon :: daemon(po6::pathname datadir,
     logical comm(&cl, bind_to, incoming, outgoing, num_threads);
     // Create our announce string.
     std::ostringstream announce;
-    announce << "instance\t" << comm.inst().inbound.address << "\t"
-                             << comm.inst().inbound.port << "\t"
-                             << comm.inst().outbound.port
+    announce << "instance\t" << comm.inst().address << "\t"
+                             << comm.inst().inbound_port << "\t"
+                             << comm.inst().outbound_port
                              << "\t3333\ttoken";
     cl.set_announce(announce.str());
     // Setup the search component.

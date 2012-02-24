@@ -63,9 +63,11 @@ hyperdaemon :: logical :: logical(coordinatorlink* cl, const po6::net::ipaddr& i
     , m_client_counter(0)
     , m_physical(ip, incoming, outgoing, true, num_threads)
 {
-    m_us.inbound = m_physical.inbound();
+    assert(m_physical.inbound().address == m_physical.outbound().address);
+    m_us.address = m_physical.inbound().address;
+    m_us.inbound_port = m_physical.inbound().port;
+    m_us.outbound_port = m_physical.outbound().port;
     m_us.inbound_version = 0;
-    m_us.outbound = m_physical.outbound();
     m_us.outbound_version = 0;
 }
 
@@ -102,7 +104,8 @@ hyperdaemon :: logical :: cleanup(const configuration&, const hyperdex::instance
 }
 
 bool
-hyperdaemon :: logical :: send(const hyperdex::entityid& from, const hyperdex::entityid& to,
+hyperdaemon :: logical :: send(const hyperdex::entityid& from,
+                               const hyperdex::entityid& to,
                                const network_msgtype msg_type,
                                std::auto_ptr<e::buffer> msg)
 {
@@ -115,11 +118,15 @@ hyperdaemon :: logical :: send(const hyperdex::entityid& from, const hyperdex::e
     // If we are sending to a client
     if (to.space == UINT32_MAX)
     {
-        if (!m_client_locs.lookup(to.mask, &dst.inbound))
+        po6::net::location loc;
+
+        if (!m_client_locs.lookup(to.mask, &loc))
         {
             return false;
         }
 
+        dst.address = loc.address;
+        dst.inbound_port = loc.port;
         dst.inbound_version = 1;
     }
     else
@@ -139,20 +146,22 @@ hyperdaemon :: logical :: send(const hyperdex::entityid& from, const hyperdex::e
 
     if (dst == m_us)
     {
-        m_physical.deliver(m_us.outbound, msg);
+        m_physical.deliver(po6::net::location(m_us.address, m_us.outbound_port), msg);
     }
     else
     {
-        switch (m_physical.send(dst.inbound, msg))
+        po6::net::location loc(dst.address, dst.inbound_port);
+
+        switch (m_physical.send(loc, msg))
         {
             case physical::SUCCESS:
             case physical::QUEUED:
                 break;
             case physical::CONNECTFAIL:
-                handle_connectfail(dst.inbound);
+                handle_connectfail(loc);
                 return false;
             case physical::DISCONNECT:
-                handle_disconnect(dst.inbound);
+                handle_disconnect(loc);
                 return false;
             case physical::SHUTDOWN:
                 LOG(ERROR) << "physical::recv unexpectedly returned SHUTDOWN.";
@@ -170,7 +179,8 @@ hyperdaemon :: logical :: send(const hyperdex::entityid& from, const hyperdex::e
 }
 
 bool
-hyperdaemon :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
+hyperdaemon :: logical :: recv(hyperdex::entityid* from,
+                               hyperdex::entityid* to,
                                network_msgtype* msg_type,
                                std::auto_ptr<e::buffer>* msg)
 {
@@ -257,7 +267,8 @@ hyperdaemon :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
                 from->mask = client_num;
             }
 
-            frominst.outbound = loc;
+            frominst.address = loc.address;
+            frominst.outbound_port = loc.port;
             frominst.outbound_version = fromver;
             fromvalid = true;
             toinst = m_config.instancefor(*to);
@@ -273,7 +284,8 @@ hyperdaemon :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
     }
     while (!fromvalid // Try again because we don't know the source.
             || !tovalid // Try again because we don't know the destination.
-            || frominst.outbound != loc // Try again because the sender isn't who it should be.
+            || frominst.address != loc.address // Try again because the sender isn't who it should be.
+            || frominst.outbound_port != loc.port // Try again because the sender isn't who it should be.
             || frominst.outbound_version != fromver // Try again because an older sender is sending the message.
             || toinst != m_us // Try again because we don't believe ourselves to be the dest entity.
             || m_us.inbound_version != tover); // Try again because it is to an older version of us.

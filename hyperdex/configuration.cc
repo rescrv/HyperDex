@@ -84,8 +84,7 @@ hyperdex :: configuration :: add_line(const std::string& line)
         if (istr.eof() && !istr.bad() && !istr.fail()
                 && m_hosts.find(id) == m_hosts.end())
         {
-            m_hosts[id] = instance(po6::net::location(ip, iport), iver,
-                                   po6::net::location(ip, oport), over);
+            m_hosts[id] = instance(ip, iport, iver, oport, over);
             return true;
         }
         else
@@ -496,8 +495,9 @@ hyperdex :: configuration :: instance_versions(instance* i)
 
     for (h = m_hosts.begin(); h != m_hosts.end(); ++h)
     {
-        if (h->second.inbound == i->inbound &&
-                h->second.outbound == i->outbound)
+        if (h->second.address == i->address &&
+            h->second.inbound_port == i->inbound_port &&
+            h->second.outbound_port == i->outbound_port)
         {
             *i = h->second;
             return;

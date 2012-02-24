@@ -29,7 +29,7 @@
 #define hyperdex_instance_h_
 
 // po6
-#include <po6/net/location.h>
+#include <po6/net/ipaddr.h>
 
 // e
 #include <e/tuple_compare.h>
@@ -40,18 +40,23 @@ namespace hyperdex
 struct instance
 {
     instance()
-        : inbound()
+        : address()
+        , inbound_port()
         , inbound_version()
-        , outbound()
+        , outbound_port()
         , outbound_version()
     {
     }
 
-    instance(const po6::net::location& i, uint16_t iv,
-             const po6::net::location& o, uint16_t ov)
-        : inbound(i)
+    instance(const po6::net::ipaddr& a,
+             in_port_t ip,
+             uint16_t iv,
+             in_port_t op,
+             uint16_t ov)
+        : address(a)
+        , inbound_port(ip)
         , inbound_version(iv)
-        , outbound(o)
+        , outbound_port(op)
         , outbound_version(ov)
     {
     }
@@ -59,27 +64,26 @@ struct instance
     bool operator < (const instance& rhs) const
     {
         const instance& lhs(*this);
-        return e::tuple_compare(lhs.inbound, lhs.inbound_version,
-                                rhs.inbound, rhs.inbound_version) < 0;
+        return e::tuple_compare(lhs.address, lhs.inbound_port, lhs.inbound_version, lhs.outbound_port, lhs.outbound_version,
+                                rhs.address, rhs.inbound_port, rhs.inbound_version, rhs.outbound_port, rhs.outbound_version) < 0;
     }
 
     bool operator == (const instance& rhs) const
     {
         const instance& lhs(*this);
-        return e::tuple_compare(lhs.inbound, lhs.inbound_version,
-                                rhs.inbound, rhs.inbound_version) == 0;
+        return e::tuple_compare(lhs.address, lhs.inbound_port, lhs.inbound_version, lhs.outbound_port, lhs.outbound_version,
+                                rhs.address, rhs.inbound_port, rhs.inbound_version, rhs.outbound_port, rhs.outbound_version) == 0;
     }
 
     bool operator != (const instance& rhs) const
     {
-        const instance& lhs(*this);
-        return !(lhs == rhs);
+        return !(*this == rhs);
     }
 
-    // XXX turn this into ipaddr and to in_port_t instead of two locations.
-    po6::net::location inbound;
+    po6::net::ipaddr address;
+    in_port_t inbound_port;
     uint16_t inbound_version;
-    po6::net::location outbound;
+    in_port_t outbound_port;
     uint16_t outbound_version;
 };
 
