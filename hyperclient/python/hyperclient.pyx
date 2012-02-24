@@ -144,7 +144,6 @@ cdef class Deferred:
                 self._finished = True
                 self._client._pending.remove(self._reqid)
         self._finished = True
-        # XXX Do a better job raising exceptions
         if self._status not in (HYPERCLIENT_SUCCESS, HYPERCLIENT_NOTFOUND):
             raise HyperClientException(self._status)
 
@@ -188,8 +187,9 @@ cdef class DeferredInsert(Deferred):
     def __cinit__(self, Client client, bytes space, bytes key, dict value):
         cdef char* space_cstr = space
         cdef char* key_cstr = key
-        cdef hyperclient_attribute* attrs = \
-                <hyperclient_attribute*> \
+        cdef hyperclient_attribute* attrs = NULL
+        if len(value):
+            attrs = <hyperclient_attribute*> \
                 malloc(sizeof(hyperclient_attribute) * len(value))
         try:
             for i, a in enumerate(value.iteritems()):
@@ -204,7 +204,14 @@ cdef class DeferredInsert(Deferred):
                                           attrs, len(value),
                                           &self._status)
             if self._reqid < 0:
-                raise HyperClientException(self._status, attrs[-1 - self._reqid].attr)
+                if attrs:
+                    if attrs[-1 - self._reqid].attr:
+                        attr = attrs[-1 - self._reqid].attr
+                    else:
+                        attr = None
+                else:
+                    attr = None
+                raise HyperClientException(self._status, attr)
         finally:
             free(attrs)
 
@@ -286,7 +293,10 @@ cdef class Search:
                 if idx < len(equalities):
                     attr = eq[idx].attr
                 else:
-                    attr = rn[idx - len(equalities)].attr
+                    if (idx - len(equalities)) < len(ranges):
+                        attr = rn[idx - len(equalities)].attr
+                    else:
+                        attr = None
                 raise HyperClientException(self._status, attr)
             client._searches[self._reqid] = self
         finally:
