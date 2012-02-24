@@ -329,6 +329,9 @@ libhyperdaemon_noinst_headers = \
 			hyperdaemon/replication/keypair.h \
 			hyperdaemon/replication_manager.cc \
 			hyperdaemon/replication_manager.h \
+			hyperdaemon/replication_manager_deferred.h \
+			hyperdaemon/replication_manager_keyholder.h \
+			hyperdaemon/replication_manager_pending.h \
 			hyperdaemon/runtimeconfig.h \
 			hyperdaemon/searches.h
 
