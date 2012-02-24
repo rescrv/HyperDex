@@ -200,7 +200,7 @@ hyperdaemon :: logical :: recv(hyperdex::entityid* from,
     //    underlying network location and version number of this message.
     //  - The destination entityid maps to our network location.
     //  - The message is to the correct version of our port bindings.
-    do
+    while (true)
     {
         switch(m_physical.recv(&loc, msg))
         {
@@ -281,14 +281,27 @@ hyperdaemon :: logical :: recv(hyperdex::entityid* from,
             toinst = m_config.instancefor(*to);
             tovalid = toinst != instance();
         }
+
+        if (fromvalid && // Try again because we don't know the source.
+            tovalid && // Try again because we don't know the destination.
+            frominst.address == loc.address && // Try again because the sender isn't who it should be.
+            frominst.outbound_port == loc.port && // Try again because the sender isn't who it should be.
+            frominst.outbound_version == fromver && // Try again because an older sender is sending the message.
+            toinst == m_us && // Try again because we don't believe ourselves to be the dest entity.
+            m_us.inbound_version == tover) // Try again because it is to an older version of us.
+        {
+            break;
+        }
+
+        // Shove the message back at the client so it fails with a reconfigure.
+        if (from->space == hyperdex::configuration::CLIENTSPACE)
+        {
+            mt = static_cast<uint8_t>(hyperdex::CONFIGMISMATCH);
+            (*msg)->pack_at(sizeof(uint32_t))
+                << mt << tover << fromver << *to << *from;
+            m_physical.send(loc, *msg);
+        }
     }
-    while (!fromvalid // Try again because we don't know the source.
-            || !tovalid // Try again because we don't know the destination.
-            || frominst.address != loc.address // Try again because the sender isn't who it should be.
-            || frominst.outbound_port != loc.port // Try again because the sender isn't who it should be.
-            || frominst.outbound_version != fromver // Try again because an older sender is sending the message.
-            || toinst != m_us // Try again because we don't believe ourselves to be the dest entity.
-            || m_us.inbound_version != tover); // Try again because it is to an older version of us.
 
 #ifdef HD_LOG_ALL_MESSAGES
     LOG(INFO) << "RECV " << *from << "->" << *to << " " << *msg_type << " " << (*msg)->hex();
