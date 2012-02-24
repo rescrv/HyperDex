@@ -291,7 +291,7 @@ class hyperclient
         requests_map_t m_requests;
         std::queue<completedop> m_completed;
         int64_t m_requestid;
-        bool m_configured;
+        bool m_grab_config_on_op_init;
 };
 
 std::ostream&

@@ -788,7 +788,7 @@ hyperclient :: hyperclient(const char* coordinator, in_port_t port)
     , m_requests()
     , m_completed()
     , m_requestid(1)
-    , m_configured(false)
+    , m_grab_config_on_op_init(true)
 {
     m_coord->set_announce("client");
     m_epfd = epoll_create(16384);
@@ -808,7 +808,7 @@ hyperclient :: get(const char* space, const char* key, size_t key_sz,
                    hyperclient_returncode* status,
                    struct hyperclient_attribute** attrs, size_t* attrs_sz)
 {
-    if ((!m_configured || !m_coord->connected()) && try_coord_connect(status) < 0)
+    if ((m_grab_config_on_op_init || !m_coord->connected()) && try_coord_connect(status) < 0)
     {
         return -1;
     }
@@ -830,7 +830,7 @@ hyperclient :: put(const char* space, const char* key, size_t key_sz,
                    const struct hyperclient_attribute* attrs, size_t attrs_sz,
                    hyperclient_returncode* status)
 {
-    if ((!m_configured || !m_coord->connected()) && try_coord_connect(status) < 0)
+    if ((m_grab_config_on_op_init || !m_coord->connected()) && try_coord_connect(status) < 0)
     {
         return -1;
     }
@@ -859,7 +859,7 @@ int64_t
 hyperclient :: del(const char* space, const char* key, size_t key_sz,
                    hyperclient_returncode* status)
 {
-    if ((!m_configured || !m_coord->connected()) && try_coord_connect(status) < 0)
+    if ((m_grab_config_on_op_init || !m_coord->connected()) && try_coord_connect(status) < 0)
     {
         return -1;
     }
@@ -883,7 +883,7 @@ hyperclient :: search(const char* space,
                       enum hyperclient_returncode* status,
                       struct hyperclient_attribute** attrs, size_t* attrs_sz)
 {
-    if ((!m_configured || !m_coord->connected()) && try_coord_connect(status) < 0)
+    if ((m_grab_config_on_op_init || !m_coord->connected()) && try_coord_connect(status) < 0)
     {
         return -1;
     }
@@ -1009,7 +1009,7 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
 {
     while (!m_requests.empty() && m_completed.empty())
     {
-        if ((!m_configured || !m_coord->connected()) && try_coord_connect(status) < 0)
+        if ((m_grab_config_on_op_init || !m_coord->connected()) && try_coord_connect(status) < 0)
         {
             return -1;
         }
@@ -1217,6 +1217,7 @@ hyperclient :: add_keyop(const char* space, const char* key, size_t key_sz,
 
     if (!m_config->point_leader_entity(si, e::slice(key, key_sz), &dst_ent, &dst_inst))
     {
+        m_grab_config_on_op_init = true;
         op->set_status(HYPERCLIENT_CONNECTFAIL);
         return -1;
     }
@@ -1226,6 +1227,7 @@ hyperclient :: add_keyop(const char* space, const char* key, size_t key_sz,
 
     if (!chan)
     {
+        m_grab_config_on_op_init = true;
         op->set_status(status);
         return -1;
     }
@@ -1373,13 +1375,13 @@ hyperclient :: try_coord_connect(hyperclient_returncode* status)
     ee.events = EPOLLIN;
     ee.data.fd = m_coord->pfd().fd;
 
-    if (epoll_ctl(m_epfd.get(), EPOLL_CTL_ADD, m_coord->pfd().fd, &ee) < 0)
+    if (epoll_ctl(m_epfd.get(), EPOLL_CTL_ADD, m_coord->pfd().fd, &ee) < 0 && errno != EEXIST)
     {
         *status = HYPERCLIENT_COORDFAIL;
         return -1;
     }
 
-    while (!m_configured)
+    while (m_grab_config_on_op_init)
     {
         switch (m_coord->loop(1, -1))
         {
@@ -1400,7 +1402,7 @@ hyperclient :: try_coord_connect(hyperclient_returncode* status)
         {
             *m_config = m_coord->config();
             m_coord->acknowledge();
-            m_configured = true;
+            m_grab_config_on_op_init = false;
         }
     }
 
@@ -1442,6 +1444,7 @@ hyperclient :: killall(int fd, hyperclient_returncode status)
 
     try
     {
+        m_grab_config_on_op_init = true;
         chan->sock().shutdown(SHUT_RDWR);
         chan->sock().close();
     }
@@ -1472,6 +1475,7 @@ hyperclient :: get_channel(hyperdex::instance inst,
 
         if (epoll_ctl(m_epfd.get(), EPOLL_CTL_ADD, chan->sock().get(), &ee) < 0)
         {
+            m_grab_config_on_op_init = true;
             *status = HYPERCLIENT_CONNECTFAIL;
             return NULL;
         }
@@ -1482,6 +1486,7 @@ hyperclient :: get_channel(hyperdex::instance inst,
     }
     catch (po6::error& e)
     {
+        m_grab_config_on_op_init = true;
         *status = HYPERCLIENT_CONNECTFAIL;
         errno = e;
         return NULL;
