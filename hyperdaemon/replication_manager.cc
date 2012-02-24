@@ -95,6 +95,7 @@ hyperdaemon :: replication_manager :: replication_manager(coordinatorlink* cl,
     , m_ost(ost)
     , m_config()
     , m_locks(LOCK_STRIPING)
+    , m_keyholders_lock()
     , m_keyholders(REPLICATION_HASHTABLE_SIZE)
     , m_us()
     , m_shutdown(false)
@@ -123,9 +124,9 @@ void
 hyperdaemon :: replication_manager :: reconfigure(const configuration& newconfig, const instance& us)
 {
     // Install a new configuration.
-    configuration oldconfig(m_config);
     m_config = newconfig;
     m_us = us;
+    po6::threads::mutex::hold hold(&m_keyholders_lock);
 
     for (keyholder_map_t::iterator khiter = m_keyholders.begin();
             khiter != m_keyholders.begin(); khiter.next())
@@ -1118,11 +1119,11 @@ hyperdaemon :: replication_manager :: periodic()
 void
 hyperdaemon :: replication_manager :: retransmit()
 {
-#if 0
-    // XXX NEED mutual exclusion with reconfigure
     for (keyholder_map_t::iterator khiter = m_keyholders.begin();
             khiter != m_keyholders.end(); khiter.next())
     {
+        po6::threads::mutex::hold holdkh(&m_keyholders_lock);
+
         // Grab the lock that protects this object.
         uint64_t lock_num = get_lock_num(khiter.key().region,
                                          e::slice(khiter.key().key.data(), khiter.key().key.size()));
@@ -1133,7 +1134,6 @@ hyperdaemon :: replication_manager :: retransmit()
         entityid ent = m_config.entityfor(m_us, khiter.key().region);
         e::slice key(khiter.key().key.data(), khiter.key().key.size());
 
-        // We want to recheck this condition after moving things around.
         if (!kh->has_committable_ops())
         {
             continue;
@@ -1142,21 +1142,13 @@ hyperdaemon :: replication_manager :: retransmit()
         // We only touch the first pending update.  If there is an issue which
         // requires retransmission, we shouldn't hit hosts with a number of
         // excess messages.
-        uint64_t version = kh->pending_updates.begin()->first;
-        e::intrusive_ptr<pending> pend = kh->pending_updates.begin()->second;
+        e::intrusive_ptr<pending> pend = kh->oldest_committable_op();
 
-        if (pend->sent == entityid() && pend->retransmit >= 1 &&
-                ((pend->retransmit != 0) && !(pend->retransmit & (pend->retransmit - 1))))
+        if (pend->sent_i != m_config.instancefor(pend->sent_e))
         {
-            send_update(ent, version, key, pend);
-        }
-
-        ++pend->retransmit;
-
-        if (pend->retransmit == 64)
-        {
-            pend->retransmit = 32;
+            pend->sent_e = entityid();
+            pend->sent_i = instance();
+            send_message(ent, kh->oldest_committable_version(), key, pend);
         }
     }
-#endif
 }

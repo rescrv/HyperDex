@@ -124,6 +124,27 @@ class Coordinator(object):
         del self._spaces_by_num[spacenum]
         self._regenerate()
 
+    def fail_host(self, ip, port):
+        for spacenum, space in self._spaces_by_num.iteritems():
+            for subspacenum, subspace in enumerate(space.subspaces):
+                for region in subspace.regions:
+                    for replicanum in range(len(region.replicas)):
+                        if region.replicas[replicanum] and \
+                           region.replicas[replicanum][0] == ip and \
+                           (region.replicas[replicanum][1] == port or
+                            region.replicas[replicanum][3] == port):
+                            region.replicas[replicanum] = None
+                    def cmp(x, y):
+                        if x is None and y is None:
+                            return 0
+                        if x is None:
+                            return 1
+                        if y is None:
+                            return -1
+                        return 0
+                    region.replicas.sort(cmp=cmp)
+        self._regenerate()
+
     def configuration(self):
         return self._confnum, self._confdata
 
@@ -213,7 +234,7 @@ class HostConnection(object):
     class CLIENT: pass
     class INSTANCE: pass
 
-    def __init__(self, coordinator, sock):
+    def __init__(self, coordinator, sock, conns):
         self._connectime = datetime.datetime.now()
         self._coordinator = coordinator
         self._sock = sock
@@ -225,7 +246,8 @@ class HostConnection(object):
         self._state = 'UNCONFIGURED'
         self._config = None
         self._pending = []
-        self._id = 'ID XXX' # XXX
+        self._id = str(self._sock.getpeername())
+        self._conns = conns
 
     def handle_in(self):
         data = self._sock.recv(PIPE_BUF)
@@ -245,8 +267,9 @@ class HostConnection(object):
             elif len(commandline) == 1 and commandline[0] == 'BAD':
                 logging.debug('Host {0} rejects config'.format(self._id))
                 self.reject_config()
-            elif len(commandline) == 2 and commandline[0] == 'fail_location':
+            elif len(commandline) == 2 and commandline[0] == 'fail_host':
                 logging.info("Report of failure for {0}".format(commandline[1]))
+                self.fail_host(commandline[1])
             elif len(commandline) == 6 and commandline[0] == 'instance':
                 logging.info('Host {0} identifies as instance'.format(self._id))
                 self.identify_as_instance(*commandline[1:])
@@ -349,6 +372,25 @@ class HostConnection(object):
         num, data = config
         self.outgoing += (data + '\nend\tof\tline').strip() + '\n'
 
+    def fail_host(self, host):
+        if ':' not in host:
+            raise KillConnection('Host reports failure of invalid address')
+        ip, port = host.rsplit(':', 1)
+        ip = normalize_address(ip)
+        if ip is None:
+            raise KillConnection('Host reports failure of invalid address')
+        try:
+            port = int(port)
+        except ValueError:
+            raise KillConnection('Host reports failure of invalid address')
+        self._coordinator.fail_host(ip, port)
+        self._reconfigure_all()
+
+    def _reconfigure_all(self):
+        config = self._coordinator.configuration()
+        for sock, conn in self._conns.values():
+            if hasattr(conn, 'reconfigure'):
+                conn.reconfigure(config)
 
 class ControlConnection(object):
 
@@ -361,7 +403,7 @@ class ControlConnection(object):
         self._delim = '\n'
         self._mode = "COMMAND"
         self._action = None
-        self._id = 'ID XXX' # XXX
+        self._id = str(self._sock.getpeername())
         self._conns = conns
 
     def handle_in(self):
@@ -505,7 +547,7 @@ class CoordinatorServer(object):
                     if conn:
                         sock, addr = conn
                         self._p.register(sock)
-                        self._conns[sock.fileno()] = sock, HostConnection(self._coord, sock)
+                        self._conns[sock.fileno()] = sock, HostConnection(self._coord, sock, self._conns)
                 if fd in self._conns:
                     sock, conn = self._conns[fd]
                     remove = False

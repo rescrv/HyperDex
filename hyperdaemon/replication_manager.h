@@ -201,6 +201,7 @@ class replication_manager
         ongoing_state_transfers* m_ost;
         hyperdex::configuration m_config;
         e::striped_lock<po6::threads::mutex> m_locks;
+        po6::threads::mutex m_keyholders_lock;
         keyholder_map_t m_keyholders;
         hyperdex::instance m_us;
         bool m_shutdown;

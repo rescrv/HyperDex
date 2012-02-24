@@ -1369,6 +1369,16 @@ hyperclient :: try_coord_connect(hyperclient_returncode* status)
             return -1;
     }
 
+    epoll_event ee;
+    ee.events = EPOLLIN;
+    ee.data.fd = m_coord->pfd().fd;
+
+    if (epoll_ctl(m_epfd.get(), EPOLL_CTL_ADD, m_coord->pfd().fd, &ee) < 0)
+    {
+        *status = HYPERCLIENT_COORDFAIL;
+        return -1;
+    }
+
     while (!m_configured)
     {
         switch (m_coord->loop(1, -1))
