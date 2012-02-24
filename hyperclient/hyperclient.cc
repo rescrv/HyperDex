@@ -1145,6 +1145,13 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
             to == chan->entity() &&
             nonce == op->nonce())
         {
+            if (msg_type == hyperdex::CONFIGMISMATCH)
+            {
+                m_grab_config_on_op_init = true;
+                op->set_status(HYPERCLIENT_RECONFIGURE);
+                return op->id();
+            }
+
             if (!op->matches_response_type(msg_type))
             {
                 killall(ee.data.fd, HYPERCLIENT_SERVERERROR);
