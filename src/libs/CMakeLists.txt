@@ -1,0 +1,5 @@
+add_subdirectory(client)
+add_subdirectory(dex)
+add_subdirectory(disk)
+add_subdirectory(spacehashing)
+add_subdirectory(daemon)
