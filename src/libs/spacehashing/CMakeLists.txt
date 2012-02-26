@@ -38,8 +38,7 @@ set(src
   search.cc)
 
 create_library(hyperspacehashing ${src})
-target_link_libraries(hyperspacehashing
-  ${LIBE_LIBRARY} ${LIBCITYHASH_LIBRARY})
+target_link_libraries(hyperspacehashing ${LIBCITYHASH_LIBRARY})
 
 create_test(bithacks test/bithacks.cc)
 create_test(cfloat test/cfloat.cc)

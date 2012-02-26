@@ -34,6 +34,7 @@ endmacro()
 
 macro(create_library name)
   add_library(${name} ${ARGN})
+  target_link_libraries(${name} rt ${LIBE_LIBRARY})
   set_target_properties(${name} PROPERTIES VERSION ${HYPERDEX_VERSION})
   set_target_properties(${name} PROPERTIES SOVERSION ${HYPERDEX_VERSION_MAJOR})
   install(TARGETS ${name} DESTINATION ${LIBRARY_INSTALL_DIR})

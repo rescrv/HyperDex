@@ -48,4 +48,4 @@ set(src
 
 create_library(hyperdaemon ${src})
 target_link_libraries(hyperdaemon
-  rt hyperdex hyperspacehashing ${LIBE_LIBRARY})
+  hyperdex hyperspacehashing hyperdisk ${LIBGLOG_LIBRARY})

@@ -30,6 +30,7 @@ set(src
   coordinatorlink.cc)
 
 create_library(hyperdex ${src})
+target_link_libraries(hyperdex hyperspacehashing)
 
 #create_test(configuration test/configuration.cc)
 create_test(ids test/ids.cc)

@@ -40,4 +40,6 @@ set(src
   snapshot.cc)
 
 create_library(hyperdisk ${src})
+target_link_libraries(hyperdisk hyperspacehashing ${LIBCITYHASH_LIBRARY})
+
 create_test(shard test/shard.cc)

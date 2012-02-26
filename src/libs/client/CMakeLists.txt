@@ -29,7 +29,7 @@ set(src
   hyperclient.cc)
 
 create_library(hyperclient ${src})
-target_link_libraries(hyperclient rt ${LIBE_LIBRARY})
+target_link_libraries(hyperclient hyperdex)
 
 if(ENABLE_JAVA_BINDINGS)
   add_subdirectory(java)
