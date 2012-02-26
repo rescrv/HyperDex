@@ -246,50 +246,50 @@ class TestRegionParsing(unittest.TestCase):
         self.assertEqual(expected, returned)
 
     def test_solo_staticregion(self):
-        expected = ["region", 3, 9223372036854775808L, 2]
+        expected = ["region", 3, 9223372036854775808, 2]
         returned = list((staticregion + stringEnd).parseString("region 3 0x8000000000000000 2"))
         self.assertEqual(expected, returned)
 
     def test_autoregion(self):
-        expected = [Region(prefix=1, mask=0L, replicas=[None, None, None]),
+        expected = [Region(prefix=1, mask=0, replicas=[None, None, None]),
                     Region(prefix=1, mask=0x8000000000000000, replicas=[None, None, None])]
         returned = list((region + stringEnd).parseString("auto 1 3"))
         self.assertEqual(expected, returned)
 
     def test_onestatic(self):
-        expected = [Region(prefix=1, mask=0L, replicas=[None, None, None]),
+        expected = [Region(prefix=1, mask=0, replicas=[None, None, None]),
                     Region(prefix=1, mask=0x8000000000000000, replicas=[None, None])]
         returned = list((region + stringEnd).parseString("region 1 0x8000000000000000 2 auto 1 3"))
         self.assertEqual(expected, returned)
 
     def test_static_is_everything(self):
-        expected = [Region(prefix=0, mask=0L, replicas=[None, None])]
+        expected = [Region(prefix=0, mask=0, replicas=[None, None])]
         returned = list((region + stringEnd).parseString("region 0 0x0000000000000000 2 auto 1 3"))
         self.assertEqual(expected, returned)
 
     def test_static_has_bigger_prefix_same_mask(self):
-        expected = [Region(prefix=1, mask=0L, replicas=[None, None, None]),
+        expected = [Region(prefix=1, mask=0, replicas=[None, None, None]),
                     Region(prefix=2, mask=0x8000000000000000, replicas=[None, None]),
                     Region(prefix=2, mask=0xc000000000000000, replicas=[None, None, None])]
         returned = list((region + stringEnd).parseString("region 2 0x8000000000000000 2 auto 1 3"))
         self.assertEqual(expected, returned)
 
     def test_static_has_bigger_prefix_different_mask(self):
-        expected = [Region(prefix=1, mask=0L, replicas=[None, None, None]),
+        expected = [Region(prefix=1, mask=0, replicas=[None, None, None]),
                     Region(prefix=2, mask=0x8000000000000000, replicas=[None, None, None]),
                     Region(prefix=2, mask=0xc000000000000000, replicas=[None, None])]
         returned = list((region + stringEnd).parseString("region 2 0xc000000000000000 2 auto 1 3"))
         self.assertEqual(expected, returned)
 
     def test_static_has_smaller_prefix(self):
-        expected = [Region(prefix=2, mask=0L, replicas=[None, None, None]),
+        expected = [Region(prefix=2, mask=0, replicas=[None, None, None]),
                     Region(prefix=2, mask=0x4000000000000000, replicas=[None, None, None]),
                     Region(prefix=1, mask=0x8000000000000000, replicas=[None, None])]
         returned = list((region + stringEnd).parseString("region 1 0x8000000000000000 2 auto 2 3"))
         self.assertEqual(expected, returned)
 
     def test_multiple_static_for_one_auto(self):
-        expected = [Region(prefix=3, mask=0L, replicas=[None, None, None]),
+        expected = [Region(prefix=3, mask=0, replicas=[None, None, None]),
                     Region(prefix=4, mask=0x2000000000000000, replicas=[None, None]),
                     Region(prefix=4, mask=0x3000000000000000, replicas=[None, None, None]),
                     Region(prefix=4, mask=0x4000000000000000, replicas=[None, None, None]),

@@ -43,6 +43,17 @@ import hdcoordinator.parser
 
 PIPE_BUF = getattr(select, 'PIPE_BUF', 512)
 
+try:
+    xrange = xrange
+except:
+    xrange = range
+
+try:
+    str(b"123", "ascii")
+    def to_string(s):
+        return s.decode("'ascii'")
+except:
+    to_string = str
 
 def normalize_address(addr):
     try:
@@ -96,7 +107,7 @@ class Coordinator(object):
     def keepalive_instance(self, addr, incoming, outgoing, pid, token): pass
 
     def list_instances(self):
-        for (addr, incoming, outgoing, pid, token), (inc_ver, out_ver) in self._assigned.items():
+        for (addr, incoming, outgoing, pid, token), (inc_ver, out_ver) in list(self._assigned.items()):
             yield addr, incoming, inc_ver, outgoing, out_ver, pid, token
 
     def add_space(self, space):
@@ -142,26 +153,26 @@ class Coordinator(object):
 
     def _select_replica(self, exclude):
         hosts = dict([(i, 0) for i in self.list_instances()])
-        for spacenum, space in self._spaces_by_num.iteritems():
+        for spacenum, space in self._spaces_by_num.items():
             for subspacenum, subspace in enumerate(space.subspaces):
                 for region in subspace.regions:
                     for replica in region.replicas:
                         if replica is not None:
                             hosts[replica] += 1
         frequencies = collections.defaultdict(list)
-        for host, frequency in hosts.iteritems():
+        for host, frequency in hosts.items():
             if host not in exclude:
                 frequencies[frequency].append(host)
         if not frequencies:
             return None
-        least_loaded = min(frequencies.iteritems())[1]
+        least_loaded = min(frequencies.items())[1]
         return self._rand.choice(least_loaded)
 
     def _regenerate(self):
         hosts = {}
         counter = 0
         config = ''
-        for spacenum, space in self._spaces_by_num.iteritems():
+        for spacenum, space in self._spaces_by_num.items():
             spacedims = dict([(d.name, d) for d in space.dimensions])
             space_str = 'space\t{num}\t{name}\t{dims}\n' \
                         .format(num=spacenum, name=space.name,
@@ -197,7 +208,7 @@ class Coordinator(object):
                 space_str += subspace_str
             config += space_str
         hosts_lines = []
-        for host, codename in hosts.iteritems():
+        for host, codename in hosts.items():
             addr, incoming, inc_ver, outgoing, out_ver, pid, token = host
             host_str = 'host\t{name}\t{ip}\t{iport}\t{iver}\t{oport}\t{over}' \
                        .format(name=codename, ip=addr, iport=incoming,
@@ -228,7 +239,7 @@ class HostConnection(object):
         self._id = 'ID XXX' # XXX
 
     def handle_in(self):
-        data = self._sock.recv(PIPE_BUF)
+        data = to_string(self._sock.recv(PIPE_BUF))
         if len(data) == 0:
             raise EndConnection()
         self._ibuffer.append(data)
@@ -254,7 +265,7 @@ class HostConnection(object):
                 raise KillConnection('Unrecognized command {0}'.format(repr(data)))
 
     def handle_out(self):
-        data = self.outgoing[:PIPE_BUF]
+        data = self.outgoing[:PIPE_BUF].encode("'ascii'")
         sz = self._sock.send(data)
         self.outgoing = self.outgoing[sz:]
 
@@ -365,7 +376,7 @@ class ControlConnection(object):
         self._conns = conns
 
     def handle_in(self):
-        data = self._sock.recv(PIPE_BUF)
+        data = to_string(self._sock.recv(PIPE_BUF))
         if len(data) == 0:
             raise EndConnection()
         self._ibuffer += data
@@ -391,7 +402,7 @@ class ControlConnection(object):
                 raise KillConnection('Control connection with unknown mode {0}'.format(repr(self._mode)))
 
     def handle_out(self):
-        data = self.outgoing[:PIPE_BUF]
+        data = self.outgoing[:PIPE_BUF].encode("'ascii'")
         sz = self._sock.send(data)
         self.outgoing = self.outgoing[sz:]
 
@@ -406,7 +417,7 @@ class ControlConnection(object):
 
     def list_clients(self):
         ret = []
-        for sock, conn in self._conns.values():
+        for sock, conn in list(self._conns.values()):
             if getattr(conn, '_identified', None) == HostConnection.CLIENT:
                 ret.append((conn._connectime, conn._id))
         resp = '\n'.join(['{0} {1}'.format(d, i) for d, i in ret])
@@ -417,7 +428,7 @@ class ControlConnection(object):
 
     def list_instances(self):
         local = {}
-        for sock, conn in self._conns.values():
+        for sock, conn in list(self._conns.values()):
             if getattr(conn, '_identified', None) == HostConnection.INSTANCE:
                 local[conn._instance] = conn._connectime, conn._state
         resp = ''
@@ -463,7 +474,7 @@ class ControlConnection(object):
 
     def _reconfigure_all(self):
         config = self._coordinator.configuration()
-        for sock, conn in self._conns.values():
+        for sock, conn in list(self._conns.values()):
             if hasattr(conn, 'reconfigure'):
                 conn.reconfigure(config)
 
@@ -536,7 +547,7 @@ class CoordinatorServer(object):
                             sock.close()
                         except socket.error as e:
                             pass
-            for fd, conn in self._conns.iteritems():
+            for fd, conn in self._conns.items():
                 sock, conn = conn
                 if len(conn.outgoing) > 0:
                     self._p.modify(fd, select.POLLIN | select.POLLOUT)

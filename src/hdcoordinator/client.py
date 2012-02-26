@@ -39,8 +39,8 @@ import hdcoordinator.parser
 def send_text(host, port, text):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
     s.connect((host, port))
-    s.sendall(text)
-    data = s.recv(4096)
+    s.sendall(text.encode())
+    data = s.recv(4096).decode()
     if data.endswith('.\n'):
         data = data[:-2]
     if data != 'SUCCESS\n':
@@ -55,7 +55,7 @@ def add_space(args):
         parser = (hdcoordinator.parser.space + pyparsing.stringEnd)
         space = parser.parseString(data)[0]
     except pyparsing.ParseException as e:
-        print str(e)
+        print(str(e))
         return 1
     text = 'add space\n{0}\n.\n'.format(data)
     return send_text(args.host, args.port, text)
