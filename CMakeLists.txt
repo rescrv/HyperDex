@@ -39,18 +39,17 @@ include_directories(${GTEST_INCLUDE_DIRS})
 set(Python_ADDITIONAL_VERSIONS 3.2mu 3.2 3.1mu 3.1 3.0mu 3.0)
 include(FindPythonLibs)
 include(FindPythonInterp)
-
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-find_package(Cython REQUIRED)
-
-include(CMakeDependentOption)
 include(FindPkgConfig)
 include(FindPackageHandleStandardArgs)
+
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+find_package(Cython      REQUIRED)
+find_package(LibBSD      REQUIRED)
+find_package(LibCityHash REQUIRED)
+find_package(LibE        REQUIRED)
+find_package(LibGLog     REQUIRED)
+
 include(cmake/UseCython.cmake)
-include(cmake/FindLibBSD.cmake)
-include(cmake/FindLibCityHash.cmake)
-include(cmake/FindLibE.cmake)
-include(cmake/FindLibGLog.cmake)
 
 option(ENABLE_JAVA_BINDINGS "Build Java bindings" OFF)
 
