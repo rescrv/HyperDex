@@ -25,14 +25,12 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-set(src
-  hyperclient.cc)
+cython_add_module(hyperclient-python hyperclient.pyx)
+cython_link_libraries(hyperclient-python hyperclient)
+set_target_properties(hyperclient-python PROPERTIES LIBRARY_OUTPUT_NAME hyperclient)
 
-create_library(hyperclient ${src})
-target_link_libraries(hyperclient rt ${LIBE_LIBRARY})
-
-if(ENABLE_JAVA_BINDINGS)
-  add_subdirectory(java)
-endif()
-
-add_subdirectory(python)
+execute_process(COMMAND ${PYTHON_EXECUTABLE} -c
+  "from distutils import sysconfig\nprint(sysconfig.get_python_lib())"
+  OUTPUT_VARIABLE PYTHON_SITE_INSTALL_DIR
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+install(TARGETS hyperclient-python DESTINATION "${PYTHON_SITE_INSTALL_DIR}")

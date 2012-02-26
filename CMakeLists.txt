@@ -36,9 +36,17 @@ enable_testing()
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
 
+set(Python_ADDITIONAL_VERSIONS 3.2mu 3.2 3.1mu 3.1 3.0mu 3.0)
+include(FindPythonLibs)
+include(FindPythonInterp)
+
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+find_package(Cython REQUIRED)
+
 include(CMakeDependentOption)
 include(FindPkgConfig)
 include(FindPackageHandleStandardArgs)
+include(cmake/UseCython.cmake)
 include(cmake/FindLibBSD.cmake)
 include(cmake/FindLibCityHash.cmake)
 include(cmake/FindLibE.cmake)

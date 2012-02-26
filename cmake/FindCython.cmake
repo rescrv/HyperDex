@@ -25,14 +25,5 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-set(src
-  hyperclient.cc)
-
-create_library(hyperclient ${src})
-target_link_libraries(hyperclient rt ${LIBE_LIBRARY})
-
-if(ENABLE_JAVA_BINDINGS)
-  add_subdirectory(java)
-endif()
-
-add_subdirectory(python)
+find_program(CYTHON_EXECUTABLE NAMES cython cython2)
+find_package_handle_standard_args(Cython REQUIRED_VARS CYTHON_EXECUTABLE)
