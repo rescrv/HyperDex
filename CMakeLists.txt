@@ -69,6 +69,15 @@ set(LIBRARY_INSTALL_DIR lib)
 set(INCLUDE_INSTALL_DIR include)
 set(JAVA_LIB_INSTALL_DIR share/java/hyperdex/)
 
+set(CMAKE_CXX_FLAGS_RELEASE "-g0 -O2 -s")
+set(CMAKE_CXX_FLAGS_DEBUG "-ggdb -O0")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Type of the build" FORCE)
+endif()
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_subdirectory(include)
 add_subdirectory(src)
