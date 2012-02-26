@@ -55,3 +55,33 @@ install(TARGETS
   hyperdex-repl-tester
   hyperdexd
   DESTINATION bin)
+
+set(bindir "${CMAKE_CURRENT_BINARY_DIR}")
+
+set(hdcoordinator_src
+  hdcoordinator/client.py
+  hdcoordinator/coordinator.py
+  hdcoordinator/__init__.py
+  hdcoordinator/parser.py)
+
+# use "python setup.py"-like command to build the module
+add_custom_command(OUTPUT "${bindir}/hdcoordinator"
+  COMMAND ${PYTHON_EXECUTABLE}
+          hdcoordinator-setup.py
+          build -b "${bindir}/py.build"
+          install -O2 --prefix=. --install-lib=hdcoordinator --root="${bindir}"
+  DEPENDS hdcoordinator-setup.py ${hdcoordinator_src}
+  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+
+add_custom_target(hdcoordinator ALL
+  COMMAND
+  DEPENDS "${bindir}/hdcoordinator")
+
+configure_file(coordinator.in "${bindir}/hyperdex-coordinator")
+configure_file(coordinator-ctl.in "${bindir}/hyperdex-coordinator-ctl")
+
+install(DIRECTORY "${bindir}/hdcoordinator/"
+  DESTINATION "${PYTHON_SITE_INSTALL_DIR}")
+install(PROGRAMS
+  "${bindir}/hyperdex-coordinator" "${bindir}/hyperdex-coordinator-ctl"
+  DESTINATION bin)

@@ -29,8 +29,4 @@ cython_add_module(hyperclient-python hyperclient.pyx)
 cython_link_libraries(hyperclient-python hyperclient)
 set_target_properties(hyperclient-python PROPERTIES LIBRARY_OUTPUT_NAME hyperclient)
 
-execute_process(COMMAND ${PYTHON_EXECUTABLE} -c
-  "from distutils import sysconfig\nprint(sysconfig.get_python_lib())"
-  OUTPUT_VARIABLE PYTHON_SITE_INSTALL_DIR
-  OUTPUT_STRIP_TRAILING_WHITESPACE)
 install(TARGETS hyperclient-python DESTINATION "${PYTHON_SITE_INSTALL_DIR}")

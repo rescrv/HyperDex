@@ -42,6 +42,11 @@ include(FindPythonInterp)
 include(FindPkgConfig)
 include(FindPackageHandleStandardArgs)
 
+execute_process(COMMAND ${PYTHON_EXECUTABLE} -c
+  "from distutils import sysconfig\nprint(sysconfig.get_python_lib())"
+  OUTPUT_VARIABLE PYTHON_SITE_INSTALL_DIR
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 find_package(Cython      REQUIRED)
 find_package(LibBSD      REQUIRED)
