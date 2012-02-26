@@ -29,7 +29,7 @@
 #include <gtest/gtest.h>
 
 // HyperDex
-#include <hyperdex/search.h>
+#include <hyperdex/spacehashing/search.h>
 
 #pragma GCC diagnostic ignored "-Wswitch-default"
 

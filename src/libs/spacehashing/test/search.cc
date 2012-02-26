@@ -33,11 +33,11 @@
 #include <ctime>
 
 // HyperspaceHashing
-#include "hyperspacehashing/hyperspacehashing/hashes.h"
-#include "hyperspacehashing/hyperspacehashing/mask.h"
-#include "hyperspacehashing/hyperspacehashing/prefix.h"
-#include "hyperspacehashing/hyperspacehashing/search.h"
-#include "hyperspacehashing/hashes_internal.h"
+#include "hyperdex/spacehashing/hashes.h"
+#include "hyperdex/spacehashing/mask.h"
+#include "hyperdex/spacehashing/prefix.h"
+#include "hyperdex/spacehashing/search.h"
+#include "../hashes_internal.h"
 
 using hyperspacehashing::hash_t;
 using hyperspacehashing::EQUALITY;

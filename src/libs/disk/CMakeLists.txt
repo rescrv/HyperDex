@@ -14,3 +14,5 @@ set(src
 
 add_library(hyperdisk ${src})
 install(TARGETS hyperdisk DESTINATION ${LIBRARY_INSTALL_DIR})
+
+create_test(shard test/shard.cc)
