@@ -25,12 +25,19 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-set(src
-  hyperclient.cc)
+find_package(SWIG REQUIRED)
+include(UseSWIG)
 
-create_library(hyperclient ${src})
-target_link_libraries(hyperclient rt ${LIBE_LIBRARY})
+include_directories(${JNI_INCLUDE_DIRS})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+set(CMAKE_SWIG_FLAGS -includeall -w518 -package hyperclient)
+set_source_files_properties(hyperclient.i PROPERTIES CPLUSPLUS ON)
 
-if(ENABLE_JAVA_BINDINGS)
-  add_subdirectory(java)
-endif()
+swig_add_module(hyperclient-java java hyperclient.i syncclient.cc syncclient.h)
+swig_link_libraries(hyperclient-java hyperclient ${JNI_LIBRARIES})
+
+set(CMAKE_JNI_TARGET TRUE)
+set(CMAKE_JAVA_TARGET_OUTPUT_NAME hyperclient)
+add_jar(hyperclient_jar ${CMAKE_CURRENT_BINARY_DIR}/*.java)
+add_dependencies(hyperclient_jar hyperclient-java)
+install_jar(hyperclient_jar ${JAVA_LIB_INSTALL_DIR})

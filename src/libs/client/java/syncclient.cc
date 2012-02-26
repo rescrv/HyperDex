@@ -33,8 +33,8 @@
 #include <e/guard.h>
 
 // HyperClient
-#include "hyperclient/hyperclient.h"
-#include "hyperclient/java/syncclient.h"
+#include "hyperdex/client/client.h"
+#include "syncclient.h"
 
 HyperClient :: HyperClient(const char* coordinator, in_port_t port)
     : m_client(coordinator, port)

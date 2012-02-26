@@ -25,12 +25,9 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-set(src
-  hyperclient.cc)
+get_property(jar TARGET hyperclient_jar PROPERTY JAR_FILE)
+set(CMAKE_JAVA_INCLUDE_PATH ${jar} ${JCSB_JAR})
 
-create_library(hyperclient ${src})
-target_link_libraries(hyperclient rt ${LIBE_LIBRARY})
-
-if(ENABLE_JAVA_BINDINGS)
-  add_subdirectory(java)
-endif()
+add_jar(hyperclient-ycsb HyperClientYCSB.java)
+add_dependencies(hyperclient-ycsb hyperclient_jar)
+install_jar(hyperclient-ycsb ${JAVA_LIB_INSTALL_DIR})

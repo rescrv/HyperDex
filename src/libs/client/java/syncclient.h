@@ -29,7 +29,7 @@
 #define hyperclient_syncclient_h_
 
 // HyperClient
-#include "../hyperclient.h"
+#include "hyperdex/client/client.h"
 
 typedef hyperclient_returncode ReturnCode;
 

@@ -36,12 +36,22 @@ enable_testing()
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
 
+include(CMakeDependentOption)
 include(FindPkgConfig)
 include(FindPackageHandleStandardArgs)
 include(cmake/FindLibBSD.cmake)
 include(cmake/FindLibCityHash.cmake)
 include(cmake/FindLibE.cmake)
 include(cmake/FindLibGLog.cmake)
+
+option(ENABLE_JAVA_BINDINGS "Build Java bindings" OFF)
+
+if(ENABLE_JAVA_BINDINGS)
+  find_package(Java REQUIRED)
+  find_package(JNI REQUIRED)
+  include(UseJava)
+  set(CMAKE_JAVA_TARGET_VERSION ${HYPERDEX_VERSION})
+endif()
 
 # build dynamic libraries by default
 if(NOT DEFINED BUILD_SHARED_LIBS)
@@ -50,7 +60,13 @@ endif()
 
 set(LIBRARY_INSTALL_DIR lib)
 set(INCLUDE_INSTALL_DIR include)
+set(JAVA_LIB_INSTALL_DIR share/java/hyperdex/)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_subdirectory(include)
 add_subdirectory(src)
+
+option(ENABLE_JCSB "Build Yahoo Cloud Serving Benchmark" OFF)
+if(ENABLE_JAVA_BINDINGS AND ENABLE_JCSB)
+  add_subdirectory(ycsb)
+endif()
