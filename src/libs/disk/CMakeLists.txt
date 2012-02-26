@@ -39,7 +39,5 @@ set(src
   shard_vector.h
   snapshot.cc)
 
-add_library(hyperdisk ${src})
-install(TARGETS hyperdisk DESTINATION ${LIBRARY_INSTALL_DIR})
-
+create_library(hyperdisk ${src})
 create_test(shard test/shard.cc)

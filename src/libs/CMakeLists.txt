@@ -32,6 +32,13 @@ macro(create_test name)
   add_test(${name} test_${name})
 endmacro()
 
+macro(create_library name)
+  add_library(${name} ${ARGN})
+  set_target_properties(${name} PROPERTIES VERSION ${HYPERDEX_VERSION})
+  set_target_properties(${name} PROPERTIES SOVERSION ${HYPERDEX_VERSION_MAJOR})
+  install(TARGETS ${name} DESTINATION ${LIBRARY_INSTALL_DIR})
+endmacro()
+
 add_subdirectory(client)
 add_subdirectory(dex)
 add_subdirectory(disk)

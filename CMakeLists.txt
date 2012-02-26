@@ -28,6 +28,10 @@
 cmake_minimum_required(VERSION 2.6.0)
 project(hyperdex)
 
+set(HYPERDEX_VERSION_MAJOR 0)
+set(HYPERDEX_VERSION_MINOR 2b6)
+set(HYPERDEX_VERSION ${HYPERDEX_VERSION_MAJOR}.${HYPERDEX_VERSION_MINOR})
+
 enable_testing()
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})

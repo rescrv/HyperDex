@@ -37,10 +37,9 @@ set(src
   range_match.h
   search.cc)
 
-add_library(hyperspacehashing ${src})
+create_library(hyperspacehashing ${src})
 target_link_libraries(hyperspacehashing
   ${LIBE_LIBRARY} ${LIBCITYHASH_LIBRARY})
-install(TARGETS hyperspacehashing DESTINATION ${LIBRARY_INSTALL_DIR})
 
 create_test(bithacks test/bithacks.cc)
 create_test(cfloat test/cfloat.cc)

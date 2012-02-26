@@ -46,7 +46,6 @@ set(src
   searches.cc
   searches.h)
 
-add_library(hyperdaemon ${src})
+create_library(hyperdaemon ${src})
 target_link_libraries(hyperdaemon
   rt hyperdex hyperspacehashing ${LIBE_LIBRARY})
-install(TARGETS hyperdaemon DESTINATION ${LIBRARY_INSTALL_DIR})
