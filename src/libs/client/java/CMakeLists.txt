@@ -35,6 +35,7 @@ set_source_files_properties(hyperclient.i PROPERTIES CPLUSPLUS ON)
 
 swig_add_module(hyperclient-java java hyperclient.i syncclient.cc syncclient.h)
 swig_link_libraries(hyperclient-java hyperclient ${JNI_LIBRARIES})
+install(TARGETS hyperclient-java DESTINATION ${LIBRARY_INSTALL_DIR})
 
 set(CMAKE_JNI_TARGET TRUE)
 set(CMAKE_JAVA_TARGET_OUTPUT_NAME hyperclient)
