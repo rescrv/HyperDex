@@ -106,7 +106,7 @@ class coordinatorlink
         configuration m_config;
         po6::net::socket m_sock;
         pollfd m_pfd;
-        std::auto_ptr<e::buffer> m_buffer;
+        std::string m_buffer;
         std::set<po6::net::location> m_reported_failures;
         std::map<po6::net::location, uint64_t> m_warnings_issued;
 };

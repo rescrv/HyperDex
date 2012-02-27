@@ -34,9 +34,9 @@ import unittest
 from pyparsing import Combine, Forward, Group, Literal, Optional, Suppress, ZeroOrMore, Word, delimitedList, stringEnd
 
 
-Dimension = collections.namedtuple("Dimension", ["name", "replhash", "diskhash"])
+Dimension = collections.namedtuple("Dimension", ["name", "type"])
 Region = collections.namedtuple("Region", ["mask", "prefix", "replicas"])
-Subspace = collections.namedtuple("Subspace", ["dimensions", "regions"])
+Subspace = collections.namedtuple("Subspace", ["dimensions", "nosearch", "regions"])
 Space = collections.namedtuple("Space", ["name", "dimensions", "subspaces"])
 
 
@@ -88,7 +88,7 @@ def _fill_to_region(upper_bound, auto_prefix, auto_replication, target):
 
 
 def parse_dimension(dim):
-    return Dimension(dim[0], dim[1][0], dim[1][1])
+    return Dimension(dim[0], dim[1])
 
 
 def parse_regions(regions):
@@ -128,7 +128,9 @@ def parse_regions(regions):
 
 
 def parse_subspace(subspace):
-    return Subspace(dimensions=list(subspace[0]), regions=list(subspace[1]))
+    return Subspace(dimensions=list(subspace[0]),
+                    nosearch=list(subspace[1]),
+                    regions=list(subspace[2]))
 
 
 def parse_space(space):
@@ -137,11 +139,9 @@ def parse_space(space):
         raise ValueError("Space key must be one of its dimensions.")
     for subspace in space.subspaces:
         for dim in set(subspace.dimensions):
-            if dim.name not in dims:
+            if dim not in dims:
                 raise ValueError("Subspace dimension {0} must be one of its dimensions.".format(repr(name)))
-    if space.keyhash[0] == "none":
-        raise ValueError("Cannot specify \"none\" as a replication hash for dimension {0}".format(repr(space.key)))
-    keysubspace = Subspace(dimensions=[Dimension(space.key, *space.keyhash)], regions=list(space.keyregions))
+    keysubspace = Subspace(dimensions=[space.key], nosearch=[], regions=list(space.keyregions))
     subspaces = [keysubspace] + list(space.subspaces)
     return Space(name=space.name, dimensions=space.dimensions, subspaces=subspaces)
 
@@ -149,33 +149,24 @@ def parse_space(space):
 identifier = Word(string.ascii_letters + string.digits + '_')
 integer = Word(string.digits).setParseAction(lambda t: int(t[0]))
 hexnum  = Combine(Literal("0x") + Word(string.hexdigits)).setParseAction(lambda t: int(t[0][2:], 16))
-hashequal = Literal("equality")
-hashrange = Literal("range")
-hashnone  = Literal("none")
-hashtype  = hashequal|hashrange|hashnone
-
-def hash_specifier(repl_default, disk_default):
-    return Optional(Group(Optional(hashtype, default=repl_default) +
-                          Suppress(":") +
-                          Optional(hashtype, default=disk_default)),
-                    default=[repl_default, disk_default])
-
-def dimensions(repl_default, disk_default):
-    dimension = identifier.setResultsName("name") + \
-                hash_specifier(repl_default, disk_default).setResultsName("hash")
-    dimension.setParseAction(parse_dimension)
-    return delimitedList(dimension)
-
+dimension = identifier.setResultsName("name") + \
+            Optional(Suppress(Literal("(")) +
+                     (Literal("string") | Literal("uint64")) +
+                     Suppress(Literal(")")), default="string").setResultsName("type")
+dimension.setParseAction(parse_dimension)
 autoregion = Literal("auto") + integer + integer
 staticregion = Literal("region") + integer + hexnum + integer
 region = ZeroOrMore(Group(staticregion)) + Optional(Group(autoregion))
 region.setParseAction(parse_regions)
-subspace = Literal("subspace").suppress() + Group(dimensions("equality", None)) + Group(region)
+subspace = Literal("subspace").suppress() + \
+           Group(delimitedList(identifier)) + \
+           Optional(Suppress(Literal("nosearch")) +
+                   Group(delimitedList(identifier)), default=[]) + \
+           Group(region)
 subspace.setParseAction(parse_subspace)
 space = Literal("space").suppress() + identifier.setResultsName("name") + \
-        Literal("dimensions").suppress() + Group(dimensions("none", "equality")).setResultsName("dimensions") + \
+        Literal("dimensions").suppress() + Group(delimitedList(dimension)).setResultsName("dimensions") + \
         Literal("key").suppress() + identifier.setResultsName("key") + \
-        hash_specifier("equality", None).setResultsName("keyhash") + \
         Group(region).setResultsName("keyregions") + \
         ZeroOrMore(subspace).setResultsName("subspaces")
 space.setParseAction(parse_space)

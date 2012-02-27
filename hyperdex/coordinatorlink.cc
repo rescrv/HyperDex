@@ -33,6 +33,7 @@
 
 // HyperDex
 #include "hyperdex/hyperdex/coordinatorlink.h"
+#include "hyperdex/configuration_parser.h"
 
 hyperdex :: coordinatorlink :: coordinatorlink(const po6::net::location& coordinator)
     : m_lock()
@@ -44,7 +45,7 @@ hyperdex :: coordinatorlink :: coordinatorlink(const po6::net::location& coordin
     , m_config()
     , m_sock()
     , m_pfd()
-    , m_buffer(e::buffer::create(2048))
+    , m_buffer()
     , m_reported_failures()
     , m_warnings_issued()
 {
@@ -182,7 +183,8 @@ hyperdex :: coordinatorlink :: loop(size_t iterations, int timeout)
             }
         }
 
-        ssize_t ret = e::bufferio::read(&m_sock, m_buffer.get(), m_buffer->capacity());
+        char buf[4096];
+        ssize_t ret = m_sock.read(buf, 4096);
 
         if (ret <= 0)
         {
@@ -190,38 +192,36 @@ hyperdex :: coordinatorlink :: loop(size_t iterations, int timeout)
             return DISCONNECT;
         }
 
-        size_t index;
+        m_buffer += std::string(buf, ret);
+        size_t index = m_buffer.find("end\tof\tline\n");
 
-        while ((index = m_buffer->index('\n')) < m_buffer->size())
+        if (index != std::string::npos)
         {
-            std::string line(reinterpret_cast<const char*>(m_buffer->data()), index);
-            m_buffer->shift(index + 1);
+            std::string configtext = m_buffer.substr(0, index);
+            m_buffer = m_buffer.substr(index + 12);
 
-            if (line == "end\tof\tline")
+            // Parse the config
+            configuration_parser cp;
+            configuration_parser::error e;
+            e = cp.parse(configtext);
+
+            if (e == configuration_parser::CP_SUCCESS)
             {
-                if (m_config_valid)
-                {
-                    m_acknowledged = false;
-                    return SUCCESS;
-                }
-                else
-                {
-                    reset_config();
-                    returncode code = send_to_coordinator("BAD\n", 4);
-
-                    if (code != SUCCESS)
-                    {
-                        return code;
-                    }
-                }
+                m_acknowledged = false;
+                m_config = cp.generate();
+                return SUCCESS;
             }
             else
             {
-                m_config_valid &= m_config.add_line(line);
+                reset_config();
+                returncode code = send_to_coordinator("BAD\n", 4);
+
+                if (code != SUCCESS)
+                {
+                    return code;
+                }
             }
         }
-
-        ++ iter;
     }
 
     return SUCCESS;
@@ -304,7 +304,7 @@ hyperdex :: coordinatorlink :: reset()
     m_sock.close();
     m_pfd.fd = -1;
     m_pfd.events = 0;
-    m_buffer->clear();
+    m_buffer = "";
 }
 
 void

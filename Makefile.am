@@ -297,6 +297,7 @@ hyperdisk_utils_shard_fsck_CPPFLAGS = \
 
 libhyperdex_noinst_headers = \
 			hyperdex/hyperdex/configuration.h \
+			hyperdex/hyperdex/configuration_parser.h \
 			hyperdex/hyperdex/coordinatorlink.h \
 			hyperdex/hyperdex/ids.h \
 			hyperdex/hyperdex/instance.h \
@@ -305,6 +306,7 @@ libhyperdex_noinst_headers = \
 
 libhyperdex_la_SOURCES = \
 			hyperdex/configuration.cc \
+			hyperdex/configuration_parser.cc \
 			hyperdex/coordinatorlink.cc
 libhyperdex_la_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \

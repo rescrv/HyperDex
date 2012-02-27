@@ -184,43 +184,43 @@ class Coordinator(object):
         config = ''
         for spacenum, space in self._spaces_by_num.iteritems():
             spacedims = dict([(d.name, d) for d in space.dimensions])
-            space_str = 'space\t{num}\t{name}\t{dims}\n' \
-                        .format(num=spacenum, name=space.name,
-                                dims='\t'.join([d.name for d in space.dimensions]))
+            space_str = 'space {space} {subspace} {dims}\n' \
+                        .format(space=space.name, subspace=spacenum,
+                                dims=' '.join([d.name + ' ' + d.type for d in space.dimensions]))
             for subspacenum, subspace in enumerate(space.subspaces):
-                subdims = dict([(d.name, d) for d in subspace.dimensions])
-                hashes = []
+                hashes_str = ''
                 for dim in space.dimensions:
-                    if dim.name in subdims:
-                        repl = subdims[dim.name].replhash or dim.replhash
-                        disk = subdims[dim.name].diskhash or dim.diskhash
+                    if dim.name in subspace.dimensions:
+                        hashes_str += ' true'
                     else:
-                        repl = dim.replhash
-                        disk = dim.diskhash
-                    hashes.append((repl, disk))
-                    hashes_str = '\t'.join(r + '\t' + d for r, d in hashes)
-                subspace_str = 'subspace\t{name}\t{num}\t{hashes}\n' \
-                               .format(name=space.name, num=subspacenum,
-                                       hashes=hashes_str)
+                        hashes_str += ' false'
+                    if dim.name not in subspace.nosearch:
+                        hashes_str += ' true'
+                    else:
+                        hashes_str += ' false'
+                subspace_str = 'subspace {space} {subspace} {hashes}\n' \
+                               .format(space=spacenum,
+                                       subspace=subspacenum,
+                                       hashes=hashes_str.strip())
                 for region in subspace.regions:
-                    region_str = 'region\t{name}\t{num}\t{prefix}\t{mask}' \
-                                 .format(name=space.name,
-                                         num=subspacenum,
+                    region_str = 'region {space} {subspace} {prefix} {mask}' \
+                                 .format(space=spacenum,
+                                         subspace=subspacenum,
                                          prefix=region.prefix,
                                          mask=hex(region.mask).rstrip('L'))
                     for replica in region.replicas:
                         if replica is not None:
                             if replica not in hosts:
-                                hosts[replica] = 'auto_{0}'.format(counter)
+                                hosts[replica] = counter
                                 counter += 1
-                            region_str += '\t{repl}'.format(repl=hosts[replica])
+                            region_str += ' {repl}'.format(repl=hosts[replica])
                     subspace_str += region_str + '\n'
                 space_str += subspace_str
             config += space_str
         hosts_lines = []
         for host, codename in hosts.iteritems():
             addr, incoming, inc_ver, outgoing, out_ver, pid, token = host
-            host_str = 'host\t{name}\t{ip}\t{iport}\t{iver}\t{oport}\t{over}' \
+            host_str = 'host {name} {ip} {iport} {iver} {oport} {over}' \
                        .format(name=codename, ip=addr, iport=incoming,
                                iver=inc_ver, oport=outgoing, over=out_ver)
             hosts_lines.append(host_str)

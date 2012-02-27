@@ -213,7 +213,7 @@ attributes_from_value(const hyperdex::configuration& config,
                       hyperclient_attribute** attrs,
                       size_t* attrs_sz)
 {
-    std::vector<std::string> dimension_names = config.dimension_names(entity.get_space());
+    std::vector<hyperdex::attribute> dimension_names = config.dimension_names(entity.get_space());
 
     if (value.size() + 1 != dimension_names.size())
     {
@@ -222,11 +222,11 @@ attributes_from_value(const hyperdex::configuration& config,
     }
 
     size_t sz = sizeof(hyperclient_attribute) * dimension_names.size() + key_sz
-              + dimension_names[0].size() + 1;
+              + dimension_names[0].name.size() + 1;
 
     for (size_t i = 0; i < value.size(); ++i)
     {
-        sz += dimension_names[i + 1].size() + 1 + value[i].size();
+        sz += dimension_names[i + 1].name.size() + 1 + value[i].size();
     }
 
     std::vector<hyperclient_attribute> ha;
@@ -246,9 +246,9 @@ attributes_from_value(const hyperdex::configuration& config,
     {
         data += sizeof(hyperclient_attribute);
         ha.push_back(hyperclient_attribute());
-        size_t attr_sz = dimension_names[0].size() + 1;
+        size_t attr_sz = dimension_names[0].name.size() + 1;
         ha.back().attr = data;
-        memmove(data, dimension_names[0].c_str(), attr_sz);
+        memmove(data, dimension_names[0].name.c_str(), attr_sz);
         data += attr_sz;
         ha.back().value = data;
         memmove(data, key, key_sz);
@@ -259,9 +259,9 @@ attributes_from_value(const hyperdex::configuration& config,
     for (size_t i = 0; i < value.size(); ++i)
     {
         ha.push_back(hyperclient_attribute());
-        size_t attr_sz = dimension_names[i + 1].size() + 1;
+        size_t attr_sz = dimension_names[i + 1].name.size() + 1;
         ha.back().attr = data;
-        memmove(data, dimension_names[i + 1].c_str(), attr_sz);
+        memmove(data, dimension_names[i + 1].name.c_str(), attr_sz);
         data += attr_sz;
         ha.back().value = data;
         memmove(data, value[i].data(), value[i].size());
@@ -896,7 +896,7 @@ hyperclient :: search(const char* space,
         return -1;
     }
 
-    std::vector<std::string> dimension_names = m_config->dimension_names(si);
+    std::vector<hyperdex::attribute> dimension_names = m_config->dimension_names(si);
     assert(dimension_names.size() > 0);
     e::bitfield seen(dimension_names.size());
 
@@ -906,8 +906,13 @@ hyperclient :: search(const char* space,
     // Check the equality conditions.
     for (size_t i = 0; i < eq_sz; ++i)
     {
-        std::vector<std::string>::const_iterator dim;
-        dim = std::find(dimension_names.begin(), dimension_names.end(), eq[i].attr);
+        std::vector<hyperdex::attribute>::const_iterator dim;
+        dim = dimension_names.begin();
+
+        while (dim < dimension_names.end() && dim->name != eq[i].attr)
+        {
+            ++dim;
+        }
 
         if (dim == dimension_names.begin())
         {
@@ -935,8 +940,13 @@ hyperclient :: search(const char* space,
     // Check the range conditions.
     for (size_t i = 0; i < rn_sz; ++i)
     {
-        std::vector<std::string>::const_iterator dim;
-        dim = std::find(dimension_names.begin(), dimension_names.end(), rn[i].attr);
+        std::vector<hyperdex::attribute>::const_iterator dim;
+        dim = dimension_names.begin();
+
+        while (dim < dimension_names.end() && dim->name != rn[i].attr)
+        {
+            ++dim;
+        }
 
         if (dim == dimension_names.begin())
         {
@@ -1281,7 +1291,7 @@ hyperclient :: pack_attrs(const char* space, e::buffer::packer p,
         return -1;
     }
 
-    std::vector<std::string> dimension_names = m_config->dimension_names(si);
+    std::vector<hyperdex::attribute> dimension_names = m_config->dimension_names(si);
     assert(dimension_names.size() > 0);
     e::bitfield seen(dimension_names.size());
     uint32_t sz = attrs_sz;
@@ -1289,8 +1299,13 @@ hyperclient :: pack_attrs(const char* space, e::buffer::packer p,
 
     for (size_t i = 0; i < attrs_sz; ++i)
     {
-        std::vector<std::string>::const_iterator dim;
-        dim = std::find(dimension_names.begin(), dimension_names.end(), attrs[i].attr);
+        std::vector<hyperdex::attribute>::const_iterator dim;
+        dim = dimension_names.begin();
+
+        while (dim < dimension_names.end() && dim->name != attrs[i].attr)
+        {
+            ++dim;
+        }
 
         if (dim == dimension_names.begin())
         {
