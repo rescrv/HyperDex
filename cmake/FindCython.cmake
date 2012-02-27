@@ -26,4 +26,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 find_program(CYTHON_EXECUTABLE NAMES cython cython2)
-find_package_handle_standard_args(Cython REQUIRED_VARS CYTHON_EXECUTABLE)
+execute_process(COMMAND "${CYTHON_EXECUTABLE}" --version
+  ERROR_VARIABLE CYTHON_VERSION_OUTPUT
+  ERROR_STRIP_TRAILING_WHITESPACE)
+string(REGEX REPLACE "Cython version[ \t]*([0-9.]+).*$" "\\1" CYTHON_VERSION "${CYTHON_VERSION_OUTPUT}")
+find_package_handle_standard_args(Cython
+  REQUIRED_VARS CYTHON_EXECUTABLE
+  VERSION_VAR CYTHON_VERSION)
