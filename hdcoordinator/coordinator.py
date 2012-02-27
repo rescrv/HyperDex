@@ -370,7 +370,7 @@ class HostConnection(object):
 
     def send_config(self, config):
         num, data = config
-        self.outgoing += (data + '\nend\tof\tline').strip() + '\n'
+        self.outgoing += (data + '\nend of line').strip() + '\n'
 
     def fail_host(self, host):
         if ':' not in host:

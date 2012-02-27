@@ -193,7 +193,7 @@ hyperdex :: coordinatorlink :: loop(size_t iterations, int timeout)
         }
 
         m_buffer += std::string(buf, ret);
-        size_t index = m_buffer.find("end\tof\tline\n");
+        size_t index = m_buffer.find("end of line\n");
 
         if (index != std::string::npos)
         {
