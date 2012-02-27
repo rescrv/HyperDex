@@ -81,6 +81,7 @@ hyperdaemon :: datalayer :: datalayer(coordinatorlink* cl, const po6::pathname& 
     , m_last_preallocation(0)
     , m_optimistic_rr()
     , m_last_dose_of_optimism(0)
+    , m_flushed_recently(false)
 {
     m_optimistic_io_thread.start();
 
