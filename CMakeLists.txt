@@ -50,6 +50,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 find_package(LibBSD      0.3.0  REQUIRED)
 find_package(LibCityHash 1.0.0  REQUIRED)
 find_package(LibE        0.2.4  REQUIRED)
+find_package(LibPO6      0.2.2  REQUIRED)
 find_package(LibGLog     0.3.0  REQUIRED)
 
 include(cmake/UseCython.cmake)
