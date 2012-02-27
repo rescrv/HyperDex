@@ -87,6 +87,6 @@ install(PROGRAMS
   "${bindir}/hyperdex-coordinator" "${bindir}/hyperdex-coordinator-ctl"
   DESTINATION bin)
 
-add_test(NAME test_hdcoordinator_parser
+add_test(NAME hdcoordinator_parser
   WORKING_DIRECTORY "${bindir}/hdcoordinator"
   COMMAND "${PYTHON_EXECUTABLE}" hdcoordinator/parser.py)
