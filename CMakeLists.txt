@@ -57,6 +57,7 @@ find_package(LibGLog     REQUIRED)
 include(cmake/UseCython.cmake)
 
 option(ENABLE_JAVA_BINDINGS "Build Java bindings" OFF)
+option(ENABLE_YCSB "Build Yahoo Cloud Serving Benchmark" OFF)
 
 if(ENABLE_JAVA_BINDINGS)
   find_package(Java REQUIRED)
@@ -86,8 +87,3 @@ endif()
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_subdirectory(include)
 add_subdirectory(src)
-
-option(ENABLE_JCSB "Build Yahoo Cloud Serving Benchmark" OFF)
-if(ENABLE_JAVA_BINDINGS AND ENABLE_JCSB)
-  add_subdirectory(ycsb)
-endif()

@@ -26,6 +26,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 add_subdirectory(libs)
+add_subdirectory(ycsb)
 
 set(COMMON_LIBS
   hyperclient

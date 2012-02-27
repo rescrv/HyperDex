@@ -25,9 +25,14 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-get_property(jar TARGET hyperclient_jar PROPERTY JAR_FILE)
-set(CMAKE_JAVA_INCLUDE_PATH ${jar} ${JCSB_JAR})
+set(YCSB_JAR "" CACHE FILEPATH "Yahoo Cloud Serving Benchmark JAR path")
 
-add_jar(hyperclient-ycsb HyperClientYCSB.java)
-add_dependencies(hyperclient-ycsb hyperclient_jar)
-install_jar(hyperclient-ycsb ${JAVA_LIB_INSTALL_DIR})
+if(ENABLE_YCSB)
+  unset(CMAKE_JNI_TARGET CACHE)
+  get_property(jar TARGET hyperclient_jar PROPERTY JAR_FILE)
+  set(CMAKE_JAVA_INCLUDE_PATH ${jar} "${YCSB_JAR}")
+
+  add_jar(hyperclient-ycsb HyperClientYCSB.java)
+  add_dependencies(hyperclient-ycsb hyperclient_jar)
+  install_jar(hyperclient-ycsb "${JAVA_LIB_INSTALL_DIR}")
+endif()
