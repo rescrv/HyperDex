@@ -182,6 +182,7 @@ space.setParseAction(parse_space)
 
 
 class TestFillToRegion(unittest.TestCase):
+    maxDiff = None
 
     def test_already_met(self):
         a = 0
@@ -239,6 +240,7 @@ class TestFillToRegion(unittest.TestCase):
 
 
 class TestRegionParsing(unittest.TestCase):
+    maxDiff = None
 
     def test_solo_autoregion(self):
         expected = ["auto", 3, 3]
