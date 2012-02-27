@@ -33,12 +33,11 @@ set(HYPERDEX_VERSION_MINOR 2b6)
 set(HYPERDEX_VERSION ${HYPERDEX_VERSION_MAJOR}.${HYPERDEX_VERSION_MINOR})
 
 enable_testing()
-find_package(GTest REQUIRED)
+find_package(GTest 1.6.0 REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
 
 set(Python_ADDITIONAL_VERSIONS 3.2mu 3.2 3.1mu 3.1 3.0mu 3.0)
-include(FindPythonLibs)
-include(FindPythonInterp)
+find_package(PythonInterp 2.6.0 REQUIRED)
 include(FindPkgConfig)
 include(FindPackageHandleStandardArgs)
 
@@ -48,11 +47,10 @@ execute_process(COMMAND ${PYTHON_EXECUTABLE} -c
   OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-find_package(Cython      REQUIRED)
-find_package(LibBSD      REQUIRED)
-find_package(LibCityHash REQUIRED)
-find_package(LibE        REQUIRED)
-find_package(LibGLog     REQUIRED)
+find_package(LibBSD      0.3.0  REQUIRED)
+find_package(LibCityHash 1.0.0  REQUIRED)
+find_package(LibE        0.2.4  REQUIRED)
+find_package(LibGLog     0.3.0  REQUIRED)
 
 include(cmake/UseCython.cmake)
 

@@ -25,8 +25,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-find_package(Cython REQUIRED)
-find_package(PythonLibs REQUIRED)
+find_package(Cython 0.15.0 REQUIRED)
+find_package(PythonLibs 2.6.0 REQUIRED)
 
 function(generate_from_pyx _name _output_file_var)
   get_source_file_property(_cython_args ${_name} CYTHON_ARGS)
