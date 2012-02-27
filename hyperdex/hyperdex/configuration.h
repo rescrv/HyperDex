@@ -59,13 +59,13 @@ class configuration
     public:
         configuration();
         configuration(const std::vector<instance>& hosts,
-                const std::map<std::string, spaceid>& space_assignment,
-                const std::map<spaceid, std::vector<attribute> >& spaces,
-                const std::map<spaceid, uint16_t>& space_sizes,
-                const std::map<entityid, instance>& entities,
-                const std::map<subspaceid, hyperspacehashing::prefix::hasher>& repl_hashers,
-                const std::map<subspaceid, hyperspacehashing::mask::hasher>& disk_hashers
-                );
+                      const std::map<std::string, spaceid>& space_assignment,
+                      const std::map<spaceid, std::vector<attribute> >& spaces,
+                      const std::map<spaceid, uint16_t>& space_sizes,
+                      const std::map<entityid, instance>& entities,
+                      const std::map<subspaceid, hyperspacehashing::prefix::hasher>& repl_hashers,
+                      const std::map<subspaceid, hyperspacehashing::mask::hasher>& disk_hashers,
+                      const std::map<std::pair<instance, uint16_t>, hyperdex::regionid>& transfers);
         ~configuration() throw ();
 
     // Data-layout (not hashing)
@@ -117,6 +117,12 @@ class configuration
         std::map<entityid, instance> search_entities(const subspaceid& subspace,
                                                      const hyperspacehashing::search& s) const;
 
+    // State Transfer
+    public:
+        std::map<uint16_t, regionid> transfers_to(const instance& inst) const;
+        std::map<uint16_t, regionid> transfers_from(const instance& inst) const;
+        instance instancefortransfer(uint16_t xfer_id) const;
+
     private:
         std::map<entityid, instance> _search_entities(std::map<entityid, instance>::const_iterator start,
                                                       std::map<entityid, instance>::const_iterator end,
@@ -135,6 +141,10 @@ class configuration
         std::map<subspaceid, hyperspacehashing::prefix::hasher> m_repl_hashers;
         // Hash-calculating objects that work for the disk layer.
         std::map<subspaceid, hyperspacehashing::mask::hasher> m_disk_hashers;
+        // Transfers specified in the config.
+        std::map<std::pair<instance, uint16_t>, hyperdex::regionid> m_transfers;
+        // Transfers by number.
+        std::vector<instance> m_transfers_by_num;
 };
 
 inline std::ostream&

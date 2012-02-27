@@ -37,6 +37,7 @@ hyperdex :: configuration_parser :: configuration_parser()
     , m_disk_attrs()
     , m_regions()
     , m_entities()
+    , m_transfers()
 {
 }
 
@@ -81,7 +82,8 @@ hyperdex :: configuration_parser :: generate()
         disk_hashers.insert(std::make_pair(di->first, h));
     }
 
-    return configuration(hosts, m_space_assignment, m_spaces, space_sizes, m_entities, repl_hashers, disk_hashers);
+    return configuration(hosts, m_space_assignment, m_spaces, space_sizes,
+                         m_entities, repl_hashers, disk_hashers, m_transfers);
 }
 
 #define _CONCAT(x,y) x ## y
@@ -115,13 +117,17 @@ hyperdex :: configuration_parser :: parse(const std::string& config)
         {
             ABORT_ON_ERROR(parse_space(start, eol));
         }
-        else if (strncmp("subspace ", start, 6) == 0)
+        else if (strncmp("subspace ", start, 9) == 0)
         {
             ABORT_ON_ERROR(parse_subspace(start, eol));
         }
-        else if (strncmp("region ", start, 6) == 0)
+        else if (strncmp("region ", start, 7) == 0)
         {
             ABORT_ON_ERROR(parse_region(start, eol));
+        }
+        else if (strncmp("transfer ", start, 9) == 0)
+        {
+            ABORT_ON_ERROR(parse_transfer(start, eol));
         }
         else
         {
@@ -479,6 +485,102 @@ hyperdex :: configuration_parser :: parse_region(char* start,
         return CP_EXCESS_DATA;
     }
 
+    return CP_SUCCESS;
+}
+
+hyperdex::configuration_parser::error
+hyperdex :: configuration_parser :: parse_transfer(char* start,
+                                                   char* const eol)
+{
+    char* end;
+    uint16_t xfer_id;
+    uint32_t space;
+    uint16_t subspace;
+    uint8_t prefix;
+    uint64_t mask;
+    uint64_t host_id;
+
+    // Skip "transfer "
+    start += 9;
+
+    // Pull out the transfer id
+    SKIP_WHITESPACE(start, eol);
+    end = start;
+    SKIP_TO_WHITESPACE(end, eol);
+    *end = '\0';
+    ABORT_ON_ERROR(extract_uint16_t(start, end, &xfer_id));
+    start = end + 1;
+
+    // Pull out the space id
+    SKIP_WHITESPACE(start, eol);
+    end = start;
+    SKIP_TO_WHITESPACE(end, eol);
+    *end = '\0';
+    ABORT_ON_ERROR(extract_uint32_t(start, end, &space));
+    start = end + 1;
+
+    // Pull out the subspace id
+    SKIP_WHITESPACE(start, eol);
+    end = start;
+    SKIP_TO_WHITESPACE(end, eol);
+    *end = '\0';
+    ABORT_ON_ERROR(extract_uint16_t(start, end, &subspace));
+    start = end + 1;
+
+    // Pull out the prefix
+    SKIP_WHITESPACE(start, eol);
+    end = start;
+    SKIP_TO_WHITESPACE(end, eol);
+    *end = '\0';
+    ABORT_ON_ERROR(extract_uint8_t(start, end, &prefix));
+    start = end + 1;
+
+    // Pull out the mask
+    SKIP_WHITESPACE(start, eol);
+    end = start;
+    SKIP_TO_WHITESPACE(end, eol);
+    *end = '\0';
+    ABORT_ON_ERROR(extract_uint64_t(start, end, &mask));
+    start = end + 1;
+
+    // Pull out the host's numeric id
+    SKIP_WHITESPACE(start, eol);
+    end = start;
+    SKIP_TO_WHITESPACE(end, eol);
+    *end = '\0';
+    ABORT_ON_ERROR(extract_uint64_t(start, end, &host_id));
+    start = end + 1;
+
+    if (m_regions.find(regionid(space, subspace, prefix, mask)) == m_regions.end())
+    {
+        return CP_MISSING_REGION;
+    }
+
+    if (end != eol)
+    {
+        return CP_EXCESS_DATA;
+    }
+
+    std::map<std::pair<instance, uint16_t>, hyperdex::regionid>::iterator it;
+
+    for (it = m_transfers.begin(); it != m_transfers.end(); ++it)
+    {
+        if (it->first.second == xfer_id)
+        {
+            return CP_DUPE_XFER;
+        }
+    }
+
+    std::map<uint64_t, instance>::iterator host;
+    host = m_hosts.find(host_id);
+
+    if (host == m_hosts.end())
+    {
+        return CP_UNKNOWN_HOST;
+    }
+
+    m_transfers.insert(std::make_pair(std::make_pair(host->second, xfer_id),
+                                      regionid(space, subspace, prefix, mask)));
     return CP_SUCCESS;
 }
 

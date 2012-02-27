@@ -48,8 +48,10 @@ class configuration_parser
             CP_DUPE_SUBSPACE,
             CP_DUPE_REGION,
             CP_DUPE_ENTITY,
+            CP_DUPE_XFER,
             CP_MISSING_SPACE,
             CP_MISSING_SUBSPACE,
+            CP_MISSING_REGION,
             CP_OUTOFORDER_SUBSPACE,
             CP_EXCESS_DATA,
             CP_MISSING,
@@ -84,6 +86,8 @@ class configuration_parser
                              char* const eol);
         error parse_region(char* start,
                            char* const eol);
+        error parse_transfer(char* start,
+                             char* const eol);
         error extract_bool(char* start,
                            char* end,
                            bool* t);
@@ -118,6 +122,7 @@ class configuration_parser
         std::map<subspaceid, std::vector<bool> > m_disk_attrs;
         std::set<regionid> m_regions;
         std::map<entityid, instance> m_entities;
+        std::map<std::pair<instance, uint16_t>, hyperdex::regionid> m_transfers;
 };
 
 } // namespace hyperdex

@@ -53,18 +53,19 @@ hyperdex :: configuration :: configuration()
     , m_entities()
     , m_repl_hashers()
     , m_disk_hashers()
+    , m_transfers()
+    , m_transfers_by_num(65536)
 {
 }
 
-hyperdex :: configuration ::
-        configuration(const std::vector<instance>& hosts,
-                const std::map<std::string, spaceid>& space_assignment,
-                const std::map<spaceid, std::vector<attribute> >& spaces,
-                const std::map<spaceid, uint16_t>& space_sizes,
-                const std::map<entityid, instance>& entities,
-                const std::map<subspaceid, hyperspacehashing::prefix::hasher>& repl_hashers,
-                const std::map<subspaceid, hyperspacehashing::mask::hasher>& disk_hashers
-                )
+hyperdex :: configuration :: configuration(const std::vector<instance>& hosts,
+                                           const std::map<std::string, spaceid>& space_assignment,
+                                           const std::map<spaceid, std::vector<attribute> >& spaces,
+                                           const std::map<spaceid, uint16_t>& space_sizes,
+                                           const std::map<entityid, instance>& entities,
+                                           const std::map<subspaceid, hyperspacehashing::prefix::hasher>& repl_hashers,
+                                           const std::map<subspaceid, hyperspacehashing::mask::hasher>& disk_hashers,
+                                           const std::map<std::pair<instance, uint16_t>, hyperdex::regionid>& transfers)
     : m_hosts(hosts)
     , m_space_assignment(space_assignment)
     , m_spaces(spaces)
@@ -72,7 +73,16 @@ hyperdex :: configuration ::
     , m_entities(entities)
     , m_repl_hashers(repl_hashers)
     , m_disk_hashers(disk_hashers)
+    , m_transfers(transfers)
+    , m_transfers_by_num(65536)
 {
+    std::map<std::pair<instance, uint16_t>, hyperdex::regionid>::iterator it;
+
+    for (it = m_transfers.begin(); it != m_transfers.end(); ++it)
+    {
+        assert(m_transfers_by_num[it->first.second] == instance());
+        m_transfers_by_num[it->first.second] = it->first.first;
+    }
 }
 
 hyperdex :: configuration :: ~configuration() throw ()
@@ -385,6 +395,71 @@ hyperdex :: configuration :: search_entities(const subspaceid& ssi,
     start = m_entities.lower_bound(hyperdex::entityid(ssi.space, ssi.subspace, 0, 0, 0));
     end   = m_entities.upper_bound(hyperdex::entityid(ssi.space, ssi.subspace, UINT8_MAX, UINT64_MAX, UINT8_MAX));
     return _search_entities(start, end, s);
+}
+
+std::map<uint16_t, hyperdex::regionid>
+hyperdex :: configuration :: transfers_to(const instance& inst) const
+{
+    std::map<uint16_t, hyperdex::regionid> ret;
+    std::map<std::pair<instance, uint16_t>, hyperdex::regionid>::const_iterator lower;
+    std::map<std::pair<instance, uint16_t>, hyperdex::regionid>::const_iterator upper;
+    lower = m_transfers.lower_bound(std::make_pair(inst, 0));
+    upper = m_transfers.upper_bound(std::make_pair(inst, UINT16_MAX));
+
+    for (; lower != upper; ++lower)
+    {
+        ret.insert(std::make_pair(lower->first.second, lower->second));
+    }
+
+    return ret;
+}
+
+std::map<uint16_t, hyperdex::regionid>
+hyperdex :: configuration :: transfers_from(const instance& inst) const
+{
+    std::map<uint16_t, hyperdex::regionid> ret;
+    std::map<std::pair<instance, uint16_t>, hyperdex::regionid>::const_iterator t;
+    t = m_transfers.begin();
+
+    for (; t != m_transfers.end(); ++t)
+    {
+        // If the region has gone live and the tail of the region is now the
+        // recipient of the transfer.
+        if (instancefor(tailof(t->second)) == t->first.first)
+        {
+            entityid ent = tailof(t->second);
+
+            if (!chain_has_prev(ent))
+            {
+                // XXX We should check for this case when parsing, so that we
+                // can assert this.
+                abort();
+            }
+
+            ent = chain_prev(ent);
+
+            if (instancefor(ent) == inst)
+            {
+                ret.insert(std::make_pair(t->first.second, t->second));
+            }
+        }
+        // Otherwise the tail of the region is the sender of the transfer.
+        else
+        {
+            if (instancefor(tailof(t->second)) == inst)
+            {
+                ret.insert(std::make_pair(t->first.second, t->second));
+            }
+        }
+    }
+
+    return ret;
+}
+
+hyperdex::instance
+hyperdex :: configuration :: instancefortransfer(uint16_t xfer_id) const
+{
+    return m_transfers_by_num[xfer_id];
 }
 
 std::map<hyperdex::entityid, hyperdex::instance>
