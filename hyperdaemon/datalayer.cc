@@ -335,7 +335,7 @@ hyperdaemon :: datalayer :: optimistic_io_thread()
             m_last_dose_of_optimism = e::time();
         }
 
-        __sync_and_and_fetch(&m_flushed_recently, false);
+        (void) __sync_and_and_fetch(&m_flushed_recently, false);
 
         do
         {
@@ -387,7 +387,7 @@ hyperdaemon :: datalayer :: flush_thread()
         }
         else
         {
-            __sync_or_and_fetch(&m_flushed_recently, true);
+            (void) __sync_or_and_fetch(&m_flushed_recently, true);
         }
     }
 }
