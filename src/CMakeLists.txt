@@ -78,8 +78,8 @@ add_custom_target(hdcoordinator ALL
   COMMAND
   DEPENDS "${bindir}/hdcoordinator")
 
-configure_file(coordinator.in "${bindir}/hyperdex-coordinator")
-configure_file(coordinator-ctl.in "${bindir}/hyperdex-coordinator-ctl")
+configure_file(hyperdex-coordinator.in "${bindir}/hyperdex-coordinator")
+configure_file(hyperdex-coordinator-ctl.in "${bindir}/hyperdex-coordinator-ctl")
 
 install(DIRECTORY "${bindir}/hdcoordinator/"
   DESTINATION "${PYTHON_SITE_INSTALL_DIR}")
