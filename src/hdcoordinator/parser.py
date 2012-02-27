@@ -183,6 +183,7 @@ space.setParseAction(parse_space)
 
 class TestFillToRegion(unittest.TestCase):
     maxDiff = None
+    repl = list("REPL")
 
     def test_already_met(self):
         a = 0
@@ -192,49 +193,49 @@ class TestFillToRegion(unittest.TestCase):
             a, b = b, a + b
 
     def test_auto0(self):
-        expected = [Region(0, 0, "REPL")]
+        expected = [Region(0, 0, self.repl)]
         returned = _fill_to_region(0, 0, "REPL", 1 << 64)
         self.assertEqual(expected, returned)
 
     def test_auto1(self):
-        expected = [Region(0, 1, "REPL"),
-                    Region(0x8000000000000000, 1, "REPL")]
+        expected = [Region(0, 1, self.repl),
+                    Region(0x8000000000000000, 1, self.repl)]
         returned = _fill_to_region(0, 1, "REPL", 1 << 64)
         self.assertEqual(expected, returned)
 
     def test_auto2(self):
-        expected = [Region(0, 2, "REPL"),
-                    Region(0x4000000000000000, 2, "REPL"),
-                    Region(0x8000000000000000, 2, "REPL"),
-                    Region(0xc000000000000000, 2, "REPL")]
+        expected = [Region(0, 2, self.repl),
+                    Region(0x4000000000000000, 2, self.repl),
+                    Region(0x8000000000000000, 2, self.repl),
+                    Region(0xc000000000000000, 2, self.repl)]
         returned = _fill_to_region(0, 2, "REPL", 1 << 64)
         self.assertEqual(expected, returned)
 
     def test_auto3(self):
-        expected = [Region(0, 3, "REPL"),
-                    Region(0x2000000000000000, 3, "REPL"),
-                    Region(0x4000000000000000, 3, "REPL"),
-                    Region(0x6000000000000000, 3, "REPL"),
-                    Region(0x8000000000000000, 3, "REPL"),
-                    Region(0xa000000000000000, 3, "REPL"),
-                    Region(0xc000000000000000, 3, "REPL"),
-                    Region(0xe000000000000000, 3, "REPL")]
+        expected = [Region(0, 3, self.repl),
+                    Region(0x2000000000000000, 3, self.repl),
+                    Region(0x4000000000000000, 3, self.repl),
+                    Region(0x6000000000000000, 3, self.repl),
+                    Region(0x8000000000000000, 3, self.repl),
+                    Region(0xa000000000000000, 3, self.repl),
+                    Region(0xc000000000000000, 3, self.repl),
+                    Region(0xe000000000000000, 3, self.repl)]
         returned = _fill_to_region(0, 3, "REPL", 1 << 64)
         self.assertEqual(expected, returned)
 
     def test_static_with_bigger_upper_bound_prefix(self):
-        expected = [Region(0x5500000000000000, 8, "REPL"),
-                    Region(0x5600000000000000, 7, "REPL"),
-                    Region(0x5800000000000000, 5, "REPL"),
-                    Region(0x6000000000000000, 3, "REPL")]
+        expected = [Region(0x5500000000000000, 8, self.repl),
+                    Region(0x5600000000000000, 7, self.repl),
+                    Region(0x5800000000000000, 5, self.repl),
+                    Region(0x6000000000000000, 3, self.repl)]
         returned = _fill_to_region(0x5500000000000000, 3, "REPL", 0x8000000000000000)
         self.assertEqual(expected, returned)
 
     def test_static_with_bigger_target_prefix(self):
-        expected = [Region(0x6000000000000000, 3, "REPL"),
-                    Region(0x8000000000000000, 3, "REPL"),
-                    Region(0xa000000000000000, 5, "REPL"),
-                    Region(0xa800000000000000, 7, "REPL")]
+        expected = [Region(0x6000000000000000, 3, self.repl),
+                    Region(0x8000000000000000, 3, self.repl),
+                    Region(0xa000000000000000, 5, self.repl),
+                    Region(0xa800000000000000, 7, self.repl)]
         returned = _fill_to_region(0x6000000000000000, 3, "REPL", 0xaa00000000000000)
         self.assertEqual(expected, returned)
 
