@@ -39,7 +39,6 @@ set_target_properties(hyperclient-java PROPERTIES VERSION ${HYPERDEX_VERSION})
 set_target_properties(hyperclient-java PROPERTIES SOVERSION ${HYPERDEX_VERSION_MAJOR})
 install(TARGETS hyperclient-java DESTINATION "${LIBRARY_INSTALL_DIR}")
 
-set(CMAKE_JNI_TARGET TRUE)
 set(CMAKE_JAVA_TARGET_OUTPUT_NAME hyperclient)
 add_jar(hyperclient_jar "${CMAKE_CURRENT_BINARY_DIR}/*.java")
 add_dependencies(hyperclient_jar hyperclient-java)
