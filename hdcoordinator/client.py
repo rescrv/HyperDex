@@ -65,6 +65,17 @@ def del_space(args):
     return send_text(args.host, args.port, 'del space {0}\n'.format(args.space))
 
 
+def validate_space(args):
+    data = sys.stdin.read()
+    try:
+        parser = (hdcoordinator.parser.space + pyparsing.stringEnd)
+        space = parser.parseString(data)[0]
+    except pyparsing.ParseException as e:
+        print str(e)
+        return 1
+    return 0
+
+
 def main(args, name='hyperdex-control'):
     parser = argparse.ArgumentParser(prog=name)
     parser.add_argument('--host', metavar='COORDHOST',
@@ -79,6 +90,8 @@ def main(args, name='hyperdex-control'):
     parser_del_space = subparsers.add_parser('del-space', help='del-space help')
     parser_del_space.add_argument('space', metavar='SPACE', help='the space to delete')
     parser_del_space.set_defaults(func=del_space)
+    parser_validate_space = subparsers.add_parser('validate-space', help='validate help')
+    parser_validate_space.set_defaults(func=validate_space)
     args = parser.parse_args(args)
     return args.func(args)
 
