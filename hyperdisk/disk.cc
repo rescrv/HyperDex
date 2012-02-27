@@ -218,7 +218,11 @@ hyperdisk :: disk :: make_snapshot(const hyperspacehashing::search& terms)
 e::intrusive_ptr<hyperdisk::rolling_snapshot>
 hyperdisk :: disk :: make_rolling_snapshot()
 {
-    abort();
+    hyperspacehashing::search terms(m_arity);
+    e::locking_iterable_fifo<log_entry>::iterator iter(m_log.iterate());
+    e::intrusive_ptr<snapshot> snap = make_snapshot(terms);
+    e::intrusive_ptr<rolling_snapshot> ret = new rolling_snapshot(iter, snap);
+    return ret;
 }
 
 hyperdisk::returncode
