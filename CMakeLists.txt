@@ -55,6 +55,7 @@ find_package(LibGLog     0.3.0  REQUIRED)
 
 include(cmake/UseCython.cmake)
 
+option(ENABLE_COVERAGE "Build for coverage testing" OFF)
 option(ENABLE_JAVA_BINDINGS "Build Java bindings" OFF)
 option(ENABLE_YCSB "Build Yahoo Cloud Serving Benchmark" OFF)
 
@@ -79,8 +80,33 @@ set(CMAKE_CXX_FLAGS_DEBUG "-ggdb -O0")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
 
+if(ENABLE_COVERAGE)
+  set(CMAKE_EXE_LINKER_FLAGS "-fprofile-arcs -ftest-coverage")
+  set(CMAKE_CXX_FLAGS "-fprofile-arcs -ftest-coverage")
+  set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS}")
+
+  find_program(LCOV_EXECUTABLE NAMES lcov)
+  find_program(GENHTML_EXECUTABLE NAMES genhtml)
+
+  set(_out "${CMAKE_CURRENT_BINARY_DIR}/coverage.dat")
+  set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "coverage;coverage.dat")
+
+  add_custom_target(coverage)
+  add_custom_command(TARGET coverage POST_BUILD
+    COMMAND "${LCOV_EXECUTABLE}" --directory . --capture --output "${_out}"
+    COMMAND "${LCOV_EXECUTABLE}" --extract "${_out}" "'*'" --output "${_out}"
+    COMMAND mkdir -p coverage
+    COMMAND "${GENHTML_EXECUTABLE}" --function-coverage --branch-coverage
+            --demangle-cpp --output coverage "${_out}")
+endif()
+
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release CACHE STRING "Type of the build" FORCE)
+  if(ENABLE_COVERAGE)
+    set(_btype Debug)
+  else()
+    set(_btype Release)
+  endif()
+  set(CMAKE_BUILD_TYPE ${_btype} CACHE STRING "Type of the build" FORCE)
 endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)

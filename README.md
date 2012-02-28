@@ -21,6 +21,8 @@ For Java bindings you will need [SWIG](http://www.swig.org/).
 To benchmark HyperDex using Yahoo Cloud Serving Benchmark you will also
 need [YCSB](https://github.com/brianfrankcooper/YCSB).
 
+For tests coverage statistics you'll need [lcov](http://ltp.sourceforge.net/coverage/lcov.php).
+
 Installation
 ------------
 
@@ -35,6 +37,7 @@ Additional cmake options:
  * `-DENABLE_JAVA_BINDINGS=ON` - enable Java bindings for HyperDex client
  * `-DENABLE_YCSB=ON` - enable Yahoo Cloud Serving Benchmark
  * `-DYCSB_JAR=.../ycsb-0.1.4/core/lib/core-0.1.4.jar` - path to YCSB jar file
+ * `-DENABLE_COVERAGE=ON` - build for coverage testing
 
 You may also run `cmake-gui .` after cmake to edit options in a more convinient way.
 
@@ -42,3 +45,9 @@ Testing
 -------
 
     make test
+
+Generate tests coverage statistics:
+
+    make coverage
+
+and open `coverage/index.html` in your browser.
