@@ -397,6 +397,28 @@ hyperdex :: configuration :: search_entities(const subspaceid& ssi,
     return _search_entities(start, end, s);
 }
 
+hyperdex::instance
+hyperdex :: configuration :: instancefortransfer(uint16_t xfer_id) const
+{
+    return m_transfers_by_num[xfer_id];
+}
+
+uint16_t
+hyperdex :: configuration :: transfer_id(const regionid& reg) const
+{
+    std::map<std::pair<instance, uint16_t>, hyperdex::regionid>::const_iterator t;
+
+    for (t = m_transfers.begin(); t != m_transfers.end(); ++t)
+    {
+        if (t->second == reg)
+        {
+            return t->first.second;
+        }
+    }
+
+    return 0;
+}
+
 std::map<uint16_t, hyperdex::regionid>
 hyperdex :: configuration :: transfers_to(const instance& inst) const
 {
@@ -454,12 +476,6 @@ hyperdex :: configuration :: transfers_from(const instance& inst) const
     }
 
     return ret;
-}
-
-hyperdex::instance
-hyperdex :: configuration :: instancefortransfer(uint16_t xfer_id) const
-{
-    return m_transfers_by_num[xfer_id];
 }
 
 std::map<hyperdex::entityid, hyperdex::instance>

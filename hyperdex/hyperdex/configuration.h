@@ -119,9 +119,10 @@ class configuration
 
     // State Transfer
     public:
+        instance instancefortransfer(uint16_t xfer_id) const;
+        uint16_t transfer_id(const regionid& reg) const;
         std::map<uint16_t, regionid> transfers_to(const instance& inst) const;
         std::map<uint16_t, regionid> transfers_from(const instance& inst) const;
-        instance instancefortransfer(uint16_t xfer_id) const;
 
     private:
         std::map<entityid, instance> _search_entities(std::map<entityid, instance>::const_iterator start,
