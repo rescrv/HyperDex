@@ -29,7 +29,8 @@
 #include "hyperdex/hyperdex/configuration_parser.h"
 
 hyperdex :: configuration_parser :: configuration_parser()
-    : m_hosts()
+    : m_version(0)
+    , m_hosts()
     , m_space_assignment()
     , m_spaces()
     , m_subspaces()
@@ -82,7 +83,7 @@ hyperdex :: configuration_parser :: generate()
         disk_hashers.insert(std::make_pair(di->first, h));
     }
 
-    return configuration(hosts, m_space_assignment, m_spaces, space_sizes,
+    return configuration(m_version, hosts, m_space_assignment, m_spaces, space_sizes,
                          m_entities, repl_hashers, disk_hashers, m_transfers);
 }
 
@@ -109,7 +110,11 @@ hyperdex :: configuration_parser :: parse(const std::string& config)
 
     while (eol)
     {
-        if (strncmp("host ", start, 5) == 0)
+        if (strncmp("version ", start, 8) == 0)
+        {
+            ABORT_ON_ERROR(parse_version(start, eol));
+        }
+        else if (strncmp("host ", start, 5) == 0)
         {
             ABORT_ON_ERROR(parse_host(start, eol));
         }
@@ -150,6 +155,38 @@ hyperdex :: configuration_parser :: parse(const std::string& config)
     while (start < eol && isspace(*start)) ++start
 #define SKIP_TO_WHITESPACE(start, eol) \
     while (start < eol && !isspace(*start)) ++start
+
+hyperdex::configuration_parser::error
+hyperdex :: configuration_parser :: parse_version(char* start,
+                                                  char* const eol)
+{
+    char* end;
+    uint64_t version;
+
+    // Skip "version "
+    start += 8;
+
+    // Pull out the version number
+    SKIP_WHITESPACE(start, eol);
+    end = start;
+    SKIP_TO_WHITESPACE(end, eol);
+    *end = '\0';
+    ABORT_ON_ERROR(extract_uint64_t(start, end, &version));
+    start = end + 1;
+
+    if (end != eol)
+    {
+        return CP_EXCESS_DATA;
+    }
+
+    if (m_version != 0 && m_version != version)
+    {
+        return CP_DUPE_VERSION;
+    }
+
+    m_version = version;
+    return CP_SUCCESS;
+}
 
 hyperdex::configuration_parser::error
 hyperdex :: configuration_parser :: parse_host(char* start,

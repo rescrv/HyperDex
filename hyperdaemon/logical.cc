@@ -35,6 +35,7 @@
 #include <stdint.h>
 
 // STL
+#include <list>
 #include <stdexcept>
 
 // Google Log
@@ -53,11 +54,51 @@ using hyperdex::instance;
 using hyperdex::network_msgtype;
 using hyperdex::regionid;
 
+//////////////////////////////// Early Messages ////////////////////////////////
+
+class hyperdaemon::logical::early_message
+{
+    public:
+        early_message();
+        early_message(uint64_t v,
+                      const po6::net::location& l,
+                      std::auto_ptr<e::buffer> m);
+        ~early_message() throw ();
+
+    public:
+        uint64_t config_version;
+        po6::net::location loc;
+        std::auto_ptr<e::buffer> msg;
+};
+
+hyperdaemon :: logical :: early_message :: early_message()
+    : config_version(0)
+    , loc()
+    , msg()
+{
+}
+
+hyperdaemon :: logical :: early_message :: early_message(uint64_t v,
+                                                         const po6::net::location& l,
+                                                         std::auto_ptr<e::buffer> m)
+    : config_version(v)
+    , loc(l)
+    , msg(m)
+{
+}
+
+hyperdaemon :: logical :: early_message :: ~early_message() throw ()
+{
+}
+
+///////////////////////////////// Public Class /////////////////////////////////
+
 hyperdaemon :: logical :: logical(coordinatorlink* cl, const po6::net::ipaddr& ip,
                                   in_port_t incoming, in_port_t outgoing, size_t num_threads)
     : m_cl(cl)
     , m_us()
     , m_config()
+    , m_early_messages()
     , m_client_nums()
     , m_client_locs()
     , m_client_counter(0)
@@ -80,7 +121,7 @@ typedef std::map<hyperdex::entityid, hyperdex::instance>::iterator mapiter;
 size_t
 hyperdaemon :: logical :: header_size() const
 {
-    return sizeof(uint8_t) + m_physical.header_size() + 2 * sizeof(uint16_t) + 2 * entityid::SERIALIZEDSIZE;
+    return sizeof(uint8_t) + m_physical.header_size() + sizeof(uint64_t) + 2 * sizeof(uint16_t) + 2 * entityid::SERIALIZEDSIZE;
 }
 
 void
@@ -95,6 +136,26 @@ hyperdaemon :: logical :: reconfigure(const configuration& newconfig,
 {
     m_config = newconfig;
     m_us = newinst;
+
+    e::lockfree_fifo<early_message> ems;
+    early_message em;
+
+    while (m_early_messages.pop(&em))
+    {
+        if (em.config_version <= m_config.version())
+        {
+            m_physical.deliver(em.loc, em.msg);
+        }
+        else
+        {
+            ems.push(em);
+        }
+    }
+
+    while (ems.pop(&em))
+    {
+        m_early_messages.push(em);
+    }
 }
 
 void
@@ -156,7 +217,7 @@ hyperdaemon :: logical :: send(const hyperdex::entityid& from,
     uint8_t mt = static_cast<uint8_t>(msg_type);
     assert(msg->capacity() >= header_size());
     msg->pack_at(m_physical.header_size())
-        << mt << src.outbound_version << dst.inbound_version << from << to;
+        << mt << m_config.version() << src.outbound_version << dst.inbound_version << from << to;
 
     if (dst == m_us)
     {
@@ -246,9 +307,17 @@ hyperdaemon :: logical :: recv(hyperdex::entityid* from,
 
         // This should not throw thanks to the size check above.
         uint8_t mt;
+        uint64_t version;
         (*msg)->unpack_from(sizeof(uint32_t))
-            >> mt >> fromver >> tover >> *from >> *to;
+            >> mt >> version >> fromver >> tover >> *from >> *to;
         *msg_type = static_cast<network_msgtype>(mt);
+
+        if (version > m_config.version())
+        {
+            early_message em(version, loc, *msg);
+            m_early_messages.push(em);
+            continue;
+        }
 
         // Checkout the sender
         if (from->space == hyperdex::configuration::CLIENTSPACE)

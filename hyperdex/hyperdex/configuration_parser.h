@@ -49,6 +49,7 @@ class configuration_parser
             CP_DUPE_REGION,
             CP_DUPE_ENTITY,
             CP_DUPE_XFER,
+            CP_DUPE_VERSION,
             CP_MISSING_SPACE,
             CP_MISSING_SUBSPACE,
             CP_MISSING_REGION,
@@ -78,6 +79,8 @@ class configuration_parser
         error parse(const std::string& config);
 
     private:
+        error parse_version(char* start,
+                            char* const eol);
         error parse_host(char* start,
                          char* const eol);
         error parse_space(char* start,
@@ -114,6 +117,7 @@ class configuration_parser
                                const std::vector<bool>& attrs);
 
     private:
+        uint64_t m_version;
         std::map<uint64_t, instance> m_hosts;
         std::map<std::string, spaceid> m_space_assignment;
         std::map<spaceid, std::vector<attribute> > m_spaces;

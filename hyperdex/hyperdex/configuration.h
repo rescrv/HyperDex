@@ -58,7 +58,8 @@ class configuration
 
     public:
         configuration();
-        configuration(const std::vector<instance>& hosts,
+        configuration(uint64_t version,
+                      const std::vector<instance>& hosts,
                       const std::map<std::string, spaceid>& space_assignment,
                       const std::map<spaceid, std::vector<attribute> >& spaces,
                       const std::map<spaceid, uint16_t>& space_sizes,
@@ -67,6 +68,10 @@ class configuration
                       const std::map<subspaceid, hyperspacehashing::mask::hasher>& disk_hashers,
                       const std::map<std::pair<instance, uint16_t>, hyperdex::regionid>& transfers);
         ~configuration() throw ();
+
+    // The version of this config
+    public:
+        uint64_t version() const { return 0xdeadbeefcafebabeULL; }
 
     // Data-layout (not hashing)
     public:
@@ -130,6 +135,7 @@ class configuration
                                                       const hyperspacehashing::search& s) const;
 
     private:
+        uint64_t m_version;
         std::vector<instance> m_hosts;
         std::map<std::string, spaceid> m_space_assignment;
         // Map a spaceid to the attribute names and types.

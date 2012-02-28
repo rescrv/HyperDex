@@ -45,7 +45,7 @@
 // HyperClient
 #include "hyperclient/hyperclient.h"
 
-#define HDRSIZE (sizeof(uint32_t) + sizeof(uint8_t) + 2 * sizeof(uint16_t) + 2 * hyperdex::entityid::SERIALIZEDSIZE + sizeof(uint64_t))
+#define HDRSIZE (sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint8_t) + 2 * sizeof(uint16_t) + 2 * hyperdex::entityid::SERIALIZEDSIZE + sizeof(uint64_t))
 
 // XXX 2012-01-22 When failures happen, this code is not robust.  It may throw
 // exceptions, and it will fail to properly cleanup state.  For instance, if a
@@ -1116,13 +1116,14 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
         response->resize(size);
 
         uint8_t type_num;
+        uint64_t version;
         uint16_t fromver;
         uint16_t tover;
         hyperdex::entityid from;
         hyperdex::entityid to;
         uint64_t nonce;
         e::buffer::unpacker up = response->unpack_from(sizeof(size));
-        up = up >> type_num >> fromver >> tover >> from >> to >> nonce;
+        up = up >> type_num >> version >> fromver >> tover >> from >> to >> nonce;
 
         if (up.error())
         {
@@ -1355,6 +1356,7 @@ hyperclient :: send(e::intrusive_ptr<channel> chan,
                     e::buffer* payload)
 {
     const uint8_t type = static_cast<uint8_t>(op->request_type());
+    const uint64_t version = m_config->version();
     const uint16_t fromver = 1;
     const uint16_t tover = op->instance().inbound_version;
     const hyperdex::entityid& from(chan->entity());
@@ -1362,7 +1364,7 @@ hyperclient :: send(e::intrusive_ptr<channel> chan,
     const uint64_t nonce = op->nonce();
     const uint32_t size = payload->size();
     e::buffer::packer pa = payload->pack();
-    pa = pa << size << type << fromver << tover << from << to << nonce;
+    pa = pa << size << type << version << fromver << tover << from << to << nonce;
     assert(!pa.error());
 
     if (chan->sock().xsend(payload->data(), payload->size(), MSG_NOSIGNAL) !=

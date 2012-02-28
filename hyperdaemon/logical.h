@@ -97,6 +97,9 @@ class logical
         static uint64_t id(const uint64_t& i) { return i; }
 
     private:
+        class early_message;
+
+    private:
         logical(const logical&);
 
     private:
@@ -110,6 +113,7 @@ class logical
         hyperdex::coordinatorlink* m_cl;
         hyperdex::instance m_us;
         hyperdex::configuration m_config;
+        e::lockfree_fifo<early_message> m_early_messages;
         e::lockfree_hash_map<po6::net::location, uint64_t, po6::net::location::hash> m_client_nums;
         e::lockfree_hash_map<uint64_t, po6::net::location, id> m_client_locs;
         uint64_t m_client_counter;
