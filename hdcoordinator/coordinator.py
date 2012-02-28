@@ -141,6 +141,15 @@ class Coordinator(object):
         del self._spaces_by_id[spacenum]
         self._regenerate()
 
+    def _fail_host_cmp(self, lhs, rhs):
+        if lhs is None and rhs is None:
+            return 0
+        elif lhs is None:
+            return 1
+        elif rhs is None:
+            return -1
+        return 0
+
     def fail_host(self, ip, port):
         for spacenum, space in self._spaces_by_id.iteritems():
             for subspacenum, subspace in enumerate(space.subspaces):
@@ -151,15 +160,7 @@ class Coordinator(object):
                            (region.replicas[replicanum][1] == port or
                             region.replicas[replicanum][3] == port):
                             region.replicas[replicanum] = None
-                    def cmp(x, y):
-                        if x is None and y is None:
-                            return 0
-                        if x is None:
-                            return 1
-                        if y is None:
-                            return -1
-                        return 0
-                    region.replicas.sort(cmp=cmp)
+                    region.replicas.sort(cmp=self._fail_host_cmp)
         self._regenerate()
 
     def configuration(self):
