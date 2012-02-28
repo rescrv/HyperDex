@@ -88,6 +88,24 @@ hyperdaemon :: daemon(po6::pathname datadir,
         return EXIT_FAILURE;
     }
 
+    char random_bytes[16];
+
+    {
+        po6::io::fd rand(open("/dev/urandom", O_RDONLY));
+
+        if (rand.get() < 0)
+        {
+            PLOG(INFO) << "could not open /dev/urandom for random bytes (open)";
+            return EXIT_FAILURE;
+        }
+
+        if (rand.read(random_bytes, 16) != 16)
+        {
+            PLOG(INFO) << "could not read random bytes from /dev/urandom (read)";
+            return EXIT_FAILURE;
+        }
+    }
+
     num_threads = s_continue ? num_threads : 0;
 
     // Setup our link to the coordinator.
@@ -100,8 +118,9 @@ hyperdaemon :: daemon(po6::pathname datadir,
     std::ostringstream announce;
     announce << "instance\t" << comm.inst().address << "\t"
                              << comm.inst().inbound_port << "\t"
-                             << comm.inst().outbound_port
-                             << "\t3333\ttoken";
+                             << comm.inst().outbound_port << "\t"
+                             << getpid() << "\t"
+                             << e::slice(random_bytes, 16).hex();
     cl.set_announce(announce.str());
     // Setup the search component.
     searches ssss(&cl, &data, &comm);
