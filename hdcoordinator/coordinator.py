@@ -170,14 +170,13 @@ class Coordinator(object):
         still_assigning = True
         while still_assigning:
             still_assigning = False
-            for subspacenum, subspace in enumerate(space.subspaces):
+            for subspace in space.subspaces:
                 for region in subspace.regions:
-                    for replicanum in range(len(region.replicas)):
-                        if region.replicas[replicanum] is None:
-                            region.replicas[replicanum] = self._select_replica(region.replicas)
-                            if region.replicas[replicanum] is not None:
-                                still_assigning = True
-                            break
+                    if region.current_f < region.desired_f:
+                        replica = self._select_replica(region.replicas)
+                        if replica is not None:
+                            still_assigning = True
+                            region.add_replica(replica)
 
     def _select_replica(self, exclude):
         hosts = dict([(k, 0) for k in self._instances_by_id.keys()])
@@ -185,8 +184,7 @@ class Coordinator(object):
             for subspacenum, subspace in enumerate(space.subspaces):
                 for region in subspace.regions:
                     for replica in region.replicas:
-                        if replica is not None:
-                            hosts[replica] += 1
+                        hosts[replica] += 1
         frequencies = collections.defaultdict(list)
         for host, frequency in hosts.iteritems():
             if host not in exclude:
@@ -200,7 +198,7 @@ class Coordinator(object):
         used_hosts = set()
         config = 'version {0}\n'.format(self._conf_counter + 1)
         for spaceid, space in self._spaces_by_id.iteritems():
-            spacedims = ' '.join([d.name + ' ' + d.type for d in space.dimensions])
+            spacedims = ' '.join([d.name + ' ' + d.datatype for d in space.dimensions])
             config += SPACE_LINE \
                       .format(name=space.name, id=spaceid, dims=spacedims)
             for subspaceid, subspace in enumerate(space.subspaces):
@@ -218,10 +216,9 @@ class Coordinator(object):
                           .format(space=spaceid, subspace=subspaceid,
                                   hashes=' '.join(hashes))
                 for region in subspace.regions:
-                    hosts = [str(r) for r in region.replicas if r is not None]
+                    hosts = [str(r) for r in region.replicas]
                     for host in region.replicas:
-                        if host is not None:
-                            used_hosts.add(host)
+                        used_hosts.add(host)
                     config += REGION_LINE \
                               .format(space=spaceid, subspace=subspaceid,
                                       prefix=region.prefix,
