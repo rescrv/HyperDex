@@ -143,7 +143,7 @@ def parse_space(space):
                 raise ValueError("Subspace dimension {0} must be one of its dimensions.".format(repr(name)))
     keysubspace = Subspace(dimensions=[space.key], nosearch=[], regions=list(space.keyregions))
     subspaces = [keysubspace] + list(space.subspaces)
-    return Space(name=space.name, dimensions=space.dimensions, subspaces=subspaces)
+    return Space(name=space.name, dimensions=list(space.dimensions), subspaces=subspaces)
 
 
 identifier = Word(string.ascii_letters + string.digits + '_')
