@@ -37,7 +37,7 @@ find_package(GTest 1.6.0 REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
 
 set(Python_ADDITIONAL_VERSIONS 3.2mu 3.2 3.1mu 3.1 3.0mu 3.0)
-find_package(PythonInterp 2.6.0 REQUIRED)
+find_package(PythonInterp REQUIRED)
 include(FindPkgConfig)
 include(FindPackageHandleStandardArgs)
 
