@@ -130,6 +130,7 @@ class replication_manager
         class keyholder;
         typedef e::lockfree_hash_map<replication::keypair, e::intrusive_ptr<keyholder>, replication::keypair::hash>
                 keyholder_map_t;
+        friend class ongoing_state_transfers;
 
     private:
         replication_manager(const replication_manager&);

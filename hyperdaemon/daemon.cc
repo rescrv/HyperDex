@@ -106,7 +106,7 @@ hyperdaemon :: daemon(po6::pathname datadir,
     // Setup the search component.
     searches ssss(&cl, &data, &comm);
     // Setup the recovery component.
-    ongoing_state_transfers ost(&data);
+    ongoing_state_transfers ost(&data, &comm, &cl);
     // Setup the replication component.
     replication_manager repl(&cl, &data, &comm, &ost);
     // Give the ongoing_state_transfers a view into the replication component
@@ -158,6 +158,7 @@ hyperdaemon :: daemon(po6::pathname datadir,
             comm.prepare(cl.config(), newinst);
             data.prepare(cl.config(), newinst);
             repl.prepare(cl.config(), newinst);
+            ost.prepare(cl.config(), newinst);
             ssss.prepare(cl.config(), newinst);
 
             // Protect ourself against exceptions.
@@ -174,6 +175,7 @@ hyperdaemon :: daemon(po6::pathname datadir,
             comm.reconfigure(cl.config(), newinst);
             data.reconfigure(cl.config(), comm.inst());
             repl.reconfigure(cl.config(), comm.inst());
+            ost.reconfigure(cl.config(), comm.inst());
             ssss.reconfigure(cl.config(), comm.inst());
             comm.unpause();
             g1.dismiss();
@@ -184,6 +186,7 @@ hyperdaemon :: daemon(po6::pathname datadir,
             // These operations should assume that there will be network
             // activity, and that the network threads will be in full force..
             ssss.prepare(cl.config(), comm.inst());
+            ost.cleanup(cl.config(), comm.inst());
             repl.cleanup(cl.config(), comm.inst());
             data.cleanup(cl.config(), comm.inst());
             comm.cleanup(cl.config(), comm.inst());

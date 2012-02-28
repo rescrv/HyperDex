@@ -48,6 +48,7 @@ class regionid;
 namespace hyperdaemon
 {
 class datalayer;
+class logical;
 class replication_manager;
 }
 
@@ -57,7 +58,9 @@ namespace hyperdaemon
 class ongoing_state_transfers
 {
     public:
-        ongoing_state_transfers(datalayer* data);
+        ongoing_state_transfers(datalayer* data,
+                                logical* comm,
+                                hyperdex::coordinatorlink* cl);
         ~ongoing_state_transfers() throw ();
 
     // Reconfigure this layer.
@@ -69,16 +72,21 @@ class ongoing_state_transfers
 
     // Netowrk workers call these methods.
     public:
-        void region_transfer(const hyperdex::entityid& from, const hyperdex::entityid& to);
-        void region_transfer(const hyperdex::entityid& from, uint16_t xfer_id,
-                             uint64_t xfer_num, bool has_value,
-                             uint64_t version, std::auto_ptr<e::buffer> backing, const e::slice& key,
-                             const std::vector<e::slice>& value);
+        void region_transfer_send(const hyperdex::entityid& from, const hyperdex::entityid& to);
+        void region_transfer_recv(const hyperdex::entityid& from,
+                                  uint16_t xfer_id, uint64_t xfer_num,
+                                  bool has_value, uint64_t version,
+                                  std::auto_ptr<e::buffer> backing,
+                                  const e::slice& key,
+                                  const std::vector<e::slice>& value);
         void region_transfer_done(const hyperdex::entityid& from, const hyperdex::entityid& to);
 
     // Interactions with the replication layer.
     public:
-        void add_trigger(const hyperdex::regionid& reg, const e::slice& key, uint64_t rev);
+        void add_trigger(const hyperdex::regionid& reg,
+                         std::tr1::shared_ptr<e::buffer> backing,
+                         const e::slice& key,
+                         uint64_t rev);
         void set_replication_manager(replication_manager* repl);
 
     private:
@@ -95,14 +103,23 @@ class ongoing_state_transfers
         ongoing_state_transfers(const ongoing_state_transfers&);
 
     private:
+        void periodic();
+        void start_transfers();
+        void finish_transfers();
+
+    private:
         ongoing_state_transfers& operator = (const ongoing_state_transfers&);
 
     private:
         hyperdaemon::datalayer* m_data;
+        hyperdaemon::logical* m_comm;
+        hyperdex::coordinatorlink* m_cl;
         hyperdaemon::replication_manager* m_repl;
+        hyperdex::configuration m_config;
         transfers_in_map_t m_transfers_in;
         transfers_out_map_t m_transfers_out;
         bool m_shutdown;
+        po6::threads::thread m_periodic_thread;
 };
 
 } // namespace hyperdaemon

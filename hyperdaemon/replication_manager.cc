@@ -309,7 +309,7 @@ void
 hyperdaemon :: replication_manager :: chain_ack(const entityid& from,
                                                 const entityid& to,
                                                 uint64_t version,
-                                                std::auto_ptr<e::buffer>,
+                                                std::auto_ptr<e::buffer> backing,
                                                 const e::slice& key)
 {
     // Grab the lock that protects this key.
@@ -337,7 +337,8 @@ hyperdaemon :: replication_manager :: chain_ack(const entityid& from,
         return;
     }
 
-    m_ost->add_trigger(to.get_region(), key, version);
+    std::tr1::shared_ptr<e::buffer> shared_backing(backing.release());
+    m_ost->add_trigger(to.get_region(), shared_backing, key, version);
     pend->acked = true;
     put_to_disk(to.get_region(), kh, version);
 

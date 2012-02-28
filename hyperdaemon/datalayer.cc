@@ -113,6 +113,14 @@ void
 hyperdaemon :: datalayer :: prepare(const configuration& newconfig, const instance& us)
 {
     std::set<regionid> regions = newconfig.regions_for(us);
+    std::map<uint16_t, regionid> in_transfers = newconfig.transfers_to(us);
+    std::map<uint16_t, regionid>::iterator t;
+
+    // Make sure that inbound state exists for each in-progress transfer to us.
+    for (t = in_transfers.begin(); t != in_transfers.end(); ++t)
+    {
+        regions.insert(t->second);
+    }
 
     for (std::set<regionid>::const_iterator r = regions.begin();
             r != regions.end(); ++r)
@@ -135,6 +143,14 @@ void
 hyperdaemon :: datalayer :: cleanup(const configuration& newconfig, const instance& us)
 {
     std::set<regionid> regions = newconfig.regions_for(us);
+    std::map<uint16_t, regionid> in_transfers = newconfig.transfers_to(us);
+    std::map<uint16_t, regionid>::iterator t;
+
+    // Make sure that inbound state exists for each in-progress transfer to us.
+    for (t = in_transfers.begin(); t != in_transfers.end(); ++t)
+    {
+        regions.insert(t->second);
+    }
 
     for (disk_map_t::iterator d = m_disks.begin(); d != m_disks.end(); d.next())
     {

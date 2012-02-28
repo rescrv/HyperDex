@@ -112,11 +112,21 @@ hyperdaemon :: logical :: send(const hyperdex::entityid& from,
 #ifdef HD_LOG_ALL_MESSAGES
     LOG(INFO) << "SEND " << from << "->" << to << " " << msg_type << " " << msg->hex();
 #endif
-    instance src = m_config.instancefor(from);
+    instance src;
     instance dst;
 
+    // If we are sending as a transfer-recipient
+    if (from.space == hyperdex::configuration::TRANSFERSPACE)
+    {
+        src = m_config.instancefortransfer(from.subspace);
+    }
+    else
+    {
+        src = m_config.instancefor(from);
+    }
+
     // If we are sending to a client
-    if (to.space == UINT32_MAX)
+    if (to.space == hyperdex::configuration::CLIENTSPACE)
     {
         po6::net::location loc;
 
@@ -129,6 +139,10 @@ hyperdaemon :: logical :: send(const hyperdex::entityid& from,
         dst.inbound_port = loc.port;
         dst.inbound_version = 1;
     }
+    else if (to.space == hyperdex::configuration::TRANSFERSPACE)
+    {
+        dst = m_config.instancefortransfer(to.subspace);
+    }
     else
     {
         dst = m_config.instancefor(to);
@@ -140,7 +154,7 @@ hyperdaemon :: logical :: send(const hyperdex::entityid& from,
     }
 
     uint8_t mt = static_cast<uint8_t>(msg_type);
-    assert(msg->size() >= header_size());
+    assert(msg->capacity() >= header_size());
     msg->pack_at(m_physical.header_size())
         << mt << src.outbound_version << dst.inbound_version << from << to;
 
@@ -236,7 +250,7 @@ hyperdaemon :: logical :: recv(hyperdex::entityid* from,
             >> mt >> fromver >> tover >> *from >> *to;
         *msg_type = static_cast<network_msgtype>(mt);
 
-        // If the message is from someone claiming to be a client.
+        // Checkout the sender
         if (from->space == hyperdex::configuration::CLIENTSPACE)
         {
             po6::net::location expected_loc;
@@ -271,13 +285,26 @@ hyperdaemon :: logical :: recv(hyperdex::entityid* from,
             frominst.outbound_port = loc.port;
             frominst.outbound_version = fromver;
             fromvalid = true;
-            toinst = m_config.instancefor(*to);
-            tovalid = toinst != instance();
+        }
+        else if (from->space == hyperdex::configuration::TRANSFERSPACE)
+        {
+            frominst = m_config.instancefortransfer(from->subspace);
+            fromvalid = frominst != instance();
         }
         else
         {
             frominst = m_config.instancefor(*from);
             fromvalid = frominst != instance();
+        }
+
+        // Checkout the receiver
+        if (to->space == hyperdex::configuration::TRANSFERSPACE)
+        {
+            toinst = m_config.instancefortransfer(to->subspace);
+            tovalid = toinst != instance();
+        }
+        else
+        {
             toinst = m_config.instancefor(*to);
             tovalid = toinst != instance();
         }

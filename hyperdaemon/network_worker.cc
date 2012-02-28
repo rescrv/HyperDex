@@ -292,10 +292,9 @@ hyperdaemon :: network_worker :: run()
 
             m_repl->chain_ack(from, to, version, msg, key);
         }
-#if 0
         else if (type == hyperdex::XFER_MORE)
         {
-            m_ost->region_transfer(from, to);
+            m_ost->region_transfer_send(from, to);
         }
         else if (type == hyperdex::XFER_DONE)
         {
@@ -309,16 +308,24 @@ hyperdaemon :: network_worker :: run()
             e::slice key;
             std::vector<e::slice> value;
 
-            if ((up >> xfer_num >> op >> version >> key >> value).error())
+            if ((up = up >> xfer_num >> version >> key >> op).error())
             {
                 LOG(WARNING) << "unpack of XFER_DATA failed; here's some hex:  " << msg->hex();
                 continue;
             }
 
-            m_ost->region_transfer(from, to.subspace, xfer_num,
-                                   op == 1, version, msg, key, value);
+            if (op)
+            {
+                if ((up >> value).error())
+                {
+                    LOG(WARNING) << "unpack of XFER_DATA failed; here's some hex:  " << msg->hex();
+                    continue;
+                }
+            }
+
+            m_ost->region_transfer_recv(from, to.subspace, xfer_num,
+                                        op == 1, version, msg, key, value);
         }
-#endif
         else
         {
             LOG(INFO) << "Message of unknown type received.";
