@@ -65,6 +65,8 @@ hyperdex/.deps/
 hyperdex/.dirstamp
 hyperdex/libhyperdex_la-configuration.lo
 hyperdex/libhyperdex_la-configuration.o
+hyperdex/libhyperdex_la-configuration_parser.lo
+hyperdex/libhyperdex_la-configuration_parser.o
 hyperdex/libhyperdex_la-coordinatorlink.lo
 hyperdex/libhyperdex_la-coordinatorlink.o
 hyperdex/.libs/
