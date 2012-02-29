@@ -49,7 +49,7 @@ RESTRICTED_SPACES = set([0, 2**32 - 1, 2**32 - 2, 2**32 - 3, 2**32 - 4])
 SPACE_LINE = 'space {name} {id} {dims}\n'
 SUBSPACE_LINE = 'subspace {space} {subspace} {hashes}\n'
 REGION_LINE = 'region {space} {subspace} {prefix} {mask} {hosts}\n'
-HOST_LINE = 'host {id} {ip} {inport} {inver} {outport} {outver}\n'
+HOST_LINE = 'host {id} {ip} {inport} {inver} {outport} {outver}'
 
 def normalize_address(addr):
     try:
@@ -246,7 +246,7 @@ class Coordinator(object):
                                 outver=inst.outver)
             host_lines.append(host_line)
         self._config_counter += 1
-        self._config_data = ('\n'.join(host_lines) + config).strip()
+        self._config_data = ('\n'.join(host_lines) + '\n' + config).strip()
         for instid, inst in self._instances_by_id.iteritems():
             inst.add_config(self._config_counter, self._config_data)
         # XXX notify threads to poll for new configs
