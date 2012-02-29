@@ -159,7 +159,7 @@ hyperdaemon :: daemon(po6::pathname datadir,
     {
         if (cl.unacknowledged())
         {
-            LOG(INFO) << "Installing new configuration.";
+            LOG(INFO) << "Installing new configuration version " << cl.config().version();
             hyperdex::instance newinst = comm.inst();
 
             // Figure out which versions we were assigned.
