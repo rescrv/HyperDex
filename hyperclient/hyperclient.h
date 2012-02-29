@@ -276,7 +276,7 @@ class hyperclient
         int64_t send(e::intrusive_ptr<channel> chan,
                      e::intrusive_ptr<pending> op,
                      e::buffer* msg);
-        int64_t try_coord_connect(hyperclient_returncode* status);
+        int64_t maintain_coord_connection(hyperclient_returncode* status);
         void killall(int fd, hyperclient_returncode status);
         e::intrusive_ptr<channel> get_channel(hyperdex::instance inst,
                                               hyperclient_returncode* status);
@@ -291,7 +291,7 @@ class hyperclient
         requests_map_t m_requests;
         std::queue<completedop> m_completed;
         int64_t m_requestid;
-        bool m_grab_config_on_op_init;
+        bool m_have_seen_config;
 };
 
 std::ostream&
