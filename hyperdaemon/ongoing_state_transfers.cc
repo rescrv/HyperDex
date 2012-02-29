@@ -295,7 +295,7 @@ hyperdaemon :: ongoing_state_transfers :: region_transfer_send(const entityid& f
 
     if (t->failed)
     {
-        m_cl->fail_transfer(from.subspace);
+        m_cl->transfer_fail(from.subspace);
         return;
     }
 
@@ -347,7 +347,7 @@ hyperdaemon :: ongoing_state_transfers :: region_transfer_send(const entityid& f
     if (!m_comm->send(to, from, type, msg))
     {
         t->failed = true;
-        m_cl->fail_transfer(from.subspace);
+        m_cl->transfer_fail(from.subspace);
     }
 }
 
@@ -366,12 +366,14 @@ hyperdaemon :: ongoing_state_transfers :: region_transfer_recv(const hyperdex::e
 
     if (!m_transfers_in.lookup(xfer_id, &t))
     {
+        LOG(INFO) << "received XFER_DATA for transfer #" << xfer_id << ", but we know nothing about it";
         return;
     }
 
     if (t->failed)
     {
-        m_cl->fail_transfer(xfer_id);
+        LOG(INFO) << "received XFER_DATA for transfer #" << xfer_id << ", but we have failed it";
+        m_cl->transfer_fail(xfer_id);
         return;
     }
 
@@ -401,7 +403,7 @@ hyperdaemon :: ongoing_state_transfers :: region_transfer_recv(const hyperdex::e
     if (t->ops.size() > TRANSFERS_IN_FLIGHT)
     {
         t->failed = true;
-        m_cl->fail_transfer(xfer_id);
+        m_cl->transfer_fail(xfer_id);
         return;
     }
 
@@ -444,7 +446,7 @@ hyperdaemon :: ongoing_state_transfers :: region_transfer_recv(const hyperdex::e
             {
                 LOG(ERROR) << "transfer " << xfer_id << " failed because HyperDisk returned " << res;
                 t->failed = true;
-                m_cl->fail_transfer(xfer_id);
+                m_cl->transfer_fail(xfer_id);
                 return;
             }
         }
@@ -460,7 +462,7 @@ hyperdaemon :: ongoing_state_transfers :: region_transfer_recv(const hyperdex::e
                       t->replicate_from, hyperdex::XFER_MORE, msg))
     {
         t->failed = true;
-        m_cl->fail_transfer(xfer_id);
+        m_cl->transfer_fail(xfer_id);
         return;
     }
 }
@@ -474,12 +476,14 @@ hyperdaemon :: ongoing_state_transfers :: region_transfer_done(const entityid& f
 
     if (!m_transfers_in.lookup(to.subspace, &t))
     {
+        LOG(INFO) << "received XFER_DONE for transfer #" << to.subspace << ", but we know nothing about it";
         return;
     }
 
     if (t->failed)
     {
-        m_cl->fail_transfer(to.subspace);
+        LOG(INFO) << "received XFER_DONE for transfer #" << to.subspace << ", but we have failed it";
+        m_cl->transfer_fail(to.subspace);
         return;
     }
 
@@ -516,7 +520,7 @@ hyperdaemon :: ongoing_state_transfers :: add_trigger(const hyperdex::regionid& 
 
     if (t->failed)
     {
-        m_cl->fail_transfer(xfer_id);
+        m_cl->transfer_fail(xfer_id);
         return;
     }
 
