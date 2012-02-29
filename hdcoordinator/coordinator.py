@@ -49,6 +49,7 @@ RESTRICTED_SPACES = set([0, 2**32 - 1, 2**32 - 2, 2**32 - 3, 2**32 - 4])
 SPACE_LINE = 'space {name} {id} {dims}\n'
 SUBSPACE_LINE = 'subspace {space} {subspace} {hashes}\n'
 REGION_LINE = 'region {space} {subspace} {prefix} {mask} {hosts}\n'
+TRANSFER_LINE = 'transfer {xferid} {space} {subspace} {prefix} {mask} {instid}\n'
 HOST_LINE = 'host {id} {ip} {inport} {inver} {outport} {outver}'
 
 def normalize_address(addr):
@@ -86,6 +87,8 @@ class Coordinator(object):
         self._rand = random.Random()
         self._config_counter = 0
         self._config_data = ''
+        self._xfer_counter = 0
+        self._xfers_by_id = {}
 
     def _compute_port_epoch(self, addr, port):
         ver = self._portcounters[(addr, port)]
@@ -138,20 +141,36 @@ class Coordinator(object):
         del self._spaces_by_id[spacenum]
         self._regenerate()
 
+    def _compute_transfer_id(self, spaceid, subspaceid, regionid):
+        xferid = None
+        for i in xrange(1 << 16):
+            tmp = self._xfer_counter
+            self._xfer_counter = (self._xfer_counter + 1) % 2**16
+            if tmp not in self._xfers_by_id:
+                xferid = tmp
+                break
+        if xferid is None:
+            return None
+        self._xfers_by_id[xferid] = (spaceid, subspaceid, regionid)
+        return xferid
+
     def fail_host(self, ip, port):
         badinstids = set()
         for instid, inst in self._instances_by_id.iteritems():
             if inst.addr == ip and \
                     (inst.inport == port or inst.outport == port):
-                badinstids.append(instid)
-        for spaceid, space in self._spaces_by_id.iteritems():
-            for subspaceid, subspace in enumerate(space.subspaces):
-                for region in subspace.regions:
+                badinstids.add(instid)
+        for si, space in self._spaces_by_id.iteritems():
+            for ssi, subspace in enumerate(space.subspaces):
+                for ri, region in enumerate(subspace.regions):
                     old_f = region.current_f
                     region.remove_replicas(badinstids)
                     new_f = region.current_f
                     if old_f > new_f:
-                        pass # XXX transfer
+                        xferid = self._compute_transfer_id(si, ssi, ri)
+                        if xferid is not None:
+                            newrepl = self._select_replica(region.replicas + region.transfers)
+                            region.transfer_initiate(xferid, newrepl)
         self._regenerate()
 
     def ack_config(self, bindings, num):
@@ -161,7 +180,10 @@ class Coordinator(object):
         pass
 
     def reject_config(self, bindings, num):
-        logging.error("CRY BLOODY MURDER (there is a bug!")
+        instid = self._instances_by_bindings[bindings]
+        inst = self._instances_by_id[instid]
+        inst.reject_config(num)
+        logging.error("host rejected config (there is a bug!)")
 
     def fetch_configs(self, instances):
         configs = {}
@@ -178,6 +200,36 @@ class Coordinator(object):
                     configs[num] = data
                     hosts[inst] = num
         return configs, hosts
+
+    def transfer_fail(self, xferid):
+        if xferid not in self._xfers_by_id:
+            return
+        spaceid, subspaceid, regionid = self._xfers_by_id[xferid]
+        if spaceid not in self._spaces_by_id:
+            return
+        self._spaces_by_id[spaceid].subspaces[subspaceid].regions[regionid].transfer_fail(xferid)
+        del self._xfers_by_id[xferid]
+        self._regenerate()
+
+    def transfer_golive(self, xferid):
+        if xferid not in self._xfers_by_id:
+            return
+        spaceid, subspaceid, regionid = self._xfers_by_id[xferid]
+        if spaceid not in self._spaces_by_id:
+            return
+        region = self._spaces_by_id[spaceid].subspaces[subspaceid].regions[regionid]
+        if region.transfer_golive(xferid):
+            self._regenerate()
+
+    def transfer_complete(self, xferid):
+        if xferid not in self._xfers_by_id:
+            return
+        spaceid, subspaceid, regionid = self._xfers_by_id[xferid]
+        if spaceid not in self._spaces_by_id:
+            return
+        self._spaces_by_id[spaceid].subspaces[subspaceid].regions[regionid].transfer_complete(xferid)
+        del self._xfers_by_id[xferid]
+        self._regenerate()
 
     def _initial_layout(self, space):
         still_assigning = True
@@ -209,7 +261,8 @@ class Coordinator(object):
 
     def _regenerate(self):
         used_hosts = set()
-        config = 'version {0}\n'.format(self._config_counter + 1)
+        self._config_counter += 1
+        config = 'version {0}\n'.format(self._config_counter)
         for spaceid, space in self._spaces_by_id.iteritems():
             spacedims = ' '.join([d.name + ' ' + d.datatype for d in space.dimensions])
             config += SPACE_LINE \
@@ -237,6 +290,16 @@ class Coordinator(object):
                                       prefix=region.prefix,
                                       mask=hex(region.mask).rstrip('L'),
                                       hosts=' '.join(hosts))
+                    xferid, instid = region.transfer_in_progress
+                    if xferid is not None:
+                        config += TRANSFER_LINE \
+                                  .format(xferid=str(xferid),
+                                          space=spaceid,
+                                          subspace=subspaceid,
+                                          prefix=region.prefix,
+                                          mask=hex(region.mask).rstrip('L'),
+                                          instid=str(instid))
+                        used_hosts.add(instid)
         host_lines = []
         for hostid in sorted(used_hosts):
             inst = self._instances_by_id[hostid]
@@ -245,7 +308,6 @@ class Coordinator(object):
                                 inver=inst.inver, outport=inst.outport,
                                 outver=inst.outver)
             host_lines.append(host_line)
-        self._config_counter += 1
         self._config_data = ('\n'.join(host_lines) + '\n' + config).strip()
         for instid, inst in self._instances_by_id.iteritems():
             inst.add_config(self._config_counter, self._config_data)
@@ -258,7 +320,7 @@ class HostConnection(object):
         self._connectime = datetime.datetime.now()
         self._coordinator = coordinator
         self._sock = sock
-        self._ibuffer = []
+        self._ibuffer = ''
         self.outgoing = ''
         self._identified = None
         self._instance = None # Must be None unless self._identified is INSTANCE
@@ -271,10 +333,9 @@ class HostConnection(object):
         data = self._sock.recv(PIPE_BUF)
         if len(data) == 0:
             raise EndConnection()
-        self._ibuffer.append(data)
-        while '\n' in data:
-            data, rem = ''.join(self._ibuffer).split('\n', 1)
-            self._ibuffer = [rem]
+        self._ibuffer += data
+        while '\n' in self._ibuffer:
+            data, self._ibuffer = self._ibuffer.split('\n', 1)
             commandline = shlex.split(data)
             if len(commandline) == 1 and commandline[0] == 'client':
                 self.identify_as_client()
@@ -283,15 +344,24 @@ class HostConnection(object):
             elif len(commandline) == 1 and commandline[0] == 'ACK':
                 if self._identified == 'INSTANCE':
                     self._coordinator.ack_config(self._instance, self._pending_config_num)
-                    self._has_config_pending = False
+                self._has_config_pending = False
             elif len(commandline) == 1 and commandline[0] == 'BAD':
                 if self._identified == 'INSTANCE':
                     self._coordinator.reject_config(self._instance, self._pending_config_num)
-                    self._has_config_pending = False
+                self._has_config_pending = False
             elif len(commandline) == 2 and commandline[0] == 'fail_host':
                 self.fail_host(commandline[1])
+            elif len(commandline) == 2 and commandline[0] == 'transfer_fail':
+                self.transfer_fail(commandline[1])
+                logging.info("transfer fail {0}".format(commandline[1]))
+            elif len(commandline) == 2 and commandline[0] == 'transfer_golive':
+                self.transfer_golive(commandline[1])
+                logging.debug("transfer golive {0}".format(commandline[1]))
+            elif len(commandline) == 2 and commandline[0] == 'transfer_complete':
+                self.transfer_complete(commandline[1])
+                logging.debug("transfer complete {0}".format(commandline[1]))
             else:
-                raise KillConnection('Unrecognized command {0}'.format(repr(data)))
+                raise KillConnection('unrecognized command "{0}"'.format(repr(data)))
 
     def handle_out(self):
         data = self.outgoing[:PIPE_BUF]
@@ -300,7 +370,7 @@ class HostConnection(object):
 
     def identify_as_client(self):
         if self._identified:
-            raise KillConnection('Client identifying twice')
+            raise KillConnection('client identifying twice')
         self._identified = 'CLIENT'
         oldid = self._id
         addr, port = self._sock.getpeername()
@@ -309,25 +379,25 @@ class HostConnection(object):
 
     def identify_as_instance(self, addr, incoming, outgoing, pid, token):
         if self._identified:
-            raise KillConnection('Instance identifying twice')
+            raise KillConnection('instance identifying twice')
         self._identified = 'INSTANCE'
         addr = normalize_address(addr)
         if not addr:
-            raise KillConnection('Instance claims to bind to unparseable address')
+            raise KillConnection('instance claims to bind to unparseable address')
         try:
             incoming = int(incoming)
         except ValueError:
-            raise KillConnection('Instance claims to bind to non-numeric incoming port')
+            raise KillConnection('instance claims to bind to non-numeric incoming port')
         try:
             outgoing = int(outgoing)
         except ValueError:
-            raise KillConnection('Instance claims to bind to non-numeric outgoing port')
+            raise KillConnection('instance claims to bind to non-numeric outgoing port')
         try:
             pid = int(pid)
         except ValueError:
-            raise KillConnection('Instance claims to have non-numeric PID')
+            raise KillConnection('instance claims to have non-numeric PID')
         if len(token) != 32:
-            raise KillConnection('Instance uses token of improper length')
+            raise KillConnection('instance uses token of improper length')
         self._instance = self._coordinator.register_instance(addr, incoming, outgoing, pid, token)
         oldid = self._id
         self._id = str(self._instance)
@@ -335,17 +405,38 @@ class HostConnection(object):
 
     def fail_host(self, host):
         if ':' not in host:
-            raise KillConnection('Host reports failure of invalid address')
+            raise KillConnection('host reports failure of invalid address')
         ip, port = host.rsplit(':', 1)
         ip = normalize_address(ip)
         if ip is None:
-            raise KillConnection('Host reports failure of invalid address')
+            raise KillConnection('host reports failure of invalid address')
         try:
             port = int(port)
         except ValueError:
-            raise KillConnection('Host reports failure of invalid address')
-        logging.info("Report of failure for {0}".format(commandline[1]))
+            raise KillConnection('host reports failure of invalid address')
+        logging.info("report of failure for {0}".format(host))
         self._coordinator.fail_host(ip, port)
+
+    def transfer_fail(self, xferid):
+        try:
+            xferid = int(xferid)
+        except ValueError:
+            raise KillConnection("host uses non-numeric transfer id for transfer_fail")
+        self._coordinator.transfer_fail(xferid)
+
+    def transfer_golive(self, xferid):
+        try:
+            xferid = int(xferid)
+        except ValueError:
+            raise KillConnection("host uses non-numeric transfer id for transfer_golive")
+        self._coordinator.transfer_golive(xferid)
+
+    def transfer_complete(self, xferid):
+        try:
+            xferid = int(xferid)
+        except ValueError:
+            raise KillConnection("host uses non-numeric transfer id for transfer_complete")
+        self._coordinator.transfer_complete(xferid)
 
     def send_config(self, num, data):
         self._has_config_pending = True
@@ -354,6 +445,9 @@ class HostConnection(object):
 
     def has_config_pending(self):
         return self._has_config_pending
+
+    def last_config_num(self):
+        return self._pending_config_num
 
 
 class ControlConnection(object):
@@ -486,30 +580,34 @@ class CoordinatorServer(object):
                         remove = True
                     if remove:
                         del self._conns[fd]
+                        if fd in client_fds:
+                            client_fds.remove(fd)
+                        if conn._identified == 'INSTANCE' and \
+                           conn._instance in instances_to_fds:
+                            del instances_to_fds[conn._instance]
                         self._p.unregister(fd)
                         try:
                             sock.shutdown(socket.SHUT_RDWR)
                             sock.close()
                         except socket.error as e:
                             pass
-                        continue
-                    if conn._identified == 'CLIENT' and \
-                       not conn.has_config_pending():
-                        client_fds.add(fd)
-                    if conn._identified == 'INSTANCE' and \
-                       not conn.has_config_pending():
-                        instances_to_fds[conn._instance] = fd
+                    else:
+                        if conn._identified == 'CLIENT':
+                            client_fds.add(fd)
+                        if conn._identified == 'INSTANCE' and \
+                           not conn.has_config_pending():
+                            instances_to_fds[conn._instance] = fd
             instances = set(instances_to_fds.keys())
-            if client_fds:
-                instances.add(None)
+            instances.add(None)
             configs, hosts = self._coord.fetch_configs(instances)
             for instance, confignum in hosts.iteritems():
                 c = configs[confignum]
                 if instance is None:
-                    for fd in list(client_fds):
-                        self._conns[fd][1].send_config(confignum, c)
-                        self._p.modify(fd, select.POLLIN | select.POLLOUT)
-                        client_fds.remove(fd)
+                    for fd in client_fds:
+                        conn = self._conns[fd][1]
+                        if conn.last_config_num() < confignum:
+                            conn.send_config(confignum, c)
+                            self._p.modify(fd, select.POLLIN | select.POLLOUT)
                 elif instance in instances_to_fds:
                     fd = instances_to_fds[instance]
                     self._conns[fd][1].send_config(confignum, c)

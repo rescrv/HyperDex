@@ -90,6 +90,7 @@ class Region(object):
         self._mask = mask
         self._desired_f = desired_f
         self._replicas = []
+        self._transfers = []
 
     @property
     def prefix(self):
@@ -111,16 +112,51 @@ class Region(object):
     def replicas(self):
         return tuple(self._replicas)
 
+    @property
+    def transfers(self):
+        return tuple([i for x, i in self._transfers])
+
+    @property
+    def transfer_in_progress(self):
+        if self._transfers:
+            return self._transfers[0]
+        else:
+            return (None, None)
+
     def add_replica(self, replica):
         assert replica is not None
         self._replicas.append(replica)
 
     def remove_replicas(self, badreplicas):
-        newreplicas = []
-        for replica in self._replicas:
-            if replica not in badreplicas:
-                newreplicas.append(replica)
-        self._replicas = newreplicas
+        self._replicas = [r for r in self._replicas if r not in badreplicas]
+
+    def transfer_initiate(self, xferid, instid):
+        self._transfers.append((xferid, instid))
+
+    def transfer_golive(self, xferid):
+        if not self._transfers:
+            raise RuntimeError('transfer "golive" message for unknown xferid')
+        if self._transfers[0][0] != xferid:
+            raise RuntimeError('transfer "golive" message for wrong xferid')
+        if self._replicas[-1] != self._transfers[0][1]:
+            self._replicas.append(self._transfers[0][1])
+            return True
+        return False
+
+    def transfer_complete(self, xferid):
+        if not self._transfers:
+            raise RuntimeError('transfer "complete" message for unknown xferid')
+        if self._transfers[0][0] != xferid:
+            raise RuntimeError('transfer "complete" message for wrong xferid')
+        if not self._replicas or self._transfers[0][1] != self._replicas[-1]:
+            raise RuntimeError('transfer "complete" message must come after "golive"')
+        self._transfers = self._transfers[1:]
+
+    def transfer_fail(self, xferid):
+        if self._transfers and self._transfers[0][0] == xferid:
+            if self._replicas and self._replicas[-1] == self._transfers[0][1]:
+                self._replicas.pop()
+        self._transfers = [(x, i) for x, i in self._transfers if x != xferid]
 
     def __eq__(self, other):
         return self.prefix == other.prefix and \

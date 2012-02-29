@@ -256,10 +256,29 @@ hyperdaemon :: ongoing_state_transfers :: cleanup(const configuration& newconfig
     for (transfers_in_map_t::iterator ti = m_transfers_in.begin();
             ti != m_transfers_in.end(); ti.next())
     {
-        if (in_transfers.find(ti.key()) == in_transfers.end())
+        std::map<uint16_t, regionid>::iterator it;
+        it = in_transfers.find(ti.key());
+
+        if (it == in_transfers.end())
         {
             LOG(INFO) << "Stopping incoming transfer #" << ti.key();
             m_transfers_in.remove(ti.key());
+        }
+        else
+        {
+            // Anything that we've tagged "go_live" that is not live needs to be
+            // resent to the coordinator.
+            if (ti.value()->go_live &&
+                m_config.entityfor(us, it->second) == entityid())
+            {
+                m_cl->transfer_golive(it->first);
+            }
+
+            // If we've marked this complete, we should resend the message.
+            if (ti.value()->triggered)
+            {
+                m_cl->transfer_complete(it->first);
+            }
         }
     }
 
@@ -272,9 +291,6 @@ hyperdaemon :: ongoing_state_transfers :: cleanup(const configuration& newconfig
             m_transfers_out.remove(to.key());
         }
     }
-
-    // Anything that we've tagged "go_live" that is not live needs to be resent
-    // to the coordinator.
 }
 
 void
