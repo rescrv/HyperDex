@@ -213,6 +213,11 @@ hyperdex :: coordinatorlink :: loop(size_t iterations, int timeout)
             }
         }
 
+        if (polled == 0)
+        {
+            return SUCCESS;
+        }
+
         char buf[4096];
         ssize_t ret = m_sock.read(buf, 4096);
 
