@@ -182,6 +182,7 @@ hyperdaemon :: ongoing_state_transfers :: ongoing_state_transfers(datalayer* dat
     , m_transfers_in(STATE_TRANSFER_HASHTABLE_SIZE)
     , m_transfers_out(STATE_TRANSFER_HASHTABLE_SIZE)
     , m_shutdown(false)
+    , m_periodic_lock()
     , m_periodic_thread(std::tr1::bind(&ongoing_state_transfers::periodic, this))
 {
     m_periodic_thread.start();
@@ -201,6 +202,7 @@ void
 hyperdaemon :: ongoing_state_transfers :: prepare(const configuration& newconfig,
                                                   const instance& us)
 {
+    po6::threads::mutex::hold hold(&m_periodic_lock);
     std::map<uint16_t, regionid> in_transfers = newconfig.transfers_to(us);
     std::map<uint16_t, regionid> out_transfers = newconfig.transfers_from(us);
     std::map<uint16_t, regionid>::iterator t;
@@ -238,7 +240,7 @@ void
 hyperdaemon :: ongoing_state_transfers :: reconfigure(const configuration& config,
                                                       const instance&)
 {
-    // Do nothing.
+    po6::threads::mutex::hold hold(&m_periodic_lock);
     m_config = config;
     __sync_synchronize();
 }
@@ -247,6 +249,7 @@ void
 hyperdaemon :: ongoing_state_transfers :: cleanup(const configuration& newconfig,
                                                   const instance& us)
 {
+    po6::threads::mutex::hold hold(&m_periodic_lock);
     std::map<uint16_t, regionid> in_transfers = newconfig.transfers_to(us);
     std::map<uint16_t, regionid> out_transfers = newconfig.transfers_from(us);
 
@@ -576,6 +579,8 @@ hyperdaemon :: ongoing_state_transfers :: start_transfers()
     for (transfers_in_map_t::iterator t = m_transfers_in.begin();
             t != m_transfers_in.end(); t.next())
     {
+        po6::threads::mutex::hold hold(&m_periodic_lock);
+
         if (!t.value()->started)
         {
             for (size_t i = 0; i < TRANSFERS_IN_FLIGHT; ++i)
@@ -594,6 +599,8 @@ hyperdaemon :: ongoing_state_transfers :: finish_transfers()
     for (transfers_in_map_t::iterator t = m_transfers_in.begin();
             t != m_transfers_in.end(); t.next())
     {
+        po6::threads::mutex::hold hold(&m_periodic_lock);
+
         if (t.value()->go_live)
         {
             std::auto_ptr<e::buffer> msg(e::buffer::create(m_comm->header_size()));

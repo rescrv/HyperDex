@@ -119,6 +119,7 @@ class ongoing_state_transfers
         transfers_in_map_t m_transfers_in;
         transfers_out_map_t m_transfers_out;
         bool m_shutdown;
+        po6::threads::mutex m_periodic_lock;
         po6::threads::thread m_periodic_thread;
 };
 
