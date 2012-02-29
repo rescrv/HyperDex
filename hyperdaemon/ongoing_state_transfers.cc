@@ -423,7 +423,7 @@ hyperdaemon :: ongoing_state_transfers :: region_transfer_recv(const hyperdex::e
                 t->triggers.end())
         {
             t->triggered = true;
-            LOG(INFO) << "COMPLETE TRANSFER " << xfer_id;
+            m_cl->transfer_complete(xfer_id);
             return;
         }
 
@@ -494,7 +494,7 @@ hyperdaemon :: ongoing_state_transfers :: region_transfer_done(const entityid& f
 
     if (from != t->replicate_from)
     {
-        LOG(WARNING) << "another host is stepping on transfer #" << from.subspace;
+        LOG(WARNING) << "another host is stepping on transfer #" << to.subspace;
         return;
     }
 
@@ -502,8 +502,9 @@ hyperdaemon :: ongoing_state_transfers :: region_transfer_done(const entityid& f
 
     if (!t->go_live)
     {
+        LOG(WARNING) << "transfer #" << to.subspace << " is asking to go live";
         t->go_live = true;
-        LOG(INFO) << "REGION GO LIVE " << to.subspace; // XXX
+        m_cl->transfer_golive(to.subspace);
     }
 }
 
