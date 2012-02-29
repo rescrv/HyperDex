@@ -90,7 +90,7 @@ hyperdex :: coordinatorlink :: warn_location(const po6::net::location& loc)
     po6::threads::mutex::hold hold(&m_lock);
     ++m_warnings_issued[loc];
 
-    if (m_warnings_issued[loc] > 5)
+    if (m_warnings_issued[loc] > 3)
     {
         return send_failure(loc);
     }
@@ -106,7 +106,7 @@ hyperdex :: coordinatorlink :: fail_location(const po6::net::location& loc)
 }
 
 hyperdex::coordinatorlink::returncode
-hyperdex :: coordinatorlink :: fail_transfer(uint16_t xfer_id)
+hyperdex :: coordinatorlink :: transfer_fail(uint16_t xfer_id)
 {
     po6::threads::mutex::hold hold(&m_lock);
 
@@ -116,7 +116,37 @@ hyperdex :: coordinatorlink :: fail_transfer(uint16_t xfer_id)
     }
 
     std::ostringstream ostr;
-    ostr << "fail_transfer\t" << xfer_id << "\n";
+    ostr << "transfer_fail\t" << xfer_id << "\n";
+    return send_to_coordinator(ostr.str().c_str(), ostr.str().size());
+}
+
+hyperdex::coordinatorlink::returncode
+hyperdex :: coordinatorlink :: transfer_golive(uint16_t xfer_id)
+{
+    po6::threads::mutex::hold hold(&m_lock);
+
+    if (m_shutdown)
+    {
+        return SHUTDOWN;
+    }
+
+    std::ostringstream ostr;
+    ostr << "transfer_golive\t" << xfer_id << "\n";
+    return send_to_coordinator(ostr.str().c_str(), ostr.str().size());
+}
+
+hyperdex::coordinatorlink::returncode
+hyperdex :: coordinatorlink :: transfer_complete(uint16_t xfer_id)
+{
+    po6::threads::mutex::hold hold(&m_lock);
+
+    if (m_shutdown)
+    {
+        return SHUTDOWN;
+    }
+
+    std::ostringstream ostr;
+    ostr << "transfer_complete\t" << xfer_id << "\n";
     return send_to_coordinator(ostr.str().c_str(), ostr.str().size());
 }
 
