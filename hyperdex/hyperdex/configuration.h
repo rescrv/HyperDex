@@ -71,7 +71,7 @@ class configuration
 
     // The version of this config
     public:
-        uint64_t version() const { return 0xdeadbeefcafebabeULL; }
+        uint64_t version() const { return m_version; }
 
     // Data-layout (not hashing)
     public:
