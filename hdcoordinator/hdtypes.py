@@ -150,6 +150,7 @@ class Instance(object):
         self._token = token
         self._configs = []
         self._last_acked = 0
+        self._last_rejected = 0
 
     @property
     def addr(self):
@@ -182,6 +183,14 @@ class Instance(object):
             raise RuntimeError("acking config number which does not match the oldest pending")
         self._configs = self._configs[1:]
         self._last_acked = num
+
+    def reject_config(self, num):
+        if not self._configs:
+            raise RuntimeError("rejecting config when none are present")
+        if self._configs[0][0] != num:
+            raise RuntimeError("rejecting config number which does not match the oldest pending")
+        self._configs = self._configs[1:]
+        self._last_rejected = num
 
     def next_config(self):
         if self._configs:
