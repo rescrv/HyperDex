@@ -39,6 +39,7 @@ import sys
 import pyparsing
 
 import hdcoordinator.parser
+from hdcoordinator import hdtypes
 
 
 PIPE_BUF = getattr(select, 'PIPE_BUF', 512)
@@ -66,10 +67,6 @@ class EndConnection(Exception): pass
 class KillConnection(Exception): pass
 
 
-Client = collections.namedtuple('Client', 'addr port')
-Instance = collections.namedtuple('Instance', 'addr inport inver outport outver pid token')
-
-
 class Coordinator(object):
 
     class DuplicateSpace(Exception): pass
@@ -81,13 +78,14 @@ class Coordinator(object):
         self._portcounters = collections.defaultdict(lambda: 1)
         self._instance_counter = 1
         self._instances_by_addr = {}
+        self._instances_by_bindings = {}
         self._instances_by_id = {}
         self._space_counter = 1
         self._spaces_by_name = {}
         self._spaces_by_id = {}
         self._rand = random.Random()
-        self._conf_counter = 0
-        self._conf_data = ''
+        self._config_counter = 0
+        self._config_data = ''
 
     def _compute_port_epoch(self, addr, port):
         ver = self._portcounters[(addr, port)]
@@ -99,21 +97,20 @@ class Coordinator(object):
     def register_instance(self, addr, inport, outport, pid, token):
         instid = self._instances_by_addr.get((addr, inport, outport, pid, token), 0)
         if instid != 0:
-            return self._instances_by_id[instid]
+            return self._instances_by_id[instid].bindings()
         inver = self._compute_port_epoch(addr, inport)
         outver = self._compute_port_epoch(addr, outport)
-        inst = Instance(addr, inport, inver, outport, outver, pid, token)
+        inst = hdtypes.Instance(addr, inport, inver, outport, outver, pid, token)
+        inst.add_config(self._config_counter, self._config_data)
         instid = self._instance_counter
         self._instance_counter += 1
         self._instances_by_id[instid] = inst
+        self._instances_by_bindings[inst.bindings()] = instid
         self._instances_by_addr[(addr, inport, outport, pid, token)] = instid
-        return inst
+        return inst.bindings()
 
-    def keepalive_instance(self, instance):
+    def keepalive_instance(self, bindings):
         pass
-
-    def list_instances(self):
-        return sorted(self._instances_by_id.values())
 
     def add_space(self, space):
         if space.name in self._spaces_by_name:
@@ -141,30 +138,46 @@ class Coordinator(object):
         del self._spaces_by_id[spacenum]
         self._regenerate()
 
-    def _fail_host_cmp(self, lhs, rhs):
-        if lhs is None and rhs is None:
-            return 0
-        elif lhs is None:
-            return 1
-        elif rhs is None:
-            return -1
-        return 0
-
     def fail_host(self, ip, port):
-        for spacenum, space in self._spaces_by_id.iteritems():
-            for subspacenum, subspace in enumerate(space.subspaces):
+        badinstids = set()
+        for instid, inst in self._instances_by_id.iteritems():
+            if inst.addr == ip and \
+                    (inst.inport == port or inst.outport == port):
+                badinstids.append(instid)
+        for spaceid, space in self._spaces_by_id.iteritems():
+            for subspaceid, subspace in enumerate(space.subspaces):
                 for region in subspace.regions:
-                    for replicanum in range(len(region.replicas)):
-                        if region.replicas[replicanum] and \
-                           region.replicas[replicanum][0] == ip and \
-                           (region.replicas[replicanum][1] == port or
-                            region.replicas[replicanum][3] == port):
-                            region.replicas[replicanum] = None
-                    region.replicas.sort(cmp=self._fail_host_cmp)
+                    old_f = region.current_f
+                    region.remove_replicas(badinstids)
+                    new_f = region.current_f
+                    if old_f > new_f:
+                        pass # XXX transfer
         self._regenerate()
 
-    def configuration(self):
-        return self._conf_counter, self._conf_data
+    def ack_config(self, bindings, num):
+        instid = self._instances_by_bindings[bindings]
+        inst = self._instances_by_id[instid]
+        inst.ack_config(num)
+        pass
+
+    def reject_config(self, bindings, num):
+        logging.error("CRY BLOODY MURDER (there is a bug!")
+
+    def fetch_configs(self, instances):
+        configs = {}
+        hosts = {}
+        for inst in instances:
+            if inst is None:
+                configs[self._config_counter] = self._config_data
+                hosts[None] = self._config_counter
+            elif inst in self._instances_by_bindings:
+                instid = self._instances_by_bindings[inst]
+                realinst = self._instances_by_id[instid]
+                num, data = realinst.next_config()
+                if num is not None:
+                    configs[num] = data
+                    hosts[inst] = num
+        return configs, hosts
 
     def _initial_layout(self, space):
         still_assigning = True
@@ -196,7 +209,7 @@ class Coordinator(object):
 
     def _regenerate(self):
         used_hosts = set()
-        config = 'version {0}\n'.format(self._conf_counter + 1)
+        config = 'version {0}\n'.format(self._config_counter + 1)
         for spaceid, space in self._spaces_by_id.iteritems():
             spacedims = ' '.join([d.name + ' ' + d.datatype for d in space.dimensions])
             config += SPACE_LINE \
@@ -227,22 +240,21 @@ class Coordinator(object):
         host_lines = []
         for hostid in sorted(used_hosts):
             inst = self._instances_by_id[hostid]
-            print hostid, inst, self._instances_by_id
             host_line = HOST_LINE \
                         .format(id=hostid, ip=inst.addr, inport=inst.inport,
                                 inver=inst.inver, outport=inst.outport,
                                 outver=inst.outver)
             host_lines.append(host_line)
-        self._conf_counter += 1
-        self._conf_data = ('\n'.join(host_lines) + config).strip()
+        self._config_counter += 1
+        self._config_data = ('\n'.join(host_lines) + config).strip()
+        for instid, inst in self._instances_by_id.iteritems():
+            inst.add_config(self._config_counter, self._config_data)
+        # XXX notify threads to poll for new configs
 
 
 class HostConnection(object):
 
-    class CLIENT: pass
-    class INSTANCE: pass
-
-    def __init__(self, coordinator, sock, conns):
+    def __init__(self, coordinator, sock):
         self._connectime = datetime.datetime.now()
         self._coordinator = coordinator
         self._sock = sock
@@ -250,11 +262,9 @@ class HostConnection(object):
         self.outgoing = ''
         self._identified = None
         self._instance = None # Must be None unless self._identified is INSTANCE
-        self._state = 'UNCONFIGURED'
-        self._config = None
-        self._pending = []
+        self._has_config_pending = False
+        self._pending_config_num = 0
         self._id = 'Unidentified({0}, {1})'.format(self._sock.getpeername()[0], self._sock.getpeername()[1])
-        self._conns = conns
         logging.info('new host uses ID ' + self._id)
 
     def handle_in(self):
@@ -271,9 +281,13 @@ class HostConnection(object):
             elif len(commandline) == 6 and commandline[0] == 'instance':
                 self.identify_as_instance(*commandline[1:])
             elif len(commandline) == 1 and commandline[0] == 'ACK':
-                self.acknowledge_config()
+                if self._identified == 'INSTANCE':
+                    self._coordinator.ack_config(self._instance, self._pending_config_num)
+                    self._has_config_pending = False
             elif len(commandline) == 1 and commandline[0] == 'BAD':
-                self.reject_config()
+                if self._identified == 'INSTANCE':
+                    self._coordinator.reject_config(self._instance, self._pending_config_num)
+                    self._has_config_pending = False
             elif len(commandline) == 2 and commandline[0] == 'fail_host':
                 self.fail_host(commandline[1])
             else:
@@ -284,104 +298,40 @@ class HostConnection(object):
         sz = self._sock.send(data)
         self.outgoing = self.outgoing[sz:]
 
-    def handle_err(self):
-        pass
-
-    def handle_hup(self):
-        pass
-
-    def handle_nval(self):
-        pass
-
     def identify_as_client(self):
         if self._identified:
             raise KillConnection('Client identifying twice')
-        self._identified = HostConnection.CLIENT
-        self._state = 'CONFIGURED'
+        self._identified = 'CLIENT'
         oldid = self._id
         addr, port = self._sock.getpeername()
-        self._id = str(Client(addr, port))
+        self._id = 'Client({0}, {1})'.format(addr, port)
         logging.info('{0} identified by {1}'.format(oldid, self._id))
-        self.reconfigure(self._coordinator.configuration())
 
     def identify_as_instance(self, addr, incoming, outgoing, pid, token):
         if self._identified:
-            raise KillConnection('Client identifying twice')
-        self._identified = HostConnection.INSTANCE
+            raise KillConnection('Instance identifying twice')
+        self._identified = 'INSTANCE'
         addr = normalize_address(addr)
         if not addr:
-            raise KillConnection('Client claims to bind to unparseable address')
+            raise KillConnection('Instance claims to bind to unparseable address')
         try:
             incoming = int(incoming)
         except ValueError:
-            raise KillConnection('Client claims to bind to non-numeric incoming port')
+            raise KillConnection('Instance claims to bind to non-numeric incoming port')
         try:
             outgoing = int(outgoing)
         except ValueError:
-            raise KillConnection('Client claims to bind to non-numeric outgoing port')
+            raise KillConnection('Instance claims to bind to non-numeric outgoing port')
         try:
             pid = int(pid)
         except ValueError:
-            raise KillConnection('Client claims to have non-numeric PID')
+            raise KillConnection('Instance claims to have non-numeric PID')
+        if len(token) != 32:
+            raise KillConnection('Instance uses token of improper length')
         self._instance = self._coordinator.register_instance(addr, incoming, outgoing, pid, token)
-        self._state = 'CONFIGURED'
         oldid = self._id
         self._id = str(self._instance)
         logging.info('{0} identified by {1}'.format(oldid, self._id))
-        self.reconfigure(self._coordinator.configuration())
-
-    def reconfigure(self, newconfig):
-        if self._state == 'UNCONFIGURED':
-            logging.debug('{0} is UNCONFIGURED; not following reconfiguration'.format(self._id))
-            pass
-        elif self._state in ('CONFIGURED', 'CONFIGFAILED'):
-            self._state = 'CONFIGPENDING'
-            if len(self._pending) != 0:
-                raise KillConnection('Connection is configured with pending config')
-            self._pending.append(newconfig)
-            self.send_config(newconfig)
-            logging.debug('{0} is {1}; reconfiguring'.format(self._id, self._state))
-        elif self._state == 'CONFIGPENDING':
-            self._pending.append(newconfig)
-            logging.debug('{0} is CONFIGPENDING; appending config'.format(self._id, self._state))
-        else:
-            raise KillConnection('Connection wandered into state {0}'.format(self._state))
-
-    def acknowledge_config(self):
-        logging.debug('{0} acknowledges config'.format(self._id))
-        if not self._identified:
-            raise KillConnection('Host responds to a configuration before identiying')
-        if self._state != 'CONFIGPENDING':
-            raise KillConnection('Host acknowledges a new configuration when none were issued.')
-        if len(self._pending) < 1:
-            raise KillConnection('Connection should have pending config but has none.')
-        self._config = self._pending[0]
-        self._pending = self._pending[1:]
-        self._state = 'CONFIGURED'
-        if len(self._pending) > 0:
-            self.send_config(self._pending[0])
-            self._state = 'CONFIGPENDING'
-            logging.debug('{0} has pending configs; moving to CONFIGPENDING'.format(self._id, self._state))
-
-    def reject_config(self):
-        logging.debug('{0} rejects config'.format(self._id))
-        if not self._identified:
-            raise KillConnection('Host responds to a configuration before identiying')
-        if self._state != 'CONFIGPENDING':
-            raise KillConnection('Host rejects a new configuration when none were issued.')
-        if len(self._pending) < 1:
-            raise KillConnection('Host should have pending config but has none.')
-        logging.warning('{0} rejects configuration'.format(self._id))
-        self._pending = self._pending[1:]
-        self._state = 'CONFIGURED'
-        if len(self._pending) > 0:
-            self.send_config(self._pending[0])
-            self._state = 'CONFIGPENDING'
-            logging.debug('{0} has pending configs; moving to CONFIGPENDING'.format(self._id, self._state))
-
-    def send_config(self, config):
-        num, data = config
-        self.outgoing += (data + '\nend of line').strip() + '\n'
 
     def fail_host(self, host):
         if ':' not in host:
@@ -396,13 +346,15 @@ class HostConnection(object):
             raise KillConnection('Host reports failure of invalid address')
         logging.info("Report of failure for {0}".format(commandline[1]))
         self._coordinator.fail_host(ip, port)
-        self._reconfigure_all()
 
-    def _reconfigure_all(self):
-        config = self._coordinator.configuration()
-        for sock, conn in self._conns.values():
-            if hasattr(conn, 'reconfigure'):
-                conn.reconfigure(config)
+    def send_config(self, num, data):
+        self._has_config_pending = True
+        self.outgoing += (data + '\nend of line').strip() + '\n'
+        self._pending_config_num = num
+
+    def has_config_pending(self):
+        return self._has_config_pending
+
 
 class ControlConnection(object):
 
@@ -415,6 +367,7 @@ class ControlConnection(object):
         self._delim = '\n'
         self._mode = "COMMAND"
         self._action = None
+        self._identified = 'CONTROL'
         self._id = str(self._sock.getpeername())
         self._conns = conns
 
@@ -427,11 +380,7 @@ class ControlConnection(object):
             data, self._ibuffer = self._ibuffer.split(self._delim, 1)
             if self._mode == 'COMMAND':
                 commandline = shlex.split(data)
-                if len(commandline) == 2 and commandline == ['list', 'clients']:
-                    self.list_clients()
-                elif len(commandline) == 2 and commandline == ['list', 'instances']:
-                    self.list_instances()
-                elif len(commandline) == 2 and commandline == ['add', 'space']:
+                if len(commandline) == 2 and commandline == ['add', 'space']:
                     self._delim = '\n.\n'
                     self._mode = 'DATA'
                     self._action = self.add_space
@@ -449,46 +398,6 @@ class ControlConnection(object):
         sz = self._sock.send(data)
         self.outgoing = self.outgoing[sz:]
 
-    def handle_err(self):
-        pass
-
-    def handle_hup(self):
-        pass
-
-    def handle_nval(self):
-        pass
-
-    def list_clients(self):
-        ret = []
-        for sock, conn in self._conns.values():
-            if getattr(conn, '_identified', None) == HostConnection.CLIENT:
-                ret.append((conn._connectime, conn._id))
-        resp = '\n'.join(['{0} {1}'.format(d, i) for d, i in ret])
-        if resp:
-            self.outgoing += resp + '\n.\n'
-        else:
-            self.outgoing += '.\n'
-
-    def list_instances(self):
-        local = {}
-        for sock, conn in self._conns.values():
-            if getattr(conn, '_identified', None) == HostConnection.INSTANCE:
-                local[conn._instance] = conn._connectime, conn._state
-        resp = ''
-        for inst in sorted(self._coordinator.list_instances()):
-            addr, incoming, inc_ver, outgoing, out_ver, pid, token = inst
-            if (addr, incoming, outgoing, pid, token) in local:
-                connectime = local[(addr, incoming, outgoing, pid, token)][0]
-                state = local[(addr, incoming, outgoing, pid, token)][1]
-            else:
-                connectime = ''
-                state = ''
-            fmt = '{connectime:26} {addr} {incoming}:{inc_ver} {outgoing}:{out_ver} {pid} {token} {state}\n'
-            resp += fmt.format(connectime=str(connectime), addr=addr,
-                    incoming=incoming, inc_ver=inc_ver, outgoing=outgoing,
-                    out_ver=out_ver, pid=pid, token=token, state=state)
-        self.outgoing += resp + '.\n'
-
     def add_space(self, data):
         try:
             parser = (hdcoordinator.parser.space + pyparsing.stringEnd)
@@ -500,7 +409,6 @@ class ControlConnection(object):
             return self._fail(str(e))
         except Coordinator.DuplicateSpace as e:
             return self._fail("Space already exists")
-        self._reconfigure_all()
         self.outgoing += 'SUCCESS\n'
         logging.info("created new space \"{0}\"".format(space.name))
 
@@ -511,15 +419,8 @@ class ControlConnection(object):
             return self._fail(str(e))
         except Coordinator.UnknownSpace as e:
             return self._fail("Space does not exist")
-        self._reconfigure_all()
         self.outgoing += 'SUCCESS\n'
         logging.info("removed space \"{0}\"".format(space))
-
-    def _reconfigure_all(self):
-        config = self._coordinator.configuration()
-        for sock, conn in self._conns.values():
-            if hasattr(conn, 'reconfigure'):
-                conn.reconfigure(config)
 
     def _fail(self, msg):
         error = 'failing control connection {0}: {1}'.format(self._id, msg)
@@ -545,8 +446,10 @@ class CoordinatorServer(object):
         self._coord = Coordinator()
 
     def run(self):
+        instances_to_fds = {}
+        client_fds = set()
         while True:
-            fds = self._p.poll()
+            fds = self._p.poll(1000)
             for fd, ev in fds:
                 if fd == self._control_listen.fileno():
                     conn = self._control_listen.accept()
@@ -559,26 +462,25 @@ class CoordinatorServer(object):
                     if conn:
                         sock, addr = conn
                         self._p.register(sock)
-                        self._conns[sock.fileno()] = sock, HostConnection(self._coord, sock, self._conns)
+                        self._conns[sock.fileno()] = sock, HostConnection(self._coord, sock)
                 if fd in self._conns:
                     sock, conn = self._conns[fd]
                     remove = False
                     try:
                         if ev & select.POLLERR:
-                            conn.handle_err()
                             remove = True
                         elif ev & select.POLLHUP:
-                            conn.handle_hup()
                             remove = True
                         elif ev & select.POLLNVAL:
-                            conn.handle_nval()
                             remove = True
                         if not remove and ev & select.POLLIN:
                             conn.handle_in()
                         if not remove and ev & select.POLLOUT:
                             conn.handle_out()
+                            if conn.outgoing == '':
+                                self._p.modify(fd, select.POLLIN)
                     except KillConnection as kc:
-                        logging.error('connection closed unexpectedly: ' + str(kc))
+                        logging.error('connection killed: ' + str(kc))
                         remove = True
                     except EndConnection as ec:
                         remove = True
@@ -590,12 +492,29 @@ class CoordinatorServer(object):
                             sock.close()
                         except socket.error as e:
                             pass
-            for fd, conn in self._conns.iteritems():
-                sock, conn = conn
-                if len(conn.outgoing) > 0:
+                        continue
+                    if conn._identified == 'CLIENT' and \
+                       not conn.has_config_pending():
+                        client_fds.add(fd)
+                    if conn._identified == 'INSTANCE' and \
+                       not conn.has_config_pending():
+                        instances_to_fds[conn._instance] = fd
+            instances = set(instances_to_fds.keys())
+            if client_fds:
+                instances.add(None)
+            configs, hosts = self._coord.fetch_configs(instances)
+            for instance, confignum in hosts.iteritems():
+                c = configs[confignum]
+                if instance is None:
+                    for fd in list(client_fds):
+                        self._conns[fd][1].send_config(confignum, c)
+                        self._p.modify(fd, select.POLLIN | select.POLLOUT)
+                        client_fds.remove(fd)
+                elif instance in instances_to_fds:
+                    fd = instances_to_fds[instance]
+                    self._conns[fd][1].send_config(confignum, c)
                     self._p.modify(fd, select.POLLIN | select.POLLOUT)
-                else:
-                    self._p.modify(fd, select.POLLIN)
+                    del instances_to_fds[instance]
 
 
 def main(argv):
