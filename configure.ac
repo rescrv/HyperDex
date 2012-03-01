@@ -77,6 +77,11 @@ AC_SUBST([COVERAGE_LDADD], [${COVERAGE_LDADD}])
 
 # Checks for libraries.
 GTEST_LIB_CHECK
+AC_CHECK_LIB([popt], [poptGetContext], [], [AC_MSG_ERROR([
+-------------------------------------------------
+HyperDex relies upon the popt library.
+Please install popt to continue.
+-------------------------------------------------])])
 PKG_CHECK_MODULES([PO6], [libpo6 >= 0.2])
 PKG_CHECK_MODULES([E], [libe >= 0.2])
 
@@ -91,6 +96,11 @@ AC_CHECK_HEADER([glog/logging.h],,[AC_MSG_ERROR([
 -------------------------------------------------
 HyperDex relies upon the glog library.
 Please install glog to continue.
+-------------------------------------------------])])
+AC_CHECK_HEADER([popt.h],,[AC_MSG_ERROR([
+-------------------------------------------------
+HyperDex relies upon the popt library.
+Please install popt to continue.
 -------------------------------------------------])])
 
 # Checks for typedefs, structures, and compiler characteristics.

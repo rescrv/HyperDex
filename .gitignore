@@ -153,6 +153,8 @@ missing
 py-compile
 replication-stress-test
 replication_stress_test-replication-stress-test.o
+simple-consistency-stress-test
+simple_consistency_stress_test-simple-consistency-stress-test.o
 stamp-h1
 trace-player
 trace-player.o

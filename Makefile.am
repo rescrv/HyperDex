@@ -62,7 +62,8 @@ noinst_PROGRAMS = \
 			$(libhyperdisk_noinst_programs) \
 			binary-test \
 			count-test \
-			replication-stress-test
+			replication-stress-test \
+			simple-consistency-stress-test
 
 check_PROGRAMS = \
 			$(libhyperspacehashing_check_programs) \
@@ -518,6 +519,17 @@ count_test_LDADD = \
 count_test_CPPFLAGS = \
 			$(E_CFLAGS) \
 			$(CPPFLAGS)
+
+simple_consistency_stress_test_SOURCES = \
+			simple-consistency-stress-test.cc
+simple_consistency_stress_test_CPPFLAGS = \
+			-Ihyperclient
+			$(E_CFLAGS) \
+			$(CPPFLAGS)
+simple_consistency_stress_test_LDADD = \
+			libhyperclient.la -lpopt -lpthread
+simple_consistency_stress_test_LDFLAGS = \
+			-no-install
 
 replication_stress_test_SOURCES = \
 			replication-stress-test.cc
