@@ -81,6 +81,7 @@ class Coordinator(object):
         self._instances_by_addr = {}
         self._instances_by_bindings = {}
         self._instances_by_id = {}
+        self._failed_instances = set()
         self._space_counter = 1
         self._spaces_by_name = {}
         self._spaces_by_id = {}
@@ -160,6 +161,7 @@ class Coordinator(object):
             if inst.addr == ip and \
                     (inst.inport == port or inst.outport == port):
                 badinstids.add(instid)
+        self._failed_instances |= badinstids
         for si, space in self._spaces_by_id.iteritems():
             for ssi, subspace in enumerate(space.subspaces):
                 for ri, region in enumerate(subspace.regions):
@@ -252,7 +254,7 @@ class Coordinator(object):
                         hosts[replica] += 1
         frequencies = collections.defaultdict(list)
         for host, frequency in hosts.iteritems():
-            if host not in exclude:
+            if host not in exclude and host not in self._failed_instances:
                 frequencies[frequency].append(host)
         if not frequencies:
             return None
