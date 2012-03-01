@@ -1098,9 +1098,14 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
         assert(chan->sock().get() >= 0);
 
         uint32_t size;
+        ssize_t ret = chan->sock().recv(&size, sizeof(size), MSG_DONTWAIT|MSG_PEEK);
 
-        if (chan->sock().recv(&size, sizeof(size), MSG_DONTWAIT|MSG_PEEK) !=
-                sizeof(size))
+        if (ret < 0 || ret == 0)
+        {
+            killall(ee.data.fd, HYPERCLIENT_DISCONNECT);
+            continue;
+        }
+        else if (ret != sizeof(size))
         {
             continue;
         }
