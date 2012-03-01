@@ -170,8 +170,8 @@ class Coordinator(object):
                     new_f = region.current_f
                     if old_f > new_f:
                         xferid = self._compute_transfer_id(si, ssi, ri)
-                        if xferid is not None:
-                            newrepl = self._select_replica(region.replicas + region.transfers)
+                        newrepl = self._select_replica(region.replicas + region.transfers)
+                        if xferid is not None and newrepl is not None:
                             region.transfer_initiate(xferid, newrepl)
         self._regenerate()
 
