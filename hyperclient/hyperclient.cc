@@ -1467,6 +1467,8 @@ hyperclient :: killall(int fd, hyperclient_returncode status)
 
     try
     {
+        epoll_event ee;
+        epoll_ctl(m_epfd.get(), EPOLL_CTL_DEL, chan->sock().get(), &ee);
         chan->sock().shutdown(SHUT_RDWR);
         chan->sock().close();
     }
