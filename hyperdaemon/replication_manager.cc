@@ -1145,7 +1145,8 @@ hyperdaemon :: replication_manager :: retransmit()
         // excess messages.
         e::intrusive_ptr<pending> pend = kh->oldest_committable_op();
 
-        if (pend->sent_i != m_config.instancefor(pend->sent_e))
+        if (pend->sent_e == entityid() ||
+            pend->sent_i != m_config.instancefor(pend->sent_e))
         {
             pend->sent_e = entityid();
             pend->sent_i = instance();
