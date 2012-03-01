@@ -166,7 +166,7 @@ class Coordinator(object):
             for ssi, subspace in enumerate(space.subspaces):
                 for ri, region in enumerate(subspace.regions):
                     old_f = region.current_f
-                    region.remove_replicas(badinstids)
+                    region.remove_instances(badinstids)
                     new_f = region.current_f
                     if old_f > new_f:
                         xferid = self._compute_transfer_id(si, ssi, ri)

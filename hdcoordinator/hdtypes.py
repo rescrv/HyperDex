@@ -127,8 +127,9 @@ class Region(object):
         assert replica is not None
         self._replicas.append(replica)
 
-    def remove_replicas(self, badreplicas):
+    def remove_instances(self, badreplicas):
         self._replicas = [r for r in self._replicas if r not in badreplicas]
+        self._transfers = [t for t in self._transfers if t[1] not in badreplicas]
 
     def transfer_initiate(self, xferid, instid):
         self._transfers.append((xferid, instid))

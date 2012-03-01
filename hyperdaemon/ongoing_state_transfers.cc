@@ -621,8 +621,12 @@ hyperdaemon :: ongoing_state_transfers :: finish_transfers()
         if (t.value()->go_live)
         {
             std::auto_ptr<e::buffer> msg(e::buffer::create(m_comm->header_size()));
-            m_comm->send(entityid(configuration::TRANSFERSPACE, t.key(), 0, 0, 0),
-                         t.value()->replicate_from, hyperdex::XFER_MORE, msg);
+            if (!m_comm->send(entityid(configuration::TRANSFERSPACE, t.key(), 0, 0, 0),
+                              t.value()->replicate_from, hyperdex::XFER_MORE, msg))
+            {
+                t.value()->failed = true;
+                m_cl->transfer_fail(t.key());
+            }
         }
     }
 }
