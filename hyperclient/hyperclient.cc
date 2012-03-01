@@ -1078,8 +1078,9 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
                 // This must only happen if we fail everything with a
                 // reconfigure.
                 m_coord->acknowledge();
-                continue;
             }
+
+            continue;
         }
 
         if ((ee.events & EPOLLHUP) || (ee.events & EPOLLERR))
