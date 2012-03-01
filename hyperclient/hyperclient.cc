@@ -283,7 +283,7 @@ attributes_from_value(const hyperdex::configuration& config,
 class hyperclient::channel
 {
     public:
-        channel(const hyperdex::instance& inst);
+        channel(const po6::net::location& loc);
 
     public:
         // The entity by which the remote host knows us
@@ -293,6 +293,7 @@ class hyperclient::channel
         uint64_t generate_nonce() { return m_nonce++; }
         void set_nonce(uint64_t nonce) { m_nonce = nonce; }
         void set_entity(hyperdex::entityid ent) { m_ent = ent; }
+        po6::net::location location() { return m_loc; }
         po6::net::socket& sock() { return m_sock; }
 
     private:
@@ -309,16 +310,18 @@ class hyperclient::channel
         size_t m_ref;
         uint64_t m_nonce;
         hyperdex::entityid m_ent;
+        po6::net::location m_loc;
         po6::net::socket m_sock;
 };
 
-hyperclient :: channel :: channel(const hyperdex::instance& inst)
+hyperclient :: channel :: channel(const po6::net::location& loc)
     : m_ref(0)
     , m_nonce(1)
     , m_ent(hyperdex::configuration::CLIENTSPACE, 0, 0, 0, 0)
-    , m_sock(inst.address.family(), SOCK_STREAM, IPPROTO_TCP)
+    , m_loc(loc)
+    , m_sock(loc.address.family(), SOCK_STREAM, IPPROTO_TCP)
 {
-    m_sock.connect(po6::net::location(inst.address, inst.inbound_port));
+    m_sock.connect(loc);
     m_sock.set_tcp_nodelay();
 }
 
@@ -758,6 +761,7 @@ hyperclient :: pending_search :: handle_response(hyperdex::network_msgtype type,
 
     if (m_cl->send(chan(), this, smsg.get()) < 0)
     {
+        m_cl->m_coord->fail_location(chan()->location());
         set_status(HYPERCLIENT_DISCONNECT);
 
         if (--*m_refcount == 0)
@@ -1083,9 +1087,13 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
             continue;
         }
 
+        e::intrusive_ptr<channel> chan = channel_from_fd(ee.data.fd);
+        assert(chan->sock().get() == ee.data.fd);
+
         if ((ee.events & EPOLLHUP) || (ee.events & EPOLLERR))
         {
             killall(ee.data.fd, HYPERCLIENT_DISCONNECT);
+            m_coord->fail_location(chan->location());
             continue;
         }
 
@@ -1094,15 +1102,13 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
             continue;
         }
 
-        e::intrusive_ptr<channel> chan = channel_from_fd(ee.data.fd);
-        assert(chan->sock().get() >= 0);
-
         uint32_t size;
         ssize_t ret = chan->sock().recv(&size, sizeof(size), MSG_DONTWAIT|MSG_PEEK);
 
         if (ret < 0 || ret == 0)
         {
             killall(ee.data.fd, HYPERCLIENT_DISCONNECT);
+            m_coord->fail_location(chan->location());
             continue;
         }
         else if (ret != sizeof(size))
@@ -1116,6 +1122,7 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
         if (chan->sock().xrecv(response->data(), size, 0) < size)
         {
             killall(ee.data.fd, HYPERCLIENT_DISCONNECT);
+            m_coord->fail_location(chan->location());
             continue;
         }
 
@@ -1374,6 +1381,7 @@ hyperclient :: send(e::intrusive_ptr<channel> chan,
             static_cast<ssize_t>(payload->size()))
     {
         killall(chan->sock().get(), HYPERCLIENT_DISCONNECT);
+        m_coord->fail_location(chan->location());
         return -1;
     }
 
@@ -1495,9 +1503,11 @@ hyperclient :: get_channel(hyperdex::instance inst,
         return i->second;
     }
 
+    po6::net::location loc(inst.address, inst.inbound_port);
+
     try
     {
-        e::intrusive_ptr<channel> chan = new channel(inst);
+        e::intrusive_ptr<channel> chan = new channel(loc);
         epoll_event ee;
         ee.events = EPOLLIN;
         ee.data.fd = chan->sock().get();
@@ -1505,6 +1515,7 @@ hyperclient :: get_channel(hyperdex::instance inst,
         if (epoll_ctl(m_epfd.get(), EPOLL_CTL_ADD, chan->sock().get(), &ee) < 0)
         {
             *status = HYPERCLIENT_CONNECTFAIL;
+            m_coord->warn_location(chan->location());
             return NULL;
         }
 
@@ -1515,6 +1526,7 @@ hyperclient :: get_channel(hyperdex::instance inst,
     catch (po6::error& e)
     {
         *status = HYPERCLIENT_CONNECTFAIL;
+        m_coord->warn_location(loc);
         errno = e;
         return NULL;
     }
