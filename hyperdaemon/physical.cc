@@ -202,6 +202,15 @@ hyperdaemon :: physical :: recv(po6::net::location* from,
             return SHUTDOWN;
         }
 
+        ret = m_incoming.pop(&m);
+
+        if (ret)
+        {
+            *from = m.loc;
+            *msg = m.buf;
+            return SUCCESS;
+        }
+
         int status;
         int fd;
         uint32_t events;
