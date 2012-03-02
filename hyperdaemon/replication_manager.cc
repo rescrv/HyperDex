@@ -870,6 +870,60 @@ hyperdaemon :: replication_manager :: prev_and_next(const regionid& r,
 }
 
 void
+hyperdaemon :: replication_manager :: check_for_deferred_operations(const hyperdex::regionid& r,
+                                                                    uint64_t version,
+                                                                    std::tr1::shared_ptr<e::buffer> backing,
+                                                                    const e::slice& key,
+                                                                    bool has_value,
+                                                                    const std::vector<e::slice>& value)
+{
+    // Get the keyholder for this key.
+    e::intrusive_ptr<keyholder> kh = get_keyholder(r, key);
+
+    entityid us = m_config.entityfor(m_us, r);
+
+    // If this is empty, it means we've not been integrated into the chain, and
+    // the race condition we check for cannot exist.
+    if (us == entityid())
+    {
+        return;
+    }
+
+    if (kh->has_deferred_ops() && version + 1 == kh->oldest_deferred_version())
+    {
+        // Create a new pending object to set as pending.
+        e::intrusive_ptr<deferred> op = kh->oldest_deferred_op();
+        e::intrusive_ptr<pending> newop;
+        newop = new pending(op->has_value, op->backing, op->key, op->value);
+        newop->fresh = false;
+        newop->ref = op->ref;
+        newop->recv_e = op->from_ent;
+        newop->recv_i = m_config.instancefor(op->from_ent);
+
+        if (!prev_and_next(us.get_region(), key, newop->has_value, newop->value, has_value, value, newop))
+        {
+            LOG(ERROR) << "errror checking for deferred operations";
+            return;
+        }
+
+        if (!(newop->recv_e.get_region() == r && m_config.chain_adjacent(newop->recv_e, us))
+                && !(newop->recv_e.space == r.space
+                    && newop->recv_e.subspace + 1 == r.subspace
+                    && m_config.is_tail(newop->recv_e)
+                    && m_config.is_head(us)))
+        {
+            LOG(INFO) << "dropping deferred CHAIN_* which didn't come from the right host";
+            return;
+        }
+
+        kh->append_blocked(kh->oldest_deferred_version(), newop);
+        kh->remove_oldest_deferred_op();
+    }
+
+    move_operations_between_queues(us, key, kh);
+}
+
+void
 hyperdaemon :: replication_manager :: move_operations_between_queues(const hyperdex::entityid& us,
                                                                      const e::slice& key,
                                                                      e::intrusive_ptr<keyholder> kh)
@@ -1134,6 +1188,12 @@ hyperdaemon :: replication_manager :: retransmit()
         e::intrusive_ptr<keyholder> kh = khiter.value();
         entityid ent = m_config.entityfor(m_us, khiter.key().region);
         e::slice key(khiter.key().key.data(), khiter.key().key.size());
+
+        if (kh->empty())
+        {
+            m_keyholders.remove(khiter.key());
+            continue;
+        }
 
         if (!kh->has_committable_ops())
         {

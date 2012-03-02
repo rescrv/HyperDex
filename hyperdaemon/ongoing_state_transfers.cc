@@ -67,12 +67,12 @@ class hyperdaemon::ongoing_state_transfers::transfer_in
         {
             public:
                 op(bool hv, uint64_t ver,
-                   std::auto_ptr<e::buffer> b,
+                   std::tr1::shared_ptr<e::buffer> b,
                    const e::slice& k,
                    const std::vector<e::slice>& val)
                     : has_value(hv)
                     , version(ver)
-                    , backing(b.release())
+                    , backing(b)
                     , key(k)
                     , value(val)
                     , m_ref(0)
@@ -103,6 +103,7 @@ class hyperdaemon::ongoing_state_transfers::transfer_in
     public:
         po6::threads::mutex lock;
         std::map<uint64_t, e::intrusive_ptr<op> > ops;
+        // "triggers" is protected by the replication lock.
         std::map<std::pair<e::slice, uint64_t>, std::tr1::shared_ptr<e::buffer> > triggers;
         const hyperdex::entityid replicate_from;
         uint64_t xfer_num;
@@ -222,8 +223,6 @@ hyperdaemon :: ongoing_state_transfers :: prepare(const configuration& newconfig
     // Make sure that outbound state exists for each in-progress transfer from us
     for (t = out_transfers.begin(); t != out_transfers.end(); ++t)
     {
-        std::cout << __LINE__ << " " << t->first << " " << t->second << std::endl;
-
         if (!m_transfers_out.contains(t->first))
         {
             LOG(INFO) << "Initiating outbound transfer #" << t->first;
@@ -389,19 +388,15 @@ hyperdaemon :: ongoing_state_transfers :: region_transfer_recv(const hyperdex::e
         return;
     }
 
+    // Grab a lock to ensure we can safely update the transfer object.
+    po6::threads::mutex::hold hold_t(&t->lock);
+
     if (t->failed)
     {
         LOG(INFO) << "received XFER_DATA for transfer #" << xfer_id << ", but we have failed it";
         m_cl->transfer_fail(xfer_id);
         return;
     }
-
-    // Grab a lock to ensure we can safely update the transfer object.
-    po6::threads::mutex::hold hold_t(&t->lock);
-
-    // XXX We should do better than being friends with m_repl.
-    // Grab a lock to ensure that we order the puts to disk correctly.
-    e::striped_lock<po6::threads::mutex>::hold hold(&m_repl->m_locks, m_repl->get_lock_num(from.get_region(), key));
 
     // If we've triggered, then we can safely drop the message.
     if (t->triggered)
@@ -419,7 +414,7 @@ hyperdaemon :: ongoing_state_transfers :: region_transfer_recv(const hyperdex::e
     // unlikely (but admittedly still possible).  Best chances are when the
     // constant is many times the number of network threads
     //  XXX Autotune this.
-    if (t->ops.size() > TRANSFERS_IN_FLIGHT)
+    if (t->ops.size() > TRANSFERS_IN_FLIGHT * 64)
     {
         t->failed = true;
         m_cl->transfer_fail(xfer_id);
@@ -427,12 +422,17 @@ hyperdaemon :: ongoing_state_transfers :: region_transfer_recv(const hyperdex::e
     }
 
     // Insert the new operation.
-    e::intrusive_ptr<transfer_in::op> o = new transfer_in::op(has_value, version, backing, key, value);
+    std::tr1::shared_ptr<e::buffer> back(backing);
+    e::intrusive_ptr<transfer_in::op> o = new transfer_in::op(has_value, version, back, key, value);
     t->ops.insert(std::make_pair(xfer_num, o));
 
     while (!t->ops.empty() && t->ops.begin()->first == t->xfer_num + 1)
     {
         transfer_in::op& oneop(*t->ops.begin()->second);
+
+        // XXX We should do better than being friends with m_repl.
+        // Grab a lock to ensure that we order the puts to disk correctly.
+        e::striped_lock<po6::threads::mutex>::hold hold(&m_repl->m_locks, m_repl->get_lock_num(from.get_region(), oneop.key));
 
         // If this op acts as a trigger
         if (t->triggers.find(std::make_pair(oneop.key, oneop.version)) !=
@@ -468,6 +468,10 @@ hyperdaemon :: ongoing_state_transfers :: region_transfer_recv(const hyperdex::e
                 m_cl->transfer_fail(xfer_id);
                 return;
             }
+
+            m_repl->check_for_deferred_operations(from.get_region(),
+                    oneop.version, oneop.backing, oneop.key, oneop.has_value,
+                    oneop.value);
         }
 
         t->ops.erase(t->ops.begin());
@@ -499,14 +503,14 @@ hyperdaemon :: ongoing_state_transfers :: region_transfer_done(const entityid& f
         return;
     }
 
+    po6::threads::mutex::hold hold(&t->lock);
+
     if (t->failed)
     {
         LOG(INFO) << "received XFER_DONE for transfer #" << to.subspace << ", but we have failed it";
         m_cl->transfer_fail(to.subspace);
         return;
     }
-
-    po6::threads::mutex::hold hold(&t->lock);
 
     if (from != t->replicate_from)
     {
@@ -535,12 +539,6 @@ hyperdaemon :: ongoing_state_transfers :: add_trigger(const hyperdex::regionid& 
 
     if (!m_transfers_in.lookup(xfer_id, &t) || !t)
     {
-        return;
-    }
-
-    if (t->failed)
-    {
-        m_cl->transfer_fail(xfer_id);
         return;
     }
 
