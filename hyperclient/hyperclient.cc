@@ -761,8 +761,7 @@ hyperclient :: pending_search :: handle_response(hyperdex::network_msgtype type,
 
     if (m_cl->send(chan(), this, smsg.get()) < 0)
     {
-        m_cl->m_coord->fail_location(chan()->location());
-        set_status(HYPERCLIENT_DISCONNECT);
+        m_cl->killall(chan()->sock().get(), HYPERCLIENT_DISCONNECT);
 
         if (--*m_refcount == 0)
         {
@@ -1161,20 +1160,21 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
 
         e::intrusive_ptr<pending> op = it->second;
         assert(op);
+        assert(chan == op->chan());
+        assert(nonce == op->nonce());
 
-        if (chan == op->chan() &&
-            fromver == op->instance().inbound_version &&
+        if (msg_type == hyperdex::CONFIGMISMATCH)
+        {
+            op->set_status(HYPERCLIENT_RECONFIGURE);
+            m_requests.erase(it);
+            return op->id();
+        }
+
+        if (fromver == op->instance().inbound_version &&
             tover == 1 &&
             from == op->entity() &&
-            to == chan->entity() &&
-            nonce == op->nonce())
+            to == chan->entity())
         {
-            if (msg_type == hyperdex::CONFIGMISMATCH)
-            {
-                op->set_status(HYPERCLIENT_RECONFIGURE);
-                return op->id();
-            }
-
             if (!op->matches_response_type(msg_type))
             {
                 killall(ee.data.fd, HYPERCLIENT_SERVERERROR);
@@ -1186,10 +1186,10 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
                 case KEEP:
                     return op->id();
                 case SILENTREMOVE:
-                    m_requests.erase(std::make_pair(chan->sock().get(), nonce));
+                    m_requests.erase(it);
                     break;
                 case REMOVE:
-                    m_requests.erase(std::make_pair(chan->sock().get(), nonce));
+                    m_requests.erase(it);
                     return op->id();
                 case FAIL:
                     killall(ee.data.fd, *status);
@@ -1206,11 +1206,8 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
         }
         else
         {
-            // XXX Sometimes it hits here.  Let's just count the op as "done"
-            // with an error, and not kill everything.
-            //killall(ee.data.fd, HYPERCLIENT_SERVERERROR);
-            op->set_status(HYPERCLIENT_SERVERERROR);
-            return op->id();
+            killall(ee.data.fd, HYPERCLIENT_SERVERERROR);
+            break;
         }
     }
 
@@ -1451,6 +1448,12 @@ hyperclient :: killall(int fd, hyperclient_returncode status)
     assert(0 <= fd && static_cast<unsigned>(fd) < m_fds.size());
     e::intrusive_ptr<channel> chan = m_fds[fd];
     m_fds[fd] = NULL;
+
+    if (!chan)
+    {
+        return;
+    }
+
     requests_map_t::iterator r = m_requests.begin();
 
     while (r != m_requests.end())
