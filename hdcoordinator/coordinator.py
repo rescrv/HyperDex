@@ -580,6 +580,8 @@ class CoordinatorServer(object):
                         remove = True
                     except EndConnection as ec:
                         remove = True
+                    except socket.error as e:
+                        remove = True
                     if remove:
                         del self._conns[fd]
                         if fd in client_fds:
