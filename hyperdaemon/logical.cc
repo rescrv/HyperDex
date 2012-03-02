@@ -312,13 +312,6 @@ hyperdaemon :: logical :: recv(hyperdex::entityid* from,
             >> mt >> version >> fromver >> tover >> *from >> *to;
         *msg_type = static_cast<network_msgtype>(mt);
 
-        if (version > m_config.version())
-        {
-            early_message em(version, loc, *msg);
-            m_early_messages.push(em);
-            continue;
-        }
-
         // Checkout the sender
         if (from->space == hyperdex::configuration::CLIENTSPACE)
         {
@@ -396,6 +389,15 @@ hyperdaemon :: logical :: recv(hyperdex::entityid* from,
             (*msg)->pack_at(sizeof(uint32_t))
                 << mt << tover << fromver << *to << *from;
             m_physical.send(loc, *msg);
+        }
+        // Otherwise, it's an early arrival.  We should postpone it, because it
+        // could become valid in the future.
+        else if (version > m_config.version())
+        {
+            early_message em(version, loc, *msg);
+            assert(em.msg.get());
+            m_early_messages.push(em);
+            continue;
         }
     }
 
