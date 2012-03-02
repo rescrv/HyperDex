@@ -25,6 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#define __STDC_LIMIT_MACROS
+
 // HyperDex
 #include "hyperdex/hyperdex/configuration_parser.h"
 
@@ -588,7 +590,9 @@ hyperdex :: configuration_parser :: parse_transfer(char* start,
     ABORT_ON_ERROR(extract_uint64_t(start, end, &host_id));
     start = end + 1;
 
-    if (m_regions.find(regionid(space, subspace, prefix, mask)) == m_regions.end())
+    regionid reg(space, subspace, prefix, mask);
+
+    if (m_regions.find(reg) == m_regions.end())
     {
         return CP_MISSING_REGION;
     }
@@ -616,8 +620,26 @@ hyperdex :: configuration_parser :: parse_transfer(char* start,
         return CP_UNKNOWN_HOST;
     }
 
-    m_transfers.insert(std::make_pair(std::make_pair(host->second, xfer_id),
-                                      regionid(space, subspace, prefix, mask)));
+    size_t count = 0;
+    bool live = false;
+
+    for (std::map<entityid, instance>::iterator ent = m_entities.lower_bound(entityid(reg, 0));
+            ent != m_entities.upper_bound(entityid(reg, UINT8_MAX)); ++ent)
+    {
+        ++count;
+
+        if (ent->second == host->second)
+        {
+            live = true;
+        }
+    }
+
+    if (count < 1 + (live ? 1 : 0))
+    {
+        return CP_F_FAILURES;
+    }
+
+    m_transfers.insert(std::make_pair(std::make_pair(host->second, xfer_id), reg));
     return CP_SUCCESS;
 }
 

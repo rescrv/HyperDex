@@ -453,14 +453,7 @@ hyperdex :: configuration :: transfers_from(const instance& inst) const
         if (instancefor(tailof(t->second)) == t->first.first)
         {
             entityid ent = tailof(t->second);
-
-            if (!chain_has_prev(ent))
-            {
-                // XXX We should check for this case when parsing, so that we
-                // can assert this.
-                abort();
-            }
-
+            assert(!chain_has_prev(ent));
             ent = chain_prev(ent);
 
             if (instancefor(ent) == inst)

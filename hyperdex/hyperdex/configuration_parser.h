@@ -56,6 +56,7 @@ class configuration_parser
             CP_OUTOFORDER_SUBSPACE,
             CP_EXCESS_DATA,
             CP_MISSING,
+            CP_F_FAILURES,
             CP_UNKNOWN_ATTR,
             CP_UNKNOWN_CMD,
             CP_UNKNOWN_HOST,
