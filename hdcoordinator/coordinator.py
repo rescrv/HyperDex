@@ -179,13 +179,11 @@ class Coordinator(object):
         instid = self._instances_by_bindings[bindings]
         inst = self._instances_by_id[instid]
         inst.ack_config(num)
-        pass
 
     def reject_config(self, bindings, num):
         instid = self._instances_by_bindings[bindings]
         inst = self._instances_by_id[instid]
         inst.reject_config(num)
-        logging.error("host rejected config (there is a bug!)")
 
     def fetch_configs(self, instances):
         configs = {}
@@ -346,10 +344,12 @@ class HostConnection(object):
             elif len(commandline) == 1 and commandline[0] == 'ACK':
                 if self._identified == 'INSTANCE':
                     self._coordinator.ack_config(self._instance, self._pending_config_num)
+                    logging.debug("{0} acked config {1}".format(self._id, self._pending_config_num))
                 self._has_config_pending = False
             elif len(commandline) == 1 and commandline[0] == 'BAD':
                 if self._identified == 'INSTANCE':
                     self._coordinator.reject_config(self._instance, self._pending_config_num)
+                    logging.error("{0} rejected config (there is a bug!)".format(self._id))
                 self._has_config_pending = False
             elif len(commandline) == 2 and commandline[0] == 'fail_host':
                 self.fail_host(commandline[1])
