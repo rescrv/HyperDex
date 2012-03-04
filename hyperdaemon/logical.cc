@@ -388,7 +388,7 @@ hyperdaemon :: logical :: recv(hyperdex::entityid* from,
         {
             mt = static_cast<uint8_t>(hyperdex::CONFIGMISMATCH);
             (*msg)->pack_at(sizeof(uint32_t))
-                << mt << tover << fromver << *to << *from;
+                << mt << m_config.version() << tover << fromver << *to << *from;
             m_physical.send(loc, *msg);
         }
         // Otherwise, it's an early arrival.  We should postpone it, because it
