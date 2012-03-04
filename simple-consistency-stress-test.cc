@@ -349,10 +349,10 @@ reader_thread()
 
     while (!__sync_bool_compare_and_swap(&done, 1, 1))
     {
-        int64_t oldval = 0;
-
         for (int64_t i = window - 1; i >= 0; --i)
         {
+            int64_t oldval = 0;
+
             while (true)
             {
                 int64_t key = htobe64(i);
