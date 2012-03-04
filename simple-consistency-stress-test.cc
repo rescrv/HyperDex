@@ -250,7 +250,7 @@ writer_thread()
 
         if (dstatus != HYPERCLIENT_SUCCESS && dstatus != HYPERCLIENT_NOTFOUND)
         {
-            std::cerr << "delete returned " << lstatus << std::endl;
+            std::cerr << "delete returned " << dstatus << std::endl;
             fail = true;
             break;
         }
