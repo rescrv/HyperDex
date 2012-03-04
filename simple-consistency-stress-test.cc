@@ -73,13 +73,13 @@ extern "C"
 
 static struct poptOption popts[] = {
     POPT_AUTOHELP
-    {"window-size", 'w', POPT_ARG_LONGLONG, &window, 'w',
+    {"window-size", 'w', POPT_ARG_LONG, &window, 'w',
         "the number of sequential keys which will be used for the test",
         "keys"},
-    {"repetitiions", 'r', POPT_ARG_LONGLONG, &repetitions, 'r',
+    {"repetitiions", 'r', POPT_ARG_LONG, &repetitions, 'r',
         "the number of tests which will be run before exiting",
         "number"},
-    {"threads", 't', POPT_ARG_LONGLONG, &threads, 't',
+    {"threads", 't', POPT_ARG_LONG, &threads, 't',
         "the number of threads which will check for inconsistencies",
         "number"},
     {"space", 's', POPT_ARG_STRING, &space, 's',
@@ -88,7 +88,7 @@ static struct poptOption popts[] = {
     {"host", 'h', POPT_ARG_STRING, &host, 'h',
         "the IP address of the coordinator",
         "IP"},
-    {"port", 'p', POPT_ARG_SHORT, &port, 'p',
+    {"port", 'p', POPT_ARG_LONG, &port, 'p',
         "the port number of the coordinator",
         "port"},
     POPT_TABLEEND
