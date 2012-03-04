@@ -307,7 +307,7 @@ hyperdaemon :: ongoing_state_transfers :: region_transfer_send(const entityid& f
 
     if (!m_transfers_out.lookup(from.subspace, &t))
     {
-        LOG(WARNING) << "dropping request for unknown network transfer";
+        LOG(WARNING) << "dropping request for unknown network transfer " << from.subspace;
         return;
     }
 
