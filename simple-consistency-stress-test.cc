@@ -387,7 +387,7 @@ reader_thread()
                 {
                     assert(attrs_sz == 1);
                     assert(strcmp(attrs[0].attr, "repetition") == 0);
-                    int64_t val;
+                    int64_t val = 0;
                     memmove(&val, attrs[0].value, attrs[0].value_sz);
                     val = be64toh(val);
 
