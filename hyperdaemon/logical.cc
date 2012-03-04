@@ -302,6 +302,7 @@ hyperdaemon :: logical :: recv(hyperdex::entityid* from,
 
         if ((*msg)->size() < header_size())
         {
+            LOG(WARNING) << "dropping message that is too small to parse: " << (*msg)->hex();
             continue;
         }
 
