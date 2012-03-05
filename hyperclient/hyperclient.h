@@ -84,7 +84,7 @@ struct hyperclient_attribute
     const char* attr; /* NULL-terminated */
     const char* value;
     size_t value_sz;
-    enum hyperclient_datatype type;
+    enum hyperclient_datatype datatype;
 };
 
 struct hyperclient_range_query

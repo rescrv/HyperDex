@@ -335,11 +335,11 @@ put(int testno,
     attrs[0].attr = "B";
     attrs[0].value = reinterpret_cast<const char*>(&B);
     attrs[0].value_sz = sizeof(uint32_t);
-    attrs[0].type = HYPERDATATYPE_STRING;
+    attrs[0].datatype = HYPERDATATYPE_STRING;
     attrs[1].attr = "C";
     attrs[1].value = reinterpret_cast<const char*>(&C);
     attrs[1].value_sz = sizeof(uint32_t);
-    attrs[1].type = HYPERDATATYPE_STRING;
+    attrs[1].datatype = HYPERDATATYPE_STRING;
     hyperclient_returncode* status = new hyperclient_returncode();
     int64_t id = cl->put(space, reinterpret_cast<const char*>(&A), sizeof(uint32_t), attrs, 2, status);
 
@@ -458,9 +458,9 @@ present(int testno,
         FAIL(testno, "presence check: first attribute is \"" << attrs[0].attr << "\" instead of \"B\"");
     }
 
-    if (attrs[0].type != HYPERDATATYPE_STRING)
+    if (attrs[0].datatype != HYPERDATATYPE_STRING)
     {
-        FAIL(testno, "presence check: first attribute is not of type \"string\"");
+        FAIL(testno, "presence check: first attribute is not of datatype \"string\"");
     }
 
     if (e::slice(attrs[0].value, attrs[0].value_sz) != e::slice(&B, sizeof(uint32_t)))
@@ -473,9 +473,9 @@ present(int testno,
         FAIL(testno, "presence check: second attribute is \"" << attrs[1].attr << "\" instead of \"C\"");
     }
 
-    if (attrs[1].type != HYPERDATATYPE_STRING)
+    if (attrs[1].datatype != HYPERDATATYPE_STRING)
     {
-        FAIL(testno, "presence check: second attribute is not of type \"string\"");
+        FAIL(testno, "presence check: second attribute is not of datatype \"string\"");
     }
 
     if (e::slice(attrs[1].value, attrs[1].value_sz) != e::slice(&C, sizeof(uint32_t)))

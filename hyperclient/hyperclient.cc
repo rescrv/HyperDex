@@ -269,7 +269,7 @@ attributes_from_value(const hyperdex::configuration& config,
         memmove(data, key, key_sz);
         data += key_sz;
         ha.back().value_sz = key_sz;
-        ha.back().type = hd_to_hc_type(dimension_names[0].type);
+        ha.back().datatype = hd_to_hc_type(dimension_names[0].type);
     }
 
     for (size_t i = 0; i < value.size(); ++i)
@@ -283,7 +283,7 @@ attributes_from_value(const hyperdex::configuration& config,
         memmove(data, value[i].data(), value[i].size());
         data += value[i].size();
         ha.back().value_sz = value[i].size();
-        ha.back().type = hd_to_hc_type(dimension_names[i + 1].type);
+        ha.back().datatype = hd_to_hc_type(dimension_names[i + 1].type);
     }
 
     memmove(ret, &ha.front(), sizeof(hyperclient_attribute) * ha.size());
@@ -954,7 +954,7 @@ hyperclient :: search(const char* space,
             return -1 - i;
         }
 
-        if (eq[i].type != hd_to_hc_type(dim->type))
+        if (eq[i].datatype != hd_to_hc_type(dim->type))
         {
             *status = HYPERCLIENT_WRONGTYPE;
             return -1 - i;
@@ -1364,7 +1364,7 @@ hyperclient :: pack_attrs(const char* space, e::buffer::packer p,
             return -1 - i;
         }
 
-        if (attrs[i].type != hd_to_hc_type(dim->type))
+        if (attrs[i].datatype != hd_to_hc_type(dim->type))
         {
             *status = HYPERCLIENT_WRONGTYPE;
             return -1 - i;

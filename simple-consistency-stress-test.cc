@@ -307,7 +307,7 @@ writer_thread()
                 attr.attr = "repetition";
                 attr.value = reinterpret_cast<const char*>(&val);
                 attr.value_sz = sizeof(val);
-                attr.type = HYPERDATATYPE_STRING;
+                attr.datatype = HYPERDATATYPE_STRING;
                 pid = cl.put(space, keystr, sizeof(key), &attr, 1, &pstatus);
 
                 if (pid < 0)
@@ -413,7 +413,7 @@ reader_thread()
                     assert(strcmp(attrs[0].attr, "repetition") == 0);
                     int64_t val = 0;
                     memmove(&val, attrs[0].value, attrs[0].value_sz);
-                    assert(attrs[0].type == HYPERDATATYPE_STRING);
+                    assert(attrs[0].datatype == HYPERDATATYPE_STRING);
                     val = be64toh(val);
 
                     if (val < oldval)

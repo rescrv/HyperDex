@@ -122,7 +122,7 @@ main(int argc, char* argv[])
             for (size_t i = 0; i < 32; ++i)
             {
                 attrs[i].attr = colnames[i];
-                attrs[i].type = HYPERDATATYPE_STRING;
+                attrs[i].datatype = HYPERDATATYPE_STRING;
 
                 if ((num & (1 << i)))
                 {
@@ -168,7 +168,7 @@ main(int argc, char* argv[])
             for (size_t i = 0; i < 32; ++i)
             {
                 attrs[i].attr = colnames[i];
-                attrs[i].type = HYPERDATATYPE_STRING;
+                attrs[i].datatype = HYPERDATATYPE_STRING;
 
                 if ((num & (1 << i)))
                 {
