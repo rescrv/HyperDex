@@ -19,6 +19,7 @@ daemon.o
 depcomp
 .deps/
 hdcoordinator/coordinator.pyc
+hdcoordinator/hdtypes.pyc
 hdcoordinator/__init__.pyc
 hdcoordinator/parser.pyc
 hyperclient/.deps/
