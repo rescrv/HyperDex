@@ -348,10 +348,10 @@ hyperdaemon :: replication_manager :: chain_ack(const entityid& from,
         kh->remove_oldest_committable_op();
     }
 
+    move_operations_between_queues(to, key, kh);
+
     if (m_config.is_point_leader(to))
     {
-        move_operations_between_queues(to, key, kh);
-
         if (pend->co.from.space == UINT32_MAX)
         {
             respond_to_client(to, pend->co.from, pend->co.nonce,
