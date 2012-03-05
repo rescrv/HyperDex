@@ -529,7 +529,8 @@ replication_stress_test_CPPFLAGS = \
 			$(CPPFLAGS)
 replication_stress_test_LDADD = \
 			libhyperspacehashing.la \
-			libhyperclient.la
+			libhyperclient.la \
+			-lpopt
 replication_stress_test_LDFLAGS = \
 			-no-install
 
