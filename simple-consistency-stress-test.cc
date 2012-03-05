@@ -160,7 +160,7 @@ main(int argc, const char* argv[])
 
                 break;
             case 'p':
-                if (port < 0 || port > (1 << 16))
+                if (port < 0 || port >= (1 << 16))
                 {
                     std::cerr << "port number out of range for TCP" << std::endl;
                     return EXIT_FAILURE;
