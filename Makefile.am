@@ -493,7 +493,7 @@ daemon_LDADD = \
 			libhyperdisk.la \
 			libhyperdaemon.la \
 			$(COVERAGE_LDADD) \
-			-lglog -lrt
+			-lpopt -lglog -lrt
 daemon_CPPFLAGS = \
 			$(PO6_CFLAGS) \
 			$(CPPFLAGS)
