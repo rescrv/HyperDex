@@ -1178,20 +1178,28 @@ hyperdaemon :: replication_manager :: retransmit()
             khiter != m_keyholders.end(); khiter.next())
     {
         po6::threads::mutex::hold holdkh(&m_keyholders_lock);
-
         // Grab the lock that protects this object.
-        uint64_t lock_num = get_lock_num(khiter.key().region,
-                                         e::slice(khiter.key().key.data(), khiter.key().key.size()));
-        e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, lock_num);
+        e::slice key(khiter.key().key.data(), khiter.key().key.size());
+        e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, get_lock_num(khiter.key().region, key));
 
         // Grab some references.
         e::intrusive_ptr<keyholder> kh = khiter.value();
-        entityid ent = m_config.entityfor(m_us, khiter.key().region);
-        e::slice key(khiter.key().key.data(), khiter.key().key.size());
 
         if (kh->empty())
         {
-            m_keyholders.remove(khiter.key());
+            // If the keyholder is empty, we need to check to make sure that the
+            // *same* keyholder is accessible via the hash table using
+            // khiter.key().  If it is not, then we know that we are seeing
+            // stale data when iterating.  If it is, the hold on m_locks above
+            // will guarantee that we don't erase the keyholder some other
+            // thread creates.
+            e::intrusive_ptr<keyholder> check;
+
+            if (m_keyholders.lookup(khiter.key(), &check) && check == kh)
+            {
+                m_keyholders.remove(khiter.key());
+            }
+
             continue;
         }
 
@@ -1210,6 +1218,7 @@ hyperdaemon :: replication_manager :: retransmit()
         {
             pend->sent_e = entityid();
             pend->sent_i = instance();
+            entityid ent = m_config.entityfor(m_us, khiter.key().region);
             send_message(ent, kh->oldest_committable_version(), key, pend);
         }
     }
