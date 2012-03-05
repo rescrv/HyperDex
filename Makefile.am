@@ -295,9 +295,11 @@ hyperdisk_utils_shard_fsck_CPPFLAGS = \
 #################################### Library ###################################
 
 libhyperdex_noinst_headers = \
+			hyperdex/hyperdex/attribute.h \
 			hyperdex/hyperdex/configuration.h \
 			hyperdex/hyperdex/configuration_parser.h \
 			hyperdex/hyperdex/coordinatorlink.h \
+			hyperdex/hyperdex/datatype.h \
 			hyperdex/hyperdex/ids.h \
 			hyperdex/hyperdex/instance.h \
 			hyperdex/hyperdex/network_constants.h \
