@@ -312,7 +312,7 @@ hyperdisk :: disk :: flush(size_t num)
             }
         }
 
-        bool put_succeeded = false;
+        bool put_performed = false;
         size_t put_num = 0;
         uint32_t put_offset = 0;
 
@@ -321,7 +321,7 @@ hyperdisk :: disk :: flush(size_t num)
             const std::vector<e::slice>& value = it->value;
             const uint64_t version = it->version;
 
-            for (ssize_t i = m_shards->size() - 1; !put_succeeded && i >= 0; --i)
+            for (ssize_t i = m_shards->size() - 1; !put_performed && i >= 0; --i)
             {
                 if (!m_shards->get_coordinate(i).intersects(coord))
                 {
@@ -334,7 +334,7 @@ hyperdisk :: disk :: flush(size_t num)
 
                 if (ret == SUCCESS)
                 {
-                    put_succeeded = true;
+                    put_performed = true;
                     put_num = i;
                 }
                 else if (ret == DATAFULL || ret == SEARCHFULL)
@@ -349,13 +349,13 @@ hyperdisk :: disk :: flush(size_t num)
                 }
             }
 
-            if (!put_succeeded)
+            if (!put_performed)
             {
                 break;
             }
         }
 
-        if (del_needed && (!put_succeeded || del_num != put_num))
+        if (del_needed && (!put_performed || del_num != put_num))
         {
             switch (m_shards->get_shard(del_num)->del(coord.primary_hash, key, &del_offset))
             {
@@ -382,7 +382,7 @@ hyperdisk :: disk :: flush(size_t num)
         // finish by removing the items we put on the log.
         std::vector<offset_update> updates;
 
-        if (del_needed && del_num != put_num)
+        if (del_needed && (!put_performed || del_num != put_num))
         {
             updates.push_back(offset_update());
             updates.back().shard_generation = m_shards->generation();
@@ -390,7 +390,7 @@ hyperdisk :: disk :: flush(size_t num)
             updates.back().new_offset = del_offset;
         }
 
-        if (put_succeeded)
+        if (put_performed)
         {
             updates.push_back(offset_update());
             updates.back().shard_generation = m_shards->generation();
