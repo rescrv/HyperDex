@@ -974,12 +974,6 @@ hyperclient :: search(const char* space,
             ++dim;
         }
 
-        if (dim == dimension_names.begin())
-        {
-            *status = HYPERCLIENT_DONTUSEKEY;
-            return -1 - eq_sz - i;
-        }
-
         if (dim == dimension_names.end())
         {
             *status = HYPERCLIENT_UNKNOWNATTR;
