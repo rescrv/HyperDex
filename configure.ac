@@ -12,10 +12,6 @@ AC_CONFIG_SRCDIR([hyperspacehashing/hashes.cc])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
-case ${program_prefix} in
-    NONE) program_prefix=hyperdex- ;;
-esac
-
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_CC

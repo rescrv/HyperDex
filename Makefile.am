@@ -30,8 +30,8 @@ AM_CXXFLAGS = $(COVERAGE_CXXFLAGS)
 
 EXTRA_DIST = \
 			LICENSE \
-			coordinator \
-			coordinator-control \
+			hyperdex-coordinator \
+			hyperdex-coordinator-control \
 			$(libhyperclient_extra_dist) \
 			$(ycsb_extra_dist)
 
@@ -54,22 +54,22 @@ noinst_HEADERS = \
 			$(java_bindings_noinst_headers)
 
 bin_PROGRAMS = \
-			daemon
+			hyperdex-binary-test \
+			hyperdex-daemon \
+			hyperdex-replication-stress-test \
+			hyperdex-simple-consistency-stress-test
 
 noinst_PROGRAMS = \
 			$(libhyperspacehashing_noinst_programs) \
-			$(libhyperdisk_noinst_programs) \
-			binary-test \
-			replication-stress-test \
-			simple-consistency-stress-test
+			$(libhyperdisk_noinst_programs)
 
 check_PROGRAMS = \
 			$(libhyperspacehashing_check_programs) \
 			$(libhyperdisk_check_programs)
 
 bin_SCRIPTS = \
-			coordinator \
-			coordinator-control
+			hyperdex-coordinator \
+			hyperdex-coordinator-control
 
 TESTS = \
 			$(libhyperspacehashing_tests) \
@@ -488,64 +488,64 @@ endif
 ################################### Binaries ###################################
 ################################################################################
 
-daemon_SOURCES = \
+hyperdex_daemon_SOURCES = \
 			daemon.cc
-daemon_LDADD = \
+hyperdex_daemon_LDADD = \
 			libhyperdisk.la \
 			libhyperdaemon.la \
 			$(COVERAGE_LDADD) \
 			-lpopt -lglog -lrt
-daemon_CPPFLAGS = \
+hyperdex_daemon_CPPFLAGS = \
 			$(PO6_CFLAGS) \
 			$(CPPFLAGS)
 
-binary_test_SOURCES = \
+hyperdex_binary_test_SOURCES = \
 			binary-test.cc
-binary_test_LDADD = \
+hyperdex_binary_test_LDADD = \
 			libhyperclient.la \
 			-lrt
-binary_test_LDFLAGS = \
+hyperdex_binary_test_LDFLAGS = \
 			-no-install
-binary_test_CPPFLAGS = \
+hyperdex_binary_test_CPPFLAGS = \
 			$(E_CFLAGS) \
 			$(CPPFLAGS)
 
-simple_consistency_stress_test_SOURCES = \
+hyperdex_simple_consistency_stress_test_SOURCES = \
 			simple-consistency-stress-test.cc
-simple_consistency_stress_test_CPPFLAGS = \
+hyperdex_simple_consistency_stress_test_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperclient
 			$(E_CFLAGS) \
 			$(CPPFLAGS)
-simple_consistency_stress_test_LDADD = \
+hyperdex_simple_consistency_stress_test_LDADD = \
 			libhyperclient.la \
 			-lpopt -lpthread
-simple_consistency_stress_test_LDFLAGS = \
+hyperdex_simple_consistency_stress_test_LDFLAGS = \
 			-no-install
 
-replication_stress_test_SOURCES = \
+hyperdex_replication_stress_test_SOURCES = \
 			replication-stress-test.cc
-replication_stress_test_CPPFLAGS = \
+hyperdex_replication_stress_test_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
 			$(E_CFLAGS) \
 			$(CPPFLAGS)
-replication_stress_test_LDADD = \
+hyperdex_replication_stress_test_LDADD = \
 			libhyperspacehashing.la \
 			libhyperclient.la \
 			-lpopt
-replication_stress_test_LDFLAGS = \
+hyperdex_replication_stress_test_LDFLAGS = \
 			-no-install
 
 if ENABLE_TRACEPLAYER
-bin_PROGRAMS += trace-player
-trace_player_SOURCES = \
+bin_PROGRAMS += hyperdex-trace-player
+hyperdex_trace_player_SOURCES = \
 			trace-player.cc
-trace_player_LDADD = \
+hyperdex_trace_player_LDADD = \
 			libhyperclient.la \
 			-lbsd \
 			-lrt
-trace_player_LDFLAGS = \
+hyperdex_trace_player_LDFLAGS = \
 			-no-install
-trace_player_CPPFLAGS = \
+hyperdex_trace_player_CPPFLAGS = \
 			$(E_CFLAGS) \
 			$(CPPFLAGS)
 endif

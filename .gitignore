@@ -62,6 +62,10 @@ hyperdaemon/libhyperdaemon_la-runtimeconfig.o
 hyperdaemon/libhyperdaemon_la-searches.lo
 hyperdaemon/libhyperdaemon_la-searches.o
 hyperdaemon/.libs/
+hyperdex-binary-test
+hyperdex_binary_test-binary-test.o
+hyperdex-daemon
+hyperdex_daemon-daemon.o
 hyperdex/.deps/
 hyperdex/.dirstamp
 hyperdex/libhyperdex_la-configuration.lo
@@ -71,6 +75,10 @@ hyperdex/libhyperdex_la-configuration_parser.o
 hyperdex/libhyperdex_la-coordinatorlink.lo
 hyperdex/libhyperdex_la-coordinatorlink.o
 hyperdex/.libs/
+hyperdex-replication-stress-test
+hyperdex_replication_stress_test-replication-stress-test.o
+hyperdex-simple-consistency-stress-test
+hyperdex_simple_consistency_stress_test-simple-consistency-stress-test.o
 hyperdisk/.deps/
 hyperdisk/.dirstamp
 hyperdisk/libhyperdisk_la-disk.lo
