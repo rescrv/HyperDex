@@ -516,7 +516,8 @@ simple_consistency_stress_test_CPPFLAGS = \
 			$(E_CFLAGS) \
 			$(CPPFLAGS)
 simple_consistency_stress_test_LDADD = \
-			libhyperclient.la -lpopt -lpthread
+			libhyperclient.la \
+			-lpopt -lpthread
 simple_consistency_stress_test_LDFLAGS = \
 			-no-install
 
