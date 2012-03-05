@@ -46,356 +46,57 @@ const uint32_t hyperdex::configuration::CLIENTSPACE = UINT32_MAX;
 const uint32_t hyperdex::configuration::TRANSFERSPACE = UINT32_MAX - 1;
 
 hyperdex :: configuration :: configuration()
-    : m_hosts()
+    : m_version(0)
+    , m_hosts()
     , m_space_assignment()
     , m_spaces()
-    , m_subspaces()
-    , m_regions()
+    , m_space_sizes()
     , m_entities()
-    , m_transfers()
     , m_repl_hashers()
     , m_disk_hashers()
+    , m_transfers()
+    , m_transfers_by_num(65536)
 {
+}
+
+hyperdex :: configuration :: configuration(uint64_t ver,
+                                           const std::vector<instance>& hosts,
+                                           const std::map<std::string, spaceid>& space_assignment,
+                                           const std::map<spaceid, std::vector<attribute> >& spaces,
+                                           const std::map<spaceid, uint16_t>& space_sizes,
+                                           const std::map<entityid, instance>& entities,
+                                           const std::map<subspaceid, hyperspacehashing::prefix::hasher>& repl_hashers,
+                                           const std::map<subspaceid, hyperspacehashing::mask::hasher>& disk_hashers,
+                                           const std::map<std::pair<instance, uint16_t>, hyperdex::regionid>& transfers)
+    : m_version(ver)
+    , m_hosts(hosts)
+    , m_space_assignment(space_assignment)
+    , m_spaces(spaces)
+    , m_space_sizes(space_sizes)
+    , m_entities(entities)
+    , m_repl_hashers(repl_hashers)
+    , m_disk_hashers(disk_hashers)
+    , m_transfers(transfers)
+    , m_transfers_by_num(65536)
+{
+    std::map<std::pair<instance, uint16_t>, hyperdex::regionid>::iterator it;
+
+    for (it = m_transfers.begin(); it != m_transfers.end(); ++it)
+    {
+        assert(m_transfers_by_num[it->first.second] == instance());
+        m_transfers_by_num[it->first.second] = it->first.first;
+    }
 }
 
 hyperdex :: configuration :: ~configuration() throw ()
 {
 }
 
-bool
-hyperdex :: configuration :: add_line(const std::string& line)
-{
-    std::istringstream istr(line);
-    std::string s;
-    std::string command;
-    istr >> command;
-
-    if (command == "host")
-    {
-        std::string id;
-        po6::net::ipaddr ip;
-        uint16_t iport;
-        uint16_t iver;
-        uint16_t oport;
-        uint16_t over;
-        std::string trailing;
-        istr >> id >> ip >> iport >> iver >> oport >> over;
-
-        if (istr.eof() && !istr.bad() && !istr.fail()
-                && m_hosts.find(id) == m_hosts.end())
-        {
-            m_hosts[id] = instance(po6::net::location(ip, iport), iver,
-                                   po6::net::location(ip, oport), over);
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-    else if (command == "space")
-    {
-        std::string name;
-        std::string id_s;
-        uint32_t id;
-        std::string dim;
-        std::vector<std::string> dims;
-        istr >> id_s >> name;
-
-        try
-        {
-            id = e::convert::to_uint32_t(id_s);
-        }
-        catch (...)
-        {
-            return false;
-        }
-
-        while (istr.good())
-        {
-            istr >> dim;
-
-            if (!istr.fail())
-            {
-                dims.push_back(dim);
-            }
-        }
-
-        if (istr.eof() && !istr.bad() && !istr.fail()
-                && m_space_assignment.find(name) == m_space_assignment.end()
-                && m_spaces.find(spaceid(id)) == m_spaces.end()
-                && dims.size() > 0)
-        {
-            m_space_assignment[name] = spaceid(id);
-            m_spaces.insert(std::make_pair(spaceid(id), dims));
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-    else if (command == "subspace")
-    {
-        std::string spacename;
-        uint32_t subspacenum;
-        std::string hash;
-        std::vector<std::string> hashes;
-        istr >> spacename >> subspacenum;
-
-        while (istr.good())
-        {
-            istr >> hash;
-
-            if (!istr.fail())
-            {
-                hashes.push_back(hash);
-            }
-        }
-
-        std::map<std::string, spaceid>::iterator sai = m_space_assignment.find(spacename);
-        std::map<spaceid, std::vector<std::string> >::iterator si;
-
-        if (istr.eof() && !istr.bad() && !istr.fail()
-                && sai != m_space_assignment.end()
-                && (si = m_spaces.find(sai->second)) != m_spaces.end()
-                && std::distance(m_subspaces.lower_bound(subspaceid(si->first, 0)),
-                                 m_subspaces.upper_bound(subspaceid(si->first, UINT16_MAX))) == subspacenum
-                && hashes.size() > 0)
-        {
-            const std::vector<std::string>& spacedims(si->second);
-            std::vector<hyperspacehashing::hash_t> repl_funcs(spacedims.size(), hyperspacehashing::NONE);
-            std::vector<hyperspacehashing::hash_t> disk_funcs(spacedims.size(), hyperspacehashing::NONE);
-            std::vector<bool> bitmask(spacedims.size(), true);
-
-            if (spacedims.size() * 2 != hashes.size())
-            {
-                return false;
-            }
-
-            for (size_t i = 0; i < spacedims.size(); ++i)
-            {
-                if (subspacenum == 0 && i > 0 && hashes[2 * i] != "none")
-                {
-                    return false;
-                }
-
-                if (subspacenum == 0 && i == 0 && hashes[2 * i] == "none")
-                {
-                    return false;
-                }
-
-                if (hashes[2 * i] == "equality")
-                {
-                    repl_funcs[i] = hyperspacehashing::EQUALITY;
-                }
-                else if (hashes[2 * i] == "range")
-                {
-                    repl_funcs[i] = hyperspacehashing::RANGE;
-                }
-                else if (hashes[2 * i] == "none")
-                {
-                    bitmask[i] = false;
-                    repl_funcs[i] = hyperspacehashing::NONE;
-                }
-                else
-                {
-                    return false;
-                }
-
-                if (hashes[2 * i + 1] == "equality")
-                {
-                    disk_funcs[i] = hyperspacehashing::EQUALITY;
-                }
-                else if (hashes[2 * i + 1] == "range")
-                {
-                    disk_funcs[i] = hyperspacehashing::RANGE;
-                }
-                else if (hashes[2 * i + 1] == "none")
-                {
-                    disk_funcs[i] = hyperspacehashing::NONE;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-
-            m_subspaces.insert(std::make_pair(subspaceid(si->first, subspacenum), bitmask));
-            m_repl_hashers.insert(std::make_pair(subspaceid(si->first, subspacenum),
-                                                 hyperspacehashing::prefix::hasher(repl_funcs)));
-            m_disk_hashers.insert(std::make_pair(subspaceid(si->first, subspacenum),
-                                                 hyperspacehashing::mask::hasher(disk_funcs)));
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-    else if (command == "region")
-    {
-        std::string spacename;
-        uint32_t subspacenum;
-        std::string prefix_s;
-        uint8_t prefix;
-        std::string mask_s;
-        uint64_t mask;
-        std::string host;
-        std::vector<std::string> _hosts;
-
-        istr >> spacename >> subspacenum >> prefix_s >> mask_s;
-
-        try
-        {
-            prefix = e::convert::to_uint8_t(prefix_s);
-            mask = e::convert::to_uint64_t(mask_s);
-        }
-        catch (...)
-        {
-            return false;
-        }
-
-        while (istr.good())
-        {
-            istr >> host;
-
-            if (!istr.fail())
-            {
-                _hosts.push_back(host);
-            }
-        }
-
-        // Check for valid hosts lists
-        for (size_t i = 0; i < _hosts.size(); ++i)
-        {
-            // If we find the same host anywhere else after this point
-            if (std::find(_hosts.begin() + i + 1, _hosts.end(), _hosts[i]) != _hosts.end())
-            {
-                return false;
-            }
-            // If we find a host that hasn't been declared
-            if (m_hosts.find(_hosts[i]) == m_hosts.end())
-            {
-                return false;
-            }
-        }
-
-        std::map<std::string, spaceid>::iterator sai = m_space_assignment.find(spacename);
-        std::map<spaceid, std::vector<std::string> >::iterator si;
-        std::map<subspaceid, std::vector<bool> >::iterator ssi;
-
-        if (istr.eof() && !istr.bad() && !istr.fail()
-                && sai != m_space_assignment.end()
-                && (si = m_spaces.find(sai->second)) != m_spaces.end()
-                && (ssi = m_subspaces.find(subspaceid(si->first, subspacenum))) != m_subspaces.end())
-        {
-            regionid r(ssi->first, prefix, mask);
-            bool overlaps = false;
-            typedef std::set<hyperdex::regionid>::const_iterator regiter;
-            regiter iter = m_regions.begin();
-            hyperspacehashing::prefix::coordinate c = r.coord();
-
-            for (; iter != m_regions.end(); ++iter)
-            {
-                overlaps |= ssi->first == iter->get_subspace() && c.intersects(iter->coord());
-            }
-
-            if (!overlaps)
-            {
-                m_regions.insert(r);
-
-                for (size_t i = 0; i < _hosts.size(); ++i)
-                {
-                    m_entities.insert(std::make_pair(entityid(r, i), m_hosts[_hosts[i]]));
-                }
-
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        else
-        {
-            return false;
-        }
-    }
-    else if (command == "transfer")
-    {
-        std::string spacename;
-        uint32_t subspacenum;
-        std::string xfer_id_s;
-        uint16_t xfer_id;
-        std::string prefix_s;
-        uint8_t prefix;
-        std::string mask_s;
-        uint64_t mask;
-        std::string host;
-
-        istr >> xfer_id_s >> spacename >> subspacenum >> prefix_s >> mask_s;
-
-        try
-        {
-            xfer_id = e::convert::to_uint16_t(xfer_id_s);
-            prefix = e::convert::to_uint8_t(prefix_s);
-            mask = e::convert::to_uint64_t(mask_s);
-        }
-        catch (...)
-        {
-            return false;
-        }
-
-        istr >> host;
-
-        if (istr.fail() || istr.bad())
-        {
-            return false;
-        }
-
-        // If we find a host that hasn't been declared
-        if (m_hosts.find(host) == m_hosts.end())
-        {
-            return false;
-        }
-
-        std::map<std::string, spaceid>::iterator sai = m_space_assignment.find(spacename);
-        std::map<spaceid, std::vector<std::string> >::iterator si;
-        std::map<subspaceid, std::vector<bool> >::iterator ssi;
-
-        if (istr.eof() && !istr.bad() && !istr.fail()
-                && sai != m_space_assignment.end()
-                && (si = m_spaces.find(sai->second)) != m_spaces.end()
-                && (ssi = m_subspaces.find(subspaceid(si->first, subspacenum))) != m_subspaces.end())
-        {
-            regionid r(ssi->first, prefix, mask);
-
-            if (m_regions.find(r) == m_regions.end())
-            {
-                return false;
-            }
-
-            m_transfers.insert(std::make_pair(xfer_id, r));
-            m_entities.insert(std::make_pair(entityid(UINT32_MAX - 1, xfer_id, 0, 0, 0), m_hosts[host]));
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-    else
-    {
-        return false;
-    }
-}
-
 size_t
 hyperdex :: configuration :: dimensions(const spaceid& s)
                              const
 {
-    std::map<spaceid, std::vector<std::string> >::const_iterator si;
+    std::map<spaceid, std::vector<attribute> >::const_iterator si;
     si = m_spaces.find(s);
 
     if (si != m_spaces.end())
@@ -406,15 +107,15 @@ hyperdex :: configuration :: dimensions(const spaceid& s)
     return 0;
 }
 
-std::vector<std::string>
+std::vector<hyperdex::attribute>
 hyperdex :: configuration :: dimension_names(const spaceid& s) const
 {
-    std::map<spaceid, std::vector<std::string> >::const_iterator si;
+    std::map<spaceid, std::vector<attribute> >::const_iterator si;
     si = m_spaces.find(s);
 
     if (si == m_spaces.end())
     {
-        return std::vector<std::string>();
+        return std::vector<attribute>();
     }
 
     return si->second;
@@ -439,18 +140,14 @@ size_t
 hyperdex :: configuration :: subspaces(const spaceid& s)
                              const
 {
-    std::map<subspaceid, std::vector<bool> >::const_iterator lower;
-    std::map<subspaceid, std::vector<bool> >::const_iterator upper;
-    lower = m_subspaces.lower_bound(subspaceid(s, 0));
-    upper = m_subspaces.upper_bound(subspaceid(s, UINT16_MAX));
-    size_t count = 0;
+    std::map<spaceid, uint16_t>::const_iterator si;
 
-    for (; lower != upper; ++lower)
+    if ((si = m_space_sizes.find(s)) == m_space_sizes.end())
     {
-        ++count;
+        return -1;
     }
 
-    return count;
+    return si->second;
 }
 
 hyperdex::entityid
@@ -492,14 +189,15 @@ void
 hyperdex :: configuration :: instance_versions(instance* i)
                              const
 {
-    std::map<std::string, instance>::const_iterator h;
+    std::vector<instance>::const_iterator h;
 
     for (h = m_hosts.begin(); h != m_hosts.end(); ++h)
     {
-        if (h->second.inbound == i->inbound &&
-                h->second.outbound == i->outbound)
+        if (h->address == i->address &&
+            h->inbound_port == i->inbound_port &&
+            h->outbound_port == i->outbound_port)
         {
-            *i = h->second;
+            *i = *h;
             return;
         }
     }
@@ -700,6 +398,80 @@ hyperdex :: configuration :: search_entities(const subspaceid& ssi,
     start = m_entities.lower_bound(hyperdex::entityid(ssi.space, ssi.subspace, 0, 0, 0));
     end   = m_entities.upper_bound(hyperdex::entityid(ssi.space, ssi.subspace, UINT8_MAX, UINT64_MAX, UINT8_MAX));
     return _search_entities(start, end, s);
+}
+
+hyperdex::instance
+hyperdex :: configuration :: instancefortransfer(uint16_t xfer_id) const
+{
+    return m_transfers_by_num[xfer_id];
+}
+
+uint16_t
+hyperdex :: configuration :: transfer_id(const regionid& reg) const
+{
+    std::map<std::pair<instance, uint16_t>, hyperdex::regionid>::const_iterator t;
+
+    for (t = m_transfers.begin(); t != m_transfers.end(); ++t)
+    {
+        if (t->second == reg)
+        {
+            return t->first.second;
+        }
+    }
+
+    return 0;
+}
+
+std::map<uint16_t, hyperdex::regionid>
+hyperdex :: configuration :: transfers_to(const instance& inst) const
+{
+    std::map<uint16_t, hyperdex::regionid> ret;
+    std::map<std::pair<instance, uint16_t>, hyperdex::regionid>::const_iterator lower;
+    std::map<std::pair<instance, uint16_t>, hyperdex::regionid>::const_iterator upper;
+    lower = m_transfers.lower_bound(std::make_pair(inst, 0));
+    upper = m_transfers.upper_bound(std::make_pair(inst, UINT16_MAX));
+
+    for (; lower != upper; ++lower)
+    {
+        ret.insert(std::make_pair(lower->first.second, lower->second));
+    }
+
+    return ret;
+}
+
+std::map<uint16_t, hyperdex::regionid>
+hyperdex :: configuration :: transfers_from(const instance& inst) const
+{
+    std::map<uint16_t, hyperdex::regionid> ret;
+    std::map<std::pair<instance, uint16_t>, hyperdex::regionid>::const_iterator t;
+    t = m_transfers.begin();
+
+    for (; t != m_transfers.end(); ++t)
+    {
+        // If the region has gone live and the tail of the region is now the
+        // recipient of the transfer.
+        if (instancefor(tailof(t->second)) == t->first.first)
+        {
+            entityid ent = tailof(t->second);
+            assert(chain_has_prev(ent));
+            ent = chain_prev(ent);
+
+            if (instancefor(ent) == inst)
+            {
+                ret.insert(std::make_pair(t->first.second, t->second));
+            }
+        }
+        // Otherwise the tail of the region is the sender of the transfer.
+        else
+        {
+            if (instancefor(tailof(t->second)) == inst)
+            {
+                ret.insert(std::make_pair(t->first.second, t->second));
+            }
+        }
+    }
+
+    return ret;
 }
 
 std::map<hyperdex::entityid, hyperdex::instance>

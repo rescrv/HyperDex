@@ -71,6 +71,7 @@ enum network_msgtype
     XFER_DATA       = 97,
     XFER_DONE       = 98,
 
+    CONFIGMISMATCH  = 254,
     PACKET_NOP      = 255
 };
 
@@ -102,6 +103,7 @@ operator << (std::ostream& lhs, const network_msgtype& rhs)
         stringify(XFER_MORE);
         stringify(XFER_DATA);
         stringify(XFER_DONE);
+        stringify(CONFIGMISMATCH);
         stringify(PACKET_NOP);
         default:
             lhs << "unknown network_msgtype";

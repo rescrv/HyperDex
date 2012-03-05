@@ -130,6 +130,7 @@ class replication_manager
         class keyholder;
         typedef e::lockfree_hash_map<replication::keypair, e::intrusive_ptr<keyholder>, replication::keypair::hash>
                 keyholder_map_t;
+        friend class ongoing_state_transfers;
 
     private:
         replication_manager(const replication_manager&);
@@ -169,6 +170,16 @@ class replication_manager
                            bool has_newvalue, const std::vector<e::slice>& newvalue,
                            bool has_oldvalue, const std::vector<e::slice>& oldvalue,
                            e::intrusive_ptr<pending> pend);
+        // Heal problems that result from ongoing state transfers.  The kind of
+        // problem that can arise stems from operations being labeled "deferred"
+        // when the background state transfer doesn't arrive before the op is
+        // enqueued.  This requires that the lock for the key/region be held.
+        void check_for_deferred_operations(const hyperdex::regionid& r,
+                                           uint64_t version,
+                                           std::tr1::shared_ptr<e::buffer> backing,
+                                           const e::slice& key,
+                                           bool has_value,
+                                           const std::vector<e::slice>& value);
         // Move operations between the queues in the keyholder.  Blocked
         // operations will have their blocking criteria checked.  Deferred
         // operations will be checked for continuity with the blocked
@@ -201,6 +212,7 @@ class replication_manager
         ongoing_state_transfers* m_ost;
         hyperdex::configuration m_config;
         e::striped_lock<po6::threads::mutex> m_locks;
+        po6::threads::mutex m_keyholders_lock;
         keyholder_map_t m_keyholders;
         hyperdex::instance m_us;
         bool m_shutdown;

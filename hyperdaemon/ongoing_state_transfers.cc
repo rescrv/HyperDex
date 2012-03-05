@@ -1,4 +1,4 @@
-// Copyright (c) 2011, Cornell University
+// Copyright (c) 2011-2012, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,49 +25,93 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#define __STDC_LIMIT_MACROS
+
+// STL
+#include <map>
+
 // Google Log
 #include <glog/logging.h>
+
+// e
+#include <e/timer.h>
 
 // HyperDisk
 #include "hyperdisk/hyperdisk/snapshot.h"
 
 // HyperDex
 #include "hyperdex/hyperdex/configuration.h"
-#include "hyperdex/hyperdex/ids.h"
+#include "hyperdex/hyperdex/coordinatorlink.h"
+#include "hyperdex/hyperdex/network_constants.h"
+#include "hyperdex/hyperdex/packing.h"
 
 // HyperDaemon
 #include "hyperdaemon/datalayer.h"
+#include "hyperdaemon/logical.h"
 #include "hyperdaemon/ongoing_state_transfers.h"
+#include "hyperdaemon/replication_manager.h"
 #include "hyperdaemon/runtimeconfig.h"
 
 using hyperdex::configuration;
 using hyperdex::entityid;
 using hyperdex::instance;
+using hyperdex::network_msgtype;
 using hyperdex::regionid;
 
-// XXX The correctness of this code relies upon each endpoint sending XFER_MORE
-// messages to not only the correct host, but the correct entityid.  It will
-// take a little more to enforce that.
+///////////////////////////////// Transfers In /////////////////////////////////
 
 class hyperdaemon::ongoing_state_transfers::transfer_in
 {
     public:
-        transfer_in(const hyperdex::entityid& from) : m_ref(0) {}
-#if 0
+        class op
+        {
+            public:
+                op(bool hv, uint64_t ver,
+                   std::tr1::shared_ptr<e::buffer> b,
+                   const e::slice& k,
+                   const std::vector<e::slice>& val)
+                    : has_value(hv)
+                    , version(ver)
+                    , backing(b)
+                    , key(k)
+                    , value(val)
+                    , m_ref(0)
+                {
+                }
+
+            public:
+                bool has_value;
+                uint64_t version;
+                std::tr1::shared_ptr<e::buffer> backing;
+                const e::slice key;
+                const std::vector<e::slice> value;
+
+            private:
+                friend class e::intrusive_ptr<op>;
+
+            private:
+                void inc() { __sync_add_and_fetch(&m_ref, 1); }
+                void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
+
+            private:
+                size_t m_ref;
+        };
+
+    public:
+        transfer_in(const hyperdex::entityid& from);
+
     public:
         po6::threads::mutex lock;
         std::map<uint64_t, e::intrusive_ptr<op> > ops;
-        uint64_t xferred_so_far;
-        hyperdex::regionid reg;
+        // "triggers" is protected by the replication lock.
+        std::map<std::pair<e::slice, uint64_t>, std::tr1::shared_ptr<e::buffer> > triggers;
         const hyperdex::entityid replicate_from;
-        const hyperdex::entityid transfer_entity;
+        uint64_t xfer_num;
+        bool failed;
         bool started;
         bool go_live;
         bool triggered;
-        std::set<std::pair<e::buffer, uint64_t> > triggers;
-        bool failed;
 
-#endif
     private:
         friend class e::intrusive_ptr<transfer_in>;
 
@@ -79,20 +123,33 @@ class hyperdaemon::ongoing_state_transfers::transfer_in
         size_t m_ref;
 };
 
+hyperdaemon :: ongoing_state_transfers :: transfer_in :: transfer_in(const hyperdex::entityid& from)
+    : lock()
+    , ops()
+    , triggers()
+    , replicate_from(from)
+    , xfer_num(0)
+    , failed(false)
+    , started(false)
+    , go_live(false)
+    , triggered(false)
+    , m_ref(0)
+{
+}
+
+///////////////////////////////// Transfers Out ////////////////////////////////
+
 class hyperdaemon::ongoing_state_transfers::transfer_out
 {
     public:
-        transfer_out(e::intrusive_ptr<hyperdisk::rolling_snapshot> s) : m_ref(0) {}
-#if 0
+        transfer_out(e::intrusive_ptr<hyperdisk::rolling_snapshot> s);
+
     public:
         po6::threads::mutex lock;
         e::intrusive_ptr<hyperdisk::rolling_snapshot> snap;
         uint64_t xfer_num;
-        const hyperdex::entityid replicate_from;
-        const hyperdex::entityid transfer_entity;
         bool failed;
 
-#endif
     private:
         friend class e::intrusive_ptr<transfer_out>;
 
@@ -104,96 +161,135 @@ class hyperdaemon::ongoing_state_transfers::transfer_out
         size_t m_ref;
 };
 
-hyperdaemon :: ongoing_state_transfers :: ongoing_state_transfers(datalayer* data)
+hyperdaemon :: ongoing_state_transfers :: transfer_out :: transfer_out(e::intrusive_ptr<hyperdisk::rolling_snapshot> s)
+    : lock()
+    , snap(s)
+    , xfer_num(1)
+    , failed(false)
+    , m_ref(0)
+{
+}
+
+///////////////////////////////// Public Class /////////////////////////////////
+
+hyperdaemon :: ongoing_state_transfers :: ongoing_state_transfers(datalayer* data,
+                                                                  logical* comm,
+                                                                  hyperdex::coordinatorlink* cl)
     : m_data(data)
+    , m_comm(comm)
+    , m_cl(cl)
     , m_repl(NULL)
+    , m_config()
     , m_transfers_in(STATE_TRANSFER_HASHTABLE_SIZE)
     , m_transfers_out(STATE_TRANSFER_HASHTABLE_SIZE)
     , m_shutdown(false)
+    , m_periodic_lock()
+    , m_periodic_thread(std::tr1::bind(&ongoing_state_transfers::periodic, this))
 {
+    m_periodic_thread.start();
 }
 
 hyperdaemon :: ongoing_state_transfers :: ~ongoing_state_transfers() throw ()
 {
+    if (!m_shutdown)
+    {
+        shutdown();
+    }
+
+    m_periodic_thread.join();
 }
 
 void
 hyperdaemon :: ongoing_state_transfers :: prepare(const configuration& newconfig,
                                                   const instance& us)
 {
-#if 0
-    // Make sure that inbound transfer state exists for each in-progress
-    // transfer to "us".
+    po6::threads::mutex::hold hold(&m_periodic_lock);
     std::map<uint16_t, regionid> in_transfers = newconfig.transfers_to(us);
+    std::map<uint16_t, regionid> out_transfers = newconfig.transfers_from(us);
+    std::map<uint16_t, regionid>::iterator t;
 
-    for (std::map<uint16_t, regionid>::iterator t = in_transfers.begin();
-            t != in_transfers.end(); ++t)
+    // Make sure that inbound state exists for each in-progress transfer to us.
+    for (t = in_transfers.begin(); t != in_transfers.end(); ++t)
     {
         if (!m_transfers_in.contains(t->first))
         {
-            LOG(INFO) << "Initiating inbound transfer #" << t->first << ".";
+            LOG(INFO) << "Initiating inbound transfer #" << t->first;
             e::intrusive_ptr<transfer_in> xfer;
             xfer = new transfer_in(newconfig.tailof(t->second));
             m_transfers_in.insert(t->first, xfer);
         }
     }
 
-    // Make sure that outbound transfer state exists for each in-progress
-    // transfer from "us".
-    std::map<uint16_t, regionid> out_transfers = newconfig.transfers_from(us);
-
-    for (std::map<uint16_t, regionid>::iterator t = out_transfers.begin();
-            t != out_transfers.end(); ++t)
+    // Make sure that outbound state exists for each in-progress transfer from us
+    for (t = out_transfers.begin(); t != out_transfers.end(); ++t)
     {
         if (!m_transfers_out.contains(t->first))
         {
-            LOG(INFO) << "Initiating outbound transfer #" << t->first << ".";
+            LOG(INFO) << "Initiating outbound transfer #" << t->first;
             e::intrusive_ptr<hyperdisk::rolling_snapshot> snap;
             snap = m_data->make_rolling_snapshot(t->second);
             e::intrusive_ptr<transfer_out> xfer;
-            xfer = new transfer_out(snap/*, XXX */);
+            xfer = new transfer_out(snap);
             m_transfers_out.insert(t->first, xfer);
         }
     }
-#endif
 }
 
 void
-hyperdaemon :: ongoing_state_transfers :: reconfigure(const configuration&,
+hyperdaemon :: ongoing_state_transfers :: reconfigure(const configuration& config,
                                                       const instance&)
 {
-    // Do nothing.
+    po6::threads::mutex::hold hold(&m_periodic_lock);
+    m_config = config;
+    __sync_synchronize();
 }
 
 void
 hyperdaemon :: ongoing_state_transfers :: cleanup(const configuration& newconfig,
                                                   const instance& us)
 {
-#if 0
+    po6::threads::mutex::hold hold(&m_periodic_lock);
     std::map<uint16_t, regionid> in_transfers = newconfig.transfers_to(us);
-
-    for (transfers_in_map_t::iterator t = m_transfers_in.begin();
-            t != m_transfers_in.end(); t.next())
-    {
-        if (in_transfers.find(t.key()) == in_transfers.end())
-        {
-            LOG(INFO) << "Stopping transfer #" << t.key() << ".";
-            m_transfers_in.remove(t.key());
-        }
-    }
-
     std::map<uint16_t, regionid> out_transfers = newconfig.transfers_from(us);
 
-    for (transfers_out_map_t::iterator t = m_transfers_out.begin();
-            t != m_transfers_out.end(); t.next())
+    for (transfers_in_map_t::iterator ti = m_transfers_in.begin();
+            ti != m_transfers_in.end(); ti.next())
     {
-        if (out_transfers.find(t.key()) == out_transfers.end())
+        std::map<uint16_t, regionid>::iterator it;
+        it = in_transfers.find(ti.key());
+
+        if (it == in_transfers.end())
         {
-            LOG(INFO) << "Stopping transfer #" << t.key() << ".";
-            m_transfers_out.remove(t.key());
+            LOG(INFO) << "Stopping incoming transfer #" << ti.key();
+            m_transfers_in.remove(ti.key());
+        }
+        else
+        {
+            // Anything that we've tagged "go_live" that is not live needs to be
+            // resent to the coordinator.
+            if (ti.value()->go_live &&
+                m_config.entityfor(us, it->second) == entityid())
+            {
+                m_cl->transfer_golive(it->first);
+            }
+
+            // If we've marked this complete, we should resend the message.
+            if (ti.value()->triggered)
+            {
+                m_cl->transfer_complete(it->first);
+            }
         }
     }
-#endif
+
+    for (transfers_out_map_t::iterator to = m_transfers_out.begin();
+            to != m_transfers_out.end(); to.next())
+    {
+        if (out_transfers.find(to.key()) == out_transfers.end())
+        {
+            LOG(INFO) << "Stopping outgoing transfer #" << to.key();
+            m_transfers_out.remove(to.key());
+        }
+    }
 }
 
 void
@@ -202,59 +298,63 @@ hyperdaemon :: ongoing_state_transfers :: shutdown()
     m_shutdown = true;
 }
 
-#if 0
 void
-hyperdaemon :: ongoing_state_transfers :: region_transfer(const entityid& from,
-                                                          const entityid& to)
+hyperdaemon :: ongoing_state_transfers :: region_transfer_send(const entityid& from,
+                                                               const entityid& to)
 {
     // Find the outgoing transfer state
     e::intrusive_ptr<transfer_out> t;
 
     if (!m_transfers_out.lookup(from.subspace, &t))
     {
+        LOG(WARNING) << "dropping request for unknown network transfer " << from.subspace;
         return;
     }
 
-    if (t->is_failed())
+    if (t->failed)
     {
-        m_cl->fail_transfer(from.subspace);
+        m_cl->transfer_fail(from.subspace);
         return;
     }
 
     network_msgtype type;
     std::auto_ptr<e::buffer> msg;
 
-    po6::threads::mutex::hold hold(t->lock());
+    po6::threads::mutex::hold hold(&t->lock);
 
-    if (t->snap()->valid())
+    if (t->snap->valid())
     {
         size_t size = m_comm->header_size()
                     + sizeof(uint64_t)
                     + sizeof(uint64_t)
-                    + sizeof(uint32_t) + t->snap->key().size();
+                    + sizeof(uint32_t)
+                    + t->snap->key().size()
+                    + sizeof(uint8_t);
+        type = hyperdex::XFER_DATA;
 
-        if (t->snap()->has_value())
+        if (t->snap->has_value())
         {
-            type = hyperdex::XFER_PUT;
-            size += packspace(t->snap->value());
+            size += hyperdex::packspace(t->snap->value());
+        }
+
+        msg.reset(e::buffer::create(size));
+        e::buffer::packer pa = msg->pack_at(m_comm->header_size());
+        pa = pa << t->xfer_num
+                << t->snap->version()
+                << t->snap->key();
+
+        if (t->snap->has_value())
+        {
+            pa = pa << static_cast<uint8_t>(1) << t->snap->value();
         }
         else
         {
-            type = hyperdex::XFER_DEL;
+            pa = pa << static_cast<uint8_t>(0);
         }
 
-        e::buffer::unpacker up = *msg << t->xfer_num()
-                                      << t->snap()->version()
-                                      << t->snap()->key();
-
-        if (t->snap()->has_value())
-        {
-            up = up << t->snap()->value();
-        }
-
-        assert(!up.error());
-        t->inc_xfer_num();
-        t->snap()->next();
+        assert(!pa.error());
+        ++t->xfer_num;
+        t->snap->next();
     }
     else
     {
@@ -264,42 +364,39 @@ hyperdaemon :: ongoing_state_transfers :: region_transfer(const entityid& from,
 
     if (!m_comm->send(to, from, type, msg))
     {
-        t->fail();
-        m_cl->fail_transfer(from.subspace);
-        return;
+        t->failed = true;
+        m_cl->transfer_fail(from.subspace);
     }
 }
 
 void
-hyperdaemon :: ongoing_state_transfers :: region_transfer(const entityid& from,
-                                                          uint16_t xfer_id,
-                                                          uint64_t xfer_num,
-                                                          bool has_value,
-                                                          uint64_t version,
-                                                          const e::buffer& key,
-                                                          const std::vector<e::buffer>& value)
+hyperdaemon :: ongoing_state_transfers :: region_transfer_recv(const hyperdex::entityid& from,
+                                                               uint16_t xfer_id,
+                                                               uint64_t xfer_num,
+                                                               bool has_value,
+                                                               uint64_t version,
+                                                               std::auto_ptr<e::buffer> backing,
+                                                               const e::slice& key,
+                                                               const std::vector<e::slice>& value)
 {
     // Find the incoming transfer state
     e::intrusive_ptr<transfer_in> t;
 
-    if (!m_transfers_in.lookup(from.subspace, &t))
+    if (!m_transfers_in.lookup(xfer_id, &t))
     {
+        LOG(INFO) << "received XFER_DATA for transfer #" << xfer_id << ", but we know nothing about it";
         return;
     }
-
-    if (t->is_failed())
-    {
-        m_cl->fail_transfer(from.subspace);
-        return;
-    }
-
-#if 0
-    // Grab a lock to ensure that we order the puts to disk correctly.
-    keypair kp(t->replicate_from.get_region(), key);
-    e::striped_lock<po6::threads::mutex>::hold hold_k(&m_locks, get_lock_num(kp));
 
     // Grab a lock to ensure we can safely update the transfer object.
     po6::threads::mutex::hold hold_t(&t->lock);
+
+    if (t->failed)
+    {
+        LOG(INFO) << "received XFER_DATA for transfer #" << xfer_id << ", but we have failed it";
+        m_cl->transfer_fail(xfer_id);
+        return;
+    }
 
     // If we've triggered, then we can safely drop the message.
     if (t->triggered)
@@ -308,133 +405,116 @@ hyperdaemon :: ongoing_state_transfers :: region_transfer(const entityid& from,
     }
 
     // This is a probabilistic test of the remote end's failure.  If we have
-    // queued more than 1000 messages, then somewhere one got dropped as the
-    // other end inserts them into the queue in FIFO order, and they are
-    // delivered to threads in FIFO order.  There is always a chance that what
-    // really happened was one thread pulled off the missing message, and then
-    // was blocked arbitrarily long while other threads worked through several
-    // messages.  The large constant ensures that this is exceedingly unlikely
-    // (but admittedly still possible).
-    if (t->ops.size() > TRANSFERS_IN_FLIGHT)
+    // queued more than TRANSFERS_IN_FLIGHT messages, then somewhere one got
+    // dropped as the other end inserts them into the queue in FIFO order, and
+    // they are delivered to threads in FIFO order.  There is always a chance
+    // that what really happened was one thread pulled off the missing message,
+    // and then was blocked arbitrarily long while other threads worked through
+    // several messages.  The large constant ensures that this is exceedingly
+    // unlikely (but admittedly still possible).  Best chances are when the
+    // constant is many times the number of network threads
+    //  XXX Autotune this.
+    if (t->ops.size() > TRANSFERS_IN_FLIGHT * 64)
     {
         t->failed = true;
-        m_cl->fail_transfer(xfer_id);
+        m_cl->transfer_fail(xfer_id);
         return;
     }
 
     // Insert the new operation.
-    e::intrusive_ptr<transfer_in::op> o = new transfer_in::op(has_value, version, key, value);
+    std::tr1::shared_ptr<e::buffer> back(backing);
+    e::intrusive_ptr<transfer_in::op> o = new transfer_in::op(has_value, version, back, key, value);
     t->ops.insert(std::make_pair(xfer_num, o));
 
-    while (!t->ops.empty() && t->ops.begin()->first == t->xferred_so_far + 1)
+    while (!t->ops.empty() && t->ops.begin()->first == t->xfer_num + 1)
     {
-        transfer_in::op& one(*t->ops.begin()->second);
+        transfer_in::op& oneop(*t->ops.begin()->second);
 
-        if (t->triggers.find(std::make_pair(one.key, one.version)) != t->triggers.end())
+        // XXX We should do better than being friends with m_repl.
+        // Grab a lock to ensure that we order the puts to disk correctly.
+        e::striped_lock<po6::threads::mutex>::hold hold(&m_repl->m_locks, m_repl->get_lock_num(from.get_region(), oneop.key));
+
+        // If this op acts as a trigger
+        if (t->triggers.find(std::make_pair(oneop.key, oneop.version)) !=
+                t->triggers.end())
         {
             t->triggered = true;
-            LOG(INFO) << "COMPLETE TRANSFER " << xfer_id;
+            m_cl->transfer_complete(xfer_id);
             return;
         }
 
-        if (t->triggers.lower_bound(std::make_pair(one.key, 0)) ==
-                t->triggers.upper_bound(std::make_pair(one.key, std::numeric_limits<uint64_t>::max() - 1)))
+        // This op can only be put to disk when there is not another version of
+        // the key in the triggers.  If there is another version in the
+        // triggers, then this version or another has already been written to
+        // disk and we cannot overwrite it.
+        if (t->triggers.lower_bound(std::make_pair(oneop.key, 0)) ==
+                t->triggers.upper_bound(std::make_pair(oneop.key, UINT64_MAX)))
         {
             hyperdisk::returncode res;
 
-            if (one.has_value)
+            if (oneop.has_value)
             {
-                switch ((res = m_data->put(t->replicate_from.get_region(), one.key, one.value, one.version)))
-                {
-                    case hyperdisk::SUCCESS:
-                        break;
-                    case hyperdisk::WRONGARITY:
-                        LOG(ERROR) << "Transfer " << xfer_id << " caused WRONGARITY.";
-                        break;
-                    case hyperdisk::MISSINGDISK:
-                        LOG(ERROR) << "Transfer " << xfer_id << " caused MISSINGDISK.";
-                        break;
-                    case hyperdisk::NOTFOUND:
-                    case hyperdisk::DATAFULL:
-                    case hyperdisk::SEARCHFULL:
-                    case hyperdisk::SYNCFAILED:
-                    case hyperdisk::DROPFAILED:
-                    case hyperdisk::SPLITFAILED:
-                    case hyperdisk::DIDNOTHING:
-                    default:
-                        LOG(ERROR) << "Transfer " << xfer_id << " caused unexpected error code.";
-                        break;
-                }
+                res = m_data->put(t->replicate_from.get_region(), oneop.backing, oneop.key, oneop.value, oneop.version);
             }
             else
             {
-                switch ((res = m_data->del(t->replicate_from.get_region(), one.key)))
-                {
-                    case hyperdisk::SUCCESS:
-                        break;
-                    case hyperdisk::MISSINGDISK:
-                        LOG(ERROR) << "Transfer " << xfer_id << " caused MISSINGDISK.";
-                        break;
-                    case hyperdisk::WRONGARITY:
-                    case hyperdisk::NOTFOUND:
-                    case hyperdisk::DATAFULL:
-                    case hyperdisk::SEARCHFULL:
-                    case hyperdisk::SYNCFAILED:
-                    case hyperdisk::DROPFAILED:
-                    case hyperdisk::SPLITFAILED:
-                    case hyperdisk::DIDNOTHING:
-                    default:
-                        LOG(ERROR) << "Transfer " << xfer_id << " caused unexpected error code.";
-                        break;
-                }
+                res = m_data->del(t->replicate_from.get_region(), oneop.backing, oneop.key);
             }
 
             if (res != hyperdisk::SUCCESS)
             {
+                LOG(ERROR) << "transfer " << xfer_id << " failed because HyperDisk returned " << res;
                 t->failed = true;
-                m_cl->fail_transfer(xfer_id);
+                m_cl->transfer_fail(xfer_id);
                 return;
             }
+
+            m_repl->check_for_deferred_operations(from.get_region(),
+                    oneop.version, oneop.backing, oneop.key, oneop.has_value,
+                    oneop.value);
         }
 
-        ++t->xferred_so_far;
         t->ops.erase(t->ops.begin());
+        ++t->xfer_num;
     }
 
     t->started = true;
-    e::buffer msg;
+    std::auto_ptr<e::buffer> msg(e::buffer::create(m_comm->header_size()));
 
-    if (!m_comm->send(t->transfer_entity, t->replicate_from, hyperdex::XFER_MORE, msg))
+    if (!m_comm->send(entityid(configuration::TRANSFERSPACE, xfer_id, 0, 0, 0),
+                      t->replicate_from, hyperdex::XFER_MORE, msg))
     {
         t->failed = true;
-        m_cl->fail_transfer(xfer_id);
+        m_cl->transfer_fail(xfer_id);
         return;
     }
-#endif
 }
 
 void
-hyperdaemon :: ongoing_state_transfers :: region_transfer_done(const entityid& from, const entityid& to)
+hyperdaemon :: ongoing_state_transfers :: region_transfer_done(const entityid& from,
+                                                               const entityid& to)
 {
     // Find the incoming transfer state
     e::intrusive_ptr<transfer_in> t;
 
-    if (!m_transfers_in.lookup(from.subspace, &t))
+    if (!m_transfers_in.lookup(to.subspace, &t))
     {
+        LOG(INFO) << "received XFER_DONE for transfer #" << to.subspace << ", but we know nothing about it";
         return;
     }
 
-    if (t->is_failed())
+    po6::threads::mutex::hold hold(&t->lock);
+
+    if (t->failed)
     {
-        m_cl->fail_transfer(from.subspace);
+        LOG(INFO) << "received XFER_DONE for transfer #" << to.subspace << ", but we have failed it";
+        m_cl->transfer_fail(to.subspace);
         return;
     }
 
-    po6::threads::mutex::hold hold(t->lock());
-
-#if 0
     if (from != t->replicate_from)
     {
+        LOG(WARNING) << "another host is stepping on transfer #" << to.subspace;
         return;
     }
 
@@ -442,54 +522,27 @@ hyperdaemon :: ongoing_state_transfers :: region_transfer_done(const entityid& f
 
     if (!t->go_live)
     {
+        LOG(WARNING) << "transfer #" << to.subspace << " is asking to go live";
         t->go_live = true;
-        LOG(INFO) << "REGION GO LIVE " << to.subspace;
-    }
-#endif
-}
-
-
-#if 0
-void
-hyperdaemon :: ongoing_state_transfers :: start_transfers()
-{
-    for (std::map<uint16_t, e::intrusive_ptr<transfer_in> >::iterator t = m_transfers_in.begin();
-            t != m_transfers_in.end(); ++t)
-    {
-        if (!t->second->started)
-        {
-            e::buffer msg;
-
-            for (size_t i = 0; i < TRANSFERS_IN_FLIGHT; ++i)
-            {
-                m_comm->send(t->second->transfer_entity, t->second->replicate_from, hyperdex::XFER_MORE, msg);
-            }
-        }
+        m_cl->transfer_golive(to.subspace);
     }
 }
-
-void
-hyperdaemon :: ongoing_state_transfers :: finish_transfers()
-{
-    for (std::map<uint16_t, e::intrusive_ptr<transfer_in> >::iterator t = m_transfers_in.begin();
-            t != m_transfers_in.end(); ++t)
-    {
-        if (t->second->go_live)
-        {
-            e::buffer msg;
-            m_comm->send(t->second->transfer_entity, t->second->replicate_from, hyperdex::XFER_MORE, msg);
-        }
-    }
-}
-#endif
-#endif
 
 void
 hyperdaemon :: ongoing_state_transfers :: add_trigger(const hyperdex::regionid& reg,
+                                                      std::tr1::shared_ptr<e::buffer> backing,
                                                       const e::slice& key,
                                                       uint64_t rev)
 {
-    // XXX Must actually trigger something
+    uint16_t xfer_id = m_config.transfer_id(reg);
+    e::intrusive_ptr<transfer_in> t;
+
+    if (!m_transfers_in.lookup(xfer_id, &t) || !t)
+    {
+        return;
+    }
+
+    t->triggers[std::make_pair(key, rev)] = backing;
 }
 
 void
@@ -498,12 +551,17 @@ hyperdaemon :: ongoing_state_transfers :: set_replication_manager(replication_ma
     m_repl = repl;
 }
 
-#if 0
+void
+hyperdaemon :: ongoing_state_transfers :: periodic()
+{
+    LOG(WARNING) << "State transfer \"cron\" thread started.";
 
+    for (uint64_t i = 0; !m_shutdown; ++i)
+    {
         try
         {
-            // Every second.
-            if (i % 4 == 0)
+            // Every half second
+            if (i % 2 == 0)
             {
                 start_transfers();
             }
@@ -515,8 +573,8 @@ hyperdaemon :: ongoing_state_transfers :: set_replication_manager(replication_ma
 
         try
         {
-            // Every ten seconds.
-            if (i % 40 == 0)
+            // Every second
+            if (i % 4 == 0)
             {
                 finish_transfers();
             }
@@ -525,4 +583,48 @@ hyperdaemon :: ongoing_state_transfers :: set_replication_manager(replication_ma
         {
             LOG(INFO) << "Uncaught exception when finishing transfers: " << e.what();
         }
-#endif
+
+        e::sleep_ms(250);
+    }
+}
+
+void
+hyperdaemon :: ongoing_state_transfers :: start_transfers()
+{
+    for (transfers_in_map_t::iterator t = m_transfers_in.begin();
+            t != m_transfers_in.end(); t.next())
+    {
+        po6::threads::mutex::hold hold(&m_periodic_lock);
+
+        if (!t.value()->started)
+        {
+            for (size_t i = 0; i < TRANSFERS_IN_FLIGHT; ++i)
+            {
+                std::auto_ptr<e::buffer> msg(e::buffer::create(m_comm->header_size()));
+                m_comm->send(entityid(configuration::TRANSFERSPACE, t.key(), 0, 0, 0),
+                             t.value()->replicate_from, hyperdex::XFER_MORE, msg);
+            }
+        }
+    }
+}
+
+void
+hyperdaemon :: ongoing_state_transfers :: finish_transfers()
+{
+    for (transfers_in_map_t::iterator t = m_transfers_in.begin();
+            t != m_transfers_in.end(); t.next())
+    {
+        po6::threads::mutex::hold hold(&m_periodic_lock);
+
+        if (t.value()->go_live)
+        {
+            std::auto_ptr<e::buffer> msg(e::buffer::create(m_comm->header_size()));
+            if (!m_comm->send(entityid(configuration::TRANSFERSPACE, t.key(), 0, 0, 0),
+                              t.value()->replicate_from, hyperdex::XFER_MORE, msg))
+            {
+                t.value()->failed = true;
+                m_cl->transfer_fail(t.key());
+            }
+        }
+    }
+}

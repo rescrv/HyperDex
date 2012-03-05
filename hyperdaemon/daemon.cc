@@ -33,6 +33,7 @@
 
 // Google Log
 #include <glog/logging.h>
+#include <glog/raw_logging.h>
 
 // e
 #include <e/timer.h>
@@ -58,7 +59,7 @@ static bool s_continue = true;
 void
 sig_handle(int /*signum*/)
 {
-    LOG(ERROR) << "signal received; triggering exit..";
+    RAW_LOG(ERROR, "signal received; triggering exit..");
     s_continue = false;
 }
 
@@ -70,6 +71,8 @@ hyperdaemon :: daemon(po6::pathname datadir,
                       in_port_t incoming,
                       in_port_t outgoing)
 {
+    google::LogToStderr();
+
     // Catch signals.
     struct sigaction handle;
     handle.sa_handler = sig_handle;
@@ -85,6 +88,24 @@ hyperdaemon :: daemon(po6::pathname datadir,
         return EXIT_FAILURE;
     }
 
+    char random_bytes[16];
+
+    {
+        po6::io::fd rand(open("/dev/urandom", O_RDONLY));
+
+        if (rand.get() < 0)
+        {
+            PLOG(INFO) << "could not open /dev/urandom for random bytes (open)";
+            return EXIT_FAILURE;
+        }
+
+        if (rand.read(random_bytes, 16) != 16)
+        {
+            PLOG(INFO) << "could not read random bytes from /dev/urandom (read)";
+            return EXIT_FAILURE;
+        }
+    }
+
     num_threads = s_continue ? num_threads : 0;
 
     // Setup our link to the coordinator.
@@ -95,15 +116,16 @@ hyperdaemon :: daemon(po6::pathname datadir,
     logical comm(&cl, bind_to, incoming, outgoing, num_threads);
     // Create our announce string.
     std::ostringstream announce;
-    announce << "instance\t" << comm.inst().inbound.address << "\t"
-                             << comm.inst().inbound.port << "\t"
-                             << comm.inst().outbound.port
-                             << "\t3333\ttoken";
+    announce << "instance\t" << comm.inst().address << "\t"
+                             << comm.inst().inbound_port << "\t"
+                             << comm.inst().outbound_port << "\t"
+                             << getpid() << "\t"
+                             << e::slice(random_bytes, 16).hex();
     cl.set_announce(announce.str());
     // Setup the search component.
     searches ssss(&cl, &data, &comm);
     // Setup the recovery component.
-    ongoing_state_transfers ost(&data);
+    ongoing_state_transfers ost(&data, &comm, &cl);
     // Setup the replication component.
     replication_manager repl(&cl, &data, &comm, &ost);
     // Give the ongoing_state_transfers a view into the replication component
@@ -137,7 +159,7 @@ hyperdaemon :: daemon(po6::pathname datadir,
     {
         if (cl.unacknowledged())
         {
-            LOG(INFO) << "Installing new configuration.";
+            LOG(INFO) << "Installing new configuration version " << cl.config().version();
             hyperdex::instance newinst = comm.inst();
 
             // Figure out which versions we were assigned.
@@ -155,6 +177,7 @@ hyperdaemon :: daemon(po6::pathname datadir,
             comm.prepare(cl.config(), newinst);
             data.prepare(cl.config(), newinst);
             repl.prepare(cl.config(), newinst);
+            ost.prepare(cl.config(), newinst);
             ssss.prepare(cl.config(), newinst);
 
             // Protect ourself against exceptions.
@@ -171,6 +194,7 @@ hyperdaemon :: daemon(po6::pathname datadir,
             comm.reconfigure(cl.config(), newinst);
             data.reconfigure(cl.config(), comm.inst());
             repl.reconfigure(cl.config(), comm.inst());
+            ost.reconfigure(cl.config(), comm.inst());
             ssss.reconfigure(cl.config(), comm.inst());
             comm.unpause();
             g1.dismiss();
@@ -181,6 +205,7 @@ hyperdaemon :: daemon(po6::pathname datadir,
             // These operations should assume that there will be network
             // activity, and that the network threads will be in full force..
             ssss.prepare(cl.config(), comm.inst());
+            ost.cleanup(cl.config(), comm.inst());
             repl.cleanup(cl.config(), comm.inst());
             data.cleanup(cl.config(), comm.inst());
             comm.cleanup(cl.config(), comm.inst());

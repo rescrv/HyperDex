@@ -378,6 +378,7 @@ handle_line(hyperclient* cl,
             attr.attr = words[i].first;
             attr.value = words[i + 1].first;
             attr.value_sz = words[i + 1].second - words[i + 1].first;
+            attr.datatype = HYPERDATATYPE_STRING;
             attrs.push_back(attr);
         }
 

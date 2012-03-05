@@ -39,13 +39,14 @@
 // HyperDex
 #include "hyperdex/hyperdex/configuration.h"
 #include "hyperdex/hyperdex/coordinatorlink.h"
+#include "hyperdex/hyperdex/datatype.h"
 #include "hyperdex/hyperdex/instance.h"
 #include "hyperdex/hyperdex/network_constants.h"
 
 // HyperClient
 #include "hyperclient/hyperclient.h"
 
-#define HDRSIZE (sizeof(uint32_t) + sizeof(uint8_t) + 2 * sizeof(uint16_t) + 2 * hyperdex::entityid::SERIALIZEDSIZE + sizeof(uint64_t))
+#define HDRSIZE (sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint8_t) + 2 * sizeof(uint16_t) + 2 * hyperdex::entityid::SERIALIZEDSIZE + sizeof(uint64_t))
 
 // XXX 2012-01-22 When failures happen, this code is not robust.  It may throw
 // exceptions, and it will fail to properly cleanup state.  For instance, if a
@@ -203,6 +204,20 @@ hyperclient_destroy_attrs(struct hyperclient_attribute* attrs, size_t /*attrs_sz
 
 /////////////////////////////// Utility Functions //////////////////////////////
 
+static hyperclient_datatype
+hd_to_hc_type(hyperdex::datatype in)
+{
+    switch (in)
+    {
+        case hyperdex::DATATYPE_STRING:
+            return HYPERDATATYPE_STRING;
+        case hyperdex::DATATYPE_UINT64:
+            return HYPERDATATYPE_UINT64;
+        default:
+            return HYPERDATATYPE_GARBAGE;
+    }
+}
+
 static bool
 attributes_from_value(const hyperdex::configuration& config,
                       const hyperdex::entityid& entity,
@@ -213,7 +228,7 @@ attributes_from_value(const hyperdex::configuration& config,
                       hyperclient_attribute** attrs,
                       size_t* attrs_sz)
 {
-    std::vector<std::string> dimension_names = config.dimension_names(entity.get_space());
+    std::vector<hyperdex::attribute> dimension_names = config.dimension_names(entity.get_space());
 
     if (value.size() + 1 != dimension_names.size())
     {
@@ -222,11 +237,11 @@ attributes_from_value(const hyperdex::configuration& config,
     }
 
     size_t sz = sizeof(hyperclient_attribute) * dimension_names.size() + key_sz
-              + dimension_names[0].size() + 1;
+              + dimension_names[0].name.size() + 1;
 
     for (size_t i = 0; i < value.size(); ++i)
     {
-        sz += dimension_names[i + 1].size() + 1 + value[i].size();
+        sz += dimension_names[i + 1].name.size() + 1 + value[i].size();
     }
 
     std::vector<hyperclient_attribute> ha;
@@ -246,27 +261,29 @@ attributes_from_value(const hyperdex::configuration& config,
     {
         data += sizeof(hyperclient_attribute);
         ha.push_back(hyperclient_attribute());
-        size_t attr_sz = dimension_names[0].size() + 1;
+        size_t attr_sz = dimension_names[0].name.size() + 1;
         ha.back().attr = data;
-        memmove(data, dimension_names[0].c_str(), attr_sz);
+        memmove(data, dimension_names[0].name.c_str(), attr_sz);
         data += attr_sz;
         ha.back().value = data;
         memmove(data, key, key_sz);
         data += key_sz;
         ha.back().value_sz = key_sz;
+        ha.back().datatype = hd_to_hc_type(dimension_names[0].type);
     }
 
     for (size_t i = 0; i < value.size(); ++i)
     {
         ha.push_back(hyperclient_attribute());
-        size_t attr_sz = dimension_names[i + 1].size() + 1;
+        size_t attr_sz = dimension_names[i + 1].name.size() + 1;
         ha.back().attr = data;
-        memmove(data, dimension_names[i + 1].c_str(), attr_sz);
+        memmove(data, dimension_names[i + 1].name.c_str(), attr_sz);
         data += attr_sz;
         ha.back().value = data;
         memmove(data, value[i].data(), value[i].size());
         data += value[i].size();
         ha.back().value_sz = value[i].size();
+        ha.back().datatype = hd_to_hc_type(dimension_names[i + 1].type);
     }
 
     memmove(ret, &ha.front(), sizeof(hyperclient_attribute) * ha.size());
@@ -283,7 +300,7 @@ attributes_from_value(const hyperdex::configuration& config,
 class hyperclient::channel
 {
     public:
-        channel(const hyperdex::instance& inst);
+        channel(const po6::net::location& loc);
 
     public:
         // The entity by which the remote host knows us
@@ -293,6 +310,7 @@ class hyperclient::channel
         uint64_t generate_nonce() { return m_nonce++; }
         void set_nonce(uint64_t nonce) { m_nonce = nonce; }
         void set_entity(hyperdex::entityid ent) { m_ent = ent; }
+        po6::net::location location() { return m_loc; }
         po6::net::socket& sock() { return m_sock; }
 
     private:
@@ -309,16 +327,18 @@ class hyperclient::channel
         size_t m_ref;
         uint64_t m_nonce;
         hyperdex::entityid m_ent;
+        po6::net::location m_loc;
         po6::net::socket m_sock;
 };
 
-hyperclient :: channel :: channel(const hyperdex::instance& inst)
+hyperclient :: channel :: channel(const po6::net::location& loc)
     : m_ref(0)
     , m_nonce(1)
     , m_ent(hyperdex::configuration::CLIENTSPACE, 0, 0, 0, 0)
-    , m_sock(inst.inbound.address.family(), SOCK_STREAM, IPPROTO_TCP)
+    , m_loc(loc)
+    , m_sock(loc.address.family(), SOCK_STREAM, IPPROTO_TCP)
 {
-    m_sock.connect(inst.inbound);
+    m_sock.connect(loc);
     m_sock.set_tcp_nodelay();
 }
 
@@ -758,7 +778,7 @@ hyperclient :: pending_search :: handle_response(hyperdex::network_msgtype type,
 
     if (m_cl->send(chan(), this, smsg.get()) < 0)
     {
-        set_status(HYPERCLIENT_DISCONNECT);
+        m_cl->killall(chan()->sock().get(), HYPERCLIENT_DISCONNECT);
 
         if (--*m_refcount == 0)
         {
@@ -788,7 +808,7 @@ hyperclient :: hyperclient(const char* coordinator, in_port_t port)
     , m_requests()
     , m_completed()
     , m_requestid(1)
-    , m_configured(false)
+    , m_have_seen_config(false)
 {
     m_coord->set_announce("client");
     m_epfd = epoll_create(16384);
@@ -808,7 +828,7 @@ hyperclient :: get(const char* space, const char* key, size_t key_sz,
                    hyperclient_returncode* status,
                    struct hyperclient_attribute** attrs, size_t* attrs_sz)
 {
-    if ((!m_configured || !m_coord->connected()) && try_coord_connect(status) < 0)
+    if (maintain_coord_connection(status) < 0)
     {
         return -1;
     }
@@ -830,7 +850,7 @@ hyperclient :: put(const char* space, const char* key, size_t key_sz,
                    const struct hyperclient_attribute* attrs, size_t attrs_sz,
                    hyperclient_returncode* status)
 {
-    if ((!m_configured || !m_coord->connected()) && try_coord_connect(status) < 0)
+    if (maintain_coord_connection(status) < 0)
     {
         return -1;
     }
@@ -859,7 +879,7 @@ int64_t
 hyperclient :: del(const char* space, const char* key, size_t key_sz,
                    hyperclient_returncode* status)
 {
-    if ((!m_configured || !m_coord->connected()) && try_coord_connect(status) < 0)
+    if (maintain_coord_connection(status) < 0)
     {
         return -1;
     }
@@ -883,7 +903,7 @@ hyperclient :: search(const char* space,
                       enum hyperclient_returncode* status,
                       struct hyperclient_attribute** attrs, size_t* attrs_sz)
 {
-    if ((!m_configured || !m_coord->connected()) && try_coord_connect(status) < 0)
+    if (maintain_coord_connection(status) < 0)
     {
         return -1;
     }
@@ -896,7 +916,7 @@ hyperclient :: search(const char* space,
         return -1;
     }
 
-    std::vector<std::string> dimension_names = m_config->dimension_names(si);
+    std::vector<hyperdex::attribute> dimension_names = m_config->dimension_names(si);
     assert(dimension_names.size() > 0);
     e::bitfield seen(dimension_names.size());
 
@@ -906,8 +926,13 @@ hyperclient :: search(const char* space,
     // Check the equality conditions.
     for (size_t i = 0; i < eq_sz; ++i)
     {
-        std::vector<std::string>::const_iterator dim;
-        dim = std::find(dimension_names.begin(), dimension_names.end(), eq[i].attr);
+        std::vector<hyperdex::attribute>::const_iterator dim;
+        dim = dimension_names.begin();
+
+        while (dim < dimension_names.end() && dim->name != eq[i].attr)
+        {
+            ++dim;
+        }
 
         if (dim == dimension_names.begin())
         {
@@ -926,6 +951,12 @@ hyperclient :: search(const char* space,
         if (seen.get(dimnum))
         {
             *status = HYPERCLIENT_DUPEATTR;
+            return -1 - i;
+        }
+
+        if (eq[i].datatype != hd_to_hc_type(dim->type))
+        {
+            *status = HYPERCLIENT_WRONGTYPE;
             return -1 - i;
         }
 
@@ -935,13 +966,12 @@ hyperclient :: search(const char* space,
     // Check the range conditions.
     for (size_t i = 0; i < rn_sz; ++i)
     {
-        std::vector<std::string>::const_iterator dim;
-        dim = std::find(dimension_names.begin(), dimension_names.end(), rn[i].attr);
+        std::vector<hyperdex::attribute>::const_iterator dim;
+        dim = dimension_names.begin();
 
-        if (dim == dimension_names.begin())
+        while (dim < dimension_names.end() && dim->name != rn[i].attr)
         {
-            *status = HYPERCLIENT_DONTUSEKEY;
-            return -1 - eq_sz - i;
+            ++dim;
         }
 
         if (dim == dimension_names.end())
@@ -955,6 +985,12 @@ hyperclient :: search(const char* space,
         if (seen.get(dimnum))
         {
             *status = HYPERCLIENT_DUPEATTR;
+            return -1 - eq_sz - i;
+        }
+
+        if (hd_to_hc_type(dim->type) != HYPERDATATYPE_UINT64)
+        {
+            *status = HYPERCLIENT_WRONGTYPE;
             return -1 - eq_sz - i;
         }
 
@@ -1009,7 +1045,7 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
 {
     while (!m_requests.empty() && m_completed.empty())
     {
-        if ((!m_configured || !m_coord->connected()) && try_coord_connect(status) < 0)
+        if (maintain_coord_connection(status) < 0)
         {
             return -1;
         }
@@ -1068,13 +1104,18 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
                 // This must only happen if we fail everything with a
                 // reconfigure.
                 m_coord->acknowledge();
-                continue;
             }
+
+            continue;
         }
+
+        e::intrusive_ptr<channel> chan = channel_from_fd(ee.data.fd);
+        assert(chan->sock().get() == ee.data.fd);
 
         if ((ee.events & EPOLLHUP) || (ee.events & EPOLLERR))
         {
             killall(ee.data.fd, HYPERCLIENT_DISCONNECT);
+            m_coord->fail_location(chan->location());
             continue;
         }
 
@@ -1083,13 +1124,16 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
             continue;
         }
 
-        e::intrusive_ptr<channel> chan = channel_from_fd(ee.data.fd);
-        assert(chan->sock().get() >= 0);
-
         uint32_t size;
+        ssize_t ret = chan->sock().recv(&size, sizeof(size), MSG_DONTWAIT|MSG_PEEK);
 
-        if (chan->sock().recv(&size, sizeof(size), MSG_DONTWAIT|MSG_PEEK) !=
-                sizeof(size))
+        if (ret < 0 || ret == 0)
+        {
+            killall(ee.data.fd, HYPERCLIENT_DISCONNECT);
+            m_coord->fail_location(chan->location());
+            continue;
+        }
+        else if (ret != sizeof(size))
         {
             continue;
         }
@@ -1100,19 +1144,21 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
         if (chan->sock().xrecv(response->data(), size, 0) < size)
         {
             killall(ee.data.fd, HYPERCLIENT_DISCONNECT);
+            m_coord->fail_location(chan->location());
             continue;
         }
 
         response->resize(size);
 
         uint8_t type_num;
+        uint64_t version;
         uint16_t fromver;
         uint16_t tover;
         hyperdex::entityid from;
         hyperdex::entityid to;
         uint64_t nonce;
         e::buffer::unpacker up = response->unpack_from(sizeof(size));
-        up = up >> type_num >> fromver >> tover >> from >> to >> nonce;
+        up = up >> type_num >> version >> fromver >> tover >> from >> to >> nonce;
 
         if (up.error())
         {
@@ -1137,13 +1183,20 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
 
         e::intrusive_ptr<pending> op = it->second;
         assert(op);
+        assert(chan == op->chan());
+        assert(nonce == op->nonce());
 
-        if (chan == op->chan() &&
-            fromver == op->instance().inbound_version &&
+        if (msg_type == hyperdex::CONFIGMISMATCH)
+        {
+            op->set_status(HYPERCLIENT_RECONFIGURE);
+            m_requests.erase(it);
+            return op->id();
+        }
+
+        if (fromver == op->instance().inbound_version &&
             tover == 1 &&
             from == op->entity() &&
-            to == chan->entity() &&
-            nonce == op->nonce())
+            to == chan->entity())
         {
             if (!op->matches_response_type(msg_type))
             {
@@ -1156,10 +1209,10 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
                 case KEEP:
                     return op->id();
                 case SILENTREMOVE:
-                    m_requests.erase(std::make_pair(chan->sock().get(), nonce));
+                    m_requests.erase(it);
                     break;
                 case REMOVE:
-                    m_requests.erase(std::make_pair(chan->sock().get(), nonce));
+                    m_requests.erase(it);
                     return op->id();
                 case FAIL:
                     killall(ee.data.fd, *status);
@@ -1176,11 +1229,8 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
         }
         else
         {
-            // XXX Sometimes it hits here.  Let's just count the op as "done"
-            // with an error, and not kill everything.
-            //killall(ee.data.fd, HYPERCLIENT_SERVERERROR);
-            op->set_status(HYPERCLIENT_SERVERERROR);
-            return op->id();
+            killall(ee.data.fd, HYPERCLIENT_SERVERERROR);
+            break;
         }
     }
 
@@ -1272,7 +1322,7 @@ hyperclient :: pack_attrs(const char* space, e::buffer::packer p,
         return -1;
     }
 
-    std::vector<std::string> dimension_names = m_config->dimension_names(si);
+    std::vector<hyperdex::attribute> dimension_names = m_config->dimension_names(si);
     assert(dimension_names.size() > 0);
     e::bitfield seen(dimension_names.size());
     uint32_t sz = attrs_sz;
@@ -1280,8 +1330,13 @@ hyperclient :: pack_attrs(const char* space, e::buffer::packer p,
 
     for (size_t i = 0; i < attrs_sz; ++i)
     {
-        std::vector<std::string>::const_iterator dim;
-        dim = std::find(dimension_names.begin(), dimension_names.end(), attrs[i].attr);
+        std::vector<hyperdex::attribute>::const_iterator dim;
+        dim = dimension_names.begin();
+
+        while (dim < dimension_names.end() && dim->name != attrs[i].attr)
+        {
+            ++dim;
+        }
 
         if (dim == dimension_names.begin())
         {
@@ -1300,6 +1355,12 @@ hyperclient :: pack_attrs(const char* space, e::buffer::packer p,
         if (seen.get(dimnum))
         {
             *status = HYPERCLIENT_DUPEATTR;
+            return -1 - i;
+        }
+
+        if (attrs[i].datatype != hd_to_hc_type(dim->type))
+        {
+            *status = HYPERCLIENT_WRONGTYPE;
             return -1 - i;
         }
 
@@ -1331,6 +1392,7 @@ hyperclient :: send(e::intrusive_ptr<channel> chan,
                     e::buffer* payload)
 {
     const uint8_t type = static_cast<uint8_t>(op->request_type());
+    const uint64_t version = m_config->version();
     const uint16_t fromver = 1;
     const uint16_t tover = op->instance().inbound_version;
     const hyperdex::entityid& from(chan->entity());
@@ -1338,13 +1400,14 @@ hyperclient :: send(e::intrusive_ptr<channel> chan,
     const uint64_t nonce = op->nonce();
     const uint32_t size = payload->size();
     e::buffer::packer pa = payload->pack();
-    pa = pa << size << type << fromver << tover << from << to << nonce;
+    pa = pa << size << type << version << fromver << tover << from << to << nonce;
     assert(!pa.error());
 
     if (chan->sock().xsend(payload->data(), payload->size(), MSG_NOSIGNAL) !=
             static_cast<ssize_t>(payload->size()))
     {
         killall(chan->sock().get(), HYPERCLIENT_DISCONNECT);
+        m_coord->fail_location(chan->location());
         return -1;
     }
 
@@ -1352,7 +1415,7 @@ hyperclient :: send(e::intrusive_ptr<channel> chan,
 }
 
 int64_t
-hyperclient :: try_coord_connect(hyperclient_returncode* status)
+hyperclient :: maintain_coord_connection(hyperclient_returncode* status)
 {
     switch (m_coord->connect())
     {
@@ -1369,9 +1432,19 @@ hyperclient :: try_coord_connect(hyperclient_returncode* status)
             return -1;
     }
 
-    while (!m_configured)
+    epoll_event ee;
+    ee.events = EPOLLIN;
+    ee.data.fd = m_coord->pfd().fd;
+
+    if (epoll_ctl(m_epfd.get(), EPOLL_CTL_ADD, m_coord->pfd().fd, &ee) < 0 && errno != EEXIST)
     {
-        switch (m_coord->loop(1, -1))
+        *status = HYPERCLIENT_COORDFAIL;
+        return -1;
+    }
+
+    do
+    {
+        switch (m_coord->loop(1, m_have_seen_config ? 0 : -1))
         {
             case hyperdex::coordinatorlink::SUCCESS:
                 break;
@@ -1390,9 +1463,10 @@ hyperclient :: try_coord_connect(hyperclient_returncode* status)
         {
             *m_config = m_coord->config();
             m_coord->acknowledge();
-            m_configured = true;
+            m_have_seen_config = true;
         }
     }
+    while (!m_have_seen_config);
 
     return 0;
 }
@@ -1403,6 +1477,12 @@ hyperclient :: killall(int fd, hyperclient_returncode status)
     assert(0 <= fd && static_cast<unsigned>(fd) < m_fds.size());
     e::intrusive_ptr<channel> chan = m_fds[fd];
     m_fds[fd] = NULL;
+
+    if (!chan)
+    {
+        return;
+    }
+
     requests_map_t::iterator r = m_requests.begin();
 
     while (r != m_requests.end())
@@ -1432,6 +1512,8 @@ hyperclient :: killall(int fd, hyperclient_returncode status)
 
     try
     {
+        epoll_event ee;
+        epoll_ctl(m_epfd.get(), EPOLL_CTL_DEL, chan->sock().get(), &ee);
         chan->sock().shutdown(SHUT_RDWR);
         chan->sock().close();
     }
@@ -1453,9 +1535,11 @@ hyperclient :: get_channel(hyperdex::instance inst,
         return i->second;
     }
 
+    po6::net::location loc(inst.address, inst.inbound_port);
+
     try
     {
-        e::intrusive_ptr<channel> chan = new channel(inst);
+        e::intrusive_ptr<channel> chan = new channel(loc);
         epoll_event ee;
         ee.events = EPOLLIN;
         ee.data.fd = chan->sock().get();
@@ -1463,6 +1547,7 @@ hyperclient :: get_channel(hyperdex::instance inst,
         if (epoll_ctl(m_epfd.get(), EPOLL_CTL_ADD, chan->sock().get(), &ee) < 0)
         {
             *status = HYPERCLIENT_CONNECTFAIL;
+            m_coord->warn_location(chan->location());
             return NULL;
         }
 
@@ -1473,6 +1558,7 @@ hyperclient :: get_channel(hyperdex::instance inst,
     catch (po6::error& e)
     {
         *status = HYPERCLIENT_CONNECTFAIL;
+        m_coord->warn_location(loc);
         errno = e;
         return NULL;
     }

@@ -70,7 +70,9 @@ class coordinatorlink
         returncode acknowledge();
         returncode warn_location(const po6::net::location& loc);
         returncode fail_location(const po6::net::location& loc);
-        returncode fail_transfer(uint16_t xfer_id);
+        returncode transfer_fail(uint16_t xfer_id);
+        returncode transfer_golive(uint16_t xfer_id);
+        returncode transfer_complete(uint16_t xfer_id);
 
     public:
         void set_announce(const std::string& announce) { m_announce = announce + "\n"; }
@@ -106,7 +108,7 @@ class coordinatorlink
         configuration m_config;
         po6::net::socket m_sock;
         pollfd m_pfd;
-        std::auto_ptr<e::buffer> m_buffer;
+        std::string m_buffer;
         std::set<po6::net::location> m_reported_failures;
         std::map<po6::net::location, uint64_t> m_warnings_issued;
 };

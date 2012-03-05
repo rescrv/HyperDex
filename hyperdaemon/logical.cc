@@ -35,6 +35,7 @@
 #include <stdint.h>
 
 // STL
+#include <list>
 #include <stdexcept>
 
 // Google Log
@@ -53,19 +54,61 @@ using hyperdex::instance;
 using hyperdex::network_msgtype;
 using hyperdex::regionid;
 
+//////////////////////////////// Early Messages ////////////////////////////////
+
+class hyperdaemon::logical::early_message
+{
+    public:
+        early_message();
+        early_message(uint64_t v,
+                      const po6::net::location& l,
+                      std::auto_ptr<e::buffer> m);
+        ~early_message() throw ();
+
+    public:
+        uint64_t config_version;
+        po6::net::location loc;
+        std::auto_ptr<e::buffer> msg;
+};
+
+hyperdaemon :: logical :: early_message :: early_message()
+    : config_version(0)
+    , loc()
+    , msg()
+{
+}
+
+hyperdaemon :: logical :: early_message :: early_message(uint64_t v,
+                                                         const po6::net::location& l,
+                                                         std::auto_ptr<e::buffer> m)
+    : config_version(v)
+    , loc(l)
+    , msg(m)
+{
+}
+
+hyperdaemon :: logical :: early_message :: ~early_message() throw ()
+{
+}
+
+///////////////////////////////// Public Class /////////////////////////////////
+
 hyperdaemon :: logical :: logical(coordinatorlink* cl, const po6::net::ipaddr& ip,
                                   in_port_t incoming, in_port_t outgoing, size_t num_threads)
     : m_cl(cl)
     , m_us()
     , m_config()
+    , m_early_messages()
     , m_client_nums()
     , m_client_locs()
     , m_client_counter(0)
     , m_physical(ip, incoming, outgoing, true, num_threads)
 {
-    m_us.inbound = m_physical.inbound();
+    assert(m_physical.inbound().address == m_physical.outbound().address);
+    m_us.address = m_physical.inbound().address;
+    m_us.inbound_port = m_physical.inbound().port;
+    m_us.outbound_port = m_physical.outbound().port;
     m_us.inbound_version = 0;
-    m_us.outbound = m_physical.outbound();
     m_us.outbound_version = 0;
 }
 
@@ -78,7 +121,7 @@ typedef std::map<hyperdex::entityid, hyperdex::instance>::iterator mapiter;
 size_t
 hyperdaemon :: logical :: header_size() const
 {
-    return sizeof(uint8_t) + m_physical.header_size() + 2 * sizeof(uint16_t) + 2 * entityid::SERIALIZEDSIZE;
+    return sizeof(uint8_t) + m_physical.header_size() + sizeof(uint64_t) + 2 * sizeof(uint16_t) + 2 * entityid::SERIALIZEDSIZE;
 }
 
 void
@@ -93,6 +136,26 @@ hyperdaemon :: logical :: reconfigure(const configuration& newconfig,
 {
     m_config = newconfig;
     m_us = newinst;
+
+    e::lockfree_fifo<early_message> ems;
+    early_message em;
+
+    while (m_early_messages.pop(&em))
+    {
+        if (em.config_version <= m_config.version())
+        {
+            m_physical.deliver(em.loc, em.msg);
+        }
+        else
+        {
+            ems.push(em);
+        }
+    }
+
+    while (ems.pop(&em))
+    {
+        m_early_messages.push(em);
+    }
 }
 
 void
@@ -102,25 +165,44 @@ hyperdaemon :: logical :: cleanup(const configuration&, const hyperdex::instance
 }
 
 bool
-hyperdaemon :: logical :: send(const hyperdex::entityid& from, const hyperdex::entityid& to,
+hyperdaemon :: logical :: send(const hyperdex::entityid& from,
+                               const hyperdex::entityid& to,
                                const network_msgtype msg_type,
                                std::auto_ptr<e::buffer> msg)
 {
 #ifdef HD_LOG_ALL_MESSAGES
     LOG(INFO) << "SEND " << from << "->" << to << " " << msg_type << " " << msg->hex();
 #endif
-    instance src = m_config.instancefor(from);
+    instance src;
     instance dst;
 
-    // If we are sending to a client
-    if (to.space == UINT32_MAX)
+    // If we are sending as a transfer-recipient
+    if (from.space == hyperdex::configuration::TRANSFERSPACE)
     {
-        if (!m_client_locs.lookup(to.mask, &dst.inbound))
+        src = m_config.instancefortransfer(from.subspace);
+    }
+    else
+    {
+        src = m_config.instancefor(from);
+    }
+
+    // If we are sending to a client
+    if (to.space == hyperdex::configuration::CLIENTSPACE)
+    {
+        po6::net::location loc;
+
+        if (!m_client_locs.lookup(to.mask, &loc))
         {
             return false;
         }
 
+        dst.address = loc.address;
+        dst.inbound_port = loc.port;
         dst.inbound_version = 1;
+    }
+    else if (to.space == hyperdex::configuration::TRANSFERSPACE)
+    {
+        dst = m_config.instancefortransfer(to.subspace);
     }
     else
     {
@@ -133,26 +215,28 @@ hyperdaemon :: logical :: send(const hyperdex::entityid& from, const hyperdex::e
     }
 
     uint8_t mt = static_cast<uint8_t>(msg_type);
-    assert(msg->size() >= header_size());
+    assert(msg->capacity() >= header_size());
     msg->pack_at(m_physical.header_size())
-        << mt << src.outbound_version << dst.inbound_version << from << to;
+        << mt << m_config.version() << src.outbound_version << dst.inbound_version << from << to;
 
     if (dst == m_us)
     {
-        m_physical.deliver(m_us.outbound, msg);
+        m_physical.deliver(po6::net::location(m_us.address, m_us.outbound_port), msg);
     }
     else
     {
-        switch (m_physical.send(dst.inbound, msg))
+        po6::net::location loc(dst.address, dst.inbound_port);
+
+        switch (m_physical.send(loc, msg))
         {
             case physical::SUCCESS:
             case physical::QUEUED:
                 break;
             case physical::CONNECTFAIL:
-                handle_connectfail(dst.inbound);
+                handle_connectfail(loc);
                 return false;
             case physical::DISCONNECT:
-                handle_disconnect(dst.inbound);
+                handle_disconnect(loc);
                 return false;
             case physical::SHUTDOWN:
                 LOG(ERROR) << "physical::recv unexpectedly returned SHUTDOWN.";
@@ -170,7 +254,8 @@ hyperdaemon :: logical :: send(const hyperdex::entityid& from, const hyperdex::e
 }
 
 bool
-hyperdaemon :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
+hyperdaemon :: logical :: recv(hyperdex::entityid* from,
+                               hyperdex::entityid* to,
                                network_msgtype* msg_type,
                                std::auto_ptr<e::buffer>* msg)
 {
@@ -190,7 +275,7 @@ hyperdaemon :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
     //    underlying network location and version number of this message.
     //  - The destination entityid maps to our network location.
     //  - The message is to the correct version of our port bindings.
-    do
+    while (true)
     {
         switch(m_physical.recv(&loc, msg))
         {
@@ -217,16 +302,18 @@ hyperdaemon :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
 
         if ((*msg)->size() < header_size())
         {
+            LOG(WARNING) << "dropping message that is too small to parse: " << (*msg)->hex();
             continue;
         }
 
         // This should not throw thanks to the size check above.
         uint8_t mt;
+        uint64_t version;
         (*msg)->unpack_from(sizeof(uint32_t))
-            >> mt >> fromver >> tover >> *from >> *to;
+            >> mt >> version >> fromver >> tover >> *from >> *to;
         *msg_type = static_cast<network_msgtype>(mt);
 
-        // If the message is from someone claiming to be a client.
+        // Checkout the sender
         if (from->space == hyperdex::configuration::CLIENTSPACE)
         {
             po6::net::location expected_loc;
@@ -257,26 +344,63 @@ hyperdaemon :: logical :: recv(hyperdex::entityid* from, hyperdex::entityid* to,
                 from->mask = client_num;
             }
 
-            frominst.outbound = loc;
+            frominst.address = loc.address;
+            frominst.outbound_port = loc.port;
             frominst.outbound_version = fromver;
             fromvalid = true;
-            toinst = m_config.instancefor(*to);
-            tovalid = toinst != instance();
+        }
+        else if (from->space == hyperdex::configuration::TRANSFERSPACE)
+        {
+            frominst = m_config.instancefortransfer(from->subspace);
+            fromvalid = frominst != instance();
         }
         else
         {
             frominst = m_config.instancefor(*from);
             fromvalid = frominst != instance();
+        }
+
+        // Checkout the receiver
+        if (to->space == hyperdex::configuration::TRANSFERSPACE)
+        {
+            toinst = m_config.instancefortransfer(to->subspace);
+            tovalid = toinst != instance();
+        }
+        else
+        {
             toinst = m_config.instancefor(*to);
             tovalid = toinst != instance();
         }
+
+        if (fromvalid && // Try again because we don't know the source.
+            tovalid && // Try again because we don't know the destination.
+            frominst.address == loc.address && // Try again because the sender isn't who it should be.
+            frominst.outbound_port == loc.port && // Try again because the sender isn't who it should be.
+            frominst.outbound_version == fromver && // Try again because an older sender is sending the message.
+            toinst == m_us && // Try again because we don't believe ourselves to be the dest entity.
+            m_us.inbound_version == tover) // Try again because it is to an older version of us.
+        {
+            break;
+        }
+
+        // Shove the message back at the client so it fails with a reconfigure.
+        if (from->space == hyperdex::configuration::CLIENTSPACE)
+        {
+            mt = static_cast<uint8_t>(hyperdex::CONFIGMISMATCH);
+            (*msg)->pack_at(sizeof(uint32_t))
+                << mt << m_config.version() << tover << fromver << *to << *from;
+            m_physical.send(loc, *msg);
+        }
+        // Otherwise, it's an early arrival.  We should postpone it, because it
+        // could become valid in the future.
+        else if (version > m_config.version())
+        {
+            early_message em(version, loc, *msg);
+            assert(em.msg.get());
+            m_early_messages.push(em);
+            continue;
+        }
     }
-    while (!fromvalid // Try again because we don't know the source.
-            || !tovalid // Try again because we don't know the destination.
-            || frominst.outbound != loc // Try again because the sender isn't who it should be.
-            || frominst.outbound_version != fromver // Try again because an older sender is sending the message.
-            || toinst != m_us // Try again because we don't believe ourselves to be the dest entity.
-            || m_us.inbound_version != tover); // Try again because it is to an older version of us.
 
 #ifdef HD_LOG_ALL_MESSAGES
     LOG(INFO) << "RECV " << *from << "->" << *to << " " << *msg_type << " " << (*msg)->hex();

@@ -69,11 +69,22 @@ extern "C"
 
 struct hyperclient;
 
+/* HyperClient datatype occupies [8960, 9088) */
+enum hyperclient_datatype
+{
+    HYPERDATATYPE_STRING    = 8960,
+    HYPERDATATYPE_UINT64    = 8961,
+
+    // Returned if the server acts up
+    HYPERDATATYPE_GARBAGE   = 9087
+};
+
 struct hyperclient_attribute
 {
     const char* attr; /* NULL-terminated */
     const char* value;
     size_t value_sz;
+    enum hyperclient_datatype datatype;
 };
 
 struct hyperclient_range_query
@@ -104,6 +115,7 @@ enum hyperclient_returncode
     HYPERCLIENT_SEEERRNO     = 8522,
     HYPERCLIENT_NONEPENDING  = 8523,
     HYPERCLIENT_DONTUSEKEY   = 8524,
+    HYPERCLIENT_WRONGTYPE    = 8525,
 
     /* This should never happen.  It indicates a bug */
     HYPERCLIENT_EXCEPTION    = 8574,
@@ -276,7 +288,7 @@ class hyperclient
         int64_t send(e::intrusive_ptr<channel> chan,
                      e::intrusive_ptr<pending> op,
                      e::buffer* msg);
-        int64_t try_coord_connect(hyperclient_returncode* status);
+        int64_t maintain_coord_connection(hyperclient_returncode* status);
         void killall(int fd, hyperclient_returncode status);
         e::intrusive_ptr<channel> get_channel(hyperdex::instance inst,
                                               hyperclient_returncode* status);
@@ -291,7 +303,7 @@ class hyperclient
         requests_map_t m_requests;
         std::queue<completedop> m_completed;
         int64_t m_requestid;
-        bool m_configured;
+        bool m_have_seen_config;
 };
 
 std::ostream&

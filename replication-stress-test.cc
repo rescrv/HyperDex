@@ -42,6 +42,9 @@
 // C
 #include <cstdio>
 
+// Popt
+#include <popt.h>
+
 // STL
 #include <iomanip>
 #include <map>
@@ -70,13 +73,13 @@
 static uint32_t nums[256];
 
 // These are all the incomplete operations
-std::map<int64_t, hyperclient_returncode*> incompleteops;
+static std::map<int64_t, hyperclient_returncode*> incompleteops;
 
-const char* space;
-size_t prefix;
-
-static int
-usage();
+static const char* space = "replication";
+static const char* host = "127.0.0.1";
+static po6::net::ipaddr coord(host);
+static uint16_t port = 1234;
+static size_t prefix = 3;
 
 static void
 find_hashes();
@@ -134,63 +137,102 @@ class generator
         uint32_t m_i;
 };
 
+extern "C"
+{
+
+static struct poptOption popts[] = {
+    POPT_AUTOHELP
+    {"prefix", 'P', POPT_ARG_LONG, &prefix, 'P',
+        "the size of the prefix used when creating the space",
+        "number"},
+    {"space", 's', POPT_ARG_STRING, &space, 's',
+        "the HyperDex space to use",
+        "space"},
+    {"host", 'h', POPT_ARG_STRING, &host, 'h',
+        "the IP address of the coordinator",
+        "IP"},
+    {"port", 'p', POPT_ARG_LONG, &port, 'p',
+        "the port number of the coordinator",
+        "port"},
+    POPT_TABLEEND
+};
+
+} // extern "C"
+
 int
 main(int argc, char* argv[])
 {
-    if (argc != 5)
+    poptContext poptcon;
+    poptcon = poptGetContext(NULL, argc, (const char**) argv, popts, POPT_CONTEXT_POSIXMEHARDER);
+    e::guard g = e::makeguard(poptFreeContext, poptcon);
+    g.use_variable();
+    int rc;
+
+    while ((rc = poptGetNextOpt(poptcon)) != -1)
     {
-        return usage();
+        switch (rc)
+        {
+            case 'P':
+                if (prefix < 0)
+                {
+                    std::cerr << "prefix must be >= 0" << std::endl;
+                    return EXIT_FAILURE;
+                }
+
+                if (prefix > 64)
+                {
+                    std::cerr << "prefix must be <= 64" << std::endl;
+                    return EXIT_FAILURE;
+                }
+
+                break;
+            case 's':
+                break;
+            case 'h':
+                try
+                {
+                    coord = po6::net::ipaddr(host);
+                }
+                catch (po6::error& e)
+                {
+                    std::cerr << "cannot parse coordinator address" << std::endl;
+                    return EXIT_FAILURE;
+                }
+                catch (std::invalid_argument& e)
+                {
+                    std::cerr << "cannot parse coordinator address" << std::endl;
+                    return EXIT_FAILURE;
+                }
+
+                break;
+            case 'p':
+                if (port < 0 || port >= (1 << 16))
+                {
+                    std::cerr << "port number out of range for TCP" << std::endl;
+                    return EXIT_FAILURE;
+                }
+
+                break;
+            case POPT_ERROR_NOARG:
+            case POPT_ERROR_BADOPT:
+            case POPT_ERROR_BADNUMBER:
+            case POPT_ERROR_OVERFLOW:
+                std::cerr << poptStrerror(rc) << " " << poptBadOption(poptcon, 0) << std::endl;
+                return EXIT_FAILURE;
+            case POPT_ERROR_OPTSTOODEEP:
+            case POPT_ERROR_BADQUOTE:
+            case POPT_ERROR_ERRNO:
+            default:
+                std::cerr << "logic error in argument parsing" << std::endl;
+                return EXIT_FAILURE;
+        }
     }
 
     find_hashes();
 
-    const char* ip;
-    uint16_t port;
-    space = argv[3];
-
     try
     {
-        ip = argv[1];
-    }
-    catch (std::invalid_argument& e)
-    {
-        std::cerr << "The IP address must be an IPv4 or IPv6 address." << std::endl;
-        return EXIT_FAILURE;
-    }
-
-    try
-    {
-        port = e::convert::to_uint16_t(argv[2]);
-    }
-    catch (std::domain_error& e)
-    {
-        std::cerr << "The port number must be an integer." << std::endl;
-        return EXIT_FAILURE;
-    }
-    catch (std::out_of_range& e)
-    {
-        std::cerr << "The port number must be suitably small." << std::endl;
-        return EXIT_FAILURE;
-    }
-
-    try
-    {
-        prefix = e::convert::to_uint8_t(argv[4]);
-    }
-    catch (std::domain_error& e)
-    {
-        std::cerr << "The prefix must be an integer." << std::endl;
-        return EXIT_FAILURE;
-    }
-    catch (std::out_of_range& e)
-    {
-        std::cerr << "The prefix must be suitably small." << std::endl;
-        return EXIT_FAILURE;
-    }
-
-    try
-    {
-        hyperclient cl(ip, port);
+        hyperclient cl(host, port);
 
         test0(&cl);
         test1(&cl);
@@ -220,20 +262,6 @@ main(int argc, char* argv[])
     }
 
     return EXIT_SUCCESS;
-}
-
-int
-usage()
-{
-    std::cerr << "Usage:  repl-tester <coordinator ip> <coordinator port> <space name> <prefix>\n"
-              << "You can use something like the following space description (prefix = 4, replication = 2):\n"
-              << "    space repl\n"
-              << "    dimensions A, B, C\n"
-              << "    key A auto 4 2\n"
-              << "    subspace B auto 4 2\n"
-              << "    subspace C auto 4 2\n"
-              << std::flush;
-    return EXIT_FAILURE;
 }
 
 static void
@@ -307,9 +335,11 @@ put(int testno,
     attrs[0].attr = "B";
     attrs[0].value = reinterpret_cast<const char*>(&B);
     attrs[0].value_sz = sizeof(uint32_t);
+    attrs[0].datatype = HYPERDATATYPE_STRING;
     attrs[1].attr = "C";
     attrs[1].value = reinterpret_cast<const char*>(&C);
     attrs[1].value_sz = sizeof(uint32_t);
+    attrs[1].datatype = HYPERDATATYPE_STRING;
     hyperclient_returncode* status = new hyperclient_returncode();
     int64_t id = cl->put(space, reinterpret_cast<const char*>(&A), sizeof(uint32_t), attrs, 2, status);
 
@@ -428,6 +458,11 @@ present(int testno,
         FAIL(testno, "presence check: first attribute is \"" << attrs[0].attr << "\" instead of \"B\"");
     }
 
+    if (attrs[0].datatype != HYPERDATATYPE_STRING)
+    {
+        FAIL(testno, "presence check: first attribute is not of datatype \"string\"");
+    }
+
     if (e::slice(attrs[0].value, attrs[0].value_sz) != e::slice(&B, sizeof(uint32_t)))
     {
         FAIL(testno, "presence check: first attribute does not match " << B);
@@ -435,12 +470,17 @@ present(int testno,
 
     if (strcmp(attrs[1].attr, "C") != 0)
     {
-        FAIL(testno, "presence check: first attribute is \"" << attrs[1].attr << "\" instead of \"C\"");
+        FAIL(testno, "presence check: second attribute is \"" << attrs[1].attr << "\" instead of \"C\"");
+    }
+
+    if (attrs[1].datatype != HYPERDATATYPE_STRING)
+    {
+        FAIL(testno, "presence check: second attribute is not of datatype \"string\"");
     }
 
     if (e::slice(attrs[1].value, attrs[1].value_sz) != e::slice(&C, sizeof(uint32_t)))
     {
-        FAIL(testno, "presence check: first attribute does not match " << C);
+        FAIL(testno, "presence check: second attribute does not match " << C);
     }
 
     free(attrs);

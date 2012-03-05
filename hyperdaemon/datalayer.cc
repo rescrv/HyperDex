@@ -81,6 +81,7 @@ hyperdaemon :: datalayer :: datalayer(coordinatorlink* cl, const po6::pathname& 
     , m_last_preallocation(0)
     , m_optimistic_rr()
     , m_last_dose_of_optimism(0)
+    , m_flushed_recently(false)
 {
     m_optimistic_io_thread.start();
 
@@ -112,6 +113,14 @@ void
 hyperdaemon :: datalayer :: prepare(const configuration& newconfig, const instance& us)
 {
     std::set<regionid> regions = newconfig.regions_for(us);
+    std::map<uint16_t, regionid> in_transfers = newconfig.transfers_to(us);
+    std::map<uint16_t, regionid>::iterator t;
+
+    // Make sure that inbound state exists for each in-progress transfer to us.
+    for (t = in_transfers.begin(); t != in_transfers.end(); ++t)
+    {
+        regions.insert(t->second);
+    }
 
     for (std::set<regionid>::const_iterator r = regions.begin();
             r != regions.end(); ++r)
@@ -134,6 +143,14 @@ void
 hyperdaemon :: datalayer :: cleanup(const configuration& newconfig, const instance& us)
 {
     std::set<regionid> regions = newconfig.regions_for(us);
+    std::map<uint16_t, regionid> in_transfers = newconfig.transfers_to(us);
+    std::map<uint16_t, regionid>::iterator t;
+
+    // Make sure that inbound state exists for each in-progress transfer to us.
+    for (t = in_transfers.begin(); t != in_transfers.end(); ++t)
+    {
+        regions.insert(t->second);
+    }
 
     for (disk_map_t::iterator d = m_disks.begin(); d != m_disks.end(); d.next())
     {
@@ -335,7 +352,7 @@ hyperdaemon :: datalayer :: optimistic_io_thread()
             m_last_dose_of_optimism = e::time();
         }
 
-        __sync_and_and_fetch(&m_flushed_recently, false);
+        (void) __sync_and_and_fetch(&m_flushed_recently, false);
 
         do
         {
@@ -387,7 +404,7 @@ hyperdaemon :: datalayer :: flush_thread()
         }
         else
         {
-            __sync_or_and_fetch(&m_flushed_recently, true);
+            (void) __sync_or_and_fetch(&m_flushed_recently, true);
         }
     }
 }
@@ -400,7 +417,18 @@ hyperdaemon :: datalayer :: create_disk(const regionid& ri,
     std::ostringstream ostr;
     ostr << ri;
     po6::pathname path = po6::join(m_base, po6::pathname(ostr.str()));
-    disk_ptr d = hyperdisk::disk::create(path, hasher, num_columns);
+    disk_ptr d;
+
+    try
+    {
+        // XXX fail this region.
+        d = hyperdisk::disk::create(path, hasher, num_columns);
+    }
+    catch (po6::error& e)
+    {
+        PLOG(ERROR) << "Could not create disk " << ri;
+        return;
+    }
 
     if (m_disks.insert(ri, d))
     {

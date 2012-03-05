@@ -49,10 +49,16 @@ cdef extern from "../hyperclient.h":
 
     cdef struct hyperclient
 
+    cdef enum hyperclient_datatype:
+        HYPERDATATYPE_STRING    = 8960
+        HYPERDATATYPE_UINT64    = 8961
+        HYPERDATATYPE_GARBAGE   = 9087
+
     cdef struct hyperclient_attribute:
         char* attr
         char* value
         size_t value_sz
+        hyperclient_datatype datatype
 
     cdef struct hyperclient_range_query:
         char* attr
@@ -77,6 +83,7 @@ cdef extern from "../hyperclient.h":
         HYPERCLIENT_SEEERRNO     = 8522
         HYPERCLIENT_NONEPENDING  = 8523
         HYPERCLIENT_DONTUSEKEY   = 8524
+        HYPERCLIENT_WRONGTYPE    = 8525
         HYPERCLIENT_EXCEPTION    = 8574
         HYPERCLIENT_ZERO         = 8575
         HYPERCLIENT_A            = 8576
@@ -113,6 +120,7 @@ class HyperClientException(Exception):
                   ,HYPERCLIENT_SEEERRNO: 'See ERRNO'
                   ,HYPERCLIENT_NONEPENDING: 'None pending'
                   ,HYPERCLIENT_DONTUSEKEY: "Don't use the key in the search predicate"
+                  ,HYPERCLIENT_WRONGTYPE: 'Attribute "%s" has the wrong type' % attr
                   ,HYPERCLIENT_EXCEPTION: 'Internal Error (file a bug)'
                   }.get(status, 'Unknown Error (file a bug)')
 
@@ -144,7 +152,6 @@ cdef class Deferred:
                 self._finished = True
                 self._client._pending.remove(self._reqid)
         self._finished = True
-        # XXX Do a better job raising exceptions
         if self._status not in (HYPERCLIENT_SUCCESS, HYPERCLIENT_NOTFOUND):
             raise HyperClientException(self._status)
 
@@ -177,8 +184,17 @@ cdef class DeferredLookup(Deferred):
             return None
         attrs = {}
         for i in range(self._attrs_sz):
-            attrs[self._attrs[i].attr] = \
-                    self._attrs[i].value[:self._attrs[i].value_sz]
+            if self._attrs[i].datatype == HYPERDATATYPE_STRING:
+                attrs[self._attrs[i].attr] = \
+                        self._attrs[i].value[:self._attrs[i].value_sz]
+            else:
+                s = self._attrs[i].value[:self._attrs[i].value_sz]
+                if len(s) > 8:
+                    s = s[:8]
+                else:
+                    s += (8 - len(s)) * '\x00'
+                attrs[self._attrs[i].attr] = struct.unpack('<Q', s)[0]
+
         attrstr = ' '.join(sorted(attrs.keys()))
         return collections.namedtuple(self._space, attrstr)(**attrs)
 
@@ -188,23 +204,35 @@ cdef class DeferredInsert(Deferred):
     def __cinit__(self, Client client, bytes space, bytes key, dict value):
         cdef char* space_cstr = space
         cdef char* key_cstr = key
-        cdef hyperclient_attribute* attrs = \
-                <hyperclient_attribute*> \
+        cdef hyperclient_attribute* attrs = NULL
+        if len(value):
+            attrs = <hyperclient_attribute*> \
                 malloc(sizeof(hyperclient_attribute) * len(value))
         try:
             for i, a in enumerate(value.iteritems()):
                 a, v = a
                 if isinstance(v, int):
-                    v = struct.pack('Q', v)
+                    v = struct.pack('<Q', v)
+                    t = HYPERDATATYPE_UINT64
+                else:
+                    t = HYPERDATATYPE_STRING
                 attrs[i].attr = a
                 attrs[i].value = v
                 attrs[i].value_sz = len(v)
+                attrs[i].datatype = t
             self._reqid = hyperclient_put(client._client, space_cstr,
                                           key_cstr, len(key),
                                           attrs, len(value),
                                           &self._status)
             if self._reqid < 0:
-                raise HyperClientException(self._status, attrs[-1 - self._reqid].attr)
+                if attrs:
+                    if attrs[-1 - self._reqid].attr:
+                        attr = attrs[-1 - self._reqid].attr
+                    else:
+                        attr = None
+                else:
+                    attr = None
+                raise HyperClientException(self._status, attr)
         finally:
             free(attrs)
 
@@ -286,7 +314,10 @@ cdef class Search:
                 if idx < len(equalities):
                     attr = eq[idx].attr
                 else:
-                    attr = rn[idx - len(equalities)].attr
+                    if (idx - len(equalities)) < len(ranges):
+                        attr = rn[idx - len(equalities)].attr
+                    else:
+                        attr = None
                 raise HyperClientException(self._status, attr)
             client._searches[self._reqid] = self
         finally:
@@ -311,8 +342,16 @@ cdef class Search:
             try:
                 attrs = {}
                 for i in range(self._attrs_sz):
-                    attrs[self._attrs[i].attr] = \
-                            self._attrs[i].value[:self._attrs[i].value_sz]
+                    if self._attrs[i].datatype == HYPERDATATYPE_STRING:
+                        attrs[self._attrs[i].attr] = \
+                                self._attrs[i].value[:self._attrs[i].value_sz]
+                    else:
+                        s = self._attrs[i].value[:self._attrs[i].value_sz]
+                        if len(s) > 8:
+                            s = s[:8]
+                        else:
+                            s += 8 - len(s) * '\x00'
+                        attrs[self._attrs[i].attr] = struct.unpack('<Q', s);
             finally:
                 if self._attrs: free(self._attrs)
             attrstr = ' '.join(sorted(attrs.keys()))

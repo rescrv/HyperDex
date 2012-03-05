@@ -48,7 +48,7 @@ fi
 AC_SUBST([JNI_CPPFLAGS], [${JNI_CPPFLAGS}])
 
 if test x"${need_swig}" = xyes; then
-    AC_PROG_SWIG(1.3)
+    AX_PKG_SWIG(1.3)
     SWIG_ENABLE_CXX
 fi
 
@@ -73,6 +73,11 @@ AC_SUBST([COVERAGE_LDADD], [${COVERAGE_LDADD}])
 
 # Checks for libraries.
 GTEST_LIB_CHECK
+AC_CHECK_LIB([popt], [poptGetContext], [], [AC_MSG_ERROR([
+-------------------------------------------------
+HyperDex relies upon the popt library.
+Please install popt to continue.
+-------------------------------------------------])])
 PKG_CHECK_MODULES([PO6], [libpo6 >= 0.2])
 PKG_CHECK_MODULES([E], [libe >= 0.2])
 
@@ -87,6 +92,11 @@ AC_CHECK_HEADER([glog/logging.h],,[AC_MSG_ERROR([
 -------------------------------------------------
 HyperDex relies upon the glog library.
 Please install glog to continue.
+-------------------------------------------------])])
+AC_CHECK_HEADER([popt.h],,[AC_MSG_ERROR([
+-------------------------------------------------
+HyperDex relies upon the popt library.
+Please install popt to continue.
 -------------------------------------------------])])
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -106,7 +116,7 @@ AC_FUNC_MMAP
 AC_CHECK_FUNCS([alarm clock_gettime ftruncate memmove mkdir munmap rmdir socket])
 
 # Optional components
-AC_ARG_ENABLE([ycsb], [AS_HELP_STRING([--enable-ycsb-driver],
+AC_ARG_ENABLE([ycsb], [AS_HELP_STRING([--enable-ycsb],
               [enable the Yahoo Cloud Serving Benchmark @<:@default: no@:>@])],
               [enable_ycsb=${enableval}], [enable_ycsb=no])
 if test x"${swig_version}" = x; then
@@ -144,9 +154,22 @@ if test x"${enable_logall}" = xyes; then
     AC_DEFINE([HD_LOG_ALL_MESSAGES], [], [Log all network traffic at the INFO level])
 fi
 
+AC_ARG_ENABLE([trace-player], [AS_HELP_STRING([--trace-player],
+              [build a primitive trace-replay tool @<:@default: no@:>@])],
+              [enable_traceplayer=${enableval}], [enable_traceplayer=no])
+
+if test x"${enable_traceplayer}" = xyes; then
+    AC_CHECK_LIB([bsd], [strunvis], [], [AC_MSG_ERROR([
+    -------------------------------------------------
+    The trace-player relies upon libbsd
+    Please install libbsd to continue.
+    -------------------------------------------------])])
+fi
+
 AM_CONDITIONAL([ENABLE_JAVA_BINDINGS], [test x"${java_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_PYTHON_BINDINGS], [test x"${python_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_YCSB_DRIVER], [test x"${enable_ycsb}" = xyes])
+AM_CONDITIONAL([ENABLE_TRACEPLAYER], [test x"${enable_traceplayer}" = xyes])
 AM_CONDITIONAL([ENABLE_COVERAGE], [test x"${enable_coverage}" = xyes])
 
 AC_CONFIG_FILES([Makefile])

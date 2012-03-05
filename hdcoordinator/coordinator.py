@@ -39,10 +39,18 @@ import sys
 import pyparsing
 
 import hdcoordinator.parser
+from hdcoordinator import hdtypes
 
 
 PIPE_BUF = getattr(select, 'PIPE_BUF', 512)
+RESTRICTED_SPACES = set([0, 2**32 - 1, 2**32 - 2, 2**32 - 3, 2**32 - 4])
 
+# Format strings for configuration lines
+SPACE_LINE = 'space {name} {id} {dims}\n'
+SUBSPACE_LINE = 'subspace {space} {subspace} {hashes}\n'
+REGION_LINE = 'region {space} {subspace} {prefix} {mask} {hosts}\n'
+TRANSFER_LINE = 'transfer {xferid} {space} {subspace} {prefix} {mask} {instid}\n'
+HOST_LINE = 'host {id} {ip} {inport} {inver} {outport} {outver}'
 
 def normalize_address(addr):
     try:
@@ -68,52 +76,62 @@ class Coordinator(object):
     class ExhaustedSpaces(Exception): pass
 
     def __init__(self):
-        self._assigned = {}
         self._portcounters = collections.defaultdict(lambda: 1)
+        self._instance_counter = 1
+        self._instances_by_addr = {}
+        self._instances_by_bindings = {}
+        self._instances_by_id = {}
+        self._failed_instances = set()
+        self._space_counter = 1
         self._spaces_by_name = {}
-        self._spaces_by_num = {}
-        self._restricted_spaces = set([0, 2**32 - 1, 2**32 - 2, 2**32 - 3, 2**32 - 4])
-        self._spacenum = 0
+        self._spaces_by_id = {}
         self._rand = random.Random()
-        self._confdata = ''
-        self._confnum = 0
+        self._config_counter = 0
+        self._config_data = ''
+        self._xfer_counter = 0
+        self._xfers_by_id = {}
 
-    def assign_epoch_id(self, addr, incoming, outgoing, pid, token):
-        if (addr, incoming, outgoing, pid, token) in self._assigned:
-            return self._assigned[(addr, incoming, outgoing, pid, token)]
-        # Get unique numbers for these ports.
-        inc_ver = self._portcounters[(addr, incoming)]
-        out_ver = self._portcounters[(addr, outgoing)]
-        self._portcounters[(addr, incoming)] += 1
-        self._portcounters[(addr, outgoing)] += 1
-        # Fail if either exceeds the size of a 16-bit int.
-        if inc_ver >= 1 << 16 or out_ver >= 1 << 16:
+    def _compute_port_epoch(self, addr, port):
+        ver = self._portcounters[(addr, port)]
+        self._portcounters[(addr, port)] += 1
+        if ver >= (1 << 16):
             raise Coordinator.ExhaustedPorts()
-        # Add it to the assigned epoch ids.
-        self._assigned[(addr, incoming, outgoing, pid, token)] = inc_ver, out_ver
-        return inc_ver, out_ver
+        return ver
 
-    def keepalive_instance(self, addr, incoming, outgoing, pid, token): pass
+    def register_instance(self, addr, inport, outport, pid, token):
+        instid = self._instances_by_addr.get((addr, inport, outport, pid, token), 0)
+        if instid != 0:
+            return self._instances_by_id[instid].bindings()
+        inver = self._compute_port_epoch(addr, inport)
+        outver = self._compute_port_epoch(addr, outport)
+        inst = hdtypes.Instance(addr, inport, inver, outport, outver, pid, token)
+        inst.add_config(self._config_counter, self._config_data)
+        instid = self._instance_counter
+        self._instance_counter += 1
+        self._instances_by_id[instid] = inst
+        self._instances_by_bindings[inst.bindings()] = instid
+        self._instances_by_addr[(addr, inport, outport, pid, token)] = instid
+        return inst.bindings()
 
-    def list_instances(self):
-        for (addr, incoming, outgoing, pid, token), (inc_ver, out_ver) in self._assigned.items():
-            yield addr, incoming, inc_ver, outgoing, out_ver, pid, token
+    def keepalive_instance(self, bindings):
+        pass
 
     def add_space(self, space):
         if space.name in self._spaces_by_name:
             raise Coordinator.DuplicateSpace()
-        spacenum = None
+        spaceid = None
         for i in xrange(1 << 32):
-            tmp = self._spacenum
-            self._spacenum = (self._spacenum + 1) % 2**32
-            if tmp not in self._spaces_by_num and tmp not in self._restricted_spaces:
-                spacenum = tmp
+            tmp = self._space_counter
+            self._space_counter = (self._space_counter + 1) % 2**32
+            if tmp not in self._spaces_by_id and \
+               tmp not in RESTRICTED_SPACES:
+                spaceid = tmp
                 break
-        if spacenum is None:
+        if spaceid is None:
             raise Coordinator.ExhaustedSpaces()
-        self._spaces_by_name[space.name] = spacenum
-        self._spaces_by_num[spacenum] = space
-        self._fill(space)
+        self._spaces_by_id[spaceid] = space
+        self._spaces_by_name[space.name] = spaceid
+        self._initial_layout(space)
         self._regenerate()
 
     def del_space(self, space):
@@ -121,36 +139,118 @@ class Coordinator(object):
             raise Coordinator.UnknownSpace()
         spacenum = self._spaces_by_name[space]
         del self._spaces_by_name[space]
-        del self._spaces_by_num[spacenum]
+        del self._spaces_by_id[spacenum]
         self._regenerate()
 
-    def configuration(self):
-        return self._confnum, self._confdata
+    def _compute_transfer_id(self, spaceid, subspaceid, regionid):
+        xferid = None
+        for i in xrange(1 << 16):
+            tmp = self._xfer_counter
+            self._xfer_counter = (self._xfer_counter + 1) % 2**16
+            if tmp not in self._xfers_by_id:
+                xferid = tmp
+                break
+        if xferid is None:
+            return None
+        self._xfers_by_id[xferid] = (spaceid, subspaceid, regionid)
+        return xferid
 
-    def _fill(self, space):
+    def fail_host(self, ip, port):
+        badinstids = set()
+        for instid, inst in self._instances_by_id.iteritems():
+            if inst.addr == ip and \
+                    (inst.inport == port or inst.outport == port):
+                badinstids.add(instid)
+        self._failed_instances |= badinstids
+        for si, space in self._spaces_by_id.iteritems():
+            for ssi, subspace in enumerate(space.subspaces):
+                for ri, region in enumerate(subspace.regions):
+                    region.remove_instances(badinstids)
+                    for i in range(region.desired_f - region.current_f):
+                        xferid = self._compute_transfer_id(si, ssi, ri)
+                        newrepl = self._select_replica(region.replicas + region.transfers)
+                        if xferid is not None and newrepl is not None:
+                            region.transfer_initiate(xferid, newrepl)
+        self._regenerate()
+
+    def ack_config(self, bindings, num):
+        instid = self._instances_by_bindings[bindings]
+        inst = self._instances_by_id[instid]
+        inst.ack_config(num)
+
+    def reject_config(self, bindings, num):
+        instid = self._instances_by_bindings[bindings]
+        inst = self._instances_by_id[instid]
+        inst.reject_config(num)
+
+    def fetch_configs(self, instances):
+        configs = {}
+        hosts = {}
+        for inst in instances:
+            if inst is None:
+                configs[self._config_counter] = self._config_data
+                hosts[None] = self._config_counter
+            elif inst in self._instances_by_bindings:
+                instid = self._instances_by_bindings[inst]
+                realinst = self._instances_by_id[instid]
+                num, data = realinst.next_config()
+                if num is not None:
+                    configs[num] = data
+                    hosts[inst] = num
+        return configs, hosts
+
+    def transfer_fail(self, xferid):
+        if xferid not in self._xfers_by_id:
+            return
+        spaceid, subspaceid, regionid = self._xfers_by_id[xferid]
+        if spaceid not in self._spaces_by_id:
+            return
+        self._spaces_by_id[spaceid].subspaces[subspaceid].regions[regionid].transfer_fail(xferid)
+        del self._xfers_by_id[xferid]
+        self._regenerate()
+
+    def transfer_golive(self, xferid):
+        if xferid not in self._xfers_by_id:
+            return
+        spaceid, subspaceid, regionid = self._xfers_by_id[xferid]
+        if spaceid not in self._spaces_by_id:
+            return
+        region = self._spaces_by_id[spaceid].subspaces[subspaceid].regions[regionid]
+        if region.transfer_golive(xferid):
+            self._regenerate()
+
+    def transfer_complete(self, xferid):
+        if xferid not in self._xfers_by_id:
+            return
+        spaceid, subspaceid, regionid = self._xfers_by_id[xferid]
+        if spaceid not in self._spaces_by_id:
+            return
+        self._spaces_by_id[spaceid].subspaces[subspaceid].regions[regionid].transfer_complete(xferid)
+        del self._xfers_by_id[xferid]
+        self._regenerate()
+
+    def _initial_layout(self, space):
         still_assigning = True
         while still_assigning:
             still_assigning = False
-            for subspacenum, subspace in enumerate(space.subspaces):
+            for subspace in space.subspaces:
                 for region in subspace.regions:
-                    for replicanum in range(len(region.replicas)):
-                        if region.replicas[replicanum] is None:
-                            region.replicas[replicanum] = self._select_replica(region.replicas)
-                            if region.replicas[replicanum] is not None:
-                                still_assigning = True
-                            break
+                    if region.current_f < region.desired_f:
+                        replica = self._select_replica(region.replicas)
+                        if replica is not None:
+                            still_assigning = True
+                            region.add_replica(replica)
 
     def _select_replica(self, exclude):
-        hosts = dict([(i, 0) for i in self.list_instances()])
-        for spacenum, space in self._spaces_by_num.iteritems():
+        hosts = dict([(k, 0) for k in self._instances_by_id.keys()])
+        for spacenum, space in self._spaces_by_id.iteritems():
             for subspacenum, subspace in enumerate(space.subspaces):
                 for region in subspace.regions:
                     for replica in region.replicas:
-                        if replica is not None:
-                            hosts[replica] += 1
+                        hosts[replica] += 1
         frequencies = collections.defaultdict(list)
         for host, frequency in hosts.iteritems():
-            if host not in exclude:
+            if host not in exclude and host not in self._failed_instances:
                 frequencies[frequency].append(host)
         if not frequencies:
             return None
@@ -158,196 +258,196 @@ class Coordinator(object):
         return self._rand.choice(least_loaded)
 
     def _regenerate(self):
-        hosts = {}
-        counter = 0
-        config = ''
-        for spacenum, space in self._spaces_by_num.iteritems():
-            spacedims = dict([(d.name, d) for d in space.dimensions])
-            space_str = 'space\t{num}\t{name}\t{dims}\n' \
-                        .format(num=spacenum, name=space.name,
-                                dims='\t'.join([d.name for d in space.dimensions]))
-            for subspacenum, subspace in enumerate(space.subspaces):
-                subdims = dict([(d.name, d) for d in subspace.dimensions])
+        used_hosts = set()
+        self._config_counter += 1
+        config = 'version {0}\n'.format(self._config_counter)
+        for spaceid, space in self._spaces_by_id.iteritems():
+            spacedims = ' '.join([d.name + ' ' + d.datatype for d in space.dimensions])
+            config += SPACE_LINE \
+                      .format(name=space.name, id=spaceid, dims=spacedims)
+            for subspaceid, subspace in enumerate(space.subspaces):
                 hashes = []
                 for dim in space.dimensions:
-                    if dim.name in subdims:
-                        repl = subdims[dim.name].replhash or dim.replhash
-                        disk = subdims[dim.name].diskhash or dim.diskhash
+                    if dim.name in subspace.dimensions:
+                        hashes.append('true')
                     else:
-                        repl = dim.replhash
-                        disk = dim.diskhash
-                    hashes.append((repl, disk))
-                    hashes_str = '\t'.join(r + '\t' + d for r, d in hashes)
-                subspace_str = 'subspace\t{name}\t{num}\t{hashes}\n' \
-                               .format(name=space.name, num=subspacenum,
-                                       hashes=hashes_str)
+                        hashes.append('false')
+                    if dim.name not in subspace.nosearch:
+                        hashes.append('true')
+                    else:
+                        hashes.append('false')
+                config += SUBSPACE_LINE \
+                          .format(space=spaceid, subspace=subspaceid,
+                                  hashes=' '.join(hashes))
                 for region in subspace.regions:
-                    region_str = 'region\t{name}\t{num}\t{prefix}\t{mask}' \
-                                 .format(name=space.name,
-                                         num=subspacenum,
-                                         prefix=region.prefix,
-                                         mask=hex(region.mask).rstrip('L'))
-                    for replica in region.replicas:
-                        if replica is not None:
-                            if replica not in hosts:
-                                hosts[replica] = 'auto_{0}'.format(counter)
-                                counter += 1
-                            region_str += '\t{repl}'.format(repl=hosts[replica])
-                    subspace_str += region_str + '\n'
-                space_str += subspace_str
-            config += space_str
-        hosts_lines = []
-        for host, codename in hosts.iteritems():
-            addr, incoming, inc_ver, outgoing, out_ver, pid, token = host
-            host_str = 'host\t{name}\t{ip}\t{iport}\t{iver}\t{oport}\t{over}' \
-                       .format(name=codename, ip=addr, iport=incoming,
-                               iver=inc_ver, oport=outgoing, over=out_ver)
-            hosts_lines.append(host_str)
-        hosts_lines.sort()
-        self._confdata = ('\n'.join(hosts_lines) + '\n' + config).strip()
-        self._confnum += 1
+                    hosts = [str(r) for r in region.replicas]
+                    for host in region.replicas:
+                        used_hosts.add(host)
+                    config += REGION_LINE \
+                              .format(space=spaceid, subspace=subspaceid,
+                                      prefix=region.prefix,
+                                      mask=hex(region.mask).rstrip('L'),
+                                      hosts=' '.join(hosts))
+                    xferid, instid = region.transfer_in_progress
+                    if xferid is not None:
+                        config += TRANSFER_LINE \
+                                  .format(xferid=str(xferid),
+                                          space=spaceid,
+                                          subspace=subspaceid,
+                                          prefix=region.prefix,
+                                          mask=hex(region.mask).rstrip('L'),
+                                          instid=str(instid))
+                        used_hosts.add(instid)
+        host_lines = []
+        for hostid in sorted(used_hosts):
+            inst = self._instances_by_id[hostid]
+            host_line = HOST_LINE \
+                        .format(id=hostid, ip=inst.addr, inport=inst.inport,
+                                inver=inst.inver, outport=inst.outport,
+                                outver=inst.outver)
+            host_lines.append(host_line)
+        self._config_data = ('\n'.join(host_lines) + '\n' + config).strip()
+        for instid, inst in self._instances_by_id.iteritems():
+            inst.add_config(self._config_counter, self._config_data)
+        # XXX notify threads to poll for new configs
 
 
 class HostConnection(object):
-
-    class CLIENT: pass
-    class INSTANCE: pass
 
     def __init__(self, coordinator, sock):
         self._connectime = datetime.datetime.now()
         self._coordinator = coordinator
         self._sock = sock
-        self._ibuffer = []
+        self._ibuffer = ''
         self.outgoing = ''
         self._identified = None
         self._instance = None # Must be None unless self._identified is INSTANCE
-        self._epoch_id = None # Must be None unless self._identified is INSTANCE
-        self._state = 'UNCONFIGURED'
-        self._config = None
-        self._pending = []
-        self._id = 'ID XXX' # XXX
+        self._has_config_pending = False
+        self._pending_config_num = 0
+        self._id = 'Unidentified({0}, {1})'.format(self._sock.getpeername()[0], self._sock.getpeername()[1])
+        logging.info('new host uses ID ' + self._id)
 
     def handle_in(self):
         data = self._sock.recv(PIPE_BUF)
         if len(data) == 0:
             raise EndConnection()
-        self._ibuffer.append(data)
-        while '\n' in data:
-            data, rem = ''.join(self._ibuffer).split('\n', 1)
-            self._ibuffer = [rem]
+        self._ibuffer += data
+        while '\n' in self._ibuffer:
+            data, self._ibuffer = self._ibuffer.split('\n', 1)
             commandline = shlex.split(data)
             if len(commandline) == 1 and commandline[0] == 'client':
-                logging.debug('Host {0} identifies as client'.format(self._id))
                 self.identify_as_client()
-            elif len(commandline) == 1 and commandline[0] == 'ACK':
-                logging.debug('Host {0} acknowledges config'.format(self._id))
-                self.acknowledge_config()
-            elif len(commandline) == 1 and commandline[0] == 'BAD':
-                logging.debug('Host {0} rejects config'.format(self._id))
-                self.reject_config()
-            elif len(commandline) == 2 and commandline[0] == 'fail_location':
-                logging.info("Report of failure for {0}".format(commandline[1]))
             elif len(commandline) == 6 and commandline[0] == 'instance':
-                logging.info('Host {0} identifies as instance'.format(self._id))
                 self.identify_as_instance(*commandline[1:])
+            elif len(commandline) == 1 and commandline[0] == 'ACK':
+                if self._identified == 'INSTANCE':
+                    self._coordinator.ack_config(self._instance, self._pending_config_num)
+                    logging.debug("{0} acked config {1}".format(self._id, self._pending_config_num))
+                self._has_config_pending = False
+            elif len(commandline) == 1 and commandline[0] == 'BAD':
+                if self._identified == 'INSTANCE':
+                    self._coordinator.reject_config(self._instance, self._pending_config_num)
+                    logging.error("{0} rejected config (there is a bug!)".format(self._id))
+                self._has_config_pending = False
+            elif len(commandline) == 2 and commandline[0] == 'fail_host':
+                self.fail_host(commandline[1])
+            elif len(commandline) == 2 and commandline[0] == 'transfer_fail':
+                self.transfer_fail(commandline[1])
+                logging.info("transfer fail {0}".format(commandline[1]))
+            elif len(commandline) == 2 and commandline[0] == 'transfer_golive':
+                self.transfer_golive(commandline[1])
+                logging.debug("transfer golive {0}".format(commandline[1]))
+            elif len(commandline) == 2 and commandline[0] == 'transfer_complete':
+                self.transfer_complete(commandline[1])
+                logging.debug("transfer complete {0}".format(commandline[1]))
             else:
-                raise KillConnection('Unrecognized command {0}'.format(repr(data)))
+                raise KillConnection('unrecognized command "{0}"'.format(repr(data)))
 
     def handle_out(self):
         data = self.outgoing[:PIPE_BUF]
         sz = self._sock.send(data)
         self.outgoing = self.outgoing[sz:]
 
-    def handle_err(self):
-        pass
-
-    def handle_hup(self):
-        pass
-
-    def handle_nval(self):
-        pass
-
     def identify_as_client(self):
         if self._identified:
-            raise KillConnection('Client identifying twice')
-        self._identified = HostConnection.CLIENT
-        self._state = 'CONFIGURED'
-        self.reconfigure(self._coordinator.configuration())
+            raise KillConnection('client identifying twice')
+        self._identified = 'CLIENT'
+        oldid = self._id
+        addr, port = self._sock.getpeername()
+        self._id = 'Client({0}, {1})'.format(addr, port)
+        logging.info('{0} identified by {1}'.format(oldid, self._id))
 
     def identify_as_instance(self, addr, incoming, outgoing, pid, token):
         if self._identified:
-            raise KillConnection('Client identifying twice')
-        self._identified = HostConnection.INSTANCE
+            raise KillConnection('instance identifying twice')
+        self._identified = 'INSTANCE'
         addr = normalize_address(addr)
         if not addr:
-            raise KillConnection('Client claims to bind to unparseable address')
+            raise KillConnection('instance claims to bind to unparseable address')
         try:
             incoming = int(incoming)
         except ValueError:
-            raise KillConnection('Client claims to bind to non-numeric incoming port')
+            raise KillConnection('instance claims to bind to non-numeric incoming port')
         try:
             outgoing = int(outgoing)
         except ValueError:
-            raise KillConnection('Client claims to bind to non-numeric outgoing port')
+            raise KillConnection('instance claims to bind to non-numeric outgoing port')
         try:
             pid = int(pid)
         except ValueError:
-            raise KillConnection('Client claims to have non-numeric PID')
-        self._instance = addr, incoming, outgoing, pid, token
-        self._epoch_id = self._coordinator.assign_epoch_id(addr, incoming, outgoing, pid, token)
-        self._state = 'CONFIGURED'
-        self.reconfigure(self._coordinator.configuration())
+            raise KillConnection('instance claims to have non-numeric PID')
+        if len(token) != 32:
+            raise KillConnection('instance uses token of improper length')
+        self._instance = self._coordinator.register_instance(addr, incoming, outgoing, pid, token)
+        oldid = self._id
+        self._id = str(self._instance)
+        logging.info('{0} identified by {1}'.format(oldid, self._id))
 
-    def reconfigure(self, newconfig):
-        if self._state == 'UNCONFIGURED':
-            logging.debug('Host {0} is UNCONFIGURED; not following reconfiguration'.format(self._id))
-            pass
-        elif self._state in ('CONFIGURED', 'CONFIGFAILED'):
-            self._state = 'CONFIGPENDING'
-            if len(self._pending) != 0:
-                raise KillConnection('Connection is configured with pending config')
-            self._pending.append(newconfig)
-            self.send_config(newconfig)
-            logging.debug('Host {0} is {1}; reconfiguring'.format(self._id, self._state))
-        elif self._state == 'CONFIGPENDING':
-            self._pending.append(newconfig)
-            logging.debug('Host {0} is CONFIGPENDING; appending config'.format(self._id, self._state))
-        else:
-            raise KillConnection('Connection wandered into state {0}'.format(self._state))
+    def fail_host(self, host):
+        if ':' not in host:
+            raise KillConnection('host reports failure of invalid address')
+        ip, port = host.rsplit(':', 1)
+        ip = normalize_address(ip)
+        if ip is None:
+            raise KillConnection('host reports failure of invalid address')
+        try:
+            port = int(port)
+        except ValueError:
+            raise KillConnection('host reports failure of invalid address')
+        logging.info("report of failure for {0}".format(host))
+        self._coordinator.fail_host(ip, port)
 
-    def acknowledge_config(self):
-        if not self._identified:
-            raise KillConnection('Host responds to a configuration before identiying')
-        if self._state != 'CONFIGPENDING':
-            raise KillConnection('Host acknowledges a new configuration when none were issued.')
-        if len(self._pending) < 1:
-            raise KillConnection('Connection should have pending config but has none.')
-        self._config = self._pending[0]
-        self._pending = self._pending[1:]
-        self._state = 'CONFIGURED'
-        if len(self._pending) > 0:
-            self.send_config(self._pending[0])
-            self._state = 'CONFIGPENDING'
-            logging.debug('Host {0} has pending configs; moving to CONFIGPENDING'.format(self._id, self._state))
+    def transfer_fail(self, xferid):
+        try:
+            xferid = int(xferid)
+        except ValueError:
+            raise KillConnection("host uses non-numeric transfer id for transfer_fail")
+        self._coordinator.transfer_fail(xferid)
 
-    def reject_config(self):
-        if not self._identified:
-            raise KillConnection('Host responds to a configuration before identiying')
-        if self._state != 'CONFIGPENDING':
-            raise KillConnection('Host rejects a new configuration when none were issued.')
-        if len(self._pending) < 1:
-            raise KillConnection('Host should have pending config but has none.')
-        logging.warning('Host {0} rejects configuration'.format(self._id))
-        self._pending = self._pending[1:]
-        self._state = 'CONFIGURED'
-        if len(self._pending) > 0:
-            self.send_config(self._pending[0])
-            self._state = 'CONFIGPENDING'
-            logging.debug('Host {0} has pending configs; moving to CONFIGPENDING'.format(self._id, self._state))
+    def transfer_golive(self, xferid):
+        try:
+            xferid = int(xferid)
+        except ValueError:
+            raise KillConnection("host uses non-numeric transfer id for transfer_golive")
+        self._coordinator.transfer_golive(xferid)
 
-    def send_config(self, config):
-        num, data = config
-        self.outgoing += (data + '\nend\tof\tline').strip() + '\n'
+    def transfer_complete(self, xferid):
+        try:
+            xferid = int(xferid)
+        except ValueError:
+            raise KillConnection("host uses non-numeric transfer id for transfer_complete")
+        self._coordinator.transfer_complete(xferid)
+
+    def send_config(self, num, data):
+        self._has_config_pending = True
+        self.outgoing += (data + '\nend of line').strip() + '\n'
+        self._pending_config_num = num
+
+    def has_config_pending(self):
+        return self._has_config_pending
+
+    def last_config_num(self):
+        return self._pending_config_num
 
 
 class ControlConnection(object):
@@ -361,7 +461,8 @@ class ControlConnection(object):
         self._delim = '\n'
         self._mode = "COMMAND"
         self._action = None
-        self._id = 'ID XXX' # XXX
+        self._identified = 'CONTROL'
+        self._id = str(self._sock.getpeername())
         self._conns = conns
 
     def handle_in(self):
@@ -373,11 +474,7 @@ class ControlConnection(object):
             data, self._ibuffer = self._ibuffer.split(self._delim, 1)
             if self._mode == 'COMMAND':
                 commandline = shlex.split(data)
-                if len(commandline) == 2 and commandline == ['list', 'clients']:
-                    self.list_clients()
-                elif len(commandline) == 2 and commandline == ['list', 'instances']:
-                    self.list_instances()
-                elif len(commandline) == 2 and commandline == ['add', 'space']:
+                if len(commandline) == 2 and commandline == ['add', 'space']:
                     self._delim = '\n.\n'
                     self._mode = 'DATA'
                     self._action = self.add_space
@@ -395,46 +492,6 @@ class ControlConnection(object):
         sz = self._sock.send(data)
         self.outgoing = self.outgoing[sz:]
 
-    def handle_err(self):
-        pass
-
-    def handle_hup(self):
-        pass
-
-    def handle_nval(self):
-        pass
-
-    def list_clients(self):
-        ret = []
-        for sock, conn in self._conns.values():
-            if getattr(conn, '_identified', None) == HostConnection.CLIENT:
-                ret.append((conn._connectime, conn._id))
-        resp = '\n'.join(['{0} {1}'.format(d, i) for d, i in ret])
-        if resp:
-            self.outgoing += resp + '\n.\n'
-        else:
-            self.outgoing += '.\n'
-
-    def list_instances(self):
-        local = {}
-        for sock, conn in self._conns.values():
-            if getattr(conn, '_identified', None) == HostConnection.INSTANCE:
-                local[conn._instance] = conn._connectime, conn._state
-        resp = ''
-        for inst in sorted(self._coordinator.list_instances()):
-            addr, incoming, inc_ver, outgoing, out_ver, pid, token = inst
-            if (addr, incoming, outgoing, pid, token) in local:
-                connectime = local[(addr, incoming, outgoing, pid, token)][0]
-                state = local[(addr, incoming, outgoing, pid, token)][1]
-            else:
-                connectime = ''
-                state = ''
-            fmt = '{connectime:26} {addr} {incoming}:{inc_ver} {outgoing}:{out_ver} {pid} {token} {state}\n'
-            resp += fmt.format(connectime=str(connectime), addr=addr,
-                    incoming=incoming, inc_ver=inc_ver, outgoing=outgoing,
-                    out_ver=out_ver, pid=pid, token=token, state=state)
-        self.outgoing += resp + '.\n'
-
     def add_space(self, data):
         try:
             parser = (hdcoordinator.parser.space + pyparsing.stringEnd)
@@ -446,8 +503,8 @@ class ControlConnection(object):
             return self._fail(str(e))
         except Coordinator.DuplicateSpace as e:
             return self._fail("Space already exists")
-        self._reconfigure_all()
         self.outgoing += 'SUCCESS\n'
+        logging.info("created new space \"{0}\"".format(space.name))
 
     def del_space(self, space):
         try:
@@ -456,17 +513,11 @@ class ControlConnection(object):
             return self._fail(str(e))
         except Coordinator.UnknownSpace as e:
             return self._fail("Space does not exist")
-        self._reconfigure_all()
         self.outgoing += 'SUCCESS\n'
-
-    def _reconfigure_all(self):
-        config = self._coordinator.configuration()
-        for sock, conn in self._conns.values():
-            if hasattr(conn, 'reconfigure'):
-                conn.reconfigure(config)
+        logging.info("removed space \"{0}\"".format(space))
 
     def _fail(self, msg):
-        error = 'Host {0}: {1}'.format(self._id, msg)
+        error = 'failing control connection {0}: {1}'.format(self._id, msg)
         logging.error(error)
         self.outgoing += msg + '\n'
 
@@ -489,8 +540,10 @@ class CoordinatorServer(object):
         self._coord = Coordinator()
 
     def run(self):
+        instances_to_fds = {}
+        client_fds = set()
         while True:
-            fds = self._p.poll()
+            fds = self._p.poll(1000)
             for fd, ev in fds:
                 if fd == self._control_listen.fileno():
                     conn = self._control_listen.accept()
@@ -509,37 +562,59 @@ class CoordinatorServer(object):
                     remove = False
                     try:
                         if ev & select.POLLERR:
-                            conn.handle_err()
                             remove = True
                         elif ev & select.POLLHUP:
-                            conn.handle_hup()
                             remove = True
                         elif ev & select.POLLNVAL:
-                            conn.handle_nval()
                             remove = True
                         if not remove and ev & select.POLLIN:
                             conn.handle_in()
                         if not remove and ev & select.POLLOUT:
                             conn.handle_out()
+                            if conn.outgoing == '':
+                                self._p.modify(fd, select.POLLIN)
                     except KillConnection as kc:
-                        logging.error('connection closed unexpectedly: ' + str(kc))
+                        logging.error('connection killed: ' + str(kc))
                         remove = True
                     except EndConnection as ec:
                         remove = True
+                    except socket.error as e:
+                        remove = True
                     if remove:
                         del self._conns[fd]
+                        if fd in client_fds:
+                            client_fds.remove(fd)
+                        if conn._identified == 'INSTANCE' and \
+                           conn._instance in instances_to_fds:
+                            del instances_to_fds[conn._instance]
                         self._p.unregister(fd)
                         try:
                             sock.shutdown(socket.SHUT_RDWR)
                             sock.close()
                         except socket.error as e:
                             pass
-            for fd, conn in self._conns.iteritems():
-                sock, conn = conn
-                if len(conn.outgoing) > 0:
+                    else:
+                        if conn._identified == 'CLIENT':
+                            client_fds.add(fd)
+                        if conn._identified == 'INSTANCE' and \
+                           not conn.has_config_pending():
+                            instances_to_fds[conn._instance] = fd
+            instances = set(instances_to_fds.keys())
+            instances.add(None)
+            configs, hosts = self._coord.fetch_configs(instances)
+            for instance, confignum in hosts.iteritems():
+                c = configs[confignum]
+                if instance is None:
+                    for fd in client_fds:
+                        conn = self._conns[fd][1]
+                        if conn.last_config_num() < confignum:
+                            conn.send_config(confignum, c)
+                            self._p.modify(fd, select.POLLIN | select.POLLOUT)
+                elif instance in instances_to_fds:
+                    fd = instances_to_fds[instance]
+                    self._conns[fd][1].send_config(confignum, c)
                     self._p.modify(fd, select.POLLIN | select.POLLOUT)
-                else:
-                    self._p.modify(fd, select.POLLIN)
+                    del instances_to_fds[instance]
 
 
 def main(argv):

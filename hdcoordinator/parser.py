@@ -33,11 +33,7 @@ import unittest
 
 from pyparsing import Combine, Forward, Group, Literal, Optional, Suppress, ZeroOrMore, Word, delimitedList, stringEnd
 
-
-Dimension = collections.namedtuple("Dimension", ["name", "replhash", "diskhash"])
-Region = collections.namedtuple("Region", ["mask", "prefix", "replicas"])
-Subspace = collections.namedtuple("Subspace", ["dimensions", "regions"])
-Space = collections.namedtuple("Space", ["name", "dimensions", "subspaces"])
+from hdcoordinator import hdtypes
 
 
 def _encompases(outter, inner):
@@ -55,7 +51,7 @@ def _upper_bound_of(region):
     return region.mask + (1 << (64 - region.prefix))
 
 
-def _fill_to_region(upper_bound, auto_prefix, auto_replication, target):
+def _fill_to_region(upper_bound, auto_prefix, auto_f, target):
     regions = []
     while upper_bound < target:
         boundstr = bin(upper_bound)[2:]
@@ -68,67 +64,65 @@ def _fill_to_region(upper_bound, auto_prefix, auto_replication, target):
             index = boundstr.rfind('1') + 1
             index = targetstr.find('1', index)
             assert(index >= 0)
-            regions.append(Region(mask=upper_bound,
-                                  prefix=index,
-                                  replicas=list(auto_replication)))
+            regions.append(hdtypes.Region(index, upper_bound, auto_f))
         elif boundstr[auto_prefix + 1:].strip('0') == '':
             # We need to create an undivided automatic region.
-            regions.append(Region(mask=upper_bound,
-                                  prefix=auto_prefix,
-                                  replicas=list(auto_replication)))
+            regions.append(hdtypes.Region(auto_prefix, upper_bound, auto_f))
         else:
             # We need finish this divided automatic region.
             index = boundstr.rfind('1')
             assert(index >= 0)
-            regions.append(Region(mask=upper_bound,
-                                  prefix=index,
-                                  replicas=list(auto_replication)))
+            regions.append(hdtypes.Region(index, upper_bound, auto_f))
         upper_bound = _upper_bound_of(regions[-1])
     return regions
 
 
 def parse_dimension(dim):
-    return Dimension(dim[0], dim[1][0], dim[1][1])
+    return hdtypes.Dimension(dim[0], dim[1])
 
 
 def parse_regions(regions):
     # Determine the automatic interval.
     auto_prefix = None
-    auto_increment = None
-    auto_replication = None
+    auto_incREMENT = None
+    auto_f = None
     end_idx = None
     if regions[-1][0] == "auto":
         if regions[-1][1] > 64 or regions[-1][1] < 0:
             raise ValueError("Regions must use use 0 <= prefix <= 64")
         auto_prefix = regions[-1][1]
         auto_increment = 1 << (64 - regions[-1][1])
-        auto_replication = [None] * regions[-1][2]
+        auto_f = regions[-1][2]
         end_idx = -1
     # Determine the static regions
     staticregions = []
     for region in regions[:end_idx]:
         assert(region[0] in ("region",))
-        staticregions.append(Region(mask=region[2], prefix=region[1], replicas=[None] * region[3]))
+        staticregions.append(hdtypes.Region(mask=region[2], prefix=region[1], desired_f=region[3]))
     staticregions.sort()
     regions = []
     upper_bound = 0
-    for region in staticregions:
+    for region in sorted(staticregions, key=lambda x: x.mask):
         if auto_prefix:
             regions += _fill_to_region(upper_bound, auto_prefix,
-                                        auto_replication, region.mask)
+                                        auto_f, region.mask)
             if regions:
                 upper_bound = _upper_bound_of(regions[-1])
+            if (upper_bound != region.mask):
+                print upper_bound, region, auto_prefix, regions
             assert(upper_bound == region.mask)
         if upper_bound != region.mask:
             raise ValueError('Static regions without an "auto" statement must be contiguous')
         regions.append(region)
         upper_bound = _upper_bound_of(regions[-1])
-    regions += _fill_to_region(upper_bound, auto_prefix, auto_replication, 1 << 64)
+    regions += _fill_to_region(upper_bound, auto_prefix, auto_f, 1 << 64)
     return regions
 
 
 def parse_subspace(subspace):
-    return Subspace(dimensions=list(subspace[0]), regions=list(subspace[1]))
+    return hdtypes.Subspace(dimensions=list(subspace[0]),
+                    nosearch=list(subspace[1]),
+                    regions=list(subspace[2]))
 
 
 def parse_space(space):
@@ -137,45 +131,34 @@ def parse_space(space):
         raise ValueError("Space key must be one of its dimensions.")
     for subspace in space.subspaces:
         for dim in set(subspace.dimensions):
-            if dim.name not in dims:
+            if dim not in dims:
                 raise ValueError("Subspace dimension {0} must be one of its dimensions.".format(repr(name)))
-    if space.keyhash[0] == "none":
-        raise ValueError("Cannot specify \"none\" as a replication hash for dimension {0}".format(repr(space.key)))
-    keysubspace = Subspace(dimensions=[Dimension(space.key, *space.keyhash)], regions=list(space.keyregions))
+    keysubspace = hdtypes.Subspace(dimensions=[space.key], nosearch=[], regions=list(space.keyregions))
     subspaces = [keysubspace] + list(space.subspaces)
-    return Space(name=space.name, dimensions=space.dimensions, subspaces=subspaces)
+    return hdtypes.Space(space.name, space.dimensions, subspaces)
 
 
 identifier = Word(string.ascii_letters + string.digits + '_')
 integer = Word(string.digits).setParseAction(lambda t: int(t[0]))
 hexnum  = Combine(Literal("0x") + Word(string.hexdigits)).setParseAction(lambda t: int(t[0][2:], 16))
-hashequal = Literal("equality")
-hashrange = Literal("range")
-hashnone  = Literal("none")
-hashtype  = hashequal|hashrange|hashnone
-
-def hash_specifier(repl_default, disk_default):
-    return Optional(Group(Optional(hashtype, default=repl_default) +
-                          Suppress(":") +
-                          Optional(hashtype, default=disk_default)),
-                    default=[repl_default, disk_default])
-
-def dimensions(repl_default, disk_default):
-    dimension = identifier.setResultsName("name") + \
-                hash_specifier(repl_default, disk_default).setResultsName("hash")
-    dimension.setParseAction(parse_dimension)
-    return delimitedList(dimension)
-
+dimension = identifier.setResultsName("name") + \
+            Optional(Suppress(Literal("(")) +
+                     (Literal("string") | Literal("uint64")) +
+                     Suppress(Literal(")")), default="string").setResultsName("type")
+dimension.setParseAction(parse_dimension)
 autoregion = Literal("auto") + integer + integer
 staticregion = Literal("region") + integer + hexnum + integer
 region = ZeroOrMore(Group(staticregion)) + Optional(Group(autoregion))
 region.setParseAction(parse_regions)
-subspace = Literal("subspace").suppress() + Group(dimensions("equality", None)) + Group(region)
+subspace = Literal("subspace").suppress() + \
+           Group(delimitedList(identifier)) + \
+           Optional(Suppress(Literal("nosearch")) +
+                   Group(delimitedList(identifier)), default=[]) + \
+           Group(region)
 subspace.setParseAction(parse_subspace)
 space = Literal("space").suppress() + identifier.setResultsName("name") + \
-        Literal("dimensions").suppress() + Group(dimensions("none", "equality")).setResultsName("dimensions") + \
+        Literal("dimensions").suppress() + Group(delimitedList(dimension)).setResultsName("dimensions") + \
         Literal("key").suppress() + identifier.setResultsName("key") + \
-        hash_specifier("equality", None).setResultsName("keyhash") + \
         Group(region).setResultsName("keyregions") + \
         ZeroOrMore(subspace).setResultsName("subspaces")
 space.setParseAction(parse_space)
@@ -187,54 +170,54 @@ class TestFillToRegion(unittest.TestCase):
         a = 0
         b = 1
         while a < (1 << 64):
-            self.assertEqual([], _fill_to_region(a, 0, "REPL", a))
+            self.assertEqual([], _fill_to_region(a, 0, 4, a))
             a, b = b, a + b
 
     def test_auto0(self):
-        expected = [Region(0, 0, "REPL")]
-        returned = _fill_to_region(0, 0, "REPL", 1 << 64)
+        expected = [hdtypes.Region(0, 0, 4)]
+        returned = _fill_to_region(0, 0, 4, 1 << 64)
         self.assertEqual(expected, returned)
 
     def test_auto1(self):
-        expected = [Region(0, 1, "REPL"),
-                    Region(0x8000000000000000, 1, "REPL")]
-        returned = _fill_to_region(0, 1, "REPL", 1 << 64)
+        expected = [hdtypes.Region(1, 0, 4),
+                    hdtypes.Region(1, 0x8000000000000000, 4)]
+        returned = _fill_to_region(0, 1, 4, 1 << 64)
         self.assertEqual(expected, returned)
 
     def test_auto2(self):
-        expected = [Region(0, 2, "REPL"),
-                    Region(0x4000000000000000, 2, "REPL"),
-                    Region(0x8000000000000000, 2, "REPL"),
-                    Region(0xc000000000000000, 2, "REPL")]
-        returned = _fill_to_region(0, 2, "REPL", 1 << 64)
+        expected = [hdtypes.Region(2, 0, 4),
+                    hdtypes.Region(2, 0x4000000000000000, 4),
+                    hdtypes.Region(2, 0x8000000000000000, 4),
+                    hdtypes.Region(2, 0xc000000000000000, 4)]
+        returned = _fill_to_region(0, 2, 4, 1 << 64)
         self.assertEqual(expected, returned)
 
     def test_auto3(self):
-        expected = [Region(0, 3, "REPL"),
-                    Region(0x2000000000000000, 3, "REPL"),
-                    Region(0x4000000000000000, 3, "REPL"),
-                    Region(0x6000000000000000, 3, "REPL"),
-                    Region(0x8000000000000000, 3, "REPL"),
-                    Region(0xa000000000000000, 3, "REPL"),
-                    Region(0xc000000000000000, 3, "REPL"),
-                    Region(0xe000000000000000, 3, "REPL")]
-        returned = _fill_to_region(0, 3, "REPL", 1 << 64)
+        expected = [hdtypes.Region(3, 0, 4),
+                    hdtypes.Region(3, 0x2000000000000000, 4),
+                    hdtypes.Region(3, 0x4000000000000000, 4),
+                    hdtypes.Region(3, 0x6000000000000000, 4),
+                    hdtypes.Region(3, 0x8000000000000000, 4),
+                    hdtypes.Region(3, 0xa000000000000000, 4),
+                    hdtypes.Region(3, 0xc000000000000000, 4),
+                    hdtypes.Region(3, 0xe000000000000000, 4)]
+        returned = _fill_to_region(0, 3, 4, 1 << 64)
         self.assertEqual(expected, returned)
 
     def test_static_with_bigger_upper_bound_prefix(self):
-        expected = [Region(0x5500000000000000, 8, "REPL"),
-                    Region(0x5600000000000000, 7, "REPL"),
-                    Region(0x5800000000000000, 5, "REPL"),
-                    Region(0x6000000000000000, 3, "REPL")]
-        returned = _fill_to_region(0x5500000000000000, 3, "REPL", 0x8000000000000000)
+        expected = [hdtypes.Region(8, 0x5500000000000000, 4),
+                    hdtypes.Region(7, 0x5600000000000000, 4),
+                    hdtypes.Region(5, 0x5800000000000000, 4),
+                    hdtypes.Region(3, 0x6000000000000000, 4)]
+        returned = _fill_to_region(0x5500000000000000, 3, 4, 0x8000000000000000)
         self.assertEqual(expected, returned)
 
     def test_static_with_bigger_target_prefix(self):
-        expected = [Region(0x6000000000000000, 3, "REPL"),
-                    Region(0x8000000000000000, 3, "REPL"),
-                    Region(0xa000000000000000, 5, "REPL"),
-                    Region(0xa800000000000000, 7, "REPL")]
-        returned = _fill_to_region(0x6000000000000000, 3, "REPL", 0xaa00000000000000)
+        expected = [hdtypes.Region(3, 0x6000000000000000, 4),
+                    hdtypes.Region(3, 0x8000000000000000, 4),
+                    hdtypes.Region(5, 0xa000000000000000, 4),
+                    hdtypes.Region(7, 0xa800000000000000, 4)]
+        returned = _fill_to_region(0x6000000000000000, 3, 4, 0xaa00000000000000)
         self.assertEqual(expected, returned)
 
 
@@ -251,54 +234,68 @@ class TestRegionParsing(unittest.TestCase):
         self.assertEqual(expected, returned)
 
     def test_autoregion(self):
-        expected = [Region(prefix=1, mask=0L, replicas=[None, None, None]),
-                    Region(prefix=1, mask=0x8000000000000000, replicas=[None, None, None])]
+        expected = [hdtypes.Region(prefix=1, mask=0L, desired_f=3),
+                    hdtypes.Region(prefix=1, mask=0x8000000000000000, desired_f=3)]
         returned = list((region + stringEnd).parseString("auto 1 3"))
         self.assertEqual(expected, returned)
 
     def test_onestatic(self):
-        expected = [Region(prefix=1, mask=0L, replicas=[None, None, None]),
-                    Region(prefix=1, mask=0x8000000000000000, replicas=[None, None])]
+        expected = [hdtypes.Region(prefix=1, mask=0L, desired_f=3),
+                    hdtypes.Region(prefix=1, mask=0x8000000000000000, desired_f=2)]
         returned = list((region + stringEnd).parseString("region 1 0x8000000000000000 2 auto 1 3"))
         self.assertEqual(expected, returned)
 
     def test_static_is_everything(self):
-        expected = [Region(prefix=0, mask=0L, replicas=[None, None])]
+        expected = [hdtypes.Region(prefix=0, mask=0L, desired_f=2)]
         returned = list((region + stringEnd).parseString("region 0 0x0000000000000000 2 auto 1 3"))
         self.assertEqual(expected, returned)
 
     def test_static_has_bigger_prefix_same_mask(self):
-        expected = [Region(prefix=1, mask=0L, replicas=[None, None, None]),
-                    Region(prefix=2, mask=0x8000000000000000, replicas=[None, None]),
-                    Region(prefix=2, mask=0xc000000000000000, replicas=[None, None, None])]
+        expected = [hdtypes.Region(prefix=1, mask=0L, desired_f=3),
+                    hdtypes.Region(prefix=2, mask=0x8000000000000000, desired_f=2),
+                    hdtypes.Region(prefix=2, mask=0xc000000000000000, desired_f=3)]
         returned = list((region + stringEnd).parseString("region 2 0x8000000000000000 2 auto 1 3"))
         self.assertEqual(expected, returned)
 
     def test_static_has_bigger_prefix_different_mask(self):
-        expected = [Region(prefix=1, mask=0L, replicas=[None, None, None]),
-                    Region(prefix=2, mask=0x8000000000000000, replicas=[None, None, None]),
-                    Region(prefix=2, mask=0xc000000000000000, replicas=[None, None])]
+        expected = [hdtypes.Region(prefix=1, mask=0L, desired_f=3),
+                    hdtypes.Region(prefix=2, mask=0x8000000000000000, desired_f=3),
+                    hdtypes.Region(prefix=2, mask=0xc000000000000000, desired_f=2)]
         returned = list((region + stringEnd).parseString("region 2 0xc000000000000000 2 auto 1 3"))
         self.assertEqual(expected, returned)
 
     def test_static_has_smaller_prefix(self):
-        expected = [Region(prefix=2, mask=0L, replicas=[None, None, None]),
-                    Region(prefix=2, mask=0x4000000000000000, replicas=[None, None, None]),
-                    Region(prefix=1, mask=0x8000000000000000, replicas=[None, None])]
+        expected = [hdtypes.Region(prefix=2, mask=0L, desired_f=3),
+                    hdtypes.Region(prefix=2, mask=0x4000000000000000, desired_f=3),
+                    hdtypes.Region(prefix=1, mask=0x8000000000000000, desired_f=2)]
         returned = list((region + stringEnd).parseString("region 1 0x8000000000000000 2 auto 2 3"))
         self.assertEqual(expected, returned)
 
     def test_multiple_static_for_one_auto(self):
-        expected = [Region(prefix=3, mask=0L, replicas=[None, None, None]),
-                    Region(prefix=4, mask=0x2000000000000000, replicas=[None, None]),
-                    Region(prefix=4, mask=0x3000000000000000, replicas=[None, None, None]),
-                    Region(prefix=4, mask=0x4000000000000000, replicas=[None, None, None]),
-                    Region(prefix=4, mask=0x5000000000000000, replicas=[None, None]),
-                    Region(prefix=3, mask=0x6000000000000000, replicas=[None, None, None]),
-                    Region(prefix=2, mask=0x8000000000000000, replicas=[None, None, None]),
-                    Region(prefix=2, mask=0xc000000000000000, replicas=[None, None, None])]
+        expected = [hdtypes.Region(prefix=3, mask=0L, desired_f=3),
+                    hdtypes.Region(prefix=4, mask=0x2000000000000000, desired_f=2),
+                    hdtypes.Region(prefix=4, mask=0x3000000000000000, desired_f=3),
+                    hdtypes.Region(prefix=4, mask=0x4000000000000000, desired_f=3),
+                    hdtypes.Region(prefix=4, mask=0x5000000000000000, desired_f=2),
+                    hdtypes.Region(prefix=3, mask=0x6000000000000000, desired_f=3),
+                    hdtypes.Region(prefix=2, mask=0x8000000000000000, desired_f=3),
+                    hdtypes.Region(prefix=2, mask=0xc000000000000000, desired_f=3)]
         returned = list((region + stringEnd).parseString("""region 4 0x2000000000000000 2
                                                             region 4 0x5000000000000000 2
+                                                            auto 2 3"""))
+        self.assertEqual(expected, returned)
+
+    def test_multiple_out_of_order_static_for_one_auto(self):
+        expected = [hdtypes.Region(prefix=3, mask=0L, desired_f=3),
+                    hdtypes.Region(prefix=4, mask=0x2000000000000000, desired_f=2),
+                    hdtypes.Region(prefix=4, mask=0x3000000000000000, desired_f=3),
+                    hdtypes.Region(prefix=4, mask=0x4000000000000000, desired_f=3),
+                    hdtypes.Region(prefix=4, mask=0x5000000000000000, desired_f=2),
+                    hdtypes.Region(prefix=3, mask=0x6000000000000000, desired_f=3),
+                    hdtypes.Region(prefix=2, mask=0x8000000000000000, desired_f=3),
+                    hdtypes.Region(prefix=2, mask=0xc000000000000000, desired_f=3)]
+        returned = list((region + stringEnd).parseString("""region 4 0x5000000000000000 2
+                                                            region 4 0x2000000000000000 2
                                                             auto 2 3"""))
         self.assertEqual(expected, returned)
 

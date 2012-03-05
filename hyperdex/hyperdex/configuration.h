@@ -42,6 +42,8 @@
 #include <hyperspacehashing/search.h>
 
 // HyperDex
+#include <hyperdex/attribute.h>
+#include <hyperdex/datatype.h>
 #include <hyperdex/ids.h>
 #include <hyperdex/instance.h>
 
@@ -56,15 +58,25 @@ class configuration
 
     public:
         configuration();
+        configuration(uint64_t version,
+                      const std::vector<instance>& hosts,
+                      const std::map<std::string, spaceid>& space_assignment,
+                      const std::map<spaceid, std::vector<attribute> >& spaces,
+                      const std::map<spaceid, uint16_t>& space_sizes,
+                      const std::map<entityid, instance>& entities,
+                      const std::map<subspaceid, hyperspacehashing::prefix::hasher>& repl_hashers,
+                      const std::map<subspaceid, hyperspacehashing::mask::hasher>& disk_hashers,
+                      const std::map<std::pair<instance, uint16_t>, hyperdex::regionid>& transfers);
         ~configuration() throw ();
 
+    // The version of this config
     public:
-        bool add_line(const std::string& line);
+        uint64_t version() const { return m_version; }
 
     // Data-layout (not hashing)
     public:
         size_t dimensions(const spaceid& s) const;
-        std::vector<std::string> dimension_names(const spaceid& s) const;
+        std::vector<attribute> dimension_names(const spaceid& s) const;
         spaceid space(const char* spacename) const;
         size_t subspaces(const spaceid& s) const;
 
@@ -110,10 +122,12 @@ class configuration
         std::map<entityid, instance> search_entities(const subspaceid& subspace,
                                                      const hyperspacehashing::search& s) const;
 
-    // Transfers
+    // State Transfer
     public:
-        std::map<uint16_t, regionid> transfers_from(const instance& i) const;
-        std::map<uint16_t, regionid> transfers_to(const instance& i) const;
+        instance instancefortransfer(uint16_t xfer_id) const;
+        uint16_t transfer_id(const regionid& reg) const;
+        std::map<uint16_t, regionid> transfers_to(const instance& inst) const;
+        std::map<uint16_t, regionid> transfers_from(const instance& inst) const;
 
     private:
         std::map<entityid, instance> _search_entities(std::map<entityid, instance>::const_iterator start,
@@ -121,32 +135,30 @@ class configuration
                                                       const hyperspacehashing::search& s) const;
 
     private:
-        std::map<std::string, instance> m_hosts;
+        uint64_t m_version;
+        std::vector<instance> m_hosts;
         std::map<std::string, spaceid> m_space_assignment;
-
-        // Map a spaceid to the strings labeling the dimensions.
-        std::map<spaceid, std::vector<std::string> > m_spaces;
-        // Map a subspaceid to the bitmask of the dimensions of the space which
-        // are used as dimensions in the subspace.
-        std::map<subspaceid, std::vector<bool> > m_subspaces;
-        // A set of regions.  Elements of this set are guaranteed to be
-        // non-overlapping.
-        std::set<regionid> m_regions;
+        // Map a spaceid to the attribute names and types.
+        std::map<spaceid, std::vector<attribute> > m_spaces;
+        // The number of subspaces in the space.
+        std::map<spaceid, uint16_t> m_space_sizes;
         // Map an entity id onto the hyperdex instance.
         std::map<entityid, instance> m_entities;
-        // Track currently specified transfers.
-        std::map<uint16_t, regionid> m_transfers;
         // Hash-calculating objects that work for the replication layer.
         std::map<subspaceid, hyperspacehashing::prefix::hasher> m_repl_hashers;
         // Hash-calculating objects that work for the disk layer.
         std::map<subspaceid, hyperspacehashing::mask::hasher> m_disk_hashers;
+        // Transfers specified in the config.
+        std::map<std::pair<instance, uint16_t>, hyperdex::regionid> m_transfers;
+        // Transfers by number.
+        std::vector<instance> m_transfers_by_num;
 };
 
 inline std::ostream&
 operator << (std::ostream& lhs, const instance& rhs)
 {
-    lhs << "instance(" << rhs.inbound << ", " << rhs.inbound_version
-        << rhs.outbound << ", " << rhs.outbound_version << ")";
+    lhs << "instance(" << rhs.address << ", " << rhs.inbound_version
+        << ", " << rhs.outbound_version << ")";
     return lhs;
 }
 

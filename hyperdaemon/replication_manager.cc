@@ -1,4 +1,4 @@
-// Copyright (c) 2011, Cornell University
+// Copyright (c) 2011-2012, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -60,6 +60,9 @@
 #include "hyperdaemon/logical.h"
 #include "hyperdaemon/ongoing_state_transfers.h"
 #include "hyperdaemon/replication_manager.h"
+#include "hyperdaemon/replication_manager_deferred.h"
+#include "hyperdaemon/replication_manager_keyholder.h"
+#include "hyperdaemon/replication_manager_pending.h"
 #include "hyperdaemon/runtimeconfig.h"
 
 using hyperspacehashing::prefix::coordinate;
@@ -82,395 +85,6 @@ using hyperdaemon::replication::keypair;
 #define HOLD_LOCK_FOR_KEY(E, K) \
     e::striped_lock<po6::threads::mutex>::hold CONCAT(_anon, __LINE__)(&m_locks, get_lock_num(E.get_region(), K))
 
-//////////////////////////////// Deferred Class ////////////////////////////////
-
-class hyperdaemon::replication_manager::deferred
-{
-    public:
-        deferred(const bool has_value,
-                 std::auto_ptr<e::buffer> backing,
-                 const e::slice& key,
-                 const std::vector<e::slice>& value,
-                 const hyperdex::entityid& from_ent,
-                 const hyperdex::instance& from_inst,
-                 const hyperdisk::reference& ref);
-        ~deferred() throw ();
-
-    public:
-        std::tr1::shared_ptr<e::buffer> backing;
-        const bool has_value;
-        const e::slice key;
-        const std::vector<e::slice> value;
-        const hyperdex::entityid from_ent;
-        const hyperdex::instance from_inst;
-        hyperdisk::reference ref;
-
-    private:
-        friend class e::intrusive_ptr<deferred>;
-
-    private:
-        void inc() { ++m_ref; }
-        void dec() { if (--m_ref == 0) delete this; }
-
-    private:
-        size_t m_ref;
-};
-
-hyperdaemon :: replication_manager :: deferred :: deferred(const bool hv,
-                                                           std::auto_ptr<e::buffer> b,
-                                                           const e::slice& k,
-                                                           const std::vector<e::slice>& val,
-                                                           const hyperdex::entityid& e,
-                                                           const hyperdex::instance& i,
-                                                           const hyperdisk::reference& r)
-    : backing(b.release())
-    , has_value(hv)
-    , key(k)
-    , value(val)
-    , from_ent(e)
-    , from_inst(i)
-    , ref(r)
-    , m_ref(0)
-{
-}
-
-hyperdaemon :: replication_manager :: deferred :: ~deferred()
-                                                  throw ()
-{
-}
-
-///////////////////////////////// Pending Class ////////////////////////////////
-
-class hyperdaemon::replication_manager::pending
-{
-    public:
-        pending(bool has_value,
-                std::tr1::shared_ptr<e::buffer> backing,
-                const e::slice& key,
-                const std::vector<e::slice>& value,
-                const clientop& co = clientop());
-        ~pending() throw ();
-
-    public:
-        std::tr1::shared_ptr<e::buffer> backing;
-        e::slice key;
-        std::vector<e::slice> value;
-        const bool has_value;
-        bool fresh;
-        bool acked;
-        uint8_t retransmit;
-        clientop co;
-        hyperdex::network_msgtype retcode;
-        e::intrusive_ptr<pending> backing2;
-        hyperdisk::reference ref;
-
-        hyperdex::entityid recv; // We recv from here
-        hyperdex::entityid sent; // We sent to here
-        uint16_t subspace_prev;
-        uint16_t subspace_next;
-        uint64_t point_prev;
-        uint64_t point_this;
-        uint64_t point_next;
-        uint64_t point_next_next;
-
-    private:
-        friend class e::intrusive_ptr<pending>;
-
-    private:
-        void inc() { ++m_ref; }
-        void dec() { if (--m_ref == 0) delete this; }
-
-    private:
-        size_t m_ref;
-};
-
-hyperdaemon :: replication_manager :: pending :: pending(bool hv,
-                                                         std::tr1::shared_ptr<e::buffer> b,
-                                                         const e::slice& k,
-                                                         const std::vector<e::slice>& val,
-                                                         const clientop& c)
-    : backing(b)
-    , key(k)
-    , value(val)
-    , has_value(hv)
-    , fresh(false)
-    , acked(false)
-    , retransmit(0)
-    , co(c)
-    , retcode()
-    , backing2()
-    , ref()
-    , recv()
-    , sent()
-    , subspace_prev(0)
-    , subspace_next(0)
-    , point_prev(0)
-    , point_this(0)
-    , point_next(0)
-    , point_next_next(0)
-    , m_ref(0)
-{
-}
-
-hyperdaemon :: replication_manager :: pending :: ~pending()
-                                                 throw ()
-{
-}
-
-//////////////////////////////// Keyholder Class ///////////////////////////////
-
-class hyperdaemon::replication_manager::keyholder
-{
-    public:
-        keyholder();
-        ~keyholder() throw ();
-
-    public:
-        bool empty() const;
-        bool has_committable_ops() const;
-        bool has_blocked_ops() const;
-        bool has_deferred_ops() const;
-        e::intrusive_ptr<pending> get_by_version(uint64_t version) const;
-        uint64_t most_recent_blocked_version() const;
-        e::intrusive_ptr<pending> most_recent_blocked_op() const;
-        uint64_t most_recent_committable_version() const;
-        e::intrusive_ptr<pending> most_recent_committable_op() const;
-        e::intrusive_ptr<pending> oldest_committable_op() const;
-        uint64_t oldest_blocked_version() const;
-        e::intrusive_ptr<pending> oldest_blocked_op() const;
-        uint64_t oldest_deferred_version() const;
-        e::intrusive_ptr<deferred> oldest_deferred_op() const;
-        uint64_t version_on_disk() const { return m_version_on_disk; }
-
-    public:
-        void append_blocked(uint64_t version, e::intrusive_ptr<pending> op);
-        void insert_deferred(uint64_t version, e::intrusive_ptr<deferred> op);
-        void remove_oldest_committable_op();
-        void remove_oldest_deferred_op();
-        void set_version_on_disk(uint64_t version);
-        void transfer_blocked_to_committable(); // Just transfers 1
-
-    private:
-        typedef std::deque<std::pair<uint64_t, e::intrusive_ptr<pending> > >
-                committable_list_t;
-        typedef std::deque<std::pair<uint64_t, e::intrusive_ptr<pending> > >
-                blocked_list_t;
-        typedef std::deque<std::pair<uint64_t, e::intrusive_ptr<deferred> > >
-                deferred_list_t;
-        friend class e::intrusive_ptr<keyholder>;
-
-    private:
-        void inc() { __sync_add_and_fetch(&m_ref, 1); }
-        void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
-
-    private:
-        size_t m_ref;
-        committable_list_t m_committable;
-        blocked_list_t m_blocked;
-        deferred_list_t m_deferred;
-        uint64_t m_version_on_disk;
-};
-
-hyperdaemon :: replication_manager :: keyholder :: keyholder()
-    : m_ref(0)
-    , m_committable()
-    , m_blocked()
-    , m_deferred()
-    , m_version_on_disk()
-{
-}
-
-hyperdaemon :: replication_manager :: keyholder :: ~keyholder()
-                                                   throw ()
-{
-}
-
-bool
-hyperdaemon :: replication_manager :: keyholder :: empty()
-                                                   const
-{
-    return m_committable.empty() && m_blocked.empty() && m_deferred.empty();
-}
-
-bool
-hyperdaemon :: replication_manager :: keyholder :: has_committable_ops()
-                                                   const
-{
-    return !m_committable.empty();
-}
-
-bool
-hyperdaemon :: replication_manager :: keyholder :: has_blocked_ops()
-                                                   const
-{
-    return !m_blocked.empty();
-}
-
-bool
-hyperdaemon :: replication_manager :: keyholder :: has_deferred_ops()
-                                                   const
-{
-    return !m_deferred.empty();
-}
-
-e::intrusive_ptr<hyperdaemon::replication_manager::pending>
-hyperdaemon :: replication_manager :: keyholder :: get_by_version(uint64_t version)
-                                                   const
-{
-    if (!m_committable.empty() && m_committable.back().first >= version)
-    {
-        for (committable_list_t::const_iterator c = m_committable.begin();
-                c != m_committable.end(); ++c)
-        {
-            if (c->first == version)
-            {
-                return c->second;
-            }
-            else if (c->first > version)
-            {
-                return NULL;
-            }
-        }
-    }
-
-    if (!m_blocked.empty() && m_blocked.back().first >= version)
-    {
-        for (blocked_list_t::const_iterator b = m_blocked.begin();
-                b != m_blocked.end(); ++b)
-        {
-            if (b->first == version)
-            {
-                return b->second;
-            }
-            else if (b->first > version)
-            {
-                return NULL;
-            }
-        }
-    }
-
-    return NULL;
-}
-
-uint64_t
-hyperdaemon :: replication_manager :: keyholder :: most_recent_blocked_version()
-                                                   const
-{
-    assert(!m_blocked.empty());
-    return m_blocked.back().first;
-}
-
-e::intrusive_ptr<hyperdaemon::replication_manager::pending>
-hyperdaemon :: replication_manager :: keyholder :: most_recent_blocked_op()
-                                                   const
-{
-    assert(!m_blocked.empty());
-    return m_blocked.back().second;
-}
-
-uint64_t
-hyperdaemon :: replication_manager :: keyholder :: most_recent_committable_version()
-                                                   const
-{
-    assert(!m_committable.empty());
-    return m_committable.back().first;
-}
-
-e::intrusive_ptr<hyperdaemon::replication_manager::pending>
-hyperdaemon :: replication_manager :: keyholder :: most_recent_committable_op()
-                                                   const
-{
-    assert(!m_committable.empty());
-    return m_committable.back().second;
-}
-
-e::intrusive_ptr<hyperdaemon::replication_manager::pending>
-hyperdaemon :: replication_manager :: keyholder :: oldest_committable_op() const
-{
-    assert(!m_committable.empty());
-    return m_committable.front().second;
-}
-
-uint64_t
-hyperdaemon :: replication_manager :: keyholder :: oldest_blocked_version() const
-{
-    assert(!m_blocked.empty());
-    return m_blocked.front().first;
-}
-
-e::intrusive_ptr<hyperdaemon::replication_manager::pending>
-hyperdaemon :: replication_manager :: keyholder :: oldest_blocked_op() const
-{
-    assert(!m_blocked.empty());
-    return m_blocked.front().second;
-}
-
-uint64_t
-hyperdaemon :: replication_manager :: keyholder :: oldest_deferred_version() const
-{
-    assert(!m_deferred.empty());
-    return m_deferred.front().first;
-}
-
-e::intrusive_ptr<hyperdaemon::replication_manager::deferred>
-hyperdaemon :: replication_manager :: keyholder :: oldest_deferred_op() const
-{
-    assert(!m_deferred.empty());
-    return m_deferred.front().second;
-}
-
-void
-hyperdaemon :: replication_manager :: keyholder :: append_blocked(uint64_t version,
-                                                                  e::intrusive_ptr<pending> op)
-{
-    m_blocked.push_back(std::make_pair(version, op));
-}
-
-void
-hyperdaemon :: replication_manager :: keyholder :: insert_deferred(uint64_t version,
-                                                                   e::intrusive_ptr<deferred> op)
-{
-    deferred_list_t::iterator d = m_deferred.begin();
-
-    while (d != m_deferred.end() && d->first <= version)
-    {
-        ++d;
-    }
-
-    m_deferred.insert(d, std::make_pair(version, op));
-}
-
-void
-hyperdaemon :: replication_manager :: keyholder :: remove_oldest_committable_op()
-{
-    assert(!m_committable.empty());
-    m_committable.pop_front();
-}
-
-void
-hyperdaemon :: replication_manager :: keyholder :: remove_oldest_deferred_op()
-{
-    assert(!m_deferred.empty());
-    m_deferred.pop_front();
-}
-
-void
-hyperdaemon :: replication_manager :: keyholder :: set_version_on_disk(uint64_t version)
-{
-    assert(m_version_on_disk < version);
-    m_version_on_disk = version;
-}
-
-void
-hyperdaemon :: replication_manager :: keyholder :: transfer_blocked_to_committable()
-{
-    assert(!m_blocked.empty());
-    m_committable.push_back(m_blocked.front());
-    m_blocked.pop_front();
-}
-
-///////////////////////////////// Public Class /////////////////////////////////
-
 hyperdaemon :: replication_manager :: replication_manager(coordinatorlink* cl,
                                                           datalayer* data,
                                                           logical* comm,
@@ -481,6 +95,7 @@ hyperdaemon :: replication_manager :: replication_manager(coordinatorlink* cl,
     , m_ost(ost)
     , m_config()
     , m_locks(LOCK_STRIPING)
+    , m_keyholders_lock()
     , m_keyholders(REPLICATION_HASHTABLE_SIZE)
     , m_us()
     , m_shutdown(false)
@@ -509,9 +124,9 @@ void
 hyperdaemon :: replication_manager :: reconfigure(const configuration& newconfig, const instance& us)
 {
     // Install a new configuration.
-    configuration oldconfig(m_config);
     m_config = newconfig;
     m_us = us;
+    po6::threads::mutex::hold hold(&m_keyholders_lock);
 
     for (keyholder_map_t::iterator khiter = m_keyholders.begin();
             khiter != m_keyholders.begin(); khiter.next())
@@ -660,7 +275,8 @@ hyperdaemon :: replication_manager :: chain_subspace(const entityid& from,
     e::intrusive_ptr<pending> newpend;
     std::tr1::shared_ptr<e::buffer> sharedbacking(backing.release());
     newpend = new pending(true, sharedbacking, key, value);
-    newpend->recv = from;
+    newpend->recv_e = from;
+    newpend->recv_i = m_config.instancefor(from);
     newpend->subspace_prev = to.subspace;
     newpend->subspace_next = to.subspace < subspaces - 1 ? to.subspace + 1 : UINT16_MAX;
     newpend->point_prev = from.mask;
@@ -693,7 +309,7 @@ void
 hyperdaemon :: replication_manager :: chain_ack(const entityid& from,
                                                 const entityid& to,
                                                 uint64_t version,
-                                                std::auto_ptr<e::buffer>,
+                                                std::auto_ptr<e::buffer> backing,
                                                 const e::slice& key)
 {
     // Grab the lock that protects this key.
@@ -709,19 +325,20 @@ hyperdaemon :: replication_manager :: chain_ack(const entityid& from,
         return;
     }
 
-    if (pend->sent == entityid())
+    if (pend->sent_e == entityid())
     {
         LOG(INFO) << "dropping CHAIN_ACK for update we haven't sent";
         return;
     }
 
-    if (from != pend->sent)
+    if (from != pend->sent_e)
     {
         LOG(INFO) << "dropping CHAIN_ACK that came from the wrong host";
         return;
     }
 
-    m_ost->add_trigger(to.get_region(), key, version);
+    std::tr1::shared_ptr<e::buffer> shared_backing(backing.release());
+    m_ost->add_trigger(to.get_region(), shared_backing, key, version);
     pend->acked = true;
     put_to_disk(to.get_region(), kh, version);
 
@@ -731,10 +348,10 @@ hyperdaemon :: replication_manager :: chain_ack(const entityid& from,
         kh->remove_oldest_committable_op();
     }
 
+    move_operations_between_queues(to, key, kh);
+
     if (m_config.is_point_leader(to))
     {
-        move_operations_between_queues(to, key, kh);
-
         if (pend->co.from.space == UINT32_MAX)
         {
             respond_to_client(to, pend->co.from, pend->co.nonce,
@@ -744,7 +361,7 @@ hyperdaemon :: replication_manager :: chain_ack(const entityid& from,
     }
     else
     {
-        send_ack(to, pend->recv, version, key);
+        send_ack(to, pend->recv_e, version, key);
     }
 
     if (kh->empty())
@@ -927,7 +544,8 @@ hyperdaemon :: replication_manager :: chain_common(bool has_value,
     if (newop)
     {
         // XXX Check that the saved state and new message match
-        newop->recv = from;
+        newop->recv_e = from;
+        newop->recv_i = m_config.instancefor(from);
         send_ack(to, from, version, key);
         return;
     }
@@ -973,7 +591,8 @@ hyperdaemon :: replication_manager :: chain_common(bool has_value,
     newpend = new pending(has_value, sharedbacking, key, value);
     newpend->fresh = fresh;
     newpend->ref = ref;
-    newpend->recv = from;
+    newpend->recv_e = from;
+    newpend->recv_i = m_config.instancefor(from);
 
     if (!prev_and_next(to.get_region(), key, has_value, value, has_oldvalue, oldvalue, newpend))
     {
@@ -1251,6 +870,60 @@ hyperdaemon :: replication_manager :: prev_and_next(const regionid& r,
 }
 
 void
+hyperdaemon :: replication_manager :: check_for_deferred_operations(const hyperdex::regionid& r,
+                                                                    uint64_t version,
+                                                                    std::tr1::shared_ptr<e::buffer> backing,
+                                                                    const e::slice& key,
+                                                                    bool has_value,
+                                                                    const std::vector<e::slice>& value)
+{
+    // Get the keyholder for this key.
+    e::intrusive_ptr<keyholder> kh = get_keyholder(r, key);
+
+    entityid us = m_config.entityfor(m_us, r);
+
+    // If this is empty, it means we've not been integrated into the chain, and
+    // the race condition we check for cannot exist.
+    if (us == entityid())
+    {
+        return;
+    }
+
+    if (kh->has_deferred_ops() && version + 1 == kh->oldest_deferred_version())
+    {
+        // Create a new pending object to set as pending.
+        e::intrusive_ptr<deferred> op = kh->oldest_deferred_op();
+        e::intrusive_ptr<pending> newop;
+        newop = new pending(op->has_value, op->backing, op->key, op->value);
+        newop->fresh = false;
+        newop->ref = op->ref;
+        newop->recv_e = op->from_ent;
+        newop->recv_i = m_config.instancefor(op->from_ent);
+
+        if (!prev_and_next(us.get_region(), key, newop->has_value, newop->value, has_value, value, newop))
+        {
+            LOG(ERROR) << "errror checking for deferred operations";
+            return;
+        }
+
+        if (!(newop->recv_e.get_region() == r && m_config.chain_adjacent(newop->recv_e, us))
+                && !(newop->recv_e.space == r.space
+                    && newop->recv_e.subspace + 1 == r.subspace
+                    && m_config.is_tail(newop->recv_e)
+                    && m_config.is_head(us)))
+        {
+            LOG(INFO) << "dropping deferred CHAIN_* which didn't come from the right host";
+            return;
+        }
+
+        kh->append_blocked(kh->oldest_deferred_version(), newop);
+        kh->remove_oldest_deferred_op();
+    }
+
+    move_operations_between_queues(us, key, kh);
+}
+
+void
 hyperdaemon :: replication_manager :: move_operations_between_queues(const hyperdex::entityid& us,
                                                                      const e::slice& key,
                                                                      e::intrusive_ptr<keyholder> kh)
@@ -1289,7 +962,8 @@ hyperdaemon :: replication_manager :: move_operations_between_queues(const hyper
         newop = new pending(op->has_value, op->backing, op->key, op->value);
         newop->fresh = false;
         newop->ref = op->ref;
-        newop->recv = op->from_ent;
+        newop->recv_e = op->from_ent;
+        newop->recv_i = m_config.instancefor(op->from_ent);
 
         if (!prev_and_next(us.get_region(), key, newop->has_value, newop->value, oldop->has_value, oldop->value, newop))
         {
@@ -1297,10 +971,10 @@ hyperdaemon :: replication_manager :: move_operations_between_queues(const hyper
             return;
         }
 
-        if (!(newop->recv.get_region() == us.get_region() && m_config.chain_adjacent(newop->recv, us))
-                && !(newop->recv.space == us.space
-                    && newop->recv.subspace + 1 == us.subspace
-                    && m_config.is_tail(newop->recv)
+        if (!(newop->recv_e.get_region() == us.get_region() && m_config.chain_adjacent(newop->recv_e, us))
+                && !(newop->recv_e.space == us.space
+                    && newop->recv_e.subspace + 1 == us.subspace
+                    && m_config.is_tail(newop->recv_e)
                     && m_config.is_head(us)))
         {
             LOG(INFO) << "dropping deferred CHAIN_* which didn't come from the right host";
@@ -1332,6 +1006,11 @@ hyperdaemon :: replication_manager :: send_message(const entityid& us,
                                                    const e::slice& key,
                                                    e::intrusive_ptr<pending> op)
 {
+    if (op->sent_e != entityid())
+    {
+        return;
+    }
+
     size_t sz_msg = m_comm->header_size()
                   + sizeof(uint64_t)
                   + sizeof(uint8_t)
@@ -1357,7 +1036,8 @@ hyperdaemon :: replication_manager :: send_message(const entityid& us,
 
             if (m_comm->send(us, us, hyperdex::CHAIN_ACK, revkey))
             {
-                op->sent = us;
+                op->sent_e = us;
+                op->sent_i = m_us;
             }
 
             return;
@@ -1373,7 +1053,8 @@ hyperdaemon :: replication_manager :: send_message(const entityid& us,
 
             if (m_comm->send(us, dst, hyperdex::CHAIN_SUBSPACE, msg))
             {
-                op->sent = dst;
+                op->sent_e = dst;
+                op->sent_i = m_config.instancefor(dst);
             }
 
             return;
@@ -1402,7 +1083,8 @@ hyperdaemon :: replication_manager :: send_message(const entityid& us,
 
             if (m_comm->send(us, dst, hyperdex::CHAIN_SUBSPACE, msg))
             {
-                op->sent = dst;
+                op->sent_e = dst;
+                op->sent_i = m_config.instancefor(dst);
             }
 
             return;
@@ -1433,7 +1115,8 @@ hyperdaemon :: replication_manager :: send_message(const entityid& us,
 
     if (m_comm->send(us, dst, type, msg))
     {
-        op->sent = dst;
+        op->sent_e = dst;
+        op->sent_i = m_config.instancefor(dst);
     }
 }
 
@@ -1491,22 +1174,35 @@ hyperdaemon :: replication_manager :: periodic()
 void
 hyperdaemon :: replication_manager :: retransmit()
 {
-#if 0
-    // XXX NEED mutual exclusion with reconfigure
     for (keyholder_map_t::iterator khiter = m_keyholders.begin();
             khiter != m_keyholders.end(); khiter.next())
     {
+        po6::threads::mutex::hold holdkh(&m_keyholders_lock);
         // Grab the lock that protects this object.
-        uint64_t lock_num = get_lock_num(khiter.key().region,
-                                         e::slice(khiter.key().key.data(), khiter.key().key.size()));
-        e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, lock_num);
+        e::slice key(khiter.key().key.data(), khiter.key().key.size());
+        e::striped_lock<po6::threads::mutex>::hold hold(&m_locks, get_lock_num(khiter.key().region, key));
 
         // Grab some references.
         e::intrusive_ptr<keyholder> kh = khiter.value();
-        entityid ent = m_config.entityfor(m_us, khiter.key().region);
-        e::slice key(khiter.key().key.data(), khiter.key().key.size());
 
-        // We want to recheck this condition after moving things around.
+        if (kh->empty())
+        {
+            // If the keyholder is empty, we need to check to make sure that the
+            // *same* keyholder is accessible via the hash table using
+            // khiter.key().  If it is not, then we know that we are seeing
+            // stale data when iterating.  If it is, the hold on m_locks above
+            // will guarantee that we don't erase the keyholder some other
+            // thread creates.
+            e::intrusive_ptr<keyholder> check;
+
+            if (m_keyholders.lookup(khiter.key(), &check) && check == kh)
+            {
+                m_keyholders.remove(khiter.key());
+            }
+
+            continue;
+        }
+
         if (!kh->has_committable_ops())
         {
             continue;
@@ -1515,21 +1211,15 @@ hyperdaemon :: replication_manager :: retransmit()
         // We only touch the first pending update.  If there is an issue which
         // requires retransmission, we shouldn't hit hosts with a number of
         // excess messages.
-        uint64_t version = kh->pending_updates.begin()->first;
-        e::intrusive_ptr<pending> pend = kh->pending_updates.begin()->second;
+        e::intrusive_ptr<pending> pend = kh->oldest_committable_op();
 
-        if (pend->sent == entityid() && pend->retransmit >= 1 &&
-                ((pend->retransmit != 0) && !(pend->retransmit & (pend->retransmit - 1))))
+        if (pend->sent_e == entityid() ||
+            pend->sent_i != m_config.instancefor(pend->sent_e))
         {
-            send_update(ent, version, key, pend);
-        }
-
-        ++pend->retransmit;
-
-        if (pend->retransmit == 64)
-        {
-            pend->retransmit = 32;
+            pend->sent_e = entityid();
+            pend->sent_i = instance();
+            entityid ent = m_config.entityfor(m_us, khiter.key().region);
+            send_message(ent, kh->oldest_committable_version(), key, pend);
         }
     }
-#endif
 }
