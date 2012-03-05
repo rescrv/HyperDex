@@ -158,9 +158,22 @@ if test x"${enable_logall}" = xyes; then
     AC_DEFINE([HD_LOG_ALL_MESSAGES], [], [Log all network traffic at the INFO level])
 fi
 
+AC_ARG_ENABLE([trace-player], [AS_HELP_STRING([--trace-player],
+              [build a primitive trace-replay tool @<:@default: no@:>@])],
+              [enable_traceplayer=${enableval}], [enable_traceplayer=no])
+
+if test x"${enable_traceplayer}" = xyes; then
+    AC_CHECK_LIB([bsd], [strunvis], [], [AC_MSG_ERROR([
+    -------------------------------------------------
+    The trace-player relies upon libbsd
+    Please install libbsd to continue.
+    -------------------------------------------------])])
+fi
+
 AM_CONDITIONAL([ENABLE_JAVA_BINDINGS], [test x"${java_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_PYTHON_BINDINGS], [test x"${python_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_YCSB_DRIVER], [test x"${enable_ycsb}" = xyes])
+AM_CONDITIONAL([ENABLE_TRACEPLAYER], [test x"${enable_traceplayer}" = xyes])
 AM_CONDITIONAL([ENABLE_COVERAGE], [test x"${enable_coverage}" = xyes])
 
 AC_CONFIG_FILES([Makefile])

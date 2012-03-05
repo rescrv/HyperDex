@@ -54,8 +54,7 @@ noinst_HEADERS = \
 			$(java_bindings_noinst_headers)
 
 bin_PROGRAMS = \
-			daemon \
-			trace-player
+			daemon
 
 noinst_PROGRAMS = \
 			$(libhyperspacehashing_noinst_programs) \
@@ -534,6 +533,8 @@ replication_stress_test_LDADD = \
 replication_stress_test_LDFLAGS = \
 			-no-install
 
+if ENABLE_TRACEPLAYER
+bin_PROGRAMS += trace-player
 trace_player_SOURCES = \
 			trace-player.cc
 trace_player_LDADD = \
@@ -545,6 +546,7 @@ trace_player_LDFLAGS = \
 trace_player_CPPFLAGS = \
 			$(E_CFLAGS) \
 			$(CPPFLAGS)
+endif
 
 ################################################################################
 ################################### Coverage ###################################
