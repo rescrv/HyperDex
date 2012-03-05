@@ -513,7 +513,7 @@ binary_test_CPPFLAGS = \
 simple_consistency_stress_test_SOURCES = \
 			simple-consistency-stress-test.cc
 simple_consistency_stress_test_CPPFLAGS = \
-			-Ihyperclient
+			-I$(abs_top_srcdir)/hyperclient
 			$(E_CFLAGS) \
 			$(CPPFLAGS)
 simple_consistency_stress_test_LDADD = \
