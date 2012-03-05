@@ -62,10 +62,10 @@ hyperdex :: configuration_parser :: generate()
 
     std::map<spaceid, uint16_t> space_sizes;
 
-    for (std::map<spaceid, std::vector<attribute> >::const_iterator ci = m_spaces.begin();
-            ci != m_spaces.end(); ++ci)
+    for (std::set<subspaceid>::const_iterator ci = m_subspaces.begin();
+            ci != m_subspaces.end(); ++ci)
     {
-        ++space_sizes[ci->first];
+        ++space_sizes[ci->get_space()];
     }
 
     std::map<subspaceid, hyperspacehashing::prefix::hasher> repl_hashers;
