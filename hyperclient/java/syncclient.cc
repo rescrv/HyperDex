@@ -114,6 +114,7 @@ HyperClient :: put(const std::string& space,
         at.attr = ci->first.c_str();
         at.value = ci->second.data();
         at.value_sz = ci->second.size();
+        at.type = HYPERDATATYPE_STRING;
         attrs.push_back(at);
     }
 
@@ -125,6 +126,7 @@ HyperClient :: put(const std::string& space,
         nums.push_back(htole64(ci->second));
         at.value = reinterpret_cast<const char*>(&nums.back());
         at.value_sz = sizeof(uint64_t);
+        at.type = HYPERDATATYPE_UINT64;
         attrs.push_back(at);
     }
 

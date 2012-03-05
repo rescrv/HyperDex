@@ -117,11 +117,12 @@ main(int argc, char* argv[])
 
         for (uint32_t num = 0; num < numbers; ++num)
         {
-            hyperclient_attribute attrs[33];
+            hyperclient_attribute attrs[32];
 
             for (size_t i = 0; i < 32; ++i)
             {
                 attrs[i].attr = colnames[i];
+                attrs[i].type = HYPERDATATYPE_STRING;
 
                 if ((num & (1 << i)))
                 {
@@ -135,17 +136,14 @@ main(int argc, char* argv[])
                 }
             }
 
-            attrs[32].attr = "num";
-            attrs[32].value = reinterpret_cast<const char*>(&num);
-            attrs[32].value_sz = sizeof(uint32_t);
-
+            uint64_t numle = htole64(num);
             hyperclient_returncode pstatus;
-            int64_t pid = cl.put(space, reinterpret_cast<const char*>(&num),
-                                 sizeof(uint32_t), attrs, 33, &pstatus);
+            int64_t pid = cl.put(space, reinterpret_cast<const char*>(&numle),
+                                 sizeof(uint32_t), attrs, 32, &pstatus);
 
             if (pid < 0)
             {
-                std::cerr << "put error " << pstatus;
+                std::cerr << "put error " << pstatus << " " << (-1 - pid) << std::endl;
                 return EXIT_FAILURE;
             }
 
@@ -154,7 +152,7 @@ main(int argc, char* argv[])
 
             if (pid != lid)
             {
-                std::cerr << "loop error " << pstatus;
+                std::cerr << "loop error " << pstatus << std::endl;
                 return EXIT_FAILURE;
             }
         }
@@ -170,6 +168,7 @@ main(int argc, char* argv[])
             for (size_t i = 0; i < 32; ++i)
             {
                 attrs[i].attr = colnames[i];
+                attrs[i].type = HYPERDATATYPE_STRING;
 
                 if ((num & (1 << i)))
                 {
@@ -197,22 +196,22 @@ main(int argc, char* argv[])
     }
     catch (po6::error& e)
     {
-        std::cerr << "There was a system error:  " << e.what();
+        std::cerr << "There was a system error:  " << e.what() << std::endl;
         return EXIT_FAILURE;
     }
     catch (std::runtime_error& e)
     {
-        std::cerr << "There was a runtime error:  " << e.what();
+        std::cerr << "There was a runtime error:  " << e.what() << std::endl;
         return EXIT_FAILURE;
     }
     catch (std::bad_alloc& e)
     {
-        std::cerr << "There was a memory allocation error:  " << e.what();
+        std::cerr << "There was a memory allocation error:  " << e.what() << std::endl;
         return EXIT_FAILURE;
     }
     catch (std::exception& e)
     {
-        std::cerr << "There was a generic error:  " << e.what();
+        std::cerr << "There was a generic error:  " << e.what() << std::endl;
         return EXIT_FAILURE;
     }
 
@@ -272,9 +271,22 @@ validate_search(hyperclient* cl,
         abort();
     }
 
-    if (attrs_sz != 34)
+    if (attrs_sz != 33)
     {
-        std::cerr << "for the " << type << " search, there are not 1+33 attributes" << std::endl;
+        std::cerr << "for the " << type << " search, there are not 1+32 attributes" << std::endl;
+        abort();
+    }
+
+    if (strcmp(attrs[0].attr, "num") != 0)
+    {
+        std::cerr << "for the " << type << " search, attribute 0 (the key) is not named num" << std::endl;
+        abort();
+    }
+
+    if (attrs[0].value_sz != sizeof(num)
+            || memcmp(&num, attrs[0].value, sizeof(num)))
+    {
+        std::cerr << "for the " << type << " search, attribute 0 (the key) != " << num << std::endl;
         abort();
     }
 
@@ -304,19 +316,6 @@ validate_search(hyperclient* cl,
             std::cerr << "for the " << type << " search, secondary attribute " << i << " != ZERO" << std::endl;
             abort();
         }
-    }
-
-    if (strcmp(attrs[33].attr, "num") != 0)
-    {
-        std::cerr << "for the " << type << " search, secondary attribute 33 is not named num" << std::endl;
-        abort();
-    }
-
-    if (attrs[33].value_sz != sizeof(num)
-            || memcmp(&num, attrs[33].value, sizeof(num)))
-    {
-        std::cerr << "for the " << type << " search, secondary attribute 33 != " << num << std::endl;
-        abort();
     }
 
     hyperclient_destroy_attrs(attrs, attrs_sz);

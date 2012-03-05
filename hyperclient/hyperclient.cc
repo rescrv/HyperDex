@@ -39,6 +39,7 @@
 // HyperDex
 #include "hyperdex/hyperdex/configuration.h"
 #include "hyperdex/hyperdex/coordinatorlink.h"
+#include "hyperdex/hyperdex/datatype.h"
 #include "hyperdex/hyperdex/instance.h"
 #include "hyperdex/hyperdex/network_constants.h"
 
@@ -203,6 +204,20 @@ hyperclient_destroy_attrs(struct hyperclient_attribute* attrs, size_t /*attrs_sz
 
 /////////////////////////////// Utility Functions //////////////////////////////
 
+static hyperclient_datatype
+hd_to_hc_type(hyperdex::datatype in)
+{
+    switch (in)
+    {
+        case hyperdex::DATATYPE_STRING:
+            return HYPERDATATYPE_STRING;
+        case hyperdex::DATATYPE_UINT64:
+            return HYPERDATATYPE_UINT64;
+        default:
+            return HYPERDATATYPE_GARBAGE;
+    }
+}
+
 static bool
 attributes_from_value(const hyperdex::configuration& config,
                       const hyperdex::entityid& entity,
@@ -254,6 +269,7 @@ attributes_from_value(const hyperdex::configuration& config,
         memmove(data, key, key_sz);
         data += key_sz;
         ha.back().value_sz = key_sz;
+        ha.back().type = hd_to_hc_type(dimension_names[0].type);
     }
 
     for (size_t i = 0; i < value.size(); ++i)
@@ -267,6 +283,7 @@ attributes_from_value(const hyperdex::configuration& config,
         memmove(data, value[i].data(), value[i].size());
         data += value[i].size();
         ha.back().value_sz = value[i].size();
+        ha.back().type = hd_to_hc_type(dimension_names[i + 1].type);
     }
 
     memmove(ret, &ha.front(), sizeof(hyperclient_attribute) * ha.size());
@@ -937,6 +954,12 @@ hyperclient :: search(const char* space,
             return -1 - i;
         }
 
+        if (eq[i].type != hd_to_hc_type(dim->type))
+        {
+            *status = HYPERCLIENT_WRONGTYPE;
+            return -1 - i;
+        }
+
         s.equality_set(dimnum, e::slice(eq[i].value, eq[i].value_sz));
     }
 
@@ -968,6 +991,12 @@ hyperclient :: search(const char* space,
         if (seen.get(dimnum))
         {
             *status = HYPERCLIENT_DUPEATTR;
+            return -1 - eq_sz - i;
+        }
+
+        if (hd_to_hc_type(dim->type) != HYPERDATATYPE_UINT64)
+        {
+            *status = HYPERCLIENT_WRONGTYPE;
             return -1 - eq_sz - i;
         }
 
@@ -1332,6 +1361,12 @@ hyperclient :: pack_attrs(const char* space, e::buffer::packer p,
         if (seen.get(dimnum))
         {
             *status = HYPERCLIENT_DUPEATTR;
+            return -1 - i;
+        }
+
+        if (attrs[i].type != hd_to_hc_type(dim->type))
+        {
+            *status = HYPERCLIENT_WRONGTYPE;
             return -1 - i;
         }
 

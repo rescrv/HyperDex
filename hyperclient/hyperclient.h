@@ -69,11 +69,22 @@ extern "C"
 
 struct hyperclient;
 
+/* HyperClient datatype occupies [8960, 9088) */
+enum hyperclient_datatype
+{
+    HYPERDATATYPE_STRING    = 8960,
+    HYPERDATATYPE_UINT64    = 8961,
+
+    // Returned if the server acts up
+    HYPERDATATYPE_GARBAGE   = 9087
+};
+
 struct hyperclient_attribute
 {
     const char* attr; /* NULL-terminated */
     const char* value;
     size_t value_sz;
+    enum hyperclient_datatype type;
 };
 
 struct hyperclient_range_query
@@ -104,6 +115,7 @@ enum hyperclient_returncode
     HYPERCLIENT_SEEERRNO     = 8522,
     HYPERCLIENT_NONEPENDING  = 8523,
     HYPERCLIENT_DONTUSEKEY   = 8524,
+    HYPERCLIENT_WRONGTYPE    = 8525,
 
     /* This should never happen.  It indicates a bug */
     HYPERCLIENT_EXCEPTION    = 8574,
