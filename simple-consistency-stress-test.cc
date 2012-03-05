@@ -43,6 +43,7 @@
 #include <vector>
 
 // po6
+#include <po6/net/location.h>
 #include <po6/threads/barrier.h>
 #include <po6/threads/mutex.h>
 #include <po6/threads/thread.h>
@@ -58,6 +59,7 @@ static int64_t repetitions = 1024;
 static int64_t threads = 16;
 static const char* space = "consistency";
 static const char* host = "127.0.0.1";
+static po6::net::ipaddr coord(host);
 static uint16_t port = 1234;
 static std::auto_ptr<po6::threads::barrier> barrier;
 static po6::threads::mutex results_lock;
@@ -141,8 +143,29 @@ main(int argc, const char* argv[])
             case 's':
                 break;
             case 'h':
+                try
+                {
+                    coord = po6::net::ipaddr(host);
+                }
+                catch (po6::error& e)
+                {
+                    std::cerr << "cannot parse coordinator address" << std::endl;
+                    return EXIT_FAILURE;
+                }
+                catch (std::invalid_argument& e)
+                {
+                    std::cerr << "cannot parse coordinator address" << std::endl;
+                    return EXIT_FAILURE;
+                }
+
                 break;
             case 'p':
+                if (port < 0 || port > (1 << 16))
+                {
+                    std::cerr << "port number out of range for TCP" << std::endl;
+                    return EXIT_FAILURE;
+                }
+
                 break;
             case POPT_ERROR_NOARG:
             case POPT_ERROR_BADOPT:
