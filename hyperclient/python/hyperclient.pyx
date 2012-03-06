@@ -282,10 +282,12 @@ cdef class Search:
             if isinstance(params, tuple):
                 (lower, upper) = params
                 ranges.append((attr, lower, upper))
+            elif isinstance(params, int):
+                equalities.append((attr, params))
             elif isinstance(params, bytes):
                 equalities.append((attr, params))
             else:
-                errstr = "Attribute '{attr}' has incorrect type (expected (int, int) or bytes, got {type}"
+                errstr = "Attribute '{attr}' has incorrect type (expected int, (int, int) or bytes, got {type}"
                 raise TypeError(errstr.format(attr=attr, type=str(type(params))[7:-2]))
         cdef hyperclient_attribute* eq = NULL
         cdef hyperclient_range_query* rm = NULL
@@ -295,9 +297,15 @@ cdef class Search:
             rn = <hyperclient_range_query*> \
                  malloc(sizeof(hyperclient_range_query) * len(ranges))
             for i, (attr, value) in enumerate(equalities):
+                if isinstance(value, int):
+                    value = struct.pack('<Q', value)
+                    t = HYPERDATATYPE_UINT64
+                else:
+                    t = HYPERDATATYPE_STRING
                 eq[i].attr = attr
                 eq[i].value = value
                 eq[i].value_sz = len(value)
+                eq[i].datatype = t
             for i, (attr, lower, upper) in enumerate(ranges):
                 rn[i].attr = attr
                 rn[i].lower = lower
@@ -350,7 +358,7 @@ cdef class Search:
                         if len(s) > 8:
                             s = s[:8]
                         else:
-                            s += 8 - len(s) * '\x00'
+                            s += (8 - len(s)) * '\x00'
                         attrs[self._attrs[i].attr] = struct.unpack('<Q', s);
             finally:
                 if self._attrs: free(self._attrs)
