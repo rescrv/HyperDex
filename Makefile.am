@@ -78,6 +78,7 @@ TESTS = \
 nobase_python_PYTHON = \
 			hdcoordinator/__init__.py \
 			hdcoordinator/coordinator.py \
+			hdcoordinator/hdtypes.py \
 			hdcoordinator/parser.py
 
 CLEANFILES = \
