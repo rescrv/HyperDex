@@ -33,7 +33,7 @@ import unittest
 
 from pyparsing import Combine, Forward, Group, Literal, Optional, Suppress, ZeroOrMore, Word, delimitedList, stringEnd
 
-from hdcoordinator import hdtypes
+from hypercoordinator import hdtypes
 
 
 def _encompases(outter, inner):

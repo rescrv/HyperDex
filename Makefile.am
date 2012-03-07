@@ -76,10 +76,10 @@ TESTS = \
 			$(libhyperdisk_tests)
 
 nobase_python_PYTHON = \
-			hdcoordinator/__init__.py \
-			hdcoordinator/coordinator.py \
-			hdcoordinator/hdtypes.py \
-			hdcoordinator/parser.py
+			hypercoordinator/__init__.py \
+			hypercoordinator/coordinator.py \
+			hypercoordinator/hdtypes.py \
+			hypercoordinator/parser.py
 
 CLEANFILES = \
 			$(java_bindings_cleanfiles) \

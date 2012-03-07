@@ -38,8 +38,8 @@ import sys
 
 import pyparsing
 
-import hdcoordinator.parser
-from hdcoordinator import hdtypes
+import hypercoordinator.parser
+from hypercoordinator import hdtypes
 
 
 PIPE_BUF = getattr(select, 'PIPE_BUF', 512)
@@ -494,7 +494,7 @@ class ControlConnection(object):
 
     def add_space(self, data):
         try:
-            parser = (hdcoordinator.parser.space + pyparsing.stringEnd)
+            parser = (hypercoordinator.parser.space + pyparsing.stringEnd)
             space = parser.parseString(data)[0]
             self._coordinator.add_space(space)
         except ValueError as e:
