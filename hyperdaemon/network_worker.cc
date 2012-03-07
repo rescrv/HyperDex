@@ -130,7 +130,7 @@ hyperdaemon :: network_worker :: run()
                     result = hyperdex::NET_NOTFOUND;
                     break;
                 case hyperdisk::WRONGARITY:
-                    result = hyperdex::NET_WRONGARITY;
+                    result = hyperdex::NET_BADDIMSPEC;
                     break;
                 case hyperdisk::MISSINGDISK:
                     LOG(ERROR) << "GET caused a MISSINGDISK at the data layer.";

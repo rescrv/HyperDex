@@ -171,7 +171,7 @@ hyperdaemon :: replication_manager :: client_put(const hyperdex::entityid& from,
         {
             respond_to_client(to, from, nonce,
                               hyperdex::RESP_PUT,
-                              hyperdex::NET_WRONGARITY);
+                              hyperdex::NET_BADDIMSPEC);
             return;
         }
 
@@ -181,7 +181,6 @@ hyperdaemon :: replication_manager :: client_put(const hyperdex::entityid& from,
 
     client_common(true, from, to, nonce, backing, key, bf, realvalue);
 }
-
 void
 hyperdaemon :: replication_manager :: client_del(const entityid& from,
                                                  const entityid& to,

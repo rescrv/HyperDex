@@ -523,7 +523,7 @@ hyperclient :: pending_get :: handle_response(hyperdex::network_msgtype type,
         case hyperdex::NET_NOTFOUND:
             set_status(HYPERCLIENT_NOTFOUND);
             return REMOVE;
-        case hyperdex::NET_WRONGARITY:
+        case hyperdex::NET_BADDIMSPEC:
             set_status(HYPERCLIENT_LOGICERROR);
             return REMOVE;
         case hyperdex::NET_NOTUS:
@@ -632,7 +632,7 @@ hyperclient :: pending_statusonly :: handle_response(hyperdex::network_msgtype t
         case hyperdex::NET_NOTFOUND:
             set_status(HYPERCLIENT_NOTFOUND);
             break;
-        case hyperdex::NET_WRONGARITY:
+        case hyperdex::NET_BADDIMSPEC:
             set_status(HYPERCLIENT_LOGICERROR);
             break;
         case hyperdex::NET_NOTUS:
