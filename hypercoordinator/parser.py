@@ -33,7 +33,7 @@ import unittest
 
 from pyparsing import Combine, Forward, Group, Literal, Optional, Suppress, ZeroOrMore, Word, delimitedList, stringEnd
 
-from hdcoordinator import hdtypes
+from hypercoordinator import hdtypes
 
 
 def _encompases(outter, inner):
@@ -132,7 +132,7 @@ def parse_space(space):
     for subspace in space.subspaces:
         for dim in set(subspace.dimensions):
             if dim not in dims:
-                raise ValueError("Subspace dimension {0} must be one of its dimensions.".format(repr(name)))
+                raise ValueError("Subspace dimension {0} must be one of its dimensions.".format(repr(dim)))
     keysubspace = hdtypes.Subspace(dimensions=[space.key], nosearch=[], regions=list(space.keyregions))
     subspaces = [keysubspace] + list(space.subspaces)
     return hdtypes.Space(space.name, space.dimensions, subspaces)

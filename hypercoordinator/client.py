@@ -33,7 +33,7 @@ import sys
 import argparse
 import pyparsing
 
-import hdcoordinator.parser
+import hypercoordinator.parser
 
 
 def send_text(host, port, text):
@@ -52,8 +52,11 @@ def send_text(host, port, text):
 def add_space(args):
     data = sys.stdin.read()
     try:
-        parser = (hdcoordinator.parser.space + pyparsing.stringEnd)
+        parser = (hypercoordinator.parser.space + pyparsing.stringEnd)
         space = parser.parseString(data)[0]
+    except ValueError as e:
+        print str(e)
+        return 1
     except pyparsing.ParseException as e:
         print str(e)
         return 1
@@ -68,8 +71,11 @@ def del_space(args):
 def validate_space(args):
     data = sys.stdin.read()
     try:
-        parser = (hdcoordinator.parser.space + pyparsing.stringEnd)
+        parser = (hypercoordinator.parser.space + pyparsing.stringEnd)
         space = parser.parseString(data)[0]
+    except ValueError as e:
+        print str(e)
+        return 1
     except pyparsing.ParseException as e:
         print str(e)
         return 1
