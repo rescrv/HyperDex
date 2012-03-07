@@ -77,6 +77,7 @@ TESTS = \
 
 nobase_python_PYTHON = \
 			hypercoordinator/__init__.py \
+			hypercoordinator/client.py \
 			hypercoordinator/coordinator.py \
 			hypercoordinator/hdtypes.py \
 			hypercoordinator/parser.py
