@@ -130,7 +130,7 @@ hyperdaemon :: network_worker :: run()
                     result = hyperdex::NET_NOTFOUND;
                     break;
                 case hyperdisk::WRONGARITY:
-                    result = hyperdex::NET_WRONGARITY;
+                    result = hyperdex::NET_BADDIMSPEC;
                     break;
                 case hyperdisk::MISSINGDISK:
                     LOG(ERROR) << "GET caused a MISSINGDISK at the data layer.";
@@ -173,11 +173,46 @@ hyperdaemon :: network_worker :: run()
 
             if (up.error())
             {
-                LOG(WARNING) << "unpack of REQ_DEL failed; here's some hex:  " << msg->hex();
+                LOG(WARNING) << "unpack of REQ_PUT failed; here's some hex:  " << msg->hex();
                 continue;
             }
 
             m_repl->client_put(from, to, nonce, msg, key, attrs);
+        }
+        else if (type == hyperdex::REQ_CONDPUT)
+        {
+            uint32_t cond_sz;
+            uint32_t attrs_sz;
+            e::slice key;
+            std::vector<std::pair<uint16_t, e::slice> > condattrs;
+            std::vector<std::pair<uint16_t, e::slice> > attrs;
+            up = up >> nonce >> key >> cond_sz;
+
+            for (uint32_t i = 0; i < cond_sz; ++i)
+            {
+                uint16_t dimnum;
+                e::slice val;
+                up = up >> dimnum >> val;
+                condattrs.push_back(std::make_pair(dimnum, val));
+            }
+
+            up = up >> attrs_sz;
+
+            for (uint32_t i = 0; i < attrs_sz; ++i)
+            {
+                uint16_t dimnum;
+                e::slice val;
+                up = up >> dimnum >> val;
+                attrs.push_back(std::make_pair(dimnum, val));
+            }
+
+            if (up.error())
+            {
+                LOG(WARNING) << "unpack of REQ_CONDPUT failed; here's some hex:  " << msg->hex();
+                continue;
+            }
+
+            m_repl->client_condput(from, to, nonce, msg, key, condattrs, attrs);
         }
         else if (type == hyperdex::REQ_DEL)
         {

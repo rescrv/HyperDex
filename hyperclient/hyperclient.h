@@ -100,6 +100,7 @@ enum hyperclient_returncode
     HYPERCLIENT_SUCCESS      = 8448,
     HYPERCLIENT_NOTFOUND     = 8449,
     HYPERCLIENT_SEARCHDONE   = 8450,
+    HYPERCLIENT_CMPFAIL      = 8451,
 
     /* Error conditions */
     HYPERCLIENT_UNKNOWNSPACE = 8512,
@@ -175,6 +176,29 @@ int64_t
 hyperclient_put(struct hyperclient* client, const char* space, const char* key,
                 size_t key_sz, const struct hyperclient_attribute* attrs,
                 size_t attrs_sz, enum hyperclient_returncode* status);
+
+/* Perform a put if the specified conditional attributes match.
+ *
+ * If this returns a value < 0 and *status == HYPERCLIENT_UNKNOWNATTR, then
+ * abs(returned value) - 1 == the attribute which caused the error in the
+ * combined array of condattrs and attrs.
+ *
+ * All specified conditional attributes must match those in the object
+ *
+ * If no object exists under this key, the conditional put will fail.
+ *
+ * All attribute values not specified by the conditional put are left as-is.
+ *
+ * - space, key, condattrs, attrs must point to memory that exists for the 
+ *   duration of this call
+ * - client, status must point to memory that exists until the request is
+ *   considered complete
+ */
+int64_t
+hyperclient_condput(struct hyperclient* client, const char* space, const char* key,
+		    size_t key_sz, const struct hyperclient_attribute* condattrs,
+		    size_t condattrs_sz, const struct hyperclient_attribute* attrs,
+		    size_t attrs_sz, enum hyperclient_returncode* status);
 
 /* Delete the object under "key".
  *
@@ -252,6 +276,10 @@ class hyperclient
         int64_t put(const char* space, const char* key, size_t key_sz,
                     const struct hyperclient_attribute* attrs, size_t attrs_sz,
                     hyperclient_returncode* status);
+        int64_t condput(const char* space, const char* key, size_t key_sz,
+			const struct hyperclient_attribute* condattrs, size_t condattrs_sz,
+			const struct hyperclient_attribute* attrs, size_t attrs_sz,
+			hyperclient_returncode* status);
         int64_t del(const char* space, const char* key, size_t key_sz,
                     hyperclient_returncode* status);
         int64_t search(const char* space,
@@ -279,7 +307,7 @@ class hyperclient
                           std::auto_ptr<e::buffer> msg,
                           e::intrusive_ptr<pending> op);
         int64_t pack_attrs(const char* space,
-                           e::buffer::packer p,
+                           e::buffer::packer* p,
                            const struct hyperclient_attribute* attrs,
                            size_t attrs_sz,
                            hyperclient_returncode* status);

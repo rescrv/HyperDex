@@ -92,7 +92,14 @@ class replication_manager
                         uint64_t nonce,
                         std::auto_ptr<e::buffer> backing,
                         const e::slice& key,
-                       const std::vector<std::pair<uint16_t, e::slice> >& value);
+			const std::vector<std::pair<uint16_t, e::slice> >& value);
+        void client_condput(const hyperdex::entityid& from,
+			    const hyperdex::entityid& to,
+			    uint64_t nonce,
+			    std::auto_ptr<e::buffer> backing,
+			    const e::slice& key,
+			    const std::vector<std::pair<uint16_t, e::slice> >& condfields,
+			    const std::vector<std::pair<uint16_t, e::slice> >& value);
         void client_del(const hyperdex::entityid& from,
                         const hyperdex::entityid& to,
                         uint64_t nonce,
@@ -139,14 +146,17 @@ class replication_manager
         replication_manager& operator = (const replication_manager&);
 
     private:
-        void client_common(bool has_value,
+        void client_common(const hyperdex::network_msgtype opcode,
+			   bool has_value,
                            const hyperdex::entityid& from,
                            const hyperdex::entityid& to,
                            uint64_t nonce,
                            std::auto_ptr<e::buffer> backing,
                            const e::slice& key,
-                           const e::bitfield& newvalue_mask,
-                           const std::vector<e::slice>& newvalue);
+                           const e::bitfield& condvalue_mask,
+                           const std::vector<e::slice>& condvalue,
+                           const e::bitfield& value_mask,
+                           const std::vector<e::slice>& value);
         void chain_common(bool has_value,
                           const hyperdex::entityid& from,
                           const hyperdex::entityid& to,

@@ -152,6 +152,25 @@ hyperdaemon :: replication_manager :: shutdown()
     m_shutdown = true;
 }
 
+static bool
+unpack_attributes(const std::vector<std::pair<uint16_t, e::slice> >& value, 
+		  size_t dims,
+		  e::bitfield *bf, 
+		  std::vector<e::slice> *realvalue) 
+{
+    for (size_t i = 0; i < value.size(); ++i)
+    {
+        if (value[i].first == 0 || value[i].first == dims)
+        {
+            return false;
+        }
+
+        (*realvalue)[value[i].first - 1] = value[i].second;
+        (*bf).set(value[i].first - 1);
+    }
+    return true;
+}
+
 void
 hyperdaemon :: replication_manager :: client_put(const hyperdex::entityid& from,
                                                  const hyperdex::entityid& to,
@@ -164,22 +183,46 @@ hyperdaemon :: replication_manager :: client_put(const hyperdex::entityid& from,
     assert(dims > 0);
     e::bitfield bf(dims - 1);
     std::vector<e::slice> realvalue(dims - 1);
+    e::bitfield condbf(dims - 1);
+    std::vector<e::slice> condvalue(dims - 1);
 
-    for (size_t i = 0; i < value.size(); ++i)
+    if (!unpack_attributes(value, dims, &bf, &realvalue))
     {
-        if (value[i].first == 0 || value[i].first == dims)
-        {
-            respond_to_client(to, from, nonce,
-                              hyperdex::RESP_PUT,
-                              hyperdex::NET_WRONGARITY);
-            return;
-        }
-
-        realvalue[value[i].first - 1] = value[i].second;
-        bf.set(value[i].first - 1);
+        respond_to_client(to, from, nonce,
+			  hyperdex::RESP_PUT,
+			  hyperdex::NET_BADDIMSPEC);
+	return;
     }
 
-    client_common(true, from, to, nonce, backing, key, bf, realvalue);
+    client_common(hyperdex::RESP_PUT, true, from, to, nonce, backing, key, condbf, condvalue, bf, realvalue);
+}
+
+void
+hyperdaemon :: replication_manager :: client_condput(const hyperdex::entityid& from,
+						     const hyperdex::entityid& to,
+						     uint64_t nonce,
+						     std::auto_ptr<e::buffer> backing,
+						     const e::slice& key,
+						     const std::vector<std::pair<uint16_t, e::slice> >& condfields,
+						     const std::vector<std::pair<uint16_t, e::slice> >& value)
+{
+    size_t dims = m_config.dimensions(to.get_space());
+    assert(dims > 0);
+    e::bitfield condbf(dims - 1);
+    std::vector<e::slice> condvalue(dims - 1);
+    e::bitfield bf(dims - 1);
+    std::vector<e::slice> realvalue(dims - 1);
+
+    if (!unpack_attributes(condfields, dims, &condbf, &condvalue) ||
+	!unpack_attributes(value, dims, &bf, &realvalue))
+    {
+        respond_to_client(to, from, nonce,
+			  hyperdex::RESP_PUT,
+			  hyperdex::NET_BADDIMSPEC);
+	return;
+    }
+
+    client_common(hyperdex::RESP_CONDPUT, true, from, to, nonce, backing, key, condbf, condvalue, bf, realvalue);
 }
 
 void
@@ -193,7 +236,10 @@ hyperdaemon :: replication_manager :: client_del(const entityid& from,
     assert(dims > 0);
     e::bitfield b(dims - 1);
     std::vector<e::slice> v(dims - 1);
-    client_common(false, from, to, nonce, backing, key, b, v);
+    e::bitfield condbf(dims - 1);
+    std::vector<e::slice> condvalue(dims - 1);
+
+    client_common(hyperdex::RESP_DEL, false, from, to, nonce, backing, key, condbf, condvalue, b, v);
 }
 
 void
@@ -371,12 +417,15 @@ hyperdaemon :: replication_manager :: chain_ack(const entityid& from,
 }
 
 void
-hyperdaemon :: replication_manager :: client_common(bool has_value,
+hyperdaemon :: replication_manager :: client_common(const hyperdex::network_msgtype opcode,
+						    const bool has_value,
                                                     const entityid& from,
                                                     const entityid& to,
                                                     uint64_t nonce,
                                                     std::auto_ptr<e::buffer> backing,
                                                     const e::slice& key,
+                                                    const e::bitfield& condvalue_mask,
+                                                    const std::vector<e::slice>& condvalue,
                                                     const e::bitfield& value_mask,
                                                     const std::vector<e::slice>& value)
 {
@@ -388,8 +437,7 @@ hyperdaemon :: replication_manager :: client_common(bool has_value,
     }
 
     clientop co(to.get_region(), from, nonce);
-    hyperdex::network_msgtype retcode = has_value ?
-        hyperdex::RESP_PUT : hyperdex::RESP_DEL;
+    hyperdex::network_msgtype retcode = opcode;
 
     // Make sure this message is to the point-leader.
     if (!m_config.is_point_leader(to))
@@ -437,13 +485,21 @@ hyperdaemon :: replication_manager :: client_common(bool has_value,
 
     if (!has_value && !has_oldvalue)
     {
-        respond_to_client(to, from, nonce, retcode, hyperdex::NET_SUCCESS);
+        respond_to_client(to, from, nonce, retcode, hyperdex::NET_NOTFOUND);
         g.dismiss();
         return;
     }
 
     if (has_value && !has_oldvalue)
     {
+        if (opcode == hyperdex::RESP_CONDPUT) 
+	{
+	  // a conditional put on an object that does not exist should fail
+	  respond_to_client(to, from, nonce, retcode, hyperdex::NET_NOTFOUND);
+	  g.dismiss();
+	  return;
+	}
+
         newpend->fresh = true;
     }
 
@@ -494,6 +550,20 @@ hyperdaemon :: replication_manager :: client_common(bool has_value,
             assert(curdata == newpend->backing->size() + need_moar);
             newpend->backing = new_backing;
         }
+
+        if (opcode == hyperdex::RESP_CONDPUT) 
+	{
+	  for (size_t i = 0; i < condvalue.size(); ++i)
+	  {
+	      if (condvalue_mask.get(i) && (oldvalue[i] != condvalue[i]))
+	      {
+		// cond value mismatch, put operation should fail
+		respond_to_client(to, from, nonce, retcode, hyperdex::NET_CMPFAIL);
+		g.dismiss();
+		return;
+	      }
+	  }
+	}
     }
 
     if (!prev_and_next(to.get_region(), key, has_value, newpend->value, has_oldvalue, oldvalue, newpend))
