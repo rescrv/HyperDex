@@ -633,10 +633,12 @@ def main(argv):
             ,'error': logging.ERROR
             ,'critical': logging.CRITICAL
             }.get(args.logging.lower(), None)
-    logging.basicConfig(level=level)
-    cs = CoordinatorServer(args.bindto, args.control_port, args.host_port)
-    cs.run()
-
+    try:
+        logging.basicConfig(level=level)
+        cs = CoordinatorServer(args.bindto, args.control_port, args.host_port)
+        cs.run()
+    except socket.error as se:
+        logging.error("%s [%d]" % (se.strerror, se.errno))
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv[1:]))
