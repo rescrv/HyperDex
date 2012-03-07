@@ -174,6 +174,28 @@ hyperclient_del(struct hyperclient* client, const char* space, const char* key,
 }
 
 int64_t
+hyperclient_atomicinc(struct hyperclient* client, const char* space, const char* key,
+		      size_t key_sz, const struct hyperclient_attribute* attrs,
+		      size_t attrs_sz, hyperclient_returncode* status)
+{
+    try
+    {
+        return client->atomicinc(space, key, key_sz, attrs, attrs_sz, status);
+    }
+    catch (po6::error& e)
+    {
+        errno = e;
+        *status = HYPERCLIENT_SEEERRNO;
+        return -1;
+    }
+    catch (...)
+    {
+        *status = HYPERCLIENT_EXCEPTION;
+        return -1;
+    }
+}
+
+int64_t
 hyperclient_search(struct hyperclient* client, const char* space,
                    const struct hyperclient_attribute* eq, size_t eq_sz,
                    const struct hyperclient_range_query* rn, size_t rn_sz,
@@ -959,6 +981,36 @@ hyperclient :: del(const char* space, const char* key, size_t key_sz,
     e::buffer::packer p = msg->pack_at(HDRSIZE);
     p = p << e::slice(key, key_sz);
     assert(!p.error());
+    return add_keyop(space, key, key_sz, msg, op);
+}
+
+int64_t
+hyperclient :: atomicinc(const char* space, const char* key, size_t key_sz,
+		       const struct hyperclient_attribute* attrs, size_t attrs_sz,
+		       hyperclient_returncode* status)
+{
+    if (maintain_coord_connection(status) < 0)
+    {
+        return -1;
+    }
+
+    e::intrusive_ptr<pending> op;
+    op = new pending_statusonly(hyperdex::REQ_ATOMICINC, hyperdex::RESP_ATOMICINC, status);
+    size_t sz = HDRSIZE
+              + sizeof(uint32_t)
+              + key_sz
+              + pack_attrs_sz(attrs, attrs_sz);
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    e::buffer::packer p = msg->pack_at(HDRSIZE);
+    p = p << e::slice(key, key_sz);
+
+    int64_t ret = pack_attrs(space, &p, attrs, attrs_sz, status);
+
+    if (ret < 0)
+    {
+      return ret;
+    }
+
     return add_keyop(space, key, key_sz, msg, op);
 }
 

@@ -227,6 +227,29 @@ hyperdaemon :: network_worker :: run()
 
             m_repl->client_del(from, to, nonce, msg, key);
         }
+        else if (type == hyperdex::REQ_ATOMICINC)
+        {
+            uint32_t attrs_sz;
+            e::slice key;
+            std::vector<std::pair<uint16_t, e::slice> > attrs;
+            up = up >> nonce >> key >> attrs_sz;
+
+            for (uint32_t i = 0; i < attrs_sz; ++i)
+            {
+                uint16_t dimnum;
+                e::slice val;
+                up = up >> dimnum >> val;
+                attrs.push_back(std::make_pair(dimnum, val));
+            }
+
+            if (up.error())
+            {
+                LOG(WARNING) << "unpack of REQ_PUT failed; here's some hex:  " << msg->hex();
+                continue;
+            }
+
+            m_repl->client_atomicinc(from, to, nonce, msg, key, &attrs);
+        }
         else if (type == hyperdex::REQ_SEARCH_START)
         {
             uint64_t searchid;

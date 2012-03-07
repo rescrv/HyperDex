@@ -83,10 +83,10 @@ class replication_manager
         void cleanup(const hyperdex::configuration& newconfig, const hyperdex::instance& us);
         void shutdown();
 
-    // Netowrk workers call these methods.
+    // Network workers call these methods.
     public:
         // These are called when the client initiates the action.  This implies
-        // that only the point leader will call these methods.
+        // that only the point leader will call these methods. 
         void client_put(const hyperdex::entityid& from,
                         const hyperdex::entityid& to,
                         uint64_t nonce,
@@ -105,6 +105,12 @@ class replication_manager
                         uint64_t nonce,
                         std::auto_ptr<e::buffer> backing,
                         const e::slice& key);
+        void client_atomicinc(const hyperdex::entityid& from,
+			      const hyperdex::entityid& to,
+			      uint64_t nonce,
+			      std::auto_ptr<e::buffer> backing,
+			      const e::slice& key,
+			      std::vector<std::pair<uint16_t, e::slice> >* value);
         // These are called in response to messages from other hosts.
         void chain_put(const hyperdex::entityid& from,
                        const hyperdex::entityid& to,

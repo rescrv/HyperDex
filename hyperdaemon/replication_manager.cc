@@ -31,6 +31,7 @@
 #include <stdint.h>
 
 // STL
+#include <algorithm>
 #include <queue>
 #include <tr1/functional>
 #include <utility>
@@ -64,6 +65,7 @@
 #include "hyperdaemon/replication_manager_keyholder.h"
 #include "hyperdaemon/replication_manager_pending.h"
 #include "hyperdaemon/runtimeconfig.h"
+#include "hyperspacehashing/hashes_internal.h"
 
 using hyperspacehashing::prefix::coordinate;
 using hyperdex::configuration;
@@ -240,6 +242,138 @@ hyperdaemon :: replication_manager :: client_del(const entityid& from,
     std::vector<e::slice> condvalue(dims - 1);
 
     client_common(hyperdex::RESP_DEL, false, from, to, nonce, backing, key, condbf, condvalue, b, v);
+}
+
+void
+hyperdaemon :: replication_manager :: client_atomicinc(const hyperdex::entityid& from,
+						       const hyperdex::entityid& to,
+						       uint64_t nonce,
+						       std::auto_ptr<e::buffer> backing,
+						       const e::slice& key,
+						       std::vector<std::pair<uint16_t, e::slice> >* value)
+{
+    size_t dims = m_config.dimensions(to.get_space());
+    assert(dims > 0);
+
+    std::sort(value->begin(), value->end());
+
+    // Make sure this message is from a client.
+    if (from.space != UINT32_MAX)
+    {
+        LOG(INFO) << "dropping client-only message from " << from << " (it is not a client).";
+        return;
+    }
+
+    clientop co(to.get_region(), from, nonce);
+    hyperdex::network_msgtype retcode = hyperdex::RESP_ATOMICINC;
+
+    // Make sure this message is to the point-leader.
+    if (!m_config.is_point_leader(to))
+    {
+        respond_to_client(to, from, nonce, retcode, hyperdex::NET_NOTUS);
+        return;
+    }
+
+    if (!value->empty() && (value->front().first <= 0 || value->back().first >= dims))
+    {
+        respond_to_client(to, from, nonce,
+			  hyperdex::RESP_ATOMICINC,
+			  hyperdex::NET_BADDIMSPEC);
+	return;
+    }
+
+    // Automatically respond with "SERVERERROR" whenever we return without g.dismiss()
+    e::guard g = e::makeobjguard(*this, &replication_manager::respond_to_client, to, from, nonce, retcode, hyperdex::NET_SERVERERROR);
+
+    // Grab the lock that protects this key.
+    HOLD_LOCK_FOR_KEY(to, key);
+    // Get the keyholder for this key.
+    e::intrusive_ptr<keyholder> kh = get_keyholder(to.get_region(), key);
+
+    // Find the pending or committed version with the largest number.
+    uint64_t oldversion = 0;
+    bool has_oldvalue = false;
+    std::vector<e::slice> oldvalue;
+    hyperdisk::reference ref;
+
+    if (kh->has_blocked_ops())
+    {
+        oldversion = kh->most_recent_blocked_version();
+        has_oldvalue = kh->most_recent_blocked_op()->has_value;
+        oldvalue = kh->most_recent_blocked_op()->value;
+    }
+    else if (kh->has_committable_ops())
+    {
+        oldversion = kh->most_recent_committable_version();
+        has_oldvalue = kh->most_recent_committable_op()->has_value;
+        oldvalue = kh->most_recent_committable_op()->value;
+    }
+    else if (!from_disk(to.get_region(), key, &has_oldvalue, &oldvalue, &oldversion, &ref))
+    {
+        return;
+    }
+
+    if (!has_oldvalue)
+    {
+        // an atomic increment on an object that does not exist should fail
+	respond_to_client(to, from, nonce, retcode, hyperdex::NET_NOTFOUND);
+	g.dismiss();
+	return;
+    }
+
+    e::intrusive_ptr<pending> newpend;
+    std::tr1::shared_ptr<e::buffer> new_backing(e::buffer::create(backing->size() + sizeof(uint64_t) * value->size()));
+    std::vector<e::slice> newvalue(dims-1);
+    e::slice newkey = e::slice(new_backing->data(), key.size());
+
+    // copy the key, which does not appear in the values array
+    memmove(new_backing->data(), key.data(), key.size());
+    new_backing->resize(new_backing->size() + key.size());
+
+    uint nextfield = 0;
+    for (size_t i = 0; i < dims-1; ++i)
+    { 
+	e::slice newitem;
+
+	assert(nextfield <= value->size());
+	if (nextfield < value->size() && i == ((*value)[nextfield].first-1)) 
+	{
+	  // this field needs to be incremented
+	  uint64_t contents = hyperspacehashing::lendian(oldvalue[i]);
+	  contents += hyperspacehashing::lendian((*value)[nextfield].second);
+	  contents = htole64(contents);
+	  memmove(new_backing->data() + new_backing->size(), &contents, sizeof(uint64_t));
+	  newitem = e::slice(new_backing->data() + new_backing->size(), sizeof(uint64_t));
+	  new_backing->resize(new_backing->size() + sizeof(uint64_t));
+
+	  nextfield += 1;
+	}
+	else 
+	{
+	  // this field just needs to be copied through
+	  memmove(new_backing->data() + new_backing->size(), oldvalue[i].data(), oldvalue[i].size());
+	  newitem = e::slice(new_backing->data() + new_backing->size(), oldvalue[i].size());
+	  new_backing->resize(new_backing->size() + oldvalue[i].size());
+	}
+	newvalue[i] = newitem;
+    }
+
+    newpend = new pending(true, new_backing, key, newvalue, co);
+    newpend->retcode = retcode;
+    newpend->ref = ref;
+    newpend->key = newkey;
+
+    if (!prev_and_next(to.get_region(), newpend->key, true, newpend->value, has_oldvalue, oldvalue, newpend))
+    {
+        respond_to_client(to, from, nonce, retcode, hyperdex::NET_NOTUS);
+        g.dismiss();
+        return;
+    }
+
+    assert(!kh->has_deferred_ops());
+    kh->append_blocked(oldversion + 1, newpend);
+    move_operations_between_queues(to, key, kh);
+    g.dismiss();
 }
 
 void
@@ -492,9 +626,9 @@ hyperdaemon :: replication_manager :: client_common(const hyperdex::network_msgt
 
     if (has_value && !has_oldvalue)
     {
-        if (opcode == hyperdex::RESP_CONDPUT) 
+        if (opcode == hyperdex::RESP_CONDPUT)
 	{
-	  // a conditional put on an object that does not exist should fail
+	  // a conditional put or atomic inc/dec on an object that does not exist should fail
 	  respond_to_client(to, from, nonce, retcode, hyperdex::NET_NOTFOUND);
 	  g.dismiss();
 	  return;

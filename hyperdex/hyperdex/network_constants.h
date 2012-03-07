@@ -59,6 +59,9 @@ enum network_msgtype
     REQ_DEL         = 14,
     RESP_DEL        = 15,
 
+    REQ_ATOMICINC   = 16,
+    RESP_ATOMICINC   = 17,
+
     REQ_SEARCH_START    = 32,
     REQ_SEARCH_NEXT     = 33,
     REQ_SEARCH_STOP     = 34,
@@ -96,6 +99,8 @@ operator << (std::ostream& lhs, const network_msgtype& rhs)
         stringify(RESP_CONDPUT);
         stringify(REQ_DEL);
         stringify(RESP_DEL);
+        stringify(REQ_ATOMICINC);
+        stringify(RESP_ATOMICINC);
         stringify(REQ_SEARCH_START);
         stringify(REQ_SEARCH_NEXT);
         stringify(REQ_SEARCH_STOP);

@@ -96,6 +96,7 @@ cdef extern from "../hyperclient.h":
     int64_t hyperclient_put(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_condput(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* condattrs, size_t condattrs_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_del(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_returncode* status)
+    int64_t hyperclient_atomicinc(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_search(hyperclient* client, char* space, hyperclient_attribute* eq, size_t eq_sz, hyperclient_range_query* rn, size_t rn_sz, hyperclient_returncode* status, hyperclient_attribute** attrs, size_t* attrs_sz)
     int64_t hyperclient_loop(hyperclient* client, int timeout, hyperclient_returncode* status)
     void hyperclient_destroy_attrs(hyperclient_attribute* attrs, size_t attrs_sz)
@@ -122,7 +123,7 @@ class HyperClientException(Exception):
                   ,HYPERCLIENT_DUPEATTR: 'Duplicate attribute "%s"' % attr
                   ,HYPERCLIENT_SEEERRNO: 'See ERRNO'
                   ,HYPERCLIENT_NONEPENDING: 'None pending'
-                  ,HYPERCLIENT_DONTUSEKEY: "Don't use the key in the search predicate"
+                  ,HYPERCLIENT_DONTUSEKEY: "Do not specify the key in a search predicate and do not redundantly specify the key for an insert"
                   ,HYPERCLIENT_WRONGTYPE: 'Attribute "%s" has the wrong type' % attr
                   ,HYPERCLIENT_EXCEPTION: 'Internal Error (file a bug)'
                   }.get(status, 'Unknown Error (file a bug)')
@@ -301,6 +302,50 @@ cdef class DeferredConditionalInsert(Deferred):
         Deferred.wait(self)
         return self._status == HYPERCLIENT_SUCCESS
 
+cdef class DeferredAtomicIncDecInsert(Deferred):
+
+    def __cinit__(self,  Client client, int isinc, bytes space, bytes key, dict value):
+        cdef char* space_cstr = space
+        cdef char* key_cstr = key
+        cdef hyperclient_attribute* attrs = NULL
+        if len(value):
+            attrs = <hyperclient_attribute*> \
+                malloc(sizeof(hyperclient_attribute) * len(value))
+        try:
+            for i, a in enumerate(value.iteritems()):
+                a, v = a
+                if isinstance(v, int):
+                    if not isinc:
+                        v = -v
+                    v = struct.pack('<Q', v)
+                    t = HYPERDATATYPE_UINT64
+                else:
+                    # XXX need to raise the right exception
+                    raise HyperClientException(0, a)
+                attrs[i].attr = a
+                attrs[i].value = v
+                attrs[i].value_sz = len(v)
+                attrs[i].datatype = t
+            self._reqid = hyperclient_atomicinc(client._client, space_cstr,
+                                                key_cstr, len(key),
+                                                attrs, len(value),
+                                                &self._status)
+            if self._reqid < 0:
+                if attrs:
+                    if attrs[-1 - self._reqid].attr:
+                        attr = attrs[-1 - self._reqid].attr
+                    else:
+                        attr = None
+                else:
+                    attr = None
+                raise HyperClientException(self._status, attr)
+        finally:
+            free(attrs)
+
+    def wait(self):
+        Deferred.wait(self)
+        return self._status == HYPERCLIENT_SUCCESS
+
 cdef class DeferredRemove(Deferred):
 
     def __cinit__(self, Client client, bytes space, bytes key):
@@ -461,6 +506,14 @@ cdef class Client:
         async = self.async_conditional_insert(space, key, condition, value)
         return async.wait()
 
+    def atomicinc(self, bytes space, bytes key, dict value):
+        async = self.async_atomicinc(space, key, value)
+        return async.wait()
+
+    def atomicdec(self, bytes space, bytes key, dict value):
+        async = self.async_atomicdec(space, key, value)
+        return async.wait()
+
     def async_lookup(self, bytes space, bytes key):
         return DeferredLookup(self, space, key)
 
@@ -472,6 +525,12 @@ cdef class Client:
 
     def async_remove(self, bytes space, bytes key):
         return DeferredRemove(self, space, key)
+
+    def async_atomicinc(self, bytes space, bytes key, dict value):
+        return DeferredAtomicIncDecInsert(self, 1, space, key, value)
+
+    def async_atomicdec(self, bytes space, bytes key, dict value):
+        return DeferredAtomicIncDecInsert(self, 0, space, key, value)
 
     def loop(self):
         cdef hyperclient_returncode rc
