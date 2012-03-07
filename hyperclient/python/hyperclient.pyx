@@ -268,52 +268,28 @@ cdef class DeferredConditionalInsert(Deferred):
         cdef char* key_cstr = key
         cdef hyperclient_attribute* condattrs = NULL
         cdef hyperclient_attribute* attrs = NULL
-        if len(condition):
-            condattrs = <hyperclient_attribute*> \
-                malloc(sizeof(hyperclient_attribute) * len(condition))
-        if len(value):
-            attrs = <hyperclient_attribute*> \
-                malloc(sizeof(hyperclient_attribute) * len(value))
         try:
-            for i, a in enumerate(condition.iteritems()):
-                a, v = a
-                if isinstance(v, int):
-                    v = struct.pack('<Q', v)
-                    t = HYPERDATATYPE_UINT64
-                else:
-                    t = HYPERDATATYPE_STRING
-                condattrs[i].attr = a
-                condattrs[i].value = v
-                condattrs[i].value_sz = len(v)
-                condattrs[i].datatype = t
-            for i, a in enumerate(value.iteritems()):
-                a, v = a
-                if isinstance(v, int):
-                    v = struct.pack('<Q', v)
-                    t = HYPERDATATYPE_UINT64
-                else:
-                    t = HYPERDATATYPE_STRING
-                attrs[i].attr = a
-                attrs[i].value = v
-                attrs[i].value_sz = len(v)
-                attrs[i].datatype = t
+            backingsc = _dict_to_attrs(condition.items(), &condattrs)
+            backingsa = _dict_to_attrs(value.items(), &attrs)
             self._reqid = hyperclient_condput(client._client, space_cstr,
-                                          key_cstr, len(key),
-					  condattrs, len(condition),
-                                          attrs, len(value),
-                                          &self._status)
-            attr = None			
+                                              key_cstr, len(key),
+                                              condattrs, len(condition),
+                                              attrs, len(value),
+                                              &self._status)
             if self._reqid < 0:
-                index = -1 - self._reqid
-                if index < len(condition):
-                    attr = condattrs[index].attr
-                index -= len(condition)
-                if index >= 0 and index < len(value):
-                    attr = attrs[index].attr
+                idx = -1 - self._reqid
+                attr = None
+                if idx < len(condition) and condattrs and condattrs[idx].attr:
+                    attr = condattrs[idx].attr
+                idx -= len(condition)
+                if idx >= 0 and attrs and attrs[idx].attr:
+                    attr = attrs[idx].attr
                 raise HyperClientException(self._status, attr)
         finally:
-            free(attrs)
-            free(condattrs)
+            if condattrs:
+                free(condattrs)
+            if attrs:
+                free(attrs)
 
     def wait(self):
         Deferred.wait(self)
