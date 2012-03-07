@@ -54,6 +54,9 @@ def add_space(args):
     try:
         parser = (hdcoordinator.parser.space + pyparsing.stringEnd)
         space = parser.parseString(data)[0]
+    except ValueError as e:
+        print str(e)
+        return 1
     except pyparsing.ParseException as e:
         print str(e)
         return 1
@@ -70,6 +73,9 @@ def validate_space(args):
     try:
         parser = (hdcoordinator.parser.space + pyparsing.stringEnd)
         space = parser.parseString(data)[0]
+    except ValueError as e:
+        print str(e)
+        return 1
     except pyparsing.ParseException as e:
         print str(e)
         return 1
