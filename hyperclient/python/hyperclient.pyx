@@ -51,7 +51,7 @@ cdef extern from "../hyperclient.h":
 
     cdef enum hyperclient_datatype:
         HYPERDATATYPE_STRING    = 8960
-        HYPERDATATYPE_UINT64    = 8961
+        HYPERDATATYPE_INT64     = 8961
         HYPERDATATYPE_GARBAGE   = 9087
 
     cdef struct hyperclient_attribute:
@@ -142,11 +142,11 @@ cdef _dict_to_attrs(list value, hyperclient_attribute** attrs):
         a, v = a
         attrs[0][i].attr = a
         if isinstance(v, int):
-            backing = struct.pack('<Q', v)
+            backing = struct.pack('<q', v)
             backings.append(backing)
             attrs[0][i].value = backing
             attrs[0][i].value_sz = 8
-            attrs[0][i].datatype = HYPERDATATYPE_UINT64
+            attrs[0][i].datatype = HYPERDATATYPE_INT64
         else:
             backing = v
             backings.append(backing)
@@ -159,14 +159,14 @@ cdef _dict_to_attrs(list value, hyperclient_attribute** attrs):
 cdef _attrs_to_dict(hyperclient_attribute* attrs, size_t attrs_sz):
     ret = {}
     for idx in range(attrs_sz):
-        if attrs[idx].datatype == HYPERDATATYPE_UINT64:
+        if attrs[idx].datatype == HYPERDATATYPE_INT64:
             s = attrs[idx].value[:attrs[idx].value_sz]
             i = len(s)
             if i > 8:
                 s = s[:8]
             elif i < 8:
                 s += (8 - i) * '\x00'
-            ret[attrs[idx].attr] = struct.unpack('<Q', s)[0]
+            ret[attrs[idx].attr] = struct.unpack('<q', s)[0]
         elif attrs[idx].datatype == HYPERDATATYPE_STRING:
             ret[attrs[idx].attr] = attrs[idx].value[:attrs[idx].value_sz]
         else:
@@ -296,6 +296,7 @@ cdef class DeferredConditionalInsert(Deferred):
         Deferred.wait(self)
         return self._status == HYPERCLIENT_SUCCESS
 
+
 cdef class DeferredAtomicIncDecInsert(Deferred):
 
     def __cinit__(self,  Client client, int isinc, bytes space, bytes key, dict value):
@@ -311,8 +312,8 @@ cdef class DeferredAtomicIncDecInsert(Deferred):
                 if isinstance(v, int):
                     if not isinc:
                         v = -v
-                    v = struct.pack('<Q', v)
-                    t = HYPERDATATYPE_UINT64
+                    v = struct.pack('<q', v)
+                    t = HYPERDATATYPE_INT64
                 else:
                     # XXX need to raise the right exception
                     raise HyperClientException(0, a)
@@ -339,6 +340,7 @@ cdef class DeferredAtomicIncDecInsert(Deferred):
     def wait(self):
         Deferred.wait(self)
         return self._status == HYPERCLIENT_SUCCESS
+
 
 cdef class DeferredRemove(Deferred):
 

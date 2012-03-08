@@ -692,7 +692,7 @@ hyperdex :: configuration_parser :: extract_datatype(char* start,
     }
     else if (strcmp(start, "uint64") == 0)
     {
-        *t = DATATYPE_UINT64;
+        *t = DATATYPE_INT64;
         return CP_SUCCESS;
     }
     else
@@ -842,7 +842,7 @@ hyperdex :: configuration_parser :: attrs_to_hashfuncs(const subspaceid& ssi,
                 case DATATYPE_STRING:
                     hfuncs.push_back(hyperspacehashing::EQUALITY);
                     break;
-                case DATATYPE_UINT64:
+                case DATATYPE_INT64:
                     hfuncs.push_back(hyperspacehashing::RANGE);
                     break;
                 default:

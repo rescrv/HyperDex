@@ -256,8 +256,8 @@ hd_to_hc_type(hyperdex::datatype in)
     {
         case hyperdex::DATATYPE_STRING:
             return HYPERDATATYPE_STRING;
-        case hyperdex::DATATYPE_UINT64:
-            return HYPERDATATYPE_UINT64;
+        case hyperdex::DATATYPE_INT64:
+            return HYPERDATATYPE_INT64;
         default:
             return HYPERDATATYPE_GARBAGE;
     }
@@ -1106,7 +1106,7 @@ hyperclient :: search(const char* space,
             return -1 - eq_sz - i;
         }
 
-        if (hd_to_hc_type(dim->type) != HYPERDATATYPE_UINT64)
+        if (hd_to_hc_type(dim->type) != HYPERDATATYPE_INT64)
         {
             *status = HYPERCLIENT_WRONGTYPE;
             return -1 - eq_sz - i;

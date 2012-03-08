@@ -155,10 +155,10 @@ hyperdaemon :: replication_manager :: shutdown()
 }
 
 static bool
-unpack_attributes(const std::vector<std::pair<uint16_t, e::slice> >& value, 
-		  size_t dims,
-		  e::bitfield *bf, 
-		  std::vector<e::slice> *realvalue) 
+unpack_attributes(const std::vector<std::pair<uint16_t, e::slice> >& value,
+                  size_t dims,
+                  e::bitfield *bf,
+                  std::vector<e::slice> *realvalue)
 {
     for (size_t i = 0; i < value.size(); ++i)
     {
@@ -191,9 +191,9 @@ hyperdaemon :: replication_manager :: client_put(const hyperdex::entityid& from,
     if (!unpack_attributes(value, dims, &bf, &realvalue))
     {
         respond_to_client(to, from, nonce,
-			  hyperdex::RESP_PUT,
-			  hyperdex::NET_BADDIMSPEC);
-	return;
+                          hyperdex::RESP_PUT,
+                          hyperdex::NET_BADDIMSPEC);
+        return;
     }
 
     client_common(hyperdex::RESP_PUT, true, from, to, nonce, backing, key, condbf, condvalue, bf, realvalue);
@@ -201,12 +201,12 @@ hyperdaemon :: replication_manager :: client_put(const hyperdex::entityid& from,
 
 void
 hyperdaemon :: replication_manager :: client_condput(const hyperdex::entityid& from,
-						     const hyperdex::entityid& to,
-						     uint64_t nonce,
-						     std::auto_ptr<e::buffer> backing,
-						     const e::slice& key,
-						     const std::vector<std::pair<uint16_t, e::slice> >& condfields,
-						     const std::vector<std::pair<uint16_t, e::slice> >& value)
+                                                     const hyperdex::entityid& to,
+                                                     uint64_t nonce,
+                                                     std::auto_ptr<e::buffer> backing,
+                                                     const e::slice& key,
+                                                     const std::vector<std::pair<uint16_t, e::slice> >& condfields,
+                                                     const std::vector<std::pair<uint16_t, e::slice> >& value)
 {
     size_t dims = m_config.dimensions(to.get_space());
     assert(dims > 0);
@@ -216,12 +216,12 @@ hyperdaemon :: replication_manager :: client_condput(const hyperdex::entityid& f
     std::vector<e::slice> realvalue(dims - 1);
 
     if (!unpack_attributes(condfields, dims, &condbf, &condvalue) ||
-	!unpack_attributes(value, dims, &bf, &realvalue))
+        !unpack_attributes(value, dims, &bf, &realvalue))
     {
         respond_to_client(to, from, nonce,
-			  hyperdex::RESP_PUT,
-			  hyperdex::NET_BADDIMSPEC);
-	return;
+                          hyperdex::RESP_PUT,
+                          hyperdex::NET_BADDIMSPEC);
+        return;
     }
 
     client_common(hyperdex::RESP_CONDPUT, true, from, to, nonce, backing, key, condbf, condvalue, bf, realvalue);
@@ -246,11 +246,11 @@ hyperdaemon :: replication_manager :: client_del(const entityid& from,
 
 void
 hyperdaemon :: replication_manager :: client_atomicinc(const hyperdex::entityid& from,
-						       const hyperdex::entityid& to,
-						       uint64_t nonce,
-						       std::auto_ptr<e::buffer> backing,
-						       const e::slice& key,
-						       std::vector<std::pair<uint16_t, e::slice> >* value)
+                                                       const hyperdex::entityid& to,
+                                                       uint64_t nonce,
+                                                       std::auto_ptr<e::buffer> backing,
+                                                       const e::slice& key,
+                                                       std::vector<std::pair<uint16_t, e::slice> >* value)
 {
     size_t dims = m_config.dimensions(to.get_space());
     assert(dims > 0);
@@ -277,9 +277,9 @@ hyperdaemon :: replication_manager :: client_atomicinc(const hyperdex::entityid&
     if (!value->empty() && (value->front().first <= 0 || value->back().first >= dims))
     {
         respond_to_client(to, from, nonce,
-			  hyperdex::RESP_ATOMICINC,
-			  hyperdex::NET_BADDIMSPEC);
-	return;
+                          hyperdex::RESP_ATOMICINC,
+                          hyperdex::NET_BADDIMSPEC);
+        return;
     }
 
     // Automatically respond with "SERVERERROR" whenever we return without g.dismiss()
@@ -316,9 +316,9 @@ hyperdaemon :: replication_manager :: client_atomicinc(const hyperdex::entityid&
     if (!has_oldvalue)
     {
         // an atomic increment on an object that does not exist should fail
-	respond_to_client(to, from, nonce, retcode, hyperdex::NET_NOTFOUND);
-	g.dismiss();
-	return;
+        respond_to_client(to, from, nonce, retcode, hyperdex::NET_NOTFOUND);
+        g.dismiss();
+        return;
     }
 
     e::intrusive_ptr<pending> newpend;
@@ -332,30 +332,35 @@ hyperdaemon :: replication_manager :: client_atomicinc(const hyperdex::entityid&
 
     uint nextfield = 0;
     for (size_t i = 0; i < dims-1; ++i)
-    { 
-	e::slice newitem;
+    {
+        e::slice newitem;
 
-	assert(nextfield <= value->size());
-	if (nextfield < value->size() && i == ((*value)[nextfield].first-1)) 
-	{
-	  // this field needs to be incremented
-	  uint64_t contents = hyperspacehashing::lendian(oldvalue[i]);
-	  contents += hyperspacehashing::lendian((*value)[nextfield].second);
-	  contents = htole64(contents);
-	  memmove(new_backing->data() + new_backing->size(), &contents, sizeof(uint64_t));
-	  newitem = e::slice(new_backing->data() + new_backing->size(), sizeof(uint64_t));
-	  new_backing->resize(new_backing->size() + sizeof(uint64_t));
+        assert(nextfield <= value->size());
+        if (nextfield < value->size() && i == ((*value)[nextfield].first-1))
+        {
+          // this field needs to be incremented
+          int64_t contents = 0;
+          memmove(&contents, oldvalue[i].data(), std::min(oldvalue[i].size(), sizeof(contents)));
+          contents = le64toh(contents);
+          int64_t incr = 0;
+          memmove(&incr, (*value)[nextfield].second.data(), std::min((*value)[nextfield].second.size(), sizeof(incr)));
+          incr = le64toh(incr);
+          contents += incr;
+          contents = htole64(contents);
+          memmove(new_backing->data() + new_backing->size(), &contents, sizeof(contents));
+          newitem = e::slice(new_backing->data() + new_backing->size(), sizeof(contents));
+          new_backing->resize(new_backing->size() + sizeof(contents));
 
-	  nextfield += 1;
-	}
-	else 
-	{
-	  // this field just needs to be copied through
-	  memmove(new_backing->data() + new_backing->size(), oldvalue[i].data(), oldvalue[i].size());
-	  newitem = e::slice(new_backing->data() + new_backing->size(), oldvalue[i].size());
-	  new_backing->resize(new_backing->size() + oldvalue[i].size());
-	}
-	newvalue[i] = newitem;
+          nextfield += 1;
+        }
+        else
+        {
+          // this field just needs to be copied through
+          memmove(new_backing->data() + new_backing->size(), oldvalue[i].data(), oldvalue[i].size());
+          newitem = e::slice(new_backing->data() + new_backing->size(), oldvalue[i].size());
+          new_backing->resize(new_backing->size() + oldvalue[i].size());
+        }
+        newvalue[i] = newitem;
     }
 
     newpend = new pending(true, new_backing, key, newvalue, co);
@@ -552,7 +557,7 @@ hyperdaemon :: replication_manager :: chain_ack(const entityid& from,
 
 void
 hyperdaemon :: replication_manager :: client_common(const hyperdex::network_msgtype opcode,
-						    const bool has_value,
+                                                    const bool has_value,
                                                     const entityid& from,
                                                     const entityid& to,
                                                     uint64_t nonce,
@@ -627,12 +632,12 @@ hyperdaemon :: replication_manager :: client_common(const hyperdex::network_msgt
     if (has_value && !has_oldvalue)
     {
         if (opcode == hyperdex::RESP_CONDPUT)
-	{
-	  // a conditional put or atomic inc/dec on an object that does not exist should fail
-	  respond_to_client(to, from, nonce, retcode, hyperdex::NET_NOTFOUND);
-	  g.dismiss();
-	  return;
-	}
+        {
+          // a conditional put or atomic inc/dec on an object that does not exist should fail
+          respond_to_client(to, from, nonce, retcode, hyperdex::NET_NOTFOUND);
+          g.dismiss();
+          return;
+        }
 
         newpend->fresh = true;
     }
@@ -685,19 +690,19 @@ hyperdaemon :: replication_manager :: client_common(const hyperdex::network_msgt
             newpend->backing = new_backing;
         }
 
-        if (opcode == hyperdex::RESP_CONDPUT) 
-	{
-	  for (size_t i = 0; i < condvalue.size(); ++i)
-	  {
-	      if (condvalue_mask.get(i) && (oldvalue[i] != condvalue[i]))
-	      {
-		// cond value mismatch, put operation should fail
-		respond_to_client(to, from, nonce, retcode, hyperdex::NET_CMPFAIL);
-		g.dismiss();
-		return;
-	      }
-	  }
-	}
+        if (opcode == hyperdex::RESP_CONDPUT)
+        {
+          for (size_t i = 0; i < condvalue.size(); ++i)
+          {
+              if (condvalue_mask.get(i) && (oldvalue[i] != condvalue[i]))
+              {
+                // cond value mismatch, put operation should fail
+                respond_to_client(to, from, nonce, retcode, hyperdex::NET_CMPFAIL);
+                g.dismiss();
+                return;
+              }
+          }
+        }
     }
 
     if (!prev_and_next(to.get_region(), key, has_value, newpend->value, has_oldvalue, oldvalue, newpend))

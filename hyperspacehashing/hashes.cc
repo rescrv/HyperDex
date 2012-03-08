@@ -51,7 +51,7 @@ hyperspacehashing :: cityhash(const e::slice& buf)
 uint64_t
 hyperspacehashing :: lendian(const e::slice& buf)
 {
-    uint64_t ret = 0;
+    int64_t ret = 0;
     memmove(&ret, buf.data(), std::min(buf.size(), sizeof(ret)));
-    return le64toh(ret);
+    return static_cast<uint64_t>(le64toh(ret));
 }

@@ -73,7 +73,7 @@ struct hyperclient;
 enum hyperclient_datatype
 {
     HYPERDATATYPE_STRING    = 8960,
-    HYPERDATATYPE_UINT64    = 8961,
+    HYPERDATATYPE_INT64     = 8961,
 
     // Returned if the server acts up
     HYPERDATATYPE_GARBAGE   = 9087
