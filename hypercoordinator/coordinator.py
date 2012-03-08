@@ -38,8 +38,8 @@ import sys
 
 import pyparsing
 
-import hdcoordinator.parser
-from hdcoordinator import hdtypes
+import hypercoordinator.parser
+from hypercoordinator import hdtypes
 
 
 PIPE_BUF = getattr(select, 'PIPE_BUF', 512)
@@ -494,7 +494,7 @@ class ControlConnection(object):
 
     def add_space(self, data):
         try:
-            parser = (hdcoordinator.parser.space + pyparsing.stringEnd)
+            parser = (hypercoordinator.parser.space + pyparsing.stringEnd)
             space = parser.parseString(data)[0]
             self._coordinator.add_space(space)
         except ValueError as e:
@@ -633,10 +633,12 @@ def main(argv):
             ,'error': logging.ERROR
             ,'critical': logging.CRITICAL
             }.get(args.logging.lower(), None)
-    logging.basicConfig(level=level)
-    cs = CoordinatorServer(args.bindto, args.control_port, args.host_port)
-    cs.run()
-
+    try:
+        logging.basicConfig(level=level)
+        cs = CoordinatorServer(args.bindto, args.control_port, args.host_port)
+        cs.run()
+    except socket.error as se:
+        logging.error("%s [%d]" % (se.strerror, se.errno))
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv[1:]))

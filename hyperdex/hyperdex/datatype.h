@@ -34,7 +34,7 @@ namespace hyperdex
 enum datatype
 {
     DATATYPE_STRING,
-    DATATYPE_UINT64
+    DATATYPE_INT64
 };
 
 } // namespace hyperdex

@@ -130,12 +130,57 @@ hyperclient_put(struct hyperclient* client, const char* space, const char* key,
 }
 
 int64_t
+hyperclient_condput(struct hyperclient* client, const char* space, const char* key,
+                size_t key_sz, const struct hyperclient_attribute* condattrs,
+                size_t condattrs_sz, const struct hyperclient_attribute* attrs,
+                size_t attrs_sz, hyperclient_returncode* status)
+{
+    try
+    {
+        return client->condput(space, key, key_sz, condattrs, condattrs_sz, attrs, attrs_sz, status);
+    }
+    catch (po6::error& e)
+    {
+        errno = e;
+        *status = HYPERCLIENT_SEEERRNO;
+        return -1;
+    }
+    catch (...)
+    {
+        *status = HYPERCLIENT_EXCEPTION;
+        return -1;
+    }
+}
+
+int64_t
 hyperclient_del(struct hyperclient* client, const char* space, const char* key,
                 size_t key_sz, hyperclient_returncode* status)
 {
     try
     {
         return client->del(space, key, key_sz, status);
+    }
+    catch (po6::error& e)
+    {
+        errno = e;
+        *status = HYPERCLIENT_SEEERRNO;
+        return -1;
+    }
+    catch (...)
+    {
+        *status = HYPERCLIENT_EXCEPTION;
+        return -1;
+    }
+}
+
+int64_t
+hyperclient_atomicinc(struct hyperclient* client, const char* space, const char* key,
+		      size_t key_sz, const struct hyperclient_attribute* attrs,
+		      size_t attrs_sz, hyperclient_returncode* status)
+{
+    try
+    {
+        return client->atomicinc(space, key, key_sz, attrs, attrs_sz, status);
     }
     catch (po6::error& e)
     {
@@ -211,8 +256,8 @@ hd_to_hc_type(hyperdex::datatype in)
     {
         case hyperdex::DATATYPE_STRING:
             return HYPERDATATYPE_STRING;
-        case hyperdex::DATATYPE_UINT64:
-            return HYPERDATATYPE_UINT64;
+        case hyperdex::DATATYPE_INT64:
+            return HYPERDATATYPE_INT64;
         default:
             return HYPERDATATYPE_GARBAGE;
     }
@@ -523,13 +568,14 @@ hyperclient :: pending_get :: handle_response(hyperdex::network_msgtype type,
         case hyperdex::NET_NOTFOUND:
             set_status(HYPERCLIENT_NOTFOUND);
             return REMOVE;
-        case hyperdex::NET_WRONGARITY:
+        case hyperdex::NET_BADDIMSPEC:
             set_status(HYPERCLIENT_LOGICERROR);
             return REMOVE;
         case hyperdex::NET_NOTUS:
             set_status(HYPERCLIENT_RECONFIGURE);
             return REMOVE;
         case hyperdex::NET_SERVERERROR:
+        case hyperdex::NET_CMPFAIL:
         default:
             set_status(HYPERCLIENT_SERVERERROR);
             return REMOVE;
@@ -632,11 +678,14 @@ hyperclient :: pending_statusonly :: handle_response(hyperdex::network_msgtype t
         case hyperdex::NET_NOTFOUND:
             set_status(HYPERCLIENT_NOTFOUND);
             break;
-        case hyperdex::NET_WRONGARITY:
+        case hyperdex::NET_BADDIMSPEC:
             set_status(HYPERCLIENT_LOGICERROR);
             break;
         case hyperdex::NET_NOTUS:
             set_status(HYPERCLIENT_RECONFIGURE);
+            break;
+        case hyperdex::NET_CMPFAIL:
+            set_status(HYPERCLIENT_CMPFAIL);
             break;
         case hyperdex::NET_SERVERERROR:
         default:
@@ -865,11 +914,50 @@ hyperclient :: put(const char* space, const char* key, size_t key_sz,
     e::buffer::packer p = msg->pack_at(HDRSIZE);
     p = p << e::slice(key, key_sz);
 
-    int64_t ret = pack_attrs(space, p, attrs, attrs_sz, status);
+    int64_t ret = pack_attrs(space, &p, attrs, attrs_sz, status);
 
     if (ret < 0)
     {
         return ret;
+    }
+
+    return add_keyop(space, key, key_sz, msg, op);
+}
+
+int64_t
+hyperclient :: condput(const char* space, const char* key, size_t key_sz,
+		       const struct hyperclient_attribute* condattrs, size_t condattrs_sz,
+		       const struct hyperclient_attribute* attrs, size_t attrs_sz,
+		       hyperclient_returncode* status)
+{
+    if (maintain_coord_connection(status) < 0)
+    {
+        return -1;
+    }
+
+    e::intrusive_ptr<pending> op;
+    op = new pending_statusonly(hyperdex::REQ_CONDPUT, hyperdex::RESP_CONDPUT, status);
+    size_t sz = HDRSIZE
+              + sizeof(uint32_t)
+              + key_sz
+              + pack_attrs_sz(condattrs, condattrs_sz)
+              + pack_attrs_sz(attrs, attrs_sz);
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    e::buffer::packer p = msg->pack_at(HDRSIZE);
+    p = p << e::slice(key, key_sz);
+
+    int64_t ret = pack_attrs(space, &p, condattrs, condattrs_sz, status);
+
+    if (ret < 0)
+    {
+        return ret;
+    }
+
+    ret = pack_attrs(space, &p, attrs, attrs_sz, status);
+
+    if (ret < 0)
+    {
+      return ret - condattrs_sz;
     }
 
     return add_keyop(space, key, key_sz, msg, op);
@@ -893,6 +981,36 @@ hyperclient :: del(const char* space, const char* key, size_t key_sz,
     e::buffer::packer p = msg->pack_at(HDRSIZE);
     p = p << e::slice(key, key_sz);
     assert(!p.error());
+    return add_keyop(space, key, key_sz, msg, op);
+}
+
+int64_t
+hyperclient :: atomicinc(const char* space, const char* key, size_t key_sz,
+		       const struct hyperclient_attribute* attrs, size_t attrs_sz,
+		       hyperclient_returncode* status)
+{
+    if (maintain_coord_connection(status) < 0)
+    {
+        return -1;
+    }
+
+    e::intrusive_ptr<pending> op;
+    op = new pending_statusonly(hyperdex::REQ_ATOMICINC, hyperdex::RESP_ATOMICINC, status);
+    size_t sz = HDRSIZE
+              + sizeof(uint32_t)
+              + key_sz
+              + pack_attrs_sz(attrs, attrs_sz);
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    e::buffer::packer p = msg->pack_at(HDRSIZE);
+    p = p << e::slice(key, key_sz);
+
+    int64_t ret = pack_attrs(space, &p, attrs, attrs_sz, status);
+
+    if (ret < 0)
+    {
+      return ret;
+    }
+
     return add_keyop(space, key, key_sz, msg, op);
 }
 
@@ -988,7 +1106,7 @@ hyperclient :: search(const char* space,
             return -1 - eq_sz - i;
         }
 
-        if (hd_to_hc_type(dim->type) != HYPERDATATYPE_UINT64)
+        if (hd_to_hc_type(dim->type) != HYPERDATATYPE_INT64)
         {
             *status = HYPERCLIENT_WRONGTYPE;
             return -1 - eq_sz - i;
@@ -1310,7 +1428,7 @@ hyperclient :: add_keyop(const char* space, const char* key, size_t key_sz,
 }
 
 int64_t
-hyperclient :: pack_attrs(const char* space, e::buffer::packer p,
+hyperclient :: pack_attrs(const char* space, e::buffer::packer* p,
                           const struct hyperclient_attribute* attrs,
                           size_t attrs_sz, hyperclient_returncode* status)
 {
@@ -1326,7 +1444,7 @@ hyperclient :: pack_attrs(const char* space, e::buffer::packer p,
     assert(dimension_names.size() > 0);
     e::bitfield seen(dimension_names.size());
     uint32_t sz = attrs_sz;
-    p = p << sz;
+    *p = *p << sz;
 
     for (size_t i = 0; i < attrs_sz; ++i)
     {
@@ -1364,11 +1482,11 @@ hyperclient :: pack_attrs(const char* space, e::buffer::packer p,
             return -1 - i;
         }
 
-        p = p << dimnum << e::slice(attrs[i].value, attrs[i].value_sz);
+        *p = *p << dimnum << e::slice(attrs[i].value, attrs[i].value_sz);
         seen.set(dimnum);
     }
 
-    assert(!p.error());
+    assert(!(*p).error());
     return 0;
 }
 
@@ -1583,6 +1701,7 @@ operator << (std::ostream& lhs, hyperclient_returncode rhs)
         stringify(HYPERCLIENT_SUCCESS);
         stringify(HYPERCLIENT_NOTFOUND);
         stringify(HYPERCLIENT_SEARCHDONE);
+        stringify(HYPERCLIENT_CMPFAIL);
         stringify(HYPERCLIENT_UNKNOWNSPACE);
         stringify(HYPERCLIENT_COORDFAIL);
         stringify(HYPERCLIENT_SERVERERROR);
@@ -1596,6 +1715,7 @@ operator << (std::ostream& lhs, hyperclient_returncode rhs)
         stringify(HYPERCLIENT_SEEERRNO);
         stringify(HYPERCLIENT_NONEPENDING);
         stringify(HYPERCLIENT_DONTUSEKEY);
+        stringify(HYPERCLIENT_WRONGTYPE);
         stringify(HYPERCLIENT_EXCEPTION);
         stringify(HYPERCLIENT_ZERO);
         stringify(HYPERCLIENT_A);
