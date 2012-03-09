@@ -143,7 +143,7 @@ integer = Word(string.digits).setParseAction(lambda t: int(t[0]))
 hexnum  = Combine(Literal("0x") + Word(string.hexdigits)).setParseAction(lambda t: int(t[0][2:], 16))
 dimension = identifier.setResultsName("name") + \
             Optional(Suppress(Literal("(")) +
-                     (Literal("string") | Literal("uint64")) +
+                     (Literal("string") | Literal("int64")) +
                      Suppress(Literal(")")), default="string").setResultsName("type")
 dimension.setParseAction(parse_dimension)
 autoregion = Literal("auto") + integer + integer
