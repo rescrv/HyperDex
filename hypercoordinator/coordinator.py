@@ -141,6 +141,15 @@ class Coordinator(object):
         del self._spaces_by_name[space]
         del self._spaces_by_id[spacenum]
         self._regenerate()
+        
+    def lst_spaces(self):
+        return self._spaces_by_name.keys()
+        
+    def get_space(self, space):
+        if space not in self._spaces_by_name:
+            raise Coordinator.UnknownSpace()
+        spacenum = self._spaces_by_name[space]
+        return self._spaces_by_id[spacenum]
 
     def _compute_transfer_id(self, spaceid, subspaceid, regionid):
         xferid = None
@@ -481,6 +490,10 @@ class ControlConnection(object):
                     self._action = self.add_space
                 elif len(commandline) == 3 and commandline[:2] == ['del', 'space']:
                     self.del_space(commandline[2])
+                elif len(commandline) == 2 and commandline == ['lst', 'spaces']:
+                    self.lst_spaces()
+                elif len(commandline) == 3 and commandline[:2] == ['get', 'space']:
+                    self.get_space(commandline[2])
             elif self._mode == 'DATA':
                 self._action(data)
                 self._delim = '\n'
@@ -516,6 +529,19 @@ class ControlConnection(object):
             return self._fail("Space does not exist")
         self.outgoing += 'SUCCESS\n'
         logging.info("removed space \"{0}\"".format(space))
+
+    def lst_spaces(self):
+        for space in self._coordinator.lst_spaces():
+			self.outgoing += space + '\n'
+
+    def get_space(self, space):
+        try:
+            space = self._coordinator.get_space(space)
+        except ValueError as e:
+            return self._fail(str(e))
+        except Coordinator.UnknownSpace as e:
+            return self._fail("Space does not exist")
+        self.outgoing += str(space)
 
     def _fail(self, msg):
         error = 'failing control connection {0}: {1}'.format(self._id, msg)

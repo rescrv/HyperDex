@@ -68,6 +68,14 @@ def del_space(args):
     return send_text(args.host, args.port, 'del space {0}\n'.format(args.space))
 
 
+def lst_spaces(args):
+    return send_text(args.host, args.port, 'lst spaces\n')
+
+
+def get_space(args):
+    return send_text(args.host, args.port, 'get space {0}\n'.format(args.space))
+
+	
 def validate_space(args):
     data = sys.stdin.read()
     try:
@@ -98,6 +106,11 @@ def main(args, name='hyperdex-control'):
     parser_del_space.set_defaults(func=del_space)
     parser_validate_space = subparsers.add_parser('validate-space', help='validate help')
     parser_validate_space.set_defaults(func=validate_space)
+    parser_lst_spaces = subparsers.add_parser('lst-spaces', help='lst-space help')
+    parser_lst_spaces.set_defaults(func=lst_spaces)
+    parser_get_space = subparsers.add_parser('get-space', help='get-space help')
+    parser_get_space.add_argument('space', metavar='SPACE', help='the space to get')
+    parser_get_space.set_defaults(func=get_space)
     args = parser.parse_args(args)
     return args.func(args)
 

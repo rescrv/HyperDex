@@ -41,7 +41,10 @@ class Dimension(object):
     @property
     def datatype(self):
         return self._datatype
-
+    
+    def __repr__(self):
+        return 'Dimension(name={0}, datatype={1})' \
+               .format(self.name, self.datatype)
 
 class Space(object):
 
@@ -62,6 +65,15 @@ class Space(object):
     def subspaces(self):
         return self._subspaces
 
+    def __repr__(self):
+        res = 'Space(name={0})'.format(self.name) + '\n'
+        for d in self.dimensions:
+            res += ' '*4 + str(d) + '\n'
+        for s in self.subspaces:
+            for l in str(s).split('\n'):
+                if l:
+                    res += ' '*4 + l + '\n'
+        return res
 
 class Subspace(object):
 
@@ -82,6 +94,12 @@ class Subspace(object):
     def regions(self):
         return self._regions
 
+    def __repr__(self):
+        res = 'Subspace(dimensions={0}, nosearch={1})'\
+              .format(self.dimensions, self.nosearch) + '\n'
+        for r in self._regions:
+            res += ' '*4 + str(r) + '\n'
+        return res
 
 class Region(object):
 
