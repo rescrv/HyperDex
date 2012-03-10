@@ -33,6 +33,7 @@ import logging
 import random
 import select
 import shlex
+import json
 import socket
 import sys
 
@@ -469,8 +470,7 @@ class ControlConnection(object):
         self._ibuffer = ''
         self.outgoing = ''
         self._delim = '\n'
-        self._mode = "COMMAND"
-        self._action = None
+        self._currreq = None
         self._identified = 'CONTROL'
         self._id = str(self._sock.getpeername())
         self._conns = conns
@@ -482,25 +482,25 @@ class ControlConnection(object):
         self._ibuffer += data
         while self._delim in self._ibuffer:
             data, self._ibuffer = self._ibuffer.split(self._delim, 1)
-            if self._mode == 'COMMAND':
-                commandline = shlex.split(data)
-                if len(commandline) == 2 and commandline == ['add', 'space']:
-                    self._delim = '\n.\n'
-                    self._mode = 'DATA'
-                    self._action = self.add_space
-                elif len(commandline) == 3 and commandline[:2] == ['del', 'space']:
-                    self.del_space(commandline[2])
-                elif len(commandline) == 2 and commandline == ['lst', 'spaces']:
+            try:
+                req = json.loads(data)
+            except ValueError as e:
+                raise KillConnection("Control connection got non-JSON message {0}".format(data))
+            if type(req) != dict:
+                raise KillConnection("Control connection got invalid JSON message {0}".format(data))
+            for r, rv in req.items():
+                self._currreq = r
+                if r == 'add-space':
+                    self.add_space(rv)
+                elif r == 'del-space':
+                    self.del_space(rv)
+                elif r == 'lst-spaces':
                     self.lst_spaces()
-                elif len(commandline) == 3 and commandline[:2] == ['get', 'space']:
-                    self.get_space(commandline[2])
-            elif self._mode == 'DATA':
-                self._action(data)
-                self._delim = '\n'
-                self._mode = 'COMMAND'
-            else:
-                raise KillConnection('Control connection with unknown mode {0}'.format(repr(self._mode)))
-
+                elif r == 'get-space':
+                    self.get_space(rv)
+                else:
+                    raise KillConnection("Control connection got invalid request {0}".format(r))
+                    
     def handle_out(self):
         data = self.outgoing[:PIPE_BUF]
         sz = self._sock.send(data)
@@ -517,7 +517,7 @@ class ControlConnection(object):
             return self._fail(str(e))
         except Coordinator.DuplicateSpace as e:
             return self._fail("Space already exists")
-        self.outgoing += 'SUCCESS\n'
+        self.outgoing += json.dumps({self._currreq:'SUCCESS'}) + '\n'
         logging.info("created new space \"{0}\"".format(space.name))
 
     def del_space(self, space):
@@ -527,12 +527,12 @@ class ControlConnection(object):
             return self._fail(str(e))
         except Coordinator.UnknownSpace as e:
             return self._fail("Space does not exist")
-        self.outgoing += 'SUCCESS\n'
+        self.outgoing += json.dumps({self._currreq:'SUCCESS'}) + '\n'
         logging.info("removed space \"{0}\"".format(space))
 
     def lst_spaces(self):
-        for space in self._coordinator.lst_spaces():
-			self.outgoing += space + '\n'
+        spaces = '\n'.join([s for s in self._coordinator.lst_spaces()])
+        self.outgoing += json.dumps({self._currreq:spaces}) + '\n'
 
     def get_space(self, space):
         try:
@@ -541,14 +541,14 @@ class ControlConnection(object):
             return self._fail(str(e))
         except Coordinator.UnknownSpace as e:
             return self._fail("Space does not exist")
-        self.outgoing += str(space)
+        self.outgoing += json.dumps({self._currreq:str(space)}) + '\n'
 
     def _fail(self, msg):
         error = 'failing control connection {0}: {1}'.format(self._id, msg)
+        self.outgoing += json.dumps({self._currreq:'ERROR', 'error':msg}) + '\n'
         logging.error(error)
-        self.outgoing += msg + '\n'
 
-
+        
 class CoordinatorServer(object):
 
     def __init__(self, bindto, control_port, host_port):

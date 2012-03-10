@@ -27,6 +27,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
+import json
 import socket
 import sys
 
@@ -36,19 +37,34 @@ import pyparsing
 import hypercoordinator.parser
 
 
-def send_text(host, port, text):
+def send_msg(host, port, msg, args=''):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
     s.connect((host, port))
-    s.sendall(text)
-    data = s.recv(4096)
-    if data.endswith('.\n'):
-        data = data[:-2]
-    if data != 'SUCCESS\n':
-        sys.stdout.write(data)
+    fp = s.makefile()
+    fp.write(json.dumps({msg:args}) + '\n')
+    fp.flush()
+    data = fp.readline()
+    try:
+        resp = json.loads(data)
+    except ValueError as e:
+        sys.stderr.write("Protocol error: got non-JSON message {0}\n".format(data))
         return 1
+    if type(resp) != dict:
+        sys.stderr.write("Protocol error: got invalid JSON message {0}\n".format(data))
+        return 1
+    if not resp.has_key(msg):
+        sys.stderr.write("Protocol error: server message {0} does not contain response to {1}\n".format(data, msg))
+        return 1
+    rv = resp[msg]
+    if rv == "ERROR":
+        e = resp['error'] if resp.has_key('error') else ''
+        sys.stderr.write("Server responded with failure: {0}\n".format(e))
+        return 1
+    if rv != "SUCCESS":
+        sys.stdout.write(rv+'\n')
     return 0
 
-
+     
 def add_space(args):
     data = sys.stdin.read()
     try:
@@ -60,20 +76,19 @@ def add_space(args):
     except pyparsing.ParseException as e:
         print str(e)
         return 1
-    text = 'add space\n{0}\n.\n'.format(data)
-    return send_text(args.host, args.port, text)
+    return send_msg(args.host, args.port, 'add-space', data)
 
 
 def del_space(args):
-    return send_text(args.host, args.port, 'del space {0}\n'.format(args.space))
+    return send_msg(args.host, args.port, 'del-space', args.space)
 
 
 def lst_spaces(args):
-    return send_text(args.host, args.port, 'lst spaces\n')
+    return send_msg(args.host, args.port, 'lst-spaces')
 
 
 def get_space(args):
-    return send_text(args.host, args.port, 'get space {0}\n'.format(args.space))
+    return send_msg(args.host, args.port, 'get-space', args.space)
 
 	
 def validate_space(args):
