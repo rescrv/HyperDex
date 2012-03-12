@@ -473,16 +473,16 @@ cdef class Client:
         async = self.async_insert(space, key, value)
         return async.wait()
 
+    def conditional_insert(self, bytes space, bytes key, dict condition, dict value):
+        async = self.async_conditional_insert(space, key, condition, value)
+        return async.wait()
+
     def remove(self, bytes space, bytes key):
         async = self.async_remove(space, key)
         return async.wait()
 
     def search(self, bytes space, dict predicate):
         return Search(self, space, predicate)
-
-    def conditional_insert(self, bytes space, bytes key, dict condition, dict value):
-        async = self.async_conditional_insert(space, key, condition, value)
-        return async.wait()
 
     def atomicinc(self, bytes space, bytes key, dict value):
         async = self.async_atomicinc(space, key, value)
