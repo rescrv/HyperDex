@@ -18,10 +18,8 @@ daemon-daemon.o
 daemon.o
 depcomp
 .deps/
-hypercoordinator/coordinator.pyc
-hypercoordinator/hdtypes.pyc
-hypercoordinator/__init__.pyc
-hypercoordinator/parser.pyc
+doc/_build
+doc/_static
 hyperclient/.deps/
 hyperclient/.dirstamp
 hyperclient/java/hyperclient/
@@ -41,6 +39,10 @@ hyperclient/python/hyperclient.c
 hyperclient/python/hyperclient.la
 hyperclient/python/hyperclient_python_hyperclient_la-hyperclient.lo
 hyperclient/python/hyperclient_python_hyperclient_la-hyperclient.o
+hypercoordinator/coordinator.pyc
+hypercoordinator/hdtypes.pyc
+hypercoordinator/__init__.pyc
+hypercoordinator/parser.pyc
 hyperdaemon/.deps/
 hyperdaemon/.dirstamp
 hyperdaemon/libhyperdaemon_la-daemon.lo
