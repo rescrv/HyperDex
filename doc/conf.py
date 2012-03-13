@@ -214,7 +214,11 @@ latex_logo = '_static/hd-logo.png'
 # (source start file, name, description, authors, manual section).
 man_pages = [
     (u'man/hyperdex-daemon', u'hyperdex-daemon',
-        u'HyperDex Daemon', [u'Robert Escriva'], 1)
+        u'HyperDex Daemon', [u'Robert Escriva'], 1),
+    (u'man/hyperdex-replication-stress-test', u'hyperdex-replication-stress-test',
+        u'HyperDex Replication Stress Test', [u'Robert Escriva'], 1),
+    (u'man/hyperdex-simple-consistency-stress-test', u'hyperdex-simple-consistency-stress-test',
+        u'HyperDex Simple Consistency Stress Test', [u'Robert Escriva'], 1)
 ]
 
 # If true, show URL addresses after external links.
