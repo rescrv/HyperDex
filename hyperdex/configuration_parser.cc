@@ -690,7 +690,7 @@ hyperdex :: configuration_parser :: extract_datatype(char* start,
         *t = DATATYPE_STRING;
         return CP_SUCCESS;
     }
-    else if (strcmp(start, "uint64") == 0)
+    else if (strcmp(start, "int64") == 0)
     {
         *t = DATATYPE_INT64;
         return CP_SUCCESS;
