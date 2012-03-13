@@ -187,9 +187,6 @@ cdef class Deferred:
         self._status = HYPERCLIENT_ZERO
         self._finished = False
 
-    def finished(self):
-        return self._finished or self._reqid < 0
-
     def wait(self):
         if not self._finished and self._reqid > 0:
             while self._reqid not in self._client._pending:
@@ -203,7 +200,7 @@ cdef class Deferred:
             raise HyperClientException(self._status)
 
 
-cdef class DeferredLookup(Deferred):
+cdef class DeferredGet(Deferred):
 
     cdef hyperclient_attribute* _attrs
     cdef size_t _attrs_sz
@@ -230,12 +227,10 @@ cdef class DeferredLookup(Deferred):
         Deferred.wait(self)
         if self._status != HYPERCLIENT_SUCCESS:
             return None
-        attrs = _attrs_to_dict(self._attrs, self._attrs_sz)
-        attrstr = ' '.join(sorted(attrs.keys()))
-        return collections.namedtuple(self._space, attrstr)(**attrs)
+        return _attrs_to_dict(self._attrs, self._attrs_sz)
 
 
-cdef class DeferredInsert(Deferred):
+cdef class DeferredPut(Deferred):
 
     def __cinit__(self, Client client, bytes space, bytes key, dict value):
         cdef char* space_cstr = space
@@ -262,7 +257,7 @@ cdef class DeferredInsert(Deferred):
         return self._status == HYPERCLIENT_SUCCESS
 
 
-cdef class DeferredConditionalInsert(Deferred):
+cdef class DeferredCondPut(Deferred):
 
     def __cinit__(self, Client client, bytes space, bytes key, dict condition, dict value):
         cdef char* space_cstr = space
@@ -297,7 +292,22 @@ cdef class DeferredConditionalInsert(Deferred):
         return self._status == HYPERCLIENT_SUCCESS
 
 
-cdef class DeferredAtomicIncDecInsert(Deferred):
+cdef class DeferredDelete(Deferred):
+
+    def __cinit__(self, Client client, bytes space, bytes key):
+        cdef char* space_cstr = space
+        cdef char* key_cstr = key
+        self._reqid = hyperclient_del(client._client, space_cstr,
+                                      key_cstr, len(key), &self._status)
+        if self._reqid < 0:
+            raise HyperClientException(self._status)
+
+    def wait(self):
+        Deferred.wait(self)
+        return self._status == HYPERCLIENT_SUCCESS
+
+
+cdef class DeferredAtomicIncDec(Deferred):
 
     def __cinit__(self,  Client client, int isinc, bytes space, bytes key, dict value):
         cdef char* space_cstr = space
@@ -336,21 +346,6 @@ cdef class DeferredAtomicIncDecInsert(Deferred):
                 raise HyperClientException(self._status, attr)
         finally:
             free(attrs)
-
-    def wait(self):
-        Deferred.wait(self)
-        return self._status == HYPERCLIENT_SUCCESS
-
-
-cdef class DeferredRemove(Deferred):
-
-    def __cinit__(self, Client client, bytes space, bytes key):
-        cdef char* space_cstr = space
-        cdef char* key_cstr = key
-        self._reqid = hyperclient_del(client._client, space_cstr,
-                                      key_cstr, len(key), &self._status)
-        if self._reqid < 0:
-            raise HyperClientException(self._status)
 
     def wait(self):
         Deferred.wait(self)
@@ -445,8 +440,7 @@ cdef class Search:
             finally:
                 if self._attrs:
                     free(self._attrs)
-            attrstr = ' '.join(sorted(attrs.keys()))
-            self._backlogged.append(collections.namedtuple(self._space, attrstr)(**attrs))
+            self._backlogged.append(attrs)
         else:
             self._backlogged.append(HyperClientException(self._status))
 
@@ -465,23 +459,20 @@ cdef class Client:
         if self._client:
             hyperclient_destroy(self._client)
 
-    def lookup(self, bytes space, bytes key):
-        async = self.async_lookup(space, key)
+    def get(self, bytes space, bytes key):
+        async = self.async_get(space, key)
         return async.wait()
 
-    def insert(self, bytes space, bytes key, dict value):
-        async = self.async_insert(space, key, value)
+    def put(self, bytes space, bytes key, dict value):
+        async = self.async_put(space, key, value)
         return async.wait()
 
-    def remove(self, bytes space, bytes key):
-        async = self.async_remove(space, key)
+    def condput(self, bytes space, bytes key, dict condition, dict value):
+        async = self.async_condput(space, key, condition, value)
         return async.wait()
 
-    def search(self, bytes space, dict predicate):
-        return Search(self, space, predicate)
-
-    def conditional_insert(self, bytes space, bytes key, dict condition, dict value):
-        async = self.async_conditional_insert(space, key, condition, value)
+    def delete(self, bytes space, bytes key):
+        async = self.async_delete(space, key)
         return async.wait()
 
     def atomicinc(self, bytes space, bytes key, dict value):
@@ -492,17 +483,20 @@ cdef class Client:
         async = self.async_atomicdec(space, key, value)
         return async.wait()
 
-    def async_lookup(self, bytes space, bytes key):
-        return DeferredLookup(self, space, key)
+    def search(self, bytes space, dict predicate):
+        return Search(self, space, predicate)
 
-    def async_insert(self, bytes space, bytes key, dict value):
-        return DeferredInsert(self, space, key, value)
+    def async_get(self, bytes space, bytes key):
+        return DeferredGet(self, space, key)
 
-    def async_conditional_insert(self, bytes space, bytes key, dict condition, dict value):
-        return DeferredConditionalInsert(self, space, key, condition, value)
+    def async_put(self, bytes space, bytes key, dict value):
+        return DeferredPut(self, space, key, value)
 
-    def async_remove(self, bytes space, bytes key):
-        return DeferredRemove(self, space, key)
+    def async_condput(self, bytes space, bytes key, dict condition, dict value):
+        return DeferredCondPut(self, space, key, condition, value)
+
+    def async_delete(self, bytes space, bytes key):
+        return DeferredDelete(self, space, key)
 
     def async_atomicinc(self, bytes space, bytes key, dict value):
         return DeferredAtomicIncDecInsert(self, 1, space, key, value)
