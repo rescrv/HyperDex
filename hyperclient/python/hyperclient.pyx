@@ -499,10 +499,10 @@ cdef class Client:
         return DeferredDelete(self, space, key)
 
     def async_atomicinc(self, bytes space, bytes key, dict value):
-        return DeferredAtomicIncDecInsert(self, 1, space, key, value)
+        return DeferredAtomicIncDec(self, 1, space, key, value)
 
     def async_atomicdec(self, bytes space, bytes key, dict value):
-        return DeferredAtomicIncDecInsert(self, 0, space, key, value)
+        return DeferredAtomicIncDec(self, 0, space, key, value)
 
     def loop(self):
         cdef hyperclient_returncode rc
