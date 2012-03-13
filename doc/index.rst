@@ -8,7 +8,8 @@ Welcome to HyperDex's documentation!
 
    tutorial
    tutorial-advanced
-   api
+   api/python
+   api/c
    man/hyperdex-daemon
 
 Indices and tables
