@@ -6,6 +6,8 @@ Welcome to HyperDex's documentation!
 .. toctree::
    :maxdepth: 2
 
+   tutorial
+   tutorial-advanced
    api
    man/hyperdex-daemon
 
