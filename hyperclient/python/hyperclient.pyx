@@ -187,14 +187,13 @@ cdef class Deferred:
         self._status = HYPERCLIENT_ZERO
         self._finished = False
 
+    def _callback(self):
+        self._finished = True
+        del self._client._ops[self._reqid]
+
     def wait(self):
-        if not self._finished and self._reqid > 0:
-            while self._reqid not in self._client._pending:
-                self._client.loop()
-            if self._reqid > 0:
-                # Do this here in case remove throws
-                self._finished = True
-                self._client._pending.remove(self._reqid)
+        while not self._finished and self._reqid > 0:
+            self._client.loop()
         self._finished = True
         if self._status not in (HYPERCLIENT_SUCCESS, HYPERCLIENT_NOTFOUND, HYPERCLIENT_CMPFAIL):
             raise HyperClientException(self._status)
@@ -218,6 +217,7 @@ cdef class DeferredGet(Deferred):
                                       &self._attrs, &self._attrs_sz)
         if self._reqid < 0:
             raise HyperClientException(self._status)
+        client._ops[self._reqid] = self
 
     def __dealloc__(self):
         if self._attrs:
@@ -248,6 +248,7 @@ cdef class DeferredPut(Deferred):
                 if attrs and attrs[idx].attr:
                     attr = attrs[idx].attr
                 raise HyperClientException(self._status, attr)
+            client._ops[self._reqid] = self
         finally:
             if attrs:
                 free(attrs)
@@ -281,6 +282,7 @@ cdef class DeferredCondPut(Deferred):
                 if idx >= 0 and attrs and attrs[idx].attr:
                     attr = attrs[idx].attr
                 raise HyperClientException(self._status, attr)
+            client._ops[self._reqid] = self
         finally:
             if condattrs:
                 free(condattrs)
@@ -344,6 +346,7 @@ cdef class DeferredAtomicIncDec(Deferred):
                 else:
                     attr = None
                 raise HyperClientException(self._status, attr)
+            client._ops[self._reqid] = self
         finally:
             free(attrs)
 
@@ -415,7 +418,7 @@ cdef class Search:
                 if idx < len(ranges) and rn and rn[idx].attr:
                     attr = rn[idx].attr
                 raise HyperClientException(self._status, attr)
-            client._searches[self._reqid] = self
+            client._ops[self._reqid] = self
         finally:
             if eq: free(eq)
             if rn: free(rn)
@@ -428,12 +431,12 @@ cdef class Search:
             self._client.loop()
         if self._backlogged:
             return self._backlogged.pop()
-        del self._client._searches[self._reqid]
         raise StopIteration()
 
     def _callback(self):
         if self._status == HYPERCLIENT_SEARCHDONE:
             self._finished = True
+            del self._client._ops[self._reqid]
         elif self._status == HYPERCLIENT_SUCCESS:
             try:
                 attrs = _attrs_to_dict(self._attrs, self._attrs_sz)
@@ -447,13 +450,11 @@ cdef class Search:
 
 cdef class Client:
     cdef hyperclient* _client
-    cdef set _pending
-    cdef dict _searches
+    cdef dict _ops
 
     def __cinit__(self, address, port):
         self._client = hyperclient_create(address, port)
-        self._pending = set([])
-        self._searches = {}
+        self._ops = {}
 
     def __dealloc__(self):
         if self._client:
@@ -510,7 +511,11 @@ cdef class Client:
         if ret < 0:
             raise HyperClientException(rc)
         else:
-            if ret in self._searches:
-                self._searches[ret]._callback()
+            if ret in self._ops:
+                op = self._ops[ret]
+                # We cannot refer to self._ops[ret] after this call as
+                # _callback() may remove ret from self._ops.
+                op._callback()
+                return op
             else:
-                self._pending.add(ret)
+                raise HyperClientException(HYPERCLIENT_LOGICERROR)
