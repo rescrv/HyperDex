@@ -64,7 +64,7 @@ release = '0.2'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['_build']
+exclude_patterns = ['_build', 'shards']
 
 # The reST default role (used for this markup: `text`) to use for all documents.
 #default_role = None
@@ -184,7 +184,7 @@ latex_elements = {
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
   ('index', 'HyperDex.tex', u'HyperDex Documentation',
-   u'Robert Escriva', 'manual'),
+   u'Robert Escriva', 'manual', 1),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

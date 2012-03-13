@@ -1,36 +1,296 @@
-API
-===
-
-Operations
-----------
-
-Get
-~~~
-
-Put
-~~~
-
-Conditional Put
-~~~~~~~~~~~~~~~
-
-Delete
-~~~~~~
-
-Atomic Increment
-~~~~~~~~~~~~~~~~
-
-Search
-~~~~~~
-
-Loop
-~~~~
-
 Python API
-----------
+==========
+
+.. py:module:: hyperclient
+   :synopsis: The Python HyperDex client
+
+.. py:class:: Client(address, port)
+
+   A client of the HyperDex cluster.  Instances of this class encapsulate all
+   resources necessary to communicate with nodes in a HyperDex cluster.
+
+   .. py:method:: get(space, key)
+
+      .. include:: shards/get.rst
+
+      On success, the returned object will be a ``dict`` mapping attribute names
+      to their respective values.  If the object does not exist, ``None`` will
+      be returned.  On error, a :py:exc:`HyperClientException` is thrown.
+
+      space:
+         A string naming the space in which the object will be inserted.
+
+      key:
+         The key of the object.  Keys may be either byte strings or integers.
+
+   .. py:method:: put(space, key, attrs)
+
+      .. include:: shards/put.rst
+
+      The return value is a boolean indicating success.  On error, a
+      :py:exc:`HyperClientException` is thrown.
+
+      space:
+         A string naming the space in which the object will be inserted.
+
+      key:
+         The key of the object.  Keys may be either byte strings or integers.
+
+      attrs:
+         A dictionary mapping attribute names to their respective values.  Each
+         value must match the type defined when :py:obj:`space` was created.
+
+   .. py:method:: condput(space, key, condition, attrs)
+
+      .. include:: shards/condput.rst
+
+      The return value is a boolean indicating success.  If the value is
+      ``True``, the comparison was successful, and the object was updated.  If
+      the value is ``False``, the comparison failed, and the object remains
+      unchanged.
+
+      space:
+         A string naming the space in which the object will be inserted.
+
+      key:
+         The key of the object.  Keys may be either byte strings or integers.
+
+      condition:
+         A dictionary mapping attribute names to a value which is compared
+         against the object's current state.
+
+      attrs:
+         A dictionary mapping attribute names to their respective values.  Each
+         value must match the type defined when :py:obj:`space` was created.
+
+   .. py:method:: delete(space, key)
+
+      .. include:: shards/del.rst
+
+      The return value is a boolean indicating success.  If the value is
+      ``True``, the delete was successful, and the object was removed.  If the
+      value is ``False``, there was no object to remove.
+
+      space:
+         A string naming the space in which the object will be inserted.
+
+      key:
+         The key of the object.  Keys may be either byte strings or integers.
+
+   .. py:method:: search(space, predicate)
+
+      .. include:: shards/search.rst
+
+      This object returns a generator of type :py:class:`Search`.  Both objects
+      retrieved by the search, and errors encountered during the search will be
+      yielded by the generator.  Each object is a ``dict`` mapping attribute
+      names to their respective values.
+
+      space:
+         A string naming the space in which the object will be inserted.
+
+      predicate:
+         A dictionary specifying comparisons used for selecting objects.  Each
+         key-value pair in :py:obj:`predicate` maps the name of an attribute to
+         a value or range of values which constitute the search.  An equality
+         search is specified by supplying the value to match.  A range search is
+         a 2-tuple specifying the lower and upper bounds on the range.
+
+   .. py:method:: atomicinc(space, key, attrs)
+
+      .. include:: shards/atomicinc.rst
+
+      The return value is a boolean indicating success.  If the value is
+      ``True``, the object exists, and all values were atomically incremented.
+      If the value is ``False``, the object was not found.
+
+      space:
+         A string naming the space in which the object will be inserted.
+
+      key:
+         The key of the object.  Keys may be either byte strings or integers.
+
+      attrs:
+         A dictionary mapping attribute names to the amount by which the
+         corresponding values will be incremented.  The specified attributes
+         must be numeric in nature.
+
+   .. py:method:: atomicdec(space, key, attrs)
+
+      .. include:: shards/atomicdec.rst
+
+      The return value is a boolean indicating success.  If the value is
+      ``True``, the object exists, and all values were atomically decremented.
+      If the value is ``False``, the object was not found.
+
+      space:
+         A string naming the space in which the object will be inserted.
+
+      key:
+         The key of the object.  Keys may be either byte strings or integers.
+
+      attrs:
+         A dictionary mapping attribute names to the amount by which the
+         corresponding values will be decremented.  The specified attributes
+         must be numeric in nature.
+
+   .. py:method:: async_get(space, key)
+
+      .. include:: shards/get.rst
+
+      The returned object will be a :py:class:`DeferredGet` instance which
+      tracks the request.
+
+      space:
+         A string naming the space in which the object will be inserted.
+
+      key:
+         The key of the object.  Keys may be either byte strings or integers.
+
+   .. py:method:: async_put(space, key, value)
+
+      .. include:: shards/put.rst
+
+      The returned object will be a :py:class:`DeferredPut` instance which
+      tracks the request.
+
+      space:
+         A string naming the space in which the object will be inserted.
+
+      key:
+         The key of the object.  Keys may be either byte strings or integers.
+
+      attrs:
+         A dictionary mapping attribute names to their respective values.  Each
+         value must match the type defined when :py:obj:`space` was created.
+
+   .. py:method:: async_condput(space, key, condition, value)
+
+      .. include:: shards/condput.rst
+
+      The returned object will be a :py:class:`DeferredCondput` instance which
+      tracks the request.
+
+      space:
+         A string naming the space in which the object will be inserted.
+
+      key:
+         The key of the object.  Keys may be either byte strings or integers.
+
+      condition:
+         A dictionary mapping attribute names to a value which is compared
+         against the object's current state.
+
+      attrs:
+         A dictionary mapping attribute names to their respective values.  Each
+         value must match the type defined when :py:obj:`space` was created.
+
+   .. py:method:: async_delete(space, key)
+
+      .. include:: shards/del.rst
+
+      The returned object will be a :py:class:`DeferredDelete` instance which
+      tracks the request.
+
+      space:
+         A string naming the space in which the object will be inserted.
+
+      key:
+         The key of the object.  Keys may be either byte strings or integers.
+
+   .. py:method:: async_atomicinc(space, key, value)
+
+      .. include:: shards/atomicinc.rst
+
+      The returned object will be a :py:class:`DeferredAtomicIncDec` instance
+      which tracks the request.
+
+      space:
+         A string naming the space in which the object will be inserted.
+
+      key:
+         The key of the object.  Keys may be either byte strings or integers.
+
+      attrs:
+         A dictionary mapping attribute names to the amount by which the
+         corresponding values will be incremented.  The specified attributes
+         must be numeric in nature.
+
+   .. py:method:: async_atomicdec(space, key, value)
+
+      .. include:: shards/atomicdec.rst
+
+      The returned object will be a :py:class:`DeferredAtomicIncDec` instance
+      which tracks the request.
+
+      space:
+         A string naming the space in which the object will be inserted.
+
+      key:
+         The key of the object.  Keys may be either byte strings or integers.
+
+      attrs:
+         A dictionary mapping attribute names to the amount by which the
+         corresponding values will be decremented.  The specified attributes
+         must be numeric in nature.
+
+   .. py:method:: loop()
+
+
+.. py:class:: HyperClientException(status, attr)
+
+.. py:class:: DeferredGet
+
+   .. py:method:: wait()
+
+      Wait for the operation to complete.  On success, the returned object will
+      be a ``dict`` mapping attribute names to their respective values.  If the
+      object does not exist, ``None`` will be returned.  On error, a
+      :py:exc:`HyperClientException` is thrown.
+
+.. py:class:: DeferredPut
+
+   .. py:method:: wait()
+
+      Wait for the operation to complete.  The return value is a boolean
+      indicating success.  On error, a :py:exc:`HyperClientException` is thrown.
+
+.. py:class:: DeferredCondPut
+
+   .. py:method:: wait()
+
+      Wait for the operation to complete.  The return value is a boolean
+      indicating success.  If the value is ``True``, the comparison was
+      successful, and the object was updated.  If the value is ``False``, the
+      comparison failed, and the object remains unchanged.
+
+.. py:class:: DeferredCondPut
+
+   .. py:method:: wait()
+
+      Wait for the operation to complete.  The return value is a boolean
+      indicating success.  If the value is ``True``, the delete was successful,
+      and the object was removed.  If the value is ``False``, there was no
+      object to remove.
+
+.. py:class:: DeferredAtomicIncDec
+
+   .. py:method:: wait()
+
+      The return value is a boolean indicating success.  If the value is
+      ``True``, the object exists, and all values were atomically changed.
+      If the value is ``False``, the object was not found.
+
+.. py:class:: Search(client, space, predicate)
+
+   .. py:method:: __next__()
+
+      Return the next object or exception resulting from the search.  Objects
+      are Python dictionaries mapping attributes to their values.
 
 
 C/C++ API
----------
+=========
 
 The C API provides programmers with the most efficient way to access a HyperDex
 cluster.  For this reason, the C API is used to implement scripting language
@@ -235,8 +495,6 @@ Functions
    releasing all resources held by this instance by calling
    :c:func:`hyperclient_destroy`.
 
-   *Arguments*:
-
    coordinator:
       A string containing the IP of the coordinator for the HyperDex cluster.
 
@@ -255,8 +513,6 @@ Functions
    Free all resources associated with the :c:type:`hyperclient` pointed to by
    :c:data:`client`.
 
-   *Arguments*:
-
    client:
       The :c:type:`hyperclient` instance to be freed.
 
@@ -269,13 +525,13 @@ Functions
 
 .. c:function:: int64_t hyperclient_get(struct hyperclient* client, const char* space, const char* key, size_t key_sz, enum hyperclient_returncode* status, struct hyperclient_attribute** attrs, size_t* attrs_sz)
 
-   Perform a GET.  On success, the integer returned will be a positive integer
-   unique to this request.  The request will be considered complete when
+   .. include:: shards/get.rst
+
+   On success, the integer returned will be a positive integer unique to this
+   request.  The request will be considered complete when
    :c:func:`hyperclient_loop` returns the same ID.  If the integer returned is
    negative, it indicates an error generating the request, and ``*status``
    contains the reason why.
-
-   *Arguments*:
 
    client:
       An initialized :c:type:`hyperclient` instance.
@@ -314,20 +570,20 @@ Functions
       pointer must remain valid until :c:func:`hyperclient_loop` returns the
       same ID returned by this function.
 
-   The C++ API provides ``hyperclient::get`` in place of this call.
+   The C++ API provides ``hyperclient::get`` in addition to this call.
 
 
 .. c:function:: int64_t hyperclient_put(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
 
-   Perform a PUT.  On success, the integer returned will be a positive integer
-   unique to this request.  The request will be considered complete when
+   .. include:: shards/put.rst
+
+   On success, the integer returned will be a positive integer unique to this
+   request.  The request will be considered complete when
    :c:func:`hyperclient_loop` returns the same ID.  If the integer returned is
    negative, it indicates an error generating the request, and ``*status``
    contains the reason why.  ``HYPERCLIENT_UNKNOWNATTR``,
    ``HYPERCLIENT_WRONGTYPE`` and ``HYPERCLIENT_DUPEATTR`` indicate which
    attribute caused the error by returning ``-1 - idx_of_bad_attr``.
-
-   *Arguments*:
 
    client:
       An initialized :c:type:`hyperclient` instance.
@@ -360,15 +616,15 @@ Functions
 
 .. c:function:: int64_t hyperclient_condput(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_attribute* condattrs, size_t condattrs_sz, const struct hyperclient_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
 
-   Perform a CONDITIONAL PUT.  On success, the integer returned will be a
-   positive integer unique to this request.  The request will be considered
-   complete when :c:func:`hyperclient_loop` returns the same ID.  If the integer
-   returned is negative, it indicates an error generating the request, and
-   ``*status`` contains the reason why.  ``HYPERCLIENT_UNKNOWNATTR``,
+   .. include:: shards/condput.rst
+
+   On success, the integer returned will be a positive integer unique to this
+   request.  The request will be considered complete when
+   :c:func:`hyperclient_loop` returns the same ID.  If the integer returned is
+   negative, it indicates an error generating the request, and ``*status``
+   contains the reason why.  ``HYPERCLIENT_UNKNOWNATTR``,
    ``HYPERCLIENT_WRONGTYPE`` and ``HYPERCLIENT_DUPEATTR`` indicate which
    attribute caused the error by returning ``-1 - idx_of_bad_attr``.
-
-   *Arguments*:
 
    client:
       An initialized :c:type:`hyperclient` instance.
@@ -409,13 +665,13 @@ Functions
 
 .. c:function:: int64_t hyperclient_del(struct hyperclient* client, const char* space, const char* key, size_t key_sz, enum hyperclient_returncode* status)
 
-   Perform a DELETE.  On success, the integer returned will be a
-   positive integer unique to this request.  The request will be considered
-   complete when :c:func:`hyperclient_loop` returns the same ID.  If the integer
-   returned is negative, it indicates an error generating the request, and
-   ``*status`` contains the reason why.
+   .. include:: shards/del.rst
 
-   *Arguments*:
+   On success, the integer returned will be a positive integer unique to this
+   request.  The request will be considered complete when
+   :c:func:`hyperclient_loop` returns the same ID.  If the integer returned is
+   negative, it indicates an error generating the request, and ``*status``
+   contains the reason why.
 
    client:
       An initialized :c:type:`hyperclient` instance.
@@ -441,15 +697,15 @@ Functions
 
 .. c:function:: int64_t hyperclient_atomicinc(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
 
-   Perform an ATOMIC INCREMENT.  On success, the integer returned will be a
-   positive integer unique to this request.  The request will be considered
-   complete when :c:func:`hyperclient_loop` returns the same ID.  If the integer
-   returned is negative, it indicates an error generating the request, and
-   ``*status`` contains the reason why.  ``HYPERCLIENT_UNKNOWNATTR``,
+   .. include:: shards/atomicinc.rst
+
+   On success, the integer returned will be a positive integer unique to this
+   request.  The request will be considered complete when
+   :c:func:`hyperclient_loop` returns the same ID.  If the integer returned is
+   negative, it indicates an error generating the request, and ``*status``
+   contains the reason why.  ``HYPERCLIENT_UNKNOWNATTR``,
    ``HYPERCLIENT_WRONGTYPE`` and ``HYPERCLIENT_DUPEATTR`` indicate which
    attribute caused the error by returning ``-1 - idx_of_bad_attr``.
-
-   *Arguments*:
 
    client:
       An initialized :c:type:`hyperclient` instance.
@@ -484,20 +740,19 @@ Functions
 
 .. c:function:: int64_t hyperclient_search(struct hyperclient* client, const char* space, const struct hyperclient_attribute* eq, size_t eq_sz, const struct hyperclient_range_query* rn, size_t rn_sz, enum hyperclient_returncode* status, struct hyperclient_attribute** attrs, size_t* attrs_sz)
 
-   Perform a SEARCH.  The search must match attributes specified by :c:data:`eq`
-   and :c:data:`rn`.  On success, the integer returned will be a positive
-   integer unique to this request.  One object or error is returned on each
-   subsequent invocation of :c:func:`hyperclient_loop` which returns the same
-   ID.  When :c:func:`hyperclient_loop` set ``*status`` to
-   ``HYPERCLIENT_SEARCHDONE``, the search is complete.  If the integer returned
-   is negative, it indicates an error generating the request, and ``*status``
-   contains the reason why.  ``HYPERCLIENT_UNKNOWNATTR``,
-   ``HYPERCLIENT_WRONGTYPE`` and ``HYPERCLIENT_DUPEATTR`` indicate which
-   attribute caused the error by returning ``-1 - idx_of_bad_attr``, where
-   ``idx_of_bad_attr`` is an index to into the combined attributes of
-   :c:data:`eq` and :c:data:`rn`.
+   .. include:: shards/search.rst
 
-   *Arguments*:
+   The search must match attributes specified by :c:data:`eq` and :c:data:`rn`.
+   On success, the integer returned will be a positive integer unique to this
+   request.  One object or error is returned on each subsequent invocation of
+   :c:func:`hyperclient_loop` which returns the same ID.  When
+   :c:func:`hyperclient_loop` set ``*status`` to ``HYPERCLIENT_SEARCHDONE``, the
+   search is complete.  If the integer returned is negative, it indicates an
+   error generating the request, and ``*status`` contains the reason why.
+   ``HYPERCLIENT_UNKNOWNATTR``, ``HYPERCLIENT_WRONGTYPE`` and
+   ``HYPERCLIENT_DUPEATTR`` indicate which attribute caused the error by
+   returning ``-1 - idx_of_bad_attr``, where ``idx_of_bad_attr`` is an index to
+   into the combined attributes of :c:data:`eq` and :c:data:`rn`.
 
    client:
       An initialized :c:type:`hyperclient` instance.
@@ -561,8 +816,6 @@ Functions
    error is encountered or the event loop times out when processing the
    outstanding operations, the return value will be -1, and ``*status`` will be
    set to indicate the reason why.
-
-   *Arguments*:
 
    client:
       An initialized :c:type:`hyperclient` instance.

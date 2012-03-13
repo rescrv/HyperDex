@@ -23,25 +23,51 @@ shown below are the only parameters that a user must specify.
 Options
 -------
 
--d, --daemon        Run HyperDex in the background
--f, --foreground    Run HyperDex in the foreground
--D, --data=D        Directory to store all data and log files.  It must exist.
-                    If no directory is specified, the current directory is used.
--h, --host=IP       IP address to use when connecting to the coordinator
--p, --port=P        Port to use when connecting to the coordinator
--t, --threads=N     Number of threads to create which will handle client requests.
-                    This should be equal to the number of cores for workloads
-                    which may be cached by main memory.
--b, --bind-to=IP    Local IP address on which to handle network requests.  This
-                    must be addressable and unique among all nodes in the
-                    HyperDex cluster.
--i, --incoming-port=P   Port to listen on for incoming connections.  If none is
-                        specified, a port is selected at random.  It is best to
-                        let HyperDex select a random port.
--o, --outgoing-port=P   Port to use for all outgoing connections.  If none is
-                        specified, a port is selected at random.  It is best to
-                        let HyperDex select a random port.
--?, --help          Show a help message
+.. option:: -\?, --help
+
+   Show a help message
+
+.. option:: -d, --daemon
+
+   Run HyperDex in the background
+
+.. option:: -f, --foreground
+
+   Run HyperDex in the foreground
+
+.. option:: -D, --data=D
+
+   Directory to store all data and log files.  It must exist.  If no directory
+   is specified, the current directory is used.
+
+.. option:: -h, --host=IP
+
+   IP address to use when connecting to the coordinator
+
+.. option:: -p, --port=P
+
+   Port to use when connecting to the coordinator
+
+.. option:: -t, --threads=N
+
+   Number of threads to create which will handle client requests.  This should
+   be equal to the number of cores for workloads which may be cached by main
+   memory.
+
+.. option:: -b, --bind-to=IP
+
+   Local IP address on which to handle network requests.  This must be
+   addressable and unique among all nodes in the HyperDex cluster.
+
+.. option:: -i, --incoming-port=P
+
+   Port to listen on for incoming connections.  If none is specified, a port is
+   selected at random.  It is best to let HyperDex select a random port.
+
+.. option:: -o, --outgoing-port=P
+
+   Port to use for all outgoing connections.  If none is specified, a port is
+   selected at random.  It is best to let HyperDex select a random port.
 
 
 See also

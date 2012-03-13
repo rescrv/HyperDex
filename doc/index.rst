@@ -1,3 +1,5 @@
+.. _contents:
+
 Welcome to HyperDex's documentation!
 ====================================
 
@@ -5,6 +7,7 @@ Welcome to HyperDex's documentation!
    :maxdepth: 2
 
    api
+   man/hyperdex-daemon
 
 Indices and tables
 ==================
