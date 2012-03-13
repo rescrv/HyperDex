@@ -19,7 +19,6 @@ daemon.o
 depcomp
 .deps/
 doc/_build
-doc/_static
 hyperclient/.deps/
 hyperclient/.dirstamp
 hyperclient/java/hyperclient/
