@@ -11,6 +11,8 @@ Welcome to HyperDex's documentation!
    api/python
    api/c
    man/hyperdex-daemon
+   man/hyperdex-replication-stress-test
+   man/hyperdex-simple-consistency-stress-test
 
 Indices and tables
 ==================
