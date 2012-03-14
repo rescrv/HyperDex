@@ -1,8 +1,20 @@
 Concepts
 ========
 
-HyperDex is a distributed, searchable key-value store. Unlike other key-value
-stores such as BigTable and Cassandra, HyperDex provides a unique search
+HyperDex is a distributed, searchable key-value store. The key features of HyperDex are:
+
+ * **Fast**: HyperDex has lower latency, higher throughput, and lower variance than other key-value stores.
+
+ * **Scalable**: HyperDex scales as more machines are added to the system.
+
+ * **Consistent**: HyperDex guarantees linearizability for key-based operations. Thus, it a GET always returns the latest value inserted into the system. Not just "eventually," but immediately and always.
+
+ * **Fault tolerant**: HyperDex automatically replicates data on multiple machines so that concurrent failures, up to an application-determined limit, will not cause data loss.
+
+ * **Searchable**: HyperDex enables lookups of non-primary data attributes. Such searches are implemented efficiently and contact a small number of servers.
+
+
+Unlike other NoSQL key-value stores, HyperDex provides a unique search
 primitive which enables searches over stored values. By design, HyperDex
 retains the performance of traditional key-value stores while enabling support
 for the search operation.  This is possible through the use of Hyperspace
