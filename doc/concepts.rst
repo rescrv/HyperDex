@@ -13,7 +13,6 @@ HyperDex is a distributed, searchable key-value store. The key features of Hyper
 
  * **Searchable**: HyperDex enables lookups of non-primary data attributes. Such searches are implemented efficiently and contact a small number of servers.
 
-
 Unlike other NoSQL key-value stores, HyperDex provides a unique search
 primitive which enables searches over stored values. By design, HyperDex
 retains the performance of traditional key-value stores while enabling support
@@ -36,7 +35,7 @@ Whereas typical key-value stores map objects to nodes using just the key,
 HyperDex takes into account all attributes of an object when mapping it to
 servers.
 
-As was mentioned in the previous section, HyperDex uses Hyperspace Hashing to
+HyperDex uses Hyperspace Hashing to
 map objects to points in a multidimensional space.  Hyperspace hashing creates
 a multidimensional euclidean space for each table, where a table holds objects
 with the same attribute types, and each attribute type corresponds to a
