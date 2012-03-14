@@ -386,7 +386,6 @@ class HostConnection(object):
         addr, port = self._sock.getpeername()
         self._id = 'Client({0}, {1})'.format(addr, port)
         logging.info('{0} identified by {1}'.format(oldid, self._id))
-        self.send_config(0, '')
 
     def identify_as_instance(self, addr, incoming, outgoing, pid, token):
         if self._identified:
