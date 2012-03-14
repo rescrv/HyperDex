@@ -24,7 +24,7 @@ can therefore be mapped to small, hyperspace regions representing the set of
 feasible locations for the matching objects. This geometric mapping enables
 efficient searches that do not require enumerating across every object in the
 system. The following sections detail how HyperDex places servers and objects
-in the Hyperspace, and addresses classic problems with using high dimensional
+in the Hyperspace, and address classic problems with using high dimensional
 data-structures.
 
 Node and Object Placement
@@ -71,3 +71,68 @@ hypothetical deployment.
 
 Subspaces
 ---------
+
+HyperDex's Euclidean space construction enables geometric reasoning to
+significantly restrict the set of nodes that need to be contacted to find
+matching objects. However, a naive Euclidean space construction can suffer from
+the "curse of dimensionality", as the space exhibits an exponential increase in
+volume with each additional secondary attribute. For objects with many
+attributes, the resulting Euclidean space would be large, and consequently,
+sparse. Nodes would then be responsible for large regions in the hyperspace,
+which would increase the number of nodes whose regions intersect search
+hyperplanes and thus limit the effectiveness of the basic approach. 
+
+.. image:: _static/subspace.png
+    :align: center
+    :width: 200pt
+
+HyperDex addresses the exponential growth of the search space by introducing an
+efficient and lightweight mechanism that partitions the data into smaller,
+limited-size subspaces, where each subspace covers a subset of object
+attributes in a lower dimensional hyperspace.  Thus, by folding the hyperspace
+back into a lower number of dimensions, HyperDex can ensure higher node
+selectivity during searches.  The figure above shows how HyperDex can represent
+a table with ``D`` searchable attributes as a set of subspaces ``s``. 
+
+Data partitioning increases the efficiency of a search by reducing the number of
+nodes which must be contacted to perform a search.  For example, consider a
+table with 9 secondary attributes.  A simple hyperspace over this whole table
+would require 512 zones to provide two regions along each dimension of the
+hyperspace.  A search over 3 attributes would need to contact exactly 64 zones.
+If, instead, the same table were created with 3 subspaces of 3 dimensions each,
+each subspace can be filled with exactly 8 nodes.  A search with no specificity
+in this table will need to contact 8 nodes.  A search which specifies all the
+attributes in one subspace will contact exactly one node.  If a search includes
+attributes from multiple subspaces, it selects the subspace with the most
+restrictive search hyperplane and performs the search in that subspace.  Such a
+partitioned table provides a worst case bound on the number of server nodes
+contacted during a search.
+
+Key Subspace
+------------
+
+HyperDex's basic hyperspace construction scheme, as described so far, does not
+distinguish the key of an object from its secondary attributes.  This leads to
+two significant problems when implementing a key-value store.  First, key
+lookups would be equivalent to single attribute searches. Although HyperDex
+provides efficient search, a single attribute search in a multi-dimensional
+space would likely involve at least two zones.  In this hypothetical scenario,
+key operations would be strictly more costly than than key operations in
+competing key-value stores. Second, because keys may reside on multiple nodes,
+they would not necessarily be unique, which may violate the uniqueness invariant
+applications have come to expect from key-value stores.
+
+The preceding data partitioning technique enables a natural way to fix these
+issues by creating a dedicated key subspace.  The one-dimensional key subspace
+maps each key to exactly one zone in the subspace.  This is because the key
+fully specifies the position of the object in the subspace.  To ensure
+uniqueness, ``put`` operations are applied to the key subspace before the
+remaining subspaces. If an object with the same key already exists, it is
+deleted from all subspaces at the same time the new object is being inserted.
+By introducing a one-dimensional key subspace, HyperDex provides efficient key
+operations and ensures system-wide key uniqueness.
+
+
+
+
+
