@@ -6,6 +6,7 @@ Welcome to HyperDex's documentation!
 .. toctree::
    :maxdepth: 2
 
+   concepts
    tutorial
    tutorial-advanced
    api/python
