@@ -7,6 +7,7 @@ Welcome to HyperDex's documentation!
    :maxdepth: 2
 
    concepts
+   installation
    tutorial
    tutorial-advanced
    api/python
