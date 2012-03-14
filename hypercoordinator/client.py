@@ -40,10 +40,14 @@ import hypercoordinator.parser
 def send_msg(host, port, msg, args=''):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
     s.connect((host, port))
-    fp = s.makefile()
-    fp.write(json.dumps({msg:args}) + '\n')
-    fp.flush()
-    data = fp.readline()
+    s.sendall(json.dumps({msg:args}) + '\n')
+    data = ""
+    while '\n' not in data:
+        d = s.recv(4096)
+        if len(d) == 0:
+            sys.stderr.write("Protocol error: server closed connection unexpectedly after sending {0} \n".format(data))
+            return 1
+        data += d
     try:
         resp = json.loads(data)
     except ValueError as e:
