@@ -100,49 +100,9 @@ class physical
         po6::net::location outbound() { return m_bindto; }
 
     private:
-        struct message
-        {
-            message() : loc(), buf() {}
-            ~message() throw () {}
-
-            po6::net::location loc;
-            std::auto_ptr<e::buffer> buf;
-        };
-
-        struct pending
-        {
-            pending() : fd(), events() {}
-            pending(int f, uint32_t e) : fd(f), events(e) {}
-            ~pending() throw () {}
-
-            int fd;
-            uint32_t events;
-        };
-
-        class channel
-        {
-            public:
-                channel(po6::net::socket* conn);
-                ~channel() throw ();
-
-            public:
-                po6::threads::mutex mtx; // Anyone touching the socket should hold this.
-                po6::net::socket soc; // The socket over which we are communicating.
-                po6::net::location loc; // A cached soc.getpeername.
-                e::lockfree_fifo<std::auto_ptr<e::buffer> > outgoing; // Messages buffered for writing.
-                std::auto_ptr<e::buffer> outnow; // The current message we are writing to the network.
-                e::slice outprogress; // A pointer into what we've written so far.
-                std::auto_ptr<e::buffer> inprogress; // When reading from the network, we buffer partial reads here.
-                size_t inoffset; // How much we've buffered in inbuffer.
-                char inbuffer[sizeof(uint32_t)]; // We buffer reads here when we haven't read enough to set the size of inprogress.
-
-            private:
-                channel(const channel&);
-
-            private:
-                channel& operator = (const channel&);
-        };
-
+        struct message;
+        struct pending;
+        class channel;
         typedef std::auto_ptr<e::hazard_ptrs<channel, 1>::hazard_ptr> hazard_ptr;
 
     private:
