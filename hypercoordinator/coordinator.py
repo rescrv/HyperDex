@@ -42,6 +42,7 @@ import pyparsing
 import hypercoordinator.parser
 from hypercoordinator import hdtypes
 
+import hdjson
 
 PIPE_BUF = getattr(select, 'PIPE_BUF', 512)
 RESTRICTED_SPACES = set([0, 2**32 - 1, 2**32 - 2, 2**32 - 3, 2**32 - 4])
@@ -75,8 +76,9 @@ class Coordinator(object):
     class UnknownSpace(Exception): pass
     class ExhaustedPorts(Exception): pass
     class ExhaustedSpaces(Exception): pass
+    class InvalidState(Exception): pass
 
-    def __init__(self):
+    def __init__(self, state=None):
         self._portcounters = collections.defaultdict(lambda: 1)
         self._instance_counter = 1
         self._instances_by_addr = {}
@@ -91,6 +93,8 @@ class Coordinator(object):
         self._config_data = ''
         self._xfer_counter = 0
         self._xfers_by_id = {}
+        if state:
+            self._loadState(state)
 
     def _compute_port_epoch(self, addr, port):
         ver = self._portcounters[(addr, port)]
@@ -151,6 +155,10 @@ class Coordinator(object):
             raise Coordinator.UnknownSpace()
         spacenum = self._spaces_by_name[space]
         return self._spaces_by_id[spacenum]
+
+    def shutdown(self):
+        # TODO - real shutdown here
+        return self._dumpState()
 
     def _compute_transfer_id(self, spaceid, subspaceid, regionid):
         xferid = None
@@ -320,8 +328,20 @@ class Coordinator(object):
         for instid, inst in self._instances_by_id.iteritems():
             inst.add_config(self._config_counter, self._config_data)
         # XXX notify threads to poll for new configs
-
-
+        
+    def _dumpState(self):
+        state = {}
+        state['spaces'] = hdjson.Encoder().encode(self._spaces_by_id)
+        state['instances'] = hdjson.Encoder().encode(self._instances_by_id)
+        return hdjson.Encoder().encode(state)
+        
+    def _loadState(self, s):
+        state = hdjson.Decoder().decode(s)
+        spaces = hdjson.Decoder().decode(state['spaces'])
+        instances = hdjson.Decoder().decode(state['instances'])
+        # TODO - use the instance and spaces in the coordinator
+                        
+        
 class HostConnection(object):
 
     def __init__(self, coordinator, sock):
@@ -497,6 +517,8 @@ class ControlConnection(object):
                     self.lst_spaces()
                 elif r == 'get-space':
                     self.get_space(rv)
+                elif r == 'shutdown':
+                    self.shutdown()
                 else:
                     raise KillConnection("Control connection got invalid request {0}".format(r))
                     
@@ -540,7 +562,12 @@ class ControlConnection(object):
             return self._fail(str(e))
         except Coordinator.UnknownSpace as e:
             return self._fail("Space does not exist")
-        self.outgoing += json.dumps({self._currreq:str(space)}) + '\n'
+        s = hdjson.Encoder(**hdjson.HumanReadable).encode(space)
+        self.outgoing += json.dumps({self._currreq:s}) + '\n'
+
+    def shutdown(self):
+        state_str = self._coordinator.shutdown()
+        self.outgoing += json.dumps({self._currreq:state_str}) + '\n'
 
     def _fail(self, msg):
         error = 'failing control connection {0}: {1}'.format(self._id, msg)
@@ -550,7 +577,7 @@ class ControlConnection(object):
         
 class CoordinatorServer(object):
 
-    def __init__(self, bindto, control_port, host_port):
+    def __init__(self, bindto, control_port, host_port, state=None):
         self._control_listen = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
         self._control_listen.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._control_listen.bind((bindto, control_port))
@@ -563,7 +590,7 @@ class CoordinatorServer(object):
         self._p.register(self._host_listen)
         self._p.register(self._control_listen)
         self._conns = {}
-        self._coord = Coordinator()
+        self._coord = Coordinator(state)
 
     def run(self):
         instances_to_fds = {}
@@ -652,6 +679,7 @@ def main(argv):
     parser.add_argument('-l', '--logging', default='info',
             choices=['debug', 'info', 'warn', 'error', 'critical',
                      'DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL'])
+    parser.add_argument('-s', '--state-file', default='')
     args = parser.parse_args(argv)
     level = {'debug': logging.DEBUG
             ,'info': logging.INFO
@@ -661,10 +689,15 @@ def main(argv):
             }.get(args.logging.lower(), None)
     try:
         logging.basicConfig(level=level)
-        cs = CoordinatorServer(args.bindto, args.control_port, args.host_port)
+        state = open(args.state_file, 'r').read() if args.state_file else ""
+        cs = CoordinatorServer(args.bindto, args.control_port, args.host_port, state)
         cs.run()
+    except Coordinator.InvalidState as ise:
+        logging.error("Error loading state from file {0}".format(args.state_file))
     except socket.error as se:
         logging.error("%s [%d]" % (se.strerror, se.errno))
+    except IOError as ioe:
+        logging.error("%s [%d]" % (ioe.strerror, ioe.errno))
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv[1:]))

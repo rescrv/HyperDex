@@ -26,6 +26,7 @@
 
 
 import collections
+import hdjson
 
 
 class Dimension(object):
@@ -43,8 +44,7 @@ class Dimension(object):
         return self._datatype
     
     def __repr__(self):
-        return 'Dimension(name={0}, datatype={1})' \
-               .format(self.name, self.datatype)
+        return hdjson.Encoder().encode(self)
 
 class Space(object):
 
@@ -66,14 +66,7 @@ class Space(object):
         return self._subspaces
 
     def __repr__(self):
-        res = 'Space(name={0})'.format(self.name) + '\n'
-        for d in self.dimensions:
-            res += ' '*4 + str(d) + '\n'
-        for s in self.subspaces:
-            for l in str(s).split('\n'):
-                if l:
-                    res += ' '*4 + l + '\n'
-        return res
+        return hdjson.Encoder().encode(self)
 
 class Subspace(object):
 
@@ -95,11 +88,7 @@ class Subspace(object):
         return self._regions
 
     def __repr__(self):
-        res = 'Subspace(dimensions={0}, nosearch={1})'\
-              .format(self.dimensions, self.nosearch) + '\n'
-        for r in self._regions:
-            res += ' '*4 + str(r) + '\n'
-        return res
+        return hdjson.Encoder().encode(self)
 
 class Region(object):
 
@@ -186,8 +175,7 @@ class Region(object):
         return not (self == other)
 
     def __repr__(self):
-        return 'Region(prefix={0}, mask={1}, desired_f={2})' \
-               .format(self.prefix, hex(self.mask), self.desired_f)
+        return hdjson.Encoder().encode(self)
 
 
 InstanceBindings = collections.namedtuple('Instance', 'addr inport inver outport outver')
@@ -255,3 +243,6 @@ class Instance(object):
     def bindings(self):
         return InstanceBindings(self._addr, self._inport, self._inver,
                                 self._outport, self._outver)
+    
+    def __repr__(self):
+        return hdjson.Encoder().encode(self)
