@@ -37,6 +37,7 @@ import hashlib
 import json
 import socket
 import sys
+import os
 
 import pyparsing
 
@@ -80,7 +81,7 @@ class Coordinator(object):
     class InvalidStateData(Exception): pass
     class InvalidState(Exception): pass
     
-    S_STABLE, S_NORMAL, S_GOINGDOWN = 'STABLE', 'NORMAL', 'GOINGDOWN'
+    S_STARTUP, S_NORMAL, S_GOINGDOWN = 'STARTUP', 'NORMAL', 'GOINGDOWN'
 
     def __init__(self, state=None):
         self._portcounters = collections.defaultdict(lambda: 1)
@@ -97,7 +98,7 @@ class Coordinator(object):
         self._config_data = ''
         self._xfer_counter = 0
         self._xfers_by_id = {}
-        self._state = Coordinator.S_STABLE
+        self._state = Coordinator.S_STARTUP
         self._state_id = ''
         if state:
             self._loadState(state)
@@ -374,7 +375,7 @@ class Coordinator(object):
                 self.add_space(sp)
             for id, ie in s['instances'].iteritems():
                 self.register_instance(ie.addr, ie.inport, ie.outport, ie.pid, ie.token)
-            self._state_id = state['state_id']
+            self._state_id = s['state_id']
         except Exception as e:
             logging.error("Error restoring coordinator state: {0}".format(e))
             raise Coordinator.InvalidStateData()
