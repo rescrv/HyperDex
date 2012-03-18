@@ -101,7 +101,13 @@ class Coordinator(object):
         self._state = Coordinator.S_STARTUP
         self._state_id = ''
         if state:
+            # cluster restart
             self._loadState(state)
+            logging.info('Restoring state from shutdown {0}'.format(self._state_id))
+            return
+        # fresh start
+        self._state = Coordinator.S_NORMAL
+        logging.info('Fresh cluster starting.')
 
     def _compute_port_epoch(self, addr, port):
         ver = self._portcounters[(addr, port)]
@@ -117,7 +123,9 @@ class Coordinator(object):
         inver = self._compute_port_epoch(addr, inport)
         outver = self._compute_port_epoch(addr, outport)
         inst = hdtypes.Instance(addr, inport, inver, outport, outver, pid, token)
-        inst.add_config(self._config_counter, self._config_data)
+        # send config only if fully operational
+        if self._state == Coordinator.S_NORMAL:
+            inst.add_config(self._config_counter, self._config_data)
         instid = self._instance_counter
         self._instance_counter += 1
         self._instances_by_id[instid] = inst
@@ -128,7 +136,7 @@ class Coordinator(object):
     def keepalive_instance(self, bindings):
         pass
 
-    def add_space(self, space):
+    def _add_space(self, space):
         if space.name in self._spaces_by_name:
             raise Coordinator.DuplicateSpace()
         spaceid = None
@@ -146,7 +154,14 @@ class Coordinator(object):
         self._initial_layout(space)
         self._regenerate()
 
+    def add_space(self, space):
+        if self._state != Coordinator.S_NORMAL:
+            raise Coordinator.InvalidState()
+        self._add_space(space)
+
     def del_space(self, space):
+        if self._state != Coordinator.S_NORMAL:
+            raise Coordinator.InvalidState()
         if space not in self._spaces_by_name:
             raise Coordinator.UnknownSpace()
         spacenum = self._spaces_by_name[space]
@@ -164,12 +179,16 @@ class Coordinator(object):
         return self._spaces_by_id[spacenum]
 
     def shutdown(self):
+        if self._state != Coordinator.S_NORMAL:
+            raise Coordinator.InvalidState()
         self._state_id = hashlib.md5(os.urandom(16)).hexdigest()
         # TODO:
         # - send shutdown request with state_id to all hosts
         # - wait for all nodes to confirm 
         # - fail the nodes that have not replied on time
         # - proceed to send
+        self._state = Coordinator.S_GOINGDOWN
+        logging.info('Cluster is now shutting down.')
         return self._dumpState()
         
     def get_status(self):
@@ -181,12 +200,16 @@ class Coordinator(object):
         return s
 
     def go_live(self):
+        if self._state != Coordinator.S_STARTUP:
+            raise Coordinator.InvalidState()
         # TODO:
         # - check we have enough nodes joined back, fail with InvalidState() if not yet
         # - send config with state_id to be restored to all hosts
         # - fail the nodes that have not replied on time
-        # - change state to NORMAL
         self._state = Coordinator.S_NORMAL
+        logging.info('Pushing config to all hosts.')
+        self._regenerate()
+        logging.info('Cluster is now fully operational.')
 
     def _compute_transfer_id(self, spaceid, subspaceid, regionid):
         xferid = None
@@ -353,8 +376,10 @@ class Coordinator(object):
                                 outver=inst.outver)
             host_lines.append(host_line)
         self._config_data = ('\n'.join(host_lines) + '\n' + config).strip()
-        for instid, inst in self._instances_by_id.iteritems():
-            inst.add_config(self._config_counter, self._config_data)
+        # send config only if fully operational
+        if self._state == Coordinator.S_NORMAL:
+            for instid, inst in self._instances_by_id.iteritems():
+                inst.add_config(self._config_counter, self._config_data)
         # XXX notify threads to poll for new configs
         
     def _dumpState(self):
@@ -372,7 +397,7 @@ class Coordinator(object):
             raise Coordinator.InvalidStateData()
         try:
             for id, sp in s['spaces'].iteritems():
-                self.add_space(sp)
+                self._add_space(sp)
             for id, ie in s['instances'].iteritems():
                 self.register_instance(ie.addr, ie.inport, ie.outport, ie.pid, ie.token)
             self._state_id = s['state_id']
@@ -570,6 +595,11 @@ class ControlConnection(object):
         sz = self._sock.send(data)
         self.outgoing = self.outgoing[sz:]
 
+    def get_status(self):
+        status = self._coordinator.get_status()
+        s = hdjson.Encoder(**hdjson.HumanReadable).encode(status)
+        self.outgoing += json.dumps({self._currreq:s}) + '\n'
+
     def add_space(self, data):
         try:
             parser = (hypercoordinator.parser.space + pyparsing.stringEnd)
@@ -581,6 +611,8 @@ class ControlConnection(object):
             return self._fail(str(e))
         except Coordinator.DuplicateSpace as e:
             return self._fail("Space already exists")
+        except Coordinator.InvalidState as e:
+            return self._fail("Coordinator state does not allow handling this request")
         self.outgoing += json.dumps({self._currreq:'SUCCESS'}) + '\n'
         logging.info("created new space \"{0}\"".format(space.name))
 
@@ -591,6 +623,8 @@ class ControlConnection(object):
             return self._fail(str(e))
         except Coordinator.UnknownSpace as e:
             return self._fail("Space does not exist")
+        except Coordinator.InvalidState as e:
+            return self._fail("Coordinator state does not allow handling this request")
         self.outgoing += json.dumps({self._currreq:'SUCCESS'}) + '\n'
         logging.info("removed space \"{0}\"".format(space))
 
@@ -609,19 +643,18 @@ class ControlConnection(object):
         self.outgoing += json.dumps({self._currreq:s}) + '\n'
 
     def shutdown(self):
-        state = self._coordinator.shutdown()
-        #TODO - exception handling very likely
+        try:
+            state = self._coordinator.shutdown()
+        except Coordinator.InvalidState as e:
+            return self._fail("Coordinator state does not allow handling this request")
         self.outgoing += json.dumps({self._currreq:state}) + '\n'
         logging.info("shutdown request processed")
 
-    def get_status(self):
-        status = self._coordinator.get_status()
-        s = hdjson.Encoder(**hdjson.HumanReadable).encode(status)
-        self.outgoing += json.dumps({self._currreq:s}) + '\n'
-
     def go_live(self):
-        self._coordinator.go_live()
-        #TODO - exception handling very likely
+        try:
+            self._coordinator.go_live()
+        except Coordinator.InvalidState as e:
+            return self._fail("Coordinator state does not allow handling this request")
         self.outgoing += json.dumps({self._currreq:'SUCCESS'}) + '\n'
         logging.info("go live request processed")
 
