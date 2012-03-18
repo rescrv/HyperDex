@@ -99,6 +99,14 @@ def shutdown(args):
     return send_msg(args.host, args.port, 'shutdown')
 
 	
+def get_status(args):
+    return send_msg(args.host, args.port, 'get-status')
+
+
+def go_live(args):
+    return send_msg(args.host, args.port, 'go-live')
+
+    
 def validate_space(args):
     data = sys.stdin.read()
     try:
@@ -136,6 +144,10 @@ def main(args, name='hyperdex-control'):
     parser_get_space.set_defaults(func=get_space)
     parser_shutdown = subparsers.add_parser('shutdown', help='shutdown help')
     parser_shutdown.set_defaults(func=shutdown)
+    parser_get_status = subparsers.add_parser('get-status', help='get-stataus help')
+    parser_get_status.set_defaults(func=get_status)
+    parser_go_live = subparsers.add_parser('go-live', help='get-stataus help')
+    parser_go_live.set_defaults(func=go_live)
     args = parser.parse_args(args)
     return args.func(args)
 

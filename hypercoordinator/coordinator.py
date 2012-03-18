@@ -33,6 +33,7 @@ import logging
 import random
 import select
 import shlex
+import hashlib
 import json
 import socket
 import sys
@@ -76,7 +77,10 @@ class Coordinator(object):
     class UnknownSpace(Exception): pass
     class ExhaustedPorts(Exception): pass
     class ExhaustedSpaces(Exception): pass
+    class InvalidStateData(Exception): pass
     class InvalidState(Exception): pass
+    
+    S_STABLE, S_NORMAL, S_GOINGDOWN = 'STABLE', 'NORMAL', 'GOINGDOWN'
 
     def __init__(self, state=None):
         self._portcounters = collections.defaultdict(lambda: 1)
@@ -93,6 +97,8 @@ class Coordinator(object):
         self._config_data = ''
         self._xfer_counter = 0
         self._xfers_by_id = {}
+        self._state = Coordinator.S_STABLE
+        self._state_id = ''
         if state:
             self._loadState(state)
 
@@ -157,8 +163,29 @@ class Coordinator(object):
         return self._spaces_by_id[spacenum]
 
     def shutdown(self):
-        # TODO - real shutdown here
+        self._state_id = hashlib.md5(os.urandom(16)).hexdigest()
+        # TODO:
+        # - send shutdown request with state_id to all hosts
+        # - wait for all nodes to confirm 
+        # - fail the nodes that have not replied on time
+        # - proceed to send
         return self._dumpState()
+        
+    def get_status(self):
+        s = {}
+        s['state'] = self._state
+        s['state_id'] = self._state_id
+        s['spaces'] = self._spaces_by_id
+        s['instances'] = self._instances_by_id
+        return s
+
+    def go_live(self):
+        # TODO:
+        # - check we have enough nodes joined back, fail with InvalidState() if not yet
+        # - send config with state_id to be restored to all hosts
+        # - fail the nodes that have not replied on time
+        # - change state to NORMAL
+        self._state = Coordinator.S_NORMAL
 
     def _compute_transfer_id(self, spaceid, subspaceid, regionid):
         xferid = None
@@ -330,18 +357,29 @@ class Coordinator(object):
         # XXX notify threads to poll for new configs
         
     def _dumpState(self):
-        state = {}
-        state['spaces'] = hdjson.Encoder().encode(self._spaces_by_id)
-        state['instances'] = hdjson.Encoder().encode(self._instances_by_id)
-        return hdjson.Encoder().encode(state)
+        s = {}
+        s['state_id'] = self._state_id
+        s['spaces'] = self._spaces_by_id
+        s['instances'] = self._instances_by_id
+        return hdjson.Encoder().encode(s)
         
-    def _loadState(self, s):
-        state = hdjson.Decoder().decode(s)
-        spaces = hdjson.Decoder().decode(state['spaces'])
-        instances = hdjson.Decoder().decode(state['instances'])
-        # TODO - use the instance and spaces in the coordinator
-                        
-        
+    def _loadState(self, state):
+        try:
+            s = hdjson.Decoder().decode(state)
+        except ValueError as e:
+            logging.error("Error decoding state information: {0}".format(state))
+            raise Coordinator.InvalidStateData()
+        try:
+            for id, sp in s['spaces'].iteritems():
+                self.add_space(sp)
+            for id, ie in s['instances'].iteritems():
+                self.register_instance(ie.addr, ie.inport, ie.outport, ie.pid, ie.token)
+            self._state_id = state['state_id']
+        except Exception as e:
+            logging.error("Error restoring coordinator state: {0}".format(e))
+            raise Coordinator.InvalidStateData()
+
+
 class HostConnection(object):
 
     def __init__(self, coordinator, sock):
@@ -519,6 +557,10 @@ class ControlConnection(object):
                     self.get_space(rv)
                 elif r == 'shutdown':
                     self.shutdown()
+                elif r == 'get-status':
+                    self.get_status()
+                elif r == 'go-live':
+                    self.go_live()
                 else:
                     raise KillConnection("Control connection got invalid request {0}".format(r))
                     
@@ -566,8 +608,21 @@ class ControlConnection(object):
         self.outgoing += json.dumps({self._currreq:s}) + '\n'
 
     def shutdown(self):
-        state_str = self._coordinator.shutdown()
-        self.outgoing += json.dumps({self._currreq:state_str}) + '\n'
+        state = self._coordinator.shutdown()
+        #TODO - exception handling very likely
+        self.outgoing += json.dumps({self._currreq:state}) + '\n'
+        logging.info("shutdown request processed")
+
+    def get_status(self):
+        status = self._coordinator.get_status()
+        s = hdjson.Encoder(**hdjson.HumanReadable).encode(status)
+        self.outgoing += json.dumps({self._currreq:s}) + '\n'
+
+    def go_live(self):
+        self._coordinator.go_live()
+        #TODO - exception handling very likely
+        self.outgoing += json.dumps({self._currreq:'SUCCESS'}) + '\n'
+        logging.info("go live request processed")
 
     def _fail(self, msg):
         error = 'failing control connection {0}: {1}'.format(self._id, msg)
@@ -692,7 +747,7 @@ def main(argv):
         state = open(args.state_file, 'r').read() if args.state_file else ""
         cs = CoordinatorServer(args.bindto, args.control_port, args.host_port, state)
         cs.run()
-    except Coordinator.InvalidState as ise:
+    except Coordinator.InvalidStateData as ise:
         logging.error("Error loading state from file {0}".format(args.state_file))
     except socket.error as se:
         logging.error("%s [%d]" % (se.strerror, se.errno))

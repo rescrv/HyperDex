@@ -215,6 +215,14 @@ class Instance(object):
     def outver(self):
         return self._outver
 
+    @property
+    def pid(self):
+        return self._pid
+        
+    @property
+    def token(self):
+        return self._token
+        
     def add_config(self, num, data):
         assert not self._configs or num > self._configs[-1][0]
         self._configs.append((num, data))
