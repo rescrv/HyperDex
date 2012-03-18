@@ -1,5 +1,7 @@
-Basic Tutorial
-==============
+
+
+Basic Operations
+================
 
 A HyperDex cluster consists of three types of components: clients, servers, and
 a coordinator.
@@ -25,13 +27,6 @@ achieve the application's desired goals.
 In this tutorial, we'll discuss how to get a HyperDex cluster up and running. In
 particular, we'll create a simple space, insert objects into it, retrieve those
 objects, and then perform queries over these objects.
-
-Installing HyperDex
--------------------
-
-For this tutorial, we will need a working copy of HyperDex. The easiest way to
-install the system is through the precompiled packages.  This tutorial makes use
-of features available in HyperDex 0.2b8 and later.
 
 Starting the Coordinator
 ------------------------
