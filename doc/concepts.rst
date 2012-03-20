@@ -13,18 +13,45 @@ HyperDex is a distributed, searchable key-value store. The key features of Hyper
 
  * **Searchable**: HyperDex enables lookups of non-primary data attributes. Such searches are implemented efficiently and contact a small number of servers.
 
-Unlike other NoSQL key-value stores, HyperDex provides a unique search
-primitive which enables searches over stored values. By design, HyperDex
-retains the performance of traditional key-value stores while enabling support
-for the search operation.  This is possible through the use of Hyperspace
-Hashing, a new technique that maps objects with multiple attributes into points
-in a multidimensional hyperspace. Search queries on secondary object attributes
-can therefore be mapped to small, hyperspace regions representing the set of
-feasible locations for the matching objects. This geometric mapping enables
-efficient searches that do not require enumerating across every object in the
-system. The following sections detail how HyperDex places servers and objects
-in the Hyperspace, and address classic problems with using high dimensional
-data-structures.
+
+A New Approach to NoSQL
+-----------------------
+
+HyperDex embodies a unique set of features not found in other NoSQL
+systems or RDBMSs. Like many NoSQL systems and unlike traditional
+RDBMSs, it provides very high performance and very high
+scalability. Yet it does not achieve its high performance by
+compromising on consistency. To the contrary, it provides uniquely
+strong consistency guarantees while outperforming other NoSQL
+systems. Further, HyperDex provides well-defined fault-tolerance
+guarantees against both node failures and network partitions. And it
+achieves these performance, consistency, availability and fault 
+tolerance properties while providing a richer API than most other 
+NoSQL stores; specifically, it enables clients to recall objects
+using attributes other than the object key. 
+
+HyperDex derives its strong consistency, fault-tolerance and
+performance properties from two aspects of its design: hyperspace
+hashing, which forms the key organizing principle behind the system,
+and value-dependent chaining, a technique for replicating hyperspace
+hashed objects to achieve fault-tolerance. Since the latter topic is
+entirely invisible to users, we defer its detailed description to the
+accompanying white papers, and instead focus on hyperspace hashing in
+this document.
+
+Hyperspace Hashing is a new technique for determining how to
+distribute objects onto nodes in a cluster. Specifically, it maps
+objects with multiple attributes into points in a multidimensional
+hyperspace, which has in turn been divided into zones assigned to
+servers. Search queries on secondary object attributes can therefore
+be mapped to small, hyperspace regions representing the set of
+feasible locations for the matching objects. This geometric mapping
+enables efficient searches that do not require enumerating across
+every object in the system.
+
+The following sections detail how HyperDex places servers and objects
+in the Hyperspace, and addresses classic problems with using high dimensional
+data-structures. 
 
 Node and Object Placement
 -------------------------

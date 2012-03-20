@@ -24,9 +24,8 @@ range [0, window-size) in order with strictly increasing values for
 ``repetition``.  Multiple reader threads read in reverse order, looking out for
 a case in which the ``repetition`` value of successive keys goes backwards.
 
-It is expected that failures will be manually generated while running this test.
-Failures should be everything from forced process kills to unplugged ethernet
-cables.
+It is expected that failures will be generated externally (e.g. by forced
+process kills or dropped network connections) while running this test.
 
 
 Options
