@@ -1,7 +1,7 @@
 .. _contents:
 
-Welcome to HyperDex's documentation!
-====================================
+Welcome to the HyperDex Reference Manual
+========================================
 
 This documentation corresponds to the current development version of HyperDex.
 
