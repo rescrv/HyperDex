@@ -40,7 +40,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-AUTHORS = u'Robert Escriva, Bernard Wong, and Emin Gun Sirer'
+AUTHORS = u'Robert Escriva, Bernard Wong, and Emin Gün Sirer'
 project = u'HyperDex'
 copyright = u'2012, ' + AUTHORS
 
@@ -215,11 +215,11 @@ latex_logo = '_static/hd-logo.png'
 # (source start file, name, description, authors, manual section).
 man_pages = [
     (u'man/hyperdex-daemon', u'hyperdex-daemon',
-        u'HyperDex Daemon', [u'Robert Escriva', u'Bernard Wong', u'Emin Gun Sirer'], 1),
+        u'HyperDex Daemon', [u'Robert Escriva', u'Bernard Wong', u'Emin Gün Sirer'], 1),
     (u'man/hyperdex-replication-stress-test', u'hyperdex-replication-stress-test',
-        u'HyperDex Replication Stress Test', [u'Robert Escriva', u'Bernard Wong', u'Emin Gun Sirer'], 1),
+        u'HyperDex Replication Stress Test', [u'Robert Escriva', u'Bernard Wong', u'Emin Gün Sirer'], 1),
     (u'man/hyperdex-simple-consistency-stress-test', u'hyperdex-simple-consistency-stress-test',
-        u'HyperDex Simple Consistency Stress Test', [u'Robert Escriva', u'Bernard Wong', u'Emin Gun Sirer'], 1)
+        u'HyperDex Simple Consistency Stress Test', [u'Robert Escriva', u'Bernard Wong', u'Emin Gün Sirer'], 1)
 ]
 
 # If true, show URL addresses after external links.
