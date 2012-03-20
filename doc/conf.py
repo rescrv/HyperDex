@@ -184,7 +184,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'HyperDex.tex', u'HyperDex Documentation',
+  ('index', 'HyperDex.tex', u'HyperDex Reference Manual',
    AUTHORS, 'manual', 1),
 ]
 
@@ -232,7 +232,7 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'HyperDex', u'HyperDex Documentation',
+  ('index', 'HyperDex', u'HyperDex Reference Manual',
    AUTHORS, 'HyperDex', 'One line description of project.',
    'Miscellaneous'),
 ]
@@ -253,7 +253,7 @@ texinfo_documents = [
 epub_title = u'HyperDex'
 epub_author = AUTHORS
 epub_publisher = AUTHORS
-epub_copyright = u'2012, Robert Escriva'
+epub_copyright = u'2012, ' + AUTHORS
 
 # The language of the text. It defaults to the language option
 # or en if the language is not set.
