@@ -81,7 +81,7 @@ is not required to continue with the tutorial).
 
 You now have a functional HyperDex cluster.  It's time to do something with it.
 
-Creating a new Table
+Creating a new Space
 --------------------
 
 Let's imagine that we are building a phone book application.  Such a phonebook
@@ -143,7 +143,7 @@ sense (what does it mean to have 0 replicas? we should just delete the item if
 we do not want it stored), 1 is fine for soft-state, and any value greater than
 1 will enable us to tolerate failures in our server ensemble.
 
-Interacting with the ``phonebook`` Table
+Interacting with the ``phonebook`` Space
 ----------------------------------------
 
 Now that we have our hyperspace defined and ready to go, it's time to insert
