@@ -3,9 +3,13 @@
 Welcome to HyperDex's documentation!
 ====================================
 
+This documentation corresponds to the current development version of HyperDex.
+
 .. toctree::
    :maxdepth: 2
 
+   concepts
+   installation
    tutorial
    tutorial-advanced
    api/python

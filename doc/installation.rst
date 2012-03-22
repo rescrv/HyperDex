@@ -54,5 +54,3 @@ coordinator and daemon processes as follows.
 Once you get to this stage, HyperDex is ready to go. We can set up a
 data store and examine how to place values in it, which is the topic
 of the next chapter.
-
-
