@@ -111,8 +111,10 @@ class physical
     private:
         // Receive an event to handle.
         int receive_event(int*fd, uint32_t* events);
-        // Postpone an event to handle later.
-        void postpone_event(int fd, uint32_t events);
+        // Postpone an event to handle later.  This chan must be protected by a
+        // hazard pointer, and the corresponding mutex must not be hld by the
+        // caller.
+        void postpone_event(channel* chan);
         // Add a new file descriptor to epoll.
         int add_descriptor(int fd);
         // Get a reference to an existing channel
@@ -123,22 +125,39 @@ class physical
         returncode get_channel(const hazard_ptr& hptr,
                                po6::net::socket* to,
                                channel** chan);
-        // worker functions.
+        // Accept a new socket, and return the file descriptor number.
         int work_accept(const hazard_ptr& hptr);
-        // work_close must be called without holding chan->mtx.
-        void work_close(const hazard_ptr& hptr, channel* chan);
-
-        // work_read must be called without holding chan->mtx.
-        // It will return true if *from, *msg, *res should be returned to the
-        // client and false otherwise.
-        bool work_read(const hazard_ptr& hptr, channel* chan,
-                       po6::net::location* from, std::auto_ptr<e::buffer>* msg,
+        // Remove the channel and set the resources to be freed.
+        // This must be called with chan->mtx held, and a hazard pointer must
+        // protect chan until chan->mtx is unlocked.
+        void work_close(const hazard_ptr& hptr,
+                        channel* chan);
+        // Read from the socket, and set it up for further reading if necessary.
+        //
+        // It will return true if "from", "msg", "res" should be returned to the
+        // user, and false otherwise.
+        //
+        // This must be called with chan->mtx held, and a hazard pointer must
+        // protect chan until chan->mtx is unlocked.  It is the caller's
+        // responsibility to check chan->events for postponed events after
+        // releasing the mutex protecting this call.  This may call work_close.
+        bool work_read(const hazard_ptr& hptr,
+                       channel* chan,
+                       po6::net::location* from,
+                       std::auto_ptr<e::buffer>* msg,
                        returncode* res);
-        // work_write must be called while holding chan->mtx.
+        // Write to the socket, and set it up for further writing if necessary.
+        //
         // It will return true if progress was made, and false if there is an
-        // error to report (using *res).  If there is an error to report, the
-        // caller must call work_close.
-        bool work_write(channel* chan);
+        // error to report (using *res).
+        //
+        // This must be called with chan->mtx held, and a hazard pointer must
+        // protect chan until chan->mtx is unlocked.  It is the caller's
+        // responsibility to check chan->events for postponed events after
+        // releasing the mutex protecting this call.  This may call work_close.
+        bool work_write(const hazard_ptr& hptr,
+                        channel* chan,
+                        returncode* res);
 
     private:
         physical& operator = (const physical&);

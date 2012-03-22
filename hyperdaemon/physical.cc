@@ -81,6 +81,7 @@ class hyperdaemon::physical::channel
         std::auto_ptr<e::buffer> inprogress; // When reading from the network, we buffer partial reads here.
         size_t inoffset; // How much we've buffered in inbuffer.
         char inbuffer[sizeof(uint32_t)]; // We buffer reads here when we haven't read enough to set the size of inprogress.
+        uint32_t events;
 
     private:
         channel(const channel&);
@@ -213,38 +214,36 @@ hyperdaemon :: physical :: send(const po6::net::location& to,
     }
 
     *msg << static_cast<uint32_t>(msg->size());
+    chan->outgoing.push(msg);
 
-    if (chan->mtx.trylock())
+    if (!chan->mtx.trylock())
     {
-        e::guard g = e::makeobjguard(chan->mtx, &po6::threads::mutex::unlock);
-        g.use_variable();
+        e::atomic::or_32_nobarrier(&chan->events, EPOLLOUT);
 
-        if (chan->outprogress.empty())
+        if (!chan->mtx.trylock())
         {
-            chan->outnow = msg;
-            chan->outprogress = chan->outnow->as_slice();
-        }
-        else
-        {
-            chan->outgoing.push(msg);
+            return QUEUED;
         }
 
-        if (!work_write(chan))
-        {
-            chan->mtx.unlock();
-            g.dismiss();
-            work_close(hptr, chan);
-            return DISCONNECT;
-        }
-
-        return SUCCESS;
+        uint32_t events = EPOLLOUT;
+        e::atomic::and_32_nobarrier(&chan->events, ~events);
     }
-    else
+
+    // We've acquired the lock.  This means that we must always unlock, and
+    // then postpone events that were generated while we held the lock.  The
+    // destructors run in reverse order, so the channel will be unlocked,
+    // and then postponed.
+    e::guard g1 = e::makeobjguard(*this, &physical::postpone_event, chan);
+    e::guard g2 = e::makeobjguard(chan->mtx, &po6::threads::mutex::unlock);
+    g1.use_variable();
+    g2.use_variable();
+
+    if (!work_write(hptr, chan, &res))
     {
-        chan->outgoing.push(msg);
-        postpone_event(chan->soc.get(), EPOLLOUT);
-        return QUEUED;
+        return res;
     }
+
+    return SUCCESS;
 }
 
 hyperdaemon::physical::returncode
@@ -314,10 +313,46 @@ hyperdaemon :: physical :: recv(po6::net::location* from,
         }
 
         // Ignore file descriptors opened elsewhere.
-        if (!chan && fd != m_listen.get())
+        if (fd == m_listen.get())
         {
+            if ((events & EPOLLIN))
+            {
+                work_accept(hptr);
+            }
+            else
+            {
+                LOG(ERROR) << "received non-EPOLLIN event on listening descriptor";
+            }
+
             continue;
         }
+
+        if (!chan)
+        {
+            LOG(ERROR) << "received event for file descriptor with no channel";
+            continue;
+        }
+
+        if (!chan->mtx.trylock())
+        {
+            e::atomic::or_32_nobarrier(&chan->events, events);
+
+            if (!chan->mtx.trylock())
+            {
+                continue;
+            }
+        }
+
+        e::atomic::and_32_nobarrier(&chan->events, ~events);
+
+        // We've acquired the lock.  This means that we must always unlock, and
+        // then postpone events that were generated while we held the lock.  The
+        // destructors run in reverse order, so the channel will be unlocked,
+        // and then postponed.
+        e::guard g1 = e::makeobjguard(*this, &physical::postpone_event, chan);
+        e::guard g2 = e::makeobjguard(chan->mtx, &po6::threads::mutex::unlock);
+        g1.use_variable();
+        g2.use_variable();
 
         // Close the connection on error or hangup.
         if ((events & EPOLLERR) || (events & EPOLLHUP))
@@ -330,42 +365,23 @@ hyperdaemon :: physical :: recv(po6::net::location* from,
         // Handle read I/O.
         if ((events & EPOLLIN))
         {
-            if (fd == m_listen.get())
-            {
-                int newfd = work_accept(hptr);
-                postpone_event(newfd, EPOLLIN);
-            }
-            else
-            {
-                returncode res;
+            returncode res;
 
-                if (work_read(hptr, chan, from, msg, &res))
-                {
-                    return res;
-                }
+            if (work_read(hptr, chan, from, msg, &res))
+            {
+                return res;
             }
         }
 
         // Handle write I/O.
         if ((events & EPOLLOUT))
         {
-            if (chan->mtx.trylock())
-            {
-                e::guard g = e::makeobjguard(chan->mtx, &po6::threads::mutex::unlock);
-                g.use_variable();
+            returncode res;
 
-                if (!work_write(chan))
-                {
-                    *from = chan->loc;
-                    chan->mtx.unlock();
-                    g.dismiss();
-                    work_close(hptr, chan);
-                    return DISCONNECT;
-                }
-            }
-            else
+            if (!work_write(hptr, chan, &res))
             {
-                postpone_event(fd, EPOLLOUT);
+                *from = chan->loc;
+                return res;
             }
         }
     }
@@ -401,9 +417,19 @@ hyperdaemon :: physical :: receive_event(int* fd, uint32_t* events)
 }
 
 void
-hyperdaemon :: physical :: postpone_event(int fd, uint32_t events)
+hyperdaemon :: physical :: postpone_event(channel* chan)
 {
-    if (fd >= 0)
+    assert(chan);
+    int fd = chan->soc.get();
+
+    if (fd < 0)
+    {
+        return;
+    }
+
+    uint32_t events = e::atomic::exchange_32_nobarrier(&chan->events, 0);
+
+    if (events)
     {
         pending p(fd, events);
         m_postponed.push(p);
@@ -484,17 +510,17 @@ hyperdaemon :: physical :: get_channel(const hazard_ptr& hptr,
 
     if (m_locations.insert(chan->loc, chan->soc.get()))
     {
-        assert(m_channels[chan->soc.get()] == NULL);
-        m_channels[chan->soc.get()] = chan.get();
-        chan.release();
-
         if (add_descriptor((*ret)->soc.get()) < 0)
         {
             PLOG(INFO) << "Could not add descriptor to epoll";
             return LOGICERROR;
         }
 
-        postpone_event((*ret)->soc.get(), EPOLLIN);
+        assert(m_channels[chan->soc.get()] == NULL);
+        m_channels[chan->soc.get()] = chan.get();
+        chan.release();
+        e::atomic::or_32_nobarrier(&(*ret)->events, EPOLLIN);
+        postpone_event(*ret);
         return SUCCESS;
     }
 
@@ -529,25 +555,24 @@ hyperdaemon :: physical :: work_close(const hazard_ptr& hptr, channel* chan)
 {
     if (chan)
     {
+        int fd = chan->soc.get();
+
+        if (fd < 0)
         {
-            po6::threads::mutex::hold hold(&chan->mtx);
-            int fd = chan->soc.get();
+            return;
+        }
 
-            if (fd < 0)
-            {
-                return;
-            }
+        // XXX An extremely unlikely race condition exists if "loc" has already
+        // been disconnected by the kernel, and then reconnected.
+        m_channels[fd] = NULL;
+        m_locations.remove(chan->loc);
 
-            m_channels[fd] = NULL;
-            m_locations.remove(chan->loc);
-
-            try
-            {
-                chan->soc.close();
-            }
-            catch (po6::error& e)
-            {
-            }
+        try
+        {
+            chan->soc.close();
+        }
+        catch (po6::error& e)
+        {
         }
 
         hptr->retire(chan);
@@ -561,13 +586,6 @@ hyperdaemon :: physical :: work_read(const hazard_ptr& hptr,
                                      std::auto_ptr<e::buffer>* msg,
                                      returncode* res)
 {
-    if (!chan->mtx.trylock())
-    {
-        postpone_event(chan->soc.get(), EPOLLIN);
-        return false;
-    }
-
-    e::guard g = e::makeobjguard(chan->mtx, &po6::threads::mutex::unlock);
     assert(chan->inoffset <= 4);
 
     if (chan->soc.get() < 0)
@@ -575,7 +593,7 @@ hyperdaemon :: physical :: work_read(const hazard_ptr& hptr,
         return false;
     }
 
-    std::vector<char> buffer(8192, 0);
+    std::vector<char> buffer(65536, 0);
     ssize_t rem;
 
     // Restore leftovers from last time.
@@ -599,8 +617,6 @@ hyperdaemon :: physical :: work_read(const hazard_ptr& hptr,
 
         *from = chan->loc;
         *res = DISCONNECT;
-        chan->mtx.unlock();
-        g.dismiss();
         work_close(hptr, chan);
         return true;
     }
@@ -612,7 +628,7 @@ hyperdaemon :: physical :: work_read(const hazard_ptr& hptr,
     // If we could read more.
     if (static_cast<size_t>(rem) == buffer.size() - chan->inoffset)
     {
-        postpone_event(chan->soc.get(), EPOLLIN);
+        e::atomic::or_32_nobarrier(&chan->events, EPOLLIN);
     }
 
     // We know rem is >= 0, so add the amount of preexisting data.
@@ -682,7 +698,9 @@ hyperdaemon :: physical :: work_read(const hazard_ptr& hptr,
 }
 
 bool
-hyperdaemon :: physical :: work_write(channel* chan)
+hyperdaemon :: physical :: work_write(const hazard_ptr& hptr,
+                                      channel* chan,
+                                      returncode* res)
 {
     if (chan->soc.get() < 0)
     {
@@ -717,7 +735,7 @@ hyperdaemon :: physical :: work_write(channel* chan)
         if (chan->outgoing.pop(&chan->outnow))
         {
             chan->outprogress = chan->outnow->as_slice();
-            postpone_event(chan->soc.get(), EPOLLOUT);
+            e::atomic::or_32_nobarrier(&chan->events, EPOLLOUT);
         }
     }
 
