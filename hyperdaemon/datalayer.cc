@@ -416,7 +416,7 @@ hyperdaemon :: datalayer :: create_disk(const regionid& ri,
 {
     std::ostringstream ostr;
     ostr << ri;
-    po6::pathname path = po6::join(m_base, po6::pathname(ostr.str()));
+    po6::pathname path(ostr.str());
     disk_ptr d;
 
     try
