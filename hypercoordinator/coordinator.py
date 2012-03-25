@@ -35,6 +35,7 @@ import select
 import shlex
 import hashlib
 import json
+import copy
 import socket
 import sys
 import os
@@ -80,10 +81,11 @@ class Coordinator(object):
     class ExhaustedSpaces(Exception): pass
     class InvalidStateData(Exception): pass
     class InvalidState(Exception): pass
+    class ServiceLevelNotMet(Exception): pass
     
     S_STARTUP, S_NORMAL, S_GOINGDOWN = 'STARTUP', 'NORMAL', 'GOINGDOWN'
 
-    def __init__(self, state=None):
+    def __init__(self, state_data=None):
         self._portcounters = collections.defaultdict(lambda: 1)
         self._instance_counter = 1
         self._instances_by_addr = {}
@@ -100,14 +102,14 @@ class Coordinator(object):
         self._xfers_by_id = {}
         self._state = Coordinator.S_STARTUP
         self._state_id = ''
-        if state:
+        if state_data:
             # cluster restart
-            self._loadState(state)
-            logging.info('Restoring state from shutdown {0}'.format(self._state_id))
+            self._loadState(state_data)
+            logging.info('State from shutdown {0} restored'.format(self._state_id))
             return
         # fresh start
         self._state = Coordinator.S_NORMAL
-        logging.info('Fresh cluster starting.')
+        logging.info('Fresh cluster started')
 
     def _compute_port_epoch(self, addr, port):
         ver = self._portcounters[(addr, port)]
@@ -117,26 +119,30 @@ class Coordinator(object):
         return ver
 
     def register_instance(self, addr, inport, outport, pid, token):
-        instid = self._instances_by_addr.get((addr, inport, outport, pid, token), 0)
+        instid = self._instances_by_addr.get((addr, inport, outport, token), 0)
         if instid != 0:
             return self._instances_by_id[instid].bindings()
         inver = self._compute_port_epoch(addr, inport)
         outver = self._compute_port_epoch(addr, outport)
         inst = hdtypes.Instance(addr, inport, inver, outport, outver, pid, token)
-        # send config only if fully operational
+        # send config only if cluster fully operational
         if self._state == Coordinator.S_NORMAL:
             inst.add_config(self._config_counter, self._config_data)
         instid = self._instance_counter
         self._instance_counter += 1
         self._instances_by_id[instid] = inst
         self._instances_by_bindings[inst.bindings()] = instid
-        self._instances_by_addr[(addr, inport, outport, pid, token)] = instid
+        self._instances_by_addr[(addr, inport, outport, token)] = instid
         return inst.bindings()
 
     def keepalive_instance(self, bindings):
         pass
 
-    def _add_space(self, space):
+    def add_space(self, space):
+        if self._state != Coordinator.S_NORMAL:
+            raise Coordinator.InvalidState()
+        if not self._serviceLevelMet():
+            raise Coordinator.ServiceLevelNotMet()
         if space.name in self._spaces_by_name:
             raise Coordinator.DuplicateSpace()
         spaceid = None
@@ -154,14 +160,11 @@ class Coordinator(object):
         self._initial_layout(space)
         self._regenerate()
 
-    def add_space(self, space):
-        if self._state != Coordinator.S_NORMAL:
-            raise Coordinator.InvalidState()
-        self._add_space(space)
-
     def del_space(self, space):
         if self._state != Coordinator.S_NORMAL:
             raise Coordinator.InvalidState()
+        if not self._serviceLevelMet():
+            raise Coordinator.ServiceLevelNotMet()
         if space not in self._spaces_by_name:
             raise Coordinator.UnknownSpace()
         spacenum = self._spaces_by_name[space]
@@ -192,16 +195,27 @@ class Coordinator(object):
         return self._dumpState()
         
     def get_status(self):
+        # hand picked data for human/client consumption
         s = {}
+        s['instance_counter'] = self._instance_counter
+        s['instances'] = self._instances_by_id
+        s['failed_instances'] = list(self._failed_instances)
+        s['space_counter'] = self._space_counter
+        s['spaces'] = self._spaces_by_id
+        s['config_counter'] = self._config_counter
+        s['config_data'] = self._config_data
+        s['xfer_counter'] = self._xfer_counter
+        s['xfers'] = self._xfers_by_id
         s['state'] = self._state
         s['state_id'] = self._state_id
-        s['spaces'] = self._spaces_by_id
-        s['instances'] = self._instances_by_id
+        s['service_level_met'] = self._serviceLevelMet()
         return s
 
     def go_live(self):
         if self._state != Coordinator.S_STARTUP:
             raise Coordinator.InvalidState()
+        if not self._serviceLevelMet():
+            raise Coordinator.ServiceLevelNotMet()
         # TODO:
         # - check we have enough nodes joined back, fail with InvalidState() if not yet
         # - send config with state_id to be restored to all hosts
@@ -376,34 +390,46 @@ class Coordinator(object):
                                 outver=inst.outver)
             host_lines.append(host_line)
         self._config_data = ('\n'.join(host_lines) + '\n' + config).strip()
-        # send config only if fully operational
+        # send config only if cluster fully operational
         if self._state == Coordinator.S_NORMAL:
             for instid, inst in self._instances_by_id.iteritems():
                 inst.add_config(self._config_counter, self._config_data)
         # XXX notify threads to poll for new configs
         
+    def _serviceLevelMet(self):
+        for space in self._spaces_by_id.values():
+            for subspace in space.subspaces:
+                for region in subspace.regions:
+                    if region.current_f < region.desired_f:
+                        return False
+        # no spaces = service level not met
+        return False
+
     def _dumpState(self):
+        e = hdjson.Encoder()
         s = {}
-        s['state_id'] = self._state_id
-        s['spaces'] = self._spaces_by_id
-        s['instances'] = self._instances_by_id
-        return hdjson.Encoder().encode(s)
+        # some members must be modified for serialization, e.g. dict. with 
+        # non-string keys will not be JSON serialized
+        for attr, value in self.__dict__.iteritems():
+            if attr in [ "_portcounters", "_instances_by_addr", "_instances_by_bindings" ]:
+                s[attr] = e.encodeDict(value)
+            else:
+                s[attr] = value
+        return hdjson.Encoder(**hdjson.HumanReadable).encode(s)
         
     def _loadState(self, state):
+        d = hdjson.Decoder()
         try:
-            s = hdjson.Decoder().decode(state)
+            s = d.decode(state)
         except ValueError as e:
-            logging.error("Error decoding state information: {0}".format(state))
+            logging.error("Error decoding given state information".format(e))
             raise Coordinator.InvalidStateData()
-        try:
-            for id, sp in s['spaces'].iteritems():
-                self._add_space(sp)
-            for id, ie in s['instances'].iteritems():
-                self.register_instance(ie.addr, ie.inport, ie.outport, ie.pid, ie.token)
-            self._state_id = s['state_id']
-        except Exception as e:
-            logging.error("Error restoring coordinator state: {0}".format(e))
-            raise Coordinator.InvalidStateData()
+        # some members must be manually deserialized, e.g. dict with non-str keys
+        for attr, value in s.iteritems():
+            if attr in [ "_portcounters", "_instances_by_addr", "_instances_by_bindings" ]:
+                setattr(self, attr, d.decodeDict(value))
+            else:
+                setattr(self, attr, value)
 
 
 class HostConnection(object):
@@ -613,6 +639,8 @@ class ControlConnection(object):
             return self._fail("Space already exists")
         except Coordinator.InvalidState as e:
             return self._fail("Coordinator state does not allow handling this request")
+        except Coordinator.ServiceLevelNotMet as e:
+            return self._fail("Service level must be met before adding spaces (need more daemons)")
         self.outgoing += json.dumps({self._currreq:'SUCCESS'}) + '\n'
         logging.info("created new space \"{0}\"".format(space.name))
 
@@ -625,6 +653,8 @@ class ControlConnection(object):
             return self._fail("Space does not exist")
         except Coordinator.InvalidState as e:
             return self._fail("Coordinator state does not allow handling this request")
+        except Coordinator.ServiceLevelNotMet as e:
+            return self._fail("Service level must be met before deleting spaces (need more daemons)")
         self.outgoing += json.dumps({self._currreq:'SUCCESS'}) + '\n'
         logging.info("removed space \"{0}\"".format(space))
 
@@ -655,6 +685,8 @@ class ControlConnection(object):
             self._coordinator.go_live()
         except Coordinator.InvalidState as e:
             return self._fail("Coordinator state does not allow handling this request")
+        except Coordinator.ServiceLevelNotMet as e:
+            return self._fail("Service level must be met before go live (need more daemons)")
         self.outgoing += json.dumps({self._currreq:'SUCCESS'}) + '\n'
         logging.info("go live request processed")
 

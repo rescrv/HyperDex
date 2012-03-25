@@ -92,12 +92,12 @@ class Subspace(object):
 
 class Region(object):
 
-    def __init__(self, prefix, mask, desired_f):
+    def __init__(self, prefix, mask, desired_f, replicas = [], transfers = []):
         self._prefix = prefix
         self._mask = mask
         self._desired_f = desired_f
-        self._replicas = []
-        self._transfers = []
+        self._replicas = replicas
+        self._transfers = transfers
 
     @property
     def prefix(self):
@@ -183,7 +183,7 @@ InstanceBindings = collections.namedtuple('Instance', 'addr inport inver outport
 
 class Instance(object):
 
-    def __init__(self, addr, inport, inver, outport, outver, pid, token):
+    def __init__(self, addr, inport, inver, outport, outver, pid, token, configs = list(), last_acked = 0, last_rejected = 0):
         self._addr = addr
         self._inport = inport
         self._inver = inver
@@ -191,9 +191,11 @@ class Instance(object):
         self._outver = outver
         self._pid = pid
         self._token = token
+        # todo
+        #self._configs = configs
         self._configs = []
-        self._last_acked = 0
-        self._last_rejected = 0
+        self._last_acked = last_acked
+        self._last_rejected = last_rejected
 
     @property
     def addr(self):
