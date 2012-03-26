@@ -26,6 +26,7 @@
 
 
 import collections
+import hdjson
 
 
 class Dimension(object):
@@ -41,7 +42,9 @@ class Dimension(object):
     @property
     def datatype(self):
         return self._datatype
-
+    
+    def __repr__(self):
+        return hdjson.Encoder().encode(self)
 
 class Space(object):
 
@@ -62,6 +65,8 @@ class Space(object):
     def subspaces(self):
         return self._subspaces
 
+    def __repr__(self):
+        return hdjson.Encoder().encode(self)
 
 class Subspace(object):
 
@@ -82,15 +87,17 @@ class Subspace(object):
     def regions(self):
         return self._regions
 
+    def __repr__(self):
+        return hdjson.Encoder().encode(self)
 
 class Region(object):
 
-    def __init__(self, prefix, mask, desired_f):
+    def __init__(self, prefix, mask, desired_f, replicas = [], transfers = []):
         self._prefix = prefix
         self._mask = mask
         self._desired_f = desired_f
-        self._replicas = []
-        self._transfers = []
+        self._replicas = replicas
+        self._transfers = transfers
 
     @property
     def prefix(self):
@@ -168,8 +175,7 @@ class Region(object):
         return not (self == other)
 
     def __repr__(self):
-        return 'Region(prefix={0}, mask={1}, desired_f={2})' \
-               .format(self.prefix, hex(self.mask), self.desired_f)
+        return hdjson.Encoder().encode(self)
 
 
 InstanceBindings = collections.namedtuple('Instance', 'addr inport inver outport outver')
@@ -177,7 +183,7 @@ InstanceBindings = collections.namedtuple('Instance', 'addr inport inver outport
 
 class Instance(object):
 
-    def __init__(self, addr, inport, inver, outport, outver, pid, token):
+    def __init__(self, addr, inport, inver, outport, outver, pid, token, configs = None, last_acked = 0, last_rejected = 0):
         self._addr = addr
         self._inport = inport
         self._inver = inver
@@ -185,9 +191,9 @@ class Instance(object):
         self._outver = outver
         self._pid = pid
         self._token = token
-        self._configs = []
-        self._last_acked = 0
-        self._last_rejected = 0
+        self._configs = [] if not configs else configs
+        self._last_acked = last_acked
+        self._last_rejected = last_rejected
 
     @property
     def addr(self):
@@ -209,6 +215,14 @@ class Instance(object):
     def outver(self):
         return self._outver
 
+    @property
+    def pid(self):
+        return self._pid
+        
+    @property
+    def token(self):
+        return self._token
+        
     def add_config(self, num, data):
         assert not self._configs or num > self._configs[-1][0]
         self._configs.append((num, data))
@@ -237,3 +251,6 @@ class Instance(object):
     def bindings(self):
         return InstanceBindings(self._addr, self._inport, self._inver,
                                 self._outport, self._outver)
+    
+    def __repr__(self):
+        return hdjson.Encoder().encode(self)
