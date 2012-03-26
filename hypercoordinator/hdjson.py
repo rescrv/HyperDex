@@ -39,14 +39,16 @@ import sys
 # hdjson.Encoder(**hdjson.HumanReadable).encode(obj)
 HumanReadable = {'sort_keys':True, 'indent':2}
 
+# Key types for dictionary normalization
+KEYS_TUPLE, KEYS_INT = range(2)
+
 class Encoder(json.JSONEncoder):
     
     def default(self, obj):
         # sets are not json serializable, need own handler
         if isinstance(obj, set):
             d = { '__class__':'set', 
-                  '__module__':'built-in',
-                  'set':list(obj)
+                  '__value__':list(obj)
                 }
             return d
         # all new-style classes are serialized into a dictionary
@@ -56,11 +58,16 @@ class Encoder(json.JSONEncoder):
         d.update(obj.__dict__)
         return d
         
-    def encodeDict(self, d):
-        # dict. with non-string keys must be custom encoded manually
-        nd = dict()
+    def normalizeDictKeys(self, d, key_type):
+        # dict. with non-string keys must be normalized to strings
+        nd = {}
         for key, value in d.iteritems():
-            nkey = json.dumps(key)
+            if key_type == KEYS_TUPLE:
+                nkey = json.dumps(key)
+            elif key_type == KEYS_INT: 
+                nkey = str(key)
+            else: 
+                nkey = str(key)
             nd[nkey] =  value
         return nd
 
@@ -74,10 +81,10 @@ class Decoder(json.JSONDecoder):
         if '__class__' not in d:
             return d
         class_name = d.pop('__class__')
+        # some built in types need to be customer serialized too
+        if class_name == 'set':
+            return set(d['__value__'])
         module_name = d.pop('__module__')
-        # built-in sets are custom serialized
-        if class_name == 'set' and module_name == 'built-in':
-            return set(d['set'])
         # __import returns top-level package when module name is in form
         # package.module, need to lookup the actual module from sys
         __import__(module_name)
@@ -94,12 +101,17 @@ class Decoder(json.JSONDecoder):
         inst = class_(**pruned)
         return inst        
 
-    def decodeDict(self, d):
-        # decode dict. with non-string keys that was encoded by Encoder class
-        nd = dict()
+    def denormalizeDictKeys(self, d, key_type):
+        # decode dict. with non-string keys back to original format
+        nd = {}
         for key, value in d.iteritems():
             # not perfect, assumes the complex key was a tuple
-            nkey = tuple(json.loads(key))
+            if key_type == KEYS_TUPLE:
+                nkey = tuple(json.loads(key))
+            elif key_type == KEYS_INT: 
+                nkey = int(key)
+            else: 
+                nkey = str(key)
             nd[nkey] =  value
         return nd
 

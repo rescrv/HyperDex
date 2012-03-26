@@ -100,16 +100,15 @@ class Coordinator(object):
         self._config_data = ''
         self._xfer_counter = 0
         self._xfers_by_id = {}
-        self._state = Coordinator.S_STARTUP
         self._state_id = ''
+        self._state = Coordinator.S_STARTUP
         if state_data:
-            # cluster restart
+            # loading saved coord. state (restart after shutdown)
             self._loadState(state_data)
-            logging.info('State from shutdown {0} restored'.format(self._state_id))
-            return
-        # fresh start
-        self._state = Coordinator.S_NORMAL
-        logging.info('Fresh cluster started')
+            self._state = Coordinator.S_STARTUP
+        else:
+            # fresh start
+            self._state = Coordinator.S_NORMAL
 
     def _compute_port_epoch(self, addr, port):
         ver = self._portcounters[(addr, port)]
@@ -195,7 +194,7 @@ class Coordinator(object):
         return self._dumpState()
         
     def get_status(self):
-        # hand picked data for human/client consumption
+        # hand picked status for human/client consumption
         s = {}
         s['instance_counter'] = self._instance_counter
         s['instances'] = self._instances_by_id
@@ -402,17 +401,17 @@ class Coordinator(object):
                 for region in subspace.regions:
                     if region.current_f < region.desired_f:
                         return False
-        # no spaces = service level not met
-        return False
+        return True
 
     def _dumpState(self):
         e = hdjson.Encoder()
         s = {}
-        # some members must be modified for serialization, e.g. dict. with 
-        # non-string keys will not be JSON serialized
         for attr, value in self.__dict__.iteritems():
+            # dict. with non-string keys must be normalized for JSON encoding
             if attr in [ "_portcounters", "_instances_by_addr", "_instances_by_bindings" ]:
-                s[attr] = e.encodeDict(value)
+                s[attr] = e.normalizeDictKeys(value, hdjson.KEYS_TUPLE)
+            elif attr in [ "_instances_by_id", "_spaces_by_id", "_xfers_by_id" ]:
+                s[attr] = e.normalizeDictKeys(value, hdjson.KEYS_INT)
             else:
                 s[attr] = value
         return hdjson.Encoder(**hdjson.HumanReadable).encode(s)
@@ -424,12 +423,15 @@ class Coordinator(object):
         except ValueError as e:
             logging.error("Error decoding given state information".format(e))
             raise Coordinator.InvalidStateData()
-        # some members must be manually deserialized, e.g. dict with non-str keys
         for attr, value in s.iteritems():
+            # dict. with non-string keys must be manually denormalized from JSON encoding
             if attr in [ "_portcounters", "_instances_by_addr", "_instances_by_bindings" ]:
-                setattr(self, attr, d.decodeDict(value))
+                setattr(self, attr, d.denormalizeDictKeys(value, hdjson.KEYS_TUPLE))
+            elif attr in [ "_instances_by_id", "_spaces_by_id", "_xfers_by_id" ]:
+                setattr(self, attr, d.denormalizeDictKeys(value, hdjson.KEYS_INT))
             else:
                 setattr(self, attr, value)
+        logging.info('State from shutdown {0} restored'.format(self._state_id))
 
 
 class HostConnection(object):
@@ -698,7 +700,7 @@ class ControlConnection(object):
         
 class CoordinatorServer(object):
 
-    def __init__(self, bindto, control_port, host_port, state=None):
+    def __init__(self, bindto, control_port, host_port, state_data=None):
         self._control_listen = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
         self._control_listen.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._control_listen.bind((bindto, control_port))
@@ -711,7 +713,7 @@ class CoordinatorServer(object):
         self._p.register(self._host_listen)
         self._p.register(self._control_listen)
         self._conns = {}
-        self._coord = Coordinator(state)
+        self._coord = Coordinator(state_data)
 
     def run(self):
         instances_to_fds = {}
@@ -810,8 +812,9 @@ def main(argv):
             }.get(args.logging.lower(), None)
     try:
         logging.basicConfig(level=level)
-        state = open(args.state_file, 'r').read() if args.state_file else ""
-        cs = CoordinatorServer(args.bindto, args.control_port, args.host_port, state)
+        state_data = open(args.state_file, 'r').read() if args.state_file else ""
+        cs = CoordinatorServer(args.bindto, args.control_port, args.host_port, state_data)
+        logging.info('Coordinator started')
         cs.run()
     except Coordinator.InvalidStateData as ise:
         logging.error("Error loading state from file {0}".format(args.state_file))

@@ -183,7 +183,7 @@ InstanceBindings = collections.namedtuple('Instance', 'addr inport inver outport
 
 class Instance(object):
 
-    def __init__(self, addr, inport, inver, outport, outver, pid, token, configs = list(), last_acked = 0, last_rejected = 0):
+    def __init__(self, addr, inport, inver, outport, outver, pid, token, configs = None, last_acked = 0, last_rejected = 0):
         self._addr = addr
         self._inport = inport
         self._inver = inver
@@ -191,9 +191,7 @@ class Instance(object):
         self._outver = outver
         self._pid = pid
         self._token = token
-        # todo
-        #self._configs = configs
-        self._configs = []
+        self._configs = [] if not configs else configs
         self._last_acked = last_acked
         self._last_rejected = last_rejected
 
