@@ -106,6 +106,10 @@ def get_status(args):
 def go_live(args):
     return send_msg(args.host, args.port, 'go-live')
 
+
+def backup_state(args):
+    return send_msg(args.host, args.port, 'backup-state')
+
     
 def validate_space(args):
     data = sys.stdin.read()
@@ -148,6 +152,8 @@ def main(args, name='hyperdex-control'):
     parser_get_status.set_defaults(func=get_status)
     parser_go_live = subparsers.add_parser('go-live', help='get-stataus help')
     parser_go_live.set_defaults(func=go_live)
+    parser_go_live = subparsers.add_parser('backup-state', help='backup-state help')
+    parser_go_live.set_defaults(func=backup_state)
     args = parser.parse_args(args)
     return args.func(args)
 
