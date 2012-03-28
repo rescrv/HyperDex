@@ -31,9 +31,9 @@ import collections
 import datetime
 import logging
 import random
+import binascii
 import select
 import shlex
-import hashlib
 import json
 import copy
 import socket
@@ -84,6 +84,8 @@ class Coordinator(object):
     class ServiceLevelNotMet(Exception): pass
     
     S_STARTUP, S_NORMAL, S_GOINGDOWN = 'STARTUP', 'NORMAL', 'GOINGDOWN'
+    SL_DESIRED, SL_DEGRADED, SL_DATALOSS = 'DESIRED', 'DEGRADED', 'DATALOSS'
+    STATE_VERSION = 1
 
     def __init__(self, state_data=None):
         self._portcounters = collections.defaultdict(lambda: 1)
@@ -104,7 +106,7 @@ class Coordinator(object):
         self._state = Coordinator.S_STARTUP
         if state_data:
             # loading saved coord. state (restart after shutdown)
-            self._loadState(state_data)
+            self._load_state(state_data)
             self._state = Coordinator.S_STARTUP
         else:
             # fresh start
@@ -140,7 +142,7 @@ class Coordinator(object):
     def add_space(self, space):
         if self._state != Coordinator.S_NORMAL:
             raise Coordinator.InvalidState()
-        if not self._serviceLevelMet():
+        if not self._service_level_met():
             raise Coordinator.ServiceLevelNotMet()
         if space.name in self._spaces_by_name:
             raise Coordinator.DuplicateSpace()
@@ -162,7 +164,7 @@ class Coordinator(object):
     def del_space(self, space):
         if self._state != Coordinator.S_NORMAL:
             raise Coordinator.InvalidState()
-        if not self._serviceLevelMet():
+        if not self._service_level_met():
             raise Coordinator.ServiceLevelNotMet()
         if space not in self._spaces_by_name:
             raise Coordinator.UnknownSpace()
@@ -183,7 +185,7 @@ class Coordinator(object):
     def shutdown(self):
         if self._state != Coordinator.S_NORMAL:
             raise Coordinator.InvalidState()
-        self._state_id = hashlib.md5(os.urandom(16)).hexdigest()
+        self._state_id =  binascii.hexlify(os.urandom(16))
         # TODO:
         # - send shutdown request with state_id to all hosts
         # - wait for all nodes to confirm 
@@ -191,7 +193,7 @@ class Coordinator(object):
         # - proceed to send
         self._state = Coordinator.S_GOINGDOWN
         logging.info('Cluster is now shutting down.')
-        return self._dumpState()
+        return self._dump_state()
         
     def get_status(self):
         # hand picked status for human/client consumption
@@ -207,14 +209,13 @@ class Coordinator(object):
         s['xfers'] = self._xfers_by_id
         s['state'] = self._state
         s['state_id'] = self._state_id
-        s['service_level_met'] = self._serviceLevelMet()
+        s['service_level'] = self._service_level()
+        s['service_level_met'] = self._service_level_met()
         return s
 
     def go_live(self):
         if self._state != Coordinator.S_STARTUP:
             raise Coordinator.InvalidState()
-        if not self._serviceLevelMet():
-            raise Coordinator.ServiceLevelNotMet()
         # TODO:
         # - check we have enough nodes joined back, fail with InvalidState() if not yet
         # - send config with state_id to be restored to all hosts
@@ -223,6 +224,9 @@ class Coordinator(object):
         logging.info('Pushing config to all hosts.')
         self._regenerate()
         logging.info('Cluster is now fully operational.')
+
+    def backup_state(self):
+        return self._dump_state()
 
     def _compute_transfer_id(self, spaceid, subspaceid, regionid):
         xferid = None
@@ -395,15 +399,23 @@ class Coordinator(object):
                 inst.add_config(self._config_counter, self._config_data)
         # XXX notify threads to poll for new configs
         
-    def _serviceLevelMet(self):
+    def _service_level(self):
+        sl = Coordinator.SL_DESIRED
         for space in self._spaces_by_id.values():
             for subspace in space.subspaces:
                 for region in subspace.regions:
+                    if region.current_f < 0:
+                        # no need to search more, it is bad
+                        return Coordinator.SL_DATALOSS
                     if region.current_f < region.desired_f:
-                        return False
-        return True
+                        # continue search, some region could be worse
+                        sl = Coordinator.SL_DEGRADED
+        return sl
 
-    def _dumpState(self):
+    def _service_level_met(self):
+        return self._service_level() != Coordinator.SL_DATALOSS
+
+    def _dump_state(self):
         e = hdjson.Encoder()
         s = {}
         for attr, value in self.__dict__.iteritems():
@@ -414,14 +426,21 @@ class Coordinator(object):
                 s[attr] = e.normalizeDictKeys(value, hdjson.KEYS_INT)
             else:
                 s[attr] = value
+        s['state_version'] = Coordinator.STATE_VERSION
         return hdjson.Encoder(**hdjson.HumanReadable).encode(s)
         
-    def _loadState(self, state):
+    def _load_state(self, state):
         d = hdjson.Decoder()
         try:
             s = d.decode(state)
         except ValueError as e:
             logging.error("Error decoding given state information".format(e))
+            raise Coordinator.InvalidStateData()
+        if not s.has_key('state_version'):
+            logging.error("Invalid state data used (corrupted or invalid)")
+            raise Coordinator.InvalidStateData()
+        if s['state_version'] != Coordinator.STATE_VERSION:
+            logging.error("Invalid state data used (incompatible version)")
             raise Coordinator.InvalidStateData()
         for attr, value in s.iteritems():
             # dict. with non-string keys must be manually denormalized from JSON encoding
@@ -615,6 +634,8 @@ class ControlConnection(object):
                     self.get_status()
                 elif r == 'go-live':
                     self.go_live()
+                elif r == 'backup-state':
+                    self.backup_state()
                 else:
                     raise KillConnection("Control connection got invalid request {0}".format(r))
                     
