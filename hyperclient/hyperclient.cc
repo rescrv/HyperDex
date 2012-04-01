@@ -41,12 +41,16 @@
 #include "hyperdex/hyperdex/coordinatorlink.h"
 #include "hyperdex/hyperdex/datatype.h"
 #include "hyperdex/hyperdex/instance.h"
+#include "hyperdex/hyperdex/microop.h"
 #include "hyperdex/hyperdex/network_constants.h"
 
 // HyperClient
 #include "hyperclient/hyperclient.h"
 
 #define HDRSIZE (sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint8_t) + 2 * sizeof(uint16_t) + 2 * hyperdex::entityid::SERIALIZEDSIZE + sizeof(uint64_t))
+
+#define MICROOP_INT64_SIZE \
+    (sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t) + sizeof(int64_t) * 2 + sizeof(uint32_t) * 2)
 
 // XXX 2012-01-22 When failures happen, this code is not robust.  It may throw
 // exceptions, and it will fail to properly cleanup state.  For instance, if a
@@ -576,6 +580,7 @@ hyperclient :: pending_get :: handle_response(hyperdex::network_msgtype type,
             return REMOVE;
         case hyperdex::NET_SERVERERROR:
         case hyperdex::NET_CMPFAIL:
+        case hyperdex::NET_BADMICROS:
         default:
             set_status(HYPERCLIENT_SERVERERROR);
             return REMOVE;
@@ -679,6 +684,7 @@ hyperclient :: pending_statusonly :: handle_response(hyperdex::network_msgtype t
             set_status(HYPERCLIENT_NOTFOUND);
             break;
         case hyperdex::NET_BADDIMSPEC:
+        case hyperdex::NET_BADMICROS:
             set_status(HYPERCLIENT_LOGICERROR);
             break;
         case hyperdex::NET_NOTUS:
@@ -986,31 +992,66 @@ hyperclient :: del(const char* space, const char* key, size_t key_sz,
 
 int64_t
 hyperclient :: atomicinc(const char* space, const char* key, size_t key_sz,
-		       const struct hyperclient_attribute* attrs, size_t attrs_sz,
-		       hyperclient_returncode* status)
+                         const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                         hyperclient_returncode* status)
 {
     if (maintain_coord_connection(status) < 0)
     {
         return -1;
     }
 
+    // A new pending op
     e::intrusive_ptr<pending> op;
-    op = new pending_statusonly(hyperdex::REQ_ATOMICINC, hyperdex::RESP_ATOMICINC, status);
+    op = new pending_statusonly(hyperdex::REQ_ATOMIC, hyperdex::RESP_ATOMIC, status);
+    // The size of the buffer we need
     size_t sz = HDRSIZE
               + sizeof(uint32_t)
               + key_sz
-              + pack_attrs_sz(attrs, attrs_sz);
+              + sizeof(uint32_t)
+              + MICROOP_INT64_SIZE * attrs_sz;
+
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     e::buffer::packer p = msg->pack_at(HDRSIZE);
-    p = p << e::slice(key, key_sz);
+    p = p << e::slice(key, key_sz) << static_cast<uint32_t>(attrs_sz);
 
-    int64_t ret = pack_attrs(space, &p, attrs, attrs_sz, status);
+    hyperdex::spaceid si = m_config->space(space);
 
-    if (ret < 0)
+    if (si == hyperdex::spaceid())
     {
-      return ret;
+        *status = HYPERCLIENT_UNKNOWNSPACE;
+        return -1;
     }
 
+    std::vector<hyperdex::attribute> dims = m_config->dimension_names(si);
+    assert(dims.size() > 0);
+
+    for (size_t i = 0; i < attrs_sz; ++i)
+    {
+        if (attrs[i].datatype != HYPERDATATYPE_INT64)
+        {
+            *status = HYPERCLIENT_WRONGTYPE;
+            return -1 - i;
+        }
+
+        int idx = validate_attr(dims, NULL, attrs[i].attr, attrs[i].datatype, status);
+
+        if (idx < 0)
+        {
+            return -1 - i;
+        }
+
+        hyperdex::microop o;
+        o.attr = idx;
+        o.type = hyperdex::DATATYPE_INT64;
+        o.action = hyperdex::OP_INT64_ADD;
+        o.argv1_int64 = 0;
+        memmove(&o.argv1_int64, attrs[i].value, std::min(attrs[i].value_sz, sizeof(int64_t)));
+        o.argv1_int64 = le64toh(o.argv1_int64);
+
+        p = p << o;
+    }
+
+    assert(!p.error());
     return add_keyop(space, key, key_sz, msg, op);
 }
 
@@ -1034,85 +1075,37 @@ hyperclient :: search(const char* space,
         return -1;
     }
 
-    std::vector<hyperdex::attribute> dimension_names = m_config->dimension_names(si);
-    assert(dimension_names.size() > 0);
-    e::bitfield seen(dimension_names.size());
+    std::vector<hyperdex::attribute> dims = m_config->dimension_names(si);
+    assert(dims.size() > 0);
+    e::bitfield dims_seen(dims.size());
 
     // Populate the search object.
-    hyperspacehashing::search s(dimension_names.size());
+    hyperspacehashing::search s(dims.size());
 
     // Check the equality conditions.
     for (size_t i = 0; i < eq_sz; ++i)
     {
-        std::vector<hyperdex::attribute>::const_iterator dim;
-        dim = dimension_names.begin();
+        int idx = validate_attr(dims, &dims_seen, eq[i].attr, eq[i].datatype, status);
 
-        while (dim < dimension_names.end() && dim->name != eq[i].attr)
+        if (idx < 0)
         {
-            ++dim;
-        }
-
-        if (dim == dimension_names.begin())
-        {
-            *status = HYPERCLIENT_DONTUSEKEY;
             return -1 - i;
         }
 
-        if (dim == dimension_names.end())
-        {
-            *status = HYPERCLIENT_UNKNOWNATTR;
-            return -1 - i;
-        }
-
-        uint16_t dimnum = dim - dimension_names.begin();
-
-        if (seen.get(dimnum))
-        {
-            *status = HYPERCLIENT_DUPEATTR;
-            return -1 - i;
-        }
-
-        if (eq[i].datatype != hd_to_hc_type(dim->type))
-        {
-            *status = HYPERCLIENT_WRONGTYPE;
-            return -1 - i;
-        }
-
-        s.equality_set(dimnum, e::slice(eq[i].value, eq[i].value_sz));
+        s.equality_set(idx, e::slice(eq[i].value, eq[i].value_sz));
     }
 
     // Check the range conditions.
     for (size_t i = 0; i < rn_sz; ++i)
     {
-        std::vector<hyperdex::attribute>::const_iterator dim;
-        dim = dimension_names.begin();
+        int idx = validate_attr(dims, &dims_seen, rn[i].attr, HYPERDATATYPE_INT64, status);
 
-        while (dim < dimension_names.end() && dim->name != rn[i].attr)
+        if (idx < 0)
         {
-            ++dim;
-        }
-
-        if (dim == dimension_names.end())
-        {
-            *status = HYPERCLIENT_UNKNOWNATTR;
             return -1 - eq_sz - i;
         }
 
-        uint16_t dimnum = dim - dimension_names.begin();
-
-        if (seen.get(dimnum))
-        {
-            *status = HYPERCLIENT_DUPEATTR;
-            return -1 - eq_sz - i;
-        }
-
-        if (hd_to_hc_type(dim->type) != HYPERDATATYPE_INT64)
-        {
-            *status = HYPERCLIENT_WRONGTYPE;
-            return -1 - eq_sz - i;
-        }
-
-        s.range_set(dimnum, rn[i].lower, rn[i].upper);
+        s.range_set(idx, rn[i].lower, rn[i].upper);
     }
 
     // Get the hosts that match our search terms.
@@ -1440,50 +1433,23 @@ hyperclient :: pack_attrs(const char* space, e::buffer::packer* p,
         return -1;
     }
 
-    std::vector<hyperdex::attribute> dimension_names = m_config->dimension_names(si);
-    assert(dimension_names.size() > 0);
-    e::bitfield seen(dimension_names.size());
+    std::vector<hyperdex::attribute> dims = m_config->dimension_names(si);
+    assert(dims.size() > 0);
+    e::bitfield dims_seen(dims.size());
     uint32_t sz = attrs_sz;
     *p = *p << sz;
 
     for (size_t i = 0; i < attrs_sz; ++i)
     {
-        std::vector<hyperdex::attribute>::const_iterator dim;
-        dim = dimension_names.begin();
+        int idx = validate_attr(dims, &dims_seen, attrs[i].attr, attrs[i].datatype, status);
 
-        while (dim < dimension_names.end() && dim->name != attrs[i].attr)
+        if (idx < 0)
         {
-            ++dim;
-        }
-
-        if (dim == dimension_names.begin())
-        {
-            *status = HYPERCLIENT_DONTUSEKEY;
             return -1 - i;
         }
 
-        if (dim == dimension_names.end())
-        {
-            *status = HYPERCLIENT_UNKNOWNATTR;
-            return -1 - i;
-        }
-
-        uint16_t dimnum = dim - dimension_names.begin();
-
-        if (seen.get(dimnum))
-        {
-            *status = HYPERCLIENT_DUPEATTR;
-            return -1 - i;
-        }
-
-        if (attrs[i].datatype != hd_to_hc_type(dim->type))
-        {
-            *status = HYPERCLIENT_WRONGTYPE;
-            return -1 - i;
-        }
-
-        *p = *p << dimnum << e::slice(attrs[i].value, attrs[i].value_sz);
-        seen.set(dimnum);
+        *p = *p << static_cast<uint16_t>(idx)
+                << e::slice(attrs[i].value, attrs[i].value_sz);
     }
 
     assert(!(*p).error());
@@ -1502,6 +1468,55 @@ hyperclient :: pack_attrs_sz(const struct hyperclient_attribute* attrs,
     }
 
     return sz;
+}
+
+int
+hyperclient :: validate_attr(const std::vector<hyperdex::attribute>& dimension_names,
+                             e::bitfield* dimensions_seen,
+                             const char* attr,
+                             hyperclient_datatype type,
+                             hyperclient_returncode* status)
+{
+    std::vector<hyperdex::attribute>::const_iterator dim;
+    dim = dimension_names.begin();
+
+    while (dim < dimension_names.end() && dim->name != attr)
+    {
+        ++dim;
+    }
+
+    if (dim == dimension_names.begin())
+    {
+        *status = HYPERCLIENT_DONTUSEKEY;
+        return -1;
+    }
+
+    if (dim == dimension_names.end())
+    {
+        *status = HYPERCLIENT_UNKNOWNATTR;
+        return -1;
+    }
+
+    uint16_t dimnum = dim - dimension_names.begin();
+
+    if (dimensions_seen && dimensions_seen->get(dimnum))
+    {
+        *status = HYPERCLIENT_DUPEATTR;
+        return -1;
+    }
+
+    if (type != hd_to_hc_type(dim->type))
+    {
+        *status = HYPERCLIENT_WRONGTYPE;
+        return -1;
+    }
+
+    if (dimensions_seen)
+    {
+        dimensions_seen->set(dimnum);
+    }
+
+    return dimnum;
 }
 
 int64_t

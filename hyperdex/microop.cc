@@ -25,18 +25,42 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_datatype_h_
-#define hyperdex_datatype_h_
+#include <iostream>
 
-namespace hyperdex
+// HyperDex
+#include "hyperdex/hyperdex/microop.h"
+
+hyperdex :: microop :: microop()
+    : attr(-1)
+    , type()
+    , action(OP_FAIL)
+    , argv1_int64(0)
+    , argv2_int64(0)
+    , argv1_string()
+    , argv2_string()
 {
+}
 
-enum datatype
+e::buffer::packer
+hyperdex :: operator << (e::buffer::packer lhs, const microop& rhs)
 {
-    DATATYPE_STRING = 1,
-    DATATYPE_INT64  = 2
-};
+    uint8_t type = static_cast<uint8_t>(rhs.type);
+    uint8_t action = static_cast<uint8_t>(rhs.action);
+    lhs = lhs << rhs.attr << type << action
+              << rhs.argv1_int64 << rhs.argv2_int64
+              << rhs.argv1_string << rhs.argv2_string;
+    return lhs;
+}
 
-} // namespace hyperdex
-
-#endif // hyperdex_datatype_h_
+e::buffer::unpacker
+hyperdex :: operator >> (e::buffer::unpacker lhs, microop& rhs)
+{
+    uint8_t type;
+    uint8_t action;
+    lhs = lhs >> rhs.attr >> type >> action
+              >> rhs.argv1_int64 >> rhs.argv2_int64
+              >> rhs.argv1_string >> rhs.argv2_string;
+    rhs.type = static_cast<hyperdex::datatype>(type);
+    rhs.action = static_cast<hyperdex::microop_type>(action);
+    return lhs;
+}

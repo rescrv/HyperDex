@@ -56,8 +56,13 @@
 #include <e/lockfree_hash_map.h>
 
 // Forward declarations
+namespace e
+{
+class bitfield;
+} // namespace e
 namespace hyperdex
 {
+class attribute;
 class configuration;
 class coordinatorlink;
 class instance;
@@ -338,6 +343,11 @@ class hyperclient
                            hyperclient_returncode* status);
         size_t pack_attrs_sz(const struct hyperclient_attribute* attrs,
                              size_t attrs_sz);
+        int validate_attr(const std::vector<hyperdex::attribute>& dimensions,
+                          e::bitfield* dimensions_seen,
+                          const char* attr,
+                          hyperclient_datatype type,
+                          hyperclient_returncode* status);
         int64_t send(e::intrusive_ptr<channel> chan,
                      e::intrusive_ptr<pending> op,
                      e::buffer* msg);

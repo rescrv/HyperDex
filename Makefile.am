@@ -304,13 +304,15 @@ libhyperdex_noinst_headers = \
 			hyperdex/hyperdex/datatype.h \
 			hyperdex/hyperdex/ids.h \
 			hyperdex/hyperdex/instance.h \
+			hyperdex/hyperdex/microop.h \
 			hyperdex/hyperdex/network_constants.h \
 			hyperdex/hyperdex/packing.h
 
 libhyperdex_la_SOURCES = \
 			hyperdex/configuration.cc \
 			hyperdex/configuration_parser.cc \
-			hyperdex/coordinatorlink.cc
+			hyperdex/coordinatorlink.cc \
+			hyperdex/microop.cc
 libhyperdex_la_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
 			-I$(abs_top_srcdir)/hyperdex \
@@ -326,6 +328,7 @@ libhyperdex_la_CPPFLAGS = \
 libhyperdaemon_noinst_headers = \
 			hyperdaemon/hyperdaemon/daemon.h \
 			hyperdaemon/datalayer.h \
+			hyperdaemon/datatypes.h \
 			hyperdaemon/logical.h \
 			hyperdaemon/network_worker.h \
 			hyperdaemon/ongoing_state_transfers.h \
@@ -343,6 +346,7 @@ libhyperdaemon_noinst_headers = \
 libhyperdaemon_la_SOURCES = \
 			hyperdaemon/daemon.cc \
 			hyperdaemon/datalayer.cc \
+			hyperdaemon/datatypes.cc \
 			hyperdaemon/logical.cc \
 			hyperdaemon/network_worker.cc \
 			hyperdaemon/ongoing_state_transfers.cc \
