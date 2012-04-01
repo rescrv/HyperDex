@@ -100,6 +100,7 @@ hyperdaemon :: physical :: channel :: channel(po6::net::socket* conn)
     , inprogress()
     , inoffset(0)
     , inbuffer()
+    , events(0)
 {
     soc.swap(conn);
 }
