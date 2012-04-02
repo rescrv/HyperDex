@@ -349,7 +349,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
 
     // Allocate the new buffer
     std::tr1::shared_ptr<e::buffer> new_backing(e::buffer::create(new_size));
-    std::vector<e::slice> newvalue(dims.size() - 1);
+    std::vector<e::slice> new_value(dims.size() - 1);
 
     // Copy the old data, mutating it as the micro ops require
     uint8_t* data = new_backing->data();
@@ -362,17 +362,17 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
     // Divide the micro ops up by attribute
     const hyperdex::microop* op = &ops.front();
     const hyperdex::microop* const stop = &ops.front() + ops.size();
-    // prev_attr tracks which dimension index has already been copied using
-    // indexing based upon the total number of dimensions.  prev_attr == 0
-    // refers to the key, and prev_attr == 1 is the first secondary attribute.
-    uint16_t prev_attr = 0;
+    // the next attribute to copy, indexed based on the total number of
+    // dimensions.  It starts at 1, because the key is 0, and 1 is the first
+    // secondary attribute.
+    uint16_t next_to_copy = 1;
 
     while (op < stop)
     {
         const hyperdex::microop* end = op;
 
         // If the ops are out of order, or out of bounds
-        if (op->attr <= prev_attr || op->attr >= dims.size())
+        if (op->attr < next_to_copy || op->attr >= dims.size())
         {
             // Fail it for bad micro ops
             respond_to_client(to, from, nonce, hyperdex::RESP_ATOMIC, hyperdex::NET_BADMICROS);
@@ -396,20 +396,15 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
             ++end;
         }
 
-        // Copy the attributes that are unaffected by micro ops.  We compare
-        // against "op->attr - 1" because we want to have copied everything up
-        // to, but not including op->attr.  After this loop, prev_attr ==
-        // op->attr - 1.
-        while (prev_attr < op->attr - 1)
+        // Copy the attributes that are unaffected by micro ops.
+        while (next_to_copy < op->attr)
         {
-            // yes, I did mean to use prev_attr.  Consider the case where we've
-            // got prev_attr = 1.  It means we've copied the key, and first
-            // secondary attribute.  That means that we want to copy the
-            // secondary attribute which is old_value[1].
-            memmove(data, old_value[prev_attr].data(), old_value[prev_attr].size());
-            newvalue[prev_attr] = e::slice(data, old_value[prev_attr].size());
-            data += old_value[prev_attr].size();
-            ++ prev_attr;
+            assert(next_to_copy > 0);
+            size_t idx = next_to_copy - 1;
+            memmove(data, old_value[idx].data(), old_value[idx].size());
+            new_value[idx] = e::slice(data, old_value[idx].size());
+            data += old_value[idx].size();
+            ++next_to_copy;
         }
 
         // - "op" now points to the first unapplied micro op
@@ -419,7 +414,6 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
         //   types
         // - we've copied all attributes so far, even those not mentioned by
         //   micro ops.
-        // * thus far means "<= prev_attr" according to a key=0 index.
 
         hyperdex::network_returncode error;
         uint8_t* newdata = apply_microops(dims[op->attr].type,
@@ -437,20 +431,31 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
         }
 
         // see message above "yes I did"
-        newvalue[prev_attr] = e::slice(data, newdata - data);
+        new_value[next_to_copy - 1] = e::slice(data, newdata - data);
         data = newdata;
 
         // Why ++ and assert rather than straight assign?  This will help us to
         // catch any problems in the interaction between micro ops and
         // attributes which we just copy.
-        ++prev_attr;
-        assert(prev_attr == op->attr);
+        assert(next_to_copy == op->attr);
+        ++next_to_copy;
 
         op = end;
     }
 
+    // Copy the attributes that are unaffected by micro ops.
+    while (next_to_copy < dims.size())
+    {
+        assert(next_to_copy > 0);
+        size_t idx = next_to_copy - 1;
+        memmove(data, old_value[idx].data(), old_value[idx].size());
+        new_value[idx] = e::slice(data, old_value[idx].size());
+        data += old_value[idx].size();
+        ++next_to_copy;
+    }
+
     e::intrusive_ptr<pending> new_pend;
-    new_pend = new pending(true, new_backing, key, newvalue, co);
+    new_pend = new pending(true, new_backing, key, new_value, co);
     new_pend->retcode = hyperdex::RESP_ATOMIC;
     new_pend->ref = ref;
     new_pend->key = new_key;
