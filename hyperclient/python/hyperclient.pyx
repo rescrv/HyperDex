@@ -96,7 +96,14 @@ cdef extern from "../hyperclient.h":
     int64_t hyperclient_put(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_condput(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* condattrs, size_t condattrs_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_del(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_returncode* status)
-    int64_t hyperclient_atomicinc(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_atomic_add(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_atomic_sub(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_atomic_mul(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_atomic_div(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_atomic_mod(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_atomic_and(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_atomic_or(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_atomic_xor(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_search(hyperclient* client, char* space, hyperclient_attribute* eq, size_t eq_sz, hyperclient_range_query* rn, size_t rn_sz, hyperclient_returncode* status, hyperclient_attribute** attrs, size_t* attrs_sz)
     int64_t hyperclient_loop(hyperclient* client, int timeout, hyperclient_returncode* status)
     void hyperclient_destroy_attrs(hyperclient_attribute* attrs, size_t attrs_sz)
@@ -309,9 +316,9 @@ cdef class DeferredDelete(Deferred):
         return self._status == HYPERCLIENT_SUCCESS
 
 
-cdef class DeferredAtomicIncDec(Deferred):
+cdef class DeferredAtomicNum(Deferred):
 
-    def __cinit__(self,  Client client, int isinc, bytes space, bytes key, dict value):
+    def __cinit__(self,  Client client, bytes space, bytes key, dict value, bytes op):
         cdef char* space_cstr = space
         cdef char* key_cstr = key
         cdef hyperclient_attribute* attrs = NULL
@@ -322,8 +329,6 @@ cdef class DeferredAtomicIncDec(Deferred):
             for i, a in enumerate(value.iteritems()):
                 a, v = a
                 if isinstance(v, int):
-                    if not isinc:
-                        v = -v
                     v = struct.pack('<q', v)
                     t = HYPERDATATYPE_INT64
                 else:
@@ -333,10 +338,32 @@ cdef class DeferredAtomicIncDec(Deferred):
                 attrs[i].value = v
                 attrs[i].value_sz = len(v)
                 attrs[i].datatype = t
-            self._reqid = hyperclient_atomicinc(client._client, space_cstr,
-                                                key_cstr, len(key),
-                                                attrs, len(value),
-                                                &self._status)
+            if op == 'add':
+                self._reqid = hyperclient_atomic_add(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'sub':
+                self._reqid = hyperclient_atomic_sub(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'mul':
+                self._reqid = hyperclient_atomic_mul(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'div':
+                self._reqid = hyperclient_atomic_div(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'mod':
+                self._reqid = hyperclient_atomic_mod(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'and':
+                self._reqid = hyperclient_atomic_and(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'or':
+                self._reqid = hyperclient_atomic_or(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'xor':
+                self._reqid = hyperclient_atomic_xor(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            else:
+                raise AttributeError("op == {0} is not valid".format(op))
             if self._reqid < 0:
                 if attrs:
                     if attrs[-1 - self._reqid].attr:
@@ -476,12 +503,36 @@ cdef class Client:
         async = self.async_delete(space, key)
         return async.wait()
 
-    def atomicinc(self, bytes space, bytes key, dict value):
-        async = self.async_atomicinc(space, key, value)
+    def atomic_add(self, bytes space, bytes key, dict value):
+        async = self.async_atomic_add(space, key, value)
         return async.wait()
 
-    def atomicdec(self, bytes space, bytes key, dict value):
-        async = self.async_atomicdec(space, key, value)
+    def atomic_sub(self, bytes space, bytes key, dict value):
+        async = self.async_atomic_sub(space, key, value)
+        return async.wait()
+
+    def atomic_mul(self, bytes space, bytes key, dict value):
+        async = self.async_atomic_mul(space, key, value)
+        return async.wait()
+
+    def atomic_div(self, bytes space, bytes key, dict value):
+        async = self.async_atomic_div(space, key, value)
+        return async.wait()
+
+    def atomic_mod(self, bytes space, bytes key, dict value):
+        async = self.async_atomic_mod(space, key, value)
+        return async.wait()
+
+    def atomic_and(self, bytes space, bytes key, dict value):
+        async = self.async_atomic_and(space, key, value)
+        return async.wait()
+
+    def atomic_or(self, bytes space, bytes key, dict value):
+        async = self.async_atomic_or(space, key, value)
+        return async.wait()
+
+    def atomic_xor(self, bytes space, bytes key, dict value):
+        async = self.async_atomic_xor(space, key, value)
         return async.wait()
 
     def search(self, bytes space, dict predicate):
@@ -499,11 +550,29 @@ cdef class Client:
     def async_delete(self, bytes space, bytes key):
         return DeferredDelete(self, space, key)
 
-    def async_atomicinc(self, bytes space, bytes key, dict value):
-        return DeferredAtomicIncDec(self, 1, space, key, value)
+    def async_atomic_add(self, bytes space, bytes key, dict value):
+        return DeferredAtomicNum(self, space, key, value, 'add')
 
-    def async_atomicdec(self, bytes space, bytes key, dict value):
-        return DeferredAtomicIncDec(self, 0, space, key, value)
+    def async_atomic_sub(self, bytes space, bytes key, dict value):
+        return DeferredAtomicNum(self, space, key, value, 'sub')
+
+    def async_atomic_mul(self, bytes space, bytes key, dict value):
+        return DeferredAtomicNum(self, space, key, value, 'mul')
+
+    def async_atomic_div(self, bytes space, bytes key, dict value):
+        return DeferredAtomicNum(self, space, key, value, 'div')
+
+    def async_atomic_mod(self, bytes space, bytes key, dict value):
+        return DeferredAtomicNum(self, space, key, value, 'mod')
+
+    def async_atomic_and(self, bytes space, bytes key, dict value):
+        return DeferredAtomicNum(self, space, key, value, 'and')
+
+    def async_atomic_or(self, bytes space, bytes key, dict value):
+        return DeferredAtomicNum(self, space, key, value, 'or')
+
+    def async_atomic_xor(self, bytes space, bytes key, dict value):
+        return DeferredAtomicNum(self, space, key, value, 'xor')
 
     def loop(self):
         cdef hyperclient_returncode rc

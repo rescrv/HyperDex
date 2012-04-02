@@ -194,7 +194,7 @@ hyperclient_put(struct hyperclient* client, const char* space, const char* key,
  *
  * All attribute values not specified by the conditional put are left as-is.
  *
- * - space, key, condattrs, attrs must point to memory that exists for the 
+ * - space, key, condattrs, attrs must point to memory that exists for the
  *   duration of this call
  * - client, status must point to memory that exists until the request is
  *   considered complete
@@ -215,27 +215,183 @@ int64_t
 hyperclient_del(struct hyperclient* client, const char* space, const char* key,
                 size_t key_sz, enum hyperclient_returncode* status);
 
-/* Atomically increment the fields specified by the values given
+/* Atomically add the values given to the existing attribute values
  *
  * If this returns a value < 0 and *status == HYPERCLIENT_UNKNOWNATTR, then
  * abs(returned value) - 1 == the attribute which caused the error in attrs.
  *
  * If no object exists under this key, the operation will fail.
- * 
+ *
  * The specified attributes need to be numeric fields.
  *
  * All attribute values not specified by the operation are left as-is.
  *
- * - space, key, attrs must point to memory that exists for the 
+ * - space, key, attrs must point to memory that exists for the
  *   duration of this call
  * - client, status must point to memory that exists until the request is
  *   considered complete
  */
 int64_t
-hyperclient_atomicinc(struct hyperclient* client, const char* space, const char* key,
-		      size_t key_sz, const struct hyperclient_attribute* attrs,
-		      size_t attrs_sz, enum hyperclient_returncode* status);
+hyperclient_atomic_add(struct hyperclient* client, const char* space,
+                       const char* key, size_t key_sz,
+                       const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                       enum hyperclient_returncode* status);
 
+/* Atomically subtract the values given from the existing attribute values
+ *
+ * If this returns a value < 0 and *status == HYPERCLIENT_UNKNOWNATTR, then
+ * abs(returned value) - 1 == the attribute which caused the error in attrs.
+ *
+ * If no object exists under this key, the operation will fail.
+ *
+ * The specified attributes need to be numeric fields.
+ *
+ * All attribute values not specified by the operation are left as-is.
+ *
+ * - space, key, attrs must point to memory that exists for the
+ *   duration of this call
+ * - client, status must point to memory that exists until the request is
+ *   considered complete
+ */
+int64_t
+hyperclient_atomic_sub(struct hyperclient* client, const char* space,
+                       const char* key, size_t key_sz,
+                       const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                       enum hyperclient_returncode* status);
+
+/* Atomically multiply the existing attribute values by the values given
+ *
+ * If this returns a value < 0 and *status == HYPERCLIENT_UNKNOWNATTR, then
+ * abs(returned value) - 1 == the attribute which caused the error in attrs.
+ *
+ * If no object exists under this key, the operation will fail.
+ *
+ * The specified attributes need to be numeric fields.
+ *
+ * All attribute values not specified by the operation are left as-is.
+ *
+ * - space, key, attrs must point to memory that exists for the
+ *   duration of this call
+ * - client, status must point to memory that exists until the request is
+ *   considered complete
+ */
+int64_t
+hyperclient_atomic_mul(struct hyperclient* client, const char* space,
+                       const char* key, size_t key_sz,
+                       const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                       enum hyperclient_returncode* status);
+
+/* Atomically divide the existing attribute values by the values given
+ *
+ * If this returns a value < 0 and *status == HYPERCLIENT_UNKNOWNATTR, then
+ * abs(returned value) - 1 == the attribute which caused the error in attrs.
+ *
+ * If no object exists under this key, the operation will fail.
+ *
+ * The specified attributes need to be numeric fields.
+ *
+ * All attribute values not specified by the operation are left as-is.
+ *
+ * - space, key, attrs must point to memory that exists for the
+ *   duration of this call
+ * - client, status must point to memory that exists until the request is
+ *   considered complete
+ */
+int64_t
+hyperclient_atomic_div(struct hyperclient* client, const char* space,
+                       const char* key, size_t key_sz,
+                       const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                       enum hyperclient_returncode* status);
+
+/* Atomically take the modulus of the existing attribute values by the values given
+ *
+ * This uses C-style modulus for negative numbers.
+ *
+ * If this returns a value < 0 and *status == HYPERCLIENT_UNKNOWNATTR, then
+ * abs(returned value) - 1 == the attribute which caused the error in attrs.
+ *
+ * If no object exists under this key, the operation will fail.
+ *
+ * The specified attributes need to be numeric fields.
+ *
+ * All attribute values not specified by the operation are left as-is.
+ *
+ * - space, key, attrs must point to memory that exists for the
+ *   duration of this call
+ * - client, status must point to memory that exists until the request is
+ *   considered complete
+ */
+int64_t
+hyperclient_atomic_mod(struct hyperclient* client, const char* space,
+                       const char* key, size_t key_sz,
+                       const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                       enum hyperclient_returncode* status);
+
+/* Atomically and the existing attribute values with the values given
+ *
+ * If this returns a value < 0 and *status == HYPERCLIENT_UNKNOWNATTR, then
+ * abs(returned value) - 1 == the attribute which caused the error in attrs.
+ *
+ * If no object exists under this key, the operation will fail.
+ *
+ * The specified attributes need to be numeric fields.
+ *
+ * All attribute values not specified by the operation are left as-is.
+ *
+ * - space, key, attrs must point to memory that exists for the
+ *   duration of this call
+ * - client, status must point to memory that exists until the request is
+ *   considered complete
+ */
+int64_t
+hyperclient_atomic_and(struct hyperclient* client, const char* space,
+                       const char* key, size_t key_sz,
+                       const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                       enum hyperclient_returncode* status);
+
+/* Atomically or the existing attribute values with the values given
+ *
+ * If this returns a value < 0 and *status == HYPERCLIENT_UNKNOWNATTR, then
+ * abs(returned value) - 1 == the attribute which caused the error in attrs.
+ *
+ * If no object exists under this key, the operation will fail.
+ *
+ * The specified attributes need to be numeric fields.
+ *
+ * All attribute values not specified by the operation are left as-is.
+ *
+ * - space, key, attrs must point to memory that exists for the
+ *   duration of this call
+ * - client, status must point to memory that exists until the request is
+ *   considered complete
+ */
+int64_t
+hyperclient_atomic_or(struct hyperclient* client, const char* space,
+                      const char* key, size_t key_sz,
+                      const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                      enum hyperclient_returncode* status);
+
+/* Atomically xor the existing attribute values with the values given
+ *
+ * If this returns a value < 0 and *status == HYPERCLIENT_UNKNOWNATTR, then
+ * abs(returned value) - 1 == the attribute which caused the error in attrs.
+ *
+ * If no object exists under this key, the operation will fail.
+ *
+ * The specified attributes need to be numeric fields.
+ *
+ * All attribute values not specified by the operation are left as-is.
+ *
+ * - space, key, attrs must point to memory that exists for the
+ *   duration of this call
+ * - client, status must point to memory that exists until the request is
+ *   considered complete
+ */
+int64_t
+hyperclient_atomic_xor(struct hyperclient* client, const char* space,
+                       const char* key, size_t key_sz,
+                       const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                       enum hyperclient_returncode* status);
 
 /* Perform a search for objects which match "eq" and "rn".
  *
@@ -309,9 +465,30 @@ class hyperclient
 			hyperclient_returncode* status);
         int64_t del(const char* space, const char* key, size_t key_sz,
                     hyperclient_returncode* status);
-        int64_t atomicinc(const char* space, const char* key, size_t key_sz,
-			  const struct hyperclient_attribute* attrs, size_t attrs_sz,
-			  hyperclient_returncode* status);
+        int64_t atomic_add(const char* space, const char* key, size_t key_sz,
+                           const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                           enum hyperclient_returncode* status);
+        int64_t atomic_sub(const char* space, const char* key, size_t key_sz,
+                           const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                           enum hyperclient_returncode* status);
+        int64_t atomic_mul(const char* space, const char* key, size_t key_sz,
+                           const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                           enum hyperclient_returncode* status);
+        int64_t atomic_div(const char* space, const char* key, size_t key_sz,
+                           const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                           enum hyperclient_returncode* status);
+        int64_t atomic_mod(const char* space, const char* key, size_t key_sz,
+                           const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                           enum hyperclient_returncode* status);
+        int64_t atomic_and(const char* space, const char* key, size_t key_sz,
+                           const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                           enum hyperclient_returncode* status);
+        int64_t atomic_or(const char* space, const char* key, size_t key_sz,
+                          const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                          enum hyperclient_returncode* status);
+        int64_t atomic_xor(const char* space, const char* key, size_t key_sz,
+                           const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                           enum hyperclient_returncode* status);
         int64_t search(const char* space,
                        const struct hyperclient_attribute* eq, size_t eq_sz,
                        const struct hyperclient_range_query* rn, size_t rn_sz,
@@ -331,6 +508,10 @@ class hyperclient
         typedef std::map<std::pair<int, uint64_t>, e::intrusive_ptr<pending> > requests_map_t;
 
     private:
+        int64_t atomic_numops(int action,
+                              const char* space, const char* key, size_t key_sz,
+                              const struct hyperclient_attribute* attrs,
+                              size_t attrs_sz, hyperclient_returncode* status);
         int64_t add_keyop(const char* space,
                           const char* key,
                           size_t key_sz,

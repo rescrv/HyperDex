@@ -177,27 +177,37 @@ hyperclient_del(struct hyperclient* client, const char* space, const char* key,
     }
 }
 
-int64_t
-hyperclient_atomicinc(struct hyperclient* client, const char* space, const char* key,
-		      size_t key_sz, const struct hyperclient_attribute* attrs,
-		      size_t attrs_sz, hyperclient_returncode* status)
-{
-    try
-    {
-        return client->atomicinc(space, key, key_sz, attrs, attrs_sz, status);
+#define HYPERCLIENT_CDEF_ATOMIC_NUM(OPNAME) \
+    int64_t \
+    hyperclient_atomic_ ## OPNAME(struct hyperclient* client, const char* space, const char* key, \
+                  size_t key_sz, const struct hyperclient_attribute* attrs, \
+                  size_t attrs_sz, hyperclient_returncode* status) \
+    { \
+        try \
+        { \
+            return client->atomic_ ## OPNAME(space, key, key_sz, attrs, attrs_sz, status); \
+        } \
+        catch (po6::error& e) \
+        { \
+            errno = e; \
+            *status = HYPERCLIENT_SEEERRNO; \
+            return -1; \
+        } \
+        catch (...) \
+        { \
+            *status = HYPERCLIENT_EXCEPTION; \
+            return -1; \
+        } \
     }
-    catch (po6::error& e)
-    {
-        errno = e;
-        *status = HYPERCLIENT_SEEERRNO;
-        return -1;
-    }
-    catch (...)
-    {
-        *status = HYPERCLIENT_EXCEPTION;
-        return -1;
-    }
-}
+
+HYPERCLIENT_CDEF_ATOMIC_NUM(add)
+HYPERCLIENT_CDEF_ATOMIC_NUM(sub)
+HYPERCLIENT_CDEF_ATOMIC_NUM(mul)
+HYPERCLIENT_CDEF_ATOMIC_NUM(div)
+HYPERCLIENT_CDEF_ATOMIC_NUM(mod)
+HYPERCLIENT_CDEF_ATOMIC_NUM(and)
+HYPERCLIENT_CDEF_ATOMIC_NUM(or)
+HYPERCLIENT_CDEF_ATOMIC_NUM(xor)
 
 int64_t
 hyperclient_search(struct hyperclient* client, const char* space,
@@ -991,9 +1001,10 @@ hyperclient :: del(const char* space, const char* key, size_t key_sz,
 }
 
 int64_t
-hyperclient :: atomicinc(const char* space, const char* key, size_t key_sz,
-                         const struct hyperclient_attribute* attrs, size_t attrs_sz,
-                         hyperclient_returncode* status)
+hyperclient :: atomic_numops(int action, const char* space,
+                             const char* key, size_t key_sz,
+                             const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                             hyperclient_returncode* status)
 {
     if (maintain_coord_connection(status) < 0)
     {
@@ -1043,7 +1054,7 @@ hyperclient :: atomicinc(const char* space, const char* key, size_t key_sz,
         hyperdex::microop o;
         o.attr = idx;
         o.type = hyperdex::DATATYPE_INT64;
-        o.action = hyperdex::OP_INT64_ADD;
+        o.action = static_cast<hyperdex::microop_type>(action);
         o.argv1_int64 = 0;
         memmove(&o.argv1_int64, attrs[i].value, std::min(attrs[i].value_sz, sizeof(int64_t)));
         o.argv1_int64 = le64toh(o.argv1_int64);
@@ -1054,6 +1065,25 @@ hyperclient :: atomicinc(const char* space, const char* key, size_t key_sz,
     assert(!p.error());
     return add_keyop(space, key, key_sz, msg, op);
 }
+
+#define HYPERCLIENT_CPPDEF_ATOMIC_NUM(OPNAME, OPNAMECAPS) \
+    int64_t \
+    hyperclient :: atomic_ ## OPNAME(const char* space, const char* key, size_t key_sz, \
+                              const struct hyperclient_attribute* attrs, size_t attrs_sz, \
+                              enum hyperclient_returncode* status) \
+    { \
+        return atomic_numops(hyperdex::OP_INT64_ ## OPNAMECAPS, space, \
+                             key, key_sz, attrs, attrs_sz, status); \
+    }
+
+HYPERCLIENT_CPPDEF_ATOMIC_NUM(add, ADD)
+HYPERCLIENT_CPPDEF_ATOMIC_NUM(sub, SUB)
+HYPERCLIENT_CPPDEF_ATOMIC_NUM(mul, MUL)
+HYPERCLIENT_CPPDEF_ATOMIC_NUM(div, DIV)
+HYPERCLIENT_CPPDEF_ATOMIC_NUM(mod, MOD)
+HYPERCLIENT_CPPDEF_ATOMIC_NUM(and, AND)
+HYPERCLIENT_CPPDEF_ATOMIC_NUM(or, OR)
+HYPERCLIENT_CPPDEF_ATOMIC_NUM(xor, XOR)
 
 int64_t
 hyperclient :: search(const char* space,
