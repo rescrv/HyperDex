@@ -39,6 +39,7 @@ hyperclient/python/hyperclient.la
 hyperclient/python/hyperclient_python_hyperclient_la-hyperclient.lo
 hyperclient/python/hyperclient_python_hyperclient_la-hyperclient.o
 hypercoordinator/coordinator.pyc
+hypercoordinator/hdjson.pyc
 hypercoordinator/hdtypes.pyc
 hypercoordinator/__init__.pyc
 hypercoordinator/parser.pyc
