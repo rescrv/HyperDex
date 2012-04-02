@@ -104,6 +104,8 @@ cdef extern from "../hyperclient.h":
     int64_t hyperclient_atomic_and(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_atomic_or(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_atomic_xor(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_string_prepend(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_string_append(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_search(hyperclient* client, char* space, hyperclient_attribute* eq, size_t eq_sz, hyperclient_range_query* rn, size_t rn_sz, hyperclient_returncode* status, hyperclient_attribute** attrs, size_t* attrs_sz)
     int64_t hyperclient_loop(hyperclient* client, int timeout, hyperclient_returncode* status)
     void hyperclient_destroy_attrs(hyperclient_attribute* attrs, size_t attrs_sz)
@@ -237,18 +239,51 @@ cdef class DeferredGet(Deferred):
         return _attrs_to_dict(self._attrs, self._attrs_sz)
 
 
-cdef class DeferredPut(Deferred):
+cdef class DeferredFromAttrs(Deferred):
 
-    def __cinit__(self, Client client, bytes space, bytes key, dict value):
+    def __cinit__(self, Client client, bytes space, bytes key, dict value, bytes op = None):
         cdef char* space_cstr = space
         cdef char* key_cstr = key
         cdef hyperclient_attribute* attrs = NULL
         try:
             backings = _dict_to_attrs(value.items(), &attrs)
-            self._reqid = hyperclient_put(client._client, space_cstr,
-                                          key_cstr, len(key),
-                                          attrs, len(value),
-                                          &self._status)
+            # XXX I'd like to use something more-constant in time, but I cannot
+            # get Cython to work with function pointers correctly
+            if not op:
+                self._reqid = hyperclient_put(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'add':
+                self._reqid = hyperclient_atomic_add(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'sub':
+                self._reqid = hyperclient_atomic_sub(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'mul':
+                self._reqid = hyperclient_atomic_mul(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'div':
+                self._reqid = hyperclient_atomic_div(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'mod':
+                self._reqid = hyperclient_atomic_mod(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'and':
+                self._reqid = hyperclient_atomic_and(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'or':
+                self._reqid = hyperclient_atomic_or(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'xor':
+                self._reqid = hyperclient_atomic_xor(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'prepend':
+                self._reqid = hyperclient_string_prepend(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'append':
+                self._reqid = hyperclient_string_append(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            else:
+                raise AttributeError("op == {0} is not valid".format(op))
             if self._reqid < 0:
                 idx = -1 - self._reqid
                 attr = None
@@ -310,72 +345,6 @@ cdef class DeferredDelete(Deferred):
                                       key_cstr, len(key), &self._status)
         if self._reqid < 0:
             raise HyperClientException(self._status)
-
-    def wait(self):
-        Deferred.wait(self)
-        return self._status == HYPERCLIENT_SUCCESS
-
-
-cdef class DeferredAtomicNum(Deferred):
-
-    def __cinit__(self,  Client client, bytes space, bytes key, dict value, bytes op):
-        cdef char* space_cstr = space
-        cdef char* key_cstr = key
-        cdef hyperclient_attribute* attrs = NULL
-        if len(value):
-            attrs = <hyperclient_attribute*> \
-                malloc(sizeof(hyperclient_attribute) * len(value))
-        try:
-            for i, a in enumerate(value.iteritems()):
-                a, v = a
-                if isinstance(v, int):
-                    v = struct.pack('<q', v)
-                    t = HYPERDATATYPE_INT64
-                else:
-                    # XXX need to raise the right exception
-                    raise HyperClientException(0, a)
-                attrs[i].attr = a
-                attrs[i].value = v
-                attrs[i].value_sz = len(v)
-                attrs[i].datatype = t
-            if op == 'add':
-                self._reqid = hyperclient_atomic_add(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
-            elif op == 'sub':
-                self._reqid = hyperclient_atomic_sub(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
-            elif op == 'mul':
-                self._reqid = hyperclient_atomic_mul(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
-            elif op == 'div':
-                self._reqid = hyperclient_atomic_div(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
-            elif op == 'mod':
-                self._reqid = hyperclient_atomic_mod(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
-            elif op == 'and':
-                self._reqid = hyperclient_atomic_and(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
-            elif op == 'or':
-                self._reqid = hyperclient_atomic_or(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
-            elif op == 'xor':
-                self._reqid = hyperclient_atomic_xor(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
-            else:
-                raise AttributeError("op == {0} is not valid".format(op))
-            if self._reqid < 0:
-                if attrs:
-                    if attrs[-1 - self._reqid].attr:
-                        attr = attrs[-1 - self._reqid].attr
-                    else:
-                        attr = None
-                else:
-                    attr = None
-                raise HyperClientException(self._status, attr)
-            client._ops[self._reqid] = self
-        finally:
-            free(attrs)
 
     def wait(self):
         Deferred.wait(self)
@@ -535,6 +504,14 @@ cdef class Client:
         async = self.async_atomic_xor(space, key, value)
         return async.wait()
 
+    def string_prepend(self, bytes space, bytes key, dict value):
+        async = self.async_string_prepend(space, key, value)
+        return async.wait()
+
+    def string_append(self, bytes space, bytes key, dict value):
+        async = self.async_string_append(space, key, value)
+        return async.wait()
+
     def search(self, bytes space, dict predicate):
         return Search(self, space, predicate)
 
@@ -542,7 +519,7 @@ cdef class Client:
         return DeferredGet(self, space, key)
 
     def async_put(self, bytes space, bytes key, dict value):
-        return DeferredPut(self, space, key, value)
+        return DeferredFromAttrs(self, space, key, value)
 
     def async_condput(self, bytes space, bytes key, dict condition, dict value):
         return DeferredCondPut(self, space, key, condition, value)
@@ -551,28 +528,34 @@ cdef class Client:
         return DeferredDelete(self, space, key)
 
     def async_atomic_add(self, bytes space, bytes key, dict value):
-        return DeferredAtomicNum(self, space, key, value, 'add')
+        return DeferredFromAttrs(self, space, key, value, 'add')
 
     def async_atomic_sub(self, bytes space, bytes key, dict value):
-        return DeferredAtomicNum(self, space, key, value, 'sub')
+        return DeferredFromAttrs(self, space, key, value, 'sub')
 
     def async_atomic_mul(self, bytes space, bytes key, dict value):
-        return DeferredAtomicNum(self, space, key, value, 'mul')
+        return DeferredFromAttrs(self, space, key, value, 'mul')
 
     def async_atomic_div(self, bytes space, bytes key, dict value):
-        return DeferredAtomicNum(self, space, key, value, 'div')
+        return DeferredFromAttrs(self, space, key, value, 'div')
 
     def async_atomic_mod(self, bytes space, bytes key, dict value):
-        return DeferredAtomicNum(self, space, key, value, 'mod')
+        return DeferredFromAttrs(self, space, key, value, 'mod')
 
     def async_atomic_and(self, bytes space, bytes key, dict value):
-        return DeferredAtomicNum(self, space, key, value, 'and')
+        return DeferredFromAttrs(self, space, key, value, 'and')
 
     def async_atomic_or(self, bytes space, bytes key, dict value):
-        return DeferredAtomicNum(self, space, key, value, 'or')
+        return DeferredFromAttrs(self, space, key, value, 'or')
 
     def async_atomic_xor(self, bytes space, bytes key, dict value):
-        return DeferredAtomicNum(self, space, key, value, 'xor')
+        return DeferredFromAttrs(self, space, key, value, 'xor')
+
+    def async_string_prepend(self, bytes space, bytes key, dict value):
+        return DeferredFromAttrs(self, space, key, value, 'prepend')
+
+    def async_string_append(self, bytes space, bytes key, dict value):
+        return DeferredFromAttrs(self, space, key, value, 'append')
 
     def loop(self):
         cdef hyperclient_returncode rc

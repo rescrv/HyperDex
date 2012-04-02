@@ -49,7 +49,7 @@
 
 #define HDRSIZE (sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint8_t) + 2 * sizeof(uint16_t) + 2 * hyperdex::entityid::SERIALIZEDSIZE + sizeof(uint64_t))
 
-#define MICROOP_INT64_SIZE \
+#define MICROOP_BASE_SIZE \
     (sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t) + sizeof(int64_t) * 2 + sizeof(uint32_t) * 2)
 
 // XXX 2012-01-22 When failures happen, this code is not robust.  It may throw
@@ -177,15 +177,15 @@ hyperclient_del(struct hyperclient* client, const char* space, const char* key,
     }
 }
 
-#define HYPERCLIENT_CDEF_ATOMIC_NUM(OPNAME) \
+#define HYPERCLIENT_CDEF_STANDARD_CALL(OPNAME) \
     int64_t \
-    hyperclient_atomic_ ## OPNAME(struct hyperclient* client, const char* space, const char* key, \
+    hyperclient_ ## OPNAME(struct hyperclient* client, const char* space, const char* key, \
                   size_t key_sz, const struct hyperclient_attribute* attrs, \
                   size_t attrs_sz, hyperclient_returncode* status) \
     { \
         try \
         { \
-            return client->atomic_ ## OPNAME(space, key, key_sz, attrs, attrs_sz, status); \
+            return client->OPNAME(space, key, key_sz, attrs, attrs_sz, status); \
         } \
         catch (po6::error& e) \
         { \
@@ -200,14 +200,16 @@ hyperclient_del(struct hyperclient* client, const char* space, const char* key,
         } \
     }
 
-HYPERCLIENT_CDEF_ATOMIC_NUM(add)
-HYPERCLIENT_CDEF_ATOMIC_NUM(sub)
-HYPERCLIENT_CDEF_ATOMIC_NUM(mul)
-HYPERCLIENT_CDEF_ATOMIC_NUM(div)
-HYPERCLIENT_CDEF_ATOMIC_NUM(mod)
-HYPERCLIENT_CDEF_ATOMIC_NUM(and)
-HYPERCLIENT_CDEF_ATOMIC_NUM(or)
-HYPERCLIENT_CDEF_ATOMIC_NUM(xor)
+HYPERCLIENT_CDEF_STANDARD_CALL(atomic_add)
+HYPERCLIENT_CDEF_STANDARD_CALL(atomic_sub)
+HYPERCLIENT_CDEF_STANDARD_CALL(atomic_mul)
+HYPERCLIENT_CDEF_STANDARD_CALL(atomic_div)
+HYPERCLIENT_CDEF_STANDARD_CALL(atomic_mod)
+HYPERCLIENT_CDEF_STANDARD_CALL(atomic_and)
+HYPERCLIENT_CDEF_STANDARD_CALL(atomic_or)
+HYPERCLIENT_CDEF_STANDARD_CALL(atomic_xor)
+HYPERCLIENT_CDEF_STANDARD_CALL(string_prepend)
+HYPERCLIENT_CDEF_STANDARD_CALL(string_append)
 
 int64_t
 hyperclient_search(struct hyperclient* client, const char* space,
@@ -1019,7 +1021,7 @@ hyperclient :: atomic_numops(int action, const char* space,
               + sizeof(uint32_t)
               + key_sz
               + sizeof(uint32_t)
-              + MICROOP_INT64_SIZE * attrs_sz;
+              + MICROOP_BASE_SIZE * attrs_sz;
 
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     e::buffer::packer p = msg->pack_at(HDRSIZE);
@@ -1084,6 +1086,88 @@ HYPERCLIENT_CPPDEF_ATOMIC_NUM(mod, MOD)
 HYPERCLIENT_CPPDEF_ATOMIC_NUM(and, AND)
 HYPERCLIENT_CPPDEF_ATOMIC_NUM(or, OR)
 HYPERCLIENT_CPPDEF_ATOMIC_NUM(xor, XOR)
+
+int64_t
+hyperclient :: string_ops(int action, const char* space,
+                          const char* key, size_t key_sz,
+                          const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                          enum hyperclient_returncode* status)
+{
+    if (maintain_coord_connection(status) < 0)
+    {
+        return -1;
+    }
+
+    // A new pending op
+    e::intrusive_ptr<pending> op;
+    op = new pending_statusonly(hyperdex::REQ_ATOMIC, hyperdex::RESP_ATOMIC, status);
+    // The size of the buffer we need
+    size_t sz = HDRSIZE
+              + sizeof(uint32_t)
+              + key_sz
+              + sizeof(uint32_t)
+              + MICROOP_BASE_SIZE * attrs_sz;
+
+    for (size_t i = 0; i < attrs_sz; ++i)
+    {
+        sz += attrs[i].value_sz;
+    }
+
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    e::buffer::packer p = msg->pack_at(HDRSIZE);
+    p = p << e::slice(key, key_sz) << static_cast<uint32_t>(attrs_sz);
+
+    hyperdex::spaceid si = m_config->space(space);
+
+    if (si == hyperdex::spaceid())
+    {
+        *status = HYPERCLIENT_UNKNOWNSPACE;
+        return -1;
+    }
+
+    std::vector<hyperdex::attribute> dims = m_config->dimension_names(si);
+    assert(dims.size() > 0);
+
+    for (size_t i = 0; i < attrs_sz; ++i)
+    {
+        if (attrs[i].datatype != HYPERDATATYPE_STRING)
+        {
+            *status = HYPERCLIENT_WRONGTYPE;
+            return -1 - i;
+        }
+
+        int idx = validate_attr(dims, NULL, attrs[i].attr, attrs[i].datatype, status);
+
+        if (idx < 0)
+        {
+            return -1 - i;
+        }
+
+        hyperdex::microop o;
+        o.attr = idx;
+        o.type = hyperdex::DATATYPE_STRING;
+        o.action = static_cast<hyperdex::microop_type>(action);
+        o.argv1_string = e::slice(attrs[i].value, attrs[i].value_sz);
+
+        p = p << o;
+    }
+
+    assert(!p.error());
+    return add_keyop(space, key, key_sz, msg, op);
+}
+
+#define HYPERCLIENT_CPPDEF_STRING(OPNAME, OPNAMECAPS) \
+    int64_t \
+    hyperclient :: string_ ## OPNAME(const char* space, const char* key, size_t key_sz, \
+                              const struct hyperclient_attribute* attrs, size_t attrs_sz, \
+                              enum hyperclient_returncode* status) \
+    { \
+        return string_ops(hyperdex::OP_STRING_ ## OPNAMECAPS, space, \
+                          key, key_sz, attrs, attrs_sz, status); \
+    }
+
+HYPERCLIENT_CPPDEF_STRING(prepend, PREPEND)
+HYPERCLIENT_CPPDEF_STRING(append, APPEND)
 
 int64_t
 hyperclient :: search(const char* space,
