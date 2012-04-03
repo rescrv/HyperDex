@@ -429,7 +429,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
                                           data, &error);
 
         // If applying the micro ops failed
-        if (!data)
+        if (!newdata)
         {
             // Fail it for bad micro ops
             respond_to_client(to, from, nonce, hyperdex::RESP_ATOMIC, error);
