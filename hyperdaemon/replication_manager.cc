@@ -158,13 +158,20 @@ hyperdaemon :: replication_manager :: shutdown()
 
 static bool
 unpack_attributes(const std::vector<std::pair<uint16_t, e::slice> >& value,
-                  size_t dims,
+                  const std::vector<hyperdex::attribute>& dims,
                   e::bitfield *bf,
                   std::vector<e::slice> *realvalue)
 {
+    using namespace hyperdaemon;
+
     for (size_t i = 0; i < value.size(); ++i)
     {
-        if (value[i].first == 0 || value[i].first == dims)
+        if (value[i].first == 0 || value[i].first >= dims.size())
+        {
+            return false;
+        }
+
+        if (!validate_datatype(dims[value[i].first].type, value[i].second))
         {
             return false;
         }
@@ -183,12 +190,12 @@ hyperdaemon :: replication_manager :: client_put(const hyperdex::entityid& from,
                                                  const e::slice& key,
                                                  const std::vector<std::pair<uint16_t, e::slice> >& value)
 {
-    size_t dims = m_config.dimensions(to.get_space());
-    assert(dims > 0);
-    e::bitfield bf(dims - 1);
-    std::vector<e::slice> realvalue(dims - 1);
-    e::bitfield condbf(dims - 1);
-    std::vector<e::slice> condvalue(dims - 1);
+    std::vector<hyperdex::attribute> dims = m_config.dimension_names(to.get_space());
+    assert(dims.size() > 0);
+    e::bitfield bf(dims.size() - 1);
+    std::vector<e::slice> realvalue(dims.size() - 1);
+    e::bitfield condbf(dims.size() - 1);
+    std::vector<e::slice> condvalue(dims.size() - 1);
 
     if (!unpack_attributes(value, dims, &bf, &realvalue))
     {
@@ -210,12 +217,12 @@ hyperdaemon :: replication_manager :: client_condput(const hyperdex::entityid& f
                                                      const std::vector<std::pair<uint16_t, e::slice> >& condfields,
                                                      const std::vector<std::pair<uint16_t, e::slice> >& value)
 {
-    size_t dims = m_config.dimensions(to.get_space());
-    assert(dims > 0);
-    e::bitfield condbf(dims - 1);
-    std::vector<e::slice> condvalue(dims - 1);
-    e::bitfield bf(dims - 1);
-    std::vector<e::slice> realvalue(dims - 1);
+    std::vector<hyperdex::attribute> dims = m_config.dimension_names(to.get_space());
+    assert(dims.size() > 0);
+    e::bitfield condbf(dims.size() - 1);
+    std::vector<e::slice> condvalue(dims.size() - 1);
+    e::bitfield bf(dims.size() - 1);
+    std::vector<e::slice> realvalue(dims.size() - 1);
 
     if (!unpack_attributes(condfields, dims, &condbf, &condvalue) ||
         !unpack_attributes(value, dims, &bf, &realvalue))

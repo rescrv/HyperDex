@@ -40,6 +40,10 @@ namespace hyperdaemon
 
 // Utilities for manipulating and verifying datastructures
 
+// Validate that the bytestring conforms to the given type
+bool
+validate_datatype(hyperdex::datatype datatype, const e::slice& data);
+
 // How much more space does the microop need in the contiguous buffer?
 size_t
 sizeof_microop(const hyperdex::microop& op);

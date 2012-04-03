@@ -50,9 +50,11 @@ cdef extern from "../hyperclient.h":
     cdef struct hyperclient
 
     cdef enum hyperclient_datatype:
-        HYPERDATATYPE_STRING    = 8960
-        HYPERDATATYPE_INT64     = 8961
-        HYPERDATATYPE_GARBAGE   = 9087
+        HYPERDATATYPE_STRING      = 8960
+        HYPERDATATYPE_INT64       = 8961
+        HYPERDATATYPE_LIST_STRING = 8976
+        HYPERDATATYPE_LIST_INT64  = 8977
+        HYPERDATATYPE_GARBAGE     = 9087
 
     cdef struct hyperclient_attribute:
         char* attr
@@ -106,6 +108,8 @@ cdef extern from "../hyperclient.h":
     int64_t hyperclient_atomic_xor(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_string_prepend(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_string_append(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_list_lpush(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_list_rpush(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_search(hyperclient* client, char* space, hyperclient_attribute* eq, size_t eq_sz, hyperclient_range_query* rn, size_t rn_sz, hyperclient_returncode* status, hyperclient_attribute** attrs, size_t* attrs_sz)
     int64_t hyperclient_loop(hyperclient* client, int timeout, hyperclient_returncode* status)
     void hyperclient_destroy_attrs(hyperclient_attribute* attrs, size_t attrs_sz)
@@ -143,6 +147,7 @@ class HyperClientException(Exception):
 
 cdef _dict_to_attrs(list value, hyperclient_attribute** attrs):
     cdef list backings = []
+    cdef bytes backing
     attrs[0] = <hyperclient_attribute*> \
                malloc(sizeof(hyperclient_attribute) * len(value))
     if attrs[0] == NULL:
@@ -156,19 +161,39 @@ cdef _dict_to_attrs(list value, hyperclient_attribute** attrs):
             attrs[0][i].value = backing
             attrs[0][i].value_sz = 8
             attrs[0][i].datatype = HYPERDATATYPE_INT64
-        else:
+        elif isinstance(v, list) or isinstance(v, tuple):
+            backing = b''
+            if all([isinstance(x, int) for x in v]):
+                for x in v:
+                    backing += struct.pack('<q', x)
+                attrs[0][i].datatype = HYPERDATATYPE_LIST_INT64
+            elif all([isinstance(x, bytes) for x in v]):
+                for x in v:
+                    backing += struct.pack('<L', len(x))
+                    backing += bytes(x)
+                attrs[0][i].datatype = HYPERDATATYPE_LIST_STRING
+            else:
+                raise TypeError("Cannot store heterogeneous lists")
+            backings.append(backing)
+            attrs[0][i].value = backing
+            attrs[0][i].value_sz = len(backing)
+        elif isinstance(v, bytes):
             backing = v
             backings.append(backing)
-            attrs[0][i].value = v
-            attrs[0][i].value_sz = len(v)
+            attrs[0][i].value = backing
+            attrs[0][i].value_sz = len(backing)
             attrs[0][i].datatype = HYPERDATATYPE_STRING
+        else:
+            raise TypeError("Do not know how to convert attribute {0}".format(a))
     return backings
 
 
 cdef _attrs_to_dict(hyperclient_attribute* attrs, size_t attrs_sz):
     ret = {}
     for idx in range(attrs_sz):
-        if attrs[idx].datatype == HYPERDATATYPE_INT64:
+        if attrs[idx].datatype == HYPERDATATYPE_STRING:
+            ret[attrs[idx].attr] = attrs[idx].value[:attrs[idx].value_sz]
+        elif attrs[idx].datatype == HYPERDATATYPE_INT64:
             s = attrs[idx].value[:attrs[idx].value_sz]
             i = len(s)
             if i > 8:
@@ -176,8 +201,31 @@ cdef _attrs_to_dict(hyperclient_attribute* attrs, size_t attrs_sz):
             elif i < 8:
                 s += (8 - i) * '\x00'
             ret[attrs[idx].attr] = struct.unpack('<q', s)[0]
-        elif attrs[idx].datatype == HYPERDATATYPE_STRING:
-            ret[attrs[idx].attr] = attrs[idx].value[:attrs[idx].value_sz]
+        elif attrs[idx].datatype == HYPERDATATYPE_LIST_STRING:
+            pos = 0
+            rem = attrs[idx].value_sz
+            lst = []
+            while rem >= 4:
+                sz = struct.unpack('<i', attrs[idx].value[pos:pos + 4])[0]
+                if rem - 4 < sz:
+                    raise ValueError("list(string) is improperly structured (file a bug)")
+                lst.append(attrs[idx].value[pos + 4:pos + 4 + sz])
+                pos += 4 + sz
+                rem -= 4 + sz
+            if rem:
+                raise ValueError("list(string) contains excess data (file a bug)")
+            ret[attrs[idx].attr] = lst
+        elif attrs[idx].datatype == HYPERDATATYPE_LIST_INT64:
+            pos = 0
+            rem = attrs[idx].value_sz
+            lst = []
+            while rem >= 8:
+                lst.append(struct.unpack('<q', attrs[idx].value[pos:pos + 8])[0])
+                pos += 8
+                rem -= 8
+            if rem:
+                raise ValueError("list(int64) contains excess data (file a bug)")
+            ret[attrs[idx].attr] = lst
         else:
             raise ValueError("Server returned garbage value (file a bug)")
     return ret
@@ -281,6 +329,12 @@ cdef class DeferredFromAttrs(Deferred):
                         key_cstr, len(key), attrs, len(value), &self._status)
             elif op == 'append':
                 self._reqid = hyperclient_string_append(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'lpush':
+                self._reqid = hyperclient_list_lpush(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'rpush':
+                self._reqid = hyperclient_list_rpush(client._client, space_cstr,
                         key_cstr, len(key), attrs, len(value), &self._status)
             else:
                 raise AttributeError("op == {0} is not valid".format(op))
@@ -512,6 +566,14 @@ cdef class Client:
         async = self.async_string_append(space, key, value)
         return async.wait()
 
+    def list_lpush(self, bytes space, bytes key, dict value):
+        async = self.async_list_lpush(space, key, value)
+        return async.wait()
+
+    def list_rpush(self, bytes space, bytes key, dict value):
+        async = self.async_list_rpush(space, key, value)
+        return async.wait()
+
     def search(self, bytes space, dict predicate):
         return Search(self, space, predicate)
 
@@ -556,6 +618,12 @@ cdef class Client:
 
     def async_string_append(self, bytes space, bytes key, dict value):
         return DeferredFromAttrs(self, space, key, value, 'append')
+
+    def async_list_lpush(self, bytes space, bytes key, dict value):
+        return DeferredFromAttrs(self, space, key, value, 'lpush')
+
+    def async_list_rpush(self, bytes space, bytes key, dict value):
+        return DeferredFromAttrs(self, space, key, value, 'rpush')
 
     def loop(self):
         cdef hyperclient_returncode rc

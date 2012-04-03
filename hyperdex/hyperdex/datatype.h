@@ -33,8 +33,10 @@ namespace hyperdex
 
 enum datatype
 {
-    DATATYPE_STRING = 1,
-    DATATYPE_INT64  = 2
+    DATATYPE_STRING      = 1,
+    DATATYPE_INT64       = 2,
+    DATATYPE_LIST_STRING = 3,
+    DATATYPE_LIST_INT64  = 4
 };
 
 } // namespace hyperdex

@@ -55,6 +55,7 @@ class configuration_parser
             CP_MISSING_REGION,
             CP_OUTOFORDER_SUBSPACE,
             CP_EXCESS_DATA,
+            CP_ATTR_NOT_SEARCHABLE,
             CP_MISSING,
             CP_F_FAILURES,
             CP_UNKNOWN_ATTR,

@@ -54,7 +54,10 @@ enum microop_type
     OP_INT64_MOD,
     OP_INT64_AND,
     OP_INT64_OR,
-    OP_INT64_XOR
+    OP_INT64_XOR,
+
+    OP_LIST_LPUSH,
+    OP_LIST_RPUSH
 };
 
 class microop
