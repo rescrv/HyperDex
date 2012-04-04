@@ -21,6 +21,7 @@ depcomp
 doc/_build
 hyperclient/.deps/
 hyperclient/.dirstamp
+hyperclient/java/.dirstamp
 hyperclient/java/hyperclient/
 hyperclient/java/hyperclient-0.1.dev.jar
 hyperclient/java/hyperclient_wrap.cxx
@@ -40,6 +41,7 @@ hyperclient/python/hyperclient_python_hyperclient_la-hyperclient.lo
 hyperclient/python/hyperclient_python_hyperclient_la-hyperclient.o
 hypercoordinator/coordinator.pyc
 hypercoordinator/hdtypes.pyc
+hypercoordinator/hdjson.pyc
 hypercoordinator/__init__.pyc
 hypercoordinator/parser.pyc
 hyperdaemon/.deps/
@@ -171,3 +173,11 @@ trace-player.o
 trace_player-trace-player.o
 ycsb/hyperclient/HyperClientYCSB.class
 ycsb/hyperclient-ycsb-0.1.dev.jar
+hyperclient-0.1.dev.jar
+hyperclient-java.stamp
+hyperclient-ycsb-0.1.dev.jar
+hyperclient/java/libhyperclient_java_la-hyperclient_wrap.lo
+hyperclient/java/libhyperclient_java_la-hyperclient_wrap.o
+hyperclient/java/libhyperclient_java_la-syncclient.lo
+hyperclient/java/libhyperclient_java_la-syncclient.o
+libhyperclient-java.la
