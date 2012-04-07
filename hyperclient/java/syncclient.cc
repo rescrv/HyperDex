@@ -48,7 +48,8 @@ HyperClient :: ~HyperClient() throw ()
 hyperclient_returncode
 HyperClient :: get(const std::string& space,
                    const std::string& key,
-                   std::map<std::string, std::string>* value)
+                   std::map<std::string, std::string>* svalues,
+                   std::map<std::string, uint64_t>* nvalues)
 {
     int64_t id;
     hyperclient_returncode stat1 = HYPERCLIENT_A;
@@ -84,9 +85,15 @@ HyperClient :: get(const std::string& space,
 
     for (size_t i = 0; i < attrs_sz; ++i)
     {
-        value->insert(std::make_pair(std::string(attrs[i].attr),
-                                     std::string(attrs[i].value,
-                                                 attrs[i].value_sz)));
+		if ( attrs[i].datatype == HYPERDATATYPE_STRING )
+			svalues->insert(std::make_pair(std::string(attrs[i].attr),
+				std::string(attrs[i].value,
+						attrs[i].value_sz)));
+		else // attrs[i].datatype == HYPERDATATYPE_INT64
+		{
+			nvalues->insert(std::make_pair(std::string(attrs[i].attr),
+							le64toh(*((uint64_t *)(attrs[i].value)))));
+		}
     }
 
     assert(static_cast<unsigned>(stat1) >= 8448);

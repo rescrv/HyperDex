@@ -90,17 +90,18 @@ public class HyperClientYCSB extends DB
      */
     public int read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
     {
-        ssmap r = new ssmap();
-        ReturnCode ret = m_client.get(table, key, r);
+        ssmap rs = new ssmap();
+        snmap rn = new snmap();
+        ReturnCode ret = m_client.get(table, key, rs, rn);
 
         for (int i = 0; i < m_retries && ret != ReturnCode.SUCCESS && ret != ReturnCode.NOTFOUND; ++i)
         {
-            ret = m_client.get(table, key, r);
+            ret = m_client.get(table, key, rs, rn);
         }
 
         if (ret == ReturnCode.SUCCESS)
         {
-            convert_to_java(fields, r, result);
+            convert_to_java(fields, rs, result);
             return 0;
         }
 
