@@ -85,15 +85,15 @@ HyperClient :: get(const std::string& space,
 
     for (size_t i = 0; i < attrs_sz; ++i)
     {
-		if ( attrs[i].datatype == HYPERDATATYPE_STRING )
-			svalues->insert(std::make_pair(std::string(attrs[i].attr),
-				std::string(attrs[i].value,
-						attrs[i].value_sz)));
-		else // attrs[i].datatype == HYPERDATATYPE_INT64
-		{
-			nvalues->insert(std::make_pair(std::string(attrs[i].attr),
-							le64toh(*((uint64_t *)(attrs[i].value)))));
-		}
+        if ( attrs[i].datatype == HYPERDATATYPE_STRING )
+            svalues->insert(std::make_pair(std::string(attrs[i].attr),
+                                           std::string(attrs[i].value,
+                                                       attrs[i].value_sz)));
+        else // attrs[i].datatype == HYPERDATATYPE_INT64
+        {
+            nvalues->insert(std::make_pair(std::string(attrs[i].attr),
+                            le64toh(*((uint64_t *)(attrs[i].value)))));
+        }
     }
 
     assert(static_cast<unsigned>(stat1) >= 8448);
@@ -226,7 +226,7 @@ HyperClient :: range_search(const std::string& space,
     int64_t lid;
     hyperclient_returncode lstatus = HYPERCLIENT_B;
 
-	size_t pre_insert_size = 0; // Keep track of the number of "n-tuples" returned
+    size_t pre_insert_size = 0; // Keep track of the number of "n-tuples" returned
 
     while ((lid = m_client.loop(-1, &lstatus)) == id)
     {
@@ -242,30 +242,27 @@ HyperClient :: range_search(const std::string& space,
 
         for (size_t i = 0; i < attrs_sz; ++i)
         {
-			if ( attrs[i].datatype == HYPERDATATYPE_STRING )
-			{
-				if (sresults->empty() || sresults->size() == pre_insert_size)
-				{
-        			sresults->push_back(std::map<std::string, std::string>());
-				}
+            if ( attrs[i].datatype == HYPERDATATYPE_STRING )
+            {
+                if (sresults->empty() || sresults->size() == pre_insert_size)
+                {
+                    sresults->push_back(std::map<std::string, std::string>());
+                }
 
-            	sresults->back().insert(std::make_pair(attrs[i].attr, std::string(attrs[i].value, attrs[i].value_sz)));
-			}
-			else // attrs[i].datatype == HYPERDATATYPE_INT64
-			{
-				if (nresults->empty() || nresults->size() == pre_insert_size)
-				{
-        			nresults->push_back(std::map<std::string, uint64_t>());
-				}
+                sresults->back().insert(std::make_pair(attrs[i].attr, std::string(attrs[i].value, attrs[i].value_sz)));
+            }
+            else // attrs[i].datatype == HYPERDATATYPE_INT64
+            {
+                if (nresults->empty() || nresults->size() == pre_insert_size)
+                {
+                    nresults->push_back(std::map<std::string, uint64_t>());
+                }
 
-            	nresults->back().insert(std::make_pair(attrs[i].attr, le64toh(*((uint64_t *)(attrs[i].value)))));
-			}
+                nresults->back().insert(std::make_pair(attrs[i].attr, le64toh(*((uint64_t *)(attrs[i].value)))));
+            }
         }
 
-		assert( ( sresults->empty() || nresults->empty() )
-				|| sresults->size() == nresults->size() );  
-
-		pre_insert_size++;
+        pre_insert_size++;
 
         if (attrs)
         {

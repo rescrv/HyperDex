@@ -55,9 +55,9 @@ class HyperClient
                                 uint64_t lower,
                                 uint64_t upper,
                                 std::vector<std::map<std::string,
-											std::string> >* sresults,
+                                            std::string> >* sresults,
                                 std::vector<std::map<std::string,
-											uint64_t> >* nresults);
+                                            uint64_t> >* nresults);
 
     private:
         hyperclient m_client;

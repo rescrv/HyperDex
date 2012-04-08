@@ -55,6 +55,7 @@ enum ReturnCode
     SUCCESS      = 8448,
     NOTFOUND     = 8449,
     SEARCHDONE   = 8450,
+    CMPFAIL      = 8451,
     UNKNOWNSPACE = 8512,
     COORDFAIL    = 8513,
     SERVERERROR  = 8514,
@@ -67,6 +68,8 @@ enum ReturnCode
     DUPEATTR     = 8521,
     SEEERRNO     = 8522,
     NONEPENDING  = 8523,
+    DONTUSEKEY   = 8524,
+    WRONGTYPE    = 8525,
     EXCEPTION    = 8574,
     ZERO         = 8575
 };
