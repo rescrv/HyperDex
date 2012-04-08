@@ -46,7 +46,9 @@ import com.yahoo.ycsb.StringByteIterator;
 import hyperclient.HyperClient;
 import hyperclient.ReturnCode;
 import hyperclient.ssmap;
-import hyperclient.searchresult;
+import hyperclient.snmap;
+import hyperclient.ssearchresult;
+import hyperclient.nsearchresult;
 
 public class HyperClientYCSB extends DB
 {
@@ -141,12 +143,14 @@ public class HyperClientYCSB extends DB
         assert lower.compareTo(new BigInteger("18446744073709551616")) < 0;
         assert upper.compareTo(new BigInteger("18446744073709551616")) < 0;
 
-        searchresult res = new searchresult();
-        ReturnCode ret = m_client.range_search(table, "recno", lower, upper, res);
+        ssearchresult res = new ssearchresult();
+        nsearchresult nres = new nsearchresult();
+
+        ReturnCode ret = m_client.range_search(table, "recno", lower, upper, res, nres);
 
         for (int i = 0; i < m_retries && ret != ReturnCode.SUCCESS; ++i)
         {
-            ret = m_client.range_search(table, "recno", lower, upper, res);
+            ret = m_client.range_search(table, "recno", lower, upper, res, nres);
         }
 
         if (ret == ReturnCode.SUCCESS)

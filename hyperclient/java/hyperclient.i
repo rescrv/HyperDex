@@ -92,7 +92,10 @@ class HyperClient
                                 const std::string& attr,
                                 uint64_t lower,
                                 uint64_t upper,
-                                std::vector<std::map<std::string, std::string> >* OUTPUT);
+                                std::vector<std::map<std::string,
+                                                     std::string> >* STR_OUT,
+                                std::vector<std::map<std::string,
+                                                     uint64_t> >* NUM_OUT);
 
     private:
         hyperclient m_client;
@@ -102,5 +105,6 @@ namespace std
 {
     %template(ssmap) map<string, string>;
     %template(snmap) map<string, unsigned long long>;
-    %template(searchresult) vector<map<string, string> >;
+    %template(ssearchresult) vector<map<string, string> >;
+    %template(nsearchresult) vector<map<string, unsigned long long> >;
 }

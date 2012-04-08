@@ -203,7 +203,8 @@ HyperClient :: range_search(const std::string& space,
                             const std::string& attr,
                             uint64_t lower,
                             uint64_t upper,
-                            std::vector<std::map<std::string, std::string> >* results)
+                            std::vector<std::map<std::string, std::string> >* sresults,
+                            std::vector<std::map<std::string, uint64_t> >* nresults)
 {
     hyperclient_range_query rn;
     rn.attr = attr.c_str();
@@ -225,6 +226,8 @@ HyperClient :: range_search(const std::string& space,
     int64_t lid;
     hyperclient_returncode lstatus = HYPERCLIENT_B;
 
+	size_t pre_insert_size = 0; // Keep track of the number of "n-tuples" returned
+
     while ((lid = m_client.loop(-1, &lstatus)) == id)
     {
         if (status == HYPERCLIENT_SEARCHDONE)
@@ -237,12 +240,32 @@ HyperClient :: range_search(const std::string& space,
             break;
         }
 
-        results->push_back(std::map<std::string, std::string>());
-
         for (size_t i = 0; i < attrs_sz; ++i)
         {
-            results->back().insert(std::make_pair(attrs[i].attr, std::string(attrs[i].value, attrs[i].value_sz)));
+			if ( attrs[i].datatype == HYPERDATATYPE_STRING )
+			{
+				if (sresults->empty() || sresults->size() == pre_insert_size)
+				{
+        			sresults->push_back(std::map<std::string, std::string>());
+				}
+
+            	sresults->back().insert(std::make_pair(attrs[i].attr, std::string(attrs[i].value, attrs[i].value_sz)));
+			}
+			else // attrs[i].datatype == HYPERDATATYPE_INT64
+			{
+				if (nresults->empty() || nresults->size() == pre_insert_size)
+				{
+        			nresults->push_back(std::map<std::string, uint64_t>());
+				}
+
+            	nresults->back().insert(std::make_pair(attrs[i].attr, le64toh(*((uint64_t *)(attrs[i].value)))));
+			}
         }
+
+		assert( ( sresults->empty() || nresults->empty() )
+				|| sresults->size() == nresults->size() );  
+
+		pre_insert_size++;
 
         if (attrs)
         {
