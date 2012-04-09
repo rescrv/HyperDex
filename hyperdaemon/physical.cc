@@ -723,6 +723,8 @@ hyperdaemon :: physical :: work_write(const hazard_ptr& hptr,
     if (ret < 0 && errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK)
     {
         PLOG(ERROR) << "could not write to " << chan->loc << "(fd:"  << chan->soc.get() << ")";
+        work_close(hptr, chan);
+        *res = DISCONNECT;
         return false;
     }
 
