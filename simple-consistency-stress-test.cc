@@ -54,13 +54,13 @@
 // HyperClient
 #include <hyperclient.h>
 
-static int64_t window = 128;
-static int64_t repetitions = 1024;
+static long window = 128;
+static long repetitions = 1024;
 static int64_t threads = 16;
 static const char* space = "consistency";
 static const char* host = "127.0.0.1";
 static po6::net::ipaddr coord(host);
-static uint16_t port = 1234;
+static long port = 1234;
 static std::auto_ptr<po6::threads::barrier> barrier;
 static po6::threads::mutex results_lock;
 static int done = 0;
@@ -107,7 +107,7 @@ int
 main(int argc, const char* argv[])
 {
     poptContext poptcon;
-    poptcon = poptGetContext(NULL, argc, (const char**) argv, popts, POPT_CONTEXT_POSIXMEHARDER);
+    poptcon = poptGetContext(NULL, argc, argv, popts, POPT_CONTEXT_POSIXMEHARDER);
     e::guard g = e::makeguard(poptFreeContext, poptcon);
     g.use_variable();
     int rc;
@@ -160,7 +160,7 @@ main(int argc, const char* argv[])
 
                 break;
             case 'p':
-                if (port < 0 || port >= (1 << 16))
+                if (port >= (1 << 16))
                 {
                     std::cerr << "port number out of range for TCP" << std::endl;
                     return EXIT_FAILURE;

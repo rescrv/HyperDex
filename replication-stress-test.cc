@@ -78,8 +78,8 @@ static std::map<int64_t, hyperclient_returncode*> incompleteops;
 static const char* space = "replication";
 static const char* host = "127.0.0.1";
 static po6::net::ipaddr coord(host);
-static uint16_t port = 1234;
-static size_t prefix = 3;
+static long port = 1234;
+static long prefix = 3;
 
 static void
 find_hashes();
@@ -160,10 +160,10 @@ static struct poptOption popts[] = {
 } // extern "C"
 
 int
-main(int argc, char* argv[])
+main(int argc, const char* argv[])
 {
     poptContext poptcon;
-    poptcon = poptGetContext(NULL, argc, (const char**) argv, popts, POPT_CONTEXT_POSIXMEHARDER);
+    poptcon = poptGetContext(NULL, argc, argv, popts, POPT_CONTEXT_POSIXMEHARDER);
     e::guard g = e::makeguard(poptFreeContext, poptcon);
     g.use_variable();
     int rc;
