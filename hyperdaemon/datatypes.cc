@@ -28,6 +28,7 @@
 #define __STDC_LIMIT_MACROS
 
 // C
+#include <cstring>
 #include <stdint.h>
 
 // STL
@@ -37,6 +38,7 @@
 #include <e/endian.h>
 
 // HyperDaemon
+#include "hyperdex.h"
 #include "hyperdaemon/datatypes.h"
 
 // The below functions often make use of a call to "validate" with the following
@@ -1065,30 +1067,32 @@ validate_map_int64_int64(const e::slice& map)
 /////////////////////////////// Public Functions ///////////////////////////////
 
 bool
-hyperdaemon :: validate_datatype(hyperdex::datatype datatype, const e::slice& data)
+hyperdaemon :: validate_datatype(hyperdatatype datatype, const e::slice& data)
 {
     switch (datatype)
     {
-        case hyperdex::DATATYPE_STRING:
+        case HYPERDATATYPE_STRING:
             return true;
-        case hyperdex::DATATYPE_INT64:
+        case HYPERDATATYPE_INT64:
             return data.size() == 0 || data.size() == sizeof(int64_t);
-        case hyperdex::DATATYPE_LIST_STRING:
+        case HYPERDATATYPE_LIST_STRING:
             return validate_list_string(data);
-        case hyperdex::DATATYPE_LIST_INT64:
+        case HYPERDATATYPE_LIST_INT64:
             return validate_list_int64(data);
-        case hyperdex::DATATYPE_SET_STRING:
+        case HYPERDATATYPE_SET_STRING:
             return validate_set_string(data);
-        case hyperdex::DATATYPE_SET_INT64:
+        case HYPERDATATYPE_SET_INT64:
             return validate_set_int64(data);
-        case hyperdex::DATATYPE_MAP_STRING_STRING:
+        case HYPERDATATYPE_MAP_STRING_STRING:
             return validate_map_string_string(data);
-        case hyperdex::DATATYPE_MAP_STRING_INT64:
+        case HYPERDATATYPE_MAP_STRING_INT64:
             return validate_map_string_int64(data);
-        case hyperdex::DATATYPE_MAP_INT64_STRING:
+        case HYPERDATATYPE_MAP_INT64_STRING:
             return validate_map_int64_string(data);
-        case hyperdex::DATATYPE_MAP_INT64_INT64:
+        case HYPERDATATYPE_MAP_INT64_INT64:
             return validate_map_int64_int64(data);
+        case HYPERDATATYPE_GARBAGE:
+            return false;
         default:
             abort();
     }
@@ -1120,11 +1124,11 @@ hyperdaemon :: sizeof_microop(const hyperdex::microop& op)
         case OP_LIST_LPUSH:
         case OP_LIST_RPUSH:
 
-            if (op.type == hyperdex::DATATYPE_LIST_STRING)
+            if (op.type == HYPERDATATYPE_LIST_STRING)
             {
                 return sizeof(int32_t) + op.argv1_string.size();
             }
-            else if (op.type == hyperdex::DATATYPE_LIST_INT64)
+            else if (op.type == HYPERDATATYPE_LIST_INT64)
             {
                 return sizeof(int64_t);
             }
@@ -1132,11 +1136,11 @@ hyperdaemon :: sizeof_microop(const hyperdex::microop& op)
             return 0;
         case OP_SET_ADD:
 
-            if (op.type == hyperdex::DATATYPE_SET_STRING)
+            if (op.type == HYPERDATATYPE_SET_STRING)
             {
                 return sizeof(int32_t) + op.argv1_string.size();
             }
-            else if (op.type == hyperdex::DATATYPE_SET_INT64)
+            else if (op.type == HYPERDATATYPE_SET_INT64)
             {
                 return sizeof(int64_t);
             }
@@ -1154,43 +1158,42 @@ hyperdaemon :: sizeof_microop(const hyperdex::microop& op)
 }
 
 uint8_t*
-hyperdaemon :: apply_microops(hyperdex::datatype type,
+hyperdaemon :: apply_microops(hyperdatatype type,
                               const e::slice& old_value,
                               const hyperdex::microop* ops,
                               size_t num_ops,
                               uint8_t* writeto,
                               hyperdex::network_returncode* error)
 {
-    using namespace hyperdex;
-
     switch (type)
     {
-        case DATATYPE_STRING:
+        case HYPERDATATYPE_STRING:
             return apply_string(old_value, ops, num_ops, writeto, error);
-        case DATATYPE_INT64:
+        case HYPERDATATYPE_INT64:
             return apply_int64(old_value, ops, num_ops, writeto, error);
-        case DATATYPE_LIST_STRING:
+        case HYPERDATATYPE_LIST_STRING:
             return apply_list_string(old_value, ops, num_ops, writeto, error);
-        case DATATYPE_LIST_INT64:
+        case HYPERDATATYPE_LIST_INT64:
             return apply_list_int64(old_value, ops, num_ops, writeto, error);
-        case DATATYPE_SET_STRING:
+        case HYPERDATATYPE_SET_STRING:
             return apply_set_string(old_value, ops, num_ops, writeto, error);
-        case DATATYPE_SET_INT64:
+        case HYPERDATATYPE_SET_INT64:
             return apply_set_int64(old_value, ops, num_ops, writeto, error);
-        case DATATYPE_MAP_STRING_STRING:
+        case HYPERDATATYPE_MAP_STRING_STRING:
             abort();
             //return apply_map_string_string(old_value, ops, num_ops, writeto, error);
-        case DATATYPE_MAP_STRING_INT64:
+        case HYPERDATATYPE_MAP_STRING_INT64:
             abort();
             //return apply_map_string_int64(old_value, ops, num_ops, writeto, error);
-        case DATATYPE_MAP_INT64_STRING:
+        case HYPERDATATYPE_MAP_INT64_STRING:
             abort();
             //return apply_map_int64_string(old_value, ops, num_ops, writeto, error);
-        case DATATYPE_MAP_INT64_INT64:
+        case HYPERDATATYPE_MAP_INT64_INT64:
             abort();
             //return apply_map_int64_int64(old_value, ops, num_ops, writeto, error);
+        case HYPERDATATYPE_GARBAGE:
         default:
-            *error = NET_BADMICROS;
+            *error = hyperdex::NET_BADMICROS;
             return NULL;
     }
 }

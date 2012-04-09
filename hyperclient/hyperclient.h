@@ -55,6 +55,9 @@
 #include <e/intrusive_ptr.h>
 #include <e/lockfree_hash_map.h>
 
+// HyperDex
+#include <hyperdex.h>
+
 // Forward declarations
 namespace e
 {
@@ -74,36 +77,12 @@ extern "C"
 
 struct hyperclient;
 
-/* HyperClient datatype occupies [8960, 9088) */
-enum hyperclient_datatype
-{
-    HYPERDATATYPE_STRING    = 8960,
-    HYPERDATATYPE_INT64     = 8961,
-
-    // List types
-    HYPERDATATYPE_LIST_STRING = 8976,
-    HYPERDATATYPE_LIST_INT64  = 8977,
-
-    // Set types
-    HYPERDATATYPE_SET_STRING = 8992,
-    HYPERDATATYPE_SET_INT64  = 8993,
-
-    // Map types
-    HYPERDATATYPE_MAP_STRING_STRING = 9008,
-    HYPERDATATYPE_MAP_STRING_INT64  = 9009,
-    HYPERDATATYPE_MAP_INT64_STRING  = 9010,
-    HYPERDATATYPE_MAP_INT64_INT64   = 9011,
-
-    // Returned if the server acts up
-    HYPERDATATYPE_GARBAGE   = 9087
-};
-
 struct hyperclient_attribute
 {
     const char* attr; /* NULL-terminated */
     const char* value;
     size_t value_sz;
-    enum hyperclient_datatype datatype;
+    enum hyperdatatype datatype;
 };
 
 struct hyperclient_range_query
@@ -691,7 +670,7 @@ class hyperclient
         int validate_attr(const std::vector<hyperdex::attribute>& dimensions,
                           e::bitfield* dimensions_seen,
                           const char* attr,
-                          hyperclient_datatype type,
+                          hyperdatatype type,
                           hyperclient_returncode* status);
         int64_t send(e::intrusive_ptr<channel> chan,
                      e::intrusive_ptr<pending> op,

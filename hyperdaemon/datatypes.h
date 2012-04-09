@@ -42,7 +42,7 @@ namespace hyperdaemon
 
 // Validate that the bytestring conforms to the given type
 bool
-validate_datatype(hyperdex::datatype datatype, const e::slice& data);
+validate_datatype(hyperdatatype datatype, const e::slice& data);
 
 // How much more space does the microop need in the contiguous buffer?
 size_t
@@ -50,7 +50,7 @@ sizeof_microop(const hyperdex::microop& op);
 
 // Modify the old_value by applying ops sequentially.
 uint8_t*
-apply_microops(hyperdex::datatype type,
+apply_microops(hyperdatatype type,
                const e::slice& old_value,
                const hyperdex::microop* ops,
                size_t num_ops,

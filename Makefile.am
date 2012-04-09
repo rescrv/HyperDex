@@ -46,6 +46,9 @@ noinst_LTLIBRARIES = \
 			libhyperdex.la \
 			libhyperdaemon.la
 
+include_HEADERS = \
+			hyperdex.h
+
 noinst_HEADERS = \
 			$(libhyperspacehashing_noinst_headers) \
 			$(libhyperdisk_noinst_headers) \
@@ -301,7 +304,6 @@ libhyperdex_noinst_headers = \
 			hyperdex/hyperdex/configuration.h \
 			hyperdex/hyperdex/configuration_parser.h \
 			hyperdex/hyperdex/coordinatorlink.h \
-			hyperdex/hyperdex/datatype.h \
 			hyperdex/hyperdex/ids.h \
 			hyperdex/hyperdex/instance.h \
 			hyperdex/hyperdex/microop.h \

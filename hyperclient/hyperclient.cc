@@ -37,9 +37,9 @@
 #include <e/guard.h>
 
 // HyperDex
+#include "hyperdex.h"
 #include "hyperdex/hyperdex/configuration.h"
 #include "hyperdex/hyperdex/coordinatorlink.h"
-#include "hyperdex/hyperdex/datatype.h"
 #include "hyperdex/hyperdex/instance.h"
 #include "hyperdex/hyperdex/microop.h"
 #include "hyperdex/hyperdex/network_constants.h"
@@ -50,7 +50,7 @@
 #define HDRSIZE (sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint8_t) + 2 * sizeof(uint16_t) + 2 * hyperdex::entityid::SERIALIZEDSIZE + sizeof(uint64_t))
 
 #define MICROOP_BASE_SIZE \
-    (sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t) + sizeof(int64_t) * 2 + sizeof(uint32_t) * 2)
+    (sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(int64_t) * 2 + sizeof(uint32_t) * 2)
 
 // XXX 2012-01-22 When failures happen, this code is not robust.  It may throw
 // exceptions, and it will fail to properly cleanup state.  For instance, if a
@@ -271,36 +271,6 @@ hyperclient_destroy_attrs(struct hyperclient_attribute* attrs, size_t /*attrs_sz
 
 /////////////////////////////// Utility Functions //////////////////////////////
 
-static hyperclient_datatype
-hd_to_hc_type(hyperdex::datatype in)
-{
-    switch (in)
-    {
-        case hyperdex::DATATYPE_STRING:
-            return HYPERDATATYPE_STRING;
-        case hyperdex::DATATYPE_INT64:
-            return HYPERDATATYPE_INT64;
-        case hyperdex::DATATYPE_LIST_STRING:
-            return HYPERDATATYPE_LIST_STRING;
-        case hyperdex::DATATYPE_LIST_INT64:
-            return HYPERDATATYPE_LIST_INT64;
-        case hyperdex::DATATYPE_SET_STRING:
-            return HYPERDATATYPE_SET_STRING;
-        case hyperdex::DATATYPE_SET_INT64:
-            return HYPERDATATYPE_SET_INT64;
-        case hyperdex::DATATYPE_MAP_STRING_STRING:
-            return HYPERDATATYPE_MAP_STRING_STRING;
-        case hyperdex::DATATYPE_MAP_STRING_INT64:
-            return HYPERDATATYPE_MAP_STRING_INT64;
-        case hyperdex::DATATYPE_MAP_INT64_STRING:
-            return HYPERDATATYPE_MAP_INT64_STRING;
-        case hyperdex::DATATYPE_MAP_INT64_INT64:
-            return HYPERDATATYPE_MAP_INT64_INT64;
-        default:
-            return HYPERDATATYPE_GARBAGE;
-    }
-}
-
 static bool
 attributes_from_value(const hyperdex::configuration& config,
                       const hyperdex::entityid& entity,
@@ -352,7 +322,7 @@ attributes_from_value(const hyperdex::configuration& config,
         memmove(data, key, key_sz);
         data += key_sz;
         ha.back().value_sz = key_sz;
-        ha.back().datatype = hd_to_hc_type(dimension_names[0].type);
+        ha.back().datatype = dimension_names[0].type;
     }
 
     for (size_t i = 0; i < value.size(); ++i)
@@ -366,7 +336,7 @@ attributes_from_value(const hyperdex::configuration& config,
         memmove(data, value[i].data(), value[i].size());
         data += value[i].size();
         ha.back().value_sz = value[i].size();
-        ha.back().datatype = hd_to_hc_type(dimension_names[i + 1].type);
+        ha.back().datatype = dimension_names[i + 1].type;
     }
 
     memmove(ret, &ha.front(), sizeof(hyperclient_attribute) * ha.size());
@@ -1088,7 +1058,7 @@ hyperclient :: atomic_ops(int action, const char* space,
 
         hyperdex::microop o;
         o.attr = idx;
-        o.type = hyperdex::DATATYPE_INT64;
+        o.type = HYPERDATATYPE_INT64;
         o.action = static_cast<hyperdex::microop_type>(action);
         o.argv1_int64 = 0;
         memmove(&o.argv1_int64, attrs[i].value, std::min(attrs[i].value_sz, sizeof(int64_t)));
@@ -1169,7 +1139,7 @@ hyperclient :: string_ops(int action, const char* space,
 
         hyperdex::microop o;
         o.attr = idx;
-        o.type = hyperdex::DATATYPE_STRING;
+        o.type = HYPERDATATYPE_STRING;
         o.action = static_cast<hyperdex::microop_type>(action);
         o.argv1_string = e::slice(attrs[i].value, attrs[i].value_sz);
 
@@ -1234,7 +1204,7 @@ hyperclient :: list_ops(int action, const char* space,
             return -1 - i;
         }
 
-        hyperclient_datatype t = HYPERDATATYPE_LIST_STRING;
+        hyperdatatype t = HYPERDATATYPE_LIST_STRING;
 
         if (attrs[i].datatype == HYPERDATATYPE_INT64)
         {
@@ -1254,12 +1224,12 @@ hyperclient :: list_ops(int action, const char* space,
 
         if (attrs[i].datatype == HYPERDATATYPE_STRING)
         {
-            o.type = hyperdex::DATATYPE_LIST_STRING;
+            o.type = HYPERDATATYPE_LIST_STRING;
             o.argv1_string = e::slice(attrs[i].value, attrs[i].value_sz);
         }
         else
         {
-            o.type = hyperdex::DATATYPE_LIST_INT64;
+            o.type = HYPERDATATYPE_LIST_INT64;
             o.argv1_int64 = 0;
             memmove(&o.argv1_int64, attrs[i].value, std::min(attrs[i].value_sz, sizeof(int64_t)));
         }
@@ -1327,7 +1297,7 @@ hyperclient :: set_ops(int action, const char* space,
             return -1 - i;
         }
 
-        hyperclient_datatype t = HYPERDATATYPE_SET_STRING;
+        hyperdatatype t = HYPERDATATYPE_SET_STRING;
 
         if (attrs[i].datatype == HYPERDATATYPE_INT64 ||
             attrs[i].datatype == HYPERDATATYPE_SET_INT64)
@@ -1349,17 +1319,17 @@ hyperclient :: set_ops(int action, const char* space,
         if (attrs[i].datatype == HYPERDATATYPE_STRING ||
             attrs[i].datatype == HYPERDATATYPE_SET_STRING)
         {
-            o.type = hyperdex::DATATYPE_SET_STRING;
+            o.type = HYPERDATATYPE_SET_STRING;
             o.argv1_string = e::slice(attrs[i].value, attrs[i].value_sz);
         }
         else if (attrs[i].datatype == HYPERDATATYPE_SET_INT64)
         {
-            o.type = hyperdex::DATATYPE_SET_INT64;
+            o.type = HYPERDATATYPE_SET_INT64;
             o.argv1_string = e::slice(attrs[i].value, attrs[i].value_sz);
         }
         else
         {
-            o.type = hyperdex::DATATYPE_SET_INT64;
+            o.type = HYPERDATATYPE_SET_INT64;
             o.argv1_int64 = 0;
             memmove(&o.argv1_int64, attrs[i].value, std::min(attrs[i].value_sz, sizeof(int64_t)));
         }
@@ -1795,7 +1765,7 @@ int
 hyperclient :: validate_attr(const std::vector<hyperdex::attribute>& dimension_names,
                              e::bitfield* dimensions_seen,
                              const char* attr,
-                             hyperclient_datatype type,
+                             hyperdatatype type,
                              hyperclient_returncode* status)
 {
     std::vector<hyperdex::attribute>::const_iterator dim;
@@ -1826,7 +1796,7 @@ hyperclient :: validate_attr(const std::vector<hyperdex::attribute>& dimension_n
         return -1;
     }
 
-    if (type != hd_to_hc_type(dim->type))
+    if (type != dim->type)
     {
         *status = HYPERCLIENT_WRONGTYPE;
         return -1;

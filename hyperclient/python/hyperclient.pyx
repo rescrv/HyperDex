@@ -45,11 +45,9 @@ cdef extern from "sys/socket.h":
     ctypedef uint16_t in_port_t
     cdef struct sockaddr
 
-cdef extern from "../hyperclient.h":
+cdef extern from "../../hyperdex.h":
 
-    cdef struct hyperclient
-
-    cdef enum hyperclient_datatype:
+    cdef enum hyperdatatype:
         HYPERDATATYPE_STRING      = 8960
         HYPERDATATYPE_INT64       = 8961
         HYPERDATATYPE_LIST_STRING = 8976
@@ -58,11 +56,15 @@ cdef extern from "../hyperclient.h":
         HYPERDATATYPE_SET_INT64   = 8993
         HYPERDATATYPE_GARBAGE     = 9087
 
+cdef extern from "../hyperclient.h":
+
+    cdef struct hyperclient
+
     cdef struct hyperclient_attribute:
         char* attr
         char* value
         size_t value_sz
-        hyperclient_datatype datatype
+        hyperdatatype datatype
 
     cdef struct hyperclient_range_query:
         char* attr

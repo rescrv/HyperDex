@@ -33,7 +33,7 @@
 #include <e/slice.h>
 
 // HyperDex
-#include "hyperdex/hyperdex/datatype.h"
+#include "hyperdex.h"
 
 namespace hyperdex
 {
@@ -72,7 +72,7 @@ class microop
 
     public:
         uint16_t attr;
-        datatype type;
+        hyperdatatype type;
         microop_type action;
         int64_t argv1_int64;
         int64_t argv2_int64;
