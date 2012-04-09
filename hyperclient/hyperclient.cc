@@ -212,6 +212,10 @@ HYPERCLIENT_CDEF_STANDARD_CALL(string_prepend)
 HYPERCLIENT_CDEF_STANDARD_CALL(string_append)
 HYPERCLIENT_CDEF_STANDARD_CALL(list_lpush)
 HYPERCLIENT_CDEF_STANDARD_CALL(list_rpush)
+HYPERCLIENT_CDEF_STANDARD_CALL(set_add)
+HYPERCLIENT_CDEF_STANDARD_CALL(set_remove)
+HYPERCLIENT_CDEF_STANDARD_CALL(set_intersect)
+HYPERCLIENT_CDEF_STANDARD_CALL(set_union)
 
 int64_t
 hyperclient_search(struct hyperclient* client, const char* space,
@@ -280,6 +284,18 @@ hd_to_hc_type(hyperdex::datatype in)
             return HYPERDATATYPE_LIST_STRING;
         case hyperdex::DATATYPE_LIST_INT64:
             return HYPERDATATYPE_LIST_INT64;
+        case hyperdex::DATATYPE_SET_STRING:
+            return HYPERDATATYPE_SET_STRING;
+        case hyperdex::DATATYPE_SET_INT64:
+            return HYPERDATATYPE_SET_INT64;
+        case hyperdex::DATATYPE_MAP_STRING_STRING:
+            return HYPERDATATYPE_MAP_STRING_STRING;
+        case hyperdex::DATATYPE_MAP_STRING_INT64:
+            return HYPERDATATYPE_MAP_STRING_INT64;
+        case hyperdex::DATATYPE_MAP_INT64_STRING:
+            return HYPERDATATYPE_MAP_INT64_STRING;
+        case hyperdex::DATATYPE_MAP_INT64_INT64:
+            return HYPERDATATYPE_MAP_INT64_INT64;
         default:
             return HYPERDATATYPE_GARBAGE;
     }
@@ -1257,6 +1273,108 @@ hyperclient :: list_ops(int action, const char* space,
 
 HYPERCLIENT_CPPDEF(list, lpush, LIST_LPUSH)
 HYPERCLIENT_CPPDEF(list, rpush, LIST_RPUSH)
+
+int64_t
+hyperclient :: set_ops(int action, const char* space,
+                       const char* key, size_t key_sz,
+                       const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                       enum hyperclient_returncode* status)
+{
+    if (maintain_coord_connection(status) < 0)
+    {
+        return -1;
+    }
+
+    // A new pending op
+    e::intrusive_ptr<pending> op;
+    op = new pending_statusonly(hyperdex::REQ_ATOMIC, hyperdex::RESP_ATOMIC, status);
+    // The size of the buffer we need
+    size_t sz = HDRSIZE
+              + sizeof(uint32_t)
+              + key_sz
+              + sizeof(uint32_t)
+              + MICROOP_BASE_SIZE * attrs_sz;
+
+    for (size_t i = 0; i < attrs_sz; ++i)
+    {
+        sz += attrs[i].value_sz;
+    }
+
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    e::buffer::packer p = msg->pack_at(HDRSIZE);
+    p = p << e::slice(key, key_sz) << static_cast<uint32_t>(attrs_sz);
+
+    hyperdex::spaceid si = m_config->space(space);
+
+    if (si == hyperdex::spaceid())
+    {
+        *status = HYPERCLIENT_UNKNOWNSPACE;
+        return -1;
+    }
+
+    std::vector<hyperdex::attribute> dims = m_config->dimension_names(si);
+    assert(dims.size() > 0);
+
+    // XXX Need to sort attrs by attr number
+    for (size_t i = 0; i < attrs_sz; ++i)
+    {
+        if (attrs[i].datatype != HYPERDATATYPE_STRING &&
+            attrs[i].datatype != HYPERDATATYPE_INT64 &&
+            attrs[i].datatype != HYPERDATATYPE_SET_STRING &&
+            attrs[i].datatype != HYPERDATATYPE_SET_INT64)
+        {
+            *status = HYPERCLIENT_WRONGTYPE;
+            return -1 - i;
+        }
+
+        hyperclient_datatype t = HYPERDATATYPE_SET_STRING;
+
+        if (attrs[i].datatype == HYPERDATATYPE_INT64 ||
+            attrs[i].datatype == HYPERDATATYPE_SET_INT64)
+        {
+            t = HYPERDATATYPE_SET_INT64;
+        }
+
+        int idx = validate_attr(dims, NULL, attrs[i].attr, t, status);
+
+        if (idx < 0)
+        {
+            return -1 - i;
+        }
+
+        hyperdex::microop o;
+        o.attr = idx;
+        o.action = static_cast<hyperdex::microop_type>(action);
+
+        if (attrs[i].datatype == HYPERDATATYPE_STRING ||
+            attrs[i].datatype == HYPERDATATYPE_SET_STRING)
+        {
+            o.type = hyperdex::DATATYPE_SET_STRING;
+            o.argv1_string = e::slice(attrs[i].value, attrs[i].value_sz);
+        }
+        else if (attrs[i].datatype == HYPERDATATYPE_SET_INT64)
+        {
+            o.type = hyperdex::DATATYPE_SET_INT64;
+            o.argv1_string = e::slice(attrs[i].value, attrs[i].value_sz);
+        }
+        else
+        {
+            o.type = hyperdex::DATATYPE_SET_INT64;
+            o.argv1_int64 = 0;
+            memmove(&o.argv1_int64, attrs[i].value, std::min(attrs[i].value_sz, sizeof(int64_t)));
+        }
+
+        p = p << o;
+    }
+
+    assert(!p.error());
+    return add_keyop(space, key, key_sz, msg, op);
+}
+
+HYPERCLIENT_CPPDEF(set, add, SET_ADD)
+HYPERCLIENT_CPPDEF(set, remove, SET_REMOVE)
+HYPERCLIENT_CPPDEF(set, intersect, SET_INTERSECT)
+HYPERCLIENT_CPPDEF(set, union, SET_UNION)
 
 int64_t
 hyperclient :: search(const char* space,

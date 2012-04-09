@@ -39,6 +39,7 @@
 #include <limits>
 
 // STL
+#include <algorithm>
 #include <iomanip>
 #include <set>
 #include <sstream>

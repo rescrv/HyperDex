@@ -81,7 +81,9 @@ def _fill_to_region(upper_bound, auto_prefix, auto_f, target):
 
 
 def parse_dimension(dim):
-    return hdtypes.Dimension(dim[0], dim[1])
+    name = dim[0]
+    datatype = ''.join(dim[1])
+    return hdtypes.Dimension(name, datatype)
 
 
 def parse_regions(regions):
@@ -149,12 +151,22 @@ def parse_space(space):
 identifier = Word(string.ascii_letters + string.digits + '_')
 integer = Word(string.digits).setParseAction(lambda t: int(t[0]))
 hexnum  = Combine(Literal("0x") + Word(string.hexdigits)).setParseAction(lambda t: int(t[0][2:], 16))
-datatype = Literal("string") \
-         | Literal("int64") \
-         | Literal("list(string)") \
-         | Literal("list(int64)")
+LSTR = Literal("string")
+LINT = Literal("int64")
+LPOD = (LSTR | LINT)
+LOP  = Literal("(")
+LCP  = Literal(")")
+LCMA = Literal(",")
+LLST = Literal("list")
+LSET = Literal("set")
+LMAP = Literal("map")
+datatype = LSTR \
+         | LINT \
+         | Group(LLST + LOP + LPOD + LCP) \
+         | Group(LSET + LOP + LPOD + LCP) \
+         | Group(LMAP + LOP + LPOD + LCMA + LPOD + LCP)
 dimension = identifier.setResultsName("name") + \
-            Optional(Suppress(Literal("(")) + datatype +
+            Optional(Suppress(Literal("(")) + (datatype) +
                      Suppress(Literal(")")), default="string").setResultsName("type")
 dimension.setParseAction(parse_dimension)
 autoregion = Literal("auto") + integer + integer

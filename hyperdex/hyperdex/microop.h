@@ -57,7 +57,12 @@ enum microop_type
     OP_INT64_XOR,
 
     OP_LIST_LPUSH,
-    OP_LIST_RPUSH
+    OP_LIST_RPUSH,
+
+    OP_SET_ADD,
+    OP_SET_REMOVE,
+    OP_SET_INTERSECT,
+    OP_SET_UNION
 };
 
 class microop

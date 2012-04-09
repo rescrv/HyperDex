@@ -418,6 +418,12 @@ hyperdex :: configuration_parser :: parse_subspace(char* start,
                 // Types which we cannot hash for searching
                 case DATATYPE_LIST_STRING:
                 case DATATYPE_LIST_INT64:
+                case DATATYPE_SET_STRING:
+                case DATATYPE_SET_INT64:
+                case DATATYPE_MAP_STRING_STRING:
+                case DATATYPE_MAP_STRING_INT64:
+                case DATATYPE_MAP_INT64_STRING:
+                case DATATYPE_MAP_INT64_INT64:
                     return CP_ATTR_NOT_SEARCHABLE;
                 default:
                     abort();
@@ -722,6 +728,16 @@ hyperdex :: configuration_parser :: extract_datatype(char* start,
         *t = DATATYPE_LIST_INT64;
         return CP_SUCCESS;
     }
+    else if (strcmp(start, "set(string)") == 0)
+    {
+        *t = DATATYPE_SET_STRING;
+        return CP_SUCCESS;
+    }
+    else if (strcmp(start, "set(int64)") == 0)
+    {
+        *t = DATATYPE_SET_INT64;
+        return CP_SUCCESS;
+    }
     else
     {
         return CP_BAD_BOOL;
@@ -874,6 +890,12 @@ hyperdex :: configuration_parser :: attrs_to_hashfuncs(const subspaceid& ssi,
                     break;
                 case DATATYPE_LIST_STRING:
                 case DATATYPE_LIST_INT64:
+                case DATATYPE_SET_STRING:
+                case DATATYPE_SET_INT64:
+                case DATATYPE_MAP_STRING_STRING:
+                case DATATYPE_MAP_STRING_INT64:
+                case DATATYPE_MAP_INT64_STRING:
+                case DATATYPE_MAP_INT64_INT64:
                 default:
                     abort();
             }

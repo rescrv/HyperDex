@@ -54,6 +54,8 @@ cdef extern from "../hyperclient.h":
         HYPERDATATYPE_INT64       = 8961
         HYPERDATATYPE_LIST_STRING = 8976
         HYPERDATATYPE_LIST_INT64  = 8977
+        HYPERDATATYPE_SET_STRING  = 8992
+        HYPERDATATYPE_SET_INT64   = 8993
         HYPERDATATYPE_GARBAGE     = 9087
 
     cdef struct hyperclient_attribute:
@@ -110,6 +112,10 @@ cdef extern from "../hyperclient.h":
     int64_t hyperclient_string_append(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_list_lpush(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_list_rpush(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_set_add(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_set_remove(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_set_intersect(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_set_union(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_search(hyperclient* client, char* space, hyperclient_attribute* eq, size_t eq_sz, hyperclient_range_query* rn, size_t rn_sz, hyperclient_returncode* status, hyperclient_attribute** attrs, size_t* attrs_sz)
     int64_t hyperclient_loop(hyperclient* client, int timeout, hyperclient_returncode* status)
     void hyperclient_destroy_attrs(hyperclient_attribute* attrs, size_t attrs_sz)
@@ -145,6 +151,10 @@ class HyperClientException(Exception):
         return self._s
 
 
+def __string_key(obj):
+    return len(obj), obj
+
+
 cdef _dict_to_attrs(list value, hyperclient_attribute** attrs):
     cdef list backings = []
     cdef bytes backing
@@ -174,6 +184,22 @@ cdef _dict_to_attrs(list value, hyperclient_attribute** attrs):
                 attrs[0][i].datatype = HYPERDATATYPE_LIST_STRING
             else:
                 raise TypeError("Cannot store heterogeneous lists")
+            backings.append(backing)
+            attrs[0][i].value = backing
+            attrs[0][i].value_sz = len(backing)
+        elif isinstance(v, set):
+            backing = b''
+            if all([isinstance(x, int) for x in v]):
+                for x in sorted(v):
+                    backing += struct.pack('<q', x)
+                attrs[0][i].datatype = HYPERDATATYPE_SET_INT64
+            elif all([isinstance(x, bytes) for x in v]):
+                for x in sorted(v, key=__string_key):
+                    backing += struct.pack('<L', len(x))
+                    backing += bytes(x)
+                attrs[0][i].datatype = HYPERDATATYPE_SET_STRING
+            else:
+                raise TypeError("Cannot store heterogeneous sets")
             backings.append(backing)
             attrs[0][i].value = backing
             attrs[0][i].value_sz = len(backing)
@@ -226,6 +252,31 @@ cdef _attrs_to_dict(hyperclient_attribute* attrs, size_t attrs_sz):
             if rem:
                 raise ValueError("list(int64) contains excess data (file a bug)")
             ret[attrs[idx].attr] = lst
+        elif attrs[idx].datatype == HYPERDATATYPE_SET_STRING:
+            pos = 0
+            rem = attrs[idx].value_sz
+            st = set([])
+            while rem >= 4:
+                sz = struct.unpack('<i', attrs[idx].value[pos:pos + 4])[0]
+                if rem - 4 < sz:
+                    raise ValueError("set(string) is improperly structured (file a bug)")
+                st.add(attrs[idx].value[pos + 4:pos + 4 + sz])
+                pos += 4 + sz
+                rem -= 4 + sz
+            if rem:
+                raise ValueError("set(string) contains excess data (file a bug)")
+            ret[attrs[idx].attr] = st
+        elif attrs[idx].datatype == HYPERDATATYPE_SET_INT64:
+            pos = 0
+            rem = attrs[idx].value_sz
+            st = set([])
+            while rem >= 8:
+                st.add(struct.unpack('<q', attrs[idx].value[pos:pos + 8])[0])
+                pos += 8
+                rem -= 8
+            if rem:
+                raise ValueError("set(int64) contains excess data (file a bug)")
+            ret[attrs[idx].attr] = st
         else:
             raise ValueError("Server returned garbage value (file a bug)")
     return ret
@@ -335,6 +386,18 @@ cdef class DeferredFromAttrs(Deferred):
                         key_cstr, len(key), attrs, len(value), &self._status)
             elif op == 'rpush':
                 self._reqid = hyperclient_list_rpush(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'setadd':
+                self._reqid = hyperclient_set_add(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'remove':
+                self._reqid = hyperclient_set_remove(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'intersect':
+                self._reqid = hyperclient_set_intersect(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'union':
+                self._reqid = hyperclient_set_union(client._client, space_cstr,
                         key_cstr, len(key), attrs, len(value), &self._status)
             else:
                 raise AttributeError("op == {0} is not valid".format(op))
@@ -574,6 +637,22 @@ cdef class Client:
         async = self.async_list_rpush(space, key, value)
         return async.wait()
 
+    def set_add(self, bytes space, bytes key, dict value):
+        async = self.async_set_add(space, key, value)
+        return async.wait()
+
+    def set_remove(self, bytes space, bytes key, dict value):
+        async = self.async_set_remove(space, key, value)
+        return async.wait()
+
+    def set_intersect(self, bytes space, bytes key, dict value):
+        async = self.async_set_intersect(space, key, value)
+        return async.wait()
+
+    def set_union(self, bytes space, bytes key, dict value):
+        async = self.async_set_union(space, key, value)
+        return async.wait()
+
     def search(self, bytes space, dict predicate):
         return Search(self, space, predicate)
 
@@ -624,6 +703,18 @@ cdef class Client:
 
     def async_list_rpush(self, bytes space, bytes key, dict value):
         return DeferredFromAttrs(self, space, key, value, 'rpush')
+
+    def async_set_add(self, bytes space, bytes key, dict value):
+        return DeferredFromAttrs(self, space, key, value, 'setadd')
+
+    def async_set_remove(self, bytes space, bytes key, dict value):
+        return DeferredFromAttrs(self, space, key, value, 'remove')
+
+    def async_set_intersect(self, bytes space, bytes key, dict value):
+        return DeferredFromAttrs(self, space, key, value, 'intersect')
+
+    def async_set_union(self, bytes space, bytes key, dict value):
+        return DeferredFromAttrs(self, space, key, value, 'union')
 
     def loop(self):
         cdef hyperclient_returncode rc

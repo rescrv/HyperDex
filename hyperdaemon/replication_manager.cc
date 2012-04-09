@@ -29,6 +29,7 @@
 
 // C
 #include <stdint.h>
+#include <cstdio>
 
 // STL
 #include <algorithm>
@@ -340,7 +341,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
     }
 
     // Calculate the new size of the object
-    size_t new_size = 0;
+    size_t new_size = key.size();
 
     for (size_t i = 0; i < old_value.size(); ++i)
     {
@@ -455,6 +456,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
     {
         assert(next_to_copy > 0);
         size_t idx = next_to_copy - 1;
+        size_t sz = old_value[idx].size();
         memmove(data, old_value[idx].data(), old_value[idx].size());
         new_value[idx] = e::slice(data, old_value[idx].size());
         data += old_value[idx].size();
