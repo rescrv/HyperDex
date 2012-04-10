@@ -908,43 +908,6 @@ validate_set_int64(const e::slice& set)
 }
 
 static uint8_t*
-apply_set_add_remove_string(const e::slice& old_value,
-                            const hyperdex::microop* ops,
-                            size_t num_ops,
-                            uint8_t* writeto,
-                            hyperdex::network_returncode* error)
-{
-    return apply_set_add_remove(validate_string, compare_string_micro_arg1,
-                                copy_string_from_serialized,
-                                copy_string_from_micro_arg1,
-                                old_value, ops, num_ops, writeto, error);
-}
-
-static uint8_t*
-apply_set_intersect_string(const e::slice& old_value,
-                           const hyperdex::microop* ops,
-                           size_t num_ops,
-                           uint8_t* writeto,
-                           hyperdex::network_returncode* error)
-{
-    return apply_set_intersect(validate_set_string, validate_string,
-                               compare_string, copy_string_from_serialized,
-                               old_value, ops, num_ops, writeto, error);
-}
-
-static uint8_t*
-apply_set_union_string(const e::slice& old_value,
-                       const hyperdex::microop* ops,
-                       size_t num_ops,
-                       uint8_t* writeto,
-                       hyperdex::network_returncode* error)
-{
-    return apply_set_union(validate_set_string, validate_string,
-                           compare_string, copy_string_from_serialized,
-                           old_value, ops, num_ops, writeto, error);
-}
-
-static uint8_t*
 apply_set_string(const e::slice& old_value,
                  const hyperdex::microop* ops,
                  size_t num_ops,
@@ -956,58 +919,30 @@ apply_set_string(const e::slice& old_value,
     if (ops[0].action == hyperdex::OP_SET_ADD ||
         ops[0].action == hyperdex::OP_SET_REMOVE)
     {
-        return apply_set_add_remove_string(old_value, ops, num_ops, writeto, error);
+        return apply_set_add_remove(validate_string,
+                                    compare_string_micros_arg1,
+                                    compare_string_micro_arg1,
+                                    copy_string_from_serialized,
+                                    copy_string_from_micro_arg1,
+                                    old_value, ops, num_ops, writeto, error);
     }
     else if (ops[0].action == hyperdex::OP_SET_INTERSECT)
     {
-        return apply_set_intersect_string(old_value, ops, num_ops, writeto, error);
+        return apply_set_intersect(validate_set_string, validate_string,
+                                   compare_string, copy_string_from_serialized,
+                                   old_value, ops, num_ops, writeto, error);
     }
     else if (ops[0].action == hyperdex::OP_SET_UNION)
     {
-        return apply_set_union_string(old_value, ops, num_ops, writeto, error);
+        return apply_set_union(validate_set_string, validate_string,
+                               compare_string, copy_string_from_serialized,
+                               old_value, ops, num_ops, writeto, error);
     }
     else
     {
         *error = hyperdex::NET_BADMICROS;
         return NULL;
     }
-}
-
-static uint8_t*
-apply_set_add_remove_int64(const e::slice& old_value,
-                           const hyperdex::microop* ops,
-                           size_t num_ops,
-                           uint8_t* writeto,
-                           hyperdex::network_returncode* error)
-{
-    return apply_set_add_remove(validate_int64, compare_int64_micro_arg1,
-                                copy_int64_from_serialized,
-                                copy_int64_from_micro_arg1,
-                                old_value, ops, num_ops, writeto, error);
-}
-
-static uint8_t*
-apply_set_intersect_int64(const e::slice& old_value,
-                          const hyperdex::microop* ops,
-                          size_t num_ops,
-                          uint8_t* writeto,
-                          hyperdex::network_returncode* error)
-{
-    return apply_set_intersect(validate_set_int64, validate_int64,
-                               compare_int64, copy_int64_from_serialized,
-                               old_value, ops, num_ops, writeto, error);
-}
-
-static uint8_t*
-apply_set_union_int64(const e::slice& old_value,
-                      const hyperdex::microop* ops,
-                      size_t num_ops,
-                      uint8_t* writeto,
-                      hyperdex::network_returncode* error)
-{
-    return apply_set_union(validate_set_int64, validate_int64,
-                           compare_int64, copy_int64_from_serialized,
-                           old_value, ops, num_ops, writeto, error);
 }
 
 static uint8_t*
@@ -1022,15 +957,24 @@ apply_set_int64(const e::slice& old_value,
     if (ops[0].action == hyperdex::OP_SET_ADD ||
         ops[0].action == hyperdex::OP_SET_REMOVE)
     {
-        return apply_set_add_remove_int64(old_value, ops, num_ops, writeto, error);
+        return apply_set_add_remove(validate_int64,
+                                    compare_int64_micros_arg1,
+                                    compare_int64_micro_arg1,
+                                    copy_int64_from_serialized,
+                                    copy_int64_from_micro_arg1,
+                                    old_value, ops, num_ops, writeto, error);
     }
     else if (ops[0].action == hyperdex::OP_SET_INTERSECT)
     {
-        return apply_set_intersect_int64(old_value, ops, num_ops, writeto, error);
+        return apply_set_intersect(validate_set_int64, validate_int64,
+                                   compare_int64, copy_int64_from_serialized,
+                                   old_value, ops, num_ops, writeto, error);
     }
     else if (ops[0].action == hyperdex::OP_SET_UNION)
     {
-        return apply_set_union_int64(old_value, ops, num_ops, writeto, error);
+        return apply_set_union(validate_set_int64, validate_int64,
+                               compare_int64, copy_int64_from_serialized,
+                               old_value, ops, num_ops, writeto, error);
     }
     else
     {
