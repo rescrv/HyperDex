@@ -33,6 +33,7 @@
 
 // e
 #include <e/bufferio.h>
+#include <e/endian.h>
 #include <e/guard.h>
 
 // HyperDaemon
@@ -594,7 +595,7 @@ hyperdaemon :: physical :: work_read(const hazard_ptr& hptr,
         return false;
     }
 
-    std::vector<char> buffer(65536, 0);
+    std::vector<uint8_t> buffer(65536, 0);
     ssize_t rem;
 
     // Restore leftovers from last time.
@@ -635,7 +636,7 @@ hyperdaemon :: physical :: work_read(const hazard_ptr& hptr,
     // We know rem is >= 0, so add the amount of preexisting data.
     rem += chan->inoffset;
     chan->inoffset = 0;
-    char* data = &buffer.front();
+    uint8_t* data = &buffer.front();
     bool ret = false;
 
     // XXX If this fails to allocate memory at any time, we need to just close
@@ -653,8 +654,7 @@ hyperdaemon :: physical :: work_read(const hazard_ptr& hptr,
             else
             {
                 uint32_t sz;
-                memmove(&sz, data, sizeof(uint32_t));
-                sz = be32toh(sz);
+                e::unpack32be(data, &sz);
                 // XXX sanity check sz to prevent memory exhaustion.
                 chan->inprogress.reset(e::buffer::create(sz));
                 memmove(chan->inprogress->data(), data, sizeof(uint32_t));

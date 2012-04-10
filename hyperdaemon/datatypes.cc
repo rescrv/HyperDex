@@ -268,8 +268,11 @@ apply_int64(const e::slice& old_value,
     using namespace hyperdex;
 
     int64_t number = 0;
-    memmove(&number, old_value.data(), std::min(old_value.size(), sizeof(number)));
-    number = le64toh(number);
+
+    if (old_value.size())
+    {
+        e::unpack64le(old_value.data(), &number);
+    }
 
     for (size_t i = 0; i < num_ops; ++i)
     {
@@ -320,9 +323,7 @@ apply_int64(const e::slice& old_value,
         }
     }
 
-    number = htole64(number);
-    memmove(writeto, &number, sizeof(number));
-    return writeto + sizeof(number);
+    return e::pack64le(number, writeto);
 }
 
 //////////////////////////// Abstract List Functions ///////////////////////////

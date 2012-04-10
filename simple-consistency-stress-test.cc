@@ -27,6 +27,10 @@
 
 // The purpose of this test is to expose consistency errors.
 
+// This code does 0 endianness conversion because it should be run on exactly
+// one host, and I needed to make it not rely upon the beXXtoh family of
+// functions.
+
 // C
 #include <cstdlib>
 #include <stdint.h>
@@ -244,7 +248,7 @@ writer_thread()
 
     for (int64_t i = 0; i < window; ++i)
     {
-        int64_t key = htobe64(i);
+        int64_t key = i;
         int64_t did;
         hyperclient_returncode dstatus;
 
@@ -297,8 +301,8 @@ writer_thread()
 
             for (count = 0; count < 65536; ++count)
             {
-                int64_t key = htobe64(i);
-                int64_t val = htobe64(r);
+                int64_t key = i;
+                int64_t val = r;
                 int64_t pid;
                 hyperclient_attribute attr;
                 hyperclient_returncode pstatus;
@@ -379,7 +383,7 @@ reader_thread()
 
             while (true)
             {
-                int64_t key = htobe64(i);
+                int64_t key = i;
                 int64_t gid;
                 hyperclient_attribute* attrs = NULL;
                 size_t attrs_sz = 0;
@@ -414,7 +418,6 @@ reader_thread()
                     int64_t val = 0;
                     memmove(&val, attrs[0].value, attrs[0].value_sz);
                     assert(attrs[0].datatype == HYPERDATATYPE_STRING);
-                    val = be64toh(val);
 
                     if (val < oldval)
                     {

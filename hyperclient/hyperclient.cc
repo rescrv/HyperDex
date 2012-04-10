@@ -34,6 +34,7 @@
 #include <tr1/memory>
 
 // e
+#include <e/endian.h>
 #include <e/guard.h>
 
 // HyperDex
@@ -1526,8 +1527,8 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
             continue;
         }
 
-        uint32_t size;
-        ssize_t ret = chan->sock().recv(&size, sizeof(size), MSG_DONTWAIT|MSG_PEEK);
+        uint8_t size_buf[sizeof(uint32_t)];
+        ssize_t ret = chan->sock().recv(size_buf, sizeof(uint32_t), MSG_DONTWAIT|MSG_PEEK);
 
         if (ret < 0 || ret == 0)
         {
@@ -1535,12 +1536,13 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
             m_coord->fail_location(chan->location());
             continue;
         }
-        else if (ret != sizeof(size))
+        else if (ret != sizeof(uint32_t))
         {
             continue;
         }
 
-        size = be32toh(size);
+        uint32_t size;
+        e::unpack32be(size_buf, &size);
         std::auto_ptr<e::buffer> response(e::buffer::create(size));
 
         if (chan->sock().xrecv(response->data(), size, 0) < size)
