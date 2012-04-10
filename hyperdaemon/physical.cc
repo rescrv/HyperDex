@@ -356,14 +356,6 @@ hyperdaemon :: physical :: recv(po6::net::location* from,
         g1.use_variable();
         g2.use_variable();
 
-        // Close the connection on error or hangup.
-        if ((events & EPOLLERR) || (events & EPOLLHUP))
-        {
-            *from = chan->loc;
-            work_close(hptr, chan);
-            return DISCONNECT;
-        }
-
         // Handle read I/O.
         if ((events & EPOLLIN))
         {
@@ -385,6 +377,14 @@ hyperdaemon :: physical :: recv(po6::net::location* from,
                 *from = chan->loc;
                 return res;
             }
+        }
+
+        // Close the connection on error or hangup.
+        if ((events & EPOLLERR) || (events & EPOLLHUP))
+        {
+            *from = chan->loc;
+            work_close(hptr, chan);
+            return DISCONNECT;
         }
     }
 }
