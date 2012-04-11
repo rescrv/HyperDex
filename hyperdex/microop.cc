@@ -34,10 +34,8 @@ hyperdex :: microop :: microop()
     : attr(-1)
     , type()
     , action(OP_FAIL)
-    , argv1_int64(0)
-    , argv2_int64(0)
-    , argv1_string()
-    , argv2_string()
+    , arg1()
+    , arg2()
 {
 }
 
@@ -47,8 +45,7 @@ hyperdex :: operator << (e::buffer::packer lhs, const microop& rhs)
     uint16_t type = static_cast<uint16_t>(rhs.type);
     uint8_t action = static_cast<uint8_t>(rhs.action);
     lhs = lhs << rhs.attr << type << action
-              << rhs.argv1_int64 << rhs.argv2_int64
-              << rhs.argv1_string << rhs.argv2_string;
+              << rhs.arg1 << rhs.arg2;
     return lhs;
 }
 
@@ -58,8 +55,7 @@ hyperdex :: operator >> (e::buffer::unpacker lhs, microop& rhs)
     uint16_t type;
     uint8_t action;
     lhs = lhs >> rhs.attr >> type >> action
-              >> rhs.argv1_int64 >> rhs.argv2_int64
-              >> rhs.argv1_string >> rhs.argv2_string;
+              >> rhs.arg1 >> rhs.arg2;
     rhs.type = static_cast<hyperdatatype>(type);
     rhs.action = static_cast<hyperdex::microop_type>(action);
     return lhs;

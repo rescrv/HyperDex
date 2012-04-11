@@ -1088,9 +1088,7 @@ hyperclient :: atomic_ops(int action, const char* space,
         o.attr = idx;
         o.type = HYPERDATATYPE_INT64;
         o.action = static_cast<hyperdex::microop_type>(action);
-        o.argv1_int64 = 0;
-        memmove(&o.argv1_int64, attrs[i].value, std::min(attrs[i].value_sz, sizeof(int64_t)));
-        o.argv1_int64 = le64toh(o.argv1_int64);
+        o.arg1 = e::slice(attrs[i].value, attrs[i].value_sz);
 
         p = p << o;
     }
@@ -1169,7 +1167,7 @@ hyperclient :: string_ops(int action, const char* space,
         o.attr = idx;
         o.type = HYPERDATATYPE_STRING;
         o.action = static_cast<hyperdex::microop_type>(action);
-        o.argv1_string = e::slice(attrs[i].value, attrs[i].value_sz);
+        o.arg1 = e::slice(attrs[i].value, attrs[i].value_sz);
 
         p = p << o;
     }
@@ -1249,17 +1247,15 @@ hyperclient :: list_ops(int action, const char* space,
         hyperdex::microop o;
         o.attr = idx;
         o.action = static_cast<hyperdex::microop_type>(action);
+        o.arg1 = e::slice(attrs[i].value, attrs[i].value_sz);
 
         if (attrs[i].datatype == HYPERDATATYPE_STRING)
         {
             o.type = HYPERDATATYPE_LIST_STRING;
-            o.argv1_string = e::slice(attrs[i].value, attrs[i].value_sz);
         }
         else
         {
             o.type = HYPERDATATYPE_LIST_INT64;
-            o.argv1_int64 = 0;
-            memmove(&o.argv1_int64, attrs[i].value, std::min(attrs[i].value_sz, sizeof(int64_t)));
         }
 
         p = p << o;
@@ -1343,23 +1339,20 @@ hyperclient :: set_ops(int action, const char* space,
         hyperdex::microop o;
         o.attr = idx;
         o.action = static_cast<hyperdex::microop_type>(action);
+        o.arg1 = e::slice(attrs[i].value, attrs[i].value_sz);
 
         if (attrs[i].datatype == HYPERDATATYPE_STRING ||
             attrs[i].datatype == HYPERDATATYPE_SET_STRING)
         {
             o.type = HYPERDATATYPE_SET_STRING;
-            o.argv1_string = e::slice(attrs[i].value, attrs[i].value_sz);
         }
         else if (attrs[i].datatype == HYPERDATATYPE_SET_INT64)
         {
             o.type = HYPERDATATYPE_SET_INT64;
-            o.argv1_string = e::slice(attrs[i].value, attrs[i].value_sz);
         }
         else
         {
             o.type = HYPERDATATYPE_SET_INT64;
-            o.argv1_int64 = 0;
-            memmove(&o.argv1_int64, attrs[i].value, std::min(attrs[i].value_sz, sizeof(int64_t)));
         }
 
         p = p << o;
@@ -1438,31 +1431,8 @@ hyperclient :: map_ops(int action, const char* space,
         o.attr = idx;
         o.type = attrs[i].datatype;
         o.action = static_cast<hyperdex::microop_type>(action);
-
-        if (attrs[i].datatype == HYPERDATATYPE_MAP_STRING_STRING)
-        {
-            o.argv2_string = e::slice(attrs[i].map_key, attrs[i].map_key_sz);
-            o.argv1_string = e::slice(attrs[i].value, attrs[i].value_sz);
-        }
-        else if (attrs[i].datatype == HYPERDATATYPE_MAP_STRING_INT64)
-        {
-            o.argv2_string = e::slice(attrs[i].map_key, attrs[i].map_key_sz);
-            o.argv1_int64 = 0;
-            memmove(&o.argv1_int64, attrs[i].value, std::min(attrs[i].value_sz, sizeof(int64_t)));
-        }
-        else if (attrs[i].datatype == HYPERDATATYPE_MAP_INT64_STRING)
-        {
-            o.argv2_int64 = 0;
-            memmove(&o.argv2_int64, attrs[i].map_key, std::min(attrs[i].map_key_sz, sizeof(int64_t)));
-            o.argv1_string = e::slice(attrs[i].value, attrs[i].value_sz);
-        }
-        else if (attrs[i].datatype == HYPERDATATYPE_MAP_INT64_INT64)
-        {
-            o.argv2_int64 = 0;
-            memmove(&o.argv2_int64, attrs[i].map_key, std::min(attrs[i].map_key_sz, sizeof(int64_t)));
-            o.argv1_int64 = 0;
-            memmove(&o.argv1_int64, attrs[i].value, std::min(attrs[i].value_sz, sizeof(int64_t)));
-        }
+        o.arg2 = e::slice(attrs[i].map_key, attrs[i].map_key_sz);
+        o.arg1 = e::slice(attrs[i].value, attrs[i].value_sz);
 
         p = p << o;
     }

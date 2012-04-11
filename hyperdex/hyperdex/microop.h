@@ -77,10 +77,8 @@ class microop
         uint16_t attr;
         hyperdatatype type;
         microop_type action;
-        int64_t argv1_int64;
-        int64_t argv2_int64;
-        e::slice argv1_string;
-        e::slice argv2_string;
+        e::slice arg1;
+        e::slice arg2;
 };
 
 e::buffer::packer
