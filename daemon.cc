@@ -96,10 +96,10 @@ static struct poptOption popts[] = {
 } // extern "C"
 
 int
-main(int argc, char* argv[])
+main(int argc, const char* argv[])
 {
     poptContext poptcon;
-    poptcon = poptGetContext(NULL, argc, (const char**) argv, popts, POPT_CONTEXT_POSIXMEHARDER);
+    poptcon = poptGetContext(NULL, argc, argv, popts, POPT_CONTEXT_POSIXMEHARDER);
     e::guard g = e::makeguard(poptFreeContext, poptcon);
     g.use_variable();
     int rc;

@@ -25,42 +25,42 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_attribute_h_
-#define hyperdex_attribute_h_
-
-// STL
-#include <string>
+#include <iostream>
 
 // HyperDex
-#include <hyperdex.h>
+#include "hyperdex/hyperdex/microop.h"
 
-namespace hyperdex
+hyperdex :: microop :: microop()
+    : attr(-1)
+    , type()
+    , action(OP_FAIL)
+    , argv1_int64(0)
+    , argv2_int64(0)
+    , argv1_string()
+    , argv2_string()
 {
+}
 
-class attribute
+e::buffer::packer
+hyperdex :: operator << (e::buffer::packer lhs, const microop& rhs)
 {
-    public:
-        attribute()
-            : name(), type() {}
-        attribute(const std::string& n, hyperdatatype t)
-            : name(n), type(t) {}
-        attribute(const attribute& other)
-            : name(other.name), type(other.type) {}
+    uint16_t type = static_cast<uint16_t>(rhs.type);
+    uint8_t action = static_cast<uint8_t>(rhs.action);
+    lhs = lhs << rhs.attr << type << action
+              << rhs.argv1_int64 << rhs.argv2_int64
+              << rhs.argv1_string << rhs.argv2_string;
+    return lhs;
+}
 
-    public:
-        attribute& operator = (const attribute& rhs)
-        {
-            // Rely upon inner operator = to check self-assign
-            name = rhs.name;
-            type = rhs.type;
-            return *this;
-        }
-
-    public:
-        std::string name;
-        hyperdatatype type;
-};
-
-} // namespace hyperdex
-
-#endif // hyperdex_attribute_h_
+e::buffer::unpacker
+hyperdex :: operator >> (e::buffer::unpacker lhs, microop& rhs)
+{
+    uint16_t type;
+    uint8_t action;
+    lhs = lhs >> rhs.attr >> type >> action
+              >> rhs.argv1_int64 >> rhs.argv2_int64
+              >> rhs.argv1_string >> rhs.argv2_string;
+    rhs.type = static_cast<hyperdatatype>(type);
+    rhs.action = static_cast<hyperdex::microop_type>(action);
+    return lhs;
+}

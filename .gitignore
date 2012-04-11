@@ -40,6 +40,7 @@ hyperclient/python/hyperclient.la
 hyperclient/python/hyperclient_python_hyperclient_la-hyperclient.lo
 hyperclient/python/hyperclient_python_hyperclient_la-hyperclient.o
 hypercoordinator/coordinator.pyc
+hypercoordinator/hdjson.pyc
 hypercoordinator/hdtypes.pyc
 hypercoordinator/hdjson.pyc
 hypercoordinator/__init__.pyc
@@ -50,6 +51,8 @@ hyperdaemon/libhyperdaemon_la-daemon.lo
 hyperdaemon/libhyperdaemon_la-daemon.o
 hyperdaemon/libhyperdaemon_la-datalayer.lo
 hyperdaemon/libhyperdaemon_la-datalayer.o
+hyperdaemon/libhyperdaemon_la-datatypes.lo
+hyperdaemon/libhyperdaemon_la-datatypes.o
 hyperdaemon/libhyperdaemon_la-logical.lo
 hyperdaemon/libhyperdaemon_la-logical.o
 hyperdaemon/libhyperdaemon_la-network_worker.lo
@@ -77,6 +80,8 @@ hyperdex/libhyperdex_la-configuration_parser.lo
 hyperdex/libhyperdex_la-configuration_parser.o
 hyperdex/libhyperdex_la-coordinatorlink.lo
 hyperdex/libhyperdex_la-coordinatorlink.o
+hyperdex/libhyperdex_la-microop.lo
+hyperdex/libhyperdex_la-microop.o
 hyperdex/.libs/
 hyperdex-replication-stress-test
 hyperdex_replication_stress_test-replication-stress-test.o

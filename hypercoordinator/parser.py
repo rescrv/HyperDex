@@ -36,6 +36,9 @@ from pyparsing import Combine, Forward, Group, Literal, Optional, Suppress, Zero
 from hypercoordinator import hdtypes
 
 
+SEARCHABLE_TYPES = ('string', 'int64')
+
+
 def _encompases(outter, inner):
     '''Check if the outter region contains the inner region.
 
@@ -78,7 +81,9 @@ def _fill_to_region(upper_bound, auto_prefix, auto_f, target):
 
 
 def parse_dimension(dim):
-    return hdtypes.Dimension(dim[0], dim[1])
+    name = dim[0]
+    datatype = ''.join(dim[1])
+    return hdtypes.Dimension(name, datatype)
 
 
 def parse_regions(regions):
@@ -126,14 +131,19 @@ def parse_subspace(subspace):
 
 
 def parse_space(space):
-    dims = [dim.name for dim in list(space.dimensions)]
+    dims = dict([(dim.name, dim.datatype) for dim in list(space.dimensions)])
     if space.key not in dims:
         raise ValueError("Space key must be one of its dimensions.")
+    nosearch = tuple([dim.name for dim in list(space.dimensions)
+                      if dim.datatype not in SEARCHABLE_TYPES])
     for subspace in space.subspaces:
         for dim in set(subspace.dimensions):
             if dim not in dims:
                 raise ValueError("Subspace dimension {0} must be one of its dimensions.".format(repr(dim)))
-    keysubspace = hdtypes.Subspace(dimensions=[space.key], nosearch=[], regions=list(space.keyregions))
+            if dims[dim] not in ('string', 'int64'):
+                raise ValueError("Subspace dimension {0} is not a searchable type.".format(repr(dim)))
+        subspace._nosearch += nosearch
+    keysubspace = hdtypes.Subspace(dimensions=[space.key], nosearch=list(nosearch), regions=list(space.keyregions))
     subspaces = [keysubspace] + list(space.subspaces)
     return hdtypes.Space(space.name, space.dimensions, subspaces)
 
@@ -141,9 +151,22 @@ def parse_space(space):
 identifier = Word(string.ascii_letters + string.digits + '_')
 integer = Word(string.digits).setParseAction(lambda t: int(t[0]))
 hexnum  = Combine(Literal("0x") + Word(string.hexdigits)).setParseAction(lambda t: int(t[0][2:], 16))
+LSTR = Literal("string")
+LINT = Literal("int64")
+LPOD = (LSTR | LINT)
+LOP  = Literal("(")
+LCP  = Literal(")")
+LCMA = Literal(",")
+LLST = Literal("list")
+LSET = Literal("set")
+LMAP = Literal("map")
+datatype = LSTR \
+         | LINT \
+         | Group(LLST + LOP + LPOD + LCP) \
+         | Group(LSET + LOP + LPOD + LCP) \
+         | Group(LMAP + LOP + LPOD + LCMA + LPOD + LCP)
 dimension = identifier.setResultsName("name") + \
-            Optional(Suppress(Literal("(")) +
-                     (Literal("string") | Literal("int64")) +
+            Optional(Suppress(Literal("(")) + (datatype) +
                      Suppress(Literal(")")), default="string").setResultsName("type")
 dimension.setParseAction(parse_dimension)
 autoregion = Literal("auto") + integer + integer

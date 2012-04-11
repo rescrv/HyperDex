@@ -40,6 +40,7 @@
 #include "hyperdisk/hyperdisk/reference.h"
 
 // HyperDex
+#include "hyperdex/hyperdex/microop.h"
 #include "hyperdex/hyperdex/network_constants.h"
 #include "hyperdex/hyperdex/packing.h"
 
@@ -227,28 +228,28 @@ hyperdaemon :: network_worker :: run()
 
             m_repl->client_del(from, to, nonce, msg, key);
         }
-        else if (type == hyperdex::REQ_ATOMICINC)
+        else if (type == hyperdex::REQ_ATOMIC)
         {
-            uint32_t attrs_sz;
+            uint32_t num_microops;
             e::slice key;
-            std::vector<std::pair<uint16_t, e::slice> > attrs;
-            up = up >> nonce >> key >> attrs_sz;
+            std::vector<hyperdex::microop> microops;
+            up = up >> nonce >> key >> num_microops;
+            microops.reserve(num_microops);
 
-            for (uint32_t i = 0; i < attrs_sz; ++i)
+            for (uint32_t i = 0; i < num_microops; ++i)
             {
-                uint16_t dimnum;
-                e::slice val;
-                up = up >> dimnum >> val;
-                attrs.push_back(std::make_pair(dimnum, val));
+                hyperdex::microop o;
+                up = up >> o;
+                microops.push_back(o);
             }
 
             if (up.error())
             {
-                LOG(WARNING) << "unpack of REQ_PUT failed; here's some hex:  " << msg->hex();
+                LOG(WARNING) << "unpack of REQ_ATOMIC failed; here's some hex:  " << msg->hex();
                 continue;
             }
 
-            m_repl->client_atomicinc(from, to, nonce, msg, key, &attrs);
+            m_repl->client_atomic(from, to, nonce, msg, key, microops);
         }
         else if (type == hyperdex::REQ_SEARCH_START)
         {

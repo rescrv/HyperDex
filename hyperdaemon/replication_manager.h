@@ -1,4 +1,4 @@
-// Copyright (c) 2011, Cornell University
+// Copyright (c) 2011-2012, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -55,6 +55,7 @@ namespace hyperdex
 {
 class coordinatorlink;
 class instance;
+class microop;
 }
 namespace hyperdaemon
 {
@@ -92,25 +93,25 @@ class replication_manager
                         uint64_t nonce,
                         std::auto_ptr<e::buffer> backing,
                         const e::slice& key,
-			const std::vector<std::pair<uint16_t, e::slice> >& value);
+                        const std::vector<std::pair<uint16_t, e::slice> >& value);
         void client_condput(const hyperdex::entityid& from,
-			    const hyperdex::entityid& to,
-			    uint64_t nonce,
-			    std::auto_ptr<e::buffer> backing,
-			    const e::slice& key,
-			    const std::vector<std::pair<uint16_t, e::slice> >& condfields,
-			    const std::vector<std::pair<uint16_t, e::slice> >& value);
+                            const hyperdex::entityid& to,
+                            uint64_t nonce,
+                            std::auto_ptr<e::buffer> backing,
+                            const e::slice& key,
+                            const std::vector<std::pair<uint16_t, e::slice> >& condfields,
+                            const std::vector<std::pair<uint16_t, e::slice> >& value);
         void client_del(const hyperdex::entityid& from,
                         const hyperdex::entityid& to,
                         uint64_t nonce,
                         std::auto_ptr<e::buffer> backing,
                         const e::slice& key);
-        void client_atomicinc(const hyperdex::entityid& from,
-			      const hyperdex::entityid& to,
-			      uint64_t nonce,
-			      std::auto_ptr<e::buffer> backing,
-			      const e::slice& key,
-			      std::vector<std::pair<uint16_t, e::slice> >* value);
+        void client_atomic(const hyperdex::entityid& from,
+                           const hyperdex::entityid& to,
+                           uint64_t nonce,
+                           std::auto_ptr<e::buffer> backing,
+                           const e::slice& key,
+                           const std::vector<hyperdex::microop>& ops);
         // These are called in response to messages from other hosts.
         void chain_put(const hyperdex::entityid& from,
                        const hyperdex::entityid& to,
@@ -153,7 +154,7 @@ class replication_manager
 
     private:
         void client_common(const hyperdex::network_msgtype opcode,
-			   bool has_value,
+                           bool has_value,
                            const hyperdex::entityid& from,
                            const hyperdex::entityid& to,
                            uint64_t nonce,

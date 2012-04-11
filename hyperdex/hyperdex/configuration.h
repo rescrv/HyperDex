@@ -43,7 +43,6 @@
 
 // HyperDex
 #include <hyperdex/attribute.h>
-#include <hyperdex/datatype.h>
 #include <hyperdex/ids.h>
 #include <hyperdex/instance.h>
 

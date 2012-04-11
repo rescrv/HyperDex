@@ -29,9 +29,9 @@
 #define hyperdex_configuration_parser_h_
 
 // HyperDex
+#include <hyperdex.h>
 #include <hyperdex/attribute.h>
 #include <hyperdex/configuration.h>
-#include <hyperdex/datatype.h>
 
 namespace hyperdex
 {
@@ -55,6 +55,7 @@ class configuration_parser
             CP_MISSING_REGION,
             CP_OUTOFORDER_SUBSPACE,
             CP_EXCESS_DATA,
+            CP_ATTR_NOT_SEARCHABLE,
             CP_MISSING,
             CP_F_FAILURES,
             CP_UNKNOWN_ATTR,
@@ -68,6 +69,7 @@ class configuration_parser
             CP_BAD_UINT16,
             CP_BAD_UINT8,
             CP_BAD_ATTR_CHOICE,
+            CP_BAD_TYPE,
             EOE
         };
 
@@ -97,7 +99,7 @@ class configuration_parser
                            bool* t);
         error extract_datatype(char* start,
                                char* end,
-                               datatype* t);
+                               hyperdatatype* t);
         error extract_ip(char* start,
                          char* end,
                          po6::net::ipaddr* ip);

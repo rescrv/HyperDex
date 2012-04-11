@@ -29,6 +29,9 @@
 #include <signal.h>
 #include <unistd.h>
 
+// C++
+#include <sstream>
+
 // STL
 #include <tr1/memory>
 

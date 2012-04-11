@@ -35,6 +35,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+// C++
+#include <iomanip>
+#include <sstream>
+
 // e
 #include <e/guard.h>
 

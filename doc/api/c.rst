@@ -22,7 +22,7 @@ Types
                 :c:func:`hyperclient_destroy()`
 
 
-.. c:type:: hyperclient_datatype
+.. c:type:: hyperdatatype
 
    An enum indicating the type of a HyperDex attribute.  Valid values are:
 
