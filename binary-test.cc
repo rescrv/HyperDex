@@ -35,6 +35,7 @@
 
 // e
 #include <e/convert.h>
+#include <e/endian.h>
 #include <e/timer.h>
 
 // HyperDex
@@ -136,10 +137,10 @@ main(int argc, char* argv[])
                 }
             }
 
-            uint64_t numle = htole64(num);
+            uint8_t bufle[sizeof(uint64_t)];
+            e::pack64le(num, bufle);
             hyperclient_returncode pstatus;
-            int64_t pid = cl.put(space, reinterpret_cast<const char*>(&numle),
-                                 sizeof(uint32_t), attrs, 32, &pstatus);
+            int64_t pid = cl.put(space, reinterpret_cast<const char*>(bufle), sizeof(uint32_t), attrs, 32, &pstatus);
 
             if (pid < 0)
             {
