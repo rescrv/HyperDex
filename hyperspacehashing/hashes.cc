@@ -37,6 +37,9 @@
 // Google CityHash
 #include <city.h>
 
+// e
+#include <e/endian.h>
+
 // HyperspaceHashing
 #include "hashes_internal.h"
 #include "hyperspacehashing/hashes.h"
@@ -51,7 +54,10 @@ hyperspacehashing :: cityhash(const e::slice& buf)
 uint64_t
 hyperspacehashing :: lendian(const e::slice& buf)
 {
-    int64_t ret = 0;
-    memmove(&ret, buf.data(), std::min(buf.size(), sizeof(ret)));
-    return static_cast<uint64_t>(le64toh(ret));
+    uint8_t tmp[sizeof(int64_t)];
+    memset(tmp, 0, sizeof(int64_t));
+    memmove(tmp, buf.data(), std::min(buf.size(), sizeof(int64_t)));
+    uint64_t ret;
+    e::unpack64le(tmp, &ret);
+    return ret;
 }
