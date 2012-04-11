@@ -1249,7 +1249,7 @@ apply_map_microop(bool (*validate_key)(const uint8_t** ptr, uint32_t* ptr_sz, co
         else
         {
             std::vector<uint8_t> tmp;
-            e::slice existing = slice_from_map(val_ptr, next_from_map - val_ptr, &tmp);
+            e::slice existing = slice_from_map(val_ptr, val_ptr_sz, &tmp);
             writeto = copy_key_from_micro(writeto, ops + i);
             writeto = apply_pod(existing, ops + i, 1, writeto, error);
 
@@ -1457,6 +1457,23 @@ validate_map_int64_int64(const e::slice& map)
     return validate_map(validate_int64, validate_int64, compare_int64, map);
 }
 
+// This wrapper is needed because "apply_string operates on string attributes,
+// which do not encode the size before the string because every attribute has an
+// implicit "size" argument.  However, when applying the string to something in
+// a map, we need to also encode the size.
+static uint8_t*
+apply_string_wrapper(const e::slice& old_value,
+                     const hyperdex::microop* ops,
+                     size_t num_ops,
+                     uint8_t* writeto,
+                     hyperdex::network_returncode* error)
+{
+    uint8_t* original_writeto = writeto;
+    writeto = apply_string(old_value, ops, num_ops, writeto + sizeof(uint32_t), error);
+    e::pack32le(writeto - original_writeto - sizeof(uint32_t), original_writeto);
+    return writeto;
+}
+
 static uint8_t*
 apply_map_string_string(const e::slice& old_value,
                         const hyperdex::microop* ops,
@@ -1489,7 +1506,7 @@ apply_map_string_string(const e::slice& old_value,
                                  copy_string_from_micro_arg2,
                                  copy_string_from_serialized,
                                  string_slice_from_serialized,
-                                 apply_string,
+                                 apply_string_wrapper,
                                  old_value, ops, num_ops, writeto, error);
     }
 }
@@ -1563,7 +1580,7 @@ apply_map_int64_string(const e::slice& old_value,
                                  copy_int64_from_micro_arg2,
                                  copy_string_from_serialized,
                                  string_slice_from_serialized,
-                                 apply_string,
+                                 apply_string_wrapper,
                                  old_value, ops, num_ops, writeto, error);
     }
 }
