@@ -54,6 +54,10 @@ cdef extern from "../../hyperdex.h":
         HYPERDATATYPE_LIST_INT64  = 8977
         HYPERDATATYPE_SET_STRING  = 8992
         HYPERDATATYPE_SET_INT64   = 8993
+        HYPERDATATYPE_MAP_STRING_STRING = 9008
+        HYPERDATATYPE_MAP_STRING_INT64  = 9009
+        HYPERDATATYPE_MAP_INT64_STRING  = 9010
+        HYPERDATATYPE_MAP_INT64_INT64   = 9011
         HYPERDATATYPE_GARBAGE     = 9087
 
 cdef extern from "../hyperclient.h":
@@ -62,6 +66,14 @@ cdef extern from "../hyperclient.h":
 
     cdef struct hyperclient_attribute:
         char* attr
+        char* value
+        size_t value_sz
+        hyperdatatype datatype
+
+    cdef struct hyperclient_map_attribute:
+        char* attr
+        char* map_key
+        size_t map_key_sz
         char* value
         size_t value_sz
         hyperdatatype datatype
@@ -118,6 +130,18 @@ cdef extern from "../hyperclient.h":
     int64_t hyperclient_set_remove(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_set_intersect(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_set_union(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_map_add(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_map_remove(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_map_atomic_add(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_map_atomic_sub(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_map_atomic_mul(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_map_atomic_div(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_map_atomic_mod(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_map_atomic_and(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_map_atomic_or(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_map_atomic_xor(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_map_string_prepend(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_map_string_append(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_search(hyperclient* client, char* space, hyperclient_attribute* eq, size_t eq_sz, hyperclient_range_query* rn, size_t rn_sz, hyperclient_returncode* status, hyperclient_attribute** attrs, size_t* attrs_sz)
     int64_t hyperclient_loop(hyperclient* client, int timeout, hyperclient_returncode* status)
     void hyperclient_destroy_attrs(hyperclient_attribute* attrs, size_t attrs_sz)
@@ -157,6 +181,81 @@ def __string_key(obj):
     return len(obj), obj
 
 
+cdef _obj_to_backing(v):
+    backing = None
+    datatype = None
+    if isinstance(v, bytes):
+        backing = v
+        datatype = HYPERDATATYPE_STRING
+    elif isinstance(v, int):
+        backing = struct.pack('<q', v)
+        datatype = HYPERDATATYPE_INT64
+    elif isinstance(v, list) or isinstance(v, tuple):
+        backing = b''
+        if all([isinstance(x, int) for x in v]):
+            for x in v:
+                backing += struct.pack('<q', x)
+            datatype = HYPERDATATYPE_LIST_INT64
+        elif all([isinstance(x, bytes) for x in v]):
+            for x in v:
+                backing += struct.pack('<L', len(x))
+                backing += bytes(x)
+            datatype = HYPERDATATYPE_LIST_STRING
+        else:
+            raise TypeError("Cannot store heterogeneous lists")
+    elif isinstance(v, set):
+        backing = b''
+        if all([isinstance(x, int) for x in v]):
+            for x in sorted(v):
+                backing += struct.pack('<q', x)
+            datatype = HYPERDATATYPE_SET_INT64
+        elif all([isinstance(x, bytes) for x in v]):
+            for x in sorted(v, key=__string_key):
+                backing += struct.pack('<L', len(x))
+                backing += bytes(x)
+            datatype = HYPERDATATYPE_SET_STRING
+        else:
+            raise TypeError("Cannot store heterogeneous sets")
+    elif isinstance(v, dict):
+        backing = b''
+        keytype = None
+        valtype = None
+        mixedtype = TypeError("Cannot store heterogeneous maps")
+        for x, y in v.iteritems():
+            if isinstance(x, int):
+                if keytype not in ('int', None):
+                    raise mixedtype
+                backing += struct.pack('<q', x)
+                keytype = 'int64'
+            elif isinstance(x, bytes):
+                if keytype not in ('string', None):
+                    raise mixedtype
+                backing += struct.pack('<L', len(x))
+                backing += bytes(x)
+                keytype = 'string'
+            else:
+                raise mixedtype
+            if isinstance(y, int):
+                if valtype not in ('int', None):
+                    raise mixedtype
+                backing += struct.pack('<q', y)
+                valtype = 'int64'
+            elif isinstance(y, bytes):
+                if valtype not in ('string', None):
+                    raise mixedtype
+                backing += struct.pack('<L', len(y))
+                backing += bytes(y)
+                valtype = 'string'
+            else:
+                raise mixedtype
+        dtypes = {('string', 'string'): HYPERDATATYPE_MAP_STRING_STRING,
+                  ('string', 'int64'): HYPERDATATYPE_MAP_STRING_INT64,
+                  ('int64', 'string'): HYPERDATATYPE_MAP_INT64_STRING,
+                  ('int64', 'int64'): HYPERDATATYPE_MAP_INT64_INT64}
+        datatype = dtypes[(keytype, valtype)]
+    return (datatype, backing)
+
+
 cdef _dict_to_attrs(list value, hyperclient_attribute** attrs):
     cdef list backings = []
     cdef bytes backing
@@ -166,53 +265,58 @@ cdef _dict_to_attrs(list value, hyperclient_attribute** attrs):
         raise MemoryError()
     for i, a in enumerate(value):
         a, v = a
-        attrs[0][i].attr = a
-        if isinstance(v, int):
-            backing = struct.pack('<q', v)
-            backings.append(backing)
-            attrs[0][i].value = backing
-            attrs[0][i].value_sz = 8
-            attrs[0][i].datatype = HYPERDATATYPE_INT64
-        elif isinstance(v, list) or isinstance(v, tuple):
-            backing = b''
-            if all([isinstance(x, int) for x in v]):
-                for x in v:
-                    backing += struct.pack('<q', x)
-                attrs[0][i].datatype = HYPERDATATYPE_LIST_INT64
-            elif all([isinstance(x, bytes) for x in v]):
-                for x in v:
-                    backing += struct.pack('<L', len(x))
-                    backing += bytes(x)
-                attrs[0][i].datatype = HYPERDATATYPE_LIST_STRING
-            else:
-                raise TypeError("Cannot store heterogeneous lists")
-            backings.append(backing)
-            attrs[0][i].value = backing
-            attrs[0][i].value_sz = len(backing)
-        elif isinstance(v, set):
-            backing = b''
-            if all([isinstance(x, int) for x in v]):
-                for x in sorted(v):
-                    backing += struct.pack('<q', x)
-                attrs[0][i].datatype = HYPERDATATYPE_SET_INT64
-            elif all([isinstance(x, bytes) for x in v]):
-                for x in sorted(v, key=__string_key):
-                    backing += struct.pack('<L', len(x))
-                    backing += bytes(x)
-                attrs[0][i].datatype = HYPERDATATYPE_SET_STRING
-            else:
-                raise TypeError("Cannot store heterogeneous sets")
-            backings.append(backing)
-            attrs[0][i].value = backing
-            attrs[0][i].value_sz = len(backing)
-        elif isinstance(v, bytes):
-            backing = v
-            backings.append(backing)
-            attrs[0][i].value = backing
-            attrs[0][i].value_sz = len(backing)
-            attrs[0][i].datatype = HYPERDATATYPE_STRING
-        else:
+        datatype, backing = _obj_to_backing(v)
+        if backing is None:
             raise TypeError("Do not know how to convert attribute {0}".format(a))
+        backings.append(backing)
+        attrs[0][i].attr = a
+        attrs[0][i].value = backing
+        attrs[0][i].value_sz = len(backing)
+        attrs[0][i].datatype = datatype
+    return backings
+
+
+cdef _dict_to_map_attrs(list value, hyperclient_map_attribute** attrs, size_t* attrs_sz):
+    cdef list backings = []
+    cdef bytes kbacking
+    cdef bytes vbacking
+    cdef tuple a
+    cdef dict b
+    cdef bytes name
+    cdef long i = 0
+    attrs_sz[0] = sizeof(hyperclient_map_attribute) * sum([len(a) for a in value])
+    attrs[0] = <hyperclient_map_attribute*> \
+               malloc(sizeof(hyperclient_map_attribute) * attrs_sz[0])
+    if attrs[0] == NULL:
+        raise MemoryError()
+    for a in value:
+        name, b = a
+        keytype = None
+        valtype = None
+        j = i
+        for k, v in b.iteritems():
+            kdatatype, kbacking = _obj_to_backing(k)
+            vdatatype, vbacking = _obj_to_backing(v)
+            if kdatatype not in (keytype, None):
+                mixedtype = TypeError("Cannot store heterogeneous maps")
+            keytype = kdatatype
+            if vdatatype not in (valtype, None):
+                mixedtype = TypeError("Cannot store heterogeneous maps")
+            valtype = vdatatype
+            backings.append(kbacking)
+            backings.append(vbacking)
+            attrs[0][i].attr = name
+            attrs[0][i].map_key = kbacking
+            attrs[0][i].map_key_sz = len(kbacking)
+            attrs[0][i].value = vbacking
+            attrs[0][i].value_sz = len(vbacking)
+            i += 1
+        dtypes = {(HYPERDATATYPE_STRING, HYPERDATATYPE_STRING): HYPERDATATYPE_MAP_STRING_STRING,
+                  (HYPERDATATYPE_STRING, HYPERDATATYPE_INT64): HYPERDATATYPE_MAP_STRING_INT64,
+                  (HYPERDATATYPE_INT64, HYPERDATATYPE_STRING): HYPERDATATYPE_MAP_INT64_STRING,
+                  (HYPERDATATYPE_INT64, HYPERDATATYPE_INT64): HYPERDATATYPE_MAP_INT64_INT64}
+        for x in range(j, i):
+            attrs[0][x].datatype = dtypes[(keytype, valtype)]
     return backings
 
 
@@ -279,6 +383,78 @@ cdef _attrs_to_dict(hyperclient_attribute* attrs, size_t attrs_sz):
             if rem:
                 raise ValueError("set(int64) contains excess data (file a bug)")
             ret[attrs[idx].attr] = st
+        elif attrs[idx].datatype == HYPERDATATYPE_MAP_STRING_STRING:
+            pos = 0
+            rem = attrs[idx].value_sz
+            dct = {}
+            while rem >= 4:
+                sz = struct.unpack('<i', attrs[idx].value[pos:pos + 4])[0]
+                if rem - 4 < sz:
+                    raise ValueError("map(string,string) is improperly structured (file a bug)")
+                key = attrs[idx].value[pos + 4:pos + 4 + sz]
+                pos += 4 + sz
+                rem -= 4 + sz
+                sz = struct.unpack('<i', attrs[idx].value[pos:pos + 4])[0]
+                if rem - 4 < sz:
+                    raise ValueError("map(string,string) is improperly structured (file a bug)")
+                val = attrs[idx].value[pos + 4:pos + 4 + sz]
+                pos += 4 + sz
+                rem -= 4 + sz
+                dct[key] = val
+            if rem:
+                raise ValueError("map(string,string) contains excess data (file a bug)")
+            ret[attrs[idx].attr] = dct
+        elif attrs[idx].datatype == HYPERDATATYPE_MAP_STRING_INT64:
+            pos = 0
+            rem = attrs[idx].value_sz
+            dct = {}
+            while rem >= 4:
+                sz = struct.unpack('<i', attrs[idx].value[pos:pos + 4])[0]
+                if rem - 4 < sz:
+                    raise ValueError("map(string,int64) is improperly structured (file a bug)")
+                key = attrs[idx].value[pos + 4:pos + 4 + sz]
+                pos += 4 + sz
+                rem -= 4 + sz
+                if rem < 8:
+                    raise ValueError("map(string,int64) is improperly structured (file a bug)")
+                val = struct.unpack('<q', attrs[idx].value[pos:pos + 8])[0]
+                pos += 8
+                rem -= 8
+                dct[key] = val
+            if rem:
+                raise ValueError("map(string,int64) contains excess data (file a bug)")
+            ret[attrs[idx].attr] = dct
+        elif attrs[idx].datatype == HYPERDATATYPE_MAP_INT64_STRING:
+            pos = 0
+            rem = attrs[idx].value_sz
+            dct = {}
+            while rem >= 8:
+                key = struct.unpack('<q', attrs[idx].value[pos:pos + 8])[0]
+                pos += 8
+                rem -= 8
+                sz = struct.unpack('<i', attrs[idx].value[pos:pos + 4])[0]
+                if rem - 4 < sz:
+                    raise ValueError("map(int64,string) is improperly structured (file a bug)")
+                val = attrs[idx].value[pos + 4:pos + 4 + sz]
+                pos += 4 + sz
+                rem -= 4 + sz
+                dct[key] = val
+            if rem:
+                raise ValueError("map(int64,string) contains excess data (file a bug)")
+            ret[attrs[idx].attr] = dct
+        elif attrs[idx].datatype == HYPERDATATYPE_MAP_INT64_INT64:
+            pos = 0
+            rem = attrs[idx].value_sz
+            dct = {}
+            while rem >= 16:
+                key = struct.unpack('<q', attrs[idx].value[pos:pos + 8])[0]
+                val = struct.unpack('<q', attrs[idx].value[pos + 8:pos + 16])[0]
+                pos += 16
+                rem -= 16
+                dct[key] = val
+            if rem:
+                raise ValueError("map(int64,int64) contains excess data (file a bug)")
+            ret[attrs[idx].attr] = dct
         else:
             raise ValueError("Server returned garbage value (file a bug)")
     return ret
@@ -389,16 +565,16 @@ cdef class DeferredFromAttrs(Deferred):
             elif op == 'rpush':
                 self._reqid = hyperclient_list_rpush(client._client, space_cstr,
                         key_cstr, len(key), attrs, len(value), &self._status)
-            elif op == 'setadd':
+            elif op == 'set_add':
                 self._reqid = hyperclient_set_add(client._client, space_cstr,
                         key_cstr, len(key), attrs, len(value), &self._status)
-            elif op == 'remove':
+            elif op == 'set_remove':
                 self._reqid = hyperclient_set_remove(client._client, space_cstr,
                         key_cstr, len(key), attrs, len(value), &self._status)
-            elif op == 'intersect':
+            elif op == 'set_intersect':
                 self._reqid = hyperclient_set_intersect(client._client, space_cstr,
                         key_cstr, len(key), attrs, len(value), &self._status)
-            elif op == 'union':
+            elif op == 'set_union':
                 self._reqid = hyperclient_set_union(client._client, space_cstr,
                         key_cstr, len(key), attrs, len(value), &self._status)
             else:
@@ -464,6 +640,71 @@ cdef class DeferredDelete(Deferred):
                                       key_cstr, len(key), &self._status)
         if self._reqid < 0:
             raise HyperClientException(self._status)
+
+    def wait(self):
+        Deferred.wait(self)
+        return self._status == HYPERCLIENT_SUCCESS
+
+
+cdef class DeferredMapOp(Deferred):
+
+    def __cinit__(self, Client client, bytes space, bytes key, dict value, bytes op = None):
+        cdef char* space_cstr = space
+        cdef char* key_cstr = key
+        cdef hyperclient_map_attribute* attrs = NULL
+        cdef size_t attrs_sz = 0
+        try:
+            backings = _dict_to_map_attrs(value.items(), &attrs, &attrs_sz)
+            # XXX I'd like to use something more-constant in time, but I cannot
+            # get Cython to work with function pointers correctly
+            if op == 'map_add':
+                self._reqid = hyperclient_map_add(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'map_remove':
+                self._reqid = hyperclient_map_remove(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'map_atomic_add':
+                self._reqid = hyperclient_map_atomic_add(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'map_atomic_sub':
+                self._reqid = hyperclient_map_atomic_sub(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'map_atomic_mul':
+                self._reqid = hyperclient_map_atomic_mul(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'map_atomic_div':
+                self._reqid = hyperclient_map_atomic_div(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'map_atomic_mod':
+                self._reqid = hyperclient_map_atomic_mod(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'map_atomic_and':
+                self._reqid = hyperclient_map_atomic_and(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'map_atomic_or':
+                self._reqid = hyperclient_map_atomic_or(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'map_atomic_xor':
+                self._reqid = hyperclient_map_atomic_xor(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'map_string_prepend':
+                self._reqid = hyperclient_map_string_prepend(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            elif op == 'map_string_append':
+                self._reqid = hyperclient_map_string_append(client._client, space_cstr,
+                        key_cstr, len(key), attrs, len(value), &self._status)
+            else:
+                raise AttributeError("op == {0} is not valid".format(op))
+            if self._reqid < 0:
+                idx = -1 - self._reqid
+                attr = None
+                if attrs and attrs[idx].attr:
+                    attr = attrs[idx].attr
+                raise HyperClientException(self._status, attr)
+            client._ops[self._reqid] = self
+        finally:
+            if attrs:
+                free(attrs)
 
     def wait(self):
         Deferred.wait(self)
@@ -655,6 +896,54 @@ cdef class Client:
         async = self.async_set_union(space, key, value)
         return async.wait()
 
+    def map_add(self, bytes space, bytes key, dict value):
+        async = self.async_map_add(space, key, value)
+        return async.wait()
+
+    def map_remove(self, bytes space, bytes key, dict value):
+        async = self.async_map_remove(space, key, value)
+        return async.wait()
+
+    def map_atomic_add(self, bytes space, bytes key, dict value):
+        async = self.async_map_atomic_add(space, key, value)
+        return async.wait()
+
+    def map_atomic_sub(self, bytes space, bytes key, dict value):
+        async = self.async_map_atomic_sub(space, key, value)
+        return async.wait()
+
+    def map_atomic_mul(self, bytes space, bytes key, dict value):
+        async = self.async_map_atomic_mul(space, key, value)
+        return async.wait()
+
+    def map_atomic_div(self, bytes space, bytes key, dict value):
+        async = self.async_map_atomic_div(space, key, value)
+        return async.wait()
+
+    def map_atomic_mod(self, bytes space, bytes key, dict value):
+        async = self.async_map_atomic_mod(space, key, value)
+        return async.wait()
+
+    def map_atomic_and(self, bytes space, bytes key, dict value):
+        async = self.async_map_atomic_and(space, key, value)
+        return async.wait()
+
+    def map_atomic_or(self, bytes space, bytes key, dict value):
+        async = self.async_map_atomic_or(space, key, value)
+        return async.wait()
+
+    def map_atomic_xor(self, bytes space, bytes key, dict value):
+        async = self.async_map_atomic_xor(space, key, value)
+        return async.wait()
+
+    def map_string_prepend(self, bytes space, bytes key, dict value):
+        async = self.async_map_string_prepend(space, key, value)
+        return async.wait()
+
+    def map_string_append(self, bytes space, bytes key, dict value):
+        async = self.async_map_string_append(space, key, value)
+        return async.wait()
+
     def search(self, bytes space, dict predicate):
         return Search(self, space, predicate)
 
@@ -707,16 +996,52 @@ cdef class Client:
         return DeferredFromAttrs(self, space, key, value, 'rpush')
 
     def async_set_add(self, bytes space, bytes key, dict value):
-        return DeferredFromAttrs(self, space, key, value, 'setadd')
+        return DeferredFromAttrs(self, space, key, value, 'set_add')
 
     def async_set_remove(self, bytes space, bytes key, dict value):
-        return DeferredFromAttrs(self, space, key, value, 'remove')
+        return DeferredFromAttrs(self, space, key, value, 'set_remove')
 
     def async_set_intersect(self, bytes space, bytes key, dict value):
-        return DeferredFromAttrs(self, space, key, value, 'intersect')
+        return DeferredFromAttrs(self, space, key, value, 'set_intersect')
 
     def async_set_union(self, bytes space, bytes key, dict value):
-        return DeferredFromAttrs(self, space, key, value, 'union')
+        return DeferredFromAttrs(self, space, key, value, 'set_union')
+
+    def async_map_add(self, bytes space, bytes key, dict value):
+        return DeferredMapOp(self, space, key, value, 'map_add')
+
+    def async_map_remove(self, bytes space, bytes key, dict value):
+        return DeferredMapOp(self, space, key, value, 'map_remove')
+
+    def async_map_atomic_add(self, bytes space, bytes key, dict value):
+        return DeferredMapOp(self, space, key, value, 'map_atomic_add')
+
+    def async_map_atomic_sub(self, bytes space, bytes key, dict value):
+        return DeferredMapOp(self, space, key, value, 'map_atomic_sub')
+
+    def async_map_atomic_mul(self, bytes space, bytes key, dict value):
+        return DeferredMapOp(self, space, key, value, 'map_atomic_mul')
+
+    def async_map_atomic_div(self, bytes space, bytes key, dict value):
+        return DeferredMapOp(self, space, key, value, 'map_atomic_div')
+
+    def async_map_atomic_mod(self, bytes space, bytes key, dict value):
+        return DeferredMapOp(self, space, key, value, 'map_atomic_mod')
+
+    def async_map_atomic_and(self, bytes space, bytes key, dict value):
+        return DeferredMapOp(self, space, key, value, 'map_atomic_and')
+
+    def async_map_atomic_or(self, bytes space, bytes key, dict value):
+        return DeferredMapOp(self, space, key, value, 'map_atomic_or')
+
+    def async_map_atomic_xor(self, bytes space, bytes key, dict value):
+        return DeferredMapOp(self, space, key, value, 'map_atomic_xor')
+
+    def async_map_string_prepend(self, bytes space, bytes key, dict value):
+        return DeferredMapOp(self, space, key, value, 'map_string_prepend')
+
+    def async_map_string_append(self, bytes space, bytes key, dict value):
+        return DeferredMapOp(self, space, key, value, 'map_string_append')
 
     def loop(self):
         cdef hyperclient_returncode rc

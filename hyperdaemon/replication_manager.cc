@@ -258,7 +258,7 @@ void
 hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& from,
                                                     const hyperdex::entityid& to,
                                                     uint64_t nonce,
-                                                    std::auto_ptr<e::buffer> backing,
+                                                    std::auto_ptr<e::buffer> /*backing*/,
                                                     const e::slice& key,
                                                     const std::vector<hyperdex::microop>& ops)
 {
@@ -456,7 +456,6 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
     {
         assert(next_to_copy > 0);
         size_t idx = next_to_copy - 1;
-        size_t sz = old_value[idx].size();
         memmove(data, old_value[idx].data(), old_value[idx].size());
         new_value[idx] = e::slice(data, old_value[idx].size());
         data += old_value[idx].size();
@@ -1182,7 +1181,7 @@ hyperdaemon :: replication_manager :: prev_and_next(const regionid& r,
 void
 hyperdaemon :: replication_manager :: check_for_deferred_operations(const hyperdex::regionid& r,
                                                                     uint64_t version,
-                                                                    std::tr1::shared_ptr<e::buffer> backing,
+                                                                    std::tr1::shared_ptr<e::buffer> /*backing*/,
                                                                     const e::slice& key,
                                                                     bool has_value,
                                                                     const std::vector<e::slice>& value)

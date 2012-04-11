@@ -62,7 +62,10 @@ enum microop_type
     OP_SET_ADD,
     OP_SET_REMOVE,
     OP_SET_INTERSECT,
-    OP_SET_UNION
+    OP_SET_UNION,
+
+    OP_MAP_ADD,
+    OP_MAP_REMOVE
 };
 
 class microop

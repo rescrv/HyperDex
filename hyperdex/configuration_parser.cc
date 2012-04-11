@@ -739,6 +739,26 @@ hyperdex :: configuration_parser :: extract_datatype(char* start,
         *t = HYPERDATATYPE_SET_INT64;
         return CP_SUCCESS;
     }
+    else if (strcmp(start, "map(string,string)") == 0)
+    {
+        *t = HYPERDATATYPE_MAP_STRING_STRING;
+        return CP_SUCCESS;
+    }
+    else if (strcmp(start, "map(string,int64)") == 0)
+    {
+        *t = HYPERDATATYPE_MAP_STRING_INT64;
+        return CP_SUCCESS;
+    }
+    else if (strcmp(start, "map(int64,string)") == 0)
+    {
+        *t = HYPERDATATYPE_MAP_INT64_STRING;
+        return CP_SUCCESS;
+    }
+    else if (strcmp(start, "map(int64,int64)") == 0)
+    {
+        *t = HYPERDATATYPE_MAP_INT64_INT64;
+        return CP_SUCCESS;
+    }
     else
     {
         return CP_BAD_TYPE;
