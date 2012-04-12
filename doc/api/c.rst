@@ -520,11 +520,12 @@ Functions
 
 .. c:function:: int64_t hyperclient_loop(struct hyperclient* client, int timeout, enum hyperclient_returncode* status)
 
-   Handle I/O until one outstanding operation completes, or timeout is exceeded.
-   The return value identifies which outstanding operation was processed.  If an
-   error is encountered or the event loop times out when processing the
-   outstanding operations, the return value will be -1, and ``*status`` will be
-   set to indicate the reason why.
+   .. include:: shards/loop.rst
+
+   The return value is a 64-bit integer which identifies the outstanding
+   operation that was processed.  If an error is encountered or the event loop
+   times out when processing the outstanding operations, the return value will
+   be -1, and ``*status`` will be set to indicate the reason why.
 
    client:
       An initialized :c:type:`hyperclient` instance.

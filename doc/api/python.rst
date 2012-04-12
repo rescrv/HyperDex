@@ -236,6 +236,11 @@ Python API
 
    .. py:method:: loop()
 
+      .. include:: shards/loop.rst
+
+      The returned object will be a :py:class:`Deferred` instance which tracks
+      the request.  The object will allow the user to immediately call
+      :py:meth:`wait` without blocking.
 
 .. py:class:: HyperClientException(status, attr)
 
