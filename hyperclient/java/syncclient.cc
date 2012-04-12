@@ -86,10 +86,12 @@ HyperClient :: get(const std::string& space,
     for (size_t i = 0; i < attrs_sz; ++i)
     {
         if ( attrs[i].datatype == HYPERDATATYPE_STRING )
+        {
             svalues->insert(std::make_pair(std::string(attrs[i].attr),
                                            std::string(attrs[i].value,
                                                        attrs[i].value_sz)));
-        else // attrs[i].datatype == HYPERDATATYPE_INT64
+        }
+        else if ( attrs[i].datatype == HYPERDATATYPE_INT64 )
         {
             nvalues->insert(std::make_pair(std::string(attrs[i].attr),
                             le64toh(*((uint64_t *)(attrs[i].value)))));
@@ -251,7 +253,7 @@ HyperClient :: range_search(const std::string& space,
 
                 sresults->back().insert(std::make_pair(attrs[i].attr, std::string(attrs[i].value, attrs[i].value_sz)));
             }
-            else // attrs[i].datatype == HYPERDATATYPE_INT64
+            else if ( attrs[i].datatype == HYPERDATATYPE_INT64 )
             {
                 if (nresults->empty() || nresults->size() == pre_insert_size)
                 {
