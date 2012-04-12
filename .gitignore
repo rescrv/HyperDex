@@ -19,6 +19,10 @@ daemon.o
 depcomp
 .deps/
 doc/_build
+doc/conf.py
+doc/man/hyperdex-daemon.1
+doc/man/hyperdex-replication-stress-test.1
+doc/man/hyperdex-simple-consistency-stress-test.1
 hyperclient/.deps/
 hyperclient/.dirstamp
 hyperclient/java/hyperclient/
@@ -66,6 +70,7 @@ hyperdaemon/libhyperdaemon_la-runtimeconfig.o
 hyperdaemon/libhyperdaemon_la-searches.lo
 hyperdaemon/libhyperdaemon_la-searches.o
 hyperdaemon/.libs/
+HyperDex-0.1.dev.pdf
 hyperdex-binary-test
 hyperdex_binary_test-binary-test.o
 hyperdex-daemon
