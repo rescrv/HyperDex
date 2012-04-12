@@ -152,6 +152,7 @@ import struct
 class HyperClientException(Exception):
 
     def __init__(self, status, attr=None):
+        self._status = status
         self._s = {HYPERCLIENT_SUCCESS: 'Success'
                   ,HYPERCLIENT_NOTFOUND: 'Not Found'
                   ,HYPERCLIENT_SEARCHDONE: 'Search Done'
@@ -175,6 +176,9 @@ class HyperClientException(Exception):
 
     def __str__(self):
         return self._s
+
+    def status(self):
+       return self._status
 
 
 def __string_key(obj):

@@ -239,6 +239,13 @@ Python API
 
 .. py:class:: HyperClientException(status, attr)
 
+   An exception that describes an error within the HyperClient library.
+
+   .. py:method:: status()
+
+      A numeric error code indicating the issue.  This will be one of the
+      ``HYPERCLIENT_*`` error codes.
+
 .. py:class:: DeferredGet
 
    .. py:method:: wait()
