@@ -46,7 +46,9 @@ import com.yahoo.ycsb.StringByteIterator;
 import hyperclient.HyperClient;
 import hyperclient.ReturnCode;
 import hyperclient.ssmap;
-import hyperclient.searchresult;
+import hyperclient.snmap;
+import hyperclient.ssearchresult;
+import hyperclient.nsearchresult;
 
 public class HyperClientYCSB extends DB
 {
@@ -90,17 +92,18 @@ public class HyperClientYCSB extends DB
      */
     public int read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
     {
-        ssmap r = new ssmap();
-        ReturnCode ret = m_client.get(table, key, r);
+        ssmap rs = new ssmap();
+        snmap rn = new snmap();
+        ReturnCode ret = m_client.get(table, key, rs, rn);
 
         for (int i = 0; i < m_retries && ret != ReturnCode.SUCCESS && ret != ReturnCode.NOTFOUND; ++i)
         {
-            ret = m_client.get(table, key, r);
+            ret = m_client.get(table, key, rs, rn);
         }
 
         if (ret == ReturnCode.SUCCESS)
         {
-            convert_to_java(fields, r, result);
+            convert_to_java(fields, rs, result);
             return 0;
         }
 
@@ -140,12 +143,14 @@ public class HyperClientYCSB extends DB
         assert lower.compareTo(new BigInteger("18446744073709551616")) < 0;
         assert upper.compareTo(new BigInteger("18446744073709551616")) < 0;
 
-        searchresult res = new searchresult();
-        ReturnCode ret = m_client.range_search(table, "recno", lower, upper, res);
+        ssearchresult res = new ssearchresult();
+        nsearchresult nres = new nsearchresult();
+
+        ReturnCode ret = m_client.range_search(table, "recno", lower, upper, res, nres);
 
         for (int i = 0; i < m_retries && ret != ReturnCode.SUCCESS; ++i)
         {
-            ret = m_client.range_search(table, "recno", lower, upper, res);
+            ret = m_client.range_search(table, "recno", lower, upper, res, nres);
         }
 
         if (ret == ReturnCode.SUCCESS)
