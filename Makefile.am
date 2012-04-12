@@ -521,7 +521,7 @@ hyperdex_binary_test_CPPFLAGS = \
 hyperdex_simple_consistency_stress_test_SOURCES = \
 			simple-consistency-stress-test.cc
 hyperdex_simple_consistency_stress_test_CPPFLAGS = \
-			-I$(abs_top_srcdir)/hyperclient
+			-I$(abs_top_srcdir)/hyperclient \
 			$(E_CFLAGS) \
 			$(CPPFLAGS)
 hyperdex_simple_consistency_stress_test_LDADD = \
