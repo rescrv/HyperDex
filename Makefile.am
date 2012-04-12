@@ -30,12 +30,10 @@ AM_CXXFLAGS = $(COVERAGE_CXXFLAGS)
 
 EXTRA_DIST = \
 			LICENSE \
-			HyperDex-@PACKAGE_VERSION@.pdf \
 			hyperdex-coordinator \
 			hyperdex-coordinator-control \
 			$(libhyperclient_extra_dist) \
-			$(ycsb_extra_dist) \
-			$(doc_extra_dist)
+			$(ycsb_extra_dist)
 
 lib_LTLIBRARIES = \
 			libhyperspacehashing.la \
@@ -93,7 +91,7 @@ CLEANFILES = \
 
 JAVAROOT = $(abs_top_srcdir)
 
-.PHONY: coverage HyperDex-@PACKAGE_VERSION@.pdf
+.PHONY: coverage
 
 ################################################################################
 ############################## Hyperspace Hashing ##############################
@@ -583,61 +581,4 @@ clean-local: clean-coverage
 else
 coverage:
 	@echo Coverage not configured.
-endif
-
-################################################################################
-################################# Documentation ################################
-################################################################################
-
-doc_extra_dist =  \
-			doc/api/c.rst \
-			doc/api/python.rst \
-			doc/api/shards/atomicdec.rst \
-			doc/api/shards/atomicinc.rst \
-			doc/api/shards/condput.rst \
-			doc/api/shards/del.rst \
-			doc/api/shards/get.rst \
-			doc/api/shards/linearizable.rst \
-			doc/api/shards/loop.rst \
-			doc/api/shards/put.rst \
-			doc/api/shards/search.rst \
-			doc/concepts.rst \
-			doc/index.rst \
-			doc/installation.rst \
-			doc/man/hyperdex-daemon.rst \
-			doc/man/hyperdex-replication-stress-test.rst \
-			doc/man/hyperdex-simple-consistency-stress-test.rst \
-			doc/tutorial-advanced.rst \
-			doc/tutorial.rst
-
-if DOCUMENTATION_BUILD_RULES
-HyperDex-@PACKAGE_VERSION@.pdf:
-	sphinx-build -b latex -d $(abs_top_builddir)/doc/_build/doctrees \
-		-D latex_paper_size=letter $(abs_top_srcdir)/doc $(abs_top_builddir)/doc/_build/latex
-	$(MAKE) -C $(abs_top_builddir)/doc/_build/latex
-	mv $(abs_top_builddir)/doc/_build/latex/HyperDex.pdf $@
-endif
-
-################################### Man Pages ##################################
-
-if INSTALL_MAKEFILES
-dist_man_MANS = \
-			doc/man/hyperdex-daemon.1 \
-			doc/man/hyperdex-replication-stress-test.1 \
-			doc/man/hyperdex-simple-consistency-stress-test.1
-endif
-
-if DOCUMENTATION_BUILD_RULES
-doc/man/hyperdex-daemon.1: ${abs_top_srcdir}/doc/man/hyperdex-daemon.rst
-	sphinx-build -b man -d $(abs_top_builddir)/doc/_build/doctrees \
-		$(abs_top_srcdir)/doc $(abs_top_builddir)/doc/_build/man
-	mv $(abs_top_builddir)/doc/_build/man/hyperdex-daemon.1 $@
-doc/man/hyperdex-replication-stress-test.1: ${abs_top_srcdir}/doc/man/hyperdex-replication-stress-test.rst
-	sphinx-build -b man -d $(abs_top_builddir)/doc/_build/doctrees \
-		$(abs_top_srcdir)/doc $(abs_top_builddir)/doc/_build/man
-	mv $(abs_top_builddir)/doc/_build/man/hyperdex-replication-stress-test.1 $@
-doc/man/hyperdex-simple-consistency-stress-test.1: ${abs_top_srcdir}/doc/man/hyperdex-simple-consistency-stress-test.rst
-	sphinx-build -b man -d $(abs_top_builddir)/doc/_build/doctrees \
-		$(abs_top_srcdir)/doc $(abs_top_builddir)/doc/_build/man
-	mv $(abs_top_builddir)/doc/_build/man/hyperdex-simple-consistency-stress-test.1 $@
 endif

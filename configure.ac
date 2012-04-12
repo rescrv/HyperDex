@@ -160,31 +160,10 @@ AC_ARG_ENABLE([trace-player], [AS_HELP_STRING([--trace-player],
 
 if test x"${enable_traceplayer}" = xyes; then
     AC_CHECK_LIB([bsd], [strunvis], [], [AC_MSG_ERROR([
--------------------------------------------------
-The trace-player relies upon libbsd
-Please install libbsd to continue.
--------------------------------------------------])])
-fi
-
-if test -d "${srcdir}/.git"; then
-    AC_CHECK_PROG([sphinx_build], [sphinx-build], [sphinx-build], [xno])
-
-    if test x"${sphinx_build}" != xno; then
-        install_makefiles=yes
-        makefile_build_rules=yes
-    else
-        AC_MSG_WARN([
--------------------------------------------------
-Building from Git without sphinx
-Documentation and manpages will not be installed.
-Additionally, "make dist" will fail
--------------------------------------------------])
-        install_makefiles=no
-        documentation_build_rules=no
-    fi
-else
-    install_makefiles=yes
-    documentation_build_rules=no
+    -------------------------------------------------
+    The trace-player relies upon libbsd
+    Please install libbsd to continue.
+    -------------------------------------------------])])
 fi
 
 AM_CONDITIONAL([ENABLE_JAVA_BINDINGS], [test x"${java_bindings}" = xyes])
@@ -192,9 +171,6 @@ AM_CONDITIONAL([ENABLE_PYTHON_BINDINGS], [test x"${python_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_YCSB_DRIVER], [test x"${enable_ycsb}" = xyes])
 AM_CONDITIONAL([ENABLE_TRACEPLAYER], [test x"${enable_traceplayer}" = xyes])
 AM_CONDITIONAL([ENABLE_COVERAGE], [test x"${enable_coverage}" = xyes])
-AM_CONDITIONAL([INSTALL_MAKEFILES], [test x"${install_makefiles}" = xyes])
-AM_CONDITIONAL([DOCUMENTATION_BUILD_RULES], [test x"${documentation_build_rules}" = xyes])
 
-AC_CONFIG_FILES([Makefile
-                 doc/conf.py])
+AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
