@@ -96,12 +96,12 @@ Python API
          search is specified by supplying the value to match.  A range search is
          a 2-tuple specifying the lower and upper bounds on the range.
 
-   .. py:method:: atomicinc(space, key, attrs)
+   .. py:method:: atomic_add(space, key, attrs)
 
-      .. include:: shards/atomicinc.rst
+      .. include:: shards/atomic_add.rst
 
       The return value is a boolean indicating success.  If the value is
-      ``True``, the object exists, and all values were atomically incremented.
+      ``True``, the object exists, and all values were atomically added.
       If the value is ``False``, the object was not found.
 
       space:
@@ -111,13 +111,13 @@ Python API
          The key of the object.  Keys may be either byte strings or integers.
 
       attrs:
-         A dictionary mapping attribute names to the amount by which the
-         corresponding values will be incremented.  The specified attributes
-         must be numeric in nature.
+         A dictionary mapping attribute names to the number to be added to the
+         corresponding values.  The specified attributes must be numeric in
+         nature.
 
-   .. py:method:: atomicdec(space, key, attrs)
+   .. py:method:: atomic_sub(space, key, attrs)
 
-      .. include:: shards/atomicdec.rst
+      .. include:: shards/atomic_sub.rst
 
       The return value is a boolean indicating success.  If the value is
       ``True``, the object exists, and all values were atomically decremented.
@@ -130,9 +130,9 @@ Python API
          The key of the object.  Keys may be either byte strings or integers.
 
       attrs:
-         A dictionary mapping attribute names to the amount by which the
-         corresponding values will be decremented.  The specified attributes
-         must be numeric in nature.
+         A dictionary mapping attribute names to the number to be subtracted
+         from the corresponding values.  The specified attributes must be
+         numeric in nature.
 
    .. py:method:: async_get(space, key)
 
@@ -198,27 +198,9 @@ Python API
       key:
          The key of the object.  Keys may be either byte strings or integers.
 
-   .. py:method:: async_atomicinc(space, key, value)
+   .. py:method:: async_atomic_add(space, key, value)
 
-      .. include:: shards/atomicinc.rst
-
-      The returned object will be a :py:class:`DeferredAtomicIncDec` instance
-      which tracks the request.
-
-      space:
-         A string naming the space in which the object will be inserted.
-
-      key:
-         The key of the object.  Keys may be either byte strings or integers.
-
-      attrs:
-         A dictionary mapping attribute names to the amount by which the
-         corresponding values will be incremented.  The specified attributes
-         must be numeric in nature.
-
-   .. py:method:: async_atomicdec(space, key, value)
-
-      .. include:: shards/atomicdec.rst
+      .. include:: shards/atomic_add.rst
 
       The returned object will be a :py:class:`DeferredAtomicIncDec` instance
       which tracks the request.
@@ -230,9 +212,27 @@ Python API
          The key of the object.  Keys may be either byte strings or integers.
 
       attrs:
-         A dictionary mapping attribute names to the amount by which the
-         corresponding values will be decremented.  The specified attributes
-         must be numeric in nature.
+         A dictionary mapping attribute names to the number to be added to the
+         corresponding values.  The specified attributes must be numeric in
+         nature.
+
+   .. py:method:: async_atomic_sub(space, key, value)
+
+      .. include:: shards/atomic_sub.rst
+
+      The returned object will be a :py:class:`DeferredAtomicIncDec` instance
+      which tracks the request.
+
+      space:
+         A string naming the space in which the object will be inserted.
+
+      key:
+         The key of the object.  Keys may be either byte strings or integers.
+
+      attrs:
+         A dictionary mapping attribute names to the number to be subtracted
+         from the corresponding values.  The specified attributes must be
+         numeric in nature.
 
    .. py:method:: loop()
 
