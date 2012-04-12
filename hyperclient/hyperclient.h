@@ -745,6 +745,13 @@ class hyperclient
         typedef std::map<std::pair<int, uint64_t>, e::intrusive_ptr<pending> > requests_map_t;
 
     private:
+        int64_t attributes_to_microops(hyperdatatype (*map_datatype)(hyperdatatype t),
+                                       int action, const char* space,
+                                       const char* key, size_t key_sz,
+                                       const struct hyperclient_attribute* attrs,
+                                       size_t attrs_sz,
+                                       hyperclient_returncode* status);
+
         int64_t atomic_ops(int action,
                            const char* space, const char* key, size_t key_sz,
                            const struct hyperclient_attribute* attrs,
