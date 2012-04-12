@@ -85,6 +85,7 @@ nobase_python_PYTHON = \
 			hypercoordinator/client.py \
 			hypercoordinator/coordinator.py \
 			hypercoordinator/hdtypes.py \
+			hypercoordinator/hdjson.py \
 			hypercoordinator/parser.py
 
 CLEANFILES = \

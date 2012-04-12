@@ -55,6 +55,7 @@ enum ReturnCode
     SUCCESS      = 8448,
     NOTFOUND     = 8449,
     SEARCHDONE   = 8450,
+    CMPFAIL      = 8451,
     UNKNOWNSPACE = 8512,
     COORDFAIL    = 8513,
     SERVERERROR  = 8514,
@@ -67,6 +68,8 @@ enum ReturnCode
     DUPEATTR     = 8521,
     SEEERRNO     = 8522,
     NONEPENDING  = 8523,
+    DONTUSEKEY   = 8524,
+    WRONGTYPE    = 8525,
     EXCEPTION    = 8574,
     ZERO         = 8575
 };
@@ -80,7 +83,8 @@ class HyperClient
     public:
         ReturnCode get(const std::string& space,
                        const std::string& key,
-                       std::map<std::string, std::string>* OUTPUT);
+                       std::map<std::string, std::string>* STR_OUT,
+                       std::map<std::string, uint64_t>* NUM_OUT);
         ReturnCode put(const std::string& space,
                        const std::string& key,
                        const std::map<std::string, std::string>& svalues,
@@ -91,7 +95,10 @@ class HyperClient
                                 const std::string& attr,
                                 uint64_t lower,
                                 uint64_t upper,
-                                std::vector<std::map<std::string, std::string> >* OUTPUT);
+                                std::vector<std::map<std::string,
+                                                     std::string> >* STR_OUT,
+                                std::vector<std::map<std::string,
+                                                     uint64_t> >* NUM_OUT);
 
     private:
         hyperclient m_client;
@@ -101,5 +108,6 @@ namespace std
 {
     %template(ssmap) map<string, string>;
     %template(snmap) map<string, unsigned long long>;
-    %template(searchresult) vector<map<string, string> >;
+    %template(ssearchresult) vector<map<string, string> >;
+    %template(nsearchresult) vector<map<string, unsigned long long> >;
 }

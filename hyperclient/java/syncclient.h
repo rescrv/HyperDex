@@ -42,7 +42,8 @@ class HyperClient
     public:
         ReturnCode get(const std::string& space,
                        const std::string& key,
-                       std::map<std::string, std::string>* value);
+                       std::map<std::string, std::string>* svalues,
+                       std::map<std::string, uint64_t>* nvalues);
         ReturnCode put(const std::string& space,
                        const std::string& key,
                        const std::map<std::string, std::string>& svalues,
@@ -53,7 +54,10 @@ class HyperClient
                                 const std::string& attr,
                                 uint64_t lower,
                                 uint64_t upper,
-                                std::vector<std::map<std::string, std::string> >* results);
+                                std::vector<std::map<std::string,
+                                            std::string> >* sresults,
+                                std::vector<std::map<std::string,
+                                            uint64_t> >* nresults);
 
     private:
         hyperclient m_client;
