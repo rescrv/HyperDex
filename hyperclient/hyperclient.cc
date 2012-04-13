@@ -31,6 +31,7 @@
 #include <sys/epoll.h>
 
 // STL
+#include <algorithm>
 #include <tr1/memory>
 
 // e
@@ -365,6 +366,44 @@ attributes_from_value(const hyperdex::configuration& config,
     return true;
 }
 
+static bool
+compare_for_microop_sort(const hyperdex::microop& lhs,
+                         const hyperdex::microop& rhs)
+{
+   if (lhs.attr < rhs.attr)
+   {
+      return true;
+   }
+   if (lhs.attr > rhs.attr)
+   {
+      return false;
+   }
+
+   int64_t lhsi;
+   int64_t rhsi;
+
+   switch (lhs.type)
+   {
+      case HYPERDATATYPE_STRING:
+      case HYPERDATATYPE_INT64:
+      case HYPERDATATYPE_LIST_STRING:
+      case HYPERDATATYPE_LIST_INT64:
+      case HYPERDATATYPE_SET_STRING:
+      case HYPERDATATYPE_SET_INT64:
+         return false;
+      case HYPERDATATYPE_MAP_STRING_STRING:
+      case HYPERDATATYPE_MAP_STRING_INT64:
+         return lhs.arg2 < rhs.arg2;
+      case HYPERDATATYPE_MAP_INT64_STRING:
+      case HYPERDATATYPE_MAP_INT64_INT64:
+         e::unpack64le(lhs.arg2.data(), &lhsi);
+         e::unpack64le(rhs.arg2.data(), &rhsi);
+         return lhsi < rhsi;
+      case HYPERDATATYPE_GARBAGE:
+      default:
+         abort();
+   }
+}
 
 ///////////////////////////////// Channel Class ////////////////////////////////
 
@@ -1065,8 +1104,9 @@ hyperclient :: attributes_to_microops(hyperdatatype (*map_datatype)(hyperdatatyp
 
     std::vector<hyperdex::attribute> dims = m_config->dimension_names(si);
     assert(dims.size() > 0);
+    std::vector<hyperdex::microop> ops;
+    ops.reserve(attrs_sz);
 
-    // XXX Need to sort attrs by attr number
     for (size_t i = 0; i < attrs_sz; ++i)
     {
         hyperdatatype t = map_datatype(attrs[i].datatype);
@@ -1089,7 +1129,14 @@ hyperclient :: attributes_to_microops(hyperdatatype (*map_datatype)(hyperdatatyp
         o.action = static_cast<hyperdex::microop_type>(action);
         o.type = t;
         o.arg1 = e::slice(attrs[i].value, attrs[i].value_sz);
-        p = p << o;
+        ops.push_back(o);
+    }
+
+    std::sort(ops.begin(), ops.end(), compare_for_microop_sort);
+
+    for (size_t i = 0; i < ops.size(); ++i)
+    {
+        p = p << ops[i];
     }
 
     assert(!p.error());
@@ -1221,8 +1268,9 @@ hyperclient :: map_ops(int action, const char* space,
 
     std::vector<hyperdex::attribute> dims = m_config->dimension_names(si);
     assert(dims.size() > 0);
+    std::vector<hyperdex::microop> ops;
+    ops.reserve(attrs_sz);
 
-    // XXX Need to sort attrs by attr number
     for (size_t i = 0; i < attrs_sz; ++i)
     {
         if (attrs[i].datatype != HYPERDATATYPE_MAP_STRING_STRING &&
@@ -1247,7 +1295,14 @@ hyperclient :: map_ops(int action, const char* space,
         o.action = static_cast<hyperdex::microop_type>(action);
         o.arg2 = e::slice(attrs[i].map_key, attrs[i].map_key_sz);
         o.arg1 = e::slice(attrs[i].value, attrs[i].value_sz);
-        p = p << o;
+        ops.push_back(o);
+    }
+
+    std::sort(ops.begin(), ops.end(), compare_for_microop_sort);
+
+    for (size_t i = 0; i < attrs_sz; ++i)
+    {
+        p = p << ops[i];
     }
 
     assert(!p.error());
