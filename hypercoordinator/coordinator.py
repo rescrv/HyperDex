@@ -56,6 +56,9 @@ SUBSPACE_LINE = 'subspace {space} {subspace} {hashes}\n'
 REGION_LINE = 'region {space} {subspace} {prefix} {mask} {hosts}\n'
 TRANSFER_LINE = 'transfer {xferid} {space} {subspace} {prefix} {mask} {instid}\n'
 HOST_LINE = 'host {id} {ip} {inport} {inver} {outport} {outver}'
+QUIESCE_LINE = 'quiesce {state_id}\n'
+SHUTDOWN_LINE = 'shutdown\n'
+
 
 def normalize_address(addr):
     try:
@@ -85,12 +88,12 @@ class Coordinator(object):
     
     S_STARTUP, S_NORMAL, S_GOINGDOWN = 'STARTUP', 'NORMAL', 'GOINGDOWN'
     SL_DESIRED, SL_DEGRADED, SL_DATALOSS = 'DESIRED', 'DEGRADED', 'DATALOSS'
-    STATE_VERSION = 1
+    STATE_VERSION = 2
 
     def __init__(self, state_data=None):
         self._portcounters = collections.defaultdict(lambda: 1)
         self._instance_counter = 1
-        self._instances_by_addr = {}
+        self._instances_by_token = {}
         self._instances_by_bindings = {}
         self._instances_by_id = {}
         self._failed_instances = set()
@@ -103,10 +106,12 @@ class Coordinator(object):
         self._xfer_counter = 0
         self._xfers_by_id = {}
         self._state_id = ''
+        self._quiesce_config_num = -1
         self._state = Coordinator.S_STARTUP
         if state_data:
             # loading saved coord. state (restart after shutdown)
             self._load_state(state_data)
+            self._quiesce_config_num = -1
             self._state = Coordinator.S_STARTUP
         else:
             # fresh start
@@ -120,7 +125,7 @@ class Coordinator(object):
         return ver
 
     def register_instance(self, addr, inport, outport, pid, token):
-        instid = self._instances_by_addr.get((addr, inport, outport, token), 0)
+        instid = self._instances_by_token.get(token, 0)
         if instid != 0:
             return self._instances_by_id[instid].bindings()
         inver = self._compute_port_epoch(addr, inport)
@@ -133,7 +138,7 @@ class Coordinator(object):
         self._instance_counter += 1
         self._instances_by_id[instid] = inst
         self._instances_by_bindings[inst.bindings()] = instid
-        self._instances_by_addr[(addr, inport, outport, token)] = instid
+        self._instances_by_token[token] = instid
         return inst.bindings()
 
     def keepalive_instance(self, bindings):
@@ -182,17 +187,43 @@ class Coordinator(object):
         spacenum = self._spaces_by_name[space]
         return self._spaces_by_id[spacenum]
 
-    def shutdown(self):
+    def quiesce(self):
         if self._state != Coordinator.S_NORMAL:
             raise Coordinator.InvalidState()
+        # generate random state id for all hosts to save state under
         self._state_id =  binascii.hexlify(os.urandom(16))
-        # TODO:
-        # - send shutdown request with state_id to all hosts
-        # - wait for all nodes to confirm 
-        # - fail the nodes that have not replied on time
-        # - proceed to send
+        # send quiesce config to all hosts
+        self._config_counter += 1
+        self._quiesce_config_num = self._config_counter
+        config = 'version {0}\n'.format(self._config_counter)
+        config += QUIESCE_LINE.format(state_id = self._state_id)
+        self._config_data = config.strip()
+        for inst in self._instances_by_id.values():
+            inst.add_config(self._config_counter, self._config_data)
+        # return state id to client
         self._state = Coordinator.S_GOINGDOWN
-        logging.info('Cluster is now shutting down.')
+        logging.info('Cluster is quiescing.')
+        return self._state_id
+
+    def shutdown(self):
+        if self._state != Coordinator.S_GOINGDOWN:
+            raise Coordinator.InvalidState()
+        # check if all not failed hosts ackd quiesce
+        # TODO - enable once hosts accept shutdowns
+        #for instid, inst in self._instances_by_id.iteritems():
+        #    if instid not in self._failed_instances:
+        #        if inst.last_acked < self._quiesce_config_num:
+        #            raise Coordinator.InvalidState("Waiting for hosts to quiesce")
+        # send shutdown config to all hosts 
+        logging.info('Requesting all nodes to shut down.')
+        self._config_counter += 1
+        self._quiesce_config_num = self._config_counter
+        config = 'version {0}\n'.format(self._config_counter)
+        config += SHUTDOWN_LINE
+        self._config_data = config.strip()
+        for inst in self._instances_by_id.values():
+            inst.add_config(self._config_counter, self._config_data)
+        # not waiting for ack, return state 
         return self._dump_state()
         
     def get_status(self):
@@ -420,7 +451,7 @@ class Coordinator(object):
         s = {}
         for attr, value in self.__dict__.iteritems():
             # dict. with non-string keys must be normalized for JSON encoding
-            if attr in [ "_portcounters", "_instances_by_addr", "_instances_by_bindings" ]:
+            if attr in [ "_portcounters", "_instances_by_bindings" ]:
                 s[attr] = e.normalizeDictKeys(value, hdjson.KEYS_TUPLE)
             elif attr in [ "_instances_by_id", "_spaces_by_id", "_xfers_by_id" ]:
                 s[attr] = e.normalizeDictKeys(value, hdjson.KEYS_INT)
@@ -444,10 +475,14 @@ class Coordinator(object):
             raise Coordinator.InvalidStateData()
         for attr, value in s.iteritems():
             # dict. with non-string keys must be manually denormalized from JSON encoding
-            if attr in [ "_portcounters", "_instances_by_addr", "_instances_by_bindings" ]:
+            if attr in [ "_instances_by_bindings" ]:
                 setattr(self, attr, d.denormalizeDictKeys(value, hdjson.KEYS_TUPLE))
             elif attr in [ "_instances_by_id", "_spaces_by_id", "_xfers_by_id" ]:
                 setattr(self, attr, d.denormalizeDictKeys(value, hdjson.KEYS_INT))
+            # default dict must be manually created
+            elif attr == "_portcounters":
+                v = d.denormalizeDictKeys(value, hdjson.KEYS_TUPLE)
+                setattr(self, attr, collections.defaultdict(lambda: 1, v))
             else:
                 setattr(self, attr, value)
         logging.info('State from shutdown {0} restored'.format(self._state_id))
@@ -628,6 +663,8 @@ class ControlConnection(object):
                     self.lst_spaces()
                 elif r == 'get-space':
                     self.get_space(rv)
+                elif r == 'quiesce':
+                    self.quiesce()
                 elif r == 'shutdown':
                     self.shutdown()
                 elif r == 'get-status':
@@ -694,6 +731,14 @@ class ControlConnection(object):
             return self._fail("Space does not exist")
         s = hdjson.Encoder(**hdjson.HumanReadable).encode(space)
         self.outgoing += json.dumps({self._currreq:s}) + '\n'
+
+    def quiesce(self):
+        try:
+            state_id = self._coordinator.quiesce()
+        except Coordinator.InvalidState as e:
+            return self._fail("Coordinator state does not allow handling this request")
+        self.outgoing += json.dumps({self._currreq:state_id}) + '\n'
+        logging.info("quiesce request processed")
 
     def shutdown(self):
         try:

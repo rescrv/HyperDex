@@ -92,12 +92,12 @@ class Subspace(object):
 
 class Region(object):
 
-    def __init__(self, prefix, mask, desired_f, replicas = [], transfers = []):
+    def __init__(self, prefix, mask, desired_f, replicas = None, transfers = None):
         self._prefix = prefix
         self._mask = mask
         self._desired_f = desired_f
-        self._replicas = replicas
-        self._transfers = transfers
+        self._replicas = [] if not replicas else replicas
+        self._transfers = [] if not transfers else transfers
 
     @property
     def prefix(self):
@@ -223,6 +223,10 @@ class Instance(object):
     def token(self):
         return self._token
         
+    @property
+    def last_acked(self):
+        return self._last_acked
+
     def add_config(self, num, data):
         assert not self._configs or num > self._configs[-1][0]
         self._configs.append((num, data))
