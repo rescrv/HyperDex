@@ -96,43 +96,161 @@ Python API
          search is specified by supplying the value to match.  A range search is
          a 2-tuple specifying the lower and upper bounds on the range.
 
-   .. py:method:: atomic_add(space, key, attrs)
+   .. py:method:: atomic_add(space, key, value)
 
       .. include:: shards/atomic_add.rst
+      .. include:: shards/pytruefalse.rst
+      .. include:: shards/pystandard_args.rst
 
-      The return value is a boolean indicating success.  If the value is
-      ``True``, the object exists, and all values were atomically added.
-      If the value is ``False``, the object was not found.
-
-      space:
-         A string naming the space in which the object will be inserted.
-
-      key:
-         The key of the object.  Keys may be either byte strings or integers.
-
-      attrs:
-         A dictionary mapping attribute names to the number to be added to the
-         corresponding values.  The specified attributes must be numeric in
-         nature.
-
-   .. py:method:: atomic_sub(space, key, attrs)
+   .. py:method:: atomic_sub(space, key, value)
 
       .. include:: shards/atomic_sub.rst
+      .. include:: shards/pytruefalse.rst
+      .. include:: shards/pystandard_args.rst
 
-      The return value is a boolean indicating success.  If the value is
-      ``True``, the object exists, and all values were atomically decremented.
-      If the value is ``False``, the object was not found.
+   .. py:method:: atomic_mul(space, key, value)
 
-      space:
-         A string naming the space in which the object will be inserted.
+      .. include:: shards/atomic_mul.rst
+      .. include:: shards/pytruefalse.rst
+      .. include:: shards/pystandard_args.rst
 
-      key:
-         The key of the object.  Keys may be either byte strings or integers.
+   .. py:method:: atomic_div(space, key, value)
 
-      attrs:
-         A dictionary mapping attribute names to the number to be subtracted
-         from the corresponding values.  The specified attributes must be
-         numeric in nature.
+      .. include:: shards/atomic_div.rst
+      .. include:: shards/pytruefalse.rst
+      .. include:: shards/pystandard_args.rst
+
+   .. py:method:: atomic_mod(space, key, value)
+
+      .. include:: shards/atomic_mod.rst
+      .. include:: shards/pytruefalse.rst
+      .. include:: shards/pystandard_args.rst
+
+   .. py:method:: atomic_and(space, key, value)
+
+      .. include:: shards/atomic_and.rst
+      .. include:: shards/pytruefalse.rst
+      .. include:: shards/pystandard_args.rst
+
+   .. py:method:: atomic_or(space, key, value)
+
+      .. include:: shards/atomic_or.rst
+      .. include:: shards/pytruefalse.rst
+      .. include:: shards/pystandard_args.rst
+
+   .. py:method:: atomic_xor(space, key, value)
+
+      .. include:: shards/atomic_xor.rst
+      .. include:: shards/pytruefalse.rst
+      .. include:: shards/pystandard_args.rst
+
+   .. py:method:: string_prepend(space, key, value)
+
+      .. include:: shards/string_prepend.rst
+      .. include:: shards/pytruefalse.rst
+      .. include:: shards/pystandard_args.rst
+
+   .. py:method:: string_append(space, key, value)
+
+      .. include:: shards/string_append.rst
+      .. include:: shards/pytruefalse.rst
+      .. include:: shards/pystandard_args.rst
+
+   .. py:method:: list_lpush(space, key, value)
+
+      .. include:: shards/list_lpush.rst
+      .. include:: shards/pytruefalse.rst
+      .. include:: shards/pystandard_args.rst
+
+   .. py:method:: list_rpush(space, key, value)
+
+      .. include:: shards/list_rpush.rst
+      .. include:: shards/pytruefalse.rst
+      .. include:: shards/pystandard_args.rst
+
+   .. py:method:: set_add(space, key, value)
+
+      .. include:: shards/set_add.rst
+      .. include:: shards/pytruefalse.rst
+      .. include:: shards/pystandard_args.rst
+
+   .. py:method:: set_remove(space, key, value)
+
+      .. include:: shards/set_remove.rst
+      .. include:: shards/pytruefalse.rst
+      .. include:: shards/pystandard_args.rst
+
+   .. py:method:: set_intersect(space, key, value)
+
+      .. include:: shards/set_intersect.rst
+      .. include:: shards/pytruefalse.rst
+      .. include:: shards/pystandard_args.rst
+
+   .. py:method:: set_union(space, key, value)
+
+      .. include:: shards/set_intersect.rst
+      .. include:: shards/pytruefalse.rst
+      .. include:: shards/pystandard_args.rst
+
+   .. py:method:: map_atomic_add(space, key, value)
+
+      .. include:: shards/atomic_add.rst
+      .. include:: shards/pytruefalse.rst
+      .. include:: shards/pymap_args.rst
+
+   .. py:method:: map_atomic_sub(space, key, value)
+
+      .. include:: shards/atomic_sub.rst
+      .. include:: shards/pytruefalse.rst
+      .. include:: shards/pymap_args.rst
+
+   .. py:method:: map_atomic_mul(space, key, value)
+
+      .. include:: shards/atomic_mul.rst
+      .. include:: shards/pytruefalse.rst
+      .. include:: shards/pymap_args.rst
+
+   .. py:method:: map_atomic_div(space, key, value)
+
+      .. include:: shards/atomic_div.rst
+      .. include:: shards/pytruefalse.rst
+      .. include:: shards/pymap_args.rst
+
+   .. py:method:: map_atomic_mod(space, key, value)
+
+      .. include:: shards/atomic_mod.rst
+      .. include:: shards/pytruefalse.rst
+      .. include:: shards/pymap_args.rst
+
+   .. py:method:: map_atomic_and(space, key, value)
+
+      .. include:: shards/atomic_and.rst
+      .. include:: shards/pytruefalse.rst
+      .. include:: shards/pymap_args.rst
+
+   .. py:method:: map_atomic_or(space, key, value)
+
+      .. include:: shards/atomic_or.rst
+      .. include:: shards/pytruefalse.rst
+      .. include:: shards/pymap_args.rst
+
+   .. py:method:: map_atomic_xor(space, key, value)
+
+      .. include:: shards/atomic_xor.rst
+      .. include:: shards/pytruefalse.rst
+      .. include:: shards/pymap_args.rst
+
+   .. py:method:: map_string_prepend(space, key, value)
+
+      .. include:: shards/string_prepend.rst
+      .. include:: shards/pytruefalse.rst
+      .. include:: shards/pymap_args.rst
+
+   .. py:method:: map_string_append(space, key, value)
+
+      .. include:: shards/string_append.rst
+      .. include:: shards/pytruefalse.rst
+      .. include:: shards/pymap_args.rst
 
    .. py:method:: async_get(space, key)
 
@@ -201,38 +319,166 @@ Python API
    .. py:method:: async_atomic_add(space, key, value)
 
       .. include:: shards/atomic_add.rst
-
-      The returned object will be a :py:class:`DeferredAtomicIncDec` instance
-      which tracks the request.
-
-      space:
-         A string naming the space in which the object will be inserted.
-
-      key:
-         The key of the object.  Keys may be either byte strings or integers.
-
-      attrs:
-         A dictionary mapping attribute names to the number to be added to the
-         corresponding values.  The specified attributes must be numeric in
-         nature.
+      .. include:: shards/pydeferred.rst
+      .. include:: shards/pystandard_args.rst
 
    .. py:method:: async_atomic_sub(space, key, value)
 
       .. include:: shards/atomic_sub.rst
+      .. include:: shards/pydeferred.rst
+      .. include:: shards/pystandard_args.rst
 
-      The returned object will be a :py:class:`DeferredAtomicIncDec` instance
-      which tracks the request.
+   .. py:method:: async_atomic_mul(space, key, value)
 
-      space:
-         A string naming the space in which the object will be inserted.
+      .. include:: shards/atomic_mul.rst
+      .. include:: shards/pydeferred.rst
+      .. include:: shards/pystandard_args.rst
 
-      key:
-         The key of the object.  Keys may be either byte strings or integers.
+   .. py:method:: async_atomic_div(space, key, value)
 
-      attrs:
-         A dictionary mapping attribute names to the number to be subtracted
-         from the corresponding values.  The specified attributes must be
-         numeric in nature.
+      .. include:: shards/atomic_div.rst
+      .. include:: shards/pydeferred.rst
+      .. include:: shards/pystandard_args.rst
+
+   .. py:method:: async_atomic_mod(space, key, value)
+
+      .. include:: shards/atomic_mod.rst
+      .. include:: shards/pydeferred.rst
+      .. include:: shards/pystandard_args.rst
+
+   .. py:method:: async_atomic_and(space, key, value)
+
+      .. include:: shards/atomic_and.rst
+      .. include:: shards/pydeferred.rst
+      .. include:: shards/pystandard_args.rst
+
+   .. py:method:: async_atomic_or(space, key, value)
+
+      .. include:: shards/atomic_or.rst
+      .. include:: shards/pydeferred.rst
+      .. include:: shards/pystandard_args.rst
+
+   .. py:method:: async_atomic_xor(space, key, value)
+
+      .. include:: shards/atomic_xor.rst
+      .. include:: shards/pydeferred.rst
+      .. include:: shards/pystandard_args.rst
+
+   .. py:method:: async_string_prepend(space, key, value)
+
+      .. include:: shards/string_prepend.rst
+      .. include:: shards/pydeferred.rst
+      .. include:: shards/pystandard_args.rst
+
+   .. py:method:: async_string_append(space, key, value)
+
+      .. include:: shards/string_append.rst
+      .. include:: shards/pydeferred.rst
+      .. include:: shards/pystandard_args.rst
+
+   .. py:method:: async_list_lpush(space, key, value)
+
+      .. include:: shards/list_lpush.rst
+      .. include:: shards/pydeferred.rst
+      .. include:: shards/pystandard_args.rst
+
+   .. py:method:: async_list_rpush(space, key, value)
+
+      .. include:: shards/list_rpush.rst
+      .. include:: shards/pydeferred.rst
+      .. include:: shards/pystandard_args.rst
+
+   .. py:method:: async_set_add(space, key, value)
+
+      .. include:: shards/set_add.rst
+      .. include:: shards/pydeferred.rst
+      .. include:: shards/pystandard_args.rst
+
+   .. py:method:: async_set_remove(space, key, value)
+
+      .. include:: shards/set_remove.rst
+      .. include:: shards/pydeferred.rst
+      .. include:: shards/pystandard_args.rst
+
+   .. py:method:: async_set_intersect(space, key, value)
+
+      .. include:: shards/set_intersect.rst
+      .. include:: shards/pydeferred.rst
+      .. include:: shards/pystandard_args.rst
+
+   .. py:method:: async_map_atomic_add(space, key, value)
+
+      .. include:: shards/atomic_add.rst
+      .. include:: shards/pydeferred.rst
+      .. include:: shards/pymap_args.rst
+
+   .. py:method:: async_map_atomic_sub(space, key, value)
+
+      .. include:: shards/atomic_sub.rst
+      .. include:: shards/pydeferred.rst
+      .. include:: shards/pymap_args.rst
+
+   .. py:method:: async_map_atomic_mul(space, key, value)
+
+      .. include:: shards/atomic_mul.rst
+      .. include:: shards/pydeferred.rst
+      .. include:: shards/pymap_args.rst
+
+   .. py:method:: async_map_atomic_div(space, key, value)
+
+      .. include:: shards/atomic_div.rst
+      .. include:: shards/pydeferred.rst
+      .. include:: shards/pymap_args.rst
+
+   .. py:method:: async_map_atomic_mod(space, key, value)
+
+      .. include:: shards/atomic_mod.rst
+      .. include:: shards/pydeferred.rst
+      .. include:: shards/pymap_args.rst
+
+   .. py:method:: async_map_atomic_and(space, key, value)
+
+      .. include:: shards/atomic_and.rst
+      .. include:: shards/pydeferred.rst
+      .. include:: shards/pymap_args.rst
+
+   .. py:method:: async_map_atomic_or(space, key, value)
+
+      .. include:: shards/atomic_or.rst
+      .. include:: shards/pydeferred.rst
+      .. include:: shards/pymap_args.rst
+
+   .. py:method:: async_map_atomic_xor(space, key, value)
+
+      .. include:: shards/atomic_xor.rst
+      .. include:: shards/pydeferred.rst
+      .. include:: shards/pymap_args.rst
+
+   .. py:method:: async_map_string_prepend(space, key, value)
+
+      .. include:: shards/string_prepend.rst
+      .. include:: shards/pydeferred.rst
+      .. include:: shards/pymap_args.rst
+
+   .. py:method:: async_map_string_append(space, key, value)
+
+      .. include:: shards/string_append.rst
+      .. include:: shards/pydeferred.rst
+      .. include:: shards/pymap_args.rst
+
+   .. py:method:: async_set_union(space, key, value)
+
+      .. include:: shards/set_intersect.rst
+      .. include:: shards/pydeferred.rst
+      .. include:: shards/pystandard_args.rst
+
+   .. py:method:: loop()
+
+      .. include:: shards/loop.rst
+
+      The returned object will be a :py:class:`Deferred` instance which tracks
+      the request.  The object will allow the user to immediately call
+      :py:meth:`wait` without blocking.
 
    .. py:method:: loop()
 
@@ -285,7 +531,7 @@ Python API
       and the object was removed.  If the value is ``False``, there was no
       object to remove.
 
-.. py:class:: DeferredAtomicIncDec
+.. py:class:: DeferredFromAttrs
 
    .. py:method:: wait()
 
