@@ -86,7 +86,8 @@ hyperdex :: configuration_parser :: generate()
     }
 
     return configuration(m_version, hosts, m_space_assignment, m_spaces, space_sizes,
-                         m_entities, repl_hashers, disk_hashers, m_transfers);
+                         m_entities, repl_hashers, disk_hashers, m_transfers,
+                         m_quiesce, m_quiesce_state_id, m_shutdown);
 }
 
 #define _CONCAT(x,y) x ## y
@@ -135,6 +136,19 @@ hyperdex :: configuration_parser :: parse(const std::string& config)
         else if (strncmp("transfer ", start, 9) == 0)
         {
             ABORT_ON_ERROR(parse_transfer(start, eol));
+        }
+        else if (strncmp("transfer ", start, 9) == 0)
+        {
+            ABORT_ON_ERROR(parse_transfer(start, eol));
+        }
+        else if (strncmp("quiesce ", start, 8) == 0)
+        {
+            ABORT_ON_ERROR(parse_quiesce(start, eol));
+        }
+        // shutdown has no space after (no args)
+        else if (strncmp("shutdown", start, 8) == 0)
+        {
+            ABORT_ON_ERROR(parse_shutdown(start, eol));
         }
         else
         {
@@ -664,6 +678,60 @@ hyperdex :: configuration_parser :: parse_transfer(char* start,
     }
 
     m_transfers.insert(std::make_pair(std::make_pair(host->second, xfer_id), reg));
+    return CP_SUCCESS;
+}
+
+hyperdex::configuration_parser::error 
+hyperdex :: configuration_parser :: parse_quiesce(char* start,
+                                                  char* const eol)
+{
+    char* end;
+    std::string quiesce_state_id;
+
+    // Skip "quiesce "
+    start += 8;
+
+    // Pull out the quiesce state id
+    SKIP_WHITESPACE(start, eol);
+    end = start;
+    SKIP_TO_WHITESPACE(end, eol);
+    *end = '\0';
+    quiesce_state_id = std::string(start, end);
+    start = end + 1;
+
+    if (end != eol)
+    {
+        return CP_EXCESS_DATA;
+    }
+
+    if (m_quiesce_state_id != "" && m_quiesce_state_id != quiesce_state_id)
+    {
+        return CP_DUPE_QUIESCE_STATE_ID;
+    }
+
+    m_quiesce = true;
+    m_quiesce_state_id = quiesce_state_id;
+    return CP_SUCCESS;
+}
+
+hyperdex::configuration_parser::error 
+hyperdex :: configuration_parser :: parse_shutdown(char* start,
+                                                   char* const eol)
+{
+    char* end;
+
+    // Skip "shutdown"
+    start += 8;
+    
+    // No args
+    end = start;
+
+    if (end != eol)
+    {
+        return CP_EXCESS_DATA;
+    }
+
+    m_shutdown = true;
     return CP_SUCCESS;
 }
 

@@ -56,6 +56,9 @@ hyperdex :: configuration :: configuration()
     , m_disk_hashers()
     , m_transfers()
     , m_transfers_by_num(65536)
+    , m_quiesce(false)
+    , m_quiesce_state_id("")
+    , m_shutdown(false)
 {
 }
 
@@ -67,7 +70,9 @@ hyperdex :: configuration :: configuration(uint64_t ver,
                                            const std::map<entityid, instance>& entities,
                                            const std::map<subspaceid, hyperspacehashing::prefix::hasher>& repl_hashers,
                                            const std::map<subspaceid, hyperspacehashing::mask::hasher>& disk_hashers,
-                                           const std::map<std::pair<instance, uint16_t>, hyperdex::regionid>& transfers)
+                                           const std::map<std::pair<instance, uint16_t>, hyperdex::regionid>& transfers,
+                                           bool quiesce, const std::string quiesce_state_id,
+                                           bool shutdown)
     : m_version(ver)
     , m_hosts(hosts)
     , m_space_assignment(space_assignment)
@@ -78,6 +83,9 @@ hyperdex :: configuration :: configuration(uint64_t ver,
     , m_disk_hashers(disk_hashers)
     , m_transfers(transfers)
     , m_transfers_by_num(65536)
+    , m_quiesce(quiesce)
+    , m_quiesce_state_id(quiesce_state_id)
+    , m_shutdown(shutdown)
 {
     std::map<std::pair<instance, uint16_t>, hyperdex::regionid>::iterator it;
 
@@ -474,6 +482,24 @@ hyperdex :: configuration :: transfers_from(const instance& inst) const
     return ret;
 }
 
+bool 
+hyperdex :: configuration :: quiesce() const
+{
+    return m_quiesce;
+}
+
+std::string 
+hyperdex :: configuration :: quiesce_state_id() const
+{
+    return m_quiesce_state_id;
+}
+
+bool 
+hyperdex :: configuration :: shutdown() const
+{
+    return m_shutdown;
+}
+
 std::map<hyperdex::entityid, hyperdex::instance>
 hyperdex :: configuration :: _search_entities(std::map<entityid, instance>::const_iterator iter,
                                               std::map<entityid, instance>::const_iterator end,
@@ -521,3 +547,4 @@ hyperdex :: configuration :: _search_entities(std::map<entityid, instance>::cons
 
     return ret;
 }
+

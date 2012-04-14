@@ -65,7 +65,9 @@ class configuration
                       const std::map<entityid, instance>& entities,
                       const std::map<subspaceid, hyperspacehashing::prefix::hasher>& repl_hashers,
                       const std::map<subspaceid, hyperspacehashing::mask::hasher>& disk_hashers,
-                      const std::map<std::pair<instance, uint16_t>, hyperdex::regionid>& transfers);
+                      const std::map<std::pair<instance, uint16_t>, hyperdex::regionid>& transfers,
+                      bool quiesce, const std::string quiesce_state_id,
+                      bool shutdown);
         ~configuration() throw ();
 
     // The version of this config
@@ -127,6 +129,12 @@ class configuration
         uint16_t transfer_id(const regionid& reg) const;
         std::map<uint16_t, regionid> transfers_to(const instance& inst) const;
         std::map<uint16_t, regionid> transfers_from(const instance& inst) const;
+        
+     // Quesce and Shutdown
+     public:
+        bool quiesce() const;
+        std::string quiesce_state_id() const;
+        bool shutdown() const;
 
     private:
         std::map<entityid, instance> _search_entities(std::map<entityid, instance>::const_iterator start,
@@ -151,6 +159,10 @@ class configuration
         std::map<std::pair<instance, uint16_t>, hyperdex::regionid> m_transfers;
         // Transfers by number.
         std::vector<instance> m_transfers_by_num;
+        // Quiesce and shutdown.
+        bool m_quiesce;
+        std::string m_quiesce_state_id;
+        bool m_shutdown;
 };
 
 inline std::ostream&
