@@ -296,7 +296,7 @@ hyperdex :: configuration_parser :: parse_space(char* start,
 
     while (start < eol)
     {
-        datatype t;
+        hyperdatatype t;
 
         SKIP_WHITESPACE(start, eol);
         end = start;
@@ -405,6 +405,30 @@ hyperdex :: configuration_parser :: parse_subspace(char* start,
         if (subspace == 0 && i == 0 && !repl)
         {
             return CP_BAD_ATTR_CHOICE;
+        }
+
+        if (repl || disk)
+        {
+            switch (si->second[i].type)
+            {
+                // Searchable types
+                case HYPERDATATYPE_STRING:
+                case HYPERDATATYPE_INT64:
+                    break;
+                // Types which we cannot hash for searching
+                case HYPERDATATYPE_LIST_STRING:
+                case HYPERDATATYPE_LIST_INT64:
+                case HYPERDATATYPE_SET_STRING:
+                case HYPERDATATYPE_SET_INT64:
+                case HYPERDATATYPE_MAP_STRING_STRING:
+                case HYPERDATATYPE_MAP_STRING_INT64:
+                case HYPERDATATYPE_MAP_INT64_STRING:
+                case HYPERDATATYPE_MAP_INT64_INT64:
+                    return CP_ATTR_NOT_SEARCHABLE;
+                case HYPERDATATYPE_GARBAGE:
+                default:
+                    abort();
+            }
         }
 
         repl_attrs[i] = repl;
@@ -675,7 +699,7 @@ hyperdex :: configuration_parser :: extract_bool(char* start,
 hyperdex::configuration_parser::error
 hyperdex :: configuration_parser :: extract_datatype(char* start,
                                                      char* end,
-                                                     datatype* t)
+                                                     hyperdatatype* t)
 {
     assert(start <= end);
     assert(*end == '\0');
@@ -687,17 +711,57 @@ hyperdex :: configuration_parser :: extract_datatype(char* start,
 
     if (strcmp(start, "string") == 0)
     {
-        *t = DATATYPE_STRING;
+        *t = HYPERDATATYPE_STRING;
         return CP_SUCCESS;
     }
-    else if (strcmp(start, "uint64") == 0)
+    else if (strcmp(start, "int64") == 0)
     {
-        *t = DATATYPE_INT64;
+        *t = HYPERDATATYPE_INT64;
+        return CP_SUCCESS;
+    }
+    else if (strcmp(start, "list(string)") == 0)
+    {
+        *t = HYPERDATATYPE_LIST_STRING;
+        return CP_SUCCESS;
+    }
+    else if (strcmp(start, "list(int64)") == 0)
+    {
+        *t = HYPERDATATYPE_LIST_INT64;
+        return CP_SUCCESS;
+    }
+    else if (strcmp(start, "set(string)") == 0)
+    {
+        *t = HYPERDATATYPE_SET_STRING;
+        return CP_SUCCESS;
+    }
+    else if (strcmp(start, "set(int64)") == 0)
+    {
+        *t = HYPERDATATYPE_SET_INT64;
+        return CP_SUCCESS;
+    }
+    else if (strcmp(start, "map(string,string)") == 0)
+    {
+        *t = HYPERDATATYPE_MAP_STRING_STRING;
+        return CP_SUCCESS;
+    }
+    else if (strcmp(start, "map(string,int64)") == 0)
+    {
+        *t = HYPERDATATYPE_MAP_STRING_INT64;
+        return CP_SUCCESS;
+    }
+    else if (strcmp(start, "map(int64,string)") == 0)
+    {
+        *t = HYPERDATATYPE_MAP_INT64_STRING;
+        return CP_SUCCESS;
+    }
+    else if (strcmp(start, "map(int64,int64)") == 0)
+    {
+        *t = HYPERDATATYPE_MAP_INT64_INT64;
         return CP_SUCCESS;
     }
     else
     {
-        return CP_BAD_BOOL;
+        return CP_BAD_TYPE;
     }
 }
 
@@ -839,12 +903,21 @@ hyperdex :: configuration_parser :: attrs_to_hashfuncs(const subspaceid& ssi,
         {
             switch (si->second[i].type)
             {
-                case DATATYPE_STRING:
+                case HYPERDATATYPE_STRING:
                     hfuncs.push_back(hyperspacehashing::EQUALITY);
                     break;
-                case DATATYPE_INT64:
+                case HYPERDATATYPE_INT64:
                     hfuncs.push_back(hyperspacehashing::RANGE);
                     break;
+                case HYPERDATATYPE_LIST_STRING:
+                case HYPERDATATYPE_LIST_INT64:
+                case HYPERDATATYPE_SET_STRING:
+                case HYPERDATATYPE_SET_INT64:
+                case HYPERDATATYPE_MAP_STRING_STRING:
+                case HYPERDATATYPE_MAP_STRING_INT64:
+                case HYPERDATATYPE_MAP_INT64_STRING:
+                case HYPERDATATYPE_MAP_INT64_INT64:
+                case HYPERDATATYPE_GARBAGE:
                 default:
                     abort();
             }

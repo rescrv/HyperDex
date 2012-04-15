@@ -25,18 +25,68 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_datatype_h_
-#define hyperdex_datatype_h_
+#ifndef hyperdex_microop_h_
+#define hyperdex_microop_h_
+
+// e
+#include <e/buffer.h>
+#include <e/slice.h>
+
+// HyperDex
+#include "hyperdex.h"
 
 namespace hyperdex
 {
 
-enum datatype
+enum microop_type
 {
-    DATATYPE_STRING,
-    DATATYPE_INT64
+    OP_FAIL,
+
+    OP_STRING_SET,
+    OP_STRING_APPEND,
+    OP_STRING_PREPEND,
+
+    OP_INT64_SET,
+    OP_INT64_ADD,
+    OP_INT64_SUB,
+    OP_INT64_MUL,
+    OP_INT64_DIV,
+    OP_INT64_MOD,
+    OP_INT64_AND,
+    OP_INT64_OR,
+    OP_INT64_XOR,
+
+    OP_LIST_LPUSH,
+    OP_LIST_RPUSH,
+
+    OP_SET_ADD,
+    OP_SET_REMOVE,
+    OP_SET_INTERSECT,
+    OP_SET_UNION,
+
+    OP_MAP_ADD,
+    OP_MAP_REMOVE
 };
+
+class microop
+{
+    public:
+        microop();
+
+    public:
+        uint16_t attr;
+        hyperdatatype type;
+        microop_type action;
+        e::slice arg1;
+        e::slice arg2;
+};
+
+e::buffer::packer
+operator << (e::buffer::packer lhs, const microop& rhs);
+
+e::buffer::unpacker
+operator >> (e::buffer::unpacker lhs, microop& rhs);
 
 } // namespace hyperdex
 
-#endif // hyperdex_datatype_h_
+#endif // hyperdex_microop_h_

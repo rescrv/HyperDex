@@ -56,13 +56,20 @@ static const char* bindto = "127.0.0.1";
 static po6::net::ipaddr local(bindto);
 static long port_in = 0;
 static long port_out = 0;
+static bool daemonize = true;
 
 extern "C"
 {
 
 static struct poptOption popts[] = {
     POPT_AUTOHELP
-    {"data", 'd', POPT_ARG_STRING, &data, 'd',
+    {"daemon", 'd', POPT_ARG_NONE, NULL, 'd',
+        "run HyperDex in the background",
+        '\0'},
+    {"foreground", 'f', POPT_ARG_NONE, NULL, 'f',
+        "run HyperDex in the foreground",
+        '\0'},
+    {"data", 'D', POPT_ARG_STRING, &data, 'D',
         "the local directory in which data will be stored",
         "D"},
     {"host", 'h', POPT_ARG_STRING, &host, 'h',
@@ -89,10 +96,10 @@ static struct poptOption popts[] = {
 } // extern "C"
 
 int
-main(int argc, char* argv[])
+main(int argc, const char* argv[])
 {
     poptContext poptcon;
-    poptcon = poptGetContext(NULL, argc, (const char**) argv, popts, POPT_CONTEXT_POSIXMEHARDER);
+    poptcon = poptGetContext(NULL, argc, argv, popts, POPT_CONTEXT_POSIXMEHARDER);
     e::guard g = e::makeguard(poptFreeContext, poptcon);
     g.use_variable();
     int rc;
@@ -103,6 +110,12 @@ main(int argc, char* argv[])
         switch (rc)
         {
             case 'd':
+                daemonize = true;
+                break;
+            case 'f':
+                daemonize = false;
+                break;
+            case 'D':
                 if (stat(data, &stbuf) < 0)
                 {
                     std::cerr << "could not access data directory:  " << strerror(errno) << std::endl;
@@ -196,13 +209,12 @@ main(int argc, char* argv[])
         }
     }
 
-    google::InitGoogleLogging(argv[0]);
-    google::InstallFailureSignalHandler();
-
     // Run the daemon.
     try
     {
-        return hyperdaemon::daemon(data, po6::net::location(coord, port), threads, local, port_in, port_out);
+        po6::pathname datadir(data);
+        return hyperdaemon::daemon(argv[0], daemonize, datadir, po6::net::location(coord, port),
+                                   threads, local, port_in, port_out);
     }
     catch (std::exception& e)
     {

@@ -29,6 +29,7 @@
 
 // C
 #include <stdint.h>
+#include <cstdio>
 
 // STL
 #include <algorithm>
@@ -53,11 +54,13 @@
 
 // HyperDex
 #include "hyperdex/hyperdex/coordinatorlink.h"
+#include "hyperdex/hyperdex/microop.h"
 #include "hyperdex/hyperdex/network_constants.h"
 #include "hyperdex/hyperdex/packing.h"
 
 // HyperDaemon
 #include "hyperdaemon/datalayer.h"
+#include "hyperdaemon/datatypes.h"
 #include "hyperdaemon/logical.h"
 #include "hyperdaemon/ongoing_state_transfers.h"
 #include "hyperdaemon/replication_manager.h"
@@ -156,13 +159,20 @@ hyperdaemon :: replication_manager :: shutdown()
 
 static bool
 unpack_attributes(const std::vector<std::pair<uint16_t, e::slice> >& value,
-                  size_t dims,
+                  const std::vector<hyperdex::attribute>& dims,
                   e::bitfield *bf,
                   std::vector<e::slice> *realvalue)
 {
+    using namespace hyperdaemon;
+
     for (size_t i = 0; i < value.size(); ++i)
     {
-        if (value[i].first == 0 || value[i].first == dims)
+        if (value[i].first == 0 || value[i].first >= dims.size())
+        {
+            return false;
+        }
+
+        if (!validate_datatype(dims[value[i].first].type, value[i].second))
         {
             return false;
         }
@@ -181,12 +191,12 @@ hyperdaemon :: replication_manager :: client_put(const hyperdex::entityid& from,
                                                  const e::slice& key,
                                                  const std::vector<std::pair<uint16_t, e::slice> >& value)
 {
-    size_t dims = m_config.dimensions(to.get_space());
-    assert(dims > 0);
-    e::bitfield bf(dims - 1);
-    std::vector<e::slice> realvalue(dims - 1);
-    e::bitfield condbf(dims - 1);
-    std::vector<e::slice> condvalue(dims - 1);
+    std::vector<hyperdex::attribute> dims = m_config.dimension_names(to.get_space());
+    assert(dims.size() > 0);
+    e::bitfield bf(dims.size() - 1);
+    std::vector<e::slice> realvalue(dims.size() - 1);
+    e::bitfield condbf(dims.size() - 1);
+    std::vector<e::slice> condvalue(dims.size() - 1);
 
     if (!unpack_attributes(value, dims, &bf, &realvalue))
     {
@@ -208,12 +218,12 @@ hyperdaemon :: replication_manager :: client_condput(const hyperdex::entityid& f
                                                      const std::vector<std::pair<uint16_t, e::slice> >& condfields,
                                                      const std::vector<std::pair<uint16_t, e::slice> >& value)
 {
-    size_t dims = m_config.dimensions(to.get_space());
-    assert(dims > 0);
-    e::bitfield condbf(dims - 1);
-    std::vector<e::slice> condvalue(dims - 1);
-    e::bitfield bf(dims - 1);
-    std::vector<e::slice> realvalue(dims - 1);
+    std::vector<hyperdex::attribute> dims = m_config.dimension_names(to.get_space());
+    assert(dims.size() > 0);
+    e::bitfield condbf(dims.size() - 1);
+    std::vector<e::slice> condvalue(dims.size() - 1);
+    e::bitfield bf(dims.size() - 1);
+    std::vector<e::slice> realvalue(dims.size() - 1);
 
     if (!unpack_attributes(condfields, dims, &condbf, &condvalue) ||
         !unpack_attributes(value, dims, &bf, &realvalue))
@@ -245,17 +255,15 @@ hyperdaemon :: replication_manager :: client_del(const entityid& from,
 }
 
 void
-hyperdaemon :: replication_manager :: client_atomicinc(const hyperdex::entityid& from,
-                                                       const hyperdex::entityid& to,
-                                                       uint64_t nonce,
-                                                       std::auto_ptr<e::buffer> backing,
-                                                       const e::slice& key,
-                                                       std::vector<std::pair<uint16_t, e::slice> >* value)
+hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& from,
+                                                    const hyperdex::entityid& to,
+                                                    uint64_t nonce,
+                                                    std::auto_ptr<e::buffer> /*backing*/,
+                                                    const e::slice& key,
+                                                    const std::vector<hyperdex::microop>& ops)
 {
-    size_t dims = m_config.dimensions(to.get_space());
-    assert(dims > 0);
-
-    std::sort(value->begin(), value->end());
+    std::vector<hyperdex::attribute> dims = m_config.dimension_names(to.get_space());
+    assert(!dims.empty());
 
     // Make sure this message is from a client.
     if (from.space != UINT32_MAX)
@@ -265,25 +273,35 @@ hyperdaemon :: replication_manager :: client_atomicinc(const hyperdex::entityid&
     }
 
     clientop co(to.get_region(), from, nonce);
-    hyperdex::network_msgtype retcode = hyperdex::RESP_ATOMICINC;
 
     // Make sure this message is to the point-leader.
     if (!m_config.is_point_leader(to))
     {
-        respond_to_client(to, from, nonce, retcode, hyperdex::NET_NOTUS);
+        respond_to_client(to, from, nonce, hyperdex::RESP_ATOMIC, hyperdex::NET_NOTUS);
         return;
     }
 
-    if (!value->empty() && (value->front().first <= 0 || value->back().first >= dims))
+    // If the atomic op does nothing, just act as if it was successful.
+    if (ops.empty())
     {
         respond_to_client(to, from, nonce,
-                          hyperdex::RESP_ATOMICINC,
+                          hyperdex::RESP_ATOMIC,
+                          hyperdex::NET_SUCCESS);
+        return;
+    }
+
+    // We make an unvalidated assumption that the ops array is sorted.  We will
+    // validate this at a later point.
+    if (ops.front().attr <= 0 || ops.back().attr >= dims.size())
+    {
+        respond_to_client(to, from, nonce,
+                          hyperdex::RESP_ATOMIC,
                           hyperdex::NET_BADDIMSPEC);
         return;
     }
 
     // Automatically respond with "SERVERERROR" whenever we return without g.dismiss()
-    e::guard g = e::makeobjguard(*this, &replication_manager::respond_to_client, to, from, nonce, retcode, hyperdex::NET_SERVERERROR);
+    e::guard g = e::makeobjguard(*this, &replication_manager::respond_to_client, to, from, nonce, hyperdex::RESP_ATOMIC, hyperdex::NET_SERVERERROR);
 
     // Grab the lock that protects this key.
     HOLD_LOCK_FOR_KEY(to, key);
@@ -291,92 +309,174 @@ hyperdaemon :: replication_manager :: client_atomicinc(const hyperdex::entityid&
     e::intrusive_ptr<keyholder> kh = get_keyholder(to.get_region(), key);
 
     // Find the pending or committed version with the largest number.
-    uint64_t oldversion = 0;
-    bool has_oldvalue = false;
-    std::vector<e::slice> oldvalue;
+    uint64_t old_version = 0;
+    bool has_old_value = false;
+    std::vector<e::slice> old_value;
     hyperdisk::reference ref;
 
     if (kh->has_blocked_ops())
     {
-        oldversion = kh->most_recent_blocked_version();
-        has_oldvalue = kh->most_recent_blocked_op()->has_value;
-        oldvalue = kh->most_recent_blocked_op()->value;
+        old_version = kh->most_recent_blocked_version();
+        has_old_value = kh->most_recent_blocked_op()->has_value;
+        old_value = kh->most_recent_blocked_op()->value;
     }
     else if (kh->has_committable_ops())
     {
-        oldversion = kh->most_recent_committable_version();
-        has_oldvalue = kh->most_recent_committable_op()->has_value;
-        oldvalue = kh->most_recent_committable_op()->value;
+        old_version = kh->most_recent_committable_version();
+        has_old_value = kh->most_recent_committable_op()->has_value;
+        old_value = kh->most_recent_committable_op()->value;
     }
-    else if (!from_disk(to.get_region(), key, &has_oldvalue, &oldvalue, &oldversion, &ref))
+    else if (!from_disk(to.get_region(), key, &has_old_value, &old_value, &old_version, &ref))
     {
         return;
     }
 
-    if (!has_oldvalue)
+    // We allow "atomic" if and only if it already exists.
+    if (!has_old_value)
     {
         // an atomic increment on an object that does not exist should fail
-        respond_to_client(to, from, nonce, retcode, hyperdex::NET_NOTFOUND);
+        respond_to_client(to, from, nonce, hyperdex::RESP_ATOMIC, hyperdex::NET_NOTFOUND);
         g.dismiss();
         return;
     }
 
-    e::intrusive_ptr<pending> newpend;
-    std::tr1::shared_ptr<e::buffer> new_backing(e::buffer::create(backing->size() + sizeof(uint64_t) * value->size()));
-    std::vector<e::slice> newvalue(dims-1);
-    e::slice newkey = e::slice(new_backing->data(), key.size());
+    // Calculate the new size of the object
+    size_t new_size = key.size();
 
-    // copy the key, which does not appear in the values array
-    memmove(new_backing->data(), key.data(), key.size());
-    new_backing->resize(new_backing->size() + key.size());
-
-    uint nextfield = 0;
-    for (size_t i = 0; i < dims-1; ++i)
+    for (size_t i = 0; i < old_value.size(); ++i)
     {
-        e::slice newitem;
-
-        assert(nextfield <= value->size());
-        if (nextfield < value->size() && i == ((*value)[nextfield].first-1))
-        {
-          // this field needs to be incremented
-          int64_t contents = 0;
-          memmove(&contents, oldvalue[i].data(), std::min(oldvalue[i].size(), sizeof(contents)));
-          contents = le64toh(contents);
-          int64_t incr = 0;
-          memmove(&incr, (*value)[nextfield].second.data(), std::min((*value)[nextfield].second.size(), sizeof(incr)));
-          incr = le64toh(incr);
-          contents += incr;
-          contents = htole64(contents);
-          memmove(new_backing->data() + new_backing->size(), &contents, sizeof(contents));
-          newitem = e::slice(new_backing->data() + new_backing->size(), sizeof(contents));
-          new_backing->resize(new_backing->size() + sizeof(contents));
-
-          nextfield += 1;
-        }
-        else
-        {
-          // this field just needs to be copied through
-          memmove(new_backing->data() + new_backing->size(), oldvalue[i].data(), oldvalue[i].size());
-          newitem = e::slice(new_backing->data() + new_backing->size(), oldvalue[i].size());
-          new_backing->resize(new_backing->size() + oldvalue[i].size());
-        }
-        newvalue[i] = newitem;
+        // Keep the current size
+        new_size += old_value[i].size();
     }
 
-    newpend = new pending(true, new_backing, key, newvalue, co);
-    newpend->retcode = retcode;
-    newpend->ref = ref;
-    newpend->key = newkey;
-
-    if (!prev_and_next(to.get_region(), newpend->key, true, newpend->value, has_oldvalue, oldvalue, newpend))
+    for (size_t i = 0; i < ops.size(); ++i)
     {
-        respond_to_client(to, from, nonce, retcode, hyperdex::NET_NOTUS);
+        // Increment by the amount required by the microop
+        new_size += sizeof_microop(ops[i]);
+    }
+
+    // Allocate the new buffer
+    std::tr1::shared_ptr<e::buffer> new_backing(e::buffer::create(new_size));
+    std::vector<e::slice> new_value(dims.size() - 1);
+
+    // Copy the old data, mutating it as the micro ops require
+    uint8_t* data = new_backing->data();
+
+    // Copy the key.  Micro ops never apply.
+    e::slice new_key = e::slice(new_backing->data(), key.size());
+    memmove(data, key.data(), key.size());
+    data += key.size();
+
+    // Divide the micro ops up by attribute
+    const hyperdex::microop* op = &ops.front();
+    const hyperdex::microop* const stop = &ops.front() + ops.size();
+    // the next attribute to copy, indexed based on the total number of
+    // dimensions.  It starts at 1, because the key is 0, and 1 is the first
+    // secondary attribute.
+    uint16_t next_to_copy = 1;
+
+    while (op < stop)
+    {
+        const hyperdex::microop* end = op;
+
+        // If the ops are out of order, or out of bounds
+        if (op->attr < next_to_copy || op->attr >= dims.size())
+        {
+            // Fail it for bad micro ops
+            respond_to_client(to, from, nonce, hyperdex::RESP_ATOMIC, hyperdex::NET_BADMICROS);
+            g.dismiss();
+            return;
+        }
+
+        // Advance so that op/end point to the micro ops that need to be applied
+        while (end < stop && op->attr == end->attr)
+        {
+            // If the datatype doesn't match the structure
+            if (end->type != dims[end->attr].type ||
+                    end->action == hyperdex::OP_FAIL)
+            {
+                // Fail it for bad micro ops
+                respond_to_client(to, from, nonce, hyperdex::RESP_ATOMIC, hyperdex::NET_BADMICROS);
+                g.dismiss();
+                return;
+            }
+
+            ++end;
+        }
+
+        // Copy the attributes that are unaffected by micro ops.
+        while (next_to_copy < op->attr)
+        {
+            assert(next_to_copy > 0);
+            size_t idx = next_to_copy - 1;
+            memmove(data, old_value[idx].data(), old_value[idx].size());
+            new_value[idx] = e::slice(data, old_value[idx].size());
+            data += old_value[idx].size();
+            ++next_to_copy;
+        }
+
+        // - "op" now points to the first unapplied micro op
+        // - "end" points to one micro op past the last op we want to apply
+        // - we've guaranteed that the micro ops thus far are in sorted order
+        // - we've guaranteed that the micro ops thus far match the declared
+        //   types
+        // - we've copied all attributes so far, even those not mentioned by
+        //   micro ops.
+
+        hyperdex::network_returncode error;
+        uint8_t* newdata = apply_microops(dims[op->attr].type,
+                                          old_value[op->attr - 1],
+                                          op, end - op,
+                                          data, &error);
+
+        // If applying the micro ops failed
+        if (!newdata)
+        {
+            // Fail it for bad micro ops
+            respond_to_client(to, from, nonce, hyperdex::RESP_ATOMIC, error);
+            g.dismiss();
+            return;
+        }
+
+        // see message above "yes I did"
+        new_value[next_to_copy - 1] = e::slice(data, newdata - data);
+        data = newdata;
+
+        // Why ++ and assert rather than straight assign?  This will help us to
+        // catch any problems in the interaction between micro ops and
+        // attributes which we just copy.
+        assert(next_to_copy == op->attr);
+        ++next_to_copy;
+
+        op = end;
+    }
+
+    // Copy the attributes that are unaffected by micro ops.
+    while (next_to_copy < dims.size())
+    {
+        assert(next_to_copy > 0);
+        size_t idx = next_to_copy - 1;
+        memmove(data, old_value[idx].data(), old_value[idx].size());
+        new_value[idx] = e::slice(data, old_value[idx].size());
+        data += old_value[idx].size();
+        ++next_to_copy;
+    }
+
+    e::intrusive_ptr<pending> new_pend;
+    new_pend = new pending(true, new_backing, key, new_value, co);
+    new_pend->retcode = hyperdex::RESP_ATOMIC;
+    new_pend->ref = ref;
+    new_pend->key = new_key;
+
+    if (!prev_and_next(to.get_region(), new_pend->key, true, new_pend->value, has_old_value, old_value, new_pend))
+    {
+        respond_to_client(to, from, nonce, hyperdex::RESP_ATOMIC, hyperdex::NET_NOTUS);
         g.dismiss();
         return;
     }
 
     assert(!kh->has_deferred_ops());
-    kh->append_blocked(oldversion + 1, newpend);
+    kh->append_blocked(old_version + 1, new_pend);
     move_operations_between_queues(to, key, kh);
     g.dismiss();
 }
@@ -1081,7 +1181,7 @@ hyperdaemon :: replication_manager :: prev_and_next(const regionid& r,
 void
 hyperdaemon :: replication_manager :: check_for_deferred_operations(const hyperdex::regionid& r,
                                                                     uint64_t version,
-                                                                    std::tr1::shared_ptr<e::buffer> backing,
+                                                                    std::tr1::shared_ptr<e::buffer> /*backing*/,
                                                                     const e::slice& key,
                                                                     bool has_value,
                                                                     const std::vector<e::slice>& value)

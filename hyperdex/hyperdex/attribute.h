@@ -32,7 +32,7 @@
 #include <string>
 
 // HyperDex
-#include <hyperdex/datatype.h>
+#include <hyperdex.h>
 
 namespace hyperdex
 {
@@ -42,7 +42,7 @@ class attribute
     public:
         attribute()
             : name(), type() {}
-        attribute(const std::string& n, datatype t)
+        attribute(const std::string& n, hyperdatatype t)
             : name(n), type(t) {}
         attribute(const attribute& other)
             : name(other.name), type(other.type) {}
@@ -58,7 +58,7 @@ class attribute
 
     public:
         std::string name;
-        datatype type;
+        hyperdatatype type;
 };
 
 } // namespace hyperdex

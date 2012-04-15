@@ -28,6 +28,9 @@
 // POSIX
 #include <poll.h>
 
+// C++
+#include <sstream>
+
 // e
 #include <e/bufferio.h>
 

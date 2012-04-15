@@ -1,0 +1,26 @@
+.. _contents:
+
+Welcome to the HyperDex Reference Manual
+========================================
+
+This documentation corresponds to the current development version of HyperDex.
+
+.. toctree::
+   :maxdepth: 2
+
+   concepts
+   installation
+   tutorial
+   tutorial-advanced
+   api/python
+   api/c
+   man/hyperdex-daemon
+   man/hyperdex-replication-stress-test
+   man/hyperdex-simple-consistency-stress-test
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

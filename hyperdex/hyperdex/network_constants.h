@@ -42,7 +42,8 @@ enum network_returncode
     NET_BADDIMSPEC  = 8322,
     NET_NOTUS       = 8323,
     NET_SERVERERROR = 8324,
-    NET_CMPFAIL     = 8325
+    NET_CMPFAIL     = 8325,
+    NET_BADMICROS   = 8326
 };
 
 enum network_msgtype
@@ -59,8 +60,8 @@ enum network_msgtype
     REQ_DEL         = 14,
     RESP_DEL        = 15,
 
-    REQ_ATOMICINC   = 16,
-    RESP_ATOMICINC   = 17,
+    REQ_ATOMIC      = 16,
+    RESP_ATOMIC     = 17,
 
     REQ_SEARCH_START    = 32,
     REQ_SEARCH_NEXT     = 33,
@@ -99,8 +100,8 @@ operator << (std::ostream& lhs, const network_msgtype& rhs)
         stringify(RESP_CONDPUT);
         stringify(REQ_DEL);
         stringify(RESP_DEL);
-        stringify(REQ_ATOMICINC);
-        stringify(RESP_ATOMICINC);
+        stringify(REQ_ATOMIC);
+        stringify(RESP_ATOMIC);
         stringify(REQ_SEARCH_START);
         stringify(REQ_SEARCH_NEXT);
         stringify(REQ_SEARCH_STOP);

@@ -27,6 +27,10 @@
 
 // POSIX
 #include <signal.h>
+#include <unistd.h>
+
+// C++
+#include <sstream>
 
 // STL
 #include <tr1/memory>
@@ -64,14 +68,38 @@ sig_handle(int /*signum*/)
 }
 
 int
-hyperdaemon :: daemon(po6::pathname datadir,
+hyperdaemon :: daemon(const char* progname,
+                      bool daemonize,
+                      po6::pathname datadir,
                       po6::net::location coordinator,
                       uint16_t num_threads,
                       po6::net::ipaddr bind_to,
                       in_port_t incoming,
                       in_port_t outgoing)
 {
-    google::LogToStderr();
+    google::InitGoogleLogging(progname);
+    google::InstallFailureSignalHandler();
+
+    if (chdir(datadir.get()) < 0)
+    {
+        PLOG(ERROR) << "could not change to the data directory";
+        return EXIT_FAILURE;
+    }
+
+    if (daemonize)
+    {
+        google::SetLogDestination(google::INFO, po6::join(datadir, po6::pathname("HyperDex-")).get());
+
+        if (::daemon(1, 0) < 0)
+        {
+            PLOG(ERROR) << "could not daemonize";
+            return EXIT_FAILURE;
+        }
+    }
+    else
+    {
+        google::LogToStderr();
+    }
 
     // Catch signals.
     struct sigaction handle;
@@ -84,7 +112,7 @@ hyperdaemon :: daemon(po6::pathname datadir,
 
     if (ret < 0)
     {
-        PLOG(INFO) << "could not set signal handlers (sigaction)";
+        PLOG(ERROR) << "could not set signal handlers (sigaction)";
         return EXIT_FAILURE;
     }
 
@@ -95,13 +123,13 @@ hyperdaemon :: daemon(po6::pathname datadir,
 
         if (rand.get() < 0)
         {
-            PLOG(INFO) << "could not open /dev/urandom for random bytes (open)";
+            PLOG(ERROR) << "could not open /dev/urandom for random bytes (open)";
             return EXIT_FAILURE;
         }
 
         if (rand.read(random_bytes, 16) != 16)
         {
-            PLOG(INFO) << "could not read random bytes from /dev/urandom (read)";
+            PLOG(ERROR) << "could not read random bytes from /dev/urandom (read)";
             return EXIT_FAILURE;
         }
     }
@@ -232,7 +260,7 @@ hyperdaemon :: daemon(po6::pathname datadir,
 
                 if (cl.connect() != hyperdex::coordinatorlink::SUCCESS)
                 {
-                    PLOG(INFO) << "Coordinator connection failed";
+                    PLOG(ERROR) << "Coordinator connection failed";
                     e::sleep_ms(1, 0);
                 }
 

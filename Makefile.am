@@ -46,6 +46,9 @@ noinst_LTLIBRARIES = \
 			libhyperdex.la \
 			libhyperdaemon.la
 
+include_HEADERS = \
+			hyperdex.h
+
 noinst_HEADERS = \
 			$(libhyperspacehashing_noinst_headers) \
 			$(libhyperdisk_noinst_headers) \
@@ -80,6 +83,7 @@ nobase_python_PYTHON = \
 			hypercoordinator/client.py \
 			hypercoordinator/coordinator.py \
 			hypercoordinator/hdtypes.py \
+			hypercoordinator/hdjson.py \
 			hypercoordinator/parser.py
 
 CLEANFILES = \
@@ -301,16 +305,17 @@ libhyperdex_noinst_headers = \
 			hyperdex/hyperdex/configuration.h \
 			hyperdex/hyperdex/configuration_parser.h \
 			hyperdex/hyperdex/coordinatorlink.h \
-			hyperdex/hyperdex/datatype.h \
 			hyperdex/hyperdex/ids.h \
 			hyperdex/hyperdex/instance.h \
+			hyperdex/hyperdex/microop.h \
 			hyperdex/hyperdex/network_constants.h \
 			hyperdex/hyperdex/packing.h
 
 libhyperdex_la_SOURCES = \
 			hyperdex/configuration.cc \
 			hyperdex/configuration_parser.cc \
-			hyperdex/coordinatorlink.cc
+			hyperdex/coordinatorlink.cc \
+			hyperdex/microop.cc
 libhyperdex_la_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
 			-I$(abs_top_srcdir)/hyperdex \
@@ -326,6 +331,7 @@ libhyperdex_la_CPPFLAGS = \
 libhyperdaemon_noinst_headers = \
 			hyperdaemon/hyperdaemon/daemon.h \
 			hyperdaemon/datalayer.h \
+			hyperdaemon/datatypes.h \
 			hyperdaemon/logical.h \
 			hyperdaemon/network_worker.h \
 			hyperdaemon/ongoing_state_transfers.h \
@@ -343,6 +349,7 @@ libhyperdaemon_noinst_headers = \
 libhyperdaemon_la_SOURCES = \
 			hyperdaemon/daemon.cc \
 			hyperdaemon/datalayer.cc \
+			hyperdaemon/datatypes.cc \
 			hyperdaemon/logical.cc \
 			hyperdaemon/network_worker.cc \
 			hyperdaemon/ongoing_state_transfers.cc \
@@ -515,7 +522,7 @@ hyperdex_binary_test_CPPFLAGS = \
 hyperdex_simple_consistency_stress_test_SOURCES = \
 			simple-consistency-stress-test.cc
 hyperdex_simple_consistency_stress_test_CPPFLAGS = \
-			-I$(abs_top_srcdir)/hyperclient
+			-I$(abs_top_srcdir)/hyperclient \
 			$(E_CFLAGS) \
 			$(CPPFLAGS)
 hyperdex_simple_consistency_stress_test_LDADD = \

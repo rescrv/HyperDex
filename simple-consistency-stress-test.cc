@@ -27,6 +27,10 @@
 
 // The purpose of this test is to expose consistency errors.
 
+// This code does 0 endianness conversion because it should be run on exactly
+// one host, and I needed to make it not rely upon the beXXtoh family of
+// functions.
+
 // C
 #include <cstdlib>
 #include <stdint.h>
@@ -54,13 +58,13 @@
 // HyperClient
 #include <hyperclient.h>
 
-static int64_t window = 128;
-static int64_t repetitions = 1024;
+static long window = 128;
+static long repetitions = 1024;
 static int64_t threads = 16;
 static const char* space = "consistency";
 static const char* host = "127.0.0.1";
 static po6::net::ipaddr coord(host);
-static uint16_t port = 1234;
+static long port = 1234;
 static std::auto_ptr<po6::threads::barrier> barrier;
 static po6::threads::mutex results_lock;
 static int done = 0;
@@ -107,7 +111,7 @@ int
 main(int argc, const char* argv[])
 {
     poptContext poptcon;
-    poptcon = poptGetContext(NULL, argc, (const char**) argv, popts, POPT_CONTEXT_POSIXMEHARDER);
+    poptcon = poptGetContext(NULL, argc, argv, popts, POPT_CONTEXT_POSIXMEHARDER);
     e::guard g = e::makeguard(poptFreeContext, poptcon);
     g.use_variable();
     int rc;
@@ -160,7 +164,7 @@ main(int argc, const char* argv[])
 
                 break;
             case 'p':
-                if (port < 0 || port >= (1 << 16))
+                if (port >= (1 << 16))
                 {
                     std::cerr << "port number out of range for TCP" << std::endl;
                     return EXIT_FAILURE;
@@ -244,7 +248,7 @@ writer_thread()
 
     for (int64_t i = 0; i < window; ++i)
     {
-        int64_t key = htobe64(i);
+        int64_t key = i;
         int64_t did;
         hyperclient_returncode dstatus;
 
@@ -297,8 +301,8 @@ writer_thread()
 
             for (count = 0; count < 65536; ++count)
             {
-                int64_t key = htobe64(i);
-                int64_t val = htobe64(r);
+                int64_t key = i;
+                int64_t val = r;
                 int64_t pid;
                 hyperclient_attribute attr;
                 hyperclient_returncode pstatus;
@@ -379,7 +383,7 @@ reader_thread()
 
             while (true)
             {
-                int64_t key = htobe64(i);
+                int64_t key = i;
                 int64_t gid;
                 hyperclient_attribute* attrs = NULL;
                 size_t attrs_sz = 0;
@@ -414,7 +418,6 @@ reader_thread()
                     int64_t val = 0;
                     memmove(&val, attrs[0].value, attrs[0].value_sz);
                     assert(attrs[0].datatype == HYPERDATATYPE_STRING);
-                    val = be64toh(val);
 
                     if (val < oldval)
                     {
