@@ -407,42 +407,7 @@ Functions
 .. c:function:: int64_t hyperclient_atomic_add(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
 
    .. include:: shards/atomic_add.rst
-
-   On success, the integer returned will be a positive integer unique to this
-   request.  The request will be considered complete when
-   :c:func:`hyperclient_loop` returns the same ID.  If the integer returned is
-   negative, it indicates an error generating the request, and ``*status``
-   contains the reason why.  ``HYPERCLIENT_UNKNOWNATTR``,
-   ``HYPERCLIENT_WRONGTYPE`` and ``HYPERCLIENT_DUPEATTR`` indicate which
-   attribute caused the error by returning ``-1 - idx_of_bad_attr``.
-
-   client:
-      An initialized :c:type:`hyperclient` instance.
-
-   space:
-      A NULL-terminated C-string containing the name of the space to retrieve
-      the object from.
-
-   key:
-      A sequence of bytes to be used as the key.  This pointer must remain valid
-      for the duration of the call.
-
-   key_sz:
-      The number of bytes pointed to by :c:data:`key`.
-
-   attrs:
-      The attributes to be changed on the object.  Each attribute should
-      identify a numeric attribute to be incremented (atomically) by the amount
-      specified in the :c:member:`hyperclient_attribute.value` field.  This
-      pointer must remain valid for the duration of the call.
-
-   attrs_sz:
-      The number of attributes pointed to by :c:data:`attrs`.
-
-   status:
-      A return value in which the result of the operation will be stored.  If
-      this function returns successfully, this pointer must remain valid until
-      :c:func:`hyperclient_loop` returns the same ID returned by this function.
+   .. include:: shards/cstandard_call.rst
 
    The C++ API provides ``hyperclient::atomic_add`` in place of this call.
 
@@ -450,42 +415,7 @@ Functions
 .. c:function:: int64_t hyperclient_atomic_sub(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
 
    .. include:: shards/atomic_sub.rst
-
-   On success, the integer returned will be a positive integer unique to this
-   request.  The request will be considered complete when
-   :c:func:`hyperclient_loop` returns the same ID.  If the integer returned is
-   negative, it indicates an error generating the request, and ``*status``
-   contains the reason why.  ``HYPERCLIENT_UNKNOWNATTR``,
-   ``HYPERCLIENT_WRONGTYPE`` and ``HYPERCLIENT_DUPEATTR`` indicate which
-   attribute caused the error by returning ``-1 - idx_of_bad_attr``.
-
-   client:
-      An initialized :c:type:`hyperclient` instance.
-
-   space:
-      A NULL-terminated C-string containing the name of the space to retrieve
-      the object from.
-
-   key:
-      A sequence of bytes to be used as the key.  This pointer must remain valid
-      for the duration of the call.
-
-   key_sz:
-      The number of bytes pointed to by :c:data:`key`.
-
-   attrs:
-      The attributes to be changed on the object.  Each attribute should
-      identify a numeric attribute to be decremented (atomically) by the amount
-      specified in the :c:member:`hyperclient_attribute.value` field.  This
-      pointer must remain valid for the duration of the call.
-
-   attrs_sz:
-      The number of attributes pointed to by :c:data:`attrs`.
-
-   status:
-      A return value in which the result of the operation will be stored.  If
-      this function returns successfully, this pointer must remain valid until
-      :c:func:`hyperclient_loop` returns the same ID returned by this function.
+   .. include:: shards/cstandard_call.rst
 
    The C++ API provides ``hyperclient::atomic_sub`` in place of this call.
 
@@ -493,42 +423,7 @@ Functions
 .. c:function:: int64_t hyperclient_atomic_mul(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
 
    .. include:: shards/atomic_mul.rst
-
-   On success, the integer returned will be a positive integer unique to this
-   request.  The request will be considered complete when
-   :c:func:`hyperclient_loop` returns the same ID.  If the integer returned is
-   negative, it indicates an error generating the request, and ``*status``
-   contains the reason why.  ``HYPERCLIENT_UNKNOWNATTR``,
-   ``HYPERCLIENT_WRONGTYPE`` and ``HYPERCLIENT_DUPEATTR`` indicate which
-   attribute caused the error by returning ``-1 - idx_of_bad_attr``.
-
-   client:
-      An initialized :c:type:`hyperclient` instance.
-
-   space:
-      A NULL-terminated C-string containing the name of the space to retrieve
-      the object from.
-
-   key:
-      A sequence of bytes to be used as the key.  This pointer must remain valid
-      for the duration of the call.
-
-   key_sz:
-      The number of bytes pointed to by :c:data:`key`.
-
-   attrs:
-      The attributes to be changed on the object.  Each attribute should
-      identify a numeric attribute to be multiplied (atomically) by the amount
-      specified in the :c:member:`hyperclient_attribute.value` field.  This
-      pointer must remain valid for the duration of the call.
-
-   attrs_sz:
-      The number of attributes pointed to by :c:data:`attrs`.
-
-   status:
-      A return value in which the result of the operation will be stored.  If
-      this function returns successfully, this pointer must remain valid until
-      :c:func:`hyperclient_loop` returns the same ID returned by this function.
+   .. include:: shards/cstandard_call.rst
 
    The C++ API provides ``hyperclient::atomic_mul`` in place of this call.
 
@@ -536,42 +431,7 @@ Functions
 .. c:function:: int64_t hyperclient_atomic_div(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
 
    .. include:: shards/atomic_div.rst
-
-   On success, the integer returned will be a positive integer unique to this
-   request.  The request will be considered complete when
-   :c:func:`hyperclient_loop` returns the same ID.  If the integer returned is
-   negative, it indicates an error generating the request, and ``*status``
-   contains the reason why.  ``HYPERCLIENT_UNKNOWNATTR``,
-   ``HYPERCLIENT_WRONGTYPE`` and ``HYPERCLIENT_DUPEATTR`` indicate which
-   attribute caused the error by returning ``-1 - idx_of_bad_attr``.
-
-   client:
-      An initialized :c:type:`hyperclient` instance.
-
-   space:
-      A NULL-terminated C-string containing the name of the space to retrieve
-      the object from.
-
-   key:
-      A sequence of bytes to be used as the key.  This pointer must remain valid
-      for the duration of the call.
-
-   key_sz:
-      The number of bytes pointed to by :c:data:`key`.
-
-   attrs:
-      The attributes to be changed on the object.  Each attribute should
-      identify a numeric attribute to be divided (atomically) by the amount
-      specified in the :c:member:`hyperclient_attribute.value` field.  This
-      pointer must remain valid for the duration of the call.
-
-   attrs_sz:
-      The number of attributes pointed to by :c:data:`attrs`.
-
-   status:
-      A return value in which the result of the operation will be stored.  If
-      this function returns successfully, this pointer must remain valid until
-      :c:func:`hyperclient_loop` returns the same ID returned by this function.
+   .. include:: shards/cstandard_call.rst
 
    The C++ API provides ``hyperclient::atomic_div`` in place of this call.
 
@@ -579,43 +439,7 @@ Functions
 .. c:function:: int64_t hyperclient_atomic_mod(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
 
    .. include:: shards/atomic_mod.rst
-
-   On success, the integer returned will be a positive integer unique to this
-   request.  The request will be considered complete when
-   :c:func:`hyperclient_loop` returns the same ID.  If the integer returned is
-   negative, it indicates an error generating the request, and ``*status``
-   contains the reason why.  ``HYPERCLIENT_UNKNOWNATTR``,
-   ``HYPERCLIENT_WRONGTYPE`` and ``HYPERCLIENT_DUPEATTR`` indicate which
-   attribute caused the error by returning ``-1 - idx_of_bad_attr``.
-
-   client:
-      An initialized :c:type:`hyperclient` instance.
-
-   space:
-      A NULL-terminated C-string containing the name of the space to retrieve
-      the object from.
-
-   key:
-      A sequence of bytes to be used as the key.  This pointer must remain valid
-      for the duration of the call.
-
-   key_sz:
-      The number of bytes pointed to by :c:data:`key`.
-
-   attrs:
-      The attributes to be changed on the object.  Each attribute should
-      identify a numeric attribute which will be updated (atomically) to reflect
-      the original value modulo the number specified in the
-      :c:member:`hyperclient_attribute.value` field.  This pointer must remain
-      valid for the duration of the call.
-
-   attrs_sz:
-      The number of attributes pointed to by :c:data:`attrs`.
-
-   status:
-      A return value in which the result of the operation will be stored.  If
-      this function returns successfully, this pointer must remain valid until
-      :c:func:`hyperclient_loop` returns the same ID returned by this function.
+   .. include:: shards/cstandard_call.rst
 
    The C++ API provides ``hyperclient::atomic_mod`` in place of this call.
 
@@ -623,42 +447,7 @@ Functions
 .. c:function:: int64_t hyperclient_atomic_and(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
 
    .. include:: shards/atomic_and.rst
-
-   On success, the integer returned will be a positive integer unique to this
-   request.  The request will be considered complete when
-   :c:func:`hyperclient_loop` returns the same ID.  If the integer returned is
-   negative, it indicates an error generating the request, and ``*status``
-   contains the reason why.  ``HYPERCLIENT_UNKNOWNATTR``,
-   ``HYPERCLIENT_WRONGTYPE`` and ``HYPERCLIENT_DUPEATTR`` indicate which
-   attribute caused the error by returning ``-1 - idx_of_bad_attr``.
-
-   client:
-      An initialized :c:type:`hyperclient` instance.
-
-   space:
-      A NULL-terminated C-string containing the name of the space to retrieve
-      the object from.
-
-   key:
-      A sequence of bytes to be used as the key.  This pointer must remain valid
-      for the duration of the call.
-
-   key_sz:
-      The number of bytes pointed to by :c:data:`key`.
-
-   attrs:
-      The attributes to be changed on the object.  Each attribute should
-      identify a numeric attribute to be bitwise-anded (atomically) with the
-      value specified in the :c:member:`hyperclient_attribute.value` field.
-      This pointer must remain valid for the duration of the call.
-
-   attrs_sz:
-      The number of attributes pointed to by :c:data:`attrs`.
-
-   status:
-      A return value in which the result of the operation will be stored.  If
-      this function returns successfully, this pointer must remain valid until
-      :c:func:`hyperclient_loop` returns the same ID returned by this function.
+   .. include:: shards/cstandard_call.rst
 
    The C++ API provides ``hyperclient::atomic_and`` in place of this call.
 
@@ -666,42 +455,7 @@ Functions
 .. c:function:: int64_t hyperclient_atomic_or(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
 
    .. include:: shards/atomic_or.rst
-
-   On success, the integer returned will be a positive integer unique to this
-   request.  The request will be considered complete when
-   :c:func:`hyperclient_loop` returns the same ID.  If the integer returned is
-   negative, it indicates an error generating the request, and ``*status``
-   contains the reason why.  ``HYPERCLIENT_UNKNOWNATTR``,
-   ``HYPERCLIENT_WRONGTYPE`` and ``HYPERCLIENT_DUPEATTR`` indicate which
-   attribute caused the error by returning ``-1 - idx_of_bad_attr``.
-
-   client:
-      An initialized :c:type:`hyperclient` instance.
-
-   space:
-      A NULL-terminated C-string containing the name of the space to retrieve
-      the object from.
-
-   key:
-      A sequence of bytes to be used as the key.  This pointer must remain valid
-      for the duration of the call.
-
-   key_sz:
-      The number of bytes pointed to by :c:data:`key`.
-
-   attrs:
-      The attributes to be changed on the object.  Each attribute should
-      identify a numeric attribute to be bitwise-ored (atomically) with the
-      value specified in the :c:member:`hyperclient_attribute.value` field.
-      This pointer must remain valid for the duration of the call.
-
-   attrs_sz:
-      The number of attributes pointed to by :c:data:`attrs`.
-
-   status:
-      A return value in which the result of the operation will be stored.  If
-      this function returns successfully, this pointer must remain valid until
-      :c:func:`hyperclient_loop` returns the same ID returned by this function.
+   .. include:: shards/cstandard_call.rst
 
    The C++ API provides ``hyperclient::atomic_or`` in place of this call.
 
@@ -709,42 +463,7 @@ Functions
 .. c:function:: int64_t hyperclient_atomic_xor(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
 
    .. include:: shards/atomic_xor.rst
-
-   On success, the integer returned will be a positive integer unique to this
-   request.  The request will be considered complete when
-   :c:func:`hyperclient_loop` returns the same ID.  If the integer returned is
-   negative, it indicates an error generating the request, and ``*status``
-   contains the reason why.  ``HYPERCLIENT_UNKNOWNATTR``,
-   ``HYPERCLIENT_WRONGTYPE`` and ``HYPERCLIENT_DUPEATTR`` indicate which
-   attribute caused the error by returning ``-1 - idx_of_bad_attr``.
-
-   client:
-      An initialized :c:type:`hyperclient` instance.
-
-   space:
-      A NULL-terminated C-string containing the name of the space to retrieve
-      the object from.
-
-   key:
-      A sequence of bytes to be used as the key.  This pointer must remain valid
-      for the duration of the call.
-
-   key_sz:
-      The number of bytes pointed to by :c:data:`key`.
-
-   attrs:
-      The attributes to be changed on the object.  Each attribute should
-      identify a numeric attribute to be bitwise-xored (atomically) with the
-      value specified in the :c:member:`hyperclient_attribute.value` field.
-      This pointer must remain valid for the duration of the call.
-
-   attrs_sz:
-      The number of attributes pointed to by :c:data:`attrs`.
-
-   status:
-      A return value in which the result of the operation will be stored.  If
-      this function returns successfully, this pointer must remain valid until
-      :c:func:`hyperclient_loop` returns the same ID returned by this function.
+   .. include:: shards/cstandard_call.rst
 
    The C++ API provides ``hyperclient::atomic_xor`` in place of this call.
 
@@ -752,42 +471,7 @@ Functions
 .. c:function:: int64_t hyperclient_string_prepend(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
 
    .. include:: shards/string_prepend.rst
-
-   On success, the integer returned will be a positive integer unique to this
-   request.  The request will be considered complete when
-   :c:func:`hyperclient_loop` returns the same ID.  If the integer returned is
-   negative, it indicates an error generating the request, and ``*status``
-   contains the reason why.  ``HYPERCLIENT_UNKNOWNATTR``,
-   ``HYPERCLIENT_WRONGTYPE`` and ``HYPERCLIENT_DUPEATTR`` indicate which
-   attribute caused the error by returning ``-1 - idx_of_bad_attr``.
-
-   client:
-      An initialized :c:type:`hyperclient` instance.
-
-   space:
-      A NULL-terminated C-string containing the name of the space to retrieve
-      the object from.
-
-   key:
-      A sequence of bytes to be used as the key.  This pointer must remain valid
-      for the duration of the call.
-
-   key_sz:
-      The number of bytes pointed to by :c:data:`key`.
-
-   attrs:
-      The attributes to be changed on the object.  Each value specified in the
-      :c:member:`hyperclient_attribute.value` field will be atomically prepended
-      to the existing string.  This pointer must remain valid for the duration
-      of the call.
-
-   attrs_sz:
-      The number of attributes pointed to by :c:data:`attrs`.
-
-   status:
-      A return value in which the result of the operation will be stored.  If
-      this function returns successfully, this pointer must remain valid until
-      :c:func:`hyperclient_loop` returns the same ID returned by this function.
+   .. include:: shards/cstandard_call.rst
 
    The C++ API provides ``hyperclient::string_prepend`` in place of this call.
 
@@ -795,42 +479,7 @@ Functions
 .. c:function:: int64_t hyperclient_string_append(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
 
    .. include:: shards/string_append.rst
-
-   On success, the integer returned will be a positive integer unique to this
-   request.  The request will be considered complete when
-   :c:func:`hyperclient_loop` returns the same ID.  If the integer returned is
-   negative, it indicates an error generating the request, and ``*status``
-   contains the reason why.  ``HYPERCLIENT_UNKNOWNATTR``,
-   ``HYPERCLIENT_WRONGTYPE`` and ``HYPERCLIENT_DUPEATTR`` indicate which
-   attribute caused the error by returning ``-1 - idx_of_bad_attr``.
-
-   client:
-      An initialized :c:type:`hyperclient` instance.
-
-   space:
-      A NULL-terminated C-string containing the name of the space to retrieve
-      the object from.
-
-   key:
-      A sequence of bytes to be used as the key.  This pointer must remain valid
-      for the duration of the call.
-
-   key_sz:
-      The number of bytes pointed to by :c:data:`key`.
-
-   attrs:
-      The attributes to be changed on the object.  Each value specified in the
-      :c:member:`hyperclient_attribute.value` field will be atomically appended
-      to the existing string.  This pointer must remain valid for the duration
-      of the call.
-
-   attrs_sz:
-      The number of attributes pointed to by :c:data:`attrs`.
-
-   status:
-      A return value in which the result of the operation will be stored.  If
-      this function returns successfully, this pointer must remain valid until
-      :c:func:`hyperclient_loop` returns the same ID returned by this function.
+   .. include:: shards/cstandard_call.rst
 
    The C++ API provides ``hyperclient::string_append`` in place of this call.
 
@@ -838,42 +487,7 @@ Functions
 .. c:function:: int64_t hyperclient_list_lpush(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
 
    .. include:: shards/list_lpush.rst
-
-   On success, the integer returned will be a positive integer unique to this
-   request.  The request will be considered complete when
-   :c:func:`hyperclient_loop` returns the same ID.  If the integer returned is
-   negative, it indicates an error generating the request, and ``*status``
-   contains the reason why.  ``HYPERCLIENT_UNKNOWNATTR``,
-   ``HYPERCLIENT_WRONGTYPE`` and ``HYPERCLIENT_DUPEATTR`` indicate which
-   attribute caused the error by returning ``-1 - idx_of_bad_attr``.
-
-   client:
-      An initialized :c:type:`hyperclient` instance.
-
-   space:
-      A NULL-terminated C-string containing the name of the space to retrieve
-      the object from.
-
-   key:
-      A sequence of bytes to be used as the key.  This pointer must remain valid
-      for the duration of the call.
-
-   key_sz:
-      The number of bytes pointed to by :c:data:`key`.
-
-   attrs:
-      The attributes to be changed on the object.  Each value specified in the
-      :c:member:`hyperclient_attribute.value` field will be atomically pushed
-      onto the left side of the existing list.  This pointer must remain valid
-      for the duration of the call.
-
-   attrs_sz:
-      The number of attributes pointed to by :c:data:`attrs`.
-
-   status:
-      A return value in which the result of the operation will be stored.  If
-      this function returns successfully, this pointer must remain valid until
-      :c:func:`hyperclient_loop` returns the same ID returned by this function.
+   .. include:: shards/cstandard_call.rst
 
    The C++ API provides ``hyperclient::list_lpush`` in place of this call.
 
@@ -881,44 +495,121 @@ Functions
 .. c:function:: int64_t hyperclient_list_rpush(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
 
    .. include:: shards/list_rpush.rst
-
-   On success, the integer returned will be a positive integer unique to this
-   request.  The request will be considered complete when
-   :c:func:`hyperclient_loop` returns the same ID.  If the integer returned is
-   negative, it indicates an error generating the request, and ``*status``
-   contains the reason why.  ``HYPERCLIENT_UNKNOWNATTR``,
-   ``HYPERCLIENT_WRONGTYPE`` and ``HYPERCLIENT_DUPEATTR`` indicate which
-   attribute caused the error by returning ``-1 - idx_of_bad_attr``.
-
-   client:
-      An initialized :c:type:`hyperclient` instance.
-
-   space:
-      A NULL-terminated C-string containing the name of the space to retrieve
-      the object from.
-
-   key:
-      A sequence of bytes to be used as the key.  This pointer must remain valid
-      for the duration of the call.
-
-   key_sz:
-      The number of bytes pointed to by :c:data:`key`.
-
-   attrs:
-      The attributes to be changed on the object.  Each value specified in the
-      :c:member:`hyperclient_attribute.value` field will be atomically pushed
-      onto the right side of the existing list.  This pointer must remain valid
-      for the duration of the call.
-
-   attrs_sz:
-      The number of attributes pointed to by :c:data:`attrs`.
-
-   status:
-      A return value in which the result of the operation will be stored.  If
-      this function returns successfully, this pointer must remain valid until
-      :c:func:`hyperclient_loop` returns the same ID returned by this function.
+   .. include:: shards/cstandard_call.rst
 
    The C++ API provides ``hyperclient::list_rpush`` in place of this call.
+
+
+.. c:function:: int64_t hyperclient_set_add(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
+
+   .. include:: shards/set_add.rst
+   .. include:: shards/cstandard_call.rst
+
+   The C++ API provides ``hyperclient::set_add`` in place of this call.
+
+
+.. c:function:: int64_t hyperclient_set_remove(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
+
+   .. include:: shards/set_remove.rst
+   .. include:: shards/cstandard_call.rst
+
+   The C++ API provides ``hyperclient::set_remove`` in place of this call.
+
+
+.. c:function:: int64_t hyperclient_set_intersect(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
+
+   .. include:: shards/set_intersect.rst
+   .. include:: shards/cstandard_call.rst
+
+   The C++ API provides ``hyperclient::set_intersect`` in place of this call.
+
+
+.. c:function:: int64_t hyperclient_set_union(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
+
+   .. include:: shards/set_union.rst
+   .. include:: shards/cstandard_call.rst
+
+   The C++ API provides ``hyperclient::set_union`` in place of this call.
+
+
+.. c:function:: int64_t hyperclient_map_atomic_add(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_map_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
+
+   .. include:: shards/atomic_add.rst
+   .. include:: shards/cmap_call.rst
+
+   The C++ API provides ``hyperclient::map_atomic_add`` in place of this call.
+
+
+.. c:function:: int64_t hyperclient_map_atomic_sub(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_map_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
+
+   .. include:: shards/atomic_sub.rst
+   .. include:: shards/cmap_call.rst
+
+   The C++ API provides ``hyperclient::map_atomic_sub`` in place of this call.
+
+
+.. c:function:: int64_t hyperclient_map_atomic_mul(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_map_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
+
+   .. include:: shards/atomic_mul.rst
+   .. include:: shards/cmap_call.rst
+
+   The C++ API provides ``hyperclient::map_atomic_mul`` in place of this call.
+
+
+.. c:function:: int64_t hyperclient_map_atomic_div(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_map_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
+
+   .. include:: shards/atomic_div.rst
+   .. include:: shards/cmap_call.rst
+
+   The C++ API provides ``hyperclient::map_atomic_div`` in place of this call.
+
+
+.. c:function:: int64_t hyperclient_map_atomic_mod(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_map_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
+
+   .. include:: shards/atomic_mod.rst
+   .. include:: shards/cmap_call.rst
+
+   The C++ API provides ``hyperclient::map_atomic_mod`` in place of this call.
+
+
+.. c:function:: int64_t hyperclient_map_atomic_and(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_map_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
+
+   .. include:: shards/atomic_and.rst
+   .. include:: shards/cmap_call.rst
+
+   The C++ API provides ``hyperclient::map_atomic_and`` in place of this call.
+
+
+.. c:function:: int64_t hyperclient_map_atomic_or(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_map_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
+
+   .. include:: shards/atomic_or.rst
+   .. include:: shards/cmap_call.rst
+
+   The C++ API provides ``hyperclient::map_atomic_or`` in place of this call.
+
+
+.. c:function:: int64_t hyperclient_map_atomic_xor(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_map_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
+
+   .. include:: shards/atomic_xor.rst
+   .. include:: shards/cmap_call.rst
+
+   The C++ API provides ``hyperclient::map_atomic_xor`` in place of this call.
+
+
+.. c:function:: int64_t hyperclient_map_string_prepend(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_map_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
+
+   .. include:: shards/string_prepend.rst
+   .. include:: shards/cmap_call.rst
+
+   The C++ API provides ``hyperclient::map_string_prepend`` in place of this call.
+
+
+.. c:function:: int64_t hyperclient_map_string_append(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_map_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
+
+   .. include:: shards/string_append.rst
+   .. include:: shards/cmap_call.rst
+
+   The C++ API provides ``hyperclient::map_string_append`` in place of this call.
 
 
 .. c:function:: int64_t hyperclient_search(struct hyperclient* client, const char* space, const struct hyperclient_attribute* eq, size_t eq_sz, const struct hyperclient_range_query* rn, size_t rn_sz, enum hyperclient_returncode* status, struct hyperclient_attribute** attrs, size_t* attrs_sz)
