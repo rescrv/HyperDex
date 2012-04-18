@@ -227,7 +227,7 @@ cdef _obj_to_backing(v):
         mixedtype = TypeError("Cannot store heterogeneous maps")
         for x, y in v.iteritems():
             if isinstance(x, int):
-                if keytype not in ('int', None):
+                if keytype not in ('int64', None):
                     raise mixedtype
                 backing += struct.pack('<q', x)
                 keytype = 'int64'
@@ -240,7 +240,7 @@ cdef _obj_to_backing(v):
             else:
                 raise mixedtype
             if isinstance(y, int):
-                if valtype not in ('int', None):
+                if valtype not in ('int64', None):
                     raise mixedtype
                 backing += struct.pack('<q', y)
                 valtype = 'int64'
