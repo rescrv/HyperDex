@@ -198,7 +198,7 @@ apply_string(const e::slice& old_value,
     {
         switch (ops[i].action)
         {
-            case OP_STRING_SET:
+            case OP_SET:
 
                 if (set_base || prepend || append)
                 {
@@ -229,7 +229,6 @@ apply_string(const e::slice& old_value,
 
                 append = ops + i;
                 break;
-            case OP_INT64_SET:
             case OP_INT64_ADD:
             case OP_INT64_SUB:
             case OP_INT64_MUL:
@@ -420,7 +419,7 @@ apply_int64(const e::slice& old_value,
 
         switch (op->action)
         {
-            case OP_INT64_SET:
+            case OP_SET:
                 number = arg;
                 break;
             case OP_INT64_ADD:
@@ -447,7 +446,6 @@ apply_int64(const e::slice& old_value,
             case OP_INT64_XOR:
                 number ^= arg;
                 break;
-            case OP_STRING_SET:
             case OP_STRING_APPEND:
             case OP_STRING_PREPEND:
             case OP_LIST_LPUSH:
@@ -493,7 +491,10 @@ validate_list(bool (*validate_elem)(const uint8_t** ptr,
 }
 
 static uint8_t*
-apply_list(bool (*validate_elem_micro)(const hyperdex::microop* op),
+apply_list(bool (*validate_elem)(const uint8_t** ptr,
+                                 uint32_t* ptr_sz,
+                                 const uint8_t* end),
+           bool (*validate_elem_micro)(const hyperdex::microop* op),
            uint8_t* (*copy_elem_from_micro)(uint8_t* writeto,
                                             const hyperdex::microop* op),
            const e::slice& old_value,
@@ -502,10 +503,22 @@ apply_list(bool (*validate_elem_micro)(const hyperdex::microop* op),
            uint8_t* writeto,
            hyperdex::network_returncode* error)
 {
+    if (num_ops == 1 && ops->action == hyperdex::OP_SET)
+    {
+        if (!validate_list(validate_elem, ops->arg1))
+        {
+            *error = hyperdex::NET_BADMICROS;
+            return NULL;
+        }
+
+        memmove(writeto, ops->arg1.data(), ops->arg1.size());
+        return writeto + ops->arg1.size();
+    }
+
     // Apply the lpush ops
     for (ssize_t i = num_ops - 1; i >= 0; --i)
     {
-        if (ops->action != hyperdex::OP_LIST_LPUSH)
+        if (ops[i].action != hyperdex::OP_LIST_LPUSH)
         {
             continue;
         }
@@ -526,9 +539,9 @@ apply_list(bool (*validate_elem_micro)(const hyperdex::microop* op),
     // Apply the rpush ops
     for (size_t i = 0; i < num_ops; ++i)
     {
-        if (ops->action != hyperdex::OP_LIST_RPUSH)
+        if (ops[i].action != hyperdex::OP_LIST_RPUSH)
         {
-            if (ops->action != hyperdex::OP_LIST_LPUSH)
+            if (ops[i].action != hyperdex::OP_LIST_LPUSH)
             {
                 *error = hyperdex::NET_BADMICROS;
                 return NULL;
@@ -672,10 +685,8 @@ apply_set_add_remove(bool (*validate_elem)(const uint8_t** ptr, uint32_t* ptr_sz
                     break;
                 case OP_SET_INTERSECT:
                 case OP_SET_UNION:
-                case OP_STRING_SET:
                 case OP_STRING_APPEND:
                 case OP_STRING_PREPEND:
-                case OP_INT64_SET:
                 case OP_INT64_ADD:
                 case OP_INT64_SUB:
                 case OP_INT64_MUL:
@@ -688,6 +699,7 @@ apply_set_add_remove(bool (*validate_elem)(const uint8_t** ptr, uint32_t* ptr_sz
                 case OP_LIST_RPUSH:
                 case OP_MAP_ADD:
                 case OP_MAP_REMOVE:
+                case OP_SET:
                 case OP_FAIL:
                 default:
                     *error = NET_BADMICROS;
@@ -709,10 +721,8 @@ apply_set_add_remove(bool (*validate_elem)(const uint8_t** ptr, uint32_t* ptr_sz
                     break;
                 case OP_SET_INTERSECT:
                 case OP_SET_UNION:
-                case OP_STRING_SET:
                 case OP_STRING_APPEND:
                 case OP_STRING_PREPEND:
-                case OP_INT64_SET:
                 case OP_INT64_ADD:
                 case OP_INT64_SUB:
                 case OP_INT64_MUL:
@@ -725,6 +735,7 @@ apply_set_add_remove(bool (*validate_elem)(const uint8_t** ptr, uint32_t* ptr_sz
                 case OP_LIST_RPUSH:
                 case OP_MAP_ADD:
                 case OP_MAP_REMOVE:
+                case OP_SET:
                 case OP_FAIL:
                 default:
                     *error = NET_BADMICROS;
@@ -761,10 +772,8 @@ apply_set_add_remove(bool (*validate_elem)(const uint8_t** ptr, uint32_t* ptr_sz
                 break;
             case OP_SET_INTERSECT:
             case OP_SET_UNION:
-            case OP_STRING_SET:
             case OP_STRING_APPEND:
             case OP_STRING_PREPEND:
-            case OP_INT64_SET:
             case OP_INT64_ADD:
             case OP_INT64_SUB:
             case OP_INT64_MUL:
@@ -777,6 +786,7 @@ apply_set_add_remove(bool (*validate_elem)(const uint8_t** ptr, uint32_t* ptr_sz
             case OP_LIST_RPUSH:
             case OP_MAP_ADD:
             case OP_MAP_REMOVE:
+            case OP_SET:
             case OP_FAIL:
             default:
                 *error = NET_BADMICROS;
@@ -788,14 +798,32 @@ apply_set_add_remove(bool (*validate_elem)(const uint8_t** ptr, uint32_t* ptr_sz
 }
 
 static uint8_t*
+apply_set_set(bool (*validate_set)(const e::slice& data),
+              const hyperdex::microop* op,
+              uint8_t* writeto,
+              hyperdex::network_returncode* error)
+{
+    using namespace hyperdex;
+    assert(op->action == hyperdex::OP_SET);
+
+    if (!validate_set(op->arg1))
+    {
+        *error = NET_BADMICROS;
+        return NULL;
+    }
+
+    memmove(writeto, op->arg1.data(), op->arg1.size());
+    return writeto + op->arg1.size();
+}
+
+static uint8_t*
 apply_set_intersect(bool (*validate_set)(const e::slice& data),
                     bool (*validate_elem)(const uint8_t** ptr, uint32_t* ptr_sz, const uint8_t* end),
                     int (*compare_elem)(const uint8_t* a_ptr, uint32_t a_sz,
                                         const uint8_t* b_ptr, uint32_t b_sz),
                     uint8_t* (*copy_elem_from_set)(uint8_t* writeto, const uint8_t* ptr, uint32_t ptr_sz),
                     const e::slice& old_value,
-                    const hyperdex::microop* ops,
-                    size_t num_ops,
+                    const hyperdex::microop* op,
                     uint8_t* writeto,
                     hyperdex::network_returncode* error)
 {
@@ -805,16 +833,9 @@ apply_set_intersect(bool (*validate_set)(const e::slice& data),
     // that the set is sorted, and the efficiency trade-off is on the order of
     // constants.
     using namespace hyperdex;
+    assert(op->action == hyperdex::OP_SET_INTERSECT);
 
-    if (num_ops != 1)
-    {
-        *error = NET_BADMICROS;
-        return NULL;
-    }
-
-    assert(ops->action == hyperdex::OP_SET_INTERSECT);
-
-    if (!validate_set(e::slice(ops->arg1)))
+    if (!validate_set(op->arg1))
     {
         *error = NET_BADMICROS;
         return NULL;
@@ -822,8 +843,8 @@ apply_set_intersect(bool (*validate_set)(const e::slice& data),
 
     const uint8_t* set_ptr = old_value.data();
     const uint8_t* const set_end = old_value.data() + old_value.size();
-    const uint8_t* new_ptr = ops->arg1.data();
-    const uint8_t* const new_end = ops->arg1.data() + ops->arg1.size();
+    const uint8_t* new_ptr = op->arg1.data();
+    const uint8_t* const new_end = op->arg1.data() + op->arg1.size();
 
     // We only need to consider this case.
     while (set_ptr < set_end && new_ptr < new_end)
@@ -873,22 +894,14 @@ apply_set_union(bool (*validate_set)(const e::slice& data),
                                     const uint8_t* b_ptr, uint32_t b_sz),
                 uint8_t* (*copy_elem_from_set)(uint8_t* writeto, const uint8_t* ptr, uint32_t ptr_sz),
                 const e::slice& old_value,
-                const hyperdex::microop* ops,
-                size_t num_ops,
+                const hyperdex::microop* op,
                 uint8_t* writeto,
                 hyperdex::network_returncode* error)
 {
     using namespace hyperdex;
+    assert(op->action == hyperdex::OP_SET_UNION);
 
-    if (num_ops != 1)
-    {
-        *error = NET_BADMICROS;
-        return NULL;
-    }
-
-    assert(ops->action == hyperdex::OP_SET_UNION);
-
-    if (!validate_set(e::slice(ops->arg1)))
+    if (!validate_set(op->arg1))
     {
         *error = NET_BADMICROS;
         return NULL;
@@ -896,8 +909,8 @@ apply_set_union(bool (*validate_set)(const e::slice& data),
 
     const uint8_t* set_ptr = old_value.data();
     const uint8_t* const set_end = old_value.data() + old_value.size();
-    const uint8_t* new_ptr = ops->arg1.data();
-    const uint8_t* const new_end = ops->arg1.data() + ops->arg1.size();
+    const uint8_t* new_ptr = op->arg1.data();
+    const uint8_t* const new_end = op->arg1.data() + op->arg1.size();
 
     while (set_ptr < set_end && new_ptr < new_end)
     {
@@ -1031,6 +1044,25 @@ validate_map(bool (*validate_key)(const uint8_t** ptr,
 }
 
 static uint8_t*
+apply_map_set(bool (*validate_map)(const e::slice& data),
+              const hyperdex::microop* op,
+              uint8_t* writeto,
+              hyperdex::network_returncode* error)
+{
+    using namespace hyperdex;
+    assert(op->action == hyperdex::OP_SET);
+
+    if (!validate_map(op->arg1))
+    {
+        *error = NET_BADMICROS;
+        return NULL;
+    }
+
+    memmove(writeto, op->arg1.data(), op->arg1.size());
+    return writeto + op->arg1.size();
+}
+
+static uint8_t*
 apply_map_add_remove(bool (*validate_key)(const uint8_t** ptr, uint32_t* ptr_sz, const uint8_t* end),
                      bool (*validate_val)(const uint8_t** ptr, uint32_t* ptr_sz, const uint8_t* end),
                      bool (*validate_elem_micro_arg1)(const hyperdex::microop* op),
@@ -1119,12 +1151,8 @@ apply_map_add_remove(bool (*validate_key)(const uint8_t** ptr, uint32_t* ptr_sz,
                     // Nothing to remove
                     ++i;
                     break;
-                case OP_SET_INTERSECT:
-                case OP_SET_UNION:
-                case OP_STRING_SET:
                 case OP_STRING_APPEND:
                 case OP_STRING_PREPEND:
-                case OP_INT64_SET:
                 case OP_INT64_ADD:
                 case OP_INT64_SUB:
                 case OP_INT64_MUL:
@@ -1137,6 +1165,9 @@ apply_map_add_remove(bool (*validate_key)(const uint8_t** ptr, uint32_t* ptr_sz,
                 case OP_LIST_RPUSH:
                 case OP_SET_ADD:
                 case OP_SET_REMOVE:
+                case OP_SET_INTERSECT:
+                case OP_SET_UNION:
+                case OP_SET:
                 case OP_FAIL:
                 default:
                     *error = NET_BADMICROS;
@@ -1157,12 +1188,8 @@ apply_map_add_remove(bool (*validate_key)(const uint8_t** ptr, uint32_t* ptr_sz,
                     ptr = next_from_map;
                     ++i;
                     break;
-                case OP_SET_INTERSECT:
-                case OP_SET_UNION:
-                case OP_STRING_SET:
                 case OP_STRING_APPEND:
                 case OP_STRING_PREPEND:
-                case OP_INT64_SET:
                 case OP_INT64_ADD:
                 case OP_INT64_SUB:
                 case OP_INT64_MUL:
@@ -1175,6 +1202,9 @@ apply_map_add_remove(bool (*validate_key)(const uint8_t** ptr, uint32_t* ptr_sz,
                 case OP_LIST_RPUSH:
                 case OP_SET_ADD:
                 case OP_SET_REMOVE:
+                case OP_SET_INTERSECT:
+                case OP_SET_UNION:
+                case OP_SET:
                 case OP_FAIL:
                 default:
                     *error = NET_BADMICROS;
@@ -1220,12 +1250,8 @@ apply_map_add_remove(bool (*validate_key)(const uint8_t** ptr, uint32_t* ptr_sz,
             case OP_MAP_REMOVE:
                 ++i;
                 break;
-            case OP_SET_INTERSECT:
-            case OP_SET_UNION:
-            case OP_STRING_SET:
             case OP_STRING_APPEND:
             case OP_STRING_PREPEND:
-            case OP_INT64_SET:
             case OP_INT64_ADD:
             case OP_INT64_SUB:
             case OP_INT64_MUL:
@@ -1238,6 +1264,9 @@ apply_map_add_remove(bool (*validate_key)(const uint8_t** ptr, uint32_t* ptr_sz,
             case OP_LIST_RPUSH:
             case OP_SET_ADD:
             case OP_SET_REMOVE:
+            case OP_SET_INTERSECT:
+            case OP_SET_UNION:
+            case OP_SET:
             case OP_FAIL:
             default:
                 *error = NET_BADMICROS;
@@ -1428,7 +1457,8 @@ apply_list_string(const e::slice& old_value,
                   uint8_t* writeto,
                   hyperdex::network_returncode* error)
 {
-    return apply_list(validate_string_micro,
+    return apply_list(validate_string,
+                      validate_string_micro,
                       copy_string_from_micro_arg1,
                       old_value, ops, num_ops, writeto, error);
 }
@@ -1440,7 +1470,8 @@ apply_list_int64(const e::slice& old_value,
                  uint8_t* writeto,
                  hyperdex::network_returncode* error)
 {
-    return apply_list(validate_int64_micro_arg1,
+    return apply_list(validate_int64,
+                      validate_int64_micro_arg1,
                       copy_int64_from_micro_arg1,
                       old_value, ops, num_ops, writeto, error);
 }
@@ -1479,17 +1510,21 @@ apply_set_string(const e::slice& old_value,
                                     copy_string_from_micro_arg1,
                                     old_value, ops, num_ops, writeto, error);
     }
-    else if (ops[0].action == hyperdex::OP_SET_INTERSECT)
+    else if (ops[0].action == hyperdex::OP_SET && num_ops == 1)
+    {
+        return apply_set_set(validate_set_string, ops, writeto, error);
+    }
+    else if (ops[0].action == hyperdex::OP_SET_INTERSECT && num_ops == 1)
     {
         return apply_set_intersect(validate_set_string, validate_string,
                                    compare_string, copy_string_from_serialized,
-                                   old_value, ops, num_ops, writeto, error);
+                                   old_value, ops, writeto, error);
     }
-    else if (ops[0].action == hyperdex::OP_SET_UNION)
+    else if (ops[0].action == hyperdex::OP_SET_UNION && num_ops == 1)
     {
         return apply_set_union(validate_set_string, validate_string,
                                compare_string, copy_string_from_serialized,
-                               old_value, ops, num_ops, writeto, error);
+                               old_value, ops, writeto, error);
     }
     else
     {
@@ -1518,17 +1553,21 @@ apply_set_int64(const e::slice& old_value,
                                     copy_int64_from_micro_arg1,
                                     old_value, ops, num_ops, writeto, error);
     }
-    else if (ops[0].action == hyperdex::OP_SET_INTERSECT)
+    else if (ops[0].action == hyperdex::OP_SET && num_ops == 1)
+    {
+        return apply_set_set(validate_set_int64, ops, writeto, error);
+    }
+    else if (ops[0].action == hyperdex::OP_SET_INTERSECT && num_ops == 1)
     {
         return apply_set_intersect(validate_set_int64, validate_int64,
                                    compare_int64, copy_int64_from_serialized,
-                                   old_value, ops, num_ops, writeto, error);
+                                   old_value, ops, writeto, error);
     }
-    else if (ops[0].action == hyperdex::OP_SET_UNION)
+    else if (ops[0].action == hyperdex::OP_SET_UNION && num_ops == 1)
     {
         return apply_set_union(validate_set_int64, validate_int64,
                                compare_int64, copy_int64_from_serialized,
-                               old_value, ops, num_ops, writeto, error);
+                               old_value, ops, writeto, error);
     }
     else
     {
@@ -1604,6 +1643,10 @@ apply_map_string_string(const e::slice& old_value,
                                     copy_string_from_micro_arg1,
                                     old_value, ops, num_ops, writeto, error);
     }
+    else if (ops[0].action == hyperdex::OP_SET && num_ops == 1)
+    {
+        return apply_map_set(validate_map_string_string, ops, writeto, error);
+    }
     else
     {
         return apply_map_microop(validate_string,
@@ -1644,6 +1687,10 @@ apply_map_string_int64(const e::slice& old_value,
                                     copy_int64_from_serialized,
                                     copy_int64_from_micro_arg1,
                                     old_value, ops, num_ops, writeto, error);
+    }
+    else if (ops[0].action == hyperdex::OP_SET && num_ops == 1)
+    {
+        return apply_map_set(validate_map_string_int64, ops, writeto, error);
     }
     else
     {
@@ -1686,6 +1733,10 @@ apply_map_int64_string(const e::slice& old_value,
                                     copy_string_from_micro_arg1,
                                     old_value, ops, num_ops, writeto, error);
     }
+    else if (ops[0].action == hyperdex::OP_SET && num_ops == 1)
+    {
+        return apply_map_set(validate_map_int64_string, ops, writeto, error);
+    }
     else
     {
         return apply_map_microop(validate_int64,
@@ -1726,6 +1777,10 @@ apply_map_int64_int64(const e::slice& old_value,
                                     copy_int64_from_serialized,
                                     copy_int64_from_micro_arg1,
                                     old_value, ops, num_ops, writeto, error);
+    }
+    else if (ops[0].action == hyperdex::OP_SET && num_ops == 1)
+    {
+        return apply_map_set(validate_map_int64_int64, ops, writeto, error);
     }
     else
     {
@@ -1787,11 +1842,21 @@ hyperdaemon :: sizeof_microop(const hyperdex::microop& op)
     {
         case OP_FAIL:
             return 0;
-        case OP_STRING_SET:
+        case OP_SET:
+
+            if (op.type == HYPERDATATYPE_STRING)
+            {
+                return sizeof(uint32_t) + op.arg1.size();
+            }
+            else if (op.type == HYPERDATATYPE_INT64)
+            {
+                return sizeof(int64_t);
+            }
+
+            return op.arg1.size();
         case OP_STRING_APPEND:
         case OP_STRING_PREPEND:
             return sizeof(uint32_t) + op.arg1.size();
-        case OP_INT64_SET:
         case OP_INT64_ADD:
         case OP_INT64_SUB:
         case OP_INT64_MUL:
