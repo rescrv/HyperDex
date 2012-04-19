@@ -38,6 +38,7 @@
 // C++
 #include <iomanip>
 #include <sstream>
+#include <fstream>
 
 // e
 #include <e/guard.h>
@@ -80,12 +81,204 @@ using hyperspacehashing::mask::coordinate;
 // the WAL.  Trickle does this by using locking when exchanging the
 // shard_vectors.
 
+const int hyperdisk :: disk :: STATE_FILE_VER = 1;
+const char* hyperdisk :: disk :: STATE_FILE_NAME = "disk_state.hd";
+
 e::intrusive_ptr<hyperdisk::disk>
 hyperdisk :: disk :: create(const po6::pathname& directory,
                             const hyperspacehashing::mask::hasher& hasher,
                             uint16_t arity)
 {
     return new disk(directory, hasher, arity);
+}
+
+bool
+hyperdisk :: disk :: dump_state()
+{
+    // Flush all data to O/S buffers.
+    while (true)
+    {
+        returncode rc = flush();
+        switch (rc)
+        {
+            case DIDNOTHING:
+                // All data is flushed, move on.
+                break;
+            case SUCCESS:
+                // Some data flushed, try again.
+                continue;
+            case DATAFULL:
+            case SEARCHFULL:
+                // Split the shards and try agian.
+                do_mandatory_io();
+                continue;
+            default:
+                return false;
+        }
+    }
+    
+    // Flush O/S buffers to disk.
+    returncode rc = sync();
+    if (SUCCESS != rc)
+    {
+        return false;
+    }
+    
+    // Dump state information.
+    e::intrusive_ptr<shard_vector> shards;
+    {
+        po6::threads::mutex::hold b(&m_shards_lock);
+        shards = m_shards;
+    }
+    
+    std::ostringstream s;
+    s << "version " << STATE_FILE_VER << std::endl;
+    for (size_t i = 0; i < shards->size(); ++i)
+    {
+        hyperspacehashing::mask::coordinate c = shards->get_coordinate(i);
+        uint32_t o = shards->get_offset(i);
+        s << "shard";
+        s << " " << c.primary_mask;
+        s << " " << c.primary_hash;
+        s << " " << c.secondary_lower_mask;
+        s << " " << c.secondary_lower_hash;
+        s << " " << c.secondary_upper_mask;
+        s << " " << c.secondary_upper_hash;
+        s << " " << o;
+        s << std::endl;
+    }
+    
+    // Dump state to a temp file, fsync and rename to config. Using C file 
+    // I/O as C++ flush and sync are not portable.
+    po6::pathname tmp_name = po6::join(m_base_filename, "tmp");
+    po6::pathname config_name = po6::join(m_base_filename, STATE_FILE_NAME);
+    
+    po6::io::fd fd;
+    if (!mkstemp(&fd, &tmp_name))
+    {
+        return false;
+    }
+    
+    FILE *f = fdopen(fd.get(), "w");
+    if (!f)
+    {
+        ::close(fd.get());
+        return false;
+    }
+    
+    if (EOF == fputs(s.str().c_str(), f))
+    {
+        fclose(f);
+        return false;
+    }
+    
+    if (fflush(f))
+    {
+        fclose(f);
+        return false;
+    }
+
+    if (fsync(fd.get()))
+    {
+        fclose(f);
+        return false;
+    }
+    
+    if (fclose(f))
+    {
+        return false;
+    }
+     
+    if (rename(tmp_name.get(), config_name.get()))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+bool
+hyperdisk :: disk :: state_file_present()
+{
+    po6::pathname config_name = po6::join(m_base_filename, STATE_FILE_NAME);
+    struct stat st;
+    return (!stat(config_name.get(), &st));
+}
+
+bool
+hyperdisk :: disk :: load_state()
+{
+    po6::pathname config_name = po6::join(m_base_filename, STATE_FILE_NAME);
+    std::ifstream f; 
+    f.open(config_name.get());
+    if (!f)
+    {
+        return false;
+    }
+
+    // Parse header.
+    std::string v;
+    f >> v;
+    if (f.fail() || "version" != v)
+    {
+        return false;
+    }
+
+    uint32_t vn = -1;
+    f >> vn;
+    if (f.fail() || STATE_FILE_VER != vn)
+    {
+        return false;
+    }
+    
+    // Restore the shards.
+    po6::threads::mutex::hold a(&m_shards_mutate);
+    po6::threads::mutex::hold b(&m_shards_lock);
+
+    while (!f.eof())
+    {
+        std::string s;
+        f >> s;
+        if (f.fail() || "shard" != s)
+        {
+            return false;
+        }
+        
+        uint64_t ct[6];
+        for (int i=0; i<6; i++)
+        {
+            f >> ct[i];
+        }
+        if (f.fail())
+        {
+            return false;
+        }
+
+        uint32_t o = -1;
+        f >> o;
+        if (f.fail())
+        {
+            return false;
+        }
+    
+/*
+
+Add coordinate and shard to vector one by one.
+
+e::intrusive_ptr<shard> s = open(start);
+
+coordinate c - restore from the file data
+
+e::intrusive_ptr<hyperdisk::shard>
+hyperdisk :: shard :: open(const po6::io::fd& base,
+               const po6::pathname& filename)
+m_shards = ...
+
+*/
+    
+    }
+    
+    return true;
 }
 
 hyperdisk::returncode
@@ -284,7 +477,8 @@ hyperdisk :: disk :: flush(size_t num)
     hold.use_variable();
     e::locking_iterable_fifo<log_entry>::iterator it = m_log.iterate();
 
-    for (size_t nf = 0; nf < num && it.valid(); ++nf, it.next())
+    // num == -1 means flush all
+    for (size_t nf = 0; (nf < num || -1 == num) && it.valid(); ++nf, it.next())
     {
         const coordinate& coord = it->coord;
         const e::slice& key = it->key;
@@ -654,13 +848,22 @@ hyperdisk :: disk :: disk(const po6::pathname& directory,
     {
         throw po6::error(errno);
     }
-
-    // Create a starting disk which holds everything.
-    po6::threads::mutex::hold a(&m_shards_mutate);
-    po6::threads::mutex::hold b(&m_shards_lock);
-    coordinate start;
-    e::intrusive_ptr<shard> s = create_shard(start);
-    m_shards = new shard_vector(start, s);
+    
+    // Fresh init or load state from file.
+    if (!state_file_present())
+    {
+        // Fresh instance, create a starting disk which holds everything.
+        po6::threads::mutex::hold a(&m_shards_mutate);
+        po6::threads::mutex::hold b(&m_shards_lock);
+        coordinate start;
+        e::intrusive_ptr<shard> s = create_shard(start);
+        m_shards = new shard_vector(start, s);
+    }
+    else
+    {
+        // Load saved state from config file.
+        load_state();
+    }
 }
 
 hyperdisk :: disk :: ~disk() throw ()
@@ -774,7 +977,7 @@ hyperdisk::returncode
 hyperdisk :: disk :: drop_shard(const coordinate& c)
 {
     // What would we do with the error?  It's just going to leave dirty data,
-    // but if we can cleanly save state, then it doesn't matter.
+    // but if we can cleanly save s, then it doesn't matter.
     if (unlinkat(m_base.get(), shard_filename(c).get(), 0) < 0)
     {
         return DROPFAILED;
@@ -787,7 +990,7 @@ hyperdisk::returncode
 hyperdisk :: disk :: drop_tmp_shard(const coordinate& c)
 {
     // What would we do with the error?  It's just going to leave dirty data,
-    // but if we can cleanly save state, then it doesn't matter.
+    // but if we can cleanly save s, then it doesn't matter.
     if (unlinkat(m_base.get(), shard_tmp_filename(c).get(), 0) < 0)
     {
         return DROPFAILED;

@@ -137,10 +137,6 @@ hyperdex :: configuration_parser :: parse(const std::string& config)
         {
             ABORT_ON_ERROR(parse_transfer(start, eol));
         }
-        else if (strncmp("transfer ", start, 9) == 0)
-        {
-            ABORT_ON_ERROR(parse_transfer(start, eol));
-        }
         else if (strncmp("quiesce ", start, 8) == 0)
         {
             ABORT_ON_ERROR(parse_quiesce(start, eol));
@@ -720,7 +716,7 @@ hyperdex :: configuration_parser :: parse_shutdown(char* start,
 {
     char* end;
 
-    // Skip "shutdown"
+    // Skip "shutdown" (no args = no following space)
     start += 8;
     
     // No args
