@@ -43,7 +43,8 @@ enum network_returncode
     NET_NOTUS       = 8323,
     NET_SERVERERROR = 8324,
     NET_CMPFAIL     = 8325,
-    NET_BADMICROS   = 8326
+    NET_BADMICROS   = 8326,
+    NET_READONLY    = 8327
 };
 
 enum network_msgtype

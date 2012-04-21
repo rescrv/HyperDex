@@ -220,7 +220,7 @@ class replication_manager
         // Periodically do things related to replication.
         void periodic();
         // Retransmit current pending values.
-        void retransmit();
+        int retransmit();
 
     private:
         hyperdex::coordinatorlink* m_cl;
@@ -232,6 +232,8 @@ class replication_manager
         po6::threads::mutex m_keyholders_lock;
         keyholder_map_t m_keyholders;
         hyperdex::instance m_us;
+        bool m_quiesce;
+        std::string m_quiesce_state_id;
         bool m_shutdown;
         po6::threads::thread m_periodic_thread;
 };
