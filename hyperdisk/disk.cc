@@ -93,16 +93,18 @@ hyperdisk :: disk :: create(const po6::pathname& directory,
 }
 
 bool
-hyperdisk :: disk :: quiesce()
+hyperdisk :: disk :: quiesce(const std::string& quiesce_state_id)
 {
     // Flush all data to O/S buffers.
-    while (true)
+    bool flushed = false;
+    while (!flushed)
     {
         returncode rc = flush();
         switch (rc)
         {
             case DIDNOTHING:
                 // All data is flushed, move on.
+                flushed = true;
                 break;
             case SUCCESS:
                 // Some data flushed, try again.
@@ -142,7 +144,7 @@ hyperdisk :: disk :: dump_state()
     s << "version " << STATE_FILE_VER << std::endl;
     for (size_t i = 0; i < shards->size(); ++i)
     {
-        hyperspacehashing::mask::coordinate c = shards->get_coordinate(i);
+        coordinate c = shards->get_coordinate(i);
         uint32_t o = shards->get_offset(i);
         s << "shard";
         s << " " << c.primary_mask;
@@ -239,19 +241,19 @@ hyperdisk :: disk :: load_state()
     }
     
     // Restore the shards.
-    po6::threads::mutex::hold a(&m_shards_mutate);
-    po6::threads::mutex::hold b(&m_shards_lock);
-
+    std::vector<std::pair<coordinate, e::intrusive_ptr<shard> > > shards;
     while (!f.eof())
     {
-        std::string s;
-        f >> s;
-        if (f.fail() || "shard" != s)
+        // Line header.
+        std::string h;
+        f >> h;
+        if (f.fail() || "shard" != h)
         {
             return false;
         }
         
-        uint64_t ct[6];
+        // Coordinate.
+        uint64_t ct[6] = {-1, -1, -1, -1, -1 ,-1};
         for (int i=0; i<6; i++)
         {
             f >> ct[i];
@@ -261,30 +263,28 @@ hyperdisk :: disk :: load_state()
             return false;
         }
 
+        // Offset.
         uint32_t o = -1;
         f >> o;
         if (f.fail())
         {
             return false;
         }
-    
-/*
 
-Add coordinate and shard to vector one by one.
-
-e::intrusive_ptr<shard> s = open(start);
-
-coordinate c - restore from the file data
-
-e::intrusive_ptr<hyperdisk::shard>
-hyperdisk :: shard :: open(const po6::io::fd& base,
-               const po6::pathname& filename)
-m_shards = ...
-
-*/
-    
+        // Reopen the shard.
+        coordinate c(ct[0], ct[1], ct[2], ct[3], ct[4], ct[5]);
+        po6::pathname path = shard_filename(c);
+        // XXX need to set the offset - inside open?
+        e::intrusive_ptr<shard> s = hyperdisk::shard::open(m_base, path);
+        
+        shards.push_back(std::make_pair(c, s));
     }
-    
+
+    // Use the reopened shards.
+    po6::threads::mutex::hold a(&m_shards_mutate);
+    po6::threads::mutex::hold b(&m_shards_lock);
+    m_shards = new shard_vector(1, &shards);
+ 
     return true;
 }
 

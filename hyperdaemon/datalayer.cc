@@ -139,16 +139,25 @@ hyperdaemon :: datalayer :: prepare(const configuration& newconfig, const instan
 void
 hyperdaemon :: datalayer :: reconfigure(const configuration& newconfig, const instance&)
 {
-    // React to first quiesce request only, no need to redo the job.
-    if (!m_quiesce && newconfig.quiesce())
+    // Quiesce (will quiesce multiple times if requested so).
+    if (newconfig.quiesce())
     {
         m_quiesce = newconfig.quiesce();
         m_quiesce_state_id = newconfig.quiesce_state_id();
         
-        // Quiesce the disks and dump their configuration.
+        // Quiesce the disks.
         for (disk_map_t::iterator d = m_disks.begin(); d != m_disks.end(); d.next())
         {
-            d.value()->quiesce();
+            try
+            {
+                // XXX fail this region.
+                d.value()->quiesce(m_quiesce_state_id);
+            }
+            catch (po6::error& e)
+            {
+                PLOG(ERROR) << "Could not quiesce disk " << d.key();
+                return;
+            }
         }
     }
 }

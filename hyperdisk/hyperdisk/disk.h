@@ -124,7 +124,7 @@ class disk
 
     public:
         // Quiesce.
-        bool quiesce();
+        bool quiesce(const std::string& quiesce_state_id);
 
     private:
         friend class e::intrusive_ptr<disk>;

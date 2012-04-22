@@ -130,9 +130,8 @@ hyperdaemon :: replication_manager :: prepare(const configuration&, const instan
 void
 hyperdaemon :: replication_manager :: reconfigure(const configuration& newconfig, const instance& us)
 {
-    // First quiesce request? There should be just one, but just in case 
-    // we are using only the first one.
-    if (!m_quiesce && newconfig.quiesce())
+    // Quiesce (will quiesce multiple times if requested so).
+    if (newconfig.quiesce())
     {
         m_quiesce = newconfig.quiesce();
         m_quiesce_state_id = newconfig.quiesce_state_id();
@@ -155,7 +154,7 @@ hyperdaemon :: replication_manager :: reconfigure(const configuration& newconfig
     }
     
     // If quiescing, wait for replication-related state to be cleaned up before 
-    // ACK-ing the config (ack happens in daemon, after reconfigure completes).
+    // ACK-ing the config (ack happens in the daemon, after reconfigure completes).
     if (m_quiesce)
     {
         while (true)

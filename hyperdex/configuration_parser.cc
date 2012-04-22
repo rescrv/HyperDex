@@ -41,6 +41,9 @@ hyperdex :: configuration_parser :: configuration_parser()
     , m_regions()
     , m_entities()
     , m_transfers()
+    , m_quiesce(false)
+    , m_quiesce_state_id("")
+    , m_shutdown(false)
 {
 }
 
