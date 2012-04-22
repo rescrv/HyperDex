@@ -93,7 +93,7 @@ hyperdisk :: disk :: create(const po6::pathname& directory,
 }
 
 bool
-hyperdisk :: disk :: dump_state()
+hyperdisk :: disk :: quiesce()
 {
     // Flush all data to O/S buffers.
     while (true)
@@ -124,6 +124,13 @@ hyperdisk :: disk :: dump_state()
         return false;
     }
     
+    // Persist the state into a file.
+    return dump_state();
+}
+
+bool
+hyperdisk :: disk :: dump_state()
+{
     // Dump state information.
     e::intrusive_ptr<shard_vector> shards;
     {

@@ -83,6 +83,8 @@ hyperdaemon :: datalayer :: datalayer(coordinatorlink* cl, const po6::pathname& 
     , m_optimistic_rr()
     , m_last_dose_of_optimism(0)
     , m_flushed_recently(false)
+    , m_quiesce(false)
+    , m_quiesce_state_id("")
 {
     m_optimistic_io_thread.start();
 
@@ -135,9 +137,20 @@ hyperdaemon :: datalayer :: prepare(const configuration& newconfig, const instan
 }
 
 void
-hyperdaemon :: datalayer :: reconfigure(const configuration&, const instance&)
+hyperdaemon :: datalayer :: reconfigure(const configuration& newconfig, const instance&)
 {
-    // Do nothing.
+    // React to first quiesce request only, no need to redo the job.
+    if (!m_quiesce && newconfig.quiesce())
+    {
+        m_quiesce = newconfig.quiesce();
+        m_quiesce_state_id = newconfig.quiesce_state_id();
+        
+        // Quiesce the disks and dump their configuration.
+        for (disk_map_t::iterator d = m_disks.begin(); d != m_disks.end(); d.next())
+        {
+            d.value()->quiesce();
+        }
+    }
 }
 
 void

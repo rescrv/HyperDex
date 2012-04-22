@@ -127,6 +127,8 @@ class datalayer
         std::list<hyperdex::regionid> m_optimistic_rr;
         uint64_t m_last_dose_of_optimism;
         volatile bool m_flushed_recently;
+        bool m_quiesce;
+        std::string m_quiesce_state_id;
 };
 
 } // namespace hyperdaemon

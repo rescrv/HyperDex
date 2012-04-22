@@ -122,6 +122,10 @@ class disk
         returncode async();
         returncode sync();
 
+    public:
+        // Quiesce.
+        bool quiesce();
+
     private:
         friend class e::intrusive_ptr<disk>;
         class stored;
