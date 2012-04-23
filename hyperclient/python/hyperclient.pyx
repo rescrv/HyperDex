@@ -644,6 +644,7 @@ cdef class DeferredDelete(Deferred):
                                       key_cstr, len(key), &self._status)
         if self._reqid < 0:
             raise HyperClientException(self._status)
+        client._ops[self._reqid] = self
 
     def wait(self):
         Deferred.wait(self)

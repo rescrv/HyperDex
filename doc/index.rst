@@ -12,6 +12,7 @@ This documentation corresponds to the current development version of HyperDex.
    installation
    tutorial
    tutorial-advanced
+   tutorial-datastructure
    api/python
    api/c
    man/hyperdex-daemon
