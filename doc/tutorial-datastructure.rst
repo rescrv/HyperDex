@@ -129,8 +129,8 @@ unread messages and create user ``bjones1``.
    {'tbrown1': 'Lunch?', 'bjones1': 'Hi John'}
    >>> c.put('socialnetwork', 'bjones1', {'first' : 'Bob', 'last' : 'Jones', 
    ...                                    'hobbies' : set(['hacking', 'swimming']), 
-   ...                                    'pending_requests': [""], 
-   ...                                    'unread_messages' : {"" : ""}})
+   ...                                    'pending_requests': [''],
+   ...                                    'unread_messages' : {'' : ''}})
    >>> True
 
 We can read and clear out ``jsmith1``'s pending requests by issuing  the
