@@ -33,7 +33,7 @@ storing a different portion of the hyperspace (aka shard)):
 
 This brings up three different daemons ready to serve in the HyperDex cluster.
 Finally, we create a space which makes use of all three systems in the cluster.
-In this example, we create a space that may be suitable for serving data in a
+In this example, let's create a space that may be suitable for serving data in a
 social network:
 
 .. sourcecode:: console
@@ -54,23 +54,12 @@ Lists, Sets, and Maps
 
 In the previous section, we created a space for our rudimentary social
 networking application. This space consists of both basic user attributes
-(username, firstname, and lastname), and three datastructure attributes, (a set
+(namely username, firstname, and lastname), all of which are simple strings.
+But in complex web applications, there will typically be more complex data
+that we will want to keep in some kind of a data structure. In this instance,
+let's see how we would use HyperDex to store three complex datastructures; namely, a set
 of hobbies, a list of pending friend requests, and a map mapping usernames to
-unread messages). Without support for datastructure attributes, we would have
-had to create additional spaces and use various atomic operations to provide
-similar functionality. 
-
-For example, in order to support storing pending requests without using
-HyperDex's datastructure attributes, we would need to replace
-``pending_requests`` with ``next_request_id`` and then create a separate space
-with attributes ``row_id``, ``username``, ``request_id``, and ``request``. To
-add a pending request to a user, we must first issue a ``get`` request on the
-username to fetch the next request id, followed by a ``condput`` to increment
-the id for the next pending request, and finally issue a ``put`` on the new
-space to add the request.  Getting the list of pending request requires issuing
-a ``search`` to find all rows for a given username. This example illustrates
-that taking advantage of these HyperDex datastructures can greatly simplify
-your application.
+unread messages. 
 
 Let's go over how to use these datastructure attributes. We first create 
 create a user for this example:
@@ -84,20 +73,7 @@ create a user for this example:
 
 
 Note that datastructures currently need to be initialized with an empty entry
-in the Python client. We plan to remove this inconvenience in the next minor
-update. We will now go ahead and remove these unneeded empty entries from
-``hobbies`` and ``unread_messages``. HyperDex lists do not support entry
-removal, as they are meant to be read and cleared in its entirety; we will
-therefore leave the initial empty entry for ``pending_requests``.
-
-.. sourcecode:: pycon
-
-   >>> c.set_remove('socialnetwork', 'jsmith1', {'hobbies' : ''})
-   True
-   >>> c.map_remove('socialnetwork', 'jsmith1', {'unread_messages' : {'':''}})
-   True
-   >>> c.get('socialnetwork', 'jsmith1')
-   {'hobbies': set([]), 'last': 'Smith', 'unread_messages': {}, 'pending_requests': [''], 'first': 'John'}
+in the Python client. 
 
 Using the list datastructure, we can add a new unread messages to user ``jsmith1``
 by issuing the following operation:
