@@ -91,6 +91,7 @@ removal, as they are meant to be read and cleared in its entirety; we will
 therefore leave the initial empty entry for ``pending_requests``.
 
 .. sourcecode:: pycon
+
    >>> c.set_remove('socialnetwork', 'jsmith1', {'hobbies' : ''})
    True
    >>> c.map_remove('socialnetwork', 'jsmith1', {'unread_messages' : {'':''}})
@@ -102,6 +103,7 @@ Using the list datastructure, we can add a new unread messages to user ``jsmith1
 by issuing the following operation:
 
 .. sourcecode:: pycon
+
    >>> c.list_rpush('socialnetwork', 'jsmith1', {'pending_requests' : 'bjones1'})
    True
    >>> c.get('socialnetwork', 'jsmith1')['pending_requests']
@@ -113,6 +115,7 @@ datastructure types. Let's flesh out the user ``jsmith1`` with some hobbies and
 unread messages and create user ``bjones1``.
 
 .. sourcecode:: pycon
+
    >>> c.set_union('socialnetwork', 'jsmith1', {'hobbies' : 
    ...             set(['hockey', 'basket weaving', 'hacking', 
    ...                  'air guitar rocking'])})
@@ -137,6 +140,7 @@ We can read and clear out ``jsmith1``'s pending requests by issuing  the
 following (remember that we need to skip the initial empty entry):
 
 .. sourcecode:: pycon
+
    >>> c.get('socialnetwork', 'jsmith1')['unread_messages']
    ['', 'bjones1']
    >>> c.condput('socialnetwork', 'jsmith1', 
@@ -150,6 +154,7 @@ with ``bjones1``. Although this is an unusual requirement, one can imagine this
 being very useful when generating shared hobbies in a group.
 
 .. sourcecode:: pycon
+
    >>> c.set_intersect('socialnetwork', 'jsmith1', 
    ...                 {'hobbies' : c.get('socialnetwork', 'bjones1')['hobbies']})
    True
@@ -160,6 +165,7 @@ Finally, we can modify unread messages in-place within the map. For example, let
 prepend "Hi John, " and append " Tom" to ``tbrown1``'s message to ``jsmith1``.
 
 .. sourcecode:: pycon
+
    >>> c.map_string_prepend('socialnetwork', 'jsmith1', 
    ...                      {'unread_messages' : {'tbrown1' : 'Hi John, '}})
    True
