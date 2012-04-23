@@ -5,7 +5,7 @@ As we have seen from the basic and advanced tutorials, HyperDex offers support
 for both the basic ``GET``/``PUT``/``SEARCH`` primitives, as well as advanced
 features, such as asynchronous and atomic read-modify-write operations, that
 are critical to enabling more sophisticated and demanding applications.  So
-far, we have only illustrated HyperDex's features using the strings and
+far, we have only illustrated HyperDex's features using strings and
 integers.  In this tutorial, we explore HyperDex's richer datastructures:
 lists, sets, and maps. We will show that, by providing efficient atomic
 operations on these rich, native datastructures, HyperDex can greatly simplify
@@ -138,7 +138,7 @@ being very useful when generating shared hobbies in a group.
    set(['hacking'])
 
 Finally, we can modify unread messages in-place within the map. For example, let's
-prepend "Hi John, " and append " Tom" to ``tbrown1``'s message to ``jsmith1``.
+prepend ``"Hi John, "`` and append ``" Tom"`` to ``tbrown1``'s message to ``jsmith1``.
 
 .. sourcecode:: pycon
 
