@@ -694,57 +694,57 @@ hyperdaemon :: replication_manager :: client_common(const hyperdex::network_msgt
     e::intrusive_ptr<keyholder> kh = get_keyholder(to.get_region(), key);
 
     // Find the pending or committed version with the largest number.
-    uint64_t oldversion = 0;
-    bool has_oldvalue = false;
-    std::vector<e::slice> oldvalue;
+    uint64_t old_version = 0;
+    bool has_old_value = false;
+    std::vector<e::slice> old_value;
     hyperdisk::reference ref;
 
     if (kh->has_blocked_ops())
     {
-        oldversion = kh->most_recent_blocked_version();
-        has_oldvalue = kh->most_recent_blocked_op()->has_value;
-        oldvalue = kh->most_recent_blocked_op()->value;
+        old_version = kh->most_recent_blocked_version();
+        has_old_value = kh->most_recent_blocked_op()->has_value;
+        old_value = kh->most_recent_blocked_op()->value;
     }
     else if (kh->has_committable_ops())
     {
-        oldversion = kh->most_recent_committable_version();
-        has_oldvalue = kh->most_recent_committable_op()->has_value;
-        oldvalue = kh->most_recent_committable_op()->value;
+        old_version = kh->most_recent_committable_version();
+        has_old_value = kh->most_recent_committable_op()->has_value;
+        old_value = kh->most_recent_committable_op()->value;
     }
-    else if (!from_disk(to.get_region(), key, &has_oldvalue, &oldvalue, &oldversion, &ref))
+    else if (!from_disk(to.get_region(), key, &has_old_value, &old_value, &old_version, &ref))
     {
         return;
     }
 
-    e::intrusive_ptr<pending> newpend;
+    e::intrusive_ptr<pending> new_pend;
     std::tr1::shared_ptr<e::buffer> sharedbacking(backing.release());
-    newpend = new pending(has_value, sharedbacking, key, value, co);
-    newpend->retcode = retcode;
-    newpend->ref = ref;
+    new_pend = new pending(has_value, sharedbacking, key, value, co);
+    new_pend->retcode = retcode;
+    new_pend->ref = ref;
 
-    if (!has_value && !has_oldvalue)
+    if (!has_value && !has_old_value)
     {
         respond_to_client(to, from, nonce, retcode, hyperdex::NET_NOTFOUND);
         g.dismiss();
         return;
     }
 
-    if (has_value && !has_oldvalue)
+    if (has_value && !has_old_value)
     {
         if (opcode == hyperdex::RESP_CONDPUT)
         {
-          // a conditional put or atomic inc/dec on an object that does not exist should fail
-          respond_to_client(to, from, nonce, retcode, hyperdex::NET_NOTFOUND);
-          g.dismiss();
-          return;
+            // a conditional put or atomic inc/dec on an object that does not exist should fail
+            respond_to_client(to, from, nonce, retcode, hyperdex::NET_NOTFOUND);
+            g.dismiss();
+            return;
         }
 
-        newpend->fresh = true;
+        new_pend->fresh = true;
     }
 
-    std::tr1::shared_ptr<e::buffer> old_backing = newpend->backing;
+    std::tr1::shared_ptr<e::buffer> old_backing = new_pend->backing;
 
-    if (has_value && has_oldvalue)
+    if (has_value && has_old_value)
     {
         size_t need_moar = 0;
 
@@ -752,49 +752,49 @@ hyperdaemon :: replication_manager :: client_common(const hyperdex::network_msgt
         {
             if (!value_mask.get(i))
             {
-                need_moar += oldvalue[i].size();
+                need_moar += old_value[i].size();
             }
         }
 
         if (need_moar)
         {
 #define REBASE(X) \
-            ((X) - newpend->backing->data() + new_backing->data())
-            std::tr1::shared_ptr<e::buffer> new_backing(e::buffer::create(newpend->backing->size() + need_moar));
-            new_backing->resize(newpend->backing->size() + need_moar);
-            memmove(new_backing->data(), newpend->backing->data(), newpend->backing->size());
-            e::slice oldkey = newpend->key;
-            newpend->key = e::slice(REBASE(newpend->key.data()), newpend->key.size());
-            assert(oldkey == newpend->key);
-            size_t curdata = newpend->backing->size();
+            ((X) - new_pend->backing->data() + new_backing->data())
+            std::tr1::shared_ptr<e::buffer> new_backing(e::buffer::create(new_pend->backing->size() + need_moar));
+            new_backing->resize(new_pend->backing->size() + need_moar);
+            memmove(new_backing->data(), new_pend->backing->data(), new_pend->backing->size());
+            e::slice oldkey = new_pend->key;
+            new_pend->key = e::slice(REBASE(new_pend->key.data()), new_pend->key.size());
+            assert(oldkey == new_pend->key);
+            size_t curdata = new_pend->backing->size();
 
             for (size_t i = 0; i < value.size(); ++i)
             {
                 if (value_mask.get(i))
                 {
-                    e::slice oldslice = newpend->value[i];
-                    newpend->value[i] = e::slice(REBASE(newpend->value[i].data()), newpend->value[i].size());
-                    assert(oldslice == newpend->value[i]);
+                    e::slice oldslice = new_pend->value[i];
+                    new_pend->value[i] = e::slice(REBASE(new_pend->value[i].data()), new_pend->value[i].size());
+                    assert(oldslice == new_pend->value[i]);
                 }
                 else
                 {
-                    e::slice oldslice = oldvalue[i];
-                    memmove(new_backing->data() + curdata, oldvalue[i].data(), oldvalue[i].size());
-                    newpend->value[i] = e::slice(new_backing->data() + curdata, oldvalue[i].size());
-                    curdata += oldvalue[i].size();
-                    assert(oldslice == newpend->value[i]);
+                    e::slice oldslice = old_value[i];
+                    memmove(new_backing->data() + curdata, old_value[i].data(), old_value[i].size());
+                    new_pend->value[i] = e::slice(new_backing->data() + curdata, old_value[i].size());
+                    curdata += old_value[i].size();
+                    assert(oldslice == new_pend->value[i]);
                 }
             }
 
-            assert(curdata == newpend->backing->size() + need_moar);
-            newpend->backing = new_backing;
+            assert(curdata == new_pend->backing->size() + need_moar);
+            new_pend->backing = new_backing;
         }
 
         if (opcode == hyperdex::RESP_CONDPUT)
         {
           for (size_t i = 0; i < condvalue.size(); ++i)
           {
-              if (condvalue_mask.get(i) && (oldvalue[i] != condvalue[i]))
+              if (condvalue_mask.get(i) && (old_value[i] != condvalue[i]))
               {
                 // cond value mismatch, put operation should fail
                 respond_to_client(to, from, nonce, retcode, hyperdex::NET_CMPFAIL);
@@ -805,7 +805,7 @@ hyperdaemon :: replication_manager :: client_common(const hyperdex::network_msgt
         }
     }
 
-    if (!prev_and_next(to.get_region(), key, has_value, newpend->value, has_oldvalue, oldvalue, newpend))
+    if (!prev_and_next(to.get_region(), new_pend->key, has_value, new_pend->value, has_old_value, old_value, new_pend))
     {
         respond_to_client(to, from, nonce, retcode, hyperdex::NET_NOTUS);
         g.dismiss();
@@ -813,7 +813,7 @@ hyperdaemon :: replication_manager :: client_common(const hyperdex::network_msgt
     }
 
     assert(!kh->has_deferred_ops());
-    kh->append_blocked(oldversion + 1, newpend);
+    kh->append_blocked(old_version + 1, new_pend);
     move_operations_between_queues(to, key, kh);
     g.dismiss();
 }
