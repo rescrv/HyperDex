@@ -44,6 +44,7 @@ social network:
               pending_requests (list(string)),
               hobbies (set(string)),
               unread_messages (map(string,string))
+              upvotes (map(string,int64))
    key username auto 0 3
    subspace first, last auto 0 3
    EOF
@@ -69,11 +70,12 @@ To start, let's create a profile for John Smith:
    {'first': 'John', 'last': 'Smith',
     'pending_requests': [],
     'hobbies': set([]),
-    'unread_messages': {}}
+    'unread_messages': {},
+    'upvotes': {}}
 
 Imagine that shortly after joining, John Smith receives a friend request from
-his friend Brian Jones.  Behind the scenes, this could a simple list operation,
-pushing the friend request onto John's ``pending_requests``:
+his friend Brian Jones.  Behind the scenes, this could be implemented with a 
+simple list operation, pushing the friend request onto John's ``pending_requests``:
 
 .. sourcecode:: pycon
 
@@ -173,7 +175,52 @@ Note that maps may have strings or integers as values, and every atomic
 operation available for strings and integers is also available in map form,
 operating on the values of the map.
 
-XXX Need more examples of operations on maps here.
+For the sake of illustrating maps involving integers, let's imagine that we will use a map to keep track
+of the plus-one's and like/dislike's on John's status updates. 
+
+First, let's create some counters that will keep the net count of up and down votes 
+corresponding to John's link posts, with ids "http://url1.com" and "http://url2.com". 
+
+.. sourcecode:: pycon
+
+   >>> url1 = "http://url1.com"
+   >>> url2 = "http://url2.com"
+   >>> c.map_add('socialnetwork', 'jsmith1',
+   ...           {'upvotes' : {url1 : 1, url2: 1}})
+   True
+
+So John's posts start out with a counter set to 1, as shown above. 
+
+Imagine that two other users, Jane and Elaine, upvote John's first link post,
+we would implement it like this:
+
+.. sourcecode:: pycon
+
+   >>> c.map_string_atomicinc('socialnetwork', 'jsmith1', {'upvotes' : {url1: 1}})
+   True
+   >>> c.map_string_atomicinc('socialnetwork', 'jsmith1', {'upvotes' : {url1: 1}})
+   True
+
+Charlie, sworn enemy of John, can downvote both of John's urls like this:
+
+.. sourcecode:: pycon
+
+   >>> c.map_string_atomicinc('socialnetwork', 'jsmith1', {'upvotes' : {url1: -1, url2: -1}})
+   True
+
+This shows that any map operation can operate atomically on a group of map attributes at the same time. This is 
+fully transactional; all such operations will be ordered in exactly the same way on all replicas, and there is
+no opportunity for divergence, even through failures.
+
+Checking where we stand:
+
+.. sourcecode:: pycon
+
+   >>> c.get('socialnetwork', 'jsmith1')['upvotes']
+   {'http://url1.com': 2, , 'http://url2.com': 0}
+
+All of the preceding operations could have been issued concurrently -- the results
+will be the same because they commute with each other and are executed atomically.
 
 Asynchronous Datastructure Operations
 -------------------------------------
