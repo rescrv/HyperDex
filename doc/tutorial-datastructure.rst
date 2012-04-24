@@ -200,16 +200,16 @@ we would implement it like this:
 
 .. sourcecode:: pycon
 
-   >>> c.map_atomic_inc('socialnetwork', 'jsmith1', {'upvotes' : {url1: 1}})
+   >>> c.map_atomic_add('socialnetwork', 'jsmith1', {'upvotes' : {url1: 1}})
    True
-   >>> c.map_atomic_inc('socialnetwork', 'jsmith1', {'upvotes' : {url1: 1}})
+   >>> c.map_atomic_add('socialnetwork', 'jsmith1', {'upvotes' : {url1: 1}})
    True
 
 Charlie, sworn enemy of John, can downvote both of John's urls like this:
 
 .. sourcecode:: pycon
 
-   >>> c.map_atomic_inc('socialnetwork', 'jsmith1', {'upvotes' : {url1: -1, url2: -1}})
+   >>> c.map_atomic_add('socialnetwork', 'jsmith1', {'upvotes' : {url1: -1, url2: -1}})
    True
 
 This shows that any map operation can operate atomically on a group of map attributes at the same time. This is 
