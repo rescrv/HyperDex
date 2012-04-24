@@ -148,8 +148,8 @@ the new message:
    >>> c.map_string_append('socialnetwork', 'jsmith1',
    ...                      {'unread_messages' : {'bjones' : '| Want to hang out?'}})
    True
-   >>> c.get('socialnetwork', 'jsmith1')['unread_messages']['tbrown1']
-   'Hi John, Lunch? Tom'
+   >>> c.get('socialnetwork', 'jsmith1')['unread_messages']
+   {'timmy': 'Lunch?', 'bjones1': 'Hi John| Want to hang out?'}
 
 Note that maps may have strings or integers as values, and every atomic
 operation available for strings and integers is also available in map form,
