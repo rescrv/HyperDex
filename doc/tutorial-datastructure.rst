@@ -117,9 +117,8 @@ Let's add some hobbies to John's profile:
    set(['hacking', 'air guitar rocking', 'hockey', 'gaming', 'basket weaving'])
 
 If John Smith decides that his life's dream is to just write code, he may decide
-to join a group on the social network filled with like-minded individuals.  Our
-social network allows the group to limit members' profiles to just reflect its
-interests:
+to join a group on the social network filled with like-minded individuals.  We can 
+use HyperDex's intersect primitive to narrow down his interests:
 
 .. sourcecode:: pycon
 
@@ -129,15 +128,23 @@ interests:
    >>> c.get('socialnetwork', 'jsmith1')['hobbies']
    set(['hacking'])
 
-Notice how John's hobbies become the intersection of his previous hobbies, and
-the groups approved list of hobbies.
+Notice how John's hobbies become the intersection of his previous hobbies and the 
+ones named in the operation.
+
+XXX Overall, HyperDex supports 
+``set`` for absolute assignment), 
+``add`` for adding an element,
+``union`` for taking the union of two sets,
+and ``intersect`` for computing the overlap between two sets. This makes for a 
+comprehensive set of interfaces for operating on sets.
 
 Maps
 ----
 
 Lastly, our social networking system needs a means for allowing users to
 exchange messages.  Let's demonstrate how we can accomplish this with the
-``unread_messages`` attribute:
+``unread_messages`` attribute. In this contrived example, we're going to use an object attribute as a map (aka dictionary) 
+to map from a user name to a string that contains the message from that user, as follows:
 
 .. sourcecode:: pycon
 
@@ -150,7 +157,7 @@ exchange messages.  Let's demonstrate how we can accomplish this with the
    >>> c.get('socialnetwork', 'jsmith1')['unread_messages']
    {'timmy': 'Lunch?', 'bjones1': 'Hi John'}
 
-Messages may be modified in-place within the map.  For example, if Brian sent
+HyperDex enables map contents to be modified in-place within the map.  For example, if Brian sent
 another message to John, we could separate the messages with "|" and just append
 the new message:
 
@@ -165,6 +172,8 @@ the new message:
 Note that maps may have strings or integers as values, and every atomic
 operation available for strings and integers is also available in map form,
 operating on the values of the map.
+
+XXX Need more examples here.
 
 Asynchronous Datastructure Operations
 -------------------------------------
