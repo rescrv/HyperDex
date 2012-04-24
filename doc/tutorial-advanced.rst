@@ -222,11 +222,11 @@ increments his phone number by 1.  We could accomplish this with the following:
 
 .. sourcecode:: pycon
 
-   >>> c.atomicinc('phonebook', 'jsmith1', {'phone': 1})
+   >>> c.atomic_add('phonebook', 'jsmith1', {'phone': 1})
    True
    >>> c.get('phonebook', 'jsmith1')
    {'first': 'John', 'last': 'Smith', 'phone': 6075552049}
-   >>> c.atomicdec('phonebook', 'jsmith1', {'phone': 1})
+   >>> c.atomic_sub('phonebook', 'jsmith1', {'phone': 1})
    True
    >>> c.get('phonebook', 'jsmith1')
    {'first': 'John', 'last': 'Smith', 'phone': 6075552048}
@@ -237,11 +237,11 @@ We can increment or decrement by any signed 64-bit value:
 
 .. sourcecode:: pycon
 
-   >>> c.atomicinc('phonebook', 'jsmith1', {'phone': 10})
+   >>> c.atomic_add('phonebook', 'jsmith1', {'phone': 10})
    True
    >>> c.get('phonebook', 'jsmith1')
    {'first': 'John', 'last': 'Smith', 'phone': 6075552058}
-   >>> c.atomicdec('phonebook', 'jsmith1', {'phone': 10})
+   >>> c.atomic_sub('phonebook', 'jsmith1', {'phone': 10})
    True
    >>> c.get('phonebook', 'jsmith1')
    {'first': 'John', 'last': 'Smith', 'phone': 6075552048}
