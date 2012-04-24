@@ -173,7 +173,7 @@ Note that maps may have strings or integers as values, and every atomic
 operation available for strings and integers is also available in map form,
 operating on the values of the map.
 
-XXX Need more examples here.
+XXX Need more examples of operations on maps here.
 
 Asynchronous Datastructure Operations
 -------------------------------------
@@ -190,5 +190,10 @@ networking application can make an asynchronous call to make friend requests:
    >>> c.get('socialnetwork', 'jsmith1')['pending_requests']
    ['bjones1', 'timmy']
 
-Please see the API documentation for a full listing of both synchronous and
-asynchronous methods.
+Here, we issued an asynchronous operation on a list, waited for it to complete, and
+saw that the end result indeed reflected the effect of the asynchronous operation.
+
+So, overall, HyperDex provides a very rich API with complex, aggregate datastructures.
+And it supports atomic operations on these datastructures such that concurrent clients 
+can use the without the need to coordinate with an external lock server (in fact, if needed,
+they can use HyperDex to *implement* a high-performance lock server!). 
