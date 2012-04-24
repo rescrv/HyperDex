@@ -85,6 +85,17 @@ pushing the friend request onto John's ``pending_requests``:
 The operation ``list_rpush`` is guaranteed to be performed atomically, and will
 be applied consistently with respect to all other operations on the same list.
 
+XXX Note that lists provide both an lpush and rpush operation. The former adds the
+new element at the head of the list, while the latter adds at the tail. They also 
+provide lpop operation for taking an element off the head of the list. Coupled together,
+these operations provide a comprehensive list datatype that can be used to implement
+fault-tolerant lists of all kinds. For instnace, one can implement work queues and
+generalized producer-consumer patterns on top of HyperDex lists in a pretty straightforward fashion. In this
+case, producers would push at one end of the list (the tail, with an rpush) and consumers would pop from 
+the other (the head, with a pop). Since the operations are atomic, no additional synchronization
+would be necessary, enabling a high-performance implementation.
+
+
 Sets
 ----
 
