@@ -288,7 +288,7 @@ cdef _dict_to_map_attrs(list value, hyperclient_map_attribute** attrs, size_t* a
     cdef dict b
     cdef bytes name
     cdef long i = 0
-    attrs_sz[0] = sizeof(hyperclient_map_attribute) * sum([len(a) for a in value])
+    attrs_sz[0] = sum([len(a[1]) for a in value])
     attrs[0] = <hyperclient_map_attribute*> \
                malloc(sizeof(hyperclient_map_attribute) * attrs_sz[0])
     if attrs[0] == NULL:
@@ -664,40 +664,40 @@ cdef class DeferredMapOp(Deferred):
             # get Cython to work with function pointers correctly
             if op == 'map_add':
                 self._reqid = hyperclient_map_add(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key), attrs, attrs_sz, &self._status)
             elif op == 'map_remove':
                 self._reqid = hyperclient_map_remove(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key), attrs, attrs_sz, &self._status)
             elif op == 'map_atomic_add':
                 self._reqid = hyperclient_map_atomic_add(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key), attrs, attrs_sz, &self._status)
             elif op == 'map_atomic_sub':
                 self._reqid = hyperclient_map_atomic_sub(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key), attrs, attrs_sz, &self._status)
             elif op == 'map_atomic_mul':
                 self._reqid = hyperclient_map_atomic_mul(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key), attrs, attrs_sz, &self._status)
             elif op == 'map_atomic_div':
                 self._reqid = hyperclient_map_atomic_div(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key), attrs, attrs_sz, &self._status)
             elif op == 'map_atomic_mod':
                 self._reqid = hyperclient_map_atomic_mod(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key), attrs, attrs_sz, &self._status)
             elif op == 'map_atomic_and':
                 self._reqid = hyperclient_map_atomic_and(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key), attrs, attrs_sz, &self._status)
             elif op == 'map_atomic_or':
                 self._reqid = hyperclient_map_atomic_or(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key), attrs, attrs_sz, &self._status)
             elif op == 'map_atomic_xor':
                 self._reqid = hyperclient_map_atomic_xor(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key), attrs, attrs_sz, &self._status)
             elif op == 'map_string_prepend':
                 self._reqid = hyperclient_map_string_prepend(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key), attrs, attrs_sz, &self._status)
             elif op == 'map_string_append':
                 self._reqid = hyperclient_map_string_append(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key), attrs, attrs_sz, &self._status)
             else:
                 raise AttributeError("op == {0} is not valid".format(op))
             if self._reqid < 0:
