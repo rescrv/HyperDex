@@ -54,6 +54,10 @@
 #include "hyperdisk/shard_snapshot.h"
 #include "hyperdisk/shard_vector.h"
 
+// util
+#include <util/atomicfile.h>
+
+
 using hyperspacehashing::mask::coordinate;
 
 // LOCKING:  IF YOU DO ANYTHING WITH THIS CODE, READ THIS FIRST!
@@ -157,53 +161,8 @@ hyperdisk :: disk :: dump_state()
         s << std::endl;
     }
     
-    // Dump state to a temp file, fsync and rename to config. Using C file 
-    // I/O as C++ flush and sync are not portable.
-    po6::pathname tmp_name = po6::join(m_base_filename, "tmp");
-    po6::pathname config_name = po6::join(m_base_filename, STATE_FILE_NAME);
-    
-    po6::io::fd fd;
-    if (!mkstemp(&fd, &tmp_name))
-    {
-        return false;
-    }
-    
-    FILE *f = fdopen(fd.get(), "w");
-    if (!f)
-    {
-        ::close(fd.get());
-        return false;
-    }
-    
-    if (EOF == fputs(s.str().c_str(), f))
-    {
-        fclose(f);
-        return false;
-    }
-    
-    if (fflush(f))
-    {
-        fclose(f);
-        return false;
-    }
-
-    if (fsync(fd.get()))
-    {
-        fclose(f);
-        return false;
-    }
-    
-    if (fclose(f))
-    {
-        return false;
-    }
-     
-    if (rename(tmp_name.get(), config_name.get()))
-    {
-        return false;
-    }
-
-    return true;
+    // Rewrite the state file atomically.
+    return util::atomicfile::rewrite(m_base_filename.get(), STATE_FILE_NAME, s.str().c_str());
 }
 
 bool

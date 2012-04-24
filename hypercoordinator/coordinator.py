@@ -125,20 +125,29 @@ class Coordinator(object):
         return ver
 
     def register_instance(self, addr, inport, outport, pid, token):
-        instid = self._instances_by_token.get(token, 0)
-        if instid != 0:
-            return self._instances_by_id[instid].bindings()
+        # create new instance
         inver = self._compute_port_epoch(addr, inport)
         outver = self._compute_port_epoch(addr, outport)
         inst = hdtypes.Instance(addr, inport, inver, outport, outver, pid, token)
         # send config only if cluster fully operational
         if self._state == Coordinator.S_NORMAL:
             inst.add_config(self._config_counter, self._config_data)
-        instid = self._instance_counter
-        self._instance_counter += 1
-        self._instances_by_id[instid] = inst
-        self._instances_by_bindings[inst.bindings()] = instid
-        self._instances_by_token[token] = instid
+        # have we seen this instance before? 
+        instid = self._instances_by_token.get(token, 0)
+        if instid != 0:
+            # host restat or reconnect - replace old instance with the new one
+            # XXX should we do something different on reconnect only?
+            oldinst = self._instances_by_id[instid]
+            del self._instances_by_bindings[oldinst.bindings()]
+            self._instances_by_bindings[inst.bindings()] = instid
+            self._instances_by_id[instid] = inst
+        else:
+            # new instance
+            instid = self._instance_counter
+            self._instance_counter += 1
+            self._instances_by_id[instid] = inst
+            self._instances_by_bindings[inst.bindings()] = instid
+            self._instances_by_token[token] = instid
         return inst.bindings()
 
     def keepalive_instance(self, bindings):
