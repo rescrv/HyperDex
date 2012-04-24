@@ -44,6 +44,7 @@ social network:
               pending_requests (list(string)),
               hobbies (set(string)),
               unread_messages (map(string,string))
+              upvotes (map(string,int64))
    key username auto 0 3
    subspace first, last auto 0 3
    EOF
@@ -69,11 +70,12 @@ To start, let's create a profile for John Smith:
    {'first': 'John', 'last': 'Smith',
     'pending_requests': [],
     'hobbies': set([]),
-    'unread_messages': {}}
+    'unread_messages': {},
+    'upvotes': {}}
 
 Imagine that shortly after joining, John Smith receives a friend request from
-his friend Brian Jones.  Behind the scenes, this could a simple list operation,
-pushing the friend request onto John's ``pending_requests``:
+his friend Brian Jones.  Behind the scenes, this could be implemented with a 
+simple list operation, pushing the friend request onto John's ``pending_requests``:
 
 .. sourcecode:: pycon
 
@@ -84,6 +86,22 @@ pushing the friend request onto John's ``pending_requests``:
 
 The operation ``list_rpush`` is guaranteed to be performed atomically, and will
 be applied consistently with respect to all other operations on the same list.
+
+
+.. todo::
+
+   XXX Note that lists provide both an lpush and rpush operation. The former
+   adds the new element at the head of the list, while the latter adds at the
+   tail. They also provide lpop operation for taking an element off the head of
+   the list. Coupled together, these operations provide a comprehensive list
+   datatype that can be used to implement fault-tolerant lists of all kinds. For
+   instnace, one can implement work queues and generalized producer-consumer
+   patterns on top of HyperDex lists in a pretty straightforward fashion. In
+   this case, producers would push at one end of the list (the tail, with an
+   rpush) and consumers would pop from the other (the head, with a pop). Since
+   the operations are atomic, no additional synchronization would be necessary,
+   enabling a high-performance implementation.
+
 
 Sets
 ----
@@ -106,9 +124,8 @@ Let's add some hobbies to John's profile:
    set(['hacking', 'air guitar rocking', 'hockey', 'gaming', 'basket weaving'])
 
 If John Smith decides that his life's dream is to just write code, he may decide
-to join a group on the social network filled with like-minded individuals.  Our
-social network allows the group to limit members' profiles to just reflect its
-interests:
+to join a group on the social network filled with like-minded individuals.  We can 
+use HyperDex's intersect primitive to narrow down his interests:
 
 .. sourcecode:: pycon
 
@@ -118,15 +135,22 @@ interests:
    >>> c.get('socialnetwork', 'jsmith1')['hobbies']
    set(['hacking'])
 
-Notice how John's hobbies become the intersection of his previous hobbies, and
-the groups approved list of hobbies.
+Notice how John's hobbies become the intersection of his previous hobbies and the 
+ones named in the operation.
+
+Overall, HyperDex supports simple set assignment (using the ``put`` interface),
+adding and removing elements with :py:meth:`Client.set_add` and
+:py:meth:`hyperclient.Client.set_remove`, taking the union of a set with
+:py:meth:`hyperclient.Client.set_union` and storing the intersection of a set with
+:py:meth:`hyperclient.Client.set_intersect`.
 
 Maps
 ----
 
 Lastly, our social networking system needs a means for allowing users to
 exchange messages.  Let's demonstrate how we can accomplish this with the
-``unread_messages`` attribute:
+``unread_messages`` attribute. In this contrived example, we're going to use an object attribute as a map (aka dictionary) 
+to map from a user name to a string that contains the message from that user, as follows:
 
 .. sourcecode:: pycon
 
@@ -139,7 +163,7 @@ exchange messages.  Let's demonstrate how we can accomplish this with the
    >>> c.get('socialnetwork', 'jsmith1')['unread_messages']
    {'timmy': 'Lunch?', 'bjones1': 'Hi John'}
 
-Messages may be modified in-place within the map.  For example, if Brian sent
+HyperDex enables map contents to be modified in-place within the map.  For example, if Brian sent
 another message to John, we could separate the messages with "|" and just append
 the new message:
 
@@ -154,6 +178,53 @@ the new message:
 Note that maps may have strings or integers as values, and every atomic
 operation available for strings and integers is also available in map form,
 operating on the values of the map.
+
+For the sake of illustrating maps involving integers, let's imagine that we will use a map to keep track
+of the plus-one's and like/dislike's on John's status updates. 
+
+First, let's create some counters that will keep the net count of up and down votes 
+corresponding to John's link posts, with ids "http://url1.com" and "http://url2.com". 
+
+.. sourcecode:: pycon
+
+   >>> url1 = "http://url1.com"
+   >>> url2 = "http://url2.com"
+   >>> c.map_add('socialnetwork', 'jsmith1',
+   ...           {'upvotes' : {url1 : 1, url2: 1}})
+   True
+
+So John's posts start out with a counter set to 1, as shown above. 
+
+Imagine that two other users, Jane and Elaine, upvote John's first link post,
+we would implement it like this:
+
+.. sourcecode:: pycon
+
+   >>> c.map_atomic_add('socialnetwork', 'jsmith1', {'upvotes' : {url1: 1}})
+   True
+   >>> c.map_atomic_add('socialnetwork', 'jsmith1', {'upvotes' : {url1: 1}})
+   True
+
+Charlie, sworn enemy of John, can downvote both of John's urls like this:
+
+.. sourcecode:: pycon
+
+   >>> c.map_atomic_add('socialnetwork', 'jsmith1', {'upvotes' : {url1: -1, url2: -1}})
+   True
+
+This shows that any map operation can operate atomically on a group of map attributes at the same time. This is 
+fully transactional; all such operations will be ordered in exactly the same way on all replicas, and there is
+no opportunity for divergence, even through failures.
+
+Checking where we stand:
+
+.. sourcecode:: pycon
+
+   >>> c.get('socialnetwork', 'jsmith1')['upvotes']
+   {'http://url1.com': 2, , 'http://url2.com': 0}
+
+All of the preceding operations could have been issued concurrently -- the results
+will be the same because they commute with each other and are executed atomically.
 
 Asynchronous Datastructure Operations
 -------------------------------------
@@ -170,5 +241,10 @@ networking application can make an asynchronous call to make friend requests:
    >>> c.get('socialnetwork', 'jsmith1')['pending_requests']
    ['bjones1', 'timmy']
 
-Please see the API documentation for a full listing of both synchronous and
-asynchronous methods.
+Here, we issued an asynchronous operation on a list, waited for it to complete, and
+saw that the end result indeed reflected the effect of the asynchronous operation.
+
+So, overall, HyperDex provides a very rich API with complex, aggregate datastructures.
+And it supports atomic operations on these datastructures such that concurrent clients 
+can use the without the need to coordinate with an external lock server (in fact, if needed,
+they can use HyperDex to *implement* a high-performance lock server!). 

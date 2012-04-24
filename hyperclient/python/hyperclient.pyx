@@ -495,14 +495,16 @@ cdef class DeferredGet(Deferred):
     cdef size_t _attrs_sz
     cdef bytes _space
 
-    def __cinit__(self, Client client, bytes space, bytes key):
+    def __cinit__(self, Client client, bytes space, key):
         self._attrs = <hyperclient_attribute*> NULL
         self._attrs_sz = 0
         self._space = space
+        cdef bytes key_backing
+        datatype, key_backing = _obj_to_backing(key)
         cdef char* space_cstr = space
-        cdef char* key_cstr = key
+        cdef char* key_cstr = key_backing
         self._reqid = hyperclient_get(client._client, space_cstr,
-                                      key_cstr, len(key),
+                                      key_cstr, len(key_backing),
                                       &self._status,
                                       &self._attrs, &self._attrs_sz)
         if self._reqid < 0:
@@ -522,9 +524,11 @@ cdef class DeferredGet(Deferred):
 
 cdef class DeferredFromAttrs(Deferred):
 
-    def __cinit__(self, Client client, bytes space, bytes key, dict value, bytes op = None):
+    def __cinit__(self, Client client, bytes space, key, dict value, bytes op = None):
+        cdef bytes key_backing
+        datatype, key_backing = _obj_to_backing(key)
         cdef char* space_cstr = space
-        cdef char* key_cstr = key
+        cdef char* key_cstr = key_backing
         cdef hyperclient_attribute* attrs = NULL
         try:
             backings = _dict_to_attrs(value.items(), &attrs)
@@ -532,55 +536,55 @@ cdef class DeferredFromAttrs(Deferred):
             # get Cython to work with function pointers correctly
             if not op:
                 self._reqid = hyperclient_put(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key_backing), attrs, len(value), &self._status)
             elif op == 'add':
                 self._reqid = hyperclient_atomic_add(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key_backing), attrs, len(value), &self._status)
             elif op == 'sub':
                 self._reqid = hyperclient_atomic_sub(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key_backing), attrs, len(value), &self._status)
             elif op == 'mul':
                 self._reqid = hyperclient_atomic_mul(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key_backing), attrs, len(value), &self._status)
             elif op == 'div':
                 self._reqid = hyperclient_atomic_div(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key_backing), attrs, len(value), &self._status)
             elif op == 'mod':
                 self._reqid = hyperclient_atomic_mod(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key_backing), attrs, len(value), &self._status)
             elif op == 'and':
                 self._reqid = hyperclient_atomic_and(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key_backing), attrs, len(value), &self._status)
             elif op == 'or':
                 self._reqid = hyperclient_atomic_or(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key_backing), attrs, len(value), &self._status)
             elif op == 'xor':
                 self._reqid = hyperclient_atomic_xor(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key_backing), attrs, len(value), &self._status)
             elif op == 'prepend':
                 self._reqid = hyperclient_string_prepend(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key_backing), attrs, len(value), &self._status)
             elif op == 'append':
                 self._reqid = hyperclient_string_append(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key_backing), attrs, len(value), &self._status)
             elif op == 'lpush':
                 self._reqid = hyperclient_list_lpush(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key_backing), attrs, len(value), &self._status)
             elif op == 'rpush':
                 self._reqid = hyperclient_list_rpush(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key_backing), attrs, len(value), &self._status)
             elif op == 'set_add':
                 self._reqid = hyperclient_set_add(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key_backing), attrs, len(value), &self._status)
             elif op == 'set_remove':
                 self._reqid = hyperclient_set_remove(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key_backing), attrs, len(value), &self._status)
             elif op == 'set_intersect':
                 self._reqid = hyperclient_set_intersect(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key_backing), attrs, len(value), &self._status)
             elif op == 'set_union':
                 self._reqid = hyperclient_set_union(client._client, space_cstr,
-                        key_cstr, len(key), attrs, len(value), &self._status)
+                        key_cstr, len(key_backing), attrs, len(value), &self._status)
             else:
                 raise AttributeError("op == {0} is not valid".format(op))
             if self._reqid < 0:
@@ -601,16 +605,18 @@ cdef class DeferredFromAttrs(Deferred):
 
 cdef class DeferredCondPut(Deferred):
 
-    def __cinit__(self, Client client, bytes space, bytes key, dict condition, dict value):
+    def __cinit__(self, Client client, bytes space, key, dict condition, dict value):
+        cdef bytes key_backing
+        datatype, key_backing = _obj_to_backing(key)
         cdef char* space_cstr = space
-        cdef char* key_cstr = key
+        cdef char* key_cstr = key_backing
         cdef hyperclient_attribute* condattrs = NULL
         cdef hyperclient_attribute* attrs = NULL
         try:
             backingsc = _dict_to_attrs(condition.items(), &condattrs)
             backingsa = _dict_to_attrs(value.items(), &attrs)
             self._reqid = hyperclient_condput(client._client, space_cstr,
-                                              key_cstr, len(key),
+                                              key_cstr, len(key_backing),
                                               condattrs, len(condition),
                                               attrs, len(value),
                                               &self._status)
@@ -637,11 +643,13 @@ cdef class DeferredCondPut(Deferred):
 
 cdef class DeferredDelete(Deferred):
 
-    def __cinit__(self, Client client, bytes space, bytes key):
+    def __cinit__(self, Client client, bytes space, key):
+        cdef bytes key_backing
+        datatype, key_backing = _obj_to_backing(key)
         cdef char* space_cstr = space
-        cdef char* key_cstr = key
+        cdef char* key_cstr = key_backing
         self._reqid = hyperclient_del(client._client, space_cstr,
-                                      key_cstr, len(key), &self._status)
+                                      key_cstr, len(key_backing), &self._status)
         if self._reqid < 0:
             raise HyperClientException(self._status)
         client._ops[self._reqid] = self
@@ -653,9 +661,11 @@ cdef class DeferredDelete(Deferred):
 
 cdef class DeferredMapOp(Deferred):
 
-    def __cinit__(self, Client client, bytes space, bytes key, dict value, bytes op = None):
+    def __cinit__(self, Client client, bytes space, key, dict value, bytes op = None):
+        cdef bytes key_backing
+        datatype, key_backing = _obj_to_backing(key)
         cdef char* space_cstr = space
-        cdef char* key_cstr = key
+        cdef char* key_cstr = key_backing
         cdef hyperclient_map_attribute* attrs = NULL
         cdef size_t attrs_sz = 0
         try:
@@ -664,40 +674,40 @@ cdef class DeferredMapOp(Deferred):
             # get Cython to work with function pointers correctly
             if op == 'map_add':
                 self._reqid = hyperclient_map_add(client._client, space_cstr,
-                        key_cstr, len(key), attrs, attrs_sz, &self._status)
+                        key_cstr, len(key_backing), attrs, attrs_sz, &self._status)
             elif op == 'map_remove':
                 self._reqid = hyperclient_map_remove(client._client, space_cstr,
-                        key_cstr, len(key), attrs, attrs_sz, &self._status)
+                        key_cstr, len(key_backing), attrs, attrs_sz, &self._status)
             elif op == 'map_atomic_add':
                 self._reqid = hyperclient_map_atomic_add(client._client, space_cstr,
-                        key_cstr, len(key), attrs, attrs_sz, &self._status)
+                        key_cstr, len(key_backing), attrs, attrs_sz, &self._status)
             elif op == 'map_atomic_sub':
                 self._reqid = hyperclient_map_atomic_sub(client._client, space_cstr,
-                        key_cstr, len(key), attrs, attrs_sz, &self._status)
+                        key_cstr, len(key_backing), attrs, attrs_sz, &self._status)
             elif op == 'map_atomic_mul':
                 self._reqid = hyperclient_map_atomic_mul(client._client, space_cstr,
-                        key_cstr, len(key), attrs, attrs_sz, &self._status)
+                        key_cstr, len(key_backing), attrs, attrs_sz, &self._status)
             elif op == 'map_atomic_div':
                 self._reqid = hyperclient_map_atomic_div(client._client, space_cstr,
-                        key_cstr, len(key), attrs, attrs_sz, &self._status)
+                        key_cstr, len(key_backing), attrs, attrs_sz, &self._status)
             elif op == 'map_atomic_mod':
                 self._reqid = hyperclient_map_atomic_mod(client._client, space_cstr,
-                        key_cstr, len(key), attrs, attrs_sz, &self._status)
+                        key_cstr, len(key_backing), attrs, attrs_sz, &self._status)
             elif op == 'map_atomic_and':
                 self._reqid = hyperclient_map_atomic_and(client._client, space_cstr,
-                        key_cstr, len(key), attrs, attrs_sz, &self._status)
+                        key_cstr, len(key_backing), attrs, attrs_sz, &self._status)
             elif op == 'map_atomic_or':
                 self._reqid = hyperclient_map_atomic_or(client._client, space_cstr,
-                        key_cstr, len(key), attrs, attrs_sz, &self._status)
+                        key_cstr, len(key_backing), attrs, attrs_sz, &self._status)
             elif op == 'map_atomic_xor':
                 self._reqid = hyperclient_map_atomic_xor(client._client, space_cstr,
-                        key_cstr, len(key), attrs, attrs_sz, &self._status)
+                        key_cstr, len(key_backing), attrs, attrs_sz, &self._status)
             elif op == 'map_string_prepend':
                 self._reqid = hyperclient_map_string_prepend(client._client, space_cstr,
-                        key_cstr, len(key), attrs, attrs_sz, &self._status)
+                        key_cstr, len(key_backing), attrs, attrs_sz, &self._status)
             elif op == 'map_string_append':
                 self._reqid = hyperclient_map_string_append(client._client, space_cstr,
-                        key_cstr, len(key), attrs, attrs_sz, &self._status)
+                        key_cstr, len(key_backing), attrs, attrs_sz, &self._status)
             else:
                 raise AttributeError("op == {0} is not valid".format(op))
             if self._reqid < 0:
@@ -821,231 +831,231 @@ cdef class Client:
         if self._client:
             hyperclient_destroy(self._client)
 
-    def get(self, bytes space, bytes key):
+    def get(self, bytes space, key):
         async = self.async_get(space, key)
         return async.wait()
 
-    def put(self, bytes space, bytes key, dict value):
+    def put(self, bytes space, key, dict value):
         async = self.async_put(space, key, value)
         return async.wait()
 
-    def condput(self, bytes space, bytes key, dict condition, dict value):
+    def condput(self, bytes space, key, dict condition, dict value):
         async = self.async_condput(space, key, condition, value)
         return async.wait()
 
-    def delete(self, bytes space, bytes key):
+    def delete(self, bytes space, key):
         async = self.async_delete(space, key)
         return async.wait()
 
-    def atomic_add(self, bytes space, bytes key, dict value):
+    def atomic_add(self, bytes space, key, dict value):
         async = self.async_atomic_add(space, key, value)
         return async.wait()
 
-    def atomic_sub(self, bytes space, bytes key, dict value):
+    def atomic_sub(self, bytes space, key, dict value):
         async = self.async_atomic_sub(space, key, value)
         return async.wait()
 
-    def atomic_mul(self, bytes space, bytes key, dict value):
+    def atomic_mul(self, bytes space, key, dict value):
         async = self.async_atomic_mul(space, key, value)
         return async.wait()
 
-    def atomic_div(self, bytes space, bytes key, dict value):
+    def atomic_div(self, bytes space, key, dict value):
         async = self.async_atomic_div(space, key, value)
         return async.wait()
 
-    def atomic_mod(self, bytes space, bytes key, dict value):
+    def atomic_mod(self, bytes space, key, dict value):
         async = self.async_atomic_mod(space, key, value)
         return async.wait()
 
-    def atomic_and(self, bytes space, bytes key, dict value):
+    def atomic_and(self, bytes space, key, dict value):
         async = self.async_atomic_and(space, key, value)
         return async.wait()
 
-    def atomic_or(self, bytes space, bytes key, dict value):
+    def atomic_or(self, bytes space, key, dict value):
         async = self.async_atomic_or(space, key, value)
         return async.wait()
 
-    def atomic_xor(self, bytes space, bytes key, dict value):
+    def atomic_xor(self, bytes space, key, dict value):
         async = self.async_atomic_xor(space, key, value)
         return async.wait()
 
-    def string_prepend(self, bytes space, bytes key, dict value):
+    def string_prepend(self, bytes space, key, dict value):
         async = self.async_string_prepend(space, key, value)
         return async.wait()
 
-    def string_append(self, bytes space, bytes key, dict value):
+    def string_append(self, bytes space, key, dict value):
         async = self.async_string_append(space, key, value)
         return async.wait()
 
-    def list_lpush(self, bytes space, bytes key, dict value):
+    def list_lpush(self, bytes space, key, dict value):
         async = self.async_list_lpush(space, key, value)
         return async.wait()
 
-    def list_rpush(self, bytes space, bytes key, dict value):
+    def list_rpush(self, bytes space, key, dict value):
         async = self.async_list_rpush(space, key, value)
         return async.wait()
 
-    def set_add(self, bytes space, bytes key, dict value):
+    def set_add(self, bytes space, key, dict value):
         async = self.async_set_add(space, key, value)
         return async.wait()
 
-    def set_remove(self, bytes space, bytes key, dict value):
+    def set_remove(self, bytes space, key, dict value):
         async = self.async_set_remove(space, key, value)
         return async.wait()
 
-    def set_intersect(self, bytes space, bytes key, dict value):
+    def set_intersect(self, bytes space, key, dict value):
         async = self.async_set_intersect(space, key, value)
         return async.wait()
 
-    def set_union(self, bytes space, bytes key, dict value):
+    def set_union(self, bytes space, key, dict value):
         async = self.async_set_union(space, key, value)
         return async.wait()
 
-    def map_add(self, bytes space, bytes key, dict value):
+    def map_add(self, bytes space, key, dict value):
         async = self.async_map_add(space, key, value)
         return async.wait()
 
-    def map_remove(self, bytes space, bytes key, dict value):
+    def map_remove(self, bytes space, key, dict value):
         async = self.async_map_remove(space, key, value)
         return async.wait()
 
-    def map_atomic_add(self, bytes space, bytes key, dict value):
+    def map_atomic_add(self, bytes space, key, dict value):
         async = self.async_map_atomic_add(space, key, value)
         return async.wait()
 
-    def map_atomic_sub(self, bytes space, bytes key, dict value):
+    def map_atomic_sub(self, bytes space, key, dict value):
         async = self.async_map_atomic_sub(space, key, value)
         return async.wait()
 
-    def map_atomic_mul(self, bytes space, bytes key, dict value):
+    def map_atomic_mul(self, bytes space, key, dict value):
         async = self.async_map_atomic_mul(space, key, value)
         return async.wait()
 
-    def map_atomic_div(self, bytes space, bytes key, dict value):
+    def map_atomic_div(self, bytes space, key, dict value):
         async = self.async_map_atomic_div(space, key, value)
         return async.wait()
 
-    def map_atomic_mod(self, bytes space, bytes key, dict value):
+    def map_atomic_mod(self, bytes space, key, dict value):
         async = self.async_map_atomic_mod(space, key, value)
         return async.wait()
 
-    def map_atomic_and(self, bytes space, bytes key, dict value):
+    def map_atomic_and(self, bytes space, key, dict value):
         async = self.async_map_atomic_and(space, key, value)
         return async.wait()
 
-    def map_atomic_or(self, bytes space, bytes key, dict value):
+    def map_atomic_or(self, bytes space, key, dict value):
         async = self.async_map_atomic_or(space, key, value)
         return async.wait()
 
-    def map_atomic_xor(self, bytes space, bytes key, dict value):
+    def map_atomic_xor(self, bytes space, key, dict value):
         async = self.async_map_atomic_xor(space, key, value)
         return async.wait()
 
-    def map_string_prepend(self, bytes space, bytes key, dict value):
+    def map_string_prepend(self, bytes space, key, dict value):
         async = self.async_map_string_prepend(space, key, value)
         return async.wait()
 
-    def map_string_append(self, bytes space, bytes key, dict value):
+    def map_string_append(self, bytes space, key, dict value):
         async = self.async_map_string_append(space, key, value)
         return async.wait()
 
     def search(self, bytes space, dict predicate):
         return Search(self, space, predicate)
 
-    def async_get(self, bytes space, bytes key):
+    def async_get(self, bytes space, key):
         return DeferredGet(self, space, key)
 
-    def async_put(self, bytes space, bytes key, dict value):
+    def async_put(self, bytes space, key, dict value):
         return DeferredFromAttrs(self, space, key, value)
 
-    def async_condput(self, bytes space, bytes key, dict condition, dict value):
+    def async_condput(self, bytes space, key, dict condition, dict value):
         return DeferredCondPut(self, space, key, condition, value)
 
-    def async_delete(self, bytes space, bytes key):
+    def async_delete(self, bytes space, key):
         return DeferredDelete(self, space, key)
 
-    def async_atomic_add(self, bytes space, bytes key, dict value):
+    def async_atomic_add(self, bytes space, key, dict value):
         return DeferredFromAttrs(self, space, key, value, 'add')
 
-    def async_atomic_sub(self, bytes space, bytes key, dict value):
+    def async_atomic_sub(self, bytes space, key, dict value):
         return DeferredFromAttrs(self, space, key, value, 'sub')
 
-    def async_atomic_mul(self, bytes space, bytes key, dict value):
+    def async_atomic_mul(self, bytes space, key, dict value):
         return DeferredFromAttrs(self, space, key, value, 'mul')
 
-    def async_atomic_div(self, bytes space, bytes key, dict value):
+    def async_atomic_div(self, bytes space, key, dict value):
         return DeferredFromAttrs(self, space, key, value, 'div')
 
-    def async_atomic_mod(self, bytes space, bytes key, dict value):
+    def async_atomic_mod(self, bytes space, key, dict value):
         return DeferredFromAttrs(self, space, key, value, 'mod')
 
-    def async_atomic_and(self, bytes space, bytes key, dict value):
+    def async_atomic_and(self, bytes space, key, dict value):
         return DeferredFromAttrs(self, space, key, value, 'and')
 
-    def async_atomic_or(self, bytes space, bytes key, dict value):
+    def async_atomic_or(self, bytes space, key, dict value):
         return DeferredFromAttrs(self, space, key, value, 'or')
 
-    def async_atomic_xor(self, bytes space, bytes key, dict value):
+    def async_atomic_xor(self, bytes space, key, dict value):
         return DeferredFromAttrs(self, space, key, value, 'xor')
 
-    def async_string_prepend(self, bytes space, bytes key, dict value):
+    def async_string_prepend(self, bytes space, key, dict value):
         return DeferredFromAttrs(self, space, key, value, 'prepend')
 
-    def async_string_append(self, bytes space, bytes key, dict value):
+    def async_string_append(self, bytes space, key, dict value):
         return DeferredFromAttrs(self, space, key, value, 'append')
 
-    def async_list_lpush(self, bytes space, bytes key, dict value):
+    def async_list_lpush(self, bytes space, key, dict value):
         return DeferredFromAttrs(self, space, key, value, 'lpush')
 
-    def async_list_rpush(self, bytes space, bytes key, dict value):
+    def async_list_rpush(self, bytes space, key, dict value):
         return DeferredFromAttrs(self, space, key, value, 'rpush')
 
-    def async_set_add(self, bytes space, bytes key, dict value):
+    def async_set_add(self, bytes space, key, dict value):
         return DeferredFromAttrs(self, space, key, value, 'set_add')
 
-    def async_set_remove(self, bytes space, bytes key, dict value):
+    def async_set_remove(self, bytes space, key, dict value):
         return DeferredFromAttrs(self, space, key, value, 'set_remove')
 
-    def async_set_intersect(self, bytes space, bytes key, dict value):
+    def async_set_intersect(self, bytes space, key, dict value):
         return DeferredFromAttrs(self, space, key, value, 'set_intersect')
 
-    def async_set_union(self, bytes space, bytes key, dict value):
+    def async_set_union(self, bytes space, key, dict value):
         return DeferredFromAttrs(self, space, key, value, 'set_union')
 
-    def async_map_add(self, bytes space, bytes key, dict value):
+    def async_map_add(self, bytes space, key, dict value):
         return DeferredMapOp(self, space, key, value, 'map_add')
 
-    def async_map_remove(self, bytes space, bytes key, dict value):
+    def async_map_remove(self, bytes space, key, dict value):
         return DeferredMapOp(self, space, key, value, 'map_remove')
 
-    def async_map_atomic_add(self, bytes space, bytes key, dict value):
+    def async_map_atomic_add(self, bytes space, key, dict value):
         return DeferredMapOp(self, space, key, value, 'map_atomic_add')
 
-    def async_map_atomic_sub(self, bytes space, bytes key, dict value):
+    def async_map_atomic_sub(self, bytes space, key, dict value):
         return DeferredMapOp(self, space, key, value, 'map_atomic_sub')
 
-    def async_map_atomic_mul(self, bytes space, bytes key, dict value):
+    def async_map_atomic_mul(self, bytes space, key, dict value):
         return DeferredMapOp(self, space, key, value, 'map_atomic_mul')
 
-    def async_map_atomic_div(self, bytes space, bytes key, dict value):
+    def async_map_atomic_div(self, bytes space, key, dict value):
         return DeferredMapOp(self, space, key, value, 'map_atomic_div')
 
-    def async_map_atomic_mod(self, bytes space, bytes key, dict value):
+    def async_map_atomic_mod(self, bytes space, key, dict value):
         return DeferredMapOp(self, space, key, value, 'map_atomic_mod')
 
-    def async_map_atomic_and(self, bytes space, bytes key, dict value):
+    def async_map_atomic_and(self, bytes space, key, dict value):
         return DeferredMapOp(self, space, key, value, 'map_atomic_and')
 
-    def async_map_atomic_or(self, bytes space, bytes key, dict value):
+    def async_map_atomic_or(self, bytes space, key, dict value):
         return DeferredMapOp(self, space, key, value, 'map_atomic_or')
 
-    def async_map_atomic_xor(self, bytes space, bytes key, dict value):
+    def async_map_atomic_xor(self, bytes space, key, dict value):
         return DeferredMapOp(self, space, key, value, 'map_atomic_xor')
 
-    def async_map_string_prepend(self, bytes space, bytes key, dict value):
+    def async_map_string_prepend(self, bytes space, key, dict value):
         return DeferredMapOp(self, space, key, value, 'map_string_prepend')
 
-    def async_map_string_append(self, bytes space, bytes key, dict value):
+    def async_map_string_append(self, bytes space, key, dict value):
         return DeferredMapOp(self, space, key, value, 'map_string_append')
 
     def loop(self):

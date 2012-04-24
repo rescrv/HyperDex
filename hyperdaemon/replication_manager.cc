@@ -198,6 +198,14 @@ hyperdaemon :: replication_manager :: client_put(const hyperdex::entityid& from,
     e::bitfield condbf(dims.size() - 1);
     std::vector<e::slice> condvalue(dims.size() - 1);
 
+    if (!validate_datatype(dims[0].type, key))
+    {
+        respond_to_client(to, from, nonce,
+                          hyperdex::RESP_PUT,
+                          hyperdex::NET_BADDIMSPEC);
+        return;
+    }
+
     if (!unpack_attributes(value, dims, &bf, &realvalue))
     {
         respond_to_client(to, from, nonce,
@@ -225,11 +233,19 @@ hyperdaemon :: replication_manager :: client_condput(const hyperdex::entityid& f
     e::bitfield bf(dims.size() - 1);
     std::vector<e::slice> realvalue(dims.size() - 1);
 
+    if (!validate_datatype(dims[0].type, key))
+    {
+        respond_to_client(to, from, nonce,
+                          hyperdex::RESP_CONDPUT,
+                          hyperdex::NET_BADDIMSPEC);
+        return;
+    }
+
     if (!unpack_attributes(condfields, dims, &condbf, &condvalue) ||
         !unpack_attributes(value, dims, &bf, &realvalue))
     {
         respond_to_client(to, from, nonce,
-                          hyperdex::RESP_PUT,
+                          hyperdex::RESP_CONDPUT,
                           hyperdex::NET_BADDIMSPEC);
         return;
     }
@@ -264,6 +280,14 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
 {
     std::vector<hyperdex::attribute> dims = m_config.dimension_names(to.get_space());
     assert(!dims.empty());
+
+    if (!validate_datatype(dims[0].type, key))
+    {
+        respond_to_client(to, from, nonce,
+                          hyperdex::RESP_ATOMIC,
+                          hyperdex::NET_BADDIMSPEC);
+        return;
+    }
 
     // Make sure this message is from a client.
     if (from.space != UINT32_MAX)

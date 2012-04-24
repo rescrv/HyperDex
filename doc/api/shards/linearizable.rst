@@ -1,2 +1,2 @@
 This operation is totally ordered with respect to all ``get``, ``put``,
-``condput``, ``delete`` and ``atomicinc`` operations.
+``condput``, ``delete`` and other atomic operations.
