@@ -87,15 +87,20 @@ simple list operation, pushing the friend request onto John's ``pending_requests
 The operation ``list_rpush`` is guaranteed to be performed atomically, and will
 be applied consistently with respect to all other operations on the same list.
 
-XXX Note that lists provide both an lpush and rpush operation. The former adds the
-new element at the head of the list, while the latter adds at the tail. They also 
-provide lpop operation for taking an element off the head of the list. Coupled together,
-these operations provide a comprehensive list datatype that can be used to implement
-fault-tolerant lists of all kinds. For instnace, one can implement work queues and
-generalized producer-consumer patterns on top of HyperDex lists in a pretty straightforward fashion. In this
-case, producers would push at one end of the list (the tail, with an rpush) and consumers would pop from 
-the other (the head, with a pop). Since the operations are atomic, no additional synchronization
-would be necessary, enabling a high-performance implementation.
+
+.. todo::
+
+   XXX Note that lists provide both an lpush and rpush operation. The former
+   adds the new element at the head of the list, while the latter adds at the
+   tail. They also provide lpop operation for taking an element off the head of
+   the list. Coupled together, these operations provide a comprehensive list
+   datatype that can be used to implement fault-tolerant lists of all kinds. For
+   instnace, one can implement work queues and generalized producer-consumer
+   patterns on top of HyperDex lists in a pretty straightforward fashion. In
+   this case, producers would push at one end of the list (the tail, with an
+   rpush) and consumers would pop from the other (the head, with a pop). Since
+   the operations are atomic, no additional synchronization would be necessary,
+   enabling a high-performance implementation.
 
 
 Sets
@@ -133,12 +138,11 @@ use HyperDex's intersect primitive to narrow down his interests:
 Notice how John's hobbies become the intersection of his previous hobbies and the 
 ones named in the operation.
 
-XXX Overall, HyperDex supports 
-``set`` for absolute assignment), 
-``add`` for adding an element,
-``union`` for taking the union of two sets,
-and ``intersect`` for computing the overlap between two sets. This makes for a 
-comprehensive set of interfaces for operating on sets.
+Overall, HyperDex supports simple set assignment (using the ``put`` interface),
+adding and removing elements with :py:meth:`Client.set_add` and
+:py:meth:`hyperclient.Client.set_remove`, taking the union of a set with
+:py:meth:`hyperclient.Client.set_union` and storing the intersection of a set with
+:py:meth:`hyperclient.Client.set_intersect`.
 
 Maps
 ----
