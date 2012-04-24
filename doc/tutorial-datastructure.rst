@@ -33,7 +33,7 @@ storing a different portion of the hyperspace (aka shard)):
 
 This brings up three different daemons ready to serve in the HyperDex cluster.
 Finally, we create a space which makes use of all three systems in the cluster.
-In this example, we create a space that may be suitable for serving data in a
+In this example, let's create a space that may be suitable for serving data in a
 social network:
 
 .. sourcecode:: console
