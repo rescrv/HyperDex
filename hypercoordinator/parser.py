@@ -36,6 +36,7 @@ from pyparsing import Combine, Forward, Group, Literal, Optional, Suppress, Zero
 from hypercoordinator import hdtypes
 
 
+KEY_TYPES = ('string', 'int64')
 SEARCHABLE_TYPES = ('string', 'int64')
 
 
@@ -143,6 +144,8 @@ def parse_space(space):
             if dims[dim] not in ('string', 'int64'):
                 raise ValueError("Subspace dimension {0} is not a searchable type.".format(repr(dim)))
         subspace._nosearch += nosearch
+    if dims[space.key] not in KEY_TYPES:
+        raise ValueError("Key must be a primitive datatype")
     keysubspace = hdtypes.Subspace(dimensions=[space.key], nosearch=list(nosearch), regions=list(space.keyregions))
     subspaces = [keysubspace] + list(space.subspaces)
     return hdtypes.Space(space.name, space.dimensions, subspaces)

@@ -42,11 +42,11 @@ enum microop_type
 {
     OP_FAIL,
 
-    OP_STRING_SET,
+    OP_SET,
+
     OP_STRING_APPEND,
     OP_STRING_PREPEND,
 
-    OP_INT64_SET,
     OP_INT64_ADD,
     OP_INT64_SUB,
     OP_INT64_MUL,
