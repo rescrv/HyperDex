@@ -137,6 +137,7 @@ class Coordinator(object):
         if instid != 0:
             # host restat or reconnect - replace old instance with the new one
             # XXX should we do something different on reconnect only?
+            # XXX preserve last_acked and last_rejected?
             oldinst = self._instances_by_id[instid]
             del self._instances_by_bindings[oldinst.bindings()]
             self._instances_by_bindings[inst.bindings()] = instid

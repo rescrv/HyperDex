@@ -206,6 +206,11 @@ hyperdisk :: disk :: load_state()
         // Line header.
         std::string h;
         f >> h;
+        if (f.eof() && "" == h)
+        {
+            // White space at the end of file, done processing.
+            break;
+        }
         if (f.fail() || "shard" != h)
         {
             return false;
@@ -239,7 +244,7 @@ hyperdisk :: disk :: load_state()
         shards.push_back(std::make_pair(c, s));
     }
 
-    // Use the reopened shards.
+    // Install the reopened shards into the disk.
     po6::threads::mutex::hold a(&m_shards_mutate);
     po6::threads::mutex::hold b(&m_shards_lock);
     m_shards = new shard_vector(1, &shards);
