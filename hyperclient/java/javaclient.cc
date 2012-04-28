@@ -34,7 +34,7 @@
 
 // HyperClient
 #include "hyperclient/hyperclient.h"
-#include "hyperclient/java/syncclient.h"
+#include "hyperclient/java/javaclient.h"
 
 HyperClient :: HyperClient(const char* coordinator, in_port_t port)
     : m_client(coordinator, port)
@@ -232,7 +232,7 @@ HyperClient :: range_search(const std::string& space,
 
     while ((lid = m_client.loop(-1, &lstatus)) == id)
     {
-        if (status == HYPERCLIENT_SEARCHDONE)
+        if (lstatus == HYPERCLIENT_SEARCHDONE)
         {
             return HYPERCLIENT_SUCCESS;
         }

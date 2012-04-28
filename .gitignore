@@ -29,8 +29,8 @@ hyperclient/java/hyperclient_wrap.lo
 hyperclient/java/hyperclient_wrap.o
 hyperclient/java/java.stamp
 hyperclient/java/libhyperclient-java.la
-hyperclient/java/syncclient.lo
-hyperclient/java/syncclient.o
+hyperclient/java/javaclient.lo
+hyperclient/java/javaclient.o
 hyperclient/libhyperclient_la-hyperclient.lo
 hyperclient/libhyperclient_la-hyperclient.o
 hyperclient/.libs/
@@ -183,6 +183,6 @@ hyperclient-java.stamp
 hyperclient-ycsb-0.1.dev.jar
 hyperclient/java/libhyperclient_java_la-hyperclient_wrap.lo
 hyperclient/java/libhyperclient_java_la-hyperclient_wrap.o
-hyperclient/java/libhyperclient_java_la-syncclient.lo
-hyperclient/java/libhyperclient_java_la-syncclient.o
+hyperclient/java/libhyperclient_java_la-javaclient.lo
+hyperclient/java/libhyperclient_java_la-javaclient.o
 libhyperclient-java.la

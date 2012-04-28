@@ -25,8 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperclient_syncclient_h_
-#define hyperclient_syncclient_h_
+#ifndef hyperclient_javaclient_h_
+#define hyperclient_javaclient_h_
 
 // HyperClient
 #include "../hyperclient.h"
@@ -63,4 +63,4 @@ class HyperClient
         hyperclient m_client;
 };
 
-#endif // hyperclient_syncclient_h_
+#endif // hyperclient_javaclient_h_
