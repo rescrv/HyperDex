@@ -85,8 +85,8 @@ class Coordinator(object):
     class InvalidStateData(Exception): pass
     class InvalidState(Exception): pass
     class ServiceLevelNotMet(Exception): pass
-    
-    S_STARTUP, S_NORMAL, S_GOINGDOWN = 'STARTUP', 'NORMAL', 'GOINGDOWN'
+
+    S_STARTUP, S_NORMAL, S_QUIESCE, S_SHUTDOWN = 'STARTUP', 'NORMAL', 'QUIESCE', 'SHUTDOWN'
     SL_DESIRED, SL_DEGRADED, SL_DATALOSS = 'DESIRED', 'DEGRADED', 'DATALOSS'
     STATE_VERSION = 2
 
@@ -105,12 +105,13 @@ class Coordinator(object):
         self._config_data = ''
         self._xfer_counter = 0
         self._xfers_by_id = {}
-        self._state_id = ''
+        self._quiesce_state_id = ''
         self._quiesce_config_num = -1
         self._state = Coordinator.S_STARTUP
         if state_data:
             # loading saved coord. state (restart after shutdown)
             self._load_state(state_data)
+            self._quiesce_state_id = ''
             self._quiesce_config_num = -1
             self._state = Coordinator.S_STARTUP
         else:
@@ -129,8 +130,8 @@ class Coordinator(object):
         inver = self._compute_port_epoch(addr, inport)
         outver = self._compute_port_epoch(addr, outport)
         inst = hdtypes.Instance(addr, inport, inver, outport, outver, pid, token)
-        # send config only if cluster fully operational
-        if self._state == Coordinator.S_NORMAL:
+        # do not send config before go-live
+        if self._state != Coordinator.S_STARTUP:
             inst.add_config(self._config_counter, self._config_data)
         # have we seen this instance before? 
         instid = self._instances_by_token.get(token, 0)
@@ -200,40 +201,31 @@ class Coordinator(object):
     def quiesce(self):
         if self._state != Coordinator.S_NORMAL:
             raise Coordinator.InvalidState()
-        # generate random state id for all hosts to save state under
-        self._state_id =  binascii.hexlify(os.urandom(16))
-        # send quiesce config to all hosts
-        self._config_counter += 1
+        # ask all hosts to save state under unique state id
+        self._quiesce_state_id =  binascii.hexlify(os.urandom(16))
+        self._state = Coordinator.S_QUIESCE
+        logging.info('Cluster is quiescing under state id {0}.'.format(self._quiesce_state_id))
+        self._regenerate()
+        # remember current config num, so we can check if hosts ACKd quiesce
         self._quiesce_config_num = self._config_counter
-        config = 'version {0}\n'.format(self._config_counter)
-        config += QUIESCE_LINE.format(state_id = self._state_id)
-        self._config_data = config.strip()
-        for inst in self._instances_by_id.values():
-            inst.add_config(self._config_counter, self._config_data)
-        # return state id to client
-        self._state = Coordinator.S_GOINGDOWN
-        logging.info('Cluster is quiescing.')
-        return self._state_id
+        return self._quiesce_state_id
 
     def shutdown(self):
-        if self._state != Coordinator.S_GOINGDOWN:
+        if self._state != Coordinator.S_QUIESCE:
             raise Coordinator.InvalidState()
-        # check if all not failed hosts ackd quiesce
-        # TODO - enable once hosts accept shutdowns
-        #for instid, inst in self._instances_by_id.iteritems():
-        #    if instid not in self._failed_instances:
-        #        if inst.last_acked < self._quiesce_config_num:
-        #            raise Coordinator.InvalidState("Waiting for hosts to quiesce")
+        # check if all not failed hosts ACKd quiesce
+        w = 0
+        for instid, inst in self._instances_by_id.iteritems():
+            if instid not in self._failed_instances:
+                if inst.last_acked < self._quiesce_config_num:
+                    w += 1
+        if w:
+            raise Coordinator.InvalidState("Cannot shutdown yet, waiting for {0} hosts to quiesce.".format(w))
         # send shutdown config to all hosts 
+        self._state = Coordinator.S_SHUTDOWN
         logging.info('Requesting all nodes to shut down.')
-        self._config_counter += 1
-        self._quiesce_config_num = self._config_counter
-        config = 'version {0}\n'.format(self._config_counter)
-        config += SHUTDOWN_LINE
-        self._config_data = config.strip()
-        for inst in self._instances_by_id.values():
-            inst.add_config(self._config_counter, self._config_data)
-        # not waiting for ack, return state 
+        self._regenerate()
+        # not waiting for ack, return state
         return self._dump_state()
         
     def get_status(self):
@@ -249,7 +241,7 @@ class Coordinator(object):
         s['xfer_counter'] = self._xfer_counter
         s['xfers'] = self._xfers_by_id
         s['state'] = self._state
-        s['state_id'] = self._state_id
+        s['quiesce_state_id'] = self._quiesce_state_id
         s['service_level'] = self._service_level()
         s['service_level_met'] = self._service_level_met()
         return s
@@ -425,6 +417,12 @@ class Coordinator(object):
                                           mask=hex(region.mask).rstrip('L'),
                                           instid=str(instid))
                         used_hosts.add(instid)
+        # quiesce request
+        if (self._state == Coordinator.S_QUIESCE):
+            config += QUIESCE_LINE.format(state_id = self._quiesce_state_id)
+        # shutdown request
+        if (self._state == Coordinator.S_SHUTDOWN):
+            config += SHUTDOWN_LINE
         host_lines = []
         for hostid in sorted(used_hosts):
             inst = self._instances_by_id[hostid]
@@ -434,8 +432,8 @@ class Coordinator(object):
                                 outver=inst.outver)
             host_lines.append(host_line)
         self._config_data = ('\n'.join(host_lines) + '\n' + config).strip()
-        # send config only if cluster fully operational
-        if self._state == Coordinator.S_NORMAL:
+        # do not send config before go-live
+        if self._state != Coordinator.S_STARTUP:
             for instid, inst in self._instances_by_id.iteritems():
                 inst.add_config(self._config_counter, self._config_data)
         # XXX notify threads to poll for new configs
@@ -495,7 +493,7 @@ class Coordinator(object):
                 setattr(self, attr, collections.defaultdict(lambda: 1, v))
             else:
                 setattr(self, attr, value)
-        logging.info('State from shutdown {0} restored'.format(self._state_id))
+        logging.info('State from shutdown {0} restored'.format(self._quiesce_state_id))
 
 
 class HostConnection(object):
