@@ -466,6 +466,27 @@ hyperclient_python_hyperclient_la_LDFLAGS = \
 			-avoid-version \
 			-export-symbols-regex inithyperclient
 
+################################# Ruby Bindings ################################
+
+if ENABLE_RUBY_BINDINGS
+lib_LTLIBRARIES += \
+			hyperclient/ruby/hyperclient.la
+endif
+
+hyperclient_ruby_hyperclient_la_SOURCES = \
+			hyperclient/ruby/hyperclient.c
+hyperclient_ruby_hyperclient_la_CPPFLAGS = \
+			$(RUBY_CPPFLAGS) \
+			$(CPPFLAGS)
+hyperclient_ruby_hyperclient_la_LIBADD = \
+			libhyperspacehashing.la \
+			libhyperclient.la \
+			$(RUBY_LDFLAGS) \
+			$(COVERAGE_LDADD)
+hyperclient_ruby_hyperclient_la_LDFLAGS = \
+			-module \
+			-avoid-version
+
 ################################################################################
 ################################## Benchmarks ##################################
 ################################################################################
