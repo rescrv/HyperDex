@@ -15,6 +15,7 @@ class HyperClient : public node::ObjectWrap {
 		static v8::Handle<v8::Value> async_put(const v8::Arguments& args);
 		static v8::Handle<v8::Value> put(const v8::Arguments& args);
 		static v8::Handle<v8::Value> wait(const v8::Arguments& args);
+		v8::Handle<v8::Value> wait();
 		static v8::Handle<v8::Value> destroy(const v8::Arguments& args);
 		static v8::Handle<v8::Value> async_condput(const v8::Arguments& args);
                 static v8::Handle<v8::Value> condput(const v8::Arguments& args);
@@ -26,6 +27,7 @@ class HyperClient : public node::ObjectWrap {
                 static v8::Handle<v8::Value> search(const v8::Arguments& args);
 		static v8::Handle<v8::Value> async_del(const v8::Arguments& args);
                 static v8::Handle<v8::Value> del(const v8::Arguments& args);
+		static void copy_client(HyperClient** o1, HyperClient** o2);
 		v8::Local<v8::Array> ops;
                 v8::Local<v8::Array> result;
 		
