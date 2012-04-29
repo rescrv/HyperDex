@@ -54,6 +54,9 @@
 // e
 #include <e/timer.h>
 
+// util
+#include <util/atomicfile.h>
+
 // HyperDex
 #include "hyperdex/hyperdex/configuration.h"
 #include "hyperdex/hyperdex/coordinatorlink.h"
@@ -70,6 +73,9 @@ using hyperdex::coordinatorlink;
 
 typedef e::intrusive_ptr<hyperdisk::disk> disk_ptr;
 typedef std::map<hyperdex::regionid, disk_ptr> disk_map_t;
+
+const char* hyperdaemon :: datalayer :: STATE_FILE_NAME = "datalayer_state.hd";
+const int hyperdaemon :: datalayer :: STATE_FILE_VER = 1;
 
 hyperdaemon :: datalayer :: datalayer(coordinatorlink* cl, const po6::pathname& base)
     : m_cl(cl)
@@ -95,6 +101,10 @@ hyperdaemon :: datalayer :: datalayer(coordinatorlink* cl, const po6::pathname& 
         t->start();
         m_flush_threads.push_back(t);
     }
+    
+    // Load state from shutdown.
+    // XXX check results - should not be in constructor probably
+    load_state();
 }
 
 hyperdaemon :: datalayer :: ~datalayer() throw ()
@@ -110,6 +120,42 @@ hyperdaemon :: datalayer :: ~datalayer() throw ()
     {
         m_flush_threads[i]->join();
     }
+}
+
+bool
+hyperdaemon :: datalayer :: dump_state(const configuration& config, const instance& us)
+{
+    // Dump state information.
+    std::ostringstream s;
+    s << "version " << STATE_FILE_VER << std::endl;
+
+    s << "instance_us";
+    s << " " << us.address;
+    s << " " << us.inbound_port;
+    s << " " << us.inbound_version;
+    s << " " << us.outbound_port;
+    s << " " << us.outbound_version; 
+    s << std::endl;
+    
+    s << "quiesced_config" << std::endl;
+    s << config.config_text();
+
+    // Rewrite the state file atomically.
+    if (!util::atomicfile::rewrite(m_base.get(), STATE_FILE_NAME, s.str().c_str()))
+    {
+        PLOG(ERROR) << "Could not write config to a file " << STATE_FILE_NAME;
+        return false;
+    }
+    
+    return true;
+}
+
+bool
+hyperdaemon :: datalayer :: load_state()
+{
+
+
+    return true;
 }
 
 void
@@ -137,7 +183,7 @@ hyperdaemon :: datalayer :: prepare(const configuration& newconfig, const instan
 }
 
 void
-hyperdaemon :: datalayer :: reconfigure(const configuration& newconfig, const instance&)
+hyperdaemon :: datalayer :: reconfigure(const configuration& newconfig, const instance& us)
 {
     // Quiesce (will quiesce multiple times if requested so).
     if (newconfig.quiesce())
@@ -148,16 +194,27 @@ hyperdaemon :: datalayer :: reconfigure(const configuration& newconfig, const in
         // Quiesce the disks.
         for (disk_map_t::iterator d = m_disks.begin(); d != m_disks.end(); d.next())
         {
+            bool res = false;
             try
             {
-                // XXX fail this region.
-                d.value()->quiesce(m_quiesce_state_id);
+                res = d.value()->quiesce(m_quiesce_state_id);
             }
             catch (po6::error& e)
             {
-                PLOG(ERROR) << "Could not quiesce disk " << d.key();
-                return;
+                res = false;
             }
+            
+            if (!res)
+            {
+                // XXX fail this region
+                PLOG(ERROR) << "Could not quiesce disk " << d.key();
+            }
+        }
+
+        if (!dump_state(newconfig, us))
+        {
+            // XXX fail entire host?
+            PLOG(ERROR) << "Could not save datalayer state.";
         }
     }
 }

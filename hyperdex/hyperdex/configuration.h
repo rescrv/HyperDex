@@ -57,7 +57,8 @@ class configuration
 
     public:
         configuration();
-        configuration(uint64_t version,
+        configuration(const std::string& config_text,
+                      uint64_t version,
                       const std::vector<instance>& hosts,
                       const std::map<std::string, spaceid>& space_assignment,
                       const std::map<spaceid, std::vector<attribute> >& spaces,
@@ -66,9 +67,13 @@ class configuration
                       const std::map<subspaceid, hyperspacehashing::prefix::hasher>& repl_hashers,
                       const std::map<subspaceid, hyperspacehashing::mask::hasher>& disk_hashers,
                       const std::map<std::pair<instance, uint16_t>, hyperdex::regionid>& transfers,
-                      bool quiesce, const std::string quiesce_state_id,
+                      bool quiesce, const std::string& quiesce_state_id,
                       bool shutdown);
         ~configuration() throw ();
+
+    // The original config text
+    public:
+        std::string config_text() const { return m_config_text; }
 
     // The version of this config
     public:
@@ -142,6 +147,7 @@ class configuration
                                                       const hyperspacehashing::search& s) const;
 
     private:
+        std::string m_config_text;
         uint64_t m_version;
         std::vector<instance> m_hosts;
         std::map<std::string, spaceid> m_space_assignment;

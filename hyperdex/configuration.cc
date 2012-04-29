@@ -46,7 +46,8 @@ const uint32_t hyperdex::configuration::CLIENTSPACE = UINT32_MAX;
 const uint32_t hyperdex::configuration::TRANSFERSPACE = UINT32_MAX - 1;
 
 hyperdex :: configuration :: configuration()
-    : m_version(0)
+    : m_config_text("")
+    , m_version(0)
     , m_hosts()
     , m_space_assignment()
     , m_spaces()
@@ -62,7 +63,8 @@ hyperdex :: configuration :: configuration()
 {
 }
 
-hyperdex :: configuration :: configuration(uint64_t ver,
+hyperdex :: configuration :: configuration(const std::string& config_text,
+                                           uint64_t ver,
                                            const std::vector<instance>& hosts,
                                            const std::map<std::string, spaceid>& space_assignment,
                                            const std::map<spaceid, std::vector<attribute> >& spaces,
@@ -71,9 +73,10 @@ hyperdex :: configuration :: configuration(uint64_t ver,
                                            const std::map<subspaceid, hyperspacehashing::prefix::hasher>& repl_hashers,
                                            const std::map<subspaceid, hyperspacehashing::mask::hasher>& disk_hashers,
                                            const std::map<std::pair<instance, uint16_t>, hyperdex::regionid>& transfers,
-                                           bool quiesce, const std::string quiesce_state_id,
+                                           bool quiesce, const std::string& quiesce_state_id,
                                            bool shutdown)
-    : m_version(ver)
+    : m_config_text(config_text)
+    , m_version(ver)
     , m_hosts(hosts)
     , m_space_assignment(space_assignment)
     , m_spaces(spaces)

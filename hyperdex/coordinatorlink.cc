@@ -247,7 +247,15 @@ hyperdex :: coordinatorlink :: loop(size_t iterations, int timeout)
             {
                 m_acknowledged = false;
                 m_config = cp.generate();
-                return SUCCESS;
+                if (!m_config.shutdown())
+                {
+                    return SUCCESS;
+                }
+                else
+                {
+                    // This config will not be processed, we go straight to shutdown.
+                    return SHUTDOWN;
+                }
             }
             else
             {

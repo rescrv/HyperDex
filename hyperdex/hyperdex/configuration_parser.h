@@ -125,6 +125,7 @@ class configuration_parser
                                const std::vector<bool>& attrs);
 
     private:
+        std::string m_config_text;
         uint64_t m_version;
         std::map<uint64_t, instance> m_hosts;
         std::map<std::string, spaceid> m_space_assignment;

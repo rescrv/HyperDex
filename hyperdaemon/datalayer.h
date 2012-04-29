@@ -127,8 +127,15 @@ class datalayer
         std::list<hyperdex::regionid> m_optimistic_rr;
         uint64_t m_last_dose_of_optimism;
         volatile bool m_flushed_recently;
+
+    private:
+        // Shutdown and restart.
+        static const char* STATE_FILE_NAME;
+        static const int STATE_FILE_VER;
         bool m_quiesce;
         std::string m_quiesce_state_id;
+        bool dump_state(const hyperdex::configuration& config, const hyperdex::instance& us);
+        bool load_state();
 };
 
 } // namespace hyperdaemon

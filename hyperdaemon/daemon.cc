@@ -271,11 +271,11 @@ hyperdaemon :: daemon(const char* progname,
             repl.cleanup(cl.config(), comm.inst());
             data.cleanup(cl.config(), comm.inst());
             comm.cleanup(cl.config(), comm.inst());
+
             cl.acknowledge();
         }
 
-        uint64_t now;
-
+        uint64_t now = -1;
         switch (cl.loop(1, -1))
         {
             case hyperdex::coordinatorlink::SHUTDOWN:
