@@ -37,6 +37,7 @@
 
 // C++
 #include <limits>
+#include <fstream>
 
 // STL
 #include <algorithm>
@@ -60,6 +61,7 @@
 // HyperDex
 #include "hyperdex/hyperdex/configuration.h"
 #include "hyperdex/hyperdex/coordinatorlink.h"
+#include "hyperdex/configuration_parser.h"
 
 // HyperDaemon
 #include "hyperdaemon/datalayer.h"
@@ -70,6 +72,7 @@ using hyperdex::entityid;
 using hyperdex::instance;
 using hyperdex::configuration;
 using hyperdex::coordinatorlink;
+using hyperdex::configuration_parser;
 
 typedef e::intrusive_ptr<hyperdisk::disk> disk_ptr;
 typedef std::map<hyperdex::regionid, disk_ptr> disk_map_t;
@@ -129,7 +132,7 @@ hyperdaemon :: datalayer :: dump_state(const configuration& config, const instan
     std::ostringstream s;
     s << "version " << STATE_FILE_VER << std::endl;
 
-    s << "instance_us";
+    s << "us";
     s << " " << us.address;
     s << " " << us.inbound_port;
     s << " " << us.inbound_version;
@@ -137,8 +140,8 @@ hyperdaemon :: datalayer :: dump_state(const configuration& config, const instan
     s << " " << us.outbound_version; 
     s << std::endl;
     
-    s << "quiesced_config" << std::endl;
-    s << config.config_text();
+    s << "config";
+    s << " " << config.config_text();
 
     // Rewrite the state file atomically.
     if (!util::atomicfile::rewrite(m_base.get(), STATE_FILE_NAME, s.str().c_str()))
@@ -153,7 +156,93 @@ hyperdaemon :: datalayer :: dump_state(const configuration& config, const instan
 bool
 hyperdaemon :: datalayer :: load_state()
 {
+    po6::pathname config_name = po6::join(m_base.get(), STATE_FILE_NAME);
+    std::ifstream f; 
+    f.open(config_name.get());
+    if (!f)
+    {
+        return false;
+    }
 
+    // File version.
+    std::string v;
+    f >> v;
+    if (f.fail() || "version" != v)
+    {
+        return false;
+    }
+
+    uint32_t vn = -1;
+    f >> vn;
+    if (f.fail() || STATE_FILE_VER != vn)
+    {
+        return false;
+    }
+    
+    // Instance describing self at the time of quiesce.
+    std::string u;
+    f >> u;
+    if (f.fail() || "us" != u)
+    {
+        return false;
+    }
+    
+    po6::net::ipaddr address;
+    in_port_t inbound_port = -1;
+    uint16_t inbound_version = -1;
+    in_port_t outbound_port = -1;
+    uint16_t outbound_version = -1;    
+    f >> address >> inbound_port >> inbound_version >> outbound_port >> outbound_version;
+    if (f.fail())
+    {
+        return false;
+    }
+    
+    instance us(address, inbound_port, inbound_version, outbound_port, outbound_version);
+
+    // Config at the time of quiesce.
+    std::string c;
+    f >> c;
+    if (f.fail() || "config" != c)
+    {
+        return false;
+    }
+    
+    // XXX This is not pretty, read line by line perhaps
+    std::stringstream buffer;
+    buffer << f.rdbuf();
+    if (f.fail())
+    {
+        return false;
+    }
+    
+    std::string configtext = buffer.str();
+
+    configuration_parser cp;
+    configuration_parser::error e;
+    e = cp.parse(configtext);
+
+    if (e != configuration_parser::CP_SUCCESS)
+    {
+        return false;
+    }
+
+    configuration config = cp.generate();
+
+    // Re-open the disks that are needed according to config at the time of quiesce.
+    std::set<regionid> regions = config.regions_for(us);
+
+    for (std::set<regionid>::const_iterator r = regions.begin();
+            r != regions.end(); ++r)
+    {
+        if (!m_disks.contains(*r))
+        {
+            // XXX replace with open_disk
+            // XXX handle errors
+            create_disk(*r, config.disk_hasher(r->get_subspace()),
+                        config.dimensions(r->get_space()));
+        }
+    }
 
     return true;
 }
