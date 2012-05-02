@@ -169,6 +169,59 @@ HyperClient :: put(const std::string& space,
 }
 
 hyperclient_returncode
+HyperClient :: put(const std::string& space,
+                   const std::string& key,
+                   const std::map<std::string, Attribute>& attributes)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_attribute> attrs;
+    std::vector<std::string> values;
+    values.reserve(attributes.size());
+
+    for (std::map<std::string, Attribute>::const_iterator ci = attributes.begin();
+            ci != attributes.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        std::string value;
+        ci->second.serialize(value);
+        values.push_back(value);
+        at.value = values.back().data();
+        at.value_sz = value.size();
+    }
+
+    id = m_client.put(space.c_str(),
+                      key.data(),
+                      key.size(),
+                      &attrs.front(),
+                      attrs.size(),
+                      &stat1);
+
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+hyperclient_returncode
 HyperClient :: del(const std::string& space,
                    const std::string& key)
 {

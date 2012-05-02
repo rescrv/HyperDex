@@ -40,16 +40,6 @@
 #include "hyperclient/java/javaclient.h"
 %}
 
-typedef uint16_t in_port_t;
-
-%pragma(java) jniclasscode=
-%{
-    static
-    {
-        System.loadLibrary("hyperclient-java");
-    }
-%}
-
 enum ReturnCode
 {
     SUCCESS      = 8448,
@@ -74,38 +64,21 @@ enum ReturnCode
     ZERO         = 8575
 };
 
-class HyperClient
-{
-    public:
-        HyperClient(const char* coordinator, in_port_t port);
-        ~HyperClient() throw ();
+%include "hyperclient/java/javaclient.h"
 
-    public:
-        ReturnCode get(const std::string& space,
-                       const std::string& key,
-                       std::map<std::string, std::string>* STR_OUT,
-                       std::map<std::string, uint64_t>* NUM_OUT);
-        ReturnCode put(const std::string& space,
-                       const std::string& key,
-                       const std::map<std::string, std::string>& svalues,
-                       const std::map<std::string, uint64_t>& nvalues);
-        ReturnCode del(const std::string& space,
-                       const std::string& key);
-        ReturnCode range_search(const std::string& space,
-                                const std::string& attr,
-                                uint64_t lower,
-                                uint64_t upper,
-                                std::vector<std::map<std::string,
-                                                     std::string> >* STR_OUT,
-                                std::vector<std::map<std::string,
-                                                     uint64_t> >* NUM_OUT);
+typedef uint16_t in_port_t;
 
-    private:
-        hyperclient m_client;
-};
+%pragma(java) jniclasscode=
+%{
+    static
+    {
+        System.loadLibrary("hyperclient-java");
+    }
+%}
 
 namespace std
 {
+    %template(Attributes) map<string, Attribute>;
     %template(ssmap) map<string, string>;
     %template(snmap) map<string, unsigned long long>;
     %template(ssearchresult) vector<map<string, string> >;
