@@ -35,6 +35,8 @@
 
 /* POSIX */
 #include <netinet/in.h>
+// HyperDex
+#include <hyperdex.h>
 
 #ifdef __cplusplus
 // C++
@@ -54,9 +56,6 @@
 #include <e/buffer.h>
 #include <e/intrusive_ptr.h>
 #include <e/lockfree_hash_map.h>
-
-// HyperDex
-#include <hyperdex.h>
 
 // Forward declarations
 namespace e
