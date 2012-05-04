@@ -72,9 +72,15 @@ namespace hyperdisk
 class disk
 {
     public:
+        // Create a new blank disk.
         static e::intrusive_ptr<disk> create(const po6::pathname& directory,
                                              const hyperspacehashing::mask::hasher& hasher,
                                              uint16_t arity);
+        // Re-open quiesced disk.                                             
+        static e::intrusive_ptr<disk> open(const po6::pathname& directory,
+                                           const hyperspacehashing::mask::hasher& hasher,
+                                           uint16_t arity,
+                                           const std::string& quiesce_state_id);
 
     public:
         // May return SUCCESS or NOTFOUND.
@@ -183,9 +189,8 @@ class disk
         // State dump and load.
         static const int STATE_FILE_VER;
         static const char* STATE_FILE_NAME;
-        bool dump_state();
-        bool load_state();
-        bool state_file_present();
+        bool dump_state(const std::string& quiesce_state_id);
+        bool load_state(const std::string& quiesce_state_id);
 };
 
 } // namespace hyperdisk

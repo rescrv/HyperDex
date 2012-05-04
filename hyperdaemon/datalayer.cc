@@ -106,7 +106,7 @@ hyperdaemon :: datalayer :: datalayer(coordinatorlink* cl, const po6::pathname& 
     }
     
     // Load state from shutdown.
-    // XXX check results - should not be in constructor probably
+    // XXX handle errors
     load_state();
 }
 
@@ -237,10 +237,11 @@ hyperdaemon :: datalayer :: load_state()
     {
         if (!m_disks.contains(*r))
         {
-            // XXX replace with open_disk
+            // Re-open a disk quiesced on shutdown.
             // XXX handle errors
-            create_disk(*r, config.disk_hasher(r->get_subspace()),
-                        config.dimensions(r->get_space()));
+            open_disk(*r, config.disk_hasher(r->get_subspace()),
+                        config.dimensions(r->get_space()),
+                        config.quiesce_state_id());
         }
     }
 
@@ -265,6 +266,8 @@ hyperdaemon :: datalayer :: prepare(const configuration& newconfig, const instan
     {
         if (!m_disks.contains(*r))
         {
+            // Disk not present yet, create a new one.
+            // XXX handle errors
             create_disk(*r, newconfig.disk_hasher(r->get_subspace()),
                         newconfig.dimensions(r->get_space()));
         }
@@ -280,6 +283,7 @@ hyperdaemon :: datalayer :: reconfigure(const configuration& newconfig, const in
         m_quiesce = newconfig.quiesce();
         m_quiesce_state_id = newconfig.quiesce_state_id();
         
+        // XXX - pull this out to the main loop, so we get the result and can fail the host?
         // Quiesce the disks.
         for (disk_map_t::iterator d = m_disks.begin(); d != m_disks.end(); d.next())
         {
@@ -590,12 +594,50 @@ hyperdaemon :: datalayer :: create_disk(const regionid& ri,
 
     try
     {
-        // XXX fail this region.
         d = hyperdisk::disk::create(path, hasher, num_columns);
     }
     catch (po6::error& e)
     {
+        // XXX fail this region.
         PLOG(ERROR) << "Could not create disk " << ri;
+        return;
+    }
+
+    if (m_disks.insert(ri, d))
+    {
+        LOG(INFO) << "Created disk " << ri << " with " << num_columns << " columns";
+    }
+    else
+    {
+        LOG(ERROR) << "Could not create disk " << ri << " because it already exists";
+    }
+}
+
+void
+hyperdaemon :: datalayer :: open_disk(const regionid& ri,
+                                      const hyperspacehashing::mask::hasher& hasher,
+                                      uint16_t num_columns,
+                                      const std::string& quiesce_state_id)
+{
+    std::ostringstream ostr;
+    ostr << ri;
+    po6::pathname path(ostr.str());
+    disk_ptr d;
+
+    try
+    {
+        d = hyperdisk::disk::open(path, hasher, num_columns, quiesce_state_id);
+        if (!d)
+        {
+            // XXX fail this region.
+            PLOG(ERROR) << "Could not open disk " << ri;
+            return;
+        }
+    }
+    catch (po6::error& e)
+    {
+        // XXX fail this region.
+        PLOG(ERROR) << "Could not open disk " << ri;
         return;
     }
 

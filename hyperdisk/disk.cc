@@ -93,7 +93,26 @@ hyperdisk :: disk :: create(const po6::pathname& directory,
                             const hyperspacehashing::mask::hasher& hasher,
                             uint16_t arity)
 {
+    // Create a blank disk.
     return new disk(directory, hasher, arity);
+}
+
+e::intrusive_ptr<hyperdisk::disk>
+hyperdisk :: disk :: open(const po6::pathname& directory,
+                          const hyperspacehashing::mask::hasher& hasher,
+                          uint16_t arity,
+                          const std::string& quiesce_state_id)
+{
+    // Create a blank disk.
+    e::intrusive_ptr<hyperdisk::disk> d = new disk(directory, hasher, arity);
+    
+    // Load the quiesced shards.
+    if (!d->load_state(quiesce_state_id))
+    {
+        return NULL;
+    }
+    
+    return d;
 }
 
 bool
@@ -131,11 +150,11 @@ hyperdisk :: disk :: quiesce(const std::string& quiesce_state_id)
     }
     
     // Persist the state into a file.
-    return dump_state();
+    return dump_state(quiesce_state_id);
 }
 
 bool
-hyperdisk :: disk :: dump_state()
+hyperdisk :: disk :: dump_state(const std::string& quiesce_state_id)
 {
     // Dump state information.
     e::intrusive_ptr<shard_vector> shards;
@@ -146,6 +165,7 @@ hyperdisk :: disk :: dump_state()
     
     std::ostringstream s;
     s << "version " << STATE_FILE_VER << std::endl;
+    s << "state_id " << quiesce_state_id << std::endl;
     for (size_t i = 0; i < shards->size(); ++i)
     {
         coordinate c = shards->get_coordinate(i);
@@ -166,15 +186,7 @@ hyperdisk :: disk :: dump_state()
 }
 
 bool
-hyperdisk :: disk :: state_file_present()
-{
-    po6::pathname config_name = po6::join(m_base_filename, STATE_FILE_NAME);
-    struct stat st;
-    return (!stat(config_name.get(), &st));
-}
-
-bool
-hyperdisk :: disk :: load_state()
+hyperdisk :: disk :: load_state(const std::string& quiesce_state_id)
 {
     po6::pathname config_name = po6::join(m_base_filename, STATE_FILE_NAME);
     std::ifstream f; 
@@ -184,7 +196,7 @@ hyperdisk :: disk :: load_state()
         return false;
     }
 
-    // Parse header.
+    // Is state file right version?
     std::string v;
     f >> v;
     if (f.fail() || "version" != v)
@@ -199,6 +211,21 @@ hyperdisk :: disk :: load_state()
         return false;
     }
     
+    // Does the state file match the quiesced state we are loading? 
+    std::string s;
+    f >> s;
+    if (f.fail() || "state_id" != s)
+    {
+        return false;
+    }
+
+    std::string sid;
+    f >> sid;
+    if (f.fail() || quiesce_state_id != sid)
+    {
+        return false;
+    }
+
     // Restore the shards.
     std::vector<std::pair<coordinate, e::intrusive_ptr<shard> > > shards;
     while (!f.eof())
@@ -238,13 +265,13 @@ hyperdisk :: disk :: load_state()
         // Reopen the shard.
         coordinate c(ct[0], ct[1], ct[2], ct[3], ct[4], ct[5]);
         po6::pathname path = shard_filename(c);
-        // XXX need to set the offset - inside open?
+        // XXX need to compare shard inside open (?)
         e::intrusive_ptr<shard> s = hyperdisk::shard::open(m_base, path);
         
         shards.push_back(std::make_pair(c, s));
     }
 
-    // Install the reopened shards into the disk.
+    // Re-install the reopened shards into the disk.
     po6::threads::mutex::hold a(&m_shards_mutate);
     po6::threads::mutex::hold b(&m_shards_lock);
     m_shards = new shard_vector(1, &shards);
@@ -813,28 +840,19 @@ hyperdisk :: disk :: disk(const po6::pathname& directory,
         throw po6::error(errno);
     }
 
-    m_base = open(directory.get(), O_RDONLY);
+    m_base = ::open(directory.get(), O_RDONLY);
 
     if (m_base.get() < 0)
     {
         throw po6::error(errno);
     }
     
-    // Fresh init or load state from file.
-    if (!state_file_present())
-    {
-        // Fresh instance, create a starting disk which holds everything.
-        po6::threads::mutex::hold a(&m_shards_mutate);
-        po6::threads::mutex::hold b(&m_shards_lock);
-        coordinate start;
-        e::intrusive_ptr<shard> s = create_shard(start);
-        m_shards = new shard_vector(start, s);
-    }
-    else
-    {
-        // Load saved state from config file.
-        load_state();
-    }
+    // Create a starting disk which holds everything.
+    po6::threads::mutex::hold a(&m_shards_mutate);
+    po6::threads::mutex::hold b(&m_shards_lock);
+    coordinate start;
+    e::intrusive_ptr<shard> s = create_shard(start);
+    m_shards = new shard_vector(start, s);
 }
 
 hyperdisk :: disk :: ~disk() throw ()

@@ -107,9 +107,15 @@ class datalayer
     private:
         void optimistic_io_thread();
         void flush_thread();
+        // Create a blank disk.
         void create_disk(const hyperdex::regionid& ri,
                          const hyperspacehashing::mask::hasher& hasher,
                          uint16_t num_columns);
+        // Re-open a disk that was quiesced.
+        void open_disk(const hyperdex::regionid& ri,
+                       const hyperspacehashing::mask::hasher& hasher,
+                       uint16_t num_columns,
+                       const std::string& quiesce_state_id);
         void drop_disk(const hyperdex::regionid& ri);
 
     private:
