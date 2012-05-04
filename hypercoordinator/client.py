@@ -95,6 +95,10 @@ def get_space(args):
     return send_msg(args.host, args.port, 'get-space', args.space)
 
 
+def quiesce(args):
+    return send_msg(args.host, args.port, 'quiesce')
+
+    
 def shutdown(args):
     return send_msg(args.host, args.port, 'shutdown')
 
@@ -146,6 +150,8 @@ def main(args, name='hyperdex-control'):
     parser_get_space = subparsers.add_parser('get-space', help='get-space help')
     parser_get_space.add_argument('space', metavar='SPACE', help='the space to get')
     parser_get_space.set_defaults(func=get_space)
+    parser_shutdown = subparsers.add_parser('quiesce', help='quiesce help')
+    parser_shutdown.set_defaults(func=quiesce)
     parser_shutdown = subparsers.add_parser('shutdown', help='shutdown help')
     parser_shutdown.set_defaults(func=shutdown)
     parser_get_status = subparsers.add_parser('get-status', help='get-stataus help')

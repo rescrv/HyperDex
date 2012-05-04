@@ -72,9 +72,15 @@ namespace hyperdisk
 class disk
 {
     public:
+        // Create a new blank disk.
         static e::intrusive_ptr<disk> create(const po6::pathname& directory,
                                              const hyperspacehashing::mask::hasher& hasher,
                                              uint16_t arity);
+        // Re-open quiesced disk.                                             
+        static e::intrusive_ptr<disk> open(const po6::pathname& directory,
+                                           const hyperspacehashing::mask::hasher& hasher,
+                                           uint16_t arity,
+                                           const std::string& quiesce_state_id);
 
     public:
         // May return SUCCESS or NOTFOUND.
@@ -103,10 +109,11 @@ class disk
         // data in the write-ahead log.  It does not immediately flush data to
         // the underlying hard disk, instead letting the OS do so at its own
         // convenience.  It will flush at most 'num' items to the underlying
-        // disk.  This will not split underlying shards which need to be split
-        // to make more space.  If this returns a *FULL error, then you must
-        // call either 'do_mandatory_io' or 'do_optimistic_io'.
-        returncode flush(size_t num);
+        // disk, 'num' == -1 will flush all.  This will not split underlying 
+        // shards which need to be split to make more space.  If this returns 
+        // a *FULL error, then you must call either 'do_mandatory_io' or 
+        // 'do_optimistic_io'. 
+        returncode flush(size_t num = -1);
         // Do only the amount of shard-splitting necessary to split shards which
         // are 100% used.
         returncode do_mandatory_io();
@@ -120,6 +127,10 @@ class disk
         // SYNCFAILED.  errno will be set to the reason the sync failed.
         returncode async();
         returncode sync();
+
+    public:
+        // Quiesce.
+        bool quiesce(const std::string& quiesce_state_id);
 
     private:
         friend class e::intrusive_ptr<disk>;
@@ -173,6 +184,13 @@ class disk
         size_t m_spare_shard_counter;
         size_t m_needs_io;
         unsigned int m_seed;
+
+    private:
+        // State dump and load.
+        static const int STATE_FILE_VER;
+        static const char* STATE_FILE_NAME;
+        bool dump_state(const std::string& quiesce_state_id);
+        bool load_state(const std::string& quiesce_state_id);
 };
 
 } // namespace hyperdisk

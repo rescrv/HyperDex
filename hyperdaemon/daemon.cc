@@ -31,6 +31,7 @@
 
 // C++
 #include <sstream>
+#include <fstream>
 
 // STL
 #include <tr1/memory>
@@ -54,8 +55,11 @@
 #include "hyperdaemon/replication_manager.h"
 #include "hyperdaemon/searches.h"
 
-// Configuration
+// util
+#include <util/atomicfile.h>
 
+// Configuration
+static const char* DAEMON_TOKEN_FILE = "token.hd";
 typedef std::tr1::shared_ptr<po6::threads::thread> thread_ptr;
 
 static bool s_continue = true;
@@ -116,20 +120,50 @@ hyperdaemon :: daemon(const char* progname,
         return EXIT_FAILURE;
     }
 
-    char random_bytes[16];
-
+    // Token uniquely identifies a daemon. It is generated once on first start and used for the life 
+    // of daemon, even after restart or daemon move. 
+    std::string token;
+    
+    po6::pathname token_file = po6::join(datadir, DAEMON_TOKEN_FILE);
+    std::ifstream f; 
+    f.open(token_file.get());
+    if (f)
     {
+        // Use the existing token.
+        f >> token;
+        if (f.fail() || token.length()!=32)
+        {
+            PLOG(ERROR) << "corrupted token file " << token_file.get() << ", token read " << token;
+            return EXIT_FAILURE;
+        }
+        
+        f.close();
+    }
+    else
+    {
+        // Generate new token.
         po6::io::fd rand(open("/dev/urandom", O_RDONLY));
-
         if (rand.get() < 0)
         {
             PLOG(ERROR) << "could not open /dev/urandom for random bytes (open)";
             return EXIT_FAILURE;
         }
 
+        char random_bytes[16];
         if (rand.read(random_bytes, 16) != 16)
         {
             PLOG(ERROR) << "could not read random bytes from /dev/urandom (read)";
+            return EXIT_FAILURE;
+        }
+    
+        token = e::slice(random_bytes, 16).hex();
+        
+        // Save the token into a file (atomically).
+        std::ostringstream s;
+        s << token << std::endl;
+        if (!util::atomicfile::rewrite(datadir.get(), DAEMON_TOKEN_FILE, s.str().c_str()))
+        {
+            PLOG(ERROR) << "could not write token to file " << token_file.get();
             return EXIT_FAILURE;
         }
     }
@@ -148,7 +182,7 @@ hyperdaemon :: daemon(const char* progname,
                              << comm.inst().inbound_port << "\t"
                              << comm.inst().outbound_port << "\t"
                              << getpid() << "\t"
-                             << e::slice(random_bytes, 16).hex();
+                             << token;
     cl.set_announce(announce.str());
     // Setup the search component.
     searches ssss(&cl, &data, &comm);
@@ -237,11 +271,11 @@ hyperdaemon :: daemon(const char* progname,
             repl.cleanup(cl.config(), comm.inst());
             data.cleanup(cl.config(), comm.inst());
             comm.cleanup(cl.config(), comm.inst());
+
             cl.acknowledge();
         }
 
-        uint64_t now;
-
+        uint64_t now = -1;
         switch (cl.loop(1, -1))
         {
             case hyperdex::coordinatorlink::SHUTDOWN:
