@@ -92,12 +92,12 @@ class Subspace(object):
 
 class Region(object):
 
-    def __init__(self, prefix, mask, desired_f, replicas = [], transfers = []):
+    def __init__(self, prefix, mask, desired_f, replicas=None, transfers=None):
         self._prefix = prefix
         self._mask = mask
         self._desired_f = desired_f
-        self._replicas = replicas
-        self._transfers = transfers
+        self._replicas = replicas or []
+        self._transfers = transfers or []
 
     @property
     def prefix(self):
