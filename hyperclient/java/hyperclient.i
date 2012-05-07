@@ -40,6 +40,16 @@
 #include "hyperclient/java/javaclient.h"
 %}
 
+typedef uint16_t in_port_t;
+
+%pragma(java) jniclasscode=
+%{
+    static
+    {
+        System.loadLibrary("hyperclient-java");
+    }
+%}
+
 enum ReturnCode
 {
     SUCCESS      = 8448,
@@ -66,19 +76,9 @@ enum ReturnCode
 
 %include "hyperclient/java/javaclient.h"
 
-typedef uint16_t in_port_t;
-
-%pragma(java) jniclasscode=
-%{
-    static
-    {
-        System.loadLibrary("hyperclient-java");
-    }
-%}
-
 namespace std
 {
-    %template(Attributes) map<string, Attribute>;
+    %template(Attributes) map<string, Attribute*>;
     %template(ssmap) map<string, string>;
     %template(snmap) map<string, unsigned long long>;
     %template(ssearchresult) vector<map<string, string> >;

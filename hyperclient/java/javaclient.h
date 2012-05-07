@@ -36,65 +36,40 @@ typedef hyperclient_returncode ReturnCode;
 class Attribute
 {
     public:
-        Attribute() {}
-        ~Attribute() throw ();
-    private:
-        hyperdatatype m_attr_type;
+        Attribute();
+        virtual ~Attribute() throw ();
 
-    public:
-        virtual hyperdatatype getType() const;
-
-        virtual const std::string& getString() const;
-        virtual void setString(std::string& str);
-
-        virtual uint64_t getInteger() const;
-        virtual void setInteger(uint64_t num);
-
-        virtual void serialize(std::string& data) const;
+        virtual hyperdatatype type() const;
+        virtual void serialize(std::string& value) const;
 };
 
 class StringAttribute : public Attribute
 {
     public:
-        StringAttribute(const std::string& attr_value)
-            :   m_attr_value(attr_value) {};
-        ~StringAttribute() throw ();
+        StringAttribute(const std::string& attr_value);
+        virtual ~StringAttribute() throw ();
 
     private:
         std::string m_attr_value;
         
     public:
-        hyperdatatype getType() const { return HYPERDATATYPE_STRING; }
-
-        const std::string& getString() const { return m_attr_value;}
-        void setString(std::string& str) { m_attr_value = str; }
-
-        void serialize(std::string& data) const
-            { data.assign(std::string(m_attr_value)); }
+        virtual hyperdatatype type() const;
+        virtual void serialize(std::string& value) const;
 };
 
 class IntegerAttribute : public Attribute
 {
     public:
-        IntegerAttribute(uint64_t attr_value)
-            :   m_attr_value(attr_value) {}
-        ~IntegerAttribute() throw ();
+        IntegerAttribute(uint64_t attr_value);
+        virtual ~IntegerAttribute() throw ();
 
     private:
         uint64_t m_attr_value;
 
     public:
 
-        hyperdatatype getType() const { return HYPERDATATYPE_INT64; }
-
-        uint64_t getInteger() const { return m_attr_value;}
-        void setInteger(uint64_t num) { m_attr_value = num; }
-
-        void serialize(std::string& data) const {
-            data.assign(
-                reinterpret_cast<const char *>(&htole64(m_attr_value)),
-                sizeof(uint64_t));
-        }
+        virtual hyperdatatype type() const;
+        virtual void serialize(std::string& value) const;
 };
 
 class HyperClient
@@ -108,14 +83,16 @@ class HyperClient
                        const std::string& key,
                        std::map<std::string, std::string>* svalues,
                        std::map<std::string, uint64_t>* nvalues);
-        ReturnCode put(const std::string& space,
-                       const std::string& key,
-                       const std::map<std::string, Attribute>& attributes);
 
         ReturnCode put(const std::string& space,
                        const std::string& key,
                        const std::map<std::string, std::string>& svalues,
                        const std::map<std::string, uint64_t>& nvalues);
+
+        ReturnCode put(const std::string& space,
+                       const std::string& key,
+                       const std::map<std::string, Attribute*>& attributes);
+
         ReturnCode del(const std::string& space,
                        const std::string& key);
         ReturnCode range_search(const std::string& space,
@@ -129,9 +106,6 @@ class HyperClient
 
     private:
         hyperclient m_client;
-
-    protected:
-        virtual void serialize(std::string& data);
 };
 
 #endif // hyperclient_javaclient_h_

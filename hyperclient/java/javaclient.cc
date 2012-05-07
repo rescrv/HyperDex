@@ -32,9 +32,83 @@
 // e
 #include <e/guard.h>
 
-// HyperClient
+// Attributes and HyperClient
 #include "hyperclient/hyperclient.h"
 #include "hyperclient/java/javaclient.h"
+
+#include <iostream>
+
+Attribute :: Attribute()
+{
+    std::cout << "Attribute Constructed" << std::endl;
+}
+
+Attribute :: ~Attribute() throw ()
+{
+    std::cout << "Attribute Destructed" << std::endl;
+}
+
+hyperdatatype 
+Attribute :: type() const
+{
+    return HYPERDATATYPE_GARBAGE;
+}
+
+void 
+Attribute :: serialize(std::string& value) const
+{
+    std::cout << "Attribute Serialized" << std::endl;
+}
+
+StringAttribute :: StringAttribute(const std::string& attr_value)
+                                   : m_attr_value(attr_value)
+{
+    std::cout << "StringAttribute Constructed" << std::endl;
+}
+
+StringAttribute :: ~StringAttribute() throw ()
+{
+    std::cout << "StringAttribute Destructed" << std::endl;
+}
+
+hyperdatatype 
+StringAttribute :: type() const
+{
+    return HYPERDATATYPE_STRING;
+}
+
+void
+StringAttribute :: serialize(std::string& value) const
+{
+    std::cout << "StringAttribute Serialized" << std::endl;
+    value.assign(std::string(m_attr_value));
+}
+
+IntegerAttribute :: IntegerAttribute(uint64_t attr_value)
+                                     : m_attr_value(attr_value)
+{
+   std::cout << "IntegerAttribute Constructed" << std::endl;
+}
+
+IntegerAttribute :: ~IntegerAttribute() throw ()
+{
+   std::cout << "IntegerAttribute Destructed" << std::endl;
+}
+
+hyperdatatype
+IntegerAttribute :: type() const
+{
+    return HYPERDATATYPE_INT64;
+}
+
+void
+IntegerAttribute :: serialize(std::string& value) const
+{
+    std::cout << "IntegerAttribute Serialized" << std::endl;
+    value.assign(
+        reinterpret_cast<const char *>(&htole64(m_attr_value)),
+        sizeof(uint64_t));
+}
 
 HyperClient :: HyperClient(const char* coordinator, in_port_t port)
     : m_client(coordinator, port)
@@ -171,7 +245,7 @@ HyperClient :: put(const std::string& space,
 hyperclient_returncode
 HyperClient :: put(const std::string& space,
                    const std::string& key,
-                   const std::map<std::string, Attribute>& attributes)
+                   const std::map<std::string, Attribute*>& attributes)
 {
     int64_t id;
     hyperclient_returncode stat1 = HYPERCLIENT_A;
@@ -180,16 +254,21 @@ HyperClient :: put(const std::string& space,
     std::vector<std::string> values;
     values.reserve(attributes.size());
 
-    for (std::map<std::string, Attribute>::const_iterator ci = attributes.begin();
+    for (std::map<std::string, Attribute*>::const_iterator ci = attributes.begin();
             ci != attributes.end(); ++ci)
     {
         hyperclient_attribute at;
         at.attr = ci->first.c_str();
         std::string value;
-        ci->second.serialize(value);
+        ci->second->serialize(value);
         values.push_back(value);
         at.value = values.back().data();
         at.value_sz = value.size();
+        at.datatype = ci->second->type();
+        attrs.push_back(at);
+        std::cout << "value type = " << ci->second->type() << std::endl;
+        std::cout << "value = " << value << std::endl;
+        std::cout << "value size = " << value.size() << std::endl;
     }
 
     id = m_client.put(space.c_str(),
