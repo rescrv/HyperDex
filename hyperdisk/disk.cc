@@ -325,6 +325,8 @@ hyperdisk :: disk :: flush(size_t num)
             const std::vector<e::slice>& value = it->value;
             const uint64_t version = it->version;
 
+            // This must start at the last position and work downward so that
+            // the last arg to "shard_vector->replace" will be considered first.
             for (ssize_t i = m_shards->size() - 1; !put_performed && i >= 0; --i)
             {
                 if (!m_shards->get_coordinate(i).intersects(coord))
@@ -992,11 +994,14 @@ hyperdisk :: disk :: split_shard(size_t shard_num)
         s->copy_to(one_one_coord, one_one);
 
         e::intrusive_ptr<shard_vector> newshard_vector;
+        // Those with a zero bit for the secondary hash must come last, so that
+        // they will be picked up first.  This is necessary to make objects with
+        // no searchable attribute work properly.
         newshard_vector = m_shards->replace(shard_num,
-                                            zero_zero_coord, zero_zero,
                                             zero_one_coord, zero_one,
-                                            one_zero_coord, one_zero,
-                                            one_one_coord, one_one);
+                                            one_one_coord, one_one,
+                                            zero_zero_coord, zero_zero,
+                                            one_zero_coord, one_zero);
 
         {
             po6::threads::mutex::hold hold(&m_shards_lock);
