@@ -35,6 +35,8 @@
 
 /* POSIX */
 #include <netinet/in.h>
+// HyperDex
+#include <hyperdex.h>
 
 /* HyperDex */
 #include <hyperdex.h>
