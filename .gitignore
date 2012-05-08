@@ -19,6 +19,10 @@ daemon.o
 depcomp
 .deps/
 doc/_build
+hyperclient-0.1.dev.jar
+hyperclient/c/.dirstamp
+hyperclient/c/hyperclient_c_testcompile-testcompile.o
+hyperclient/c/testcompile
 hyperclient/.deps/
 hyperclient/.dirstamp
 hyperclient/java/.dirstamp
@@ -29,6 +33,11 @@ hyperclient/java/hyperclient_wrap.lo
 hyperclient/java/hyperclient_wrap.o
 hyperclient/java/java.stamp
 hyperclient/java/libhyperclient-java.la
+hyperclient/java/libhyperclient_java_la-hyperclient_wrap.lo
+hyperclient/java/libhyperclient_java_la-hyperclient_wrap.o
+hyperclient/java/libhyperclient_java_la-syncclient.lo
+hyperclient/java/libhyperclient_java_la-syncclient.o
+hyperclient-java.stamp
 hyperclient/java/syncclient.lo
 hyperclient/java/syncclient.o
 hyperclient/libhyperclient_la-hyperclient.lo
@@ -39,10 +48,10 @@ hyperclient/python/hyperclient.c
 hyperclient/python/hyperclient.la
 hyperclient/python/hyperclient_python_hyperclient_la-hyperclient.lo
 hyperclient/python/hyperclient_python_hyperclient_la-hyperclient.o
+hyperclient-ycsb-0.1.dev.jar
 hypercoordinator/coordinator.pyc
 hypercoordinator/hdjson.pyc
 hypercoordinator/hdtypes.pyc
-hypercoordinator/hdjson.pyc
 hypercoordinator/__init__.pyc
 hypercoordinator/parser.pyc
 hyperdaemon/.deps/
@@ -151,6 +160,7 @@ hyperspacehashing/utils/.dirstamp
 hyperspacehashing/utils/hyperspacehashing_utils_cfloat-cfloat.o
 hyperspacehashing/utils/.libs/
 install-sh
+libhyperclient-java.la
 libhyperclient.la
 libhyperdaemon.la
 libhyperdex.la
@@ -178,11 +188,3 @@ trace-player.o
 trace_player-trace-player.o
 ycsb/hyperclient/HyperClientYCSB.class
 ycsb/hyperclient-ycsb-0.1.dev.jar
-hyperclient-0.1.dev.jar
-hyperclient-java.stamp
-hyperclient-ycsb-0.1.dev.jar
-hyperclient/java/libhyperclient_java_la-hyperclient_wrap.lo
-hyperclient/java/libhyperclient_java_la-hyperclient_wrap.o
-hyperclient/java/libhyperclient_java_la-syncclient.lo
-hyperclient/java/libhyperclient_java_la-syncclient.o
-libhyperclient-java.la

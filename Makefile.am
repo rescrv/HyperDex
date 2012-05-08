@@ -64,7 +64,8 @@ bin_PROGRAMS = \
 
 noinst_PROGRAMS = \
 			$(libhyperspacehashing_noinst_programs) \
-			$(libhyperdisk_noinst_programs)
+			$(libhyperdisk_noinst_programs) \
+			hyperclient/c/testcompile
 
 check_PROGRAMS = \
 			$(libhyperspacehashing_check_programs) \
@@ -465,6 +466,11 @@ hyperclient_python_hyperclient_la_LDFLAGS = \
 			-module \
 			-avoid-version \
 			-export-symbols-regex inithyperclient
+
+################################## C Bindings ##################################
+
+hyperclient_c_testcompile_SOURCES = hyperclient/c/testcompile.c
+hyperclient_c_testcompile_CPPFLAGS = -I$(abs_top_srcdir)/hyperclient
 
 ################################################################################
 ################################## Benchmarks ##################################
