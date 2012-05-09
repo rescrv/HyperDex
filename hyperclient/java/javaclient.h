@@ -41,12 +41,14 @@ class Attribute
 
         virtual hyperdatatype type() const;
         virtual void serialize(std::string& value) const;
+        static Attribute* deserialize(const hyperclient_attribute& attr);
 };
 
 class StringAttribute : public Attribute
 {
     public:
         StringAttribute(const std::string& attr_value);
+        StringAttribute(const char *s, size_t n);
         virtual ~StringAttribute() throw ();
 
     private:
@@ -60,11 +62,11 @@ class StringAttribute : public Attribute
 class IntegerAttribute : public Attribute
 {
     public:
-        IntegerAttribute(uint64_t attr_value);
+        IntegerAttribute(int64_t attr_value);
         virtual ~IntegerAttribute() throw ();
 
     private:
-        uint64_t m_attr_value;
+        int64_t m_attr_value;
 
     public:
 
@@ -81,13 +83,7 @@ class HyperClient
     public:
         ReturnCode get(const std::string& space,
                        const std::string& key,
-                       std::map<std::string, std::string>* svalues,
-                       std::map<std::string, uint64_t>* nvalues);
-
-        ReturnCode put(const std::string& space,
-                       const std::string& key,
-                       const std::map<std::string, std::string>& svalues,
-                       const std::map<std::string, uint64_t>& nvalues);
+                       std::map<std::string, Attribute*>* values);
 
         ReturnCode put(const std::string& space,
                        const std::string& key,
@@ -97,12 +93,10 @@ class HyperClient
                        const std::string& key);
         ReturnCode range_search(const std::string& space,
                                 const std::string& attr,
-                                uint64_t lower,
-                                uint64_t upper,
+                                int64_t lower,
+                                int64_t upper,
                                 std::vector<std::map<std::string,
-                                            std::string> >* sresults,
-                                std::vector<std::map<std::string,
-                                            uint64_t> >* nresults);
+                                            Attribute*> >* results);
 
     private:
         hyperclient m_client;

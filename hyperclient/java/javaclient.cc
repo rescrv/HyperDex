@@ -60,8 +60,34 @@ Attribute :: serialize(std::string& value) const
     std::cout << "Attribute Serialized" << std::endl;
 }
 
+Attribute* 
+Attribute :: deserialize(const hyperclient_attribute& attr)
+{
+    if ( attr.datatype == HYPERDATATYPE_STRING )
+    {
+        return new StringAttribute(attr.value, attr.value_sz);
+    }
+    else if ( attr.datatype == HYPERDATATYPE_INT64 )
+    {
+        return new IntegerAttribute(le64toh(*reinterpret_cast<const int64_t*>(attr.value)));
+    }
+
+    std::string ex_str;
+    ex_str += "Type '";
+    ex_str += attr.datatype;
+    ex_str += "' not supported.";
+
+    throw ex_str;
+}
+
 StringAttribute :: StringAttribute(const std::string& attr_value)
                                    : m_attr_value(attr_value)
+{
+    std::cout << "StringAttribute Constructed" << std::endl;
+}
+
+StringAttribute :: StringAttribute(const char *s, size_t n)
+                                   : m_attr_value(s,n)
 {
     std::cout << "StringAttribute Constructed" << std::endl;
 }
@@ -84,7 +110,7 @@ StringAttribute :: serialize(std::string& value) const
     value.assign(std::string(m_attr_value));
 }
 
-IntegerAttribute :: IntegerAttribute(uint64_t attr_value)
+IntegerAttribute :: IntegerAttribute(int64_t attr_value)
                                      : m_attr_value(attr_value)
 {
    std::cout << "IntegerAttribute Constructed" << std::endl;
@@ -107,7 +133,7 @@ IntegerAttribute :: serialize(std::string& value) const
     std::cout << "IntegerAttribute Serialized" << std::endl;
     value.assign(
         reinterpret_cast<const char *>(&htole64(m_attr_value)),
-        sizeof(uint64_t));
+        sizeof(int64_t));
 }
 
 HyperClient :: HyperClient(const char* coordinator, in_port_t port)
@@ -122,8 +148,7 @@ HyperClient :: ~HyperClient() throw ()
 hyperclient_returncode
 HyperClient :: get(const std::string& space,
                    const std::string& key,
-                   std::map<std::string, std::string>* svalues,
-                   std::map<std::string, uint64_t>* nvalues)
+                   std::map<std::string, Attribute*>* values)
 {
     int64_t id;
     hyperclient_returncode stat1 = HYPERCLIENT_A;
@@ -159,84 +184,10 @@ HyperClient :: get(const std::string& space,
 
     for (size_t i = 0; i < attrs_sz; ++i)
     {
-        if ( attrs[i].datatype == HYPERDATATYPE_STRING )
-        {
-            svalues->insert(std::make_pair(std::string(attrs[i].attr),
-                                           std::string(attrs[i].value,
-                                                       attrs[i].value_sz)));
-        }
-        else if ( attrs[i].datatype == HYPERDATATYPE_INT64 )
-        {
-            nvalues->insert(std::make_pair(std::string(attrs[i].attr),
-                            le64toh(*((uint64_t *)(attrs[i].value)))));
-        }
+        values->insert(std::make_pair(std::string(attrs[i].attr),
+                                      Attribute::deserialize(attrs[i])));
     }
 
-    assert(static_cast<unsigned>(stat1) >= 8448);
-    assert(static_cast<unsigned>(stat1) < 8576);
-    return stat1;
-}
-
-hyperclient_returncode
-HyperClient :: put(const std::string& space,
-                   const std::string& key,
-                   const std::map<std::string, std::string>& svalues,
-                   const std::map<std::string, uint64_t>& nvalues)
-{
-    int64_t id;
-    hyperclient_returncode stat1 = HYPERCLIENT_A;
-    hyperclient_returncode stat2 = HYPERCLIENT_B;
-    std::vector<hyperclient_attribute> attrs;
-    std::vector<uint64_t> nums;
-    nums.reserve(nvalues.size());
-
-    for (std::map<std::string, std::string>::const_iterator ci = svalues.begin();
-            ci != svalues.end(); ++ci)
-    {
-        hyperclient_attribute at;
-        at.attr = ci->first.c_str();
-        at.value = ci->second.data();
-        at.value_sz = ci->second.size();
-        at.datatype = HYPERDATATYPE_STRING;
-        attrs.push_back(at);
-    }
-
-    for (std::map<std::string, uint64_t>::const_iterator ci = nvalues.begin();
-            ci != nvalues.end(); ++ci)
-    {
-        hyperclient_attribute at;
-        at.attr = ci->first.c_str();
-        nums.push_back(htole64(ci->second));
-        at.value = reinterpret_cast<const char*>(&nums.back());
-        at.value_sz = sizeof(uint64_t);
-        at.datatype = HYPERDATATYPE_INT64;
-        attrs.push_back(at);
-    }
-
-    id = m_client.put(space.c_str(),
-                      key.data(),
-                      key.size(),
-                      &attrs.front(),
-                      attrs.size(),
-                      &stat1);
-
-    if (id < 0)
-    {
-        assert(static_cast<unsigned>(stat1) >= 8448);
-        assert(static_cast<unsigned>(stat1) < 8576);
-        return stat1;
-    }
-
-    int64_t lid = m_client.loop(-1, &stat2);
-
-    if (lid < 0)
-    {
-        assert(static_cast<unsigned>(stat2) >= 8448);
-        assert(static_cast<unsigned>(stat2) < 8576);
-        return stat2;
-    }
-
-    assert(lid == id);
     assert(static_cast<unsigned>(stat1) >= 8448);
     assert(static_cast<unsigned>(stat1) < 8576);
     return stat1;
@@ -335,10 +286,9 @@ HyperClient :: del(const std::string& space,
 hyperclient_returncode
 HyperClient :: range_search(const std::string& space,
                             const std::string& attr,
-                            uint64_t lower,
-                            uint64_t upper,
-                            std::vector<std::map<std::string, std::string> >* sresults,
-                            std::vector<std::map<std::string, uint64_t> >* nresults)
+                            int64_t lower,
+                            int64_t upper,
+                            std::vector<std::map<std::string, Attribute*> >* results)
 {
     hyperclient_range_query rn;
     rn.attr = attr.c_str();
@@ -360,7 +310,7 @@ HyperClient :: range_search(const std::string& space,
     int64_t lid;
     hyperclient_returncode lstatus = HYPERCLIENT_B;
 
-    size_t pre_insert_size = 0; // Keep track of the number of "n-tuples" returned
+    //size_t pre_insert_size = 0; // Keep track of the number of "n-tuples" returned
 
     while ((lid = m_client.loop(-1, &lstatus)) == id)
     {
@@ -374,6 +324,7 @@ HyperClient :: range_search(const std::string& space,
             break;
         }
 
+        /*
         for (size_t i = 0; i < attrs_sz; ++i)
         {
             if ( attrs[i].datatype == HYPERDATATYPE_STRING )
@@ -389,14 +340,22 @@ HyperClient :: range_search(const std::string& space,
             {
                 if (nresults->empty() || nresults->size() == pre_insert_size)
                 {
-                    nresults->push_back(std::map<std::string, uint64_t>());
+                    nresults->push_back(std::map<std::string, int64_t>());
                 }
 
-                nresults->back().insert(std::make_pair(attrs[i].attr, le64toh(*((uint64_t *)(attrs[i].value)))));
+                nresults->back().insert(std::make_pair(attrs[i].attr, le64toh(*((int64_t *)(attrs[i].value)))));
             }
         }
 
         pre_insert_size++;
+        */
+
+        for (size_t i = 0; i < attrs_sz; ++i)
+        {
+            results->push_back(std::map<std::string, Attribute*>());
+            results->back().insert(std::make_pair(attrs[i].attr,
+                                                  Attribute::deserialize(attrs[i])));
+        }
 
         if (attrs)
         {

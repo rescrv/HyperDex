@@ -31,7 +31,6 @@
 
 package hyperclient;
 
-import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -136,12 +135,9 @@ public class HyperClientYCSB extends DB
             return 1001;
         }
 
-        BigInteger base = new BigInteger(m_mat.group(2));
-        BigInteger lower = base.shiftLeft(32);
-        BigInteger upper = base.add(BigInteger.valueOf(recordcount)).shiftLeft(32);
-
-        assert lower.compareTo(new BigInteger("18446744073709551616")) < 0;
-        assert upper.compareTo(new BigInteger("18446744073709551616")) < 0;
+        long base = Long.parseLong(m_mat.group(2));
+        long lower = base << 32;
+        long upper = (base + recordcount) << 32;
 
         ssearchresult res = new ssearchresult();
         nsearchresult nres = new nsearchresult();
@@ -192,9 +188,8 @@ public class HyperClientYCSB extends DB
                 return -1;
             }
   
-            BigInteger bi = new BigInteger(m_mat.group(2));
-            bi = bi.shiftLeft(32);
-            nums.set("recno", bi);
+            long num = Long.parseLong(m_mat.group(2));
+            nums.set("recno", num << 32);
         }
 
         ReturnCode ret = m_client.put(table, key, res, nums);

@@ -74,13 +74,51 @@ enum ReturnCode
     ZERO         = 8575
 };
 
+%typemap(javacode) Attribute %{
+  Attribute transfer() {
+    swigCMemOwn = false;
+    return this;
+  }
+%}
+
+%typemap(javain) Attribute * "getCPtrAndAddReference($javainput)"
+
+%typemap(javacode) std::map<string, Attribute*> %{
+  private java.util.HashMap pgcp_refmap = new java.util.HashMap();
+  
+  private long getCPtrAndAddReference(Attribute attribute)
+  {
+    long cPtr = Attribute.getCPtr(attribute);
+    pgcp_refmap.put(new Long(cPtr),attribute);
+    return cPtr;
+  }
+
+  public void put(String key, Attribute x)
+  {
+    hyperclientJNI.Attributes_set(swigCPtr, this, key, getCPtrAndAddReference(x), x);
+  }
+
+  public Attribute remove(String key)
+  {
+    long cPtr = hyperclientJNI.Attributes_get(swigCPtr, this, key);
+    Attribute ret = null;
+    if (cPtr != 0)
+    {
+      ret = (Attribute)(pgcp_refmap.remove(new Long(cPtr)));
+      hyperclientJNI.Attributes_del(swigCPtr, this, key);
+    }
+    return ret;
+  }
+%}
+
 %include "hyperclient/java/javaclient.h"
 
 namespace std
 {
     %template(Attributes) map<string, Attribute*>;
-    %template(ssmap) map<string, string>;
-    %template(snmap) map<string, unsigned long long>;
-    %template(ssearchresult) vector<map<string, string> >;
-    %template(nsearchresult) vector<map<string, unsigned long long> >;
+    %template(SSMap) map<string, string>;
+    %template(SIMap) map<string, long long>;
+    %template(ISMap) map<long long, string>;
+    %template(IIMap) map<long long, long long>;
+    %template(SearchResult) vector<map<string, Attribute*> >;
 }
