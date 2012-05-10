@@ -146,7 +146,8 @@ hyperdaemon :: datalayer :: dump_state(const configuration& config, const instan
     // Rewrite the state file atomically.
     if (!util::atomicfile::rewrite(m_base.get(), STATE_FILE_NAME, s.str().c_str()))
     {
-        PLOG(ERROR) << "Could not write config to a file " << STATE_FILE_NAME;
+        PLOG(ERROR) << "Could not write datalayer state to a file " 
+                    << po6::join(m_base.get(), STATE_FILE_NAME);
         return false;
     }
     
@@ -156,11 +157,12 @@ hyperdaemon :: datalayer :: dump_state(const configuration& config, const instan
 bool
 hyperdaemon :: datalayer :: load_state()
 {
-    po6::pathname config_name = po6::join(m_base.get(), STATE_FILE_NAME);
+    po6::pathname state_fname = po6::join(m_base.get(), STATE_FILE_NAME);
     std::ifstream f; 
-    f.open(config_name.get());
+    f.open(state_fname.get());
     if (!f)
     {
+        PLOG(ERROR) << "Could not open datalayer state file " << state_fname;
         return false;
     }
 
@@ -169,6 +171,7 @@ hyperdaemon :: datalayer :: load_state()
     f >> v;
     if (f.fail() || "version" != v)
     {
+        PLOG(ERROR) << "Expecting 'version' token in datalayer state file " << state_fname;
         return false;
     }
 
@@ -176,6 +179,7 @@ hyperdaemon :: datalayer :: load_state()
     f >> vn;
     if (f.fail() || STATE_FILE_VER != vn)
     {
+        PLOG(ERROR) << "Invalid version in datalayer state file " << state_fname;
         return false;
     }
     
@@ -184,6 +188,7 @@ hyperdaemon :: datalayer :: load_state()
     f >> u;
     if (f.fail() || "us" != u)
     {
+        PLOG(ERROR) << "Expecting 'us' token in datalayer state file " << state_fname;
         return false;
     }
     
@@ -195,6 +200,7 @@ hyperdaemon :: datalayer :: load_state()
     f >> address >> inbound_port >> inbound_version >> outbound_port >> outbound_version;
     if (f.fail())
     {
+        PLOG(ERROR) << "Expecting instance in datalayer state file " << state_fname;
         return false;
     }
     
@@ -205,14 +211,22 @@ hyperdaemon :: datalayer :: load_state()
     f >> c;
     if (f.fail() || "config" != c)
     {
+        PLOG(ERROR) << "Expecting 'config' token in datalayer state file " << state_fname;
         return false;
     }
     
-    // XXX This is not pretty, read line by line perhaps
+    char space = (char)f.get();
+    if (f.fail() || ' ' != space)
+    {
+        PLOG(ERROR) << "Expecting space in datalayer state file " << state_fname;
+        return false;
+    }
+
     std::stringstream buffer;
     buffer << f.rdbuf();
     if (f.fail())
     {
+        PLOG(ERROR) << "Expecting config in datalayer state file " << state_fname;
         return false;
     }
     
@@ -224,6 +238,7 @@ hyperdaemon :: datalayer :: load_state()
 
     if (e != configuration_parser::CP_SUCCESS)
     {
+        PLOG(ERROR) << "Unable to parse config from datalayer state file " << state_fname;
         return false;
     }
 
@@ -245,6 +260,8 @@ hyperdaemon :: datalayer :: load_state()
         }
     }
 
+    LOG(INFO) << "Datalayer state restored from quiesced state " << config.quiesce_state_id()
+              << " (loaded from file " << state_fname << ")";
     return true;
 }
 
@@ -643,11 +660,11 @@ hyperdaemon :: datalayer :: open_disk(const regionid& ri,
 
     if (m_disks.insert(ri, d))
     {
-        LOG(INFO) << "Created disk " << ri << " with " << num_columns << " columns";
+        LOG(INFO) << "Opened disk " << ri << " with " << num_columns << " columns";
     }
     else
     {
-        LOG(ERROR) << "Could not create disk " << ri << " because it already exists";
+        LOG(ERROR) << "Could not add opened disk " << ri << " because it already exists";
     }
 }
 
