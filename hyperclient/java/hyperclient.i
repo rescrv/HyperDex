@@ -74,16 +74,18 @@ enum ReturnCode
     ZERO         = 8575
 };
 
-%typemap(javacode) Attribute %{
-  Attribute transfer() {
-    swigCMemOwn = false;
-    return this;
-  }
-%}
+%javamethodmodifiers std::map<std::string, Attribute*>::get "private";
+%javamethodmodifiers std::map<std::string, Attribute*>::set "private";
+%javamethodmodifiers std::map<std::string, Attribute*>::del "private";
+/*%javamethodmodifiers std::map<std::string, Attribute*>::clear "private";*/
 
-%typemap(javain) Attribute * "getCPtrAndAddReference($javainput)"
+%rename("private_get")  std::map<std::string, Attribute*>::get;
+%rename("private_set") std::map<std::string, Attribute*>::set;
+%rename("private_del") std::map<std::string, Attribute*>::del;
+/*%rename("private_clear") std::map<std::string, Attribute*>::clear;*/
 
-%typemap(javacode) std::map<string, Attribute*> %{
+%typemap(javacode) std::map<std::string, Attribute*>
+%{
   private java.util.HashMap pgcp_refmap = new java.util.HashMap();
   
   private long getCPtrAndAddReference(Attribute attribute)
@@ -93,21 +95,34 @@ enum ReturnCode
     return cPtr;
   }
 
-  public void put(String key, Attribute x)
+  public Attribute get(String key)
   {
-    hyperclientJNI.Attributes_set(swigCPtr, this, key, getCPtrAndAddReference(x), x);
-  }
-
-  public Attribute remove(String key)
-  {
-    long cPtr = hyperclientJNI.Attributes_get(swigCPtr, this, key);
+    long cPtr = hyperclientJNI.$javaclassname_private_get(swigCPtr, this, key);
     Attribute ret = null;
+
     if (cPtr != 0)
     {
-      ret = (Attribute)(pgcp_refmap.remove(new Long(cPtr)));
-      hyperclientJNI.Attributes_del(swigCPtr, this, key);
+      ret = new Attribute(cPtr, true); 
+      pgcp_refmap.put(new Long(cPtr),ret);
+      private_del(key);
     }
     return ret;
+  }
+
+  public void set(String key, Attribute x)
+  {
+    hyperclientJNI.$javaclassname_private_set(
+      swigCPtr, this, key, getCPtrAndAddReference(x), x);
+  }
+
+  public void del(String key)
+  {
+    long cPtr = hyperclientJNI.$javaclassname_private_get(swigCPtr, this, key);
+    if (cPtr != 0)
+    {
+      pgcp_refmap.remove(new Long(cPtr));
+      hyperclientJNI.$javaclassname_private_del(swigCPtr, this, key);
+    }
   }
 %}
 
