@@ -103,16 +103,8 @@ hyperdisk :: disk :: open(const po6::pathname& directory,
                           uint16_t arity,
                           const std::string& quiesce_state_id)
 {
-    // Create a blank disk.
-    e::intrusive_ptr<hyperdisk::disk> d = new disk(directory, hasher, arity);
-    
-    // Load the quiesced shards.
-    if (!d->load_state(quiesce_state_id))
-    {
-        return NULL;
-    }
-    
-    return d;
+    // Open quiesced disk.
+    return new disk(directory, hasher, arity, true, quiesce_state_id);
 }
 
 bool
@@ -265,7 +257,7 @@ hyperdisk :: disk :: load_state(const std::string& quiesce_state_id)
         // Reopen the shard.
         coordinate c(ct[0], ct[1], ct[2], ct[3], ct[4], ct[5]);
         po6::pathname path = shard_filename(c);
-        // XXX need to compare shard inside open (?)
+        // XXX need to compare offset inside open 
         e::intrusive_ptr<shard> s = hyperdisk::shard::open(m_base, path);
         
         shards.push_back(std::make_pair(c, s));
@@ -818,7 +810,9 @@ hyperdisk :: disk :: sync()
 
 hyperdisk :: disk :: disk(const po6::pathname& directory,
                           const hyperspacehashing::mask::hasher& hasher,
-                          const uint16_t arity)
+                          const uint16_t arity,
+                          bool load_quiesced_state,
+                          const std::string& quiesce_state_id)
     : m_ref(0)
     , m_arity(arity)
     , m_hasher(hasher)
@@ -847,12 +841,22 @@ hyperdisk :: disk :: disk(const po6::pathname& directory,
         throw po6::error(errno);
     }
     
-    // Create a starting disk which holds everything.
-    po6::threads::mutex::hold a(&m_shards_mutate);
-    po6::threads::mutex::hold b(&m_shards_lock);
-    coordinate start;
-    e::intrusive_ptr<shard> s = create_shard(start);
-    m_shards = new shard_vector(start, s);
+    // Create vs reload.
+    if (!load_quiesced_state)
+    {
+        // Create a starting disk which holds everything.
+        po6::threads::mutex::hold a(&m_shards_mutate);
+        po6::threads::mutex::hold b(&m_shards_lock);
+        coordinate start;
+        e::intrusive_ptr<shard> s = create_shard(start);
+        m_shards = new shard_vector(start, s);
+    }
+    else
+    {
+        // Reopen quiesced disk.
+        // XXX handle errors
+        load_state(quiesce_state_id);
+    }
 }
 
 hyperdisk :: disk :: ~disk() throw ()

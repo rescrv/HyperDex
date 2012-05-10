@@ -142,7 +142,9 @@ class disk
     private:
         disk(const po6::pathname& directory,
              const hyperspacehashing::mask::hasher& hasher,
-             uint16_t arity);
+             uint16_t arity,
+             bool load_quiesced_state = false,
+             const std::string& quiesce_state_id = "");
         disk();
         ~disk() throw ();
 
