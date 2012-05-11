@@ -17,6 +17,8 @@ AC_PROG_CXX
 AC_PROG_CC
 AC_LANG(C++)
 
+ANAL_WARNINGS_CXX
+
 AC_ARG_ENABLE([java-bindings], [AS_HELP_STRING([--enable-java-bindings],
               [enable the Java bindings @<:@default: no@:>@])],
               [java_bindings=${enableval}], [java_bindings=no])
