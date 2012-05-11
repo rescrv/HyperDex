@@ -384,7 +384,8 @@ libhyperclient_include_HEADERS = \
 			hyperclient/hyperclient.h
 
 libhyperclient_la_SOURCES = \
-			hyperclient/hyperclient.cc
+			hyperclient/hyperclient.cc \
+			hyperclient/hyperclient_c_wrappers.cc
 libhyperclient_la_LIBADD = \
 			libhyperspacehashing.la \
 			libhyperdex.la \

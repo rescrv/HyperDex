@@ -40,6 +40,8 @@ hyperclient/java/libhyperclient_java_la-syncclient.o
 hyperclient-java.stamp
 hyperclient/java/syncclient.lo
 hyperclient/java/syncclient.o
+hyperclient/libhyperclient_la-hyperclient_c_wrappers.lo
+hyperclient/libhyperclient_la-hyperclient_c_wrappers.o
 hyperclient/libhyperclient_la-hyperclient.lo
 hyperclient/libhyperclient_la-hyperclient.o
 hyperclient/.libs/
