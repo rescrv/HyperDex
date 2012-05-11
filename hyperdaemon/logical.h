@@ -37,15 +37,16 @@
 
 // e
 #include <e/buffer.h>
+#include <e/lockfree_fifo.h>
 #include <e/lockfree_hash_map.h>
+
+// BusyBee
+#include <busybee_mta.h>
 
 // HyperDex
 #include "hyperdex/hyperdex/configuration.h"
 #include "hyperdex/hyperdex/instance.h"
 #include "hyperdex/hyperdex/network_constants.h"
-
-// HyperDaemon
-#include "hyperdaemon/physical.h"
 
 // Forward Declarations
 namespace hyperdex
@@ -78,9 +79,9 @@ class logical
     // Pause/unpause or completely stop recv of messages.  Paused threads will
     // not hold locks, and therefore will not pose risk of deadlock.
     public:
-        void pause() { m_physical.pause(); }
-        void unpause() { m_physical.unpause(); }
-        void shutdown() { m_physical.shutdown(); }
+        void pause() { m_busybee.pause(); }
+        void unpause() { m_busybee.unpause(); }
+        void shutdown() { m_busybee.shutdown(); }
 
     // Send and recv messages.
     public:
@@ -117,7 +118,7 @@ class logical
         e::lockfree_hash_map<po6::net::location, uint64_t, po6::net::location::hash> m_client_nums;
         e::lockfree_hash_map<uint64_t, po6::net::location, id> m_client_locs;
         uint64_t m_client_counter;
-        physical m_physical;
+        busybee_mta m_busybee;
 };
 
 } // namespace hyperdaemon

@@ -336,7 +336,6 @@ libhyperdaemon_noinst_headers = \
 			hyperdaemon/logical.h \
 			hyperdaemon/network_worker.h \
 			hyperdaemon/ongoing_state_transfers.h \
-			hyperdaemon/physical.h \
 			hyperdaemon/replication/clientop.h \
 			hyperdaemon/replication/keypair.h \
 			hyperdaemon/replication_manager.cc \
@@ -354,7 +353,6 @@ libhyperdaemon_la_SOURCES = \
 			hyperdaemon/logical.cc \
 			hyperdaemon/network_worker.cc \
 			hyperdaemon/ongoing_state_transfers.cc \
-			hyperdaemon/physical.cc \
 			hyperdaemon/replication_manager.cc \
 			hyperdaemon/runtimeconfig.cc \
 			hyperdaemon/searches.cc
@@ -509,7 +507,7 @@ hyperdex_daemon_LDADD = \
 			libhyperdisk.la \
 			libhyperdaemon.la \
 			$(COVERAGE_LDADD) \
-			-lpopt -lglog -lrt
+			-lbusybee-mta -lpopt -lglog -lrt
 hyperdex_daemon_CPPFLAGS = \
 			$(PO6_CFLAGS) \
 			$(CPPFLAGS)
