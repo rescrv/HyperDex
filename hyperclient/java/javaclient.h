@@ -31,8 +31,6 @@
 // HyperClient
 #include "../hyperclient.h"
 
-typedef hyperclient_returncode ReturnCode;
-
 class Attribute
 {
     public:
@@ -81,17 +79,17 @@ class HyperClient
         ~HyperClient() throw ();
 
     public:
-        ReturnCode get(const std::string& space,
+        hyperclient_returncode get(const std::string& space,
                        const std::string& key,
                        std::map<std::string, Attribute*>* values);
 
-        ReturnCode put(const std::string& space,
+        hyperclient_returncode put(const std::string& space,
                        const std::string& key,
                        const std::map<std::string, Attribute*>& attributes);
 
-        ReturnCode del(const std::string& space,
+        hyperclient_returncode del(const std::string& space,
                        const std::string& key);
-        ReturnCode range_search(const std::string& space,
+        hyperclient_returncode range_search(const std::string& space,
                                 const std::string& attr,
                                 int64_t lower,
                                 int64_t upper,
