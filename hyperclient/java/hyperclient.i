@@ -50,35 +50,9 @@ typedef uint16_t in_port_t;
     }
 %}
 
-/*
-enum ReturnCode
-{
-    SUCCESS      = 8448,
-    NOTFOUND     = 8449,
-    SEARCHDONE   = 8450,
-    CMPFAIL      = 8451,
-    UNKNOWNSPACE = 8512,
-    COORDFAIL    = 8513,
-    SERVERERROR  = 8514,
-    CONNECTFAIL  = 8515,
-    DISCONNECT   = 8516,
-    RECONFIGURE  = 8517,
-    LOGICERROR   = 8518,
-    TIMEOUT      = 8519,
-    UNKNOWNATTR  = 8520,
-    DUPEATTR     = 8521,
-    SEEERRNO     = 8522,
-    NONEPENDING  = 8523,
-    DONTUSEKEY   = 8524,
-    WRONGTYPE    = 8525,
-    EXCEPTION    = 8574,
-    ZERO         = 8575
-};
-*/
+%include "hyperclient/java/javaclient.h"
 
 %include "HyperClient.i"
-
-%include "hyperclient/java/javaclient.h"
 
 namespace std
 {
@@ -89,3 +63,8 @@ namespace std
     %template(IIMap) map<long long, long long>;
     %template(SearchResult) vector<map<string, Attribute*> >;
 }
+
+%ignore "";
+%rename("ReturnCode") "hyperclient_returncode";
+%rename("%s", %$isenumitem) "";
+%include "hyperclient/hyperclient.h"
