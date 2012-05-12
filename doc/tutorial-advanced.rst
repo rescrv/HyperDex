@@ -72,7 +72,7 @@ is:
 
 This enables the application to continue doing other work while HyperDex
 performs the requested operations.  Here's how we could insert the
-"jsmith" user asynchronously:
+"jsmith1" user asynchronously:
 
 .. sourcecode:: pycon
 
