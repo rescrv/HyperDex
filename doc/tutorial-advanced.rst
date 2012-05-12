@@ -171,7 +171,7 @@ has changed the phone number since it was last read:
 
    >>> c.get('phonebook', 'jsmith1')
    {'first': 'John', 'last': 'Smith', 'phone': 6075551024}
-   >>> c.condput('phonebook', 'jsmith',
+   >>> c.condput('phonebook', 'jsmith1',
    ...           {'phone': 6075551024}, {'phone': 6075552048})
    True
    >>> c.get('phonebook', 'jsmith1')
@@ -188,7 +188,7 @@ specified values. Let's try issuing the same operation again.
 
 .. sourcecode:: pycon
 
-   >>> c.condput('phonebook', 'jsmith',
+   >>> c.condput('phonebook', 'jsmith1',
    ...           {'phone': 6075551024}, {'phone': 6075552048})
    False
 
@@ -203,7 +203,7 @@ key "jsmith" to "James" if the phone number has not changed:
 
 .. sourcecode:: pycon
 
-   >>> c.condput('phonebook', 'jsmith',
+   >>> c.condput('phonebook', 'jsmith1',
    ...           {'phone': 6075552048}, {'first': 'James'})
    True
 
