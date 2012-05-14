@@ -67,4 +67,5 @@ namespace std
 %ignore "";
 %rename("ReturnCode") "hyperclient_returncode";
 %rename("%s", %$isenumitem) "";
+%rename("%(regex:/^HYPERCLIENT_(.{2,})/\\1/)s", %$isenumitem) "";
 %include "hyperclient/hyperclient.h"

@@ -11,7 +11,7 @@
 
 %typemap(javacode) std::map<std::string, Attribute*>
 %{
-  private java.util.HashMap pgcp_refmap = new java.util.HashMap();
+  private java.util.HashMap<Long,Attribute> pgcp_refmap = new java.util.HashMap<Long,Attribute>();
   
   private long getCPtrAndAddReference(Attribute attribute)
   {
