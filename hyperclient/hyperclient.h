@@ -1,4 +1,4 @@
-/* Copyright (c) 2011, Cornell University
+/* Copyright (c) 2011-2012, Cornell University
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,11 +47,11 @@
 #include <map>
 #include <memory>
 #include <queue>
-#include <stack>
 #include <vector>
 
 // po6
 #include <po6/io/fd.h>
+#include <po6/net/location.h>
 
 // e
 #include <e/buffer.h>
@@ -63,6 +63,7 @@ namespace e
 {
 class bitfield;
 } // namespace e
+class busybee_st;
 namespace hyperdex
 {
 class attribute;
@@ -92,7 +93,8 @@ struct hyperclient_map_attribute
     size_t map_key_sz;
     const char* value;
     size_t value_sz;
-    enum hyperdatatype datatype;
+    enum hyperdatatype map_key_datatype;
+    enum hyperdatatype value_datatype;
 };
 
 struct hyperclient_range_query
@@ -114,17 +116,15 @@ enum hyperclient_returncode
     HYPERCLIENT_UNKNOWNSPACE = 8512,
     HYPERCLIENT_COORDFAIL    = 8513,
     HYPERCLIENT_SERVERERROR  = 8514,
-    HYPERCLIENT_CONNECTFAIL  = 8515,
-    HYPERCLIENT_DISCONNECT   = 8516,
+    HYPERCLIENT_POLLFAILED   = 8515,
     HYPERCLIENT_RECONFIGURE  = 8517,
-    HYPERCLIENT_LOGICERROR   = 8518,
     HYPERCLIENT_TIMEOUT      = 8519,
     HYPERCLIENT_UNKNOWNATTR  = 8520,
     HYPERCLIENT_DUPEATTR     = 8521,
-    HYPERCLIENT_SEEERRNO     = 8522,
     HYPERCLIENT_NONEPENDING  = 8523,
     HYPERCLIENT_DONTUSEKEY   = 8524,
     HYPERCLIENT_WRONGTYPE    = 8525,
+    HYPERCLIENT_NOMEM        = 8526,
 
     /* This should never happen.  It indicates a bug */
     HYPERCLIENT_EXCEPTION    = 8574,
@@ -734,49 +734,22 @@ class hyperclient
         int64_t loop(int timeout, hyperclient_returncode* status);
 
     private:
-        class channel;
         class completedop;
         class pending;
         class pending_get;
-        class pending_statusonly;
         class pending_search;
-        static uint64_t id(const int64_t& in) { return static_cast<uint64_t>(in); }
-        typedef std::map<hyperdex::instance, e::intrusive_ptr<channel> > instances_map_t;
-        typedef std::map<std::pair<int, uint64_t>, e::intrusive_ptr<pending> > requests_map_t;
+        class pending_statusonly;
+        typedef std::map<int64_t, e::intrusive_ptr<pending> > incomplete_map_t;
 
     private:
-        int64_t attributes_to_microops(hyperdatatype (*map_datatype)(hyperdatatype t),
-                                       int action, const char* space,
-                                       const char* key, size_t key_sz,
-                                       const struct hyperclient_attribute* attrs,
-                                       size_t attrs_sz,
-                                       hyperclient_returncode* status);
-
-        int64_t atomic_ops(int action,
-                           const char* space, const char* key, size_t key_sz,
-                           const struct hyperclient_attribute* attrs,
-                           size_t attrs_sz, hyperclient_returncode* status);
-        int64_t string_ops(int action,
-                           const char* space, const char* key, size_t key_sz,
-                           const struct hyperclient_attribute* attrs,
-                           size_t attrs_sz, hyperclient_returncode* status);
-        int64_t list_ops(int action,
-                         const char* space, const char* key, size_t key_sz,
-                         const struct hyperclient_attribute* attrs,
-                         size_t attrs_sz, hyperclient_returncode* status);
-        int64_t set_ops(int action,
-                        const char* space, const char* key, size_t key_sz,
-                        const struct hyperclient_attribute* attrs,
-                        size_t attrs_sz, hyperclient_returncode* status);
-        int64_t map_ops(int action,
-                        const char* space, const char* key, size_t key_sz,
-                        const struct hyperclient_map_attribute* attrs,
-                        size_t attrs_sz, hyperclient_returncode* status);
+        int64_t maintain_coord_connection(hyperclient_returncode* status);
         int64_t add_keyop(const char* space,
                           const char* key,
                           size_t key_sz,
                           std::auto_ptr<e::buffer> msg,
                           e::intrusive_ptr<pending> op);
+        int64_t send(e::intrusive_ptr<pending> op,
+                     std::auto_ptr<e::buffer> msg);
         int64_t pack_attrs(const char* space,
                            e::buffer::packer* p,
                            const struct hyperclient_attribute* attrs,
@@ -784,29 +757,34 @@ class hyperclient
                            hyperclient_returncode* status);
         size_t pack_attrs_sz(const struct hyperclient_attribute* attrs,
                              size_t attrs_sz);
+        void killall(const po6::net::location& loc, hyperclient_returncode status);
+        int64_t attributes_to_microops(hyperdatatype (*map_datatype)(hyperdatatype t),
+                                       int action, const char* space,
+                                       const char* key, size_t key_sz,
+                                       const struct hyperclient_attribute* attrs,
+                                       size_t attrs_sz,
+                                       hyperclient_returncode* status);
+        int64_t map_attributes_to_microops(hyperdatatype (*map_datatype)(hyperdatatype k, hyperdatatype v),
+                                           int action, const char* space,
+                                           const char* key, size_t key_sz,
+                                           const struct hyperclient_map_attribute* attrs,
+                                           size_t attrs_sz,
+                                           hyperclient_returncode* status);
         int validate_attr(const std::vector<hyperdex::attribute>& dimensions,
                           e::bitfield* dimensions_seen,
                           const char* attr,
                           hyperdatatype type,
                           hyperclient_returncode* status);
-        int64_t send(e::intrusive_ptr<channel> chan,
-                     e::intrusive_ptr<pending> op,
-                     e::buffer* msg);
-        int64_t maintain_coord_connection(hyperclient_returncode* status);
-        void killall(int fd, hyperclient_returncode status);
-        e::intrusive_ptr<channel> get_channel(hyperdex::instance inst,
-                                              hyperclient_returncode* status);
-        e::intrusive_ptr<channel> channel_from_fd(int fd);
 
     private:
         const std::auto_ptr<hyperdex::coordinatorlink> m_coord;
         const std::auto_ptr<hyperdex::configuration> m_config;
-        po6::io::fd m_epfd;
-        std::vector<e::intrusive_ptr<channel> > m_fds;
-        instances_map_t m_instances;
-        requests_map_t m_requests;
-        std::queue<completedop> m_completed;
-        int64_t m_requestid;
+        const std::auto_ptr<busybee_st> m_busybee;
+        incomplete_map_t m_incomplete;
+        std::queue<completedop> m_complete;
+        int64_t m_server_nonce;
+        int64_t m_client_id;
+        int m_old_coord_fd;
         bool m_have_seen_config;
 };
 

@@ -79,7 +79,8 @@ cdef extern from "../hyperclient.h":
         size_t map_key_sz
         char* value
         size_t value_sz
-        hyperdatatype datatype
+        hyperdatatype map_key_datatype
+        hyperdatatype value_datatype
 
     cdef struct hyperclient_range_query:
         char* attr
@@ -95,17 +96,15 @@ cdef extern from "../hyperclient.h":
         HYPERCLIENT_UNKNOWNSPACE = 8512
         HYPERCLIENT_COORDFAIL    = 8513
         HYPERCLIENT_SERVERERROR  = 8514
-        HYPERCLIENT_CONNECTFAIL  = 8515
-        HYPERCLIENT_DISCONNECT   = 8516
+        HYPERCLIENT_POLLFAILED   = 8515
         HYPERCLIENT_RECONFIGURE  = 8517
-        HYPERCLIENT_LOGICERROR   = 8518
         HYPERCLIENT_TIMEOUT      = 8519
         HYPERCLIENT_UNKNOWNATTR  = 8520
         HYPERCLIENT_DUPEATTR     = 8521
-        HYPERCLIENT_SEEERRNO     = 8522
         HYPERCLIENT_NONEPENDING  = 8523
         HYPERCLIENT_DONTUSEKEY   = 8524
         HYPERCLIENT_WRONGTYPE    = 8525
+        HYPERCLIENT_NOMEM        = 8526
         HYPERCLIENT_EXCEPTION    = 8574
         HYPERCLIENT_ZERO         = 8575
         HYPERCLIENT_A            = 8576
@@ -163,17 +162,15 @@ class HyperClientException(Exception):
                   ,HYPERCLIENT_UNKNOWNSPACE: 'Unknown Space'
                   ,HYPERCLIENT_COORDFAIL: 'Coordinator Failure'
                   ,HYPERCLIENT_SERVERERROR: 'Server Error'
-                  ,HYPERCLIENT_CONNECTFAIL: 'Connection Failure'
-                  ,HYPERCLIENT_DISCONNECT: 'Connection Reset'
+                  ,HYPERCLIENT_POLLFAILED: 'Polling Failed'
                   ,HYPERCLIENT_RECONFIGURE: 'Reconfiguration'
-                  ,HYPERCLIENT_LOGICERROR: 'Logic Error (file a bug)'
                   ,HYPERCLIENT_TIMEOUT: 'Timeout'
                   ,HYPERCLIENT_UNKNOWNATTR: 'Unknown attribute "%s"' % attr
                   ,HYPERCLIENT_DUPEATTR: 'Duplicate attribute "%s"' % attr
-                  ,HYPERCLIENT_SEEERRNO: 'See ERRNO'
                   ,HYPERCLIENT_NONEPENDING: 'None pending'
                   ,HYPERCLIENT_DONTUSEKEY: "Do not specify the key in a search predicate and do not redundantly specify the key for an insert"
                   ,HYPERCLIENT_WRONGTYPE: 'Attribute "%s" has the wrong type' % attr
+                  ,HYPERCLIENT_NOMEM: 'Memory allocation failed'
                   ,HYPERCLIENT_EXCEPTION: 'Internal Error (file a bug)'
                   }.get(status, 'Unknown Error (file a bug)')
 
@@ -1067,11 +1064,9 @@ cdef class Client:
         if ret < 0:
             raise HyperClientException(rc)
         else:
-            if ret in self._ops:
-                op = self._ops[ret]
-                # We cannot refer to self._ops[ret] after this call as
-                # _callback() may remove ret from self._ops.
-                op._callback()
-                return op
-            else:
-                raise HyperClientException(HYPERCLIENT_LOGICERROR)
+            assert ret in self._ops
+            op = self._ops[ret]
+            # We cannot refer to self._ops[ret] after this call as
+            # _callback() may remove ret from self._ops.
+            op._callback()
+            return op

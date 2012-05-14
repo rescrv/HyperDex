@@ -51,11 +51,8 @@ class coordinatorlink
     public:
         enum returncode
         {
-            SHUTDOWN    = 0,
             SUCCESS     = 1,
-            CONNECTFAIL = 2,
-            DISCONNECT  = 3,
-            LOGICERROR  = 4
+            CONNECTFAIL = 2
         };
 
     public:
@@ -68,22 +65,31 @@ class coordinatorlink
     public:
         bool unacknowledged();
         returncode acknowledge();
+        hyperdex::configuration config();
+
+    // Interact with the coordinator
+    public:
+        void set_announce(const std::string& announce);
         returncode warn_location(const po6::net::location& loc);
         returncode fail_location(const po6::net::location& loc);
         returncode transfer_fail(uint16_t xfer_id);
         returncode transfer_golive(uint16_t xfer_id);
         returncode transfer_complete(uint16_t xfer_id);
 
+    // Do network I/O
     public:
-        void set_announce(const std::string& announce) { m_announce = announce + "\n"; }
-        returncode connect();
-        returncode loop(size_t iterations, int timeout);
-        void shutdown();
-
-    public:
-        pollfd pfd();
-        bool connected();
-        hyperdex::configuration config();
+        // This will check if a partial config is available from the
+        // coordinator.  If it sees a fragment of the config, it will BLOCK
+        // until it full receives the configuration.  If there is no
+        // configuration available, it will poll for timeout milliseconds before
+        // returning.
+        //
+        // If there is a disconnect from the coordinator, it will try to
+        // connect the specified number of times before returning an error.
+        returncode poll(int connect_attempts, int timeout);
+        // The FD that should be inserted into other event loops indicating that
+        // a call to "poll" is necessary.
+        int poll_on();
 
     private:
         coordinatorlink(const coordinatorlink&);
@@ -102,12 +108,9 @@ class coordinatorlink
         po6::threads::mutex m_lock;
         const po6::net::location m_coordinator;
         std::string m_announce;
-        bool m_shutdown;
         bool m_acknowledged;
-        bool m_config_valid;
         configuration m_config;
         po6::net::socket m_sock;
-        pollfd m_pfd;
         std::string m_buffer;
         std::set<po6::net::location> m_reported_failures;
         std::map<po6::net::location, uint64_t> m_warnings_issued;

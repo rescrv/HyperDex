@@ -44,6 +44,16 @@ hyperclient/libhyperclient_la-hyperclient_c_wrappers.lo
 hyperclient/libhyperclient_la-hyperclient_c_wrappers.o
 hyperclient/libhyperclient_la-hyperclient.lo
 hyperclient/libhyperclient_la-hyperclient.o
+hyperclient/libhyperclient_la-hyperclient_pending_get.lo
+hyperclient/libhyperclient_la-hyperclient_pending_get.o
+hyperclient/libhyperclient_la-hyperclient_pending.lo
+hyperclient/libhyperclient_la-hyperclient_pending.o
+hyperclient/libhyperclient_la-hyperclient_pending_search.lo
+hyperclient/libhyperclient_la-hyperclient_pending_search.o
+hyperclient/libhyperclient_la-hyperclient_pending_statusonly.lo
+hyperclient/libhyperclient_la-hyperclient_pending_statusonly.o
+hyperclient/libhyperclient_la-util.lo
+hyperclient/libhyperclient_la-util.o
 hyperclient/.libs/
 hyperclient/python/.dirstamp
 hyperclient/python/hyperclient.c

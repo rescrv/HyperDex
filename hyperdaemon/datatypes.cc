@@ -1826,6 +1826,9 @@ hyperdaemon :: validate_datatype(hyperdatatype datatype, const e::slice& data)
             return validate_map_int64_string(data);
         case HYPERDATATYPE_MAP_INT64_INT64:
             return validate_map_int64_int64(data);
+        case HYPERDATATYPE_LIST_GENERIC:
+        case HYPERDATATYPE_SET_GENERIC:
+        case HYPERDATATYPE_MAP_GENERIC:
         case HYPERDATATYPE_GARBAGE:
             return false;
         default:
@@ -1955,6 +1958,9 @@ hyperdaemon :: apply_microops(hyperdatatype type,
             return apply_map_int64_string(old_value, ops, num_ops, writeto, error);
         case HYPERDATATYPE_MAP_INT64_INT64:
             return apply_map_int64_int64(old_value, ops, num_ops, writeto, error);
+        case HYPERDATATYPE_LIST_GENERIC:
+        case HYPERDATATYPE_SET_GENERIC:
+        case HYPERDATATYPE_MAP_GENERIC:
         case HYPERDATATYPE_GARBAGE:
         default:
             *error = hyperdex::NET_BADMICROS;

@@ -33,6 +33,7 @@
 #include <sstream>
 
 // STL
+#include <algorithm>
 #include <tr1/memory>
 
 // Google Log
@@ -158,15 +159,6 @@ hyperdaemon :: daemon(const char* progname,
     replication_manager repl(&cl, &data, &comm, &ost);
     // Give the ongoing_state_transfers a view into the replication component
     ost.set_replication_manager(&repl);
-
-    LOG(INFO) << "Connecting to the coordinator.";
-
-    while (s_continue && cl.connect() != hyperdex::coordinatorlink::SUCCESS)
-    {
-        PLOG(INFO) << "Coordinator connection failed";
-        e::sleep_ms(1, 0);
-    }
-
     // Start the network workers.
     LOG(INFO) << "Starting network workers.";
     network_worker nw(&data, &comm, &ssss, &ost, &repl);
@@ -181,10 +173,33 @@ hyperdaemon :: daemon(const char* progname,
     }
 
     LOG(INFO) << "Network workers started.";
+    uint64_t now;
     uint64_t disconnected_at = e::time();
+    uint64_t nanos_to_wait = 5000000;
+    // Reconnect right away, then 10ms, then 20ms, .... 1s
 
     while (s_continue)
     {
+        switch (cl.poll(1, -1))
+        {
+            case hyperdex::coordinatorlink::SUCCESS:
+                break;
+            case hyperdex::coordinatorlink::CONNECTFAIL:
+                now = e::time();
+                PLOG(ERROR) << "Coordinator connection failed";
+
+                if (now - disconnected_at < nanos_to_wait)
+                {
+                    e::sleep_ns(0, nanos_to_wait - (now - disconnected_at));
+                }
+
+                disconnected_at = e::time();
+                nanos_to_wait = std::min(nanos_to_wait * 2, static_cast<uint64_t>(1000000000));
+                continue;;
+            default:
+                abort();
+        }
+
         if (cl.unacknowledged())
         {
             LOG(INFO) << "Installing new configuration version " << cl.config().version();
@@ -239,37 +254,6 @@ hyperdaemon :: daemon(const char* progname,
             comm.cleanup(cl.config(), comm.inst());
             cl.acknowledge();
         }
-
-        uint64_t now;
-
-        switch (cl.loop(1, -1))
-        {
-            case hyperdex::coordinatorlink::SHUTDOWN:
-                s_continue = false;
-                break;
-            case hyperdex::coordinatorlink::SUCCESS:
-                break;
-            case hyperdex::coordinatorlink::CONNECTFAIL:
-            case hyperdex::coordinatorlink::DISCONNECT:
-                now = e::time();
-
-                if (now - disconnected_at < 1000000000)
-                {
-                    e::sleep_ns(0, 1000000000 - (now - disconnected_at));
-                }
-
-                if (cl.connect() != hyperdex::coordinatorlink::SUCCESS)
-                {
-                    PLOG(ERROR) << "Coordinator connection failed";
-                    e::sleep_ms(1, 0);
-                }
-
-                disconnected_at = e::time();
-                break;
-            case hyperdex::coordinatorlink::LOGICERROR:
-            default:
-                abort();
-        }
     }
 
     LOG(INFO) << "Exiting daemon.";
@@ -280,8 +264,6 @@ hyperdaemon :: daemon(const char* progname,
     comm.shutdown();
     // Cleanup the network_worker threads.
     nw.shutdown();
-    // Cleanup the master thread.
-    cl.shutdown();
     // Stop the data layer.
     data.shutdown();
 

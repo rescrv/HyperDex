@@ -42,12 +42,9 @@ hyperdex :: coordinatorlink :: coordinatorlink(const po6::net::location& coordin
     : m_lock()
     , m_coordinator(coordinator)
     , m_announce()
-    , m_shutdown(false)
     , m_acknowledged(true)
-    , m_config_valid(true)
     , m_config()
     , m_sock()
-    , m_pfd()
     , m_buffer()
     , m_reported_failures()
     , m_warnings_issued()
@@ -57,7 +54,6 @@ hyperdex :: coordinatorlink :: coordinatorlink(const po6::net::location& coordin
 
 hyperdex :: coordinatorlink :: ~coordinatorlink() throw ()
 {
-    shutdown();
 }
 
 bool
@@ -71,12 +67,6 @@ hyperdex::coordinatorlink::returncode
 hyperdex :: coordinatorlink :: acknowledge()
 {
     po6::threads::mutex::hold hold(&m_lock);
-
-    if (m_shutdown)
-    {
-        return SHUTDOWN;
-    }
-
     returncode ret = send_to_coordinator("ACK\n", 4);
 
     if (ret == SUCCESS)
@@ -85,6 +75,20 @@ hyperdex :: coordinatorlink :: acknowledge()
     }
 
     return ret;
+}
+
+hyperdex::configuration
+hyperdex :: coordinatorlink :: config()
+{
+    po6::threads::mutex::hold hold(&m_lock);
+    return m_config;
+}
+
+void
+hyperdex :: coordinatorlink :: set_announce(const std::string& announce)
+{
+    po6::threads::mutex::hold hold(&m_lock);
+    m_announce = announce + "\n";
 }
 
 hyperdex::coordinatorlink::returncode
@@ -112,12 +116,6 @@ hyperdex::coordinatorlink::returncode
 hyperdex :: coordinatorlink :: transfer_fail(uint16_t xfer_id)
 {
     po6::threads::mutex::hold hold(&m_lock);
-
-    if (m_shutdown)
-    {
-        return SHUTDOWN;
-    }
-
     std::ostringstream ostr;
     ostr << "transfer_fail\t" << xfer_id << "\n";
     return send_to_coordinator(ostr.str().c_str(), ostr.str().size());
@@ -127,12 +125,6 @@ hyperdex::coordinatorlink::returncode
 hyperdex :: coordinatorlink :: transfer_golive(uint16_t xfer_id)
 {
     po6::threads::mutex::hold hold(&m_lock);
-
-    if (m_shutdown)
-    {
-        return SHUTDOWN;
-    }
-
     std::ostringstream ostr;
     ostr << "transfer_golive\t" << xfer_id << "\n";
     return send_to_coordinator(ostr.str().c_str(), ostr.str().size());
@@ -142,83 +134,79 @@ hyperdex::coordinatorlink::returncode
 hyperdex :: coordinatorlink :: transfer_complete(uint16_t xfer_id)
 {
     po6::threads::mutex::hold hold(&m_lock);
-
-    if (m_shutdown)
-    {
-        return SHUTDOWN;
-    }
-
     std::ostringstream ostr;
     ostr << "transfer_complete\t" << xfer_id << "\n";
     return send_to_coordinator(ostr.str().c_str(), ostr.str().size());
 }
 
-hyperdex::coordinatorlink::returncode
-hyperdex :: coordinatorlink :: connect()
+int
+hyperdex :: coordinatorlink :: poll_on()
 {
-    po6::threads::mutex::hold hold(&m_lock);
-
-    if (m_sock.get() >= 0)
-    {
-        return SUCCESS;
-    }
-
-    reset_config();
-    m_sock.reset(m_coordinator.address.family(), SOCK_STREAM, IPPROTO_TCP);
-
-    try
-    {
-        m_sock.connect(m_coordinator);
-        m_pfd.fd = m_sock.get();
-        m_pfd.events = POLLIN;
-        return send_to_coordinator(m_announce.c_str(), m_announce.size());
-    }
-    catch (po6::error& e)
-    {
-        reset();
-        return CONNECTFAIL;
-    }
+    return m_sock.get();
 }
 
 hyperdex::coordinatorlink::returncode
-hyperdex :: coordinatorlink :: loop(size_t iterations, int timeout)
+hyperdex :: coordinatorlink :: poll(int connect_attempts, int timeout)
 {
-    size_t iter = 0;
+    int attempt_num = 0;
 
-    while (m_acknowledged && iter < iterations)
+    while (true)
     {
-        po6::threads::mutex::hold hold(&m_lock);
-        if (m_shutdown)
+        if (connect_attempts >= 0 && attempt_num == connect_attempts)
         {
-            return SHUTDOWN;
+            return CONNECTFAIL;
         }
 
         if (m_sock.get() < 0)
         {
-            reset();
-            return DISCONNECT;
-        }
+            po6::threads::mutex::hold hold(&m_lock);
+            reset_config();
+            m_sock.reset(m_coordinator.address.family(), SOCK_STREAM, IPPROTO_TCP);
+            ++attempt_num;
 
-        m_lock.unlock();
-        int polled = poll(&m_pfd, 1, timeout);
-        m_lock.lock();
-
-        if (polled < 0)
-        {
-            if (errno == EINTR)
+            try
             {
-                return SUCCESS;
+                m_sock.connect(m_coordinator);
+
+                switch (send_to_coordinator(m_announce.c_str(), m_announce.size()))
+                {
+                    case SUCCESS:
+                        break;
+                    case CONNECTFAIL:
+                        reset();
+                        continue;
+                    default:
+                        abort();
+                }
             }
-            else
+            catch (po6::error& e)
             {
                 reset();
-                return DISCONNECT;
+                continue;
             }
         }
 
-        if (polled == 0)
+        pollfd pfd;
+        pfd.fd = m_sock.get();
+        pfd.events = POLLIN;
+        int polled = ::poll(&pfd, 1, timeout);
+        po6::threads::mutex::hold hold(&m_lock);
+
+        if (polled < 0 && errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK)
+        {
+            reset();
+            continue;
+        }
+
+        if (polled <= 0 && m_buffer.empty())
         {
             return SUCCESS;
+        }
+
+        if ((pfd.revents & POLLHUP) || (pfd.revents & POLLERR))
+        {
+            reset();
+            continue;
         }
 
         char buf[4096];
@@ -227,7 +215,7 @@ hyperdex :: coordinatorlink :: loop(size_t iterations, int timeout)
         if (ret <= 0)
         {
             reset();
-            return DISCONNECT;
+            continue;
         }
 
         m_buffer += std::string(buf, ret);
@@ -261,40 +249,6 @@ hyperdex :: coordinatorlink :: loop(size_t iterations, int timeout)
             }
         }
     }
-
-    return SUCCESS;
-}
-
-void
-hyperdex :: coordinatorlink :: shutdown()
-{
-    po6::threads::mutex::hold hold(&m_lock);
-
-    if (!m_shutdown)
-    {
-        m_shutdown = true;
-    }
-}
-
-pollfd
-hyperdex :: coordinatorlink :: pfd()
-{
-    po6::threads::mutex::hold hold(&m_lock);
-    return m_pfd;
-}
-
-bool
-hyperdex :: coordinatorlink :: connected()
-{
-    po6::threads::mutex::hold hold(&m_lock);
-    return m_sock.get() >= 0;
-}
-
-hyperdex::configuration
-hyperdex :: coordinatorlink :: config()
-{
-    po6::threads::mutex::hold hold(&m_lock);
-    return m_config;
 }
 
 hyperdex::coordinatorlink::returncode
@@ -303,7 +257,7 @@ hyperdex :: coordinatorlink :: send_to_coordinator(const char* msg, size_t len)
     if (m_sock.xwrite(msg, len) != static_cast<ssize_t>(len))
     {
         reset();
-        return DISCONNECT;
+        return CONNECTFAIL;
     }
 
     return SUCCESS;
@@ -312,11 +266,6 @@ hyperdex :: coordinatorlink :: send_to_coordinator(const char* msg, size_t len)
 hyperdex::coordinatorlink::returncode
 hyperdex :: coordinatorlink :: send_failure(const po6::net::location& loc)
 {
-    if (m_shutdown)
-    {
-        return SHUTDOWN;
-    }
-
     if (m_reported_failures.find(loc) != m_reported_failures.end())
     {
         return SUCCESS;
@@ -338,10 +287,8 @@ void
 hyperdex :: coordinatorlink :: reset()
 {
     reset_config();
-    ::shutdown(m_sock.get(), SHUT_RDWR);
+    shutdown(m_sock.get(), SHUT_RDWR);
     m_sock.close();
-    m_pfd.fd = -1;
-    m_pfd.events = 0;
     m_buffer = "";
 }
 
@@ -349,7 +296,6 @@ void
 hyperdex :: coordinatorlink :: reset_config()
 {
     m_acknowledged = true;
-    m_config_valid = true;
     m_config = configuration();
     m_reported_failures.clear();
     m_warnings_issued.clear();

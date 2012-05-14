@@ -54,6 +54,7 @@ noinst_HEADERS = \
 			$(libhyperdisk_noinst_headers) \
 			$(libhyperdex_noinst_headers) \
 			$(libhyperdaemon_noinst_headers) \
+			$(libhyperclient_noinst_headers) \
 			$(java_bindings_noinst_headers)
 
 bin_PROGRAMS = \
@@ -383,12 +384,26 @@ libhyperclient_includedir = $(includedir)
 libhyperclient_include_HEADERS = \
 			hyperclient/hyperclient.h
 
+libhyperclient_noinst_headers = \
+			hyperclient/hyperclient_completedop.h \
+			hyperclient/hyperclient_pending.h \
+			hyperclient/hyperclient_pending_get.h \
+			hyperclient/hyperclient_pending_search.h \
+			hyperclient/hyperclient_pending_statusonly.h \
+			hyperclient/util.h
+
 libhyperclient_la_SOURCES = \
 			hyperclient/hyperclient.cc \
-			hyperclient/hyperclient_c_wrappers.cc
+			hyperclient/hyperclient_c_wrappers.cc \
+			hyperclient/hyperclient_pending.cc \
+			hyperclient/hyperclient_pending_get.cc \
+			hyperclient/hyperclient_pending_search.cc \
+			hyperclient/hyperclient_pending_statusonly.cc \
+			hyperclient/util.cc
 libhyperclient_la_LIBADD = \
 			libhyperspacehashing.la \
 			libhyperdex.la \
+			-lbusybee-st
 			$(E_LIBS) \
 			$(COVERAGE_LDADD)
 libhyperclient_la_CPPFLAGS = \

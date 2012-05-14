@@ -252,6 +252,10 @@ hyperdaemon :: logical :: send(const hyperdex::entityid& from,
                 return false;
             case BUSYBEE_BUFFERFULL:
                 return false;
+            case BUSYBEE_TIMEOUT:
+                return false;
+            case BUSYBEE_EXTERNAL:
+                return false;
             default:
                 LOG(ERROR) << "busybee wandered into bad state, and returned garbage";
                 return false;
@@ -308,6 +312,12 @@ hyperdaemon :: logical :: recv(hyperdex::entityid* from,
                 continue;
             case BUSYBEE_BUFFERFULL:
                 LOG(ERROR) << "busybee unexpectedly returned BUFFERFULL";
+                continue;
+            case BUSYBEE_TIMEOUT:
+                PLOG(ERROR) << "busybee unexpectedly returned TIMEOUT";
+                continue;
+            case BUSYBEE_EXTERNAL:
+                LOG(ERROR) << "busybee unexpectedly returned EXTERNAL";
                 continue;
             default:
                 LOG(ERROR) << "busybee unexpectedly returned unknown state.";
@@ -438,21 +448,11 @@ hyperdaemon :: logical :: handle_connectfail(const po6::net::location& loc)
         {
             case hyperdex::coordinatorlink::SUCCESS:
                 break;
-            case hyperdex::coordinatorlink::SHUTDOWN:
-                LOG(WARNING) << "Could not report connection failure to " << loc << ":  error(SHUTDOWN)";
-                break;
             case hyperdex::coordinatorlink::CONNECTFAIL:
                 LOG(WARNING) << "Could not report connection failure to " << loc << ":  error(CONNECTFAIL)";
                 break;
-            case hyperdex::coordinatorlink::DISCONNECT:
-                LOG(WARNING) << "Could not report connection failure to " << loc << ":  error(DISCONNECT)";
-                break;
-            case hyperdex::coordinatorlink::LOGICERROR:
-                LOG(WARNING) << "Could not report connection failure to " << loc << ":  error(LOGICERROR)";
-                break;
             default:
-                LOG(WARNING) << "Could not report connection failure to " << loc << ":  error unknown";
-                break;
+                abort();
         }
     }
 }
@@ -473,21 +473,11 @@ hyperdaemon :: logical :: handle_disconnect(const po6::net::location& loc)
         {
             case hyperdex::coordinatorlink::SUCCESS:
                 break;
-            case hyperdex::coordinatorlink::SHUTDOWN:
-                LOG(WARNING) << "Could not report disconnect from " << loc << ":  error(SHUTDOWN)";
-                break;
             case hyperdex::coordinatorlink::CONNECTFAIL:
                 LOG(WARNING) << "Could not report disconnect from " << loc << ":  error(CONNECTFAIL)";
                 break;
-            case hyperdex::coordinatorlink::DISCONNECT:
-                LOG(WARNING) << "Could not report disconnect from " << loc << ":  error(DISCONNECT)";
-                break;
-            case hyperdex::coordinatorlink::LOGICERROR:
-                LOG(WARNING) << "Could not report disconnect from " << loc << ":  error(LOGICERROR)";
-                break;
             default:
-                LOG(WARNING) << "Could not report disconnect from " << loc << ":  error unknown";
-                break;
+                abort();
         }
     }
 }

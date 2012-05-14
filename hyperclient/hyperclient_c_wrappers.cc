@@ -68,7 +68,7 @@ hyperclient_get(struct hyperclient* client, const char* space, const char* key,
     catch (po6::error& e)
     {
         errno = e;
-        *status = HYPERCLIENT_SEEERRNO;
+        *status = HYPERCLIENT_EXCEPTION;
         return -1;
     }
     catch (...)
@@ -90,7 +90,7 @@ hyperclient_put(struct hyperclient* client, const char* space, const char* key,
     catch (po6::error& e)
     {
         errno = e;
-        *status = HYPERCLIENT_SEEERRNO;
+        *status = HYPERCLIENT_EXCEPTION;
         return -1;
     }
     catch (...)
@@ -113,7 +113,7 @@ hyperclient_condput(struct hyperclient* client, const char* space, const char* k
     catch (po6::error& e)
     {
         errno = e;
-        *status = HYPERCLIENT_SEEERRNO;
+        *status = HYPERCLIENT_EXCEPTION;
         return -1;
     }
     catch (...)
@@ -134,7 +134,7 @@ hyperclient_del(struct hyperclient* client, const char* space, const char* key,
     catch (po6::error& e)
     {
         errno = e;
-        *status = HYPERCLIENT_SEEERRNO;
+        *status = HYPERCLIENT_EXCEPTION;
         return -1;
     }
     catch (...)
@@ -157,7 +157,7 @@ hyperclient_del(struct hyperclient* client, const char* space, const char* key,
         catch (po6::error& e) \
         { \
             errno = e; \
-            *status = HYPERCLIENT_SEEERRNO; \
+            *status = HYPERCLIENT_EXCEPTION; \
             return -1; \
         } \
         catch (...) \
@@ -215,7 +215,7 @@ hyperclient_search(struct hyperclient* client, const char* space,
     catch (po6::error& e)
     {
         errno = e;
-        *status = HYPERCLIENT_SEEERRNO;
+        *status = HYPERCLIENT_EXCEPTION;
         return -1;
     }
     catch (...)
@@ -235,7 +235,7 @@ hyperclient_loop(struct hyperclient* client, int timeout, hyperclient_returncode
     catch (po6::error& e)
     {
         errno = e;
-        *status = HYPERCLIENT_SEEERRNO;
+        *status = HYPERCLIENT_EXCEPTION;
         return -1;
     }
     catch (...)
