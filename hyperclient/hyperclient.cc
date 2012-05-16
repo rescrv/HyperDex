@@ -188,38 +188,132 @@ hyperclient :: del(const char* space, const char* key, size_t key_sz,
 }
 
 static hyperdatatype
-garbage(hyperdatatype)
+coerce_identity(hyperdatatype, hyperdatatype provided)
 {
+    return provided;
+}
+
+static hyperdatatype
+coerce_generic(hyperdatatype expected, hyperdatatype provided)
+{
+    if (provided == HYPERDATATYPE_LIST_GENERIC)
+    {
+        if (expected == HYPERDATATYPE_LIST_INT64 ||
+            expected == HYPERDATATYPE_LIST_STRING)
+        {
+            return expected;
+        }
+
+        return HYPERDATATYPE_GARBAGE;
+    }
+    else if (provided == HYPERDATATYPE_SET_GENERIC)
+    {
+        if (expected == HYPERDATATYPE_SET_INT64 ||
+            expected == HYPERDATATYPE_SET_STRING)
+        {
+            return expected;
+        }
+
+        return HYPERDATATYPE_GARBAGE;
+    }
+    else if (provided == HYPERDATATYPE_MAP_GENERIC)
+    {
+        if (expected == HYPERDATATYPE_MAP_STRING_STRING ||
+            expected == HYPERDATATYPE_MAP_STRING_INT64 ||
+            expected == HYPERDATATYPE_MAP_INT64_STRING ||
+            expected == HYPERDATATYPE_MAP_INT64_INT64)
+        {
+            return expected;
+        }
+
+        return HYPERDATATYPE_GARBAGE;
+    }
+
+    return provided;
+}
+
+static hyperdatatype
+coerce_list(hyperdatatype, hyperdatatype provided)
+{
+    if (provided == HYPERDATATYPE_INT64)
+    {
+        return HYPERDATATYPE_LIST_INT64;
+    }
+
+    if (provided == HYPERDATATYPE_STRING)
+    {
+        return HYPERDATATYPE_LIST_STRING;
+    }
+
     return HYPERDATATYPE_GARBAGE;
 }
 
-#define HYPERCLIENT_CPPDEF(PREFIX, OPNAME, OPNAMECAPS) \
+static hyperdatatype
+coerce_set(hyperdatatype, hyperdatatype provided)
+{
+    if (provided == HYPERDATATYPE_INT64)
+    {
+        return HYPERDATATYPE_SET_INT64;
+    }
+
+    if (provided == HYPERDATATYPE_STRING)
+    {
+        return HYPERDATATYPE_SET_STRING;
+    }
+
+    return HYPERDATATYPE_GARBAGE;
+}
+
+static hyperdatatype
+coerce_set_w_generic(hyperdatatype expected, hyperdatatype provided)
+{
+    if (provided == HYPERDATATYPE_INT64)
+    {
+        return HYPERDATATYPE_SET_INT64;
+    }
+    else if (provided == HYPERDATATYPE_STRING)
+    {
+        return HYPERDATATYPE_SET_STRING;
+    }
+    else if (provided == HYPERDATATYPE_SET_GENERIC)
+    {
+        if (expected == HYPERDATATYPE_SET_INT64 ||
+            expected == HYPERDATATYPE_SET_STRING)
+        {
+            return expected;
+        }
+    }
+
+    return HYPERDATATYPE_GARBAGE;
+}
+
+#define HYPERCLIENT_CPPDEF(PREFIX, OPNAME, OPNAMECAPS, CONVERT) \
     int64_t \
     hyperclient :: PREFIX ## _ ## OPNAME(const char* space, const char* key, size_t key_sz, \
                               const struct hyperclient_attribute* attrs, size_t attrs_sz, \
                               enum hyperclient_returncode* status) \
     { \
-        return attributes_to_microops(garbage, \
+        return attributes_to_microops(CONVERT, \
                                       hyperdex::OP_ ## OPNAMECAPS, space, \
                                       key, key_sz, attrs, attrs_sz, status); \
     }
 
-HYPERCLIENT_CPPDEF(atomic, add, INT64_ADD)
-HYPERCLIENT_CPPDEF(atomic, sub, INT64_SUB)
-HYPERCLIENT_CPPDEF(atomic, mul, INT64_MUL)
-HYPERCLIENT_CPPDEF(atomic, div, INT64_DIV)
-HYPERCLIENT_CPPDEF(atomic, mod, INT64_MOD)
-HYPERCLIENT_CPPDEF(atomic, and, INT64_AND)
-HYPERCLIENT_CPPDEF(atomic, or, INT64_OR)
-HYPERCLIENT_CPPDEF(atomic, xor, INT64_XOR)
-HYPERCLIENT_CPPDEF(string, prepend, STRING_PREPEND)
-HYPERCLIENT_CPPDEF(string, append, STRING_APPEND)
-HYPERCLIENT_CPPDEF(list, lpush, LIST_LPUSH)
-HYPERCLIENT_CPPDEF(list, rpush, LIST_RPUSH)
-HYPERCLIENT_CPPDEF(set, add, SET_ADD)
-HYPERCLIENT_CPPDEF(set, remove, SET_REMOVE)
-HYPERCLIENT_CPPDEF(set, intersect, SET_INTERSECT)
-HYPERCLIENT_CPPDEF(set, union, SET_UNION)
+HYPERCLIENT_CPPDEF(atomic, add, INT64_ADD, coerce_identity)
+HYPERCLIENT_CPPDEF(atomic, sub, INT64_SUB, coerce_identity)
+HYPERCLIENT_CPPDEF(atomic, mul, INT64_MUL, coerce_identity)
+HYPERCLIENT_CPPDEF(atomic, div, INT64_DIV, coerce_identity)
+HYPERCLIENT_CPPDEF(atomic, mod, INT64_MOD, coerce_identity)
+HYPERCLIENT_CPPDEF(atomic, and, INT64_AND, coerce_identity)
+HYPERCLIENT_CPPDEF(atomic, or, INT64_OR, coerce_identity)
+HYPERCLIENT_CPPDEF(atomic, xor, INT64_XOR, coerce_identity)
+HYPERCLIENT_CPPDEF(string, prepend, STRING_PREPEND, coerce_identity)
+HYPERCLIENT_CPPDEF(string, append, STRING_APPEND, coerce_identity)
+HYPERCLIENT_CPPDEF(list, lpush, LIST_LPUSH, coerce_list)
+HYPERCLIENT_CPPDEF(list, rpush, LIST_RPUSH, coerce_list)
+HYPERCLIENT_CPPDEF(set, add, SET_ADD, coerce_set)
+HYPERCLIENT_CPPDEF(set, remove, SET_REMOVE, coerce_set)
+HYPERCLIENT_CPPDEF(set, intersect, SET_INTERSECT, coerce_set_w_generic)
+HYPERCLIENT_CPPDEF(set, union, SET_UNION, coerce_set_w_generic)
 
 static hyperdatatype
 map_garbage(hyperdatatype, hyperdatatype)
@@ -281,26 +375,30 @@ hyperclient :: search(const char* space,
     // Check the equality conditions.
     for (size_t i = 0; i < eq_sz; ++i)
     {
-        int idx = validate_attr(dims, &dims_seen, eq[i].attr, eq[i].datatype, status);
+        hyperdatatype coerced = eq[i].datatype;
+        int idx = validate_attr(coerce_identity, dims, &dims_seen, eq[i].attr, &coerced, status);
 
         if (idx < 0)
         {
             return -1 - i;
         }
 
+        assert(coerced == eq[i].datatype);
         s.equality_set(idx, e::slice(eq[i].value, eq[i].value_sz));
     }
 
     // Check the range conditions.
     for (size_t i = 0; i < rn_sz; ++i)
     {
-        int idx = validate_attr(dims, &dims_seen, rn[i].attr, HYPERDATATYPE_INT64, status);
+        hyperdatatype coerced = HYPERDATATYPE_INT64;
+        int idx = validate_attr(coerce_identity, dims, &dims_seen, rn[i].attr, &coerced, status);
 
         if (idx < 0)
         {
             return -1 - eq_sz - i;
         }
 
+        assert(coerced == HYPERDATATYPE_INT64);
         s.range_set(idx, rn[i].lower, rn[i].upper);
     }
 
@@ -652,7 +750,8 @@ hyperclient :: pack_attrs(const char* space, e::buffer::packer* p,
 
     for (size_t i = 0; i < attrs_sz; ++i)
     {
-        int idx = validate_attr(dims, &dims_seen, attrs[i].attr, attrs[i].datatype, status);
+        hyperdatatype coerced = attrs[i].datatype;
+        int idx = validate_attr(coerce_generic, dims, &dims_seen, attrs[i].attr, &coerced, status);
 
         if (idx < 0)
         {
@@ -706,7 +805,7 @@ hyperclient :: killall(const po6::net::location& loc,
 }
 
 int64_t
-hyperclient :: attributes_to_microops(hyperdatatype (*map_datatype)(hyperdatatype t),
+hyperclient :: attributes_to_microops(hyperdatatype (*coerce_datatype)(hyperdatatype e, hyperdatatype p),
                                       int action, const char* space,
                                       const char* key, size_t key_sz,
                                       const struct hyperclient_attribute* attrs,
@@ -752,8 +851,8 @@ hyperclient :: attributes_to_microops(hyperdatatype (*map_datatype)(hyperdatatyp
 
     for (size_t i = 0; i < attrs_sz; ++i)
     {
-        hyperdatatype t = map_datatype(attrs[i].datatype);
-        int idx = validate_attr(dims, NULL, attrs[i].attr, t, status);
+        hyperdatatype coerced = attrs[i].datatype;
+        int idx = validate_attr(coerce_datatype, dims, NULL, attrs[i].attr, &coerced, status);
 
         if (idx < 0)
         {
@@ -763,7 +862,7 @@ hyperclient :: attributes_to_microops(hyperdatatype (*map_datatype)(hyperdatatyp
         hyperdex::microop o;
         o.attr = idx;
         o.action = static_cast<hyperdex::microop_type>(action);
-        o.type = t;
+        o.type = coerced;
         o.arg1 = e::slice(attrs[i].value, attrs[i].value_sz);
         ops.push_back(o);
     }
@@ -780,7 +879,7 @@ hyperclient :: attributes_to_microops(hyperdatatype (*map_datatype)(hyperdatatyp
 }
 
 int64_t
-hyperclient :: map_attributes_to_microops(hyperdatatype (*map_datatype)(hyperdatatype k, hyperdatatype v),
+hyperclient :: map_attributes_to_microops(hyperdatatype (*coerce_datatype)(hyperdatatype k, hyperdatatype v),
                                           int action, const char* space,
                                           const char* key, size_t key_sz,
                                           const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
@@ -825,8 +924,8 @@ hyperclient :: map_attributes_to_microops(hyperdatatype (*map_datatype)(hyperdat
 
     for (size_t i = 0; i < attrs_sz; ++i)
     {
-        hyperdatatype t = map_datatype(attrs[i].map_key_datatype, attrs[i].value_datatype);
-        int idx = validate_attr(dims, NULL, attrs[i].attr, t, status);
+        hyperdatatype coerced = attrs[i].datatype;
+        int idx = validate_attr(coerce_datatype, dims, NULL, attrs[i].attr, &coerced, status);
 
         if (idx < 0)
         {
@@ -836,7 +935,7 @@ hyperclient :: map_attributes_to_microops(hyperdatatype (*map_datatype)(hyperdat
         hyperdex::microop o;
         o.attr = idx;
         o.action = static_cast<hyperdex::microop_type>(action);
-        o.type = t;
+        o.type = coerced;
         o.arg2 = e::slice(attrs[i].map_key, attrs[i].map_key_sz);
         o.arg1 = e::slice(attrs[i].value, attrs[i].value_sz);
         ops.push_back(o);
@@ -854,10 +953,11 @@ hyperclient :: map_attributes_to_microops(hyperdatatype (*map_datatype)(hyperdat
 }
 
 int
-hyperclient :: validate_attr(const std::vector<hyperdex::attribute>& dimension_names,
+hyperclient :: validate_attr(hyperdatatype (*coerce_datatype)(hyperdatatype e, hyperdatatype p),
+                             const std::vector<hyperdex::attribute>& dimension_names,
                              e::bitfield* dimensions_seen,
                              const char* attr,
-                             hyperdatatype type,
+                             hyperdatatype* type,
                              hyperclient_returncode* status)
 {
     std::vector<hyperdex::attribute>::const_iterator dim;
@@ -888,11 +988,13 @@ hyperclient :: validate_attr(const std::vector<hyperdex::attribute>& dimension_n
         return -1;
     }
 
-    if (type != dim->type)
+    if (coerce_datatype(dim->type, *type) != dim->type)
     {
         *status = HYPERCLIENT_WRONGTYPE;
         return -1;
     }
+
+    *type = dim->type;
 
     if (dimensions_seen)
     {

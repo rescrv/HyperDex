@@ -56,17 +56,35 @@
 // On success, *ptr will be changed to point to one byte past the end of the
 // structure decoded.
 
+template <typename T>
+inline int
+_cmp(T a, T b)
+{
+    if (a < b)
+    {
+        return -1;
+    }
+    else if (a > b)
+    {
+        return 1;
+    }
+
+    return 0;
+}
+
 /////////////////////////////// String Primitives //////////////////////////////
 
 static int
 compare_string(const uint8_t* a_ptr, uint32_t a_sz,
                const uint8_t* b_ptr, uint32_t b_sz)
 {
-    int cmp = a_sz - b_sz;
+    int cmp = memcmp(a_ptr + sizeof(uint32_t),
+                     b_ptr + sizeof(uint32_t),
+                     std::min(a_sz, b_sz));
 
     if (cmp == 0)
     {
-        return memcmp(a_ptr + sizeof(uint32_t), b_ptr + sizeof(uint32_t), a_sz);
+        return _cmp(a_sz, b_sz);
     }
 
     return cmp;
@@ -76,13 +94,13 @@ static int
 compare_string_micros_arg1(const hyperdex::microop* lhs,
                            const hyperdex::microop* rhs)
 {
-    int cmp = lhs->arg1.size() - rhs->arg1.size();
+    int cmp = memcmp(lhs->arg1.data(),
+                     rhs->arg1.data(),
+                     std::min(lhs->arg1.size(), rhs->arg1.size()));
 
     if (cmp == 0)
     {
-        return memcmp(lhs->arg1.data(),
-                      rhs->arg1.data(),
-                      lhs->arg1.size());
+        return _cmp(lhs->arg1.size(), rhs->arg1.size());
     }
 
     return cmp;
@@ -92,13 +110,13 @@ static int
 compare_string_micros_arg2(const hyperdex::microop* lhs,
                            const hyperdex::microop* rhs)
 {
-    int cmp = lhs->arg2.size() - rhs->arg2.size();
+    int cmp = memcmp(lhs->arg2.data(),
+                     rhs->arg2.data(),
+                     std::min(lhs->arg2.size(), rhs->arg2.size()));
 
     if (cmp == 0)
     {
-        return memcmp(lhs->arg2.data(),
-                      rhs->arg2.data(),
-                      lhs->arg2.size());
+        return _cmp(lhs->arg2.size(), rhs->arg2.size());
     }
 
     return cmp;
@@ -108,11 +126,13 @@ static int
 compare_string_micro_arg1(const uint8_t* ptr, uint32_t ptr_sz,
                           const hyperdex::microop* op)
 {
-    int cmp = ptr_sz - op->arg1.size();
+    int cmp = memcmp(ptr + sizeof(uint32_t),
+                     op->arg1.data(),
+                     std::min(static_cast<size_t>(ptr_sz), op->arg1.size()));
 
     if (cmp == 0)
     {
-        return memcmp(ptr + sizeof(uint32_t), op->arg1.data(), ptr_sz);
+        return _cmp(static_cast<size_t>(ptr_sz), op->arg1.size());
     }
 
     return cmp;
@@ -122,11 +142,13 @@ static int
 compare_string_micro_arg2(const uint8_t* ptr, uint32_t ptr_sz,
                           const hyperdex::microop* op)
 {
-    int cmp = ptr_sz - op->arg2.size();
+    int cmp = memcmp(ptr + sizeof(uint32_t),
+                     op->arg2.data(),
+                     std::min(static_cast<size_t>(ptr_sz), op->arg2.size()));
 
     if (cmp == 0)
     {
-        return memcmp(ptr + sizeof(uint32_t), op->arg2.data(), ptr_sz);
+        return _cmp(static_cast<size_t>(ptr_sz), op->arg2.size());
     }
 
     return cmp;
@@ -282,7 +304,7 @@ compare_int64(const uint8_t* a_ptr, uint32_t a_sz,
     int64_t b;
     e::unpack64le(a_ptr, &a);
     e::unpack64le(b_ptr, &b);
-    return a - b;
+    return _cmp(a, b);
 }
 
 static int
@@ -293,7 +315,7 @@ compare_int64_micros_arg1(const hyperdex::microop* lhs,
     int64_t rhsnum = 0;
     e::unpack64le(lhs->arg1.data(), &lhsnum);
     e::unpack64le(rhs->arg1.data(), &rhsnum);
-    return lhsnum - rhsnum;
+    return _cmp(lhsnum, rhsnum);
 }
 
 static int
@@ -304,7 +326,7 @@ compare_int64_micros_arg2(const hyperdex::microop* lhs,
     int64_t rhsnum = 0;
     e::unpack64le(lhs->arg2.data(), &lhsnum);
     e::unpack64le(rhs->arg2.data(), &rhsnum);
-    return lhsnum - rhsnum;
+    return _cmp(lhsnum, rhsnum);
 }
 
 static int
@@ -316,7 +338,7 @@ compare_int64_micro_arg1(const uint8_t* ptr, uint32_t ptr_sz,
     int64_t rhsnum = 0;
     e::unpack64le(ptr, &lhsnum);
     e::unpack64le(op->arg1.data(), &rhsnum);
-    return lhsnum - rhsnum;
+    return _cmp(lhsnum, rhsnum);
 }
 
 static int
@@ -328,7 +350,7 @@ compare_int64_micro_arg2(const uint8_t* ptr, uint32_t ptr_sz,
     int64_t rhsnum = 0;
     e::unpack64le(ptr, &lhsnum);
     e::unpack64le(op->arg2.data(), &rhsnum);
-    return lhsnum - rhsnum;
+    return _cmp(lhsnum, rhsnum);
 }
 
 static uint8_t*

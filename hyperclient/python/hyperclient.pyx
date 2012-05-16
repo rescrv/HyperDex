@@ -79,8 +79,7 @@ cdef extern from "../hyperclient.h":
         size_t map_key_sz
         char* value
         size_t value_sz
-        hyperdatatype map_key_datatype
-        hyperdatatype value_datatype
+        hyperdatatype datatype
 
     cdef struct hyperclient_range_query:
         char* attr
@@ -181,13 +180,17 @@ class HyperClientException(Exception):
        return self._status
 
 
-def __string_key(obj):
-    return len(obj), obj
+def __sort_key(obj):
+    if isinstance(obj, bytes):
+        return tuple([ord(c) for c in obj])
+    return obj
 
 
 cdef _obj_to_backing(v):
-    backing = None
-    datatype = None
+    cdef backing = b''
+    cdef datatype = None
+    cdef hyperdatatype keytype = HYPERDATATYPE_GARBAGE
+    cdef hyperdatatype valtype = HYPERDATATYPE_GARBAGE
     if isinstance(v, bytes):
         backing = v
         datatype = HYPERDATATYPE_STRING
@@ -195,69 +198,74 @@ cdef _obj_to_backing(v):
         backing = struct.pack('<q', v)
         datatype = HYPERDATATYPE_INT64
     elif isinstance(v, list) or isinstance(v, tuple):
-        backing = b''
+        datatype = HYPERDATATYPE_LIST_GENERIC
         if all([isinstance(x, int) for x in v]):
             for x in v:
                 backing += struct.pack('<q', x)
-            datatype = HYPERDATATYPE_LIST_INT64
+                datatype = HYPERDATATYPE_LIST_INT64
         elif all([isinstance(x, bytes) for x in v]):
             for x in v:
                 backing += struct.pack('<L', len(x))
                 backing += bytes(x)
-            datatype = HYPERDATATYPE_LIST_STRING
+                datatype = HYPERDATATYPE_LIST_STRING
         else:
             raise TypeError("Cannot store heterogeneous lists")
     elif isinstance(v, set):
-        backing = b''
-        if all([isinstance(x, int) for x in v]):
-            for x in sorted(v):
-                backing += struct.pack('<q', x)
-            datatype = HYPERDATATYPE_SET_INT64
-        elif all([isinstance(x, bytes) for x in v]):
-            for x in sorted(v, key=__string_key):
-                backing += struct.pack('<L', len(x))
-                backing += bytes(x)
-            datatype = HYPERDATATYPE_SET_STRING
-        else:
+        keytype = HYPERDATATYPE_SET_GENERIC
+        if len(set([x.__class__ for x in v])) > 1:
             raise TypeError("Cannot store heterogeneous sets")
+        for x in sorted(v, key=__sort_key):
+            if isinstance(x, bytes):
+                innerxtype = HYPERDATATYPE_SET_STRING
+                innerxbacking = struct.pack('<L', len(x)) + bytes(x)
+            elif isinstance(x, int):
+                innerxtype = HYPERDATATYPE_SET_INT64
+                innerxbacking = struct.pack('<q', x)
+            else:
+                raise TypeError("Cannot store heterogeneous sets")
+            assert keytype == HYPERDATATYPE_SET_GENERIC or keytype == innerxtype
+            keytype == innerxtype
+            backing += innerxbacking
+        dtypes = {HYPERDATATYPE_SET_GENERIC: HYPERDATATYPE_SET_GENERIC,
+                  HYPERDATATYPE_SET_STRING: HYPERDATATYPE_SET_STRING,
+                  HYPERDATATYPE_SET_INT64: HYPERDATATYPE_SET_INT64}
+        datatype = dtypes[keytype]
     elif isinstance(v, dict):
-        backing = b''
-        keytype = None
-        valtype = None
-        mixedtype = TypeError("Cannot store heterogeneous maps")
-        for x, y in v.iteritems():
-            if isinstance(x, int):
-                if keytype not in ('int64', None):
-                    raise mixedtype
-                backing += struct.pack('<q', x)
-                keytype = 'int64'
-            elif isinstance(x, bytes):
-                if keytype not in ('string', None):
-                    raise mixedtype
-                backing += struct.pack('<L', len(x))
-                backing += bytes(x)
-                keytype = 'string'
+        keytype = HYPERDATATYPE_MAP_GENERIC
+        valtype = HYPERDATATYPE_MAP_GENERIC
+        if len(set([x.__class__ for x in v.keys()])) > 1:
+            raise TypeError("Cannot store heterogeneous maps")
+        if len(set([x.__class__ for x in v.values()])) > 1:
+            raise TypeError("Cannot store heterogeneous maps")
+        for x, y in sorted(v.items(), key=__sort_key):
+            if isinstance(x, bytes):
+                innerxtype = HYPERDATATYPE_STRING
+                innerxbacking = struct.pack('<L', len(x)) + bytes(x)
+            elif isinstance(x, int):
+                innerxtype = HYPERDATATYPE_INT64
+                innerxbacking = struct.pack('<q', x)
             else:
-                raise mixedtype
-            if isinstance(y, int):
-                if valtype not in ('int64', None):
-                    raise mixedtype
-                backing += struct.pack('<q', y)
-                valtype = 'int64'
-            elif isinstance(y, bytes):
-                if valtype not in ('string', None):
-                    raise mixedtype
-                backing += struct.pack('<L', len(y))
-                backing += bytes(y)
-                valtype = 'string'
+                raise TypeError("Cannot store heterogeneous sets")
+            if isinstance(y, bytes):
+                innerytype = HYPERDATATYPE_STRING
+                innerybacking = struct.pack('<L', len(y)) + bytes(y)
+            elif isinstance(y, int):
+                innerytype = HYPERDATATYPE_INT64
+                innerybacking = struct.pack('<q', y)
             else:
-                raise mixedtype
-        dtypes = {('string', 'string'): HYPERDATATYPE_MAP_STRING_STRING,
-                  ('string', 'int64'): HYPERDATATYPE_MAP_STRING_INT64,
-                  ('int64', 'string'): HYPERDATATYPE_MAP_INT64_STRING,
-                  ('int64', 'int64'): HYPERDATATYPE_MAP_INT64_INT64}
+                raise TypeError("Cannot store heterogeneous sets")
+            assert keytype == HYPERDATATYPE_MAP_GENERIC or keytype == innerxtype
+            assert valtype == HYPERDATATYPE_MAP_GENERIC or valtype == innerytype
+            keytype = innerxtype
+            valtype = innerytype
+            backing += innerxbacking + innerybacking
+        dtypes = {(HYPERDATATYPE_STRING, HYPERDATATYPE_STRING): HYPERDATATYPE_MAP_STRING_STRING,
+                  (HYPERDATATYPE_STRING, HYPERDATATYPE_INT64): HYPERDATATYPE_MAP_STRING_INT64,
+                  (HYPERDATATYPE_INT64, HYPERDATATYPE_STRING): HYPERDATATYPE_MAP_INT64_STRING,
+                  (HYPERDATATYPE_INT64, HYPERDATATYPE_INT64): HYPERDATATYPE_MAP_INT64_INT64,
+                  (HYPERDATATYPE_MAP_GENERIC, HYPERDATATYPE_MAP_GENERIC): HYPERDATATYPE_MAP_GENERIC}
         datatype = dtypes[(keytype, valtype)]
-    return (datatype, backing)
+    return datatype, backing
 
 
 cdef _dict_to_attrs(list value, hyperclient_attribute** attrs):

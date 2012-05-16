@@ -93,8 +93,7 @@ struct hyperclient_map_attribute
     size_t map_key_sz;
     const char* value;
     size_t value_sz;
-    enum hyperdatatype map_key_datatype;
-    enum hyperdatatype value_datatype;
+    enum hyperdatatype datatype;
 };
 
 struct hyperclient_range_query
@@ -758,22 +757,23 @@ class hyperclient
         size_t pack_attrs_sz(const struct hyperclient_attribute* attrs,
                              size_t attrs_sz);
         void killall(const po6::net::location& loc, hyperclient_returncode status);
-        int64_t attributes_to_microops(hyperdatatype (*map_datatype)(hyperdatatype t),
+        int64_t attributes_to_microops(hyperdatatype (*coerce_datatype)(hyperdatatype e, hyperdatatype p),
                                        int action, const char* space,
                                        const char* key, size_t key_sz,
                                        const struct hyperclient_attribute* attrs,
                                        size_t attrs_sz,
                                        hyperclient_returncode* status);
-        int64_t map_attributes_to_microops(hyperdatatype (*map_datatype)(hyperdatatype k, hyperdatatype v),
+        int64_t map_attributes_to_microops(hyperdatatype (*coerce_datatype)(hyperdatatype e, hyperdatatype p),
                                            int action, const char* space,
                                            const char* key, size_t key_sz,
                                            const struct hyperclient_map_attribute* attrs,
                                            size_t attrs_sz,
                                            hyperclient_returncode* status);
-        int validate_attr(const std::vector<hyperdex::attribute>& dimensions,
+        int validate_attr(hyperdatatype (*coerce_datatype)(hyperdatatype e, hyperdatatype p),
+                          const std::vector<hyperdex::attribute>& dimensions,
                           e::bitfield* dimensions_seen,
                           const char* attr,
-                          hyperdatatype type,
+                          hyperdatatype* type,
                           hyperclient_returncode* status);
 
     private:
