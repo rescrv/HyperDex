@@ -758,18 +758,18 @@ class CoordinatorServer(object):
                     sock, conn = self._conns[fd]
                     remove = False
                     try:
+                        if ev & select.POLLIN:
+                            conn.handle_in()
+                        if ev & select.POLLOUT:
+                            conn.handle_out()
+                            if conn.outgoing == '':
+                                self._p.modify(fd, select.POLLIN)
                         if ev & select.POLLERR:
                             remove = True
                         elif ev & select.POLLHUP:
                             remove = True
                         elif ev & select.POLLNVAL:
                             remove = True
-                        if not remove and ev & select.POLLIN:
-                            conn.handle_in()
-                        if not remove and ev & select.POLLOUT:
-                            conn.handle_out()
-                            if conn.outgoing == '':
-                                self._p.modify(fd, select.POLLIN)
                     except KillConnection as kc:
                         logging.error('connection killed: ' + str(kc))
                         remove = True
