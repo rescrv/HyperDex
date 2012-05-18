@@ -37,11 +37,13 @@
 %typemap(javadestruct, methodname="destr_delete", methodmodifiers="private synchronized") std::map<std::string, Attribute*> %{
   {
     if (swigCPtr != 0) {
+      System.out.println("Start deleting $javaclassname " + " (" + swigCPtr + ")");
+      hyperclientJNI.$javaclassname_destr_clear(swigCPtr, this);
       if (swigCMemOwn) {
         swigCMemOwn = false;
-        hyperclientJNI.$javaclassname_destr_clear(swigCPtr, this);
         hyperclientJNI.delete_$javaclassname(swigCPtr);
       }
+      System.out.println("End deleting $javaclassname " + " (" + swigCPtr + ")");
       swigCPtr = 0;
     }
   }

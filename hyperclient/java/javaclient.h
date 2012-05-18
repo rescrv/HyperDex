@@ -40,6 +40,8 @@ class Attribute
         virtual hyperdatatype type() const;
         virtual void serialize(std::string& value) const;
         static Attribute* deserialize(const hyperclient_attribute& attr);
+        virtual int data(char *bytes, int len);
+        virtual std::string toString();
 };
 
 class StringAttribute : public Attribute
@@ -55,6 +57,8 @@ class StringAttribute : public Attribute
     public:
         virtual hyperdatatype type() const;
         virtual void serialize(std::string& value) const;
+        virtual int data(char *bytes, int len);
+        virtual std::string toString();
 };
 
 class IntegerAttribute : public Attribute
@@ -70,6 +74,8 @@ class IntegerAttribute : public Attribute
 
         virtual hyperdatatype type() const;
         virtual void serialize(std::string& value) const;
+        virtual int data(char *bytes, int len);
+        virtual std::string toString();
 };
 
 class HyperClient

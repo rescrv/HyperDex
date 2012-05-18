@@ -37,6 +37,7 @@
 #include "hyperclient/java/javaclient.h"
 
 #include <iostream>
+#include <sstream>
 
 Attribute :: Attribute()
 {
@@ -80,6 +81,18 @@ Attribute :: deserialize(const hyperclient_attribute& attr)
     throw ex_str;
 }
 
+int
+Attribute :: data(char *bytes, int len)
+{
+    return 0;
+}
+
+std::string
+Attribute :: toString()
+{
+    return "";
+}
+
 StringAttribute :: StringAttribute(const std::string& attr_value)
                                    : m_attr_value(attr_value)
 {
@@ -110,6 +123,24 @@ StringAttribute :: serialize(std::string& value) const
     value.assign(std::string(m_attr_value));
 }
 
+int
+StringAttribute :: data(char *bytes, int len)
+{
+    size_t size = m_attr_value.size();
+
+    if ( len == 0 ) return size;
+    
+    int ret_len = len<size?len:size;
+    m_attr_value.copy(bytes,ret_len);
+    return ret_len;
+}
+
+std::string
+StringAttribute :: toString()
+{
+    return m_attr_value;
+}
+
 IntegerAttribute :: IntegerAttribute(int64_t attr_value)
                                      : m_attr_value(attr_value)
 {
@@ -134,6 +165,28 @@ IntegerAttribute :: serialize(std::string& value) const
     value.assign(
         reinterpret_cast<const char *>(&htole64(m_attr_value)),
         sizeof(int64_t));
+}
+
+int
+IntegerAttribute :: data(char *bytes, int len)
+{
+    size_t size = sizeof(int64_t);
+
+    if ( len == 0 ) return size;
+    
+    int ret_len = len<size?len:size;
+    int64_t intbe64 = htobe64(m_attr_value);
+    std::string buf = std::string((const char *)&intbe64,ret_len);
+    buf.copy(bytes,ret_len);
+    return ret_len;
+}
+
+std::string
+IntegerAttribute :: toString()
+{
+    std::stringstream ss;
+    ss << m_attr_value;
+    return ss.str();
 }
 
 HyperClient :: HyperClient(const char* coordinator, in_port_t port)
@@ -350,9 +403,10 @@ HyperClient :: range_search(const std::string& space,
         pre_insert_size++;
         */
 
+        results->push_back(std::map<std::string, Attribute*>());
+
         for (size_t i = 0; i < attrs_sz; ++i)
         {
-            results->push_back(std::map<std::string, Attribute*>());
             results->back().insert(std::make_pair(attrs[i].attr,
                                                   Attribute::deserialize(attrs[i])));
         }

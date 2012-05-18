@@ -50,6 +50,7 @@ typedef uint16_t in_port_t;
     }
 %}
 
+%apply (char *STRING, int LENGTH) { (char *bytes, int len) }
 %include "hyperclient/java/javaclient.h"
 
 %include "HyperClient.i"
