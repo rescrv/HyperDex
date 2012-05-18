@@ -36,6 +36,7 @@
 
 // e
 #include <e/endian.h>
+#include <e/safe_math.h>
 
 // HyperDaemon
 #include "hyperdex.h"
@@ -445,19 +446,39 @@ apply_int64(const e::slice& old_value,
                 number = arg;
                 break;
             case OP_INT64_ADD:
-                number += arg;
+                if (!e::safe_add(number, arg, &number))
+                {
+                    *error = hyperdex::NET_OVERFLOW;
+                    return NULL;
+                }
                 break;
             case OP_INT64_SUB:
-                number -= arg;
+                if (!e::safe_sub(number, arg, &number))
+                {
+                    *error = hyperdex::NET_OVERFLOW;
+                    return NULL;
+                }
                 break;
             case OP_INT64_MUL:
-                number *= arg;
+                if (!e::safe_mul(number, arg, &number))
+                {
+                    *error = hyperdex::NET_OVERFLOW;
+                    return NULL;
+                }
                 break;
             case OP_INT64_DIV:
-                number /= arg;
+                if (!e::safe_div(number, arg, &number))
+                {
+                    *error = hyperdex::NET_OVERFLOW;
+                    return NULL;
+                }
                 break;
             case OP_INT64_MOD:
-                number %= arg;
+                if (!e::safe_mod(number, arg, &number))
+                {
+                    *error = hyperdex::NET_OVERFLOW;
+                    return NULL;
+                }
                 break;
             case OP_INT64_AND:
                 number &= arg;

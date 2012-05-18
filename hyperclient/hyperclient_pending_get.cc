@@ -90,6 +90,7 @@ hyperclient :: pending_get :: handle_response(hyperclient* cl,
         case hyperdex::NET_SERVERERROR:
         case hyperdex::NET_CMPFAIL:
         case hyperdex::NET_BADMICROS:
+        case hyperdex::NET_OVERFLOW:
         default:
             cl->killall(sender, HYPERCLIENT_SERVERERROR);
             return 0;

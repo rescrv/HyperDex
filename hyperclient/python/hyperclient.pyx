@@ -96,6 +96,7 @@ cdef extern from "../hyperclient.h":
         HYPERCLIENT_COORDFAIL    = 8513
         HYPERCLIENT_SERVERERROR  = 8514
         HYPERCLIENT_POLLFAILED   = 8515
+        HYPERCLIENT_OVERFLOW     = 8516
         HYPERCLIENT_RECONFIGURE  = 8517
         HYPERCLIENT_TIMEOUT      = 8519
         HYPERCLIENT_UNKNOWNATTR  = 8520
@@ -162,6 +163,7 @@ class HyperClientException(Exception):
                   ,HYPERCLIENT_COORDFAIL: 'Coordinator Failure'
                   ,HYPERCLIENT_SERVERERROR: 'Server Error'
                   ,HYPERCLIENT_POLLFAILED: 'Polling Failed'
+                  ,HYPERCLIENT_OVERFLOW: 'Integer-overflow or divide-by-zero'
                   ,HYPERCLIENT_RECONFIGURE: 'Reconfiguration'
                   ,HYPERCLIENT_TIMEOUT: 'Timeout'
                   ,HYPERCLIENT_UNKNOWNATTR: 'Unknown attribute "%s"' % attr
