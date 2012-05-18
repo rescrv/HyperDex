@@ -305,25 +305,6 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
         return;
     }
 
-    // If the atomic op does nothing, just act as if it was successful.
-    if (ops.empty())
-    {
-        respond_to_client(to, from, nonce,
-                          hyperdex::RESP_ATOMIC,
-                          hyperdex::NET_SUCCESS);
-        return;
-    }
-
-    // We make an unvalidated assumption that the ops array is sorted.  We will
-    // validate this at a later point.
-    if (ops.front().attr <= 0 || ops.back().attr >= dims.size())
-    {
-        respond_to_client(to, from, nonce,
-                          hyperdex::RESP_ATOMIC,
-                          hyperdex::NET_BADDIMSPEC);
-        return;
-    }
-
     // Automatically respond with "SERVERERROR" whenever we return without g.dismiss()
     e::guard g = e::makeobjguard(*this, &replication_manager::respond_to_client, to, from, nonce, hyperdex::RESP_ATOMIC, hyperdex::NET_SERVERERROR);
 
@@ -360,6 +341,27 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
     {
         // an atomic increment on an object that does not exist should fail
         respond_to_client(to, from, nonce, hyperdex::RESP_ATOMIC, hyperdex::NET_NOTFOUND);
+        g.dismiss();
+        return;
+    }
+
+    // If the atomic op does nothing, just act as if it was successful.
+    if (ops.empty())
+    {
+        respond_to_client(to, from, nonce,
+                          hyperdex::RESP_ATOMIC,
+                          hyperdex::NET_SUCCESS);
+        g.dismiss();
+        return;
+    }
+
+    // We make an unvalidated assumption that the ops array is sorted.  We will
+    // validate this at a later point.
+    if (ops.front().attr <= 0 || ops.back().attr >= dims.size())
+    {
+        respond_to_client(to, from, nonce,
+                          hyperdex::RESP_ATOMIC,
+                          hyperdex::NET_BADDIMSPEC);
         g.dismiss();
         return;
     }
