@@ -32,45 +32,45 @@
 // e
 #include <e/guard.h>
 
-// Attributes and HyperClient
+// HyperType's and HyperClient
 #include "hyperclient/hyperclient.h"
 #include "hyperclient/java/javaclient.h"
 
 #include <iostream>
 #include <sstream>
 
-Attribute :: Attribute()
+HyperType :: HyperType()
 {
-    std::cout << "Attribute Constructed" << std::endl;
+    std::cout << "HyperType Constructed" << std::endl;
 }
 
-Attribute :: ~Attribute() throw ()
+HyperType :: ~HyperType() throw ()
 {
-    std::cout << "Attribute Destructed" << std::endl;
+    std::cout << "HyperType Destroyed" << std::endl;
 }
 
 hyperdatatype 
-Attribute :: type() const
+HyperType :: type() const
 {
     return HYPERDATATYPE_GARBAGE;
 }
 
 void 
-Attribute :: serialize(std::string& value) const
+HyperType :: serialize(std::string& value) const
 {
-    std::cout << "Attribute Serialized" << std::endl;
+    std::cout << "HyperType Serialized" << std::endl;
 }
 
-Attribute* 
-Attribute :: deserialize(const hyperclient_attribute& attr)
+HyperType* 
+HyperType :: deserialize(const hyperclient_attribute& attr)
 {
     if ( attr.datatype == HYPERDATATYPE_STRING )
     {
-        return new StringAttribute(attr.value, attr.value_sz);
+        return new HyperString(attr.value, attr.value_sz);
     }
     else if ( attr.datatype == HYPERDATATYPE_INT64 )
     {
-        return new IntegerAttribute(le64toh(*reinterpret_cast<const int64_t*>(attr.value)));
+        return new HyperInteger(le64toh(*reinterpret_cast<const int64_t*>(attr.value)));
     }
 
     std::string ex_str;
@@ -82,49 +82,49 @@ Attribute :: deserialize(const hyperclient_attribute& attr)
 }
 
 int
-Attribute :: data(char *bytes, int len)
+HyperType :: data(char *bytes, int len)
 {
     return 0;
 }
 
 std::string
-Attribute :: toString()
+HyperType :: toString()
 {
     return "";
 }
 
-StringAttribute :: StringAttribute(const std::string& attr_value)
+HyperString :: HyperString(const std::string& attr_value)
                                    : m_attr_value(attr_value)
 {
-    std::cout << "StringAttribute Constructed" << std::endl;
+    std::cout << "HyperString Constructed" << std::endl;
 }
 
-StringAttribute :: StringAttribute(const char *s, size_t n)
+HyperString :: HyperString(const char *s, size_t n)
                                    : m_attr_value(s,n)
 {
-    std::cout << "StringAttribute Constructed" << std::endl;
+    std::cout << "HyperString Constructed" << std::endl;
 }
 
-StringAttribute :: ~StringAttribute() throw ()
+HyperString :: ~HyperString() throw ()
 {
-    std::cout << "StringAttribute Destructed" << std::endl;
+    std::cout << "HyperString Destroyed" << std::endl;
 }
 
 hyperdatatype 
-StringAttribute :: type() const
+HyperString :: type() const
 {
     return HYPERDATATYPE_STRING;
 }
 
 void
-StringAttribute :: serialize(std::string& value) const
+HyperString :: serialize(std::string& value) const
 {
-    std::cout << "StringAttribute Serialized" << std::endl;
+    std::cout << "HyperString Serialized" << std::endl;
     value.assign(std::string(m_attr_value));
 }
 
 int
-StringAttribute :: data(char *bytes, int len)
+HyperString :: data(char *bytes, int len)
 {
     size_t size = m_attr_value.size();
 
@@ -136,39 +136,39 @@ StringAttribute :: data(char *bytes, int len)
 }
 
 std::string
-StringAttribute :: toString()
+HyperString :: toString()
 {
     return m_attr_value;
 }
 
-IntegerAttribute :: IntegerAttribute(int64_t attr_value)
+HyperInteger :: HyperInteger(int64_t attr_value)
                                      : m_attr_value(attr_value)
 {
-   std::cout << "IntegerAttribute Constructed" << std::endl;
+   std::cout << "HyperInteger Constructed" << std::endl;
 }
 
-IntegerAttribute :: ~IntegerAttribute() throw ()
+HyperInteger :: ~HyperInteger() throw ()
 {
-   std::cout << "IntegerAttribute Destructed" << std::endl;
+   std::cout << "HyperInteger Destroyed" << std::endl;
 }
 
 hyperdatatype
-IntegerAttribute :: type() const
+HyperInteger :: type() const
 {
     return HYPERDATATYPE_INT64;
 }
 
 void
-IntegerAttribute :: serialize(std::string& value) const
+HyperInteger :: serialize(std::string& value) const
 {
-    std::cout << "IntegerAttribute Serialized" << std::endl;
+    std::cout << "HyperInteger Serialized" << std::endl;
     value.assign(
         reinterpret_cast<const char *>(&htole64(m_attr_value)),
         sizeof(int64_t));
 }
 
 int
-IntegerAttribute :: data(char *bytes, int len)
+HyperInteger :: data(char *bytes, int len)
 {
     size_t size = sizeof(int64_t);
 
@@ -182,7 +182,7 @@ IntegerAttribute :: data(char *bytes, int len)
 }
 
 std::string
-IntegerAttribute :: toString()
+HyperInteger :: toString()
 {
     std::stringstream ss;
     ss << m_attr_value;
@@ -201,7 +201,7 @@ HyperClient :: ~HyperClient() throw ()
 hyperclient_returncode
 HyperClient :: get(const std::string& space,
                    const std::string& key,
-                   std::map<std::string, Attribute*>* values)
+                   std::map<std::string, HyperType*>* values)
 {
     int64_t id;
     hyperclient_returncode stat1 = HYPERCLIENT_A;
@@ -238,7 +238,7 @@ HyperClient :: get(const std::string& space,
     for (size_t i = 0; i < attrs_sz; ++i)
     {
         values->insert(std::make_pair(std::string(attrs[i].attr),
-                                      Attribute::deserialize(attrs[i])));
+                                      HyperType::deserialize(attrs[i])));
     }
 
     assert(static_cast<unsigned>(stat1) >= 8448);
@@ -249,7 +249,7 @@ HyperClient :: get(const std::string& space,
 hyperclient_returncode
 HyperClient :: put(const std::string& space,
                    const std::string& key,
-                   const std::map<std::string, Attribute*>& attributes)
+                   const std::map<std::string, HyperType*>& attributes)
 {
     int64_t id;
     hyperclient_returncode stat1 = HYPERCLIENT_A;
@@ -258,7 +258,7 @@ HyperClient :: put(const std::string& space,
     std::vector<std::string> values;
     values.reserve(attributes.size());
 
-    for (std::map<std::string, Attribute*>::const_iterator ci = attributes.begin();
+    for (std::map<std::string, HyperType*>::const_iterator ci = attributes.begin();
             ci != attributes.end(); ++ci)
     {
         hyperclient_attribute at;
@@ -341,7 +341,7 @@ HyperClient :: range_search(const std::string& space,
                             const std::string& attr,
                             int64_t lower,
                             int64_t upper,
-                            std::vector<std::map<std::string, Attribute*> >* results)
+                            std::vector<std::map<std::string, HyperType*> >* results)
 {
     hyperclient_range_query rn;
     rn.attr = attr.c_str();
@@ -403,12 +403,12 @@ HyperClient :: range_search(const std::string& space,
         pre_insert_size++;
         */
 
-        results->push_back(std::map<std::string, Attribute*>());
+        results->push_back(std::map<std::string, HyperType*>());
 
         for (size_t i = 0; i < attrs_sz; ++i)
         {
             results->back().insert(std::make_pair(attrs[i].attr,
-                                                  Attribute::deserialize(attrs[i])));
+                                                  HyperType::deserialize(attrs[i])));
         }
 
         if (attrs)

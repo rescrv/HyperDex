@@ -31,25 +31,25 @@
 // HyperClient
 #include "../hyperclient.h"
 
-class Attribute
+class HyperType
 {
     public:
-        Attribute();
-        virtual ~Attribute() throw ();
+        HyperType();
+        virtual ~HyperType() throw ();
 
         virtual hyperdatatype type() const;
         virtual void serialize(std::string& value) const;
-        static Attribute* deserialize(const hyperclient_attribute& attr);
+        static HyperType* deserialize(const hyperclient_attribute& attr);
         virtual int data(char *bytes, int len);
         virtual std::string toString();
 };
 
-class StringAttribute : public Attribute
+class HyperString : public HyperType
 {
     public:
-        StringAttribute(const std::string& attr_value);
-        StringAttribute(const char *s, size_t n);
-        virtual ~StringAttribute() throw ();
+        HyperString(const std::string& attr_value);
+        HyperString(const char *s, size_t n);
+        virtual ~HyperString() throw ();
 
     private:
         std::string m_attr_value;
@@ -61,11 +61,11 @@ class StringAttribute : public Attribute
         virtual std::string toString();
 };
 
-class IntegerAttribute : public Attribute
+class HyperInteger : public HyperType
 {
     public:
-        IntegerAttribute(int64_t attr_value);
-        virtual ~IntegerAttribute() throw ();
+        HyperInteger(int64_t attr_value);
+        virtual ~HyperInteger() throw ();
 
     private:
         int64_t m_attr_value;
@@ -87,11 +87,11 @@ class HyperClient
     public:
         hyperclient_returncode get(const std::string& space,
                        const std::string& key,
-                       std::map<std::string, Attribute*>* values);
+                       std::map<std::string, HyperType*>* values);
 
         hyperclient_returncode put(const std::string& space,
                        const std::string& key,
-                       const std::map<std::string, Attribute*>& attributes);
+                       const std::map<std::string, HyperType*>& attributes);
 
         hyperclient_returncode del(const std::string& space,
                        const std::string& key);
@@ -100,7 +100,7 @@ class HyperClient
                                 int64_t lower,
                                 int64_t upper,
                                 std::vector<std::map<std::string,
-                                            Attribute*> >* results);
+                                            HyperType*> >* results);
 
     private:
         hyperclient m_client;

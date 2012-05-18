@@ -86,7 +86,7 @@ public class HyperClientYCSB extends DB
      */
     public int read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
     {
-        Attributes attributes = new Attributes();
+        HyperMap attributes = new HyperMap();
         ReturnCode ret = m_client.get(table, key, attributes);
 
         for (int i = 0; i < m_retries && ret != ReturnCode.SUCCESS && ret != ReturnCode.NOTFOUND; ++i)
@@ -146,7 +146,7 @@ public class HyperClientYCSB extends DB
         {
             for (int i = 0; i < res.size(); ++i)
             {
-                Attributes e = res.get(i);
+                HyperMap e = res.get(i);
                 HashMap<String, ByteIterator> e2 = new HashMap<String, ByteIterator>();
                 convert_to_java(fields, e, e2);
                 result.add(e2);
@@ -168,7 +168,7 @@ public class HyperClientYCSB extends DB
      */
     public int update(String table, String key, HashMap<String,ByteIterator> values)
     {
-        Attributes res = new Attributes();
+        HyperMap res = new HyperMap();
         convert_from_java(values, res);
 
         if (m_scannable)
@@ -181,8 +181,7 @@ public class HyperClientYCSB extends DB
             }
   
             long num = Long.parseLong(m_mat.group(2));
-            IntegerAttribute integer = new IntegerAttribute(num << 32);
-            res.set("recno", integer);
+            res.set("recno", num << 32);
         }
 
         ReturnCode ret = m_client.put(table, key, res);
@@ -238,7 +237,7 @@ public class HyperClientYCSB extends DB
         return ret.swigValue();
     }
 
-    private void convert_to_java(Set<String> fields, Attributes interres, HashMap<String,ByteIterator> result)
+    private void convert_to_java(Set<String> fields, HyperMap interres, HashMap<String,ByteIterator> result)
     {
         if (fields == null)
         {
@@ -255,12 +254,12 @@ public class HyperClientYCSB extends DB
         }
     }
 
-    private void convert_from_java(HashMap<String,ByteIterator> result, Attributes interres)
+    private void convert_from_java(HashMap<String,ByteIterator> result, HyperMap interres)
     {
         Map<String, ByteIterator> r = result;
         for (Map.Entry<String, ByteIterator> entry : r.entrySet())
         {
-            Attribute attribute = new StringAttribute(entry.getValue().toString());
+            HyperType attribute = new HyperString(entry.getValue().toString());
             interres.set(entry.getKey(), attribute);
         }
     }

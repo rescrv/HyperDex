@@ -50,6 +50,14 @@ typedef uint16_t in_port_t;
     }
 %}
 
+%typemap(javacode) HyperType
+%{
+  public void loseJvmOwnership()
+  {
+    swigCMemOwn = false;
+  }
+%}
+
 %apply (char *STRING, int LENGTH) { (char *bytes, int len) }
 %include "hyperclient/java/javaclient.h"
 
@@ -57,12 +65,10 @@ typedef uint16_t in_port_t;
 
 namespace std
 {
-    %template(Attributes) map<string, Attribute*>;
-    %template(SSMap) map<string, string>;
-    %template(SIMap) map<string, long long>;
-    %template(ISMap) map<long long, string>;
-    %template(IIMap) map<long long, long long>;
-    %template(SearchResult) vector<map<string, Attribute*> >;
+    %template(HyperList) vector<HyperType*>;
+    /*%template(HyperSet) vector<HyperType*>;*/
+    %template(HyperMap) map<string, HyperType*>;
+    %template(SearchResult) vector<map<string, HyperType*> >;
 }
 
 %ignore "";
