@@ -148,6 +148,8 @@ cdef extern from "../hyperclient.h":
     int64_t hyperclient_loop(hyperclient* client, int timeout, hyperclient_returncode* status)
     void hyperclient_destroy_attrs(hyperclient_attribute* attrs, size_t attrs_sz)
 
+ctypedef int64_t (*hyperclient_simple_op)(hyperclient*, char*, char*, size_t, hyperclient_attribute*, size_t, hyperclient_returncode*)
+
 import collections
 import struct
 
@@ -174,12 +176,42 @@ class HyperClientException(Exception):
                   ,HYPERCLIENT_NOMEM: 'Memory allocation failed'
                   ,HYPERCLIENT_EXCEPTION: 'Internal Error (file a bug)'
                   }.get(status, 'Unknown Error (file a bug)')
-
-    def __str__(self):
-        return self._s
+        self._e = {HYPERCLIENT_SUCCESS: 'HYPERCLIENT_SUCCESS'
+                  ,HYPERCLIENT_NOTFOUND: 'HYPERCLIENT_NOTFOUND'
+                  ,HYPERCLIENT_SEARCHDONE: 'HYPERCLIENT_SEARCHDONE'
+                  ,HYPERCLIENT_CMPFAIL: 'HYPERCLIENT_CMPFAIL'
+                  ,HYPERCLIENT_UNKNOWNSPACE: 'HYPERCLIENT_UNKNOWNSPACE'
+                  ,HYPERCLIENT_COORDFAIL: 'HYPERCLIENT_COORDFAIL'
+                  ,HYPERCLIENT_SERVERERROR: 'HYPERCLIENT_SERVERERROR'
+                  ,HYPERCLIENT_POLLFAILED: 'HYPERCLIENT_POLLFAILED'
+                  ,HYPERCLIENT_OVERFLOW: 'HYPERCLIENT_OVERFLOW'
+                  ,HYPERCLIENT_RECONFIGURE: 'HYPERCLIENT_RECONFIGURE'
+                  ,HYPERCLIENT_TIMEOUT: 'HYPERCLIENT_TIMEOUT'
+                  ,HYPERCLIENT_UNKNOWNATTR: 'HYPERCLIENT_UNKNOWNATTR'
+                  ,HYPERCLIENT_DUPEATTR: 'HYPERCLIENT_DUPEATTR'
+                  ,HYPERCLIENT_NONEPENDING: 'HYPERCLIENT_NONEPENDING'
+                  ,HYPERCLIENT_DONTUSEKEY: 'HYPERCLIENT_DONTUSEKEY'
+                  ,HYPERCLIENT_WRONGTYPE: 'HYPERCLIENT_WRONGTYPE'
+                  ,HYPERCLIENT_NOMEM: 'HYPERCLIENT_NOMEM'
+                  ,HYPERCLIENT_EXCEPTION: 'HYPERCLIENT_EXCEPTION'
+                  }.get(status, 'BUG')
 
     def status(self):
        return self._status
+
+    def __str__(self):
+        return 'HyperClient(%s, %s)' % (self._e, self._s)
+
+    def __repr__(self):
+        return str(self)
+
+    def __eq__(self, other):
+        if self.__class__ != other.__class__:
+            return False
+        return self._status == other._status
+
+    def __ne__(self, other):
+        return not (self == other)
 
 
 def __sort_key(obj):
@@ -495,8 +527,6 @@ cdef class Deferred:
         while not self._finished and self._reqid > 0:
             self._client.loop()
         self._finished = True
-        if self._status not in (HYPERCLIENT_SUCCESS, HYPERCLIENT_NOTFOUND, HYPERCLIENT_CMPFAIL):
-            raise HyperClientException(self._status)
 
 
 cdef class DeferredGet(Deferred):
@@ -527,14 +557,20 @@ cdef class DeferredGet(Deferred):
 
     def wait(self):
         Deferred.wait(self)
-        if self._status != HYPERCLIENT_SUCCESS:
+        if self._status == HYPERCLIENT_SUCCESS:
+            return _attrs_to_dict(self._attrs, self._attrs_sz)
+        elif self._status == HYPERCLIENT_NOTFOUND:
             return None
-        return _attrs_to_dict(self._attrs, self._attrs_sz)
+        else:
+            raise HyperClientException(self._status)
 
 
 cdef class DeferredFromAttrs(Deferred):
 
-    def __cinit__(self, Client client, bytes space, key, dict value, bytes op = None):
+    def __cinit__(self, Client client):
+        pass
+
+    cdef call(self, hyperclient_simple_op op, bytes space, key, dict value):
         cdef bytes key_backing
         datatype, key_backing = _obj_to_backing(key)
         cdef char* space_cstr = space
@@ -542,75 +578,26 @@ cdef class DeferredFromAttrs(Deferred):
         cdef hyperclient_attribute* attrs = NULL
         try:
             backings = _dict_to_attrs(value.items(), &attrs)
-            # XXX I'd like to use something more-constant in time, but I cannot
-            # get Cython to work with function pointers correctly
-            if not op:
-                self._reqid = hyperclient_put(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, len(value), &self._status)
-            elif op == 'add':
-                self._reqid = hyperclient_atomic_add(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, len(value), &self._status)
-            elif op == 'sub':
-                self._reqid = hyperclient_atomic_sub(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, len(value), &self._status)
-            elif op == 'mul':
-                self._reqid = hyperclient_atomic_mul(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, len(value), &self._status)
-            elif op == 'div':
-                self._reqid = hyperclient_atomic_div(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, len(value), &self._status)
-            elif op == 'mod':
-                self._reqid = hyperclient_atomic_mod(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, len(value), &self._status)
-            elif op == 'and':
-                self._reqid = hyperclient_atomic_and(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, len(value), &self._status)
-            elif op == 'or':
-                self._reqid = hyperclient_atomic_or(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, len(value), &self._status)
-            elif op == 'xor':
-                self._reqid = hyperclient_atomic_xor(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, len(value), &self._status)
-            elif op == 'prepend':
-                self._reqid = hyperclient_string_prepend(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, len(value), &self._status)
-            elif op == 'append':
-                self._reqid = hyperclient_string_append(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, len(value), &self._status)
-            elif op == 'lpush':
-                self._reqid = hyperclient_list_lpush(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, len(value), &self._status)
-            elif op == 'rpush':
-                self._reqid = hyperclient_list_rpush(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, len(value), &self._status)
-            elif op == 'set_add':
-                self._reqid = hyperclient_set_add(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, len(value), &self._status)
-            elif op == 'set_remove':
-                self._reqid = hyperclient_set_remove(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, len(value), &self._status)
-            elif op == 'set_intersect':
-                self._reqid = hyperclient_set_intersect(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, len(value), &self._status)
-            elif op == 'set_union':
-                self._reqid = hyperclient_set_union(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, len(value), &self._status)
-            else:
-                raise AttributeError("op == {0} is not valid".format(op))
+            self._reqid = op(self._client._client, space_cstr,
+                             key_cstr, len(key_backing),
+                             attrs, len(value), &self._status)
             if self._reqid < 0:
                 idx = -1 - self._reqid
                 attr = None
                 if attrs and attrs[idx].attr:
                     attr = attrs[idx].attr
                 raise HyperClientException(self._status, attr)
-            client._ops[self._reqid] = self
+            self._client._ops[self._reqid] = self
         finally:
             if attrs:
                 free(attrs)
 
     def wait(self):
         Deferred.wait(self)
-        return self._status == HYPERCLIENT_SUCCESS
+        if self._status == HYPERCLIENT_SUCCESS:
+            return True
+        else:
+            raise HyperClientException(self._status)
 
 
 cdef class DeferredCondPut(Deferred):
@@ -648,7 +635,12 @@ cdef class DeferredCondPut(Deferred):
 
     def wait(self):
         Deferred.wait(self)
-        return self._status == HYPERCLIENT_SUCCESS
+        if self._status == HYPERCLIENT_SUCCESS:
+            return True
+        elif self._status == HYPERCLIENT_CMPFAIL:
+            return False
+        else:
+            raise HyperClientException(self._status)
 
 
 cdef class DeferredDelete(Deferred):
@@ -666,7 +658,12 @@ cdef class DeferredDelete(Deferred):
 
     def wait(self):
         Deferred.wait(self)
-        return self._status == HYPERCLIENT_SUCCESS
+        if self._status == HYPERCLIENT_SUCCESS:
+            return True
+        elif self._status == HYPERCLIENT_NOTFOUND:
+            return False
+        else:
+            raise HyperClientException(self._status)
 
 
 cdef class DeferredMapOp(Deferred):
@@ -733,7 +730,10 @@ cdef class DeferredMapOp(Deferred):
 
     def wait(self):
         Deferred.wait(self)
-        return self._status == HYPERCLIENT_SUCCESS
+        if self._status == HYPERCLIENT_SUCCESS:
+            return True
+        else:
+            raise HyperClientException(self._status)
 
 
 cdef class Search:
@@ -976,7 +976,9 @@ cdef class Client:
         return DeferredGet(self, space, key)
 
     def async_put(self, bytes space, key, dict value):
-        return DeferredFromAttrs(self, space, key, value)
+        d = DeferredFromAttrs(self)
+        d.call(<hyperclient_simple_op> hyperclient_put, space, key, value)
+        return d
 
     def async_condput(self, bytes space, key, dict condition, dict value):
         return DeferredCondPut(self, space, key, condition, value)
@@ -985,52 +987,84 @@ cdef class Client:
         return DeferredDelete(self, space, key)
 
     def async_atomic_add(self, bytes space, key, dict value):
-        return DeferredFromAttrs(self, space, key, value, 'add')
+        d = DeferredFromAttrs(self)
+        d.call(<hyperclient_simple_op> hyperclient_atomic_add, space, key, value)
+        return d
 
     def async_atomic_sub(self, bytes space, key, dict value):
-        return DeferredFromAttrs(self, space, key, value, 'sub')
+        d = DeferredFromAttrs(self)
+        d.call(<hyperclient_simple_op> hyperclient_atomic_sub, space, key, value)
+        return d
 
     def async_atomic_mul(self, bytes space, key, dict value):
-        return DeferredFromAttrs(self, space, key, value, 'mul')
+        d = DeferredFromAttrs(self)
+        d.call(<hyperclient_simple_op> hyperclient_atomic_mul, space, key, value)
+        return d
 
     def async_atomic_div(self, bytes space, key, dict value):
-        return DeferredFromAttrs(self, space, key, value, 'div')
+        d = DeferredFromAttrs(self)
+        d.call(<hyperclient_simple_op> hyperclient_atomic_div, space, key, value)
+        return d
 
     def async_atomic_mod(self, bytes space, key, dict value):
-        return DeferredFromAttrs(self, space, key, value, 'mod')
+        d = DeferredFromAttrs(self)
+        d.call(<hyperclient_simple_op> hyperclient_atomic_mod, space, key, value)
+        return d
 
     def async_atomic_and(self, bytes space, key, dict value):
-        return DeferredFromAttrs(self, space, key, value, 'and')
+        d = DeferredFromAttrs(self)
+        d.call(<hyperclient_simple_op> hyperclient_atomic_and, space, key, value)
+        return d
 
     def async_atomic_or(self, bytes space, key, dict value):
-        return DeferredFromAttrs(self, space, key, value, 'or')
+        d = DeferredFromAttrs(self)
+        d.call(<hyperclient_simple_op> hyperclient_atomic_or, space, key, value)
+        return d
 
     def async_atomic_xor(self, bytes space, key, dict value):
-        return DeferredFromAttrs(self, space, key, value, 'xor')
+        d = DeferredFromAttrs(self)
+        d.call(<hyperclient_simple_op> hyperclient_atomic_xor, space, key, value)
+        return d
 
     def async_string_prepend(self, bytes space, key, dict value):
-        return DeferredFromAttrs(self, space, key, value, 'prepend')
+        d = DeferredFromAttrs(self)
+        d.call(<hyperclient_simple_op> hyperclient_string_prepend, space, key, value)
+        return d
 
     def async_string_append(self, bytes space, key, dict value):
-        return DeferredFromAttrs(self, space, key, value, 'append')
+        d = DeferredFromAttrs(self)
+        d.call(<hyperclient_simple_op> hyperclient_string_append, space, key, value)
+        return d
 
     def async_list_lpush(self, bytes space, key, dict value):
-        return DeferredFromAttrs(self, space, key, value, 'lpush')
+        d = DeferredFromAttrs(self)
+        d.call(<hyperclient_simple_op> hyperclient_list_lpush, space, key, value)
+        return d
 
     def async_list_rpush(self, bytes space, key, dict value):
-        return DeferredFromAttrs(self, space, key, value, 'rpush')
+        d = DeferredFromAttrs(self)
+        d.call(<hyperclient_simple_op> hyperclient_list_rpush, space, key, value)
+        return d
 
     def async_set_add(self, bytes space, key, dict value):
-        return DeferredFromAttrs(self, space, key, value, 'set_add')
+        d = DeferredFromAttrs(self)
+        d.call(<hyperclient_simple_op> hyperclient_set_add, space, key, value)
+        return d
 
     def async_set_remove(self, bytes space, key, dict value):
-        return DeferredFromAttrs(self, space, key, value, 'set_remove')
+        d = DeferredFromAttrs(self)
+        d.call(<hyperclient_simple_op> hyperclient_set_remove, space, key, value)
+        return d
 
     def async_set_intersect(self, bytes space, key, dict value):
-        return DeferredFromAttrs(self, space, key, value, 'set_intersect')
+        d = DeferredFromAttrs(self)
+        d.call(<hyperclient_simple_op> hyperclient_set_intersect, space, key, value)
+        return d
 
     def async_set_union(self, bytes space, key, dict value):
-        return DeferredFromAttrs(self, space, key, value, 'set_union')
+        d = DeferredFromAttrs(self)
+        d.call(<hyperclient_simple_op> hyperclient_set_union, space, key, value)
+        return d
 
     def async_map_add(self, bytes space, key, dict value):
         return DeferredMapOp(self, space, key, value, 'map_add')
