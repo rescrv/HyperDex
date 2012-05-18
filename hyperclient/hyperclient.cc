@@ -265,7 +265,7 @@ coerce_set(hyperdatatype, hyperdatatype provided)
 }
 
 static hyperdatatype
-coerce_set_w_generic(hyperdatatype expected, hyperdatatype provided)
+coerce_set_generic(hyperdatatype expected, hyperdatatype provided)
 {
     if (provided == HYPERDATATYPE_INT64)
     {
@@ -312,8 +312,8 @@ HYPERCLIENT_CPPDEF(list, lpush, LIST_LPUSH, coerce_list)
 HYPERCLIENT_CPPDEF(list, rpush, LIST_RPUSH, coerce_list)
 HYPERCLIENT_CPPDEF(set, add, SET_ADD, coerce_set)
 HYPERCLIENT_CPPDEF(set, remove, SET_REMOVE, coerce_set)
-HYPERCLIENT_CPPDEF(set, intersect, SET_INTERSECT, coerce_set_w_generic)
-HYPERCLIENT_CPPDEF(set, union, SET_UNION, coerce_set_w_generic)
+HYPERCLIENT_CPPDEF(set, intersect, SET_INTERSECT, coerce_set_generic)
+HYPERCLIENT_CPPDEF(set, union, SET_UNION, coerce_set_generic)
 
 static hyperdatatype
 map_garbage(hyperdatatype, hyperdatatype)
