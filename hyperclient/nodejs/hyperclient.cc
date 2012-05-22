@@ -9,7 +9,7 @@
 #include <node.h>
 #include <cvv8/convert.hpp>
 
-#include "hyperclient/hyperclient.h"
+#include "../hyperclient.h"
 
 using namespace v8;
 
@@ -350,17 +350,8 @@ void raise_exception(enum hyperclient_returncode ret)
                 case HYPERCLIENT_SERVERERROR:
                         exception("Server Error");
                         break;
-                case HYPERCLIENT_CONNECTFAIL:
-                        exception("Connection Failure");
-                        break;
-                case HYPERCLIENT_DISCONNECT:
-                        exception("Connection Reset");
-                        break;
                 case HYPERCLIENT_RECONFIGURE:
                         exception("Reconfiguration");
-                        break;
-                case HYPERCLIENT_LOGICERROR:
-                        exception("Logic Error (file a bug)");
                         break;
                 case HYPERCLIENT_TIMEOUT:
                         exception("Timeout");
@@ -370,9 +361,6 @@ void raise_exception(enum hyperclient_returncode ret)
                         break;
                 case HYPERCLIENT_DUPEATTR:
                         exception("Duplicate attribute ");
-                        break;
-                case HYPERCLIENT_SEEERRNO:
-                        exception("See ERRNO");
                         break;
                 case HYPERCLIENT_NONEPENDING:
                         exception("None pending");
