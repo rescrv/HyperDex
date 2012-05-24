@@ -1,5 +1,7 @@
 %javamethodmodifiers HyperMap::set "private";
 %rename("private_set") HyperMap::set;
+%javamethodmodifiers HyperVector::put "private";
+%rename("private_put") HyperVector::put;
 
 %typemap(javadestruct_derived, methodname="destr_delete", methodmodifiers="private synchronized") HyperMap %{
   {
@@ -17,7 +19,7 @@
   }
 %}
 
-%typemap(javadestruct, methodname="destr_delete", methodmodifiers="private synchronized") std::vector<HyperMap*> %{
+%typemap(javadestruct_derived, methodname="destr_delete", methodmodifiers="private synchronized") HyperVector %{
   {
     if (swigCPtr != 0) {
       System.out.println("Start deleting $javaclassname " + " (" + swigCPtr + ")");
@@ -29,6 +31,7 @@
       System.out.println("End deleting $javaclassname " + " (" + swigCPtr + ")");
       swigCPtr = 0;
     }
+    super.delete();
   }
 %}
 
@@ -56,23 +59,31 @@
   }
 %}
 
-%typemap(javafinalize) HyperMap
+%typemap(javacode) HyperVector
 %{
-  protected void finalize()
+  public void put(HyperType x)
   {
-    destr_delete();
+    x.loseJvmOwnership();
+    hyperclientJNI.HyperVector_private_put(swigCPtr, this, HyperType.getCPtr(x), x);
   }
-%}
 
-%typemap(javacode) std::vector<HyperMap*>
-%{
+  public void put(String value)
+  {
+    put(new HyperString(value));
+  }
+
+  public void set(long value)
+  {
+    put(new HyperInteger(value));
+  }
+
   public synchronized void delete()
   {
     destr_delete();
   }
 %}
 
-%typemap(javafinalize) std::vector<HyperMap*>
+%typemap(javafinalize) HyperMap HyperVector
 %{
   protected void finalize()
   {

@@ -99,12 +99,14 @@ class HyperMap : public HyperType
         virtual int data(char *bytes, int len);
         virtual std::string toString();
 
+        /*
         typedef size_t size_type;
         typedef ptrdiff_t difference_type;
         typedef std::string key_type;
         typedef HyperMap* mapped_type;
+        */
 
-        unsigned int size() const;
+        size_t size() const;
         bool empty() const;
         void clear();
         const HyperType* get(const std::string& key) throw (std::out_of_range);
@@ -115,7 +117,33 @@ class HyperMap : public HyperType
         void insert(const std::string&, HyperType* value);
         std::map<std::string,HyperType*>::const_iterator begin() const;
         std::map<std::string,HyperType*>::const_iterator end() const;
+};
 
+class HyperVector : public HyperType
+{
+    public:
+        HyperVector();
+        HyperVector(const HyperVector& hypermap);
+        virtual ~HyperVector() throw ();
+
+    private:
+        std::vector<HyperType*> m_vector;
+        hyperdatatype m_type;
+
+        void destr_clear() throw();
+        
+    public:
+        virtual hyperdatatype type() const;
+        virtual void serialize(std::string& value) const;
+        virtual int data(char *bytes, int len);
+        virtual std::string toString();
+
+        size_t size() const;
+        bool empty() const;
+        void clear();
+        const HyperType* get(size_t index) throw (std::out_of_range);
+        void put(HyperType* value);
+        HyperType* back();
 };
 
 class HyperClient
@@ -139,7 +167,7 @@ class HyperClient
                                 const std::string& attr,
                                 int64_t lower,
                                 int64_t upper,
-                                std::vector<HyperMap*> *results);
+                                HyperVector *results);
 
     private:
         hyperclient m_client;

@@ -245,7 +245,7 @@ HyperMap :: toString()
     return ss.str();
 }
 
-unsigned int
+size_t
 HyperMap :: size() const
 {
     return m_map.size();
@@ -330,6 +330,114 @@ std::map<std::string,HyperType*>::const_iterator
 HyperMap :: end() const
 {
     return m_map.end();
+}
+
+HyperVector :: HyperVector()
+{
+    m_type = HYPERDATATYPE_GARBAGE;
+    std::cout << "HyperVector Constructed" << std::endl;
+}
+
+HyperVector :: HyperVector(const HyperVector& hypervector)
+                                   : m_vector(hypervector.m_vector)
+{
+    m_type = hypervector.type();
+    std::cout << "HyperVector Copy Constructed" << std::endl;
+}
+
+HyperVector :: ~HyperVector() throw ()
+{
+    std::cout << "HyperVector Destroyed" << std::endl;
+}
+
+hyperdatatype 
+HyperVector :: type() const
+{
+    return m_type;
+}
+
+void
+HyperVector :: serialize(std::string& value) const
+{
+    /*
+    std::cout << "HyperVector Serialized" << std::endl;
+    value.assign(std::string(m_attr_value));
+    */
+}
+
+int
+HyperVector :: data(char *bytes, int len)
+{
+    /*
+    size_t size = m_attr_value.size();
+
+    if ( len == 0 ) return size;
+    
+    int ret_len = len<size?len:size;
+    m_attr_value.copy(bytes,ret_len);
+    return ret_len;
+    */
+    return 0;
+}
+
+std::string
+HyperVector :: toString()
+{
+    std::stringstream ss;
+    ss << "HyperVector@" << this;
+    return ss.str();
+}
+
+size_t
+HyperVector :: size() const
+{
+    return m_vector.size();
+}
+
+bool
+HyperVector :: empty() const
+{
+    return m_vector.empty();
+}
+
+void
+HyperVector :: destr_clear() throw()
+{
+    std::cout << "destr_clear was called!" << std::endl;
+
+    size_t i = 0;
+
+    for (std::vector<HyperType*>::iterator it = m_vector.begin();
+            it != m_vector.end(); it++)
+    {
+        delete m_vector[i];
+        m_vector.erase(it);
+        i++;
+    }
+}
+
+void
+HyperVector :: clear()
+{
+    destr_clear();
+}
+
+void
+HyperVector :: put(HyperType* value)
+{
+    m_vector.push_back(value);
+}
+
+HyperType*
+HyperVector :: back()
+{
+    return m_vector.back();
+}
+
+const HyperType*
+HyperVector :: get(size_t i) throw (std::out_of_range)
+{
+    return m_vector[i];
 }
 
 HyperClient :: HyperClient(const char* coordinator, in_port_t port)
@@ -488,7 +596,7 @@ HyperClient :: range_search(const std::string& space,
                             const std::string& attr,
                             int64_t lower,
                             int64_t upper,
-                            std::vector<HyperMap*> *results)
+                            HyperVector *results)
 {
     hyperclient_range_query rn;
     rn.attr = attr.c_str();
@@ -523,17 +631,12 @@ HyperClient :: range_search(const std::string& space,
         }
 
         std::cout << "push_back start" << std::endl;
-        results->push_back(new HyperMap());
+        results->put(new HyperMap());
         std::cout << "push_back end" << std::endl;
 
         for (size_t i = 0; i < attrs_sz; ++i)
         {
-            /*
-            results->back().insert(std::make_pair(attrs[i].attr,
-                                                  HyperType::deserialize(attrs[i])));
-            */
-
-            results->back()->insert(attrs[i].attr,HyperType::deserialize(attrs[i]));
+            ((HyperMap*)(results->back()))->insert(attrs[i].attr,HyperType::deserialize(attrs[i]));
         }
 
         if (attrs)

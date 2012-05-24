@@ -68,7 +68,7 @@ namespace std
     /*%template(HyperList) vector<HyperType*>;*/
     /*%template(HyperSet) vector<HyperType*>;*/
     /*%template(HyperMap) map<string, HyperType*>;*/
-    %template(SearchResult) vector<HyperMap*>;
+    /*%template(SearchResult) vector<HyperMap*>;*/
 }
 
 %ignore "";
