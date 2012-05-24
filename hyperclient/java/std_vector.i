@@ -24,7 +24,7 @@ namespace std {
         void reserve(size_type n);
         %rename(isEmpty) empty;
         bool empty() const;
-        void clear();
+        //void clear();
         %rename(add) push_back;
         void push_back(const value_type& x);
         %extend {
@@ -41,6 +41,19 @@ namespace std {
                     (*self)[i] = val;
                 else
                     throw std::out_of_range("vector index out of range");
+            }
+
+            void clear()
+            {
+                size_t i = 0;
+
+                for (std::vector<T>::iterator it = self->begin();
+                                                it != self->end(); it++)
+                {
+                    delete (*self)[i]; 
+                    self->erase(it);
+                    i++;
+                }
             }
         }
     };

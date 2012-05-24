@@ -58,17 +58,17 @@ typedef uint16_t in_port_t;
   }
 %}
 
+%include "HyperClient.i"
+
 %apply (char *STRING, int LENGTH) { (char *bytes, int len) }
 %include "hyperclient/java/javaclient.h"
 
-%include "HyperClient.i"
-
 namespace std
 {
-    %template(HyperList) vector<HyperType*>;
+    /*%template(HyperList) vector<HyperType*>;*/
     /*%template(HyperSet) vector<HyperType*>;*/
-    %template(HyperMap) map<string, HyperType*>;
-    %template(SearchResult) vector<map<string, HyperType*> >;
+    /*%template(HyperMap) map<string, HyperType*>;*/
+    %template(SearchResult) vector<HyperMap*>;
 }
 
 %ignore "";

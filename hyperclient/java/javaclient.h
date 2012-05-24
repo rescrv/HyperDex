@@ -78,6 +78,46 @@ class HyperInteger : public HyperType
         virtual std::string toString();
 };
 
+class HyperMap : public HyperType
+{
+    public:
+        HyperMap();
+        HyperMap(const HyperMap& hypermap);
+        virtual ~HyperMap() throw ();
+
+    private:
+        std::map<std::string,HyperType*> m_map;
+        hyperdatatype m_type;
+
+        void destr_clear() throw();
+        void destr_del(const std::string& key) throw (std::out_of_range);
+
+        
+    public:
+        virtual hyperdatatype type() const;
+        virtual void serialize(std::string& value) const;
+        virtual int data(char *bytes, int len);
+        virtual std::string toString();
+
+        typedef size_t size_type;
+        typedef ptrdiff_t difference_type;
+        typedef std::string key_type;
+        typedef HyperMap* mapped_type;
+
+        unsigned int size() const;
+        bool empty() const;
+        void clear();
+        const HyperType* get(const std::string& key) throw (std::out_of_range);
+        void set(const std::string&, HyperType* value);
+        void del(const std::string& key) throw (std::out_of_range);
+        bool has_key(const std::string& key);
+
+        void insert(const std::string&, HyperType* value);
+        std::map<std::string,HyperType*>::const_iterator begin() const;
+        std::map<std::string,HyperType*>::const_iterator end() const;
+
+};
+
 class HyperClient
 {
     public:
@@ -87,11 +127,11 @@ class HyperClient
     public:
         hyperclient_returncode get(const std::string& space,
                        const std::string& key,
-                       std::map<std::string, HyperType*>* values);
+                       HyperMap *values);
 
         hyperclient_returncode put(const std::string& space,
                        const std::string& key,
-                       const std::map<std::string, HyperType*>& attributes);
+                       const HyperMap& attributes);
 
         hyperclient_returncode del(const std::string& space,
                        const std::string& key);
@@ -99,8 +139,7 @@ class HyperClient
                                 const std::string& attr,
                                 int64_t lower,
                                 int64_t upper,
-                                std::vector<std::map<std::string,
-                                            HyperType*> >* results);
+                                std::vector<HyperMap*> *results);
 
     private:
         hyperclient m_client;

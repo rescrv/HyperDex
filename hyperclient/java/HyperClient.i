@@ -1,46 +1,27 @@
-%javamethodmodifiers std::map<std::string, HyperType*>::del "private";
-%javamethodmodifiers std::map<std::string, HyperType*>::clear "private";
-%javamethodmodifiers std::map<std::string, HyperType*>::set "private";
-%javamethodmodifiers std::map<std::string, HyperType*>::destr_del "private";
-%javamethodmodifiers std::map<std::string, HyperType*>::destr_clear "private";
+%javamethodmodifiers HyperMap::set "private";
+%rename("private_set") HyperMap::set;
 
-%rename("private_del") std::map<std::string, HyperType*>::del;
-%rename("private_clear") std::map<std::string, HyperType*>::clear;
-%rename("private_set") std::map<std::string, HyperType*>::set;
-
-%extend std::map<std::string,HyperType*>
-{
-    void destr_del(const std::string& key) throw (std::out_of_range)
-    {
-        std::cout << "destr_del was called!" << std::endl;
-        std::map<std::string,HyperType*>::iterator i = self->find(key);
-        if (i != self->end())
-        {
-            delete (*self)[key];
-            self->erase(i);
-        }
-        else
-            throw std::out_of_range("key not found");
-    }
-
-    void destr_clear() throw()
-    {
-        std::cout << "destr_clear was called!" << std::endl;
-        std::map<std::string,HyperType*>::iterator i = self->begin();
-        for (std::map<std::string,HyperType*>::iterator i = self->begin();
-                i != self->end(); i++)
-        {
-            delete (*i).second;
-            self->erase(i);
-        }
-    }
-}
-
-%typemap(javadestruct, methodname="destr_delete", methodmodifiers="private synchronized") std::map<std::string, HyperType*> %{
+%typemap(javadestruct_derived, methodname="destr_delete", methodmodifiers="private synchronized") HyperMap %{
   {
     if (swigCPtr != 0) {
       System.out.println("Start deleting $javaclassname " + " (" + swigCPtr + ")");
-      hyperclientJNI.$javaclassname_destr_clear(swigCPtr, this);
+      hyperclientJNI.$javaclassname_clear(swigCPtr, this);
+      if (swigCMemOwn) {
+        swigCMemOwn = false;
+        hyperclientJNI.delete_$javaclassname(swigCPtr);
+      }
+      System.out.println("End deleting $javaclassname " + " (" + swigCPtr + ")");
+      swigCPtr = 0;
+    }
+    super.delete();
+  }
+%}
+
+%typemap(javadestruct, methodname="destr_delete", methodmodifiers="private synchronized") std::vector<HyperMap*> %{
+  {
+    if (swigCPtr != 0) {
+      System.out.println("Start deleting $javaclassname " + " (" + swigCPtr + ")");
+      hyperclientJNI.$javaclassname_clear(swigCPtr, this);
       if (swigCMemOwn) {
         swigCMemOwn = false;
         hyperclientJNI.delete_$javaclassname(swigCPtr);
@@ -51,18 +32,8 @@
   }
 %}
 
-%typemap(javacode) std::map<std::string, HyperType*>
+%typemap(javacode) HyperMap
 %{
-  public void del(String key)
-  {
-    hyperclientJNI.$javaclassname_destr_del(swigCPtr, this, key);
-  }
-
-  public void clear()
-  {
-    hyperclientJNI.$javaclassname_destr_clear(swigCPtr, this);
-  }
-
   public void set(String key, HyperType x)
   {
     x.loseJvmOwnership();
@@ -85,7 +56,23 @@
   }
 %}
 
-%typemap(javafinalize) std::map<std::string, HyperType*>
+%typemap(javafinalize) HyperMap
+%{
+  protected void finalize()
+  {
+    destr_delete();
+  }
+%}
+
+%typemap(javacode) std::vector<HyperMap*>
+%{
+  public synchronized void delete()
+  {
+    destr_delete();
+  }
+%}
+
+%typemap(javafinalize) std::vector<HyperMap*>
 %{
   protected void finalize()
   {

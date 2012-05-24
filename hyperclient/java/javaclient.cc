@@ -189,6 +189,149 @@ HyperInteger :: toString()
     return ss.str();
 }
 
+HyperMap :: HyperMap()
+{
+    m_type = HYPERDATATYPE_GARBAGE;
+    std::cout << "HyperMap Constructed" << std::endl;
+}
+
+HyperMap :: HyperMap(const HyperMap& hypermap)
+                                   : m_map(hypermap.m_map)
+{
+    m_type = hypermap.type();
+    std::cout << "HyperMap Copy Constructed" << std::endl;
+}
+
+HyperMap :: ~HyperMap() throw ()
+{
+    std::cout << "HyperMap Destroyed" << std::endl;
+}
+
+hyperdatatype 
+HyperMap :: type() const
+{
+    return m_type;
+}
+
+void
+HyperMap :: serialize(std::string& value) const
+{
+    /*
+    std::cout << "HyperMap Serialized" << std::endl;
+    value.assign(std::string(m_attr_value));
+    */
+}
+
+int
+HyperMap :: data(char *bytes, int len)
+{
+    /*
+    size_t size = m_attr_value.size();
+
+    if ( len == 0 ) return size;
+    
+    int ret_len = len<size?len:size;
+    m_attr_value.copy(bytes,ret_len);
+    return ret_len;
+    */
+    return 0;
+}
+
+std::string
+HyperMap :: toString()
+{
+    std::stringstream ss;
+    ss << "HyperMap@" << this;
+    return ss.str();
+}
+
+unsigned int
+HyperMap :: size() const
+{
+    return m_map.size();
+}
+
+bool
+HyperMap :: empty() const
+{
+    return m_map.empty();
+}
+
+void
+HyperMap :: destr_del(const std::string& key) throw (std::out_of_range)
+{
+    std::cout << "destr_del was called!" << std::endl;
+    std::map<std::string,HyperType*>::iterator i = m_map.find(key);
+    if (i != m_map.end())
+    {
+        delete m_map[key];
+        m_map.erase(i);
+    }
+    else
+        throw std::out_of_range("key not found");
+}
+
+void
+HyperMap :: destr_clear() throw()
+{
+    std::cout << "destr_clear was called!" << std::endl;
+    for (std::map<std::string,HyperType*>::iterator i = m_map.begin();
+            i != m_map.end(); i++)
+    {
+        delete (*i).second;
+        m_map.erase(i);
+    }
+}
+
+void
+HyperMap :: clear()
+{
+    destr_clear();
+}
+
+void
+HyperMap :: set(const std::string& key, HyperType* value)
+{
+    insert(key,value);
+}
+
+void
+HyperMap :: del(const std::string& key) throw (std::out_of_range)
+{
+    destr_del(key);
+}
+
+const HyperType*
+HyperMap :: get(const std::string& key) throw (std::out_of_range)
+{
+    return m_map[key];
+}
+
+bool
+HyperMap :: has_key(const std::string& key)
+{
+    std::map<std::string,HyperType*>::iterator i = m_map.find(key);
+    return i != m_map.end();
+}
+
+void
+HyperMap :: insert(const std::string& key, HyperType* value)
+{
+    m_map.insert(std::make_pair(std::string(key),value));
+}
+
+std::map<std::string,HyperType*>::const_iterator
+HyperMap :: begin() const
+{
+    return m_map.begin();
+}
+
+std::map<std::string,HyperType*>::const_iterator
+HyperMap :: end() const
+{
+    return m_map.end();
+}
+
 HyperClient :: HyperClient(const char* coordinator, in_port_t port)
     : m_client(coordinator, port)
 {
@@ -201,7 +344,7 @@ HyperClient :: ~HyperClient() throw ()
 hyperclient_returncode
 HyperClient :: get(const std::string& space,
                    const std::string& key,
-                   std::map<std::string, HyperType*>* values)
+                   HyperMap *values)
 {
     int64_t id;
     hyperclient_returncode stat1 = HYPERCLIENT_A;
@@ -237,8 +380,12 @@ HyperClient :: get(const std::string& space,
 
     for (size_t i = 0; i < attrs_sz; ++i)
     {
+        /*
         values->insert(std::make_pair(std::string(attrs[i].attr),
                                       HyperType::deserialize(attrs[i])));
+        */
+
+        values->insert(attrs[i].attr,HyperType::deserialize(attrs[i]));
     }
 
     assert(static_cast<unsigned>(stat1) >= 8448);
@@ -249,7 +396,7 @@ HyperClient :: get(const std::string& space,
 hyperclient_returncode
 HyperClient :: put(const std::string& space,
                    const std::string& key,
-                   const std::map<std::string, HyperType*>& attributes)
+                   const HyperMap& attributes)
 {
     int64_t id;
     hyperclient_returncode stat1 = HYPERCLIENT_A;
@@ -341,7 +488,7 @@ HyperClient :: range_search(const std::string& space,
                             const std::string& attr,
                             int64_t lower,
                             int64_t upper,
-                            std::vector<std::map<std::string, HyperType*> >* results)
+                            std::vector<HyperMap*> *results)
 {
     hyperclient_range_query rn;
     rn.attr = attr.c_str();
@@ -363,8 +510,6 @@ HyperClient :: range_search(const std::string& space,
     int64_t lid;
     hyperclient_returncode lstatus = HYPERCLIENT_B;
 
-    //size_t pre_insert_size = 0; // Keep track of the number of "n-tuples" returned
-
     while ((lid = m_client.loop(-1, &lstatus)) == id)
     {
         if (lstatus == HYPERCLIENT_SEARCHDONE)
@@ -377,38 +522,18 @@ HyperClient :: range_search(const std::string& space,
             break;
         }
 
-        /*
-        for (size_t i = 0; i < attrs_sz; ++i)
-        {
-            if ( attrs[i].datatype == HYPERDATATYPE_STRING )
-            {
-                if (sresults->empty() || sresults->size() == pre_insert_size)
-                {
-                    sresults->push_back(std::map<std::string, std::string>());
-                }
-
-                sresults->back().insert(std::make_pair(attrs[i].attr, std::string(attrs[i].value, attrs[i].value_sz)));
-            }
-            else if ( attrs[i].datatype == HYPERDATATYPE_INT64 )
-            {
-                if (nresults->empty() || nresults->size() == pre_insert_size)
-                {
-                    nresults->push_back(std::map<std::string, int64_t>());
-                }
-
-                nresults->back().insert(std::make_pair(attrs[i].attr, le64toh(*((int64_t *)(attrs[i].value)))));
-            }
-        }
-
-        pre_insert_size++;
-        */
-
-        results->push_back(std::map<std::string, HyperType*>());
+        std::cout << "push_back start" << std::endl;
+        results->push_back(new HyperMap());
+        std::cout << "push_back end" << std::endl;
 
         for (size_t i = 0; i < attrs_sz; ++i)
         {
+            /*
             results->back().insert(std::make_pair(attrs[i].attr,
                                                   HyperType::deserialize(attrs[i])));
+            */
+
+            results->back()->insert(attrs[i].attr,HyperType::deserialize(attrs[i]));
         }
 
         if (attrs)
