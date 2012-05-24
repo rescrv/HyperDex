@@ -59,6 +59,7 @@ class hyperclient::pending_search : public hyperclient::pending
         pending_search& operator = (const pending_search& rhs);
 
     private:
+        int64_t m_searchid;
         hyperdex::network_msgtype m_reqtype;
         std::tr1::shared_ptr<uint64_t> m_refcount;
         hyperclient_attribute** m_attrs;

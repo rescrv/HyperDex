@@ -37,6 +37,7 @@ hyperclient :: pending_search :: pending_search(int64_t searchid,
                                                 hyperclient_attribute** attrs,
                                                 size_t* attrs_sz)
     : pending(status)
+    , m_searchid(searchid)
     , m_reqtype(hyperdex::REQ_SEARCH_START)
     , m_refcount(refcount)
     , m_attrs(attrs)
@@ -118,7 +119,7 @@ hyperclient :: pending_search :: handle_response(hyperclient* cl,
 
     e::guard g = e::makeguard(hyperclient_destroy_attrs, *m_attrs, *m_attrs_sz);
     std::auto_ptr<e::buffer> smsg(e::buffer::create(HYPERCLIENT_HEADER_SIZE + sizeof(uint64_t)));
-    bool packed = !(smsg->pack_at(HYPERCLIENT_HEADER_SIZE) << static_cast<uint64_t>(server_visible_nonce())).error();
+    bool packed = !(smsg->pack_at(HYPERCLIENT_HEADER_SIZE) << static_cast<uint64_t>(m_searchid)).error();
     assert(packed);
 
     set_server_visible_nonce(cl->m_server_nonce);
