@@ -106,7 +106,7 @@ class disk
         // disk.  This will not split underlying shards which need to be split
         // to make more space.  If this returns a *FULL error, then you must
         // call either 'do_mandatory_io' or 'do_optimistic_io'.
-        returncode flush(size_t num);
+        returncode flush(size_t num, bool nonblocking);
         // Do only the amount of shard-splitting necessary to split shards which
         // are 100% used.
         returncode do_mandatory_io();

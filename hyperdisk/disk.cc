@@ -271,16 +271,24 @@ hyperdisk :: disk :: drop()
 // This operation will return SUCCESS as long as it knows that progress is being
 // made.  It will return DIDNOTHING if there was nothing to do.
 hyperdisk::returncode
-hyperdisk :: disk :: flush(size_t num)
+hyperdisk :: disk :: flush(size_t num, bool nonblocking)
 {
-    if (!m_shards_mutate.trylock())
+    if (nonblocking)
     {
-        return SUCCESS;
+        if (!m_shards_mutate.trylock())
+        {
+            return SUCCESS;
+        }
     }
+    else
+    {
+        m_shards_mutate.lock();
+    }
+
+    e::guard hold = e::makeobjguard(m_shards_mutate, &po6::threads::mutex::unlock);
 
     bool flushed = false;
     returncode flush_status = SUCCESS;
-    e::guard hold = e::makeobjguard(m_shards_mutate, &po6::threads::mutex::unlock);
     hold.use_variable();
     e::locking_iterable_fifo<log_entry>::iterator it = m_log.iterate();
 

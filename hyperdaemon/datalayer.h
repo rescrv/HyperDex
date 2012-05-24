@@ -94,7 +94,8 @@ class datalayer
                                   std::tr1::shared_ptr<e::buffer> backing,
                                   const e::slice& key);
         // May return SUCCESS or DIDNOTHING.
-        hyperdisk::returncode flush(const hyperdex::regionid& ri, size_t n);
+        hyperdisk::returncode flush(const hyperdex::regionid& ri, size_t n, bool nonblocking);
+        hyperdisk::returncode do_mandatory_io(const hyperdex::regionid& ri);
 
     private:
         static uint64_t regionid_hash(const hyperdex::regionid& r) { return r.hash(); }

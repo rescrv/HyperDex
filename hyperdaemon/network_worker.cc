@@ -392,7 +392,7 @@ hyperdaemon :: network_worker :: run()
 
         if (rand_r(&seed) < (0.01 * RAND_MAX))
         {
-            m_data->flush(to.get_region(), 100000);
+            m_data->flush(to.get_region(), 100000, true);
         }
     }
 }

@@ -246,7 +246,8 @@ hyperdaemon :: datalayer :: del(const regionid& ri,
 
 hyperdisk::returncode
 hyperdaemon :: datalayer :: flush(const regionid& ri,
-                                  size_t n)
+                                  size_t n,
+                                  bool nonblocking)
 {
     e::intrusive_ptr<hyperdisk::disk> r;
 
@@ -255,7 +256,20 @@ hyperdaemon :: datalayer :: flush(const regionid& ri,
         return hyperdisk::MISSINGDISK;
     }
 
-    return r->flush(n);
+    return r->flush(n, nonblocking);
+}
+
+hyperdisk::returncode
+hyperdaemon :: datalayer :: do_mandatory_io(const regionid& ri)
+{
+    e::intrusive_ptr<hyperdisk::disk> r;
+
+    if (!m_disks.lookup(ri, &r))
+    {
+        return hyperdisk::MISSINGDISK;
+    }
+
+    return r->do_mandatory_io();
 }
 
 typedef std::map<hyperdex::regionid, e::intrusive_ptr<hyperdisk::disk> > disk_map_t;
@@ -374,7 +388,7 @@ hyperdaemon :: datalayer :: flush_thread()
         for (disk_map_t::iterator d = m_disks.begin();
                 d != m_disks.end(); d.next())
         {
-            hyperdisk::returncode ret = d.value()->flush(10000);
+            hyperdisk::returncode ret = d.value()->flush(10000, true);
 
             if (ret == hyperdisk::SUCCESS)
             {
