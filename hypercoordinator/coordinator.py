@@ -88,7 +88,7 @@ class Coordinator(object):
 
     S_STARTUP, S_NORMAL, S_QUIESCE, S_SHUTDOWN = 'STARTUP', 'NORMAL', 'QUIESCE', 'SHUTDOWN'
     SL_DESIRED, SL_DEGRADED, SL_DATALOSS = 'DESIRED', 'DEGRADED', 'DATALOSS'
-    STATE_VERSION = 2
+    STATE_VERSION = 3
 
     def __init__(self, state_data=None):
         self._portcounters = collections.defaultdict(lambda: 1)
@@ -107,12 +107,14 @@ class Coordinator(object):
         self._xfers_by_id = {}
         self._quiesce_state_id = ''
         self._quiesce_config_num = -1
+        self._quiesced_instances = set()
         self._state = Coordinator.S_STARTUP
         if state_data:
             # loading saved coord. state (restart after shutdown)
             self._load_state(state_data)
             self._quiesce_state_id = ''
             self._quiesce_config_num = -1
+            self._quiesced_instances = set()
             self._state = Coordinator.S_STARTUP
         else:
             # fresh start
@@ -202,6 +204,7 @@ class Coordinator(object):
         if self._state != Coordinator.S_NORMAL:
             raise Coordinator.InvalidState()
         # ask all hosts to save state under unique state id
+        self._quiesced_instances = set()
         self._quiesce_state_id =  binascii.hexlify(os.urandom(16))
         self._state = Coordinator.S_QUIESCE
         logging.info('Cluster is quiescing under state id {0}.'.format(self._quiesce_state_id))
@@ -213,11 +216,12 @@ class Coordinator(object):
     def shutdown(self):
         if self._state != Coordinator.S_QUIESCE:
             raise Coordinator.InvalidState()
-        # check if all not failed hosts ACKd quiesce
+        # check if all not failed hosts quiesced
         w = 0
         for instid, inst in self._instances_by_id.iteritems():
             if instid not in self._failed_instances:
-                if inst.last_acked < self._quiesce_config_num:
+                # node must ACK quiesce config and report quiesced message
+                if inst.last_acked < self._quiesce_config_num or instid not in self._quiesced_instances:
                     w += 1
         if w:
             raise Coordinator.InvalidState("Cannot shutdown yet, waiting for {0} hosts to quiesce.".format(w))
@@ -242,6 +246,7 @@ class Coordinator(object):
         s['xfers'] = self._xfers_by_id
         s['state'] = self._state
         s['quiesce_state_id'] = self._quiesce_state_id
+        s['quiesced_instances'] = list(self._quiesced_instances)
         s['service_level'] = self._service_level()
         s['service_level_met'] = self._service_level_met()
         return s
@@ -347,6 +352,13 @@ class Coordinator(object):
         self._spaces_by_id[spaceid].subspaces[subspaceid].regions[regionid].transfer_complete(xferid)
         del self._xfers_by_id[xferid]
         self._regenerate()
+
+    def quiesced(self, bindings, quiesce_state_id):
+        # ignore quiesced message from previous quiesce
+        if quiesce_state_id != self._quiesce_state_id:
+            return
+        instid = self._instances_by_bindings[bindings]
+        self._quiesced_instances.add(instid)
 
     def _initial_layout(self, space):
         still_assigning = True
@@ -544,6 +556,9 @@ class HostConnection(object):
             elif len(commandline) == 2 and commandline[0] == 'transfer_complete':
                 self.transfer_complete(commandline[1])
                 logging.debug("transfer complete {0}".format(commandline[1]))
+            elif len(commandline) == 2 and commandline[0] == 'quiesced':
+                self.quiesced(commandline[1])
+                logging.debug("quiesced {0}".format(commandline[1]))
             else:
                 raise KillConnection('unrecognized command "{0}"'.format(repr(data)))
 
@@ -621,6 +636,9 @@ class HostConnection(object):
         except ValueError:
             raise KillConnection("host uses non-numeric transfer id for transfer_complete")
         self._coordinator.transfer_complete(xferid)
+
+    def quiesced(self, quiesce_state_id):
+        self._coordinator.quiesced(self._instance, quiesce_state_id)
 
     def send_config(self, num, data):
         self._has_config_pending = True

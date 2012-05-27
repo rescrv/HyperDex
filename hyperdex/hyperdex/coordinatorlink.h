@@ -73,6 +73,7 @@ class coordinatorlink
         returncode transfer_fail(uint16_t xfer_id);
         returncode transfer_golive(uint16_t xfer_id);
         returncode transfer_complete(uint16_t xfer_id);
+        returncode quiesced(const std::string& quiesce_state_id);
 
     public:
         void set_announce(const std::string& announce) { m_announce = announce + "\n"; }

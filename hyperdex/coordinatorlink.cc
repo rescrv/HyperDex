@@ -154,6 +154,21 @@ hyperdex :: coordinatorlink :: transfer_complete(uint16_t xfer_id)
 }
 
 hyperdex::coordinatorlink::returncode
+hyperdex :: coordinatorlink :: quiesced(const std::string& quiesce_state_id)
+{
+    po6::threads::mutex::hold hold(&m_lock);
+
+    if (m_shutdown)
+    {
+        return SHUTDOWN;
+    }
+
+    std::ostringstream ostr;
+    ostr << "quiesced\t" << quiesce_state_id << "\n";
+    return send_to_coordinator(ostr.str().c_str(), ostr.str().size());
+}
+
+hyperdex::coordinatorlink::returncode
 hyperdex :: coordinatorlink :: connect()
 {
     po6::threads::mutex::hold hold(&m_lock);

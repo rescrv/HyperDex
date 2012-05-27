@@ -130,11 +130,15 @@ hyperdaemon :: replication_manager :: prepare(const configuration&, const instan
 void
 hyperdaemon :: replication_manager :: reconfigure(const configuration& newconfig, const instance& us)
 {
-    // Quiesce (will quiesce multiple times if requested so).
+    // Mark as quiescing if config says so.
     if (newconfig.quiesce())
     {
-        m_quiesce = newconfig.quiesce();
+        po6::threads::mutex::hold hold(&m_quiesce_state_id_lock);
+
+        // OK to update quesce state multiple times, but we cannot go 
+        // back to normal operation without shutdown.
         m_quiesce_state_id = newconfig.quiesce_state_id();
+        m_quiesce = true;
     }
 
     // Install a new configuration.
@@ -150,29 +154,6 @@ hyperdaemon :: replication_manager :: reconfigure(const configuration& newconfig
         {
             m_keyholders.remove(khiter.key());
             continue;
-        }
-    }
-    
-    // If quiescing, wait for replication-related state to be cleaned up before 
-    // ACK-ing the config (ack happens in the daemon, after reconfigure completes).
-    if (m_quiesce)
-    {
-        while (true)
-        {
-            try
-            {
-                if (!retransmit())
-                {
-                    // No more state left, safe to proceed.
-                    break;
-                }
-            }
-            catch (std::exception& e)
-            {
-                LOG(INFO) << "Uncaught exception when retransmitting: " << e.what();
-            }
-
-            e::sleep_ms(250);
         }
     }
 }
@@ -223,7 +204,7 @@ hyperdaemon :: replication_manager :: client_put(const hyperdex::entityid& from,
                                                  const e::slice& key,
                                                  const std::vector<std::pair<uint16_t, e::slice> >& value)
 {
-    // Fail as read only if we are quiescing.
+    // Fail as read only if we are quiescing. 
     if (m_quiesce)
     {
         respond_to_client(to, from, nonce,
@@ -1561,7 +1542,24 @@ hyperdaemon :: replication_manager :: periodic()
     {
         try
         {
-            retransmit();
+            int processed = retransmit();
+            
+            // While quescing, if all replication-related state is cleaned up, 
+            // we are truly queisced.
+            if (m_quiesce && processed <= 0)
+            {
+                // Lock needed to access quiesce state.
+                po6::threads::mutex::hold hold(&m_quiesce_state_id_lock);
+                
+                // Let the coordinator know replication is quiesced.
+                // XXX error handling?
+                m_cl->quiesced(m_quiesce_state_id);
+                
+                // We are quiesced, there will be no more retransmits,
+                // stop the periodic thread.
+                LOG(INFO) << "Replication manager quiesced, periodic thread stopping.";
+                break;
+            }
         }
         catch (std::exception& e)
         {

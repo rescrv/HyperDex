@@ -232,9 +232,10 @@ class replication_manager
         po6::threads::mutex m_keyholders_lock;
         keyholder_map_t m_keyholders;
         hyperdex::instance m_us;
-        bool m_quiesce;
+        volatile bool m_quiesce; // acessed from multiple threads
+        po6::threads::mutex m_quiesce_state_id_lock; 
         std::string m_quiesce_state_id;
-        bool m_shutdown;
+        volatile bool m_shutdown; // acessed from multiple threads
         po6::threads::thread m_periodic_thread;
 };
 
