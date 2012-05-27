@@ -135,8 +135,8 @@ hyperdaemon :: replication_manager :: reconfigure(const configuration& newconfig
     {
         po6::threads::mutex::hold hold(&m_quiesce_state_id_lock);
 
-        // OK to update quesce state multiple times, but we cannot go 
-        // back to normal operation without shutdown.
+        // OK to see multiple quiesce requests - we will take new id each time, but we 
+        // cannot go back to normal operation without shutdown.
         m_quiesce_state_id = newconfig.quiesce_state_id();
         m_quiesce = true;
     }
@@ -1544,7 +1544,7 @@ hyperdaemon :: replication_manager :: periodic()
         {
             int processed = retransmit();
             
-            // While quescing, if all replication-related state is cleaned up, 
+            // While quiescing, if all replication-related state is cleaned up, 
             // we are truly queisced.
             if (m_quiesce && processed <= 0)
             {
