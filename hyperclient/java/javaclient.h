@@ -40,7 +40,6 @@ class HyperType
         virtual hyperdatatype type() const;
         virtual void serialize(std::string& value) const;
         static HyperType* deserialize(const hyperclient_attribute& attr);
-        virtual int data(char *bytes, int len);
         virtual std::string toString();
 };
 
@@ -57,8 +56,8 @@ class HyperString : public HyperType
     public:
         virtual hyperdatatype type() const;
         virtual void serialize(std::string& value) const;
-        virtual int data(char *bytes, int len);
         virtual std::string toString();
+        size_t read(char *bytes, int len, size_t pos = 0);
 };
 
 class HyperInteger : public HyperType
@@ -74,7 +73,6 @@ class HyperInteger : public HyperType
 
         virtual hyperdatatype type() const;
         virtual void serialize(std::string& value) const;
-        virtual int data(char *bytes, int len);
         virtual std::string toString();
 };
 
@@ -96,7 +94,6 @@ class HyperMap : public HyperType
     public:
         virtual hyperdatatype type() const;
         virtual void serialize(std::string& value) const;
-        virtual int data(char *bytes, int len);
         virtual std::string toString();
 
         /*
@@ -135,7 +132,6 @@ class HyperVector : public HyperType
     public:
         virtual hyperdatatype type() const;
         virtual void serialize(std::string& value) const;
-        virtual int data(char *bytes, int len);
         virtual std::string toString();
 
         size_t size() const;

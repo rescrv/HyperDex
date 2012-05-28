@@ -133,7 +133,7 @@ public class HyperClientYCSB extends DB
         long lower = base << 32;
         long upper = (base + recordcount) << 32;
 
-        SearchResult res = new SearchResult();
+        HyperVector res = new HyperVector();
 
         ReturnCode ret = m_client.range_search(table, "recno", lower, upper, res);
 
@@ -146,7 +146,7 @@ public class HyperClientYCSB extends DB
         {
             for (int i = 0; i < res.size(); ++i)
             {
-                HyperMap e = res.get(i);
+                HyperMap e = HyperMap.dynamic_cast(res.get(i));
                 HashMap<String, ByteIterator> e2 = new HashMap<String, ByteIterator>();
                 convert_to_java(fields, e, e2);
                 result.add(e2);

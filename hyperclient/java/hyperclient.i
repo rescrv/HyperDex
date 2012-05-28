@@ -28,9 +28,7 @@
 
 %module hyperclient
 
-%include "std_map.i"
 %include "std_string.i"
-%include "std_vector.i"
 %include "stdint.i"
 
 %include "enums.swg"
@@ -50,26 +48,10 @@ typedef uint16_t in_port_t;
     }
 %}
 
-%typemap(javacode) HyperType
-%{
-  public void loseJvmOwnership()
-  {
-    swigCMemOwn = false;
-  }
-%}
-
-%include "HyperClient.i"
+%include "HyperType.i"
 
 %apply (char *STRING, int LENGTH) { (char *bytes, int len) }
 %include "hyperclient/java/javaclient.h"
-
-namespace std
-{
-    /*%template(HyperList) vector<HyperType*>;*/
-    /*%template(HyperSet) vector<HyperType*>;*/
-    /*%template(HyperMap) map<string, HyperType*>;*/
-    /*%template(SearchResult) vector<HyperMap*>;*/
-}
 
 %ignore "";
 %rename("ReturnCode") "hyperclient_returncode";

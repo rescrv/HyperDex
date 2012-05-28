@@ -1,3 +1,79 @@
+%typemap(javacode) HyperType
+%{
+  public void loseJvmOwnership()
+  {
+    swigCMemOwn = false;
+  }
+%}
+
+%exception HyperString::dynamic_cast(HyperType *hypertype)
+{
+    $action
+    if (!result) {
+        jclass excep = jenv->FindClass("java/lang/ClassCastException");
+        if (excep) {
+            jenv->ThrowNew(excep, "dynamic_cast exception");
+        }
+    }
+}
+%extend HyperString
+{
+    static HyperString *dynamic_cast(HyperType *hypertype) {
+        return dynamic_cast<HyperString *>(hypertype);
+    }
+}
+
+%exception HyperInteger::dynamic_cast(HyperType *hypertype)
+{
+    $action
+    if (!result) {
+        jclass excep = jenv->FindClass("java/lang/ClassCastException");
+        if (excep) {
+            jenv->ThrowNew(excep, "dynamic_cast exception");
+        }
+    }
+}
+%extend HyperInteger
+{
+    static HyperInteger *dynamic_cast(HyperType *hypertype) {
+        return dynamic_cast<HyperInteger *>(hypertype);
+    }
+}
+
+%exception HyperVector::dynamic_cast(HyperType *hypertype)
+{
+    $action
+    if (!result) {
+        jclass excep = jenv->FindClass("java/lang/ClassCastException");
+        if (excep) {
+            jenv->ThrowNew(excep, "dynamic_cast exception");
+        }
+    }
+}
+%extend HyperVector
+{
+    static HyperVector *dynamic_cast(HyperType *hypertype) {
+        return dynamic_cast<HyperVector *>(hypertype);
+    }
+}
+
+%exception HyperMap::dynamic_cast(HyperType *hypertype)
+{
+    $action
+    if (!result) {
+        jclass excep = jenv->FindClass("java/lang/ClassCastException");
+        if (excep) {
+            jenv->ThrowNew(excep, "dynamic_cast exception");
+        }
+    }
+}
+%extend HyperMap
+{
+    static HyperMap *dynamic_cast(HyperType *hypertype) {
+        return dynamic_cast<HyperMap *>(hypertype);
+    }
+}
+
 %javamethodmodifiers HyperMap::set "private";
 %rename("private_set") HyperMap::set;
 %javamethodmodifiers HyperVector::put "private";
