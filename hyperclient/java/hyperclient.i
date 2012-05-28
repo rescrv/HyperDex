@@ -28,16 +28,14 @@
 
 %module hyperclient
 
-%include "std_map.i"
 %include "std_string.i"
-%include "std_vector.i"
 %include "stdint.i"
 
 %include "enums.swg"
 %javaconst(1);
 
 %{
-#include "hyperclient/java/syncclient.h"
+#include "hyperclient/java/javaclient.h"
 %}
 
 typedef uint16_t in_port_t;
@@ -50,64 +48,13 @@ typedef uint16_t in_port_t;
     }
 %}
 
-enum ReturnCode
-{
-    SUCCESS      = 8448,
-    NOTFOUND     = 8449,
-    SEARCHDONE   = 8450,
-    CMPFAIL      = 8451,
-    UNKNOWNSPACE = 8512,
-    COORDFAIL    = 8513,
-    SERVERERROR  = 8514,
-    CONNECTFAIL  = 8515,
-    DISCONNECT   = 8516,
-    RECONFIGURE  = 8517,
-    LOGICERROR   = 8518,
-    TIMEOUT      = 8519,
-    UNKNOWNATTR  = 8520,
-    DUPEATTR     = 8521,
-    SEEERRNO     = 8522,
-    NONEPENDING  = 8523,
-    DONTUSEKEY   = 8524,
-    WRONGTYPE    = 8525,
-    EXCEPTION    = 8574,
-    ZERO         = 8575
-};
+%include "HyperType.i"
 
-class HyperClient
-{
-    public:
-        HyperClient(const char* coordinator, in_port_t port);
-        ~HyperClient() throw ();
+%apply (char *STRING, int LENGTH) { (char *bytes, int len) }
+%include "hyperclient/java/javaclient.h"
 
-    public:
-        ReturnCode get(const std::string& space,
-                       const std::string& key,
-                       std::map<std::string, std::string>* STR_OUT,
-                       std::map<std::string, uint64_t>* NUM_OUT);
-        ReturnCode put(const std::string& space,
-                       const std::string& key,
-                       const std::map<std::string, std::string>& svalues,
-                       const std::map<std::string, uint64_t>& nvalues);
-        ReturnCode del(const std::string& space,
-                       const std::string& key);
-        ReturnCode range_search(const std::string& space,
-                                const std::string& attr,
-                                uint64_t lower,
-                                uint64_t upper,
-                                std::vector<std::map<std::string,
-                                                     std::string> >* STR_OUT,
-                                std::vector<std::map<std::string,
-                                                     uint64_t> >* NUM_OUT);
-
-    private:
-        hyperclient m_client;
-};
-
-namespace std
-{
-    %template(ssmap) map<string, string>;
-    %template(snmap) map<string, unsigned long long>;
-    %template(ssearchresult) vector<map<string, string> >;
-    %template(nsearchresult) vector<map<string, unsigned long long> >;
-}
+%ignore "";
+%rename("ReturnCode") "hyperclient_returncode";
+%rename("%s", %$isenumitem) "";
+%rename("%(regex:/^HYPERCLIENT_(.{2,})/\\1/)s", %$isenumitem) "";
+%include "hyperclient/hyperclient.h"

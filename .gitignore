@@ -35,11 +35,11 @@ hyperclient/java/java.stamp
 hyperclient/java/libhyperclient-java.la
 hyperclient/java/libhyperclient_java_la-hyperclient_wrap.lo
 hyperclient/java/libhyperclient_java_la-hyperclient_wrap.o
-hyperclient/java/libhyperclient_java_la-syncclient.lo
-hyperclient/java/libhyperclient_java_la-syncclient.o
+hyperclient/java/libhyperclient_java_la-javaclient.lo
+hyperclient/java/libhyperclient_java_la-javaclient.o
 hyperclient-java.stamp
-hyperclient/java/syncclient.lo
-hyperclient/java/syncclient.o
+hyperclient/java/javaclient.lo
+hyperclient/java/javaclient.o
 hyperclient/libhyperclient_la-hyperclient_c_wrappers.lo
 hyperclient/libhyperclient_la-hyperclient_c_wrappers.o
 hyperclient/libhyperclient_la-hyperclient.lo

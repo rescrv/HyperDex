@@ -31,7 +31,6 @@
 
 package hyperclient;
 
-import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -43,12 +42,7 @@ import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.StringByteIterator;
 
-import hyperclient.HyperClient;
-import hyperclient.ReturnCode;
-import hyperclient.ssmap;
-import hyperclient.snmap;
-import hyperclient.ssearchresult;
-import hyperclient.nsearchresult;
+import hyperclient.*;
 
 public class HyperClientYCSB extends DB
 {
@@ -92,18 +86,17 @@ public class HyperClientYCSB extends DB
      */
     public int read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
     {
-        ssmap rs = new ssmap();
-        snmap rn = new snmap();
-        ReturnCode ret = m_client.get(table, key, rs, rn);
+        HyperMap attributes = new HyperMap();
+        ReturnCode ret = m_client.get(table, key, attributes);
 
         for (int i = 0; i < m_retries && ret != ReturnCode.SUCCESS && ret != ReturnCode.NOTFOUND; ++i)
         {
-            ret = m_client.get(table, key, rs, rn);
+            ret = m_client.get(table, key, attributes);
         }
 
         if (ret == ReturnCode.SUCCESS)
         {
-            convert_to_java(fields, rs, result);
+            convert_to_java(fields, attributes, result);
             return 0;
         }
 
@@ -136,28 +129,24 @@ public class HyperClientYCSB extends DB
             return 1001;
         }
 
-        BigInteger base = new BigInteger(m_mat.group(2));
-        BigInteger lower = base.shiftLeft(32);
-        BigInteger upper = base.add(BigInteger.valueOf(recordcount)).shiftLeft(32);
+        long base = Long.parseLong(m_mat.group(2));
+        long lower = base << 32;
+        long upper = (base + recordcount) << 32;
 
-        assert lower.compareTo(new BigInteger("18446744073709551616")) < 0;
-        assert upper.compareTo(new BigInteger("18446744073709551616")) < 0;
+        HyperVector res = new HyperVector();
 
-        ssearchresult res = new ssearchresult();
-        nsearchresult nres = new nsearchresult();
-
-        ReturnCode ret = m_client.range_search(table, "recno", lower, upper, res, nres);
+        ReturnCode ret = m_client.range_search(table, "recno", lower, upper, res);
 
         for (int i = 0; i < m_retries && ret != ReturnCode.SUCCESS; ++i)
         {
-            ret = m_client.range_search(table, "recno", lower, upper, res, nres);
+            ret = m_client.range_search(table, "recno", lower, upper, res);
         }
 
         if (ret == ReturnCode.SUCCESS)
         {
             for (int i = 0; i < res.size(); ++i)
             {
-                ssmap e = res.get(i);
+                HyperMap e = HyperMap.dynamic_cast(res.get(i));
                 HashMap<String, ByteIterator> e2 = new HashMap<String, ByteIterator>();
                 convert_to_java(fields, e, e2);
                 result.add(e2);
@@ -179,8 +168,7 @@ public class HyperClientYCSB extends DB
      */
     public int update(String table, String key, HashMap<String,ByteIterator> values)
     {
-        ssmap res = new ssmap();
-        snmap nums = new snmap();
+        HyperMap res = new HyperMap();
         convert_from_java(values, res);
 
         if (m_scannable)
@@ -192,16 +180,15 @@ public class HyperClientYCSB extends DB
                 return -1;
             }
   
-            BigInteger bi = new BigInteger(m_mat.group(2));
-            bi = bi.shiftLeft(32);
-            nums.set("recno", bi);
+            long num = Long.parseLong(m_mat.group(2));
+            res.set("recno", num << 32);
         }
 
-        ReturnCode ret = m_client.put(table, key, res, nums);
+        ReturnCode ret = m_client.put(table, key, res);
 
         for (int i = 0; i < m_retries && ret != ReturnCode.SUCCESS; ++i)
         {
-            ret = m_client.put(table, key, res, nums);
+            ret = m_client.put(table, key, res);
         }
 
         if (ret == ReturnCode.SUCCESS)
@@ -250,7 +237,7 @@ public class HyperClientYCSB extends DB
         return ret.swigValue();
     }
 
-    private void convert_to_java(Set<String> fields, ssmap interres, HashMap<String,ByteIterator> result)
+    private void convert_to_java(Set<String> fields, HyperMap interres, HashMap<String,ByteIterator> result)
     {
         if (fields == null)
         {
@@ -262,17 +249,18 @@ public class HyperClientYCSB extends DB
             // Q: under which condition, interres.has_key(key) is false?
             if (interres.has_key(key))
             {
-                result.put(key, new StringByteIterator(interres.get(key)));
+                result.put(key, new StringByteIterator(interres.get(key).toString()));
             }
         }
     }
 
-    private void convert_from_java(HashMap<String,ByteIterator> result, ssmap interres)
+    private void convert_from_java(HashMap<String,ByteIterator> result, HyperMap interres)
     {
         Map<String, ByteIterator> r = result;
         for (Map.Entry<String, ByteIterator> entry : r.entrySet())
         {
-            interres.set(entry.getKey(), entry.getValue().toString());
+            HyperType attribute = new HyperString(entry.getValue().toString());
+            interres.set(entry.getKey(), attribute);
         }
     }
 }
