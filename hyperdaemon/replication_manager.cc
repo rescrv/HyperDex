@@ -276,7 +276,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
                                                     uint64_t nonce,
                                                     std::auto_ptr<e::buffer> /*backing*/,
                                                     const e::slice& key,
-                                                    const std::vector<hyperdex::microop>& ops)
+                                                    std::vector<hyperdex::microop>* ops)
 {
     std::vector<hyperdex::attribute> dims = m_config.dimension_names(to.get_space());
     assert(!dims.empty());
@@ -346,7 +346,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
     }
 
     // If the atomic op does nothing, just act as if it was successful.
-    if (ops.empty())
+    if (ops->empty())
     {
         respond_to_client(to, from, nonce,
                           hyperdex::RESP_ATOMIC,
@@ -357,7 +357,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
 
     // We make an unvalidated assumption that the ops array is sorted.  We will
     // validate this at a later point.
-    if (ops.front().attr <= 0 || ops.back().attr >= dims.size())
+    if (ops->front().attr <= 0 || ops->back().attr >= dims.size())
     {
         respond_to_client(to, from, nonce,
                           hyperdex::RESP_ATOMIC,
@@ -375,10 +375,10 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
         new_size += old_value[i].size();
     }
 
-    for (size_t i = 0; i < ops.size(); ++i)
+    for (size_t i = 0; i < ops->size(); ++i)
     {
         // Increment by the amount required by the microop
-        new_size += sizeof_microop(ops[i]);
+        new_size += sizeof_microop((*ops)[i]);
     }
 
     // Allocate the new buffer
@@ -394,8 +394,8 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
     data += key.size();
 
     // Divide the micro ops up by attribute
-    const hyperdex::microop* op = &ops.front();
-    const hyperdex::microop* const stop = &ops.front() + ops.size();
+    hyperdex::microop* op = &ops->front();
+    const hyperdex::microop* const stop = &ops->front() + ops->size();
     // the next attribute to copy, indexed based on the total number of
     // dimensions.  It starts at 1, because the key is 0, and 1 is the first
     // secondary attribute.
@@ -403,7 +403,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
 
     while (op < stop)
     {
-        const hyperdex::microop* end = op;
+        hyperdex::microop* end = op;
 
         // If the ops are out of order, or out of bounds
         if (op->attr < next_to_copy || op->attr >= dims.size())
@@ -450,6 +450,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
         //   micro ops.
 
         hyperdex::network_returncode error;
+        // This call may modify [op, end) ops.
         uint8_t* newdata = apply_microops(dims[op->attr].type,
                                           old_value[op->attr - 1],
                                           op, end - op,

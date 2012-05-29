@@ -249,7 +249,7 @@ hyperdaemon :: network_worker :: run()
                 continue;
             }
 
-            m_repl->client_atomic(from, to, nonce, msg, key, microops);
+            m_repl->client_atomic(from, to, nonce, msg, key, &microops);
         }
         else if (type == hyperdex::REQ_SEARCH_START)
         {

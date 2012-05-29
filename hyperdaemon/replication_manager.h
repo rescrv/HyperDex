@@ -111,7 +111,7 @@ class replication_manager
                            uint64_t nonce,
                            std::auto_ptr<e::buffer> backing,
                            const e::slice& key,
-                           const std::vector<hyperdex::microop>& ops);
+                           std::vector<hyperdex::microop>* ops);
         // These are called in response to messages from other hosts.
         void chain_put(const hyperdex::entityid& from,
                        const hyperdex::entityid& to,
