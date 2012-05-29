@@ -27,6 +27,24 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
+'''  Construct the space shown below and fuzz test it.
+space kv
+dimensions
+    k,
+    s (string),
+    i (int64),
+    ls (list(string)),
+    li (list(int64)),
+    ss (set(string)),
+    si (set(int64)),
+    mss (map(string, string)),
+    msi (map(string, int64)),
+    mis (map(int64, string)),
+    mii (map(int64, int64))
+key k auto 0 1
+'''
+
+
 import collections
 import copy
 import operator
