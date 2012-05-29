@@ -428,6 +428,8 @@ hyperdex :: configuration_parser :: parse_subspace(char* start,
                 case HYPERDATATYPE_LIST_GENERIC:
                 case HYPERDATATYPE_SET_GENERIC:
                 case HYPERDATATYPE_MAP_GENERIC:
+                case HYPERDATATYPE_MAP_STRING_KEYONLY:
+                case HYPERDATATYPE_MAP_INT64_KEYONLY:
                 case HYPERDATATYPE_GARBAGE:
                 default:
                     abort();
@@ -919,8 +921,10 @@ hyperdex :: configuration_parser :: attrs_to_hashfuncs(const subspaceid& ssi,
                 case HYPERDATATYPE_SET_STRING:
                 case HYPERDATATYPE_SET_INT64:
                 case HYPERDATATYPE_MAP_GENERIC:
+                case HYPERDATATYPE_MAP_STRING_KEYONLY:
                 case HYPERDATATYPE_MAP_STRING_STRING:
                 case HYPERDATATYPE_MAP_STRING_INT64:
+                case HYPERDATATYPE_MAP_INT64_KEYONLY:
                 case HYPERDATATYPE_MAP_INT64_STRING:
                 case HYPERDATATYPE_MAP_INT64_INT64:
                 case HYPERDATATYPE_GARBAGE:

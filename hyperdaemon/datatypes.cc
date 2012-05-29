@@ -1143,7 +1143,7 @@ apply_map_add_remove(bool (*validate_key)(const uint8_t** ptr, uint32_t* ptr_sz,
     using namespace hyperdex;
     assert(num_ops > 0);
 
-    if (!validate_elem_micro_arg1(ops) ||
+    if ((ops->action != OP_MAP_REMOVE && !validate_elem_micro_arg1(ops)) ||
         !validate_elem_micro_arg2(ops))
     {
         *error = hyperdex::NET_BADMICROS;
@@ -1153,7 +1153,7 @@ apply_map_add_remove(bool (*validate_key)(const uint8_t** ptr, uint32_t* ptr_sz,
     // Validate and sort the the microops.
     for (size_t i = 0; i < num_ops - 1; ++i)
     {
-        if (!validate_elem_micro_arg1(ops + i + 1) ||
+        if ((ops->action != OP_MAP_REMOVE && !validate_elem_micro_arg1(ops + i + 1)) ||
             !validate_elem_micro_arg2(ops + i + 1))
         {
             *error = hyperdex::NET_BADMICROS;
@@ -1735,8 +1735,8 @@ apply_map_string_int64(const e::slice& old_value,
     {
         return apply_map_add_remove(validate_string,
                                     validate_int64,
-                                    validate_string_micro,
                                     validate_int64_micro_arg1,
+                                    validate_string_micro,
                                     compare_string_micros_arg2,
                                     compare_string_micro_arg2,
                                     copy_string_from_serialized,
@@ -1753,8 +1753,8 @@ apply_map_string_int64(const e::slice& old_value,
     {
         return apply_map_microop(validate_string,
                                  validate_int64,
-                                 validate_string_micro,
                                  validate_int64_micro_arg1,
+                                 validate_string_micro,
                                  compare_string_micros_arg2,
                                  compare_string_micro_arg2,
                                  copy_string_from_serialized,
@@ -1780,8 +1780,8 @@ apply_map_int64_string(const e::slice& old_value,
     {
         return apply_map_add_remove(validate_int64,
                                     validate_string,
-                                    validate_int64_micro_arg2,
                                     validate_string_micro,
+                                    validate_int64_micro_arg2,
                                     compare_int64_micros_arg2,
                                     compare_int64_micro_arg2,
                                     copy_int64_from_serialized,
@@ -1798,8 +1798,8 @@ apply_map_int64_string(const e::slice& old_value,
     {
         return apply_map_microop(validate_int64,
                                  validate_string,
-                                 validate_int64_micro_arg2,
                                  validate_string_micro,
+                                 validate_int64_micro_arg2,
                                  compare_int64_micros_arg2,
                                  compare_int64_micro_arg2,
                                  copy_int64_from_serialized,
@@ -1825,8 +1825,8 @@ apply_map_int64_int64(const e::slice& old_value,
     {
         return apply_map_add_remove(validate_int64,
                                     validate_int64,
-                                    validate_int64_micro_arg2,
                                     validate_int64_micro_arg1,
+                                    validate_int64_micro_arg2,
                                     compare_int64_micros_arg2,
                                     compare_int64_micro_arg2,
                                     copy_int64_from_serialized,
@@ -1886,6 +1886,8 @@ hyperdaemon :: validate_datatype(hyperdatatype datatype, const e::slice& data)
         case HYPERDATATYPE_LIST_GENERIC:
         case HYPERDATATYPE_SET_GENERIC:
         case HYPERDATATYPE_MAP_GENERIC:
+        case HYPERDATATYPE_MAP_STRING_KEYONLY:
+        case HYPERDATATYPE_MAP_INT64_KEYONLY:
         case HYPERDATATYPE_GARBAGE:
             return false;
         default:
@@ -1933,6 +1935,8 @@ hyperdaemon :: apply_microops(hyperdatatype type,
         case HYPERDATATYPE_LIST_GENERIC:
         case HYPERDATATYPE_SET_GENERIC:
         case HYPERDATATYPE_MAP_GENERIC:
+        case HYPERDATATYPE_MAP_STRING_KEYONLY:
+        case HYPERDATATYPE_MAP_INT64_KEYONLY:
         case HYPERDATATYPE_GARBAGE:
         default:
             *error = hyperdex::NET_BADMICROS;

@@ -316,6 +316,26 @@ HYPERCLIENT_CPPDEF(set, intersect, SET_INTERSECT, coerce_set_generic)
 HYPERCLIENT_CPPDEF(set, union, SET_UNION, coerce_set_generic)
 
 static hyperdatatype
+coerce_map_remove(hyperdatatype expected, hyperdatatype provided)
+{
+    if (provided == HYPERDATATYPE_MAP_STRING_KEYONLY &&
+        (expected == HYPERDATATYPE_MAP_STRING_STRING ||
+         expected == HYPERDATATYPE_MAP_STRING_INT64))
+    {
+        return expected;
+    }
+
+    if (provided == HYPERDATATYPE_MAP_INT64_KEYONLY &&
+        (expected == HYPERDATATYPE_MAP_INT64_STRING ||
+         expected == HYPERDATATYPE_MAP_INT64_INT64))
+    {
+        return expected;
+    }
+
+    return HYPERDATATYPE_GARBAGE;
+}
+
+static hyperdatatype
 coerce_numeric_value(hyperdatatype, hyperdatatype provided)
 {
     if (provided == HYPERDATATYPE_MAP_STRING_INT64 ||
@@ -351,7 +371,7 @@ coerce_string_value(hyperdatatype, hyperdatatype provided)
     }
 
 HYPERCLIENT_MAP_CPPDEF(map, add, MAP_ADD, coerce_identity)
-HYPERCLIENT_MAP_CPPDEF(map, remove, MAP_REMOVE, coerce_identity)
+HYPERCLIENT_MAP_CPPDEF(map, remove, MAP_REMOVE, coerce_map_remove)
 HYPERCLIENT_MAP_CPPDEF(map, atomic_add, INT64_ADD, coerce_numeric_value)
 HYPERCLIENT_MAP_CPPDEF(map, atomic_sub, INT64_SUB, coerce_numeric_value)
 HYPERCLIENT_MAP_CPPDEF(map, atomic_mul, INT64_MUL, coerce_numeric_value)

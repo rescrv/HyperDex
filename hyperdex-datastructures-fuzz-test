@@ -175,15 +175,15 @@ def generate_map_op():
 
 def generate_map_remove():
     key = str(random.randint(0, 1024))
-    val = {'mss': set(), 'msi': set(), 'mis': set(), 'mii': set()}
+    val = {}
     if random.random() < 0.9:
-        val['mss'].add(str(random.randint(0, 1024)))
+        val['mss'] = str(random.randint(0, 1024))
     if random.random() < 0.9:
-        val['msi'].add(str(random.randint(0, 1024)))
+        val['msi'] = str(random.randint(0, 1024))
     if random.random() < 0.9:
-        val['mis'].add(random.randint(0, 1024))
+        val['mis'] = random.randint(0, 1024)
     if random.random() < 0.9:
-        val['mii'].add(random.randint(0, 1024))
+        val['mii'] = random.randint(0, 1024)
     return key, val
 
 def generate_map_atomic_math():
@@ -231,7 +231,7 @@ def random_generator():
              ,'set_intersect': generate_set_set
              ,'set_union': generate_set_set
              ,'map_add': generate_map_op
-             #,'map_remove': generate_map_remove
+             ,'map_remove': generate_map_remove
              ,'map_atomic_add': generate_map_atomic_math
              ,'map_atomic_sub': generate_map_atomic_math
              ,'map_atomic_mul': generate_map_atomic_math
@@ -383,8 +383,8 @@ def _map_add(x, y):
     return x
 
 def _map_remove(x, y):
-    for k in y.iteritems():
-        del x[k]
+    if y in x:
+        del x[y]
     return x
 
 class HyperDexModel(object):
@@ -547,8 +547,10 @@ class HyperDexModel(object):
 
     def op_map_remove(self, key, s):
         return self._atomic(key, s, _map_remove,
-                            {'si': lambda x: isinstance(x, int),
-                             'ss': lambda x: isinstance(x, bytes)})
+                            {'msi': lambda x: isinstance(x, bytes),
+                             'mii': lambda x: isinstance(x, int),
+                             'mss': lambda x: isinstance(x, bytes),
+                             'mis': lambda x: isinstance(x, int)})
 
     def op_map_atomic_add(self, key, nums):
         return self._atomic_map(key, nums, _add_overflow_check(operator.add), 0,
