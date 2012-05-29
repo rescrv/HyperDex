@@ -28,6 +28,7 @@
 
 
 import collections
+import copy
 import operator
 import pprint
 import random
@@ -159,23 +160,55 @@ def generate_set_set():
         val['ss'] = generate_set_bytes()
     return key, val
 
+def generate_map_op():
+    key = str(random.randint(0, 1024))
+    val = {'mss': {}, 'msi': {}, 'mis': {}, 'mii': {}}
+    if random.random() < 0.9:
+        val['mss'][str(random.randint(0, 1024))] = generate_bytes()
+    if random.random() < 0.9:
+        val['msi'][str(random.randint(0, 1024))] = generate_int()
+    if random.random() < 0.9:
+        val['mis'][random.randint(0, 1024)] = generate_bytes()
+    if random.random() < 0.9:
+        val['mii'][random.randint(0, 1024)] = generate_int()
+    return key, val
+
+def generate_map_remove():
+    key = str(random.randint(0, 1024))
+    val = {'mss': set(), 'msi': set(), 'mis': set(), 'mii': set()}
+    if random.random() < 0.9:
+        val['mss'].add(str(random.randint(0, 1024)))
+    if random.random() < 0.9:
+        val['msi'].add(str(random.randint(0, 1024)))
+    if random.random() < 0.9:
+        val['mis'].add(random.randint(0, 1024))
+    if random.random() < 0.9:
+        val['mii'].add(random.randint(0, 1024))
+    return key, val
+
 def generate_map_atomic_math():
     key = str(random.randint(0, 1024))
     val = {'msi': {}, 'mii': {}}
-    num = 1 #random.randint(0, 1024)
+    num = random.randint(0, 1024)
     keys = [str(k) for k in random.sample(range(0, 1025), num)]
     for k in keys:
         val['msi'][k] = generate_int()
-    num = 1 #random.randint(0, 1024)
+    num = random.randint(0, 1024)
     for k in random.sample(range(0, 1025), num):
         val['mii'][k] = generate_int()
     return key, val
 
 def generate_map_string_pend():
     key = str(random.randint(0, 1024))
-    val = {}
-    if random.random() < 0.9:
-        val['s'] = generate_bytes()
+    val = {'mss': {}, 'mis': {}}
+    num = random.randint(0, 1024)
+    num = random.randint(0, 1024)
+    keys = [str(k) for k in random.sample(range(0, 1025), num)]
+    for k in keys:
+        val['mss'][k] = generate_bytes()
+    num = random.randint(0, 1024)
+    for k in random.sample(range(0, 1025), num):
+        val['mis'][k] = generate_bytes()
     return key, val
 
 def random_generator():
@@ -197,18 +230,18 @@ def random_generator():
              ,'set_remove': generate_set_op
              ,'set_intersect': generate_set_set
              ,'set_union': generate_set_set
-             #,'map_add': generate_map_add
+             ,'map_add': generate_map_op
              #,'map_remove': generate_map_remove
-             #,'map_atomic_add': generate_map_atomic_math
-             #,'map_atomic_sub': generate_map_atomic_math
-             #,'map_atomic_mul': generate_map_atomic_math
-             #,'map_atomic_div': generate_map_atomic_math
-             #,'map_atomic_mod': generate_map_atomic_math
-             #,'map_atomic_and': generate_map_atomic_math
-             #,'map_atomic_or':  generate_map_atomic_math
-             #,'map_atomic_xor': generate_map_atomic_math
-             #,'map_string_prepend': generate_map_string_pend
-             #,'map_string_append': generate_map_string_pend
+             ,'map_atomic_add': generate_map_atomic_math
+             ,'map_atomic_sub': generate_map_atomic_math
+             ,'map_atomic_mul': generate_map_atomic_math
+             ,'map_atomic_div': generate_map_atomic_math
+             ,'map_atomic_mod': generate_map_atomic_math
+             ,'map_atomic_and': generate_map_atomic_math
+             ,'map_atomic_or':  generate_map_atomic_math
+             ,'map_atomic_xor': generate_map_atomic_math
+             ,'map_string_prepend': generate_map_string_pend
+             ,'map_string_append': generate_map_string_pend
              }
     while True:
         op = random.choice(op_gen.keys())
@@ -291,6 +324,12 @@ class HyperDexClient(object):
     def op_set_union(self, key, s):
         return self._atomic(key, s, self._client.set_union)
 
+    def op_map_add(self, key, ops):
+        return self._atomic(key, ops, self._client.map_add)
+
+    def op_map_remove(self, key, ops):
+        return self._atomic(key, ops, self._client.map_remove)
+
     def op_map_atomic_add(self, key, nums):
         return self._atomic(key, nums, self._client.map_atomic_add)
 
@@ -336,6 +375,16 @@ def _set_add(x, y):
 def _set_remove(x, y):
     if y in x:
         x.remove(y)
+    return x
+
+def _map_add(x, y):
+    for k, v in y.iteritems():
+        x[k] = v
+    return x
+
+def _map_remove(x, y):
+    for k in y.iteritems():
+        del x[k]
     return x
 
 class HyperDexModel(object):
@@ -393,9 +442,10 @@ class HyperDexModel(object):
                 return HyperClientException(HYPERCLIENT_UNKNOWNATTR, k)
             if not validate.get(k, lambda x: False)(v):
                 return HyperClientException(HYPERCLIENT_WRONGTYPE, k)
-        newobj = dict(self._kvs[key])
+        newobj = self._kvs[key].copy()
+        newobj = copy.deepcopy(self._kvs[key])
         for k, v in ops.iteritems():
-            newobj[k] = func(self._kvs[key][k], v)
+            newobj[k] = func(newobj[k], v)
         self._kvs[key] = newobj
         return self._kvs[key]
 
@@ -409,12 +459,12 @@ class HyperDexModel(object):
                     return HyperClientException(HYPERCLIENT_WRONGTYPE, k)
         if key not in self._kvs:
             return HyperClientException(HYPERCLIENT_NOTFOUND)
-        newobj = dict(self._kvs[key])
+        newobj = copy.deepcopy(self._kvs[key])
         for k, m in ops.iteritems():
             for mk, mv in m.iteritems():
                 if mk not in newobj[k]:
                     newobj[k][mk] = default
-                newobj[k][mk] = func(self._kvs[key][k][mk], mv)
+                newobj[k][mk] = func(newobj[k][mk], mv)
         self._kvs[key] = newobj
         return self._kvs[key]
 
@@ -488,10 +538,67 @@ class HyperDexModel(object):
                             {'si': lambda x: isinstance(x, set) and all([isinstance(e, int) for e in x]),
                              'ss': lambda x: isinstance(x, set) and all([isinstance(e, bytes) for e in x])})
 
+    def op_map_add(self, key, ops):
+        return self._atomic(key, ops, _map_add,
+                            {'msi': lambda d: isinstance(d, dict) and all([isinstance(x, bytes) and isinstance(y, int) for x, y in d.iteritems()]),
+                             'mii': lambda d: isinstance(d, dict) and all([isinstance(x, int) and isinstance(y, int) for x, y in d.iteritems()]),
+                             'mss': lambda d: isinstance(d, dict) and all([isinstance(x, bytes) and isinstance(y, bytes) for x, y in d.iteritems()]),
+                             'mis': lambda d: isinstance(d, dict) and all([isinstance(x, int) and isinstance(y, bytes) for x, y in d.iteritems()])})
+
+    def op_map_remove(self, key, s):
+        return self._atomic(key, s, _map_remove,
+                            {'si': lambda x: isinstance(x, int),
+                             'ss': lambda x: isinstance(x, bytes)})
+
     def op_map_atomic_add(self, key, nums):
         return self._atomic_map(key, nums, _add_overflow_check(operator.add), 0,
                             {'msi': lambda x, y: isinstance(x, bytes) and isinstance(y, int),
                              'mii': lambda x, y: isinstance(x, int) and isinstance(y, int)})
+
+    def op_map_atomic_sub(self, key, nums):
+        return self._atomic_map(key, nums, _add_overflow_check(operator.sub), 0,
+                            {'msi': lambda x, y: isinstance(x, bytes) and isinstance(y, int),
+                             'mii': lambda x, y: isinstance(x, int) and isinstance(y, int)})
+
+    def op_map_atomic_mul(self, key, nums):
+        return self._atomic_map(key, nums, _add_overflow_check(operator.mul), 0,
+                            {'msi': lambda x, y: isinstance(x, bytes) and isinstance(y, int),
+                             'mii': lambda x, y: isinstance(x, int) and isinstance(y, int)})
+
+    def op_map_atomic_div(self, key, nums):
+        return self._atomic_map(key, nums, _add_overflow_check(operator.div), 0,
+                            {'msi': lambda x, y: isinstance(x, bytes) and isinstance(y, int),
+                             'mii': lambda x, y: isinstance(x, int) and isinstance(y, int)})
+
+    def op_map_atomic_mod(self, key, nums):
+        return self._atomic_map(key, nums, _add_overflow_check(operator.mod), 0,
+                            {'msi': lambda x, y: isinstance(x, bytes) and isinstance(y, int),
+                             'mii': lambda x, y: isinstance(x, int) and isinstance(y, int)})
+
+    def op_map_atomic_and(self, key, nums):
+        return self._atomic_map(key, nums, _add_overflow_check(lambda x, y: x & y), 0,
+                            {'msi': lambda x, y: isinstance(x, bytes) and isinstance(y, int),
+                             'mii': lambda x, y: isinstance(x, int) and isinstance(y, int)})
+
+    def op_map_atomic_or(self, key, nums):
+        return self._atomic_map(key, nums, _add_overflow_check(lambda x, y: x | y), 0,
+                            {'msi': lambda x, y: isinstance(x, bytes) and isinstance(y, int),
+                             'mii': lambda x, y: isinstance(x, int) and isinstance(y, int)})
+
+    def op_map_atomic_xor(self, key, nums):
+        return self._atomic_map(key, nums, _add_overflow_check(lambda x, y: x ^ y), 0,
+                            {'msi': lambda x, y: isinstance(x, bytes) and isinstance(y, int),
+                             'mii': lambda x, y: isinstance(x, int) and isinstance(y, int)})
+
+    def op_map_string_prepend(self, key, nums):
+        return self._atomic_map(key, nums, lambda x, y: y + x, '',
+                            {'mss': lambda x, y: isinstance(x, bytes) and isinstance(y, bytes),
+                             'mis': lambda x, y: isinstance(x, int) and isinstance(y, bytes)})
+
+    def op_map_string_append(self, key, nums):
+        return self._atomic_map(key, nums, lambda x, y: x + y, '',
+                            {'mss': lambda x, y: isinstance(x, bytes) and isinstance(y, bytes),
+                             'mis': lambda x, y: isinstance(x, int) and isinstance(y, bytes)})
 
 if __name__ == '__main__':
     random.seed(0)
@@ -502,7 +609,7 @@ if __name__ == '__main__':
         m = getattr(model, 'op_' + op)(*args)
         h = getattr(hyperdex, 'op_' + op)(*args)
         if m != h:
-            print 'There was a mismatch:'
+            print 'There was a mismatch:', op, args
             print 'Model:'
             pprint.pprint(m)
             print 'HyperDex:'
