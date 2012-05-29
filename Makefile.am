@@ -43,8 +43,7 @@ lib_LTLIBRARIES = \
 pyexec_LTLIBRARIES =
 
 noinst_LTLIBRARIES = \
-			libhyperdex.la \
-			libhyperdaemon.la
+			libhyperdex.la
 
 include_HEADERS = \
 			hyperdex.h
@@ -53,7 +52,6 @@ noinst_HEADERS = \
 			$(libhyperspacehashing_noinst_headers) \
 			$(libhyperdisk_noinst_headers) \
 			$(libhyperdex_noinst_headers) \
-			$(libhyperdaemon_noinst_headers) \
 			$(libhyperclient_noinst_headers) \
 			$(java_bindings_noinst_headers)
 
@@ -330,43 +328,41 @@ libhyperdex_la_CPPFLAGS = \
 
 #################################### Library ###################################
 
-libhyperdaemon_noinst_headers = \
-			hyperdaemon/hyperdaemon/daemon.h \
+hyperdex_daemon_SOURCES = \
+			daemon.cc \
+			hyperdaemon/daemon.h \
+			hyperdaemon/daemon.cc \
 			hyperdaemon/datalayer.h \
+			hyperdaemon/datalayer.cc \
 			hyperdaemon/datatypes.h \
+			hyperdaemon/datatypes.cc \
 			hyperdaemon/logical.h \
+			hyperdaemon/logical.cc \
 			hyperdaemon/network_worker.h \
+			hyperdaemon/network_worker.cc \
 			hyperdaemon/ongoing_state_transfers.h \
+			hyperdaemon/ongoing_state_transfers.cc \
 			hyperdaemon/replication/clientop.h \
 			hyperdaemon/replication/keypair.h \
-			hyperdaemon/replication_manager.cc \
 			hyperdaemon/replication_manager.h \
+			hyperdaemon/replication_manager.cc \
 			hyperdaemon/replication_manager_deferred.h \
 			hyperdaemon/replication_manager_keyholder.h \
 			hyperdaemon/replication_manager_pending.h \
 			hyperdaemon/runtimeconfig.h \
-			hyperdaemon/searches.h
-
-libhyperdaemon_la_SOURCES = \
-			hyperdaemon/daemon.cc \
-			hyperdaemon/datalayer.cc \
-			hyperdaemon/datatypes.cc \
-			hyperdaemon/logical.cc \
-			hyperdaemon/network_worker.cc \
-			hyperdaemon/ongoing_state_transfers.cc \
-			hyperdaemon/replication_manager.cc \
 			hyperdaemon/runtimeconfig.cc \
+			hyperdaemon/searches.h \
 			hyperdaemon/searches.cc
-libhyperdaemon_la_LIBADD = \
+hyperdex_daemon_LDADD = \
 			libhyperdex.la \
-			libhyperspacehashing.la \
 			libhyperdisk.la \
+			libhyperspacehashing.la \
 			$(E_LIBS) \
-			$(COVERAGE_LDADD)
-libhyperdaemon_la_CPPFLAGS = \
+			$(COVERAGE_LDADD) \
+			-lbusybee-mta -lpopt -lglog -lrt
+hyperdex_daemon_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
 			-I$(abs_top_srcdir)/hyperdisk \
-			-I$(abs_top_srcdir)/hyperdex \
 			$(E_CFLAGS) \
 			$(CPPFLAGS)
 
@@ -516,17 +512,6 @@ endif
 ################################################################################
 ################################### Binaries ###################################
 ################################################################################
-
-hyperdex_daemon_SOURCES = \
-			daemon.cc
-hyperdex_daemon_LDADD = \
-			libhyperdisk.la \
-			libhyperdaemon.la \
-			$(COVERAGE_LDADD) \
-			-lbusybee-mta -lpopt -lglog -lrt
-hyperdex_daemon_CPPFLAGS = \
-			$(PO6_CFLAGS) \
-			$(CPPFLAGS)
 
 hyperdex_binary_test_SOURCES = \
 			binary-test.cc

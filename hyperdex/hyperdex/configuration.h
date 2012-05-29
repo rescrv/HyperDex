@@ -37,14 +37,14 @@
 #include <po6/net/location.h>
 
 // HyperspaceHashing
-#include <hyperspacehashing/mask.h>
-#include <hyperspacehashing/prefix.h>
-#include <hyperspacehashing/search.h>
+#include "hyperspacehashing/hyperspacehashing/mask.h"
+#include "hyperspacehashing/hyperspacehashing/prefix.h"
+#include "hyperspacehashing/hyperspacehashing/search.h"
 
 // HyperDex
-#include <hyperdex/attribute.h>
-#include <hyperdex/ids.h>
-#include <hyperdex/instance.h>
+#include "hyperdex/hyperdex/attribute.h"
+#include "hyperdex/hyperdex/ids.h"
+#include "hyperdex/hyperdex/instance.h"
 
 namespace hyperdex
 {

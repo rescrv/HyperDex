@@ -29,9 +29,9 @@
 #define hyperdex_configuration_parser_h_
 
 // HyperDex
-#include <hyperdex.h>
-#include <hyperdex/attribute.h>
-#include <hyperdex/configuration.h>
+#include "hyperdex.h"
+#include "hyperdex/hyperdex/attribute.h"
+#include "hyperdex/hyperdex/configuration.h"
 
 namespace hyperdex
 {

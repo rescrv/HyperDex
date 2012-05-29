@@ -29,7 +29,7 @@
 #include <gtest/gtest.h>
 
 // HyperDex
-#include <hyperdex/ids.h>
+#include "hyperdex/hyperdex/ids.h"
 
 #pragma GCC diagnostic ignored "-Wswitch-default"
 

@@ -41,7 +41,7 @@
 #include <po6/threads/mutex.h>
 
 // HyperDex
-#include <hyperdex/configuration.h>
+#include "hyperdex/hyperdex/configuration.h"
 
 namespace hyperdex
 {
