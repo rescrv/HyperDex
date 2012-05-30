@@ -223,6 +223,10 @@ class Instance(object):
     def token(self):
         return self._token
         
+    @property
+    def last_acked(self):
+        return self._last_acked
+
     def add_config(self, num, data):
         assert not self._configs or num > self._configs[-1][0]
         self._configs.append((num, data))

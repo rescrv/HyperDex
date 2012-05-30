@@ -37,6 +37,7 @@
 
 // C++
 #include <limits>
+#include <fstream>
 
 // STL
 #include <algorithm>
@@ -54,9 +55,13 @@
 // e
 #include <e/timer.h>
 
+// util
+#include <util/atomicfile.h>
+
 // HyperDex
 #include "hyperdex/hyperdex/configuration.h"
 #include "hyperdex/hyperdex/coordinatorlink.h"
+#include "hyperdex/hyperdex/configuration_parser.h"
 
 // HyperDaemon
 #include "hyperdaemon/datalayer.h"
@@ -67,9 +72,13 @@ using hyperdex::entityid;
 using hyperdex::instance;
 using hyperdex::configuration;
 using hyperdex::coordinatorlink;
+using hyperdex::configuration_parser;
 
 typedef e::intrusive_ptr<hyperdisk::disk> disk_ptr;
 typedef std::map<hyperdex::regionid, disk_ptr> disk_map_t;
+
+const char* hyperdaemon :: datalayer :: STATE_FILE_NAME = "datalayer_state.hd";
+const int hyperdaemon :: datalayer :: STATE_FILE_VER = 1;
 
 hyperdaemon :: datalayer :: datalayer(coordinatorlink* cl, const po6::pathname& base)
     : m_cl(cl)
@@ -83,6 +92,8 @@ hyperdaemon :: datalayer :: datalayer(coordinatorlink* cl, const po6::pathname& 
     , m_optimistic_rr()
     , m_last_dose_of_optimism(0)
     , m_flushed_recently(false)
+    , m_quiesce(false)
+    , m_quiesce_state_id("")
 {
     m_optimistic_io_thread.start();
 
@@ -93,6 +104,10 @@ hyperdaemon :: datalayer :: datalayer(coordinatorlink* cl, const po6::pathname& 
         t->start();
         m_flush_threads.push_back(t);
     }
+    
+    // Load state from shutdown.
+    // XXX handle errors
+    load_state();
 }
 
 hyperdaemon :: datalayer :: ~datalayer() throw ()
@@ -108,6 +123,146 @@ hyperdaemon :: datalayer :: ~datalayer() throw ()
     {
         m_flush_threads[i]->join();
     }
+}
+
+bool
+hyperdaemon :: datalayer :: dump_state(const configuration& config, const instance& us)
+{
+    // Dump state information.
+    std::ostringstream s;
+    s << "version " << STATE_FILE_VER << std::endl;
+
+    s << "us";
+    s << " " << us.address;
+    s << " " << us.inbound_port;
+    s << " " << us.inbound_version;
+    s << " " << us.outbound_port;
+    s << " " << us.outbound_version; 
+    s << std::endl;
+    
+    s << "config";
+    s << " " << config.config_text();
+
+    // Rewrite the state file atomically.
+    if (!util::atomicfile::rewrite(m_base.get(), STATE_FILE_NAME, s.str().c_str()))
+    {
+        PLOG(ERROR) << "Could not write datalayer state to a file " 
+                    << po6::join(m_base.get(), STATE_FILE_NAME);
+        return false;
+    }
+    
+    return true;
+}
+
+bool
+hyperdaemon :: datalayer :: load_state()
+{
+    po6::pathname state_fname = po6::join(m_base.get(), STATE_FILE_NAME);
+    std::ifstream f; 
+    f.open(state_fname.get());
+    if (!f)
+    {
+        PLOG(INFO) << "Could not open datalayer state file " << state_fname << "; starting with fresh state";
+        return false;
+    }
+
+    // File version.
+    std::string v;
+    f >> v;
+    if (f.fail() || "version" != v)
+    {
+        PLOG(ERROR) << "Expecting 'version' token in datalayer state file " << state_fname << "; starting with fresh state";
+        return false;
+    }
+
+    uint32_t vn = -1;
+    f >> vn;
+    if (f.fail() || STATE_FILE_VER != vn)
+    {
+        PLOG(ERROR) << "Invalid version in datalayer state file " << state_fname << "; starting with fresh state";
+        return false;
+    }
+    
+    // Instance describing self at the time of quiesce.
+    std::string u;
+    f >> u;
+    if (f.fail() || "us" != u)
+    {
+        PLOG(ERROR) << "Expecting 'us' token in datalayer state file " << state_fname << "; starting with fresh state";
+        return false;
+    }
+    
+    po6::net::ipaddr address;
+    in_port_t inbound_port = -1;
+    uint16_t inbound_version = -1;
+    in_port_t outbound_port = -1;
+    uint16_t outbound_version = -1;    
+    f >> address >> inbound_port >> inbound_version >> outbound_port >> outbound_version;
+    if (f.fail())
+    {
+        PLOG(ERROR) << "Expecting instance in datalayer state file " << state_fname << "; starting with fresh state";
+        return false;
+    }
+    
+    instance us(address, inbound_port, inbound_version, outbound_port, outbound_version);
+
+    // Config at the time of quiesce.
+    std::string c;
+    f >> c;
+    if (f.fail() || "config" != c)
+    {
+        PLOG(ERROR) << "Expecting 'config' token in datalayer state file " << state_fname << "; starting with fresh state";
+        return false;
+    }
+    
+    char space = (char)f.get();
+    if (f.fail() || ' ' != space)
+    {
+        PLOG(ERROR) << "Expecting space in datalayer state file " << state_fname << "; starting with fresh state";
+        return false;
+    }
+
+    std::stringstream buffer;
+    buffer << f.rdbuf();
+    if (f.fail())
+    {
+        PLOG(ERROR) << "Expecting config in datalayer state file " << state_fname << "; starting with fresh state";
+        return false;
+    }
+    
+    std::string configtext = buffer.str();
+
+    configuration_parser cp;
+    configuration_parser::error e;
+    e = cp.parse(configtext);
+
+    if (e != configuration_parser::CP_SUCCESS)
+    {
+        PLOG(ERROR) << "Unable to parse config from datalayer state file " << state_fname << "; starting with fresh state";
+        return false;
+    }
+
+    configuration config = cp.generate();
+
+    // Re-open the disks that are needed according to config at the time of quiesce.
+    std::set<regionid> regions = config.regions_for(us);
+
+    for (std::set<regionid>::const_iterator r = regions.begin();
+            r != regions.end(); ++r)
+    {
+        if (!m_disks.contains(*r))
+        {
+            // Re-open a disk quiesced on shutdown.
+            // XXX handle errors
+            open_disk(*r, config.disk_hasher(r->get_subspace()),
+                        config.dimensions(r->get_space()),
+                        config.quiesce_state_id());
+        }
+    }
+
+    LOG(INFO) << "Datalayer state restored from quiesced state " << config.quiesce_state_id()
+              << " (loaded from file " << state_fname << ")";
+    return true;
 }
 
 void
@@ -128,6 +283,8 @@ hyperdaemon :: datalayer :: prepare(const configuration& newconfig, const instan
     {
         if (!m_disks.contains(*r))
         {
+            // Disk not present yet, create a new one.
+            // XXX handle errors
             create_disk(*r, newconfig.disk_hasher(r->get_subspace()),
                         newconfig.dimensions(r->get_space()));
         }
@@ -135,9 +292,41 @@ hyperdaemon :: datalayer :: prepare(const configuration& newconfig, const instan
 }
 
 void
-hyperdaemon :: datalayer :: reconfigure(const configuration&, const instance&)
+hyperdaemon :: datalayer :: reconfigure(const configuration& newconfig, const instance& us)
 {
-    // Do nothing.
+    // Quiesce (will quiesce multiple times if requested so).
+    if (newconfig.quiesce())
+    {
+        m_quiesce = newconfig.quiesce();
+        m_quiesce_state_id = newconfig.quiesce_state_id();
+        
+        // XXX - pull this out to the main loop, so we get the result and can fail the host?
+        // Quiesce the disks.
+        for (disk_map_t::iterator d = m_disks.begin(); d != m_disks.end(); d.next())
+        {
+            bool res = false;
+            try
+            {
+                res = d.value()->quiesce(m_quiesce_state_id);
+            }
+            catch (po6::error& e)
+            {
+                res = false;
+            }
+            
+            if (!res)
+            {
+                // XXX fail this region
+                PLOG(ERROR) << "Could not quiesce disk " << d.key();
+            }
+        }
+
+        if (!dump_state(newconfig, us))
+        {
+            // XXX fail entire host?
+            PLOG(ERROR) << "Could not save datalayer state.";
+        }
+    }
 }
 
 void
@@ -436,11 +625,11 @@ hyperdaemon :: datalayer :: create_disk(const regionid& ri,
 
     try
     {
-        // XXX fail this region.
         d = hyperdisk::disk::create(path, hasher, num_columns);
     }
     catch (po6::error& e)
     {
+        // XXX fail this region.
         PLOG(ERROR) << "Could not create disk " << ri;
         return;
     }
@@ -452,6 +641,44 @@ hyperdaemon :: datalayer :: create_disk(const regionid& ri,
     else
     {
         LOG(ERROR) << "Could not create disk " << ri << " because it already exists";
+    }
+}
+
+void
+hyperdaemon :: datalayer :: open_disk(const regionid& ri,
+                                      const hyperspacehashing::mask::hasher& hasher,
+                                      uint16_t num_columns,
+                                      const std::string& quiesce_state_id)
+{
+    std::ostringstream ostr;
+    ostr << ri;
+    po6::pathname path(ostr.str());
+    disk_ptr d;
+
+    try
+    {
+        d = hyperdisk::disk::open(path, hasher, num_columns, quiesce_state_id);
+        if (!d)
+        {
+            // XXX fail this region.
+            PLOG(ERROR) << "Could not open disk " << ri;
+            return;
+        }
+    }
+    catch (po6::error& e)
+    {
+        // XXX fail this region.
+        PLOG(ERROR) << "Could not open disk " << ri;
+        return;
+    }
+
+    if (m_disks.insert(ri, d))
+    {
+        LOG(INFO) << "Opened disk " << ri << " with " << num_columns << " columns";
+    }
+    else
+    {
+        LOG(ERROR) << "Could not add opened disk " << ri << " because it already exists";
     }
 }
 

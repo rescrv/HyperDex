@@ -44,7 +44,8 @@ enum network_returncode
     NET_SERVERERROR = 8324,
     NET_CMPFAIL     = 8325,
     NET_BADMICROS   = 8326,
-    NET_OVERFLOW    = 8327
+    NET_READONLY    = 8327,
+    NET_OVERFLOW    = 8328
 };
 
 enum network_msgtype

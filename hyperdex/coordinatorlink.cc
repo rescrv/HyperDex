@@ -146,6 +146,15 @@ hyperdex :: coordinatorlink :: poll_on()
 }
 
 hyperdex::coordinatorlink::returncode
+hyperdex :: coordinatorlink :: quiesced(const std::string& quiesce_state_id)
+{
+    po6::threads::mutex::hold hold(&m_lock);
+    std::ostringstream ostr;
+    ostr << "quiesced\t" << quiesce_state_id << "\n";
+    return send_to_coordinator(ostr.str().c_str(), ostr.str().size());
+}
+
+hyperdex::coordinatorlink::returncode
 hyperdex :: coordinatorlink :: poll(int connect_attempts, int timeout)
 {
     int attempt_num = 0;
@@ -235,7 +244,11 @@ hyperdex :: coordinatorlink :: poll(int connect_attempts, int timeout)
             {
                 m_acknowledged = false;
                 m_config = cp.generate();
-                return SUCCESS;
+
+                if (!m_config.shutdown())
+                {
+                    return SUCCESS;
+                }
             }
             else
             {
