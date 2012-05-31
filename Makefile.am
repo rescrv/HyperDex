@@ -551,6 +551,22 @@ hyperdex_trace_player_CPPFLAGS = \
 endif
 
 ################################################################################
+################################# Documentation ################################
+################################################################################
+
+man_MANS = \
+			doc/man/hyperdex-daemon.1 \
+			doc/man/hyperdex-replication-stress-test.1 \
+			doc/man/hyperdex-simple-consistency-stress-test.1
+
+# These need to be chained so that they'll only build once, and will not rely
+# upon a PHONY rule.
+doc/man/hyperdex-replication-stress-test.1: doc/man/hyperdex-replication-stress-test.rst doc/man/hyperdex-simple-consistency-stress-test.1
+doc/man/hyperdex-simple-consistency-stress-test.1: doc/man/hyperdex-simple-consistency-stress-test.rst doc/man/hyperdex-daemon.1
+doc/man/hyperdex-daemon.1: doc/man/hyperdex-daemon.rst
+	sphinx-build -W -d ${abs_top_builddir}/doc/_build -b man doc doc/man
+
+################################################################################
 ################################### Coverage ###################################
 ################################################################################
 

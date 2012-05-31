@@ -18,7 +18,10 @@ daemon-daemon.o
 daemon.o
 depcomp
 .deps/
-doc/_build
+doc/_build/
+doc/man/hyperdex-daemon.1
+doc/man/hyperdex-replication-stress-test.1
+doc/man/hyperdex-simple-consistency-stress-test.1
 hyperclient-0.1.dev.jar
 hyperclient/c/.dirstamp
 hyperclient/c/hyperclient_c_testcompile-testcompile.o
