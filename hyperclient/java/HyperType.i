@@ -166,3 +166,31 @@
     destr_delete();
   }
 %}
+
+%typemap(javacode) HyperClient
+%{
+  public java.util.Map get(String space, String key)
+  {
+    java.util.HashMap map = new java.util.HashMap();
+
+    SWIGTYPE_p_p_hyperclient_attribute pattrs_ptr = hyperclient.new_phyperclient_attribute_ptr();
+    SWIGTYPE_p_int attrs_sz_ptr = hyperclient.new_int_ptr();
+
+    ReturnCode ret = get(space,key,pattrs_ptr,attrs_sz_ptr);
+
+    hyperclient_attribute attrs
+        = hyperclient.phyperclient_attribute_ptr_value(pattrs_ptr);
+    int attrs_sz = hyperclient.int_ptr_value(attrs_sz_ptr);
+
+    for ( int i=0; i<attrs_sz; i++)
+    {
+        hyperclient_attribute ha = get_attribute(attrs,i);
+        map.put(ha.getAttr(),ha.getValue());
+    }
+
+    // XXX Don't forget to implement hyperclient_attribute_destroy and call it here
+
+    return map;
+  }
+%}
+

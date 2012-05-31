@@ -142,6 +142,8 @@ class HyperVector : public HyperType
         HyperType* back();
 };
 
+typedef hyperclient_attribute* phyperclient_attribute;
+
 class HyperClient
 {
     public:
@@ -164,6 +166,21 @@ class HyperClient
                                 int64_t lower,
                                 int64_t upper,
                                 HyperVector *results);
+
+        void set_attribute(hyperclient_attribute *ha,
+                           char *attr,
+                           char *value, int value_sz,
+                           hyperdatatype type);
+
+        hyperclient_attribute *get_attribute(hyperclient_attribute *ha, int i);
+
+        hyperclient_returncode get(const std::string& space,
+                       const std::string& key,
+                       hyperclient_attribute **attrs, int *attrs_sz);
+
+        hyperclient_returncode put(const std::string& space,
+                       const std::string& key,
+                       const hyperclient_attribute *attrs, int attrs_sz);
 
     private:
         hyperclient m_client;

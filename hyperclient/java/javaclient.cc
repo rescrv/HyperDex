@@ -606,3 +606,67 @@ HyperClient :: range_search(const std::string& space,
     assert(static_cast<unsigned>(status) < 8576);
     return status;
 }
+
+void
+HyperClient :: set_attribute(hyperclient_attribute *ha, char *attr,
+                                   char *value, int value_sz,
+                                   hyperdatatype type)
+{
+}
+
+hyperclient_attribute *
+HyperClient :: get_attribute(hyperclient_attribute *ha, int i)
+{
+    return ha + i;
+}
+
+hyperclient_returncode
+HyperClient :: get(const std::string& space,
+                   const std::string& key,
+                   hyperclient_attribute **attrs, int *attrs_sz)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    *attrs = NULL;
+    *attrs_sz = 0;
+
+    id = m_client.get(space.c_str(),
+                      key.data(),
+                      key.size(),
+                      &stat1,
+                      attrs,
+                      (size_t *)attrs_sz);
+
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(id == lid);
+    //e::guard g = e::makeguard(free, *attrs); g.use_variable(); XXX do this in java
+
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+hyperclient_returncode
+HyperClient :: put(const std::string& space,
+                       const std::string& key,
+                       const hyperclient_attribute *attrs, int attrs_sz)
+
+{
+    return HYPERCLIENT_SUCCESS;
+}
