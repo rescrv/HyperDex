@@ -1055,6 +1055,7 @@ operator << (std::ostream& lhs, hyperclient_returncode rhs)
         stringify(HYPERCLIENT_NOTFOUND);
         stringify(HYPERCLIENT_SEARCHDONE);
         stringify(HYPERCLIENT_CMPFAIL);
+        stringify(HYPERCLIENT_READONLY);
         stringify(HYPERCLIENT_UNKNOWNSPACE);
         stringify(HYPERCLIENT_COORDFAIL);
         stringify(HYPERCLIENT_SERVERERROR);

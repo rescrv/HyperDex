@@ -110,6 +110,7 @@ enum hyperclient_returncode
     HYPERCLIENT_NOTFOUND     = 8449,
     HYPERCLIENT_SEARCHDONE   = 8450,
     HYPERCLIENT_CMPFAIL      = 8451,
+    HYPERCLIENT_READONLY     = 8452,
 
     /* Error conditions */
     HYPERCLIENT_UNKNOWNSPACE = 8512,

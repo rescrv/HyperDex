@@ -94,6 +94,7 @@ cdef extern from "../hyperclient.h":
         HYPERCLIENT_NOTFOUND     = 8449
         HYPERCLIENT_SEARCHDONE   = 8450
         HYPERCLIENT_CMPFAIL      = 8451
+        HYPERCLIENT_READONLY     = 8452
         HYPERCLIENT_UNKNOWNSPACE = 8512
         HYPERCLIENT_COORDFAIL    = 8513
         HYPERCLIENT_SERVERERROR  = 8514
@@ -164,6 +165,7 @@ class HyperClientException(Exception):
                   ,HYPERCLIENT_NOTFOUND: 'Not Found'
                   ,HYPERCLIENT_SEARCHDONE: 'Search Done'
                   ,HYPERCLIENT_CMPFAIL: 'Conditional Operation Did Not Match Object'
+                  ,HYPERCLIENT_READONLY: 'Cluster is in a Read-Only State'
                   ,HYPERCLIENT_UNKNOWNSPACE: 'Unknown Space'
                   ,HYPERCLIENT_COORDFAIL: 'Coordinator Failure'
                   ,HYPERCLIENT_SERVERERROR: 'Server Error'
@@ -183,6 +185,7 @@ class HyperClientException(Exception):
                   ,HYPERCLIENT_NOTFOUND: 'HYPERCLIENT_NOTFOUND'
                   ,HYPERCLIENT_SEARCHDONE: 'HYPERCLIENT_SEARCHDONE'
                   ,HYPERCLIENT_CMPFAIL: 'HYPERCLIENT_CMPFAIL'
+                  ,HYPERCLIENT_READONLY: 'HYPERCLIENT_READONLY'
                   ,HYPERCLIENT_UNKNOWNSPACE: 'HYPERCLIENT_UNKNOWNSPACE'
                   ,HYPERCLIENT_COORDFAIL: 'HYPERCLIENT_COORDFAIL'
                   ,HYPERCLIENT_SERVERERROR: 'HYPERCLIENT_SERVERERROR'

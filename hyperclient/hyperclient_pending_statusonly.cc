@@ -95,6 +95,9 @@ hyperclient :: pending_statusonly :: handle_response(hyperclient* cl,
         case hyperdex::NET_OVERFLOW:
             set_status(HYPERCLIENT_OVERFLOW);
             break;
+        case hyperdex::NET_READONLY:
+            set_status(HYPERCLIENT_READONLY);
+            break;
         case hyperdex::NET_SERVERERROR:
         default:
             cl->killall(sender, HYPERCLIENT_SERVERERROR);

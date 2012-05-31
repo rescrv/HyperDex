@@ -53,7 +53,8 @@ noinst_HEADERS = \
 			$(libhyperdisk_noinst_headers) \
 			$(libhyperdex_noinst_headers) \
 			$(libhyperclient_noinst_headers) \
-			$(java_bindings_noinst_headers)
+			$(java_bindings_noinst_headers) \
+			util/atomicfile.h
 
 bin_PROGRAMS = \
 			hyperdex-binary-test \
