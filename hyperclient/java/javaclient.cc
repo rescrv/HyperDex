@@ -607,6 +607,33 @@ HyperClient :: range_search(const std::string& space,
     return status;
 }
 
+std::string
+HyperClient :: read_attr_name(hyperclient_attribute *ha)
+{
+    return std::string(ha->attr);
+}
+
+int
+HyperClient :: read(const char *memb, int memb_sz, char *ret, int ret_sz)
+{
+    if ( ret_sz == 0 )
+    {
+        return (int)(memb_sz); // XXX throw if memb_sz > MAX_INT
+    }
+    else
+    {
+        int smallest_sz = (int)(ret_sz<memb_sz?ret_sz:memb_sz); // XXX
+        memcpy(ret,memb,smallest_sz);
+        return smallest_sz;
+    }
+}
+
+int
+HyperClient :: read_value(hyperclient_attribute *ha, char *value, int value_sz)
+{
+    read(ha->value,ha->value_sz,value,value_sz);
+}
+
 void
 HyperClient :: set_attribute(hyperclient_attribute *ha, char *attr,
                                    char *value, int value_sz,

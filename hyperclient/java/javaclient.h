@@ -167,12 +167,15 @@ class HyperClient
                                 int64_t upper,
                                 HyperVector *results);
 
-        void set_attribute(hyperclient_attribute *ha,
+        static std::string read_attr_name(hyperclient_attribute *ha);
+        static int read_value(hyperclient_attribute *ha, char *value, int value_sz);
+
+        static void set_attribute(hyperclient_attribute *ha,
                            char *attr,
                            char *value, int value_sz,
                            hyperdatatype type);
 
-        hyperclient_attribute *get_attribute(hyperclient_attribute *ha, int i);
+        static hyperclient_attribute *get_attribute(hyperclient_attribute *ha, int i);
 
         hyperclient_returncode get(const std::string& space,
                        const std::string& key,
@@ -184,6 +187,7 @@ class HyperClient
 
     private:
         hyperclient m_client;
+        static int read(const char *memb, int memb_sz, char *ret, int ret_sz);
 };
 
 #endif // hyperclient_javaclient_h_
