@@ -3,8 +3,6 @@
 Welcome to the HyperDex Reference Manual
 ========================================
 
-This documentation corresponds to the current development version of HyperDex.
-
 .. toctree::
    :maxdepth: 2
 
