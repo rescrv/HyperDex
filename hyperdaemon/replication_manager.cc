@@ -104,6 +104,7 @@ hyperdaemon :: replication_manager :: replication_manager(coordinatorlink* cl,
     , m_keyholders(REPLICATION_HASHTABLE_SIZE)
     , m_us()
     , m_quiesce(false)
+    , m_quiesce_state_id_lock()
     , m_quiesce_state_id("")
     , m_shutdown(false)
     , m_periodic_thread(std::tr1::bind(&replication_manager::periodic, this))

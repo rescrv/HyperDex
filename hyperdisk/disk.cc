@@ -130,6 +130,12 @@ hyperdisk :: disk :: quiesce(const std::string& quiesce_state_id)
                 // Split the shards and try agian.
                 do_mandatory_io();
                 continue;
+            case NOTFOUND:
+            case WRONGARITY:
+            case SYNCFAILED:
+            case DROPFAILED:
+            case MISSINGDISK:
+            case SPLITFAILED:
             default:
                 return false;
         }
@@ -197,7 +203,7 @@ hyperdisk :: disk :: load_state(const std::string& quiesce_state_id)
         return false;
     }
 
-    uint32_t vn = -1;
+    int32_t vn = -1;
     f >> vn;
     if (f.fail() || STATE_FILE_VER != vn)
     {
@@ -259,9 +265,9 @@ hyperdisk :: disk :: load_state(const std::string& quiesce_state_id)
         coordinate c(ct[0], ct[1], ct[2], ct[3], ct[4], ct[5]);
         po6::pathname path = shard_filename(c);
         // XXX need to compare offset inside open 
-        e::intrusive_ptr<shard> s = hyperdisk::shard::open(m_base, path);
+        e::intrusive_ptr<shard> sh = hyperdisk::shard::open(m_base, path);
         
-        shards.push_back(std::make_pair(c, s));
+        shards.push_back(std::make_pair(c, sh));
     }
 
     // Re-install the reopened shards into the disk.
@@ -455,7 +461,7 @@ hyperdisk :: disk :: drop()
 // This operation will return SUCCESS as long as it knows that progress is being
 // made.  It will return DIDNOTHING if there was nothing to do.
 hyperdisk::returncode
-hyperdisk :: disk :: flush(size_t num, bool nonblocking)
+hyperdisk :: disk :: flush(ssize_t num, bool nonblocking)
 {
     if (nonblocking)
     {
@@ -477,7 +483,7 @@ hyperdisk :: disk :: flush(size_t num, bool nonblocking)
     e::locking_iterable_fifo<log_entry>::iterator it = m_log.iterate();
 
     // num == -1 means flush all
-    for (size_t nf = 0; (nf < num || -1 == num) && it.valid(); ++nf, it.next())
+    for (ssize_t nf = 0; (nf < num || num < 0) && it.valid(); ++nf, it.next())
     {
         const coordinate& coord = it->coord;
         const e::slice& key = it->key;

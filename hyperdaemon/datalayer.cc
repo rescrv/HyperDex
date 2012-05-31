@@ -175,7 +175,7 @@ hyperdaemon :: datalayer :: load_state()
         return false;
     }
 
-    uint32_t vn = -1;
+    int32_t vn = -1;
     f >> vn;
     if (f.fail() || STATE_FILE_VER != vn)
     {

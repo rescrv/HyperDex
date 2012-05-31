@@ -63,7 +63,7 @@ hyperdex :: configuration :: configuration()
 {
 }
 
-hyperdex :: configuration :: configuration(const std::string& config_text,
+hyperdex :: configuration :: configuration(const std::string& _config_text,
                                            uint64_t ver,
                                            const std::vector<instance>& hosts,
                                            const std::map<std::string, spaceid>& space_assignment,
@@ -73,9 +73,9 @@ hyperdex :: configuration :: configuration(const std::string& config_text,
                                            const std::map<subspaceid, hyperspacehashing::prefix::hasher>& repl_hashers,
                                            const std::map<subspaceid, hyperspacehashing::mask::hasher>& disk_hashers,
                                            const std::map<std::pair<instance, uint16_t>, hyperdex::regionid>& transfers,
-                                           bool quiesce, const std::string& quiesce_state_id,
-                                           bool shutdown)
-    : m_config_text(config_text)
+                                           bool _quiesce, const std::string& _quiesce_state_id,
+                                           bool _shutdown)
+    : m_config_text(_config_text)
     , m_version(ver)
     , m_hosts(hosts)
     , m_space_assignment(space_assignment)
@@ -86,9 +86,9 @@ hyperdex :: configuration :: configuration(const std::string& config_text,
     , m_disk_hashers(disk_hashers)
     , m_transfers(transfers)
     , m_transfers_by_num(65536)
-    , m_quiesce(quiesce)
-    , m_quiesce_state_id(quiesce_state_id)
-    , m_shutdown(shutdown)
+    , m_quiesce(_quiesce)
+    , m_quiesce_state_id(_quiesce_state_id)
+    , m_shutdown(_shutdown)
 {
     std::map<std::pair<instance, uint16_t>, hyperdex::regionid>::iterator it;
 
