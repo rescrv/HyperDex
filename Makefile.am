@@ -42,9 +42,6 @@ lib_LTLIBRARIES = \
 
 pyexec_LTLIBRARIES =
 
-noinst_LTLIBRARIES = \
-			libhyperdex.la
-
 include_HEADERS = \
 			hyperdex.h
 
@@ -238,7 +235,7 @@ libhyperdisk_la_SOURCES = \
 			hyperdisk/snapshot.cc
 libhyperdisk_la_LIBADD = \
 			libhyperspacehashing.la \
-			-lpthread
+			-lpthread \
 			$(COVERAGE_LDADD)
 libhyperdisk_la_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
@@ -312,16 +309,11 @@ libhyperdex_noinst_headers = \
 			hyperdex/hyperdex/network_constants.h \
 			hyperdex/hyperdex/packing.h
 
-libhyperdex_la_SOURCES = \
+libhyperdex_sources = \
 			hyperdex/configuration.cc \
 			hyperdex/configuration_parser.cc \
 			hyperdex/coordinatorlink.cc \
 			hyperdex/microop.cc
-libhyperdex_la_CPPFLAGS = \
-			-I$(abs_top_srcdir)/hyperspacehashing \
-			-I$(abs_top_srcdir)/hyperdex \
-			$(E_CFLAGS) \
-			$(CPPFLAGS)
 
 ################################################################################
 ################################## HyperDaemon #################################
@@ -353,9 +345,9 @@ hyperdex_daemon_SOURCES = \
 			hyperdaemon/runtimeconfig.h \
 			hyperdaemon/runtimeconfig.cc \
 			hyperdaemon/searches.h \
-			hyperdaemon/searches.cc
+			hyperdaemon/searches.cc \
+			${libhyperdex_sources}
 hyperdex_daemon_LDADD = \
-			libhyperdex.la \
 			libhyperdisk.la \
 			libhyperspacehashing.la \
 			$(E_LIBS) \
@@ -382,6 +374,7 @@ libhyperclient_include_HEADERS = \
 			hyperclient/hyperclient.h
 
 libhyperclient_noinst_headers = \
+			hyperclient/constants.h \
 			hyperclient/hyperclient_completedop.h \
 			hyperclient/hyperclient_pending.h \
 			hyperclient/hyperclient_pending_get.h \
@@ -396,11 +389,11 @@ libhyperclient_la_SOURCES = \
 			hyperclient/hyperclient_pending_get.cc \
 			hyperclient/hyperclient_pending_search.cc \
 			hyperclient/hyperclient_pending_statusonly.cc \
-			hyperclient/util.cc
+			hyperclient/util.cc \
+			${libhyperdex_sources}
 libhyperclient_la_LIBADD = \
 			libhyperspacehashing.la \
-			libhyperdex.la \
-			-lbusybee-st
+			-lbusybee-st \
 			$(E_LIBS) \
 			$(COVERAGE_LDADD)
 libhyperclient_la_CPPFLAGS = \
@@ -519,8 +512,6 @@ hyperdex_binary_test_SOURCES = \
 hyperdex_binary_test_LDADD = \
 			libhyperclient.la \
 			-lrt
-hyperdex_binary_test_LDFLAGS = \
-			-no-install
 hyperdex_binary_test_CPPFLAGS = \
 			$(E_CFLAGS) \
 			$(CPPFLAGS)
@@ -534,8 +525,6 @@ hyperdex_simple_consistency_stress_test_CPPFLAGS = \
 hyperdex_simple_consistency_stress_test_LDADD = \
 			libhyperclient.la \
 			-lpopt -lpthread
-hyperdex_simple_consistency_stress_test_LDFLAGS = \
-			-no-install
 
 hyperdex_replication_stress_test_SOURCES = \
 			replication-stress-test.cc
@@ -547,8 +536,6 @@ hyperdex_replication_stress_test_LDADD = \
 			libhyperspacehashing.la \
 			libhyperclient.la \
 			-lpopt
-hyperdex_replication_stress_test_LDFLAGS = \
-			-no-install
 
 if ENABLE_TRACEPLAYER
 bin_PROGRAMS += hyperdex-trace-player
@@ -558,8 +545,6 @@ hyperdex_trace_player_LDADD = \
 			libhyperclient.la \
 			-lbsd \
 			-lrt
-hyperdex_trace_player_LDFLAGS = \
-			-no-install
 hyperdex_trace_player_CPPFLAGS = \
 			$(E_CFLAGS) \
 			$(CPPFLAGS)
