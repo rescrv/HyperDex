@@ -19,6 +19,7 @@ daemon.o
 depcomp
 .deps/
 doc/_build/
+doc/HyperDex-0.4.0.pdf
 doc/man/hyperdex-daemon.1
 doc/man/hyperdex-replication-stress-test.1
 doc/man/hyperdex-simple-consistency-stress-test.1

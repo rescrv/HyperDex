@@ -30,6 +30,8 @@ AM_CXXFLAGS = $(WANAL_CXXFLAGS) $(COVERAGE_CXXFLAGS)
 
 EXTRA_DIST = \
 			LICENSE \
+			doc \
+			doc/HyperDex-$(VERSION).pdf \
 			hyperdex-coordinator \
 			hyperdex-coordinator-control \
 			$(libhyperclient_extra_dist) \
@@ -91,6 +93,9 @@ CLEANFILES = \
 JAVAROOT = $(abs_top_srcdir)
 
 .PHONY: coverage
+
+dist-hook:
+	rm -rf $(distdir)/doc/_build
 
 ################################################################################
 ############################## Hyperspace Hashing ##############################
@@ -565,6 +570,11 @@ doc/man/hyperdex-replication-stress-test.1: doc/man/hyperdex-replication-stress-
 doc/man/hyperdex-simple-consistency-stress-test.1: doc/man/hyperdex-simple-consistency-stress-test.rst doc/man/hyperdex-daemon.1
 doc/man/hyperdex-daemon.1: doc/man/hyperdex-daemon.rst
 	sphinx-build -W -d ${abs_top_builddir}/doc/_build -b man doc doc/man
+
+doc/HyperDex-$(VERSION).pdf:
+	sphinx-build -W -d ${abs_top_builddir}/doc/_build -b latex ${abs_top_srcdir}/doc ${abs_top_builddir}/doc/_build/latex
+	make -C ${abs_top_builddir}/doc/_build/latex all-pdf
+	cp ${abs_top_builddir}/doc/_build/latex/HyperDex.pdf doc/HyperDex-$(VERSION).pdf
 
 ################################################################################
 ################################### Coverage ###################################
