@@ -357,7 +357,7 @@ hyperdex_daemon_LDADD = \
 			libhyperspacehashing.la \
 			$(E_LIBS) \
 			$(COVERAGE_LDADD) \
-			-lbusybee-mta -lpopt -lglog -lrt
+			-lcityhash -lbusybee-mta -lpopt -lglog -lrt
 hyperdex_daemon_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
 			-I$(abs_top_srcdir)/hyperdisk \
