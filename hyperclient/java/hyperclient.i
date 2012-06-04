@@ -48,9 +48,6 @@ typedef uint16_t in_port_t;
     }
 %}
 
-%include "carrays.i"
-%array_functions(hyperclient_attribute, hyperclient_attributeArray);
-
 %include "cpointer.i"
 %pointer_functions(phyperclient_attribute, phyperclient_attribute_ptr);
 %pointer_functions(int, int_ptr);
@@ -66,10 +63,10 @@ typedef uint16_t in_port_t;
 %rename("ReturnCode") "hyperclient_returncode";
 %rename("%s") "hyperdatatype";
 %rename("%s", %$isenumitem) "";
-%rename("%(regex:/^HYPERCLIENT_(.{2,})/\\1/)s", %$isenumitem) "";
+%rename("%s") "hyperclient_destroy_attrs";
+//%rename("%(regex:/^HYPERCLIENT_(.{2,})/\\1/)s", %$isenumitem) "";
 %rename("%s") "hyperclient_attribute";
 %rename("%s",%$isvariable) "";
-%rename("%s") "hyperclient_get";
 %include "hyperdex.h"
 
 %include "hyperclient/hyperclient.h"

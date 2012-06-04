@@ -444,6 +444,7 @@ hyperclient/java/hyperclient_wrap.cxx: hyperclient/java/hyperclient.i hyperclien
 hyperclient_jarfile = hyperclient-$(VERSION).jar
 
 hyperclient-java.stamp: hyperclient/java/hyperclient_wrap.cxx
+	cp hyperclient/java/HyperClientException.java hyperclient/java/hyperclient/.
 	javac hyperclient/java/hyperclient/*.java
 	date > hyperclient-java.stamp
 
