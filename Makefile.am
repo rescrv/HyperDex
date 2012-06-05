@@ -363,7 +363,7 @@ hyperdex_daemon_LDADD = \
 			$(BUSYBEE_LIBS) \
 			-lbusybee-mta \
 			$(COVERAGE_LDADD) \
-			-lcityhash -lpopt -lglog -lrt
+			-lcityhash -lpopt -lglog -lrt -lpthread
 hyperdex_daemon_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
 			-I$(abs_top_srcdir)/hyperdisk \
