@@ -42,12 +42,14 @@
 #include <sstream>
 
 HyperClient :: HyperClient(const char* coordinator, in_port_t port)
-    : m_client(coordinator, port)
 {
+    m_client = hyperclient_create(coordinator,port);
 }
 
 HyperClient :: ~HyperClient() throw ()
 {
+    if (m_client)
+        hyperclient_destroy(m_client);
 }
 
 std::string
@@ -85,9 +87,16 @@ HyperClient :: read_value(hyperclient_attribute *ha, char *value, size_t value_s
 }
 
 int64_t
-HyperClient :: loop(int *rc)
+HyperClient :: loop(int *i_rc)
 {
-    return hyperclient_loop(m_client, -1, rc);
+    hyperclient_returncode rc;
+    int64_t ret;
+
+    ret = hyperclient_loop(m_client, -1, &rc);
+    *i_rc = (int)rc;
+    std::cout << "c++: the int is: " << *i_rc << std::endl;
+    std::cout << "c++: the enum is: " << rc << std::endl;
+    return ret;
 }
 
 void
@@ -106,44 +115,24 @@ HyperClient :: get_attribute(hyperclient_attribute *ha, size_t i)
 int64_t
 HyperClient :: get(const std::string& space,
                    const std::string& key,
-                   int *status,
+                   int *i_rc,
                    hyperclient_attribute **attrs, size_t *attrs_sz)
 {
-    int64_t id;
-    hyperclient_returncode stat1 = HYPERCLIENT_A;
-    hyperclient_returncode stat2 = HYPERCLIENT_B;
-    *attrs = NULL;
-    *attrs_sz = 0;
+    hyperclient_returncode rc;
 
-    id = m_client.get(space.c_str(),
-                      key.data(),
-                      key.size(),
-                      &stat1,
-                      attrs,
-                      (size_t *)attrs_sz);
-
-    if (id < 0)
-    {
-        assert(static_cast<unsigned>(stat1) >= 8448);
-        assert(static_cast<unsigned>(stat1) < 8576);
-        return stat1;
-    }
-
-    int64_t lid = m_client.loop(-1, &stat2);
-
-    if (lid < 0)
-    {
-        assert(static_cast<unsigned>(stat2) >= 8448);
-        assert(static_cast<unsigned>(stat2) < 8576);
-        return stat2;
-    }
-
-    assert(id == lid);
-    //e::guard g = e::makeguard(free, *attrs); g.use_variable(); XXX do this in java
-
-    assert(static_cast<unsigned>(stat1) >= 8448);
-    assert(static_cast<unsigned>(stat1) < 8576);
-    return stat1;
+    int64_t id =  hyperclient_get(m_client,
+                                  space.c_str(),
+                                  key.data(),
+                                  key.size(),
+                                  &rc,
+                                  attrs,
+                                  attrs_sz);
+    *i_rc = (int)rc;
+    std::cout << "c++: the id is: " << id << std::endl;
+    std::cout << "c++: the rc is: " << (int)rc << std::endl;
+    std::cout << "c++: the space is: " << space.c_str() << std::endl;
+    std::cout << "c++: the key is: " << key << std::endl;
+    return id;
 }
 
 hyperclient_returncode

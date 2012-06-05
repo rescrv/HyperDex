@@ -4,10 +4,10 @@ import java.util.*;
 
 public class Deferred
 {
-    private HyperClient client = null;
-    private long reqId = 0; 
-    private ReturnCode status = HYPERCLIENT_ZERO;
-    private boolean finished = false; 
+    protected HyperClient client = null;
+    protected long reqId = 0; 
+    ReturnCode status = ReturnCode.HYPERCLIENT_ZERO; // Give this package wide access
+    protected boolean finished = false; 
 
     public Deferred(HyperClient client)
     {
@@ -17,10 +17,10 @@ public class Deferred
     public void callback()
     {
         finished = true;
-        client.opts.remove(reqId);
+        client.ops.remove(reqId);
     }
 
-    public Object wait()
+    public Object waitFor() throws HyperClientException
     {
         while (! finished && reqId > 0)
         {

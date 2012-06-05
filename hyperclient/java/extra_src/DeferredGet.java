@@ -1,11 +1,14 @@
 package hyperclient;
 
+import java.util.*;
+
 public class DeferredGet extends Deferred
 {
-    SWIGTYPE_p_p_hyperclient_attribute pattrs_ptr = 0;
-    SWIGTYPE_p_size_t attrs_sz_ptr = 0;
+    SWIGTYPE_p_p_hyperclient_attribute pattrs_ptr = null;
+    SWIGTYPE_p_size_t attrs_sz_ptr = null;
 
     public DeferredGet(HyperClient client, String space, String key)
+                                                    throws HyperClientException
     {
         super(client);
 
@@ -16,14 +19,55 @@ public class DeferredGet extends Deferred
 
         reqId = client.get(space, key, rc_int_ptr, pattrs_ptr, attrs_sz_ptr);
 
-        status = ReturnCode.swigToEnum(rc_int_ptr.value());
+        if (reqId < 0)
+        {
+            status = ReturnCode.swigToEnum(hyperclient.int_ptr_value(rc_int_ptr));
+            throw new HyperClientException(status);
+        }
 
-        if (reqId < 0) throw new HyperClientException(status);
 
-        client.opts.put(reqId,this);
+        client.ops.put(reqId,this);
     }
 
-    public Object wait()
+    public Object waitFor() throws HyperClientException
     {
+        super.waitFor();
+        if (status == ReturnCode.HYPERCLIENT_SUCCESS)
+        {
+            hyperclient_attribute attrs
+                = hyperclient.phyperclient_attribute_ptr_value(pattrs_ptr);
+            long attrs_sz = hyperclient.size_t_ptr_value(attrs_sz_ptr);
+
+            Map map = HyperClient.attrs_to_map(attrs, attrs_sz);
+            
+            hyperclient.hyperclient_destroy_attrs(attrs,attrs_sz);
+
+            pattrs_ptr = null;
+            attrs_sz_ptr = null;
+
+            return map;
+        }
+        else if (status == ReturnCode.HYPERCLIENT_NOTFOUND)
+        {
+            return null;
+        }
+        else
+        {
+            throw new HyperClientException(status);
+        }
+    }
+
+    protected void finalize() throws Throwable
+    {
+        super.finalize();
+
+        if ( pattrs_ptr != null ) 
+        {
+            hyperclient_attribute attrs
+                = hyperclient.phyperclient_attribute_ptr_value(pattrs_ptr);
+            long attrs_sz = hyperclient.size_t_ptr_value(attrs_sz_ptr);
+
+            hyperclient.hyperclient_destroy_attrs(attrs,attrs_sz);
+        }
     }
 }

@@ -52,15 +52,15 @@
 
 %typemap(javacode) HyperClient
 %{
-  package java.util.HashMap<Long,Deferred> ops = new java.util.HashMap<Long,Deferred>(); 
+  java.util.HashMap<Long,Deferred> ops = new java.util.HashMap<Long,Deferred>(); 
 
-  package void loop()
+  void loop() throws HyperClientException
   {
     SWIGTYPE_p_int rc_int_ptr = hyperclient.new_int_ptr();
 
     long ret = loop(rc_int_ptr);
 
-    ReturnCode rc = ReturnCode.swigToEnum(rc_int_ptr.value());
+    ReturnCode rc = ReturnCode.swigToEnum(hyperclient.int_ptr_value(rc_int_ptr));
 
     if ( ret < 0 )
     {
@@ -68,7 +68,9 @@
     }
     else
     {
-      ops.get(ret).callback();
+      Deferred d = ops.get(ret);
+      d.status = rc;
+      d.callback();
     }
   }
 
@@ -77,7 +79,7 @@
   // Ideally, in a future java version, this method will
   // return the same value ie., do nothing or simply be removed.
   //
-  package static int size_t_to_int(long l)
+  static int size_t_to_int(long l)
   {
     int i = 0;
 
@@ -93,6 +95,33 @@
     return i;
   }
 
+  static java.util.Map attrs_to_map(hyperclient_attribute attrs, long attrs_sz)
+  {
+    java.util.HashMap<Object,Object> map = new java.util.HashMap<Object,Object>();
+
+    int sz = HyperClient.size_t_to_int(attrs_sz);
+
+    for ( int i=0; i<sz; i++)
+    {
+        hyperclient_attribute ha = get_attribute(attrs,i);
+        map.put(ha.getAttr(),ha.getValue());
+    }
+
+    return map;
+  }
+
+  public Deferred async_get(String space, String key) throws HyperClientException
+  {
+    return new DeferredGet(this,space, key);
+  }
+
+  public java.util.Map get(String space, String key) throws HyperClientException
+  {
+    DeferredGet d = (DeferredGet)(async_get(space, key));
+    return (java.util.Map)(d.waitFor());
+  }
+
+  /*
   public java.util.Map get(String space, String key)
   {
     java.util.HashMap<Object,Object> map = new java.util.HashMap<Object,Object>();
@@ -118,4 +147,5 @@
 
     return map;
   }
+  */
 %}
