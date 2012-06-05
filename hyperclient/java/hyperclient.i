@@ -50,11 +50,13 @@ typedef uint16_t in_port_t;
 
 %include "cpointer.i"
 %pointer_functions(phyperclient_attribute, phyperclient_attribute_ptr);
+%pointer_functions(size_t, size_t_ptr);
 %pointer_functions(int, int_ptr);
+
 %include "HyperType.i"
 
-%apply (char *STRING, int LENGTH) { (char *bytes, int len) }
-%apply (char *STRING, int LENGTH) { (char *value, int value_sz) }
+%apply (char *STRING, int LENGTH) { (char *bytes, size_t len) }
+%apply (char *STRING, int LENGTH) { (char *value, size_t value_sz) }
 
 
 %include "hyperclient/java/javaclient.h"

@@ -36,6 +36,8 @@
 #include "hyperclient/hyperclient.h"
 #include "hyperclient/java/javaclient.h"
 
+#include <limits.h>
+
 #include <iostream>
 #include <sstream>
 
@@ -51,47 +53,61 @@ HyperClient :: ~HyperClient() throw ()
 std::string
 HyperClient :: read_attr_name(hyperclient_attribute *ha)
 {
-    return std::string(ha->attr);
+    std::string str = std::string(ha->attr);
+
+    if (str.length() > INT_MAX)
+    {
+        return str.substr(0,INT_MAX);
+    }
+
+    return str;
 }
 
-int
-HyperClient :: read(const char *memb, int memb_sz, char *ret, int ret_sz)
+size_t
+HyperClient :: read(const char *memb, size_t memb_sz, char *ret, size_t ret_sz)
 {
     if ( ret_sz == 0 )
     {
-        return (int)(memb_sz); // XXX throw if memb_sz > MAX_INT
+        return memb_sz;
     }
     else
     {
-        int smallest_sz = (int)(ret_sz<memb_sz?ret_sz:memb_sz); // XXX
+        size_t smallest_sz = ret_sz<memb_sz?ret_sz:memb_sz;
         memcpy(ret,memb,smallest_sz);
         return smallest_sz;
     }
 }
 
-int
-HyperClient :: read_value(hyperclient_attribute *ha, char *value, int value_sz)
+size_t
+HyperClient :: read_value(hyperclient_attribute *ha, char *value, size_t value_sz)
 {
     read(ha->value,ha->value_sz,value,value_sz);
 }
 
+int64_t
+HyperClient :: loop(int *rc)
+{
+    return hyperclient_loop(m_client, -1, rc);
+}
+
 void
 HyperClient :: set_attribute(hyperclient_attribute *ha, char *attr,
-                                   char *value, int value_sz,
+                                   char *value, size_t value_sz,
                                    hyperdatatype type)
 {
 }
 
 hyperclient_attribute *
-HyperClient :: get_attribute(hyperclient_attribute *ha, int i)
+HyperClient :: get_attribute(hyperclient_attribute *ha, size_t i)
 {
     return ha + i;
 }
 
-hyperclient_returncode
+int64_t
 HyperClient :: get(const std::string& space,
                    const std::string& key,
-                   hyperclient_attribute **attrs, int *attrs_sz)
+                   int *status,
+                   hyperclient_attribute **attrs, size_t *attrs_sz)
 {
     int64_t id;
     hyperclient_returncode stat1 = HYPERCLIENT_A;
@@ -133,7 +149,7 @@ HyperClient :: get(const std::string& space,
 hyperclient_returncode
 HyperClient :: put(const std::string& space,
                        const std::string& key,
-                       const hyperclient_attribute *attrs, int attrs_sz)
+                       const hyperclient_attribute *attrs, size_t attrs_sz)
 
 {
     return HYPERCLIENT_SUCCESS;

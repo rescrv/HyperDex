@@ -41,26 +41,29 @@ class HyperClient
 
     public:
         static std::string read_attr_name(hyperclient_attribute *ha);
-        static int read_value(hyperclient_attribute *ha, char *value, int value_sz);
+        static size_t read_value(hyperclient_attribute *ha, char *value, size_t value_sz);
+
+        int64_t loop(int *rc);
 
         static void set_attribute(hyperclient_attribute *ha,
                            char *attr,
-                           char *value, int value_sz,
+                           char *value, size_t value_sz,
                            hyperdatatype type);
 
-        static hyperclient_attribute *get_attribute(hyperclient_attribute *ha, int i);
+        static hyperclient_attribute *get_attribute(hyperclient_attribute *ha, size_t i);
 
-        hyperclient_returncode get(const std::string& space,
+        int64_t get(const std::string& space,
                        const std::string& key,
-                       hyperclient_attribute **attrs, int *attrs_sz);
+                       int *status,
+                       hyperclient_attribute **attrs, size_t *attrs_sz);
 
         hyperclient_returncode put(const std::string& space,
                        const std::string& key,
-                       const hyperclient_attribute *attrs, int attrs_sz);
+                       const hyperclient_attribute *attrs, size_t attrs_sz);
 
     private:
         hyperclient m_client;
-        static int read(const char *memb, int memb_sz, char *ret, int ret_sz);
+        static size_t read(const char *memb, size_t memb_sz, char *ret, size_t ret_sz);
 };
 
 #endif // hyperclient_javaclient_h_
