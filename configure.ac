@@ -4,6 +4,7 @@
 AC_PREREQ([2.66])
 AC_INIT([HyperDex], [0.1.dev], [escriva@cs.cornell.edu])
 AM_INIT_AUTOMAKE([foreign subdir-objects dist-bzip2 dist-lzma])
+m4_ifndef([AM_SILENT_RULES], [m4_define([AM_SILENT_RULES],[])]) 
 AM_SILENT_RULES([yes])
 AM_PATH_PYTHON([2.6])
 LT_PREREQ([2.2])
