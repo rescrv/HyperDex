@@ -36,7 +36,7 @@
 #include <e/tuple_compare.h>
 
 // HyperspaceHashing
-#include <hyperspacehashing/prefix.h>
+#include "hyperspacehashing/hyperspacehashing/prefix.h"
 
 namespace hyperdex
 {

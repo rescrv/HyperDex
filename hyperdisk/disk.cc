@@ -38,6 +38,7 @@
 // C++
 #include <iomanip>
 #include <sstream>
+#include <fstream>
 
 // e
 #include <e/guard.h>
@@ -52,6 +53,10 @@
 #include "hyperdisk/shard.h"
 #include "hyperdisk/shard_snapshot.h"
 #include "hyperdisk/shard_vector.h"
+
+// util
+#include <util/atomicfile.h>
+
 
 using hyperspacehashing::mask::coordinate;
 
@@ -80,12 +85,197 @@ using hyperspacehashing::mask::coordinate;
 // the WAL.  Trickle does this by using locking when exchanging the
 // shard_vectors.
 
+const int hyperdisk :: disk :: STATE_FILE_VER = 1;
+const char* hyperdisk :: disk :: STATE_FILE_NAME = "disk_state.hd";
+
 e::intrusive_ptr<hyperdisk::disk>
 hyperdisk :: disk :: create(const po6::pathname& directory,
                             const hyperspacehashing::mask::hasher& hasher,
                             uint16_t arity)
 {
+    // Create a blank disk.
     return new disk(directory, hasher, arity);
+}
+
+e::intrusive_ptr<hyperdisk::disk>
+hyperdisk :: disk :: open(const po6::pathname& directory,
+                          const hyperspacehashing::mask::hasher& hasher,
+                          uint16_t arity,
+                          const std::string& quiesce_state_id)
+{
+    // Open quiesced disk.
+    return new disk(directory, hasher, arity, true, quiesce_state_id);
+}
+
+bool
+hyperdisk :: disk :: quiesce(const std::string& quiesce_state_id)
+{
+    // Flush all data to O/S buffers.
+    bool flushed = false;
+    while (!flushed)
+    {
+        returncode rc = flush(-1, false);
+
+        switch (rc)
+        {
+            case DIDNOTHING:
+                // All data is flushed, move on.
+                flushed = true;
+                break;
+            case SUCCESS:
+                // Some data flushed, try again.
+                continue;
+            case DATAFULL:
+            case SEARCHFULL:
+                // Split the shards and try agian.
+                do_mandatory_io();
+                continue;
+            case NOTFOUND:
+            case WRONGARITY:
+            case SYNCFAILED:
+            case DROPFAILED:
+            case MISSINGDISK:
+            case SPLITFAILED:
+            default:
+                return false;
+        }
+    }
+    
+    // Flush O/S buffers to disk.
+    returncode rc = sync();
+    if (SUCCESS != rc)
+    {
+        return false;
+    }
+    
+    // Persist the state into a file.
+    return dump_state(quiesce_state_id);
+}
+
+bool
+hyperdisk :: disk :: dump_state(const std::string& quiesce_state_id)
+{
+    // Dump state information.
+    e::intrusive_ptr<shard_vector> shards;
+    {
+        po6::threads::mutex::hold b(&m_shards_lock);
+        shards = m_shards;
+    }
+    
+    std::ostringstream s;
+    s << "version " << STATE_FILE_VER << std::endl;
+    s << "state_id " << quiesce_state_id << std::endl;
+    for (size_t i = 0; i < shards->size(); ++i)
+    {
+        coordinate c = shards->get_coordinate(i);
+        uint32_t o = shards->get_offset(i);
+        s << "shard";
+        s << " " << c.primary_mask;
+        s << " " << c.primary_hash;
+        s << " " << c.secondary_lower_mask;
+        s << " " << c.secondary_lower_hash;
+        s << " " << c.secondary_upper_mask;
+        s << " " << c.secondary_upper_hash;
+        s << " " << o;
+        s << std::endl;
+    }
+    
+    // Rewrite the state file atomically.
+    return util::atomicfile::rewrite(m_base_filename.get(), STATE_FILE_NAME, s.str().c_str());
+}
+
+bool
+hyperdisk :: disk :: load_state(const std::string& quiesce_state_id)
+{
+    po6::pathname config_name = po6::join(m_base_filename, STATE_FILE_NAME);
+    std::ifstream f; 
+    f.open(config_name.get());
+    if (!f)
+    {
+        return false;
+    }
+
+    // Is state file right version?
+    std::string v;
+    f >> v;
+    if (f.fail() || "version" != v)
+    {
+        return false;
+    }
+
+    int32_t vn = -1;
+    f >> vn;
+    if (f.fail() || STATE_FILE_VER != vn)
+    {
+        return false;
+    }
+    
+    // Does the state file match the quiesced state we are loading? 
+    std::string s;
+    f >> s;
+    if (f.fail() || "state_id" != s)
+    {
+        return false;
+    }
+
+    std::string sid;
+    f >> sid;
+    if (f.fail() || quiesce_state_id != sid)
+    {
+        return false;
+    }
+
+    // Restore the shards.
+    std::vector<std::pair<coordinate, e::intrusive_ptr<shard> > > shards;
+    while (!f.eof())
+    {
+        // Line header.
+        std::string h;
+        f >> h;
+        if (f.eof() && "" == h)
+        {
+            // White space at the end of file, done processing.
+            break;
+        }
+        if (f.fail() || "shard" != h)
+        {
+            return false;
+        }
+        
+        // Coordinate.
+        uint64_t ct[6] = {-1, -1, -1, -1, -1 ,-1};
+        for (int i=0; i<6; i++)
+        {
+            f >> ct[i];
+        }
+        if (f.fail())
+        {
+            return false;
+        }
+
+        // Offset.
+        uint32_t o = -1;
+        f >> o;
+        if (f.fail())
+        {
+            return false;
+        }
+
+        // Reopen the shard.
+        coordinate c(ct[0], ct[1], ct[2], ct[3], ct[4], ct[5]);
+        po6::pathname path = shard_filename(c);
+        // XXX need to compare offset inside open 
+        e::intrusive_ptr<shard> sh = hyperdisk::shard::open(m_base, path);
+        
+        shards.push_back(std::make_pair(c, sh));
+    }
+
+    // Re-install the reopened shards into the disk.
+    po6::threads::mutex::hold a(&m_shards_mutate);
+    po6::threads::mutex::hold b(&m_shards_lock);
+    m_shards = new shard_vector(1, &shards);
+ 
+    return true;
 }
 
 hyperdisk::returncode
@@ -271,7 +461,7 @@ hyperdisk :: disk :: drop()
 // This operation will return SUCCESS as long as it knows that progress is being
 // made.  It will return DIDNOTHING if there was nothing to do.
 hyperdisk::returncode
-hyperdisk :: disk :: flush(size_t num, bool nonblocking)
+hyperdisk :: disk :: flush(ssize_t num, bool nonblocking)
 {
     if (nonblocking)
     {
@@ -292,7 +482,8 @@ hyperdisk :: disk :: flush(size_t num, bool nonblocking)
     hold.use_variable();
     e::locking_iterable_fifo<log_entry>::iterator it = m_log.iterate();
 
-    for (size_t nf = 0; nf < num && it.valid(); ++nf, it.next())
+    // num == -1 means flush all
+    for (ssize_t nf = 0; (nf < num || num < 0) && it.valid(); ++nf, it.next())
     {
         const coordinate& coord = it->coord;
         const e::slice& key = it->key;
@@ -636,7 +827,9 @@ hyperdisk :: disk :: sync()
 
 hyperdisk :: disk :: disk(const po6::pathname& directory,
                           const hyperspacehashing::mask::hasher& hasher,
-                          const uint16_t arity)
+                          const uint16_t arity,
+                          bool load_quiesced_state,
+                          const std::string& quiesce_state_id)
     : m_ref(0)
     , m_arity(arity)
     , m_hasher(hasher)
@@ -658,19 +851,29 @@ hyperdisk :: disk :: disk(const po6::pathname& directory,
         throw po6::error(errno);
     }
 
-    m_base = open(directory.get(), O_RDONLY);
+    m_base = ::open(directory.get(), O_RDONLY);
 
     if (m_base.get() < 0)
     {
         throw po6::error(errno);
     }
-
-    // Create a starting disk which holds everything.
-    po6::threads::mutex::hold a(&m_shards_mutate);
-    po6::threads::mutex::hold b(&m_shards_lock);
-    coordinate start;
-    e::intrusive_ptr<shard> s = create_shard(start);
-    m_shards = new shard_vector(start, s);
+    
+    // Create vs reload.
+    if (!load_quiesced_state)
+    {
+        // Create a starting disk which holds everything.
+        po6::threads::mutex::hold a(&m_shards_mutate);
+        po6::threads::mutex::hold b(&m_shards_lock);
+        coordinate start;
+        e::intrusive_ptr<shard> s = create_shard(start);
+        m_shards = new shard_vector(start, s);
+    }
+    else
+    {
+        // Reopen quiesced disk.
+        // XXX handle errors
+        load_state(quiesce_state_id);
+    }
 }
 
 hyperdisk :: disk :: ~disk() throw ()

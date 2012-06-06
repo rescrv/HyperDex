@@ -32,7 +32,7 @@
 #include <string>
 
 // HyperDex
-#include <hyperdex.h>
+#include "hyperdex.h"
 
 namespace hyperdex
 {

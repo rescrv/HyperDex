@@ -28,9 +28,6 @@
 // C
 #include <cstring>
 
-// POSIX
-#include <endian.h>
-
 // STL
 #include <algorithm>
 

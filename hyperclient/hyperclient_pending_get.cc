@@ -87,6 +87,9 @@ hyperclient :: pending_get :: handle_response(hyperclient* cl,
         case hyperdex::NET_NOTUS:
             set_status(HYPERCLIENT_RECONFIGURE);
             return client_visible_id();
+        case hyperdex::NET_READONLY:
+            set_status(HYPERCLIENT_READONLY);
+            return client_visible_id();
         case hyperdex::NET_SERVERERROR:
         case hyperdex::NET_CMPFAIL:
         case hyperdex::NET_BADMICROS:

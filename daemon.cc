@@ -45,7 +45,7 @@
 #include <e/guard.h>
 
 // HyperDex
-#include "hyperdaemon/hyperdaemon/daemon.h"
+#include "hyperdaemon/daemon.h"
 
 static const char* data = ".";
 static const char* host = "127.0.0.1";

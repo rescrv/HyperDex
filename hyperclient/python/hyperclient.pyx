@@ -48,20 +48,22 @@ cdef extern from "sys/socket.h":
 cdef extern from "../../hyperdex.h":
 
     cdef enum hyperdatatype:
-        HYPERDATATYPE_STRING            = 8960
-        HYPERDATATYPE_INT64             = 8961
-        HYPERDATATYPE_LIST_GENERIC      = 8976
-        HYPERDATATYPE_LIST_STRING       = 8977
-        HYPERDATATYPE_LIST_INT64        = 8978
-        HYPERDATATYPE_SET_GENERIC       = 8992
-        HYPERDATATYPE_SET_STRING        = 8993
-        HYPERDATATYPE_SET_INT64         = 8994
-        HYPERDATATYPE_MAP_GENERIC       = 9008
-        HYPERDATATYPE_MAP_STRING_STRING = 9009
-        HYPERDATATYPE_MAP_STRING_INT64  = 9010
-        HYPERDATATYPE_MAP_INT64_STRING  = 9011
-        HYPERDATATYPE_MAP_INT64_INT64   = 9012
-        HYPERDATATYPE_GARBAGE           = 9087
+        HYPERDATATYPE_STRING             = 8960
+        HYPERDATATYPE_INT64              = 8961
+        HYPERDATATYPE_LIST_GENERIC       = 8976
+        HYPERDATATYPE_LIST_STRING        = 8977
+        HYPERDATATYPE_LIST_INT64         = 8978
+        HYPERDATATYPE_SET_GENERIC        = 8992
+        HYPERDATATYPE_SET_STRING         = 8993
+        HYPERDATATYPE_SET_INT64          = 8994
+        HYPERDATATYPE_MAP_GENERIC        = 9008
+        HYPERDATATYPE_MAP_STRING_KEYONLY = 9024
+        HYPERDATATYPE_MAP_STRING_STRING  = 9025
+        HYPERDATATYPE_MAP_STRING_INT64   = 9026
+        HYPERDATATYPE_MAP_INT64_KEYONLY  = 9040
+        HYPERDATATYPE_MAP_INT64_STRING   = 9041
+        HYPERDATATYPE_MAP_INT64_INT64    = 9042
+        HYPERDATATYPE_GARBAGE            = 9087
 
 cdef extern from "../hyperclient.h":
 
@@ -92,6 +94,7 @@ cdef extern from "../hyperclient.h":
         HYPERCLIENT_NOTFOUND     = 8449
         HYPERCLIENT_SEARCHDONE   = 8450
         HYPERCLIENT_CMPFAIL      = 8451
+        HYPERCLIENT_READONLY     = 8452
         HYPERCLIENT_UNKNOWNSPACE = 8512
         HYPERCLIENT_COORDFAIL    = 8513
         HYPERCLIENT_SERVERERROR  = 8514
@@ -149,6 +152,7 @@ cdef extern from "../hyperclient.h":
     void hyperclient_destroy_attrs(hyperclient_attribute* attrs, size_t attrs_sz)
 
 ctypedef int64_t (*hyperclient_simple_op)(hyperclient*, char*, char*, size_t, hyperclient_attribute*, size_t, hyperclient_returncode*)
+ctypedef int64_t (*hyperclient_map_op)(hyperclient*, char*, char*, size_t, hyperclient_map_attribute*, size_t, hyperclient_returncode*)
 
 import collections
 import struct
@@ -161,6 +165,7 @@ class HyperClientException(Exception):
                   ,HYPERCLIENT_NOTFOUND: 'Not Found'
                   ,HYPERCLIENT_SEARCHDONE: 'Search Done'
                   ,HYPERCLIENT_CMPFAIL: 'Conditional Operation Did Not Match Object'
+                  ,HYPERCLIENT_READONLY: 'Cluster is in a Read-Only State'
                   ,HYPERCLIENT_UNKNOWNSPACE: 'Unknown Space'
                   ,HYPERCLIENT_COORDFAIL: 'Coordinator Failure'
                   ,HYPERCLIENT_SERVERERROR: 'Server Error'
@@ -180,6 +185,7 @@ class HyperClientException(Exception):
                   ,HYPERCLIENT_NOTFOUND: 'HYPERCLIENT_NOTFOUND'
                   ,HYPERCLIENT_SEARCHDONE: 'HYPERCLIENT_SEARCHDONE'
                   ,HYPERCLIENT_CMPFAIL: 'HYPERCLIENT_CMPFAIL'
+                  ,HYPERCLIENT_READONLY: 'HYPERCLIENT_READONLY'
                   ,HYPERCLIENT_UNKNOWNSPACE: 'HYPERCLIENT_UNKNOWNSPACE'
                   ,HYPERCLIENT_COORDFAIL: 'HYPERCLIENT_COORDFAIL'
                   ,HYPERCLIENT_SERVERERROR: 'HYPERCLIENT_SERVERERROR'
@@ -327,10 +333,10 @@ cdef _dict_to_map_attrs(list value, hyperclient_map_attribute** attrs, size_t* a
     cdef bytes kbacking
     cdef bytes vbacking
     cdef tuple a
-    cdef dict b
     cdef bytes name
     cdef long i = 0
-    attrs_sz[0] = sum([len(a[1]) for a in value])
+    attrs_sz[0] = sum([len(a[1]) for a in value if isinstance(a[1], dict)]) \
+                + len([a for a in value if not isinstance(a[1], dict)])
     attrs[0] = <hyperclient_map_attribute*> \
                malloc(sizeof(hyperclient_map_attribute) * attrs_sz[0])
     if attrs[0] == NULL:
@@ -340,29 +346,40 @@ cdef _dict_to_map_attrs(list value, hyperclient_map_attribute** attrs, size_t* a
         keytype = None
         valtype = None
         j = i
-        for k, v in b.iteritems():
-            kdatatype, kbacking = _obj_to_backing(k)
-            vdatatype, vbacking = _obj_to_backing(v)
-            if kdatatype not in (keytype, None):
-                mixedtype = TypeError("Cannot store heterogeneous maps")
-            keytype = kdatatype
-            if vdatatype not in (valtype, None):
-                mixedtype = TypeError("Cannot store heterogeneous maps")
-            valtype = vdatatype
-            backings.append(kbacking)
-            backings.append(vbacking)
+        if isinstance(b, dict):
+            for k, v in b.iteritems():
+                kdatatype, kbacking = _obj_to_backing(k)
+                vdatatype, vbacking = _obj_to_backing(v)
+                if kdatatype not in (keytype, None):
+                    mixedtype = TypeError("Cannot store heterogeneous maps")
+                keytype = kdatatype
+                if vdatatype not in (valtype, None):
+                    mixedtype = TypeError("Cannot store heterogeneous maps")
+                valtype = vdatatype
+                backings.append(kbacking)
+                backings.append(vbacking)
+                attrs[0][i].attr = name
+                attrs[0][i].map_key = kbacking
+                attrs[0][i].map_key_sz = len(kbacking)
+                attrs[0][i].value = vbacking
+                attrs[0][i].value_sz = len(vbacking)
+                i += 1
+            dtypes = {(HYPERDATATYPE_STRING, HYPERDATATYPE_STRING): HYPERDATATYPE_MAP_STRING_STRING,
+                      (HYPERDATATYPE_STRING, HYPERDATATYPE_INT64): HYPERDATATYPE_MAP_STRING_INT64,
+                      (HYPERDATATYPE_INT64, HYPERDATATYPE_STRING): HYPERDATATYPE_MAP_INT64_STRING,
+                      (HYPERDATATYPE_INT64, HYPERDATATYPE_INT64): HYPERDATATYPE_MAP_INT64_INT64}
+            for x in range(j, i):
+                attrs[0][x].datatype = dtypes[(keytype, valtype)]
+        else:
+            kdatatype, kbacking = _obj_to_backing(b)
             attrs[0][i].attr = name
             attrs[0][i].map_key = kbacking
             attrs[0][i].map_key_sz = len(kbacking)
-            attrs[0][i].value = vbacking
-            attrs[0][i].value_sz = len(vbacking)
+            attrs[0][i].value = NULL
+            attrs[0][i].value_sz = 0
+            attrs[0][i].datatype = {HYPERDATATYPE_STRING: HYPERDATATYPE_MAP_STRING_KEYONLY,
+                                    HYPERDATATYPE_INT64: HYPERDATATYPE_MAP_INT64_KEYONLY}[kdatatype]
             i += 1
-        dtypes = {(HYPERDATATYPE_STRING, HYPERDATATYPE_STRING): HYPERDATATYPE_MAP_STRING_STRING,
-                  (HYPERDATATYPE_STRING, HYPERDATATYPE_INT64): HYPERDATATYPE_MAP_STRING_INT64,
-                  (HYPERDATATYPE_INT64, HYPERDATATYPE_STRING): HYPERDATATYPE_MAP_INT64_STRING,
-                  (HYPERDATATYPE_INT64, HYPERDATATYPE_INT64): HYPERDATATYPE_MAP_INT64_INT64}
-        for x in range(j, i):
-            attrs[0][x].datatype = dtypes[(keytype, valtype)]
     return backings
 
 
@@ -668,7 +685,10 @@ cdef class DeferredDelete(Deferred):
 
 cdef class DeferredMapOp(Deferred):
 
-    def __cinit__(self, Client client, bytes space, key, dict value, bytes op = None):
+    def __cinit__(self, Client client):
+        pass
+
+    cdef call(self, hyperclient_map_op op, bytes space, key, dict value):
         cdef bytes key_backing
         datatype, key_backing = _obj_to_backing(key)
         cdef char* space_cstr = space
@@ -677,53 +697,16 @@ cdef class DeferredMapOp(Deferred):
         cdef size_t attrs_sz = 0
         try:
             backings = _dict_to_map_attrs(value.items(), &attrs, &attrs_sz)
-            # XXX I'd like to use something more-constant in time, but I cannot
-            # get Cython to work with function pointers correctly
-            if op == 'map_add':
-                self._reqid = hyperclient_map_add(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, attrs_sz, &self._status)
-            elif op == 'map_remove':
-                self._reqid = hyperclient_map_remove(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, attrs_sz, &self._status)
-            elif op == 'map_atomic_add':
-                self._reqid = hyperclient_map_atomic_add(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, attrs_sz, &self._status)
-            elif op == 'map_atomic_sub':
-                self._reqid = hyperclient_map_atomic_sub(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, attrs_sz, &self._status)
-            elif op == 'map_atomic_mul':
-                self._reqid = hyperclient_map_atomic_mul(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, attrs_sz, &self._status)
-            elif op == 'map_atomic_div':
-                self._reqid = hyperclient_map_atomic_div(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, attrs_sz, &self._status)
-            elif op == 'map_atomic_mod':
-                self._reqid = hyperclient_map_atomic_mod(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, attrs_sz, &self._status)
-            elif op == 'map_atomic_and':
-                self._reqid = hyperclient_map_atomic_and(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, attrs_sz, &self._status)
-            elif op == 'map_atomic_or':
-                self._reqid = hyperclient_map_atomic_or(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, attrs_sz, &self._status)
-            elif op == 'map_atomic_xor':
-                self._reqid = hyperclient_map_atomic_xor(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, attrs_sz, &self._status)
-            elif op == 'map_string_prepend':
-                self._reqid = hyperclient_map_string_prepend(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, attrs_sz, &self._status)
-            elif op == 'map_string_append':
-                self._reqid = hyperclient_map_string_append(client._client, space_cstr,
-                        key_cstr, len(key_backing), attrs, attrs_sz, &self._status)
-            else:
-                raise AttributeError("op == {0} is not valid".format(op))
+            self._reqid = op(self._client._client, space_cstr,
+                             key_cstr, len(key_backing),
+                             attrs, attrs_sz, &self._status)
             if self._reqid < 0:
                 idx = -1 - self._reqid
                 attr = None
                 if attrs and attrs[idx].attr:
                     attr = attrs[idx].attr
                 raise HyperClientException(self._status, attr)
-            client._ops[self._reqid] = self
+            self._client._ops[self._reqid] = self
         finally:
             if attrs:
                 free(attrs)
@@ -1067,40 +1050,64 @@ cdef class Client:
         return d
 
     def async_map_add(self, bytes space, key, dict value):
-        return DeferredMapOp(self, space, key, value, 'map_add')
+        d = DeferredMapOp(self)
+        d.call(<hyperclient_map_op> hyperclient_map_add, space, key, value)
+        return d
 
     def async_map_remove(self, bytes space, key, dict value):
-        return DeferredMapOp(self, space, key, value, 'map_remove')
+        d = DeferredMapOp(self)
+        d.call(<hyperclient_map_op> hyperclient_map_remove, space, key, value)
+        return d
 
     def async_map_atomic_add(self, bytes space, key, dict value):
-        return DeferredMapOp(self, space, key, value, 'map_atomic_add')
+        d = DeferredMapOp(self)
+        d.call(<hyperclient_map_op> hyperclient_map_atomic_add, space, key, value)
+        return d
 
     def async_map_atomic_sub(self, bytes space, key, dict value):
-        return DeferredMapOp(self, space, key, value, 'map_atomic_sub')
+        d = DeferredMapOp(self)
+        d.call(<hyperclient_map_op> hyperclient_map_atomic_sub, space, key, value)
+        return d
 
     def async_map_atomic_mul(self, bytes space, key, dict value):
-        return DeferredMapOp(self, space, key, value, 'map_atomic_mul')
+        d = DeferredMapOp(self)
+        d.call(<hyperclient_map_op> hyperclient_map_atomic_mul, space, key, value)
+        return d
 
     def async_map_atomic_div(self, bytes space, key, dict value):
-        return DeferredMapOp(self, space, key, value, 'map_atomic_div')
+        d = DeferredMapOp(self)
+        d.call(<hyperclient_map_op> hyperclient_map_atomic_div, space, key, value)
+        return d
 
     def async_map_atomic_mod(self, bytes space, key, dict value):
-        return DeferredMapOp(self, space, key, value, 'map_atomic_mod')
+        d = DeferredMapOp(self)
+        d.call(<hyperclient_map_op> hyperclient_map_atomic_mod, space, key, value)
+        return d
 
     def async_map_atomic_and(self, bytes space, key, dict value):
-        return DeferredMapOp(self, space, key, value, 'map_atomic_and')
+        d = DeferredMapOp(self)
+        d.call(<hyperclient_map_op> hyperclient_map_atomic_and, space, key, value)
+        return d
 
     def async_map_atomic_or(self, bytes space, key, dict value):
-        return DeferredMapOp(self, space, key, value, 'map_atomic_or')
+        d = DeferredMapOp(self)
+        d.call(<hyperclient_map_op> hyperclient_map_atomic_or, space, key, value)
+        return d
 
     def async_map_atomic_xor(self, bytes space, key, dict value):
-        return DeferredMapOp(self, space, key, value, 'map_atomic_xor')
+        d = DeferredMapOp(self)
+        d.call(<hyperclient_map_op> hyperclient_map_atomic_xor, space, key, value)
+        return d
 
     def async_map_string_prepend(self, bytes space, key, dict value):
-        return DeferredMapOp(self, space, key, value, 'map_string_prepend')
+        d = DeferredMapOp(self)
+        d.call(<hyperclient_map_op> hyperclient_map_string_prepend, space, key, value)
+        return d
 
     def async_map_string_append(self, bytes space, key, dict value):
-        return DeferredMapOp(self, space, key, value, 'map_string_append')
+        d = DeferredMapOp(self)
+        d.call(<hyperclient_map_op> hyperclient_map_string_append, space, key, value)
+        return d
 
     def loop(self):
         cdef hyperclient_returncode rc

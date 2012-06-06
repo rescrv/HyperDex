@@ -111,7 +111,7 @@ class replication_manager
                            uint64_t nonce,
                            std::auto_ptr<e::buffer> backing,
                            const e::slice& key,
-                           const std::vector<hyperdex::microop>& ops);
+                           std::vector<hyperdex::microop>* ops);
         // These are called in response to messages from other hosts.
         void chain_put(const hyperdex::entityid& from,
                        const hyperdex::entityid& to,
@@ -220,7 +220,7 @@ class replication_manager
         // Periodically do things related to replication.
         void periodic();
         // Retransmit current pending values.
-        void retransmit();
+        int retransmit();
 
     private:
         hyperdex::coordinatorlink* m_cl;
@@ -232,7 +232,10 @@ class replication_manager
         po6::threads::mutex m_keyholders_lock;
         keyholder_map_t m_keyholders;
         hyperdex::instance m_us;
-        bool m_shutdown;
+        volatile bool m_quiesce; // acessed from multiple threads
+        po6::threads::mutex m_quiesce_state_id_lock; 
+        std::string m_quiesce_state_id;
+        volatile bool m_shutdown; // acessed from multiple threads
         po6::threads::thread m_periodic_thread;
 };
 

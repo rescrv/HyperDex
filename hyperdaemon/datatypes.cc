@@ -33,6 +33,7 @@
 
 // STL
 #include <algorithm>
+#include <tr1/functional>
 
 // e
 #include <e/endian.h>
@@ -71,6 +72,23 @@ _cmp(T a, T b)
     }
 
     return 0;
+}
+
+static bool
+_sort_comparator(int (*compare_micros)(const hyperdex::microop* lhs, const hyperdex::microop* rhs),
+                const hyperdex::microop& lhs, const hyperdex::microop& rhs)
+{
+    return compare_micros(&lhs, &rhs) < 0;
+}
+
+static void
+_sort_ops(hyperdex::microop* begin, hyperdex::microop* end,
+          int (*compare_micros)(const hyperdex::microop* lhs, const hyperdex::microop* rhs))
+{
+    std::sort(begin, end,
+              std::tr1::bind(_sort_comparator, compare_micros,
+                             std::tr1::placeholders::_1,
+                             std::tr1::placeholders::_2));
 }
 
 /////////////////////////////// String Primitives //////////////////////////////
@@ -1117,7 +1135,7 @@ apply_map_add_remove(bool (*validate_key)(const uint8_t** ptr, uint32_t* ptr_sz,
                      uint8_t* (*copy_val_from_map)(uint8_t* writeto, const uint8_t* ptr, uint32_t ptr_sz),
                      uint8_t* (*copy_val_from_micro)(uint8_t* writeto, const hyperdex::microop* op),
                      const e::slice& old_value,
-                     const hyperdex::microop* ops,
+                     hyperdex::microop* ops,
                      size_t num_ops,
                      uint8_t* writeto,
                      hyperdex::network_returncode* error)
@@ -1125,30 +1143,25 @@ apply_map_add_remove(bool (*validate_key)(const uint8_t** ptr, uint32_t* ptr_sz,
     using namespace hyperdex;
     assert(num_ops > 0);
 
-    if (!validate_elem_micro_arg1(ops) ||
+    if ((ops->action != OP_MAP_REMOVE && !validate_elem_micro_arg1(ops)) ||
         !validate_elem_micro_arg2(ops))
     {
         *error = hyperdex::NET_BADMICROS;
         return NULL;
     }
 
-    // Verify sorted order of the microops.
+    // Validate and sort the the microops.
     for (size_t i = 0; i < num_ops - 1; ++i)
     {
-        if (!validate_elem_micro_arg1(ops + i + 1) ||
+        if ((ops->action != OP_MAP_REMOVE && !validate_elem_micro_arg1(ops + i + 1)) ||
             !validate_elem_micro_arg2(ops + i + 1))
         {
             *error = hyperdex::NET_BADMICROS;
             return NULL;
         }
-
-        if (compare_micros(ops + i, ops + i + 1) >= 0)
-        {
-            *error = NET_BADMICROS;
-            return NULL;
-        }
     }
 
+    _sort_ops(ops, ops + num_ops, compare_micros);
     const uint8_t* ptr = old_value.data();
     const uint8_t* const end = old_value.data() + old_value.size();
     size_t i = 0;
@@ -1337,7 +1350,7 @@ apply_map_microop(bool (*validate_key)(const uint8_t** ptr, uint32_t* ptr_sz, co
                                         uint8_t* writeto,
                                         hyperdex::network_returncode* error),
                   const e::slice& old_value,
-                  const hyperdex::microop* ops,
+                  hyperdex::microop* ops,
                   size_t num_ops,
                   uint8_t* writeto,
                   hyperdex::network_returncode* error)
@@ -1368,13 +1381,14 @@ apply_map_microop(bool (*validate_key)(const uint8_t** ptr, uint32_t* ptr_sz, co
         // no special consideration for that.
         //
         // XXX Modify this function to allow multiple micro ops per map key.
-        if (compare_micros(ops + i, ops + i + 1) >= 0)
+        if (compare_micros(ops + i, ops + i + 1) == 0)
         {
             *error = NET_BADMICROS;
             return NULL;
         }
     }
 
+    _sort_ops(ops, ops + num_ops, compare_micros);
     const uint8_t* ptr = old_value.data();
     const uint8_t* const end = old_value.data() + old_value.size();
     size_t i = 0;
@@ -1664,7 +1678,7 @@ apply_string_wrapper(const e::slice& old_value,
 
 static uint8_t*
 apply_map_string_string(const e::slice& old_value,
-                        const hyperdex::microop* ops,
+                        hyperdex::microop* ops,
                         size_t num_ops,
                         uint8_t* writeto,
                         hyperdex::network_returncode* error)
@@ -1709,7 +1723,7 @@ apply_map_string_string(const e::slice& old_value,
 
 static uint8_t*
 apply_map_string_int64(const e::slice& old_value,
-                       const hyperdex::microop* ops,
+                       hyperdex::microop* ops,
                        size_t num_ops,
                        uint8_t* writeto,
                        hyperdex::network_returncode* error)
@@ -1721,8 +1735,8 @@ apply_map_string_int64(const e::slice& old_value,
     {
         return apply_map_add_remove(validate_string,
                                     validate_int64,
-                                    validate_string_micro,
                                     validate_int64_micro_arg1,
+                                    validate_string_micro,
                                     compare_string_micros_arg2,
                                     compare_string_micro_arg2,
                                     copy_string_from_serialized,
@@ -1739,8 +1753,8 @@ apply_map_string_int64(const e::slice& old_value,
     {
         return apply_map_microop(validate_string,
                                  validate_int64,
-                                 validate_string_micro,
                                  validate_int64_micro_arg1,
+                                 validate_string_micro,
                                  compare_string_micros_arg2,
                                  compare_string_micro_arg2,
                                  copy_string_from_serialized,
@@ -1754,7 +1768,7 @@ apply_map_string_int64(const e::slice& old_value,
 
 static uint8_t*
 apply_map_int64_string(const e::slice& old_value,
-                       const hyperdex::microop* ops,
+                       hyperdex::microop* ops,
                        size_t num_ops,
                        uint8_t* writeto,
                        hyperdex::network_returncode* error)
@@ -1766,8 +1780,8 @@ apply_map_int64_string(const e::slice& old_value,
     {
         return apply_map_add_remove(validate_int64,
                                     validate_string,
-                                    validate_int64_micro_arg2,
                                     validate_string_micro,
+                                    validate_int64_micro_arg2,
                                     compare_int64_micros_arg2,
                                     compare_int64_micro_arg2,
                                     copy_int64_from_serialized,
@@ -1784,8 +1798,8 @@ apply_map_int64_string(const e::slice& old_value,
     {
         return apply_map_microop(validate_int64,
                                  validate_string,
-                                 validate_int64_micro_arg2,
                                  validate_string_micro,
+                                 validate_int64_micro_arg2,
                                  compare_int64_micros_arg2,
                                  compare_int64_micro_arg2,
                                  copy_int64_from_serialized,
@@ -1799,7 +1813,7 @@ apply_map_int64_string(const e::slice& old_value,
 
 static uint8_t*
 apply_map_int64_int64(const e::slice& old_value,
-                      const hyperdex::microop* ops,
+                      hyperdex::microop* ops,
                       size_t num_ops,
                       uint8_t* writeto,
                       hyperdex::network_returncode* error)
@@ -1811,8 +1825,8 @@ apply_map_int64_int64(const e::slice& old_value,
     {
         return apply_map_add_remove(validate_int64,
                                     validate_int64,
-                                    validate_int64_micro_arg2,
                                     validate_int64_micro_arg1,
+                                    validate_int64_micro_arg2,
                                     compare_int64_micros_arg2,
                                     compare_int64_micro_arg2,
                                     copy_int64_from_serialized,
@@ -1872,6 +1886,8 @@ hyperdaemon :: validate_datatype(hyperdatatype datatype, const e::slice& data)
         case HYPERDATATYPE_LIST_GENERIC:
         case HYPERDATATYPE_SET_GENERIC:
         case HYPERDATATYPE_MAP_GENERIC:
+        case HYPERDATATYPE_MAP_STRING_KEYONLY:
+        case HYPERDATATYPE_MAP_INT64_KEYONLY:
         case HYPERDATATYPE_GARBAGE:
             return false;
         default:
@@ -1882,99 +1898,14 @@ hyperdaemon :: validate_datatype(hyperdatatype datatype, const e::slice& data)
 size_t
 hyperdaemon :: sizeof_microop(const hyperdex::microop& op)
 {
-    using namespace hyperdex;
-
-    switch (op.action)
-    {
-        case OP_FAIL:
-            return 0;
-        case OP_SET:
-
-            if (op.type == HYPERDATATYPE_STRING)
-            {
-                return sizeof(uint32_t) + op.arg1.size();
-            }
-            else if (op.type == HYPERDATATYPE_INT64)
-            {
-                return sizeof(int64_t);
-            }
-
-            return op.arg1.size();
-        case OP_STRING_APPEND:
-        case OP_STRING_PREPEND:
-            return sizeof(uint32_t) + op.arg1.size();
-        case OP_INT64_ADD:
-        case OP_INT64_SUB:
-        case OP_INT64_MUL:
-        case OP_INT64_DIV:
-        case OP_INT64_MOD:
-        case OP_INT64_AND:
-        case OP_INT64_OR:
-        case OP_INT64_XOR:
-            return sizeof(int64_t);
-        case OP_LIST_LPUSH:
-        case OP_LIST_RPUSH:
-
-            if (op.type == HYPERDATATYPE_LIST_STRING)
-            {
-                return sizeof(int32_t) + op.arg1.size();
-            }
-            else if (op.type == HYPERDATATYPE_LIST_INT64)
-            {
-                return sizeof(int64_t);
-            }
-
-            return 0;
-        case OP_SET_ADD:
-
-            if (op.type == HYPERDATATYPE_SET_STRING)
-            {
-                return sizeof(int32_t) + op.arg1.size();
-            }
-            else if (op.type == HYPERDATATYPE_SET_INT64)
-            {
-                return sizeof(int64_t);
-            }
-
-            return 0;
-        case OP_SET_REMOVE:
-            return 0;
-        case OP_SET_INTERSECT:
-            return 0;
-        case OP_SET_UNION:
-            return op.arg1.size();
-        case OP_MAP_ADD:
-
-            if (op.type == HYPERDATATYPE_MAP_STRING_STRING)
-            {
-                return 2 * sizeof(int32_t) + op.arg2.size()
-                       + op.arg1.size();
-            }
-            else if (op.type == HYPERDATATYPE_MAP_STRING_INT64)
-            {
-                return sizeof(int32_t) + op.arg2.size() + sizeof(int64_t);
-            }
-            else if (op.type == HYPERDATATYPE_MAP_INT64_STRING)
-            {
-                return sizeof(int64_t) + sizeof(int32_t) + op.arg1.size();
-            }
-            else if (op.type == HYPERDATATYPE_MAP_INT64_INT64)
-            {
-                return 2 * sizeof(int64_t);
-            }
-
-            return 0;
-        case OP_MAP_REMOVE:
-            return 0;
-        default:
-            return 0;
-    }
+    return 2 * (sizeof(int64_t) + sizeof(uint32_t))
+           + op.arg1.size() + op.arg2.size();
 }
 
 uint8_t*
 hyperdaemon :: apply_microops(hyperdatatype type,
                               const e::slice& old_value,
-                              const hyperdex::microop* ops,
+                              hyperdex::microop* ops,
                               size_t num_ops,
                               uint8_t* writeto,
                               hyperdex::network_returncode* error)
@@ -2004,6 +1935,8 @@ hyperdaemon :: apply_microops(hyperdatatype type,
         case HYPERDATATYPE_LIST_GENERIC:
         case HYPERDATATYPE_SET_GENERIC:
         case HYPERDATATYPE_MAP_GENERIC:
+        case HYPERDATATYPE_MAP_STRING_KEYONLY:
+        case HYPERDATATYPE_MAP_INT64_KEYONLY:
         case HYPERDATATYPE_GARBAGE:
         default:
             *error = hyperdex::NET_BADMICROS;

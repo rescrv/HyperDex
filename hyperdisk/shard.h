@@ -68,7 +68,7 @@ class shard_snapshot;
 //
 // The hash table's entries are 64-bits in size.  The high-order 32-bit
 // number is the offset in the table at which the indexed object may be
-// fount.  The low-order 32-bit number is the hash used to index the
+// found.  The low-order 32-bit number is the hash used to index the
 // table.
 //
 // The append-only log's entries are 128-bits in size.  The first of the

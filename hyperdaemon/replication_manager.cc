@@ -103,6 +103,9 @@ hyperdaemon :: replication_manager :: replication_manager(coordinatorlink* cl,
     , m_keyholders_lock()
     , m_keyholders(REPLICATION_HASHTABLE_SIZE)
     , m_us()
+    , m_quiesce(false)
+    , m_quiesce_state_id_lock()
+    , m_quiesce_state_id("")
     , m_shutdown(false)
     , m_periodic_thread(std::tr1::bind(&replication_manager::periodic, this))
 {
@@ -128,6 +131,17 @@ hyperdaemon :: replication_manager :: prepare(const configuration&, const instan
 void
 hyperdaemon :: replication_manager :: reconfigure(const configuration& newconfig, const instance& us)
 {
+    // Mark as quiescing if config says so.
+    if (newconfig.quiesce())
+    {
+        po6::threads::mutex::hold hold(&m_quiesce_state_id_lock);
+
+        // OK to see multiple quiesce requests - we will take new id each time, but we 
+        // cannot go back to normal operation without shutdown.
+        m_quiesce_state_id = newconfig.quiesce_state_id();
+        m_quiesce = true;
+    }
+
     // Install a new configuration.
     m_config = newconfig;
     m_us = us;
@@ -191,6 +205,15 @@ hyperdaemon :: replication_manager :: client_put(const hyperdex::entityid& from,
                                                  const e::slice& key,
                                                  const std::vector<std::pair<uint16_t, e::slice> >& value)
 {
+    // Fail as read only if we are quiescing. 
+    if (m_quiesce)
+    {
+        respond_to_client(to, from, nonce,
+                          hyperdex::RESP_PUT,
+                          hyperdex::NET_READONLY);
+        return;
+    }
+
     std::vector<hyperdex::attribute> dims = m_config.dimension_names(to.get_space());
     assert(dims.size() > 0);
     e::bitfield bf(dims.size() - 1);
@@ -226,6 +249,15 @@ hyperdaemon :: replication_manager :: client_condput(const hyperdex::entityid& f
                                                      const std::vector<std::pair<uint16_t, e::slice> >& condfields,
                                                      const std::vector<std::pair<uint16_t, e::slice> >& value)
 {
+    // Fail as read only if we are quiescing.
+    if (m_quiesce)
+    {
+        respond_to_client(to, from, nonce,
+                          hyperdex::RESP_PUT,
+                          hyperdex::NET_READONLY);
+        return;
+    }
+
     std::vector<hyperdex::attribute> dims = m_config.dimension_names(to.get_space());
     assert(dims.size() > 0);
     e::bitfield condbf(dims.size() - 1);
@@ -260,6 +292,15 @@ hyperdaemon :: replication_manager :: client_del(const entityid& from,
                                                  std::auto_ptr<e::buffer> backing,
                                                  const e::slice& key)
 {
+    // Fail as read only if we are quiescing.
+    if (m_quiesce)
+    {
+        respond_to_client(to, from, nonce,
+                          hyperdex::RESP_DEL,
+                          hyperdex::NET_READONLY);
+        return;
+    }
+
     size_t dims = m_config.dimensions(to.get_space());
     assert(dims > 0);
     e::bitfield b(dims - 1);
@@ -276,8 +317,17 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
                                                     uint64_t nonce,
                                                     std::auto_ptr<e::buffer> /*backing*/,
                                                     const e::slice& key,
-                                                    const std::vector<hyperdex::microop>& ops)
+                                                    std::vector<hyperdex::microop>* ops)
 {
+    // Fail as read only if we are quiescing.
+    if (m_quiesce)
+    {
+        respond_to_client(to, from, nonce,
+                          hyperdex::RESP_ATOMIC,
+                          hyperdex::NET_READONLY);
+        return;
+    }
+
     std::vector<hyperdex::attribute> dims = m_config.dimension_names(to.get_space());
     assert(!dims.empty());
 
@@ -346,7 +396,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
     }
 
     // If the atomic op does nothing, just act as if it was successful.
-    if (ops.empty())
+    if (ops->empty())
     {
         respond_to_client(to, from, nonce,
                           hyperdex::RESP_ATOMIC,
@@ -357,7 +407,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
 
     // We make an unvalidated assumption that the ops array is sorted.  We will
     // validate this at a later point.
-    if (ops.front().attr <= 0 || ops.back().attr >= dims.size())
+    if (ops->front().attr <= 0 || ops->back().attr >= dims.size())
     {
         respond_to_client(to, from, nonce,
                           hyperdex::RESP_ATOMIC,
@@ -375,10 +425,10 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
         new_size += old_value[i].size();
     }
 
-    for (size_t i = 0; i < ops.size(); ++i)
+    for (size_t i = 0; i < ops->size(); ++i)
     {
         // Increment by the amount required by the microop
-        new_size += sizeof_microop(ops[i]);
+        new_size += sizeof_microop((*ops)[i]);
     }
 
     // Allocate the new buffer
@@ -394,8 +444,8 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
     data += key.size();
 
     // Divide the micro ops up by attribute
-    const hyperdex::microop* op = &ops.front();
-    const hyperdex::microop* const stop = &ops.front() + ops.size();
+    hyperdex::microop* op = &ops->front();
+    const hyperdex::microop* const stop = &ops->front() + ops->size();
     // the next attribute to copy, indexed based on the total number of
     // dimensions.  It starts at 1, because the key is 0, and 1 is the first
     // secondary attribute.
@@ -403,7 +453,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
 
     while (op < stop)
     {
-        const hyperdex::microop* end = op;
+        hyperdex::microop* end = op;
 
         // If the ops are out of order, or out of bounds
         if (op->attr < next_to_copy || op->attr >= dims.size())
@@ -450,6 +500,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
         //   micro ops.
 
         hyperdex::network_returncode error;
+        // This call may modify [op, end) ops.
         uint8_t* newdata = apply_microops(dims[op->attr].type,
                                           old_value[op->attr - 1],
                                           op, end - op,
@@ -1495,7 +1546,24 @@ hyperdaemon :: replication_manager :: periodic()
     {
         try
         {
-            retransmit();
+            int processed = retransmit();
+            
+            // While quiescing, if all replication-related state is cleaned up, 
+            // we are truly queisced.
+            if (m_quiesce && processed <= 0)
+            {
+                // Lock needed to access quiesce state.
+                po6::threads::mutex::hold hold(&m_quiesce_state_id_lock);
+                
+                // Let the coordinator know replication is quiesced.
+                // XXX error handling?
+                m_cl->quiesced(m_quiesce_state_id);
+                
+                // We are quiesced, there will be no more retransmits,
+                // stop the periodic thread.
+                LOG(INFO) << "Replication manager quiesced, periodic thread stopping.";
+                break;
+            }
         }
         catch (std::exception& e)
         {
@@ -1506,12 +1574,16 @@ hyperdaemon :: replication_manager :: periodic()
     }
 }
 
-void
+int
 hyperdaemon :: replication_manager :: retransmit()
 {
+    int processed = 0;
+    
     for (keyholder_map_t::iterator khiter = m_keyholders.begin();
             khiter != m_keyholders.end(); khiter.next())
     {
+        processed++;
+        
         po6::threads::mutex::hold holdkh(&m_keyholders_lock);
         // Grab the lock that protects this object.
         e::slice key(khiter.key().key.data(), khiter.key().key.size());
@@ -1557,4 +1629,6 @@ hyperdaemon :: replication_manager :: retransmit()
             send_message(ent, kh->oldest_committable_version(), key, pend);
         }
     }
+   
+    return processed;
 }

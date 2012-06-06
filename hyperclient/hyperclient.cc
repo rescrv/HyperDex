@@ -316,34 +316,72 @@ HYPERCLIENT_CPPDEF(set, intersect, SET_INTERSECT, coerce_set_generic)
 HYPERCLIENT_CPPDEF(set, union, SET_UNION, coerce_set_generic)
 
 static hyperdatatype
-map_garbage(hyperdatatype, hyperdatatype)
+coerce_map_remove(hyperdatatype expected, hyperdatatype provided)
 {
+    if (provided == HYPERDATATYPE_MAP_STRING_KEYONLY &&
+        (expected == HYPERDATATYPE_MAP_STRING_STRING ||
+         expected == HYPERDATATYPE_MAP_STRING_INT64))
+    {
+        return expected;
+    }
+
+    if (provided == HYPERDATATYPE_MAP_INT64_KEYONLY &&
+        (expected == HYPERDATATYPE_MAP_INT64_STRING ||
+         expected == HYPERDATATYPE_MAP_INT64_INT64))
+    {
+        return expected;
+    }
+
     return HYPERDATATYPE_GARBAGE;
 }
 
-#define HYPERCLIENT_MAP_CPPDEF(PREFIX, OPNAME, OPNAMECAPS) \
+static hyperdatatype
+coerce_numeric_value(hyperdatatype, hyperdatatype provided)
+{
+    if (provided == HYPERDATATYPE_MAP_STRING_INT64 ||
+        provided == HYPERDATATYPE_MAP_INT64_INT64)
+    {
+        return provided;
+    }
+
+    return HYPERDATATYPE_GARBAGE;
+}
+
+static hyperdatatype
+coerce_string_value(hyperdatatype, hyperdatatype provided)
+{
+    if (provided == HYPERDATATYPE_MAP_STRING_STRING ||
+        provided == HYPERDATATYPE_MAP_INT64_STRING)
+    {
+        return provided;
+    }
+
+    return HYPERDATATYPE_GARBAGE;
+}
+
+#define HYPERCLIENT_MAP_CPPDEF(PREFIX, OPNAME, OPNAMECAPS, CONVERT) \
     int64_t \
     hyperclient :: PREFIX ## _ ## OPNAME(const char* space, const char* key, size_t key_sz, \
                               const struct hyperclient_map_attribute* attrs, size_t attrs_sz, \
                               enum hyperclient_returncode* status) \
     { \
-        return map_attributes_to_microops(map_garbage, \
+        return map_attributes_to_microops(CONVERT, \
                                           hyperdex::OP_ ## OPNAMECAPS, space, \
                                           key, key_sz, attrs, attrs_sz, status); \
     }
 
-HYPERCLIENT_MAP_CPPDEF(map, add, MAP_ADD)
-HYPERCLIENT_MAP_CPPDEF(map, remove, MAP_REMOVE)
-HYPERCLIENT_MAP_CPPDEF(map, atomic_add, INT64_ADD)
-HYPERCLIENT_MAP_CPPDEF(map, atomic_sub, INT64_SUB)
-HYPERCLIENT_MAP_CPPDEF(map, atomic_mul, INT64_MUL)
-HYPERCLIENT_MAP_CPPDEF(map, atomic_div, INT64_DIV)
-HYPERCLIENT_MAP_CPPDEF(map, atomic_mod, INT64_MOD)
-HYPERCLIENT_MAP_CPPDEF(map, atomic_and, INT64_AND)
-HYPERCLIENT_MAP_CPPDEF(map, atomic_or, INT64_OR)
-HYPERCLIENT_MAP_CPPDEF(map, atomic_xor, INT64_XOR)
-HYPERCLIENT_MAP_CPPDEF(map, string_prepend, STRING_PREPEND)
-HYPERCLIENT_MAP_CPPDEF(map, string_append, STRING_APPEND)
+HYPERCLIENT_MAP_CPPDEF(map, add, MAP_ADD, coerce_identity)
+HYPERCLIENT_MAP_CPPDEF(map, remove, MAP_REMOVE, coerce_map_remove)
+HYPERCLIENT_MAP_CPPDEF(map, atomic_add, INT64_ADD, coerce_numeric_value)
+HYPERCLIENT_MAP_CPPDEF(map, atomic_sub, INT64_SUB, coerce_numeric_value)
+HYPERCLIENT_MAP_CPPDEF(map, atomic_mul, INT64_MUL, coerce_numeric_value)
+HYPERCLIENT_MAP_CPPDEF(map, atomic_div, INT64_DIV, coerce_numeric_value)
+HYPERCLIENT_MAP_CPPDEF(map, atomic_mod, INT64_MOD, coerce_numeric_value)
+HYPERCLIENT_MAP_CPPDEF(map, atomic_and, INT64_AND, coerce_numeric_value)
+HYPERCLIENT_MAP_CPPDEF(map, atomic_or, INT64_OR, coerce_numeric_value)
+HYPERCLIENT_MAP_CPPDEF(map, atomic_xor, INT64_XOR, coerce_numeric_value)
+HYPERCLIENT_MAP_CPPDEF(map, string_prepend, STRING_PREPEND, coerce_string_value)
+HYPERCLIENT_MAP_CPPDEF(map, string_append, STRING_APPEND, coerce_string_value)
 
 int64_t
 hyperclient :: search(const char* space,
@@ -879,7 +917,7 @@ hyperclient :: attributes_to_microops(hyperdatatype (*coerce_datatype)(hyperdata
 }
 
 int64_t
-hyperclient :: map_attributes_to_microops(hyperdatatype (*coerce_datatype)(hyperdatatype k, hyperdatatype v),
+hyperclient :: map_attributes_to_microops(hyperdatatype (*coerce_datatype)(hyperdatatype e, hyperdatatype p),
                                           int action, const char* space,
                                           const char* key, size_t key_sz,
                                           const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
@@ -1017,6 +1055,7 @@ operator << (std::ostream& lhs, hyperclient_returncode rhs)
         stringify(HYPERCLIENT_NOTFOUND);
         stringify(HYPERCLIENT_SEARCHDONE);
         stringify(HYPERCLIENT_CMPFAIL);
+        stringify(HYPERCLIENT_READONLY);
         stringify(HYPERCLIENT_UNKNOWNSPACE);
         stringify(HYPERCLIENT_COORDFAIL);
         stringify(HYPERCLIENT_SERVERERROR);

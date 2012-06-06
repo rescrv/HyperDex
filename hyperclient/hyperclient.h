@@ -110,6 +110,7 @@ enum hyperclient_returncode
     HYPERCLIENT_NOTFOUND     = 8449,
     HYPERCLIENT_SEARCHDONE   = 8450,
     HYPERCLIENT_CMPFAIL      = 8451,
+    HYPERCLIENT_READONLY     = 8452,
 
     /* Error conditions */
     HYPERCLIENT_UNKNOWNSPACE = 8512,
@@ -569,6 +570,18 @@ hyperclient_map_atomic_xor(struct hyperclient* client, const char* space,
                            const char* key, size_t key_sz,
                            const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
                            enum hyperclient_returncode* status);
+
+int64_t
+hyperclient_map_string_prepend(struct hyperclient* client, const char* space,
+                               const char* key, size_t key_sz,
+                               const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                               enum hyperclient_returncode* status);
+
+int64_t
+hyperclient_map_string_append(struct hyperclient* client, const char* space,
+                              const char* key, size_t key_sz,
+                              const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                              enum hyperclient_returncode* status);
 
 /* Perform a search for objects which match "eq" and "rn".
  *

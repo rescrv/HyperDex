@@ -52,7 +52,7 @@ sizeof_microop(const hyperdex::microop& op);
 uint8_t*
 apply_microops(hyperdatatype type,
                const e::slice& old_value,
-               const hyperdex::microop* ops,
+               hyperdex::microop* ops,
                size_t num_ops,
                uint8_t* writeto,
                hyperdex::network_returncode* error);

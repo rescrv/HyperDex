@@ -30,10 +30,16 @@ AM_CXXFLAGS = $(WANAL_CXXFLAGS) $(COVERAGE_CXXFLAGS)
 
 EXTRA_DIST = \
 			LICENSE \
+			doc \
+			doc/HyperDex-$(VERSION).pdf \
 			hyperdex-coordinator \
 			hyperdex-coordinator-control \
 			$(libhyperclient_extra_dist) \
-			$(ycsb_extra_dist)
+			$(ycsb_extra_dist) \
+			hyperclient/nodejs/sync_test.js \
+			hyperclient/nodejs/async_test.js \
+			hyperclient/nodejs/hyperclient.cc \
+			wscript
 
 lib_LTLIBRARIES = \
 			libhyperspacehashing.la \
@@ -42,10 +48,6 @@ lib_LTLIBRARIES = \
 
 pyexec_LTLIBRARIES =
 
-noinst_LTLIBRARIES = \
-			libhyperdex.la \
-			libhyperdaemon.la
-
 include_HEADERS = \
 			hyperdex.h
 
@@ -53,9 +55,9 @@ noinst_HEADERS = \
 			$(libhyperspacehashing_noinst_headers) \
 			$(libhyperdisk_noinst_headers) \
 			$(libhyperdex_noinst_headers) \
-			$(libhyperdaemon_noinst_headers) \
 			$(libhyperclient_noinst_headers) \
-			$(java_bindings_noinst_headers)
+			$(java_bindings_noinst_headers) \
+			util/atomicfile.h
 
 bin_PROGRAMS = \
 			hyperdex-binary-test \
@@ -95,6 +97,9 @@ CLEANFILES = \
 JAVAROOT = $(abs_top_srcdir)
 
 .PHONY: coverage
+
+dist-hook:
+	rm -rf $(distdir)/doc/_build
 
 ################################################################################
 ############################## Hyperspace Hashing ##############################
@@ -239,7 +244,7 @@ libhyperdisk_la_SOURCES = \
 			hyperdisk/snapshot.cc
 libhyperdisk_la_LIBADD = \
 			libhyperspacehashing.la \
-			-lpthread
+			-lpthread \
 			$(COVERAGE_LDADD)
 libhyperdisk_la_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
@@ -313,16 +318,11 @@ libhyperdex_noinst_headers = \
 			hyperdex/hyperdex/network_constants.h \
 			hyperdex/hyperdex/packing.h
 
-libhyperdex_la_SOURCES = \
+libhyperdex_sources = \
 			hyperdex/configuration.cc \
 			hyperdex/configuration_parser.cc \
 			hyperdex/coordinatorlink.cc \
 			hyperdex/microop.cc
-libhyperdex_la_CPPFLAGS = \
-			-I$(abs_top_srcdir)/hyperspacehashing \
-			-I$(abs_top_srcdir)/hyperdex \
-			$(E_CFLAGS) \
-			$(CPPFLAGS)
 
 ################################################################################
 ################################## HyperDaemon #################################
@@ -330,43 +330,43 @@ libhyperdex_la_CPPFLAGS = \
 
 #################################### Library ###################################
 
-libhyperdaemon_noinst_headers = \
-			hyperdaemon/hyperdaemon/daemon.h \
+hyperdex_daemon_SOURCES = \
+			daemon.cc \
+			hyperdaemon/daemon.h \
+			hyperdaemon/daemon.cc \
 			hyperdaemon/datalayer.h \
+			hyperdaemon/datalayer.cc \
 			hyperdaemon/datatypes.h \
+			hyperdaemon/datatypes.cc \
 			hyperdaemon/logical.h \
+			hyperdaemon/logical.cc \
 			hyperdaemon/network_worker.h \
+			hyperdaemon/network_worker.cc \
 			hyperdaemon/ongoing_state_transfers.h \
+			hyperdaemon/ongoing_state_transfers.cc \
 			hyperdaemon/replication/clientop.h \
 			hyperdaemon/replication/keypair.h \
-			hyperdaemon/replication_manager.cc \
 			hyperdaemon/replication_manager.h \
+			hyperdaemon/replication_manager.cc \
 			hyperdaemon/replication_manager_deferred.h \
 			hyperdaemon/replication_manager_keyholder.h \
 			hyperdaemon/replication_manager_pending.h \
 			hyperdaemon/runtimeconfig.h \
-			hyperdaemon/searches.h
-
-libhyperdaemon_la_SOURCES = \
-			hyperdaemon/daemon.cc \
-			hyperdaemon/datalayer.cc \
-			hyperdaemon/datatypes.cc \
-			hyperdaemon/logical.cc \
-			hyperdaemon/network_worker.cc \
-			hyperdaemon/ongoing_state_transfers.cc \
-			hyperdaemon/replication_manager.cc \
 			hyperdaemon/runtimeconfig.cc \
-			hyperdaemon/searches.cc
-libhyperdaemon_la_LIBADD = \
-			libhyperdex.la \
-			libhyperspacehashing.la \
+			hyperdaemon/searches.h \
+			hyperdaemon/searches.cc \
+			${libhyperdex_sources}
+hyperdex_daemon_LDADD = \
 			libhyperdisk.la \
+			libhyperspacehashing.la \
 			$(E_LIBS) \
-			$(COVERAGE_LDADD)
-libhyperdaemon_la_CPPFLAGS = \
+			$(BUSYBEE_LIBS) \
+			-lbusybee-mta \
+			$(COVERAGE_LDADD) \
+			-lcityhash -lpopt -lglog -lrt -lpthread
+hyperdex_daemon_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
 			-I$(abs_top_srcdir)/hyperdisk \
-			-I$(abs_top_srcdir)/hyperdex \
 			$(E_CFLAGS) \
 			$(CPPFLAGS)
 
@@ -385,6 +385,7 @@ libhyperclient_include_HEADERS = \
 			hyperclient/hyperclient.h
 
 libhyperclient_noinst_headers = \
+			hyperclient/constants.h \
 			hyperclient/hyperclient_completedop.h \
 			hyperclient/hyperclient_pending.h \
 			hyperclient/hyperclient_pending_get.h \
@@ -399,12 +400,13 @@ libhyperclient_la_SOURCES = \
 			hyperclient/hyperclient_pending_get.cc \
 			hyperclient/hyperclient_pending_search.cc \
 			hyperclient/hyperclient_pending_statusonly.cc \
-			hyperclient/util.cc
+			hyperclient/util.cc \
+			${libhyperdex_sources}
 libhyperclient_la_LIBADD = \
 			libhyperspacehashing.la \
-			libhyperdex.la \
-			-lbusybee-st
 			$(E_LIBS) \
+			$(BUSYBEE_LIBS) \
+			-lbusybee-st \
 			$(COVERAGE_LDADD)
 libhyperclient_la_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
@@ -518,24 +520,11 @@ endif
 ################################### Binaries ###################################
 ################################################################################
 
-hyperdex_daemon_SOURCES = \
-			daemon.cc
-hyperdex_daemon_LDADD = \
-			libhyperdisk.la \
-			libhyperdaemon.la \
-			$(COVERAGE_LDADD) \
-			-lbusybee-mta -lpopt -lglog -lrt
-hyperdex_daemon_CPPFLAGS = \
-			$(PO6_CFLAGS) \
-			$(CPPFLAGS)
-
 hyperdex_binary_test_SOURCES = \
 			binary-test.cc
 hyperdex_binary_test_LDADD = \
 			libhyperclient.la \
 			-lrt
-hyperdex_binary_test_LDFLAGS = \
-			-no-install
 hyperdex_binary_test_CPPFLAGS = \
 			$(E_CFLAGS) \
 			$(CPPFLAGS)
@@ -549,8 +538,6 @@ hyperdex_simple_consistency_stress_test_CPPFLAGS = \
 hyperdex_simple_consistency_stress_test_LDADD = \
 			libhyperclient.la \
 			-lpopt -lpthread
-hyperdex_simple_consistency_stress_test_LDFLAGS = \
-			-no-install
 
 hyperdex_replication_stress_test_SOURCES = \
 			replication-stress-test.cc
@@ -562,8 +549,6 @@ hyperdex_replication_stress_test_LDADD = \
 			libhyperspacehashing.la \
 			libhyperclient.la \
 			-lpopt
-hyperdex_replication_stress_test_LDFLAGS = \
-			-no-install
 
 if ENABLE_TRACEPLAYER
 bin_PROGRAMS += hyperdex-trace-player
@@ -573,12 +558,31 @@ hyperdex_trace_player_LDADD = \
 			libhyperclient.la \
 			-lbsd \
 			-lrt
-hyperdex_trace_player_LDFLAGS = \
-			-no-install
 hyperdex_trace_player_CPPFLAGS = \
 			$(E_CFLAGS) \
 			$(CPPFLAGS)
 endif
+
+################################################################################
+################################# Documentation ################################
+################################################################################
+
+man_MANS = \
+			doc/man/hyperdex-daemon.1 \
+			doc/man/hyperdex-replication-stress-test.1 \
+			doc/man/hyperdex-simple-consistency-stress-test.1
+
+# These need to be chained so that they'll only build once, and will not rely
+# upon a PHONY rule.
+doc/man/hyperdex-replication-stress-test.1: doc/man/hyperdex-replication-stress-test.rst doc/man/hyperdex-simple-consistency-stress-test.1
+doc/man/hyperdex-simple-consistency-stress-test.1: doc/man/hyperdex-simple-consistency-stress-test.rst doc/man/hyperdex-daemon.1
+doc/man/hyperdex-daemon.1: doc/man/hyperdex-daemon.rst
+	sphinx-build -W -d ${abs_top_builddir}/doc/_build -b man doc doc/man
+
+doc/HyperDex-$(VERSION).pdf:
+	sphinx-build -W -d ${abs_top_builddir}/doc/_build -b latex ${abs_top_srcdir}/doc ${abs_top_builddir}/doc/_build/latex
+	make -C ${abs_top_builddir}/doc/_build/latex all-pdf
+	cp ${abs_top_builddir}/doc/_build/latex/HyperDex.pdf doc/HyperDex-$(VERSION).pdf
 
 ################################################################################
 ################################### Coverage ###################################
