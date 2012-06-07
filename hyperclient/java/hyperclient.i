@@ -49,14 +49,29 @@ typedef uint16_t in_port_t;
 %}
 
 %include "cpointer.i"
-%pointer_functions(phyperclient_attribute, phyperclient_attribute_ptr);
+
+// Using typedef hyperclient_attribute_asterisk instead of hyperclient_attribute*
+// as the latter confuses SWIG when trying to define SWIG pointer handling macros
+// on something that is already a pointer.
+// hyperclient_attribute_asterisk - c++ typedef for hyperclient_attribute* type
+// hyperclient_attribute_ptr - the java name I chose to represent the resulting:
+//                             hyperclient_attribute_asterisk*
+//                             = hyperclient_attribute** 
+//                             To wit, in java hyperclient_attribute is already
+//                             a pointer, so the name hyperclient_attribute_ptr is
+//                             essentially a pointer to this java-transparent pointer.  
+%pointer_functions(hyperclient_attribute_asterisk,hyperclient_attribute_ptr);
+
+// A couple more c++ pointer handling macros I will need
+//
 %pointer_functions(size_t, size_t_ptr);
 %pointer_functions(int, int_ptr);
 
 %include "HyperType.i"
 
-%apply (char *STRING, int LENGTH) { (char *bytes, size_t len) }
+%apply (char *STRING, int LENGTH) { (const char *attr, size_t attr_sz) }
 %apply (char *STRING, int LENGTH) { (char *value, size_t value_sz) }
+%apply (char *STRING, int LENGTH) { (const char *value, size_t value_sz) }
 
 
 %include "hyperclient/java/javaclient.h"

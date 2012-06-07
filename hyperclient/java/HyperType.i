@@ -110,6 +110,65 @@
     return map;
   }
 
+  static hyperclient_attribute map_to_attrs(java.util.Map map) throws TypeError,
+                                                                        MemoryError
+  {
+    /*
+    hyperclient_attribute attrs
+        = hyperclient.new_hyperclient_attribute_array(map.size());
+
+    if ( attrs == null ) throw new MemoryError();
+    
+    int i = 0;
+
+    for (java.util.Iterator it=map.keySet().iterator(); it.hasNext();)
+    {
+        hyperclient_attribute ha
+            = hyperclient.hyperclient_attribute_array_getitem(attrs,i);
+
+        String attrStr = (String)(it.next());
+        byte[] attrBytes = attrStr.getBytes();
+
+        Object value = map.get(attrStr);
+
+        byte[] valueBytes = null;
+
+        hyperdatatype type;
+
+        if ( value instanceof String )
+        {
+            valueBytes = ((String)value).getBytes();
+            type = hyperdatatype.HYPERDATATYPE_STRING;
+
+        }
+        else if ( value instanceof Long )
+        {
+            valueBytes = java.nio.ByteBuffer.allocate(8).order(
+                java.nio.ByteOrder.LITTLE_ENDIAN).putLong(
+                    ((Long)value).longValue()).array();
+
+            type = hyperdatatype.HYPERDATATYPE_INT64;
+        }
+        else
+        {
+            destroy_attrs
+            throw new TypeError("Unsupported type: " + value.getClass().getName());
+        }
+
+        if (fill_attribute(ha,attrBytes,valueBytes,type) == null)
+        {
+            destroy_attrs
+            throw new MemoryError();
+        }   
+
+        i++;
+    }
+
+    return attrs;
+    */
+    return null;
+  }
+
   public Deferred async_get(String space, String key) throws HyperClientException
   {
     return new DeferredGet(this,space, key);
@@ -120,32 +179,4 @@
     DeferredGet d = (DeferredGet)(async_get(space, key));
     return (java.util.Map)(d.waitFor());
   }
-
-  /*
-  public java.util.Map get(String space, String key)
-  {
-    java.util.HashMap<Object,Object> map = new java.util.HashMap<Object,Object>();
-
-    SWIGTYPE_p_p_hyperclient_attribute pattrs_ptr = hyperclient.new_phyperclient_attribute_ptr();
-    SWIGTYPE_p_size_t attrs_sz_ptr = hyperclient.new_size_t_ptr();
-
-    ReturnCode ret = get(space,key,pattrs_ptr,attrs_sz_ptr);
-
-    hyperclient_attribute attrs
-        = hyperclient.phyperclient_attribute_ptr_value(pattrs_ptr);
-    long attrs_sz = hyperclient.size_t_ptr_value(attrs_sz_ptr);
-
-    int sz = HyperClient.size_t_to_int(attrs_sz);
-
-    for ( int i=0; i<sz; i++)
-    {
-        hyperclient_attribute ha = get_attribute(attrs,i);
-        map.put(ha.getAttr(),ha.getValue());
-    }
-
-    hyperclient.hyperclient_destroy_attrs(attrs,attrs_sz);
-
-    return map;
-  }
-  */
 %}

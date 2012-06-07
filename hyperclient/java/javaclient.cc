@@ -99,11 +99,31 @@ HyperClient :: loop(int *i_rc)
     return ret;
 }
 
-void
-HyperClient :: set_attribute(hyperclient_attribute *ha, char *attr,
-                                   char *value, size_t value_sz,
-                                   hyperdatatype type)
+hyperclient_attribute*
+HyperClient :: alloc_attrs(size_t attrs_sz)
 {
+    return NULL;
+}
+
+void
+HyperClient :: destroy_attrs(hyperclient_attribute *attrs, size_t attrs_sz)
+{
+}
+
+size_t
+HyperClient :: set_attribute(hyperclient_attribute *ha,
+                           const char *attr, size_t attr_sz,
+                           const char *value, size_t value_sz,
+                           hyperdatatype type)
+{
+    return 0;
+}
+
+size_t
+HyperClient :: append_attribute(hyperclient_attribute *ha,
+                                       const char *value, size_t value_sz)
+{
+    return 0;
 }
 
 hyperclient_attribute *

@@ -4,7 +4,7 @@ import java.util.*;
 
 public class DeferredGet extends Deferred
 {
-    SWIGTYPE_p_p_hyperclient_attribute pattrs_ptr = null;
+    SWIGTYPE_p_p_hyperclient_attribute attrs_ptr = null;
     SWIGTYPE_p_size_t attrs_sz_ptr = null;
 
     public DeferredGet(HyperClient client, String space, String key)
@@ -12,12 +12,12 @@ public class DeferredGet extends Deferred
     {
         super(client);
 
-        pattrs_ptr = hyperclient.new_phyperclient_attribute_ptr();
+        attrs_ptr = hyperclient.new_hyperclient_attribute_ptr();
         attrs_sz_ptr = hyperclient.new_size_t_ptr();
 
         SWIGTYPE_p_int rc_int_ptr = hyperclient.new_int_ptr();
 
-        reqId = client.get(space, key, rc_int_ptr, pattrs_ptr, attrs_sz_ptr);
+        reqId = client.get(space, key, rc_int_ptr, attrs_ptr, attrs_sz_ptr);
 
         if (reqId < 0)
         {
@@ -35,14 +35,14 @@ public class DeferredGet extends Deferred
         if (status == ReturnCode.HYPERCLIENT_SUCCESS)
         {
             hyperclient_attribute attrs
-                = hyperclient.phyperclient_attribute_ptr_value(pattrs_ptr);
+                = hyperclient.hyperclient_attribute_ptr_value(attrs_ptr);
             long attrs_sz = hyperclient.size_t_ptr_value(attrs_sz_ptr);
 
             Map map = HyperClient.attrs_to_map(attrs, attrs_sz);
             
             hyperclient.hyperclient_destroy_attrs(attrs,attrs_sz);
 
-            pattrs_ptr = null;
+            attrs_ptr = null;
             attrs_sz_ptr = null;
 
             return map;
@@ -61,10 +61,10 @@ public class DeferredGet extends Deferred
     {
         super.finalize();
 
-        if ( pattrs_ptr != null ) 
+        if ( attrs_ptr != null ) 
         {
             hyperclient_attribute attrs
-                = hyperclient.phyperclient_attribute_ptr_value(pattrs_ptr);
+                = hyperclient.hyperclient_attribute_ptr_value(attrs_ptr);
             long attrs_sz = hyperclient.size_t_ptr_value(attrs_sz_ptr);
 
             hyperclient.hyperclient_destroy_attrs(attrs,attrs_sz);

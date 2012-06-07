@@ -31,7 +31,7 @@
 // HyperClient
 #include "../hyperclient.h"
 
-typedef hyperclient_attribute* phyperclient_attribute;
+typedef hyperclient_attribute* hyperclient_attribute_asterisk;
 
 class HyperClient
 {
@@ -45,10 +45,20 @@ class HyperClient
 
         int64_t loop(int *i_rc);
 
-        static void set_attribute(hyperclient_attribute *ha,
-                           char *attr,
-                           char *value, size_t value_sz,
+        static hyperclient_attribute *alloc_attrs(size_t attrs_sz);
+        static void destroy_attrs(hyperclient_attribute *attrs, size_t attrs_sz);
+
+        // Returns the number of bytes written into value.
+        // Returns 0 on failure.
+        static size_t set_attribute(hyperclient_attribute *ha,
+                           const char *attr, size_t attr_sz,
+                           const char *value, size_t value_sz,
                            hyperdatatype type);
+
+        // Returns the number of bytes appended to value.
+        // Returns 0 on failure.
+        static size_t append_attribute(hyperclient_attribute *ha,
+                                       const char *value, size_t value_sz);
 
         static hyperclient_attribute *get_attribute(hyperclient_attribute *ha, size_t i);
 
