@@ -6,19 +6,19 @@
 
 %typemap(javacode) hyperclient_attribute
 %{
-  public String getAttr()
+  public String getAttrName()
   {
     return HyperClient.read_attr_name(this);
   }
 
   private byte[] getValueBytes()
   {
-    long len = HyperClient.read_value(this,new byte[0]);
+    long len = HyperClient.read_attr_value(this,new byte[0]);
 
     int bytes_sz = HyperClient.size_t_to_int(len);
 
     byte[] bytes = new byte[bytes_sz];
-    HyperClient.read_value(this,bytes);
+    HyperClient.read_attr_value(this,bytes);
     return bytes;
   }
 
@@ -103,8 +103,8 @@
 
     for ( int i=0; i<sz; i++)
     {
-        hyperclient_attribute ha = get_attribute(attrs,i);
-        map.put(ha.getAttr(),ha.getValue());
+        hyperclient_attribute ha = get_attr(attrs,i);
+        map.put(ha.getAttrName(),ha.getValue());
     }
 
     return map;
@@ -113,9 +113,8 @@
   static hyperclient_attribute map_to_attrs(java.util.Map map) throws TypeError,
                                                                         MemoryError
   {
-    /*
-    hyperclient_attribute attrs
-        = hyperclient.new_hyperclient_attribute_array(map.size());
+    int attrs_sz = map.size();
+    hyperclient_attribute attrs = alloc_attrs(attrs_sz);
 
     if ( attrs == null ) throw new MemoryError();
     
@@ -123,50 +122,55 @@
 
     for (java.util.Iterator it=map.keySet().iterator(); it.hasNext();)
     {
-        hyperclient_attribute ha
-            = hyperclient.hyperclient_attribute_array_getitem(attrs,i);
+        hyperclient_attribute ha = get_attr(attrs,i);
 
         String attrStr = (String)(it.next());
         byte[] attrBytes = attrStr.getBytes();
 
         Object value = map.get(attrStr);
 
-        byte[] valueBytes = null;
-
-        hyperdatatype type;
-
-        if ( value instanceof String )
+        try
         {
-            valueBytes = ((String)value).getBytes();
-            type = hyperdatatype.HYPERDATATYPE_STRING;
+            hyperdatatype type;
 
+            if ( value instanceof String )
+            {
+                type = hyperdatatype.HYPERDATATYPE_STRING;
+                byte[] valueBytes = ((String)value).getBytes();
+                if (write_primitive_value(ha, valueBytes) == 0) throw new MemoryError();
+    
+            }
+            else if ( value instanceof Long )
+            {
+                type = hyperdatatype.HYPERDATATYPE_INT64;
+                byte[] valueBytes = java.nio.ByteBuffer.allocate(8).order(
+                    java.nio.ByteOrder.LITTLE_ENDIAN).putLong(
+                        ((Long)value).longValue()).array();
+                if (write_primitive_value(ha, valueBytes) == 0) throw new MemoryError();
+            }
+            else
+            {
+                throw
+                    new TypeError("Unsupported type: " + value.getClass().getName());
+            }
+
+            if (write_attr(ha, attrBytes, type) == 0) throw new MemoryError();
         }
-        else if ( value instanceof Long )
+        catch(MemoryError me)
         {
-            valueBytes = java.nio.ByteBuffer.allocate(8).order(
-                java.nio.ByteOrder.LITTLE_ENDIAN).putLong(
-                    ((Long)value).longValue()).array();
-
-            type = hyperdatatype.HYPERDATATYPE_INT64;
+            destroy_attrs(attrs, attrs_sz);
+            throw me;
         }
-        else
+        catch(TypeError te)
         {
-            destroy_attrs
-            throw new TypeError("Unsupported type: " + value.getClass().getName());
+            destroy_attrs(attrs, attrs_sz);
+            throw te;
         }
-
-        if (fill_attribute(ha,attrBytes,valueBytes,type) == null)
-        {
-            destroy_attrs
-            throw new MemoryError();
-        }   
 
         i++;
     }
 
     return attrs;
-    */
-    return null;
   }
 
   public Deferred async_get(String space, String key) throws HyperClientException
@@ -178,5 +182,18 @@
   {
     DeferredGet d = (DeferredGet)(async_get(space, key));
     return (java.util.Map)(d.waitFor());
+  }
+
+  public Deferred async_put(String space, String key, java.util.Map map)
+                                                     throws HyperClientException
+  {
+    return new DeferredFromAttrs(this, new SimpleOpPut(this), key, map);
+  }
+
+  public boolean put(String space, String key, java.util.Map map)
+                                                     throws HyperClientException
+  {
+    Deferred d = (DeferredFromAttrs)(async_put(space, key, map));
+    return ((Boolean)(d.waitFor())).booleanValue();
   }
 %}

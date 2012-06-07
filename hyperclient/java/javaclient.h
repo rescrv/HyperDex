@@ -41,39 +41,41 @@ class HyperClient
 
     public:
         static std::string read_attr_name(hyperclient_attribute *ha);
-        static size_t read_value(hyperclient_attribute *ha, char *value, size_t value_sz);
+        static size_t read_attr_value(hyperclient_attribute *ha, char *value, size_t value_sz);
 
         int64_t loop(int *i_rc);
 
         static hyperclient_attribute *alloc_attrs(size_t attrs_sz);
         static void destroy_attrs(hyperclient_attribute *attrs, size_t attrs_sz);
 
-        // Returns the number of bytes written into value.
-        // Returns 0 on failure.
-        static size_t set_attribute(hyperclient_attribute *ha,
+        // Returns 1 on success. ha->attr will point to allocated memory
+        // Returns 0 on failure. ha->attr will be NULL
+        static int write_attr(hyperclient_attribute *ha,
                            const char *attr, size_t attr_sz,
-                           const char *value, size_t value_sz,
                            hyperdatatype type);
 
-        // Returns the number of bytes appended to value.
-        // Returns 0 on failure.
-        static size_t append_attribute(hyperclient_attribute *ha,
+        // Returns 1 on success. ha->value will point to allocated memory
+        //                       ha->value_sz will hold the size of this memory
+        // Returns 0 on failure. ha->value will be NULL
+        //                       ha->value_sz will be 0
+        static int write_primitive_value(hyperclient_attribute *ha,
                                        const char *value, size_t value_sz);
 
-        static hyperclient_attribute *get_attribute(hyperclient_attribute *ha, size_t i);
+        static hyperclient_attribute *get_attr(hyperclient_attribute *ha, size_t i);
 
         int64_t get(const std::string& space,
                        const std::string& key,
                        int *i_rc,
                        hyperclient_attribute **attrs, size_t *attrs_sz);
 
-        hyperclient_returncode put(const std::string& space,
+        int64_t put(const std::string& space,
                        const std::string& key,
-                       const hyperclient_attribute *attrs, size_t attrs_sz);
+                       const hyperclient_attribute *attrs, size_t attrs_sz, int *i_rc);
 
     private:
         hyperclient *m_client;
         static size_t read(const char *memb, size_t memb_sz, char *ret, size_t ret_sz);
+        static void destroy_attr_value(hyperclient_attribute *ha);
 };
 
 #endif // hyperclient_javaclient_h_

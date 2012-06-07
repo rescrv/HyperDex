@@ -41,6 +41,8 @@
 #include <iostream>
 #include <sstream>
 
+#include <cstdlib>
+
 HyperClient :: HyperClient(const char* coordinator, in_port_t port)
 {
     m_client = hyperclient_create(coordinator,port);
@@ -81,9 +83,9 @@ HyperClient :: read(const char *memb, size_t memb_sz, char *ret, size_t ret_sz)
 }
 
 size_t
-HyperClient :: read_value(hyperclient_attribute *ha, char *value, size_t value_sz)
+HyperClient :: read_attr_value(hyperclient_attribute *ha, char *value, size_t value_sz)
 {
-    read(ha->value,ha->value_sz,value,value_sz);
+    return read(ha->value,ha->value_sz,value,value_sz);
 }
 
 int64_t
@@ -102,32 +104,53 @@ HyperClient :: loop(int *i_rc)
 hyperclient_attribute*
 HyperClient :: alloc_attrs(size_t attrs_sz)
 {
-    return NULL;
+    return (hyperclient_attribute *)calloc(attrs_sz,sizeof(hyperclient_attribute));
 }
 
 void
 HyperClient :: destroy_attrs(hyperclient_attribute *attrs, size_t attrs_sz)
 {
+    for (int i=0; i<attrs_sz; i++)
+    {
+        if (attrs[i].attr) free((void*)(attrs[i].attr));
+        if (attrs[i].value) destroy_attr_value(&(attrs[i]));
+    }
+
+    free(attrs);
 }
 
-size_t
-HyperClient :: set_attribute(hyperclient_attribute *ha,
+void
+HyperClient :: destroy_attr_value(hyperclient_attribute *ha)
+{
+    if (ha->datatype == HYPERDATATYPE_STRING || ha->datatype == HYPERDATATYPE_INT64)
+        free((void*)(ha->value));    
+}
+
+int
+HyperClient :: write_attr(hyperclient_attribute *ha,
                            const char *attr, size_t attr_sz,
-                           const char *value, size_t value_sz,
                            hyperdatatype type)
 {
-    return 0;
+    char *buf;
+
+    if ((buf = (char *)calloc(attr_sz+1,sizeof(char))) == NULL) return 0;
+    memcpy(buf,attr,attr_sz);
+    ha->datatype = type;
+    return 1;
 }
 
-size_t
-HyperClient :: append_attribute(hyperclient_attribute *ha,
+int
+HyperClient :: write_primitive_value(hyperclient_attribute *ha,
                                        const char *value, size_t value_sz)
 {
-    return 0;
+    char *buf;
+    if ((buf = (char *)calloc(value_sz,sizeof(char))) == NULL) return 0;
+    memcpy(buf,value,value_sz);
+    return 1;
 }
 
 hyperclient_attribute *
-HyperClient :: get_attribute(hyperclient_attribute *ha, size_t i)
+HyperClient :: get_attr(hyperclient_attribute *ha, size_t i)
 {
     return ha + i;
 }
@@ -155,11 +178,23 @@ HyperClient :: get(const std::string& space,
     return id;
 }
 
-hyperclient_returncode
+int64_t
 HyperClient :: put(const std::string& space,
                        const std::string& key,
-                       const hyperclient_attribute *attrs, size_t attrs_sz)
+                       const hyperclient_attribute *attrs, size_t attrs_sz, int *i_rc)
 
 {
-    return HYPERCLIENT_SUCCESS;
+    hyperclient_returncode rc;
+
+    int64_t id = hyperclient_put(m_client,
+                                 space.c_str(),
+                                 key.data(),
+                                 key.size(),
+                                 attrs,
+                                 attrs_sz,
+                                 &rc);
+    
+
+    *i_rc = (int)rc;
+    return id;
 }

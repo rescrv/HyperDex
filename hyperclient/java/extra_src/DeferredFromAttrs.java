@@ -1,0 +1,71 @@
+package hyperclient;
+
+import java.util.*;
+
+public class DeferredFromAttrs extends Deferred
+{
+    public DeferredFromAttrs(HyperClient client, SimpleOp op, String space, String key,
+                                                                        Map map)
+                                                    throws HyperClientException,
+                                                           TypeError,
+                                                           MemoryError
+    {
+        super(client);
+
+	      hyperclient_attribute attrs = null;
+	      int attrs_sz = 0;
+	
+        try
+        {
+	        attrs = HyperClient.map_to_attrs(map);
+	        attrs_sz = map.size();
+	
+	        SWIGTYPE_p_int rc_int_ptr = hyperclient.new_int_ptr();
+	
+	        reqId = op.call(space, key, attrs, attrs_sz, rc_int_ptr);
+	
+	        if (reqId < 0)
+	        {
+	            status = ReturnCode.swigToEnum(hyperclient.int_ptr_value(rc_int_ptr));
+
+                if ( status == ReturnCode.HYPERCLIENT_UNKNOWNATTR )
+                {
+                    int idx = (int)(-1 - reqId);
+                    hyperclient_attribute ha = HyperClient.get_attr(attrs,idx);
+                    throw new HyperClientException(status,ha.getAttrName());
+                }
+	        }
+	
+	        client.ops.put(reqId,this);
+        }
+        catch(HyperClientException he)
+        {
+            throw he;
+        }
+        catch(TypeError te)
+        {
+            throw te;
+        }
+        catch(MemoryError me)
+        {
+            throw me;
+        }
+        finally
+        {
+            if ( attrs != null ) HyperClient.destroy_attrs(attrs,attrs_sz);
+        }
+    }
+
+    public Object waitFor() throws HyperClientException
+    {
+        super.waitFor();
+        if (status == ReturnCode.HYPERCLIENT_SUCCESS)
+        {
+            return new Boolean(true);
+        }
+        else
+        {
+            throw new HyperClientException(status);
+        }
+    }
+}
