@@ -137,7 +137,7 @@
             {
                 type = hyperdatatype.HYPERDATATYPE_STRING;
                 byte[] valueBytes = ((String)value).getBytes();
-                if (write_primitive_value(ha, valueBytes) == 0) throw new MemoryError();
+                if (write_attr_value(ha, valueBytes) == 0) throw new MemoryError();
     
             }
             else if ( value instanceof Long )
@@ -146,7 +146,7 @@
                 byte[] valueBytes = java.nio.ByteBuffer.allocate(8).order(
                     java.nio.ByteOrder.LITTLE_ENDIAN).putLong(
                         ((Long)value).longValue()).array();
-                if (write_primitive_value(ha, valueBytes) == 0) throw new MemoryError();
+                if (write_attr_value(ha, valueBytes) == 0) throw new MemoryError();
             }
             else
             {
@@ -154,7 +154,7 @@
                     new TypeError("Unsupported type: " + value.getClass().getName());
             }
 
-            if (write_attr(ha, attrBytes, type) == 0) throw new MemoryError();
+            if (write_attr_name(ha, attrBytes, type) == 0) throw new MemoryError();
         }
         catch(MemoryError me)
         {

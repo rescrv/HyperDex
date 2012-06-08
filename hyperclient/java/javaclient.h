@@ -50,16 +50,16 @@ class HyperClient
 
         // Returns 1 on success. ha->attr will point to allocated memory
         // Returns 0 on failure. ha->attr will be NULL
-        static int write_attr(hyperclient_attribute *ha,
-                           const char *attr, size_t attr_sz,
-                           hyperdatatype type);
+        static int write_attr_name(hyperclient_attribute *ha,
+                                   const char *attr, size_t attr_sz,
+                                   hyperdatatype type);
 
         // Returns 1 on success. ha->value will point to allocated memory
         //                       ha->value_sz will hold the size of this memory
         // Returns 0 on failure. ha->value will be NULL
         //                       ha->value_sz will be 0
-        static int write_primitive_value(hyperclient_attribute *ha,
-                                       const char *value, size_t value_sz);
+        static int write_attr_value(hyperclient_attribute *ha,
+                                    const char *value, size_t value_sz);
 
         static hyperclient_attribute *get_attr(hyperclient_attribute *ha, size_t i);
 

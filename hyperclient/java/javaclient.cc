@@ -130,9 +130,9 @@ HyperClient :: destroy_attr_value(hyperclient_attribute *ha)
 }
 
 int
-HyperClient :: write_attr(hyperclient_attribute *ha,
-                           const char *attr, size_t attr_sz,
-                           hyperdatatype type)
+HyperClient :: write_attr_name(hyperclient_attribute *ha,
+                               const char *attr, size_t attr_sz,
+                               hyperdatatype type)
 {
     char *buf;
 
@@ -144,8 +144,8 @@ HyperClient :: write_attr(hyperclient_attribute *ha,
 }
 
 int
-HyperClient :: write_primitive_value(hyperclient_attribute *ha,
-                                       const char *value, size_t value_sz)
+HyperClient :: write_attr_value(hyperclient_attribute *ha,
+                                const char *value, size_t value_sz)
 {
     char *buf;
     if ((buf = (char *)calloc(value_sz,sizeof(char))) == NULL) return 0;
