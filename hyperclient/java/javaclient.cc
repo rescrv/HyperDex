@@ -110,13 +110,16 @@ HyperClient :: alloc_attrs(size_t attrs_sz)
 void
 HyperClient :: destroy_attrs(hyperclient_attribute *attrs, size_t attrs_sz)
 {
+    std::cout << "About to destroy_attrs" << std::endl;
     for (int i=0; i<attrs_sz; i++)
     {
         if (attrs[i].attr) free((void*)(attrs[i].attr));
         if (attrs[i].value) destroy_attr_value(&(attrs[i]));
     }
 
+    std::cout << "Freed members" << std::endl;
     free(attrs);
+    std::cout << "Freed attrs" << std::endl;
 }
 
 void
@@ -135,6 +138,7 @@ HyperClient :: write_attr(hyperclient_attribute *ha,
 
     if ((buf = (char *)calloc(attr_sz+1,sizeof(char))) == NULL) return 0;
     memcpy(buf,attr,attr_sz);
+    ha->attr = buf;
     ha->datatype = type;
     return 1;
 }
@@ -146,6 +150,8 @@ HyperClient :: write_primitive_value(hyperclient_attribute *ha,
     char *buf;
     if ((buf = (char *)calloc(value_sz,sizeof(char))) == NULL) return 0;
     memcpy(buf,value,value_sz);
+    ha->value = buf;
+    ha->value_sz = value_sz;
     return 1;
 }
 
@@ -185,6 +191,13 @@ HyperClient :: put(const std::string& space,
 
 {
     hyperclient_returncode rc;
+
+    std::cout << m_client << std::endl
+    << space << std::endl
+    << key << std::endl
+    << attrs[0].attr << std::endl
+    << attrs_sz << std::endl
+    << &rc << std::endl;
 
     int64_t id = hyperclient_put(m_client,
                                  space.c_str(),

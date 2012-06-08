@@ -185,13 +185,17 @@
   }
 
   public Deferred async_put(String space, String key, java.util.Map map)
-                                                     throws HyperClientException
+                                                     throws HyperClientException,
+                                                            TypeError,
+                                                            MemoryError
   {
-    return new DeferredFromAttrs(this, new SimpleOpPut(this), key, map);
+    return new DeferredFromAttrs(this, new SimpleOpPut(this), space, key, map);
   }
 
   public boolean put(String space, String key, java.util.Map map)
-                                                     throws HyperClientException
+                                                     throws HyperClientException,
+                                                            TypeError,
+                                                            MemoryError
   {
     Deferred d = (DeferredFromAttrs)(async_put(space, key, map));
     return ((Boolean)(d.waitFor())).booleanValue();
