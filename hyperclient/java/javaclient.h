@@ -58,6 +58,8 @@ class HyperClient
         //                       ha->value_sz will hold the size of this memory
         // Returns 0 on failure. ha->value will be NULL
         //                       ha->value_sz will be 0
+        //
+        // If ha->value is already non-NULL, then we're appending to it. 
         static int write_attr_value(hyperclient_attribute *ha,
                                     const char *value, size_t value_sz);
 

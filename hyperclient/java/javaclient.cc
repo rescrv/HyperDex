@@ -147,11 +147,14 @@ int
 HyperClient :: write_attr_value(hyperclient_attribute *ha,
                                 const char *value, size_t value_sz)
 {
-    char *buf;
-    if ((buf = (char *)calloc(value_sz,sizeof(char))) == NULL) return 0;
-    memcpy(buf,value,value_sz);
+    char *buf = NULL;
+    // Note: Since hyperclient_attribute array was calloc'ed
+    //       ha->value = NULL and ha->value_sz = 0
+    if ((buf = (char *)realloc((void *)(ha->value), ha->value_sz + value_sz))
+                                                                    == NULL) return 0;
+    memcpy(buf + ha->value_sz, value, value_sz);
     ha->value = buf;
-    ha->value_sz = value_sz;
+    ha->value_sz += value_sz;
     return 1;
 }
 
