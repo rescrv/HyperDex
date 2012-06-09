@@ -67,25 +67,13 @@ HyperClient :: read_attr_name(hyperclient_attribute *ha)
     return str;
 }
 
-size_t
-HyperClient :: read(const char *memb, size_t memb_sz, char *ret, size_t ret_sz)
+void
+HyperClient :: read_attr_value(hyperclient_attribute *ha,
+                               char *value, size_t value_sz,
+                               size_t pos)
 {
-    if ( ret_sz == 0 )
-    {
-        return memb_sz;
-    }
-    else
-    {
-        size_t smallest_sz = ret_sz<memb_sz?ret_sz:memb_sz;
-        memcpy(ret,memb,smallest_sz);
-        return smallest_sz;
-    }
-}
-
-size_t
-HyperClient :: read_attr_value(hyperclient_attribute *ha, char *value, size_t value_sz)
-{
-    return read(ha->value,ha->value_sz,value,value_sz);
+    size_t available = ha->value_sz - pos;
+    memcpy(value, ha->value+pos, value_sz<available?value_sz:available);
 }
 
 int64_t
@@ -149,7 +137,7 @@ HyperClient :: write_attr_value(hyperclient_attribute *ha,
 {
     char *buf = NULL;
     // Note: Since hyperclient_attribute array was calloc'ed
-    //       ha->value = NULL and ha->value_sz = 0
+    //       ha->value = NULL and ha->value_sz = 0 initially
     if ((buf = (char *)realloc((void *)(ha->value), ha->value_sz + value_sz))
                                                                     == NULL) return 0;
     memcpy(buf + ha->value_sz, value, value_sz);

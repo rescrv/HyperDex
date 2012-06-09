@@ -20,7 +20,7 @@ public class Deferred
         client.ops.remove(reqId);
     }
 
-    public Object waitFor() throws HyperClientException
+    public Object waitFor() throws HyperClientException, ValueError
     {
         while (! finished && reqId > 0)
         {

@@ -29,7 +29,7 @@ public class DeferredGet extends Deferred
         client.ops.put(reqId,this);
     }
 
-    public Object waitFor() throws HyperClientException
+    public Object waitFor() throws HyperClientException, ValueError
     {
         super.waitFor();
         if (status == ReturnCode.HYPERCLIENT_SUCCESS)
@@ -38,7 +38,7 @@ public class DeferredGet extends Deferred
                 = hyperclient.hyperclient_attribute_ptr_value(attrs_ptr);
             long attrs_sz = hyperclient.size_t_ptr_value(attrs_sz_ptr);
 
-            Map map = HyperClient.attrs_to_map(attrs, attrs_sz);
+            Map map = HyperClient.attrs_to_dict(attrs, attrs_sz);
             
             hyperclient.hyperclient_destroy_attrs(attrs,attrs_sz);
 

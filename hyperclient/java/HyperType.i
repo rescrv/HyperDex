@@ -11,38 +11,89 @@
     return HyperClient.read_attr_name(this);
   }
 
-  private byte[] getValueBytes()
+  private byte[] getAttrValueBytes()
   {
-    long len = HyperClient.read_attr_value(this,new byte[0]);
+    int bytes_sz = HyperClient.size_t_to_int(getValue_sz());
 
-    int bytes_sz = HyperClient.size_t_to_int(len);
+    return getAttrValueBytes(0,bytes_sz);
+  }
 
-    byte[] bytes = new byte[bytes_sz];
-    HyperClient.read_attr_value(this,bytes);
+  private byte[] getAttrValueBytes(long pos, int size)
+  {
+    byte[] bytes = new byte[size];
+    HyperClient.read_attr_value(this,bytes,pos);
     return bytes;
   }
 
-  public java.lang.Object getStringValue()
+  public java.lang.Object getAttrStringValue()
   {
-    return new String(getValueBytes());
+    return new String(getAttrValueBytes());
   }
 
-  private java.lang.Object getLongValue()
+  private java.lang.Object getAttrLongValue()
   {
     return
       new Long(
-        java.nio.ByteBuffer.wrap(getValueBytes()).order(java.nio.ByteOrder.LITTLE_ENDIAN).getLong());
+        java.nio.ByteBuffer.wrap(getAttrValueBytes()).order(
+                    java.nio.ByteOrder.LITTLE_ENDIAN).getLong());
   }
 
-  public java.lang.Object getValue()
+  private java.lang.Object getAttrListStringValue() throws ValueError
+  {
+    java.util.Vector<String> list = new java.util.Vector<String>();
+ 
+    // Interpret return value of getValue_sz() as unsigned
+    //
+    java.math.BigInteger value_sz 
+        = new java.math.BigInteger(1,java.nio.ByteBuffer.allocateDirect(8).order(java.nio.ByteOrder.BIG_ENDIAN).putLong(getValue_sz()).array());
+
+    java.math.BigInteger rem = new java.math.BigInteger(value_sz.toString());
+
+    java.math.BigInteger four = new java.math.BigInteger("4");
+
+    int l_size = 0; 
+
+    while ( rem.compareTo(four) >= 0 && l_size <= Integer.MAX_VALUE )
+    {
+        long pos = value_sz.subtract(rem).longValue();
+        int e_size
+          = java.nio.ByteBuffer.wrap(getAttrValueBytes(pos,4)).order(
+                        java.nio.ByteOrder.LITTLE_ENDIAN).getInt();
+
+        java.math.BigInteger e_size_bi
+          = new java.math.BigInteger(new Integer(e_size).toString());
+
+        if ( rem.subtract(four).compareTo(e_size_bi) < 0 ) 
+        {
+            throw new ValueError("list(string) is improperly structured (file a bug)");
+        }
+   
+        list.add(new String(getAttrValueBytes(pos+4,e_size)));
+
+        rem = rem.subtract(four).subtract(e_size_bi);        
+        l_size += 1;
+    }
+
+    if ( l_size < Integer.MAX_VALUE && rem.compareTo(java.math.BigInteger.ZERO) == 0 )
+    {
+        throw new ValueError("list(string) contains excess data (file a bug)");
+    }    
+
+    return list;
+  }
+
+  public java.lang.Object getAttrValue() throws ValueError
   {
     switch(getDatatype())
     {
       case HYPERDATATYPE_STRING:
-        return getStringValue();
+        return getAttrStringValue();
 
       case HYPERDATATYPE_INT64:
-        return getLongValue();
+        return getAttrLongValue();
+
+      case HYPERDATATYPE_LIST_STRING:
+        return getAttrListStringValue();
 
       default:
         return null;
@@ -95,7 +146,8 @@
     return i;
   }
 
-  static java.util.Map attrs_to_map(hyperclient_attribute attrs, long attrs_sz)
+  static java.util.Map attrs_to_dict(hyperclient_attribute attrs, long attrs_sz)
+                                                                throws ValueError
   {
     java.util.HashMap<Object,Object> map = new java.util.HashMap<Object,Object>();
 
@@ -104,13 +156,13 @@
     for ( int i=0; i<sz; i++)
     {
         hyperclient_attribute ha = get_attr(attrs,i);
-        map.put(ha.getAttrName(),ha.getValue());
+        map.put(ha.getAttrName(),ha.getAttrValue());
     }
 
     return map;
   }
 
-  static hyperclient_attribute map_to_attrs(java.util.Map map) throws TypeError,
+  static hyperclient_attribute dict_to_attrs(java.util.Map map) throws TypeError,
                                                                         MemoryError
   {
     int attrs_sz = map.size();
@@ -173,12 +225,14 @@
     return attrs;
   }
 
-  public Deferred async_get(String space, String key) throws HyperClientException
+  public Deferred async_get(String space, String key) throws HyperClientException,
+                                                             ValueError
   {
     return new DeferredGet(this,space, key);
   }
 
-  public java.util.Map get(String space, String key) throws HyperClientException
+  public java.util.Map get(String space, String key) throws HyperClientException,
+                                                            ValueError
   {
     DeferredGet d = (DeferredGet)(async_get(space, key));
     return (java.util.Map)(d.waitFor());
@@ -187,7 +241,8 @@
   public Deferred async_put(String space, String key, java.util.Map map)
                                                      throws HyperClientException,
                                                             TypeError,
-                                                            MemoryError
+                                                            MemoryError,
+                                                            ValueError
   {
     return new DeferredFromAttrs(this, new SimpleOpPut(this), space, key, map);
   }
@@ -195,7 +250,8 @@
   public boolean put(String space, String key, java.util.Map map)
                                                      throws HyperClientException,
                                                             TypeError,
-                                                            MemoryError
+                                                            MemoryError,
+                                                            ValueError
   {
     Deferred d = (DeferredFromAttrs)(async_put(space, key, map));
     return ((Boolean)(d.waitFor())).booleanValue();

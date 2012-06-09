@@ -41,7 +41,9 @@ class HyperClient
 
     public:
         static std::string read_attr_name(hyperclient_attribute *ha);
-        static size_t read_attr_value(hyperclient_attribute *ha, char *value, size_t value_sz);
+        static void read_attr_value(hyperclient_attribute *ha,
+                                      char *value, size_t value_sz,
+                                      size_t pos);
 
         int64_t loop(int *i_rc);
 
@@ -76,7 +78,6 @@ class HyperClient
 
     private:
         hyperclient *m_client;
-        static size_t read(const char *memb, size_t memb_sz, char *ret, size_t ret_sz);
         static void destroy_attr_value(hyperclient_attribute *ha);
 };
 

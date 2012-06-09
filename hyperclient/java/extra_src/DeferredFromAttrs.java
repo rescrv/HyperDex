@@ -17,7 +17,7 @@ public class DeferredFromAttrs extends Deferred
 	
         try
         {
-	        attrs = HyperClient.map_to_attrs(map);
+	        attrs = HyperClient.dict_to_attrs(map);
 	        attrs_sz = map.size();
 	
 	        SWIGTYPE_p_int rc_int_ptr = hyperclient.new_int_ptr();
@@ -56,7 +56,7 @@ public class DeferredFromAttrs extends Deferred
         }
     }
 
-    public Object waitFor() throws HyperClientException
+    public Object waitFor() throws HyperClientException, ValueError
     {
         super.waitFor();
         if (status == ReturnCode.HYPERCLIENT_SUCCESS)
