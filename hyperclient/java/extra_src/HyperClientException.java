@@ -13,6 +13,7 @@ public class HyperClientException extends Exception
 		errorMap.put(ReturnCode.HYPERCLIENT_NOTFOUND,"Not Found");
 		errorMap.put(ReturnCode.HYPERCLIENT_SEARCHDONE,"Search Done");
 		errorMap.put(ReturnCode.HYPERCLIENT_CMPFAIL,"Conditional Operation Did Not Match Object");
+		errorMap.put(ReturnCode.HYPERCLIENT_READONLY,"Cluster is in a Read-Only State");
 		errorMap.put(ReturnCode.HYPERCLIENT_UNKNOWNSPACE,"Unknown Space");
 		errorMap.put(ReturnCode.HYPERCLIENT_COORDFAIL,"Coordinator Failure");
 		errorMap.put(ReturnCode.HYPERCLIENT_SERVERERROR,"Server Error");
