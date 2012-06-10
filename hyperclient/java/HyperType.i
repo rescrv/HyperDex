@@ -45,7 +45,7 @@
     // Interpret return value of getValue_sz() as unsigned
     //
     java.math.BigInteger value_sz 
-        = new java.math.BigInteger(1,java.nio.ByteBuffer.allocateDirect(8).order(java.nio.ByteOrder.BIG_ENDIAN).putLong(getValue_sz()).array());
+        = new java.math.BigInteger(1,java.nio.ByteBuffer.allocate(8).order(java.nio.ByteOrder.BIG_ENDIAN).putLong(getValue_sz()).array());
 
     java.math.BigInteger rem = new java.math.BigInteger(value_sz.toString());
 
@@ -74,7 +74,7 @@
         l_size += 1;
     }
 
-    if ( l_size < Integer.MAX_VALUE && rem.compareTo(java.math.BigInteger.ZERO) == 0 )
+    if ( l_size < Integer.MAX_VALUE && rem.compareTo(java.math.BigInteger.ZERO) > 0 )
     {
         throw new ValueError("list(string) contains excess data (file a bug)");
     }    
