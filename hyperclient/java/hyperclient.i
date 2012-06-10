@@ -67,7 +67,8 @@ typedef uint16_t in_port_t;
 %pointer_functions(size_t, size_t_ptr);
 %pointer_functions(int, int_ptr);
 
-%include "HyperType.i"
+%include "proxies/hyperclient_attribute.i"
+%include "proxies/HyperClient.i"
 
 %apply (char *STRING, int LENGTH) { (const char *attr, size_t attr_sz) }
 %apply (char *STRING, int LENGTH) { (char *value, size_t value_sz) }
