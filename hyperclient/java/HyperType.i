@@ -38,10 +38,11 @@
                     java.nio.ByteOrder.LITTLE_ENDIAN).getLong());
   }
 
-  private java.lang.Object getAttrListStringValue() throws ValueError
+  private java.lang.Object getAttrCollectionStringValue(
+            java.util.AbstractCollection<String> coll) throws ValueError
   {
-    java.util.Vector<String> list = new java.util.Vector<String>();
- 
+    String collType = coll instanceof java.util.List?"list":"set"; 
+
     // Interpret return value of getValue_sz() as unsigned
     //
     java.math.BigInteger value_sz 
@@ -51,9 +52,9 @@
 
     java.math.BigInteger four = new java.math.BigInteger("4");
 
-    int l_size = 0; 
+    int c_size = 0; 
 
-    while ( rem.compareTo(four) >= 0 && l_size <= Integer.MAX_VALUE )
+    while ( rem.compareTo(four) >= 0 && c_size <= Integer.MAX_VALUE )
     {
         long pos = value_sz.subtract(rem).longValue();
         int e_size
@@ -65,21 +66,22 @@
 
         if ( rem.subtract(four).compareTo(e_size_bi) < 0 ) 
         {
-            throw new ValueError("list(string) is improperly structured (file a bug)");
+            throw new ValueError(collType
+                        + "(string) is improperly structured (file a bug)");
         }
    
-        list.add(new String(getAttrValueBytes(pos+4,e_size)));
+        coll.add(new String(getAttrValueBytes(pos+4,e_size)));
 
         rem = rem.subtract(four).subtract(e_size_bi);        
-        l_size += 1;
+        c_size += 1;
     }
 
-    if ( l_size < Integer.MAX_VALUE && rem.compareTo(java.math.BigInteger.ZERO) > 0 )
+    if ( c_size < Integer.MAX_VALUE && rem.compareTo(java.math.BigInteger.ZERO) > 0 )
     {
-        throw new ValueError("list(string) contains excess data (file a bug)");
+        throw new ValueError(collType + "(string) contains excess data (file a bug)");
     }    
 
-    return list;
+    return coll;
   }
 
   public java.lang.Object getAttrValue() throws ValueError
@@ -93,7 +95,14 @@
         return getAttrLongValue();
 
       case HYPERDATATYPE_LIST_STRING:
-        return getAttrListStringValue();
+        java.util.Vector<String> v = new java.util.Vector<String>();
+        getAttrCollectionStringValue(v);
+        return v;
+
+      case HYPERDATATYPE_SET_STRING:
+        java.util.HashSet<String> s = new java.util.HashSet<String>();
+        getAttrCollectionStringValue(s);
+        return s;
 
       default:
         return null;
