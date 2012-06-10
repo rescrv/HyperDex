@@ -46,15 +46,16 @@
     // Interpret return value of getValue_sz() as unsigned
     //
     java.math.BigInteger value_sz 
-        = new java.math.BigInteger(1,java.nio.ByteBuffer.allocate(8).order(java.nio.ByteOrder.BIG_ENDIAN).putLong(getValue_sz()).array());
+        = new java.math.BigInteger(1,java.nio.ByteBuffer.allocate(8).order(
+            java.nio.ByteOrder.BIG_ENDIAN).putLong(getValue_sz()).array());
 
     java.math.BigInteger rem = new java.math.BigInteger(value_sz.toString());
 
     java.math.BigInteger four = new java.math.BigInteger("4");
 
-    int c_size = 0; 
+    int coll_sz = 0; 
 
-    while ( rem.compareTo(four) >= 0 && c_size <= Integer.MAX_VALUE )
+    while ( rem.compareTo(four) >= 0 && coll_sz <= Integer.MAX_VALUE )
     {
         long pos = value_sz.subtract(rem).longValue();
         int e_size
@@ -73,12 +74,47 @@
         coll.add(new String(getAttrValueBytes(pos+4,e_size)));
 
         rem = rem.subtract(four).subtract(e_size_bi);        
-        c_size += 1;
+        coll_sz += 1;
     }
 
-    if ( c_size < Integer.MAX_VALUE && rem.compareTo(java.math.BigInteger.ZERO) > 0 )
+    if ( coll_sz < Integer.MAX_VALUE && rem.compareTo(java.math.BigInteger.ZERO) > 0 )
     {
         throw new ValueError(collType + "(string) contains excess data (file a bug)");
+    }    
+
+    return coll;
+  }
+
+  private java.lang.Object getAttrCollectionLongValue(
+            java.util.AbstractCollection<Long> coll) throws ValueError
+  {
+    String collType = coll instanceof java.util.List?"list":"set"; 
+
+    // Interpret return value of getValue_sz() as unsigned
+    //
+    java.math.BigInteger value_sz 
+        = new java.math.BigInteger(1,java.nio.ByteBuffer.allocate(8).order(
+            java.nio.ByteOrder.BIG_ENDIAN).putLong(getValue_sz()).array());
+
+    java.math.BigInteger rem = new java.math.BigInteger(value_sz.toString());
+
+    java.math.BigInteger eight = new java.math.BigInteger("8");
+
+    int coll_sz = 0; 
+
+    while ( rem.compareTo(eight) >= 0 && coll_sz <= Integer.MAX_VALUE )
+    {
+        long pos = value_sz.subtract(rem).longValue();
+        coll.add(new Long(java.nio.ByteBuffer.wrap(getAttrValueBytes(pos,8)).order(
+                        java.nio.ByteOrder.LITTLE_ENDIAN).getLong()));
+
+        rem = rem.subtract(eight);        
+        coll_sz += 1;
+    }
+
+    if ( coll_sz < Integer.MAX_VALUE && rem.compareTo(java.math.BigInteger.ZERO) > 0 )
+    {
+        throw new ValueError(collType + "(int64) contains excess data (file a bug)");
     }    
 
     return coll;
@@ -95,14 +131,24 @@
         return getAttrLongValue();
 
       case HYPERDATATYPE_LIST_STRING:
-        java.util.Vector<String> v = new java.util.Vector<String>();
-        getAttrCollectionStringValue(v);
-        return v;
+        java.util.Vector<String> ls = new java.util.Vector<String>();
+        getAttrCollectionStringValue(ls);
+        return ls;
+
+      case HYPERDATATYPE_LIST_INT64:
+        java.util.Vector<Long> li = new java.util.Vector<Long>();
+        getAttrCollectionLongValue(li);
+        return li;
 
       case HYPERDATATYPE_SET_STRING:
-        java.util.HashSet<String> s = new java.util.HashSet<String>();
-        getAttrCollectionStringValue(s);
-        return s;
+        java.util.HashSet<String> ss = new java.util.HashSet<String>();
+        getAttrCollectionStringValue(ss);
+        return ss;
+
+      case HYPERDATATYPE_SET_INT64:
+        java.util.HashSet<Long> si = new java.util.HashSet<Long>();
+        getAttrCollectionLongValue(si);
+        return si;
 
       default:
         return null;
