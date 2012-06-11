@@ -59,28 +59,28 @@
     return map;
   }
 
-  static hyperclient_attribute dict_to_attrs(java.util.Map map) throws TypeError,
+  static hyperclient_attribute dict_to_attrs(java.util.Map attrsMap) throws TypeError,
                                                                         MemoryError
   {
-    int attrs_sz = map.size();
+    int attrs_sz = attrsMap.size();
     hyperclient_attribute attrs = alloc_attrs(attrs_sz);
 
     if ( attrs == null ) throw new MemoryError();
     
     int i = 0;
 
-    for (java.util.Iterator it=map.keySet().iterator(); it.hasNext();)
+    for (java.util.Iterator it=attrsMap.keySet().iterator(); it.hasNext();)
     {
         hyperclient_attribute ha = get_attr(attrs,i);
 
         String attrStr = (String)(it.next());
         byte[] attrBytes = attrStr.getBytes();
 
-        Object value = map.get(attrStr);
+        Object value = attrsMap.get(attrStr);
 
         try
         {
-            hyperdatatype type;
+            hyperdatatype type = null;
 
             if ( value instanceof String )
             {
@@ -97,10 +97,71 @@
                         ((Long)value).longValue()).array();
                 if (write_attr_value(ha, valueBytes) == 0) throw new MemoryError();
             }
+            else if ( value instanceof java.util.List )
+            {
+                java.util.List list = (java.util.List)value;
+
+                for (java.util.Iterator l_it=list.iterator();l_it.hasNext();)
+                {
+                    Object val = l_it.next();
+
+                    if (type == null)
+                    {
+                        if (val instanceof String)
+                            type = hyperdatatype.HYPERDATATYPE_LIST_STRING;
+                        else if (val instanceof Long)
+                            type = hyperdatatype.HYPERDATATYPE_LIST_INT64;
+                        else
+                            throw new TypeError(
+                                "Do not know how to convert type '"
+                                    + (val==null?"null":val.getClass().getName())
+                                    + "' for attribute '" + attrStr + "'");
+                    }
+                    else
+                    {
+                        if ( (val instanceof String
+                                && type != hyperdatatype.HYPERDATATYPE_LIST_STRING)
+                            || (val instanceof Long
+                                && type != hyperdatatype.HYPERDATATYPE_LIST_INT64) )
+
+                            throw new TypeError("Cannot store heterogeneous lists");
+                    }
+
+                    if ( type == hyperdatatype.HYPERDATATYPE_LIST_STRING )
+                    {
+                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(4).order( 
+                                                 java.nio.ByteOrder.LITTLE_ENDIAN).putInt(
+                                                 ((String)val).length()).array()) == 0)
+                                                 throw new MemoryError();
+    
+                        if (write_attr_value(ha, ((String)val).getBytes()) == 0)
+                                                 throw new MemoryError();
+                    }
+    
+                    if ( type == hyperdatatype.HYPERDATATYPE_LIST_INT64 )
+                    {
+                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order( 
+                                                 java.nio.ByteOrder.LITTLE_ENDIAN
+                                                 ).putLong(((Long)val).longValue()
+                                                 ).array()) == 0)
+                                                 throw new MemoryError();
+                    }
+                }
+            }
+            else if ( value instanceof java.util.Set )
+            {
+                java.util.Set set = (java.util.Set)value;
+            }
+            else if ( value instanceof java.util.Map )
+            {
+                java.util.Map map = (java.util.Map)value;
+            }
             else
             {
-                throw
-                    new TypeError("Unsupported type: " + value.getClass().getName());
+                throw new TypeError(
+                     "Do not know how to convert type '"
+                        + (value==null?"null":value.getClass().getName())
+                        + "' for attribute '" + attrStr + "'");
             }
 
             if (write_attr_name(ha, attrBytes, type) == 0) throw new MemoryError();
