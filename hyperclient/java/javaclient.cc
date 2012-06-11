@@ -198,6 +198,22 @@ HyperClient :: put(const std::string& space,
                                  attrs_sz,
                                  &rc);
     
+    *i_rc = (int)rc;
+    return id;
+}
+
+int64_t
+HyperClient :: del(const std::string& space,
+                   const std::string& key,
+                   int *i_rc)
+{
+    hyperclient_returncode rc;
+
+    int64_t id = hyperclient_del(m_client,
+                                 space.c_str(),
+                                 key.data(),
+                                 key.size(),
+                                 &rc);
 
     *i_rc = (int)rc;
     return id;

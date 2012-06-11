@@ -153,4 +153,16 @@
     Deferred d = (DeferredFromAttrs)(async_put(space, key, map));
     return ((Boolean)(d.waitFor())).booleanValue();
   }
+
+  public Deferred async_delete(String space, String key) throws HyperClientException
+  {
+    return new DeferredDelete(this, space, key);
+  }
+
+  public boolean delete(String space, String key) throws HyperClientException,
+                                                         ValueError
+  {
+    Deferred d = (DeferredDelete)(async_delete(space, key));
+    return ((Boolean)(d.waitFor())).booleanValue();
+  }
 %}

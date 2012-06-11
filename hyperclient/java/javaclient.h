@@ -76,6 +76,10 @@ class HyperClient
                        const std::string& key,
                        const hyperclient_attribute *attrs, size_t attrs_sz, int *i_rc);
 
+        int64_t del(const std::string& space,
+                   const std::string& key,
+                   int *i_rc);
+
     private:
         hyperclient *m_client;
         static void destroy_attr_value(hyperclient_attribute *ha);

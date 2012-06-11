@@ -86,21 +86,20 @@ public class HyperClientYCSB extends DB
      */
     public int read(String table, String key, Set<String> fields, HashMap<String,ByteIterator> result)
     {
-        HyperMap attributes = new HyperMap();
-        ReturnCode ret = m_client.get(table, key, attributes);
+        Map map = new HashMap<String,Object>();
 
-        for (int i = 0; i < m_retries && ret != ReturnCode.SUCCESS && ret != ReturnCode.NOTFOUND; ++i)
+        try
         {
-            ret = m_client.get(table, key, attributes);
+            map = m_client.get(table, key);
+        }
+        catch(Exception e)
+        {
+            return 1;
         }
 
-        if (ret == ReturnCode.SUCCESS)
-        {
-            convert_to_java(fields, attributes, result);
-            return 0;
-        }
+        convert_to_java(fields, map, result);
 
-        return ret.swigValue();
+        return 0;
     }
 
     /**
@@ -115,6 +114,7 @@ public class HyperClientYCSB extends DB
      */
     public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
     {
+    /*
         // XXX I'm going to be lazy and not support "fields" for now.  Patches
         // welcome.
         if (!m_scannable)
@@ -155,6 +155,8 @@ public class HyperClientYCSB extends DB
         }
 
         return ret.swigValue();
+    */
+    return 0;
     }
 
     /**
@@ -168,7 +170,7 @@ public class HyperClientYCSB extends DB
      */
     public int update(String table, String key, HashMap<String,ByteIterator> values)
     {
-        HyperMap res = new HyperMap();
+        Map res = new HashMap<String,Object>();
         convert_from_java(values, res);
 
         if (m_scannable)
@@ -181,22 +183,18 @@ public class HyperClientYCSB extends DB
             }
   
             long num = Long.parseLong(m_mat.group(2));
-            res.set("recno", num << 32);
+            res.put("recno", new Long(num << 32));
         }
 
-        ReturnCode ret = m_client.put(table, key, res);
-
-        for (int i = 0; i < m_retries && ret != ReturnCode.SUCCESS; ++i)
+        try
         {
-            ret = m_client.put(table, key, res);
+            Boolean ret = m_client.put(table, key, res);
+            return ret.booleanValue()?0:1;
         }
-
-        if (ret == ReturnCode.SUCCESS)
+        catch(Exception e)
         {
-            return 0;
+            return 1;
         }
-
-        return ret.swigValue();
     }
 
     /**
@@ -222,22 +220,18 @@ public class HyperClientYCSB extends DB
      */
     public int delete(String table, String key)
     {
-        ReturnCode ret = m_client.del(table, key);
-
-        for (int i = 0; i < m_retries && ret != ReturnCode.SUCCESS && ret != ReturnCode.NOTFOUND; ++i)
+        try
         {
-            ret = m_client.del(table, key);
+            boolean ret = m_client.delete(table, key);
+            return ret?0:1;
         }
-
-        if (ret == ReturnCode.SUCCESS || ret == ReturnCode.NOTFOUND)
+        catch(Exception e)
         {
-            return 0;
+            return 1;
         }
-
-        return ret.swigValue();
     }
 
-    private void convert_to_java(Set<String> fields, HyperMap interres, HashMap<String,ByteIterator> result)
+    private void convert_to_java(Set<String> fields, Map interres, HashMap<String,ByteIterator> result)
     {
         if (fields == null)
         {
@@ -246,21 +240,20 @@ public class HyperClientYCSB extends DB
 
         for (String key : fields)
         {
-            // Q: under which condition, interres.has_key(key) is false?
-            if (interres.has_key(key))
+            // Q: under which condition, interres.containsKey(key) is false?
+            if (interres.containsKey(key))
             {
                 result.put(key, new StringByteIterator(interres.get(key).toString()));
             }
         }
     }
 
-    private void convert_from_java(HashMap<String,ByteIterator> result, HyperMap interres)
+    private void convert_from_java(HashMap<String,ByteIterator> result, Map interres)
     {
         Map<String, ByteIterator> r = result;
         for (Map.Entry<String, ByteIterator> entry : r.entrySet())
         {
-            HyperType attribute = new HyperString(entry.getValue().toString());
-            interres.set(entry.getKey(), attribute);
+            interres.put(entry.getKey(), entry.getValue().toString());
         }
     }
 }

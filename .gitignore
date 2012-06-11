@@ -64,7 +64,7 @@ hyperclient/python/hyperclient.c
 hyperclient/python/hyperclient.la
 hyperclient/python/hyperclient_python_hyperclient_la-hyperclient.lo
 hyperclient/python/hyperclient_python_hyperclient_la-hyperclient.o
-hyperclient-ycsb-0.1.dev.jar
+hyperclient-ycsb-0.5.dev.jar
 hypercoordinator/coordinator.pyc
 hypercoordinator/hdjson.pyc
 hypercoordinator/hdtypes.pyc
@@ -202,4 +202,4 @@ trace-player
 trace-player.o
 trace_player-trace-player.o
 ycsb/hyperclient/HyperClientYCSB.class
-ycsb/hyperclient-ycsb-0.1.dev.jar
+ycsb/hyperclient-ycsb-0.5.dev.jar
