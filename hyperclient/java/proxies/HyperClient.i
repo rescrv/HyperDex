@@ -167,7 +167,13 @@
                 // So I make sure a TreeSet ie., sorted set is used.
                 // I was wondering why the python binding went through 
                 // the trouble of sorting a set right before packing it.
-                java.util.Set set = new java.util.TreeSet((java.util.Set)value);
+
+                java.util.Set<?> set = (java.util.Set<?>)value;
+
+                if ( ! (set instanceof java.util.SortedSet) )
+                {
+                    set = new java.util.TreeSet<Object>(set);
+                }
 
                 type = hyperdatatype.HYPERDATATYPE_SET_GENERIC;
 
@@ -224,7 +230,117 @@
             }
             else if ( value instanceof java.util.Map )
             {
-                java.util.Map map = (java.util.Map)value;
+                java.util.Map<?,?> map = (java.util.Map<?,?>)value;
+
+                if ( ! (map instanceof java.util.SortedMap) )
+                {
+                    map = new java.util.TreeMap<Object,Object>(map);
+                }
+
+                type = hyperdatatype.HYPERDATATYPE_MAP_GENERIC;
+
+                for (java.util.Iterator m_it=map.keySet().iterator();m_it.hasNext();)
+                {
+                    Object key = m_it.next();
+
+                    if ( key == null ) throw new TypeError(
+                                      "In attribute '" + attrStr 
+                                    + "': A non-empty map cannot have a null key entry"
+                                    + "for set attribute '" + attrStr + "'");
+
+                    Object val = map.get(key);
+
+                    if ( val == null ) throw new TypeError(
+                                      "In attribute '" + attrStr 
+                                    + "': A non-empty map cannot have a null value entry"
+                                    + "for set attribute '" + attrStr + "'");
+
+                    // Initialize map type
+                    //
+                    if ( type ==  hyperdatatype.HYPERDATATYPE_MAP_GENERIC )
+                    {
+                        if ( key instanceof String && val instanceof String )
+                        {
+                            type = hyperdatatype.HYPERDATATYPE_MAP_STRING_STRING;
+                        }    
+                        else if ( key instanceof String && val instanceof Long )
+                        {
+                            type = hyperdatatype.HYPERDATATYPE_MAP_STRING_INT64;
+                        }    
+                        else if ( key instanceof Long && val instanceof String )
+                        {
+                            type = hyperdatatype.HYPERDATATYPE_MAP_INT64_STRING;
+                        }    
+                        else if ( key instanceof Long && val instanceof Long )
+                        {
+                            type = hyperdatatype.HYPERDATATYPE_MAP_INT64_INT64;
+                        }    
+                        else
+                        {
+                            throw new TypeError(
+                                "Do not know how to convert map type '("
+                                    + key.getClass().getName() + ","
+                                    + val.getClass().getName() + ")"
+                                    + "' for set attribute '" + attrStr + "'");
+                        }
+                    }
+                    else // Make sure it is always this map type (not heterogenious)
+                    {
+                        if (  (key instanceof String && val instanceof String 
+                                 && type != hyperdatatype.HYPERDATATYPE_MAP_STRING_STRING)
+                            ||
+                              (key instanceof String && val instanceof Long 
+                                 && type != hyperdatatype.HYPERDATATYPE_MAP_STRING_INT64)
+                            ||
+                              (key instanceof Long && val instanceof String 
+                                 && type != hyperdatatype.HYPERDATATYPE_MAP_INT64_STRING)
+                            ||
+                              (key instanceof Long && val instanceof Long 
+                                 && type != hyperdatatype.HYPERDATATYPE_MAP_INT64_INT64)
+                        )
+                        {
+                            throw new TypeError("Cannot store heterogeneous maps");
+                        }
+                    }
+
+                    if ( key instanceof String )
+                    {
+                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(4).order( 
+                                                 java.nio.ByteOrder.LITTLE_ENDIAN).putInt(
+                                                 ((String)key).getBytes().length).array()) == 0)
+                                                 throw new MemoryError();
+    
+                        if (write_attr_value(ha, ((String)key).getBytes()) == 0)
+                                                 throw new MemoryError();
+                    }
+                    else
+                    {
+                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order( 
+                                                 java.nio.ByteOrder.LITTLE_ENDIAN
+                                                 ).putLong(((Long)key).longValue()
+                                                 ).array()) == 0)
+                                                 throw new MemoryError();
+                    }
+
+                    if ( val instanceof String )
+                    {
+                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(4).order( 
+                                                 java.nio.ByteOrder.LITTLE_ENDIAN).putInt(
+                                                 ((String)val).getBytes().length).array()) == 0)
+                                                 throw new MemoryError();
+    
+                        if (write_attr_value(ha, ((String)val).getBytes()) == 0)
+                                                 throw new MemoryError();
+                    }
+                    else
+                    {
+                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order( 
+                                                 java.nio.ByteOrder.LITTLE_ENDIAN
+                                                 ).putLong(((Long)val).longValue()
+                                                 ).array()) == 0)
+                                                 throw new MemoryError();
+                    }
+                }
             }
             else
             {
