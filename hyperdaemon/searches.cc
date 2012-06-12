@@ -102,35 +102,7 @@ hyperdaemon :: searches :: start(const hyperdex::entityid& us,
         return;
     }
 
-    bool done = false;
-
-    while(!done)
-    {
-        hyperdisk::returncode ret = m_data->flush(us.get_region(), -1, false);
-
-        if (ret == hyperdisk::SUCCESS)
-        {
-            done = true;
-        }
-        else if (ret == hyperdisk::DIDNOTHING)
-        {
-            done = true;
-        }
-        else if (ret == hyperdisk::DATAFULL || ret == hyperdisk::SEARCHFULL)
-        {
-            hyperdisk::returncode ioret;
-            ioret = m_data->do_mandatory_io(us.get_region());
-
-            if (ioret != hyperdisk::SUCCESS && ioret != hyperdisk::DIDNOTHING)
-            {
-                PLOG(ERROR) << "Disk I/O returned " << ioret;
-            }
-        }
-        else
-        {
-            PLOG(ERROR) << "Disk flush returned " << ret;
-        }
-    }
+    flush(us.get_region());
 
     hyperspacehashing::mask::hasher hasher(m_config.disk_hasher(us.get_subspace()));
     hyperspacehashing::mask::coordinate coord(hasher.hash(terms));
@@ -202,6 +174,39 @@ hyperdaemon :: searches :: hash(const search_id& si)
     return si.region.hash() + si.client.hash() + si.search_number;
 }
 
+void
+hyperdaemon :: searches :: flush(const hyperdex::regionid& r)
+{
+    bool done = false;
+
+    while(!done)
+    {
+        hyperdisk::returncode ret = m_data->flush(r, -1, false);
+
+        if (ret == hyperdisk::SUCCESS)
+        {
+            done = true;
+        }
+        else if (ret == hyperdisk::DIDNOTHING)
+        {
+            done = true;
+        }
+        else if (ret == hyperdisk::DATAFULL || ret == hyperdisk::SEARCHFULL)
+        {
+            hyperdisk::returncode ioret;
+            ioret = m_data->do_mandatory_io(r);
+
+            if (ioret != hyperdisk::SUCCESS && ioret != hyperdisk::DIDNOTHING)
+            {
+                PLOG(ERROR) << "Disk I/O returned " << ioret;
+            }
+        }
+        else
+        {
+            PLOG(ERROR) << "Disk flush returned " << ret;
+        }
+    }
+}
 
 hyperdaemon :: searches :: search_state :: search_state(const regionid& r,
                                                         const coordinate& sc,

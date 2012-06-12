@@ -93,6 +93,9 @@ class searches
         searches(const searches&);
 
     private:
+        void flush(const hyperdex::regionid& r);
+
+    private:
         searches& operator = (const searches&);
 
     private:
