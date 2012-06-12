@@ -73,13 +73,20 @@
     {
         hyperclient_attribute ha = get_attr(attrs,i);
 
-        String attrStr = (String)(it.next());
-        byte[] attrBytes = attrStr.getBytes();
-
-        Object value = attrsMap.get(attrStr);
-
         try
         {
+            String attrStr = (String)(it.next());
+            if ( attrStr == null ) throw new TypeError("Attribute name cannot be null");
+
+            byte[] attrBytes = attrStr.getBytes();
+
+            Object value = attrsMap.get(attrStr);
+
+        
+            if ( value == null ) throw new TypeError(
+                                        "Cannot convert null value "
+                                    + "for attribute '" + attrStr + "'");
+
             hyperdatatype type = null;
 
             if ( value instanceof String )
@@ -101,11 +108,17 @@
             {
                 java.util.List list = (java.util.List)value;
 
+                type = hyperdatatype.HYPERDATATYPE_LIST_GENERIC;
+
                 for (java.util.Iterator l_it=list.iterator();l_it.hasNext();)
                 {
                     Object val = l_it.next();
 
-                    if (type == null)
+                    if ( val == null ) throw new TypeError(
+                                        "Cannot convert null element "
+                                    + "for list attribute '" + attrStr + "'");
+
+                    if (type == hyperdatatype.HYPERDATATYPE_LIST_GENERIC)
                     {
                         if (val instanceof String)
                             type = hyperdatatype.HYPERDATATYPE_LIST_STRING;
@@ -114,8 +127,8 @@
                         else
                             throw new TypeError(
                                 "Do not know how to convert type '"
-                                    + (val==null?"null":val.getClass().getName())
-                                    + "' for attribute '" + attrStr + "'");
+                                    + val.getClass().getName()
+                                    + "' for list attribute '" + attrStr + "'");
                     }
                     else
                     {
@@ -131,7 +144,7 @@
                     {
                         if (write_attr_value(ha, java.nio.ByteBuffer.allocate(4).order( 
                                                  java.nio.ByteOrder.LITTLE_ENDIAN).putInt(
-                                                 ((String)val).length()).array()) == 0)
+                                                 ((String)val).getBytes().length).array()) == 0)
                                                  throw new MemoryError();
     
                         if (write_attr_value(ha, ((String)val).getBytes()) == 0)
@@ -150,7 +163,64 @@
             }
             else if ( value instanceof java.util.Set )
             {
-                java.util.Set set = (java.util.Set)value;
+                // XXX HyderDex seems to quietly fail if set is not sorted
+                // So I make sure a TreeSet ie., sorted set is used.
+                // I was wondering why the python binding went through 
+                // the trouble of sorting a set right before packing it.
+                java.util.Set set = new java.util.TreeSet((java.util.Set)value);
+
+                type = hyperdatatype.HYPERDATATYPE_SET_GENERIC;
+
+                for (java.util.Iterator s_it=set.iterator();s_it.hasNext();)
+                {
+                    Object val = s_it.next();
+
+                    if ( val == null ) throw new TypeError(
+                                        "Cannot convert null element "
+                                    + "for set attribute '" + attrStr + "'");
+
+                    if (type == hyperdatatype.HYPERDATATYPE_SET_GENERIC)
+                    {
+                        if (val instanceof String)
+                            type = hyperdatatype.HYPERDATATYPE_SET_STRING;
+                        else if (val instanceof Long)
+                            type = hyperdatatype.HYPERDATATYPE_SET_INT64;
+                        else
+                            throw new TypeError(
+                                "Do not know how to convert type '"
+                                    + val.getClass().getName()
+                                    + "' for set attribute '" + attrStr + "'");
+                    }
+                    else
+                    {
+                        if ( (val instanceof String
+                                && type != hyperdatatype.HYPERDATATYPE_SET_STRING)
+                            || (val instanceof Long
+                                && type != hyperdatatype.HYPERDATATYPE_SET_INT64) )
+
+                            throw new TypeError("Cannot store heterogeneous sets");
+                    }
+
+                    if ( type == hyperdatatype.HYPERDATATYPE_SET_STRING )
+                    {
+                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(4).order( 
+                                                 java.nio.ByteOrder.LITTLE_ENDIAN).putInt(
+                                                 ((String)val).getBytes().length).array()) == 0)
+                                                 throw new MemoryError();
+    
+                        if (write_attr_value(ha, ((String)val).getBytes()) == 0)
+                                                 throw new MemoryError();
+                    }
+    
+                    if ( type == hyperdatatype.HYPERDATATYPE_SET_INT64 )
+                    {
+                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order( 
+                                                 java.nio.ByteOrder.LITTLE_ENDIAN
+                                                 ).putLong(((Long)val).longValue()
+                                                 ).array()) == 0)
+                                                 throw new MemoryError();
+                    }
+                }
             }
             else if ( value instanceof java.util.Map )
             {
@@ -160,7 +230,7 @@
             {
                 throw new TypeError(
                      "Do not know how to convert type '"
-                        + (value==null?"null":value.getClass().getName())
+                        + value.getClass().getName()
                         + "' for attribute '" + attrStr + "'");
             }
 

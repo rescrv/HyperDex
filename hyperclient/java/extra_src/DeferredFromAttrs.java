@@ -28,11 +28,17 @@ public class DeferredFromAttrs extends Deferred
 	        {
 	            status = ReturnCode.swigToEnum(hyperclient.int_ptr_value(rc_int_ptr));
 
-                if ( status == ReturnCode.HYPERCLIENT_UNKNOWNATTR )
+                if ( status == ReturnCode.HYPERCLIENT_UNKNOWNATTR
+                  || status == ReturnCode.HYPERCLIENT_DUPEATTR // Won't happen
+                  || status == ReturnCode.HYPERCLIENT_WRONGTYPE)
                 {
                     int idx = (int)(-1 - reqId);
                     hyperclient_attribute ha = HyperClient.get_attr(attrs,idx);
                     throw new HyperClientException(status,ha.getAttrName());
+                }
+                else
+                {
+                    throw new HyperClientException(status);
                 }
 	        }
 	
