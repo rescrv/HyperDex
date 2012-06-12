@@ -369,6 +369,61 @@
     return attrs;
   }
 
+  // attrsMap - map of maps keyed by attribute name
+  //
+  static hyperclient_map_attribute dict_to_map_attrs(java.util.Map attrsMap)
+                                                                throws TypeError,
+                                                                MemoryError
+  {
+    java.math.BigInteger attrs_sz_bi = java.math.BigInteger.valueOf(0);
+
+    // For each of the map operands (which are maps) keyed by attribute name, 
+    // sum all of the map operands map sizes to get the final size of
+    // of the hyperclient_map_attribute array
+    //
+    for (java.util.Iterator it=attrsMap.keySet().iterator(); it.hasNext();)
+    {
+        int map_sz = ((java.util.Collection)attrsMap.get(it.next())).size();
+        attrs_sz_bi = attrs_sz_bi.add(java.math.BigInteger.valueOf(map_sz));
+    }
+
+    long attrs_sz = attrs_sz_bi.longValue();
+
+    // This should treat attrs_sz as unsigned
+    hyperclient_map_attribute attrs = alloc_map_attrs(attrs_sz);
+
+    if ( attrs == null ) throw new MemoryError();
+    
+    java.math.BigInteger i_bi = java.math.BigInteger.valueOf(0);
+
+    while ( i_bi.compareTo(attrs_sz_bi) < 0 )
+    {
+        hyperclient_map_attribute hma = get_map_attr(attrs,i_bi.longValue());
+
+        try
+        {
+            if ( true )
+                throw new MemoryError();
+            if ( true )
+                throw new TypeError("DUMMY");
+        }
+        catch(MemoryError me)
+        {
+            destroy_map_attrs(attrs, attrs_sz);
+            throw me;
+        }
+        catch(TypeError te)
+        {
+            destroy_map_attrs(attrs, attrs_sz);
+            throw te;
+        }
+
+        i_bi.add(java.math.BigInteger.ONE);
+    }
+
+    return attrs;
+  }
+
   public Deferred async_get(String space, String key) throws HyperClientException,
                                                              ValueError
   {

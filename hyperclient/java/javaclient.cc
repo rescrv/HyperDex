@@ -102,7 +102,7 @@ HyperClient :: destroy_attrs(hyperclient_attribute *attrs, size_t attrs_sz)
     for (int i=0; i<attrs_sz; i++)
     {
         if (attrs[i].attr) free((void*)(attrs[i].attr));
-        if (attrs[i].value) destroy_attr_value(&(attrs[i]));
+        if (attrs[i].value) free((void*)(attrs[i].value));
     }
 
     std::cout << "Freed members" << std::endl;
@@ -110,11 +110,27 @@ HyperClient :: destroy_attrs(hyperclient_attribute *attrs, size_t attrs_sz)
     std::cout << "Freed attrs" << std::endl;
 }
 
-void
-HyperClient :: destroy_attr_value(hyperclient_attribute *ha)
+hyperclient_map_attribute*
+HyperClient :: alloc_map_attrs(size_t attrs_sz)
 {
-    if (ha->datatype == HYPERDATATYPE_STRING || ha->datatype == HYPERDATATYPE_INT64)
-        free((void*)(ha->value));    
+    return (hyperclient_map_attribute *)calloc(attrs_sz,
+                                               sizeof(hyperclient_map_attribute));
+}
+
+void
+HyperClient :: destroy_map_attrs(hyperclient_map_attribute *attrs, size_t attrs_sz)
+{
+    std::cout << "About to destroy_map_attrs" << std::endl;
+    for (int i=0; i<attrs_sz; i++)
+    {
+        if (attrs[i].attr) free((void*)(attrs[i].attr));
+        if (attrs[i].map_key) free((void*)(attrs[i].map_key));
+        if (attrs[i].value) free((void*)(attrs[i].value));
+    }
+
+    std::cout << "Freed map members" << std::endl;
+    free(attrs);
+    std::cout << "Freed map attrs" << std::endl;
 }
 
 int
@@ -150,6 +166,12 @@ hyperclient_attribute *
 HyperClient :: get_attr(hyperclient_attribute *ha, size_t i)
 {
     return ha + i;
+}
+
+hyperclient_map_attribute *
+HyperClient :: get_map_attr(hyperclient_map_attribute *hma, size_t i)
+{
+    return hma + i;
 }
 
 int64_t

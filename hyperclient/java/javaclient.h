@@ -50,6 +50,10 @@ class HyperClient
         static hyperclient_attribute *alloc_attrs(size_t attrs_sz);
         static void destroy_attrs(hyperclient_attribute *attrs, size_t attrs_sz);
 
+        static hyperclient_map_attribute *alloc_map_attrs(size_t attrs_sz);
+        static void destroy_map_attrs(hyperclient_map_attribute *attrs,
+                                                        size_t attrs_sz);
+
         // Returns 1 on success. ha->attr will point to allocated memory
         // Returns 0 on failure. ha->attr will be NULL
         static int write_attr_name(hyperclient_attribute *ha,
@@ -66,6 +70,9 @@ class HyperClient
                                     const char *value, size_t value_sz);
 
         static hyperclient_attribute *get_attr(hyperclient_attribute *ha, size_t i);
+        static hyperclient_map_attribute *get_map_attr(
+                                            hyperclient_map_attribute *hma,
+                                            size_t i);
 
         int64_t get(const std::string& space,
                        const std::string& key,
@@ -82,7 +89,6 @@ class HyperClient
 
     private:
         hyperclient *m_client;
-        static void destroy_attr_value(hyperclient_attribute *ha);
 };
 
 #endif // hyperclient_javaclient_h_

@@ -68,6 +68,7 @@ typedef uint16_t in_port_t;
 %pointer_functions(int, int_ptr);
 
 %include "proxies/hyperclient_attribute.i"
+%include "proxies/hyperclient_map_attribute.i"
 %include "proxies/HyperClient.i"
 
 %apply (char *STRING, int LENGTH) { (const char *attr, size_t attr_sz) }
@@ -84,6 +85,7 @@ typedef uint16_t in_port_t;
 %rename("%s") "hyperclient_destroy_attrs";
 //%rename("%(regex:/^HYPERCLIENT_(.{2,})/\\1/)s", %$isenumitem) "";
 %rename("%s") "hyperclient_attribute";
+%rename("%s") "hyperclient_map_attribute";
 %rename("%s",%$isvariable) "";
 %include "hyperdex.h"
 
