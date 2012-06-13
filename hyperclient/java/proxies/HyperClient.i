@@ -59,6 +59,67 @@
     return map;
   }
 
+  private static hyperdatatype validateMapType(hyperdatatype type,
+                                               String attrStr,
+                                               Object key, Object val)
+                                                                throws TypeError
+  {
+    hyperdatatype retType = type;  
+
+    if ( type ==  hyperdatatype.HYPERDATATYPE_MAP_GENERIC )
+    {
+        // Initialize map type
+        //
+
+        if ( key instanceof String && val instanceof String )
+        {
+            retType = hyperdatatype.HYPERDATATYPE_MAP_STRING_STRING;
+        }    
+        else if ( key instanceof String && val instanceof Long )
+        {
+            retType =  hyperdatatype.HYPERDATATYPE_MAP_STRING_INT64;
+        }    
+        else if ( key instanceof Long && val instanceof String )
+        {
+            retType = hyperdatatype.HYPERDATATYPE_MAP_INT64_STRING;
+        }    
+        else if ( key instanceof Long && val instanceof Long )
+        {
+            retType = hyperdatatype.HYPERDATATYPE_MAP_INT64_INT64;
+        }    
+        else
+        {
+            throw new TypeError(
+                "Do not know how to convert map type '("
+                    + key.getClass().getName() + ","
+                    + val.getClass().getName() + ")"
+                    + "' for set attribute '" + attrStr + "'");
+        }
+    }
+    else
+    {
+        // Make sure it is always this map type (not heterogenious)
+        //
+        if (  (key instanceof String && val instanceof String 
+                 && type != hyperdatatype.HYPERDATATYPE_MAP_STRING_STRING)
+            ||
+              (key instanceof String && val instanceof Long 
+                 && type != hyperdatatype.HYPERDATATYPE_MAP_STRING_INT64)
+            ||
+              (key instanceof Long && val instanceof String 
+                 && type != hyperdatatype.HYPERDATATYPE_MAP_INT64_STRING)
+            ||
+              (key instanceof Long && val instanceof Long 
+                 && type != hyperdatatype.HYPERDATATYPE_MAP_INT64_INT64)
+        )
+        {
+            throw new TypeError("Cannot store heterogeneous maps");
+        }
+    }
+
+    return retType;
+  }
+
   static hyperclient_attribute dict_to_attrs(java.util.Map attrsMap) throws TypeError,
                                                                         MemoryError
   {
@@ -232,6 +293,9 @@
             {
                 java.util.Map<?,?> map = (java.util.Map<?,?>)value;
 
+                // As for set types, the same goes for map type. HyperDex will
+                // scoff unless the map is sorted
+                //
                 if ( ! (map instanceof java.util.SortedMap) )
                 {
                     map = new java.util.TreeMap<Object,Object>(map);
@@ -246,62 +310,16 @@
                     if ( key == null ) throw new TypeError(
                                       "In attribute '" + attrStr 
                                     + "': A non-empty map cannot have a null key entry"
-                                    + "for set attribute '" + attrStr + "'");
+                                    + "for map attribute '" + attrStr + "'");
 
                     Object val = map.get(key);
 
                     if ( val == null ) throw new TypeError(
                                       "In attribute '" + attrStr 
                                     + "': A non-empty map cannot have a null value entry"
-                                    + "for set attribute '" + attrStr + "'");
+                                    + "for map attribute '" + attrStr + "'");
 
-                    // Initialize map type
-                    //
-                    if ( type ==  hyperdatatype.HYPERDATATYPE_MAP_GENERIC )
-                    {
-                        if ( key instanceof String && val instanceof String )
-                        {
-                            type = hyperdatatype.HYPERDATATYPE_MAP_STRING_STRING;
-                        }    
-                        else if ( key instanceof String && val instanceof Long )
-                        {
-                            type = hyperdatatype.HYPERDATATYPE_MAP_STRING_INT64;
-                        }    
-                        else if ( key instanceof Long && val instanceof String )
-                        {
-                            type = hyperdatatype.HYPERDATATYPE_MAP_INT64_STRING;
-                        }    
-                        else if ( key instanceof Long && val instanceof Long )
-                        {
-                            type = hyperdatatype.HYPERDATATYPE_MAP_INT64_INT64;
-                        }    
-                        else
-                        {
-                            throw new TypeError(
-                                "Do not know how to convert map type '("
-                                    + key.getClass().getName() + ","
-                                    + val.getClass().getName() + ")"
-                                    + "' for set attribute '" + attrStr + "'");
-                        }
-                    }
-                    else // Make sure it is always this map type (not heterogenious)
-                    {
-                        if (  (key instanceof String && val instanceof String 
-                                 && type != hyperdatatype.HYPERDATATYPE_MAP_STRING_STRING)
-                            ||
-                              (key instanceof String && val instanceof Long 
-                                 && type != hyperdatatype.HYPERDATATYPE_MAP_STRING_INT64)
-                            ||
-                              (key instanceof Long && val instanceof String 
-                                 && type != hyperdatatype.HYPERDATATYPE_MAP_INT64_STRING)
-                            ||
-                              (key instanceof Long && val instanceof Long 
-                                 && type != hyperdatatype.HYPERDATATYPE_MAP_INT64_INT64)
-                        )
-                        {
-                            throw new TypeError("Cannot store heterogeneous maps");
-                        }
-                    }
+                    type = validateMapType(type, attrStr, key, val);
 
                     if ( key instanceof String )
                     {
@@ -377,31 +395,74 @@
   {
     java.math.BigInteger attrs_sz_bi = java.math.BigInteger.valueOf(0);
 
-    // For each of the map operands (which are maps) keyed by attribute name, 
-    // sum all of the map operands map sizes to get the final size of
+    // For each of the operands keyed by attribute name, 
+    // sum all of the operands cardinalities to get the final size of
     // of the hyperclient_map_attribute array
     //
     for (java.util.Iterator it=attrsMap.keySet().iterator(); it.hasNext();)
     {
-        int map_sz = ((java.util.Collection)attrsMap.get(it.next())).size();
-        attrs_sz_bi = attrs_sz_bi.add(java.math.BigInteger.valueOf(map_sz));
+        Object operand = attrsMap.get(it.next());
+
+        // non-Map operands in the else branch below can only have cardinality
+        // of one according to the python bindings, so I will do the same.
+        //
+        if ( operand instanceof java.util.Map )
+            attrs_sz_bi = attrs_sz_bi.add(
+                java.math.BigInteger.valueOf(((java.util.Collection)operand).size()));
+        else
+            attrs_sz_bi = attrs_sz_bi.add(java.math.BigInteger.ONE);
     }
 
     long attrs_sz = attrs_sz_bi.longValue();
 
-    // This should treat attrs_sz as unsigned
+    // alloc_map_attrs will treat attrs_sz as unsigned
     hyperclient_map_attribute attrs = alloc_map_attrs(attrs_sz);
 
     if ( attrs == null ) throw new MemoryError();
     
     java.math.BigInteger i_bi = java.math.BigInteger.valueOf(0);
 
-    while ( i_bi.compareTo(attrs_sz_bi) < 0 )
+    for (java.util.Iterator it=attrsMap.keySet().iterator(); it.hasNext();)
     {
-        hyperclient_map_attribute hma = get_map_attr(attrs,i_bi.longValue());
-
         try
         {
+            String attrStr = (String)(it.next());
+            if ( attrStr == null ) throw new TypeError("Attribute name cannot be null");
+
+            Object operand = attrsMap.get(attrStr);
+
+            if ( operand instanceof java.util.Map )
+            {
+                java.util.Map<?,?> map = (java.util.Map<?,?>)operand;
+
+                hyperdatatype type = hyperdatatype.HYPERDATATYPE_MAP_GENERIC;
+
+                for ( java.util.Iterator iit=map.keySet().iterator(); iit.hasNext(); )
+                {
+                    hyperclient_map_attribute hma = get_map_attr(attrs,i_bi.longValue());
+
+                    Object key = iit.next();
+
+                    if ( key == null ) throw new TypeError(
+                                      "In attribute '" + attrStr 
+                                    + "': A non-empty map cannot have a null key entry"
+                                    + "for map attribute '" + attrStr + "'");
+
+                    Object val = map.get(key);
+
+                    if ( val == null ) throw new TypeError(
+                                      "In attribute '" + attrStr 
+                                    + "': A non-empty map cannot have a null value entry"
+                                    + "for map attribute '" + attrStr + "'");
+
+                    type = validateMapType(type, attrStr, key, val);
+
+                    // XXX - Styart writing
+                }
+            }
+            else
+            {
+            }
             if ( true )
                 throw new MemoryError();
             if ( true )
