@@ -309,15 +309,13 @@
 
                     if ( key == null ) throw new TypeError(
                                       "In attribute '" + attrStr 
-                                    + "': A non-empty map cannot have a null key entry"
-                                    + "for map attribute '" + attrStr + "'");
+                                    + "': A non-empty map cannot have a null key entry");
 
                     Object val = map.get(key);
 
                     if ( val == null ) throw new TypeError(
-                                      "In attribute '" + attrStr 
-                                    + "': A non-empty map cannot have a null value entry"
-                                    + "for map attribute '" + attrStr + "'");
+                                  "In attribute '" + attrStr 
+                                + "': A non-empty map cannot have a null value entry");
 
                     type = validateMapType(type, attrStr, key, val);
 
@@ -439,34 +437,102 @@
 
                 for ( java.util.Iterator iit=map.keySet().iterator(); iit.hasNext(); )
                 {
-                    hyperclient_map_attribute hma = get_map_attr(attrs,i_bi.longValue());
-
                     Object key = iit.next();
 
                     if ( key == null ) throw new TypeError(
-                                      "In attribute '" + attrStr 
-                                    + "': A non-empty map cannot have a null key entry"
-                                    + "for map attribute '" + attrStr + "'");
+                                   "In attribute '" + attrStr 
+                                 + "': A non-empty map cannot have a null key entry");
 
                     Object val = map.get(key);
 
                     if ( val == null ) throw new TypeError(
-                                      "In attribute '" + attrStr 
-                                    + "': A non-empty map cannot have a null value entry"
-                                    + "for map attribute '" + attrStr + "'");
+                                   "In attribute '" + attrStr 
+                                 + "': A non-empty map cannot have a null value entry");
 
                     type = validateMapType(type, attrStr, key, val);
 
-                    // XXX - Styart writing
+                    hyperclient_map_attribute hma = get_map_attr(attrs,i_bi.longValue());
+
+                    if ( write_map_attr_name(hma,attrStr.getBytes(),type) == 0 )
+                        throw new MemoryError();
+
+                    if ( key instanceof String )
+                    {
+                        if ( write_map_attr_map_key(hma,((String)key).getBytes()) == 0 )
+                            throw new MemoryError();
+                    }
+                    else
+                    {
+                        byte[] keyBytes = java.nio.ByteBuffer.allocate(8).order(
+                            java.nio.ByteOrder.LITTLE_ENDIAN).putLong(
+                            ((Long)key).longValue()).array();
+
+                        if ( write_map_attr_map_key(hma,keyBytes) == 0 )
+                            throw new MemoryError();
+                    }
+
+                    if ( val instanceof String )
+                    {
+                        if ( write_map_attr_value(hma,((String)val).getBytes()) == 0 )
+                            throw new MemoryError();
+                    }
+                    else
+                    {
+                        byte[] valBytes = java.nio.ByteBuffer.allocate(8).order(
+                            java.nio.ByteOrder.LITTLE_ENDIAN).putLong(
+                            ((Long)val).longValue()).array();
+
+                        if ( write_map_attr_value(hma,valBytes) == 0 )
+                            throw new MemoryError();
+                    }
+
+                    i_bi.add(java.math.BigInteger.ONE);
                 }
+
+                if ( type == hyperdatatype.HYPERDATATYPE_MAP_GENERIC )
+                    throw new TypeError(
+                                      "In attribute '" + attrStr 
+                                    + "':  cannot have an empty map operand");
             }
             else
             {
+                hyperclient_map_attribute hma = get_map_attr(attrs,i_bi.longValue());
+
+                if ( operand instanceof String )
+                {
+                    hyperdatatype type = hyperdatatype.HYPERDATATYPE_MAP_STRING_KEYONLY;
+
+                    if ( write_map_attr_name(hma,attrStr.getBytes(),type) == 0 )
+                        throw new MemoryError();
+
+                    if ( write_map_attr_map_key(hma,((String)operand).getBytes()) == 0 )
+                        throw new MemoryError();
+                }
+                else if ( operand instanceof Long )
+                {
+                    hyperdatatype type = hyperdatatype.HYPERDATATYPE_MAP_INT64_KEYONLY;
+
+                    if ( write_map_attr_name(hma,attrStr.getBytes(),type) == 0 )
+                        throw new MemoryError();
+
+                    byte[] operandBytes = java.nio.ByteBuffer.allocate(8).order(
+                        java.nio.ByteOrder.LITTLE_ENDIAN).putLong(
+                        ((Long)operand).longValue()).array();
+
+                    if ( write_map_attr_map_key(hma,operandBytes) == 0 )
+                        throw new MemoryError();
+                }
+                else
+                {
+                    // It would be nice if hyperdex could handle a collection of 
+                    // Strings or Longs instead of just one String or one Long
+                    //
+                    throw new TypeError( "In attribute '" + attrStr 
+                                       + "': a non-map operand must be String or Long");
+                }
+
+                i_bi.add(java.math.BigInteger.ONE);
             }
-            if ( true )
-                throw new MemoryError();
-            if ( true )
-                throw new TypeError("DUMMY");
         }
         catch(MemoryError me)
         {
@@ -478,8 +544,6 @@
             destroy_map_attrs(attrs, attrs_sz);
             throw te;
         }
-
-        i_bi.add(java.math.BigInteger.ONE);
     }
 
     return attrs;

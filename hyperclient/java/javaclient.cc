@@ -99,7 +99,7 @@ void
 HyperClient :: destroy_attrs(hyperclient_attribute *attrs, size_t attrs_sz)
 {
     std::cout << "About to destroy_attrs" << std::endl;
-    for (int i=0; i<attrs_sz; i++)
+    for (size_t i=0; i<attrs_sz; i++)
     {
         if (attrs[i].attr) free((void*)(attrs[i].attr));
         if (attrs[i].value) free((void*)(attrs[i].value));
@@ -121,7 +121,7 @@ void
 HyperClient :: destroy_map_attrs(hyperclient_map_attribute *attrs, size_t attrs_sz)
 {
     std::cout << "About to destroy_map_attrs" << std::endl;
-    for (int i=0; i<attrs_sz; i++)
+    for (size_t i=0; i<attrs_sz; i++)
     {
         if (attrs[i].attr) free((void*)(attrs[i].attr));
         if (attrs[i].map_key) free((void*)(attrs[i].map_key));
@@ -131,6 +131,27 @@ HyperClient :: destroy_map_attrs(hyperclient_map_attribute *attrs, size_t attrs_
     std::cout << "Freed map members" << std::endl;
     free(attrs);
     std::cout << "Freed map attrs" << std::endl;
+}
+
+hyperclient_range_query*
+HyperClient :: alloc_range_queries(size_t rqs_sz)
+{
+    return (hyperclient_range_query *)calloc(rqs_sz,
+                                               sizeof(hyperclient_range_query));
+}
+
+void
+HyperClient :: destroy_range_queries(hyperclient_range_query *rqs, size_t rqs_sz)
+{
+    std::cout << "About to destroy_range_queries" << std::endl;
+    for (size_t i=0; i<rqs_sz; i++)
+    {
+        if (rqs[i].attr) free((void*)(rqs[i].attr));
+    }
+
+    std::cout << "Freed range query members" << std::endl;
+    free(rqs);
+    std::cout << "Freed range queries" << std::endl;
 }
 
 int
@@ -159,6 +180,66 @@ HyperClient :: write_attr_value(hyperclient_attribute *ha,
     memcpy(buf + ha->value_sz, value, value_sz);
     ha->value = buf;
     ha->value_sz += value_sz;
+    return 1;
+}
+
+int
+HyperClient :: write_map_attr_name(hyperclient_map_attribute *hma,
+                               const char *attr, size_t attr_sz,
+                               hyperdatatype type)
+{
+    char *buf;
+
+    if ((buf = (char *)calloc(attr_sz+1,sizeof(char))) == NULL) return 0;
+    memcpy(buf,attr,attr_sz);
+    hma->attr = buf;
+    hma->datatype = type;
+    return 1;
+}
+
+int
+HyperClient :: write_map_attr_map_key(hyperclient_map_attribute *hma,
+                                      const char *map_key, size_t map_key_sz)
+{
+    char *buf = NULL;
+    // Note: Since hyperclient_map_attribute array was calloc'ed
+    //       hma->map_key = NULL and hma->map_key_sz = 0 initially
+    if ((buf = (char *)realloc((void *)(hma->map_key), hma->map_key_sz + map_key_sz))
+                                                                    == NULL) return 0;
+    memcpy(buf + hma->map_key_sz, map_key, map_key_sz);
+    hma->map_key = buf;
+    hma->map_key_sz += map_key_sz;
+    return 1;
+}
+
+int
+HyperClient :: write_map_attr_value(hyperclient_map_attribute *hma,
+                                const char *value, size_t value_sz)
+{
+    char *buf = NULL;
+    // Note: Since hyperclient_map_attribute array was calloc'ed
+    //       hma->value = NULL and hma->value_sz = 0 initially
+    if ((buf = (char *)realloc((void *)(hma->value), hma->value_sz + value_sz))
+                                                                    == NULL) return 0;
+    memcpy(buf + hma->value_sz, value, value_sz);
+    hma->value = buf;
+    hma->value_sz += value_sz;
+    return 1;
+}
+
+int
+HyperClient :: write_range_query(hyperclient_range_query *rq,
+                               const char *attr, size_t attr_sz,
+                               int64_t upper,
+                               int64_t lower)
+{
+    char *buf;
+
+    if ((buf = (char *)calloc(attr_sz+1,sizeof(char))) == NULL) return 0;
+    memcpy(buf,attr,attr_sz);
+    rq->attr = buf;
+    rq->upper = upper;
+    rq->lower = lower;
     return 1;
 }
 
