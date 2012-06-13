@@ -19,7 +19,7 @@ public class DeferredMapOp extends Deferred
         try
         {
 	        attrs = HyperClient.dict_to_map_attrs(map);
-	        attrs_sz = map.size();
+	        attrs_sz = 6;
 	
 	        SWIGTYPE_p_int rc_int_ptr = hyperclient.new_int_ptr();
 	

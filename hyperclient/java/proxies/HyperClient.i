@@ -406,7 +406,7 @@
         //
         if ( operand instanceof java.util.Map )
             attrs_sz_bi = attrs_sz_bi.add(
-                java.math.BigInteger.valueOf(((java.util.Collection)operand).size()));
+                java.math.BigInteger.valueOf(((java.util.Map)operand).size()));
         else
             attrs_sz_bi = attrs_sz_bi.add(java.math.BigInteger.ONE);
     }
@@ -486,7 +486,7 @@
                             throw new MemoryError();
                     }
 
-                    i_bi.add(java.math.BigInteger.ONE);
+                    i_bi = i_bi.add(java.math.BigInteger.ONE);
                 }
 
                 if ( type == hyperdatatype.HYPERDATATYPE_MAP_GENERIC )
@@ -531,7 +531,7 @@
                                        + "': a non-map operand must be String or Long");
                 }
 
-                i_bi.add(java.math.BigInteger.ONE);
+                i_bi = i_bi.add(java.math.BigInteger.ONE);
             }
         }
         catch(MemoryError me)

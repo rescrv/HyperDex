@@ -374,6 +374,8 @@ HyperClient :: map_atomic_add(const std::string& space,
     << space << std::endl
     << key << std::endl
     << attrs[0].attr << std::endl
+    << attrs[0].map_key_sz << std::endl
+    << std::string(attrs[0].map_key,attrs[0].map_key_sz) << std::endl
     << attrs_sz << std::endl
     << &rc << std::endl;
 
