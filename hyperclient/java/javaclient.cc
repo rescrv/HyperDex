@@ -76,6 +76,19 @@ HyperClient :: read_attr_value(hyperclient_attribute *ha,
     memcpy(value, ha->value+pos, value_sz<available?value_sz:available);
 }
 
+std::string
+HyperClient :: read_map_attr_name(hyperclient_map_attribute *hma)
+{
+    std::string str = std::string(hma->attr);
+
+    if (str.length() > INT_MAX)
+    {
+        return str.substr(0,INT_MAX);
+    }
+
+    return str;
+}
+
 int64_t
 HyperClient :: loop(int *i_rc)
 {
@@ -318,6 +331,60 @@ HyperClient :: del(const std::string& space,
                                  key.size(),
                                  &rc);
 
+    *i_rc = (int)rc;
+    return id;
+}
+
+int64_t
+HyperClient :: map_add(const std::string& space,
+                       const std::string& key,
+                       const hyperclient_map_attribute *attrs, size_t attrs_sz, int *i_rc)
+
+{
+    hyperclient_returncode rc;
+
+    std::cout << m_client << std::endl
+    << space << std::endl
+    << key << std::endl
+    << attrs[0].attr << std::endl
+    << attrs_sz << std::endl
+    << &rc << std::endl;
+
+    int64_t id = hyperclient_map_add(m_client,
+                                     space.c_str(),
+                                     key.data(),
+                                     key.size(),
+                                     attrs,
+                                     attrs_sz,
+                                     &rc);
+    
+    *i_rc = (int)rc;
+    return id;
+}
+
+int64_t
+HyperClient :: map_atomic_add(const std::string& space,
+                              const std::string& key,
+                              const hyperclient_map_attribute *attrs, size_t attrs_sz, int *i_rc)
+
+{
+    hyperclient_returncode rc;
+
+    std::cout << m_client << std::endl
+    << space << std::endl
+    << key << std::endl
+    << attrs[0].attr << std::endl
+    << attrs_sz << std::endl
+    << &rc << std::endl;
+
+    int64_t id = hyperclient_map_atomic_add(m_client,
+                                            space.c_str(),
+                                            key.data(),
+                                            key.size(),
+                                            attrs,
+                                            attrs_sz,
+                                            &rc);
+    
     *i_rc = (int)rc;
     return id;
 }

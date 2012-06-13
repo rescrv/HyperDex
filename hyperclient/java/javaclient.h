@@ -45,6 +45,8 @@ class HyperClient
                                       char *value, size_t value_sz,
                                       size_t pos);
 
+        static std::string read_map_attr_name(hyperclient_map_attribute *hma);
+
         int64_t loop(int *i_rc);
 
         static hyperclient_attribute *alloc_attrs(size_t attrs_sz);
@@ -119,6 +121,16 @@ class HyperClient
         int64_t del(const std::string& space,
                    const std::string& key,
                    int *i_rc);
+
+        int64_t map_add(const std::string& space,
+                       const std::string& key,
+                       const hyperclient_map_attribute *attrs, size_t attrs_sz,
+                       int *i_rc);
+
+        int64_t map_atomic_add(const std::string& space,
+                               const std::string& key,
+                               const hyperclient_map_attribute *attrs, size_t attrs_sz,
+                               int *i_rc);
 
     private:
         hyperclient *m_client;

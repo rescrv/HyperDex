@@ -592,4 +592,42 @@
     Deferred d = (DeferredDelete)(async_delete(space, key));
     return ((Boolean)(d.waitFor())).booleanValue();
   }
+
+  public Deferred async_map_add(String space, String key, java.util.Map map)
+                                                     throws HyperClientException,
+                                                            TypeError,
+                                                            MemoryError,
+                                                            ValueError
+  {
+    return new DeferredMapOp(this, new MapOpAdd(this), space, key, map);
+  }
+
+  public boolean map_add(String space, String key, java.util.Map map)
+                                                     throws HyperClientException,
+                                                            TypeError,
+                                                            MemoryError,
+                                                            ValueError
+  {
+    Deferred d = (DeferredMapOp)(async_map_add(space, key, map));
+    return ((Boolean)(d.waitFor())).booleanValue();
+  }
+
+  public Deferred async_map_atomic_add(String space, String key, java.util.Map map)
+                                                     throws HyperClientException,
+                                                            TypeError,
+                                                            MemoryError,
+                                                            ValueError
+  {
+    return new DeferredMapOp(this, new MapOpAtomicAdd(this), space, key, map);
+  }
+
+  public boolean map_atomic_add(String space, String key, java.util.Map map)
+                                                     throws HyperClientException,
+                                                            TypeError,
+                                                            MemoryError,
+                                                            ValueError
+  {
+    Deferred d = (DeferredMapOp)(async_map_atomic_add(space, key, map));
+    return ((Boolean)(d.waitFor())).booleanValue();
+  }
 %}
