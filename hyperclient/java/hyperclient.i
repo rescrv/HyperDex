@@ -32,12 +32,14 @@
 %include "std_string.i"
 %include "std_vector.i"
 %include "stdint.i"
+%include "std_pair.i"
 
 %include "enums.swg"
 %javaconst(1);
 
 %{
 #include "hyperclient/java/syncclient.h"
+#include <utility>
 %}
 
 typedef uint16_t in_port_t;
@@ -74,6 +76,29 @@ enum ReturnCode
     ZERO         = 8575
 };
 
+/* Taken from hyperdex.h */
+enum hyperdatatype
+{
+    HYPERDATATYPE_STRING    = 8960,
+    HYPERDATATYPE_INT64     = 8961,
+
+    HYPERDATATYPE_LIST_GENERIC = 8976,
+    HYPERDATATYPE_LIST_STRING  = 8977,
+    HYPERDATATYPE_LIST_INT64   = 8978,
+
+    HYPERDATATYPE_SET_GENERIC = 8992,
+    HYPERDATATYPE_SET_STRING  = 8993,
+    HYPERDATATYPE_SET_INT64   = 8994,
+
+    HYPERDATATYPE_MAP_GENERIC       = 9008,
+    HYPERDATATYPE_MAP_STRING_STRING = 9009,
+    HYPERDATATYPE_MAP_STRING_INT64  = 9010,
+    HYPERDATATYPE_MAP_INT64_STRING  = 9011,
+    HYPERDATATYPE_MAP_INT64_INT64   = 9012,
+
+    HYPERDATATYPE_GARBAGE   = 9087
+};
+
 class HyperClient
 {
     public:
@@ -85,20 +110,27 @@ class HyperClient
                        const std::string& key,
                        std::map<std::string, std::string>* STR_OUT,
                        std::map<std::string, uint64_t>* NUM_OUT);
+
         ReturnCode put(const std::string& space,
                        const std::string& key,
                        const std::map<std::string, std::string>& svalues,
                        const std::map<std::string, uint64_t>& nvalues);
+
         ReturnCode del(const std::string& space,
                        const std::string& key);
+
         ReturnCode range_search(const std::string& space,
                                 const std::string& attr,
                                 uint64_t lower,
                                 uint64_t upper,
-                                std::vector<std::map<std::string,
-                                                     std::string> >* STR_OUT,
-                                std::vector<std::map<std::string,
-                                                     uint64_t> >* NUM_OUT);
+                                std::vector<std::map<std::string, std::string> >* STR_OUT,
+                                std::vector<std::map<std::string, uint64_t> >* NUM_OUT);
+
+        ReturnCode search(const std::string& space,
+                          const std::map<std::string, pair<std::string, hyperdatatype> >& eq_attr,
+                          const std::map<std::string, pair<uint64_t, uint64_t> >& rn_attr,
+                          std::vector<std::map<std::string, std::string> >* sresults,
+                          std::vector<std::map<std::string, uint64_t> >* nresults);
 
     private:
         hyperclient m_client;
@@ -110,4 +142,9 @@ namespace std
     %template(snmap) map<string, unsigned long long>;
     %template(ssearchresult) vector<map<string, string> >;
     %template(nsearchresult) vector<map<string, unsigned long long> >;
+    %template(val_type) pair<string, hyperdatatype>;
+    %template(range) pair<unsigned long long, unsigned long long>;
+    %template(eq_pmap) map<string, pair<string, hyperdatatype> >;
+    %template(rn_pmap) map<string, pair<unsigned long long, unsigned long long> >;
 }
+
