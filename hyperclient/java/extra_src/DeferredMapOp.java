@@ -13,8 +13,10 @@ public class DeferredMapOp extends Deferred
     {
         super(client);
 
-	      hyperclient_map_attribute attrs = null;
-	      long attrs_sz = 0;
+	    hyperclient_map_attribute attrs = null;
+	    long attrs_sz = 0;
+	
+	    SWIGTYPE_p_int rc_int_ptr = hyperclient.new_int_ptr();
 	
         try
         {
@@ -22,8 +24,6 @@ public class DeferredMapOp extends Deferred
 	        attrs_sz = attrs.getAttrsSz(); // Can't use map.size(). It's been
                                            // flattened to the larger cardinality
                                            // of map operands.
-	
-	        SWIGTYPE_p_int rc_int_ptr = hyperclient.new_int_ptr();
 	
 	        reqId = op.call(space, key, attrs, attrs_sz, rc_int_ptr);
 	
@@ -64,6 +64,7 @@ public class DeferredMapOp extends Deferred
         finally
         {
             if ( attrs != null ) HyperClient.destroy_map_attrs(attrs,attrs_sz);
+            hyperclient.delete_int_ptr(rc_int_ptr);
         }
     }
 

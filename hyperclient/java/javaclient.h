@@ -101,12 +101,15 @@ class HyperClient
 
         static int write_range_query(hyperclient_range_query *rq,
                                      const char *attr, size_t attr_sz,
-                                     int64_t upper,
-                                     int64_t lower);
+                                     int64_t lower,
+                                     int64_t upper);
 
         static hyperclient_attribute *get_attr(hyperclient_attribute *ha, size_t i);
         static hyperclient_map_attribute *get_map_attr(
                                             hyperclient_map_attribute *hma,
+                                            size_t i);
+        static hyperclient_range_query *get_range_query(
+                                            hyperclient_range_query *rqs,
                                             size_t i);
 
         int64_t get(const std::string& space,

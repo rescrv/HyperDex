@@ -243,16 +243,16 @@ HyperClient :: write_map_attr_value(hyperclient_map_attribute *hma,
 int
 HyperClient :: write_range_query(hyperclient_range_query *rq,
                                const char *attr, size_t attr_sz,
-                               int64_t upper,
-                               int64_t lower)
+                               int64_t lower,
+                               int64_t upper)
 {
     char *buf;
 
     if ((buf = (char *)calloc(attr_sz+1,sizeof(char))) == NULL) return 0;
     memcpy(buf,attr,attr_sz);
     rq->attr = buf;
-    rq->upper = upper;
     rq->lower = lower;
+    rq->upper = upper;
     return 1;
 }
 
@@ -266,6 +266,12 @@ hyperclient_map_attribute *
 HyperClient :: get_map_attr(hyperclient_map_attribute *hma, size_t i)
 {
     return hma + i;
+}
+
+hyperclient_range_query *
+HyperClient :: get_range_query(hyperclient_range_query *rqs, size_t i)
+{
+    return rqs + i;
 }
 
 int64_t

@@ -9,15 +9,22 @@ public class DeferredDelete extends Deferred
 
 	    SWIGTYPE_p_int rc_int_ptr = hyperclient.new_int_ptr();
 	
-	    reqId = client.del(space, key, rc_int_ptr);
+        try
+        {
+	        reqId = client.del(space, key, rc_int_ptr);
 	
-	    if (reqId < 0)
-	    {
-	        status = ReturnCode.swigToEnum(hyperclient.int_ptr_value(rc_int_ptr));
-            throw new HyperClientException(status);
-	    }
+	        if (reqId < 0)
+	        {
+	            status = ReturnCode.swigToEnum(hyperclient.int_ptr_value(rc_int_ptr));
+                throw new HyperClientException(status);
+	        }
 
-        client.ops.put(reqId,this);
+            client.ops.put(reqId,this);
+        }
+        finally
+        {
+            hyperclient.delete_int_ptr(rc_int_ptr);
+        }
     }
 
     public Object waitFor() throws HyperClientException, ValueError

@@ -10,6 +10,8 @@
 
     ReturnCode rc = ReturnCode.swigToEnum(hyperclient.int_ptr_value(rc_int_ptr));
 
+    hyperclient.delete_int_ptr(rc_int_ptr);
+
     if ( ret < 0 )
     {
       throw new HyperClientException(rc);

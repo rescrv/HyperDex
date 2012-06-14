@@ -2,15 +2,21 @@ package hyperclient;
 
 import java.util.*;
 
-public class DeferredGet extends Deferred
+public class Search
 {
+    private HyperClient client = null;
+    protected long reqId = 0; 
+    ReturnCode status = ReturnCode.HYPERCLIENT_ZERO; // Give this package wide access
+    protected boolean finished = false; 
+
     SWIGTYPE_p_p_hyperclient_attribute attrs_ptr = null;
     SWIGTYPE_p_size_t attrs_sz_ptr = null;
 
-    public DeferredGet(HyperClient client, String space, String key)
-                                                    throws HyperClientException
+    public Search(HyperClient client, String space, Map predicate)
+                                                    throws HyperClientException,
+                                                           MemoryError
     {
-        super(client);
+        this.client = client;
 
         attrs_ptr = hyperclient.new_hyperclient_attribute_ptr();
         attrs_sz_ptr = hyperclient.new_size_t_ptr();
@@ -19,48 +25,19 @@ public class DeferredGet extends Deferred
 
         try
         {
-            reqId = client.get(space, key, rc_int_ptr, attrs_ptr, attrs_sz_ptr);
-
+            //reqId = client.get(space, key, rc_int_ptr, attrs_ptr, attrs_sz_ptr);
+	
             if (reqId < 0)
             {
                 status = ReturnCode.swigToEnum(hyperclient.int_ptr_value(rc_int_ptr));
                 throw new HyperClientException(status);
             }
-
-            client.ops.put(reqId,this);
+	
+            //client.ops.put(reqId,this);
         }
         finally
         {
             hyperclient.delete_int_ptr(rc_int_ptr);
-        }
-    }
-
-    public Object waitFor() throws HyperClientException, ValueError
-    {
-        super.waitFor();
-
-        if (status == ReturnCode.HYPERCLIENT_SUCCESS)
-        {
-            hyperclient_attribute attrs
-                = hyperclient.hyperclient_attribute_ptr_value(attrs_ptr);
-            long attrs_sz = hyperclient.size_t_ptr_value(attrs_sz_ptr);
-
-            Map map = HyperClient.attrs_to_dict(attrs, attrs_sz);
-            
-            hyperclient.hyperclient_destroy_attrs(attrs,attrs_sz);
-
-            attrs_ptr = null;
-            attrs_sz_ptr = null;
-
-            return map;
-        }
-        else if (status == ReturnCode.HYPERCLIENT_NOTFOUND)
-        {
-            return null;
-        }
-        else
-        {
-            throw new HyperClientException(status);
         }
     }
 
