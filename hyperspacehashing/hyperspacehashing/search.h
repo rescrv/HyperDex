@@ -42,6 +42,7 @@ namespace hyperspacehashing
 class search
 {
     public:
+        search();
         search(size_t n);
         ~search() throw ();
 
@@ -54,6 +55,7 @@ class search
         void range_value(size_t idx, uint64_t* lower, uint64_t* upper) const;
         bool matches(const e::slice& key, const std::vector<e::slice>& value) const;
         size_t packed_size() const;
+        void resize(size_t n);
 
     // It is an error to call equality_set or range_set on an index which has
     // already been provided as an index to equality_set or range_set.  It will

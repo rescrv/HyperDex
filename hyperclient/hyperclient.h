@@ -64,11 +64,16 @@ namespace e
 class bitfield;
 } // namespace e
 class busybee_st;
+namespace hyperspacehashing
+{
+class search;
+} // namespace hyperspacehashing
 namespace hyperdex
 {
 class attribute;
 class configuration;
 class coordinatorlink;
+class entityid;
 class instance;
 } // namespace hyperdex
 
@@ -761,6 +766,12 @@ class hyperclient
                           size_t key_sz,
                           std::auto_ptr<e::buffer> msg,
                           e::intrusive_ptr<pending> op);
+        int64_t prepare_searchop(const char* space,
+                                 const struct hyperclient_attribute* eq, size_t eq_sz,
+                                 const struct hyperclient_range_query* rn, size_t rn_sz,
+                                 hyperclient_returncode* status,
+                                 hyperspacehashing::search* s,
+                                 std::map<hyperdex::entityid, hyperdex::instance>* search_entities);
         int64_t send(e::intrusive_ptr<pending> op,
                      std::auto_ptr<e::buffer> msg);
         int64_t pack_attrs(const char* space,
