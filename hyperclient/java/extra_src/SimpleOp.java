@@ -12,6 +12,6 @@ abstract class SimpleOp
     }
 
     abstract long call(String space, String key,
-              hyperclient_attribute attrs, int attrs_sz,
+              hyperclient_attribute attrs, long attrs_sz,
               SWIGTYPE_p_int rc_int_ptr);
 }

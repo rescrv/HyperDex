@@ -13,7 +13,7 @@ public class DeferredFromAttrs extends Deferred
         super(client);
 
 	      hyperclient_attribute attrs = null;
-	      int attrs_sz = 0;
+	      long attrs_sz = 0;
 	
         try
         {

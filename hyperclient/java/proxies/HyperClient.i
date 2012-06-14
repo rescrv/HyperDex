@@ -417,6 +417,8 @@
     hyperclient_map_attribute attrs = alloc_map_attrs(attrs_sz);
 
     if ( attrs == null ) throw new MemoryError();
+
+    attrs.setAttrsSz(attrs_sz);
     
     java.math.BigInteger i_bi = java.math.BigInteger.valueOf(0);
 

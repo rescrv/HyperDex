@@ -10,7 +10,7 @@ class SimpleOpPut extends SimpleOp
     }
 
     long call(String space, String key,
-              hyperclient_attribute attrs, int attrs_sz,
+              hyperclient_attribute attrs, long attrs_sz,
               SWIGTYPE_p_int rc_int_ptr)
     {
         return client.put(space, key, attrs, attrs_sz, rc_int_ptr);

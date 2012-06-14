@@ -14,12 +14,14 @@ public class DeferredMapOp extends Deferred
         super(client);
 
 	      hyperclient_map_attribute attrs = null;
-	      int attrs_sz = 0;
+	      long attrs_sz = 0;
 	
         try
         {
 	        attrs = HyperClient.dict_to_map_attrs(map);
-	        attrs_sz = 6;
+	        attrs_sz = attrs.getAttrsSz(); // Can't use map.size(). It's been
+                                           // flattened to the larger cardinality
+                                           // of map operands.
 	
 	        SWIGTYPE_p_int rc_int_ptr = hyperclient.new_int_ptr();
 	
