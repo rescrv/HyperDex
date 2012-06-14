@@ -226,6 +226,29 @@ hyperclient_search(struct hyperclient* client, const char* space,
 }
 
 int64_t
+hyperclient_group_del(struct hyperclient* client, const char* space,
+                      const struct hyperclient_attribute* eq, size_t eq_sz,
+                      const struct hyperclient_range_query* rn, size_t rn_sz,
+                      enum hyperclient_returncode* status)
+{
+    try
+    {
+        return client->group_del(space, eq, eq_sz, rn, rn_sz, status);
+    }
+    catch (po6::error& e)
+    {
+        errno = e;
+        *status = HYPERCLIENT_EXCEPTION;
+        return -1;
+    }
+    catch (...)
+    {
+        *status = HYPERCLIENT_EXCEPTION;
+        return -1;
+    }
+}
+
+int64_t
 hyperclient_loop(struct hyperclient* client, int timeout, hyperclient_returncode* status)
 {
     try

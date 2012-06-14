@@ -295,6 +295,28 @@ hyperdaemon :: network_worker :: run()
 
             m_ssss->stop(to, from, searchid);
         }
+        else if (type == hyperdex::REQ_GROUP_DEL)
+        {
+            hyperspacehashing::search s(0);
+
+            if ((up >> nonce >> s).error())
+            {
+                LOG(WARNING) << "unpack of REQ_GROUP_DEL failed; here's some hex:  " << msg->hex();
+                continue;
+            }
+
+            hyperdex::network_msgtype mt(hyperdex::REQ_DEL);
+            e::slice sl;
+
+            if (s.sanity_check())
+            {
+                m_ssss->group_keyop(to, from, nonce, s, mt, sl);
+            }
+            else
+            {
+                LOG(INFO) << "Dropping group_del which fails sanity_check.";
+            }
+        }
         else if (type == hyperdex::CHAIN_PUT)
         {
             uint64_t version;

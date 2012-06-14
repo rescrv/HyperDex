@@ -46,6 +46,63 @@ using hyperdex::regionid;
 using hyperspacehashing::search;
 using hyperspacehashing::mask::coordinate;
 
+class hyperdaemon::searches::search_state
+{
+    public:
+        search_state(const hyperdex::regionid& region,
+                     const hyperspacehashing::mask::coordinate& search_coord,
+                     std::auto_ptr<e::buffer> msg,
+                     const hyperspacehashing::search& terms,
+                     e::intrusive_ptr<hyperdisk::snapshot> snap);
+        ~search_state() throw ();
+
+    public:
+        po6::threads::mutex lock;
+        const hyperdex::regionid region;
+        const hyperspacehashing::mask::coordinate search_coord;
+        const std::auto_ptr<e::buffer> backing;
+        hyperspacehashing::search terms;
+        e::intrusive_ptr<hyperdisk::snapshot> snap;
+
+    private:
+        friend class e::intrusive_ptr<search_state>;
+
+    private:
+        void inc() { __sync_add_and_fetch(&m_ref, 1); }
+        void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
+
+    private:
+        size_t m_ref;
+};
+
+class hyperdaemon::searches::search_id
+{
+    public:
+        search_id(const hyperdex::regionid re,
+                  const hyperdex::entityid cl,
+                  uint64_t sn)
+        : region(re), client(cl), search_number(sn) {}
+        ~search_id() throw () {}
+
+    public:
+        int compare(const search_id& other) const
+        { return e::tuple_compare(region, client, search_number,
+                                  other.region, other.client, other.search_number); }
+
+    public:
+        bool operator < (const search_id& rhs) const { return compare(rhs) < 0; }
+        bool operator <= (const search_id& rhs) const { return compare(rhs) <= 0; }
+        bool operator == (const search_id& rhs) const { return compare(rhs) == 0; }
+        bool operator != (const search_id& rhs) const { return compare(rhs) != 0; }
+        bool operator >= (const search_id& rhs) const { return compare(rhs) >= 0; }
+        bool operator > (const search_id& rhs) const { return compare(rhs) > 0; }
+
+    public:
+        hyperdex::regionid region;
+        hyperdex::entityid client;
+        uint64_t search_number;
+};
+
 hyperdaemon :: searches :: searches(coordinatorlink* cl,
                                     datalayer* data,
                                     logical* comm)
@@ -102,35 +159,7 @@ hyperdaemon :: searches :: start(const hyperdex::entityid& us,
         return;
     }
 
-    bool done = false;
-
-    while(!done)
-    {
-        hyperdisk::returncode ret = m_data->flush(us.get_region(), -1, false);
-
-        if (ret == hyperdisk::SUCCESS)
-        {
-            done = true;
-        }
-        else if (ret == hyperdisk::DIDNOTHING)
-        {
-            done = true;
-        }
-        else if (ret == hyperdisk::DATAFULL || ret == hyperdisk::SEARCHFULL)
-        {
-            hyperdisk::returncode ioret;
-            ioret = m_data->do_mandatory_io(us.get_region());
-
-            if (ioret != hyperdisk::SUCCESS && ioret != hyperdisk::DIDNOTHING)
-            {
-                PLOG(ERROR) << "Disk I/O returned " << ioret;
-            }
-        }
-        else
-        {
-            PLOG(ERROR) << "Disk flush returned " << ret;
-        }
-    }
+    flush(us.get_region());
 
     hyperspacehashing::mask::hasher hasher(m_config.disk_hasher(us.get_subspace()));
     hyperspacehashing::mask::coordinate coord(hasher.hash(terms));
@@ -196,12 +225,114 @@ hyperdaemon :: searches :: stop(const hyperdex::entityid& us,
     m_searches.remove(search_id(us.get_region(), client, search_num));
 }
 
+void
+hyperdaemon :: searches :: group_keyop(const hyperdex::entityid& us,
+                                       const hyperdex::entityid& client,
+                                       uint64_t nonce,
+                                       const hyperspacehashing::search& terms,
+                                       enum hyperdex::network_msgtype reqtype,
+                                       const e::slice& remain)
+{
+    if (m_config.dimensions(us.get_space()) != terms.size())
+    {
+        size_t sz = m_comm->header_size() + sizeof(uint64_t) + sizeof(uint16_t);
+        std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+        e::buffer::packer pa = msg->pack_at(m_comm->header_size());
+        pa = pa << nonce << static_cast<uint16_t>(hyperdex::NET_BADDIMSPEC);
+        assert(!pa.error());
+        m_comm->send(us, client, hyperdex::RESP_GROUP_DEL, msg);
+        return;
+    }
+
+    flush(us.get_region());
+
+    hyperspacehashing::mask::hasher hasher(m_config.disk_hasher(us.get_subspace()));
+    hyperspacehashing::mask::coordinate coord(hasher.hash(terms));
+    e::intrusive_ptr<hyperdisk::snapshot> snap = m_data->make_snapshot(us.get_region(), terms);
+
+    while (snap->valid())
+    {
+        if (coord.intersects(snap->coordinate()) &&
+            terms.matches(snap->key(), snap->value()))
+        {
+            size_t sz = m_comm->header_size()
+                      + sizeof(uint64_t)
+                      + sizeof(uint32_t)
+                      + snap->key().size()
+                      + remain.size();
+            std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+            e::buffer::packer p = msg->pack_at(m_comm->header_size());
+            p = p << static_cast<uint64_t>(0) << snap->key();
+            p = p.copy(remain);
+            assert(!p.error());
+
+            // Figure out who to talk with.
+            hyperdex::entityid dst_ent;
+            hyperdex::instance dst_inst;
+
+            if (m_config.point_leader_entity(us.get_space(), snap->key(), &dst_ent, &dst_inst))
+            {
+                m_comm->send(us, dst_ent, reqtype, msg);
+            }
+            else
+            {
+                // If it fails to find the point leader entity, something is
+                // horribly wrong.  We make no guarantees, so we just log and move
+                // on.
+                LOG(ERROR) << "Could not find point leader for GROUP_DEL (serious bug; please report)";
+            }
+        }
+
+        snap->next();
+    }
+
+    size_t sz = m_comm->header_size() + sizeof(uint64_t) + sizeof(uint16_t);
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    e::buffer::packer pa = msg->pack_at(m_comm->header_size());
+    pa = pa << nonce << static_cast<uint16_t>(hyperdex::NET_SUCCESS);
+    assert(!pa.error());
+    m_comm->send(us, client, hyperdex::RESP_GROUP_DEL, msg);
+}
+
 uint64_t
 hyperdaemon :: searches :: hash(const search_id& si)
 {
     return si.region.hash() + si.client.hash() + si.search_number;
 }
 
+void
+hyperdaemon :: searches :: flush(const hyperdex::regionid& r)
+{
+    bool done = false;
+
+    while(!done)
+    {
+        hyperdisk::returncode ret = m_data->flush(r, -1, false);
+
+        if (ret == hyperdisk::SUCCESS)
+        {
+            done = true;
+        }
+        else if (ret == hyperdisk::DIDNOTHING)
+        {
+            done = true;
+        }
+        else if (ret == hyperdisk::DATAFULL || ret == hyperdisk::SEARCHFULL)
+        {
+            hyperdisk::returncode ioret;
+            ioret = m_data->do_mandatory_io(r);
+
+            if (ioret != hyperdisk::SUCCESS && ioret != hyperdisk::DIDNOTHING)
+            {
+                PLOG(ERROR) << "Disk I/O returned " << ioret;
+            }
+        }
+        else
+        {
+            PLOG(ERROR) << "Disk flush returned " << ret;
+        }
+    }
+}
 
 hyperdaemon :: searches :: search_state :: search_state(const regionid& r,
                                                         const coordinate& sc,

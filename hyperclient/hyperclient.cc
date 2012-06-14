@@ -49,6 +49,7 @@
 #include "hyperclient/hyperclient_completedop.h"
 #include "hyperclient/hyperclient_pending.h"
 #include "hyperclient/hyperclient_pending_get.h"
+#include "hyperclient/hyperclient_pending_group_del.h"
 #include "hyperclient/hyperclient_pending_search.h"
 #include "hyperclient/hyperclient_pending_statusonly.h"
 #include "hyperclient/util.h"
@@ -395,54 +396,15 @@ hyperclient :: search(const char* space,
         return -1;
     }
 
-    hyperdex::spaceid si = m_config->space(space);
-
-    if (si == hyperdex::spaceid())
-    {
-        *status = HYPERCLIENT_UNKNOWNSPACE;
-        return -1;
-    }
-
-    std::vector<hyperdex::attribute> dims = m_config->dimension_names(si);
-    assert(dims.size() > 0);
-    e::bitfield dims_seen(dims.size());
-
-    // Populate the search object.
-    hyperspacehashing::search s(dims.size());
-
-    // Check the equality conditions.
-    for (size_t i = 0; i < eq_sz; ++i)
-    {
-        hyperdatatype coerced = eq[i].datatype;
-        int idx = validate_attr(coerce_identity, dims, &dims_seen, eq[i].attr, &coerced, status);
-
-        if (idx < 0)
-        {
-            return -1 - i;
-        }
-
-        assert(coerced == eq[i].datatype);
-        s.equality_set(idx, e::slice(eq[i].value, eq[i].value_sz));
-    }
-
-    // Check the range conditions.
-    for (size_t i = 0; i < rn_sz; ++i)
-    {
-        hyperdatatype coerced = HYPERDATATYPE_INT64;
-        int idx = validate_attr(coerce_identity, dims, &dims_seen, rn[i].attr, &coerced, status);
-
-        if (idx < 0)
-        {
-            return -1 - eq_sz - i;
-        }
-
-        assert(coerced == HYPERDATATYPE_INT64);
-        s.range_set(idx, rn[i].lower, rn[i].upper);
-    }
-
-    // Get the hosts that match our search terms.
+    // Figure out who to contact for the search.
+    hyperspacehashing::search s;
     std::map<hyperdex::entityid, hyperdex::instance> search_entities;
-    search_entities = m_config->search_entities(si, s);
+    int64_t ret = prepare_searchop(space, eq, eq_sz, rn, rn_sz, status, &s, &search_entities);
+
+    if (ret < 0)
+    {
+        return ret;
+    }
 
     // Send a search query to each matching host.
     int64_t searchid = m_client_id;
@@ -457,7 +419,7 @@ hyperclient :: search(const char* space,
     for (std::map<hyperdex::entityid, hyperdex::instance>::const_iterator ent_inst = search_entities.begin();
             ent_inst != search_entities.end(); ++ent_inst)
     {
-        e::intrusive_ptr<pending> op   = new pending_search(searchid, refcount, status, attrs, attrs_sz);
+        e::intrusive_ptr<pending> op = new pending_search(searchid, refcount, status, attrs, attrs_sz);
         op->set_server_visible_nonce(m_server_nonce);
         ++m_server_nonce;
         op->set_entity(ent_inst->first);
@@ -473,6 +435,58 @@ hyperclient :: search(const char* space,
     }
 
     return searchid;
+}
+
+int64_t
+hyperclient :: group_del(const char* space,
+                         const struct hyperclient_attribute* eq, size_t eq_sz,
+                         const struct hyperclient_range_query* rn, size_t rn_sz,
+                         enum hyperclient_returncode* status)
+{
+    if (maintain_coord_connection(status) < 0)
+    {
+        return -1;
+    }
+
+    // Figure out who to contact for the group_del.
+    hyperspacehashing::search s;
+    std::map<hyperdex::entityid, hyperdex::instance> entities;
+    int64_t ret = prepare_searchop(space, eq, eq_sz, rn, rn_sz, status, &s, &entities);
+
+    if (ret < 0)
+    {
+        return ret;
+    }
+
+    // Send a group_del query to each matching host.
+    int64_t group_del_id = m_client_id;
+    ++m_client_id;
+
+    // Pack the message to send
+    std::auto_ptr<e::buffer> msg(e::buffer::create(HYPERCLIENT_HEADER_SIZE + sizeof(uint64_t) + s.packed_size()));
+    bool packed = !(msg->pack_at(HYPERCLIENT_HEADER_SIZE) << s).error();
+    assert(packed);
+    std::tr1::shared_ptr<uint64_t> refcount(new uint64_t(0));
+
+    for (std::map<hyperdex::entityid, hyperdex::instance>::const_iterator ent_inst = entities.begin();
+            ent_inst != entities.end(); ++ent_inst)
+    {
+        e::intrusive_ptr<pending> op = new pending_group_del(group_del_id, refcount, status);
+        op->set_server_visible_nonce(m_server_nonce);
+        ++m_server_nonce;
+        op->set_entity(ent_inst->first);
+        op->set_instance(ent_inst->second);
+        m_incomplete.insert(std::make_pair(op->server_visible_nonce(), op));
+        std::auto_ptr<e::buffer> tosend(msg->copy());
+
+        if (send(op, tosend) < 0)
+        {
+            m_complete.push(completedop(op, HYPERCLIENT_RECONFIGURE, 0));
+            m_incomplete.erase(op->server_visible_nonce());
+        }
+    }
+
+    return group_del_id;
 }
 
 int64_t
@@ -728,6 +742,63 @@ hyperclient :: add_keyop(const char* space, const char* key, size_t key_sz,
     // already set the status to a more-detailed reason.
     fail_op.dismiss();
     return ret;
+}
+
+int64_t
+hyperclient :: prepare_searchop(const char* space,
+                                const struct hyperclient_attribute* eq, size_t eq_sz,
+                                const struct hyperclient_range_query* rn, size_t rn_sz,
+                                hyperclient_returncode* status,
+                                hyperspacehashing::search* s,
+                                std::map<hyperdex::entityid, hyperdex::instance>* search_entities)
+{
+    hyperdex::spaceid si = m_config->space(space);
+
+    if (si == hyperdex::spaceid())
+    {
+        *status = HYPERCLIENT_UNKNOWNSPACE;
+        return -1;
+    }
+
+    std::vector<hyperdex::attribute> dims = m_config->dimension_names(si);
+    assert(dims.size() > 0);
+    e::bitfield dims_seen(dims.size());
+
+    s->resize(dims.size());
+
+    // Check the equality conditions.
+    for (size_t i = 0; i < eq_sz; ++i)
+    {
+        hyperdatatype coerced = eq[i].datatype;
+        int idx = validate_attr(coerce_identity, dims, &dims_seen, eq[i].attr, &coerced, status);
+
+        if (idx < 0)
+        {
+            return -1 - i;
+        }
+
+        assert(coerced == eq[i].datatype);
+        s->equality_set(idx, e::slice(eq[i].value, eq[i].value_sz));
+    }
+
+    // Check the range conditions.
+    for (size_t i = 0; i < rn_sz; ++i)
+    {
+        hyperdatatype coerced = HYPERDATATYPE_INT64;
+        int idx = validate_attr(coerce_identity, dims, &dims_seen, rn[i].attr, &coerced, status);
+
+        if (idx < 0)
+        {
+            return -1 - eq_sz - i;
+        }
+
+        assert(coerced == HYPERDATATYPE_INT64);
+        s->range_set(idx, rn[i].lower, rn[i].upper);
+    }
+
+    // Get the hosts that match our search terms.
+    *search_entities = m_config->search_entities(si, *s);
+    return 0;
 }
 
 int64_t

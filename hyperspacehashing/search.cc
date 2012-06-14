@@ -31,6 +31,15 @@
 
 #include <iostream>
 
+hyperspacehashing :: search :: search()
+    : m_equality_bits(0)
+    , m_equality(0)
+    , m_range_bits(0)
+    , m_range_lower(0)
+    , m_range_upper(0)
+{
+}
+
 hyperspacehashing :: search :: search(size_t n)
     : m_equality_bits(n)
     , m_equality(n)
@@ -151,6 +160,16 @@ hyperspacehashing :: search :: packed_size() const
     }
 
     return sz;
+}
+
+void
+hyperspacehashing :: search :: resize(size_t n)
+{
+    m_equality_bits = e::bitfield(n);
+    m_equality = std::vector<e::slice>(n);
+    m_range_bits = e::bitfield(n);
+    m_range_lower = std::vector<uint64_t>(n);
+    m_range_upper = std::vector<uint64_t>(n);
 }
 
 void

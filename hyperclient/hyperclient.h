@@ -64,11 +64,16 @@ namespace e
 class bitfield;
 } // namespace e
 class busybee_st;
+namespace hyperspacehashing
+{
+class search;
+} // namespace hyperspacehashing
 namespace hyperdex
 {
 class attribute;
 class configuration;
 class coordinatorlink;
+class entityid;
 class instance;
 } // namespace hyperdex
 
@@ -605,6 +610,22 @@ hyperclient_search(struct hyperclient* client, const char* space,
                    enum hyperclient_returncode* status,
                    struct hyperclient_attribute** attrs, size_t* attrs_sz);
 
+/* Delete objects which mach "eq" and "rn".
+ *
+ * The remote servers will perform a search as if this were a call to
+ * ``hyperclient_search``, but instead of returning the search results, it will
+ * issue a ``del`` operation.  Once all searches complete, the call will return
+ * to the client.
+ *
+ * This is a best effort call.  It may miss objects that are updated
+ * concurrently with the search and it will not tolerate failures.
+ */
+int64_t
+hyperclient_group_del(struct hyperclient* client, const char* space,
+                      const struct hyperclient_attribute* eq, size_t eq_sz,
+                      const struct hyperclient_range_query* rn, size_t rn_sz,
+                      enum hyperclient_returncode* status);
+
 /* Handle I/O until at least one event is complete (either a key-op finishes, or
  * a search returns one item).
  *
@@ -744,12 +765,17 @@ class hyperclient
                        const struct hyperclient_range_query* rn, size_t rn_sz,
                        enum hyperclient_returncode* status,
                        struct hyperclient_attribute** attrs, size_t* attrs_sz);
+        int64_t group_del(const char* space,
+                          const struct hyperclient_attribute* eq, size_t eq_sz,
+                          const struct hyperclient_range_query* rn, size_t rn_sz,
+                          enum hyperclient_returncode* status);
         int64_t loop(int timeout, hyperclient_returncode* status);
 
     private:
         class completedop;
         class pending;
         class pending_get;
+        class pending_group_del;
         class pending_search;
         class pending_statusonly;
         typedef std::map<int64_t, e::intrusive_ptr<pending> > incomplete_map_t;
@@ -761,6 +787,12 @@ class hyperclient
                           size_t key_sz,
                           std::auto_ptr<e::buffer> msg,
                           e::intrusive_ptr<pending> op);
+        int64_t prepare_searchop(const char* space,
+                                 const struct hyperclient_attribute* eq, size_t eq_sz,
+                                 const struct hyperclient_range_query* rn, size_t rn_sz,
+                                 hyperclient_returncode* status,
+                                 hyperspacehashing::search* s,
+                                 std::map<hyperdex::entityid, hyperdex::instance>* search_entities);
         int64_t send(e::intrusive_ptr<pending> op,
                      std::auto_ptr<e::buffer> msg);
         int64_t pack_attrs(const char* space,
