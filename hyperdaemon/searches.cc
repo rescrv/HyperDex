@@ -226,10 +226,12 @@ hyperdaemon :: searches :: stop(const hyperdex::entityid& us,
 }
 
 void
-hyperdaemon :: searches :: group_del(const hyperdex::entityid& us,
-                                     const hyperdex::entityid& client,
-                                     uint64_t nonce,
-                                     const hyperspacehashing::search& terms)
+hyperdaemon :: searches :: group_keyop(const hyperdex::entityid& us,
+                                       const hyperdex::entityid& client,
+                                       uint64_t nonce,
+                                       const hyperspacehashing::search& terms,
+                                       enum hyperdex::network_msgtype reqtype,
+                                       const e::slice& remain)
 {
     if (m_config.dimensions(us.get_space()) != terms.size())
     {
@@ -256,10 +258,12 @@ hyperdaemon :: searches :: group_del(const hyperdex::entityid& us,
             size_t sz = m_comm->header_size()
                       + sizeof(uint64_t)
                       + sizeof(uint32_t)
-                      + snap->key().size();
+                      + snap->key().size()
+                      + remain.size();
             std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
             e::buffer::packer p = msg->pack_at(m_comm->header_size());
             p = p << static_cast<uint64_t>(0) << snap->key();
+            p = p.copy(remain);
             assert(!p.error());
 
             // Figure out who to talk with.
@@ -268,7 +272,7 @@ hyperdaemon :: searches :: group_del(const hyperdex::entityid& us,
 
             if (m_config.point_leader_entity(us.get_space(), snap->key(), &dst_ent, &dst_inst))
             {
-                m_comm->send(us, dst_ent, hyperdex::REQ_DEL, msg);
+                m_comm->send(us, dst_ent, reqtype, msg);
             }
             else
             {

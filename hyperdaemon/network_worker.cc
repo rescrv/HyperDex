@@ -305,9 +305,12 @@ hyperdaemon :: network_worker :: run()
                 continue;
             }
 
+            hyperdex::network_msgtype mt(hyperdex::REQ_DEL);
+            e::slice sl;
+
             if (s.sanity_check())
             {
-                m_ssss->group_del(to, from, nonce, s);
+                m_ssss->group_keyop(to, from, nonce, s, mt, sl);
             }
             else
             {
