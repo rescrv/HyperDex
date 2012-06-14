@@ -31,6 +31,10 @@
 // HyperClient
 #include "../hyperclient.h"
 
+//typedef
+typedef std::pair<std::string, hyperdatatype> val_type;
+typedef std::pair<uint64_t, uint64_t> range;
+
 typedef hyperclient_returncode ReturnCode;
 
 class HyperClient
@@ -54,13 +58,16 @@ class HyperClient
                                 const std::string& attr,
                                 uint64_t lower,
                                 uint64_t upper,
-                                std::vector<std::map<std::string,
-                                            std::string> >* sresults,
-                                std::vector<std::map<std::string,
-                                            uint64_t> >* nresults);
-
+                                std::vector<std::map<std::string, std::string> >* sresults,
+                                std::vector<std::map<std::string, uint64_t> >* nresults);
+        ReturnCode search(const std::string& space,
+                          const std::map<std::string, val_type>& eq_attr,
+                          const std::map<std::string, range>& rn_attr,
+                          std::vector<std::map<std::string, std::string> >* sresults,
+                          std::vector<std::map<std::string, uint64_t> >* nresults);
     private:
         hyperclient m_client;
 };
 
 #endif // hyperclient_syncclient_h_
+
