@@ -2,24 +2,12 @@ package hyperclient;
 
 import java.util.*;
 
-public class Deferred
+public class Deferred extends Pending
 {
-    protected HyperClient client = null;
-    protected long reqId = 0; 
-    ReturnCode status = ReturnCode.HYPERCLIENT_ZERO; // Give this package wide access
-    protected boolean finished = false; 
-
     public Deferred(HyperClient client)
     {
-        this.client = client;
+        super(client);
     }
-
-    public void callback()
-    {
-        finished = true;
-        client.ops.remove(reqId);
-    }
-
     public Object waitFor() throws HyperClientException, ValueError
     {
         while (! finished && reqId > 0)

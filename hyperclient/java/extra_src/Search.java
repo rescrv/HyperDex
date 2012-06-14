@@ -2,21 +2,17 @@ package hyperclient;
 
 import java.util.*;
 
-public class Search
+public class Search extends Pending
 {
-    private HyperClient client = null;
-    protected long reqId = 0; 
-    ReturnCode status = ReturnCode.HYPERCLIENT_ZERO; // Give this package wide access
-    protected boolean finished = false; 
-
     SWIGTYPE_p_p_hyperclient_attribute attrs_ptr = null;
     SWIGTYPE_p_size_t attrs_sz_ptr = null;
 
     public Search(HyperClient client, String space, Map predicate)
                                                     throws HyperClientException,
+                                                           TypeError,
                                                            MemoryError
     {
-        this.client = client;
+        super(client);
 
         attrs_ptr = hyperclient.new_hyperclient_attribute_ptr();
         attrs_sz_ptr = hyperclient.new_size_t_ptr();
@@ -25,6 +21,73 @@ public class Search
 
         try
         {
+            HashMap<String,Object> equalities = new HashMap<String,Object>
+            HashMap<String,Object> ranges = new HashMap<String,Object>
+
+            for (Iterator it=predicate.keySet().iterator(); iterator.hasNext();)
+            {
+                String key = (String)(it.next());
+
+                if ( key == null )
+                    throw new TypeError("Cannot search on a null attribute");
+
+                Object val = predicate.get(key);
+
+                if ( val == null )
+                    throw new TypeError("Cannot search with a null criteria");
+
+
+                String errStr = "Attribute '" + key + "' has incorrect type ( expected Long, String, Map.Entry<Long,Long> or List<Long> (of size 2), but got %s";
+
+                if ( val instanceof String || val instanceof Long)
+                {
+                    equalities.put(key,val)
+                }
+                else
+                {
+                    if ( val instanceof Map.Entry )
+                    {
+                        try
+                        {
+                            long lower = ((Map.Entry<Long,Long>)val).getKey().valueOf();
+                            long upper = ((Map.Entry<Long,Long>)val).getValue().valueOf();
+                        }
+                        catch(Exception)
+                        {
+                            throw
+                                new TypeError(String.format(errStr,val.getClass().getName());
+                        }
+                    }
+                    else if ( val instanceof List )
+                    {
+                        try
+                        {
+                            List<Long> listVal = (List<Long>)val;
+    
+                            if ( listVal.size() != 2 )
+                                throw new TypeError("Attribute '" + key + "': using a List to specify a range requires its size to be 2, but got size " + listVale.size());  
+                        }
+                        catch (TypeError te)
+                        {
+                            throw te;
+                        }
+                        catch (Exception e)
+                        {
+                            throw
+                                new TypeError(
+                                    String.format(errStr,val.getClass().getName());
+                        }
+                    }
+                    else
+                    {
+                        throw
+                            new TypeError(String.format(errStr,val.getClass().getName());
+                    }
+
+                    ranges.put(key,val);
+                }
+            }
+
             //reqId = client.get(space, key, rc_int_ptr, attrs_ptr, attrs_sz_ptr);
 	
             if (reqId < 0)
@@ -33,7 +96,7 @@ public class Search
                 throw new HyperClientException(status);
             }
 	
-            //client.ops.put(reqId,this);
+            client.ops.put(reqId,this);
         }
         finally
         {

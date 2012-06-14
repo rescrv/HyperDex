@@ -1,6 +1,6 @@
 %typemap(javacode) HyperClient
 %{
-  java.util.HashMap<Long,Deferred> ops = new java.util.HashMap<Long,Deferred>(); 
+  java.util.HashMap<Long,Pending> ops = new java.util.HashMap<Long,Pending>(); 
 
   void loop() throws HyperClientException
   {
@@ -18,9 +18,9 @@
     }
     else
     {
-      Deferred d = ops.get(ret);
-      d.status = rc;
-      d.callback();
+      Pending p = ops.get(ret);
+      p.status = rc;
+      p.callback();
     }
   }
 
