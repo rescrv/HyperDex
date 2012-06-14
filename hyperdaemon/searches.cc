@@ -225,6 +225,71 @@ hyperdaemon :: searches :: stop(const hyperdex::entityid& us,
     m_searches.remove(search_id(us.get_region(), client, search_num));
 }
 
+void
+hyperdaemon :: searches :: group_del(const hyperdex::entityid& us,
+                                     const hyperdex::entityid& client,
+                                     uint64_t nonce,
+                                     const hyperspacehashing::search& terms)
+{
+    if (m_config.dimensions(us.get_space()) != terms.size())
+    {
+        size_t sz = m_comm->header_size() + sizeof(uint64_t) + sizeof(uint16_t);
+        std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+        e::buffer::packer pa = msg->pack_at(m_comm->header_size());
+        pa = pa << nonce << static_cast<uint16_t>(hyperdex::NET_BADDIMSPEC);
+        assert(!pa.error());
+        m_comm->send(us, client, hyperdex::RESP_GROUP_DEL, msg);
+        return;
+    }
+
+    flush(us.get_region());
+
+    hyperspacehashing::mask::hasher hasher(m_config.disk_hasher(us.get_subspace()));
+    hyperspacehashing::mask::coordinate coord(hasher.hash(terms));
+    e::intrusive_ptr<hyperdisk::snapshot> snap = m_data->make_snapshot(us.get_region(), terms);
+
+    while (snap->valid())
+    {
+        if (coord.intersects(snap->coordinate()) &&
+            terms.matches(snap->key(), snap->value()))
+        {
+            size_t sz = m_comm->header_size()
+                      + sizeof(uint64_t)
+                      + sizeof(uint32_t)
+                      + snap->key().size();
+            std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+            e::buffer::packer p = msg->pack_at(m_comm->header_size());
+            p = p << static_cast<uint64_t>(0) << snap->key();
+            assert(!p.error());
+
+            // Figure out who to talk with.
+            hyperdex::entityid dst_ent;
+            hyperdex::instance dst_inst;
+
+            if (m_config.point_leader_entity(us.get_space(), snap->key(), &dst_ent, &dst_inst))
+            {
+                m_comm->send(us, dst_ent, hyperdex::REQ_DEL, msg);
+            }
+            else
+            {
+                // If it fails to find the point leader entity, something is
+                // horribly wrong.  We make no guarantees, so we just log and move
+                // on.
+                LOG(ERROR) << "Could not find point leader for GROUP_DEL (serious bug; please report)";
+            }
+        }
+
+        snap->next();
+    }
+
+    size_t sz = m_comm->header_size() + sizeof(uint64_t) + sizeof(uint16_t);
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    e::buffer::packer pa = msg->pack_at(m_comm->header_size());
+    pa = pa << nonce << static_cast<uint16_t>(hyperdex::NET_SUCCESS);
+    assert(!pa.error());
+    m_comm->send(us, client, hyperdex::RESP_GROUP_DEL, msg);
+}
+
 uint64_t
 hyperdaemon :: searches :: hash(const search_id& si)
 {

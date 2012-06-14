@@ -71,6 +71,9 @@ enum network_msgtype
     RESP_SEARCH_ITEM    = 35,
     RESP_SEARCH_DONE    = 36,
 
+    REQ_GROUP_DEL   = 48,
+    RESP_GROUP_DEL  = 49,
+
     CHAIN_PUT       = 64,
     CHAIN_DEL       = 65,
     CHAIN_PENDING   = 66,
@@ -109,6 +112,8 @@ operator << (std::ostream& lhs, const network_msgtype& rhs)
         stringify(REQ_SEARCH_STOP);
         stringify(RESP_SEARCH_ITEM);
         stringify(RESP_SEARCH_DONE);
+        stringify(REQ_GROUP_DEL);
+        stringify(RESP_GROUP_DEL);
         stringify(CHAIN_PUT);
         stringify(CHAIN_DEL);
         stringify(CHAIN_PENDING);

@@ -339,13 +339,6 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
         return;
     }
 
-    // Make sure this message is from a client.
-    if (from.space != UINT32_MAX)
-    {
-        LOG(INFO) << "dropping client-only message from " << from << " (it is not a client).";
-        return;
-    }
-
     clientop co(to.get_region(), from, nonce);
 
     // Make sure this message is to the point-leader.
@@ -745,13 +738,6 @@ hyperdaemon :: replication_manager :: client_common(const hyperdex::network_msgt
                                                     const e::bitfield& value_mask,
                                                     const std::vector<e::slice>& value)
 {
-    // Make sure this message is from a client.
-    if (from.space != UINT32_MAX)
-    {
-        LOG(INFO) << "dropping client-only message from " << from << " (it is not a client).";
-        return;
-    }
-
     clientop co(to.get_region(), from, nonce);
     hyperdex::network_msgtype retcode = opcode;
 

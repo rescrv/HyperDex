@@ -81,6 +81,10 @@ class searches
         void stop(const hyperdex::entityid& us,
                   const hyperdex::entityid& client,
                   uint64_t searchid);
+        void group_del(const hyperdex::entityid& us,
+                       const hyperdex::entityid& client,
+                       uint64_t nonce,
+                       const hyperspacehashing::search& terms);
 
     private:
         class search_state;

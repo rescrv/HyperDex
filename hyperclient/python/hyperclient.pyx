@@ -148,6 +148,7 @@ cdef extern from "../hyperclient.h":
     int64_t hyperclient_map_string_prepend(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_map_string_append(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_search(hyperclient* client, char* space, hyperclient_attribute* eq, size_t eq_sz, hyperclient_range_query* rn, size_t rn_sz, hyperclient_returncode* status, hyperclient_attribute** attrs, size_t* attrs_sz)
+    int64_t hyperclient_group_del(hyperclient* client, char* space, hyperclient_attribute* eq, size_t eq_sz, hyperclient_range_query* rn, size_t rn_sz, hyperclient_returncode* status)
     int64_t hyperclient_loop(hyperclient* client, int timeout, hyperclient_returncode* status)
     void hyperclient_destroy_attrs(hyperclient_attribute* attrs, size_t attrs_sz)
 
@@ -719,6 +720,75 @@ cdef class DeferredMapOp(Deferred):
             raise HyperClientException(self._status)
 
 
+cdef _predicate_to_c(dict predicate,
+                     hyperclient_attribute** eq, size_t* eq_sz,
+                     hyperclient_range_query** rn, size_t* rn_sz):
+    cdef uint64_t lower
+    cdef uint64_t upper
+    equalities = []
+    ranges = []
+    for attr, params in predicate.iteritems():
+        if isinstance(params, tuple):
+            (lower, upper) = params
+            ranges.append((attr, lower, upper))
+        elif isinstance(params, int):
+            equalities.append((attr, params))
+        elif isinstance(params, bytes):
+            equalities.append((attr, params))
+        else:
+            errstr = "Attribute '{attr}' has incorrect type (expected int, (int, int) or bytes, got {type}"
+            raise TypeError(errstr.format(attr=attr, type=str(type(params))[7:-2]))
+    eq_sz[0] = len(equalities)
+    rn_sz[0] = len(ranges)
+    rn[0] = <hyperclient_range_query*> malloc(sizeof(hyperclient_range_query) * rn_sz[0])
+    if rn[0] == NULL:
+        raise MemoryError()
+    backings = _dict_to_attrs(equalities, eq)
+    for i, (attr, lower, upper) in enumerate(ranges):
+        rn[i].attr = attr
+        rn[i].lower = lower
+        rn[i].upper = upper
+
+
+cdef class DeferredGroupDel(Deferred):
+
+    def __cinit__(self, Client client, bytes space, dict predicate):
+        self._client = client
+        self._reqid = 0
+        self._status = HYPERCLIENT_ZERO
+        cdef hyperclient_attribute* eq = NULL
+        cdef size_t eq_sz = 0
+        cdef hyperclient_range_query* rn = NULL
+        cdef size_t rn_sz = 0
+        try:
+            _predicate_to_c(predicate, &eq, &eq_sz, &rn, &rn_sz)
+            self._reqid = hyperclient_group_del(client._client,
+                                                space,
+                                                eq, eq_sz,
+                                                rn, rn_sz,
+                                                &self._status)
+            if self._reqid < 0:
+                idx = -1 - self._reqid
+                attr = None
+                if idx < eq_sz and eq and eq[idx].attr:
+                    attr = eq[idx].attr
+                idx -= eq_sz
+                if idx < rn_sz and rn and rn[idx].attr:
+                    attr = rn[idx].attr
+                raise HyperClientException(self._status, attr)
+            client._ops[self._reqid] = self
+        finally:
+            if eq: free(eq)
+            if rn: free(rn)
+
+    def wait(self):
+        Deferred.wait(self)
+        if self._status == HYPERCLIENT_SUCCESS:
+            return True
+        else:
+            raise HyperClientException(self._status)
+
+
 cdef class Search:
 
     cdef Client _client
@@ -739,47 +809,26 @@ cdef class Search:
         self._attrs_sz = 0
         self._space = space
         self._backlogged = []
-        cdef uint64_t lower
-        cdef uint64_t upper
-        equalities = []
-        ranges = []
-        for attr, params in predicate.iteritems():
-            if isinstance(params, tuple):
-                (lower, upper) = params
-                ranges.append((attr, lower, upper))
-            elif isinstance(params, int):
-                equalities.append((attr, params))
-            elif isinstance(params, bytes):
-                equalities.append((attr, params))
-            else:
-                errstr = "Attribute '{attr}' has incorrect type (expected int, (int, int) or bytes, got {type}"
-                raise TypeError(errstr.format(attr=attr, type=str(type(params))[7:-2]))
         cdef hyperclient_attribute* eq = NULL
-        cdef hyperclient_range_query* rm = NULL
+        cdef size_t eq_sz = 0
+        cdef hyperclient_range_query* rn = NULL
+        cdef size_t rn_sz = 0
         try:
-            eq = <hyperclient_attribute*> \
-                 malloc(sizeof(hyperclient_attribute) * len(equalities))
-            rn = <hyperclient_range_query*> \
-                 malloc(sizeof(hyperclient_range_query) * len(ranges))
-            backings = _dict_to_attrs(equalities, &eq)
-            for i, (attr, lower, upper) in enumerate(ranges):
-                rn[i].attr = attr
-                rn[i].lower = lower
-                rn[i].upper = upper
+            _predicate_to_c(predicate, &eq, &eq_sz, &rn, &rn_sz)
             self._reqid = hyperclient_search(client._client,
                                              self._space,
-                                             eq, len(equalities),
-                                             rn, len(ranges),
+                                             eq, eq_sz,
+                                             rn, rn_sz,
                                              &self._status,
                                              &self._attrs,
                                              &self._attrs_sz)
             if self._reqid < 0:
                 idx = -1 - self._reqid
                 attr = None
-                if idx < len(equalities) and eq and eq[idx].attr:
+                if idx < eq_sz and eq and eq[idx].attr:
                     attr = eq[idx].attr
-                idx -= len(equalities)
-                if idx < len(ranges) and rn and rn[idx].attr:
+                idx -= eq_sz
+                if idx < rn_sz and rn and rn[idx].attr:
                     attr = rn[idx].attr
                 raise HyperClientException(self._status, attr)
             client._ops[self._reqid] = self
@@ -952,6 +1001,10 @@ cdef class Client:
         async = self.async_map_string_append(space, key, value)
         return async.wait()
 
+    def group_del(self, bytes space, dict predicate):
+        async = self.async_group_del(space, predicate)
+        return async.wait()
+
     def search(self, bytes space, dict predicate):
         return Search(self, space, predicate)
 
@@ -1108,6 +1161,9 @@ cdef class Client:
         d = DeferredMapOp(self)
         d.call(<hyperclient_map_op> hyperclient_map_string_append, space, key, value)
         return d
+
+    def async_group_del(self, bytes space, dict predicate):
+        return DeferredGroupDel(self, space, predicate)
 
     def loop(self):
         cdef hyperclient_returncode rc

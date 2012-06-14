@@ -49,6 +49,7 @@
 #include "hyperclient/hyperclient_completedop.h"
 #include "hyperclient/hyperclient_pending.h"
 #include "hyperclient/hyperclient_pending_get.h"
+#include "hyperclient/hyperclient_pending_group_del.h"
 #include "hyperclient/hyperclient_pending_search.h"
 #include "hyperclient/hyperclient_pending_statusonly.h"
 #include "hyperclient/util.h"
@@ -434,6 +435,58 @@ hyperclient :: search(const char* space,
     }
 
     return searchid;
+}
+
+int64_t
+hyperclient :: group_del(const char* space,
+                         const struct hyperclient_attribute* eq, size_t eq_sz,
+                         const struct hyperclient_range_query* rn, size_t rn_sz,
+                         enum hyperclient_returncode* status)
+{
+    if (maintain_coord_connection(status) < 0)
+    {
+        return -1;
+    }
+
+    // Figure out who to contact for the group_del.
+    hyperspacehashing::search s;
+    std::map<hyperdex::entityid, hyperdex::instance> entities;
+    int64_t ret = prepare_searchop(space, eq, eq_sz, rn, rn_sz, status, &s, &entities);
+
+    if (ret < 0)
+    {
+        return ret;
+    }
+
+    // Send a group_del query to each matching host.
+    int64_t group_del_id = m_client_id;
+    ++m_client_id;
+
+    // Pack the message to send
+    std::auto_ptr<e::buffer> msg(e::buffer::create(HYPERCLIENT_HEADER_SIZE + sizeof(uint64_t) + s.packed_size()));
+    bool packed = !(msg->pack_at(HYPERCLIENT_HEADER_SIZE) << s).error();
+    assert(packed);
+    std::tr1::shared_ptr<uint64_t> refcount(new uint64_t(0));
+
+    for (std::map<hyperdex::entityid, hyperdex::instance>::const_iterator ent_inst = entities.begin();
+            ent_inst != entities.end(); ++ent_inst)
+    {
+        e::intrusive_ptr<pending> op = new pending_group_del(group_del_id, refcount, status);
+        op->set_server_visible_nonce(m_server_nonce);
+        ++m_server_nonce;
+        op->set_entity(ent_inst->first);
+        op->set_instance(ent_inst->second);
+        m_incomplete.insert(std::make_pair(op->server_visible_nonce(), op));
+        std::auto_ptr<e::buffer> tosend(msg->copy());
+
+        if (send(op, tosend) < 0)
+        {
+            m_complete.push(completedop(op, HYPERCLIENT_RECONFIGURE, 0));
+            m_incomplete.erase(op->server_visible_nonce());
+        }
+    }
+
+    return group_del_id;
 }
 
 int64_t
