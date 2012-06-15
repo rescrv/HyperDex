@@ -49,18 +49,6 @@ public class DeferredMapOp extends Deferred
 	
 	        client.ops.put(reqId,this);
         }
-        catch(HyperClientException he)
-        {
-            throw he;
-        }
-        catch(TypeError te)
-        {
-            throw te;
-        }
-        catch(MemoryError me)
-        {
-            throw me;
-        }
         finally
         {
             if ( attrs != null ) HyperClient.destroy_map_attrs(attrs,attrs_sz);

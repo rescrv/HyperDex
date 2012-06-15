@@ -634,4 +634,13 @@
     Deferred d = (DeferredMapOp)(async_map_atomic_add(space, key, map));
     return ((Boolean)(d.waitFor())).booleanValue();
   }
+
+  public Search search(String space, java.util.Map predicate)
+                                                     throws HyperClientException,
+                                                            TypeError,
+                                                            ValueError,
+                                                            MemoryError
+  {
+    return new Search(this,space,predicate);
+  }
 %}

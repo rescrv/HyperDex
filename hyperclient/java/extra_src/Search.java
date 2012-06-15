@@ -7,24 +7,36 @@ public class Search extends Pending
     SWIGTYPE_p_p_hyperclient_attribute attrs_ptr = null;
     SWIGTYPE_p_size_t attrs_sz_ptr = null;
 
+    private Vector<Object> backlogged = new Vector<Object>();
+
     public Search(HyperClient client, String space, Map predicate)
                                                     throws HyperClientException,
                                                            TypeError,
+                                                           ValueError,
                                                            MemoryError
     {
         super(client);
+
+        if ( predicate == null )
+            throw new ValueError("Search critera cannot be null");
 
         attrs_ptr = hyperclient.new_hyperclient_attribute_ptr();
         attrs_sz_ptr = hyperclient.new_size_t_ptr();
 
         SWIGTYPE_p_int rc_int_ptr = hyperclient.new_int_ptr();
 
+        hyperclient_attribute eq = null;
+        int eq_sz = 0;
+
+        hyperclient_range_query rn = null;
+        int rn_sz = 0;
+
         try
         {
-            HashMap<String,Object> equalities = new HashMap<String,Object>
-            HashMap<String,Object> ranges = new HashMap<String,Object>
+            HashMap<String,Object> equalities = new HashMap<String,Object>();
+            HashMap<String,Object> ranges = new HashMap<String,Object>();
 
-            for (Iterator it=predicate.keySet().iterator(); iterator.hasNext();)
+            for (Iterator it=predicate.keySet().iterator(); it.hasNext();)
             {
                 String key = (String)(it.next());
 
@@ -41,7 +53,7 @@ public class Search extends Pending
 
                 if ( val instanceof String || val instanceof Long)
                 {
-                    equalities.put(key,val)
+                    equalities.put(key,val);
                 }
                 else
                 {
@@ -49,23 +61,23 @@ public class Search extends Pending
                     {
                         try
                         {
-                            long lower = ((Map.Entry<Long,Long>)val).getKey().valueOf();
-                            long upper = ((Map.Entry<Long,Long>)val).getValue().valueOf();
+                            long lower = ((Long)((Map.Entry)val).getKey()).longValue();
+                            long upper = ((Long)((Map.Entry)val).getValue()).longValue();
                         }
-                        catch(Exception)
+                        catch(Exception e)
                         {
                             throw
-                                new TypeError(String.format(errStr,val.getClass().getName());
+                                new TypeError(String.format(errStr,val.getClass().getName()));
                         }
                     }
                     else if ( val instanceof List )
                     {
                         try
                         {
-                            List<Long> listVal = (List<Long>)val;
+                            List listVal = (List)val;
     
                             if ( listVal.size() != 2 )
-                                throw new TypeError("Attribute '" + key + "': using a List to specify a range requires its size to be 2, but got size " + listVale.size());  
+                                throw new TypeError("Attribute '" + key + "': using a List to specify a range requires its size to be 2, but got size " + listVal.size());  
                         }
                         catch (TypeError te)
                         {
@@ -75,47 +87,194 @@ public class Search extends Pending
                         {
                             throw
                                 new TypeError(
-                                    String.format(errStr,val.getClass().getName());
+                                    String.format(errStr,val.getClass().getName()));
                         }
                     }
                     else
                     {
                         throw
-                            new TypeError(String.format(errStr,val.getClass().getName());
+                            new TypeError(String.format(errStr,val.getClass().getName()));
                     }
 
                     ranges.put(key,val);
                 }
             }
 
-            //reqId = client.get(space, key, rc_int_ptr, attrs_ptr, attrs_sz_ptr);
+            if ( equalities.size() > 0 )
+            {
+                eq_sz = equalities.size();
+                eq = HyperClient.dict_to_attrs(equalities);
+            }
+
+            if ( ranges.size() > 0 )
+            {
+                rn_sz = ranges.size();
+                rn = HyperClient.alloc_range_queries(rn_sz);
+                if ( rn == null ) throw new MemoryError();
+
+                int i = 0;
+                for (Iterator it=ranges.keySet().iterator(); it.hasNext();)
+                {
+                    String key = (String)(it.next());
+                    Object val = ranges.get(key);
+
+                    long lower = 0;
+                    long upper = 0;
+
+                    if ( val instanceof Map.Entry )
+                    {
+                        lower = (Long)(((Map.Entry)val).getKey());
+                        upper = (Long)(((Map.Entry)val).getValue());
+                    }
+                    else // Must be a List of Longs of size = 2
+                    {
+                        lower = (Long)(((List)val).get(0));
+                        upper = (Long)(((List)val).get(1));
+                    }
+    
+                    hyperclient_range_query rq = HyperClient.get_range_query(rn,i);
+
+                    if ( HyperClient.write_range_query(rq,key.getBytes(),lower,upper) == 0 )
+                        throw new MemoryError();
+
+                    i++;
+                }
+            }
+
+            if ( eq == null && rn == null )
+                        throw new ValueError("Search criteria can't be empty");
+
+            reqId = client.search(space,
+                                  eq, equalities.size(),
+                                  rn, ranges.size(),
+                                  rc_int_ptr,
+                                  attrs_ptr, attrs_sz_ptr);
 	
             if (reqId < 0)
             {
                 status = ReturnCode.swigToEnum(hyperclient.int_ptr_value(rc_int_ptr));
-                throw new HyperClientException(status);
+
+                int idx = (int)(-1 - reqId);
+                String attrName = null;
+
+                if ( idx >= 0 && idx < eq_sz && eq != null )
+                    attrName = HyperClient.get_attr(eq,idx).getAttrName(); 
+            
+                idx -= equalities.size();
+
+                if ( idx >= 0 && idx < rn_sz && rn != null )
+                    attrName
+                        = HyperClient.get_range_query(rn,idx).getRangeQueryAttrName();
+
+                if ( attrName != null )
+                {
+                    throw new HyperClientException(status,attrName);
+                }
+                else
+                {
+                    throw new HyperClientException(status);
+                }
             }
 	
             client.ops.put(reqId,this);
         }
         finally
         {
+            if ( eq != null ) HyperClient.destroy_attrs(eq, eq_sz);
+            if ( rn != null ) HyperClient.destroy_range_queries(rn, rn_sz);
             hyperclient.delete_int_ptr(rc_int_ptr);
         }
+    }
+
+    public void callback()
+    {
+        if ( status == ReturnCode.HYPERCLIENT_SEARCHDONE )
+        {
+            finished = true;
+            client.ops.remove(reqId);
+            System.out.println("JESSSSSSSSSSSSSSSSSSSSSSSS");
+        }
+        else if ( status == ReturnCode.HYPERCLIENT_SUCCESS )
+        {
+            Map attrsMap = null;
+
+            hyperclient_attribute attrs = null;
+            long attrs_sz = 0;
+
+            attrs = hyperclient.hyperclient_attribute_ptr_value(attrs_ptr);
+
+            attrs_sz = hyperclient.size_t_ptr_value(attrs_sz_ptr);
+            try
+            {
+                attrsMap =  HyperClient.attrs_to_dict(attrs,attrs_sz);
+            }
+            catch(Exception e) // There's a bug in attrs_to_dict() if exception here. 
+            {
+                e.printStackTrace();
+            }
+            finally
+            {
+                if ( attrs != null )
+                {
+                    hyperclient.hyperclient_destroy_attrs(attrs,attrs_sz);
+                }
+            }
+
+            if ( backlogged.size() < Integer.MAX_VALUE )
+            {
+                backlogged.add(attrsMap);
+            }
+            else
+            {
+                backlogged.set(Integer.MAX_VALUE-1,new HyperClientException(
+                                                    ReturnCode.HYPERCLIENT_NOMEM));
+            }
+        }
+        else
+        {
+             backlogged.add(new HyperClientException(status));
+        }
+    }
+
+    public Map next() throws HyperClientException
+    {
+        while ( ! finished && backlogged.size() == 0 )
+        {
+            client.loop();
+            System.out.println("next(): status = " + status);
+        }
+
+        if ( backlogged.size() > 0 )
+        {
+            Object ret = backlogged.remove(backlogged.size()-1);
+
+            if ( ret instanceof HyperClientException )
+                throw (HyperClientException)ret;
+            else
+                return (Map)ret;
+        }
+        else
+        {
+            return null;
+        }
+    }
+
+    public boolean hasNext() throws HyperClientException
+    {
+        if ( backlogged.size() > 0 ) return true;
+
+        while ( ! finished && backlogged.size() == 0 )
+        {
+            client.loop();
+            System.out.println("hasNext(): status = " + status);
+        }
+
+        return backlogged.size() > 0;
     }
 
     protected void finalize() throws Throwable
     {
         super.finalize();
-
-        if ( attrs_ptr != null ) 
-        {
-            hyperclient_attribute attrs
-                = hyperclient.hyperclient_attribute_ptr_value(attrs_ptr);
-            long attrs_sz = hyperclient.size_t_ptr_value(attrs_sz_ptr);
-
-            hyperclient.hyperclient_destroy_attrs(attrs,attrs_sz);
-        }
 
         hyperclient.delete_hyperclient_attribute_ptr(attrs_ptr);
         hyperclient.delete_size_t_ptr(attrs_sz_ptr);

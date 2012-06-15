@@ -89,6 +89,19 @@ HyperClient :: read_map_attr_name(hyperclient_map_attribute *hma)
     return str;
 }
 
+std::string
+HyperClient :: read_range_query_attr_name(hyperclient_range_query *rq)
+{
+    std::string str = std::string(rq->attr);
+
+    if (str.length() > INT_MAX)
+    {
+        return str.substr(0,INT_MAX);
+    }
+
+    return str;
+}
+
 int64_t
 HyperClient :: loop(int *i_rc)
 {
@@ -396,3 +409,27 @@ HyperClient :: map_atomic_add(const std::string& space,
     *i_rc = (int)rc;
     return id;
 }
+
+int64_t
+HyperClient :: search(const std::string& space,
+                      hyperclient_attribute *eq, size_t eq_sz, 
+                      hyperclient_range_query *rn, size_t rn_sz, 
+                      int *i_rc,
+                      hyperclient_attribute **attrs, size_t *attrs_sz)
+{
+    hyperclient_returncode rc;
+
+    int64_t id =  hyperclient_search(m_client,
+                                     space.c_str(),
+                                     eq, eq_sz,
+                                     rn, rn_sz,
+                                     &rc,
+                                     attrs,
+                                     attrs_sz);
+    *i_rc = (int)rc;
+    std::cout << "c++: the id is: " << id << std::endl;
+    std::cout << "c++: the rc is: " << (int)rc << std::endl;
+    std::cout << "c++: the space is: " << space.c_str() << std::endl;
+    return id;
+}
+

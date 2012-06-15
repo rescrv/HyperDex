@@ -47,6 +47,8 @@ class HyperClient
 
         static std::string read_map_attr_name(hyperclient_map_attribute *hma);
 
+        static std::string read_range_query_attr_name(hyperclient_range_query *rq);
+
         int64_t loop(int *i_rc);
 
         static hyperclient_attribute *alloc_attrs(size_t attrs_sz);
@@ -134,6 +136,12 @@ class HyperClient
                                const std::string& key,
                                const hyperclient_map_attribute *attrs, size_t attrs_sz,
                                int *i_rc);
+
+        int64_t search(const std::string& space,
+                       hyperclient_attribute *eq, size_t eq_sz, 
+                       hyperclient_range_query *rn, size_t rn_sz, 
+                       int *i_rc,
+                       hyperclient_attribute **attrs, size_t *attrs_sz);
 
     private:
         hyperclient *m_client;

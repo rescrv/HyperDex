@@ -45,12 +45,17 @@ public class DeferredGet extends Deferred
                 = hyperclient.hyperclient_attribute_ptr_value(attrs_ptr);
             long attrs_sz = hyperclient.size_t_ptr_value(attrs_sz_ptr);
 
-            Map map = HyperClient.attrs_to_dict(attrs, attrs_sz);
-            
-            hyperclient.hyperclient_destroy_attrs(attrs,attrs_sz);
+            Map map = null;
 
-            attrs_ptr = null;
-            attrs_sz_ptr = null;
+            try
+            {
+                map = HyperClient.attrs_to_dict(attrs, attrs_sz);
+            }
+            finally
+            {
+                if ( attrs != null )
+                    hyperclient.hyperclient_destroy_attrs(attrs,attrs_sz);
+            }
 
             return map;
         }
@@ -67,15 +72,6 @@ public class DeferredGet extends Deferred
     protected void finalize() throws Throwable
     {
         super.finalize();
-
-        if ( attrs_ptr != null ) 
-        {
-            hyperclient_attribute attrs
-                = hyperclient.hyperclient_attribute_ptr_value(attrs_ptr);
-            long attrs_sz = hyperclient.size_t_ptr_value(attrs_sz_ptr);
-
-            hyperclient.hyperclient_destroy_attrs(attrs,attrs_sz);
-        }
 
         hyperclient.delete_hyperclient_attribute_ptr(attrs_ptr);
         hyperclient.delete_size_t_ptr(attrs_sz_ptr);
