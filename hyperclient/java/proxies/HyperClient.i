@@ -4,13 +4,13 @@
 
   void loop() throws HyperClientException
   {
-    SWIGTYPE_p_int rc_int_ptr = hyperclient.new_int_ptr();
+    SWIGTYPE_p_hyperclient_returncode rc_ptr = hyperclient.new_rc_ptr();
 
-    long ret = loop(rc_int_ptr);
+    long ret = loop(rc_ptr);
 
-    ReturnCode rc = ReturnCode.swigToEnum(hyperclient.int_ptr_value(rc_int_ptr));
+    hyperclient_returncode rc = hyperclient.rc_ptr_value(rc_ptr);
 
-    hyperclient.delete_int_ptr(rc_int_ptr);
+    hyperclient.delete_rc_ptr(rc_ptr); // Deallocate the pointer
 
     if ( ret < 0 )
     {
@@ -419,7 +419,7 @@
 
     if ( attrs == null ) throw new MemoryError();
 
-    attrs.setAttrsSz(attrs_sz);
+    attrs.setAttrsSz_bi(attrs_sz_bi);
     
     java.math.BigInteger i_bi = java.math.BigInteger.valueOf(0);
 

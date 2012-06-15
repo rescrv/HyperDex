@@ -103,16 +103,10 @@ HyperClient :: read_range_query_attr_name(hyperclient_range_query *rq)
 }
 
 int64_t
-HyperClient :: loop(int *i_rc)
+HyperClient :: loop(hyperclient_returncode *rc)
 {
-    hyperclient_returncode rc;
-    int64_t ret;
 
-    ret = hyperclient_loop(m_client, -1, &rc);
-    *i_rc = (int)rc;
-    std::cout << "c++: the int is: " << *i_rc << std::endl;
-    std::cout << "c++: the enum is: " << rc << std::endl;
-    return ret;
+    return hyperclient_loop(m_client, -1, rc);
 }
 
 hyperclient_attribute*
@@ -290,150 +284,77 @@ HyperClient :: get_range_query(hyperclient_range_query *rqs, size_t i)
 int64_t
 HyperClient :: get(const std::string& space,
                    const std::string& key,
-                   int *i_rc,
+                   hyperclient_returncode *rc,
                    hyperclient_attribute **attrs, size_t *attrs_sz)
 {
-    hyperclient_returncode rc;
-
-    int64_t id =  hyperclient_get(m_client,
-                                  space.c_str(),
-                                  key.data(),
-                                  key.size(),
-                                  &rc,
-                                  attrs,
-                                  attrs_sz);
-    *i_rc = (int)rc;
-    std::cout << "c++: the id is: " << id << std::endl;
-    std::cout << "c++: the rc is: " << (int)rc << std::endl;
-    std::cout << "c++: the space is: " << space.c_str() << std::endl;
-    std::cout << "c++: the key is: " << key << std::endl;
-    return id;
+    return hyperclient_get(m_client,
+                           space.c_str(),
+                           key.data(),
+                           key.size(),
+                           rc,
+                           attrs,
+                           attrs_sz);
 }
 
 int64_t
 HyperClient :: put(const std::string& space,
-                       const std::string& key,
-                       const hyperclient_attribute *attrs, size_t attrs_sz, int *i_rc)
+                   const std::string& key,
+                   const hyperclient_attribute *attrs, size_t attrs_sz,
+                   hyperclient_returncode *rc)
 
 {
-    hyperclient_returncode rc;
-
-    std::cout << m_client << std::endl
-    << space << std::endl
-    << key << std::endl
-    << attrs[0].attr << std::endl
-    << attrs_sz << std::endl
-    << &rc << std::endl;
-
-    int64_t id = hyperclient_put(m_client,
-                                 space.c_str(),
-                                 key.data(),
-                                 key.size(),
-                                 attrs,
-                                 attrs_sz,
-                                 &rc);
-    
-    *i_rc = (int)rc;
-    return id;
+    return hyperclient_put(m_client,
+                           space.c_str(),
+                           key.data(),
+                           key.size(),
+                           attrs,
+                           attrs_sz,
+                           rc);
 }
 
 int64_t
 HyperClient :: del(const std::string& space,
                    const std::string& key,
-                   int *i_rc)
+                   hyperclient_returncode *rc)
 {
-    hyperclient_returncode rc;
-
-    int64_t id = hyperclient_del(m_client,
-                                 space.c_str(),
-                                 key.data(),
-                                 key.size(),
-                                 &rc);
-
-    *i_rc = (int)rc;
-    return id;
+    return hyperclient_del(m_client,
+                           space.c_str(),
+                           key.data(),
+                           key.size(),
+                           rc);
 }
 
 int64_t
 HyperClient :: map_add(const std::string& space,
                        const std::string& key,
-                       const hyperclient_map_attribute *attrs, size_t attrs_sz, int *i_rc)
+                       const hyperclient_map_attribute *attrs, size_t attrs_sz, 
+                       hyperclient_returncode *rc)
 
 {
-    hyperclient_returncode rc;
-
-    std::cout << m_client << std::endl
-    << space << std::endl
-    << key << std::endl
-    << attrs[0].attr << std::endl
-    << attrs_sz << std::endl
-    << &rc << std::endl;
-
-    int64_t id = hyperclient_map_add(m_client,
-                                     space.c_str(),
-                                     key.data(),
-                                     key.size(),
-                                     attrs,
-                                     attrs_sz,
-                                     &rc);
-    
-    *i_rc = (int)rc;
-    return id;
+    return hyperclient_map_add(m_client,
+                               space.c_str(),
+                               key.data(),
+                               key.size(),
+                               attrs,
+                               attrs_sz,
+                               rc);
 }
 
 int64_t
 HyperClient :: map_atomic_add(const std::string& space,
                               const std::string& key,
-                              const hyperclient_map_attribute *attrs, size_t attrs_sz, int *i_rc)
+                              const hyperclient_map_attribute *attrs, size_t attrs_sz,
+                              hyperclient_returncode *rc)
 
 {
-    hyperclient_returncode rc;
-
-    std::cout << m_client << std::endl
-    << space << std::endl
-    << key << std::endl
-    << attrs[0].attr << std::endl
-    << attrs[0].map_key_sz << std::endl
-    << std::string(attrs[0].map_key,attrs[0].map_key_sz) << std::endl
-    << attrs_sz << std::endl
-    << &rc << std::endl;
-
-    int64_t id = hyperclient_map_atomic_add(m_client,
-                                            space.c_str(),
-                                            key.data(),
-                                            key.size(),
-                                            attrs,
-                                            attrs_sz,
-                                            &rc);
-    
-    *i_rc = (int)rc;
-    return id;
+    return hyperclient_map_atomic_add(m_client,
+                                      space.c_str(),
+                                      key.data(),
+                                      key.size(),
+                                      attrs,
+                                      attrs_sz,
+                                      rc);
 }
-
-/*
-int64_t
-HyperClient :: search(const std::string& space,
-                      hyperclient_attribute *eq, size_t eq_sz, 
-                      hyperclient_range_query *rn, size_t rn_sz, 
-                      int *i_rc,
-                      hyperclient_attribute **attrs, size_t *attrs_sz)
-{
-    hyperclient_returncode rc;
-
-    int64_t id =  hyperclient_search(m_client,
-                                     space.c_str(),
-                                     eq, eq_sz,
-                                     rn, rn_sz,
-                                     &rc,
-                                     attrs,
-                                     attrs_sz);
-    *i_rc = (int)rc;
-    std::cout << "c++: the id is: " << id << std::endl;
-    std::cout << "c++: the rc is: " << (int)rc << std::endl;
-    std::cout << "c++: the space is: " << space.c_str() << std::endl;
-    return id;
-}
-*/
 
 int64_t
 HyperClient :: search(const std::string& space,

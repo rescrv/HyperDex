@@ -7,20 +7,25 @@
 
 %typemap(javacode) hyperclient_map_attribute
 %{
-  // Holds the size of the hyperclient_map_attribute array that is instance
+  private java.math.BigInteger attrs_sz_bi = java.math.BigInteger.ZERO;
+
+  // Returns the size of the hyperclient_map_attribute array that is instance
   // is the head of. This signed 64 bit integer will be interpreted as an
   // unsigned 64 bit integer at the c/c++ level.
   //
-  private long attrs_sz = 0;
-
   long getAttrsSz()
   {
-    return attrs_sz;
+    return attrs_sz_bi.longValue();
   }
 
-  void setAttrsSz(long value)
+  java.math.BigInteger getAttrsSz_bi()
   {
-    attrs_sz = value;
+    return attrs_sz_bi;
+  }
+
+  void setAttrsSz_bi(java.math.BigInteger value)
+  {
+    attrs_sz_bi = value;
   }
 
   String getMapAttrName()

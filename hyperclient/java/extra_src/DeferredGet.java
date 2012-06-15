@@ -15,31 +15,21 @@ public class DeferredGet extends Deferred
         attrs_ptr = hyperclient.new_hyperclient_attribute_ptr();
         attrs_sz_ptr = hyperclient.new_size_t_ptr();
 
-        SWIGTYPE_p_int rc_int_ptr = hyperclient.new_int_ptr();
+        reqId = client.get(space, key, rc_ptr, attrs_ptr, attrs_sz_ptr);
 
-        try
+        if (reqId < 0)
         {
-            reqId = client.get(space, key, rc_int_ptr, attrs_ptr, attrs_sz_ptr);
-
-            if (reqId < 0)
-            {
-                status = ReturnCode.swigToEnum(hyperclient.int_ptr_value(rc_int_ptr));
-                throw new HyperClientException(status);
-            }
-
-            client.ops.put(reqId,this);
+            throw new HyperClientException(status());
         }
-        finally
-        {
-            hyperclient.delete_int_ptr(rc_int_ptr);
-        }
+
+        client.ops.put(reqId,this);
     }
 
     public Object waitFor() throws HyperClientException, ValueError
     {
         super.waitFor();
 
-        if (status == ReturnCode.HYPERCLIENT_SUCCESS)
+        if (status() == hyperclient_returncode.HYPERCLIENT_SUCCESS)
         {
             hyperclient_attribute attrs
                 = hyperclient.hyperclient_attribute_ptr_value(attrs_ptr);
@@ -59,13 +49,13 @@ public class DeferredGet extends Deferred
 
             return map;
         }
-        else if (status == ReturnCode.HYPERCLIENT_NOTFOUND)
+        else if (status() == hyperclient_returncode.HYPERCLIENT_NOTFOUND)
         {
             return null;
         }
         else
         {
-            throw new HyperClientException(status);
+            throw new HyperClientException(status());
         }
     }
 

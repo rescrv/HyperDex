@@ -82,11 +82,10 @@ typedef uint16_t in_port_t;
 %include "hyperclient/java/javaclient.h"
 
 %ignore "";
-%rename("ReturnCode") "hyperclient_returncode";
+%rename("%s") "hyperclient_returncode";
 %rename("%s") "hyperdatatype";
 %rename("%s", %$isenumitem) "";
 %rename("%s") "hyperclient_destroy_attrs";
-//%rename("%(regex:/^HYPERCLIENT_(.{2,})/\\1/)s", %$isenumitem) "";
 %rename("%s") "hyperclient_attribute";
 %rename("%s") "hyperclient_map_attribute";
 %rename("%s") "hyperclient_range_query";

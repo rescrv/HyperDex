@@ -49,7 +49,7 @@ class HyperClient
 
         static std::string read_range_query_attr_name(hyperclient_range_query *rq);
 
-        int64_t loop(int *i_rc);
+        int64_t loop(hyperclient_returncode *rc);
 
         static hyperclient_attribute *alloc_attrs(size_t attrs_sz);
         static void destroy_attrs(hyperclient_attribute *attrs, size_t attrs_sz);
@@ -116,31 +116,31 @@ class HyperClient
 
         int64_t get(const std::string& space,
                        const std::string& key,
-                       int *i_rc,
+                       hyperclient_returncode *rc,
                        hyperclient_attribute **attrs, size_t *attrs_sz);
 
         int64_t put(const std::string& space,
                        const std::string& key,
-                       const hyperclient_attribute *attrs, size_t attrs_sz, int *i_rc);
+                       const hyperclient_attribute *attrs, size_t attrs_sz,
+                       hyperclient_returncode *rc);
 
         int64_t del(const std::string& space,
                    const std::string& key,
-                   int *i_rc);
+                   hyperclient_returncode *rc);
 
         int64_t map_add(const std::string& space,
                        const std::string& key,
                        const hyperclient_map_attribute *attrs, size_t attrs_sz,
-                       int *i_rc);
+                       hyperclient_returncode *rc);
 
         int64_t map_atomic_add(const std::string& space,
                                const std::string& key,
                                const hyperclient_map_attribute *attrs, size_t attrs_sz,
-                               int *i_rc);
+                               hyperclient_returncode *rc);
 
         int64_t search(const std::string& space,
                        hyperclient_attribute *eq, size_t eq_sz, 
                        hyperclient_range_query *rn, size_t rn_sz, 
-                       //int *i_rc,
                        hyperclient_returncode *rc,
                        hyperclient_attribute **attrs, size_t *attrs_sz);
 

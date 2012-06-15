@@ -4,8 +4,6 @@ import java.util.*;
 
 public class Search extends Pending
 {
-    SWIGTYPE_p_int rc_int_ptr = null;
-    SWIGTYPE_p_hyperclient_returncode rc_ptr = null;
     SWIGTYPE_p_p_hyperclient_attribute attrs_ptr = null;
     SWIGTYPE_p_size_t attrs_sz_ptr = null;
 
@@ -21,9 +19,6 @@ public class Search extends Pending
 
         if ( predicate == null )
             throw new ValueError("Search critera cannot be null");
-
-        rc_ptr = hyperclient.new_rc_ptr();
-        rc_int_ptr = hyperclient.new_int_ptr();
 
         attrs_ptr = hyperclient.new_hyperclient_attribute_ptr();
         attrs_sz_ptr = hyperclient.new_size_t_ptr();
@@ -150,17 +145,11 @@ public class Search extends Pending
             reqId = client.search(space,
                                   eq, equalities.size(),
                                   rn, ranges.size(),
-                                  //rc_int_ptr,
                                   rc_ptr,
                                   attrs_ptr, attrs_sz_ptr);
 	
             if (reqId < 0)
             {
-                System.out.println(hyperclient.rc_ptr_value(rc_ptr));
-                //status = ReturnCode.swigToEnum(hyperclient.int_ptr_value(rc_int_ptr));
-                status = hyperclient.rc_ptr_value(rc_ptr);
-                System.out.println("AGAIN: " + hyperclient.rc_ptr_value(rc_ptr));
-
                 int idx = (int)(-1 - reqId);
                 String attrName = null;
 
@@ -175,11 +164,11 @@ public class Search extends Pending
 
                 if ( attrName != null )
                 {
-                    throw new HyperClientException(status,attrName);
+                    throw new HyperClientException(status(),attrName);
                 }
                 else
                 {
-                    throw new HyperClientException(status);
+                    throw new HyperClientException(status());
                 }
             }
 	
@@ -194,18 +183,13 @@ public class Search extends Pending
 
     public void callback()
     {
-        System.out.println(hyperclient.rc_ptr_value(rc_ptr));
-        //status = ReturnCode.swigToEnum(hyperclient.int_ptr_value(rc_int_ptr));
-        status = hyperclient.rc_ptr_value(rc_ptr);
-        System.out.println("AGAIN: " + status);
-
-        if ( status == ReturnCode.HYPERCLIENT_SEARCHDONE ) 
+        if ( status() == hyperclient_returncode.HYPERCLIENT_SEARCHDONE ) 
         {
             finished = true;
             client.ops.remove(reqId);
             System.out.println("JESSSSSSSSSSSSSSSSSSSSSSSS");
         }
-        else if ( status == ReturnCode.HYPERCLIENT_SUCCESS )
+        else if ( status() == hyperclient_returncode.HYPERCLIENT_SUCCESS )
         {
             Map attrsMap = null;
 
@@ -238,12 +222,12 @@ public class Search extends Pending
             else
             {
                 backlogged.set(Integer.MAX_VALUE-1,new HyperClientException(
-                                                    ReturnCode.HYPERCLIENT_NOMEM));
+                                             hyperclient_returncode.HYPERCLIENT_NOMEM));
             }
         }
         else
         {
-             backlogged.add(new HyperClientException(status));
+             backlogged.add(new HyperClientException(status()));
         }
     }
 
@@ -252,7 +236,7 @@ public class Search extends Pending
         while ( ! finished && backlogged.size() == 0 )
         {
             client.loop();
-            System.out.println("next(): status = " + status);
+            System.out.println("next(): status = " + status());
         }
 
         if ( backlogged.size() > 0 )
@@ -277,7 +261,7 @@ public class Search extends Pending
         while ( ! finished && backlogged.size() == 0 )
         {
             client.loop();
-            System.out.println("hasNext(): status = " + status);
+            System.out.println("hasNext(): status = " + status());
         }
 
         return backlogged.size() > 0;
@@ -287,8 +271,6 @@ public class Search extends Pending
     {
         super.finalize();
 
-        hyperclient.delete_int_ptr(rc_int_ptr);
-        hyperclient.delete_rc_ptr(rc_ptr);
         hyperclient.delete_hyperclient_attribute_ptr(attrs_ptr);
         hyperclient.delete_size_t_ptr(attrs_sz_ptr);
     }

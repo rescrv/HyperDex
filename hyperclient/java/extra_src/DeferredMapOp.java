@@ -16,8 +16,6 @@ public class DeferredMapOp extends Deferred
 	    hyperclient_map_attribute attrs = null;
 	    long attrs_sz = 0;
 	
-	    SWIGTYPE_p_int rc_int_ptr = hyperclient.new_int_ptr();
-	
         try
         {
 	        attrs = HyperClient.dict_to_map_attrs(map);
@@ -25,25 +23,24 @@ public class DeferredMapOp extends Deferred
                                            // flattened to the larger cardinality
                                            // of map operands.
 	
-	        reqId = op.call(space, key, attrs, attrs_sz, rc_int_ptr);
+	        reqId = op.call(space, key, attrs, attrs_sz, rc_ptr);
+
+            BigInteger idx_bi = BigInteger.ONE.subtract(
+                          BigInteger.valueOf(reqId));
+
+            long idx = idx_bi.longValue();
 	
 	        if (reqId < 0)
 	        {
-	            status = ReturnCode.swigToEnum(hyperclient.int_ptr_value(rc_int_ptr));
-
-                if ( status == ReturnCode.HYPERCLIENT_UNKNOWNATTR
-                  || status == ReturnCode.HYPERCLIENT_DUPEATTR // Won't happen
-                  || status == ReturnCode.HYPERCLIENT_WRONGTYPE)
+                if ( attrs != null && idx_bi.compareTo(BigInteger.ZERO) >= 0
+                                   && idx_bi.compareTo(attrs.getAttrsSz_bi()) < 0 )
                 {
-                    long idx = BigInteger.ONE.subtract(
-                                BigInteger.valueOf(reqId)).longValue();
-
                     hyperclient_map_attribute hma = HyperClient.get_map_attr(attrs,idx);
-                    throw new HyperClientException(status,hma.getMapAttrName());
+                    throw new HyperClientException(status(),hma.getMapAttrName());
                 }
                 else
                 {
-                    throw new HyperClientException(status);
+                    throw new HyperClientException(status());
                 }
 	        }
 	
@@ -52,20 +49,19 @@ public class DeferredMapOp extends Deferred
         finally
         {
             if ( attrs != null ) HyperClient.destroy_map_attrs(attrs,attrs_sz);
-            hyperclient.delete_int_ptr(rc_int_ptr);
         }
     }
 
     public Object waitFor() throws HyperClientException, ValueError
     {
         super.waitFor();
-        if (status == ReturnCode.HYPERCLIENT_SUCCESS)
+        if (status() == hyperclient_returncode.HYPERCLIENT_SUCCESS)
         {
             return new Boolean(true);
         }
         else
         {
-            throw new HyperClientException(status);
+            throw new HyperClientException(status());
         }
     }
 }
