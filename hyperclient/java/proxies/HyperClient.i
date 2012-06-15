@@ -19,7 +19,6 @@
     else
     {
       Pending p = ops.get(ret);
-      p.status = rc;
       p.callback();
     }
   }

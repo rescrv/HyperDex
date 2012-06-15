@@ -410,6 +410,7 @@ HyperClient :: map_atomic_add(const std::string& space,
     return id;
 }
 
+/*
 int64_t
 HyperClient :: search(const std::string& space,
                       hyperclient_attribute *eq, size_t eq_sz, 
@@ -429,6 +430,27 @@ HyperClient :: search(const std::string& space,
     *i_rc = (int)rc;
     std::cout << "c++: the id is: " << id << std::endl;
     std::cout << "c++: the rc is: " << (int)rc << std::endl;
+    std::cout << "c++: the space is: " << space.c_str() << std::endl;
+    return id;
+}
+*/
+
+int64_t
+HyperClient :: search(const std::string& space,
+                      hyperclient_attribute *eq, size_t eq_sz, 
+                      hyperclient_range_query *rn, size_t rn_sz, 
+                      hyperclient_returncode *rc,
+                      hyperclient_attribute **attrs, size_t *attrs_sz)
+{
+    int64_t id =  hyperclient_search(m_client,
+                                     space.c_str(),
+                                     eq, eq_sz,
+                                     rn, rn_sz,
+                                     rc,
+                                     attrs,
+                                     attrs_sz);
+    std::cout << "c++: the id is: " << id << std::endl;
+    std::cout << "c++: the rc is: " << rc << std::endl;
     std::cout << "c++: the space is: " << space.c_str() << std::endl;
     return id;
 }

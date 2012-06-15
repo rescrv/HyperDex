@@ -66,6 +66,7 @@ typedef uint16_t in_port_t;
 //
 %pointer_functions(size_t, size_t_ptr);
 %pointer_functions(int, int_ptr);
+%pointer_functions(hyperclient_returncode, rc_ptr);
 
 %include "proxies/hyperclient_attribute.i"
 %include "proxies/hyperclient_map_attribute.i"

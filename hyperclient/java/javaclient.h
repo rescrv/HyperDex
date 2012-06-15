@@ -140,7 +140,8 @@ class HyperClient
         int64_t search(const std::string& space,
                        hyperclient_attribute *eq, size_t eq_sz, 
                        hyperclient_range_query *rn, size_t rn_sz, 
-                       int *i_rc,
+                       //int *i_rc,
+                       hyperclient_returncode *rc,
                        hyperclient_attribute **attrs, size_t *attrs_sz);
 
     private:

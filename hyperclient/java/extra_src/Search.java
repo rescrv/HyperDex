@@ -4,6 +4,8 @@ import java.util.*;
 
 public class Search extends Pending
 {
+    SWIGTYPE_p_int rc_int_ptr = null;
+    SWIGTYPE_p_hyperclient_returncode rc_ptr = null;
     SWIGTYPE_p_p_hyperclient_attribute attrs_ptr = null;
     SWIGTYPE_p_size_t attrs_sz_ptr = null;
 
@@ -20,10 +22,11 @@ public class Search extends Pending
         if ( predicate == null )
             throw new ValueError("Search critera cannot be null");
 
+        rc_ptr = hyperclient.new_rc_ptr();
+        rc_int_ptr = hyperclient.new_int_ptr();
+
         attrs_ptr = hyperclient.new_hyperclient_attribute_ptr();
         attrs_sz_ptr = hyperclient.new_size_t_ptr();
-
-        SWIGTYPE_p_int rc_int_ptr = hyperclient.new_int_ptr();
 
         hyperclient_attribute eq = null;
         int eq_sz = 0;
@@ -147,12 +150,16 @@ public class Search extends Pending
             reqId = client.search(space,
                                   eq, equalities.size(),
                                   rn, ranges.size(),
-                                  rc_int_ptr,
+                                  //rc_int_ptr,
+                                  rc_ptr,
                                   attrs_ptr, attrs_sz_ptr);
 	
             if (reqId < 0)
             {
-                status = ReturnCode.swigToEnum(hyperclient.int_ptr_value(rc_int_ptr));
+                System.out.println(hyperclient.rc_ptr_value(rc_ptr));
+                //status = ReturnCode.swigToEnum(hyperclient.int_ptr_value(rc_int_ptr));
+                status = hyperclient.rc_ptr_value(rc_ptr);
+                System.out.println("AGAIN: " + hyperclient.rc_ptr_value(rc_ptr));
 
                 int idx = (int)(-1 - reqId);
                 String attrName = null;
@@ -182,13 +189,17 @@ public class Search extends Pending
         {
             if ( eq != null ) HyperClient.destroy_attrs(eq, eq_sz);
             if ( rn != null ) HyperClient.destroy_range_queries(rn, rn_sz);
-            hyperclient.delete_int_ptr(rc_int_ptr);
         }
     }
 
     public void callback()
     {
-        if ( status == ReturnCode.HYPERCLIENT_SEARCHDONE )
+        System.out.println(hyperclient.rc_ptr_value(rc_ptr));
+        //status = ReturnCode.swigToEnum(hyperclient.int_ptr_value(rc_int_ptr));
+        status = hyperclient.rc_ptr_value(rc_ptr);
+        System.out.println("AGAIN: " + status);
+
+        if ( status == ReturnCode.HYPERCLIENT_SEARCHDONE ) 
         {
             finished = true;
             client.ops.remove(reqId);
@@ -276,6 +287,8 @@ public class Search extends Pending
     {
         super.finalize();
 
+        hyperclient.delete_int_ptr(rc_int_ptr);
+        hyperclient.delete_rc_ptr(rc_ptr);
         hyperclient.delete_hyperclient_attribute_ptr(attrs_ptr);
         hyperclient.delete_size_t_ptr(attrs_sz_ptr);
     }

@@ -8,6 +8,7 @@ public class Deferred extends Pending
     {
         super(client);
     }
+
     public Object waitFor() throws HyperClientException, ValueError
     {
         while (! finished && reqId > 0)
