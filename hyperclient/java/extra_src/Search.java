@@ -142,11 +142,13 @@ public class Search extends Pending
             if ( eq == null && rn == null )
                         throw new ValueError("Search criteria can't be empty");
 
-            reqId = client.search(space,
-                                  eq, equalities.size(),
-                                  rn, ranges.size(),
-                                  rc_ptr,
-                                  attrs_ptr, attrs_sz_ptr);
+            reqId = hyperclient.hyperclient_search(client.get_hyperclient(),
+                                                   space,
+                                                   eq, eq_sz,
+                                                   rn, rn_sz,
+                                                   rc_ptr,
+                                                   attrs_ptr, attrs_sz_ptr);
+
 	
             if (reqId < 0)
             {

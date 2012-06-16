@@ -6,7 +6,7 @@
   {
     SWIGTYPE_p_hyperclient_returncode rc_ptr = hyperclient.new_rc_ptr();
 
-    long ret = loop(rc_ptr);
+    long ret = hyperclient.hyperclient_loop(get_hyperclient(), -1, rc_ptr);
 
     hyperclient_returncode rc = hyperclient.rc_ptr_value(rc_ptr);
 

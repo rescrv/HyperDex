@@ -7,7 +7,10 @@ public class DeferredDelete extends Deferred
     {
         super(client);
 
-	    reqId = client.del(space, key, rc_ptr);
+        reqId = hyperclient.hyperclient_del(client.get_hyperclient(),
+                                            space,
+                                            key.getBytes(),
+                                            rc_ptr);
 
         if (reqId < 0)
         {

@@ -65,7 +65,6 @@ typedef uint16_t in_port_t;
 // A couple more c++ pointer handling macros I will need
 //
 %pointer_functions(size_t, size_t_ptr);
-%pointer_functions(int, int_ptr);
 %pointer_functions(hyperclient_returncode, rc_ptr);
 
 %include "proxies/hyperclient_attribute.i"
@@ -73,6 +72,7 @@ typedef uint16_t in_port_t;
 %include "proxies/hyperclient_range_query.i"
 %include "proxies/HyperClient.i"
 
+%apply (char *STRING, int LENGTH) { (const char *key, size_t key_sz) }
 %apply (char *STRING, int LENGTH) { (const char *attr, size_t attr_sz) }
 %apply (char *STRING, int LENGTH) { (char *value, size_t value_sz) }
 %apply (char *STRING, int LENGTH) { (const char *map_key, size_t map_key_sz) }
@@ -81,15 +81,59 @@ typedef uint16_t in_port_t;
 
 %include "hyperclient/java/javaclient.h"
 
+// Pertaining to the include of hyperdex.h and hyperclient/hyperclient.h below:
+
+// Ignore everything
 %ignore "";
+
+// Un-ignore a couple of enums
 %rename("%s") "hyperclient_returncode";
 %rename("%s") "hyperdatatype";
 %rename("%s", %$isenumitem) "";
-%rename("%s") "hyperclient_destroy_attrs";
+
+// Un-ignore some classes I want to proxy in java
 %rename("%s") "hyperclient_attribute";
 %rename("%s") "hyperclient_map_attribute";
 %rename("%s") "hyperclient_range_query";
 %rename("%s",%$isvariable) "";
+
+// Un-ignore the functionality I want
+%rename("%s") "hyperclient_get";
+%rename("%s") "hyperclient_put";
+%rename("%s") "hyperclient_condput";
+%rename("%s") "hyperclient_del";
+%rename("%s") "hyperclient_atomic_add";
+%rename("%s") "hyperclient_atomic_sub";
+%rename("%s") "hyperclient_atomic_mul";
+%rename("%s") "hyperclient_atomic_div";
+%rename("%s") "hyperclient_atomic_mod";
+%rename("%s") "hyperclient_atomic_and";
+%rename("%s") "hyperclient_atomic_or";
+%rename("%s") "hyperclient_atomic_xor";
+%rename("%s") "hyperclient_string_prepend";
+%rename("%s") "hyperclient_string_append";
+%rename("%s") "hyperclient_list_lpush";
+%rename("%s") "hyperclient_list_rpush";
+%rename("%s") "hyperclient_set_add";
+%rename("%s") "hyperclient_set_remove";
+%rename("%s") "hyperclient_set_intersect";
+%rename("%s") "hyperclient_set_union";
+%rename("%s") "hyperclient_map_add";
+%rename("%s") "hyperclient_map_remove";
+%rename("%s") "hyperclient_map_atomic_add";
+%rename("%s") "hyperclient_map_atomic_sub";
+%rename("%s") "hyperclient_map_atomic_mul";
+%rename("%s") "hyperclient_map_atomic_div";
+%rename("%s") "hyperclient_map_atomic_mod";
+%rename("%s") "hyperclient_map_atomic_and";
+%rename("%s") "hyperclient_map_atomic_or";
+%rename("%s") "hyperclient_map_atomic_xor";
+%rename("%s") "hyperclient_map_string_prepend";
+%rename("%s") "hyperclient_map_string_append";
+%rename("%s") "hyperclient_search";
+%rename("%s") "hyperclient_loop";
+%rename("%s") "hyperclient_destroy_attrs";
+
 %include "hyperdex.h"
 
 %include "hyperclient/hyperclient.h"

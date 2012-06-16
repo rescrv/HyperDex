@@ -114,35 +114,7 @@ class HyperClient
                                             hyperclient_range_query *rqs,
                                             size_t i);
 
-        int64_t get(const std::string& space,
-                       const std::string& key,
-                       hyperclient_returncode *rc,
-                       hyperclient_attribute **attrs, size_t *attrs_sz);
-
-        int64_t put(const std::string& space,
-                       const std::string& key,
-                       const hyperclient_attribute *attrs, size_t attrs_sz,
-                       hyperclient_returncode *rc);
-
-        int64_t del(const std::string& space,
-                   const std::string& key,
-                   hyperclient_returncode *rc);
-
-        int64_t map_add(const std::string& space,
-                       const std::string& key,
-                       const hyperclient_map_attribute *attrs, size_t attrs_sz,
-                       hyperclient_returncode *rc);
-
-        int64_t map_atomic_add(const std::string& space,
-                               const std::string& key,
-                               const hyperclient_map_attribute *attrs, size_t attrs_sz,
-                               hyperclient_returncode *rc);
-
-        int64_t search(const std::string& space,
-                       hyperclient_attribute *eq, size_t eq_sz, 
-                       hyperclient_range_query *rn, size_t rn_sz, 
-                       hyperclient_returncode *rc,
-                       hyperclient_attribute **attrs, size_t *attrs_sz);
+        hyperclient *get_hyperclient();
 
     private:
         hyperclient *m_client;

@@ -15,7 +15,11 @@ public class DeferredGet extends Deferred
         attrs_ptr = hyperclient.new_hyperclient_attribute_ptr();
         attrs_sz_ptr = hyperclient.new_size_t_ptr();
 
-        reqId = client.get(space, key, rc_ptr, attrs_ptr, attrs_sz_ptr);
+        reqId = hyperclient.hyperclient_get(client.get_hyperclient(),
+                                            space,
+                                            key.getBytes(),
+                                            rc_ptr,
+                                            attrs_ptr, attrs_sz_ptr);
 
         if (reqId < 0)
         {
