@@ -587,6 +587,16 @@
     return ((Boolean)(d.waitFor())).booleanValue();
   }
 
+  public boolean atomic_add(String space, String key, java.util.Map map)
+                                                     throws HyperClientException,
+                                                            TypeError,
+                                                            MemoryError,
+                                                            ValueError
+  {
+    Deferred d = (DeferredFromAttrs)(async_atomic_add(space, key, map));
+    return ((Boolean)(d.waitFor())).booleanValue();
+  }
+
   public boolean map_add(String space, String key, java.util.Map map)
                                                      throws HyperClientException,
                                                             TypeError,
@@ -644,6 +654,15 @@
   public Deferred async_delete(String space, String key) throws HyperClientException
   {
     return new DeferredDelete(this, space, key);
+  }
+
+  public Deferred async_atomic_add(String space, String key, java.util.Map map)
+                                                     throws HyperClientException,
+                                                            TypeError,
+                                                            MemoryError,
+                                                            ValueError
+  {
+    return new DeferredFromAttrs(this, new SimpleOpAtomicAdd(this), space, key, map);
   }
 
   public Deferred async_map_add(String space, String key, java.util.Map map)
