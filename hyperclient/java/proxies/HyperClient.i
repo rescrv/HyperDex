@@ -552,26 +552,11 @@
     return attrs;
   }
 
-  public Deferred async_get(String space, String key) throws HyperClientException,
-                                                             ValueError
-  {
-    return new DeferredGet(this,space, key);
-  }
-
   public java.util.Map get(String space, String key) throws HyperClientException,
                                                             ValueError
   {
     DeferredGet d = (DeferredGet)(async_get(space, key));
     return (java.util.Map)(d.waitFor());
-  }
-
-  public Deferred async_put(String space, String key, java.util.Map map)
-                                                     throws HyperClientException,
-                                                            TypeError,
-                                                            MemoryError,
-                                                            ValueError
-  {
-    return new DeferredFromAttrs(this, new SimpleOpPut(this), space, key, map);
   }
 
   public boolean put(String space, String key, java.util.Map map)
@@ -584,9 +569,15 @@
     return ((Boolean)(d.waitFor())).booleanValue();
   }
 
-  public Deferred async_delete(String space, String key) throws HyperClientException
+  public boolean condput(String space, String key, java.util.Map condition,
+                                                   java.util.Map value)
+                                                     throws HyperClientException,
+                                                            TypeError,
+                                                            MemoryError,
+                                                            ValueError
   {
-    return new DeferredDelete(this, space, key);
+    Deferred d = (DeferredCondPut)(async_condput(space, key, condition, value));
+    return ((Boolean)(d.waitFor())).booleanValue();
   }
 
   public boolean delete(String space, String key) throws HyperClientException,
@@ -594,15 +585,6 @@
   {
     Deferred d = (DeferredDelete)(async_delete(space, key));
     return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public Deferred async_map_add(String space, String key, java.util.Map map)
-                                                     throws HyperClientException,
-                                                            TypeError,
-                                                            MemoryError,
-                                                            ValueError
-  {
-    return new DeferredMapOp(this, new MapOpAdd(this), space, key, map);
   }
 
   public boolean map_add(String space, String key, java.util.Map map)
@@ -613,15 +595,6 @@
   {
     Deferred d = (DeferredMapOp)(async_map_add(space, key, map));
     return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public Deferred async_map_atomic_add(String space, String key, java.util.Map map)
-                                                     throws HyperClientException,
-                                                            TypeError,
-                                                            MemoryError,
-                                                            ValueError
-  {
-    return new DeferredMapOp(this, new MapOpAtomicAdd(this), space, key, map);
   }
 
   public boolean map_atomic_add(String space, String key, java.util.Map map)
@@ -641,5 +614,53 @@
                                                             MemoryError
   {
     return new Search(this,space,predicate);
+  }
+
+  public Deferred async_get(String space, String key) throws HyperClientException,
+                                                             ValueError
+  {
+    return new DeferredGet(this,space, key);
+  }
+
+  public Deferred async_put(String space, String key, java.util.Map map)
+                                                     throws HyperClientException,
+                                                            TypeError,
+                                                            MemoryError,
+                                                            ValueError
+  {
+    return new DeferredFromAttrs(this, new SimpleOpPut(this), space, key, map);
+  }
+
+  public Deferred async_condput(String space, String key, java.util.Map condition,
+                                                          java.util.Map value)
+                                                     throws HyperClientException,
+                                                            TypeError,
+                                                            MemoryError,
+                                                            ValueError
+  {
+    return new DeferredCondPut(this, space, key, condition, value);
+  }
+
+  public Deferred async_delete(String space, String key) throws HyperClientException
+  {
+    return new DeferredDelete(this, space, key);
+  }
+
+  public Deferred async_map_add(String space, String key, java.util.Map map)
+                                                     throws HyperClientException,
+                                                            TypeError,
+                                                            MemoryError,
+                                                            ValueError
+  {
+    return new DeferredMapOp(this, new MapOpAdd(this), space, key, map);
+  }
+
+  public Deferred async_map_atomic_add(String space, String key, java.util.Map map)
+                                                     throws HyperClientException,
+                                                            TypeError,
+                                                            MemoryError,
+                                                            ValueError
+  {
+    return new DeferredMapOp(this, new MapOpAtomicAdd(this), space, key, map);
   }
 %}

@@ -158,7 +158,7 @@ public class Search extends Pending
                 if ( idx >= 0 && idx < eq_sz && eq != null )
                     attrName = HyperClient.get_attr(eq,idx).getAttrName(); 
             
-                idx -= equalities.size();
+                idx -= eq_sz;
 
                 if ( idx >= 0 && idx < rn_sz && rn != null )
                     attrName
@@ -189,7 +189,6 @@ public class Search extends Pending
         {
             finished = true;
             client.ops.remove(reqId);
-            System.out.println("JESSSSSSSSSSSSSSSSSSSSSSSS");
         }
         else if ( status() == hyperclient_returncode.HYPERCLIENT_SUCCESS )
         {
