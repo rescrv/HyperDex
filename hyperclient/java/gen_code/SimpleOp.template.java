@@ -1,6 +1,3 @@
-package hyperclient;
-
-import java.util.*;
 
 class SimpleOp__CAMEL_NAME__ extends SimpleOp
 {

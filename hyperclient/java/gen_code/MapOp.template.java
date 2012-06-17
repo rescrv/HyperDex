@@ -1,6 +1,3 @@
-package hyperclient;
-
-import java.util.*;
 
 class MapOp__CAMEL_NAME__ extends MapOp
 {
