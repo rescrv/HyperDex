@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+for name in $* ; do
+
+    if echo $name |egrep '^map_' > /dev/null 2>&1 ; then
+        template="MapOp.template.java"
+        name=`echo $name |sed 's/^map_//'`
+        prefix="Map"
+    else
+        template="SimpleOp.template.java"
+        prefix="Simple"
+    fi
+
+
+    OLD_IFS=$IFS
+    IFS=_
+
+    camel_name=$(for l in $name; do B=`echo "${l:0:1}" | tr a-z A-Z`${l:1}; echo -n "$B"; done)
+
+    IFS=$OLD_IFS
+
+    if [[ ! -d classes ]] ; then 
+        mkdir classes
+    fi
+
+    cat $template |sed "s/__NAME__/$name/" \
+                  |sed "s/__CAMEL_NAME__/$camel_name/" \
+                    > classes/"${prefix}Op${camel_name}.java"
+done
+
+
