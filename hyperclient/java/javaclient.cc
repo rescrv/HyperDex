@@ -38,9 +38,6 @@
 
 #include <limits.h>
 
-#include <iostream>
-#include <sstream>
-
 #include <cstdlib>
 
 HyperClient :: HyperClient(const char* coordinator, in_port_t port)
@@ -118,16 +115,13 @@ HyperClient :: alloc_attrs(size_t attrs_sz)
 void
 HyperClient :: destroy_attrs(hyperclient_attribute *attrs, size_t attrs_sz)
 {
-    std::cout << "About to destroy_attrs" << std::endl;
     for (size_t i=0; i<attrs_sz; i++)
     {
         if (attrs[i].attr) free((void*)(attrs[i].attr));
         if (attrs[i].value) free((void*)(attrs[i].value));
     }
 
-    std::cout << "Freed members" << std::endl;
     free(attrs);
-    std::cout << "Freed attrs" << std::endl;
 }
 
 hyperclient_map_attribute*
@@ -140,7 +134,6 @@ HyperClient :: alloc_map_attrs(size_t attrs_sz)
 void
 HyperClient :: destroy_map_attrs(hyperclient_map_attribute *attrs, size_t attrs_sz)
 {
-    std::cout << "About to destroy_map_attrs" << std::endl;
     for (size_t i=0; i<attrs_sz; i++)
     {
         if (attrs[i].attr) free((void*)(attrs[i].attr));
@@ -148,9 +141,7 @@ HyperClient :: destroy_map_attrs(hyperclient_map_attribute *attrs, size_t attrs_
         if (attrs[i].value) free((void*)(attrs[i].value));
     }
 
-    std::cout << "Freed map members" << std::endl;
     free(attrs);
-    std::cout << "Freed map attrs" << std::endl;
 }
 
 hyperclient_range_query*
@@ -163,15 +154,12 @@ HyperClient :: alloc_range_queries(size_t rqs_sz)
 void
 HyperClient :: destroy_range_queries(hyperclient_range_query *rqs, size_t rqs_sz)
 {
-    std::cout << "About to destroy_range_queries" << std::endl;
     for (size_t i=0; i<rqs_sz; i++)
     {
         if (rqs[i].attr) free((void*)(rqs[i].attr));
     }
 
-    std::cout << "Freed range query members" << std::endl;
     free(rqs);
-    std::cout << "Freed range queries" << std::endl;
 }
 
 int

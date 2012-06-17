@@ -580,10 +580,10 @@
     return ((Boolean)(d.waitFor())).booleanValue();
   }
 
-  public boolean delete(String space, String key) throws HyperClientException,
+  public boolean del(String space, String key) throws HyperClientException,
                                                          ValueError
   {
-    Deferred d = (DeferredDelete)(async_delete(space, key));
+    Deferred d = (DeferredDelete)(async_del(space, key));
     return ((Boolean)(d.waitFor())).booleanValue();
   }
 
@@ -900,7 +900,7 @@
     return new DeferredCondPut(this, space, key, condition, value);
   }
 
-  public Deferred async_delete(String space, String key) throws HyperClientException
+  public Deferred async_del(String space, String key) throws HyperClientException
   {
     return new DeferredDelete(this, space, key);
   }

@@ -262,7 +262,6 @@ public class Search extends Pending
         while ( ! finished && backlogged.size() == 0 )
         {
             client.loop();
-            System.out.println("hasNext(): status = " + status());
         }
 
         return backlogged.size() > 0;

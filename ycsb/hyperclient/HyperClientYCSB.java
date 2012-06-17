@@ -170,7 +170,7 @@ public class HyperClientYCSB extends DB
      */
     public int update(String table, String key, HashMap<String,ByteIterator> values)
     {
-        Map res = new HashMap<String,Object>();
+        Map<String,Object> res = new HashMap<String,Object>();
         convert_from_java(values, res);
 
         if (m_scannable)
@@ -222,7 +222,7 @@ public class HyperClientYCSB extends DB
     {
         try
         {
-            boolean ret = m_client.delete(table, key);
+            boolean ret = m_client.del(table, key);
             return ret?0:1;
         }
         catch(Exception e)
@@ -248,7 +248,7 @@ public class HyperClientYCSB extends DB
         }
     }
 
-    private void convert_from_java(HashMap<String,ByteIterator> result, Map interres)
+    private void convert_from_java(HashMap<String,ByteIterator> result, Map<String,Object> interres)
     {
         Map<String, ByteIterator> r = result;
         for (Map.Entry<String, ByteIterator> entry : r.entrySet())
