@@ -1,3 +1,5 @@
+/* This example uses the phonebook space from the tutorial */
+
 import hyperclient.*;
 import java.util.*;
 
