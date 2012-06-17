@@ -419,7 +419,7 @@ libhyperclient_la_CPPFLAGS = \
 ################################# Java Bindings ################################
 
 java_bindings_noinst_headers = \
-			hyperclient/java/syncclient.h
+			hyperclient/java/javaclient.h
 java_bindings_cleanfiles = \
 			$(hyperclient_jarfile) \
 			hyperclient/java/hyperclient_wrap.cxx \
@@ -427,7 +427,7 @@ java_bindings_cleanfiles = \
 			hyperclient/java/hyperclient/*.class \
 			hyperclient-java.stamp
 
-libhyperclient_java_la_SOURCES = hyperclient/java/syncclient.cc
+libhyperclient_java_la_SOURCES = hyperclient/java/javaclient.cc
 nodist_libhyperclient_java_la_SOURCES = hyperclient/java/hyperclient_wrap.cxx
 libhyperclient_java_la_CPPFLAGS = \
 			$(JNI_CPPFLAGS) \
@@ -440,7 +440,7 @@ libhyperclient_java_la_LIBADD = \
 			$(PYTHON_LDFLAGS) \
 			$(COVERAGE_LDADD)
 
-hyperclient/java/hyperclient_wrap.cxx: hyperclient/java/hyperclient.i hyperclient/hyperclient.h hyperclient/java/syncclient.h
+hyperclient/java/hyperclient_wrap.cxx: hyperclient/java/hyperclient.i hyperclient/hyperclient.h hyperclient/java/javaclient.h
 	mkdir -p hyperclient/java/hyperclient
 	${SWIG} -java -package hyperclient -outdir $(abs_builddir)/hyperclient/java/hyperclient \
 		-o $(abs_builddir)/hyperclient/java/hyperclient_wrap.cxx -w518 $(abs_top_srcdir)/hyperclient/java/hyperclient.i
@@ -448,6 +448,7 @@ hyperclient/java/hyperclient_wrap.cxx: hyperclient/java/hyperclient.i hyperclien
 hyperclient_jarfile = hyperclient-$(VERSION).jar
 
 hyperclient-java.stamp: hyperclient/java/hyperclient_wrap.cxx
+	cp hyperclient/java/extra_src/*.java hyperclient/java/hyperclient/.
 	javac hyperclient/java/hyperclient/*.java
 	date > hyperclient-java.stamp
 
