@@ -169,6 +169,1686 @@ HyperClient :: put(const std::string& space,
 }
 
 hyperclient_returncode
+HyperClient :: condput(const std::string& space, 
+                           const std::string& key,  
+                           const std::map<std::string, std::string>& condattrs_sval,
+                           const std::map<std::string, uint64_t>& condattrs_nval,
+                           const std::map<std::string, std::string>& attrs_sval,
+                           const std::map<std::string, uint64_t>& attrs_nval)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_attribute> condattrs;
+    std::vector<hyperclient_attribute> attrs;
+    std::vector<uint64_t> cond_nums;
+    cond_nums.reserve(condattrs_nval.size());
+    std::vector<uint64_t> attr_nums;
+    attr_nums.reserve(attrs_nval.size());
+
+    for (std::map<std::string, std::string>::const_iterator ci = condattrs_sval.begin();
+            ci != condattrs_sval.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        at.value = ci->second.data();
+        at.value_sz = ci->second.size();
+        at.datatype = HYPERDATATYPE_STRING;
+        condattrs.push_back(at);
+    }
+
+    for (std::map<std::string, uint64_t>::const_iterator ci = condattrs_nval.begin();
+            ci != condattrs_nval.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        cond_nums.push_back(htole64(ci->second));
+        at.value = reinterpret_cast<const char*>(&cond_nums.back());
+        at.value_sz = sizeof(uint64_t);
+        at.datatype = HYPERDATATYPE_INT64;
+        condattrs.push_back(at);
+    }
+
+    for (std::map<std::string, std::string>::const_iterator ci = attrs_sval.begin();
+            ci != attrs_sval.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        at.value = ci->second.data();
+        at.value_sz = ci->second.size();
+        at.datatype = HYPERDATATYPE_STRING;
+        attrs.push_back(at);
+    }
+
+    for (std::map<std::string, uint64_t>::const_iterator ci = attrs_nval.begin();
+            ci != attrs_nval.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        attr_nums.push_back(htole64(ci->second));
+        at.value = reinterpret_cast<const char*>(&attr_nums.back());
+        at.value_sz = sizeof(uint64_t);
+        at.datatype = HYPERDATATYPE_INT64;
+        attrs.push_back(at);
+    }
+
+    id = m_client.condput(space.c_str(),
+                          key.data(),
+                          key.size(),
+                          &condattrs.front(),
+                          condattrs.size(),
+                          &attrs.front(),
+                          attrs.size(),
+                          &stat1);
+
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+
+
+}
+
+hyperclient_returncode
+HyperClient :: atomic_add(const std::string& space,
+                          const std::string& key, 
+                          const std::map<std::string, uint64_t>& nvalues)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_attribute> attrs;
+    std::vector<uint64_t> nums;
+    nums.reserve(nvalues.size());
+
+    for (std::map<std::string, uint64_t>::const_iterator ci = nvalues.begin();
+            ci != nvalues.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        nums.push_back(htole64(ci->second));
+        at.value = reinterpret_cast<const char*>(&nums.back());
+        at.value_sz = sizeof(uint64_t);
+        at.datatype = HYPERDATATYPE_INT64;
+        attrs.push_back(at);
+    }
+
+    id = m_client.atomic_add(space.c_str(),
+                             key.data(),
+                             key.size(),
+                             &attrs.front(),
+                             attrs.size(),
+                             &stat1);
+
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+hyperclient_returncode
+HyperClient :: atomic_sub(const std::string& space,
+                          const std::string& key,
+                          const std::map<std::string, uint64_t>& nvalues)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_attribute> attrs;
+    std::vector<uint64_t> nums;
+    nums.reserve(nvalues.size());
+
+    for (std::map<std::string, uint64_t>::const_iterator ci = nvalues.begin();
+            ci != nvalues.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        nums.push_back(htole64(ci->second));
+        at.value = reinterpret_cast<const char*>(&nums.back());
+        at.value_sz = sizeof(uint64_t);
+        at.datatype = HYPERDATATYPE_INT64;
+        attrs.push_back(at);
+    }
+
+    id = m_client.atomic_sub(space.c_str(),
+                             key.data(),
+                             key.size(),
+                             &attrs.front(),
+                             attrs.size(),
+                             &stat1);
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+hyperclient_returncode
+HyperClient :: atomic_mul(const std::string& space,
+                          const std::string& key,
+                          const std::map<std::string, uint64_t>& nvalues)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_attribute> attrs;
+    std::vector<uint64_t> nums;
+    nums.reserve(nvalues.size());
+
+    for (std::map<std::string, uint64_t>::const_iterator ci = nvalues.begin();
+            ci != nvalues.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        nums.push_back(htole64(ci->second));
+        at.value = reinterpret_cast<const char*>(&nums.back());
+        at.value_sz = sizeof(uint64_t);
+        at.datatype = HYPERDATATYPE_INT64;
+        attrs.push_back(at);
+    }
+
+    id = m_client.atomic_mul(space.c_str(),
+                             key.data(),
+                             key.size(),
+                             &attrs.front(),
+                             attrs.size(),
+                             &stat1);
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+hyperclient_returncode
+HyperClient :: atomic_div(const std::string& space,
+                          const std::string& key,
+                          const std::map<std::string, uint64_t>& nvalues)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_attribute> attrs;
+    std::vector<uint64_t> nums;
+    nums.reserve(nvalues.size());
+
+    for (std::map<std::string, uint64_t>::const_iterator ci = nvalues.begin();
+            ci != nvalues.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        nums.push_back(htole64(ci->second));
+        at.value = reinterpret_cast<const char*>(&nums.back());
+        at.value_sz = sizeof(uint64_t);
+        at.datatype = HYPERDATATYPE_INT64;
+        attrs.push_back(at);
+    }
+
+    id = m_client.atomic_div(space.c_str(),
+                             key.data(),
+                             key.size(),
+                             &attrs.front(),
+                             attrs.size(),
+                             &stat1);
+if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+hyperclient_returncode
+HyperClient :: atomic_mod(const std::string& space,
+                          const std::string& key,
+                          const std::map<std::string, uint64_t>& nvalues)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_attribute> attrs;
+    std::vector<uint64_t> nums;
+    nums.reserve(nvalues.size());
+
+    for (std::map<std::string, uint64_t>::const_iterator ci = nvalues.begin();
+            ci != nvalues.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        nums.push_back(htole64(ci->second));
+        at.value = reinterpret_cast<const char*>(&nums.back());
+        at.value_sz = sizeof(uint64_t);
+        at.datatype = HYPERDATATYPE_INT64;
+        attrs.push_back(at);
+    }
+
+    id = m_client.atomic_mod(space.c_str(),
+                             key.data(),
+                             key.size(),
+                             &attrs.front(),
+                             attrs.size(),
+                             &stat1);
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+hyperclient_returncode
+HyperClient :: atomic_and(const std::string& space,
+                          const std::string& key,
+                          const std::map<std::string, uint64_t>& nvalues)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_attribute> attrs;
+    std::vector<uint64_t> nums;
+    nums.reserve(nvalues.size());
+
+    for (std::map<std::string, uint64_t>::const_iterator ci = nvalues.begin();
+            ci != nvalues.end(); ++ci)
+    {   
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        nums.push_back(htole64(ci->second));
+        at.value = reinterpret_cast<const char*>(&nums.back());
+        at.value_sz = sizeof(uint64_t);
+        at.datatype = HYPERDATATYPE_INT64;
+        attrs.push_back(at);
+    }
+
+    id = m_client.atomic_and(space.c_str(),
+                             key.data(),
+                             key.size(),
+                             &attrs.front(),
+                             attrs.size(),
+                             &stat1);
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+hyperclient_returncode
+HyperClient :: atomic_or(const std::string& space,
+                          const std::string& key,
+                          const std::map<std::string, uint64_t>& nvalues)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_attribute> attrs;
+    std::vector<uint64_t> nums;
+    nums.reserve(nvalues.size());
+
+    for (std::map<std::string, uint64_t>::const_iterator ci = nvalues.begin();
+            ci != nvalues.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        nums.push_back(htole64(ci->second));
+        at.value = reinterpret_cast<const char*>(&nums.back());
+        at.value_sz = sizeof(uint64_t);
+        at.datatype = HYPERDATATYPE_INT64;
+        attrs.push_back(at);
+    }
+
+    id = m_client.atomic_or(space.c_str(),
+                             key.data(),
+                             key.size(),
+                             &attrs.front(),
+                             attrs.size(),
+                             &stat1);
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+hyperclient_returncode
+HyperClient :: atomic_xor(const std::string& space,
+                          const std::string& key,
+                          const std::map<std::string, uint64_t>& nvalues)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_attribute> attrs;
+    std::vector<uint64_t> nums;
+    nums.reserve(nvalues.size());
+
+    for (std::map<std::string, uint64_t>::const_iterator ci = nvalues.begin();
+            ci != nvalues.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        nums.push_back(htole64(ci->second));
+        at.value = reinterpret_cast<const char*>(&nums.back());
+        at.value_sz = sizeof(uint64_t);
+        at.datatype = HYPERDATATYPE_INT64;
+        attrs.push_back(at);
+    }
+
+    id = m_client.atomic_xor(space.c_str(),
+                             key.data(),
+                             key.size(),
+                             &attrs.front(),
+                             attrs.size(),
+                             &stat1);
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+hyperclient_returncode
+HyperClient :: string_prepend(const std::string& space,
+                              const std::string& key,
+                              const std::map<std::string, std::string>& svalue)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_attribute> attrs;
+
+    for (std::map<std::string, std::string>::const_iterator ci = svalue.begin();
+            ci != svalue.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        at.value = ci->second.data();
+        at.value_sz = ci->second.size();
+        at.datatype = HYPERDATATYPE_STRING;
+        attrs.push_back(at);
+    }
+
+    id = m_client.string_prepend(space.c_str(),
+                                 key.data(),
+                                 key.size(),
+                                 &attrs.front(),
+                                 attrs.size(),
+                                 &stat1);
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+hyperclient_returncode
+HyperClient :: string_append(const std::string& space,
+                             const std::string& key,
+                             const std::map<std::string, std::string>& svalue)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_attribute> attrs;
+
+    for (std::map<std::string, std::string>::const_iterator ci = svalue.begin();
+            ci != svalue.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        at.value = ci->second.data();
+        at.value_sz = ci->second.size();
+        at.datatype = HYPERDATATYPE_STRING;
+        attrs.push_back(at);
+    }
+
+    id = m_client.string_append(space.c_str(),
+                                 key.data(),
+                                 key.size(),
+                                 &attrs.front(),
+                                 attrs.size(),
+                                 &stat1);
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+hyperclient_returncode
+HyperClient :: list_lpush(const std::string& space,
+                          const std::string& key,
+                          const std::map<std::string, std::string>& svalues,
+                          const std::map<std::string, uint64_t>& nvalues)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_attribute> attrs;
+    std::vector<uint64_t> nums;
+    nums.reserve(nvalues.size());
+
+    for (std::map<std::string, std::string>::const_iterator ci = svalues.begin();
+            ci != svalues.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        at.value = ci->second.data();
+        at.value_sz = ci->second.size();
+        at.datatype = HYPERDATATYPE_STRING;
+        attrs.push_back(at);
+    }
+
+    for (std::map<std::string, uint64_t>::const_iterator ci = nvalues.begin();
+            ci != nvalues.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        nums.push_back(htole64(ci->second));
+        at.value = reinterpret_cast<const char*>(&nums.back());
+        at.value_sz = sizeof(uint64_t);
+        at.datatype = HYPERDATATYPE_INT64;
+        attrs.push_back(at);
+    }
+
+    id = m_client.list_lpush(space.c_str(),
+                             key.data(),
+                             key.size(),
+                             &attrs.front(),
+                             attrs.size(),
+                             &stat1);
+
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+hyperclient_returncode
+HyperClient :: list_rpush(const std::string& space,
+                          const std::string& key,
+                          const std::map<std::string, std::string>& svalues,
+                          const std::map<std::string, uint64_t>& nvalues)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_attribute> attrs;
+    std::vector<uint64_t> nums;
+    nums.reserve(nvalues.size());
+
+    for (std::map<std::string, std::string>::const_iterator ci = svalues.begin();
+            ci != svalues.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        at.value = ci->second.data();
+        at.value_sz = ci->second.size();
+        at.datatype = HYPERDATATYPE_STRING;
+        attrs.push_back(at);
+    }
+
+    for (std::map<std::string, uint64_t>::const_iterator ci = nvalues.begin();
+            ci != nvalues.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        nums.push_back(htole64(ci->second));
+        at.value = reinterpret_cast<const char*>(&nums.back());
+        at.value_sz = sizeof(uint64_t);
+        at.datatype = HYPERDATATYPE_INT64;
+        attrs.push_back(at);
+    }
+    id = m_client.list_rpush(space.c_str(),
+                             key.data(),
+                             key.size(),
+                             &attrs.front(),
+                             attrs.size(),
+                             &stat1);
+
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+hyperclient_returncode
+HyperClient :: set_add(const std::string& space,
+                       const std::string& key,
+                       const std::map<std::string, std::string>& svalues,
+                       const std::map<std::string, uint64_t>& nvalues)
+
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_attribute> attrs;
+    std::vector<uint64_t> nums;
+    nums.reserve(nvalues.size());
+
+    for (std::map<std::string, std::string>::const_iterator ci = svalues.begin();
+            ci != svalues.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        at.value = ci->second.data();
+        at.value_sz = ci->second.size();
+        at.datatype = HYPERDATATYPE_STRING;
+        attrs.push_back(at);
+    }
+
+    for (std::map<std::string, uint64_t>::const_iterator ci = nvalues.begin();
+            ci != nvalues.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        nums.push_back(htole64(ci->second));
+        at.value = reinterpret_cast<const char*>(&nums.back());
+        at.value_sz = sizeof(uint64_t);
+        at.datatype = HYPERDATATYPE_INT64;
+        attrs.push_back(at);
+    }
+
+    id = m_client.set_add(space.c_str(),
+                          key.data(),
+                          key.size(),
+                          &attrs.front(),
+                          attrs.size(),
+                          &stat1);
+
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+hyperclient_returncode
+HyperClient :: set_remove(const std::string& space,
+                          const std::string& key,
+                          const std::map<std::string, std::string>& svalues,
+                          const std::map<std::string, uint64_t>& nvalues)
+
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_attribute> attrs;
+    std::vector<uint64_t> nums;
+    nums.reserve(nvalues.size());
+
+    for (std::map<std::string, std::string>::const_iterator ci = svalues.begin();
+            ci != svalues.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        at.value = ci->second.data();
+        at.value_sz = ci->second.size();
+        at.datatype = HYPERDATATYPE_STRING;
+        attrs.push_back(at);
+    }
+
+    for (std::map<std::string, uint64_t>::const_iterator ci = nvalues.begin();
+            ci != nvalues.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        nums.push_back(htole64(ci->second));
+        at.value = reinterpret_cast<const char*>(&nums.back());
+        at.value_sz = sizeof(uint64_t);
+        at.datatype = HYPERDATATYPE_INT64;
+        attrs.push_back(at);
+    }
+    id = m_client.set_remove(space.c_str(),
+                             key.data(),
+                             key.size(),
+                             &attrs.front(),
+                             attrs.size(),
+                             &stat1);
+
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+} 
+
+hyperclient_returncode
+HyperClient :: set_intersect(const std::string& space,
+                             const std::string& key,
+                             const std::map<std::string, std::string>& svalues,
+                             const std::map<std::string, uint64_t>& nvalues)
+
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_attribute> attrs;
+    std::vector<uint64_t> nums;
+    nums.reserve(nvalues.size());
+
+    for (std::map<std::string, std::string>::const_iterator ci = svalues.begin();
+            ci != svalues.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        at.value = ci->second.data();
+        at.value_sz = ci->second.size();
+        at.datatype = HYPERDATATYPE_STRING;
+        attrs.push_back(at);
+    }
+
+    for (std::map<std::string, uint64_t>::const_iterator ci = nvalues.begin();
+            ci != nvalues.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        nums.push_back(htole64(ci->second));
+        at.value = reinterpret_cast<const char*>(&nums.back());
+        at.value_sz = sizeof(uint64_t);
+        at.datatype = HYPERDATATYPE_INT64;
+        attrs.push_back(at);
+    }
+
+    id = m_client.set_intersect(space.c_str(),
+                                key.data(),
+                                key.size(),
+                                &attrs.front(),
+                                attrs.size(),
+                                &stat1);
+
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+hyperclient_returncode
+HyperClient :: set_union(const std::string& space,
+                             const std::string& key,
+                             const std::map<std::string, std::string>& svalues,
+                             const std::map<std::string, uint64_t>& nvalues)
+
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_attribute> attrs;
+    std::vector<uint64_t> nums;
+    nums.reserve(nvalues.size());
+
+    for (std::map<std::string, std::string>::const_iterator ci = svalues.begin();
+            ci != svalues.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        at.value = ci->second.data();
+        at.value_sz = ci->second.size();
+        at.datatype = HYPERDATATYPE_STRING;
+        attrs.push_back(at);
+    }
+
+    for (std::map<std::string, uint64_t>::const_iterator ci = nvalues.begin();
+            ci != nvalues.end(); ++ci)
+    {
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        nums.push_back(htole64(ci->second));
+        at.value = reinterpret_cast<const char*>(&nums.back());
+        at.value_sz = sizeof(uint64_t);
+        at.datatype = HYPERDATATYPE_INT64;
+        attrs.push_back(at);
+    }
+
+    id = m_client.set_union(space.c_str(),
+                            key.data(),
+                            key.size(),
+                            &attrs.front(),
+                            attrs.size(),
+                            &stat1);
+
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+hyperclient_returncode
+HyperClient :: map_add(const std::string& space,
+                       const std::string& key,
+                       const std::map<std::string, smpair>& spair,
+                       const std::map<std::string, nmpair>& npair)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_map_attribute> attrs;
+    std::vector<uint64_t> nums;
+    nums.reserve(npair.size());
+
+    for (std::map<std::string, smpair>::const_iterator ci = spair.begin();
+            ci != spair.end(); ++ci)
+    {
+        hyperclient_map_attribute at;
+        at.attr = ci->first.c_str();
+        at.map_key = ci->second.first.c_str();
+        at.map_key_sz = ci->second.first.size();
+        at.value = ci->second.second.c_str();
+        at.value_sz = ci->second.second.size();
+        at.datatype = HYPERDATATYPE_MAP_STRING_STRING;
+        attrs.push_back(at);
+    }
+
+    for (std::map<std::string, nmpair>::const_iterator ci = npair.begin();
+            ci != npair.end(); ++ci)
+    {
+        hyperclient_map_attribute at;
+        at.attr = ci->first.c_str();
+        at.map_key = ci->second.first.c_str();
+        at.map_key_sz = ci->second.first.size();
+        nums.push_back(htole64(ci->second.second));
+        at.value = reinterpret_cast<const char*>(&nums.back());
+        at.value_sz = sizeof(uint64_t);
+        at.datatype = HYPERDATATYPE_MAP_STRING_INT64;
+        attrs.push_back(at);
+    }
+
+    id = m_client.map_add(space.c_str(),
+                            key.data(),
+                            key.size(),
+                            &attrs.front(),
+                            attrs.size(),
+                            &stat1);
+
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+hyperclient_returncode
+HyperClient :: map_remove(const std::string& space,
+                          const std::string& key,
+                          const std::map<std::string, smpair>& spair,
+                          const std::map<std::string, nmpair>& npair)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_map_attribute> attrs;
+    std::vector<uint64_t> nums;
+    nums.reserve(npair.size());
+
+    for (std::map<std::string, smpair>::const_iterator ci = spair.begin();
+            ci != spair.end(); ++ci)
+    {
+        hyperclient_map_attribute at;
+        at.attr = ci->first.c_str();
+        at.map_key = ci->second.first.c_str();
+        at.map_key_sz = ci->second.first.size();
+        at.value = ci->second.second.c_str();
+        at.value_sz = ci->second.second.size();
+        at.datatype = HYPERDATATYPE_MAP_STRING_STRING;
+        attrs.push_back(at);
+    }
+
+    for (std::map<std::string, nmpair>::const_iterator ci = npair.begin();
+            ci != npair.end(); ++ci)
+    {
+        hyperclient_map_attribute at;
+        at.attr = ci->first.c_str();
+        at.map_key = ci->second.first.c_str();
+        at.map_key_sz = ci->second.first.size();
+        nums.push_back(htole64(ci->second.second));
+        at.value = reinterpret_cast<const char*>(&nums.back());
+        at.value_sz = sizeof(uint64_t);
+        at.datatype = HYPERDATATYPE_MAP_STRING_INT64;
+        attrs.push_back(at);
+    }
+    id = m_client.map_remove(space.c_str(),
+                            key.data(),
+                            key.size(),
+                            &attrs.front(),
+                            attrs.size(),
+                            &stat1);
+
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+hyperclient_returncode
+HyperClient :: map_atomic_add(const std::string& space,
+                              const std::string& key,
+                              const std::map<std::string, nmpair>& npair)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_map_attribute> attrs;
+    std::vector<uint64_t> nums;
+    nums.reserve(npair.size());
+
+    for (std::map<std::string, nmpair>::const_iterator ci = npair.begin();
+            ci != npair.end(); ++ci)
+    {
+        hyperclient_map_attribute at;
+        at.attr = ci->first.c_str();
+        at.map_key = ci->second.first.c_str();
+        at.map_key_sz = ci->second.first.size();
+        nums.push_back(htole64(ci->second.second));
+        at.value = reinterpret_cast<const char*>(&nums.back());
+        at.value_sz = sizeof(uint64_t);
+        at.datatype = HYPERDATATYPE_MAP_STRING_INT64;
+        attrs.push_back(at);
+    }
+
+    id = m_client.map_atomic_add(space.c_str(),
+                                 key.data(),
+                                 key.size(),
+                                 &attrs.front(),
+                                 attrs.size(),
+                                 &stat1);
+
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+hyperclient_returncode
+HyperClient :: map_atomic_sub(const std::string& space,
+                              const std::string& key,
+                              const std::map<std::string, nmpair>& npair)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_map_attribute> attrs;
+    std::vector<uint64_t> nums;
+    nums.reserve(npair.size());
+
+    for (std::map<std::string, nmpair>::const_iterator ci = npair.begin();
+            ci != npair.end(); ++ci)
+    {
+        hyperclient_map_attribute at;
+        at.attr = ci->first.c_str();
+        at.map_key = ci->second.first.c_str();
+        at.map_key_sz = ci->second.first.size();
+        nums.push_back(htole64(ci->second.second));
+        at.value = reinterpret_cast<const char*>(&nums.back());
+        at.value_sz = sizeof(uint64_t);
+        at.datatype = HYPERDATATYPE_MAP_STRING_INT64;
+        attrs.push_back(at);
+    }
+
+    id = m_client.map_atomic_sub(space.c_str(),
+                                 key.data(),
+                                 key.size(),
+                                 &attrs.front(),
+                                 attrs.size(),
+                                 &stat1);
+
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+hyperclient_returncode
+HyperClient :: map_atomic_mul(const std::string& space,
+                              const std::string& key,
+                              const std::map<std::string, nmpair>& npair)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_map_attribute> attrs;
+    std::vector<uint64_t> nums;
+    nums.reserve(npair.size());
+
+    for (std::map<std::string, nmpair>::const_iterator ci = npair.begin();
+            ci != npair.end(); ++ci)
+    {
+        hyperclient_map_attribute at;
+        at.attr = ci->first.c_str();
+        at.map_key = ci->second.first.c_str();
+        at.map_key_sz = ci->second.first.size();
+        nums.push_back(htole64(ci->second.second));
+        at.value = reinterpret_cast<const char*>(&nums.back());
+        at.value_sz = sizeof(uint64_t);
+        at.datatype = HYPERDATATYPE_MAP_STRING_INT64;
+        attrs.push_back(at);
+    }
+    
+    id = m_client.map_atomic_mul(space.c_str(),
+                                 key.data(),
+                                 key.size(),
+                                 &attrs.front(),
+                                 attrs.size(),
+                                 &stat1);
+
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+hyperclient_returncode
+HyperClient :: map_atomic_div(const std::string& space,
+                              const std::string& key,
+                              const std::map<std::string, nmpair>& npair)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_map_attribute> attrs;
+    std::vector<uint64_t> nums;
+    nums.reserve(npair.size());
+
+    for (std::map<std::string, nmpair>::const_iterator ci = npair.begin();
+            ci != npair.end(); ++ci)
+    {
+        hyperclient_map_attribute at;
+        at.attr = ci->first.c_str();
+        at.map_key = ci->second.first.c_str();
+        at.map_key_sz = ci->second.first.size();
+        nums.push_back(htole64(ci->second.second));
+        at.value = reinterpret_cast<const char*>(&nums.back());
+        at.value_sz = sizeof(uint64_t);
+        at.datatype = HYPERDATATYPE_MAP_STRING_INT64;
+        attrs.push_back(at);
+    }
+
+    id = m_client.map_atomic_div(space.c_str(),
+                                 key.data(),
+                                 key.size(),
+                                 &attrs.front(),
+                                 attrs.size(),
+                                 &stat1);
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+
+hyperclient_returncode
+HyperClient :: map_atomic_mod(const std::string& space,
+                              const std::string& key,
+                              const std::map<std::string, nmpair>& npair)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_map_attribute> attrs;
+    std::vector<uint64_t> nums;
+    nums.reserve(npair.size());
+
+    for (std::map<std::string, nmpair>::const_iterator ci = npair.begin();
+            ci != npair.end(); ++ci)
+    {
+        hyperclient_map_attribute at;
+        at.attr = ci->first.c_str();
+        at.map_key = ci->second.first.c_str();
+        at.map_key_sz = ci->second.first.size();
+        nums.push_back(htole64(ci->second.second));
+        at.value = reinterpret_cast<const char*>(&nums.back());
+        at.value_sz = sizeof(uint64_t);
+        at.datatype = HYPERDATATYPE_MAP_STRING_INT64;
+        attrs.push_back(at);
+    }
+
+    id = m_client.map_atomic_mod(space.c_str(),
+                                 key.data(),
+                                 key.size(),
+                                 &attrs.front(),
+                                 attrs.size(),
+                                 &stat1);
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+hyperclient_returncode
+HyperClient :: map_atomic_and(const std::string& space,
+                              const std::string& key,
+                              const std::map<std::string, nmpair>& npair)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_map_attribute> attrs;
+    std::vector<uint64_t> nums;
+    nums.reserve(npair.size());
+
+    for (std::map<std::string, nmpair>::const_iterator ci = npair.begin();
+            ci != npair.end(); ++ci)
+    {
+        hyperclient_map_attribute at;
+        at.attr = ci->first.c_str();
+        at.map_key = ci->second.first.c_str();
+        at.map_key_sz = ci->second.first.size();
+        nums.push_back(htole64(ci->second.second));
+        at.value = reinterpret_cast<const char*>(&nums.back());
+        at.value_sz = sizeof(uint64_t);
+        at.datatype = HYPERDATATYPE_MAP_STRING_INT64;
+        attrs.push_back(at);
+    }
+
+    id = m_client.map_atomic_and(space.c_str(),
+                                 key.data(),
+                                 key.size(),
+                                 &attrs.front(),
+                                 attrs.size(),
+                                 &stat1);
+
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+hyperclient_returncode
+HyperClient :: map_atomic_or(const std::string& space,
+                              const std::string& key,
+                              const std::map<std::string, nmpair>& npair)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_map_attribute> attrs;
+    std::vector<uint64_t> nums;
+    nums.reserve(npair.size());
+
+    for (std::map<std::string, nmpair>::const_iterator ci = npair.begin();
+            ci != npair.end(); ++ci)
+    {
+        hyperclient_map_attribute at;
+        at.attr = ci->first.c_str();
+        at.map_key = ci->second.first.c_str();
+        at.map_key_sz = ci->second.first.size();
+        nums.push_back(htole64(ci->second.second));
+        at.value = reinterpret_cast<const char*>(&nums.back());
+        at.value_sz = sizeof(uint64_t);
+        at.datatype = HYPERDATATYPE_MAP_STRING_INT64;
+        attrs.push_back(at);
+    }
+
+    id = m_client.map_atomic_or(space.c_str(),
+                                 key.data(),
+                                 key.size(),
+                                 &attrs.front(),
+                                 attrs.size(),
+                                 &stat1);
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+hyperclient_returncode
+HyperClient :: map_atomic_xor(const std::string& space,
+                              const std::string& key,
+                              const std::map<std::string, nmpair>& npair)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_map_attribute> attrs;
+    std::vector<uint64_t> nums;
+    nums.reserve(npair.size());
+
+    for (std::map<std::string, nmpair>::const_iterator ci = npair.begin();
+            ci != npair.end(); ++ci)
+    {
+        hyperclient_map_attribute at;
+        at.attr = ci->first.c_str();
+        at.map_key = ci->second.first.c_str();
+        at.map_key_sz = ci->second.first.size();
+        nums.push_back(htole64(ci->second.second));
+        at.value = reinterpret_cast<const char*>(&nums.back());
+        at.value_sz = sizeof(uint64_t);
+        at.datatype = HYPERDATATYPE_MAP_STRING_INT64;
+        attrs.push_back(at);
+    }
+
+    id = m_client.map_atomic_xor(space.c_str(),
+                                 key.data(),
+                                 key.size(),
+                                 &attrs.front(),
+                                 attrs.size(),
+                                 &stat1);
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+hyperclient_returncode
+HyperClient :: map_string_prepend(const std::string& space,
+                                  const std::string& key,
+                                  const std::map<std::string, smpair>& spair)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_map_attribute> attrs;
+
+    for (std::map<std::string, smpair>::const_iterator ci = spair.begin();
+            ci != spair.end(); ++ci)
+    {
+        hyperclient_map_attribute at;
+        at.attr = ci->first.c_str();
+        at.map_key = ci->second.first.c_str();
+        at.map_key_sz = ci->second.first.size();
+        at.value = ci->second.second.c_str();
+        at.value_sz = ci->second.second.size();
+        at.datatype = HYPERDATATYPE_MAP_STRING_STRING;
+        attrs.push_back(at);
+    }
+
+    id = m_client.map_string_prepend(space.c_str(),
+                                     key.data(),
+                                     key.size(),
+                                     &attrs.front(),
+                                     attrs.size(),
+                                     &stat1);
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+hyperclient_returncode
+HyperClient :: map_string_append(const std::string& space,
+                                  const std::string& key,
+                                  const std::map<std::string, smpair>& spair)
+{
+    int64_t id;
+    hyperclient_returncode stat1 = HYPERCLIENT_A;
+    hyperclient_returncode stat2 = HYPERCLIENT_B;
+    std::vector<hyperclient_map_attribute> attrs;
+
+    for (std::map<std::string, smpair>::const_iterator ci = spair.begin();
+            ci != spair.end(); ++ci)
+    {
+        hyperclient_map_attribute at;
+        at.attr = ci->first.c_str();
+        at.map_key = ci->second.first.c_str();
+        at.map_key_sz = ci->second.first.size();
+        at.value = ci->second.second.c_str();
+        at.value_sz = ci->second.second.size();
+        at.datatype = HYPERDATATYPE_MAP_STRING_STRING;
+        attrs.push_back(at);
+    }
+
+    id = m_client.map_string_append(space.c_str(),
+                                     key.data(),
+                                     key.size(),
+                                     &attrs.front(),
+                                     attrs.size(),
+                                     &stat1);
+    if (id < 0)
+    {
+        assert(static_cast<unsigned>(stat1) >= 8448);
+        assert(static_cast<unsigned>(stat1) < 8576);
+        return stat1;
+    }
+
+    int64_t lid = m_client.loop(-1, &stat2);
+
+    if (lid < 0)
+    {
+        assert(static_cast<unsigned>(stat2) >= 8448);
+        assert(static_cast<unsigned>(stat2) < 8576);
+        return stat2;
+    }
+
+    assert(lid == id);
+    assert(static_cast<unsigned>(stat1) >= 8448);
+    assert(static_cast<unsigned>(stat1) < 8576);
+    return stat1;
+}
+
+
+hyperclient_returncode
 HyperClient :: del(const std::string& space,
                    const std::string& key)
 {
@@ -295,59 +1975,40 @@ HyperClient :: search(const std::string& space,
                       std::vector<std::map<std::string, std::string> >* sresults,
                       std::vector<std::map<std::string, uint64_t> >* nresults)
 {      
-    hyperclient_range_query rn[rn_attr.size()]; 
-    hyperclient_attribute eqattr[eq_attr.size()];
+    std::vector<hyperclient_range_query> rn; 
+    std::vector<hyperclient_attribute> eqattr;
 
-    if (!eq_attr.empty()) //Initiate equal search attributes
+    for (std::map<std::string, val_type>::const_iterator ci = eq_attr.begin();
+            ci != eq_attr.end(); ++ci)
     {
-        int64_t i = 0;
-        for (std::map<std::string, val_type>::const_iterator eq = eq_attr.begin(); eq != eq_attr.end(); ++eq,++i)
-        {
-            eqattr[i].attr = eq->first.c_str();
-            eqattr[i].value = eq->second.first.c_str();
-            eqattr[i].value_sz = eq->second.first.size();
-            eqattr[i].datatype = eq->second.second;
-        }
+        hyperclient_attribute at;
+        at.attr = ci->first.c_str();
+        at.value = ci->second.first.c_str();
+        at.value_sz = ci->second.first.size();
+        at.datatype = ci->second.second;
+        eqattr.push_back(at);
     }
 
-    if (!rn_attr.empty()) //Initiate range query attributes
-    {   
-        
-        int64_t i = 0;
-        for (std::map<std::string, range>::const_iterator rl = rn_attr.begin(); rl != rn_attr.end(); ++rl,++i)
-        {
-            rn[i].attr = rl->first.c_str();
-            rn[i].lower = rl->second.first;
-            rn[i].upper = rl->second.second;
-        }
+    for (std::map<std::string, range>::const_iterator ci = rn_attr.begin();
+            ci != rn_attr.end(); ++ci)
+    {
+        hyperclient_range_query rnattr;
+        rnattr.attr = ci->first.c_str();
+        rnattr.lower = ci->second.first;
+        rnattr.upper = ci->second.second;
+        rn.push_back(rnattr);
     }
+
 
     int64_t id;
     hyperclient_returncode status = HYPERCLIENT_A;
     hyperclient_attribute* attrs = NULL;
     size_t attrs_sz = 0;
     
-    if (eq_attr.empty() && rn_attr.empty())
-    {
-        id = m_client.search(space.c_str(), NULL, 0, NULL, 0, &status, &attrs, &attrs_sz);
-    }
-    else if (eq_attr.empty())
-    {
-        id = m_client.search(space.c_str(), NULL, 0, rn, rn_attr.size(), &status, &attrs, &attrs_sz);
-    }
-    else if (rn_attr.empty())
-    {   
-        id = m_client.search(space.c_str(), eqattr, eq_attr.size(), NULL, 0, &status, &attrs, &attrs_sz);
-    }
-    else
-    {   
-        id = m_client.search(space.c_str(), eqattr, eq_attr.size(), rn, rn_attr.size(), &status, &attrs, &attrs_sz);
-    }
- 
-    if (id < 0)
-    {
-        return status;
-    }
+    id = m_client.search(space.c_str(),
+                         &eqattr.front(), eqattr.size(),
+                         &rn.front(), rn.size(),
+                         &status, &attrs, &attrs_sz);
 
     int64_t lid;
     hyperclient_returncode lstatus = HYPERCLIENT_B;

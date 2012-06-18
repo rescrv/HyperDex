@@ -34,6 +34,8 @@
 //typedef
 typedef std::pair<std::string, hyperdatatype> val_type;
 typedef std::pair<uint64_t, uint64_t> range;
+typedef std::pair<std::string, std::string> smpair;
+typedef std::pair<std::string, uint64_t> nmpair;
 
 typedef hyperclient_returncode ReturnCode;
 
@@ -48,23 +50,158 @@ class HyperClient
                        const std::string& key,
                        std::map<std::string, std::string>* svalues,
                        std::map<std::string, uint64_t>* nvalues);
+
         ReturnCode put(const std::string& space,
                        const std::string& key,
                        const std::map<std::string, std::string>& svalues,
                        const std::map<std::string, uint64_t>& nvalues);
+
+        ReturnCode condput(const std::string& space, 
+                           const std::string& key,  
+                           const std::map<std::string, std::string>& condattrs_sval,
+                           const std::map<std::string, uint64_t>& condattrs_nval,
+                           const std::map<std::string, std::string>& attrs_sval,
+                           const std::map<std::string, uint64_t>& attrs_nval);
+
         ReturnCode del(const std::string& space,
                        const std::string& key);
+
         ReturnCode range_search(const std::string& space,
                                 const std::string& attr,
                                 uint64_t lower,
                                 uint64_t upper,
                                 std::vector<std::map<std::string, std::string> >* sresults,
                                 std::vector<std::map<std::string, uint64_t> >* nresults);
+
         ReturnCode search(const std::string& space,
                           const std::map<std::string, val_type>& eq_attr,
                           const std::map<std::string, range>& rn_attr,
                           std::vector<std::map<std::string, std::string> >* sresults,
                           std::vector<std::map<std::string, uint64_t> >* nresults);
+
+        ReturnCode atomic_add(const std::string& space,
+                              const std::string& key, 
+                              const std::map<std::string, uint64_t>& nvalue);
+
+        ReturnCode atomic_sub(const std::string& space,
+                              const std::string& key,
+                              const std::map<std::string, uint64_t>& nvalue);
+
+        ReturnCode atomic_mul(const std::string& space,
+                              const std::string& key,
+                              const std::map<std::string, uint64_t>& nvalue);
+
+        ReturnCode atomic_div(const std::string& space,
+                              const std::string& key,
+                              const std::map<std::string, uint64_t>& nvalue);
+
+        ReturnCode atomic_mod(const std::string& space,
+                              const std::string& key,
+                              const std::map<std::string, uint64_t>& nvalue);
+
+        ReturnCode atomic_and(const std::string& space,
+                              const std::string& key,
+                              const std::map<std::string, uint64_t>& nvalue);
+
+        ReturnCode atomic_or(const std::string& space,
+                             const std::string& key,
+                             const std::map<std::string, uint64_t>& nvalue);
+
+        ReturnCode atomic_xor(const std::string& space,
+                              const std::string& key,
+                              const std::map<std::string, uint64_t>& nvalue);
+
+        ReturnCode string_prepend(const std::string& space,
+                                  const std::string& key,
+                                  const std::map<std::string, std::string>& svalue);
+
+        ReturnCode string_append(const std::string& space,
+                                 const std::string& key,
+                                 const std::map<std::string, std::string>& svalue);
+
+        ReturnCode list_lpush(const std::string& space,
+                              const std::string& key,
+                              const std::map<std::string, std::string>& svalues,
+                              const std::map<std::string, uint64_t>& nvalues);
+
+        ReturnCode list_rpush(const std::string& space,
+                              const std::string& key,
+                              const std::map<std::string, std::string>& svalues,
+                              const std::map<std::string, uint64_t>& nvalues);
+
+        ReturnCode set_add(const std::string& space, 
+                           const std::string& key,
+                           const std::map<std::string, std::string>& svalues,
+                           const std::map<std::string, uint64_t>& nvalues);
+
+        ReturnCode set_remove(const std::string& space,
+                              const std::string& key,
+                              const std::map<std::string, std::string>& svalues,
+                              const std::map<std::string, uint64_t>& nvalues);
+
+        ReturnCode set_intersect(const std::string& space,
+                                 const std::string& key,
+                                 const std::map<std::string, std::string>& svalues,
+                                 const std::map<std::string, uint64_t>& nvalues);
+
+        ReturnCode set_union(const std::string& space,
+                             const std::string& key,
+                             const std::map<std::string, std::string>& svalues,
+                             const std::map<std::string, uint64_t>& nvalues);
+
+        ReturnCode map_add(const std::string& space,
+                           const std::string& key,
+                           const std::map<std::string, smpair >& spair,
+                           const std::map<std::string, nmpair >& npair);
+
+        ReturnCode map_remove(const std::string& space,
+                              const std::string& key,
+                              const std::map<std::string, smpair >& spair,
+                              const std::map<std::string, nmpair >& npair);
+
+        ReturnCode map_atomic_add(const std::string& space,
+                                  const std::string& key,
+                                  const std::map<std::string, nmpair >& npair);
+
+        ReturnCode map_atomic_sub(const std::string& space,
+                                  const std::string& key,
+                                  const std::map<std::string, nmpair >& npair);
+
+        ReturnCode map_atomic_mul(const std::string& space,
+                                  const std::string& key,
+                                  const std::map<std::string, nmpair >& npair);
+
+        ReturnCode map_atomic_div(const std::string& space,
+                                  const std::string& key,
+                                  const std::map<std::string, nmpair >& npair);
+
+        ReturnCode map_atomic_mod(const std::string& space,
+                                  const std::string& key,
+                                  const std::map<std::string, nmpair >& npair);
+
+        ReturnCode map_atomic_and(const std::string& space,
+                                  const std::string& key,
+                                  const std::map<std::string, nmpair >& npair);
+
+        ReturnCode map_atomic_or(const std::string& space,
+                                 const std::string& key,
+                                 const std::map<std::string, nmpair >& npair);
+
+        ReturnCode map_atomic_xor(const std::string& space,
+                                  const std::string& key,
+                                  const std::map<std::string, nmpair >& npair);
+
+        ReturnCode map_string_prepend(const std::string& space,
+                                      const std::string& key,
+                                      const std::map<std::string, smpair >& spair);
+
+        ReturnCode map_string_append(const std::string& space,
+                                     const std::string& key,
+                                     const std::map<std::string, smpair >& spair);
+
+
+
+
     private:
         hyperclient m_client;
 };
