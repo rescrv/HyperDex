@@ -467,8 +467,12 @@ pyexec_LTLIBRARIES += \
 			hyperclient/python/hyperclient.la
 endif
 
+pyx_verbose = $(pyx_verbose_$(V))
+pyx_verbose_ = $(pyx_verbose_$(AM_DEFAULT_VERBOSITY))
+pyx_verbose_0 = @echo "  PYX   " $@;
+
 hyperclient/python/hyperclient.c: hyperclient/python/hyperclient.pyx
-	cython hyperclient/python/hyperclient.pyx
+	$(pyx_verbose)cython hyperclient/python/hyperclient.pyx
 
 hyperclient_python_hyperclient_la_SOURCES = \
 			hyperclient/python/hyperclient.c
