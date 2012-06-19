@@ -58,6 +58,8 @@ hyperclient :: pending_group_del :: handle_response(hyperclient* cl,
                                                     hyperdex::network_msgtype type,
                                                     hyperclient_returncode* status)
 {
+    *status = HYPERCLIENT_SUCCESS;
+
     if (type != hyperdex::RESP_GROUP_DEL)
     {
         cl->killall(sender, HYPERCLIENT_SERVERERROR);
