@@ -469,7 +469,7 @@ hyperclient :: group_del(const char* space,
     ++m_client_id;
 
     // Pack the message to send
-    std::auto_ptr<e::buffer> msg(e::buffer::create(HYPERCLIENT_HEADER_SIZE + sizeof(uint64_t) + s.packed_size()));
+    std::auto_ptr<e::buffer> msg(e::buffer::create(HYPERCLIENT_HEADER_SIZE + s.packed_size()));
     bool packed = !(msg->pack_at(HYPERCLIENT_HEADER_SIZE) << s).error();
     assert(packed);
     std::tr1::shared_ptr<uint64_t> refcount(new uint64_t(0));
