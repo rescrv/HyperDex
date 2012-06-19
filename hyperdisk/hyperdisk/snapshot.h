@@ -43,6 +43,7 @@
 namespace hyperdisk
 {
 class log_entry;
+class reference;
 class shard_snapshot;
 class shard_vector;
 }
@@ -63,6 +64,7 @@ class snapshot
         uint64_t version();
         const e::slice& key();
         const std::vector<e::slice>& value();
+        hyperdisk::reference ref();
 
     private:
         friend class e::intrusive_ptr<snapshot>;
