@@ -62,7 +62,7 @@ hyperclient :: hyperclient(const char* coordinator, in_port_t port)
     , m_config(new hyperdex::configuration())
     , m_busybee(new busybee_st())
     , m_incomplete()
-    , m_complete()
+    , m_complete_failed()
     , m_server_nonce(1)
     , m_client_id(1)
     , m_old_coord_fd(-1)
@@ -435,7 +435,7 @@ hyperclient :: search(const char* space,
 
         if (send(op, tosend) < 0)
         {
-            m_complete.push(completedop(op, HYPERCLIENT_RECONFIGURE, 0));
+            m_complete_failed.push(completedop(op, HYPERCLIENT_RECONFIGURE, 0));
             m_incomplete.erase(op->server_visible_nonce());
         }
     }
@@ -487,7 +487,7 @@ hyperclient :: group_del(const char* space,
 
         if (send(op, tosend) < 0)
         {
-            m_complete.push(completedop(op, HYPERCLIENT_RECONFIGURE, 0));
+            m_complete_failed.push(completedop(op, HYPERCLIENT_RECONFIGURE, 0));
             m_incomplete.erase(op->server_visible_nonce());
         }
     }
@@ -498,7 +498,7 @@ hyperclient :: group_del(const char* space,
 int64_t
 hyperclient :: loop(int timeout, hyperclient_returncode* status)
 {
-    while (!m_incomplete.empty() && m_complete.empty())
+    while (!m_incomplete.empty() && m_complete_failed.empty())
     {
         if (maintain_coord_connection(status) < 0)
         {
@@ -599,16 +599,16 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
         }
     }
 
-    if (m_incomplete.empty() && m_complete.empty())
+    if (m_incomplete.empty() && m_complete_failed.empty())
     {
         *status = HYPERCLIENT_NONEPENDING;
         return -1;
     }
 
-    assert(!m_complete.empty());
+    assert(!m_complete_failed.empty());
 
-    completedop c = m_complete.front();
-    m_complete.pop();
+    completedop c = m_complete_failed.front();
+    m_complete_failed.pop();
 
     *status = HYPERCLIENT_SUCCESS;
     int64_t ret = c.op->client_visible_id();
@@ -681,7 +681,7 @@ hyperclient :: maintain_coord_connection(hyperclient_returncode* status)
             // longer true, we just abort the operation.
             if (m_config->instancefor(i->second->entity()) != i->second->instance())
             {
-                m_complete.push(completedop(i->second, HYPERCLIENT_RECONFIGURE, 0));
+                m_complete_failed.push(completedop(i->second, HYPERCLIENT_RECONFIGURE, 0));
                 m_incomplete.erase(i);
                 i = m_incomplete.begin();
                 ++reconfigured;
@@ -921,7 +921,7 @@ hyperclient :: killall(const po6::net::location& loc,
         if (r->second->instance().address == loc.address &&
             r->second->instance().inbound_port == loc.port)
         {
-            m_complete.push(completedop(r->second, status, 0));
+            m_complete_failed.push(completedop(r->second, status, 0));
             m_incomplete.erase(r);
             r = m_incomplete.begin();
         }

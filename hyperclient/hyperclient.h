@@ -829,7 +829,7 @@ class hyperclient
         const std::auto_ptr<hyperdex::configuration> m_config;
         const std::auto_ptr<busybee_st> m_busybee;
         incomplete_map_t m_incomplete;
-        std::queue<completedop> m_complete;
+        std::queue<completedop> m_complete_failed;
         int64_t m_server_nonce;
         int64_t m_client_id;
         int m_old_coord_fd;
