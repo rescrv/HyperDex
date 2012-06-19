@@ -195,6 +195,12 @@ coerce_identity(hyperdatatype, hyperdatatype provided)
 }
 
 static hyperdatatype
+coerce_expected(hyperdatatype expected, hyperdatatype)
+{
+    return expected;
+}
+
+static hyperdatatype
 coerce_generic(hyperdatatype expected, hyperdatatype provided)
 {
     if (provided == HYPERDATATYPE_LIST_GENERIC)
@@ -399,7 +405,7 @@ hyperclient :: search(const char* space,
     // Figure out who to contact for the search.
     hyperspacehashing::search s;
     std::map<hyperdex::entityid, hyperdex::instance> search_entities;
-    int64_t ret = prepare_searchop(space, eq, eq_sz, rn, rn_sz, status, &s, &search_entities);
+    int64_t ret = prepare_searchop(space, eq, eq_sz, rn, rn_sz, NULL, status, &s, &search_entities, NULL);
 
     if (ret < 0)
     {
@@ -451,7 +457,7 @@ hyperclient :: group_del(const char* space,
     // Figure out who to contact for the group_del.
     hyperspacehashing::search s;
     std::map<hyperdex::entityid, hyperdex::instance> entities;
-    int64_t ret = prepare_searchop(space, eq, eq_sz, rn, rn_sz, status, &s, &entities);
+    int64_t ret = prepare_searchop(space, eq, eq_sz, rn, rn_sz, NULL, status, &s, &entities, NULL);
 
     if (ret < 0)
     {
@@ -748,9 +754,11 @@ int64_t
 hyperclient :: prepare_searchop(const char* space,
                                 const struct hyperclient_attribute* eq, size_t eq_sz,
                                 const struct hyperclient_range_query* rn, size_t rn_sz,
+                                const char* attr, /* optional */
                                 hyperclient_returncode* status,
                                 hyperspacehashing::search* s,
-                                std::map<hyperdex::entityid, hyperdex::instance>* search_entities)
+                                std::map<hyperdex::entityid, hyperdex::instance>* search_entities,
+                                uint16_t* attrno)
 {
     hyperdex::spaceid si = m_config->space(space);
 
@@ -794,6 +802,19 @@ hyperclient :: prepare_searchop(const char* space,
 
         assert(coerced == HYPERDATATYPE_INT64);
         s->range_set(idx, rn[i].lower, rn[i].upper);
+    }
+
+    if (attr)
+    {
+        hyperdatatype coerced = HYPERDATATYPE_GARBAGE;
+        int idx = validate_attr(coerce_expected, dims, NULL, attr, &coerced, status);
+
+        if (idx < 0)
+        {
+            return -1 - eq_sz - rn_sz;
+        }
+
+        *attrno = idx;
     }
 
     // Get the hosts that match our search terms.
