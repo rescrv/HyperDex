@@ -99,7 +99,7 @@ hyperdisk :: snapshot :: key()
 const std::vector<e::slice>&
 hyperdisk :: snapshot :: value()
 {
-    assert (!m_snaps.empty());
+    assert(!m_snaps.empty());
     return m_snaps.back().value();
 }
 
