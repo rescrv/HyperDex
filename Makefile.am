@@ -391,6 +391,7 @@ libhyperclient_noinst_headers = \
 			hyperclient/hyperclient_pending_get.h \
 			hyperclient/hyperclient_pending_group_del.h \
 			hyperclient/hyperclient_pending_search.h \
+			hyperclient/hyperclient_pending_sorted_search.h \
 			hyperclient/hyperclient_pending_statusonly.h \
 			hyperclient/util.h
 
@@ -401,6 +402,7 @@ libhyperclient_la_SOURCES = \
 			hyperclient/hyperclient_pending_get.cc \
 			hyperclient/hyperclient_pending_group_del.cc \
 			hyperclient/hyperclient_pending_search.cc \
+			hyperclient/hyperclient_pending_sorted_search.cc \
 			hyperclient/hyperclient_pending_statusonly.cc \
 			hyperclient/util.cc \
 			${libhyperdex_sources}

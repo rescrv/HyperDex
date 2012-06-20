@@ -87,6 +87,13 @@ class searches
                          const hyperspacehashing::search& terms,
                          enum hyperdex::network_msgtype,
                          const e::slice& remain);
+        void sorted_search(const hyperdex::entityid& us,
+                           const hyperdex::entityid& client,
+                           uint64_t nonce,
+                           const hyperspacehashing::search& terms,
+                           uint64_t num,
+                           uint16_t sort_by,
+                           bool maximize);
 
     private:
         class search_state;

@@ -148,6 +148,7 @@ cdef extern from "../hyperclient.h":
     int64_t hyperclient_map_string_prepend(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_map_string_append(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_search(hyperclient* client, char* space, hyperclient_attribute* eq, size_t eq_sz, hyperclient_range_query* rn, size_t rn_sz, hyperclient_returncode* status, hyperclient_attribute** attrs, size_t* attrs_sz)
+    int64_t hyperclient_sorted_search(hyperclient* client, char* space, hyperclient_attribute* eq, size_t eq_sz, hyperclient_range_query* rn, size_t rn_sz, char* sort_by, uint64_t limit, int maximize, hyperclient_returncode* status, hyperclient_attribute** attrs, size_t* attrs_sz)
     int64_t hyperclient_group_del(hyperclient* client, char* space, hyperclient_attribute* eq, size_t eq_sz, hyperclient_range_query* rn, size_t rn_sz, hyperclient_returncode* status)
     int64_t hyperclient_loop(hyperclient* client, int timeout, hyperclient_returncode* status)
     void hyperclient_destroy_attrs(hyperclient_attribute* attrs, size_t attrs_sz)
@@ -869,6 +870,39 @@ cdef class Search(SearchBase):
             if rn: free(rn)
 
 
+cdef class SortedSearch(SearchBase):
+
+    def __cinit__(self, Client client, bytes space, dict predicate,
+                  bytes sort_by, long limit, bytes compare):
+        cdef uint64_t lim = limit
+        cdef int maxi = 0
+        cdef hyperclient_attribute* eq = NULL
+        cdef size_t eq_sz = 0
+        cdef hyperclient_range_query* rn = NULL
+        cdef size_t rn_sz = 0
+        if compare not in ('maximize', 'max', 'minimize', 'min'):
+            raise ValueError("'compare' must be either 'max' or 'min'")
+        if compare in ('max', 'maximize'):
+            maxi = 1
+        try:
+            _predicate_to_c(predicate, &eq, &eq_sz, &rn, &rn_sz)
+            self._reqid = hyperclient_sorted_search(client._client,
+                                                    space,
+                                                    eq, eq_sz,
+                                                    rn, rn_sz,
+                                                    sort_by,
+                                                    lim,
+                                                    maxi,
+                                                    &self._status,
+                                                    &self._attrs,
+                                                    &self._attrs_sz)
+            self._check_reqid(eq, eq_sz, rn, rn_sz)
+            client._ops[self._reqid] = self
+        finally:
+            if eq: free(eq)
+            if rn: free(rn)
+
+
 cdef class Client:
     cdef hyperclient* _client
     cdef dict _ops
@@ -1015,6 +1049,9 @@ cdef class Client:
 
     def search(self, bytes space, dict predicate):
         return Search(self, space, predicate)
+
+    def sorted_search(self, bytes space, dict predicate, bytes sort_by, long limit, bytes compare):
+        return SortedSearch(self, space, predicate, sort_by, limit, compare)
 
     def async_get(self, bytes space, key):
         return DeferredGet(self, space, key)

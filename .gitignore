@@ -56,6 +56,8 @@ hyperclient/libhyperclient_la-hyperclient_pending.lo
 hyperclient/libhyperclient_la-hyperclient_pending.o
 hyperclient/libhyperclient_la-hyperclient_pending_search.lo
 hyperclient/libhyperclient_la-hyperclient_pending_search.o
+hyperclient/libhyperclient_la-hyperclient_pending_sorted_search.lo
+hyperclient/libhyperclient_la-hyperclient_pending_sorted_search.o
 hyperclient/libhyperclient_la-hyperclient_pending_statusonly.lo
 hyperclient/libhyperclient_la-hyperclient_pending_statusonly.o
 hyperclient/libhyperclient_la-util.lo

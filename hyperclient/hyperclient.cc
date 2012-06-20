@@ -51,6 +51,7 @@
 #include "hyperclient/hyperclient_pending_get.h"
 #include "hyperclient/hyperclient_pending_group_del.h"
 #include "hyperclient/hyperclient_pending_search.h"
+#include "hyperclient/hyperclient_pending_sorted_search.h"
 #include "hyperclient/hyperclient_pending_statusonly.h"
 #include "hyperclient/util.h"
 
@@ -62,6 +63,7 @@ hyperclient :: hyperclient(const char* coordinator, in_port_t port)
     , m_config(new hyperdex::configuration())
     , m_busybee(new busybee_st())
     , m_incomplete()
+    , m_complete_succeeded()
     , m_complete_failed()
     , m_server_nonce(1)
     , m_client_id(1)
@@ -443,6 +445,86 @@ hyperclient :: search(const char* space,
     return searchid;
 }
 
+static void
+delete_bracket_auto_ptr(std::auto_ptr<e::buffer>* ptrs)
+{
+    delete[] ptrs;
+}
+
+int64_t
+hyperclient :: sorted_search(const char* space,
+                             const struct hyperclient_attribute* eq, size_t eq_sz,
+                             const struct hyperclient_range_query* rn, size_t rn_sz,
+                             const char* sort_by,
+                             uint64_t limit,
+                             bool maximize,
+                             enum hyperclient_returncode* status,
+                             struct hyperclient_attribute** attrs, size_t* attrs_sz)
+{
+    if (maintain_coord_connection(status) < 0)
+    {
+        return -1;
+    }
+
+    // Figure out who to contact for the group_del.
+    hyperspacehashing::search s;
+    std::map<hyperdex::entityid, hyperdex::instance> entities;
+    uint16_t attrno;
+    hyperdatatype attrtype;
+    int64_t ret = prepare_searchop(space, eq, eq_sz, rn, rn_sz, sort_by, status, &s, &entities, &attrno, &attrtype);
+
+    if (ret < 0)
+    {
+        return ret;
+    }
+
+    if (attrtype != HYPERDATATYPE_STRING && attrtype != HYPERDATATYPE_INT64)
+    {
+        *status = HYPERCLIENT_WRONGTYPE;
+        return -1 - eq_sz - rn_sz;
+    }
+
+    // Send a sorted_search query to each matching host.
+    int64_t searchid = m_client_id;
+    ++m_client_id;
+
+    // Pack the message to send
+    size_t sz = HYPERCLIENT_HEADER_SIZE
+              + s.packed_size()
+              + sizeof(uint64_t)
+              + sizeof(uint16_t)
+              + sizeof(uint8_t);
+    int8_t max = maximize ? 1 : 0;
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    bool packed = !(msg->pack_at(HYPERCLIENT_HEADER_SIZE) << s << limit << attrno << max).error();
+    assert(packed);
+    std::auto_ptr<e::buffer>* backings = new std::auto_ptr<e::buffer>[entities.size()];
+    e::guard g = e::makeguard(delete_bracket_auto_ptr, backings);
+    e::intrusive_ptr<pending_sorted_search::state> state;
+    state = new pending_sorted_search::state(backings, limit, attrno, attrtype, maximize);
+    g.dismiss();
+
+    for (std::map<hyperdex::entityid, hyperdex::instance>::const_iterator ent_inst = entities.begin();
+            ent_inst != entities.end(); ++ent_inst)
+    {
+        e::intrusive_ptr<pending> op = new pending_sorted_search(searchid, state, status, attrs, attrs_sz);
+        op->set_server_visible_nonce(m_server_nonce);
+        ++m_server_nonce;
+        op->set_entity(ent_inst->first);
+        op->set_instance(ent_inst->second);
+        m_incomplete.insert(std::make_pair(op->server_visible_nonce(), op));
+        std::auto_ptr<e::buffer> tosend(msg->copy());
+
+        if (send(op, tosend) < 0)
+        {
+            m_complete_failed.push(completedop(op, HYPERCLIENT_RECONFIGURE, 0));
+            m_incomplete.erase(op->server_visible_nonce());
+        }
+    }
+
+    return searchid;
+}
+
 int64_t
 hyperclient :: group_del(const char* space,
                          const struct hyperclient_attribute* eq, size_t eq_sz,
@@ -498,7 +580,8 @@ hyperclient :: group_del(const char* space,
 int64_t
 hyperclient :: loop(int timeout, hyperclient_returncode* status)
 {
-    while (!m_incomplete.empty() && m_complete_failed.empty())
+    while (!m_incomplete.empty() && m_complete_failed.empty() &&
+           m_complete_succeeded.empty())
     {
         if (maintain_coord_connection(status) < 0)
         {
@@ -599,27 +682,40 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
         }
     }
 
-    if (m_incomplete.empty() && m_complete_failed.empty())
+    if (!m_complete_succeeded.empty())
+    {
+        int64_t nonce = m_complete_succeeded.front();
+        m_complete_succeeded.pop();
+        incomplete_map_t::iterator it = m_incomplete.find(nonce);
+        assert(it != m_incomplete.end());
+        e::intrusive_ptr<pending> op = it->second;
+        m_incomplete.erase(it);
+        *status = HYPERCLIENT_SUCCESS;
+        return op->return_one(this, status);
+    }
+
+    if (!m_complete_failed.empty())
+    {
+        completedop c = m_complete_failed.front();
+        m_complete_failed.pop();
+        c.op->set_status(c.why);
+
+        if (c.error != 0)
+        {
+            errno = c.error;
+        }
+
+        *status = HYPERCLIENT_SUCCESS;
+        return c.op->client_visible_id();
+    }
+
+    if (m_incomplete.empty())
     {
         *status = HYPERCLIENT_NONEPENDING;
         return -1;
     }
 
-    assert(!m_complete_failed.empty());
-
-    completedop c = m_complete_failed.front();
-    m_complete_failed.pop();
-
-    *status = HYPERCLIENT_SUCCESS;
-    int64_t ret = c.op->client_visible_id();
-    c.op->set_status(c.why);
-
-    if (c.error != 0)
-    {
-        errno = c.error;
-    }
-
-    return ret;
+    abort();
 }
 
 // XXX If we lose the coord connection, this whole thing fails.

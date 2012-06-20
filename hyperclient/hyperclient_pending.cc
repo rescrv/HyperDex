@@ -41,3 +41,10 @@ hyperclient :: pending :: pending(hyperclient_returncode* status)
 hyperclient :: pending :: ~pending() throw ()
 {
 }
+
+int64_t
+hyperclient :: pending :: return_one(hyperclient*,
+                                     hyperclient_returncode*)
+{
+    abort();
+}

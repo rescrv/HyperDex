@@ -226,6 +226,31 @@ hyperclient_search(struct hyperclient* client, const char* space,
 }
 
 int64_t
+hyperclient_sorted_search(struct hyperclient* client, const char* space,
+                          const struct hyperclient_attribute* eq, size_t eq_sz,
+                          const struct hyperclient_range_query* rn, size_t rn_sz,
+                          const char* sort_by, uint64_t limit, int maximize,
+                          enum hyperclient_returncode* status,
+                          struct hyperclient_attribute** attrs, size_t* attrs_sz)
+{
+    try
+    {
+        return client->sorted_search(space, eq, eq_sz, rn, rn_sz, sort_by, limit, maximize != 0, status, attrs, attrs_sz);
+    }
+    catch (po6::error& e)
+    {
+        errno = e;
+        *status = HYPERCLIENT_EXCEPTION;
+        return -1;
+    }
+    catch (...)
+    {
+        *status = HYPERCLIENT_EXCEPTION;
+        return -1;
+    }
+}
+
+int64_t
 hyperclient_group_del(struct hyperclient* client, const char* space,
                       const struct hyperclient_attribute* eq, size_t eq_sz,
                       const struct hyperclient_range_query* rn, size_t rn_sz,

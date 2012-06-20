@@ -295,6 +295,28 @@ hyperdaemon :: network_worker :: run()
 
             m_ssss->stop(to, from, searchid);
         }
+        else if (type == hyperdex::REQ_SORTED_SEARCH)
+        {
+            hyperspacehashing::search s(0);
+            uint64_t limit = 0;
+            uint16_t attrno = 0;
+            int8_t max = 0;
+
+            if ((up >> nonce >> s >> limit >> attrno >> max).error())
+            {
+                LOG(WARNING) << "unpack of REQ_SEARCH_STOP failed; here's some hex:  " << msg->hex();
+                continue;
+            }
+
+            if (s.sanity_check())
+            {
+                m_ssss->sorted_search(to, from, nonce, s, limit, attrno, max != 0);
+            }
+            else
+            {
+                LOG(INFO) << "Dropping sorted_search which fails sanity_check.";
+            }
+        }
         else if (type == hyperdex::REQ_GROUP_DEL)
         {
             hyperspacehashing::search s(0);
