@@ -789,7 +789,7 @@ cdef class DeferredGroupDel(Deferred):
             raise HyperClientException(self._status)
 
 
-cdef class Search:
+cdef class SearchBase:
 
     cdef Client _client
     cdef int64_t _reqid
@@ -797,44 +797,16 @@ cdef class Search:
     cdef bint _finished
     cdef hyperclient_attribute* _attrs
     cdef size_t _attrs_sz
-    cdef bytes _space
     cdef list _backlogged
 
-    def __cinit__(self, Client client, bytes space, dict predicate):
+    def __cinit__(self, Client client, *args):
         self._client = client
         self._reqid = 0
         self._status = HYPERCLIENT_ZERO
         self._finished = False
         self._attrs = <hyperclient_attribute*> NULL
         self._attrs_sz = 0
-        self._space = space
         self._backlogged = []
-        cdef hyperclient_attribute* eq = NULL
-        cdef size_t eq_sz = 0
-        cdef hyperclient_range_query* rn = NULL
-        cdef size_t rn_sz = 0
-        try:
-            _predicate_to_c(predicate, &eq, &eq_sz, &rn, &rn_sz)
-            self._reqid = hyperclient_search(client._client,
-                                             self._space,
-                                             eq, eq_sz,
-                                             rn, rn_sz,
-                                             &self._status,
-                                             &self._attrs,
-                                             &self._attrs_sz)
-            if self._reqid < 0:
-                idx = -1 - self._reqid
-                attr = None
-                if idx < eq_sz and eq and eq[idx].attr:
-                    attr = eq[idx].attr
-                idx -= eq_sz
-                if idx < rn_sz and rn and rn[idx].attr:
-                    attr = rn[idx].attr
-                raise HyperClientException(self._status, attr)
-            client._ops[self._reqid] = self
-        finally:
-            if eq: free(eq)
-            if rn: free(rn)
 
     def __iter__(self):
         return self
@@ -855,10 +827,46 @@ cdef class Search:
                 attrs = _attrs_to_dict(self._attrs, self._attrs_sz)
             finally:
                 if self._attrs:
-                    free(self._attrs)
+                    hyperclient_destroy_attrs(self._attrs, self._attrs_sz)
             self._backlogged.append(attrs)
         else:
             self._backlogged.append(HyperClientException(self._status))
+
+    cdef _check_reqid(SearchBase self, hyperclient_attribute* eq, size_t eq_sz,
+                      hyperclient_range_query* rn, size_t rn_sz):
+        cdef bytes attr
+        if self._reqid < 0:
+            idx = -1 - self._reqid
+            attr = None
+            if idx >= 0 and idx < eq_sz and eq and eq[idx].attr:
+                attr = eq[idx].attr
+            idx -= eq_sz
+            if idx >= 0 and idx < rn_sz and rn and rn[idx].attr:
+                attr = rn[idx].attr
+            raise HyperClientException(self._status, attr)
+
+
+cdef class Search(SearchBase):
+
+    def __cinit__(self, Client client, bytes space, dict predicate):
+        cdef hyperclient_attribute* eq = NULL
+        cdef size_t eq_sz = 0
+        cdef hyperclient_range_query* rn = NULL
+        cdef size_t rn_sz = 0
+        try:
+            _predicate_to_c(predicate, &eq, &eq_sz, &rn, &rn_sz)
+            self._reqid = hyperclient_search(client._client,
+                                             space,
+                                             eq, eq_sz,
+                                             rn, rn_sz,
+                                             &self._status,
+                                             &self._attrs,
+                                             &self._attrs_sz)
+            self._check_reqid(eq, eq_sz, rn, rn_sz)
+            client._ops[self._reqid] = self
+        finally:
+            if eq: free(eq)
+            if rn: free(rn)
 
 
 cdef class Client:
