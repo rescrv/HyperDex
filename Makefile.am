@@ -56,7 +56,6 @@ noinst_HEADERS = \
 			$(libhyperdisk_noinst_headers) \
 			$(libhyperdex_noinst_headers) \
 			$(libhyperclient_noinst_headers) \
-			$(java_bindings_noinst_headers) \
 			util/atomicfile.h
 
 bin_PROGRAMS = \
@@ -418,8 +417,6 @@ libhyperclient_la_CPPFLAGS = \
 
 ################################# Java Bindings ################################
 
-java_bindings_noinst_headers = \
-			hyperclient/java/javaclient.h
 java_bindings_cleanfiles = \
 			$(hyperclient_jarfile) \
 			hyperclient/java/hyperclient_wrap.cxx \

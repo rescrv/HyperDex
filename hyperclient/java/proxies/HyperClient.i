@@ -94,6 +94,8 @@
         free(rqs);
     }
     
+    // Returns 1 on success. ha->attr will point to allocated memory
+    // Returns 0 on failure. ha->attr will be NULL
     static int write_attr_name(hyperclient_attribute *ha,
                                    const char *attr, size_t attr_sz,
                                    hyperdatatype type)
@@ -107,6 +109,12 @@
         return 1;
     }
     
+    // Returns 1 on success. ha->value will point to allocated memory
+    //                       ha->value_sz will hold the size of this memory
+    // Returns 0 on failure. ha->value will be NULL
+    //                       ha->value_sz will be 0
+    //
+    // If ha->value is already non-NULL, then we are appending to it. 
     static int write_attr_value(hyperclient_attribute *ha,
                                     const char *value, size_t value_sz)
     {
@@ -121,6 +129,8 @@
         return 1;
     }
     
+    // Returns 1 on success. hma->attr will point to allocated memory
+    // Returns 0 on failure. hma->attr will be NULL
     static int write_map_attr_name(hyperclient_map_attribute *hma,
                                    const char *attr, size_t attr_sz,
                                    hyperdatatype type)
@@ -134,6 +144,12 @@
         return 1;
     }
     
+    // Returns 1 on success. hma->map_key will point to allocated memory
+    //                       hma->map_key_sz will hold the size of this memory
+    // Returns 0 on failure. hma->map_key will be NULL
+    //                       hma->map_key_sz will be 0
+    //
+    // If hma->value is already non-NULL, then we are appending to it. 
     static int write_map_attr_map_key(hyperclient_map_attribute *hma,
                                           const char *map_key, size_t map_key_sz)
     {
@@ -148,6 +164,12 @@
         return 1;
     }
     
+    // Returns 1 on success. hma->value will point to allocated memory
+    //                       hma->value_sz will hold the size of this memory
+    // Returns 0 on failure. hma->value will be NULL
+    //                       hma->value_sz will be 0
+    //
+    // If hma->value is already non-NULL, then we are appending to it. 
     static int write_map_attr_value(hyperclient_map_attribute *hma,
                                     const char *value, size_t value_sz)
     {
@@ -201,7 +223,7 @@
   {
     SWIGTYPE_p_hyperclient_returncode rc_ptr = hyperclient.new_rc_ptr();
 
-    long ret = hyperclient.hyperclient_loop(get_hyperclient(), -1, rc_ptr);
+    long ret = loop(-1, rc_ptr);
 
     hyperclient_returncode rc = hyperclient.rc_ptr_value(rc_ptr);
 
@@ -734,12 +756,12 @@
         }
         catch(MemoryError me)
         {
-            destroy_map_attrs(attrs, attrs_sz);
+            free_map_attrs(attrs, attrs_sz);
             throw me;
         }
         catch(TypeError te)
         {
-            destroy_map_attrs(attrs, attrs_sz);
+            free_map_attrs(attrs, attrs_sz);
             throw te;
         }
     }

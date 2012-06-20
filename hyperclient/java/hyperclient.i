@@ -103,7 +103,7 @@ typedef hyperclient_attribute* hyperclient_attribute_asterisk;
 %rename("%s") "hyperclient_destroy_attrs";
 
 %rename("HyperClient",%$isclass) "hyperclient";
+%rename("%s", %$ismember) "";
 
 %include "hyperdex.h"
-
 %include "hyperclient/hyperclient.h"

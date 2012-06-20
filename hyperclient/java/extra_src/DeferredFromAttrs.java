@@ -41,7 +41,7 @@ public class DeferredFromAttrs extends Deferred
         }
         finally
         {
-            if ( attrs != null ) HyperClient.destroy_attrs(attrs,attrs_sz);
+            if ( attrs != null ) HyperClient.free_attrs(attrs,attrs_sz);
         }
     }
 

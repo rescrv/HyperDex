@@ -48,7 +48,7 @@ public class DeferredMapOp extends Deferred
         }
         finally
         {
-            if ( attrs != null ) HyperClient.destroy_map_attrs(attrs,attrs_sz);
+            if ( attrs != null ) HyperClient.free_map_attrs(attrs,attrs_sz);
         }
     }
 

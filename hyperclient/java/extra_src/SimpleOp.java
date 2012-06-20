@@ -27,11 +27,10 @@ class SimpleOpPut extends SimpleOp
               hyperclient_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_put(client.get_hyperclient(),
-                                           space,
-                                           key.getBytes(),
-                                           attrs, attrs_sz,
-                                           rc_ptr);
+        return client.put(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -46,11 +45,10 @@ class SimpleOpAtomicAdd extends SimpleOp
               hyperclient_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_atomic_add(client.get_hyperclient(),
-                                           space,
-                                           key.getBytes(),
-                                           attrs, attrs_sz,
-                                           rc_ptr);
+        return client.atomic_add(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -65,11 +63,10 @@ class SimpleOpAtomicSub extends SimpleOp
               hyperclient_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_atomic_sub(client.get_hyperclient(),
-                                           space,
-                                           key.getBytes(),
-                                           attrs, attrs_sz,
-                                           rc_ptr);
+        return client.atomic_sub(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -84,11 +81,10 @@ class SimpleOpAtomicMul extends SimpleOp
               hyperclient_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_atomic_mul(client.get_hyperclient(),
-                                           space,
-                                           key.getBytes(),
-                                           attrs, attrs_sz,
-                                           rc_ptr);
+        return client.atomic_mul(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -103,11 +99,10 @@ class SimpleOpAtomicDiv extends SimpleOp
               hyperclient_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_atomic_div(client.get_hyperclient(),
-                                           space,
-                                           key.getBytes(),
-                                           attrs, attrs_sz,
-                                           rc_ptr);
+        return client.atomic_div(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -122,11 +117,10 @@ class SimpleOpAtomicMod extends SimpleOp
               hyperclient_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_atomic_mod(client.get_hyperclient(),
-                                           space,
-                                           key.getBytes(),
-                                           attrs, attrs_sz,
-                                           rc_ptr);
+        return client.atomic_mod(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -141,11 +135,10 @@ class SimpleOpAtomicAnd extends SimpleOp
               hyperclient_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_atomic_and(client.get_hyperclient(),
-                                           space,
-                                           key.getBytes(),
-                                           attrs, attrs_sz,
-                                           rc_ptr);
+        return client.atomic_and(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -160,11 +153,10 @@ class SimpleOpAtomicOr extends SimpleOp
               hyperclient_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_atomic_or(client.get_hyperclient(),
-                                           space,
-                                           key.getBytes(),
-                                           attrs, attrs_sz,
-                                           rc_ptr);
+        return client.atomic_or(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -179,11 +171,10 @@ class SimpleOpAtomicXor extends SimpleOp
               hyperclient_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_atomic_xor(client.get_hyperclient(),
-                                           space,
-                                           key.getBytes(),
-                                           attrs, attrs_sz,
-                                           rc_ptr);
+        return client.atomic_xor(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -198,11 +189,10 @@ class SimpleOpStringPrepend extends SimpleOp
               hyperclient_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_string_prepend(client.get_hyperclient(),
-                                           space,
-                                           key.getBytes(),
-                                           attrs, attrs_sz,
-                                           rc_ptr);
+        return client.string_prepend(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -217,11 +207,10 @@ class SimpleOpStringAppend extends SimpleOp
               hyperclient_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_string_append(client.get_hyperclient(),
-                                           space,
-                                           key.getBytes(),
-                                           attrs, attrs_sz,
-                                           rc_ptr);
+        return client.string_append(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -236,11 +225,10 @@ class SimpleOpListLpush extends SimpleOp
               hyperclient_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_list_lpush(client.get_hyperclient(),
-                                           space,
-                                           key.getBytes(),
-                                           attrs, attrs_sz,
-                                           rc_ptr);
+        return client.list_lpush(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -255,11 +243,10 @@ class SimpleOpListRpush extends SimpleOp
               hyperclient_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_list_rpush(client.get_hyperclient(),
-                                           space,
-                                           key.getBytes(),
-                                           attrs, attrs_sz,
-                                           rc_ptr);
+        return client.list_rpush(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -274,11 +261,10 @@ class SimpleOpSetAdd extends SimpleOp
               hyperclient_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_set_add(client.get_hyperclient(),
-                                           space,
-                                           key.getBytes(),
-                                           attrs, attrs_sz,
-                                           rc_ptr);
+        return client.set_add(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -293,11 +279,10 @@ class SimpleOpSetRemove extends SimpleOp
               hyperclient_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_set_remove(client.get_hyperclient(),
-                                           space,
-                                           key.getBytes(),
-                                           attrs, attrs_sz,
-                                           rc_ptr);
+        return client.set_remove(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -312,11 +297,10 @@ class SimpleOpSetIntersect extends SimpleOp
               hyperclient_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_set_intersect(client.get_hyperclient(),
-                                           space,
-                                           key.getBytes(),
-                                           attrs, attrs_sz,
-                                           rc_ptr);
+        return client.set_intersect(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -331,10 +315,9 @@ class SimpleOpSetUnion extends SimpleOp
               hyperclient_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_set_union(client.get_hyperclient(),
-                                           space,
-                                           key.getBytes(),
-                                           attrs, attrs_sz,
-                                           rc_ptr);
+        return client.set_union(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }

@@ -26,12 +26,11 @@ public class DeferredCondPut extends Deferred
             attrs = HyperClient.dict_to_attrs(value);
             attrs_sz = value.size();
 	
-            reqId = hyperclient.hyperclient_condput(client.get_hyperclient(),
-                                                    space,
-                                                    key.getBytes(),
-                                                    condattrs, condattrs_sz,
-                                                    attrs, attrs_sz,
-                                                    rc_ptr);
+            reqId = client.condput(space,
+                                   key.getBytes(),
+                                   condattrs, condattrs_sz,
+                                   attrs, attrs_sz,
+                                   rc_ptr);
 	        if (reqId < 0)
 	        {
                 int idx = (int)(-1 - reqId);
@@ -59,8 +58,8 @@ public class DeferredCondPut extends Deferred
         }
         finally
         {
-            if ( condattrs != null ) HyperClient.destroy_attrs(condattrs,condattrs_sz);
-            if ( attrs != null ) HyperClient.destroy_attrs(attrs,attrs_sz);
+            if ( condattrs != null ) HyperClient.free_attrs(condattrs,condattrs_sz);
+            if ( attrs != null ) HyperClient.free_attrs(attrs,attrs_sz);
         }
     }
 

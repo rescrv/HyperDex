@@ -142,12 +142,11 @@ public class Search extends Pending
             if ( eq == null && rn == null )
                         throw new ValueError("Search criteria can't be empty");
 
-            reqId = hyperclient.hyperclient_search(client.get_hyperclient(),
-                                                   space,
-                                                   eq, eq_sz,
-                                                   rn, rn_sz,
-                                                   rc_ptr,
-                                                   attrs_ptr, attrs_sz_ptr);
+            reqId = client.search(space,
+                                  eq, eq_sz,
+                                  rn, rn_sz,
+                                  rc_ptr,
+                                  attrs_ptr, attrs_sz_ptr);
 
 	
             if (reqId < 0)
@@ -178,8 +177,8 @@ public class Search extends Pending
         }
         finally
         {
-            if ( eq != null ) HyperClient.destroy_attrs(eq, eq_sz);
-            if ( rn != null ) HyperClient.destroy_range_queries(rn, rn_sz);
+            if ( eq != null ) HyperClient.free_attrs(eq, eq_sz);
+            if ( rn != null ) HyperClient.free_range_queries(rn, rn_sz);
         }
     }
 

@@ -1,6 +1,4 @@
-get
 put
-del
 atomic_add
 atomic_sub
 atomic_mul

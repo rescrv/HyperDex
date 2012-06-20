@@ -27,11 +27,10 @@ class MapOpAdd extends MapOp
               hyperclient_map_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_map_add(client.get_hyperclient(),
-                                                      space,
-                                                      key.getBytes(),
-                                                      attrs, attrs_sz,
-                                                      rc_ptr);
+        return client.map_add(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -46,11 +45,10 @@ class MapOpRemove extends MapOp
               hyperclient_map_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_map_remove(client.get_hyperclient(),
-                                                      space,
-                                                      key.getBytes(),
-                                                      attrs, attrs_sz,
-                                                      rc_ptr);
+        return client.map_remove(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -65,11 +63,10 @@ class MapOpAtomicAdd extends MapOp
               hyperclient_map_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_map_atomic_add(client.get_hyperclient(),
-                                                      space,
-                                                      key.getBytes(),
-                                                      attrs, attrs_sz,
-                                                      rc_ptr);
+        return client.map_atomic_add(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -84,11 +81,10 @@ class MapOpAtomicSub extends MapOp
               hyperclient_map_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_map_atomic_sub(client.get_hyperclient(),
-                                                      space,
-                                                      key.getBytes(),
-                                                      attrs, attrs_sz,
-                                                      rc_ptr);
+        return client.map_atomic_sub(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -103,11 +99,10 @@ class MapOpAtomicMul extends MapOp
               hyperclient_map_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_map_atomic_mul(client.get_hyperclient(),
-                                                      space,
-                                                      key.getBytes(),
-                                                      attrs, attrs_sz,
-                                                      rc_ptr);
+        return client.map_atomic_mul(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -122,11 +117,10 @@ class MapOpAtomicDiv extends MapOp
               hyperclient_map_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_map_atomic_div(client.get_hyperclient(),
-                                                      space,
-                                                      key.getBytes(),
-                                                      attrs, attrs_sz,
-                                                      rc_ptr);
+        return client.map_atomic_div(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -141,11 +135,10 @@ class MapOpAtomicMod extends MapOp
               hyperclient_map_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_map_atomic_mod(client.get_hyperclient(),
-                                                      space,
-                                                      key.getBytes(),
-                                                      attrs, attrs_sz,
-                                                      rc_ptr);
+        return client.map_atomic_mod(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -160,11 +153,10 @@ class MapOpAtomicAnd extends MapOp
               hyperclient_map_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_map_atomic_and(client.get_hyperclient(),
-                                                      space,
-                                                      key.getBytes(),
-                                                      attrs, attrs_sz,
-                                                      rc_ptr);
+        return client.map_atomic_and(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -179,11 +171,10 @@ class MapOpAtomicOr extends MapOp
               hyperclient_map_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_map_atomic_or(client.get_hyperclient(),
-                                                      space,
-                                                      key.getBytes(),
-                                                      attrs, attrs_sz,
-                                                      rc_ptr);
+        return client.map_atomic_or(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -198,11 +189,10 @@ class MapOpAtomicXor extends MapOp
               hyperclient_map_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_map_atomic_xor(client.get_hyperclient(),
-                                                      space,
-                                                      key.getBytes(),
-                                                      attrs, attrs_sz,
-                                                      rc_ptr);
+        return client.map_atomic_xor(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -217,11 +207,10 @@ class MapOpStringPrepend extends MapOp
               hyperclient_map_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_map_string_prepend(client.get_hyperclient(),
-                                                      space,
-                                                      key.getBytes(),
-                                                      attrs, attrs_sz,
-                                                      rc_ptr);
+        return client.map_string_prepend(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
 
@@ -236,10 +225,9 @@ class MapOpStringAppend extends MapOp
               hyperclient_map_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr)
     {
-        return hyperclient.hyperclient_map_string_append(client.get_hyperclient(),
-                                                      space,
-                                                      key.getBytes(),
-                                                      attrs, attrs_sz,
-                                                      rc_ptr);
+        return client.map_string_append(space,
+                               key.getBytes(),
+                               attrs, attrs_sz,
+                               rc_ptr);
     }
 }
