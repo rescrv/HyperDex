@@ -405,7 +405,7 @@ hyperclient :: search(const char* space,
     // Figure out who to contact for the search.
     hyperspacehashing::search s;
     std::map<hyperdex::entityid, hyperdex::instance> search_entities;
-    int64_t ret = prepare_searchop(space, eq, eq_sz, rn, rn_sz, NULL, status, &s, &search_entities, NULL);
+    int64_t ret = prepare_searchop(space, eq, eq_sz, rn, rn_sz, NULL, status, &s, &search_entities, NULL, NULL);
 
     if (ret < 0)
     {
@@ -457,7 +457,7 @@ hyperclient :: group_del(const char* space,
     // Figure out who to contact for the group_del.
     hyperspacehashing::search s;
     std::map<hyperdex::entityid, hyperdex::instance> entities;
-    int64_t ret = prepare_searchop(space, eq, eq_sz, rn, rn_sz, NULL, status, &s, &entities, NULL);
+    int64_t ret = prepare_searchop(space, eq, eq_sz, rn, rn_sz, NULL, status, &s, &entities, NULL, NULL);
 
     if (ret < 0)
     {
@@ -758,7 +758,8 @@ hyperclient :: prepare_searchop(const char* space,
                                 hyperclient_returncode* status,
                                 hyperspacehashing::search* s,
                                 std::map<hyperdex::entityid, hyperdex::instance>* search_entities,
-                                uint16_t* attrno)
+                                uint16_t* attrno,
+                                hyperdatatype* attrtype)
 {
     hyperdex::spaceid si = m_config->space(space);
 
@@ -815,6 +816,7 @@ hyperclient :: prepare_searchop(const char* space,
         }
 
         *attrno = idx;
+        *attrtype = coerced;
     }
 
     // Get the hosts that match our search terms.

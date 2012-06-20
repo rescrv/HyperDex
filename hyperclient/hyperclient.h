@@ -794,7 +794,8 @@ class hyperclient
                                  hyperclient_returncode* status,
                                  hyperspacehashing::search* s,
                                  std::map<hyperdex::entityid, hyperdex::instance>* search_entities,
-                                 uint16_t* attrno);
+                                 uint16_t* attrno,
+                                 hyperdatatype* attrtype);
         int64_t send(e::intrusive_ptr<pending> op,
                      std::auto_ptr<e::buffer> msg);
         int64_t pack_attrs(const char* space,
