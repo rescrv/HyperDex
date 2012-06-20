@@ -299,6 +299,49 @@ hyperdaemon :: searches :: group_keyop(const hyperdex::entityid& us,
     m_comm->send(us, client, hyperdex::RESP_GROUP_DEL, msg);
 }
 
+void
+hyperdaemon :: searches :: count(const hyperdex::entityid& us,
+                                 const hyperdex::entityid& client,
+                                 uint64_t nonce,
+                                 const hyperspacehashing::search& terms)
+{
+    if (m_config.dimensions(us.get_space()) != terms.size())
+    {
+        size_t sz = m_comm->header_size() + sizeof(uint64_t) + sizeof(uint16_t);
+        std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+        e::buffer::packer pa = msg->pack_at(m_comm->header_size());
+        pa = pa << nonce << static_cast<uint16_t>(hyperdex::NET_BADDIMSPEC);
+        assert(!pa.error());
+        m_comm->send(us, client, hyperdex::RESP_COUNT, msg);
+        return;
+    }
+
+    flush(us.get_region());
+    hyperspacehashing::mask::hasher hasher(m_config.disk_hasher(us.get_subspace()));
+    hyperspacehashing::mask::coordinate coord(hasher.hash(terms));
+    e::intrusive_ptr<hyperdisk::snapshot> snap = m_data->make_snapshot(us.get_region(), terms);
+
+    uint64_t result = 0;
+
+    while (snap->valid())
+    {
+        if (coord.intersects(snap->coordinate()) &&
+            terms.matches(snap->key(), snap->value()))
+        {
+            ++result;
+        }
+
+        snap->next();
+    }
+
+    size_t sz = m_comm->header_size() + sizeof(uint64_t) + sizeof(uint16_t) + sizeof(uint64_t);
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    e::buffer::packer pa = msg->pack_at(m_comm->header_size());
+    pa = pa << nonce << static_cast<uint16_t>(hyperdex::NET_SUCCESS) << result;
+    assert(!pa.error());
+    m_comm->send(us, client, hyperdex::RESP_COUNT, msg);
+}
+
 struct sorted_search_item
 {
     sorted_search_item(const hyperdisk::reference& ref,

@@ -87,6 +87,10 @@ class searches
                          const hyperspacehashing::search& terms,
                          enum hyperdex::network_msgtype,
                          const e::slice& remain);
+        void count(const hyperdex::entityid& us,
+                   const hyperdex::entityid& client,
+                   uint64_t nonce,
+                   const hyperspacehashing::search& terms);
         void sorted_search(const hyperdex::entityid& us,
                            const hyperdex::entityid& client,
                            uint64_t nonce,

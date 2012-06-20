@@ -388,6 +388,7 @@ libhyperclient_noinst_headers = \
 			hyperclient/constants.h \
 			hyperclient/hyperclient_completedop.h \
 			hyperclient/hyperclient_pending.h \
+			hyperclient/hyperclient_pending_count.h \
 			hyperclient/hyperclient_pending_get.h \
 			hyperclient/hyperclient_pending_group_del.h \
 			hyperclient/hyperclient_pending_search.h \
@@ -399,6 +400,7 @@ libhyperclient_la_SOURCES = \
 			hyperclient/hyperclient.cc \
 			hyperclient/hyperclient_c_wrappers.cc \
 			hyperclient/hyperclient_pending.cc \
+			hyperclient/hyperclient_pending_count.cc \
 			hyperclient/hyperclient_pending_get.cc \
 			hyperclient/hyperclient_pending_group_del.cc \
 			hyperclient/hyperclient_pending_search.cc \

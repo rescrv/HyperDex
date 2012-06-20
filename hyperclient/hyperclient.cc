@@ -48,6 +48,7 @@
 #include "hyperclient/hyperclient.h"
 #include "hyperclient/hyperclient_completedop.h"
 #include "hyperclient/hyperclient_pending.h"
+#include "hyperclient/hyperclient_pending_count.h"
 #include "hyperclient/hyperclient_pending_get.h"
 #include "hyperclient/hyperclient_pending_group_del.h"
 #include "hyperclient/hyperclient_pending_search.h"
@@ -575,6 +576,64 @@ hyperclient :: group_del(const char* space,
     }
 
     return group_del_id;
+}
+
+int64_t
+hyperclient :: count(const char* space,
+                     const struct hyperclient_attribute* eq, size_t eq_sz,
+                     const struct hyperclient_range_query* rn, size_t rn_sz,
+                     enum hyperclient_returncode* status,
+                     uint64_t* result)
+{
+    // Must do this first so that client can use it to determine if anything
+    // happened.
+    *result = 0;
+
+    if (maintain_coord_connection(status) < 0)
+    {
+        return -1;
+    }
+
+    // Figure out who to contact for the count.
+    hyperspacehashing::search s;
+    std::map<hyperdex::entityid, hyperdex::instance> entities;
+    int64_t ret = prepare_searchop(space, eq, eq_sz, rn, rn_sz, NULL, status, &s, &entities, NULL, NULL);
+
+    if (ret < 0)
+    {
+        return ret;
+    }
+
+    // Send a count query to each matching host.
+    int64_t count_id = m_client_id;
+    ++m_client_id;
+
+    // Pack the message to send
+    std::auto_ptr<e::buffer> msg(e::buffer::create(HYPERCLIENT_HEADER_SIZE + s.packed_size()));
+    bool packed = !(msg->pack_at(HYPERCLIENT_HEADER_SIZE) << s).error();
+    assert(packed);
+    std::tr1::shared_ptr<uint64_t> refcount(new uint64_t(0));
+
+    for (std::map<hyperdex::entityid, hyperdex::instance>::const_iterator ent_inst = entities.begin();
+            ent_inst != entities.end(); ++ent_inst)
+    {
+        e::intrusive_ptr<pending> op = new pending_count(count_id, refcount, status, result);
+        op->set_server_visible_nonce(m_server_nonce);
+        ++m_server_nonce;
+        op->set_entity(ent_inst->first);
+        op->set_instance(ent_inst->second);
+        m_incomplete.insert(std::make_pair(op->server_visible_nonce(), op));
+        std::auto_ptr<e::buffer> tosend(msg->copy());
+
+        if (send(op, tosend) < 0)
+        {
+            m_complete_failed.push(completedop(op, HYPERCLIENT_RECONFIGURE, 0));
+            m_incomplete.erase(op->server_visible_nonce());
+        }
+    }
+
+    *status = HYPERCLIENT_SUCCESS;
+    return count_id;
 }
 
 int64_t

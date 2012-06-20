@@ -651,6 +651,12 @@ hyperclient_group_del(struct hyperclient* client, const char* space,
                       const struct hyperclient_range_query* rn, size_t rn_sz,
                       enum hyperclient_returncode* status);
 
+int64_t
+hyperclient_count(struct hyperclient* client, const char* space,
+                  const struct hyperclient_attribute* eq, size_t eq_sz,
+                  const struct hyperclient_range_query* rn, size_t rn_sz,
+                  enum hyperclient_returncode* status, uint64_t* result);
+
 /* Handle I/O until at least one event is complete (either a key-op finishes, or
  * a search returns one item).
  *
@@ -802,11 +808,16 @@ class hyperclient
                           const struct hyperclient_attribute* eq, size_t eq_sz,
                           const struct hyperclient_range_query* rn, size_t rn_sz,
                           enum hyperclient_returncode* status);
+        int64_t count(const char* space,
+                      const struct hyperclient_attribute* eq, size_t eq_sz,
+                      const struct hyperclient_range_query* rn, size_t rn_sz,
+                      enum hyperclient_returncode* status, uint64_t* result);
         int64_t loop(int timeout, hyperclient_returncode* status);
 
     private:
         class completedop;
         class pending;
+        class pending_count;
         class pending_get;
         class pending_group_del;
         class pending_search;

@@ -339,6 +339,25 @@ hyperdaemon :: network_worker :: run()
                 LOG(INFO) << "Dropping group_del which fails sanity_check.";
             }
         }
+        else if (type == hyperdex::REQ_COUNT)
+        {
+            hyperspacehashing::search s(0);
+
+            if ((up >> nonce >> s).error())
+            {
+                LOG(WARNING) << "unpack of REQ_COUNT failed; here's some hex:  " << msg->hex();
+                continue;
+            }
+
+            if (s.sanity_check())
+            {
+                m_ssss->count(to, from, nonce, s);
+            }
+            else
+            {
+                LOG(INFO) << "Dropping count which fails sanity_check.";
+            }
+        }
         else if (type == hyperdex::CHAIN_PUT)
         {
             uint64_t version;
