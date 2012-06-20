@@ -114,10 +114,9 @@ class HyperClient
                                             hyperclient_range_query *rqs,
                                             size_t i);
 
-        hyperclient *get_hyperclient();
+        //hyperclient *get_hyperclient();
 
-    private:
-        hyperclient *m_client;
+        class hyperclient *_hyperclient;
 };
 
 #endif // hyperclient_javaclient_h_

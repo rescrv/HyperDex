@@ -35,10 +35,14 @@
 %javaconst(1);
 
 %{
-#include "hyperclient/java/javaclient.h"
+#include <limits.h>
+#include <cstdlib>
+#include "hyperclient/hyperclient.h"
+typedef hyperclient_attribute* hyperclient_attribute_asterisk;
 %}
 
 typedef uint16_t in_port_t;
+typedef hyperclient_attribute* hyperclient_attribute_asterisk;
 
 %pragma(java) jniclasscode=
 %{
@@ -79,8 +83,6 @@ typedef uint16_t in_port_t;
 %apply (char *STRING, int LENGTH) { (const char *value, size_t value_sz) }
 
 
-%include "hyperclient/java/javaclient.h"
-
 // Pertaining to the include of hyperdex.h and hyperclient/hyperclient.h below:
 
 // Ignore everything
@@ -97,42 +99,10 @@ typedef uint16_t in_port_t;
 %rename("%s") "hyperclient_range_query";
 %rename("%s",%$isvariable) "";
 
-// Un-ignore the functionality I want
-%rename("%s") "hyperclient_get";
-%rename("%s") "hyperclient_put";
-%rename("%s") "hyperclient_condput";
-%rename("%s") "hyperclient_del";
-%rename("%s") "hyperclient_atomic_add";
-%rename("%s") "hyperclient_atomic_sub";
-%rename("%s") "hyperclient_atomic_mul";
-%rename("%s") "hyperclient_atomic_div";
-%rename("%s") "hyperclient_atomic_mod";
-%rename("%s") "hyperclient_atomic_and";
-%rename("%s") "hyperclient_atomic_or";
-%rename("%s") "hyperclient_atomic_xor";
-%rename("%s") "hyperclient_string_prepend";
-%rename("%s") "hyperclient_string_append";
-%rename("%s") "hyperclient_list_lpush";
-%rename("%s") "hyperclient_list_rpush";
-%rename("%s") "hyperclient_set_add";
-%rename("%s") "hyperclient_set_remove";
-%rename("%s") "hyperclient_set_intersect";
-%rename("%s") "hyperclient_set_union";
-%rename("%s") "hyperclient_map_add";
-%rename("%s") "hyperclient_map_remove";
-%rename("%s") "hyperclient_map_atomic_add";
-%rename("%s") "hyperclient_map_atomic_sub";
-%rename("%s") "hyperclient_map_atomic_mul";
-%rename("%s") "hyperclient_map_atomic_div";
-%rename("%s") "hyperclient_map_atomic_mod";
-%rename("%s") "hyperclient_map_atomic_and";
-%rename("%s") "hyperclient_map_atomic_or";
-%rename("%s") "hyperclient_map_atomic_xor";
-%rename("%s") "hyperclient_map_string_prepend";
-%rename("%s") "hyperclient_map_string_append";
-%rename("%s") "hyperclient_search";
-%rename("%s") "hyperclient_loop";
+// Un-ignore the only needed C function
 %rename("%s") "hyperclient_destroy_attrs";
+
+%rename("HyperClient",%$isclass) "hyperclient";
 
 %include "hyperdex.h"
 

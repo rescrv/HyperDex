@@ -1,4 +1,199 @@
-%typemap(javacode) HyperClient
+%extend hyperclient
+{
+    static std::string read_attr_name(hyperclient_attribute *ha)
+    {
+        std::string str = std::string(ha->attr);
+    
+        if (str.length() > INT_MAX)
+        {
+            return str.substr(0,INT_MAX);
+        }
+    
+        return str;
+    }
+    
+    static void read_attr_value(hyperclient_attribute *ha,
+                                   char *value, size_t value_sz,
+                                   size_t pos)
+    {
+        size_t available = ha->value_sz - pos;
+        memcpy(value, ha->value+pos, value_sz<available?value_sz:available);
+    }
+    
+    static std::string read_map_attr_name(hyperclient_map_attribute *hma)
+    {
+        std::string str = std::string(hma->attr);
+    
+        if (str.length() > INT_MAX)
+        {
+            return str.substr(0,INT_MAX);
+        }
+    
+        return str;
+    }
+    
+    static std::string read_range_query_attr_name(hyperclient_range_query *rq)
+    {
+        std::string str = std::string(rq->attr);
+    
+        if (str.length() > INT_MAX)
+        {
+            return str.substr(0,INT_MAX);
+        }
+    
+        return str;
+    }
+    
+    static hyperclient_attribute *alloc_attrs(size_t attrs_sz)
+    {
+        return (hyperclient_attribute *)calloc(attrs_sz,sizeof(hyperclient_attribute));
+    }
+    
+    static void free_attrs(hyperclient_attribute *attrs, size_t attrs_sz)
+    {
+        for (size_t i=0; i<attrs_sz; i++)
+        {
+            if (attrs[i].attr) free((void*)(attrs[i].attr));
+            if (attrs[i].value) free((void*)(attrs[i].value));
+        }
+    
+        free(attrs);
+    }
+    
+    static hyperclient_map_attribute *alloc_map_attrs(size_t attrs_sz)
+    {
+        return (hyperclient_map_attribute *)calloc(attrs_sz,
+                                                   sizeof(hyperclient_map_attribute));
+    }
+    
+    static void free_map_attrs(hyperclient_map_attribute *attrs, size_t attrs_sz)
+    {
+        for (size_t i=0; i<attrs_sz; i++)
+        {
+            if (attrs[i].attr) free((void*)(attrs[i].attr));
+            if (attrs[i].map_key) free((void*)(attrs[i].map_key));
+            if (attrs[i].value) free((void*)(attrs[i].value));
+        }
+    
+        free(attrs);
+    }
+    
+    static hyperclient_range_query *alloc_range_queries(size_t rqs_sz)
+    {
+        return (hyperclient_range_query *)calloc(rqs_sz,
+                                                   sizeof(hyperclient_range_query));
+    }
+    
+    static void free_range_queries(hyperclient_range_query *rqs, size_t rqs_sz)
+    {
+        for (size_t i=0; i<rqs_sz; i++)
+        {
+            if (rqs[i].attr) free((void*)(rqs[i].attr));
+        }
+    
+        free(rqs);
+    }
+    
+    static int write_attr_name(hyperclient_attribute *ha,
+                                   const char *attr, size_t attr_sz,
+                                   hyperdatatype type)
+    {
+        char *buf;
+    
+        if ((buf = (char *)calloc(attr_sz+1,sizeof(char))) == NULL) return 0;
+        memcpy(buf,attr,attr_sz);
+        ha->attr = buf;
+        ha->datatype = type;
+        return 1;
+    }
+    
+    static int write_attr_value(hyperclient_attribute *ha,
+                                    const char *value, size_t value_sz)
+    {
+        char *buf = NULL;
+        // Note: Since hyperclient_attribute array was calloced
+        //       ha->value = NULL and ha->value_sz = 0 initially
+        if ((buf = (char *)realloc((void *)(ha->value), ha->value_sz + value_sz))
+                                                                        == NULL) return 0;
+        memcpy(buf + ha->value_sz, value, value_sz);
+        ha->value = buf;
+        ha->value_sz += value_sz;
+        return 1;
+    }
+    
+    static int write_map_attr_name(hyperclient_map_attribute *hma,
+                                   const char *attr, size_t attr_sz,
+                                   hyperdatatype type)
+    {
+        char *buf;
+    
+        if ((buf = (char *)calloc(attr_sz+1,sizeof(char))) == NULL) return 0;
+        memcpy(buf,attr,attr_sz);
+        hma->attr = buf;
+        hma->datatype = type;
+        return 1;
+    }
+    
+    static int write_map_attr_map_key(hyperclient_map_attribute *hma,
+                                          const char *map_key, size_t map_key_sz)
+    {
+        char *buf = NULL;
+        // Note: Since hyperclient_map_attribute array was calloced
+        //       hma->map_key = NULL and hma->map_key_sz = 0 initially
+        if ((buf = (char *)realloc((void *)(hma->map_key), hma->map_key_sz + map_key_sz))
+                                                                        == NULL) return 0;
+        memcpy(buf + hma->map_key_sz, map_key, map_key_sz);
+        hma->map_key = buf;
+        hma->map_key_sz += map_key_sz;
+        return 1;
+    }
+    
+    static int write_map_attr_value(hyperclient_map_attribute *hma,
+                                    const char *value, size_t value_sz)
+    {
+        char *buf = NULL;
+        // Note: Since hyperclient_map_attribute array was calloced
+        //       hma->value = NULL and hma->value_sz = 0 initially
+        if ((buf = (char *)realloc((void *)(hma->value), hma->value_sz + value_sz))
+                                                                        == NULL) return 0;
+        memcpy(buf + hma->value_sz, value, value_sz);
+        hma->value = buf;
+        hma->value_sz += value_sz;
+        return 1;
+    }
+    
+    static int write_range_query(hyperclient_range_query *rq,
+                                   const char *attr, size_t attr_sz,
+                                   int64_t lower,
+                                   int64_t upper)
+    {
+        char *buf;
+    
+        if ((buf = (char *)calloc(attr_sz+1,sizeof(char))) == NULL) return 0;
+        memcpy(buf,attr,attr_sz);
+        rq->attr = buf;
+        rq->lower = lower;
+        rq->upper = upper;
+        return 1;
+    }
+    
+    static hyperclient_attribute *get_attr(hyperclient_attribute *ha, size_t i)
+    {
+        return ha + i;
+    }
+    
+    static hyperclient_map_attribute *get_map_attr(hyperclient_map_attribute *hma, size_t i)
+    {
+        return hma + i;
+    }
+    
+    static hyperclient_range_query *get_range_query(hyperclient_range_query *rqs, size_t i)
+    {
+        return rqs + i;
+    }
+};
+
+%typemap(javacode) hyperclient
 %{
   java.util.HashMap<Long,Pending> ops = new java.util.HashMap<Long,Pending>(); 
 
@@ -371,12 +566,12 @@
         }
         catch(MemoryError me)
         {
-            destroy_attrs(attrs, attrs_sz);
+            free_attrs(attrs, attrs_sz);
             throw me;
         }
         catch(TypeError te)
         {
-            destroy_attrs(attrs, attrs_sz);
+            free_attrs(attrs, attrs_sz);
             throw te;
         }
 

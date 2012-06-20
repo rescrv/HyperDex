@@ -42,13 +42,13 @@
 
 HyperClient :: HyperClient(const char* coordinator, in_port_t port)
 {
-    m_client = hyperclient_create(coordinator,port);
+    _hyperclient = new hyperclient(coordinator,port);
 }
 
 HyperClient :: ~HyperClient() throw ()
 {
-    if (m_client)
-        hyperclient_destroy(m_client);
+    if (_hyperclient)
+        delete _hyperclient;
 }
 
 std::string
@@ -103,7 +103,7 @@ int64_t
 HyperClient :: loop(hyperclient_returncode *rc)
 {
 
-    return hyperclient_loop(m_client, -1, rc);
+    return _hyperclient->loop(-1, rc);
 }
 
 hyperclient_attribute*
@@ -267,10 +267,4 @@ hyperclient_range_query *
 HyperClient :: get_range_query(hyperclient_range_query *rqs, size_t i)
 {
     return rqs + i;
-}
-
-hyperclient*
-HyperClient :: get_hyperclient()
-{
-    return m_client;
 }
