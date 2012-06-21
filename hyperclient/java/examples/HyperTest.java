@@ -101,10 +101,25 @@ public class HyperTest
             System.out.println(s.next());
         }
 
-        System.out.println("\nAbout delete ntolomic:\n");
+        System.out.println("\nAbout delete stolomic:\n");
 
-        System.out.println("result: " + c.del("phonebook","ntolomic"));
+        System.out.println("result: " + c.del("phonebook","stolomic"));
         
+        // Do the search again
+        s = c.search("phonebook",values);
+
+        while(s.hasNext())
+        {
+            System.out.println(s.next());
+        }
+
+        System.out.println("\nGroup delete for last name of 'Tolomiczenko'\n\n  AND\n\nphone number in the range [4165551024,4165551026):\n");
+        values.put("phone",
+                    new AbstractMap.SimpleEntry<Long,Long>(4165551024L,4165551026L));
+        System.out.println("result: " + c.group_del("phonebook",values));
+
+        values.remove("phone");
+
         // Do the search again
         s = c.search("phonebook",values);
 

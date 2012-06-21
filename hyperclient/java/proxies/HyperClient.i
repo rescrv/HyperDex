@@ -932,6 +932,16 @@
     return ((Boolean)(d.waitFor())).booleanValue();
   }
 
+  public boolean group_del(String space, java.util.Map predicate)
+                                                 throws HyperClientException,
+                                                        TypeError,
+                                                        MemoryError,
+                                                        ValueError
+  {
+    Deferred d = (DeferredGroupDel)(async_group_del(space, predicate));
+    return ((Boolean)(d.waitFor())).booleanValue();
+  }
+
   public boolean atomic_add(String space, String key, java.util.Map map)
                                                      throws HyperClientException,
                                                             TypeError,
@@ -1248,6 +1258,15 @@
   public Deferred async_del(String space, String key) throws HyperClientException
   {
     return new DeferredDelete(this, space, key);
+  }
+
+  public Deferred async_group_del(String space, java.util.Map predicate)
+                                                 throws HyperClientException,
+                                                        TypeError,
+                                                        MemoryError,
+                                                        ValueError
+  {
+    return new DeferredGroupDel(this, space, predicate);
   }
 
   public Deferred async_atomic_add(String space, String key, java.util.Map map)
