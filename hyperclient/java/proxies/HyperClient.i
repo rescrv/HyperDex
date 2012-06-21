@@ -338,12 +338,153 @@
     return retType;
   }
 
+  // Using a Vector retvals to return multiple values.
+  //
+  // retvals at 0 - eq
+  // retvals at 1 - eq_sz
+  // retvals at 2 - rn
+  // retvals at 3 - rn_sz
+  static java.util.Vector predicate_to_c(java.util.Map predicate)
+                                            throws TypeError, MemoryError, ValueError
+  {
+      java.util.Vector<Object> retvals = new java.util.Vector<Object>(4); 
+
+      retvals.add(null);
+      retvals.add(new Integer(0));
+      retvals.add(null);
+      retvals.add(new Integer(0));
+
+      java.util.HashMap<String,Object> equalities
+            = new java.util.HashMap<String,Object>();
+
+      java.util.HashMap<String,Object> ranges
+            = new java.util.HashMap<String,Object>();
+
+      for (java.util.Iterator it=predicate.keySet().iterator(); it.hasNext();)
+      {
+          String key = (String)(it.next());
+
+          if ( key == null )
+              throw new TypeError("Cannot search on a null attribute");
+
+          Object val = predicate.get(key);
+
+          if ( val == null )
+              throw new TypeError("Cannot search with a null criteria");
+
+
+          String errStr = "Attribute '" + key + "' has incorrect type ( expected Long, String, Map.Entry<Long,Long> or List<Long> (of size 2), but got %s";
+
+          if ( val instanceof String || val instanceof Long)
+          {
+              equalities.put(key,val);
+          }
+          else
+          {
+              if ( val instanceof java.util.Map.Entry )
+              {
+                  try
+                  {
+                      long lower
+                        = ((Long)((java.util.Map.Entry)val).getKey()).longValue();
+
+                      long upper
+                        = ((Long)((java.util.Map.Entry)val).getValue()).longValue();
+                  }
+                  catch(Exception e)
+                  {
+                      throw
+                          new TypeError(String.format(errStr,val.getClass().getName()));
+                  }
+              }
+              else if ( val instanceof java.util.List )
+              {
+                  try
+                  {
+                      java.util.List listVal = (java.util.List)val;
+      
+                      if ( listVal.size() != 2 )
+                          throw new TypeError("Attribute '" + key + "': using a List to specify a range requires its size to be 2, but got size " + listVal.size());  
+                  }
+                  catch (TypeError te)
+                  {
+                      throw te;
+                  }
+                  catch (Exception e)
+                  {
+                      throw
+                          new TypeError(
+                              String.format(errStr,val.getClass().getName()));
+                  }
+              }
+              else
+              {
+                  throw
+                      new TypeError(String.format(errStr,val.getClass().getName()));
+              }
+
+              ranges.put(key,val);
+          }
+      }
+
+      if ( equalities.size() > 0 )
+      {
+          
+          retvals.set(0, dict_to_attrs(equalities));
+          retvals.set(1, equalities.size());
+      }
+
+      if ( ranges.size() > 0 )
+      {
+          int rn_sz = ranges.size();
+          hyperclient_range_query rn = HyperClient.alloc_range_queries(rn_sz);
+
+          if ( rn == null ) throw new MemoryError();
+
+          retvals.set(2, rn);
+          retvals.set(3, ranges.size());
+
+          int i = 0;
+          for (java.util.Iterator it=ranges.keySet().iterator(); it.hasNext();)
+          {
+              String key = (String)(it.next());
+              Object val = ranges.get(key);
+
+              long lower = 0;
+              long upper = 0;
+
+              if ( val instanceof java.util.Map.Entry )
+              {
+                  lower = (Long)(((java.util.Map.Entry)val).getKey());
+                  upper = (Long)(((java.util.Map.Entry)val).getValue());
+              }
+              else // Must be a List of Longs of size = 2
+              {
+                  lower = (Long)(((java.util.List)val).get(0));
+                  upper = (Long)(((java.util.List)val).get(1));
+              }
+      
+              hyperclient_range_query rq = HyperClient.get_range_query(rn,i);
+
+              if ( HyperClient.write_range_query(rq,key.getBytes(),lower,upper) == 0 )
+                  throw new MemoryError();
+
+              i++;
+          }
+      }
+
+      if ( retvals.get(0) == null && retvals.get(2) == null )
+            throw new ValueError("Search criteria can't be empty");
+
+      return retvals;
+  }
+
   static hyperclient_attribute dict_to_attrs(java.util.Map attrsMap) throws TypeError,
-                                                                        MemoryError
+                                                                            MemoryError
   {
     int attrs_sz = attrsMap.size();
     hyperclient_attribute attrs = alloc_attrs(attrs_sz);
-
+ 
     if ( attrs == null ) throw new MemoryError();
     
     int i = 0;
@@ -352,250 +493,237 @@
     {
         hyperclient_attribute ha = get_attr(attrs,i);
 
-        try
+        String attrStr = (String)(it.next());
+        if ( attrStr == null ) throw new TypeError("Attribute name cannot be null");
+
+        byte[] attrBytes = attrStr.getBytes();
+
+        Object value = attrsMap.get(attrStr);
+
+    
+        if ( value == null ) throw new TypeError(
+                                    "Cannot convert null value "
+                                + "for attribute '" + attrStr + "'");
+
+        hyperdatatype type = null;
+
+        if ( value instanceof String )
         {
-            String attrStr = (String)(it.next());
-            if ( attrStr == null ) throw new TypeError("Attribute name cannot be null");
+            type = hyperdatatype.HYPERDATATYPE_STRING;
+            byte[] valueBytes = ((String)value).getBytes();
+            if (write_attr_value(ha, valueBytes) == 0) throw new MemoryError();
 
-            byte[] attrBytes = attrStr.getBytes();
+        }
+        else if ( value instanceof Long )
+        {
+            type = hyperdatatype.HYPERDATATYPE_INT64;
+            byte[] valueBytes = java.nio.ByteBuffer.allocate(8).order(
+                java.nio.ByteOrder.LITTLE_ENDIAN).putLong(
+                    ((Long)value).longValue()).array();
+            if (write_attr_value(ha, valueBytes) == 0) throw new MemoryError();
+        }
+        else if ( value instanceof java.util.List )
+        {
+            java.util.List list = (java.util.List)value;
 
-            Object value = attrsMap.get(attrStr);
+            type = hyperdatatype.HYPERDATATYPE_LIST_GENERIC;
 
-        
-            if ( value == null ) throw new TypeError(
-                                        "Cannot convert null value "
-                                    + "for attribute '" + attrStr + "'");
-
-            hyperdatatype type = null;
-
-            if ( value instanceof String )
+            for (java.util.Iterator l_it=list.iterator();l_it.hasNext();)
             {
-                type = hyperdatatype.HYPERDATATYPE_STRING;
-                byte[] valueBytes = ((String)value).getBytes();
-                if (write_attr_value(ha, valueBytes) == 0) throw new MemoryError();
-    
-            }
-            else if ( value instanceof Long )
-            {
-                type = hyperdatatype.HYPERDATATYPE_INT64;
-                byte[] valueBytes = java.nio.ByteBuffer.allocate(8).order(
-                    java.nio.ByteOrder.LITTLE_ENDIAN).putLong(
-                        ((Long)value).longValue()).array();
-                if (write_attr_value(ha, valueBytes) == 0) throw new MemoryError();
-            }
-            else if ( value instanceof java.util.List )
-            {
-                java.util.List list = (java.util.List)value;
+                Object val = l_it.next();
 
-                type = hyperdatatype.HYPERDATATYPE_LIST_GENERIC;
+                if ( val == null ) throw new TypeError(
+                                    "Cannot convert null element "
+                                + "for list attribute '" + attrStr + "'");
 
-                for (java.util.Iterator l_it=list.iterator();l_it.hasNext();)
+                if (type == hyperdatatype.HYPERDATATYPE_LIST_GENERIC)
                 {
-                    Object val = l_it.next();
-
-                    if ( val == null ) throw new TypeError(
-                                        "Cannot convert null element "
-                                    + "for list attribute '" + attrStr + "'");
-
-                    if (type == hyperdatatype.HYPERDATATYPE_LIST_GENERIC)
-                    {
-                        if (val instanceof String)
-                            type = hyperdatatype.HYPERDATATYPE_LIST_STRING;
-                        else if (val instanceof Long)
-                            type = hyperdatatype.HYPERDATATYPE_LIST_INT64;
-                        else
-                            throw new TypeError(
-                                "Do not know how to convert type '"
-                                    + val.getClass().getName()
-                                    + "' for list attribute '" + attrStr + "'");
-                    }
+                    if (val instanceof String)
+                        type = hyperdatatype.HYPERDATATYPE_LIST_STRING;
+                    else if (val instanceof Long)
+                        type = hyperdatatype.HYPERDATATYPE_LIST_INT64;
                     else
-                    {
-                        if ( (val instanceof String
-                                && type != hyperdatatype.HYPERDATATYPE_LIST_STRING)
-                            || (val instanceof Long
-                                && type != hyperdatatype.HYPERDATATYPE_LIST_INT64) )
+                        throw new TypeError(
+                            "Do not know how to convert type '"
+                                + val.getClass().getName()
+                                + "' for list attribute '" + attrStr + "'");
+                }
+                else
+                {
+                    if ( (val instanceof String
+                            && type != hyperdatatype.HYPERDATATYPE_LIST_STRING)
+                        || (val instanceof Long
+                            && type != hyperdatatype.HYPERDATATYPE_LIST_INT64) )
 
-                            throw new TypeError("Cannot store heterogeneous lists");
-                    }
+                        throw new TypeError("Cannot store heterogeneous lists");
+                }
 
-                    if ( type == hyperdatatype.HYPERDATATYPE_LIST_STRING )
-                    {
-                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(4).order( 
-                                                 java.nio.ByteOrder.LITTLE_ENDIAN).putInt(
-                                                 ((String)val).getBytes().length).array()) == 0)
-                                                 throw new MemoryError();
-    
-                        if (write_attr_value(ha, ((String)val).getBytes()) == 0)
-                                                 throw new MemoryError();
-                    }
-    
-                    if ( type == hyperdatatype.HYPERDATATYPE_LIST_INT64 )
-                    {
-                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order( 
-                                                 java.nio.ByteOrder.LITTLE_ENDIAN
-                                                 ).putLong(((Long)val).longValue()
-                                                 ).array()) == 0)
-                                                 throw new MemoryError();
-                    }
+                if ( type == hyperdatatype.HYPERDATATYPE_LIST_STRING )
+                {
+                    if (write_attr_value(ha, java.nio.ByteBuffer.allocate(4).order( 
+                                             java.nio.ByteOrder.LITTLE_ENDIAN).putInt(
+                                             ((String)val).getBytes().length).array()) == 0)
+                                             throw new MemoryError();
+
+                    if (write_attr_value(ha, ((String)val).getBytes()) == 0)
+                                             throw new MemoryError();
+                }
+
+                if ( type == hyperdatatype.HYPERDATATYPE_LIST_INT64 )
+                {
+                    if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order( 
+                                             java.nio.ByteOrder.LITTLE_ENDIAN
+                                             ).putLong(((Long)val).longValue()
+                                             ).array()) == 0)
+                                             throw new MemoryError();
                 }
             }
-            else if ( value instanceof java.util.Set )
+        }
+        else if ( value instanceof java.util.Set )
+        {
+            // XXX HyderDex seems to quietly fail if set is not sorted
+            // So I make sure a TreeSet ie., sorted set is used.
+            // I was wondering why the python binding went through 
+            // the trouble of sorting a set right before packing it.
+
+            java.util.Set<?> set = (java.util.Set<?>)value;
+
+            if ( ! (set instanceof java.util.SortedSet) )
             {
-                // XXX HyderDex seems to quietly fail if set is not sorted
-                // So I make sure a TreeSet ie., sorted set is used.
-                // I was wondering why the python binding went through 
-                // the trouble of sorting a set right before packing it.
+                set = new java.util.TreeSet<Object>(set);
+            }
 
-                java.util.Set<?> set = (java.util.Set<?>)value;
+            type = hyperdatatype.HYPERDATATYPE_SET_GENERIC;
 
-                if ( ! (set instanceof java.util.SortedSet) )
+            for (java.util.Iterator s_it=set.iterator();s_it.hasNext();)
+            {
+                Object val = s_it.next();
+
+                if ( val == null ) throw new TypeError(
+                                    "Cannot convert null element "
+                                + "for set attribute '" + attrStr + "'");
+
+                if (type == hyperdatatype.HYPERDATATYPE_SET_GENERIC)
                 {
-                    set = new java.util.TreeSet<Object>(set);
-                }
-
-                type = hyperdatatype.HYPERDATATYPE_SET_GENERIC;
-
-                for (java.util.Iterator s_it=set.iterator();s_it.hasNext();)
-                {
-                    Object val = s_it.next();
-
-                    if ( val == null ) throw new TypeError(
-                                        "Cannot convert null element "
-                                    + "for set attribute '" + attrStr + "'");
-
-                    if (type == hyperdatatype.HYPERDATATYPE_SET_GENERIC)
-                    {
-                        if (val instanceof String)
-                            type = hyperdatatype.HYPERDATATYPE_SET_STRING;
-                        else if (val instanceof Long)
-                            type = hyperdatatype.HYPERDATATYPE_SET_INT64;
-                        else
-                            throw new TypeError(
-                                "Do not know how to convert type '"
-                                    + val.getClass().getName()
-                                    + "' for set attribute '" + attrStr + "'");
-                    }
+                    if (val instanceof String)
+                        type = hyperdatatype.HYPERDATATYPE_SET_STRING;
+                    else if (val instanceof Long)
+                        type = hyperdatatype.HYPERDATATYPE_SET_INT64;
                     else
-                    {
-                        if ( (val instanceof String
-                                && type != hyperdatatype.HYPERDATATYPE_SET_STRING)
-                            || (val instanceof Long
-                                && type != hyperdatatype.HYPERDATATYPE_SET_INT64) )
+                        throw new TypeError(
+                            "Do not know how to convert type '"
+                                + val.getClass().getName()
+                                + "' for set attribute '" + attrStr + "'");
+                }
+                else
+                {
+                    if ( (val instanceof String
+                            && type != hyperdatatype.HYPERDATATYPE_SET_STRING)
+                        || (val instanceof Long
+                            && type != hyperdatatype.HYPERDATATYPE_SET_INT64) )
 
-                            throw new TypeError("Cannot store heterogeneous sets");
-                    }
+                        throw new TypeError("Cannot store heterogeneous sets");
+                }
 
-                    if ( type == hyperdatatype.HYPERDATATYPE_SET_STRING )
-                    {
-                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(4).order( 
-                                                 java.nio.ByteOrder.LITTLE_ENDIAN).putInt(
-                                                 ((String)val).getBytes().length).array()) == 0)
-                                                 throw new MemoryError();
-    
-                        if (write_attr_value(ha, ((String)val).getBytes()) == 0)
-                                                 throw new MemoryError();
-                    }
-    
-                    if ( type == hyperdatatype.HYPERDATATYPE_SET_INT64 )
-                    {
-                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order( 
-                                                 java.nio.ByteOrder.LITTLE_ENDIAN
-                                                 ).putLong(((Long)val).longValue()
-                                                 ).array()) == 0)
-                                                 throw new MemoryError();
-                    }
+                if ( type == hyperdatatype.HYPERDATATYPE_SET_STRING )
+                {
+                    if (write_attr_value(ha, java.nio.ByteBuffer.allocate(4).order( 
+                                             java.nio.ByteOrder.LITTLE_ENDIAN).putInt(
+                                             ((String)val).getBytes().length).array()) == 0)
+                                             throw new MemoryError();
+
+                    if (write_attr_value(ha, ((String)val).getBytes()) == 0)
+                                             throw new MemoryError();
+                }
+
+                if ( type == hyperdatatype.HYPERDATATYPE_SET_INT64 )
+                {
+                    if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order( 
+                                             java.nio.ByteOrder.LITTLE_ENDIAN
+                                             ).putLong(((Long)val).longValue()
+                                             ).array()) == 0)
+                                             throw new MemoryError();
                 }
             }
-            else if ( value instanceof java.util.Map )
+        }
+        else if ( value instanceof java.util.Map )
+        {
+            java.util.Map<?,?> map = (java.util.Map<?,?>)value;
+
+            // As for set types, the same goes for map type. HyperDex will
+            // scoff unless the map is sorted
+            //
+            if ( ! (map instanceof java.util.SortedMap) )
             {
-                java.util.Map<?,?> map = (java.util.Map<?,?>)value;
+                map = new java.util.TreeMap<Object,Object>(map);
+            }
 
-                // As for set types, the same goes for map type. HyperDex will
-                // scoff unless the map is sorted
-                //
-                if ( ! (map instanceof java.util.SortedMap) )
-                {
-                    map = new java.util.TreeMap<Object,Object>(map);
-                }
+            type = hyperdatatype.HYPERDATATYPE_MAP_GENERIC;
 
-                type = hyperdatatype.HYPERDATATYPE_MAP_GENERIC;
+            for (java.util.Iterator m_it=map.keySet().iterator();m_it.hasNext();)
+            {
+                Object key = m_it.next();
 
-                for (java.util.Iterator m_it=map.keySet().iterator();m_it.hasNext();)
-                {
-                    Object key = m_it.next();
-
-                    if ( key == null ) throw new TypeError(
-                                      "In attribute '" + attrStr 
-                                    + "': A non-empty map cannot have a null key entry");
-
-                    Object val = map.get(key);
-
-                    if ( val == null ) throw new TypeError(
+                if ( key == null ) throw new TypeError(
                                   "In attribute '" + attrStr 
-                                + "': A non-empty map cannot have a null value entry");
+                                + "': A non-empty map cannot have a null key entry");
 
-                    type = validateMapType(type, attrStr, key, val);
+                Object val = map.get(key);
 
-                    if ( key instanceof String )
-                    {
-                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(4).order( 
-                                                 java.nio.ByteOrder.LITTLE_ENDIAN).putInt(
-                                                 ((String)key).getBytes().length).array()) == 0)
-                                                 throw new MemoryError();
-    
-                        if (write_attr_value(ha, ((String)key).getBytes()) == 0)
-                                                 throw new MemoryError();
-                    }
-                    else
-                    {
-                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order( 
-                                                 java.nio.ByteOrder.LITTLE_ENDIAN
-                                                 ).putLong(((Long)key).longValue()
-                                                 ).array()) == 0)
-                                                 throw new MemoryError();
-                    }
+                if ( val == null ) throw new TypeError(
+                              "In attribute '" + attrStr 
+                            + "': A non-empty map cannot have a null value entry");
 
-                    if ( val instanceof String )
-                    {
-                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(4).order( 
-                                                 java.nio.ByteOrder.LITTLE_ENDIAN).putInt(
-                                                 ((String)val).getBytes().length).array()) == 0)
-                                                 throw new MemoryError();
-    
-                        if (write_attr_value(ha, ((String)val).getBytes()) == 0)
-                                                 throw new MemoryError();
-                    }
-                    else
-                    {
-                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order( 
-                                                 java.nio.ByteOrder.LITTLE_ENDIAN
-                                                 ).putLong(((Long)val).longValue()
-                                                 ).array()) == 0)
-                                                 throw new MemoryError();
-                    }
+                type = validateMapType(type, attrStr, key, val);
+
+                if ( key instanceof String )
+                {
+                    if (write_attr_value(ha, java.nio.ByteBuffer.allocate(4).order( 
+                                             java.nio.ByteOrder.LITTLE_ENDIAN).putInt(
+                                             ((String)key).getBytes().length).array()) == 0)
+                                             throw new MemoryError();
+
+                    if (write_attr_value(ha, ((String)key).getBytes()) == 0)
+                                             throw new MemoryError();
+                }
+                else
+                {
+                    if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order( 
+                                             java.nio.ByteOrder.LITTLE_ENDIAN
+                                             ).putLong(((Long)key).longValue()
+                                             ).array()) == 0)
+                                             throw new MemoryError();
+                }
+
+                if ( val instanceof String )
+                {
+                    if (write_attr_value(ha, java.nio.ByteBuffer.allocate(4).order( 
+                                             java.nio.ByteOrder.LITTLE_ENDIAN).putInt(
+                                             ((String)val).getBytes().length).array()) == 0)
+                                             throw new MemoryError();
+
+                    if (write_attr_value(ha, ((String)val).getBytes()) == 0)
+                                             throw new MemoryError();
+                }
+                else
+                {
+                    if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order( 
+                                             java.nio.ByteOrder.LITTLE_ENDIAN
+                                             ).putLong(((Long)val).longValue()
+                                             ).array()) == 0)
+                                             throw new MemoryError();
                 }
             }
-            else
-            {
-                throw new TypeError(
-                     "Do not know how to convert type '"
-                        + value.getClass().getName()
-                        + "' for attribute '" + attrStr + "'");
-            }
+        }
+        else
+        {
+            throw new TypeError(
+                 "Do not know how to convert type '"
+                    + value.getClass().getName()
+                    + "' for attribute '" + attrStr + "'");
+        }
 
-            if (write_attr_name(ha, attrBytes, type) == 0) throw new MemoryError();
-        }
-        catch(MemoryError me)
-        {
-            free_attrs(attrs, attrs_sz);
-            throw me;
-        }
-        catch(TypeError te)
-        {
-            free_attrs(attrs, attrs_sz);
-            throw te;
-        }
+        if (write_attr_name(ha, attrBytes, type) == 0) throw new MemoryError();
 
         i++;
     }
