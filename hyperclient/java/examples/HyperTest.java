@@ -79,6 +79,9 @@ public class HyperTest
             System.out.println(s.next());
         }
 
+        System.out.println("\nLet's use the same predicate, values, to get the count:");
+        System.out.println("count = " + c.count("phonebook",values));
+
         // Now do an async_put, which should work by definition.
         //
         values.put("first","Stavroula");

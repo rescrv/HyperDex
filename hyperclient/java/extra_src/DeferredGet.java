@@ -4,8 +4,8 @@ import java.util.*;
 
 public class DeferredGet extends Deferred
 {
-    SWIGTYPE_p_p_hyperclient_attribute attrs_ptr = null;
-    SWIGTYPE_p_size_t attrs_sz_ptr = null;
+    private SWIGTYPE_p_p_hyperclient_attribute attrs_ptr = null;
+    private SWIGTYPE_p_size_t attrs_sz_ptr = null;
 
     public DeferredGet(HyperClient client, String space, String key)
                                                     throws HyperClientException

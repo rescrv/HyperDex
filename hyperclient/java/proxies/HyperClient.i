@@ -897,6 +897,8 @@
     return attrs;
   }
 
+  // Synchronous methods
+  //
   public java.util.Map get(String space, String key) throws HyperClientException,
                                                             ValueError
   {
@@ -1221,6 +1223,26 @@
     Deferred d = (DeferredMapOp)(async_map_string_append(space, key, map));
     return ((Boolean)(d.waitFor())).booleanValue();
   }
+
+  public java.math.BigInteger count(String space, java.util.Map predicate)
+                                                     throws HyperClientException,
+                                                            TypeError,
+                                                            ValueError,
+                                                            MemoryError
+  {
+    return count(space, predicate, false);
+  }
+
+  public java.math.BigInteger count(String space, java.util.Map predicate, boolean unsafe)
+                                                     throws HyperClientException,
+                                                            TypeError,
+                                                            ValueError,
+                                                            MemoryError
+  {
+    Deferred d = (DeferredCount)(async_count(space, predicate, unsafe));
+    return (java.math.BigInteger)(d.waitFor());
+  }
+
   public Search search(String space, java.util.Map predicate)
                                                      throws HyperClientException,
                                                             TypeError,
@@ -1230,6 +1252,8 @@
     return new Search(this,space,predicate);
   }
 
+  // Asynchronous methods
+  //
   public Deferred async_get(String space, String key) throws HyperClientException,
                                                              ValueError
   {
@@ -1520,5 +1544,23 @@
                                                             ValueError
   {
     return new DeferredMapOp(this, new MapOpStringAppend(this), space, key, map);
+  }
+
+  public Deferred async_count(String space, java.util.Map predicate)
+                                                     throws HyperClientException,
+                                                            TypeError,
+                                                            MemoryError,
+                                                            ValueError
+  {
+    return async_count(space, predicate, false);
+  }
+
+  public Deferred async_count(String space, java.util.Map predicate, boolean unsafe)
+                                                     throws HyperClientException,
+                                                            TypeError,
+                                                            MemoryError,
+                                                            ValueError
+  {
+    return new DeferredCount(this, space, predicate, unsafe);
   }
 %}

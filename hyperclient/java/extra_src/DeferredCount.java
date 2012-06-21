@@ -1,10 +1,15 @@
 package hyperclient;
 
 import java.util.*;
+import java.nio.*;
 
-public class DeferredGroupDel extends Deferred
+public class DeferredCount extends Deferred
 {
-    public DeferredGroupDel(HyperClient client, String space, Map predicate)
+    private SWIGTYPE_p_unsigned_long_long res_ptr = null;
+
+    private int unsafe;
+
+    public DeferredCount(HyperClient client, String space, Map predicate, boolean unsafe)
                                                     throws HyperClientException,
                                                            TypeError,
                                                            ValueError,
@@ -12,8 +17,10 @@ public class DeferredGroupDel extends Deferred
     {
         super(client);
 
+        this.unsafe = unsafe?1:0;
+
         if ( predicate == null )
-            throw new ValueError("DeferredGroupDel critera cannot be null");
+            throw new ValueError("DeferredCount critera cannot be null");
 
         hyperclient_attribute eq = null;
         int eq_sz = 0;
@@ -30,10 +37,13 @@ public class DeferredGroupDel extends Deferred
             rn = (hyperclient_range_query)(retvals.get(2));
             rn_sz = ((Integer)(retvals.get(3))).intValue();
 
-            reqId = client.group_del(space,
-                                     eq, eq_sz,
-                                     rn, rn_sz,
-                                     rc_ptr);
+            res_ptr = hyperclient.new_uint64_t_ptr();
+
+            reqId = client.count(space,
+                                 eq, eq_sz,
+                                 rn, rn_sz,
+                                 rc_ptr,
+                                 res_ptr);
 
 	
             if (reqId < 0)
@@ -72,17 +82,21 @@ public class DeferredGroupDel extends Deferred
     public Object waitFor() throws HyperClientException, ValueError
     {
         super.waitFor();
-        if (status() == hyperclient_returncode.HYPERCLIENT_SUCCESS)
+
+        if (status() == hyperclient_returncode.HYPERCLIENT_SUCCESS || unsafe == 0)
         {
-            return new Boolean(true);
-        }
-        else if (status() == hyperclient_returncode.HYPERCLIENT_NOTFOUND)
-        {
-            return new Boolean(false);
+            return hyperclient.uint64_t_ptr_value(res_ptr);
         }
         else
         {
             throw new HyperClientException(status());
         }
+    }
+
+    protected void finalize() throws Throwable
+    {
+        super.finalize();
+
+        if (res_ptr != null) hyperclient.delete_uint64_t_ptr(res_ptr);
     }
 }

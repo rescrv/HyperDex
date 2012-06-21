@@ -75,6 +75,7 @@ typedef hyperclient_range_query* hyperclient_range_query_asterisk;
 //
 %pointer_functions(size_t, size_t_ptr);
 %pointer_functions(hyperclient_returncode, rc_ptr);
+%pointer_functions(uint64_t, uint64_t_ptr);
 
 %include "proxies/hyperclient_attribute.i"
 %include "proxies/hyperclient_map_attribute.i"
