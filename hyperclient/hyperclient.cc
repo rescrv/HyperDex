@@ -60,7 +60,7 @@
     (sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint32_t) * 2)
 
 hyperclient :: hyperclient(const char* coordinator, in_port_t port)
-    : m_coord(new hyperdex::coordinatorlink(po6::net::location(coordinator, port)))
+    : m_coord(new hyperdex::coordinatorlink(po6::net::hostname(coordinator, port)))
     , m_config(new hyperdex::configuration())
     , m_busybee(new busybee_st())
     , m_incomplete()

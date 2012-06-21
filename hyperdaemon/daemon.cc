@@ -76,7 +76,7 @@ int
 hyperdaemon :: daemon(const char* progname,
                       bool daemonize,
                       po6::pathname datadir,
-                      po6::net::location coordinator,
+                      po6::net::hostname coordinator,
                       uint16_t num_threads,
                       po6::net::ipaddr bind_to,
                       in_port_t incoming,

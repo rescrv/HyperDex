@@ -38,7 +38,7 @@
 #include "hyperdex/hyperdex/coordinatorlink.h"
 #include "hyperdex/configuration_parser.h"
 
-hyperdex :: coordinatorlink :: coordinatorlink(const po6::net::location& coordinator)
+hyperdex :: coordinatorlink :: coordinatorlink(const po6::net::hostname& coordinator)
     : m_lock()
     , m_coordinator(coordinator)
     , m_announce()
@@ -170,12 +170,11 @@ hyperdex :: coordinatorlink :: poll(int connect_attempts, int timeout)
         {
             po6::threads::mutex::hold hold(&m_lock);
             reset_config();
-            m_sock.reset(m_coordinator.address.family(), SOCK_STREAM, IPPROTO_TCP);
             ++attempt_num;
 
             try
             {
-                m_sock.connect(m_coordinator);
+                m_coordinator.connect(AF_UNSPEC, SOCK_STREAM, IPPROTO_TCP, &m_sock);
 
                 switch (send_to_coordinator(m_announce.c_str(), m_announce.size()))
                 {

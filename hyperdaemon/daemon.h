@@ -32,7 +32,7 @@
 #define hyperdaemon_daemon_h_
 
 // po6
-#include <po6/net/location.h>
+#include <po6/net/hostname.h>
 #include <po6/pathname.h>
 
 namespace hyperdaemon
@@ -42,7 +42,7 @@ int
 daemon(const char* progname,
        bool daemonize,
        po6::pathname datadir,
-       po6::net::location coordinator,
+       po6::net::hostname coordinator,
        uint16_t num_threads,
        po6::net::ipaddr bind_to,
        in_port_t incoming,

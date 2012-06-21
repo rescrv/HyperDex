@@ -36,7 +36,7 @@
 #include <memory>
 
 // po6
-#include <po6/net/location.h>
+#include <po6/net/hostname.h>
 #include <po6/net/socket.h>
 #include <po6/threads/mutex.h>
 
@@ -56,7 +56,7 @@ class coordinatorlink
         };
 
     public:
-        coordinatorlink(const po6::net::location& coordinator);
+        coordinatorlink(const po6::net::hostname& coordinator);
         ~coordinatorlink() throw ();
 
     // Unacknowledged is true if the current configuration has not been
@@ -107,7 +107,7 @@ class coordinatorlink
 
     private:
         po6::threads::mutex m_lock;
-        const po6::net::location m_coordinator;
+        const po6::net::hostname m_coordinator;
         std::string m_announce;
         bool m_acknowledged;
         configuration m_config;

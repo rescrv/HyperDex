@@ -49,7 +49,6 @@
 
 static const char* data = ".";
 static const char* host = "127.0.0.1";
-static po6::net::ipaddr coord(host);
 static long port = 1234;
 static long threads = 1;
 static const char* bindto = "127.0.0.1";
@@ -73,7 +72,7 @@ static struct poptOption popts[] = {
         "the local directory in which data will be stored",
         "D"},
     {"host", 'h', POPT_ARG_STRING, &host, 'h',
-        "the IP address of the coordinator",
+        "the address of the coordinator",
         "IP"},
     {"port", 'p', POPT_ARG_LONG, &port, 'p',
         "the port number of the coordinator",
@@ -124,21 +123,6 @@ main(int argc, const char* argv[])
 
                 break;
             case 'h':
-                try
-                {
-                    coord = po6::net::ipaddr(host);
-                }
-                catch (po6::error& e)
-                {
-                    std::cerr << "cannot parse coordinator address" << std::endl;
-                    return EXIT_FAILURE;
-                }
-                catch (std::invalid_argument& e)
-                {
-                    std::cerr << "cannot parse coordinator address" << std::endl;
-                    return EXIT_FAILURE;
-                }
-
                 break;
             case 'p':
                 if (port < 0 || port >= (1 << 16))
@@ -213,7 +197,7 @@ main(int argc, const char* argv[])
     try
     {
         po6::pathname datadir(data);
-        return hyperdaemon::daemon(argv[0], daemonize, datadir, po6::net::location(coord, port),
+        return hyperdaemon::daemon(argv[0], daemonize, datadir, po6::net::hostname(host, port),
                                    threads, local, port_in, port_out);
     }
     catch (std::exception& e)
