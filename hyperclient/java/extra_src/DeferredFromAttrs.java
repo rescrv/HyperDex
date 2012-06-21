@@ -17,8 +17,8 @@ public class DeferredFromAttrs extends Deferred
 
         try
         {
-            attrs = HyperClient.dict_to_attrs(map);
             attrs_sz = map.size();
+            attrs = HyperClient.dict_to_attrs(map);
 	
 	        reqId = op.call(space, key, attrs, attrs_sz, rc_ptr);
 	

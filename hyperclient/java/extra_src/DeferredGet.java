@@ -66,7 +66,7 @@ public class DeferredGet extends Deferred
     {
         super.finalize();
 
-        hyperclient.delete_hyperclient_attribute_ptr(attrs_ptr);
-        hyperclient.delete_size_t_ptr(attrs_sz_ptr);
+        if (attrs_ptr != null) hyperclient.delete_hyperclient_attribute_ptr(attrs_ptr);
+        if (attrs_sz_ptr != null) hyperclient.delete_size_t_ptr(attrs_sz_ptr);
     }
 }

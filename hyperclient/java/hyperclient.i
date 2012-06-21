@@ -39,10 +39,12 @@
 #include <cstdlib>
 #include "hyperclient/hyperclient.h"
 typedef hyperclient_attribute* hyperclient_attribute_asterisk;
+typedef hyperclient_range_query* hyperclient_range_query_asterisk;
 %}
 
 typedef uint16_t in_port_t;
 typedef hyperclient_attribute* hyperclient_attribute_asterisk;
+typedef hyperclient_range_query* hyperclient_range_query_asterisk;
 
 %pragma(java) jniclasscode=
 %{
@@ -65,6 +67,9 @@ typedef hyperclient_attribute* hyperclient_attribute_asterisk;
 //                             a pointer, so the name hyperclient_attribute_ptr is
 //                             essentially a pointer to this java-transparent pointer.  
 %pointer_functions(hyperclient_attribute_asterisk,hyperclient_attribute_ptr);
+
+// Likewise for hyperclient_range_query*
+%pointer_functions(hyperclient_range_query_asterisk,hyperclient_range_query_ptr);
 
 // A couple more c++ pointer handling macros I will need
 //

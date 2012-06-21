@@ -31,116 +31,12 @@ public class Search extends Pending
 
         try
         {
-            HashMap<String,Object> equalities = new HashMap<String,Object>();
-            HashMap<String,Object> ranges = new HashMap<String,Object>();
-
-            for (Iterator it=predicate.keySet().iterator(); it.hasNext();)
-            {
-                String key = (String)(it.next());
-
-                if ( key == null )
-                    throw new TypeError("Cannot search on a null attribute");
-
-                Object val = predicate.get(key);
-
-                if ( val == null )
-                    throw new TypeError("Cannot search with a null criteria");
-
-
-                String errStr = "Attribute '" + key + "' has incorrect type ( expected Long, String, Map.Entry<Long,Long> or List<Long> (of size 2), but got %s";
-
-                if ( val instanceof String || val instanceof Long)
-                {
-                    equalities.put(key,val);
-                }
-                else
-                {
-                    if ( val instanceof Map.Entry )
-                    {
-                        try
-                        {
-                            long lower = ((Long)((Map.Entry)val).getKey()).longValue();
-                            long upper = ((Long)((Map.Entry)val).getValue()).longValue();
-                        }
-                        catch(Exception e)
-                        {
-                            throw
-                                new TypeError(String.format(errStr,val.getClass().getName()));
-                        }
-                    }
-                    else if ( val instanceof List )
-                    {
-                        try
-                        {
-                            List listVal = (List)val;
-    
-                            if ( listVal.size() != 2 )
-                                throw new TypeError("Attribute '" + key + "': using a List to specify a range requires its size to be 2, but got size " + listVal.size());  
-                        }
-                        catch (TypeError te)
-                        {
-                            throw te;
-                        }
-                        catch (Exception e)
-                        {
-                            throw
-                                new TypeError(
-                                    String.format(errStr,val.getClass().getName()));
-                        }
-                    }
-                    else
-                    {
-                        throw
-                            new TypeError(String.format(errStr,val.getClass().getName()));
-                    }
-
-                    ranges.put(key,val);
-                }
-            }
-
-            if ( equalities.size() > 0 )
-            {
-                eq_sz = equalities.size();
-                eq = HyperClient.dict_to_attrs(equalities);
-            }
-
-            if ( ranges.size() > 0 )
-            {
-                rn_sz = ranges.size();
-                rn = HyperClient.alloc_range_queries(rn_sz);
-                if ( rn == null ) throw new MemoryError();
-
-                int i = 0;
-                for (Iterator it=ranges.keySet().iterator(); it.hasNext();)
-                {
-                    String key = (String)(it.next());
-                    Object val = ranges.get(key);
-
-                    long lower = 0;
-                    long upper = 0;
-
-                    if ( val instanceof Map.Entry )
-                    {
-                        lower = (Long)(((Map.Entry)val).getKey());
-                        upper = (Long)(((Map.Entry)val).getValue());
-                    }
-                    else // Must be a List of Longs of size = 2
-                    {
-                        lower = (Long)(((List)val).get(0));
-                        upper = (Long)(((List)val).get(1));
-                    }
-    
-                    hyperclient_range_query rq = HyperClient.get_range_query(rn,i);
-
-                    if ( HyperClient.write_range_query(rq,key.getBytes(),lower,upper) == 0 )
-                        throw new MemoryError();
-
-                    i++;
-                }
-            }
-
-            if ( eq == null && rn == null )
-                        throw new ValueError("Search criteria can't be empty");
+            Vector retvals = HyperClient.predicate_to_c(predicate);
+            
+            eq = (hyperclient_attribute)(retvals.get(0));
+            eq_sz = ((Integer)(retvals.get(1))).intValue();
+            rn = (hyperclient_range_query)(retvals.get(2));
+            rn_sz = ((Integer)(retvals.get(3))).intValue();
 
             reqId = client.search(space,
                                   eq, eq_sz,
@@ -270,7 +166,7 @@ public class Search extends Pending
     {
         super.finalize();
 
-        hyperclient.delete_hyperclient_attribute_ptr(attrs_ptr);
-        hyperclient.delete_size_t_ptr(attrs_sz_ptr);
+        if (attrs_ptr != null) hyperclient.delete_hyperclient_attribute_ptr(attrs_ptr);
+        if (attrs_sz_ptr != null) hyperclient.delete_size_t_ptr(attrs_sz_ptr);
     }
 }
