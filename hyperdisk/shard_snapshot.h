@@ -34,6 +34,7 @@
 
 // HyperDisk
 #include "hyperdisk/hyperdisk/returncode.h"
+#include "hyperdisk/hyperdisk/reference.h"
 #include "hyperdisk/shard_constants.h"
 
 // Forward Declarations
@@ -62,6 +63,7 @@ class shard_snapshot
         uint64_t version();
         const e::slice& key();
         const std::vector<e::slice>& value();
+        hyperdisk::reference ref();
 
     public:
         shard_snapshot& operator = (const shard_snapshot& rhs);

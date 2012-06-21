@@ -30,6 +30,7 @@
 // HyperDisk
 #include "hyperdisk/hyperdisk/snapshot.h"
 #include "hyperdisk/log_entry.h"
+#include "hyperdisk/reference.h"
 #include "hyperdisk/shard_snapshot.h"
 #include "hyperdisk/shard_vector.h"
 
@@ -99,8 +100,15 @@ hyperdisk :: snapshot :: key()
 const std::vector<e::slice>&
 hyperdisk :: snapshot :: value()
 {
-    assert (!m_snaps.empty());
+    assert(!m_snaps.empty());
     return m_snaps.back().value();
+}
+
+hyperdisk::reference
+hyperdisk :: snapshot :: ref()
+{
+    assert(!m_snaps.empty());
+    return m_snaps.back().ref();
 }
 
 hyperdisk :: rolling_snapshot :: rolling_snapshot(const e::locking_iterable_fifo<log_entry>::iterator& iter,

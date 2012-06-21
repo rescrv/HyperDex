@@ -62,6 +62,8 @@ class hyperclient::pending
                                         std::auto_ptr<e::buffer> msg,
                                         hyperdex::network_msgtype type,
                                         hyperclient_returncode* status) = 0;
+        virtual int64_t return_one(hyperclient* cl,
+                                   hyperclient_returncode* status);
 
     private:
         friend class e::intrusive_ptr<pending>;

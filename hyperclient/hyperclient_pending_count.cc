@@ -28,39 +28,41 @@
 // HyperClient
 #include "hyperclient/constants.h"
 #include "hyperclient/hyperclient_completedop.h"
-#include "hyperclient/hyperclient_pending_group_del.h"
+#include "hyperclient/hyperclient_pending_count.h"
 #include "hyperclient/util.h"
 
-hyperclient :: pending_group_del :: pending_group_del(int64_t group_del_id,
-                                                      std::tr1::shared_ptr<uint64_t> refcount,
-                                                      hyperclient_returncode* status)
+hyperclient :: pending_count :: pending_count(int64_t count_id,
+                                              std::tr1::shared_ptr<uint64_t> refcount,
+                                              hyperclient_returncode* status,
+                                              uint64_t* result)
     : pending(status)
     , m_refcount(refcount)
+    , m_result(result)
 {
     ++*m_refcount;
-    this->set_client_visible_id(group_del_id);
+    this->set_client_visible_id(count_id);
 }
 
-hyperclient :: pending_group_del :: ~pending_group_del() throw ()
+hyperclient :: pending_count :: ~pending_count() throw ()
 {
 }
 
 hyperdex::network_msgtype
-hyperclient :: pending_group_del :: request_type()
+hyperclient :: pending_count :: request_type()
 {
-    return hyperdex::REQ_GROUP_DEL;
+    return hyperdex::REQ_COUNT;
 }
 
 int64_t
-hyperclient :: pending_group_del :: handle_response(hyperclient* cl,
-                                                    const po6::net::location& sender,
-                                                    std::auto_ptr<e::buffer> msg,
-                                                    hyperdex::network_msgtype type,
-                                                    hyperclient_returncode* status)
+hyperclient :: pending_count :: handle_response(hyperclient* cl,
+                                                const po6::net::location& sender,
+                                                std::auto_ptr<e::buffer> msg,
+                                                hyperdex::network_msgtype type,
+                                                hyperclient_returncode* status)
 {
     *status = HYPERCLIENT_SUCCESS;
 
-    if (type != hyperdex::RESP_GROUP_DEL)
+    if (type != hyperdex::RESP_COUNT)
     {
         cl->killall(sender, HYPERCLIENT_SERVERERROR);
         return 0;
@@ -68,7 +70,8 @@ hyperclient :: pending_group_del :: handle_response(hyperclient* cl,
 
     e::buffer::unpacker up = msg->unpack_from(HYPERCLIENT_HEADER_SIZE);
     uint16_t response;
-    up = up >> response;
+    uint64_t result;
+    up = up >> response >> result;
 
     if (up.error())
     {
@@ -79,16 +82,16 @@ hyperclient :: pending_group_del :: handle_response(hyperclient* cl,
     switch (static_cast<hyperdex::network_returncode>(response))
     {
         case hyperdex::NET_SUCCESS:
-            set_status(HYPERCLIENT_SUCCESS);
+            *m_result += result;
+            // Intentionally omit set_status(HYPERCLIENT_SUCCESS) here.  It was
+            // set to SUCCESS earlier.
             break;
-        case hyperdex::NET_BADMICROS:
+        case hyperdex::NET_BADDIMSPEC:
             set_status(HYPERCLIENT_SERVERERROR);
             break;
+        case hyperdex::NET_BADMICROS:
         case hyperdex::NET_NOTUS:
-            set_status(HYPERCLIENT_RECONFIGURE);
-            break;
         case hyperdex::NET_NOTFOUND:
-        case hyperdex::NET_BADDIMSPEC:
         case hyperdex::NET_CMPFAIL:
         case hyperdex::NET_OVERFLOW:
         case hyperdex::NET_READONLY:

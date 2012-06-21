@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2012, Cornell University
+// Copyright (c) 2012, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,26 +25,41 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#ifndef hyperclient_pending_count_h_
+#define hyperclient_pending_count_h_
+
+// STL
+#include <tr1/memory>
+
 // HyperClient
 #include "hyperclient/hyperclient_pending.h"
 
-hyperclient :: pending :: pending(hyperclient_returncode* status)
-    : m_ref(0)
-    , m_id(0)
-    , m_nonce(0)
-    , m_ent()
-    , m_inst()
-    , m_status(status)
+class hyperclient::pending_count : public hyperclient::pending
 {
-}
+    public:
+        pending_count(int64_t count_id,
+                      std::tr1::shared_ptr<uint64_t> refcount,
+                      hyperclient_returncode* status,
+                      uint64_t* result);
+        virtual ~pending_count() throw ();
 
-hyperclient :: pending :: ~pending() throw ()
-{
-}
+    public:
+        virtual hyperdex::network_msgtype request_type();
+        virtual int64_t handle_response(hyperclient* cl,
+                                        const po6::net::location& sender,
+                                        std::auto_ptr<e::buffer> msg,
+                                        hyperdex::network_msgtype type,
+                                        hyperclient_returncode* status);
 
-int64_t
-hyperclient :: pending :: return_one(hyperclient*,
-                                     hyperclient_returncode*)
-{
-    abort();
-}
+    private:
+        pending_count(const pending_count& other);
+
+    private:
+        pending_count& operator = (const pending_count& rhs);
+
+    private:
+        std::tr1::shared_ptr<uint64_t> m_refcount;
+        uint64_t* m_result;
+};
+
+#endif // hyperclient_pending_count_h_
