@@ -519,7 +519,7 @@ class HostConnection(object):
         self._identified = None
         self._instance = None # Must be None unless self._identified is INSTANCE
         self._has_config_pending = False
-        self._pending_config_num = 0
+        self._pending_config_num = -1
         self._id = 'Unidentified({0}, {1})'.format(self._sock.getpeername()[0], self._sock.getpeername()[1])
         logging.info('new host uses ID ' + self._id)
 

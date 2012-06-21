@@ -156,6 +156,15 @@ hyperdisk :: shard_snapshot :: value()
     return m_value;
 }
 
+hyperdisk::reference
+hyperdisk :: shard_snapshot :: ref()
+{
+    e::intrusive_ptr<shard> s(m_shard);
+    reference r;
+    r.set(s);
+    return r;
+}
+
 void
 hyperdisk :: shard_snapshot :: parse()
 {

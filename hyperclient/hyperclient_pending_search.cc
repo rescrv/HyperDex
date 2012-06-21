@@ -96,7 +96,7 @@ hyperclient :: pending_search :: handle_response(hyperclient* cl,
 
         if (--*m_refcount == 0)
         {
-            cl->m_complete.push(completedop(this, HYPERCLIENT_SEARCHDONE, 0));
+            cl->m_complete_failed.push(completedop(this, HYPERCLIENT_SEARCHDONE, 0));
         }
 
         return 0;
@@ -111,7 +111,7 @@ hyperclient :: pending_search :: handle_response(hyperclient* cl,
 
         if (--*m_refcount == 0)
         {
-            cl->m_complete.push(completedop(this, HYPERCLIENT_SEARCHDONE, 0));
+            cl->m_complete_failed.push(completedop(this, HYPERCLIENT_SEARCHDONE, 0));
         }
 
         return client_visible_id();
@@ -132,7 +132,7 @@ hyperclient :: pending_search :: handle_response(hyperclient* cl,
 
         if (--*m_refcount == 0)
         {
-            cl->m_complete.push(completedop(this, HYPERCLIENT_SEARCHDONE, 0));
+            cl->m_complete_failed.push(completedop(this, HYPERCLIENT_SEARCHDONE, 0));
         }
 
         return 0;

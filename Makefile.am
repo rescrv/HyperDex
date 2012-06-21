@@ -387,9 +387,11 @@ libhyperclient_noinst_headers = \
 			hyperclient/constants.h \
 			hyperclient/hyperclient_completedop.h \
 			hyperclient/hyperclient_pending.h \
+			hyperclient/hyperclient_pending_count.h \
 			hyperclient/hyperclient_pending_get.h \
 			hyperclient/hyperclient_pending_group_del.h \
 			hyperclient/hyperclient_pending_search.h \
+			hyperclient/hyperclient_pending_sorted_search.h \
 			hyperclient/hyperclient_pending_statusonly.h \
 			hyperclient/util.h
 
@@ -397,9 +399,11 @@ libhyperclient_la_SOURCES = \
 			hyperclient/hyperclient.cc \
 			hyperclient/hyperclient_c_wrappers.cc \
 			hyperclient/hyperclient_pending.cc \
+			hyperclient/hyperclient_pending_count.cc \
 			hyperclient/hyperclient_pending_get.cc \
 			hyperclient/hyperclient_pending_group_del.cc \
 			hyperclient/hyperclient_pending_search.cc \
+			hyperclient/hyperclient_pending_sorted_search.cc \
 			hyperclient/hyperclient_pending_statusonly.cc \
 			hyperclient/util.cc \
 			${libhyperdex_sources}
@@ -464,8 +468,12 @@ pyexec_LTLIBRARIES += \
 			hyperclient/python/hyperclient.la
 endif
 
+pyx_verbose = $(pyx_verbose_$(V))
+pyx_verbose_ = $(pyx_verbose_$(AM_DEFAULT_VERBOSITY))
+pyx_verbose_0 = @echo "  PYX   " $@;
+
 hyperclient/python/hyperclient.c: hyperclient/python/hyperclient.pyx
-	cython hyperclient/python/hyperclient.pyx
+	$(pyx_verbose)cython hyperclient/python/hyperclient.pyx
 
 hyperclient_python_hyperclient_la_SOURCES = \
 			hyperclient/python/hyperclient.c
