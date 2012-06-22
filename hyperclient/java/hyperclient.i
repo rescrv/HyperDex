@@ -28,21 +28,23 @@
 
 %module hyperclient
 
-%include "std_map.i"
 %include "std_string.i"
-%include "std_vector.i"
 %include "stdint.i"
-%include "std_pair.i"
 
 %include "enums.swg"
 %javaconst(1);
 
 %{
-#include "hyperclient/java/syncclient.h"
-#include <utility>
+#include <limits.h>
+#include <cstdlib>
+#include "hyperclient/hyperclient.h"
+typedef hyperclient_attribute* hyperclient_attribute_asterisk;
+typedef hyperclient_range_query* hyperclient_range_query_asterisk;
 %}
 
 typedef uint16_t in_port_t;
+typedef hyperclient_attribute* hyperclient_attribute_asterisk;
+typedef hyperclient_range_query* hyperclient_range_query_asterisk;
 
 %pragma(java) jniclasscode=
 %{
@@ -52,99 +54,62 @@ typedef uint16_t in_port_t;
     }
 %}
 
-enum ReturnCode
-{
-    SUCCESS      = 8448,
-    NOTFOUND     = 8449,
-    SEARCHDONE   = 8450,
-    CMPFAIL      = 8451,
-    UNKNOWNSPACE = 8512,
-    COORDFAIL    = 8513,
-    SERVERERROR  = 8514,
-    CONNECTFAIL  = 8515,
-    DISCONNECT   = 8516,
-    RECONFIGURE  = 8517,
-    LOGICERROR   = 8518,
-    TIMEOUT      = 8519,
-    UNKNOWNATTR  = 8520,
-    DUPEATTR     = 8521,
-    SEEERRNO     = 8522,
-    NONEPENDING  = 8523,
-    DONTUSEKEY   = 8524,
-    WRONGTYPE    = 8525,
-    EXCEPTION    = 8574,
-    ZERO         = 8575
-};
+%include "cpointer.i"
 
-/* Taken from hyperdex.h */
-enum hyperdatatype
-{
-    HYPERDATATYPE_STRING    = 8960,
-    HYPERDATATYPE_INT64     = 8961,
+// Using typedef hyperclient_attribute_asterisk instead of hyperclient_attribute*
+// as the latter confuses SWIG when trying to define SWIG pointer handling macros
+// on something that is already a pointer.
+// hyperclient_attribute_asterisk - c++ typedef for hyperclient_attribute* type
+// hyperclient_attribute_ptr - the java name I chose to represent the resulting:
+//                             hyperclient_attribute_asterisk*
+//                             = hyperclient_attribute** 
+//                             To wit, in java hyperclient_attribute is already
+//                             a pointer, so the name hyperclient_attribute_ptr is
+//                             essentially a pointer to this java-transparent pointer.  
+%pointer_functions(hyperclient_attribute_asterisk,hyperclient_attribute_ptr);
 
-    HYPERDATATYPE_LIST_GENERIC = 8976,
-    HYPERDATATYPE_LIST_STRING  = 8977,
-    HYPERDATATYPE_LIST_INT64   = 8978,
+// Likewise for hyperclient_range_query*
+%pointer_functions(hyperclient_range_query_asterisk,hyperclient_range_query_ptr);
 
-    HYPERDATATYPE_SET_GENERIC = 8992,
-    HYPERDATATYPE_SET_STRING  = 8993,
-    HYPERDATATYPE_SET_INT64   = 8994,
+// A couple more c++ pointer handling macros I will need
+//
+%pointer_functions(size_t, size_t_ptr);
+%pointer_functions(hyperclient_returncode, rc_ptr);
+%pointer_functions(uint64_t, uint64_t_ptr);
 
-    HYPERDATATYPE_MAP_GENERIC       = 9008,
-    HYPERDATATYPE_MAP_STRING_STRING = 9009,
-    HYPERDATATYPE_MAP_STRING_INT64  = 9010,
-    HYPERDATATYPE_MAP_INT64_STRING  = 9011,
-    HYPERDATATYPE_MAP_INT64_INT64   = 9012,
+%include "proxies/hyperclient_attribute.i"
+%include "proxies/hyperclient_map_attribute.i"
+%include "proxies/hyperclient_range_query.i"
+%include "proxies/HyperClient.i"
 
-    HYPERDATATYPE_GARBAGE   = 9087
-};
+%apply (char *STRING, int LENGTH) { (const char *key, size_t key_sz) }
+%apply (char *STRING, int LENGTH) { (const char *attr, size_t attr_sz) }
+%apply (char *STRING, int LENGTH) { (char *value, size_t value_sz) }
+%apply (char *STRING, int LENGTH) { (const char *map_key, size_t map_key_sz) }
+%apply (char *STRING, int LENGTH) { (const char *value, size_t value_sz) }
 
-class HyperClient
-{
-    public:
-        HyperClient(const char* coordinator, in_port_t port);
-        ~HyperClient() throw ();
 
-    public:
-        ReturnCode get(const std::string& space,
-                       const std::string& key,
-                       std::map<std::string, std::string>* STR_OUT,
-                       std::map<std::string, uint64_t>* NUM_OUT);
+// Pertaining to the include of hyperdex.h and hyperclient/hyperclient.h below:
 
-        ReturnCode put(const std::string& space,
-                       const std::string& key,
-                       const std::map<std::string, std::string>& svalues,
-                       const std::map<std::string, uint64_t>& nvalues);
+// Ignore everything
+%ignore "";
 
-        ReturnCode del(const std::string& space,
-                       const std::string& key);
+// Un-ignore a couple of enums
+%rename("%s") "hyperclient_returncode";
+%rename("%s") "hyperdatatype";
+%rename("%s", %$isenumitem) "";
 
-        ReturnCode range_search(const std::string& space,
-                                const std::string& attr,
-                                uint64_t lower,
-                                uint64_t upper,
-                                std::vector<std::map<std::string, std::string> >* STR_OUT,
-                                std::vector<std::map<std::string, uint64_t> >* NUM_OUT);
+// Un-ignore some classes I want to proxy in java
+%rename("%s") "hyperclient_attribute";
+%rename("%s") "hyperclient_map_attribute";
+%rename("%s") "hyperclient_range_query";
+%rename("%s",%$isvariable) "";
 
-        ReturnCode search(const std::string& space,
-                          const std::map<std::string, pair<std::string, hyperdatatype> >& eq_attr,
-                          const std::map<std::string, pair<uint64_t, uint64_t> >& rn_attr,
-                          std::vector<std::map<std::string, std::string> >* sresults,
-                          std::vector<std::map<std::string, uint64_t> >* nresults);
+// Un-ignore the only needed C function
+%rename("%s") "hyperclient_destroy_attrs";
 
-    private:
-        hyperclient m_client;
-};
+%rename("HyperClient",%$isclass) "hyperclient";
+%rename("%s", %$ismember) "";
 
-namespace std
-{
-    %template(ssmap) map<string, string>;
-    %template(snmap) map<string, unsigned long long>;
-    %template(ssearchresult) vector<map<string, string> >;
-    %template(nsearchresult) vector<map<string, unsigned long long> >;
-    %template(val_type) pair<string, hyperdatatype>;
-    %template(range) pair<unsigned long long, unsigned long long>;
-    %template(eq_pmap) map<string, pair<string, hyperdatatype> >;
-    %template(rn_pmap) map<string, pair<unsigned long long, unsigned long long> >;
-}
-
+%include "hyperdex.h"
+%include "hyperclient/hyperclient.h"
