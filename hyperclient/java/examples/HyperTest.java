@@ -43,7 +43,7 @@ public class HyperTest
         values.remove("first");
         values.remove("phone");
 
-        Search s = c.search("phonebook",values);
+        SearchBase s = c.search("phonebook",values);
 
         while(s.hasNext())
         {
@@ -98,6 +98,28 @@ public class HyperTest
 
         // Do the search again
         s = c.search("phonebook",values);
+
+        while(s.hasNext())
+        {
+            System.out.println(s.next());
+        }
+
+        // Do a sorted search by first name ascending
+
+        System.out.println("\nDo a sorted search by first name ascending:");
+
+        s = c.sorted_search("phonebook",values,"first",-1,false);
+
+        while(s.hasNext())
+        {
+            System.out.println(s.next());
+        }
+        
+        // Do the same sorted search, but with a limit of 2
+
+        System.out.println("\nDo the same sorted search, but with a limit of 2:");
+
+        s = c.sorted_search("phonebook",values,"first",2,false);
 
         while(s.hasNext())
         {
