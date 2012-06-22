@@ -9,7 +9,7 @@
 %{
   private java.math.BigInteger attrs_sz_bi = java.math.BigInteger.ZERO;
 
-  // Returns the size of the hyperclient_map_attribute array that is instance
+  // Returns the size of the hyperclient_map_attribute array that this instance
   // is the head of. This signed 64 bit integer will be interpreted as an
   // unsigned 64 bit integer at the c/c++ level.
   //

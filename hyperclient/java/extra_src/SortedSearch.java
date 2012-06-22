@@ -1,10 +1,14 @@
 package hyperclient;
 
 import java.util.*;
+import java.math.*;
 
-public class Search extends SearchBase
+public class SortedSearch extends SearchBase
 {
-    public Search(HyperClient client, String space, Map predicate)
+    public SortedSearch(HyperClient client, String space, Map predicate,
+                                                    String sortBy,
+                                                    BigInteger limit,
+                                                    boolean descending)
                                                     throws HyperClientException,
                                                            TypeError,
                                                            ValueError,
@@ -24,11 +28,14 @@ public class Search extends SearchBase
             rn = (hyperclient_range_query)(retvals.get(2));
             rn_sz = ((Integer)(retvals.get(3))).intValue();
 
-            reqId = client.search(space,
-                                  eq, eq_sz,
-                                  rn, rn_sz,
-                                  rc_ptr,
-                                  attrs_ptr, attrs_sz_ptr);
+            reqId = client.sorted_search(space,
+                                         eq, eq_sz,
+                                         rn, rn_sz,
+                                         sortBy,
+                                         limit,
+                                         descending,
+                                         rc_ptr,
+                                         attrs_ptr, attrs_sz_ptr);
 
 	
             checkReqId(eq, eq_sz, rn, rn_sz);

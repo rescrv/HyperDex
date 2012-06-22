@@ -1252,6 +1252,50 @@
     return new Search(this,space,predicate);
   }
 
+  public SortedSearch sorted_search(String space, java.util.Map predicate,
+                                                            String sortBy,
+                                                            java.math.BigInteger limit,
+                                                            boolean descending)
+                                                     throws HyperClientException,
+                                                            TypeError,
+                                                            ValueError,
+                                                            MemoryError
+  {
+    return new SortedSearch(this, space, predicate, sortBy, limit, descending);
+  }
+
+  public SortedSearch sorted_search(String space, java.util.Map predicate,
+                                                            String sortBy,
+                                                            long limit,
+                                                            boolean descending)
+                                                     throws HyperClientException,
+                                                            TypeError,
+                                                            ValueError,
+                                                            MemoryError
+  {
+    return new SortedSearch(this, space, predicate, sortBy,
+                          new java.math.BigInteger(
+                            java.nio.ByteBuffer.allocate(8).order(
+                                java.nio.ByteOrder.BIG_ENDIAN).putLong(limit).array()),
+                                                                            descending);
+  }
+
+  public SortedSearch sorted_search(String space, java.util.Map predicate,
+                                                            String sortBy,
+                                                            int limit,
+                                                            boolean descending)
+                                                     throws HyperClientException,
+                                                            TypeError,
+                                                            ValueError,
+                                                            MemoryError
+  {
+    return new SortedSearch(this, space, predicate, sortBy,
+                          new java.math.BigInteger(
+                            java.nio.ByteBuffer.allocate(4).order(
+                                java.nio.ByteOrder.BIG_ENDIAN).putInt(limit).array()),
+                                                                            descending);
+  }
+
   // Asynchronous methods
   //
   public Deferred async_get(String space, String key) throws HyperClientException,
