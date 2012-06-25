@@ -52,19 +52,28 @@ cdef extern from "../../hyperdex.h":
     cdef enum hyperdatatype:
         HYPERDATATYPE_STRING             = 8960
         HYPERDATATYPE_INT64              = 8961
+        HYPERDATATYPE_FLOAT              = 8962
         HYPERDATATYPE_LIST_GENERIC       = 8976
         HYPERDATATYPE_LIST_STRING        = 8977
         HYPERDATATYPE_LIST_INT64         = 8978
+        HYPERDATATYPE_LIST_FLOAT         = 8979
         HYPERDATATYPE_SET_GENERIC        = 8992
         HYPERDATATYPE_SET_STRING         = 8993
         HYPERDATATYPE_SET_INT64          = 8994
+        HYPERDATATYPE_SET_FLOAT          = 8995
         HYPERDATATYPE_MAP_GENERIC        = 9008
         HYPERDATATYPE_MAP_STRING_KEYONLY = 9024
         HYPERDATATYPE_MAP_STRING_STRING  = 9025
         HYPERDATATYPE_MAP_STRING_INT64   = 9026
+        HYPERDATATYPE_MAP_STRING_FLOAT   = 9027
         HYPERDATATYPE_MAP_INT64_KEYONLY  = 9040
         HYPERDATATYPE_MAP_INT64_STRING   = 9041
         HYPERDATATYPE_MAP_INT64_INT64    = 9042
+        HYPERDATATYPE_MAP_INT64_FLOAT    = 9043
+        HYPERDATATYPE_MAP_FLOAT_KEYONLY  = 9060
+        HYPERDATATYPE_MAP_FLOAT_STRING   = 9061
+        HYPERDATATYPE_MAP_FLOAT_INT64    = 9062
+        HYPERDATATYPE_MAP_FLOAT_FLOAT    = 9063
         HYPERDATATYPE_GARBAGE            = 9087
 
 cdef extern from "../hyperclient.h":
@@ -129,6 +138,10 @@ cdef extern from "../hyperclient.h":
     int64_t hyperclient_atomic_and(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_atomic_or(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_atomic_xor(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_atomic_add_fl(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_atomic_sub_fl(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_atomic_mul_fl(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_atomic_div_fl(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_string_prepend(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_string_append(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_list_lpush(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
@@ -242,6 +255,9 @@ cdef _obj_to_backing(v):
     elif isinstance(v, int):
         backing = struct.pack('<q', v)
         datatype = HYPERDATATYPE_INT64
+    elif isinstance(v, float):
+        backing = struct.pack('<d', v)
+        datatype = HYPERDATATYPE_FLOAT
     elif isinstance(v, list) or isinstance(v, tuple):
         datatype = HYPERDATATYPE_LIST_GENERIC
         if all([isinstance(x, int) for x in v]):
@@ -253,6 +269,10 @@ cdef _obj_to_backing(v):
                 backing += struct.pack('<L', len(x))
                 backing += bytes(x)
                 datatype = HYPERDATATYPE_LIST_STRING
+        elif all([isinstance(x, float) for x in v]):
+            for x in v:
+                backing += struct.pack('<d', x)
+                datatype = HYPERDATATYPE_LIST_FLOAT
         else:
             raise TypeError("Cannot store heterogeneous lists")
     elif isinstance(v, set):
@@ -266,6 +286,9 @@ cdef _obj_to_backing(v):
             elif isinstance(x, int):
                 innerxtype = HYPERDATATYPE_SET_INT64
                 innerxbacking = struct.pack('<q', x)
+            elif isinstance(x, float):
+                innerxtype = HYPERDATATYPE_SET_FLOAT
+                innerxbacking = struct.pack('<d', x)
             else:
                 raise TypeError("Cannot store heterogeneous sets")
             assert keytype == HYPERDATATYPE_SET_GENERIC or keytype == innerxtype
@@ -273,7 +296,8 @@ cdef _obj_to_backing(v):
             backing += innerxbacking
         dtypes = {HYPERDATATYPE_SET_GENERIC: HYPERDATATYPE_SET_GENERIC,
                   HYPERDATATYPE_SET_STRING: HYPERDATATYPE_SET_STRING,
-                  HYPERDATATYPE_SET_INT64: HYPERDATATYPE_SET_INT64}
+                  HYPERDATATYPE_SET_INT64: HYPERDATATYPE_SET_INT64,
+                  HYPERDATATYPE_SET_FLOAT: HYPERDATATYPE_SET_FLOAT}
         datatype = dtypes[keytype]
     elif isinstance(v, dict):
         keytype = HYPERDATATYPE_MAP_GENERIC
@@ -289,6 +313,9 @@ cdef _obj_to_backing(v):
             elif isinstance(x, int):
                 innerxtype = HYPERDATATYPE_INT64
                 innerxbacking = struct.pack('<q', x)
+            elif isinstance(x, float):
+                innerxtype = HYPERDATATYPE_SET_FLOAT
+                innerxbacking = struct.pack('<d', x)
             else:
                 raise TypeError("Cannot store heterogeneous sets")
             if isinstance(y, bytes):
@@ -297,6 +324,9 @@ cdef _obj_to_backing(v):
             elif isinstance(y, int):
                 innerytype = HYPERDATATYPE_INT64
                 innerybacking = struct.pack('<q', y)
+            elif isinstance(y, float):
+                innerxtype = HYPERDATATYPE_SET_FLOAT
+                innerxbacking = struct.pack('<d', y)
             else:
                 raise TypeError("Cannot store heterogeneous sets")
             assert keytype == HYPERDATATYPE_MAP_GENERIC or keytype == innerxtype
@@ -306,8 +336,13 @@ cdef _obj_to_backing(v):
             backing += innerxbacking + innerybacking
         dtypes = {(HYPERDATATYPE_STRING, HYPERDATATYPE_STRING): HYPERDATATYPE_MAP_STRING_STRING,
                   (HYPERDATATYPE_STRING, HYPERDATATYPE_INT64): HYPERDATATYPE_MAP_STRING_INT64,
+                  (HYPERDATATYPE_STRING, HYPERDATATYPE_FLOAT): HYPERDATATYPE_MAP_STRING_FLOAT,
                   (HYPERDATATYPE_INT64, HYPERDATATYPE_STRING): HYPERDATATYPE_MAP_INT64_STRING,
                   (HYPERDATATYPE_INT64, HYPERDATATYPE_INT64): HYPERDATATYPE_MAP_INT64_INT64,
+                  (HYPERDATATYPE_INT64, HYPERDATATYPE_FLOAT): HYPERDATATYPE_MAP_INT64_FLOAT,
+                  (HYPERDATATYPE_FLOAT, HYPERDATATYPE_STRING): HYPERDATATYPE_MAP_FLOAT_STRING,
+                  (HYPERDATATYPE_FLOAT, HYPERDATATYPE_INT64): HYPERDATATYPE_MAP_FLOAT_INT64,
+                  (HYPERDATATYPE_FLOAT, HYPERDATATYPE_FLOAT): HYPERDATATYPE_MAP_FLOAT_FLOAT,
                   (HYPERDATATYPE_MAP_GENERIC, HYPERDATATYPE_MAP_GENERIC): HYPERDATATYPE_MAP_GENERIC}
         datatype = dtypes[(keytype, valtype)]
     return datatype, backing
@@ -371,8 +406,13 @@ cdef _dict_to_map_attrs(list value, hyperclient_map_attribute** attrs, size_t* a
                 i += 1
             dtypes = {(HYPERDATATYPE_STRING, HYPERDATATYPE_STRING): HYPERDATATYPE_MAP_STRING_STRING,
                       (HYPERDATATYPE_STRING, HYPERDATATYPE_INT64): HYPERDATATYPE_MAP_STRING_INT64,
+                      (HYPERDATATYPE_STRING, HYPERDATATYPE_FLOAT): HYPERDATATYPE_MAP_STRING_FLOAT,
                       (HYPERDATATYPE_INT64, HYPERDATATYPE_STRING): HYPERDATATYPE_MAP_INT64_STRING,
-                      (HYPERDATATYPE_INT64, HYPERDATATYPE_INT64): HYPERDATATYPE_MAP_INT64_INT64}
+                      (HYPERDATATYPE_INT64, HYPERDATATYPE_INT64): HYPERDATATYPE_MAP_INT64_INT64,
+                      (HYPERDATATYPE_INT64, HYPERDATATYPE_FLOAT): HYPERDATATYPE_MAP_INT64_FLOAT,
+                      (HYPERDATATYPE_FLOAT, HYPERDATATYPE_STRING): HYPERDATATYPE_MAP_FLOAT_STRING,
+                      (HYPERDATATYPE_FLOAT, HYPERDATATYPE_INT64): HYPERDATATYPE_MAP_FLOAT_INT64,
+                      (HYPERDATATYPE_FLOAT, HYPERDATATYPE_FLOAT): HYPERDATATYPE_MAP_FLOAT_FLOAT}
             for x in range(j, i):
                 attrs[0][x].datatype = dtypes[(keytype, valtype)]
         else:
@@ -383,7 +423,8 @@ cdef _dict_to_map_attrs(list value, hyperclient_map_attribute** attrs, size_t* a
             attrs[0][i].value = NULL
             attrs[0][i].value_sz = 0
             attrs[0][i].datatype = {HYPERDATATYPE_STRING: HYPERDATATYPE_MAP_STRING_KEYONLY,
-                                    HYPERDATATYPE_INT64: HYPERDATATYPE_MAP_INT64_KEYONLY}[kdatatype]
+                                    HYPERDATATYPE_INT64: HYPERDATATYPE_MAP_INT64_KEYONLY,
+                                    HYPERDATATYPE_FLOAT: HYPERDATATYPE_MAP_FLOAT_KEYONLY}[kdatatype]
             i += 1
     return backings
 
@@ -401,6 +442,14 @@ cdef _attrs_to_dict(hyperclient_attribute* attrs, size_t attrs_sz):
             elif i < 8:
                 s += (8 - i) * '\x00'
             ret[attrs[idx].attr] = struct.unpack('<q', s)[0]
+        elif attrs[idx].datatype == HYPERDATATYPE_FLOAT:
+            s = attrs[idx].value[:attrs[idx].value_sz]
+            i = len(s)
+            if i > 8:
+                s = s[:8]
+            elif i < 8:
+                s += (8 - i) * '\x00'
+            ret[attrs[idx].attr] = struct.unpack('<d', s)[0]
         elif attrs[idx].datatype == HYPERDATATYPE_LIST_STRING:
             pos = 0
             rem = attrs[idx].value_sz
@@ -426,6 +475,17 @@ cdef _attrs_to_dict(hyperclient_attribute* attrs, size_t attrs_sz):
             if rem:
                 raise ValueError("list(int64) contains excess data (file a bug)")
             ret[attrs[idx].attr] = lst
+        elif attrs[idx].datatype == HYPERDATATYPE_LIST_FLOAT:
+            pos = 0
+            rem = attrs[idx].value_sz
+            lst = []
+            while rem >= 8:
+                lst.append(struct.unpack('<d', attrs[idx].value[pos:pos + 8])[0])
+                pos += 8
+                rem -= 8
+            if rem:
+                raise ValueError("list(float) contains excess data (file a bug)")
+            ret[attrs[idx].attr] = lst
         elif attrs[idx].datatype == HYPERDATATYPE_SET_STRING:
             pos = 0
             rem = attrs[idx].value_sz
@@ -450,6 +510,17 @@ cdef _attrs_to_dict(hyperclient_attribute* attrs, size_t attrs_sz):
                 rem -= 8
             if rem:
                 raise ValueError("set(int64) contains excess data (file a bug)")
+            ret[attrs[idx].attr] = st
+        elif attrs[idx].datatype == HYPERDATATYPE_SET_FLOAT:
+            pos = 0
+            rem = attrs[idx].value_sz
+            st = set([])
+            while rem >= 8:
+                st.add(struct.unpack('<d', attrs[idx].value[pos:pos + 8])[0])
+                pos += 8
+                rem -= 8
+            if rem:
+                raise ValueError("set(float) contains excess data (file a bug)")
             ret[attrs[idx].attr] = st
         elif attrs[idx].datatype == HYPERDATATYPE_MAP_STRING_STRING:
             pos = 0
@@ -522,6 +593,91 @@ cdef _attrs_to_dict(hyperclient_attribute* attrs, size_t attrs_sz):
                 dct[key] = val
             if rem:
                 raise ValueError("map(int64,int64) contains excess data (file a bug)")
+            ret[attrs[idx].attr] = dct
+        elif attrs[idx].datatype == HYPERDATATYPE_MAP_FLOAT_STRING:
+            pos = 0
+            rem = attrs[idx].value_sz
+            dct = {}
+            while rem >= 8:
+                key = struct.unpack('<d', attrs[idx].value[pos:pos + 8])[0]
+                pos += 8
+                rem -= 8
+                sz = struct.unpack('<i', attrs[idx].value[pos:pos + 4])[0]
+                if rem - 4 < sz:
+                    raise ValueError("map(float,string) is improperly structured (file a bug)")
+                val = attrs[idx].value[pos + 4:pos + 4 + sz]
+                pos += 4 + sz
+                rem -= 4 + sz
+                dct[key] = val
+            if rem:
+                raise ValueError("map(float,string) contains excess data (file a bug)")
+            ret[attrs[idx].attr] = dct
+        elif attrs[idx].datatype == HYPERDATATYPE_MAP_FLOAT_INT64:
+            pos = 0
+            rem = attrs[idx].value_sz
+            dct = {}
+            while rem >= 8:
+                key = struct.unpack('<d', attrs[idx].value[pos:pos + 8])[0]
+                pos += 8
+                rem -= 8
+                if rem < 8:
+                    raise ValueError("map(float,int64) is improperly structured (file a bug)")
+                val = struct.unpack('<q', attrs[idx].value[pos:pos + 8])[0]
+                pos += 8
+                rem -= 8
+                dct[key] = val
+            if rem:
+                raise ValueError("map(float,int64) contains excess data (file a bug)")
+            ret[attrs[idx].attr] = dct
+        elif attrs[idx].datatype == HYPERDATATYPE_MAP_FLOAT_FLOAT:
+            pos = 0
+            rem = attrs[idx].value_sz
+            dct = {}
+            while rem >= 16:
+                key = struct.unpack('<d', attrs[idx].value[pos:pos + 8])[0]
+                val = struct.unpack('<d', attrs[idx].value[pos + 8:pos + 16])[0]
+                pos += 16
+                rem -= 16
+                dct[key] = val
+            if rem:
+                raise ValueError("map(float,float) contains excess data (file a bug)")
+            ret[attrs[idx].attr] = dct
+        elif attrs[idx].datatype == HYPERDATATYPE_MAP_STRING_FLOAT:
+            pos = 0
+            rem = attrs[idx].value_sz
+            dct = {}
+            while rem >= 4:
+                sz = struct.unpack('<i', attrs[idx].value[pos:pos + 4])[0]
+                if rem - 4 < sz:
+                    raise ValueError("map(string,float) is improperly structured (file a bug)")
+                key = attrs[idx].value[pos + 4:pos + 4 + sz]
+                pos += 4 + sz
+                rem -= 4 + sz
+                if rem < 8:
+                    raise ValueError("map(string,float) is improperly structured (file a bug)")
+                val = struct.unpack('<d', attrs[idx].value[pos:pos + 8])[0]
+                pos += 8
+                rem -= 8
+                dct[key] = val
+            if rem:
+                raise ValueError("map(string,float) contains excess data (file a bug)")
+            ret[attrs[idx].attr] = dct
+        elif attrs[idx].datatype == HYPERDATATYPE_MAP_INT64_FLOAT:
+            pos = 0
+            rem = attrs[idx].value_sz
+            dct = {}
+            while rem >= 8:
+                key = struct.unpack('<q', attrs[idx].value[pos:pos + 8])[0]
+                pos += 8
+                rem -= 8
+                if rem < 8:
+                    raise ValueError("map(int64,float) is improperly structured (file a bug)")
+                val = struct.unpack('<d', attrs[idx].value[pos:pos + 8])[0]
+                pos += 8
+                rem -= 8
+                dct[key] = val
+            if rem:
+                raise ValueError("map(int64,float) contains excess data (file a bug)")
             ret[attrs[idx].attr] = dct
         else:
             raise ValueError("Server returned garbage value (file a bug)")
@@ -739,8 +895,10 @@ cdef _predicate_to_c(dict predicate,
             equalities.append((attr, params))
         elif isinstance(params, bytes):
             equalities.append((attr, params))
+        elif isinstance(params, float):
+            equalities.append((attr, params))
         else:
-            errstr = "Attribute '{attr}' has incorrect type (expected int, (int, int) or bytes, got {type}"
+            errstr = "Attribute '{attr}' has incorrect type (expected int, float, (int, int) or bytes, got {type}"
             raise TypeError(errstr.format(attr=attr, type=str(type(params))[7:-2]))
     eq_sz[0] = len(equalities)
     rn_sz[0] = len(ranges)
@@ -1011,6 +1169,22 @@ cdef class Client:
         async = self.async_atomic_xor(space, key, value)
         return async.wait()
 
+    def atomic_add_fl(self, bytes space, key, dict value):
+        async = self.async_atomic_add_fl(space, key, value)
+        return async.wait()
+
+    def atomic_sub_fl(self, bytes space, key, dict value):
+        async = self.async_atomic_sub_fl(space, key, value)
+        return async.wait()
+
+    def atomic_mul_fl(self, bytes space, key, dict value):
+        async = self.async_atomic_mul_fl(space, key, value)
+        return async.wait()
+
+    def atomic_div_fl(self, bytes space, key, dict value):
+        async = self.async_atomic_div_fl(space, key, value)
+        return async.wait()
+
     def string_prepend(self, bytes space, key, dict value):
         async = self.async_string_prepend(space, key, value)
         return async.wait()
@@ -1157,6 +1331,26 @@ cdef class Client:
     def async_atomic_xor(self, bytes space, key, dict value):
         d = DeferredFromAttrs(self)
         d.call(<hyperclient_simple_op> hyperclient_atomic_xor, space, key, value)
+        return d
+
+    def async_atomic_add_fl(self, bytes space, key, dict value):
+        d = DeferredFromAttrs(self)
+        d.call(<hyperclient_simple_op> hyperclient_atomic_add_fl, space, key, value)
+        return d
+
+    def async_atomic_sub_fl(self, bytes space, key, dict value):
+        d = DeferredFromAttrs(self)
+        d.call(<hyperclient_simple_op> hyperclient_atomic_sub_fl, space, key, value)
+        return d        
+
+    def async_atomic_mul_fl(self, bytes space, key, dict value):
+        d = DeferredFromAttrs(self)
+        d.call(<hyperclient_simple_op> hyperclient_atomic_mul_fl, space, key, value)
+        return d
+
+    def async_atomic_div_fl(self, bytes space, key, dict value):
+        d = DeferredFromAttrs(self)
+        d.call(<hyperclient_simple_op> hyperclient_atomic_div_fl, space, key, value)
         return d
 
     def async_string_prepend(self, bytes space, key, dict value):

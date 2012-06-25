@@ -36,8 +36,8 @@ from pyparsing import Combine, Forward, Group, Literal, Optional, Suppress, Zero
 from hypercoordinator import hdtypes
 
 
-KEY_TYPES = ('string', 'int64')
-SEARCHABLE_TYPES = ('string', 'int64')
+KEY_TYPES = ('string', 'int64', 'float')
+SEARCHABLE_TYPES = ('string', 'int64', 'float')
 
 
 def _encompases(outter, inner):
@@ -141,7 +141,7 @@ def parse_space(space):
         for dim in set(subspace.dimensions):
             if dim not in dims:
                 raise ValueError("Subspace dimension {0} must be one of its dimensions.".format(repr(dim)))
-            if dims[dim] not in ('string', 'int64'):
+            if dims[dim] not in ('string', 'int64', 'float'):
                 raise ValueError("Subspace dimension {0} is not a searchable type.".format(repr(dim)))
         subspace._nosearch += nosearch
     if dims[space.key] not in KEY_TYPES:
@@ -156,7 +156,8 @@ integer = Word(string.digits).setParseAction(lambda t: int(t[0]))
 hexnum  = Combine(Literal("0x") + Word(string.hexdigits)).setParseAction(lambda t: int(t[0][2:], 16))
 LSTR = Literal("string")
 LINT = Literal("int64")
-LPOD = (LSTR | LINT)
+LFLT = Literal("float")
+LPOD = (LSTR | LINT | LFLT)
 LOP  = Literal("(")
 LCP  = Literal(")")
 LCMA = Literal(",")
@@ -165,6 +166,7 @@ LSET = Literal("set")
 LMAP = Literal("map")
 datatype = LSTR \
          | LINT \
+         | LFLT \
          | Group(LLST + LOP + LPOD + LCP) \
          | Group(LSET + LOP + LPOD + LCP) \
          | Group(LMAP + LOP + LPOD + LCMA + LPOD + LCP)

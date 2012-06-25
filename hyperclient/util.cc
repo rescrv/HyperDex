@@ -129,18 +129,27 @@ compare_for_microop_sort(const hyperdex::microop& lhs,
    {
       case HYPERDATATYPE_STRING:
       case HYPERDATATYPE_INT64:
+      case HYPERDATATYPE_FLOAT:
       case HYPERDATATYPE_LIST_STRING:
       case HYPERDATATYPE_LIST_INT64:
+      case HYPERDATATYPE_LIST_FLOAT:
       case HYPERDATATYPE_SET_STRING:
       case HYPERDATATYPE_SET_INT64:
+      case HYPERDATATYPE_SET_FLOAT:
+      case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
+      case HYPERDATATYPE_MAP_FLOAT_STRING:
+      case HYPERDATATYPE_MAP_FLOAT_INT64:
+      case HYPERDATATYPE_MAP_FLOAT_FLOAT:
          return false;
       case HYPERDATATYPE_MAP_STRING_KEYONLY:
       case HYPERDATATYPE_MAP_STRING_STRING:
       case HYPERDATATYPE_MAP_STRING_INT64:
+      case HYPERDATATYPE_MAP_STRING_FLOAT:
          return lhs.arg2 < rhs.arg2;
       case HYPERDATATYPE_MAP_INT64_KEYONLY:
       case HYPERDATATYPE_MAP_INT64_STRING:
       case HYPERDATATYPE_MAP_INT64_INT64:
+      case HYPERDATATYPE_MAP_INT64_FLOAT:
          e::unpack64le(lhs.arg2.data(), &lhsi);
          e::unpack64le(rhs.arg2.data(), &rhsi);
          return lhsi < rhsi;
