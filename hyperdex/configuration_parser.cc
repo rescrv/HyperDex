@@ -429,22 +429,31 @@ hyperdex :: configuration_parser :: parse_subspace(char* start,
                 // Searchable types
                 case HYPERDATATYPE_STRING:
                 case HYPERDATATYPE_INT64:
+                case HYPERDATATYPE_FLOAT:
                     break;
                 // Types which we cannot hash for searching
                 case HYPERDATATYPE_LIST_STRING:
                 case HYPERDATATYPE_LIST_INT64:
+                case HYPERDATATYPE_LIST_FLOAT:
                 case HYPERDATATYPE_SET_STRING:
                 case HYPERDATATYPE_SET_INT64:
+                case HYPERDATATYPE_SET_FLOAT:
                 case HYPERDATATYPE_MAP_STRING_STRING:
                 case HYPERDATATYPE_MAP_STRING_INT64:
+                case HYPERDATATYPE_MAP_STRING_FLOAT:
                 case HYPERDATATYPE_MAP_INT64_STRING:
                 case HYPERDATATYPE_MAP_INT64_INT64:
+                case HYPERDATATYPE_MAP_INT64_FLOAT:
+                case HYPERDATATYPE_MAP_FLOAT_STRING:
+                case HYPERDATATYPE_MAP_FLOAT_INT64:
+                case HYPERDATATYPE_MAP_FLOAT_FLOAT:
                     return CP_ATTR_NOT_SEARCHABLE;
                 case HYPERDATATYPE_LIST_GENERIC:
                 case HYPERDATATYPE_SET_GENERIC:
                 case HYPERDATATYPE_MAP_GENERIC:
                 case HYPERDATATYPE_MAP_STRING_KEYONLY:
                 case HYPERDATATYPE_MAP_INT64_KEYONLY:
+                case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
                 case HYPERDATATYPE_GARBAGE:
                 default:
                     abort();
@@ -793,6 +802,11 @@ hyperdex :: configuration_parser :: extract_datatype(char* start,
         *t = HYPERDATATYPE_INT64;
         return CP_SUCCESS;
     }
+    else if (strcmp(start, "float") == 0)
+    {
+        *t = HYPERDATATYPE_FLOAT;
+        return CP_SUCCESS;
+    }
     else if (strcmp(start, "list(string)") == 0)
     {
         *t = HYPERDATATYPE_LIST_STRING;
@@ -803,6 +817,11 @@ hyperdex :: configuration_parser :: extract_datatype(char* start,
         *t = HYPERDATATYPE_LIST_INT64;
         return CP_SUCCESS;
     }
+    else if (strcmp(start, "list(float)") == 0)
+    {
+        *t = HYPERDATATYPE_LIST_FLOAT;
+        return CP_SUCCESS;
+    }
     else if (strcmp(start, "set(string)") == 0)
     {
         *t = HYPERDATATYPE_SET_STRING;
@@ -811,6 +830,11 @@ hyperdex :: configuration_parser :: extract_datatype(char* start,
     else if (strcmp(start, "set(int64)") == 0)
     {
         *t = HYPERDATATYPE_SET_INT64;
+        return CP_SUCCESS;
+    }
+    else if (strcmp(start, "set(float)") == 0)
+    {
+        *t = HYPERDATATYPE_SET_FLOAT;
         return CP_SUCCESS;
     }
     else if (strcmp(start, "map(string,string)") == 0)
@@ -831,6 +855,31 @@ hyperdex :: configuration_parser :: extract_datatype(char* start,
     else if (strcmp(start, "map(int64,int64)") == 0)
     {
         *t = HYPERDATATYPE_MAP_INT64_INT64;
+        return CP_SUCCESS;
+    }
+    else if (strcmp(start, "map(float,string)") == 0)
+    {
+        *t = HYPERDATATYPE_MAP_FLOAT_STRING;
+        return CP_SUCCESS;
+    }
+    else if (strcmp(start, "map(float,int64)") == 0)
+    {
+        *t = HYPERDATATYPE_MAP_FLOAT_INT64;
+        return CP_SUCCESS;
+    }
+    else if (strcmp(start, "map(float,float)") == 0)
+    {
+        *t = HYPERDATATYPE_MAP_FLOAT_FLOAT;
+        return CP_SUCCESS;
+    }
+    else if (strcmp(start, "map(string,float)") == 0)
+    {
+        *t = HYPERDATATYPE_MAP_STRING_FLOAT;
+        return CP_SUCCESS;
+    }
+    else if (strcmp(start, "map(int64,float)") == 0)
+    {
+        *t = HYPERDATATYPE_MAP_INT64_FLOAT;
         return CP_SUCCESS;
     }
     else
@@ -983,19 +1032,30 @@ hyperdex :: configuration_parser :: attrs_to_hashfuncs(const subspaceid& ssi,
                 case HYPERDATATYPE_INT64:
                     hfuncs.push_back(hyperspacehashing::RANGE);
                     break;
+                case HYPERDATATYPE_FLOAT:
+                    hfuncs.push_back(hyperspacehashing::EQUALITY);
+                    break;
                 case HYPERDATATYPE_LIST_GENERIC:
                 case HYPERDATATYPE_LIST_STRING:
                 case HYPERDATATYPE_LIST_INT64:
+                case HYPERDATATYPE_LIST_FLOAT:
                 case HYPERDATATYPE_SET_GENERIC:
                 case HYPERDATATYPE_SET_STRING:
                 case HYPERDATATYPE_SET_INT64:
+                case HYPERDATATYPE_SET_FLOAT:
                 case HYPERDATATYPE_MAP_GENERIC:
                 case HYPERDATATYPE_MAP_STRING_KEYONLY:
                 case HYPERDATATYPE_MAP_STRING_STRING:
                 case HYPERDATATYPE_MAP_STRING_INT64:
+                case HYPERDATATYPE_MAP_STRING_FLOAT:
                 case HYPERDATATYPE_MAP_INT64_KEYONLY:
                 case HYPERDATATYPE_MAP_INT64_STRING:
                 case HYPERDATATYPE_MAP_INT64_INT64:
+                case HYPERDATATYPE_MAP_INT64_FLOAT:
+                case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
+                case HYPERDATATYPE_MAP_FLOAT_STRING:
+                case HYPERDATATYPE_MAP_FLOAT_INT64:
+                case HYPERDATATYPE_MAP_FLOAT_FLOAT:
                 case HYPERDATATYPE_GARBAGE:
                 default:
                     abort();

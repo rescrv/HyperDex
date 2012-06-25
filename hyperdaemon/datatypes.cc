@@ -183,7 +183,7 @@ copy_string_from_serialized(uint8_t* writeto, const uint8_t* ptr, uint32_t ptr_s
 static uint8_t*
 copy_string_from_micro_arg1(uint8_t* writeto, const hyperdex::microop* op)
 {
-    writeto = e::pack32le(op->arg1.size(), writeto);
+    writeto = e::pack32le((uint32_t)(op->arg1.size()), writeto);
     memmove(writeto, op->arg1.data(), op->arg1.size());
     return writeto + op->arg1.size();
 }
@@ -191,7 +191,7 @@ copy_string_from_micro_arg1(uint8_t* writeto, const hyperdex::microop* op)
 static uint8_t*
 copy_string_from_micro_arg2(uint8_t* writeto, const hyperdex::microop* op)
 {
-    writeto = e::pack32le(op->arg2.size(), writeto);
+    writeto = e::pack32le((uint32_t)(op->arg2.size()), writeto);
     memmove(writeto, op->arg2.data(), op->arg2.size());
     return writeto + op->arg2.size();
 }
@@ -270,6 +270,10 @@ apply_string(const e::slice& old_value,
 
                 append = ops + i;
                 break;
+            case OP_FLOAT_ADD:
+            case OP_FLOAT_SUB: 
+            case OP_FLOAT_MUL:
+            case OP_FLOAT_DIV:
             case OP_INT64_ADD:
             case OP_INT64_SUB:
             case OP_INT64_MUL:
@@ -507,6 +511,10 @@ apply_int64(const e::slice& old_value,
             case OP_INT64_XOR:
                 number ^= arg;
                 break;
+            case OP_FLOAT_ADD:
+            case OP_FLOAT_SUB:
+            case OP_FLOAT_MUL:
+            case OP_FLOAT_DIV:
             case OP_STRING_APPEND:
             case OP_STRING_PREPEND:
             case OP_LIST_LPUSH:
@@ -525,6 +533,194 @@ apply_int64(const e::slice& old_value,
     }
 
     return e::pack64le(number, writeto);
+}
+
+/////////////////////////////// Float Primitives ///////////////////////////////
+
+static int
+compare_float(const uint8_t* a_ptr, uint32_t a_sz,
+              const uint8_t* b_ptr, uint32_t b_sz)
+{
+    assert(a_sz == sizeof(double));
+    assert(b_sz == sizeof(double));
+    double a;
+    double b;
+    e::unpackdoublele(a_ptr, &a);
+    e::unpackdoublele(b_ptr, &b);
+    return _cmp(a, b);
+}
+
+static int
+compare_float_micros_arg2(const hyperdex::microop* lhs,
+                          const hyperdex::microop* rhs)
+{
+    double lhsnum = 0.0;
+    double rhsnum = 0.0;
+    e::unpackdoublele(lhs->arg2.data(), &lhsnum);
+    e::unpackdoublele(rhs->arg2.data(), &rhsnum);
+    return _cmp(lhsnum, rhsnum);
+}
+
+static int
+compare_float_micro_arg2(const uint8_t* ptr, uint32_t ptr_sz,
+                         const hyperdex::microop* op)
+{
+    assert(ptr_sz == sizeof(double));
+    double lhsnum = 0.0;
+    double rhsnum = 0.0;
+    e::unpackdoublele(ptr, &lhsnum);
+    e::unpackdoublele(op->arg2.data(), &rhsnum);
+    return _cmp(lhsnum, rhsnum);
+}
+
+static uint8_t*
+copy_float_from_micro_arg2(uint8_t* writeto, const hyperdex::microop* op)
+{
+    assert(op->arg2.size() == sizeof(double));
+    memmove(writeto, op->arg2.data(), sizeof(double));
+    return writeto + sizeof(double);
+}
+
+static e::slice
+float_slice_from_serialized(const uint8_t* ptr, uint32_t ptr_sz, std::vector<uint8_t>*)
+{
+    return e::slice(ptr, ptr_sz);
+}
+
+static bool
+validate_float(const uint8_t** ptr, uint32_t* sz, const uint8_t* end)
+{
+    if (static_cast<size_t>(end - *ptr) < sizeof(double))
+    {
+        return false;
+    }
+
+    *sz = sizeof(double);
+    *ptr += sizeof(double);
+    return true;
+}
+
+static bool
+validate_float_micro_arg1(const hyperdex::microop* op)
+{
+    return op->arg1.size() == sizeof(double);
+}
+
+static bool
+validate_float_micro_arg2(const hyperdex::microop* op)
+{
+    return op->arg2.size() == sizeof(double);
+}
+
+static uint8_t*
+copy_float_from_micro_arg1(uint8_t* writeto, const hyperdex::microop* op)
+{
+    assert(op->arg1.size() == sizeof(double));
+    memmove(writeto, op->arg1.data(), sizeof(double));
+    return writeto + sizeof(double);
+}
+
+static int
+compare_float_micros_arg1(const hyperdex::microop* lhs,
+                          const hyperdex::microop* rhs)
+{
+    double lhsnum = 0.0;
+    double rhsnum = 0.0;
+    e::unpackdoublele(lhs->arg1.data(), &lhsnum);
+    e::unpackdoublele(rhs->arg1.data(), &rhsnum);
+    return _cmp(lhsnum, rhsnum);
+}
+
+static int
+compare_float_micro_arg1(const uint8_t* ptr, uint32_t ptr_sz,
+                         const hyperdex::microop* op)
+{
+    assert(ptr_sz == sizeof(double));
+    double lhsnum = 0.0;
+    double rhsnum = 0.0;
+    e::unpackdoublele(ptr, &lhsnum);
+    e::unpackdoublele(op->arg1.data(), &rhsnum);
+    return _cmp(lhsnum, rhsnum);
+}
+
+static uint8_t*
+copy_float_from_serialized(uint8_t* writeto, const uint8_t* ptr, uint32_t ptr_sz)
+{
+    assert(ptr_sz == sizeof(double));
+    memmove(writeto, ptr, sizeof(double));
+    return writeto + sizeof(double);
+}
+
+static uint8_t*
+apply_float(const e::slice& old_value,
+            const hyperdex::microop* ops,
+            size_t num_ops,
+            uint8_t* writeto,
+            hyperdex::network_returncode* error)
+{
+    using namespace hyperdex;
+
+    double number = 0.0;
+
+    if (old_value.size())
+    {
+        e::unpackdoublele(old_value.data(), &number);
+    }    
+
+    for (size_t i = 0; i < num_ops; ++i)
+    {
+        const hyperdex::microop* op = ops + i;
+
+        if (!validate_float_micro_arg1(op))
+        {
+            *error = NET_BADMICROS;
+            return NULL;
+        }
+
+        double arg;
+        e::unpackdoublele(op->arg1.data(), &arg);
+
+        switch (op->action)
+        {
+            case OP_FLOAT_ADD:
+                number+=arg;
+                break;
+            case OP_FLOAT_SUB:
+                number-=arg;
+                break;
+            case OP_FLOAT_MUL:
+                number*=arg;
+                break;
+            case OP_FLOAT_DIV:
+                number/=arg;
+                break;
+            case OP_INT64_MUL:
+            case OP_INT64_DIV:
+            case OP_INT64_MOD:
+            case OP_INT64_AND:
+            case OP_INT64_OR:
+            case OP_INT64_XOR:
+            case OP_INT64_ADD:
+            case OP_INT64_SUB:                
+            case OP_STRING_APPEND:
+            case OP_STRING_PREPEND:
+            case OP_LIST_LPUSH:
+            case OP_LIST_RPUSH:
+            case OP_SET:
+            case OP_SET_ADD:
+            case OP_SET_REMOVE:
+            case OP_SET_INTERSECT:
+            case OP_SET_UNION:
+            case OP_MAP_ADD:
+            case OP_MAP_REMOVE:
+            case OP_FAIL:
+            default:
+                *error = NET_BADMICROS;
+                return NULL;
+        }
+    }
+
+    return e::packdoublele(number, writeto);
 }
 
 //////////////////////////// Abstract List Functions ///////////////////////////
@@ -748,6 +944,10 @@ apply_set_add_remove(bool (*validate_elem)(const uint8_t** ptr, uint32_t* ptr_sz
                 case OP_SET_UNION:
                 case OP_STRING_APPEND:
                 case OP_STRING_PREPEND:
+                case OP_FLOAT_ADD:
+                case OP_FLOAT_SUB:
+                case OP_FLOAT_MUL:
+                case OP_FLOAT_DIV:
                 case OP_INT64_ADD:
                 case OP_INT64_SUB:
                 case OP_INT64_MUL:
@@ -784,6 +984,10 @@ apply_set_add_remove(bool (*validate_elem)(const uint8_t** ptr, uint32_t* ptr_sz
                 case OP_SET_UNION:
                 case OP_STRING_APPEND:
                 case OP_STRING_PREPEND:
+                case OP_FLOAT_ADD:
+                case OP_FLOAT_SUB:
+                case OP_FLOAT_MUL:
+                case OP_FLOAT_DIV:
                 case OP_INT64_ADD:
                 case OP_INT64_SUB:
                 case OP_INT64_MUL:
@@ -835,6 +1039,10 @@ apply_set_add_remove(bool (*validate_elem)(const uint8_t** ptr, uint32_t* ptr_sz
             case OP_SET_UNION:
             case OP_STRING_APPEND:
             case OP_STRING_PREPEND:
+            case OP_FLOAT_ADD:
+            case OP_FLOAT_SUB:
+            case OP_FLOAT_MUL:
+            case OP_FLOAT_DIV:
             case OP_INT64_ADD:
             case OP_INT64_SUB:
             case OP_INT64_MUL:
@@ -1209,6 +1417,10 @@ apply_map_add_remove(bool (*validate_key)(const uint8_t** ptr, uint32_t* ptr_sz,
                     break;
                 case OP_STRING_APPEND:
                 case OP_STRING_PREPEND:
+                case OP_FLOAT_ADD:
+                case OP_FLOAT_SUB:
+                case OP_FLOAT_MUL:
+                case OP_FLOAT_DIV:
                 case OP_INT64_ADD:
                 case OP_INT64_SUB:
                 case OP_INT64_MUL:
@@ -1246,6 +1458,10 @@ apply_map_add_remove(bool (*validate_key)(const uint8_t** ptr, uint32_t* ptr_sz,
                     break;
                 case OP_STRING_APPEND:
                 case OP_STRING_PREPEND:
+                case OP_FLOAT_ADD:
+                case OP_FLOAT_SUB:
+                case OP_FLOAT_MUL:
+                case OP_FLOAT_DIV:
                 case OP_INT64_ADD:
                 case OP_INT64_SUB:
                 case OP_INT64_MUL:
@@ -1308,6 +1524,10 @@ apply_map_add_remove(bool (*validate_key)(const uint8_t** ptr, uint32_t* ptr_sz,
                 break;
             case OP_STRING_APPEND:
             case OP_STRING_PREPEND:
+            case OP_FLOAT_ADD:
+            case OP_FLOAT_SUB:
+            case OP_FLOAT_MUL:
+            case OP_FLOAT_DIV:
             case OP_INT64_ADD:
             case OP_INT64_SUB:
             case OP_INT64_MUL:
@@ -1507,6 +1727,12 @@ validate_list_int64(const e::slice& list)
     return validate_list(validate_int64, list);
 }
 
+static bool
+validate_list_float(const e::slice& list)
+{
+    return validate_list(validate_float, list);
+}
+
 static uint8_t*
 apply_list_string(const e::slice& old_value,
                   const hyperdex::microop* ops,
@@ -1533,6 +1759,19 @@ apply_list_int64(const e::slice& old_value,
                       old_value, ops, num_ops, writeto, error);
 }
 
+static uint8_t*
+apply_list_float(const e::slice& old_value,
+                 const hyperdex::microop* ops,
+                 size_t num_ops,
+                 uint8_t* writeto,
+                 hyperdex::network_returncode* error)
+{
+    return apply_list(validate_float,
+                      validate_float_micro_arg1,
+                      copy_float_from_micro_arg1,
+                      old_value, ops, num_ops, writeto, error);
+}
+
 ////////////////////////// Instantiated Set Functions //////////////////////////
 
 static bool
@@ -1545,6 +1784,12 @@ static bool
 validate_set_int64(const e::slice& set)
 {
     return validate_set(validate_int64, compare_int64, set);
+}
+
+static bool
+validate_set_float(const e::slice& set)
+{
+    return validate_set(validate_float, compare_float, set);
 }
 
 static uint8_t*
@@ -1633,6 +1878,49 @@ apply_set_int64(const e::slice& old_value,
     }
 }
 
+static uint8_t*
+apply_set_float(const e::slice& old_value,
+                const hyperdex::microop* ops,
+                size_t num_ops,
+                uint8_t* writeto,
+                hyperdex::network_returncode* error)
+{
+    assert(num_ops > 0);
+
+    if (ops[0].action == hyperdex::OP_SET_ADD ||
+        ops[0].action == hyperdex::OP_SET_REMOVE)
+    {
+        return apply_set_add_remove(validate_float,
+                                    validate_float_micro_arg1,
+                                    compare_float_micros_arg1,
+                                    compare_float_micro_arg1,
+                                    copy_float_from_serialized,
+                                    copy_float_from_micro_arg1,
+                                    old_value, ops, num_ops, writeto, error);
+    }
+    else if (ops[0].action == hyperdex::OP_SET && num_ops == 1)
+    {
+        return apply_set_set(validate_set_float, ops, writeto, error);
+    }
+    else if (ops[0].action == hyperdex::OP_SET_INTERSECT && num_ops == 1)
+    {
+        return apply_set_intersect(validate_set_float, validate_float,
+                                   compare_float, copy_float_from_serialized,
+                                   old_value, ops, writeto, error);
+    }
+    else if (ops[0].action == hyperdex::OP_SET_UNION && num_ops == 1)
+    {
+        return apply_set_union(validate_set_float, validate_float,
+                               compare_float, copy_float_from_serialized,
+                               old_value, ops, writeto, error);
+    }
+    else
+    {
+        *error = hyperdex::NET_BADMICROS;
+        return NULL;
+    }
+}
+
 ////////////////////////// Instantiated Map Functions //////////////////////////
 
 static bool
@@ -1659,6 +1947,36 @@ validate_map_int64_int64(const e::slice& map)
     return validate_map(validate_int64, validate_int64, compare_int64, map);
 }
 
+static bool
+validate_map_float_string(const e::slice& map)
+{
+    return validate_map(validate_float, validate_string, compare_float, map);
+}
+
+static bool
+validate_map_float_int64(const e::slice& map)
+{
+    return validate_map(validate_float, validate_int64, compare_float, map);
+}
+
+static bool
+validate_map_float_float(const e::slice& map)
+{
+    return validate_map(validate_float, validate_float, compare_float, map);
+}
+
+static bool
+validate_map_string_float(const e::slice& map)
+{
+    return validate_map(validate_string, validate_float, compare_string, map);
+}
+
+static bool
+validate_map_int64_float(const e::slice& map)
+{
+    return validate_map(validate_int64, validate_float, compare_int64, map);
+}
+
 // This wrapper is needed because "apply_string operates on string attributes,
 // which do not encode the size before the string because every attribute has an
 // implicit "size" argument.  However, when applying the string to something in
@@ -1672,7 +1990,7 @@ apply_string_wrapper(const e::slice& old_value,
 {
     uint8_t* original_writeto = writeto;
     writeto = apply_string(old_value, ops, num_ops, writeto + sizeof(uint32_t), error);
-    e::pack32le(writeto - original_writeto - sizeof(uint32_t), original_writeto);
+    e::pack32le((uint32_t)(writeto - original_writeto - sizeof(uint32_t)), original_writeto);
     return writeto;
 }
 
@@ -1856,6 +2174,231 @@ apply_map_int64_int64(const e::slice& old_value,
     }
 }
 
+static uint8_t*
+apply_map_float_string(const e::slice& old_value,
+                      hyperdex::microop* ops,
+                      size_t num_ops,
+                      uint8_t* writeto,
+                      hyperdex::network_returncode* error)
+{
+    assert(num_ops > 0);
+
+    if (ops[0].action == hyperdex::OP_MAP_ADD ||
+        ops[0].action == hyperdex::OP_MAP_REMOVE)
+    {
+        return apply_map_add_remove(validate_float,
+                                    validate_string,
+                                    validate_string_micro,
+                                    validate_float_micro_arg2,
+                                    compare_float_micros_arg2,
+                                    compare_float_micro_arg2,
+                                    copy_float_from_serialized,
+                                    copy_float_from_micro_arg2,
+                                    copy_string_from_serialized,
+                                    copy_string_from_micro_arg1,
+                                    old_value, ops, num_ops, writeto, error);
+    }
+    else if (ops[0].action == hyperdex::OP_SET && num_ops == 1)
+    {
+        return apply_map_set(validate_map_float_string, ops, writeto, error);
+    }
+    else
+    {
+        return apply_map_microop(validate_float,
+                                 validate_string,
+                                 validate_string_micro,
+                                 validate_float_micro_arg2,
+                                 compare_float_micros_arg2,
+                                 compare_float_micro_arg2,
+                                 copy_float_from_serialized,
+                                 copy_float_from_micro_arg2,
+                                 copy_string_from_serialized,
+                                 string_slice_from_serialized,
+                                 apply_string_wrapper,
+                                 old_value, ops, num_ops, writeto, error);
+    }
+}
+
+static uint8_t*
+apply_map_float_int64(const e::slice& old_value,
+                      hyperdex::microop* ops,
+                      size_t num_ops,
+                      uint8_t* writeto,
+                      hyperdex::network_returncode* error)
+{
+    assert(num_ops > 0);
+
+    if (ops[0].action == hyperdex::OP_MAP_ADD ||
+        ops[0].action == hyperdex::OP_MAP_REMOVE)
+    {
+        return apply_map_add_remove(validate_float,
+                                    validate_int64,
+                                    validate_int64_micro_arg1,
+                                    validate_float_micro_arg2,
+                                    compare_float_micros_arg2,
+                                    compare_float_micro_arg2,
+                                    copy_float_from_serialized,
+                                    copy_float_from_micro_arg2,
+                                    copy_int64_from_serialized,
+                                    copy_int64_from_micro_arg1,
+                                    old_value, ops, num_ops, writeto, error);
+    }
+    else if (ops[0].action == hyperdex::OP_SET && num_ops == 1)
+    {
+        return apply_map_set(validate_map_float_int64, ops, writeto, error);
+    }
+    else
+    {
+        return apply_map_microop(validate_float,
+                                 validate_int64,
+                                 validate_int64_micro_arg1,
+                                 validate_float_micro_arg2,
+                                 compare_float_micros_arg2,
+                                 compare_float_micro_arg2,
+                                 copy_float_from_serialized,
+                                 copy_float_from_micro_arg2,
+                                 copy_int64_from_serialized,
+                                 int64_slice_from_serialized,
+                                 apply_int64,
+                                 old_value, ops, num_ops, writeto, error);
+    }
+}
+
+static uint8_t*
+apply_map_float_float(const e::slice& old_value,
+                      hyperdex::microop* ops,
+                      size_t num_ops,
+                      uint8_t* writeto,
+                      hyperdex::network_returncode* error)
+{
+    assert(num_ops > 0);
+
+    if (ops[0].action == hyperdex::OP_MAP_ADD ||
+        ops[0].action == hyperdex::OP_MAP_REMOVE)
+    {
+        return apply_map_add_remove(validate_float,
+                                    validate_float,
+                                    validate_float_micro_arg1,
+                                    validate_float_micro_arg2,
+                                    compare_float_micros_arg2,
+                                    compare_float_micro_arg2,
+                                    copy_float_from_serialized,
+                                    copy_float_from_micro_arg2,
+                                    copy_float_from_serialized,
+                                    copy_float_from_micro_arg1,
+                                    old_value, ops, num_ops, writeto, error);
+    }
+    else if (ops[0].action == hyperdex::OP_SET && num_ops == 1)
+    {
+        return apply_map_set(validate_map_float_float, ops, writeto, error);
+    }
+    else
+    {
+        return apply_map_microop(validate_float,
+                                 validate_float,
+                                 validate_float_micro_arg1,
+                                 validate_float_micro_arg2,
+                                 compare_float_micros_arg2,
+                                 compare_float_micro_arg2,
+                                 copy_float_from_serialized,
+                                 copy_float_from_micro_arg2,
+                                 copy_float_from_serialized,
+                                 float_slice_from_serialized,
+                                 apply_float,
+                                 old_value, ops, num_ops, writeto, error);
+    }
+}
+
+static uint8_t*
+apply_map_string_float(const e::slice& old_value,
+                      hyperdex::microop* ops,
+                      size_t num_ops,
+                      uint8_t* writeto,
+                      hyperdex::network_returncode* error)
+{
+    assert(num_ops > 0);
+
+    if (ops[0].action == hyperdex::OP_MAP_ADD ||
+        ops[0].action == hyperdex::OP_MAP_REMOVE)
+    {
+        return apply_map_add_remove(validate_string,
+                                    validate_float,
+                                    validate_float_micro_arg1,
+                                    validate_string_micro,
+                                    compare_string_micros_arg2,
+                                    compare_string_micro_arg2,
+                                    copy_string_from_serialized,
+                                    copy_string_from_micro_arg2,
+                                    copy_float_from_serialized,
+                                    copy_float_from_micro_arg1,
+                                    old_value, ops, num_ops, writeto, error);
+    }
+    else if (ops[0].action == hyperdex::OP_SET && num_ops == 1)
+    {
+        return apply_map_set(validate_map_string_float, ops, writeto, error);
+    }
+    else
+    {
+        return apply_map_microop(validate_string,
+                                 validate_float,
+                                 validate_float_micro_arg1,
+                                 validate_string_micro,
+                                 compare_string_micros_arg2,
+                                 compare_string_micro_arg2,
+                                 copy_string_from_serialized,
+                                 copy_string_from_micro_arg2,
+                                 copy_float_from_serialized,
+                                 float_slice_from_serialized,
+                                 apply_float,
+                                 old_value, ops, num_ops, writeto, error);
+    }
+}
+
+static uint8_t*
+apply_map_int64_float(const e::slice& old_value,
+                      hyperdex::microop* ops,
+                      size_t num_ops,
+                      uint8_t* writeto,
+                      hyperdex::network_returncode* error)
+{
+    assert(num_ops > 0);
+
+    if (ops[0].action == hyperdex::OP_MAP_ADD ||
+        ops[0].action == hyperdex::OP_MAP_REMOVE)
+    {
+        return apply_map_add_remove(validate_int64,
+                                    validate_float,
+                                    validate_float_micro_arg1,
+                                    validate_int64_micro_arg2,
+                                    compare_int64_micros_arg2,
+                                    compare_int64_micro_arg2,
+                                    copy_int64_from_serialized,
+                                    copy_int64_from_micro_arg2,
+                                    copy_float_from_serialized,
+                                    copy_float_from_micro_arg1,
+                                    old_value, ops, num_ops, writeto, error);
+    }
+    else if (ops[0].action == hyperdex::OP_SET && num_ops == 1)
+    {
+        return apply_map_set(validate_map_int64_float, ops, writeto, error);
+    }
+    else
+    {
+        return apply_map_microop(validate_int64,
+                                 validate_float,
+                                 validate_float_micro_arg1,
+                                 validate_int64_micro_arg2,
+                                 compare_int64_micros_arg2,
+                                 compare_int64_micro_arg2,
+                                 copy_int64_from_serialized,
+                                 copy_int64_from_micro_arg2,
+                                 copy_float_from_serialized,
+                                 float_slice_from_serialized,
+                                 apply_float,
+                                 old_value, ops, num_ops, writeto, error);
+    }
+}
+
 /////////////////////////////// Public Functions ///////////////////////////////
 
 bool
@@ -1867,27 +2410,44 @@ hyperdaemon :: validate_datatype(hyperdatatype datatype, const e::slice& data)
             return true;
         case HYPERDATATYPE_INT64:
             return data.size() == 0 || data.size() == sizeof(int64_t);
+        case HYPERDATATYPE_FLOAT:
+            return data.size() == 0 || data.size() == sizeof(double);
         case HYPERDATATYPE_LIST_STRING:
             return validate_list_string(data);
         case HYPERDATATYPE_LIST_INT64:
             return validate_list_int64(data);
+        case HYPERDATATYPE_LIST_FLOAT:
+            return validate_list_float(data);
         case HYPERDATATYPE_SET_STRING:
             return validate_set_string(data);
         case HYPERDATATYPE_SET_INT64:
             return validate_set_int64(data);
+        case HYPERDATATYPE_SET_FLOAT:
+            return validate_set_float(data);
         case HYPERDATATYPE_MAP_STRING_STRING:
             return validate_map_string_string(data);
         case HYPERDATATYPE_MAP_STRING_INT64:
             return validate_map_string_int64(data);
+        case HYPERDATATYPE_MAP_STRING_FLOAT:
+            return validate_map_string_float(data);
         case HYPERDATATYPE_MAP_INT64_STRING:
             return validate_map_int64_string(data);
         case HYPERDATATYPE_MAP_INT64_INT64:
             return validate_map_int64_int64(data);
+        case HYPERDATATYPE_MAP_INT64_FLOAT:
+            return validate_map_int64_float(data);
+        case HYPERDATATYPE_MAP_FLOAT_STRING:
+            return validate_map_float_string(data);
+        case HYPERDATATYPE_MAP_FLOAT_INT64:
+            return validate_map_float_int64(data);
+        case HYPERDATATYPE_MAP_FLOAT_FLOAT:
+            return validate_map_float_float(data);
         case HYPERDATATYPE_LIST_GENERIC:
         case HYPERDATATYPE_SET_GENERIC:
         case HYPERDATATYPE_MAP_GENERIC:
         case HYPERDATATYPE_MAP_STRING_KEYONLY:
         case HYPERDATATYPE_MAP_INT64_KEYONLY:
+        case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
         case HYPERDATATYPE_GARBAGE:
             return false;
         default:
@@ -1916,27 +2476,44 @@ hyperdaemon :: apply_microops(hyperdatatype type,
             return apply_string(old_value, ops, num_ops, writeto, error);
         case HYPERDATATYPE_INT64:
             return apply_int64(old_value, ops, num_ops, writeto, error);
+        case HYPERDATATYPE_FLOAT:
+            return apply_float(old_value, ops, num_ops, writeto, error);
         case HYPERDATATYPE_LIST_STRING:
             return apply_list_string(old_value, ops, num_ops, writeto, error);
         case HYPERDATATYPE_LIST_INT64:
             return apply_list_int64(old_value, ops, num_ops, writeto, error);
+        case HYPERDATATYPE_LIST_FLOAT:
+            return apply_list_float(old_value, ops, num_ops, writeto, error);
         case HYPERDATATYPE_SET_STRING:
             return apply_set_string(old_value, ops, num_ops, writeto, error);
         case HYPERDATATYPE_SET_INT64:
             return apply_set_int64(old_value, ops, num_ops, writeto, error);
+        case HYPERDATATYPE_SET_FLOAT:
+            return apply_set_float(old_value, ops, num_ops, writeto, error);
         case HYPERDATATYPE_MAP_STRING_STRING:
             return apply_map_string_string(old_value, ops, num_ops, writeto, error);
         case HYPERDATATYPE_MAP_STRING_INT64:
             return apply_map_string_int64(old_value, ops, num_ops, writeto, error);
+        case HYPERDATATYPE_MAP_STRING_FLOAT:
+            return apply_map_string_float(old_value, ops, num_ops, writeto, error);
         case HYPERDATATYPE_MAP_INT64_STRING:
             return apply_map_int64_string(old_value, ops, num_ops, writeto, error);
         case HYPERDATATYPE_MAP_INT64_INT64:
             return apply_map_int64_int64(old_value, ops, num_ops, writeto, error);
+        case HYPERDATATYPE_MAP_INT64_FLOAT:
+            return apply_map_int64_float(old_value, ops, num_ops, writeto, error);
+        case HYPERDATATYPE_MAP_FLOAT_STRING:
+            return apply_map_float_string(old_value, ops, num_ops, writeto, error);
+        case HYPERDATATYPE_MAP_FLOAT_INT64:
+            return apply_map_float_int64(old_value, ops, num_ops, writeto, error);
+        case HYPERDATATYPE_MAP_FLOAT_FLOAT:
+            return apply_map_float_float(old_value, ops, num_ops, writeto, error);
         case HYPERDATATYPE_LIST_GENERIC:
         case HYPERDATATYPE_SET_GENERIC:
         case HYPERDATATYPE_MAP_GENERIC:
         case HYPERDATATYPE_MAP_STRING_KEYONLY:
         case HYPERDATATYPE_MAP_INT64_KEYONLY:
+        case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
         case HYPERDATATYPE_GARBAGE:
         default:
             *error = hyperdex::NET_BADMICROS;
