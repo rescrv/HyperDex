@@ -23,7 +23,7 @@ doc/HyperDex-0.4.0.pdf
 doc/man/hyperdex-daemon.1
 doc/man/hyperdex-replication-stress-test.1
 doc/man/hyperdex-simple-consistency-stress-test.1
-hyperclient-0.1.dev.jar
+hyperclient-0.5.dev.jar
 hyperclient/c/.dirstamp
 hyperclient/c/hyperclient_c_testcompile-testcompile.o
 hyperclient/c/testcompile
@@ -31,7 +31,7 @@ hyperclient/.deps/
 hyperclient/.dirstamp
 hyperclient/java/.dirstamp
 hyperclient/java/hyperclient/
-hyperclient/java/hyperclient-0.1.dev.jar
+hyperclient/java/hyperclient-0.5.dev.jar
 hyperclient/java/hyperclient_wrap.cxx
 hyperclient/java/hyperclient_wrap.lo
 hyperclient/java/hyperclient_wrap.o
@@ -39,11 +39,11 @@ hyperclient/java/java.stamp
 hyperclient/java/libhyperclient-java.la
 hyperclient/java/libhyperclient_java_la-hyperclient_wrap.lo
 hyperclient/java/libhyperclient_java_la-hyperclient_wrap.o
-hyperclient/java/libhyperclient_java_la-syncclient.lo
-hyperclient/java/libhyperclient_java_la-syncclient.o
+hyperclient/java/libhyperclient_java_la-javaclient.lo
+hyperclient/java/libhyperclient_java_la-javaclient.o
 hyperclient-java.stamp
-hyperclient/java/syncclient.lo
-hyperclient/java/syncclient.o
+hyperclient/java/javaclient.lo
+hyperclient/java/javaclient.o
 hyperclient/libhyperclient_la-hyperclient_c_wrappers.lo
 hyperclient/libhyperclient_la-hyperclient_c_wrappers.o
 hyperclient/libhyperclient_la-hyperclient.lo
@@ -70,7 +70,7 @@ hyperclient/python/hyperclient.c
 hyperclient/python/hyperclient.la
 hyperclient/python/hyperclient_python_hyperclient_la-hyperclient.lo
 hyperclient/python/hyperclient_python_hyperclient_la-hyperclient.o
-hyperclient-ycsb-0.1.dev.jar
+hyperclient-ycsb-0.5.dev.jar
 hypercoordinator/coordinator.pyc
 hypercoordinator/hdjson.pyc
 hypercoordinator/hdtypes.pyc
@@ -208,4 +208,4 @@ trace-player
 trace-player.o
 trace_player-trace-player.o
 ycsb/hyperclient/HyperClientYCSB.class
-ycsb/hyperclient-ycsb-0.1.dev.jar
+ycsb/hyperclient-ycsb-0.5.dev.jar

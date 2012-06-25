@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+
+cat <<EOF > MapOp.java
+package hyperclient;
+
+import java.util.*;
+
+abstract class MapOp
+{
+    protected HyperClient client;
+
+    public MapOp(HyperClient client)
+    {
+        this.client = client;
+    }
+
+    abstract long call(String space, String key,
+              hyperclient_map_attribute attrs, long attrs_sz,
+              SWIGTYPE_p_hyperclient_returncode rc_ptr);
+}
+EOF
+
+cat <<EOF > SimpleOp.java
+package hyperclient;
+
+import java.util.*;
+
+abstract class SimpleOp
+{
+    protected HyperClient client;
+
+    public SimpleOp(HyperClient client)
+    {
+        this.client = client;
+    }
+
+    abstract long call(String space, String key,
+              hyperclient_attribute attrs, long attrs_sz,
+              SWIGTYPE_p_hyperclient_returncode rc_ptr);
+}
+EOF
+
+echo "" > async_methods.java
+echo "" > sync_methods.java
+
+for name in $* ; do
+
+    name=`echo $name |sed 's/^async_//'` # Clean name up
+
+    if echo $name |egrep '^map_' > /dev/null 2>&1 ; then
+        trname=`echo $name |sed 's/^map_//'` # The name I will camelize
+        template="MapOp.template.java"
+        prefix="Map"
+        deferred="DeferredMapOp"
+    else
+        trname=$name
+        template="SimpleOp.template.java"
+        prefix="Simple"
+        deferred="DeferredFromAttrs"
+    fi
+
+
+    OLD_IFS=$IFS
+    IFS=_
+
+    camel_name=$(for l in $trname; do B=`echo "${l:0:1}" | tr a-z A-Z`${l:1}; echo -n "$B"; done)
+
+    IFS=$OLD_IFS
+
+    cat $template |sed "s/__NAME__/$name/" \
+                  |sed "s/__CAMEL_NAME__/$camel_name/" \
+                    >> ${prefix}Op.java
+
+    cat <<EOF >> async_methods.java
+
+  public Deferred async_${name}(String space, String key, java.util.Map map)
+                                                     throws HyperClientException,
+                                                            TypeError,
+                                                            MemoryError,
+                                                            ValueError
+  {
+    return new ${deferred}(this, new ${prefix}Op${camel_name}(this), space, key, map);
+  }
+EOF
+
+    cat <<EOF >> sync_methods.java
+
+  public boolean ${name}(String space, String key, java.util.Map map)
+                                                     throws HyperClientException,
+                                                            TypeError,
+                                                            MemoryError,
+                                                            ValueError
+  {
+    Deferred d = ($deferred)(async_${name}(space, key, map));
+    return ((Boolean)(d.waitFor())).booleanValue();
+  }
+EOF
+done
