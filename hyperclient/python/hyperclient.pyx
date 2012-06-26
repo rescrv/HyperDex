@@ -138,10 +138,6 @@ cdef extern from "../hyperclient.h":
     int64_t hyperclient_atomic_and(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_atomic_or(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_atomic_xor(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
-    int64_t hyperclient_atomic_add_fl(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
-    int64_t hyperclient_atomic_sub_fl(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
-    int64_t hyperclient_atomic_mul_fl(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
-    int64_t hyperclient_atomic_div_fl(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_string_prepend(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_string_append(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_list_lpush(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
@@ -1169,22 +1165,6 @@ cdef class Client:
         async = self.async_atomic_xor(space, key, value)
         return async.wait()
 
-    def atomic_add_fl(self, bytes space, key, dict value):
-        async = self.async_atomic_add_fl(space, key, value)
-        return async.wait()
-
-    def atomic_sub_fl(self, bytes space, key, dict value):
-        async = self.async_atomic_sub_fl(space, key, value)
-        return async.wait()
-
-    def atomic_mul_fl(self, bytes space, key, dict value):
-        async = self.async_atomic_mul_fl(space, key, value)
-        return async.wait()
-
-    def atomic_div_fl(self, bytes space, key, dict value):
-        async = self.async_atomic_div_fl(space, key, value)
-        return async.wait()
-
     def string_prepend(self, bytes space, key, dict value):
         async = self.async_string_prepend(space, key, value)
         return async.wait()
@@ -1331,26 +1311,6 @@ cdef class Client:
     def async_atomic_xor(self, bytes space, key, dict value):
         d = DeferredFromAttrs(self)
         d.call(<hyperclient_simple_op> hyperclient_atomic_xor, space, key, value)
-        return d
-
-    def async_atomic_add_fl(self, bytes space, key, dict value):
-        d = DeferredFromAttrs(self)
-        d.call(<hyperclient_simple_op> hyperclient_atomic_add_fl, space, key, value)
-        return d
-
-    def async_atomic_sub_fl(self, bytes space, key, dict value):
-        d = DeferredFromAttrs(self)
-        d.call(<hyperclient_simple_op> hyperclient_atomic_sub_fl, space, key, value)
-        return d        
-
-    def async_atomic_mul_fl(self, bytes space, key, dict value):
-        d = DeferredFromAttrs(self)
-        d.call(<hyperclient_simple_op> hyperclient_atomic_mul_fl, space, key, value)
-        return d
-
-    def async_atomic_div_fl(self, bytes space, key, dict value):
-        d = DeferredFromAttrs(self)
-        d.call(<hyperclient_simple_op> hyperclient_atomic_div_fl, space, key, value)
         return d
 
     def async_string_prepend(self, bytes space, key, dict value):

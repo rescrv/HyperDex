@@ -270,10 +270,6 @@ apply_string(const e::slice& old_value,
 
                 append = ops + i;
                 break;
-            case OP_FLOAT_ADD:
-            case OP_FLOAT_SUB: 
-            case OP_FLOAT_MUL:
-            case OP_FLOAT_DIV:
             case OP_NUM_ADD:
             case OP_NUM_SUB:
             case OP_NUM_MUL:
@@ -511,10 +507,6 @@ apply_int64(const e::slice& old_value,
             case OP_NUM_XOR:
                 number ^= arg;
                 break;
-            case OP_FLOAT_ADD:
-            case OP_FLOAT_SUB:
-            case OP_FLOAT_MUL:
-            case OP_FLOAT_DIV:
             case OP_STRING_APPEND:
             case OP_STRING_PREPEND:
             case OP_LIST_LPUSH:
@@ -684,31 +676,29 @@ apply_float(const e::slice& old_value,
 
         switch (op->action)
         {
-            case OP_FLOAT_ADD:
-                number+=arg;
+            case OP_SET:
+                number = arg;
                 break;
-            case OP_FLOAT_SUB:
-                number-=arg;
+            case OP_NUM_ADD:
+                number += arg;
                 break;
-            case OP_FLOAT_MUL:
-                number*=arg;
-                break;
-            case OP_FLOAT_DIV:
-                number/=arg;
+            case OP_NUM_SUB:
+                number -= arg;
                 break;
             case OP_NUM_MUL:
+                number *= arg;
+                break;
             case OP_NUM_DIV:
+                number /= arg;
+                break;
             case OP_NUM_MOD:
             case OP_NUM_AND:
             case OP_NUM_OR:
             case OP_NUM_XOR:
-            case OP_NUM_ADD:
-            case OP_NUM_SUB:
             case OP_STRING_APPEND:
             case OP_STRING_PREPEND:
             case OP_LIST_LPUSH:
             case OP_LIST_RPUSH:
-            case OP_SET:
             case OP_SET_ADD:
             case OP_SET_REMOVE:
             case OP_SET_INTERSECT:
@@ -946,10 +936,6 @@ apply_set_add_remove(bool (*validate_elem)(const uint8_t** ptr, uint32_t* ptr_sz
                 case OP_SET_UNION:
                 case OP_STRING_APPEND:
                 case OP_STRING_PREPEND:
-                case OP_FLOAT_ADD:
-                case OP_FLOAT_SUB:
-                case OP_FLOAT_MUL:
-                case OP_FLOAT_DIV:
                 case OP_NUM_ADD:
                 case OP_NUM_SUB:
                 case OP_NUM_MUL:
@@ -986,10 +972,6 @@ apply_set_add_remove(bool (*validate_elem)(const uint8_t** ptr, uint32_t* ptr_sz
                 case OP_SET_UNION:
                 case OP_STRING_APPEND:
                 case OP_STRING_PREPEND:
-                case OP_FLOAT_ADD:
-                case OP_FLOAT_SUB:
-                case OP_FLOAT_MUL:
-                case OP_FLOAT_DIV:
                 case OP_NUM_ADD:
                 case OP_NUM_SUB:
                 case OP_NUM_MUL:
@@ -1041,10 +1023,6 @@ apply_set_add_remove(bool (*validate_elem)(const uint8_t** ptr, uint32_t* ptr_sz
             case OP_SET_UNION:
             case OP_STRING_APPEND:
             case OP_STRING_PREPEND:
-            case OP_FLOAT_ADD:
-            case OP_FLOAT_SUB:
-            case OP_FLOAT_MUL:
-            case OP_FLOAT_DIV:
             case OP_NUM_ADD:
             case OP_NUM_SUB:
             case OP_NUM_MUL:
@@ -1419,10 +1397,6 @@ apply_map_add_remove(bool (*validate_key)(const uint8_t** ptr, uint32_t* ptr_sz,
                     break;
                 case OP_STRING_APPEND:
                 case OP_STRING_PREPEND:
-                case OP_FLOAT_ADD:
-                case OP_FLOAT_SUB:
-                case OP_FLOAT_MUL:
-                case OP_FLOAT_DIV:
                 case OP_NUM_ADD:
                 case OP_NUM_SUB:
                 case OP_NUM_MUL:
@@ -1460,10 +1434,6 @@ apply_map_add_remove(bool (*validate_key)(const uint8_t** ptr, uint32_t* ptr_sz,
                     break;
                 case OP_STRING_APPEND:
                 case OP_STRING_PREPEND:
-                case OP_FLOAT_ADD:
-                case OP_FLOAT_SUB:
-                case OP_FLOAT_MUL:
-                case OP_FLOAT_DIV:
                 case OP_NUM_ADD:
                 case OP_NUM_SUB:
                 case OP_NUM_MUL:
@@ -1526,10 +1496,6 @@ apply_map_add_remove(bool (*validate_key)(const uint8_t** ptr, uint32_t* ptr_sz,
                 break;
             case OP_STRING_APPEND:
             case OP_STRING_PREPEND:
-            case OP_FLOAT_ADD:
-            case OP_FLOAT_SUB:
-            case OP_FLOAT_MUL:
-            case OP_FLOAT_DIV:
             case OP_NUM_ADD:
             case OP_NUM_SUB:
             case OP_NUM_MUL:

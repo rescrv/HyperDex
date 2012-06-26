@@ -338,10 +338,6 @@ HYPERCLIENT_CPPDEF(atomic, mod, NUM_MOD, coerce_identity)
 HYPERCLIENT_CPPDEF(atomic, and, NUM_AND, coerce_identity)
 HYPERCLIENT_CPPDEF(atomic, or,  NUM_OR,  coerce_identity)
 HYPERCLIENT_CPPDEF(atomic, xor, NUM_XOR, coerce_identity)
-HYPERCLIENT_CPPDEF(atomic, add_fl, FLOAT_ADD, coerce_identity)
-HYPERCLIENT_CPPDEF(atomic, sub_fl, FLOAT_SUB, coerce_identity)
-HYPERCLIENT_CPPDEF(atomic, mul_fl, FLOAT_MUL, coerce_identity)
-HYPERCLIENT_CPPDEF(atomic, div_fl, FLOAT_DIV, coerce_identity)
 HYPERCLIENT_CPPDEF(string, prepend, STRING_PREPEND, coerce_identity)
 HYPERCLIENT_CPPDEF(string, append, STRING_APPEND, coerce_identity)
 HYPERCLIENT_CPPDEF(list, lpush, LIST_LPUSH, coerce_list)
@@ -400,19 +396,6 @@ coerce_string_value(hyperdatatype, hyperdatatype provided)
     if (provided == HYPERDATATYPE_MAP_STRING_STRING ||
         provided == HYPERDATATYPE_MAP_INT64_STRING ||
         provided == HYPERDATATYPE_MAP_FLOAT_STRING)
-    {
-        return provided;
-    }
-
-    return HYPERDATATYPE_GARBAGE;
-}
-
-static hyperdatatype
-coerce_float_value(hyperdatatype, hyperdatatype provided)
-{
-    if (provided == HYPERDATATYPE_MAP_STRING_FLOAT ||
-        provided == HYPERDATATYPE_MAP_INT64_FLOAT ||
-        provided == HYPERDATATYPE_MAP_FLOAT_FLOAT)
     {
         return provided;
     }

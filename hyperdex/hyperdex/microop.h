@@ -47,11 +47,6 @@ enum microop_type
     OP_STRING_APPEND,
     OP_STRING_PREPEND,
 
-    OP_FLOAT_ADD,
-    OP_FLOAT_SUB,
-    OP_FLOAT_MUL,
-    OP_FLOAT_DIV,
-
     OP_NUM_ADD,
     OP_NUM_SUB,
     OP_NUM_MUL,
