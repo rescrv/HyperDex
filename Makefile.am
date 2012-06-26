@@ -517,7 +517,7 @@ ycsb/hyperclient/HyperClientYCSB.class: $(hyperclient_jarfile) ycsb/hyperclient/
 $(ycsb_jarfile): ycsb/hyperclient/HyperClientYCSB.class
 	cd $(abs_top_builddir)/ycsb; $(JAR) cvf $(JARFLAGS) $(abs_top_builddir)/$(ycsb_jarfile) hyperclient/HyperClientYCSB.class
 
-if ENABLE_JAVA_BINDINGS
+if ENABLE_YCSB_DRIVER
 ycsbjardir = $(datadir)/java
 ycsbjar_DATA = $(ycsb_jarfile)
 endif
