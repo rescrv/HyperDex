@@ -274,14 +274,14 @@ apply_string(const e::slice& old_value,
             case OP_FLOAT_SUB: 
             case OP_FLOAT_MUL:
             case OP_FLOAT_DIV:
-            case OP_INT64_ADD:
-            case OP_INT64_SUB:
-            case OP_INT64_MUL:
-            case OP_INT64_DIV:
-            case OP_INT64_MOD:
-            case OP_INT64_AND:
-            case OP_INT64_OR:
-            case OP_INT64_XOR:
+            case OP_NUM_ADD:
+            case OP_NUM_SUB:
+            case OP_NUM_MUL:
+            case OP_NUM_DIV:
+            case OP_NUM_MOD:
+            case OP_NUM_AND:
+            case OP_NUM_OR:
+            case OP_NUM_XOR:
             case OP_LIST_LPUSH:
             case OP_LIST_RPUSH:
             case OP_SET_ADD:
@@ -467,48 +467,48 @@ apply_int64(const e::slice& old_value,
             case OP_SET:
                 number = arg;
                 break;
-            case OP_INT64_ADD:
+            case OP_NUM_ADD:
                 if (!e::safe_add(number, arg, &number))
                 {
                     *error = hyperdex::NET_OVERFLOW;
                     return NULL;
                 }
                 break;
-            case OP_INT64_SUB:
+            case OP_NUM_SUB:
                 if (!e::safe_sub(number, arg, &number))
                 {
                     *error = hyperdex::NET_OVERFLOW;
                     return NULL;
                 }
                 break;
-            case OP_INT64_MUL:
+            case OP_NUM_MUL:
                 if (!e::safe_mul(number, arg, &number))
                 {
                     *error = hyperdex::NET_OVERFLOW;
                     return NULL;
                 }
                 break;
-            case OP_INT64_DIV:
+            case OP_NUM_DIV:
                 if (!e::safe_div(number, arg, &number))
                 {
                     *error = hyperdex::NET_OVERFLOW;
                     return NULL;
                 }
                 break;
-            case OP_INT64_MOD:
+            case OP_NUM_MOD:
                 if (!e::safe_mod(number, arg, &number))
                 {
                     *error = hyperdex::NET_OVERFLOW;
                     return NULL;
                 }
                 break;
-            case OP_INT64_AND:
+            case OP_NUM_AND:
                 number &= arg;
                 break;
-            case OP_INT64_OR:
+            case OP_NUM_OR:
                 number |= arg;
                 break;
-            case OP_INT64_XOR:
+            case OP_NUM_XOR:
                 number ^= arg;
                 break;
             case OP_FLOAT_ADD:
@@ -694,14 +694,14 @@ apply_float(const e::slice& old_value,
             case OP_FLOAT_DIV:
                 number/=arg;
                 break;
-            case OP_INT64_MUL:
-            case OP_INT64_DIV:
-            case OP_INT64_MOD:
-            case OP_INT64_AND:
-            case OP_INT64_OR:
-            case OP_INT64_XOR:
-            case OP_INT64_ADD:
-            case OP_INT64_SUB:                
+            case OP_NUM_MUL:
+            case OP_NUM_DIV:
+            case OP_NUM_MOD:
+            case OP_NUM_AND:
+            case OP_NUM_OR:
+            case OP_NUM_XOR:
+            case OP_NUM_ADD:
+            case OP_NUM_SUB:
             case OP_STRING_APPEND:
             case OP_STRING_PREPEND:
             case OP_LIST_LPUSH:
@@ -948,14 +948,14 @@ apply_set_add_remove(bool (*validate_elem)(const uint8_t** ptr, uint32_t* ptr_sz
                 case OP_FLOAT_SUB:
                 case OP_FLOAT_MUL:
                 case OP_FLOAT_DIV:
-                case OP_INT64_ADD:
-                case OP_INT64_SUB:
-                case OP_INT64_MUL:
-                case OP_INT64_DIV:
-                case OP_INT64_MOD:
-                case OP_INT64_AND:
-                case OP_INT64_OR:
-                case OP_INT64_XOR:
+                case OP_NUM_ADD:
+                case OP_NUM_SUB:
+                case OP_NUM_MUL:
+                case OP_NUM_DIV:
+                case OP_NUM_MOD:
+                case OP_NUM_AND:
+                case OP_NUM_OR:
+                case OP_NUM_XOR:
                 case OP_LIST_LPUSH:
                 case OP_LIST_RPUSH:
                 case OP_MAP_ADD:
@@ -988,14 +988,14 @@ apply_set_add_remove(bool (*validate_elem)(const uint8_t** ptr, uint32_t* ptr_sz
                 case OP_FLOAT_SUB:
                 case OP_FLOAT_MUL:
                 case OP_FLOAT_DIV:
-                case OP_INT64_ADD:
-                case OP_INT64_SUB:
-                case OP_INT64_MUL:
-                case OP_INT64_DIV:
-                case OP_INT64_MOD:
-                case OP_INT64_AND:
-                case OP_INT64_OR:
-                case OP_INT64_XOR:
+                case OP_NUM_ADD:
+                case OP_NUM_SUB:
+                case OP_NUM_MUL:
+                case OP_NUM_DIV:
+                case OP_NUM_MOD:
+                case OP_NUM_AND:
+                case OP_NUM_OR:
+                case OP_NUM_XOR:
                 case OP_LIST_LPUSH:
                 case OP_LIST_RPUSH:
                 case OP_MAP_ADD:
@@ -1043,14 +1043,14 @@ apply_set_add_remove(bool (*validate_elem)(const uint8_t** ptr, uint32_t* ptr_sz
             case OP_FLOAT_SUB:
             case OP_FLOAT_MUL:
             case OP_FLOAT_DIV:
-            case OP_INT64_ADD:
-            case OP_INT64_SUB:
-            case OP_INT64_MUL:
-            case OP_INT64_DIV:
-            case OP_INT64_MOD:
-            case OP_INT64_AND:
-            case OP_INT64_OR:
-            case OP_INT64_XOR:
+            case OP_NUM_ADD:
+            case OP_NUM_SUB:
+            case OP_NUM_MUL:
+            case OP_NUM_DIV:
+            case OP_NUM_MOD:
+            case OP_NUM_AND:
+            case OP_NUM_OR:
+            case OP_NUM_XOR:
             case OP_LIST_LPUSH:
             case OP_LIST_RPUSH:
             case OP_MAP_ADD:
@@ -1421,14 +1421,14 @@ apply_map_add_remove(bool (*validate_key)(const uint8_t** ptr, uint32_t* ptr_sz,
                 case OP_FLOAT_SUB:
                 case OP_FLOAT_MUL:
                 case OP_FLOAT_DIV:
-                case OP_INT64_ADD:
-                case OP_INT64_SUB:
-                case OP_INT64_MUL:
-                case OP_INT64_DIV:
-                case OP_INT64_MOD:
-                case OP_INT64_AND:
-                case OP_INT64_OR:
-                case OP_INT64_XOR:
+                case OP_NUM_ADD:
+                case OP_NUM_SUB:
+                case OP_NUM_MUL:
+                case OP_NUM_DIV:
+                case OP_NUM_MOD:
+                case OP_NUM_AND:
+                case OP_NUM_OR:
+                case OP_NUM_XOR:
                 case OP_LIST_LPUSH:
                 case OP_LIST_RPUSH:
                 case OP_SET_ADD:
@@ -1462,14 +1462,14 @@ apply_map_add_remove(bool (*validate_key)(const uint8_t** ptr, uint32_t* ptr_sz,
                 case OP_FLOAT_SUB:
                 case OP_FLOAT_MUL:
                 case OP_FLOAT_DIV:
-                case OP_INT64_ADD:
-                case OP_INT64_SUB:
-                case OP_INT64_MUL:
-                case OP_INT64_DIV:
-                case OP_INT64_MOD:
-                case OP_INT64_AND:
-                case OP_INT64_OR:
-                case OP_INT64_XOR:
+                case OP_NUM_ADD:
+                case OP_NUM_SUB:
+                case OP_NUM_MUL:
+                case OP_NUM_DIV:
+                case OP_NUM_MOD:
+                case OP_NUM_AND:
+                case OP_NUM_OR:
+                case OP_NUM_XOR:
                 case OP_LIST_LPUSH:
                 case OP_LIST_RPUSH:
                 case OP_SET_ADD:
@@ -1528,14 +1528,14 @@ apply_map_add_remove(bool (*validate_key)(const uint8_t** ptr, uint32_t* ptr_sz,
             case OP_FLOAT_SUB:
             case OP_FLOAT_MUL:
             case OP_FLOAT_DIV:
-            case OP_INT64_ADD:
-            case OP_INT64_SUB:
-            case OP_INT64_MUL:
-            case OP_INT64_DIV:
-            case OP_INT64_MOD:
-            case OP_INT64_AND:
-            case OP_INT64_OR:
-            case OP_INT64_XOR:
+            case OP_NUM_ADD:
+            case OP_NUM_SUB:
+            case OP_NUM_MUL:
+            case OP_NUM_DIV:
+            case OP_NUM_MOD:
+            case OP_NUM_AND:
+            case OP_NUM_OR:
+            case OP_NUM_XOR:
             case OP_LIST_LPUSH:
             case OP_LIST_RPUSH:
             case OP_SET_ADD:
