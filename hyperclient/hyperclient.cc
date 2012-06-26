@@ -209,7 +209,8 @@ coerce_generic(hyperdatatype expected, hyperdatatype provided)
     if (provided == HYPERDATATYPE_LIST_GENERIC)
     {
         if (expected == HYPERDATATYPE_LIST_INT64 ||
-            expected == HYPERDATATYPE_LIST_STRING)
+            expected == HYPERDATATYPE_LIST_STRING ||
+            expected == HYPERDATATYPE_LIST_FLOAT)
         {
             return expected;
         }
@@ -219,7 +220,8 @@ coerce_generic(hyperdatatype expected, hyperdatatype provided)
     else if (provided == HYPERDATATYPE_SET_GENERIC)
     {
         if (expected == HYPERDATATYPE_SET_INT64 ||
-            expected == HYPERDATATYPE_SET_STRING)
+            expected == HYPERDATATYPE_SET_STRING ||
+            expected == HYPERDATATYPE_SET_FLOAT)
         {
             return expected;
         }
@@ -230,8 +232,13 @@ coerce_generic(hyperdatatype expected, hyperdatatype provided)
     {
         if (expected == HYPERDATATYPE_MAP_STRING_STRING ||
             expected == HYPERDATATYPE_MAP_STRING_INT64 ||
+            expected == HYPERDATATYPE_MAP_STRING_FLOAT ||
             expected == HYPERDATATYPE_MAP_INT64_STRING ||
-            expected == HYPERDATATYPE_MAP_INT64_INT64)
+            expected == HYPERDATATYPE_MAP_INT64_INT64 ||
+            expected == HYPERDATATYPE_MAP_INT64_FLOAT ||
+            expected == HYPERDATATYPE_MAP_FLOAT_STRING ||
+            expected == HYPERDATATYPE_MAP_FLOAT_INT64 ||
+            expected == HYPERDATATYPE_MAP_FLOAT_FLOAT)
         {
             return expected;
         }
@@ -255,6 +262,11 @@ coerce_list(hyperdatatype, hyperdatatype provided)
         return HYPERDATATYPE_LIST_STRING;
     }
 
+    if (provided == HYPERDATATYPE_FLOAT)
+    {
+        return HYPERDATATYPE_LIST_FLOAT;
+    }
+
     return HYPERDATATYPE_GARBAGE;
 }
 
@@ -271,6 +283,11 @@ coerce_set(hyperdatatype, hyperdatatype provided)
         return HYPERDATATYPE_SET_STRING;
     }
 
+    if (provided == HYPERDATATYPE_FLOAT)
+    {
+        return HYPERDATATYPE_SET_FLOAT;
+    }
+
     return HYPERDATATYPE_GARBAGE;
 }
 
@@ -285,10 +302,15 @@ coerce_set_generic(hyperdatatype expected, hyperdatatype provided)
     {
         return HYPERDATATYPE_SET_STRING;
     }
+    else if (provided == HYPERDATATYPE_FLOAT)
+    {
+        return HYPERDATATYPE_SET_FLOAT;
+    }
     else if (provided == HYPERDATATYPE_SET_GENERIC)
     {
         if (expected == HYPERDATATYPE_SET_INT64 ||
-            expected == HYPERDATATYPE_SET_STRING)
+            expected == HYPERDATATYPE_SET_STRING ||
+            expected == HYPERDATATYPE_SET_FLOAT)
         {
             return expected;
         }
@@ -308,14 +330,14 @@ coerce_set_generic(hyperdatatype expected, hyperdatatype provided)
                                       key, key_sz, attrs, attrs_sz, status); \
     }
 
-HYPERCLIENT_CPPDEF(atomic, add, INT64_ADD, coerce_identity)
-HYPERCLIENT_CPPDEF(atomic, sub, INT64_SUB, coerce_identity)
-HYPERCLIENT_CPPDEF(atomic, mul, INT64_MUL, coerce_identity)
-HYPERCLIENT_CPPDEF(atomic, div, INT64_DIV, coerce_identity)
-HYPERCLIENT_CPPDEF(atomic, mod, INT64_MOD, coerce_identity)
-HYPERCLIENT_CPPDEF(atomic, and, INT64_AND, coerce_identity)
-HYPERCLIENT_CPPDEF(atomic, or, INT64_OR, coerce_identity)
-HYPERCLIENT_CPPDEF(atomic, xor, INT64_XOR, coerce_identity)
+HYPERCLIENT_CPPDEF(atomic, add, NUM_ADD, coerce_identity)
+HYPERCLIENT_CPPDEF(atomic, sub, NUM_SUB, coerce_identity)
+HYPERCLIENT_CPPDEF(atomic, mul, NUM_MUL, coerce_identity)
+HYPERCLIENT_CPPDEF(atomic, div, NUM_DIV, coerce_identity)
+HYPERCLIENT_CPPDEF(atomic, mod, NUM_MOD, coerce_identity)
+HYPERCLIENT_CPPDEF(atomic, and, NUM_AND, coerce_identity)
+HYPERCLIENT_CPPDEF(atomic, or,  NUM_OR,  coerce_identity)
+HYPERCLIENT_CPPDEF(atomic, xor, NUM_XOR, coerce_identity)
 HYPERCLIENT_CPPDEF(string, prepend, STRING_PREPEND, coerce_identity)
 HYPERCLIENT_CPPDEF(string, append, STRING_APPEND, coerce_identity)
 HYPERCLIENT_CPPDEF(list, lpush, LIST_LPUSH, coerce_list)
@@ -330,14 +352,24 @@ coerce_map_remove(hyperdatatype expected, hyperdatatype provided)
 {
     if (provided == HYPERDATATYPE_MAP_STRING_KEYONLY &&
         (expected == HYPERDATATYPE_MAP_STRING_STRING ||
-         expected == HYPERDATATYPE_MAP_STRING_INT64))
+         expected == HYPERDATATYPE_MAP_STRING_INT64 ||
+         expected == HYPERDATATYPE_MAP_STRING_FLOAT))
     {
         return expected;
     }
 
     if (provided == HYPERDATATYPE_MAP_INT64_KEYONLY &&
         (expected == HYPERDATATYPE_MAP_INT64_STRING ||
-         expected == HYPERDATATYPE_MAP_INT64_INT64))
+         expected == HYPERDATATYPE_MAP_INT64_INT64 ||
+         expected == HYPERDATATYPE_MAP_INT64_FLOAT))
+    {
+        return expected;
+    }
+
+    if (provided == HYPERDATATYPE_MAP_FLOAT_KEYONLY &&
+        (expected == HYPERDATATYPE_MAP_FLOAT_STRING ||
+         expected == HYPERDATATYPE_MAP_FLOAT_INT64 ||
+         expected == HYPERDATATYPE_MAP_FLOAT_FLOAT))
     {
         return expected;
     }
@@ -349,7 +381,8 @@ static hyperdatatype
 coerce_numeric_value(hyperdatatype, hyperdatatype provided)
 {
     if (provided == HYPERDATATYPE_MAP_STRING_INT64 ||
-        provided == HYPERDATATYPE_MAP_INT64_INT64)
+        provided == HYPERDATATYPE_MAP_INT64_INT64 ||
+        provided == HYPERDATATYPE_MAP_FLOAT_INT64)
     {
         return provided;
     }
@@ -361,7 +394,8 @@ static hyperdatatype
 coerce_string_value(hyperdatatype, hyperdatatype provided)
 {
     if (provided == HYPERDATATYPE_MAP_STRING_STRING ||
-        provided == HYPERDATATYPE_MAP_INT64_STRING)
+        provided == HYPERDATATYPE_MAP_INT64_STRING ||
+        provided == HYPERDATATYPE_MAP_FLOAT_STRING)
     {
         return provided;
     }
@@ -382,14 +416,14 @@ coerce_string_value(hyperdatatype, hyperdatatype provided)
 
 HYPERCLIENT_MAP_CPPDEF(map, add, MAP_ADD, coerce_identity)
 HYPERCLIENT_MAP_CPPDEF(map, remove, MAP_REMOVE, coerce_map_remove)
-HYPERCLIENT_MAP_CPPDEF(map, atomic_add, INT64_ADD, coerce_numeric_value)
-HYPERCLIENT_MAP_CPPDEF(map, atomic_sub, INT64_SUB, coerce_numeric_value)
-HYPERCLIENT_MAP_CPPDEF(map, atomic_mul, INT64_MUL, coerce_numeric_value)
-HYPERCLIENT_MAP_CPPDEF(map, atomic_div, INT64_DIV, coerce_numeric_value)
-HYPERCLIENT_MAP_CPPDEF(map, atomic_mod, INT64_MOD, coerce_numeric_value)
-HYPERCLIENT_MAP_CPPDEF(map, atomic_and, INT64_AND, coerce_numeric_value)
-HYPERCLIENT_MAP_CPPDEF(map, atomic_or, INT64_OR, coerce_numeric_value)
-HYPERCLIENT_MAP_CPPDEF(map, atomic_xor, INT64_XOR, coerce_numeric_value)
+HYPERCLIENT_MAP_CPPDEF(map, atomic_add, NUM_ADD, coerce_numeric_value)
+HYPERCLIENT_MAP_CPPDEF(map, atomic_sub, NUM_SUB, coerce_numeric_value)
+HYPERCLIENT_MAP_CPPDEF(map, atomic_mul, NUM_MUL, coerce_numeric_value)
+HYPERCLIENT_MAP_CPPDEF(map, atomic_div, NUM_DIV, coerce_numeric_value)
+HYPERCLIENT_MAP_CPPDEF(map, atomic_mod, NUM_MOD, coerce_numeric_value)
+HYPERCLIENT_MAP_CPPDEF(map, atomic_and, NUM_AND, coerce_numeric_value)
+HYPERCLIENT_MAP_CPPDEF(map, atomic_or,  NUM_OR,  coerce_numeric_value)
+HYPERCLIENT_MAP_CPPDEF(map, atomic_xor, NUM_XOR, coerce_numeric_value)
 HYPERCLIENT_MAP_CPPDEF(map, string_prepend, STRING_PREPEND, coerce_string_value)
 HYPERCLIENT_MAP_CPPDEF(map, string_append, STRING_APPEND, coerce_string_value)
 

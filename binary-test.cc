@@ -138,7 +138,7 @@ main(int argc, char* argv[])
             }
 
             uint8_t bufle[sizeof(uint64_t)];
-            e::pack64le(num, bufle);
+            e::pack64le((uint64_t)num, bufle);
             hyperclient_returncode pstatus;
             int64_t pid = cl.put(space, reinterpret_cast<const char*>(bufle), sizeof(uint32_t), attrs, 32, &pstatus);
 
