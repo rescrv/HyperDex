@@ -411,7 +411,7 @@ validate_int64(const uint8_t** ptr, uint32_t* sz, const uint8_t* end)
 {
     uint32_t tmp = end - *ptr;
 
-    if (tmp < sizeof(int64_t))
+    if (tmp != sizeof(int64_t))
     {
         return false;
     }
@@ -590,7 +590,9 @@ float_slice_from_serialized(const uint8_t* ptr, uint32_t ptr_sz, std::vector<uin
 static bool
 validate_float(const uint8_t** ptr, uint32_t* sz, const uint8_t* end)
 {
-    if (static_cast<size_t>(end - *ptr) < sizeof(double))
+    uint32_t tmp = end - *ptr;
+
+    if (tmp != sizeof(int64_t))
     {
         return false;
     }
