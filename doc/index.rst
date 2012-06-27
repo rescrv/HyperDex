@@ -10,6 +10,13 @@ Welcome to the HyperDex Reference Manual
    installation
    datamodel
    quickstart
+   tutorial-advanced
+   tutorial-datastructure
+   api/python
+   api/c
+   man/hyperdex-daemon
+   man/hyperdex-replication-stress-test
+   man/hyperdex-simple-consistency-stress-test
 
 Indices and tables
 ==================
