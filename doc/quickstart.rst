@@ -1,14 +1,23 @@
+.. _quickstart:
 
+Quick Start
+===========
 
-Basic Operations
-================
+This chapter is designed to give you a whirlwind tour of HyperDex.  The first
+section gives a high-level overview of a typical HyperDex deployment and
+application.  Subsequent sections walk step-by-step through code from a
+hypothetical phone book application.
+
+High-Level Overview
+-------------------
 
 A HyperDex cluster consists of three types of components: clients, servers, and
 a coordinator.
 
-Applications built on top of HyperDex are the clients. They use the HyperDex API
-through various bindings for popular languages (e.g. C, C++, and Python) to
-issue operations, such as GET, PUT, SEARCH, DELETE, etc, to the storage system.
+Applications built on top of HyperDex are the clients.  They use the HyperDex
+API through various bindings for popular languages (e.g. C, C++, Java, and
+Python) to issue operations, such as ``get``, ``put``, ``search``, ``delete``,
+etc, to the storage system.
 
 The HyperDex servers are responsible for storing the data in the system. You can
 have a cluster with as few as just a single server, though typical installations
@@ -16,17 +25,13 @@ will have dozens to hundreds of servers. These servers store the data in memory
 and on disk, and they can crash at any time. HyperDex can be configured to
 tolerate as many failed nodes as desired.
 
-The HyperDex coordinator maintains the "hyperspace." This involves making sure
-that servers are up, detecting failed or slow nodes, taking them out of the
-system, and replacing them where necessary. The coordinator maintains a critical
-data structure, the hyperspace map, that establishes the mapping between the
-hyperspace and servers. Clients use this map to locate the servers they need to
-contact, while servers use it to perform object propagation and replication to
-achieve the application's desired goals.
-
-In this tutorial, we'll discuss how to get a HyperDex cluster up and running. In
-particular, we'll create a simple space, insert objects into it, retrieve those
-objects, and then perform queries over these objects.
+The HyperDex coordinator maintains the spaces created by the application.  This
+involves making sure that servers are up, detecting failed or slow nodes, taking
+them out of the system, and replacing them where necessary. The coordinator
+maintains a critical data structure that shards the space across multiple
+servers in the system.  hyperspace and servers.  Clients use this datastructure
+to locate the servers they need to contact, while servers use it to perform
+object propagation and replication to achieve the application's desired goals.
 
 Starting the Coordinator
 ------------------------
@@ -40,33 +45,30 @@ The following command starts the coordinator:
 
    $ hyperdex-coordinator --control-port 6970 --host-port 1234 --logging debug
 
-The coordinator has a control-port over which we can instruct it to rearrange
-the hyperspace and a host-port over which it communicates with server nodes.
-While a regular user should never have to interact with either of these ports
-directly, those of you who like to hack can always fire up a telnet session to
-the control port and issue commands directly to the coordinator.
+The coordinator has a control-port over which we can manipulate the entire
+cluster and a host-port for communication with clients and server.
 
 At this point, the coordinator is up and running, and we're ready to start up
-additional nodes in our cluster.
+servers in our sample cluster.
 
 Starting HyperDex Daemons
 -------------------------
 
-The HyperDex servers are the workhorse processes that actually house the data in
-the data store and respond to client requests. Let's start a server on the the
-same machine as the coordinator:
+The HyperDex servers are the workhorse processes that actually hold the stored
+data and respond to client requests.  Let's start a server on the same
+machine as the coordinator:
 
 .. sourcecode:: console
 
    $ hyperdex-daemon --host 127.0.0.1 --port 1234 --bind-to 127.0.0.2 --data /path/to/data
 
 The first two arguments are the IP and host port of the controller we started
-earlier. This enables the server to announce its presence, which in turn enables
-the coordinator to assign a zone to the newly arrived server. At that point, the
-server can take over some of the data load from an existing server, participate
-in the data propagation protocol, and start handling client requests. But since
-we have no data yet and this is our first node, this particular server does not
-have much work to do.
+earlier.  Upon startup, the server will connect to the coordinator to announce
+its presence, which in turn enables the coordinator to integrate the new node
+into the cluster.  At that point, the server can take over some of the data load
+from an existing server, serve as a replica for an existing server, and start
+handling client requests.  But since we have no data yet and this is our first
+node, this particular server does not have much work to do.
 
 Note that the third argument (127.0.0.2) is the IP address to which we want to
 bind the server node. We are using a loopback address here for the purposes of
@@ -77,11 +79,11 @@ The last argument is a pointer to a directory where the server will store all
 data.
 
 It doesn't hurt to start a few more server instances at this point (although it
-is not required to continue with the tutorial).
+is not required to continue with this tutorial).
 
 You now have a functional HyperDex cluster.  It's time to do something with it.
 
-Creating a new Space
+Creating a New Space
 --------------------
 
 Let's imagine that we are building a phone book application.  Such a phonebook
