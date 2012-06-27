@@ -1,19 +1,3 @@
-Concepts
-========
-
-HyperDex is a distributed, searchable key-value store. The key features of HyperDex are:
-
- * **Fast**: HyperDex has lower latency, higher throughput, and lower variance than other key-value stores.
-
- * **Scalable**: HyperDex scales as more machines are added to the system.
-
- * **Consistent**: HyperDex guarantees linearizability for key-based operations. Thus, it a GET always returns the latest value inserted into the system. Not just "eventually," but immediately and always.
-
- * **Fault tolerant**: HyperDex automatically replicates data on multiple machines so that concurrent failures, up to an application-determined limit, will not cause data loss.
-
- * **Searchable**: HyperDex enables lookups of non-primary data attributes. Such searches are implemented efficiently and contact a small number of servers.
-
-
 A New Approach to NoSQL
 -----------------------
 
@@ -25,10 +9,10 @@ compromising on consistency. To the contrary, it provides uniquely
 strong consistency guarantees while outperforming other NoSQL
 systems. Further, HyperDex provides well-defined fault-tolerance
 guarantees against both node failures and network partitions. And it
-achieves these performance, consistency, availability and fault 
-tolerance properties while providing a richer API than most other 
+achieves these performance, consistency, availability and fault
+tolerance properties while providing a richer API than most other
 NoSQL stores; specifically, it enables clients to recall objects
-using attributes other than the object key. 
+using attributes other than the object key.
 
 HyperDex derives its strong consistency, fault-tolerance and
 performance properties from two aspects of its design: hyperspace
@@ -51,7 +35,7 @@ every object in the system.
 
 The following sections detail how HyperDex places servers and objects
 in the Hyperspace, and addresses classic problems with using high dimensional
-data-structures. 
+data-structures.
 
 Node and Object Placement
 -------------------------
@@ -106,7 +90,7 @@ volume with each additional secondary attribute. For objects with many
 attributes, the resulting Euclidean space would be large, and consequently,
 sparse. Nodes would then be responsible for large regions in the hyperspace,
 which would increase the number of nodes whose regions intersect search
-hyperplanes and thus limit the effectiveness of the basic approach. 
+hyperplanes and thus limit the effectiveness of the basic approach.
 
 .. image:: _static/subspace.png
     :align: center
@@ -118,7 +102,7 @@ limited-size subspaces, where each subspace covers a subset of object
 attributes in a lower dimensional hyperspace.  Thus, by folding the hyperspace
 back into a lower number of dimensions, HyperDex can ensure higher node
 selectivity during searches.  The figure above shows how HyperDex can represent
-a table with ``D`` searchable attributes as a set of subspaces ``s``. 
+a table with ``D`` searchable attributes as a set of subspaces ``s``.
 
 Data partitioning increases the efficiency of a search by reducing the number of
 nodes which must be contacted to perform a search.  For example, consider a
@@ -157,8 +141,3 @@ remaining subspaces. If an object with the same key already exists, it is
 deleted from all subspaces at the same time the new object is being inserted.
 By introducing a one-dimensional key subspace, HyperDex provides efficient key
 operations and ensures system-wide key uniqueness.
-
-
-
-
-
