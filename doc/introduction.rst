@@ -41,7 +41,7 @@ About this Book
 This book is the definitive reference manual for HyperDex users and developers.
 The first half of the book is devoted to users of HyperDex.
 :ref:`Chapter 2 <installation>` provides instruction for installing the latest
-HyperDex release from either precompiled packages or source tarballs [#dev]_.
+HyperDex release from either precompiled packages or source tarballs [#devinst]_.
 :ref:`Chapter 3 <datamodel>` describes the HyperDex data model and basic
 terminology used throughout the rest of the book.
 :ref:`Chapter 4 <quickstart>` is a short tutorial that demonstrates how to setup
@@ -54,9 +54,6 @@ HyperDex cluster.
 The entire API is described in :ref:`Chapter 8 <api>`.
 For completeness, man pages are included in :ref:`Chapter 9 <man>`.
 :ref:`Chapter 10 <dev>` is intended for developers of HyperDex itself.
-
-.. [#dev] Instructions for building HyperDex from the Git repo are provided in
-   the developer's section.
 
 The HyperDex developers are constantly improving both HyperDex and this
 reference manual.  If you would like to provide feedback on this manual, please
@@ -97,3 +94,6 @@ needs, you can contact the team of core HyperDex developers directly at
 .. _HyperDex IRC Channel: http://webchat.freenode.net/?channels=hyperdex&uio=d4
 .. _HyperDex Bug Tracker: https://github.com/rescrv/HyperDex/issues
 .. _Freenode: http://freenode.net/
+
+.. [#devinst] Instructions for building HyperDex from the Git repo are provided
+   in the developer's section.
