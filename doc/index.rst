@@ -3,21 +3,19 @@
 Welcome to the HyperDex Reference Manual
 ========================================
 
-This documentation corresponds to the current development version of HyperDex.
-
 .. toctree::
    :maxdepth: 2
 
-   concepts
+   introduction
    installation
-   tutorial
-   tutorial-advanced
-   tutorial-datastructure
-   api/python
-   api/c
-   man/hyperdex-daemon
-   man/hyperdex-replication-stress-test
-   man/hyperdex-simple-consistency-stress-test
+   datamodel
+   quickstart
+   keyoperations
+   searchoperations
+   administration
+   api
+   man
+   dev
 
 Indices and tables
 ==================
