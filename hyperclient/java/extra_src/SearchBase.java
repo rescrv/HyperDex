@@ -107,7 +107,6 @@ public class SearchBase extends Pending
         while ( ! finished && backlogged.size() == 0 )
         {
             client.loop();
-            System.out.println("next(): status = " + status());
         }
 
         if ( backlogged.size() > 0 )
