@@ -154,7 +154,6 @@ hyperdaemon :: network_worker :: run()
             msg.reset(e::buffer::create(sz));
             e::buffer::packer pa = msg->pack_at(m_comm->header_size());
             pa = pa << nonce << static_cast<uint16_t>(result) << value;
-            assert(!pa.error());
             m_comm->send(to, from, hyperdex::RESP_GET, msg);
         }
         else if (type == hyperdex::REQ_PUT)

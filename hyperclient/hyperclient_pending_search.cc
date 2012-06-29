@@ -119,8 +119,7 @@ hyperclient :: pending_search :: handle_response(hyperclient* cl,
 
     e::guard g = e::makeguard(hyperclient_destroy_attrs, *m_attrs, *m_attrs_sz);
     std::auto_ptr<e::buffer> smsg(e::buffer::create(HYPERCLIENT_HEADER_SIZE + sizeof(uint64_t)));
-    bool packed = !(smsg->pack_at(HYPERCLIENT_HEADER_SIZE) << static_cast<uint64_t>(m_searchid)).error();
-    assert(packed);
+    smsg->pack_at(HYPERCLIENT_HEADER_SIZE) << static_cast<uint64_t>(m_searchid);
 
     set_server_visible_nonce(cl->m_server_nonce);
     ++cl->m_server_nonce;

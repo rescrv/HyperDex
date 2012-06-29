@@ -201,11 +201,10 @@ hyperdaemon :: searches :: next(const hyperdex::entityid& us,
                           + sizeof(uint32_t) + state->snap->key().size()
                           + hyperdex::packspace(state->snap->value());
                 std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-                bool fits = !(msg->pack_at(m_comm->header_size())
-                                << nonce
-                                << state->snap->key()
-                                << state->snap->value()).error();
-                assert(fits);
+                msg->pack_at(m_comm->header_size())
+                    << nonce
+                    << state->snap->key()
+                    << state->snap->value();
                 m_comm->send(us, client, hyperdex::RESP_SEARCH_ITEM, msg);
                 state->snap->next();
                 return;
@@ -216,8 +215,7 @@ hyperdaemon :: searches :: next(const hyperdex::entityid& us,
     }
 
     std::auto_ptr<e::buffer> msg(e::buffer::create(m_comm->header_size() + sizeof(uint64_t)));
-    bool fits = !(msg->pack_at(m_comm->header_size()) << nonce).error();
-    assert(fits);
+    msg->pack_at(m_comm->header_size()) << nonce;
     m_comm->send(us, client, hyperdex::RESP_SEARCH_DONE, msg);
     stop(us, client, search_num);
 }
@@ -244,7 +242,6 @@ hyperdaemon :: searches :: group_keyop(const hyperdex::entityid& us,
         std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
         e::buffer::packer pa = msg->pack_at(m_comm->header_size());
         pa = pa << nonce << static_cast<uint16_t>(hyperdex::NET_BADDIMSPEC);
-        assert(!pa.error());
         m_comm->send(us, client, hyperdex::RESP_GROUP_DEL, msg);
         return;
     }
@@ -266,10 +263,9 @@ hyperdaemon :: searches :: group_keyop(const hyperdex::entityid& us,
                       + snap->key().size()
                       + remain.size();
             std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-            e::buffer::packer p = msg->pack_at(m_comm->header_size());
-            p = p << static_cast<uint64_t>(0) << snap->key();
-            p = p.copy(remain);
-            assert(!p.error());
+            e::buffer::packer pa = msg->pack_at(m_comm->header_size());
+            pa = pa << static_cast<uint64_t>(0) << snap->key();
+            pa = pa.copy(remain);
 
             // Figure out who to talk with.
             hyperdex::entityid dst_ent;
@@ -295,7 +291,6 @@ hyperdaemon :: searches :: group_keyop(const hyperdex::entityid& us,
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     e::buffer::packer pa = msg->pack_at(m_comm->header_size());
     pa = pa << nonce << static_cast<uint16_t>(hyperdex::NET_SUCCESS);
-    assert(!pa.error());
     m_comm->send(us, client, hyperdex::RESP_GROUP_DEL, msg);
 }
 
@@ -311,7 +306,6 @@ hyperdaemon :: searches :: count(const hyperdex::entityid& us,
         std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
         e::buffer::packer pa = msg->pack_at(m_comm->header_size());
         pa = pa << nonce << static_cast<uint16_t>(hyperdex::NET_BADDIMSPEC);
-        assert(!pa.error());
         m_comm->send(us, client, hyperdex::RESP_COUNT, msg);
         return;
     }
@@ -338,7 +332,6 @@ hyperdaemon :: searches :: count(const hyperdex::entityid& us,
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     e::buffer::packer pa = msg->pack_at(m_comm->header_size());
     pa = pa << nonce << static_cast<uint16_t>(hyperdex::NET_SUCCESS) << result;
-    assert(!pa.error());
     m_comm->send(us, client, hyperdex::RESP_COUNT, msg);
 }
 
@@ -432,7 +425,6 @@ hyperdaemon :: searches :: sorted_search(const hyperdex::entityid& us,
         std::auto_ptr<e::buffer> errmsg(e::buffer::create(sz));
         e::buffer::packer pa = errmsg->pack_at(m_comm->header_size());
         pa = pa << nonce << static_cast<uint16_t>(hyperdex::NET_BADDIMSPEC);
-        assert(!pa.error());
         m_comm->send(us, client, hyperdex::RESP_SORTED_SEARCH, errmsg);
         return;
     }
@@ -515,7 +507,6 @@ hyperdaemon :: searches :: sorted_search(const hyperdex::entityid& us,
         pa = pa << top_n[i].key << top_n[i].value;
     }
 
-    assert(!pa.error());
     m_comm->send(us, client, hyperdex::RESP_SORTED_SEARCH, msg);
 }
 

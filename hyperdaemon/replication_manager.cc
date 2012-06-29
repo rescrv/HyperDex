@@ -1403,8 +1403,7 @@ hyperdaemon :: replication_manager :: send_message(const entityid& us,
         if (op->subspace_next == UINT16_MAX)
         {
             std::auto_ptr<e::buffer> revkey(e::buffer::create(sz_revkey));
-            bool packed = !(revkey->pack_at(m_comm->header_size()) << version << key).error();
-            assert(packed);
+            revkey->pack_at(m_comm->header_size()) << version << key;
 
             if (m_comm->send(us, us, hyperdex::CHAIN_ACK, revkey))
             {
@@ -1418,8 +1417,7 @@ hyperdaemon :: replication_manager :: send_message(const entityid& us,
         else if (op->subspace_next == us.subspace)
         {
             std::auto_ptr<e::buffer> msg(e::buffer::create(sz_msg));
-            bool packed = !(msg->pack_at(m_comm->header_size()) << version << key << op->value << op->point_next_next).error();
-            assert(packed);
+            msg->pack_at(m_comm->header_size()) << version << key << op->value << op->point_next_next;
             dst = entityid(us.space, us.subspace, 64, op->point_next, 0);
             dst = m_config.sloppy_lookup(dst);
 
@@ -1449,8 +1447,7 @@ hyperdaemon :: replication_manager :: send_message(const entityid& us,
         if (op->subspace_prev == us.subspace)
         {
             std::auto_ptr<e::buffer> msg(e::buffer::create(sz_msg));
-            bool packed = !(msg->pack_at(m_comm->header_size()) << version << key << op->value << op->point_next).error();
-            assert(packed);
+            msg->pack_at(m_comm->header_size()) << version << key << op->value << op->point_next;
             dst = m_config.chain_next(us);
 
             if (m_comm->send(us, dst, hyperdex::CHAIN_SUBSPACE, msg))
@@ -1474,14 +1471,12 @@ hyperdaemon :: replication_manager :: send_message(const entityid& us,
     if (op->has_value)
     {
         uint8_t flags = op->fresh ? 1 : 0;
-        bool packed = !(msg->pack_at(m_comm->header_size()) << version << flags << key << op->value).error();
-        assert(packed);
+        msg->pack_at(m_comm->header_size()) << version << flags << key << op->value;
         type = hyperdex::CHAIN_PUT;
     }
     else
     {
-        bool packed = !(msg->pack_at(m_comm->header_size()) << version << key).error();
-        assert(packed);
+        msg->pack_at(m_comm->header_size()) << version << key;
         type = hyperdex::CHAIN_DEL;
     }
 
@@ -1503,8 +1498,7 @@ hyperdaemon :: replication_manager :: send_ack(const entityid& from,
               + sizeof(uint32_t)
               + key.size();
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    bool packed = !(msg->pack_at(m_comm->header_size()) << version << key).error();
-    assert(packed);
+    msg->pack_at(m_comm->header_size()) << version << key;
     return m_comm->send(from, to, hyperdex::CHAIN_ACK, msg);
 }
 
@@ -1518,8 +1512,7 @@ hyperdaemon :: replication_manager :: respond_to_client(const entityid& us,
     uint16_t result = static_cast<uint16_t>(ret);
     size_t sz = m_comm->header_size() + sizeof(uint64_t) +sizeof(uint16_t);
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    bool packed = !(msg->pack_at(m_comm->header_size()) << nonce << result).error();
-    assert(packed);
+    msg->pack_at(m_comm->header_size()) << nonce << result;
     m_comm->send(us, client, type, msg);
 }
 

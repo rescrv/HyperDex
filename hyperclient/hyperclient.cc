@@ -96,7 +96,6 @@ hyperclient :: get(const char* space, const char* key, size_t key_sz,
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     e::buffer::packer p = msg->pack_at(HYPERCLIENT_HEADER_SIZE);
     p = p << e::slice(key, key_sz);
-    assert(!p.error());
     return add_keyop(space, key, key_sz, msg, op);
 }
 
@@ -166,7 +165,6 @@ hyperclient :: condput(const char* space, const char* key, size_t key_sz,
       return ret - condattrs_sz;
     }
 
-    assert(!p.error());
     return add_keyop(space, key, key_sz, msg, op);
 }
 
@@ -187,7 +185,6 @@ hyperclient :: del(const char* space, const char* key, size_t key_sz,
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     e::buffer::packer p = msg->pack_at(HYPERCLIENT_HEADER_SIZE);
     p = p << e::slice(key, key_sz);
-    assert(!p.error());
     return add_keyop(space, key, key_sz, msg, op);
 }
 
@@ -455,8 +452,7 @@ hyperclient :: search(const char* space,
 
     // Pack the message to send
     std::auto_ptr<e::buffer> msg(e::buffer::create(HYPERCLIENT_HEADER_SIZE + sizeof(uint64_t) + s.packed_size()));
-    bool packed = !(msg->pack_at(HYPERCLIENT_HEADER_SIZE) << searchid << s).error();
-    assert(packed);
+    msg->pack_at(HYPERCLIENT_HEADER_SIZE) << searchid << s;
     std::tr1::shared_ptr<uint64_t> refcount(new uint64_t(0));
 
     for (std::map<hyperdex::entityid, hyperdex::instance>::const_iterator ent_inst = search_entities.begin();
@@ -531,8 +527,7 @@ hyperclient :: sorted_search(const char* space,
               + sizeof(uint8_t);
     int8_t max = maximize ? 1 : 0;
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    bool packed = !(msg->pack_at(HYPERCLIENT_HEADER_SIZE) << s << limit << attrno << max).error();
-    assert(packed);
+    msg->pack_at(HYPERCLIENT_HEADER_SIZE) << s << limit << attrno << max;
     std::auto_ptr<e::buffer>* backings = new std::auto_ptr<e::buffer>[entities.size()];
     e::guard g = e::makeguard(delete_bracket_auto_ptr, backings);
     e::intrusive_ptr<pending_sorted_search::state> state;
@@ -587,8 +582,7 @@ hyperclient :: group_del(const char* space,
 
     // Pack the message to send
     std::auto_ptr<e::buffer> msg(e::buffer::create(HYPERCLIENT_HEADER_SIZE + s.packed_size()));
-    bool packed = !(msg->pack_at(HYPERCLIENT_HEADER_SIZE) << s).error();
-    assert(packed);
+    msg->pack_at(HYPERCLIENT_HEADER_SIZE) << s;
     std::tr1::shared_ptr<uint64_t> refcount(new uint64_t(0));
 
     for (std::map<hyperdex::entityid, hyperdex::instance>::const_iterator ent_inst = entities.begin();
@@ -644,8 +638,7 @@ hyperclient :: count(const char* space,
 
     // Pack the message to send
     std::auto_ptr<e::buffer> msg(e::buffer::create(HYPERCLIENT_HEADER_SIZE + s.packed_size()));
-    bool packed = !(msg->pack_at(HYPERCLIENT_HEADER_SIZE) << s).error();
-    assert(packed);
+    msg->pack_at(HYPERCLIENT_HEADER_SIZE) << s;
     std::tr1::shared_ptr<uint64_t> refcount(new uint64_t(0));
 
     for (std::map<hyperdex::entityid, hyperdex::instance>::const_iterator ent_inst = entities.begin();
@@ -1026,7 +1019,6 @@ hyperclient :: send(e::intrusive_ptr<pending> op,
     const uint64_t nonce = op->server_visible_nonce();
     e::buffer::packer pa = msg->pack_at(BUSYBEE_HEADER_SIZE);
     pa = pa << type << version << fromver << tover << from << to << nonce;
-    assert(!pa.error());
     po6::net::location dest(op->instance().address, op->instance().inbound_port);
 
     switch (m_busybee->send(dest, msg))
@@ -1083,7 +1075,6 @@ hyperclient :: pack_attrs(const char* space, e::buffer::packer* p,
                 << e::slice(attrs[i].value, attrs[i].value_sz);
     }
 
-    assert(!(*p).error());
     return 0;
 }
 
@@ -1195,7 +1186,6 @@ hyperclient :: attributes_to_microops(hyperdatatype (*coerce_datatype)(hyperdata
         p = p << ops[i];
     }
 
-    assert(!p.error());
     return add_keyop(space, key, key_sz, msg, op);
 }
 
@@ -1269,7 +1259,6 @@ hyperclient :: map_attributes_to_microops(hyperdatatype (*coerce_datatype)(hyper
         p = p << ops[i];
     }
 
-    assert(!p.error());
     return add_keyop(space, key, key_sz, msg, op);
 }
 
