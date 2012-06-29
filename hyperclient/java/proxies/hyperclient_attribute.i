@@ -32,18 +32,32 @@
 
   private java.lang.Object getAttrLongValue()
   {
-    return
-      new Long(
-        java.nio.ByteBuffer.wrap(getAttrValueBytes()).order(
+    byte[] bytes = getAttrValueBytes();
+
+    if ( bytes.length == 0 )
+    {
+        return new Long(0L);
+    }
+    else
+    {
+        return new Long( java.nio.ByteBuffer.wrap(bytes).order(
                     java.nio.ByteOrder.LITTLE_ENDIAN).getLong());
+    }
   }
 
   private java.lang.Object getAttrDoubleValue()
   {
-    return
-      new Double(
-        java.nio.ByteBuffer.wrap(getAttrValueBytes()).order(
+    byte[] bytes = getAttrValueBytes();
+
+    if ( bytes.length == 0 )
+    {
+        return new Double(0D);
+    }
+    else
+    {
+        return new Double(java.nio.ByteBuffer.wrap(bytes).order(
                     java.nio.ByteOrder.LITTLE_ENDIAN).getDouble());
+    }
   }
 
   private java.lang.Object getAttrCollectionStringValue(
