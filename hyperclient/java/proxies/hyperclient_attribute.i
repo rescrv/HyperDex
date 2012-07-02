@@ -30,34 +30,43 @@
     return new String(getAttrValueBytes());
   }
 
+  private byte[] zerofill(byte[] inbytes)
+  {
+    byte[] outbytes = new byte[8];
+
+    // Make sure outbytes is initialized to 0
+    for (int i=0; i<8; i++ ) outbytes[i] = 0;
+
+    // Copy little-endingly
+    for (int i=0; i<inbytes.length; i++) outbytes[i] = inbytes[i];
+
+    return outbytes;
+  }
+
   private java.lang.Object getAttrLongValue()
   {
     byte[] bytes = getAttrValueBytes();
 
-    if ( bytes.length == 0 )
+    if ( bytes.length < 8  )
     {
-        return new Long(0L);
+        bytes = zerofill(bytes);
     }
-    else
-    {
-        return new Long( java.nio.ByteBuffer.wrap(bytes).order(
+
+    return new Long( java.nio.ByteBuffer.wrap(bytes).order(
                     java.nio.ByteOrder.LITTLE_ENDIAN).getLong());
-    }
   }
 
   private java.lang.Object getAttrDoubleValue()
   {
     byte[] bytes = getAttrValueBytes();
 
-    if ( bytes.length == 0 )
+    if ( bytes.length < 8 )
     {
-        return new Double(0D);
+        bytes = zerofill(bytes);
     }
-    else
-    {
-        return new Double(java.nio.ByteBuffer.wrap(bytes).order(
+
+    return new Double(java.nio.ByteBuffer.wrap(bytes).order(
                     java.nio.ByteOrder.LITTLE_ENDIAN).getDouble());
-    }
   }
 
   private java.lang.Object getAttrCollectionStringValue(
