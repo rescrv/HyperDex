@@ -307,21 +307,18 @@ hyperdisk_utils_shard_fsck_CPPFLAGS = \
 #################################### Library ###################################
 
 libhyperdex_noinst_headers = \
-			hyperdex/hyperdex/attribute.h \
 			hyperdex/hyperdex/configuration.h \
 			hyperdex/hyperdex/configuration_parser.h \
 			hyperdex/hyperdex/coordinatorlink.h \
 			hyperdex/hyperdex/ids.h \
 			hyperdex/hyperdex/instance.h \
-			hyperdex/hyperdex/microop.h \
 			hyperdex/hyperdex/network_constants.h \
 			hyperdex/hyperdex/packing.h
 
 libhyperdex_sources = \
 			hyperdex/configuration.cc \
 			hyperdex/configuration_parser.cc \
-			hyperdex/coordinatorlink.cc \
-			hyperdex/microop.cc
+			hyperdex/coordinatorlink.cc
 
 ################################################################################
 ################################## HyperDaemon #################################
@@ -335,8 +332,6 @@ hyperdex_daemon_SOURCES = \
 			hyperdaemon/daemon.cc \
 			hyperdaemon/datalayer.h \
 			hyperdaemon/datalayer.cc \
-			hyperdaemon/datatypes.h \
-			hyperdaemon/datatypes.cc \
 			hyperdaemon/logical.h \
 			hyperdaemon/logical.cc \
 			hyperdaemon/network_worker.h \
@@ -354,6 +349,20 @@ hyperdex_daemon_SOURCES = \
 			hyperdaemon/runtimeconfig.cc \
 			hyperdaemon/searches.h \
 			hyperdaemon/searches.cc \
+			datatypes/apply.cc \
+			datatypes/attribute.cc \
+			datatypes/compare.cc \
+			datatypes/float.cc \
+			datatypes/int64.cc \
+			datatypes/list.cc \
+			datatypes/map.cc \
+			datatypes/microop.cc \
+			datatypes/schema.cc \
+			datatypes/set.cc \
+			datatypes/step.cc \
+			datatypes/string.cc \
+			datatypes/validate.cc \
+			datatypes/write.cc \
 			${libhyperdex_sources}
 hyperdex_daemon_LDADD = \
 			libhyperdisk.la \
@@ -363,6 +372,7 @@ hyperdex_daemon_LDADD = \
 			-lbusybee-mta \
 			$(COVERAGE_LDADD) \
 			-lcityhash -lpopt -lglog -lrt -lpthread
+hyperdex_daemon_LDFLAGS = -no-install
 hyperdex_daemon_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
 			-I$(abs_top_srcdir)/hyperdisk \
@@ -396,6 +406,20 @@ libhyperclient_noinst_headers = \
 			hyperclient/util.h
 
 libhyperclient_la_SOURCES = \
+			datatypes/attribute.cc \
+			datatypes/coercion.cc \
+			datatypes/compare.cc \
+			datatypes/float.cc \
+			datatypes/int64.cc \
+			datatypes/list.cc \
+			datatypes/map.cc \
+			datatypes/microop.cc \
+			datatypes/schema.cc \
+			datatypes/set.cc \
+			datatypes/step.cc \
+			datatypes/string.cc \
+			datatypes/validate.cc \
+			datatypes/write.cc \
 			hyperclient/hyperclient.cc \
 			hyperclient/hyperclient_c_wrappers.cc \
 			hyperclient/hyperclient_pending.cc \

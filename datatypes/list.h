@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2012, Cornell University
+// Copyright (c) 2012, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,36 +25,39 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperclient_util_h_
-#define hyperclient_util_h_
+#ifndef datatypes_list_h_
+#define datatypes_list_h_
+
+// e
+#include <e/slice.h>
 
 // HyperDex
-#include "hyperdex/hyperdex/configuration.h"
-#include "hyperdex/hyperdex/ids.h"
+#include "hyperdex.h"
+#include "datatypes/microop.h"
+#include "datatypes/microerror.h"
 
-// HyperClient
-#include "hyperclient/hyperclient.h"
-
-int64_t
-pack_attributes(schema* sc, size_t pack_at,
-                const hyperclient_attribute* condattrs, size_t condattrs_sz,
-                const hyperclient_attribute* attrs, size_t attrs_sz,
-                hyperclient_returncode* status,
-                std::auto_ptr<e::buffer>* msg);
-
-// XXX see about deprecating below here once things settle in client.
-
-// Convert the key and value vector returned by entity to an array of
-// hyperclient_attribute using the given configuration.
 bool
-value_to_attributes(const hyperdex::configuration& config,
-                    const hyperdex::entityid& entity,
-                    const uint8_t* key,
-                    size_t key_sz,
-                    const std::vector<e::slice>& value,
-                    hyperclient_returncode* loop_status,
-                    hyperclient_returncode* op_status,
-                    hyperclient_attribute** attrs,
-                    size_t* attrs_sz);
+validate_as_list_string(const e::slice& value);
 
-#endif // hyperclient_util_h_
+bool
+validate_as_list_int64(const e::slice& value);
+
+bool
+validate_as_list_float(const e::slice& value);
+
+uint8_t*
+apply_list_string(const e::slice& old_value,
+                  const microop* ops, size_t num_ops,
+                  uint8_t* writeto, microerror* error);
+
+uint8_t*
+apply_list_int64(const e::slice& old_value,
+                 const microop* ops, size_t num_ops,
+                 uint8_t* writeto, microerror* error);
+
+uint8_t*
+apply_list_float(const e::slice& old_value,
+                 const microop* ops, size_t num_ops,
+                 uint8_t* writeto, microerror* error);
+
+#endif // datatypes_list_h_

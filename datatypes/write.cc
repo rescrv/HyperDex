@@ -25,68 +25,33 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_microop_h_
-#define hyperdex_microop_h_
-
 // e
-#include <e/buffer.h>
-#include <e/slice.h>
+#include <e/endian.h>
 
 // HyperDex
-#include "hyperdex.h"
+#include "datatypes/write.h"
 
-namespace hyperdex
+uint8_t*
+write_string(uint8_t* writeto,
+             const e::slice& elem)
 {
+    writeto = e::pack32le(elem.size(), writeto);
+    memmove(writeto, elem.data(), elem.size());
+    return writeto + elem.size();
+}
 
-enum microop_type
+uint8_t*
+write_int64(uint8_t* writeto,
+            const e::slice& elem)
 {
-    OP_FAIL,
+    memmove(writeto, elem.data(), elem.size());
+    return writeto + elem.size();
+}
 
-    OP_SET,
-
-    OP_STRING_APPEND,
-    OP_STRING_PREPEND,
-
-    OP_NUM_ADD,
-    OP_NUM_SUB,
-    OP_NUM_MUL,
-    OP_NUM_DIV,
-    OP_NUM_MOD,
-    OP_NUM_AND,
-    OP_NUM_OR,
-    OP_NUM_XOR,
-
-    OP_LIST_LPUSH,
-    OP_LIST_RPUSH,
-
-    OP_SET_ADD,
-    OP_SET_REMOVE,
-    OP_SET_INTERSECT,
-    OP_SET_UNION,
-
-    OP_MAP_ADD,
-    OP_MAP_REMOVE
-};
-
-class microop
+uint8_t*
+write_float(uint8_t* writeto,
+            const e::slice& elem)
 {
-    public:
-        microop();
-
-    public:
-        uint16_t attr;
-        hyperdatatype type;
-        microop_type action;
-        e::slice arg1;
-        e::slice arg2;
-};
-
-e::buffer::packer
-operator << (e::buffer::packer lhs, const microop& rhs);
-
-e::buffer::unpacker
-operator >> (e::buffer::unpacker lhs, microop& rhs);
-
-} // namespace hyperdex
-
-#endif // hyperdex_microop_h_
+    memmove(writeto, elem.data(), elem.size());
+    return writeto + elem.size();
+}

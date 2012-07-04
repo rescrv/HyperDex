@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2012, Cornell University
+// Copyright (c) 2012, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,36 +25,27 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperclient_util_h_
-#define hyperclient_util_h_
+#ifndef datatypes_schema_h_
+#define datatypes_schema_h_
+
+// C
+#include <stdint.h>
 
 // HyperDex
-#include "hyperdex/hyperdex/configuration.h"
-#include "hyperdex/hyperdex/ids.h"
+#include "hyperdex.h"
+#include "datatypes/attribute.h"
 
-// HyperClient
-#include "hyperclient/hyperclient.h"
+class schema
+{
+    public:
+        schema();
 
-int64_t
-pack_attributes(schema* sc, size_t pack_at,
-                const hyperclient_attribute* condattrs, size_t condattrs_sz,
-                const hyperclient_attribute* attrs, size_t attrs_sz,
-                hyperclient_returncode* status,
-                std::auto_ptr<e::buffer>* msg);
+    public:
+        uint16_t lookup_attr(const char* name);
 
-// XXX see about deprecating below here once things settle in client.
+    public:
+        uint16_t attrs_sz;
+        const attribute* attrs;
+};
 
-// Convert the key and value vector returned by entity to an array of
-// hyperclient_attribute using the given configuration.
-bool
-value_to_attributes(const hyperdex::configuration& config,
-                    const hyperdex::entityid& entity,
-                    const uint8_t* key,
-                    size_t key_sz,
-                    const std::vector<e::slice>& value,
-                    hyperclient_returncode* loop_status,
-                    hyperclient_returncode* op_status,
-                    hyperclient_attribute** attrs,
-                    size_t* attrs_sz);
-
-#endif // hyperclient_util_h_
+#endif // datatypes_schema_h_

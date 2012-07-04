@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2012, Cornell University
+// Copyright (c) 2012, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,36 +25,54 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperclient_util_h_
-#define hyperclient_util_h_
+#define __STDC_LIMIT_MACROS
 
 // HyperDex
-#include "hyperdex/hyperdex/configuration.h"
-#include "hyperdex/hyperdex/ids.h"
+#include "datatypes/microop.h"
 
-// HyperClient
-#include "hyperclient/hyperclient.h"
+microop :: microop()
+    : attr(UINT16_MAX)
+    , action()
+    , arg1()
+    , arg1_datatype()
+    , arg2()
+    , arg2_datatype()
+{
+}
 
-int64_t
-pack_attributes(schema* sc, size_t pack_at,
-                const hyperclient_attribute* condattrs, size_t condattrs_sz,
-                const hyperclient_attribute* attrs, size_t attrs_sz,
-                hyperclient_returncode* status,
-                std::auto_ptr<e::buffer>* msg);
+microop :: ~microop() throw ()
+{
+}
 
-// XXX see about deprecating below here once things settle in client.
-
-// Convert the key and value vector returned by entity to an array of
-// hyperclient_attribute using the given configuration.
 bool
-value_to_attributes(const hyperdex::configuration& config,
-                    const hyperdex::entityid& entity,
-                    const uint8_t* key,
-                    size_t key_sz,
-                    const std::vector<e::slice>& value,
-                    hyperclient_returncode* loop_status,
-                    hyperclient_returncode* op_status,
-                    hyperclient_attribute** attrs,
-                    size_t* attrs_sz);
+operator < (const microop& lhs, const microop& rhs)
+{
+    return lhs.attr < rhs.attr;
+}
 
-#endif // hyperclient_util_h_
+e::buffer::packer
+operator << (e::buffer::packer lhs, const microop& rhs)
+{
+    uint8_t action = static_cast<uint8_t>(rhs.action);
+    uint16_t arg1_datatype = static_cast<uint16_t>(rhs.arg1_datatype);
+    uint16_t arg2_datatype = static_cast<uint16_t>(rhs.arg2_datatype);
+    lhs = lhs << rhs.attr << action
+              << rhs.arg1 << arg1_datatype
+              << rhs.arg2 << arg2_datatype;
+    return lhs;
+}
+
+e::buffer::unpacker
+operator >> (e::buffer::unpacker lhs, microop& rhs)
+{
+    uint8_t action;
+    uint16_t arg1_datatype;
+    uint16_t arg2_datatype;
+    lhs = lhs >> rhs.attr >> action
+              >> rhs.arg1 >> arg1_datatype
+              >> rhs.arg2 >> arg2_datatype;
+    rhs.action = static_cast<microaction>(action);
+    rhs.arg1_datatype = static_cast<hyperdatatype>(arg1_datatype);
+    rhs.arg2_datatype = static_cast<hyperdatatype>(arg2_datatype);
+    return lhs;
+}

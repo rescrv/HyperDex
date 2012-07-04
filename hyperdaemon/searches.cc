@@ -158,7 +158,10 @@ hyperdaemon :: searches :: start(const hyperdex::entityid& us,
         return;
     }
 
-    if (m_config.dimensions(us.get_space()) != terms.size())
+    schema* sc = m_config.get_schema(us.get_space());
+    assert(sc);
+
+    if (sc->attrs_sz != terms.size())
     {
         LOG(INFO) << "DROPPED";
         return;
@@ -236,7 +239,10 @@ hyperdaemon :: searches :: group_keyop(const hyperdex::entityid& us,
                                        enum hyperdex::network_msgtype reqtype,
                                        const e::slice& remain)
 {
-    if (m_config.dimensions(us.get_space()) != terms.size())
+    schema* sc = m_config.get_schema(us.get_space());
+    assert(sc);
+
+    if (sc->attrs_sz != terms.size())
     {
         size_t sz = m_comm->header_size() + sizeof(uint64_t) + sizeof(uint16_t);
         std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
@@ -300,7 +306,10 @@ hyperdaemon :: searches :: count(const hyperdex::entityid& us,
                                  uint64_t nonce,
                                  const hyperspacehashing::search& terms)
 {
-    if (m_config.dimensions(us.get_space()) != terms.size())
+    schema* sc = m_config.get_schema(us.get_space());
+    assert(sc);
+
+    if (sc->attrs_sz != terms.size())
     {
         size_t sz = m_comm->header_size() + sizeof(uint64_t) + sizeof(uint16_t);
         std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
@@ -416,10 +425,11 @@ hyperdaemon :: searches :: sorted_search(const hyperdex::entityid& us,
                                          uint16_t sort_by,
                                          bool maximize)
 {
-    std::vector<hyperdex::attribute> dims = m_config.dimension_names(us.get_space());
+    schema* sc = m_config.get_schema(us.get_space());
+    assert(sc);
 
-    if (dims.size() != terms.size() || sort_by >= dims.size() ||
-        (dims[sort_by].type != HYPERDATATYPE_STRING && dims[sort_by].type != HYPERDATATYPE_INT64))
+    if (sc->attrs_sz != terms.size() || sort_by >= sc->attrs_sz ||
+        (sc->attrs[sort_by].type != HYPERDATATYPE_STRING && sc->attrs[sort_by].type != HYPERDATATYPE_INT64))
     {
         size_t sz = m_comm->header_size() + sizeof(uint64_t) + sizeof(uint16_t);
         std::auto_ptr<e::buffer> errmsg(e::buffer::create(sz));
@@ -433,7 +443,7 @@ hyperdaemon :: searches :: sorted_search(const hyperdex::entityid& us,
 
     bool (*cmp)(const sorted_search_item& lhs, const sorted_search_item& rhs);
 
-    if (dims[sort_by].type == HYPERDATATYPE_STRING)
+    if (sc->attrs[sort_by].type == HYPERDATATYPE_STRING)
     {
         if (maximize)
         {
@@ -444,7 +454,7 @@ hyperdaemon :: searches :: sorted_search(const hyperdex::entityid& us,
             cmp = sorted_search_lt_string;
         }
     }
-    else if (dims[sort_by].type == HYPERDATATYPE_INT64)
+    else if (sc->attrs[sort_by].type == HYPERDATATYPE_INT64)
     {
         if (maximize)
         {

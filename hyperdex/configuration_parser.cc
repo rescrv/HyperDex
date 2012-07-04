@@ -31,7 +31,13 @@
 #include "hyperdex/hyperdex/configuration_parser.h"
 
 hyperdex :: configuration_parser :: configuration_parser()
-    : m_config_text("")
+    : m_config(NULL)
+    , m_config_sz(0)
+    , m_attributes(NULL)
+    , m_attributes_sz(0)
+    , m_schemas(NULL)
+    , m_schemas_sz(0)
+    , m_config_text("")
     , m_version(0)
     , m_hosts()
     , m_space_assignment()
@@ -46,6 +52,7 @@ hyperdex :: configuration_parser :: configuration_parser()
     , m_quiesce_state_id("")
     , m_shutdown(false)
 {
+    reset();
 }
 
 hyperdex :: configuration_parser :: ~configuration_parser() throw ()
@@ -55,6 +62,41 @@ hyperdex :: configuration_parser :: ~configuration_parser() throw ()
 hyperdex::configuration
 hyperdex :: configuration_parser :: generate()
 {
+    std::vector<std::pair<spaceid, schema*> > space_ids_to_schemas;
+
+    // Create the "schema" objects that are needed for the attributes.
+    size_t attrs_sz = 0;
+
+    for (std::map<spaceid, std::vector<attribute> >::const_iterator ci = m_spaces.begin();
+            ci != m_spaces.end(); ++ci)
+    {
+        attrs_sz += ci->second.size();
+    }
+
+    space_ids_to_schemas.resize(m_spaces.size());
+    e::array_ptr<schema> schemas(new schema[m_spaces.size()]);
+    size_t schemas_sz(m_spaces.size());
+    e::array_ptr<attribute> attrs(new attribute[attrs_sz]);
+    size_t schema_idx = 0;
+    size_t attr_idx = 0;
+
+    for (std::map<spaceid, std::vector<attribute> >::const_iterator ci = m_spaces.begin();
+            ci != m_spaces.end(); ++ci)
+    {
+        space_ids_to_schemas[schema_idx].first = ci->first;
+        space_ids_to_schemas[schema_idx].second = &schemas[schema_idx];
+        schemas[schema_idx].attrs_sz = ci->second.size();
+        schemas[schema_idx].attrs = &attrs[attr_idx];
+        ++schema_idx;
+
+        for (size_t i = 0; i < ci->second.size(); ++i)
+        {
+            attrs[attr_idx] = ci->second[i];
+            ++attr_idx;
+        }
+    }
+
+    // Do the rest of the generation
     std::vector<instance> hosts;
     hosts.reserve(m_hosts.size());
 
@@ -89,9 +131,11 @@ hyperdex :: configuration_parser :: generate()
         disk_hashers.insert(std::make_pair(di->first, h));
     }
 
-    return configuration(m_config_text, m_version, hosts, m_space_assignment, m_spaces, space_sizes,
-                         m_entities, repl_hashers, disk_hashers, m_transfers,
-                         m_quiesce, m_quiesce_state_id, m_shutdown);
+    return configuration(m_config, m_config_text.size() + 1, schemas, schemas_sz,
+                         attrs, attrs_sz, space_ids_to_schemas,
+                         m_config_text, m_version, hosts, m_space_assignment,
+                         space_sizes, m_entities, repl_hashers, disk_hashers,
+                         m_transfers, m_quiesce, m_quiesce_state_id, m_shutdown);
 }
 
 #define _CONCAT(x,y) x ## y
@@ -108,12 +152,12 @@ hyperdex :: configuration_parser :: generate()
 hyperdex::configuration_parser::error
 hyperdex :: configuration_parser :: parse(const std::string& config)
 {
-    *this = configuration_parser();
+    reset();
     m_config_text = config;
-    std::vector<char> v;
-    v.resize(config.size() + 1);
-    memmove(&v.front(), config.c_str(), config.size() + 1);
-    char* start = &v.front();
+    m_config_sz = config.size() + 1;
+    m_config = new char[m_config_sz];
+    memmove(m_config.get(), config.c_str(), m_config_sz);
+    char* start = m_config.get();
     char* eol = strchr(start, '\n');
 
     while (eol)
@@ -156,6 +200,7 @@ hyperdex :: configuration_parser :: parse(const std::string& config)
             return CP_UNKNOWN_CMD;
         }
 
+        *eol = '\0';
         start = eol + 1;
         eol = strchr(start, '\n');
     }
@@ -168,10 +213,37 @@ hyperdex :: configuration_parser :: parse(const std::string& config)
     return CP_SUCCESS;
 }
 
-#define SKIP_WHITESPACE(start, eol) \
-    while (start < eol && isspace(*start)) ++start
-#define SKIP_TO_WHITESPACE(start, eol) \
-    while (start < eol && !isspace(*start)) ++start
+void
+hyperdex :: configuration_parser :: reset()
+{
+    m_config = NULL;
+    m_config_text = std::string();
+    m_version = 0;
+    m_hosts.clear();
+    m_space_assignment.clear();
+    m_spaces.clear();
+    m_subspaces.clear();
+    m_repl_attrs.clear();
+    m_disk_attrs.clear();
+    m_regions.clear();
+    m_entities.clear();
+    m_transfers.clear();
+    m_quiesce = false;
+    m_quiesce_state_id = std::string();
+    m_shutdown = false;
+}
+
+#define SKIP_WHITESPACE(ptr, eol) \
+    while (ptr < eol && isspace(*ptr)) ++ptr
+#define SKIP_TO_WHITESPACE(ptr, eol) \
+    while (ptr < eol && !isspace(*ptr)) ++ptr
+
+#define PARSE_TOKEN(extract, store) \
+    SKIP_WHITESPACE(start, eol); \
+    end = start; \
+    SKIP_TO_WHITESPACE(end, eol); \
+    *end = '\0'; \
+    ABORT_ON_ERROR(extract(start, end, &store))
 
 hyperdex::configuration_parser::error
 hyperdex :: configuration_parser :: parse_version(char* start,
@@ -184,11 +256,7 @@ hyperdex :: configuration_parser :: parse_version(char* start,
     start += 8;
 
     // Pull out the version number
-    SKIP_WHITESPACE(start, eol);
-    end = start;
-    SKIP_TO_WHITESPACE(end, eol);
-    *end = '\0';
-    ABORT_ON_ERROR(extract_uint64_t(start, end, &version));
+    PARSE_TOKEN(extract_uint64_t, version);
     start = end + 1;
 
     if (end != eol)
@@ -221,51 +289,22 @@ hyperdex :: configuration_parser :: parse_host(char* start,
     start += 5;
 
     // Pull out the host's numeric id
-    SKIP_WHITESPACE(start, eol);
-    end = start;
-    SKIP_TO_WHITESPACE(end, eol);
-    *end = '\0';
-    ABORT_ON_ERROR(extract_uint64_t(start, end, &id));
+    PARSE_TOKEN(extract_uint64_t, id);
     start = end + 1;
-
     // Pull out the ip address
-    SKIP_WHITESPACE(start, eol);
-    end = start;
-    SKIP_TO_WHITESPACE(end, eol);
-    *end = '\0';
-    ABORT_ON_ERROR(extract_ip(start, end, &ip));
+    PARSE_TOKEN(extract_ip, ip);
     start = end + 1;
-
     // Pull out the incoming port number
-    SKIP_WHITESPACE(start, eol);
-    end = start;
-    SKIP_TO_WHITESPACE(end, eol);
-    *end = '\0';
-    ABORT_ON_ERROR(extract_uint16_t(start, end, &iport));
+    PARSE_TOKEN(extract_uint16_t, iport);
     start = end + 1;
-
     // Pull out the incoming epoch id
-    SKIP_WHITESPACE(start, eol);
-    end = start;
-    SKIP_TO_WHITESPACE(end, eol);
-    *end = '\0';
-    ABORT_ON_ERROR(extract_uint16_t(start, end, &iver));
+    PARSE_TOKEN(extract_uint16_t, iver);
     start = end + 1;
-
     // Pull out the outgoing port number
-    SKIP_WHITESPACE(start, eol);
-    end = start;
-    SKIP_TO_WHITESPACE(end, eol);
-    *end = '\0';
-    ABORT_ON_ERROR(extract_uint16_t(start, end, &oport));
+    PARSE_TOKEN(extract_uint16_t, oport);
     start = end + 1;
-
     // Pull out the outgoing epoch id
-    SKIP_WHITESPACE(start, eol);
-    end = start;
-    SKIP_TO_WHITESPACE(end, eol);
-    *end = '\0';
-    ABORT_ON_ERROR(extract_uint16_t(start, end, &over));
+    PARSE_TOKEN(extract_uint16_t, over);
 
     if (end != eol)
     {
@@ -286,7 +325,7 @@ hyperdex :: configuration_parser :: parse_space(char* start,
                                                 char* const eol)
 {
     char* end;
-    std::string name;
+    char* name;
     uint32_t id;
     std::vector<attribute> attributes;
 
@@ -294,49 +333,34 @@ hyperdex :: configuration_parser :: parse_space(char* start,
     start += 6;
 
     // Pull out the space's name
-    SKIP_WHITESPACE(start, eol);
-    end = start;
-    SKIP_TO_WHITESPACE(end, eol);
-    *end = '\0';
-    name = std::string(start, end);
+    PARSE_TOKEN(extract_cstring, name);
+    name = start;
     start = end + 1;
-
     // Pull out the spaces's numeric id
-    SKIP_WHITESPACE(start, eol);
-    end = start;
-    SKIP_TO_WHITESPACE(end, eol);
-    *end = '\0';
-    ABORT_ON_ERROR(extract_uint32_t(start, end, &id));
+    PARSE_TOKEN(extract_uint32_t, id);
     start = end + 1;
 
     while (start < eol)
     {
+        char* attr;
         hyperdatatype t;
 
-        SKIP_WHITESPACE(start, eol);
-        end = start;
-        SKIP_TO_WHITESPACE(end, eol);
-        *end = '\0';
-        std::string dim(start, end);
+        PARSE_TOKEN(extract_cstring, attr);
         start = end + 1;
 
-        SKIP_WHITESPACE(start, eol);
-        end = start;
-        SKIP_TO_WHITESPACE(end, eol);
-        *end = '\0';
-        ABORT_ON_ERROR(extract_datatype(start, end, &t));
+        PARSE_TOKEN(extract_datatype, t);
         start = end + 1;
 
         for (std::vector<attribute>::const_iterator a = attributes.begin();
                 a != attributes.end(); ++a)
         {
-            if (a->name == dim)
+            if (strcmp(a->name, attr) == 0)
             {
                 return CP_DUPE_ATTR;
             }
         }
 
-        attributes.push_back(attribute(dim, t));
+        attributes.push_back(attribute(attr, t));
     }
 
     if (end != eol)
@@ -345,7 +369,7 @@ hyperdex :: configuration_parser :: parse_space(char* start,
     }
 
     if (m_space_assignment.find(name) != m_space_assignment.end() ||
-            m_spaces.find(spaceid(id)) != m_spaces.end())
+        m_spaces.find(spaceid(id)) != m_spaces.end())
     {
         return CP_DUPE_SPACE;
     }
@@ -368,19 +392,11 @@ hyperdex :: configuration_parser :: parse_subspace(char* start,
     start += 9;
 
     // Pull out the space id
-    SKIP_WHITESPACE(start, eol);
-    end = start;
-    SKIP_TO_WHITESPACE(end, eol);
-    *end = '\0';
-    ABORT_ON_ERROR(extract_uint32_t(start, end, &space));
+    PARSE_TOKEN(extract_uint32_t, space);
     start = end + 1;
 
     // Pull out the subspace id
-    SKIP_WHITESPACE(start, eol);
-    end = start;
-    SKIP_TO_WHITESPACE(end, eol);
-    *end = '\0';
-    ABORT_ON_ERROR(extract_uint16_t(start, end, &subspace));
+    PARSE_TOKEN(extract_uint16_t, subspace);
     start = end + 1;
 
     std::map<spaceid, std::vector<attribute> >::const_iterator si;
@@ -398,18 +414,10 @@ hyperdex :: configuration_parser :: parse_subspace(char* start,
         bool repl;
         bool disk;
 
-        SKIP_WHITESPACE(start, eol);
-        end = start;
-        SKIP_TO_WHITESPACE(end, eol);
-        *end = '\0';
-        ABORT_ON_ERROR(extract_bool(start, end, &repl));
+        PARSE_TOKEN(extract_bool, repl);
         start = end + 1;
 
-        SKIP_WHITESPACE(start, eol);
-        end = start;
-        SKIP_TO_WHITESPACE(end, eol);
-        *end = '\0';
-        ABORT_ON_ERROR(extract_bool(start, end, &disk));
+        PARSE_TOKEN(extract_bool, disk);
         start = end + 1;
 
         if (subspace == 0 && i > 0 && repl)
@@ -448,6 +456,7 @@ hyperdex :: configuration_parser :: parse_subspace(char* start,
                 case HYPERDATATYPE_MAP_FLOAT_INT64:
                 case HYPERDATATYPE_MAP_FLOAT_FLOAT:
                     return CP_ATTR_NOT_SEARCHABLE;
+                case HYPERDATATYPE_GENERIC:
                 case HYPERDATATYPE_LIST_GENERIC:
                 case HYPERDATATYPE_SET_GENERIC:
                 case HYPERDATATYPE_MAP_GENERIC:
@@ -500,35 +509,19 @@ hyperdex :: configuration_parser :: parse_region(char* start,
     start += 7;
 
     // Pull out the space id
-    SKIP_WHITESPACE(start, eol);
-    end = start;
-    SKIP_TO_WHITESPACE(end, eol);
-    *end = '\0';
-    ABORT_ON_ERROR(extract_uint32_t(start, end, &space));
+    PARSE_TOKEN(extract_uint32_t, space);
     start = end + 1;
 
     // Pull out the subspace id
-    SKIP_WHITESPACE(start, eol);
-    end = start;
-    SKIP_TO_WHITESPACE(end, eol);
-    *end = '\0';
-    ABORT_ON_ERROR(extract_uint16_t(start, end, &subspace));
+    PARSE_TOKEN(extract_uint16_t, subspace);
     start = end + 1;
 
     // Pull out the prefix
-    SKIP_WHITESPACE(start, eol);
-    end = start;
-    SKIP_TO_WHITESPACE(end, eol);
-    *end = '\0';
-    ABORT_ON_ERROR(extract_uint8_t(start, end, &prefix));
+    PARSE_TOKEN(extract_uint8_t, prefix);
     start = end + 1;
 
     // Pull out the mask
-    SKIP_WHITESPACE(start, eol);
-    end = start;
-    SKIP_TO_WHITESPACE(end, eol);
-    *end = '\0';
-    ABORT_ON_ERROR(extract_uint64_t(start, end, &mask));
+    PARSE_TOKEN(extract_uint64_t, mask);
     start = end + 1;
 
     if (m_subspaces.find(subspaceid(space, subspace)) == m_subspaces.end())
@@ -547,11 +540,7 @@ hyperdex :: configuration_parser :: parse_region(char* start,
     while (start < eol)
     {
         uint64_t id;
-        SKIP_WHITESPACE(start, eol);
-        end = start;
-        SKIP_TO_WHITESPACE(end, eol);
-        *end = '\0';
-        ABORT_ON_ERROR(extract_uint64_t(start, end, &id));
+        PARSE_TOKEN(extract_uint64_t, id);
         start = end + 1;
 
         if (m_entities.find(entityid(space, subspace, prefix, mask, number)) !=
@@ -596,51 +585,22 @@ hyperdex :: configuration_parser :: parse_transfer(char* start,
     start += 9;
 
     // Pull out the transfer id
-    SKIP_WHITESPACE(start, eol);
-    end = start;
-    SKIP_TO_WHITESPACE(end, eol);
-    *end = '\0';
-    ABORT_ON_ERROR(extract_uint16_t(start, end, &xfer_id));
+    PARSE_TOKEN(extract_uint16_t, xfer_id);
     start = end + 1;
-
     // Pull out the space id
-    SKIP_WHITESPACE(start, eol);
-    end = start;
-    SKIP_TO_WHITESPACE(end, eol);
-    *end = '\0';
-    ABORT_ON_ERROR(extract_uint32_t(start, end, &space));
+    PARSE_TOKEN(extract_uint32_t, space);
     start = end + 1;
-
     // Pull out the subspace id
-    SKIP_WHITESPACE(start, eol);
-    end = start;
-    SKIP_TO_WHITESPACE(end, eol);
-    *end = '\0';
-    ABORT_ON_ERROR(extract_uint16_t(start, end, &subspace));
+    PARSE_TOKEN(extract_uint16_t, subspace);
     start = end + 1;
-
     // Pull out the prefix
-    SKIP_WHITESPACE(start, eol);
-    end = start;
-    SKIP_TO_WHITESPACE(end, eol);
-    *end = '\0';
-    ABORT_ON_ERROR(extract_uint8_t(start, end, &prefix));
+    PARSE_TOKEN(extract_uint8_t, prefix);
     start = end + 1;
-
     // Pull out the mask
-    SKIP_WHITESPACE(start, eol);
-    end = start;
-    SKIP_TO_WHITESPACE(end, eol);
-    *end = '\0';
-    ABORT_ON_ERROR(extract_uint64_t(start, end, &mask));
+    PARSE_TOKEN(extract_uint64_t, mask);
     start = end + 1;
-
     // Pull out the host's numeric id
-    SKIP_WHITESPACE(start, eol);
-    end = start;
-    SKIP_TO_WHITESPACE(end, eol);
-    *end = '\0';
-    ABORT_ON_ERROR(extract_uint64_t(start, end, &host_id));
+    PARSE_TOKEN(extract_uint64_t, host_id);
     start = end + 1;
 
     regionid reg(space, subspace, prefix, mask);
@@ -701,17 +661,13 @@ hyperdex :: configuration_parser :: parse_quiesce(char* start,
                                                   char* const eol)
 {
     char* end;
-    std::string quiesce_state_id;
+    char* quiesce_state_id;
 
     // Skip "quiesce "
     start += 8;
 
     // Pull out the quiesce state id
-    SKIP_WHITESPACE(start, eol);
-    end = start;
-    SKIP_TO_WHITESPACE(end, eol);
-    *end = '\0';
-    quiesce_state_id = std::string(start, end);
+    PARSE_TOKEN(extract_cstring, quiesce_state_id);
     start = end + 1;
 
     if (end != eol)
@@ -914,6 +870,15 @@ hyperdex :: configuration_parser :: extract_ip(char* start,
 }
 
 hyperdex::configuration_parser::error
+hyperdex :: configuration_parser :: extract_cstring(char* start,
+                                                    char*,
+                                                    char** ptr)
+{
+    *ptr = start;
+    return CP_SUCCESS;
+}
+
+hyperdex::configuration_parser::error
 hyperdex :: configuration_parser :: extract_uint64_t(char* start,
                                                      char* end,
                                                      uint64_t* num)
@@ -1035,6 +1000,7 @@ hyperdex :: configuration_parser :: attrs_to_hashfuncs(const subspaceid& ssi,
                 case HYPERDATATYPE_FLOAT:
                     hfuncs.push_back(hyperspacehashing::EQUALITY);
                     break;
+                case HYPERDATATYPE_GENERIC:
                 case HYPERDATATYPE_LIST_GENERIC:
                 case HYPERDATATYPE_LIST_STRING:
                 case HYPERDATATYPE_LIST_INT64:

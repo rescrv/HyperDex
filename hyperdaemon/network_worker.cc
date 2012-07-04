@@ -40,11 +40,9 @@
 #include "hyperdisk/hyperdisk/reference.h"
 
 // HyperDex
-#include "hyperdex/hyperdex/microop.h"
+#include "datatypes/microop.h"
 #include "hyperdex/hyperdex/network_constants.h"
 #include "hyperdex/hyperdex/packing.h"
-
-// HyperDaemon
 #include "hyperdaemon/datalayer.h"
 #include "hyperdaemon/logical.h"
 #include "hyperdaemon/network_worker.h"
@@ -231,13 +229,13 @@ hyperdaemon :: network_worker :: run()
         {
             uint32_t num_microops;
             e::slice key;
-            std::vector<hyperdex::microop> microops;
+            std::vector<microop> microops;
             up = up >> nonce >> key >> num_microops;
             microops.reserve(num_microops);
 
             for (uint32_t i = 0; i < num_microops; ++i)
             {
-                hyperdex::microop o;
+                microop o;
                 up = up >> o;
                 microops.push_back(o);
             }
