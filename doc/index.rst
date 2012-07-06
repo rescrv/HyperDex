@@ -25,6 +25,8 @@ Welcome to the HyperDex Reference Manual
    man/hyperdex-replication-stress-test
    man/hyperdex-simple-consistency-stress-test
 
+   glossary
+
 Indices and tables
 ==================
 
