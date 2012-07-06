@@ -39,8 +39,8 @@ efficient key-based operation; however, HyperDex goes far beyond the simple
 interface of most key-value stores and enables the user to select a different
 datatype for each object attribute.
 
-Datatypes
-~~~~~~~~~
+Rich Datatypes for Rich Applications
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 HyperDex offers a wide range of useful datatypes.  There are two classes of
 datatypes in HyperDex:  primitive and complex datatypes.  Primitive datatypes
@@ -55,25 +55,70 @@ Primitive datatypes:
    These numbers are stored in Little Endian format.
 
 Complex datatypes:
- * ``list(T)``:  A list with elements of type ``T``.
- * ``set(T)``:  A set of elements of type ``T``.
- * ``map(K, V)``:  An associative map from elements of type ``K`` to type ``V``.
+ * ``list(T)``:  A list with elements of type ``T``, where ``T`` is any
+   primitive type.
+ * ``set(T)``:  A set of elements of type ``T``, where ``T`` is any primitive
+   type.
+ * ``map(K, V)``:  An associative map from elements of type ``K`` to type ``V``
+   where ``K`` and ``V`` are primitive types.
 
-Spaces
-------
+Every attribute of an object has a distinct type, making it easy to build and
+maintain complex objects within HyperDex.
 
-HyperDex enables distinct groups of objects through the *space* abstraction.  A
-space holds zero or more objects and specifies all attributes and their
-respective types for the objects within the space.  All objects within the space
-conform to the space's schema.  This representation conveniently resembles the
-table abstraction available in existing databases.
+Organizing Data in Spaces
+-------------------------
 
-XXX
+HyperDex enables distinct groups of objects through the :term:`space`
+abstraction.  A space holds zero or more objects and specifies all attributes
+and their respective types for the objects within the space.  All objects within
+the space conform to the space's schema.  This representation conveniently
+resembles the table abstraction available in existing databases.
 
-Subspaces
-~~~~~~~~~
+Although the external representation of a :term:`space` closely resembles the
+table abstraction, HyperDex's internal representation is fundamentally
+different.  HyperDex uses :term:`hyperspace hashing` to determine how to
+distribute objects onto nodes in a cluster.  Specifically, it maps objects with
+multiple attributes into points in a multidimensional :term:`hyperspace`.  While
+the details of hyperspace hashing are best left to the `HyperDex white paper
+<http://hyperdex.org/papers/>`_, there are several distinct user-visible
+features of hyperspace hashing:
 
-XXX
+ - By storing data in a hyperspace, HyperDex is able to expand the typical
+   key-value API with a unique ``search`` operation.
+ - Searches in HyperDex are fast.  In the best case, each search contacts just
+   one server, eliminating problematic fan-out patterns that reduce throughput.
+ - Each server reapplies hyperspace hashing to group similar data, providing
+   results quickly.
+ - Search queries benefit from specificity in the search predicate.  Adding
+   filters to a search can only improve the speed with which items are retrieved
+   from disk.
+
+This last point provides large efficiency gains.  Specifying all attributes of
+an object will contact exactly one server which, in turn, looks in exactly one
+location on-disk for the matching object.  Often, however, it is extremely
+desirable to specify a subset of the (possibly many) attributes of an object.
+HyperDex ensures this case is efficient by allowing the user to influence
+HyperDex's data layout.
+
+Subspaces for Efficient Search
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+HyperDex provides users with a simple and direct way to improve search
+efficiency by telling HyperDex which attributes are likely to be queried
+together.  To do so, the user creates a :term:`subspace` underneath the space
+which describes which attributes of the object may be used to search in the
+subspace.  This has two significant user-visible effects:
+
+ - By defining a subspace, the user can tell HyperDex that the attributes are
+   likely to be queried together.  A search that specifies all attributes of a
+   subspace will be just as efficient as a search which specifies all
+   attributes.
+ - Each subspace creates an additional copy of the objects stored within.
+   HyperDex automatically maintains these copies.
+
+The most general guideline when designing a subspace is to pick attributes such
+that the majority of attributes will be provided as part of the predicate for
+any given search.
 
 .. [#dict] This syntax intentionally resembles Python dictionaries and JSON
    objects.
