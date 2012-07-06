@@ -95,7 +95,7 @@ CLEANFILES = \
 
 JAVAROOT = $(abs_top_srcdir)
 
-.PHONY: coverage
+.PHONY: coverage doc/HyperDex-$(VERSION).pdf
 
 dist-hook:
 	rm -rf $(distdir)/doc/_build
