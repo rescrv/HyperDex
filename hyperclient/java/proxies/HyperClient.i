@@ -221,6 +221,23 @@
 %{
   java.util.HashMap<Long,Pending> ops = new java.util.HashMap<Long,Pending>(); 
 
+  private String defaultStringEncoding = null;
+  
+  public HyperClient(String coordinator, int port, String defaultStringEncoding)
+  {
+    this.defaultStringEncoding = defaultStringEncoding;
+  }
+
+  public String getDefaultStringEncoding()
+  {
+    return defaultStringEncoding;
+  }
+
+  public void setDefaultStringEncoding(String encoding)
+  {
+    defaultStringEncoding = encoding;
+  }
+
   void loop() throws HyperClientException
   {
     SWIGTYPE_p_hyperclient_returncode rc_ptr = hyperclient.new_rc_ptr();
