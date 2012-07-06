@@ -10,6 +10,13 @@ Welcome to the HyperDex Reference Manual
    installation
    datamodel
    quickstart
+   keyoperations
+   searchoperations
+   administration
+   api
+   man
+   dev
+
    tutorial-advanced
    tutorial-datastructure
    api/python
