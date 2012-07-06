@@ -349,19 +349,36 @@ hyperdex_daemon_SOURCES = \
 			hyperdaemon/runtimeconfig.cc \
 			hyperdaemon/searches.h \
 			hyperdaemon/searches.cc \
+			datatypes/alltypes.h \
+			datatypes/apply.h \
 			datatypes/apply.cc \
+			datatypes/attribute.h \
 			datatypes/attribute.cc \
+			datatypes/compare.h \
 			datatypes/compare.cc \
+			datatypes/float.h \
 			datatypes/float.cc \
+			datatypes/int64.h \
 			datatypes/int64.cc \
+			datatypes/list.h \
 			datatypes/list.cc \
+			datatypes/map.h \
 			datatypes/map.cc \
+			datatypes/microerror.h \
+			datatypes/microop.h \
 			datatypes/microop.cc \
+			datatypes/schema.h \
 			datatypes/schema.cc \
+			datatypes/set.h \
 			datatypes/set.cc \
+			datatypes/sort.h \
+			datatypes/step.h \
 			datatypes/step.cc \
+			datatypes/string.h \
 			datatypes/string.cc \
+			datatypes/validate.h \
 			datatypes/validate.cc \
+			datatypes/write.h \
 			datatypes/write.cc \
 			${libhyperdex_sources}
 hyperdex_daemon_LDADD = \
@@ -407,12 +424,14 @@ libhyperclient_noinst_headers = \
 
 libhyperclient_la_SOURCES = \
 			datatypes/attribute.cc \
+			datatypes/coercion.h \
 			datatypes/coercion.cc \
 			datatypes/compare.cc \
 			datatypes/float.cc \
 			datatypes/int64.cc \
 			datatypes/list.cc \
 			datatypes/map.cc \
+			datatypes/microaction.h \
 			datatypes/microop.cc \
 			datatypes/schema.cc \
 			datatypes/set.cc \
