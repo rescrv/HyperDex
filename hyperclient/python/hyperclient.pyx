@@ -219,7 +219,10 @@ class HyperClientException(Exception):
                   }.get(status, 'BUG')
 
     def status(self):
-       return self._status
+        return self._status
+
+    def symbol(self):
+        return self._e
 
     def __str__(self):
         return 'HyperClient(%s, %s)' % (self._e, self._s)
