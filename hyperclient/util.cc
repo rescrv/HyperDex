@@ -43,24 +43,24 @@ value_to_attributes(const hyperdex::configuration& config,
                     size_t* attrs_sz)
 {
     *loop_status = HYPERCLIENT_SUCCESS;
-    std::vector<hyperdex::attribute> dimension_names = config.dimension_names(entity.get_space());
+    schema* sc = config.get_schema(entity.get_space());
 
-    if (value.size() + 1 != dimension_names.size())
+    if (value.size() + 1 != sc->attrs_sz)
     {
         *op_status = HYPERCLIENT_SERVERERROR;
         return false;
     }
 
-    size_t sz = sizeof(hyperclient_attribute) * dimension_names.size() + key_sz
-              + dimension_names[0].name.size() + 1;
+    size_t sz = sizeof(hyperclient_attribute) * sc->attrs_sz + key_sz
+              + strlen(sc->attrs[0].name) + 1;
 
     for (size_t i = 0; i < value.size(); ++i)
     {
-        sz += dimension_names[i + 1].name.size() + 1 + value[i].size();
+        sz += strlen(sc->attrs[i + 1].name) + 1 + value[i].size();
     }
 
     std::vector<hyperclient_attribute> ha;
-    ha.reserve(dimension_names.size());
+    ha.reserve(sc->attrs_sz);
     char* ret = static_cast<char*>(malloc(sz));
 
     if (!ret)
@@ -76,29 +76,29 @@ value_to_attributes(const hyperdex::configuration& config,
     {
         data += sizeof(hyperclient_attribute);
         ha.push_back(hyperclient_attribute());
-        size_t attr_sz = dimension_names[0].name.size() + 1;
+        size_t attr_sz = strlen(sc->attrs[0].name) + 1;
         ha.back().attr = data;
-        memmove(data, dimension_names[0].name.c_str(), attr_sz);
+        memmove(data, sc->attrs[0].name, attr_sz);
         data += attr_sz;
         ha.back().value = data;
         memmove(data, key, key_sz);
         data += key_sz;
         ha.back().value_sz = key_sz;
-        ha.back().datatype = dimension_names[0].type;
+        ha.back().datatype = sc->attrs[0].type;
     }
 
     for (size_t i = 0; i < value.size(); ++i)
     {
         ha.push_back(hyperclient_attribute());
-        size_t attr_sz = dimension_names[i + 1].name.size() + 1;
+        size_t attr_sz = strlen(sc->attrs[i + 1].name) + 1;
         ha.back().attr = data;
-        memmove(data, dimension_names[i + 1].name.c_str(), attr_sz);
+        memmove(data, sc->attrs[i + 1].name, attr_sz);
         data += attr_sz;
         ha.back().value = data;
         memmove(data, value[i].data(), value[i].size());
         data += value[i].size();
         ha.back().value_sz = value[i].size();
-        ha.back().datatype = dimension_names[i + 1].type;
+        ha.back().datatype = sc->attrs[i + 1].type;
     }
 
     memmove(ret, &ha.front(), sizeof(hyperclient_attribute) * ha.size());
@@ -107,57 +107,4 @@ value_to_attributes(const hyperdex::configuration& config,
     *attrs_sz = ha.size();
     g.dismiss();
     return true;
-}
-
-bool
-compare_for_microop_sort(const hyperdex::microop& lhs,
-                         const hyperdex::microop& rhs)
-{
-   if (lhs.attr < rhs.attr)
-   {
-      return true;
-   }
-   if (lhs.attr > rhs.attr)
-   {
-      return false;
-   }
-
-   int64_t lhsi;
-   int64_t rhsi;
-
-   switch (lhs.type)
-   {
-      case HYPERDATATYPE_STRING:
-      case HYPERDATATYPE_INT64:
-      case HYPERDATATYPE_FLOAT:
-      case HYPERDATATYPE_LIST_STRING:
-      case HYPERDATATYPE_LIST_INT64:
-      case HYPERDATATYPE_LIST_FLOAT:
-      case HYPERDATATYPE_SET_STRING:
-      case HYPERDATATYPE_SET_INT64:
-      case HYPERDATATYPE_SET_FLOAT:
-      case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
-      case HYPERDATATYPE_MAP_FLOAT_STRING:
-      case HYPERDATATYPE_MAP_FLOAT_INT64:
-      case HYPERDATATYPE_MAP_FLOAT_FLOAT:
-         return false;
-      case HYPERDATATYPE_MAP_STRING_KEYONLY:
-      case HYPERDATATYPE_MAP_STRING_STRING:
-      case HYPERDATATYPE_MAP_STRING_INT64:
-      case HYPERDATATYPE_MAP_STRING_FLOAT:
-         return lhs.arg2 < rhs.arg2;
-      case HYPERDATATYPE_MAP_INT64_KEYONLY:
-      case HYPERDATATYPE_MAP_INT64_STRING:
-      case HYPERDATATYPE_MAP_INT64_INT64:
-      case HYPERDATATYPE_MAP_INT64_FLOAT:
-         e::unpack64le(lhs.arg2.data(), &lhsi);
-         e::unpack64le(rhs.arg2.data(), &rhsi);
-         return lhsi < rhsi;
-      case HYPERDATATYPE_LIST_GENERIC:
-      case HYPERDATATYPE_SET_GENERIC:
-      case HYPERDATATYPE_MAP_GENERIC:
-      case HYPERDATATYPE_GARBAGE:
-      default:
-         abort();
-   }
 }

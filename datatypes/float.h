@@ -25,42 +25,23 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_attribute_h_
-#define hyperdex_attribute_h_
+#ifndef datatypes_float_h_
+#define datatypes_float_h_
 
-// STL
-#include <string>
+// e
+#include <e/slice.h>
 
 // HyperDex
 #include "hyperdex.h"
+#include "datatypes/microop.h"
+#include "datatypes/microerror.h"
 
-namespace hyperdex
-{
+bool
+validate_as_float(const e::slice& value);
 
-class attribute
-{
-    public:
-        attribute()
-            : name(), type() {}
-        attribute(const std::string& n, hyperdatatype t)
-            : name(n), type(t) {}
-        attribute(const attribute& other)
-            : name(other.name), type(other.type) {}
+uint8_t*
+apply_float(const e::slice& old_value,
+            const microop* ops, size_t num_ops,
+            uint8_t* writeto, microerror* error);
 
-    public:
-        attribute& operator = (const attribute& rhs)
-        {
-            // Rely upon inner operator = to check self-assign
-            name = rhs.name;
-            type = rhs.type;
-            return *this;
-        }
-
-    public:
-        std::string name;
-        hyperdatatype type;
-};
-
-} // namespace hyperdex
-
-#endif // hyperdex_attribute_h_
+#endif // datatypes_float_h_

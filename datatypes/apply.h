@@ -25,38 +25,21 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdaemon_datatypes_h_
-#define hyperdaemon_datatypes_h_
+#ifndef datatypes_apply_h_
+#define datatypes_apply_h_
 
-// C
-#include <cstdlib>
+// e
+#include <e/slice.h>
 
 // HyperDex
-#include "hyperdex/hyperdex/microop.h"
-#include "hyperdex/hyperdex/network_constants.h"
+#include "hyperdex.h"
+#include "datatypes/microop.h"
+#include "datatypes/microerror.h"
 
-namespace hyperdaemon
-{
-
-// Utilities for manipulating and verifying datastructures
-
-// Validate that the bytestring conforms to the given type
-bool
-validate_datatype(hyperdatatype datatype, const e::slice& data);
-
-// How much more space does the microop need in the contiguous buffer?
-size_t
-sizeof_microop(const hyperdex::microop& op);
-
-// Modify the old_value by applying ops sequentially.
 uint8_t*
 apply_microops(hyperdatatype type,
                const e::slice& old_value,
-               hyperdex::microop* ops,
-               size_t num_ops,
-               uint8_t* writeto,
-               hyperdex::network_returncode* error);
+               microop* ops, size_t num_ops,
+               uint8_t* writeto, microerror* error);
 
-} // namespace hyperdaemon
-
-#endif // hyperdaemon_replication_manager_h_
+#endif // datatypes_apply_h_

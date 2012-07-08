@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2012, Cornell University
+// Copyright (c) 2012, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,36 +25,37 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperclient_util_h_
-#define hyperclient_util_h_
+#ifndef datatypes_microaction_h_
+#define datatypes_microaction_h_
 
-// HyperDex
-#include "hyperdex/hyperdex/configuration.h"
-#include "hyperdex/hyperdex/ids.h"
+enum microaction
+{
+    OP_FAIL,
 
-// HyperClient
-#include "hyperclient/hyperclient.h"
+    OP_SET,
 
-int64_t
-pack_attributes(schema* sc, size_t pack_at,
-                const hyperclient_attribute* condattrs, size_t condattrs_sz,
-                const hyperclient_attribute* attrs, size_t attrs_sz,
-                hyperclient_returncode* status,
-                std::auto_ptr<e::buffer>* msg);
+    OP_STRING_APPEND,
+    OP_STRING_PREPEND,
 
-// XXX see about deprecating below here once things settle in client.
+    OP_NUM_ADD,
+    OP_NUM_SUB,
+    OP_NUM_MUL,
+    OP_NUM_DIV,
+    OP_NUM_MOD,
+    OP_NUM_AND,
+    OP_NUM_OR,
+    OP_NUM_XOR,
 
-// Convert the key and value vector returned by entity to an array of
-// hyperclient_attribute using the given configuration.
-bool
-value_to_attributes(const hyperdex::configuration& config,
-                    const hyperdex::entityid& entity,
-                    const uint8_t* key,
-                    size_t key_sz,
-                    const std::vector<e::slice>& value,
-                    hyperclient_returncode* loop_status,
-                    hyperclient_returncode* op_status,
-                    hyperclient_attribute** attrs,
-                    size_t* attrs_sz);
+    OP_LIST_LPUSH,
+    OP_LIST_RPUSH,
 
-#endif // hyperclient_util_h_
+    OP_SET_ADD,
+    OP_SET_REMOVE,
+    OP_SET_INTERSECT,
+    OP_SET_UNION,
+
+    OP_MAP_ADD,
+    OP_MAP_REMOVE
+};
+
+#endif // datatypes_microaction_h_

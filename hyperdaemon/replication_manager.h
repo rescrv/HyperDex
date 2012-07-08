@@ -45,17 +45,15 @@
 // HyperDex
 #include "hyperdex/hyperdex/configuration.h"
 #include "hyperdex/hyperdex/network_constants.h"
-
-// HyperDaemon
 #include "hyperdaemon/replication/clientop.h"
 #include "hyperdaemon/replication/keypair.h"
 
 // Forward Declarations
+class microop;
 namespace hyperdex
 {
 class coordinatorlink;
 class instance;
-class microop;
 }
 namespace hyperdaemon
 {
@@ -111,7 +109,7 @@ class replication_manager
                            uint64_t nonce,
                            std::auto_ptr<e::buffer> backing,
                            const e::slice& key,
-                           std::vector<hyperdex::microop>* ops);
+                           std::vector<microop>* ops);
         // These are called in response to messages from other hosts.
         void chain_put(const hyperdex::entityid& from,
                        const hyperdex::entityid& to,

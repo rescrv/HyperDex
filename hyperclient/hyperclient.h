@@ -96,9 +96,10 @@ struct hyperclient_map_attribute
     const char* attr; /* NULL-terminated */
     const char* map_key;
     size_t map_key_sz;
+    enum hyperdatatype map_key_datatype;
     const char* value;
     size_t value_sz;
-    enum hyperdatatype datatype;
+    enum hyperdatatype value_datatype;
 };
 
 struct hyperclient_range_query
@@ -131,6 +132,7 @@ enum hyperclient_returncode
     HYPERCLIENT_DONTUSEKEY   = 8524,
     HYPERCLIENT_WRONGTYPE    = 8525,
     HYPERCLIENT_NOMEM        = 8526,
+    HYPERCLIENT_TYPEMISMATCH = 8527,
 
     /* This should never happen.  It indicates a bug */
     HYPERCLIENT_EXCEPTION    = 8574,
@@ -832,6 +834,21 @@ class hyperclient
                           size_t key_sz,
                           std::auto_ptr<e::buffer> msg,
                           e::intrusive_ptr<pending> op);
+        int64_t prepare_microop1(bool (*check)(hyperdatatype expected, hyperdatatype provided,
+                                               const e::slice& value),
+                                 int action, const char* space,
+                                 const char* key, size_t key_sz,
+                                 const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                                 hyperclient_returncode* status);
+        int64_t prepare_microop2(bool (*check)(hyperdatatype expected,
+                                               const e::slice& map_key,
+                                               hyperdatatype map_key_datatype,
+                                               const e::slice& value,
+                                               hyperdatatype value_datatype),
+                                 int action, const char* space,
+                                 const char* key, size_t key_sz,
+                                 const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                                 hyperclient_returncode* status);
         int64_t prepare_searchop(const char* space,
                                  const struct hyperclient_attribute* eq, size_t eq_sz,
                                  const struct hyperclient_range_query* rn, size_t rn_sz,
@@ -843,6 +860,20 @@ class hyperclient
                                  hyperdatatype* attrtype);
         int64_t send(e::intrusive_ptr<pending> op,
                      std::auto_ptr<e::buffer> msg);
+        void killall(const po6::net::location& loc, hyperclient_returncode status);
+        int64_t pack_attributes(class schema* sc, size_t sz,
+                                const hyperclient_attribute* condattrs, size_t condattrs_sz, bool packcondattrs,
+                                const hyperclient_attribute* attrs, size_t attrs_sz,
+                                hyperclient_returncode* status, std::auto_ptr<e::buffer>* msg);
+        uint16_t validate_attribute(schema* sc, const hyperclient_attribute* attr, hyperclient_returncode* status);
+#if 0
+int
+hyperclient :: validate_attr(hyperdatatype (*coerce_datatype)(hyperdatatype e, hyperdatatype p),
+                             const std::vector<hyperdex::attribute>& dimension_names,
+                             e::bitfield* dimensions_seen,
+                             const char* attr,
+                             hyperdatatype* type,
+                             hyperclient_returncode* status)
         int64_t pack_attrs(const char* space,
                            e::buffer::packer* p,
                            const struct hyperclient_attribute* attrs,
@@ -850,13 +881,6 @@ class hyperclient
                            hyperclient_returncode* status);
         size_t pack_attrs_sz(const struct hyperclient_attribute* attrs,
                              size_t attrs_sz);
-        void killall(const po6::net::location& loc, hyperclient_returncode status);
-        int64_t attributes_to_microops(hyperdatatype (*coerce_datatype)(hyperdatatype e, hyperdatatype p),
-                                       int action, const char* space,
-                                       const char* key, size_t key_sz,
-                                       const struct hyperclient_attribute* attrs,
-                                       size_t attrs_sz,
-                                       hyperclient_returncode* status);
         int64_t map_attributes_to_microops(hyperdatatype (*coerce_datatype)(hyperdatatype e, hyperdatatype p),
                                            int action, const char* space,
                                            const char* key, size_t key_sz,
@@ -869,6 +893,7 @@ class hyperclient
                           const char* attr,
                           hyperdatatype* type,
                           hyperclient_returncode* status);
+#endif
 
     private:
         const std::auto_ptr<hyperdex::coordinatorlink> m_coord;

@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2012, Cornell University
+// Copyright (c) 2012, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,36 +25,39 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperclient_util_h_
-#define hyperclient_util_h_
+#ifndef datatypes_microop_h_
+#define datatypes_microop_h_
+
+// e
+#include <e/buffer.h>
+#include <e/slice.h>
 
 // HyperDex
-#include "hyperdex/hyperdex/configuration.h"
-#include "hyperdex/hyperdex/ids.h"
+#include "hyperdex.h"
+#include "datatypes/microaction.h"
 
-// HyperClient
-#include "hyperclient/hyperclient.h"
+class microop
+{
+    public:
+        microop();
+        ~microop() throw ();
 
-int64_t
-pack_attributes(schema* sc, size_t pack_at,
-                const hyperclient_attribute* condattrs, size_t condattrs_sz,
-                const hyperclient_attribute* attrs, size_t attrs_sz,
-                hyperclient_returncode* status,
-                std::auto_ptr<e::buffer>* msg);
+    public:
+        uint16_t attr;
+        microaction action;
+        e::slice arg1;
+        hyperdatatype arg1_datatype;
+        e::slice arg2;
+        hyperdatatype arg2_datatype;
+};
 
-// XXX see about deprecating below here once things settle in client.
-
-// Convert the key and value vector returned by entity to an array of
-// hyperclient_attribute using the given configuration.
 bool
-value_to_attributes(const hyperdex::configuration& config,
-                    const hyperdex::entityid& entity,
-                    const uint8_t* key,
-                    size_t key_sz,
-                    const std::vector<e::slice>& value,
-                    hyperclient_returncode* loop_status,
-                    hyperclient_returncode* op_status,
-                    hyperclient_attribute** attrs,
-                    size_t* attrs_sz);
+operator < (const microop& lhs, const microop& rhs);
 
-#endif // hyperclient_util_h_
+e::buffer::packer
+operator << (e::buffer::packer lhs, const microop& rhs);
+
+e::buffer::unpacker
+operator >> (e::buffer::unpacker lhs, microop& rhs);
+
+#endif // datatypes_microop_h_

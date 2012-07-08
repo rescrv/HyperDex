@@ -50,31 +50,32 @@ cdef extern from "sys/socket.h":
 cdef extern from "../../hyperdex.h":
 
     cdef enum hyperdatatype:
-        HYPERDATATYPE_STRING             = 8960
-        HYPERDATATYPE_INT64              = 8961
-        HYPERDATATYPE_FLOAT              = 8962
-        HYPERDATATYPE_LIST_GENERIC       = 8976
-        HYPERDATATYPE_LIST_STRING        = 8977
-        HYPERDATATYPE_LIST_INT64         = 8978
-        HYPERDATATYPE_LIST_FLOAT         = 8979
-        HYPERDATATYPE_SET_GENERIC        = 8992
-        HYPERDATATYPE_SET_STRING         = 8993
-        HYPERDATATYPE_SET_INT64          = 8994
-        HYPERDATATYPE_SET_FLOAT          = 8995
-        HYPERDATATYPE_MAP_GENERIC        = 9008
-        HYPERDATATYPE_MAP_STRING_KEYONLY = 9024
-        HYPERDATATYPE_MAP_STRING_STRING  = 9025
-        HYPERDATATYPE_MAP_STRING_INT64   = 9026
-        HYPERDATATYPE_MAP_STRING_FLOAT   = 9027
-        HYPERDATATYPE_MAP_INT64_KEYONLY  = 9040
-        HYPERDATATYPE_MAP_INT64_STRING   = 9041
-        HYPERDATATYPE_MAP_INT64_INT64    = 9042
-        HYPERDATATYPE_MAP_INT64_FLOAT    = 9043
-        HYPERDATATYPE_MAP_FLOAT_KEYONLY  = 9060
-        HYPERDATATYPE_MAP_FLOAT_STRING   = 9061
-        HYPERDATATYPE_MAP_FLOAT_INT64    = 9062
-        HYPERDATATYPE_MAP_FLOAT_FLOAT    = 9063
-        HYPERDATATYPE_GARBAGE            = 9087
+        HYPERDATATYPE_GENERIC            = 9216
+        HYPERDATATYPE_STRING             = 9217
+        HYPERDATATYPE_INT64              = 9218
+        HYPERDATATYPE_FLOAT              = 9219
+        HYPERDATATYPE_LIST_GENERIC       = 9280
+        HYPERDATATYPE_LIST_STRING        = 9281
+        HYPERDATATYPE_LIST_INT64         = 9282
+        HYPERDATATYPE_LIST_FLOAT         = 9283
+        HYPERDATATYPE_SET_GENERIC        = 9344
+        HYPERDATATYPE_SET_STRING         = 9345
+        HYPERDATATYPE_SET_INT64          = 9346
+        HYPERDATATYPE_SET_FLOAT          = 9347
+        HYPERDATATYPE_MAP_GENERIC        = 9408
+        HYPERDATATYPE_MAP_STRING_KEYONLY = 9416
+        HYPERDATATYPE_MAP_STRING_STRING  = 9417
+        HYPERDATATYPE_MAP_STRING_INT64   = 9418
+        HYPERDATATYPE_MAP_STRING_FLOAT   = 9419
+        HYPERDATATYPE_MAP_INT64_KEYONLY  = 9424
+        HYPERDATATYPE_MAP_INT64_STRING   = 9425
+        HYPERDATATYPE_MAP_INT64_INT64    = 9426
+        HYPERDATATYPE_MAP_INT64_FLOAT    = 9427
+        HYPERDATATYPE_MAP_FLOAT_KEYONLY  = 9432
+        HYPERDATATYPE_MAP_FLOAT_STRING   = 9433
+        HYPERDATATYPE_MAP_FLOAT_INT64    = 9434
+        HYPERDATATYPE_MAP_FLOAT_FLOAT    = 9435
+        HYPERDATATYPE_GARBAGE            = 9727
 
 cdef extern from "../hyperclient.h":
 
@@ -90,9 +91,10 @@ cdef extern from "../hyperclient.h":
         char* attr
         char* map_key
         size_t map_key_sz
+        hyperdatatype map_key_datatype
         char* value
         size_t value_sz
-        hyperdatatype datatype
+        hyperdatatype value_datatype
 
     cdef struct hyperclient_range_query:
         char* attr
@@ -288,7 +290,7 @@ cdef _obj_to_backing(v):
             else:
                 raise TypeError("Cannot store heterogeneous sets")
             assert keytype == HYPERDATATYPE_SET_GENERIC or keytype == innerxtype
-            keytype == innerxtype
+            keytype = innerxtype
             backing += innerxbacking
         dtypes = {HYPERDATATYPE_SET_GENERIC: HYPERDATATYPE_SET_GENERIC,
                   HYPERDATATYPE_SET_STRING: HYPERDATATYPE_SET_STRING,
@@ -397,30 +399,20 @@ cdef _dict_to_map_attrs(list value, hyperclient_map_attribute** attrs, size_t* a
                 attrs[0][i].attr = name
                 attrs[0][i].map_key = kbacking
                 attrs[0][i].map_key_sz = len(kbacking)
+                attrs[0][i].map_key_datatype = kdatatype
                 attrs[0][i].value = vbacking
                 attrs[0][i].value_sz = len(vbacking)
+                attrs[0][i].value_datatype = vdatatype
                 i += 1
-            dtypes = {(HYPERDATATYPE_STRING, HYPERDATATYPE_STRING): HYPERDATATYPE_MAP_STRING_STRING,
-                      (HYPERDATATYPE_STRING, HYPERDATATYPE_INT64): HYPERDATATYPE_MAP_STRING_INT64,
-                      (HYPERDATATYPE_STRING, HYPERDATATYPE_FLOAT): HYPERDATATYPE_MAP_STRING_FLOAT,
-                      (HYPERDATATYPE_INT64, HYPERDATATYPE_STRING): HYPERDATATYPE_MAP_INT64_STRING,
-                      (HYPERDATATYPE_INT64, HYPERDATATYPE_INT64): HYPERDATATYPE_MAP_INT64_INT64,
-                      (HYPERDATATYPE_INT64, HYPERDATATYPE_FLOAT): HYPERDATATYPE_MAP_INT64_FLOAT,
-                      (HYPERDATATYPE_FLOAT, HYPERDATATYPE_STRING): HYPERDATATYPE_MAP_FLOAT_STRING,
-                      (HYPERDATATYPE_FLOAT, HYPERDATATYPE_INT64): HYPERDATATYPE_MAP_FLOAT_INT64,
-                      (HYPERDATATYPE_FLOAT, HYPERDATATYPE_FLOAT): HYPERDATATYPE_MAP_FLOAT_FLOAT}
-            for x in range(j, i):
-                attrs[0][x].datatype = dtypes[(keytype, valtype)]
         else:
             kdatatype, kbacking = _obj_to_backing(b)
             attrs[0][i].attr = name
             attrs[0][i].map_key = kbacking
             attrs[0][i].map_key_sz = len(kbacking)
+            attrs[0][i].map_key_datatype = kdatatype
             attrs[0][i].value = NULL
             attrs[0][i].value_sz = 0
-            attrs[0][i].datatype = {HYPERDATATYPE_STRING: HYPERDATATYPE_MAP_STRING_KEYONLY,
-                                    HYPERDATATYPE_INT64: HYPERDATATYPE_MAP_INT64_KEYONLY,
-                                    HYPERDATATYPE_FLOAT: HYPERDATATYPE_MAP_FLOAT_KEYONLY}[kdatatype]
+            attrs[0][i].value_datatype = HYPERDATATYPE_GENERIC;
             i += 1
     return backings
 

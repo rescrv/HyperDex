@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2012, Cornell University
+// Copyright (c) 2012, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,36 +25,55 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperclient_util_h_
-#define hyperclient_util_h_
+// e
+#include <e/endian.h>
 
 // HyperDex
-#include "hyperdex/hyperdex/configuration.h"
-#include "hyperdex/hyperdex/ids.h"
+#include "datatypes/step.h"
 
-// HyperClient
-#include "hyperclient/hyperclient.h"
-
-int64_t
-pack_attributes(schema* sc, size_t pack_at,
-                const hyperclient_attribute* condattrs, size_t condattrs_sz,
-                const hyperclient_attribute* attrs, size_t attrs_sz,
-                hyperclient_returncode* status,
-                std::auto_ptr<e::buffer>* msg);
-
-// XXX see about deprecating below here once things settle in client.
-
-// Convert the key and value vector returned by entity to an array of
-// hyperclient_attribute using the given configuration.
 bool
-value_to_attributes(const hyperdex::configuration& config,
-                    const hyperdex::entityid& entity,
-                    const uint8_t* key,
-                    size_t key_sz,
-                    const std::vector<e::slice>& value,
-                    hyperclient_returncode* loop_status,
-                    hyperclient_returncode* op_status,
-                    hyperclient_attribute** attrs,
-                    size_t* attrs_sz);
+step_string(const uint8_t** ptr,
+            const uint8_t* end,
+            e::slice* elem)
+{
+    if (static_cast<size_t>(end - *ptr) < sizeof(uint32_t))
+    {
+        return false;
+    }
 
-#endif // hyperclient_util_h_
+    uint32_t sz = 0;
+    *ptr = e::unpack32le(*ptr, &sz);
+    *elem = e::slice(*ptr, sz);
+    *ptr += sz;
+    return *ptr <= end;
+}
+
+bool
+step_int64(const uint8_t** ptr,
+           const uint8_t* end,
+           e::slice* elem)
+{
+    if (static_cast<size_t>(end - *ptr) < sizeof(int64_t))
+    {
+        return false;
+    }
+
+    *elem = e::slice(*ptr, sizeof(int64_t));
+    *ptr += sizeof(int64_t);
+    return true;
+}
+
+bool
+step_float(const uint8_t** ptr,
+           const uint8_t* end,
+           e::slice* elem)
+{
+    if (static_cast<size_t>(end - *ptr) < sizeof(double))
+    {
+        return false;
+    }
+
+    *elem = e::slice(*ptr, sizeof(double));
+    *ptr += sizeof(double);
+    return true;
+}

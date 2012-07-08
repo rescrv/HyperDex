@@ -25,38 +25,45 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#include <iostream>
+#ifndef datatypes_sort_h_
+#define datatypes_sort_h_
 
-// HyperDex
-#include "hyperdex/hyperdex/microop.h"
+// STL
+#include <algorithm>
+#include <tr1/functional>
 
-hyperdex :: microop :: microop()
-    : attr(-1)
-    , type()
-    , action(OP_FAIL)
-    , arg1()
-    , arg2()
+inline bool
+compare_by_arg1(int (*compare_elem)(const e::slice& lhs, const e::slice& rhs),
+                const microop& lhs, const microop& rhs)
 {
+    return compare_elem(lhs.arg1, rhs.arg1) < 0;
 }
 
-e::buffer::packer
-hyperdex :: operator << (e::buffer::packer lhs, const microop& rhs)
+inline void
+sort_microops_by_arg1(microop* begin, microop* end,
+                      int (*compare_elem)(const e::slice& lhs, const e::slice& rhs))
 {
-    uint16_t type = static_cast<uint16_t>(rhs.type);
-    uint8_t action = static_cast<uint8_t>(rhs.action);
-    lhs = lhs << rhs.attr << type << action
-              << rhs.arg1 << rhs.arg2;
-    return lhs;
+    std::sort(begin, end,
+              std::tr1::bind(compare_by_arg1, compare_elem,
+                             std::tr1::placeholders::_1,
+                             std::tr1::placeholders::_2));
 }
 
-e::buffer::unpacker
-hyperdex :: operator >> (e::buffer::unpacker lhs, microop& rhs)
+inline bool
+compare_by_arg2(int (*compare_elem)(const e::slice& lhs, const e::slice& rhs),
+                const microop& lhs, const microop& rhs)
 {
-    uint16_t type;
-    uint8_t action;
-    lhs = lhs >> rhs.attr >> type >> action
-              >> rhs.arg1 >> rhs.arg2;
-    rhs.type = static_cast<hyperdatatype>(type);
-    rhs.action = static_cast<hyperdex::microop_type>(action);
-    return lhs;
+    return compare_elem(lhs.arg2, rhs.arg2) < 0;
 }
+
+inline void
+sort_microops_by_arg2(microop* begin, microop* end,
+                      int (*compare_elem)(const e::slice& lhs, const e::slice& rhs))
+{
+    std::sort(begin, end,
+              std::tr1::bind(compare_by_arg2, compare_elem,
+                             std::tr1::placeholders::_1,
+                             std::tr1::placeholders::_2));
+}
+
+#endif // datatypes_sort_h_

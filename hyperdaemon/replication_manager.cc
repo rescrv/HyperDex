@@ -53,14 +53,13 @@
 #include <e/timer.h>
 
 // HyperDex
+#include "datatypes/apply.h"
+#include "datatypes/microop.h"
 #include "hyperdex/hyperdex/coordinatorlink.h"
-#include "hyperdex/hyperdex/microop.h"
 #include "hyperdex/hyperdex/network_constants.h"
 #include "hyperdex/hyperdex/packing.h"
-
-// HyperDaemon
+#include "datatypes/validate.h"
 #include "hyperdaemon/datalayer.h"
-#include "hyperdaemon/datatypes.h"
 #include "hyperdaemon/logical.h"
 #include "hyperdaemon/ongoing_state_transfers.h"
 #include "hyperdaemon/replication_manager.h"
@@ -173,7 +172,7 @@ hyperdaemon :: replication_manager :: shutdown()
 
 static bool
 unpack_attributes(const std::vector<std::pair<uint16_t, e::slice> >& value,
-                  const std::vector<hyperdex::attribute>& dims,
+                  const schema* sc,
                   e::bitfield *bf,
                   std::vector<e::slice> *realvalue)
 {
@@ -181,12 +180,12 @@ unpack_attributes(const std::vector<std::pair<uint16_t, e::slice> >& value,
 
     for (size_t i = 0; i < value.size(); ++i)
     {
-        if (value[i].first == 0 || value[i].first >= dims.size())
+        if (value[i].first == 0 || value[i].first >= sc->attrs_sz)
         {
             return false;
         }
 
-        if (!validate_datatype(dims[value[i].first].type, value[i].second))
+        if (!validate_as_type(value[i].second, sc->attrs[value[i].first].type))
         {
             return false;
         }
@@ -214,14 +213,14 @@ hyperdaemon :: replication_manager :: client_put(const hyperdex::entityid& from,
         return;
     }
 
-    std::vector<hyperdex::attribute> dims = m_config.dimension_names(to.get_space());
-    assert(dims.size() > 0);
-    e::bitfield bf(dims.size() - 1);
-    std::vector<e::slice> realvalue(dims.size() - 1);
-    e::bitfield condbf(dims.size() - 1);
-    std::vector<e::slice> condvalue(dims.size() - 1);
+    schema* sc = m_config.get_schema(to.get_space());
+    assert(sc);
+    e::bitfield bf(sc->attrs_sz - 1);
+    std::vector<e::slice> realvalue(sc->attrs_sz - 1);
+    e::bitfield condbf(sc->attrs_sz - 1);
+    std::vector<e::slice> condvalue(sc->attrs_sz - 1);
 
-    if (!validate_datatype(dims[0].type, key))
+    if (!validate_as_type(key, sc->attrs[0].type))
     {
         respond_to_client(to, from, nonce,
                           hyperdex::RESP_PUT,
@@ -229,7 +228,7 @@ hyperdaemon :: replication_manager :: client_put(const hyperdex::entityid& from,
         return;
     }
 
-    if (!unpack_attributes(value, dims, &bf, &realvalue))
+    if (!unpack_attributes(value, sc, &bf, &realvalue))
     {
         respond_to_client(to, from, nonce,
                           hyperdex::RESP_PUT,
@@ -258,14 +257,14 @@ hyperdaemon :: replication_manager :: client_condput(const hyperdex::entityid& f
         return;
     }
 
-    std::vector<hyperdex::attribute> dims = m_config.dimension_names(to.get_space());
-    assert(dims.size() > 0);
-    e::bitfield condbf(dims.size() - 1);
-    std::vector<e::slice> condvalue(dims.size() - 1);
-    e::bitfield bf(dims.size() - 1);
-    std::vector<e::slice> realvalue(dims.size() - 1);
+    schema* sc = m_config.get_schema(to.get_space());
+    assert(sc);
+    e::bitfield condbf(sc->attrs_sz - 1);
+    std::vector<e::slice> condvalue(sc->attrs_sz - 1);
+    e::bitfield bf(sc->attrs_sz - 1);
+    std::vector<e::slice> realvalue(sc->attrs_sz - 1);
 
-    if (!validate_datatype(dims[0].type, key))
+    if (!validate_as_type(key, sc->attrs[0].type))
     {
         respond_to_client(to, from, nonce,
                           hyperdex::RESP_CONDPUT,
@@ -273,8 +272,8 @@ hyperdaemon :: replication_manager :: client_condput(const hyperdex::entityid& f
         return;
     }
 
-    if (!unpack_attributes(condfields, dims, &condbf, &condvalue) ||
-        !unpack_attributes(value, dims, &bf, &realvalue))
+    if (!unpack_attributes(condfields, sc, &condbf, &condvalue) ||
+        !unpack_attributes(value, sc, &bf, &realvalue))
     {
         respond_to_client(to, from, nonce,
                           hyperdex::RESP_CONDPUT,
@@ -301,12 +300,12 @@ hyperdaemon :: replication_manager :: client_del(const entityid& from,
         return;
     }
 
-    size_t dims = m_config.dimensions(to.get_space());
-    assert(dims > 0);
-    e::bitfield b(dims - 1);
-    std::vector<e::slice> v(dims - 1);
-    e::bitfield condbf(dims - 1);
-    std::vector<e::slice> condvalue(dims - 1);
+    schema* sc = m_config.get_schema(to.get_space());
+    assert(sc);
+    e::bitfield b(sc->attrs_sz - 1);
+    std::vector<e::slice> v(sc->attrs_sz - 1);
+    e::bitfield condbf(sc->attrs_sz - 1);
+    std::vector<e::slice> condvalue(sc->attrs_sz - 1);
 
     client_common(hyperdex::RESP_DEL, false, from, to, nonce, backing, key, condbf, condvalue, b, v);
 }
@@ -317,7 +316,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
                                                     uint64_t nonce,
                                                     std::auto_ptr<e::buffer> /*backing*/,
                                                     const e::slice& key,
-                                                    std::vector<hyperdex::microop>* ops)
+                                                    std::vector<microop>* ops)
 {
     // Fail as read only if we are quiescing.
     if (m_quiesce)
@@ -328,10 +327,10 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
         return;
     }
 
-    std::vector<hyperdex::attribute> dims = m_config.dimension_names(to.get_space());
-    assert(!dims.empty());
+    schema* sc = m_config.get_schema(to.get_space());
+    assert(sc);
 
-    if (!validate_datatype(dims[0].type, key))
+    if (!validate_as_type(key, sc->attrs[0].type))
     {
         respond_to_client(to, from, nonce,
                           hyperdex::RESP_ATOMIC,
@@ -400,7 +399,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
 
     // We make an unvalidated assumption that the ops array is sorted.  We will
     // validate this at a later point.
-    if (ops->front().attr <= 0 || ops->back().attr >= dims.size())
+    if (ops->front().attr <= 0 || ops->back().attr >= sc->attrs_sz)
     {
         respond_to_client(to, from, nonce,
                           hyperdex::RESP_ATOMIC,
@@ -421,12 +420,14 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
     for (size_t i = 0; i < ops->size(); ++i)
     {
         // Increment by the amount required by the microop
-        new_size += sizeof_microop((*ops)[i]);
+        new_size += 2 * sizeof(uint32_t)
+                  + (*ops)[i].arg1.size()
+                  + (*ops)[i].arg2.size();
     }
 
     // Allocate the new buffer
     std::tr1::shared_ptr<e::buffer> new_backing(e::buffer::create(new_size));
-    std::vector<e::slice> new_value(dims.size() - 1);
+    std::vector<e::slice> new_value(sc->attrs_sz - 1);
 
     // Copy the old data, mutating it as the micro ops require
     uint8_t* data = new_backing->data();
@@ -437,8 +438,8 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
     data += key.size();
 
     // Divide the micro ops up by attribute
-    hyperdex::microop* op = &ops->front();
-    const hyperdex::microop* const stop = &ops->front() + ops->size();
+    microop* op = &ops->front();
+    const microop* const stop = &ops->front() + ops->size();
     // the next attribute to copy, indexed based on the total number of
     // dimensions.  It starts at 1, because the key is 0, and 1 is the first
     // secondary attribute.
@@ -446,10 +447,10 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
 
     while (op < stop)
     {
-        hyperdex::microop* end = op;
+        microop* end = op;
 
         // If the ops are out of order, or out of bounds
-        if (op->attr < next_to_copy || op->attr >= dims.size())
+        if (op->attr < next_to_copy || op->attr >= sc->attrs_sz)
         {
             // Fail it for bad micro ops
             respond_to_client(to, from, nonce, hyperdex::RESP_ATOMIC, hyperdex::NET_BADMICROS);
@@ -461,8 +462,9 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
         while (end < stop && op->attr == end->attr)
         {
             // If the datatype doesn't match the structure
-            if (end->type != dims[end->attr].type ||
-                    end->action == hyperdex::OP_FAIL)
+            // XXX check types.  fuck it for now.
+            if (/*end->datatype != sc->attrs[end->attr].type ||*/
+                end->action == OP_FAIL)
             {
                 // Fail it for bad micro ops
                 respond_to_client(to, from, nonce, hyperdex::RESP_ATOMIC, hyperdex::NET_BADMICROS);
@@ -492,9 +494,9 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
         // - we've copied all attributes so far, even those not mentioned by
         //   micro ops.
 
-        hyperdex::network_returncode error;
+        microerror error;
         // This call may modify [op, end) ops.
-        uint8_t* newdata = apply_microops(dims[op->attr].type,
+        uint8_t* newdata = apply_microops(sc->attrs[op->attr].type,
                                           old_value[op->attr - 1],
                                           op, end - op,
                                           data, &error);
@@ -502,8 +504,21 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
         // If applying the micro ops failed
         if (!newdata)
         {
+            hyperdex::network_returncode rc;
+
+            switch (error)
+            {
+                case OVERFLOW:
+                    rc = hyperdex::NET_OVERFLOW;
+                    break;
+                case MICROERROR:
+                default:
+                    rc = hyperdex::NET_BADMICROS;
+                    break;
+            }
+
             // Fail it for bad micro ops
-            respond_to_client(to, from, nonce, hyperdex::RESP_ATOMIC, error);
+            respond_to_client(to, from, nonce, hyperdex::RESP_ATOMIC, rc);
             g.dismiss();
             return;
         }
@@ -522,7 +537,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
     }
 
     // Copy the attributes that are unaffected by micro ops.
-    while (next_to_copy < dims.size())
+    while (next_to_copy < sc->attrs_sz)
     {
         assert(next_to_copy > 0);
         size_t idx = next_to_copy - 1;
@@ -587,8 +602,11 @@ hyperdaemon :: replication_manager :: chain_subspace(const entityid& from,
     // Get the keyholder for this key.
     e::intrusive_ptr<keyholder> kh = get_keyholder(to.get_region(), key);
 
+    schema* sc = m_config.get_schema(to.get_space());
+    assert(sc);
+
     // Check that a chain's put matches the dimensions of the space.
-    if (m_config.dimensions(to.get_space()) != value.size() + 1)
+    if (sc->attrs_sz != value.size() + 1)
     {
         return;
     }
@@ -896,12 +914,13 @@ hyperdaemon :: replication_manager :: chain_common(bool has_value,
     // Get the keyholder for this key.
     e::intrusive_ptr<keyholder> kh = get_keyholder(to.get_region(), key);
 
+    schema* sc = m_config.get_schema(to.get_space());
+    assert(sc);
+
     // Check that a chain's put matches the dimensions of the space.
-    if (has_value && m_config.dimensions(to.get_space()) != value.size() + 1)
+    if (has_value && sc->attrs_sz != value.size() + 1)
     {
         LOG(INFO) << "dropping CHAIN_* because the dimensions are incorrect";
-        LOG(INFO) << m_config.dimensions(to.get_space());
-        LOG(INFO) << value.size();
         return;
     }
 
@@ -1403,8 +1422,7 @@ hyperdaemon :: replication_manager :: send_message(const entityid& us,
         if (op->subspace_next == UINT16_MAX)
         {
             std::auto_ptr<e::buffer> revkey(e::buffer::create(sz_revkey));
-            bool packed = !(revkey->pack_at(m_comm->header_size()) << version << key).error();
-            assert(packed);
+            revkey->pack_at(m_comm->header_size()) << version << key;
 
             if (m_comm->send(us, us, hyperdex::CHAIN_ACK, revkey))
             {
@@ -1418,8 +1436,7 @@ hyperdaemon :: replication_manager :: send_message(const entityid& us,
         else if (op->subspace_next == us.subspace)
         {
             std::auto_ptr<e::buffer> msg(e::buffer::create(sz_msg));
-            bool packed = !(msg->pack_at(m_comm->header_size()) << version << key << op->value << op->point_next_next).error();
-            assert(packed);
+            msg->pack_at(m_comm->header_size()) << version << key << op->value << op->point_next_next;
             dst = entityid(us.space, us.subspace, 64, op->point_next, 0);
             dst = m_config.sloppy_lookup(dst);
 
@@ -1449,8 +1466,7 @@ hyperdaemon :: replication_manager :: send_message(const entityid& us,
         if (op->subspace_prev == us.subspace)
         {
             std::auto_ptr<e::buffer> msg(e::buffer::create(sz_msg));
-            bool packed = !(msg->pack_at(m_comm->header_size()) << version << key << op->value << op->point_next).error();
-            assert(packed);
+            msg->pack_at(m_comm->header_size()) << version << key << op->value << op->point_next;
             dst = m_config.chain_next(us);
 
             if (m_comm->send(us, dst, hyperdex::CHAIN_SUBSPACE, msg))
@@ -1474,14 +1490,12 @@ hyperdaemon :: replication_manager :: send_message(const entityid& us,
     if (op->has_value)
     {
         uint8_t flags = op->fresh ? 1 : 0;
-        bool packed = !(msg->pack_at(m_comm->header_size()) << version << flags << key << op->value).error();
-        assert(packed);
+        msg->pack_at(m_comm->header_size()) << version << flags << key << op->value;
         type = hyperdex::CHAIN_PUT;
     }
     else
     {
-        bool packed = !(msg->pack_at(m_comm->header_size()) << version << key).error();
-        assert(packed);
+        msg->pack_at(m_comm->header_size()) << version << key;
         type = hyperdex::CHAIN_DEL;
     }
 
@@ -1503,8 +1517,7 @@ hyperdaemon :: replication_manager :: send_ack(const entityid& from,
               + sizeof(uint32_t)
               + key.size();
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    bool packed = !(msg->pack_at(m_comm->header_size()) << version << key).error();
-    assert(packed);
+    msg->pack_at(m_comm->header_size()) << version << key;
     return m_comm->send(from, to, hyperdex::CHAIN_ACK, msg);
 }
 
@@ -1518,8 +1531,7 @@ hyperdaemon :: replication_manager :: respond_to_client(const entityid& us,
     uint16_t result = static_cast<uint16_t>(ret);
     size_t sz = m_comm->header_size() + sizeof(uint64_t) +sizeof(uint16_t);
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    bool packed = !(msg->pack_at(m_comm->header_size()) << nonce << result).error();
-    assert(packed);
+    msg->pack_at(m_comm->header_size()) << nonce << result;
     m_comm->send(us, client, type, msg);
 }
 
