@@ -41,6 +41,10 @@ import sys
 import hyperclient
 
 
+def _frozen_dict(x):
+    return tuple(sorted(x.items()))
+
+
 class HyperDexJSONBridge(object):
 
     VALUE_IDENTITY = set(['string', 'int64', 'float',
@@ -187,6 +191,15 @@ class HyperDexJSONBridge(object):
     def _action_map_string_append(self, action):
         self._kve(action, self._client.map_string_append)
 
+    def _action_search(self, action):
+        self._check_fields(action, 'space', 'predicate', 'expected')
+        expected = action['expected']
+        try:
+            returned = [x for x in self._client.search(action['space'], self._to_predicate(action['predicate']))]
+            self._compare_search_results(action['expected'], returned)
+        except hyperclient.HyperClientException as e:
+            self._compare_exception(expected, e)
+
     '''
     def group_del(self, bytes space, dict predicate):
         async = self.async_group_del(space, predicate)
@@ -234,9 +247,28 @@ class HyperDexJSONBridge(object):
             error += '    returned:  %r' % returned
             raise RuntimeError(error)
 
+    def _compare_search_results(self, expected, returned):
+        if isinstance(expected, bytes):
+            error  = 'should have raised an exception but returned a value instead\n'
+            error += '    expected:  %r\n' % expected
+            error += '    returned:  %r' % returned
+            raise RuntimeError(error)
+        if not isinstance(expected, list):
+            raise RuntimeError('\'expected\' should be a list')
+        if not isinstance(returned, list):
+            error  = 'should have returned a list\n'
+            error += '    expected:  %r\n' % expected
+            error += '    returned:  %r' % returned
+            raise RuntimeError(error)
+        if set([_frozen_dict(self._to_value(e)) for e in expected]) != set([_frozen_dict(x) for x in returned]):
+            error  = 'returned unexpected value\n'
+            error += '    expected:  %r\n' % expected
+            error += '    returned:  %r' % returned
+            raise RuntimeError(error)
+
     def _compare_exception(self, expected, exception):
         if not isinstance(expected, bytes):
-            raise RuntimeError('caused an exception: %r' % exception.symbol())
+            raise RuntimeError('caused an exception:  %r' % exception.symbol())
         elif expected != exception.symbol():
             raise RuntimeError('should have raised %r but raised %r instead' % (expected, exception.symbol()))
 
