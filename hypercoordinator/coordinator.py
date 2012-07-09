@@ -841,6 +841,8 @@ class CoordinatorServer(object):
                             remove = True
                         elif ev & select.POLLNVAL:
                             remove = True
+                        if conn.outgoing != '':
+                            self._p.modify(fd, select.POLLIN | select.POLLOUT)
                     except KillConnection as kc:
                         logging.error('connection killed: ' + str(kc))
                         remove = True
