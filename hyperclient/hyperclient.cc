@@ -1118,19 +1118,19 @@ hyperclient :: validate_attribute(schema* sc,
     if (attrnum == sc->attrs_sz)
     {
         *status = HYPERCLIENT_UNKNOWNATTR;
-        return -1;
+        return sc->attrs_sz;
     }
 
     if (attrnum == 0)
     {
         *status = HYPERCLIENT_DONTUSEKEY;
-        return -1;
+        return sc->attrs_sz;
     }
 
     if (!container_implicit_coercion(sc->attrs[attrnum].type, attr->datatype))
     {
         *status = HYPERCLIENT_WRONGTYPE;
-        return -1;
+        return sc->attrs_sz;
     }
 
     if (!validate_as_type(e::slice(attr->value, attr->value_sz),
