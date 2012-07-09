@@ -74,7 +74,7 @@
     } \
     if (!validate_as_type(e::slice((KEY), (KEY_SZ)), (SCHEMA)->attrs[0].type)) \
     { \
-        /* XXX non-descriptive error */*status = HYPERCLIENT_WRONGTYPE; \
+        *status = HYPERCLIENT_WRONGTYPE; \
         return -1; \
     }
 
@@ -786,7 +786,7 @@ hyperclient :: prepare_microop1(bool (*check)(hyperdatatype expected, hyperdatat
         if (!check(sc->attrs[attrnum].type, attrs[i].datatype,
                    e::slice(attrs[i].value, attrs[i].value_sz)))
         {
-            *status = HYPERCLIENT_TYPEMISMATCH;
+            *status = HYPERCLIENT_WRONGTYPE;
             return -2 - i;
         }
 
@@ -866,7 +866,7 @@ hyperclient :: prepare_microop2(bool (*check)(hyperdatatype expected,
                    e::slice(attrs[i].map_key, attrs[i].map_key_sz), attrs[i].map_key_datatype,
                    e::slice(attrs[i].value, attrs[i].value_sz), attrs[i].value_datatype))
         {
-            *status = HYPERCLIENT_TYPEMISMATCH;
+            *status = HYPERCLIENT_WRONGTYPE;
             return -2 - i;
         }
 
@@ -1135,8 +1135,8 @@ hyperclient :: validate_attribute(schema* sc,
     if (!validate_as_type(e::slice(attr->value, attr->value_sz),
                           sc->attrs[attrnum].type))
     {
-        *status = HYPERCLIENT_TYPEMISMATCH;
-        return -1;
+        *status = HYPERCLIENT_WRONGTYPE;
+        return sc->attrs_sz;
     }
 
     return attrnum;
@@ -1169,7 +1169,6 @@ operator << (std::ostream& lhs, hyperclient_returncode rhs)
         stringify(HYPERCLIENT_DONTUSEKEY);
         stringify(HYPERCLIENT_WRONGTYPE);
         stringify(HYPERCLIENT_NOMEM);
-        stringify(HYPERCLIENT_TYPEMISMATCH);
         stringify(HYPERCLIENT_EXCEPTION);
         stringify(HYPERCLIENT_ZERO);
         stringify(HYPERCLIENT_A);
