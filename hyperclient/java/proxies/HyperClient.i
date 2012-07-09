@@ -132,15 +132,13 @@
     // Returns 1 on success. hma->attr will point to allocated memory
     // Returns 0 on failure. hma->attr will be NULL
     static int write_map_attr_name(hyperclient_map_attribute *hma,
-                                   const char *attr, size_t attr_sz,
-                                   hyperdatatype type)
+                                   const char *attr, size_t attr_sz)
     {
         char *buf;
     
         if ((buf = (char *)calloc(attr_sz+1,sizeof(char))) == NULL) return 0;
         memcpy(buf,attr,attr_sz);
         hma->attr = buf;
-        hma->datatype = type;
         return 1;
     }
     
@@ -151,7 +149,8 @@
     //
     // If hma->value is already non-NULL, then we are appending to it. 
     static int write_map_attr_map_key(hyperclient_map_attribute *hma,
-                                          const char *map_key, size_t map_key_sz)
+                                          const char *map_key, size_t map_key_sz,
+                                          hyperdatatype type)
     {
         char *buf = NULL;
         // Note: Since hyperclient_map_attribute array was calloced
@@ -161,6 +160,7 @@
         memcpy(buf + hma->map_key_sz, map_key, map_key_sz);
         hma->map_key = buf;
         hma->map_key_sz += map_key_sz;
+        hma->map_key_datatype = type;
         return 1;
     }
     
@@ -171,7 +171,8 @@
     //
     // If hma->value is already non-NULL, then we are appending to it. 
     static int write_map_attr_value(hyperclient_map_attribute *hma,
-                                    const char *value, size_t value_sz)
+                                    const char *value, size_t value_sz,
+                                    hyperdatatype type)
     {
         char *buf = NULL;
         // Note: Since hyperclient_map_attribute array was calloced
@@ -181,6 +182,7 @@
         memcpy(buf + hma->value_sz, value, value_sz);
         hma->value = buf;
         hma->value_sz += value_sz;
+        hma->value_datatype = type;
         return 1;
     }
     
@@ -331,7 +333,7 @@
                 "Do not know how to convert map type '("
                     + key.getClass().getName() + ","
                     + val.getClass().getName() + ")"
-                    + "' for set attribute '" + attrStr + "'");
+                    + "' for map attribute '" + attrStr + "'");
         }
     }
     else
@@ -876,7 +878,11 @@
             {
                 java.util.Map<?,?> map = (java.util.Map<?,?>)operand;
 
-                hyperdatatype type = hyperdatatype.HYPERDATATYPE_MAP_GENERIC;
+                hyperdatatype keyType = hyperdatatype.HYPERDATATYPE_GENERIC;
+                hyperdatatype curKeyType = hyperdatatype.HYPERDATATYPE_GENERIC;
+
+                hyperdatatype valType = hyperdatatype.HYPERDATATYPE_GENERIC;
+                hyperdatatype curValType = hyperdatatype.HYPERDATATYPE_GENERIC;
 
                 for ( java.util.Iterator iit=map.keySet().iterator(); iit.hasNext(); )
                 {
@@ -892,65 +898,107 @@
                                    "In attribute '" + attrStr 
                                  + "': A non-empty map cannot have a null value entry");
 
-                    type = validateMapType(type, attrStr, key, val);
-
-                    hyperclient_map_attribute hma = get_map_attr(attrs,i_bi.longValue());
-
-                    if ( write_map_attr_name(hma,attrStr.getBytes(),type) == 0 )
+                    if ( write_map_attr_name(hma,attrStr.getBytes()) == 0 )
                         throw new MemoryError();
 
                     if ( key instanceof String )
                     {
-                        if ( write_map_attr_map_key(hma,((String)key).getBytes()) == 0 )
+                        curKeyType = hyperdatatype.HYPERDATATYPE_STRING;
+
+                        if ( write_map_attr_map_key(hma,((String)key).getBytes(),
+                                                                    keyType) == 0 )
                             throw new MemoryError();
                     }
                     else if ( key instanceof Long )
                     {
+                        curKeyType = hyperdatatype.HYPERDATATYPE_INT64;
+
                         byte[] keyBytes = java.nio.ByteBuffer.allocate(8).order(
                             java.nio.ByteOrder.LITTLE_ENDIAN).putLong(
                             ((Long)key).longValue()).array();
 
-                        if ( write_map_attr_map_key(hma,keyBytes) == 0 )
+                        if ( write_map_attr_map_key(hma,keyBytes,keyType) == 0 )
                             throw new MemoryError();
                     }
-                    else
+                    else if ( key instanceof Double )
                     {
+                        curKeyType = hyperdatatype.HYPERDATATYPE_FLOAT;
+
                         byte[] keyBytes = java.nio.ByteBuffer.allocate(8).order(
                             java.nio.ByteOrder.LITTLE_ENDIAN).putDouble(
                             ((Double)key).doubleValue()).array();
 
-                        if ( write_map_attr_map_key(hma,keyBytes) == 0 )
-                            throw new MemoryError();
-                    }
-
-                    if ( val instanceof String )
-                    {
-                        if ( write_map_attr_value(hma,((String)val).getBytes()) == 0 )
-                            throw new MemoryError();
-                    }
-                    else if ( val instanceof Long )
-                    {
-                        byte[] valBytes = java.nio.ByteBuffer.allocate(8).order(
-                            java.nio.ByteOrder.LITTLE_ENDIAN).putLong(
-                            ((Long)val).longValue()).array();
-
-                        if ( write_map_attr_value(hma,valBytes) == 0 )
+                        if ( write_map_attr_map_key(hma,keyBytes,keyType) == 0 )
                             throw new MemoryError();
                     }
                     else
                     {
+                        throw new TypeError(
+                            "Do not know how to convert map key type '"
+                                + key.getClass().getName()
+                                + "' for map attribute '" + attrStr + "'");
+                    }
+
+                    if ( keyType != curKeyType
+                            && keyType != hyperdatatype.HYPERDATATYPE_GENERIC )
+                    (
+                        throw new TypeError(("In map attribute '" + attrStr
+                                     + "': cannot operate with heterogeneous map keys")
+                    )
+
+                    keyType = curKeyType;
+
+                    if ( val instanceof String )
+                    {
+                        curValType = hyperdatatype.HYPERDATATYPE_STRING;
+
+                        if ( write_map_attr_value(hma,((String)val).getBytes(),
+                                                                valType) == 0 )
+                            throw new MemoryError();
+                    }
+                    else if ( val instanceof Long )
+                    {
+                        curValType = hyperdatatype.HYPERDATATYPE_INT64;
+
+                        byte[] valBytes = java.nio.ByteBuffer.allocate(8).order(
+                            java.nio.ByteOrder.LITTLE_ENDIAN).putLong(
+                            ((Long)val).longValue()).array();
+
+                        if ( write_map_attr_value(hma,valBytes,valType) == 0 )
+                            throw new MemoryError();
+                    }
+                    else if ( val instanceof Double )
+                    {
+                        curValType = hyperdatatype.HYPERDATATYPE_FLOAT;
+
                         byte[] valBytes = java.nio.ByteBuffer.allocate(8).order(
                             java.nio.ByteOrder.LITTLE_ENDIAN).putDouble(
                             ((Double)val).doubleValue()).array();
 
-                        if ( write_map_attr_value(hma,valBytes) == 0 )
+                        if ( write_map_attr_value(hma,valBytes,valType) == 0 )
                             throw new MemoryError();
                     }
+                    else
+                    {
+                        throw new TypeError(
+                            "Do not know how to convert map value type '"
+                                + val.getClass().getName()
+                                + "' for map attribute '" + attrStr + "'");
+                    }
+
+                    if ( valType != curValType
+                            && valType != hyperdatatype.HYPERDATATYPE_GENERIC )
+                    (
+                        throw new TypeError(("In map attribute '" + attrStr
+                                     + "': cannot operate with heterogeneous map values")
+                    )
+
+                    valType = curValType;
 
                     i_bi = i_bi.add(java.math.BigInteger.ONE);
                 }
 
-                if ( type == hyperdatatype.HYPERDATATYPE_MAP_GENERIC )
+                if ( keyType == hyperdatatype.HYPERDATATYPE_GENERIC )
                     throw new TypeError(
                                       "In attribute '" + attrStr 
                                     + "':  cannot have an empty map operand");
@@ -961,50 +1009,50 @@
 
                 if ( operand instanceof String )
                 {
-                    hyperdatatype type = hyperdatatype.HYPERDATATYPE_MAP_STRING_KEYONLY;
+                    hyperdatatype keyType = hyperdatatype.HYPERDATATYPE_STRING;
 
-                    if ( write_map_attr_name(hma,attrStr.getBytes(),type) == 0 )
+                    if ( write_map_attr_name(hma,attrStr.getBytes()) == 0 )
                         throw new MemoryError();
 
-                    if ( write_map_attr_map_key(hma,((String)operand).getBytes()) == 0 )
+                    if ( write_map_attr_map_key(hma,((String)operand).getBytes(),
+                                                                    keyType) == 0 )
                         throw new MemoryError();
                 }
                 else if ( operand instanceof Long )
                 {
-                    hyperdatatype type = hyperdatatype.HYPERDATATYPE_MAP_INT64_KEYONLY;
+                    hyperdatatype keyType = hyperdatatype.HYPERDATATYPE_INT64;
 
-                    if ( write_map_attr_name(hma,attrStr.getBytes(),type) == 0 )
+                    if ( write_map_attr_name(hma,attrStr.getBytes()) == 0 )
                         throw new MemoryError();
 
                     byte[] operandBytes = java.nio.ByteBuffer.allocate(8).order(
                         java.nio.ByteOrder.LITTLE_ENDIAN).putLong(
                         ((Long)operand).longValue()).array();
 
-                    if ( write_map_attr_map_key(hma,operandBytes) == 0 )
+                    if ( write_map_attr_map_key(hma,operandBytes,keyType) == 0 )
                         throw new MemoryError();
                 }
                 else if ( operand instanceof Double )
                 {
-                    hyperdatatype type = hyperdatatype.HYPERDATATYPE_MAP_INT64_KEYONLY;
+                    hyperdatatype keyType = hyperdatatype.HYPERDATATYPE_FLOAT;
 
-                    if ( write_map_attr_name(hma,attrStr.getBytes(),type) == 0 )
+                    if ( write_map_attr_name(hma,attrStr.getBytes()) == 0 )
                         throw new MemoryError();
 
                     byte[] operandBytes = java.nio.ByteBuffer.allocate(8).order(
                         java.nio.ByteOrder.LITTLE_ENDIAN).putDouble(
                         ((Double)operand).doubleValue()).array();
 
-                    if ( write_map_attr_map_key(hma,operandBytes) == 0 )
+                    if ( write_map_attr_map_key(hma,operandBytes,keyType) == 0 )
                         throw new MemoryError();
                 }
                 else
                 {
-                    // It would be nice if hyperdex could handle a collection of 
-                    // Strings or Longs instead of just one String or one Long
-                    //
                     throw new TypeError( "In attribute '" + attrStr 
                                        + "': a non-map operand must be String, Long or Double");
                 }
+
+                hma.setValue_datatyte(hyperdatatype.HYPERDATATYPE_GENERIC);
 
                 i_bi = i_bi.add(java.math.BigInteger.ONE);
             }
