@@ -52,8 +52,8 @@ class HyperDexJSONBridge(object):
                      'set(int64)': lambda x: set(x),
                      'set(float)': lambda x: set(x)}
 
-    def __init__(self, addr, port):
-        self._client = hyperclient.Client(addr, port)
+    def __init__(self, host, port):
+        self._client = hyperclient.Client(host, port)
 
     def perform_action(self, action):
         if 'action' not in action:
