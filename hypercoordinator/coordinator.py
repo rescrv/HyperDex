@@ -231,7 +231,17 @@ class Coordinator(object):
         self._regenerate()
         # not waiting for ack, return state
         return self._dump_state()
-        
+
+    def count_servers(self):
+        return len(self._instances_by_token) - len(self._failed_instances)
+
+    def is_stable(self):
+        for inst in self._instances_by_id.values():
+            num, data = inst.next_config()
+            if num is not None:
+                return False
+        return True
+
     def get_status(self):
         # hand picked status for human/client consumption
         s = {}
@@ -699,6 +709,10 @@ class ControlConnection(object):
                     self.go_live()
                 elif r == 'backup-state':
                     self.backup_state()
+                elif r == 'count-servers':
+                    self.count_servers()
+                elif r == 'is-stable':
+                    self.is_stable()
                 else:
                     raise KillConnection("Control connection got invalid request {0}".format(r))
                     
@@ -783,6 +797,14 @@ class ControlConnection(object):
             return self._fail("Service level must be met before go live (need more daemons)")
         self.outgoing += json.dumps({self._currreq:'SUCCESS'}) + '\n'
         logging.info("go live request processed")
+
+    def count_servers(self):
+        count = self._coordinator.count_servers()
+        self.outgoing += json.dumps({self._currreq:count}) + '\n'
+
+    def is_stable(self):
+        stable = self._coordinator.is_stable()
+        self.outgoing += json.dumps({self._currreq:1 if stable else 0}) + '\n'
 
     def _fail(self, msg):
         error = 'failing control connection {0}: {1}'.format(self._id, msg)
