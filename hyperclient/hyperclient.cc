@@ -902,6 +902,7 @@ hyperclient :: prepare_searchop(const char* space,
                                 hyperdatatype* attrtype)
 {
     schema* sc = m_config->get_schema(space);
+    *s = hyperspacehashing::search(sc->attrs_sz);
 
     if (!sc)
     {
