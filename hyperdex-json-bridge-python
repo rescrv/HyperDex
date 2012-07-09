@@ -355,13 +355,17 @@ def main(argv):
             print('%i ops in %f seconds (%f ops/second)' % (ops, secs, opssec))
     except simplejson.decoder.JSONDecodeError as e:
         print('error on line %i:  %s' % (lineno, e), file=sys.stderr)
+        sys.exit(-1)
     except RuntimeError as e:
         print('error on line %i:  %s' % (lineno, e), file=sys.stderr)
+        sys.exit(-1)
 
 
 if __name__ == '__main__':
     try:
         sys.exit(main(sys.argv[1:]))
     except Exception as e:
-        print('uncaught exception: ', e)
+        import traceback
+        print('uncaught exception: ', e, file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
         sys.exit(-1)
