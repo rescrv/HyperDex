@@ -259,15 +259,43 @@ class HyperDexJSONBridge(object):
                 raise RuntimeError('value dict\'s \'type\' is invalid')
         return ret
 
+    def _to_predicate(self, predicatedict):
+        ret = {}
+        if not isinstance(predicatedict, dict):
+            raise RuntimeError('%r should be a predicate dict' % predicatedict)
+        for attrname, predicate in predicatedict.iteritems():
+            if not isinstance(attrname, bytes):
+                raise RuntimeError('predicate dict\'s keys should be bytes')
+            if not isinstance(predicate, dict):
+                raise RuntimeError('predicate dict\'s values should be dictionaries')
+            if set(predicate.keys()) not in (set(['equality']),):
+                raise RuntimeError('predicate dict\'s inner dictionaries must have \'equality\' key')
+            if 'equality' in predicate:
+                if set(predicate['equality'].keys()) != set(['type', 'value']):
+                    raise RuntimeError('predicate dict\'s equality predicate must have \'type\' and \'value\' as keys')
+                if predicate['equality']['type'] in HyperDexJSONBridge.VALUE_IDENTITY:
+                    ret[attrname] = predicate['equality']['value']
+                elif predicate['equality']['type'] in HyperDexJSONBridge.VALUE_CONVERT:
+                    ret[attrname] = HyperDexJSONBridge.VALUE_CONVERT[predicate['equality']['type']](predicate['equality']['value'])
+                else:
+                    raise RuntimeError('predicate dict\'s \'type\' is invalid')
+        return ret
+
 
 def main(argv):
     import argparse
     import time
     parser = argparse.ArgumentParser()
-    parser.add_argument('--host', default='127.0.0.1')
-    parser.add_argument('--port', type=int, default=1234)
-    parser.add_argument('--read', default=None)
-    parser.add_argument('--time', default=False, action='store_true')
+    parser.add_argument('--host', default='127.0.0.1', metavar='HOST',
+                        help='Address of the coordinator')
+    parser.add_argument('--port', type=int, default=1234, metavar='PORT',
+                        help='Port for the coordinator')
+    parser.add_argument('--read', default=None, metavar='FILE',
+                        help='The script to read from')
+    parser.add_argument('--no-time', default=False, action='store_false',
+                        help='Don\'t print statistics about running time')
+    parser.add_argument('--time', default=False, action='store_true',
+                        help='Print statistics about running time')
     args = parser.parse_args(argv)
     hdjb = HyperDexJSONBridge(args.host, args.port)
     json_source = None
