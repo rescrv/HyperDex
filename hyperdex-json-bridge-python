@@ -336,15 +336,20 @@ def main(argv):
     else:
         json_source = open(args.read)
     lineno = 1
+    comments = 0
     try:
         start = time.time()
         for line in json_source:
-            action = simplejson.loads(line[:-1])
-            hdjb.perform_action(action)
+            line = line.strip()
+            if not line.startswith('#') and len(line) > 0:
+                action = simplejson.loads(line)
+                hdjb.perform_action(action)
+            else:
+                comments += 1
             lineno += 1
         end = time.time()
         if args.time:
-            ops = lineno - 1
+            ops = lineno - comments - 1
             secs = end - start
             opssec = ops / secs
             print('%i ops in %f seconds (%f ops/second)' % (ops, secs, opssec))
