@@ -224,6 +224,7 @@ hyperspacehashing/utils/.deps/
 hyperspacehashing/utils/.dirstamp
 hyperspacehashing/utils/hyperspacehashing_utils_cfloat-cfloat.o
 hyperspacehashing/utils/.libs/
+hypertest/__init__.pyc
 install-sh
 libhyperclient-java.la
 libhyperclient.la
