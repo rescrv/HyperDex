@@ -354,6 +354,8 @@ hyperdex_daemon_SOURCES = \
 			datatypes/apply.cc \
 			datatypes/attribute.h \
 			datatypes/attribute.cc \
+			datatypes/checks.h \
+			datatypes/checks.cc \
 			datatypes/compare.h \
 			datatypes/compare.cc \
 			datatypes/float.h \
@@ -365,6 +367,8 @@ hyperdex_daemon_SOURCES = \
 			datatypes/map.h \
 			datatypes/map.cc \
 			datatypes/microerror.h \
+			datatypes/microcheck.h \
+			datatypes/microcheck.cc \
 			datatypes/microop.h \
 			datatypes/microop.cc \
 			datatypes/schema.h \
@@ -432,6 +436,9 @@ libhyperclient_la_SOURCES = \
 			datatypes/list.cc \
 			datatypes/map.cc \
 			datatypes/microaction.h \
+			datatypes/microcheck.h \
+			datatypes/microcheck.cc \
+			datatypes/microop.h \
 			datatypes/microop.cc \
 			datatypes/schema.cc \
 			datatypes/set.cc \

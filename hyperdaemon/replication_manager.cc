@@ -54,11 +54,13 @@
 
 // HyperDex
 #include "datatypes/apply.h"
+#include "datatypes/checks.h"
+#include "datatypes/microcheck.h"
 #include "datatypes/microop.h"
+#include "datatypes/validate.h"
 #include "hyperdex/hyperdex/coordinatorlink.h"
 #include "hyperdex/hyperdex/network_constants.h"
 #include "hyperdex/hyperdex/packing.h"
-#include "datatypes/validate.h"
 #include "hyperdaemon/datalayer.h"
 #include "hyperdaemon/logical.h"
 #include "hyperdaemon/ongoing_state_transfers.h"
@@ -170,160 +172,21 @@ hyperdaemon :: replication_manager :: shutdown()
     m_shutdown = true;
 }
 
-static bool
-unpack_attributes(const std::vector<std::pair<uint16_t, e::slice> >& value,
-                  const schema* sc,
-                  e::bitfield *bf,
-                  std::vector<e::slice> *realvalue)
-{
-    using namespace hyperdaemon;
-
-    for (size_t i = 0; i < value.size(); ++i)
-    {
-        if (value[i].first == 0 || value[i].first >= sc->attrs_sz)
-        {
-            return false;
-        }
-
-        if (!validate_as_type(value[i].second, sc->attrs[value[i].first].type))
-        {
-            return false;
-        }
-
-        (*realvalue)[value[i].first - 1] = value[i].second;
-        (*bf).set(value[i].first - 1);
-    }
-    return true;
-}
-
 void
-hyperdaemon :: replication_manager :: client_put(const hyperdex::entityid& from,
-                                                 const hyperdex::entityid& to,
-                                                 uint64_t nonce,
-                                                 std::auto_ptr<e::buffer> backing,
-                                                 const e::slice& key,
-                                                 const std::vector<std::pair<uint16_t, e::slice> >& value)
-{
-    // Fail as read only if we are quiescing. 
-    if (m_quiesce)
-    {
-        respond_to_client(to, from, nonce,
-                          hyperdex::RESP_PUT,
-                          hyperdex::NET_READONLY);
-        return;
-    }
-
-    schema* sc = m_config.get_schema(to.get_space());
-    assert(sc);
-    e::bitfield bf(sc->attrs_sz - 1);
-    std::vector<e::slice> realvalue(sc->attrs_sz - 1);
-    e::bitfield condbf(sc->attrs_sz - 1);
-    std::vector<e::slice> condvalue(sc->attrs_sz - 1);
-
-    if (!validate_as_type(key, sc->attrs[0].type))
-    {
-        respond_to_client(to, from, nonce,
-                          hyperdex::RESP_PUT,
-                          hyperdex::NET_BADDIMSPEC);
-        return;
-    }
-
-    if (!unpack_attributes(value, sc, &bf, &realvalue))
-    {
-        respond_to_client(to, from, nonce,
-                          hyperdex::RESP_PUT,
-                          hyperdex::NET_BADDIMSPEC);
-        return;
-    }
-
-    client_common(hyperdex::RESP_PUT, true, from, to, nonce, backing, key, condbf, condvalue, bf, realvalue);
-}
-
-void
-hyperdaemon :: replication_manager :: client_condput(const hyperdex::entityid& from,
-                                                     const hyperdex::entityid& to,
-                                                     uint64_t nonce,
-                                                     std::auto_ptr<e::buffer> backing,
-                                                     const e::slice& key,
-                                                     const std::vector<std::pair<uint16_t, e::slice> >& condfields,
-                                                     const std::vector<std::pair<uint16_t, e::slice> >& value)
-{
-    // Fail as read only if we are quiescing.
-    if (m_quiesce)
-    {
-        respond_to_client(to, from, nonce,
-                          hyperdex::RESP_PUT,
-                          hyperdex::NET_READONLY);
-        return;
-    }
-
-    schema* sc = m_config.get_schema(to.get_space());
-    assert(sc);
-    e::bitfield condbf(sc->attrs_sz - 1);
-    std::vector<e::slice> condvalue(sc->attrs_sz - 1);
-    e::bitfield bf(sc->attrs_sz - 1);
-    std::vector<e::slice> realvalue(sc->attrs_sz - 1);
-
-    if (!validate_as_type(key, sc->attrs[0].type))
-    {
-        respond_to_client(to, from, nonce,
-                          hyperdex::RESP_CONDPUT,
-                          hyperdex::NET_BADDIMSPEC);
-        return;
-    }
-
-    if (!unpack_attributes(condfields, sc, &condbf, &condvalue) ||
-        !unpack_attributes(value, sc, &bf, &realvalue))
-    {
-        respond_to_client(to, from, nonce,
-                          hyperdex::RESP_CONDPUT,
-                          hyperdex::NET_BADDIMSPEC);
-        return;
-    }
-
-    client_common(hyperdex::RESP_CONDPUT, true, from, to, nonce, backing, key, condbf, condvalue, bf, realvalue);
-}
-
-void
-hyperdaemon :: replication_manager :: client_del(const entityid& from,
-                                                 const entityid& to,
-                                                 uint64_t nonce,
-                                                 std::auto_ptr<e::buffer> backing,
-                                                 const e::slice& key)
-{
-    // Fail as read only if we are quiescing.
-    if (m_quiesce)
-    {
-        respond_to_client(to, from, nonce,
-                          hyperdex::RESP_DEL,
-                          hyperdex::NET_READONLY);
-        return;
-    }
-
-    schema* sc = m_config.get_schema(to.get_space());
-    assert(sc);
-    e::bitfield b(sc->attrs_sz - 1);
-    std::vector<e::slice> v(sc->attrs_sz - 1);
-    e::bitfield condbf(sc->attrs_sz - 1);
-    std::vector<e::slice> condvalue(sc->attrs_sz - 1);
-
-    client_common(hyperdex::RESP_DEL, false, from, to, nonce, backing, key, condbf, condvalue, b, v);
-}
-
-void
-hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& from,
+hyperdaemon :: replication_manager :: client_atomic(const hyperdex::network_msgtype opcode,
+                                                    const hyperdex::entityid& from,
                                                     const hyperdex::entityid& to,
                                                     uint64_t nonce,
-                                                    std::auto_ptr<e::buffer> /*backing*/,
+                                                    std::auto_ptr<e::buffer> backing,
+                                                    bool fail_if_not_found,
                                                     const e::slice& key,
+                                                    std::vector<microcheck>* checks,
                                                     std::vector<microop>* ops)
 {
     // Fail as read only if we are quiescing.
     if (m_quiesce)
     {
-        respond_to_client(to, from, nonce,
-                          hyperdex::RESP_ATOMIC,
-                          hyperdex::NET_READONLY);
+        respond_to_client(to, from, nonce, opcode, hyperdex::NET_READONLY);
         return;
     }
 
@@ -332,23 +195,19 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
 
     if (!validate_as_type(key, sc->attrs[0].type))
     {
-        respond_to_client(to, from, nonce,
-                          hyperdex::RESP_ATOMIC,
-                          hyperdex::NET_BADDIMSPEC);
+        respond_to_client(to, from, nonce, opcode, hyperdex::NET_BADDIMSPEC);
         return;
     }
-
-    clientop co(to.get_region(), from, nonce);
 
     // Make sure this message is to the point-leader.
     if (!m_config.is_point_leader(to))
     {
-        respond_to_client(to, from, nonce, hyperdex::RESP_ATOMIC, hyperdex::NET_NOTUS);
+        respond_to_client(to, from, nonce, opcode, hyperdex::NET_NOTUS);
         return;
     }
 
     // Automatically respond with "SERVERERROR" whenever we return without g.dismiss()
-    e::guard g = e::makeobjguard(*this, &replication_manager::respond_to_client, to, from, nonce, hyperdex::RESP_ATOMIC, hyperdex::NET_SERVERERROR);
+    e::guard g = e::makeobjguard(*this, &replication_manager::respond_to_client, to, from, nonce, opcode, hyperdex::NET_SERVERERROR);
 
     // Grab the lock that protects this key.
     HOLD_LOCK_FOR_KEY(to, key);
@@ -378,32 +237,34 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
         return;
     }
 
+    bool fresh = false;
+
     // We allow "atomic" if and only if it already exists.
-    if (!has_old_value)
+    if (!has_old_value && fail_if_not_found)
     {
         // an atomic increment on an object that does not exist should fail
-        respond_to_client(to, from, nonce, hyperdex::RESP_ATOMIC, hyperdex::NET_NOTFOUND);
+        respond_to_client(to, from, nonce, opcode, hyperdex::NET_NOTFOUND);
         g.dismiss();
+        return;
+    }
+    else if (!has_old_value)
+    {
+        fresh = true;
+    }
+
+    if (old_value.size() != 0 && old_value.size() + 1 != sc->attrs_sz)
+    {
+        // XXX the object is corrupt
         return;
     }
 
-    // If the atomic op does nothing, just act as if it was successful.
-    if (ops->empty())
-    {
-        respond_to_client(to, from, nonce,
-                          hyperdex::RESP_ATOMIC,
-                          hyperdex::NET_SUCCESS);
-        g.dismiss();
-        return;
-    }
+    old_value.resize(sc->attrs_sz - 1);
 
     // We make an unvalidated assumption that the ops array is sorted.  We will
     // validate this at a later point.
-    if (ops->front().attr <= 0 || ops->back().attr >= sc->attrs_sz)
+    if (!ops->empty() && (ops->front().attr <= 0 || ops->back().attr >= sc->attrs_sz))
     {
-        respond_to_client(to, from, nonce,
-                          hyperdex::RESP_ATOMIC,
-                          hyperdex::NET_BADDIMSPEC);
+        respond_to_client(to, from, nonce, opcode, hyperdex::NET_BADDIMSPEC);
         g.dismiss();
         return;
     }
@@ -437,9 +298,28 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
     memmove(data, key.data(), key.size());
     data += key.size();
 
+    // Run all checks over the data
+    for (size_t i = 0; i < checks->size(); ++i)
+    {
+        if ((*checks)[i].attr < 0 || (*checks)[i].attr >= sc->attrs_sz)
+        {
+            respond_to_client(to, from, nonce, opcode, hyperdex::NET_BADMICROS);
+            g.dismiss();
+            return;
+        }
+
+        if (!perform_microchecks(sc->attrs[(*checks)[i].attr - 1].type, (*checks)[i],
+                                 old_value[(*checks)[i].attr - 1]))
+        {
+            respond_to_client(to, from, nonce, opcode, hyperdex::NET_CMPFAIL);
+            g.dismiss();
+            return;
+        }
+    }
+
     // Divide the micro ops up by attribute
-    microop* op = &ops->front();
-    const microop* const stop = &ops->front() + ops->size();
+    microop* op = ops->empty() ? NULL : &ops->front();
+    const microop* const stop = op + ops->size();
     // the next attribute to copy, indexed based on the total number of
     // dimensions.  It starts at 1, because the key is 0, and 1 is the first
     // secondary attribute.
@@ -453,7 +333,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
         if (op->attr < next_to_copy || op->attr >= sc->attrs_sz)
         {
             // Fail it for bad micro ops
-            respond_to_client(to, from, nonce, hyperdex::RESP_ATOMIC, hyperdex::NET_BADMICROS);
+            respond_to_client(to, from, nonce, opcode, hyperdex::NET_BADMICROS);
             g.dismiss();
             return;
         }
@@ -467,7 +347,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
                 end->action == OP_FAIL)
             {
                 // Fail it for bad micro ops
-                respond_to_client(to, from, nonce, hyperdex::RESP_ATOMIC, hyperdex::NET_BADMICROS);
+                respond_to_client(to, from, nonce, opcode, hyperdex::NET_BADMICROS);
                 g.dismiss();
                 return;
             }
@@ -518,7 +398,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
             }
 
             // Fail it for bad micro ops
-            respond_to_client(to, from, nonce, hyperdex::RESP_ATOMIC, rc);
+            respond_to_client(to, from, nonce, opcode, rc);
             g.dismiss();
             return;
         }
@@ -548,14 +428,104 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::entityid& fr
     }
 
     e::intrusive_ptr<pending> new_pend;
-    new_pend = new pending(true, new_backing, key, new_value, co);
-    new_pend->retcode = hyperdex::RESP_ATOMIC;
+    new_pend = new pending(true, new_backing, key, new_value, clientop(to.get_region(), from, nonce));
+    new_pend->retcode = opcode;
     new_pend->ref = ref;
     new_pend->key = new_key;
+    new_pend->fresh = fresh;
 
     if (!prev_and_next(to.get_region(), new_pend->key, true, new_pend->value, has_old_value, old_value, new_pend))
     {
-        respond_to_client(to, from, nonce, hyperdex::RESP_ATOMIC, hyperdex::NET_NOTUS);
+        respond_to_client(to, from, nonce, opcode, hyperdex::NET_NOTUS);
+        g.dismiss();
+        return;
+    }
+
+    assert(!kh->has_deferred_ops());
+    kh->append_blocked(old_version + 1, new_pend);
+    move_operations_between_queues(to, key, kh);
+    g.dismiss();
+}
+
+void
+hyperdaemon :: replication_manager :: client_del(const hyperdex::network_msgtype opcode,
+                                                 const hyperdex::entityid& from,
+                                                 const hyperdex::entityid& to,
+                                                 uint64_t nonce,
+                                                 std::auto_ptr<e::buffer> backing,
+                                                 const e::slice& key,
+                                                 std::vector<microcheck>* checks)
+{
+    // Fail as read only if we are quiescing.
+    if (m_quiesce)
+    {
+        respond_to_client(to, from, nonce, hyperdex::RESP_DEL, hyperdex::NET_READONLY);
+        return;
+    }
+
+    schema* sc = m_config.get_schema(to.get_space());
+    assert(sc);
+
+    if (!validate_as_type(key, sc->attrs[0].type))
+    {
+        respond_to_client(to, from, nonce, opcode, hyperdex::NET_BADDIMSPEC);
+        return;
+    }
+
+    // Make sure this message is to the point-leader.
+    if (!m_config.is_point_leader(to))
+    {
+        respond_to_client(to, from, nonce, hyperdex::RESP_DEL, hyperdex::NET_NOTUS);
+        return;
+    }
+
+    // Automatically respond with "SERVERERROR" whenever we return without g.dismiss()
+    e::guard g = e::makeobjguard(*this, &replication_manager::respond_to_client, to, from, nonce, hyperdex::RESP_DEL, hyperdex::NET_SERVERERROR);
+
+    // Grab the lock that protects this key.
+    HOLD_LOCK_FOR_KEY(to, key);
+    // Get the keyholder for this key.
+    e::intrusive_ptr<keyholder> kh = get_keyholder(to.get_region(), key);
+
+    // Find the pending or committed version with the largest number.
+    uint64_t old_version = 0;
+    bool has_old_value = false;
+    std::vector<e::slice> old_value;
+    hyperdisk::reference ref;
+
+    if (kh->has_blocked_ops())
+    {
+        old_version = kh->most_recent_blocked_version();
+        has_old_value = kh->most_recent_blocked_op()->has_value;
+        old_value = kh->most_recent_blocked_op()->value;
+    }
+    else if (kh->has_committable_ops())
+    {
+        old_version = kh->most_recent_committable_version();
+        has_old_value = kh->most_recent_committable_op()->has_value;
+        old_value = kh->most_recent_committable_op()->value;
+    }
+    else if (!from_disk(to.get_region(), key, &has_old_value, &old_value, &old_version, &ref))
+    {
+        return;
+    }
+
+    if (!has_old_value)
+    {
+        respond_to_client(to, from, nonce, hyperdex::RESP_DEL, hyperdex::NET_NOTFOUND);
+        g.dismiss();
+        return;
+    }
+
+    e::intrusive_ptr<pending> new_pend;
+    std::tr1::shared_ptr<e::buffer> sharedbacking(backing.release());
+    new_pend = new pending(false, sharedbacking, key, old_value, clientop(to.get_region(), from, nonce));
+    new_pend->retcode = hyperdex::RESP_DEL;
+    new_pend->ref = ref;
+
+    if (!prev_and_next(to.get_region(), new_pend->key, false, new_pend->value, has_old_value, old_value, new_pend))
+    {
+        respond_to_client(to, from, nonce, hyperdex::RESP_DEL, hyperdex::NET_NOTUS);
         g.dismiss();
         return;
     }
@@ -741,162 +711,6 @@ hyperdaemon :: replication_manager :: chain_ack(const entityid& from,
     {
         erase_keyholder(to.get_region(), key);
     }
-}
-
-void
-hyperdaemon :: replication_manager :: client_common(const hyperdex::network_msgtype opcode,
-                                                    const bool has_value,
-                                                    const entityid& from,
-                                                    const entityid& to,
-                                                    uint64_t nonce,
-                                                    std::auto_ptr<e::buffer> backing,
-                                                    const e::slice& key,
-                                                    const e::bitfield& condvalue_mask,
-                                                    const std::vector<e::slice>& condvalue,
-                                                    const e::bitfield& value_mask,
-                                                    const std::vector<e::slice>& value)
-{
-    clientop co(to.get_region(), from, nonce);
-    hyperdex::network_msgtype retcode = opcode;
-
-    // Make sure this message is to the point-leader.
-    if (!m_config.is_point_leader(to))
-    {
-        respond_to_client(to, from, nonce, retcode, hyperdex::NET_NOTUS);
-        return;
-    }
-
-    // Automatically respond with "SERVERERROR" whenever we return without g.dismiss()
-    e::guard g = e::makeobjguard(*this, &replication_manager::respond_to_client, to, from, nonce, retcode, hyperdex::NET_SERVERERROR);
-
-    // Grab the lock that protects this key.
-    HOLD_LOCK_FOR_KEY(to, key);
-    // Get the keyholder for this key.
-    e::intrusive_ptr<keyholder> kh = get_keyholder(to.get_region(), key);
-
-    // Find the pending or committed version with the largest number.
-    uint64_t old_version = 0;
-    bool has_old_value = false;
-    std::vector<e::slice> old_value;
-    hyperdisk::reference ref;
-
-    if (kh->has_blocked_ops())
-    {
-        old_version = kh->most_recent_blocked_version();
-        has_old_value = kh->most_recent_blocked_op()->has_value;
-        old_value = kh->most_recent_blocked_op()->value;
-    }
-    else if (kh->has_committable_ops())
-    {
-        old_version = kh->most_recent_committable_version();
-        has_old_value = kh->most_recent_committable_op()->has_value;
-        old_value = kh->most_recent_committable_op()->value;
-    }
-    else if (!from_disk(to.get_region(), key, &has_old_value, &old_value, &old_version, &ref))
-    {
-        return;
-    }
-
-    e::intrusive_ptr<pending> new_pend;
-    std::tr1::shared_ptr<e::buffer> sharedbacking(backing.release());
-    new_pend = new pending(has_value, sharedbacking, key, value, co);
-    new_pend->retcode = retcode;
-    new_pend->ref = ref;
-
-    if (!has_value && !has_old_value)
-    {
-        respond_to_client(to, from, nonce, retcode, hyperdex::NET_NOTFOUND);
-        g.dismiss();
-        return;
-    }
-
-    if (has_value && !has_old_value)
-    {
-        if (opcode == hyperdex::RESP_CONDPUT)
-        {
-            // a conditional put or atomic inc/dec on an object that does not exist should fail
-            respond_to_client(to, from, nonce, retcode, hyperdex::NET_NOTFOUND);
-            g.dismiss();
-            return;
-        }
-
-        new_pend->fresh = true;
-    }
-
-    std::tr1::shared_ptr<e::buffer> old_backing = new_pend->backing;
-
-    if (has_value && has_old_value)
-    {
-        size_t need_moar = 0;
-
-        for (size_t i = 0; i < value.size(); ++i)
-        {
-            if (!value_mask.get(i))
-            {
-                need_moar += old_value[i].size();
-            }
-        }
-
-        if (need_moar)
-        {
-#define REBASE(X) \
-            ((X) - new_pend->backing->data() + new_backing->data())
-            std::tr1::shared_ptr<e::buffer> new_backing(e::buffer::create(new_pend->backing->size() + need_moar));
-            new_backing->resize(new_pend->backing->size() + need_moar);
-            memmove(new_backing->data(), new_pend->backing->data(), new_pend->backing->size());
-            e::slice oldkey = new_pend->key;
-            new_pend->key = e::slice(REBASE(new_pend->key.data()), new_pend->key.size());
-            assert(oldkey == new_pend->key);
-            size_t curdata = new_pend->backing->size();
-
-            for (size_t i = 0; i < value.size(); ++i)
-            {
-                if (value_mask.get(i))
-                {
-                    e::slice oldslice = new_pend->value[i];
-                    new_pend->value[i] = e::slice(REBASE(new_pend->value[i].data()), new_pend->value[i].size());
-                    assert(oldslice == new_pend->value[i]);
-                }
-                else
-                {
-                    e::slice oldslice = old_value[i];
-                    memmove(new_backing->data() + curdata, old_value[i].data(), old_value[i].size());
-                    new_pend->value[i] = e::slice(new_backing->data() + curdata, old_value[i].size());
-                    curdata += old_value[i].size();
-                    assert(oldslice == new_pend->value[i]);
-                }
-            }
-
-            assert(curdata == new_pend->backing->size() + need_moar);
-            new_pend->backing = new_backing;
-        }
-
-        if (opcode == hyperdex::RESP_CONDPUT)
-        {
-          for (size_t i = 0; i < condvalue.size(); ++i)
-          {
-              if (condvalue_mask.get(i) && (old_value[i] != condvalue[i]))
-              {
-                // cond value mismatch, put operation should fail
-                respond_to_client(to, from, nonce, retcode, hyperdex::NET_CMPFAIL);
-                g.dismiss();
-                return;
-              }
-          }
-        }
-    }
-
-    if (!prev_and_next(to.get_region(), new_pend->key, has_value, new_pend->value, has_old_value, old_value, new_pend))
-    {
-        respond_to_client(to, from, nonce, retcode, hyperdex::NET_NOTUS);
-        g.dismiss();
-        return;
-    }
-
-    assert(!kh->has_deferred_ops());
-    kh->append_blocked(old_version + 1, new_pend);
-    move_operations_between_queues(to, key, kh);
-    g.dismiss();
 }
 
 void

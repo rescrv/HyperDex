@@ -19,11 +19,13 @@ daemon.o
 datatypes/.dirstamp
 datatypes/hyperdex_daemon-apply.o
 datatypes/hyperdex_daemon-attribute.o
+datatypes/hyperdex_daemon-checks.o
 datatypes/hyperdex_daemon-compare.o
 datatypes/hyperdex_daemon-float.o
 datatypes/hyperdex_daemon-int64.o
 datatypes/hyperdex_daemon-list.o
 datatypes/hyperdex_daemon-map.o
+datatypes/hyperdex_daemon-microcheck.o
 datatypes/hyperdex_daemon-microop.o
 datatypes/hyperdex_daemon-schema.o
 datatypes/hyperdex_daemon-set.o
@@ -45,6 +47,8 @@ datatypes/libhyperclient_la-list.lo
 datatypes/libhyperclient_la-list.o
 datatypes/libhyperclient_la-map.lo
 datatypes/libhyperclient_la-map.o
+datatypes/libhyperclient_la-microcheck.lo
+datatypes/libhyperclient_la-microcheck.o
 datatypes/libhyperclient_la-microop.lo
 datatypes/libhyperclient_la-microop.o
 datatypes/libhyperclient_la-schema.lo
@@ -114,6 +118,7 @@ hyperclient/python/hyperclient.la
 hyperclient/python/hyperclient_python_hyperclient_la-hyperclient.lo
 hyperclient/python/hyperclient_python_hyperclient_la-hyperclient.o
 hyperclient-ycsb-0.5.dev.jar
+hypercoordinator/client.pyc
 hypercoordinator/coordinator.pyc
 hypercoordinator/hdjson.pyc
 hypercoordinator/hdtypes.pyc

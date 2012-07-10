@@ -64,6 +64,7 @@ namespace e
 class bitfield;
 } // namespace e
 class busybee_st;
+class schema;
 namespace hyperspacehashing
 {
 class search;
@@ -835,7 +836,7 @@ class hyperclient
                           e::intrusive_ptr<pending> op);
         int64_t prepare_microop1(bool (*check)(hyperdatatype expected, hyperdatatype provided,
                                                const e::slice& value),
-                                 int action, const char* space,
+                                 int reqtype, int resptype, int action, const char* space,
                                  const char* key, size_t key_sz,
                                  const struct hyperclient_attribute* attrs, size_t attrs_sz,
                                  hyperclient_returncode* status);
@@ -860,39 +861,7 @@ class hyperclient
         int64_t send(e::intrusive_ptr<pending> op,
                      std::auto_ptr<e::buffer> msg);
         void killall(const po6::net::location& loc, hyperclient_returncode status);
-        int64_t pack_attributes(class schema* sc, size_t sz,
-                                const hyperclient_attribute* condattrs, size_t condattrs_sz, bool packcondattrs,
-                                const hyperclient_attribute* attrs, size_t attrs_sz,
-                                hyperclient_returncode* status, std::auto_ptr<e::buffer>* msg);
         uint16_t validate_attribute(schema* sc, const hyperclient_attribute* attr, hyperclient_returncode* status);
-#if 0
-int
-hyperclient :: validate_attr(hyperdatatype (*coerce_datatype)(hyperdatatype e, hyperdatatype p),
-                             const std::vector<hyperdex::attribute>& dimension_names,
-                             e::bitfield* dimensions_seen,
-                             const char* attr,
-                             hyperdatatype* type,
-                             hyperclient_returncode* status)
-        int64_t pack_attrs(const char* space,
-                           e::buffer::packer* p,
-                           const struct hyperclient_attribute* attrs,
-                           size_t attrs_sz,
-                           hyperclient_returncode* status);
-        size_t pack_attrs_sz(const struct hyperclient_attribute* attrs,
-                             size_t attrs_sz);
-        int64_t map_attributes_to_microops(hyperdatatype (*coerce_datatype)(hyperdatatype e, hyperdatatype p),
-                                           int action, const char* space,
-                                           const char* key, size_t key_sz,
-                                           const struct hyperclient_map_attribute* attrs,
-                                           size_t attrs_sz,
-                                           hyperclient_returncode* status);
-        int validate_attr(hyperdatatype (*coerce_datatype)(hyperdatatype e, hyperdatatype p),
-                          const std::vector<hyperdex::attribute>& dimensions,
-                          e::bitfield* dimensions_seen,
-                          const char* attr,
-                          hyperdatatype* type,
-                          hyperclient_returncode* status);
-#endif
 
     private:
         const std::auto_ptr<hyperdex::coordinatorlink> m_coord;

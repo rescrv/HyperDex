@@ -101,6 +101,11 @@ container_map_value_string(hyperdatatype expected,
 
 bool
 container_implicit_coercion(hyperdatatype expected,
+                            hyperdatatype provided,
+                            const e::slice& value);
+
+bool
+container_implicit_coercion(hyperdatatype expected,
                             hyperdatatype provided);
 
 #endif // datatypes_coercion_h_

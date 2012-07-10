@@ -40,6 +40,7 @@
 #include "hyperdisk/hyperdisk/reference.h"
 
 // HyperDex
+#include "datatypes/microcheck.h"
 #include "datatypes/microop.h"
 #include "hyperdex/hyperdex/network_constants.h"
 #include "hyperdex/hyperdex/packing.h"
@@ -156,18 +157,10 @@ hyperdaemon :: network_worker :: run()
         }
         else if (type == hyperdex::REQ_PUT)
         {
-            uint32_t attrs_sz;
             e::slice key;
-            std::vector<std::pair<uint16_t, e::slice> > attrs;
-            up = up >> nonce >> key >> attrs_sz;
-
-            for (uint32_t i = 0; i < attrs_sz; ++i)
-            {
-                uint16_t dimnum;
-                e::slice val;
-                up = up >> dimnum >> val;
-                attrs.push_back(std::make_pair(dimnum, val));
-            }
+            std::vector<microcheck> checks;
+            std::vector<microop> ops;
+            up = up >> nonce >> key >> ops;
 
             if (up.error())
             {
@@ -175,34 +168,15 @@ hyperdaemon :: network_worker :: run()
                 continue;
             }
 
-            m_repl->client_put(from, to, nonce, msg, key, attrs);
+            m_repl->client_atomic(hyperdex::RESP_PUT, from, to, nonce, msg,
+                                  false, key, &checks, &ops);
         }
         else if (type == hyperdex::REQ_CONDPUT)
         {
-            uint32_t cond_sz;
-            uint32_t attrs_sz;
             e::slice key;
-            std::vector<std::pair<uint16_t, e::slice> > condattrs;
-            std::vector<std::pair<uint16_t, e::slice> > attrs;
-            up = up >> nonce >> key >> cond_sz;
-
-            for (uint32_t i = 0; i < cond_sz; ++i)
-            {
-                uint16_t dimnum;
-                e::slice val;
-                up = up >> dimnum >> val;
-                condattrs.push_back(std::make_pair(dimnum, val));
-            }
-
-            up = up >> attrs_sz;
-
-            for (uint32_t i = 0; i < attrs_sz; ++i)
-            {
-                uint16_t dimnum;
-                e::slice val;
-                up = up >> dimnum >> val;
-                attrs.push_back(std::make_pair(dimnum, val));
-            }
+            std::vector<microcheck> checks;
+            std::vector<microop> ops;
+            up = up >> nonce >> key >> checks >> ops;
 
             if (up.error())
             {
@@ -210,11 +184,13 @@ hyperdaemon :: network_worker :: run()
                 continue;
             }
 
-            m_repl->client_condput(from, to, nonce, msg, key, condattrs, attrs);
+            m_repl->client_atomic(hyperdex::RESP_CONDPUT, from, to, nonce, msg,
+                                  true, key, &checks, &ops);
         }
         else if (type == hyperdex::REQ_DEL)
         {
             e::slice key;
+            std::vector<microcheck> checks;
             up = up >> nonce >> key;
 
             if (up.error())
@@ -223,22 +199,15 @@ hyperdaemon :: network_worker :: run()
                 continue;
             }
 
-            m_repl->client_del(from, to, nonce, msg, key);
+            m_repl->client_del(hyperdex::RESP_DEL, from, to, nonce, msg,
+                               key, &checks);
         }
         else if (type == hyperdex::REQ_ATOMIC)
         {
-            uint32_t num_microops;
             e::slice key;
-            std::vector<microop> microops;
-            up = up >> nonce >> key >> num_microops;
-            microops.reserve(num_microops);
-
-            for (uint32_t i = 0; i < num_microops; ++i)
-            {
-                microop o;
-                up = up >> o;
-                microops.push_back(o);
-            }
+            std::vector<microcheck> checks;
+            std::vector<microop> ops;
+            up = up >> nonce >> key >> ops;
 
             if (up.error())
             {
@@ -246,7 +215,8 @@ hyperdaemon :: network_worker :: run()
                 continue;
             }
 
-            m_repl->client_atomic(from, to, nonce, msg, key, &microops);
+            m_repl->client_atomic(hyperdex::RESP_ATOMIC, from, to, nonce, msg,
+                                  true, key, &checks, &ops);
         }
         else if (type == hyperdex::REQ_SEARCH_START)
         {

@@ -175,3 +175,16 @@ container_implicit_coercion(hyperdatatype expected,
            (PRIMITIVE2_MASK(expected) == PRIMITIVE2_MASK(provided) ||
             PRIMITIVE2_MASK(provided) == HYPERDATATYPE_GENERIC);
 }
+
+bool
+container_implicit_coercion(hyperdatatype expected,
+                            hyperdatatype provided,
+                            const e::slice& value)
+{
+    return CONTAINER_MASK(expected) == CONTAINER_MASK(provided) &&
+           (PRIMITIVE1_MASK(expected) == PRIMITIVE1_MASK(provided) ||
+            PRIMITIVE1_MASK(provided) == HYPERDATATYPE_GENERIC) &&
+           (PRIMITIVE2_MASK(expected) == PRIMITIVE2_MASK(provided) ||
+            PRIMITIVE2_MASK(provided) == HYPERDATATYPE_GENERIC) &&
+           validate_as_type(value, expected);
+}
