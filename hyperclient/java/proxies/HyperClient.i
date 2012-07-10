@@ -898,6 +898,8 @@
                                    "In attribute '" + attrStr 
                                  + "': A non-empty map cannot have a null value entry");
 
+                    hyperclient_map_attribute hma = get_map_attr(attrs,i_bi.longValue());
+
                     if ( write_map_attr_name(hma,attrStr.getBytes()) == 0 )
                         throw new MemoryError();
 
@@ -941,10 +943,10 @@
 
                     if ( keyType != curKeyType
                             && keyType != hyperdatatype.HYPERDATATYPE_GENERIC )
-                    (
-                        throw new TypeError(("In map attribute '" + attrStr
-                                     + "': cannot operate with heterogeneous map keys")
-                    )
+                    {
+                        throw new TypeError("In map attribute '" + attrStr
+                                     + "': cannot operate with heterogeneous map keys");
+                    }
 
                     keyType = curKeyType;
 
@@ -988,10 +990,10 @@
 
                     if ( valType != curValType
                             && valType != hyperdatatype.HYPERDATATYPE_GENERIC )
-                    (
-                        throw new TypeError(("In map attribute '" + attrStr
-                                     + "': cannot operate with heterogeneous map values")
-                    )
+                    {
+                        throw new TypeError("In map attribute '" + attrStr
+                                     + "': cannot operate with heterogeneous map values");
+                    }
 
                     valType = curValType;
 
@@ -1052,7 +1054,7 @@
                                        + "': a non-map operand must be String, Long or Double");
                 }
 
-                hma.setValue_datatyte(hyperdatatype.HYPERDATATYPE_GENERIC);
+                hma.setValue_datatype(hyperdatatype.HYPERDATATYPE_GENERIC);
 
                 i_bi = i_bi.add(java.math.BigInteger.ONE);
             }
