@@ -315,7 +315,7 @@ cdef _obj_to_backing(v):
                 innerxtype = HYPERDATATYPE_INT64
                 innerxbacking = struct.pack('<q', x)
             elif isinstance(x, float):
-                innerxtype = HYPERDATATYPE_SET_FLOAT
+                innerxtype = HYPERDATATYPE_FLOAT
                 innerxbacking = struct.pack('<d', x)
             else:
                 raise TypeError("Cannot store heterogeneous sets")
@@ -326,7 +326,7 @@ cdef _obj_to_backing(v):
                 innerytype = HYPERDATATYPE_INT64
                 innerybacking = struct.pack('<q', y)
             elif isinstance(y, float):
-                innerxtype = HYPERDATATYPE_SET_FLOAT
+                innerxtype = HYPERDATATYPE_FLOAT
                 innerxbacking = struct.pack('<d', y)
             else:
                 raise TypeError("Cannot store heterogeneous sets")
