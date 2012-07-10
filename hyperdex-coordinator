@@ -1,3 +1,4 @@
-#!/bin/sh
-
-python -m hypercoordinator.coordinator $@
+#!/usr/bin/env python
+import sys
+import hypercoordinator.coordinator
+hypercoordinator.coordinator.main(sys.argv[1:])

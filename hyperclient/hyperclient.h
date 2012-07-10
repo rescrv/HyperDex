@@ -132,7 +132,6 @@ enum hyperclient_returncode
     HYPERCLIENT_DONTUSEKEY   = 8524,
     HYPERCLIENT_WRONGTYPE    = 8525,
     HYPERCLIENT_NOMEM        = 8526,
-    HYPERCLIENT_TYPEMISMATCH = 8527,
 
     /* This should never happen.  It indicates a bug */
     HYPERCLIENT_EXCEPTION    = 8574,

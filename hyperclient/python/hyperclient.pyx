@@ -219,7 +219,10 @@ class HyperClientException(Exception):
                   }.get(status, 'BUG')
 
     def status(self):
-       return self._status
+        return self._status
+
+    def symbol(self):
+        return self._e
 
     def __str__(self):
         return 'HyperClient(%s, %s)' % (self._e, self._s)
@@ -672,6 +675,64 @@ cdef _attrs_to_dict(hyperclient_attribute* attrs, size_t attrs_sz):
     return ret
 
 
+cdef _check_reqid(int64_t reqid, hyperclient_returncode status):
+    if reqid < 0:
+        raise HyperClientException(status)
+
+
+cdef _check_reqid_key_attrs(int64_t reqid, hyperclient_returncode status,
+                            hyperclient_attribute* attrs, size_t attrs_sz):
+    cdef bytes attr
+    if reqid < 0:
+        idx = -2 - reqid
+        attr = None
+        if idx >= 0 and idx < attrs_sz and attrs and attrs[idx].attr:
+            attr = attrs[idx].attr
+        print 'THROWING', idx, attr, status
+        raise HyperClientException(status, attr)
+
+
+cdef _check_reqid_key_attrs2(int64_t reqid, hyperclient_returncode status,
+                             hyperclient_attribute* attrs1, size_t attrs_sz1,
+                             hyperclient_attribute* attrs2, size_t attrs_sz2):
+    cdef bytes attr
+    if reqid < 0:
+        idx = -2 - reqid
+        attr = None
+        if idx >= 0 and idx < attrs_sz1 and attrs1 and attrs1[idx].attr:
+            attr = attrs1[idx].attr
+        idx -= attrs_sz2
+        if idx >= 0 and idx < attrs_sz2 and attrs2 and attrs2[idx].attr:
+            attr = attrs2[idx].attr
+        raise HyperClientException(status, attr)
+
+
+cdef _check_reqid_key_map_attrs(int64_t reqid, hyperclient_returncode status,
+                                hyperclient_map_attribute* attrs, size_t attrs_sz):
+    cdef bytes attr
+    if reqid < 0:
+        idx = -2 - reqid
+        attr = None
+        if idx >= 0 and idx < attrs_sz and attrs and attrs[idx].attr:
+            attr = attrs[idx].attr
+        raise HyperClientException(status, attr)
+
+
+cdef _check_reqid_search(int64_t reqid, hyperclient_returncode status,
+                         hyperclient_attribute* eq, size_t eq_sz,
+                         hyperclient_range_query* rn, size_t rn_sz):
+    cdef bytes attr
+    if reqid < 0:
+        idx = -1 - reqid
+        attr = None
+        if idx >= 0 and idx < eq_sz and eq and eq[idx].attr:
+            attr = eq[idx].attr
+        idx -= eq_sz
+        if idx >= 0 and idx < rn_sz and rn and rn[idx].attr:
+            attr = rn[idx].attr
+        raise HyperClientException(status, attr)
+
+
 cdef class Deferred:
 
     cdef Client _client
@@ -713,8 +774,7 @@ cdef class DeferredGet(Deferred):
                                       key_cstr, len(key_backing),
                                       &self._status,
                                       &self._attrs, &self._attrs_sz)
-        if self._reqid < 0:
-            raise HyperClientException(self._status)
+        _check_reqid(self._reqid, self._status)
         client._ops[self._reqid] = self
 
     def __dealloc__(self):
@@ -747,12 +807,7 @@ cdef class DeferredFromAttrs(Deferred):
             self._reqid = op(self._client._client, space_cstr,
                              key_cstr, len(key_backing),
                              attrs, len(value), &self._status)
-            if self._reqid < 0:
-                idx = -1 - self._reqid
-                attr = None
-                if attrs and attrs[idx].attr:
-                    attr = attrs[idx].attr
-                raise HyperClientException(self._status, attr)
+            _check_reqid_key_attrs(self._reqid, self._status, attrs, len(value))
             self._client._ops[self._reqid] = self
         finally:
             if attrs:
@@ -783,15 +838,9 @@ cdef class DeferredCondPut(Deferred):
                                               condattrs, len(condition),
                                               attrs, len(value),
                                               &self._status)
-            if self._reqid < 0:
-                idx = -1 - self._reqid
-                attr = None
-                if idx < len(condition) and condattrs and condattrs[idx].attr:
-                    attr = condattrs[idx].attr
-                idx -= len(condition)
-                if idx >= 0 and attrs and attrs[idx].attr:
-                    attr = attrs[idx].attr
-                raise HyperClientException(self._status, attr)
+            _check_reqid_key_attrs2(self._reqid, self._status,
+                                    condattrs, len(condition),
+                                    attrs, len(value))
             client._ops[self._reqid] = self
         finally:
             if condattrs:
@@ -818,8 +867,7 @@ cdef class DeferredDelete(Deferred):
         cdef char* key_cstr = key_backing
         self._reqid = hyperclient_del(client._client, space_cstr,
                                       key_cstr, len(key_backing), &self._status)
-        if self._reqid < 0:
-            raise HyperClientException(self._status)
+        _check_reqid(self._reqid, self._status)
         client._ops[self._reqid] = self
 
     def wait(self):
@@ -849,12 +897,7 @@ cdef class DeferredMapOp(Deferred):
             self._reqid = op(self._client._client, space_cstr,
                              key_cstr, len(key_backing),
                              attrs, attrs_sz, &self._status)
-            if self._reqid < 0:
-                idx = -1 - self._reqid
-                attr = None
-                if attrs and attrs[idx].attr:
-                    attr = attrs[idx].attr
-                raise HyperClientException(self._status, attr)
+            _check_reqid_key_map_attrs(self._reqid, self._status, attrs, attrs_sz)
             self._client._ops[self._reqid] = self
         finally:
             if attrs:
@@ -917,15 +960,7 @@ cdef class DeferredGroupDel(Deferred):
                                                 eq, eq_sz,
                                                 rn, rn_sz,
                                                 &self._status)
-            if self._reqid < 0:
-                idx = -1 - self._reqid
-                attr = None
-                if idx < eq_sz and eq and eq[idx].attr:
-                    attr = eq[idx].attr
-                idx -= eq_sz
-                if idx < rn_sz and rn and rn[idx].attr:
-                    attr = rn[idx].attr
-                raise HyperClientException(self._status, attr)
+            _check_reqid_search(self._reqid, self._status, eq, eq_sz, rn, rn_sz)
             client._ops[self._reqid] = self
         finally:
             if eq: free(eq)
@@ -962,15 +997,7 @@ cdef class DeferredCount(Deferred):
                                                 rn, rn_sz,
                                                 &self._status,
                                                 &self._result)
-            if self._reqid < 0:
-                idx = -1 - self._reqid
-                attr = None
-                if idx < eq_sz and eq and eq[idx].attr:
-                    attr = eq[idx].attr
-                idx -= eq_sz
-                if idx < rn_sz and rn and rn[idx].attr:
-                    attr = rn[idx].attr
-                raise HyperClientException(self._status, attr)
+            _check_reqid_search(self._reqid, self._status, eq, eq_sz, rn, rn_sz)
             client._ops[self._reqid] = self
         finally:
             if eq: free(eq)
@@ -1027,19 +1054,6 @@ cdef class SearchBase:
         else:
             self._backlogged.append(HyperClientException(self._status))
 
-    cdef _check_reqid(SearchBase self, hyperclient_attribute* eq, size_t eq_sz,
-                      hyperclient_range_query* rn, size_t rn_sz):
-        cdef bytes attr
-        if self._reqid < 0:
-            idx = -1 - self._reqid
-            attr = None
-            if idx >= 0 and idx < eq_sz and eq and eq[idx].attr:
-                attr = eq[idx].attr
-            idx -= eq_sz
-            if idx >= 0 and idx < rn_sz and rn and rn[idx].attr:
-                attr = rn[idx].attr
-            raise HyperClientException(self._status, attr)
-
 
 cdef class Search(SearchBase):
 
@@ -1057,7 +1071,7 @@ cdef class Search(SearchBase):
                                              &self._status,
                                              &self._attrs,
                                              &self._attrs_sz)
-            self._check_reqid(eq, eq_sz, rn, rn_sz)
+            _check_reqid_search(self._reqid, self._status, eq, eq_sz, rn, rn_sz)
             client._ops[self._reqid] = self
         finally:
             if eq: free(eq)
@@ -1090,7 +1104,7 @@ cdef class SortedSearch(SearchBase):
                                                     &self._status,
                                                     &self._attrs,
                                                     &self._attrs_sz)
-            self._check_reqid(eq, eq_sz, rn, rn_sz)
+            _check_reqid_search(self._reqid, self._status, eq, eq_sz, rn, rn_sz)
             client._ops[self._reqid] = self
         finally:
             if eq: free(eq)
