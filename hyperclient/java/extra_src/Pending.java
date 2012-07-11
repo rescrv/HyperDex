@@ -14,6 +14,7 @@ public class Pending
     {
         this.client = client;
         rc_ptr = hyperclient.new_rc_ptr();
+        hyperclient.rc_ptr_assign(rc_ptr,hyperclient_returncode.HYPERCLIENT_ZERO);
     }
 
     public void callback()
@@ -24,28 +25,7 @@ public class Pending
 
     public hyperclient_returncode status()
     {
-        if ( rc_ptr != null )
-        {
-            try
-            {
-                // This will evaluate to an invalid enum value in Java 
-                // when &status, in C++, is left unfilled by a successful
-                // api call ie., reqId >= 0 ie., the status in this case
-                // should not even be looked at.
-                // So catch this and fill status with any valid
-                // hyperclient_returncode value ... and don't look at it
-                //
-                return hyperclient.rc_ptr_value(rc_ptr);
-            }
-            catch(IllegalArgumentException ioe)
-            {
-                return hyperclient_returncode.HYPERCLIENT_ZERO;
-            }
-        }
-        else
-        {
-            return hyperclient_returncode.HYPERCLIENT_ZERO;
-        }
+        return hyperclient.rc_ptr_value(rc_ptr);
     }
 
     protected void finalize() throws Throwable
