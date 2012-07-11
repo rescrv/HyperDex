@@ -120,5 +120,6 @@ public class HyperAllTypes
 		HyperClient c = new HyperClient("127.0.0.1",1234);
 
 		System.out.println("put: " + c.put("alltypes","key1",attrs));
+		System.out.println("get: " + c.get("alltypes","key1"));
 	}
 }

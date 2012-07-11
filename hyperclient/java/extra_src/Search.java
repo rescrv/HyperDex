@@ -31,7 +31,7 @@ public class Search extends SearchBase
                                   attrs_ptr, attrs_sz_ptr);
 
 	
-            checkReqId(eq, eq_sz, rn, rn_sz);
+            checkReqIdSearch(reqId, status(), eq, eq_sz, rn, rn_sz);
 	
             client.ops.put(reqId,this);
         }

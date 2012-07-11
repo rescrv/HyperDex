@@ -31,29 +31,11 @@ public class DeferredCondPut extends Deferred
                                    condattrs, condattrs_sz,
                                    attrs, attrs_sz,
                                    rc_ptr);
-	        if (reqId < 0)
-	        {
-                int idx = (int)(-1 - reqId);
-                String attrName = null;
 
-                if ( condattrs != null && idx >= 0 && idx < condattrs_sz )
-                    attrName = HyperClient.get_attr(condattrs,idx).getAttrName(); 
+            checkReqIdKeyAttrs2(reqId, status(),
+                                condattrs, condattrs_sz,
+                                attrs, attrs_sz);
 
-                idx -= condattrs_sz;
-
-                if ( attrs != null && idx >= 0 && idx < attrs_sz )
-                    attrName = HyperClient.get_attr(attrs,idx).getAttrName(); 
-
-                if ( attrName != null )
-                {
-                    throw new HyperClientException(status(),attrName);
-                }
-                else
-                {
-                    throw new HyperClientException(status());
-                }
-	        }
-	
 	        client.ops.put(reqId,this);
         }
         finally
