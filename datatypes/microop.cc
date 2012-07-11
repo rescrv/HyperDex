@@ -76,3 +76,12 @@ operator >> (e::buffer::unpacker lhs, microop& rhs)
     rhs.arg2_datatype = static_cast<hyperdatatype>(arg2_datatype);
     return lhs;
 }
+
+size_t
+pack_size(const microop& m)
+{
+    return sizeof(uint16_t)
+         + sizeof(uint8_t)
+         + sizeof(uint32_t) + m.arg1.size() + sizeof(uint16_t)
+         + sizeof(uint32_t) + m.arg2.size() + sizeof(uint16_t);
+}

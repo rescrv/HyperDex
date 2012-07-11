@@ -64,3 +64,9 @@ operator >> (e::buffer::unpacker lhs, microcheck& rhs)
     rhs.predicate = static_cast<micropredicate>(predicate);
     return lhs;
 }
+
+size_t
+pack_size(const microcheck& rhs)
+{
+    return sizeof(uint16_t) * 3 + sizeof(uint32_t) + rhs.value.size();
+}

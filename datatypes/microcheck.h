@@ -58,4 +58,7 @@ operator << (e::buffer::packer lhs, const microcheck& rhs);
 e::buffer::unpacker
 operator >> (e::buffer::unpacker lhs, microcheck& rhs);
 
+size_t
+pack_size(const microcheck& rhs);
+
 #endif // datatypes_microcheck_h_

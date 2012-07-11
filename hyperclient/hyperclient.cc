@@ -80,12 +80,6 @@
         return -1; \
     }
 
-#define MICROCHECK_BASE_SIZE \
-    (3 * sizeof(uint16_t) + sizeof(uint32_t))
-
-#define MICROOP_BASE_SIZE \
-    (sizeof(uint16_t) + sizeof(uint8_t) + 2 * sizeof(uint16_t) + 2 * sizeof(uint32_t))
-
 hyperclient :: hyperclient(const char* coordinator, in_port_t port)
     : m_coord(new hyperdex::coordinatorlink(po6::net::hostname(coordinator, port)))
     , m_config(new hyperdex::configuration())
@@ -135,27 +129,6 @@ hyperclient :: condput(const char* space, const char* key, size_t key_sz,
     e::intrusive_ptr<pending> op;
     op = new pending_statusonly(hyperdex::REQ_CONDPUT, hyperdex::RESP_CONDPUT, status);
 
-    // The size of the buffer we need
-    size_t sz = HYPERCLIENT_HEADER_SIZE
-              + sizeof(uint32_t) + key_sz
-              + sizeof(uint32_t) + sizeof(uint32_t)
-              + MICROCHECK_BASE_SIZE * condattrs_sz
-              + MICROOP_BASE_SIZE * attrs_sz;
-
-    for (size_t i = 0; i < condattrs_sz; ++i)
-    {
-        sz += attrs[i].value_sz;
-    }
-
-    for (size_t i = 0; i < condattrs_sz; ++i)
-    {
-        sz += attrs[i].value_sz;
-    }
-
-    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    e::buffer::packer pa = msg->pack_at(HYPERCLIENT_HEADER_SIZE);
-    pa = pa << e::slice(key, key_sz);
-
     std::vector<microcheck> checks;
     checks.reserve(condattrs_sz);
 
@@ -175,9 +148,6 @@ hyperclient :: condput(const char* space, const char* key, size_t key_sz,
         c.predicate = PRED_EQUALS;
         checks.push_back(c);
     }
-
-    std::sort(checks.begin(), checks.end());
-    pa = pa << checks;
 
     e::bitfield seen(sc->attrs_sz);
     std::vector<microop> ops;
@@ -206,9 +176,27 @@ hyperclient :: condput(const char* space, const char* key, size_t key_sz,
         ops.push_back(o);
     }
 
-    std::sort(ops.begin(), ops.end());
-    pa = pa << ops;
+    // The size of the buffer we need
+    size_t sz = HYPERCLIENT_HEADER_SIZE
+              + sizeof(uint32_t) + key_sz
+              + sizeof(uint32_t) + sizeof(uint32_t);
 
+    for (size_t i = 0; i < checks.size(); ++i)
+    {
+        sz += pack_size(checks[i]);
+    }
+
+    for (size_t i = 0; i < ops.size(); ++i)
+    {
+        sz += pack_size(ops[i]);
+    }
+
+    std::sort(checks.begin(), checks.end());
+    std::sort(ops.begin(), ops.end());
+
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    msg->pack_at(HYPERCLIENT_HEADER_SIZE)
+        << e::slice(key, key_sz) << checks << ops;
     return add_keyop(space, key, key_sz, msg, op);
 }
 
@@ -796,21 +784,6 @@ hyperclient :: prepare_microop1(bool (*check)(hyperdatatype expected, hyperdatat
     e::intrusive_ptr<pending> op;
     op = new pending_statusonly(reqtype, resptype, status);
 
-    // The size of the buffer we need
-    size_t sz = HYPERCLIENT_HEADER_SIZE
-              + sizeof(uint32_t) + key_sz
-              + sizeof(uint32_t)
-              + MICROOP_BASE_SIZE * attrs_sz;
-
-    for (size_t i = 0; i < attrs_sz; ++i)
-    {
-        sz += attrs[i].value_sz;
-    }
-
-    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    e::buffer::packer pa = msg->pack_at(HYPERCLIENT_HEADER_SIZE);
-    pa = pa << e::slice(key, key_sz) << static_cast<uint32_t>(attrs_sz);
-
     std::vector<microop> ops;
     ops.reserve(attrs_sz);
 
@@ -845,13 +818,20 @@ hyperclient :: prepare_microop1(bool (*check)(hyperdatatype expected, hyperdatat
         ops.push_back(o);
     }
 
-    std::sort(ops.begin(), ops.end());
+    // The size of the buffer we need
+    size_t sz = HYPERCLIENT_HEADER_SIZE
+              + sizeof(uint32_t) + key_sz
+              + sizeof(uint32_t);
 
     for (size_t i = 0; i < ops.size(); ++i)
     {
-        pa = pa << ops[i];
+        sz += pack_size(ops[i]);
     }
 
+    std::sort(ops.begin(), ops.end());
+
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    msg->pack_at(HYPERCLIENT_HEADER_SIZE) << e::slice(key, key_sz) << ops;
     return add_keyop(space, key, key_sz, msg, op);
 }
 
@@ -873,22 +853,6 @@ hyperclient :: prepare_microop2(bool (*check)(hyperdatatype expected,
     // A new pending op
     e::intrusive_ptr<pending> op;
     op = new pending_statusonly(hyperdex::REQ_ATOMIC, hyperdex::RESP_ATOMIC, status);
-
-    // The size of the buffer we need
-    size_t sz = HYPERCLIENT_HEADER_SIZE
-              + sizeof(uint32_t) + key_sz
-              + sizeof(uint32_t)
-              + MICROOP_BASE_SIZE * attrs_sz;
-
-    for (size_t i = 0; i < attrs_sz; ++i)
-    {
-        sz += attrs[i].map_key_sz;
-        sz += attrs[i].value_sz;
-    }
-
-    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    e::buffer::packer pa = msg->pack_at(HYPERCLIENT_HEADER_SIZE);
-    pa = pa << e::slice(key, key_sz) << static_cast<uint32_t>(attrs_sz);
 
     std::vector<microop> ops;
     ops.reserve(attrs_sz);
@@ -927,13 +891,20 @@ hyperclient :: prepare_microop2(bool (*check)(hyperdatatype expected,
         ops.push_back(o);
     }
 
-    std::sort(ops.begin(), ops.end());
+    // The size of the buffer we need
+    size_t sz = HYPERCLIENT_HEADER_SIZE
+              + sizeof(uint32_t) + key_sz
+              + sizeof(uint32_t);
 
     for (size_t i = 0; i < ops.size(); ++i)
     {
-        pa = pa << ops[i];
+        sz += pack_size(ops[i]);
     }
 
+    std::sort(ops.begin(), ops.end());
+
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    msg->pack_at(HYPERCLIENT_HEADER_SIZE) << e::slice(key, key_sz) << ops;
     return add_keyop(space, key, key_sz, msg, op);
 }
 

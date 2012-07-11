@@ -60,4 +60,7 @@ operator << (e::buffer::packer lhs, const microop& rhs);
 e::buffer::unpacker
 operator >> (e::buffer::unpacker lhs, microop& rhs);
 
+size_t
+pack_size(const microop& rhs);
+
 #endif // datatypes_microop_h_
