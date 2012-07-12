@@ -452,7 +452,7 @@ libhyperclient_la_SOURCES = \
 			hyperclient/hyperclient_pending_search.cc \
 			hyperclient/hyperclient_pending_sorted_search.cc \
 			hyperclient/hyperclient_pending_statusonly.cc \
-			hyperclient/keyop_info.c \
+			hyperclient/keyop_info.cc \
 			hyperclient/util.cc \
 			${libhyperdex_sources}
 libhyperclient_la_LIBADD = \
@@ -467,8 +467,8 @@ libhyperclient_la_CPPFLAGS = \
 			$(E_CFLAGS) \
 			$(CPPFLAGS)
 
-hyperclient/keyop_info.c: hyperclient/keyop_info.gperf
-	gperf -m 100 $(abs_top_srcdir)/hyperclient/keyop_info.gperf --output-file=$(abs_top_builddir)/hyperclient/keyop_info.c
+hyperclient/keyop_info.cc: hyperclient/keyop_info.gperf
+	gperf -m 100 $(abs_top_srcdir)/hyperclient/keyop_info.gperf --output-file=$(abs_top_builddir)/hyperclient/keyop_info.cc
 
 ################################# Java Bindings ################################
 
