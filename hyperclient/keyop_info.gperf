@@ -1,0 +1,43 @@
+struct hyperclient_keyop_info;
+%struct-type
+%define hash-function-name hyperclient_keyop_info_hash
+%define lookup-function-name hyperclient_keyop_info_lookup
+%includes
+%readonly-tables
+%pic
+%define string-pool-name hyperclient_keyop_info_string_pool
+%{
+#include "hyperclient/keyop_info.h"
+%}
+%%
+put, 0, 1, OP_SET
+condput, 1, 1
+del, 1, 0
+atomic_add, 1, 1
+atomic_sub, 1, 1
+atomic_mul, 1, 1
+atomic_div, 1, 1
+atomic_mod, 1, 1
+atomic_and, 1, 1
+atomic_or, 1, 1
+atomic_xor, 1, 1
+string_prepend, 1, 1
+string_append, 1, 1
+list_lpush, 1, 1
+list_rpush, 1, 1
+set_add, 1, 1
+set_remove, 1, 1
+set_intersect, 1, 1
+set_union, 1, 1
+map_add, 1, 1
+map_remove, 1, 1
+map_atomic_add, 1, 1
+map_atomic_sub, 1, 1
+map_atomic_mul, 1, 1
+map_atomic_div, 1, 1
+map_atomic_mod, 1, 1
+map_atomic_and, 1, 1
+map_atomic_or, 1, 1
+map_atomic_xor, 1, 1
+map_string_prepend, 1, 1
+map_string_append, 1, 1
