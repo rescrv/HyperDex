@@ -837,10 +837,10 @@ hyperclient :: prepare_microop1(bool (*check)(hyperdatatype expected, hyperdatat
 
 int64_t
 hyperclient :: prepare_microop2(bool (*check)(hyperdatatype expected,
-                                              const e::slice& map_key,
-                                              hyperdatatype map_key_datatype,
-                                              const e::slice& value,
-                                              hyperdatatype value_datatype),
+                                              const e::slice& arg1,
+                                              hyperdatatype arg1_datatype,
+                                              const e::slice& arg2,
+                                              hyperdatatype arg2_datatype),
                                 int action, const char* space,
                                 const char* key, size_t key_sz,
                                 const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
@@ -874,8 +874,8 @@ hyperclient :: prepare_microop2(bool (*check)(hyperdatatype expected,
         }
 
         if (!check(sc->attrs[attrnum].type,
-                   e::slice(attrs[i].map_key, attrs[i].map_key_sz), attrs[i].map_key_datatype,
-                   e::slice(attrs[i].value, attrs[i].value_sz), attrs[i].value_datatype))
+                   e::slice(attrs[i].value, attrs[i].value_sz), attrs[i].value_datatype,
+                   e::slice(attrs[i].map_key, attrs[i].map_key_sz), attrs[i].map_key_datatype))
         {
             *status = HYPERCLIENT_WRONGTYPE;
             return -2 - i;

@@ -66,38 +66,38 @@ container_set(hyperdatatype expected,
 
 bool
 container_map(hyperdatatype expected,
-              const e::slice& map_key,
-              hyperdatatype map_key_datatype,
-              const e::slice& value,
-              hyperdatatype value_datatype);
+              const e::slice& arg1,
+              hyperdatatype arg1_datatype,
+              const e::slice& arg2,
+              hyperdatatype arg2_datatype);
 
 bool
 container_map_key_only(hyperdatatype expected,
-                       const e::slice& map_key,
-                       hyperdatatype map_key_datatype,
-                       const e::slice& value,
-                       hyperdatatype value_datatype);
+                       const e::slice& arg1,
+                       hyperdatatype arg1_datatype,
+                       const e::slice& arg2,
+                       hyperdatatype arg2_datatype);
 
 bool
 container_map_value_numeric(hyperdatatype expected,
-                            const e::slice& map_key,
-                            hyperdatatype map_key_datatype,
-                            const e::slice& value,
-                            hyperdatatype value_datatype);
+                            const e::slice& arg1,
+                            hyperdatatype arg1_datatype,
+                            const e::slice& arg2,
+                            hyperdatatype arg2_datatype);
 
 bool
 container_map_value_integer(hyperdatatype expected,
-                            const e::slice& map_key,
-                            hyperdatatype map_key_datatype,
-                            const e::slice& value,
-                            hyperdatatype value_datatype);
+                            const e::slice& arg1,
+                            hyperdatatype arg1_datatype,
+                            const e::slice& arg2,
+                            hyperdatatype arg2_datatype);
 
 bool
 container_map_value_string(hyperdatatype expected,
-                           const e::slice& map_key,
-                           hyperdatatype map_key_datatype,
-                           const e::slice& value,
-                           hyperdatatype value_datatype);
+                           const e::slice& arg1,
+                           hyperdatatype arg1_datatype,
+                           const e::slice& arg2,
+                           hyperdatatype arg2_datatype);
 
 bool
 container_implicit_coercion(hyperdatatype expected,
