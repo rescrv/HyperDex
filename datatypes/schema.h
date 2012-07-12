@@ -41,7 +41,7 @@ class schema
         schema();
 
     public:
-        uint16_t lookup_attr(const char* name);
+        uint16_t lookup_attr(const char* name) const;
 
     public:
         uint16_t attrs_sz;

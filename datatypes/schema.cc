@@ -38,7 +38,7 @@ schema :: schema()
 }
 
 uint16_t
-schema :: lookup_attr(const char* name)
+schema :: lookup_attr(const char* name) const
 {
     for (uint16_t i = 0; i < attrs_sz; ++i)
     {
