@@ -64,7 +64,6 @@ namespace e
 class bitfield;
 } // namespace e
 class busybee_st;
-class schema;
 namespace hyperspacehashing
 {
 class search;
@@ -834,20 +833,31 @@ class hyperclient
                           size_t key_sz,
                           std::auto_ptr<e::buffer> msg,
                           e::intrusive_ptr<pending> op);
-        int64_t prepare_microop1(bool (*check)(hyperdatatype expected,
-                                               const e::slice& arg1, hyperdatatype arg1_datatype,
-                                               const e::slice& arg2, hyperdatatype arg2_datatype),
-                                 int reqtype, int resptype, int action, const char* space,
-                                 const char* key, size_t key_sz,
+        int64_t perform_microop1(const class hyperclient_keyop_info* opinfo,
+                                 const char* space, const char* key, size_t key_sz,
+                                 const struct hyperclient_attribute* condattrs, size_t condattrs_sz,
                                  const struct hyperclient_attribute* attrs, size_t attrs_sz,
                                  hyperclient_returncode* status);
-        int64_t prepare_microop2(bool (*check)(hyperdatatype expected,
-                                               const e::slice& arg1, hyperdatatype arg1_datatype,
-                                               const e::slice& arg2, hyperdatatype arg2_datatype),
-                                 int action, const char* space,
-                                 const char* key, size_t key_sz,
+        int64_t perform_microop2(const class hyperclient_keyop_info* opinfo,
+                                 const char* space, const char* key, size_t key_sz,
+                                 const struct hyperclient_attribute* condattrs, size_t condattrs_sz,
                                  const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
                                  hyperclient_returncode* status);
+        size_t prepare_checks(const class schema* sc,
+                              const class hyperclient_keyop_info* opinfo,
+                              const hyperclient_attribute* condattrs, size_t condattrs_sz,
+                              hyperclient_returncode* status,
+                              std::vector<class microcheck>* checks);
+        size_t prepare_ops(const class schema* sc,
+                           const class hyperclient_keyop_info* opinfo,
+                           const hyperclient_attribute* attrs, size_t attrs_sz,
+                           hyperclient_returncode* status,
+                           std::vector<class microop>* ops);
+        size_t prepare_ops(const class schema* sc,
+                           const class hyperclient_keyop_info* opinfo,
+                           const hyperclient_map_attribute* attrs, size_t attrs_sz,
+                           hyperclient_returncode* status,
+                           std::vector<class microop>* ops);
         int64_t prepare_searchop(const char* space,
                                  const struct hyperclient_attribute* eq, size_t eq_sz,
                                  const struct hyperclient_range_query* rn, size_t rn_sz,

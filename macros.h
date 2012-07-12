@@ -25,28 +25,10 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperclient_keyp_info_h_
-#define hyperclient_keyp_info_h_
+#ifndef hdstr
+#define hdstr(x) #x
+#endif
 
-// e
-#include <e/slice.h>
-
-/* HyperDex */
-#include "hyperdex.h"
-#include "datatypes/microaction.h"
-
-struct hyperclient_keyop_info
-{
-    int name;
-    bool fail_if_not_exist;
-    bool has_microops;
-    enum microaction action;
-    bool (*check)(hyperdatatype expected,
-                  const e::slice& arg1, hyperdatatype arg1_datatype,
-                  const e::slice& arg2, hyperdatatype arg2_datatype);
-};
-
-const struct hyperclient_keyop_info*
-hyperclient_keyop_info_lookup(const char* str, unsigned int len);
-
-#endif // hyperclient_keyp_info_h_
+#ifndef hdxstr
+#define hdxstr(x) hdstr(x)
+#endif

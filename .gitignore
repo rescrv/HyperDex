@@ -91,6 +91,7 @@ hyperclient/java/libhyperclient_java_la-hyperclient_wrap.o
 hyperclient/java/libhyperclient_java_la-javaclient.lo
 hyperclient/java/libhyperclient_java_la-javaclient.o
 hyperclient-java.stamp
+hyperclient/keyop_info.cc
 hyperclient/libhyperclient_la-hyperclient_c_wrappers.lo
 hyperclient/libhyperclient_la-hyperclient_c_wrappers.o
 hyperclient/libhyperclient_la-hyperclient.lo

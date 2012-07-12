@@ -39,6 +39,7 @@
 #include <busybee_st.h>
 
 // HyperDex
+#include "macros.h"
 #include "datatypes/coercion.h"
 #include "datatypes/schema.h"
 #include "datatypes/microcheck.h"
@@ -59,6 +60,7 @@
 #include "hyperclient/hyperclient_pending_search.h"
 #include "hyperclient/hyperclient_pending_sorted_search.h"
 #include "hyperclient/hyperclient_pending_statusonly.h"
+#include "hyperclient/keyop_info.h"
 #include "hyperclient/util.h"
 
 // Macros for convenience.  These conditional blocks appear quite a lot.  I want
@@ -122,153 +124,73 @@ hyperclient :: condput(const char* space, const char* key, size_t key_sz,
                        const struct hyperclient_attribute* attrs, size_t attrs_sz,
                        hyperclient_returncode* status)
 {
-    MAINTAIN_COORD_CONNECTION(status)
-    schema* sc = m_config->get_schema(space);
-    VALIDATE_KEY(sc, key, key_sz) // Checks sc
-
-    e::intrusive_ptr<pending> op;
-    op = new pending_statusonly(hyperdex::REQ_CONDPUT, hyperdex::RESP_CONDPUT, status);
-
-    std::vector<microcheck> checks;
-    checks.reserve(condattrs_sz);
-
-    for (size_t i = 0; i < condattrs_sz; ++i)
-    {
-        uint16_t attrnum = validate_attribute(sc, condattrs + i, status);
-
-        if (attrnum == sc->attrs_sz)
-        {
-            return -2 - i;
-        }
-
-        microcheck c;
-        c.attr = attrnum;
-        c.value = e::slice(condattrs[i].value, condattrs[i].value_sz);
-        c.datatype = condattrs[i].datatype;
-        c.predicate = PRED_EQUALS;
-        checks.push_back(c);
-    }
-
-    e::bitfield seen(sc->attrs_sz);
-    std::vector<microop> ops;
-    ops.reserve(attrs_sz);
-
-    for (size_t i = 0; i < attrs_sz; ++i)
-    {
-        uint16_t attrnum = validate_attribute(sc, attrs + i, status);
-
-        if (attrnum == sc->attrs_sz)
-        {
-            return -2 - condattrs_sz - i;
-        }
-
-        if (seen.get(attrnum))
-        {
-            *status = HYPERCLIENT_DUPEATTR;
-            return -2 - condattrs_sz - i;
-        }
-
-        microop o;
-        o.attr = attrnum;
-        o.action = OP_SET;
-        o.arg1 = e::slice(attrs[i].value, attrs[i].value_sz);
-        o.arg1_datatype = attrs[i].datatype;
-        ops.push_back(o);
-    }
-
-    // The size of the buffer we need
-    size_t sz = HYPERCLIENT_HEADER_SIZE
-              + sizeof(uint32_t) + key_sz
-              + sizeof(uint32_t) + sizeof(uint32_t);
-
-    for (size_t i = 0; i < checks.size(); ++i)
-    {
-        sz += pack_size(checks[i]);
-    }
-
-    for (size_t i = 0; i < ops.size(); ++i)
-    {
-        sz += pack_size(ops[i]);
-    }
-
-    std::sort(checks.begin(), checks.end());
-    std::sort(ops.begin(), ops.end());
-
-    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    msg->pack_at(HYPERCLIENT_HEADER_SIZE)
-        << e::slice(key, key_sz) << checks << ops;
-    return add_keyop(space, key, key_sz, msg, op);
+    const hyperclient_keyop_info* opinfo;
+    opinfo = hyperclient_keyop_info_lookup("condput", 7);
+    return perform_microop1(opinfo, space, key, key_sz,
+                            condattrs, condattrs_sz, attrs, attrs_sz, status);
 }
 
 int64_t
 hyperclient :: del(const char* space, const char* key, size_t key_sz,
                    hyperclient_returncode* status)
 {
-    MAINTAIN_COORD_CONNECTION(status)
-    schema* sc = m_config->get_schema(space);
-    VALIDATE_KEY(sc, key, key_sz) // Checks sc
-
-    e::intrusive_ptr<pending> op;
-    op = new pending_statusonly(hyperdex::REQ_DEL, hyperdex::RESP_DEL, status);
-
-    size_t sz = HYPERCLIENT_HEADER_SIZE + sizeof(uint32_t) + key_sz;
-    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    msg->pack_at(HYPERCLIENT_HEADER_SIZE) << e::slice(key, key_sz);
-    return add_keyop(space, key, key_sz, msg, op);
+    const hyperclient_keyop_info* opinfo;
+    opinfo = hyperclient_keyop_info_lookup("del", 3);
+    return perform_microop1(opinfo, space, key, key_sz, NULL, 0, NULL, 0, status);
 }
 
-#define HYPERCLIENT_CPPDEF(OPNAME, OPNAMECAPS, CONVERT, REQTYPE, RESPTYPE) \
+#define HYPERCLIENT_CPPDEF(OPNAME) \
     int64_t \
     hyperclient :: OPNAME(const char* space, const char* key, size_t key_sz, \
                           const struct hyperclient_attribute* attrs, size_t attrs_sz, \
                           enum hyperclient_returncode* status) \
     { \
-        return prepare_microop1(CONVERT, REQTYPE, RESPTYPE, \
-                                OP_ ## OPNAMECAPS, space, \
-                                key, key_sz, attrs, attrs_sz, status); \
+        const hyperclient_keyop_info* opinfo; \
+        opinfo = hyperclient_keyop_info_lookup(hdxstr(OPNAME), strlen(hdxstr(OPNAME))); \
+        return perform_microop1(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, status); \
     }
 
-HYPERCLIENT_CPPDEF(put,            SET,             container_implicit_coercion, hyperdex::REQ_PUT, hyperdex::RESP_PUT)
-HYPERCLIENT_CPPDEF(atomic_add,     NUM_ADD,         primitive_numeric,           hyperdex::REQ_ATOMIC, hyperdex::RESP_ATOMIC)
-HYPERCLIENT_CPPDEF(atomic_sub,     NUM_SUB,         primitive_numeric,           hyperdex::REQ_ATOMIC, hyperdex::RESP_ATOMIC)
-HYPERCLIENT_CPPDEF(atomic_mul,     NUM_MUL,         primitive_numeric,           hyperdex::REQ_ATOMIC, hyperdex::RESP_ATOMIC)
-HYPERCLIENT_CPPDEF(atomic_div,     NUM_DIV,         primitive_numeric,           hyperdex::REQ_ATOMIC, hyperdex::RESP_ATOMIC)
-HYPERCLIENT_CPPDEF(atomic_mod,     NUM_MOD,         primitive_integer,           hyperdex::REQ_ATOMIC, hyperdex::RESP_ATOMIC)
-HYPERCLIENT_CPPDEF(atomic_and,     NUM_AND,         primitive_integer,           hyperdex::REQ_ATOMIC, hyperdex::RESP_ATOMIC)
-HYPERCLIENT_CPPDEF(atomic_or,      NUM_OR,          primitive_integer,           hyperdex::REQ_ATOMIC, hyperdex::RESP_ATOMIC)
-HYPERCLIENT_CPPDEF(atomic_xor,     NUM_XOR,         primitive_integer,           hyperdex::REQ_ATOMIC, hyperdex::RESP_ATOMIC)
-HYPERCLIENT_CPPDEF(string_prepend, STRING_PREPEND,  primitive_string,            hyperdex::REQ_ATOMIC, hyperdex::RESP_ATOMIC)
-HYPERCLIENT_CPPDEF(string_append,  STRING_APPEND,   primitive_string,            hyperdex::REQ_ATOMIC, hyperdex::RESP_ATOMIC)
-HYPERCLIENT_CPPDEF(list_lpush,     LIST_LPUSH,      container_list_elem,         hyperdex::REQ_ATOMIC, hyperdex::RESP_ATOMIC)
-HYPERCLIENT_CPPDEF(list_rpush,     LIST_RPUSH,      container_list_elem,         hyperdex::REQ_ATOMIC, hyperdex::RESP_ATOMIC)
-HYPERCLIENT_CPPDEF(set_add,        SET_ADD,         container_set_elem,          hyperdex::REQ_ATOMIC, hyperdex::RESP_ATOMIC)
-HYPERCLIENT_CPPDEF(set_remove,     SET_REMOVE,      container_set_elem,          hyperdex::REQ_ATOMIC, hyperdex::RESP_ATOMIC)
-HYPERCLIENT_CPPDEF(set_intersect,  SET_INTERSECT,   container_set,               hyperdex::REQ_ATOMIC, hyperdex::RESP_ATOMIC)
-HYPERCLIENT_CPPDEF(set_union,      SET_UNION,       container_set,               hyperdex::REQ_ATOMIC, hyperdex::RESP_ATOMIC)
+HYPERCLIENT_CPPDEF(put)
+HYPERCLIENT_CPPDEF(atomic_add)
+HYPERCLIENT_CPPDEF(atomic_sub)
+HYPERCLIENT_CPPDEF(atomic_mul)
+HYPERCLIENT_CPPDEF(atomic_div)
+HYPERCLIENT_CPPDEF(atomic_mod)
+HYPERCLIENT_CPPDEF(atomic_and)
+HYPERCLIENT_CPPDEF(atomic_or)
+HYPERCLIENT_CPPDEF(atomic_xor)
+HYPERCLIENT_CPPDEF(string_prepend)
+HYPERCLIENT_CPPDEF(string_append)
+HYPERCLIENT_CPPDEF(list_lpush)
+HYPERCLIENT_CPPDEF(list_rpush)
+HYPERCLIENT_CPPDEF(set_add)
+HYPERCLIENT_CPPDEF(set_remove)
+HYPERCLIENT_CPPDEF(set_intersect)
+HYPERCLIENT_CPPDEF(set_union)
 
-#define HYPERCLIENT_MAP_CPPDEF(OPNAME, OPNAMECAPS, CONVERT) \
+#define HYPERCLIENT_MAP_CPPDEF(OPNAME) \
     int64_t \
     hyperclient :: OPNAME(const char* space, const char* key, size_t key_sz, \
                           const struct hyperclient_map_attribute* attrs, size_t attrs_sz, \
                           enum hyperclient_returncode* status) \
     { \
-        return prepare_microop2(CONVERT, \
-                                OP_ ## OPNAMECAPS, space, \
-                                key, key_sz, attrs, attrs_sz, status); \
+        const hyperclient_keyop_info* opinfo; \
+        opinfo = hyperclient_keyop_info_lookup(hdxstr(OPNAME), strlen(hdxstr(OPNAME))); \
+        return perform_microop2(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, status); \
     }
 
-HYPERCLIENT_MAP_CPPDEF(map_add,             MAP_ADD,        container_map)
-HYPERCLIENT_MAP_CPPDEF(map_remove,          MAP_REMOVE,     container_map_key_only)
-HYPERCLIENT_MAP_CPPDEF(map_atomic_add,      NUM_ADD,        container_map_value_numeric)
-HYPERCLIENT_MAP_CPPDEF(map_atomic_sub,      NUM_SUB,        container_map_value_numeric)
-HYPERCLIENT_MAP_CPPDEF(map_atomic_mul,      NUM_MUL,        container_map_value_numeric)
-HYPERCLIENT_MAP_CPPDEF(map_atomic_div,      NUM_DIV,        container_map_value_numeric)
-HYPERCLIENT_MAP_CPPDEF(map_atomic_mod,      NUM_MOD,        container_map_value_integer)
-HYPERCLIENT_MAP_CPPDEF(map_atomic_and,      NUM_AND,        container_map_value_integer)
-HYPERCLIENT_MAP_CPPDEF(map_atomic_or,       NUM_OR,         container_map_value_integer)
-HYPERCLIENT_MAP_CPPDEF(map_atomic_xor,      NUM_XOR,        container_map_value_integer)
-HYPERCLIENT_MAP_CPPDEF(map_string_prepend,  STRING_PREPEND, container_map_value_string)
-HYPERCLIENT_MAP_CPPDEF(map_string_append,   STRING_APPEND,  container_map_value_string)
+HYPERCLIENT_MAP_CPPDEF(map_add)
+HYPERCLIENT_MAP_CPPDEF(map_remove)
+HYPERCLIENT_MAP_CPPDEF(map_atomic_add)
+HYPERCLIENT_MAP_CPPDEF(map_atomic_sub)
+HYPERCLIENT_MAP_CPPDEF(map_atomic_mul)
+HYPERCLIENT_MAP_CPPDEF(map_atomic_div)
+HYPERCLIENT_MAP_CPPDEF(map_atomic_mod)
+HYPERCLIENT_MAP_CPPDEF(map_atomic_and)
+HYPERCLIENT_MAP_CPPDEF(map_atomic_or)
+HYPERCLIENT_MAP_CPPDEF(map_atomic_xor)
+HYPERCLIENT_MAP_CPPDEF(map_string_prepend)
+HYPERCLIENT_MAP_CPPDEF(map_string_append)
 
 int64_t
 hyperclient :: search(const char* space,
@@ -767,11 +689,9 @@ hyperclient :: add_keyop(const char* space, const char* key, size_t key_sz,
 }
 
 int64_t
-hyperclient :: prepare_microop1(bool (*check)(hyperdatatype expected,
-                                              const e::slice& arg1, hyperdatatype arg1_datatype,
-                                              const e::slice& arg2, hyperdatatype arg2_datatype),
-                                int _reqtype, int _resptype, int action, const char* space,
-                                const char* key, size_t key_sz,
+hyperclient :: perform_microop1(const class hyperclient_keyop_info* opinfo,
+                                const char* space, const char* key, size_t key_sz,
+                                const struct hyperclient_attribute* condattrs, size_t condattrs_sz,
                                 const struct hyperclient_attribute* attrs, size_t attrs_sz,
                                 hyperclient_returncode* status)
 {
@@ -780,69 +700,56 @@ hyperclient :: prepare_microop1(bool (*check)(hyperdatatype expected,
     VALIDATE_KEY(sc, key, key_sz) // Checks sc
 
     // A new pending op
-    hyperdex::network_msgtype reqtype = static_cast<hyperdex::network_msgtype>(_reqtype);
-    hyperdex::network_msgtype resptype = static_cast<hyperdex::network_msgtype>(_resptype);
     e::intrusive_ptr<pending> op;
-    op = new pending_statusonly(reqtype, resptype, status);
+    op = new pending_statusonly(hyperdex::REQ_ATOMIC, hyperdex::RESP_ATOMIC, status);
 
-    std::vector<microop> ops;
-    ops.reserve(attrs_sz);
+    // Prepare the checks
+    std::vector<microcheck> checks;
+    size_t num_checks = prepare_checks(sc, opinfo, condattrs, condattrs_sz, status, &checks);
 
-    for (size_t i = 0; i < attrs_sz; ++i)
+    if (num_checks < condattrs_sz)
     {
-        uint16_t attrnum = sc->lookup_attr(attrs[i].attr);
+        return -2 - num_checks;
+    }
 
-        if (attrnum == sc->attrs_sz)
-        {
-            *status = HYPERCLIENT_UNKNOWNATTR;
-            return -2 - i;
-        }
+    // Prepare the ops
+    std::vector<microop> ops;
+    size_t num_ops = prepare_ops(sc, opinfo, attrs, attrs_sz, status, &ops);
 
-        if (attrnum == 0)
-        {
-            *status = HYPERCLIENT_DONTUSEKEY;
-            return -2 - i;
-        }
-
-        if (!check(sc->attrs[attrnum].type,
-                   e::slice(attrs[i].value, attrs[i].value_sz), attrs[i].datatype,
-                   e::slice(), HYPERDATATYPE_GARBAGE))
-        {
-            *status = HYPERCLIENT_WRONGTYPE;
-            return -2 - i;
-        }
-
-        microop o;
-        o.attr = attrnum;
-        o.action = static_cast<microaction>(action);
-        o.arg1 = e::slice(attrs[i].value, attrs[i].value_sz);
-        o.arg1_datatype = attrs[i].datatype;
-        ops.push_back(o);
+    if (num_ops < attrs_sz)
+    {
+        return -2 - condattrs_sz - num_ops;
     }
 
     // The size of the buffer we need
     size_t sz = HYPERCLIENT_HEADER_SIZE
+              + sizeof(uint8_t)
               + sizeof(uint32_t) + key_sz
-              + sizeof(uint32_t);
+              + sizeof(uint32_t) + sizeof(uint32_t);
+
+    for (size_t i = 0; i < checks.size(); ++i)
+    {
+        sz += pack_size(checks[i]);
+    }
 
     for (size_t i = 0; i < ops.size(); ++i)
     {
         sz += pack_size(ops[i]);
     }
 
+    std::sort(checks.begin(), checks.end());
     std::sort(ops.begin(), ops.end());
-
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    msg->pack_at(HYPERCLIENT_HEADER_SIZE) << e::slice(key, key_sz) << ops;
+    uint8_t flags = (opinfo->fail_if_not_exist ? 1 : 0)
+                  | (opinfo->has_microops ? 2 : 0);
+    msg->pack_at(HYPERCLIENT_HEADER_SIZE) << e::slice(key, key_sz) << flags << checks << ops;
     return add_keyop(space, key, key_sz, msg, op);
 }
 
 int64_t
-hyperclient :: prepare_microop2(bool (*check)(hyperdatatype expected,
-                                              const e::slice& arg1, hyperdatatype arg1_datatype,
-                                              const e::slice& arg2, hyperdatatype arg2_datatype),
-                                int action, const char* space,
-                                const char* key, size_t key_sz,
+hyperclient :: perform_microop2(const class hyperclient_keyop_info* opinfo,
+                                const char* space, const char* key, size_t key_sz,
+                                const struct hyperclient_attribute* condattrs, size_t condattrs_sz,
                                 const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
                                 hyperclient_returncode* status)
 {
@@ -854,8 +761,95 @@ hyperclient :: prepare_microop2(bool (*check)(hyperdatatype expected,
     e::intrusive_ptr<pending> op;
     op = new pending_statusonly(hyperdex::REQ_ATOMIC, hyperdex::RESP_ATOMIC, status);
 
+    // Prepare the checks
+    std::vector<microcheck> checks;
+    size_t num_checks = prepare_checks(sc, opinfo, condattrs, condattrs_sz, status, &checks);
+
+    if (num_checks < condattrs_sz)
+    {
+        return -2 - num_checks;
+    }
+
+    // Prepare the ops
     std::vector<microop> ops;
-    ops.reserve(attrs_sz);
+    size_t num_ops = prepare_ops(sc, opinfo, attrs, attrs_sz, status, &ops);
+
+    if (num_ops < attrs_sz)
+    {
+        return -2 - condattrs_sz - num_ops;
+    }
+
+    // The size of the buffer we need
+    size_t sz = HYPERCLIENT_HEADER_SIZE
+              + sizeof(uint8_t)
+              + sizeof(uint32_t) + key_sz
+              + sizeof(uint32_t) + sizeof(uint32_t);
+
+    for (size_t i = 0; i < checks.size(); ++i)
+    {
+        sz += pack_size(checks[i]);
+    }
+
+    for (size_t i = 0; i < ops.size(); ++i)
+    {
+        sz += pack_size(ops[i]);
+    }
+
+    std::sort(checks.begin(), checks.end());
+    std::sort(ops.begin(), ops.end());
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    uint8_t flags = (opinfo->fail_if_not_exist ? 1 : 0)
+                  | (opinfo->has_microops ? 2 : 0);
+    msg->pack_at(HYPERCLIENT_HEADER_SIZE) << e::slice(key, key_sz) << flags << checks << ops;
+    return add_keyop(space, key, key_sz, msg, op);
+}
+
+size_t
+hyperclient :: prepare_checks(const class schema* sc,
+                              const class hyperclient_keyop_info*,
+                              const hyperclient_attribute* condattrs, size_t condattrs_sz,
+                              hyperclient_returncode* status,
+                              std::vector<class microcheck>* checks)
+{
+    checks->reserve(condattrs_sz);
+
+    for (size_t i = 0; i < condattrs_sz; ++i)
+    {
+        uint16_t attrnum = sc->lookup_attr(condattrs[i].attr);
+
+        if (attrnum == sc->attrs_sz)
+        {
+            *status = HYPERCLIENT_UNKNOWNATTR;
+            return i;
+        }
+
+        if (!container_implicit_coercion(sc->attrs[attrnum].type,
+                                         e::slice(condattrs[i].value, condattrs[i].value_sz),
+                                         condattrs[i].datatype))
+        {
+            *status = HYPERCLIENT_WRONGTYPE;
+            return i;
+        }
+
+        microcheck c;
+        c.attr = attrnum;
+        c.value = e::slice(condattrs[i].value, condattrs[i].value_sz);
+        c.datatype = condattrs[i].datatype;
+        c.predicate = PRED_EQUALS;
+        checks->push_back(c);
+    }
+
+    return condattrs_sz;
+}
+
+size_t
+hyperclient :: prepare_ops(const class schema* sc,
+                           const class hyperclient_keyop_info* opinfo,
+                           const hyperclient_attribute* attrs, size_t attrs_sz,
+                           hyperclient_returncode* status,
+                           std::vector<class microop>* ops)
+{
+    ops->reserve(attrs_sz);
 
     for (size_t i = 0; i < attrs_sz; ++i)
     {
@@ -864,48 +858,78 @@ hyperclient :: prepare_microop2(bool (*check)(hyperdatatype expected,
         if (attrnum == sc->attrs_sz)
         {
             *status = HYPERCLIENT_UNKNOWNATTR;
-            return -2 - i;
+            return i;
         }
 
         if (attrnum == 0)
         {
             *status = HYPERCLIENT_DONTUSEKEY;
-            return -2 - i;
+            return i;
         }
 
-        if (!check(sc->attrs[attrnum].type,
-                   e::slice(attrs[i].value, attrs[i].value_sz), attrs[i].value_datatype,
-                   e::slice(attrs[i].map_key, attrs[i].map_key_sz), attrs[i].map_key_datatype))
+        if (!opinfo->check(sc->attrs[attrnum].type,
+                           e::slice(attrs[i].value, attrs[i].value_sz), attrs[i].datatype,
+                           e::slice(), HYPERDATATYPE_GARBAGE))
         {
             *status = HYPERCLIENT_WRONGTYPE;
-            return -2 - i;
+            return i;
         }
 
         microop o;
         o.attr = attrnum;
-        o.action = static_cast<microaction>(action);
+        o.action = opinfo->action;
+        o.arg1 = e::slice(attrs[i].value, attrs[i].value_sz);
+        o.arg1_datatype = attrs[i].datatype;
+        ops->push_back(o);
+    }
+
+    return attrs_sz;
+}
+
+size_t
+hyperclient :: prepare_ops(const class schema* sc,
+                           const class hyperclient_keyop_info* opinfo,
+                           const hyperclient_map_attribute* attrs, size_t attrs_sz,
+                           hyperclient_returncode* status,
+                           std::vector<class microop>* ops)
+{
+    ops->reserve(attrs_sz);
+
+    for (size_t i = 0; i < attrs_sz; ++i)
+    {
+        uint16_t attrnum = sc->lookup_attr(attrs[i].attr);
+
+        if (attrnum == sc->attrs_sz)
+        {
+            *status = HYPERCLIENT_UNKNOWNATTR;
+            return i;
+        }
+
+        if (attrnum == 0)
+        {
+            *status = HYPERCLIENT_DONTUSEKEY;
+            return i;
+        }
+
+        if (!opinfo->check(sc->attrs[attrnum].type,
+                           e::slice(attrs[i].value, attrs[i].value_sz), attrs[i].value_datatype,
+                           e::slice(attrs[i].map_key, attrs[i].map_key_sz), attrs[i].map_key_datatype))
+        {
+            *status = HYPERCLIENT_WRONGTYPE;
+            return i;
+        }
+
+        microop o;
+        o.attr = attrnum;
+        o.action = opinfo->action;
         o.arg2 = e::slice(attrs[i].map_key, attrs[i].map_key_sz);
         o.arg2_datatype = attrs[i].map_key_datatype;
         o.arg1 = e::slice(attrs[i].value, attrs[i].value_sz);
         o.arg1_datatype = attrs[i].value_datatype;
-        ops.push_back(o);
+        ops->push_back(o);
     }
 
-    // The size of the buffer we need
-    size_t sz = HYPERCLIENT_HEADER_SIZE
-              + sizeof(uint32_t) + key_sz
-              + sizeof(uint32_t);
-
-    for (size_t i = 0; i < ops.size(); ++i)
-    {
-        sz += pack_size(ops[i]);
-    }
-
-    std::sort(ops.begin(), ops.end());
-
-    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    msg->pack_at(HYPERCLIENT_HEADER_SIZE) << e::slice(key, key_sz) << ops;
-    return add_keyop(space, key, key_sz, msg, op);
+    return attrs_sz;
 }
 
 int64_t

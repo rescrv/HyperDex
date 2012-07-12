@@ -459,7 +459,7 @@ hyperdaemon :: replication_manager :: client_del(const hyperdex::network_msgtype
     // Fail as read only if we are quiescing.
     if (m_quiesce)
     {
-        respond_to_client(to, from, nonce, hyperdex::RESP_DEL, hyperdex::NET_READONLY);
+        respond_to_client(to, from, nonce, hyperdex::RESP_ATOMIC, hyperdex::NET_READONLY);
         return;
     }
 
@@ -475,12 +475,12 @@ hyperdaemon :: replication_manager :: client_del(const hyperdex::network_msgtype
     // Make sure this message is to the point-leader.
     if (!m_config.is_point_leader(to))
     {
-        respond_to_client(to, from, nonce, hyperdex::RESP_DEL, hyperdex::NET_NOTUS);
+        respond_to_client(to, from, nonce, hyperdex::RESP_ATOMIC, hyperdex::NET_NOTUS);
         return;
     }
 
     // Automatically respond with "SERVERERROR" whenever we return without g.dismiss()
-    e::guard g = e::makeobjguard(*this, &replication_manager::respond_to_client, to, from, nonce, hyperdex::RESP_DEL, hyperdex::NET_SERVERERROR);
+    e::guard g = e::makeobjguard(*this, &replication_manager::respond_to_client, to, from, nonce, hyperdex::RESP_ATOMIC, hyperdex::NET_SERVERERROR);
 
     // Grab the lock that protects this key.
     HOLD_LOCK_FOR_KEY(to, key);
@@ -512,7 +512,7 @@ hyperdaemon :: replication_manager :: client_del(const hyperdex::network_msgtype
 
     if (!has_old_value)
     {
-        respond_to_client(to, from, nonce, hyperdex::RESP_DEL, hyperdex::NET_NOTFOUND);
+        respond_to_client(to, from, nonce, hyperdex::RESP_ATOMIC, hyperdex::NET_NOTFOUND);
         g.dismiss();
         return;
     }
@@ -520,12 +520,12 @@ hyperdaemon :: replication_manager :: client_del(const hyperdex::network_msgtype
     e::intrusive_ptr<pending> new_pend;
     std::tr1::shared_ptr<e::buffer> sharedbacking(backing.release());
     new_pend = new pending(false, sharedbacking, key, old_value, clientop(to.get_region(), from, nonce));
-    new_pend->retcode = hyperdex::RESP_DEL;
+    new_pend->retcode = hyperdex::RESP_ATOMIC;
     new_pend->ref = ref;
 
     if (!prev_and_next(to.get_region(), new_pend->key, false, new_pend->value, has_old_value, old_value, new_pend))
     {
-        respond_to_client(to, from, nonce, hyperdex::RESP_DEL, hyperdex::NET_NOTUS);
+        respond_to_client(to, from, nonce, hyperdex::RESP_ATOMIC, hyperdex::NET_NOTUS);
         g.dismiss();
         return;
     }

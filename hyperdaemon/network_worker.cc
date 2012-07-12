@@ -155,59 +155,13 @@ hyperdaemon :: network_worker :: run()
             pa = pa << nonce << static_cast<uint16_t>(result) << value;
             m_comm->send(to, from, hyperdex::RESP_GET, msg);
         }
-        else if (type == hyperdex::REQ_PUT)
-        {
-            e::slice key;
-            std::vector<microcheck> checks;
-            std::vector<microop> ops;
-            up = up >> nonce >> key >> ops;
-
-            if (up.error())
-            {
-                LOG(WARNING) << "unpack of REQ_PUT failed; here's some hex:  " << msg->hex();
-                continue;
-            }
-
-            m_repl->client_atomic(hyperdex::RESP_PUT, from, to, nonce, msg,
-                                  false, key, &checks, &ops);
-        }
-        else if (type == hyperdex::REQ_CONDPUT)
-        {
-            e::slice key;
-            std::vector<microcheck> checks;
-            std::vector<microop> ops;
-            up = up >> nonce >> key >> checks >> ops;
-
-            if (up.error())
-            {
-                LOG(WARNING) << "unpack of REQ_CONDPUT failed; here's some hex:  " << msg->hex();
-                continue;
-            }
-
-            m_repl->client_atomic(hyperdex::RESP_CONDPUT, from, to, nonce, msg,
-                                  true, key, &checks, &ops);
-        }
-        else if (type == hyperdex::REQ_DEL)
-        {
-            e::slice key;
-            std::vector<microcheck> checks;
-            up = up >> nonce >> key;
-
-            if (up.error())
-            {
-                LOG(WARNING) << "unpack of REQ_DEL failed; here's some hex:  " << msg->hex();
-                continue;
-            }
-
-            m_repl->client_del(hyperdex::RESP_DEL, from, to, nonce, msg,
-                               key, &checks);
-        }
         else if (type == hyperdex::REQ_ATOMIC)
         {
+            uint8_t flags;
             e::slice key;
             std::vector<microcheck> checks;
             std::vector<microop> ops;
-            up = up >> nonce >> key >> ops;
+            up = up >> nonce >> key >> flags >> checks >> ops;
 
             if (up.error())
             {
@@ -215,8 +169,19 @@ hyperdaemon :: network_worker :: run()
                 continue;
             }
 
-            m_repl->client_atomic(hyperdex::RESP_ATOMIC, from, to, nonce, msg,
-                                  true, key, &checks, &ops);
+            bool fail_if_not_exist = flags & 1;
+            bool has_microops = flags & 2;
+
+            if (has_microops)
+            {
+                m_repl->client_atomic(hyperdex::RESP_ATOMIC, from, to, nonce, msg,
+                                      fail_if_not_exist, key, &checks, &ops);
+            }
+            else
+            {
+                m_repl->client_del(hyperdex::RESP_ATOMIC, from, to, nonce, msg,
+                                   key, &checks);
+            }
         }
         else if (type == hyperdex::REQ_SEARCH_START)
         {
@@ -294,8 +259,8 @@ hyperdaemon :: network_worker :: run()
                 continue;
             }
 
-            hyperdex::network_msgtype mt(hyperdex::REQ_DEL);
-            e::slice sl;
+            hyperdex::network_msgtype mt(hyperdex::REQ_ATOMIC);
+            e::slice sl("\x01\x00\x00\x00\x00\x00\x00\x00\x00", 9);
 
             if (s.sanity_check())
             {
