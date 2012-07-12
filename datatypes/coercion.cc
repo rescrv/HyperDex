@@ -36,70 +36,68 @@
 
 bool
 primitive_numeric(hyperdatatype expected,
-                  hyperdatatype provided,
-                  const e::slice& value)
+                  const e::slice& arg1, hyperdatatype arg1_datatype,
+                  const e::slice&, hyperdatatype)
 {
     return (expected == HYPERDATATYPE_INT64 || expected == HYPERDATATYPE_FLOAT) &&
-           expected == provided &&
-           validate_as_type(value, provided);
+           expected == arg1_datatype &&
+           validate_as_type(arg1, arg1_datatype);
 }
 
 bool
 primitive_integer(hyperdatatype expected,
-                  hyperdatatype provided,
-                  const e::slice& value)
+                  const e::slice& arg1, hyperdatatype arg1_datatype,
+                  const e::slice&, hyperdatatype)
 {
     return expected == HYPERDATATYPE_INT64 &&
-           expected == provided &&
-           validate_as_int64(value);
+           expected == arg1_datatype &&
+           validate_as_int64(arg1);
 }
 
 bool
 primitive_string(hyperdatatype expected,
-                 hyperdatatype provided,
-                 const e::slice& value)
+                 const e::slice& arg1, hyperdatatype arg1_datatype,
+                 const e::slice&, hyperdatatype)
 {
     return expected == HYPERDATATYPE_STRING &&
-           expected == provided &&
-           validate_as_string(value);
+           expected == arg1_datatype &&
+           validate_as_string(arg1);
 }
 
 bool
 container_list_elem(hyperdatatype expected,
-                    hyperdatatype provided,
-                    const e::slice& value)
+                    const e::slice& arg1, hyperdatatype arg1_datatype,
+                    const e::slice&, hyperdatatype)
 {
     return CONTAINER_MASK(expected) == HYPERDATATYPE_LIST_GENERIC &&
-           PRIMITIVE1_MASK(expected) == provided &&
-           validate_as_type(value, provided);
+           PRIMITIVE1_MASK(expected) == arg1_datatype &&
+           validate_as_type(arg1, arg1_datatype);
 }
 
 bool
 container_set_elem(hyperdatatype expected,
-                   hyperdatatype provided,
-                   const e::slice& value)
+                   const e::slice& arg1, hyperdatatype arg1_datatype,
+                   const e::slice&, hyperdatatype)
 {
     return CONTAINER_MASK(expected) == HYPERDATATYPE_SET_GENERIC &&
-           PRIMITIVE1_MASK(expected) == provided &&
-           validate_as_type(value, provided);
+           PRIMITIVE1_MASK(expected) == arg1_datatype &&
+           validate_as_type(arg1, arg1_datatype);
 }
 
 bool
 container_set(hyperdatatype expected,
-              hyperdatatype provided,
-              const e::slice& value)
+              const e::slice& arg1, hyperdatatype arg1_datatype,
+              const e::slice&, hyperdatatype)
 {
     return CONTAINER_MASK(expected) == HYPERDATATYPE_SET_GENERIC &&
-           (expected == provided || provided == HYPERDATATYPE_SET_GENERIC) && 
-           validate_as_type(value, provided);
+           (expected == arg1_datatype || arg1_datatype == HYPERDATATYPE_SET_GENERIC) &&
+           validate_as_type(arg1, arg1_datatype);
 }
 
 bool
 container_map(hyperdatatype expected,
-              const e::slice& arg1,
-              hyperdatatype arg1_datatype,
-              const e::slice& arg2,
-              hyperdatatype arg2_datatype)
+              const e::slice& arg1, hyperdatatype arg1_datatype,
+              const e::slice& arg2, hyperdatatype arg2_datatype)
 {
     return CONTAINER_MASK(expected) == HYPERDATATYPE_MAP_GENERIC &&
            PRIMITIVE2_MASK(expected) == arg2_datatype &&
@@ -110,10 +108,8 @@ container_map(hyperdatatype expected,
 
 bool
 container_map_key_only(hyperdatatype expected,
-                       const e::slice&,
-                       hyperdatatype,
-                       const e::slice& arg2,
-                       hyperdatatype arg2_datatype)
+                       const e::slice&, hyperdatatype,
+                       const e::slice& arg2, hyperdatatype arg2_datatype)
 {
     return CONTAINER_MASK(expected) == HYPERDATATYPE_MAP_GENERIC &&
            PRIMITIVE2_MASK(expected) == arg2_datatype &&
@@ -122,10 +118,8 @@ container_map_key_only(hyperdatatype expected,
 
 bool
 container_map_value_numeric(hyperdatatype expected,
-                            const e::slice& arg1,
-                            hyperdatatype arg1_datatype,
-                            const e::slice& arg2,
-                            hyperdatatype arg2_datatype)
+                            const e::slice& arg1, hyperdatatype arg1_datatype,
+                            const e::slice& arg2, hyperdatatype arg2_datatype)
 {
     return CONTAINER_MASK(expected) == HYPERDATATYPE_MAP_GENERIC &&
            PRIMITIVE2_MASK(expected) == arg2_datatype &&
@@ -137,10 +131,8 @@ container_map_value_numeric(hyperdatatype expected,
 
 bool
 container_map_value_integer(hyperdatatype expected,
-                            const e::slice& arg1,
-                            hyperdatatype arg1_datatype,
-                            const e::slice& arg2,
-                            hyperdatatype arg2_datatype)
+                            const e::slice& arg1, hyperdatatype arg1_datatype,
+                            const e::slice& arg2, hyperdatatype arg2_datatype)
 {
     return CONTAINER_MASK(expected) == HYPERDATATYPE_MAP_GENERIC &&
            PRIMITIVE2_MASK(expected) == arg2_datatype &&
@@ -152,10 +144,8 @@ container_map_value_integer(hyperdatatype expected,
 
 bool
 container_map_value_string(hyperdatatype expected,
-                           const e::slice& arg1,
-                           hyperdatatype arg1_datatype,
-                           const e::slice& arg2,
-                           hyperdatatype arg2_datatype)
+                           const e::slice& arg1, hyperdatatype arg1_datatype,
+                           const e::slice& arg2, hyperdatatype arg2_datatype)
 {
     return CONTAINER_MASK(expected) == HYPERDATATYPE_MAP_GENERIC &&
            PRIMITIVE2_MASK(expected) == arg2_datatype &&
@@ -167,24 +157,24 @@ container_map_value_string(hyperdatatype expected,
 
 bool
 container_implicit_coercion(hyperdatatype expected,
-                            hyperdatatype provided)
+                            const e::slice& arg1, hyperdatatype arg1_datatype,
+                            const e::slice&, hyperdatatype)
 {
-    return CONTAINER_MASK(expected) == CONTAINER_MASK(provided) &&
-           (PRIMITIVE1_MASK(expected) == PRIMITIVE1_MASK(provided) ||
-            PRIMITIVE1_MASK(provided) == HYPERDATATYPE_GENERIC) &&
-           (PRIMITIVE2_MASK(expected) == PRIMITIVE2_MASK(provided) ||
-            PRIMITIVE2_MASK(provided) == HYPERDATATYPE_GENERIC);
+    return container_implicit_coercion(expected, arg1, arg1_datatype);
 }
 
 bool
 container_implicit_coercion(hyperdatatype expected,
-                            hyperdatatype provided,
-                            const e::slice& value)
+                            const e::slice& arg1, hyperdatatype arg1_datatype)
 {
-    return CONTAINER_MASK(expected) == CONTAINER_MASK(provided) &&
-           (PRIMITIVE1_MASK(expected) == PRIMITIVE1_MASK(provided) ||
-            PRIMITIVE1_MASK(provided) == HYPERDATATYPE_GENERIC) &&
-           (PRIMITIVE2_MASK(expected) == PRIMITIVE2_MASK(provided) ||
-            PRIMITIVE2_MASK(provided) == HYPERDATATYPE_GENERIC) &&
-           validate_as_type(value, expected);
+    return CONTAINER_MASK(expected) == CONTAINER_MASK(arg1_datatype) &&
+           ((PRIMITIVE1_MASK(expected) == PRIMITIVE1_MASK(arg1_datatype)  &&
+             PRIMITIVE2_MASK(expected) == PRIMITIVE2_MASK(arg1_datatype) &&
+             validate_as_type(arg1, expected)) ||
+            (PRIMITIVE1_MASK(arg1_datatype) == HYPERDATATYPE_GENERIC &&
+             PRIMITIVE2_MASK(arg1_datatype) == HYPERDATATYPE_GENERIC &&
+             arg1.size() == 0 &&
+             (CONTAINER_MASK(expected) == HYPERDATATYPE_LIST_GENERIC ||
+              CONTAINER_MASK(expected) == HYPERDATATYPE_SET_GENERIC ||
+              CONTAINER_MASK(expected) == HYPERDATATYPE_MAP_GENERIC)));
 }

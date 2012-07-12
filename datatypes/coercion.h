@@ -36,76 +36,66 @@
 
 bool
 primitive_numeric(hyperdatatype expected,
-                  hyperdatatype provided,
-                  const e::slice& value);
+                  const e::slice& arg1, hyperdatatype arg1_datatype,
+                  const e::slice&, hyperdatatype);
 
 bool
 primitive_integer(hyperdatatype expected,
-                  hyperdatatype provided,
-                  const e::slice& value);
+                  const e::slice& arg1, hyperdatatype arg1_datatype,
+                  const e::slice&, hyperdatatype);
 
 bool
 primitive_string(hyperdatatype expected,
-                 hyperdatatype provided,
-                 const e::slice& value);
+                 const e::slice& arg1, hyperdatatype arg1_datatype,
+                 const e::slice&, hyperdatatype);
 
 bool
 container_list_elem(hyperdatatype expected,
-                    hyperdatatype provided,
-                    const e::slice& value);
+                    const e::slice& arg1, hyperdatatype arg1_datatype,
+                    const e::slice&, hyperdatatype);
 
 bool
 container_set_elem(hyperdatatype expected,
-                   hyperdatatype provided,
-                   const e::slice& value);
+                   const e::slice& arg1, hyperdatatype arg1_datatype,
+                   const e::slice&, hyperdatatype);
 
 bool
 container_set(hyperdatatype expected,
-              hyperdatatype provided,
-              const e::slice& value);
+              const e::slice& arg1, hyperdatatype arg1_datatype,
+              const e::slice&, hyperdatatype);
 
 bool
 container_map(hyperdatatype expected,
-              const e::slice& arg1,
-              hyperdatatype arg1_datatype,
-              const e::slice& arg2,
-              hyperdatatype arg2_datatype);
+              const e::slice& arg1, hyperdatatype arg1_datatype,
+              const e::slice& arg2, hyperdatatype arg2_datatype);
 
 bool
 container_map_key_only(hyperdatatype expected,
-                       const e::slice& arg1,
-                       hyperdatatype arg1_datatype,
-                       const e::slice& arg2,
-                       hyperdatatype arg2_datatype);
+                       const e::slice& arg1, hyperdatatype arg1_datatype,
+                       const e::slice& arg2, hyperdatatype arg2_datatype);
 
 bool
 container_map_value_numeric(hyperdatatype expected,
-                            const e::slice& arg1,
-                            hyperdatatype arg1_datatype,
-                            const e::slice& arg2,
-                            hyperdatatype arg2_datatype);
+                            const e::slice& arg1, hyperdatatype arg1_datatype,
+                            const e::slice& arg2, hyperdatatype arg2_datatype);
 
 bool
 container_map_value_integer(hyperdatatype expected,
-                            const e::slice& arg1,
-                            hyperdatatype arg1_datatype,
-                            const e::slice& arg2,
-                            hyperdatatype arg2_datatype);
+                            const e::slice& arg1, hyperdatatype arg1_datatype,
+                            const e::slice& arg2, hyperdatatype arg2_datatype);
 
 bool
 container_map_value_string(hyperdatatype expected,
-                           const e::slice& arg1,
-                           hyperdatatype arg1_datatype,
-                           const e::slice& arg2,
-                           hyperdatatype arg2_datatype);
+                           const e::slice& arg1, hyperdatatype arg1_datatype,
+                           const e::slice& arg2, hyperdatatype arg2_datatype);
 
 bool
 container_implicit_coercion(hyperdatatype expected,
-                            hyperdatatype provided,
-                            const e::slice& value);
+                            const e::slice& arg1, hyperdatatype arg1_datatype,
+                            const e::slice& arg2, hyperdatatype arg2_datatype);
 
 bool
 container_implicit_coercion(hyperdatatype expected,
-                            hyperdatatype provided);
+                            const e::slice& arg1, hyperdatatype arg1_datatype);
 
 #endif // datatypes_coercion_h_

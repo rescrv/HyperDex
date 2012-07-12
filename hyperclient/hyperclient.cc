@@ -767,8 +767,9 @@ hyperclient :: add_keyop(const char* space, const char* key, size_t key_sz,
 }
 
 int64_t
-hyperclient :: prepare_microop1(bool (*check)(hyperdatatype expected, hyperdatatype provided,
-                                              const e::slice& value),
+hyperclient :: prepare_microop1(bool (*check)(hyperdatatype expected,
+                                              const e::slice& arg1, hyperdatatype arg1_datatype,
+                                              const e::slice& arg2, hyperdatatype arg2_datatype),
                                 int _reqtype, int _resptype, int action, const char* space,
                                 const char* key, size_t key_sz,
                                 const struct hyperclient_attribute* attrs, size_t attrs_sz,
@@ -803,8 +804,9 @@ hyperclient :: prepare_microop1(bool (*check)(hyperdatatype expected, hyperdatat
             return -2 - i;
         }
 
-        if (!check(sc->attrs[attrnum].type, attrs[i].datatype,
-                   e::slice(attrs[i].value, attrs[i].value_sz)))
+        if (!check(sc->attrs[attrnum].type,
+                   e::slice(attrs[i].value, attrs[i].value_sz), attrs[i].datatype,
+                   e::slice(), HYPERDATATYPE_GARBAGE))
         {
             *status = HYPERCLIENT_WRONGTYPE;
             return -2 - i;
@@ -837,10 +839,8 @@ hyperclient :: prepare_microop1(bool (*check)(hyperdatatype expected, hyperdatat
 
 int64_t
 hyperclient :: prepare_microop2(bool (*check)(hyperdatatype expected,
-                                              const e::slice& arg1,
-                                              hyperdatatype arg1_datatype,
-                                              const e::slice& arg2,
-                                              hyperdatatype arg2_datatype),
+                                              const e::slice& arg1, hyperdatatype arg1_datatype,
+                                              const e::slice& arg2, hyperdatatype arg2_datatype),
                                 int action, const char* space,
                                 const char* key, size_t key_sz,
                                 const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
@@ -1081,14 +1081,9 @@ hyperclient :: validate_attribute(schema* sc,
         return sc->attrs_sz;
     }
 
-    if (!container_implicit_coercion(sc->attrs[attrnum].type, attr->datatype))
-    {
-        *status = HYPERCLIENT_WRONGTYPE;
-        return sc->attrs_sz;
-    }
-
-    if (!validate_as_type(e::slice(attr->value, attr->value_sz),
-                          sc->attrs[attrnum].type))
+    if (!container_implicit_coercion(sc->attrs[attrnum].type,
+                                     e::slice(attr->value, attr->value_sz),
+                                     attr->datatype))
     {
         *status = HYPERCLIENT_WRONGTYPE;
         return sc->attrs_sz;
