@@ -56,9 +56,15 @@ apply_float(const e::slice& old_value,
     {
         const microop* op = ops + i;
 
-        if (!validate_as_float(op->arg1) || op->arg1_datatype != HYPERDATATYPE_FLOAT)
+        if (ops[i].arg1_datatype != HYPERDATATYPE_FLOAT)
         {
-            *error = MICROERROR;
+            *error = MICROERR_WRONGTYPE;
+            return NULL;
+        }
+
+        if (!validate_as_float(ops[i].arg1))
+        {
+            *error = MICROERR_MALFORMED;
             return NULL;
         }
 
@@ -98,7 +104,7 @@ apply_float(const e::slice& old_value,
             case OP_MAP_REMOVE:
             case OP_FAIL:
             default:
-                *error = MICROERROR;
+                *error = MICROERR_WRONGACTION;
                 return NULL;
         }
     }

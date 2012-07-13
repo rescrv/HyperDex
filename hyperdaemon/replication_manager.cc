@@ -54,7 +54,6 @@
 
 // HyperDex
 #include "datatypes/apply.h"
-#include "datatypes/checks.h"
 #include "datatypes/microcheck.h"
 #include "datatypes/microop.h"
 #include "datatypes/validate.h"
@@ -259,172 +258,22 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::network_msgt
     }
 
     old_value.resize(sc->attrs_sz - 1);
+    microerror error;
 
-    // We make an unvalidated assumption that the ops array is sorted.  We will
-    // validate this at a later point.
-    if (!ops->empty() && (ops->front().attr <= 0 || ops->back().attr >= sc->attrs_sz))
+    // Create a new version of the object in a contiguous buffer using the old
+    // version and the microops.
+    std::tr1::shared_ptr<e::buffer> new_backing;
+    e::slice new_key;
+    std::vector<e::slice> new_value;
+    size_t passed = apply_checks_and_ops(sc, *checks, *ops, key, old_value,
+                                         &new_backing, &new_key, &new_value, &error);
+
+    if (passed != checks->size() + ops->size())
     {
-        respond_to_client(to, from, nonce, opcode, hyperdex::NET_BADDIMSPEC);
+        /* XXX */
+        respond_to_client(to, from, nonce, opcode, error == MICROERR_OVERFLOW ? hyperdex::NET_OVERFLOW : hyperdex::NET_CMPFAIL);
         g.dismiss();
         return;
-    }
-
-    // Calculate the new size of the object
-    size_t new_size = key.size();
-
-    for (size_t i = 0; i < old_value.size(); ++i)
-    {
-        // Keep the current size
-        new_size += old_value[i].size();
-    }
-
-    for (size_t i = 0; i < ops->size(); ++i)
-    {
-        // Increment by the amount required by the microop
-        new_size += 2 * sizeof(uint32_t)
-                  + (*ops)[i].arg1.size()
-                  + (*ops)[i].arg2.size();
-    }
-
-    // Allocate the new buffer
-    std::tr1::shared_ptr<e::buffer> new_backing(e::buffer::create(new_size));
-    std::vector<e::slice> new_value(sc->attrs_sz - 1);
-
-    // Copy the old data, mutating it as the micro ops require
-    uint8_t* data = new_backing->data();
-
-    // Copy the key.  Micro ops never apply.
-    e::slice new_key = e::slice(new_backing->data(), key.size());
-    memmove(data, key.data(), key.size());
-    data += key.size();
-
-    // Run all checks over the data
-    for (size_t i = 0; i < checks->size(); ++i)
-    {
-        if ((*checks)[i].attr < 0 || (*checks)[i].attr >= sc->attrs_sz)
-        {
-            respond_to_client(to, from, nonce, opcode, hyperdex::NET_BADMICROS);
-            g.dismiss();
-            return;
-        }
-
-        if (!perform_microchecks(sc->attrs[(*checks)[i].attr - 1].type, (*checks)[i],
-                                 old_value[(*checks)[i].attr - 1]))
-        {
-            respond_to_client(to, from, nonce, opcode, hyperdex::NET_CMPFAIL);
-            g.dismiss();
-            return;
-        }
-    }
-
-    // Divide the micro ops up by attribute
-    microop* op = ops->empty() ? NULL : &ops->front();
-    const microop* const stop = op + ops->size();
-    // the next attribute to copy, indexed based on the total number of
-    // dimensions.  It starts at 1, because the key is 0, and 1 is the first
-    // secondary attribute.
-    uint16_t next_to_copy = 1;
-
-    while (op < stop)
-    {
-        microop* end = op;
-
-        // If the ops are out of order, or out of bounds
-        if (op->attr < next_to_copy || op->attr >= sc->attrs_sz)
-        {
-            // Fail it for bad micro ops
-            respond_to_client(to, from, nonce, opcode, hyperdex::NET_BADMICROS);
-            g.dismiss();
-            return;
-        }
-
-        // Advance so that op/end point to the micro ops that need to be applied
-        while (end < stop && op->attr == end->attr)
-        {
-            // If the datatype doesn't match the structure
-            // XXX check types.  fuck it for now.
-            if (/*end->datatype != sc->attrs[end->attr].type ||*/
-                end->action == OP_FAIL)
-            {
-                // Fail it for bad micro ops
-                respond_to_client(to, from, nonce, opcode, hyperdex::NET_BADMICROS);
-                g.dismiss();
-                return;
-            }
-
-            ++end;
-        }
-
-        // Copy the attributes that are unaffected by micro ops.
-        while (next_to_copy < op->attr)
-        {
-            assert(next_to_copy > 0);
-            size_t idx = next_to_copy - 1;
-            memmove(data, old_value[idx].data(), old_value[idx].size());
-            new_value[idx] = e::slice(data, old_value[idx].size());
-            data += old_value[idx].size();
-            ++next_to_copy;
-        }
-
-        // - "op" now points to the first unapplied micro op
-        // - "end" points to one micro op past the last op we want to apply
-        // - we've guaranteed that the micro ops thus far are in sorted order
-        // - we've guaranteed that the micro ops thus far match the declared
-        //   types
-        // - we've copied all attributes so far, even those not mentioned by
-        //   micro ops.
-
-        microerror error;
-        // This call may modify [op, end) ops.
-        uint8_t* newdata = apply_microops(sc->attrs[op->attr].type,
-                                          old_value[op->attr - 1],
-                                          op, end - op,
-                                          data, &error);
-
-        // If applying the micro ops failed
-        if (!newdata)
-        {
-            hyperdex::network_returncode rc;
-
-            switch (error)
-            {
-                case OVERFLOW:
-                    rc = hyperdex::NET_OVERFLOW;
-                    break;
-                case MICROERROR:
-                default:
-                    rc = hyperdex::NET_BADMICROS;
-                    break;
-            }
-
-            // Fail it for bad micro ops
-            respond_to_client(to, from, nonce, opcode, rc);
-            g.dismiss();
-            return;
-        }
-
-        // see message above "yes I did"
-        new_value[next_to_copy - 1] = e::slice(data, newdata - data);
-        data = newdata;
-
-        // Why ++ and assert rather than straight assign?  This will help us to
-        // catch any problems in the interaction between micro ops and
-        // attributes which we just copy.
-        assert(next_to_copy == op->attr);
-        ++next_to_copy;
-
-        op = end;
-    }
-
-    // Copy the attributes that are unaffected by micro ops.
-    while (next_to_copy < sc->attrs_sz)
-    {
-        assert(next_to_copy > 0);
-        size_t idx = next_to_copy - 1;
-        memmove(data, old_value[idx].data(), old_value[idx].size());
-        new_value[idx] = e::slice(data, old_value[idx].size());
-        data += old_value[idx].size();
-        ++next_to_copy;
     }
 
     e::intrusive_ptr<pending> new_pend;

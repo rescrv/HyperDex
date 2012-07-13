@@ -56,9 +56,15 @@ apply_int64(const e::slice& old_value,
     {
         const microop* op = ops + i;
 
-        if (!validate_as_int64(op->arg1) || op->arg1_datatype != HYPERDATATYPE_INT64)
+        if (ops[i].arg1_datatype != HYPERDATATYPE_INT64)
         {
-            *error = MICROERROR;
+            *error = MICROERR_WRONGTYPE;
+            return NULL;
+        }
+
+        if (!validate_as_int64(ops[i].arg1))
+        {
+            *error = MICROERR_MALFORMED;
             return NULL;
         }
 
@@ -73,35 +79,35 @@ apply_int64(const e::slice& old_value,
             case OP_NUM_ADD:
                 if (!e::safe_add(number, arg, &number))
                 {
-                    *error = OVERFLOW;
+                    *error = MICROERR_OVERFLOW;
                     return NULL;
                 }
                 break;
             case OP_NUM_SUB:
                 if (!e::safe_sub(number, arg, &number))
                 {
-                    *error = OVERFLOW;
+                    *error = MICROERR_OVERFLOW;
                     return NULL;
                 }
                 break;
             case OP_NUM_MUL:
                 if (!e::safe_mul(number, arg, &number))
                 {
-                    *error = OVERFLOW;
+                    *error = MICROERR_OVERFLOW;
                     return NULL;
                 }
                 break;
             case OP_NUM_DIV:
                 if (!e::safe_div(number, arg, &number))
                 {
-                    *error = OVERFLOW;
+                    *error = MICROERR_OVERFLOW;
                     return NULL;
                 }
                 break;
             case OP_NUM_MOD:
                 if (!e::safe_mod(number, arg, &number))
                 {
-                    *error = OVERFLOW;
+                    *error = MICROERR_OVERFLOW;
                     return NULL;
                 }
                 break;
@@ -126,7 +132,7 @@ apply_int64(const e::slice& old_value,
             case OP_MAP_REMOVE:
             case OP_FAIL:
             default:
-                *error = MICROERROR;
+                *error = MICROERR_WRONGACTION;
                 return NULL;
         }
     }

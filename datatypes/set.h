@@ -50,17 +50,17 @@ validate_as_set_float(const e::slice& value);
 
 uint8_t*
 apply_set_string(const e::slice& old_value,
-                 microop* ops, size_t num_ops,
+                 const microop* ops, size_t num_ops,
                  uint8_t* writeto, microerror* error);
 
 uint8_t*
 apply_set_int64(const e::slice& old_value,
-                microop* ops, size_t num_ops,
+                const microop* ops, size_t num_ops,
                 uint8_t* writeto, microerror* error);
 
 uint8_t*
 apply_set_float(const e::slice& old_value,
-                microop* ops, size_t num_ops,
+                const microop* ops, size_t num_ops,
                 uint8_t* writeto, microerror* error);
 
 #endif // datatypes_set_h_

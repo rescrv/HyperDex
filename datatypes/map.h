@@ -65,47 +65,47 @@ validate_as_map_float_float(const e::slice& value);
 
 uint8_t*
 apply_map_string_string(const e::slice& old_value,
-                        microop* ops, size_t num_ops,
+                        const microop* ops, size_t num_ops,
                         uint8_t* writeto, microerror* error);
 
 uint8_t*
 apply_map_string_int64(const e::slice& old_value,
-                       microop* ops, size_t num_ops,
+                       const microop* ops, size_t num_ops,
                        uint8_t* writeto, microerror* error);
 
 uint8_t*
 apply_map_string_float(const e::slice& old_value,
-                       microop* ops, size_t num_ops,
+                       const microop* ops, size_t num_ops,
                        uint8_t* writeto, microerror* error);
 
 uint8_t*
 apply_map_int64_string(const e::slice& old_value,
-                       microop* ops, size_t num_ops,
+                       const microop* ops, size_t num_ops,
                        uint8_t* writeto, microerror* error);
 
 uint8_t*
 apply_map_int64_int64(const e::slice& old_value,
-                      microop* ops, size_t num_ops,
+                      const microop* ops, size_t num_ops,
                       uint8_t* writeto, microerror* error);
 
 uint8_t*
 apply_map_int64_float(const e::slice& old_value,
-                      microop* ops, size_t num_ops,
+                      const microop* ops, size_t num_ops,
                       uint8_t* writeto, microerror* error);
 
 uint8_t*
 apply_map_float_string(const e::slice& old_value,
-                       microop* ops, size_t num_ops,
+                       const microop* ops, size_t num_ops,
                        uint8_t* writeto, microerror* error);
 
 uint8_t*
 apply_map_float_int64(const e::slice& old_value,
-                      microop* ops, size_t num_ops,
+                      const microop* ops, size_t num_ops,
                       uint8_t* writeto, microerror* error);
 
 uint8_t*
 apply_map_float_float(const e::slice& old_value,
-                      microop* ops, size_t num_ops,
+                      const microop* ops, size_t num_ops,
                       uint8_t* writeto, microerror* error);
 
 #endif // datatypes_map_h_

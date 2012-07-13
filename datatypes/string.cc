@@ -39,46 +39,46 @@ apply_string(const e::slice& old_value,
              const microop* ops, size_t num_ops,
              uint8_t* writeto, microerror* error)
 {
-    e::slice base = old_value;
-    bool set_base = false;
-    const microop* prepend = NULL;
-    const microop* append = NULL;
+    uint8_t* const ptr = writeto;
+    size_t sz = old_value.size();
+    memmove(ptr, old_value.data(), sz);
 
     for (size_t i = 0; i < num_ops; ++i)
     {
+        if (ops[i].arg1_datatype != HYPERDATATYPE_STRING)
+        {
+            *error = MICROERR_WRONGTYPE;
+            return NULL;
+        }
+
+        if (!validate_as_string(ops[i].arg1))
+        {
+            *error = MICROERR_MALFORMED;
+            return NULL;
+        }
+
         switch (ops[i].action)
         {
             case OP_SET:
-
-                if (set_base || prepend || append)
-                {
-                    *error = MICROERROR;
-                    return NULL;
-                }
-
-                base = ops[i].arg1;
-                set_base = true;
+                // Overwrite
+                memmove(ptr, ops[i].arg1.data(), ops[i].arg1.size());
+                sz = ops[i].arg1.size();
                 break;
             case OP_STRING_PREPEND:
-
-                if (set_base || prepend)
-                {
-                    *error = MICROERROR;
-                    return NULL;
-                }
-
-                prepend = ops + i;
+                // Shift
+                memmove(ptr + ops[i].arg1.size(), ptr, sz);
+                // Fill
+                memmove(ptr, ops[i].arg1.data(), ops[i].arg1.size());
+                // Resize
+                sz += ops[i].arg1.size();
                 break;
             case OP_STRING_APPEND:
-
-                if (set_base || append)
-                {
-                    *error = MICROERROR;
-                    return NULL;
-                }
-
-                append = ops + i;
+                // Fill
+                memmove(ptr + sz, ops[i].arg1.data(), ops[i].arg1.size());
+                // Resize
+                sz += ops[i].arg1.size();
                 break;
+            case OP_FAIL:
             case OP_NUM_ADD:
             case OP_NUM_SUB:
             case OP_NUM_MUL:
@@ -95,27 +95,11 @@ apply_string(const e::slice& old_value,
             case OP_SET_UNION:
             case OP_MAP_ADD:
             case OP_MAP_REMOVE:
-            case OP_FAIL:
             default:
-                *error = MICROERROR;
+                *error = MICROERR_WRONGACTION;
                 return NULL;
         }
     }
 
-    if (prepend)
-    {
-        memmove(writeto, prepend->arg1.data(), prepend->arg1.size());
-        writeto += prepend->arg1.size();
-    }
-
-    memmove(writeto, base.data(), base.size());
-    writeto += base.size();
-
-    if (append)
-    {
-        memmove(writeto, append->arg1.data(), append->arg1.size());
-        writeto += append->arg1.size();
-    }
-
-    return writeto;
+    return ptr + sz;
 }

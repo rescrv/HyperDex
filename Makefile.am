@@ -352,8 +352,6 @@ hyperdex_daemon_SOURCES = \
 			datatypes/apply.cc \
 			datatypes/attribute.h \
 			datatypes/attribute.cc \
-			datatypes/checks.h \
-			datatypes/checks.cc \
 			datatypes/compare.h \
 			datatypes/compare.cc \
 			datatypes/float.h \

@@ -34,13 +34,13 @@
 // HyperDex
 #include "hyperdex.h"
 
-int
+bool
 compare_string(const e::slice& lhs, const e::slice& rhs);
 
-int
+bool
 compare_int64(const e::slice& lhs, const e::slice& rhs);
 
-int
+bool
 compare_float(const e::slice& lhs, const e::slice& rhs);
 
 #endif // datatypes_compare_h_

@@ -28,11 +28,30 @@
 // HyperDex
 #include "datatypes/alltypes.h"
 #include "datatypes/apply.h"
+#include "datatypes/validate.h"
 
-uint8_t*
+static bool
+passes_microcheck(hyperdatatype type,
+                  const microcheck& check,
+                  const e::slice& value,
+                  microerror* error)
+{
+    switch (check.predicate)
+    {
+        case PRED_EQUALS:
+            *error = MICROERR_CMPFAIL;
+            return validate_as_type(check.value, check.datatype) &&
+                   type == check.datatype &&
+                   check.value == value;
+        default:
+            return false;
+    }
+}
+
+static uint8_t*
 apply_microops(hyperdatatype type,
                const e::slice& old_value,
-               microop* ops, size_t num_ops,
+               const microop* ops, size_t num_ops,
                uint8_t* writeto, microerror* error)
 {
     switch (type)
@@ -85,4 +104,156 @@ apply_microops(hyperdatatype type,
             *error = MICROERROR;
             return NULL;
     }
+}
+
+size_t
+apply_checks_and_ops(const schema* sc,
+                     const std::vector<microcheck>& checks,
+                     const std::vector<microop>& ops,
+                     const e::slice& old_key,
+                     const std::vector<e::slice>& old_value,
+                     std::tr1::shared_ptr<e::buffer>* new_backing,
+                     e::slice* new_key,
+                     std::vector<e::slice>* new_value,
+                     microerror* error)
+{
+    // Check the checks
+    for (size_t i = 0; i < checks.size(); ++i)
+    {
+        if (checks[i].attr >= sc->attrs_sz)
+        {
+            *error = MICROERR_UNKNOWNATTR;
+            return i;
+        }
+
+        if (checks[i].attr > 0 &&
+            !passes_microcheck(sc->attrs[checks[i].attr].type, checks[i],
+                               old_value[checks[i].attr - 1], error))
+        {
+            return i;
+        }
+        else if (checks[i].attr == 0 &&
+                 !passes_microcheck(sc->attrs[0].type, checks[i], old_key, error))
+        {
+            return i;
+        }
+    }
+
+    // There's a fixed size for the key.
+    size_t sz = old_key.size();
+
+    // We'll start with the size of the old value.
+    for (size_t i = 0; i < old_value.size(); ++i)
+    {
+        sz += old_value[i].size();
+    }
+
+    // Now we'll add the size of each microop
+    for (size_t i = 0; i < ops.size(); ++i)
+    {
+        sz += 2 * sizeof(uint32_t)
+            + ops[i].arg1.size()
+            + ops[i].arg2.size();
+    }
+
+    // Allocate the new buffer
+    new_backing->reset(e::buffer::create(sz));
+    new_value->resize(old_value.size());
+
+    // Write out the object into new_backing
+    uint8_t* write_to = (*new_backing)->data();
+
+    // Copy the key (which never is touched by micros)
+    *new_key = e::slice(write_to, old_key.size());
+    memmove(write_to, old_key.data(), old_key.size());
+    write_to += old_key.size();
+
+    // Apply the microops to each value
+    const microop* op = ops.empty() ? NULL : &ops.front();
+    const microop* const stop = op + ops.size();
+    // The next attribute to copy, indexed based on the total number of
+    // dimensions.  It starts at 1, because the key is 0, and 1 is the first
+    // secondary attribute.
+    uint16_t next_to_copy = 1;
+
+    while (op < stop)
+    {
+        const microop* end = op;
+
+        // Advance until [op, end) is all a continuous range of ops that all
+        // apply to the same attribute value.
+        while (end < stop && op->attr == end->attr)
+        {
+            if (end->attr == 0)
+            {
+                *error = MICROERR_DONTUSEKEY;
+                return checks.size() + (op - &ops.front());
+            }
+
+            if (end->attr >= sc->attrs_sz)
+            {
+                *error = MICROERR_UNKNOWNATTR;
+                return checks.size() + (op - &ops.front());
+            }
+
+            if (end->attr < next_to_copy)
+            {
+                *error = MICROERR_UNSORTEDOPS;
+                return checks.size() + (op - &ops.front());
+            }
+
+            ++end;
+        }
+
+        // Copy the attributes that are unaffected by micro ops.
+        while (next_to_copy < op->attr)
+        {
+            assert(next_to_copy > 0);
+            size_t idx = next_to_copy - 1;
+            memmove(write_to, old_value[idx].data(), old_value[idx].size());
+            (*new_value)[idx] = e::slice(write_to, old_value[idx].size());
+            write_to += old_value[idx].size();
+            ++next_to_copy;
+        }
+
+        // - "op" now points to the first unapplied micro op
+        // - "end" points to one micro op past the last op we want to apply
+        // - we've copied all attributes so far, even those not mentioned by
+        //   micro ops.
+
+        // This call may modify [op, end) ops.
+        uint8_t* new_write_to = apply_microops(sc->attrs[op->attr].type,
+                                               old_value[op->attr - 1],
+                                               op, end - op,
+                                               write_to, error);
+
+        if (!new_write_to)
+        {
+            return checks.size() + (op - &ops.front());
+        }
+
+        (*new_value)[next_to_copy - 1] = e::slice(write_to, new_write_to - write_to);
+        write_to = new_write_to;
+
+        // Why ++ and assert rather than straight assign?  This will help us to
+        // catch any problems in the interaction between micro ops and
+        // attributes which we just copy.
+        assert(next_to_copy == op->attr);
+        ++next_to_copy;
+
+        op = end;
+    }
+
+    // Copy the attributes that are unaffected by micro ops.
+    while (next_to_copy < sc->attrs_sz)
+    {
+        assert(next_to_copy > 0);
+        size_t idx = next_to_copy - 1;
+        memmove(write_to, old_value[idx].data(), old_value[idx].size());
+        (*new_value)[idx] = e::slice(write_to, old_value[idx].size());
+        write_to += old_value[idx].size();
+        ++next_to_copy;
+    }
+
+    return checks.size() + ops.size();
 }

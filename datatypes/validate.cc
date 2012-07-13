@@ -91,6 +91,6 @@ validate_as_type(const e::slice& value, hyperdatatype type)
         case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
         case HYPERDATATYPE_GARBAGE:
         default:
-            abort();
+            return false;
     }
 }

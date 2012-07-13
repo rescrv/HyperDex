@@ -31,80 +31,35 @@
 // HyperDex
 #include "datatypes/compare.h"
 
-static int
-_cmp(size_t a, size_t b)
-{
-    if (a < b)
-    {
-        return -1;
-    }
-    else if (a > b)
-    {
-        return 1;
-    }
-
-    return 0;
-}
-
-static int
-_cmp(int64_t a, int64_t b)
-{
-    if (a < b)
-    {
-        return -1;
-    }
-    else if (a > b)
-    {
-        return 1;
-    }
-
-    return 0;
-}
-
-static int
-_cmp(double a, double b)
-{
-    if (a < b)
-    {
-        return -1;
-    }
-    else if (a > b)
-    {
-        return 1;
-    }
-
-    return 0;
-}
-
-int
+bool
 compare_string(const e::slice& lhs, const e::slice& rhs)
 {
     int cmp = memcmp(lhs.data(), rhs.data(), std::min(lhs.size(), rhs.size()));
 
     if (cmp == 0)
     {
-        return _cmp(lhs.size(), rhs.size());
+        return lhs.size() < rhs.size();
     }
 
-    return cmp;
+    return cmp < 0;
 }
 
-int
+bool
 compare_int64(const e::slice& lhs, const e::slice& rhs)
 {
     int64_t lhsnum = 0;
     int64_t rhsnum = 0;
     e::unpack64le(lhs.data(), &lhsnum);
     e::unpack64le(rhs.data(), &rhsnum);
-    return _cmp(lhsnum, rhsnum);
+    return lhsnum < rhsnum;
 }
 
-int
+bool
 compare_float(const e::slice& lhs, const e::slice& rhs)
 {
     double lhsnum = 0;
     double rhsnum = 0;
     e::unpackdoublele(lhs.data(), &lhsnum);
     e::unpackdoublele(rhs.data(), &rhsnum);
-    return _cmp(lhsnum, rhsnum);
+    return lhsnum < rhsnum;
 }

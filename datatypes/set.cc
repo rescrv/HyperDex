@@ -28,19 +28,19 @@
 #define __STDC_LIMIT_MACROS
 
 // STL
+#include <algorithm>
 #include <set>
 
 // HyperDex
 #include "datatypes/alltypes.h"
 #include "datatypes/compare.h"
 #include "datatypes/set.h"
-#include "datatypes/sort.h"
 #include "datatypes/step.h"
 #include "datatypes/write.h"
 
 bool
 validate_set(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice* elem),
-             int (*compare_elem)(const e::slice& lhs, const e::slice& rhs),
+             bool (*compare_elem_less)(const e::slice& lhs, const e::slice& rhs),
              const e::slice& set)
 {
     const uint8_t* ptr = set.data();
@@ -58,9 +58,7 @@ validate_set(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice
 
         if (has_old)
         {
-            int cmp = compare_elem(old, elem);
-
-            if (cmp >= 0)
+            if (!compare_elem_less(old, elem))
             {
                 return false;
             }
@@ -84,161 +82,142 @@ VALIDATE_SET(string)
 VALIDATE_SET(int64)
 VALIDATE_SET(float)
 
-uint8_t*
-apply_set_add_remove(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice* elem),
-                     bool (*validate_elem)(const e::slice& elem),
-                     int (*compare_elem)(const e::slice& lhs, const e::slice& rhs),
-                     uint8_t* (*write_elem)(uint8_t* writeto, const e::slice& elem),
-                     const e::slice& old_value,
-                     microop* ops, size_t num_ops,
-                     uint8_t* writeto, microerror* error)
+static uint8_t*
+apply_set(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice* elem),
+          bool (*validate_elem)(const e::slice& elem),
+          bool (*compare_elem_less)(const e::slice& lhs, const e::slice& rhs),
+          uint8_t* (*write_elem)(uint8_t* writeto, const e::slice& elem),
+          hyperdatatype container, hyperdatatype element,
+          const e::slice& old_value,
+          const microop* ops, size_t num_ops,
+          uint8_t* writeto, microerror* error)
 {
-    assert(num_ops > 0);
-
-    if (!validate_elem(ops->arg1))
-    {
-        *error = MICROERROR;
-        return NULL;
-    }
-
-    // Verify sorted order of the microops.
-    for (size_t i = 0; i < num_ops - 1; ++i)
-    {
-        if (!validate_elem(ops[i + 1].arg1))
-        {
-            *error = MICROERROR;
-            return NULL;
-        }
-
-        if (compare_elem(ops[i].arg1, ops[i + 1].arg1) >= 0)
-        {
-            *error = MICROERROR;
-            return NULL;
-        }
-    }
-
-    sort_microops_by_arg1(ops, ops + num_ops, compare_elem);
+    std::set<e::slice> set;
+    std::set<e::slice> tmp;
     const uint8_t* ptr = old_value.data();
-    const uint8_t* const end = old_value.data() + old_value.size();
-    size_t i = 0;
-
-    while (ptr < end && i < num_ops)
-    {
-        const uint8_t* next = ptr;
-        e::slice elem;
-
-        if (!step_elem(&next, end, &elem))
-        {
-            *error = MICROERROR;
-            return NULL;
-        }
-
-        int cmp = compare_elem(elem, ops[i].arg1);
-
-        if (cmp < 0)
-        {
-            writeto = write_elem(writeto, elem);
-            ptr = next;
-        }
-        else if (cmp > 0)
-        {
-            switch (ops[i].action)
-            {
-                case OP_SET_ADD:
-                    writeto = write_elem(writeto, ops[i].arg1);
-                    ++i;
-                    break;
-                case OP_SET_REMOVE:
-                    // Nothing to remove
-                    ++i;
-                    break;
-                case OP_SET_INTERSECT:
-                case OP_SET_UNION:
-                case OP_STRING_APPEND:
-                case OP_STRING_PREPEND:
-                case OP_NUM_ADD:
-                case OP_NUM_SUB:
-                case OP_NUM_MUL:
-                case OP_NUM_DIV:
-                case OP_NUM_MOD:
-                case OP_NUM_AND:
-                case OP_NUM_OR:
-                case OP_NUM_XOR:
-                case OP_LIST_LPUSH:
-                case OP_LIST_RPUSH:
-                case OP_MAP_ADD:
-                case OP_MAP_REMOVE:
-                case OP_SET:
-                case OP_FAIL:
-                default:
-                    *error = MICROERROR;
-                    return NULL;
-            }
-        }
-        else
-        {
-            switch (ops[i].action)
-            {
-                case OP_SET_ADD:
-                    writeto = write_elem(writeto, ops[i].arg1);
-                    ptr = next;
-                    ++i;
-                    break;
-                case OP_SET_REMOVE:
-                    ptr = next;
-                    ++i;
-                    break;
-                case OP_SET_INTERSECT:
-                case OP_SET_UNION:
-                case OP_STRING_APPEND:
-                case OP_STRING_PREPEND:
-                case OP_NUM_ADD:
-                case OP_NUM_SUB:
-                case OP_NUM_MUL:
-                case OP_NUM_DIV:
-                case OP_NUM_MOD:
-                case OP_NUM_AND:
-                case OP_NUM_OR:
-                case OP_NUM_XOR:
-                case OP_LIST_LPUSH:
-                case OP_LIST_RPUSH:
-                case OP_MAP_ADD:
-                case OP_MAP_REMOVE:
-                case OP_SET:
-                case OP_FAIL:
-                default:
-                    *error = MICROERROR;
-                    return NULL;
-            }
-        }
-    }
+    const uint8_t* end = old_value.data() + old_value.size();
+    e::slice elem;
 
     while (ptr < end)
     {
-        e::slice elem;
-
         if (!step_elem(&ptr, end, &elem))
         {
-            *error = MICROERROR;
+            *error = MICROERR_MALFORMED;
             return NULL;
         }
 
-        writeto = write_elem(writeto, elem);
+        set.insert(elem);
     }
 
-    while (i < num_ops)
+    for (size_t i = 0; i < num_ops; ++i)
     {
         switch (ops[i].action)
         {
+            case OP_SET:
+                set.clear();
+            case OP_SET_UNION:
+                if (ops[i].arg1_datatype == HYPERDATATYPE_SET_GENERIC &&
+                    ops[i].arg1.size() == 0)
+                {
+                    continue;
+                }
+                else if (ops[i].arg1_datatype == HYPERDATATYPE_SET_GENERIC)
+                {
+                    *error = MICROERR_MALFORMED;
+                    return NULL;
+                }
+
+                if (container != ops[i].arg1_datatype)
+                {
+                    *error = MICROERR_WRONGTYPE;
+                    return NULL;
+                }
+
+                ptr = ops[i].arg1.data();
+                end = ops[i].arg1.data() + ops[i].arg1.size();
+
+                while (ptr < end)
+                {
+                    if (!step_elem(&ptr, end, &elem))
+                    {
+                        *error = MICROERR_MALFORMED;
+                        return NULL;
+                    }
+
+                    set.insert(elem);
+                }
+
+                break;
             case OP_SET_ADD:
-                writeto = write_elem(writeto, ops[i].arg1);
-                ++i;
+                if (element != ops[i].arg1_datatype)
+                {
+                    *error = MICROERR_WRONGTYPE;
+                    return NULL;
+                }
+
+                if (!validate_elem(ops[i].arg1))
+                {
+                    *error = MICROERR_MALFORMED;
+                    return NULL;
+                }
+
+                set.insert(ops[i].arg1);
                 break;
             case OP_SET_REMOVE:
-                ++i;
+                if (element != ops[i].arg1_datatype)
+                {
+                    *error = MICROERR_WRONGTYPE;
+                    return NULL;
+                }
+
+                if (!validate_elem(ops[i].arg1))
+                {
+                    *error = MICROERR_MALFORMED;
+                    return NULL;
+                }
+
+                set.erase(ops[i].arg1);
                 break;
             case OP_SET_INTERSECT:
-            case OP_SET_UNION:
+                if (ops[i].arg1_datatype == HYPERDATATYPE_SET_GENERIC &&
+                    ops[i].arg1.size() == 0)
+                {
+                    set.clear();
+                    continue;
+                }
+                else if (ops[i].arg1_datatype == HYPERDATATYPE_SET_GENERIC)
+                {
+                    *error = MICROERR_MALFORMED;
+                    return NULL;
+                }
+
+                if (container != ops[i].arg1_datatype)
+                {
+                    *error = MICROERR_WRONGTYPE;
+                    return NULL;
+                }
+
+                tmp.clear();
+                ptr = ops[i].arg1.data();
+                end = ops[i].arg1.data() + ops[i].arg1.size();
+
+                while (ptr < end)
+                {
+                    if (!step_elem(&ptr, end, &elem))
+                    {
+                        *error = MICROERR_MALFORMED;
+                        return NULL;
+                    }
+
+                    if (set.find(elem) != set.end())
+                    {
+                        tmp.insert(elem);
+                    }
+                }
+
+                set.swap(tmp);
+                break;
+            case OP_FAIL:
             case OP_STRING_APPEND:
             case OP_STRING_PREPEND:
             case OP_NUM_ADD:
@@ -253,225 +232,34 @@ apply_set_add_remove(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, 
             case OP_LIST_RPUSH:
             case OP_MAP_ADD:
             case OP_MAP_REMOVE:
-            case OP_SET:
-            case OP_FAIL:
             default:
-                *error = MICROERROR;
+                *error = MICROERR_WRONGACTION;
                 return NULL;
         }
     }
 
-    return writeto;
-}
+    std::vector<e::slice> v(set.begin(), set.end());
+    std::sort(v.begin(), v.end(), compare_elem_less);
 
-uint8_t*
-apply_set_set(bool (*validate_set)(const e::slice& data),
-              const microop* op,
-              uint8_t* writeto, microerror* error)
-{
-    assert(op->action == OP_SET);
-
-    if (!validate_set(op->arg1))
+    for (size_t i = 0; i < v.size(); ++i)
     {
-        *error = MICROERROR;
-        return NULL;
-    }
-
-    memmove(writeto, op->arg1.data(), op->arg1.size());
-    return writeto + op->arg1.size();
-}
-
-uint8_t*
-apply_set_intersect(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice* elem),
-                    int (*compare_elem)(const e::slice& lhs, const e::slice& rhs),
-                    uint8_t* (*write_elem)(uint8_t* writeto, const e::slice& elem),
-                    const e::slice& old_value,
-                    const microop* op,
-                    uint8_t* writeto, microerror* error)
-{
-    // There's an efficiency tradeoff in this function.  We could validate that
-    // the user-provided set is sorted, and then run a merge algorithm, or we
-    // could validate that it's sorted on the fly.  It's easier to pre-validate
-    // that the set is sorted, and the efficiency trade-off is on the order of
-    // constants.
-    assert(op->action == OP_SET_INTERSECT);
-
-    if (!validate_set(step_elem, compare_elem, op->arg1))
-    {
-        *error = MICROERROR;
-        return NULL;
-    }
-
-    const uint8_t* set_ptr = old_value.data();
-    const uint8_t* const set_end = old_value.data() + old_value.size();
-    const uint8_t* new_ptr = op->arg1.data();
-    const uint8_t* const new_end = op->arg1.data() + op->arg1.size();
-
-    // We only need to consider this case.
-    while (set_ptr < set_end && new_ptr < new_end)
-    {
-        const uint8_t* next_set_ptr = set_ptr;
-        const uint8_t* next_new_ptr = new_ptr;
-        e::slice set_elem;
-        e::slice new_elem;
-
-        if (!step_elem(&next_set_ptr, set_end, &set_elem))
-        {
-            *error = MICROERROR;
-            return NULL;
-        }
-
-        if (!step_elem(&next_new_ptr, new_end, &new_elem))
-        {
-            *error = MICROERROR;
-            return NULL;
-        }
-
-        int cmp = compare_elem(set_elem, new_elem);
-
-        if (cmp < 0)
-        {
-            set_ptr = next_set_ptr;
-        }
-        else if (cmp > 0)
-        {
-            new_ptr = next_new_ptr;
-        }
-        else
-        {
-            writeto = write_elem(writeto, set_elem);
-            set_ptr = next_set_ptr;
-            new_ptr = next_new_ptr;
-        }
+        writeto = write_elem(writeto, v[i]);
     }
 
     return writeto;
 }
 
-uint8_t*
-apply_set_union(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice* elem),
-                int (*compare_elem)(const e::slice& lhs, const e::slice& rhs),
-                uint8_t* (*write_elem)(uint8_t* writeto, const e::slice& elem),
-                const e::slice& old_value,
-                const microop* op,
-                uint8_t* writeto, microerror* error)
-{
-    assert(op->action == OP_SET_UNION);
-
-    if (!validate_set(step_elem, compare_elem, op->arg1))
-    {
-        *error = MICROERROR;
-        return NULL;
-    }
-
-    const uint8_t* set_ptr = old_value.data();
-    const uint8_t* const set_end = old_value.data() + old_value.size();
-    const uint8_t* new_ptr = op->arg1.data();
-    const uint8_t* const new_end = op->arg1.data() + op->arg1.size();
-
-    while (set_ptr < set_end && new_ptr < new_end)
-    {
-        const uint8_t* next_set_ptr = set_ptr;
-        const uint8_t* next_new_ptr = new_ptr;
-        e::slice set_elem;
-        e::slice new_elem;
-
-        if (!step_elem(&next_set_ptr, set_end, &set_elem))
-        {
-            *error = MICROERROR;
-            return NULL;
-        }
-
-        if (!step_elem(&next_new_ptr, new_end, &new_elem))
-        {
-            *error = MICROERROR;
-            return NULL;
-        }
-
-        int cmp = compare_elem(set_elem, new_elem);
-
-        if (cmp < 0)
-        {
-            writeto = write_elem(writeto, set_elem);
-            set_ptr = next_set_ptr;
-        }
-        else if (cmp > 0)
-        {
-            writeto = write_elem(writeto, new_elem);
-            new_ptr = next_new_ptr;
-        }
-        else
-        {
-            writeto = write_elem(writeto, set_elem);
-            set_ptr = next_set_ptr;
-            new_ptr = next_new_ptr;
-        }
-    }
-
-    while (set_ptr < set_end)
-    {
-        e::slice set_elem;
-
-        if (!step_elem(&set_ptr, set_end, &set_elem))
-        {
-            *error = MICROERROR;
-            return NULL;
-        }
-
-        writeto = write_elem(writeto, set_elem);
-    }
-
-    while (new_ptr < new_end)
-    {
-        e::slice new_elem;
-
-        if (!step_elem(&new_ptr, new_end, &new_elem))
-        {
-            *error = MICROERROR;
-            return NULL;
-        }
-
-        writeto = write_elem(writeto, new_elem);
-    }
-
-    return writeto;
-}
-
-#define APPLY_SET(TYPE) \
+#define APPLY_SET(TYPE, TYPECAPS) \
     uint8_t* \
     apply_set_ ## TYPE(const e::slice& old_value, \
-                       microop* ops, size_t num_ops, \
+                       const microop* ops, size_t num_ops, \
                        uint8_t* writeto, microerror* error) \
     { \
-        assert(num_ops > 0); \
-     \
-        if (ops[0].action == OP_SET_ADD || \
-            ops[0].action == OP_SET_REMOVE) \
-        { \
-            return apply_set_add_remove(step_ ## TYPE, validate_as_ ## TYPE, compare_ ## TYPE, write_ ## TYPE, \
-                                        old_value, ops, num_ops, writeto, error); \
-        } \
-        else if (ops[0].action == OP_SET && num_ops == 1) \
-        { \
-            return apply_set_set(validate_as_set_ ## TYPE, ops, writeto, error); \
-        } \
-        else if (ops[0].action == OP_SET_INTERSECT && num_ops == 1) \
-        { \
-            return apply_set_intersect(step_ ## TYPE, compare_ ## TYPE, write_ ## TYPE, \
-                                       old_value, ops, writeto, error); \
-        } \
-        else if (ops[0].action == OP_SET_UNION && num_ops == 1) \
-        { \
-            return apply_set_union(step_ ## TYPE, compare_ ## TYPE, write_ ## TYPE, \
-                                   old_value, ops, writeto, error); \
-        } \
-        else \
-        { \
-            *error = MICROERROR; \
-            return NULL; \
-        } \
+        return apply_set(step_ ## TYPE, validate_as_ ## TYPE, compare_ ## TYPE, write_ ## TYPE, \
+                         HYPERDATATYPE_SET_ ## TYPECAPS, HYPERDATATYPE_ ## TYPECAPS, \
+                         old_value, ops, num_ops, writeto, error); \
     }
 
-APPLY_SET(string)
-APPLY_SET(int64)
-APPLY_SET(float)
+APPLY_SET(string, STRING)
+APPLY_SET(int64, INT64)
+APPLY_SET(float, FLOAT)

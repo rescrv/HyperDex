@@ -28,7 +28,11 @@
 #define __STDC_LIMIT_MACROS
 
 // e
+#include <e/array_ptr.h>
 #include <e/endian.h>
+
+// e
+#include <map>
 
 // HyperDex
 #include "datatypes/alltypes.h"
@@ -41,7 +45,7 @@
 static bool
 validate_map(bool (*step_key)(const uint8_t** ptr, const uint8_t* end, e::slice* elem),
              bool (*step_val)(const uint8_t** ptr, const uint8_t* end, e::slice* elem),
-             int (*compare_key)(const e::slice& lhs, const e::slice& rhs),
+             bool (*compare_key_less)(const e::slice& lhs, const e::slice& rhs),
              const e::slice& map)
 {
     const uint8_t* ptr = map.data();
@@ -65,9 +69,7 @@ validate_map(bool (*step_key)(const uint8_t** ptr, const uint8_t* end, e::slice*
 
         if (has_old)
         {
-            int cmp = compare_key(old, key);
-
-            if (cmp >= 0)
+            if (!compare_key_less(old, key))
             {
                 return false;
             }
@@ -97,176 +99,157 @@ VALIDATE_MAP(float, string)
 VALIDATE_MAP(float, int64)
 VALIDATE_MAP(float, float)
 
-uint8_t*
-apply_map_add_remove(bool (*step_key)(const uint8_t** ptr, const uint8_t* end, e::slice* elem),
-                     bool (*step_val)(const uint8_t** ptr, const uint8_t* end, e::slice* elem),
-                     bool (*validate_key)(const e::slice& elem),
-                     bool (*validate_val)(const e::slice& elem),
-                     int (*compare_key)(const e::slice& lhs, const e::slice& rhs),
-                     uint8_t* (*write_key)(uint8_t* writeto, const e::slice& elem),
-                     uint8_t* (*write_val)(uint8_t* writeto, const e::slice& elem),
-                     const e::slice& old_value,
-                     microop* ops, size_t num_ops,
-                     uint8_t* writeto, microerror* error)
+static bool
+apply_map_microop(uint8_t* (*apply_pod)(const e::slice& old_value,
+                                        const microop* ops, size_t num_ops,
+                                        uint8_t* writeto, microerror* error),
+                  std::map<e::slice, e::slice>* map,
+                  e::array_ptr<uint8_t>* scratch,
+                  const microop* ops, microerror* error)
 {
-    assert(num_ops > 0);
+    std::map<e::slice, e::slice>::iterator it = map->find(ops->arg2);
+    e::slice old_value("", 0);
 
-    if ((ops->action != OP_MAP_REMOVE && !validate_val(ops->arg1)) ||
-        !validate_key(ops->arg2))
+    if (it != map->end())
     {
-        *error = MICROERROR;
-        return NULL;
+        old_value = it->second;
     }
 
-    // Validate and sort the the microops.
-    for (size_t i = 0; i < num_ops - 1; ++i)
-    {
-        if ((ops->action != OP_MAP_REMOVE && !validate_val(ops[i + 1].arg1)) ||
-            !validate_key(ops[i + 1].arg2))
-        {
-            *error = MICROERROR;
-            return NULL;
-        }
-    }
+    *scratch = new uint8_t[old_value.size() + sizeof(uint32_t) + ops->arg1.size()];
+    uint8_t* write_to = apply_pod(old_value, ops, 1, scratch->get(), error);
+    (*map)[ops->arg2] = e::slice(scratch->get(), write_to - scratch->get());
+    return write_to != NULL;
+}
 
-    sort_microops_by_arg2(ops, ops + num_ops, compare_key);
+static uint8_t*
+apply_map(bool (*step_key)(const uint8_t** ptr, const uint8_t* end, e::slice* elem),
+          bool (*step_val)(const uint8_t** ptr, const uint8_t* end, e::slice* elem),
+          bool (*validate_key)(const e::slice& elem),
+          bool (*validate_val)(const e::slice& elem),
+          bool (*compare_pair_less)(const std::pair<e::slice, e::slice>& lhs,
+                                    const std::pair<e::slice, e::slice>& rhs),
+          uint8_t* (*write_key)(uint8_t* writeto, const e::slice& elem),
+          uint8_t* (*write_val)(uint8_t* writeto, const e::slice& elem),
+          uint8_t* (*apply_pod)(const e::slice& old_value,
+                                const microop* ops, size_t num_ops,
+                                uint8_t* writeto, microerror* error),
+          hyperdatatype container, hyperdatatype keyt, hyperdatatype valt,
+          const e::slice& old_value,
+          const microop* ops, size_t num_ops,
+          uint8_t* writeto, microerror* error)
+{
+    std::map<e::slice, e::slice> map;
     const uint8_t* ptr = old_value.data();
-    const uint8_t* const end = old_value.data() + old_value.size();
-    size_t i = 0;
-
-    while (ptr < end && i < num_ops)
-    {
-        const uint8_t* next = ptr;
-        e::slice key;
-        e::slice val;
-
-        if (!step_key(&next, end, &key))
-        {
-            *error = MICROERROR;
-            return NULL;
-        }
-
-        if (!step_val(&next, end, &val))
-        {
-            *error = MICROERROR;
-            return NULL;
-        }
-
-        int cmp = compare_key(key, ops[i].arg2);
-
-        if (cmp < 0)
-        {
-            writeto = write_key(writeto, key);
-            writeto = write_val(writeto, val);
-            ptr = next;
-        }
-        else if (cmp > 0)
-        {
-            switch (ops[i].action)
-            {
-                case OP_MAP_ADD:
-                    writeto = write_key(writeto, ops[i].arg2);
-                    writeto = write_val(writeto, ops[i].arg1);
-                    ++i;
-                    break;
-                case OP_MAP_REMOVE:
-                    // Nothing to remove
-                    ++i;
-                    break;
-                case OP_STRING_APPEND:
-                case OP_STRING_PREPEND:
-                case OP_NUM_ADD:
-                case OP_NUM_SUB:
-                case OP_NUM_MUL:
-                case OP_NUM_DIV:
-                case OP_NUM_MOD:
-                case OP_NUM_AND:
-                case OP_NUM_OR:
-                case OP_NUM_XOR:
-                case OP_LIST_LPUSH:
-                case OP_LIST_RPUSH:
-                case OP_SET_ADD:
-                case OP_SET_REMOVE:
-                case OP_SET_INTERSECT:
-                case OP_SET_UNION:
-                case OP_SET:
-                case OP_FAIL:
-                default:
-                    *error = MICROERROR;
-                    return NULL;
-            }
-        }
-        else
-        {
-            switch (ops[i].action)
-            {
-                case OP_MAP_ADD:
-                    writeto = write_key(writeto, ops[i].arg2);
-                    writeto = write_val(writeto, ops[i].arg1);
-                    ptr = next;
-                    ++i;
-                    break;
-                case OP_MAP_REMOVE:
-                    ptr = next;
-                    ++i;
-                    break;
-                case OP_STRING_APPEND:
-                case OP_STRING_PREPEND:
-                case OP_NUM_ADD:
-                case OP_NUM_SUB:
-                case OP_NUM_MUL:
-                case OP_NUM_DIV:
-                case OP_NUM_MOD:
-                case OP_NUM_AND:
-                case OP_NUM_OR:
-                case OP_NUM_XOR:
-                case OP_LIST_LPUSH:
-                case OP_LIST_RPUSH:
-                case OP_SET_ADD:
-                case OP_SET_REMOVE:
-                case OP_SET_INTERSECT:
-                case OP_SET_UNION:
-                case OP_SET:
-                case OP_FAIL:
-                default:
-                    *error = MICROERROR;
-                    return NULL;
-            }
-        }
-    }
+    const uint8_t* end = old_value.data() + old_value.size();
+    e::slice key;
+    e::slice val;
 
     while (ptr < end)
     {
-        e::slice key;
-        e::slice val;
-
         if (!step_key(&ptr, end, &key))
         {
-            *error = MICROERROR;
+            *error = MICROERR_MALFORMED;
             return NULL;
         }
 
         if (!step_val(&ptr, end, &val))
         {
-            *error = MICROERROR;
+            *error = MICROERR_MALFORMED;
             return NULL;
         }
 
-        writeto = write_key(writeto, key);
-        writeto = write_val(writeto, val);
+        map.insert(std::make_pair(key, val));
     }
 
-    while (i < num_ops)
+    e::array_ptr<e::array_ptr<uint8_t> > scratch;
+    scratch = new e::array_ptr<uint8_t>[num_ops];
+
+    for (size_t i = 0; i < num_ops; ++i)
     {
         switch (ops[i].action)
         {
+            case OP_SET:
+                if (ops[i].arg1_datatype == HYPERDATATYPE_MAP_GENERIC &&
+                    ops[i].arg1.size() == 0)
+                {
+                    map.clear();
+                    continue;
+                }
+                else if (ops[i].arg1_datatype == HYPERDATATYPE_MAP_GENERIC)
+                {
+                    *error = MICROERR_MALFORMED;
+                    return NULL;
+                }
+
+                if (container != ops[i].arg1_datatype)
+                {
+                    *error = MICROERR_WRONGTYPE;
+                    return NULL;
+                }
+
+                map.clear();
+                ptr = ops[i].arg1.data();
+                end = ops[i].arg1.data() + ops[i].arg1.size();
+
+                while (ptr < end)
+                {
+                    if (!step_key(&ptr, end, &key))
+                    {
+                        *error = MICROERR_MALFORMED;
+                        return NULL;
+                    }
+
+                    if (!step_val(&ptr, end, &val))
+                    {
+                        *error = MICROERR_MALFORMED;
+                        return NULL;
+                    }
+
+                    map.insert(std::make_pair(key, val));
+                }
+
+                break;
             case OP_MAP_ADD:
-                writeto = write_key(writeto, ops[i].arg2);
-                writeto = write_val(writeto, ops[i].arg1);
-                ++i;
+                if (keyt != ops[i].arg2_datatype)
+                {
+                    *error = MICROERR_WRONGTYPE;
+                    return NULL;
+                }
+
+                if (!validate_key(ops[i].arg2))
+                {
+                    *error = MICROERR_MALFORMED;
+                    return NULL;
+                }
+
+                if (valt != ops[i].arg1_datatype)
+                {
+                    *error = MICROERR_WRONGTYPE;
+                    return NULL;
+                }
+
+                if (!validate_val(ops[i].arg1))
+                {
+                    *error = MICROERR_MALFORMED;
+                    return NULL;
+                }
+
+                map[ops[i].arg2] = ops[i].arg1;
                 break;
             case OP_MAP_REMOVE:
-                ++i;
+                if (keyt != ops[i].arg2_datatype)
+                {
+                    *error = MICROERR_WRONGTYPE;
+                    return NULL;
+                }
+
+                if (!validate_key(ops[i].arg2))
+                {
+                    *error = MICROERR_MALFORMED;
+                    return NULL;
+                }
+
+                map.erase(ops[i].arg2);
                 break;
             case OP_STRING_APPEND:
             case OP_STRING_PREPEND:
@@ -278,167 +261,44 @@ apply_map_add_remove(bool (*step_key)(const uint8_t** ptr, const uint8_t* end, e
             case OP_NUM_AND:
             case OP_NUM_OR:
             case OP_NUM_XOR:
+                if (keyt != ops[i].arg2_datatype)
+                {
+                    *error = MICROERR_WRONGTYPE;
+                    return NULL;
+                }
+
+                if (!validate_key(ops[i].arg2))
+                {
+                    *error = MICROERR_MALFORMED;
+                    return NULL;
+                }
+
+                if (!apply_map_microop(apply_pod, &map, &scratch[i], ops + i, error))
+                {
+                    return NULL;
+                }
+
+                break;
+            case OP_FAIL:
             case OP_LIST_LPUSH:
             case OP_LIST_RPUSH:
             case OP_SET_ADD:
             case OP_SET_REMOVE:
             case OP_SET_INTERSECT:
             case OP_SET_UNION:
-            case OP_SET:
-            case OP_FAIL:
             default:
-                *error = MICROERROR;
+                *error = MICROERR_WRONGACTION;
                 return NULL;
         }
     }
 
-    return writeto;
-}
+    std::vector<std::pair<e::slice, e::slice> > v(map.begin(), map.end());
+    std::sort(v.begin(), v.end(), compare_pair_less);
 
-static uint8_t*
-apply_map_set(bool (*validate_map)(const e::slice& data),
-              const microop* op,
-              uint8_t* writeto, microerror* error)
-{
-    assert(op->action == OP_SET);
-
-    if (!validate_map(op->arg1))
+    for (size_t i = 0; i < v.size(); ++i)
     {
-        *error = MICROERROR;
-        return NULL;
-    }
-
-    memmove(writeto, op->arg1.data(), op->arg1.size());
-    return writeto + op->arg1.size();
-}
-
-uint8_t*
-apply_map_microop(bool (*step_key)(const uint8_t** ptr, const uint8_t* end, e::slice* elem),
-                  bool (*step_val)(const uint8_t** ptr, const uint8_t* end, e::slice* elem),
-                  bool (*validate_key)(const e::slice& elem),
-                  bool (*validate_val)(const e::slice& elem),
-                  int (*compare_key)(const e::slice& lhs, const e::slice& rhs),
-                  uint8_t* (*write_key)(uint8_t* writeto, const e::slice& elem),
-                  uint8_t* (*write_val)(uint8_t* writeto, const e::slice& elem),
-                  uint8_t* (*apply_pod)(const e::slice& old_value,
-                                        const microop* ops, size_t num_ops,
-                                        uint8_t* writeto, microerror* error),
-                  const e::slice& old_value,
-                  microop* ops, size_t num_ops,
-                  uint8_t* writeto, microerror* error)
-{
-    assert(num_ops > 0);
-
-    if (!validate_key(ops->arg2) ||
-        !validate_val(ops->arg1))
-    {
-        *error = MICROERROR;
-        return NULL;
-    }
-
-    // Verify sorted order of the microops.
-    for (size_t i = 0; i < num_ops - 1; ++i)
-    {
-        if (!validate_key(ops[i + 1].arg2) ||
-            !validate_val(ops[i + 1].arg1))
-        {
-            *error = MICROERROR;
-            return NULL;
-        }
-    }
-
-    sort_microops_by_arg2(ops, ops + num_ops, compare_key);
-    const uint8_t* ptr = old_value.data();
-    const uint8_t* const end = old_value.data() + old_value.size();
-    size_t i = 0;
-
-    while (ptr < end && i < num_ops)
-    {
-        const uint8_t* next = ptr;
-        e::slice key;
-        e::slice val;
-
-        if (!step_key(&next, end, &key))
-        {
-            *error = MICROERROR;
-            return NULL;
-        }
-
-        if (!step_val(&next, end, &val))
-        {
-            *error = MICROERROR;
-            return NULL;
-        }
-
-        int cmp = compare_key(key, ops[i].arg2);
-
-        if (cmp < 0)
-        {
-            writeto = write_key(writeto, key);
-            writeto = write_val(writeto, val);
-            ptr = next;
-        }
-        else if (cmp > 0)
-        {
-            e::slice existing("", 0);
-            writeto = write_key(writeto, ops[i].arg2);
-            writeto = apply_pod(existing, ops + i, 1, writeto, error);
-
-            if (!writeto)
-            {
-                return NULL;
-            }
-
-            ++i;
-        }
-        else
-        {
-            writeto = write_key(writeto, key);
-            writeto = apply_pod(val, ops + i, 1, writeto, error);
-
-            if (!writeto)
-            {
-                return NULL;
-            }
-
-            ptr = next;
-            ++i;
-        }
-    }
-
-    while (ptr < end)
-    {
-        e::slice key;
-        e::slice val;
-
-        if (!step_key(&ptr, end, &key))
-        {
-            *error = MICROERROR;
-            return NULL;
-        }
-
-        if (!step_val(&ptr, end, &val))
-        {
-            *error = MICROERROR;
-            return NULL;
-        }
-
-        writeto = write_key(writeto, key);
-        writeto = write_val(writeto, val);
-    }
-
-    while (i < num_ops)
-    {
-        e::slice existing("", 0);
-        writeto = write_key(writeto, ops[i].arg2);
-        writeto = apply_pod(existing, ops + i, 1, writeto, error);
-
-        if (!writeto)
-        {
-            return NULL;
-        }
-
-        ++i;
+        writeto = write_key(writeto, v[i].first);
+        writeto = write_val(writeto, v[i].second);
     }
 
     return writeto;
@@ -459,44 +319,37 @@ wrap_apply_string(const e::slice& old_value,
     return writeto;
 }
 
-#define APPLY_MAP(KEY_T, VAL_T, WRAP_PREFIX) \
+template<bool (*compare_less)(const e::slice& lhs, const e::slice& rhs)>
+static bool
+cmp_pair_first(const std::pair<e::slice, e::slice>& lhs,
+               const std::pair<e::slice, e::slice>& rhs)
+{
+    return compare_less(lhs.first, rhs.first);
+}
+
+#define APPLY_MAP(KEY_T, VAL_T, KEY_TC, VAL_TC, WRAP_PREFIX) \
     uint8_t* \
     apply_map_ ## KEY_T ## _ ## VAL_T(const e::slice& old_value, \
-                           microop* ops, size_t num_ops, \
+                           const microop* ops, size_t num_ops, \
                            uint8_t* writeto, microerror* error) \
     { \
-        assert(num_ops > 0); \
-     \
-        if (ops[0].action == OP_MAP_ADD || \
-            ops[0].action == OP_MAP_REMOVE) \
-        { \
-            return apply_map_add_remove(step_ ## KEY_T, step_ ## VAL_T, \
-                                        validate_as_ ## KEY_T, validate_as_ ## VAL_T, \
-                                        compare_ ## KEY_T, \
-                                        write_ ## KEY_T, write_ ## VAL_T, \
-                                        old_value, ops, num_ops, writeto, error); \
-        } \
-        else if (ops[0].action == OP_SET && num_ops == 1) \
-        { \
-            return apply_map_set(validate_as_map_ ## KEY_T ## _ ## VAL_T, ops, writeto, error); \
-        } \
-        else \
-        { \
-            return apply_map_microop(step_ ## KEY_T, step_ ## VAL_T, \
-                                     validate_as_ ## KEY_T, validate_as_ ## VAL_T, \
-                                     compare_ ## KEY_T, \
-                                     write_ ## KEY_T, write_ ## VAL_T, \
-                                     WRAP_PREFIX ## VAL_T, \
-                                     old_value, ops, num_ops, writeto, error); \
-        } \
+        return apply_map(step_ ## KEY_T, step_ ## VAL_T, \
+                         validate_as_ ## KEY_T, validate_as_ ## VAL_T, \
+                         cmp_pair_first<compare_ ## KEY_T>, \
+                         write_ ## KEY_T, write_ ## VAL_T, \
+                         apply_ ## VAL_T, \
+                         HYPERDATATYPE_MAP_ ## KEY_TC ## _ ## VAL_TC, \
+                         HYPERDATATYPE_ ## KEY_TC, \
+                         HYPERDATATYPE_ ## VAL_TC, \
+                         old_value, ops, num_ops, writeto, error); \
     }
 
-APPLY_MAP(string, string, wrap_apply_)
-APPLY_MAP(string, int64, apply_)
-APPLY_MAP(string, float, apply_)
-APPLY_MAP(int64, string, wrap_apply_)
-APPLY_MAP(int64, int64, apply_)
-APPLY_MAP(int64, float, apply_)
-APPLY_MAP(float, string, wrap_apply_)
-APPLY_MAP(float, int64, apply_)
-APPLY_MAP(float, float, apply_)
+APPLY_MAP(string, string, STRING, STRING, wrap_apply_)
+APPLY_MAP(string, int64, STRING, INT64, apply_)
+APPLY_MAP(string, float, STRING, FLOAT, apply_)
+APPLY_MAP(int64, string, INT64, STRING, wrap_apply_)
+APPLY_MAP(int64, int64, INT64, INT64, apply_)
+APPLY_MAP(int64, float, INT64, FLOAT, apply_)
+APPLY_MAP(float, string, FLOAT, STRING, wrap_apply_)
+APPLY_MAP(float, int64, FLOAT, INT64, apply_)
+APPLY_MAP(float, float, FLOAT, FLOAT, apply_)

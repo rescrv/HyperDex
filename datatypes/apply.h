@@ -28,18 +28,28 @@
 #ifndef datatypes_apply_h_
 #define datatypes_apply_h_
 
+// STL
+#include <tr1/memory>
+
 // e
 #include <e/slice.h>
 
 // HyperDex
 #include "hyperdex.h"
-#include "datatypes/microop.h"
+#include "datatypes/microcheck.h"
 #include "datatypes/microerror.h"
+#include "datatypes/microop.h"
+#include "datatypes/schema.h"
 
-uint8_t*
-apply_microops(hyperdatatype type,
-               const e::slice& old_value,
-               microop* ops, size_t num_ops,
-               uint8_t* writeto, microerror* error);
+size_t
+apply_checks_and_ops(const schema* sc,
+                     const std::vector<microcheck>& checks,
+                     const std::vector<microop>& ops,
+                     const e::slice& old_key,
+                     const std::vector<e::slice>& old_value,
+                     std::tr1::shared_ptr<e::buffer>* new_backing,
+                     e::slice* new_key,
+                     std::vector<e::slice>* new_value,
+                     microerror* error);
 
 #endif // datatypes_apply_h_
