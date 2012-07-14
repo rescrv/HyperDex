@@ -219,19 +219,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::network_msgt
     std::vector<e::slice> old_value;
     hyperdisk::reference ref;
 
-    if (kh->has_blocked_ops())
-    {
-        old_version = kh->most_recent_blocked_version();
-        has_old_value = kh->most_recent_blocked_op()->has_value;
-        old_value = kh->most_recent_blocked_op()->value;
-    }
-    else if (kh->has_committable_ops())
-    {
-        old_version = kh->most_recent_committable_version();
-        has_old_value = kh->most_recent_committable_op()->has_value;
-        old_value = kh->most_recent_committable_op()->value;
-    }
-    else if (!from_disk(to.get_region(), key, &has_old_value, &old_value, &old_version, &ref))
+    if (!retrieve_latest(to.get_region(), key, kh, &old_version, &has_old_value, &old_value, &ref))
     {
         return;
     }
@@ -342,19 +330,7 @@ hyperdaemon :: replication_manager :: client_del(const hyperdex::network_msgtype
     std::vector<e::slice> old_value;
     hyperdisk::reference ref;
 
-    if (kh->has_blocked_ops())
-    {
-        old_version = kh->most_recent_blocked_version();
-        has_old_value = kh->most_recent_blocked_op()->has_value;
-        old_value = kh->most_recent_blocked_op()->value;
-    }
-    else if (kh->has_committable_ops())
-    {
-        old_version = kh->most_recent_committable_version();
-        has_old_value = kh->most_recent_committable_op()->has_value;
-        old_value = kh->most_recent_committable_op()->value;
-    }
-    else if (!from_disk(to.get_region(), key, &has_old_value, &old_value, &old_version, &ref))
+    if (!retrieve_latest(to.get_region(), key, kh, &old_version, &has_old_value, &old_value, &ref))
     {
         return;
     }
@@ -431,29 +407,17 @@ hyperdaemon :: replication_manager :: chain_subspace(const entityid& from,
     }
 
     // Find the pending or committed version with the largest number.
-    uint64_t oldversion = 0;
-    bool has_oldvalue = false;
-    std::vector<e::slice> oldvalue;
+    uint64_t old_version = 0;
+    bool has_old_value = false;
+    std::vector<e::slice> old_value;
     hyperdisk::reference ref;
 
-    if (kh->has_blocked_ops())
-    {
-        oldversion = kh->most_recent_blocked_version();
-        has_oldvalue = kh->most_recent_blocked_op()->has_value;
-        oldvalue = kh->most_recent_blocked_op()->value;
-    }
-    else if (kh->has_committable_ops())
-    {
-        oldversion = kh->most_recent_committable_version();
-        has_oldvalue = kh->most_recent_committable_op()->has_value;
-        oldvalue = kh->most_recent_committable_op()->value;
-    }
-    else if (!from_disk(to.get_region(), key, &has_oldvalue, &oldvalue, &oldversion, &ref))
+    if (!retrieve_latest(to.get_region(), key, kh, &old_version, &has_old_value, &old_value, &ref))
     {
         return;
     }
 
-    if (oldversion >= version)
+    if (old_version >= version)
     {
         send_ack(to, from, version, key);
         return;
@@ -703,6 +667,38 @@ hyperdaemon :: replication_manager :: erase_keyholder(const hyperdex::regionid& 
 {
     keypair kp(reg, std::string(reinterpret_cast<const char*>(key.data()), key.size()));
     m_keyholders.remove(kp);
+}
+
+bool
+hyperdaemon :: replication_manager :: retrieve_latest(const hyperdex::regionid& reg,
+                                                      const e::slice& key,
+                                                      e::intrusive_ptr<keyholder> kh,
+                                                      uint64_t* old_version,
+                                                      bool* has_old_value,
+                                                      std::vector<e::slice>* old_value,
+                                                      hyperdisk::reference* ref)
+{
+    *old_version = 0;
+    *has_old_value = false;
+
+    if (kh->has_blocked_ops())
+    {
+        *old_version = kh->most_recent_blocked_version();
+        *has_old_value = kh->most_recent_blocked_op()->has_value;
+        *old_value = kh->most_recent_blocked_op()->value;
+    }
+    else if (kh->has_committable_ops())
+    {
+        *old_version = kh->most_recent_committable_version();
+        *has_old_value = kh->most_recent_committable_op()->has_value;
+        *old_value = kh->most_recent_committable_op()->value;
+    }
+    else if (!from_disk(reg, key, has_old_value, old_value, old_version, ref))
+    {
+        return false;
+    }
+
+    return true;
 }
 
 bool

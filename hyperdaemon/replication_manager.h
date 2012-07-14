@@ -155,6 +155,13 @@ class replication_manager
         uint64_t get_lock_num(const hyperdex::regionid& reg, const e::slice& key);
         e::intrusive_ptr<keyholder> get_keyholder(const hyperdex::regionid& reg, const e::slice& key);
         void erase_keyholder(const hyperdex::regionid& reg, const e::slice& key);
+        bool retrieve_latest(const hyperdex::regionid& reg,
+                             const e::slice& key,
+                             e::intrusive_ptr<keyholder> kh,
+                             uint64_t* old_version,
+                             bool* has_old_value,
+                             std::vector<e::slice>* old_value,
+                             hyperdisk::reference* ref);
         bool from_disk(const hyperdex::regionid& r, const e::slice& key,
                        bool* has_value, std::vector<e::slice>* value,
                        uint64_t* version, hyperdisk::reference* ref);
