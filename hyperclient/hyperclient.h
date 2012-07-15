@@ -670,6 +670,17 @@ int64_t
 hyperclient_loop(struct hyperclient* client, int timeout,
                  enum hyperclient_returncode* status);
 
+/* Retrieve the datatype for the attribute "name" in the space "space".
+ *
+ * This will return a valid attribute, or return HYPERDATATYPE_GARBAGE if either
+ * "space" or "name" do not exist.  If it returns an error, "status" will
+ * indicate the problem.
+ */
+enum hyperdatatype
+hyperclient_attribute_type(struct hyperclient* client,
+                           const char* space, const char* name,
+                           enum hyperclient_returncode* status);
+
 /* Free an array of hyperclient_attribute objects.  This typically corresponds
  * to the value returned by the get call.
  *
@@ -814,6 +825,9 @@ class hyperclient
                       const struct hyperclient_range_query* rn, size_t rn_sz,
                       enum hyperclient_returncode* status, uint64_t* result);
         int64_t loop(int timeout, hyperclient_returncode* status);
+        // Introspect things
+        hyperdatatype attribute_type(const char* space, const char* name,
+                                     enum hyperclient_returncode* status);
 
     private:
         class completedop;

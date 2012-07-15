@@ -560,6 +560,34 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
     abort();
 }
 
+enum hyperdatatype
+hyperclient :: attribute_type(const char* space, const char* name,
+                              enum hyperclient_returncode* status)
+{
+    if (maintain_coord_connection(status) < 0)
+    {
+        return HYPERDATATYPE_GARBAGE;
+    }
+
+    schema* sc = m_config->get_schema(space);
+
+    if (!sc)
+    {
+        *status = HYPERCLIENT_UNKNOWNSPACE;
+        return HYPERDATATYPE_GARBAGE;
+    }
+
+    uint16_t attrnum = sc->lookup_attr(name);
+
+    if (attrnum == sc->attrs_sz)
+    {
+        *status = HYPERCLIENT_UNKNOWNATTR;
+        return HYPERDATATYPE_GARBAGE;
+    }
+
+    return sc->attrs[attrnum].type;
+}
+
 // XXX If we lose the coord connection, this whole thing fails.
 // It would be better if we could stay alive when the coordinator dies (assuming
 // the config does not change).
