@@ -1,7 +1,6 @@
 package hyperclient;
 
 import java.util.*;
-import java.math.*;
 
 public class DeferredMapOp extends Deferred
 {
@@ -25,25 +24,8 @@ public class DeferredMapOp extends Deferred
 	
 	        reqId = op.call(space, key, attrs, attrs_sz, rc_ptr);
 
-            BigInteger idx_bi = BigInteger.ONE.subtract(
-                          BigInteger.valueOf(reqId));
+            checkReqIdKeyMapAttrs(reqId, status(), attrs, attrs_sz);
 
-            long idx = idx_bi.longValue();
-	
-	        if (reqId < 0)
-	        {
-                if ( attrs != null && idx_bi.compareTo(BigInteger.ZERO) >= 0
-                                   && idx_bi.compareTo(attrs.getAttrsSz_bi()) < 0 )
-                {
-                    hyperclient_map_attribute hma = HyperClient.get_map_attr(attrs,idx);
-                    throw new HyperClientException(status(),hma.getMapAttrName());
-                }
-                else
-                {
-                    throw new HyperClientException(status());
-                }
-	        }
-	
 	        client.ops.put(reqId,this);
         }
         finally
