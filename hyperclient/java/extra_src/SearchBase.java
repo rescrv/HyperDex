@@ -24,35 +24,6 @@ public class SearchBase extends Pending
 
     }
 
-    protected void checkReqId(hyperclient_attribute eq, int eq_sz,
-                              hyperclient_range_query rn, int rn_sz)
-                                                        throws HyperClientException
-    {
-        if (reqId < 0)
-        {
-            int idx = (int)(-1 - reqId);
-            String attrName = null;
-
-            if ( idx >= 0 && idx < eq_sz && eq != null )
-                attrName = HyperClient.get_attr(eq,idx).getAttrName(); 
-        
-            idx -= eq_sz;
-
-            if ( idx >= 0 && idx < rn_sz && rn != null )
-                attrName
-                    = HyperClient.get_range_query(rn,idx).getRangeQueryAttrName();
-
-            if ( attrName != null )
-            {
-                throw new HyperClientException(status(),attrName);
-            }
-            else
-            {
-                throw new HyperClientException(status());
-            }
-        }
-    }
-
     public void callback()
     {
         if ( status() == hyperclient_returncode.HYPERCLIENT_SEARCHDONE ) 

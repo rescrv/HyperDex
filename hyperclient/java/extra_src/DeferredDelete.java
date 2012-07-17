@@ -11,10 +11,7 @@ public class DeferredDelete extends Deferred
                            key.getBytes(),
                            rc_ptr);
 
-        if (reqId < 0)
-        {
-            throw new HyperClientException(status());
-	    }
+        checkReqId(reqId, status());
 
         client.ops.put(reqId,this);
     }

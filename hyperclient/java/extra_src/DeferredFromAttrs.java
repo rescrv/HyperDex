@@ -22,21 +22,8 @@ public class DeferredFromAttrs extends Deferred
 	
 	        reqId = op.call(space, key, attrs, attrs_sz, rc_ptr);
 	
-	        if (reqId < 0)
-	        {
-                int idx = (int)(-1 - reqId);
+            checkReqIdKeyAttrs(reqId, status(), attrs, attrs_sz);
 
-                if ( attrs != null && idx >= 0 && idx < attrs_sz )
-                {
-                    hyperclient_attribute ha = HyperClient.get_attr(attrs,idx);
-                    throw new HyperClientException(status(),ha.getAttrName());
-                }
-                else
-                {
-                    throw new HyperClientException(status());
-                }
-	        }
-	
 	        client.ops.put(reqId,this);
         }
         finally

@@ -20,10 +20,7 @@ public class DeferredGet extends Deferred
                            rc_ptr,
                            attrs_ptr, attrs_sz_ptr);
 
-        if (reqId < 0)
-        {
-            throw new HyperClientException(status());
-        }
+        checkReqId(reqId, status());
 
         client.ops.put(reqId,this);
     }
