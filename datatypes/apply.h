@@ -25,38 +25,31 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#include <iostream>
+#ifndef datatypes_apply_h_
+#define datatypes_apply_h_
+
+// STL
+#include <tr1/memory>
+
+// e
+#include <e/slice.h>
 
 // HyperDex
-#include "hyperdex/hyperdex/microop.h"
+#include "hyperdex.h"
+#include "datatypes/microcheck.h"
+#include "datatypes/microerror.h"
+#include "datatypes/microop.h"
+#include "datatypes/schema.h"
 
-hyperdex :: microop :: microop()
-    : attr(-1)
-    , type()
-    , action(OP_FAIL)
-    , arg1()
-    , arg2()
-{
-}
+size_t
+apply_checks_and_ops(const schema* sc,
+                     const std::vector<microcheck>& checks,
+                     const std::vector<microop>& ops,
+                     const e::slice& old_key,
+                     const std::vector<e::slice>& old_value,
+                     std::tr1::shared_ptr<e::buffer>* new_backing,
+                     e::slice* new_key,
+                     std::vector<e::slice>* new_value,
+                     microerror* error);
 
-e::buffer::packer
-hyperdex :: operator << (e::buffer::packer lhs, const microop& rhs)
-{
-    uint16_t type = static_cast<uint16_t>(rhs.type);
-    uint8_t action = static_cast<uint8_t>(rhs.action);
-    lhs = lhs << rhs.attr << type << action
-              << rhs.arg1 << rhs.arg2;
-    return lhs;
-}
-
-e::buffer::unpacker
-hyperdex :: operator >> (e::buffer::unpacker lhs, microop& rhs)
-{
-    uint16_t type;
-    uint8_t action;
-    lhs = lhs >> rhs.attr >> type >> action
-              >> rhs.arg1 >> rhs.arg2;
-    rhs.type = static_cast<hyperdatatype>(type);
-    rhs.action = static_cast<hyperdex::microop_type>(action);
-    return lhs;
-}
+#endif // datatypes_apply_h_

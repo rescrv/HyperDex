@@ -36,30 +36,8 @@ public class DeferredGroupDel extends Deferred
                                      rc_ptr);
 
 	
-            if (reqId < 0)
-            {
-                int idx = (int)(-1 - reqId);
-                String attrName = null;
+            checkReqIdSearch(reqId, status(), eq, eq_sz, rn, rn_sz);
 
-                if ( idx >= 0 && idx < eq_sz && eq != null )
-                    attrName = HyperClient.get_attr(eq,idx).getAttrName(); 
-            
-                idx -= eq_sz;
-
-                if ( idx >= 0 && idx < rn_sz && rn != null )
-                    attrName
-                        = HyperClient.get_range_query(rn,idx).getRangeQueryAttrName();
-
-                if ( attrName != null )
-                {
-                    throw new HyperClientException(status(),attrName);
-                }
-                else
-                {
-                    throw new HyperClientException(status());
-                }
-            }
-	
             client.ops.put(reqId,this);
         }
         finally

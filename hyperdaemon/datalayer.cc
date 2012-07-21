@@ -254,9 +254,11 @@ hyperdaemon :: datalayer :: load_state()
         {
             // Re-open a disk quiesced on shutdown.
             // XXX handle errors
+            schema* sc = config.get_schema(r->get_space());
+            assert(sc);
             open_disk(*r, config.disk_hasher(r->get_subspace()),
-                        config.dimensions(r->get_space()),
-                        config.quiesce_state_id());
+                          sc->attrs_sz,
+                          config.quiesce_state_id());
         }
     }
 
@@ -285,8 +287,10 @@ hyperdaemon :: datalayer :: prepare(const configuration& newconfig, const instan
         {
             // Disk not present yet, create a new one.
             // XXX handle errors
+            schema* sc = newconfig.get_schema(r->get_space());
+            assert(sc);
             create_disk(*r, newconfig.disk_hasher(r->get_subspace()),
-                        newconfig.dimensions(r->get_space()));
+                            sc->attrs_sz);
         }
     }
 }

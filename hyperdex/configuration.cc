@@ -46,11 +46,18 @@ const uint32_t hyperdex::configuration::CLIENTSPACE = UINT32_MAX;
 const uint32_t hyperdex::configuration::TRANSFERSPACE = UINT32_MAX - 1;
 
 hyperdex :: configuration :: configuration()
-    : m_config_text("")
+    : m_config(NULL)
+    , m_config_sz(0)
+    , m_schemas(NULL)
+    , m_schemas_sz(0)
+    , m_attributes(NULL)
+    , m_attributes_sz(0)
+    , m_space_ids_to_schemas()
+
+    , m_config_text("")
     , m_version(0)
     , m_hosts()
     , m_space_assignment()
-    , m_spaces()
     , m_space_sizes()
     , m_entities()
     , m_repl_hashers()
@@ -63,11 +70,14 @@ hyperdex :: configuration :: configuration()
 {
 }
 
-hyperdex :: configuration :: configuration(const std::string& _config_text,
+hyperdex :: configuration :: configuration(e::array_ptr<char> config, size_t config_sz,
+                                           e::array_ptr<schema> schemas, size_t schemas_sz,
+                                           e::array_ptr<attribute> attributes, size_t attributes_sz,
+                                           const std::vector<std::pair<spaceid, schema*> > space_ids_to_schemas,
+                                           const std::string& _config_text,
                                            uint64_t ver,
                                            const std::vector<instance>& hosts,
                                            const std::map<std::string, spaceid>& space_assignment,
-                                           const std::map<spaceid, std::vector<attribute> >& spaces,
                                            const std::map<spaceid, uint16_t>& space_sizes,
                                            const std::map<entityid, instance>& entities,
                                            const std::map<subspaceid, hyperspacehashing::prefix::hasher>& repl_hashers,
@@ -75,11 +85,18 @@ hyperdex :: configuration :: configuration(const std::string& _config_text,
                                            const std::map<std::pair<instance, uint16_t>, hyperdex::regionid>& transfers,
                                            bool _quiesce, const std::string& _quiesce_state_id,
                                            bool _shutdown)
-    : m_config_text(_config_text)
+    : m_config(config)
+    , m_config_sz(config_sz)
+    , m_schemas(schemas)
+    , m_schemas_sz(schemas_sz)
+    , m_attributes(attributes)
+    , m_attributes_sz(attributes_sz)
+    , m_space_ids_to_schemas(space_ids_to_schemas)
+
+    , m_config_text(_config_text)
     , m_version(ver)
     , m_hosts(hosts)
     , m_space_assignment(space_assignment)
-    , m_spaces(spaces)
     , m_space_sizes(space_sizes)
     , m_entities(entities)
     , m_repl_hashers(repl_hashers)
@@ -99,37 +116,64 @@ hyperdex :: configuration :: configuration(const std::string& _config_text,
     }
 }
 
+hyperdex :: configuration :: configuration(const configuration& other)
+    : m_config(NULL)
+    , m_config_sz(0)
+    , m_schemas(NULL)
+    , m_schemas_sz(0)
+    , m_attributes(NULL)
+    , m_attributes_sz(0)
+    , m_space_ids_to_schemas()
+
+    , m_config_text("")
+    , m_version(0)
+    , m_hosts()
+    , m_space_assignment()
+    , m_space_sizes()
+    , m_entities()
+    , m_repl_hashers()
+    , m_disk_hashers()
+    , m_transfers()
+    , m_transfers_by_num(65536)
+    , m_quiesce(false)
+    , m_quiesce_state_id("")
+    , m_shutdown(false)
+{
+    copy(other, this);
+}
+
 hyperdex :: configuration :: ~configuration() throw ()
 {
 }
 
-size_t
-hyperdex :: configuration :: dimensions(const spaceid& s)
-                             const
+schema*
+hyperdex :: configuration :: get_schema(const char* spacename) const
 {
-    std::map<spaceid, std::vector<attribute> >::const_iterator si;
-    si = m_spaces.find(s);
-
-    if (si != m_spaces.end())
-    {
-        return si->second.size();
-    }
-
-    return 0;
+    return get_schema(space(spacename));
 }
 
-std::vector<hyperdex::attribute>
-hyperdex :: configuration :: dimension_names(const spaceid& s) const
+static bool
+compare_space_ids_to_schemas(const std::pair<hyperdex::spaceid, schema*>& lhs,
+                             const std::pair<hyperdex::spaceid, schema*>& rhs)
 {
-    std::map<spaceid, std::vector<attribute> >::const_iterator si;
-    si = m_spaces.find(s);
+    return lhs.first < rhs.first;
+}
 
-    if (si == m_spaces.end())
+schema*
+hyperdex :: configuration :: get_schema(const spaceid& sp) const
+{
+    std::vector<std::pair<spaceid, schema*> >::const_iterator it;
+    it = std::lower_bound(m_space_ids_to_schemas.begin(),
+                          m_space_ids_to_schemas.end(),
+                          std::make_pair(sp, static_cast<schema*>(NULL)),
+                          compare_space_ids_to_schemas);
+
+    if (it == m_space_ids_to_schemas.end())
     {
-        return std::vector<attribute>();
+        return NULL;
     }
 
-    return si->second;
+    return it->second;
 }
 
 hyperdex::spaceid
@@ -503,6 +547,78 @@ hyperdex :: configuration :: shutdown() const
     return m_shutdown;
 }
 
+hyperdex::configuration&
+hyperdex :: configuration :: operator = (const configuration& rhs)
+{
+    if (this != &rhs)
+    {
+        copy(rhs, this);
+    }
+
+    return *this;
+}
+
+void
+hyperdex :: configuration :: copy(const configuration& rhs, configuration* to)
+{
+    // Copy m_config
+    to->m_config_sz = rhs.m_config_sz;
+    to->m_config = new char[to->m_config_sz];
+    memmove(to->m_config.get(), rhs.m_config.get(), to->m_config_sz);
+
+    // Copy m_attributes, reseating each to point into m_config
+    to->m_attributes_sz = rhs.m_attributes_sz;
+    to->m_attributes = new attribute[to->m_attributes_sz];
+
+    for (size_t i = 0; i < to->m_attributes_sz; ++i)
+    {
+        size_t off = rhs.m_attributes[i].name - rhs.m_config.get();
+        assert(off < rhs.m_config_sz);
+        to->m_attributes[i].name = to->m_config.get() + off;
+        to->m_attributes[i].type = rhs.m_attributes[i].type;
+        assert(strcmp(to->m_attributes[i].name, rhs.m_attributes[i].name) == 0);
+    }
+
+    // Copy m_schemas, reseating each to point into m_attributes
+    to->m_schemas_sz = rhs.m_schemas_sz;
+    to->m_schemas = new schema[to->m_schemas_sz];
+
+    for (size_t i = 0; i < to->m_schemas_sz; ++i)
+    {
+        size_t off = rhs.m_schemas[i].attrs - rhs.m_attributes.get();
+        assert(off < rhs.m_attributes_sz);
+        to->m_schemas[i].attrs_sz = rhs.m_schemas[i].attrs_sz;
+        to->m_schemas[i].attrs = to->m_attributes.get() + off;
+    }
+
+    // Copy m_space_ids_to_schemas, reseating each to point into m_schemas
+    to->m_space_ids_to_schemas.resize(rhs.m_space_ids_to_schemas.size());
+
+    for (size_t i = 0; i < rhs.m_space_ids_to_schemas.size(); ++i)
+    {
+        size_t off = rhs.m_space_ids_to_schemas[i].second - rhs.m_schemas.get();
+        assert(off < rhs.m_schemas_sz);
+        to->m_space_ids_to_schemas[i].first = rhs.m_space_ids_to_schemas[i].first;
+        to->m_space_ids_to_schemas[i].second = to->m_schemas.get() + off;
+    }
+
+    // Straight copies
+    to->m_config_text = rhs.m_config_text;
+    to->m_config_text = rhs.m_config_text;
+    to->m_version = rhs.m_version;
+    to->m_hosts = rhs.m_hosts;
+    to->m_space_assignment = rhs.m_space_assignment;
+    to->m_space_sizes = rhs.m_space_sizes;
+    to->m_entities = rhs.m_entities;
+    to->m_repl_hashers = rhs.m_repl_hashers;
+    to->m_disk_hashers = rhs.m_disk_hashers;
+    to->m_transfers = rhs.m_transfers;
+    to->m_transfers_by_num = rhs.m_transfers_by_num;
+    to->m_quiesce = rhs.m_quiesce;
+    to->m_quiesce_state_id = rhs.m_quiesce_state_id;
+    to->m_shutdown = rhs.m_shutdown;
+}
+
 std::map<hyperdex::entityid, hyperdex::instance>
 hyperdex :: configuration :: _search_entities(std::map<entityid, instance>::const_iterator iter,
                                               std::map<entityid, instance>::const_iterator end,
@@ -550,4 +666,3 @@ hyperdex :: configuration :: _search_entities(std::map<entityid, instance>::cons
 
     return ret;
 }
-

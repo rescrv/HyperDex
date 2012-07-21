@@ -30,13 +30,22 @@ public class HyperClientException extends Exception
 		errorMap.put(hyperclient_returncode.HYPERCLIENT_EXCEPTION,"Internal Error (file a bug)");
     }
 
+    private hyperclient_returncode rc = hyperclient_returncode.HYPERCLIENT_ZERO;
+
     public HyperClientException(hyperclient_returncode rc)
     {
         super(errorMap.get(rc));
+        this.rc = rc;
     }
 
     public HyperClientException(hyperclient_returncode rc, String attr)
     {
         super(String.format(errorMap.get(rc),attr));
+        this.rc = rc;
+    }
+
+    public String symbol()
+    {
+        return rc.toString();
     }
 }

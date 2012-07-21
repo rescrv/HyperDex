@@ -352,7 +352,6 @@ hyperdaemon :: ongoing_state_transfers :: region_transfer_send(const entityid& f
             pa = pa << static_cast<uint8_t>(0);
         }
 
-        assert(!pa.error());
         ++t->xfer_num;
         t->snap->next();
     }

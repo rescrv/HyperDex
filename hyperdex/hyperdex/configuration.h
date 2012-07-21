@@ -36,13 +36,17 @@
 // po6
 #include <po6/net/location.h>
 
+// e
+#include <e/array_ptr.h>
+
 // HyperspaceHashing
 #include "hyperspacehashing/hyperspacehashing/mask.h"
 #include "hyperspacehashing/hyperspacehashing/prefix.h"
 #include "hyperspacehashing/hyperspacehashing/search.h"
 
 // HyperDex
-#include "hyperdex/hyperdex/attribute.h"
+#include "datatypes/attribute.h"
+#include "datatypes/schema.h"
 #include "hyperdex/hyperdex/ids.h"
 #include "hyperdex/hyperdex/instance.h"
 
@@ -57,11 +61,14 @@ class configuration
 
     public:
         configuration();
-        configuration(const std::string& config_text,
+        configuration(e::array_ptr<char> config, size_t config_sz,
+                      e::array_ptr<schema> schemas, size_t schemas_sz,
+                      e::array_ptr<attribute> attributes, size_t attributes_sz,
+                      const std::vector<std::pair<spaceid, schema*> > space_ids_to_schemas,
+                      const std::string& config_text,
                       uint64_t version,
                       const std::vector<instance>& hosts,
                       const std::map<std::string, spaceid>& space_assignment,
-                      const std::map<spaceid, std::vector<attribute> >& spaces,
                       const std::map<spaceid, uint16_t>& space_sizes,
                       const std::map<entityid, instance>& entities,
                       const std::map<subspaceid, hyperspacehashing::prefix::hasher>& repl_hashers,
@@ -69,7 +76,14 @@ class configuration
                       const std::map<std::pair<instance, uint16_t>, hyperdex::regionid>& transfers,
                       bool quiesce, const std::string& quiesce_state_id,
                       bool shutdown);
+        configuration(const configuration& other);
         ~configuration() throw ();
+
+    public:
+        schema* get_schema(const char* spacename) const;
+        schema* get_schema(const spaceid& space) const;
+
+    // XXX API IN JEOPARDY
 
     // The original config text
     public:
@@ -81,8 +95,6 @@ class configuration
 
     // Data-layout (not hashing)
     public:
-        size_t dimensions(const spaceid& s) const;
-        std::vector<attribute> dimension_names(const spaceid& s) const;
         spaceid space(const char* spacename) const;
         size_t subspaces(const spaceid& s) const;
 
@@ -135,24 +147,38 @@ class configuration
         std::map<uint16_t, regionid> transfers_to(const instance& inst) const;
         std::map<uint16_t, regionid> transfers_from(const instance& inst) const;
         
-     // Quesce and Shutdown
-     public:
+    // Quesce and Shutdown
+    public:
         bool quiesce() const;
         std::string quiesce_state_id() const;
         bool shutdown() const;
 
+    // Copying
+    public:
+        configuration& operator = (const configuration& rhs);
+
     private:
+        void copy(const configuration& rhs, configuration* to);
         std::map<entityid, instance> _search_entities(std::map<entityid, instance>::const_iterator start,
                                                       std::map<entityid, instance>::const_iterator end,
                                                       const hyperspacehashing::search& s) const;
 
     private:
+        e::array_ptr<char> m_config;
+        size_t m_config_sz;
+        e::array_ptr<schema> m_schemas;
+        size_t m_schemas_sz;
+        e::array_ptr<attribute> m_attributes;
+        size_t m_attributes_sz;
+        std::vector<std::pair<spaceid, schema*> > m_space_ids_to_schemas;
+
+
+        // XXX Slim these down.  there is too much redundancy, and the use of
+        // "map" everywhere nearly guarantees it will be slow.
         std::string m_config_text;
         uint64_t m_version;
         std::vector<instance> m_hosts;
         std::map<std::string, spaceid> m_space_assignment;
-        // Map a spaceid to the attribute names and types.
-        std::map<spaceid, std::vector<attribute> > m_spaces;
         // The number of subspaces in the space.
         std::map<spaceid, uint16_t> m_space_sizes;
         // Map an entity id onto the hyperdex instance.

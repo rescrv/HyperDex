@@ -114,6 +114,7 @@ hyperdaemon :: daemon(const char* progname,
     int ret = 0;
     ret += sigaction(SIGHUP, &handle, NULL);
     ret += sigaction(SIGINT, &handle, NULL);
+    ret += sigaction(SIGTERM, &handle, NULL);
 
     if (ret < 0)
     {

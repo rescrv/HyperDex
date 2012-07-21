@@ -45,17 +45,16 @@
 // HyperDex
 #include "hyperdex/hyperdex/configuration.h"
 #include "hyperdex/hyperdex/network_constants.h"
-
-// HyperDaemon
 #include "hyperdaemon/replication/clientop.h"
 #include "hyperdaemon/replication/keypair.h"
 
 // Forward Declarations
+class microcheck;
+class microop;
 namespace hyperdex
 {
 class coordinatorlink;
 class instance;
-class microop;
 }
 namespace hyperdaemon
 {
@@ -87,31 +86,23 @@ class replication_manager
     // Network workers call these methods.
     public:
         // These are called when the client initiates the action.  This implies
-        // that only the point leader will call these methods. 
-        void client_put(const hyperdex::entityid& from,
+        // that only the point leader should call these methods.
+        void client_atomic(const hyperdex::network_msgtype opcode,
+                           const hyperdex::entityid& from,
+                           const hyperdex::entityid& to,
+                           uint64_t nonce,
+                           std::auto_ptr<e::buffer> backing,
+                           bool fail_if_not_found,
+                           const e::slice& key,
+                           std::vector<microcheck>* checks,
+                           std::vector<microop>* ops);
+        void client_del(const hyperdex::network_msgtype opcode,
+                        const hyperdex::entityid& from,
                         const hyperdex::entityid& to,
                         uint64_t nonce,
                         std::auto_ptr<e::buffer> backing,
                         const e::slice& key,
-                        const std::vector<std::pair<uint16_t, e::slice> >& value);
-        void client_condput(const hyperdex::entityid& from,
-                            const hyperdex::entityid& to,
-                            uint64_t nonce,
-                            std::auto_ptr<e::buffer> backing,
-                            const e::slice& key,
-                            const std::vector<std::pair<uint16_t, e::slice> >& condfields,
-                            const std::vector<std::pair<uint16_t, e::slice> >& value);
-        void client_del(const hyperdex::entityid& from,
-                        const hyperdex::entityid& to,
-                        uint64_t nonce,
-                        std::auto_ptr<e::buffer> backing,
-                        const e::slice& key);
-        void client_atomic(const hyperdex::entityid& from,
-                           const hyperdex::entityid& to,
-                           uint64_t nonce,
-                           std::auto_ptr<e::buffer> backing,
-                           const e::slice& key,
-                           std::vector<hyperdex::microop>* ops);
+                        std::vector<microcheck>* checks);
         // These are called in response to messages from other hosts.
         void chain_put(const hyperdex::entityid& from,
                        const hyperdex::entityid& to,
@@ -153,17 +144,6 @@ class replication_manager
         replication_manager& operator = (const replication_manager&);
 
     private:
-        void client_common(const hyperdex::network_msgtype opcode,
-                           bool has_value,
-                           const hyperdex::entityid& from,
-                           const hyperdex::entityid& to,
-                           uint64_t nonce,
-                           std::auto_ptr<e::buffer> backing,
-                           const e::slice& key,
-                           const e::bitfield& condvalue_mask,
-                           const std::vector<e::slice>& condvalue,
-                           const e::bitfield& value_mask,
-                           const std::vector<e::slice>& value);
         void chain_common(bool has_value,
                           const hyperdex::entityid& from,
                           const hyperdex::entityid& to,
@@ -175,6 +155,13 @@ class replication_manager
         uint64_t get_lock_num(const hyperdex::regionid& reg, const e::slice& key);
         e::intrusive_ptr<keyholder> get_keyholder(const hyperdex::regionid& reg, const e::slice& key);
         void erase_keyholder(const hyperdex::regionid& reg, const e::slice& key);
+        bool retrieve_latest(const hyperdex::regionid& reg,
+                             const e::slice& key,
+                             e::intrusive_ptr<keyholder> kh,
+                             uint64_t* old_version,
+                             bool* has_old_value,
+                             std::vector<e::slice>* old_value,
+                             hyperdisk::reference* ref);
         bool from_disk(const hyperdex::regionid& r, const e::slice& key,
                        bool* has_value, std::vector<e::slice>* value,
                        uint64_t* version, hyperdisk::reference* ref);

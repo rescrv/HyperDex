@@ -25,68 +25,23 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_microop_h_
-#define hyperdex_microop_h_
+#ifndef datatypes_float_h_
+#define datatypes_float_h_
 
 // e
-#include <e/buffer.h>
 #include <e/slice.h>
 
 // HyperDex
 #include "hyperdex.h"
+#include "datatypes/microop.h"
+#include "datatypes/microerror.h"
 
-namespace hyperdex
-{
+bool
+validate_as_float(const e::slice& value);
 
-enum microop_type
-{
-    OP_FAIL,
+uint8_t*
+apply_float(const e::slice& old_value,
+            const microop* ops, size_t num_ops,
+            uint8_t* writeto, microerror* error);
 
-    OP_SET,
-
-    OP_STRING_APPEND,
-    OP_STRING_PREPEND,
-
-    OP_NUM_ADD,
-    OP_NUM_SUB,
-    OP_NUM_MUL,
-    OP_NUM_DIV,
-    OP_NUM_MOD,
-    OP_NUM_AND,
-    OP_NUM_OR,
-    OP_NUM_XOR,
-
-    OP_LIST_LPUSH,
-    OP_LIST_RPUSH,
-
-    OP_SET_ADD,
-    OP_SET_REMOVE,
-    OP_SET_INTERSECT,
-    OP_SET_UNION,
-
-    OP_MAP_ADD,
-    OP_MAP_REMOVE
-};
-
-class microop
-{
-    public:
-        microop();
-
-    public:
-        uint16_t attr;
-        hyperdatatype type;
-        microop_type action;
-        e::slice arg1;
-        e::slice arg2;
-};
-
-e::buffer::packer
-operator << (e::buffer::packer lhs, const microop& rhs);
-
-e::buffer::unpacker
-operator >> (e::buffer::unpacker lhs, microop& rhs);
-
-} // namespace hyperdex
-
-#endif // hyperdex_microop_h_
+#endif // datatypes_float_h_

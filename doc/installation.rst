@@ -13,21 +13,98 @@ Installing Binary Packages
 --------------------------
 
 The HyperDex team maintains repositories for Debian_, Ubuntu_, and Fedora_ so
-that the latest version is always conveniently available.  Package are named
-consistently across platforms.  This section first explores the packages of
-interest and then provides platform-specific instructions for how to access the
-binary packages.
+that the latest version is always conveniently available.
 
-On all architectures, the ``hyperdex`` meta-package pulls in all HyperDex
-packages.  For most users installing the ``hyperdex`` package is sufficient.
-For completeness, here is a list of all packages:
+Debian
+~~~~~~
+
+To access the Debian repository, add the following to ``/etc/apt/sources.list``::
+
+   deb http://debian.hyperdex.org squeeze main
+
+Subsequent invocations of the package manager may complain about the absence of
+the relevant package signing key.  You can download the `Debian public key`_ and
+add it with:
+
+.. sourcecode:: console
+
+   apt-key add hyperdex.gpg.key
+
+.. _Debian public key: http://debian.hyperdex.org/hyperdex.gpg.key
+
+The following code may be copied and pasted into a root terminal to quickly
+setup the Debian repository and install hyperdex::
+
+   wget -O - http://debian.hyperdex.org/hyperdex.gpg.key \
+   | apt-key add -
+   wget -O /etc/apt/sources.list.d/hyperdex.list \
+       http://debian.hyperdex.org/hyperdex.list
+   aptitude update
+   aptitude install hyperdex
+
+Ubuntu
+~~~~~~
+
+To access the Ubuntu repository, add the following to
+``/etc/apt/sources.list``::
+
+   deb [arch=amd64] http://ubuntu.hyperdex.org oneiric main
+
+Subsequent invocations of the package manager may complain about the absence of
+the relevant package signing key.  You can download the `Ubuntu public key`_ and
+add it with:
+
+.. sourcecode:: console
+
+   apt-key add hyperdex.gpg.key
+
+.. _Ubuntu public key: http://ubuntu.hyperdex.org/hyperdex.gpg.key
+
+The following code may be copied and pasted to quickly setup the Ubuntu
+repository::
+
+   sudo wget -O /etc/apt/sources.list.d/hyperdex.list \
+       http://ubuntu.hyperdex.org/hyperdex.list
+   sudo wget -O - http://ubuntu.hyperdex.org/hyperdex.gpg.key \
+   | sudo apt-key add -
+   sudo apt-get update
+   sudo apt-get install hyperdex
+
+Fedora
+~~~~~~
+
+To access the Fedora repository, add the following to ``/etc/yum.conf``::
+
+   [hyperdex]
+   name=hyperdex
+   baseurl=http://fedora.hyperdex.org/
+   enabled=1
+   gpgcheck=0
+
+To install HyperDex, issue the following command as root:
+
+.. sourcecode:: console
+
+   yum install hyperdex
+
+.. _Debian: http://www.debian.org
+.. _Ubuntu: http://www.ubuntu.com
+.. _Fedora: http://fedoraproject.org
+
+Package Names
+~~~~~~~~~~~~~
+
+Package are named consistently across platforms.  On all architectures, the
+``hyperdex`` meta-package pulls in all HyperDex packages.  For most users
+installing the ``hyperdex`` package is sufficient.  For completeness, here is a
+list of all packages:
 
 .. note::
 
    Don't worry if the following descriptions describe pieces of HyperDex that
    you are unfamiliar with.  In the following chapters, we'll be describing each
-   component in-detail.  It is safe to install the ``hyperdex`` package and skip
-   this package listing.
+   component in-detail.  It is safe to install just the ``hyperdex`` package and
+   skip this package listing.
 
 ``hyperdex-daemon``:
    This package contains the HyperDex daemon that runs on each storage node.  It
@@ -53,92 +130,6 @@ Most packages are coplemented by development and debug packages.  In the
 development package, there are header files and static libraries.  The debug
 packages provide symbols which will aid in providing tracebacks to the HyperDex
 developers.  Please consult your package manager to find these packages.
-
-Debian
-~~~~~~
-
-To access the Debian repository, add the following to ``/etc/apt/sources.list``::
-
-   deb http://debian.hyperdex.org squeeze main
-
-Subsequent invocations of the package manager may complain about the absence of
-the relevant package signing key.  You can download the `Debian public key`_ and
-add it with:
-
-.. sourcecode:: console
-
-   apt-key add hyperdex.gpg.key
-
-.. _Debian public key: http://debian.hyperdex.org/hyperdex.gpg.key
-
-The following code may be copied and pasted to quickly setup the Debian
-repository::
-
-   wget -O - http://debian.hyperdex.org/hyperdex.gpg.key \
-   | apt-key add -
-   wget -O /etc/apt/sources.list.d/hyperdex.list \
-       http://debian.hyperdex.org/hyperdex.list
-   aptitude update
-
-To install HyperDex, issue the following command as root:
-
-.. sourcecode:: console
-
-   aptitude install hyperdex
-
-Ubuntu
-~~~~~~
-
-To access the Ubuntu repository, add the following to
-``/etc/apt/sources.list``::
-
-   deb [arch=amd64] http://ubuntu.hyperdex.org oneiric main
-
-Subsequent invocations of the package manager may complain about the absence of
-the relevant package signing key.  You can download the `Ubuntu public key`_ and
-add it with:
-
-.. sourcecode:: console
-
-   apt-key add hyperdex.gpg.key
-
-.. _Ubuntu public key: http://ubuntu.hyperdex.org/hyperdex.gpg.key
-
-The following code may be copied and pasted to quickly setup the Ubuntu
-repository::
-
-   wget -O - http://ubuntu.hyperdex.org/hyperdex.gpg.key \
-   | apt-key add -
-   wget -O /etc/apt/sources.list.d/hyperdex.list \
-       http://ubuntu.hyperdex.org/hyperdex.list
-   apt-get update
-
-To install HyperDex, issue the following command as root:
-
-.. sourcecode:: console
-
-   apt-get install hyperdex
-
-Fedora
-~~~~~~
-
-To access the Fedora repository, add the following to ``/etc/yum.conf``::
-
-   [hyperdex]
-   name=hyperdex
-   baseurl=http://fedora.hyperdex.org/
-   enabled=1
-   gpgcheck=0
-
-To install HyperDex, issue the following command as root:
-
-.. sourcecode:: console
-
-   yum install hyperdex
-
-.. _Debian: http://www.debian.org
-.. _Ubuntu: http://www.ubuntu.com
-.. _Fedora: http://fedoraproject.org
 
 Installing Source Tarballs
 --------------------------

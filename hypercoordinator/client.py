@@ -37,6 +37,72 @@ import pyparsing
 import hypercoordinator.parser
 
 
+class ProtocolError(Exception): pass
+class MalformedSpaceDescription(Exception): pass
+
+
+class Client(object):
+
+    def __init__(self, host, port):
+        self._host = host
+        self._port = port
+
+    def add_space(self, spacedesc):
+        try:
+            parser = (hypercoordinator.parser.space + pyparsing.stringEnd)
+            space = parser.parseString(spacedesc)[0]
+        except ValueError as e:
+            raise MalformedSpaceDescription(str(e))
+        except pyparsing.ParseException as e:
+            raise MalformedSpaceDescription(str(e))
+        return self._send_msg('add-space', spacedesc)
+
+    def count_servers(self):
+        return self._send_msg('count-servers')
+
+    def is_stable(self):
+        return self._send_msg('is-stable') != 0
+
+    def _send_msg(self, msg, args=''):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
+        s.connect((self._host, self._port))
+        s.sendall(json.dumps({msg: args}) + '\n')
+        data = ''
+        while '\n' not in data:
+            d = s.recv(4096)
+            if len(d) == 0:
+                raise ProtocolError('server closed connection unexpectedly after sending {0}'.format(data))
+            data += d
+        try:
+            resp = json.loads(data)
+        except ValueError as e:
+            raise ProtocolError('got non-JSON message {0}'.format(data))
+        if type(resp) != dict:
+            raise ProtocolError('got invalid JSON message {0}'.format(data))
+        if not resp.has_key(msg):
+            raise ProtocolError('server message {0} does not contain response to {1}\n'.format(data, msg))
+        rv = resp[msg]
+        if rv == "ERROR":
+            e = resp['error'] if resp.has_key('error') else ''
+            raise RuntimeError(e)
+        return rv
+
+
+def add_space(args):
+    c = Client(args.host, args.port)
+    try:
+        c.add_space(sys.stdin.read())
+    except MalformedSpaceDescription as e:
+        sys.stderr.write(e + '\n')
+        sys.exit(-1)
+    except ProtocolError as e:
+        sys.stderr.write('protocol error: ' + str(e) + '\n')
+        sys.exit(-1)
+    except RuntimeError as e:
+        sys.stderr.write('error: ' + str(e) + '\n')
+        sys.exit(-1)
+
+
 def send_msg(host, port, msg, args=''):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
     s.connect((host, port))
@@ -67,20 +133,6 @@ def send_msg(host, port, msg, args=''):
     if rv != "SUCCESS":
         sys.stdout.write(rv+'\n')
     return 0
-
-     
-def add_space(args):
-    data = sys.stdin.read()
-    try:
-        parser = (hypercoordinator.parser.space + pyparsing.stringEnd)
-        space = parser.parseString(data)[0]
-    except ValueError as e:
-        print str(e)
-        return 1
-    except pyparsing.ParseException as e:
-        print str(e)
-        return 1
-    return send_msg(args.host, args.port, 'add-space', data)
 
 
 def del_space(args):

@@ -25,38 +25,33 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdaemon_datatypes_h_
-#define hyperdaemon_datatypes_h_
-
-// C
-#include <cstdlib>
+// e
+#include <e/endian.h>
 
 // HyperDex
-#include "hyperdex/hyperdex/microop.h"
-#include "hyperdex/hyperdex/network_constants.h"
+#include "datatypes/write.h"
 
-namespace hyperdaemon
-{
-
-// Utilities for manipulating and verifying datastructures
-
-// Validate that the bytestring conforms to the given type
-bool
-validate_datatype(hyperdatatype datatype, const e::slice& data);
-
-// How much more space does the microop need in the contiguous buffer?
-size_t
-sizeof_microop(const hyperdex::microop& op);
-
-// Modify the old_value by applying ops sequentially.
 uint8_t*
-apply_microops(hyperdatatype type,
-               const e::slice& old_value,
-               hyperdex::microop* ops,
-               size_t num_ops,
-               uint8_t* writeto,
-               hyperdex::network_returncode* error);
+write_string(uint8_t* writeto,
+             const e::slice& elem)
+{
+    writeto = e::pack32le(elem.size(), writeto);
+    memmove(writeto, elem.data(), elem.size());
+    return writeto + elem.size();
+}
 
-} // namespace hyperdaemon
+uint8_t*
+write_int64(uint8_t* writeto,
+            const e::slice& elem)
+{
+    memmove(writeto, elem.data(), elem.size());
+    return writeto + elem.size();
+}
 
-#endif // hyperdaemon_replication_manager_h_
+uint8_t*
+write_float(uint8_t* writeto,
+            const e::slice& elem)
+{
+    memmove(writeto, elem.data(), elem.size());
+    return writeto + elem.size();
+}

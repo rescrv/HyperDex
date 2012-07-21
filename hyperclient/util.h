@@ -31,10 +31,18 @@
 // HyperDex
 #include "hyperdex/hyperdex/configuration.h"
 #include "hyperdex/hyperdex/ids.h"
-#include "hyperdex/hyperdex/microop.h"
 
 // HyperClient
 #include "hyperclient/hyperclient.h"
+
+int64_t
+pack_attributes(schema* sc, size_t pack_at,
+                const hyperclient_attribute* condattrs, size_t condattrs_sz,
+                const hyperclient_attribute* attrs, size_t attrs_sz,
+                hyperclient_returncode* status,
+                std::auto_ptr<e::buffer>* msg);
+
+// XXX see about deprecating below here once things settle in client.
 
 // Convert the key and value vector returned by entity to an array of
 // hyperclient_attribute using the given configuration.
@@ -48,9 +56,5 @@ value_to_attributes(const hyperdex::configuration& config,
                     hyperclient_returncode* op_status,
                     hyperclient_attribute** attrs,
                     size_t* attrs_sz);
-
-bool
-compare_for_microop_sort(const hyperdex::microop& lhs,
-                         const hyperdex::microop& rhs);
 
 #endif // hyperclient_util_h_

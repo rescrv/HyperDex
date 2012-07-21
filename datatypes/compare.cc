@@ -25,42 +25,41 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_attribute_h_
-#define hyperdex_attribute_h_
-
-// STL
-#include <string>
+// e
+#include <e/endian.h>
 
 // HyperDex
-#include "hyperdex.h"
+#include "datatypes/compare.h"
 
-namespace hyperdex
+bool
+compare_string(const e::slice& lhs, const e::slice& rhs)
 {
+    int cmp = memcmp(lhs.data(), rhs.data(), std::min(lhs.size(), rhs.size()));
 
-class attribute
+    if (cmp == 0)
+    {
+        return lhs.size() < rhs.size();
+    }
+
+    return cmp < 0;
+}
+
+bool
+compare_int64(const e::slice& lhs, const e::slice& rhs)
 {
-    public:
-        attribute()
-            : name(), type() {}
-        attribute(const std::string& n, hyperdatatype t)
-            : name(n), type(t) {}
-        attribute(const attribute& other)
-            : name(other.name), type(other.type) {}
+    int64_t lhsnum = 0;
+    int64_t rhsnum = 0;
+    e::unpack64le(lhs.data(), &lhsnum);
+    e::unpack64le(rhs.data(), &rhsnum);
+    return lhsnum < rhsnum;
+}
 
-    public:
-        attribute& operator = (const attribute& rhs)
-        {
-            // Rely upon inner operator = to check self-assign
-            name = rhs.name;
-            type = rhs.type;
-            return *this;
-        }
-
-    public:
-        std::string name;
-        hyperdatatype type;
-};
-
-} // namespace hyperdex
-
-#endif // hyperdex_attribute_h_
+bool
+compare_float(const e::slice& lhs, const e::slice& rhs)
+{
+    double lhsnum = 0;
+    double rhsnum = 0;
+    e::unpackdoublele(lhs.data(), &lhsnum);
+    e::unpackdoublele(rhs.data(), &rhsnum);
+    return lhsnum < rhsnum;
+}

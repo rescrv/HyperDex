@@ -53,15 +53,6 @@ enum network_msgtype
     REQ_GET         = 8,
     RESP_GET        = 9,
 
-    REQ_PUT         = 10,
-    RESP_PUT        = 11,
-
-    REQ_CONDPUT     = 12,
-    RESP_CONDPUT    = 13,
-
-    REQ_DEL         = 14,
-    RESP_DEL        = 15,
-
     REQ_ATOMIC      = 16,
     RESP_ATOMIC     = 17,
 
@@ -105,12 +96,6 @@ operator << (std::ostream& lhs, const network_msgtype& rhs)
     {
         stringify(REQ_GET);
         stringify(RESP_GET);
-        stringify(REQ_PUT);
-        stringify(RESP_PUT);
-        stringify(REQ_CONDPUT);
-        stringify(RESP_CONDPUT);
-        stringify(REQ_DEL);
-        stringify(RESP_DEL);
         stringify(REQ_ATOMIC);
         stringify(RESP_ATOMIC);
         stringify(REQ_SEARCH_START);

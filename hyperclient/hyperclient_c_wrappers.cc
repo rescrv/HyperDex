@@ -316,6 +316,28 @@ hyperclient_loop(struct hyperclient* client, int timeout, hyperclient_returncode
     }
 }
 
+enum hyperdatatype
+hyperclient_attribute_type(struct hyperclient* client,
+                           const char* space, const char* name,
+                           enum hyperclient_returncode* status)
+{
+    try
+    {
+        return client->attribute_type(space, name, status);
+    }
+    catch (po6::error& e)
+    {
+        errno = e;
+        *status = HYPERCLIENT_EXCEPTION;
+        return HYPERDATATYPE_GARBAGE;
+    }
+    catch (...)
+    {
+        *status = HYPERCLIENT_EXCEPTION;
+        return HYPERDATATYPE_GARBAGE;
+    }
+}
+
 void
 hyperclient_destroy_attrs(struct hyperclient_attribute* attrs, size_t /*attrs_sz*/)
 {

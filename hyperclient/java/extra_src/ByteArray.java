@@ -3,7 +3,7 @@ package hyperclient;
 import java.util.*;
 import java.io.UnsupportedEncodingException;
 
-public class ByteArray
+public class ByteArray implements Comparable
 {
     private byte[] bytes = null; 
 

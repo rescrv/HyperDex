@@ -28,9 +28,12 @@
 #ifndef hyperdex_configuration_parser_h_
 #define hyperdex_configuration_parser_h_
 
+// e
+#include <e/array_ptr.h>
+
 // HyperDex
 #include "hyperdex.h"
-#include "hyperdex/hyperdex/attribute.h"
+#include "datatypes/attribute.h"
 #include "hyperdex/hyperdex/configuration.h"
 
 namespace hyperdex
@@ -83,6 +86,7 @@ class configuration_parser
         error parse(const std::string& config);
 
     private:
+        void reset();
         error parse_version(char* start,
                             char* const eol);
         error parse_host(char* start,
@@ -108,6 +112,9 @@ class configuration_parser
         error extract_ip(char* start,
                          char* end,
                          po6::net::ipaddr* ip);
+        error extract_cstring(char* start,
+                              char* end,
+                              char** ptr);
         error extract_uint64_t(char* start,
                                char* end,
                                uint64_t* num);
@@ -125,6 +132,15 @@ class configuration_parser
                                const std::vector<bool>& attrs);
 
     private:
+        e::array_ptr<char> m_config;
+        size_t m_config_sz;
+        e::array_ptr<attribute> m_attributes;
+        size_t m_attributes_sz;
+        e::array_ptr<schema> m_schemas;
+        size_t m_schemas_sz;
+
+
+        // XXX Much of this can be simplified
         std::string m_config_text;
         uint64_t m_version;
         std::map<uint64_t, instance> m_hosts;

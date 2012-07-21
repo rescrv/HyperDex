@@ -95,7 +95,7 @@ CLEANFILES = \
 
 JAVAROOT = $(abs_top_srcdir)
 
-.PHONY: coverage
+.PHONY: coverage doc/HyperDex-$(VERSION).pdf
 
 dist-hook:
 	rm -rf $(distdir)/doc/_build
@@ -307,27 +307,22 @@ hyperdisk_utils_shard_fsck_CPPFLAGS = \
 #################################### Library ###################################
 
 libhyperdex_noinst_headers = \
-			hyperdex/hyperdex/attribute.h \
 			hyperdex/hyperdex/configuration.h \
 			hyperdex/hyperdex/configuration_parser.h \
 			hyperdex/hyperdex/coordinatorlink.h \
 			hyperdex/hyperdex/ids.h \
 			hyperdex/hyperdex/instance.h \
-			hyperdex/hyperdex/microop.h \
 			hyperdex/hyperdex/network_constants.h \
 			hyperdex/hyperdex/packing.h
 
 libhyperdex_sources = \
 			hyperdex/configuration.cc \
 			hyperdex/configuration_parser.cc \
-			hyperdex/coordinatorlink.cc \
-			hyperdex/microop.cc
+			hyperdex/coordinatorlink.cc
 
 ################################################################################
 ################################## HyperDaemon #################################
 ################################################################################
-
-#################################### Library ###################################
 
 hyperdex_daemon_SOURCES = \
 			daemon.cc \
@@ -335,8 +330,6 @@ hyperdex_daemon_SOURCES = \
 			hyperdaemon/daemon.cc \
 			hyperdaemon/datalayer.h \
 			hyperdaemon/datalayer.cc \
-			hyperdaemon/datatypes.h \
-			hyperdaemon/datatypes.cc \
 			hyperdaemon/logical.h \
 			hyperdaemon/logical.cc \
 			hyperdaemon/network_worker.h \
@@ -354,6 +347,39 @@ hyperdex_daemon_SOURCES = \
 			hyperdaemon/runtimeconfig.cc \
 			hyperdaemon/searches.h \
 			hyperdaemon/searches.cc \
+			datatypes/alltypes.h \
+			datatypes/apply.h \
+			datatypes/apply.cc \
+			datatypes/attribute.h \
+			datatypes/attribute.cc \
+			datatypes/compare.h \
+			datatypes/compare.cc \
+			datatypes/float.h \
+			datatypes/float.cc \
+			datatypes/int64.h \
+			datatypes/int64.cc \
+			datatypes/list.h \
+			datatypes/list.cc \
+			datatypes/map.h \
+			datatypes/map.cc \
+			datatypes/microerror.h \
+			datatypes/microcheck.h \
+			datatypes/microcheck.cc \
+			datatypes/microop.h \
+			datatypes/microop.cc \
+			datatypes/schema.h \
+			datatypes/schema.cc \
+			datatypes/set.h \
+			datatypes/set.cc \
+			datatypes/sort.h \
+			datatypes/step.h \
+			datatypes/step.cc \
+			datatypes/string.h \
+			datatypes/string.cc \
+			datatypes/validate.h \
+			datatypes/validate.cc \
+			datatypes/write.h \
+			datatypes/write.cc \
 			${libhyperdex_sources}
 hyperdex_daemon_LDADD = \
 			libhyperdisk.la \
@@ -396,6 +422,25 @@ libhyperclient_noinst_headers = \
 			hyperclient/util.h
 
 libhyperclient_la_SOURCES = \
+			datatypes/attribute.cc \
+			datatypes/coercion.h \
+			datatypes/coercion.cc \
+			datatypes/compare.cc \
+			datatypes/float.cc \
+			datatypes/int64.cc \
+			datatypes/list.cc \
+			datatypes/map.cc \
+			datatypes/microaction.h \
+			datatypes/microcheck.h \
+			datatypes/microcheck.cc \
+			datatypes/microop.h \
+			datatypes/microop.cc \
+			datatypes/schema.cc \
+			datatypes/set.cc \
+			datatypes/step.cc \
+			datatypes/string.cc \
+			datatypes/validate.cc \
+			datatypes/write.cc \
 			hyperclient/hyperclient.cc \
 			hyperclient/hyperclient_c_wrappers.cc \
 			hyperclient/hyperclient_pending.cc \
@@ -405,6 +450,7 @@ libhyperclient_la_SOURCES = \
 			hyperclient/hyperclient_pending_search.cc \
 			hyperclient/hyperclient_pending_sorted_search.cc \
 			hyperclient/hyperclient_pending_statusonly.cc \
+			hyperclient/keyop_info.cc \
 			hyperclient/util.cc \
 			${libhyperdex_sources}
 libhyperclient_la_LIBADD = \
@@ -418,6 +464,9 @@ libhyperclient_la_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperdex \
 			$(E_CFLAGS) \
 			$(CPPFLAGS)
+
+hyperclient/keyop_info.cc: hyperclient/keyop_info.gperf
+	gperf -m 100 $(abs_top_srcdir)/hyperclient/keyop_info.gperf --output-file=$(abs_top_builddir)/hyperclient/keyop_info.cc
 
 ################################# Java Bindings ################################
 
