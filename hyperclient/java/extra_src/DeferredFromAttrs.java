@@ -1,6 +1,7 @@
 package hyperclient;
 
 import java.util.*;
+import java.io.*;
 
 public class DeferredFromAttrs extends Deferred
 {
@@ -8,7 +9,8 @@ public class DeferredFromAttrs extends Deferred
                                                                         Map map)
                                                     throws HyperClientException,
                                                            TypeError,
-                                                           MemoryError
+                                                           MemoryError,
+                                                           UnsupportedEncodingException
     {
         super(client);
 

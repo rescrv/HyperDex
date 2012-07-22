@@ -1,6 +1,7 @@
 package hyperclient;
 
 import java.util.*;
+import java.io.*;
 
 public class DeferredGroupDel extends Deferred
 {
@@ -8,7 +9,8 @@ public class DeferredGroupDel extends Deferred
                                                     throws HyperClientException,
                                                            TypeError,
                                                            ValueError,
-                                                           MemoryError
+                                                           MemoryError,
+                                                           UnsupportedEncodingException
     {
         super(client);
 

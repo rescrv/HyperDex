@@ -1,6 +1,7 @@
 package hyperclient;
 
 import java.util.*;
+import java.io.*;
 
 public class Search extends SearchBase
 {
@@ -8,7 +9,8 @@ public class Search extends SearchBase
                                                     throws HyperClientException,
                                                            TypeError,
                                                            ValueError,
-                                                           MemoryError
+                                                           MemoryError,
+                                                           UnsupportedEncodingException
     {
         super(client);
 

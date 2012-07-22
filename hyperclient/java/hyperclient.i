@@ -84,6 +84,7 @@ typedef hyperclient_range_query* hyperclient_range_query_asterisk;
 
 %apply (char *STRING, int LENGTH) { (const char *key, size_t key_sz) }
 %apply (char *STRING, int LENGTH) { (const char *attr, size_t attr_sz) }
+%apply (char *STRING, int LENGTH) { (char *name, size_t name_sz) }
 %apply (char *STRING, int LENGTH) { (char *value, size_t value_sz) }
 %apply (char *STRING, int LENGTH) { (const char *map_key, size_t map_key_sz) }
 %apply (char *STRING, int LENGTH) { (const char *value, size_t value_sz) }

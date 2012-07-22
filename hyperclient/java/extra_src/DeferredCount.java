@@ -2,6 +2,7 @@ package hyperclient;
 
 import java.util.*;
 import java.nio.*;
+import java.io.UnsupportedEncodingException;
 
 public class DeferredCount extends Deferred
 {
@@ -13,7 +14,8 @@ public class DeferredCount extends Deferred
                                                     throws HyperClientException,
                                                            TypeError,
                                                            ValueError,
-                                                           MemoryError
+                                                           MemoryError,
+                                                           UnsupportedEncodingException
     {
         super(client);
 

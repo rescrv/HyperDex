@@ -6,9 +6,14 @@
 
 %typemap(javacode) hyperclient_attribute
 %{
-  public String getAttrName()
+  byte[] getAttrNameBytes()
   {
-    return HyperClient.read_attr_name(this);
+    int name_sz = HyperClient.get_attr_name_sz(this);
+    byte[] bytes = new byte[name_sz];
+
+    HyperClient.read_attr_name(this,bytes);
+
+    return bytes;
   }
 
   private byte[] getAttrValueBytes()

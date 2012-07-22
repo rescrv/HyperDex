@@ -1,6 +1,7 @@
 package hyperclient;
 
 import java.util.*;
+import java.io.*;
 
 public class DeferredCondPut extends Deferred
 {
@@ -8,7 +9,8 @@ public class DeferredCondPut extends Deferred
                                                             Map condition, Map value)
                                                     throws HyperClientException,
                                                            TypeError,
-                                                           MemoryError
+                                                           MemoryError,
+                                                           UnsupportedEncodingException
     {
         super(client);
 

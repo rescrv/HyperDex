@@ -2,6 +2,7 @@ package hyperclient;
 
 import java.util.*;
 import java.math.*;
+import java.io.*;
 
 public class SortedSearch extends SearchBase
 {
@@ -12,7 +13,8 @@ public class SortedSearch extends SearchBase
                                                     throws HyperClientException,
                                                            TypeError,
                                                            ValueError,
-                                                           MemoryError
+                                                           MemoryError,
+                                                           UnsupportedEncodingException
     {
         super(client);
 

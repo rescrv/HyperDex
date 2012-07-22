@@ -74,10 +74,11 @@ for name in $* ; do
     cat <<EOF >> async_methods.java
 
   public Deferred async_${name}(String space, String key, java.util.Map map)
-                                                     throws HyperClientException,
-                                                            TypeError,
-                                                            MemoryError,
-                                                            ValueError
+                                             throws HyperClientException,
+                                                    TypeError,
+                                                    MemoryError,
+                                                    ValueError,
+                                                    java.io.UnsupportedEncodingException
   {
     return new ${deferred}(this, new ${prefix}Op${camel_name}(this), space, key, map);
   }
@@ -86,10 +87,11 @@ EOF
     cat <<EOF >> sync_methods.java
 
   public boolean ${name}(String space, String key, java.util.Map map)
-                                                     throws HyperClientException,
-                                                            TypeError,
-                                                            MemoryError,
-                                                            ValueError
+                                             throws HyperClientException,
+                                                    TypeError,
+                                                    MemoryError,
+                                                    ValueError,
+                                                    java.io.UnsupportedEncodingException
   {
     Deferred d = ($deferred)(async_${name}(space, key, map));
     return ((Boolean)(d.waitFor())).booleanValue();

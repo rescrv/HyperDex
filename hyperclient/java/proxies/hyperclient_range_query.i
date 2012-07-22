@@ -5,8 +5,13 @@
 
 %typemap(javacode) hyperclient_range_query
 %{
-  String getRangeQueryAttrName()
+  byte[] getRangeQueryAttrNameBytes()
   {
-    return HyperClient.read_range_query_attr_name(this);
+    int name_sz = HyperClient.get_range_query_attr_name_sz(this);
+    byte[] bytes = new byte[name_sz];
+
+    HyperClient.read_range_query_attr_name(this,bytes);
+
+    return bytes;
   }
 %}
