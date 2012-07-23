@@ -432,9 +432,9 @@
               throw new TypeError("Cannot search with a null criteria");
 
 
-          String errStr = "Attribute '" + key + "' has incorrect type ( expected Long, String, Map.Entry<Long,Long> or List<Long> (of size 2), but got %s";
+          String errStr = "Attribute '" + key + "' has incorrect type ( expected Long, Double, String, Map.Entry<Long,Long> or List<Long> (of size 2), but got %s";
 
-          if ( val instanceof String || val instanceof Long || value instanceof Double )
+          if ( val instanceof String || val instanceof Long || val instanceof Double )
           {
               equalities.put(key,val);
           }
