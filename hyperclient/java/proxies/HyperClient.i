@@ -304,8 +304,7 @@
 
   private static hyperdatatype validateMapType(hyperdatatype type,
                                                String attrStr,
-                                               Object key, Object val)
-                                                                throws TypeError
+                                               Object key, Object val) throws TypeError
   {
     hyperdatatype retType = type;  
 
@@ -314,19 +313,19 @@
         // Initialize map type
         //
 
-        if ( key instanceof String && val instanceof String )
+        if ( isBytes(key) && isBytes(val) )
         {
             retType = hyperdatatype.HYPERDATATYPE_MAP_STRING_STRING;
         }    
-        else if ( key instanceof String && val instanceof Long )
+        else if ( isBytes(key) && val instanceof Long )
         {
             retType =  hyperdatatype.HYPERDATATYPE_MAP_STRING_INT64;
         }    
-        else if ( key instanceof String && val instanceof Double )
+        else if ( isBytes(key) && val instanceof Double )
         {
             retType =  hyperdatatype.HYPERDATATYPE_MAP_STRING_FLOAT;
         }    
-        else if ( key instanceof Long && val instanceof String )
+        else if ( key instanceof Long && isBytes(val) )
         {
             retType = hyperdatatype.HYPERDATATYPE_MAP_INT64_STRING;
         }    
@@ -338,7 +337,7 @@
         {
             retType = hyperdatatype.HYPERDATATYPE_MAP_INT64_FLOAT;
         }    
-        else if ( key instanceof Double && val instanceof String )
+        else if ( key instanceof Double && isBytes(val) )
         {
             retType = hyperdatatype.HYPERDATATYPE_MAP_FLOAT_STRING;
         }    
@@ -363,16 +362,16 @@
     {
         // Make sure it is always this map type (not heterogenious)
         //
-        if (  (key instanceof String && val instanceof String 
+        if (  (isBytes(key) && isBytes(val) 
                  && type != hyperdatatype.HYPERDATATYPE_MAP_STRING_STRING)
             ||
-              (key instanceof String && val instanceof Long 
+              (isBytes(key) && val instanceof Long 
                  && type != hyperdatatype.HYPERDATATYPE_MAP_STRING_INT64)
             ||
-              (key instanceof String && val instanceof Double 
+              (isBytes(key) && val instanceof Double 
                  && type != hyperdatatype.HYPERDATATYPE_MAP_STRING_FLOAT)
             ||
-              (key instanceof Long && val instanceof String 
+              (key instanceof Long && isBytes(val) 
                  && type != hyperdatatype.HYPERDATATYPE_MAP_INT64_STRING)
             ||
               (key instanceof Long && val instanceof Long 
@@ -381,7 +380,7 @@
               (key instanceof Long && val instanceof Double
                  && type != hyperdatatype.HYPERDATATYPE_MAP_INT64_FLOAT)
             ||
-              (key instanceof Double && val instanceof String 
+              (key instanceof Double && isBytes(val) 
                  && type != hyperdatatype.HYPERDATATYPE_MAP_FLOAT_STRING)
             ||
               (key instanceof Double && val instanceof Long 
@@ -435,7 +434,7 @@
 
           String errStr = "Attribute '" + key + "' has incorrect type ( expected Long, String, Map.Entry<Long,Long> or List<Long> (of size 2), but got %s";
 
-          if ( val instanceof String || val instanceof Long)
+          if ( val instanceof String || val instanceof Long || value instanceof Double )
           {
               equalities.put(key,val);
           }
@@ -539,8 +538,24 @@
       return retvals;
   }
 
-  static hyperclient_attribute dict_to_attrs(java.util.Map attrsMap) throws TypeError,
-                                                                            MemoryError
+  private static boolean isBytes(Object obj)
+  {
+    return obj instanceof byte[] || obj instanceof ByteArray || obj instanceof String;
+  }
+
+  private byte[] getBytes(Object obj) throws UnsupportedEncodingException
+  {
+    if ( obj instanceof byte[] ) return (byte[])obj;
+
+    if ( obj instanceof ByteArray ) return ((ByteArray)obj).getBytes();
+
+    if ( obj instanceof String ) return ((String)obj).getBytes(defaultStringEncoding());
+  }
+
+  hyperclient_attribute dict_to_attrs(java.util.Map attrsMap)
+                                             throws TypeError,
+                                                    MemoryError,
+                                                    UnsupportedEncodingException
   {
     int attrs_sz = attrsMap.size();
     hyperclient_attribute attrs = alloc_attrs(attrs_sz);
@@ -555,13 +570,15 @@
         {
             hyperclient_attribute ha = get_attr(attrs,i);
     
-            String attrStr = (String)(it.next());
-            if ( attrStr == null ) throw new TypeError("Attribute name cannot be null");
+            Object attrObject = it.next();
+
+            if ( attrObject == null )
+                throw new TypeError("Attribute name cannot be null");
+
+            byte[] attrBytes = getBytes(attrObject);
+            String attrStr = new String(attrBytes,defaultStringEncoding());
     
-            byte[] attrBytes = attrStr.getBytes();
-    
-            Object value = attrsMap.get(attrStr);
-    
+            Object value = attrsMap.get(attrObject);
         
             if ( value == null ) throw new TypeError(
                                         "Cannot convert null value "
@@ -569,10 +586,10 @@
     
             hyperdatatype type = null;
     
-            if ( value instanceof String )
+            if ( isBytes(value) )
             {
                 type = hyperdatatype.HYPERDATATYPE_STRING;
-                byte[] valueBytes = ((String)value).getBytes();
+                byte[] valueBytes = getBytes(value);
                 if (write_attr_value(ha, valueBytes) == 0) throw new MemoryError();
     
             }
@@ -608,7 +625,7 @@
     
                     if (type == hyperdatatype.HYPERDATATYPE_LIST_GENERIC)
                     {
-                        if (val instanceof String)
+                        if ( isBytes(val) )
                             type = hyperdatatype.HYPERDATATYPE_LIST_STRING;
                         else if (val instanceof Long)
                             type = hyperdatatype.HYPERDATATYPE_LIST_INT64;
@@ -622,7 +639,7 @@
                     }
                     else
                     {
-                        if ( (val instanceof String
+                        if ( (isBytes(val)
                                 && type != hyperdatatype.HYPERDATATYPE_LIST_STRING)
                             || (val instanceof Long
                                 && type != hyperdatatype.HYPERDATATYPE_LIST_INT64)
@@ -634,12 +651,14 @@
     
                     if ( type == hyperdatatype.HYPERDATATYPE_LIST_STRING )
                     {
+                        byte[] valBytes = getBytes(val);
+
                         if (write_attr_value(ha, java.nio.ByteBuffer.allocate(4).order( 
                                                  java.nio.ByteOrder.LITTLE_ENDIAN).putInt(
-                                                 ((String)val).getBytes().length).array()) == 0)
+                                                 valBytes.length).array()) == 0)
                                                  throw new MemoryError();
     
-                        if (write_attr_value(ha, ((String)val).getBytes()) == 0)
+                        if (write_attr_value(ha, valBytes) == 0)
                                                  throw new MemoryError();
                     }
     
@@ -688,7 +707,7 @@
     
                     if (type == hyperdatatype.HYPERDATATYPE_SET_GENERIC)
                     {
-                        if (val instanceof String)
+                        if ( isBytes(val) )
                             type = hyperdatatype.HYPERDATATYPE_SET_STRING;
                         else if (val instanceof Long)
                             type = hyperdatatype.HYPERDATATYPE_SET_INT64;
@@ -702,7 +721,7 @@
                     }
                     else
                     {
-                        if ( (val instanceof String
+                        if ( ( isBytes(val)
                                 && type != hyperdatatype.HYPERDATATYPE_SET_STRING)
                             || (val instanceof Long
                                 && type != hyperdatatype.HYPERDATATYPE_SET_INT64)
@@ -714,12 +733,14 @@
     
                     if ( type == hyperdatatype.HYPERDATATYPE_SET_STRING )
                     {
+                        byte[] valBytes = getBytes(val);
+
                         if (write_attr_value(ha, java.nio.ByteBuffer.allocate(4).order( 
                                                  java.nio.ByteOrder.LITTLE_ENDIAN).putInt(
-                                                 ((String)val).getBytes().length).array()) == 0)
+                                                 valBytes.length).array()) == 0)
                                                  throw new MemoryError();
     
-                        if (write_attr_value(ha, ((String)val).getBytes()) == 0)
+                        if (write_attr_value(ha, valBytes) == 0)
                                                  throw new MemoryError();
                     }
     
@@ -772,14 +793,16 @@
     
                     type = validateMapType(type, attrStr, key, val);
     
-                    if ( key instanceof String )
+                    if ( isBytes(key) )
                     {
+                        byte[] keyBytes = getBytes(key);
+
                         if (write_attr_value(ha, java.nio.ByteBuffer.allocate(4).order( 
                                                  java.nio.ByteOrder.LITTLE_ENDIAN).putInt(
-                                                 ((String)key).getBytes().length).array()) == 0)
+                                                 keyBytes.length).array()) == 0)
                                                  throw new MemoryError();
     
-                        if (write_attr_value(ha, ((String)key).getBytes()) == 0)
+                        if (write_attr_value(ha, keyBytes) == 0)
                                                  throw new MemoryError();
                     }
                     else if ( key instanceof Long )
@@ -799,14 +822,16 @@
                                                  throw new MemoryError();
                     }
     
-                    if ( val instanceof String )
+                    if ( isBytes(val) )
                     {
+                        byte[] valBytes = getBytes(val);
+
                         if (write_attr_value(ha, java.nio.ByteBuffer.allocate(4).order( 
                                                  java.nio.ByteOrder.LITTLE_ENDIAN).putInt(
-                                                 ((String)val).getBytes().length).array()) == 0)
+                                                 valBytes.length).array()) == 0)
                                                  throw new MemoryError();
     
-                        if (write_attr_value(ha, ((String)val).getBytes()) == 0)
+                        if (write_attr_value(ha, valBytes) == 0)
                                                  throw new MemoryError();
                     }
                     else if ( val instanceof Long )
@@ -846,6 +871,8 @@
 
         if ( e instanceof TypeError ) throw (TypeError)e;
         if ( e instanceof MemoryError ) throw (MemoryError)e;
+        if ( e instanceof UnsupportedEncodingException )
+                throw (UnsupportedEncodingException)e;
     }
 
     return attrs;
@@ -853,9 +880,10 @@
 
   // attrsMap - map of maps keyed by attribute name
   //
-  static hyperclient_map_attribute dict_to_map_attrs(java.util.Map attrsMap)
-                                                                throws TypeError,
-                                                                MemoryError
+  hyperclient_map_attribute dict_to_map_attrs(java.util.Map attrsMap)
+                                                    throws TypeError,
+                                                           MemoryError,
+                                                           UnsupportedEncodingException
   {
     java.math.BigInteger attrs_sz_bi = java.math.BigInteger.valueOf(0);
 
@@ -892,10 +920,15 @@
     {
         try
         {
-            String attrStr = (String)(it.next());
-            if ( attrStr == null ) throw new TypeError("Attribute name cannot be null");
+            Object attrObject = it.next();
 
-            Object operand = attrsMap.get(attrStr);
+            if ( attrObject == null )
+                throw new TypeError("Attribute name cannot be null");
+
+            byte[] attrBytes = getBytes(attrObject);
+            String attrStr = new String(attrBytes,defaultStringEncoding());
+    
+            Object operand = attrsMap.get(attrObject);
 
             if ( operand instanceof java.util.Map )
             {
@@ -923,15 +956,15 @@
 
                     hyperclient_map_attribute hma = get_map_attr(attrs,i_bi.longValue());
 
-                    if ( write_map_attr_name(hma,attrStr.getBytes()) == 0 )
+                    if ( write_map_attr_name(hma,attrBytes) == 0 )
                         throw new MemoryError();
 
-                    if ( key instanceof String )
+                    if ( isBytes(key) )
                     {
                         curKeyType = hyperdatatype.HYPERDATATYPE_STRING;
+                        byte[] keyBytes = getBytes(key);
 
-                        if ( write_map_attr_map_key(hma,((String)key).getBytes(),
-                                                                    keyType) == 0 )
+                        if ( write_map_attr_map_key(hma, keyBytes, keyType) == 0 )
                             throw new MemoryError();
                     }
                     else if ( key instanceof Long )
@@ -973,12 +1006,12 @@
 
                     keyType = curKeyType;
 
-                    if ( val instanceof String )
+                    if ( isBytes(val) )
                     {
                         curValType = hyperdatatype.HYPERDATATYPE_STRING;
+                        byte[] valBytes = getBytes(val);
 
-                        if ( write_map_attr_value(hma,((String)val).getBytes(),
-                                                                valType) == 0 )
+                        if ( write_map_attr_value(hma, valBytes, valType) == 0 )
                             throw new MemoryError();
                     }
                     else if ( val instanceof Long )
@@ -1032,15 +1065,15 @@
             {
                 hyperclient_map_attribute hma = get_map_attr(attrs,i_bi.longValue());
 
-                if ( operand instanceof String )
+                if ( isBytes(operand) )
                 {
                     hyperdatatype keyType = hyperdatatype.HYPERDATATYPE_STRING;
+                    byte[] operandBytes = getBytes(operand);
 
-                    if ( write_map_attr_name(hma,attrStr.getBytes()) == 0 )
+                    if ( write_map_attr_name(hma,attrBytes) == 0 )
                         throw new MemoryError();
 
-                    if ( write_map_attr_map_key(hma,((String)operand).getBytes(),
-                                                                    keyType) == 0 )
+                    if ( write_map_attr_map_key(hma, operandBytes, keyType) == 0 )
                         throw new MemoryError();
                 }
                 else if ( operand instanceof Long )
@@ -1074,7 +1107,7 @@
                 else
                 {
                     throw new TypeError( "In attribute '" + attrStr 
-                                       + "': a non-map operand must be String, Long or Double");
+                                       + "': a non-map operand must be byte array, Long or Double");
                 }
 
                 hma.setValue_datatype(hyperdatatype.HYPERDATATYPE_GENERIC);
@@ -1088,6 +1121,8 @@
 
             if ( e instanceof TypeError ) throw (TypeError)e;
             if ( e instanceof MemoryError ) throw (MemoryError)e;
+            if ( e instanceof UnsupportedEncodingException )
+                throw (UnsupportedEncodingException)e;
         }
     }
 

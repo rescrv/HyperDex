@@ -7,7 +7,7 @@ public class ByteArray implements Comparable
 {
     private byte[] bytes = null; 
 
-    private String defaultEncoding = "US-ASCII";
+    private String defaultEncoding = "UTF-8";
 
     public ByteArray(byte[] bytes)
     {
