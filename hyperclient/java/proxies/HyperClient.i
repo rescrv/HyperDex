@@ -4,7 +4,7 @@
     {
         std::string str = std::string(ha->attr);
         size_t name_sz = str.length();
-        return name_sz > INT_MAX ? (int)INT_MAX : (int)name_sz; 
+        return name_sz > INT_MAX ? (int)INT_MAX : (int)name_sz;
     }
 
     static void read_attr_name(hyperclient_attribute *ha,
@@ -13,7 +13,7 @@
         std::string str = std::string(ha->attr);
         memcpy(name, str.data(), name_sz);
     }
-    
+
     static void read_attr_value(hyperclient_attribute *ha,
                                    char *value, size_t value_sz,
                                    size_t pos)
@@ -21,40 +21,40 @@
         size_t available = ha->value_sz - pos;
         memcpy(value, ha->value+pos, value_sz<available?value_sz:available);
     }
-    
+
     static int get_map_attr_name_sz(hyperclient_map_attribute *hma)
     {
         std::string str = std::string(hma->attr);
         size_t name_sz = str.length();
-        return name_sz > INT_MAX ? (int)INT_MAX : (int)name_sz; 
+        return name_sz > INT_MAX ? (int)INT_MAX : (int)name_sz;
     }
 
     static std::string read_map_attr_name(hyperclient_map_attribute *hma,
                                             char *name, size_t name_sz)
     {
         std::string str = std::string(hma->attr);
-        memcpy(name, str.data(), name_sz); 
+        memcpy(name, str.data(), name_sz);
     }
-    
+
     static int get_range_query_attr_name_sz(hyperclient_range_query *rq)
     {
         std::string str = std::string(rq->attr);
         size_t name_sz = str.length();
-        return name_sz > INT_MAX ? (int)INT_MAX : (int)name_sz; 
+        return name_sz > INT_MAX ? (int)INT_MAX : (int)name_sz;
     }
 
     static std::string read_range_query_attr_name(hyperclient_range_query *rq,
                                                     char *name, size_t name_sz)
     {
         std::string str = std::string(rq->attr);
-        memcpy(name, str.data(), name_sz); 
+        memcpy(name, str.data(), name_sz);
     }
-    
+
     static hyperclient_attribute *alloc_attrs(size_t attrs_sz)
     {
         return (hyperclient_attribute *)calloc(attrs_sz,sizeof(hyperclient_attribute));
     }
-    
+
     static void free_attrs(hyperclient_attribute *attrs, size_t attrs_sz)
     {
         for (size_t i=0; i<attrs_sz; i++)
@@ -62,16 +62,16 @@
             if (attrs[i].attr) free((void*)(attrs[i].attr));
             if (attrs[i].value) free((void*)(attrs[i].value));
         }
-    
+
         free(attrs);
     }
-    
+
     static hyperclient_map_attribute *alloc_map_attrs(size_t attrs_sz)
     {
         return (hyperclient_map_attribute *)calloc(attrs_sz,
                                                    sizeof(hyperclient_map_attribute));
     }
-    
+
     static void free_map_attrs(hyperclient_map_attribute *attrs, size_t attrs_sz)
     {
         for (size_t i=0; i<attrs_sz; i++)
@@ -80,26 +80,26 @@
             if (attrs[i].map_key) free((void*)(attrs[i].map_key));
             if (attrs[i].value) free((void*)(attrs[i].value));
         }
-    
+
         free(attrs);
     }
-    
+
     static hyperclient_range_query *alloc_range_queries(size_t rqs_sz)
     {
         return (hyperclient_range_query *)calloc(rqs_sz,
                                                    sizeof(hyperclient_range_query));
     }
-    
+
     static void free_range_queries(hyperclient_range_query *rqs, size_t rqs_sz)
     {
         for (size_t i=0; i<rqs_sz; i++)
         {
             if (rqs[i].attr) free((void*)(rqs[i].attr));
         }
-    
+
         free(rqs);
     }
-    
+
     // Returns 1 on success. ha->attr will point to allocated memory
     // Returns 0 on failure. ha->attr will be NULL
     static int write_attr_name(hyperclient_attribute *ha,
@@ -107,20 +107,20 @@
                                    hyperdatatype type)
     {
         char *buf;
-    
+
         if ((buf = (char *)calloc(attr_sz+1,sizeof(char))) == NULL) return 0;
         memcpy(buf,attr,attr_sz);
         ha->attr = buf;
         ha->datatype = type;
         return 1;
     }
-    
+
     // Returns 1 on success. ha->value will point to allocated memory
     //                       ha->value_sz will hold the size of this memory
     // Returns 0 on failure. ha->value will be NULL
     //                       ha->value_sz will be 0
     //
-    // If ha->value is already non-NULL, then we are appending to it. 
+    // If ha->value is already non-NULL, then we are appending to it.
     static int write_attr_value(hyperclient_attribute *ha,
                                     const char *value, size_t value_sz)
     {
@@ -134,26 +134,26 @@
         ha->value_sz += value_sz;
         return 1;
     }
-    
+
     // Returns 1 on success. hma->attr will point to allocated memory
     // Returns 0 on failure. hma->attr will be NULL
     static int write_map_attr_name(hyperclient_map_attribute *hma,
                                    const char *attr, size_t attr_sz)
     {
         char *buf;
-    
+
         if ((buf = (char *)calloc(attr_sz+1,sizeof(char))) == NULL) return 0;
         memcpy(buf,attr,attr_sz);
         hma->attr = buf;
         return 1;
     }
-    
+
     // Returns 1 on success. hma->map_key will point to allocated memory
     //                       hma->map_key_sz will hold the size of this memory
     // Returns 0 on failure. hma->map_key will be NULL
     //                       hma->map_key_sz will be 0
     //
-    // If hma->value is already non-NULL, then we are appending to it. 
+    // If hma->value is already non-NULL, then we are appending to it.
     static int write_map_attr_map_key(hyperclient_map_attribute *hma,
                                           const char *map_key, size_t map_key_sz,
                                           hyperdatatype type)
@@ -169,13 +169,13 @@
         hma->map_key_datatype = type;
         return 1;
     }
-    
+
     // Returns 1 on success. hma->value will point to allocated memory
     //                       hma->value_sz will hold the size of this memory
     // Returns 0 on failure. hma->value will be NULL
     //                       hma->value_sz will be 0
     //
-    // If hma->value is already non-NULL, then we are appending to it. 
+    // If hma->value is already non-NULL, then we are appending to it.
     static int write_map_attr_value(hyperclient_map_attribute *hma,
                                     const char *value, size_t value_sz,
                                     hyperdatatype type)
@@ -191,14 +191,14 @@
         hma->value_datatype = type;
         return 1;
     }
-    
+
     static int write_range_query(hyperclient_range_query *rq,
                                    const char *attr, size_t attr_sz,
                                    int64_t lower,
                                    int64_t upper)
     {
         char *buf;
-    
+
         if ((buf = (char *)calloc(attr_sz+1,sizeof(char))) == NULL) return 0;
         memcpy(buf,attr,attr_sz);
         rq->attr = buf;
@@ -206,17 +206,17 @@
         rq->upper = upper;
         return 1;
     }
-    
+
     static hyperclient_attribute *get_attr(hyperclient_attribute *ha, size_t i)
     {
         return ha + i;
     }
-    
+
     static hyperclient_map_attribute *get_map_attr(hyperclient_map_attribute *hma, size_t i)
     {
         return hma + i;
     }
-    
+
     static hyperclient_range_query *get_range_query(hyperclient_range_query *rqs, size_t i)
     {
         return rqs + i;
@@ -225,12 +225,13 @@
 
 %typemap(javacode) hyperclient
 %{
-  java.util.HashMap<Long,Pending> ops = new java.util.HashMap<Long,Pending>(); 
+  java.util.HashMap<Long,Pending> ops = new java.util.HashMap<Long,Pending>();
 
   private String defaultStringEncoding = "UTF-8";
-  
+
   public HyperClient(String coordinator, int port, String defaultStringEncoding)
   {
+    this(coordinator, port);
     this.defaultStringEncoding = defaultStringEncoding;
   }
 
@@ -286,7 +287,7 @@
     return i;
   }
 
-  static java.util.Map attrs_to_dict(hyperclient_attribute attrs, long attrs_sz)
+  java.util.Map attrs_to_dict(hyperclient_attribute attrs, long attrs_sz)
                                                                 throws ValueError
   {
     java.util.HashMap<Object,Object> map = new java.util.HashMap<Object,Object>();
@@ -296,7 +297,14 @@
     for ( int i=0; i<sz; i++)
     {
         hyperclient_attribute ha = get_attr(attrs,i);
-        map.put(new ByteArray(ha.getAttrNameBytes()),ha.getAttrValue());
+
+        ByteArray attrName = ha.getAttrName();
+        attrName.setDefaultEncoding(defaultStringEncoding);
+
+        ByteArray attrValue = ha.getAttrValue();
+        attrValue.setDefaultEncoding(defaultStringEncoding);
+
+        map.put(attrName, attrValue);
     }
 
     return map;
@@ -306,7 +314,7 @@
                                                String attrStr,
                                                Object key, Object val) throws TypeError
   {
-    hyperdatatype retType = type;  
+    hyperdatatype retType = type;
 
     if ( type ==  hyperdatatype.HYPERDATATYPE_MAP_GENERIC )
     {
@@ -316,39 +324,39 @@
         if ( isBytes(key) && isBytes(val) )
         {
             retType = hyperdatatype.HYPERDATATYPE_MAP_STRING_STRING;
-        }    
+        }
         else if ( isBytes(key) && val instanceof Long )
         {
             retType =  hyperdatatype.HYPERDATATYPE_MAP_STRING_INT64;
-        }    
+        }
         else if ( isBytes(key) && val instanceof Double )
         {
             retType =  hyperdatatype.HYPERDATATYPE_MAP_STRING_FLOAT;
-        }    
+        }
         else if ( key instanceof Long && isBytes(val) )
         {
             retType = hyperdatatype.HYPERDATATYPE_MAP_INT64_STRING;
-        }    
+        }
         else if ( key instanceof Long && val instanceof Long )
         {
             retType = hyperdatatype.HYPERDATATYPE_MAP_INT64_INT64;
-        }    
+        }
         else if ( key instanceof Long && val instanceof Double )
         {
             retType = hyperdatatype.HYPERDATATYPE_MAP_INT64_FLOAT;
-        }    
+        }
         else if ( key instanceof Double && isBytes(val) )
         {
             retType = hyperdatatype.HYPERDATATYPE_MAP_FLOAT_STRING;
-        }    
+        }
         else if ( key instanceof Double && val instanceof Long )
         {
             retType = hyperdatatype.HYPERDATATYPE_MAP_FLOAT_INT64;
-        }    
+        }
         else if ( key instanceof Double && val instanceof Double )
         {
             retType = hyperdatatype.HYPERDATATYPE_MAP_FLOAT_FLOAT;
-        }    
+        }
         else
         {
             throw new TypeError(
@@ -362,28 +370,28 @@
     {
         // Make sure it is always this map type (not heterogenious)
         //
-        if (  (isBytes(key) && isBytes(val) 
+        if (  (isBytes(key) && isBytes(val)
                  && type != hyperdatatype.HYPERDATATYPE_MAP_STRING_STRING)
             ||
-              (isBytes(key) && val instanceof Long 
+              (isBytes(key) && val instanceof Long
                  && type != hyperdatatype.HYPERDATATYPE_MAP_STRING_INT64)
             ||
-              (isBytes(key) && val instanceof Double 
+              (isBytes(key) && val instanceof Double
                  && type != hyperdatatype.HYPERDATATYPE_MAP_STRING_FLOAT)
             ||
-              (key instanceof Long && isBytes(val) 
+              (key instanceof Long && isBytes(val)
                  && type != hyperdatatype.HYPERDATATYPE_MAP_INT64_STRING)
             ||
-              (key instanceof Long && val instanceof Long 
+              (key instanceof Long && val instanceof Long
                  && type != hyperdatatype.HYPERDATATYPE_MAP_INT64_INT64)
             ||
               (key instanceof Long && val instanceof Double
                  && type != hyperdatatype.HYPERDATATYPE_MAP_INT64_FLOAT)
             ||
-              (key instanceof Double && isBytes(val) 
+              (key instanceof Double && isBytes(val)
                  && type != hyperdatatype.HYPERDATATYPE_MAP_FLOAT_STRING)
             ||
-              (key instanceof Double && val instanceof Long 
+              (key instanceof Double && val instanceof Long
                  && type != hyperdatatype.HYPERDATATYPE_MAP_FLOAT_INT64)
             ||
               (key instanceof Double && val instanceof Double
@@ -404,66 +412,73 @@
   // retvals at 2 - rn
   // retvals at 3 - rn_sz
   static java.util.Vector predicate_to_c(java.util.Map predicate)
-                                            throws TypeError, MemoryError, ValueError
+                                                 throws TypeError,
+                                                        MemoryError,
+                                                        ValueError,
+                                                        UnsupportedEncodingException
   {
-      java.util.Vector<Object> retvals = new java.util.Vector<Object>(4); 
+      java.util.Vector<Object> retvals = new java.util.Vector<Object>(4);
 
       retvals.add(null);
       retvals.add(new Integer(0));
       retvals.add(null);
       retvals.add(new Integer(0));
 
-      java.util.HashMap<String,Object> equalities
-            = new java.util.HashMap<String,Object>();
+      java.util.HashMap<ByteArray,Object> equalities
+            = new java.util.HashMap<ByteArray,Object>();
 
-      java.util.HashMap<String,Object> ranges
-            = new java.util.HashMap<String,Object>();
+      java.util.HashMap<ByteArray,Object> ranges
+            = new java.util.HashMap<ByteArray,Object>();
 
       for (java.util.Iterator it=predicate.keySet().iterator(); it.hasNext();)
       {
-          String key = (String)(it.next());
+          Object attrObject = it.next();
 
-          if ( key == null )
+          if ( attrObject == null )
               throw new TypeError("Cannot search on a null attribute");
 
-          Object val = predicate.get(key);
+          byte[] attrBytes = getBytes(attrObject);
+          String attrStr = new String(attrBytes,defaultStringEncoding());
 
-          if ( val == null )
+          Object params = predicate.get(attrObject);
+
+          if ( params == null )
               throw new TypeError("Cannot search with a null criteria");
 
 
-          String errStr = "Attribute '" + key + "' has incorrect type ( expected Long, Double, String, Map.Entry<Long,Long> or List<Long> (of size 2), but got %s";
+          String errStr = "Attribute '" + attrStr + "' has incorrect type ( expected Long, Double, String, Map.Entry<Long,Long> or List<Long> (of size 2), but got %s";
 
-          if ( val instanceof String || val instanceof Long || val instanceof Double )
+          if ( isBytes(params) || params instanceof Long || params instanceof Double )
           {
-              equalities.put(key,val);
+              equalities.put(new ByteArray(attrBytes), params);
           }
           else
           {
-              if ( val instanceof java.util.Map.Entry )
+              if ( params instanceof java.util.Map.Entry )
               {
                   try
                   {
                       long lower
-                        = ((Long)((java.util.Map.Entry)val).getKey()).longValue();
+                        = ((Long)((java.util.Map.Entry)params).getKey()).longValue();
 
                       long upper
-                        = ((Long)((java.util.Map.Entry)val).getValue()).longValue();
+                        = ((Long)((java.util.Map.Entry)params).getValue()).longValue();
                   }
                   catch(Exception e)
                   {
                       throw
-                          new TypeError(String.format(errStr,val.getClass().getName()));
+                          new TypeError(
+                                String.format(errStr,params.getClass().getName()));
                   }
               }
-              else if ( val instanceof java.util.List )
+              else if ( params instanceof java.util.List )
               {
                   try
                   {
-                      java.util.List listVal = (java.util.List)val;
-      
-                      if ( listVal.size() != 2 )
-                          throw new TypeError("Attribute '" + key + "': using a List to specify a range requires its size to be 2, but got size " + listVal.size());  
+                      java.util.List listParams = (java.util.List)params;
+
+                      if ( listParams.size() != 2 )
+                          throw new TypeError("Attribute '" + attrStr + "': using a List to specify a range requires its size to be 2, but got size " + listParams.size());
                   }
                   catch (TypeError te)
                   {
@@ -473,22 +488,22 @@
                   {
                       throw
                           new TypeError(
-                              String.format(errStr,val.getClass().getName()));
+                              String.format(errStr,params.getClass().getName()));
                   }
               }
               else
               {
                   throw
-                      new TypeError(String.format(errStr,val.getClass().getName()));
+                      new TypeError(String.format(errStr,params.getClass().getName()));
               }
 
-              ranges.put(key,val);
+              ranges.put(new ByteArray(attrBytes,params);
           }
       }
 
       if ( equalities.size() > 0 )
       {
-          
+
           retvals.set(0, dict_to_attrs(equalities));
           retvals.set(1, equalities.size());
       }
@@ -506,26 +521,29 @@
           int i = 0;
           for (java.util.Iterator it=ranges.keySet().iterator(); it.hasNext();)
           {
-              String key = (String)(it.next());
-              Object val = ranges.get(key);
+              ByteArray attr = it.next();
+
+              String attrStr = attr.toString(defaultStringEncoding());
+
+              Object params = ranges.get(attr);
 
               long lower = 0;
               long upper = 0;
 
-              if ( val instanceof java.util.Map.Entry )
+              if ( params instanceof java.util.Map.Entry )
               {
-                  lower = (Long)(((java.util.Map.Entry)val).getKey());
-                  upper = (Long)(((java.util.Map.Entry)val).getValue());
+                  lower = (Long)(((java.util.Map.Entry)params).getKey());
+                  upper = (Long)(((java.util.Map.Entry)params).getValue());
               }
               else // Must be a List of Longs of size = 2
               {
-                  lower = (Long)(((java.util.List)val).get(0));
-                  upper = (Long)(((java.util.List)val).get(1));
+                  lower = (Long)(((java.util.List)params).get(0));
+                  upper = (Long)(((java.util.List)params).get(1));
               }
-      
+
               hyperclient_range_query rq = HyperClient.get_range_query(rn,i);
 
-              if ( HyperClient.write_range_query(rq,key.getBytes(),lower,upper) == 0 )
+              if ( HyperClient.write_range_query(rq,attr.getBytes(),lower,upper) == 0 )
                   throw new MemoryError();
 
               i++;
@@ -559,17 +577,17 @@
   {
     int attrs_sz = attrsMap.size();
     hyperclient_attribute attrs = alloc_attrs(attrs_sz);
- 
+
     if ( attrs == null ) throw new MemoryError();
-    
+
     try
     {
         int i = 0;
-    
+
         for (java.util.Iterator it=attrsMap.keySet().iterator(); it.hasNext();)
         {
             hyperclient_attribute ha = get_attr(attrs,i);
-    
+
             Object attrObject = it.next();
 
             if ( attrObject == null )
@@ -577,21 +595,21 @@
 
             byte[] attrBytes = getBytes(attrObject);
             String attrStr = new String(attrBytes,defaultStringEncoding());
-    
+
             Object value = attrsMap.get(attrObject);
-        
+
             if ( value == null ) throw new TypeError(
                                         "Cannot convert null value "
                                     + "for attribute '" + attrStr + "'");
-    
+
             hyperdatatype type = null;
-    
+
             if ( isBytes(value) )
             {
                 type = hyperdatatype.HYPERDATATYPE_STRING;
                 byte[] valueBytes = getBytes(value);
                 if (write_attr_value(ha, valueBytes) == 0) throw new MemoryError();
-    
+
             }
             else if ( value instanceof Long )
             {
@@ -612,17 +630,17 @@
             else if ( value instanceof java.util.List )
             {
                 java.util.List list = (java.util.List)value;
-    
+
                 type = hyperdatatype.HYPERDATATYPE_LIST_GENERIC;
-    
+
                 for (java.util.Iterator l_it=list.iterator();l_it.hasNext();)
                 {
                     Object val = l_it.next();
-    
+
                     if ( val == null ) throw new TypeError(
                                         "Cannot convert null element "
                                     + "for list attribute '" + attrStr + "'");
-    
+
                     if (type == hyperdatatype.HYPERDATATYPE_LIST_GENERIC)
                     {
                         if ( isBytes(val) )
@@ -645,35 +663,35 @@
                                 && type != hyperdatatype.HYPERDATATYPE_LIST_INT64)
                             || (val instanceof Double
                                 && type != hyperdatatype.HYPERDATATYPE_LIST_FLOAT) )
-    
+
                             throw new TypeError("Cannot store heterogeneous lists");
                     }
-    
+
                     if ( type == hyperdatatype.HYPERDATATYPE_LIST_STRING )
                     {
                         byte[] valBytes = getBytes(val);
 
-                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(4).order( 
+                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(4).order(
                                                  java.nio.ByteOrder.LITTLE_ENDIAN).putInt(
                                                  valBytes.length).array()) == 0)
                                                  throw new MemoryError();
-    
+
                         if (write_attr_value(ha, valBytes) == 0)
                                                  throw new MemoryError();
                     }
-    
+
                     if ( type == hyperdatatype.HYPERDATATYPE_LIST_INT64 )
                     {
-                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order( 
+                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order(
                                                  java.nio.ByteOrder.LITTLE_ENDIAN
                                                  ).putLong(((Long)val).longValue()
                                                  ).array()) == 0)
                                                  throw new MemoryError();
                     }
-    
+
                     if ( type == hyperdatatype.HYPERDATATYPE_LIST_FLOAT )
                     {
-                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order( 
+                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order(
                                                  java.nio.ByteOrder.LITTLE_ENDIAN
                                                  ).putDouble(((Double)val).doubleValue()
                                                  ).array()) == 0)
@@ -685,26 +703,26 @@
             {
                 // XXX HyderDex seems to quietly fail if set is not sorted
                 // So I make sure a TreeSet ie., sorted set is used.
-                // I was wondering why the python binding went through 
+                // I was wondering why the python binding went through
                 // the trouble of sorting a set right before packing it.
-    
+
                 java.util.Set<?> set = (java.util.Set<?>)value;
-    
+
                 if ( ! (set instanceof java.util.SortedSet) )
                 {
                     set = new java.util.TreeSet<Object>(set);
                 }
-    
+
                 type = hyperdatatype.HYPERDATATYPE_SET_GENERIC;
-    
+
                 for (java.util.Iterator s_it=set.iterator();s_it.hasNext();)
                 {
                     Object val = s_it.next();
-    
+
                     if ( val == null ) throw new TypeError(
                                         "Cannot convert null element "
                                     + "for set attribute '" + attrStr + "'");
-    
+
                     if (type == hyperdatatype.HYPERDATATYPE_SET_GENERIC)
                     {
                         if ( isBytes(val) )
@@ -727,35 +745,35 @@
                                 && type != hyperdatatype.HYPERDATATYPE_SET_INT64)
                             || (val instanceof Double
                                 && type != hyperdatatype.HYPERDATATYPE_SET_FLOAT) )
-    
+
                             throw new TypeError("Cannot store heterogeneous sets");
                     }
-    
+
                     if ( type == hyperdatatype.HYPERDATATYPE_SET_STRING )
                     {
                         byte[] valBytes = getBytes(val);
 
-                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(4).order( 
+                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(4).order(
                                                  java.nio.ByteOrder.LITTLE_ENDIAN).putInt(
                                                  valBytes.length).array()) == 0)
                                                  throw new MemoryError();
-    
+
                         if (write_attr_value(ha, valBytes) == 0)
                                                  throw new MemoryError();
                     }
-    
+
                     if ( type == hyperdatatype.HYPERDATATYPE_SET_INT64 )
                     {
-                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order( 
+                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order(
                                                  java.nio.ByteOrder.LITTLE_ENDIAN
                                                  ).putLong(((Long)val).longValue()
                                                  ).array()) == 0)
                                                  throw new MemoryError();
                     }
-    
+
                     if ( type == hyperdatatype.HYPERDATATYPE_SET_FLOAT )
                     {
-                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order( 
+                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order(
                                                  java.nio.ByteOrder.LITTLE_ENDIAN
                                                  ).putDouble(((Double)val).doubleValue()
                                                  ).array()) == 0)
@@ -766,7 +784,7 @@
             else if ( value instanceof java.util.Map )
             {
                 java.util.Map<?,?> map = (java.util.Map<?,?>)value;
-    
+
                 // As for set types, the same goes for map type. HyperDex will
                 // scoff unless the map is sorted
                 //
@@ -774,40 +792,40 @@
                 {
                     map = new java.util.TreeMap<Object,Object>(map);
                 }
-    
+
                 type = hyperdatatype.HYPERDATATYPE_MAP_GENERIC;
-    
+
                 for (java.util.Iterator m_it=map.keySet().iterator();m_it.hasNext();)
                 {
                     Object key = m_it.next();
-    
+
                     if ( key == null ) throw new TypeError(
-                                      "In attribute '" + attrStr 
+                                      "In attribute '" + attrStr
                                     + "': A non-empty map cannot have a null key entry");
-    
+
                     Object val = map.get(key);
-    
+
                     if ( val == null ) throw new TypeError(
-                                  "In attribute '" + attrStr 
+                                  "In attribute '" + attrStr
                                 + "': A non-empty map cannot have a null value entry");
-    
+
                     type = validateMapType(type, attrStr, key, val);
-    
+
                     if ( isBytes(key) )
                     {
                         byte[] keyBytes = getBytes(key);
 
-                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(4).order( 
+                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(4).order(
                                                  java.nio.ByteOrder.LITTLE_ENDIAN).putInt(
                                                  keyBytes.length).array()) == 0)
                                                  throw new MemoryError();
-    
+
                         if (write_attr_value(ha, keyBytes) == 0)
                                                  throw new MemoryError();
                     }
                     else if ( key instanceof Long )
                     {
-                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order( 
+                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order(
                                                  java.nio.ByteOrder.LITTLE_ENDIAN
                                                  ).putLong(((Long)key).longValue()
                                                  ).array()) == 0)
@@ -815,28 +833,28 @@
                     }
                     else
                     {
-                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order( 
+                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order(
                                                  java.nio.ByteOrder.LITTLE_ENDIAN
                                                  ).putDouble(((Double)key).doubleValue()
                                                  ).array()) == 0)
                                                  throw new MemoryError();
                     }
-    
+
                     if ( isBytes(val) )
                     {
                         byte[] valBytes = getBytes(val);
 
-                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(4).order( 
+                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(4).order(
                                                  java.nio.ByteOrder.LITTLE_ENDIAN).putInt(
                                                  valBytes.length).array()) == 0)
                                                  throw new MemoryError();
-    
+
                         if (write_attr_value(ha, valBytes) == 0)
                                                  throw new MemoryError();
                     }
                     else if ( val instanceof Long )
                     {
-                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order( 
+                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order(
                                                  java.nio.ByteOrder.LITTLE_ENDIAN
                                                  ).putLong(((Long)val).longValue()
                                                  ).array()) == 0)
@@ -844,7 +862,7 @@
                     }
                     else
                     {
-                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order( 
+                        if (write_attr_value(ha, java.nio.ByteBuffer.allocate(8).order(
                                                  java.nio.ByteOrder.LITTLE_ENDIAN
                                                  ).putDouble(((Double)val).doubleValue()
                                                  ).array()) == 0)
@@ -859,9 +877,9 @@
                         + value.getClass().getName()
                         + "' for attribute '" + attrStr + "'");
             }
-    
+
             if (write_attr_name(ha, attrBytes, type) == 0) throw new MemoryError();
-    
+
             i++;
         }
     }
@@ -887,7 +905,7 @@
   {
     java.math.BigInteger attrs_sz_bi = java.math.BigInteger.valueOf(0);
 
-    // For each of the operands keyed by attribute name, 
+    // For each of the operands keyed by attribute name,
     // sum all of the operands cardinalities to get the final size of
     // of the hyperclient_map_attribute array
     //
@@ -913,7 +931,7 @@
     if ( attrs == null ) throw new MemoryError();
 
     attrs.setAttrsSz_bi(attrs_sz_bi);
-    
+
     java.math.BigInteger i_bi = java.math.BigInteger.valueOf(0);
 
     for (java.util.Iterator it=attrsMap.keySet().iterator(); it.hasNext();)
@@ -927,7 +945,7 @@
 
             byte[] attrBytes = getBytes(attrObject);
             String attrStr = new String(attrBytes,defaultStringEncoding());
-    
+
             Object operand = attrsMap.get(attrObject);
 
             if ( operand instanceof java.util.Map )
@@ -945,13 +963,13 @@
                     Object key = iit.next();
 
                     if ( key == null ) throw new TypeError(
-                                   "In attribute '" + attrStr 
+                                   "In attribute '" + attrStr
                                  + "': A non-empty map cannot have a null key entry");
 
                     Object val = map.get(key);
 
                     if ( val == null ) throw new TypeError(
-                                   "In attribute '" + attrStr 
+                                   "In attribute '" + attrStr
                                  + "': A non-empty map cannot have a null value entry");
 
                     hyperclient_map_attribute hma = get_map_attr(attrs,i_bi.longValue());
@@ -1058,7 +1076,7 @@
 
                 if ( keyType == hyperdatatype.HYPERDATATYPE_GENERIC )
                     throw new TypeError(
-                                      "In attribute '" + attrStr 
+                                      "In attribute '" + attrStr
                                     + "':  cannot have an empty map operand");
             }
             else
@@ -1106,7 +1124,7 @@
                 }
                 else
                 {
-                    throw new TypeError( "In attribute '" + attrStr 
+                    throw new TypeError( "In attribute '" + attrStr
                                        + "': a non-map operand must be byte array, Long or Double");
                 }
 
@@ -1492,7 +1510,7 @@
                                                     TypeError,
                                                     ValueError,
                                                     MemoryError,
-                                                    java.io.UnsupportedEncodingException 
+                                                    java.io.UnsupportedEncodingException
   {
     return count(space, predicate, false);
   }
@@ -1502,7 +1520,7 @@
                                                     TypeError,
                                                     ValueError,
                                                     MemoryError,
-                                                    java.io.UnsupportedEncodingException 
+                                                    java.io.UnsupportedEncodingException
   {
     Deferred d = (DeferredCount)(async_count(space, predicate, unsafe));
     return (java.math.BigInteger)(d.waitFor());
@@ -1513,7 +1531,7 @@
                                                     TypeError,
                                                     ValueError,
                                                     MemoryError,
-                                                    java.io.UnsupportedEncodingException 
+                                                    java.io.UnsupportedEncodingException
   {
     return new Search(this,space,predicate);
   }
@@ -1526,7 +1544,7 @@
                                                     TypeError,
                                                     ValueError,
                                                     MemoryError,
-                                                    java.io.UnsupportedEncodingException 
+                                                    java.io.UnsupportedEncodingException
   {
     return new SortedSearch(this, space, predicate, sortBy, limit, descending);
   }
@@ -1539,7 +1557,7 @@
                                                     TypeError,
                                                     ValueError,
                                                     MemoryError,
-                                                    java.io.UnsupportedEncodingException 
+                                                    java.io.UnsupportedEncodingException
   {
     return new SortedSearch(this, space, predicate, sortBy,
                           new java.math.BigInteger(
@@ -1556,7 +1574,7 @@
                                                     TypeError,
                                                     ValueError,
                                                     MemoryError,
-                                                    java.io.UnsupportedEncodingException 
+                                                    java.io.UnsupportedEncodingException
   {
     return new SortedSearch(this, space, predicate, sortBy,
                           new java.math.BigInteger(

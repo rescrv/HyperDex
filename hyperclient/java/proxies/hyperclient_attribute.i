@@ -16,6 +16,11 @@
     return bytes;
   }
 
+  ByteArray getAttrName()
+  {
+    return new ByteArray(getAttrNameBytes());
+  }
+
   private byte[] getAttrValueBytes()
   {
     int bytes_sz = HyperClient.size_t_to_int(getValue_sz());
@@ -32,7 +37,7 @@
 
   private java.lang.Object getAttrStringValue()
   {
-    return new String(getAttrValueBytes());
+    return new ByteArray(getAttrValueBytes());
   }
 
   private byte[] zerofill(byte[] inbytes)
@@ -75,13 +80,13 @@
   }
 
   private java.lang.Object getAttrCollectionStringValue(
-            java.util.AbstractCollection<String> coll) throws ValueError
+            java.util.AbstractCollection<ByteArray> coll) throws ValueError
   {
-    String collType = coll instanceof java.util.List?"list":"set"; 
+    String collType = coll instanceof java.util.List?"list":"set";
 
     // Interpret return value of getValue_sz() as unsigned
     //
-    java.math.BigInteger value_sz 
+    java.math.BigInteger value_sz
         = new java.math.BigInteger(1,java.nio.ByteBuffer.allocate(8).order(
             java.nio.ByteOrder.BIG_ENDIAN).putLong(getValue_sz()).array());
 
@@ -90,7 +95,7 @@
 
     java.math.BigInteger four = new java.math.BigInteger("4");
 
-    int coll_sz = 0; 
+    int coll_sz = 0;
 
     while ( rem.compareTo(four) >= 0 && coll_sz <= Integer.MAX_VALUE )
     {
@@ -101,15 +106,15 @@
         java.math.BigInteger sz_bi
           = new java.math.BigInteger(new Integer(sz).toString());
 
-        if ( rem.subtract(four).compareTo(sz_bi) < 0 ) 
+        if ( rem.subtract(four).compareTo(sz_bi) < 0 )
         {
             throw new ValueError(collType
                         + "(string) is improperly structured (file a bug)");
         }
-   
-        coll.add(new String(getAttrValueBytes(pos+4,sz)));
 
-        rem = rem.subtract(four).subtract(sz_bi);        
+        coll.add(new ByteArray(getAttrValueBytes(pos+4,sz)));
+
+        rem = rem.subtract(four).subtract(sz_bi);
         pos = value_sz.subtract(rem).longValue();
 
         coll_sz += 1;
@@ -118,7 +123,7 @@
     if ( coll_sz < Integer.MAX_VALUE && rem.compareTo(java.math.BigInteger.ZERO) > 0 )
     {
         throw new ValueError(collType + "(string) contains excess data (file a bug)");
-    }    
+    }
 
     return coll;
   }
@@ -126,11 +131,11 @@
   private java.lang.Object getAttrCollectionLongValue(
             java.util.AbstractCollection<Long> coll) throws ValueError
   {
-    String collType = coll instanceof java.util.List?"list":"set"; 
+    String collType = coll instanceof java.util.List?"list":"set";
 
     // Interpret return value of getValue_sz() as unsigned
     //
-    java.math.BigInteger value_sz 
+    java.math.BigInteger value_sz
         = new java.math.BigInteger(1,java.nio.ByteBuffer.allocate(8).order(
             java.nio.ByteOrder.BIG_ENDIAN).putLong(getValue_sz()).array());
 
@@ -139,14 +144,14 @@
 
     java.math.BigInteger eight = new java.math.BigInteger("8");
 
-    int coll_sz = 0; 
+    int coll_sz = 0;
 
     while ( rem.compareTo(eight) >= 0 && coll_sz <= Integer.MAX_VALUE )
     {
         coll.add(new Long(java.nio.ByteBuffer.wrap(getAttrValueBytes(pos,8)).order(
                         java.nio.ByteOrder.LITTLE_ENDIAN).getLong()));
 
-        rem = rem.subtract(eight);        
+        rem = rem.subtract(eight);
         pos = value_sz.subtract(rem).longValue();
 
         coll_sz += 1;
@@ -155,7 +160,7 @@
     if ( coll_sz < Integer.MAX_VALUE && rem.compareTo(java.math.BigInteger.ZERO) > 0 )
     {
         throw new ValueError(collType + "(int64) contains excess data (file a bug)");
-    }    
+    }
 
     return coll;
   }
@@ -163,11 +168,11 @@
   private java.lang.Object getAttrCollectionDoubleValue(
             java.util.AbstractCollection<Double> coll) throws ValueError
   {
-    String collType = coll instanceof java.util.List?"list":"set"; 
+    String collType = coll instanceof java.util.List?"list":"set";
 
     // Interpret return value of getValue_sz() as unsigned
     //
-    java.math.BigInteger value_sz 
+    java.math.BigInteger value_sz
         = new java.math.BigInteger(1,java.nio.ByteBuffer.allocate(8).order(
             java.nio.ByteOrder.BIG_ENDIAN).putLong(getValue_sz()).array());
 
@@ -176,14 +181,14 @@
 
     java.math.BigInteger eight = new java.math.BigInteger("8");
 
-    int coll_sz = 0; 
+    int coll_sz = 0;
 
     while ( rem.compareTo(eight) >= 0 && coll_sz <= Integer.MAX_VALUE )
     {
         coll.add(new Double(java.nio.ByteBuffer.wrap(getAttrValueBytes(pos,8)).order(
                         java.nio.ByteOrder.LITTLE_ENDIAN).getDouble()));
 
-        rem = rem.subtract(eight);        
+        rem = rem.subtract(eight);
         pos = value_sz.subtract(rem).longValue();
 
         coll_sz += 1;
@@ -192,18 +197,19 @@
     if ( coll_sz < Integer.MAX_VALUE && rem.compareTo(java.math.BigInteger.ZERO) > 0 )
     {
         throw new ValueError(collType + "(float) contains excess data (file a bug)");
-    }    
+    }
 
     return coll;
   }
 
   private java.lang.Object getAttrMapStringStringValue() throws ValueError
   {
-    java.util.HashMap<String,String> map = new java.util.HashMap<String,String>();    
+    java.util.HashMap<ByteArray,ByteArray> map
+            = new java.util.HashMap<ByteArray,ByteArray>();
 
     // Interpret return value of getValue_sz() as unsigned
     //
-    java.math.BigInteger value_sz 
+    java.math.BigInteger value_sz
         = new java.math.BigInteger(1,java.nio.ByteBuffer.allocate(8).order(
             java.nio.ByteOrder.BIG_ENDIAN).putLong(getValue_sz()).array());
 
@@ -212,7 +218,7 @@
 
     java.math.BigInteger four = new java.math.BigInteger("4");
 
-    int map_sz = 0; 
+    int map_sz = 0;
 
     while ( rem.compareTo(four) >= 0 && map_sz <= Integer.MAX_VALUE )
     {
@@ -223,15 +229,15 @@
         java.math.BigInteger sz_bi
           = new java.math.BigInteger(new Integer(sz).toString());
 
-        if ( rem.subtract(four).compareTo(sz_bi) < 0 ) 
+        if ( rem.subtract(four).compareTo(sz_bi) < 0 )
         {
             throw new ValueError(
                         "map(string,string) is improperly structured (file a bug)");
         }
-   
-        String key = new String(getAttrValueBytes(pos+4,sz)); 
 
-        rem = rem.subtract(four).subtract(sz_bi);        
+        ByteArray key = new ByteArray(getAttrValueBytes(pos+4,sz));
+
+        rem = rem.subtract(four).subtract(sz_bi);
         pos = value_sz.subtract(rem).longValue();
 
         sz = java.nio.ByteBuffer.wrap(getAttrValueBytes(pos,4)).order(
@@ -239,15 +245,15 @@
 
         sz_bi = new java.math.BigInteger(new Integer(sz).toString());
 
-        if ( rem.subtract(four).compareTo(sz_bi) < 0 ) 
+        if ( rem.subtract(four).compareTo(sz_bi) < 0 )
         {
             throw new ValueError(
                         "map(string,string) is improperly structured (file a bug)");
         }
 
-        String val = new String(getAttrValueBytes(pos+4,sz));
+        ByteArray val = new ByteArray(getAttrValueBytes(pos+4,sz));
 
-        rem = rem.subtract(four).subtract(sz_bi);        
+        rem = rem.subtract(four).subtract(sz_bi);
         pos = value_sz.subtract(rem).longValue();
 
         map.put(key,val);
@@ -258,18 +264,18 @@
     if ( map_sz < Integer.MAX_VALUE && rem.compareTo(java.math.BigInteger.ZERO) > 0 )
     {
         throw new ValueError("map(string,string) contains excess data (file a bug)");
-    }    
+    }
 
     return map;
   }
 
   private java.lang.Object getAttrMapStringLongValue() throws ValueError
   {
-    java.util.HashMap<String,Long> map = new java.util.HashMap<String,Long>();    
+    java.util.HashMap<ByteArray,Long> map = new java.util.HashMap<ByteArray,Long>();
 
     // Interpret return value of getValue_sz() as unsigned
     //
-    java.math.BigInteger value_sz 
+    java.math.BigInteger value_sz
         = new java.math.BigInteger(1,java.nio.ByteBuffer.allocate(8).order(
             java.nio.ByteOrder.BIG_ENDIAN).putLong(getValue_sz()).array());
 
@@ -279,7 +285,7 @@
     java.math.BigInteger four = new java.math.BigInteger("4");
     java.math.BigInteger eight = new java.math.BigInteger("8");
 
-    int map_sz = 0; 
+    int map_sz = 0;
 
     while ( rem.compareTo(four) >= 0 && map_sz <= Integer.MAX_VALUE )
     {
@@ -290,18 +296,18 @@
         java.math.BigInteger sz_bi
           = new java.math.BigInteger(new Integer(sz).toString());
 
-        if ( rem.subtract(four).compareTo(sz_bi) < 0 ) 
+        if ( rem.subtract(four).compareTo(sz_bi) < 0 )
         {
             throw new ValueError(
                         "map(string,int64) is improperly structured (file a bug)");
         }
-   
-        String key = new String(getAttrValueBytes(pos+4,sz)); 
 
-        rem = rem.subtract(four).subtract(sz_bi);        
+        ByteArray key = new ByteArray(getAttrValueBytes(pos+4,sz));
+
+        rem = rem.subtract(four).subtract(sz_bi);
         pos = value_sz.subtract(rem).longValue();
 
-        if ( rem.compareTo(eight) < 0 ) 
+        if ( rem.compareTo(eight) < 0 )
         {
             throw new ValueError(
                         "map(string,int64) is improperly structured (file a bug)");
@@ -310,7 +316,7 @@
         Long val = new Long(java.nio.ByteBuffer.wrap(getAttrValueBytes(pos,8)).order(
                         java.nio.ByteOrder.LITTLE_ENDIAN).getLong());
 
-        rem = rem.subtract(eight);        
+        rem = rem.subtract(eight);
         pos = value_sz.subtract(rem).longValue();
 
         map.put(key,val);
@@ -321,18 +327,19 @@
     if ( map_sz < Integer.MAX_VALUE && rem.compareTo(java.math.BigInteger.ZERO) > 0 )
     {
         throw new ValueError("map(string,int64) contains excess data (file a bug)");
-    }    
+    }
 
     return map;
   }
 
   private java.lang.Object getAttrMapStringDoubleValue() throws ValueError
   {
-    java.util.HashMap<String,Double> map = new java.util.HashMap<String,Double>();    
+    java.util.HashMap<ByteArray,Double>
+        map = new java.util.HashMap<ByteArray,Double>();
 
     // Interpret return value of getValue_sz() as unsigned
     //
-    java.math.BigInteger value_sz 
+    java.math.BigInteger value_sz
         = new java.math.BigInteger(1,java.nio.ByteBuffer.allocate(8).order(
             java.nio.ByteOrder.BIG_ENDIAN).putLong(getValue_sz()).array());
 
@@ -342,7 +349,7 @@
     java.math.BigInteger four = new java.math.BigInteger("4");
     java.math.BigInteger eight = new java.math.BigInteger("8");
 
-    int map_sz = 0; 
+    int map_sz = 0;
 
     while ( rem.compareTo(four) >= 0 && map_sz <= Integer.MAX_VALUE )
     {
@@ -353,18 +360,18 @@
         java.math.BigInteger sz_bi
           = new java.math.BigInteger(new Integer(sz).toString());
 
-        if ( rem.subtract(four).compareTo(sz_bi) < 0 ) 
+        if ( rem.subtract(four).compareTo(sz_bi) < 0 )
         {
             throw new ValueError(
                         "map(string,float) is improperly structured (file a bug)");
         }
-   
-        String key = new String(getAttrValueBytes(pos+4,sz)); 
 
-        rem = rem.subtract(four).subtract(sz_bi);        
+        ByteArray key = new ByteArray(getAttrValueBytes(pos+4,sz));
+
+        rem = rem.subtract(four).subtract(sz_bi);
         pos = value_sz.subtract(rem).longValue();
 
-        if ( rem.compareTo(eight) < 0 ) 
+        if ( rem.compareTo(eight) < 0 )
         {
             throw new ValueError(
                         "map(string,float) is improperly structured (file a bug)");
@@ -373,7 +380,7 @@
         Double val = new Double(java.nio.ByteBuffer.wrap(getAttrValueBytes(pos,8)).order(
                         java.nio.ByteOrder.LITTLE_ENDIAN).getDouble());
 
-        rem = rem.subtract(eight);        
+        rem = rem.subtract(eight);
         pos = value_sz.subtract(rem).longValue();
 
         map.put(key,val);
@@ -384,18 +391,18 @@
     if ( map_sz < Integer.MAX_VALUE && rem.compareTo(java.math.BigInteger.ZERO) > 0 )
     {
         throw new ValueError("map(string,float) contains excess data (file a bug)");
-    }    
+    }
 
     return map;
   }
 
   private java.lang.Object getAttrMapLongStringValue() throws ValueError
   {
-    java.util.HashMap<Long,String> map = new java.util.HashMap<Long,String>();    
+    java.util.HashMap<Long,ByteArray> map = new java.util.HashMap<Long,ByteArray>();
 
     // Interpret return value of getValue_sz() as unsigned
     //
-    java.math.BigInteger value_sz 
+    java.math.BigInteger value_sz
         = new java.math.BigInteger(1,java.nio.ByteBuffer.allocate(8).order(
             java.nio.ByteOrder.BIG_ENDIAN).putLong(getValue_sz()).array());
 
@@ -405,14 +412,14 @@
     java.math.BigInteger four = new java.math.BigInteger("4");
     java.math.BigInteger eight = new java.math.BigInteger("8");
 
-    int map_sz = 0; 
+    int map_sz = 0;
 
     while ( rem.compareTo(eight) >= 0 && map_sz <= Integer.MAX_VALUE )
     {
         Long key = new Long(java.nio.ByteBuffer.wrap(getAttrValueBytes(pos,8)).order(
                         java.nio.ByteOrder.LITTLE_ENDIAN).getLong());
 
-        rem = rem.subtract(eight);        
+        rem = rem.subtract(eight);
         pos = value_sz.subtract(rem).longValue();
 
         int sz
@@ -422,15 +429,15 @@
         java.math.BigInteger sz_bi
           = new java.math.BigInteger(new Integer(sz).toString());
 
-        if ( rem.subtract(four).compareTo(sz_bi) < 0 ) 
+        if ( rem.subtract(four).compareTo(sz_bi) < 0 )
         {
             throw new ValueError(
                         "map(int64,string) is improperly structured (file a bug)");
         }
-   
-        String val = new String(getAttrValueBytes(pos+4,sz)); 
 
-        rem = rem.subtract(four).subtract(sz_bi);        
+        ByteArray val = new ByteArray(getAttrValueBytes(pos+4,sz));
+
+        rem = rem.subtract(four).subtract(sz_bi);
         pos = value_sz.subtract(rem).longValue();
 
         map.put(key,val);
@@ -441,18 +448,18 @@
     if ( map_sz < Integer.MAX_VALUE && rem.compareTo(java.math.BigInteger.ZERO) > 0 )
     {
         throw new ValueError("map(int64,string) contains excess data (file a bug)");
-    }    
+    }
 
     return map;
   }
 
   private java.lang.Object getAttrMapLongLongValue() throws ValueError
   {
-    java.util.HashMap<Long,Long> map = new java.util.HashMap<Long,Long>();    
+    java.util.HashMap<Long,Long> map = new java.util.HashMap<Long,Long>();
 
     // Interpret return value of getValue_sz() as unsigned
     //
-    java.math.BigInteger value_sz 
+    java.math.BigInteger value_sz
         = new java.math.BigInteger(1,java.nio.ByteBuffer.allocate(8).order(
             java.nio.ByteOrder.BIG_ENDIAN).putLong(getValue_sz()).array());
 
@@ -462,20 +469,20 @@
     java.math.BigInteger eight = new java.math.BigInteger("8");
     java.math.BigInteger sixteen = new java.math.BigInteger("16");
 
-    int map_sz = 0; 
+    int map_sz = 0;
 
     while ( rem.compareTo(sixteen) >= 0 && map_sz <= Integer.MAX_VALUE )
     {
         Long key = new Long(java.nio.ByteBuffer.wrap(getAttrValueBytes(pos,8)).order(
                         java.nio.ByteOrder.LITTLE_ENDIAN).getLong());
 
-        rem = rem.subtract(eight);        
+        rem = rem.subtract(eight);
         pos = value_sz.subtract(rem).longValue();
 
         Long val = new Long(java.nio.ByteBuffer.wrap(getAttrValueBytes(pos,8)).order(
                         java.nio.ByteOrder.LITTLE_ENDIAN).getLong());
 
-        rem = rem.subtract(eight);        
+        rem = rem.subtract(eight);
         pos = value_sz.subtract(rem).longValue();
 
         map.put(key,val);
@@ -486,18 +493,18 @@
     if ( map_sz < Integer.MAX_VALUE && rem.compareTo(java.math.BigInteger.ZERO) > 0 )
     {
         throw new ValueError("map(int64,int64) contains excess data (file a bug)");
-    }    
+    }
 
     return map;
   }
 
   private java.lang.Object getAttrMapLongDoubleValue() throws ValueError
   {
-    java.util.HashMap<Long,Double> map = new java.util.HashMap<Long,Double>();    
+    java.util.HashMap<Long,Double> map = new java.util.HashMap<Long,Double>();
 
     // Interpret return value of getValue_sz() as unsigned
     //
-    java.math.BigInteger value_sz 
+    java.math.BigInteger value_sz
         = new java.math.BigInteger(1,java.nio.ByteBuffer.allocate(8).order(
             java.nio.ByteOrder.BIG_ENDIAN).putLong(getValue_sz()).array());
 
@@ -507,20 +514,20 @@
     java.math.BigInteger eight = new java.math.BigInteger("8");
     java.math.BigInteger sixteen = new java.math.BigInteger("16");
 
-    int map_sz = 0; 
+    int map_sz = 0;
 
     while ( rem.compareTo(sixteen) >= 0 && map_sz <= Integer.MAX_VALUE )
     {
         Long key = new Long(java.nio.ByteBuffer.wrap(getAttrValueBytes(pos,8)).order(
                         java.nio.ByteOrder.LITTLE_ENDIAN).getLong());
 
-        rem = rem.subtract(eight);        
+        rem = rem.subtract(eight);
         pos = value_sz.subtract(rem).longValue();
 
         Double val = new Double(java.nio.ByteBuffer.wrap(getAttrValueBytes(pos,8)).order(
                         java.nio.ByteOrder.LITTLE_ENDIAN).getDouble());
 
-        rem = rem.subtract(eight);        
+        rem = rem.subtract(eight);
         pos = value_sz.subtract(rem).longValue();
 
         map.put(key,val);
@@ -531,18 +538,18 @@
     if ( map_sz < Integer.MAX_VALUE && rem.compareTo(java.math.BigInteger.ZERO) > 0 )
     {
         throw new ValueError("map(int64,float) contains excess data (file a bug)");
-    }    
+    }
 
     return map;
   }
 
   private java.lang.Object getAttrMapDoubleStringValue() throws ValueError
   {
-    java.util.HashMap<Double,String> map = new java.util.HashMap<Double,String>();    
+    java.util.HashMap<Double,ByteArray> map = new java.util.HashMap<Double,ByteArray>();
 
     // Interpret return value of getValue_sz() as unsigned
     //
-    java.math.BigInteger value_sz 
+    java.math.BigInteger value_sz
         = new java.math.BigInteger(1,java.nio.ByteBuffer.allocate(8).order(
             java.nio.ByteOrder.BIG_ENDIAN).putLong(getValue_sz()).array());
 
@@ -552,14 +559,14 @@
     java.math.BigInteger four = new java.math.BigInteger("4");
     java.math.BigInteger eight = new java.math.BigInteger("8");
 
-    int map_sz = 0; 
+    int map_sz = 0;
 
     while ( rem.compareTo(eight) >= 0 && map_sz <= Integer.MAX_VALUE )
     {
         Double key = new Double(java.nio.ByteBuffer.wrap(getAttrValueBytes(pos,8)).order(
                         java.nio.ByteOrder.LITTLE_ENDIAN).getDouble());
 
-        rem = rem.subtract(eight);        
+        rem = rem.subtract(eight);
         pos = value_sz.subtract(rem).longValue();
 
         int sz
@@ -569,15 +576,15 @@
         java.math.BigInteger sz_bi
           = new java.math.BigInteger(new Integer(sz).toString());
 
-        if ( rem.subtract(four).compareTo(sz_bi) < 0 ) 
+        if ( rem.subtract(four).compareTo(sz_bi) < 0 )
         {
             throw new ValueError(
                         "map(float,string) is improperly structured (file a bug)");
         }
-   
-        String val = new String(getAttrValueBytes(pos+4,sz)); 
 
-        rem = rem.subtract(four).subtract(sz_bi);        
+        ByteArray val = new ByteArray(getAttrValueBytes(pos+4,sz));
+
+        rem = rem.subtract(four).subtract(sz_bi);
         pos = value_sz.subtract(rem).longValue();
 
         map.put(key,val);
@@ -588,18 +595,18 @@
     if ( map_sz < Integer.MAX_VALUE && rem.compareTo(java.math.BigInteger.ZERO) > 0 )
     {
         throw new ValueError("map(float,string) contains excess data (file a bug)");
-    }    
+    }
 
     return map;
   }
 
   private java.lang.Object getAttrMapDoubleLongValue() throws ValueError
   {
-    java.util.HashMap<Double,Long> map = new java.util.HashMap<Double,Long>();    
+    java.util.HashMap<Double,Long> map = new java.util.HashMap<Double,Long>();
 
     // Interpret return value of getValue_sz() as unsigned
     //
-    java.math.BigInteger value_sz 
+    java.math.BigInteger value_sz
         = new java.math.BigInteger(1,java.nio.ByteBuffer.allocate(8).order(
             java.nio.ByteOrder.BIG_ENDIAN).putLong(getValue_sz()).array());
 
@@ -609,20 +616,20 @@
     java.math.BigInteger eight = new java.math.BigInteger("8");
     java.math.BigInteger sixteen = new java.math.BigInteger("16");
 
-    int map_sz = 0; 
+    int map_sz = 0;
 
     while ( rem.compareTo(sixteen) >= 0 && map_sz <= Integer.MAX_VALUE )
     {
         Double key = new Double(java.nio.ByteBuffer.wrap(getAttrValueBytes(pos,8)).order(
                         java.nio.ByteOrder.LITTLE_ENDIAN).getDouble());
 
-        rem = rem.subtract(eight);        
+        rem = rem.subtract(eight);
         pos = value_sz.subtract(rem).longValue();
 
         Long val = new Long(java.nio.ByteBuffer.wrap(getAttrValueBytes(pos,8)).order(
                         java.nio.ByteOrder.LITTLE_ENDIAN).getLong());
 
-        rem = rem.subtract(eight);        
+        rem = rem.subtract(eight);
         pos = value_sz.subtract(rem).longValue();
 
         map.put(key,val);
@@ -633,18 +640,18 @@
     if ( map_sz < Integer.MAX_VALUE && rem.compareTo(java.math.BigInteger.ZERO) > 0 )
     {
         throw new ValueError("map(float,int64) contains excess data (file a bug)");
-    }    
+    }
 
     return map;
   }
 
   private java.lang.Object getAttrMapDoubleDoubleValue() throws ValueError
   {
-    java.util.HashMap<Double,Double> map = new java.util.HashMap<Double,Double>();    
+    java.util.HashMap<Double,Double> map = new java.util.HashMap<Double,Double>();
 
     // Interpret return value of getValue_sz() as unsigned
     //
-    java.math.BigInteger value_sz 
+    java.math.BigInteger value_sz
         = new java.math.BigInteger(1,java.nio.ByteBuffer.allocate(8).order(
             java.nio.ByteOrder.BIG_ENDIAN).putLong(getValue_sz()).array());
 
@@ -654,20 +661,20 @@
     java.math.BigInteger eight = new java.math.BigInteger("8");
     java.math.BigInteger sixteen = new java.math.BigInteger("16");
 
-    int map_sz = 0; 
+    int map_sz = 0;
 
     while ( rem.compareTo(sixteen) >= 0 && map_sz <= Integer.MAX_VALUE )
     {
         Double key = new Double(java.nio.ByteBuffer.wrap(getAttrValueBytes(pos,8)).order(
                         java.nio.ByteOrder.LITTLE_ENDIAN).getDouble());
 
-        rem = rem.subtract(eight);        
+        rem = rem.subtract(eight);
         pos = value_sz.subtract(rem).longValue();
 
         Double val = new Double(java.nio.ByteBuffer.wrap(getAttrValueBytes(pos,8)).order(
                         java.nio.ByteOrder.LITTLE_ENDIAN).getDouble());
 
-        rem = rem.subtract(eight);        
+        rem = rem.subtract(eight);
         pos = value_sz.subtract(rem).longValue();
 
         map.put(key,val);
@@ -678,7 +685,7 @@
     if ( map_sz < Integer.MAX_VALUE && rem.compareTo(java.math.BigInteger.ZERO) > 0 )
     {
         throw new ValueError("map(float,float) contains excess data (file a bug)");
-    }    
+    }
 
     return map;
   }
@@ -697,7 +704,7 @@
         return getAttrDoubleValue();
 
       case HYPERDATATYPE_LIST_STRING:
-        java.util.Vector<String> ls = new java.util.Vector<String>();
+        java.util.Vector<ByteArray> ls = new java.util.Vector<ByteArray>();
         getAttrCollectionStringValue(ls);
         return ls;
 
@@ -712,7 +719,7 @@
         return lf;
 
       case HYPERDATATYPE_SET_STRING:
-        java.util.HashSet<String> ss = new java.util.HashSet<String>();
+        java.util.HashSet<ByteArray> ss = new java.util.HashSet<ByteArray>();
         getAttrCollectionStringValue(ss);
         return ss;
 
