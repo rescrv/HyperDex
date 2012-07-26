@@ -101,6 +101,28 @@ hyperclient_put(struct hyperclient* client, const char* space, const char* key,
 }
 
 int64_t
+hyperclient_put_if_not_exist(struct hyperclient* client, const char* space, const char* key,
+                             size_t key_sz, const struct hyperclient_attribute* attrs,
+                             size_t attrs_sz, hyperclient_returncode* status)
+{
+    try
+    {
+        return client->put_if_not_exist(space, key, key_sz, attrs, attrs_sz, status);
+    }
+    catch (po6::error& e)
+    {
+        errno = e;
+        *status = HYPERCLIENT_EXCEPTION;
+        return -1;
+    }
+    catch (...)
+    {
+        *status = HYPERCLIENT_EXCEPTION;
+        return -1;
+    }
+}
+
+int64_t
 hyperclient_condput(struct hyperclient* client, const char* space, const char* key,
                 size_t key_sz, const struct hyperclient_attribute* condattrs,
                 size_t condattrs_sz, const struct hyperclient_attribute* attrs,

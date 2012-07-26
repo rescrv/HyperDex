@@ -39,6 +39,7 @@ struct hyperclient_keyop_info
 {
     int name;
     bool fail_if_not_exist;
+    bool fail_if_exist;
     bool has_microops;
     enum microaction action;
     bool (*check)(hyperdatatype expected,

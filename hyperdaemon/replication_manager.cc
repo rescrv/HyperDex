@@ -178,6 +178,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::network_msgt
                                                     uint64_t nonce,
                                                     std::auto_ptr<e::buffer> backing,
                                                     bool fail_if_not_found,
+                                                    bool fail_if_found,
                                                     const e::slice& key,
                                                     std::vector<microcheck>* checks,
                                                     std::vector<microop>* ops)
@@ -229,7 +230,6 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::network_msgt
     // We allow "atomic" if and only if it already exists.
     if (!has_old_value && fail_if_not_found)
     {
-        // an atomic increment on an object that does not exist should fail
         respond_to_client(to, from, nonce, opcode, hyperdex::NET_NOTFOUND);
         g.dismiss();
         return;
@@ -237,6 +237,13 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::network_msgt
     else if (!has_old_value)
     {
         fresh = true;
+    }
+
+    if (has_old_value && fail_if_found)
+    {
+        respond_to_client(to, from, nonce, opcode, hyperdex::NET_CMPFAIL);
+        g.dismiss();
+        return;
     }
 
     if (old_value.size() != 0 && old_value.size() + 1 != sc->attrs_sz)
