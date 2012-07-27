@@ -75,21 +75,25 @@ For source installs on Ubuntu (12.04 is not supported for binaries):
 Install glog separately (this appears to be one of the blockers for binary 12.04 support)
 
    sudo apt-get install build-essential automake autoconf-archive libtool \
-   libpopt-dev libpopt0 libbusybee-dev libcityhash0 libcityhash-dev
+   libpopt-dev libpopt0 libbusybee-dev libcityhash0 libcityhash-dev gperf
+
    # Install libpo6
-   wget http://hyperdex.org/src/libpo6-0.2.3.tar.gz
-   tar -xzf libpo6-0.2.3.tar.gz
-   cd ./libpo6-0.2.3.tar.gz
-   ./configure && make && sudo make install
+   git clone https://github.com/rescrv/po6.git
+   cd ./po6
+   autoreconf -i && ./configure && make && sudo make install
+
    # Install libe
-   wget http://hyperdex.org/src/libe-0.2.7.tar.gz
-   tar -xzf libe-0.2.7.tar.gz
-   cd ./libe-0.2.3.tar.gz
+   git clone https://github.com/rescrv/e.git
+   cd ./e/
    ./configure && make && sudo make install
+
    # Then get the source from github
+   https://github.com/rescrv/HyperDex.git
+   cd ./HyperDex
    autoreconf -i
    ./configure
    make
+   sudo make install
 
 Fedora
 ~~~~~~
