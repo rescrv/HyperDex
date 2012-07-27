@@ -14,7 +14,7 @@ abstract class MapOp
         this.client = client;
     }
 
-    abstract long call(String space, String key,
+    abstract long call(byte[] space, byte[] key,
               hyperclient_map_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr);
 }
@@ -34,7 +34,7 @@ abstract class SimpleOp
         this.client = client;
     }
 
-    abstract long call(String space, String key,
+    abstract long call(byte[] space, byte[] key,
               hyperclient_attribute attrs, long attrs_sz,
               SWIGTYPE_p_hyperclient_returncode rc_ptr);
 }
@@ -73,12 +73,11 @@ for name in $* ; do
 
     cat <<EOF >> async_methods.java
 
-  public Deferred async_${name}(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
+  public Deferred async_${name}(byte[] space, byte[] key, java.util.Map map)
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   MemoryError,
+                                                                   ValueError
   {
     return new ${deferred}(this, new ${prefix}Op${camel_name}(this), space, key, map);
   }
@@ -86,12 +85,11 @@ EOF
 
     cat <<EOF >> sync_methods.java
 
-  public boolean ${name}(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
+  public boolean ${name}(byte[] space, byte[] key, java.util.Map map)
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   MemoryError,
+                                                                   ValueError
   {
     Deferred d = ($deferred)(async_${name}(space, key, map));
     return ((Boolean)(d.waitFor())).booleanValue();

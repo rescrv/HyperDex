@@ -5,12 +5,11 @@ import java.io.*;
 
 public class DeferredGroupDel extends Deferred
 {
-    public DeferredGroupDel(HyperClient client, String space, Map predicate)
-                                                    throws HyperClientException,
-                                                           TypeError,
-                                                           ValueError,
-                                                           MemoryError,
-                                                           UnsupportedEncodingException
+    public DeferredGroupDel(HyperClient client, byte[] space, Map predicate)
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   ValueError,
+                                                                   MemoryError
     {
         super(client);
 

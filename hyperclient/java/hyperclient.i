@@ -30,6 +30,7 @@
 
 %include "std_string.i"
 %include "stdint.i"
+%include "various.i"
 
 %include "enums.swg"
 %javaconst(1);
@@ -82,6 +83,8 @@ typedef hyperclient_range_query* hyperclient_range_query_asterisk;
 %include "proxies/hyperclient_range_query.i"
 %include "proxies/HyperClient.i"
 
+%apply (char *BYTE) { (const char *space) }
+%apply (char *BYTE) { (const char *sort_by) }
 %apply (char *STRING, int LENGTH) { (const char *key, size_t key_sz) }
 %apply (char *STRING, int LENGTH) { (const char *attr, size_t attr_sz) }
 %apply (char *STRING, int LENGTH) { (char *name, size_t name_sz) }

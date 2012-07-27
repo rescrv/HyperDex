@@ -6,15 +6,14 @@ import java.io.*;
 
 public class SortedSearch extends SearchBase
 {
-    public SortedSearch(HyperClient client, String space, Map predicate,
-                                                    String sortBy,
+    public SortedSearch(HyperClient client, byte[] space, Map predicate,
+                                                    byte[] sortBy,
                                                     BigInteger limit,
                                                     boolean descending)
-                                                    throws HyperClientException,
-                                                           TypeError,
-                                                           ValueError,
-                                                           MemoryError,
-                                                           UnsupportedEncodingException
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   ValueError,
+                                                                   MemoryError
     {
         super(client);
 

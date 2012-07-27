@@ -5,12 +5,11 @@ import java.io.*;
 
 public class DeferredFromAttrs extends Deferred
 {
-    public DeferredFromAttrs(HyperClient client, SimpleOp op, String space, String key,
+    public DeferredFromAttrs(HyperClient client, SimpleOp op, byte[] space, byte[] key,
                                                                         Map map)
-                                                    throws HyperClientException,
-                                                           TypeError,
-                                                           MemoryError,
-                                                           UnsupportedEncodingException
+                                                            throws HyperClientException,
+                                                                    TypeError,
+                                                                    MemoryError
     {
         super(client);
 

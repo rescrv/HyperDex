@@ -14,9 +14,18 @@ public class ByteArray implements Comparable
         this.bytes = bytes;   
     }
 
-    public ByteArray(String str, String encoding) throws UnsupportedEncodingException
+    public ByteArray(String str, String encoding) throws TypeError
     {
-        this.bytes = str.getBytes(encoding);
+        try
+        {
+            this.bytes = str.getBytes(encoding);
+        }
+        catch(UnsupportedEncodingException usee)
+        {
+            throw new TypeError("Could not encode java string '"
+                                    + str + "' into bytes using encoding '"
+                                    + encoding +"'"); 
+        }
     }
 
     public static ByteArray wrap(byte[] bytes)
@@ -24,10 +33,18 @@ public class ByteArray implements Comparable
         return new ByteArray(bytes);
     }
 
-    public static ByteArray encode(String str, String encoding)
-                                    throws UnsupportedEncodingException
+    public static ByteArray encode(String str, String encoding) throws TypeError
     {
-        return new ByteArray(str.getBytes(encoding));
+        try
+        {
+            return new ByteArray(str.getBytes(encoding));
+        }
+        catch(UnsupportedEncodingException usee)
+        {
+            throw new TypeError("Could not encode java string '"
+                                    + str + "' into bytes using encoding '"
+                                    + encoding +"'"); 
+        }
     }
 
     public String getDefaultEncoding()
@@ -40,30 +57,72 @@ public class ByteArray implements Comparable
         defaultEncoding = encoding;
     }
 
-    public String decode(String encoding) throws UnsupportedEncodingException
+    public String decode(String encoding) throws TypeError
     {
-        return new String(bytes,encoding);
+        try
+        {
+            return new String(bytes,encoding);
+        }
+        catch(UnsupportedEncodingException usee)
+        {
+            throw new TypeError("Could not decode bytes using encoding '"
+                                    + encoding +"'"); 
+        }
     }
 
-    public static String decode(ByteArray ba, String encoding)
-                                                    throws UnsupportedEncodingException
+    public static String decode(byte[] bytes, String encoding) throws TypeError
     {
-        return new String(ba.getBytes(), encoding);
+        try
+        {
+            return new String(bytes, encoding);
+        }
+        catch(UnsupportedEncodingException usee)
+        {
+            throw new TypeError("Could not decode bytes using encoding '"
+                                    + encoding +"'"); 
+        }
     }
 
-    public String toString()
+    public static String decode(ByteArray ba, String encoding) throws TypeError
     {
-        String ret = "";
+        return decode(ba.getBytes(), encoding);
+    }
+
+    public String toString(String encoding)
+    {
+        String ret = "<could not decode bytes using java string encoding '"
+                        + encoding + "'>";
 
         try
         {
-            ret = decode(defaultEncoding);
+            ret = decode(encoding);
         }
-        catch(Exception e)
+        catch(TypeError e)
         {
         }
 
         return ret;
+    }
+
+    public static String toString(byte[] bytes, String encoding)
+    {
+        String ret = "<could not decode bytes using java string encoding '"
+                        + encoding + "'>";
+
+        try
+        {
+            ret = decode(bytes, encoding);
+        }
+        catch(TypeError e)
+        {
+        }
+
+        return ret;
+    }
+
+    public String toString()
+    {
+        return toString(defaultEncoding);
     }
 
     public byte[] getBytes()

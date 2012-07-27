@@ -2,7 +2,6 @@ package hyperclient;
 
 import java.util.*;
 import java.nio.*;
-import java.io.UnsupportedEncodingException;
 
 public class DeferredCount extends Deferred
 {
@@ -10,12 +9,11 @@ public class DeferredCount extends Deferred
 
     private int unsafe;
 
-    public DeferredCount(HyperClient client, String space, Map predicate, boolean unsafe)
-                                                    throws HyperClientException,
-                                                           TypeError,
-                                                           ValueError,
-                                                           MemoryError,
-                                                           UnsupportedEncodingException
+    public DeferredCount(HyperClient client, byte[] space, Map predicate, boolean unsafe)
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   ValueError,
+                                                                   MemoryError
     {
         super(client);
 

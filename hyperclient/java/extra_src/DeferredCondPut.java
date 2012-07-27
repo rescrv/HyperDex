@@ -5,12 +5,11 @@ import java.io.*;
 
 public class DeferredCondPut extends Deferred
 {
-    public DeferredCondPut(HyperClient client, String space, String key,
+    public DeferredCondPut(HyperClient client, byte[] space, byte[] key,
                                                             Map condition, Map value)
-                                                    throws HyperClientException,
-                                                           TypeError,
-                                                           MemoryError,
-                                                           UnsupportedEncodingException
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   MemoryError
     {
         super(client);
 
@@ -29,7 +28,7 @@ public class DeferredCondPut extends Deferred
             attrs = HyperClient.dict_to_attrs(value);
 	
             reqId = client.condput(space,
-                                   key.getBytes(),
+                                   key,
                                    condattrs, condattrs_sz,
                                    attrs, attrs_sz,
                                    rc_ptr);
@@ -46,6 +45,26 @@ public class DeferredCondPut extends Deferred
             if ( attrs != null ) HyperClient.free_attrs(attrs,attrs_sz);
         }
     }
+
+    public DeferredCondPut(HyperClient client, byte[] space, ByteArray key,
+                                                            Map condition, Map value)
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   MemoryError
+    {
+        this(client, space, key.getBytes());
+    }
+
+    public DeferredCondPut(HyperClient client, byte[] space, String key,
+                                                            Map condition, Map value)
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   MemoryError
+    {
+        this(client, space, ByteArray.encode(key,client.getDefaultStringEncoding()));
+    }
+
+    // Six more constructors
 
     public Object waitFor() throws HyperClientException, ValueError
     {

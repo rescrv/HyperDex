@@ -411,11 +411,9 @@
   // retvals at 1 - eq_sz
   // retvals at 2 - rn
   // retvals at 3 - rn_sz
-  static java.util.Vector predicate_to_c(java.util.Map predicate)
-                                                 throws TypeError,
-                                                        MemoryError,
-                                                        ValueError,
-                                                        UnsupportedEncodingException
+  static java.util.Vector predicate_to_c(java.util.Map predicate) throws TypeError,
+                                                                         MemoryError,
+                                                                         ValueError
   {
       java.util.Vector<Object> retvals = new java.util.Vector<Object>(4);
 
@@ -438,7 +436,8 @@
               throw new TypeError("Cannot search on a null attribute");
 
           byte[] attrBytes = getBytes(attrObject);
-          String attrStr = new String(attrBytes,defaultStringEncoding());
+
+          String attrStr = ByteArray.decode(attrBytes,defaultStringEncoding);
 
           Object params = predicate.get(attrObject);
 
@@ -497,7 +496,7 @@
                       new TypeError(String.format(errStr,params.getClass().getName()));
               }
 
-              ranges.put(new ByteArray(attrBytes,params);
+              ranges.put(new ByteArray(attrBytes,params));
           }
       }
 
@@ -523,7 +522,7 @@
           {
               ByteArray attr = it.next();
 
-              String attrStr = attr.toString(defaultStringEncoding());
+              String attrStr = ByteArray.decode(attr,defaultStringEncoding);
 
               Object params = ranges.get(attr);
 
@@ -561,19 +560,29 @@
     return obj instanceof byte[] || obj instanceof ByteArray || obj instanceof String;
   }
 
-  private byte[] getBytes(Object obj) throws UnsupportedEncodingException
+  private byte[] getBytes(Object obj) throws TypeError
   {
     if ( obj instanceof byte[] ) return (byte[])obj;
 
     if ( obj instanceof ByteArray ) return ((ByteArray)obj).getBytes();
 
-    if ( obj instanceof String ) return ((String)obj).getBytes(defaultStringEncoding());
+    if ( obj instanceof String )
+    {
+        try
+        {
+            return ((String)obj).getBytes(defaultStringEncoding);
+        }
+        catch(java.util.UnsupportedEncodingException usee)
+        {
+            throw new TypeError("Could not encode java string '"
+                                    + obj + "' into bytes using encoding '"
+                                    + defaultStringEncoding +"'"); 
+        }
+    }
   }
 
-  hyperclient_attribute dict_to_attrs(java.util.Map attrsMap)
-                                             throws TypeError,
-                                                    MemoryError,
-                                                    UnsupportedEncodingException
+  hyperclient_attribute dict_to_attrs(java.util.Map attrsMap) throws TypeError,
+                                                                     MemoryError
   {
     int attrs_sz = attrsMap.size();
     hyperclient_attribute attrs = alloc_attrs(attrs_sz);
@@ -594,7 +603,8 @@
                 throw new TypeError("Attribute name cannot be null");
 
             byte[] attrBytes = getBytes(attrObject);
-            String attrStr = new String(attrBytes,defaultStringEncoding());
+
+            String attrStr = ByteArray.decode(attrBytes,defaultStringEncoding);
 
             Object value = attrsMap.get(attrObject);
 
@@ -708,9 +718,55 @@
 
                 java.util.Set<?> set = (java.util.Set<?>)value;
 
+                // Do not trust java String sorting for hyperdex
+                // Use C byte array sorting.
+
+                Iterator str_s_it=set.iterator();
+
+                if ( str_s_it.hasNext() && (str_s_it.next() instanceof String) )
+                {
+                    str_s_it = null;
+
+                    java.util.TreeSet<ByteArray> sorted_set
+                            = new java.util.TreeSet<ByteArray>();
+                    for (Iterator it=set.iterator(); it.hasNext();) 
+                    {
+                        sorted_set.add(new ByteArray(
+                                it.next(),defaultStringEncoding));
+                    }
+
+                    set = sorted_set;
+                }
+
                 if ( ! (set instanceof java.util.SortedSet) )
                 {
-                    set = new java.util.TreeSet<Object>(set);
+                    try // Assuming set elements implement Comparable
+                    {
+                        set = new java.util.TreeSet<Object>(set);
+                    }
+                    catch(Exception e)
+                    {
+                        // Try to box the byte[] elements with ByteArray
+                        // Throw an exception if not elements are not all byte[]
+
+                        java.util.TreeSet<ByteArray> sorted_set
+                                = new java.util.TreeSet<ByteArray>();
+
+                        for (Iterator s_it=set.iterator(); s_it.hasNext(); )
+                        {
+                            Object val = s_it.next();
+
+                            if ( ! val instanceof byte[] )
+                                throw new TypeError("Invalid set element type, '" + 
+                                                     val.getClass().getName() +
+                                                     "', for set attribute '" +
+                                                     attrStr + "'"); 
+
+                            sorted_set.add(new ByteArray((byte[])val));
+                        }
+
+                        set = sorted_set;
+                    }
                 }
 
                 type = hyperdatatype.HYPERDATATYPE_SET_GENERIC;
@@ -783,14 +839,62 @@
             }
             else if ( value instanceof java.util.Map )
             {
-                java.util.Map<?,?> map = (java.util.Map<?,?>)value;
-
                 // As for set types, the same goes for map type. HyperDex will
                 // scoff unless the map is sorted
-                //
+
+                java.util.Map<?,?> map = (java.util.Map<?,?>)value;
+
+                // Do not trust java String sorting for hyperdex
+                // Use C byte array sorting.
+
+                Iterator str_m_it=map.iterator();
+
+                if ( str_m_it.hasNext() && (str_m_it.next() instanceof String) )
+                {
+                    str_m_it = null;
+
+                    java.util.TreeMap<ByteArray,?> sorted_map
+                            = new java.util.TreeMap<ByteArray,?>();
+                    for (Iterator it=map.keySet().iterator(); it.hasNext();) 
+                    {
+                        Object key = it.next();
+                        sorted_map.put(new ByteArray(
+                                it.next(),defaultStringEncoding),map.get(key));
+                    }
+
+                    map = sorted_map;
+                }
+
                 if ( ! (map instanceof java.util.SortedMap) )
                 {
-                    map = new java.util.TreeMap<Object,Object>(map);
+                    try // Assuming map keys implement Comparable
+                    {
+                        map = new java.util.TreeMap<Object,Object>(map);
+                    }
+                    catch(Exception e)
+                    {
+                        // Try to box the byte[] keys with ByteArray
+                        // Throw an exception if not key are not all byte[]
+
+                        java.util.TreeMap<ByteArray,Object> sorted_map
+                            = new java.util.TreeMap<ByteArray,Object>();
+
+                        for (Iterator m_it=map.keySet().iterator(); m_it.hasNext(); )
+                        {
+                            Object key = m_it.next();
+
+                            if ( ! key instanceof byte[] )
+                                throw new TypeError("Invalid map key type, '" + 
+                                                     key.getClass().getName() +
+                                                     "', for map attribute '" +
+                                                     attrStr + "'"); 
+
+                            sorted_map.put(
+                                new ByteArray((byte[])key,map.get(key)));
+                        }
+
+                        map = sorted_map;
+                    }
                 }
 
                 type = hyperdatatype.HYPERDATATYPE_MAP_GENERIC;
@@ -889,8 +993,6 @@
 
         if ( e instanceof TypeError ) throw (TypeError)e;
         if ( e instanceof MemoryError ) throw (MemoryError)e;
-        if ( e instanceof UnsupportedEncodingException )
-                throw (UnsupportedEncodingException)e;
     }
 
     return attrs;
@@ -898,10 +1000,8 @@
 
   // attrsMap - map of maps keyed by attribute name
   //
-  hyperclient_map_attribute dict_to_map_attrs(java.util.Map attrsMap)
-                                                    throws TypeError,
-                                                           MemoryError,
-                                                           UnsupportedEncodingException
+  hyperclient_map_attribute dict_to_map_attrs(java.util.Map attrsMap) throws TypeError,
+                                                                             MemoryError
   {
     java.math.BigInteger attrs_sz_bi = java.math.BigInteger.valueOf(0);
 
@@ -944,7 +1044,8 @@
                 throw new TypeError("Attribute name cannot be null");
 
             byte[] attrBytes = getBytes(attrObject);
-            String attrStr = new String(attrBytes,defaultStringEncoding());
+
+            String attrStr = ByteArray.decode(attrBytes,defaultStringEncoding);
 
             Object operand = attrsMap.get(attrObject);
 
@@ -1139,8 +1240,6 @@
 
             if ( e instanceof TypeError ) throw (TypeError)e;
             if ( e instanceof MemoryError ) throw (MemoryError)e;
-            if ( e instanceof UnsupportedEncodingException )
-                throw (UnsupportedEncodingException)e;
         }
     }
 
@@ -1156,24 +1255,12 @@
     return (java.util.Map)(d.waitFor());
   }
 
-  public boolean put(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredFromAttrs)(async_put(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
   public boolean condput(String space, String key, java.util.Map condition,
                                                    java.util.Map value)
-                                         throws HyperClientException,
-                                                TypeError,
-                                                MemoryError,
-                                                ValueError,
-                                                java.io.UnsupportedEncodingException
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   MemoryError,
+                                                                   ValueError
   {
     Deferred d = (DeferredCondPut)(async_condput(space, key, condition, value));
     return ((Boolean)(d.waitFor())).booleanValue();
@@ -1187,321 +1274,12 @@
   }
 
   public boolean group_del(String space, java.util.Map predicate)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   MemoryError,
+                                                                   ValueError
   {
     Deferred d = (DeferredGroupDel)(async_group_del(space, predicate));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean atomic_add(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredFromAttrs)(async_atomic_add(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean atomic_sub(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredFromAttrs)(async_atomic_sub(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean atomic_mul(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredFromAttrs)(async_atomic_mul(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean atomic_div(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredFromAttrs)(async_atomic_div(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean atomic_mod(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredFromAttrs)(async_atomic_mod(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean atomic_and(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredFromAttrs)(async_atomic_and(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean atomic_or(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredFromAttrs)(async_atomic_or(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean atomic_xor(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredFromAttrs)(async_atomic_xor(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean string_prepend(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredFromAttrs)(async_string_prepend(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean string_append(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredFromAttrs)(async_string_append(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean list_lpush(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredFromAttrs)(async_list_lpush(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean list_rpush(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredFromAttrs)(async_list_rpush(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean set_add(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredFromAttrs)(async_set_add(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean set_remove(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredFromAttrs)(async_set_remove(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean set_intersect(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredFromAttrs)(async_set_intersect(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean set_union(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredFromAttrs)(async_set_union(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean map_add(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredMapOp)(async_map_add(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean map_remove(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredMapOp)(async_map_remove(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean map_atomic_add(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredMapOp)(async_map_atomic_add(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean map_atomic_sub(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredMapOp)(async_map_atomic_sub(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean map_atomic_mul(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredMapOp)(async_map_atomic_mul(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean map_atomic_div(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredMapOp)(async_map_atomic_div(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean map_atomic_mod(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredMapOp)(async_map_atomic_mod(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean map_atomic_and(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredMapOp)(async_map_atomic_and(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean map_atomic_or(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredMapOp)(async_map_atomic_or(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean map_atomic_xor(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredMapOp)(async_map_atomic_xor(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean map_string_prepend(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredMapOp)(async_map_string_prepend(space, key, map));
-    return ((Boolean)(d.waitFor())).booleanValue();
-  }
-
-  public boolean map_string_append(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    Deferred d = (DeferredMapOp)(async_map_string_append(space, key, map));
     return ((Boolean)(d.waitFor())).booleanValue();
   }
 
@@ -1540,11 +1318,10 @@
                                                             String sortBy,
                                                             java.math.BigInteger limit,
                                                             boolean descending)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    ValueError,
-                                                    MemoryError,
-                                                    java.io.UnsupportedEncodingException
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   ValueError,
+                                                                   MemoryError
   {
     return new SortedSearch(this, space, predicate, sortBy, limit, descending);
   }
@@ -1553,11 +1330,10 @@
                                                             String sortBy,
                                                             long limit,
                                                             boolean descending)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    ValueError,
-                                                    MemoryError,
-                                                    java.io.UnsupportedEncodingException
+                                                            throws HyperClientException,
+                                                                    TypeError,
+                                                                    ValueError,
+                                                                    MemoryError
   {
     return new SortedSearch(this, space, predicate, sortBy,
                           new java.math.BigInteger(
@@ -1570,11 +1346,10 @@
                                                             String sortBy,
                                                             int limit,
                                                             boolean descending)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    ValueError,
-                                                    MemoryError,
-                                                    java.io.UnsupportedEncodingException
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   ValueError,
+                                                                   MemoryError
   {
     return new SortedSearch(this, space, predicate, sortBy,
                           new java.math.BigInteger(
@@ -1591,23 +1366,12 @@
     return new DeferredGet(this,space, key);
   }
 
-  public Deferred async_put(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredFromAttrs(this, new SimpleOpPut(this), space, key, map);
-  }
-
   public Deferred async_condput(String space, String key, java.util.Map condition,
                                                           java.util.Map value)
-                                         throws HyperClientException,
-                                                TypeError,
-                                                MemoryError,
-                                                ValueError,
-                                                java.io.UnsupportedEncodingException
+                                                            throws HyperClientException,
+                                                            TypeError,
+                                                            MemoryError,
+                                                            ValueError
   {
     return new DeferredCondPut(this, space, key, condition, value);
   }
@@ -1618,311 +1382,28 @@
   }
 
   public Deferred async_group_del(String space, java.util.Map predicate)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   MemoryError,
+                                                                   ValueError
   {
     return new DeferredGroupDel(this, space, predicate);
   }
 
-  public Deferred async_atomic_add(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredFromAttrs(this, new SimpleOpAtomicAdd(this), space, key, map);
-  }
-
-  public Deferred async_atomic_sub(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredFromAttrs(this, new SimpleOpAtomicSub(this), space, key, map);
-  }
-
-  public Deferred async_atomic_mul(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredFromAttrs(this, new SimpleOpAtomicMul(this), space, key, map);
-  }
-
-  public Deferred async_atomic_div(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredFromAttrs(this, new SimpleOpAtomicDiv(this), space, key, map);
-  }
-
-  public Deferred async_atomic_mod(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredFromAttrs(this, new SimpleOpAtomicMod(this), space, key, map);
-  }
-
-  public Deferred async_atomic_and(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredFromAttrs(this, new SimpleOpAtomicAnd(this), space, key, map);
-  }
-
-  public Deferred async_atomic_or(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredFromAttrs(this, new SimpleOpAtomicOr(this), space, key, map);
-  }
-
-  public Deferred async_atomic_xor(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredFromAttrs(this, new SimpleOpAtomicXor(this), space, key, map);
-  }
-
-  public Deferred async_string_prepend(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredFromAttrs(this, new SimpleOpStringPrepend(this), space, key, map);
-  }
-
-  public Deferred async_string_append(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredFromAttrs(this, new SimpleOpStringAppend(this), space, key, map);
-  }
-
-  public Deferred async_list_lpush(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredFromAttrs(this, new SimpleOpListLpush(this), space, key, map);
-  }
-
-  public Deferred async_list_rpush(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredFromAttrs(this, new SimpleOpListRpush(this), space, key, map);
-  }
-
-  public Deferred async_set_add(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredFromAttrs(this, new SimpleOpSetAdd(this), space, key, map);
-  }
-
-  public Deferred async_set_remove(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredFromAttrs(this, new SimpleOpSetRemove(this), space, key, map);
-  }
-
-  public Deferred async_set_intersect(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredFromAttrs(this, new SimpleOpSetIntersect(this), space, key, map);
-  }
-
-  public Deferred async_set_union(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredFromAttrs(this, new SimpleOpSetUnion(this), space, key, map);
-  }
-
-  public Deferred async_map_add(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredMapOp(this, new MapOpAdd(this), space, key, map);
-  }
-
-  public Deferred async_map_remove(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredMapOp(this, new MapOpRemove(this), space, key, map);
-  }
-
-  public Deferred async_map_atomic_add(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredMapOp(this, new MapOpAtomicAdd(this), space, key, map);
-  }
-
-  public Deferred async_map_atomic_sub(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredMapOp(this, new MapOpAtomicSub(this), space, key, map);
-  }
-
-  public Deferred async_map_atomic_mul(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredMapOp(this, new MapOpAtomicMul(this), space, key, map);
-  }
-
-  public Deferred async_map_atomic_div(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredMapOp(this, new MapOpAtomicDiv(this), space, key, map);
-  }
-
-  public Deferred async_map_atomic_mod(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredMapOp(this, new MapOpAtomicMod(this), space, key, map);
-  }
-
-  public Deferred async_map_atomic_and(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredMapOp(this, new MapOpAtomicAnd(this), space, key, map);
-  }
-
-  public Deferred async_map_atomic_or(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredMapOp(this, new MapOpAtomicOr(this), space, key, map);
-  }
-
-  public Deferred async_map_atomic_xor(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredMapOp(this, new MapOpAtomicXor(this), space, key, map);
-  }
-
-  public Deferred async_map_string_prepend(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredMapOp(this, new MapOpStringPrepend(this), space, key, map);
-  }
-
-  public Deferred async_map_string_append(String space, String key, java.util.Map map)
-                                             throws HyperClientException,
-                                                    TypeError,
-                                                    MemoryError,
-                                                    ValueError,
-                                                    java.io.UnsupportedEncodingException
-  {
-    return new DeferredMapOp(this, new MapOpStringAppend(this), space, key, map);
-  }
-
   public Deferred async_count(String space, java.util.Map predicate)
-                                         throws HyperClientException,
-                                                TypeError,
-                                                MemoryError,
-                                                ValueError,
-                                                java.io.UnsupportedEncodingException
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   MemoryError,
+                                                                   ValueError
   {
     return async_count(space, predicate, false);
   }
 
   public Deferred async_count(String space, java.util.Map predicate, boolean unsafe)
-                                         throws HyperClientException,
-                                                TypeError,
-                                                MemoryError,
-                                                ValueError,
-                                                java.io.UnsupportedEncodingException
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   MemoryError,
+                                                                   ValueError
   {
     return new DeferredCount(this, space, predicate, unsafe);
   }

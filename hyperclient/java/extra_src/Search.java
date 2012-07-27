@@ -5,12 +5,11 @@ import java.io.*;
 
 public class Search extends SearchBase
 {
-    public Search(HyperClient client, String space, Map predicate)
-                                                    throws HyperClientException,
-                                                           TypeError,
-                                                           ValueError,
-                                                           MemoryError,
-                                                           UnsupportedEncodingException
+    public Search(HyperClient client, byte[] space, Map predicate)
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   ValueError,
+                                                                   MemoryError
     {
         super(client);
 

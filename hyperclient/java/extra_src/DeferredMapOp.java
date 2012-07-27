@@ -5,12 +5,11 @@ import java.io.*;
 
 public class DeferredMapOp extends Deferred
 {
-    public DeferredMapOp(HyperClient client, MapOp op, String space, String key,
+    public DeferredMapOp(HyperClient client, MapOp op, byte[] space, byte[] key,
                                                                         Map map)
-                                                    throws HyperClientException,
-                                                           TypeError,
-                                                           MemoryError,
-                                                           UnsupportedEncodingException
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   MemoryError
     {
         super(client);
 
