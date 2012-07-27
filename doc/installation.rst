@@ -70,6 +70,31 @@ repository::
    sudo apt-get update
    sudo apt-get install hyperdex
 
+For source installs on Ubuntu (12.04 is not supported for binaries):
+
+Install glog separately (this appears to be one of the blockers for binary 12.04 support)
+
+   sudo apt-get install build-essential automake autoconf-archive libtool \
+   libpopt-dev libpopt0 libbusybee-dev libcityhash0 libcityhash-dev gperf
+
+   # Install libpo6
+   git clone https://github.com/rescrv/po6.git
+   cd ./po6
+   autoreconf -i && ./configure && make && sudo make install
+
+   # Install libe
+   git clone https://github.com/rescrv/e.git
+   cd ./e/
+   ./configure && make && sudo make install
+
+   # Then get the source from github
+   https://github.com/rescrv/HyperDex.git
+   cd ./HyperDex
+   autoreconf -i
+   ./configure
+   make
+   sudo make install
+
 Fedora
 ~~~~~~
 
