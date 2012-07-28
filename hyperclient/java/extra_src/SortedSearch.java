@@ -6,8 +6,8 @@ import java.io.*;
 
 public class SortedSearch extends SearchBase
 {
-    public SortedSearch(HyperClient client, byte[] space, Map predicate,
-                                                    byte[] sortBy,
+    public SortedSearch(HyperClient client, Object space, Map predicate,
+                                                    Object sortBy,
                                                     BigInteger limit,
                                                     boolean descending)
                                                             throws HyperClientException,
@@ -22,17 +22,17 @@ public class SortedSearch extends SearchBase
 
         try
         {
-            Vector retvals = HyperClient.predicate_to_c(predicate);
+            Vector retvals = client.predicate_to_c(predicate);
             
             eq = (hyperclient_attribute)(retvals.get(0));
             eq_sz = ((Integer)(retvals.get(1))).intValue();
             rn = (hyperclient_range_query)(retvals.get(2));
             rn_sz = ((Integer)(retvals.get(3))).intValue();
 
-            reqId = client.sorted_search(space,
+            reqId = client.sorted_search(client.getBytes(space,true),
                                          eq, eq_sz,
                                          rn, rn_sz,
-                                         sortBy,
+                                         client.getBytes(sortBy,true),
                                          limit,
                                          descending,
                                          rc_ptr,

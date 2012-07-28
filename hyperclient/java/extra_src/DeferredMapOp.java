@@ -5,7 +5,7 @@ import java.io.*;
 
 public class DeferredMapOp extends Deferred
 {
-    public DeferredMapOp(HyperClient client, MapOp op, byte[] space, byte[] key,
+    public DeferredMapOp(HyperClient client, MapOp op, Object space, Object key,
                                                                         Map map)
                                                             throws HyperClientException,
                                                                    TypeError,
@@ -18,12 +18,14 @@ public class DeferredMapOp extends Deferred
 	
         try
         {
-	        attrs = HyperClient.dict_to_map_attrs(map);
+	        attrs = client.dict_to_map_attrs(map);
 	        attrs_sz = attrs.getAttrsSz(); // Can't use map.size(). It's been
                                            // flattened to the larger cardinality
                                            // of map operands.
 	
-	        reqId = op.call(space, key, attrs, attrs_sz, rc_ptr);
+	        reqId = op.call(client.getBytes(space,true),
+                            client.getBytes(key),
+                            attrs, attrs_sz, rc_ptr);
 
             checkReqIdKeyMapAttrs(reqId, status(), attrs, attrs_sz);
 

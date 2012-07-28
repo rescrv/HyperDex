@@ -5,7 +5,7 @@ import java.io.*;
 
 public class Search extends SearchBase
 {
-    public Search(HyperClient client, byte[] space, Map predicate)
+    public Search(HyperClient client, Object space, Map predicate)
                                                             throws HyperClientException,
                                                                    TypeError,
                                                                    ValueError,
@@ -18,14 +18,14 @@ public class Search extends SearchBase
 
         try
         {
-            Vector retvals = HyperClient.predicate_to_c(predicate);
+            Vector retvals = client.predicate_to_c(predicate);
             
             eq = (hyperclient_attribute)(retvals.get(0));
             eq_sz = ((Integer)(retvals.get(1))).intValue();
             rn = (hyperclient_range_query)(retvals.get(2));
             rn_sz = ((Integer)(retvals.get(3))).intValue();
 
-            reqId = client.search(space,
+            reqId = client.search(client.getBytes(space,true),
                                   eq, eq_sz,
                                   rn, rn_sz,
                                   rc_ptr,

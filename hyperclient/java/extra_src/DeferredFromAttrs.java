@@ -5,7 +5,7 @@ import java.io.*;
 
 public class DeferredFromAttrs extends Deferred
 {
-    public DeferredFromAttrs(HyperClient client, SimpleOp op, byte[] space, byte[] key,
+    public DeferredFromAttrs(HyperClient client, SimpleOp op, Object space, Object key,
                                                                         Map map)
                                                             throws HyperClientException,
                                                                     TypeError,
@@ -19,9 +19,11 @@ public class DeferredFromAttrs extends Deferred
         try
         {
             attrs_sz = map.size();
-            attrs = HyperClient.dict_to_attrs(map);
+            attrs = client.dict_to_attrs(map);
 	
-	        reqId = op.call(space, key, attrs, attrs_sz, rc_ptr);
+	        reqId = op.call(client.getBytes(space,true),
+                            client.getBytes(key),
+                            attrs, attrs_sz, rc_ptr);
 	
             checkReqIdKeyAttrs(reqId, status(), attrs, attrs_sz);
 

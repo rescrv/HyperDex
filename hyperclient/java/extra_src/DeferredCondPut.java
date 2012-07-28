@@ -22,10 +22,10 @@ public class DeferredCondPut extends Deferred
         try
         {
             condattrs_sz = condition.size();
-            condattrs = HyperClient.dict_to_attrs(condition);
+            condattrs = client.dict_to_attrs(condition);
 
             attrs_sz = value.size();
-            attrs = HyperClient.dict_to_attrs(value);
+            attrs = client.dict_to_attrs(value);
 	
             reqId = client.condput(client.getBytes(space,true),
                                    client.getBytes(key),
