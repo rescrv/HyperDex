@@ -5,7 +5,7 @@ import java.io.*;
 
 public class DeferredCondPut extends Deferred
 {
-    public DeferredCondPut(HyperClient client, byte[] space, byte[] key,
+    public DeferredCondPut(HyperClient client, Object space, Object key,
                                                             Map condition, Map value)
                                                             throws HyperClientException,
                                                                    TypeError,
@@ -27,8 +27,8 @@ public class DeferredCondPut extends Deferred
             attrs_sz = value.size();
             attrs = HyperClient.dict_to_attrs(value);
 	
-            reqId = client.condput(space,
-                                   key,
+            reqId = client.condput(client.getBytes(space,true),
+                                   client.getBytes(key),
                                    condattrs, condattrs_sz,
                                    attrs, attrs_sz,
                                    rc_ptr);
@@ -45,26 +45,6 @@ public class DeferredCondPut extends Deferred
             if ( attrs != null ) HyperClient.free_attrs(attrs,attrs_sz);
         }
     }
-
-    public DeferredCondPut(HyperClient client, byte[] space, ByteArray key,
-                                                            Map condition, Map value)
-                                                            throws HyperClientException,
-                                                                   TypeError,
-                                                                   MemoryError
-    {
-        this(client, space, key.getBytes());
-    }
-
-    public DeferredCondPut(HyperClient client, byte[] space, String key,
-                                                            Map condition, Map value)
-                                                            throws HyperClientException,
-                                                                   TypeError,
-                                                                   MemoryError
-    {
-        this(client, space, ByteArray.encode(key,client.getDefaultStringEncoding()));
-    }
-
-    // Six more constructors
 
     public Object waitFor() throws HyperClientException, ValueError
     {

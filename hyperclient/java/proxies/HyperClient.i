@@ -560,17 +560,23 @@
     return obj instanceof byte[] || obj instanceof ByteArray || obj instanceof String;
   }
 
-  private byte[] getBytes(Object obj) throws TypeError
+  byte[] getBytes(Object obj, boolean nullTerminate) throws TypeError
   {
-    if ( obj instanceof byte[] ) return (byte[])obj;
+    byte[] bytes = null;
 
-    if ( obj instanceof ByteArray ) return ((ByteArray)obj).getBytes();
-
-    if ( obj instanceof String )
+    if ( obj instanceof byte[] )
+    {
+        bytes = (byte[])obj;
+    }
+    else if ( obj instanceof ByteArray )
+    {
+        bytes = ((ByteArray)obj).getBytes();
+    }
+    else if ( obj instanceof String )
     {
         try
         {
-            return ((String)obj).getBytes(defaultStringEncoding);
+            bytes = ((String)obj).getBytes(defaultStringEncoding);
         }
         catch(java.util.UnsupportedEncodingException usee)
         {
@@ -579,6 +585,25 @@
                                     + defaultStringEncoding +"'"); 
         }
     }
+    else
+    {
+
+        throw new TypeError("Expecting bytes in the form of byte[], ByteArray, or String (encoded with HyperClient's current default encoding which is set at '" + defaultStringEncoding + "'. But, instead got type: " + obj.getClass().getName());
+    }
+
+    if ( nullTerminate )
+    {
+        return Array.copyOf(bytes,bytes.length+1);
+    }
+    else
+    {
+        return bytes;
+    }
+  }
+
+  byte[] getBytes(Object obj) throws TypeError
+  {
+    return getBytes(obj,false);
   }
 
   hyperclient_attribute dict_to_attrs(java.util.Map attrsMap) throws TypeError,
