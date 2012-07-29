@@ -16,9 +16,12 @@
     return bytes;
   }
 
-  ByteArray getAttrName()
+  ByteArray getAttrName(String defaultStringEncoding)
   {
-    return new ByteArray(getAttrNameBytes());
+    ByteArray attrName = new ByteArray(getAttrNameBytes());
+    attrName.setDefaultEncoding(defaultStringEncoding);
+
+    return attrName;
   }
 
   private byte[] getAttrValueBytes()
@@ -35,9 +38,11 @@
     return bytes;
   }
 
-  private java.lang.Object getAttrStringValue()
+  private java.lang.Object getAttrStringValue(String defaultStringEncoding)
   {
-    return new ByteArray(getAttrValueBytes());
+    ByteArray attrValue = new ByteArray(getAttrValueBytes());
+    attrValue.setDefaultEncoding(defaultStringEncoding);
+    return attrValue;
   }
 
   private byte[] zerofill(byte[] inbytes)
@@ -80,7 +85,8 @@
   }
 
   private java.lang.Object getAttrCollectionStringValue(
-            java.util.AbstractCollection<ByteArray> coll) throws ValueError
+            java.util.AbstractCollection<ByteArray> coll,
+            String defaultStringEncoding) throws ValueError
   {
     String collType = coll instanceof java.util.List?"list":"set";
 
@@ -112,7 +118,9 @@
                         + "(string) is improperly structured (file a bug)");
         }
 
-        coll.add(new ByteArray(getAttrValueBytes(pos+4,sz)));
+        ByteArray collElement = new ByteArray(getAttrValueBytes(pos+4,sz));
+        collElement.setDefaultEncoding(defaultStringEncoding);
+        coll.add(collElement);
 
         rem = rem.subtract(four).subtract(sz_bi);
         pos = value_sz.subtract(rem).longValue();
@@ -202,7 +210,8 @@
     return coll;
   }
 
-  private java.lang.Object getAttrMapStringStringValue() throws ValueError
+  private java.lang.Object getAttrMapStringStringValue(String defaultStringEncoding)
+                                                                        throws ValueError
   {
     java.util.HashMap<ByteArray,ByteArray> map
             = new java.util.HashMap<ByteArray,ByteArray>();
@@ -236,6 +245,7 @@
         }
 
         ByteArray key = new ByteArray(getAttrValueBytes(pos+4,sz));
+        key.setDefaultEncoding(defaultStringEncoding);
 
         rem = rem.subtract(four).subtract(sz_bi);
         pos = value_sz.subtract(rem).longValue();
@@ -252,6 +262,7 @@
         }
 
         ByteArray val = new ByteArray(getAttrValueBytes(pos+4,sz));
+        val.setDefaultEncoding(defaultStringEncoding);
 
         rem = rem.subtract(four).subtract(sz_bi);
         pos = value_sz.subtract(rem).longValue();
@@ -269,7 +280,8 @@
     return map;
   }
 
-  private java.lang.Object getAttrMapStringLongValue() throws ValueError
+  private java.lang.Object getAttrMapStringLongValue(String defaultStringEncoding)
+                                                                        throws ValueError
   {
     java.util.HashMap<ByteArray,Long> map = new java.util.HashMap<ByteArray,Long>();
 
@@ -303,6 +315,7 @@
         }
 
         ByteArray key = new ByteArray(getAttrValueBytes(pos+4,sz));
+        key.setDefaultEncoding(defaultStringEncoding);
 
         rem = rem.subtract(four).subtract(sz_bi);
         pos = value_sz.subtract(rem).longValue();
@@ -332,7 +345,8 @@
     return map;
   }
 
-  private java.lang.Object getAttrMapStringDoubleValue() throws ValueError
+  private java.lang.Object getAttrMapStringDoubleValue(String defaultStringEncoding)
+                                                                        throws ValueError
   {
     java.util.HashMap<ByteArray,Double>
         map = new java.util.HashMap<ByteArray,Double>();
@@ -367,6 +381,7 @@
         }
 
         ByteArray key = new ByteArray(getAttrValueBytes(pos+4,sz));
+        key.setDefaultEncoding(defaultStringEncoding);
 
         rem = rem.subtract(four).subtract(sz_bi);
         pos = value_sz.subtract(rem).longValue();
@@ -396,7 +411,8 @@
     return map;
   }
 
-  private java.lang.Object getAttrMapLongStringValue() throws ValueError
+  private java.lang.Object getAttrMapLongStringValue(String defaultStringEncoding)
+                                                                        throws ValueError
   {
     java.util.HashMap<Long,ByteArray> map = new java.util.HashMap<Long,ByteArray>();
 
@@ -436,6 +452,7 @@
         }
 
         ByteArray val = new ByteArray(getAttrValueBytes(pos+4,sz));
+        val.setDefaultEncoding(defaultStringEncoding);
 
         rem = rem.subtract(four).subtract(sz_bi);
         pos = value_sz.subtract(rem).longValue();
@@ -543,7 +560,8 @@
     return map;
   }
 
-  private java.lang.Object getAttrMapDoubleStringValue() throws ValueError
+  private java.lang.Object getAttrMapDoubleStringValue(String defaultStringEncoding)
+                                                                        throws ValueError
   {
     java.util.HashMap<Double,ByteArray> map = new java.util.HashMap<Double,ByteArray>();
 
@@ -583,6 +601,7 @@
         }
 
         ByteArray val = new ByteArray(getAttrValueBytes(pos+4,sz));
+        val.setDefaultEncoding(defaultStringEncoding);
 
         rem = rem.subtract(four).subtract(sz_bi);
         pos = value_sz.subtract(rem).longValue();
@@ -690,12 +709,12 @@
     return map;
   }
 
-  public java.lang.Object getAttrValue() throws ValueError
+  public java.lang.Object getAttrValue(String defaultStringEncoding) throws ValueError
   {
     switch(getDatatype())
     {
       case HYPERDATATYPE_STRING:
-        return getAttrStringValue();
+        return getAttrStringValue(defaultStringEncoding);
 
       case HYPERDATATYPE_INT64:
         return getAttrLongValue();
@@ -705,7 +724,7 @@
 
       case HYPERDATATYPE_LIST_STRING:
         java.util.Vector<ByteArray> ls = new java.util.Vector<ByteArray>();
-        getAttrCollectionStringValue(ls);
+        getAttrCollectionStringValue(ls,defaultStringEncoding);
         return ls;
 
       case HYPERDATATYPE_LIST_INT64:
@@ -720,7 +739,7 @@
 
       case HYPERDATATYPE_SET_STRING:
         java.util.HashSet<ByteArray> ss = new java.util.HashSet<ByteArray>();
-        getAttrCollectionStringValue(ss);
+        getAttrCollectionStringValue(ss,defaultStringEncoding);
         return ss;
 
       case HYPERDATATYPE_SET_INT64:
@@ -734,16 +753,16 @@
         return sf;
 
       case HYPERDATATYPE_MAP_STRING_STRING:
-        return getAttrMapStringStringValue();
+        return getAttrMapStringStringValue(defaultStringEncoding);
 
       case HYPERDATATYPE_MAP_STRING_INT64:
-        return getAttrMapStringLongValue();
+        return getAttrMapStringLongValue(defaultStringEncoding);
 
       case HYPERDATATYPE_MAP_STRING_FLOAT:
-        return getAttrMapStringDoubleValue();
+        return getAttrMapStringDoubleValue(defaultStringEncoding);
 
       case HYPERDATATYPE_MAP_INT64_STRING:
-        return getAttrMapLongStringValue();
+        return getAttrMapLongStringValue(defaultStringEncoding);
 
       case HYPERDATATYPE_MAP_INT64_INT64:
         return getAttrMapLongLongValue();
@@ -752,7 +771,7 @@
         return getAttrMapLongDoubleValue();
 
       case HYPERDATATYPE_MAP_FLOAT_STRING:
-        return getAttrMapDoubleStringValue();
+        return getAttrMapDoubleStringValue(defaultStringEncoding);
 
       case HYPERDATATYPE_MAP_FLOAT_INT64:
         return getAttrMapDoubleLongValue();

@@ -298,15 +298,9 @@
     {
         hyperclient_attribute ha = get_attr(attrs,i);
 
-        ByteArray attrName = ha.getAttrName();
-        attrName.setDefaultEncoding(defaultStringEncoding);
+        ByteArray attrName = ha.getAttrName(defaultStringEncoding);
 
-        Object attrValue = ha.getAttrValue();
-
-        if ( attrValue instanceof ByteArray )
-        {
-            ((ByteArray)attrValue).setDefaultEncoding(defaultStringEncoding);
-        }
+        Object attrValue = ha.getAttrValue(defaultStringEncoding);
 
         map.put(attrName, attrValue);
     }
