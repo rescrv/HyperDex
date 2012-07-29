@@ -8,7 +8,8 @@ public class DeferredGet extends Deferred
     private SWIGTYPE_p_size_t attrs_sz_ptr = null;
 
     public DeferredGet(HyperClient client, Object space, Object key)
-                                                    throws HyperClientException
+                                                    throws HyperClientException,
+                                                           TypeError
     {
         super(client);
 

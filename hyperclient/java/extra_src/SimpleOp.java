@@ -13,7 +13,7 @@ abstract class SimpleOp
 
     abstract long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr);
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError;
 }
 
 class SimpleOpPut extends SimpleOp
@@ -25,7 +25,7 @@ class SimpleOpPut extends SimpleOp
 
     long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.put(client.getBytes(space,true),
                                client.getBytes(key),
@@ -43,7 +43,7 @@ class SimpleOpAtomicAdd extends SimpleOp
 
     long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.atomic_add(client.getBytes(space,true),
                                client.getBytes(key),
@@ -61,7 +61,7 @@ class SimpleOpAtomicSub extends SimpleOp
 
     long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.atomic_sub(client.getBytes(space,true),
                                client.getBytes(key),
@@ -79,7 +79,7 @@ class SimpleOpAtomicMul extends SimpleOp
 
     long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.atomic_mul(client.getBytes(space,true),
                                client.getBytes(key),
@@ -97,7 +97,7 @@ class SimpleOpAtomicDiv extends SimpleOp
 
     long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.atomic_div(client.getBytes(space,true),
                                client.getBytes(key),
@@ -115,7 +115,7 @@ class SimpleOpAtomicMod extends SimpleOp
 
     long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.atomic_mod(client.getBytes(space,true),
                                client.getBytes(key),
@@ -133,7 +133,7 @@ class SimpleOpAtomicAnd extends SimpleOp
 
     long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.atomic_and(client.getBytes(space,true),
                                client.getBytes(key),
@@ -151,7 +151,7 @@ class SimpleOpAtomicOr extends SimpleOp
 
     long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.atomic_or(client.getBytes(space,true),
                                client.getBytes(key),
@@ -169,7 +169,7 @@ class SimpleOpAtomicXor extends SimpleOp
 
     long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.atomic_xor(client.getBytes(space,true),
                                client.getBytes(key),
@@ -187,7 +187,7 @@ class SimpleOpStringPrepend extends SimpleOp
 
     long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.string_prepend(client.getBytes(space,true),
                                client.getBytes(key),
@@ -205,7 +205,7 @@ class SimpleOpStringAppend extends SimpleOp
 
     long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.string_append(client.getBytes(space,true),
                                client.getBytes(key),
@@ -223,7 +223,7 @@ class SimpleOpListLpush extends SimpleOp
 
     long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.list_lpush(client.getBytes(space,true),
                                client.getBytes(key),
@@ -241,7 +241,7 @@ class SimpleOpListRpush extends SimpleOp
 
     long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.list_rpush(client.getBytes(space,true),
                                client.getBytes(key),
@@ -259,7 +259,7 @@ class SimpleOpSetAdd extends SimpleOp
 
     long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.set_add(client.getBytes(space,true),
                                client.getBytes(key),
@@ -277,7 +277,7 @@ class SimpleOpSetRemove extends SimpleOp
 
     long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.set_remove(client.getBytes(space,true),
                                client.getBytes(key),
@@ -295,7 +295,7 @@ class SimpleOpSetIntersect extends SimpleOp
 
     long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.set_intersect(client.getBytes(space,true),
                                client.getBytes(key),
@@ -313,7 +313,7 @@ class SimpleOpSetUnion extends SimpleOp
 
     long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.set_union(client.getBytes(space,true),
                                client.getBytes(key),

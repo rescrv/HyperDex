@@ -16,7 +16,7 @@ abstract class MapOp
 
     abstract long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr);
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError;
 }
 EOF
 
@@ -36,7 +36,7 @@ abstract class SimpleOp
 
     abstract long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr);
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError;
 }
 EOF
 
@@ -44,6 +44,7 @@ echo "
   // Asynchronous methods
   //
   public Deferred async_get(Object space, Object key) throws HyperClientException,
+                                                             TypeError,
                                                              ValueError
   {
     return new DeferredGet(this,space, key);
@@ -97,6 +98,7 @@ echo "
   // Synchronous methods
   //
   public java.util.Map get(Object space, Object key) throws HyperClientException,
+                                                            TypeError,
                                                             ValueError
   {
     DeferredGet d = (DeferredGet)(async_get(space, key));

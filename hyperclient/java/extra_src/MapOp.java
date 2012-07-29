@@ -13,7 +13,7 @@ abstract class MapOp
 
     abstract long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr);
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError;
 }
 
 class MapOpAdd extends MapOp
@@ -25,7 +25,7 @@ class MapOpAdd extends MapOp
 
     long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.map_add(client.getBytes(space,true),
                                client.getBytes(key),
@@ -43,7 +43,7 @@ class MapOpRemove extends MapOp
 
     long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.map_remove(client.getBytes(space,true),
                                client.getBytes(key),
@@ -61,7 +61,7 @@ class MapOpAtomicAdd extends MapOp
 
     long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.map_atomic_add(client.getBytes(space,true),
                                client.getBytes(key),
@@ -79,7 +79,7 @@ class MapOpAtomicSub extends MapOp
 
     long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.map_atomic_sub(client.getBytes(space,true),
                                client.getBytes(key),
@@ -97,7 +97,7 @@ class MapOpAtomicMul extends MapOp
 
     long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.map_atomic_mul(client.getBytes(space,true),
                                client.getBytes(key),
@@ -115,7 +115,7 @@ class MapOpAtomicDiv extends MapOp
 
     long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.map_atomic_div(client.getBytes(space,true),
                                client.getBytes(key),
@@ -133,7 +133,7 @@ class MapOpAtomicMod extends MapOp
 
     long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.map_atomic_mod(client.getBytes(space,true),
                                client.getBytes(key),
@@ -151,7 +151,7 @@ class MapOpAtomicAnd extends MapOp
 
     long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.map_atomic_and(client.getBytes(space,true),
                                client.getBytes(key),
@@ -169,7 +169,7 @@ class MapOpAtomicOr extends MapOp
 
     long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.map_atomic_or(client.getBytes(space,true),
                                client.getBytes(key),
@@ -187,7 +187,7 @@ class MapOpAtomicXor extends MapOp
 
     long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.map_atomic_xor(client.getBytes(space,true),
                                client.getBytes(key),
@@ -205,7 +205,7 @@ class MapOpStringPrepend extends MapOp
 
     long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.map_string_prepend(client.getBytes(space,true),
                                client.getBytes(key),
@@ -223,7 +223,7 @@ class MapOpStringAppend extends MapOp
 
     long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
         return client.map_string_append(client.getBytes(space,true),
                                client.getBytes(key),

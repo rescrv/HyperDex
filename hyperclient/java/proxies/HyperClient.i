@@ -1285,6 +1285,7 @@
   // Synchronous methods
   //
   public java.util.Map get(Object space, Object key) throws HyperClientException,
+                                                            TypeError,
                                                             ValueError
   {
     DeferredGet d = (DeferredGet)(async_get(space, key));
@@ -1686,6 +1687,7 @@
   // Asynchronous methods
   //
   public Deferred async_get(Object space, Object key) throws HyperClientException,
+                                                             TypeError,
                                                              ValueError
   {
     return new DeferredGet(this,space, key);
