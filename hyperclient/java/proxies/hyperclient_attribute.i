@@ -16,14 +16,6 @@
     return bytes;
   }
 
-  ByteArray getAttrName(String defaultStringEncoding)
-  {
-    ByteArray attrName = new ByteArray(getAttrNameBytes());
-    attrName.setDefaultEncoding(defaultStringEncoding);
-
-    return attrName;
-  }
-
   private byte[] getAttrValueBytes()
   {
     int bytes_sz = HyperClient.size_t_to_int(getValue_sz());

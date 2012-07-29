@@ -298,7 +298,17 @@
     {
         hyperclient_attribute ha = get_attr(attrs,i);
 
-        ByteArray attrName = ha.getAttrName(defaultStringEncoding);
+        String attrName = null;
+
+        try
+        {
+            attrName = new String(ha.getAttrNameBytes(),defaultStringEncoding);
+        }
+        catch(java.io.UnsupportedEncodingException usee)
+        {
+            throw new ValueError("Could not decode bytes using encoding '"
+                                    + defaultStringEncoding +"'");
+        }
 
         Object attrValue = ha.getAttrValue(defaultStringEncoding);
 
