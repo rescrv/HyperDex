@@ -169,13 +169,14 @@ hyperdaemon :: network_worker :: run()
                 continue;
             }
 
-            bool fail_if_not_exist = flags & 1;
-            bool has_microops = flags & 2;
+            bool fail_if_not_found = flags & 1;
+            bool fail_if_found = flags & 2;
+            bool has_microops = flags & 128;
 
             if (has_microops)
             {
                 m_repl->client_atomic(hyperdex::RESP_ATOMIC, from, to, nonce, msg,
-                                      fail_if_not_exist, key, &checks, &ops);
+                                      fail_if_not_found, fail_if_found, key, &checks, &ops);
             }
             else
             {

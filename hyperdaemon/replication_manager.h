@@ -93,6 +93,7 @@ class replication_manager
                            uint64_t nonce,
                            std::auto_ptr<e::buffer> backing,
                            bool fail_if_not_found,
+                           bool fail_if_found,
                            const e::slice& key,
                            std::vector<microcheck>* checks,
                            std::vector<microop>* ops);

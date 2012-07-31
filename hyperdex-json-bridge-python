@@ -87,6 +87,9 @@ class HyperDexJSONBridge(object):
     def _action_put(self, action):
         self._kve(action, self._client.put)
 
+    def _action_put_if_not_exist(self, action):
+        self._kve(action, self._client.put_if_not_exist)
+
     def _action_condput(self, action):
         self._check_fields(action, 'space', 'key', 'condition', 'value', 'expected')
         expected = action['expected']

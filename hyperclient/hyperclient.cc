@@ -151,6 +151,7 @@ hyperclient :: del(const char* space, const char* key, size_t key_sz,
     }
 
 HYPERCLIENT_CPPDEF(put)
+HYPERCLIENT_CPPDEF(put_if_not_exist)
 HYPERCLIENT_CPPDEF(atomic_add)
 HYPERCLIENT_CPPDEF(atomic_sub)
 HYPERCLIENT_CPPDEF(atomic_mul)
@@ -769,7 +770,8 @@ hyperclient :: perform_microop1(const class hyperclient_keyop_info* opinfo,
     std::sort(ops.begin(), ops.end());
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     uint8_t flags = (opinfo->fail_if_not_exist ? 1 : 0)
-                  | (opinfo->has_microops ? 2 : 0);
+                  | (opinfo->fail_if_exist ? 2 : 0)
+                  | (opinfo->has_microops ? 128 : 0);
     msg->pack_at(HYPERCLIENT_HEADER_SIZE) << e::slice(key, key_sz) << flags << checks << ops;
     return add_keyop(space, key, key_sz, msg, op);
 }
@@ -827,7 +829,7 @@ hyperclient :: perform_microop2(const class hyperclient_keyop_info* opinfo,
     std::sort(ops.begin(), ops.end());
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     uint8_t flags = (opinfo->fail_if_not_exist ? 1 : 0)
-                  | (opinfo->has_microops ? 2 : 0);
+                  | (opinfo->has_microops ? 128 : 0);
     msg->pack_at(HYPERCLIENT_HEADER_SIZE) << e::slice(key, key_sz) << flags << checks << ops;
     return add_keyop(space, key, key_sz, msg, op);
 }

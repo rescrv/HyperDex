@@ -130,6 +130,7 @@ cdef extern from "../hyperclient.h":
     void hyperclient_destroy(hyperclient* client)
     int64_t hyperclient_get(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_returncode* status, hyperclient_attribute** attrs, size_t* attrs_sz)
     int64_t hyperclient_put(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_put_if_not_exist(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_condput(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* condattrs, size_t condattrs_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_del(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_returncode* status)
     int64_t hyperclient_atomic_add(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
@@ -793,8 +794,13 @@ cdef class DeferredGet(Deferred):
 
 cdef class DeferredFromAttrs(Deferred):
 
+    cdef bint _cmped
+
     def __cinit__(self, Client client):
-        pass
+        self._cmped = False
+
+    cdef setcmp(self):
+        self._cmped = True
 
     cdef call(self, hyperclient_simple_op op, bytes space, key, dict value):
         cdef bytes key_backing
@@ -817,6 +823,8 @@ cdef class DeferredFromAttrs(Deferred):
         Deferred.wait(self)
         if self._status == HYPERCLIENT_SUCCESS:
             return True
+        elif self._cmped and self._status == HYPERCLIENT_CMPFAIL:
+            return False
         else:
             raise HyperClientException(self._status)
 
@@ -1131,6 +1139,10 @@ cdef class Client:
         async = self.async_put(space, key, value)
         return async.wait()
 
+    def put_if_not_exist(self, bytes space, key, dict value):
+        async = self.async_put_if_not_exist(space, key, value)
+        return async.wait()
+
     def condput(self, bytes space, key, dict condition, dict value):
         async = self.async_condput(space, key, condition, value)
         return async.wait()
@@ -1271,6 +1283,12 @@ cdef class Client:
     def async_put(self, bytes space, key, dict value):
         d = DeferredFromAttrs(self)
         d.call(<hyperclient_simple_op> hyperclient_put, space, key, value)
+        return d
+
+    def async_put_if_not_exist(self, bytes space, key, dict value):
+        d = DeferredFromAttrs(self)
+        d.call(<hyperclient_simple_op> hyperclient_put_if_not_exist, space, key, value)
+        d.setcmp()
         return d
 
     def async_condput(self, bytes space, key, dict condition, dict value):

@@ -192,6 +192,11 @@ hyperclient_put(struct hyperclient* client, const char* space, const char* key,
                 size_t key_sz, const struct hyperclient_attribute* attrs,
                 size_t attrs_sz, enum hyperclient_returncode* status);
 
+int64_t
+hyperclient_put_if_not_exist(struct hyperclient* client, const char* space, const char* key,
+                             size_t key_sz, const struct hyperclient_attribute* attrs,
+                             size_t attrs_sz, enum hyperclient_returncode* status);
+
 /* Perform a put if the specified conditional attributes match.
  *
  * If this returns a value < 0 and *status == HYPERCLIENT_UNKNOWNATTR, then
@@ -713,6 +718,9 @@ class hyperclient
         int64_t put(const char* space, const char* key, size_t key_sz,
                     const struct hyperclient_attribute* attrs, size_t attrs_sz,
                     hyperclient_returncode* status);
+        int64_t put_if_not_exist(const char* space, const char* key, size_t key_sz,
+                                 const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                                 hyperclient_returncode* status);
         int64_t condput(const char* space, const char* key, size_t key_sz,
 			const struct hyperclient_attribute* condattrs, size_t condattrs_sz,
 			const struct hyperclient_attribute* attrs, size_t attrs_sz,
