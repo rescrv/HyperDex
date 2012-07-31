@@ -11,9 +11,9 @@ abstract class MapOp
         this.client = client;
     }
 
-    abstract long call(String space, String key,
+    abstract long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr);
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError;
 }
 
 class MapOpAdd extends MapOp
@@ -23,12 +23,12 @@ class MapOpAdd extends MapOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.map_add(space,
-                               key.getBytes(),
+        return client.map_add(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -41,12 +41,12 @@ class MapOpRemove extends MapOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.map_remove(space,
-                               key.getBytes(),
+        return client.map_remove(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -59,12 +59,12 @@ class MapOpAtomicAdd extends MapOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.map_atomic_add(space,
-                               key.getBytes(),
+        return client.map_atomic_add(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -77,12 +77,12 @@ class MapOpAtomicSub extends MapOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.map_atomic_sub(space,
-                               key.getBytes(),
+        return client.map_atomic_sub(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -95,12 +95,12 @@ class MapOpAtomicMul extends MapOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.map_atomic_mul(space,
-                               key.getBytes(),
+        return client.map_atomic_mul(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -113,12 +113,12 @@ class MapOpAtomicDiv extends MapOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.map_atomic_div(space,
-                               key.getBytes(),
+        return client.map_atomic_div(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -131,12 +131,12 @@ class MapOpAtomicMod extends MapOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.map_atomic_mod(space,
-                               key.getBytes(),
+        return client.map_atomic_mod(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -149,12 +149,12 @@ class MapOpAtomicAnd extends MapOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.map_atomic_and(space,
-                               key.getBytes(),
+        return client.map_atomic_and(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -167,12 +167,12 @@ class MapOpAtomicOr extends MapOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.map_atomic_or(space,
-                               key.getBytes(),
+        return client.map_atomic_or(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -185,12 +185,12 @@ class MapOpAtomicXor extends MapOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.map_atomic_xor(space,
-                               key.getBytes(),
+        return client.map_atomic_xor(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -203,12 +203,12 @@ class MapOpStringPrepend extends MapOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.map_string_prepend(space,
-                               key.getBytes(),
+        return client.map_string_prepend(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -221,12 +221,12 @@ class MapOpStringAppend extends MapOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.map_string_append(space,
-                               key.getBytes(),
+        return client.map_string_append(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }

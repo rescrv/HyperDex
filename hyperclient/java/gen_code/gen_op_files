@@ -14,9 +14,9 @@ abstract class MapOp
         this.client = client;
     }
 
-    abstract long call(String space, String key,
+    abstract long call(Object space, Object key,
               hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr);
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError;
 }
 EOF
 
@@ -34,14 +34,178 @@ abstract class SimpleOp
         this.client = client;
     }
 
-    abstract long call(String space, String key,
+    abstract long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr);
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError;
 }
 EOF
 
-echo "" > async_methods.java
-echo "" > sync_methods.java
+echo "
+  // Asynchronous methods
+  //
+  public Deferred async_get(Object space, Object key) throws HyperClientException,
+                                                             TypeError,
+                                                             ValueError
+  {
+    return new DeferredGet(this,space, key);
+  }
+
+  public Deferred async_condput(Object space, Object key, java.util.Map condition,
+                                                          java.util.Map value)
+                                                            throws HyperClientException,
+                                                            TypeError,
+                                                            MemoryError,
+                                                            ValueError
+  {
+    return new DeferredCondPut(this, space, key, condition, value);
+  }
+
+  public Deferred async_del(Object space, Object key) throws HyperClientException,
+                                                             TypeError
+  {
+    return new DeferredDelete(this, space, key);
+  }
+
+  public Deferred async_group_del(Object space, java.util.Map predicate)
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   MemoryError,
+                                                                   ValueError
+  {
+    return new DeferredGroupDel(this, space, predicate);
+  }
+
+  public Deferred async_count(Object space, java.util.Map predicate)
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   MemoryError,
+                                                                   ValueError
+  {
+    return async_count(space, predicate, false);
+  }
+
+  public Deferred async_count(Object space, java.util.Map predicate, boolean unsafe)
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   MemoryError,
+                                                                   ValueError
+  {
+    return new DeferredCount(this, space, predicate, unsafe);
+  }
+" > async_methods.java
+
+echo "
+  // Synchronous methods
+  //
+  public java.util.Map get(Object space, Object key) throws HyperClientException,
+                                                            TypeError,
+                                                            ValueError
+  {
+    DeferredGet d = (DeferredGet)(async_get(space, key));
+    return (java.util.Map)(d.waitFor());
+  }
+
+  public boolean condput(Object space, Object key, java.util.Map condition,
+                                                   java.util.Map value)
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   MemoryError,
+                                                                   ValueError
+  {
+    Deferred d = (DeferredCondPut)(async_condput(space, key, condition, value));
+    return ((Boolean)(d.waitFor())).booleanValue();
+  }
+
+  public boolean del(Object space, Object key) throws HyperClientException,
+                                                      TypeError,
+                                                      ValueError
+  {
+    Deferred d = (DeferredDelete)(async_del(space, key));
+    return ((Boolean)(d.waitFor())).booleanValue();
+  }
+
+  public boolean group_del(Object space, java.util.Map predicate)
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   MemoryError,
+                                                                   ValueError
+  {
+    Deferred d = (DeferredGroupDel)(async_group_del(space, predicate));
+    return ((Boolean)(d.waitFor())).booleanValue();
+  }
+
+  public java.math.BigInteger count(Object space, java.util.Map predicate)
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   ValueError,
+                                                                   MemoryError
+  {
+    return count(space, predicate, false);
+  }
+
+  public java.math.BigInteger count(Object space, java.util.Map predicate, boolean unsafe)
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   ValueError,
+                                                                   MemoryError
+  {
+    Deferred d = (DeferredCount)(async_count(space, predicate, unsafe));
+    return (java.math.BigInteger)(d.waitFor());
+  }
+
+  public Search search(Object space, java.util.Map predicate)
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   ValueError,
+                                                                   MemoryError
+  {
+    return new Search(this,space,predicate);
+  }
+
+  public SortedSearch sorted_search(Object space, java.util.Map predicate,
+                                                            Object sortBy,
+                                                            java.math.BigInteger limit,
+                                                            boolean descending)
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   ValueError,
+                                                                   MemoryError
+  {
+    return new SortedSearch(this, space, predicate, sortBy, limit, descending);
+  }
+
+  public SortedSearch sorted_search(Object space, java.util.Map predicate,
+                                                            Object sortBy,
+                                                            long limit,
+                                                            boolean descending)
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   ValueError,
+                                                                   MemoryError
+  {
+    return new SortedSearch(this, space, predicate, sortBy,
+                          new java.math.BigInteger(
+                            java.nio.ByteBuffer.allocate(8).order(
+                                java.nio.ByteOrder.BIG_ENDIAN).putLong(limit).array()),
+                                                                            descending);
+  }
+
+  public SortedSearch sorted_search(Object space, java.util.Map predicate,
+                                                            Object sortBy,
+                                                            int limit,
+                                                            boolean descending)
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   ValueError,
+                                                                   MemoryError
+  {
+    return new SortedSearch(this, space, predicate, sortBy,
+                          new java.math.BigInteger(
+                            java.nio.ByteBuffer.allocate(4).order(
+                                java.nio.ByteOrder.BIG_ENDIAN).putInt(limit).array()),
+                                                                            descending);
+  }
+" > sync_methods.java
 
 for name in $* ; do
 
@@ -73,11 +237,11 @@ for name in $* ; do
 
     cat <<EOF >> async_methods.java
 
-  public Deferred async_${name}(String space, String key, java.util.Map map)
-                                                     throws HyperClientException,
-                                                            TypeError,
-                                                            MemoryError,
-                                                            ValueError
+  public Deferred async_${name}(Object space, Object key, java.util.Map map)
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   MemoryError,
+                                                                   ValueError
   {
     return new ${deferred}(this, new ${prefix}Op${camel_name}(this), space, key, map);
   }
@@ -85,11 +249,11 @@ EOF
 
     cat <<EOF >> sync_methods.java
 
-  public boolean ${name}(String space, String key, java.util.Map map)
-                                                     throws HyperClientException,
-                                                            TypeError,
-                                                            MemoryError,
-                                                            ValueError
+  public boolean ${name}(Object space, Object key, java.util.Map map)
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   MemoryError,
+                                                                   ValueError
   {
     Deferred d = ($deferred)(async_${name}(space, key, map));
     return ((Boolean)(d.waitFor())).booleanValue();

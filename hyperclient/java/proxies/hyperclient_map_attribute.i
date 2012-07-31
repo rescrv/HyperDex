@@ -28,8 +28,13 @@
     attrs_sz_bi = value;
   }
 
-  String getMapAttrName()
+  byte[] getMapAttrNameBytes()
   {
-    return HyperClient.read_map_attr_name(this);
+    int name_sz = HyperClient.get_map_attr_name_sz(this);
+    byte[] bytes = new byte[name_sz];
+
+    HyperClient.read_map_attr_name(this,bytes);
+
+    return bytes;
   }
 %}
