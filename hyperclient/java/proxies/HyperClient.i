@@ -885,7 +885,7 @@
                 // Use C byte array sorting.
 
                 java.util.Iterator str_m_it=map.keySet().iterator();
-                Object curKey = str_m_it.next();
+                Object curKey = null;
 
                 if ( str_m_it.hasNext()
                         && ((curKey = str_m_it.next()) instanceof String) )
@@ -914,7 +914,7 @@
                     catch(Exception e)
                     {
                         // Try to box the byte[] keys with ByteArray
-                        // Throw an exception if not key are not all byte[]
+                        // Throw an exception if not all keys are byte[]
 
                         java.util.TreeMap<ByteArray,Object> sorted_map
                             = new java.util.TreeMap<ByteArray,Object>();

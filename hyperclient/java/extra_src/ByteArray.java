@@ -88,41 +88,29 @@ public class ByteArray implements Comparable
         return decode(ba.getBytes(), encoding);
     }
 
-    public String toString(String encoding)
+    public String toString(String encoding) throws TypeError
     {
-        String ret = "<could not decode bytes using java string encoding '"
-                        + encoding + "'>";
-
-        try
-        {
-            ret = decode(encoding);
-        }
-        catch(TypeError e)
-        {
-        }
-
-        return ret;
+        return decode(encoding);
     }
 
-    public static String toString(byte[] bytes, String encoding)
+    public static String toString(byte[] bytes, String encoding) throws TypeError
     {
-        String ret = "<could not decode bytes using java string encoding '"
-                        + encoding + "'>";
-
-        try
-        {
-            ret = decode(bytes, encoding);
-        }
-        catch(TypeError e)
-        {
-        }
-
-        return ret;
+        return  decode(bytes, encoding);
     }
 
     public String toString()
     {
-        return toString(defaultEncoding);
+        String ret = "";
+
+        try
+        {
+            ret = toString(defaultEncoding);
+        }
+        catch(TypeError e)
+        {
+        }
+
+        return ret;
     }
 
     public byte[] getBytes()
