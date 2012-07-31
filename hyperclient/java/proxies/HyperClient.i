@@ -751,22 +751,22 @@
 
                 java.util.Set<?> set = (java.util.Set<?>)value;
 
-                // Do not trust java String sorting for hyperdex
-                // Use C byte array sorting.
+                // Box String elements or byte[] elements with ByteArray to 
+                // ensure hyperdex approved byte array ordering
 
                 java.util.Iterator str_s_it=set.iterator();
                 Object curElement = null;
 
-                if ( str_s_it.hasNext()
-                    && ((curElement = str_s_it.next()) instanceof String) )
+                if ( (str_s_it.hasNext()
+                        && isBytes((curElement = str_s_it.next())) )
+                            && ! (curElement instanceof ByteArray) )
                 {
                     java.util.TreeSet<ByteArray> sorted_set
                             = new java.util.TreeSet<ByteArray>();
 
                     do
                     {
-                        sorted_set.add(new ByteArray(
-                                (String)curElement, defaultStringEncoding));
+                        sorted_set.add(new ByteArray(getBytes(curElement)));
 
                         curElement = str_s_it.hasNext()?str_s_it.next():null;
 
@@ -783,26 +783,9 @@
                     }
                     catch(Exception e)
                     {
-                        // Try to box the byte[] elements with ByteArray
-                        // Throw an exception if not elements are not all byte[]
-
-                        java.util.TreeSet<ByteArray> sorted_set
-                                = new java.util.TreeSet<ByteArray>();
-
-                        for (java.util.Iterator s_it=set.iterator(); s_it.hasNext(); )
-                        {
-                            Object val = s_it.next();
-
-                            if ( ! (val instanceof byte[]) )
-                                throw new TypeError("Invalid set element type, '" + 
-                                                     val.getClass().getName() +
-                                                     "', for set attribute '" +
-                                                     attrStr + "'"); 
-
-                            sorted_set.add(new ByteArray((byte[])val));
-                        }
-
-                        set = sorted_set;
+                        throw new TypeError(
+                            "Could not form a sorted set for attribute '" +
+                            attrStr + "'"); 
                     }
                 }
 
@@ -881,22 +864,22 @@
 
                 java.util.Map<?,?> map = (java.util.Map<?,?>)value;
 
-                // Do not trust java String sorting for hyperdex
-                // Use C byte array sorting.
+                // Box String keys or byte[] keys with ByteArray to 
+                // ensure hyperdex approved byte array ordering
 
                 java.util.Iterator str_m_it=map.keySet().iterator();
                 Object curKey = null;
 
-                if ( str_m_it.hasNext()
-                        && ((curKey = str_m_it.next()) instanceof String) )
+                if ( (str_m_it.hasNext()
+                        && isBytes((curKey = str_m_it.next())) )
+                            && ! (curKey instanceof ByteArray) )
                 {
                     java.util.TreeMap<ByteArray,Object> sorted_map
                             = new java.util.TreeMap<ByteArray,Object>();
 
                     do
                     {
-                        sorted_map.put(new ByteArray(
-                                (String)curKey, defaultStringEncoding),map.get(curKey));
+                        sorted_map.put(new ByteArray(getBytes(curKey)),map.get(curKey));
 
                         curKey = str_m_it.hasNext()?str_m_it.next():null; 
 
@@ -913,27 +896,9 @@
                     }
                     catch(Exception e)
                     {
-                        // Try to box the byte[] keys with ByteArray
-                        // Throw an exception if not all keys are byte[]
-
-                        java.util.TreeMap<ByteArray,Object> sorted_map
-                            = new java.util.TreeMap<ByteArray,Object>();
-
-                        for (java.util.Iterator m_it=map.keySet().iterator(); m_it.hasNext(); )
-                        {
-                            Object key = m_it.next();
-
-                            if ( ! (key instanceof byte[]) )
-                                throw new TypeError("Invalid map key type, '" + 
-                                                     key.getClass().getName() +
-                                                     "', for map attribute '" +
-                                                     attrStr + "'"); 
-
-                            sorted_map.put(
-                                new ByteArray((byte[])key),map.get(key));
-                        }
-
-                        map = sorted_map;
+                        throw new TypeError(
+                            "Could not form a sorted map for attribute '" +
+                            attrStr + "'"); 
                     }
                 }
 
