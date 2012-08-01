@@ -1,14 +1,15 @@
 package hyperclient;
 
 import java.util.*;
+import java.io.*;
 
 public class DeferredGroupDel extends Deferred
 {
-    public DeferredGroupDel(HyperClient client, String space, Map predicate)
-                                                    throws HyperClientException,
-                                                           TypeError,
-                                                           ValueError,
-                                                           MemoryError
+    public DeferredGroupDel(HyperClient client, Object space, Map predicate)
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   ValueError,
+                                                                   MemoryError
     {
         super(client);
 
@@ -23,14 +24,14 @@ public class DeferredGroupDel extends Deferred
 
         try
         {
-            Vector retvals = HyperClient.predicate_to_c(predicate);
+            Vector retvals = client.predicate_to_c(predicate);
             
             eq = (hyperclient_attribute)(retvals.get(0));
             eq_sz = ((Integer)(retvals.get(1))).intValue();
             rn = (hyperclient_range_query)(retvals.get(2));
             rn_sz = ((Integer)(retvals.get(3))).intValue();
 
-            reqId = client.group_del(space,
+            reqId = client.group_del(client.getBytes(space,true),
                                      eq, eq_sz,
                                      rn, rn_sz,
                                      rc_ptr);

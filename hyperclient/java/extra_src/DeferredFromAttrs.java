@@ -1,14 +1,17 @@
 package hyperclient;
 
 import java.util.*;
+import java.io.*;
 
 public class DeferredFromAttrs extends Deferred
 {
-    public DeferredFromAttrs(HyperClient client, SimpleOp op, String space, String key,
+    private boolean comparing = false;
+
+    public DeferredFromAttrs(HyperClient client, SimpleOp op, Object space, Object key,
                                                                         Map map)
-                                                    throws HyperClientException,
-                                                           TypeError,
-                                                           MemoryError
+                                                            throws HyperClientException,
+                                                                    TypeError,
+                                                                    MemoryError
     {
         super(client);
 
@@ -18,9 +21,11 @@ public class DeferredFromAttrs extends Deferred
         try
         {
             attrs_sz = map.size();
-            attrs = HyperClient.dict_to_attrs(map);
+            attrs = client.dict_to_attrs(map);
 	
-	        reqId = op.call(space, key, attrs, attrs_sz, rc_ptr);
+	        reqId = op.call(client.getBytes(space,true),
+                            client.getBytes(key),
+                            attrs, attrs_sz, rc_ptr);
 	
             checkReqIdKeyAttrs(reqId, status(), attrs, attrs_sz);
 
@@ -32,12 +37,21 @@ public class DeferredFromAttrs extends Deferred
         }
     }
 
+    void setComparing()
+    {
+        comparing = true;
+    }
+
     public Object waitFor() throws HyperClientException, ValueError
     {
         super.waitFor();
         if (status() == hyperclient_returncode.HYPERCLIENT_SUCCESS)
         {
             return new Boolean(true);
+        }
+        else if ( comparing && status() == hyperclient_returncode.HYPERCLIENT_CMPFAIL )
+        {
+            return new Boolean(false);
         }
         else
         {
