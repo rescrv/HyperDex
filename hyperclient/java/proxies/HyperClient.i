@@ -1373,6 +1373,16 @@
     return ((Boolean)(d.waitFor())).booleanValue();
   }
 
+  public boolean put_if_not_exist(Object space, Object key, java.util.Map map)
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   MemoryError,
+                                                                   ValueError
+  {
+    Deferred d = (DeferredFromAttrs)(async_put_if_not_exist(space, key, map));
+    return ((Boolean)(d.waitFor())).booleanValue();
+  }
+
   public boolean atomic_add(Object space, Object key, java.util.Map map)
                                                             throws HyperClientException,
                                                                    TypeError,
@@ -1713,6 +1723,19 @@
                                                                    ValueError
   {
     return new DeferredFromAttrs(this, new SimpleOpPut(this), space, key, map);
+  }
+
+  public Deferred async_put_if_not_exist(Object space, Object key, java.util.Map map)
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   MemoryError,
+                                                                   ValueError
+  {
+    DeferredFromAttrs d
+        = new DeferredFromAttrs(this, new SimpleOpPutIfNotExist(this), space, key, map);
+    d.setComparing();
+    return d;
+
   }
 
   public Deferred async_atomic_add(Object space, Object key, java.util.Map map)

@@ -34,6 +34,24 @@ class SimpleOpPut extends SimpleOp
     }
 }
 
+class SimpleOpPutIfNotExist extends SimpleOp
+{
+    public SimpleOpPutIfNotExist(HyperClient client)
+    {
+        super(client);
+    }
+
+    long call(Object space, Object key,
+              hyperclient_attribute attrs, long attrs_sz,
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
+    {
+        return client.put_if_not_exist(client.getBytes(space,true),
+                               client.getBytes(key),
+                               attrs, attrs_sz,
+                               rc_ptr);
+    }
+}
+
 class SimpleOpAtomicAdd extends SimpleOp
 {
     public SimpleOpAtomicAdd(HyperClient client)

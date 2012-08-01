@@ -5,6 +5,8 @@ import java.io.*;
 
 public class DeferredFromAttrs extends Deferred
 {
+    private boolean comparing = false;
+
     public DeferredFromAttrs(HyperClient client, SimpleOp op, Object space, Object key,
                                                                         Map map)
                                                             throws HyperClientException,
@@ -35,12 +37,21 @@ public class DeferredFromAttrs extends Deferred
         }
     }
 
+    void setComparing()
+    {
+        comparing = true;
+    }
+
     public Object waitFor() throws HyperClientException, ValueError
     {
         super.waitFor();
         if (status() == hyperclient_returncode.HYPERCLIENT_SUCCESS)
         {
             return new Boolean(true);
+        }
+        else if ( comparing && status() == hyperclient_returncode.HYPERCLIENT_CMPFAIL )
+        {
+            return new Boolean(false);
         }
         else
         {

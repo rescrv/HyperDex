@@ -235,6 +235,16 @@ for name in $* ; do
                   |sed "s/__CAMEL_NAME__/$camel_name/" \
                     >> ${prefix}Op.java
 
+    if [[ $name == "put_if_not_exist" ]]; then
+        async_body="DeferredFromAttrs d
+        = new ${deferred}(this, new ${prefix}Op${camel_name}(this), space, key, map);
+    d.setComparing();
+    return d;
+" 
+    else
+        async_body="return new ${deferred}(this, new ${prefix}Op${camel_name}(this), space, key, map);"
+    fi
+
     cat <<EOF >> async_methods.java
 
   public Deferred async_${name}(Object space, Object key, java.util.Map map)
@@ -243,7 +253,7 @@ for name in $* ; do
                                                                    MemoryError,
                                                                    ValueError
   {
-    return new ${deferred}(this, new ${prefix}Op${camel_name}(this), space, key, map);
+    $async_body
   }
 EOF
 

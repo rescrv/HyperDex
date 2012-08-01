@@ -1,4 +1,5 @@
 put
+put_if_not_exist
 atomic_add
 atomic_sub
 atomic_mul
