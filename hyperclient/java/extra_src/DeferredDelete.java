@@ -2,13 +2,14 @@ package hyperclient;
 
 public class DeferredDelete extends Deferred
 {
-    public DeferredDelete(HyperClient client, String space, String key)
-                                                    throws HyperClientException
+    public DeferredDelete(HyperClient client, Object space, Object key)
+                                                    throws HyperClientException,
+                                                           TypeError
     {
         super(client);
 
-        reqId = client.del(space,
-                           key.getBytes(),
+        reqId = client.del(client.getBytes(space,true),
+                           client.getBytes(key),
                            rc_ptr);
 
         checkReqId(reqId, status());

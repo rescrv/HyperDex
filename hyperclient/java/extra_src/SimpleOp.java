@@ -11,9 +11,9 @@ abstract class SimpleOp
         this.client = client;
     }
 
-    abstract long call(String space, String key,
+    abstract long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr);
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError;
 }
 
 class SimpleOpPut extends SimpleOp
@@ -23,12 +23,30 @@ class SimpleOpPut extends SimpleOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.put(space,
-                               key.getBytes(),
+        return client.put(client.getBytes(space,true),
+                               client.getBytes(key),
+                               attrs, attrs_sz,
+                               rc_ptr);
+    }
+}
+
+class SimpleOpPutIfNotExist extends SimpleOp
+{
+    public SimpleOpPutIfNotExist(HyperClient client)
+    {
+        super(client);
+    }
+
+    long call(Object space, Object key,
+              hyperclient_attribute attrs, long attrs_sz,
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
+    {
+        return client.put_if_not_exist(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -41,12 +59,12 @@ class SimpleOpAtomicAdd extends SimpleOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.atomic_add(space,
-                               key.getBytes(),
+        return client.atomic_add(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -59,12 +77,12 @@ class SimpleOpAtomicSub extends SimpleOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.atomic_sub(space,
-                               key.getBytes(),
+        return client.atomic_sub(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -77,12 +95,12 @@ class SimpleOpAtomicMul extends SimpleOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.atomic_mul(space,
-                               key.getBytes(),
+        return client.atomic_mul(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -95,12 +113,12 @@ class SimpleOpAtomicDiv extends SimpleOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.atomic_div(space,
-                               key.getBytes(),
+        return client.atomic_div(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -113,12 +131,12 @@ class SimpleOpAtomicMod extends SimpleOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.atomic_mod(space,
-                               key.getBytes(),
+        return client.atomic_mod(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -131,12 +149,12 @@ class SimpleOpAtomicAnd extends SimpleOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.atomic_and(space,
-                               key.getBytes(),
+        return client.atomic_and(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -149,12 +167,12 @@ class SimpleOpAtomicOr extends SimpleOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.atomic_or(space,
-                               key.getBytes(),
+        return client.atomic_or(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -167,12 +185,12 @@ class SimpleOpAtomicXor extends SimpleOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.atomic_xor(space,
-                               key.getBytes(),
+        return client.atomic_xor(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -185,12 +203,12 @@ class SimpleOpStringPrepend extends SimpleOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.string_prepend(space,
-                               key.getBytes(),
+        return client.string_prepend(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -203,12 +221,12 @@ class SimpleOpStringAppend extends SimpleOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.string_append(space,
-                               key.getBytes(),
+        return client.string_append(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -221,12 +239,12 @@ class SimpleOpListLpush extends SimpleOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.list_lpush(space,
-                               key.getBytes(),
+        return client.list_lpush(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -239,12 +257,12 @@ class SimpleOpListRpush extends SimpleOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.list_rpush(space,
-                               key.getBytes(),
+        return client.list_rpush(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -257,12 +275,12 @@ class SimpleOpSetAdd extends SimpleOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.set_add(space,
-                               key.getBytes(),
+        return client.set_add(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -275,12 +293,12 @@ class SimpleOpSetRemove extends SimpleOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.set_remove(space,
-                               key.getBytes(),
+        return client.set_remove(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -293,12 +311,12 @@ class SimpleOpSetIntersect extends SimpleOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.set_intersect(space,
-                               key.getBytes(),
+        return client.set_intersect(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }
@@ -311,12 +329,12 @@ class SimpleOpSetUnion extends SimpleOp
         super(client);
     }
 
-    long call(String space, String key,
+    long call(Object space, Object key,
               hyperclient_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr)
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
     {
-        return client.set_union(space,
-                               key.getBytes(),
+        return client.set_union(client.getBytes(space,true),
+                               client.getBytes(key),
                                attrs, attrs_sz,
                                rc_ptr);
     }

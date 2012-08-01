@@ -7,16 +7,17 @@ public class DeferredGet extends Deferred
     private SWIGTYPE_p_p_hyperclient_attribute attrs_ptr = null;
     private SWIGTYPE_p_size_t attrs_sz_ptr = null;
 
-    public DeferredGet(HyperClient client, String space, String key)
-                                                    throws HyperClientException
+    public DeferredGet(HyperClient client, Object space, Object key)
+                                                    throws HyperClientException,
+                                                           TypeError
     {
         super(client);
 
         attrs_ptr = hyperclient.new_hyperclient_attribute_ptr();
         attrs_sz_ptr = hyperclient.new_size_t_ptr();
 
-        reqId = client.get(space,
-                           key.getBytes(),
+        reqId = client.get(client.getBytes(space,true),
+                           client.getBytes(key),
                            rc_ptr,
                            attrs_ptr, attrs_sz_ptr);
 
@@ -39,7 +40,7 @@ public class DeferredGet extends Deferred
 
             try
             {
-                map = HyperClient.attrs_to_dict(attrs, attrs_sz);
+                map = client.attrs_to_dict(attrs, attrs_sz);
             }
             finally
             {

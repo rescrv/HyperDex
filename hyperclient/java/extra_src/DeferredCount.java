@@ -9,11 +9,11 @@ public class DeferredCount extends Deferred
 
     private int unsafe;
 
-    public DeferredCount(HyperClient client, String space, Map predicate, boolean unsafe)
-                                                    throws HyperClientException,
-                                                           TypeError,
-                                                           ValueError,
-                                                           MemoryError
+    public DeferredCount(HyperClient client, Object space, Map predicate, boolean unsafe)
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   ValueError,
+                                                                   MemoryError
     {
         super(client);
 
@@ -30,7 +30,7 @@ public class DeferredCount extends Deferred
 
         try
         {
-            Vector retvals = HyperClient.predicate_to_c(predicate);
+            Vector retvals = client.predicate_to_c(predicate);
             
             eq = (hyperclient_attribute)(retvals.get(0));
             eq_sz = ((Integer)(retvals.get(1))).intValue();
@@ -39,7 +39,7 @@ public class DeferredCount extends Deferred
 
             res_ptr = hyperclient.new_uint64_t_ptr();
 
-            reqId = client.count(space,
+            reqId = client.count(client.getBytes(space,true),
                                  eq, eq_sz,
                                  rn, rn_sz,
                                  rc_ptr,
