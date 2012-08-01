@@ -1,14 +1,15 @@
 package hyperclient;
 
 import java.util.*;
+import java.io.*;
 
 public class DeferredCondPut extends Deferred
 {
-    public DeferredCondPut(HyperClient client, String space, String key,
+    public DeferredCondPut(HyperClient client, Object space, Object key,
                                                             Map condition, Map value)
-                                                    throws HyperClientException,
-                                                           TypeError,
-                                                           MemoryError
+                                                            throws HyperClientException,
+                                                                   TypeError,
+                                                                   MemoryError
     {
         super(client);
 
@@ -21,13 +22,13 @@ public class DeferredCondPut extends Deferred
         try
         {
             condattrs_sz = condition.size();
-            condattrs = HyperClient.dict_to_attrs(condition);
+            condattrs = client.dict_to_attrs(condition);
 
             attrs_sz = value.size();
-            attrs = HyperClient.dict_to_attrs(value);
+            attrs = client.dict_to_attrs(value);
 	
-            reqId = client.condput(space,
-                                   key.getBytes(),
+            reqId = client.condput(client.getBytes(space,true),
+                                   client.getBytes(key),
                                    condattrs, condattrs_sz,
                                    attrs, attrs_sz,
                                    rc_ptr);

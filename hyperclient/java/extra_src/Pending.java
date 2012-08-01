@@ -2,6 +2,7 @@ package hyperclient;
 
 import java.util.*;
 import java.math.*;
+import java.io.*;
 
 public class Pending
 {
@@ -46,7 +47,8 @@ public class Pending
 
     protected void checkReqIdKeyAttrs(long reqId, hyperclient_returncode status,
                                         hyperclient_attribute attrs, long attrs_sz)
-                                                        throws HyperClientException
+                                                            throws HyperClientException,
+                                                                   TypeError
     {
 	    if (reqId < 0)
 	    {
@@ -55,7 +57,7 @@ public class Pending
             if ( attrs != null && idx >= 0 && idx < attrs_sz )
             {
                 hyperclient_attribute ha = HyperClient.get_attr(attrs,idx);
-                throw new HyperClientException(status,ha.getAttrName());
+                throw new HyperClientException(status,ByteArray.decode(ha.getAttrNameBytes(),client.getDefaultStringEncoding()));
             }
             else
             {
@@ -67,7 +69,8 @@ public class Pending
     protected void checkReqIdKeyAttrs2(long reqId, hyperclient_returncode status,
                                         hyperclient_attribute attrs1, long attrs_sz1,
                                         hyperclient_attribute attrs2, long attrs_sz2)
-                                                        throws HyperClientException
+                                                            throws HyperClientException,
+                                                                   TypeError
     {
 	    if (reqId < 0)
 	    {
@@ -75,12 +78,12 @@ public class Pending
             String attrName = null;
 
             if ( attrs1 != null && idx >= 0 && idx < attrs_sz1 )
-                attrName = HyperClient.get_attr(attrs1,idx).getAttrName(); 
+                attrName = ByteArray.decode(HyperClient.get_attr(attrs1,idx).getAttrNameBytes(),client.getDefaultStringEncoding()); 
 
             idx -= attrs_sz1;
 
             if ( attrs2 != null && idx >= 0 && idx < attrs_sz2)
-                attrName = HyperClient.get_attr(attrs2,idx).getAttrName(); 
+                attrName = ByteArray.decode(HyperClient.get_attr(attrs2,idx).getAttrNameBytes(),client.getDefaultStringEncoding()); 
 
             if ( attrName != null )
             {
@@ -95,7 +98,8 @@ public class Pending
 
     protected void checkReqIdKeyMapAttrs(long reqid, hyperclient_returncode status,
                                          hyperclient_map_attribute attrs, long attrs_sz)
-                                                        throws HyperClientException
+                                                            throws HyperClientException,
+                                                                   TypeError
     {
 	    if (reqId < 0)
 	    {
@@ -108,7 +112,9 @@ public class Pending
                                && idx_bi.compareTo(attrs.getAttrsSz_bi()) < 0 )
             {
                 hyperclient_map_attribute hma = HyperClient.get_map_attr(attrs,idx);
-                throw new HyperClientException(status,hma.getMapAttrName());
+                throw new HyperClientException(status,
+                            ByteArray.decode(hma.getMapAttrNameBytes(),
+                                        client.getDefaultStringEncoding()));
             }
             else
             {
@@ -120,7 +126,8 @@ public class Pending
     protected void checkReqIdSearch(long reqId,  hyperclient_returncode status,
                                     hyperclient_attribute eq, int eq_sz,
                                     hyperclient_range_query rn, int rn_sz)
-                                                        throws HyperClientException
+                                                            throws HyperClientException,
+                                                                   TypeError
     {
         if (reqId < 0)
         {
@@ -128,14 +135,15 @@ public class Pending
             String attrName = null;
 
             if ( idx >= 0 && idx < eq_sz && eq != null )
-                attrName = HyperClient.get_attr(eq,idx).getAttrName(); 
+                attrName = ByteArray.decode(HyperClient.get_attr(eq,idx).getAttrNameBytes(),client.getDefaultStringEncoding()); 
         
             idx -= eq_sz;
 
             if ( idx >= 0 && idx < rn_sz && rn != null )
                 attrName
-                    = HyperClient.get_range_query(rn,idx).getRangeQueryAttrName();
-
+                    = ByteArray.decode(
+                        HyperClient.get_range_query(rn,idx).getRangeQueryAttrNameBytes(),
+                        client.getDefaultStringEncoding());
             if ( attrName != null )
             {
                 throw new HyperClientException(status,attrName);

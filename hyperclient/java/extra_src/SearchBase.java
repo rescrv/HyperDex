@@ -43,7 +43,7 @@ public class SearchBase extends Pending
             attrs_sz = hyperclient.size_t_ptr_value(attrs_sz_ptr);
             try
             {
-                attrsMap =  HyperClient.attrs_to_dict(attrs,attrs_sz);
+                attrsMap =  client.attrs_to_dict(attrs,attrs_sz);
             }
             catch(Exception e) // There's a bug in attrs_to_dict() if exception here. 
             {
