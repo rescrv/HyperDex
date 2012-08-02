@@ -3,16 +3,16 @@ package hyperclient;
 import java.util.*;
 import java.io.UnsupportedEncodingException;
 
-public class ByteArrayKeyedMap<V> extends HashMap<ByteArray,V>
+public class ByteArrayVector extends Vector<ByteArray>
 {
     private String defaultEncoding = "UTF-8";
 
-    public ByteArrayKeyedMap()
+    public ByteArrayVector()
     {
         super();
     }
 
-    public ByteArrayKeyedMap(String defaultEncoding)
+    public ByteArrayVector(String defaultEncoding)
     {
         super();
         this.defaultEncoding = defaultEncoding;
@@ -46,28 +46,18 @@ public class ByteArrayKeyedMap<V> extends HashMap<ByteArray,V>
         }
     }
 
-    public boolean containsKey(Object key)
+    public void add(byte[] elementBytes)
     {
-        return super.containsKey(getByteArrayObjectFromObject(key));
+        super.add(new ByteArray(elementBytes));
     }
 
-    public V get(Object key)
+    public void add(String elementStr) throws TypeError
     {
-        return super.get(getByteArrayObjectFromObject(key));
+        super.add(new ByteArray(elementStr,defaultEncoding));
     }
 
-    public void put(byte[] keyBytes, V val)
+    public boolean contains(Object element)
     {
-        super.put(new ByteArray(keyBytes),val);
-    }
-
-    public void put(String keyStr, V val) throws TypeError
-    {
-        super.put(new ByteArray(keyStr,defaultEncoding),val);
-    }
-
-    public V remove(Object key)
-    {
-        return super.remove(getByteArrayObjectFromObject(key));
+        return super.contains(getByteArrayObjectFromObject(element));
     }
 }

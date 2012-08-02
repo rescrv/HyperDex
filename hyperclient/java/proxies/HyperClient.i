@@ -290,7 +290,7 @@
   java.util.Map attrs_to_dict(hyperclient_attribute attrs, long attrs_sz)
                                                                 throws ValueError
   {
-    ByteArrayKeyedMap map = new ByteArrayKeyedMap(defaultStringEncoding);
+    ByteArrayKeyedMap<Object> map = new ByteArrayKeyedMap<Object>(defaultStringEncoding);
 
     int sz = HyperClient.size_t_to_int(attrs_sz);
 

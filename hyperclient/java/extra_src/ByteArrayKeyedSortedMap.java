@@ -3,16 +3,16 @@ package hyperclient;
 import java.util.*;
 import java.io.UnsupportedEncodingException;
 
-public class ByteArrayKeyedMap<V> extends HashMap<ByteArray,V>
+public class ByteArrayKeyedSortedMap<V> extends TreeMap<ByteArray,V>
 {
     private String defaultEncoding = "UTF-8";
 
-    public ByteArrayKeyedMap()
+    public ByteArrayKeyedSortedMap()
     {
         super();
     }
 
-    public ByteArrayKeyedMap(String defaultEncoding)
+    public ByteArrayKeyedSortedMap(String defaultEncoding)
     {
         super();
         this.defaultEncoding = defaultEncoding;
