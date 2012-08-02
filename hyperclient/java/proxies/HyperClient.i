@@ -290,7 +290,7 @@
   java.util.Map attrs_to_dict(hyperclient_attribute attrs, long attrs_sz)
                                                                 throws ValueError
   {
-    java.util.HashMap<Object,Object> map = new java.util.HashMap<Object,Object>();
+    ByteArrayKeyedMap map = new ByteArrayKeyedMap(defaultStringEncoding);
 
     int sz = HyperClient.size_t_to_int(attrs_sz);
 
@@ -298,21 +298,11 @@
     {
         hyperclient_attribute ha = get_attr(attrs,i);
 
-        String attrName = null;
-
-        try
-        {
-            attrName = new String(ha.getAttrNameBytes(),defaultStringEncoding);
-        }
-        catch(java.io.UnsupportedEncodingException usee)
-        {
-            throw new ValueError("Could not decode bytes using encoding '"
-                                    + defaultStringEncoding +"'");
-        }
+        byte[] attrBytes = ha.getAttrNameBytes();
 
         Object attrValue = ha.getAttrValue(defaultStringEncoding);
 
-        map.put(attrName, attrValue);
+        map.put(attrBytes, attrValue);
     }
 
     return map;
