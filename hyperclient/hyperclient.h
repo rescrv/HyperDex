@@ -102,11 +102,18 @@ struct hyperclient_map_attribute
     enum hyperdatatype value_datatype;
 };
 
+union hyperclient_range_query_union
+{
+    double d;
+    uint64_t i;
+};
+
+
 struct hyperclient_range_query
 {
     const char* attr;
-    uint64_t lower;
-    uint64_t upper;
+    union hyperclient_range_query_union lower_t;
+    union hyperclient_range_query_union upper_t;
 };
 
 /* HyperClient returncode occupies [8448, 8576) */

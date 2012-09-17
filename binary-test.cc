@@ -187,8 +187,8 @@ main(int argc, char* argv[])
 
             hyperclient_range_query rn;
             rn.attr = "num";
-            rn.lower = num;
-            rn.upper = num + 1;
+            rn.lower_t.i = num;
+            rn.upper_t.i = num + 1;
 
             validate_search(&cl, num, space, NULL, 0, &rn, 1, "range");
         }
