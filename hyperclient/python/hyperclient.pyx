@@ -96,11 +96,15 @@ cdef extern from "../hyperclient.h":
         size_t value_sz
         hyperdatatype value_datatype
 
+    cdef union hyperclient_range_query_union:
+        double d
+        uint64_t i
+
     cdef struct hyperclient_range_query:
         char* attr
         unsigned long attr_sz
-        uint64_t lower
-        uint64_t upper
+        hyperclient_range_query_union lower_t
+        hyperclient_range_query_union upper_t
 
     cdef enum hyperclient_returncode:
         HYPERCLIENT_SUCCESS      = 8448
@@ -924,12 +928,18 @@ cdef _predicate_to_c(dict predicate,
                      hyperclient_range_query** rn, size_t* rn_sz):
     cdef uint64_t lower
     cdef uint64_t upper
+    cdef double lower_d
+    cdef double upper_d
     equalities = []
     ranges = []
     for attr, params in predicate.iteritems():
         if isinstance(params, tuple):
-            (lower, upper) = params
-            ranges.append((attr, lower, upper))
+            if isinstance(params[0], (int, long)):
+                (lower, upper) = params
+                ranges.append((attr, lower, upper))
+            elif isinstance(params[0], float):
+                (lower_d, upper_d) = params
+                ranges.append((attr, lower_d, upper_d))
         elif isinstance(params, int):
             equalities.append((attr, params))
         elif isinstance(params, bytes):
@@ -937,7 +947,7 @@ cdef _predicate_to_c(dict predicate,
         elif isinstance(params, float):
             equalities.append((attr, params))
         else:
-            errstr = "Attribute '{attr}' has incorrect type (expected int, float, (int, int) or bytes, got {type}"
+            errstr = "Attribute '{attr}' has incorrect type (expected int, float, (int, int), (float, float) or bytes, got {type}"
             raise TypeError(errstr.format(attr=attr, type=str(type(params))[7:-2]))
     eq_sz[0] = len(equalities)
     rn_sz[0] = len(ranges)
@@ -945,10 +955,14 @@ cdef _predicate_to_c(dict predicate,
     if rn[0] == NULL:
         raise MemoryError()
     backings = _dict_to_attrs(equalities, eq)
-    for i, (attr, lower, upper) in enumerate(ranges):
+    for i, (attr, bottom, top) in enumerate(ranges):
         rn[i].attr = attr
-        rn[i].lower = lower
-        rn[i].upper = upper
+        if isinstance(bottom, (int, long)):
+            rn[i].lower_t.i = bottom
+            rn[i].upper_t.i = top
+        elif isinstance(bottom, float):
+            rn[i].lower_t.d = bottom
+            rn[i].upper_t.d = top
 
 
 cdef class DeferredGroupDel(Deferred):
