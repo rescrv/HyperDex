@@ -77,7 +77,7 @@ append_only_log :: writable_segment :: ~writable_segment() throw ()
 inline bool
 append_only_log :: writable_segment :: open(const char* filename)
 {
-    int fd = ::open(filename, O_RDWR|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR);
+    int fd = ::open(filename, O_RDWR|O_CREAT, S_IRUSR|S_IWUSR);
 
     if (fd < 0)
     {

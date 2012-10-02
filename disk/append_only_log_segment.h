@@ -38,9 +38,10 @@ class append_only_log::segment
         ~segment() throw ();
 
     public:
-        e::intrusive_ptr<block> read(uint64_t which);
+        uint8_t* read(uint64_t which);
         e::intrusive_ptr<block> read_index();
         void set_mapping(void* base);
+        bool sync();
 
     private:
         friend class e::intrusive_ptr<segment>;

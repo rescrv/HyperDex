@@ -47,6 +47,7 @@ class append_only_log::segment_list
         e::intrusive_ptr<segment_list> add(uint64_t lower_bound, writable_segment* ws);
         uint64_t get_lower_bound(size_t i);
         segment* get_segment(size_t i);
+        bool sync(size_t i);
 
     private:
         friend class e::intrusive_ptr<segment_list>;
@@ -108,6 +109,13 @@ append_only_log :: segment_list :: get_segment(size_t i)
 {
     assert(i < m_sz);
     return m_segments[i].second.get();
+}
+
+inline bool
+append_only_log :: segment_list :: sync(size_t i)
+{
+    assert(i < m_sz);
+    return m_segments[i].second->sync();
 }
 
 inline void

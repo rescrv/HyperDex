@@ -25,6 +25,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// POSIX
+#include <sys/mman.h>
+
 // e
 #include <e/atomic.h>
 
@@ -43,12 +46,10 @@ append_only_log :: segment :: ~segment() throw ()
 {
 }
 
-e::intrusive_ptr<append_only_log::block>
+uint8_t*
 append_only_log :: segment :: read(uint64_t which)
 {
-    e::intrusive_ptr<block> b(new block());
-    memmove(b->data, m_data + (which + 1) * BLOCK_SIZE, BLOCK_SIZE);
-    return b;
+    return m_data + (which + 1) * BLOCK_SIZE;
 }
 
 e::intrusive_ptr<append_only_log::block>
@@ -63,6 +64,12 @@ void
 append_only_log :: segment :: set_mapping(void* base)
 {
     m_data = static_cast<uint8_t*>(base);
+}
+
+bool
+append_only_log :: segment :: sync()
+{
+    return msync(m_data, SEGMENT_SIZE, MS_SYNC) == 0;
 }
 
 void
