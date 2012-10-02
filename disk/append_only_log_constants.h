@@ -1,4 +1,4 @@
-// Copyright (c) 2011, Cornell University
+// Copyright (c) 2012, Robert Escriva
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,20 +25,29 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperspacehashing_hashes_h_
-#define hyperspacehashing_hashes_h_
+#ifndef append_only_log_constants_h_
+#define append_only_log_constants_h_
 
-namespace hyperspacehashing
-{
+// C
+#include <stdint.h>
 
-// 0 is reserved for internal use.
-enum hash_t
-{
-    EQUALITY    = 1,
-    RANGE       = 2,
-    NONE        = 3
-};
+#define ENTRY_HEADER_SIZE (sizeof(uint32_t) /*hash*/ \
+                           + sizeof(uint16_t) /*len*/ \
+                           + sizeof(uint8_t) /*type*/ \
+                           + sizeof(uint16_t) + sizeof(uint32_t) /*id*/)
+// Must be a power of 2
+#define BLOCK_SIZE 16384
+#define BLOCKS_PER_SEGMENT ((BLOCK_SIZE - sizeof(uint32_t) - sizeof(uint64_t)) / 4)
+#define SEGMENT_SIZE (BLOCKS_PER_SEGMENT * BLOCK_SIZE + BLOCK_SIZE)
 
-} // namespace hyperspacehashing
+#define MAX_WRITE_SIZE ((BLOCKS_PER_SEGMENT - 1) * (BLOCK_SIZE - ENTRY_HEADER_SIZE))
 
-#endif // hyperspacehashing_hashes_h_
+#define ID_UPPER_BOUND (1ULL << 48ULL)
+
+#define TYPE_FULL 1
+#define TYPE_FIRST 2
+#define TYPE_MIDDLE 3
+#define TYPE_LAST 4
+#define TYPE_REMOVED 5
+
+#endif // append_only_log_constants_h_

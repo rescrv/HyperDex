@@ -1027,14 +1027,14 @@ hyperclient :: prepare_searchop(const char* space,
             return -1 - eq_sz - i;
         }
 
-        if (sc->attrs[attrnum].type != HYPERDATATYPE_INT64)
+        if ((sc->attrs[attrnum].type != HYPERDATATYPE_INT64) && (sc->attrs[attrnum].type != HYPERDATATYPE_FLOAT))
         {
             *status = HYPERCLIENT_WRONGTYPE;
             return -1 - eq_sz - i;
         }
 
         seen.set(attrnum);
-        s->range_set(attrnum, rn[i].lower, rn[i].upper);
+        s->range_set(attrnum, rn[i].lower_t.i, rn[i].upper_t.i);
     }
 
     if (attr)

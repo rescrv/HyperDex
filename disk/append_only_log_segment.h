@@ -1,4 +1,4 @@
-// Copyright (c) 2011, Cornell University
+// Copyright (c) 2012, Robert Escriva
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,20 +25,40 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperspacehashing_hashes_h_
-#define hyperspacehashing_hashes_h_
+#ifndef append_only_log_segment_h_
+#define append_only_log_segment_h_
 
-namespace hyperspacehashing
-{
+// append only log
+#include "append_only_log.h"
 
-// 0 is reserved for internal use.
-enum hash_t
+class append_only_log::segment
 {
-    EQUALITY    = 1,
-    RANGE       = 2,
-    NONE        = 3
+    public:
+        segment();
+        ~segment() throw ();
+
+    public:
+        uint8_t* read(uint64_t which);
+        e::intrusive_ptr<block> read_index();
+        void set_mapping(void* base);
+        bool sync();
+
+    private:
+        friend class e::intrusive_ptr<segment>;
+
+    private:
+        segment(const segment&);
+
+    private:
+        void inc();
+        void dec();
+
+    private:
+        segment& operator = (const segment&);
+
+    private:
+        uint64_t m_ref;
+        uint8_t* m_data;
 };
 
-} // namespace hyperspacehashing
-
-#endif // hyperspacehashing_hashes_h_
+#endif // append_only_log_segment_h_

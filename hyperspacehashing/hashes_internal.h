@@ -49,7 +49,6 @@ cityhash(const e::slice& buf);
 uint64_t
 lendian(const e::slice& buf);
 
-
 } // namespace hyperspacehashing
 
 #endif // hyperspacehashing_hashes_internal_h_

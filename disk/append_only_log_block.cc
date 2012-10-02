@@ -1,4 +1,4 @@
-// Copyright (c) 2011, Cornell University
+// Copyright (c) 2012, Robert Escriva
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,20 +25,35 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperspacehashing_hashes_h_
-#define hyperspacehashing_hashes_h_
+// e
+#include <e/atomic.h>
 
-namespace hyperspacehashing
+// append only log
+#include "append_only_log_block.h"
+
+append_only_log :: block :: block()
+    //: data() This is commented out to make things fast
+    : m_ref(0)
 {
+}
 
-// 0 is reserved for internal use.
-enum hash_t
+append_only_log :: block :: ~block() throw ()
 {
-    EQUALITY    = 1,
-    RANGE       = 2,
-    NONE        = 3
-};
+}
 
-} // namespace hyperspacehashing
+void
+append_only_log :: block :: inc()
+{
+    e::atomic::increment_64_nobarrier(&m_ref, 1);
+}
 
-#endif // hyperspacehashing_hashes_h_
+void
+append_only_log :: block :: dec()
+{
+    e::atomic::increment_64_nobarrier(&m_ref, -1);
+
+    if (m_ref == 0)
+    {
+        delete this;
+    }
+}

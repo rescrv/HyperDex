@@ -998,7 +998,7 @@ hyperdex :: configuration_parser :: attrs_to_hashfuncs(const subspaceid& ssi,
                     hfuncs.push_back(hyperspacehashing::RANGE);
                     break;
                 case HYPERDATATYPE_FLOAT:
-                    hfuncs.push_back(hyperspacehashing::EQUALITY);
+                    hfuncs.push_back(hyperspacehashing::RANGE);
                     break;
                 case HYPERDATATYPE_GENERIC:
                 case HYPERDATATYPE_LIST_GENERIC:
