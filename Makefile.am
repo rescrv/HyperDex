@@ -26,6 +26,7 @@
 ## POSSIBILITY OF SUCH DAMAGE.
 
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
+AM_CPPFLAGS = $(E_CPPFLAGS)
 AM_CXXFLAGS = $(WANAL_CXXFLAGS) $(COVERAGE_CXXFLAGS)
 
 EXTRA_DIST = \
@@ -71,15 +72,15 @@ noinst_PROGRAMS = \
 
 check_PROGRAMS = \
 			$(libhyperspacehashing_check_programs) \
-			$(libhyperdisk_check_programs)
+			$(libhyperdisk_check_programs) \
+			$(disk_check_programs)
 
 bin_SCRIPTS = \
 			hyperdex-coordinator \
 			hyperdex-coordinator-control
 
 TESTS = \
-			$(libhyperspacehashing_tests) \
-			$(libhyperdisk_tests)
+			$(disk_tests)
 
 nobase_python_PYTHON = \
 			hypercoordinator/__init__.py \
@@ -214,6 +215,25 @@ hyperspacehashing_utils_cfloat_CPPFLAGS = \
 			$(CPPFLAGS)
 
 ################################################################################
+##################################### Disk #####################################
+################################################################################
+
+#################################### Library ###################################
+
+##################################### Tests ####################################
+
+if HAVE_GTEST
+disk_check_programs = \
+		disk/test/cuckoo_table
+disk_tests = $(disk_check_programs)
+
+disk_test_cuckoo_table_SOURCES = runner.cc disk/test/cuckoo_table.cc disk/cuckoo_table.cc
+disk_test_cuckoo_table_LDADD = $(COVERAGE_LDADD) $(GTEST_LIBS)
+endif
+
+##################################### Utils ####################################
+
+################################################################################
 ################################### HyperDisk ##################################
 ################################################################################
 
@@ -235,6 +255,7 @@ libhyperdisk_noinst_headers = \
 			hyperdisk/shard_vector.h
 
 libhyperdisk_la_SOURCES = \
+			disk/cuckoo_table.cc \
 			hyperdisk/disk.cc \
 			hyperdisk/reference.cc \
 			hyperdisk/shard.cc \
