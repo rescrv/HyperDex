@@ -65,6 +65,19 @@ datatypes/libhyperclient_la-write.lo
 datatypes/libhyperclient_la-write.o
 depcomp
 .deps/
+disk/cuckoo_index.o
+disk/cuckoo_table.o
+disk/.dirstamp
+disk/libhyperdisk_la-cuckoo_index.lo
+disk/libhyperdisk_la-cuckoo_index.o
+disk/libhyperdisk_la-cuckoo_table.lo
+disk/libhyperdisk_la-cuckoo_table.o
+disk/test/cuckoo_index
+disk/test/cuckoo_index.o
+disk/test/cuckoo_table
+disk/test/cuckoo_table.o
+disk/test/.dirstamp
+disk/test/disk_test_cuckoo_table-cuckoo_table.o
 doc/_build/
 doc/HyperDex-0.4.0.pdf
 doc/man/hyperdex-daemon.1
@@ -253,6 +266,7 @@ missing
 py-compile
 replication-stress-test
 replication_stress_test-replication-stress-test.o
+runner.o
 simple-consistency-stress-test
 simple_consistency_stress_test-simple-consistency-stress-test.o
 stamp-h1
