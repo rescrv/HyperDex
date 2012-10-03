@@ -25,56 +25,19 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_disk_cuckoo_table_h_
-#define hyperdex_disk_cuckoo_table_h_
-
-// C
-#include <stdint.h>
-
-// STL
-#include <vector>
-
-// HyperDex
-#include "disk/cuckoo_returncode.h"
+#ifndef hyperdex_disk_cuckoo_returncode_h_
+#define hyperdex_disk_cuckoo_returncode_h_
 
 namespace hyperdex
 {
 
-class cuckoo_table
+enum cuckoo_returncode
 {
-    public:
-        cuckoo_table(void* table);
-        ~cuckoo_table() throw ();
-
-    public:
-        cuckoo_returncode insert(uint64_t key, uint64_t old_val, uint64_t new_val);
-        cuckoo_returncode lookup(uint64_t key, std::vector<uint64_t>* vals);
-        cuckoo_returncode remove(uint64_t key, uint64_t val);
-        cuckoo_returncode split(cuckoo_table* table, uint64_t* lower_bound);
-
-    private:
-        cuckoo_table(const cuckoo_table&);
-
-    private:
-        void get_entry1(uint64_t key, uint64_t val, uint32_t* entry);
-        void get_entry2(uint64_t key, uint64_t val, uint32_t* entry);
-        uint16_t get_index1(uint64_t key);
-        uint16_t get_index2(uint64_t key);
-        uint32_t* get_cache_line1(uint16_t idx);
-        uint32_t* get_cache_line2(uint16_t idx);
-        uint64_t get_key1(uint16_t idx, uint32_t* entry);
-        uint64_t get_key2(uint16_t idx, uint32_t* entry);
-        uint64_t get_val(uint32_t* entry);
-
-    private:
-        cuckoo_table& operator = (const cuckoo_table&);
-
-    private:
-        uint32_t* m_base;
-        bool m_hash_table_full;
-        uint32_t m_entry[3];
+    SUCCESS,
+    NOT_FOUND,
+    FULL
 };
 
 } // namespace hyperdex
 
-#endif // hyperdex_disk_cuckoo_table_h_
+#endif // hyperdex_disk_cuckoo_returncode_h_

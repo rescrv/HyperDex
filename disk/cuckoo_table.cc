@@ -40,6 +40,7 @@
 #define MASK_UPPER_16 4294901760ULL
 #define MASK_LOWER_16 65535ULL
 
+using hyperdex::cuckoo_returncode;
 using hyperdex::cuckoo_table;
 
 cuckoo_table :: cuckoo_table(void* table)
@@ -52,7 +53,7 @@ cuckoo_table :: ~cuckoo_table() throw ()
 {
 }
 
-cuckoo_table::returncode
+cuckoo_returncode
 cuckoo_table :: insert(uint64_t key, uint64_t old_val, uint64_t new_val)
 {
     uint16_t index;
@@ -220,7 +221,7 @@ cuckoo_table :: insert(uint64_t key, uint64_t old_val, uint64_t new_val)
     return FULL;
 }
 
-cuckoo_table::returncode
+cuckoo_returncode
 cuckoo_table :: lookup(uint64_t key, std::vector<uint64_t>* vals)
 {
     uint16_t index;
@@ -259,7 +260,7 @@ cuckoo_table :: lookup(uint64_t key, std::vector<uint64_t>* vals)
 
 #include <iostream>
 
-cuckoo_table::returncode
+cuckoo_returncode
 cuckoo_table :: remove(uint64_t key, uint64_t val)
 {
     // XXX instead of swapping with the back, we should shift all entries to a
@@ -312,6 +313,12 @@ cuckoo_table :: remove(uint64_t key, uint64_t val)
     }
 
     return found ? SUCCESS : NOT_FOUND;
+}
+
+cuckoo_returncode
+cuckoo_table :: split(cuckoo_table* table, uint64_t* lower_bound)
+{
+    abort();
 }
 
 void

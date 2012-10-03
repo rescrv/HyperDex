@@ -218,15 +218,16 @@ hyperspacehashing_utils_cfloat_CPPFLAGS = \
 ##################################### Disk #####################################
 ################################################################################
 
-#################################### Library ###################################
-
 ##################################### Tests ####################################
 
 if HAVE_GTEST
 disk_check_programs = \
+		disk/test/cuckoo_index \
 		disk/test/cuckoo_table
 disk_tests = $(disk_check_programs)
 
+disk_test_cuckoo_index_SOURCES = runner.cc disk/test/cuckoo_index.cc disk/cuckoo_index.cc disk/cuckoo_table.cc
+disk_test_cuckoo_index_LDADD = $(COVERAGE_LDADD) $(GTEST_LIBS)
 disk_test_cuckoo_table_SOURCES = runner.cc disk/test/cuckoo_table.cc disk/cuckoo_table.cc
 disk_test_cuckoo_table_LDADD = $(COVERAGE_LDADD) $(GTEST_LIBS)
 endif
@@ -255,6 +256,7 @@ libhyperdisk_noinst_headers = \
 			hyperdisk/shard_vector.h
 
 libhyperdisk_la_SOURCES = \
+			disk/cuckoo_index.cc \
 			disk/cuckoo_table.cc \
 			hyperdisk/disk.cc \
 			hyperdisk/reference.cc \

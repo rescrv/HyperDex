@@ -34,7 +34,7 @@
 #include <algorithm>
 
 // HyperDex
-#include "disk/cuckoo_table.h"
+#include "disk/cuckoo_index.h"
 
 #pragma GCC diagnostic ignored "-Wswitch-default"
 
@@ -43,16 +43,14 @@ using namespace hyperdex;
 namespace
 {
 
-TEST(CuckooTableTest, CtorDtor)
+TEST(CuckooIndexTest, CtorDtor)
 {
-    std::vector<char> d(65536 * 64 * 2);
-    cuckoo_table ct(&d[0]);
+    cuckoo_index ct;
 }
 
-TEST(CuckooTableTest, Eviction1)
+TEST(CuckooIndexTest, Eviction1)
 {
-    std::vector<char> d(65536 * 64 * 2, 0);
-    cuckoo_table ct(&d[0]);
+    cuckoo_index ct;
     cuckoo_returncode rc;
     std::vector<uint64_t> vals;
 
@@ -249,16 +247,11 @@ TEST(CuckooTableTest, Eviction1)
     ASSERT_EQ(SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011e021e031eULL, vals[0]);
-
-    // Now we try to add and its full
-    rc = ct.insert(0xcafebabe00000000ULL, 0, 0x414243444546ULL);
-    ASSERT_EQ(FULL, rc);
 }
 
-TEST(CuckooTableTest, Eviction2)
+TEST(CuckooIndexTest, Eviction2)
 {
-    std::vector<char> d(65536 * 64 * 2, 0);
-    cuckoo_table ct(&d[0]);
+    cuckoo_index ct;
     cuckoo_returncode rc;
     std::vector<uint64_t> vals;
 
@@ -454,16 +447,11 @@ TEST(CuckooTableTest, Eviction2)
     ASSERT_EQ(SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011e021e031eULL, vals[0]);
-
-    // Now we try to add and its full
-    rc = ct.insert(0xcafebabe00000000ULL, 0, 0x414243444546ULL);
-    ASSERT_EQ(FULL, rc);
 }
 
-TEST(CuckooTableTest, RemoveOldest)
+TEST(CuckooIndexTest, RemoveOldest)
 {
-    std::vector<char> d(65536 * 64 * 2, 0);
-    cuckoo_table ct(&d[0]);
+    cuckoo_index ct;
     cuckoo_returncode rc;
     std::vector<uint64_t> vals;
 
@@ -713,10 +701,9 @@ TEST(CuckooTableTest, RemoveOldest)
     ASSERT_EQ(0, vals.size());
 }
 
-TEST(CuckooTableTest, RemoveNewest)
+TEST(CuckooIndexTest, RemoveNewest)
 {
-    std::vector<char> d(65536 * 64 * 2, 0);
-    cuckoo_table ct(&d[0]);
+    cuckoo_index ct;
     cuckoo_returncode rc;
     std::vector<uint64_t> vals;
 
@@ -966,10 +953,9 @@ TEST(CuckooTableTest, RemoveNewest)
     ASSERT_EQ(0, vals.size());
 }
 
-TEST(CuckooTableTest, RemoveMiddle)
+TEST(CuckooIndexTest, RemoveMiddle)
 {
-    std::vector<char> d(65536 * 64 * 2, 0);
-    cuckoo_table ct(&d[0]);
+    cuckoo_index ct;
     cuckoo_returncode rc;
     std::vector<uint64_t> vals;
 
@@ -1217,6 +1203,45 @@ TEST(CuckooTableTest, RemoveMiddle)
     ASSERT_EQ(NOT_FOUND, rc);
     std::sort(vals.begin(), vals.end());
     ASSERT_EQ(0, vals.size());
+}
+
+TEST(CuckooIndexTest, OneMillionInserts)
+{
+#define ONE_MILLION 1000000
+    cuckoo_index ct;
+    cuckoo_returncode rc;
+
+    for (uint64_t i = 1; i <= ONE_MILLION; ++i)
+    {
+        rc = ct.insert(i, 0, 0xdeadbeef + i);
+        ASSERT_EQ(SUCCESS, rc);
+    }
+
+    for (uint64_t i = 1; i <= ONE_MILLION; ++i)
+    {
+        std::vector<uint64_t> vals;
+        rc = ct.lookup(i, &vals);
+        ASSERT_EQ(SUCCESS, rc);
+    }
+
+    for (uint64_t i = 1; i <= ONE_MILLION; ++i)
+    {
+        rc = ct.remove(i, 0xdeadbeef + i);
+        ASSERT_EQ(SUCCESS, rc);
+    }
+
+    for (uint64_t i = 1; i <= ONE_MILLION; ++i)
+    {
+        std::vector<uint64_t> vals;
+        rc = ct.lookup(i, &vals);
+        ASSERT_EQ(NOT_FOUND, rc);
+    }
+
+    for (uint64_t i = 1; i <= ONE_MILLION; ++i)
+    {
+        rc = ct.remove(i, 0xdeadbeef + i);
+        ASSERT_EQ(NOT_FOUND, rc);
+    }
 }
 
 } // namespace

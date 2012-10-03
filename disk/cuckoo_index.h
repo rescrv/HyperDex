@@ -25,8 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_disk_cuckoo_table_h_
-#define hyperdex_disk_cuckoo_table_h_
+#ifndef hyperdex_disk_cuckoo_index_h_
+#define hyperdex_disk_cuckoo_index_h_
 
 // C
 #include <stdint.h>
@@ -34,47 +34,44 @@
 // STL
 #include <vector>
 
+// po6
+#include <po6/threads/spinlock.h>
+
+// e
+#include <e/intrusive_ptr.h>
+#include <e/striped_lock.h>
+
 // HyperDex
 #include "disk/cuckoo_returncode.h"
 
 namespace hyperdex
 {
 
-class cuckoo_table
+class cuckoo_index
 {
     public:
-        cuckoo_table(void* table);
-        ~cuckoo_table() throw ();
+        cuckoo_index();
+        ~cuckoo_index() throw ();
+
+    public:
+        cuckoo_returncode close(const char* path);
 
     public:
         cuckoo_returncode insert(uint64_t key, uint64_t old_val, uint64_t new_val);
         cuckoo_returncode lookup(uint64_t key, std::vector<uint64_t>* vals);
         cuckoo_returncode remove(uint64_t key, uint64_t val);
-        cuckoo_returncode split(cuckoo_table* table, uint64_t* lower_bound);
 
     private:
-        cuckoo_table(const cuckoo_table&);
+        class table_list;
+        class table_info;
+        typedef e::intrusive_ptr<table_list> table_list_ptr;
 
     private:
-        void get_entry1(uint64_t key, uint64_t val, uint32_t* entry);
-        void get_entry2(uint64_t key, uint64_t val, uint32_t* entry);
-        uint16_t get_index1(uint64_t key);
-        uint16_t get_index2(uint64_t key);
-        uint32_t* get_cache_line1(uint16_t idx);
-        uint32_t* get_cache_line2(uint16_t idx);
-        uint64_t get_key1(uint16_t idx, uint32_t* entry);
-        uint64_t get_key2(uint16_t idx, uint32_t* entry);
-        uint64_t get_val(uint32_t* entry);
-
-    private:
-        cuckoo_table& operator = (const cuckoo_table&);
-
-    private:
-        uint32_t* m_base;
-        bool m_hash_table_full;
-        uint32_t m_entry[3];
+        table_list_ptr m_tables;
+        po6::threads::spinlock m_tables_lock;
+        e::striped_lock<po6::threads::spinlock> m_table_locks;
 };
 
 } // namespace hyperdex
 
-#endif // hyperdex_disk_cuckoo_table_h_
+#endif // hyperdex_disk_cuckoo_index_h_
