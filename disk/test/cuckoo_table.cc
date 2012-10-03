@@ -1219,4 +1219,80 @@ TEST(CuckooTableTest, RemoveMiddle)
     ASSERT_EQ(0, vals.size());
 }
 
+TEST(CuckooTableTest, Split)
+{
+    std::vector<char> d(65536 * 64 * 2, 0);
+    std::vector<char> d1(65536 * 64 * 2, 0);
+    std::vector<char> d2(65536 * 64 * 2, 0);
+    cuckoo_table ct(&d[0]);
+    cuckoo_table ct1(&d1[0]);
+    cuckoo_table ct2(&d2[0]);
+    std::vector<uint64_t> vals;
+    cuckoo_returncode rc;
+
+    for (uint64_t iter = 1; iter <= 10; ++iter)
+    {
+        for (uint64_t bucket = 0; bucket < 65536; ++bucket)
+        {
+            uint64_t key = iter;
+            key <<= 16;
+            key |= bucket;
+            key <<= 16;
+            key |= bucket;
+            rc = ct.insert(key, 0, key + 5);
+            ASSERT_EQ(SUCCESS, rc);
+        }
+    }
+
+    uint64_t lower_bound;
+    rc = ct.split(&ct1, &ct2, &lower_bound);
+    ASSERT_EQ(0x0600000000, lower_bound);
+
+    for (uint64_t iter = 1; iter <= 10; ++iter)
+    {
+        for (uint64_t bucket = 0; bucket < 65536; ++bucket)
+        {
+            uint64_t key = iter;
+            key <<= 16;
+            key |= bucket;
+            key <<= 16;
+            key |= bucket;
+            // Check original table
+            rc = ct.lookup(key, &vals);
+            ASSERT_EQ(SUCCESS, rc);
+            ASSERT_EQ(1, vals.size());
+            ASSERT_EQ(key + 5, vals[0]);
+
+            // Check first new table
+            vals.clear();
+            rc = ct1.lookup(key, &vals);
+
+            if (iter <= 5)
+            {
+                ASSERT_EQ(SUCCESS, rc);
+                ASSERT_EQ(1, vals.size());
+                ASSERT_EQ(key + 5, vals[0]);
+            }
+            else
+            {
+                ASSERT_EQ(NOT_FOUND, rc);
+            }
+
+            // Check second new table
+            rc = ct2.lookup(key, &vals);
+
+            if (iter > 5)
+            {
+                ASSERT_EQ(SUCCESS, rc);
+                ASSERT_EQ(1, vals.size());
+                ASSERT_EQ(key + 5, vals[0]);
+            }
+            else
+            {
+                ASSERT_EQ(NOT_FOUND, rc);
+            }
+        }
+    }
+}
+
 } // namespace

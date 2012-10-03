@@ -29,6 +29,9 @@
 #include <cassert>
 #include <cstdlib>
 
+// STL
+#include <algorithm>
+
 // HyperDex
 #include "disk/cuckoo_table.h"
 
@@ -46,6 +49,8 @@ using hyperdex::cuckoo_table;
 cuckoo_table :: cuckoo_table(void* table)
     : m_base(static_cast<uint32_t*>(table))
     , m_hash_table_full(false)
+    , m_full_key(0)
+    , m_full_val(0)
 {
 }
 
@@ -56,6 +61,7 @@ cuckoo_table :: ~cuckoo_table() throw ()
 cuckoo_returncode
 cuckoo_table :: insert(uint64_t key, uint64_t old_val, uint64_t new_val)
 {
+    assert(!m_hash_table_full);
     uint16_t index;
     uint32_t entry[3];
     uint32_t* cache_line;
@@ -215,9 +221,8 @@ cuckoo_table :: insert(uint64_t key, uint64_t old_val, uint64_t new_val)
     // If we reach this point, we have a hash table that is full enough to
     // require that we do something to handle it
     m_hash_table_full = true;
-    m_entry[0] = entry[0];
-    m_entry[1] = entry[1];
-    m_entry[2] = entry[2];
+    m_full_key = cuckoo_key;
+    m_full_val = cuckoo_val;
     return FULL;
 }
 
@@ -238,7 +243,11 @@ cuckoo_table :: lookup(uint64_t key, std::vector<uint64_t>* vals)
         if (key == get_key1(index, cache_line + where * 3))
         {
             uint64_t val = get_val(cache_line + where * 3);
-            vals->push_back(val);
+
+            if (val)
+            {
+                vals->push_back(val);
+            }
         }
     }
 
@@ -251,7 +260,11 @@ cuckoo_table :: lookup(uint64_t key, std::vector<uint64_t>* vals)
         if (key == get_key2(index, cache_line + where * 3))
         {
             uint64_t val = get_val(cache_line + where * 3);
-            vals->push_back(val);
+
+            if (val)
+            {
+                vals->push_back(val);
+            }
         }
     }
 
@@ -316,9 +329,113 @@ cuckoo_table :: remove(uint64_t key, uint64_t val)
 }
 
 cuckoo_returncode
-cuckoo_table :: split(cuckoo_table* table, uint64_t* lower_bound)
+cuckoo_table :: split(cuckoo_table* table1,
+                      cuckoo_table* table2,
+                      uint64_t* lower_bound)
 {
-    abort();
+    std::vector<uint64_t> vals;
+    vals.reserve(65536);
+
+    if (m_hash_table_full)
+    {
+        vals.push_back(m_full_key);
+    }
+
+    // Scan the first table to get all keys
+    for (size_t i = 0; i < 65536; ++i)
+    {
+        uint32_t* cache_line = get_cache_line1(i);
+
+        for (size_t where = 0; where < ENTRIES_PER_CACHE_LINE; ++where)
+        {
+            vals.push_back(get_key1(i, cache_line + where * 3));
+        }
+    }
+
+    // Scan the second table to get all keys
+    for (size_t i = 0; i < 65536; ++i)
+    {
+        uint32_t* cache_line = get_cache_line2(i);
+
+        for (size_t where = 0; where < ENTRIES_PER_CACHE_LINE; ++where)
+        {
+            vals.push_back(get_key2(i, cache_line + where * 3));
+        }
+    }
+
+    // Figure out the division point
+    std::sort(vals.begin(), vals.end());
+    *lower_bound = vals[vals.size() / 2];
+
+    // Copy the first table
+    for (size_t i = 0; i < 65536; ++i)
+    {
+        uint32_t* cache_line = get_cache_line1(i);
+        uint32_t* cache_line_1 = table1->get_cache_line1(i);
+        uint32_t* cache_line_2 = table2->get_cache_line1(i);
+
+        for (size_t where = 0; where < ENTRIES_PER_CACHE_LINE; ++where)
+        {
+            uint64_t key = get_key1(i, cache_line + where * 3);
+
+            if (key < *lower_bound)
+            {
+                cache_line_1[0] = cache_line[where * 3 + 0];
+                cache_line_1[1] = cache_line[where * 3 + 1];
+                cache_line_1[2] = cache_line[where * 3 + 2];
+                cache_line_1 += 3;
+            }
+            else
+            {
+                cache_line_2[0] = cache_line[where * 3 + 0];
+                cache_line_2[1] = cache_line[where * 3 + 1];
+                cache_line_2[2] = cache_line[where * 3 + 2];
+                cache_line_2 += 3;
+            }
+        }
+    }
+
+    // Copy the second table
+    for (size_t i = 0; i < 65536; ++i)
+    {
+        uint32_t* cache_line = get_cache_line2(i);
+        uint32_t* cache_line_1 = table1->get_cache_line2(i);
+        uint32_t* cache_line_2 = table2->get_cache_line2(i);
+
+        for (size_t where = 0; where < ENTRIES_PER_CACHE_LINE; ++where)
+        {
+            uint64_t key = get_key2(i, cache_line + where * 3);
+
+            if (key < *lower_bound)
+            {
+                cache_line_1[0] = cache_line[where * 3 + 0];
+                cache_line_1[1] = cache_line[where * 3 + 1];
+                cache_line_1[2] = cache_line[where * 3 + 2];
+                cache_line_1 += 3;
+            }
+            else
+            {
+                cache_line_2[0] = cache_line[where * 3 + 0];
+                cache_line_2[1] = cache_line[where * 3 + 1];
+                cache_line_2[2] = cache_line[where * 3 + 2];
+                cache_line_2 += 3;
+            }
+        }
+    }
+
+    if (m_hash_table_full)
+    {
+        if (m_full_key < *lower_bound)
+        {
+            table1->insert(m_full_key, 0, m_full_val);
+        }
+        else
+        {
+            table2->insert(m_full_key, 0, m_full_val);
+        }
+    }
+
+    return SUCCESS;
 }
 
 void

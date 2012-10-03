@@ -50,13 +50,17 @@ class cuckoo_index::table_list
         ~table_list() throw ();
 
     public:
-        size_t size();
+        e::intrusive_ptr<table_list> expand(size_t table_no,
+                                            e::intrusive_ptr<table_info> newtable1,
+                                            e::intrusive_ptr<table_info> newtable2);
         table_info* info(size_t sz);
+        size_t size();
 
     private:
         friend class e::intrusive_ptr<table_list>;
 
     private:
+        table_list(size_t i);
         table_list(const table_list&);
 
     private:
@@ -160,12 +164,17 @@ cuckoo_index :: insert(uint64_t key, uint64_t old_val, uint64_t new_val)
                 abort();
         }
 
-        abort();
-        e::intrusive_ptr<table_info> newtable = new table_info();
-        newtable->lock = 0;
-        t->info(table_no)->table.split(&newtable->table, &newtable->lower_bound);
+        e::intrusive_ptr<table_info> newtable1 = new table_info();
+        e::intrusive_ptr<table_info> newtable2 = new table_info();
+        newtable1->lock = 0;
+        newtable2->lock = 0;
+        newtable1->lower_bound = t->info(table_no)->lower_bound;
+        t->info(table_no)->table.split(&newtable1->table, &newtable2->table, &newtable2->lower_bound);
 
-        // XXX replace m_tables
+        {
+            po6::threads::spinlock::hold hold2(&m_tables_lock);
+            m_tables = m_tables->expand(table_no, newtable1, newtable2);
+        }
     }
 }
 
@@ -247,10 +256,34 @@ cuckoo_index :: table_list :: ~table_list() throw ()
     delete[] m_tables;
 }
 
-size_t
-cuckoo_index :: table_list :: size()
+e::intrusive_ptr<cuckoo_index::table_list>
+cuckoo_index :: table_list :: expand(size_t table_no,
+                                     e::intrusive_ptr<table_info> newtable1,
+                                     e::intrusive_ptr<table_info> newtable2)
 {
-    return m_sz;
+    assert(table_no < m_sz);
+    e::intrusive_ptr<table_list> t = new table_list(m_sz + 1);
+    size_t i = 0;
+    size_t j = 0;
+
+    while (i < t->m_sz)
+    {
+        if (i == table_no)
+        {
+            t->m_tables[i + 0] = newtable1;
+            t->m_tables[i + 1] = newtable2;
+            i += 2;
+        }
+        else
+        {
+            t->m_tables[i] = m_tables[j];
+        }
+
+        ++i;
+        ++j;
+    }
+
+    return t;
 }
 
 cuckoo_index::table_info*
@@ -258,6 +291,12 @@ cuckoo_index :: table_list :: info(size_t i)
 {
     assert(i < m_sz);
     return m_tables[i].get();
+}
+
+size_t
+cuckoo_index :: table_list :: size()
+{
+    return m_sz;
 }
 
 void
@@ -275,6 +314,13 @@ cuckoo_index :: table_list :: dec()
     {
         delete this;
     }
+}
+
+cuckoo_index :: table_list :: table_list(size_t i)
+    : m_ref(0)
+    , m_sz(i)
+    , m_tables(new e::intrusive_ptr<table_info>[i])
+{
 }
 
 cuckoo_index :: table_info :: table_info()

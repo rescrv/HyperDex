@@ -1215,6 +1215,9 @@ TEST(CuckooIndexTest, OneMillionInserts)
     {
         rc = ct.insert(i, 0, 0xdeadbeef + i);
         ASSERT_EQ(SUCCESS, rc);
+        std::vector<uint64_t> vals;
+        rc = ct.lookup(i, &vals);
+        ASSERT_EQ(SUCCESS, rc);
     }
 
     for (uint64_t i = 1; i <= ONE_MILLION; ++i)

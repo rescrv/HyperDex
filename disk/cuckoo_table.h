@@ -50,7 +50,7 @@ class cuckoo_table
         cuckoo_returncode insert(uint64_t key, uint64_t old_val, uint64_t new_val);
         cuckoo_returncode lookup(uint64_t key, std::vector<uint64_t>* vals);
         cuckoo_returncode remove(uint64_t key, uint64_t val);
-        cuckoo_returncode split(cuckoo_table* table, uint64_t* lower_bound);
+        cuckoo_returncode split(cuckoo_table* table1, cuckoo_table* table2, uint64_t* lower_bound);
 
     private:
         cuckoo_table(const cuckoo_table&);
@@ -72,7 +72,8 @@ class cuckoo_table
     private:
         uint32_t* m_base;
         bool m_hash_table_full;
-        uint32_t m_entry[3];
+        uint64_t m_full_key;
+        uint64_t m_full_val;
 };
 
 } // namespace hyperdex
