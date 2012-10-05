@@ -3,6 +3,11 @@
 //
 %ignore hyperclient_range_query::attr;
 
+// No need to expose upper_t and lower_t in java
+//
+%ignore hyperclient_range_query::upper_t;
+%ignore hyperclient_range_query::lower_t;
+
 %typemap(javacode) hyperclient_range_query
 %{
   byte[] getRangeQueryAttrNameBytes()

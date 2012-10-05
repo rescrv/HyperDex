@@ -202,8 +202,23 @@
         if ((buf = (char *)calloc(attr_sz+1,sizeof(char))) == NULL) return 0;
         memcpy(buf,attr,attr_sz);
         rq->attr = buf;
-        rq->lower = lower;
-        rq->upper = upper;
+        (rq->lower_t).i = lower;
+        (rq->upper_t).i = upper;
+        return 1;
+    }
+
+    static int write_range_query(hyperclient_range_query *rq,
+                                   const char *attr, size_t attr_sz,
+                                   double lower,
+                                   double upper)
+    {
+        char *buf;
+
+        if ((buf = (char *)calloc(attr_sz+1,sizeof(char))) == NULL) return 0;
+        memcpy(buf,attr,attr_sz);
+        rq->attr = buf;
+        (rq->lower_t).d = lower;
+        (rq->upper_t).d = upper;
         return 1;
     }
 
@@ -403,6 +418,30 @@
     return retType;
   }
 
+  // write_range_query private static method expects (lower,upper) to be of types
+  // (Long, Long) or (Double,Double)
+  //
+  private static void write_range_query(hyperclient_range_query rq, byte[] attr,
+                                        Object lower, Object upper) throws MemoryError
+  {
+      if ( lower instanceof Long ) // then upper MUST be Long at this point
+      {
+          if ( HyperClient.write_range_query(rq,attr,
+                    ((Long)lower).longValue(),((Long)upper).longValue()) == 0 )
+          {
+              throw new MemoryError();
+          }
+      }
+      else // lower and upper must both be Double at this point 
+      {
+          if ( HyperClient.write_range_query(rq,attr,
+                    ((Double)lower).doubleValue(),((Double)upper).doubleValue()) == 0 )
+          {
+              throw new MemoryError();
+          }
+      }
+  }
+
   // Using a Vector retvals to return multiple values.
   //
   // retvals at 0 - eq
@@ -443,7 +482,7 @@
               throw new TypeError("Cannot search with a null criteria");
 
 
-          String errStr = "Attribute '" + attrStr + "' has incorrect type ( expected Long, Double, String, Map.Entry<Long,Long> or List<Long> (of size 2), but got %s";
+          String errStr = "Attribute '" + attrStr + "' has incorrect type ( expected Long, Double, String, Map.Entry<Long,Long>, Map.Entry<Double,Double>, List<Long> or List<Double> (List being of size 2), but got %s";
 
           if ( isBytes(params) || params instanceof Long || params instanceof Double )
           {
@@ -453,19 +492,15 @@
           {
               if ( params instanceof java.util.Map.Entry )
               {
-                  try
-                  {
-                      long lower
-                        = ((Long)((java.util.Map.Entry)params).getKey()).longValue();
+                  Object lower = ((java.util.Map.Entry)params).getKey();
+                  Object upper = ((java.util.Map.Entry)params).getValue();
 
-                      long upper
-                        = ((Long)((java.util.Map.Entry)params).getValue()).longValue();
-                  }
-                  catch(Exception e)
+                  if ( ! ( lower instanceof Long && upper instanceof Long ) &&
+                       ! ( lower instanceof Double && upper instanceof Double ) )
                   {
                       throw
                           new TypeError(
-                                String.format(errStr,params.getClass().getName()));
+                              String.format(errStr,params.getClass().getName()));
                   }
               }
               else if ( params instanceof java.util.List )
@@ -481,7 +516,12 @@
                   {
                       throw te;
                   }
-                  catch (Exception e)
+
+                  Object lower = ((java.util.List)params).get(0);
+                  Object upper = ((java.util.List)params).get(1);
+
+                  if ( ! ( lower instanceof Long && upper instanceof Long ) &&
+                       ! ( lower instanceof Double && upper instanceof Double ) )
                   {
                       throw
                           new TypeError(
@@ -524,24 +564,23 @@
 
               Object params = ranges.get(attr);
 
-              long lower = 0;
-              long upper = 0;
+              hyperclient_range_query rq = HyperClient.get_range_query(rn,i);
 
               if ( params instanceof java.util.Map.Entry )
               {
-                  lower = (Long)(((java.util.Map.Entry)params).getKey());
-                  upper = (Long)(((java.util.Map.Entry)params).getValue());
+                  Object lower = ((java.util.Map.Entry)params).getKey();
+                  Object upper = ((java.util.Map.Entry)params).getValue();
+
+                  write_range_query(rq,attr.getBytes(),lower,upper);
+
               }
               else // Must be a List of Longs of size = 2
               {
-                  lower = (Long)(((java.util.List)params).get(0));
-                  upper = (Long)(((java.util.List)params).get(1));
+                  Object lower = ((java.util.List)params).get(0);
+                  Object upper = ((java.util.List)params).get(1);
+
+                  write_range_query(rq,attr.getBytes(),lower,upper);
               }
-
-              hyperclient_range_query rq = HyperClient.get_range_query(rn,i);
-
-              if ( HyperClient.write_range_query(rq,attr.getBytes(),lower,upper) == 0 )
-                  throw new MemoryError();
 
               i++;
           }

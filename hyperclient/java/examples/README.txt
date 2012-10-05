@@ -4,3 +4,4 @@ INSTRUCTIONS:
 javac HyperTest.java
 javac HyperAllTypes.java
 javac HyperBinaryTest.java
+javac HyperSearchFloatRange.java
