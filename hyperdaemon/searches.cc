@@ -33,21 +33,21 @@
 // e
 #include <e/endian.h>
 
-// HyperDisk
-#include "hyperdisk/hyperdisk/disk.h"
-#include "hyperdisk/hyperdisk/returncode.h"
-
 // HyperDex
+#include "disk/disk_reference.h"
+#include "disk/search_snapshot.h"
+#include "daemon/datalayer.h"
 #include "hyperdex/hyperdex/packing.h"
 
 // HyperDaemon
-#include "hyperdaemon/datalayer.h"
 #include "hyperdaemon/logical.h"
 #include "hyperdaemon/searches.h"
 
 using hyperdex::coordinatorlink;
+using hyperdex::disk_reference;
 using hyperdex::entityid;
 using hyperdex::regionid;
+using hyperdex::search_snapshot;
 using hyperspacehashing::search;
 using hyperspacehashing::mask::coordinate;
 
@@ -57,8 +57,7 @@ class hyperdaemon::searches::search_state
         search_state(const hyperdex::regionid& region,
                      const hyperspacehashing::mask::coordinate& search_coord,
                      std::auto_ptr<e::buffer> msg,
-                     const hyperspacehashing::search& terms,
-                     e::intrusive_ptr<hyperdisk::snapshot> snap);
+                     const hyperspacehashing::search& terms);
         ~search_state() throw ();
 
     public:
@@ -67,7 +66,7 @@ class hyperdaemon::searches::search_state
         const hyperspacehashing::mask::coordinate search_coord;
         const std::auto_ptr<e::buffer> backing;
         hyperspacehashing::search terms;
-        e::intrusive_ptr<hyperdisk::snapshot> snap;
+        search_snapshot snap;
 
     private:
         friend class e::intrusive_ptr<search_state>;
@@ -109,7 +108,7 @@ class hyperdaemon::searches::search_id
 };
 
 hyperdaemon :: searches :: searches(coordinatorlink* cl,
-                                    datalayer* data,
+                                    hyperdex::datalayer* data,
                                     logical* comm)
     : m_cl(cl)
     , m_data(data)
@@ -154,7 +153,7 @@ hyperdaemon :: searches :: start(const hyperdex::entityid& us,
 
     if (m_searches.contains(key))
     {
-        LOG(INFO) << "DROPPED";
+        LOG(INFO) << "DROPPED"; // XXX
         return;
     }
 
@@ -163,16 +162,20 @@ hyperdaemon :: searches :: start(const hyperdex::entityid& us,
 
     if (sc->attrs_sz != terms.size())
     {
-        LOG(INFO) << "DROPPED";
+        LOG(INFO) << "DROPPED"; // XXX
         return;
     }
 
-    flush(us.get_region());
-
     hyperspacehashing::mask::hasher hasher(m_config.disk_hasher(us.get_subspace()));
     hyperspacehashing::mask::coordinate coord(hasher.hash(terms));
-    e::intrusive_ptr<hyperdisk::snapshot> snap = m_data->make_snapshot(us.get_region(), terms);
-    e::intrusive_ptr<search_state> state = new search_state(us.get_region(), coord, msg, terms, snap);
+    e::intrusive_ptr<search_state> state = new search_state(us.get_region(), coord, msg, terms);
+
+    if (!m_data->make_search_snapshot(us.get_region(), terms, &state->snap))
+    {
+        LOG(INFO) << "DROPPED"; // XXX
+        return;
+    }
+
     m_searches.insert(key, state);
     next(us, client, search_num, nonce);
 }
@@ -188,33 +191,30 @@ hyperdaemon :: searches :: next(const hyperdex::entityid& us,
 
     if (!m_searches.lookup(key, &state))
     {
-        LOG(INFO) << "DROPPED";
+        LOG(INFO) << "DROPPED"; // XXX
         return;
     }
 
     po6::threads::mutex::hold hold(&state->lock);
 
-    while (state->snap->valid())
+    while (state->snap.has_next())
     {
-        if (state->search_coord.intersects(state->snap->coordinate()))
+        if (state->terms.matches(state->snap.key(), state->snap.value()))
         {
-            if (state->terms.matches(state->snap->key(), state->snap->value()))
-            {
-                size_t sz = m_comm->header_size() + sizeof(uint64_t)
-                          + sizeof(uint32_t) + state->snap->key().size()
-                          + hyperdex::packspace(state->snap->value());
-                std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-                msg->pack_at(m_comm->header_size())
-                    << nonce
-                    << state->snap->key()
-                    << state->snap->value();
-                m_comm->send(us, client, hyperdex::RESP_SEARCH_ITEM, msg);
-                state->snap->next();
-                return;
-            }
+            size_t sz = m_comm->header_size() + sizeof(uint64_t)
+                      + sizeof(uint32_t) + state->snap.key().size()
+                      + hyperdex::packspace(state->snap.value());
+            std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+            msg->pack_at(m_comm->header_size())
+                << nonce
+                << state->snap.key()
+                << state->snap.value();
+            m_comm->send(us, client, hyperdex::RESP_SEARCH_ITEM, msg);
+            state->snap.next();
+            return;
         }
 
-        state->snap->next();
+        state->snap.next();
     }
 
     std::auto_ptr<e::buffer> msg(e::buffer::create(m_comm->header_size() + sizeof(uint64_t)));
@@ -252,32 +252,35 @@ hyperdaemon :: searches :: group_keyop(const hyperdex::entityid& us,
         return;
     }
 
-    flush(us.get_region());
-
     hyperspacehashing::mask::hasher hasher(m_config.disk_hasher(us.get_subspace()));
     hyperspacehashing::mask::coordinate coord(hasher.hash(terms));
-    e::intrusive_ptr<hyperdisk::snapshot> snap = m_data->make_snapshot(us.get_region(), terms);
+    search_snapshot snap;
 
-    while (snap->valid())
+    if (!m_data->make_search_snapshot(us.get_region(), terms, &snap))
     {
-        if (coord.intersects(snap->coordinate()) &&
-            terms.matches(snap->key(), snap->value()))
+        LOG(INFO) << "DROPPED"; // XXX
+        return;
+    }
+
+    while (snap.has_next())
+    {
+        if (terms.matches(snap.key(), snap.value()))
         {
             size_t sz = m_comm->header_size()
                       + sizeof(uint64_t)
                       + sizeof(uint32_t)
-                      + snap->key().size()
+                      + snap.key().size()
                       + remain.size();
             std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
             e::buffer::packer pa = msg->pack_at(m_comm->header_size());
-            pa = pa << static_cast<uint64_t>(0) << snap->key();
+            pa = pa << static_cast<uint64_t>(0) << snap.key();
             pa = pa.copy(remain);
 
             // Figure out who to talk with.
             hyperdex::entityid dst_ent;
             hyperdex::instance dst_inst;
 
-            if (m_config.point_leader_entity(us.get_space(), snap->key(), &dst_ent, &dst_inst))
+            if (m_config.point_leader_entity(us.get_space(), snap.key(), &dst_ent, &dst_inst))
             {
                 m_comm->send(us, dst_ent, reqtype, msg);
             }
@@ -290,7 +293,7 @@ hyperdaemon :: searches :: group_keyop(const hyperdex::entityid& us,
             }
         }
 
-        snap->next();
+        snap.next();
     }
 
     size_t sz = m_comm->header_size() + sizeof(uint64_t) + sizeof(uint16_t);
@@ -319,22 +322,26 @@ hyperdaemon :: searches :: count(const hyperdex::entityid& us,
         return;
     }
 
-    flush(us.get_region());
     hyperspacehashing::mask::hasher hasher(m_config.disk_hasher(us.get_subspace()));
     hyperspacehashing::mask::coordinate coord(hasher.hash(terms));
-    e::intrusive_ptr<hyperdisk::snapshot> snap = m_data->make_snapshot(us.get_region(), terms);
+    search_snapshot snap;
+
+    if (!m_data->make_search_snapshot(us.get_region(), terms, &snap))
+    {
+        LOG(INFO) << "DROPPED"; // XXX
+        return;
+    }
 
     uint64_t result = 0;
 
-    while (snap->valid())
+    while (snap.has_next())
     {
-        if (coord.intersects(snap->coordinate()) &&
-            terms.matches(snap->key(), snap->value()))
+        if (terms.matches(snap.key(), snap.value()))
         {
             ++result;
         }
 
-        snap->next();
+        snap.next();
     }
 
     size_t sz = m_comm->header_size() + sizeof(uint64_t) + sizeof(uint16_t) + sizeof(uint64_t);
@@ -346,17 +353,17 @@ hyperdaemon :: searches :: count(const hyperdex::entityid& us,
 
 struct sorted_search_item
 {
-    sorted_search_item(const hyperdisk::reference& ref,
+    sorted_search_item(const disk_reference& ref,
                        const e::slice& key,
                        const std::vector<e::slice>& value,
                        uint16_t sort_by);
-    hyperdisk::reference ref;
+    disk_reference ref;
     e::slice key;
     std::vector<e::slice> value;
     uint16_t sort_by;
 };
 
-sorted_search_item :: sorted_search_item(const hyperdisk::reference& r,
+sorted_search_item :: sorted_search_item(const disk_reference& r,
                                          const e::slice& k,
                                          const std::vector<e::slice>& v,
                                          uint16_t s)
@@ -367,6 +374,7 @@ sorted_search_item :: sorted_search_item(const hyperdisk::reference& r,
 {
 }
 
+// XXX use the other code for this
 static bool
 sorted_search_lt_string(const sorted_search_item& ssilhs,
                         const sorted_search_item& ssirhs)
@@ -439,8 +447,6 @@ hyperdaemon :: searches :: sorted_search(const hyperdex::entityid& us,
         return;
     }
 
-    flush(us.get_region());
-
     bool (*cmp)(const sorted_search_item& lhs, const sorted_search_item& rhs);
 
     if (sc->attrs[sort_by].type == HYPERDATATYPE_STRING)
@@ -472,7 +478,13 @@ hyperdaemon :: searches :: sorted_search(const hyperdex::entityid& us,
 
     hyperspacehashing::mask::hasher hasher(m_config.disk_hasher(us.get_subspace()));
     hyperspacehashing::mask::coordinate coord(hasher.hash(terms));
-    e::intrusive_ptr<hyperdisk::snapshot> snap = m_data->make_snapshot(us.get_region(), terms);
+    search_snapshot snap;
+
+    if (!m_data->make_search_snapshot(us.get_region(), terms, &snap))
+    {
+        LOG(INFO) << "DROPPED"; // XXX
+        return;
+    }
 
     std::vector<sorted_search_item> top_n;
 
@@ -481,12 +493,11 @@ hyperdaemon :: searches :: sorted_search(const hyperdex::entityid& us,
         top_n.reserve(num);
     }
 
-    while (snap->valid())
+    while (snap.has_next())
     {
-        if (coord.intersects(snap->coordinate()) &&
-            terms.matches(snap->key(), snap->value()))
+        if (terms.matches(snap.key(), snap.value()))
         {
-            top_n.push_back(sorted_search_item(snap->ref(), snap->key(), snap->value(), sort_by));
+            top_n.push_back(sorted_search_item(snap.ref(), snap.key(), snap.value(), sort_by));
             std::push_heap(top_n.begin(), top_n.end(), cmp);
 
             if (top_n.size() > num)
@@ -496,7 +507,7 @@ hyperdaemon :: searches :: sorted_search(const hyperdex::entityid& us,
             }
         }
 
-        snap->next();
+        snap.next();
     }
 
     size_t sz = m_comm->header_size() + sizeof(uint64_t) + sizeof(uint16_t) + sizeof(uint64_t);
@@ -526,51 +537,16 @@ hyperdaemon :: searches :: hash(const search_id& si)
     return si.region.hash() + si.client.hash() + si.search_number;
 }
 
-void
-hyperdaemon :: searches :: flush(const hyperdex::regionid& r)
-{
-    bool done = false;
-
-    while(!done)
-    {
-        hyperdisk::returncode ret = m_data->flush(r, -1, false);
-
-        if (ret == hyperdisk::SUCCESS)
-        {
-            done = true;
-        }
-        else if (ret == hyperdisk::DIDNOTHING)
-        {
-            done = true;
-        }
-        else if (ret == hyperdisk::DATAFULL || ret == hyperdisk::SEARCHFULL)
-        {
-            hyperdisk::returncode ioret;
-            ioret = m_data->do_mandatory_io(r);
-
-            if (ioret != hyperdisk::SUCCESS && ioret != hyperdisk::DIDNOTHING)
-            {
-                PLOG(ERROR) << "Disk I/O returned " << ioret;
-            }
-        }
-        else
-        {
-            PLOG(ERROR) << "Disk flush returned " << ret;
-        }
-    }
-}
-
 hyperdaemon :: searches :: search_state :: search_state(const regionid& r,
                                                         const coordinate& sc,
                                                         std::auto_ptr<e::buffer> msg,
-                                                        const hyperspacehashing::search& t,
-                                                        e::intrusive_ptr<hyperdisk::snapshot> s)
+                                                        const hyperspacehashing::search& t)
     : lock()
     , region(r)
     , search_coord(sc)
     , backing(msg)
     , terms(t)
-    , snap(s)
+    , snap()
     , m_ref(0)
 {
 }

@@ -46,10 +46,10 @@
 namespace hyperdex
 {
 class coordinatorlink;
+class datalayer;
 }
 namespace hyperdaemon
 {
-class datalayer;
 class logical;
 }
 
@@ -59,7 +59,7 @@ namespace hyperdaemon
 class searches
 {
     public:
-        searches(hyperdex::coordinatorlink* cl, datalayer* data, logical* comm);
+        searches(hyperdex::coordinatorlink* cl, hyperdex::datalayer* data, logical* comm);
         ~searches() throw ();
 
     public:
@@ -110,14 +110,11 @@ class searches
         searches(const searches&);
 
     private:
-        void flush(const hyperdex::regionid& r);
-
-    private:
         searches& operator = (const searches&);
 
     private:
         hyperdex::coordinatorlink* m_cl;
-        datalayer* m_data;
+        hyperdex::datalayer* m_data;
         logical* m_comm;
         hyperdex::configuration m_config;
         e::lockfree_hash_map<search_id, e::intrusive_ptr<search_state>, hash> m_searches;
