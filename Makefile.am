@@ -44,7 +44,6 @@ EXTRA_DIST = \
 
 lib_LTLIBRARIES = \
 			libhyperspacehashing.la \
-			libhyperdisk.la \
 			libhyperclient.la
 
 pyexec_LTLIBRARIES =
@@ -54,7 +53,6 @@ include_HEADERS = \
 
 noinst_HEADERS = \
 			$(libhyperspacehashing_noinst_headers) \
-			$(libhyperdisk_noinst_headers) \
 			$(libhyperdex_noinst_headers) \
 			$(libhyperclient_noinst_headers) \
 			util/atomicfile.h
@@ -67,12 +65,10 @@ bin_PROGRAMS = \
 
 noinst_PROGRAMS = \
 			$(libhyperspacehashing_noinst_programs) \
-			$(libhyperdisk_noinst_programs) \
 			hyperclient/c/testcompile
 
 check_PROGRAMS = \
 			$(libhyperspacehashing_check_programs) \
-			$(libhyperdisk_check_programs) \
 			$(disk_check_programs)
 
 bin_SCRIPTS = \
@@ -234,94 +230,6 @@ endif
 
 ##################################### Utils ####################################
 
-################################################################################
-################################### HyperDisk ##################################
-################################################################################
-
-#################################### Library ###################################
-
-libhyperdisk_includedir = $(includedir)/hyperdisk
-libhyperdisk_include_HEADERS = \
-			hyperdisk/hyperdisk/disk.h \
-			hyperdisk/hyperdisk/reference.h \
-			hyperdisk/hyperdisk/returncode.h \
-			hyperdisk/hyperdisk/snapshot.h
-
-libhyperdisk_noinst_headers = \
-			hyperdisk/log_entry.h \
-			hyperdisk/offset_update.h \
-			hyperdisk/shard.h \
-			hyperdisk/shard_constants.h \
-			hyperdisk/shard_snapshot.h \
-			hyperdisk/shard_vector.h
-
-libhyperdisk_la_SOURCES = \
-			disk/cuckoo_index.cc \
-			disk/cuckoo_table.cc \
-			hyperdisk/disk.cc \
-			hyperdisk/reference.cc \
-			hyperdisk/shard.cc \
-			hyperdisk/shard_snapshot.cc \
-			hyperdisk/shard_vector.cc \
-			hyperdisk/snapshot.cc
-libhyperdisk_la_LIBADD = \
-			libhyperspacehashing.la \
-			-lpthread \
-			$(COVERAGE_LDADD)
-libhyperdisk_la_CPPFLAGS = \
-			-I$(abs_top_srcdir)/hyperspacehashing \
-			-I$(abs_top_srcdir)/hyperdisk \
-			$(E_CFLAGS) \
-			$(CPPFLAGS)
-
-##################################### Tests ####################################
-
-if HAVE_GTEST
-libhyperdisk_check_programs = \
-			hyperdisk/test/shard
-libhyperdisk_tests = $(libhyperdisk_check_programs)
-
-hyperdisk_test_shard_SOURCES = \
-			runner.cc \
-			hyperdisk/test/shard.cc
-hyperdisk_test_shard_LDADD = \
-			libhyperspacehashing.la \
-			libhyperdisk.la \
-			$(COVERAGE_LDADD) \
-			$(GTEST_LIBS)
-hyperdisk_test_shard_CPPFLAGS = \
-			-I$(abs_top_srcdir)/hyperspacehashing \
-			$(E_CFLAGS) \
-			$(CPPFLAGS)
-endif
-
-##################################### Utils ####################################
-
-libhyperdisk_noinst_programs = \
-			hyperdisk/utils/shard-dumphashes \
-			hyperdisk/utils/shard-fsck
-
-hyperdisk_utils_shard_dumphashes_SOURCES = \
-			hyperdisk/utils/shard-dumphashes.cc
-hyperdisk_utils_shard_dumphashes_LDADD = \
-			libhyperspacehashing.la \
-			libhyperdisk.la \
-			$(COVERAGE_LDADD)
-hyperdisk_utils_shard_dumphashes_CPPFLAGS = \
-			-I$(abs_top_srcdir)/hyperspacehashing \
-			$(E_CFLAGS) \
-			$(CPPFLAGS)
-
-hyperdisk_utils_shard_fsck_SOURCES = \
-			hyperdisk/utils/shard-fsck.cc
-hyperdisk_utils_shard_fsck_LDADD = \
-			libhyperspacehashing.la \
-			libhyperdisk.la \
-			$(COVERAGE_LDADD)
-hyperdisk_utils_shard_fsck_CPPFLAGS = \
-			-I$(abs_top_srcdir)/hyperspacehashing \
-			$(E_CFLAGS) \
-			$(CPPFLAGS)
 
 ################################################################################
 ################################### HyperDex ###################################
@@ -349,10 +257,22 @@ libhyperdex_sources = \
 
 hyperdex_daemon_SOURCES = \
 			daemon.cc \
+			disk/append_only_log.cc \
+			disk/append_only_log_block.cc \
+			disk/append_only_log_segment.cc \
+			disk/cuckoo_index.cc \
+			disk/cuckoo_returncode.cc \
+			disk/cuckoo_table.cc \
+			disk/disk.cc \
+			disk/disk_reference.cc \
+			disk/disk_returncode.cc \
+			disk/search_snapshot.cc \
+			disk/search_tree.cc \
+			disk/transfer_iterator.cc \
+			daemon/datalayer.cc \
+			hyperdaemon/daemon.h \
 			hyperdaemon/daemon.h \
 			hyperdaemon/daemon.cc \
-			hyperdaemon/datalayer.h \
-			hyperdaemon/datalayer.cc \
 			hyperdaemon/logical.h \
 			hyperdaemon/logical.cc \
 			hyperdaemon/network_worker.h \
@@ -405,16 +325,15 @@ hyperdex_daemon_SOURCES = \
 			datatypes/write.cc \
 			${libhyperdex_sources}
 hyperdex_daemon_LDADD = \
-			libhyperdisk.la \
 			libhyperspacehashing.la \
 			$(E_LIBS) \
 			$(BUSYBEE_LIBS) \
 			-lbusybee-mta \
 			$(COVERAGE_LDADD) \
 			-lcityhash -lpopt -lglog -lrt -lpthread
+hyperdex_daemon_LDFLAGS = -no-install
 hyperdex_daemon_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
-			-I$(abs_top_srcdir)/hyperdisk \
 			$(E_CFLAGS) \
 			$(CPPFLAGS)
 

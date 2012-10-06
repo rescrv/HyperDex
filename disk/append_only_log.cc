@@ -52,6 +52,8 @@
 #define DEBUG if (0) std::cerr << __FILE__ << ":" << __LINE__ << " "
 #endif
 
+using hyperdex::append_only_log;
+
 append_only_log :: append_only_log()
     : m_id(0)
     , m_removed(0)
@@ -924,4 +926,31 @@ append_only_log :: path_segment(std::vector<char>* out, uint64_t segno)
 {
     out->resize(20 /*len(2**64)*/ + 2 /*len('.\0')*/ + m_path.size(), '\0');
     sprintf(&out->front(), "%s.%lu", &m_path.front(), segno);
+}
+
+#define str(x) #x
+#define xstr(x) str(x)
+#define stringify(x) case append_only_log::x: lhs << xstr(x); break
+
+std::ostream&
+hyperdex :: operator << (std::ostream& lhs, append_only_log::returncode rhs)
+{
+    switch (rhs)
+    {
+        stringify(SUCCESS);
+        stringify(NOT_FOUND);
+        stringify(CLOSED);
+        stringify(TOO_BIG);
+        stringify(OPEN_FAIL);
+        stringify(READ_FAIL);
+        stringify(WRITE_FAIL);
+        stringify(SYNC_FAIL);
+        stringify(CLOSE_FAIL);
+        stringify(CORRUPT_STATE);
+        stringify(IDS_EXHAUSTED);
+        default:
+            lhs << "unknown returncode";
+    }
+
+    return lhs;
 }

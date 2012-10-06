@@ -37,7 +37,7 @@
 #include "append_only_log_segment.h"
 #include "append_only_log_writable_segment.h"
 
-class append_only_log::segment_list
+class hyperdex::append_only_log::segment_list
 {
     public:
         segment_list();
@@ -69,7 +69,7 @@ class append_only_log::segment_list
 };
 
 inline
-append_only_log :: segment_list :: segment_list()
+hyperdex :: append_only_log :: segment_list :: segment_list()
     : m_ref(0)
     , m_sz(0)
     , m_segments(NULL)
@@ -77,12 +77,12 @@ append_only_log :: segment_list :: segment_list()
 }
 
 inline
-append_only_log :: segment_list :: ~segment_list() throw ()
+hyperdex :: append_only_log :: segment_list :: ~segment_list() throw ()
 {
 }
 
-inline e::intrusive_ptr<append_only_log::segment_list>
-append_only_log :: segment_list :: add(uint64_t lower_bound, writable_segment* ws)
+inline e::intrusive_ptr<hyperdex::append_only_log::segment_list>
+hyperdex :: append_only_log :: segment_list :: add(uint64_t lower_bound, writable_segment* ws)
 {
     e::intrusive_ptr<segment_list> sl(new segment_list());
     sl->m_sz = m_sz + 1;
@@ -98,34 +98,34 @@ append_only_log :: segment_list :: add(uint64_t lower_bound, writable_segment* w
 }
 
 inline uint64_t
-append_only_log :: segment_list :: get_lower_bound(size_t i)
+hyperdex :: append_only_log :: segment_list :: get_lower_bound(size_t i)
 {
     assert(i < m_sz);
     return m_segments[i].first;
 }
 
-inline append_only_log::segment*
-append_only_log :: segment_list :: get_segment(size_t i)
+inline hyperdex::append_only_log::segment*
+hyperdex :: append_only_log :: segment_list :: get_segment(size_t i)
 {
     assert(i < m_sz);
     return m_segments[i].second.get();
 }
 
 inline bool
-append_only_log :: segment_list :: sync(size_t i)
+hyperdex :: append_only_log :: segment_list :: sync(size_t i)
 {
     assert(i < m_sz);
     return m_segments[i].second->sync();
 }
 
 inline void
-append_only_log :: segment_list :: inc()
+hyperdex :: append_only_log :: segment_list :: inc()
 {
     e::atomic::increment_64_nobarrier(&m_ref, 1);
 }
 
 inline void
-append_only_log :: segment_list :: dec()
+hyperdex :: append_only_log :: segment_list :: dec()
 {
     e::atomic::increment_64_nobarrier(&m_ref, -1);
 

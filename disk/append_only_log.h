@@ -44,6 +44,9 @@
 #include <e/buffer.h>
 #include <e/intrusive_ptr.h>
 
+namespace hyperdex
+{
+
 class append_only_log
 {
     public:
@@ -129,5 +132,10 @@ class append_only_log
         block_ptr m_unfinished_index;
         block_ptr m_unfinished_block;
 };
+
+std::ostream&
+operator << (std::ostream& lhs, append_only_log::returncode rhs);
+
+} // namespace hyperdex
 
 #endif // append_only_log_h_

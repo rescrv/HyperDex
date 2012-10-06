@@ -32,7 +32,7 @@
 #include "append_only_log.h"
 #include "append_only_log_constants.h"
 
-class append_only_log::block
+class hyperdex::append_only_log::block
 {
     public:
         block();

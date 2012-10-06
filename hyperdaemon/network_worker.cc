@@ -36,15 +36,13 @@
 // po6
 #include <po6/net/location.h>
 
-// HyperDisk
-#include "hyperdisk/hyperdisk/reference.h"
-
 // HyperDex
+#include "disk/disk.h"
+#include "daemon/datalayer.h"
 #include "datatypes/microcheck.h"
 #include "datatypes/microop.h"
 #include "hyperdex/hyperdex/network_constants.h"
 #include "hyperdex/hyperdex/packing.h"
-#include "hyperdaemon/datalayer.h"
 #include "hyperdaemon/logical.h"
 #include "hyperdaemon/network_worker.h"
 #include "hyperdaemon/ongoing_state_transfers.h"
@@ -52,6 +50,8 @@
 #include "hyperdaemon/searches.h"
 
 using hyperdex::entityid;
+using hyperdex::datalayer;
+using hyperdex::disk_reference;
 using hyperdex::network_msgtype;
 using hyperdex::network_returncode;
 
@@ -99,7 +99,6 @@ hyperdaemon :: network_worker :: run()
     entityid to;
     network_msgtype type;
     std::auto_ptr<e::buffer> msg;
-    unsigned int seed = pthread_self();
 
     while (m_continue && m_comm->recv(&from, &to, &type, &msg))
     {
@@ -118,30 +117,38 @@ hyperdaemon :: network_worker :: run()
 
             std::vector<e::slice> value;
             uint64_t version;
-            hyperdisk::reference ref;
+            disk_reference ref;
             network_returncode result;
 
             switch (m_data->get(to.get_region(), key, &value, &version, &ref))
             {
-                case hyperdisk::SUCCESS:
+                case hyperdex::DISK_SUCCESS:
                     result = hyperdex::NET_SUCCESS;
                     break;
-                case hyperdisk::NOTFOUND:
+                case hyperdex::DISK_NOT_FOUND:
                     result = hyperdex::NET_NOTFOUND;
                     break;
-                case hyperdisk::WRONGARITY:
+                case hyperdex::DISK_WRONGARITY:
                     result = hyperdex::NET_BADDIMSPEC;
                     break;
-                case hyperdisk::MISSINGDISK:
+                case hyperdex::DISK_CORRUPT:
+                    LOG(ERROR) << "GET caused a CORRUPT at the data layer.";
+                    result = hyperdex::NET_SERVERERROR;
+                    break;
+                case hyperdex::DISK_FATAL_ERROR:
+                    LOG(ERROR) << "GET caused a FATAL_ERROR at the data layer.";
+                    result = hyperdex::NET_SERVERERROR;
+                    break;
+                case hyperdex::DISK_MISSINGDISK:
                     LOG(ERROR) << "GET caused a MISSINGDISK at the data layer.";
                     result = hyperdex::NET_SERVERERROR;
                     break;
-                case hyperdisk::DATAFULL:
-                case hyperdisk::SEARCHFULL:
-                case hyperdisk::SYNCFAILED:
-                case hyperdisk::DROPFAILED:
-                case hyperdisk::SPLITFAILED:
-                case hyperdisk::DIDNOTHING:
+                case hyperdex::DISK_DATAFULL:
+                case hyperdex::DISK_SEARCHFULL:
+                case hyperdex::DISK_SYNCFAILED:
+                case hyperdex::DISK_DROPFAILED:
+                case hyperdex::DISK_SPLITFAILED:
+                case hyperdex::DISK_DIDNOTHING:
                 default:
                     LOG(ERROR) << "GET returned unacceptable error code.";
                     result = hyperdex::NET_SERVERERROR;
@@ -184,6 +191,7 @@ hyperdaemon :: network_worker :: run()
                                    key, &checks);
             }
         }
+#if 0
         else if (type == hyperdex::REQ_SEARCH_START)
         {
             uint64_t searchid;
@@ -291,6 +299,7 @@ hyperdaemon :: network_worker :: run()
                 LOG(INFO) << "Dropping count which fails sanity_check.";
             }
         }
+#endif
         else if (type == hyperdex::CHAIN_PUT)
         {
             uint64_t version;
@@ -347,6 +356,7 @@ hyperdaemon :: network_worker :: run()
 
             m_repl->chain_ack(from, to, version, msg, key);
         }
+#if 0
         else if (type == hyperdex::XFER_MORE)
         {
             m_ost->region_transfer_send(from, to);
@@ -381,14 +391,10 @@ hyperdaemon :: network_worker :: run()
             m_ost->region_transfer_recv(from, to.subspace, xfer_num,
                                         op == 1, version, msg, key, value);
         }
+#endif
         else
         {
             LOG(INFO) << "Message of unknown type received.";
-        }
-
-        if (rand_r(&seed) < (0.01 * RAND_MAX))
-        {
-            m_data->flush(to.get_region(), 100000, true);
         }
     }
 }

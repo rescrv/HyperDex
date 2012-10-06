@@ -155,11 +155,11 @@ cuckoo_index :: insert(uint64_t key, uint64_t old_val, uint64_t new_val)
 
         switch (t->info(table_no)->table.insert(key, old_val, new_val))
         {
-            case SUCCESS:
-                return SUCCESS;
-            case FULL:
+            case CUCKOO_SUCCESS:
+                return CUCKOO_SUCCESS;
+            case CUCKOO_FULL:
                 break;
-            case NOT_FOUND:
+            case CUCKOO_NOT_FOUND:
             default:
                 abort();
         }

@@ -48,8 +48,8 @@
 #include "hyperdex/hyperdex/coordinatorlink.h"
 
 // HyperDaemon
+#include "daemon/datalayer.h"
 #include "hyperdaemon/daemon.h"
-#include "hyperdaemon/datalayer.h"
 #include "hyperdaemon/logical.h"
 #include "hyperdaemon/network_worker.h"
 #include "hyperdaemon/ongoing_state_transfers.h"
@@ -175,7 +175,7 @@ hyperdaemon :: daemon(const char* progname,
     // Setup our link to the coordinator.
     hyperdex::coordinatorlink cl(coordinator);
     // Setup the data component.
-    datalayer data(&cl, datadir);
+    hyperdex::datalayer data(datadir);
     // Setup the communication component.
     logical comm(&cl, bind_to, incoming, outgoing, num_threads);
     // Create our announce string.
@@ -211,6 +211,7 @@ hyperdaemon :: daemon(const char* progname,
     uint64_t now;
     uint64_t disconnected_at = e::time();
     uint64_t nanos_to_wait = 5000000;
+    hyperdex::configuration conf;
     // Reconnect right away, then 10ms, then 20ms, .... 1s
 
     while (s_continue)
@@ -253,7 +254,7 @@ hyperdaemon :: daemon(const char* progname,
             // These operations should assume that there will be network
             // activity, and that the network threads will be in full force.
             comm.prepare(cl.config(), newinst);
-            data.prepare(cl.config(), newinst);
+            data.prepare(conf, cl.config(), newinst);
             repl.prepare(cl.config(), newinst);
             ost.prepare(cl.config(), newinst);
             ssss.prepare(cl.config(), newinst);
@@ -270,7 +271,7 @@ hyperdaemon :: daemon(const char* progname,
             // Here is the critical section.  This is is mutually exclusive with the
             // network workers' loop.
             comm.reconfigure(cl.config(), newinst);
-            data.reconfigure(cl.config(), comm.inst());
+            data.reconfigure(conf, cl.config(), comm.inst());
             repl.reconfigure(cl.config(), comm.inst());
             ost.reconfigure(cl.config(), comm.inst());
             ssss.reconfigure(cl.config(), comm.inst());
@@ -285,8 +286,9 @@ hyperdaemon :: daemon(const char* progname,
             ssss.prepare(cl.config(), comm.inst());
             ost.cleanup(cl.config(), comm.inst());
             repl.cleanup(cl.config(), comm.inst());
-            data.cleanup(cl.config(), comm.inst());
+            data.cleanup(conf, cl.config(), comm.inst());
             comm.cleanup(cl.config(), comm.inst());
+            conf = cl.config();
             cl.acknowledge();
         }
     }
@@ -299,8 +301,6 @@ hyperdaemon :: daemon(const char* progname,
     comm.shutdown();
     // Cleanup the network_worker threads.
     nw.shutdown();
-    // Stop the data layer.
-    data.shutdown();
 
     for (std::vector<thread_ptr>::iterator t = threads.begin();
             t != threads.end(); ++t)

@@ -99,7 +99,7 @@ cuckoo_table :: insert(uint64_t key, uint64_t old_val, uint64_t new_val)
         cache_line[where * 3 + 0] = entry[0];
         cache_line[where * 3 + 1] = entry[1];
         cache_line[where * 3 + 2] = entry[2];
-        return SUCCESS;
+        return CUCKOO_SUCCESS;
     }
 
     // Look in the second table
@@ -132,7 +132,7 @@ cuckoo_table :: insert(uint64_t key, uint64_t old_val, uint64_t new_val)
         cache_line[where * 3 + 0] = entry[0];
         cache_line[where * 3 + 1] = entry[1];
         cache_line[where * 3 + 2] = entry[2];
-        return SUCCESS;
+        return CUCKOO_SUCCESS;
     }
 
     // Consider empty space in either table
@@ -144,7 +144,7 @@ cuckoo_table :: insert(uint64_t key, uint64_t old_val, uint64_t new_val)
         cache_line[empty1 * 3 + 0] = entry[0];
         cache_line[empty1 * 3 + 1] = entry[1];
         cache_line[empty1 * 3 + 2] = entry[2];
-        return SUCCESS;
+        return CUCKOO_SUCCESS;
     }
     else if (empty2 < ENTRIES_PER_CACHE_LINE)
     {
@@ -154,7 +154,7 @@ cuckoo_table :: insert(uint64_t key, uint64_t old_val, uint64_t new_val)
         cache_line[empty2 * 3 + 0] = entry[0];
         cache_line[empty2 * 3 + 1] = entry[1];
         cache_line[empty2 * 3 + 2] = entry[2];
-        return SUCCESS;
+        return CUCKOO_SUCCESS;
     }
 
     // Time to do the cuckoo
@@ -209,7 +209,7 @@ cuckoo_table :: insert(uint64_t key, uint64_t old_val, uint64_t new_val)
         // If we've shifted an empty entry off the end we are done
         if (entry[0] == 0 && entry[1] == 0 && entry[2] == 0)
         {
-            return SUCCESS;
+            return CUCKOO_SUCCESS;
         }
 
         cuckoo_key = (this->*g_key)(index, entry);
@@ -223,7 +223,7 @@ cuckoo_table :: insert(uint64_t key, uint64_t old_val, uint64_t new_val)
     m_hash_table_full = true;
     m_full_key = cuckoo_key;
     m_full_val = cuckoo_val;
-    return FULL;
+    return CUCKOO_FULL;
 }
 
 cuckoo_returncode
@@ -268,7 +268,7 @@ cuckoo_table :: lookup(uint64_t key, std::vector<uint64_t>* vals)
         }
     }
 
-    return vals->size() > 0 ? SUCCESS : NOT_FOUND;
+    return vals->size() > 0 ? CUCKOO_SUCCESS : CUCKOO_NOT_FOUND;
 }
 
 #include <iostream>
@@ -325,7 +325,7 @@ cuckoo_table :: remove(uint64_t key, uint64_t val)
         }
     }
 
-    return found ? SUCCESS : NOT_FOUND;
+    return found ? CUCKOO_SUCCESS : CUCKOO_NOT_FOUND;
 }
 
 cuckoo_returncode
@@ -435,7 +435,7 @@ cuckoo_table :: split(cuckoo_table* table1,
         }
     }
 
-    return SUCCESS;
+    return CUCKOO_SUCCESS;
 }
 
 void

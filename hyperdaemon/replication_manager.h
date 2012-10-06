@@ -43,6 +43,7 @@
 #include <e/striped_lock.h>
 
 // HyperDex
+#include "disk/disk_reference.h"
 #include "hyperdex/hyperdex/configuration.h"
 #include "hyperdex/hyperdex/network_constants.h"
 #include "hyperdaemon/replication/clientop.h"
@@ -54,11 +55,11 @@ class microop;
 namespace hyperdex
 {
 class coordinatorlink;
+class datalayer;
 class instance;
 }
 namespace hyperdaemon
 {
-class datalayer;
 class logical;
 class ongoing_state_transfers;
 }
@@ -71,7 +72,7 @@ class replication_manager
 {
     public:
         replication_manager(hyperdex::coordinatorlink* cl,
-                            datalayer* dl,
+                            hyperdex::datalayer* dl,
                             logical* comm,
                             ongoing_state_transfers* ost);
         ~replication_manager() throw ();
@@ -162,10 +163,10 @@ class replication_manager
                              uint64_t* old_version,
                              bool* has_old_value,
                              std::vector<e::slice>* old_value,
-                             hyperdisk::reference* ref);
+                             hyperdex::disk_reference* ref);
         bool from_disk(const hyperdex::regionid& r, const e::slice& key,
                        bool* has_value, std::vector<e::slice>* value,
-                       uint64_t* version, hyperdisk::reference* ref);
+                       uint64_t* version, hyperdex::disk_reference* ref);
         bool put_to_disk(const hyperdex::regionid& pending_in,
                          e::intrusive_ptr<keyholder> kh,
                          uint64_t version);
@@ -212,7 +213,7 @@ class replication_manager
 
     private:
         hyperdex::coordinatorlink* m_cl;
-        datalayer* m_data;
+        hyperdex::datalayer* m_data;
         logical* m_comm;
         ongoing_state_transfers* m_ost;
         hyperdex::configuration m_config;

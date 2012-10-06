@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Robert Escriva
+// Copyright (c) 2012, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,68 +25,24 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// POSIX
-#include <sys/mman.h>
+// HyperDex
+#include "disk/cuckoo_returncode.h"
 
-// e
-#include <e/atomic.h>
+#define str(x) #x
+#define xstr(x) str(x)
+#define stringify(x) case (x): lhs << xstr(x); break
 
-// append only log
-#include "append_only_log_block.h"
-#include "append_only_log_constants.h"
-#include "append_only_log_segment.h"
-
-using hyperdex::append_only_log;
-
-append_only_log :: segment :: segment()
-    : m_ref(0)
-    , m_data(NULL)
+std::ostream&
+hyperdex :: operator << (std::ostream& lhs, cuckoo_returncode rhs)
 {
-}
-
-append_only_log :: segment :: ~segment() throw ()
-{
-}
-
-uint8_t*
-append_only_log :: segment :: read(uint64_t which)
-{
-    return m_data + (which + 1) * BLOCK_SIZE;
-}
-
-e::intrusive_ptr<append_only_log::block>
-append_only_log :: segment :: read_index()
-{
-    e::intrusive_ptr<block> b(new block());
-    memmove(b->data, m_data, BLOCK_SIZE);
-    return b;
-}
-
-void
-append_only_log :: segment :: set_mapping(void* base)
-{
-    m_data = static_cast<uint8_t*>(base);
-}
-
-bool
-append_only_log :: segment :: sync()
-{
-    return msync(m_data, SEGMENT_SIZE, MS_SYNC) == 0;
-}
-
-void
-append_only_log :: segment :: inc()
-{
-    e::atomic::increment_64_nobarrier(&m_ref, 1);
-}
-
-void
-append_only_log :: segment :: dec()
-{
-    e::atomic::increment_64_nobarrier(&m_ref, -1);
-
-    if (m_ref == 0)
+    switch (rhs)
     {
-        delete this;
+        stringify(CUCKOO_SUCCESS);
+        stringify(CUCKOO_NOT_FOUND);
+        stringify(CUCKOO_FULL);
+        default:
+            lhs << "unknown returncode";
     }
+
+    return lhs;
 }

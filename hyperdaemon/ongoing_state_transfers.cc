@@ -36,27 +36,29 @@
 // e
 #include <e/timer.h>
 
-// HyperDisk
-#include "hyperdisk/hyperdisk/snapshot.h"
-
 // HyperDex
+#include "disk/disk_returncode.h"
+#include "disk/transfer_iterator.h"
+#include "daemon/datalayer.h"
 #include "hyperdex/hyperdex/configuration.h"
 #include "hyperdex/hyperdex/coordinatorlink.h"
 #include "hyperdex/hyperdex/network_constants.h"
 #include "hyperdex/hyperdex/packing.h"
 
 // HyperDaemon
-#include "hyperdaemon/datalayer.h"
 #include "hyperdaemon/logical.h"
 #include "hyperdaemon/ongoing_state_transfers.h"
 #include "hyperdaemon/replication_manager.h"
 #include "hyperdaemon/runtimeconfig.h"
 
 using hyperdex::configuration;
+using hyperdex::datalayer;
+using hyperdex::disk_returncode;
 using hyperdex::entityid;
 using hyperdex::instance;
 using hyperdex::network_msgtype;
 using hyperdex::regionid;
+using hyperdex::transfer_iterator;
 
 ///////////////////////////////// Transfers In /////////////////////////////////
 
@@ -142,11 +144,11 @@ hyperdaemon :: ongoing_state_transfers :: transfer_in :: transfer_in(const hyper
 class hyperdaemon::ongoing_state_transfers::transfer_out
 {
     public:
-        transfer_out(e::intrusive_ptr<hyperdisk::rolling_snapshot> s);
+        transfer_out();
 
     public:
         po6::threads::mutex lock;
-        e::intrusive_ptr<hyperdisk::rolling_snapshot> snap;
+        transfer_iterator snap;
         uint64_t xfer_num;
         bool failed;
 
@@ -161,9 +163,9 @@ class hyperdaemon::ongoing_state_transfers::transfer_out
         size_t m_ref;
 };
 
-hyperdaemon :: ongoing_state_transfers :: transfer_out :: transfer_out(e::intrusive_ptr<hyperdisk::rolling_snapshot> s)
+hyperdaemon :: ongoing_state_transfers :: transfer_out :: transfer_out()
     : lock()
-    , snap(s)
+    , snap()
     , xfer_num(1)
     , failed(false)
     , m_ref(0)
@@ -226,10 +228,16 @@ hyperdaemon :: ongoing_state_transfers :: prepare(const configuration& newconfig
         if (!m_transfers_out.contains(t->first))
         {
             LOG(INFO) << "Initiating outbound transfer #" << t->first;
-            e::intrusive_ptr<hyperdisk::rolling_snapshot> snap;
-            snap = m_data->make_rolling_snapshot(t->second);
             e::intrusive_ptr<transfer_out> xfer;
-            xfer = new transfer_out(snap);
+            xfer = new transfer_out();
+
+#if 0
+            if (!m_data->make_transfer_iterator(t->second, &xfer->snap))
+            {
+                // XXX error
+            }
+#endif
+
             m_transfers_out.insert(t->first, xfer);
         }
     }
@@ -298,6 +306,7 @@ hyperdaemon :: ongoing_state_transfers :: shutdown()
     m_shutdown = true;
 }
 
+#if 0
 void
 hyperdaemon :: ongoing_state_transfers :: region_transfer_send(const entityid& from,
                                                                const entityid& to)
@@ -322,30 +331,30 @@ hyperdaemon :: ongoing_state_transfers :: region_transfer_send(const entityid& f
 
     po6::threads::mutex::hold hold(&t->lock);
 
-    if (t->snap->valid())
+    if (t->snap.has_next())
     {
         size_t size = m_comm->header_size()
                     + sizeof(uint64_t)
                     + sizeof(uint64_t)
                     + sizeof(uint32_t)
-                    + t->snap->key().size()
+                    + t->snap.key().size()
                     + sizeof(uint8_t);
         type = hyperdex::XFER_DATA;
 
-        if (t->snap->has_value())
+        if (t->snap.has_value())
         {
-            size += hyperdex::packspace(t->snap->value());
+            size += hyperdex::packspace(t->snap.value());
         }
 
         msg.reset(e::buffer::create(size));
         e::buffer::packer pa = msg->pack_at(m_comm->header_size());
         pa = pa << t->xfer_num
-                << t->snap->version()
-                << t->snap->key();
+                << t->snap.version()
+                << t->snap.key();
 
-        if (t->snap->has_value())
+        if (t->snap.has_value())
         {
-            pa = pa << static_cast<uint8_t>(1) << t->snap->value();
+            pa = pa << static_cast<uint8_t>(1) << t->snap.value();
         }
         else
         {
@@ -353,7 +362,7 @@ hyperdaemon :: ongoing_state_transfers :: region_transfer_send(const entityid& f
         }
 
         ++t->xfer_num;
-        t->snap->next();
+        t->snap.next();
     }
     else
     {
@@ -449,18 +458,18 @@ hyperdaemon :: ongoing_state_transfers :: region_transfer_recv(const hyperdex::e
         if (t->triggers.lower_bound(std::make_pair(oneop.key, 0)) ==
                 t->triggers.upper_bound(std::make_pair(oneop.key, UINT64_MAX)))
         {
-            hyperdisk::returncode res;
+            disk_returncode res;
 
             if (oneop.has_value)
             {
-                res = m_data->put(t->replicate_from.get_region(), oneop.backing, oneop.key, oneop.value, oneop.version);
+                res = m_data->put(t->replicate_from.get_region(), oneop.key, oneop.value, oneop.version);
             }
             else
             {
-                res = m_data->del(t->replicate_from.get_region(), oneop.backing, oneop.key);
+                res = m_data->del(t->replicate_from.get_region(), oneop.key);
             }
 
-            if (res != hyperdisk::SUCCESS)
+            if (res != hyperdex::DISK_SUCCESS)
             {
                 LOG(ERROR) << "transfer " << xfer_id << " failed because HyperDisk returned " << res;
                 t->failed = true;
@@ -526,6 +535,7 @@ hyperdaemon :: ongoing_state_transfers :: region_transfer_done(const entityid& f
         m_cl->transfer_golive(to.subspace);
     }
 }
+#endif
 
 void
 hyperdaemon :: ongoing_state_transfers :: add_trigger(const hyperdex::regionid& reg,
@@ -533,6 +543,7 @@ hyperdaemon :: ongoing_state_transfers :: add_trigger(const hyperdex::regionid& 
                                                       const e::slice& key,
                                                       uint64_t rev)
 {
+#if 0
     uint16_t xfer_id = m_config.transfer_id(reg);
     e::intrusive_ptr<transfer_in> t;
 
@@ -542,6 +553,7 @@ hyperdaemon :: ongoing_state_transfers :: add_trigger(const hyperdex::regionid& 
     }
 
     t->triggers[std::make_pair(key, rev)] = backing;
+#endif
 }
 
 void
@@ -553,6 +565,7 @@ hyperdaemon :: ongoing_state_transfers :: set_replication_manager(replication_ma
 void
 hyperdaemon :: ongoing_state_transfers :: periodic()
 {
+#if 0
     LOG(WARNING) << "State transfer \"cron\" thread started.";
 
     for (uint64_t i = 0; !m_shutdown; ++i)
@@ -585,8 +598,10 @@ hyperdaemon :: ongoing_state_transfers :: periodic()
 
         e::sleep_ms(250);
     }
+#endif
 }
 
+#if 0
 void
 hyperdaemon :: ongoing_state_transfers :: start_transfers()
 {
@@ -627,3 +642,4 @@ hyperdaemon :: ongoing_state_transfers :: finish_transfers()
         }
     }
 }
+#endif

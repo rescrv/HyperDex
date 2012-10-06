@@ -53,14 +53,16 @@
 #include <e/timer.h>
 
 // HyperDex
+#include "disk/disk_reference.h"
+#include "disk/disk_returncode.h"
 #include "datatypes/apply.h"
 #include "datatypes/microcheck.h"
 #include "datatypes/microop.h"
 #include "datatypes/validate.h"
+#include "daemon/datalayer.h"
 #include "hyperdex/hyperdex/coordinatorlink.h"
 #include "hyperdex/hyperdex/network_constants.h"
 #include "hyperdex/hyperdex/packing.h"
-#include "hyperdaemon/datalayer.h"
 #include "hyperdaemon/logical.h"
 #include "hyperdaemon/ongoing_state_transfers.h"
 #include "hyperdaemon/replication_manager.h"
@@ -73,6 +75,8 @@
 using hyperspacehashing::prefix::coordinate;
 using hyperdex::configuration;
 using hyperdex::coordinatorlink;
+using hyperdex::datalayer;
+using hyperdex::disk_reference;
 using hyperdex::entityid;
 using hyperdex::instance;
 using hyperdex::network_msgtype;
@@ -218,7 +222,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::network_msgt
     uint64_t old_version = 0;
     bool has_old_value = false;
     std::vector<e::slice> old_value;
-    hyperdisk::reference ref;
+    disk_reference ref;
 
     if (!retrieve_latest(to.get_region(), key, kh, &old_version, &has_old_value, &old_value, &ref))
     {
@@ -274,7 +278,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::network_msgt
     e::intrusive_ptr<pending> new_pend;
     new_pend = new pending(true, new_backing, key, new_value, clientop(to.get_region(), from, nonce));
     new_pend->retcode = opcode;
-    new_pend->ref = ref;
+    ref.transfer_to(&new_pend->ref);
     new_pend->key = new_key;
     new_pend->fresh = fresh;
 
@@ -335,7 +339,7 @@ hyperdaemon :: replication_manager :: client_del(const hyperdex::network_msgtype
     uint64_t old_version = 0;
     bool has_old_value = false;
     std::vector<e::slice> old_value;
-    hyperdisk::reference ref;
+    disk_reference ref;
 
     if (!retrieve_latest(to.get_region(), key, kh, &old_version, &has_old_value, &old_value, &ref))
     {
@@ -353,7 +357,7 @@ hyperdaemon :: replication_manager :: client_del(const hyperdex::network_msgtype
     std::tr1::shared_ptr<e::buffer> sharedbacking(backing.release());
     new_pend = new pending(false, sharedbacking, key, old_value, clientop(to.get_region(), from, nonce));
     new_pend->retcode = hyperdex::RESP_ATOMIC;
-    new_pend->ref = ref;
+    ref.transfer_to(&new_pend->ref);
 
     if (!prev_and_next(to.get_region(), new_pend->key, false, new_pend->value, has_old_value, old_value, new_pend))
     {
@@ -417,7 +421,7 @@ hyperdaemon :: replication_manager :: chain_subspace(const entityid& from,
     uint64_t old_version = 0;
     bool has_old_value = false;
     std::vector<e::slice> old_value;
-    hyperdisk::reference ref;
+    disk_reference ref;
 
     if (!retrieve_latest(to.get_region(), key, kh, &old_version, &has_old_value, &old_value, &ref))
     {
@@ -562,7 +566,7 @@ hyperdaemon :: replication_manager :: chain_common(bool has_value,
     uint64_t oldversion = 0;
     bool has_oldvalue = false;
     std::vector<e::slice> oldvalue;
-    hyperdisk::reference ref;
+    disk_reference ref;
     e::intrusive_ptr<pending> oldop = kh->get_by_version(version - 1);
     e::intrusive_ptr<pending> newop = kh->get_by_version(version);
 
@@ -605,7 +609,8 @@ hyperdaemon :: replication_manager :: chain_common(bool has_value,
     if (oldversion == 0 && !fresh)
     {
         e::intrusive_ptr<deferred> newdefer;
-        newdefer = new deferred(has_value, backing, key, value, from, m_config.instancefor(from), ref);
+        newdefer = new deferred(has_value, backing, key, value, from, m_config.instancefor(from));
+        ref.transfer_to(&newdefer->ref);
         kh->insert_deferred(version, newdefer);
         return;
     }
@@ -615,7 +620,7 @@ hyperdaemon :: replication_manager :: chain_common(bool has_value,
     std::tr1::shared_ptr<e::buffer> sharedbacking(backing.release());
     newpend = new pending(has_value, sharedbacking, key, value);
     newpend->fresh = fresh;
-    newpend->ref = ref;
+    ref.transfer_to(&newpend->ref);
     newpend->recv_e = from;
     newpend->recv_i = m_config.instancefor(from);
 
@@ -683,7 +688,7 @@ hyperdaemon :: replication_manager :: retrieve_latest(const hyperdex::regionid& 
                                                       uint64_t* old_version,
                                                       bool* has_old_value,
                                                       std::vector<e::slice>* old_value,
-                                                      hyperdisk::reference* ref)
+                                                      disk_reference* ref)
 {
     *old_version = 0;
     *has_old_value = false;
@@ -714,27 +719,27 @@ hyperdaemon :: replication_manager :: from_disk(const regionid& r,
                                                 bool* has_value,
                                                 std::vector<e::slice>* value,
                                                 uint64_t* version,
-                                                hyperdisk::reference* ref)
+                                                disk_reference* ref)
 {
     switch (m_data->get(r, key, value, version, ref))
     {
-        case hyperdisk::SUCCESS:
+        case hyperdex::DISK_SUCCESS:
             *has_value = true;
             return true;
-        case hyperdisk::NOTFOUND:
+        case hyperdex::DISK_NOT_FOUND:
             *version = 0;
             *has_value = false;
             return true;
-        case hyperdisk::MISSINGDISK:
+        case hyperdex::DISK_MISSINGDISK:
             LOG(ERROR) << "m_data returned MISSINGDISK.";
             return false;
-        case hyperdisk::WRONGARITY:
-        case hyperdisk::DATAFULL:
-        case hyperdisk::SEARCHFULL:
-        case hyperdisk::SYNCFAILED:
-        case hyperdisk::DROPFAILED:
-        case hyperdisk::SPLITFAILED:
-        case hyperdisk::DIDNOTHING:
+        case hyperdex::DISK_WRONGARITY:
+        case hyperdex::DISK_DATAFULL:
+        case hyperdex::DISK_SEARCHFULL:
+        case hyperdex::DISK_SYNCFAILED:
+        case hyperdex::DISK_DROPFAILED:
+        case hyperdex::DISK_SPLITFAILED:
+        case hyperdex::DISK_DIDNOTHING:
         default:
             LOG(WARNING) << "Data layer returned unexpected result when reading old value.";
             return false;
@@ -754,25 +759,25 @@ hyperdaemon :: replication_manager :: put_to_disk(const regionid& pending_in,
     e::intrusive_ptr<pending> op = kh->get_by_version(version);
 
     bool success = true;
-    hyperdisk::returncode rc;
+    hyperdex::disk_returncode rc;
 
     if (!op->has_value
             || (pending_in.subspace == op->subspace_next && pending_in.subspace != 0))
     {
-        switch (m_data->del(pending_in, op->backing, op->key))
+        switch ((rc = m_data->del(pending_in, op->key)))
         {
-            case hyperdisk::SUCCESS:
+            case hyperdex::DISK_SUCCESS:
                 success = true;
                 break;
-            case hyperdisk::MISSINGDISK:
-            case hyperdisk::WRONGARITY:
-            case hyperdisk::NOTFOUND:
-            case hyperdisk::DATAFULL:
-            case hyperdisk::SEARCHFULL:
-            case hyperdisk::SYNCFAILED:
-            case hyperdisk::DROPFAILED:
-            case hyperdisk::SPLITFAILED:
-            case hyperdisk::DIDNOTHING:
+            case hyperdex::DISK_MISSINGDISK:
+            case hyperdex::DISK_WRONGARITY:
+            case hyperdex::DISK_NOT_FOUND:
+            case hyperdex::DISK_DATAFULL:
+            case hyperdex::DISK_SEARCHFULL:
+            case hyperdex::DISK_SYNCFAILED:
+            case hyperdex::DISK_DROPFAILED:
+            case hyperdex::DISK_SPLITFAILED:
+            case hyperdex::DISK_DIDNOTHING:
                 LOG(ERROR) << "commit caused error " << rc;
                 success = false;
                 break;
@@ -784,20 +789,20 @@ hyperdaemon :: replication_manager :: put_to_disk(const regionid& pending_in,
     }
     else if (op->has_value)
     {
-        switch (m_data->put(pending_in, op->backing, op->key, op->value, version))
+        switch ((rc = m_data->put(pending_in, op->key, op->value, version)))
         {
-            case hyperdisk::SUCCESS:
+            case hyperdex::DISK_SUCCESS:
                 success = true;
                 break;
-            case hyperdisk::MISSINGDISK:
-            case hyperdisk::WRONGARITY:
-            case hyperdisk::NOTFOUND:
-            case hyperdisk::DATAFULL:
-            case hyperdisk::SEARCHFULL:
-            case hyperdisk::SYNCFAILED:
-            case hyperdisk::DROPFAILED:
-            case hyperdisk::SPLITFAILED:
-            case hyperdisk::DIDNOTHING:
+            case hyperdex::DISK_MISSINGDISK:
+            case hyperdex::DISK_WRONGARITY:
+            case hyperdex::DISK_NOT_FOUND:
+            case hyperdex::DISK_DATAFULL:
+            case hyperdex::DISK_SEARCHFULL:
+            case hyperdex::DISK_SYNCFAILED:
+            case hyperdex::DISK_DROPFAILED:
+            case hyperdex::DISK_SPLITFAILED:
+            case hyperdex::DISK_DIDNOTHING:
                 LOG(ERROR) << "commit caused error " << rc;
                 success = false;
                 break;
@@ -953,7 +958,7 @@ hyperdaemon :: replication_manager :: check_for_deferred_operations(const hyperd
         e::intrusive_ptr<pending> newop;
         newop = new pending(op->has_value, op->backing, op->key, op->value);
         newop->fresh = false;
-        newop->ref = op->ref;
+        op->ref.transfer_to(&newop->ref);
         newop->recv_e = op->from_ent;
         newop->recv_i = m_config.instancefor(op->from_ent);
 
@@ -1018,7 +1023,7 @@ hyperdaemon :: replication_manager :: move_operations_between_queues(const hyper
         e::intrusive_ptr<pending> newop;
         newop = new pending(op->has_value, op->backing, op->key, op->value);
         newop->fresh = false;
-        newop->ref = op->ref;
+        op->ref.transfer_to(&newop->ref);
         newop->recv_e = op->from_ent;
         newop->recv_i = m_config.instancefor(op->from_ent);
 

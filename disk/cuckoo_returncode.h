@@ -28,15 +28,21 @@
 #ifndef hyperdex_disk_cuckoo_returncode_h_
 #define hyperdex_disk_cuckoo_returncode_h_
 
+// C++
+#include <iostream>
+
 namespace hyperdex
 {
 
 enum cuckoo_returncode
 {
-    SUCCESS,
-    NOT_FOUND,
-    FULL
+    CUCKOO_SUCCESS,
+    CUCKOO_NOT_FOUND,
+    CUCKOO_FULL
 };
+
+std::ostream&
+operator << (std::ostream& lhs, cuckoo_returncode rhs);
 
 } // namespace hyperdex
 

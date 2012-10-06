@@ -31,6 +31,8 @@
 // append only log
 #include "append_only_log_block.h"
 
+using hyperdex::append_only_log;
+
 append_only_log :: block :: block()
     //: data() This is commented out to make things fast
     : m_ref(0)

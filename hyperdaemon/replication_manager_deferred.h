@@ -36,8 +36,7 @@ class hyperdaemon::replication_manager::deferred
                  const e::slice& key,
                  const std::vector<e::slice>& value,
                  const hyperdex::entityid& from_ent,
-                 const hyperdex::instance& from_inst,
-                 const hyperdisk::reference& ref);
+                 const hyperdex::instance& from_inst);
         ~deferred() throw ();
 
     public:
@@ -47,7 +46,7 @@ class hyperdaemon::replication_manager::deferred
         const std::vector<e::slice> value;
         const hyperdex::entityid from_ent;
         const hyperdex::instance from_inst;
-        hyperdisk::reference ref;
+        hyperdex::disk_reference ref;
 
     private:
         friend class e::intrusive_ptr<deferred>;
@@ -65,15 +64,14 @@ hyperdaemon :: replication_manager :: deferred :: deferred(const bool hv,
                                                            const e::slice& k,
                                                            const std::vector<e::slice>& val,
                                                            const hyperdex::entityid& e,
-                                                           const hyperdex::instance& i,
-                                                           const hyperdisk::reference& r)
+                                                           const hyperdex::instance& i)
     : backing(b.release())
     , has_value(hv)
     , key(k)
     , value(val)
     , from_ent(e)
     , from_inst(i)
-    , ref(r)
+    , ref()
     , m_ref(0)
 {
 }

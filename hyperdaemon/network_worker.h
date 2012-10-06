@@ -29,9 +29,12 @@
 #define hyperdaemon_network_worker_h_
 
 // Forward Declarations
-namespace hyperdaemon
+namespace hyperdex
 {
 class datalayer;
+}
+namespace hyperdaemon
+{
 class logical;
 class ongoing_state_transfers;
 class replication_manager;
@@ -45,7 +48,7 @@ namespace hyperdaemon
 class network_worker
 {
     public:
-        network_worker(datalayer* data,
+        network_worker(hyperdex::datalayer* data,
                        logical* comm,
                        searches* ssss,
                        ongoing_state_transfers* ost,
@@ -64,7 +67,7 @@ class network_worker
 
     private:
         bool m_continue;
-        datalayer* m_data;
+        hyperdex::datalayer* m_data;
         logical* m_comm;
         searches* m_ssss;
         ongoing_state_transfers* m_ost;

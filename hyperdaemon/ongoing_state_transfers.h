@@ -31,6 +31,9 @@
 // STL
 #include <memory>
 
+// po6
+#include <po6/threads/thread.h>
+
 // e
 #include <e/buffer.h>
 #include <e/intrusive_ptr.h>
@@ -41,13 +44,13 @@
 namespace hyperdex
 {
 class configuration;
+class datalayer;
 class entityid;
 class instance;
 class regionid;
 }
 namespace hyperdaemon
 {
-class datalayer;
 class logical;
 class replication_manager;
 }
@@ -58,7 +61,7 @@ namespace hyperdaemon
 class ongoing_state_transfers
 {
     public:
-        ongoing_state_transfers(datalayer* data,
+        ongoing_state_transfers(hyperdex::datalayer* data,
                                 logical* comm,
                                 hyperdex::coordinatorlink* cl);
         ~ongoing_state_transfers() throw ();
@@ -111,7 +114,7 @@ class ongoing_state_transfers
         ongoing_state_transfers& operator = (const ongoing_state_transfers&);
 
     private:
-        hyperdaemon::datalayer* m_data;
+        hyperdex::datalayer* m_data;
         hyperdaemon::logical* m_comm;
         hyperdex::coordinatorlink* m_cl;
         hyperdaemon::replication_manager* m_repl;

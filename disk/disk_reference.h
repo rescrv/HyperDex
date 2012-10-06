@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Robert Escriva
+// Copyright (c) 2012, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,68 +25,38 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// POSIX
-#include <sys/mman.h>
+#ifndef hyperdex_disk_disk_reference_h_
+#define hyperdex_disk_disk_reference_h_
+
+// STL
+#include <memory>
 
 // e
-#include <e/atomic.h>
+#include <e/buffer.h>
 
-// append only log
-#include "append_only_log_block.h"
-#include "append_only_log_constants.h"
-#include "append_only_log_segment.h"
-
-using hyperdex::append_only_log;
-
-append_only_log :: segment :: segment()
-    : m_ref(0)
-    , m_data(NULL)
+namespace hyperdex
 {
-}
 
-append_only_log :: segment :: ~segment() throw ()
+class disk_reference
 {
-}
+    public:
+        disk_reference();
+        ~disk_reference() throw ();
 
-uint8_t*
-append_only_log :: segment :: read(uint64_t which)
-{
-    return m_data + (which + 1) * BLOCK_SIZE;
-}
+    public:
+        void transfer_to(disk_reference* new_owner);
 
-e::intrusive_ptr<append_only_log::block>
-append_only_log :: segment :: read_index()
-{
-    e::intrusive_ptr<block> b(new block());
-    memmove(b->data, m_data, BLOCK_SIZE);
-    return b;
-}
+    private:
+        friend class disk;
 
-void
-append_only_log :: segment :: set_mapping(void* base)
-{
-    m_data = static_cast<uint8_t*>(base);
-}
+    private:
+        disk_reference(const disk_reference&);
+        disk_reference& operator = (const disk_reference&);
 
-bool
-append_only_log :: segment :: sync()
-{
-    return msync(m_data, SEGMENT_SIZE, MS_SYNC) == 0;
-}
+    private:
+        std::auto_ptr<e::buffer> data;
+};
 
-void
-append_only_log :: segment :: inc()
-{
-    e::atomic::increment_64_nobarrier(&m_ref, 1);
-}
+} // namespace hyperdex
 
-void
-append_only_log :: segment :: dec()
-{
-    e::atomic::increment_64_nobarrier(&m_ref, -1);
-
-    if (m_ref == 0)
-    {
-        delete this;
-    }
-}
+#endif // hyperdex_disk_disk_reference_h_

@@ -141,6 +141,7 @@ hyperdaemon :: searches :: cleanup(const hyperdex::configuration&,
 {
 }
 
+#if 0
 void
 hyperdaemon :: searches :: start(const hyperdex::entityid& us,
                                  const hyperdex::entityid& client,
@@ -530,6 +531,7 @@ hyperdaemon :: searches :: sorted_search(const hyperdex::entityid& us,
 
     m_comm->send(us, client, hyperdex::RESP_SORTED_SEARCH, msg);
 }
+#endif
 
 uint64_t
 hyperdaemon :: searches :: hash(const search_id& si)

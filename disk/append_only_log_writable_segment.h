@@ -36,7 +36,7 @@
 #include "append_only_log_block.h"
 #include "append_only_log_constants.h"
 
-class append_only_log::writable_segment
+class hyperdex::append_only_log::writable_segment
 {
     public:
         writable_segment();
@@ -63,19 +63,19 @@ class append_only_log::writable_segment
 };
 
 inline
-append_only_log :: writable_segment :: writable_segment()
+hyperdex :: append_only_log :: writable_segment :: writable_segment()
     : m_fd()
     , m_ref(0)
 {
 }
 
 inline
-append_only_log :: writable_segment :: ~writable_segment() throw ()
+hyperdex :: append_only_log :: writable_segment :: ~writable_segment() throw ()
 {
 }
 
 inline bool
-append_only_log :: writable_segment :: open(const char* filename)
+hyperdex :: append_only_log :: writable_segment :: open(const char* filename)
 {
     int fd = ::open(filename, O_RDWR|O_CREAT, S_IRUSR|S_IWUSR);
 
@@ -95,31 +95,31 @@ append_only_log :: writable_segment :: open(const char* filename)
 }
 
 inline bool
-append_only_log :: writable_segment :: write(uint64_t which, block* b)
+hyperdex :: append_only_log :: writable_segment :: write(uint64_t which, block* b)
 {
     return pwrite(m_fd.get(), b->data, BLOCK_SIZE, (which + 1) * BLOCK_SIZE) == BLOCK_SIZE;
 }
 
 inline bool
-append_only_log :: writable_segment :: write_index(block* b)
+hyperdex :: append_only_log :: writable_segment :: write_index(block* b)
 {
     return pwrite(m_fd.get(), b->data, BLOCK_SIZE, 0) == BLOCK_SIZE;
 }
 
 inline bool
-append_only_log :: writable_segment :: sync()
+hyperdex :: append_only_log :: writable_segment :: sync()
 {
     return ::fsync(m_fd.get()) == 0;
 }
 
 inline bool
-append_only_log :: writable_segment :: close()
+hyperdex :: append_only_log :: writable_segment :: close()
 {
     return ::close(m_fd.get()) == 0;
 }
 
-inline e::intrusive_ptr<append_only_log::segment>
-append_only_log :: writable_segment :: get_segment()
+inline e::intrusive_ptr<hyperdex::append_only_log::segment>
+hyperdex :: append_only_log :: writable_segment :: get_segment()
 {
     e::intrusive_ptr<segment> s(new segment());
     void* base = mmap(NULL, SEGMENT_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, m_fd.get(), 0);
@@ -134,13 +134,13 @@ append_only_log :: writable_segment :: get_segment()
 }
 
 inline void
-append_only_log :: writable_segment :: inc()
+hyperdex :: append_only_log :: writable_segment :: inc()
 {
     e::atomic::increment_64_nobarrier(&m_ref, 1);
 }
 
 inline void
-append_only_log :: writable_segment :: dec()
+hyperdex :: append_only_log :: writable_segment :: dec()
 {
     e::atomic::increment_64_nobarrier(&m_ref, -1);
 

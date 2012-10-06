@@ -31,7 +31,7 @@
 // append only log
 #include "append_only_log.h"
 
-class append_only_log::segment
+class hyperdex::append_only_log::segment
 {
     public:
         segment();

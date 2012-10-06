@@ -51,7 +51,7 @@ class hyperdaemon::replication_manager::pending
         hyperdaemon::replication::clientop co;
         hyperdex::network_msgtype retcode;
         e::intrusive_ptr<pending> backing2;
-        hyperdisk::reference ref;
+        hyperdex::disk_reference ref;
 
         hyperdex::entityid recv_e; // We recv from here
         hyperdex::instance recv_i; // We recv from here
