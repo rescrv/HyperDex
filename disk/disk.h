@@ -60,6 +60,7 @@ class disk
     public:
         // open or create a disk
         disk_returncode open();
+        disk_returncode close();
         // Completely remove all traces of the disk
         disk_returncode destroy();
 

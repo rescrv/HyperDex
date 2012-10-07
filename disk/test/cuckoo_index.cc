@@ -55,7 +55,7 @@ TEST(CuckooIndexTest, Eviction1)
     std::vector<uint64_t> vals;
 
     // Insert a new entry
-    rc = ct.insert(0xdeadbeef00000000ULL, 0, 0x010102010301ULL);
+    rc = ct.insert(0xdeadbeef00000000ULL, 0x010102010301ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeef00000000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -63,25 +63,25 @@ TEST(CuckooIndexTest, Eviction1)
     ASSERT_EQ(0x010102010301ULL, vals[0]);
 
     // Now fill up the bucket in the first table
-    rc = ct.insert(0xdeadbeef00010000ULL, 0, 0x010202020302ULL);
+    rc = ct.insert(0xdeadbeef00010000ULL, 0x010202020302ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeef00010000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010202020302ULL, vals[0]);
-    rc = ct.insert(0xdeadbeef00020000ULL, 0, 0x010302030303ULL);
+    rc = ct.insert(0xdeadbeef00020000ULL, 0x010302030303ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeef00020000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010302030303ULL, vals[0]);
-    rc = ct.insert(0xdeadbeef00030000ULL, 0, 0x010402040304ULL);
+    rc = ct.insert(0xdeadbeef00030000ULL, 0x010402040304ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeef00030000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010402040304ULL, vals[0]);
-    rc = ct.insert(0xdeadbeef00040000ULL, 0, 0x010502050305ULL);
+    rc = ct.insert(0xdeadbeef00040000ULL, 0x010502050305ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeef00040000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -93,155 +93,155 @@ TEST(CuckooIndexTest, Eviction1)
     // In the following rounds, we bump things to the other buckets
 
     // round 1
-    rc = ct.insert(0xcafebabe00000000ULL, 0, 0x010602060306ULL);
+    rc = ct.insert(0xcafebabe00000000ULL, 0x010602060306ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xcafebabe00000000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010602060306ULL, vals[0]);
-    rc = ct.insert(0xcafebabe00010000ULL, 0, 0x010702070307ULL);
+    rc = ct.insert(0xcafebabe00010000ULL, 0x010702070307ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xcafebabe00010000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010702070307ULL, vals[0]);
-    rc = ct.insert(0xcafebabe00020000ULL, 0, 0x010802080308ULL);
+    rc = ct.insert(0xcafebabe00020000ULL, 0x010802080308ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xcafebabe00020000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010802080308ULL, vals[0]);
-    rc = ct.insert(0xcafebabe00030000ULL, 0, 0x010902090309ULL);
+    rc = ct.insert(0xcafebabe00030000ULL, 0x010902090309ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xcafebabe00030000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010902090309ULL, vals[0]);
-    rc = ct.insert(0xcafebabe00040000ULL, 0, 0x010a020a030aULL);
+    rc = ct.insert(0xcafebabe00040000ULL, 0x010a020a030aULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xcafebabe00040000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010a020a030aULL, vals[0]);
     // round 2
-    rc = ct.insert(0x8badf00d00000000ULL, 0, 0x010b020b030bULL);
+    rc = ct.insert(0x8badf00d00000000ULL, 0x010b020b030bULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0x8badf00d00000000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010b020b030bULL, vals[0]);
-    rc = ct.insert(0x8badf00d00010000ULL, 0, 0x010c020c030cULL);
+    rc = ct.insert(0x8badf00d00010000ULL, 0x010c020c030cULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0x8badf00d00010000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010c020c030cULL, vals[0]);
-    rc = ct.insert(0x8badf00d00020000ULL, 0, 0x010d020d030dULL);
+    rc = ct.insert(0x8badf00d00020000ULL, 0x010d020d030dULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0x8badf00d00020000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010d020d030dULL, vals[0]);
-    rc = ct.insert(0x8badf00d00030000ULL, 0, 0x010e020e030eULL);
+    rc = ct.insert(0x8badf00d00030000ULL, 0x010e020e030eULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0x8badf00d00030000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010e020e030eULL, vals[0]);
-    rc = ct.insert(0x8badf00d00040000ULL, 0, 0x010f020f030fULL);
+    rc = ct.insert(0x8badf00d00040000ULL, 0x010f020f030fULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0x8badf00d00040000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010f020f030fULL, vals[0]);
     // round 3
-    rc = ct.insert(0x1eaff00d00000000ULL, 0, 0x011002100310ULL);
+    rc = ct.insert(0x1eaff00d00000000ULL, 0x011002100310ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0x1eaff00d00000000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011002100310ULL, vals[0]);
-    rc = ct.insert(0x1eaff00d00010000ULL, 0, 0x011102110311ULL);
+    rc = ct.insert(0x1eaff00d00010000ULL, 0x011102110311ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0x1eaff00d00010000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011102110311ULL, vals[0]);
-    rc = ct.insert(0x1eaff00d00020000ULL, 0, 0x011202120312ULL);
+    rc = ct.insert(0x1eaff00d00020000ULL, 0x011202120312ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0x1eaff00d00020000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011202120312ULL, vals[0]);
-    rc = ct.insert(0x1eaff00d00030000ULL, 0, 0x011302130313ULL);
+    rc = ct.insert(0x1eaff00d00030000ULL, 0x011302130313ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0x1eaff00d00030000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011302130313ULL, vals[0]);
-    rc = ct.insert(0x1eaff00d00040000ULL, 0, 0x011402140314ULL);
+    rc = ct.insert(0x1eaff00d00040000ULL, 0x011402140314ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0x1eaff00d00040000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011402140314ULL, vals[0]);
     // round 4
-    rc = ct.insert(0xfaceb00c00000000ULL, 0, 0x011502150315ULL);
+    rc = ct.insert(0xfaceb00c00000000ULL, 0x011502150315ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xfaceb00c00000000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011502150315ULL, vals[0]);
-    rc = ct.insert(0xfaceb00c00010000ULL, 0, 0x011602160316ULL);
+    rc = ct.insert(0xfaceb00c00010000ULL, 0x011602160316ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xfaceb00c00010000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011602160316ULL, vals[0]);
-    rc = ct.insert(0xfaceb00c00020000ULL, 0, 0x011702170317ULL);
+    rc = ct.insert(0xfaceb00c00020000ULL, 0x011702170317ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xfaceb00c00020000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011702170317ULL, vals[0]);
-    rc = ct.insert(0xfaceb00c00030000ULL, 0, 0x011802180318ULL);
+    rc = ct.insert(0xfaceb00c00030000ULL, 0x011802180318ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xfaceb00c00030000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011802180318ULL, vals[0]);
-    rc = ct.insert(0xfaceb00c00040000ULL, 0, 0x011902190319ULL);
+    rc = ct.insert(0xfaceb00c00040000ULL, 0x011902190319ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xfaceb00c00040000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011902190319ULL, vals[0]);
     // round 5
-    rc = ct.insert(0xfacefeed00000000ULL, 0, 0x011a021a031aULL);
+    rc = ct.insert(0xfacefeed00000000ULL, 0x011a021a031aULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xfacefeed00000000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011a021a031aULL, vals[0]);
-    rc = ct.insert(0xfacefeed00010000ULL, 0, 0x011b021b031bULL);
+    rc = ct.insert(0xfacefeed00010000ULL, 0x011b021b031bULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xfacefeed00010000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011b021b031bULL, vals[0]);
-    rc = ct.insert(0xfacefeed00020000ULL, 0, 0x011c021c031cULL);
+    rc = ct.insert(0xfacefeed00020000ULL, 0x011c021c031cULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xfacefeed00020000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011c021c031cULL, vals[0]);
-    rc = ct.insert(0xfacefeed00030000ULL, 0, 0x011d021d031dULL);
+    rc = ct.insert(0xfacefeed00030000ULL, 0x011d021d031dULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xfacefeed00030000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011d021d031dULL, vals[0]);
-    rc = ct.insert(0xfacefeed00040000ULL, 0, 0x011e021e031eULL);
+    rc = ct.insert(0xfacefeed00040000ULL, 0x011e021e031eULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xfacefeed00040000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -256,7 +256,7 @@ TEST(CuckooIndexTest, Eviction2)
     std::vector<uint64_t> vals;
 
     // Insert a new entry
-    rc = ct.insert(0xdeadbeef00000000ULL, 0, 0x010102010301ULL);
+    rc = ct.insert(0xdeadbeef00000000ULL, 0x010102010301ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeef00000000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -264,31 +264,31 @@ TEST(CuckooIndexTest, Eviction2)
     ASSERT_EQ(0x010102010301ULL, vals[0]);
 
     // Now fill up the bucket in the first table
-    rc = ct.insert(0xcafebabe00000000ULL, 0, 0x010602060306ULL);
+    rc = ct.insert(0xcafebabe00000000ULL, 0x010602060306ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xcafebabe00000000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010602060306ULL, vals[0]);
-    rc = ct.insert(0x8badf00d00000000ULL, 0, 0x010b020b030bULL);
+    rc = ct.insert(0x8badf00d00000000ULL, 0x010b020b030bULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0x8badf00d00000000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010b020b030bULL, vals[0]);
-    rc = ct.insert(0x1eaff00d00000000ULL, 0, 0x011002100310ULL);
+    rc = ct.insert(0x1eaff00d00000000ULL, 0x011002100310ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0x1eaff00d00000000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011002100310ULL, vals[0]);
-    rc = ct.insert(0xfaceb00c00000000ULL, 0, 0x011502150315ULL);
+    rc = ct.insert(0xfaceb00c00000000ULL, 0x011502150315ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xfaceb00c00000000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011502150315ULL, vals[0]);
-    rc = ct.insert(0xfacefeed00000000ULL, 0, 0x011a021a031aULL);
+    rc = ct.insert(0xfacefeed00000000ULL, 0x011a021a031aULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xfacefeed00000000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -300,148 +300,148 @@ TEST(CuckooIndexTest, Eviction2)
     // In the following rounds, we bump things to the other buckets
 
     // round 1
-    rc = ct.insert(0xdeadbeef00010000ULL, 0, 0x010202020302ULL);
+    rc = ct.insert(0xdeadbeef00010000ULL, 0x010202020302ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeef00010000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010202020302ULL, vals[0]);
-    rc = ct.insert(0xcafebabe00010000ULL, 0, 0x010702070307ULL);
+    rc = ct.insert(0xcafebabe00010000ULL, 0x010702070307ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xcafebabe00010000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010702070307ULL, vals[0]);
-    rc = ct.insert(0x8badf00d00010000ULL, 0, 0x010c020c030cULL);
+    rc = ct.insert(0x8badf00d00010000ULL, 0x010c020c030cULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0x8badf00d00010000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010c020c030cULL, vals[0]);
-    rc = ct.insert(0x1eaff00d00010000ULL, 0, 0x011102110311ULL);
+    rc = ct.insert(0x1eaff00d00010000ULL, 0x011102110311ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0x1eaff00d00010000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011102110311ULL, vals[0]);
-    rc = ct.insert(0xfaceb00c00010000ULL, 0, 0x011602160316ULL);
+    rc = ct.insert(0xfaceb00c00010000ULL, 0x011602160316ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xfaceb00c00010000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011602160316ULL, vals[0]);
-    rc = ct.insert(0xfacefeed00010000ULL, 0, 0x011b021b031bULL);
+    rc = ct.insert(0xfacefeed00010000ULL, 0x011b021b031bULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xfacefeed00010000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011b021b031bULL, vals[0]);
     // round 2
-    rc = ct.insert(0xdeadbeef00020000ULL, 0, 0x010302030303ULL);
+    rc = ct.insert(0xdeadbeef00020000ULL, 0x010302030303ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeef00020000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010302030303ULL, vals[0]);
-    rc = ct.insert(0xcafebabe00020000ULL, 0, 0x010802080308ULL);
+    rc = ct.insert(0xcafebabe00020000ULL, 0x010802080308ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xcafebabe00020000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010802080308ULL, vals[0]);
-    rc = ct.insert(0x8badf00d00020000ULL, 0, 0x010d020d030dULL);
+    rc = ct.insert(0x8badf00d00020000ULL, 0x010d020d030dULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0x8badf00d00020000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010d020d030dULL, vals[0]);
-    rc = ct.insert(0x1eaff00d00020000ULL, 0, 0x011202120312ULL);
+    rc = ct.insert(0x1eaff00d00020000ULL, 0x011202120312ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0x1eaff00d00020000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011202120312ULL, vals[0]);
-    rc = ct.insert(0xfaceb00c00020000ULL, 0, 0x011702170317ULL);
+    rc = ct.insert(0xfaceb00c00020000ULL, 0x011702170317ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xfaceb00c00020000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011702170317ULL, vals[0]);
-    rc = ct.insert(0xfacefeed00020000ULL, 0, 0x011c021c031cULL);
+    rc = ct.insert(0xfacefeed00020000ULL, 0x011c021c031cULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xfacefeed00020000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011c021c031cULL, vals[0]);
     // round 3
-    rc = ct.insert(0xdeadbeef00030000ULL, 0, 0x010402040304ULL);
+    rc = ct.insert(0xdeadbeef00030000ULL, 0x010402040304ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeef00030000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010402040304ULL, vals[0]);
-    rc = ct.insert(0xcafebabe00030000ULL, 0, 0x010902090309ULL);
+    rc = ct.insert(0xcafebabe00030000ULL, 0x010902090309ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xcafebabe00030000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010902090309ULL, vals[0]);
-    rc = ct.insert(0x8badf00d00030000ULL, 0, 0x010e020e030eULL);
+    rc = ct.insert(0x8badf00d00030000ULL, 0x010e020e030eULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0x8badf00d00030000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010e020e030eULL, vals[0]);
-    rc = ct.insert(0x1eaff00d00030000ULL, 0, 0x011302130313ULL);
+    rc = ct.insert(0x1eaff00d00030000ULL, 0x011302130313ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0x1eaff00d00030000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011302130313ULL, vals[0]);
-    rc = ct.insert(0xfaceb00c00030000ULL, 0, 0x011802180318ULL);
+    rc = ct.insert(0xfaceb00c00030000ULL, 0x011802180318ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xfaceb00c00030000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011802180318ULL, vals[0]);
-    rc = ct.insert(0xfacefeed00030000ULL, 0, 0x011d021d031dULL);
+    rc = ct.insert(0xfacefeed00030000ULL, 0x011d021d031dULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xfacefeed00030000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011d021d031dULL, vals[0]);
     // round 4
-    rc = ct.insert(0xdeadbeef00040000ULL, 0, 0x010502050305ULL);
+    rc = ct.insert(0xdeadbeef00040000ULL, 0x010502050305ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeef00040000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010502050305ULL, vals[0]);
-    rc = ct.insert(0xcafebabe00040000ULL, 0, 0x010a020a030aULL);
+    rc = ct.insert(0xcafebabe00040000ULL, 0x010a020a030aULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xcafebabe00040000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010a020a030aULL, vals[0]);
-    rc = ct.insert(0x8badf00d00040000ULL, 0, 0x010f020f030fULL);
+    rc = ct.insert(0x8badf00d00040000ULL, 0x010f020f030fULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0x8badf00d00040000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010f020f030fULL, vals[0]);
-    rc = ct.insert(0x1eaff00d00040000ULL, 0, 0x011402140314ULL);
+    rc = ct.insert(0x1eaff00d00040000ULL, 0x011402140314ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0x1eaff00d00040000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011402140314ULL, vals[0]);
-    rc = ct.insert(0xfaceb00c00040000ULL, 0, 0x011902190319ULL);
+    rc = ct.insert(0xfaceb00c00040000ULL, 0x011902190319ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xfaceb00c00040000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x011902190319ULL, vals[0]);
-    rc = ct.insert(0xfacefeed00040000ULL, 0, 0x011e021e031eULL);
+    rc = ct.insert(0xfacefeed00040000ULL, 0x011e021e031eULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xfacefeed00040000ULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -457,14 +457,14 @@ TEST(CuckooIndexTest, RemoveOldest)
 
     // Insert ten new entries with the same key, checking each time that they
     // match what we expect
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x010101010101ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x010101010101ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     std::sort(vals.begin(), vals.end());
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010101010101ULL, vals[0]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x020202020202ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x020202020202ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -472,7 +472,7 @@ TEST(CuckooIndexTest, RemoveOldest)
     ASSERT_EQ(2, vals.size());
     ASSERT_EQ(0x010101010101ULL, vals[0]);
     ASSERT_EQ(0x020202020202ULL, vals[1]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x030303030303ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x030303030303ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -481,7 +481,7 @@ TEST(CuckooIndexTest, RemoveOldest)
     ASSERT_EQ(0x010101010101ULL, vals[0]);
     ASSERT_EQ(0x020202020202ULL, vals[1]);
     ASSERT_EQ(0x030303030303ULL, vals[2]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x040404040404ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x040404040404ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -491,7 +491,7 @@ TEST(CuckooIndexTest, RemoveOldest)
     ASSERT_EQ(0x020202020202ULL, vals[1]);
     ASSERT_EQ(0x030303030303ULL, vals[2]);
     ASSERT_EQ(0x040404040404ULL, vals[3]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x050505050505ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x050505050505ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -502,7 +502,7 @@ TEST(CuckooIndexTest, RemoveOldest)
     ASSERT_EQ(0x030303030303ULL, vals[2]);
     ASSERT_EQ(0x040404040404ULL, vals[3]);
     ASSERT_EQ(0x050505050505ULL, vals[4]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x060606060606ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x060606060606ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -514,7 +514,7 @@ TEST(CuckooIndexTest, RemoveOldest)
     ASSERT_EQ(0x040404040404ULL, vals[3]);
     ASSERT_EQ(0x050505050505ULL, vals[4]);
     ASSERT_EQ(0x060606060606ULL, vals[5]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x070707070707ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x070707070707ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -527,7 +527,7 @@ TEST(CuckooIndexTest, RemoveOldest)
     ASSERT_EQ(0x050505050505ULL, vals[4]);
     ASSERT_EQ(0x060606060606ULL, vals[5]);
     ASSERT_EQ(0x070707070707ULL, vals[6]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x080808080808ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x080808080808ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -541,7 +541,7 @@ TEST(CuckooIndexTest, RemoveOldest)
     ASSERT_EQ(0x060606060606ULL, vals[5]);
     ASSERT_EQ(0x070707070707ULL, vals[6]);
     ASSERT_EQ(0x080808080808ULL, vals[7]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x090909090909ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x090909090909ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -556,7 +556,7 @@ TEST(CuckooIndexTest, RemoveOldest)
     ASSERT_EQ(0x070707070707ULL, vals[6]);
     ASSERT_EQ(0x080808080808ULL, vals[7]);
     ASSERT_EQ(0x090909090909ULL, vals[8]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x0a0a0a0a0a0aULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x0a0a0a0a0a0aULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -709,14 +709,14 @@ TEST(CuckooIndexTest, RemoveNewest)
 
     // Insert ten new entries with the same key, checking each time that they
     // match what we expect
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x010101010101ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x010101010101ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     std::sort(vals.begin(), vals.end());
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010101010101ULL, vals[0]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x020202020202ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x020202020202ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -724,7 +724,7 @@ TEST(CuckooIndexTest, RemoveNewest)
     ASSERT_EQ(2, vals.size());
     ASSERT_EQ(0x010101010101ULL, vals[0]);
     ASSERT_EQ(0x020202020202ULL, vals[1]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x030303030303ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x030303030303ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -733,7 +733,7 @@ TEST(CuckooIndexTest, RemoveNewest)
     ASSERT_EQ(0x010101010101ULL, vals[0]);
     ASSERT_EQ(0x020202020202ULL, vals[1]);
     ASSERT_EQ(0x030303030303ULL, vals[2]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x040404040404ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x040404040404ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -743,7 +743,7 @@ TEST(CuckooIndexTest, RemoveNewest)
     ASSERT_EQ(0x020202020202ULL, vals[1]);
     ASSERT_EQ(0x030303030303ULL, vals[2]);
     ASSERT_EQ(0x040404040404ULL, vals[3]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x050505050505ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x050505050505ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -754,7 +754,7 @@ TEST(CuckooIndexTest, RemoveNewest)
     ASSERT_EQ(0x030303030303ULL, vals[2]);
     ASSERT_EQ(0x040404040404ULL, vals[3]);
     ASSERT_EQ(0x050505050505ULL, vals[4]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x060606060606ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x060606060606ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -766,7 +766,7 @@ TEST(CuckooIndexTest, RemoveNewest)
     ASSERT_EQ(0x040404040404ULL, vals[3]);
     ASSERT_EQ(0x050505050505ULL, vals[4]);
     ASSERT_EQ(0x060606060606ULL, vals[5]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x070707070707ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x070707070707ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -779,7 +779,7 @@ TEST(CuckooIndexTest, RemoveNewest)
     ASSERT_EQ(0x050505050505ULL, vals[4]);
     ASSERT_EQ(0x060606060606ULL, vals[5]);
     ASSERT_EQ(0x070707070707ULL, vals[6]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x080808080808ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x080808080808ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -793,7 +793,7 @@ TEST(CuckooIndexTest, RemoveNewest)
     ASSERT_EQ(0x060606060606ULL, vals[5]);
     ASSERT_EQ(0x070707070707ULL, vals[6]);
     ASSERT_EQ(0x080808080808ULL, vals[7]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x090909090909ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x090909090909ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -808,7 +808,7 @@ TEST(CuckooIndexTest, RemoveNewest)
     ASSERT_EQ(0x070707070707ULL, vals[6]);
     ASSERT_EQ(0x080808080808ULL, vals[7]);
     ASSERT_EQ(0x090909090909ULL, vals[8]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x0a0a0a0a0a0aULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x0a0a0a0a0a0aULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -961,14 +961,14 @@ TEST(CuckooIndexTest, RemoveMiddle)
 
     // Insert ten new entries with the same key, checking each time that they
     // match what we expect
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x010101010101ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x010101010101ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     std::sort(vals.begin(), vals.end());
     ASSERT_EQ(1, vals.size());
     ASSERT_EQ(0x010101010101ULL, vals[0]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x020202020202ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x020202020202ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -976,7 +976,7 @@ TEST(CuckooIndexTest, RemoveMiddle)
     ASSERT_EQ(2, vals.size());
     ASSERT_EQ(0x010101010101ULL, vals[0]);
     ASSERT_EQ(0x020202020202ULL, vals[1]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x030303030303ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x030303030303ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -985,7 +985,7 @@ TEST(CuckooIndexTest, RemoveMiddle)
     ASSERT_EQ(0x010101010101ULL, vals[0]);
     ASSERT_EQ(0x020202020202ULL, vals[1]);
     ASSERT_EQ(0x030303030303ULL, vals[2]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x040404040404ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x040404040404ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -995,7 +995,7 @@ TEST(CuckooIndexTest, RemoveMiddle)
     ASSERT_EQ(0x020202020202ULL, vals[1]);
     ASSERT_EQ(0x030303030303ULL, vals[2]);
     ASSERT_EQ(0x040404040404ULL, vals[3]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x050505050505ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x050505050505ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -1006,7 +1006,7 @@ TEST(CuckooIndexTest, RemoveMiddle)
     ASSERT_EQ(0x030303030303ULL, vals[2]);
     ASSERT_EQ(0x040404040404ULL, vals[3]);
     ASSERT_EQ(0x050505050505ULL, vals[4]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x060606060606ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x060606060606ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -1018,7 +1018,7 @@ TEST(CuckooIndexTest, RemoveMiddle)
     ASSERT_EQ(0x040404040404ULL, vals[3]);
     ASSERT_EQ(0x050505050505ULL, vals[4]);
     ASSERT_EQ(0x060606060606ULL, vals[5]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x070707070707ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x070707070707ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -1031,7 +1031,7 @@ TEST(CuckooIndexTest, RemoveMiddle)
     ASSERT_EQ(0x050505050505ULL, vals[4]);
     ASSERT_EQ(0x060606060606ULL, vals[5]);
     ASSERT_EQ(0x070707070707ULL, vals[6]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x080808080808ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x080808080808ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -1045,7 +1045,7 @@ TEST(CuckooIndexTest, RemoveMiddle)
     ASSERT_EQ(0x060606060606ULL, vals[5]);
     ASSERT_EQ(0x070707070707ULL, vals[6]);
     ASSERT_EQ(0x080808080808ULL, vals[7]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x090909090909ULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x090909090909ULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -1060,7 +1060,7 @@ TEST(CuckooIndexTest, RemoveMiddle)
     ASSERT_EQ(0x070707070707ULL, vals[6]);
     ASSERT_EQ(0x080808080808ULL, vals[7]);
     ASSERT_EQ(0x090909090909ULL, vals[8]);
-    rc = ct.insert(0xdeadbeeffacefeedULL, 0, 0x0a0a0a0a0a0aULL);
+    rc = ct.insert(0xdeadbeeffacefeedULL, 0x0a0a0a0a0a0aULL);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
     rc = ct.lookup(0xdeadbeeffacefeedULL, &vals);
     ASSERT_EQ(CUCKOO_SUCCESS, rc);
@@ -1213,7 +1213,7 @@ TEST(CuckooIndexTest, OneMillionInserts)
 
     for (uint64_t i = 1; i <= ONE_MILLION; ++i)
     {
-        rc = ct.insert(i, 0, 0xdeadbeef + i);
+        rc = ct.insert(i, 0xdeadbeef + i);
         ASSERT_EQ(CUCKOO_SUCCESS, rc);
         std::vector<uint64_t> vals;
         rc = ct.lookup(i, &vals);
@@ -1244,6 +1244,34 @@ TEST(CuckooIndexTest, OneMillionInserts)
     {
         rc = ct.remove(i, 0xdeadbeef + i);
         ASSERT_EQ(CUCKOO_NOT_FOUND, rc);
+    }
+}
+
+TEST(CuckooIndexTest, Zero)
+{
+    for (size_t dupes = 1; dupes <= 1024; dupes *= 2)
+    {
+        cuckoo_index ct;
+        cuckoo_returncode rc;
+        std::vector<uint64_t> vals;
+
+        // Insert
+        for (size_t i = 1; i <= dupes; ++i)
+        {
+            rc = ct.insert(0, i);
+            ASSERT_EQ(CUCKOO_SUCCESS, rc);
+        }
+
+        rc = ct.lookup(0, &vals);
+        ASSERT_EQ(CUCKOO_SUCCESS, rc);
+        ASSERT_EQ(dupes, vals.size());
+        std::sort(vals.begin(), vals.end());
+
+        // Check
+        for (size_t i = 1; i <= dupes; ++i)
+        {
+            ASSERT_EQ(i, vals[i - 1]);
+        }
     }
 }
 

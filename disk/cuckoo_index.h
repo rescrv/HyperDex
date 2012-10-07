@@ -57,13 +57,14 @@ class cuckoo_index
         cuckoo_returncode close(const char* path);
 
     public:
-        cuckoo_returncode insert(uint64_t key, uint64_t old_val, uint64_t new_val);
+        cuckoo_returncode insert(uint64_t key, uint64_t val);
         cuckoo_returncode lookup(uint64_t key, std::vector<uint64_t>* vals);
         cuckoo_returncode remove(uint64_t key, uint64_t val);
 
     private:
         class table_list;
         class table_info;
+        class table_base;
         typedef e::intrusive_ptr<table_list> table_list_ptr;
 
     private:

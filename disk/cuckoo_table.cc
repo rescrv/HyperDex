@@ -59,30 +59,21 @@ cuckoo_table :: ~cuckoo_table() throw ()
 }
 
 cuckoo_returncode
-cuckoo_table :: insert(uint64_t key, uint64_t old_val, uint64_t new_val)
+cuckoo_table :: insert(uint64_t key, uint64_t val)
 {
     assert(!m_hash_table_full);
     uint16_t index;
-    uint32_t entry[3];
     uint32_t* cache_line;
     size_t where = ENTRIES_PER_CACHE_LINE;
     size_t empty1 = ENTRIES_PER_CACHE_LINE;
     size_t empty2 = ENTRIES_PER_CACHE_LINE;
 
     // Look in the first table
-    get_entry1(key, old_val, entry);
     index = get_index1(key);
     cache_line = get_cache_line1(index);
 
     for (where = 0; where < ENTRIES_PER_CACHE_LINE; ++where)
     {
-        if (entry[0] == cache_line[where * 3 + 0] &&
-            entry[1] == cache_line[where * 3 + 1] &&
-            entry[2] == cache_line[where * 3 + 2])
-        {
-            break;
-        }
-
         if (cache_line[where * 3 + 0] == 0 &&
             cache_line[where * 3 + 1] == 0 &&
             cache_line[where * 3 + 2] == 0)
@@ -93,29 +84,12 @@ cuckoo_table :: insert(uint64_t key, uint64_t old_val, uint64_t new_val)
         }
     }
 
-    if (where < ENTRIES_PER_CACHE_LINE)
-    {
-        get_entry1(key, new_val, entry);
-        cache_line[where * 3 + 0] = entry[0];
-        cache_line[where * 3 + 1] = entry[1];
-        cache_line[where * 3 + 2] = entry[2];
-        return CUCKOO_SUCCESS;
-    }
-
     // Look in the second table
-    get_entry2(key, old_val, entry);
     index = get_index2(key);
     cache_line = get_cache_line2(index);
 
     for (where = 0; where < ENTRIES_PER_CACHE_LINE; ++where)
     {
-        if (entry[0] == cache_line[where * 3 + 0] &&
-            entry[1] == cache_line[where * 3 + 1] &&
-            entry[2] == cache_line[where * 3 + 2])
-        {
-            break;
-        }
-
         if (cache_line[where * 3 + 0] == 0 &&
             cache_line[where * 3 + 1] == 0 &&
             cache_line[where * 3 + 2] == 0)
@@ -126,19 +100,12 @@ cuckoo_table :: insert(uint64_t key, uint64_t old_val, uint64_t new_val)
         }
     }
 
-    if (where < ENTRIES_PER_CACHE_LINE)
-    {
-        get_entry2(key, new_val, entry);
-        cache_line[where * 3 + 0] = entry[0];
-        cache_line[where * 3 + 1] = entry[1];
-        cache_line[where * 3 + 2] = entry[2];
-        return CUCKOO_SUCCESS;
-    }
+    uint32_t entry[3];
 
     // Consider empty space in either table
     if (empty1 < ENTRIES_PER_CACHE_LINE)
     {
-        get_entry1(key, new_val, entry);
+        get_entry1(key, val, entry);
         index = get_index1(key);
         cache_line = get_cache_line1(index);
         cache_line[empty1 * 3 + 0] = entry[0];
@@ -148,7 +115,7 @@ cuckoo_table :: insert(uint64_t key, uint64_t old_val, uint64_t new_val)
     }
     else if (empty2 < ENTRIES_PER_CACHE_LINE)
     {
-        get_entry2(key, new_val, entry);
+        get_entry2(key, val, entry);
         index = get_index2(key);
         cache_line = get_cache_line2(index);
         cache_line[empty2 * 3 + 0] = entry[0];
@@ -160,7 +127,7 @@ cuckoo_table :: insert(uint64_t key, uint64_t old_val, uint64_t new_val)
     // Time to do the cuckoo
     unsigned table = 1;
     uint64_t cuckoo_key = key;
-    uint64_t cuckoo_val = new_val;
+    uint64_t cuckoo_val = val;
 
     for (size_t i = 0; i < CUCKOO_ROUNDS_BEFORE_FULL; ++i)
     {
@@ -231,8 +198,6 @@ cuckoo_table :: lookup(uint64_t key, std::vector<uint64_t>* vals)
 {
     uint16_t index;
     uint32_t* cache_line;
-
-    vals->clear();
 
     // Check the first table
     index = get_index1(key);
@@ -331,14 +296,14 @@ cuckoo_table :: remove(uint64_t key, uint64_t val)
 cuckoo_returncode
 cuckoo_table :: split(cuckoo_table* table1,
                       cuckoo_table* table2,
-                      uint64_t* lower_bound)
+                      uint64_t* lower_bound_key,
+                      uint64_t* lower_bound_val)
 {
-    std::vector<uint64_t> vals;
-    vals.reserve(65536);
+    std::vector<std::pair<uint64_t, uint64_t> > vals;
 
     if (m_hash_table_full)
     {
-        vals.push_back(m_full_key);
+        vals.push_back(std::make_pair(m_full_key, m_full_val));
     }
 
     // Scan the first table to get all keys
@@ -348,7 +313,17 @@ cuckoo_table :: split(cuckoo_table* table1,
 
         for (size_t where = 0; where < ENTRIES_PER_CACHE_LINE; ++where)
         {
-            vals.push_back(get_key1(i, cache_line + where * 3));
+            uint64_t k = get_key1(i, cache_line + where * 3);
+            uint64_t v = get_val(cache_line + where * 3);
+
+            if (v)
+            {
+                vals.push_back(std::make_pair(k, v));
+            }
+            else
+            {
+                break;
+            }
         }
     }
 
@@ -359,80 +334,36 @@ cuckoo_table :: split(cuckoo_table* table1,
 
         for (size_t where = 0; where < ENTRIES_PER_CACHE_LINE; ++where)
         {
-            vals.push_back(get_key2(i, cache_line + where * 3));
+            uint64_t k = get_key2(i, cache_line + where * 3);
+            uint64_t v = get_val(cache_line + where * 3);
+
+            if (v)
+            {
+                vals.push_back(std::make_pair(k, v));
+            }
+            else
+            {
+                break;
+            }
         }
     }
 
     // Figure out the division point
     std::sort(vals.begin(), vals.end());
-    *lower_bound = vals[vals.size() / 2];
+    *lower_bound_key = vals[vals.size() / 2].first;
+    *lower_bound_val = vals[vals.size() / 2].second;
+    cuckoo_returncode rc;
 
-    // Copy the first table
-    for (size_t i = 0; i < 65536; ++i)
+    for (size_t i = 0; i < vals.size() / 2; ++i)
     {
-        uint32_t* cache_line = get_cache_line1(i);
-        uint32_t* cache_line_1 = table1->get_cache_line1(i);
-        uint32_t* cache_line_2 = table2->get_cache_line1(i);
-
-        for (size_t where = 0; where < ENTRIES_PER_CACHE_LINE; ++where)
-        {
-            uint64_t key = get_key1(i, cache_line + where * 3);
-
-            if (key < *lower_bound)
-            {
-                cache_line_1[0] = cache_line[where * 3 + 0];
-                cache_line_1[1] = cache_line[where * 3 + 1];
-                cache_line_1[2] = cache_line[where * 3 + 2];
-                cache_line_1 += 3;
-            }
-            else
-            {
-                cache_line_2[0] = cache_line[where * 3 + 0];
-                cache_line_2[1] = cache_line[where * 3 + 1];
-                cache_line_2[2] = cache_line[where * 3 + 2];
-                cache_line_2 += 3;
-            }
-        }
+        rc = table1->insert(vals[i].first, vals[i].second);
+        assert(rc == CUCKOO_SUCCESS);
     }
 
-    // Copy the second table
-    for (size_t i = 0; i < 65536; ++i)
+    for (size_t i = vals.size() / 2; i < vals.size(); ++i)
     {
-        uint32_t* cache_line = get_cache_line2(i);
-        uint32_t* cache_line_1 = table1->get_cache_line2(i);
-        uint32_t* cache_line_2 = table2->get_cache_line2(i);
-
-        for (size_t where = 0; where < ENTRIES_PER_CACHE_LINE; ++where)
-        {
-            uint64_t key = get_key2(i, cache_line + where * 3);
-
-            if (key < *lower_bound)
-            {
-                cache_line_1[0] = cache_line[where * 3 + 0];
-                cache_line_1[1] = cache_line[where * 3 + 1];
-                cache_line_1[2] = cache_line[where * 3 + 2];
-                cache_line_1 += 3;
-            }
-            else
-            {
-                cache_line_2[0] = cache_line[where * 3 + 0];
-                cache_line_2[1] = cache_line[where * 3 + 1];
-                cache_line_2[2] = cache_line[where * 3 + 2];
-                cache_line_2 += 3;
-            }
-        }
-    }
-
-    if (m_hash_table_full)
-    {
-        if (m_full_key < *lower_bound)
-        {
-            table1->insert(m_full_key, 0, m_full_val);
-        }
-        else
-        {
-            table2->insert(m_full_key, 0, m_full_val);
-        }
+        rc = table2->insert(vals[i].first, vals[i].second);
+        assert(rc == CUCKOO_SUCCESS);
     }
 
     return CUCKOO_SUCCESS;

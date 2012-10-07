@@ -43,6 +43,8 @@
 using hyperdex::disk;
 using hyperdex::disk_returncode;
 
+bool tripped = false;
+
 disk :: disk(const po6::pathname& prefix)
     : m_prefix(prefix)
     , m_log()
@@ -84,6 +86,13 @@ disk :: open()
             return DISK_FATAL_ERROR;
     }
 
+    return DISK_SUCCESS;
+}
+
+disk_returncode
+disk :: close()
+{
+    m_log.close();
     return DISK_SUCCESS;
 }
 
@@ -323,7 +332,7 @@ disk :: put(const e::slice& key, uint64_t key_hash,
             return DISK_FATAL_ERROR;
     }
 
-    cuckoo_returncode crc = m_key_idx.insert(key_hash, overwrite, log_id);
+    cuckoo_returncode crc = m_key_idx.insert(key_hash, log_id);
 
     switch (crc)
     {
@@ -335,6 +344,23 @@ disk :: put(const e::slice& key, uint64_t key_hash,
             LOG(ERROR) << "could not insert key " << key_hash << " to " << m_prefix
                        << " because the key index failed with " << crc << "; this op will fail";
             return DISK_FATAL_ERROR;
+    }
+
+    if (overwrite > 0)
+    {
+        crc = m_key_idx.remove(key_hash, overwrite);
+
+        switch (crc)
+        {
+            case CUCKOO_SUCCESS:
+                break;
+            case CUCKOO_NOT_FOUND:
+            case CUCKOO_FULL:
+            default:
+                LOG(ERROR) << "could not remove old version of key " << key_hash << " from " << m_prefix
+                           << " because the remove operation failed with " << crc << "; this op will fail";
+                return DISK_FATAL_ERROR;
+        }
     }
 
     // XXX insert to search_tree
