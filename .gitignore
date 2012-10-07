@@ -13,8 +13,9 @@ configure
 count-test
 count_test-count-test.o
 count-test.o
-daemon
 daemon-daemon.o
+daemon/.dirstamp
+daemon/hyperdex_daemon-datalayer.o
 daemon.o
 datatypes/.dirstamp
 datatypes/hyperdex_daemon-apply.o
