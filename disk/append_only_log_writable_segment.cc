@@ -25,47 +25,97 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef append_only_log_segment_list_h_
-#define append_only_log_segment_list_h_
-
-// STL
-#include <utility>
+// e
+#include <e/atomic.h>
 
 // append only log
-#include "append_only_log.h"
-#include "append_only_log_constants.h"
 #include "append_only_log_segment.h"
 #include "append_only_log_writable_segment.h"
 
-class hyperdex::append_only_log::segment_list
+using hyperdex::append_only_log;
+
+append_only_log :: writable_segment :: writable_segment()
+    : m_fd()
+    , m_ref(0)
 {
-    public:
-        segment_list();
-        ~segment_list() throw ();
+}
 
-    public:
-        e::intrusive_ptr<segment_list> add(uint64_t lower_bound, writable_segment* ws);
-        uint64_t get_lower_bound(size_t i);
-        segment* get_segment(size_t i);
-        bool sync(size_t i);
+append_only_log :: writable_segment :: ~writable_segment() throw ()
+{
+}
 
-    private:
-        friend class e::intrusive_ptr<segment_list>;
+bool
+append_only_log :: writable_segment :: open(const char* filename)
+{
+    int fd = ::open(filename, O_RDWR|O_CREAT, S_IRUSR|S_IWUSR);
 
-    private:
-        segment_list(const segment_list&);
+    if (fd < 0)
+    {
+        return false;
+    }
 
-    private:
-        void inc();
-        void dec();
+    m_fd = fd;
 
-    private:
-        segment_list& operator = (const segment_list&);
+    if (ftruncate(fd, SEGMENT_SIZE) < 0)
+    {
+        return false;
+    }
 
-    private:
-        size_t m_ref;
-        size_t m_sz;
-        std::pair<uint64_t, e::intrusive_ptr<segment> >* m_segments;
-};
+    return true;
+}
 
-#endif // append_only_log_segment_list_h_
+bool
+append_only_log :: writable_segment :: write(uint64_t which, block* b)
+{
+    return pwrite(m_fd.get(), b->data, BLOCK_SIZE, (which + 1) * BLOCK_SIZE) == BLOCK_SIZE;
+}
+
+bool
+append_only_log :: writable_segment :: write_index(block* b)
+{
+    return pwrite(m_fd.get(), b->data, BLOCK_SIZE, 0) == BLOCK_SIZE;
+}
+
+bool
+append_only_log :: writable_segment :: sync()
+{
+    return ::fsync(m_fd.get()) == 0;
+}
+
+bool
+append_only_log :: writable_segment :: close()
+{
+    return ::close(m_fd.get()) == 0;
+}
+
+e::intrusive_ptr<append_only_log::segment>
+append_only_log :: writable_segment :: get_segment()
+{
+    e::intrusive_ptr<segment> s(new segment());
+    void* base = mmap(NULL, SEGMENT_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, m_fd.get(), 0);
+
+    if (base == MAP_FAILED)
+    {
+        return NULL;
+    }
+
+    s->set_mapping(base);
+    return s;
+}
+
+void
+append_only_log :: writable_segment :: inc()
+{
+    e::atomic::increment_64_nobarrier(&m_ref, 1);
+}
+
+void
+append_only_log :: writable_segment :: dec()
+{
+    e::atomic::increment_64_nobarrier(&m_ref, -1);
+
+    if (m_ref == 0)
+    {
+        delete this;
+    }
+}

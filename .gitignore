@@ -71,7 +71,9 @@ disk/cuckoo_table.o
 disk/.dirstamp
 disk/hyperdex_daemon-append_only_log_block.o
 disk/hyperdex_daemon-append_only_log.o
+disk/hyperdex_daemon-append_only_log_segment_list.o
 disk/hyperdex_daemon-append_only_log_segment.o
+disk/hyperdex_daemon-append_only_log_writable_segment.o
 disk/hyperdex_daemon-cuckoo_index.o
 disk/hyperdex_daemon-cuckoo_returncode.o
 disk/hyperdex_daemon-cuckoo_table.o
