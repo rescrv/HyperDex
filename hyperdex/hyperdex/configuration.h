@@ -39,14 +39,16 @@
 // e
 #include <e/array_ptr.h>
 
+// HyperDex
+#include "common/attribute.h"
+#include "common/schema.h"
+
 // HyperspaceHashing
 #include "hyperspacehashing/hyperspacehashing/mask.h"
 #include "hyperspacehashing/hyperspacehashing/prefix.h"
 #include "hyperspacehashing/hyperspacehashing/search.h"
 
 // HyperDex
-#include "datatypes/attribute.h"
-#include "datatypes/schema.h"
 #include "hyperdex/hyperdex/ids.h"
 #include "hyperdex/hyperdex/instance.h"
 

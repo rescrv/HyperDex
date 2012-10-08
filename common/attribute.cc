@@ -25,28 +25,33 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// C
-#include <cstring>
-
 // HyperDex
-#include "datatypes/schema.h"
+#include "common/attribute.h"
 
-schema :: schema()
-    : attrs_sz(0)
-    , attrs(NULL)
+using hyperdex::attribute;
+
+attribute :: attribute()
+    : name("")
+    , type(HYPERDATATYPE_GARBAGE)
 {
 }
 
-uint16_t
-schema :: lookup_attr(const char* name) const
+attribute :: attribute(const char* _name, hyperdatatype _type)
+    : name(_name)
+    , type(_type)
 {
-    for (uint16_t i = 0; i < attrs_sz; ++i)
-    {
-        if (strcmp(name, attrs[i].name) == 0)
-        {
-            return i;
-        }
-    }
+}
 
-    return attrs_sz;
+attribute :: attribute(const attribute& other)
+    : name(other.name)
+    , type(other.type)
+{
+}
+
+attribute&
+attribute :: operator = (const attribute& rhs)
+{
+    name = rhs.name;
+    type = rhs.type;
+    return *this;
 }

@@ -36,7 +36,7 @@
 #include "hyperclient/hyperclient.h"
 
 int64_t
-pack_attributes(schema* sc, size_t pack_at,
+pack_attributes(hyperdex::schema* sc, size_t pack_at,
                 const hyperclient_attribute* condattrs, size_t condattrs_sz,
                 const hyperclient_attribute* attrs, size_t attrs_sz,
                 hyperclient_returncode* status,

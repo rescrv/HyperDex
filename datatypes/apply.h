@@ -36,13 +36,13 @@
 
 // HyperDex
 #include "hyperdex.h"
+#include "common/schema.h"
 #include "datatypes/microcheck.h"
 #include "datatypes/microerror.h"
 #include "datatypes/microop.h"
-#include "datatypes/schema.h"
 
 size_t
-apply_checks_and_ops(const schema* sc,
+apply_checks_and_ops(const hyperdex::schema* sc,
                      const std::vector<microcheck>& checks,
                      const std::vector<microop>& ops,
                      const e::slice& old_key,

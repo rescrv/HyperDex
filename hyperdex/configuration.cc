@@ -146,20 +146,20 @@ hyperdex :: configuration :: ~configuration() throw ()
 {
 }
 
-schema*
+hyperdex::schema*
 hyperdex :: configuration :: get_schema(const char* spacename) const
 {
     return get_schema(space(spacename));
 }
 
 static bool
-compare_space_ids_to_schemas(const std::pair<hyperdex::spaceid, schema*>& lhs,
-                             const std::pair<hyperdex::spaceid, schema*>& rhs)
+compare_space_ids_to_schemas(const std::pair<hyperdex::spaceid, hyperdex::schema*>& lhs,
+                             const std::pair<hyperdex::spaceid, hyperdex::schema*>& rhs)
 {
     return lhs.first < rhs.first;
 }
 
-schema*
+hyperdex::schema*
 hyperdex :: configuration :: get_schema(const spaceid& sp) const
 {
     std::vector<std::pair<spaceid, schema*> >::const_iterator it;

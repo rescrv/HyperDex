@@ -107,7 +107,7 @@ apply_microops(hyperdatatype type,
 }
 
 size_t
-apply_checks_and_ops(const schema* sc,
+apply_checks_and_ops(const hyperdex::schema* sc,
                      const std::vector<microcheck>& checks,
                      const std::vector<microop>& ops,
                      const e::slice& old_key,

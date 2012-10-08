@@ -59,6 +59,12 @@
 #include <e/lockfree_hash_map.h>
 
 // Forward declarations
+namespace hyperdex
+{
+class schema;
+}
+
+// Forward declarations
 namespace e
 {
 class bitfield;
@@ -70,7 +76,6 @@ class search;
 } // namespace hyperspacehashing
 namespace hyperdex
 {
-class attribute;
 class configuration;
 class coordinatorlink;
 class entityid;
@@ -862,28 +867,28 @@ class hyperclient
                           size_t key_sz,
                           std::auto_ptr<e::buffer> msg,
                           e::intrusive_ptr<pending> op);
-        int64_t perform_microop1(const class hyperclient_keyop_info* opinfo,
+        int64_t perform_microop1(const struct hyperclient_keyop_info* opinfo,
                                  const char* space, const char* key, size_t key_sz,
                                  const struct hyperclient_attribute* condattrs, size_t condattrs_sz,
                                  const struct hyperclient_attribute* attrs, size_t attrs_sz,
                                  hyperclient_returncode* status);
-        int64_t perform_microop2(const class hyperclient_keyop_info* opinfo,
+        int64_t perform_microop2(const struct hyperclient_keyop_info* opinfo,
                                  const char* space, const char* key, size_t key_sz,
                                  const struct hyperclient_attribute* condattrs, size_t condattrs_sz,
                                  const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
                                  hyperclient_returncode* status);
-        size_t prepare_checks(const class schema* sc,
-                              const class hyperclient_keyop_info* opinfo,
+        size_t prepare_checks(const hyperdex:: schema* sc,
+                              const hyperclient_keyop_info* opinfo,
                               const hyperclient_attribute* condattrs, size_t condattrs_sz,
                               hyperclient_returncode* status,
                               std::vector<class microcheck>* checks);
-        size_t prepare_ops(const class schema* sc,
-                           const class hyperclient_keyop_info* opinfo,
+        size_t prepare_ops(const hyperdex:: schema* sc,
+                           const hyperclient_keyop_info* opinfo,
                            const hyperclient_attribute* attrs, size_t attrs_sz,
                            hyperclient_returncode* status,
                            std::vector<class microop>* ops);
-        size_t prepare_ops(const class schema* sc,
-                           const class hyperclient_keyop_info* opinfo,
+        size_t prepare_ops(const hyperdex::schema* sc,
+                           const hyperclient_keyop_info* opinfo,
                            const hyperclient_map_attribute* attrs, size_t attrs_sz,
                            hyperclient_returncode* status,
                            std::vector<class microop>* ops);
@@ -899,7 +904,9 @@ class hyperclient
         int64_t send(e::intrusive_ptr<pending> op,
                      std::auto_ptr<e::buffer> msg);
         void killall(const po6::net::location& loc, hyperclient_returncode status);
-        uint16_t validate_attribute(schema* sc, const hyperclient_attribute* attr, hyperclient_returncode* status);
+        uint16_t validate_attribute(hyperdex::schema* sc,
+                                    const hyperclient_attribute* attr,
+                                    hyperclient_returncode* status);
 
     private:
         const std::auto_ptr<hyperdex::coordinatorlink> m_coord;

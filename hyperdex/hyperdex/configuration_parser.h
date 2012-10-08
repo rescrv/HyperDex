@@ -32,8 +32,9 @@
 #include <e/array_ptr.h>
 
 // HyperDex
-#include "hyperdex.h"
-#include "datatypes/attribute.h"
+#include "common/attribute.h"
+
+// HyperDex
 #include "hyperdex/hyperdex/configuration.h"
 
 namespace hyperdex

@@ -40,7 +40,7 @@
 
 // HyperDex
 #include "disk/disk_returncode.h"
-#include "datatypes/schema.h"
+#include "common/schema.h"
 #include "daemon/reconfigure_returncode.h"
 #include "hyperdex/hyperdex/ids.h"
 

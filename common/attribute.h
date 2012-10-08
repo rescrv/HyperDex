@@ -25,27 +25,30 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef datatypes_schema_h_
-#define datatypes_schema_h_
-
-// C
-#include <stdint.h>
+#ifndef hyperdex_common_attribute_h_
+#define hyperdex_common_attribute_h_
 
 // HyperDex
 #include "hyperdex.h"
-#include "datatypes/attribute.h"
 
-class schema
+namespace hyperdex
+{
+
+class attribute
 {
     public:
-        schema();
+        attribute();
+        attribute(const char* name, hyperdatatype type);
+        attribute(const attribute& other);
 
     public:
-        uint16_t lookup_attr(const char* name) const;
+        attribute& operator = (const attribute& rhs);
 
     public:
-        uint16_t attrs_sz;
-        const attribute* attrs;
+        const char* name;
+        hyperdatatype type;
 };
 
-#endif // datatypes_schema_h_
+} // namespace hyperdex
+
+#endif // hyperdex_common_attribute_h_

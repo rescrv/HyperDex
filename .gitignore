@@ -3,6 +3,13 @@ autom4te.cache/
 binary-test
 binary_test-binary-test.o
 binary-test.o
+common/.dirstamp
+common/hyperdex_daemon-attribute.o
+common/hyperdex_daemon-schema.o
+common/libhyperclient_la-attribute.lo
+common/libhyperclient_la-attribute.o
+common/libhyperclient_la-schema.lo
+common/libhyperclient_la-schema.o
 config.guess
 config.h
 config.h.in

@@ -194,7 +194,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::network_msgt
         return;
     }
 
-    schema* sc = m_config.get_schema(to.get_space());
+    hyperdex::schema* sc = m_config.get_schema(to.get_space());
     assert(sc);
 
     if (!validate_as_type(key, sc->attrs[0].type))
@@ -311,7 +311,7 @@ hyperdaemon :: replication_manager :: client_del(const hyperdex::network_msgtype
         return;
     }
 
-    schema* sc = m_config.get_schema(to.get_space());
+    hyperdex::schema* sc = m_config.get_schema(to.get_space());
     assert(sc);
 
     if (!validate_as_type(key, sc->attrs[0].type))
@@ -408,7 +408,7 @@ hyperdaemon :: replication_manager :: chain_subspace(const entityid& from,
     // Get the keyholder for this key.
     e::intrusive_ptr<keyholder> kh = get_keyholder(to.get_region(), key);
 
-    schema* sc = m_config.get_schema(to.get_space());
+    hyperdex::schema* sc = m_config.get_schema(to.get_space());
     assert(sc);
 
     // Check that a chain's put matches the dimensions of the space.
@@ -552,7 +552,7 @@ hyperdaemon :: replication_manager :: chain_common(bool has_value,
     // Get the keyholder for this key.
     e::intrusive_ptr<keyholder> kh = get_keyholder(to.get_region(), key);
 
-    schema* sc = m_config.get_schema(to.get_space());
+    hyperdex::schema* sc = m_config.get_schema(to.get_space());
     assert(sc);
 
     // Check that a chain's put matches the dimensions of the space.

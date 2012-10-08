@@ -28,7 +28,8 @@
 // e
 #include <e/endian.h>
 
-// HyperClient
+// HyperDex
+#include "common/schema.h"
 #include "hyperclient/util.h"
 
 bool
@@ -43,7 +44,7 @@ value_to_attributes(const hyperdex::configuration& config,
                     size_t* attrs_sz)
 {
     *loop_status = HYPERCLIENT_SUCCESS;
-    schema* sc = config.get_schema(entity.get_space());
+    hyperdex::schema* sc = config.get_schema(entity.get_space());
 
     if (value.size() + 1 != sc->attrs_sz)
     {

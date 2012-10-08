@@ -39,9 +39,12 @@
 #include <busybee_st.h>
 
 // HyperDex
+#include "common/attribute.h"
+#include "common/schema.h"
+
+// HyperDex
 #include "macros.h"
 #include "datatypes/coercion.h"
-#include "datatypes/schema.h"
 #include "datatypes/microcheck.h"
 #include "datatypes/micropredicate.h"
 #include "datatypes/microop.h"
@@ -61,7 +64,6 @@
 #include "hyperclient/hyperclient_pending_sorted_search.h"
 #include "hyperclient/hyperclient_pending_statusonly.h"
 #include "hyperclient/keyop_info.h"
-#include "hyperclient/util.h"
 
 // Macros for convenience.  These conditional blocks appear quite a lot.  I want
 // to make them easy to change.
@@ -107,7 +109,7 @@ hyperclient :: get(const char* space, const char* key, size_t key_sz,
                    struct hyperclient_attribute** attrs, size_t* attrs_sz)
 {
     MAINTAIN_COORD_CONNECTION(status)
-    schema* sc = m_config->get_schema(space);
+    hyperdex::schema* sc = m_config->get_schema(space);
     VALIDATE_KEY(sc, key, key_sz) // Checks sc
 
     e::intrusive_ptr<pending> op = new pending_get(status, attrs, attrs_sz);
@@ -570,7 +572,7 @@ hyperclient :: attribute_type(const char* space, const char* name,
         return HYPERDATATYPE_GARBAGE;
     }
 
-    schema* sc = m_config->get_schema(space);
+    hyperdex::schema* sc = m_config->get_schema(space);
 
     if (!sc)
     {
@@ -718,14 +720,14 @@ hyperclient :: add_keyop(const char* space, const char* key, size_t key_sz,
 }
 
 int64_t
-hyperclient :: perform_microop1(const class hyperclient_keyop_info* opinfo,
+hyperclient :: perform_microop1(const hyperclient_keyop_info* opinfo,
                                 const char* space, const char* key, size_t key_sz,
                                 const struct hyperclient_attribute* condattrs, size_t condattrs_sz,
                                 const struct hyperclient_attribute* attrs, size_t attrs_sz,
                                 hyperclient_returncode* status)
 {
     MAINTAIN_COORD_CONNECTION(status)
-    schema* sc = m_config->get_schema(space);
+    hyperdex::schema* sc = m_config->get_schema(space);
     VALIDATE_KEY(sc, key, key_sz) // Checks sc
 
     // A new pending op
@@ -777,14 +779,14 @@ hyperclient :: perform_microop1(const class hyperclient_keyop_info* opinfo,
 }
 
 int64_t
-hyperclient :: perform_microop2(const class hyperclient_keyop_info* opinfo,
+hyperclient :: perform_microop2(const hyperclient_keyop_info* opinfo,
                                 const char* space, const char* key, size_t key_sz,
                                 const struct hyperclient_attribute* condattrs, size_t condattrs_sz,
                                 const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
                                 hyperclient_returncode* status)
 {
     MAINTAIN_COORD_CONNECTION(status)
-    schema* sc = m_config->get_schema(space);
+    hyperdex::schema* sc = m_config->get_schema(space);
     VALIDATE_KEY(sc, key, key_sz) // Checks sc
 
     // A new pending op
@@ -835,11 +837,11 @@ hyperclient :: perform_microop2(const class hyperclient_keyop_info* opinfo,
 }
 
 size_t
-hyperclient :: prepare_checks(const class schema* sc,
-                              const class hyperclient_keyop_info*,
+hyperclient :: prepare_checks(const hyperdex::schema* sc,
+                              const hyperclient_keyop_info*,
                               const hyperclient_attribute* condattrs, size_t condattrs_sz,
                               hyperclient_returncode* status,
-                              std::vector<class microcheck>* checks)
+                              std::vector<microcheck>* checks)
 {
     checks->reserve(condattrs_sz);
 
@@ -873,11 +875,11 @@ hyperclient :: prepare_checks(const class schema* sc,
 }
 
 size_t
-hyperclient :: prepare_ops(const class schema* sc,
-                           const class hyperclient_keyop_info* opinfo,
+hyperclient :: prepare_ops(const hyperdex::schema* sc,
+                           const hyperclient_keyop_info* opinfo,
                            const hyperclient_attribute* attrs, size_t attrs_sz,
                            hyperclient_returncode* status,
-                           std::vector<class microop>* ops)
+                           std::vector<microop>* ops)
 {
     ops->reserve(attrs_sz);
 
@@ -917,11 +919,11 @@ hyperclient :: prepare_ops(const class schema* sc,
 }
 
 size_t
-hyperclient :: prepare_ops(const class schema* sc,
-                           const class hyperclient_keyop_info* opinfo,
+hyperclient :: prepare_ops(const hyperdex::schema* sc,
+                           const hyperclient_keyop_info* opinfo,
                            const hyperclient_map_attribute* attrs, size_t attrs_sz,
                            hyperclient_returncode* status,
-                           std::vector<class microop>* ops)
+                           std::vector<microop>* ops)
 {
     ops->reserve(attrs_sz);
 
@@ -973,7 +975,7 @@ hyperclient :: prepare_searchop(const char* space,
                                 uint16_t* attrno,
                                 hyperdatatype* attrtype)
 {
-    schema* sc = m_config->get_schema(space);
+    hyperdex::schema* sc = m_config->get_schema(space);
     *s = hyperspacehashing::search(sc->attrs_sz);
 
     if (!sc)
@@ -1117,7 +1119,7 @@ hyperclient :: killall(const po6::net::location& loc,
 }
 
 uint16_t
-hyperclient :: validate_attribute(schema* sc,
+hyperclient :: validate_attribute(hyperdex::schema* sc,
                                   const hyperclient_attribute* attr,
                                   hyperclient_returncode* status)
 {
