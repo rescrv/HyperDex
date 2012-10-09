@@ -42,6 +42,8 @@
 #include "datatypes/step.h"
 #include "datatypes/write.h"
 
+using hyperdex::funcall;
+
 static bool
 validate_map(bool (*step_key)(const uint8_t** ptr, const uint8_t* end, e::slice* elem),
              bool (*step_val)(const uint8_t** ptr, const uint8_t* end, e::slice* elem),
@@ -100,14 +102,14 @@ VALIDATE_MAP(float, int64)
 VALIDATE_MAP(float, float)
 
 static bool
-apply_map_microop(uint8_t* (*apply_pod)(const e::slice& old_value,
-                                        const microop* ops, size_t num_ops,
+apply_map_funcall(uint8_t* (*apply_pod)(const e::slice& old_value,
+                                        const funcall* funcs, size_t num_funcs,
                                         uint8_t* writeto, microerror* error),
                   std::map<e::slice, e::slice>* map,
                   e::array_ptr<uint8_t>* scratch,
-                  const microop* ops, microerror* error)
+                  const funcall* funcs, microerror* error)
 {
-    std::map<e::slice, e::slice>::iterator it = map->find(ops->arg2);
+    std::map<e::slice, e::slice>::iterator it = map->find(funcs->arg2);
     e::slice old_value("", 0);
 
     if (it != map->end())
@@ -115,9 +117,9 @@ apply_map_microop(uint8_t* (*apply_pod)(const e::slice& old_value,
         old_value = it->second;
     }
 
-    *scratch = new uint8_t[old_value.size() + sizeof(uint32_t) + ops->arg1.size()];
-    uint8_t* write_to = apply_pod(old_value, ops, 1, scratch->get(), error);
-    (*map)[ops->arg2] = e::slice(scratch->get(), write_to - scratch->get());
+    *scratch = new uint8_t[old_value.size() + sizeof(uint32_t) + funcs->arg1.size()];
+    uint8_t* write_to = apply_pod(old_value, funcs, 1, scratch->get(), error);
+    (*map)[funcs->arg2] = e::slice(scratch->get(), write_to - scratch->get());
     return write_to != NULL;
 }
 
@@ -131,11 +133,11 @@ apply_map(bool (*step_key)(const uint8_t** ptr, const uint8_t* end, e::slice* el
           uint8_t* (*write_key)(uint8_t* writeto, const e::slice& elem),
           uint8_t* (*write_val)(uint8_t* writeto, const e::slice& elem),
           uint8_t* (*apply_pod)(const e::slice& old_value,
-                                const microop* ops, size_t num_ops,
+                                const funcall* funcs, size_t num_funcs,
                                 uint8_t* writeto, microerror* error),
           hyperdatatype container, hyperdatatype keyt, hyperdatatype valt,
           const e::slice& old_value,
-          const microop* ops, size_t num_ops,
+          const funcall* funcs, size_t num_funcs,
           uint8_t* writeto, microerror* error)
 {
     std::map<e::slice, e::slice> map;
@@ -162,34 +164,34 @@ apply_map(bool (*step_key)(const uint8_t** ptr, const uint8_t* end, e::slice* el
     }
 
     e::array_ptr<e::array_ptr<uint8_t> > scratch;
-    scratch = new e::array_ptr<uint8_t>[num_ops];
+    scratch = new e::array_ptr<uint8_t>[num_funcs];
 
-    for (size_t i = 0; i < num_ops; ++i)
+    for (size_t i = 0; i < num_funcs; ++i)
     {
-        switch (ops[i].action)
+        switch (funcs[i].name)
         {
-            case OP_SET:
-                if (ops[i].arg1_datatype == HYPERDATATYPE_MAP_GENERIC &&
-                    ops[i].arg1.size() == 0)
+            case hyperdex::FUNC_SET:
+                if (funcs[i].arg1_datatype == HYPERDATATYPE_MAP_GENERIC &&
+                    funcs[i].arg1.size() == 0)
                 {
                     map.clear();
                     continue;
                 }
-                else if (ops[i].arg1_datatype == HYPERDATATYPE_MAP_GENERIC)
+                else if (funcs[i].arg1_datatype == HYPERDATATYPE_MAP_GENERIC)
                 {
                     *error = MICROERR_MALFORMED;
                     return NULL;
                 }
 
-                if (container != ops[i].arg1_datatype)
+                if (container != funcs[i].arg1_datatype)
                 {
                     *error = MICROERR_WRONGTYPE;
                     return NULL;
                 }
 
                 map.clear();
-                ptr = ops[i].arg1.data();
-                end = ops[i].arg1.data() + ops[i].arg1.size();
+                ptr = funcs[i].arg1.data();
+                end = funcs[i].arg1.data() + funcs[i].arg1.size();
 
                 while (ptr < end)
                 {
@@ -209,83 +211,83 @@ apply_map(bool (*step_key)(const uint8_t** ptr, const uint8_t* end, e::slice* el
                 }
 
                 break;
-            case OP_MAP_ADD:
-                if (keyt != ops[i].arg2_datatype)
+            case hyperdex::FUNC_MAP_ADD:
+                if (keyt != funcs[i].arg2_datatype)
                 {
                     *error = MICROERR_WRONGTYPE;
                     return NULL;
                 }
 
-                if (!validate_key(ops[i].arg2))
+                if (!validate_key(funcs[i].arg2))
                 {
                     *error = MICROERR_MALFORMED;
                     return NULL;
                 }
 
-                if (valt != ops[i].arg1_datatype)
+                if (valt != funcs[i].arg1_datatype)
                 {
                     *error = MICROERR_WRONGTYPE;
                     return NULL;
                 }
 
-                if (!validate_val(ops[i].arg1))
+                if (!validate_val(funcs[i].arg1))
                 {
                     *error = MICROERR_MALFORMED;
                     return NULL;
                 }
 
-                map[ops[i].arg2] = ops[i].arg1;
+                map[funcs[i].arg2] = funcs[i].arg1;
                 break;
-            case OP_MAP_REMOVE:
-                if (keyt != ops[i].arg2_datatype)
+            case hyperdex::FUNC_MAP_REMOVE:
+                if (keyt != funcs[i].arg2_datatype)
                 {
                     *error = MICROERR_WRONGTYPE;
                     return NULL;
                 }
 
-                if (!validate_key(ops[i].arg2))
+                if (!validate_key(funcs[i].arg2))
                 {
                     *error = MICROERR_MALFORMED;
                     return NULL;
                 }
 
-                map.erase(ops[i].arg2);
+                map.erase(funcs[i].arg2);
                 break;
-            case OP_STRING_APPEND:
-            case OP_STRING_PREPEND:
-            case OP_NUM_ADD:
-            case OP_NUM_SUB:
-            case OP_NUM_MUL:
-            case OP_NUM_DIV:
-            case OP_NUM_MOD:
-            case OP_NUM_AND:
-            case OP_NUM_OR:
-            case OP_NUM_XOR:
-                if (keyt != ops[i].arg2_datatype)
+            case hyperdex::FUNC_STRING_APPEND:
+            case hyperdex::FUNC_STRING_PREPEND:
+            case hyperdex::FUNC_NUM_ADD:
+            case hyperdex::FUNC_NUM_SUB:
+            case hyperdex::FUNC_NUM_MUL:
+            case hyperdex::FUNC_NUM_DIV:
+            case hyperdex::FUNC_NUM_MOD:
+            case hyperdex::FUNC_NUM_AND:
+            case hyperdex::FUNC_NUM_OR:
+            case hyperdex::FUNC_NUM_XOR:
+                if (keyt != funcs[i].arg2_datatype)
                 {
                     *error = MICROERR_WRONGTYPE;
                     return NULL;
                 }
 
-                if (!validate_key(ops[i].arg2))
+                if (!validate_key(funcs[i].arg2))
                 {
                     *error = MICROERR_MALFORMED;
                     return NULL;
                 }
 
-                if (!apply_map_microop(apply_pod, &map, &scratch[i], ops + i, error))
+                if (!apply_map_funcall(apply_pod, &map, &scratch[i], funcs + i, error))
                 {
                     return NULL;
                 }
 
                 break;
-            case OP_FAIL:
-            case OP_LIST_LPUSH:
-            case OP_LIST_RPUSH:
-            case OP_SET_ADD:
-            case OP_SET_REMOVE:
-            case OP_SET_INTERSECT:
-            case OP_SET_UNION:
+            case hyperdex::FUNC_FAIL:
+            case hyperdex::FUNC_LIST_LPUSH:
+            case hyperdex::FUNC_LIST_RPUSH:
+            case hyperdex::FUNC_SET_ADD:
+            case hyperdex::FUNC_SET_REMOVE:
+            case hyperdex::FUNC_SET_INTERSECT:
+            case hyperdex::FUNC_SET_UNION:
             default:
                 *error = MICROERR_WRONGACTION;
                 return NULL;
@@ -310,11 +312,11 @@ apply_map(bool (*step_key)(const uint8_t** ptr, const uint8_t* end, e::slice* el
 // a map, we need to also encode the size.
 uint8_t*
 wrap_apply_string(const e::slice& old_value,
-                  const microop* ops, size_t num_ops,
+                  const funcall* funcs, size_t num_funcs,
                   uint8_t* writeto, microerror* error)
 {
     uint8_t* original_writeto = writeto;
-    writeto = apply_string(old_value, ops, num_ops, writeto + sizeof(uint32_t), error);
+    writeto = apply_string(old_value, funcs, num_funcs, writeto + sizeof(uint32_t), error);
     e::pack32le(static_cast<uint32_t>(writeto - original_writeto - sizeof(uint32_t)), original_writeto);
     return writeto;
 }
@@ -330,7 +332,7 @@ cmp_pair_first(const std::pair<e::slice, e::slice>& lhs,
 #define APPLY_MAP(KEY_T, VAL_T, KEY_TC, VAL_TC, WRAP_PREFIX) \
     uint8_t* \
     apply_map_ ## KEY_T ## _ ## VAL_T(const e::slice& old_value, \
-                           const microop* ops, size_t num_ops, \
+                           const funcall* funcs, size_t num_funcs, \
                            uint8_t* writeto, microerror* error) \
     { \
         return apply_map(step_ ## KEY_T, step_ ## VAL_T, \
@@ -341,7 +343,7 @@ cmp_pair_first(const std::pair<e::slice, e::slice>& lhs,
                          HYPERDATATYPE_MAP_ ## KEY_TC ## _ ## VAL_TC, \
                          HYPERDATATYPE_ ## KEY_TC, \
                          HYPERDATATYPE_ ## VAL_TC, \
-                         old_value, ops, num_ops, writeto, error); \
+                         old_value, funcs, num_funcs, writeto, error); \
     }
 
 APPLY_MAP(string, string, STRING, STRING, wrap_apply_)

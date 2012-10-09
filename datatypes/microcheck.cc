@@ -26,6 +26,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // HyperDex
+#include "common/serialization.h"
 #include "datatypes/microcheck.h"
 
 microcheck :: microcheck()
@@ -49,20 +50,19 @@ operator < (const microcheck& lhs, const microcheck& rhs)
 e::buffer::packer
 operator << (e::buffer::packer lhs, const microcheck& rhs)
 {
-    uint16_t datatype = static_cast<uint16_t>(rhs.datatype);
-    uint16_t predicate = static_cast<uint16_t>(rhs.predicate);
-    return lhs << rhs.attr << rhs.value << datatype << predicate;
+    return lhs << rhs.attr
+               << rhs.value
+               << rhs.datatype
+               << rhs.predicate;
 }
 
 e::buffer::unpacker
 operator >> (e::buffer::unpacker lhs, microcheck& rhs)
 {
-    uint16_t datatype;
-    uint16_t predicate;
-    lhs = lhs >> rhs.attr >> rhs.value >> datatype >> predicate;
-    rhs.datatype = static_cast<hyperdatatype>(datatype);
-    rhs.predicate = static_cast<micropredicate>(predicate);
-    return lhs;
+    return lhs >> rhs.attr
+               >> rhs.value
+               >> rhs.datatype
+               >> rhs.predicate;
 }
 
 size_t

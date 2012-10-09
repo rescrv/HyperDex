@@ -269,6 +269,10 @@ hyperdex_daemon_SOURCES = \
 			disk/search_snapshot.cc \
 			disk/search_tree.cc \
 			disk/transfer_iterator.cc \
+			common/attribute.cc \
+			common/funcall.cc \
+			common/schema.cc \
+			common/serialization.cc \
 			daemon/datalayer.cc \
 			hyperdaemon/daemon.h \
 			hyperdaemon/daemon.h \
@@ -293,8 +297,6 @@ hyperdex_daemon_SOURCES = \
 			datatypes/alltypes.h \
 			datatypes/apply.h \
 			datatypes/apply.cc \
-			datatypes/attribute.h \
-			datatypes/attribute.cc \
 			datatypes/compare.h \
 			datatypes/compare.cc \
 			datatypes/float.h \
@@ -308,10 +310,6 @@ hyperdex_daemon_SOURCES = \
 			datatypes/microerror.h \
 			datatypes/microcheck.h \
 			datatypes/microcheck.cc \
-			datatypes/microop.h \
-			datatypes/microop.cc \
-			datatypes/schema.h \
-			datatypes/schema.cc \
 			datatypes/set.h \
 			datatypes/set.cc \
 			datatypes/sort.h \
@@ -364,7 +362,10 @@ libhyperclient_noinst_headers = \
 			hyperclient/util.h
 
 libhyperclient_la_SOURCES = \
-			datatypes/attribute.cc \
+			common/attribute.cc \
+			common/funcall.cc \
+			common/schema.cc \
+			common/serialization.cc \
 			datatypes/coercion.h \
 			datatypes/coercion.cc \
 			datatypes/compare.cc \
@@ -372,12 +373,8 @@ libhyperclient_la_SOURCES = \
 			datatypes/int64.cc \
 			datatypes/list.cc \
 			datatypes/map.cc \
-			datatypes/microaction.h \
 			datatypes/microcheck.h \
 			datatypes/microcheck.cc \
-			datatypes/microop.h \
-			datatypes/microop.cc \
-			datatypes/schema.cc \
 			datatypes/set.cc \
 			datatypes/step.cc \
 			datatypes/string.cc \

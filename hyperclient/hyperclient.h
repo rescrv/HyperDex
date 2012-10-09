@@ -61,6 +61,7 @@
 // Forward declarations
 namespace hyperdex
 {
+class funcall;
 class schema;
 }
 
@@ -867,12 +868,12 @@ class hyperclient
                           size_t key_sz,
                           std::auto_ptr<e::buffer> msg,
                           e::intrusive_ptr<pending> op);
-        int64_t perform_microop1(const struct hyperclient_keyop_info* opinfo,
+        int64_t perform_funcall1(const struct hyperclient_keyop_info* opinfo,
                                  const char* space, const char* key, size_t key_sz,
                                  const struct hyperclient_attribute* condattrs, size_t condattrs_sz,
                                  const struct hyperclient_attribute* attrs, size_t attrs_sz,
                                  hyperclient_returncode* status);
-        int64_t perform_microop2(const struct hyperclient_keyop_info* opinfo,
+        int64_t perform_funcall2(const struct hyperclient_keyop_info* opinfo,
                                  const char* space, const char* key, size_t key_sz,
                                  const struct hyperclient_attribute* condattrs, size_t condattrs_sz,
                                  const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
@@ -886,12 +887,12 @@ class hyperclient
                            const hyperclient_keyop_info* opinfo,
                            const hyperclient_attribute* attrs, size_t attrs_sz,
                            hyperclient_returncode* status,
-                           std::vector<class microop>* ops);
+                           std::vector<hyperdex::funcall>* ops);
         size_t prepare_ops(const hyperdex::schema* sc,
                            const hyperclient_keyop_info* opinfo,
                            const hyperclient_map_attribute* attrs, size_t attrs_sz,
                            hyperclient_returncode* status,
-                           std::vector<class microop>* ops);
+                           std::vector<hyperdex::funcall>* ops);
         int64_t prepare_searchop(const char* space,
                                  const struct hyperclient_attribute* eq, size_t eq_sz,
                                  const struct hyperclient_range_query* rn, size_t rn_sz,

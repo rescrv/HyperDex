@@ -40,14 +40,15 @@
 
 // HyperDex
 #include "common/attribute.h"
+#include "common/funcall.h"
+#include "common/predicate.h"
 #include "common/schema.h"
 
 // HyperDex
 #include "macros.h"
+#include "common/funcall.h"
 #include "datatypes/coercion.h"
 #include "datatypes/microcheck.h"
-#include "datatypes/micropredicate.h"
-#include "datatypes/microop.h"
 #include "datatypes/validate.h"
 #include "hyperdex/hyperdex/configuration.h"
 #include "hyperdex/hyperdex/coordinatorlink.h"
@@ -64,6 +65,8 @@
 #include "hyperclient/hyperclient_pending_sorted_search.h"
 #include "hyperclient/hyperclient_pending_statusonly.h"
 #include "hyperclient/keyop_info.h"
+
+using hyperdex::funcall;
 
 // Macros for convenience.  These conditional blocks appear quite a lot.  I want
 // to make them easy to change.
@@ -128,7 +131,7 @@ hyperclient :: condput(const char* space, const char* key, size_t key_sz,
 {
     const hyperclient_keyop_info* opinfo;
     opinfo = hyperclient_keyop_info_lookup("condput", 7);
-    return perform_microop1(opinfo, space, key, key_sz,
+    return perform_funcall1(opinfo, space, key, key_sz,
                             condattrs, condattrs_sz, attrs, attrs_sz, status);
 }
 
@@ -138,7 +141,7 @@ hyperclient :: del(const char* space, const char* key, size_t key_sz,
 {
     const hyperclient_keyop_info* opinfo;
     opinfo = hyperclient_keyop_info_lookup("del", 3);
-    return perform_microop1(opinfo, space, key, key_sz, NULL, 0, NULL, 0, status);
+    return perform_funcall1(opinfo, space, key, key_sz, NULL, 0, NULL, 0, status);
 }
 
 #define HYPERCLIENT_CPPDEF(OPNAME) \
@@ -149,7 +152,7 @@ hyperclient :: del(const char* space, const char* key, size_t key_sz,
     { \
         const hyperclient_keyop_info* opinfo; \
         opinfo = hyperclient_keyop_info_lookup(hdxstr(OPNAME), strlen(hdxstr(OPNAME))); \
-        return perform_microop1(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, status); \
+        return perform_funcall1(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, status); \
     }
 
 HYPERCLIENT_CPPDEF(put)
@@ -179,7 +182,7 @@ HYPERCLIENT_CPPDEF(set_union)
     { \
         const hyperclient_keyop_info* opinfo; \
         opinfo = hyperclient_keyop_info_lookup(hdxstr(OPNAME), strlen(hdxstr(OPNAME))); \
-        return perform_microop2(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, status); \
+        return perform_funcall2(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, status); \
     }
 
 HYPERCLIENT_MAP_CPPDEF(map_add)
@@ -720,7 +723,7 @@ hyperclient :: add_keyop(const char* space, const char* key, size_t key_sz,
 }
 
 int64_t
-hyperclient :: perform_microop1(const hyperclient_keyop_info* opinfo,
+hyperclient :: perform_funcall1(const hyperclient_keyop_info* opinfo,
                                 const char* space, const char* key, size_t key_sz,
                                 const struct hyperclient_attribute* condattrs, size_t condattrs_sz,
                                 const struct hyperclient_attribute* attrs, size_t attrs_sz,
@@ -744,7 +747,7 @@ hyperclient :: perform_microop1(const hyperclient_keyop_info* opinfo,
     }
 
     // Prepare the ops
-    std::vector<microop> ops;
+    std::vector<funcall> ops;
     size_t num_ops = prepare_ops(sc, opinfo, attrs, attrs_sz, status, &ops);
 
     if (num_ops < attrs_sz)
@@ -773,13 +776,13 @@ hyperclient :: perform_microop1(const hyperclient_keyop_info* opinfo,
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     uint8_t flags = (opinfo->fail_if_not_exist ? 1 : 0)
                   | (opinfo->fail_if_exist ? 2 : 0)
-                  | (opinfo->has_microops ? 128 : 0);
+                  | (opinfo->has_funcalls ? 128 : 0);
     msg->pack_at(HYPERCLIENT_HEADER_SIZE) << e::slice(key, key_sz) << flags << checks << ops;
     return add_keyop(space, key, key_sz, msg, op);
 }
 
 int64_t
-hyperclient :: perform_microop2(const hyperclient_keyop_info* opinfo,
+hyperclient :: perform_funcall2(const hyperclient_keyop_info* opinfo,
                                 const char* space, const char* key, size_t key_sz,
                                 const struct hyperclient_attribute* condattrs, size_t condattrs_sz,
                                 const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
@@ -803,7 +806,7 @@ hyperclient :: perform_microop2(const hyperclient_keyop_info* opinfo,
     }
 
     // Prepare the ops
-    std::vector<microop> ops;
+    std::vector<funcall> ops;
     size_t num_ops = prepare_ops(sc, opinfo, attrs, attrs_sz, status, &ops);
 
     if (num_ops < attrs_sz)
@@ -831,7 +834,7 @@ hyperclient :: perform_microop2(const hyperclient_keyop_info* opinfo,
     std::sort(ops.begin(), ops.end());
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     uint8_t flags = (opinfo->fail_if_not_exist ? 1 : 0)
-                  | (opinfo->has_microops ? 128 : 0);
+                  | (opinfo->has_funcalls ? 128 : 0);
     msg->pack_at(HYPERCLIENT_HEADER_SIZE) << e::slice(key, key_sz) << flags << checks << ops;
     return add_keyop(space, key, key_sz, msg, op);
 }
@@ -867,7 +870,7 @@ hyperclient :: prepare_checks(const hyperdex::schema* sc,
         c.attr = attrnum;
         c.value = e::slice(condattrs[i].value, condattrs[i].value_sz);
         c.datatype = condattrs[i].datatype;
-        c.predicate = PRED_EQUALS;
+        c.predicate = hyperdex::PRED_EQUALS;
         checks->push_back(c);
     }
 
@@ -879,7 +882,7 @@ hyperclient :: prepare_ops(const hyperdex::schema* sc,
                            const hyperclient_keyop_info* opinfo,
                            const hyperclient_attribute* attrs, size_t attrs_sz,
                            hyperclient_returncode* status,
-                           std::vector<microop>* ops)
+                           std::vector<funcall>* ops)
 {
     ops->reserve(attrs_sz);
 
@@ -907,9 +910,9 @@ hyperclient :: prepare_ops(const hyperdex::schema* sc,
             return i;
         }
 
-        microop o;
+        funcall o;
         o.attr = attrnum;
-        o.action = opinfo->action;
+        o.name = opinfo->fname;
         o.arg1 = e::slice(attrs[i].value, attrs[i].value_sz);
         o.arg1_datatype = attrs[i].datatype;
         ops->push_back(o);
@@ -923,7 +926,7 @@ hyperclient :: prepare_ops(const hyperdex::schema* sc,
                            const hyperclient_keyop_info* opinfo,
                            const hyperclient_map_attribute* attrs, size_t attrs_sz,
                            hyperclient_returncode* status,
-                           std::vector<microop>* ops)
+                           std::vector<funcall>* ops)
 {
     ops->reserve(attrs_sz);
 
@@ -951,9 +954,9 @@ hyperclient :: prepare_ops(const hyperdex::schema* sc,
             return i;
         }
 
-        microop o;
+        funcall o;
         o.attr = attrnum;
-        o.action = opinfo->action;
+        o.name = opinfo->fname;
         o.arg2 = e::slice(attrs[i].map_key, attrs[i].map_key_sz);
         o.arg2_datatype = attrs[i].map_key_datatype;
         o.arg1 = e::slice(attrs[i].value, attrs[i].value_sz);

@@ -36,20 +36,20 @@
 
 // HyperDex
 #include "hyperdex.h"
+#include "common/funcall.h"
 #include "common/schema.h"
 #include "datatypes/microcheck.h"
 #include "datatypes/microerror.h"
-#include "datatypes/microop.h"
 
 size_t
-apply_checks_and_ops(const hyperdex::schema* sc,
-                     const std::vector<microcheck>& checks,
-                     const std::vector<microop>& ops,
-                     const e::slice& old_key,
-                     const std::vector<e::slice>& old_value,
-                     std::tr1::shared_ptr<e::buffer>* new_backing,
-                     e::slice* new_key,
-                     std::vector<e::slice>* new_value,
-                     microerror* error);
+perform_checks_and_apply_funcs(const hyperdex::schema* sc,
+                               const std::vector<microcheck>& checks,
+                               const std::vector<hyperdex::funcall>& funcs,
+                               const e::slice& old_key,
+                               const std::vector<e::slice>& old_value,
+                               std::tr1::shared_ptr<e::buffer>* new_backing,
+                               e::slice* new_key,
+                               std::vector<e::slice>* new_value,
+                               microerror* error);
 
 #endif // datatypes_apply_h_

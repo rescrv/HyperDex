@@ -33,7 +33,7 @@
 
 // HyperDex
 #include "hyperdex.h"
-#include "datatypes/microop.h"
+#include "common/funcall.h"
 #include "datatypes/microerror.h"
 
 bool
@@ -41,7 +41,7 @@ validate_as_int64(const e::slice& value);
 
 uint8_t*
 apply_int64(const e::slice& old_value,
-            const microop* ops, size_t num_ops,
+            const hyperdex::funcall* funcs, size_t num_funcs,
             uint8_t* writeto, microerror* error);
 
 #endif // datatypes_int64_h_

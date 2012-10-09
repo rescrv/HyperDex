@@ -25,12 +25,17 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef datatypes_micropredicate_h_
-#define datatypes_micropredicate_h_
+#ifndef hyperdex_common_predicate_h_
+#define hyperdex_common_predicate_h_
 
-enum micropredicate
+namespace hyperdex
+{
+
+enum predicate
 {
     PRED_EQUALS
 };
 
-#endif // datatypes_micropredicate_h_
+} // namespace hyperdex
+
+#endif // hyperdex_common_predicate_h_

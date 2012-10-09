@@ -25,23 +25,40 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef datatypes_float_h_
-#define datatypes_float_h_
+#ifndef hyperdex_common_hashing_h_
+#define hyperdex_common_hashing_h_
+
+// STL
+#include <vector>
 
 // e
 #include <e/slice.h>
 
 // HyperDex
 #include "hyperdex.h"
-#include "common/funcall.h"
-#include "datatypes/microerror.h"
+#include "common/attribute.h"
+#include "common/schema.h"
 
-bool
-validate_as_float(const e::slice& value);
+namespace hyperdex
+{
 
-uint8_t*
-apply_float(const e::slice& old_value,
-            const hyperdex::funcall* funcs, size_t num_funcs,
-            uint8_t* writeto, microerror* error);
+void
+hash(const schema* sc,
+     const e::slice& key,
+     const std::vector<e::slice>& value,
+     uint64_t* key_hash,
+     uint64_t* value_hash);
 
-#endif // datatypes_float_h_
+void
+hash_key(const schema* sc,
+         const e::slice& key,
+         uint64_t* key_hash);
+
+void
+hash_value(const schema* sc,
+           const std::vector<e::slice>& value,
+           uint64_t* value_hash);
+
+} // namespace hyperdex
+
+#endif // hyperdex_common_hashing_h_

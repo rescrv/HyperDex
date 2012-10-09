@@ -8,7 +8,7 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AM_PATH_PYTHON([2.6])
 LT_PREREQ([2.2])
 LT_INIT
-AC_CONFIG_SRCDIR([hyperspacehashing/hashes.cc])
+AC_CONFIG_SRCDIR([hyperdex.h])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 

@@ -51,11 +51,11 @@
 
 // Forward Declarations
 class microcheck;
-class microop;
 namespace hyperdex
 {
 class coordinatorlink;
 class datalayer;
+class funcall;
 class instance;
 }
 namespace hyperdaemon
@@ -97,7 +97,7 @@ class replication_manager
                            bool fail_if_found,
                            const e::slice& key,
                            std::vector<microcheck>* checks,
-                           std::vector<microop>* ops);
+                           std::vector<hyperdex::funcall>* funcs);
         void client_del(const hyperdex::network_msgtype opcode,
                         const hyperdex::entityid& from,
                         const hyperdex::entityid& to,

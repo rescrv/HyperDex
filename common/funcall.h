@@ -25,63 +25,69 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#define __STDC_LIMIT_MACROS
+#ifndef hyperdex_common_funcall_h_
+#define hyperdex_common_funcall_h_
+
+// C
+#include <stdint.h>
+
+// e
+#include <e/slice.h>
 
 // HyperDex
-#include "datatypes/microop.h"
+#include "hyperdex.h"
 
-microop :: microop()
-    : attr(UINT16_MAX)
-    , action()
-    , arg1()
-    , arg1_datatype()
-    , arg2()
-    , arg2_datatype()
+namespace hyperdex
 {
-}
 
-microop :: ~microop() throw ()
+enum funcall_t
 {
-}
+    FUNC_FAIL,
+
+    FUNC_SET,
+
+    FUNC_STRING_APPEND,
+    FUNC_STRING_PREPEND,
+
+    FUNC_NUM_ADD,
+    FUNC_NUM_SUB,
+    FUNC_NUM_MUL,
+    FUNC_NUM_DIV,
+    FUNC_NUM_MOD,
+    FUNC_NUM_AND,
+    FUNC_NUM_OR,
+    FUNC_NUM_XOR,
+
+    FUNC_LIST_LPUSH,
+    FUNC_LIST_RPUSH,
+
+    FUNC_SET_ADD,
+    FUNC_SET_REMOVE,
+    FUNC_SET_INTERSECT,
+    FUNC_SET_UNION,
+
+    FUNC_MAP_ADD,
+    FUNC_MAP_REMOVE
+};
+
+class funcall
+{
+    public:
+        funcall();
+        ~funcall() throw ();
+
+    public:
+        uint16_t attr;
+        funcall_t name;
+        e::slice arg1;
+        hyperdatatype arg1_datatype;
+        e::slice arg2;
+        hyperdatatype arg2_datatype;
+};
 
 bool
-operator < (const microop& lhs, const microop& rhs)
-{
-    return lhs.attr < rhs.attr;
-}
+operator < (const funcall& lhs, const funcall& rhs);
 
-e::buffer::packer
-operator << (e::buffer::packer lhs, const microop& rhs)
-{
-    uint8_t action = static_cast<uint8_t>(rhs.action);
-    uint16_t arg1_datatype = static_cast<uint16_t>(rhs.arg1_datatype);
-    uint16_t arg2_datatype = static_cast<uint16_t>(rhs.arg2_datatype);
-    lhs = lhs << rhs.attr << action
-              << rhs.arg1 << arg1_datatype
-              << rhs.arg2 << arg2_datatype;
-    return lhs;
-}
+} // namespace hyperdex
 
-e::buffer::unpacker
-operator >> (e::buffer::unpacker lhs, microop& rhs)
-{
-    uint8_t action;
-    uint16_t arg1_datatype;
-    uint16_t arg2_datatype;
-    lhs = lhs >> rhs.attr >> action
-              >> rhs.arg1 >> arg1_datatype
-              >> rhs.arg2 >> arg2_datatype;
-    rhs.action = static_cast<microaction>(action);
-    rhs.arg1_datatype = static_cast<hyperdatatype>(arg1_datatype);
-    rhs.arg2_datatype = static_cast<hyperdatatype>(arg2_datatype);
-    return lhs;
-}
-
-size_t
-pack_size(const microop& m)
-{
-    return sizeof(uint16_t)
-         + sizeof(uint8_t)
-         + sizeof(uint32_t) + m.arg1.size() + sizeof(uint16_t)
-         + sizeof(uint32_t) + m.arg2.size() + sizeof(uint16_t);
-}
+#endif // hyperdex_common_funcall_h_

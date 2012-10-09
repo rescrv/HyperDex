@@ -25,42 +25,48 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef datatypes_microop_h_
-#define datatypes_microop_h_
+#ifndef hyperdex_common_serialization_h_
+#define hyperdex_common_serialization_h_
 
 // e
 #include <e/buffer.h>
-#include <e/slice.h>
 
 // HyperDex
 #include "hyperdex.h"
-#include "datatypes/microaction.h"
+#include "common/funcall.h"
+#include "common/predicate.h"
 
-class microop
+namespace hyperdex
 {
-    public:
-        microop();
-        ~microop() throw ();
-
-    public:
-        uint16_t attr;
-        microaction action;
-        e::slice arg1;
-        hyperdatatype arg1_datatype;
-        e::slice arg2;
-        hyperdatatype arg2_datatype;
-};
-
-bool
-operator < (const microop& lhs, const microop& rhs);
 
 e::buffer::packer
-operator << (e::buffer::packer lhs, const microop& rhs);
-
+operator << (e::buffer::packer lhs, const funcall_t& rhs);
 e::buffer::unpacker
-operator >> (e::buffer::unpacker lhs, microop& rhs);
-
+operator >> (e::buffer::unpacker lhs, funcall_t& rhs);
 size_t
-pack_size(const microop& rhs);
+pack_size(const funcall_t& f);
 
-#endif // datatypes_microop_h_
+e::buffer::packer
+operator << (e::buffer::packer lhs, const funcall& rhs);
+e::buffer::unpacker
+operator >> (e::buffer::unpacker lhs, funcall& rhs);
+size_t
+pack_size(const funcall& f);
+
+e::buffer::packer
+operator << (e::buffer::packer lhs, const hyperdatatype& rhs);
+e::buffer::unpacker
+operator >> (e::buffer::unpacker lhs, hyperdatatype& rhs);
+size_t
+pack_size(const hyperdatatype& h);
+
+e::buffer::packer
+operator << (e::buffer::packer lhs, const predicate& rhs);
+e::buffer::unpacker
+operator >> (e::buffer::unpacker lhs, predicate& rhs);
+size_t
+pack_size(const predicate& p);
+
+} // namespace hyperdex
+
+#endif // hyperdex_common_serialization_h_

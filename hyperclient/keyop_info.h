@@ -31,17 +31,17 @@
 // e
 #include <e/slice.h>
 
-/* HyperDex */
+// HyperDex
 #include "hyperdex.h"
-#include "datatypes/microaction.h"
+#include "common/funcall.h"
 
 struct hyperclient_keyop_info
 {
     int name;
     bool fail_if_not_exist;
     bool fail_if_exist;
-    bool has_microops;
-    enum microaction action;
+    bool has_funcalls;
+    hyperdex::funcall_t fname;
     bool (*check)(hyperdatatype expected,
                   const e::slice& arg1, hyperdatatype arg1_datatype,
                   const e::slice& arg2, hyperdatatype arg2_datatype);

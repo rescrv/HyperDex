@@ -55,9 +55,10 @@
 // HyperDex
 #include "disk/disk_reference.h"
 #include "disk/disk_returncode.h"
+#include "common/funcall.h"
+
 #include "datatypes/apply.h"
 #include "datatypes/microcheck.h"
-#include "datatypes/microop.h"
 #include "datatypes/validate.h"
 #include "daemon/datalayer.h"
 #include "hyperdex/hyperdex/coordinatorlink.h"
@@ -78,6 +79,7 @@ using hyperdex::coordinatorlink;
 using hyperdex::datalayer;
 using hyperdex::disk_reference;
 using hyperdex::entityid;
+using hyperdex::funcall;
 using hyperdex::instance;
 using hyperdex::network_msgtype;
 using hyperdex::network_returncode;
@@ -185,7 +187,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::network_msgt
                                                     bool fail_if_found,
                                                     const e::slice& key,
                                                     std::vector<microcheck>* checks,
-                                                    std::vector<microop>* ops)
+                                                    std::vector<funcall>* funcs)
 {
     // Fail as read only if we are quiescing.
     if (m_quiesce)
@@ -260,14 +262,14 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::network_msgt
     microerror error;
 
     // Create a new version of the object in a contiguous buffer using the old
-    // version and the microops.
+    // version and the funcalls.
     std::tr1::shared_ptr<e::buffer> new_backing;
     e::slice new_key;
     std::vector<e::slice> new_value;
-    size_t passed = apply_checks_and_ops(sc, *checks, *ops, key, old_value,
-                                         &new_backing, &new_key, &new_value, &error);
+    size_t passed = perform_checks_and_apply_funcs(sc, *checks, *funcs, key, old_value,
+                                                   &new_backing, &new_key, &new_value, &error);
 
-    if (passed != checks->size() + ops->size())
+    if (passed != checks->size() + funcs->size())
     {
         /* XXX */
         respond_to_client(to, from, nonce, opcode, error == MICROERR_OVERFLOW ? hyperdex::NET_OVERFLOW : hyperdex::NET_CMPFAIL);

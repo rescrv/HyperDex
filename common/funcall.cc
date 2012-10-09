@@ -25,37 +25,29 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef datatypes_microaction_h_
-#define datatypes_microaction_h_
+#define __STDC_LIMIT_MACROS
 
-enum microaction
+// HyperDex
+#include "common/funcall.h"
+
+using hyperdex::funcall;
+
+funcall :: funcall()
+    : attr(UINT16_MAX)
+    , name(FUNC_FAIL)
+    , arg1()
+    , arg1_datatype()
+    , arg2()
+    , arg2_datatype()
 {
-    OP_FAIL,
+}
 
-    OP_SET,
+funcall :: ~funcall() throw ()
+{
+}
 
-    OP_STRING_APPEND,
-    OP_STRING_PREPEND,
-
-    OP_NUM_ADD,
-    OP_NUM_SUB,
-    OP_NUM_MUL,
-    OP_NUM_DIV,
-    OP_NUM_MOD,
-    OP_NUM_AND,
-    OP_NUM_OR,
-    OP_NUM_XOR,
-
-    OP_LIST_LPUSH,
-    OP_LIST_RPUSH,
-
-    OP_SET_ADD,
-    OP_SET_REMOVE,
-    OP_SET_INTERSECT,
-    OP_SET_UNION,
-
-    OP_MAP_ADD,
-    OP_MAP_REMOVE
-};
-
-#endif // datatypes_microaction_h_
+bool
+hyperdex :: operator < (const funcall& lhs, const funcall& rhs)
+{
+    return lhs.attr < rhs.attr;
+}

@@ -34,7 +34,8 @@
 
 // HyperDex
 #include "hyperdex.h"
-#include "datatypes/micropredicate.h"
+#include "common/predicate.h"
+#include "common/serialization.h"
 
 class microcheck
 {
@@ -46,7 +47,7 @@ class microcheck
         uint16_t attr;
         e::slice value;
         hyperdatatype datatype;
-        micropredicate predicate;
+        hyperdex::predicate predicate;
 };
 
 bool

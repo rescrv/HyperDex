@@ -38,9 +38,11 @@
 
 // HyperDex
 #include "disk/disk.h"
+#include "common/funcall.h"
+
+
 #include "daemon/datalayer.h"
 #include "datatypes/microcheck.h"
-#include "datatypes/microop.h"
 #include "hyperdex/hyperdex/network_constants.h"
 #include "hyperdex/hyperdex/packing.h"
 #include "hyperdaemon/logical.h"
@@ -49,9 +51,10 @@
 #include "hyperdaemon/replication_manager.h"
 #include "hyperdaemon/searches.h"
 
-using hyperdex::entityid;
 using hyperdex::datalayer;
 using hyperdex::disk_reference;
+using hyperdex::entityid;
+using hyperdex::funcall;
 using hyperdex::network_msgtype;
 using hyperdex::network_returncode;
 
@@ -167,8 +170,8 @@ hyperdaemon :: network_worker :: run()
             uint8_t flags;
             e::slice key;
             std::vector<microcheck> checks;
-            std::vector<microop> ops;
-            up = up >> nonce >> key >> flags >> checks >> ops;
+            std::vector<funcall> funcalls;
+            up = up >> nonce >> key >> flags >> checks >> funcalls;
 
             if (up.error())
             {
@@ -178,12 +181,12 @@ hyperdaemon :: network_worker :: run()
 
             bool fail_if_not_found = flags & 1;
             bool fail_if_found = flags & 2;
-            bool has_microops = flags & 128;
+            bool has_funcalls = flags & 128;
 
-            if (has_microops)
+            if (has_funcalls)
             {
                 m_repl->client_atomic(hyperdex::RESP_ATOMIC, from, to, nonce, msg,
-                                      fail_if_not_found, fail_if_found, key, &checks, &ops);
+                                      fail_if_not_found, fail_if_found, key, &checks, &funcalls);
             }
             else
             {
