@@ -33,11 +33,19 @@
 
 // HyperDex
 #include "hyperdex.h"
+#include "common/attribute_check.h"
 #include "common/funcall.h"
 #include "common/predicate.h"
 
 namespace hyperdex
 {
+
+e::buffer::packer
+operator << (e::buffer::packer lhs, const attribute_check& rhs);
+e::buffer::unpacker
+operator >> (e::buffer::unpacker lhs, attribute_check& rhs);
+size_t
+pack_size(const attribute_check& rhs);
 
 e::buffer::packer
 operator << (e::buffer::packer lhs, const funcall_t& rhs);

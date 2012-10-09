@@ -43,12 +43,13 @@
 #include "common/funcall.h"
 #include "common/predicate.h"
 #include "common/schema.h"
+#include "common/serialization.h"
 
 // HyperDex
 #include "macros.h"
+#include "common/attribute_check.h"
 #include "common/funcall.h"
 #include "datatypes/coercion.h"
-#include "datatypes/microcheck.h"
 #include "datatypes/validate.h"
 #include "hyperdex/hyperdex/configuration.h"
 #include "hyperdex/hyperdex/coordinatorlink.h"
@@ -66,6 +67,7 @@
 #include "hyperclient/hyperclient_pending_statusonly.h"
 #include "hyperclient/keyop_info.h"
 
+using hyperdex::attribute_check;
 using hyperdex::funcall;
 
 // Macros for convenience.  These conditional blocks appear quite a lot.  I want
@@ -738,7 +740,7 @@ hyperclient :: perform_funcall1(const hyperclient_keyop_info* opinfo,
     op = new pending_statusonly(hyperdex::REQ_ATOMIC, hyperdex::RESP_ATOMIC, status);
 
     // Prepare the checks
-    std::vector<microcheck> checks;
+    std::vector<attribute_check> checks;
     size_t num_checks = prepare_checks(sc, opinfo, condattrs, condattrs_sz, status, &checks);
 
     if (num_checks < condattrs_sz)
@@ -797,7 +799,7 @@ hyperclient :: perform_funcall2(const hyperclient_keyop_info* opinfo,
     op = new pending_statusonly(hyperdex::REQ_ATOMIC, hyperdex::RESP_ATOMIC, status);
 
     // Prepare the checks
-    std::vector<microcheck> checks;
+    std::vector<attribute_check> checks;
     size_t num_checks = prepare_checks(sc, opinfo, condattrs, condattrs_sz, status, &checks);
 
     if (num_checks < condattrs_sz)
@@ -844,7 +846,7 @@ hyperclient :: prepare_checks(const hyperdex::schema* sc,
                               const hyperclient_keyop_info*,
                               const hyperclient_attribute* condattrs, size_t condattrs_sz,
                               hyperclient_returncode* status,
-                              std::vector<microcheck>* checks)
+                              std::vector<attribute_check>* checks)
 {
     checks->reserve(condattrs_sz);
 
@@ -866,11 +868,11 @@ hyperclient :: prepare_checks(const hyperdex::schema* sc,
             return i;
         }
 
-        microcheck c;
+        attribute_check c;
         c.attr = attrnum;
         c.value = e::slice(condattrs[i].value, condattrs[i].value_sz);
         c.datatype = condattrs[i].datatype;
-        c.predicate = hyperdex::PRED_EQUALS;
+        c.pred = hyperdex::PRED_EQUALS;
         checks->push_back(c);
     }
 

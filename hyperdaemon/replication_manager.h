@@ -50,9 +50,9 @@
 #include "hyperdaemon/replication/keypair.h"
 
 // Forward Declarations
-class microcheck;
 namespace hyperdex
 {
+class attribute_check;
 class coordinatorlink;
 class datalayer;
 class funcall;
@@ -96,7 +96,7 @@ class replication_manager
                            bool fail_if_not_found,
                            bool fail_if_found,
                            const e::slice& key,
-                           std::vector<microcheck>* checks,
+                           std::vector<hyperdex::attribute_check>* checks,
                            std::vector<hyperdex::funcall>* funcs);
         void client_del(const hyperdex::network_msgtype opcode,
                         const hyperdex::entityid& from,
@@ -104,7 +104,7 @@ class replication_manager
                         uint64_t nonce,
                         std::auto_ptr<e::buffer> backing,
                         const e::slice& key,
-                        std::vector<microcheck>* checks);
+                        std::vector<hyperdex::attribute_check>* checks);
         // These are called in response to messages from other hosts.
         void chain_put(const hyperdex::entityid& from,
                        const hyperdex::entityid& to,

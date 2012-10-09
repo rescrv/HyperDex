@@ -32,18 +32,19 @@
 #include <tr1/memory>
 
 // e
+#include <e/buffer.h>
 #include <e/slice.h>
 
 // HyperDex
 #include "hyperdex.h"
+#include "common/attribute_check.h"
 #include "common/funcall.h"
 #include "common/schema.h"
-#include "datatypes/microcheck.h"
 #include "datatypes/microerror.h"
 
 size_t
 perform_checks_and_apply_funcs(const hyperdex::schema* sc,
-                               const std::vector<microcheck>& checks,
+                               const std::vector<hyperdex::attribute_check>& checks,
                                const std::vector<hyperdex::funcall>& funcs,
                                const e::slice& old_key,
                                const std::vector<e::slice>& old_value,

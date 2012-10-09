@@ -29,6 +29,34 @@
 #include "common/serialization.h"
 
 e::buffer::packer
+hyperdex :: operator << (e::buffer::packer lhs, const attribute_check& rhs)
+{
+    return lhs << rhs.attr
+               << rhs.value
+               << rhs.datatype
+               << rhs.pred;
+}
+
+e::buffer::unpacker
+hyperdex :: operator >> (e::buffer::unpacker lhs, attribute_check& rhs)
+{
+    return lhs >> rhs.attr
+               >> rhs.value
+               >> rhs.datatype
+               >> rhs.pred;
+}
+
+size_t
+hyperdex :: pack_size(const attribute_check& rhs)
+{
+    return sizeof(uint16_t)
+         + sizeof(uint32_t)
+         + rhs.value.size()
+         + pack_size(rhs.datatype)
+         + pack_size(rhs.pred);
+}
+
+e::buffer::packer
 hyperdex :: operator << (e::buffer::packer lhs, const funcall_t& rhs)
 {
     uint8_t name = static_cast<uint8_t>(rhs);
@@ -110,4 +138,10 @@ hyperdex :: operator >> (e::buffer::unpacker lhs, predicate& rhs)
     lhs = lhs >> r;
     rhs = static_cast<predicate>(r);
     return lhs;
+}
+
+size_t
+hyperdex :: pack_size(const predicate&)
+{
+    return sizeof(uint8_t);
 }

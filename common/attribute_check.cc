@@ -27,46 +27,24 @@
 
 // HyperDex
 #include "common/serialization.h"
-#include "datatypes/microcheck.h"
+#include "common/attribute_check.h"
 
-microcheck :: microcheck()
+using hyperdex::attribute_check;
+
+attribute_check :: attribute_check()
     : attr()
     , value()
     , datatype(HYPERDATATYPE_GARBAGE)
-    , predicate()
+    , pred()
 {
 }
 
-microcheck :: ~microcheck() throw ()
+attribute_check :: ~attribute_check() throw ()
 {
 }
 
 bool
-operator < (const microcheck& lhs, const microcheck& rhs)
+hyperdex :: operator < (const attribute_check& lhs, const attribute_check& rhs)
 {
     return lhs.attr < rhs.attr;
-}
-
-e::buffer::packer
-operator << (e::buffer::packer lhs, const microcheck& rhs)
-{
-    return lhs << rhs.attr
-               << rhs.value
-               << rhs.datatype
-               << rhs.predicate;
-}
-
-e::buffer::unpacker
-operator >> (e::buffer::unpacker lhs, microcheck& rhs)
-{
-    return lhs >> rhs.attr
-               >> rhs.value
-               >> rhs.datatype
-               >> rhs.predicate;
-}
-
-size_t
-pack_size(const microcheck& rhs)
-{
-    return sizeof(uint16_t) * 3 + sizeof(uint32_t) + rhs.value.size();
 }

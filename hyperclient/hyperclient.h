@@ -61,6 +61,7 @@
 // Forward declarations
 namespace hyperdex
 {
+class attribute_check;
 class funcall;
 class schema;
 }
@@ -878,11 +879,11 @@ class hyperclient
                                  const struct hyperclient_attribute* condattrs, size_t condattrs_sz,
                                  const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
                                  hyperclient_returncode* status);
-        size_t prepare_checks(const hyperdex:: schema* sc,
+        size_t prepare_checks(const hyperdex::schema* sc,
                               const hyperclient_keyop_info* opinfo,
                               const hyperclient_attribute* condattrs, size_t condattrs_sz,
                               hyperclient_returncode* status,
-                              std::vector<class microcheck>* checks);
+                              std::vector<hyperdex::attribute_check>* checks);
         size_t prepare_ops(const hyperdex:: schema* sc,
                            const hyperclient_keyop_info* opinfo,
                            const hyperclient_attribute* attrs, size_t attrs_sz,

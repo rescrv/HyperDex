@@ -38,11 +38,12 @@
 
 // HyperDex
 #include "disk/disk.h"
+#include "common/attribute_check.h"
 #include "common/funcall.h"
+#include "common/serialization.h"
 
 
 #include "daemon/datalayer.h"
-#include "datatypes/microcheck.h"
 #include "hyperdex/hyperdex/network_constants.h"
 #include "hyperdex/hyperdex/packing.h"
 #include "hyperdaemon/logical.h"
@@ -51,6 +52,7 @@
 #include "hyperdaemon/replication_manager.h"
 #include "hyperdaemon/searches.h"
 
+using hyperdex::attribute_check;
 using hyperdex::datalayer;
 using hyperdex::disk_reference;
 using hyperdex::entityid;
@@ -169,7 +171,7 @@ hyperdaemon :: network_worker :: run()
         {
             uint8_t flags;
             e::slice key;
-            std::vector<microcheck> checks;
+            std::vector<attribute_check> checks;
             std::vector<funcall> funcalls;
             up = up >> nonce >> key >> flags >> checks >> funcalls;
 

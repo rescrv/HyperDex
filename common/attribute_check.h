@@ -25,41 +25,33 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef datatypes_microcheck_h_
-#define datatypes_microcheck_h_
-
-// e
-#include <e/buffer.h>
-#include <e/slice.h>
+#ifndef hyperdex_common_attribute_check_h_
+#define hyperdex_common_attribute_check_h_
 
 // HyperDex
 #include "hyperdex.h"
 #include "common/predicate.h"
-#include "common/serialization.h"
 
-class microcheck
+namespace hyperdex
+{
+
+class attribute_check
 {
     public:
-        microcheck();
-        ~microcheck() throw ();
+        attribute_check();
+        ~attribute_check() throw ();
 
     public:
         uint16_t attr;
         e::slice value;
         hyperdatatype datatype;
-        hyperdex::predicate predicate;
+        predicate pred;
 };
 
 bool
-operator < (const microcheck& lhs, const microcheck& rhs);
+operator < (const attribute_check& lhs,
+            const attribute_check& rhs);
 
-e::buffer::packer
-operator << (e::buffer::packer lhs, const microcheck& rhs);
+} // namespace hyperdex
 
-e::buffer::unpacker
-operator >> (e::buffer::unpacker lhs, microcheck& rhs);
-
-size_t
-pack_size(const microcheck& rhs);
-
-#endif // datatypes_microcheck_h_
+#endif // hyperdex_common_attribute_check_h_

@@ -4,10 +4,13 @@ binary-test
 binary_test-binary-test.o
 binary-test.o
 common/.dirstamp
+common/hyperdex_daemon-attribute_check.o
 common/hyperdex_daemon-attribute.o
 common/hyperdex_daemon-funcall.o
 common/hyperdex_daemon-schema.o
 common/hyperdex_daemon-serialization.o
+common/libhyperclient_la-attribute_check.lo
+common/libhyperclient_la-attribute_check.o
 common/libhyperclient_la-attribute.lo
 common/libhyperclient_la-attribute.o
 common/libhyperclient_la-funcall.lo

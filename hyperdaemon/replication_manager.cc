@@ -55,10 +55,10 @@
 // HyperDex
 #include "disk/disk_reference.h"
 #include "disk/disk_returncode.h"
+#include "common/attribute_check.h"
 #include "common/funcall.h"
 
 #include "datatypes/apply.h"
-#include "datatypes/microcheck.h"
 #include "datatypes/validate.h"
 #include "daemon/datalayer.h"
 #include "hyperdex/hyperdex/coordinatorlink.h"
@@ -74,6 +74,7 @@
 #include "hyperspacehashing/hashes_internal.h"
 
 using hyperspacehashing::prefix::coordinate;
+using hyperdex::attribute_check;
 using hyperdex::configuration;
 using hyperdex::coordinatorlink;
 using hyperdex::datalayer;
@@ -186,7 +187,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::network_msgt
                                                     bool fail_if_not_found,
                                                     bool fail_if_found,
                                                     const e::slice& key,
-                                                    std::vector<microcheck>* checks,
+                                                    std::vector<attribute_check>* checks,
                                                     std::vector<funcall>* funcs)
 {
     // Fail as read only if we are quiescing.
@@ -304,7 +305,7 @@ hyperdaemon :: replication_manager :: client_del(const hyperdex::network_msgtype
                                                  uint64_t nonce,
                                                  std::auto_ptr<e::buffer> backing,
                                                  const e::slice& key,
-                                                 std::vector<microcheck>* checks)
+                                                 std::vector<attribute_check>* checks)
 {
     // Fail as read only if we are quiescing.
     if (m_quiesce)

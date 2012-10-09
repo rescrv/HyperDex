@@ -270,6 +270,7 @@ hyperdex_daemon_SOURCES = \
 			disk/search_tree.cc \
 			disk/transfer_iterator.cc \
 			common/attribute.cc \
+			common/attribute_check.cc \
 			common/funcall.cc \
 			common/schema.cc \
 			common/serialization.cc \
@@ -308,8 +309,6 @@ hyperdex_daemon_SOURCES = \
 			datatypes/map.h \
 			datatypes/map.cc \
 			datatypes/microerror.h \
-			datatypes/microcheck.h \
-			datatypes/microcheck.cc \
 			datatypes/set.h \
 			datatypes/set.cc \
 			datatypes/sort.h \
@@ -363,6 +362,7 @@ libhyperclient_noinst_headers = \
 
 libhyperclient_la_SOURCES = \
 			common/attribute.cc \
+			common/attribute_check.cc \
 			common/funcall.cc \
 			common/schema.cc \
 			common/serialization.cc \
@@ -373,8 +373,6 @@ libhyperclient_la_SOURCES = \
 			datatypes/int64.cc \
 			datatypes/list.cc \
 			datatypes/map.cc \
-			datatypes/microcheck.h \
-			datatypes/microcheck.cc \
 			datatypes/set.cc \
 			datatypes/step.cc \
 			datatypes/string.cc \

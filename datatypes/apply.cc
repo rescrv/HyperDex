@@ -30,15 +30,16 @@
 #include "datatypes/apply.h"
 #include "datatypes/validate.h"
 
+using hyperdex::attribute_check;
 using hyperdex::funcall;
 
 static bool
-passes_microcheck(hyperdatatype type,
-                  const microcheck& check,
-                  const e::slice& value,
-                  microerror* error)
+passes_attribute_check(hyperdatatype type,
+                       const attribute_check& check,
+                       const e::slice& value,
+                       microerror* error)
 {
-    switch (check.predicate)
+    switch (check.pred)
     {
         case hyperdex::PRED_EQUALS:
             *error = MICROERR_CMPFAIL;
@@ -110,7 +111,7 @@ apply_funcalls(hyperdatatype type,
 
 size_t
 perform_checks_and_apply_funcs(const hyperdex::schema* sc,
-                               const std::vector<microcheck>& checks,
+                               const std::vector<attribute_check>& checks,
                                const std::vector<funcall>& funcs,
                                const e::slice& old_key,
                                const std::vector<e::slice>& old_value,
@@ -129,13 +130,13 @@ perform_checks_and_apply_funcs(const hyperdex::schema* sc,
         }
 
         if (checks[i].attr > 0 &&
-            !passes_microcheck(sc->attrs[checks[i].attr].type, checks[i],
+            !passes_attribute_check(sc->attrs[checks[i].attr].type, checks[i],
                                old_value[checks[i].attr - 1], error))
         {
             return i;
         }
         else if (checks[i].attr == 0 &&
-                 !passes_microcheck(sc->attrs[0].type, checks[i], old_key, error))
+                 !passes_attribute_check(sc->attrs[0].type, checks[i], old_key, error))
         {
             return i;
         }
