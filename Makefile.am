@@ -106,7 +106,6 @@ dist-hook:
 libhyperspacehashing_includedir = $(includedir)/hyperspacehashing
 libhyperspacehashing_include_HEADERS = \
 			hyperspacehashing/hyperspacehashing/hashes.h \
-			hyperspacehashing/hyperspacehashing/mask.h \
 			hyperspacehashing/hyperspacehashing/prefix.h \
 			hyperspacehashing/hyperspacehashing/search.h
 
@@ -119,7 +118,6 @@ libhyperspacehashing_noinst_headers = \
 libhyperspacehashing_la_SOURCES = \
 			hyperspacehashing/cfloat.cc \
 			hyperspacehashing/hashes.cc \
-			hyperspacehashing/mask.cc \
 			hyperspacehashing/prefix.cc \
 			hyperspacehashing/range_match.cc \
 			hyperspacehashing/search.cc
@@ -137,7 +135,6 @@ if HAVE_GTEST
 libhyperspacehashing_check_programs = \
 			hyperspacehashing/test/bithacks \
 			hyperspacehashing/test/cfloat \
-			hyperspacehashing/test/mask \
 			hyperspacehashing/test/prefix \
 			hyperspacehashing/test/search
 libhyperspacehashing_tests = $(libhyperspacehashing_check_programs)
@@ -159,18 +156,6 @@ hyperspacehashing_test_cfloat_LDADD = \
 			$(COVERAGE_LDADD)
 hyperspacehashing_test_cfloat_CPPFLAGS = \
 			-I$(abs_top_srcdir)/hyperspacehashing \
-			$(CPPFLAGS)
-
-hyperspacehashing_test_mask_SOURCES = \
-			runner.cc \
-			hyperspacehashing/test/mask.cc
-hyperspacehashing_test_mask_LDADD = \
-			libhyperspacehashing.la \
-			$(COVERAGE_LDADD) \
-			$(GTEST_LIBS)
-hyperspacehashing_test_mask_CPPFLAGS = \
-			-I$(abs_top_srcdir)/hyperspacehashing \
-			$(E_CFLAGS) \
 			$(CPPFLAGS)
 
 hyperspacehashing_test_prefix_SOURCES = \

@@ -61,7 +61,6 @@ hyperdex :: configuration :: configuration()
     , m_space_sizes()
     , m_entities()
     , m_repl_hashers()
-    , m_disk_hashers()
     , m_transfers()
     , m_transfers_by_num(65536)
     , m_quiesce(false)
@@ -81,7 +80,6 @@ hyperdex :: configuration :: configuration(e::array_ptr<char> config, size_t con
                                            const std::map<spaceid, uint16_t>& space_sizes,
                                            const std::map<entityid, instance>& entities,
                                            const std::map<subspaceid, hyperspacehashing::prefix::hasher>& repl_hashers,
-                                           const std::map<subspaceid, hyperspacehashing::mask::hasher>& disk_hashers,
                                            const std::map<std::pair<instance, uint16_t>, hyperdex::regionid>& transfers,
                                            bool _quiesce, const std::string& _quiesce_state_id,
                                            bool _shutdown)
@@ -100,7 +98,6 @@ hyperdex :: configuration :: configuration(e::array_ptr<char> config, size_t con
     , m_space_sizes(space_sizes)
     , m_entities(entities)
     , m_repl_hashers(repl_hashers)
-    , m_disk_hashers(disk_hashers)
     , m_transfers(transfers)
     , m_transfers_by_num(65536)
     , m_quiesce(_quiesce)
@@ -132,7 +129,6 @@ hyperdex :: configuration :: configuration(const configuration& other)
     , m_space_sizes()
     , m_entities()
     , m_repl_hashers()
-    , m_disk_hashers()
     , m_transfers()
     , m_transfers_by_num(65536)
     , m_quiesce(false)
@@ -398,15 +394,6 @@ hyperdex :: configuration :: tailof(const regionid& r) const
     return entityid();
 }
 
-hyperspacehashing::mask::hasher
-hyperdex :: configuration :: disk_hasher(const subspaceid& subspace) const
-{
-    std::map<subspaceid, hyperspacehashing::mask::hasher>::const_iterator hashiter;
-    hashiter = m_disk_hashers.find(subspace);
-    assert(hashiter != m_disk_hashers.end());
-    return hashiter->second;
-}
-
 hyperspacehashing::prefix::hasher
 hyperdex :: configuration :: repl_hasher(const subspaceid& subspace) const
 {
@@ -611,7 +598,6 @@ hyperdex :: configuration :: copy(const configuration& rhs, configuration* to)
     to->m_space_sizes = rhs.m_space_sizes;
     to->m_entities = rhs.m_entities;
     to->m_repl_hashers = rhs.m_repl_hashers;
-    to->m_disk_hashers = rhs.m_disk_hashers;
     to->m_transfers = rhs.m_transfers;
     to->m_transfers_by_num = rhs.m_transfers_by_num;
     to->m_quiesce = rhs.m_quiesce;

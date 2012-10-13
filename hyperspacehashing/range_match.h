@@ -29,7 +29,6 @@
 #define hyperspacehashing_range_match_h_
 
 // HyperspaceHashing
-#include "hyperspacehashing/mask.h"
 #include "hyperspacehashing/prefix.h"
 
 namespace hyperspacehashing

@@ -115,7 +115,6 @@ hyperdex :: configuration_parser :: generate()
     }
 
     std::map<subspaceid, hyperspacehashing::prefix::hasher> repl_hashers;
-    std::map<subspaceid, hyperspacehashing::mask::hasher> disk_hashers;
     std::map<subspaceid, std::vector<bool> >::const_iterator ri;
     std::map<subspaceid, std::vector<bool> >::const_iterator di;
 
@@ -125,16 +124,10 @@ hyperdex :: configuration_parser :: generate()
         repl_hashers.insert(std::make_pair(ri->first, h));
     }
 
-    for (di = m_disk_attrs.begin(); di != m_disk_attrs.end(); ++di)
-    {
-        hyperspacehashing::mask::hasher h(attrs_to_hashfuncs(di->first, di->second));
-        disk_hashers.insert(std::make_pair(di->first, h));
-    }
-
     return configuration(m_config, m_config_text.size() + 1, schemas, schemas_sz,
                          attrs, attrs_sz, space_ids_to_schemas,
                          m_config_text, m_version, hosts, m_space_assignment,
-                         space_sizes, m_entities, repl_hashers, disk_hashers,
+                         space_sizes, m_entities, repl_hashers,
                          m_transfers, m_quiesce, m_quiesce_state_id, m_shutdown);
 }
 

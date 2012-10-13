@@ -36,36 +36,36 @@
 // HyperDex
 #include "disk/disk_reference.h"
 #include "disk/search_snapshot.h"
+#include "common/attribute_check.h"
 #include "daemon/datalayer.h"
+
 #include "hyperdex/hyperdex/packing.h"
 
 // HyperDaemon
 #include "hyperdaemon/logical.h"
 #include "hyperdaemon/searches.h"
 
+using hyperdex::attribute_check;
 using hyperdex::coordinatorlink;
 using hyperdex::disk_reference;
 using hyperdex::entityid;
 using hyperdex::regionid;
 using hyperdex::search_snapshot;
 using hyperspacehashing::search;
-using hyperspacehashing::mask::coordinate;
 
 class hyperdaemon::searches::search_state
 {
     public:
         search_state(const hyperdex::regionid& region,
-                     const hyperspacehashing::mask::coordinate& search_coord,
                      std::auto_ptr<e::buffer> msg,
-                     const hyperspacehashing::search& terms);
+                     std::vector<attribute_check>* checks);
         ~search_state() throw ();
 
     public:
         po6::threads::mutex lock;
         const hyperdex::regionid region;
-        const hyperspacehashing::mask::coordinate search_coord;
         const std::auto_ptr<e::buffer> backing;
-        hyperspacehashing::search terms;
+        std::vector<attribute_check> checks;
         search_snapshot snap;
 
     private:
@@ -540,17 +540,16 @@ hyperdaemon :: searches :: hash(const search_id& si)
 }
 
 hyperdaemon :: searches :: search_state :: search_state(const regionid& r,
-                                                        const coordinate& sc,
                                                         std::auto_ptr<e::buffer> msg,
-                                                        const hyperspacehashing::search& t)
+                                                        std::vector<attribute_check>* cks)
     : lock()
     , region(r)
-    , search_coord(sc)
     , backing(msg)
-    , terms(t)
+    , checks()
     , snap()
     , m_ref(0)
 {
+    checks.swap(*cks);
 }
 
 hyperdaemon :: searches :: search_state :: ~search_state() throw ()

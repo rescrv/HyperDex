@@ -44,7 +44,6 @@
 #include "common/schema.h"
 
 // HyperspaceHashing
-#include "hyperspacehashing/hyperspacehashing/mask.h"
 #include "hyperspacehashing/hyperspacehashing/prefix.h"
 #include "hyperspacehashing/hyperspacehashing/search.h"
 
@@ -74,7 +73,6 @@ class configuration
                       const std::map<spaceid, uint16_t>& space_sizes,
                       const std::map<entityid, instance>& entities,
                       const std::map<subspaceid, hyperspacehashing::prefix::hasher>& repl_hashers,
-                      const std::map<subspaceid, hyperspacehashing::mask::hasher>& disk_hashers,
                       const std::map<std::pair<instance, uint16_t>, hyperdex::regionid>& transfers,
                       bool quiesce, const std::string& quiesce_state_id,
                       bool shutdown);
@@ -133,7 +131,6 @@ class configuration
 
     // Hashing
     public:
-        hyperspacehashing::mask::hasher disk_hasher(const subspaceid& subspace) const;
         hyperspacehashing::prefix::hasher repl_hasher(const subspaceid& subspace) const;
         bool point_leader_entity(const spaceid& space, const e::slice& key,
                                  hyperdex::entityid* ent, hyperdex::instance* inst) const;
@@ -187,8 +184,6 @@ class configuration
         std::map<entityid, instance> m_entities;
         // Hash-calculating objects that work for the replication layer.
         std::map<subspaceid, hyperspacehashing::prefix::hasher> m_repl_hashers;
-        // Hash-calculating objects that work for the disk layer.
-        std::map<subspaceid, hyperspacehashing::mask::hasher> m_disk_hashers;
         // Transfers specified in the config.
         std::map<std::pair<instance, uint16_t>, hyperdex::regionid> m_transfers;
         // Transfers by number.
