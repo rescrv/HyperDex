@@ -109,9 +109,3 @@ class datalayer
 } // namespace hyperdex
 
 #endif // hyperdex_daemon_datalayer_h_
-
-#if 0
--        // May return SUCCESS or DIDNOTHING.
--        hyperdisk::returncode flush(const hyperdex::regionid& ri, size_t n, bool nonblocking);
--        hyperdisk::returncode do_mandatory_io(const hyperdex::regionid& ri);
-#endif

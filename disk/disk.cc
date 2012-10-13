@@ -45,10 +45,12 @@ using hyperdex::disk_returncode;
 
 bool tripped = false;
 
-disk :: disk(const po6::pathname& prefix)
-    : m_prefix(prefix)
+disk :: disk(const po6::pathname& prefix, size_t attrs)
+    : m_attrs(attrs)
+    , m_prefix(prefix)
     , m_log()
     , m_key_idx()
+    , m_search_idx(m_attrs - 1)
 {
 }
 
@@ -60,7 +62,7 @@ disk_returncode
 disk :: open()
 {
     size_t sz = strlen(m_prefix.get());
-    std::vector<char> buf(sz + 5/*strlen('.log') + 1*/);
+    std::vector<char> buf(sz + 8/*strlen('.search') + 1*/);
     memmove(&buf.front(), m_prefix.get(), sz);
     buf[sz + 0] = '.';
     buf[sz + 1] = 'l';
@@ -86,13 +88,34 @@ disk :: open()
             return DISK_FATAL_ERROR;
     }
 
+    buf[sz + 0] = '.';
+    buf[sz + 1] = 's';
+    buf[sz + 2] = 'e';
+    buf[sz + 3] = 'a';
+    buf[sz + 4] = 'r';
+    buf[sz + 5] = 'c';
+    buf[sz + 6] = 'h';
+    buf[sz + 7] = '\0';
+
+    switch (m_search_idx.open(&buf.front()))
+    {
+        case SEARCH_SUCCESS:
+            break;
+        case SEARCH_NOT_FOUND:
+        case SEARCH_HEAP_OPEN_FAIL:
+        case SEARCH_HEAP_ALLOC_FAIL:
+        default:
+            return DISK_FATAL_ERROR;
+    }
+
     return DISK_SUCCESS;
 }
 
 disk_returncode
 disk :: close()
 {
-    m_log.close();
+    m_log.close(); // XXX
+    m_search_idx.close(); // XXX
     return DISK_SUCCESS;
 }
 
@@ -199,13 +222,35 @@ disk :: get(const e::slice& key, uint64_t key_hash,
     return DISK_NOT_FOUND;
 }
 
+disk_returncode
+disk :: put(const e::slice& key, uint64_t key_hash,
+            const std::vector<e::slice>& value, const std::vector<uint64_t>& value_hashes,
+            uint64_t version)
+{
+    assert(value_hashes.size() + 1 == m_attrs);
+    uint64_t log_id = 0;
+    append_only_log::returncode lrc = m_log.append((uint8_t*)"hi", 2, &log_id);
+    assert(lrc == append_only_log::SUCCESS);
+    search_returncode src = m_search_idx.insert(log_id, &value_hashes.front());
+    return DISK_SUCCESS;
+}
+
+disk_returncode
+disk :: del(const e::slice& key, uint64_t key_hash)
+{
+    abort();
+}
+#if 0
+
 // We don't need to do the funny "consistent_read" thing for writes as we assume
 // that the caller provides mutual exclusion between writes to the same key.
 
 disk_returncode
 disk :: put(const e::slice& key, uint64_t key_hash,
-            const std::vector<e::slice>& value, uint64_t version)
+            const std::vector<e::slice>& value, const std::vector<uint64_t>& value_hashes,
+            uint64_t version)
 {
+    assert(value.size() == value_hashes.size());
     std::vector<uint64_t> ids;
     cuckoo_returncode rc = m_key_idx.lookup(key_hash, &ids);
 
@@ -221,6 +266,7 @@ disk :: put(const e::slice& key, uint64_t key_hash,
     }
 
     uint64_t overwrite = 0;
+    std::vector<uint64_t> old_value_hashes;
     std::sort(ids.begin(), ids.end());
 
     for (ssize_t i = ids.size() - 1; i >= 0; --i)
@@ -278,6 +324,7 @@ disk :: put(const e::slice& key, uint64_t key_hash,
         if (log_key == key)
         {
             overwrite = ids[i];
+            old_value_hashes.resize(log_val.size(), 0); // XXX
             break;
         }
     }
@@ -363,7 +410,17 @@ disk :: put(const e::slice& key, uint64_t key_hash,
         }
     }
 
-    // XXX insert to search_tree
+    search_returncode src = SEARCH_SUCCESS; //m_search_idx.insert(log_id, &value_hashes.front());
+
+    switch (src)
+    {
+        case SEARCH_SUCCESS:
+            break;
+        case SEARCH_NOT_FOUND:
+        default:
+            abort();
+    }
+
     return DISK_SUCCESS;
 }
 
@@ -490,6 +547,7 @@ disk :: del(const e::slice& key, uint64_t key_hash)
 
     return DISK_NOT_FOUND;
 }
+#endif
 
 disk_returncode
 disk :: parse_log_entry(e::buffer* data,

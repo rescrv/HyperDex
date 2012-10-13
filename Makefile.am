@@ -260,12 +260,15 @@ hyperdex_daemon_SOURCES = \
 			disk/append_only_log.cc \
 			disk/append_only_log_block.cc \
 			disk/append_only_log_segment.cc \
+			disk/append_only_log_segment_list.cc \
+			disk/append_only_log_writable_segment.cc \
 			disk/cuckoo_index.cc \
 			disk/cuckoo_returncode.cc \
 			disk/cuckoo_table.cc \
 			disk/disk.cc \
 			disk/disk_reference.cc \
 			disk/disk_returncode.cc \
+			disk/heap.cc \
 			disk/search_snapshot.cc \
 			disk/search_tree.cc \
 			disk/transfer_iterator.cc \

@@ -40,6 +40,7 @@
 #include "disk/cuckoo_index.h"
 #include "disk/disk_reference.h"
 #include "disk/disk_returncode.h"
+#include "disk/search_tree.h"
 
 namespace hyperspacehashing
 {
@@ -54,7 +55,7 @@ class transfer_iterator;
 class disk
 {
     public:
-        disk(const po6::pathname& prefix);
+        disk(const po6::pathname& prefix, size_t attrs);
         ~disk() throw ();
 
     public:
@@ -70,7 +71,9 @@ class disk
                             uint64_t* version,
                             disk_reference* ref);
         disk_returncode put(const e::slice& key, uint64_t key_hash,
-                            const std::vector<e::slice>& value, uint64_t version);
+                            const std::vector<e::slice>& value,
+                            const std::vector<uint64_t>& value_hashes,
+                            uint64_t version);
         disk_returncode del(const e::slice& key, uint64_t key_hash);
         disk_returncode make_search_snapshot(const hyperspacehashing::search& terms,
                                              search_snapshot* snap);
@@ -83,9 +86,11 @@ class disk
                                         uint64_t* version);
 
     private:
+        size_t m_attrs;
         po6::pathname m_prefix;
         append_only_log m_log;
         cuckoo_index m_key_idx;
+        search_tree m_search_idx;
 };
 
 } // namespace hyperdex

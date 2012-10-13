@@ -25,20 +25,24 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_disk_search_returncode_h_
-#define hyperdex_disk_search_returncode_h_
+#ifndef hyperdex_disk_heap_returncode_h_
+#define hyperdex_disk_heap_returncode_h_
+
+// C++
+#include <iostream>
 
 namespace hyperdex
 {
 
-enum search_returncode
+enum heap_returncode
 {
-    SEARCH_SUCCESS,
-    SEARCH_NOT_FOUND,
-    SEARCH_HEAP_OPEN_FAIL,
-    SEARCH_HEAP_ALLOC_FAIL
+    HEAP_SUCCESS,
+    HEAP_ALLOC_FAIL
 };
+
+std::ostream&
+operator << (std::ostream& lhs, heap_returncode rhs);
 
 } // namespace hyperdex
 
-#endif // hyperdex_disk_search_returncode_h_
+#endif // hyperdex_disk_heap_returncode_h_

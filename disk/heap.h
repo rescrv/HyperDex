@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2012, Robert Escriva
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,20 +25,65 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_disk_search_returncode_h_
-#define hyperdex_disk_search_returncode_h_
+#ifndef hyperdex_disk_heap_h_
+#define hyperdex_disk_heap_h_
+
+// C
+#include <stdint.h>
+
+// STL
+#include <vector>
+
+// e
+#include <e/intrusive_ptr.h>
+
+// HyperDex
+#include "disk/heap_returncode.h"
 
 namespace hyperdex
 {
 
-enum search_returncode
+class heap
 {
-    SEARCH_SUCCESS,
-    SEARCH_NOT_FOUND,
-    SEARCH_HEAP_OPEN_FAIL,
-    SEARCH_HEAP_ALLOC_FAIL
+    public:
+        class recycler;
+
+    public:
+        heap(size_t block_sz);
+        ~heap() throw ();
+
+    public:
+        heap_returncode open(const char* prefix);
+        heap_returncode close();
+
+        heap_returncode create(uint64_t* block, void** data);
+        heap_returncode get(uint64_t block, void** data);
+        heap_returncode recycle(uint64_t block);
+
+    private:
+        size_t m_block_sz;
+};
+
+// Recycle all blocks returned by "create" unless dismiss is called.
+class heap::recycler
+{
+    public:
+        recycler(heap* h);
+        ~recycler() throw ();
+
+    public:
+        heap_returncode create(uint64_t* block, void** data);
+        heap_returncode dismiss();
+
+    private:
+        recycler(const recycler&);
+        recycler& operator = (const recycler&);
+
+    private:
+        heap* m_heap;
+        std::vector<uint64_t> m_blocks;
 };
 
 } // namespace hyperdex
 
-#endif // hyperdex_disk_search_returncode_h_
+#endif // hyperdex_disk_heap_h_
