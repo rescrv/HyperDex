@@ -10,6 +10,7 @@ struct hyperclient_keyop_info;
 %{
 #include "datatypes/coercion.h"
 #include "hyperclient/keyop_info.h"
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 %}
 %%
 put,                    false,  false,  true,   hyperdex::FUNC_SET,             container_implicit_coercion
