@@ -28,6 +28,9 @@
 #ifndef hyperdex_common_attribute_check_h_
 #define hyperdex_common_attribute_check_h_
 
+// e
+#include <e/slice.h>
+
 // HyperDex
 #include "hyperdex.h"
 #include "common/predicate.h"

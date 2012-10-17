@@ -1,4 +1,4 @@
-// Copyright (c) 2011, Cornell University
+// Copyright (c) 2011-2012, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,101 +25,89 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdaemon_searches_h_
-#define hyperdaemon_searches_h_
-
-// po6
-#include <po6/threads/mutex.h>
+#ifndef hyperdex_daemon_search_manager_h_
+#define hyperdex_daemon_search_manager_h_
 
 // e
 #include <e/intrusive_ptr.h>
-#include <e/lockfree_hash_map.h>
-#include <e/tuple_compare.h>
-
-// HyperspaceHashing
-#include "hyperspacehashing/hyperspacehashing/search.h"
 
 // HyperDex
-#include "hyperdex/hyperdex/ids.h"
+#include "daemon/datalayer.h"
+#include "daemon/reconfigure_returncode.h"
+#include "hyperdaemon/logical.h"
 
-// Forward Declarations
 namespace hyperdex
 {
-class coordinatorlink;
-class datalayer;
-}
-namespace hyperdaemon
-{
-class logical;
-}
+// Forward declarations
+class daemon;
 
-namespace hyperdaemon
-{
-
-class searches
+class search_manager
 {
     public:
-        searches(hyperdex::coordinatorlink* cl, hyperdex::datalayer* data, logical* comm);
-        ~searches() throw ();
+        search_manager(daemon*);
+        ~search_manager() throw ();
 
     public:
-        void prepare(const hyperdex::configuration& newconfig, const hyperdex::instance& us);
-        void reconfigure(const hyperdex::configuration& newconfig, const hyperdex::instance& us);
-        void cleanup(const hyperdex::configuration& newconfig, const hyperdex::instance& us);
+        reconfigure_returncode prepare(const configuration& old_config,
+                                       const configuration& new_config,
+                                       const instance& us);
+        reconfigure_returncode reconfigure(const configuration& old_config,
+                                           const configuration& new_config,
+                                           const instance& us);
+        reconfigure_returncode cleanup(const configuration& old_config,
+                                       const configuration& new_config,
+                                       const instance& us);
 
     public:
-        void start(const hyperdex::entityid& us,
-                   const hyperdex::entityid& client,
-                   uint64_t searchid,
+#if 0
+        void start(const entityid& us,
+                   const entityid& client,
+                   uint64_t search_num,
                    uint64_t nonce,
                    std::auto_ptr<e::buffer> msg,
                    const hyperspacehashing::search& wc);
-        void next(const hyperdex::entityid& us,
-                  const hyperdex::entityid& client,
-                  uint64_t searchid,
+        void next(const entityid& us,
+                  const entityid& client,
+                  uint64_t search_num,
                   uint64_t nonce);
-        void stop(const hyperdex::entityid& us,
-                  const hyperdex::entityid& client,
-                  uint64_t searchid);
-        void group_keyop(const hyperdex::entityid& us,
-                         const hyperdex::entityid& client,
+        void stop(const entityid& us,
+                  const entityid& client,
+                  uint64_t search_num);
+        void group_keyop(const entityid& us,
+                         const entityid& client,
                          uint64_t nonce,
                          const hyperspacehashing::search& terms,
-                         enum hyperdex::network_msgtype,
+                         enum network_msgtype,
                          const e::slice& remain);
-        void count(const hyperdex::entityid& us,
-                   const hyperdex::entityid& client,
+        void count(const entityid& us,
+                   const entityid& client,
                    uint64_t nonce,
                    const hyperspacehashing::search& terms);
-        void sorted_search(const hyperdex::entityid& us,
-                           const hyperdex::entityid& client,
+        void sorted_search(const entityid& us,
+                           const entityid& client,
                            uint64_t nonce,
                            const hyperspacehashing::search& terms,
                            uint64_t num,
                            uint16_t sort_by,
                            bool maximize);
+#endif
 
     private:
-        class search_state;
-        class search_id;
+        class id;
+        class state;
 
     private:
-        static uint64_t hash(const search_id&);
+        search_manager(const search_manager&);
+        search_manager& operator = (const search_manager&);
 
     private:
-        searches(const searches&);
+        static uint64_t hash(const id&);
 
     private:
-        searches& operator = (const searches&);
-
-    private:
-        hyperdex::coordinatorlink* m_cl;
-        hyperdex::datalayer* m_data;
-        logical* m_comm;
-        hyperdex::configuration m_config;
-        e::lockfree_hash_map<search_id, e::intrusive_ptr<search_state>, hash> m_searches;
+        daemon* m_daemon;
+        e::lockfree_hash_map<id, e::intrusive_ptr<state>, hash> m_searches;
 };
 
-} // namespace hyperdaemon
+} // namespace hyperdex
 
-#endif // hyperdaemon_searches_h_
+#endif // hyperdex_daemon_search_manager_h_

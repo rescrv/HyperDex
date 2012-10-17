@@ -145,3 +145,9 @@ hyperdex :: pack_size(const predicate&)
 {
     return sizeof(uint8_t);
 }
+
+size_t
+hyperdex :: pack_size(const e::slice& s)
+{
+    return sizeof(uint32_t) + s.size();
+}

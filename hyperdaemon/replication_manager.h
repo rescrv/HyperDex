@@ -43,7 +43,7 @@
 #include <e/striped_lock.h>
 
 // HyperDex
-#include "disk/disk_reference.h"
+#include "daemon/reconfigure_returncode.h"
 #include "hyperdex/hyperdex/configuration.h"
 #include "hyperdex/hyperdex/network_constants.h"
 #include "hyperdaemon/replication/clientop.h"
@@ -54,6 +54,7 @@ namespace hyperdex
 {
 class attribute_check;
 class coordinatorlink;
+class daemon;
 class datalayer;
 class funcall;
 class instance;
@@ -71,18 +72,20 @@ namespace hyperdaemon
 class replication_manager
 {
     public:
-        replication_manager(hyperdex::coordinatorlink* cl,
-                            hyperdex::datalayer* dl,
-                            logical* comm,
-                            ongoing_state_transfers* ost);
+        replication_manager(hyperdex::daemon*);
         ~replication_manager() throw ();
 
     // Reconfigure this layer.
     public:
-        void prepare(const hyperdex::configuration& newconfig, const hyperdex::instance& us);
-        void reconfigure(const hyperdex::configuration& newconfig, const hyperdex::instance& us);
-        void cleanup(const hyperdex::configuration& newconfig, const hyperdex::instance& us);
-        void shutdown();
+        hyperdex::reconfigure_returncode prepare(const hyperdex::configuration& old_config,
+                                                 const hyperdex::configuration& new_config,
+                                                 const hyperdex::instance& us);
+        hyperdex::reconfigure_returncode reconfigure(const hyperdex::configuration& old_config,
+                                                     const hyperdex::configuration& new_config,
+                                                     const hyperdex::instance& us);
+        hyperdex::reconfigure_returncode cleanup(const hyperdex::configuration& old_config,
+                                                 const hyperdex::configuration& new_config,
+                                                 const hyperdex::instance& us);
 
     // Network workers call these methods.
     public:
@@ -163,10 +166,10 @@ class replication_manager
                              uint64_t* old_version,
                              bool* has_old_value,
                              std::vector<e::slice>* old_value,
-                             hyperdex::disk_reference* ref);
+                             hyperdex::datalayer::reference* ref);
         bool from_disk(const hyperdex::regionid& r, const e::slice& key,
                        bool* has_value, std::vector<e::slice>* value,
-                       uint64_t* version, hyperdex::disk_reference* ref);
+                       uint64_t* version, hyperdex::datalayer::reference* ref);
         bool put_to_disk(const hyperdex::regionid& pending_in,
                          e::intrusive_ptr<keyholder> kh,
                          uint64_t version);
@@ -212,19 +215,11 @@ class replication_manager
         int retransmit();
 
     private:
-        hyperdex::coordinatorlink* m_cl;
-        hyperdex::datalayer* m_data;
-        logical* m_comm;
-        ongoing_state_transfers* m_ost;
-        hyperdex::configuration m_config;
+        hyperdex::daemon* m_daemon;
         e::striped_lock<po6::threads::mutex> m_locks;
         po6::threads::mutex m_keyholders_lock;
         keyholder_map_t m_keyholders;
-        hyperdex::instance m_us;
-        volatile bool m_quiesce; // acessed from multiple threads
-        po6::threads::mutex m_quiesce_state_id_lock; 
-        std::string m_quiesce_state_id;
-        volatile bool m_shutdown; // acessed from multiple threads
+        volatile uint32_t m_shutdown;
         po6::threads::thread m_periodic_thread;
 };
 

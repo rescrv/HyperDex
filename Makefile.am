@@ -54,8 +54,7 @@ include_HEADERS = \
 noinst_HEADERS = \
 			$(libhyperspacehashing_noinst_headers) \
 			$(libhyperdex_noinst_headers) \
-			$(libhyperclient_noinst_headers) \
-			util/atomicfile.h
+			$(libhyperclient_noinst_headers)
 
 bin_PROGRAMS = \
 			hyperdex-binary-test \
@@ -67,16 +66,9 @@ noinst_PROGRAMS = \
 			$(libhyperspacehashing_noinst_programs) \
 			hyperclient/c/testcompile
 
-check_PROGRAMS = \
-			$(libhyperspacehashing_check_programs) \
-			$(disk_check_programs)
-
 bin_SCRIPTS = \
 			hyperdex-coordinator \
 			hyperdex-coordinator-control
-
-TESTS = \
-			$(disk_tests)
 
 nobase_python_PYTHON = \
 			hypercoordinator/__init__.py \
@@ -129,93 +121,6 @@ libhyperspacehashing_la_LIBADD = \
 			$(E_LIBS) \
 			-lcityhash
 
-##################################### Tests ####################################
-
-if HAVE_GTEST
-libhyperspacehashing_check_programs = \
-			hyperspacehashing/test/bithacks \
-			hyperspacehashing/test/cfloat \
-			hyperspacehashing/test/prefix \
-			hyperspacehashing/test/search
-libhyperspacehashing_tests = $(libhyperspacehashing_check_programs)
-
-hyperspacehashing_test_bithacks_SOURCES = \
-			runner.cc \
-			hyperspacehashing/test/bithacks.cc
-hyperspacehashing_test_bithacks_LDADD = \
-			libhyperspacehashing.la \
-			$(GTEST_LIBS)
-hyperspacehashing_test_bithacks_CPPFLAGS = \
-			-I$(abs_top_srcdir)/hyperspacehashing \
-			$(CPPFLAGS)
-
-hyperspacehashing_test_cfloat_SOURCES = \
-			hyperspacehashing/test/cfloat.cc
-hyperspacehashing_test_cfloat_LDADD = \
-			libhyperspacehashing.la \
-			$(COVERAGE_LDADD)
-hyperspacehashing_test_cfloat_CPPFLAGS = \
-			-I$(abs_top_srcdir)/hyperspacehashing \
-			$(CPPFLAGS)
-
-hyperspacehashing_test_prefix_SOURCES = \
-			runner.cc \
-			hyperspacehashing/test/prefix.cc
-hyperspacehashing_test_prefix_LDADD = \
-			libhyperspacehashing.la \
-			$(COVERAGE_LDADD) \
-			$(GTEST_LIBS)
-hyperspacehashing_test_prefix_CPPFLAGS = \
-			-I$(abs_top_srcdir)/hyperspacehashing \
-			$(E_CFLAGS) \
-			$(CPPFLAGS)
-
-hyperspacehashing_test_search_SOURCES = \
-			hyperspacehashing/test/search.cc
-hyperspacehashing_test_search_LDADD = \
-			libhyperspacehashing.la \
-			$(COVERAGE_LDADD)
-hyperspacehashing_test_search_CPPFLAGS = \
-			-I$(abs_top_srcdir)/hyperspacehashing \
-			$(E_CFLAGS) \
-			$(CPPFLAGS)
-endif
-
-##################################### Utils ####################################
-
-libhyperspacehashing_noinst_programs = \
-			hyperspacehashing/utils/cfloat
-
-hyperspacehashing_utils_cfloat_SOURCES = \
-			hyperspacehashing/utils/cfloat.cc
-hyperspacehashing_utils_cfloat_LDADD = \
-			libhyperspacehashing.la \
-			$(COVERAGE_LDADD)
-hyperspacehashing_utils_cfloat_CPPFLAGS = \
-			$(E_CFLAGS) \
-			$(CPPFLAGS)
-
-################################################################################
-##################################### Disk #####################################
-################################################################################
-
-##################################### Tests ####################################
-
-if HAVE_GTEST
-disk_check_programs = \
-		disk/test/cuckoo_index \
-		disk/test/cuckoo_table
-disk_tests = $(disk_check_programs)
-
-disk_test_cuckoo_index_SOURCES = runner.cc disk/test/cuckoo_index.cc disk/cuckoo_index.cc disk/cuckoo_returncode.cc disk/cuckoo_table.cc
-disk_test_cuckoo_index_LDADD = $(COVERAGE_LDADD) $(GTEST_LIBS)
-disk_test_cuckoo_table_SOURCES = runner.cc disk/cuckoo_returncode.cc disk/test/cuckoo_table.cc disk/cuckoo_table.cc
-disk_test_cuckoo_table_LDADD = $(COVERAGE_LDADD) $(GTEST_LIBS)
-endif
-
-##################################### Utils ####################################
-
-
 ################################################################################
 ################################### HyperDex ###################################
 ################################################################################
@@ -228,8 +133,7 @@ libhyperdex_noinst_headers = \
 			hyperdex/hyperdex/coordinatorlink.h \
 			hyperdex/hyperdex/ids.h \
 			hyperdex/hyperdex/instance.h \
-			hyperdex/hyperdex/network_constants.h \
-			hyperdex/hyperdex/packing.h
+			hyperdex/hyperdex/network_constants.h
 
 libhyperdex_sources = \
 			hyperdex/configuration.cc \
@@ -242,36 +146,16 @@ libhyperdex_sources = \
 
 hyperdex_daemon_SOURCES = \
 			daemon.cc \
-			disk/append_only_log.cc \
-			disk/append_only_log_block.cc \
-			disk/append_only_log_segment.cc \
-			disk/append_only_log_segment_list.cc \
-			disk/append_only_log_writable_segment.cc \
-			disk/cuckoo_index.cc \
-			disk/cuckoo_returncode.cc \
-			disk/cuckoo_table.cc \
-			disk/disk.cc \
-			disk/disk_reference.cc \
-			disk/disk_returncode.cc \
-			disk/heap.cc \
-			disk/search_snapshot.cc \
-			disk/search_tree.cc \
-			disk/transfer_iterator.cc \
 			common/attribute.cc \
 			common/attribute_check.cc \
 			common/funcall.cc \
 			common/schema.cc \
 			common/serialization.cc \
+			daemon/daemon.cc \
 			daemon/datalayer.cc \
-			hyperdaemon/daemon.h \
-			hyperdaemon/daemon.h \
-			hyperdaemon/daemon.cc \
+			daemon/search_manager.cc \
 			hyperdaemon/logical.h \
 			hyperdaemon/logical.cc \
-			hyperdaemon/network_worker.h \
-			hyperdaemon/network_worker.cc \
-			hyperdaemon/ongoing_state_transfers.h \
-			hyperdaemon/ongoing_state_transfers.cc \
 			hyperdaemon/replication/clientop.h \
 			hyperdaemon/replication/keypair.h \
 			hyperdaemon/replication_manager.h \
@@ -281,8 +165,6 @@ hyperdex_daemon_SOURCES = \
 			hyperdaemon/replication_manager_pending.h \
 			hyperdaemon/runtimeconfig.h \
 			hyperdaemon/runtimeconfig.cc \
-			hyperdaemon/searches.h \
-			hyperdaemon/searches.cc \
 			datatypes/alltypes.h \
 			datatypes/apply.h \
 			datatypes/apply.cc \
@@ -312,7 +194,7 @@ hyperdex_daemon_SOURCES = \
 hyperdex_daemon_LDADD = \
 			libhyperspacehashing.la \
 			$(E_LIBS) \
-			$(BUSYBEE_LIBS) \
+			$(BUSYBEE_LIBS) -lleveldb \
 			-lbusybee-mta \
 			$(COVERAGE_LDADD) \
 			-lcityhash -lpopt -lglog -lrt -lpthread

@@ -25,51 +25,62 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#define __STDC_LIMIT_MACROS
-
-// Google Log
-#include <glog/logging.h>
-
-// e
-#include <e/endian.h>
-
 // HyperDex
-#include "disk/disk_reference.h"
-#include "disk/search_snapshot.h"
 #include "common/attribute_check.h"
-#include "daemon/datalayer.h"
+#include "daemon/search_manager.h"
 
-#include "hyperdex/hyperdex/packing.h"
+using hyperdex::search_manager;
+using hyperdex::reconfigure_returncode;
 
-// HyperDaemon
-#include "hyperdaemon/logical.h"
-#include "hyperdaemon/searches.h"
+/////////////////////////////// Search Manager ID //////////////////////////////
 
-using hyperdex::attribute_check;
-using hyperdex::coordinatorlink;
-using hyperdex::disk_reference;
-using hyperdex::entityid;
-using hyperdex::regionid;
-using hyperdex::search_snapshot;
-using hyperspacehashing::search;
-
-class hyperdaemon::searches::search_state
+class search_manager::id
 {
     public:
-        search_state(const hyperdex::regionid& region,
-                     std::auto_ptr<e::buffer> msg,
-                     std::vector<attribute_check>* checks);
-        ~search_state() throw ();
+        id(const regionid re,
+           const entityid cl,
+           uint64_t sn)
+        : region(re), client(cl), search_number(sn) {}
+        ~id() throw () {}
+
+    public:
+        int compare(const id& other) const
+        { return e::tuple_compare(region, client, search_number,
+                                  other.region, other.client, other.search_number); }
+
+    public:
+        bool operator < (const id& rhs) const { return compare(rhs) < 0; }
+        bool operator <= (const id& rhs) const { return compare(rhs) <= 0; }
+        bool operator == (const id& rhs) const { return compare(rhs) == 0; }
+        bool operator != (const id& rhs) const { return compare(rhs) != 0; }
+        bool operator >= (const id& rhs) const { return compare(rhs) >= 0; }
+        bool operator > (const id& rhs) const { return compare(rhs) > 0; }
+
+    public:
+        regionid region;
+        entityid client;
+        uint64_t search_number;
+};
+
+///////////////////////////// Search Manager State /////////////////////////////
+
+class search_manager::state
+{
+    public:
+        state(const regionid& region,
+              std::auto_ptr<e::buffer> msg,
+              std::vector<attribute_check>* checks);
+        ~state() throw ();
 
     public:
         po6::threads::mutex lock;
-        const hyperdex::regionid region;
+        const regionid region;
         const std::auto_ptr<e::buffer> backing;
         std::vector<attribute_check> checks;
-        search_snapshot snap;
+        datalayer::snapshot snap;
 
     private:
-        friend class e::intrusive_ptr<search_state>;
+        friend class e::intrusive_ptr<state>;
 
     private:
         void inc() { __sync_add_and_fetch(&m_ref, 1); }
@@ -79,82 +90,60 @@ class hyperdaemon::searches::search_state
         size_t m_ref;
 };
 
-class hyperdaemon::searches::search_id
-{
-    public:
-        search_id(const hyperdex::regionid re,
-                  const hyperdex::entityid cl,
-                  uint64_t sn)
-        : region(re), client(cl), search_number(sn) {}
-        ~search_id() throw () {}
-
-    public:
-        int compare(const search_id& other) const
-        { return e::tuple_compare(region, client, search_number,
-                                  other.region, other.client, other.search_number); }
-
-    public:
-        bool operator < (const search_id& rhs) const { return compare(rhs) < 0; }
-        bool operator <= (const search_id& rhs) const { return compare(rhs) <= 0; }
-        bool operator == (const search_id& rhs) const { return compare(rhs) == 0; }
-        bool operator != (const search_id& rhs) const { return compare(rhs) != 0; }
-        bool operator >= (const search_id& rhs) const { return compare(rhs) >= 0; }
-        bool operator > (const search_id& rhs) const { return compare(rhs) > 0; }
-
-    public:
-        hyperdex::regionid region;
-        hyperdex::entityid client;
-        uint64_t search_number;
-};
-
-hyperdaemon :: searches :: searches(coordinatorlink* cl,
-                                    hyperdex::datalayer* data,
-                                    logical* comm)
-    : m_cl(cl)
-    , m_data(data)
-    , m_comm(comm)
-    , m_config()
-    , m_searches(16)
+search_manager :: state :: ~state() throw ()
 {
 }
 
-hyperdaemon :: searches :: ~searches() throw ()
+//////////////////////////////// Search Manager ////////////////////////////////
+
+search_manager :: search_manager(daemon* d)
+    : m_daemon(d)
+    , m_searches(1024)
 {
 }
 
-void
-hyperdaemon :: searches :: prepare(const hyperdex::configuration&,
-                                   const hyperdex::instance&)
+search_manager :: ~search_manager() throw ()
 {
 }
 
-void
-hyperdaemon :: searches :: reconfigure(const hyperdex::configuration& newconfig,
-                                       const hyperdex::instance&)
+reconfigure_returncode
+search_manager :: prepare(const configuration&,
+                          const configuration&,
+                          const instance&)
 {
-    m_config = newconfig;
+    return RECONFIGURE_SUCCESS;
 }
 
-void
-hyperdaemon :: searches :: cleanup(const hyperdex::configuration&,
-                                   const hyperdex::instance&)
+reconfigure_returncode
+search_manager :: reconfigure(const configuration&,
+                              const configuration&,
+                              const instance&)
 {
+    return RECONFIGURE_SUCCESS;
+}
+
+reconfigure_returncode
+search_manager :: cleanup(const configuration&,
+                          const configuration&,
+                          const instance&)
+{
+    return RECONFIGURE_SUCCESS;
 }
 
 #if 0
 void
-hyperdaemon :: searches :: start(const hyperdex::entityid& us,
-                                 const hyperdex::entityid& client,
-                                 uint64_t search_num,
-                                 uint64_t nonce,
-                                 std::auto_ptr<e::buffer> msg,
-                                 const hyperspacehashing::search& terms)
+search_manager :: start(const entityid& us,
+                        const entityid& client,
+                        uint64_t search_num,
+                        uint64_t nonce,
+                        std::auto_ptr<e::buffer> msg,
+                        const hyperspacehashing::search& wc)
 {
-    search_id key(us.get_region(), client, search_num);
+    id key(us.get_region(), client, search_num);
 
     if (m_searches.contains(key))
     {
-        LOG(INFO) << "DROPPED"; // XXX
+        next(us, client, search_num, nonce);
         return;
     }
 
@@ -166,9 +155,17 @@ hyperdaemon :: searches :: start(const hyperdex::entityid& us,
         LOG(INFO) << "DROPPED"; // XXX
         return;
     }
+}
 
-    hyperspacehashing::mask::hasher hasher(m_config.disk_hasher(us.get_subspace()));
-    hyperspacehashing::mask::coordinate coord(hasher.hash(terms));
+void
+hyperdaemon :: searches :: start(const hyperdex::entityid& us,
+                                 const hyperdex::entityid& client,
+                                 uint64_t search_num,
+                                 uint64_t nonce,
+                                 std::auto_ptr<e::buffer> msg,
+                                 const hyperspacehashing::search& terms)
+{
+
     e::intrusive_ptr<search_state> state = new search_state(us.get_region(), coord, msg, terms);
 
     if (!m_data->make_search_snapshot(us.get_region(), terms, &state->snap))
@@ -279,7 +276,7 @@ hyperdaemon :: searches :: group_keyop(const hyperdex::entityid& us,
 
             // Figure out who to talk with.
             hyperdex::entityid dst_ent;
-            hyperdex::instance dst_inst;
+            hyperdex::_instance dst_inst;
 
             if (m_config.point_leader_entity(us.get_space(), snap.key(), &dst_ent, &dst_inst))
             {
@@ -531,7 +528,6 @@ hyperdaemon :: searches :: sorted_search(const hyperdex::entityid& us,
 
     m_comm->send(us, client, hyperdex::RESP_SORTED_SEARCH, msg);
 }
-#endif
 
 uint64_t
 hyperdaemon :: searches :: hash(const search_id& si)
@@ -555,3 +551,4 @@ hyperdaemon :: searches :: search_state :: search_state(const regionid& r,
 hyperdaemon :: searches :: search_state :: ~search_state() throw ()
 {
 }
+#endif

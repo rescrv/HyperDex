@@ -44,6 +44,7 @@
 #include <busybee_mta.h>
 
 // HyperDex
+#include "daemon/reconfigure_returncode.h"
 #include "hyperdex/hyperdex/configuration.h"
 #include "hyperdex/hyperdex/instance.h"
 #include "hyperdex/hyperdex/network_constants.h"
@@ -52,6 +53,7 @@
 namespace hyperdex
 {
 class coordinatorlink;
+class daemon;
 class entityid;
 class regionid;
 }
@@ -62,19 +64,25 @@ namespace hyperdaemon
 class logical
 {
     public:
-        logical(hyperdex::coordinatorlink* cl, const po6::net::ipaddr& us,
-                in_port_t incoming, in_port_t outgoing, size_t num_threads);
+        logical(hyperdex::daemon*);
         ~logical() throw ();
 
     public:
-        hyperdex::instance inst() const { return m_us; }
         size_t header_size() const;
+        int in_port() { return m_busybee.inbound().port; }
+        int out_port() { return m_busybee.outbound().port; }
 
     // Reconfigure this layer.
     public:
-        void prepare(const hyperdex::configuration& newconfig, const hyperdex::instance& newinst);
-        void reconfigure(const hyperdex::configuration& newconfig, const hyperdex::instance& newinst);
-        void cleanup(const hyperdex::configuration& newconfig, const hyperdex::instance& newinst);
+        hyperdex::reconfigure_returncode prepare(const hyperdex::configuration& old_config,
+                                                 const hyperdex::configuration& new_config,
+                                                 const hyperdex::instance& us);
+        hyperdex::reconfigure_returncode reconfigure(const hyperdex::configuration& old_config,
+                                                     const hyperdex::configuration& new_config,
+                                                     const hyperdex::instance& us);
+        hyperdex::reconfigure_returncode cleanup(const hyperdex::configuration& old_config,
+                                                 const hyperdex::configuration& new_config,
+                                                 const hyperdex::instance& us);
 
     // Pause/unpause or completely stop recv of messages.  Paused threads will
     // not hold locks, and therefore will not pose risk of deadlock.
@@ -111,9 +119,7 @@ class logical
         void handle_disconnect(const po6::net::location& loc);
 
     private:
-        hyperdex::coordinatorlink* m_cl;
-        hyperdex::instance m_us;
-        hyperdex::configuration m_config;
+        hyperdex::daemon* m_daemon;
         e::lockfree_fifo<early_message> m_early_messages;
         e::lockfree_hash_map<po6::net::location, uint64_t, po6::net::location::hash> m_client_nums;
         e::lockfree_hash_map<uint64_t, po6::net::location, id> m_client_locs;

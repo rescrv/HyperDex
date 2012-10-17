@@ -53,19 +53,17 @@
 #include <e/timer.h>
 
 // HyperDex
-#include "disk/disk_reference.h"
-#include "disk/disk_returncode.h"
 #include "common/attribute_check.h"
 #include "common/funcall.h"
+#include "common/serialization.h"
+#include "daemon/daemon.h"
+#include "daemon/datalayer.h"
 
 #include "datatypes/apply.h"
 #include "datatypes/validate.h"
-#include "daemon/datalayer.h"
 #include "hyperdex/hyperdex/coordinatorlink.h"
 #include "hyperdex/hyperdex/network_constants.h"
-#include "hyperdex/hyperdex/packing.h"
 #include "hyperdaemon/logical.h"
-#include "hyperdaemon/ongoing_state_transfers.h"
 #include "hyperdaemon/replication_manager.h"
 #include "hyperdaemon/replication_manager_deferred.h"
 #include "hyperdaemon/replication_manager_keyholder.h"
@@ -78,7 +76,6 @@ using hyperdex::attribute_check;
 using hyperdex::configuration;
 using hyperdex::coordinatorlink;
 using hyperdex::datalayer;
-using hyperdex::disk_reference;
 using hyperdex::entityid;
 using hyperdex::funcall;
 using hyperdex::instance;
@@ -97,23 +94,12 @@ using hyperdaemon::replication::keypair;
 #define HOLD_LOCK_FOR_KEY(E, K) \
     e::striped_lock<po6::threads::mutex>::hold CONCAT(_anon, __LINE__)(&m_locks, get_lock_num(E.get_region(), K))
 
-hyperdaemon :: replication_manager :: replication_manager(coordinatorlink* cl,
-                                                          datalayer* data,
-                                                          logical* comm,
-                                                          ongoing_state_transfers* ost)
-    : m_cl(cl)
-    , m_data(data)
-    , m_comm(comm)
-    , m_ost(ost)
-    , m_config()
+hyperdaemon :: replication_manager :: replication_manager(hyperdex::daemon* d)
+    : m_daemon(d)
     , m_locks(LOCK_STRIPING)
     , m_keyholders_lock()
     , m_keyholders(REPLICATION_HASHTABLE_SIZE)
-    , m_us()
-    , m_quiesce(false)
-    , m_quiesce_state_id_lock()
-    , m_quiesce_state_id("")
-    , m_shutdown(false)
+    , m_shutdown(0)
     , m_periodic_thread(std::tr1::bind(&replication_manager::periodic, this))
 {
     m_periodic_thread.start();
@@ -121,61 +107,47 @@ hyperdaemon :: replication_manager :: replication_manager(coordinatorlink* cl,
 
 hyperdaemon :: replication_manager :: ~replication_manager() throw ()
 {
-    if (!m_shutdown)
-    {
-        shutdown();
-    }
-
+    e::atomic::store_32_release(&m_shutdown, 0);
     m_periodic_thread.join();
 }
 
-void
-hyperdaemon :: replication_manager :: prepare(const configuration&, const instance&)
+hyperdex::reconfigure_returncode
+hyperdaemon :: replication_manager :: prepare(const hyperdex::configuration&,
+                                              const hyperdex::configuration&,
+                                              const hyperdex::instance&)
 {
-    // Do nothing.
+    return hyperdex::RECONFIGURE_SUCCESS;
 }
 
-void
-hyperdaemon :: replication_manager :: reconfigure(const configuration& newconfig, const instance& us)
+hyperdex::reconfigure_returncode
+hyperdaemon :: replication_manager :: reconfigure(const hyperdex::configuration& old_config,
+                                                  const hyperdex::configuration& new_config,
+                                                  const hyperdex::instance& us)
 {
-    // Mark as quiescing if config says so.
-    if (newconfig.quiesce())
-    {
-        po6::threads::mutex::hold hold(&m_quiesce_state_id_lock);
-
-        // OK to see multiple quiesce requests - we will take new id each time, but we 
-        // cannot go back to normal operation without shutdown.
-        m_quiesce_state_id = newconfig.quiesce_state_id();
-        m_quiesce = true;
-    }
-
-    // Install a new configuration.
-    m_config = newconfig;
-    m_us = us;
     po6::threads::mutex::hold hold(&m_keyholders_lock);
 
     for (keyholder_map_t::iterator khiter = m_keyholders.begin();
             khiter != m_keyholders.begin(); khiter.next())
     {
         // Drop the keyholder if we don't need it.
-        if (!m_config.in_region(us, khiter.key().region))
+        if (!m_daemon->m_config.in_region(us, khiter.key().region))
         {
             m_keyholders.remove(khiter.key());
             continue;
         }
+
+        // XXX reset so chain ack doesn't grab them, and resend does
     }
+
+    return hyperdex::RECONFIGURE_SUCCESS;
 }
 
-void
-hyperdaemon :: replication_manager :: cleanup(const configuration&, const instance&)
+hyperdex::reconfigure_returncode
+hyperdaemon :: replication_manager :: cleanup(const hyperdex::configuration&,
+                                              const hyperdex::configuration&,
+                                              const hyperdex::instance&)
 {
-    // Do nothing.
-}
-
-void
-hyperdaemon :: replication_manager :: shutdown()
-{
-    m_shutdown = true;
+    return hyperdex::RECONFIGURE_SUCCESS;
 }
 
 void
@@ -190,14 +162,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::network_msgt
                                                     std::vector<attribute_check>* checks,
                                                     std::vector<funcall>* funcs)
 {
-    // Fail as read only if we are quiescing.
-    if (m_quiesce)
-    {
-        respond_to_client(to, from, nonce, opcode, hyperdex::NET_READONLY);
-        return;
-    }
-
-    hyperdex::schema* sc = m_config.get_schema(to.get_space());
+    hyperdex::schema* sc = m_daemon->m_config.get_schema(to.get_space());
     assert(sc);
 
     if (!validate_as_type(key, sc->attrs[0].type))
@@ -207,7 +172,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::network_msgt
     }
 
     // Make sure this message is to the point-leader.
-    if (!m_config.is_point_leader(to))
+    if (!m_daemon->m_config.is_point_leader(to))
     {
         respond_to_client(to, from, nonce, opcode, hyperdex::NET_NOTUS);
         return;
@@ -225,7 +190,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::network_msgt
     uint64_t old_version = 0;
     bool has_old_value = false;
     std::vector<e::slice> old_value;
-    disk_reference ref;
+    datalayer::reference ref;
 
     if (!retrieve_latest(to.get_region(), key, kh, &old_version, &has_old_value, &old_value, &ref))
     {
@@ -281,7 +246,7 @@ hyperdaemon :: replication_manager :: client_atomic(const hyperdex::network_msgt
     e::intrusive_ptr<pending> new_pend;
     new_pend = new pending(true, new_backing, key, new_value, clientop(to.get_region(), from, nonce));
     new_pend->retcode = opcode;
-    ref.transfer_to(&new_pend->ref);
+    ref.swap(&new_pend->ref);
     new_pend->key = new_key;
     new_pend->fresh = fresh;
 
@@ -307,14 +272,7 @@ hyperdaemon :: replication_manager :: client_del(const hyperdex::network_msgtype
                                                  const e::slice& key,
                                                  std::vector<attribute_check>* checks)
 {
-    // Fail as read only if we are quiescing.
-    if (m_quiesce)
-    {
-        respond_to_client(to, from, nonce, hyperdex::RESP_ATOMIC, hyperdex::NET_READONLY);
-        return;
-    }
-
-    hyperdex::schema* sc = m_config.get_schema(to.get_space());
+    hyperdex::schema* sc = m_daemon->m_config.get_schema(to.get_space());
     assert(sc);
 
     if (!validate_as_type(key, sc->attrs[0].type))
@@ -324,7 +282,7 @@ hyperdaemon :: replication_manager :: client_del(const hyperdex::network_msgtype
     }
 
     // Make sure this message is to the point-leader.
-    if (!m_config.is_point_leader(to))
+    if (!m_daemon->m_config.is_point_leader(to))
     {
         respond_to_client(to, from, nonce, hyperdex::RESP_ATOMIC, hyperdex::NET_NOTUS);
         return;
@@ -342,7 +300,7 @@ hyperdaemon :: replication_manager :: client_del(const hyperdex::network_msgtype
     uint64_t old_version = 0;
     bool has_old_value = false;
     std::vector<e::slice> old_value;
-    disk_reference ref;
+    datalayer::reference ref;
 
     if (!retrieve_latest(to.get_region(), key, kh, &old_version, &has_old_value, &old_value, &ref))
     {
@@ -360,7 +318,7 @@ hyperdaemon :: replication_manager :: client_del(const hyperdex::network_msgtype
     std::tr1::shared_ptr<e::buffer> sharedbacking(backing.release());
     new_pend = new pending(false, sharedbacking, key, old_value, clientop(to.get_region(), from, nonce));
     new_pend->retcode = hyperdex::RESP_ATOMIC;
-    ref.transfer_to(&new_pend->ref);
+    ref.swap(&new_pend->ref);
 
     if (!prev_and_next(to.get_region(), new_pend->key, false, new_pend->value, has_old_value, old_value, new_pend))
     {
@@ -411,7 +369,7 @@ hyperdaemon :: replication_manager :: chain_subspace(const entityid& from,
     // Get the keyholder for this key.
     e::intrusive_ptr<keyholder> kh = get_keyholder(to.get_region(), key);
 
-    hyperdex::schema* sc = m_config.get_schema(to.get_space());
+    hyperdex::schema* sc = m_daemon->m_config.get_schema(to.get_space());
     assert(sc);
 
     // Check that a chain's put matches the dimensions of the space.
@@ -424,7 +382,7 @@ hyperdaemon :: replication_manager :: chain_subspace(const entityid& from,
     uint64_t old_version = 0;
     bool has_old_value = false;
     std::vector<e::slice> old_value;
-    disk_reference ref;
+    datalayer::reference ref;
 
     if (!retrieve_latest(to.get_region(), key, kh, &old_version, &has_old_value, &old_value, &ref))
     {
@@ -438,7 +396,7 @@ hyperdaemon :: replication_manager :: chain_subspace(const entityid& from,
     }
 
     // Figure out how many subspaces (in total) there are.
-    size_t subspaces = m_config.subspaces(to.get_space());
+    size_t subspaces = m_daemon->m_config.subspaces(to.get_space());
     assert(subspaces > 0);
 
     // Create a new pending object to set as pending.
@@ -446,20 +404,20 @@ hyperdaemon :: replication_manager :: chain_subspace(const entityid& from,
     std::tr1::shared_ptr<e::buffer> sharedbacking(backing.release());
     newpend = new pending(true, sharedbacking, key, value);
     newpend->recv_e = from;
-    newpend->recv_i = m_config.instancefor(from);
+    newpend->recv_i = m_daemon->m_config.instancefor(from);
     newpend->subspace_prev = to.subspace;
     newpend->subspace_next = to.subspace < subspaces - 1 ? to.subspace + 1 : UINT16_MAX;
     newpend->point_prev = from.mask;
-    hyperspacehashing::prefix::hasher hasher_this = m_config.repl_hasher(to.get_subspace());
+    hyperspacehashing::prefix::hasher hasher_this = m_daemon->m_config.repl_hasher(to.get_subspace());
     newpend->point_this = hasher_this.hash(key, value).point;
     newpend->point_next = nextpoint;
 
     if (from.get_subspace() != to.get_subspace()
             || (!(from.get_region() == to.get_region()
-                    && m_config.chain_adjacent(from, to))
+                    && m_daemon->m_config.chain_adjacent(from, to))
                 && !(from.get_region() != to.get_region()
-                    && m_config.is_tail(from)
-                    && m_config.is_head(to))))
+                    && m_daemon->m_config.is_tail(from)
+                    && m_daemon->m_config.is_head(to))))
     {
         LOG(INFO) << "dropping CHAIN_SUBSPACE message which didn't come from the right host.";
         return;
@@ -508,7 +466,7 @@ hyperdaemon :: replication_manager :: chain_ack(const entityid& from,
     }
 
     std::tr1::shared_ptr<e::buffer> shared_backing(backing.release());
-    m_ost->add_trigger(to.get_region(), shared_backing, key, version);
+    //m_ost->add_trigger(to.get_region(), shared_backing, key, version);
     pend->acked = true;
     put_to_disk(to.get_region(), kh, version);
 
@@ -520,7 +478,7 @@ hyperdaemon :: replication_manager :: chain_ack(const entityid& from,
 
     move_operations_between_queues(to, key, kh);
 
-    if (m_config.is_point_leader(to))
+    if (m_daemon->m_config.is_point_leader(to))
     {
         if (pend->co.from.space == UINT32_MAX)
         {
@@ -555,7 +513,7 @@ hyperdaemon :: replication_manager :: chain_common(bool has_value,
     // Get the keyholder for this key.
     e::intrusive_ptr<keyholder> kh = get_keyholder(to.get_region(), key);
 
-    hyperdex::schema* sc = m_config.get_schema(to.get_space());
+    hyperdex::schema* sc = m_daemon->m_config.get_schema(to.get_space());
     assert(sc);
 
     // Check that a chain's put matches the dimensions of the space.
@@ -569,7 +527,7 @@ hyperdaemon :: replication_manager :: chain_common(bool has_value,
     uint64_t oldversion = 0;
     bool has_oldvalue = false;
     std::vector<e::slice> oldvalue;
-    disk_reference ref;
+    datalayer::reference ref;
     e::intrusive_ptr<pending> oldop = kh->get_by_version(version - 1);
     e::intrusive_ptr<pending> newop = kh->get_by_version(version);
 
@@ -577,7 +535,7 @@ hyperdaemon :: replication_manager :: chain_common(bool has_value,
     {
         // XXX Check that the saved state and new message match
         newop->recv_e = from;
-        newop->recv_i = m_config.instancefor(from);
+        newop->recv_i = m_daemon->m_config.instancefor(from);
         send_ack(to, from, version, key);
         return;
     }
@@ -612,8 +570,8 @@ hyperdaemon :: replication_manager :: chain_common(bool has_value,
     if (oldversion == 0 && !fresh)
     {
         e::intrusive_ptr<deferred> newdefer;
-        newdefer = new deferred(has_value, backing, key, value, from, m_config.instancefor(from));
-        ref.transfer_to(&newdefer->ref);
+        newdefer = new deferred(has_value, backing, key, value, from, m_daemon->m_config.instancefor(from));
+        ref.swap(&newdefer->ref);
         kh->insert_deferred(version, newdefer);
         return;
     }
@@ -623,9 +581,9 @@ hyperdaemon :: replication_manager :: chain_common(bool has_value,
     std::tr1::shared_ptr<e::buffer> sharedbacking(backing.release());
     newpend = new pending(has_value, sharedbacking, key, value);
     newpend->fresh = fresh;
-    ref.transfer_to(&newpend->ref);
+    ref.swap(&newpend->ref);
     newpend->recv_e = from;
-    newpend->recv_i = m_config.instancefor(from);
+    newpend->recv_i = m_daemon->m_config.instancefor(from);
 
     if (!prev_and_next(to.get_region(), key, has_value, value, has_oldvalue, oldvalue, newpend))
     {
@@ -633,11 +591,11 @@ hyperdaemon :: replication_manager :: chain_common(bool has_value,
         return;
     }
 
-    if (!(from.get_region() == to.get_region() && m_config.chain_adjacent(from, to))
+    if (!(from.get_region() == to.get_region() && m_daemon->m_config.chain_adjacent(from, to))
             && !(from.space == to.space
                 && from.subspace + 1 == to.subspace
-                && m_config.is_tail(from)
-                && m_config.is_head(to)))
+                && m_daemon->m_config.is_tail(from)
+                && m_daemon->m_config.is_head(to)))
     {
         LOG(INFO) << "dropping CHAIN_* which didn't come from the right host";
         return;
@@ -691,7 +649,7 @@ hyperdaemon :: replication_manager :: retrieve_latest(const hyperdex::regionid& 
                                                       uint64_t* old_version,
                                                       bool* has_old_value,
                                                       std::vector<e::slice>* old_value,
-                                                      disk_reference* ref)
+                                                      datalayer::reference* ref)
 {
     *old_version = 0;
     *has_old_value = false;
@@ -722,27 +680,21 @@ hyperdaemon :: replication_manager :: from_disk(const regionid& r,
                                                 bool* has_value,
                                                 std::vector<e::slice>* value,
                                                 uint64_t* version,
-                                                disk_reference* ref)
+                                                datalayer::reference* ref)
 {
-    switch (m_data->get(r, key, value, version, ref))
+    switch (m_daemon->m_data.get(r, key, value, version, ref))
     {
-        case hyperdex::DISK_SUCCESS:
+        case hyperdex::datalayer::SUCCESS:
             *has_value = true;
             return true;
-        case hyperdex::DISK_NOT_FOUND:
+        case hyperdex::datalayer::NOT_FOUND:
             *version = 0;
             *has_value = false;
             return true;
-        case hyperdex::DISK_MISSINGDISK:
-            LOG(ERROR) << "m_data returned MISSINGDISK.";
-            return false;
-        case hyperdex::DISK_WRONGARITY:
-        case hyperdex::DISK_DATAFULL:
-        case hyperdex::DISK_SEARCHFULL:
-        case hyperdex::DISK_SYNCFAILED:
-        case hyperdex::DISK_DROPFAILED:
-        case hyperdex::DISK_SPLITFAILED:
-        case hyperdex::DISK_DIDNOTHING:
+        case hyperdex::datalayer::BAD_ENCODING:
+        case hyperdex::datalayer::CORRUPTION:
+        case hyperdex::datalayer::IO_ERROR:
+        case hyperdex::datalayer::LEVELDB_ERROR:
         default:
             LOG(WARNING) << "Data layer returned unexpected result when reading old value.";
             return false;
@@ -762,25 +714,21 @@ hyperdaemon :: replication_manager :: put_to_disk(const regionid& pending_in,
     e::intrusive_ptr<pending> op = kh->get_by_version(version);
 
     bool success = true;
-    hyperdex::disk_returncode rc;
+    hyperdex::datalayer::returncode rc;
 
     if (!op->has_value
             || (pending_in.subspace == op->subspace_next && pending_in.subspace != 0))
     {
-        switch ((rc = m_data->del(pending_in, op->key)))
+        switch ((rc = m_daemon->m_data.del(pending_in, op->key)))
         {
-            case hyperdex::DISK_SUCCESS:
+            case hyperdex::datalayer::SUCCESS:
                 success = true;
                 break;
-            case hyperdex::DISK_MISSINGDISK:
-            case hyperdex::DISK_WRONGARITY:
-            case hyperdex::DISK_NOT_FOUND:
-            case hyperdex::DISK_DATAFULL:
-            case hyperdex::DISK_SEARCHFULL:
-            case hyperdex::DISK_SYNCFAILED:
-            case hyperdex::DISK_DROPFAILED:
-            case hyperdex::DISK_SPLITFAILED:
-            case hyperdex::DISK_DIDNOTHING:
+            case hyperdex::datalayer::NOT_FOUND:
+            case hyperdex::datalayer::BAD_ENCODING:
+            case hyperdex::datalayer::CORRUPTION:
+            case hyperdex::datalayer::IO_ERROR:
+            case hyperdex::datalayer::LEVELDB_ERROR:
                 LOG(ERROR) << "commit caused error " << rc;
                 success = false;
                 break;
@@ -792,20 +740,16 @@ hyperdaemon :: replication_manager :: put_to_disk(const regionid& pending_in,
     }
     else if (op->has_value)
     {
-        switch ((rc = m_data->put(pending_in, op->key, op->value, version)))
+        switch ((rc = m_daemon->m_data.put(pending_in, op->key, op->value, version)))
         {
-            case hyperdex::DISK_SUCCESS:
+            case hyperdex::datalayer::SUCCESS:
                 success = true;
                 break;
-            case hyperdex::DISK_MISSINGDISK:
-            case hyperdex::DISK_WRONGARITY:
-            case hyperdex::DISK_NOT_FOUND:
-            case hyperdex::DISK_DATAFULL:
-            case hyperdex::DISK_SEARCHFULL:
-            case hyperdex::DISK_SYNCFAILED:
-            case hyperdex::DISK_DROPFAILED:
-            case hyperdex::DISK_SPLITFAILED:
-            case hyperdex::DISK_DIDNOTHING:
+            case hyperdex::datalayer::NOT_FOUND:
+            case hyperdex::datalayer::BAD_ENCODING:
+            case hyperdex::datalayer::CORRUPTION:
+            case hyperdex::datalayer::IO_ERROR:
+            case hyperdex::datalayer::LEVELDB_ERROR:
                 LOG(ERROR) << "commit caused error " << rc;
                 success = false;
                 break;
@@ -830,7 +774,7 @@ hyperdaemon :: replication_manager :: prev_and_next(const regionid& r,
                                                     e::intrusive_ptr<pending> pend)
 {
     // Figure out how many subspaces (in total) there are.
-    size_t subspaces = m_config.subspaces(r.get_space());
+    size_t subspaces = m_daemon->m_config.subspaces(r.get_space());
     assert(subspaces > 0);
 
     // Figure out which subspaces are adjacent to us (or UINT16_MAX if there are none).
@@ -838,7 +782,7 @@ hyperdaemon :: replication_manager :: prev_and_next(const regionid& r,
     pend->subspace_next = r.subspace < subspaces - 1 ? r.subspace + 1 : UINT16_MAX;
 
     // Get the hasher for this subspace.
-    hyperspacehashing::prefix::hasher hasher_this = m_config.repl_hasher(r.get_subspace());
+    hyperspacehashing::prefix::hasher hasher_this = m_daemon->m_config.repl_hasher(r.get_subspace());
     hyperspacehashing::prefix::coordinate coord_this_old;
     hyperspacehashing::prefix::coordinate coord_this_new;
 
@@ -875,7 +819,7 @@ hyperdaemon :: replication_manager :: prev_and_next(const regionid& r,
         // message.
         if (pend->subspace_next != UINT16_MAX)
         {
-            hyperspacehashing::prefix::hasher hasher(m_config.repl_hasher(hyperdex::subspaceid(r.space, pend->subspace_next)));
+            hyperspacehashing::prefix::hasher hasher(m_daemon->m_config.repl_hasher(hyperdex::subspaceid(r.space, pend->subspace_next)));
             pend->point_next_next = hasher.hash(key, oldvalue).point;
         }
 
@@ -895,7 +839,7 @@ hyperdaemon :: replication_manager :: prev_and_next(const regionid& r,
 
     if (pend->subspace_prev != UINT16_MAX)
     {
-        hyperspacehashing::prefix::hasher hasher_prev(m_config.repl_hasher(hyperdex::subspaceid(r.space, pend->subspace_prev)));
+        hyperspacehashing::prefix::hasher hasher_prev(m_daemon->m_config.repl_hasher(hyperdex::subspaceid(r.space, pend->subspace_prev)));
 
         // If it has both, it has to come from the *new* value.
         if (has_oldvalue && has_newvalue)
@@ -914,7 +858,7 @@ hyperdaemon :: replication_manager :: prev_and_next(const regionid& r,
 
     if (!set_next && pend->subspace_next != UINT16_MAX)
     {
-        hyperspacehashing::prefix::hasher hasher_next(m_config.repl_hasher(hyperdex::subspaceid(r.space, pend->subspace_next)));
+        hyperspacehashing::prefix::hasher hasher_next(m_daemon->m_config.repl_hasher(hyperdex::subspaceid(r.space, pend->subspace_next)));
 
         // If it has both, it has to go to the *old* value.
         if (has_oldvalue && has_newvalue)
@@ -945,7 +889,7 @@ hyperdaemon :: replication_manager :: check_for_deferred_operations(const hyperd
     // Get the keyholder for this key.
     e::intrusive_ptr<keyholder> kh = get_keyholder(r, key);
 
-    entityid us = m_config.entityfor(m_us, r);
+    entityid us = m_daemon->m_config.entityfor(m_daemon->m_us, r);
 
     // If this is empty, it means we've not been integrated into the chain, and
     // the race condition we check for cannot exist.
@@ -961,9 +905,9 @@ hyperdaemon :: replication_manager :: check_for_deferred_operations(const hyperd
         e::intrusive_ptr<pending> newop;
         newop = new pending(op->has_value, op->backing, op->key, op->value);
         newop->fresh = false;
-        op->ref.transfer_to(&newop->ref);
+        op->ref.swap(&newop->ref);
         newop->recv_e = op->from_ent;
-        newop->recv_i = m_config.instancefor(op->from_ent);
+        newop->recv_i = m_daemon->m_config.instancefor(op->from_ent);
 
         if (!prev_and_next(us.get_region(), key, newop->has_value, newop->value, has_value, value, newop))
         {
@@ -971,11 +915,11 @@ hyperdaemon :: replication_manager :: check_for_deferred_operations(const hyperd
             return;
         }
 
-        if (!(newop->recv_e.get_region() == r && m_config.chain_adjacent(newop->recv_e, us))
+        if (!(newop->recv_e.get_region() == r && m_daemon->m_config.chain_adjacent(newop->recv_e, us))
                 && !(newop->recv_e.space == r.space
                     && newop->recv_e.subspace + 1 == r.subspace
-                    && m_config.is_tail(newop->recv_e)
-                    && m_config.is_head(us)))
+                    && m_daemon->m_config.is_tail(newop->recv_e)
+                    && m_daemon->m_config.is_head(us)))
         {
             LOG(INFO) << "dropping deferred CHAIN_* which didn't come from the right host";
             return;
@@ -1026,9 +970,9 @@ hyperdaemon :: replication_manager :: move_operations_between_queues(const hyper
         e::intrusive_ptr<pending> newop;
         newop = new pending(op->has_value, op->backing, op->key, op->value);
         newop->fresh = false;
-        op->ref.transfer_to(&newop->ref);
+        op->ref.swap(&newop->ref);
         newop->recv_e = op->from_ent;
-        newop->recv_i = m_config.instancefor(op->from_ent);
+        newop->recv_i = m_daemon->m_config.instancefor(op->from_ent);
 
         if (!prev_and_next(us.get_region(), key, newop->has_value, newop->value, oldop->has_value, oldop->value, newop))
         {
@@ -1036,11 +980,11 @@ hyperdaemon :: replication_manager :: move_operations_between_queues(const hyper
             return;
         }
 
-        if (!(newop->recv_e.get_region() == us.get_region() && m_config.chain_adjacent(newop->recv_e, us))
+        if (!(newop->recv_e.get_region() == us.get_region() && m_daemon->m_config.chain_adjacent(newop->recv_e, us))
                 && !(newop->recv_e.space == us.space
                     && newop->recv_e.subspace + 1 == us.subspace
-                    && m_config.is_tail(newop->recv_e)
-                    && m_config.is_head(us)))
+                    && m_daemon->m_config.is_tail(newop->recv_e)
+                    && m_daemon->m_config.is_head(us)))
         {
             LOG(INFO) << "dropping deferred CHAIN_* which didn't come from the right host";
             return;
@@ -1076,32 +1020,32 @@ hyperdaemon :: replication_manager :: send_message(const entityid& us,
         return;
     }
 
-    size_t sz_msg = m_comm->header_size()
+    size_t sz_msg = m_daemon->m_comm.header_size()
                   + sizeof(uint64_t)
                   + sizeof(uint8_t)
                   + sizeof(uint32_t)
                   + key.size()
-                  + hyperdex::packspace(op->value)
+                  + hyperdex::pack_size(op->value)
                   + sizeof(uint64_t);
-    size_t sz_revkey = m_comm->header_size()
+    size_t sz_revkey = m_daemon->m_comm.header_size()
                      + sizeof(uint64_t)
                      + sizeof(uint32_t)
                      + key.size();
 
     entityid dst;
 
-    if (m_config.is_tail(us))
+    if (m_daemon->m_config.is_tail(us))
     {
         // If we're the end of the line.
         if (op->subspace_next == UINT16_MAX)
         {
             std::auto_ptr<e::buffer> revkey(e::buffer::create(sz_revkey));
-            revkey->pack_at(m_comm->header_size()) << version << key;
+            revkey->pack_at(m_daemon->m_comm.header_size()) << version << key;
 
-            if (m_comm->send(us, us, hyperdex::CHAIN_ACK, revkey))
+            if (m_daemon->m_comm.send(us, us, hyperdex::CHAIN_ACK, revkey))
             {
                 op->sent_e = us;
-                op->sent_i = m_us;
+                op->sent_i = m_daemon->m_us;
             }
 
             return;
@@ -1110,14 +1054,14 @@ hyperdaemon :: replication_manager :: send_message(const entityid& us,
         else if (op->subspace_next == us.subspace)
         {
             std::auto_ptr<e::buffer> msg(e::buffer::create(sz_msg));
-            msg->pack_at(m_comm->header_size()) << version << key << op->value << op->point_next_next;
+            msg->pack_at(m_daemon->m_comm.header_size()) << version << key << op->value << op->point_next_next;
             dst = entityid(us.space, us.subspace, 64, op->point_next, 0);
-            dst = m_config.sloppy_lookup(dst);
+            dst = m_daemon->m_config.sloppy_lookup(dst);
 
-            if (m_comm->send(us, dst, hyperdex::CHAIN_SUBSPACE, msg))
+            if (m_daemon->m_comm.send(us, dst, hyperdex::CHAIN_SUBSPACE, msg))
             {
                 op->sent_e = dst;
-                op->sent_i = m_config.instancefor(dst);
+                op->sent_i = m_daemon->m_config.instancefor(dst);
             }
 
             return;
@@ -1126,7 +1070,7 @@ hyperdaemon :: replication_manager :: send_message(const entityid& us,
         else if (op->subspace_next == us.subspace + 1)
         {
             dst = entityid(us.space, op->subspace_next, 64, op->point_next, 0);
-            dst = m_config.sloppy_lookup(dst);
+            dst = m_daemon->m_config.sloppy_lookup(dst);
         }
         // We must match one of the above.
         else
@@ -1140,13 +1084,13 @@ hyperdaemon :: replication_manager :: send_message(const entityid& us,
         if (op->subspace_prev == us.subspace)
         {
             std::auto_ptr<e::buffer> msg(e::buffer::create(sz_msg));
-            msg->pack_at(m_comm->header_size()) << version << key << op->value << op->point_next;
-            dst = m_config.chain_next(us);
+            msg->pack_at(m_daemon->m_comm.header_size()) << version << key << op->value << op->point_next;
+            dst = m_daemon->m_config.chain_next(us);
 
-            if (m_comm->send(us, dst, hyperdex::CHAIN_SUBSPACE, msg))
+            if (m_daemon->m_comm.send(us, dst, hyperdex::CHAIN_SUBSPACE, msg))
             {
                 op->sent_e = dst;
-                op->sent_i = m_config.instancefor(dst);
+                op->sent_i = m_daemon->m_config.instancefor(dst);
             }
 
             return;
@@ -1154,7 +1098,7 @@ hyperdaemon :: replication_manager :: send_message(const entityid& us,
         // Otherwise its a normal CHAIN_PUT/CHAIN_DEL; fall through.
         else
         {
-            dst = m_config.chain_next(us);
+            dst = m_daemon->m_config.chain_next(us);
         }
     }
 
@@ -1164,19 +1108,19 @@ hyperdaemon :: replication_manager :: send_message(const entityid& us,
     if (op->has_value)
     {
         uint8_t flags = op->fresh ? 1 : 0;
-        msg->pack_at(m_comm->header_size()) << version << flags << key << op->value;
+        msg->pack_at(m_daemon->m_comm.header_size()) << version << flags << key << op->value;
         type = hyperdex::CHAIN_PUT;
     }
     else
     {
-        msg->pack_at(m_comm->header_size()) << version << key;
+        msg->pack_at(m_daemon->m_comm.header_size()) << version << key;
         type = hyperdex::CHAIN_DEL;
     }
 
-    if (m_comm->send(us, dst, type, msg))
+    if (m_daemon->m_comm.send(us, dst, type, msg))
     {
         op->sent_e = dst;
-        op->sent_i = m_config.instancefor(dst);
+        op->sent_i = m_daemon->m_config.instancefor(dst);
     }
 }
 
@@ -1186,13 +1130,13 @@ hyperdaemon :: replication_manager :: send_ack(const entityid& from,
                                                uint64_t version,
                                                const e::slice& key)
 {
-    size_t sz = m_comm->header_size()
+    size_t sz = m_daemon->m_comm.header_size()
               + sizeof(uint64_t)
               + sizeof(uint32_t)
               + key.size();
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    msg->pack_at(m_comm->header_size()) << version << key;
-    return m_comm->send(from, to, hyperdex::CHAIN_ACK, msg);
+    msg->pack_at(m_daemon->m_comm.header_size()) << version << key;
+    return m_daemon->m_comm.send(from, to, hyperdex::CHAIN_ACK, msg);
 }
 
 void
@@ -1203,10 +1147,10 @@ hyperdaemon :: replication_manager :: respond_to_client(const entityid& us,
                                                         network_returncode ret)
 {
     uint16_t result = static_cast<uint16_t>(ret);
-    size_t sz = m_comm->header_size() + sizeof(uint64_t) +sizeof(uint16_t);
+    size_t sz = m_daemon->m_comm.header_size() + sizeof(uint64_t) +sizeof(uint16_t);
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    msg->pack_at(m_comm->header_size()) << nonce << result;
-    m_comm->send(us, client, type, msg);
+    msg->pack_at(m_daemon->m_comm.header_size()) << nonce << result;
+    m_daemon->m_comm.send(us, client, type, msg);
 }
 
 void
@@ -1214,28 +1158,11 @@ hyperdaemon :: replication_manager :: periodic()
 {
     LOG(WARNING) << "Replication \"cron\" thread started.";
 
-    for (uint64_t i = 0; !m_shutdown; ++i)
+    for (uint64_t i = 0; !e::atomic::load_32_acquire(&m_shutdown); ++i)
     {
         try
         {
-            int processed = retransmit();
-            
-            // While quiescing, if all replication-related state is cleaned up, 
-            // we are truly queisced.
-            if (m_quiesce && processed <= 0)
-            {
-                // Lock needed to access quiesce state.
-                po6::threads::mutex::hold hold(&m_quiesce_state_id_lock);
-                
-                // Let the coordinator know replication is quiesced.
-                // XXX error handling?
-                m_cl->quiesced(m_quiesce_state_id);
-                
-                // We are quiesced, there will be no more retransmits,
-                // stop the periodic thread.
-                LOG(INFO) << "Replication manager quiesced, periodic thread stopping.";
-                break;
-            }
+            retransmit();
         }
         catch (std::exception& e)
         {
@@ -1293,11 +1220,11 @@ hyperdaemon :: replication_manager :: retransmit()
         e::intrusive_ptr<pending> pend = kh->oldest_committable_op();
 
         if (pend->sent_e == entityid() ||
-            pend->sent_i != m_config.instancefor(pend->sent_e))
+            pend->sent_i != m_daemon->m_config.instancefor(pend->sent_e))
         {
             pend->sent_e = entityid();
             pend->sent_i = instance();
-            entityid ent = m_config.entityfor(m_us, khiter.key().region);
+            entityid ent = m_daemon->m_config.entityfor(m_daemon->m_us, khiter.key().region);
             send_message(ent, kh->oldest_committable_version(), key, pend);
         }
     }

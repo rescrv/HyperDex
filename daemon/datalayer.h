@@ -29,82 +29,129 @@
 #define hyperdex_daemon_datalayer_h_
 
 // STL
-#include <tr1/memory>
+#include <string>
+
+// LevelDB
+#include <leveldb/db.h>
 
 // po6
 #include <po6/pathname.h>
 
-// e
-#include <e/lockfree_hash_map.h>
-#include <e/slice.h>
-
 // HyperDex
-#include "disk/disk_returncode.h"
+#include "common/predicate.h"
 #include "common/schema.h"
 #include "daemon/reconfigure_returncode.h"
 #include "hyperdex/hyperdex/ids.h"
-
-namespace hyperspacehashing
-{
-class search;
-}
+#include "hyperdex/hyperdex/configuration.h"
 
 namespace hyperdex
 {
-// Forward Declarations
-class configuration;
-class disk;
-class disk_reference;
-class instance;
-class regionid;
-class search_snapshot;
-class transfer_iterator;
+// Forward declarations
+class daemon;
 
 class datalayer
 {
     public:
-        datalayer(const po6::pathname& base);
+        enum returncode
+        {
+            SUCCESS,
+            NOT_FOUND,
+            BAD_ENCODING,
+            CORRUPTION,
+            IO_ERROR,
+            LEVELDB_ERROR
+        };
+        class reference;
+        class snapshot;
+
+    public:
+        datalayer(daemon*);
         ~datalayer() throw ();
 
     public:
-        reconfigure_returncode prepare(const hyperdex::configuration& old_config,
-                                       const hyperdex::configuration& new_config,
-                                       const hyperdex::instance& us);
-        reconfigure_returncode reconfigure(const hyperdex::configuration& old_config,
-                                           const hyperdex::configuration& new_config,
-                                           const hyperdex::instance& us);
-        reconfigure_returncode cleanup(const hyperdex::configuration& old_config,
-                                       const hyperdex::configuration& new_config,
-                                       const hyperdex::instance& us);
-        void close();
+        reconfigure_returncode open(const po6::pathname& path);
+        reconfigure_returncode close();
+        reconfigure_returncode prepare(const configuration& old_config,
+                                       const configuration& new_config,
+                                       const instance& us);
+        reconfigure_returncode reconfigure(const configuration& old_config,
+                                           const configuration& new_config,
+                                           const instance& us);
+        reconfigure_returncode cleanup(const configuration& old_config,
+                                       const configuration& new_config,
+                                       const instance& us);
 
     public:
-        disk_returncode get(const hyperdex::regionid& ri, const e::slice& key,
-                            std::vector<e::slice>* value, uint64_t* version,
-                            disk_reference* ref);
-        disk_returncode put(const hyperdex::regionid& ri, const e::slice& key,
-                            const std::vector<e::slice>& value, uint64_t version);
-        disk_returncode del(const hyperdex::regionid& ri, const e::slice& key);
-        disk_returncode make_search_snapshot(const hyperdex::regionid& ri,
-                                             const hyperspacehashing::search& terms,
-                                             search_snapshot* snap);
-        disk_returncode make_transfer_iterator(const hyperdex::regionid& ri,
-                                               transfer_iterator* snap);
+        returncode get(const regionid& ri,
+                       const e::slice& key,
+                       std::vector<e::slice>* value,
+                       uint64_t* version,
+                       reference* ref);
+        returncode put(const regionid& ri,
+                       const e::slice& key,
+                       const std::vector<e::slice>& value,
+                       uint64_t version);
+        returncode del(const regionid& ri,
+                       const e::slice& key);
+        returncode make_snapshot(const regionid& ri,
+                                 const predicate* pred,
+                                 snapshot* snap);
 
     private:
-        static uint64_t regionid_hash(const hyperdex::regionid& r) { return r.hash(); }
-        typedef std::tr1::shared_ptr<hyperdex::disk> disk_ptr;
-        typedef e::lockfree_hash_map<hyperdex::regionid, disk_ptr, regionid_hash>
-                disk_map_t;
+        datalayer(const datalayer&);
+        datalayer& operator = (const datalayer&);
 
     private:
-        disk_returncode create_disk(const hyperdex::regionid& ri, schema* sc);
-        disk_returncode drop_disk(const hyperdex::regionid& ri);
+        void encode_key(const regionid& ri,
+                        const e::slice& key,
+                        std::vector<char>* kbacking,
+                        leveldb::Slice* lkey);
+        void encode_value(const std::vector<e::slice>& attrs,
+                          uint64_t version,
+                          std::vector<char>* backing,
+                          leveldb::Slice* lvalue);
+        returncode decode_value(const e::slice& value,
+                                std::vector<e::slice>* attrs,
+                                uint64_t* version);
 
     private:
-        po6::pathname m_base;
-        disk_map_t m_disks;
+        leveldb::DB* m_db;
 };
+
+class datalayer::reference
+{
+    public:
+        reference();
+        ~reference() throw ();
+
+    public:
+        void swap(reference* ref);
+
+    private:
+        friend class datalayer;
+
+    private:
+        std::string m_backing;
+};
+
+class datalayer::snapshot
+{
+    public:
+        snapshot();
+        ~snapshot() throw ();
+
+    private:
+        friend class datalayer;
+        snapshot(const snapshot&);
+        snapshot& operator = (const snapshot&);
+
+    private:
+        datalayer* m_dl;
+        const leveldb::Snapshot* m_snap;
+};
+
+std::ostream&
+operator << (std::ostream& lhs, datalayer::returncode rhs);
 
 } // namespace hyperdex
 

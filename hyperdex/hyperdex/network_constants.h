@@ -31,6 +31,9 @@
 // C++
 #include <iostream>
 
+// HyperDex
+#include "common/macros.h"
+
 namespace hyperdex
 {
 
@@ -73,21 +76,12 @@ enum network_msgtype
 
     CHAIN_PUT       = 64,
     CHAIN_DEL       = 65,
-    CHAIN_PENDING   = 66,
     CHAIN_SUBSPACE  = 67,
     CHAIN_ACK       = 68,
-
-    XFER_MORE       = 96,
-    XFER_DATA       = 97,
-    XFER_DONE       = 98,
 
     CONFIGMISMATCH  = 254,
     PACKET_NOP      = 255
 };
-
-#define str(x) #x
-#define xstr(x) str(x)
-#define stringify(x) case (x): lhs << xstr(x); break
 
 inline std::ostream&
 operator << (std::ostream& lhs, const network_msgtype& rhs)
@@ -111,12 +105,8 @@ operator << (std::ostream& lhs, const network_msgtype& rhs)
         stringify(RESP_COUNT);
         stringify(CHAIN_PUT);
         stringify(CHAIN_DEL);
-        stringify(CHAIN_PENDING);
         stringify(CHAIN_SUBSPACE);
         stringify(CHAIN_ACK);
-        stringify(XFER_MORE);
-        stringify(XFER_DATA);
-        stringify(XFER_DONE);
         stringify(CONFIGMISMATCH);
         stringify(PACKET_NOP);
         default:
@@ -126,10 +116,6 @@ operator << (std::ostream& lhs, const network_msgtype& rhs)
 
     return lhs;
 }
-
-#undef stringify
-#undef xstr
-#undef str
 
 } // namespace hyperdex
 

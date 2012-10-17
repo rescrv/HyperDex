@@ -18,6 +18,9 @@ hyperdex-binary-test
 hyperdex-daemon
 hyperdex-replication-stress-test
 hyperdex-simple-consistency-stress-test
+hyperspacehashing/test/bithacks
+hyperspacehashing/test/cfloat
+hyperspacehashing/test/prefix
 hyperspacehashing/utils/cfloat
 install-sh
 *.la

@@ -46,7 +46,7 @@ class hyperdaemon::replication_manager::deferred
         const std::vector<e::slice> value;
         const hyperdex::entityid from_ent;
         const hyperdex::instance from_inst;
-        hyperdex::disk_reference ref;
+        hyperdex::datalayer::reference ref;
 
     private:
         friend class e::intrusive_ptr<deferred>;

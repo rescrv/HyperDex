@@ -40,15 +40,14 @@
 
 // HyperDex
 #include "common/attribute.h"
+#include "common/attribute_check.h"
 #include "common/funcall.h"
+#include "common/macros.h"
 #include "common/predicate.h"
 #include "common/schema.h"
 #include "common/serialization.h"
 
 // HyperDex
-#include "macros.h"
-#include "common/attribute_check.h"
-#include "common/funcall.h"
 #include "datatypes/coercion.h"
 #include "datatypes/validate.h"
 #include "hyperdex/hyperdex/configuration.h"
@@ -153,7 +152,7 @@ hyperclient :: del(const char* space, const char* key, size_t key_sz,
                           enum hyperclient_returncode* status) \
     { \
         const hyperclient_keyop_info* opinfo; \
-        opinfo = hyperclient_keyop_info_lookup(hdxstr(OPNAME), strlen(hdxstr(OPNAME))); \
+        opinfo = hyperclient_keyop_info_lookup(xstr(OPNAME), strlen(xstr(OPNAME))); \
         return perform_funcall1(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, status); \
     }
 
@@ -183,7 +182,7 @@ HYPERCLIENT_CPPDEF(set_union)
                           enum hyperclient_returncode* status) \
     { \
         const hyperclient_keyop_info* opinfo; \
-        opinfo = hyperclient_keyop_info_lookup(hdxstr(OPNAME), strlen(hdxstr(OPNAME))); \
+        opinfo = hyperclient_keyop_info_lookup(xstr(OPNAME), strlen(xstr(OPNAME))); \
         return perform_funcall2(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, status); \
     }
 
@@ -1153,10 +1152,6 @@ hyperclient :: validate_attribute(hyperdex::schema* sc,
     return attrnum;
 }
 
-#define str(x) #x
-#define xstr(x) str(x)
-#define stringify(x) case (x): lhs << xstr(x); break
-
 std::ostream&
 operator << (std::ostream& lhs, hyperclient_returncode rhs)
 {
@@ -1191,7 +1186,3 @@ operator << (std::ostream& lhs, hyperclient_returncode rhs)
 
     return lhs;
 }
-
-#undef stringify
-#undef xstr
-#undef str

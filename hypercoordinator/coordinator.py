@@ -605,8 +605,6 @@ class HostConnection(object):
             pid = int(pid)
         except ValueError:
             raise KillConnection('instance claims to have non-numeric PID')
-        if len(token) != 32:
-            raise KillConnection('instance uses token of improper length')
         self._instance = self._coordinator.register_instance(addr, incoming, outgoing, pid, token)
         oldid = self._id
         self._id = str(self._instance)

@@ -45,6 +45,7 @@
 #include <busybee_constants.h>
 
 // HyperDex
+#include "daemon/daemon.h"
 #include "hyperdex/hyperdex/coordinatorlink.h"
 
 // HyperDaemon
@@ -96,23 +97,17 @@ hyperdaemon :: logical :: early_message :: ~early_message() throw ()
 
 ///////////////////////////////// Public Class /////////////////////////////////
 
-hyperdaemon :: logical :: logical(coordinatorlink* cl, const po6::net::ipaddr& ip,
-                                  in_port_t incoming, in_port_t outgoing, size_t num_threads)
-    : m_cl(cl)
-    , m_us()
-    , m_config()
+hyperdaemon :: logical :: logical(hyperdex::daemon* d)
+    : m_daemon(d)
     , m_early_messages()
     , m_client_nums()
     , m_client_locs()
     , m_client_counter(0)
-    , m_busybee(ip, incoming, outgoing, num_threads)
+    , m_busybee(m_daemon->m_us.address,
+                m_daemon->m_us.inbound_port,
+                m_daemon->m_us.outbound_port,
+                m_daemon->m_threads.size())
 {
-    assert(m_busybee.inbound().address == m_busybee.outbound().address);
-    m_us.address = m_busybee.inbound().address;
-    m_us.inbound_port = m_busybee.inbound().port;
-    m_us.outbound_port = m_busybee.outbound().port;
-    m_us.inbound_version = 0;
-    m_us.outbound_version = 0;
 }
 
 hyperdaemon :: logical :: ~logical() throw ()
@@ -127,25 +122,25 @@ hyperdaemon :: logical :: header_size() const
     return sizeof(uint8_t) + BUSYBEE_HEADER_SIZE + sizeof(uint64_t) + 2 * sizeof(uint16_t) + 2 * entityid::SERIALIZEDSIZE;
 }
 
-void
-hyperdaemon :: logical :: prepare(const configuration&, const hyperdex::instance&)
+hyperdex::reconfigure_returncode
+hyperdaemon :: logical :: prepare(const hyperdex::configuration&,
+                                  const hyperdex::configuration&,
+                                  const hyperdex::instance&)
 {
-    // Do nothing.
+    return hyperdex::RECONFIGURE_SUCCESS;
 }
 
-void
-hyperdaemon :: logical :: reconfigure(const configuration& newconfig,
-                                      const hyperdex::instance& newinst)
+hyperdex::reconfigure_returncode
+hyperdaemon :: logical :: reconfigure(const hyperdex::configuration&,
+                                      const hyperdex::configuration& new_config,
+                                      const hyperdex::instance&)
 {
-    m_config = newconfig;
-    m_us = newinst;
-
     e::lockfree_fifo<early_message> ems;
     early_message em;
 
     while (m_early_messages.pop(&em))
     {
-        if (em.config_version <= m_config.version())
+        if (em.config_version <= new_config.version())
         {
             m_busybee.deliver(em.loc, em.msg);
         }
@@ -159,12 +154,16 @@ hyperdaemon :: logical :: reconfigure(const configuration& newconfig,
     {
         m_early_messages.push(em);
     }
+
+    return hyperdex::RECONFIGURE_SUCCESS;
 }
 
-void
-hyperdaemon :: logical :: cleanup(const configuration&, const hyperdex::instance&)
+hyperdex::reconfigure_returncode
+hyperdaemon :: logical :: cleanup(const hyperdex::configuration&,
+                                  const hyperdex::configuration&,
+                                  const hyperdex::instance&)
 {
-    // Do nothing.
+    return hyperdex::RECONFIGURE_SUCCESS;
 }
 
 bool
@@ -182,11 +181,11 @@ hyperdaemon :: logical :: send(const hyperdex::entityid& from,
     // If we are sending as a transfer-recipient
     if (from.space == hyperdex::configuration::TRANSFERSPACE)
     {
-        src = m_config.instancefortransfer(from.subspace);
+        src = m_daemon->m_config.instancefortransfer(from.subspace);
     }
     else
     {
-        src = m_config.instancefor(from);
+        src = m_daemon->m_config.instancefor(from);
     }
 
     // If we are sending to a client
@@ -205,14 +204,14 @@ hyperdaemon :: logical :: send(const hyperdex::entityid& from,
     }
     else if (to.space == hyperdex::configuration::TRANSFERSPACE)
     {
-        dst = m_config.instancefortransfer(to.subspace);
+        dst = m_daemon->m_config.instancefortransfer(to.subspace);
     }
     else
     {
-        dst = m_config.instancefor(to);
+        dst = m_daemon->m_config.instancefor(to);
     }
 
-    if (src != m_us || dst == instance())
+    if (src != m_daemon->m_us || dst == instance())
     {
         return false;
     }
@@ -220,11 +219,11 @@ hyperdaemon :: logical :: send(const hyperdex::entityid& from,
     uint8_t mt = static_cast<uint8_t>(msg_type);
     assert(msg->capacity() >= header_size());
     msg->pack_at(BUSYBEE_HEADER_SIZE)
-        << mt << m_config.version() << src.outbound_version << dst.inbound_version << from << to;
+        << mt << m_daemon->m_config.version() << src.outbound_version << dst.inbound_version << from << to;
 
-    if (dst == m_us)
+    if (dst == m_daemon->m_us)
     {
-        m_busybee.deliver(po6::net::location(m_us.address, m_us.outbound_port), msg);
+        m_busybee.deliver(po6::net::location(m_daemon->m_us.address, m_daemon->m_us.outbound_port), msg);
     }
     else
     {
@@ -375,24 +374,24 @@ hyperdaemon :: logical :: recv(hyperdex::entityid* from,
         }
         else if (from->space == hyperdex::configuration::TRANSFERSPACE)
         {
-            frominst = m_config.instancefortransfer(from->subspace);
+            frominst = m_daemon->m_config.instancefortransfer(from->subspace);
             fromvalid = frominst != instance();
         }
         else
         {
-            frominst = m_config.instancefor(*from);
+            frominst = m_daemon->m_config.instancefor(*from);
             fromvalid = frominst != instance();
         }
 
         // Checkout the receiver
         if (to->space == hyperdex::configuration::TRANSFERSPACE)
         {
-            toinst = m_config.instancefortransfer(to->subspace);
+            toinst = m_daemon->m_config.instancefortransfer(to->subspace);
             tovalid = toinst != instance();
         }
         else
         {
-            toinst = m_config.instancefor(*to);
+            toinst = m_daemon->m_config.instancefor(*to);
             tovalid = toinst != instance();
         }
 
@@ -401,8 +400,8 @@ hyperdaemon :: logical :: recv(hyperdex::entityid* from,
             frominst.address == loc.address && // Try again because the sender isn't who it should be.
             frominst.outbound_port == loc.port && // Try again because the sender isn't who it should be.
             frominst.outbound_version == fromver && // Try again because an older sender is sending the message.
-            toinst == m_us && // Try again because we don't believe ourselves to be the dest entity.
-            m_us.inbound_version == tover) // Try again because it is to an older version of us.
+            toinst == m_daemon->m_us && // Try again because we don't believe ourselves to be the dest entity.
+            m_daemon->m_us.inbound_version == tover) // Try again because it is to an older version of us.
         {
             break;
         }
@@ -412,12 +411,12 @@ hyperdaemon :: logical :: recv(hyperdex::entityid* from,
         {
             mt = static_cast<uint8_t>(hyperdex::CONFIGMISMATCH);
             (*msg)->pack_at(sizeof(uint32_t))
-                << mt << m_config.version() << tover << fromver << *to << *from;
+                << mt << m_daemon->m_config.version() << tover << fromver << *to << *from;
             m_busybee.send(loc, *msg);
         }
         // Otherwise, it's an early arrival.  We should postpone it, because it
         // could become valid in the future.
-        else if (version > m_config.version())
+        else if (version > m_daemon->m_config.version())
         {
             early_message em(version, loc, *msg);
             assert(em.msg.get());
@@ -444,7 +443,7 @@ hyperdaemon :: logical :: handle_connectfail(const po6::net::location& loc)
     }
     else
     {
-        switch (m_cl->warn_location(loc))
+        switch (m_daemon->m_cl.warn_location(loc))
         {
             case hyperdex::coordinatorlink::SUCCESS:
                 break;
@@ -469,7 +468,7 @@ hyperdaemon :: logical :: handle_disconnect(const po6::net::location& loc)
     }
     else
     {
-        switch (m_cl->fail_location(loc))
+        switch (m_daemon->m_cl.fail_location(loc))
         {
             case hyperdex::coordinatorlink::SUCCESS:
                 break;

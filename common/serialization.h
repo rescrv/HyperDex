@@ -75,6 +75,23 @@ operator >> (e::buffer::unpacker lhs, predicate& rhs);
 size_t
 pack_size(const predicate& p);
 
+size_t
+pack_size(const e::slice& s);
+
+template <typename T>
+size_t
+pack_size(const std::vector<T>& v)
+{
+    size_t sz = sizeof(uint32_t);
+
+    for (size_t i = 0; i < v.size(); ++i)
+    {
+        sz += pack_size(v[i]);
+    }
+
+    return sz;
+}
+
 } // namespace hyperdex
 
 #endif // hyperdex_common_serialization_h_

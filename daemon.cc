@@ -45,7 +45,7 @@
 #include <e/guard.h>
 
 // HyperDex
-#include "hyperdaemon/daemon.h"
+#include "daemon/daemon.h"
 
 static const char* data = ".";
 static const char* host = "127.0.0.1";
@@ -85,9 +85,6 @@ static struct poptOption popts[] = {
         "IP"},
     {"incoming-port", 'i', POPT_ARG_LONG, &port_in, 'i',
         "the port to listen on for incoming connections",
-        "port"},
-    {"outgoing-port", 'o', POPT_ARG_LONG, &port_out, 'o',
-        "the port to use for outgoing connections",
         "port"},
     POPT_TABLEEND
 };
@@ -196,9 +193,12 @@ main(int argc, const char* argv[])
     // Run the daemon.
     try
     {
-        po6::pathname datadir(data);
-        return hyperdaemon::daemon(argv[0], daemonize, datadir, po6::net::hostname(host, port),
-                                   threads, local, port_in, port_out);
+        hyperdex::daemon d(po6::net::location(local, port_in),
+                           po6::net::hostname(host, port),
+                           po6::pathname(data),
+                           threads,
+                           daemonize);
+        return d.run();
     }
     catch (std::exception& e)
     {
