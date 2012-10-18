@@ -272,8 +272,12 @@ libhyperclient_la_CPPFLAGS = \
 			$(E_CFLAGS) \
 			$(CPPFLAGS)
 
+gperf_verbose = $(gperf_verbose_$(V))
+gperf_verbose_ = $(gperf_verbose_$(AM_DEFAULT_VERBOSITY))
+gperf_verbose_0 = @echo "  GPERF " $@;
+
 hyperclient/keyop_info.cc: hyperclient/keyop_info.gperf
-	gperf -m 100 $(abs_top_srcdir)/hyperclient/keyop_info.gperf --output-file=$(abs_top_builddir)/hyperclient/keyop_info.cc
+	$(gperf_verbose)gperf -m 100 $(abs_top_srcdir)/hyperclient/keyop_info.gperf --output-file=$(abs_top_builddir)/hyperclient/keyop_info.cc
 
 ################################# Java Bindings ################################
 
