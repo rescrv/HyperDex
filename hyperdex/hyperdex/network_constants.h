@@ -88,27 +88,27 @@ operator << (std::ostream& lhs, const network_msgtype& rhs)
 {
     switch(rhs)
     {
-        stringify(REQ_GET);
-        stringify(RESP_GET);
-        stringify(REQ_ATOMIC);
-        stringify(RESP_ATOMIC);
-        stringify(REQ_SEARCH_START);
-        stringify(REQ_SEARCH_NEXT);
-        stringify(REQ_SEARCH_STOP);
-        stringify(RESP_SEARCH_ITEM);
-        stringify(RESP_SEARCH_DONE);
-        stringify(REQ_SORTED_SEARCH);
-        stringify(RESP_SORTED_SEARCH);
-        stringify(REQ_GROUP_DEL);
-        stringify(RESP_GROUP_DEL);
-        stringify(REQ_COUNT);
-        stringify(RESP_COUNT);
-        stringify(CHAIN_PUT);
-        stringify(CHAIN_DEL);
-        stringify(CHAIN_SUBSPACE);
-        stringify(CHAIN_ACK);
-        stringify(CONFIGMISMATCH);
-        stringify(PACKET_NOP);
+        STRINGIFY(REQ_GET);
+        STRINGIFY(RESP_GET);
+        STRINGIFY(REQ_ATOMIC);
+        STRINGIFY(RESP_ATOMIC);
+        STRINGIFY(REQ_SEARCH_START);
+        STRINGIFY(REQ_SEARCH_NEXT);
+        STRINGIFY(REQ_SEARCH_STOP);
+        STRINGIFY(RESP_SEARCH_ITEM);
+        STRINGIFY(RESP_SEARCH_DONE);
+        STRINGIFY(REQ_SORTED_SEARCH);
+        STRINGIFY(RESP_SORTED_SEARCH);
+        STRINGIFY(REQ_GROUP_DEL);
+        STRINGIFY(RESP_GROUP_DEL);
+        STRINGIFY(REQ_COUNT);
+        STRINGIFY(RESP_COUNT);
+        STRINGIFY(CHAIN_PUT);
+        STRINGIFY(CHAIN_DEL);
+        STRINGIFY(CHAIN_SUBSPACE);
+        STRINGIFY(CHAIN_ACK);
+        STRINGIFY(CONFIGMISMATCH);
+        STRINGIFY(PACKET_NOP);
         default:
             lhs << "unknown network_msgtype";
             break;

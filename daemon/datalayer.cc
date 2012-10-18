@@ -371,12 +371,12 @@ hyperdex :: operator << (std::ostream& lhs, datalayer::returncode rhs)
 {
     switch (rhs)
     {
-        stringify(datalayer::SUCCESS);
-        stringify(datalayer::NOT_FOUND);
-        stringify(datalayer::BAD_ENCODING);
-        stringify(datalayer::CORRUPTION);
-        stringify(datalayer::IO_ERROR);
-        stringify(datalayer::LEVELDB_ERROR);
+        STRINGIFY(datalayer::SUCCESS);
+        STRINGIFY(datalayer::NOT_FOUND);
+        STRINGIFY(datalayer::BAD_ENCODING);
+        STRINGIFY(datalayer::CORRUPTION);
+        STRINGIFY(datalayer::IO_ERROR);
+        STRINGIFY(datalayer::LEVELDB_ERROR);
         default:
             lhs << "unknown returncode";
     }

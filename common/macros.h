@@ -25,6 +25,11 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#define xxstr(x) #x
-#define xstr(x) xxstr(x)
-#define stringify(x) case (x): lhs << xstr(x); break
+#ifndef hyperdex_common_macros_h_
+#define hyperdex_common_macros_h_
+
+#define XXSTR(x) #x
+#define XSTR(x) XXSTR(x)
+#define STRINGIFY(x) case (x): lhs << XSTR(x); break
+
+#endif // hyperdex_common_macros_h_

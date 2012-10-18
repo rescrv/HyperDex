@@ -152,7 +152,7 @@ hyperclient :: del(const char* space, const char* key, size_t key_sz,
                           enum hyperclient_returncode* status) \
     { \
         const hyperclient_keyop_info* opinfo; \
-        opinfo = hyperclient_keyop_info_lookup(xstr(OPNAME), strlen(xstr(OPNAME))); \
+        opinfo = hyperclient_keyop_info_lookup(XSTR(OPNAME), strlen(XSTR(OPNAME))); \
         return perform_funcall1(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, status); \
     }
 
@@ -182,7 +182,7 @@ HYPERCLIENT_CPPDEF(set_union)
                           enum hyperclient_returncode* status) \
     { \
         const hyperclient_keyop_info* opinfo; \
-        opinfo = hyperclient_keyop_info_lookup(xstr(OPNAME), strlen(xstr(OPNAME))); \
+        opinfo = hyperclient_keyop_info_lookup(XSTR(OPNAME), strlen(XSTR(OPNAME))); \
         return perform_funcall2(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, status); \
     }
 
@@ -1157,28 +1157,28 @@ operator << (std::ostream& lhs, hyperclient_returncode rhs)
 {
     switch (rhs)
     {
-        stringify(HYPERCLIENT_SUCCESS);
-        stringify(HYPERCLIENT_NOTFOUND);
-        stringify(HYPERCLIENT_SEARCHDONE);
-        stringify(HYPERCLIENT_CMPFAIL);
-        stringify(HYPERCLIENT_READONLY);
-        stringify(HYPERCLIENT_UNKNOWNSPACE);
-        stringify(HYPERCLIENT_COORDFAIL);
-        stringify(HYPERCLIENT_SERVERERROR);
-        stringify(HYPERCLIENT_POLLFAILED);
-        stringify(HYPERCLIENT_OVERFLOW);
-        stringify(HYPERCLIENT_RECONFIGURE);
-        stringify(HYPERCLIENT_TIMEOUT);
-        stringify(HYPERCLIENT_UNKNOWNATTR);
-        stringify(HYPERCLIENT_DUPEATTR);
-        stringify(HYPERCLIENT_NONEPENDING);
-        stringify(HYPERCLIENT_DONTUSEKEY);
-        stringify(HYPERCLIENT_WRONGTYPE);
-        stringify(HYPERCLIENT_NOMEM);
-        stringify(HYPERCLIENT_EXCEPTION);
-        stringify(HYPERCLIENT_ZERO);
-        stringify(HYPERCLIENT_A);
-        stringify(HYPERCLIENT_B);
+        STRINGIFY(HYPERCLIENT_SUCCESS);
+        STRINGIFY(HYPERCLIENT_NOTFOUND);
+        STRINGIFY(HYPERCLIENT_SEARCHDONE);
+        STRINGIFY(HYPERCLIENT_CMPFAIL);
+        STRINGIFY(HYPERCLIENT_READONLY);
+        STRINGIFY(HYPERCLIENT_UNKNOWNSPACE);
+        STRINGIFY(HYPERCLIENT_COORDFAIL);
+        STRINGIFY(HYPERCLIENT_SERVERERROR);
+        STRINGIFY(HYPERCLIENT_POLLFAILED);
+        STRINGIFY(HYPERCLIENT_OVERFLOW);
+        STRINGIFY(HYPERCLIENT_RECONFIGURE);
+        STRINGIFY(HYPERCLIENT_TIMEOUT);
+        STRINGIFY(HYPERCLIENT_UNKNOWNATTR);
+        STRINGIFY(HYPERCLIENT_DUPEATTR);
+        STRINGIFY(HYPERCLIENT_NONEPENDING);
+        STRINGIFY(HYPERCLIENT_DONTUSEKEY);
+        STRINGIFY(HYPERCLIENT_WRONGTYPE);
+        STRINGIFY(HYPERCLIENT_NOMEM);
+        STRINGIFY(HYPERCLIENT_EXCEPTION);
+        STRINGIFY(HYPERCLIENT_ZERO);
+        STRINGIFY(HYPERCLIENT_A);
+        STRINGIFY(HYPERCLIENT_B);
         default:
             lhs << "unknown returncode";
             break;
