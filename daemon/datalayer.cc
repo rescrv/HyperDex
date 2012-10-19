@@ -481,8 +481,6 @@ datalayer :: snapshot :: ~snapshot() throw ()
         m_dl->m_db->ReleaseSnapshot(m_snap);
         m_snap = NULL;
     }
-
-    assert(m_snap = NULL);
 }
 
 bool

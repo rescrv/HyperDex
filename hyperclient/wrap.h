@@ -25,26 +25,30 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// HyperDex
-#include "common/serialization.h"
-#include "common/attribute_check.h"
+#ifndef hyperdex_client_wrap_h_
+#define hyperdex_client_wrap_h_
 
-using hyperdex::attribute_check;
+#define C_WRAP_EXCEPT(X) \
+    try \
+    { \
+        return X; \
+    } \
+    catch (po6::error& e) \
+    { \
+        errno = e; \
+        *status = HYPERCLIENT_EXCEPTION; \
+        return -1; \
+    } \
+    catch (std::bad_alloc& ba) \
+    { \
+        errno = ENOMEM; \
+        *status = HYPERCLIENT_NOMEM; \
+        return -1; \
+    } \
+    catch (...) \
+    { \
+        *status = HYPERCLIENT_EXCEPTION; \
+        return -1; \
+    }
 
-attribute_check :: attribute_check()
-    : attr()
-    , value()
-    , datatype(HYPERDATATYPE_GARBAGE)
-    , predicate(HYPERPREDICATE_FAIL)
-{
-}
-
-attribute_check :: ~attribute_check() throw ()
-{
-}
-
-bool
-hyperdex :: operator < (const attribute_check& lhs, const attribute_check& rhs)
-{
-    return lhs.attr < rhs.attr;
-}
+#endif // hyperdex_client_wrap_h_

@@ -57,9 +57,9 @@ noinst_HEADERS = \
 			$(libhyperclient_noinst_headers)
 
 bin_PROGRAMS = \
-			hyperdex-binary-test \
 			hyperdex-daemon \
 			hyperdex-replication-stress-test \
+			hyperdex-search-stress-test \
 			hyperdex-simple-consistency-stress-test
 
 noinst_PROGRAMS = \
@@ -386,25 +386,6 @@ endif
 ################################### Binaries ###################################
 ################################################################################
 
-hyperdex_binary_test_SOURCES = \
-			binary-test.cc
-hyperdex_binary_test_LDADD = \
-			libhyperclient.la \
-			-lrt
-hyperdex_binary_test_CPPFLAGS = \
-			$(E_CFLAGS) \
-			$(CPPFLAGS)
-
-hyperdex_simple_consistency_stress_test_SOURCES = \
-			simple-consistency-stress-test.cc
-hyperdex_simple_consistency_stress_test_CPPFLAGS = \
-			-I$(abs_top_srcdir)/hyperclient \
-			$(E_CFLAGS) \
-			$(CPPFLAGS)
-hyperdex_simple_consistency_stress_test_LDADD = \
-			libhyperclient.la \
-			-lpopt -lpthread
-
 hyperdex_replication_stress_test_SOURCES = \
 			replication-stress-test.cc
 hyperdex_replication_stress_test_CPPFLAGS = \
@@ -415,6 +396,27 @@ hyperdex_replication_stress_test_LDADD = \
 			libhyperspacehashing.la \
 			libhyperclient.la \
 			-lpopt
+
+hyperdex_search_stress_test_SOURCES = search-stress-test.cc test/common.cc
+hyperdex_search_stress_test_CPPFLAGS = \
+			-I$(abs_top_srcdir)/hyperspacehashing \
+			$(E_CFLAGS) \
+			$(CPPFLAGS)
+hyperdex_search_stress_test_LDADD = \
+			libhyperspacehashing.la \
+			libhyperclient.la \
+			-lpopt
+hyperdex_search_stress_test_LDFLAGS = -no-install
+
+hyperdex_simple_consistency_stress_test_SOURCES = \
+			simple-consistency-stress-test.cc
+hyperdex_simple_consistency_stress_test_CPPFLAGS = \
+			-I$(abs_top_srcdir)/hyperclient \
+			$(E_CFLAGS) \
+			$(CPPFLAGS)
+hyperdex_simple_consistency_stress_test_LDADD = \
+			libhyperclient.la \
+			-lpopt -lpthread
 
 if ENABLE_TRACEPLAYER
 bin_PROGRAMS += hyperdex-trace-player
@@ -432,11 +434,6 @@ endif
 ################################################################################
 ################################# Documentation ################################
 ################################################################################
-
-man_MANS = \
-			doc/man/hyperdex-daemon.1 \
-			doc/man/hyperdex-replication-stress-test.1 \
-			doc/man/hyperdex-simple-consistency-stress-test.1
 
 # These need to be chained so that they'll only build once, and will not rely
 # upon a PHONY rule.

@@ -81,9 +81,9 @@ class configuration
 
     public:
         schema* get_schema(const char* spacename) const;
-        schema* get_schema(const spaceid& space) const;
 
     // XXX API IN JEOPARDY
+        schema* get_schema(const spaceid& space) const;
 
     // The original config text
     public:
@@ -136,6 +136,22 @@ class configuration
                                  hyperdex::entityid* ent, hyperdex::instance* inst) const;
         std::map<entityid, instance> search_entities(const spaceid& space,
                                                      const hyperspacehashing::search& s) const;
+        std::map<entityid, instance> search_entities(const spaceid& subspace,
+                                                     const std::vector<class attribute_check>& checks) const
+        {
+            typedef std::map<entityid, instance> map_t;
+            map_t ents;
+
+            for (map_t::const_iterator it = m_entities.begin(); it != m_entities.end(); ++it)
+            {
+                if (is_point_leader(it->first))
+                {
+                    ents.insert(*it);
+                }
+            }
+
+            return ents;
+        }
         std::map<entityid, instance> search_entities(const subspaceid& subspace,
                                                      const hyperspacehashing::search& s) const;
 

@@ -202,7 +202,7 @@ search_manager :: start(const entityid& us,
     }
 
     m_searches.insert(sid, st);
-    next(us, client, search_id, nonce);
+    next(us, client, nonce, search_id);
 }
 
 void

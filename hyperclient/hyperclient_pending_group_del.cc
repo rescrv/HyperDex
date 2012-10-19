@@ -66,38 +66,6 @@ hyperclient :: pending_group_del :: handle_response(hyperclient* cl,
         return 0;
     }
 
-    e::buffer::unpacker up = msg->unpack_from(HYPERCLIENT_HEADER_SIZE);
-    uint16_t response;
-    up = up >> response;
-
-    if (up.error())
-    {
-        cl->killall(sender, HYPERCLIENT_SERVERERROR);
-        return 0;
-    }
-
-    switch (static_cast<hyperdex::network_returncode>(response))
-    {
-        case hyperdex::NET_SUCCESS:
-            set_status(HYPERCLIENT_SUCCESS);
-            break;
-        case hyperdex::NET_BADMICROS:
-            set_status(HYPERCLIENT_SERVERERROR);
-            break;
-        case hyperdex::NET_NOTUS:
-            set_status(HYPERCLIENT_RECONFIGURE);
-            break;
-        case hyperdex::NET_NOTFOUND:
-        case hyperdex::NET_BADDIMSPEC:
-        case hyperdex::NET_CMPFAIL:
-        case hyperdex::NET_OVERFLOW:
-        case hyperdex::NET_READONLY:
-        case hyperdex::NET_SERVERERROR:
-        default:
-            cl->killall(sender, HYPERCLIENT_SERVERERROR);
-            return 0;
-    }
-
     if (--*m_refcount == 0)
     {
         return client_visible_id();

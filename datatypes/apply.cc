@@ -39,9 +39,11 @@ passes_attribute_check(hyperdatatype type,
                        const e::slice& value,
                        microerror* error)
 {
-    switch (check.pred)
+    switch (check.predicate)
     {
-        case hyperdex::PRED_EQUALS:
+        case HYPERPREDICATE_FAIL:
+            return false;
+        case HYPERPREDICATE_EQUALS:
             *error = MICROERR_CMPFAIL;
             return validate_as_type(check.value, check.datatype) &&
                    type == check.datatype &&

@@ -25,8 +25,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// HyperClient
+// HyperDex
 #include "hyperclient/hyperclient.h"
+#include "hyperclient/wrap.h"
 
 extern "C"
 {
@@ -36,12 +37,16 @@ hyperclient_create(const char* coordinator, in_port_t port)
 {
     try
     {
-        std::auto_ptr<hyperclient> ret(new hyperclient(coordinator, port));
-        return ret.release();
+        return new hyperclient(coordinator, port);
     }
     catch (po6::error& e)
     {
         errno = e;
+        return NULL;
+    }
+    catch (std::bad_alloc& ba)
+    {
+        errno = ENOMEM;
         return NULL;
     }
     catch (...)
@@ -61,281 +66,65 @@ hyperclient_get(struct hyperclient* client, const char* space, const char* key,
                 size_t key_sz, hyperclient_returncode* status,
                 struct hyperclient_attribute** attrs, size_t* attrs_sz)
 {
-    try
-    {
-        return client->get(space, key, key_sz, status, attrs, attrs_sz);
-    }
-    catch (po6::error& e)
-    {
-        errno = e;
-        *status = HYPERCLIENT_EXCEPTION;
-        return -1;
-    }
-    catch (...)
-    {
-        *status = HYPERCLIENT_EXCEPTION;
-        return -1;
-    }
+    C_WRAP_EXCEPT(client->get(space, key, key_sz, status, attrs, attrs_sz));
 }
 
 int64_t
-hyperclient_put(struct hyperclient* client, const char* space, const char* key,
-                size_t key_sz, const struct hyperclient_attribute* attrs,
-                size_t attrs_sz, hyperclient_returncode* status)
+hyperclient_condput(struct hyperclient* client, const char* space,
+                    const char* key, size_t key_sz,
+                    const struct hyperclient_attribute_check* checks, size_t checks_sz,
+                    const struct hyperclient_attribute* attrs,
+                    size_t attrs_sz, hyperclient_returncode* status)
 {
-    try
-    {
-        return client->put(space, key, key_sz, attrs, attrs_sz, status);
-    }
-    catch (po6::error& e)
-    {
-        errno = e;
-        *status = HYPERCLIENT_EXCEPTION;
-        return -1;
-    }
-    catch (...)
-    {
-        *status = HYPERCLIENT_EXCEPTION;
-        return -1;
-    }
-}
-
-int64_t
-hyperclient_put_if_not_exist(struct hyperclient* client, const char* space, const char* key,
-                             size_t key_sz, const struct hyperclient_attribute* attrs,
-                             size_t attrs_sz, hyperclient_returncode* status)
-{
-    try
-    {
-        return client->put_if_not_exist(space, key, key_sz, attrs, attrs_sz, status);
-    }
-    catch (po6::error& e)
-    {
-        errno = e;
-        *status = HYPERCLIENT_EXCEPTION;
-        return -1;
-    }
-    catch (...)
-    {
-        *status = HYPERCLIENT_EXCEPTION;
-        return -1;
-    }
-}
-
-int64_t
-hyperclient_condput(struct hyperclient* client, const char* space, const char* key,
-                size_t key_sz, const struct hyperclient_attribute* condattrs,
-                size_t condattrs_sz, const struct hyperclient_attribute* attrs,
-                size_t attrs_sz, hyperclient_returncode* status)
-{
-    try
-    {
-        return client->condput(space, key, key_sz, condattrs, condattrs_sz, attrs, attrs_sz, status);
-    }
-    catch (po6::error& e)
-    {
-        errno = e;
-        *status = HYPERCLIENT_EXCEPTION;
-        return -1;
-    }
-    catch (...)
-    {
-        *status = HYPERCLIENT_EXCEPTION;
-        return -1;
-    }
+    C_WRAP_EXCEPT(client->condput(space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status));
 }
 
 int64_t
 hyperclient_del(struct hyperclient* client, const char* space, const char* key,
                 size_t key_sz, hyperclient_returncode* status)
 {
-    try
-    {
-        return client->del(space, key, key_sz, status);
-    }
-    catch (po6::error& e)
-    {
-        errno = e;
-        *status = HYPERCLIENT_EXCEPTION;
-        return -1;
-    }
-    catch (...)
-    {
-        *status = HYPERCLIENT_EXCEPTION;
-        return -1;
-    }
+    C_WRAP_EXCEPT(client->del(space, key, key_sz, status));
 }
-
-#define HYPERCLIENT_CDEF_CUSTOM_CALL(OPNAME, ATTRPREFIX) \
-    int64_t \
-    hyperclient_ ## OPNAME(struct hyperclient* client, const char* space, const char* key, \
-                  size_t key_sz, const struct hyperclient ## ATTRPREFIX ## attribute* attrs, \
-                  size_t attrs_sz, hyperclient_returncode* status) \
-    { \
-        try \
-        { \
-            return client->OPNAME(space, key, key_sz, attrs, attrs_sz, status); \
-        } \
-        catch (po6::error& e) \
-        { \
-            errno = e; \
-            *status = HYPERCLIENT_EXCEPTION; \
-            return -1; \
-        } \
-        catch (...) \
-        { \
-            *status = HYPERCLIENT_EXCEPTION; \
-            return -1; \
-        } \
-    }
-
-#define HYPERCLIENT_CDEF_STANDARD_CALL(OPNAME) \
-    HYPERCLIENT_CDEF_CUSTOM_CALL(OPNAME, _)
-#define HYPERCLIENT_CDEF_MAP_CALL(OPNAME) \
-    HYPERCLIENT_CDEF_CUSTOM_CALL(OPNAME, _map_)
-
-HYPERCLIENT_CDEF_STANDARD_CALL(atomic_add)
-HYPERCLIENT_CDEF_STANDARD_CALL(atomic_sub)
-HYPERCLIENT_CDEF_STANDARD_CALL(atomic_mul)
-HYPERCLIENT_CDEF_STANDARD_CALL(atomic_div)
-HYPERCLIENT_CDEF_STANDARD_CALL(atomic_mod)
-HYPERCLIENT_CDEF_STANDARD_CALL(atomic_and)
-HYPERCLIENT_CDEF_STANDARD_CALL(atomic_or)
-HYPERCLIENT_CDEF_STANDARD_CALL(atomic_xor)
-HYPERCLIENT_CDEF_STANDARD_CALL(string_prepend)
-HYPERCLIENT_CDEF_STANDARD_CALL(string_append)
-HYPERCLIENT_CDEF_STANDARD_CALL(list_lpush)
-HYPERCLIENT_CDEF_STANDARD_CALL(list_rpush)
-HYPERCLIENT_CDEF_STANDARD_CALL(set_add)
-HYPERCLIENT_CDEF_STANDARD_CALL(set_remove)
-HYPERCLIENT_CDEF_STANDARD_CALL(set_intersect)
-HYPERCLIENT_CDEF_STANDARD_CALL(set_union)
-HYPERCLIENT_CDEF_MAP_CALL(map_add)
-HYPERCLIENT_CDEF_MAP_CALL(map_remove)
-HYPERCLIENT_CDEF_MAP_CALL(map_atomic_add)
-HYPERCLIENT_CDEF_MAP_CALL(map_atomic_sub)
-HYPERCLIENT_CDEF_MAP_CALL(map_atomic_mul)
-HYPERCLIENT_CDEF_MAP_CALL(map_atomic_div)
-HYPERCLIENT_CDEF_MAP_CALL(map_atomic_mod)
-HYPERCLIENT_CDEF_MAP_CALL(map_atomic_and)
-HYPERCLIENT_CDEF_MAP_CALL(map_atomic_or)
-HYPERCLIENT_CDEF_MAP_CALL(map_atomic_xor)
-HYPERCLIENT_CDEF_MAP_CALL(map_string_prepend)
-HYPERCLIENT_CDEF_MAP_CALL(map_string_append)
 
 int64_t
 hyperclient_search(struct hyperclient* client, const char* space,
-                   const struct hyperclient_attribute* eq, size_t eq_sz,
-                   const struct hyperclient_range_query* rn, size_t rn_sz,
+                   const struct hyperclient_attribute_check* checks, size_t checks_sz,
                    enum hyperclient_returncode* status,
                    struct hyperclient_attribute** attrs, size_t* attrs_sz)
 {
-    try
-    {
-        return client->search(space, eq, eq_sz, rn, rn_sz, status, attrs, attrs_sz);
-    }
-    catch (po6::error& e)
-    {
-        errno = e;
-        *status = HYPERCLIENT_EXCEPTION;
-        return -1;
-    }
-    catch (...)
-    {
-        *status = HYPERCLIENT_EXCEPTION;
-        return -1;
-    }
+    C_WRAP_EXCEPT(client->search(space, checks, checks_sz, status, attrs, attrs_sz));
 }
 
 int64_t
 hyperclient_sorted_search(struct hyperclient* client, const char* space,
-                          const struct hyperclient_attribute* eq, size_t eq_sz,
-                          const struct hyperclient_range_query* rn, size_t rn_sz,
+                          const struct hyperclient_attribute_check* checks, size_t checks_sz,
                           const char* sort_by, uint64_t limit, int maximize,
                           enum hyperclient_returncode* status,
                           struct hyperclient_attribute** attrs, size_t* attrs_sz)
 {
-    try
-    {
-        return client->sorted_search(space, eq, eq_sz, rn, rn_sz, sort_by, limit, maximize != 0, status, attrs, attrs_sz);
-    }
-    catch (po6::error& e)
-    {
-        errno = e;
-        *status = HYPERCLIENT_EXCEPTION;
-        return -1;
-    }
-    catch (...)
-    {
-        *status = HYPERCLIENT_EXCEPTION;
-        return -1;
-    }
+    C_WRAP_EXCEPT(client->sorted_search(space, checks, checks_sz, sort_by, limit, maximize != 0, status, attrs, attrs_sz));
 }
 
 int64_t
 hyperclient_group_del(struct hyperclient* client, const char* space,
-                      const struct hyperclient_attribute* eq, size_t eq_sz,
-                      const struct hyperclient_range_query* rn, size_t rn_sz,
+                      const struct hyperclient_attribute_check* checks, size_t checks_sz,
                       enum hyperclient_returncode* status)
 {
-    try
-    {
-        return client->group_del(space, eq, eq_sz, rn, rn_sz, status);
-    }
-    catch (po6::error& e)
-    {
-        errno = e;
-        *status = HYPERCLIENT_EXCEPTION;
-        return -1;
-    }
-    catch (...)
-    {
-        *status = HYPERCLIENT_EXCEPTION;
-        return -1;
-    }
+    C_WRAP_EXCEPT(client->group_del(space, checks, checks_sz, status));
 }
 
 int64_t
 hyperclient_count(struct hyperclient* client, const char* space,
-                  const struct hyperclient_attribute* eq, size_t eq_sz,
-                  const struct hyperclient_range_query* rn, size_t rn_sz,
+                  const struct hyperclient_attribute_check* checks, size_t checks_sz,
                   enum hyperclient_returncode* status, uint64_t* result)
 {
-    try
-    {
-        return client->count(space, eq, eq_sz, rn, rn_sz, status, result);
-    }
-    catch (po6::error& e)
-    {
-        errno = e;
-        *status = HYPERCLIENT_EXCEPTION;
-        return -1;
-    }
-    catch (...)
-    {
-        *status = HYPERCLIENT_EXCEPTION;
-        return -1;
-    }
+    C_WRAP_EXCEPT(client->count(space, checks, checks_sz, status, result));
 }
 
 int64_t
 hyperclient_loop(struct hyperclient* client, int timeout, hyperclient_returncode* status)
 {
-    try
-    {
-        return client->loop(timeout, status);
-    }
-    catch (po6::error& e)
-    {
-        errno = e;
-        *status = HYPERCLIENT_EXCEPTION;
-        return -1;
-    }
-    catch (...)
-    {
-        *status = HYPERCLIENT_EXCEPTION;
-        return -1;
-    }
+    C_WRAP_EXCEPT(client->loop(timeout, status));
 }
 
 enum hyperdatatype
@@ -351,6 +140,12 @@ hyperclient_attribute_type(struct hyperclient* client,
     {
         errno = e;
         *status = HYPERCLIENT_EXCEPTION;
+        return HYPERDATATYPE_GARBAGE;
+    }
+    catch (std::bad_alloc& ba)
+    {
+        errno = ENOMEM;
+        *status = HYPERCLIENT_NOMEM;
         return HYPERDATATYPE_GARBAGE;
     }
     catch (...)

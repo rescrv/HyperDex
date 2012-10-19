@@ -77,11 +77,10 @@ hyperclient :: pending_sorted_search :: handle_response(hyperclient* cl,
     }
 
     e::buffer::unpacker up = msg->unpack_from(HYPERCLIENT_HEADER_SIZE);
-    uint16_t retcode;
     uint64_t num_results = 0;
-    up = up >> retcode >> num_results;
+    up = up >> num_results;
 
-    if (up.error() || static_cast<hyperdex::network_returncode>(retcode) != hyperdex::NET_SUCCESS)
+    if (up.error())
     {
         cl->killall(sender, HYPERCLIENT_SERVERERROR);
         return 0;

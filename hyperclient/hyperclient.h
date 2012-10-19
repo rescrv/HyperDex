@@ -78,6 +78,7 @@ class search;
 } // namespace hyperspacehashing
 namespace hyperdex
 {
+class attribute_check;
 class configuration;
 class coordinatorlink;
 class entityid;
@@ -109,18 +110,13 @@ struct hyperclient_map_attribute
     enum hyperdatatype value_datatype;
 };
 
-union hyperclient_range_query_union
+struct hyperclient_attribute_check
 {
-    double d;
-    uint64_t i;
-};
-
-
-struct hyperclient_range_query
-{
-    const char* attr;
-    union hyperclient_range_query_union lower_t;
-    union hyperclient_range_query_union upper_t;
+    const char* attr; /* NULL-terminated */
+    const char* value;
+    size_t value_sz;
+    enum hyperdatatype datatype;
+    enum hyperpredicate predicate;
 };
 
 /* HyperClient returncode occupies [8448, 8576) */
@@ -229,10 +225,11 @@ hyperclient_put_if_not_exist(struct hyperclient* client, const char* space, cons
  *   considered complete
  */
 int64_t
-hyperclient_condput(struct hyperclient* client, const char* space, const char* key,
-		    size_t key_sz, const struct hyperclient_attribute* condattrs,
-		    size_t condattrs_sz, const struct hyperclient_attribute* attrs,
-		    size_t attrs_sz, enum hyperclient_returncode* status);
+hyperclient_condput(struct hyperclient* client, const char* space,
+                    const char* key, size_t key_sz,
+                    const struct hyperclient_attribute_check* checks, size_t checks_sz,
+                    const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                    enum hyperclient_returncode* status);
 
 /* Delete the object under "key".
  *
@@ -625,8 +622,7 @@ hyperclient_map_string_append(struct hyperclient* client, const char* space,
  */
 int64_t
 hyperclient_search(struct hyperclient* client, const char* space,
-                   const struct hyperclient_attribute* eq, size_t eq_sz,
-                   const struct hyperclient_range_query* rn, size_t rn_sz,
+                   const struct hyperclient_attribute_check* checks, size_t checks_sz,
                    enum hyperclient_returncode* status,
                    struct hyperclient_attribute** attrs, size_t* attrs_sz);
 
@@ -649,8 +645,7 @@ hyperclient_search(struct hyperclient* client, const char* space,
  */
 int64_t
 hyperclient_sorted_search(struct hyperclient* client, const char* space,
-                          const struct hyperclient_attribute* eq, size_t eq_sz,
-                          const struct hyperclient_range_query* rn, size_t rn_sz,
+                          const struct hyperclient_attribute_check* checks, size_t checks_sz,
                           const char* sort_by, uint64_t limit, int maximize,
                           enum hyperclient_returncode* status,
                           struct hyperclient_attribute** attrs, size_t* attrs_sz);
@@ -667,14 +662,12 @@ hyperclient_sorted_search(struct hyperclient* client, const char* space,
  */
 int64_t
 hyperclient_group_del(struct hyperclient* client, const char* space,
-                      const struct hyperclient_attribute* eq, size_t eq_sz,
-                      const struct hyperclient_range_query* rn, size_t rn_sz,
+                      const struct hyperclient_attribute_check* checks, size_t checks_sz,
                       enum hyperclient_returncode* status);
 
 int64_t
 hyperclient_count(struct hyperclient* client, const char* space,
-                  const struct hyperclient_attribute* eq, size_t eq_sz,
-                  const struct hyperclient_range_query* rn, size_t rn_sz,
+                  const struct hyperclient_attribute_check* checks, size_t checks_sz,
                   enum hyperclient_returncode* status, uint64_t* result);
 
 /* Handle I/O until at least one event is complete (either a key-op finishes, or
@@ -736,9 +729,9 @@ class hyperclient
                                  const struct hyperclient_attribute* attrs, size_t attrs_sz,
                                  hyperclient_returncode* status);
         int64_t condput(const char* space, const char* key, size_t key_sz,
-			const struct hyperclient_attribute* condattrs, size_t condattrs_sz,
-			const struct hyperclient_attribute* attrs, size_t attrs_sz,
-			hyperclient_returncode* status);
+                        const struct hyperclient_attribute_check* checks, size_t checks_sz,
+                        const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                        hyperclient_returncode* status);
         int64_t del(const char* space, const char* key, size_t key_sz,
                     hyperclient_returncode* status);
         int64_t atomic_add(const char* space, const char* key, size_t key_sz,
@@ -826,25 +819,21 @@ class hyperclient
                                   const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
                                   enum hyperclient_returncode* status);
         int64_t search(const char* space,
-                       const struct hyperclient_attribute* eq, size_t eq_sz,
-                       const struct hyperclient_range_query* rn, size_t rn_sz,
+                       const struct hyperclient_attribute_check* checks, size_t checks_sz,
                        enum hyperclient_returncode* status,
                        struct hyperclient_attribute** attrs, size_t* attrs_sz);
         int64_t sorted_search(const char* space,
-                              const struct hyperclient_attribute* eq, size_t eq_sz,
-                              const struct hyperclient_range_query* rn, size_t rn_sz,
+                              const struct hyperclient_attribute_check* checks, size_t checks_sz,
                               const char* sort_by,
                               uint64_t limit,
                               bool maximize,
                               enum hyperclient_returncode* status,
                               struct hyperclient_attribute** attrs, size_t* attrs_sz);
         int64_t group_del(const char* space,
-                          const struct hyperclient_attribute* eq, size_t eq_sz,
-                          const struct hyperclient_range_query* rn, size_t rn_sz,
+                          const struct hyperclient_attribute_check* checks, size_t checks_sz,
                           enum hyperclient_returncode* status);
         int64_t count(const char* space,
-                      const struct hyperclient_attribute* eq, size_t eq_sz,
-                      const struct hyperclient_range_query* rn, size_t rn_sz,
+                      const struct hyperclient_attribute_check* checks, size_t checks_sz,
                       enum hyperclient_returncode* status, uint64_t* result);
         int64_t loop(int timeout, hyperclient_returncode* status);
         // Introspect things
@@ -864,26 +853,28 @@ class hyperclient
 
     private:
         int64_t maintain_coord_connection(hyperclient_returncode* status);
-        int64_t add_keyop(const char* space,
-                          const char* key,
-                          size_t key_sz,
-                          std::auto_ptr<e::buffer> msg,
-                          e::intrusive_ptr<pending> op);
         int64_t perform_funcall1(const struct hyperclient_keyop_info* opinfo,
                                  const char* space, const char* key, size_t key_sz,
-                                 const struct hyperclient_attribute* condattrs, size_t condattrs_sz,
+                                 const struct hyperclient_attribute_check* checks, size_t checks_sz,
                                  const struct hyperclient_attribute* attrs, size_t attrs_sz,
                                  hyperclient_returncode* status);
         int64_t perform_funcall2(const struct hyperclient_keyop_info* opinfo,
                                  const char* space, const char* key, size_t key_sz,
-                                 const struct hyperclient_attribute* condattrs, size_t condattrs_sz,
+                                 const struct hyperclient_attribute_check* checks, size_t checks_sz,
                                  const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
                                  hyperclient_returncode* status);
+        int64_t prepare_searchop(const char* space,
+                                 const struct hyperclient_attribute_check* checks, size_t checks_sz,
+                                 const char* attr, /* optional */
+                                 hyperclient_returncode* status,
+                                 std::vector<hyperdex::attribute_check>* chks,
+                                 std::map<hyperdex::entityid, hyperdex::instance>* search_entities,
+                                 uint16_t* attrno /* optional, coupled with attr */,
+                                 hyperdatatype* attrtype /* optional, coupled with attr */);
         size_t prepare_checks(const hyperdex::schema* sc,
-                              const hyperclient_keyop_info* opinfo,
-                              const hyperclient_attribute* condattrs, size_t condattrs_sz,
+                              const hyperclient_attribute_check* checks, size_t checks_sz,
                               hyperclient_returncode* status,
-                              std::vector<hyperdex::attribute_check>* checks);
+                              std::vector<hyperdex::attribute_check>* chks);
         size_t prepare_ops(const hyperdex:: schema* sc,
                            const hyperclient_keyop_info* opinfo,
                            const hyperclient_attribute* attrs, size_t attrs_sz,
@@ -894,15 +885,11 @@ class hyperclient
                            const hyperclient_map_attribute* attrs, size_t attrs_sz,
                            hyperclient_returncode* status,
                            std::vector<hyperdex::funcall>* ops);
-        int64_t prepare_searchop(const char* space,
-                                 const struct hyperclient_attribute* eq, size_t eq_sz,
-                                 const struct hyperclient_range_query* rn, size_t rn_sz,
-                                 const char* attr, /* optional */
-                                 hyperclient_returncode* status,
-                                 hyperspacehashing::search* s,
-                                 std::map<hyperdex::entityid, hyperdex::instance>* search_entities,
-                                 uint16_t* attrno,
-                                 hyperdatatype* attrtype);
+        int64_t add_keyop(const char* space,
+                          const char* key,
+                          size_t key_sz,
+                          std::auto_ptr<e::buffer> msg,
+                          e::intrusive_ptr<pending> op);
         int64_t send(e::intrusive_ptr<pending> op,
                      std::auto_ptr<e::buffer> msg);
         void killall(const po6::net::location& loc, hyperclient_returncode status);

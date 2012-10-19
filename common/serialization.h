@@ -35,7 +35,6 @@
 #include "hyperdex.h"
 #include "common/attribute_check.h"
 #include "common/funcall.h"
-#include "common/predicate.h"
 
 namespace hyperdex
 {
@@ -69,11 +68,11 @@ size_t
 pack_size(const hyperdatatype& h);
 
 e::buffer::packer
-operator << (e::buffer::packer lhs, const predicate& rhs);
+operator << (e::buffer::packer lhs, const hyperpredicate& rhs);
 e::buffer::unpacker
-operator >> (e::buffer::unpacker lhs, predicate& rhs);
+operator >> (e::buffer::unpacker lhs, hyperpredicate& rhs);
 size_t
-pack_size(const predicate& p);
+pack_size(const hyperpredicate& p);
 
 size_t
 pack_size(const e::slice& s);

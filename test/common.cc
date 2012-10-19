@@ -25,17 +25,27 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_common_predicate_h_
-#define hyperdex_common_predicate_h_
+// HyperDex
+#include "test/common.h"
 
-namespace hyperdex
+const char* hyperdex_test_space = NULL;
+const char* hyperdex_test_host = "127.0.0.1";
+long hyperdex_test_port = 1234;
+
+extern "C"
 {
 
-enum predicate
-{
-    PRED_EQUALS
+struct poptOption hyperdex_test_popts[] = {
+    {"space", 's', POPT_ARG_STRING, &hyperdex_test_space, 's',
+        "the HyperDex space to use",
+        "space"},
+    {"host", 'h', POPT_ARG_STRING, &hyperdex_test_host, 'h',
+        "connect to an IP address or hostname (default: 127.0.0.1)",
+        "addr"},
+    {"port", 'p', POPT_ARG_LONG, &hyperdex_test_port, 'p',
+        "connect to an alternative port (default: 1982)",
+        "port"},
+    POPT_TABLEEND
 };
 
-} // namespace hyperdex
-
-#endif // hyperdex_common_predicate_h_
+} // extern "C"

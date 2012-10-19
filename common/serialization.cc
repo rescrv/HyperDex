@@ -34,7 +34,7 @@ hyperdex :: operator << (e::buffer::packer lhs, const attribute_check& rhs)
     return lhs << rhs.attr
                << rhs.value
                << rhs.datatype
-               << rhs.pred;
+               << rhs.predicate;
 }
 
 e::buffer::unpacker
@@ -43,7 +43,7 @@ hyperdex :: operator >> (e::buffer::unpacker lhs, attribute_check& rhs)
     return lhs >> rhs.attr
                >> rhs.value
                >> rhs.datatype
-               >> rhs.pred;
+               >> rhs.predicate;
 }
 
 size_t
@@ -53,7 +53,7 @@ hyperdex :: pack_size(const attribute_check& rhs)
          + sizeof(uint32_t)
          + rhs.value.size()
          + pack_size(rhs.datatype)
-         + pack_size(rhs.pred);
+         + pack_size(rhs.predicate);
 }
 
 e::buffer::packer
@@ -125,25 +125,25 @@ hyperdex :: pack_size(const hyperdatatype&)
 }
 
 e::buffer::packer
-hyperdex :: operator << (e::buffer::packer lhs, const predicate& rhs)
+hyperdex :: operator << (e::buffer::packer lhs, const hyperpredicate& rhs)
 {
-    uint8_t r = static_cast<uint8_t>(rhs);
+    uint16_t r = static_cast<uint16_t>(rhs);
     return lhs << r;
 }
 
 e::buffer::unpacker
-hyperdex :: operator >> (e::buffer::unpacker lhs, predicate& rhs)
+hyperdex :: operator >> (e::buffer::unpacker lhs, hyperpredicate& rhs)
 {
-    uint8_t r;
+    uint16_t r;
     lhs = lhs >> r;
-    rhs = static_cast<predicate>(r);
+    rhs = static_cast<hyperpredicate>(r);
     return lhs;
 }
 
 size_t
-hyperdex :: pack_size(const predicate&)
+hyperdex :: pack_size(const hyperpredicate&)
 {
-    return sizeof(uint8_t);
+    return sizeof(uint16_t);
 }
 
 size_t

@@ -75,6 +75,13 @@ enum hyperdatatype
     HYPERDATATYPE_GARBAGE   = 9727
 };
 
+/* Predicate occupies [9728, 9856) */
+enum hyperpredicate
+{
+    HYPERPREDICATE_FAIL         = 9728,
+    HYPERPREDICATE_EQUALS       = 9729
+};
+
 #ifdef __cplusplus
 
 // C++
@@ -82,6 +89,8 @@ enum hyperdatatype
 
 std::ostream&
 operator << (std::ostream& lhs, hyperdatatype rhs);
+std::ostream&
+operator << (std::ostream& lhs, hyperpredicate rhs);
 
 #endif /* __cplusplus */
 #endif /* hyperdex_h_ */

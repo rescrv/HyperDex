@@ -17,6 +17,7 @@ hyperclient/python/hyperclient.c
 hyperdex-binary-test
 hyperdex-daemon
 hyperdex-replication-stress-test
+hyperdex-search-stress-test
 hyperdex-simple-consistency-stress-test
 hyperspacehashing/test/bithacks
 hyperspacehashing/test/cfloat

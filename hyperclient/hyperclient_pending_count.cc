@@ -69,36 +69,13 @@ hyperclient :: pending_count :: handle_response(hyperclient* cl,
     }
 
     e::buffer::unpacker up = msg->unpack_from(HYPERCLIENT_HEADER_SIZE);
-    uint16_t response;
     uint64_t result;
-    up = up >> response >> result;
+    up = up >> result;
 
     if (up.error())
     {
         cl->killall(sender, HYPERCLIENT_SERVERERROR);
         return 0;
-    }
-
-    switch (static_cast<hyperdex::network_returncode>(response))
-    {
-        case hyperdex::NET_SUCCESS:
-            *m_result += result;
-            // Intentionally omit set_status(HYPERCLIENT_SUCCESS) here.  It was
-            // set to SUCCESS earlier.
-            break;
-        case hyperdex::NET_BADDIMSPEC:
-            set_status(HYPERCLIENT_SERVERERROR);
-            break;
-        case hyperdex::NET_BADMICROS:
-        case hyperdex::NET_NOTUS:
-        case hyperdex::NET_NOTFOUND:
-        case hyperdex::NET_CMPFAIL:
-        case hyperdex::NET_OVERFLOW:
-        case hyperdex::NET_READONLY:
-        case hyperdex::NET_SERVERERROR:
-        default:
-            cl->killall(sender, HYPERCLIENT_SERVERERROR);
-            return 0;
     }
 
     if (--*m_refcount == 0)

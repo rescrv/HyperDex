@@ -43,7 +43,6 @@
 #include "common/attribute_check.h"
 #include "common/funcall.h"
 #include "common/macros.h"
-#include "common/predicate.h"
 #include "common/schema.h"
 #include "common/serialization.h"
 
@@ -65,6 +64,7 @@
 #include "hyperclient/hyperclient_pending_sorted_search.h"
 #include "hyperclient/hyperclient_pending_statusonly.h"
 #include "hyperclient/keyop_info.h"
+#include "hyperclient/wrap.h"
 
 using hyperdex::attribute_check;
 using hyperdex::funcall;
@@ -126,14 +126,15 @@ hyperclient :: get(const char* space, const char* key, size_t key_sz,
 
 int64_t
 hyperclient :: condput(const char* space, const char* key, size_t key_sz,
-                       const struct hyperclient_attribute* condattrs, size_t condattrs_sz,
+                       const struct hyperclient_attribute_check* checks, size_t checks_sz,
                        const struct hyperclient_attribute* attrs, size_t attrs_sz,
                        hyperclient_returncode* status)
 {
     const hyperclient_keyop_info* opinfo;
     opinfo = hyperclient_keyop_info_lookup("condput", 7);
     return perform_funcall1(opinfo, space, key, key_sz,
-                            condattrs, condattrs_sz, attrs, attrs_sz, status);
+                            checks, checks_sz,
+                            attrs, attrs_sz, status);
 }
 
 int64_t
@@ -154,6 +155,17 @@ hyperclient :: del(const char* space, const char* key, size_t key_sz,
         const hyperclient_keyop_info* opinfo; \
         opinfo = hyperclient_keyop_info_lookup(XSTR(OPNAME), strlen(XSTR(OPNAME))); \
         return perform_funcall1(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, status); \
+    } \
+    extern "C" \
+    { \
+    int64_t \
+    hyperclient_ ## OPNAME(struct hyperclient* client, \
+                           const char* space, const char* key, size_t key_sz, \
+                           const struct hyperclient_attribute* attrs, size_t attrs_sz, \
+                           hyperclient_returncode* status) \
+    { \
+        C_WRAP_EXCEPT(client->OPNAME(space, key, key_sz, attrs, attrs_sz, status)); \
+    } \
     }
 
 HYPERCLIENT_CPPDEF(put)
@@ -184,6 +196,17 @@ HYPERCLIENT_CPPDEF(set_union)
         const hyperclient_keyop_info* opinfo; \
         opinfo = hyperclient_keyop_info_lookup(XSTR(OPNAME), strlen(XSTR(OPNAME))); \
         return perform_funcall2(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, status); \
+    } \
+    extern "C" \
+    { \
+    int64_t \
+    hyperclient_ ## OPNAME(struct hyperclient* client, \
+                           const char* space, const char* key, size_t key_sz, \
+                           const struct hyperclient_map_attribute* attrs, size_t attrs_sz, \
+                           hyperclient_returncode* status) \
+    { \
+        C_WRAP_EXCEPT(client->OPNAME(space, key, key_sz, attrs, attrs_sz, status)); \
+    } \
     }
 
 HYPERCLIENT_MAP_CPPDEF(map_add)
@@ -201,17 +224,14 @@ HYPERCLIENT_MAP_CPPDEF(map_string_append)
 
 int64_t
 hyperclient :: search(const char* space,
-                      const struct hyperclient_attribute* eq, size_t eq_sz,
-                      const struct hyperclient_range_query* rn, size_t rn_sz,
+                      const struct hyperclient_attribute_check* checks, size_t checks_sz,
                       enum hyperclient_returncode* status,
                       struct hyperclient_attribute** attrs, size_t* attrs_sz)
 {
     MAINTAIN_COORD_CONNECTION(status)
-
-    // Figure out who to contact for the search.
-    hyperspacehashing::search s;
+    std::vector<hyperdex::attribute_check> chks;
     std::map<hyperdex::entityid, hyperdex::instance> search_entities;
-    int64_t ret = prepare_searchop(space, eq, eq_sz, rn, rn_sz, NULL, status, &s, &search_entities, NULL, NULL);
+    int64_t ret = prepare_searchop(space, checks, checks_sz, NULL, status, &chks, &search_entities, NULL, NULL);
 
     if (ret < 0)
     {
@@ -219,18 +239,18 @@ hyperclient :: search(const char* space,
     }
 
     // Send a search query to each matching host.
-    int64_t searchid = m_client_id;
+    int64_t search_id = m_client_id;
     ++m_client_id;
 
     // Pack the message to send
-    std::auto_ptr<e::buffer> msg(e::buffer::create(HYPERCLIENT_HEADER_SIZE + sizeof(uint64_t) + s.packed_size()));
-    msg->pack_at(HYPERCLIENT_HEADER_SIZE) << searchid << s;
+    std::auto_ptr<e::buffer> msg(e::buffer::create(HYPERCLIENT_HEADER_SIZE + sizeof(uint64_t) + pack_size(chks)));
+    msg->pack_at(HYPERCLIENT_HEADER_SIZE) << search_id << chks;
     std::tr1::shared_ptr<uint64_t> refcount(new uint64_t(0));
 
     for (std::map<hyperdex::entityid, hyperdex::instance>::const_iterator ent_inst = search_entities.begin();
             ent_inst != search_entities.end(); ++ent_inst)
     {
-        e::intrusive_ptr<pending> op = new pending_search(searchid, refcount, status, attrs, attrs_sz);
+        e::intrusive_ptr<pending> op = new pending_search(search_id, refcount, status, attrs, attrs_sz);
         op->set_server_visible_nonce(m_server_nonce);
         ++m_server_nonce;
         op->set_entity(ent_inst->first);
@@ -245,7 +265,7 @@ hyperclient :: search(const char* space,
         }
     }
 
-    return searchid;
+    return search_id;
 }
 
 static void
@@ -256,8 +276,7 @@ delete_bracket_auto_ptr(std::auto_ptr<e::buffer>* ptrs)
 
 int64_t
 hyperclient :: sorted_search(const char* space,
-                             const struct hyperclient_attribute* eq, size_t eq_sz,
-                             const struct hyperclient_range_query* rn, size_t rn_sz,
+                             const struct hyperclient_attribute_check* checks, size_t checks_sz,
                              const char* sort_by,
                              uint64_t limit,
                              bool maximize,
@@ -265,48 +284,48 @@ hyperclient :: sorted_search(const char* space,
                              struct hyperclient_attribute** attrs, size_t* attrs_sz)
 {
     MAINTAIN_COORD_CONNECTION(status)
-
-    // Figure out who to contact for the group_del.
-    hyperspacehashing::search s;
-    std::map<hyperdex::entityid, hyperdex::instance> entities;
+    std::vector<hyperdex::attribute_check> chks;
+    std::map<hyperdex::entityid, hyperdex::instance> search_entities;
     uint16_t attrno;
     hyperdatatype attrtype;
-    int64_t ret = prepare_searchop(space, eq, eq_sz, rn, rn_sz, sort_by, status, &s, &entities, &attrno, &attrtype);
+    int64_t ret = prepare_searchop(space, checks, checks_sz, sort_by, status, &chks, &search_entities, &attrno, &attrtype);
 
     if (ret < 0)
     {
         return ret;
     }
 
-    if (attrtype != HYPERDATATYPE_STRING && attrtype != HYPERDATATYPE_INT64)
+    if (attrtype != HYPERDATATYPE_STRING &&
+        attrtype != HYPERDATATYPE_INT64 &&
+        attrtype != HYPERDATATYPE_FLOAT)
     {
         *status = HYPERCLIENT_WRONGTYPE;
-        return -1 - eq_sz - rn_sz;
+        return -1 - checks_sz;
     }
 
     // Send a sorted_search query to each matching host.
-    int64_t searchid = m_client_id;
+    int64_t search_id = m_client_id;
     ++m_client_id;
 
     // Pack the message to send
     size_t sz = HYPERCLIENT_HEADER_SIZE
-              + s.packed_size()
+              + pack_size(chks)
               + sizeof(uint64_t)
               + sizeof(uint16_t)
               + sizeof(uint8_t);
     int8_t max = maximize ? 1 : 0;
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    msg->pack_at(HYPERCLIENT_HEADER_SIZE) << s << limit << attrno << max;
-    std::auto_ptr<e::buffer>* backings = new std::auto_ptr<e::buffer>[entities.size()];
+    msg->pack_at(HYPERCLIENT_HEADER_SIZE) << chks << limit << attrno << max;
+    std::auto_ptr<e::buffer>* backings = new std::auto_ptr<e::buffer>[search_entities.size()];
     e::guard g = e::makeguard(delete_bracket_auto_ptr, backings);
     e::intrusive_ptr<pending_sorted_search::state> state;
     state = new pending_sorted_search::state(backings, limit, attrno, attrtype, maximize);
     g.dismiss();
 
-    for (std::map<hyperdex::entityid, hyperdex::instance>::const_iterator ent_inst = entities.begin();
-            ent_inst != entities.end(); ++ent_inst)
+    for (std::map<hyperdex::entityid, hyperdex::instance>::const_iterator ent_inst = search_entities.begin();
+            ent_inst != search_entities.end(); ++ent_inst)
     {
-        e::intrusive_ptr<pending> op = new pending_sorted_search(searchid, state, status, attrs, attrs_sz);
+        e::intrusive_ptr<pending> op = new pending_sorted_search(search_id, state, status, attrs, attrs_sz);
         op->set_server_visible_nonce(m_server_nonce);
         ++m_server_nonce;
         op->set_entity(ent_inst->first);
@@ -321,21 +340,18 @@ hyperclient :: sorted_search(const char* space,
         }
     }
 
-    return searchid;
+    return search_id;
 }
 
 int64_t
 hyperclient :: group_del(const char* space,
-                         const struct hyperclient_attribute* eq, size_t eq_sz,
-                         const struct hyperclient_range_query* rn, size_t rn_sz,
+                         const struct hyperclient_attribute_check* checks, size_t checks_sz,
                          enum hyperclient_returncode* status)
 {
     MAINTAIN_COORD_CONNECTION(status)
-
-    // Figure out who to contact for the group_del.
-    hyperspacehashing::search s;
-    std::map<hyperdex::entityid, hyperdex::instance> entities;
-    int64_t ret = prepare_searchop(space, eq, eq_sz, rn, rn_sz, NULL, status, &s, &entities, NULL, NULL);
+    std::vector<hyperdex::attribute_check> chks;
+    std::map<hyperdex::entityid, hyperdex::instance> search_entities;
+    int64_t ret = prepare_searchop(space, checks, checks_sz, NULL, status, &chks, &search_entities, NULL, NULL);
 
     if (ret < 0)
     {
@@ -347,12 +363,12 @@ hyperclient :: group_del(const char* space,
     ++m_client_id;
 
     // Pack the message to send
-    std::auto_ptr<e::buffer> msg(e::buffer::create(HYPERCLIENT_HEADER_SIZE + s.packed_size()));
-    msg->pack_at(HYPERCLIENT_HEADER_SIZE) << s;
+    std::auto_ptr<e::buffer> msg(e::buffer::create(HYPERCLIENT_HEADER_SIZE + pack_size(chks)));
+    msg->pack_at(HYPERCLIENT_HEADER_SIZE) << chks;
     std::tr1::shared_ptr<uint64_t> refcount(new uint64_t(0));
 
-    for (std::map<hyperdex::entityid, hyperdex::instance>::const_iterator ent_inst = entities.begin();
-            ent_inst != entities.end(); ++ent_inst)
+    for (std::map<hyperdex::entityid, hyperdex::instance>::const_iterator ent_inst = search_entities.begin();
+            ent_inst != search_entities.end(); ++ent_inst)
     {
         e::intrusive_ptr<pending> op = new pending_group_del(group_del_id, refcount, status);
         op->set_server_visible_nonce(m_server_nonce);
@@ -374,8 +390,7 @@ hyperclient :: group_del(const char* space,
 
 int64_t
 hyperclient :: count(const char* space,
-                     const struct hyperclient_attribute* eq, size_t eq_sz,
-                     const struct hyperclient_range_query* rn, size_t rn_sz,
+                     const struct hyperclient_attribute_check* checks, size_t checks_sz,
                      enum hyperclient_returncode* status,
                      uint64_t* result)
 {
@@ -384,11 +399,9 @@ hyperclient :: count(const char* space,
     *result = 0;
 
     MAINTAIN_COORD_CONNECTION(status)
-
-    // Figure out who to contact for the count.
-    hyperspacehashing::search s;
-    std::map<hyperdex::entityid, hyperdex::instance> entities;
-    int64_t ret = prepare_searchop(space, eq, eq_sz, rn, rn_sz, NULL, status, &s, &entities, NULL, NULL);
+    std::vector<hyperdex::attribute_check> chks;
+    std::map<hyperdex::entityid, hyperdex::instance> search_entities;
+    int64_t ret = prepare_searchop(space, checks, checks_sz, NULL, status, &chks, &search_entities, NULL, NULL);
 
     if (ret < 0)
     {
@@ -400,12 +413,12 @@ hyperclient :: count(const char* space,
     ++m_client_id;
 
     // Pack the message to send
-    std::auto_ptr<e::buffer> msg(e::buffer::create(HYPERCLIENT_HEADER_SIZE + s.packed_size()));
-    msg->pack_at(HYPERCLIENT_HEADER_SIZE) << s;
+    std::auto_ptr<e::buffer> msg(e::buffer::create(HYPERCLIENT_HEADER_SIZE + pack_size(chks)));
+    msg->pack_at(HYPERCLIENT_HEADER_SIZE) << chks;
     std::tr1::shared_ptr<uint64_t> refcount(new uint64_t(0));
 
-    for (std::map<hyperdex::entityid, hyperdex::instance>::const_iterator ent_inst = entities.begin();
-            ent_inst != entities.end(); ++ent_inst)
+    for (std::map<hyperdex::entityid, hyperdex::instance>::const_iterator ent_inst = search_entities.begin();
+            ent_inst != search_entities.end(); ++ent_inst)
     {
         e::intrusive_ptr<pending> op = new pending_count(count_id, refcount, status, result);
         op->set_server_visible_nonce(m_server_nonce);
@@ -486,7 +499,6 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
         }
 
         hyperdex::network_msgtype msg_type = static_cast<hyperdex::network_msgtype>(type_num);
-
         incomplete_map_t::iterator it = m_incomplete.find(nonce);
 
         if (it == m_incomplete.end())
@@ -673,60 +685,9 @@ hyperclient :: maintain_coord_connection(hyperclient_returncode* status)
 }
 
 int64_t
-hyperclient :: add_keyop(const char* space, const char* key, size_t key_sz,
-                         std::auto_ptr<e::buffer> msg, e::intrusive_ptr<pending> op)
-{
-    hyperdex::spaceid si = m_config->space(space);
-
-    if (si == hyperdex::spaceid())
-    {
-        op->set_status(HYPERCLIENT_UNKNOWNSPACE);
-        return -1;
-    }
-
-    // Figure out who to talk with.
-    hyperdex::entityid dst_ent;
-    hyperdex::instance dst_inst;
-
-    // XXX We could postpone this, and then send it out on the next
-    // reconfiguration, assuming the configuration allows us to connect.
-    if (!m_config->point_leader_entity(si, e::slice(key, key_sz), &dst_ent, &dst_inst))
-    {
-        op->set_status(HYPERCLIENT_RECONFIGURE);
-        return -1;
-    }
-
-    op->set_server_visible_nonce(m_server_nonce);
-    ++m_server_nonce;
-    op->set_entity(dst_ent);
-    op->set_instance(dst_inst);
-    m_incomplete.insert(std::make_pair(op->server_visible_nonce(), op));
-    typedef size_t (incomplete_map_t::*functype)(const int64_t&);
-    functype f = &incomplete_map_t::erase;
-    e::guard remove_op = e::makeobjguard(m_incomplete, f, op->server_visible_nonce());
-    e::guard fail_op = e::makeobjguard(*op, &pending::set_status, HYPERCLIENT_RECONFIGURE);
-    int64_t ret = send(op, msg);
-    assert(ret <= 0);
-
-    // We dismiss the remove_op guard when the operation succeeds within send.
-    if (ret == 0)
-    {
-        remove_op.dismiss();
-        op->set_client_visible_id(m_client_id);
-        ret = op->client_visible_id();
-        ++m_client_id;
-    }
-
-    // We dismiss the fail_op guard no matter what because if ret < 0, then send
-    // already set the status to a more-detailed reason.
-    fail_op.dismiss();
-    return ret;
-}
-
-int64_t
 hyperclient :: perform_funcall1(const hyperclient_keyop_info* opinfo,
                                 const char* space, const char* key, size_t key_sz,
-                                const struct hyperclient_attribute* condattrs, size_t condattrs_sz,
+                                const struct hyperclient_attribute_check* checks, size_t checks_sz,
                                 const struct hyperclient_attribute* attrs, size_t attrs_sz,
                                 hyperclient_returncode* status)
 {
@@ -739,10 +700,10 @@ hyperclient :: perform_funcall1(const hyperclient_keyop_info* opinfo,
     op = new pending_statusonly(hyperdex::REQ_ATOMIC, hyperdex::RESP_ATOMIC, status);
 
     // Prepare the checks
-    std::vector<attribute_check> checks;
-    size_t num_checks = prepare_checks(sc, opinfo, condattrs, condattrs_sz, status, &checks);
+    std::vector<attribute_check> chks;
+    size_t num_checks = prepare_checks(sc, checks, checks_sz, status, &chks);
 
-    if (num_checks < condattrs_sz)
+    if (num_checks < checks_sz)
     {
         return -2 - num_checks;
     }
@@ -753,7 +714,7 @@ hyperclient :: perform_funcall1(const hyperclient_keyop_info* opinfo,
 
     if (num_ops < attrs_sz)
     {
-        return -2 - condattrs_sz - num_ops;
+        return -2 - checks_sz - num_ops;
     }
 
     // The size of the buffer we need
@@ -762,9 +723,9 @@ hyperclient :: perform_funcall1(const hyperclient_keyop_info* opinfo,
               + sizeof(uint32_t) + key_sz
               + sizeof(uint32_t) + sizeof(uint32_t);
 
-    for (size_t i = 0; i < checks.size(); ++i)
+    for (size_t i = 0; i < chks.size(); ++i)
     {
-        sz += pack_size(checks[i]);
+        sz += pack_size(chks[i]);
     }
 
     for (size_t i = 0; i < ops.size(); ++i)
@@ -772,20 +733,20 @@ hyperclient :: perform_funcall1(const hyperclient_keyop_info* opinfo,
         sz += pack_size(ops[i]);
     }
 
-    std::sort(checks.begin(), checks.end());
+    std::sort(chks.begin(), chks.end());
     std::sort(ops.begin(), ops.end());
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     uint8_t flags = (opinfo->fail_if_not_exist ? 1 : 0)
                   | (opinfo->fail_if_exist ? 2 : 0)
                   | (opinfo->has_funcalls ? 128 : 0);
-    msg->pack_at(HYPERCLIENT_HEADER_SIZE) << e::slice(key, key_sz) << flags << checks << ops;
+    msg->pack_at(HYPERCLIENT_HEADER_SIZE) << e::slice(key, key_sz) << flags << chks << ops;
     return add_keyop(space, key, key_sz, msg, op);
 }
 
 int64_t
 hyperclient :: perform_funcall2(const hyperclient_keyop_info* opinfo,
                                 const char* space, const char* key, size_t key_sz,
-                                const struct hyperclient_attribute* condattrs, size_t condattrs_sz,
+                                const struct hyperclient_attribute_check* checks, size_t checks_sz,
                                 const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
                                 hyperclient_returncode* status)
 {
@@ -798,10 +759,10 @@ hyperclient :: perform_funcall2(const hyperclient_keyop_info* opinfo,
     op = new pending_statusonly(hyperdex::REQ_ATOMIC, hyperdex::RESP_ATOMIC, status);
 
     // Prepare the checks
-    std::vector<attribute_check> checks;
-    size_t num_checks = prepare_checks(sc, opinfo, condattrs, condattrs_sz, status, &checks);
+    std::vector<attribute_check> chks;
+    size_t num_checks = prepare_checks(sc, checks, checks_sz, status, &chks);
 
-    if (num_checks < condattrs_sz)
+    if (num_checks < checks_sz)
     {
         return -2 - num_checks;
     }
@@ -812,7 +773,7 @@ hyperclient :: perform_funcall2(const hyperclient_keyop_info* opinfo,
 
     if (num_ops < attrs_sz)
     {
-        return -2 - condattrs_sz - num_ops;
+        return -2 - checks_sz - num_ops;
     }
 
     // The size of the buffer we need
@@ -821,9 +782,9 @@ hyperclient :: perform_funcall2(const hyperclient_keyop_info* opinfo,
               + sizeof(uint32_t) + key_sz
               + sizeof(uint32_t) + sizeof(uint32_t);
 
-    for (size_t i = 0; i < checks.size(); ++i)
+    for (size_t i = 0; i < chks.size(); ++i)
     {
-        sz += pack_size(checks[i]);
+        sz += pack_size(chks[i]);
     }
 
     for (size_t i = 0; i < ops.size(); ++i)
@@ -831,27 +792,69 @@ hyperclient :: perform_funcall2(const hyperclient_keyop_info* opinfo,
         sz += pack_size(ops[i]);
     }
 
-    std::sort(checks.begin(), checks.end());
+    std::sort(chks.begin(), chks.end());
     std::sort(ops.begin(), ops.end());
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     uint8_t flags = (opinfo->fail_if_not_exist ? 1 : 0)
                   | (opinfo->has_funcalls ? 128 : 0);
-    msg->pack_at(HYPERCLIENT_HEADER_SIZE) << e::slice(key, key_sz) << flags << checks << ops;
+    msg->pack_at(HYPERCLIENT_HEADER_SIZE) << e::slice(key, key_sz) << flags << chks << ops;
     return add_keyop(space, key, key_sz, msg, op);
+}
+
+int64_t
+hyperclient :: prepare_searchop(const char* space,
+                                const struct hyperclient_attribute_check* checks, size_t checks_sz,
+                                const char* attr, /* optional */
+                                hyperclient_returncode* status,
+                                std::vector<hyperdex::attribute_check>* chks,
+                                std::map<hyperdex::entityid, hyperdex::instance>* search_entities,
+                                uint16_t* attrno /* optional, coupled with attr */,
+                                hyperdatatype* attrtype /* optional, coupled with attr */)
+{
+    hyperdex::schema* sc = m_config->get_schema(space);
+
+    if (!sc)
+    {
+        *status = HYPERCLIENT_UNKNOWNSPACE;
+        return -1;
+    }
+
+    size_t num_checks = prepare_checks(sc, checks, checks_sz, status, chks);
+
+    if (num_checks != checks_sz)
+    {
+        return -1 - num_checks;
+    }
+
+    if (attr)
+    {
+        uint16_t attrnum = sc->lookup_attr(attr);
+
+        if (attrnum == sc->attrs_sz)
+        {
+            *status = HYPERCLIENT_UNKNOWNATTR;
+            return -1 - checks_sz;
+        }
+
+        *attrno = attrnum;
+        *attrtype = sc->attrs[attrnum].type;
+    }
+
+    *search_entities = m_config->search_entities(m_config->space(space), *chks);
+    return 0;
 }
 
 size_t
 hyperclient :: prepare_checks(const hyperdex::schema* sc,
-                              const hyperclient_keyop_info*,
-                              const hyperclient_attribute* condattrs, size_t condattrs_sz,
+                              const hyperclient_attribute_check* checks, size_t checks_sz,
                               hyperclient_returncode* status,
-                              std::vector<attribute_check>* checks)
+                              std::vector<hyperdex::attribute_check>* chks)
 {
-    checks->reserve(condattrs_sz);
+    chks->reserve(checks_sz);
 
-    for (size_t i = 0; i < condattrs_sz; ++i)
+    for (size_t i = 0; i < checks_sz; ++i)
     {
-        uint16_t attrnum = sc->lookup_attr(condattrs[i].attr);
+        uint16_t attrnum = sc->lookup_attr(checks[i].attr);
 
         if (attrnum == sc->attrs_sz)
         {
@@ -859,9 +862,10 @@ hyperclient :: prepare_checks(const hyperdex::schema* sc,
             return i;
         }
 
+        // XXX WRONG CHECK
         if (!container_implicit_coercion(sc->attrs[attrnum].type,
-                                         e::slice(condattrs[i].value, condattrs[i].value_sz),
-                                         condattrs[i].datatype))
+                                         e::slice(checks[i].value, checks[i].value_sz),
+                                         checks[i].datatype))
         {
             *status = HYPERCLIENT_WRONGTYPE;
             return i;
@@ -869,13 +873,13 @@ hyperclient :: prepare_checks(const hyperdex::schema* sc,
 
         attribute_check c;
         c.attr = attrnum;
-        c.value = e::slice(condattrs[i].value, condattrs[i].value_sz);
-        c.datatype = condattrs[i].datatype;
-        c.pred = hyperdex::PRED_EQUALS;
-        checks->push_back(c);
+        c.value = e::slice(checks[i].value, checks[i].value_sz);
+        c.datatype = checks[i].datatype;
+        c.predicate = checks[i].predicate;
+        chks->push_back(c);
     }
 
-    return condattrs_sz;
+    return checks_sz;
 }
 
 size_t
@@ -969,97 +973,54 @@ hyperclient :: prepare_ops(const hyperdex::schema* sc,
 }
 
 int64_t
-hyperclient :: prepare_searchop(const char* space,
-                                const struct hyperclient_attribute* eq, size_t eq_sz,
-                                const struct hyperclient_range_query* rn, size_t rn_sz,
-                                const char* attr, /* optional */
-                                hyperclient_returncode* status,
-                                hyperspacehashing::search* s,
-                                std::map<hyperdex::entityid, hyperdex::instance>* search_entities,
-                                uint16_t* attrno,
-                                hyperdatatype* attrtype)
+hyperclient :: add_keyop(const char* space, const char* key, size_t key_sz,
+                         std::auto_ptr<e::buffer> msg, e::intrusive_ptr<pending> op)
 {
-    hyperdex::schema* sc = m_config->get_schema(space);
-    *s = hyperspacehashing::search(sc->attrs_sz);
+    hyperdex::spaceid si = m_config->space(space);
 
-    if (!sc)
+    if (si == hyperdex::spaceid())
     {
-        *status = HYPERCLIENT_UNKNOWNSPACE;
+        op->set_status(HYPERCLIENT_UNKNOWNSPACE);
         return -1;
     }
 
-    e::bitfield seen(sc->attrs_sz);
+    // Figure out who to talk with.
+    hyperdex::entityid dst_ent;
+    hyperdex::instance dst_inst;
 
-    // Check the equality conditions.
-    for (size_t i = 0; i < eq_sz; ++i)
+    // XXX We could postpone this, and then send it out on the next
+    // reconfiguration, assuming the configuration allows us to connect.
+    if (!m_config->point_leader_entity(si, e::slice(key, key_sz), &dst_ent, &dst_inst))
     {
-        uint16_t attrnum = validate_attribute(sc, eq + i, status);
-
-        if (attrnum == sc->attrs_sz)
-        {
-            return -1 - i;
-        }
-
-        if (seen.get(attrnum))
-        {
-            *status = HYPERCLIENT_DUPEATTR;
-            return -1 - i;
-        }
-
-        seen.set(attrnum);
-        s->equality_set(attrnum, e::slice(eq[i].value, eq[i].value_sz));
+        op->set_status(HYPERCLIENT_RECONFIGURE);
+        return -1;
     }
 
-    // Check the range conditions.
-    for (size_t i = 0; i < rn_sz; ++i)
+    op->set_server_visible_nonce(m_server_nonce);
+    ++m_server_nonce;
+    op->set_entity(dst_ent);
+    op->set_instance(dst_inst);
+    m_incomplete.insert(std::make_pair(op->server_visible_nonce(), op));
+    typedef size_t (incomplete_map_t::*functype)(const int64_t&);
+    functype f = &incomplete_map_t::erase;
+    e::guard remove_op = e::makeobjguard(m_incomplete, f, op->server_visible_nonce());
+    e::guard fail_op = e::makeobjguard(*op, &pending::set_status, HYPERCLIENT_RECONFIGURE);
+    int64_t ret = send(op, msg);
+    assert(ret <= 0);
+
+    // We dismiss the remove_op guard when the operation succeeds within send.
+    if (ret == 0)
     {
-        uint16_t attrnum = sc->lookup_attr(rn[i].attr);
-
-        if (attrnum == sc->attrs_sz)
-        {
-            *status = HYPERCLIENT_UNKNOWNATTR;
-            return -1 - eq_sz - i;
-        }
-
-        if (attrnum == 0)
-        {
-            *status = HYPERCLIENT_DONTUSEKEY;
-            return -1 - eq_sz - i;
-        }
-
-        if (seen.get(attrnum))
-        {
-            *status = HYPERCLIENT_DUPEATTR;
-            return -1 - eq_sz - i;
-        }
-
-        if ((sc->attrs[attrnum].type != HYPERDATATYPE_INT64) && (sc->attrs[attrnum].type != HYPERDATATYPE_FLOAT))
-        {
-            *status = HYPERCLIENT_WRONGTYPE;
-            return -1 - eq_sz - i;
-        }
-
-        seen.set(attrnum);
-        s->range_set(attrnum, rn[i].lower_t.i, rn[i].upper_t.i);
+        remove_op.dismiss();
+        op->set_client_visible_id(m_client_id);
+        ret = op->client_visible_id();
+        ++m_client_id;
     }
 
-    if (attr)
-    {
-        uint16_t attrnum = sc->lookup_attr(attr);
-
-        if (attrnum == sc->attrs_sz)
-        {
-            *status = HYPERCLIENT_UNKNOWNATTR;
-            return -1 - eq_sz - rn_sz;
-        }
-
-        *attrno = attrnum;
-        *attrtype = sc->attrs[attrnum].type;
-    }
-
-    // Get the hosts that match our search terms.
-    *search_entities = m_config->search_entities(m_config->space(space), *s);
-    return 0;
+    // We dismiss the fail_op guard no matter what because if ret < 0, then send
+    // already set the status to a more-detailed reason.
+    fail_op.dismiss();
+    return ret;
 }
 
 int64_t

@@ -33,7 +33,6 @@
 
 // HyperDex
 #include "hyperdex.h"
-#include "common/predicate.h"
 
 namespace hyperdex
 {
@@ -48,7 +47,7 @@ class attribute_check
         uint16_t attr;
         e::slice value;
         hyperdatatype datatype;
-        predicate pred;
+        hyperpredicate predicate;
 };
 
 bool
