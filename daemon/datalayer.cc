@@ -41,12 +41,15 @@
 #include "common/macros.h"
 #include "daemon/daemon.h"
 #include "daemon/datalayer.h"
+#include "datatypes/apply.h"
+#include "datatypes/microerror.h"
 
 using hyperdex::datalayer;
 using hyperdex::reconfigure_returncode;
 
-datalayer :: datalayer(daemon*)
-    : m_db(NULL)
+datalayer :: datalayer(daemon* d)
+    : m_daemon(d)
+    , m_db(NULL)
 {
 }
 
@@ -261,6 +264,69 @@ datalayer :: encode_key(const regionid& ri,
     *lkey = leveldb::Slice(&kbacking->front(), sz);
 }
 
+datalayer::returncode
+datalayer :: decode_key(const e::slice& lkey,
+                        regionid* ri,
+                        e::slice* key)
+{
+    const uint8_t* ptr = lkey.data();
+    const uint8_t* end = ptr + lkey.size();
+
+    if (ptr + sizeof(uint8_t) <= end)
+    {
+        uint8_t o;
+        ptr = e::unpack8be(ptr, &o);
+
+        if (o != 'o')
+        {
+            return BAD_ENCODING;
+        }
+    }
+    else
+    {
+        return BAD_ENCODING;
+    }
+
+    if (ptr + sizeof(uint64_t) <= end)
+    {
+        ptr = e::unpack64be(ptr, &ri->mask);
+    }
+    else
+    {
+        return BAD_ENCODING;
+    }
+
+    if (ptr + sizeof(uint32_t) <= end)
+    {
+        ptr = e::unpack32be(ptr, &ri->space);
+    }
+    else
+    {
+        return BAD_ENCODING;
+    }
+
+    if (ptr + sizeof(uint16_t) <= end)
+    {
+        ptr = e::unpack16be(ptr, &ri->subspace);
+    }
+    else
+    {
+        return BAD_ENCODING;
+    }
+
+    if (ptr + sizeof(uint8_t) <= end)
+    {
+        ptr = e::unpack8be(ptr, &ri->prefix);
+    }
+    else
+    {
+        return BAD_ENCODING;
+    }
+
+    *key = e::slice(ptr, end - ptr);
+    return SUCCESS;
+}
+
 void
 datalayer :: encode_value(const std::vector<e::slice>& attrs,
                           uint64_t version,
@@ -342,12 +408,21 @@ datalayer :: decode_value(const e::slice& value,
 }
 
 datalayer::returncode
-datalayer :: make_snapshot(const regionid& /*XXX ri*/,
-                           const predicate* /*XXX pred*/,
+datalayer :: make_snapshot(const regionid& ri,
+                           const attribute_check* checks, size_t checks_sz,
                            snapshot* snap)
 {
     snap->m_dl = this;
     snap->m_snap = m_db->GetSnapshot();
+    leveldb::ReadOptions opts;
+    opts.fill_cache = false;
+    opts.verify_checksums = true;
+    opts.snapshot = snap->m_snap;
+    snap->m_iter = m_db->NewIterator(opts);
+    snap->m_iter->SeekToFirst();
+    snap->m_ri = ri;
+    snap->m_checks = checks;
+    snap->m_checks_sz = checks_sz;
     return SUCCESS;
 }
 
@@ -387,6 +462,15 @@ hyperdex :: operator << (std::ostream& lhs, datalayer::returncode rhs)
 datalayer :: snapshot :: snapshot()
     : m_dl(NULL)
     , m_snap(NULL)
+    , m_iter(NULL)
+    , m_ri()
+    , m_checks()
+    , m_checks_sz()
+    , m_valid(false)
+    , m_error(SUCCESS)
+    , m_key()
+    , m_value()
+    , m_version()
 {
 }
 
@@ -399,4 +483,175 @@ datalayer :: snapshot :: ~snapshot() throw ()
     }
 
     assert(m_snap = NULL);
+}
+
+bool
+datalayer :: snapshot :: has_next()
+{
+    if (m_valid)
+    {
+        return true;
+    }
+
+    if (m_error != SUCCESS)
+    {
+        return false;
+    }
+
+    schema* sc = m_dl->m_daemon->m_config.get_schema(m_ri.get_space());
+    assert(sc);
+
+    while (m_iter->Valid())
+    {
+        if (!m_iter->status().ok())
+        {
+            if (m_iter->status().IsNotFound())
+            {
+                m_error = NOT_FOUND;
+            }
+            else if (m_iter->status().IsCorruption())
+            {
+                LOG(ERROR) << "corruption at the disk layer during iteration "
+                           << m_iter->status().ToString();
+                m_error = CORRUPTION;
+            }
+            else if (m_iter->status().IsIOError())
+            {
+                LOG(ERROR) << "IO error at the disk layer during iteration "
+                           << m_iter->status().ToString();
+                m_error = IO_ERROR;
+            }
+            else
+            {
+                LOG(ERROR) << "LevelDB returned an unknown error during iteration that we don't know how to handle";
+                m_error = LEVELDB_ERROR;
+            }
+
+            return false;
+        }
+
+        leveldb::Slice lkey = m_iter->key();
+        leveldb::Slice lval = m_iter->value();
+        e::slice ekey(reinterpret_cast<const uint8_t*>(lkey.data()), lkey.size());
+        e::slice eval(reinterpret_cast<const uint8_t*>(lval.data()), lval.size());
+
+        if (!ekey.size() || ekey.data()[0] != 'o')
+        {
+            m_iter->Next();
+            continue;
+        }
+
+        regionid ri;
+        returncode rc;
+        rc = m_dl->decode_key(ekey, &ri, &m_key);
+
+        if (ri != m_ri)
+        {
+            m_iter->Next();
+            continue;
+        }
+
+        switch (rc)
+        {
+            case SUCCESS:
+                break;
+            case BAD_ENCODING:
+            case NOT_FOUND:
+            case CORRUPTION:
+            case IO_ERROR:
+            case LEVELDB_ERROR:
+            default:
+                m_error = BAD_ENCODING;
+                return false;
+        }
+
+        rc = m_dl->decode_value(eval, &m_value, &m_version);
+
+        switch (rc)
+        {
+            case SUCCESS:
+                break;
+            case BAD_ENCODING:
+            case NOT_FOUND:
+            case CORRUPTION:
+            case IO_ERROR:
+            case LEVELDB_ERROR:
+            default:
+                m_error = BAD_ENCODING;
+                return false;
+        }
+
+        bool passes_checks = true;
+
+        for (size_t i = 0; passes_checks && i < m_checks_sz; ++i)
+        {
+            if (m_checks[i].attr >= sc->attrs_sz)
+            {
+                passes_checks = false;
+            }
+            else if (m_checks[i].attr == 0)
+            {
+                microerror e;
+                passes_checks = passes_attribute_check(sc->attrs[0].type, m_checks[i], m_key, &e);
+            }
+            else
+            {
+                hyperdatatype type = sc->attrs[m_checks[i].attr].type;
+                microerror e;
+                passes_checks = passes_attribute_check(type, m_checks[i], m_value[m_checks[i].attr - 1], &e);
+            }
+        }
+
+        if (!passes_checks)
+        {
+            m_iter->Next();
+            continue;
+        }
+
+        m_error = SUCCESS;
+        return true;
+    }
+
+    m_error = SUCCESS;
+    return false;
+}
+
+void
+datalayer :: snapshot :: next()
+{
+    m_valid = false;
+    m_iter->Next();
+}
+
+void
+datalayer :: snapshot :: get(e::slice* key, std::vector<e::slice>* val, uint64_t* ver)
+{
+    *key = m_key;
+    *val = m_value;
+    *ver = m_version;
+}
+
+void
+datalayer :: snapshot :: get(e::slice* key, std::vector<e::slice>* val, uint64_t* ver, reference* ref)
+{
+    ref->m_backing = std::string();
+    ref->m_backing += std::string(reinterpret_cast<const char*>(m_key.data()), m_key.size());
+
+    for (size_t i = 0; i < m_value.size(); ++i)
+    {
+        ref->m_backing += std::string(reinterpret_cast<const char*>(m_value[i].data()), m_value[i].size());
+    }
+
+    const uint8_t* ptr = reinterpret_cast<const uint8_t*>(ref->m_backing.data());
+    *key = e::slice(ptr, m_key.size());
+    ptr += m_key.size();
+    val->resize(m_value.size());
+
+    for (size_t i = 0; i < m_value.size(); ++i)
+    {
+        (*val)[i] = e::slice(ptr, m_value[i].size());
+        ptr += m_value[i].size();
+    }
+
+    *ver = m_version;
 }

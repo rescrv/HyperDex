@@ -84,6 +84,8 @@ class daemon
     private:
         friend class hyperdaemon::logical;
         friend class hyperdaemon::replication_manager;
+        friend class datalayer;
+        friend class search_manager;
 
     private:
         uint64_t m_token;

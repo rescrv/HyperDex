@@ -88,7 +88,7 @@ validate_map(bool (*step_key)(const uint8_t** ptr, const uint8_t* end, e::slice*
     bool \
     validate_as_map_ ## KEY_T ## _ ## VAL_T(const e::slice& value) \
     { \
-        return validate_map(step_ ## KEY_T, step_ ## VAL_T, compare_ ## KEY_T, value); \
+        return validate_map(step_ ## KEY_T, step_ ## VAL_T, compare_lt_ ## KEY_T, value); \
     }
 
 VALIDATE_MAP(string, string)
@@ -337,7 +337,7 @@ cmp_pair_first(const std::pair<e::slice, e::slice>& lhs,
     { \
         return apply_map(step_ ## KEY_T, step_ ## VAL_T, \
                          validate_as_ ## KEY_T, validate_as_ ## VAL_T, \
-                         cmp_pair_first<compare_ ## KEY_T>, \
+                         cmp_pair_first<compare_lt_ ## KEY_T>, \
                          write_ ## KEY_T, write_ ## VAL_T, \
                          apply_ ## VAL_T, \
                          HYPERDATATYPE_MAP_ ## KEY_TC ## _ ## VAL_TC, \

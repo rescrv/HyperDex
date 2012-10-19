@@ -77,7 +77,7 @@ validate_set(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice
     bool \
     validate_as_set_ ## TYPE(const e::slice& value) \
     { \
-        return validate_set(step_ ## TYPE, compare_ ## TYPE, value); \
+        return validate_set(step_ ## TYPE, compare_lt_ ## TYPE, value); \
     }
 
 VALIDATE_SET(string)
@@ -257,7 +257,7 @@ apply_set(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice* e
                        const funcall* funcs, size_t num_funcs, \
                        uint8_t* writeto, microerror* error) \
     { \
-        return apply_set(step_ ## TYPE, validate_as_ ## TYPE, compare_ ## TYPE, write_ ## TYPE, \
+        return apply_set(step_ ## TYPE, validate_as_ ## TYPE, compare_lt_ ## TYPE, write_ ## TYPE, \
                          HYPERDATATYPE_SET_ ## TYPECAPS, HYPERDATATYPE_ ## TYPECAPS, \
                          old_value, funcs, num_funcs, writeto, error); \
     }

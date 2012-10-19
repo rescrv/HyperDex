@@ -450,7 +450,17 @@ daemon :: process_req_search_start(entityid from,
                                    std::auto_ptr<e::buffer> msg,
                                    e::buffer::unpacker up)
 {
-    LOG(FATAL) << "NOT IMPLEMENTED";
+    uint64_t nonce;
+    uint64_t search_id;
+    std::vector<attribute_check> checks;
+
+    if ((up >> nonce >> search_id >> checks).error())
+    {
+        LOG(WARNING) << "unpack of REQ_SEARCH_START failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    m_sm.start(to, from, msg, nonce, search_id, &checks);
 }
 
 void
@@ -459,7 +469,16 @@ daemon :: process_req_search_next(entityid from,
                                   std::auto_ptr<e::buffer> msg,
                                   e::buffer::unpacker up)
 {
-    LOG(FATAL) << "NOT IMPLEMENTED";
+    uint64_t nonce;
+    uint64_t search_id;
+
+    if ((up >> nonce >> search_id).error())
+    {
+        LOG(WARNING) << "unpack of REQ_SEARCH_NEXT failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    m_sm.next(to, from, nonce, search_id);
 }
 
 void
@@ -468,7 +487,16 @@ daemon :: process_req_search_stop(entityid from,
                                   std::auto_ptr<e::buffer> msg,
                                   e::buffer::unpacker up)
 {
-    LOG(FATAL) << "NOT IMPLEMENTED";
+    uint64_t nonce;
+    uint64_t search_id;
+
+    if ((up >> nonce >> search_id).error())
+    {
+        LOG(WARNING) << "unpack of REQ_SEARCH_STOP failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    m_sm.stop(to, from, search_id);
 }
 
 void
@@ -477,7 +505,19 @@ daemon :: process_req_sorted_search(entityid from,
                                     std::auto_ptr<e::buffer> msg,
                                     e::buffer::unpacker up)
 {
-    LOG(FATAL) << "NOT IMPLEMENTED";
+    uint64_t nonce;
+    std::vector<attribute_check> checks;
+    uint64_t limit;
+    uint16_t sort_by;
+    uint8_t flags;
+
+    if ((up >> nonce >> checks >> limit >> sort_by >> flags).error())
+    {
+        LOG(WARNING) << "unpack of REQ_SORTED_SEARCH failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    m_sm.sorted_search(to, from, nonce, &checks, limit, sort_by, flags & 0x1);
 }
 
 void
@@ -486,7 +526,17 @@ daemon :: process_req_group_del(entityid from,
                                 std::auto_ptr<e::buffer> msg,
                                 e::buffer::unpacker up)
 {
-    LOG(FATAL) << "NOT IMPLEMENTED";
+    uint64_t nonce;
+    std::vector<attribute_check> checks;
+
+    if ((up >> nonce >> checks).error())
+    {
+        LOG(WARNING) << "unpack of REQ_GROUP_DEL failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    e::slice sl("\x01\x00\x00\x00\x00\x00\x00\x00\x00", 9);
+    m_sm.group_keyop(to, from, nonce, &checks, REQ_ATOMIC, sl, RESP_GROUP_DEL);
 }
 
 void
@@ -495,7 +545,16 @@ daemon :: process_req_count(entityid from,
                             std::auto_ptr<e::buffer> msg,
                             e::buffer::unpacker up)
 {
-    LOG(FATAL) << "NOT IMPLEMENTED";
+    uint64_t nonce;
+    std::vector<attribute_check> checks;
+
+    if ((up >> nonce >> checks).error())
+    {
+        LOG(WARNING) << "unpack of REQ_COUNT failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    m_sm.count(to, from, nonce, &checks);
 }
 
 void
@@ -573,113 +632,3 @@ daemon :: process_chain_ack(entityid from,
 
     m_repl.chain_ack(from, to, version, msg, key);
 }
-
-#if 0
-        else if (type == hyperdex::REQ_SEARCH_START)
-        {
-            uint64_t searchid;
-            hyperspacehashing::search s(0);
-
-            if ((up >> nonce >> searchid >> s).error())
-            {
-                LOG(WARNING) << "unpack of REQ_SEARCH_START failed; here's some hex:  " << msg->hex();
-                continue;
-            }
-
-            if (s.sanity_check())
-            {
-                m_ssss->start(to, from, searchid, nonce, msg, s);
-            }
-            else
-            {
-                LOG(INFO) << "Dropping search which fails sanity_check.";
-            }
-        }
-        else if (type == hyperdex::REQ_SEARCH_NEXT)
-        {
-            uint64_t searchid;
-
-            if ((up >> nonce >> searchid).error())
-            {
-                LOG(WARNING) << "unpack of REQ_SEARCH_NEXT failed; here's some hex:  " << msg->hex();
-                continue;
-            }
-
-            m_ssss->next(to, from, searchid, nonce);
-        }
-        else if (type == hyperdex::REQ_SEARCH_STOP)
-        {
-            uint64_t searchid;
-
-            if ((up >> nonce >> searchid).error())
-            {
-                LOG(WARNING) << "unpack of REQ_SEARCH_STOP failed; here's some hex:  " << msg->hex();
-                continue;
-            }
-
-            m_ssss->stop(to, from, searchid);
-        }
-        else if (type == hyperdex::REQ_SORTED_SEARCH)
-        {
-            hyperspacehashing::search s(0);
-            uint64_t limit = 0;
-            uint16_t attrno = 0;
-            int8_t max = 0;
-
-            if ((up >> nonce >> s >> limit >> attrno >> max).error())
-            {
-                LOG(WARNING) << "unpack of REQ_SEARCH_STOP failed; here's some hex:  " << msg->hex();
-                continue;
-            }
-
-            if (s.sanity_check())
-            {
-                m_ssss->sorted_search(to, from, nonce, s, limit, attrno, max != 0);
-            }
-            else
-            {
-                LOG(INFO) << "Dropping sorted_search which fails sanity_check.";
-            }
-        }
-        else if (type == hyperdex::REQ_GROUP_DEL)
-        {
-            hyperspacehashing::search s(0);
-
-            if ((up >> nonce >> s).error())
-            {
-                LOG(WARNING) << "unpack of REQ_GROUP_DEL failed; here's some hex:  " << msg->hex();
-                continue;
-            }
-
-            hyperdex::network_msgtype mt(hyperdex::REQ_ATOMIC);
-            e::slice sl("\x01\x00\x00\x00\x00\x00\x00\x00\x00", 9);
-
-            if (s.sanity_check())
-            {
-                m_ssss->group_keyop(to, from, nonce, s, mt, sl);
-            }
-            else
-            {
-                LOG(INFO) << "Dropping group_del which fails sanity_check.";
-            }
-        }
-        else if (type == hyperdex::REQ_COUNT)
-        {
-            hyperspacehashing::search s(0);
-
-            if ((up >> nonce >> s).error())
-            {
-                LOG(WARNING) << "unpack of REQ_COUNT failed; here's some hex:  " << msg->hex();
-                continue;
-            }
-
-            if (s.sanity_check())
-            {
-                m_ssss->count(to, from, nonce, s);
-            }
-            else
-            {
-                LOG(INFO) << "Dropping count which fails sanity_check.";
-            }
-        }
-#endif

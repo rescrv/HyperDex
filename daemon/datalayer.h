@@ -38,7 +38,7 @@
 #include <po6/pathname.h>
 
 // HyperDex
-#include "common/predicate.h"
+#include "common/attribute_check.h"
 #include "common/schema.h"
 #include "daemon/reconfigure_returncode.h"
 #include "hyperdex/hyperdex/ids.h"
@@ -94,7 +94,8 @@ class datalayer
         returncode del(const regionid& ri,
                        const e::slice& key);
         returncode make_snapshot(const regionid& ri,
-                                 const predicate* pred,
+                                 const attribute_check* checks,
+                                 size_t checks_sz,
                                  snapshot* snap);
 
     private:
@@ -106,6 +107,9 @@ class datalayer
                         const e::slice& key,
                         std::vector<char>* kbacking,
                         leveldb::Slice* lkey);
+        returncode decode_key(const e::slice& lkey,
+                              regionid* ri,
+                              e::slice* key);
         void encode_value(const std::vector<e::slice>& attrs,
                           uint64_t version,
                           std::vector<char>* backing,
@@ -115,6 +119,7 @@ class datalayer
                                 uint64_t* version);
 
     private:
+        daemon* m_daemon;
         leveldb::DB* m_db;
 };
 
@@ -140,6 +145,12 @@ class datalayer::snapshot
         snapshot();
         ~snapshot() throw ();
 
+    public:
+        bool has_next();
+        void next();
+        void get(e::slice* key, std::vector<e::slice>* val, uint64_t* ver);
+        void get(e::slice* key, std::vector<e::slice>* val, uint64_t* ver, reference* ref);
+
     private:
         friend class datalayer;
         snapshot(const snapshot&);
@@ -148,6 +159,15 @@ class datalayer::snapshot
     private:
         datalayer* m_dl;
         const leveldb::Snapshot* m_snap;
+        leveldb::Iterator* m_iter;
+        regionid m_ri;
+        const attribute_check* m_checks;
+        size_t m_checks_sz;
+        bool m_valid;
+        returncode m_error;
+        e::slice m_key;
+        std::vector<e::slice> m_value;
+        uint64_t m_version;
 };
 
 std::ostream&

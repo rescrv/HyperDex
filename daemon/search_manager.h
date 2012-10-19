@@ -35,6 +35,7 @@
 #include "daemon/datalayer.h"
 #include "daemon/reconfigure_returncode.h"
 #include "hyperdaemon/logical.h"
+#include "hyperdex/hyperdex/network_constants.h"
 
 namespace hyperdex
 {
@@ -59,38 +60,37 @@ class search_manager
                                        const instance& us);
 
     public:
-#if 0
         void start(const entityid& us,
                    const entityid& client,
-                   uint64_t search_num,
-                   uint64_t nonce,
                    std::auto_ptr<e::buffer> msg,
-                   const hyperspacehashing::search& wc);
+                   uint64_t nonce,
+                   uint64_t search_id,
+                   std::vector<attribute_check>* checks);
         void next(const entityid& us,
                   const entityid& client,
-                  uint64_t search_num,
-                  uint64_t nonce);
+                  uint64_t nonce,
+                  uint64_t search_id);
         void stop(const entityid& us,
                   const entityid& client,
-                  uint64_t search_num);
-        void group_keyop(const entityid& us,
-                         const entityid& client,
-                         uint64_t nonce,
-                         const hyperspacehashing::search& terms,
-                         enum network_msgtype,
-                         const e::slice& remain);
-        void count(const entityid& us,
-                   const entityid& client,
-                   uint64_t nonce,
-                   const hyperspacehashing::search& terms);
+                  uint64_t search_id);
         void sorted_search(const entityid& us,
                            const entityid& client,
                            uint64_t nonce,
-                           const hyperspacehashing::search& terms,
-                           uint64_t num,
+                           std::vector<attribute_check>* checks,
+                           uint64_t limit,
                            uint16_t sort_by,
                            bool maximize);
-#endif
+        void group_keyop(const entityid& us,
+                         const entityid& client,
+                         uint64_t nonce,
+                         std::vector<attribute_check>* checks,
+                         network_msgtype mt,
+                         const e::slice& remain,
+                         network_msgtype resp);
+        void count(const entityid& us,
+                   const entityid& client,
+                   uint64_t nonce,
+                   std::vector<attribute_check>* checks);
 
     private:
         class id;

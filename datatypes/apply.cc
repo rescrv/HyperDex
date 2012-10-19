@@ -33,7 +33,7 @@
 using hyperdex::attribute_check;
 using hyperdex::funcall;
 
-static bool
+bool
 passes_attribute_check(hyperdatatype type,
                        const attribute_check& check,
                        const e::slice& value,

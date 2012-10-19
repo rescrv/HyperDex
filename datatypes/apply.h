@@ -42,6 +42,12 @@
 #include "common/schema.h"
 #include "datatypes/microerror.h"
 
+bool
+passes_attribute_check(hyperdatatype type,
+                       const hyperdex::attribute_check& check,
+                       const e::slice& value,
+                       microerror* error);
+
 size_t
 perform_checks_and_apply_funcs(const hyperdex::schema* sc,
                                const std::vector<hyperdex::attribute_check>& checks,
