@@ -71,6 +71,7 @@ hyperclient :: pending_count :: handle_response(hyperclient* cl,
     e::buffer::unpacker up = msg->unpack_from(HYPERCLIENT_HEADER_SIZE);
     uint64_t result;
     up = up >> result;
+    *m_result += result;
 
     if (up.error())
     {

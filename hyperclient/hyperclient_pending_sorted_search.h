@@ -41,7 +41,7 @@ class hyperclient::pending_sorted_search : public hyperclient::pending
 
     public:
         pending_sorted_search(int64_t searchid,
-                              e::intrusive_ptr<state> refcount,
+                              e::intrusive_ptr<state> st,
                               hyperclient_returncode* status,
                               hyperclient_attribute** attrs,
                               size_t* attrs_sz);
@@ -69,20 +69,6 @@ class hyperclient::pending_sorted_search : public hyperclient::pending
         size_t* m_attrs_sz;
 };
 
-class sorted_search_item
-{
-    public:
-        sorted_search_item(const e::slice& key,
-                           const std::vector<e::slice>& value,
-                           uint16_t sort_by);
-        ~sorted_search_item() throw ();
-
-    public:
-        uint16_t sort_by;
-        e::slice key;
-        std::vector<e::slice> value;
-};
-
 class hyperclient::pending_sorted_search::state
 {
     public:
@@ -94,6 +80,7 @@ class hyperclient::pending_sorted_search::state
     private:
         friend class e::intrusive_ptr<hyperclient::pending_sorted_search::state>;
         friend class hyperclient::pending_sorted_search;
+        class item;
 
     private:
         state(const state&);
@@ -109,11 +96,12 @@ class hyperclient::pending_sorted_search::state
         size_t m_ref;
         const uint64_t m_limit;
         const uint16_t m_sort_by;
-        std::vector<sorted_search_item> m_results;
+        hyperdatatype m_sort_type;
+        bool m_maximize;
+        std::vector<item> m_results;
         std::auto_ptr<e::buffer>* m_backings;
         size_t m_backing_idx;
         size_t m_returned;
-        bool (*m_cmp)(const sorted_search_item& lhs, const sorted_search_item& rhs);
 };
 
 #endif // hyperclient_pending_sorted_search_h_

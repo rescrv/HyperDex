@@ -435,6 +435,7 @@ hyperclient :: count(const char* space,
         }
     }
 
+    // Set it to success to make sure that we detect errors
     *status = HYPERCLIENT_SUCCESS;
     return count_id;
 }

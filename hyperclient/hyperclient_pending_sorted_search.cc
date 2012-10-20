@@ -32,10 +32,32 @@
 #include <e/endian.h>
 
 // HyperClient
+#include "datatypes/compare.h"
 #include "hyperclient/constants.h"
 #include "hyperclient/hyperclient_completedop.h"
 #include "hyperclient/hyperclient_pending_sorted_search.h"
 #include "hyperclient/util.h"
+
+class hyperclient::pending_sorted_search::state::item
+{
+    public:
+        item();
+        item(pending_sorted_search::state* st,
+             const e::slice& key,
+             const std::vector<e::slice>& value);
+        item(const item&);
+        ~item() throw ();
+
+    public:
+        item& operator = (const item&);
+        bool operator < (const item&) const;
+        bool operator > (const item&) const;
+
+    public:
+        pending_sorted_search::state* st;
+        e::slice key;
+        std::vector<e::slice> value;
+};
 
 hyperclient :: pending_sorted_search :: pending_sorted_search(int64_t searchid,
                                                               e::intrusive_ptr<state> st,
@@ -98,14 +120,12 @@ hyperclient :: pending_sorted_search :: handle_response(hyperclient* cl,
             return 0;
         }
 
-        m_state->m_results.push_back(sorted_search_item(key, value, m_state->m_sort_by));
-        std::push_heap(m_state->m_results.begin(), m_state->m_results.end(), m_state->m_cmp);
+        m_state->m_results.push_back(state::item(m_state.get(), key, value));
+        std::push_heap(m_state->m_results.begin(), m_state->m_results.end());
 
         if (m_state->m_results.size() > m_state->m_limit)
         {
-            std::pop_heap(m_state->m_results.begin(), m_state->m_results.end(), m_state->m_cmp);
-            // XXX may optimize here:  assume server results are sorted.  If we pop
-            // what was just pushed, then break.
+            std::pop_heap(m_state->m_results.begin(), m_state->m_results.end());
             m_state->m_results.pop_back();
         }
     }
@@ -115,7 +135,7 @@ hyperclient :: pending_sorted_search :: handle_response(hyperclient* cl,
 
     if (m_state->m_ref == 1)
     {
-        std::sort(m_state->m_results.begin(), m_state->m_results.end(), m_state->m_cmp);
+        std::sort(m_state->m_results.begin(), m_state->m_results.end(), std::greater<state::item>());
 
         for (size_t i = 0; i < m_state->m_results.size(); ++i)
         {
@@ -163,69 +183,96 @@ hyperclient :: pending_sorted_search :: return_one(hyperclient* cl,
     return client_visible_id();
 }
 
-sorted_search_item :: sorted_search_item(const e::slice& _key,
-                                         const std::vector<e::slice>& _value,
-                                         uint16_t _sort_by)
-    : sort_by(_sort_by)
+hyperclient :: pending_sorted_search :: state :: item :: item()
+    : st(NULL)
+    , key()
+    , value()
+{
+}
+
+hyperclient :: pending_sorted_search :: state :: item :: item(pending_sorted_search::state* _st,
+                                                              const e::slice& _key,
+                                                              const std::vector<e::slice>& _value)
+    : st(_st)
     , key(_key)
     , value(_value)
 {
 }
 
-sorted_search_item :: ~sorted_search_item() throw ()
+hyperclient :: pending_sorted_search :: state :: item :: item(const item& other)
+    : st(other.st)
+    , key(other.key)
+    , value(other.value)
 {
 }
 
-// XXX This duplicates code in the daemon.
-static bool
-sorted_search_lt_string(const sorted_search_item& ssilhs,
-                        const sorted_search_item& ssirhs)
+hyperclient :: pending_sorted_search :: state :: item :: ~item() throw ()
 {
-    assert(ssilhs.sort_by == ssirhs.sort_by);
-    e::slice lhs(ssilhs.sort_by > 0 ? ssilhs.value[ssilhs.sort_by - 1] : ssilhs.key);
-    e::slice rhs(ssirhs.sort_by > 0 ? ssirhs.value[ssirhs.sort_by - 1] : ssirhs.key);
-    int cmp = memcmp(lhs.data(), rhs.data(), std::min(lhs.size(), rhs.size()));
+}
 
-    if (cmp == 0)
+hyperclient::pending_sorted_search::state::item&
+hyperclient :: pending_sorted_search :: state :: item :: operator = (const item& other)
+{
+    st = other.st;
+    key = other.key;
+    value = other.value;
+    return *this;
+}
+
+bool
+hyperclient :: pending_sorted_search :: state :: item :: operator < (const item& rhs) const
+{
+    const item& lhs(*this);
+    assert(lhs.st == rhs.st);
+    int cmp = 0;
+
+    if (st->m_sort_by == 0)
     {
-        return lhs.size() < rhs.size();
+        cmp = compare_as_type(lhs.key, rhs.key, st->m_sort_type);
+    }
+    else
+    {
+        cmp = compare_as_type(lhs.value[st->m_sort_by - 1],
+                              rhs.value[st->m_sort_by - 1],
+                              st->m_sort_type);
     }
 
-    return cmp < 0;
+    if (st->m_maximize)
+    {
+        return cmp < 0;
+    }
+    else
+    {
+        return cmp > 0;
+    }
 }
 
-static bool
-sorted_search_gt_string(const sorted_search_item& lhs,
-                        const sorted_search_item& rhs)
+bool
+hyperclient :: pending_sorted_search :: state :: item :: operator > (const item& rhs) const
 {
-    return sorted_search_lt_string(rhs, lhs);
-}
+    const item& lhs(*this);
+    assert(lhs.st == rhs.st);
+    int cmp = 0;
 
-static bool
-sorted_search_lt_int64(const sorted_search_item& ssilhs,
-                       const sorted_search_item& ssirhs)
-{
-    assert(ssilhs.sort_by == ssirhs.sort_by);
-    e::slice lhs(ssilhs.sort_by > 0 ? ssilhs.value[ssilhs.sort_by - 1] : ssilhs.key);
-    e::slice rhs(ssirhs.sort_by > 0 ? ssirhs.value[ssirhs.sort_by - 1] : ssirhs.key);
-    uint8_t buflhs[sizeof(int64_t)];
-    uint8_t bufrhs[sizeof(int64_t)];
-    memset(buflhs, 0, sizeof(int64_t));
-    memset(bufrhs, 0, sizeof(int64_t));
-    memmove(buflhs, lhs.data(), lhs.size());
-    memmove(bufrhs, rhs.data(), rhs.size());
-    int64_t ilhs;
-    int64_t irhs;
-    e::unpack64le(buflhs, &ilhs);
-    e::unpack64le(bufrhs, &irhs);
-    return ilhs < irhs;
-}
+    if (st->m_sort_by == 0)
+    {
+        cmp = compare_as_type(lhs.key, rhs.key, st->m_sort_type);
+    }
+    else
+    {
+        cmp = compare_as_type(lhs.value[st->m_sort_by - 1],
+                              rhs.value[st->m_sort_by - 1],
+                              st->m_sort_type);
+    }
 
-static bool
-sorted_search_gt_int64(const sorted_search_item& lhs,
-                       const sorted_search_item& rhs)
-{
-    return sorted_search_lt_int64(rhs, lhs);
+    if (st->m_maximize)
+    {
+        return cmp > 0;
+    }
+    else
+    {
+        return cmp < 0;
+    }
 }
 
 hyperclient :: pending_sorted_search :: state :: state(std::auto_ptr<e::buffer>* backings,
@@ -236,38 +283,13 @@ hyperclient :: pending_sorted_search :: state :: state(std::auto_ptr<e::buffer>*
     : m_ref(0)
     , m_limit(_limit)
     , m_sort_by(_sort_by)
+    , m_sort_type(type)
+    , m_maximize(maximize)
     , m_results()
     , m_backings(backings)
     , m_backing_idx(0)
     , m_returned(0)
-    , m_cmp()
 {
-    if (type == HYPERDATATYPE_STRING)
-    {
-        if (maximize)
-        {
-            m_cmp = sorted_search_gt_string;
-        }
-        else
-        {
-            m_cmp = sorted_search_lt_string;
-        }
-    }
-    else if (type == HYPERDATATYPE_INT64)
-    {
-        if (maximize)
-        {
-            m_cmp = sorted_search_gt_int64;
-        }
-        else
-        {
-            m_cmp = sorted_search_lt_int64;
-        }
-    }
-    else
-    {
-        abort();
-    }
 }
 
 hyperclient :: pending_sorted_search :: state :: ~state() throw ()

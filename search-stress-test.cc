@@ -35,7 +35,7 @@
 #include "test/common.h"
 #include "hyperclient/hyperclient.h"
 
-#define SEARCH_STRESS_TIMEOUT 100000
+#define SEARCH_STRESS_TIMEOUT(TESTNO) (10000)
 
 const char* colnames[] = {"bit01", "bit02", "bit03", "bit04", "bit05", "bit06",
                           "bit07", "bit08", "bit09", "bit10", "bit11", "bit12",
@@ -43,6 +43,8 @@ const char* colnames[] = {"bit01", "bit02", "bit03", "bit04", "bit05", "bit06",
                           "bit19", "bit20", "bit21", "bit22", "bit23", "bit24",
                           "bit25", "bit26", "bit27", "bit28", "bit29", "bit30",
                           "bit31", "bit32"};
+
+static unsigned long random_iters = 16;
 
 extern "C"
 {
@@ -141,16 +143,73 @@ count(size_t testno,
       const struct hyperclient_attribute_check* checks, size_t checks_sz,
       size_t expected);
 
+static void
+all_search_tests(size_t testno,
+                 hyperclient* cl,
+                 const std::vector<bool>& expecting);
+
 void
 test(hyperclient* cl)
 {
-    for (size_t i = 0; i < 16; ++i)
+    group_del(16, cl, NULL, 0); // clear everything
+    srand(0xdeadbeef); // yes, I know rand+mod is bad
+    hyperclient_attribute_check chk;
+    chk.datatype = HYPERDATATYPE_STRING;
+    chk.predicate = HYPERPREDICATE_EQUALS;
+
+    // Until busybee is fixed, we cannot do tests 12+
+    for (size_t testno = 0; testno < 10; ++testno)
     {
-        empty(i, cl);
-        populate(i, cl);
-        //count(i, cl, NULL, 0, 1ULL << i);
-        empty(i, cl);
-        HYPERDEX_TEST_SUCCESS(i);
+        // Check that we start out clean
+        empty(testno, cl);
+        // Populate with all items we expect
+        populate(testno, cl);
+        std::vector<bool> expecting(1ULL << testno, true);
+        all_search_tests(testno, cl, expecting);
+        // group_del everything that is even
+        chk.attr = colnames[0];
+        chk.value = "0";
+        chk.value_sz = 1;
+        group_del(testno, cl, &chk, 1);
+
+        for (size_t i = 0; i < expecting.size(); ++i)
+        {
+            if (!(i & 1))
+            {
+                expecting[i] = false;
+            }
+        }
+
+        all_search_tests(testno, cl, expecting);
+        // take out the upper half of the objects
+        chk.attr = colnames[testno > 0 ? testno - 1 : 0];
+        chk.value = "1";
+        chk.value_sz = 1;
+        group_del(testno, cl, &chk, 1);
+
+        for (size_t i = expecting.size() / 2; i < expecting.size(); ++i)
+        {
+            expecting[i] = false;
+        }
+
+        all_search_tests(testno, cl, expecting);
+        // take out the lower quarter of the objects
+        chk.attr = colnames[testno > 1 ? testno - 2 : 0];
+        chk.value = "0";
+        chk.value_sz = 1;
+        group_del(testno, cl, &chk, 1);
+
+        for (size_t i = 0; i < expecting.size() / 4; ++i)
+        {
+            expecting[i] = false;
+        }
+
+        all_search_tests(testno, cl, expecting);
+        // Blow it all away
+        group_del(testno, cl, NULL, 0);
+        // Check to make sure everything is gone.
+        empty(testno, cl);
+        HYPERDEX_TEST_SUCCESS(testno);
     }
 }
 
@@ -190,7 +249,7 @@ populate(size_t testno,
         }
 
         char bufle[sizeof(uint64_t)];
-        e::pack64le(number, bufle);
+        e::pack64be(number, bufle);
         hyperclient_returncode pstatus;
         int64_t pid = cl->put(hyperdex_test_space, bufle, sizeof(uint64_t), attrs, 32, &pstatus);
 
@@ -200,7 +259,7 @@ populate(size_t testno,
         }
 
         hyperclient_returncode lstatus;
-        int64_t lid = cl->loop(SEARCH_STRESS_TIMEOUT, &lstatus);
+        int64_t lid = cl->loop(SEARCH_STRESS_TIMEOUT(testno), &lstatus);
 
         if (lid < 0)
         {
@@ -225,11 +284,11 @@ search(size_t testno,
        const struct hyperclient_attribute_check* checks, size_t checks_sz,
        const std::vector<bool>& expected)
 {
-    const std::vector<bool> seen(expected.size(), false);
-    hyperclient_attribute* attr;
-    size_t attr_sz;
+    std::vector<bool> seen(expected.size(), false);
+    hyperclient_attribute* attrs;
+    size_t attrs_sz;
     hyperclient_returncode sstatus = HYPERCLIENT_SUCCESS;
-    int64_t sid = cl->search(hyperdex_test_space, checks, checks_sz, &sstatus, &attr, &attr_sz);
+    int64_t sid = cl->search(hyperdex_test_space, checks, checks_sz, &sstatus, &attrs, &attrs_sz);
 
     if (sid < 0)
     {
@@ -239,7 +298,7 @@ search(size_t testno,
     while (true)
     {
         hyperclient_returncode lstatus;
-        int64_t lid = cl->loop(SEARCH_STRESS_TIMEOUT, &lstatus);
+        int64_t lid = cl->loop(SEARCH_STRESS_TIMEOUT(testno), &lstatus);
 
         if (lid < 0)
         {
@@ -258,7 +317,80 @@ search(size_t testno,
 
         if (sstatus == HYPERCLIENT_SUCCESS)
         {
-            // XXX check that we've not yet seen it
+            if (attrs_sz != 33)
+            {
+                HYPERDEX_TEST_FAIL(testno, "operation " << sid << " (search) returned " << attrs_sz
+                                           << " attributes instead of 33");
+            }
+
+            if (strcmp(attrs[0].attr, "number") != 0)
+            {
+                HYPERDEX_TEST_FAIL(testno, "operation " << sid << " (search) key was field \""
+                                           << attrs[0].attr << "\" but should have been field \"number\"");
+            }
+
+            if (attrs[0].value_sz != sizeof(uint64_t))
+            {
+                HYPERDEX_TEST_FAIL(testno, "operation " << sid << " (search) key has size "
+                                           << attrs[0].value_sz << " bytes, but should be sizeof(int64_t)");
+            }
+
+            int64_t num = 0;
+            e::unpack64be(attrs[0].value, &num);
+
+            if (num >= (1LL << testno))
+            {
+                HYPERDEX_TEST_FAIL(testno, "operation " << sid << " (search) number " << num << " outside range");
+            }
+
+            if (seen[num])
+            {
+                HYPERDEX_TEST_FAIL(testno, "operation " << sid << " (search) number " << num << " already seen");
+            }
+
+            seen[num] = true;
+
+            if (!expected[num])
+            {
+                HYPERDEX_TEST_FAIL(testno, "operation " << sid << " (search) number " << num << " not expected");
+            }
+
+            for (size_t i = 0; i < 32; ++i)
+            {
+                if (strcmp(attrs[i + 1].attr, colnames[i]) != 0)
+                {
+                    HYPERDEX_TEST_FAIL(testno, "operation " << sid << " (search) key was field \""
+                                               << attrs[i + 1].attr << "\" but should have been field \""
+                                               << colnames[i] << "\"");
+                }
+
+                if (attrs[i + 1].value_sz != 1)
+                {
+                    HYPERDEX_TEST_FAIL(testno, "operation " << sid << " (search) attribute has size "
+                                               << attrs[i + 1].value_sz << " bytes, but should be 1");
+                }
+
+                if (*attrs[i + 1].value == '1')
+                {
+                    if (!(num & (1ULL << i)))
+                    {
+                        HYPERDEX_TEST_FAIL(testno, "operation " << sid << " (search) bit " << i
+                                                   << " not set for number " << num);
+                    }
+                }
+                else if (*attrs[i + 1].value == '0')
+                {
+                    if ((num & (1ULL << i)))
+                    {
+                        HYPERDEX_TEST_FAIL(testno, "operation " << sid << " (search) bit " << i
+                                                   << " set for number " << num);
+                    }
+                }
+                else
+                {
+                    HYPERDEX_TEST_FAIL(testno, "operation " << sid << " (search) bit not '0' or '1' (is " << (int)*attrs[i + 1].value << "d)");
+                }
+            }
         }
 
         if (sstatus == HYPERCLIENT_SEARCHDONE)
@@ -282,21 +414,23 @@ sorted_search(size_t testno,
               const struct hyperclient_attribute_check* checks, size_t checks_sz,
               const std::vector<bool>& expected)
 {
-    const std::vector<bool> seen(expected.size(), false);
-    hyperclient_attribute* attr;
-    size_t attr_sz;
+    std::vector<bool> seen(expected.size(), false);
+    hyperclient_attribute* attrs;
+    size_t attrs_sz;
     hyperclient_returncode sstatus = HYPERCLIENT_SUCCESS;
-    int64_t sid = cl->sorted_search(hyperdex_test_space, checks, checks_sz, "number", 1ULL << testno, true, &sstatus, &attr, &attr_sz);
+    int64_t sid = cl->sorted_search(hyperdex_test_space, checks, checks_sz, "number", 1ULL << testno, false, &sstatus, &attrs, &attrs_sz);
 
     if (sid < 0)
     {
         HYPERDEX_TEST_FAIL(testno, "sorted_search encountered error " << sstatus);
     }
 
+    int64_t old_num = 0;
+
     while (true)
     {
         hyperclient_returncode lstatus;
-        int64_t lid = cl->loop(SEARCH_STRESS_TIMEOUT, &lstatus);
+        int64_t lid = cl->loop(SEARCH_STRESS_TIMEOUT(testno), &lstatus);
 
         if (lid < 0)
         {
@@ -315,8 +449,87 @@ sorted_search(size_t testno,
 
         if (sstatus == HYPERCLIENT_SUCCESS)
         {
-            // XXX check that we've not yet seen it
-            // XXX check that it is in order
+            if (attrs_sz != 33)
+            {
+                HYPERDEX_TEST_FAIL(testno, "operation " << sid << " (sorted_search) returned " << attrs_sz
+                                           << " attributes instead of 33");
+            }
+
+            if (strcmp(attrs[0].attr, "number") != 0)
+            {
+                HYPERDEX_TEST_FAIL(testno, "operation " << sid << " (sorted_search) key was field \""
+                                           << attrs[0].attr << "\" but should have been field \"number\"");
+            }
+
+            if (attrs[0].value_sz != sizeof(uint64_t))
+            {
+                HYPERDEX_TEST_FAIL(testno, "operation " << sid << " (sorted_search) key has size "
+                                           << attrs[0].value_sz << " bytes, but should be sizeof(int64_t)");
+            }
+
+            int64_t num = 0;
+            e::unpack64be(attrs[0].value, &num);
+
+            if (num >= (1LL << testno))
+            {
+                HYPERDEX_TEST_FAIL(testno, "operation " << sid << " (sorted_search) number " << num << " outside range");
+            }
+
+            if (num < old_num)
+            {
+                HYPERDEX_TEST_FAIL(testno, "operation " << sid << " (sorted_search) number " << num << " out of order (prev was " << old_num << ")");
+            }
+
+            old_num = num;
+
+            if (seen[num])
+            {
+                HYPERDEX_TEST_FAIL(testno, "operation " << sid << " (sorted_search) number " << num << " already seen");
+            }
+
+            seen[num] = true;
+
+            if (!expected[num])
+            {
+                HYPERDEX_TEST_FAIL(testno, "operation " << sid << " (sorted_search) number " << num << " not expected");
+            }
+
+            for (size_t i = 0; i < 32; ++i)
+            {
+                if (strcmp(attrs[i + 1].attr, colnames[i]) != 0)
+                {
+                    HYPERDEX_TEST_FAIL(testno, "operation " << sid << " (sorted_search) key was field \""
+                                               << attrs[i + 1].attr << "\" but should have been field \""
+                                               << colnames[i] << "\"");
+                }
+
+                if (attrs[i + 1].value_sz != 1)
+                {
+                    HYPERDEX_TEST_FAIL(testno, "operation " << sid << " (sorted_search) attribute has size "
+                                               << attrs[i + 1].value_sz << " bytes, but should be 1");
+                }
+
+                if (*attrs[i + 1].value == '1')
+                {
+                    if (!(num & (1ULL << i)))
+                    {
+                        HYPERDEX_TEST_FAIL(testno, "operation " << sid << " (sorted_search) bit " << i
+                                                   << " not set for number " << num);
+                    }
+                }
+                else if (*attrs[i + 1].value == '0')
+                {
+                    if ((num & (1ULL << i)))
+                    {
+                        HYPERDEX_TEST_FAIL(testno, "operation " << sid << " (sorted_search) bit " << i
+                                                   << " set for number " << num);
+                    }
+                }
+                else
+                {
+                    HYPERDEX_TEST_FAIL(testno, "operation " << sid << " (sorted_search) bit not '0' or '1' (is " << (int)*attrs[i + 1].value << "d)");
+                }
+            }
         }
 
         if (sstatus == HYPERCLIENT_SEARCHDONE)
@@ -348,7 +561,7 @@ group_del(size_t testno,
     }
 
     hyperclient_returncode lstatus;
-    int64_t lid = cl->loop(SEARCH_STRESS_TIMEOUT, &lstatus);
+    int64_t lid = cl->loop(SEARCH_STRESS_TIMEOUT(testno), &lstatus);
 
     if (lid < 0)
     {
@@ -382,7 +595,7 @@ count(size_t testno,
     }
 
     hyperclient_returncode lstatus;
-    int64_t lid = cl->loop(SEARCH_STRESS_TIMEOUT, &lstatus);
+    int64_t lid = cl->loop(SEARCH_STRESS_TIMEOUT(testno), &lstatus);
 
     if (lid < 0)
     {
@@ -401,6 +614,57 @@ count(size_t testno,
 
     if (c != expected)
     {
-        HYPERDEX_TEST_FAIL(testno, "counted " << c << " objects when we should have counted " << expected << "objects");
+        HYPERDEX_TEST_FAIL(testno, "counted " << c << " objects when we should have counted " << expected << " objects");
+    }
+}
+
+static void
+setup_random_search(size_t testno,
+                    hyperclient_attribute_check* chks,
+                    size_t* chks_sz,
+                    std::vector<bool>* expecting)
+{
+    *chks_sz = 0;
+    // XXX
+}
+
+void
+all_search_tests(size_t testno,
+                 hyperclient* cl,
+                 const std::vector<bool>& expecting)
+{
+    search(testno, cl, NULL, 0, expecting);
+    sorted_search(testno, cl, NULL, 0, expecting);
+    size_t num = 0;
+
+    for (size_t i = 0; i < expecting.size(); ++i)
+    {
+        if (expecting[i])
+        {
+            ++num;
+        }
+    }
+
+    count(testno, cl, NULL, 0, num);
+    hyperclient_attribute_check chks[32];
+
+    for (size_t i = 0; i < random_iters; ++i)
+    {
+        size_t chks_sz;
+        std::vector<bool> subset_expecting(expecting);
+        setup_random_search(testno, chks, &chks_sz, &subset_expecting);
+        search(testno, cl, chks, chks_sz, expecting);
+        sorted_search(testno, cl, chks, chks_sz, expecting);
+        num = 0;
+
+        for (size_t j = 0; j < subset_expecting.size(); ++j)
+        {
+            if (subset_expecting[j])
+            {
+                ++num;
+            }
+        }
+
+        count(testno, cl, chks, chks_sz, num);
     }
 }

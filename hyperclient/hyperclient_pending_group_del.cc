@@ -68,6 +68,7 @@ hyperclient :: pending_group_del :: handle_response(hyperclient* cl,
 
     if (--*m_refcount == 0)
     {
+        set_status(HYPERCLIENT_SUCCESS);
         return client_visible_id();
     }
     else

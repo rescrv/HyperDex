@@ -336,6 +336,40 @@ operator < (const _sorted_search_item& lhs, const _sorted_search_item& rhs)
 
     if (params->maximize)
     {
+        return cmp < 0;
+    }
+    else
+    {
+        return cmp > 0;
+    }
+}
+
+bool
+operator > (const _sorted_search_item& lhs, const _sorted_search_item& rhs)
+{
+    assert(lhs.params == rhs.params);
+    _sorted_search_params* params = lhs.params;
+
+    if (params->sort_by >= params->sc->attrs_sz)
+    {
+        return false;
+    }
+
+    int cmp = 0;
+
+    if (params->sort_by == 0)
+    {
+        cmp = compare_as_type(lhs.key, rhs.key, params->sc->attrs[0].type);
+    }
+    else
+    {
+        cmp = compare_as_type(lhs.value[params->sort_by - 1],
+                              rhs.value[params->sort_by - 1],
+                              params->sc->attrs[params->sort_by].type);
+    }
+
+    if (params->maximize)
+    {
         return cmp > 0;
     }
     else
@@ -397,6 +431,7 @@ search_manager :: sorted_search(const entityid& us,
         snap.next();
     }
 
+    std::sort(top_n.begin(), top_n.end(), std::greater<_sorted_search_item>());
     size_t sz = m_daemon->m_comm.header_size()
               + sizeof(uint64_t)
               + sizeof(uint64_t);
