@@ -45,6 +45,7 @@ const char* colnames[] = {"bit01", "bit02", "bit03", "bit04", "bit05", "bit06",
                           "bit31", "bit32"};
 
 static unsigned long random_iters = 16;
+static hyperdatatype key_type = HYPERDATATYPE_INT64;
 
 extern "C"
 {
@@ -248,10 +249,28 @@ populate(size_t testno,
             }
         }
 
-        char bufle[sizeof(uint64_t)];
-        e::pack64be(number, bufle);
+        char buf[sizeof(uint64_t)];
+
+        if (key_type == HYPERDATATYPE_STRING)
+        {
+            e::pack64be(number, buf);
+        }
+        else if (key_type == HYPERDATATYPE_INT64)
+        {
+            e::pack64le(number, buf);
+        }
+        else if (key_type == HYPERDATATYPE_FLOAT)
+        {
+            double d = number;
+            e::packdoublele(d, buf);
+        }
+        else
+        {
+            HYPERDEX_TEST_FAIL(testno, "unknown key datatype");
+        }
+
         hyperclient_returncode pstatus;
-        int64_t pid = cl->put(hyperdex_test_space, bufle, sizeof(uint64_t), attrs, 32, &pstatus);
+        int64_t pid = cl->put(hyperdex_test_space, buf, sizeof(uint64_t), attrs, 32, &pstatus);
 
         if (pid < 0)
         {
@@ -336,7 +355,25 @@ search(size_t testno,
             }
 
             int64_t num = 0;
-            e::unpack64be(attrs[0].value, &num);
+
+            if (key_type == HYPERDATATYPE_STRING)
+            {
+                e::unpack64be(attrs[0].value, &num);
+            }
+            else if (key_type == HYPERDATATYPE_INT64)
+            {
+                e::unpack64le(attrs[0].value, &num);
+            }
+            else if (key_type == HYPERDATATYPE_FLOAT)
+            {
+                double d;
+                e::unpackdoublele(attrs[0].value, &d);
+                num = d;
+            }
+            else
+            {
+                HYPERDEX_TEST_FAIL(testno, "unknown key datatype");
+            }
 
             if (num >= (1LL << testno))
             {
@@ -468,7 +505,25 @@ sorted_search(size_t testno,
             }
 
             int64_t num = 0;
-            e::unpack64be(attrs[0].value, &num);
+
+            if (key_type == HYPERDATATYPE_STRING)
+            {
+                e::unpack64be(attrs[0].value, &num);
+            }
+            else if (key_type == HYPERDATATYPE_INT64)
+            {
+                e::unpack64le(attrs[0].value, &num);
+            }
+            else if (key_type == HYPERDATATYPE_FLOAT)
+            {
+                double d;
+                e::unpackdoublele(attrs[0].value, &d);
+                num = d;
+            }
+            else
+            {
+                HYPERDEX_TEST_FAIL(testno, "unknown key datatype");
+            }
 
             if (num >= (1LL << testno))
             {

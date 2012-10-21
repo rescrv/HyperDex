@@ -32,6 +32,7 @@
 #include <glog/logging.h>
 
 // LevelDB
+#include <leveldb/write_batch.h>
 #include <leveldb/filter_policy.h>
 
 // e
@@ -41,6 +42,7 @@
 #include "common/macros.h"
 #include "daemon/daemon.h"
 #include "daemon/datalayer.h"
+#include "daemon/index_encode.h"
 #include "datatypes/apply.h"
 #include "datatypes/microerror.h"
 
@@ -166,15 +168,27 @@ datalayer :: put(const regionid& ri,
                  const std::vector<e::slice>& value,
                  uint64_t version)
 {
+    schema* sc = m_daemon->m_config.get_schema(ri.get_space());
+    assert(sc);
     leveldb::WriteOptions opts;
-    opts.sync = false;
+    opts.sync = true;
     std::vector<char> kbacking;
     leveldb::Slice lkey;
     encode_key(ri, key, &kbacking, &lkey);
     std::vector<char> vbacking;
     leveldb::Slice lvalue;
     encode_value(value, version, &vbacking, &lvalue);
-    leveldb::Status st = m_db->Put(opts, lkey, lvalue);
+    backing_t backing;
+    leveldb::WriteBatch updates;
+    updates.Put(lkey, lvalue);
+    returncode rc = create_index_changes(sc, ri, key, lkey, value, &backing, &updates);
+
+    if (rc != SUCCESS)
+    {
+        return rc;
+    }
+
+    leveldb::Status st = m_db->Write(opts, &updates);
 
     if (st.ok())
     {
@@ -207,12 +221,24 @@ datalayer::returncode
 datalayer :: del(const regionid& ri,
                  const e::slice& key)
 {
+    schema* sc = m_daemon->m_config.get_schema(ri.get_space());
+    assert(sc);
     leveldb::WriteOptions opts;
-    opts.sync = false;
+    opts.sync = true;
     std::vector<char> kbacking;
     leveldb::Slice lkey;
     encode_key(ri, key, &kbacking, &lkey);
-    leveldb::Status st = m_db->Delete(opts, lkey);
+    backing_t backing;
+    leveldb::WriteBatch updates;
+    updates.Delete(lkey);
+    returncode rc = create_index_changes(sc, ri, key, lkey, &backing, &updates);
+
+    if (rc != SUCCESS)
+    {
+        return rc;
+    }
+
+    leveldb::Status st = m_db->Write(opts, &updates);
 
     if (st.ok())
     {
@@ -402,6 +428,302 @@ datalayer :: decode_value(const e::slice& value,
         e::slice s(reinterpret_cast<const uint8_t*>(ptr), sz);
         ptr += sz;
         attrs->push_back(s);
+    }
+
+    return SUCCESS;
+}
+
+void
+datalayer :: generate_index(const regionid& ri,
+                            uint16_t attr,
+                            hyperdatatype type,
+                            const e::slice& value,
+                            const e::slice& key,
+                            backing_t* backing,
+                            std::vector<leveldb::Slice>* idxs)
+{
+    char* ptr = NULL;
+    int64_t tmp_i;
+    double tmp_d;
+
+    switch (type)
+    {
+        case HYPERDATATYPE_GENERIC:
+            break;
+        case HYPERDATATYPE_STRING:
+            backing->push_back(std::vector<char>());
+            backing->back().resize(sizeof(uint8_t)
+                                  + sizeof(uint64_t)
+                                  + sizeof(uint32_t)
+                                  + sizeof(uint16_t)
+                                  + sizeof(uint8_t)
+                                  + sizeof(uint16_t)
+                                  + value.size()
+                                  + key.size()
+                                  + sizeof(uint32_t));
+            ptr = &backing->back().front();
+            ptr = e::pack8be('i', ptr);
+            ptr = e::pack64be(ri.mask, ptr);
+            ptr = e::pack32be(ri.space, ptr);
+            ptr = e::pack16be(ri.subspace, ptr);
+            ptr = e::pack8be(ri.prefix, ptr);
+            ptr = e::pack16be(attr, ptr);
+            memmove(ptr, value.data(), value.size());
+            ptr += value.size();
+            memmove(ptr, key.data(), key.size());
+            ptr += key.size();
+            ptr = e::pack32be(key.size(), ptr);
+            idxs->push_back(leveldb::Slice(&backing->back().front(), backing->back().size()));
+            break;
+        case HYPERDATATYPE_INT64:
+            backing->push_back(std::vector<char>());
+            backing->back().resize(sizeof(uint8_t)
+                                  + sizeof(uint64_t)
+                                  + sizeof(uint32_t)
+                                  + sizeof(uint16_t)
+                                  + sizeof(uint8_t)
+                                  + sizeof(uint16_t)
+                                  + sizeof(uint64_t)
+                                  + key.size());
+            ptr = &backing->back().front();
+            ptr = e::pack8be('i', ptr);
+            ptr = e::pack64be(ri.mask, ptr);
+            ptr = e::pack32be(ri.space, ptr);
+            ptr = e::pack16be(ri.subspace, ptr);
+            ptr = e::pack8be(ri.prefix, ptr);
+            ptr = e::pack16be(attr, ptr);
+            e::unpack64le(value.data(), &tmp_i);
+            ptr = index_encode_int64(tmp_i, ptr);
+            memmove(ptr, key.data(), key.size());
+            idxs->push_back(leveldb::Slice(&backing->back().front(), backing->back().size()));
+            break;
+        case HYPERDATATYPE_FLOAT:
+            backing->push_back(std::vector<char>());
+            backing->back().resize(sizeof(uint8_t)
+                                  + sizeof(uint64_t)
+                                  + sizeof(uint32_t)
+                                  + sizeof(uint16_t)
+                                  + sizeof(uint8_t)
+                                  + sizeof(uint16_t)
+                                  + sizeof(uint64_t)
+                                  + key.size());
+            ptr = &backing->back().front();
+            ptr = e::pack8be('i', ptr);
+            ptr = e::pack64be(ri.mask, ptr);
+            ptr = e::pack32be(ri.space, ptr);
+            ptr = e::pack16be(ri.subspace, ptr);
+            ptr = e::pack8be(ri.prefix, ptr);
+            ptr = e::pack16be(attr, ptr);
+            e::unpackdoublele(value.data(), &tmp_d);
+            ptr = index_encode_double(tmp_d, ptr);
+            memmove(ptr, key.data(), key.size());
+            idxs->push_back(leveldb::Slice(&backing->back().front(), backing->back().size()));
+            break;
+        case HYPERDATATYPE_LIST_GENERIC:
+        case HYPERDATATYPE_LIST_STRING:
+        case HYPERDATATYPE_LIST_INT64:
+        case HYPERDATATYPE_LIST_FLOAT:
+        case HYPERDATATYPE_SET_GENERIC:
+        case HYPERDATATYPE_SET_STRING:
+        case HYPERDATATYPE_SET_INT64:
+        case HYPERDATATYPE_SET_FLOAT:
+        case HYPERDATATYPE_MAP_GENERIC:
+        case HYPERDATATYPE_MAP_STRING_KEYONLY:
+        case HYPERDATATYPE_MAP_STRING_STRING:
+        case HYPERDATATYPE_MAP_STRING_INT64:
+        case HYPERDATATYPE_MAP_STRING_FLOAT:
+        case HYPERDATATYPE_MAP_INT64_KEYONLY:
+        case HYPERDATATYPE_MAP_INT64_STRING:
+        case HYPERDATATYPE_MAP_INT64_INT64:
+        case HYPERDATATYPE_MAP_INT64_FLOAT:
+        case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
+        case HYPERDATATYPE_MAP_FLOAT_STRING:
+        case HYPERDATATYPE_MAP_FLOAT_INT64:
+        case HYPERDATATYPE_MAP_FLOAT_FLOAT:
+        case HYPERDATATYPE_GARBAGE:
+        default:
+            break;
+    }
+}
+
+datalayer::returncode
+datalayer :: create_index_changes(schema* sc,
+                                  const regionid& ri,
+                                  const e::slice& key,
+                                  const leveldb::Slice& lkey,
+                                  backing_t* backing,
+                                  leveldb::WriteBatch* updates)
+{
+    std::string ref;
+    leveldb::ReadOptions opts;
+    opts.fill_cache = false;
+    opts.verify_checksums = true;
+    leveldb::Status st = m_db->Get(opts, lkey, &ref);
+    std::vector<leveldb::Slice> old_idxs;
+
+    if (st.ok())
+    {
+        std::vector<e::slice> old_value;
+        uint64_t old_version;
+        returncode rc = decode_value(e::slice(ref.data(), ref.size()),
+                                     &old_value, &old_version);
+
+        if (rc != SUCCESS)
+        {
+            return rc;
+        }
+
+        if (old_value.size() + 1 != sc->attrs_sz)
+        {
+            return BAD_ENCODING;
+        }
+
+        for (size_t i = 0; i + 1 < sc->attrs_sz; ++i)
+        {
+            generate_index(ri, i, sc->attrs[i].type, old_value[i], key, backing, &old_idxs);
+        }
+    }
+    else if (st.IsNotFound())
+    {
+        // Nothing (no indices to remove)
+    }
+    else if (st.IsCorruption())
+    {
+        LOG(ERROR) << "corruption at the disk layer: region=" << ri
+                   << " key=0x" << key.hex() << " desc=" << st.ToString();
+        return CORRUPTION;
+    }
+    else if (st.IsIOError())
+    {
+        LOG(ERROR) << "IO error at the disk layer: region=" << ri
+                   << " key=0x" << key.hex() << " desc=" << st.ToString();
+        return IO_ERROR;
+    }
+    else
+    {
+        LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
+        return LEVELDB_ERROR;
+    }
+
+    for (size_t i = 0; i < old_idxs.size(); ++i)
+    {
+        if (!old_idxs.empty())
+        {
+            updates->Delete(old_idxs[i]);
+        }
+    }
+
+    return SUCCESS;
+}
+
+datalayer::returncode
+datalayer :: create_index_changes(schema* sc,
+                                  const regionid& ri,
+                                  const e::slice& key,
+                                  const leveldb::Slice& lkey,
+                                  const std::vector<e::slice>& new_value,
+                                  backing_t* backing,
+                                  leveldb::WriteBatch* updates)
+{
+    std::string ref;
+    leveldb::ReadOptions opts;
+    opts.fill_cache = false;
+    opts.verify_checksums = true;
+    leveldb::Status st = m_db->Get(opts, lkey, &ref);
+    std::vector<leveldb::Slice> old_idxs;
+
+    if (st.ok())
+    {
+        std::vector<e::slice> old_value;
+        uint64_t old_version;
+        returncode rc = decode_value(e::slice(ref.data(), ref.size()),
+                                     &old_value, &old_version);
+
+        if (rc != SUCCESS)
+        {
+            return rc;
+        }
+
+        if (old_value.size() + 1 != sc->attrs_sz)
+        {
+            return BAD_ENCODING;
+        }
+
+        for (size_t i = 0; i + 1 < sc->attrs_sz; ++i)
+        {
+            generate_index(ri, i, sc->attrs[i].type, old_value[i], key, backing, &old_idxs);
+        }
+    }
+    else if (st.IsNotFound())
+    {
+        // Nothing (no indices to remove)
+    }
+    else if (st.IsCorruption())
+    {
+        LOG(ERROR) << "corruption at the disk layer: region=" << ri
+                   << " key=0x" << key.hex() << " desc=" << st.ToString();
+        return CORRUPTION;
+    }
+    else if (st.IsIOError())
+    {
+        LOG(ERROR) << "IO error at the disk layer: region=" << ri
+                   << " key=0x" << key.hex() << " desc=" << st.ToString();
+        return IO_ERROR;
+    }
+    else
+    {
+        LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
+        return LEVELDB_ERROR;
+    }
+
+    std::vector<leveldb::Slice> new_idxs;
+
+    for (size_t i = 0; i + 1 < sc->attrs_sz; ++i)
+    {
+        generate_index(ri, i, sc->attrs[i].type, new_value[i], key, backing, &new_idxs);
+    }
+
+    size_t old_i = 0;
+    size_t new_i = 0;
+
+    while (old_i < old_idxs.size() && new_i < new_idxs.size())
+    {
+        int cmp = old_idxs[old_i].compare(new_idxs[new_i]);
+
+        // Erase common indexes because we need not insert or remove them
+        if (cmp == 0)
+        {
+            old_idxs.clear();
+            new_idxs.clear();
+            ++old_i;
+            ++new_i;
+        }
+        if (cmp < 0)
+        {
+            ++old_i;
+        }
+        if (cmp > 0)
+        {
+            ++new_i;
+        }
+    }
+
+    for (size_t i = 0; i < old_idxs.size(); ++i)
+    {
+        if (!old_idxs.empty())
+        {
+            updates->Delete(old_idxs[i]);
+        }
+    }
+
+    leveldb::Slice empty("", 0);
+
+    for (size_t i = 0; i < new_idxs.size(); ++i)
+    {
+        if (!new_idxs.empty())
+        {
+            updates->Put(new_idxs[i], empty);
+        }
     }
 
     return SUCCESS;

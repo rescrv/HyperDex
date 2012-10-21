@@ -66,6 +66,11 @@ noinst_PROGRAMS = \
 			$(libhyperspacehashing_noinst_programs) \
 			hyperclient/c/testcompile
 
+check_PROGRAMS =	\
+			daemon/test/index_encode
+
+TESTS = daemon/test/index_encode
+
 bin_SCRIPTS = \
 			hyperdex-coordinator \
 			hyperdex-coordinator-control
@@ -153,6 +158,7 @@ hyperdex_daemon_SOURCES = \
 			common/serialization.cc \
 			daemon/daemon.cc \
 			daemon/datalayer.cc \
+			daemon/index_encode.cc \
 			daemon/search_manager.cc \
 			hyperdaemon/logical.h \
 			hyperdaemon/logical.cc \
@@ -430,6 +436,10 @@ hyperdex_trace_player_CPPFLAGS = \
 			$(E_CFLAGS) \
 			$(CPPFLAGS)
 endif
+
+daemon_test_index_encode_SOURCES = runner.cc daemon/test/index_encode.cc daemon/index_encode.cc
+daemon_test_index_encode_CPPFLAGS = $(GTEST_CPPFLAGS) $(CPPFLAGS)
+daemon_test_index_encode_LDADD = $(GTEST_LDFLAGS) -lgtest -lpthread
 
 ################################################################################
 ################################# Documentation ################################

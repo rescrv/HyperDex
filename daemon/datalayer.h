@@ -29,7 +29,9 @@
 #define hyperdex_daemon_datalayer_h_
 
 // STL
+#include <list>
 #include <string>
+#include <vector>
 
 // LevelDB
 #include <leveldb/db.h>
@@ -99,6 +101,9 @@ class datalayer
                                  snapshot* snap);
 
     private:
+        typedef std::list<std::vector<char> > backing_t;
+
+    private:
         datalayer(const datalayer&);
         datalayer& operator = (const datalayer&);
 
@@ -117,6 +122,26 @@ class datalayer
         returncode decode_value(const e::slice& value,
                                 std::vector<e::slice>* attrs,
                                 uint64_t* version);
+        void generate_index(const regionid& ri,
+                            uint16_t attr,
+                            hyperdatatype type,
+                            const e::slice& value,
+                            const e::slice& key,
+                            backing_t* backing,
+                            std::vector<leveldb::Slice>* idxs);
+        returncode create_index_changes(schema* sc,
+                                        const regionid& ri,
+                                        const e::slice& key,
+                                        const leveldb::Slice& lkey,
+                                        backing_t* backing,
+                                        leveldb::WriteBatch* updates);
+        returncode create_index_changes(schema* sc,
+                                        const regionid& ri,
+                                        const e::slice& key,
+                                        const leveldb::Slice& lkey,
+                                        const std::vector<e::slice>& value,
+                                        backing_t* backing,
+                                        leveldb::WriteBatch* updates);
 
     private:
         daemon* m_daemon;
