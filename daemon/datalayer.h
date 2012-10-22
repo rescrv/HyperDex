@@ -96,11 +96,12 @@ class datalayer
         returncode del(const regionid& ri,
                        const e::slice& key);
         returncode make_snapshot(const regionid& ri,
-                                 const attribute_check* checks,
+                                 attribute_check* checks,
                                  size_t checks_sz,
                                  snapshot* snap);
 
     private:
+        class search_filter;
         typedef std::list<std::vector<char> > backing_t;
 
     private:
@@ -122,6 +123,9 @@ class datalayer
         returncode decode_value(const e::slice& value,
                                 std::vector<e::slice>* attrs,
                                 uint64_t* version);
+        void generate_object_range(const regionid& ri,
+                                   backing_t* backing,
+                                   leveldb::Range* r);
         void generate_index(const regionid& ri,
                             uint16_t attr,
                             hyperdatatype type,
@@ -129,6 +133,11 @@ class datalayer
                             const e::slice& key,
                             backing_t* backing,
                             std::vector<leveldb::Slice>* idxs);
+        void generate_search_filters(const regionid& ri,
+                                     attribute_check* check_ptr,
+                                     attribute_check* check_end,
+                                     backing_t* backing,
+                                     std::vector<search_filter>* sf);
         returncode create_index_changes(schema* sc,
                                         const regionid& ri,
                                         const e::slice& key,
@@ -184,11 +193,13 @@ class datalayer::snapshot
     private:
         datalayer* m_dl;
         const leveldb::Snapshot* m_snap;
-        leveldb::Iterator* m_iter;
-        regionid m_ri;
+        backing_t m_backing;
+        std::vector<search_filter> m_sfs;
         const attribute_check* m_checks;
         size_t m_checks_sz;
-        bool m_valid;
+        regionid m_ri; // XXX get rid of it
+        leveldb::Range m_obj_range;
+        leveldb::Iterator* m_iter;
         returncode m_error;
         e::slice m_key;
         std::vector<e::slice> m_value;

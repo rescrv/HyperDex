@@ -78,8 +78,10 @@ enum hyperdatatype
 /* Predicate occupies [9728, 9856) */
 enum hyperpredicate
 {
-    HYPERPREDICATE_FAIL         = 9728,
-    HYPERPREDICATE_EQUALS       = 9729
+    HYPERPREDICATE_FAIL          = 9728,
+    HYPERPREDICATE_EQUALS        = 9729,
+    HYPERPREDICATE_LESS_EQUAL    = 9730,
+    HYPERPREDICATE_GREATER_EQUAL = 9731
 };
 
 #ifdef __cplusplus

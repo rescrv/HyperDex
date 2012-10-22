@@ -674,13 +674,44 @@ count(size_t testno,
 }
 
 static void
-setup_random_search(size_t testno,
+setup_random_search(size_t,
                     hyperclient_attribute_check* chks,
                     size_t* chks_sz,
                     std::vector<bool>* expecting)
 {
+    uint32_t mask = rand();
+    uint32_t bits = rand();
     *chks_sz = 0;
-    // XXX
+
+    for (size_t i = 0; i < 32; ++i)
+    {
+        if ((mask & (1ULL << i)))
+        {
+            chks[*chks_sz].attr = colnames[i];
+
+            if ((bits & (1ULL << i)))
+            {
+                chks[*chks_sz].value = "1";
+            }
+            else
+            {
+                chks[*chks_sz].value = "0";
+            }
+
+            chks[*chks_sz].value_sz = 1;
+            chks[*chks_sz].datatype = HYPERDATATYPE_STRING;
+            chks[*chks_sz].predicate = HYPERPREDICATE_EQUALS;
+            ++(*chks_sz);
+        }
+    }
+
+    for (uint32_t i = 0; i < expecting->size(); ++i)
+    {
+        if ((mask & i) != (mask & bits))
+        {
+            (*expecting)[i] = false;
+        }
+    }
 }
 
 void
@@ -708,8 +739,8 @@ all_search_tests(size_t testno,
         size_t chks_sz;
         std::vector<bool> subset_expecting(expecting);
         setup_random_search(testno, chks, &chks_sz, &subset_expecting);
-        search(testno, cl, chks, chks_sz, expecting);
-        sorted_search(testno, cl, chks, chks_sz, expecting);
+        search(testno, cl, chks, chks_sz, subset_expecting);
+        sorted_search(testno, cl, chks, chks_sz, subset_expecting);
         num = 0;
 
         for (size_t j = 0; j < subset_expecting.size(); ++j)

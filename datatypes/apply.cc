@@ -28,6 +28,7 @@
 // HyperDex
 #include "datatypes/alltypes.h"
 #include "datatypes/apply.h"
+#include "datatypes/compare.h"
 #include "datatypes/validate.h"
 
 using hyperdex::attribute_check;
@@ -48,6 +49,16 @@ passes_attribute_check(hyperdatatype type,
             return validate_as_type(check.value, check.datatype) &&
                    type == check.datatype &&
                    check.value == value;
+        case HYPERPREDICATE_LESS_EQUAL:
+            *error = MICROERR_CMPFAIL;
+            return validate_as_type(check.value, check.datatype) &&
+                   type == check.datatype &&
+                   compare_as_type(value, check.value, type) <= 0;
+        case HYPERPREDICATE_GREATER_EQUAL:
+            *error = MICROERR_CMPFAIL;
+            return validate_as_type(check.value, check.datatype) &&
+                   type == check.datatype &&
+                   compare_as_type(value, check.value, type) >= 0;
         default:
             return false;
     }

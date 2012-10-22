@@ -28,7 +28,9 @@
 #define __STDC_LIMIT_MACROS
 
 // C
+#include <cassert>
 #include <cmath>
+#include <cstdlib>
 
 // Linux
 #include <ieee754.h>
@@ -150,4 +152,28 @@ hyperdex :: index_encode_double(double x, char* ptr)
     }
 
     return e::pack64be(out, ptr);
+}
+
+void
+hyperdex :: index_encode_bump(char* _ptr, char* _end)
+{
+    assert(_ptr);
+    assert(_ptr < _end);
+    uint8_t* ptr = reinterpret_cast<uint8_t*>(_end) - 1;
+    uint8_t* end = reinterpret_cast<uint8_t*>(_ptr);
+
+    for (; ptr >= end; --ptr)
+    {
+        if (*ptr < 255)
+        {
+            ++(*ptr);
+            return;
+        }
+        else
+        {
+            *ptr = 0;
+        }
+    }
+
+    abort();
 }

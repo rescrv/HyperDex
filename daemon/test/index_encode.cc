@@ -41,6 +41,7 @@
 
 using hyperdex::index_encode_int64;
 using hyperdex::index_encode_double;
+using hyperdex::index_encode_bump;
 
 namespace
 {
@@ -147,6 +148,15 @@ TEST(IndexEncode, Double)
             old = d;
         }
     }
+}
+
+TEST(IndexEncode, Bump)
+{
+    char buf[2] = {0xfd, 0xff};
+    index_encode_bump(buf, buf + 1);
+    ASSERT_TRUE(memcmp("\xfe\xff", buf, 2) == 0);
+    index_encode_bump(buf, buf + 2);
+    ASSERT_TRUE(memcmp("\xff\x00", buf, 2) == 0);
 }
 
 } // namespace

@@ -136,8 +136,8 @@ class configuration
                                  hyperdex::entityid* ent, hyperdex::instance* inst) const;
         std::map<entityid, instance> search_entities(const spaceid& space,
                                                      const hyperspacehashing::search& s) const;
-        std::map<entityid, instance> search_entities(const spaceid& subspace,
-                                                     const std::vector<class attribute_check>& checks) const
+        std::map<entityid, instance> search_entities(const spaceid&,
+                                                     const std::vector<class attribute_check>&) const
         {
             typedef std::map<entityid, instance> map_t;
             map_t ents;

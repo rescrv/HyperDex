@@ -45,6 +45,9 @@ index_encode_int64(int64_t x, char* ptr);
 char*
 index_encode_double(double x, char* ptr);
 
+void
+index_encode_bump(char* ptr, char* end);
+
 } // namespace hyperdex
 
 #endif // hyperdex_daemon_indexing_h_

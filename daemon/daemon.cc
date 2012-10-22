@@ -206,6 +206,7 @@ daemon :: run()
 
     LOG(INFO) << "Exiting daemon.";
     // XXX
+    m_comm.shutdown();
     m_data.close();
 
     for (size_t i = 0; i < m_threads.size(); ++i)

@@ -25,6 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#define __STDC_LIMIT_MACROS
+
 // STL
 #include <string>
 
@@ -49,6 +51,90 @@
 using hyperdex::datalayer;
 using hyperdex::reconfigure_returncode;
 
+class datalayer::search_filter
+{
+    public:
+        static bool sort_by_size(const datalayer::search_filter& lhs, const datalayer::search_filter& rhs);
+
+    public:
+        search_filter();
+        search_filter(const search_filter&);
+        ~search_filter() throw ();
+
+    public:
+        search_filter& operator = (const search_filter&);
+
+    public:
+        leveldb::Range range;
+        void (*parse)(const leveldb::Slice& in, e::slice* out);
+        uint64_t size;
+        leveldb::Iterator* iter;
+};
+
+bool
+datalayer :: search_filter :: sort_by_size(const datalayer::search_filter& lhs,
+                                           const datalayer::search_filter& rhs)
+{
+    return lhs.size < rhs.size;
+}
+
+datalayer :: search_filter :: search_filter()
+    : range()
+    , parse(NULL)
+    , size(0)
+    , iter(NULL)
+{
+}
+
+datalayer :: search_filter :: search_filter(const search_filter& other)
+    : range(other.range)
+    , parse(other.parse)
+    , size(other.size)
+    , iter(other.iter)
+{
+}
+
+datalayer :: search_filter :: ~search_filter() throw ()
+{
+}
+
+datalayer::search_filter&
+datalayer :: search_filter :: operator = (const search_filter& rhs)
+{
+    range = rhs.range;
+    size = rhs.size;
+    iter = rhs.iter;
+    return *this;
+}
+
+static void
+parse_index_empty(const leveldb::Slice&, e::slice* k)
+{
+    *k = e::slice("", 0);
+}
+
+static void
+parse_index_string(const leveldb::Slice& s, e::slice* k)
+{
+    const uint8_t* ptr = reinterpret_cast<const uint8_t*>(s.data());
+    const uint8_t* end = ptr + s.size();
+    uint32_t sz;
+    e::unpack32be(end - sizeof(uint32_t), &sz);
+    ptr = end - sizeof(uint32_t) - sz;
+    *k = e::slice(ptr, sz);
+}
+
+static void
+parse_index_sizeof8(const leveldb::Slice& s, e::slice* k)
+{
+    const uint8_t* ptr = reinterpret_cast<const uint8_t*>(s.data());
+    const uint8_t* end = ptr + s.size();
+    ptr += sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint32_t)
+         + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint16_t)
+         + sizeof(uint64_t);
+    *k = e::slice(ptr, end - ptr);
+}
+
 datalayer :: datalayer(daemon* d)
     : m_daemon(d)
     , m_db(NULL)
@@ -65,8 +151,6 @@ datalayer :: open(const po6::pathname& path)
 {
     leveldb::Options opts;
     opts.create_if_missing = true;
-    opts.write_buffer_size = 16777216;
-    opts.compression = leveldb::kSnappyCompression;
     opts.filter_policy = leveldb::NewBloomFilterPolicy(10);
     std::string name(path.get());
     leveldb::Status st = leveldb::DB::Open(opts, name, &m_db);
@@ -434,6 +518,32 @@ datalayer :: decode_value(const e::slice& value,
 }
 
 void
+datalayer :: generate_object_range(const regionid& ri,
+                                   backing_t* backing,
+                                   leveldb::Range* r)
+{
+    backing->push_back(std::vector<char>());
+    backing->back().resize(sizeof(uint8_t)
+                           + sizeof(uint64_t)
+                           + sizeof(uint32_t)
+                           + sizeof(uint16_t)
+                           + sizeof(uint8_t));
+    char* ptr = &backing->back().front();
+    ptr = e::pack8be('o', ptr);
+    ptr = e::pack64be(ri.mask, ptr);
+    ptr = e::pack32be(ri.space, ptr);
+    ptr = e::pack16be(ri.subspace, ptr);
+    ptr = e::pack8be(ri.prefix, ptr);
+    leveldb::Slice start(&backing->back().front(), ptr - &backing->back().front());
+    backing->push_back(backing->back());
+    ptr = &backing->back().front();
+    char* end = &backing->back().front() + start.size();
+    index_encode_bump(ptr, end);
+    leveldb::Slice limit(ptr, end - ptr);
+    *r = leveldb::Range(start, limit);
+}
+
+void
 datalayer :: generate_index(const regionid& ri,
                             uint16_t attr,
                             hyperdatatype type,
@@ -505,7 +615,7 @@ datalayer :: generate_index(const regionid& ri,
                                   + sizeof(uint16_t)
                                   + sizeof(uint8_t)
                                   + sizeof(uint16_t)
-                                  + sizeof(uint64_t)
+                                  + sizeof(double)
                                   + key.size());
             ptr = &backing->back().front();
             ptr = e::pack8be('i', ptr);
@@ -519,6 +629,253 @@ datalayer :: generate_index(const regionid& ri,
             memmove(ptr, key.data(), key.size());
             idxs->push_back(leveldb::Slice(&backing->back().front(), backing->back().size()));
             break;
+        case HYPERDATATYPE_LIST_GENERIC:
+        case HYPERDATATYPE_LIST_STRING:
+        case HYPERDATATYPE_LIST_INT64:
+        case HYPERDATATYPE_LIST_FLOAT:
+        case HYPERDATATYPE_SET_GENERIC:
+        case HYPERDATATYPE_SET_STRING:
+        case HYPERDATATYPE_SET_INT64:
+        case HYPERDATATYPE_SET_FLOAT:
+        case HYPERDATATYPE_MAP_GENERIC:
+        case HYPERDATATYPE_MAP_STRING_KEYONLY:
+        case HYPERDATATYPE_MAP_STRING_STRING:
+        case HYPERDATATYPE_MAP_STRING_INT64:
+        case HYPERDATATYPE_MAP_STRING_FLOAT:
+        case HYPERDATATYPE_MAP_INT64_KEYONLY:
+        case HYPERDATATYPE_MAP_INT64_STRING:
+        case HYPERDATATYPE_MAP_INT64_INT64:
+        case HYPERDATATYPE_MAP_INT64_FLOAT:
+        case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
+        case HYPERDATATYPE_MAP_FLOAT_STRING:
+        case HYPERDATATYPE_MAP_FLOAT_INT64:
+        case HYPERDATATYPE_MAP_FLOAT_FLOAT:
+        case HYPERDATATYPE_GARBAGE:
+        default:
+            break;
+    }
+}
+
+void
+datalayer :: generate_search_filters(const regionid& ri,
+                                     attribute_check* check_ptr,
+                                     attribute_check* check_end,
+                                     backing_t* backing,
+                                     std::vector<search_filter>* sf)
+{
+    e::slice first("\x00", 1);
+    e::slice last("\xff", 1);
+    bool init_type = false;
+    uint16_t attr = UINT16_MAX;
+    hyperdatatype type = HYPERDATATYPE_GARBAGE;
+
+    while (check_ptr < check_end)
+    {
+        switch (check_ptr->predicate)
+        {
+            case HYPERPREDICATE_EQUALS:
+                if (check_ptr->value < first ||
+                    check_ptr->value > last ||
+                    (init_type && check_ptr->datatype != type))
+                {
+                    first = e::slice("\x00", 0);
+                    last = e::slice("\x00", 0);
+                    init_type = true;
+                    attr = check_ptr->attr - 1;
+                }
+                else
+                {
+                    first = check_ptr->value;
+                    last = check_ptr->value;
+                    init_type = true;
+                    type = check_ptr->datatype;
+                    attr = check_ptr->attr - 1;
+                }
+                break;
+            case HYPERPREDICATE_LESS_EQUAL:
+                if (check_ptr->value < first ||
+                    (init_type && check_ptr->datatype != type))
+                {
+                    first = e::slice("\x00", 0);
+                    last = e::slice("\x00", 0);
+                    init_type = true;
+                    attr = check_ptr->attr - 1;
+                }
+                else if (check_ptr->value < last)
+                {
+                    last = check_ptr->value;
+                    init_type = true;
+                    type = check_ptr->datatype;
+                    attr = check_ptr->attr - 1;
+                }
+                break;
+            case HYPERPREDICATE_GREATER_EQUAL:
+                if (check_ptr->value > last ||
+                    (init_type && check_ptr->datatype != type))
+                {
+                    first = e::slice("\x00", 0);
+                    last = e::slice("\x00", 0);
+                    init_type = true;
+                    attr = check_ptr->attr - 1;
+                }
+                else if (check_ptr->value > first)
+                {
+                    first = check_ptr->value;
+                    init_type = true;
+                    type = check_ptr->datatype;
+                    attr = check_ptr->attr - 1;
+                }
+                break;
+            case HYPERPREDICATE_FAIL:
+            default:
+                sf->push_back(search_filter());
+                sf->back().range = leveldb::Range(leveldb::Slice("", 0), leveldb::Slice("", 0));
+                sf->back().parse = parse_index_empty;
+                break;
+        }
+
+        ++check_ptr;
+    }
+
+    if (!init_type)
+    {
+        return;
+    }
+
+    char* ptr = NULL;
+    sf->push_back(search_filter());
+    int64_t tmp_i;
+    double tmp_d;
+    leveldb::Slice start;
+    leveldb::Slice limit;
+LOG(INFO) << "SEARCH " << first.hex() << "->" << last.hex();
+
+    switch (type)
+    {
+        case HYPERDATATYPE_STRING:
+            backing->push_back(std::vector<char>());
+            backing->back().resize(sizeof(uint8_t)
+                                  + sizeof(uint64_t)
+                                  + sizeof(uint32_t)
+                                  + sizeof(uint16_t)
+                                  + sizeof(uint8_t)
+                                  + sizeof(uint16_t)
+                                  + first.size());
+            ptr = &backing->back().front();
+            ptr = e::pack8be('i', ptr);
+            ptr = e::pack64be(ri.mask, ptr);
+            ptr = e::pack32be(ri.space, ptr);
+            ptr = e::pack16be(ri.subspace, ptr);
+            ptr = e::pack8be(ri.prefix, ptr);
+            ptr = e::pack16be(attr, ptr);
+            memmove(ptr, first.data(), first.size());
+            ptr += first.size();
+            start = leveldb::Slice(&backing->back().front(), backing->back().size());
+            backing->push_back(std::vector<char>());
+            backing->back().resize(sizeof(uint8_t)
+                                  + sizeof(uint64_t)
+                                  + sizeof(uint32_t)
+                                  + sizeof(uint16_t)
+                                  + sizeof(uint8_t)
+                                  + sizeof(uint16_t)
+                                  + last.size());
+            ptr = &backing->back().front();
+            ptr = e::pack8be('i', ptr);
+            ptr = e::pack64be(ri.mask, ptr);
+            ptr = e::pack32be(ri.space, ptr);
+            ptr = e::pack16be(ri.subspace, ptr);
+            ptr = e::pack8be(ri.prefix, ptr);
+            ptr = e::pack16be(attr, ptr);
+            memmove(ptr, last.data(), last.size());
+            ptr += last.size();
+            limit = leveldb::Slice(&backing->back().front(), backing->back().size());
+            index_encode_bump(&backing->back().front(), &backing->back().front() + backing->back().size());
+            sf->back().range = leveldb::Range(start, limit);
+            sf->back().parse = parse_index_string;
+            break;
+        case HYPERDATATYPE_INT64:
+            backing->push_back(std::vector<char>());
+            backing->back().resize(sizeof(uint8_t)
+                                  + sizeof(uint64_t)
+                                  + sizeof(uint32_t)
+                                  + sizeof(uint16_t)
+                                  + sizeof(uint8_t)
+                                  + sizeof(uint16_t)
+                                  + sizeof(uint64_t));
+            ptr = &backing->back().front();
+            ptr = e::pack8be('i', ptr);
+            ptr = e::pack64be(ri.mask, ptr);
+            ptr = e::pack32be(ri.space, ptr);
+            ptr = e::pack16be(ri.subspace, ptr);
+            ptr = e::pack8be(ri.prefix, ptr);
+            ptr = e::pack16be(attr, ptr);
+            e::unpack64le(first.data(), &tmp_i);
+            ptr = index_encode_int64(tmp_i, ptr);
+            start = leveldb::Slice(&backing->back().front(), backing->back().size());
+            backing->push_back(std::vector<char>());
+            backing->back().resize(sizeof(uint8_t)
+                                  + sizeof(uint64_t)
+                                  + sizeof(uint32_t)
+                                  + sizeof(uint16_t)
+                                  + sizeof(uint8_t)
+                                  + sizeof(uint16_t)
+                                  + sizeof(uint64_t));
+            ptr = &backing->back().front();
+            ptr = e::pack8be('i', ptr);
+            ptr = e::pack64be(ri.mask, ptr);
+            ptr = e::pack32be(ri.space, ptr);
+            ptr = e::pack16be(ri.subspace, ptr);
+            ptr = e::pack8be(ri.prefix, ptr);
+            ptr = e::pack16be(attr, ptr);
+            e::unpack64le(last.data(), &tmp_i);
+            ptr = index_encode_int64(tmp_i, ptr);
+            limit = leveldb::Slice(&backing->back().front(), backing->back().size());
+            index_encode_bump(&backing->back().front(), &backing->back().front() + backing->back().size());
+            sf->back().range = leveldb::Range(start, limit);
+            sf->back().parse = parse_index_sizeof8;
+            break;
+        case HYPERDATATYPE_FLOAT:
+            backing->push_back(std::vector<char>());
+            backing->back().resize(sizeof(uint8_t)
+                                  + sizeof(uint64_t)
+                                  + sizeof(uint32_t)
+                                  + sizeof(uint16_t)
+                                  + sizeof(uint8_t)
+                                  + sizeof(uint16_t)
+                                  + sizeof(double));
+            ptr = &backing->back().front();
+            ptr = e::pack8be('i', ptr);
+            ptr = e::pack64be(ri.mask, ptr);
+            ptr = e::pack32be(ri.space, ptr);
+            ptr = e::pack16be(ri.subspace, ptr);
+            ptr = e::pack8be(ri.prefix, ptr);
+            ptr = e::pack16be(attr, ptr);
+            e::unpackdoublele(first.data(), &tmp_d);
+            ptr = index_encode_double(tmp_d, ptr);
+            start = leveldb::Slice(&backing->back().front(), backing->back().size());
+            backing->push_back(std::vector<char>());
+            backing->back().resize(sizeof(uint8_t)
+                                  + sizeof(uint64_t)
+                                  + sizeof(uint32_t)
+                                  + sizeof(uint16_t)
+                                  + sizeof(uint8_t)
+                                  + sizeof(uint16_t)
+                                  + sizeof(double));
+            ptr = &backing->back().front();
+            ptr = e::pack8be('i', ptr);
+            ptr = e::pack64be(ri.mask, ptr);
+            ptr = e::pack32be(ri.space, ptr);
+            ptr = e::pack16be(ri.subspace, ptr);
+            ptr = e::pack8be(ri.prefix, ptr);
+            ptr = e::pack16be(attr, ptr);
+            e::unpackdoublele(last.data(), &tmp_d);
+            ptr = index_encode_double(tmp_d, ptr);
+            limit = leveldb::Slice(&backing->back().front(), backing->back().size());
+            index_encode_bump(&backing->back().front(), &backing->back().front() + backing->back().size());
+            sf->back().range = leveldb::Range(start, limit);
+            sf->back().parse = parse_index_sizeof8;
+            break;
+        case HYPERDATATYPE_GENERIC:
         case HYPERDATATYPE_LIST_GENERIC:
         case HYPERDATATYPE_LIST_STRING:
         case HYPERDATATYPE_LIST_INT64:
@@ -580,7 +937,7 @@ datalayer :: create_index_changes(schema* sc,
 
         for (size_t i = 0; i + 1 < sc->attrs_sz; ++i)
         {
-            generate_index(ri, i, sc->attrs[i].type, old_value[i], key, backing, &old_idxs);
+            generate_index(ri, i, sc->attrs[i + 1].type, old_value[i], key, backing, &old_idxs);
         }
     }
     else if (st.IsNotFound())
@@ -651,7 +1008,7 @@ datalayer :: create_index_changes(schema* sc,
 
         for (size_t i = 0; i + 1 < sc->attrs_sz; ++i)
         {
-            generate_index(ri, i, sc->attrs[i].type, old_value[i], key, backing, &old_idxs);
+            generate_index(ri, i, sc->attrs[i + 1].type, old_value[i], key, backing, &old_idxs);
         }
     }
     else if (st.IsNotFound())
@@ -680,7 +1037,7 @@ datalayer :: create_index_changes(schema* sc,
 
     for (size_t i = 0; i + 1 < sc->attrs_sz; ++i)
     {
-        generate_index(ri, i, sc->attrs[i].type, new_value[i], key, backing, &new_idxs);
+        generate_index(ri, i, sc->attrs[i + 1].type, new_value[i], key, backing, &new_idxs);
     }
 
     size_t old_i = 0;
@@ -731,20 +1088,76 @@ datalayer :: create_index_changes(schema* sc,
 
 datalayer::returncode
 datalayer :: make_snapshot(const regionid& ri,
-                           const attribute_check* checks, size_t checks_sz,
+                           attribute_check* checks, size_t checks_sz,
                            snapshot* snap)
 {
+    std::stable_sort(checks, checks + checks_sz);
+    attribute_check* check_ptr = checks;
+    attribute_check* check_end = checks + checks_sz;
+
+    while (check_ptr < check_end)
+    {
+        attribute_check* check_tmp = check_ptr;
+
+        while (check_tmp < check_end && check_tmp->attr == check_ptr->attr)
+        {
+            ++check_tmp;
+        }
+
+        generate_search_filters(ri, check_ptr, check_tmp, &snap->m_backing, &snap->m_sfs);
+        check_ptr = check_tmp;
+    }
+
+    std::vector<leveldb::Range> ranges;
+    ranges.reserve(snap->m_sfs.size() + 1);
+    std::vector<uint64_t> sizes(snap->m_sfs.size() + 1, 0);
+
+    for (size_t i = 0; i < snap->m_sfs.size(); ++i)
+    {
+        ranges.push_back(snap->m_sfs[i].range);
+    }
+
+    ranges.push_back(leveldb::Range());
+    generate_object_range(ri, &snap->m_backing, &ranges[snap->m_sfs.size()]);
+    m_db->GetApproximateSizes(&ranges.front(), ranges.size(), &sizes.front());
+    size_t sum = 0;
+
+    for (size_t i = 0; i < snap->m_sfs.size(); ++i)
+    {
+        sum += sizes[i];
+        snap->m_sfs[i].size = sizes[i];
+    }
+
+    std::sort(snap->m_sfs.begin(), snap->m_sfs.end(), search_filter::sort_by_size);
+
+    while (!snap->m_sfs.empty() && sum > sizes[snap->m_sfs.size()] / 10)
+    {
+        sum -= snap->m_sfs.back().size;
+        snap->m_sfs.pop_back();
+    }
+
     snap->m_dl = this;
     snap->m_snap = m_db->GetSnapshot();
+    snap->m_checks = checks;
+    snap->m_checks_sz = checks_sz;
     leveldb::ReadOptions opts;
     opts.fill_cache = false;
     opts.verify_checksums = true;
     opts.snapshot = snap->m_snap;
-    snap->m_iter = m_db->NewIterator(opts);
-    snap->m_iter->SeekToFirst();
     snap->m_ri = ri;
-    snap->m_checks = checks;
-    snap->m_checks_sz = checks_sz;
+    snap->m_obj_range = ranges.back();
+    snap->m_iter = m_db->NewIterator(opts);
+    snap->m_iter->Seek(snap->m_obj_range.start);
+
+    snap->m_iter = m_db->NewIterator(opts);
+    snap->m_iter->Seek(snap->m_obj_range.start);
+
+    for (size_t i = 0; i < snap->m_sfs.size(); ++i)
+    {
+        snap->m_sfs[i].iter = m_db->NewIterator(opts);
+        snap->m_sfs[i].iter->Seek(snap->m_sfs[i].range.start);
+    }
+
     return SUCCESS;
 }
 
@@ -784,11 +1197,13 @@ hyperdex :: operator << (std::ostream& lhs, datalayer::returncode rhs)
 datalayer :: snapshot :: snapshot()
     : m_dl(NULL)
     , m_snap(NULL)
-    , m_iter(NULL)
-    , m_ri()
+    , m_backing()
+    , m_sfs()
     , m_checks()
     , m_checks_sz()
-    , m_valid(false)
+    , m_ri()
+    , m_obj_range()
+    , m_iter(NULL)
     , m_error(SUCCESS)
     , m_key()
     , m_value()
@@ -798,21 +1213,28 @@ datalayer :: snapshot :: snapshot()
 
 datalayer :: snapshot :: ~snapshot() throw ()
 {
+    if (m_iter)
+    {
+        delete m_iter;
+    }
+
+    for (size_t i = 0; i < m_sfs.size(); ++i)
+    {
+        if (m_sfs[i].iter)
+        {
+            delete m_sfs[i].iter;
+        }
+    }
+
     if (m_dl && m_dl->m_db && m_snap)
     {
         m_dl->m_db->ReleaseSnapshot(m_snap);
-        m_snap = NULL;
     }
 }
 
 bool
 datalayer :: snapshot :: has_next()
 {
-    if (m_valid)
-    {
-        return true;
-    }
-
     if (m_error != SUCCESS)
     {
         return false;
@@ -823,31 +1245,75 @@ datalayer :: snapshot :: has_next()
 
     while (m_iter->Valid())
     {
-        if (!m_iter->status().ok())
+        if (!m_sfs.empty())
         {
-            if (m_iter->status().IsNotFound())
+            bool retry_whole = false;
+
+            for (size_t i = 0; !retry_whole && i < m_sfs.size(); ++i)
             {
-                m_error = NOT_FOUND;
-            }
-            else if (m_iter->status().IsCorruption())
-            {
-                LOG(ERROR) << "corruption at the disk layer during iteration "
-                           << m_iter->status().ToString();
-                m_error = CORRUPTION;
-            }
-            else if (m_iter->status().IsIOError())
-            {
-                LOG(ERROR) << "IO error at the disk layer during iteration "
-                           << m_iter->status().ToString();
-                m_error = IO_ERROR;
-            }
-            else
-            {
-                LOG(ERROR) << "LevelDB returned an unknown error during iteration that we don't know how to handle";
-                m_error = LEVELDB_ERROR;
+                bool retry_this = false;
+
+                do
+                {
+                    retry_this = false;
+
+                    if (!m_sfs[i].iter->Valid())
+                    {
+                        return false;
+                    }
+
+                    if (m_sfs[i].iter->key().compare(m_sfs[i].range.limit) >= 0)
+                    {
+                        return false;
+                    }
+
+                    if (i > 0)
+                    {
+                        e::slice outer_it;
+                        e::slice inner_it;
+                        m_sfs[i - 1].parse(m_sfs[i - 1].iter->key(), &outer_it);
+                        m_sfs[i - 0].parse(m_sfs[i - 0].iter->key(), &inner_it);
+
+                        if (outer_it < inner_it)
+                        {
+                            // 0->1->...->i-1 are all the same key.  Bump one, bump
+                            // all.  The first is the most selective
+                            m_sfs[0].iter->Next();
+                            retry_whole = true;
+                            break;
+                        }
+                        if (inner_it < outer_it)
+                        {
+                            m_sfs[i].iter->Next();
+                            retry_this = true;
+                            break;
+                        }
+                    }
+                }
+                while (retry_this);
             }
 
-            return false;
+            if (retry_whole)
+            {
+                continue;
+            }
+
+            // At this point we are guaranteed that m_sfs's iterators are all
+            // pointing to an index entry for the same key.  We need to seek
+            // m_iter to that key.
+
+            e::slice tmp_ekey;
+            leveldb::Slice tmp_lkey;
+            std::vector<char> tmp_backing;
+            m_sfs[0].parse(m_sfs[0].iter->key(), &tmp_ekey);
+            m_dl->encode_key(m_ri, tmp_ekey, &tmp_backing, &tmp_lkey);
+            m_iter->Seek(tmp_lkey);
+
+            if (m_iter->key().compare(tmp_lkey) != 0)
+            {
+                m_sfs[0].iter->Next();
+                continue;
+            }
         }
 
         leveldb::Slice lkey = m_iter->key();
@@ -855,9 +1321,22 @@ datalayer :: snapshot :: has_next()
         e::slice ekey(reinterpret_cast<const uint8_t*>(lkey.data()), lkey.size());
         e::slice eval(reinterpret_cast<const uint8_t*>(lval.data()), lval.size());
 
+        if (m_obj_range.limit.compare(lkey) <= 0)
+        {
+            return false;
+        }
+
         if (!ekey.size() || ekey.data()[0] != 'o')
         {
-            m_iter->Next();
+            if (m_sfs.empty())
+            {
+                m_iter->Next();
+            }
+            else
+            {
+                m_sfs[0].iter->Next();
+            }
+
             continue;
         }
 
@@ -867,7 +1346,15 @@ datalayer :: snapshot :: has_next()
 
         if (ri != m_ri)
         {
-            m_iter->Next();
+            if (m_sfs.empty())
+            {
+                m_iter->Next();
+            }
+            else
+            {
+                m_sfs[0].iter->Next();
+            }
+
             continue;
         }
 
@@ -924,7 +1411,15 @@ datalayer :: snapshot :: has_next()
 
         if (!passes_checks)
         {
-            m_iter->Next();
+            if (m_sfs.empty())
+            {
+                m_iter->Next();
+            }
+            else
+            {
+                m_sfs[0].iter->Next();
+            }
+
             continue;
         }
 
@@ -932,15 +1427,22 @@ datalayer :: snapshot :: has_next()
         return true;
     }
 
-    m_error = SUCCESS;
     return false;
 }
 
 void
 datalayer :: snapshot :: next()
 {
-    m_valid = false;
-    m_iter->Next();
+    m_error = SUCCESS;
+
+    if (m_sfs.empty())
+    {
+        m_iter->Next();
+    }
+    else
+    {
+        m_sfs[0].iter->Next();
+    }
 }
 
 void
