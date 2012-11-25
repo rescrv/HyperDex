@@ -149,6 +149,7 @@ hyperdex :: index_encode_double(double x, char* ptr)
         }
 
         out = (sign << 63) | (exp << 52) | (frac);
+        out += shift;
     }
 
     return e::pack64be(out, ptr);
