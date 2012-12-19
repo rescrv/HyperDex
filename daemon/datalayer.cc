@@ -1500,7 +1500,7 @@ datalayer :: snapshot :: next()
 }
 
 void
-datalayer :: snapshot :: get(e::slice* key, std::vector<e::slice>* val, uint64_t* ver)
+datalayer :: snapshot :: unpack(e::slice* key, std::vector<e::slice>* val, uint64_t* ver)
 {
     *key = m_key;
     *val = m_value;
@@ -1508,7 +1508,7 @@ datalayer :: snapshot :: get(e::slice* key, std::vector<e::slice>* val, uint64_t
 }
 
 void
-datalayer :: snapshot :: get(e::slice* key, std::vector<e::slice>* val, uint64_t* ver, reference* ref)
+datalayer :: snapshot :: unpack(e::slice* key, std::vector<e::slice>* val, uint64_t* ver, reference* ref)
 {
     ref->m_backing = std::string();
     ref->m_backing += std::string(reinterpret_cast<const char*>(m_key.data()), m_key.size());

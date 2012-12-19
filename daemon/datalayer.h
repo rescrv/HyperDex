@@ -189,8 +189,8 @@ class datalayer::snapshot
     public:
         bool has_next();
         void next();
-        void get(e::slice* key, std::vector<e::slice>* val, uint64_t* ver);
-        void get(e::slice* key, std::vector<e::slice>* val, uint64_t* ver, reference* ref);
+        void unpack(e::slice* key, std::vector<e::slice>* val, uint64_t* ver);
+        void unpack(e::slice* key, std::vector<e::slice>* val, uint64_t* ver, reference* ref);
 
     private:
         friend class datalayer;

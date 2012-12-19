@@ -256,7 +256,7 @@ search_manager :: next(const server_id& from,
         e::slice key;
         std::vector<e::slice> val;
         uint64_t ver;
-        st->snap.get(&key, &val, &ver);
+        st->snap.unpack(&key, &val, &ver);
         size_t sz = HYPERDEX_HEADER_SIZE_VS
                   + sizeof(uint64_t)
                   + pack_size(key)
@@ -446,7 +446,7 @@ search_manager :: sorted_search(const server_id& from,
     while (snap.has_next())
     {
         top_n.push_back(_sorted_search_item(&params));
-        snap.get(&top_n.back().key, &top_n.back().value, &top_n.back().version, &top_n.back().ref);
+        snap.unpack(&top_n.back().key, &top_n.back().value, &top_n.back().version, &top_n.back().ref);
         std::push_heap(top_n.begin(), top_n.end());
 
         if (top_n.size() > limit)
@@ -516,7 +516,7 @@ search_manager :: group_keyop(const server_id& from,
         e::slice key;
         std::vector<e::slice> val;
         uint64_t ver;
-        snap.get(&key, &val, &ver);
+        snap.unpack(&key, &val, &ver);
         size_t sz = HYPERDEX_HEADER_SIZE_SV // SV because we imitate a client
                   + sizeof(uint64_t)
                   + pack_size(key)
