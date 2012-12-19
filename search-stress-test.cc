@@ -30,10 +30,11 @@
 
 // e
 #include <e/endian.h>
+#include <e/guard.h>
 
 // HyperDex
+#include "client/hyperclient.h"
 #include "test/common.h"
-#include "hyperclient/hyperclient.h"
 
 #define SEARCH_STRESS_TIMEOUT(TESTNO) (10000)
 

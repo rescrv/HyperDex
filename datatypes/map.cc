@@ -47,7 +47,7 @@ using hyperdex::funcall;
 static bool
 validate_map(bool (*step_key)(const uint8_t** ptr, const uint8_t* end, e::slice* elem),
              bool (*step_val)(const uint8_t** ptr, const uint8_t* end, e::slice* elem),
-             bool (*compare_key_less)(const e::slice& lhs, const e::slice& rhs),
+             int (*compare_key)(const e::slice& lhs, const e::slice& rhs),
              const e::slice& map)
 {
     const uint8_t* ptr = map.data();
@@ -71,7 +71,7 @@ validate_map(bool (*step_key)(const uint8_t** ptr, const uint8_t* end, e::slice*
 
         if (has_old)
         {
-            if (!compare_key_less(old, key))
+            if (compare_key(old, key) < 0)
             {
                 return false;
             }
@@ -88,7 +88,7 @@ validate_map(bool (*step_key)(const uint8_t** ptr, const uint8_t* end, e::slice*
     bool \
     validate_as_map_ ## KEY_T ## _ ## VAL_T(const e::slice& value) \
     { \
-        return validate_map(step_ ## KEY_T, step_ ## VAL_T, compare_lt_ ## KEY_T, value); \
+        return validate_map(step_ ## KEY_T, step_ ## VAL_T, compare_ ## KEY_T, value); \
     }
 
 VALIDATE_MAP(string, string)
@@ -321,12 +321,12 @@ wrap_apply_string(const e::slice& old_value,
     return writeto;
 }
 
-template<bool (*compare_less)(const e::slice& lhs, const e::slice& rhs)>
+template<int (*compare)(const e::slice& lhs, const e::slice& rhs)>
 static bool
 cmp_pair_first(const std::pair<e::slice, e::slice>& lhs,
                const std::pair<e::slice, e::slice>& rhs)
 {
-    return compare_less(lhs.first, rhs.first);
+    return compare(lhs.first, rhs.first) < 0;
 }
 
 #define APPLY_MAP(KEY_T, VAL_T, KEY_TC, VAL_TC, WRAP_PREFIX) \
@@ -337,7 +337,7 @@ cmp_pair_first(const std::pair<e::slice, e::slice>& lhs,
     { \
         return apply_map(step_ ## KEY_T, step_ ## VAL_T, \
                          validate_as_ ## KEY_T, validate_as_ ## VAL_T, \
-                         cmp_pair_first<compare_lt_ ## KEY_T>, \
+                         cmp_pair_first<compare_ ## KEY_T>, \
                          write_ ## KEY_T, write_ ## VAL_T, \
                          apply_ ## VAL_T, \
                          HYPERDATATYPE_MAP_ ## KEY_TC ## _ ## VAL_TC, \

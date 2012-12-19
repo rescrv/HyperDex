@@ -42,6 +42,7 @@
 #include <e/endian.h>
 
 // HyperDex
+#include "common/float_encode.h"
 #include "daemon/index_encode.h"
 
 // We flip the sign bit and shift appropriately to make sure that INT64_MIN
@@ -54,105 +55,10 @@ hyperdex :: index_encode_int64(int64_t in, char* ptr)
     return e::pack64be(out, ptr);
 }
 
-// A little reminder about IEEE 754 doubles.  Source Patterson&Hennessy 3ed.
-//
-// They have bits like:
-//      S = sign * 1
-//      E = exponent * 11
-//      F = fraction * 52
-//      SEEEEEEEEEEEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
-//
-// Where:
-//      Exponent    Fraction        Object
-//      0           0               0
-//      0           Nonzero         +- subnormal
-//      1-2046      anything        +- normal fp
-//      2047        0               +- infinity
-//      2047        Nonzero         NaN
-//
-// What we want to do is map this onto unsigned numbers such that x1 < x2
-// implies the resulting bytestrings of length 8 are comparable.
-//
-// To that end, want to order things as follows
-//      Sign    Exponent    Fraction        Object
-//      -       2047        0               - infinity
-//                                          sign=0
-//                                          exp=0
-//                                          frac=0
-//                                          shift=0
-//                                          The smallest number must come first
-//      -       1-2046      anything        - normal fp
-//                                          sign=0
-//                                          exp=exp^0x7ff
-//                                          frac=frac^0xfffffffffffff
-//                                          shift=1
-//      -       0           Nonzero         truncate to 0
-//      -       0           0               0x8000000000000000 shift=1
-//      +       0           0               0x8000000000000000 shift=1
-//      +       0           Nonzero         truncate to 0
-//      +       1-2046      anything        + normal fp
-//                                          sign=1
-//                                          exp=exp
-//                                          frac=frac
-//                                          shift=2
-//      +       2047        0               + infinity
-//                                          sign=1
-//                                          exp=0x7ff
-//                                          frac=0
-//                                          shift=2
-//      -       2047        Nonzero         NaN
-//      +       2047        Nonzero         NaN
-//                                          sign=1
-//                                          exp=0x7ff
-//                                          frac=0
-//                                          shift=3
 char*
 hyperdex :: index_encode_double(double x, char* ptr)
 {
-    uint64_t out = 0xffffffffffffffffULL;
-
-    if (isinf(x))
-    {
-        if (x > 0)
-        {
-            out = 0xfff0000000000000ULL + 2;
-        }
-        else
-        {
-            out = 0;
-        }
-    }
-    else if (isnan(x))
-    {
-        out = 0xfff0000000000000ULL + 3;
-    }
-    else if (x == 0)
-    {
-        out = 0x8000000000000000ULL + 1;
-    }
-    else
-    {
-        ieee754_double d;
-        d.d = x;
-        uint64_t sign = d.ieee.negative ^ 0x1;
-        uint64_t exp  = d.ieee.exponent;
-        uint64_t frac = d.ieee.mantissa0;
-        frac <<= 32;
-        frac |= d.ieee.mantissa1;
-        uint64_t shift = 2;
-
-        if (x < 0)
-        {
-            exp  ^= 0x7ffULL;
-            frac ^= 0xfffffffffffffULL;
-            shift = 1;
-        }
-
-        out = (sign << 63) | (exp << 52) | (frac);
-        out += shift;
-    }
-
-    return e::pack64be(out, ptr);
+    return e::pack64be(float_encode(x), ptr);
 }
 
 void

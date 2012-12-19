@@ -132,21 +132,3 @@ compare_float(const e::slice& lhs, const e::slice& rhs)
 
     return 0;
 }
-
-bool
-compare_lt_string(const e::slice& lhs, const e::slice& rhs)
-{
-    return compare_string(lhs, rhs) < 0;
-}
-
-bool
-compare_lt_int64(const e::slice& lhs, const e::slice& rhs)
-{
-    return compare_int64(lhs, rhs) < 0;
-}
-
-bool
-compare_lt_float(const e::slice& lhs, const e::slice& rhs)
-{
-    return compare_float(lhs, rhs) < 0;
-}

@@ -29,6 +29,98 @@
 #include "common/serialization.h"
 
 e::buffer::packer
+hyperdex :: operator << (e::buffer::packer lhs, const po6::net::ipaddr& rhs)
+{
+    assert(rhs.family() == AF_INET || rhs.family() == AF_INET6 || rhs.family() == AF_UNSPEC);
+    uint8_t type;
+    uint8_t data[16];
+    memset(data, 0, 16);
+
+    if (rhs.family() == AF_INET)
+    {
+        type = 4;
+        sockaddr_in sa;
+        rhs.pack(&sa, 0);
+        memmove(data, &sa.sin_addr.s_addr, 4);
+    }
+    else if (rhs.family() == AF_INET6)
+    {
+        type = 6;
+        sockaddr_in6 sa;
+        rhs.pack(&sa, 0);
+        memmove(data, &sa.sin6_addr.__in6_u.__u6_addr8, 16);
+    }
+    else
+    {
+        type = 0;
+    }
+
+    lhs = lhs << type;
+    return lhs.copy(e::slice(data, 16));
+}
+
+e::unpacker
+hyperdex :: operator >> (e::unpacker lhs, po6::net::ipaddr& rhs)
+{
+    uint8_t type;
+    lhs = lhs >> type;
+
+    if (lhs.remain() < 16)
+    {
+        return lhs.as_error();
+    }
+
+    e::slice rem = lhs.as_slice();
+
+    if (type == 4)
+    {
+        in_addr ia;
+        memmove(&ia.s_addr, rem.data(), 4);
+        rhs = po6::net::ipaddr(ia);
+        return lhs.advance(16);
+    }
+    else if (type == 6)
+    {
+        in6_addr ia;
+        memmove(ia.__in6_u.__u6_addr8, rem.data(), 16);
+        rhs = po6::net::ipaddr(ia);
+        return lhs.advance(16);
+    }
+    else if (type == 0)
+    {
+        return lhs.advance(16);
+    }
+    else
+    {
+        return lhs.as_error();
+    }
+}
+
+size_t
+hyperdex :: pack_size(const po6::net::ipaddr&)
+{
+    return 17; // One byte for family, and 4/16 for address
+}
+
+e::buffer::packer
+hyperdex :: operator << (e::buffer::packer lhs, const po6::net::location& rhs)
+{
+    return lhs << rhs.address << rhs.port;
+}
+
+e::unpacker
+hyperdex :: operator >> (e::unpacker lhs, po6::net::location& rhs)
+{
+    return lhs >> rhs.address >> rhs.port;
+}
+
+size_t
+hyperdex :: pack_size(const po6::net::location& rhs)
+{
+    return pack_size(rhs.address) + sizeof(uint16_t);
+}
+
+e::buffer::packer
 hyperdex :: operator << (e::buffer::packer lhs, const attribute_check& rhs)
 {
     return lhs << rhs.attr
@@ -37,8 +129,8 @@ hyperdex :: operator << (e::buffer::packer lhs, const attribute_check& rhs)
                << rhs.predicate;
 }
 
-e::buffer::unpacker
-hyperdex :: operator >> (e::buffer::unpacker lhs, attribute_check& rhs)
+e::unpacker
+hyperdex :: operator >> (e::unpacker lhs, attribute_check& rhs)
 {
     return lhs >> rhs.attr
                >> rhs.value
@@ -63,8 +155,8 @@ hyperdex :: operator << (e::buffer::packer lhs, const funcall_t& rhs)
     return lhs << name;
 }
 
-e::buffer::unpacker
-hyperdex :: operator >> (e::buffer::unpacker lhs, funcall_t& rhs)
+e::unpacker
+hyperdex :: operator >> (e::unpacker lhs, funcall_t& rhs)
 {
     uint8_t name;
     lhs = lhs >> name;
@@ -86,8 +178,8 @@ hyperdex :: operator << (e::buffer::packer lhs, const funcall& rhs)
                << rhs.arg2 << rhs.arg2_datatype;
 }
 
-e::buffer::unpacker
-hyperdex :: operator >> (e::buffer::unpacker lhs, funcall& rhs)
+e::unpacker
+hyperdex :: operator >> (e::unpacker lhs, funcall& rhs)
 {
     return lhs >> rhs.attr >> rhs.name
                >> rhs.arg1 >> rhs.arg1_datatype
@@ -109,8 +201,8 @@ hyperdex :: operator << (e::buffer::packer lhs, const hyperdatatype& rhs)
     return lhs << r;
 }
 
-e::buffer::unpacker
-hyperdex :: operator >> (e::buffer::unpacker lhs, hyperdatatype& rhs)
+e::unpacker
+hyperdex :: operator >> (e::unpacker lhs, hyperdatatype& rhs)
 {
     uint16_t r;
     lhs = lhs >> r;
@@ -131,8 +223,8 @@ hyperdex :: operator << (e::buffer::packer lhs, const hyperpredicate& rhs)
     return lhs << r;
 }
 
-e::buffer::unpacker
-hyperdex :: operator >> (e::buffer::unpacker lhs, hyperpredicate& rhs)
+e::unpacker
+hyperdex :: operator >> (e::unpacker lhs, hyperpredicate& rhs)
 {
     uint16_t r;
     lhs = lhs >> r;

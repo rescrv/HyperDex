@@ -124,12 +124,11 @@ apply_funcalls(hyperdatatype type,
 
 size_t
 perform_checks_and_apply_funcs(const hyperdex::schema* sc,
-                               const std::vector<attribute_check>& checks,
-                               const std::vector<funcall>& funcs,
-                               const e::slice& old_key,
+                               const std::vector<hyperdex::attribute_check>& checks,
+                               const std::vector<hyperdex::funcall>& funcs,
+                               const e::slice& key,
                                const std::vector<e::slice>& old_value,
-                               std::tr1::shared_ptr<e::buffer>* new_backing,
-                               e::slice* new_key,
+                               std::tr1::shared_ptr<e::buffer>* backing,
                                std::vector<e::slice>* new_value,
                                microerror* error)
 {
@@ -149,14 +148,14 @@ perform_checks_and_apply_funcs(const hyperdex::schema* sc,
             return i;
         }
         else if (checks[i].attr == 0 &&
-                 !passes_attribute_check(sc->attrs[0].type, checks[i], old_key, error))
+                 !passes_attribute_check(sc->attrs[0].type, checks[i], key, error))
         {
             return i;
         }
     }
 
     // There's a fixed size for the key.
-    size_t sz = old_key.size();
+    size_t sz = key.size();
 
     // We'll start with the size of the old value.
     for (size_t i = 0; i < old_value.size(); ++i)
@@ -173,16 +172,12 @@ perform_checks_and_apply_funcs(const hyperdex::schema* sc,
     }
 
     // Allocate the new buffer
-    new_backing->reset(e::buffer::create(sz));
+    backing->reset(e::buffer::create(sz));
+    (*backing)->resize(sz);
     new_value->resize(old_value.size());
 
     // Write out the object into new_backing
-    uint8_t* write_to = (*new_backing)->data();
-
-    // Copy the key (which never is touched by funcalls)
-    *new_key = e::slice(write_to, old_key.size());
-    memmove(write_to, old_key.data(), old_key.size());
-    write_to += old_key.size();
+    uint8_t* write_to = (*backing)->data();
 
     // Apply the funcalls to each value
     const funcall* op = funcs.empty() ? NULL : &funcs.front();

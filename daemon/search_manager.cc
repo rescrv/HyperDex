@@ -45,32 +45,21 @@ using hyperdex::reconfigure_returncode;
 class search_manager::id
 {
     public:
-        id(const regionid re,
-           const entityid cl,
-           uint64_t sid);
+        id(const region_id re, const server_id cl, uint64_t sid);
         ~id() throw ();
 
     public:
-        int compare(const id& other) const
-        { return e::tuple_compare(region, client, search_id,
-                                  other.region, other.client, other.search_id); }
+        bool operator < (const id& rhs) const;
+        bool operator == (const id& rhs) const;
 
     public:
-        bool operator < (const id& rhs) const { return compare(rhs) < 0; }
-        bool operator <= (const id& rhs) const { return compare(rhs) <= 0; }
-        bool operator == (const id& rhs) const { return compare(rhs) == 0; }
-        bool operator != (const id& rhs) const { return compare(rhs) != 0; }
-        bool operator >= (const id& rhs) const { return compare(rhs) >= 0; }
-        bool operator > (const id& rhs) const { return compare(rhs) > 0; }
-
-    public:
-        regionid region;
-        entityid client;
+        region_id region;
+        server_id client;
         uint64_t search_id;
 };
 
-search_manager :: id :: id(const regionid re,
-                           const entityid cl,
+search_manager :: id :: id(const region_id re,
+                           const server_id cl,
                            uint64_t sid)
     : region(re)
     , client(cl)
@@ -82,19 +71,43 @@ search_manager :: id :: ~id() throw ()
 {
 }
 
+bool
+search_manager :: id :: operator < (const id& rhs) const
+{
+    if (region == rhs.region)
+    {
+        if (client == rhs.client)
+        {
+            return search_id < rhs.search_id;
+        }
+
+        return client < rhs.client;
+    }
+
+    return region < rhs.region;
+}
+
+bool
+search_manager :: id :: operator == (const id& rhs) const
+{
+    return region == rhs.region &&
+           client == rhs.client &&
+           search_id == rhs.search_id;
+}
+
 ///////////////////////////// Search Manager State /////////////////////////////
 
 class search_manager::state
 {
     public:
-        state(const regionid& region,
+        state(const region_id& region,
               std::auto_ptr<e::buffer> msg,
               std::vector<attribute_check>* checks);
         ~state() throw ();
 
     public:
         po6::threads::mutex lock;
-        const regionid region;
+        const region_id region;
         const std::auto_ptr<e::buffer> backing;
         std::vector<attribute_check> checks;
         datalayer::snapshot snap;
@@ -110,7 +123,7 @@ class search_manager::state
         size_t m_ref;
 };
 
-search_manager :: state :: state(const regionid& r,
+search_manager :: state :: state(const region_id& r,
                                  std::auto_ptr<e::buffer> msg,
                                  std::vector<attribute_check>* c)
     : lock()
@@ -139,10 +152,21 @@ search_manager :: ~search_manager() throw ()
 {
 }
 
+bool
+search_manager :: setup()
+{
+    return true;
+}
+
+void
+search_manager :: teardown()
+{
+}
+
 reconfigure_returncode
 search_manager :: prepare(const configuration&,
                           const configuration&,
-                          const instance&)
+                          const server_id&)
 {
     return RECONFIGURE_SUCCESS;
 }
@@ -150,7 +174,7 @@ search_manager :: prepare(const configuration&,
 reconfigure_returncode
 search_manager :: reconfigure(const configuration&,
                               const configuration&,
-                              const instance&)
+                              const server_id&)
 {
     return RECONFIGURE_SUCCESS;
 }
@@ -158,31 +182,33 @@ search_manager :: reconfigure(const configuration&,
 reconfigure_returncode
 search_manager :: cleanup(const configuration&,
                           const configuration&,
-                          const instance&)
+                          const server_id&)
 {
+    // XXX
     return RECONFIGURE_SUCCESS;
 }
 
 void
-search_manager :: start(const entityid& us,
-                        const entityid& client,
+search_manager :: start(const server_id& from,
+                        const virtual_server_id& to,
                         std::auto_ptr<e::buffer> msg,
                         uint64_t nonce,
                         uint64_t search_id,
                         std::vector<attribute_check>* checks)
 {
-    id sid(us.get_region(), client, search_id);
+    region_id ri(m_daemon->m_config.get_region_id(to));
+    id sid(ri, from, search_id);
 
     if (m_searches.contains(sid))
     {
         LOG(WARNING) << "received request for search " << search_id << " from client "
-                     << client << " but the search is already in progress";
+                     << from << " but the search is already in progress";
         return;
     }
 
-    schema* sc = m_daemon->m_config.get_schema(us.get_space());
+    const schema* sc = m_daemon->m_config.get_schema(ri);
     assert(sc);
-    e::intrusive_ptr<state> st = new state(us.get_region(), msg, checks);
+    e::intrusive_ptr<state> st = new state(ri, msg, checks);
     datalayer::returncode rc;
     rc = m_daemon->m_data.make_snapshot(st->region, &st->checks.front(), st->checks.size(), &st->snap);
 
@@ -202,23 +228,24 @@ search_manager :: start(const entityid& us,
     }
 
     m_searches.insert(sid, st);
-    next(us, client, nonce, search_id);
+    next(from, to, nonce, search_id);
 }
 
 void
-search_manager :: next(const entityid& us,
-                       const entityid& client,
+search_manager :: next(const server_id& from,
+                       const virtual_server_id& to,
                        uint64_t nonce,
                        uint64_t search_id)
 {
-    id sid(us.get_region(), client, search_id);
+    region_id ri(m_daemon->m_config.get_region_id(to));
+    id sid(ri, from, search_id);
     e::intrusive_ptr<state> st;
 
     if (!m_searches.lookup(sid, &st))
     {
-        std::auto_ptr<e::buffer> msg(e::buffer::create(m_daemon->m_comm.header_size() + sizeof(uint64_t)));
-        msg->pack_at(m_daemon->m_comm.header_size()) << nonce;
-        m_daemon->m_comm.send(us, client, RESP_SEARCH_DONE, msg);
+        std::auto_ptr<e::buffer> msg(e::buffer::create(HYPERDEX_HEADER_SIZE_VS + sizeof(uint64_t)));
+        msg->pack_at(HYPERDEX_HEADER_SIZE_VS) << nonce;
+        m_daemon->m_comm.send(to, from, RESP_SEARCH_DONE, msg);
         return;
     }
 
@@ -230,30 +257,31 @@ search_manager :: next(const entityid& us,
         std::vector<e::slice> val;
         uint64_t ver;
         st->snap.get(&key, &val, &ver);
-        size_t sz = m_daemon->m_comm.header_size()
+        size_t sz = HYPERDEX_HEADER_SIZE_VS
                   + sizeof(uint64_t)
                   + pack_size(key)
                   + pack_size(val);
         std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-        msg->pack_at(m_daemon->m_comm.header_size()) << nonce << key << val;
-        m_daemon->m_comm.send(us, client, RESP_SEARCH_ITEM, msg);
+        msg->pack_at(HYPERDEX_HEADER_SIZE_VS) << nonce << key << val;
+        m_daemon->m_comm.send(to, from, RESP_SEARCH_ITEM, msg);
         st->snap.next();
     }
     else
     {
-        std::auto_ptr<e::buffer> msg(e::buffer::create(m_daemon->m_comm.header_size() + sizeof(uint64_t)));
-        msg->pack_at(m_daemon->m_comm.header_size()) << nonce;
-        m_daemon->m_comm.send(us, client, RESP_SEARCH_DONE, msg);
-        stop(us, client, search_id);
+        std::auto_ptr<e::buffer> msg(e::buffer::create(HYPERDEX_HEADER_SIZE_VS + sizeof(uint64_t)));
+        msg->pack_at(HYPERDEX_HEADER_SIZE_VS) << nonce;
+        m_daemon->m_comm.send(to, from, RESP_SEARCH_DONE, msg);
+        stop(from, to, search_id);
     }
 }
 
 void
-search_manager :: stop(const entityid& us,
-                       const entityid& client,
+search_manager :: stop(const server_id& from,
+                       const virtual_server_id& to,
                        uint64_t search_id)
 {
-    id sid(us.get_region(), client, search_id);
+    region_id ri(m_daemon->m_config.get_region_id(to));
+    id sid(ri, from, search_id);
     m_searches.remove(sid);
 }
 
@@ -262,12 +290,12 @@ namespace hyperdex
 
 struct _sorted_search_params
 {
-    _sorted_search_params(schema* _sc,
+    _sorted_search_params(const schema* _sc,
                           uint16_t _sort_by,
                           bool _maximize)
         : sc(_sc), sort_by(_sort_by), maximize(_maximize) {}
     ~_sorted_search_params() throw () {}
-    schema* sc;
+    const schema* sc;
     uint16_t sort_by;
     bool maximize;
 
@@ -381,20 +409,20 @@ operator > (const _sorted_search_item& lhs, const _sorted_search_item& rhs)
 } // namespace hyperdex
 
 void
-search_manager :: sorted_search(const entityid& us,
-                                const entityid& client,
+search_manager :: sorted_search(const server_id& from,
+                                const virtual_server_id& to,
                                 uint64_t nonce,
                                 std::vector<attribute_check>* checks,
                                 uint64_t limit,
                                 uint16_t sort_by,
                                 bool maximize)
 {
-    schema* sc = m_daemon->m_config.get_schema(us.get_space());
+    region_id ri(m_daemon->m_config.get_region_id(to));
+    const schema* sc = m_daemon->m_config.get_schema(ri);
     assert(sc);
     datalayer::snapshot snap;
     datalayer::returncode rc;
-    rc = m_daemon->m_data.make_snapshot(us.get_region(), &checks->front(), checks->size(), &snap);
-    uint64_t result = 0;
+    rc = m_daemon->m_data.make_snapshot(m_daemon->m_config.get_region_id(to), &checks->front(), checks->size(), &snap);
 
     switch (rc)
     {
@@ -406,7 +434,6 @@ search_manager :: sorted_search(const entityid& us,
         case datalayer::IO_ERROR:
         case datalayer::LEVELDB_ERROR:
             LOG(ERROR) << "could not make snapshot for search:  " << rc;
-            result = UINT64_MAX;
             break;
         default:
             abort();
@@ -432,9 +459,7 @@ search_manager :: sorted_search(const entityid& us,
     }
 
     std::sort(top_n.begin(), top_n.end(), std::greater<_sorted_search_item>());
-    size_t sz = m_daemon->m_comm.header_size()
-              + sizeof(uint64_t)
-              + sizeof(uint64_t);
+    size_t sz = HYPERDEX_HEADER_SIZE_VS + sizeof(uint64_t) + sizeof(uint64_t);
 
     for (size_t i = 0; i < top_n.size(); ++i)
     {
@@ -442,7 +467,7 @@ search_manager :: sorted_search(const entityid& us,
     }
 
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    e::buffer::packer pa = msg->pack_at(m_daemon->m_comm.header_size());
+    e::buffer::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_VS);
     pa = pa << nonce << static_cast<uint64_t>(top_n.size());
 
     for (size_t i = 0; i < top_n.size(); ++i)
@@ -450,23 +475,24 @@ search_manager :: sorted_search(const entityid& us,
         pa = pa << top_n[i].key << top_n[i].value;
     }
 
-    m_daemon->m_comm.send(us, client, RESP_SORTED_SEARCH, msg);
+    m_daemon->m_comm.send(to, from, RESP_SORTED_SEARCH, msg);
 }
 
 void
-search_manager :: group_keyop(const entityid& us,
-                              const entityid& client,
+search_manager :: group_keyop(const server_id& from,
+                              const virtual_server_id& to,
                               uint64_t nonce,
                               std::vector<attribute_check>* checks,
                               network_msgtype mt,
                               const e::slice& remain,
                               network_msgtype resp)
 {
-    schema* sc = m_daemon->m_config.get_schema(us.get_space());
+    region_id ri(m_daemon->m_config.get_region_id(to));
+    const schema* sc = m_daemon->m_config.get_schema(ri);
     assert(sc);
     datalayer::snapshot snap;
     datalayer::returncode rc;
-    rc = m_daemon->m_data.make_snapshot(us.get_region(), &checks->front(), checks->size(), &snap);
+    rc = m_daemon->m_data.make_snapshot(m_daemon->m_config.get_region_id(to), &checks->front(), checks->size(), &snap);
     uint64_t result = 0;
 
     switch (rc)
@@ -491,22 +517,19 @@ search_manager :: group_keyop(const entityid& us,
         std::vector<e::slice> val;
         uint64_t ver;
         snap.get(&key, &val, &ver);
-        size_t sz = m_daemon->m_comm.header_size()
+        size_t sz = HYPERDEX_HEADER_SIZE_SV // SV because we imitate a client
                   + sizeof(uint64_t)
                   + pack_size(key)
                   + remain.size();
         std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-        e::buffer::packer pa = msg->pack_at(m_daemon->m_comm.header_size());
+        e::buffer::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_SV);
         pa = pa << static_cast<uint64_t>(0) << key;
         pa = pa.copy(remain);
+        virtual_server_id vsi = m_daemon->m_config.point_leader(ri, key);
 
-        // Figure out who to talk with.
-        entityid dst_ent;
-        instance dst_inst;
-
-        if (m_daemon->m_config.point_leader_entity(us.get_space(), key, &dst_ent, &dst_inst))
+        if (vsi != virtual_server_id())
         {
-            m_daemon->m_comm.send(us, dst_ent, mt, msg);
+            m_daemon->m_comm.send(vsi, mt, msg);
         }
         else
         {
@@ -516,25 +539,26 @@ search_manager :: group_keyop(const entityid& us,
         snap.next();
     }
 
-    size_t sz = m_daemon->m_comm.header_size()
+    size_t sz = HYPERDEX_HEADER_SIZE_VS
               + sizeof(uint64_t)
               + sizeof(uint64_t);
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    msg->pack_at(m_daemon->m_comm.header_size()) << nonce << result;
-    m_daemon->m_comm.send(us, client, resp, msg);
+    msg->pack_at(HYPERDEX_HEADER_SIZE_VS) << nonce << result;
+    m_daemon->m_comm.send(to, from, resp, msg);
 }
 
 void
-search_manager :: count(const entityid& us,
-                        const entityid& client,
+search_manager :: count(const server_id& from,
+                        const virtual_server_id& to,
                         uint64_t nonce,
                         std::vector<attribute_check>* checks)
 {
-    schema* sc = m_daemon->m_config.get_schema(us.get_space());
+    region_id ri(m_daemon->m_config.get_region_id(to));
+    const schema* sc = m_daemon->m_config.get_schema(ri);
     assert(sc);
     datalayer::snapshot snap;
     datalayer::returncode rc;
-    rc = m_daemon->m_data.make_snapshot(us.get_region(), &checks->front(), checks->size(), &snap);
+    rc = m_daemon->m_data.make_snapshot(m_daemon->m_config.get_region_id(to), &checks->front(), checks->size(), &snap);
     uint64_t result = 0;
 
     switch (rc)
@@ -559,12 +583,12 @@ search_manager :: count(const entityid& us,
         snap.next();
     }
 
-    size_t sz = m_daemon->m_comm.header_size()
+    size_t sz = HYPERDEX_HEADER_SIZE_VS
               + sizeof(uint64_t)
               + sizeof(uint64_t);
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    msg->pack_at(m_daemon->m_comm.header_size()) << nonce << result;
-    m_daemon->m_comm.send(us, client, RESP_COUNT, msg);
+    msg->pack_at(HYPERDEX_HEADER_SIZE_VS) << nonce << result;
+    m_daemon->m_comm.send(to, from, RESP_COUNT, msg);
 }
 
 uint64_t

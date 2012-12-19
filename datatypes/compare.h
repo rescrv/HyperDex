@@ -46,14 +46,4 @@ compare_int64(const e::slice& lhs, const e::slice& rhs);
 int
 compare_float(const e::slice& lhs, const e::slice& rhs);
 
-// XXX redundant
-bool
-compare_lt_string(const e::slice& lhs, const e::slice& rhs);
-
-bool
-compare_lt_int64(const e::slice& lhs, const e::slice& rhs);
-
-bool
-compare_lt_float(const e::slice& lhs, const e::slice& rhs);
-
 #endif // datatypes_compare_h_

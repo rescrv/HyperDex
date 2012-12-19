@@ -1,6 +1,12 @@
 aclocal.m4
 autom4te.cache/
 binary-test
+client/cc/testcompile
+client/c/testcompile
+client/keyop_info.cc
+client/parse_space_l.c
+client/parse_space_y.c
+client/parse_space_y.h
 config.guess
 config.h
 config.h.in
@@ -8,15 +14,17 @@ config.log
 config.status
 config.sub
 configure
+daemon/test/index_encode
 depcomp
 .deps
 .dirstamp
-hyperclient/c/testcompile
-hyperclient/keyop_info.cc
 hyperclient/python/hyperclient.c
+hyperdex
+hyperdex-add-space
 hyperdex-binary-test
 hyperdex-daemon
 hyperdex-replication-stress-test
+hyperdex-rm-space
 hyperdex-search-stress-test
 hyperdex-simple-consistency-stress-test
 hyperspacehashing/test/bithacks
@@ -41,3 +49,4 @@ missing
 *.pyc
 py-compile
 stamp-h1
+ylwrap

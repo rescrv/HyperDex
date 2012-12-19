@@ -34,7 +34,7 @@
 namespace hyperdex
 {
 
-// reconfigure_returncode occupies [8576, 8704)
+// reconfigure_returncode occupies [8704, 8832)
 enum reconfigure_returncode
 {
     RECONFIGURE_SUCCESS = 8704,

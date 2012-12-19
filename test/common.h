@@ -31,6 +31,10 @@
 // Popt
 #include <popt.h>
 
+// po6
+#include <po6/error.h>
+#include <po6/net/ipaddr.h>
+
 extern const char* hyperdex_test_space;
 extern const char* hyperdex_test_host;
 extern long hyperdex_test_port;

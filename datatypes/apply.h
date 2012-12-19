@@ -52,10 +52,9 @@ size_t
 perform_checks_and_apply_funcs(const hyperdex::schema* sc,
                                const std::vector<hyperdex::attribute_check>& checks,
                                const std::vector<hyperdex::funcall>& funcs,
-                               const e::slice& old_key,
+                               const e::slice& key,
                                const std::vector<e::slice>& old_value,
-                               std::tr1::shared_ptr<e::buffer>* new_backing,
-                               e::slice* new_key,
+                               std::tr1::shared_ptr<e::buffer>* backing,
                                std::vector<e::slice>* new_value,
                                microerror* error);
 

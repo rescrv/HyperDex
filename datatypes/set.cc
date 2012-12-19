@@ -42,7 +42,7 @@ using hyperdex::funcall;
 
 bool
 validate_set(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice* elem),
-             bool (*compare_elem_less)(const e::slice& lhs, const e::slice& rhs),
+             int (*compare_elem)(const e::slice& lhs, const e::slice& rhs),
              const e::slice& set)
 {
     const uint8_t* ptr = set.data();
@@ -60,7 +60,7 @@ validate_set(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice
 
         if (has_old)
         {
-            if (!compare_elem_less(old, elem))
+            if (compare_elem(old, elem) < 0)
             {
                 return false;
             }
@@ -77,12 +77,19 @@ validate_set(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice
     bool \
     validate_as_set_ ## TYPE(const e::slice& value) \
     { \
-        return validate_set(step_ ## TYPE, compare_lt_ ## TYPE, value); \
+        return validate_set(step_ ## TYPE, compare_ ## TYPE, value); \
     }
 
 VALIDATE_SET(string)
 VALIDATE_SET(int64)
 VALIDATE_SET(float)
+
+template<int (*compare)(const e::slice& lhs, const e::slice& rhs)>
+static bool
+compare_less(const e::slice& lhs, const e::slice& rhs)
+{
+    return compare(lhs, rhs) < 0;
+}
 
 static uint8_t*
 apply_set(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice* elem),
@@ -257,7 +264,8 @@ apply_set(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice* e
                        const funcall* funcs, size_t num_funcs, \
                        uint8_t* writeto, microerror* error) \
     { \
-        return apply_set(step_ ## TYPE, validate_as_ ## TYPE, compare_lt_ ## TYPE, write_ ## TYPE, \
+        return apply_set(step_ ## TYPE, validate_as_ ## TYPE, \
+                         compare_less<compare_ ## TYPE>, write_ ## TYPE, \
                          HYPERDATATYPE_SET_ ## TYPECAPS, HYPERDATATYPE_ ## TYPECAPS, \
                          old_value, funcs, num_funcs, writeto, error); \
     }

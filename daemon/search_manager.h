@@ -30,12 +30,13 @@
 
 // e
 #include <e/intrusive_ptr.h>
+#include <e/lockfree_hash_map.h>
 
 // HyperDex
+#include "common/network_msgtype.h"
+#include "common/server_id.h"
 #include "daemon/datalayer.h"
 #include "daemon/reconfigure_returncode.h"
-#include "hyperdaemon/logical.h"
-#include "hyperdex/hyperdex/network_constants.h"
 
 namespace hyperdex
 {
@@ -49,46 +50,48 @@ class search_manager
         ~search_manager() throw ();
 
     public:
+        bool setup();
+        void teardown();
         reconfigure_returncode prepare(const configuration& old_config,
                                        const configuration& new_config,
-                                       const instance& us);
+                                       const server_id& us);
         reconfigure_returncode reconfigure(const configuration& old_config,
                                            const configuration& new_config,
-                                           const instance& us);
+                                           const server_id& us);
         reconfigure_returncode cleanup(const configuration& old_config,
                                        const configuration& new_config,
-                                       const instance& us);
+                                       const server_id& us);
 
     public:
-        void start(const entityid& us,
-                   const entityid& client,
+        void start(const server_id& from,
+                   const virtual_server_id& to,
                    std::auto_ptr<e::buffer> msg,
                    uint64_t nonce,
                    uint64_t search_id,
                    std::vector<attribute_check>* checks);
-        void next(const entityid& us,
-                  const entityid& client,
+        void next(const server_id& from,
+                  const virtual_server_id& to,
                   uint64_t nonce,
                   uint64_t search_id);
-        void stop(const entityid& us,
-                  const entityid& client,
+        void stop(const server_id& from,
+                  const virtual_server_id& to,
                   uint64_t search_id);
-        void sorted_search(const entityid& us,
-                           const entityid& client,
+        void sorted_search(const server_id& from,
+                           const virtual_server_id& to,
                            uint64_t nonce,
                            std::vector<attribute_check>* checks,
                            uint64_t limit,
                            uint16_t sort_by,
                            bool maximize);
-        void group_keyop(const entityid& us,
-                         const entityid& client,
+        void group_keyop(const server_id& from,
+                         const virtual_server_id& to,
                          uint64_t nonce,
                          std::vector<attribute_check>* checks,
                          network_msgtype mt,
                          const e::slice& remain,
                          network_msgtype resp);
-        void count(const entityid& us,
-                   const entityid& client,
+        void count(const server_id& from,
+                   const virtual_server_id& to,
                    uint64_t nonce,
                    std::vector<attribute_check>* checks);
 

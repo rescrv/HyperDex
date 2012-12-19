@@ -27,6 +27,10 @@
 
 #define __STDC_LIMIT_MACROS
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 // STL
 #include <string>
 
@@ -143,11 +147,16 @@ datalayer :: datalayer(daemon* d)
 
 datalayer :: ~datalayer() throw ()
 {
-    close();
+    // Intentionally leak m_db if destructed.  It must be released from
+    // "teardown" to ensure we clean up outstanding snapshots first.
 }
 
-reconfigure_returncode
-datalayer :: open(const po6::pathname& path)
+bool
+datalayer :: setup(const po6::pathname& path,
+                   bool* saved,
+                   server_id* saved_us,
+                   po6::net::location* saved_bind_to,
+                   po6::net::hostname* saved_coordinator)
 {
     leveldb::Options opts;
     opts.create_if_missing = true;
@@ -158,28 +167,177 @@ datalayer :: open(const po6::pathname& path)
     if (!st.ok())
     {
         LOG(ERROR) << "could not open LevelDB: " << st.ToString();
-        return RECONFIGURE_FATAL;
+        return false;
     }
 
-    return RECONFIGURE_SUCCESS;
+    leveldb::ReadOptions ropts;
+    ropts.fill_cache = true;
+    ropts.verify_checksums = true;
+    leveldb::WriteOptions wopts;
+    wopts.sync = true;
+
+    leveldb::Slice rk("hyperdex", 8);
+    std::string rbacking;
+    st = m_db->Get(ropts, rk, &rbacking);
+    bool first_time = false;
+
+    if (st.ok())
+    {
+        first_time = false;
+
+        if (rbacking != PACKAGE_VERSION)
+        {
+            LOG(ERROR) << "could not restore from LevelDB because "
+                       << "the existing data was created by "
+                       << "HyperDex " << rbacking << " but "
+                       << "this is version " << PACKAGE_VERSION;
+            return false;
+        }
+    }
+    else if (st.IsNotFound())
+    {
+        first_time = true;
+        leveldb::Slice k("hyperdex", 8);
+        leveldb::Slice v(PACKAGE_VERSION, strlen(PACKAGE_VERSION));
+        st = m_db->Put(wopts, k, v);
+
+        if (st.ok())
+        {
+            // fall through
+        }
+        else if (st.IsNotFound())
+        {
+            LOG(ERROR) << "could not restore from LevelDB because Put returned NotFound:  "
+                       << st.ToString();
+            return false;
+        }
+        else if (st.IsCorruption())
+        {
+            LOG(ERROR) << "could not restore from LevelDB because of corruption:  "
+                       << st.ToString();
+            return false;
+        }
+        else if (st.IsIOError())
+        {
+            LOG(ERROR) << "could not restore from LevelDB because of an IO error:  "
+                       << st.ToString();
+            return false;
+        }
+        else
+        {
+            LOG(ERROR) << "could not restore from LevelDB because it returned an "
+                       << "unknown error that we don't know how to handle:  "
+                       << st.ToString();
+            return false;
+        }
+    }
+    else if (st.IsCorruption())
+    {
+        LOG(ERROR) << "could not restore from LevelDB because of corruption:  "
+                   << st.ToString();
+        return false;
+    }
+    else if (st.IsIOError())
+    {
+        LOG(ERROR) << "could not restore from LevelDB because of an IO error:  "
+                   << st.ToString();
+        return false;
+    }
+    else
+    {
+        LOG(ERROR) << "could not restore from LevelDB because it returned an "
+                   << "unknown error that we don't know how to handle:  "
+                   << st.ToString();
+        return false;
+    }
+
+    leveldb::Slice sk("state", 5);
+    std::string sbacking;
+    st = m_db->Get(ropts, sk, &sbacking);
+
+    if (st.ok())
+    {
+        if (first_time)
+        {
+            LOG(ERROR) << "could not restore from LevelDB because a previous "
+                       << "execution crashed and the database was tampered with; "
+                       << "you're on your own with this one";
+            return false;
+        }
+    }
+    else if (st.IsNotFound())
+    {
+        if (!first_time)
+        {
+            LOG(ERROR) << "could not restore from LevelDB because a previous "
+                       << "execution crashed; run the recovery program and try again";
+            return false;
+        }
+    }
+    else if (st.IsCorruption())
+    {
+        LOG(ERROR) << "could not restore from LevelDB because of corruption:  "
+                   << st.ToString();
+        return false;
+    }
+    else if (st.IsIOError())
+    {
+        LOG(ERROR) << "could not restore from LevelDB because of an IO error:  "
+                   << st.ToString();
+        return false;
+    }
+    else
+    {
+        LOG(ERROR) << "could not restore from LevelDB because it returned an "
+                   << "unknown error that we don't know how to handle:  "
+                   << st.ToString();
+        return false;
+    }
+
+    if (first_time)
+    {
+        *saved = false;
+        return true;
+    }
+
+    // XXX
+    LOG(ERROR) << "UNIMPLMENTED RECOVERY CASE";
+    abort();
+#if 0
+
+    *saved = true;
+    // XXX inefficient, lazy hack
+    std::auto_ptr<e::buffer> buf(e::buffer::create(sbacking.size()));
+    memmove(buf->data(), sbacking.data(), sbacking.size());
+    buf->resize(sbacking.size());
+    e::buffer::unpacker up = buf->unpack_from(0);
+    up = up >> *saved_us >> *saved_config_manager;
+
+    if (up.error())
+    {
+        LOG(ERROR) << "could not restore from LevelDB because a previous "
+                   << "execution saved invalid state; run the recovery program and try again";
+        return false;
+    }
+
+    return true;
+#endif
 }
 
-reconfigure_returncode
-datalayer :: close()
+void
+datalayer :: teardown()
 {
     if (m_db)
     {
         delete m_db;
         m_db = NULL;
     }
-
-    return RECONFIGURE_SUCCESS;
 }
 
 reconfigure_returncode
 datalayer :: prepare(const configuration&,
                      const configuration&,
-                     const instance&)
+                     const server_id&)
 {
     // XXX
     return RECONFIGURE_SUCCESS;
@@ -188,7 +346,7 @@ datalayer :: prepare(const configuration&,
 reconfigure_returncode
 datalayer :: reconfigure(const configuration&,
                          const configuration&,
-                         const instance&)
+                         const server_id&)
 {
     // XXX
     return RECONFIGURE_SUCCESS;
@@ -197,14 +355,14 @@ datalayer :: reconfigure(const configuration&,
 reconfigure_returncode
 datalayer :: cleanup(const configuration&,
                      const configuration&,
-                     const instance&)
+                     const server_id&)
 {
     // XXX
     return RECONFIGURE_SUCCESS;
 }
 
 datalayer::returncode
-datalayer :: get(const regionid& ri,
+datalayer :: get(const region_id& ri,
                  const e::slice& key,
                  std::vector<e::slice>* value,
                  uint64_t* version,
@@ -247,12 +405,12 @@ datalayer :: get(const regionid& ri,
 }
 
 datalayer::returncode
-datalayer :: put(const regionid& ri,
+datalayer :: put(const region_id& ri,
                  const e::slice& key,
                  const std::vector<e::slice>& value,
                  uint64_t version)
 {
-    schema* sc = m_daemon->m_config.get_schema(ri.get_space());
+    const schema* sc = m_daemon->m_config.get_schema(ri);
     assert(sc);
     leveldb::WriteOptions opts;
     opts.sync = true;
@@ -302,10 +460,10 @@ datalayer :: put(const regionid& ri,
 }
 
 datalayer::returncode
-datalayer :: del(const regionid& ri,
+datalayer :: del(const region_id& ri,
                  const e::slice& key)
 {
-    schema* sc = m_daemon->m_config.get_schema(ri.get_space());
+    const schema* sc = m_daemon->m_config.get_schema(ri);
     assert(sc);
     leveldb::WriteOptions opts;
     opts.sync = true;
@@ -352,87 +510,46 @@ datalayer :: del(const regionid& ri,
 }
 
 void
-datalayer :: encode_key(const regionid& ri,
+datalayer :: encode_key(const region_id& ri,
                         const e::slice& key,
                         std::vector<char>* kbacking,
                         leveldb::Slice* lkey)
 {
-    size_t sz = sizeof(uint8_t)
-              + sizeof(uint64_t)
-              + sizeof(uint32_t)
-              + sizeof(uint16_t)
-              + sizeof(uint8_t)
-              + key.size();
+    size_t sz = sizeof(uint8_t) + sizeof(uint64_t) + key.size();
     kbacking->resize(sz);
     char* ptr = &kbacking->front();
     ptr = e::pack8be('o', ptr);
-    ptr = e::pack64be(ri.mask, ptr);
-    ptr = e::pack32be(ri.space, ptr);
-    ptr = e::pack16be(ri.subspace, ptr);
-    ptr = e::pack8be(ri.prefix, ptr);
+    ptr = e::pack64be(ri.get(), ptr);
     memmove(ptr, key.data(), key.size());
     *lkey = leveldb::Slice(&kbacking->front(), sz);
 }
 
 datalayer::returncode
 datalayer :: decode_key(const e::slice& lkey,
-                        regionid* ri,
+                        region_id* ri,
                         e::slice* key)
 {
     const uint8_t* ptr = lkey.data();
     const uint8_t* end = ptr + lkey.size();
 
-    if (ptr + sizeof(uint8_t) <= end)
-    {
-        uint8_t o;
-        ptr = e::unpack8be(ptr, &o);
-
-        if (o != 'o')
-        {
-            return BAD_ENCODING;
-        }
-    }
-    else
+    if (ptr >= end || *ptr != 'o')
     {
         return BAD_ENCODING;
     }
+
+    ++ptr;
+    uint64_t rid;
 
     if (ptr + sizeof(uint64_t) <= end)
     {
-        ptr = e::unpack64be(ptr, &ri->mask);
+        ptr = e::unpack64be(ptr, &rid);
     }
     else
     {
         return BAD_ENCODING;
     }
 
-    if (ptr + sizeof(uint32_t) <= end)
-    {
-        ptr = e::unpack32be(ptr, &ri->space);
-    }
-    else
-    {
-        return BAD_ENCODING;
-    }
-
-    if (ptr + sizeof(uint16_t) <= end)
-    {
-        ptr = e::unpack16be(ptr, &ri->subspace);
-    }
-    else
-    {
-        return BAD_ENCODING;
-    }
-
-    if (ptr + sizeof(uint8_t) <= end)
-    {
-        ptr = e::unpack8be(ptr, &ri->prefix);
-    }
-    else
-    {
-        return BAD_ENCODING;
-    }
-
+    *ri  = region_id(rid);
     *key = e::slice(ptr, end - ptr);
     return SUCCESS;
 }
@@ -518,22 +635,14 @@ datalayer :: decode_value(const e::slice& value,
 }
 
 void
-datalayer :: generate_object_range(const regionid& ri,
+datalayer :: generate_object_range(const region_id& ri,
                                    backing_t* backing,
                                    leveldb::Range* r)
 {
-    backing->push_back(std::vector<char>());
-    backing->back().resize(sizeof(uint8_t)
-                           + sizeof(uint64_t)
-                           + sizeof(uint32_t)
-                           + sizeof(uint16_t)
-                           + sizeof(uint8_t));
+    backing->push_back(std::vector<char>(sizeof(uint8_t) + sizeof(uint64_t)));
     char* ptr = &backing->back().front();
     ptr = e::pack8be('o', ptr);
-    ptr = e::pack64be(ri.mask, ptr);
-    ptr = e::pack32be(ri.space, ptr);
-    ptr = e::pack16be(ri.subspace, ptr);
-    ptr = e::pack8be(ri.prefix, ptr);
+    ptr = e::pack64be(ri.get(), ptr);
     leveldb::Slice start(&backing->back().front(), ptr - &backing->back().front());
     backing->push_back(backing->back());
     ptr = &backing->back().front();
@@ -544,7 +653,7 @@ datalayer :: generate_object_range(const regionid& ri,
 }
 
 void
-datalayer :: generate_index(const regionid& ri,
+datalayer :: generate_index(const region_id& ri,
                             uint16_t attr,
                             hyperdatatype type,
                             const e::slice& value,
@@ -563,20 +672,14 @@ datalayer :: generate_index(const regionid& ri,
         case HYPERDATATYPE_STRING:
             backing->push_back(std::vector<char>());
             backing->back().resize(sizeof(uint8_t)
-                                  + sizeof(uint64_t)
-                                  + sizeof(uint32_t)
-                                  + sizeof(uint16_t)
-                                  + sizeof(uint8_t)
-                                  + sizeof(uint16_t)
-                                  + value.size()
-                                  + key.size()
-                                  + sizeof(uint32_t));
+                                   + sizeof(uint64_t)
+                                   + sizeof(uint16_t)
+                                   + value.size()
+                                   + key.size()
+                                   + sizeof(uint32_t));
             ptr = &backing->back().front();
             ptr = e::pack8be('i', ptr);
-            ptr = e::pack64be(ri.mask, ptr);
-            ptr = e::pack32be(ri.space, ptr);
-            ptr = e::pack16be(ri.subspace, ptr);
-            ptr = e::pack8be(ri.prefix, ptr);
+            ptr = e::pack64be(ri.get(), ptr);
             ptr = e::pack16be(attr, ptr);
             memmove(ptr, value.data(), value.size());
             ptr += value.size();
@@ -588,19 +691,13 @@ datalayer :: generate_index(const regionid& ri,
         case HYPERDATATYPE_INT64:
             backing->push_back(std::vector<char>());
             backing->back().resize(sizeof(uint8_t)
-                                  + sizeof(uint64_t)
-                                  + sizeof(uint32_t)
-                                  + sizeof(uint16_t)
-                                  + sizeof(uint8_t)
-                                  + sizeof(uint16_t)
-                                  + sizeof(uint64_t)
-                                  + key.size());
+                                   + sizeof(uint64_t)
+                                   + sizeof(uint16_t)
+                                   + sizeof(uint64_t)
+                                   + key.size());
             ptr = &backing->back().front();
             ptr = e::pack8be('i', ptr);
-            ptr = e::pack64be(ri.mask, ptr);
-            ptr = e::pack32be(ri.space, ptr);
-            ptr = e::pack16be(ri.subspace, ptr);
-            ptr = e::pack8be(ri.prefix, ptr);
+            ptr = e::pack64be(ri.get(), ptr);
             ptr = e::pack16be(attr, ptr);
             e::unpack64le(value.data(), &tmp_i);
             ptr = index_encode_int64(tmp_i, ptr);
@@ -610,19 +707,13 @@ datalayer :: generate_index(const regionid& ri,
         case HYPERDATATYPE_FLOAT:
             backing->push_back(std::vector<char>());
             backing->back().resize(sizeof(uint8_t)
-                                  + sizeof(uint64_t)
-                                  + sizeof(uint32_t)
-                                  + sizeof(uint16_t)
-                                  + sizeof(uint8_t)
-                                  + sizeof(uint16_t)
-                                  + sizeof(double)
-                                  + key.size());
+                                   + sizeof(uint64_t)
+                                   + sizeof(uint16_t)
+                                   + sizeof(double)
+                                   + key.size());
             ptr = &backing->back().front();
             ptr = e::pack8be('i', ptr);
-            ptr = e::pack64be(ri.mask, ptr);
-            ptr = e::pack32be(ri.space, ptr);
-            ptr = e::pack16be(ri.subspace, ptr);
-            ptr = e::pack8be(ri.prefix, ptr);
+            ptr = e::pack64be(ri.get(), ptr);
             ptr = e::pack16be(attr, ptr);
             e::unpackdoublele(value.data(), &tmp_d);
             ptr = index_encode_double(tmp_d, ptr);
@@ -657,7 +748,7 @@ datalayer :: generate_index(const regionid& ri,
 }
 
 void
-datalayer :: generate_search_filters(const regionid& ri,
+datalayer :: generate_search_filters(const region_id& ri,
                                      attribute_check* check_ptr,
                                      attribute_check* check_end,
                                      backing_t* backing,
@@ -671,59 +762,50 @@ datalayer :: generate_search_filters(const regionid& ri,
 
     while (check_ptr < check_end)
     {
+        if (init_type && (check_ptr->attr != attr ||
+                          check_ptr->datatype != type))
+        {
+            first = e::slice("", 0);
+            last = e::slice("", 0);
+            ++check_ptr;
+            continue;
+        }
+
         switch (check_ptr->predicate)
         {
             case HYPERPREDICATE_EQUALS:
                 if (check_ptr->value < first ||
-                    check_ptr->value > last ||
-                    (init_type && check_ptr->datatype != type))
+                    check_ptr->value > last)
                 {
-                    first = e::slice("\x00", 0);
-                    last = e::slice("\x00", 0);
-                    init_type = true;
-                    attr = check_ptr->attr - 1;
+                    first = e::slice("", 0);
+                    last = e::slice("", 0);
                 }
                 else
                 {
                     first = check_ptr->value;
                     last = check_ptr->value;
-                    init_type = true;
-                    type = check_ptr->datatype;
-                    attr = check_ptr->attr - 1;
                 }
                 break;
             case HYPERPREDICATE_LESS_EQUAL:
-                if (check_ptr->value < first ||
-                    (init_type && check_ptr->datatype != type))
+                if (check_ptr->value < first)
                 {
-                    first = e::slice("\x00", 0);
-                    last = e::slice("\x00", 0);
-                    init_type = true;
-                    attr = check_ptr->attr - 1;
+                    first = e::slice("", 0);
+                    last = e::slice("", 0);
                 }
                 else if (check_ptr->value < last)
                 {
                     last = check_ptr->value;
-                    init_type = true;
-                    type = check_ptr->datatype;
-                    attr = check_ptr->attr - 1;
                 }
                 break;
             case HYPERPREDICATE_GREATER_EQUAL:
-                if (check_ptr->value > last ||
-                    (init_type && check_ptr->datatype != type))
+                if (check_ptr->value > last)
                 {
-                    first = e::slice("\x00", 0);
-                    last = e::slice("\x00", 0);
-                    init_type = true;
-                    attr = check_ptr->attr - 1;
+                    first = e::slice("", 0);
+                    last = e::slice("", 0);
                 }
                 else if (check_ptr->value > first)
                 {
                     first = check_ptr->value;
-                    init_type = true;
-                    type = check_ptr->datatype;
-                    attr = check_ptr->attr - 1;
                 }
                 break;
             case HYPERPREDICATE_FAIL:
@@ -734,6 +816,9 @@ datalayer :: generate_search_filters(const regionid& ri,
                 break;
         }
 
+        init_type = true;
+        attr = check_ptr->attr;
+        type = check_ptr->datatype;
         ++check_ptr;
     }
 
@@ -748,43 +833,30 @@ datalayer :: generate_search_filters(const regionid& ri,
     double tmp_d;
     leveldb::Slice start;
     leveldb::Slice limit;
-LOG(INFO) << "SEARCH " << first.hex() << "->" << last.hex();
 
     switch (type)
     {
         case HYPERDATATYPE_STRING:
             backing->push_back(std::vector<char>());
             backing->back().resize(sizeof(uint8_t)
-                                  + sizeof(uint64_t)
-                                  + sizeof(uint32_t)
-                                  + sizeof(uint16_t)
-                                  + sizeof(uint8_t)
-                                  + sizeof(uint16_t)
-                                  + first.size());
+                                   + sizeof(uint64_t)
+                                   + sizeof(uint16_t)
+                                   + first.size());
             ptr = &backing->back().front();
             ptr = e::pack8be('i', ptr);
-            ptr = e::pack64be(ri.mask, ptr);
-            ptr = e::pack32be(ri.space, ptr);
-            ptr = e::pack16be(ri.subspace, ptr);
-            ptr = e::pack8be(ri.prefix, ptr);
+            ptr = e::pack64be(ri.get(), ptr);
             ptr = e::pack16be(attr, ptr);
             memmove(ptr, first.data(), first.size());
             ptr += first.size();
             start = leveldb::Slice(&backing->back().front(), backing->back().size());
             backing->push_back(std::vector<char>());
             backing->back().resize(sizeof(uint8_t)
-                                  + sizeof(uint64_t)
-                                  + sizeof(uint32_t)
-                                  + sizeof(uint16_t)
-                                  + sizeof(uint8_t)
-                                  + sizeof(uint16_t)
-                                  + last.size());
+                                   + sizeof(uint64_t)
+                                   + sizeof(uint16_t)
+                                   + last.size());
             ptr = &backing->back().front();
             ptr = e::pack8be('i', ptr);
-            ptr = e::pack64be(ri.mask, ptr);
-            ptr = e::pack32be(ri.space, ptr);
-            ptr = e::pack16be(ri.subspace, ptr);
-            ptr = e::pack8be(ri.prefix, ptr);
+            ptr = e::pack64be(ri.get(), ptr);
             ptr = e::pack16be(attr, ptr);
             memmove(ptr, last.data(), last.size());
             ptr += last.size();
@@ -796,36 +868,24 @@ LOG(INFO) << "SEARCH " << first.hex() << "->" << last.hex();
         case HYPERDATATYPE_INT64:
             backing->push_back(std::vector<char>());
             backing->back().resize(sizeof(uint8_t)
-                                  + sizeof(uint64_t)
-                                  + sizeof(uint32_t)
-                                  + sizeof(uint16_t)
-                                  + sizeof(uint8_t)
-                                  + sizeof(uint16_t)
-                                  + sizeof(uint64_t));
+                                   + sizeof(uint64_t)
+                                   + sizeof(uint16_t)
+                                   + sizeof(uint64_t));
             ptr = &backing->back().front();
             ptr = e::pack8be('i', ptr);
-            ptr = e::pack64be(ri.mask, ptr);
-            ptr = e::pack32be(ri.space, ptr);
-            ptr = e::pack16be(ri.subspace, ptr);
-            ptr = e::pack8be(ri.prefix, ptr);
+            ptr = e::pack64be(ri.get(), ptr);
             ptr = e::pack16be(attr, ptr);
             e::unpack64le(first.data(), &tmp_i);
             ptr = index_encode_int64(tmp_i, ptr);
             start = leveldb::Slice(&backing->back().front(), backing->back().size());
             backing->push_back(std::vector<char>());
             backing->back().resize(sizeof(uint8_t)
-                                  + sizeof(uint64_t)
-                                  + sizeof(uint32_t)
-                                  + sizeof(uint16_t)
-                                  + sizeof(uint8_t)
-                                  + sizeof(uint16_t)
-                                  + sizeof(uint64_t));
+                                   + sizeof(uint64_t)
+                                   + sizeof(uint16_t)
+                                   + sizeof(uint64_t));
             ptr = &backing->back().front();
             ptr = e::pack8be('i', ptr);
-            ptr = e::pack64be(ri.mask, ptr);
-            ptr = e::pack32be(ri.space, ptr);
-            ptr = e::pack16be(ri.subspace, ptr);
-            ptr = e::pack8be(ri.prefix, ptr);
+            ptr = e::pack64be(ri.get(), ptr);
             ptr = e::pack16be(attr, ptr);
             e::unpack64le(last.data(), &tmp_i);
             ptr = index_encode_int64(tmp_i, ptr);
@@ -837,36 +897,24 @@ LOG(INFO) << "SEARCH " << first.hex() << "->" << last.hex();
         case HYPERDATATYPE_FLOAT:
             backing->push_back(std::vector<char>());
             backing->back().resize(sizeof(uint8_t)
-                                  + sizeof(uint64_t)
-                                  + sizeof(uint32_t)
-                                  + sizeof(uint16_t)
-                                  + sizeof(uint8_t)
-                                  + sizeof(uint16_t)
-                                  + sizeof(double));
+                                   + sizeof(uint64_t)
+                                   + sizeof(uint16_t)
+                                   + sizeof(double));
             ptr = &backing->back().front();
             ptr = e::pack8be('i', ptr);
-            ptr = e::pack64be(ri.mask, ptr);
-            ptr = e::pack32be(ri.space, ptr);
-            ptr = e::pack16be(ri.subspace, ptr);
-            ptr = e::pack8be(ri.prefix, ptr);
+            ptr = e::pack64be(ri.get(), ptr);
             ptr = e::pack16be(attr, ptr);
             e::unpackdoublele(first.data(), &tmp_d);
             ptr = index_encode_double(tmp_d, ptr);
             start = leveldb::Slice(&backing->back().front(), backing->back().size());
             backing->push_back(std::vector<char>());
             backing->back().resize(sizeof(uint8_t)
-                                  + sizeof(uint64_t)
-                                  + sizeof(uint32_t)
-                                  + sizeof(uint16_t)
-                                  + sizeof(uint8_t)
-                                  + sizeof(uint16_t)
-                                  + sizeof(double));
+                                   + sizeof(uint64_t)
+                                   + sizeof(uint16_t)
+                                   + sizeof(double));
             ptr = &backing->back().front();
             ptr = e::pack8be('i', ptr);
-            ptr = e::pack64be(ri.mask, ptr);
-            ptr = e::pack32be(ri.space, ptr);
-            ptr = e::pack16be(ri.subspace, ptr);
-            ptr = e::pack8be(ri.prefix, ptr);
+            ptr = e::pack64be(ri.get(), ptr);
             ptr = e::pack16be(attr, ptr);
             e::unpackdoublele(last.data(), &tmp_d);
             ptr = index_encode_double(tmp_d, ptr);
@@ -904,8 +952,8 @@ LOG(INFO) << "SEARCH " << first.hex() << "->" << last.hex();
 }
 
 datalayer::returncode
-datalayer :: create_index_changes(schema* sc,
-                                  const regionid& ri,
+datalayer :: create_index_changes(const schema* sc,
+                                  const region_id& ri,
                                   const e::slice& key,
                                   const leveldb::Slice& lkey,
                                   backing_t* backing,
@@ -937,7 +985,7 @@ datalayer :: create_index_changes(schema* sc,
 
         for (size_t i = 0; i + 1 < sc->attrs_sz; ++i)
         {
-            generate_index(ri, i, sc->attrs[i + 1].type, old_value[i], key, backing, &old_idxs);
+            generate_index(ri, i + 1, sc->attrs[i + 1].type, old_value[i], key, backing, &old_idxs);
         }
     }
     else if (st.IsNotFound())
@@ -973,9 +1021,15 @@ datalayer :: create_index_changes(schema* sc,
     return SUCCESS;
 }
 
+static bool
+sort_idxs(const leveldb::Slice& lhs, const leveldb::Slice& rhs)
+{
+    return lhs.compare(rhs) < 0;
+}
+
 datalayer::returncode
-datalayer :: create_index_changes(schema* sc,
-                                  const regionid& ri,
+datalayer :: create_index_changes(const schema* sc,
+                                  const region_id& ri,
                                   const e::slice& key,
                                   const leveldb::Slice& lkey,
                                   const std::vector<e::slice>& new_value,
@@ -1008,7 +1062,7 @@ datalayer :: create_index_changes(schema* sc,
 
         for (size_t i = 0; i + 1 < sc->attrs_sz; ++i)
         {
-            generate_index(ri, i, sc->attrs[i + 1].type, old_value[i], key, backing, &old_idxs);
+            generate_index(ri, i + 1, sc->attrs[i + 1].type, old_value[i], key, backing, &old_idxs);
         }
     }
     else if (st.IsNotFound())
@@ -1037,11 +1091,15 @@ datalayer :: create_index_changes(schema* sc,
 
     for (size_t i = 0; i + 1 < sc->attrs_sz; ++i)
     {
-        generate_index(ri, i, sc->attrs[i + 1].type, new_value[i], key, backing, &new_idxs);
+        generate_index(ri, i + 1, sc->attrs[i + 1].type, new_value[i], key, backing, &new_idxs);
     }
+
+    std::sort(old_idxs.begin(), old_idxs.end(), sort_idxs);
+    std::sort(new_idxs.begin(), new_idxs.end(), sort_idxs);
 
     size_t old_i = 0;
     size_t new_i = 0;
+    leveldb::Slice empty("", 0);
 
     while (old_i < old_idxs.size() && new_i < new_idxs.size())
     {
@@ -1050,44 +1108,38 @@ datalayer :: create_index_changes(schema* sc,
         // Erase common indexes because we need not insert or remove them
         if (cmp == 0)
         {
-            old_idxs.clear();
-            new_idxs.clear();
             ++old_i;
             ++new_i;
         }
         if (cmp < 0)
         {
+            updates->Delete(old_idxs[old_i]);
             ++old_i;
         }
         if (cmp > 0)
         {
+            updates->Put(new_idxs[new_i], empty);
             ++new_i;
         }
     }
 
-    for (size_t i = 0; i < old_idxs.size(); ++i)
+    while (old_i < old_idxs.size())
     {
-        if (!old_idxs.empty())
-        {
-            updates->Delete(old_idxs[i]);
-        }
+        updates->Delete(old_idxs[old_i]);
+        ++old_i;
     }
 
-    leveldb::Slice empty("", 0);
-
-    for (size_t i = 0; i < new_idxs.size(); ++i)
+    while (new_i < new_idxs.size())
     {
-        if (!new_idxs.empty())
-        {
-            updates->Put(new_idxs[i], empty);
-        }
+        updates->Put(new_idxs[new_i], empty);
+        ++new_i;
     }
 
     return SUCCESS;
 }
 
 datalayer::returncode
-datalayer :: make_snapshot(const regionid& ri,
+datalayer :: make_snapshot(const region_id& ri,
                            attribute_check* checks, size_t checks_sz,
                            snapshot* snap)
 {
@@ -1240,7 +1292,9 @@ datalayer :: snapshot :: has_next()
         return false;
     }
 
-    schema* sc = m_dl->m_daemon->m_config.get_schema(m_ri.get_space());
+    // Don't try to optimize by replacing m_ri with a const schema* because it
+    // won't persist across reconfigurations
+    const schema* sc = m_dl->m_daemon->m_config.get_schema(m_ri);
     assert(sc);
 
     while (m_iter->Valid())
@@ -1340,7 +1394,7 @@ datalayer :: snapshot :: has_next()
             continue;
         }
 
-        regionid ri;
+        region_id ri;
         returncode rc;
         rc = m_dl->decode_key(ekey, &ri, &m_key);
 

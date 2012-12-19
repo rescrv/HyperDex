@@ -28,6 +28,9 @@
 #ifndef hyperdex_common_serialization_h_
 #define hyperdex_common_serialization_h_
 
+// po6
+#include <po6/net/location.h>
+
 // e
 #include <e/buffer.h>
 
@@ -40,39 +43,56 @@ namespace hyperdex
 {
 
 e::buffer::packer
+operator << (e::buffer::packer lhs, const po6::net::ipaddr& rhs);
+e::unpacker
+operator >> (e::unpacker lhs, po6::net::ipaddr& rhs);
+size_t
+pack_size(const po6::net::ipaddr& rhs);
+
+e::buffer::packer
+operator << (e::buffer::packer lhs, const po6::net::location& rhs);
+e::unpacker
+operator >> (e::unpacker lhs, po6::net::location& rhs);
+size_t
+pack_size(const po6::net::location& rhs);
+
+e::buffer::packer
 operator << (e::buffer::packer lhs, const attribute_check& rhs);
-e::buffer::unpacker
-operator >> (e::buffer::unpacker lhs, attribute_check& rhs);
+e::unpacker
+operator >> (e::unpacker lhs, attribute_check& rhs);
 size_t
 pack_size(const attribute_check& rhs);
 
 e::buffer::packer
 operator << (e::buffer::packer lhs, const funcall_t& rhs);
-e::buffer::unpacker
-operator >> (e::buffer::unpacker lhs, funcall_t& rhs);
+e::unpacker
+operator >> (e::unpacker lhs, funcall_t& rhs);
 size_t
 pack_size(const funcall_t& f);
 
 e::buffer::packer
 operator << (e::buffer::packer lhs, const funcall& rhs);
-e::buffer::unpacker
-operator >> (e::buffer::unpacker lhs, funcall& rhs);
+e::unpacker
+operator >> (e::unpacker lhs, funcall& rhs);
 size_t
 pack_size(const funcall& f);
 
 e::buffer::packer
 operator << (e::buffer::packer lhs, const hyperdatatype& rhs);
-e::buffer::unpacker
-operator >> (e::buffer::unpacker lhs, hyperdatatype& rhs);
+e::unpacker
+operator >> (e::unpacker lhs, hyperdatatype& rhs);
 size_t
 pack_size(const hyperdatatype& h);
 
 e::buffer::packer
 operator << (e::buffer::packer lhs, const hyperpredicate& rhs);
-e::buffer::unpacker
-operator >> (e::buffer::unpacker lhs, hyperpredicate& rhs);
+e::unpacker
+operator >> (e::unpacker lhs, hyperpredicate& rhs);
 size_t
 pack_size(const hyperpredicate& p);
+
+inline size_t
+pack_size(uint64_t) { return sizeof(uint64_t); }
 
 size_t
 pack_size(const e::slice& s);
