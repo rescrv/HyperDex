@@ -77,6 +77,12 @@ cdef extern from "../../hyperdex.h":
         HYPERDATATYPE_MAP_FLOAT_FLOAT    = 9435
         HYPERDATATYPE_GARBAGE            = 9727
 
+    cdef enum hyperpredicate:
+        HYPERPREDICATE_FAIL          = 9728
+        HYPERPREDICATE_EQUALS        = 9729
+        HYPERPREDICATE_LESS_EQUAL    = 9730
+        HYPERPREDICATE_GREATER_EQUAL = 9731
+
 cdef extern from "../hyperclient.h":
 
     cdef struct hyperclient
@@ -96,15 +102,12 @@ cdef extern from "../hyperclient.h":
         size_t value_sz
         hyperdatatype value_datatype
 
-    cdef union hyperclient_range_query_union:
-        double d
-        uint64_t i
-
-    cdef struct hyperclient_range_query:
+    cdef struct hyperclient_attribute_check:
         char* attr
-        unsigned long attr_sz
-        hyperclient_range_query_union lower_t
-        hyperclient_range_query_union upper_t
+        char* value
+        size_t value_sz
+        hyperdatatype datatype
+        hyperpredicate predicate
 
     cdef enum hyperclient_returncode:
         HYPERCLIENT_SUCCESS      = 8448
@@ -125,17 +128,19 @@ cdef extern from "../hyperclient.h":
         HYPERCLIENT_DONTUSEKEY   = 8524
         HYPERCLIENT_WRONGTYPE    = 8525
         HYPERCLIENT_NOMEM        = 8526
+        HYPERCLIENT_BADCONFIG    = 8527
+        HYPERCLIENT_BADSPACE     = 8528
+        HYPERCLIENT_DUPLICATE    = 8529
+        HYPERCLIENT_INTERNAL     = 8573
         HYPERCLIENT_EXCEPTION    = 8574
-        HYPERCLIENT_ZERO         = 8575
-        HYPERCLIENT_A            = 8576
-        HYPERCLIENT_B            = 8577
+        HYPERCLIENT_GARBAGE      = 8575
 
-    hyperclient* hyperclient_create(char* coordinator, in_port_t port)
+    hyperclient* hyperclient_create(char* coordinator, uint16_t port)
     void hyperclient_destroy(hyperclient* client)
     int64_t hyperclient_get(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_returncode* status, hyperclient_attribute** attrs, size_t* attrs_sz)
     int64_t hyperclient_put(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_put_if_not_exist(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
-    int64_t hyperclient_condput(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* condattrs, size_t condattrs_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_condput(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute_check* condattrs, size_t condattrs_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_del(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_returncode* status)
     int64_t hyperclient_atomic_add(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_atomic_sub(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
@@ -165,10 +170,10 @@ cdef extern from "../hyperclient.h":
     int64_t hyperclient_map_atomic_xor(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_map_string_prepend(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_map_string_append(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
-    int64_t hyperclient_search(hyperclient* client, char* space, hyperclient_attribute* eq, size_t eq_sz, hyperclient_range_query* rn, size_t rn_sz, hyperclient_returncode* status, hyperclient_attribute** attrs, size_t* attrs_sz)
-    int64_t hyperclient_sorted_search(hyperclient* client, char* space, hyperclient_attribute* eq, size_t eq_sz, hyperclient_range_query* rn, size_t rn_sz, char* sort_by, uint64_t limit, int maximize, hyperclient_returncode* status, hyperclient_attribute** attrs, size_t* attrs_sz)
-    int64_t hyperclient_group_del(hyperclient* client, char* space, hyperclient_attribute* eq, size_t eq_sz, hyperclient_range_query* rn, size_t rn_sz, hyperclient_returncode* status)
-    int64_t hyperclient_count(hyperclient* client, char* space, hyperclient_attribute* eq, size_t eq_sz, hyperclient_range_query* rn, size_t rn_sz, hyperclient_returncode* status, uint64_t* result)
+    int64_t hyperclient_search(hyperclient* client, char* space, hyperclient_attribute_check* chks, size_t chks_sz, hyperclient_returncode* status, hyperclient_attribute** attrs, size_t* attrs_sz)
+    int64_t hyperclient_sorted_search(hyperclient* client, char* space, hyperclient_attribute_check* chks, size_t chks_sz, char* sort_by, uint64_t limit, int maximize, hyperclient_returncode* status, hyperclient_attribute** attrs, size_t* attrs_sz)
+    int64_t hyperclient_group_del(hyperclient* client, char* space, hyperclient_attribute_check* chks, size_t chks_sz, hyperclient_returncode* status)
+    int64_t hyperclient_count(hyperclient* client, char* space, hyperclient_attribute_check* chks, size_t chks_sz, hyperclient_returncode* status, uint64_t* result)
     int64_t hyperclient_loop(hyperclient* client, int timeout, hyperclient_returncode* status)
     void hyperclient_destroy_attrs(hyperclient_attribute* attrs, size_t attrs_sz)
 
@@ -698,7 +703,7 @@ cdef _check_reqid_key_attrs(int64_t reqid, hyperclient_returncode status,
 
 
 cdef _check_reqid_key_attrs2(int64_t reqid, hyperclient_returncode status,
-                             hyperclient_attribute* attrs1, size_t attrs_sz1,
+                             hyperclient_attribute_check* attrs1, size_t attrs_sz1,
                              hyperclient_attribute* attrs2, size_t attrs_sz2):
     cdef bytes attr
     if reqid < 0:
@@ -724,17 +729,13 @@ cdef _check_reqid_key_map_attrs(int64_t reqid, hyperclient_returncode status,
 
 
 cdef _check_reqid_search(int64_t reqid, hyperclient_returncode status,
-                         hyperclient_attribute* eq, size_t eq_sz,
-                         hyperclient_range_query* rn, size_t rn_sz):
+                         hyperclient_attribute_check* chks, size_t chks_sz):
     cdef bytes attr
     if reqid < 0:
         idx = -1 - reqid
         attr = None
-        if idx >= 0 and idx < eq_sz and eq and eq[idx].attr:
-            attr = eq[idx].attr
-        idx -= eq_sz
-        if idx >= 0 and idx < rn_sz and rn and rn[idx].attr:
-            attr = rn[idx].attr
+        if idx >= 0 and idx < chks_sz and chks and chks[idx].attr:
+            attr = chks[idx].attr
         raise HyperClientException(status, attr)
 
 
@@ -748,7 +749,7 @@ cdef class Deferred:
     def __cinit__(self, Client client, *args):
         self._client = client
         self._reqid = 0
-        self._status = HYPERCLIENT_ZERO
+        self._status = HYPERCLIENT_GARBAGE
         self._finished = False
 
     def _callback(self):
@@ -840,14 +841,15 @@ cdef class DeferredCondPut(Deferred):
         datatype, key_backing = _obj_to_backing(key)
         cdef char* space_cstr = space
         cdef char* key_cstr = key_backing
-        cdef hyperclient_attribute* condattrs = NULL
+        cdef hyperclient_attribute_check* condattrs = NULL
+        cdef size_t condattrs_sz
         cdef hyperclient_attribute* attrs = NULL
         try:
-            backingsc = _dict_to_attrs(condition.items(), &condattrs)
+            backingsc = _predicate_to_c(condition.items(), &condattrs, &condattrs_sz)
             backingsa = _dict_to_attrs(value.items(), &attrs)
             self._reqid = hyperclient_condput(client._client, space_cstr,
                                               key_cstr, len(key_backing),
-                                              condattrs, len(condition),
+                                              condattrs, condattrs_sz,
                                               attrs, len(value),
                                               &self._status)
             _check_reqid_key_attrs2(self._reqid, self._status,
@@ -924,45 +926,32 @@ cdef class DeferredMapOp(Deferred):
 
 
 cdef _predicate_to_c(dict predicate,
-                     hyperclient_attribute** eq, size_t* eq_sz,
-                     hyperclient_range_query** rn, size_t* rn_sz):
-    cdef uint64_t lower
-    cdef uint64_t upper
-    cdef double lower_d
-    cdef double upper_d
-    equalities = []
-    ranges = []
-    for attr, params in predicate.iteritems():
-        if isinstance(params, tuple):
-            if isinstance(params[0], (int, long)):
-                (lower, upper) = params
-                ranges.append((attr, lower, upper))
-            elif isinstance(params[0], float):
-                (lower_d, upper_d) = params
-                ranges.append((attr, lower_d, upper_d))
-        elif isinstance(params, int):
-            equalities.append((attr, params))
-        elif isinstance(params, bytes):
-            equalities.append((attr, params))
-        elif isinstance(params, float):
-            equalities.append((attr, params))
+                     hyperclient_attribute_check** chks, size_t* chks_sz):
+    raw_checks = []
+    for attr, preds in predicate.iteritems():
+        if isinstance(preds, list):
+            assert False # XXX
+        elif isinstance(tuple, preds) and len(preds) == 2:
+            assert False # XXX
+        elif type(preds) in (bytes, int, float):
+            raw_checks.append((attr, HYPERPREDICATE_EQUALS, preds))
         else:
-            errstr = "Attribute '{attr}' has incorrect type (expected int, float, (int, int), (float, float) or bytes, got {type}"
-            raise TypeError(errstr.format(attr=attr, type=str(type(params))[7:-2]))
-    eq_sz[0] = len(equalities)
-    rn_sz[0] = len(ranges)
-    rn[0] = <hyperclient_range_query*> malloc(sizeof(hyperclient_range_query) * rn_sz[0])
-    if rn[0] == NULL:
+            errstr = "Attribute '{attr}' has incorrect type (expected int, float, (int, int), (float, float) or bytes, got {type})"
+            raise TypeError(errstr.format(attr=attr, type=str(type(preds))[7:-2]))
+    chks_sz[0] = len(raw_checks)
+    chks[0] = <hyperclient_attribute_check*> malloc(sizeof(hyperclient_attribute_check) * chks_sz[0])
+    if chks[0] == NULL:
         raise MemoryError()
-    backings = _dict_to_attrs(equalities, eq)
-    for i, (attr, bottom, top) in enumerate(ranges):
-        rn[i].attr = attr
-        if isinstance(bottom, (int, long)):
-            rn[i].lower_t.i = bottom
-            rn[i].upper_t.i = top
-        elif isinstance(bottom, float):
-            rn[i].lower_t.d = bottom
-            rn[i].upper_t.d = top
+    backings = []
+    for i, (attr, predicate, val) in enumerate(raw_checks):
+        datatype, backing = _obj_to_backing(val)
+        backings.add(backing)
+        chks[i].attr = attr
+        chks[i].value = backing
+        chks[i].value_sz = len(backing)
+        chks[i].datatype = datatype
+        chks[i].predicate = predicate
+    return backings
 
 
 cdef class DeferredGroupDel(Deferred):
@@ -970,23 +959,18 @@ cdef class DeferredGroupDel(Deferred):
     def __cinit__(self, Client client, bytes space, dict predicate):
         self._client = client
         self._reqid = 0
-        self._status = HYPERCLIENT_ZERO
-        cdef hyperclient_attribute* eq = NULL
-        cdef size_t eq_sz = 0
-        cdef hyperclient_range_query* rn = NULL
-        cdef size_t rn_sz = 0
+        self._status = HYPERCLIENT_GARBAGE
+        cdef hyperclient_attribute_check* chks = NULL
+        cdef size_t chks_sz = 0
         try:
-            _predicate_to_c(predicate, &eq, &eq_sz, &rn, &rn_sz)
-            self._reqid = hyperclient_group_del(client._client,
-                                                space,
-                                                eq, eq_sz,
-                                                rn, rn_sz,
+            backings = _predicate_to_c(predicate, &chks, &chks_sz)
+            self._reqid = hyperclient_group_del(client._client, space,
+                                                chks, chks_sz,
                                                 &self._status)
-            _check_reqid_search(self._reqid, self._status, eq, eq_sz, rn, rn_sz)
+            _check_reqid_search(self._reqid, self._status, chks, chks_sz)
             client._ops[self._reqid] = self
         finally:
-            if eq: free(eq)
-            if rn: free(rn)
+            if chks: free(chks)
 
     def wait(self):
         Deferred.wait(self)
@@ -1004,26 +988,20 @@ cdef class DeferredCount(Deferred):
     def __cinit__(self, Client client, bytes space, dict predicate, bool unsafe):
         self._client = client
         self._reqid = 0
-        self._status = HYPERCLIENT_ZERO
+        self._status = HYPERCLIENT_GARBAGE
         self._result = 0
         self._unsafe = 1 if unsafe else 0
-        cdef hyperclient_attribute* eq = NULL
-        cdef size_t eq_sz = 0
-        cdef hyperclient_range_query* rn = NULL
-        cdef size_t rn_sz = 0
+        cdef hyperclient_attribute_check* chks = NULL
+        cdef size_t chks_sz = 0
         try:
-            _predicate_to_c(predicate, &eq, &eq_sz, &rn, &rn_sz)
-            self._reqid = hyperclient_count(client._client,
-                                                space,
-                                                eq, eq_sz,
-                                                rn, rn_sz,
-                                                &self._status,
-                                                &self._result)
-            _check_reqid_search(self._reqid, self._status, eq, eq_sz, rn, rn_sz)
+            backings = _predicate_to_c(predicate, &chks, &chks_sz)
+            self._reqid = hyperclient_count(client._client, space,
+                                            chks, chks_sz,
+                                            &self._status, &self._result)
+            _check_reqid_search(self._reqid, self._status, chks, chks_sz)
             client._ops[self._reqid] = self
         finally:
-            if eq: free(eq)
-            if rn: free(rn)
+            if chks: free(chks)
 
     def wait(self):
         Deferred.wait(self)
@@ -1046,7 +1024,7 @@ cdef class SearchBase:
     def __cinit__(self, Client client, *args):
         self._client = client
         self._reqid = 0
-        self._status = HYPERCLIENT_ZERO
+        self._status = HYPERCLIENT_GARBAGE
         self._finished = False
         self._attrs = <hyperclient_attribute*> NULL
         self._attrs_sz = 0
@@ -1080,24 +1058,19 @@ cdef class SearchBase:
 cdef class Search(SearchBase):
 
     def __cinit__(self, Client client, bytes space, dict predicate):
-        cdef hyperclient_attribute* eq = NULL
-        cdef size_t eq_sz = 0
-        cdef hyperclient_range_query* rn = NULL
-        cdef size_t rn_sz = 0
+        cdef hyperclient_attribute_check* chks = NULL
+        cdef size_t chks_sz = 0
         try:
-            _predicate_to_c(predicate, &eq, &eq_sz, &rn, &rn_sz)
-            self._reqid = hyperclient_search(client._client,
-                                             space,
-                                             eq, eq_sz,
-                                             rn, rn_sz,
+            backings = _predicate_to_c(predicate, &chks, &chks_sz)
+            self._reqid = hyperclient_search(client._client, space,
+                                             chks, chks_sz,
                                              &self._status,
                                              &self._attrs,
                                              &self._attrs_sz)
-            _check_reqid_search(self._reqid, self._status, eq, eq_sz, rn, rn_sz)
+            _check_reqid_search(self._reqid, self._status, chks, chks_sz)
             client._ops[self._reqid] = self
         finally:
-            if eq: free(eq)
-            if rn: free(rn)
+            if chks: free(chks)
 
 
 cdef class SortedSearch(SearchBase):
@@ -1106,31 +1079,26 @@ cdef class SortedSearch(SearchBase):
                   bytes sort_by, long limit, bytes compare):
         cdef uint64_t lim = limit
         cdef int maxi = 0
-        cdef hyperclient_attribute* eq = NULL
-        cdef size_t eq_sz = 0
-        cdef hyperclient_range_query* rn = NULL
-        cdef size_t rn_sz = 0
+        cdef hyperclient_attribute_check* chks = NULL
+        cdef size_t chks_sz = 0
         if compare not in ('maximize', 'max', 'minimize', 'min'):
             raise ValueError("'compare' must be either 'max' or 'min'")
         if compare in ('max', 'maximize'):
             maxi = 1
         try:
-            _predicate_to_c(predicate, &eq, &eq_sz, &rn, &rn_sz)
-            self._reqid = hyperclient_sorted_search(client._client,
-                                                    space,
-                                                    eq, eq_sz,
-                                                    rn, rn_sz,
+            backings = _predicate_to_c(predicate, &chks, &chks_sz)
+            self._reqid = hyperclient_sorted_search(client._client, space,
+                                                    chks, chks_sz,
                                                     sort_by,
                                                     lim,
                                                     maxi,
                                                     &self._status,
                                                     &self._attrs,
                                                     &self._attrs_sz)
-            _check_reqid_search(self._reqid, self._status, eq, eq_sz, rn, rn_sz)
+            _check_reqid_search(self._reqid, self._status, chks, chks_sz)
             client._ops[self._reqid] = self
         finally:
-            if eq: free(eq)
-            if rn: free(rn)
+            if chks: free(chks)
 
 
 cdef class Client:

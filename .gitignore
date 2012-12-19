@@ -7,6 +7,7 @@ client/keyop_info.cc
 client/parse_space_l.c
 client/parse_space_y.c
 client/parse_space_y.h
+client/python/hyperclient.c
 config.guess
 config.h
 config.h.in
@@ -18,7 +19,6 @@ daemon/test/index_encode
 depcomp
 .deps
 .dirstamp
-hyperclient/python/hyperclient.c
 hyperdex
 hyperdex-add-space
 hyperdex-binary-test

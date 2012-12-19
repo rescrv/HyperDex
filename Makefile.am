@@ -230,7 +230,7 @@ libhypercoordinator_la_LIBADD = -le
 libhyperclient_extra_dist = \
 			client/keyop_info.gperf \
 			hyperclient/java/hyperclient.i \
-			hyperclient/python/hyperclient.pyx
+			client/python/client.pyx
 
 libhyperclient_includedir = $(includedir)
 libhyperclient_include_HEADERS = \
@@ -335,28 +335,20 @@ endif
 
 if ENABLE_PYTHON_BINDINGS
 pyexec_LTLIBRARIES += \
-			hyperclient/python/hyperclient.la
+			client/python/hyperclient.la
 endif
 
 pyx_verbose = $(pyx_verbose_$(V))
 pyx_verbose_ = $(pyx_verbose_$(AM_DEFAULT_VERBOSITY))
 pyx_verbose_0 = @echo "  PYX   " $@;
 
-hyperclient/python/hyperclient.c: hyperclient/python/hyperclient.pyx
-	$(pyx_verbose)cython hyperclient/python/hyperclient.pyx
+client/python/hyperclient.c: client/python/hyperclient.pyx
+	$(pyx_verbose)cython client/python/hyperclient.pyx
 
-hyperclient_python_hyperclient_la_SOURCES = \
-			hyperclient/python/hyperclient.c
-hyperclient_python_hyperclient_la_CPPFLAGS = \
-			$(PYTHON_CPPFLAGS) \
-			$(CPPFLAGS)
-hyperclient_python_hyperclient_la_LIBADD = \
-			libhyperclient.la \
-			$(PYTHON_LDFLAGS)
-hyperclient_python_hyperclient_la_LDFLAGS = \
-			-module \
-			-avoid-version \
-			-export-symbols-regex inithyperclient
+client_python_hyperclient_la_SOURCES = client/python/hyperclient.c
+client_python_hyperclient_la_CPPFLAGS = $(PYTHON_CPPFLAGS) $(CPPFLAGS)
+client_python_hyperclient_la_LIBADD = libhyperclient.la $(PYTHON_LDFLAGS)
+client_python_hyperclient_la_LDFLAGS = -module -avoid-version -export-symbols-regex inithyperclient
 
 ################################ C/C++ Bindings ################################
 
