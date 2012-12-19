@@ -931,7 +931,7 @@ cdef _predicate_to_c(dict predicate,
     for attr, preds in predicate.iteritems():
         if isinstance(preds, list):
             assert False # XXX
-        elif isinstance(tuple, preds) and len(preds) == 2:
+        elif isinstance(preds, tuple) and len(preds) == 2:
             assert False # XXX
         elif type(preds) in (bytes, int, float):
             raw_checks.append((attr, HYPERPREDICATE_EQUALS, preds))
@@ -943,14 +943,14 @@ cdef _predicate_to_c(dict predicate,
     if chks[0] == NULL:
         raise MemoryError()
     backings = []
-    for i, (attr, predicate, val) in enumerate(raw_checks):
+    for i, (attr, pred, val) in enumerate(raw_checks):
         datatype, backing = _obj_to_backing(val)
-        backings.add(backing)
+        backings.append(backing)
         chks[i].attr = attr
         chks[i].value = backing
         chks[i].value_sz = len(backing)
         chks[i].datatype = datatype
-        chks[i].predicate = predicate
+        chks[i].predicate = pred
     return backings
 
 
