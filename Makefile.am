@@ -26,7 +26,7 @@
 ## POSSIBILITY OF SUCH DAMAGE.
 
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
-AM_CXXFLAGS = $(PO6_CFLAGS) $(E_CFLAGS) $(BUSYBEE_CFLAGS) $(WANAL_CXXFLAGS)
+AM_CXXFLAGS = $(PO6_CFLAGS) $(E_CFLAGS) $(BUSYBEE_CFLAGS) $(WANAL_CXXFLAGS) -fpermissive
 AM_YFLAGS = -d
 
 BUILT_SOURCES = client/parse_space_y.h
@@ -34,15 +34,13 @@ BUILT_SOURCES = client/parse_space_y.h
 EXTRA_DIST = \
 			LICENSE \
 			doc \
-			doc/HyperDex-$(VERSION).pdf \
-			hyperdex-coordinator \
-			hyperdex-coordinator-control \
 			$(libhyperclient_extra_dist) \
 			$(ycsb_extra_dist) \
 			hyperclient/nodejs/sync_test.js \
 			hyperclient/nodejs/async_test.js \
 			hyperclient/nodejs/hyperclient.cc \
 			wscript
+#doc/HyperDex-$(VERSION).pdf
 
 lib_LTLIBRARIES = \
 			libhyperclient.la \
@@ -73,18 +71,6 @@ check_PROGRAMS =	\
 
 TESTS = daemon/test/index_encode
 
-bin_SCRIPTS = \
-			hyperdex-coordinator \
-			hyperdex-coordinator-control
-
-nobase_python_PYTHON = \
-			hypercoordinator/__init__.py \
-			hypercoordinator/client.py \
-			hypercoordinator/coordinator.py \
-			hypercoordinator/hdtypes.py \
-			hypercoordinator/hdjson.py \
-			hypercoordinator/parser.py
-
 CLEANFILES = \
 			$(java_bindings_cleanfiles) \
 			$(ycsb_cleanfiles)
@@ -95,6 +81,80 @@ JAVAROOT = $(abs_top_srcdir)
 
 dist-hook:
 	rm -rf $(distdir)/doc/_build
+
+noinst_HEADERS = \
+			common/attribute_check.h \
+			common/attribute.h \
+			common/configuration.h \
+			common/coordinator_returncode.h \
+			common/float_encode.h \
+			common/funcall.h \
+			common/hash.h \
+			common/hyperspace.h \
+			common/macros.h \
+			common/mapper.h \
+			common/network_msgtype.h \
+			common/network_returncode.h \
+			common/region_id.h \
+			common/schema.h \
+			common/serialization.h \
+			common/server_id.h \
+			common/space_id.h \
+			common/subspace_id.h \
+			common/virtual_server_id.h \
+			datatypes/alltypes.h \
+			datatypes/apply.h \
+			datatypes/coercion.h \
+			datatypes/compare.h \
+			datatypes/float.h \
+			datatypes/int64.h \
+			datatypes/list.h \
+			datatypes/map.h \
+			datatypes/microerror.h \
+			datatypes/set.h \
+			datatypes/sort.h \
+			datatypes/step.h \
+			datatypes/string.h \
+			datatypes/validate.h \
+			datatypes/write.h \
+			coordinator/add-space.h \
+			coordinator/coordinator.h \
+			coordinator/get-config.h \
+			coordinator/meta.h \
+			coordinator/register.h \
+			coordinator/rm-space.h \
+			coordinator/util.h \
+			daemon/communication.h \
+			daemon/daemon.h \
+			daemon/datalayer.h \
+			daemon/index_encode.h \
+			daemon/reconfigure_returncode.h \
+			daemon/replication_manager_deferred.h \
+			daemon/replication_manager.h \
+			daemon/replication_manager_keyholder.h \
+			daemon/replication_manager_keypair.h \
+			daemon/replication_manager_pending.h \
+			daemon/search_manager.h \
+			client/complete.h \
+			client/constants.h \
+			client/coordinator_link.h \
+			client/hyperclient.h \
+			client/keyop_info.h \
+			client/parse_space_aux.h \
+			client/partition.h \
+			client/pending_count.h \
+			client/pending_get.h \
+			client/pending_group_del.h \
+			client/pending.h \
+			client/pending_search.h \
+			client/pending_sorted_search.h \
+			client/pending_statusonly.h \
+			client/refcount.h \
+			client/space_description.h \
+			client/util.h \
+			client/wrap.h \
+			test/common.h \
+			tools/common.h
 
 ################################################################################
 #################################### Daemon ####################################
@@ -124,30 +184,16 @@ hyperdex_daemon_SOURCES = \
 			daemon/replication_manager_keypair.cc \
 			daemon/replication_manager_pending.cc \
 			daemon/search_manager.cc \
-			datatypes/alltypes.h \
-			datatypes/apply.h \
 			datatypes/apply.cc \
-			datatypes/compare.h \
 			datatypes/compare.cc \
-			datatypes/float.h \
 			datatypes/float.cc \
-			datatypes/int64.h \
 			datatypes/int64.cc \
-			datatypes/list.h \
 			datatypes/list.cc \
-			datatypes/map.h \
 			datatypes/map.cc \
-			datatypes/microerror.h \
-			datatypes/set.h \
 			datatypes/set.cc \
-			datatypes/sort.h \
-			datatypes/step.h \
 			datatypes/step.cc \
-			datatypes/string.h \
 			datatypes/string.cc \
-			datatypes/validate.h \
 			datatypes/validate.cc \
-			datatypes/write.h \
 			datatypes/write.cc
 hyperdex_daemon_LDADD = \
 			$(E_LIBS) \
@@ -172,7 +218,7 @@ libhypercoordinator_la_SOURCES = \
 			coordinator/meta.cc \
 			coordinator/register.cc \
 			coordinator/rm-space.cc \
-			coordinator/symtable.cc
+			coordinator/symtable.c
 libhypercoordinator_la_LIBADD = -le
 
 ################################################################################
@@ -182,6 +228,7 @@ libhypercoordinator_la_LIBADD = -le
 #################################### Library ###################################
 
 libhyperclient_extra_dist = \
+			client/keyop_info.gperf \
 			hyperclient/java/hyperclient.i \
 			hyperclient/python/hyperclient.pyx
 
@@ -202,7 +249,6 @@ libhyperclient_la_SOURCES = \
 			common/network_msgtype.cc \
 			common/schema.cc \
 			common/serialization.cc \
-			datatypes/coercion.h \
 			datatypes/coercion.cc \
 			datatypes/compare.cc \
 			datatypes/float.cc \
