@@ -409,6 +409,26 @@ configuration :: lookup_search(const char* space,
     }
 }
 
+configuration&
+configuration :: operator = (const configuration& rhs)
+{
+    m_version = rhs.m_version;
+    m_addresses_by_server_id = rhs.m_addresses_by_server_id;
+    m_region_ids_by_virtual = rhs.m_region_ids_by_virtual;
+    m_server_ids_by_virtual = rhs.m_server_ids_by_virtual;
+    m_schemas_by_region = rhs.m_schemas_by_region;
+    m_subspace_ids_by_region = rhs.m_subspace_ids_by_region;
+    m_subspace_ids_for_prev = rhs.m_subspace_ids_for_prev;
+    m_subspace_ids_for_next = rhs.m_subspace_ids_for_next;
+    m_heads_by_region = rhs.m_heads_by_region;
+    m_tails_by_region = rhs.m_tails_by_region;
+    m_next_by_virtual = rhs.m_next_by_virtual;
+    m_point_leaders_by_virtual = rhs.m_point_leaders_by_virtual;
+    m_spaces = rhs.m_spaces;
+    refill_cache();
+    return *this;
+}
+
 void
 configuration :: refill_cache()
 {

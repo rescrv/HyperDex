@@ -95,6 +95,9 @@ class configuration
                            const std::vector<attribute_check>& chks,
                            std::vector<virtual_server_id>* servers) const;
 
+    public:
+        configuration& operator = (const configuration& rhs);
+
     private:
         void refill_cache();
         friend size_t pack_size(const configuration&);
