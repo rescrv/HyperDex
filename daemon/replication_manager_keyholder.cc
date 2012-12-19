@@ -74,6 +74,12 @@ replication_manager :: keyholder :: get_latest_version(bool* has_old_value,
         *old_version = most_recent_committable_version();
         *old_value = &most_recent_committable_op()->value;
     }
+    else
+    {
+        *has_old_value = m_has_old_value;
+        *old_version = m_old_version;
+        *old_value = &m_old_value;
+    }
 }
 
 e::intrusive_ptr<replication_manager::pending>
