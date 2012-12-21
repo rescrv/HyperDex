@@ -46,6 +46,7 @@
 
 // HyperDex
 #include "common/macros.h"
+#include "common/serialization.h"
 #include "daemon/daemon.h"
 #include "daemon/datalayer.h"
 #include "daemon/index_encode.h"
@@ -300,18 +301,11 @@ datalayer :: setup(const po6::pathname& path,
         return true;
     }
 
-    // XXX
-    LOG(ERROR) << "UNIMPLMENTED RECOVERY CASE";
-    abort();
-#if 0
-
+    uint64_t us;
     *saved = true;
-    // XXX inefficient, lazy hack
-    std::auto_ptr<e::buffer> buf(e::buffer::create(sbacking.size()));
-    memmove(buf->data(), sbacking.data(), sbacking.size());
-    buf->resize(sbacking.size());
-    e::buffer::unpacker up = buf->unpack_from(0);
-    up = up >> *saved_us >> *saved_config_manager;
+    e::unpacker up(sbacking.data(), sbacking.size());
+    up = up >> us >> *saved_bind_to >> *saved_coordinator;
+    *saved_us = server_id(us);
 
     if (up.error())
     {
@@ -321,7 +315,6 @@ datalayer :: setup(const po6::pathname& path,
     }
 
     return true;
-#endif
 }
 
 void
