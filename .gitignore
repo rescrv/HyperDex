@@ -26,6 +26,7 @@ hyperdex-daemon
 hyperdex-replication-stress-test
 hyperdex-rm-space
 hyperdex-search-stress-test
+hyperdex-show-config
 hyperdex-simple-consistency-stress-test
 hyperspacehashing/test/bithacks
 hyperspacehashing/test/cfloat

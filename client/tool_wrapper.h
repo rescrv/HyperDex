@@ -25,52 +25,34 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// STL
-#include <algorithm>
-
-// e
-#include <e/unpacker.h>
+#ifndef hyperdex_client_tool_wrapper_h_
+#define hyperdex_client_tool_wrapper_h_
 
 // HyperDex
-#include "common/serialization.h"
-#include "coordinator/coordinator.h"
-#include "coordinator/register.h"
-#include "coordinator/util.h"
+#include "client/hyperclient.h"
 
-using namespace hyperdex;
-
-extern "C"
+namespace hyperdex
 {
 
-void
-hyperdex_coordinator_register(struct replicant_state_machine_context* ctx,
-                              void* obj, const char* data, size_t data_sz)
+class tool_wrapper
 {
-    PROTECT_UNINITIALIZED;
-    coordinator* c = static_cast<coordinator*>(obj);
-    uint64_t id;
-    po6::net::location bind_to;
-    e::unpacker up(data, data_sz);
-    up = up >> id >> bind_to;
+    public:
+        tool_wrapper(hyperclient* h) : m_h(h) {}
+        tool_wrapper(const tool_wrapper& other) : m_h(other.m_h) {}
+        ~tool_wrapper() throw () {}
 
-    if (up.error())
-    {
-        return generate_response(ctx, c, hyperdex::COORD_MALFORMED);
-    }
+    public:
+        hyperclient_returncode show_config(std::ostream& out)
+        { return m_h->show_config(out); }
 
-    std::pair<server_id, po6::net::location> target;
-    target.first = server_id(id);
-    std::vector<std::pair<server_id, po6::net::location> >::iterator it;
-    it = std::lower_bound(c->servers.begin(), c->servers.end(), target);
+    public:
+        tool_wrapper& operator = (const tool_wrapper& rhs)
+        { m_h = rhs.m_h; return *this; }
 
-    if (it != c->servers.end() && it->first == target.first)
-    {
-        return generate_response(ctx, c, hyperdex::COORD_DUPLICATE);
-    }
+    private:
+        hyperclient* m_h;
+};
 
-    c->servers.push_back(std::make_pair(server_id(id), bind_to));
-    std::sort(c->servers.begin(), c->servers.end());
-    return generate_response(ctx, c, hyperdex::COORD_SUCCESS);
-}
+} // namespace hyperdex
 
-} // extern "C"
+#endif // hyperdex_client_tool_wrapper_h_

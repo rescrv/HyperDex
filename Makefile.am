@@ -60,7 +60,8 @@ bin_PROGRAMS = hyperdex \
 hyperdexexecdir = $(exec_prefix)/libexec/$(PACKAGE)-$(VERSION)
 hyperdexexec_PROGRAMS = \
 			hyperdex-add-space \
-			hyperdex-rm-space
+			hyperdex-rm-space \
+			hyperdex-show-config
 
 noinst_PROGRAMS = \
 			client/c/testcompile \
@@ -368,6 +369,9 @@ hyperdex_add_space_LDFLAGS = -no-install
 
 hyperdex_rm_space_SOURCES = tools/rm-space.cc
 hyperdex_rm_space_LDADD = libhyperclient.la
+
+hyperdex_show_config_SOURCES = tools/show-config.cc
+hyperdex_show_config_LDADD = libhyperclient.la
 
 ################################################################################
 ################################## Benchmarks ##################################

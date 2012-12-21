@@ -409,6 +409,79 @@ configuration :: lookup_search(const char* space,
     }
 }
 
+void
+configuration :: debug_dump(std::ostream& out)
+{
+    out << "configuration version=" << m_version << std::endl;
+
+    for (size_t i = 0; i < m_addresses_by_server_id.size(); ++i)
+    {
+        out << "server id=" << server_id(m_addresses_by_server_id[i].first)
+            << " address=" << m_addresses_by_server_id[i].second << std::endl;
+    }
+
+    for (size_t w = 0; w < m_spaces.size(); ++w)
+    {
+        space& s(m_spaces[w]);
+        out << "space id=" << s.id << " name=" << s.name << std::endl;
+        out << "  schema" << std::endl;
+
+        for (size_t i = 0; i < s.schema.attrs_sz; ++i)
+        {
+            out << "    attribute name=" << s.schema.attrs[i].name
+                      << " type=" << s.schema.attrs[i].type << std::endl;
+        }
+
+        for (size_t x = 0; x < s.subspaces.size(); ++x)
+        {
+            subspace& ss(s.subspaces[x]);
+            out << "  subspace id=" << ss.id << std::endl;
+            out << "    attributes";
+
+            for (size_t i = 0; i < ss.attrs.size(); ++i)
+            {
+                out << " " << s.schema.attrs[ss.attrs[i]].name;
+            }
+
+            out << std::endl;
+
+            for (size_t y = 0; y < ss.regions.size(); ++y)
+            {
+                region& r(ss.regions[y]);
+                out << "    region id=" << r.id << " lower=<";
+                bool first = true;
+
+                for (size_t i = 0; i < r.lower_coord.size(); ++i)
+                {
+                    out << (first ? "" : ", ") << r.lower_coord[i];
+                    first = false;
+                }
+
+                out << "> upper=<";
+                first = true;
+
+                for (size_t i = 0; i < r.upper_coord.size(); ++i)
+                {
+                    out << (first ? "" : ", ") << r.upper_coord[i];
+                    first = false;
+                }
+
+                out << "> replicas=[";
+                first = true;
+
+                for (size_t z = 0; z < r.replicas.size(); ++z)
+                {
+                    replica& rr(r.replicas[z]);
+                    out << (first ? "" : ", ") << "(id=" << rr.si << " vid=" << rr.vsi << ")";
+                    first = false;
+                }
+
+                out << "]" << std::endl;
+            }
+        }
+    }
+}
+
 configuration&
 configuration :: operator = (const configuration& rhs)
 {

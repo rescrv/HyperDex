@@ -96,6 +96,9 @@ class configuration
                            std::vector<virtual_server_id>* servers) const;
 
     public:
+        void debug_dump(std::ostream& out);
+
+    public:
         configuration& operator = (const configuration& rhs);
 
     private:

@@ -687,6 +687,20 @@ hyperclient :: attribute_type(const char* space, const char* name,
     return sc->attrs[attrnum].type;
 }
 
+hyperclient_returncode
+hyperclient :: show_config(std::ostream& out)
+{
+    hyperclient_returncode status;
+
+    if (maintain_coord_connection(&status) < 0)
+    {
+        return status;
+    }
+
+    m_config->debug_dump(out);
+    return HYPERCLIENT_SUCCESS;
+}
+
 int64_t
 hyperclient :: maintain_coord_connection(hyperclient_returncode* status)
 {

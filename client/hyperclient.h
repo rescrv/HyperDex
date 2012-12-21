@@ -682,6 +682,7 @@ class funcall;
 class mapper;
 class schema;
 class server_id;
+class tool_wrapper;
 class virtual_server_id;
 } //namespace hyperdex
 
@@ -834,6 +835,11 @@ class hyperclient
         class pending_statusonly;
         class refcount;
         typedef std::map<int64_t, e::intrusive_ptr<pending> > incomplete_map_t;
+        friend class hyperdex::tool_wrapper;
+
+    // these are the only private things that tool_wrapper should touch
+    private:
+        hyperclient_returncode show_config(std::ostream& out);
 
     private:
         int64_t maintain_coord_connection(hyperclient_returncode* status);
