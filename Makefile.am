@@ -214,8 +214,9 @@ libhypercoordinator_la_SOURCES = \
 			common/schema.cc \
 			common/serialization.cc \
 			coordinator/add-space.cc \
-			coordinator/get-config.cc \
 			coordinator/coordinator.cc \
+			coordinator/get-config.cc \
+			coordinator/kill.cc \
 			coordinator/meta.cc \
 			coordinator/register.cc \
 			coordinator/rm-space.cc \
@@ -365,7 +366,6 @@ hyperdex_CPPFLAGS = -DHYPERDEX_EXEC_DIR=\""$(hyperdexexecdir)\"" $(CPPFLAGS)
 
 hyperdex_add_space_SOURCES = tools/add-space.cc
 hyperdex_add_space_LDADD = libhyperclient.la
-hyperdex_add_space_LDFLAGS = -no-install
 
 hyperdex_rm_space_SOURCES = tools/rm-space.cc
 hyperdex_rm_space_LDADD = libhyperclient.la

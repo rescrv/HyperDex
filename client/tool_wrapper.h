@@ -44,6 +44,8 @@ class tool_wrapper
     public:
         hyperclient_returncode show_config(std::ostream& out)
         { return m_h->show_config(out); }
+        hyperclient_returncode kill(uint64_t server_id)
+        { return m_h->kill(server_id); }
 
     public:
         tool_wrapper& operator = (const tool_wrapper& rhs)

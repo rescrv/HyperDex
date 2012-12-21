@@ -23,6 +23,7 @@ hyperdex
 hyperdex-add-space
 hyperdex-binary-test
 hyperdex-daemon
+hyperdex-kill
 hyperdex-replication-stress-test
 hyperdex-rm-space
 hyperdex-search-stress-test

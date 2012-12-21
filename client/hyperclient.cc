@@ -701,6 +701,57 @@ hyperclient :: show_config(std::ostream& out)
     return HYPERCLIENT_SUCCESS;
 }
 
+hyperclient_returncode
+hyperclient :: kill(uint64_t server_id)
+{
+    hyperclient_returncode status;
+    char data[sizeof(uint64_t)];
+    e::pack64be(server_id, data);
+    const char* output;
+    size_t output_sz;
+
+    if (!m_coord->make_rpc("kill", data, sizeof(uint64_t),
+                           &status, &output, &output_sz))
+    {
+        return status;
+    }
+
+    status = HYPERCLIENT_SUCCESS;
+
+    if (output_sz >= 2)
+    {
+        uint16_t x;
+        e::unpack16be(output, &x);
+        coordinator_returncode rc = static_cast<coordinator_returncode>(x);
+
+        switch (rc)
+        {
+            case hyperdex::COORD_SUCCESS:
+                status = HYPERCLIENT_SUCCESS;
+                break;
+            case hyperdex::COORD_MALFORMED:
+                status = HYPERCLIENT_INTERNAL;
+                break;
+            case hyperdex::COORD_DUPLICATE:
+                status = HYPERCLIENT_DUPLICATE;
+                break;
+            case hyperdex::COORD_NOT_FOUND:
+                status = HYPERCLIENT_NOTFOUND;
+                break;
+            default:
+                status = HYPERCLIENT_INTERNAL;
+                break;
+        }
+    }
+
+    if (output)
+    {
+        replicant_destroy_output(output, output_sz);
+    }
+
+    return status;
+}
+
 int64_t
 hyperclient :: maintain_coord_connection(hyperclient_returncode* status)
 {

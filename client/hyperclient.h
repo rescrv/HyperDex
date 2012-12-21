@@ -840,6 +840,7 @@ class hyperclient
     // these are the only private things that tool_wrapper should touch
     private:
         hyperclient_returncode show_config(std::ostream& out);
+        hyperclient_returncode kill(uint64_t server_id);
 
     private:
         int64_t maintain_coord_connection(hyperclient_returncode* status);
