@@ -485,6 +485,11 @@ configuration :: debug_dump(std::ostream& out)
 configuration&
 configuration :: operator = (const configuration& rhs)
 {
+    if (this == &rhs)
+    {
+        return *this;
+    }
+
     m_version = rhs.m_version;
     m_addresses_by_server_id = rhs.m_addresses_by_server_id;
     m_region_ids_by_virtual = rhs.m_region_ids_by_virtual;
