@@ -544,7 +544,13 @@ configuration :: refill_cache()
             for (size_t y = 0; y < ss.regions.size(); ++y)
             {
                 region& r(ss.regions[y]);
-                assert(!r.replicas.empty());
+                m_schemas_by_region.push_back(std::make_pair(r.id.get(), &s.schema));
+                m_subspace_ids_by_region.push_back(std::make_pair(r.id.get(), ss.id.get()));
+
+                if (r.replicas.empty())
+                {
+                    continue;
+                }
 
                 if (x == 0)
                 {
@@ -555,8 +561,6 @@ configuration :: refill_cache()
                                                            r.replicas[0].vsi.get()));
                 m_tails_by_region.push_back(std::make_pair(r.id.get(),
                                                            r.replicas[r.replicas.size() - 1].vsi.get()));
-                m_schemas_by_region.push_back(std::make_pair(r.id.get(), &s.schema));
-                m_subspace_ids_by_region.push_back(std::make_pair(r.id.get(), ss.id.get()));
 
                 for (size_t z = 0; z < r.replicas.size(); ++z)
                 {
