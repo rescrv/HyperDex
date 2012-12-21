@@ -30,6 +30,7 @@
 
 // po6
 #include <po6/net/location.h>
+#include <po6/net/hostname.h>
 
 // e
 #include <e/buffer.h>
@@ -55,6 +56,13 @@ e::unpacker
 operator >> (e::unpacker lhs, po6::net::location& rhs);
 size_t
 pack_size(const po6::net::location& rhs);
+
+e::buffer::packer
+operator << (e::buffer::packer lhs, const po6::net::hostname& rhs);
+e::unpacker
+operator >> (e::unpacker lhs, po6::net::hostname& rhs);
+size_t
+pack_size(const po6::net::hostname& rhs);
 
 e::buffer::packer
 operator << (e::buffer::packer lhs, const attribute_check& rhs);
