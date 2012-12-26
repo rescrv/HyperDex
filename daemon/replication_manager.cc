@@ -453,7 +453,8 @@ replication_manager :: chain_common(bool has_value,
     e::intrusive_ptr<pending> new_pend(new pending(new_backing, fresh, has_value, value, from));
     hash_objects(ri, *sc, key, has_value, value, bool(old_op), old_op ? old_op->value : value, new_pend);
 
-    if (new_pend->this_old_region != ri && new_pend->this_new_region != ri)
+    if (new_pend->this_old_region != ri)
+        /* if ^ is false and new_pend->this_new_region == ri then it should be a chain_subspace */
     {
         LOG(INFO) << "dropping CHAIN_* which didn't get sent to the right host";
         return;

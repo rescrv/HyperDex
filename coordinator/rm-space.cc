@@ -60,7 +60,7 @@ hyperdex_coordinator_rm_space(struct replicant_state_machine_context* ctx,
         if (strncmp(it->name, data, data_sz) == 0)
         {
             c->spaces.erase(it);
-            c->regenerate();
+            c->regenerate(ctx);
             char output[sizeof(uint16_t)];
             e::pack16be(static_cast<uint16_t>(hyperdex::COORD_SUCCESS), output);
             replicant_state_machine_set_response(ctx, output, sizeof(uint16_t));

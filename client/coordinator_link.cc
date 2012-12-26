@@ -95,7 +95,7 @@ coordinator_link :: poll_for_config(hyperclient_returncode* status)
     // if we need to issue a "get-config" request
     if (m_get_config_id < 0)
     {
-        m_get_config_id = m_repl.send("hyperdex", 8, "get-config", "", 0,
+        m_get_config_id = m_repl.send("hyperdex", "get-config", "", 0,
                                       &m_get_config_status,
                                       &m_get_config_output,
                                       &m_get_config_output_sz);
@@ -110,9 +110,11 @@ coordinator_link :: poll_for_config(hyperclient_returncode* status)
                     *status = HYPERCLIENT_COORDFAIL;
                     return false;
                 case REPLICANT_SUCCESS:
+                case REPLICANT_NAME_TOO_LONG:
                 case REPLICANT_FUNC_NOT_FOUND:
                 case REPLICANT_OBJ_EXIST:
                 case REPLICANT_OBJ_NOT_FOUND:
+                case REPLICANT_COND_NOT_FOUND:
                 case REPLICANT_BAD_LIBRARY:
                 case REPLICANT_TIMEOUT:
                 case REPLICANT_INTERNAL_ERROR:
@@ -143,9 +145,11 @@ coordinator_link :: poll_for_config(hyperclient_returncode* status)
             case REPLICANT_TIMEOUT:
                 return true;
             case REPLICANT_SUCCESS:
+            case REPLICANT_NAME_TOO_LONG:
             case REPLICANT_FUNC_NOT_FOUND:
             case REPLICANT_OBJ_EXIST:
             case REPLICANT_OBJ_NOT_FOUND:
+            case REPLICANT_COND_NOT_FOUND:
             case REPLICANT_BAD_LIBRARY:
             case REPLICANT_INTERNAL_ERROR:
             case REPLICANT_NONE_PENDING:
@@ -177,11 +181,13 @@ coordinator_link :: poll_for_config(hyperclient_returncode* status)
             break;
         case REPLICANT_FUNC_NOT_FOUND:
         case REPLICANT_OBJ_NOT_FOUND:
+        case REPLICANT_COND_NOT_FOUND:
         case REPLICANT_SERVER_ERROR:
         case REPLICANT_NEED_BOOTSTRAP:
         case REPLICANT_MISBEHAVING_SERVER:
             *status = HYPERCLIENT_COORDFAIL;
             return false;
+        case REPLICANT_NAME_TOO_LONG:
         case REPLICANT_OBJ_EXIST:
         case REPLICANT_BAD_LIBRARY:
         case REPLICANT_TIMEOUT:
@@ -193,6 +199,7 @@ coordinator_link :: poll_for_config(hyperclient_returncode* status)
             return false;
     }
 
+std::cout << "config is of size " << m_get_config_output_sz << "b" << std::endl;
     e::unpacker up(m_get_config_output, m_get_config_output_sz);
     configuration new_config;
     up = up >> new_config;
@@ -221,7 +228,7 @@ coordinator_link :: make_rpc(const char* func,
                              const char** output, size_t* output_sz)
 {
     replicant_returncode sstatus;
-    int64_t sid = m_repl.send("hyperdex", 8, func, data, data_sz,
+    int64_t sid = m_repl.send("hyperdex", func, data, data_sz,
                               &sstatus, output, output_sz);
 
     if (sid < 0)
@@ -234,9 +241,11 @@ coordinator_link :: make_rpc(const char* func,
                 *status = HYPERCLIENT_COORDFAIL;
                 return false;
             case REPLICANT_SUCCESS:
+            case REPLICANT_NAME_TOO_LONG:
             case REPLICANT_FUNC_NOT_FOUND:
             case REPLICANT_OBJ_EXIST:
             case REPLICANT_OBJ_NOT_FOUND:
+            case REPLICANT_COND_NOT_FOUND:
             case REPLICANT_BAD_LIBRARY:
             case REPLICANT_TIMEOUT:
             case REPLICANT_INTERNAL_ERROR:
@@ -262,9 +271,11 @@ coordinator_link :: make_rpc(const char* func,
                 return false;
             case REPLICANT_TIMEOUT:
             case REPLICANT_SUCCESS:
+            case REPLICANT_NAME_TOO_LONG:
             case REPLICANT_FUNC_NOT_FOUND:
             case REPLICANT_OBJ_EXIST:
             case REPLICANT_OBJ_NOT_FOUND:
+            case REPLICANT_COND_NOT_FOUND:
             case REPLICANT_BAD_LIBRARY:
             case REPLICANT_INTERNAL_ERROR:
             case REPLICANT_NONE_PENDING:
@@ -281,11 +292,13 @@ coordinator_link :: make_rpc(const char* func,
             return true;
         case REPLICANT_FUNC_NOT_FOUND:
         case REPLICANT_OBJ_NOT_FOUND:
+        case REPLICANT_COND_NOT_FOUND:
         case REPLICANT_SERVER_ERROR:
         case REPLICANT_NEED_BOOTSTRAP:
         case REPLICANT_MISBEHAVING_SERVER:
             *status = HYPERCLIENT_COORDFAIL;
             return false;
+        case REPLICANT_NAME_TOO_LONG:
         case REPLICANT_OBJ_EXIST:
         case REPLICANT_BAD_LIBRARY:
         case REPLICANT_TIMEOUT:

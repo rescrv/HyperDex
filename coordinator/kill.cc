@@ -84,7 +84,7 @@ hyperdex_coordinator_kill(struct replicant_state_machine_context* ctx,
         }
     }
 
-    c->regenerate();
+    c->regenerate(ctx);
     return generate_response(ctx, c, hyperdex::COORD_SUCCESS);
 }
 

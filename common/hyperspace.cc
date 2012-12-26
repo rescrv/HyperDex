@@ -312,7 +312,7 @@ hyperdex :: operator >> (e::unpacker up, subspace& s)
     up = up >> id >> num_attrs >> num_regions;
     s.id = subspace_id(id);
     s.attrs.clear();
-    s.regions.clear();
+    s.regions.resize(num_regions);
 
     for (size_t i = 0; !up.error() && i < num_attrs; ++i)
     {
@@ -323,9 +323,7 @@ hyperdex :: operator >> (e::unpacker up, subspace& s)
 
     for (size_t i = 0; !up.error() && i < num_regions; ++i)
     {
-        region r;
-        up = up >> r;
-        s.regions.push_back(r);
+        up = up >> s.regions[i];
     }
 
     return up;
@@ -405,24 +403,18 @@ hyperdex :: operator >> (e::unpacker up, region& r)
     uint8_t num_replicas;
     up = up >> id >> num_hashes >> num_replicas;
     r.id = region_id(id);
-    r.lower_coord.clear();
-    r.upper_coord.clear();
-    r.replicas.clear();
+    r.lower_coord.resize(num_hashes);
+    r.upper_coord.resize(num_hashes);
+    r.replicas.resize(num_replicas);
 
     for (size_t i = 0; !up.error() && i < num_hashes; ++i)
     {
-        uint64_t l;
-        uint64_t u;
-        up = up >> l >> u;
-        r.lower_coord.push_back(l);
-        r.upper_coord.push_back(u);
+        up = up >> r.lower_coord[i] >> r.upper_coord[i];
     }
 
     for (size_t i = 0; !up.error() && i < num_replicas; ++i)
     {
-        replica repl;
-        up = up >> repl;
-        r.replicas.push_back(repl);
+        up = up >> r.replicas[i];
     }
 
     return up;

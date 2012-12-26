@@ -37,30 +37,38 @@ extern "C"
 void*
 hyperdex_coordinator_create(struct replicant_state_machine_context* ctx)
 {
-    void* v = new (std::nothrow) coordinator();
+    if (replicant_state_machine_condition_create(ctx, "config") < 0)
+    {
+        replicant_state_machine_log_error(ctx, "condition creation failed");
+        return NULL;
+    }
 
-    if (!v)
+    coordinator* c = new (std::nothrow) coordinator();
+
+    if (!c)
     {
         replicant_state_machine_log_error(ctx, "memory allocation failed");
     }
 
-    return v;
+    c->regenerate(ctx);
+    return c;
 }
 
 void*
 hyperdex_coordinator_recreate(struct replicant_state_machine_context* ctx,
                               const char* /*data*/, size_t /*data_sz*/)
 {
-    void* v = new (std::nothrow) coordinator();
+    coordinator* c = new (std::nothrow) coordinator();
 
-    if (!v)
+    if (!c)
     {
         replicant_state_machine_log_error(ctx, "memory allocation failed");
     }
 
     replicant_state_machine_log_error(ctx, "recreate is not implemented");
     // XXX recreate from (data,data_sz)
-    return v;
+    c->regenerate(ctx);
+    return c;
 }
 
 void

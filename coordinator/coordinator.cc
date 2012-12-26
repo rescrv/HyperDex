@@ -44,7 +44,6 @@ coordinator :: coordinator()
 {
     memset(&m_seed, 0, sizeof(m_seed));
     srand48_r(0, &m_seed);
-    regenerate();
 }
 
 coordinator :: ~coordinator() throw ()
@@ -60,43 +59,53 @@ coordinator :: initial_layout(space* s)
     {
         for (size_t j = 0; j < s->subspaces[i].regions.size(); ++j)
         {
-            server_id x;
-
-            while (true)
-            {
-                long int y;
-                lrand48_r(&m_seed, &y);
-                bool found = false;
-
-                for (size_t k = 0; k < s->subspaces[i].regions[j].replicas.size(); ++k)
-                {
-                    if (servers[y % servers.size()].first == s->subspaces[i].regions[j].replicas[k].si)
-                    {
-                        found = true;
-                    }
-                }
-
-                if (found)
-                {
-                    continue;
-                }
-
-                x = servers[y % servers.size()].first;
-                break;
-            }
-
             s->subspaces[i].regions[j].replicas.clear();
-            s->subspaces[i].regions[j].replicas.push_back(replica());
-            s->subspaces[i].regions[j].replicas.back().si = x;
-            s->subspaces[i].regions[j].replicas.back().vsi = virtual_server_id(counter);
-            ++counter;
+
+            for (size_t num_replicas = 0; num_replicas < 3; ++num_replicas)
+            {
+                server_id x;
+
+                for (size_t retry = 0; retry < 10; ++retry)
+                {
+                    long int y;
+                    lrand48_r(&m_seed, &y);
+                    bool found = false;
+
+                    for (size_t k = 0; k < s->subspaces[i].regions[j].replicas.size(); ++k)
+                    {
+                        if (servers[y % servers.size()].first == s->subspaces[i].regions[j].replicas[k].si)
+                        {
+                            found = true;
+                        }
+                    }
+
+                    if (found)
+                    {
+                        continue;
+                    }
+
+                    x = servers[y % servers.size()].first;
+                    s->subspaces[i].regions[j].replicas.push_back(replica());
+                    s->subspaces[i].regions[j].replicas.back().si = x;
+                    s->subspaces[i].regions[j].replicas.back().vsi = virtual_server_id(counter);
+                    ++counter;
+                    break;
+                }
+            }
         }
     }
 }
 
 void
-coordinator :: regenerate()
+coordinator :: regenerate(struct replicant_state_machine_context* ctx)
 {
+    uint64_t cond_state;
+
+    if (replicant_state_machine_condition_broadcast(ctx, "config", &cond_state) < 0)
+    {
+        replicant_state_machine_log_error(ctx, "could not broadcast on \"config\" condition");
+    }
+
     ++version;
     size_t sz = 3 * sizeof(uint64_t);
 

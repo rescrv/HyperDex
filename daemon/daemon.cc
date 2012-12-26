@@ -233,8 +233,6 @@ daemon :: run(bool daemonize,
             LOG(INFO) << "received new configuration version=" << new_config.version()
                       << " that's not newer than our current configuration version="
                       << old_config.version();
-            // XXX don't sleep; use notify/wait instead
-            sleep(1);
             continue;
         }
 
@@ -291,7 +289,7 @@ daemon :: register_id(server_id us, const po6::net::location& bind_to)
     *data << us.get() << bind_to;
     const char* output;
     size_t output_sz;
-    int64_t sid = m_coord->send("hyperdex", 8, "register",
+    int64_t sid = m_coord->send("hyperdex", "register",
                                 reinterpret_cast<const char*>(data->data()), data->size(),
                                 &sstatus, &output, &output_sz);
 
@@ -303,9 +301,11 @@ daemon :: register_id(server_id us, const po6::net::location& bind_to)
                 LOG(ERROR) << "could not connect to the coordinator to register this instance";
                 return -1;
             case REPLICANT_SUCCESS:
+            case REPLICANT_NAME_TOO_LONG:
             case REPLICANT_FUNC_NOT_FOUND:
             case REPLICANT_OBJ_EXIST:
             case REPLICANT_OBJ_NOT_FOUND:
+            case REPLICANT_COND_NOT_FOUND:
             case REPLICANT_SERVER_ERROR:
             case REPLICANT_BAD_LIBRARY:
             case REPLICANT_TIMEOUT:
@@ -332,9 +332,11 @@ daemon :: register_id(server_id us, const po6::net::location& bind_to)
                 LOG(ERROR) << "could not connect to the coordinator to register this instance";
                 return -1;
             case REPLICANT_SUCCESS:
+            case REPLICANT_NAME_TOO_LONG:
             case REPLICANT_FUNC_NOT_FOUND:
             case REPLICANT_OBJ_EXIST:
             case REPLICANT_OBJ_NOT_FOUND:
+            case REPLICANT_COND_NOT_FOUND:
             case REPLICANT_SERVER_ERROR:
             case REPLICANT_BAD_LIBRARY:
             case REPLICANT_TIMEOUT:
@@ -365,7 +367,9 @@ daemon :: register_id(server_id us, const po6::net::location& bind_to)
         case REPLICANT_NEED_BOOTSTRAP:
             LOG(ERROR) << "could not connect to the coordinator to register this instance";
             return -1;
+        case REPLICANT_NAME_TOO_LONG:
         case REPLICANT_OBJ_EXIST:
+        case REPLICANT_COND_NOT_FOUND:
         case REPLICANT_SERVER_ERROR:
         case REPLICANT_BAD_LIBRARY:
         case REPLICANT_TIMEOUT:
@@ -412,6 +416,38 @@ daemon :: register_id(server_id us, const po6::net::location& bind_to)
     return ret;
 }
 
+#define LOOP_CASES \
+    case REPLICANT_TIMEOUT: \
+        need_to_retry = false; \
+        continue; \
+    case REPLICANT_NEED_BOOTSTRAP: \
+        LOG(ERROR) << "communication error with the coordinator: " \
+                   << m_coord->last_error_desc() \
+                   << "(" << lstatus << ";" \
+                   << m_coord->last_error_file() << ":" \
+                   << m_coord->last_error_line() << ")"; \
+        continue; \
+    case REPLICANT_SUCCESS: \
+    case REPLICANT_NAME_TOO_LONG: \
+    case REPLICANT_FUNC_NOT_FOUND: \
+    case REPLICANT_OBJ_EXIST: \
+    case REPLICANT_OBJ_NOT_FOUND: \
+    case REPLICANT_COND_NOT_FOUND: \
+    case REPLICANT_SERVER_ERROR: \
+    case REPLICANT_BAD_LIBRARY: \
+    case REPLICANT_MISBEHAVING_SERVER: \
+    case REPLICANT_INTERNAL_ERROR: \
+    case REPLICANT_NONE_PENDING: \
+    case REPLICANT_GARBAGE: \
+        LOG(ERROR) << "unexpected error with coordinator connection: " \
+                   << m_coord->last_error_desc() \
+                   << "(" << lstatus << ";" \
+                   << m_coord->last_error_file() << ":" \
+                   << m_coord->last_error_line() << ")"; \
+        continue; \
+    default: \
+        abort();
+
 bool
 daemon :: wait_for_config(configuration* config)
 {
@@ -434,10 +470,75 @@ daemon :: wait_for_config(configuration* config)
 
         need_to_retry = true;
 
+        replicant_returncode wstatus = REPLICANT_GARBAGE;
+        int64_t wid = m_coord->wait("hyperdex", "config", m_config.version(), &wstatus);
+
+        if (wid < 0)
+        {
+            switch (wstatus)
+            {
+                case REPLICANT_TIMEOUT:
+                    need_to_retry = false;
+                    continue;
+                case REPLICANT_NEED_BOOTSTRAP:
+                    LOG(ERROR) << "communication error with the coordinator: "
+                               << m_coord->last_error_desc()
+                               << "(" << wstatus << ";"
+                               << m_coord->last_error_file() << ":"
+                               << m_coord->last_error_line() << ")";
+                    continue;
+                case REPLICANT_SUCCESS:
+                case REPLICANT_NAME_TOO_LONG:
+                case REPLICANT_FUNC_NOT_FOUND:
+                case REPLICANT_OBJ_EXIST:
+                case REPLICANT_OBJ_NOT_FOUND:
+                case REPLICANT_COND_NOT_FOUND:
+                case REPLICANT_SERVER_ERROR:
+                case REPLICANT_BAD_LIBRARY:
+                case REPLICANT_MISBEHAVING_SERVER:
+                case REPLICANT_INTERNAL_ERROR:
+                case REPLICANT_NONE_PENDING:
+                case REPLICANT_GARBAGE:
+                    LOG(ERROR) << "unexpected error with coordinator connection: "
+                               << m_coord->last_error_desc()
+                               << "(" << wstatus << ";"
+                               << m_coord->last_error_file() << ":"
+                               << m_coord->last_error_line() << ")";
+                    continue;
+                default:
+                    abort();
+            }
+        }
+
+        replicant_returncode lstatus = REPLICANT_GARBAGE;
+        int64_t lid = m_coord->loop(wid, -1, &lstatus);
+
+        if (lid < 0)
+        {
+            m_coord->kill(wid);
+
+            switch (lstatus)
+            {
+                LOOP_CASES
+            }
+        }
+
+        assert(wid == lid);
+
+        // if the wait failed, log an warning, and continue no matter what
+        if (wstatus != REPLICANT_SUCCESS)
+        {
+            LOG(WARNING) << "\"wait\" call failed: "
+                         << m_coord->last_error_desc()
+                         << "(" << wstatus << ";"
+                         << m_coord->last_error_file() << ":"
+                         << m_coord->last_error_line() << ")";
+        }
+
         replicant_returncode sstatus = REPLICANT_GARBAGE;
         const char* output;
         size_t output_sz;
-        int64_t sid = m_coord->send("hyperdex", 8, "get-config", "", 0,
+        int64_t sid = m_coord->send("hyperdex", "get-config", "", 0,
                                     &sstatus, &output, &output_sz);
 
         if (sid < 0)
@@ -455,9 +556,11 @@ daemon :: wait_for_config(configuration* config)
                                << m_coord->last_error_line() << ")";
                     continue;
                 case REPLICANT_SUCCESS:
+                case REPLICANT_NAME_TOO_LONG:
                 case REPLICANT_FUNC_NOT_FOUND:
                 case REPLICANT_OBJ_EXIST:
                 case REPLICANT_OBJ_NOT_FOUND:
+                case REPLICANT_COND_NOT_FOUND:
                 case REPLICANT_SERVER_ERROR:
                 case REPLICANT_BAD_LIBRARY:
                 case REPLICANT_MISBEHAVING_SERVER:
@@ -475,8 +578,8 @@ daemon :: wait_for_config(configuration* config)
             }
         }
 
-        replicant_returncode lstatus = REPLICANT_GARBAGE;
-        int64_t lid = m_coord->loop(sid, -1, &lstatus);
+        lstatus = REPLICANT_GARBAGE;
+        lid = m_coord->loop(sid, -1, &lstatus);
 
         if (lid < 0)
         {
@@ -484,34 +587,7 @@ daemon :: wait_for_config(configuration* config)
 
             switch (lstatus)
             {
-                case REPLICANT_TIMEOUT:
-                    need_to_retry = false;
-                    continue;
-                case REPLICANT_NEED_BOOTSTRAP:
-                    LOG(ERROR) << "communication error with the coordinator: "
-                               << m_coord->last_error_desc()
-                               << "(" << sstatus << ";"
-                               << m_coord->last_error_file() << ":"
-                               << m_coord->last_error_line() << ")";
-                    continue;
-                case REPLICANT_SUCCESS:
-                case REPLICANT_FUNC_NOT_FOUND:
-                case REPLICANT_OBJ_EXIST:
-                case REPLICANT_OBJ_NOT_FOUND:
-                case REPLICANT_SERVER_ERROR:
-                case REPLICANT_BAD_LIBRARY:
-                case REPLICANT_MISBEHAVING_SERVER:
-                case REPLICANT_INTERNAL_ERROR:
-                case REPLICANT_NONE_PENDING:
-                case REPLICANT_GARBAGE:
-                    LOG(ERROR) << "unexpected error with coordinator connection: "
-                               << m_coord->last_error_desc()
-                               << "(" << sstatus << ";"
-                               << m_coord->last_error_file() << ":"
-                               << m_coord->last_error_line() << ")";
-                    continue;
-                default:
-                    abort();
+                LOOP_CASES
             }
         }
 
@@ -544,7 +620,9 @@ daemon :: wait_for_config(configuration* config)
                            << m_coord->last_error_file() << ":"
                            << m_coord->last_error_line() << ")";
                 continue;
+            case REPLICANT_NAME_TOO_LONG:
             case REPLICANT_OBJ_EXIST:
+            case REPLICANT_COND_NOT_FOUND:
             case REPLICANT_SERVER_ERROR:
             case REPLICANT_BAD_LIBRARY:
             case REPLICANT_MISBEHAVING_SERVER:
