@@ -110,10 +110,10 @@ void
 hyperclient_destroy(struct hyperclient* client);
 
 enum hyperclient_returncode
-hyperclient_add_space(const char* description);
+hyperclient_add_space(struct hyperclient* client, const char* description);
 
 enum hyperclient_returncode
-hyperclient_rm_space(const char* space);
+hyperclient_rm_space(struct hyperclient* client, const char* space);
 
 /* All values return a 64-bit integer, which uniquely identifies the request
  * until its completion.  Positive values indicate valid identifiers.  Negative

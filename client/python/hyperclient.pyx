@@ -137,6 +137,8 @@ cdef extern from "../hyperclient.h":
 
     hyperclient* hyperclient_create(char* coordinator, uint16_t port)
     void hyperclient_destroy(hyperclient* client)
+    hyperclient_returncode hyperclient_add_space(hyperclient* client, char* space)
+    hyperclient_returncode hyperclient_rm_space(hyperclient* client, char* space)
     int64_t hyperclient_get(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_returncode* status, hyperclient_attribute** attrs, size_t* attrs_sz)
     int64_t hyperclient_put(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_put_if_not_exist(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
@@ -205,7 +207,12 @@ class HyperClientException(Exception):
                   ,HYPERCLIENT_DONTUSEKEY: "Do not specify the key in a search predicate and do not redundantly specify the key for an insert"
                   ,HYPERCLIENT_WRONGTYPE: 'Attribute "%s" has the wrong type' % attr
                   ,HYPERCLIENT_NOMEM: 'Memory allocation failed'
-                  ,HYPERCLIENT_EXCEPTION: 'Internal Error (file a bug)'
+                  ,HYPERCLIENT_BADCONFIG: 'The coordinator provided a malformed configuration'
+                  ,HYPERCLIENT_BADSPACE: 'The space description does not parse'
+                  ,HYPERCLIENT_DUPLICATE: 'The space already exists'
+                  ,HYPERCLIENT_INTERNAL: 'Internal Error (file a bug)'
+                  ,HYPERCLIENT_EXCEPTION: 'Internal Exception (file a bug)'
+                  ,HYPERCLIENT_GARBAGE: 'Internal Corruption (file a bug)'
                   }.get(status, 'Unknown Error (file a bug)')
         self._e = {HYPERCLIENT_SUCCESS: 'HYPERCLIENT_SUCCESS'
                   ,HYPERCLIENT_NOTFOUND: 'HYPERCLIENT_NOTFOUND'
@@ -225,7 +232,12 @@ class HyperClientException(Exception):
                   ,HYPERCLIENT_DONTUSEKEY: 'HYPERCLIENT_DONTUSEKEY'
                   ,HYPERCLIENT_WRONGTYPE: 'HYPERCLIENT_WRONGTYPE'
                   ,HYPERCLIENT_NOMEM: 'HYPERCLIENT_NOMEM'
+                  ,HYPERCLIENT_BADCONFIG: 'HYPERCLIENT_BADCONFIG'
+                  ,HYPERCLIENT_BADSPACE: 'HYPERCLIENT_BADSPACE'
+                  ,HYPERCLIENT_DUPLICATE: 'HYPERCLIENT_DUPLICATE'
+                  ,HYPERCLIENT_INTERNAL: 'HYPERCLIENT_INTERNAL'
                   ,HYPERCLIENT_EXCEPTION: 'HYPERCLIENT_EXCEPTION'
+                  ,HYPERCLIENT_GARBAGE: 'HYPERCLIENT_GARBAGE'
                   }.get(status, 'BUG')
 
     def status(self):
@@ -1112,6 +1124,16 @@ cdef class Client:
     def __dealloc__(self):
         if self._client:
             hyperclient_destroy(self._client)
+
+    def add_space(self, bytes space):
+        cdef hyperclient_returncode rc = hyperclient_add_space(self._client, space)
+        if rc != HYPERCLIENT_SUCCESS:
+            raise HyperClientException(rc)
+
+    def rm_space(self, bytes space):
+        cdef hyperclient_returncode rc = hyperclient_rm_space(self._client, space)
+        if rc != HYPERCLIENT_SUCCESS:
+            raise HyperClientException(rc)
 
     def get(self, bytes space, key):
         async = self.async_get(space, key)
