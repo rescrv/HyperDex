@@ -137,10 +137,6 @@ communication :: send(const virtual_server_id& from,
 {
     assert(msg->size() >= HYPERDEX_HEADER_SIZE_VS);
 
-#ifdef HD_LOG_ALL_MESSAGES
-    LOG(INFO) << "SEND " << from << "->" << to << " " << msg_type << " " << msg->hex();
-#endif
-
     if (m_daemon->m_us != m_daemon->m_config.get_server_id(from))
     {
         return false;
@@ -148,6 +144,10 @@ communication :: send(const virtual_server_id& from,
 
     uint8_t mt = static_cast<uint8_t>(msg_type);
     msg->pack_at(BUSYBEE_HEADER_SIZE) << mt << from.get();
+
+#ifdef HD_LOG_ALL_MESSAGES
+    LOG(INFO) << "SEND " << from << "->" << to << " " << msg_type << " " << msg->hex();
+#endif
 
     if (to == m_daemon->m_us)
     {
@@ -186,10 +186,6 @@ communication :: send(const virtual_server_id& from,
 {
     assert(msg->size() >= HYPERDEX_HEADER_SIZE_VV);
 
-#ifdef HD_LOG_ALL_MESSAGES
-    LOG(INFO) << "SEND " << from << "->" << vto << " " << msg_type << " " << msg->hex();
-#endif
-
     if (m_daemon->m_us != m_daemon->m_config.get_server_id(from))
     {
         return false;
@@ -204,6 +200,10 @@ communication :: send(const virtual_server_id& from,
     {
         return false;
     }
+
+#ifdef HD_LOG_ALL_MESSAGES
+    LOG(INFO) << "SEND " << from << "->" << vto << " " << msg_type << " " << msg->hex();
+#endif
 
     if (to == m_daemon->m_us)
     {
@@ -241,10 +241,6 @@ communication :: send(const virtual_server_id& vto,
 {
     assert(msg->size() >= HYPERDEX_HEADER_SIZE_SV);
 
-#ifdef HD_LOG_ALL_MESSAGES
-    LOG(INFO) << "SEND ->" << vto << " " << msg_type << " " << msg->hex();
-#endif
-
     uint8_t mt = static_cast<uint8_t>(msg_type);
     uint8_t flags = 0;
     msg->pack_at(BUSYBEE_HEADER_SIZE) << mt << flags << m_daemon->m_config.version() << vto.get();
@@ -254,6 +250,10 @@ communication :: send(const virtual_server_id& vto,
     {
         return false;
     }
+
+#ifdef HD_LOG_ALL_MESSAGES
+    LOG(INFO) << "SEND ->" << vto << " " << msg_type << " " << msg->hex();
+#endif
 
     if (to == m_daemon->m_us)
     {
