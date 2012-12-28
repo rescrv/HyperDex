@@ -827,11 +827,11 @@ replication_manager :: send_message(const virtual_server_id& us,
 
     op->sent_config_version = m_daemon->m_config.version();
     op->sent = dest;
-    m_daemon->m_comm.send(us, dest, type, msg);
+    m_daemon->m_comm.send_exact(us, dest, type, msg);
 }
 
 bool
-replication_manager :: send_ack(const virtual_server_id& from,
+replication_manager :: send_ack(const virtual_server_id& us,
                                 const virtual_server_id& to,
                                 uint64_t version,
                                 const e::slice& key)
@@ -842,7 +842,7 @@ replication_manager :: send_ack(const virtual_server_id& from,
               + key.size();
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << version << key;
-    return m_daemon->m_comm.send(from, to, CHAIN_ACK, msg);
+    return m_daemon->m_comm.send_exact(us, to, CHAIN_ACK, msg);
 }
 
 void
