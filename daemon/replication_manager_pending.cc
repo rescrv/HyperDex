@@ -34,11 +34,14 @@ replication_manager :: pending :: pending(std::tr1::shared_ptr<e::buffer> _backi
                                           bool _fresh,
                                           bool _has_value,
                                           const std::vector<e::slice>& _value,
+                                          uint64_t _recv_config_version,
                                           const virtual_server_id& _recv)
     : backing(_backing)
     , has_value(_has_value)
     , value(_value)
+    , recv_config_version(_recv_config_version)
     , recv(_recv)
+    , sent_config_version(0)
     , sent()
     , fresh(_fresh)
     , acked(false)
@@ -63,7 +66,9 @@ replication_manager :: pending :: pending(std::tr1::shared_ptr<e::buffer> _backi
     : backing(_backing)
     , has_value(_has_value)
     , value(_value)
+    , recv_config_version(0)
     , recv()
+    , sent_config_version(0)
     , sent()
     , fresh(_fresh)
     , acked(false)

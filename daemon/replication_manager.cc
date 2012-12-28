@@ -246,7 +246,7 @@ replication_manager :: chain_subspace(const virtual_server_id& from,
 
     // Create a new pending object to set as pending.
     std::tr1::shared_ptr<e::buffer> new_backing(backing.release());
-    e::intrusive_ptr<pending> new_pend(new pending(new_backing, false, true, value, from));
+    e::intrusive_ptr<pending> new_pend(new pending(new_backing, false, true, value, m_daemon->m_config.version(), from));
     new_pend->old_hashes.resize(sc->attrs_sz);
     new_pend->new_hashes.resize(sc->attrs_sz);
     new_pend->this_old_region = region_id();
@@ -319,6 +319,12 @@ replication_manager :: chain_ack(const virtual_server_id& from,
     if (from != pend->sent)
     {
         LOG(INFO) << "dropping CHAIN_ACK that came from the wrong host";
+        return;
+    }
+
+    if (m_daemon->m_config.version() != pend->sent_config_version)
+    {
+        LOG(INFO) << "dropping CHAIN_ACK that was sent in a previous version and hasn't been retransmitted";
         return;
     }
 
@@ -423,6 +429,7 @@ replication_manager :: chain_common(bool has_value,
 
     if (new_op)
     {
+        new_op->recv_config_version = m_daemon->m_config.version();
         new_op->recv = from;
 
         if (new_op->acked)
@@ -444,12 +451,12 @@ replication_manager :: chain_common(bool has_value,
 
     if (!old_op && !fresh)
     {
-        e::intrusive_ptr<pending> new_defer(new pending(new_backing, fresh, has_value, value, from));
+        e::intrusive_ptr<pending> new_defer(new pending(new_backing, fresh, has_value, value, m_daemon->m_config.version(), from));
         kh->insert_deferred(version, new_defer);
         return;
     }
 
-    e::intrusive_ptr<pending> new_pend(new pending(new_backing, fresh, has_value, value, from));
+    e::intrusive_ptr<pending> new_pend(new pending(new_backing, fresh, has_value, value, m_daemon->m_config.version(), from));
     hash_objects(ri, *sc, key, has_value, value, bool(old_op), old_op ? old_op->value : value, new_pend);
 
     if (new_pend->this_old_region != ri)
@@ -830,6 +837,7 @@ replication_manager :: send_message(const virtual_server_id& us,
         abort();
     }
 
+    op->sent_config_version = m_daemon->m_config.version();
     op->sent = dest;
     m_daemon->m_comm.send(us, dest, type, msg);
 }
