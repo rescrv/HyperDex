@@ -429,7 +429,7 @@ communication :: recv(server_id* from,
         if (from_valid && to_valid)
         {
 #ifdef HD_LOG_ALL_MESSAGES
-            LOG(INFO) << "RECV " << *from << "(v:" << *vfrom << ") ->" << *vto << " " << *msg_type << " " << (*msg)->hex();
+            LOG(INFO) << "RECV " << *from << "/" << *vfrom << "->" << *vto << " " << *msg_type << " " << (*msg)->hex();
 #endif
             return true;
         }
