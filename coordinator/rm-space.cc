@@ -61,16 +61,11 @@ hyperdex_coordinator_rm_space(struct replicant_state_machine_context* ctx,
         {
             c->spaces.erase(it);
             c->regenerate(ctx);
-            char output[sizeof(uint16_t)];
-            e::pack16be(static_cast<uint16_t>(hyperdex::COORD_SUCCESS), output);
-            replicant_state_machine_set_response(ctx, output, sizeof(uint16_t));
-            return;
+            return generate_response(ctx, c, hyperdex::COORD_SUCCESS);
         }
     }
 
-    char output[sizeof(uint16_t)];
-    e::pack16be(static_cast<uint16_t>(hyperdex::COORD_NOT_FOUND), output);
-    replicant_state_machine_set_response(ctx, output, sizeof(uint16_t));
+    return generate_response(ctx, c, hyperdex::COORD_NOT_FOUND);
 }
 
 } // extern "C"
