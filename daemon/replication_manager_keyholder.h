@@ -68,11 +68,11 @@ class hyperdex::replication_manager::keyholder
 
     public:
         void clear_committable_acked();
+        void clear_deferred();
         void set_version_on_disk(uint64_t version);
-        void append_blocked(uint64_t version, e::intrusive_ptr<pending> op);
         void insert_deferred(uint64_t version, e::intrusive_ptr<pending> op);
         void shift_one_blocked_to_committable();
-        void remove_oldest_deferred_op();
+        void shift_one_deferred_to_blocked();
 
     public:
         bool& get_has_old_value() { return m_has_old_value; }

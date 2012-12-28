@@ -58,6 +58,9 @@ replication_manager :: replication_manager(daemon* d)
     : m_daemon(d)
     , m_locks(1024)
     , m_keyholders(10)
+    , m_counter(0)
+    , m_acked_lock()
+    , m_acked()
 {
 }
 
@@ -89,7 +92,16 @@ replication_manager :: reconfigure(const configuration&,
                                    const configuration&,
                                    const server_id&)
 {
-    // XXX killall deferred for is_point_leader(vsi)
+    for (keyholder_map_t::iterator khiter = m_keyholders.begin();
+            khiter != m_keyholders.end(); khiter.next())
+    {
+        region_id ri(khiter.key().region);
+        e::slice key(khiter.key().key.data(), khiter.key().key.size());
+        HOLD_LOCK_FOR_KEY(ri, key);
+        e::intrusive_ptr<keyholder> kh = khiter.value();
+        kh->clear_deferred();
+    }
+
     return RECONFIGURE_SUCCESS;
 }
 
@@ -185,8 +197,9 @@ replication_manager :: client_atomic(const server_id& from,
     }
 
     bool has_new_value = !erase;
+    uint64_t seq_id = __sync_add_and_fetch(&m_counter, 1);
 
-    e::intrusive_ptr<pending> new_pend(new pending(backing, !has_old_value && has_new_value, has_new_value, new_value, from, nonce));
+    e::intrusive_ptr<pending> new_pend(new pending(backing, to.get(), seq_id, !has_old_value && has_new_value, has_new_value, new_value, from, nonce));
     hash_objects(ri, *sc, key, has_new_value, new_value, has_old_value, *old_value, new_pend);
 
     if (new_pend->this_old_region != ri && new_pend->this_new_region != ri)
@@ -196,35 +209,44 @@ replication_manager :: client_atomic(const server_id& from,
     }
 
     assert(!kh->has_deferred_ops());
-    kh->append_blocked(old_version + 1, new_pend);
+    kh->insert_deferred(old_version + 1, new_pend);
     move_operations_between_queues(to, ri, *sc, key, kh);
 }
 
 void
 replication_manager :: chain_put(const virtual_server_id& from,
                                  const virtual_server_id& to,
-                                 uint64_t newversion,
+                                 bool retransmission,
+                                 uint64_t reg_id,
+                                 uint64_t seq_id,
+                                 uint64_t new_version,
                                  bool fresh,
                                  std::auto_ptr<e::buffer> backing,
                                  const e::slice& key,
                                  const std::vector<e::slice>& newvalue)
 {
-    chain_common(true, from, to, newversion, fresh, backing, key, newvalue);
+    chain_common(true, from, to, retransmission, reg_id, seq_id, new_version, fresh, backing, key, newvalue);
 }
 
 void
 replication_manager :: chain_del(const virtual_server_id& from,
                                  const virtual_server_id& to,
-                                 uint64_t newversion,
+                                 bool retransmission,
+                                 uint64_t reg_id,
+                                 uint64_t seq_id,
+                                 uint64_t new_version,
                                  std::auto_ptr<e::buffer> backing,
                                  const e::slice& key)
 {
-    chain_common(false, from, to, newversion, false, backing, key, std::vector<e::slice>());
+    chain_common(false, from, to, retransmission, reg_id, seq_id, new_version, false, backing, key, std::vector<e::slice>());
 }
 
 void
 replication_manager :: chain_subspace(const virtual_server_id& from,
                                       const virtual_server_id& to,
+                                      bool retransmission,
+                                      uint64_t reg_id,
+                                      uint64_t seq_id,
                                       uint64_t version,
                                       std::auto_ptr<e::buffer> backing,
                                       const e::slice& key,
@@ -236,17 +258,22 @@ replication_manager :: chain_subspace(const virtual_server_id& from,
     HOLD_LOCK_FOR_KEY(ri, key);
     e::intrusive_ptr<keyholder> kh = get_or_create_keyholder(ri, key);
 
+    if (retransmission && check_acked(reg_id, seq_id))
+    {
+        LOG(INFO) << "acking duplicate CHAIN_SUBSPACE";
+        send_ack(to, from, version, key);
+        return;
+    }
+
     // Check that a chain's put matches the dimensions of the space.
     if (sc->attrs_sz != value.size() + 1 || sc->attrs_sz != hashes.size())
     {
         return;
     }
 
-    // XXX check previous versions to see if we can ack right away
-
     // Create a new pending object to set as pending.
     std::tr1::shared_ptr<e::buffer> new_backing(backing.release());
-    e::intrusive_ptr<pending> new_pend(new pending(new_backing, false, true, value, m_daemon->m_config.version(), from));
+    e::intrusive_ptr<pending> new_pend(new pending(new_backing, reg_id, seq_id, false, true, value, m_daemon->m_config.version(), from));
     new_pend->old_hashes.resize(sc->attrs_sz);
     new_pend->new_hashes.resize(sc->attrs_sz);
     new_pend->this_old_region = region_id();
@@ -281,13 +308,15 @@ replication_manager :: chain_subspace(const virtual_server_id& from,
         return;
     }
 
-    kh->append_blocked(version, new_pend);
+    kh->insert_deferred(version, new_pend);
     move_operations_between_queues(to, ri, *sc, key, kh);
 }
 
 void
 replication_manager :: chain_ack(const virtual_server_id& from,
                                  const virtual_server_id& to,
+                                 uint64_t reg_id,
+                                 uint64_t seq_id,
                                  uint64_t version,
                                  const e::slice& key)
 {
@@ -295,6 +324,12 @@ replication_manager :: chain_ack(const virtual_server_id& from,
     const schema* sc = m_daemon->m_config.get_schema(ri);
     HOLD_LOCK_FOR_KEY(ri, key);
     e::intrusive_ptr<keyholder> kh = get_keyholder(ri, key);
+
+    if (check_acked(reg_id, seq_id))
+    {
+        LOG(INFO) << "dropping duplicate CHAIN_ACK";
+        return;
+    }
 
     if (!kh)
     {
@@ -328,7 +363,18 @@ replication_manager :: chain_ack(const virtual_server_id& from,
         return;
     }
 
+    if (pend->reg_id != reg_id || pend->seq_id != seq_id)
+    {
+        LOG(INFO) << "dropping CHAIN_ACK that was sent with mismatching reg/seq ids";
+        return;
+    }
+
     pend->acked = true;
+
+    {
+        po6::threads::mutex::hold hold(&m_acked_lock);
+        m_acked.insert(std::make_pair(reg_id, seq_id));
+    }
 
     if (kh->version_on_disk() < version)
     {
@@ -395,6 +441,9 @@ void
 replication_manager :: chain_common(bool has_value,
                                     const virtual_server_id& from,
                                     const virtual_server_id& to,
+                                    bool retransmission,
+                                    uint64_t reg_id,
+                                    uint64_t seq_id,
                                     uint64_t version,
                                     bool fresh,
                                     std::auto_ptr<e::buffer> backing,
@@ -405,6 +454,13 @@ replication_manager :: chain_common(bool has_value,
     const schema* sc = m_daemon->m_config.get_schema(ri);
     HOLD_LOCK_FOR_KEY(ri, key);
     e::intrusive_ptr<keyholder> kh = get_or_create_keyholder(ri, key);
+
+    if (retransmission && check_acked(reg_id, seq_id))
+    {
+        LOG(INFO) << "acking duplicate CHAIN_*";
+        send_ack(to, from, version, key);
+        return;
+    }
 
     // Check that a chain's put matches the dimensions of the space.
     if (has_value && sc->attrs_sz != value.size() + 1)
@@ -435,7 +491,7 @@ replication_manager :: chain_common(bool has_value,
     }
 
     std::tr1::shared_ptr<e::buffer> new_backing(backing.release());
-    e::intrusive_ptr<pending> new_defer(new pending(new_backing, fresh, has_value, value, m_daemon->m_config.version(), from));
+    e::intrusive_ptr<pending> new_defer(new pending(new_backing, reg_id, seq_id, fresh, has_value, value, m_daemon->m_config.version(), from));
     kh->insert_deferred(version, new_defer);
     move_operations_between_queues(to, ri, *sc, key, kh);
 }
@@ -613,17 +669,11 @@ replication_manager :: move_operations_between_queues(const virtual_server_id& u
         uint64_t old_version = 0;
         std::vector<e::slice>* old_value = NULL;
         kh->get_latest_version(&has_old_value, &old_version, &old_value);
+        assert(old_version < kh->oldest_deferred_version());
 
         if (!has_old_value)
         {
             break;
-        }
-
-        if (old_version >= kh->oldest_deferred_version())
-        {
-            LOG(INFO) << "We are dropping a deferred message because we've already seen the version";
-            kh->remove_oldest_deferred_op();
-            continue;
         }
 
         if (old_version + 1 != kh->oldest_deferred_version())
@@ -647,8 +697,7 @@ replication_manager :: move_operations_between_queues(const virtual_server_id& u
             return;
         }
 
-        kh->append_blocked(kh->oldest_deferred_version(), new_pend);
-        kh->remove_oldest_deferred_op();
+        kh->shift_one_deferred_to_blocked();
     }
 
     // Issue blocked operations
@@ -757,35 +806,43 @@ replication_manager :: send_message(const virtual_server_id& us,
     {
         size_t sz = HYPERDEX_HEADER_SIZE_VV
                   + sizeof(uint64_t)
+                  + sizeof(uint64_t)
+                  + sizeof(uint64_t)
                   + sizeof(uint8_t)
                   + sizeof(uint32_t)
                   + key.size()
                   + pack_size(op->value);
         msg.reset(e::buffer::create(sz));
         uint8_t flags = op->fresh ? 1 : 0;
-        msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << version << flags << key << op->value;
+        msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << op->reg_id << op->seq_id << version << flags << key << op->value;
     }
     else if (type == CHAIN_DEL)
     {
         size_t sz = HYPERDEX_HEADER_SIZE_VV
                   + sizeof(uint64_t)
+                  + sizeof(uint64_t)
+                  + sizeof(uint64_t)
                   + sizeof(uint32_t)
                   + key.size();
         msg.reset(e::buffer::create(sz));
-        msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << version << key;
+        msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << op->reg_id << op->seq_id << version << key;
     }
     else if (type == CHAIN_ACK)
     {
         size_t sz = HYPERDEX_HEADER_SIZE_VV
                   + sizeof(uint64_t)
+                  + sizeof(uint64_t)
+                  + sizeof(uint64_t)
                   + sizeof(uint32_t)
                   + key.size();
         msg.reset(e::buffer::create(sz));
-        msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << version << key;
+        msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << op->reg_id << op->seq_id << version << key;
     }
     else if (type == CHAIN_SUBSPACE)
     {
         size_t sz = HYPERDEX_HEADER_SIZE_VV
+                  + sizeof(uint64_t)
+                  + sizeof(uint64_t)
                   + sizeof(uint64_t)
                   + sizeof(uint8_t)
                   + sizeof(uint32_t)
@@ -793,7 +850,7 @@ replication_manager :: send_message(const virtual_server_id& us,
                   + pack_size(op->value)
                   + pack_size(op->old_hashes);
         msg.reset(e::buffer::create(sz));
-        msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << version << key << op->value << op->old_hashes;
+        msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << op->reg_id << op->seq_id << version << key << op->value << op->old_hashes;
     }
     else
     {
@@ -833,4 +890,11 @@ replication_manager :: respond_to_client(const virtual_server_id& us,
     uint16_t result = static_cast<uint16_t>(ret);
     msg->pack_at(HYPERDEX_HEADER_SIZE_VS) << nonce << result;
     m_daemon->m_comm.send(us, client, RESP_ATOMIC, msg);
+}
+
+bool
+replication_manager :: check_acked(uint64_t reg_id, uint64_t seq_id)
+{
+    po6::threads::mutex::hold hold(&m_acked_lock);
+    return m_acked.find(std::make_pair(reg_id, seq_id)) != m_acked.end();
 }

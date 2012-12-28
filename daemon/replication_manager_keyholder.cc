@@ -211,6 +211,12 @@ replication_manager :: keyholder :: clear_committable_acked()
 }
 
 void
+replication_manager :: keyholder :: clear_deferred()
+{
+    m_deferred.clear();
+}
+
+void
 replication_manager :: keyholder :: set_version_on_disk(uint64_t version)
 {
     assert(m_old_version < version);
@@ -220,13 +226,6 @@ replication_manager :: keyholder :: set_version_on_disk(uint64_t version)
     m_old_version = version;
     m_old_value = op->value;
     m_old_backing = op->backing;
-}
-
-void
-replication_manager :: keyholder :: append_blocked(uint64_t version,
-                                                   e::intrusive_ptr<pending> op)
-{
-    m_blocked.push_back(std::make_pair(version, op));
 }
 
 void
@@ -252,8 +251,9 @@ replication_manager :: keyholder :: shift_one_blocked_to_committable()
 }
 
 void
-replication_manager :: keyholder :: remove_oldest_deferred_op()
+replication_manager :: keyholder :: shift_one_deferred_to_blocked()
 {
-    assert(!m_deferred.empty());
-    m_deferred.pop_front();
+    assert(!m_blocked.empty());
+    m_committable.push_back(m_blocked.front());
+    m_blocked.pop_front();
 }

@@ -943,18 +943,20 @@ daemon :: process_chain_put(server_id,
                             std::auto_ptr<e::buffer> msg,
                             e::unpacker up)
 {
+    uint64_t reg_id;
+    uint64_t seq_id;
     uint64_t version;
     uint8_t fresh;
     e::slice key;
     std::vector<e::slice> value;
 
-    if ((up >> version >> fresh >> key >> value).error())
+    if ((up >> reg_id >> seq_id >> version >> fresh >> key >> value).error())
     {
         LOG(WARNING) << "unpack of CHAIN_PUT failed; here's some hex:  " << msg->hex();
         return;
     }
 
-    m_repl.chain_put(vfrom, vto, version, fresh == 1, msg, key, value);
+    m_repl.chain_put(vfrom, vto, false, reg_id, seq_id, version, fresh == 1, msg, key, value);
 }
 
 void
@@ -964,16 +966,18 @@ daemon :: process_chain_del(server_id,
                             std::auto_ptr<e::buffer> msg,
                             e::unpacker up)
 {
+    uint64_t reg_id;
+    uint64_t seq_id;
     uint64_t version;
     e::slice key;
 
-    if ((up >> version >> key).error())
+    if ((up >> reg_id >> seq_id >> version >> key).error())
     {
         LOG(WARNING) << "unpack of CHAIN_DEL failed; here's some hex:  " << msg->hex();
         return;
     }
 
-    m_repl.chain_del(vfrom, vto, version, msg, key);
+    m_repl.chain_del(vfrom, vto, false, reg_id, seq_id, version, msg, key);
 }
 
 void
@@ -983,18 +987,20 @@ daemon :: process_chain_subspace(server_id,
                                  std::auto_ptr<e::buffer> msg,
                                  e::unpacker up)
 {
+    uint64_t reg_id;
+    uint64_t seq_id;
     uint64_t version;
     e::slice key;
     std::vector<e::slice> value;
     std::vector<uint64_t> hashes;
 
-    if ((up >> version >> key >> value >> hashes).error())
+    if ((up >> reg_id >> seq_id >> version >> key >> value >> hashes).error())
     {
         LOG(WARNING) << "unpack of CHAIN_SUBSPACE failed; here's some hex:  " << msg->hex();
         return;
     }
 
-    m_repl.chain_subspace(vfrom, vto, version, msg, key, value, hashes);
+    m_repl.chain_subspace(vfrom, vto, false, reg_id, seq_id, version, msg, key, value, hashes);
 }
 
 void
@@ -1004,14 +1010,16 @@ daemon :: process_chain_ack(server_id,
                             std::auto_ptr<e::buffer> msg,
                             e::unpacker up)
 {
+    uint64_t reg_id;
+    uint64_t seq_id;
     uint64_t version;
     e::slice key;
 
-    if ((up >> version >> key).error())
+    if ((up >> reg_id >> seq_id >> version >> key).error())
     {
         LOG(WARNING) << "unpack of CHAIN_ACK failed; here's some hex:  " << msg->hex();
         return;
     }
 
-    m_repl.chain_ack(vfrom, vto, version, key);
+    m_repl.chain_ack(vfrom, vto, reg_id, seq_id, version, key);
 }
