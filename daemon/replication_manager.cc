@@ -339,39 +339,27 @@ replication_manager :: chain_ack(const virtual_server_id& from,
 
         if (!op->has_value || (op->this_old_region != op->this_new_region && ri == op->this_old_region))
         {
-            switch ((rc = m_daemon->m_data.del(ri, key)))
-            {
-                case datalayer::SUCCESS:
-                    break;
-                case datalayer::NOT_FOUND:
-                case datalayer::BAD_ENCODING:
-                case datalayer::CORRUPTION:
-                case datalayer::IO_ERROR:
-                case datalayer::LEVELDB_ERROR:
-                    LOG(ERROR) << "commit caused error " << rc;
-                    break;
-                default:
-                    LOG(ERROR) << "commit caused unknown error";
-                    break;
-            }
+            rc = m_daemon->m_data.del(ri, key);
         }
         else
         {
-            switch ((rc = m_daemon->m_data.put(ri, key, op->value, version)))
-            {
-                case datalayer::SUCCESS:
-                    break;
-                case datalayer::NOT_FOUND:
-                case datalayer::BAD_ENCODING:
-                case datalayer::CORRUPTION:
-                case datalayer::IO_ERROR:
-                case datalayer::LEVELDB_ERROR:
-                    LOG(ERROR) << "commit caused error " << rc;
-                    break;
-                default:
-                    LOG(ERROR) << "commit caused unknown error";
-                    break;
-            }
+            rc = m_daemon->m_data.put(ri, key, op->value, version);
+        }
+
+        switch (rc)
+        {
+            case datalayer::SUCCESS:
+                break;
+            case datalayer::NOT_FOUND:
+            case datalayer::BAD_ENCODING:
+            case datalayer::CORRUPTION:
+            case datalayer::IO_ERROR:
+            case datalayer::LEVELDB_ERROR:
+                LOG(ERROR) << "commit caused error " << rc;
+                break;
+            default:
+                LOG(ERROR) << "commit caused unknown error";
+                break;
         }
 
         kh->set_version_on_disk(version);
