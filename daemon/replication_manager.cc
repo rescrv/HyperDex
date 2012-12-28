@@ -434,34 +434,9 @@ replication_manager :: chain_common(bool has_value,
         return;
     }
 
-    e::intrusive_ptr<pending> old_op = kh->get_by_version(version - 1);
     std::tr1::shared_ptr<e::buffer> new_backing(backing.release());
-
-    if (!old_op && !fresh)
-    {
-        e::intrusive_ptr<pending> new_defer(new pending(new_backing, fresh, has_value, value, m_daemon->m_config.version(), from));
-        kh->insert_deferred(version, new_defer);
-        return;
-    }
-
-    e::intrusive_ptr<pending> new_pend(new pending(new_backing, fresh, has_value, value, m_daemon->m_config.version(), from));
-    hash_objects(ri, *sc, key, has_value, value, bool(old_op), old_op ? old_op->value : value, new_pend);
-
-    if (new_pend->this_old_region != ri)
-        /* if ^ is false and new_pend->this_new_region == ri then it should be a chain_subspace */
-    {
-        LOG(INFO) << "dropping CHAIN_* which didn't get sent to the right host";
-        return;
-    }
-
-    if (m_daemon->m_config.next_in_region(from) != to &&
-        !m_daemon->m_config.subspace_adjacent(from, to))
-    {
-        LOG(INFO) << "dropping CHAIN_* which didn't come from the right host";
-        return;
-    }
-
-    kh->append_blocked(version, new_pend);
+    e::intrusive_ptr<pending> new_defer(new pending(new_backing, fresh, has_value, value, m_daemon->m_config.version(), from));
+    kh->insert_deferred(version, new_defer);
     move_operations_between_queues(to, ri, *sc, key, kh);
 }
 
