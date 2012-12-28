@@ -38,6 +38,9 @@ using hyperdex::coordinator_link;
 coordinator_link :: coordinator_link(const po6::net::hostname& host)
     : m_config()
     , m_repl(host.address.c_str(), host.port)
+    , m_need_wait(false)
+    , m_wait_config_id(-1)
+    , m_wait_config_status(REPLICANT_GARBAGE)
     , m_get_config_id(-1)
     , m_get_config_status(REPLICANT_GARBAGE)
     , m_get_config_output(NULL)
@@ -92,6 +95,109 @@ coordinator_link :: wait_for_config(hyperclient_returncode* status)
 bool
 coordinator_link :: poll_for_config(hyperclient_returncode* status)
 {
+    if (m_need_wait)
+    {
+        if (m_wait_config_id < 0)
+        {
+            m_wait_config_id = m_repl.wait("hyperdex", "config", m_config.version(), &m_wait_config_status);
+
+            if (m_wait_config_id < 0)
+            {
+                switch (m_wait_config_status)
+                {
+                    case REPLICANT_SERVER_ERROR:
+                    case REPLICANT_NEED_BOOTSTRAP:
+                    case REPLICANT_MISBEHAVING_SERVER:
+                        *status = HYPERCLIENT_COORDFAIL;
+                        return false;
+                    case REPLICANT_SUCCESS:
+                    case REPLICANT_NAME_TOO_LONG:
+                    case REPLICANT_FUNC_NOT_FOUND:
+                    case REPLICANT_OBJ_EXIST:
+                    case REPLICANT_OBJ_NOT_FOUND:
+                    case REPLICANT_COND_NOT_FOUND:
+                    case REPLICANT_BAD_LIBRARY:
+                    case REPLICANT_TIMEOUT:
+                    case REPLICANT_INTERNAL_ERROR:
+                    case REPLICANT_NONE_PENDING:
+                    case REPLICANT_GARBAGE:
+                    default:
+                        *status = HYPERCLIENT_INTERNAL;
+                        return false;
+                }
+
+                abort();
+            }
+        }
+
+        assert(m_wait_config_id >= 0);
+        replicant_returncode lstatus;
+        int64_t lid = m_repl.loop(m_wait_config_id, 0, &lstatus);
+
+        if (lid < 0)
+        {
+            switch (lstatus)
+            {
+                case REPLICANT_SERVER_ERROR:
+                case REPLICANT_NEED_BOOTSTRAP:
+                case REPLICANT_MISBEHAVING_SERVER:
+                    *status = HYPERCLIENT_COORDFAIL;
+                    return false;
+                case REPLICANT_TIMEOUT:
+                    return true;
+                case REPLICANT_SUCCESS:
+                case REPLICANT_NAME_TOO_LONG:
+                case REPLICANT_FUNC_NOT_FOUND:
+                case REPLICANT_OBJ_EXIST:
+                case REPLICANT_OBJ_NOT_FOUND:
+                case REPLICANT_COND_NOT_FOUND:
+                case REPLICANT_BAD_LIBRARY:
+                case REPLICANT_INTERNAL_ERROR:
+                case REPLICANT_NONE_PENDING:
+                case REPLICANT_GARBAGE:
+                default:
+                    *status = HYPERCLIENT_INTERNAL;
+                    return false;
+            }
+
+            abort();
+        }
+
+        if (lid != m_wait_config_id)
+        {
+            m_repl.kill(m_wait_config_id);
+            m_wait_config_id = -1;
+            *status = HYPERCLIENT_INTERNAL;
+            return false;
+        }
+
+        m_need_wait = false;
+
+        switch (m_wait_config_status)
+        {
+            case REPLICANT_SUCCESS:
+                break;
+            case REPLICANT_FUNC_NOT_FOUND:
+            case REPLICANT_OBJ_NOT_FOUND:
+            case REPLICANT_COND_NOT_FOUND:
+            case REPLICANT_SERVER_ERROR:
+            case REPLICANT_NEED_BOOTSTRAP:
+            case REPLICANT_MISBEHAVING_SERVER:
+                *status = HYPERCLIENT_COORDFAIL;
+                return false;
+            case REPLICANT_NAME_TOO_LONG:
+            case REPLICANT_OBJ_EXIST:
+            case REPLICANT_BAD_LIBRARY:
+            case REPLICANT_TIMEOUT:
+            case REPLICANT_INTERNAL_ERROR:
+            case REPLICANT_NONE_PENDING:
+            case REPLICANT_GARBAGE:
+            default:
+                *status = HYPERCLIENT_INTERNAL;
+                return false;
+        }
+    }
+
     // if we need to issue a "get-config" request
     if (m_get_config_id < 0)
     {
@@ -199,7 +305,6 @@ coordinator_link :: poll_for_config(hyperclient_returncode* status)
             return false;
     }
 
-std::cout << "config is of size " << m_get_config_output_sz << "b" << std::endl;
     e::unpacker up(m_get_config_output, m_get_config_output_sz);
     configuration new_config;
     up = up >> new_config;
@@ -211,6 +316,7 @@ std::cout << "config is of size " << m_get_config_output_sz << "b" << std::endl;
         return false;
     }
 
+    m_need_wait = true;
     m_config = new_config;
     return true;
 }
