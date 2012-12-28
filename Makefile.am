@@ -130,7 +130,6 @@ noinst_HEADERS = \
 			daemon/datalayer.h \
 			daemon/index_encode.h \
 			daemon/reconfigure_returncode.h \
-			daemon/replication_manager_deferred.h \
 			daemon/replication_manager.h \
 			daemon/replication_manager_keyholder.h \
 			daemon/replication_manager_keypair.h \
@@ -180,7 +179,6 @@ hyperdex_daemon_SOURCES = \
 			daemon/datalayer.cc \
 			daemon/index_encode.cc \
 			daemon/replication_manager.cc \
-			daemon/replication_manager_deferred.cc \
 			daemon/replication_manager_keyholder.cc \
 			daemon/replication_manager_keypair.cc \
 			daemon/replication_manager_pending.cc \

@@ -26,7 +26,6 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // HyperDex
-#include "daemon/replication_manager_deferred.h"
 #include "daemon/replication_manager_keyholder.h"
 #include "daemon/replication_manager_pending.h"
 
@@ -194,7 +193,7 @@ replication_manager :: keyholder :: oldest_deferred_version() const
     return m_deferred.front().first;
 }
 
-e::intrusive_ptr<replication_manager::deferred>
+e::intrusive_ptr<replication_manager::pending>
 replication_manager :: keyholder :: oldest_deferred_op() const
 {
     assert(!m_deferred.empty());
@@ -232,7 +231,7 @@ replication_manager :: keyholder :: append_blocked(uint64_t version,
 
 void
 replication_manager :: keyholder :: insert_deferred(uint64_t version,
-                                                    e::intrusive_ptr<deferred> op)
+                                                    e::intrusive_ptr<pending> op)
 {
     deferred_list_t::iterator d = m_deferred.begin();
 

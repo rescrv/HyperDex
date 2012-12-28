@@ -38,7 +38,6 @@
 #include "datatypes/validate.h"
 #include "daemon/daemon.h"
 #include "daemon/replication_manager.h"
-#include "daemon/replication_manager_deferred.h"
 #include "daemon/replication_manager_keyholder.h"
 #include "daemon/replication_manager_keypair.h"
 #include "daemon/replication_manager_pending.h"
@@ -445,7 +444,7 @@ replication_manager :: chain_common(bool has_value,
 
     if (!old_op && !fresh)
     {
-        e::intrusive_ptr<deferred> new_defer(new deferred(new_backing, has_value, value, from));
+        e::intrusive_ptr<pending> new_defer(new pending(new_backing, fresh, has_value, value, from));
         kh->insert_deferred(version, new_defer);
         return;
     }
@@ -662,10 +661,7 @@ replication_manager :: move_operations_between_queues(const virtual_server_id& u
             break;
         }
 
-        e::intrusive_ptr<deferred> to_convert = kh->oldest_deferred_op();
-        e::intrusive_ptr<pending> new_pend(new pending(to_convert->backing, false,
-                                                       to_convert->has_value, to_convert->value,
-                                                       to_convert->recv));
+        e::intrusive_ptr<pending> new_pend = kh->oldest_deferred_op();
         hash_objects(ri, sc, key, new_pend->has_value, new_pend->value, has_old_value, old_value ? *old_value : new_pend->value, new_pend);
 
         if (new_pend->this_old_region != ri && new_pend->this_new_region != ri)

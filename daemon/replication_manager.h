@@ -113,7 +113,6 @@ class replication_manager
                        const e::slice& key);
 
     private:
-        class deferred;
         class pending;
         class keyholder;
         class keypair;

@@ -28,6 +28,9 @@
 #ifndef hyperdex_daemon_replication_manager_keyholder_h_
 #define hyperdex_daemon_replication_manager_keyholder_h_
 
+// STL
+#include <tr1/memory>
+
 // HyperDex
 #include "daemon/datalayer.h"
 #include "daemon/replication_manager.h"
@@ -61,13 +64,13 @@ class hyperdex::replication_manager::keyholder
     public:
         bool has_deferred_ops() const;
         uint64_t oldest_deferred_version() const;
-        e::intrusive_ptr<deferred> oldest_deferred_op() const;
+        e::intrusive_ptr<pending> oldest_deferred_op() const;
 
     public:
         void clear_committable_acked();
         void set_version_on_disk(uint64_t version);
         void append_blocked(uint64_t version, e::intrusive_ptr<pending> op);
-        void insert_deferred(uint64_t version, e::intrusive_ptr<deferred> op);
+        void insert_deferred(uint64_t version, e::intrusive_ptr<pending> op);
         void shift_one_blocked_to_committable();
         void remove_oldest_deferred_op();
 
@@ -82,7 +85,7 @@ class hyperdex::replication_manager::keyholder
                 committable_list_t;
         typedef std::list<std::pair<uint64_t, e::intrusive_ptr<pending> > >
                 blocked_list_t;
-        typedef std::list<std::pair<uint64_t, e::intrusive_ptr<deferred> > >
+        typedef std::list<std::pair<uint64_t, e::intrusive_ptr<pending> > >
                 deferred_list_t;
         friend class e::intrusive_ptr<keyholder>;
 
