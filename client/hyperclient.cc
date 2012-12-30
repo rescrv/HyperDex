@@ -40,6 +40,7 @@
 // BusyBee
 #include <busybee_returncode.h>
 #include <busybee_st.h>
+#include <busybee_utils.h>
 
 // HyperDex
 #include "common/attribute.h"
@@ -96,7 +97,7 @@ using hyperdex::virtual_server_id;
 hyperclient :: hyperclient(const char* coordinator, uint16_t port)
     : m_config(new hyperdex::configuration())
     , m_busybee_mapper(new hyperdex::mapper(m_config.get()))
-    , m_busybee(new busybee_st(m_busybee_mapper.get(), busybee_st::generate_id()))
+    , m_busybee(new busybee_st(m_busybee_mapper.get(), busybee_generate_id()))
     , m_coord(new hyperdex::coordinator_link(po6::net::hostname(coordinator, port)))
     , m_incomplete()
     , m_complete_succeeded()
