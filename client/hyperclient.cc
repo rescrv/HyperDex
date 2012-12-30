@@ -563,6 +563,9 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
             case BUSYBEE_TIMEOUT:
                 *status = HYPERCLIENT_TIMEOUT;
                 return -1;
+            case BUSYBEE_INTERRUPTED:
+                *status = HYPERCLIENT_INTERRUPTED;
+                return -1;
             case BUSYBEE_EXTERNAL:
                 continue;
             case BUSYBEE_SHUTDOWN:
@@ -1168,6 +1171,7 @@ hyperclient :: send(e::intrusive_ptr<pending> op,
         case BUSYBEE_SHUTDOWN:
         case BUSYBEE_TIMEOUT:
         case BUSYBEE_EXTERNAL:
+        case BUSYBEE_INTERRUPTED:
         default:
             abort();
     }
@@ -1224,6 +1228,7 @@ operator << (std::ostream& lhs, hyperclient_returncode rhs)
         STRINGIFY(HYPERCLIENT_BADCONFIG);
         STRINGIFY(HYPERCLIENT_BADSPACE);
         STRINGIFY(HYPERCLIENT_DUPLICATE);
+        STRINGIFY(HYPERCLIENT_INTERRUPTED);
         STRINGIFY(HYPERCLIENT_INTERNAL);
         STRINGIFY(HYPERCLIENT_EXCEPTION);
         STRINGIFY(HYPERCLIENT_GARBAGE);

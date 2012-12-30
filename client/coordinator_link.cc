@@ -105,6 +105,9 @@ coordinator_link :: poll_for_config(hyperclient_returncode* status)
             {
                 switch (m_wait_config_status)
                 {
+                    case REPLICANT_INTERRUPTED:
+                        *status = HYPERCLIENT_INTERRUPTED;
+                        return false;
                     case REPLICANT_SERVER_ERROR:
                     case REPLICANT_NEED_BOOTSTRAP:
                     case REPLICANT_MISBEHAVING_SERVER:
@@ -145,6 +148,9 @@ coordinator_link :: poll_for_config(hyperclient_returncode* status)
                     return false;
                 case REPLICANT_TIMEOUT:
                     return true;
+                case REPLICANT_INTERRUPTED:
+                    *status = HYPERCLIENT_INTERRUPTED;
+                    return false;
                 case REPLICANT_SUCCESS:
                 case REPLICANT_NAME_TOO_LONG:
                 case REPLICANT_FUNC_NOT_FOUND:
@@ -177,6 +183,9 @@ coordinator_link :: poll_for_config(hyperclient_returncode* status)
         {
             case REPLICANT_SUCCESS:
                 break;
+            case REPLICANT_INTERRUPTED:
+                *status = HYPERCLIENT_INTERRUPTED;
+                return false;
             case REPLICANT_FUNC_NOT_FOUND:
             case REPLICANT_OBJ_NOT_FOUND:
             case REPLICANT_COND_NOT_FOUND:
@@ -210,6 +219,9 @@ coordinator_link :: poll_for_config(hyperclient_returncode* status)
         {
             switch (m_get_config_status)
             {
+                case REPLICANT_INTERRUPTED:
+                    *status = HYPERCLIENT_INTERRUPTED;
+                    return false;
                 case REPLICANT_SERVER_ERROR:
                 case REPLICANT_NEED_BOOTSTRAP:
                 case REPLICANT_MISBEHAVING_SERVER:
@@ -250,6 +262,9 @@ coordinator_link :: poll_for_config(hyperclient_returncode* status)
                 return false;
             case REPLICANT_TIMEOUT:
                 return true;
+            case REPLICANT_INTERRUPTED:
+                *status = HYPERCLIENT_INTERRUPTED;
+                return false;
             case REPLICANT_SUCCESS:
             case REPLICANT_NAME_TOO_LONG:
             case REPLICANT_FUNC_NOT_FOUND:
@@ -285,6 +300,9 @@ coordinator_link :: poll_for_config(hyperclient_returncode* status)
     {
         case REPLICANT_SUCCESS:
             break;
+        case REPLICANT_INTERRUPTED:
+            *status = HYPERCLIENT_INTERRUPTED;
+            return false;
         case REPLICANT_FUNC_NOT_FOUND:
         case REPLICANT_OBJ_NOT_FOUND:
         case REPLICANT_COND_NOT_FOUND:
@@ -341,6 +359,9 @@ coordinator_link :: make_rpc(const char* func,
     {
         switch (sstatus)
         {
+            case REPLICANT_INTERRUPTED:
+                *status = HYPERCLIENT_INTERRUPTED;
+                return false;
             case REPLICANT_SERVER_ERROR:
             case REPLICANT_NEED_BOOTSTRAP:
             case REPLICANT_MISBEHAVING_SERVER:
@@ -370,6 +391,9 @@ coordinator_link :: make_rpc(const char* func,
     {
         switch (lstatus)
         {
+            case REPLICANT_INTERRUPTED:
+                *status = HYPERCLIENT_INTERRUPTED;
+                return false;
             case REPLICANT_SERVER_ERROR:
             case REPLICANT_NEED_BOOTSTRAP:
             case REPLICANT_MISBEHAVING_SERVER:
@@ -396,6 +420,9 @@ coordinator_link :: make_rpc(const char* func,
     {
         case REPLICANT_SUCCESS:
             return true;
+        case REPLICANT_INTERRUPTED:
+            *status = HYPERCLIENT_INTERRUPTED;
+            return false;
         case REPLICANT_FUNC_NOT_FOUND:
         case REPLICANT_OBJ_NOT_FOUND:
         case REPLICANT_COND_NOT_FOUND:

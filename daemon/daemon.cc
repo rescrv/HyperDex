@@ -312,6 +312,7 @@ daemon :: register_id(server_id us, const po6::net::location& bind_to)
             case REPLICANT_MISBEHAVING_SERVER:
             case REPLICANT_INTERNAL_ERROR:
             case REPLICANT_NONE_PENDING:
+            case REPLICANT_INTERRUPTED:
             case REPLICANT_GARBAGE:
             default:
                 LOG(ERROR) << "while trying to register with the coordinator "
@@ -343,6 +344,7 @@ daemon :: register_id(server_id us, const po6::net::location& bind_to)
             case REPLICANT_MISBEHAVING_SERVER:
             case REPLICANT_INTERNAL_ERROR:
             case REPLICANT_NONE_PENDING:
+            case REPLICANT_INTERRUPTED:
             case REPLICANT_GARBAGE:
             default:
                 LOG(ERROR) << "could not register this instance with the coordinator: " << sstatus;
@@ -376,6 +378,7 @@ daemon :: register_id(server_id us, const po6::net::location& bind_to)
         case REPLICANT_MISBEHAVING_SERVER:
         case REPLICANT_INTERNAL_ERROR:
         case REPLICANT_NONE_PENDING:
+        case REPLICANT_INTERRUPTED:
         case REPLICANT_GARBAGE:
         default:
             LOG(ERROR) << "could not register this instance with the coordinator: " << sstatus;
@@ -418,6 +421,9 @@ daemon :: register_id(server_id us, const po6::net::location& bind_to)
 
 #define LOOP_CASES \
     case REPLICANT_TIMEOUT: \
+        need_to_retry = false; \
+        continue; \
+    case REPLICANT_INTERRUPTED: \
         need_to_retry = false; \
         continue; \
     case REPLICANT_NEED_BOOTSTRAP: \
@@ -478,6 +484,9 @@ daemon :: wait_for_config(configuration* config)
             switch (wstatus)
             {
                 case REPLICANT_TIMEOUT:
+                    need_to_retry = false;
+                    continue;
+                case REPLICANT_INTERRUPTED:
                     need_to_retry = false;
                     continue;
                 case REPLICANT_NEED_BOOTSTRAP:
@@ -548,6 +557,9 @@ daemon :: wait_for_config(configuration* config)
                 case REPLICANT_TIMEOUT:
                     need_to_retry = false;
                     continue;
+                case REPLICANT_INTERRUPTED:
+                    need_to_retry = false;
+                    continue;
                 case REPLICANT_NEED_BOOTSTRAP:
                     LOG(ERROR) << "communication error with the coordinator: "
                                << m_coord->last_error_desc()
@@ -613,6 +625,8 @@ daemon :: wait_for_config(configuration* config)
                 continue;
             case REPLICANT_TIMEOUT:
                 continue;
+            case REPLICANT_INTERRUPTED:
+                continue;
             case REPLICANT_NEED_BOOTSTRAP:
                 LOG(ERROR) << "communication error with the coordinator: "
                            << m_coord->last_error_desc()
@@ -670,7 +684,7 @@ daemon :: loop()
 
     if (pthread_sigmask(SIG_BLOCK, &ss, NULL) < 0)
     {
-        PLOG(ERROR) << "pthread_sigmask";
+        PLOG(ERROR) << "could not block signals";
         return;
     }
 

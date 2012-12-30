@@ -94,6 +94,7 @@ communication :: setup(const po6::net::location& bind_to,
                        unsigned threads)
 {
     m_busybee.reset(new busybee_mta(&m_busybee_mapper, bind_to, m_daemon->m_us.get(), threads));
+    m_busybee->set_ignore_signals();
     return true;
 }
 
@@ -169,6 +170,7 @@ communication :: send(const virtual_server_id& from,
             case BUSYBEE_ADDFDFAIL:
             case BUSYBEE_TIMEOUT:
             case BUSYBEE_EXTERNAL:
+            case BUSYBEE_INTERRUPTED:
             default:
                 LOG(ERROR) << "BusyBee unexpectedly returned " << rc;
                 return false;
@@ -225,6 +227,7 @@ communication :: send(const virtual_server_id& from,
             case BUSYBEE_ADDFDFAIL:
             case BUSYBEE_TIMEOUT:
             case BUSYBEE_EXTERNAL:
+            case BUSYBEE_INTERRUPTED:
             default:
                 LOG(ERROR) << "BusyBee unexpectedly returned " << rc;
                 return false;
@@ -275,6 +278,7 @@ communication :: send(const virtual_server_id& vto,
             case BUSYBEE_ADDFDFAIL:
             case BUSYBEE_TIMEOUT:
             case BUSYBEE_EXTERNAL:
+            case BUSYBEE_INTERRUPTED:
             default:
                 LOG(ERROR) << "BusyBee unexpectedly returned " << rc;
                 return false;
@@ -331,6 +335,7 @@ communication :: send_exact(const virtual_server_id& from,
             case BUSYBEE_ADDFDFAIL:
             case BUSYBEE_TIMEOUT:
             case BUSYBEE_EXTERNAL:
+            case BUSYBEE_INTERRUPTED:
             default:
                 LOG(ERROR) << "BusyBee unexpectedly returned " << rc;
                 return false;
@@ -372,6 +377,7 @@ communication :: recv(server_id* from,
             case BUSYBEE_ADDFDFAIL:
             case BUSYBEE_TIMEOUT:
             case BUSYBEE_EXTERNAL:
+            case BUSYBEE_INTERRUPTED:
             default:
                 LOG(ERROR) << "busybee unexpectedly returned " << rc;
                 continue;
