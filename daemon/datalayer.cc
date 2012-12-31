@@ -502,6 +502,81 @@ datalayer :: del(const region_id& ri,
     }
 }
 
+datalayer::returncode
+datalayer :: make_snapshot(const region_id& ri,
+                           attribute_check* checks, size_t checks_sz,
+                           snapshot* snap)
+{
+    std::stable_sort(checks, checks + checks_sz);
+    attribute_check* check_ptr = checks;
+    attribute_check* check_end = checks + checks_sz;
+
+    while (check_ptr < check_end)
+    {
+        attribute_check* check_tmp = check_ptr;
+
+        while (check_tmp < check_end && check_tmp->attr == check_ptr->attr)
+        {
+            ++check_tmp;
+        }
+
+        generate_search_filters(ri, check_ptr, check_tmp, &snap->m_backing, &snap->m_sfs);
+        check_ptr = check_tmp;
+    }
+
+    std::vector<leveldb::Range> ranges;
+    ranges.reserve(snap->m_sfs.size() + 1);
+    std::vector<uint64_t> sizes(snap->m_sfs.size() + 1, 0);
+
+    for (size_t i = 0; i < snap->m_sfs.size(); ++i)
+    {
+        ranges.push_back(snap->m_sfs[i].range);
+    }
+
+    ranges.push_back(leveldb::Range());
+    generate_object_range(ri, &snap->m_backing, &ranges[snap->m_sfs.size()]);
+    m_db->GetApproximateSizes(&ranges.front(), ranges.size(), &sizes.front());
+    size_t sum = 0;
+
+    for (size_t i = 0; i < snap->m_sfs.size(); ++i)
+    {
+        sum += sizes[i];
+        snap->m_sfs[i].size = sizes[i];
+    }
+
+    std::sort(snap->m_sfs.begin(), snap->m_sfs.end(), search_filter::sort_by_size);
+
+    while (!snap->m_sfs.empty() && sum > sizes[snap->m_sfs.size()] / 10)
+    {
+        sum -= snap->m_sfs.back().size;
+        snap->m_sfs.pop_back();
+    }
+
+    snap->m_dl = this;
+    snap->m_snap = m_db->GetSnapshot();
+    snap->m_checks = checks;
+    snap->m_checks_sz = checks_sz;
+    leveldb::ReadOptions opts;
+    opts.fill_cache = false;
+    opts.verify_checksums = true;
+    opts.snapshot = snap->m_snap;
+    snap->m_ri = ri;
+    snap->m_obj_range = ranges.back();
+    snap->m_iter = m_db->NewIterator(opts);
+    snap->m_iter->Seek(snap->m_obj_range.start);
+
+    snap->m_iter = m_db->NewIterator(opts);
+    snap->m_iter->Seek(snap->m_obj_range.start);
+
+    for (size_t i = 0; i < snap->m_sfs.size(); ++i)
+    {
+        snap->m_sfs[i].iter = m_db->NewIterator(opts);
+        snap->m_sfs[i].iter->Seek(snap->m_sfs[i].range.start);
+    }
+
+    return SUCCESS;
+}
+
 void
 datalayer :: encode_key(const region_id& ri,
                         const e::slice& key,
@@ -1126,81 +1201,6 @@ datalayer :: create_index_changes(const schema* sc,
     {
         updates->Put(new_idxs[new_i], empty);
         ++new_i;
-    }
-
-    return SUCCESS;
-}
-
-datalayer::returncode
-datalayer :: make_snapshot(const region_id& ri,
-                           attribute_check* checks, size_t checks_sz,
-                           snapshot* snap)
-{
-    std::stable_sort(checks, checks + checks_sz);
-    attribute_check* check_ptr = checks;
-    attribute_check* check_end = checks + checks_sz;
-
-    while (check_ptr < check_end)
-    {
-        attribute_check* check_tmp = check_ptr;
-
-        while (check_tmp < check_end && check_tmp->attr == check_ptr->attr)
-        {
-            ++check_tmp;
-        }
-
-        generate_search_filters(ri, check_ptr, check_tmp, &snap->m_backing, &snap->m_sfs);
-        check_ptr = check_tmp;
-    }
-
-    std::vector<leveldb::Range> ranges;
-    ranges.reserve(snap->m_sfs.size() + 1);
-    std::vector<uint64_t> sizes(snap->m_sfs.size() + 1, 0);
-
-    for (size_t i = 0; i < snap->m_sfs.size(); ++i)
-    {
-        ranges.push_back(snap->m_sfs[i].range);
-    }
-
-    ranges.push_back(leveldb::Range());
-    generate_object_range(ri, &snap->m_backing, &ranges[snap->m_sfs.size()]);
-    m_db->GetApproximateSizes(&ranges.front(), ranges.size(), &sizes.front());
-    size_t sum = 0;
-
-    for (size_t i = 0; i < snap->m_sfs.size(); ++i)
-    {
-        sum += sizes[i];
-        snap->m_sfs[i].size = sizes[i];
-    }
-
-    std::sort(snap->m_sfs.begin(), snap->m_sfs.end(), search_filter::sort_by_size);
-
-    while (!snap->m_sfs.empty() && sum > sizes[snap->m_sfs.size()] / 10)
-    {
-        sum -= snap->m_sfs.back().size;
-        snap->m_sfs.pop_back();
-    }
-
-    snap->m_dl = this;
-    snap->m_snap = m_db->GetSnapshot();
-    snap->m_checks = checks;
-    snap->m_checks_sz = checks_sz;
-    leveldb::ReadOptions opts;
-    opts.fill_cache = false;
-    opts.verify_checksums = true;
-    opts.snapshot = snap->m_snap;
-    snap->m_ri = ri;
-    snap->m_obj_range = ranges.back();
-    snap->m_iter = m_db->NewIterator(opts);
-    snap->m_iter->Seek(snap->m_obj_range.start);
-
-    snap->m_iter = m_db->NewIterator(opts);
-    snap->m_iter->Seek(snap->m_obj_range.start);
-
-    for (size_t i = 0; i < snap->m_sfs.size(); ++i)
-    {
-        snap->m_sfs[i].iter = m_db->NewIterator(opts);
-        snap->m_sfs[i].iter->Seek(snap->m_sfs[i].range.start);
     }
 
     return SUCCESS;
