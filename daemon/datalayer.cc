@@ -579,6 +579,89 @@ datalayer :: make_snapshot(const region_id& ri,
     return SUCCESS;
 }
 
+bool
+datalayer :: check_acked(const region_id& reg_id, uint64_t seq_id)
+{
+    // make it so that increasing seq_ids are ordered in reverse in the KVS
+    seq_id = UINT64_MAX - seq_id;
+    leveldb::ReadOptions opts;
+    opts.fill_cache = true;
+    opts.verify_checksums = true;
+    char backing[sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t)];
+    backing[0] = 'a';
+    e::pack64be(reg_id.get(), backing + sizeof(uint8_t));
+    e::pack64be(seq_id, backing + sizeof(uint8_t) + sizeof(uint64_t));
+    leveldb::Slice key(backing, sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t));
+    std::string val;
+    leveldb::Status st = m_db->Get(opts, key, &val);
+
+    if (st.ok())
+    {
+        return true;
+    }
+    else if (st.IsNotFound())
+    {
+        return false;
+    }
+    else if (st.IsCorruption())
+    {
+        LOG(ERROR) << "corruption at the disk layer: region=" << reg_id
+                   << " seq_id=" << seq_id << " desc=" << st.ToString();
+        return false;
+    }
+    else if (st.IsIOError())
+    {
+        LOG(ERROR) << "IO error at the disk layer: region=" << reg_id
+                   << " seq_id=" << seq_id << " desc=" << st.ToString();
+        return false;
+    }
+    else
+    {
+        LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
+        return false;
+    }
+}
+
+void
+datalayer :: mark_acked(const region_id& reg_id, uint64_t seq_id)
+{
+    // make it so that increasing seq_ids are ordered in reverse in the KVS
+    seq_id = UINT64_MAX - seq_id;
+    leveldb::WriteOptions opts;
+    opts.sync = true;
+    char backing[sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t)];
+    backing[0] = 'a';
+    e::pack64be(reg_id.get(), backing + sizeof(uint8_t));
+    e::pack64be(seq_id, backing + sizeof(uint8_t) + sizeof(uint64_t));
+    leveldb::Slice key(backing, sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t));
+    leveldb::Slice val("", 0);
+    leveldb::Status st = m_db->Put(opts, key, val);
+
+    if (st.ok())
+    {
+        // Yay!
+    }
+    else if (st.IsNotFound())
+    {
+        LOG(ERROR) << "mark_acked returned NOT_FOUND at the disk layer: region=" << reg_id
+                   << " seq_id=" << seq_id << " desc=" << st.ToString();
+    }
+    else if (st.IsCorruption())
+    {
+        LOG(ERROR) << "corruption at the disk layer: region=" << reg_id
+                   << " seq_id=" << seq_id << " desc=" << st.ToString();
+    }
+    else if (st.IsIOError())
+    {
+        LOG(ERROR) << "IO error at the disk layer: region=" << reg_id
+                   << " seq_id=" << seq_id << " desc=" << st.ToString();
+    }
+    else
+    {
+        LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
+    }
+}
+
 void
 datalayer :: encode_key(const region_id& ri,
                         const e::slice& key,

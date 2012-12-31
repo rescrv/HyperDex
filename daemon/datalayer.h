@@ -106,6 +106,8 @@ class datalayer
                                  attribute_check* checks,
                                  size_t checks_sz,
                                  snapshot* snap);
+        bool check_acked(const region_id& reg_id, uint64_t seq_id);
+        void mark_acked(const region_id& reg_id, uint64_t seq_id);
 
     private:
         class search_filter;

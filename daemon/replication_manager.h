@@ -176,15 +176,13 @@ class replication_manager
                                network_returncode ret);
         // Operation ids
         uint64_t counter_for(const region_id& ri);
-        bool check_acked(const region_id& reg_id, uint64_t seq_id);
-        void mark_acked(const region_id& reg_id, uint64_t seq_id);
         // Retransmit functions
         void retransmitter();
         void shutdown();
 
     private:
         daemon* m_daemon;
-        e::striped_lock<po6::threads::mutex> m_locks;
+        e::striped_lock<po6::threads::mutex> m_keyholder_locks;
         keyholder_map_t m_keyholders;
         po6::threads::thread m_retransmitter;
         po6::threads::mutex m_block_retransmitter;

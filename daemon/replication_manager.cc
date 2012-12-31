@@ -52,11 +52,11 @@ using hyperdex::replication_manager;
 // appropriate lock for the request.  E should be an entity whose region the key
 // resides in.  K is the key for the object being protected.
 #define HOLD_LOCK_FOR_KEY(R, K) \
-    e::striped_lock<po6::threads::mutex>::hold CONCAT(_anon, __LINE__)(&m_locks, get_lock_num(R, K))
+    e::striped_lock<po6::threads::mutex>::hold CONCAT(_anon, __LINE__)(&m_keyholder_locks, get_lock_num(R, K))
 
 replication_manager :: replication_manager(daemon* d)
     : m_daemon(d)
-    , m_locks(1024)
+    , m_keyholder_locks(1024)
     , m_keyholders(10)
     , m_retransmitter(std::tr1::bind(&replication_manager::retransmitter, this))
     , m_block_retransmitter()
@@ -242,7 +242,7 @@ replication_manager :: chain_op(const virtual_server_id& from,
     HOLD_LOCK_FOR_KEY(ri, key);
     e::intrusive_ptr<keyholder> kh = get_or_create_keyholder(ri, key);
 
-    if (retransmission && check_acked(reg_id, seq_id))
+    if (retransmission && m_daemon->m_data.check_acked(reg_id, seq_id))
     {
         LOG(INFO) << "acking duplicate CHAIN_*";
         send_ack(to, from, true, reg_id, seq_id, version, key);
@@ -300,7 +300,7 @@ replication_manager :: chain_subspace(const virtual_server_id& from,
     HOLD_LOCK_FOR_KEY(ri, key);
     e::intrusive_ptr<keyholder> kh = get_or_create_keyholder(ri, key);
 
-    if (retransmission && check_acked(reg_id, seq_id))
+    if (retransmission && m_daemon->m_data.check_acked(reg_id, seq_id))
     {
         LOG(INFO) << "acking duplicate CHAIN_SUBSPACE";
         send_ack(to, from, true, reg_id, seq_id, version, key);
@@ -368,7 +368,7 @@ replication_manager :: chain_ack(const virtual_server_id& from,
     HOLD_LOCK_FOR_KEY(ri, key);
     e::intrusive_ptr<keyholder> kh = get_keyholder(ri, key);
 
-    if (retransmission && check_acked(reg_id, seq_id))
+    if (retransmission && m_daemon->m_data.check_acked(reg_id, seq_id))
     {
         LOG(INFO) << "dropping duplicate CHAIN_ACK";
         return;
@@ -413,7 +413,7 @@ replication_manager :: chain_ack(const virtual_server_id& from,
     }
 
     pend->acked = true;
-    mark_acked(reg_id, seq_id);
+    m_daemon->m_data.mark_acked(reg_id, seq_id);
 
     if (kh->version_on_disk() < version)
     {
@@ -872,26 +872,6 @@ replication_manager :: respond_to_client(const virtual_server_id& us,
     uint16_t result = static_cast<uint16_t>(ret);
     msg->pack_at(HYPERDEX_HEADER_SIZE_VS) << nonce << result;
     m_daemon->m_comm.send(us, client, RESP_ATOMIC, msg);
-}
-
-uint64_t
-replication_manager :: counter_for(const region_id& ri)
-{
-    // XXX
-    return 1;
-}
-
-bool
-replication_manager :: check_acked(const region_id& reg_id, uint64_t seq_id)
-{
-    // XXX
-    return false;
-}
-
-void
-replication_manager :: mark_acked(const region_id& reg_id, uint64_t seq_id)
-{
-    // XXX
 }
 
 void
