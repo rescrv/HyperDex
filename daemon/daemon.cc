@@ -954,14 +954,14 @@ daemon :: process_chain_op(server_id,
                            std::auto_ptr<e::buffer> msg,
                            e::unpacker up)
 {
+    uint8_t flags;
     uint64_t reg_id;
     uint64_t seq_id;
     uint64_t version;
-    uint8_t flags;
     e::slice key;
     std::vector<e::slice> value;
 
-    if ((up >> reg_id >> seq_id >> version >> flags >> key >> value).error())
+    if ((up >> flags >> reg_id >> seq_id >> version >> key >> value).error())
     {
         LOG(WARNING) << "unpack of CHAIN_OP failed; here's some hex:  " << msg->hex();
         return;
@@ -969,7 +969,8 @@ daemon :: process_chain_op(server_id,
 
     bool fresh = flags & 1;
     bool has_value = flags & 2;
-    m_repl.chain_op(vfrom, vto, false, reg_id, seq_id, version, fresh, has_value, msg, key, value);
+    bool retransmission = flags & 128;
+    m_repl.chain_op(vfrom, vto, retransmission, reg_id, seq_id, version, fresh, has_value, msg, key, value);
 }
 
 void
@@ -979,6 +980,7 @@ daemon :: process_chain_subspace(server_id,
                                  std::auto_ptr<e::buffer> msg,
                                  e::unpacker up)
 {
+    uint8_t flags;
     uint64_t reg_id;
     uint64_t seq_id;
     uint64_t version;
@@ -986,13 +988,14 @@ daemon :: process_chain_subspace(server_id,
     std::vector<e::slice> value;
     std::vector<uint64_t> hashes;
 
-    if ((up >> reg_id >> seq_id >> version >> key >> value >> hashes).error())
+    if ((up >> flags >> reg_id >> seq_id >> version >> key >> value >> hashes).error())
     {
         LOG(WARNING) << "unpack of CHAIN_SUBSPACE failed; here's some hex:  " << msg->hex();
         return;
     }
 
-    m_repl.chain_subspace(vfrom, vto, false, reg_id, seq_id, version, msg, key, value, hashes);
+    bool retransmission = flags & 128;
+    m_repl.chain_subspace(vfrom, vto, retransmission, reg_id, seq_id, version, msg, key, value, hashes);
 }
 
 void
@@ -1002,16 +1005,18 @@ daemon :: process_chain_ack(server_id,
                             std::auto_ptr<e::buffer> msg,
                             e::unpacker up)
 {
+    uint8_t flags;
     uint64_t reg_id;
     uint64_t seq_id;
     uint64_t version;
     e::slice key;
 
-    if ((up >> reg_id >> seq_id >> version >> key).error())
+    if ((up >> flags >> reg_id >> seq_id >> version >> key).error())
     {
         LOG(WARNING) << "unpack of CHAIN_ACK failed; here's some hex:  " << msg->hex();
         return;
     }
 
-    m_repl.chain_ack(vfrom, vto, reg_id, seq_id, version, key);
+    bool retransmission = flags & 128;
+    m_repl.chain_ack(vfrom, vto, retransmission, reg_id, seq_id, version, key);
 }

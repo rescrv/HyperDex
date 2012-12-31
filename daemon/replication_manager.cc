@@ -245,7 +245,7 @@ replication_manager :: chain_op(const virtual_server_id& from,
     if (retransmission && check_acked(reg_id, seq_id))
     {
         LOG(INFO) << "acking duplicate CHAIN_*";
-        send_ack(to, from, version, key);
+        send_ack(to, from, true, reg_id, seq_id, version, key);
         return;
     }
 
@@ -265,7 +265,7 @@ replication_manager :: chain_op(const virtual_server_id& from,
 
         if (new_op->acked)
         {
-            send_ack(to, from, version, key);
+            send_ack(to, from, false, reg_id, seq_id, version, key);
         }
 
         return;
@@ -273,7 +273,7 @@ replication_manager :: chain_op(const virtual_server_id& from,
 
     if (version <= kh->version_on_disk())
     {
-        send_ack(to, from, version, key);
+        send_ack(to, from, false, reg_id, seq_id, version, key);
         return;
     }
 
@@ -303,7 +303,7 @@ replication_manager :: chain_subspace(const virtual_server_id& from,
     if (retransmission && check_acked(reg_id, seq_id))
     {
         LOG(INFO) << "acking duplicate CHAIN_SUBSPACE";
-        send_ack(to, from, version, key);
+        send_ack(to, from, true, reg_id, seq_id, version, key);
         return;
     }
 
@@ -357,6 +357,7 @@ replication_manager :: chain_subspace(const virtual_server_id& from,
 void
 replication_manager :: chain_ack(const virtual_server_id& from,
                                  const virtual_server_id& to,
+                                 bool retransmission,
                                  uint64_t reg_id,
                                  uint64_t seq_id,
                                  uint64_t version,
@@ -367,7 +368,7 @@ replication_manager :: chain_ack(const virtual_server_id& from,
     HOLD_LOCK_FOR_KEY(ri, key);
     e::intrusive_ptr<keyholder> kh = get_keyholder(ri, key);
 
-    if (check_acked(reg_id, seq_id))
+    if (retransmission && check_acked(reg_id, seq_id))
     {
         LOG(INFO) << "dropping duplicate CHAIN_ACK";
         return;
@@ -458,7 +459,7 @@ replication_manager :: chain_ack(const virtual_server_id& from,
     }
     else
     {
-        send_ack(to, pend->recv, version, key);
+        send_ack(to, pend->recv, false, reg_id, seq_id, version, key);
     }
 
     if (kh->empty())
@@ -693,12 +694,13 @@ replication_manager :: move_operations_between_queues(const virtual_server_id& u
         }
 
         kh->shift_one_blocked_to_committable();
-        send_message(us, version, key, op);
+        send_message(us, false, version, key, op);
     }
 }
 
 void
 replication_manager :: send_message(const virtual_server_id& us,
+                                    bool retransmission,
                                     uint64_t version,
                                     const e::slice& key,
                                     e::intrusive_ptr<pending> op)
@@ -783,43 +785,47 @@ replication_manager :: send_message(const virtual_server_id& us,
 
     if (type == CHAIN_OP)
     {
+        uint8_t flags = (op->fresh ? 1 : 0)
+                      | (op->has_value ? 2 : 0)
+                      | (retransmission ? 128 : 0);
         size_t sz = HYPERDEX_HEADER_SIZE_VV
-                  + sizeof(uint64_t)
-                  + sizeof(uint64_t)
-                  + sizeof(uint64_t)
                   + sizeof(uint8_t)
+                  + sizeof(uint64_t)
+                  + sizeof(uint64_t)
+                  + sizeof(uint64_t)
                   + sizeof(uint32_t)
                   + key.size()
                   + pack_size(op->value);
         msg.reset(e::buffer::create(sz));
-        uint8_t flags = (op->fresh ? 1 : 0)
-                      | (op->has_value ? 2 : 0);
-        msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << op->reg_id << op->seq_id << version << flags << key << op->value;
+        msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << flags << op->reg_id << op->seq_id << version << key << op->value;
     }
     else if (type == CHAIN_ACK)
     {
+        uint8_t flags = (retransmission ? 128 : 0);
         size_t sz = HYPERDEX_HEADER_SIZE_VV
+                  + sizeof(uint8_t)
                   + sizeof(uint64_t)
                   + sizeof(uint64_t)
                   + sizeof(uint64_t)
                   + sizeof(uint32_t)
                   + key.size();
         msg.reset(e::buffer::create(sz));
-        msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << op->reg_id << op->seq_id << version << key;
+        msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << flags << op->reg_id << op->seq_id << version << key;
     }
     else if (type == CHAIN_SUBSPACE)
     {
+        uint8_t flags = (retransmission ? 128 : 0);
         size_t sz = HYPERDEX_HEADER_SIZE_VV
-                  + sizeof(uint64_t)
-                  + sizeof(uint64_t)
-                  + sizeof(uint64_t)
                   + sizeof(uint8_t)
+                  + sizeof(uint64_t)
+                  + sizeof(uint64_t)
+                  + sizeof(uint64_t)
                   + sizeof(uint32_t)
                   + key.size()
                   + pack_size(op->value)
                   + pack_size(op->old_hashes);
         msg.reset(e::buffer::create(sz));
-        msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << op->reg_id << op->seq_id << version << key << op->value << op->old_hashes;
+        msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << flags << op->reg_id << op->seq_id << version << key << op->value << op->old_hashes;
     }
     else
     {
@@ -834,15 +840,22 @@ replication_manager :: send_message(const virtual_server_id& us,
 bool
 replication_manager :: send_ack(const virtual_server_id& us,
                                 const virtual_server_id& to,
+                                bool retransmission,
+                                uint64_t reg_id,
+                                uint64_t seq_id,
                                 uint64_t version,
                                 const e::slice& key)
 {
+    uint8_t flags = (retransmission ? 128 : 0);
     size_t sz = HYPERDEX_HEADER_SIZE_VV
+              + sizeof(uint8_t)
+              + sizeof(uint64_t)
+              + sizeof(uint64_t)
               + sizeof(uint64_t)
               + sizeof(uint32_t)
               + key.size();
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << version << key;
+    msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << flags << reg_id << seq_id << version << key;
     return m_daemon->m_comm.send_exact(us, to, CHAIN_ACK, msg);
 }
 
@@ -907,7 +920,6 @@ replication_manager :: retransmitter()
         for (keyholder_map_t::iterator khiter = m_keyholders.begin();
                 khiter != m_keyholders.end(); khiter.next())
         {
-        LOG(INFO) << "THIS IS A RETRANSMIT!";
             po6::threads::mutex::hold hold(&m_block_retransmitter);
             region_id ri(khiter.key().region);
             e::slice key(khiter.key().key.data(), khiter.key().key.size());

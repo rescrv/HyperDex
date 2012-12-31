@@ -276,6 +276,6 @@ replication_manager :: keyholder :: resend_committable(replication_manager* rm,
     {
         it->second->sent = virtual_server_id();
         it->second->sent_config_version = 0;
-        rm->send_message(us, it->first, key, it->second);
+        rm->send_message(us, true, it->first, key, it->second);
     }
 }

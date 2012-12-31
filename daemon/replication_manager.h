@@ -113,6 +113,7 @@ class replication_manager
                             const std::vector<uint64_t>& hashes);
         void chain_ack(const virtual_server_id& from,
                        const virtual_server_id& to,
+                       bool retransmission,
                        uint64_t reg_id,
                        uint64_t seq_id,
                        uint64_t version,
@@ -158,11 +159,15 @@ class replication_manager
                                             const e::slice& key,
                                             e::intrusive_ptr<keyholder> kh);
         void send_message(const virtual_server_id& us,
+                          bool retransmission,
                           uint64_t version,
                           const e::slice& key,
                           e::intrusive_ptr<pending> op);
         bool send_ack(const virtual_server_id& us,
                       const virtual_server_id& to,
+                      bool retransmission,
+                      uint64_t reg_id,
+                      uint64_t seq_id,
                       uint64_t version,
                       const e::slice& key);
         void respond_to_client(const virtual_server_id& us,
