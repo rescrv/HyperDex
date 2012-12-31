@@ -31,7 +31,7 @@
 using hyperdex::replication_manager;
 
 replication_manager :: pending :: pending(std::tr1::shared_ptr<e::buffer> _backing,
-                                          uint64_t _reg_id,
+                                          const region_id& _reg_id,
                                           uint64_t _seq_id,
                                           bool _fresh,
                                           bool _has_value,
@@ -62,7 +62,7 @@ replication_manager :: pending :: pending(std::tr1::shared_ptr<e::buffer> _backi
 }
 
 replication_manager :: pending :: pending(std::tr1::shared_ptr<e::buffer> _backing,
-                                          uint64_t _reg_id,
+                                          const region_id& _reg_id,
                                           uint64_t _seq_id,
                                           bool _fresh,
                                           bool _has_value,

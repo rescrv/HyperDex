@@ -38,7 +38,7 @@ class hyperdex::replication_manager::pending
 {
     public:
         pending(std::tr1::shared_ptr<e::buffer> backing,
-                uint64_t reg_id,
+                const region_id& reg_id,
                 uint64_t seq_id,
                 bool fresh,
                 bool has_value,
@@ -46,7 +46,7 @@ class hyperdex::replication_manager::pending
                 uint64_t recv_config_version,
                 const virtual_server_id& recv);
         pending(std::tr1::shared_ptr<e::buffer> backing,
-                uint64_t reg_id,
+                const region_id& reg_id,
                 uint64_t seq_id,
                 bool fresh,
                 bool has_value,
@@ -57,7 +57,7 @@ class hyperdex::replication_manager::pending
 
     public:
         std::tr1::shared_ptr<e::buffer> backing;
-        uint64_t reg_id;
+        region_id reg_id;
         uint64_t seq_id;
         bool has_value;
         std::vector<e::slice> value;

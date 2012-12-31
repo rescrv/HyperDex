@@ -210,7 +210,7 @@ replication_manager :: client_atomic(const server_id& from,
     bool has_new_value = !erase;
     uint64_t seq_id = counter_for(ri);
 
-    e::intrusive_ptr<pending> new_pend(new pending(backing, ri.get(), seq_id, !has_old_value && has_new_value, has_new_value, new_value, from, nonce));
+    e::intrusive_ptr<pending> new_pend(new pending(backing, ri, seq_id, !has_old_value && has_new_value, has_new_value, new_value, from, nonce));
     hash_objects(ri, *sc, key, has_new_value, new_value, has_old_value, *old_value, new_pend);
 
     if (new_pend->this_old_region != ri && new_pend->this_new_region != ri)
@@ -228,7 +228,7 @@ void
 replication_manager :: chain_op(const virtual_server_id& from,
                                 const virtual_server_id& to,
                                 bool retransmission,
-                                uint64_t reg_id,
+                                const region_id& reg_id,
                                 uint64_t seq_id,
                                 uint64_t version,
                                 bool fresh,
@@ -287,7 +287,7 @@ void
 replication_manager :: chain_subspace(const virtual_server_id& from,
                                       const virtual_server_id& to,
                                       bool retransmission,
-                                      uint64_t reg_id,
+                                      const region_id& reg_id,
                                       uint64_t seq_id,
                                       uint64_t version,
                                       std::auto_ptr<e::buffer> backing,
@@ -358,7 +358,7 @@ void
 replication_manager :: chain_ack(const virtual_server_id& from,
                                  const virtual_server_id& to,
                                  bool retransmission,
-                                 uint64_t reg_id,
+                                 const region_id& reg_id,
                                  uint64_t seq_id,
                                  uint64_t version,
                                  const e::slice& key)
@@ -797,7 +797,7 @@ replication_manager :: send_message(const virtual_server_id& us,
                   + key.size()
                   + pack_size(op->value);
         msg.reset(e::buffer::create(sz));
-        msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << flags << op->reg_id << op->seq_id << version << key << op->value;
+        msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << flags << op->reg_id.get() << op->seq_id << version << key << op->value;
     }
     else if (type == CHAIN_ACK)
     {
@@ -810,7 +810,7 @@ replication_manager :: send_message(const virtual_server_id& us,
                   + sizeof(uint32_t)
                   + key.size();
         msg.reset(e::buffer::create(sz));
-        msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << flags << op->reg_id << op->seq_id << version << key;
+        msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << flags << op->reg_id.get() << op->seq_id << version << key;
     }
     else if (type == CHAIN_SUBSPACE)
     {
@@ -825,7 +825,7 @@ replication_manager :: send_message(const virtual_server_id& us,
                   + pack_size(op->value)
                   + pack_size(op->old_hashes);
         msg.reset(e::buffer::create(sz));
-        msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << flags << op->reg_id << op->seq_id << version << key << op->value << op->old_hashes;
+        msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << flags << op->reg_id.get() << op->seq_id << version << key << op->value << op->old_hashes;
     }
     else
     {
@@ -841,7 +841,7 @@ bool
 replication_manager :: send_ack(const virtual_server_id& us,
                                 const virtual_server_id& to,
                                 bool retransmission,
-                                uint64_t reg_id,
+                                const region_id& reg_id,
                                 uint64_t seq_id,
                                 uint64_t version,
                                 const e::slice& key)
@@ -855,7 +855,7 @@ replication_manager :: send_ack(const virtual_server_id& us,
               + sizeof(uint32_t)
               + key.size();
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << flags << reg_id << seq_id << version << key;
+    msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << flags << reg_id.get() << seq_id << version << key;
     return m_daemon->m_comm.send_exact(us, to, CHAIN_ACK, msg);
 }
 
@@ -882,14 +882,14 @@ replication_manager :: counter_for(const region_id& ri)
 }
 
 bool
-replication_manager :: check_acked(uint64_t reg_id, uint64_t seq_id)
+replication_manager :: check_acked(const region_id& reg_id, uint64_t seq_id)
 {
     // XXX
     return false;
 }
 
 void
-replication_manager :: mark_acked(uint64_t reg_id, uint64_t seq_id)
+replication_manager :: mark_acked(const region_id& reg_id, uint64_t seq_id)
 {
     // XXX
 }

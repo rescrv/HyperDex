@@ -93,7 +93,7 @@ class replication_manager
         void chain_op(const virtual_server_id& from,
                       const virtual_server_id& to,
                       bool retransmission,
-                      uint64_t reg_id,
+                      const region_id& reg_id,
                       uint64_t seq_id,
                       uint64_t new_version,
                       bool fresh,
@@ -104,7 +104,7 @@ class replication_manager
         void chain_subspace(const virtual_server_id& from,
                             const virtual_server_id& to,
                             bool retransmission,
-                            uint64_t reg_id,
+                            const region_id& reg_id,
                             uint64_t seq_id,
                             uint64_t version,
                             std::auto_ptr<e::buffer> backing,
@@ -114,7 +114,7 @@ class replication_manager
         void chain_ack(const virtual_server_id& from,
                        const virtual_server_id& to,
                        bool retransmission,
-                       uint64_t reg_id,
+                       const region_id& reg_id,
                        uint64_t seq_id,
                        uint64_t version,
                        const e::slice& key);
@@ -166,7 +166,7 @@ class replication_manager
         bool send_ack(const virtual_server_id& us,
                       const virtual_server_id& to,
                       bool retransmission,
-                      uint64_t reg_id,
+                      const region_id& reg_id,
                       uint64_t seq_id,
                       uint64_t version,
                       const e::slice& key);
@@ -176,8 +176,8 @@ class replication_manager
                                network_returncode ret);
         // Operation ids
         uint64_t counter_for(const region_id& ri);
-        bool check_acked(uint64_t reg_id, uint64_t seq_id);
-        void mark_acked(uint64_t reg_id, uint64_t seq_id);
+        bool check_acked(const region_id& reg_id, uint64_t seq_id);
+        void mark_acked(const region_id& reg_id, uint64_t seq_id);
         // Retransmit functions
         void retransmitter();
         void shutdown();

@@ -970,7 +970,7 @@ daemon :: process_chain_op(server_id,
     bool fresh = flags & 1;
     bool has_value = flags & 2;
     bool retransmission = flags & 128;
-    m_repl.chain_op(vfrom, vto, retransmission, reg_id, seq_id, version, fresh, has_value, msg, key, value);
+    m_repl.chain_op(vfrom, vto, retransmission, region_id(reg_id), seq_id, version, fresh, has_value, msg, key, value);
 }
 
 void
@@ -995,7 +995,7 @@ daemon :: process_chain_subspace(server_id,
     }
 
     bool retransmission = flags & 128;
-    m_repl.chain_subspace(vfrom, vto, retransmission, reg_id, seq_id, version, msg, key, value, hashes);
+    m_repl.chain_subspace(vfrom, vto, retransmission, region_id(reg_id), seq_id, version, msg, key, value, hashes);
 }
 
 void
@@ -1018,5 +1018,5 @@ daemon :: process_chain_ack(server_id,
     }
 
     bool retransmission = flags & 128;
-    m_repl.chain_ack(vfrom, vto, retransmission, reg_id, seq_id, version, key);
+    m_repl.chain_ack(vfrom, vto, retransmission, region_id(reg_id), seq_id, version, key);
 }
