@@ -431,6 +431,8 @@ datalayer :: put(const region_id& ri,
     }
     else if (st.IsNotFound())
     {
+        LOG(ERROR) << "put returned NOT_FOUND at the disk layer: region=" << ri
+                   << " key=0x" << key.hex() << " desc=" << st.ToString();
         return NOT_FOUND;
     }
     else if (st.IsCorruption())
