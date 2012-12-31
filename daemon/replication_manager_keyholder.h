@@ -70,9 +70,13 @@ class hyperdex::replication_manager::keyholder
         void clear_committable_acked();
         void clear_deferred();
         void set_version_on_disk(uint64_t version);
+        void insert_blocked(uint64_t version, e::intrusive_ptr<pending> op);
         void insert_deferred(uint64_t version, e::intrusive_ptr<pending> op);
         void shift_one_blocked_to_committable();
         void shift_one_deferred_to_blocked();
+        void resend_committable(replication_manager* rm,
+                                const virtual_server_id& us,
+                                const e::slice& key);
 
     public:
         bool& get_has_old_value() { return m_has_old_value; }

@@ -49,8 +49,7 @@ hyperdex :: operator << (std::ostream& lhs, const network_msgtype& rhs)
         STRINGIFY(RESP_GROUP_DEL);
         STRINGIFY(REQ_COUNT);
         STRINGIFY(RESP_COUNT);
-        STRINGIFY(CHAIN_PUT);
-        STRINGIFY(CHAIN_DEL);
+        STRINGIFY(CHAIN_OP);
         STRINGIFY(CHAIN_SUBSPACE);
         STRINGIFY(CHAIN_ACK);
         STRINGIFY(CONFIGMISMATCH);

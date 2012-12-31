@@ -165,6 +165,12 @@ configuration :: get_schema(const region_id& ri) const
     return NULL;
 }
 
+virtual_server_id
+configuration :: get_virtual(const region_id& ri, const server_id& si)
+{
+    return virtual_server_id(); // XXX
+}
+
 subspace_id
 configuration :: subspace_of(const region_id& ri) const
 {

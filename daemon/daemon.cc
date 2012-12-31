@@ -726,11 +726,8 @@ daemon :: loop()
             case REQ_COUNT:
                 process_req_count(from, vfrom, vto, msg, up);
                 break;
-            case CHAIN_PUT:
-                process_chain_put(from, vfrom, vto, msg, up);
-                break;
-            case CHAIN_DEL:
-                process_chain_del(from, vfrom, vto, msg, up);
+            case CHAIN_OP:
+                process_chain_op(from, vfrom, vto, msg, up);
                 break;
             case CHAIN_SUBSPACE:
                 process_chain_subspace(from, vfrom, vto, msg, up);
@@ -951,47 +948,28 @@ daemon :: process_req_count(server_id from,
 }
 
 void
-daemon :: process_chain_put(server_id,
-                            virtual_server_id vfrom,
-                            virtual_server_id vto,
-                            std::auto_ptr<e::buffer> msg,
-                            e::unpacker up)
+daemon :: process_chain_op(server_id,
+                           virtual_server_id vfrom,
+                           virtual_server_id vto,
+                           std::auto_ptr<e::buffer> msg,
+                           e::unpacker up)
 {
     uint64_t reg_id;
     uint64_t seq_id;
     uint64_t version;
-    uint8_t fresh;
+    uint8_t flags;
     e::slice key;
     std::vector<e::slice> value;
 
-    if ((up >> reg_id >> seq_id >> version >> fresh >> key >> value).error())
+    if ((up >> reg_id >> seq_id >> version >> flags >> key >> value).error())
     {
-        LOG(WARNING) << "unpack of CHAIN_PUT failed; here's some hex:  " << msg->hex();
+        LOG(WARNING) << "unpack of CHAIN_OP failed; here's some hex:  " << msg->hex();
         return;
     }
 
-    m_repl.chain_put(vfrom, vto, false, reg_id, seq_id, version, fresh == 1, msg, key, value);
-}
-
-void
-daemon :: process_chain_del(server_id,
-                            virtual_server_id vfrom,
-                            virtual_server_id vto,
-                            std::auto_ptr<e::buffer> msg,
-                            e::unpacker up)
-{
-    uint64_t reg_id;
-    uint64_t seq_id;
-    uint64_t version;
-    e::slice key;
-
-    if ((up >> reg_id >> seq_id >> version >> key).error())
-    {
-        LOG(WARNING) << "unpack of CHAIN_DEL failed; here's some hex:  " << msg->hex();
-        return;
-    }
-
-    m_repl.chain_del(vfrom, vto, false, reg_id, seq_id, version, msg, key);
+    bool fresh = flags & 1;
+    bool has_value = flags & 2;
+    m_repl.chain_op(vfrom, vto, false, reg_id, seq_id, version, fresh, has_value, msg, key, value);
 }
 
 void

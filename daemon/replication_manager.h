@@ -32,7 +32,9 @@
 #include <memory>
 
 // po6
+#include <po6/threads/cond.h>
 #include <po6/threads/mutex.h>
+#include <po6/threads/thread.h>
 
 // e
 #include <e/buffer.h>
@@ -88,24 +90,17 @@ class replication_manager
                            std::vector<attribute_check>* checks,
                            std::vector<funcall>* funcs);
         // These are called in response to messages from other hosts.
-        void chain_put(const virtual_server_id& from,
-                       const virtual_server_id& to,
-                       bool retransmission,
-                       uint64_t reg_id,
-                       uint64_t seq_id,
-                       uint64_t version,
-                       bool fresh,
-                       std::auto_ptr<e::buffer> backing,
-                       const e::slice& key,
-                       const std::vector<e::slice>& value);
-        void chain_del(const virtual_server_id& from,
-                       const virtual_server_id& to,
-                       bool retransmission,
-                       uint64_t reg_id,
-                       uint64_t seq_id,
-                       uint64_t version,
-                       std::auto_ptr<e::buffer> backing,
-                       const e::slice& key);
+        void chain_op(const virtual_server_id& from,
+                      const virtual_server_id& to,
+                      bool retransmission,
+                      uint64_t reg_id,
+                      uint64_t seq_id,
+                      uint64_t new_version,
+                      bool fresh,
+                      bool has_value,
+                      std::auto_ptr<e::buffer> backing,
+                      const e::slice& key,
+                      const std::vector<e::slice>& value);
         void chain_subspace(const virtual_server_id& from,
                             const virtual_server_id& to,
                             bool retransmission,
@@ -137,17 +132,6 @@ class replication_manager
         replication_manager& operator = (const replication_manager&);
 
     private:
-        void chain_common(bool has_value,
-                          const virtual_server_id& from,
-                          const virtual_server_id& to,
-                          bool retransmission,
-                          uint64_t reg_id,
-                          uint64_t seq_id,
-                          uint64_t new_version,
-                          bool fresh,
-                          std::auto_ptr<e::buffer> backing,
-                          const e::slice& key,
-                          const std::vector<e::slice>& newvalue);
         uint64_t get_lock_num(const region_id& reg, const e::slice& key);
         e::intrusive_ptr<keyholder> get_keyholder(const region_id& reg, const e::slice& key);
         e::intrusive_ptr<keyholder> get_or_create_keyholder(const region_id& reg, const e::slice& key);
@@ -185,15 +169,23 @@ class replication_manager
                                const server_id& client,
                                uint64_t nonce,
                                network_returncode ret);
+        // Operation ids
+        uint64_t counter_for(const region_id& ri);
         bool check_acked(uint64_t reg_id, uint64_t seq_id);
+        void mark_acked(uint64_t reg_id, uint64_t seq_id);
+        // Retransmit functions
+        void retransmitter();
+        void shutdown();
 
     private:
         daemon* m_daemon;
         e::striped_lock<po6::threads::mutex> m_locks;
         keyholder_map_t m_keyholders;
-        uint64_t m_counter;
-        po6::threads::mutex m_acked_lock;
-        std::set<std::pair<uint64_t, uint64_t> > m_acked;
+        po6::threads::thread m_retransmitter;
+        po6::threads::mutex m_block_retransmitter;
+        po6::threads::cond m_wakeup_retransmitter;
+        bool m_need_retransmit;
+        bool m_shutdown;
 };
 
 } // namespace hyperdex

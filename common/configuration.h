@@ -72,6 +72,7 @@ class configuration
     public:
         const schema* get_schema(const char* space) const;
         const schema* get_schema(const region_id& ri) const;
+        virtual_server_id get_virtual(const region_id& ri, const server_id& si);
         subspace_id subspace_of(const region_id& ri) const;
         subspace_id subspace_prev(const subspace_id& ss) const;
         subspace_id subspace_next(const subspace_id& ss) const;

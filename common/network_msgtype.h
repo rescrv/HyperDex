@@ -57,10 +57,9 @@ enum network_msgtype
     REQ_COUNT       = 50,
     RESP_COUNT      = 51,
 
-    CHAIN_PUT       = 64,
-    CHAIN_DEL       = 65,
-    CHAIN_SUBSPACE  = 67,
-    CHAIN_ACK       = 68,
+    CHAIN_OP        = 64,
+    CHAIN_SUBSPACE  = 65,
+    CHAIN_ACK       = 66,
 
     CONFIGMISMATCH  = 254,
     PACKET_NOP      = 255

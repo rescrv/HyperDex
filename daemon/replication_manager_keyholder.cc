@@ -229,6 +229,14 @@ replication_manager :: keyholder :: set_version_on_disk(uint64_t version)
 }
 
 void
+replication_manager :: keyholder :: insert_blocked(uint64_t version,
+                                                    e::intrusive_ptr<pending> op)
+{
+    assert(m_blocked.empty() || m_blocked.back().first < version);
+    m_blocked.push_back(std::make_pair(version, op));
+}
+
+void
 replication_manager :: keyholder :: insert_deferred(uint64_t version,
                                                     e::intrusive_ptr<pending> op)
 {
@@ -256,4 +264,18 @@ replication_manager :: keyholder :: shift_one_deferred_to_blocked()
     assert(!m_blocked.empty());
     m_committable.push_back(m_blocked.front());
     m_blocked.pop_front();
+}
+
+void
+replication_manager :: keyholder :: resend_committable(replication_manager* rm,
+                                                       const virtual_server_id& us,
+                                                       const e::slice& key)
+{
+    for (committable_list_t::iterator it = m_committable.begin();
+            it != m_committable.end(); ++it)
+    {
+        it->second->sent = virtual_server_id();
+        it->second->sent_config_version = 0;
+        rm->send_message(us, it->first, key, it->second);
+    }
 }
