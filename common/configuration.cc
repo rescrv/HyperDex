@@ -168,7 +168,37 @@ configuration :: get_schema(const region_id& ri) const
 virtual_server_id
 configuration :: get_virtual(const region_id& ri, const server_id& si)
 {
-    return virtual_server_id(); // XXX
+    for (size_t w = 0; w < m_spaces.size(); ++w)
+    {
+        space& s(m_spaces[w]);
+
+        for (size_t x = 0; x < s.subspaces.size(); ++x)
+        {
+            subspace& ss(s.subspaces[x]);
+
+            for (size_t y = 0; y < ss.regions.size(); ++y)
+            {
+                region& r(ss.regions[y]);
+
+                if (r.id != ri)
+                {
+                    continue;
+                }
+
+                for (size_t z = 0; z < r.replicas.size(); ++z)
+                {
+                    if (r.replicas[z].si == si)
+                    {
+                        return r.replicas[z].vsi;
+                    }
+                }
+
+                return virtual_server_id();
+            }
+        }
+    }
+
+    return virtual_server_id();
 }
 
 subspace_id
