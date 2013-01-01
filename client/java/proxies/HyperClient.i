@@ -36,18 +36,26 @@
         memcpy(name, str.data(), name_sz);
     }
 
-    static int get_range_query_attr_name_sz(hyperclient_range_query *rq)
+    static int get_attr_check_name_sz(hyperclient_attribute_check *hac)
     {
-        std::string str = std::string(rq->attr);
+        std::string str = std::string(hac->attr);
         size_t name_sz = str.length();
         return name_sz > INT_MAX ? (int)INT_MAX : (int)name_sz;
     }
 
-    static std::string read_range_query_attr_name(hyperclient_range_query *rq,
-                                                    char *name, size_t name_sz)
+    static void read_attr_check_name(hyperclient_attribute_check *hac,
+                                char *name, size_t name_sz)
     {
-        std::string str = std::string(rq->attr);
+        std::string str = std::string(hac->attr);
         memcpy(name, str.data(), name_sz);
+    }
+
+    static void read_attr_check_value(hyperclient_attribute_check *hac,
+                                   char *value, size_t value_sz,
+                                   size_t pos)
+    {
+        size_t available = hac->value_sz - pos;
+        memcpy(value, hac->value+pos, value_sz<available?value_sz:available);
     }
 
     static hyperclient_attribute *alloc_attrs(size_t attrs_sz)
@@ -84,20 +92,21 @@
         free(attrs);
     }
 
-    static hyperclient_range_query *alloc_range_queries(size_t rqs_sz)
+    static hyperclient_attribute_check *alloc_attrs_check(size_t attrs_sz)
     {
-        return (hyperclient_range_query *)calloc(rqs_sz,
-                                                   sizeof(hyperclient_range_query));
+        return (hyperclient_attribute_check *)calloc(attrs_sz,
+                                                     sizeof(hyperclient_attribute_check));
     }
 
-    static void free_range_queries(hyperclient_range_query *rqs, size_t rqs_sz)
+    static void free_attrs_check(hyperclient_attribute_check *attrs, size_t attrs_sz)
     {
-        for (size_t i=0; i<rqs_sz; i++)
+        for (size_t i=0; i<attrs_sz; i++)
         {
-            if (rqs[i].attr) free((void*)(rqs[i].attr));
+            if (attrs[i].attr) free((void*)(attrs[i].attr));
+            if (attrs[i].value) free((void*)(attrs[i].value));
         }
 
-        free(rqs);
+        free(attrs);
     }
 
     // Returns 1 on success. ha->attr will point to allocated memory
@@ -192,33 +201,39 @@
         return 1;
     }
 
-    static int write_range_query(hyperclient_range_query *rq,
+    // Returns 1 on success. hac->attr will point to allocated memory
+    // Returns 0 on failure. hac->attr will be NULL
+    static int write_attr_check_name(hyperclient_attribute_check *hac,
                                    const char *attr, size_t attr_sz,
-                                   int64_t lower,
-                                   int64_t upper)
+                                   hyperdatatype type, hyperpredicate pred)
     {
         char *buf;
 
         if ((buf = (char *)calloc(attr_sz+1,sizeof(char))) == NULL) return 0;
         memcpy(buf,attr,attr_sz);
-        rq->attr = buf;
-        (rq->lower_t).i = lower;
-        (rq->upper_t).i = upper;
+        hac->attr = buf;
+        hac->datatype = type;
+        hac->predicate = pred;
         return 1;
     }
 
-    static int write_range_query(hyperclient_range_query *rq,
-                                   const char *attr, size_t attr_sz,
-                                   double lower,
-                                   double upper)
+    // Returns 1 on success. hac->value will point to allocated memory
+    //                       hac->value_sz will hold the size of this memory
+    // Returns 0 on failure. hac->value will be NULL
+    //                       hac->value_sz will be 0
+    //
+    // If hac->value is already non-NULL, then we are appending to it.
+    static int write_attr_check_value(hyperclient_attribute_check *hac,
+                                    const char *value, size_t value_sz)
     {
-        char *buf;
-
-        if ((buf = (char *)calloc(attr_sz+1,sizeof(char))) == NULL) return 0;
-        memcpy(buf,attr,attr_sz);
-        rq->attr = buf;
-        (rq->lower_t).d = lower;
-        (rq->upper_t).d = upper;
+        char *buf = NULL;
+        // Note: Since hyperclient_attribute_check array was calloced
+        //       hac->value = NULL and hac->value_sz = 0 initially
+        if ((buf = (char *)realloc((void *)(hac->value), hac->value_sz + value_sz))
+                                                                        == NULL) return 0;
+        memcpy(buf + hac->value_sz, value, value_sz);
+        hac->value = buf;
+        hac->value_sz += value_sz;
         return 1;
     }
 
@@ -232,9 +247,9 @@
         return hma + i;
     }
 
-    static hyperclient_range_query *get_range_query(hyperclient_range_query *rqs, size_t i)
+    static hyperclient_attribute_check *get_attr_check(hyperclient_attribute *hac, size_t i)
     {
-        return rqs + i;
+        return hac + i;
     }
 };
 

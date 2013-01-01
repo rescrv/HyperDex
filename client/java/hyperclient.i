@@ -38,7 +38,7 @@
 %{
 #include <limits.h>
 #include <cstdlib>
-#include "hyperclient/hyperclient.h"
+#include "client/hyperclient.h"
 typedef hyperclient_attribute* hyperclient_attribute_asterisk;
 typedef hyperclient_range_query* hyperclient_range_query_asterisk;
 %}
@@ -93,7 +93,7 @@ typedef hyperclient_range_query* hyperclient_range_query_asterisk;
 %apply (char *STRING, int LENGTH) { (const char *value, size_t value_sz) }
 
 
-// Pertaining to the include of hyperdex.h and hyperclient/hyperclient.h below:
+// Pertaining to the include of hyperdex.h and client/hyperclient.h below:
 
 // Ignore everything
 %ignore "";
@@ -116,4 +116,4 @@ typedef hyperclient_range_query* hyperclient_range_query_asterisk;
 %rename("%s", %$ismember) "";
 
 %include "hyperdex.h"
-%include "hyperclient/hyperclient.h"
+%include "client/hyperclient.h"
