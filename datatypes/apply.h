@@ -32,24 +32,30 @@
 #include <tr1/memory>
 
 // e
+#include <e/buffer.h>
 #include <e/slice.h>
 
 // HyperDex
 #include "hyperdex.h"
-#include "datatypes/microcheck.h"
+#include "common/attribute_check.h"
+#include "common/funcall.h"
+#include "common/schema.h"
 #include "datatypes/microerror.h"
-#include "datatypes/microop.h"
-#include "datatypes/schema.h"
+
+bool
+passes_attribute_check(hyperdatatype type,
+                       const hyperdex::attribute_check& check,
+                       const e::slice& value,
+                       microerror* error);
 
 size_t
-apply_checks_and_ops(const schema* sc,
-                     const std::vector<microcheck>& checks,
-                     const std::vector<microop>& ops,
-                     const e::slice& old_key,
-                     const std::vector<e::slice>& old_value,
-                     std::tr1::shared_ptr<e::buffer>* new_backing,
-                     e::slice* new_key,
-                     std::vector<e::slice>* new_value,
-                     microerror* error);
+perform_checks_and_apply_funcs(const hyperdex::schema* sc,
+                               const std::vector<hyperdex::attribute_check>& checks,
+                               const std::vector<hyperdex::funcall>& funcs,
+                               const e::slice& key,
+                               const std::vector<e::slice>& old_value,
+                               std::tr1::shared_ptr<e::buffer>* backing,
+                               std::vector<e::slice>* new_value,
+                               microerror* error);
 
 #endif // datatypes_apply_h_

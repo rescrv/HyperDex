@@ -75,58 +75,24 @@ enum hyperdatatype
     HYPERDATATYPE_GARBAGE   = 9727
 };
 
+/* Predicate occupies [9728, 9856) */
+enum hyperpredicate
+{
+    HYPERPREDICATE_FAIL          = 9728,
+    HYPERPREDICATE_EQUALS        = 9729,
+    HYPERPREDICATE_LESS_EQUAL    = 9730,
+    HYPERPREDICATE_GREATER_EQUAL = 9731
+};
+
 #ifdef __cplusplus
 
 // C++
 #include <iostream>
 
-#define str(x) #x
-#define xstr(x) str(x)
-#define stringify(x) case (x): lhs << xstr(x); break
-
-inline std::ostream&
-operator << (std::ostream& lhs, hyperdatatype rhs)
-{
-    switch (rhs)
-    {
-        stringify(HYPERDATATYPE_GENERIC);
-        stringify(HYPERDATATYPE_STRING);
-        stringify(HYPERDATATYPE_INT64);
-        stringify(HYPERDATATYPE_FLOAT);
-        stringify(HYPERDATATYPE_LIST_GENERIC);
-        stringify(HYPERDATATYPE_LIST_STRING);
-        stringify(HYPERDATATYPE_LIST_INT64);
-        stringify(HYPERDATATYPE_LIST_FLOAT);
-        stringify(HYPERDATATYPE_SET_GENERIC);
-        stringify(HYPERDATATYPE_SET_STRING);
-        stringify(HYPERDATATYPE_SET_INT64);
-        stringify(HYPERDATATYPE_SET_FLOAT);
-        stringify(HYPERDATATYPE_MAP_GENERIC);
-        stringify(HYPERDATATYPE_MAP_STRING_KEYONLY);
-        stringify(HYPERDATATYPE_MAP_STRING_STRING);
-        stringify(HYPERDATATYPE_MAP_STRING_INT64);
-        stringify(HYPERDATATYPE_MAP_STRING_FLOAT);
-        stringify(HYPERDATATYPE_MAP_INT64_KEYONLY);
-        stringify(HYPERDATATYPE_MAP_INT64_STRING);
-        stringify(HYPERDATATYPE_MAP_INT64_INT64);
-        stringify(HYPERDATATYPE_MAP_INT64_FLOAT);
-        stringify(HYPERDATATYPE_MAP_FLOAT_KEYONLY);
-        stringify(HYPERDATATYPE_MAP_FLOAT_STRING);
-        stringify(HYPERDATATYPE_MAP_FLOAT_INT64);
-        stringify(HYPERDATATYPE_MAP_FLOAT_FLOAT);
-        stringify(HYPERDATATYPE_GARBAGE);
-        default:
-            lhs << "DATATYPE UNKNOWN";
-            break;
-    }
-
-    return lhs;
-}
-
-#undef stringify
-#undef xstr
-#undef str
+std::ostream&
+operator << (std::ostream& lhs, hyperdatatype rhs);
+std::ostream&
+operator << (std::ostream& lhs, hyperpredicate rhs);
 
 #endif /* __cplusplus */
-
 #endif /* hyperdex_h_ */

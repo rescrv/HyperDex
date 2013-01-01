@@ -8,13 +8,15 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AM_PATH_PYTHON([2.6])
 LT_PREREQ([2.2])
 LT_INIT
-AC_CONFIG_SRCDIR([hyperspacehashing/hashes.cc])
+AC_CONFIG_SRCDIR([hyperdex.h])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_CC
+AC_PROG_LEX
+AC_PROG_YACC
 AC_LANG(C++)
 
 ANAL_WARNINGS_CXX
@@ -53,25 +55,6 @@ if test x"${need_swig}" = xyes; then
     AX_PKG_SWIG(1.3)
     SWIG_ENABLE_CXX
 fi
-
-AC_ARG_ENABLE([coverage], [AS_HELP_STRING([--enable-coverage],
-              [enable code coverage statistics @<:@default: no@:>@])],
-              [enable_coverage=${enableval}], [enable_coverage=no])
-
-COVERAGE_CXXFLAGS=
-COVERAGE_LDADD=
-if test x"${enable_coverage}" = xyes; then
-    AC_CHECK_PROG(LCOV, lcov, lcov)
-    if test x"${LCOV}" = xlcov; then
-        COVERAGE_CXXFLAGS="-fprofile-arcs -ftest-coverage"
-        COVERAGE_LDADD="-lgcov"
-    else
-        AC_MSG_WARN([Could not find lcov for test coverage])
-        enable_coverage=no
-    fi
-fi
-AC_SUBST([COVERAGE_CXXFLAGS], [${COVERAGE_CXXFLAGS}])
-AC_SUBST([COVERAGE_LDADD], [${COVERAGE_LDADD}])
 
 # Checks for libraries.
 GTEST_LIB_CHECK
@@ -157,23 +140,9 @@ if test x"${enable_logall}" = xyes; then
     AC_DEFINE([HD_LOG_ALL_MESSAGES], [], [Log all network traffic at the INFO level])
 fi
 
-AC_ARG_ENABLE([trace-player], [AS_HELP_STRING([--trace-player],
-              [build a primitive trace-replay tool @<:@default: no@:>@])],
-              [enable_traceplayer=${enableval}], [enable_traceplayer=no])
-
-if test x"${enable_traceplayer}" = xyes; then
-    AC_CHECK_LIB([bsd], [strunvis], [], [AC_MSG_ERROR([
-    -------------------------------------------------
-    The trace-player relies upon libbsd
-    Please install libbsd to continue.
-    -------------------------------------------------])])
-fi
-
 AM_CONDITIONAL([ENABLE_JAVA_BINDINGS], [test x"${java_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_PYTHON_BINDINGS], [test x"${python_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_YCSB_DRIVER], [test x"${enable_ycsb}" = xyes])
-AM_CONDITIONAL([ENABLE_TRACEPLAYER], [test x"${enable_traceplayer}" = xyes])
-AM_CONDITIONAL([ENABLE_COVERAGE], [test x"${enable_coverage}" = xyes])
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

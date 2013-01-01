@@ -32,15 +32,17 @@
 #include <algorithm>
 #include <tr1/functional>
 
+using hyperdex::funcall;
+
 inline bool
 compare_by_arg1(int (*compare_elem)(const e::slice& lhs, const e::slice& rhs),
-                const microop& lhs, const microop& rhs)
+                const funcall& lhs, const funcall& rhs)
 {
     return compare_elem(lhs.arg1, rhs.arg1) < 0;
 }
 
 inline void
-sort_microops_by_arg1(microop* begin, microop* end,
+sort_funcalls_by_arg1(funcall* begin, funcall* end,
                       int (*compare_elem)(const e::slice& lhs, const e::slice& rhs))
 {
     std::sort(begin, end,
@@ -51,13 +53,13 @@ sort_microops_by_arg1(microop* begin, microop* end,
 
 inline bool
 compare_by_arg2(int (*compare_elem)(const e::slice& lhs, const e::slice& rhs),
-                const microop& lhs, const microop& rhs)
+                const funcall& lhs, const funcall& rhs)
 {
     return compare_elem(lhs.arg2, rhs.arg2) < 0;
 }
 
 inline void
-sort_microops_by_arg2(microop* begin, microop* end,
+sort_funcalls_by_arg2(funcall* begin, funcall* end,
                       int (*compare_elem)(const e::slice& lhs, const e::slice& rhs))
 {
     std::sort(begin, end,

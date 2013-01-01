@@ -28,70 +28,86 @@
 // HyperDex
 #include "datatypes/alltypes.h"
 #include "datatypes/apply.h"
+#include "datatypes/compare.h"
 #include "datatypes/validate.h"
 
-static bool
-passes_microcheck(hyperdatatype type,
-                  const microcheck& check,
-                  const e::slice& value,
-                  microerror* error)
+using hyperdex::attribute_check;
+using hyperdex::funcall;
+
+bool
+passes_attribute_check(hyperdatatype type,
+                       const attribute_check& check,
+                       const e::slice& value,
+                       microerror* error)
 {
     switch (check.predicate)
     {
-        case PRED_EQUALS:
+        case HYPERPREDICATE_FAIL:
+            return false;
+        case HYPERPREDICATE_EQUALS:
             *error = MICROERR_CMPFAIL;
             return validate_as_type(check.value, check.datatype) &&
                    type == check.datatype &&
                    check.value == value;
+        case HYPERPREDICATE_LESS_EQUAL:
+            *error = MICROERR_CMPFAIL;
+            return validate_as_type(check.value, check.datatype) &&
+                   type == check.datatype &&
+                   compare_as_type(value, check.value, type) <= 0;
+        case HYPERPREDICATE_GREATER_EQUAL:
+            *error = MICROERR_CMPFAIL;
+            return validate_as_type(check.value, check.datatype) &&
+                   type == check.datatype &&
+                   compare_as_type(value, check.value, type) >= 0;
         default:
             return false;
     }
 }
 
 static uint8_t*
-apply_microops(hyperdatatype type,
+apply_funcalls(hyperdatatype type,
                const e::slice& old_value,
-               const microop* ops, size_t num_ops,
+               const funcall* funcs, size_t num_funcs,
                uint8_t* writeto, microerror* error)
 {
     switch (type)
     {
         case HYPERDATATYPE_STRING:
-            return apply_string(old_value, ops, num_ops, writeto, error);
+            return apply_string(old_value, funcs, num_funcs, writeto, error);
         case HYPERDATATYPE_INT64:
-            return apply_int64(old_value, ops, num_ops, writeto, error);
+            return apply_int64(old_value, funcs, num_funcs, writeto, error);
         case HYPERDATATYPE_FLOAT:
-            return apply_float(old_value, ops, num_ops, writeto, error);
+            return apply_float(old_value, funcs, num_funcs, writeto, error);
         case HYPERDATATYPE_LIST_STRING:
-            return apply_list_string(old_value, ops, num_ops, writeto, error);
+            return apply_list_string(old_value, funcs, num_funcs, writeto, error);
         case HYPERDATATYPE_LIST_INT64:
-            return apply_list_int64(old_value, ops, num_ops, writeto, error);
+            return apply_list_int64(old_value, funcs, num_funcs, writeto, error);
         case HYPERDATATYPE_LIST_FLOAT:
-            return apply_list_float(old_value, ops, num_ops, writeto, error);
+            return apply_list_float(old_value, funcs, num_funcs, writeto, error);
         case HYPERDATATYPE_SET_STRING:
-            return apply_set_string(old_value, ops, num_ops, writeto, error);
+            return apply_set_string(old_value, funcs, num_funcs, writeto, error);
         case HYPERDATATYPE_SET_INT64:
-            return apply_set_int64(old_value, ops, num_ops, writeto, error);
+            return apply_set_int64(old_value, funcs, num_funcs, writeto, error);
         case HYPERDATATYPE_SET_FLOAT:
-            return apply_set_float(old_value, ops, num_ops, writeto, error);
+            return apply_set_float(old_value, funcs, num_funcs, writeto, error);
         case HYPERDATATYPE_MAP_STRING_STRING:
-            return apply_map_string_string(old_value, ops, num_ops, writeto, error);
+            return apply_map_string_string(old_value, funcs, num_funcs, writeto, error);
         case HYPERDATATYPE_MAP_STRING_INT64:
-            return apply_map_string_int64(old_value, ops, num_ops, writeto, error);
+            return apply_map_string_int64(old_value, funcs, num_funcs, writeto, error);
         case HYPERDATATYPE_MAP_STRING_FLOAT:
-            return apply_map_string_float(old_value, ops, num_ops, writeto, error);
+            return apply_map_string_float(old_value, funcs, num_funcs, writeto, error);
         case HYPERDATATYPE_MAP_INT64_STRING:
-            return apply_map_int64_string(old_value, ops, num_ops, writeto, error);
+            return apply_map_int64_string(old_value, funcs, num_funcs, writeto, error);
         case HYPERDATATYPE_MAP_INT64_INT64:
-            return apply_map_int64_int64(old_value, ops, num_ops, writeto, error);
+            return apply_map_int64_int64(old_value, funcs, num_funcs, writeto, error);
         case HYPERDATATYPE_MAP_INT64_FLOAT:
-            return apply_map_int64_float(old_value, ops, num_ops, writeto, error);
+            return apply_map_int64_float(old_value, funcs, num_funcs, writeto, error);
         case HYPERDATATYPE_MAP_FLOAT_STRING:
-            return apply_map_float_string(old_value, ops, num_ops, writeto, error);
+            return apply_map_float_string(old_value, funcs, num_funcs, writeto, error);
         case HYPERDATATYPE_MAP_FLOAT_INT64:
-            return apply_map_float_int64(old_value, ops, num_ops, writeto, error);
+            return apply_map_float_int64(old_value, funcs, num_funcs, writeto, error);
         case HYPERDATATYPE_MAP_FLOAT_FLOAT:
-            return apply_map_float_float(old_value, ops, num_ops, writeto, error);
+            return apply_map_float_float(old_value, funcs, num_funcs, writeto, error);
         case HYPERDATATYPE_GENERIC:
         case HYPERDATATYPE_LIST_GENERIC:
         case HYPERDATATYPE_SET_GENERIC:
@@ -107,15 +123,14 @@ apply_microops(hyperdatatype type,
 }
 
 size_t
-apply_checks_and_ops(const schema* sc,
-                     const std::vector<microcheck>& checks,
-                     const std::vector<microop>& ops,
-                     const e::slice& old_key,
-                     const std::vector<e::slice>& old_value,
-                     std::tr1::shared_ptr<e::buffer>* new_backing,
-                     e::slice* new_key,
-                     std::vector<e::slice>* new_value,
-                     microerror* error)
+perform_checks_and_apply_funcs(const hyperdex::schema* sc,
+                               const std::vector<hyperdex::attribute_check>& checks,
+                               const std::vector<hyperdex::funcall>& funcs,
+                               const e::slice& key,
+                               const std::vector<e::slice>& old_value,
+                               std::tr1::shared_ptr<e::buffer>* backing,
+                               std::vector<e::slice>* new_value,
+                               microerror* error)
 {
     // Check the checks
     for (size_t i = 0; i < checks.size(); ++i)
@@ -127,20 +142,20 @@ apply_checks_and_ops(const schema* sc,
         }
 
         if (checks[i].attr > 0 &&
-            !passes_microcheck(sc->attrs[checks[i].attr].type, checks[i],
+            !passes_attribute_check(sc->attrs[checks[i].attr].type, checks[i],
                                old_value[checks[i].attr - 1], error))
         {
             return i;
         }
         else if (checks[i].attr == 0 &&
-                 !passes_microcheck(sc->attrs[0].type, checks[i], old_key, error))
+                 !passes_attribute_check(sc->attrs[0].type, checks[i], key, error))
         {
             return i;
         }
     }
 
     // There's a fixed size for the key.
-    size_t sz = old_key.size();
+    size_t sz = key.size();
 
     // We'll start with the size of the old value.
     for (size_t i = 0; i < old_value.size(); ++i)
@@ -148,29 +163,25 @@ apply_checks_and_ops(const schema* sc,
         sz += old_value[i].size();
     }
 
-    // Now we'll add the size of each microop
-    for (size_t i = 0; i < ops.size(); ++i)
+    // Now we'll add the size of each funcall
+    for (size_t i = 0; i < funcs.size(); ++i)
     {
         sz += 2 * sizeof(uint32_t)
-            + ops[i].arg1.size()
-            + ops[i].arg2.size();
+            + funcs[i].arg1.size()
+            + funcs[i].arg2.size();
     }
 
     // Allocate the new buffer
-    new_backing->reset(e::buffer::create(sz));
+    backing->reset(e::buffer::create(sz));
+    (*backing)->resize(sz);
     new_value->resize(old_value.size());
 
     // Write out the object into new_backing
-    uint8_t* write_to = (*new_backing)->data();
+    uint8_t* write_to = (*backing)->data();
 
-    // Copy the key (which never is touched by micros)
-    *new_key = e::slice(write_to, old_key.size());
-    memmove(write_to, old_key.data(), old_key.size());
-    write_to += old_key.size();
-
-    // Apply the microops to each value
-    const microop* op = ops.empty() ? NULL : &ops.front();
-    const microop* const stop = op + ops.size();
+    // Apply the funcalls to each value
+    const funcall* op = funcs.empty() ? NULL : &funcs.front();
+    const funcall* const stop = op + funcs.size();
     // The next attribute to copy, indexed based on the total number of
     // dimensions.  It starts at 1, because the key is 0, and 1 is the first
     // secondary attribute.
@@ -178,34 +189,34 @@ apply_checks_and_ops(const schema* sc,
 
     while (op < stop)
     {
-        const microop* end = op;
+        const funcall* end = op;
 
-        // Advance until [op, end) is all a continuous range of ops that all
+        // Advance until [op, end) is all a continuous range of funcs that all
         // apply to the same attribute value.
         while (end < stop && op->attr == end->attr)
         {
             if (end->attr == 0)
             {
                 *error = MICROERR_DONTUSEKEY;
-                return checks.size() + (op - &ops.front());
+                return checks.size() + (op - &funcs.front());
             }
 
             if (end->attr >= sc->attrs_sz)
             {
                 *error = MICROERR_UNKNOWNATTR;
-                return checks.size() + (op - &ops.front());
+                return checks.size() + (op - &funcs.front());
             }
 
             if (end->attr < next_to_copy)
             {
                 *error = MICROERR_UNSORTEDOPS;
-                return checks.size() + (op - &ops.front());
+                return checks.size() + (op - &funcs.front());
             }
 
             ++end;
         }
 
-        // Copy the attributes that are unaffected by micro ops.
+        // Copy the attributes that are unaffected by funcs.
         while (next_to_copy < op->attr)
         {
             assert(next_to_copy > 0);
@@ -216,27 +227,27 @@ apply_checks_and_ops(const schema* sc,
             ++next_to_copy;
         }
 
-        // - "op" now points to the first unapplied micro op
-        // - "end" points to one micro op past the last op we want to apply
+        // - "op" now points to the first unapplied funcall
+        // - "end" points to one funcall past the last op we want to apply
         // - we've copied all attributes so far, even those not mentioned by
-        //   micro ops.
+        //   funcs.
 
-        // This call may modify [op, end) ops.
-        uint8_t* new_write_to = apply_microops(sc->attrs[op->attr].type,
+        // This call may modify [op, end) funcs.
+        uint8_t* new_write_to = apply_funcalls(sc->attrs[op->attr].type,
                                                old_value[op->attr - 1],
                                                op, end - op,
                                                write_to, error);
 
         if (!new_write_to)
         {
-            return checks.size() + (op - &ops.front());
+            return checks.size() + (op - &funcs.front());
         }
 
         (*new_value)[next_to_copy - 1] = e::slice(write_to, new_write_to - write_to);
         write_to = new_write_to;
 
         // Why ++ and assert rather than straight assign?  This will help us to
-        // catch any problems in the interaction between micro ops and
+        // catch any problems in the interaction between funcs and
         // attributes which we just copy.
         assert(next_to_copy == op->attr);
         ++next_to_copy;
@@ -244,7 +255,7 @@ apply_checks_and_ops(const schema* sc,
         op = end;
     }
 
-    // Copy the attributes that are unaffected by micro ops.
+    // Copy the attributes that are unaffected by funcs.
     while (next_to_copy < sc->attrs_sz)
     {
         assert(next_to_copy > 0);
@@ -255,5 +266,5 @@ apply_checks_and_ops(const schema* sc,
         ++next_to_copy;
     }
 
-    return checks.size() + ops.size();
+    return checks.size() + funcs.size();
 }

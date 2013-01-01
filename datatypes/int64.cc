@@ -34,6 +34,8 @@
 // HyperDex
 #include "datatypes/int64.h"
 
+using hyperdex::funcall;
+
 bool
 validate_as_int64(const e::slice& value)
 {
@@ -42,7 +44,7 @@ validate_as_int64(const e::slice& value)
 
 uint8_t*
 apply_int64(const e::slice& old_value,
-            const microop* ops, size_t num_ops,
+            const funcall* funcs, size_t num_funcs,
             uint8_t* writeto, microerror* error)
 {
     int64_t number = 0;
@@ -52,85 +54,85 @@ apply_int64(const e::slice& old_value,
         e::unpack64le(old_value.data(), &number);
     }
 
-    for (size_t i = 0; i < num_ops; ++i)
+    for (size_t i = 0; i < num_funcs; ++i)
     {
-        const microop* op = ops + i;
+        const funcall* func = funcs + i;
 
-        if (ops[i].arg1_datatype != HYPERDATATYPE_INT64)
+        if (funcs[i].arg1_datatype != HYPERDATATYPE_INT64)
         {
             *error = MICROERR_WRONGTYPE;
             return NULL;
         }
 
-        if (!validate_as_int64(ops[i].arg1))
+        if (!validate_as_int64(funcs[i].arg1))
         {
             *error = MICROERR_MALFORMED;
             return NULL;
         }
 
         int64_t arg;
-        e::unpack64le(op->arg1.data(), &arg);
+        e::unpack64le(func->arg1.data(), &arg);
 
-        switch (op->action)
+        switch (func->name)
         {
-            case OP_SET:
+            case hyperdex::FUNC_SET:
                 number = arg;
                 break;
-            case OP_NUM_ADD:
+            case hyperdex::FUNC_NUM_ADD:
                 if (!e::safe_add(number, arg, &number))
                 {
                     *error = MICROERR_OVERFLOW;
                     return NULL;
                 }
                 break;
-            case OP_NUM_SUB:
+            case hyperdex::FUNC_NUM_SUB:
                 if (!e::safe_sub(number, arg, &number))
                 {
                     *error = MICROERR_OVERFLOW;
                     return NULL;
                 }
                 break;
-            case OP_NUM_MUL:
+            case hyperdex::FUNC_NUM_MUL:
                 if (!e::safe_mul(number, arg, &number))
                 {
                     *error = MICROERR_OVERFLOW;
                     return NULL;
                 }
                 break;
-            case OP_NUM_DIV:
+            case hyperdex::FUNC_NUM_DIV:
                 if (!e::safe_div(number, arg, &number))
                 {
                     *error = MICROERR_OVERFLOW;
                     return NULL;
                 }
                 break;
-            case OP_NUM_MOD:
+            case hyperdex::FUNC_NUM_MOD:
                 if (!e::safe_mod(number, arg, &number))
                 {
                     *error = MICROERR_OVERFLOW;
                     return NULL;
                 }
                 break;
-            case OP_NUM_AND:
+            case hyperdex::FUNC_NUM_AND:
                 number &= arg;
                 break;
-            case OP_NUM_OR:
+            case hyperdex::FUNC_NUM_OR:
                 number |= arg;
                 break;
-            case OP_NUM_XOR:
+            case hyperdex::FUNC_NUM_XOR:
                 number ^= arg;
                 break;
-            case OP_STRING_APPEND:
-            case OP_STRING_PREPEND:
-            case OP_LIST_LPUSH:
-            case OP_LIST_RPUSH:
-            case OP_SET_ADD:
-            case OP_SET_REMOVE:
-            case OP_SET_INTERSECT:
-            case OP_SET_UNION:
-            case OP_MAP_ADD:
-            case OP_MAP_REMOVE:
-            case OP_FAIL:
+            case hyperdex::FUNC_STRING_APPEND:
+            case hyperdex::FUNC_STRING_PREPEND:
+            case hyperdex::FUNC_LIST_LPUSH:
+            case hyperdex::FUNC_LIST_RPUSH:
+            case hyperdex::FUNC_SET_ADD:
+            case hyperdex::FUNC_SET_REMOVE:
+            case hyperdex::FUNC_SET_INTERSECT:
+            case hyperdex::FUNC_SET_UNION:
+            case hyperdex::FUNC_MAP_ADD:
+            case hyperdex::FUNC_MAP_REMOVE:
+            case hyperdex::FUNC_FAIL:
             default:
                 *error = MICROERR_WRONGACTION;
                 return NULL;

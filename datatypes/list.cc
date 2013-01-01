@@ -36,6 +36,8 @@
 #include "datatypes/step.h"
 #include "datatypes/write.h"
 
+using hyperdex::funcall;
+
 static bool
 validate_list(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice* elem),
               const e::slice& list)
@@ -72,7 +74,7 @@ apply_list(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice* 
            uint8_t* (*write_elem)(uint8_t* writeto, const e::slice& elem),
            hyperdatatype container, hyperdatatype element,
            const e::slice& old_value,
-           const microop* ops, size_t num_ops,
+           const funcall* funcs, size_t num_funcs,
            uint8_t* writeto, microerror* error)
 {
     std::list<e::slice> list;
@@ -91,32 +93,32 @@ apply_list(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice* 
         list.push_back(elem);
     }
 
-    for (size_t i = 0; i < num_ops; ++i)
+    for (size_t i = 0; i < num_funcs; ++i)
     {
-        switch (ops[i].action)
+        switch (funcs[i].name)
         {
-            case OP_SET:
-                if (ops[i].arg1_datatype == HYPERDATATYPE_LIST_GENERIC &&
-                    ops[i].arg1.size() == 0)
+            case hyperdex::FUNC_SET:
+                if (funcs[i].arg1_datatype == HYPERDATATYPE_LIST_GENERIC &&
+                    funcs[i].arg1.size() == 0)
                 {
                     list.clear();
                     continue;
                 }
-                else if (ops[i].arg1_datatype == HYPERDATATYPE_LIST_GENERIC)
+                else if (funcs[i].arg1_datatype == HYPERDATATYPE_LIST_GENERIC)
                 {
                     *error = MICROERR_MALFORMED;
                     return NULL;
                 }
 
-                if (container != ops[i].arg1_datatype)
+                if (container != funcs[i].arg1_datatype)
                 {
                     *error = MICROERR_WRONGTYPE;
                     return NULL;
                 }
 
                 list.clear();
-                ptr = ops[i].arg1.data();
-                end = ops[i].arg1.data() + ops[i].arg1.size();
+                ptr = funcs[i].arg1.data();
+                end = funcs[i].arg1.data() + funcs[i].arg1.size();
 
                 while (ptr < end)
                 {
@@ -130,53 +132,53 @@ apply_list(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice* 
                 }
 
                 break;
-            case OP_LIST_LPUSH:
-                if (element != ops[i].arg1_datatype)
+            case hyperdex::FUNC_LIST_LPUSH:
+                if (element != funcs[i].arg1_datatype)
                 {
                     *error = MICROERR_WRONGTYPE;
                     return NULL;
                 }
 
-                if (!validate_elem(ops[i].arg1))
+                if (!validate_elem(funcs[i].arg1))
                 {
                     *error = MICROERR_MALFORMED;
                     return NULL;
                 }
 
-                list.push_front(ops[i].arg1);
+                list.push_front(funcs[i].arg1);
                 break;
-            case OP_LIST_RPUSH:
-                if (element != ops[i].arg1_datatype)
+            case hyperdex::FUNC_LIST_RPUSH:
+                if (element != funcs[i].arg1_datatype)
                 {
                     *error = MICROERR_WRONGTYPE;
                     return NULL;
                 }
 
-                if (!validate_elem(ops[i].arg1))
+                if (!validate_elem(funcs[i].arg1))
                 {
                     *error = MICROERR_MALFORMED;
                     return NULL;
                 }
 
-                list.push_back(ops[i].arg1);
+                list.push_back(funcs[i].arg1);
                 break;
-            case OP_FAIL:
-            case OP_STRING_APPEND:
-            case OP_STRING_PREPEND:
-            case OP_NUM_ADD:
-            case OP_NUM_SUB:
-            case OP_NUM_MUL:
-            case OP_NUM_DIV:
-            case OP_NUM_MOD:
-            case OP_NUM_AND:
-            case OP_NUM_OR:
-            case OP_NUM_XOR:
-            case OP_SET_ADD:
-            case OP_SET_REMOVE:
-            case OP_SET_INTERSECT:
-            case OP_SET_UNION:
-            case OP_MAP_ADD:
-            case OP_MAP_REMOVE:
+            case hyperdex::FUNC_FAIL:
+            case hyperdex::FUNC_STRING_APPEND:
+            case hyperdex::FUNC_STRING_PREPEND:
+            case hyperdex::FUNC_NUM_ADD:
+            case hyperdex::FUNC_NUM_SUB:
+            case hyperdex::FUNC_NUM_MUL:
+            case hyperdex::FUNC_NUM_DIV:
+            case hyperdex::FUNC_NUM_MOD:
+            case hyperdex::FUNC_NUM_AND:
+            case hyperdex::FUNC_NUM_OR:
+            case hyperdex::FUNC_NUM_XOR:
+            case hyperdex::FUNC_SET_ADD:
+            case hyperdex::FUNC_SET_REMOVE:
+            case hyperdex::FUNC_SET_INTERSECT:
+            case hyperdex::FUNC_SET_UNION:
+            case hyperdex::FUNC_MAP_ADD:
+            case hyperdex::FUNC_MAP_REMOVE:
             default:
                 *error = MICROERR_WRONGACTION;
                 return NULL;
@@ -194,13 +196,13 @@ apply_list(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice* 
 #define APPLY_LIST(TYPE, TYPECAPS) \
     uint8_t* \
     apply_list_ ## TYPE(const e::slice& old_value, \
-                        const microop* ops, size_t num_ops, \
+                        const funcall* funcs, size_t num_funcs, \
                         uint8_t* writeto, microerror* error) \
     { \
         return apply_list(step_ ## TYPE, validate_as_ ## TYPE, write_ ## TYPE, \
                           HYPERDATATYPE_LIST_ ## TYPECAPS, \
                           HYPERDATATYPE_ ## TYPECAPS, \
-                          old_value, ops, num_ops, writeto, error); \
+                          old_value, funcs, num_funcs, writeto, error); \
     }
 
 APPLY_LIST(string, STRING)

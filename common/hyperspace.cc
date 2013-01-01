@@ -1,0 +1,492 @@
+// Copyright (c) 2012, Cornell University
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+//     * Redistributions of source code must retain the above copyright notice,
+//       this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above copyright
+//       notice, this list of conditions and the following disclaimer in the
+//       documentation and/or other materials provided with the distribution.
+//     * Neither the name of HyperDex nor the names of its contributors may be
+//       used to endorse or promote products derived from this software without
+//       specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+
+// HyperDex
+#include "common/hyperspace.h"
+
+using hyperdex::space;
+using hyperdex::subspace;
+using hyperdex::region;
+using hyperdex::replica;
+
+space :: space()
+    : id()
+    , name("")
+    , schema()
+    , subspaces()
+    , m_c_strs()
+    , m_attrs()
+{
+}
+
+space :: space(const char* new_name, const hyperdex::schema& sc)
+    : id()
+    , name(new_name)
+    , schema(sc)
+    , subspaces()
+    , m_c_strs()
+    , m_attrs()
+{
+    reestablish_backing();
+}
+
+space :: space(const space& other)
+    : id(other.id)
+    , name(other.name)
+    , schema(other.schema)
+    , subspaces(other.subspaces)
+    , m_c_strs()
+    , m_attrs()
+{
+    reestablish_backing();
+}
+
+space :: ~space() throw ()
+{
+}
+
+bool
+space :: validate()
+{
+    for (size_t i = 0; i < schema.attrs_sz; ++i)
+    {
+        for (size_t j = i + 1; j < schema.attrs_sz; ++j)
+        {
+            if (strcmp(schema.attrs[i].name, schema.attrs[j].name) == 0)
+            {
+                return false;
+            }
+        }
+    }
+
+    for (size_t i = 0; i < subspaces.size(); ++i)
+    {
+        // XXX if subspaces[i].regions does not fill volume
+
+        for (size_t j = 0; j < subspaces[i].regions.size(); ++j)
+        {
+            if (subspaces[i].attrs.size() != subspaces[i].regions[j].lower_coord.size() ||
+                subspaces[i].attrs.size() != subspaces[i].regions[j].upper_coord.size())
+            {
+                return false;
+            }
+        }
+
+        for (size_t j = 0; j < subspaces[i].attrs.size(); ++j)
+        {
+            if (subspaces[i].attrs[j] >= schema.attrs_sz)
+            {
+                return false;
+            }
+
+            for (size_t k = j + 1; k < subspaces[i].attrs.size(); ++k)
+            {
+                if (subspaces[i].attrs[j] == subspaces[i].attrs[k])
+                {
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+space&
+space :: operator = (const space& rhs)
+{
+    id = rhs.id;
+    name = rhs.name;
+    schema = rhs.schema;
+    subspaces = rhs.subspaces;
+    reestablish_backing();
+    return *this;
+}
+
+void
+space :: reestablish_backing()
+{
+    // Compute the size of the c_strs backing
+    size_t sz = strlen(name) + 1;
+
+    for (size_t i = 0; i < schema.attrs_sz; ++i)
+    {
+        sz += strlen(schema.attrs[i].name) + 1;
+    }
+
+    // Create the two new backings
+    m_c_strs = new char[sz];
+    m_attrs = new attribute[schema.attrs_sz];
+    char* ptr = m_c_strs.get();
+    sz = strlen(name) + 1;
+    memmove(ptr, name, sz);
+    name = ptr;
+    ptr += sz;
+
+    for (size_t i = 0; i < schema.attrs_sz; ++i)
+    {
+        m_attrs[i].type = schema.attrs[i].type;
+        sz = strlen(schema.attrs[i].name) + 1;
+        memmove(ptr, schema.attrs[i].name, sz);
+        m_attrs[i].name = ptr;
+        ptr += sz;
+    }
+
+    schema.attrs = m_attrs.get();
+}
+
+e::buffer::packer
+hyperdex :: operator << (e::buffer::packer pa, const space& s)
+{
+    e::slice name;
+    uint16_t num_subspaces = s.subspaces.size();
+    name = e::slice(s.name, strlen(s.name));
+    pa = pa << s.id.get() << name << s.schema.attrs_sz << num_subspaces;
+
+    for (size_t i = 0; i < s.schema.attrs_sz; ++i)
+    {
+        name = e::slice(s.schema.attrs[i].name, strlen(s.schema.attrs[i].name));
+        pa = pa << name << static_cast<uint16_t>(s.schema.attrs[i].type);
+    }
+
+    for (size_t i = 0; i < num_subspaces; ++i)
+    {
+        pa = pa << s.subspaces[i];
+    }
+
+    return pa;
+}
+
+e::unpacker
+hyperdex :: operator >> (e::unpacker up, space& s)
+{
+    uint64_t id;
+    e::slice name;
+    std::vector<e::slice> attrs;
+    uint16_t num_subspaces;
+    up = up >> id >> name >> s.schema.attrs_sz >> num_subspaces;
+    s.id = space_id(id);
+    s.m_attrs = new attribute[s.schema.attrs_sz];
+    s.schema.attrs = s.m_attrs.get();
+    size_t sz = name.size() + 1;
+
+    // Unpack all attributes
+    for (size_t i = 0; !up.error() && i < s.schema.attrs_sz; ++i)
+    {
+        e::slice attr;
+        uint16_t type;
+        up = up >> attr >> type;
+        s.m_attrs[i].type = static_cast<hyperdatatype>(type);
+        attrs.push_back(attr);
+        sz += attr.size() + 1;
+    }
+
+    // Swap pointers over to our storage
+    s.m_c_strs = new char[sz];
+    char* ptr = s.m_c_strs.get();
+    s.name = ptr;
+    memmove(ptr, name.data(), name.size());
+    ptr += name.size();
+    *ptr = '\0';
+    ++ptr;
+
+    for (size_t i = 0; i < s.schema.attrs_sz; ++i)
+    {
+        s.m_attrs[i].name = ptr;
+        memmove(ptr, attrs[i].data(), attrs[i].size());
+        ptr += attrs[i].size();
+        *ptr = '\0';
+        ++ptr;
+    }
+
+    // Unpack subspaces
+    s.subspaces.resize(num_subspaces);
+
+    for (size_t i = 0; !up.error() && i < num_subspaces; ++i)
+    {
+        up = up >> s.subspaces[i];
+    }
+
+    return up;
+}
+
+size_t
+hyperdex :: pack_size(const space& s)
+{
+    size_t sz = sizeof(uint64_t) /* id */
+              + sizeof(uint32_t) +strlen(s.name) /* name */
+              + sizeof(uint16_t) /* schema.attrs_sz */
+              + sizeof(uint16_t); /* num subspaces */
+
+    for (size_t i = 0; i < s.schema.attrs_sz; ++i)
+    {
+        sz += sizeof(uint32_t) + strlen(s.schema.attrs[i].name)
+            + sizeof(uint16_t);
+    }
+
+    for (size_t i = 0; i < s.subspaces.size(); ++i)
+    {
+        sz += pack_size(s.subspaces[i]);
+    }
+
+    return sz;
+}
+
+subspace :: subspace()
+    : id()
+    , attrs()
+    , regions()
+{
+}
+
+subspace :: subspace(const subspace& other)
+    : id(other.id)
+    , attrs(other.attrs)
+    , regions(other.regions)
+{
+}
+
+subspace :: ~subspace() throw ()
+{
+}
+
+subspace&
+subspace :: operator = (const subspace& rhs)
+{
+    id = rhs.id;
+    attrs = rhs.attrs;
+    regions = rhs.regions;
+    return *this;
+}
+
+e::buffer::packer
+hyperdex :: operator << (e::buffer::packer pa, const subspace& s)
+{
+    uint16_t num_attrs = s.attrs.size();
+    uint32_t num_regions = s.regions.size();
+    pa = pa << s.id.get() << num_attrs << num_regions;
+
+    for (size_t i = 0; i < num_attrs; ++i)
+    {
+        pa = pa << s.attrs[i];
+    }
+
+    for (size_t i = 0; i < num_regions; ++i)
+    {
+        pa = pa << s.regions[i];
+    }
+
+    return pa;
+}
+
+e::unpacker
+hyperdex :: operator >> (e::unpacker up, subspace& s)
+{
+    uint64_t id;
+    uint16_t num_attrs;
+    uint32_t num_regions;
+    up = up >> id >> num_attrs >> num_regions;
+    s.id = subspace_id(id);
+    s.attrs.clear();
+    s.regions.clear();
+
+    for (size_t i = 0; !up.error() && i < num_attrs; ++i)
+    {
+        uint16_t attr;
+        up = up >> attr;
+        s.attrs.push_back(attr);
+    }
+
+    for (size_t i = 0; !up.error() && i < num_regions; ++i)
+    {
+        region r;
+        up = up >> r;
+        s.regions.push_back(r);
+    }
+
+    return up;
+}
+
+size_t
+hyperdex :: pack_size(const subspace& s)
+{
+    size_t sz = sizeof(uint64_t) /* id */
+              + sizeof(uint16_t) /* num_attrs */
+              + sizeof(uint32_t) /* num_regions */
+              + sizeof(uint16_t) * s.attrs.size();
+
+    for (size_t i = 0; i < s.regions.size(); ++i)
+    {
+        sz += pack_size(s.regions[i]);
+    }
+
+    return sz;
+}
+
+region :: region()
+    : id()
+    , lower_coord()
+    , upper_coord()
+    , replicas()
+{
+}
+
+region :: region(const region& other)
+    : id(other.id)
+    , lower_coord(other.lower_coord)
+    , upper_coord(other.upper_coord)
+    , replicas(other.replicas)
+{
+}
+
+region :: ~region() throw ()
+{
+}
+
+region&
+region :: operator = (const region& rhs)
+{
+    id = rhs.id;
+    lower_coord = rhs.lower_coord;
+    upper_coord = rhs.upper_coord;
+    replicas = rhs.replicas;
+    return *this;
+}
+
+e::buffer::packer
+hyperdex :: operator << (e::buffer::packer pa, const region& r)
+{
+    uint16_t num_hashes = r.lower_coord.size();
+    uint8_t num_replicas = r.replicas.size();
+    pa = pa << r.id.get() << num_hashes << num_replicas;
+
+    for (size_t i = 0; i < num_hashes; ++i)
+    {
+        pa = pa << r.lower_coord[i] << r.upper_coord[i];
+    }
+
+    for (size_t i = 0; i < num_replicas; ++i)
+    {
+        pa = pa << r.replicas[i];
+    }
+
+    return pa;
+}
+
+e::unpacker
+hyperdex :: operator >> (e::unpacker up, region& r)
+{
+    uint64_t id;
+    uint16_t num_hashes;
+    uint8_t num_replicas;
+    up = up >> id >> num_hashes >> num_replicas;
+    r.id = region_id(id);
+    r.lower_coord.clear();
+    r.upper_coord.clear();
+    r.replicas.clear();
+
+    for (size_t i = 0; !up.error() && i < num_hashes; ++i)
+    {
+        uint64_t l;
+        uint64_t u;
+        up = up >> l >> u;
+        r.lower_coord.push_back(l);
+        r.upper_coord.push_back(u);
+    }
+
+    for (size_t i = 0; !up.error() && i < num_replicas; ++i)
+    {
+        replica repl;
+        up = up >> repl;
+        r.replicas.push_back(repl);
+    }
+
+    return up;
+}
+
+size_t
+hyperdex :: pack_size(const region& r)
+{
+    size_t sz = sizeof(uint64_t) /* id */
+              + sizeof(uint16_t) /* num_hashes */
+              + sizeof(uint8_t) /* num_replicas */
+              + 2 * sizeof(uint64_t) * r.lower_coord.size();
+
+    for (size_t i = 0; i < r.replicas.size(); ++i)
+    {
+        sz += pack_size(r.replicas[i]);
+    }
+
+    return sz;
+}
+
+replica :: replica()
+    : si()
+    , vsi()
+{
+}
+
+replica :: replica(const replica& other)
+    : si(other.si)
+    , vsi(other.vsi)
+{
+}
+
+replica :: ~replica() throw ()
+{
+}
+
+replica&
+replica :: operator = (const replica& rhs)
+{
+    si = rhs.si;
+    vsi = rhs.vsi;
+    return *this;
+}
+
+e::buffer::packer
+hyperdex :: operator << (e::buffer::packer pa, const replica& r)
+{
+    return pa << r.si.get() << r.vsi.get();
+}
+
+e::unpacker
+hyperdex :: operator >> (e::unpacker up, replica& r)
+{
+    uint64_t si;
+    uint64_t vsi;
+    up = up >> si >> vsi;
+    r.si = server_id(si);
+    r.vsi = virtual_server_id(vsi);
+    return up;
+}
+
+size_t
+hyperdex :: pack_size(const replica&)
+{
+    return sizeof(uint64_t) + sizeof(uint64_t);
+}

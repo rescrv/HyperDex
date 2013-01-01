@@ -32,6 +32,7 @@
 // functions.
 
 // C
+#include <cassert>
 #include <cstdlib>
 #include <stdint.h>
 
@@ -56,7 +57,7 @@
 #include <e/guard.h>
 
 // HyperClient
-#include <hyperclient.h>
+#include "client/hyperclient.h"
 
 static long window = 128;
 static long repetitions = 1024;
@@ -64,7 +65,7 @@ static int64_t threads = 16;
 static const char* space = "consistency";
 static const char* host = "127.0.0.1";
 static po6::net::ipaddr coord(host);
-static long port = 1234;
+static long port = 1982;
 static std::auto_ptr<po6::threads::barrier> barrier;
 static po6::threads::mutex results_lock;
 static int done = 0;

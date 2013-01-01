@@ -38,9 +38,11 @@
 #include "datatypes/step.h"
 #include "datatypes/write.h"
 
+using hyperdex::funcall;
+
 bool
 validate_set(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice* elem),
-             bool (*compare_elem_less)(const e::slice& lhs, const e::slice& rhs),
+             int (*compare_elem)(const e::slice& lhs, const e::slice& rhs),
              const e::slice& set)
 {
     const uint8_t* ptr = set.data();
@@ -58,7 +60,7 @@ validate_set(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice
 
         if (has_old)
         {
-            if (!compare_elem_less(old, elem))
+            if (compare_elem(old, elem) < 0)
             {
                 return false;
             }
@@ -82,6 +84,13 @@ VALIDATE_SET(string)
 VALIDATE_SET(int64)
 VALIDATE_SET(float)
 
+template<int (*compare)(const e::slice& lhs, const e::slice& rhs)>
+static bool
+compare_less(const e::slice& lhs, const e::slice& rhs)
+{
+    return compare(lhs, rhs) < 0;
+}
+
 static uint8_t*
 apply_set(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice* elem),
           bool (*validate_elem)(const e::slice& elem),
@@ -89,7 +98,7 @@ apply_set(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice* e
           uint8_t* (*write_elem)(uint8_t* writeto, const e::slice& elem),
           hyperdatatype container, hyperdatatype element,
           const e::slice& old_value,
-          const microop* ops, size_t num_ops,
+          const funcall* funcs, size_t num_funcs,
           uint8_t* writeto, microerror* error)
 {
     std::set<e::slice> set;
@@ -109,32 +118,32 @@ apply_set(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice* e
         set.insert(elem);
     }
 
-    for (size_t i = 0; i < num_ops; ++i)
+    for (size_t i = 0; i < num_funcs; ++i)
     {
-        switch (ops[i].action)
+        switch (funcs[i].name)
         {
-            case OP_SET:
+            case hyperdex::FUNC_SET:
                 set.clear();
-            case OP_SET_UNION:
-                if (ops[i].arg1_datatype == HYPERDATATYPE_SET_GENERIC &&
-                    ops[i].arg1.size() == 0)
+            case hyperdex::FUNC_SET_UNION:
+                if (funcs[i].arg1_datatype == HYPERDATATYPE_SET_GENERIC &&
+                    funcs[i].arg1.size() == 0)
                 {
                     continue;
                 }
-                else if (ops[i].arg1_datatype == HYPERDATATYPE_SET_GENERIC)
+                else if (funcs[i].arg1_datatype == HYPERDATATYPE_SET_GENERIC)
                 {
                     *error = MICROERR_MALFORMED;
                     return NULL;
                 }
 
-                if (container != ops[i].arg1_datatype)
+                if (container != funcs[i].arg1_datatype)
                 {
                     *error = MICROERR_WRONGTYPE;
                     return NULL;
                 }
 
-                ptr = ops[i].arg1.data();
-                end = ops[i].arg1.data() + ops[i].arg1.size();
+                ptr = funcs[i].arg1.data();
+                end = funcs[i].arg1.data() + funcs[i].arg1.size();
 
                 while (ptr < end)
                 {
@@ -148,58 +157,58 @@ apply_set(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice* e
                 }
 
                 break;
-            case OP_SET_ADD:
-                if (element != ops[i].arg1_datatype)
+            case hyperdex::FUNC_SET_ADD:
+                if (element != funcs[i].arg1_datatype)
                 {
                     *error = MICROERR_WRONGTYPE;
                     return NULL;
                 }
 
-                if (!validate_elem(ops[i].arg1))
+                if (!validate_elem(funcs[i].arg1))
                 {
                     *error = MICROERR_MALFORMED;
                     return NULL;
                 }
 
-                set.insert(ops[i].arg1);
+                set.insert(funcs[i].arg1);
                 break;
-            case OP_SET_REMOVE:
-                if (element != ops[i].arg1_datatype)
+            case hyperdex::FUNC_SET_REMOVE:
+                if (element != funcs[i].arg1_datatype)
                 {
                     *error = MICROERR_WRONGTYPE;
                     return NULL;
                 }
 
-                if (!validate_elem(ops[i].arg1))
+                if (!validate_elem(funcs[i].arg1))
                 {
                     *error = MICROERR_MALFORMED;
                     return NULL;
                 }
 
-                set.erase(ops[i].arg1);
+                set.erase(funcs[i].arg1);
                 break;
-            case OP_SET_INTERSECT:
-                if (ops[i].arg1_datatype == HYPERDATATYPE_SET_GENERIC &&
-                    ops[i].arg1.size() == 0)
+            case hyperdex::FUNC_SET_INTERSECT:
+                if (funcs[i].arg1_datatype == HYPERDATATYPE_SET_GENERIC &&
+                    funcs[i].arg1.size() == 0)
                 {
                     set.clear();
                     continue;
                 }
-                else if (ops[i].arg1_datatype == HYPERDATATYPE_SET_GENERIC)
+                else if (funcs[i].arg1_datatype == HYPERDATATYPE_SET_GENERIC)
                 {
                     *error = MICROERR_MALFORMED;
                     return NULL;
                 }
 
-                if (container != ops[i].arg1_datatype)
+                if (container != funcs[i].arg1_datatype)
                 {
                     *error = MICROERR_WRONGTYPE;
                     return NULL;
                 }
 
                 tmp.clear();
-                ptr = ops[i].arg1.data();
-                end = ops[i].arg1.data() + ops[i].arg1.size();
+                ptr = funcs[i].arg1.data();
+                end = funcs[i].arg1.data() + funcs[i].arg1.size();
 
                 while (ptr < end)
                 {
@@ -217,21 +226,21 @@ apply_set(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice* e
 
                 set.swap(tmp);
                 break;
-            case OP_FAIL:
-            case OP_STRING_APPEND:
-            case OP_STRING_PREPEND:
-            case OP_NUM_ADD:
-            case OP_NUM_SUB:
-            case OP_NUM_MUL:
-            case OP_NUM_DIV:
-            case OP_NUM_MOD:
-            case OP_NUM_AND:
-            case OP_NUM_OR:
-            case OP_NUM_XOR:
-            case OP_LIST_LPUSH:
-            case OP_LIST_RPUSH:
-            case OP_MAP_ADD:
-            case OP_MAP_REMOVE:
+            case hyperdex::FUNC_FAIL:
+            case hyperdex::FUNC_STRING_APPEND:
+            case hyperdex::FUNC_STRING_PREPEND:
+            case hyperdex::FUNC_NUM_ADD:
+            case hyperdex::FUNC_NUM_SUB:
+            case hyperdex::FUNC_NUM_MUL:
+            case hyperdex::FUNC_NUM_DIV:
+            case hyperdex::FUNC_NUM_MOD:
+            case hyperdex::FUNC_NUM_AND:
+            case hyperdex::FUNC_NUM_OR:
+            case hyperdex::FUNC_NUM_XOR:
+            case hyperdex::FUNC_LIST_LPUSH:
+            case hyperdex::FUNC_LIST_RPUSH:
+            case hyperdex::FUNC_MAP_ADD:
+            case hyperdex::FUNC_MAP_REMOVE:
             default:
                 *error = MICROERR_WRONGACTION;
                 return NULL;
@@ -252,12 +261,13 @@ apply_set(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice* e
 #define APPLY_SET(TYPE, TYPECAPS) \
     uint8_t* \
     apply_set_ ## TYPE(const e::slice& old_value, \
-                       const microop* ops, size_t num_ops, \
+                       const funcall* funcs, size_t num_funcs, \
                        uint8_t* writeto, microerror* error) \
     { \
-        return apply_set(step_ ## TYPE, validate_as_ ## TYPE, compare_ ## TYPE, write_ ## TYPE, \
+        return apply_set(step_ ## TYPE, validate_as_ ## TYPE, \
+                         compare_less<compare_ ## TYPE>, write_ ## TYPE, \
                          HYPERDATATYPE_SET_ ## TYPECAPS, HYPERDATATYPE_ ## TYPECAPS, \
-                         old_value, ops, num_ops, writeto, error); \
+                         old_value, funcs, num_funcs, writeto, error); \
     }
 
 APPLY_SET(string, STRING)

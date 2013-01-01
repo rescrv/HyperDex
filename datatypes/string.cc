@@ -28,6 +28,8 @@
 // HyperDex
 #include "datatypes/string.h"
 
+using hyperdex::funcall;
+
 bool
 validate_as_string(const e::slice&)
 {
@@ -36,65 +38,65 @@ validate_as_string(const e::slice&)
 
 uint8_t*
 apply_string(const e::slice& old_value,
-             const microop* ops, size_t num_ops,
+             const funcall* funcs, size_t num_funcs,
              uint8_t* writeto, microerror* error)
 {
     uint8_t* const ptr = writeto;
     size_t sz = old_value.size();
     memmove(ptr, old_value.data(), sz);
 
-    for (size_t i = 0; i < num_ops; ++i)
+    for (size_t i = 0; i < num_funcs; ++i)
     {
-        if (ops[i].arg1_datatype != HYPERDATATYPE_STRING)
+        if (funcs[i].arg1_datatype != HYPERDATATYPE_STRING)
         {
             *error = MICROERR_WRONGTYPE;
             return NULL;
         }
 
-        if (!validate_as_string(ops[i].arg1))
+        if (!validate_as_string(funcs[i].arg1))
         {
             *error = MICROERR_MALFORMED;
             return NULL;
         }
 
-        switch (ops[i].action)
+        switch (funcs[i].name)
         {
-            case OP_SET:
+            case hyperdex::FUNC_SET:
                 // Overwrite
-                memmove(ptr, ops[i].arg1.data(), ops[i].arg1.size());
-                sz = ops[i].arg1.size();
+                memmove(ptr, funcs[i].arg1.data(), funcs[i].arg1.size());
+                sz = funcs[i].arg1.size();
                 break;
-            case OP_STRING_PREPEND:
+            case hyperdex::FUNC_STRING_PREPEND:
                 // Shift
-                memmove(ptr + ops[i].arg1.size(), ptr, sz);
+                memmove(ptr + funcs[i].arg1.size(), ptr, sz);
                 // Fill
-                memmove(ptr, ops[i].arg1.data(), ops[i].arg1.size());
+                memmove(ptr, funcs[i].arg1.data(), funcs[i].arg1.size());
                 // Resize
-                sz += ops[i].arg1.size();
+                sz += funcs[i].arg1.size();
                 break;
-            case OP_STRING_APPEND:
+            case hyperdex::FUNC_STRING_APPEND:
                 // Fill
-                memmove(ptr + sz, ops[i].arg1.data(), ops[i].arg1.size());
+                memmove(ptr + sz, funcs[i].arg1.data(), funcs[i].arg1.size());
                 // Resize
-                sz += ops[i].arg1.size();
+                sz += funcs[i].arg1.size();
                 break;
-            case OP_FAIL:
-            case OP_NUM_ADD:
-            case OP_NUM_SUB:
-            case OP_NUM_MUL:
-            case OP_NUM_DIV:
-            case OP_NUM_MOD:
-            case OP_NUM_AND:
-            case OP_NUM_OR:
-            case OP_NUM_XOR:
-            case OP_LIST_LPUSH:
-            case OP_LIST_RPUSH:
-            case OP_SET_ADD:
-            case OP_SET_REMOVE:
-            case OP_SET_INTERSECT:
-            case OP_SET_UNION:
-            case OP_MAP_ADD:
-            case OP_MAP_REMOVE:
+            case hyperdex::FUNC_FAIL:
+            case hyperdex::FUNC_NUM_ADD:
+            case hyperdex::FUNC_NUM_SUB:
+            case hyperdex::FUNC_NUM_MUL:
+            case hyperdex::FUNC_NUM_DIV:
+            case hyperdex::FUNC_NUM_MOD:
+            case hyperdex::FUNC_NUM_AND:
+            case hyperdex::FUNC_NUM_OR:
+            case hyperdex::FUNC_NUM_XOR:
+            case hyperdex::FUNC_LIST_LPUSH:
+            case hyperdex::FUNC_LIST_RPUSH:
+            case hyperdex::FUNC_SET_ADD:
+            case hyperdex::FUNC_SET_REMOVE:
+            case hyperdex::FUNC_SET_INTERSECT:
+            case hyperdex::FUNC_SET_UNION:
+            case hyperdex::FUNC_MAP_ADD:
+            case hyperdex::FUNC_MAP_REMOVE:
             default:
                 *error = MICROERR_WRONGACTION;
                 return NULL;
