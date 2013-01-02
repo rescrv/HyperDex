@@ -175,7 +175,7 @@ datalayer :: setup(const po6::pathname& path,
     ropts.fill_cache = true;
     ropts.verify_checksums = true;
     leveldb::WriteOptions wopts;
-    wopts.sync = true;
+    wopts.sync = false;
 
     leveldb::Slice rk("hyperdex", 8);
     std::string rbacking;
@@ -406,7 +406,7 @@ datalayer :: put(const region_id& ri,
     const schema* sc = m_daemon->m_config.get_schema(ri);
     assert(sc);
     leveldb::WriteOptions opts;
-    opts.sync = true;
+    opts.sync = false;
     std::vector<char> kbacking;
     leveldb::Slice lkey;
     encode_key(ri, key, &kbacking, &lkey);
@@ -461,7 +461,7 @@ datalayer :: del(const region_id& ri,
     const schema* sc = m_daemon->m_config.get_schema(ri);
     assert(sc);
     leveldb::WriteOptions opts;
-    opts.sync = true;
+    opts.sync = false;
     std::vector<char> kbacking;
     leveldb::Slice lkey;
     encode_key(ri, key, &kbacking, &lkey);
@@ -628,7 +628,7 @@ datalayer :: mark_acked(const region_id& reg_id, uint64_t seq_id)
     // make it so that increasing seq_ids are ordered in reverse in the KVS
     seq_id = UINT64_MAX - seq_id;
     leveldb::WriteOptions opts;
-    opts.sync = true;
+    opts.sync = false;
     char backing[sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t)];
     backing[0] = 'a';
     e::pack64be(reg_id.get(), backing + sizeof(uint8_t));
