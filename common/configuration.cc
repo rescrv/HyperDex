@@ -503,7 +503,9 @@ configuration :: debug_dump(std::ostream& out)
             for (size_t y = 0; y < ss.regions.size(); ++y)
             {
                 region& r(ss.regions[y]);
-                out << "    region id=" << r.id << " lower=<";
+                out << "    region id=" << r.id
+                    << (r.capture ? " capture" : "")
+                    << " lower=<";
                 bool first = true;
 
                 for (size_t i = 0; i < r.lower_coord.size(); ++i)
