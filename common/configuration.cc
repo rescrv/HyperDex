@@ -560,7 +560,14 @@ configuration :: debug_dump(std::ostream& out)
                     first = false;
                 }
 
-                out << "]" << std::endl;
+                out << "]";
+
+                if (r.tid != transfer_id())
+                {
+                    out << " " << r.tid << "->" << r.tsi;
+                }
+
+                out << std::endl;
             }
         }
     }

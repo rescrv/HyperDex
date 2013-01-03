@@ -25,38 +25,56 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_client_tool_wrapper_h_
-#define hyperdex_client_tool_wrapper_h_
+#ifndef hyperdex_common_transfer_id_h_
+#define hyperdex_common_transfer_id_h_
 
-// HyperDex
-#include "client/hyperclient.h"
+// C
+#include <stdint.h>
+
+// C++
+#include <iostream>
 
 namespace hyperdex
 {
 
-class tool_wrapper
+class transfer_id
 {
     public:
-        tool_wrapper(hyperclient* h) : m_h(h) {}
-        tool_wrapper(const tool_wrapper& other) : m_h(other.m_h) {}
-        ~tool_wrapper() throw () {}
+        transfer_id() : m_id(0) {}
+        explicit transfer_id(uint64_t id) : m_id(id) {}
 
     public:
-        hyperclient_returncode show_config(std::ostream& out)
-        { return m_h->show_config(out); }
-        hyperclient_returncode kill(uint64_t server_id)
-        { return m_h->kill(server_id); }
-        hyperclient_returncode initiate_transfer(uint64_t region_id, uint64_t server_id)
-        { return m_h->initiate_transfer(region_id, server_id); }
-
-    public:
-        tool_wrapper& operator = (const tool_wrapper& rhs)
-        { m_h = rhs.m_h; return *this; }
+        uint64_t get() const { return m_id; }
+        uint64_t hash() const { return m_id; }
 
     private:
-        hyperclient* m_h;
+        uint64_t m_id;
 };
+
+inline std::ostream&
+operator << (std::ostream& lhs, const transfer_id& rhs)
+{
+    return lhs << "transfer(" << rhs.get() << ")";
+}
+
+inline bool
+operator < (const transfer_id& lhs, const transfer_id& rhs)
+{
+    return lhs.get() < rhs.get();
+}
+
+inline bool
+operator == (const transfer_id& lhs, const transfer_id& rhs)
+{
+    return lhs.get() == rhs.get();
+}
+
+inline bool
+operator != (const transfer_id& lhs, const transfer_id& rhs)
+{
+    return lhs.get() != rhs.get();
+}
 
 } // namespace hyperdex
 
-#endif // hyperdex_client_tool_wrapper_h_
+#endif // hyperdex_common_transfer_id_h_

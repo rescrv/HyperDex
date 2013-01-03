@@ -351,6 +351,8 @@ region :: region()
     , upper_coord()
     , replicas()
     , capture(false)
+    , tid()
+    , tsi()
 {
 }
 
@@ -360,6 +362,8 @@ region :: region(const region& other)
     , upper_coord(other.upper_coord)
     , replicas(other.replicas)
     , capture(other.capture)
+    , tid(other.tid)
+    , tsi(other.tsi)
 {
 }
 
@@ -375,6 +379,8 @@ region :: operator = (const region& rhs)
     upper_coord = rhs.upper_coord;
     replicas = rhs.replicas;
     capture = rhs.capture;
+    tid = rhs.tid;
+    tsi = rhs.tsi;
     return *this;
 }
 
@@ -383,7 +389,8 @@ hyperdex :: operator << (e::buffer::packer pa, const region& r)
 {
     uint16_t num_hashes = r.lower_coord.size();
     uint8_t num_replicas = r.replicas.size();
-    uint8_t flags = (r.capture ? 1 : 0);
+    uint8_t flags = (r.capture ? 1 : 0)
+                  | (r.tid != transfer_id() ? 2 : 0);
     pa = pa << r.id.get() << num_hashes << num_replicas << flags;
 
     for (size_t i = 0; i < num_hashes; ++i)
@@ -394,6 +401,11 @@ hyperdex :: operator << (e::buffer::packer pa, const region& r)
     for (size_t i = 0; i < num_replicas; ++i)
     {
         pa = pa << r.replicas[i];
+    }
+
+    if (r.tid != transfer_id())
+    {
+        pa = pa << r.tid.get() << r.tsi.get();
     }
 
     return pa;
@@ -423,6 +435,15 @@ hyperdex :: operator >> (e::unpacker up, region& r)
         up = up >> r.replicas[i];
     }
 
+    if ((flags & 2))
+    {
+        uint64_t tid;
+        uint64_t tsi;
+        up = up >> tid >> tsi;
+        r.tid = transfer_id(tid);
+        r.tsi = server_id(tsi);
+    }
+
     return up;
 }
 
@@ -433,7 +454,9 @@ hyperdex :: pack_size(const region& r)
               + sizeof(uint16_t) /* num_hashes */
               + sizeof(uint8_t) /* num_replicas */
               + sizeof(uint8_t) /* flags */
-              + 2 * sizeof(uint64_t) * r.lower_coord.size();
+              + 2 * sizeof(uint64_t) * r.lower_coord.size()
+              + sizeof(uint64_t) /* tid */
+              + sizeof(uint64_t); /* tsi */
 
     for (size_t i = 0; i < r.replicas.size(); ++i)
     {

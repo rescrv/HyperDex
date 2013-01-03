@@ -41,6 +41,7 @@
 #include "common/server_id.h"
 #include "common/space_id.h"
 #include "common/subspace_id.h"
+#include "common/transfer_id.h"
 #include "common/virtual_server_id.h"
 
 namespace hyperdex
@@ -130,6 +131,8 @@ class region
         std::vector<uint64_t> upper_coord;
         std::vector<replica> replicas;
         bool capture;
+        transfer_id tid;
+        server_id tsi;
 };
 
 e::buffer::packer

@@ -403,6 +403,7 @@ daemon :: register_id(server_id us, const po6::net::location& bind_to)
                 break;
             case COORD_MALFORMED:
             case COORD_NOT_FOUND:
+            case COORD_TRANSFER_IN_PROGRESS:
             default:
                 ret = -1;
                 LOG(ERROR) << "could not register this instance with the coordinator "

@@ -62,7 +62,8 @@ hyperdexexec_PROGRAMS = \
 			hyperdex-add-space \
 			hyperdex-rm-space \
 			hyperdex-kill \
-			hyperdex-show-config
+			hyperdex-show-config \
+			hyperdex-initiate-transfer
 
 noinst_PROGRAMS = \
 			client/c/testcompile \
@@ -219,6 +220,7 @@ libhypercoordinator_la_SOURCES = \
 			coordinator/add-space.cc \
 			coordinator/coordinator.cc \
 			coordinator/get-config.cc \
+			coordinator/initiate-transfer.cc \
 			coordinator/kill.cc \
 			coordinator/meta.cc \
 			coordinator/register.cc \
@@ -378,6 +380,9 @@ hyperdex_kill_LDADD = libhyperclient.la
 
 hyperdex_show_config_SOURCES = tools/show-config.cc
 hyperdex_show_config_LDADD = libhyperclient.la
+
+hyperdex_initiate_transfer_SOURCES = tools/initiate-transfer.cc
+hyperdex_initiate_transfer_LDADD = libhyperclient.la
 
 ################################################################################
 ################################## Benchmarks ##################################
