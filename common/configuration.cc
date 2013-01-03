@@ -297,6 +297,25 @@ configuration :: next_in_region(const virtual_server_id& vsi) const
     return virtual_server_id();
 }
 
+void
+configuration :: point_leaders(const server_id& si, std::vector<region_id>* servers) const
+{
+    for (size_t s = 0; s < m_spaces.size(); ++s)
+    {
+        for (size_t ss = 0; ss < m_spaces[s].subspaces.size(); ++ss)
+        {
+            for (size_t r = 0; r < m_spaces[s].subspaces[ss].regions.size(); ++r)
+            {
+                if (!m_spaces[s].subspaces[ss].regions[r].replicas.empty() &&
+                    m_spaces[s].subspaces[ss].regions[r].replicas[0].si == si)
+                {
+                    servers->push_back(m_spaces[s].subspaces[ss].regions[r].id);
+                }
+            }
+        }
+    }
+}
+
 bool
 configuration :: is_point_leader(const virtual_server_id& e) const
 {
