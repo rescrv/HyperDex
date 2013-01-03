@@ -75,6 +75,12 @@ operator != (const region_id& lhs, const region_id& rhs)
     return lhs.get() != rhs.get();
 }
 
+inline bool
+operator > (const region_id& lhs, const region_id& rhs)
+{
+    return lhs.get() > rhs.get();
+}
+
 } // namespace hyperdex
 
 #endif // hyperdex_common_region_id_h_
