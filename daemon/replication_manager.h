@@ -46,6 +46,7 @@
 // HyperDex
 #include "common/attribute_check.h"
 #include "common/configuration.h"
+#include "common/counter_map.h"
 #include "common/funcall.h"
 #include "common/network_returncode.h"
 #include "common/server_id.h"
@@ -125,9 +126,7 @@ class replication_manager
         class keyholder;
         class keypair;
         static uint64_t hash(const keypair&);
-        static uint64_t hash(const uint64_t& k) { return std::tr1::hash<uint64_t>()(k); }
         typedef e::lockfree_hash_map<keypair, e::intrusive_ptr<keyholder>, hash> keyholder_map_t;
-        typedef e::lockfree_hash_map<uint64_t, uint64_t*, hash> counter_map_t;
 
     private:
         replication_manager(const replication_manager&);
@@ -177,8 +176,6 @@ class replication_manager
                                const server_id& client,
                                uint64_t nonce,
                                network_returncode ret);
-        // Operation ids
-        uint64_t counter_for(const region_id& ri);
         // Retransmit functions
         void retransmitter();
         void shutdown();
@@ -192,7 +189,7 @@ class replication_manager
         po6::threads::cond m_wakeup_retransmitter;
         bool m_need_retransmit;
         bool m_shutdown;
-        counter_map_t m_counters;
+        counter_map m_counters;
 };
 
 } // namespace hyperdex

@@ -63,7 +63,7 @@ replication_manager :: replication_manager(daemon* d)
     , m_wakeup_retransmitter(&m_block_retransmitter)
     , m_need_retransmit(false)
     , m_shutdown(true)
-    , m_counters(16)
+    , m_counters()
 {
 }
 
@@ -117,44 +117,25 @@ replication_manager :: reconfigure(const configuration&,
     std::vector<region_id> regions;
     new_config.point_leaders(m_daemon->m_us, &regions);
     std::sort(regions.begin(), regions.end());
-
-    for (counter_map_t::iterator it = m_counters.begin();
-            it != m_counters.end(); it.next())
-    {
-        // if the counter does not exist in regions
-        if (!std::binary_search(regions.begin(),
-                                regions.end(),
-                                region_id(it.key())))
-        {
-            m_counters.remove(it.key());
-        }
-    }
+    m_counters.adopt(regions);
 
     for (size_t i = 0; i < regions.size(); ++i)
     {
-        uint64_t* counter = NULL;
-
-        if (!m_counters.lookup(regions[i].get(), &counter))
-        {
-            std::auto_ptr<uint64_t> tmp(new uint64_t(0));
-            bool inserted = m_counters.insert(regions[i].get(), tmp.get());
-            assert(inserted);
-            counter = tmp.release();
-        }
-
-        assert(counter);
         std::map<uint64_t, uint64_t>::iterator it = seq_ids.find(regions[i].get());
+        uint64_t non_counter_max = 0;
 
         if (it == seq_ids.end())
         {
-            uint64_t tmp = 0;
-            m_daemon->m_data.max_seq_id(regions[i], &tmp);
-            *counter = std::max(*counter, tmp);
+            m_daemon->m_data.max_seq_id(regions[i], &non_counter_max);
+            ++non_counter_max;
         }
         else
         {
-            *counter = std::max(*counter, it->second + 1);
+            non_counter_max = it->second + 1;
         }
+
+        bool found = m_counters.take_max(regions[i], non_counter_max);
+        assert(found);
     }
 
     return RECONFIGURE_SUCCESS;
@@ -255,7 +236,9 @@ replication_manager :: client_atomic(const server_id& from,
     }
 
     bool has_new_value = !erase;
-    uint64_t seq_id = counter_for(ri);
+    uint64_t seq_id;
+    bool found = m_counters.lookup(ri, &seq_id);
+    assert(found);
 
     e::intrusive_ptr<pending> new_pend(new pending(backing, ri, seq_id, !has_old_value && has_new_value, has_new_value, new_value, from, nonce));
     hash_objects(ri, *sc, key, has_new_value, new_value, has_old_value, *old_value, new_pend);
@@ -940,15 +923,6 @@ replication_manager :: respond_to_client(const virtual_server_id& us,
     uint16_t result = static_cast<uint16_t>(ret);
     msg->pack_at(HYPERDEX_HEADER_SIZE_VS) << nonce << result;
     m_daemon->m_comm.send(us, client, RESP_ATOMIC, msg);
-}
-
-uint64_t
-replication_manager :: counter_for(const region_id& ri)
-{
-    uint64_t* count = NULL;
-    bool found = m_counters.lookup(ri.get(), &count);
-    assert(found);
-    return __sync_fetch_and_add(count, 0);
 }
 
 void

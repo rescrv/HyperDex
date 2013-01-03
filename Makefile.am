@@ -89,6 +89,7 @@ noinst_HEADERS = \
 			common/attribute.h \
 			common/configuration.h \
 			common/coordinator_returncode.h \
+			common/counter_map.h \
 			common/float_encode.h \
 			common/funcall.h \
 			common/hash.h \
@@ -167,6 +168,7 @@ hyperdex_daemon_SOURCES = \
 			common/attribute.cc \
 			common/attribute_check.cc \
 			common/configuration.cc \
+			common/counter_map.cc \
 			common/float_encode.cc \
 			common/funcall.cc \
 			common/hash.cc \
