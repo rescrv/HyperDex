@@ -998,7 +998,6 @@ hyperclient :: prepare_checks(const hyperdex::schema* sc,
             return i;
         }
 
-        // XXX WRONG CHECK
         if (!container_implicit_coercion(sc->attrs[attrnum].type,
                                          e::slice(checks[i].value, checks[i].value_sz),
                                          checks[i].datatype))
