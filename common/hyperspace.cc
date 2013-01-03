@@ -85,7 +85,7 @@ space :: validate()
 
     for (size_t i = 0; i < subspaces.size(); ++i)
     {
-        // XXX if subspaces[i].regions does not fill volume
+        // XXX if subspaces[i].regions does not fill volume, then fail
 
         for (size_t j = 0; j < subspaces[i].regions.size(); ++j)
         {

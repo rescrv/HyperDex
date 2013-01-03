@@ -65,6 +65,11 @@ hyperdex_coordinator_add_space(struct replicant_state_machine_context* ctx,
         return generate_response(ctx, c, hyperdex::COORD_MALFORMED);
     }
 
+    if (!s.validate())
+    {
+        return generate_response(ctx, c, hyperdex::COORD_MALFORMED);
+    }
+
     // Check that a space with this name doesn't already exist
     for (std::list<space>::iterator it = c->spaces.begin(); it != c->spaces.end(); ++it)
     {
@@ -91,8 +96,6 @@ hyperdex_coordinator_add_space(struct replicant_state_machine_context* ctx,
         }
     }
 
-    // XXX we trust that regions completely fill all space.  we should validate
-    // this ourselves rather than trusting input
     c->spaces.push_back(s);
     c->initial_layout(&c->spaces.back());
     c->regenerate(ctx);
