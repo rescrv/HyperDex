@@ -220,8 +220,9 @@ replication_manager :: client_atomic(const server_id& from,
     }
 
     assert(!kh->has_deferred_ops());
-    kh->insert_blocked(old_version + 1, new_pend);
+    kh->insert_deferred(old_version + 1, new_pend);
     move_operations_between_queues(to, ri, *sc, key, kh);
+    assert(!kh->has_deferred_ops());
 }
 
 void
@@ -651,11 +652,6 @@ replication_manager :: move_operations_between_queues(const virtual_server_id& u
         kh->get_latest_version(&has_old_value, &old_version, &old_value);
         assert(old_version < kh->oldest_deferred_version());
 
-        if (!has_old_value)
-        {
-            break;
-        }
-
         if (old_version + 1 != kh->oldest_deferred_version())
         {
             break;
@@ -667,14 +663,17 @@ replication_manager :: move_operations_between_queues(const virtual_server_id& u
         if (new_pend->this_old_region != ri && new_pend->this_new_region != ri)
         {
             LOG(INFO) << "dropping deferred CHAIN_* which didn't get sent to the right host";
-            return;
+            kh->pop_oldest_deferred();
+            continue;
         }
 
-        if (m_daemon->m_config.next_in_region(new_pend->recv) != us &&
+        if (new_pend->recv != virtual_server_id() &&
+            m_daemon->m_config.next_in_region(new_pend->recv) != us &&
             !m_daemon->m_config.subspace_adjacent(new_pend->recv, us))
         {
             LOG(INFO) << "dropping deferred CHAIN_* which didn't come from the right host";
-            return;
+            kh->pop_oldest_deferred();
+            continue;
         }
 
         kh->shift_one_deferred_to_blocked();

@@ -229,14 +229,6 @@ replication_manager :: keyholder :: set_version_on_disk(uint64_t version)
 }
 
 void
-replication_manager :: keyholder :: insert_blocked(uint64_t version,
-                                                    e::intrusive_ptr<pending> op)
-{
-    assert(m_blocked.empty() || m_blocked.back().first < version);
-    m_blocked.push_back(std::make_pair(version, op));
-}
-
-void
 replication_manager :: keyholder :: insert_deferred(uint64_t version,
                                                     e::intrusive_ptr<pending> op)
 {
@@ -251,6 +243,13 @@ replication_manager :: keyholder :: insert_deferred(uint64_t version,
 }
 
 void
+replication_manager :: keyholder :: pop_oldest_deferred()
+{
+    assert(!m_deferred.empty());
+    m_deferred.pop_front();
+}
+
+void
 replication_manager :: keyholder :: shift_one_blocked_to_committable()
 {
     assert(!m_blocked.empty());
@@ -261,9 +260,9 @@ replication_manager :: keyholder :: shift_one_blocked_to_committable()
 void
 replication_manager :: keyholder :: shift_one_deferred_to_blocked()
 {
-    assert(!m_blocked.empty());
-    m_committable.push_back(m_blocked.front());
-    m_blocked.pop_front();
+    assert(!m_deferred.empty());
+    m_blocked.push_back(m_deferred.front());
+    m_deferred.pop_front();
 }
 
 void
