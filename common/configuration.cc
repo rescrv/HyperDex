@@ -92,7 +92,7 @@ configuration :: get_address(const server_id& id) const
 {
     std::vector<uint64_location_t>::const_iterator it;
     it = std::lower_bound(m_addresses_by_server_id.begin(),
-                          m_addresses_by_server_id.begin(),
+                          m_addresses_by_server_id.end(),
                           uint64_location_t(id.get(), po6::net::location()));
 
     if (it != m_addresses_by_server_id.end() && it->first == id.get())
