@@ -44,6 +44,7 @@
 // HyperDex
 #include "common/attribute_check.h"
 #include "common/configuration.h"
+#include "common/counter_map.h"
 #include "common/region_id.h"
 #include "common/schema.h"
 #include "common/server_id.h"
@@ -136,6 +137,11 @@ class datalayer
         returncode decode_value(const e::slice& value,
                                 std::vector<e::slice>* attrs,
                                 uint64_t* version);
+        void encode_transfer(const region_id& ri,
+                             uint64_t count,
+                             const e::slice& key,
+                             std::vector<char>* backing,
+                             leveldb::Slice* tkey);
         void generate_object_range(const region_id& ri,
                                    backing_t* backing,
                                    leveldb::Range* r);
@@ -168,6 +174,7 @@ class datalayer
     private:
         daemon* m_daemon;
         leveldb::DB* m_db;
+        counter_map m_counters;
 };
 
 class datalayer::reference

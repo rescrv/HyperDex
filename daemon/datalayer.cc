@@ -143,6 +143,7 @@ parse_index_sizeof8(const leveldb::Slice& s, e::slice* k)
 datalayer :: datalayer(daemon* d)
     : m_daemon(d)
     , m_db(NULL)
+    , m_counters()
 {
 }
 
@@ -338,10 +339,13 @@ datalayer :: prepare(const configuration&,
 
 reconfigure_returncode
 datalayer :: reconfigure(const configuration&,
-                         const configuration&,
+                         const configuration& new_config,
                          const server_id&)
 {
-    // XXX
+    std::vector<region_id> regions;
+    new_config.captured_regions(m_daemon->m_us, &regions);
+    std::sort(regions.begin(), regions.end());
+    m_counters.adopt(regions);
     return RECONFIGURE_SUCCESS;
 }
 
@@ -432,6 +436,16 @@ datalayer :: put(const region_id& ri,
     leveldb::Slice akey(abacking, sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t));
     leveldb::Slice aval("", 0);
     updates.Put(akey, aval);
+    uint64_t count;
+
+    // If this is a captured region, then we must log this transfer
+    if (m_counters.lookup(ri, &count))
+    {
+        backing.push_back(std::vector<char>());
+        leveldb::Slice tkey;
+        encode_transfer(ri, count, key, &backing.back(), &tkey);
+        updates.Put(tkey, lvalue);
+    }
 
     // Perform the write
     leveldb::Status st = m_db->Write(opts, &updates);
@@ -495,6 +509,17 @@ datalayer :: del(const region_id& ri,
     leveldb::Slice akey(abacking, sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t));
     leveldb::Slice aval("", 0);
     updates.Put(akey, aval);
+    uint64_t count;
+
+    // If this is a captured region, then we must log this transfer
+    if (m_counters.lookup(ri, &count))
+    {
+        backing.push_back(std::vector<char>());
+        leveldb::Slice tkey;
+        encode_transfer(ri, count, key, &backing.back(), &tkey);
+        leveldb::Slice tval("", 0);
+        updates.Put(tkey, tval);
+    }
 
     // Perform the write
     leveldb::Status st = m_db->Write(opts, &updates);
@@ -844,6 +869,23 @@ datalayer :: decode_value(const e::slice& value,
     }
 
     return SUCCESS;
+}
+
+void
+datalayer :: encode_transfer(const region_id& ri,
+                             uint64_t count,
+                             const e::slice& key,
+                             std::vector<char>* backing,
+                             leveldb::Slice* tkey)
+{
+    backing->resize(sizeof(uint8_t) + 3 * sizeof(uint64_t) + key.size());
+    char* tmp = &backing->front();
+    tmp = e::pack8be('t', tmp);
+    tmp = e::pack64be(ri.get(), tmp);
+    tmp = e::pack64be(m_daemon->m_config.version(), tmp);
+    tmp = e::pack64be(count, tmp);
+    memmove(tmp, key.data(), key.size());
+    *tkey = leveldb::Slice(&backing->front(), sizeof(uint8_t) + 3 * sizeof(uint64_t) + key.size());
 }
 
 void
