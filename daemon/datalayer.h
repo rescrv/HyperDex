@@ -97,10 +97,12 @@ class datalayer
                        uint64_t* version,
                        reference* ref);
         returncode put(const region_id& ri,
+                       uint64_t seq_id,
                        const e::slice& key,
                        const std::vector<e::slice>& value,
                        uint64_t version);
         returncode del(const region_id& ri,
+                       uint64_t seq_id,
                        const e::slice& key);
         returncode make_snapshot(const region_id& ri,
                                  attribute_check* checks,

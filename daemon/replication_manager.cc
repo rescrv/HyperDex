@@ -290,6 +290,12 @@ replication_manager :: chain_op(const virtual_server_id& from,
     HOLD_LOCK_FOR_KEY(ri, key);
     e::intrusive_ptr<keyholder> kh = get_or_create_keyholder(ri, key);
 
+    if (reg_id != ri)
+    {
+        LOG(ERROR) << "dropping CHAIN_OP send to the wrong region";
+        return;
+    }
+
     if (retransmission && m_daemon->m_data.check_acked(reg_id, seq_id))
     {
         LOG(INFO) << "acking duplicate CHAIN_*";
@@ -347,6 +353,12 @@ replication_manager :: chain_subspace(const virtual_server_id& from,
     const schema* sc = m_daemon->m_config.get_schema(ri);
     HOLD_LOCK_FOR_KEY(ri, key);
     e::intrusive_ptr<keyholder> kh = get_or_create_keyholder(ri, key);
+
+    if (reg_id != ri)
+    {
+        LOG(ERROR) << "dropping CHAIN_OP send to the wrong region";
+        return;
+    }
 
     if (retransmission && m_daemon->m_data.check_acked(reg_id, seq_id))
     {
@@ -416,6 +428,12 @@ replication_manager :: chain_ack(const virtual_server_id& from,
     HOLD_LOCK_FOR_KEY(ri, key);
     e::intrusive_ptr<keyholder> kh = get_keyholder(ri, key);
 
+    if (reg_id != ri)
+    {
+        LOG(ERROR) << "dropping CHAIN_OP send to the wrong region";
+        return;
+    }
+
     if (retransmission && m_daemon->m_data.check_acked(reg_id, seq_id))
     {
         LOG(INFO) << "dropping duplicate CHAIN_ACK";
@@ -461,10 +479,10 @@ replication_manager :: chain_ack(const virtual_server_id& from,
     }
 
     pend->acked = true;
-    m_daemon->m_data.mark_acked(reg_id, seq_id);
 
     if (kh->version_on_disk() < version)
     {
+        assert(reg_id == ri);
         e::intrusive_ptr<pending> op = kh->get_by_version(version);
         assert(op);
 
@@ -472,11 +490,11 @@ replication_manager :: chain_ack(const virtual_server_id& from,
 
         if (!op->has_value || (op->this_old_region != op->this_new_region && ri == op->this_old_region))
         {
-            rc = m_daemon->m_data.del(ri, key);
+            rc = m_daemon->m_data.del(ri, seq_id, key);
         }
         else
         {
-            rc = m_daemon->m_data.put(ri, key, op->value, version);
+            rc = m_daemon->m_data.put(ri, seq_id, key, op->value, version);
         }
 
         switch (rc)
@@ -496,6 +514,10 @@ replication_manager :: chain_ack(const virtual_server_id& from,
         }
 
         kh->set_version_on_disk(version);
+    }
+    else
+    {
+        m_daemon->m_data.mark_acked(reg_id, seq_id);
     }
 
     kh->clear_committable_acked();

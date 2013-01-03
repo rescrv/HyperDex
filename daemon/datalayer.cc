@@ -399,6 +399,7 @@ datalayer :: get(const region_id& ri,
 
 datalayer::returncode
 datalayer :: put(const region_id& ri,
+                 uint64_t seq_id,
                  const e::slice& key,
                  const std::vector<e::slice>& value,
                  uint64_t version)
@@ -423,6 +424,16 @@ datalayer :: put(const region_id& ri,
         return rc;
     }
 
+    // Mark acked as part of this batch write
+    char abacking[sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t)];
+    abacking[0] = 'a';
+    e::pack64be(ri.get(), abacking + sizeof(uint8_t));
+    e::pack64be(seq_id, abacking + sizeof(uint8_t) + sizeof(uint64_t));
+    leveldb::Slice akey(abacking, sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t));
+    leveldb::Slice aval("", 0);
+    updates.Put(akey, aval);
+
+    // Perform the write
     leveldb::Status st = m_db->Write(opts, &updates);
 
     if (st.ok())
@@ -456,6 +467,7 @@ datalayer :: put(const region_id& ri,
 
 datalayer::returncode
 datalayer :: del(const region_id& ri,
+                 uint64_t seq_id,
                  const e::slice& key)
 {
     const schema* sc = m_daemon->m_config.get_schema(ri);
@@ -475,6 +487,16 @@ datalayer :: del(const region_id& ri,
         return rc;
     }
 
+    // Mark acked as part of this batch write
+    char abacking[sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t)];
+    abacking[0] = 'a';
+    e::pack64be(ri.get(), abacking + sizeof(uint8_t));
+    e::pack64be(seq_id, abacking + sizeof(uint8_t) + sizeof(uint64_t));
+    leveldb::Slice akey(abacking, sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t));
+    leveldb::Slice aval("", 0);
+    updates.Put(akey, aval);
+
+    // Perform the write
     leveldb::Status st = m_db->Write(opts, &updates);
 
     if (st.ok())
