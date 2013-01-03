@@ -129,6 +129,7 @@ class region
         std::vector<uint64_t> lower_coord;
         std::vector<uint64_t> upper_coord;
         std::vector<replica> replicas;
+        bool capture;
 };
 
 e::buffer::packer

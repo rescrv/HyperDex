@@ -350,6 +350,7 @@ region :: region()
     , lower_coord()
     , upper_coord()
     , replicas()
+    , capture(false)
 {
 }
 
@@ -358,6 +359,7 @@ region :: region(const region& other)
     , lower_coord(other.lower_coord)
     , upper_coord(other.upper_coord)
     , replicas(other.replicas)
+    , capture(other.capture)
 {
 }
 
@@ -372,6 +374,7 @@ region :: operator = (const region& rhs)
     lower_coord = rhs.lower_coord;
     upper_coord = rhs.upper_coord;
     replicas = rhs.replicas;
+    capture = rhs.capture;
     return *this;
 }
 
@@ -380,7 +383,8 @@ hyperdex :: operator << (e::buffer::packer pa, const region& r)
 {
     uint16_t num_hashes = r.lower_coord.size();
     uint8_t num_replicas = r.replicas.size();
-    pa = pa << r.id.get() << num_hashes << num_replicas;
+    uint8_t flags = (r.capture ? 1 : 0);
+    pa = pa << r.id.get() << num_hashes << num_replicas << flags;
 
     for (size_t i = 0; i < num_hashes; ++i)
     {
@@ -401,11 +405,13 @@ hyperdex :: operator >> (e::unpacker up, region& r)
     uint64_t id;
     uint16_t num_hashes;
     uint8_t num_replicas;
-    up = up >> id >> num_hashes >> num_replicas;
+    uint8_t flags;
+    up = up >> id >> num_hashes >> num_replicas >> flags;
     r.id = region_id(id);
     r.lower_coord.resize(num_hashes);
     r.upper_coord.resize(num_hashes);
     r.replicas.resize(num_replicas);
+    r.capture = flags & 1;
 
     for (size_t i = 0; !up.error() && i < num_hashes; ++i)
     {
@@ -426,6 +432,7 @@ hyperdex :: pack_size(const region& r)
     size_t sz = sizeof(uint64_t) /* id */
               + sizeof(uint16_t) /* num_hashes */
               + sizeof(uint8_t) /* num_replicas */
+              + sizeof(uint8_t) /* flags */
               + 2 * sizeof(uint64_t) * r.lower_coord.size();
 
     for (size_t i = 0; i < r.replicas.size(); ++i)
