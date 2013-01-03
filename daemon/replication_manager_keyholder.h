@@ -48,6 +48,7 @@ class hyperdex::replication_manager::keyholder
                                 std::vector<e::slice>** old_value);
         e::intrusive_ptr<pending> get_by_version(uint64_t version) const;
         uint64_t version_on_disk() const;
+        uint64_t max_seq_id() const;
 
     public:
         bool has_committable_ops() const;

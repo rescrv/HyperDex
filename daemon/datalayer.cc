@@ -663,6 +663,43 @@ datalayer :: mark_acked(const region_id& reg_id, uint64_t seq_id)
 }
 
 void
+datalayer :: max_seq_id(const region_id& reg_id, uint64_t* seq_id)
+{
+    leveldb::ReadOptions opts;
+    opts.fill_cache = false;
+    opts.verify_checksums = true;
+    opts.snapshot = NULL;
+    std::auto_ptr<leveldb::Iterator> it(m_db->NewIterator(opts));
+    char backing[sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t)];
+    backing[0] = 'a';
+    e::pack64be(reg_id.get(), backing + sizeof(uint8_t));
+    e::pack64be(0, backing + sizeof(uint8_t) + sizeof(uint64_t));
+    leveldb::Slice key(backing, sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t));
+    it->Seek(key);
+
+    if (!it->Valid())
+    {
+        *seq_id = 0;
+        return;
+    }
+
+    key = it->key();
+    e::unpacker up(key.data(), key.size());
+    uint8_t p = '\0';
+    uint64_t r;
+    uint64_t s;
+    up = up >> p >> r >> s;
+
+    if (up.error() || p != 'a')
+    {
+        *seq_id = 0;
+        return;
+    }
+
+    *seq_id = s;
+}
+
+void
 datalayer :: encode_key(const region_id& ri,
                         const e::slice& key,
                         std::vector<char>* kbacking,

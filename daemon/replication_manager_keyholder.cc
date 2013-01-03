@@ -125,6 +125,29 @@ replication_manager :: keyholder :: version_on_disk() const
     return m_old_version;
 }
 
+uint64_t
+replication_manager :: keyholder :: max_seq_id() const
+{
+    uint64_t ret = 0;
+
+    if (!m_committable.empty())
+    {
+        ret = std::max(ret, m_committable.back().second->seq_id);
+    }
+
+    if (!m_blocked.empty())
+    {
+        ret = std::max(ret, m_blocked.back().second->seq_id);
+    }
+
+    if (!m_deferred.empty())
+    {
+        ret = std::max(ret, m_deferred.back().second->seq_id);
+    }
+
+    return ret;
+}
+
 bool
 replication_manager :: keyholder :: has_committable_ops() const
 {

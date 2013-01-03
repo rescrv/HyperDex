@@ -30,6 +30,7 @@
 
 // STL
 #include <memory>
+#include <tr1/unordered_map>
 
 // po6
 #include <po6/threads/cond.h>
@@ -124,7 +125,9 @@ class replication_manager
         class keyholder;
         class keypair;
         static uint64_t hash(const keypair&);
+        static uint64_t hash(const uint64_t& k) { return std::tr1::hash<uint64_t>()(k); }
         typedef e::lockfree_hash_map<keypair, e::intrusive_ptr<keyholder>, hash> keyholder_map_t;
+        typedef e::lockfree_hash_map<uint64_t, uint64_t*, hash> counter_map_t;
 
     private:
         replication_manager(const replication_manager&);
@@ -189,6 +192,7 @@ class replication_manager
         po6::threads::cond m_wakeup_retransmitter;
         bool m_need_retransmit;
         bool m_shutdown;
+        counter_map_t m_counters;
 };
 
 } // namespace hyperdex

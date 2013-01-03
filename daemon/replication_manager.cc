@@ -57,12 +57,13 @@ using hyperdex::replication_manager;
 replication_manager :: replication_manager(daemon* d)
     : m_daemon(d)
     , m_keyholder_locks(1024)
-    , m_keyholders(10)
+    , m_keyholders(16)
     , m_retransmitter(std::tr1::bind(&replication_manager::retransmitter, this))
     , m_block_retransmitter()
     , m_wakeup_retransmitter(&m_block_retransmitter)
     , m_need_retransmit(false)
     , m_shutdown(true)
+    , m_counters(16)
 {
 }
 
@@ -90,24 +91,70 @@ replication_manager :: prepare(const configuration&,
                                const configuration&,
                                const server_id&)
 {
+    m_block_retransmitter.lock();
     return RECONFIGURE_SUCCESS;
 }
 
 reconfigure_returncode
 replication_manager :: reconfigure(const configuration&,
-                                   const configuration&,
+                                   const configuration& new_config,
                                    const server_id&)
 {
-    po6::threads::mutex::hold hold(&m_block_retransmitter);
+    std::map<uint64_t, uint64_t> seq_ids;
 
-    for (keyholder_map_t::iterator khiter = m_keyholders.begin();
-            khiter != m_keyholders.end(); khiter.next())
+    for (keyholder_map_t::iterator it = m_keyholders.begin();
+            it != m_keyholders.end(); it.next())
     {
-        region_id ri(khiter.key().region);
-        e::slice key(khiter.key().key.data(), khiter.key().key.size());
+        region_id ri(it.key().region);
+        e::slice key(it.key().key.data(), it.key().key.size());
         HOLD_LOCK_FOR_KEY(ri, key);
-        e::intrusive_ptr<keyholder> kh = khiter.value();
+        e::intrusive_ptr<keyholder> kh = it.value();
         kh->clear_deferred();
+        uint64_t max_seq_id = kh->max_seq_id();
+        seq_ids[ri.get()] = std::max(seq_ids[ri.get()], max_seq_id);
+    }
+
+    std::vector<region_id> regions;
+    new_config.point_leaders(m_daemon->m_us, &regions);
+    std::sort(regions.begin(), regions.end());
+
+    for (counter_map_t::iterator it = m_counters.begin();
+            it != m_counters.end(); it.next())
+    {
+        // if the counter does not exist in regions
+        if (!std::binary_search(regions.begin(),
+                                regions.end(),
+                                region_id(it.key())))
+        {
+            m_counters.remove(it.key());
+        }
+    }
+
+    for (size_t i = 0; i < regions.size(); ++i)
+    {
+        uint64_t* counter = NULL;
+
+        if (!m_counters.lookup(regions[i].get(), &counter))
+        {
+            std::auto_ptr<uint64_t> tmp(new uint64_t(0));
+            bool inserted = m_counters.insert(regions[i].get(), tmp.get());
+            assert(inserted);
+            counter = tmp.release();
+        }
+
+        assert(counter);
+        std::map<uint64_t, uint64_t>::iterator it = seq_ids.find(regions[i].get());
+
+        if (it == seq_ids.end())
+        {
+            uint64_t tmp = 0;
+            m_daemon->m_data.max_seq_id(regions[i], &tmp);
+            *counter = std::max(*counter, tmp);
+        }
+        else
+        {
+            *counter = std::max(*counter, it->second + 1);
+        }
     }
 
     return RECONFIGURE_SUCCESS;
@@ -118,9 +165,9 @@ replication_manager :: cleanup(const configuration&,
                                const configuration&,
                                const server_id&)
 {
-    po6::threads::mutex::hold hold(&m_block_retransmitter);
     m_wakeup_retransmitter.broadcast();
     m_need_retransmit = true;
+    m_block_retransmitter.unlock();
     return RECONFIGURE_SUCCESS;
 }
 
@@ -873,6 +920,15 @@ replication_manager :: respond_to_client(const virtual_server_id& us,
     m_daemon->m_comm.send(us, client, RESP_ATOMIC, msg);
 }
 
+uint64_t
+replication_manager :: counter_for(const region_id& ri)
+{
+    uint64_t* count = NULL;
+    bool found = m_counters.lookup(ri.get(), &count);
+    assert(found);
+    return __sync_fetch_and_add(count, 0);
+}
+
 void
 replication_manager :: retransmitter()
 {
@@ -896,12 +952,12 @@ replication_manager :: retransmitter()
             m_need_retransmit = false;
         }
 
-        for (keyholder_map_t::iterator khiter = m_keyholders.begin();
-                khiter != m_keyholders.end(); khiter.next())
+        for (keyholder_map_t::iterator it = m_keyholders.begin();
+                it != m_keyholders.end(); it.next())
         {
             po6::threads::mutex::hold hold(&m_block_retransmitter);
-            region_id ri(khiter.key().region);
-            e::slice key(khiter.key().key.data(), khiter.key().key.size());
+            region_id ri(it.key().region);
+            e::slice key(it.key().key.data(), it.key().key.size());
             HOLD_LOCK_FOR_KEY(ri, key);
             e::intrusive_ptr<keyholder> kh = get_keyholder(ri, key);
 
@@ -914,7 +970,7 @@ replication_manager :: retransmitter()
 
             if (us == virtual_server_id())
             {
-                m_keyholders.remove(khiter.key());
+                m_keyholders.remove(it.key());
                 continue;
             }
 
@@ -924,7 +980,7 @@ replication_manager :: retransmitter()
             if (kh->empty())
             {
                 LOG(WARNING) << "leaking keyholders (this is harmless if you reconfigure enough)";
-                m_keyholders.remove(khiter.key());
+                m_keyholders.remove(it.key());
                 continue;
             }
 
