@@ -298,6 +298,33 @@ configuration :: next_in_region(const virtual_server_id& vsi) const
 }
 
 void
+configuration :: captured_regions(const server_id& si, std::vector<region_id>* servers) const
+{
+    for (size_t s = 0; s < m_spaces.size(); ++s)
+    {
+        for (size_t ss = 0; ss < m_spaces[s].subspaces.size(); ++ss)
+        {
+            for (size_t r = 0; r < m_spaces[s].subspaces[ss].regions.size(); ++r)
+            {
+                if (!m_spaces[s].subspaces[ss].regions[r].capture)
+                {
+                    continue;
+                }
+
+                for (size_t rr = 0; rr < m_spaces[s].subspaces[ss].regions[r].replicas.size(); ++rr)
+                {
+                    if (m_spaces[s].subspaces[ss].regions[r].replicas[rr].si == si)
+                    {
+                        servers->push_back(m_spaces[s].subspaces[ss].regions[r].id);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+void
 configuration :: point_leaders(const server_id& si, std::vector<region_id>* servers) const
 {
     for (size_t s = 0; s < m_spaces.size(); ++s)

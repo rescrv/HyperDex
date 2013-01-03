@@ -79,6 +79,7 @@ class configuration
         virtual_server_id head_of_region(const region_id& ri) const;
         virtual_server_id tail_of_region(const region_id& ri) const;
         virtual_server_id next_in_region(const virtual_server_id& vsi) const;
+        void captured_regions(const server_id& s, std::vector<region_id>* servers) const;
         void point_leaders(const server_id& s, std::vector<region_id>* servers) const;
         bool is_point_leader(const virtual_server_id& e) const;
         virtual_server_id point_leader(const char* space, const e::slice& key);
