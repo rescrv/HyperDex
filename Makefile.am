@@ -61,6 +61,7 @@ hyperdexexecdir = $(exec_prefix)/libexec/$(PACKAGE)-$(VERSION)
 hyperdexexec_PROGRAMS = \
 			hyperdex-add-space \
 			hyperdex-rm-space \
+			hyperdex-kill \
 			hyperdex-show-config
 
 noinst_PROGRAMS = \
@@ -369,6 +370,9 @@ hyperdex_add_space_LDADD = libhyperclient.la
 
 hyperdex_rm_space_SOURCES = tools/rm-space.cc
 hyperdex_rm_space_LDADD = libhyperclient.la
+
+hyperdex_kill_SOURCES = tools/kill.cc
+hyperdex_kill_LDADD = libhyperclient.la
 
 hyperdex_show_config_SOURCES = tools/show-config.cc
 hyperdex_show_config_LDADD = libhyperclient.la
