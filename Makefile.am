@@ -121,6 +121,7 @@ noinst_HEADERS = \
 			coordinator/add-space.h \
 			coordinator/coordinator.h \
 			coordinator/get-config.h \
+			coordinator/kill.h \
 			coordinator/meta.h \
 			coordinator/register.h \
 			coordinator/rm-space.h \
@@ -151,6 +152,7 @@ noinst_HEADERS = \
 			client/pending_statusonly.h \
 			client/refcount.h \
 			client/space_description.h \
+			client/tool_wrapper.h \
 			client/util.h \
 			client/wrap.h \
 			test/common.h \
@@ -230,7 +232,7 @@ libhypercoordinator_la_LIBADD = -le
 libhyperclient_extra_dist = \
 			client/keyop_info.gperf \
 			hyperclient/java/hyperclient.i \
-			client/python/client.pyx
+			client/python/hyperclient.pyx
 
 libhyperclient_includedir = $(includedir)
 libhyperclient_include_HEADERS = \
