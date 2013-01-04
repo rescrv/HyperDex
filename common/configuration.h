@@ -42,10 +42,11 @@
 #include "common/attribute.h"
 #include "common/attribute_check.h"
 #include "common/hyperspace.h"
+#include "common/region_id.h"
 #include "common/schema.h"
 #include "common/server_id.h"
 #include "common/subspace_id.h"
-#include "common/region_id.h"
+#include "common/transfer.h"
 #include "common/virtual_server_id.h"
 
 namespace hyperdex
@@ -79,6 +80,8 @@ class configuration
         virtual_server_id head_of_region(const region_id& ri) const;
         virtual_server_id tail_of_region(const region_id& ri) const;
         virtual_server_id next_in_region(const virtual_server_id& vsi) const;
+        void transfer_in_regions(const server_id& s, std::vector<transfer>* transfers) const;
+        void transfer_out_regions(const server_id& s, std::vector<transfer>* transfers) const;
         void captured_regions(const server_id& s, std::vector<region_id>* servers) const;
         void point_leaders(const server_id& s, std::vector<region_id>* servers) const;
         bool is_point_leader(const virtual_server_id& e) const;

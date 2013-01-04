@@ -61,6 +61,9 @@ enum network_msgtype
     CHAIN_SUBSPACE  = 65,
     CHAIN_ACK       = 66,
 
+    XFER_OP  = 80,
+    XFER_ACK = 81,
+
     CONFIGMISMATCH  = 254,
     PACKET_NOP      = 255
 };

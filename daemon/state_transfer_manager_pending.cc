@@ -25,62 +25,23 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_common_transfer_id_h_
-#define hyperdex_common_transfer_id_h_
+// HyperDex
+#include "daemon/state_transfer_manager_pending.h"
 
-// C
-#include <stdint.h>
+using hyperdex::state_transfer_manager;
 
-// C++
-#include <iostream>
-
-namespace hyperdex
+state_transfer_manager :: state_transfer_manager :: pending :: pending()
+    : seq_no(0)
+    , has_value(false)
+    , version(0)
+    , key()
+    , value()
+    , msg()
+    , ref()
+    , m_ref(0)
 {
-
-class transfer_id
-{
-    public:
-        transfer_id() : m_id(0) {}
-        explicit transfer_id(uint64_t id) : m_id(id) {}
-
-    public:
-        uint64_t get() const { return m_id; }
-        uint64_t hash() const { return m_id; }
-
-    private:
-        uint64_t m_id;
-};
-
-inline std::ostream&
-operator << (std::ostream& lhs, const transfer_id& rhs)
-{
-    return lhs << "transfer(" << rhs.get() << ")";
 }
 
-inline bool
-operator < (const transfer_id& lhs, const transfer_id& rhs)
+state_transfer_manager :: state_transfer_manager :: pending :: ~pending() throw ()
 {
-    return lhs.get() < rhs.get();
 }
-
-inline bool
-operator == (const transfer_id& lhs, const transfer_id& rhs)
-{
-    return lhs.get() == rhs.get();
-}
-
-inline bool
-operator != (const transfer_id& lhs, const transfer_id& rhs)
-{
-    return lhs.get() != rhs.get();
-}
-
-inline bool
-operator > (const transfer_id& lhs, const transfer_id& rhs)
-{
-    return lhs.get() > rhs.get();
-}
-
-} // namespace hyperdex
-
-#endif // hyperdex_common_transfer_id_h_

@@ -48,6 +48,7 @@
 #include "daemon/datalayer.h"
 #include "daemon/replication_manager.h"
 #include "daemon/search_manager.h"
+#include "daemon/state_transfer_manager.h"
 
 namespace hyperdex
 {
@@ -82,12 +83,15 @@ class daemon
         void process_chain_op(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_chain_subspace(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_chain_ack(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
+        void process_xfer_op(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
+        void process_xfer_ack(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
 
     private:
         friend class replication_manager;
         friend class communication;
         friend class datalayer;
         friend class search_manager;
+        friend class state_transfer_manager;
 
     private:
         server_id m_us;
@@ -96,6 +100,7 @@ class daemon
         datalayer m_data;
         communication m_comm;
         replication_manager m_repl;
+        state_transfer_manager m_stm;
         search_manager m_sm;
         configuration m_config;
 };

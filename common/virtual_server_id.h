@@ -55,6 +55,12 @@ operator << (std::ostream& lhs, const virtual_server_id& rhs)
 }
 
 inline bool
+operator < (const virtual_server_id& lhs, const virtual_server_id& rhs)
+{
+    return lhs.get() < rhs.get();
+}
+
+inline bool
 operator == (const virtual_server_id& lhs, const virtual_server_id& rhs)
 {
     return lhs.get() == rhs.get();
@@ -64,6 +70,12 @@ inline bool
 operator != (const virtual_server_id& lhs, const virtual_server_id& rhs)
 {
     return lhs.get() != rhs.get();
+}
+
+inline bool
+operator > (const virtual_server_id& lhs, const virtual_server_id& rhs)
+{
+    return lhs.get() > rhs.get();
 }
 
 } // namespace hyperdex

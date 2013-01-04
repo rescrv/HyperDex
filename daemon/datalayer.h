@@ -31,6 +31,7 @@
 // STL
 #include <list>
 #include <string>
+#include <tr1/memory>
 #include <vector>
 
 // LevelDB
@@ -68,6 +69,7 @@ class datalayer
             LEVELDB_ERROR
         };
         class reference;
+        class region_iterator;
         class snapshot;
 
     public:
@@ -109,6 +111,11 @@ class datalayer
                                  attribute_check* checks,
                                  size_t checks_sz,
                                  snapshot* snap);
+        // leveldb provides no failure mechanism for this, neither do we
+        std::tr1::shared_ptr<leveldb::Snapshot> make_raw_snapshot();
+        void make_region_iterator(region_iterator* riter,
+                                  std::tr1::shared_ptr<leveldb::Snapshot> snap,
+                                  const region_id& ri);
         // XXX errors are absorbed here; short of crashing we can only log
         bool check_acked(const region_id& reg_id, uint64_t seq_id);
         void mark_acked(const region_id& reg_id, uint64_t seq_id);
@@ -193,6 +200,30 @@ class datalayer::reference
         std::string m_backing;
 };
 
+class datalayer::region_iterator
+{
+    public:
+        region_iterator();
+        ~region_iterator() throw ();
+
+    public:
+        bool valid();
+        void next();
+        void unpack(e::slice* key, std::vector<e::slice>* val, uint64_t* ver, reference* ref);
+        e::slice key();
+
+    private:
+        friend class datalayer;
+        region_iterator(const region_iterator&);
+        region_iterator& operator = (const region_iterator&);
+
+    private:
+        datalayer* m_dl;
+        std::tr1::shared_ptr<leveldb::Snapshot> m_snap;
+        std::auto_ptr<leveldb::Iterator> m_iter;
+        region_id m_region;
+};
+
 class datalayer::snapshot
 {
     public:
@@ -200,7 +231,7 @@ class datalayer::snapshot
         ~snapshot() throw ();
 
     public:
-        bool has_next();
+        bool valid();
         void next();
         void unpack(e::slice* key, std::vector<e::slice>* val, uint64_t* ver);
         void unpack(e::slice* key, std::vector<e::slice>* val, uint64_t* ver, reference* ref);

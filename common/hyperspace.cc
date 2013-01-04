@@ -353,6 +353,7 @@ region :: region()
     , capture(false)
     , tid()
     , tsi()
+    , tvi()
 {
 }
 
@@ -364,6 +365,7 @@ region :: region(const region& other)
     , capture(other.capture)
     , tid(other.tid)
     , tsi(other.tsi)
+    , tvi(other.tvi)
 {
 }
 
@@ -381,6 +383,7 @@ region :: operator = (const region& rhs)
     capture = rhs.capture;
     tid = rhs.tid;
     tsi = rhs.tsi;
+    tvi = rhs.tvi;
     return *this;
 }
 
@@ -405,7 +408,7 @@ hyperdex :: operator << (e::buffer::packer pa, const region& r)
 
     if (r.tid != transfer_id())
     {
-        pa = pa << r.tid.get() << r.tsi.get();
+        pa = pa << r.tid.get() << r.tsi.get() << r.tvi.get();
     }
 
     return pa;
@@ -439,9 +442,11 @@ hyperdex :: operator >> (e::unpacker up, region& r)
     {
         uint64_t tid;
         uint64_t tsi;
-        up = up >> tid >> tsi;
+        uint64_t tvi;
+        up = up >> tid >> tsi >> tvi;
         r.tid = transfer_id(tid);
         r.tsi = server_id(tsi);
+        r.tvi = virtual_server_id(tvi);
     }
 
     return up;
@@ -456,7 +461,8 @@ hyperdex :: pack_size(const region& r)
               + sizeof(uint8_t) /* flags */
               + 2 * sizeof(uint64_t) * r.lower_coord.size()
               + sizeof(uint64_t) /* tid */
-              + sizeof(uint64_t); /* tsi */
+              + sizeof(uint64_t) /* tsi */
+              + sizeof(uint64_t); /* tvi */
 
     for (size_t i = 0; i < r.replicas.size(); ++i)
     {

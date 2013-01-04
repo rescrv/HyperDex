@@ -25,62 +25,47 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_common_transfer_id_h_
-#define hyperdex_common_transfer_id_h_
+#ifndef hyperdex_daemon_state_transfer_manager_transfer_in_state_h_
+#define hyperdex_daemon_state_transfer_manager_transfer_in_state_h_
 
-// C
-#include <stdint.h>
+// STL
+#include <tr1/memory>
 
-// C++
-#include <iostream>
+// LevelDB
+#include <leveldb/db.h>
 
-namespace hyperdex
-{
+// e
+#include <e/intrusive_ptr.h>
 
-class transfer_id
+// HyperDex
+#include "daemon/state_transfer_manager.h"
+
+class hyperdex::state_transfer_manager::transfer_in_state
 {
     public:
-        transfer_id() : m_id(0) {}
-        explicit transfer_id(uint64_t id) : m_id(id) {}
+        transfer_in_state(const transfer& xfer,
+                          datalayer* data,
+                          std::tr1::shared_ptr<leveldb::Snapshot> snap);
+        ~transfer_in_state() throw ();
 
     public:
-        uint64_t get() const { return m_id; }
-        uint64_t hash() const { return m_id; }
+        transfer xfer;
+        po6::threads::mutex mtx;
+        uint64_t upper_bound_acked;
+        std::list<e::intrusive_ptr<pending> > queued;
+        bool need_del;
+        e::intrusive_ptr<pending> prev;
+        datalayer::region_iterator del_iter;
 
     private:
-        uint64_t m_id;
+        friend class e::intrusive_ptr<transfer_in_state>;
+
+    private:
+        void inc() { __sync_add_and_fetch(&m_ref, 1); }
+        void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
+
+    private:
+        size_t m_ref;
 };
 
-inline std::ostream&
-operator << (std::ostream& lhs, const transfer_id& rhs)
-{
-    return lhs << "transfer(" << rhs.get() << ")";
-}
-
-inline bool
-operator < (const transfer_id& lhs, const transfer_id& rhs)
-{
-    return lhs.get() < rhs.get();
-}
-
-inline bool
-operator == (const transfer_id& lhs, const transfer_id& rhs)
-{
-    return lhs.get() == rhs.get();
-}
-
-inline bool
-operator != (const transfer_id& lhs, const transfer_id& rhs)
-{
-    return lhs.get() != rhs.get();
-}
-
-inline bool
-operator > (const transfer_id& lhs, const transfer_id& rhs)
-{
-    return lhs.get() > rhs.get();
-}
-
-} // namespace hyperdex
-
-#endif // hyperdex_common_transfer_id_h_
+#endif // hyperdex_daemon_state_transfer_manager_transfer_in_state_h_

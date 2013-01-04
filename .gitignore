@@ -36,6 +36,7 @@ hyperspacehashing/test/prefix
 hyperspacehashing/utils/cfloat
 install-sh
 *.la
+leveldb-dump
 .libs
 libtool
 *.lo

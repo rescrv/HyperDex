@@ -25,62 +25,38 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_common_transfer_id_h_
-#define hyperdex_common_transfer_id_h_
+#ifndef hyperdex_daemon_state_transfer_manager_pending_h_
+#define hyperdex_daemon_state_transfer_manager_pending_h_
 
-// C
-#include <stdint.h>
+// HyperDex
+#include "daemon/datalayer.h"
+#include "daemon/state_transfer_manager.h"
 
-// C++
-#include <iostream>
-
-namespace hyperdex
-{
-
-class transfer_id
+class hyperdex::state_transfer_manager::pending
 {
     public:
-        transfer_id() : m_id(0) {}
-        explicit transfer_id(uint64_t id) : m_id(id) {}
+        pending();
+        ~pending() throw ();
 
     public:
-        uint64_t get() const { return m_id; }
-        uint64_t hash() const { return m_id; }
+        uint64_t seq_no;
+        bool has_value;
+        uint64_t version;
+        e::slice key;
+        std::vector<e::slice> value;
+        bool acked;
+        std::auto_ptr<e::buffer> msg;
+        datalayer::reference ref;
 
     private:
-        uint64_t m_id;
+        friend class e::intrusive_ptr<pending>;
+
+    private:
+        void inc() { ++m_ref; }
+        void dec() { --m_ref; if (m_ref == 0) delete this; }
+
+    private:
+        size_t m_ref;
 };
 
-inline std::ostream&
-operator << (std::ostream& lhs, const transfer_id& rhs)
-{
-    return lhs << "transfer(" << rhs.get() << ")";
-}
-
-inline bool
-operator < (const transfer_id& lhs, const transfer_id& rhs)
-{
-    return lhs.get() < rhs.get();
-}
-
-inline bool
-operator == (const transfer_id& lhs, const transfer_id& rhs)
-{
-    return lhs.get() == rhs.get();
-}
-
-inline bool
-operator != (const transfer_id& lhs, const transfer_id& rhs)
-{
-    return lhs.get() != rhs.get();
-}
-
-inline bool
-operator > (const transfer_id& lhs, const transfer_id& rhs)
-{
-    return lhs.get() > rhs.get();
-}
-
-} // namespace hyperdex
-
-#endif // hyperdex_common_transfer_id_h_
+#endif // hyperdex_daemon_state_transfer_manager_pending_h_

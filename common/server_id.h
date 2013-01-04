@@ -75,6 +75,12 @@ operator != (const server_id& lhs, const server_id& rhs)
     return lhs.get() != rhs.get();
 }
 
+inline bool
+operator > (const server_id& lhs, const server_id& rhs)
+{
+    return lhs.get() > rhs.get();
+}
+
 } // namespace hyperdex
 
 #endif // hyperdex_common_server_id_h_

@@ -298,6 +298,96 @@ configuration :: next_in_region(const virtual_server_id& vsi) const
 }
 
 void
+configuration :: transfer_in_regions(const server_id& si, std::vector<transfer>* transfers) const
+{
+    for (size_t s = 0; s < m_spaces.size(); ++s)
+    {
+        for (size_t ss = 0; ss < m_spaces[s].subspaces.size(); ++ss)
+        {
+            for (size_t r = 0; r < m_spaces[s].subspaces[ss].regions.size(); ++r)
+            {
+                if (m_spaces[s].subspaces[ss].regions[r].tid == transfer_id())
+                {
+                    continue;
+                }
+
+                const region& reg(m_spaces[s].subspaces[ss].regions[r]);
+
+                if (reg.tsi != si)
+                {
+                    continue;
+                }
+
+                // if the server we are transferring from is the last one
+                if (reg.replicas.size() >= 1 &&
+                    reg.replicas.back().si != si)
+                {
+                    transfers->push_back(transfer(reg.tid, reg.id,
+                                                  reg.replicas.back().si, reg.replicas.back().vsi,
+                                                  reg.tsi, reg.tvi));
+                }
+
+                // if the server we are transferring from is the last one and we
+                // are the last one
+                if (reg.replicas.size() >= 2 &&
+                    reg.replicas[reg.replicas.size() - 2].si != si &&
+                    reg.replicas[reg.replicas.size() - 1].si == si)
+                {
+                    transfers->push_back(transfer(reg.tid, reg.id,
+                                                  reg.replicas[reg.replicas.size() - 2].si,
+                                                  reg.replicas[reg.replicas.size() - 2].vsi,
+                                                  reg.tsi, reg.tvi));
+                }
+            }
+        }
+    }
+}
+
+void
+configuration :: transfer_out_regions(const server_id& si, std::vector<transfer>* transfers) const
+{
+    for (size_t s = 0; s < m_spaces.size(); ++s)
+    {
+        for (size_t ss = 0; ss < m_spaces[s].subspaces.size(); ++ss)
+        {
+            for (size_t r = 0; r < m_spaces[s].subspaces[ss].regions.size(); ++r)
+            {
+                if (m_spaces[s].subspaces[ss].regions[r].tid == transfer_id())
+                {
+                    continue;
+                }
+
+                const region& reg(m_spaces[s].subspaces[ss].regions[r]);
+
+                // if si is the last in the region and not the same server_id as
+                // the server the region is transferring to
+                if (reg.replicas.size() >= 1 &&
+                    reg.replicas.back().si == si &&
+                    reg.tsi != si)
+                {
+                    transfers->push_back(transfer(reg.tid, reg.id,
+                                                  reg.replicas.back().si, reg.replicas.back().vsi,
+                                                  reg.tsi, reg.tvi));
+                }
+
+                // if si is the second to last in the region and the last in the
+                // region is the same server_id as the server the region is
+                // transferring to
+                if (reg.replicas.size() >= 2 &&
+                    reg.replicas[reg.replicas.size() - 2].si == si &&
+                    reg.replicas[reg.replicas.size() - 1].si == reg.tsi)
+                {
+                    transfers->push_back(transfer(reg.tid, reg.id,
+                                                  reg.replicas[reg.replicas.size() - 2].si,
+                                                  reg.replicas[reg.replicas.size() - 2].vsi,
+                                                  reg.tsi, reg.tvi));
+                }
+            }
+        }
+    }
+}
+
+void
 configuration :: captured_regions(const server_id& si, std::vector<region_id>* servers) const
 {
     for (size_t s = 0; s < m_spaces.size(); ++s)
@@ -637,6 +727,14 @@ configuration :: refill_cache()
                 region& r(ss.regions[y]);
                 m_schemas_by_region.push_back(std::make_pair(r.id.get(), &s.schema));
                 m_subspace_ids_by_region.push_back(std::make_pair(r.id.get(), ss.id.get()));
+
+                if (r.tid != transfer_id())
+                {
+                    m_region_ids_by_virtual.push_back(std::make_pair(r.tvi.get(),
+                                                                     r.id.get()));
+                    m_server_ids_by_virtual.push_back(std::make_pair(r.tvi.get(),
+                                                                     r.tsi.get()));
+                }
 
                 if (r.replicas.empty())
                 {

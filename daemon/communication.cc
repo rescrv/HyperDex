@@ -108,7 +108,6 @@ communication :: prepare(const configuration&,
                          const configuration&,
                          const server_id&)
 {
-    // XXX
     return RECONFIGURE_SUCCESS;
 }
 
@@ -117,7 +116,6 @@ communication :: reconfigure(const configuration&,
                              const configuration&,
                              const server_id&)
 {
-    // XXX
     return RECONFIGURE_SUCCESS;
 }
 
@@ -126,17 +124,16 @@ communication :: cleanup(const configuration&,
                          const configuration&,
                          const server_id&)
 {
-    // XXX
     return RECONFIGURE_SUCCESS;
 }
 
 bool
-communication :: send(const virtual_server_id& from,
-                      const server_id& to,
-                      network_msgtype msg_type,
-                      std::auto_ptr<e::buffer> msg)
+communication :: send_client(const virtual_server_id& from,
+                             const server_id& to,
+                             network_msgtype msg_type,
+                             std::auto_ptr<e::buffer> msg)
 {
-    assert(msg->size() >= HYPERDEX_HEADER_SIZE_VS);
+    assert(msg->size() >= HYPERDEX_HEADER_SIZE_VC);
 
     if (m_daemon->m_us != m_daemon->m_config.get_server_id(from))
     {
@@ -451,7 +448,7 @@ communication :: recv(server_id* from,
 }
 
 void
-communication :: handle_disruption(uint64_t)
+communication :: handle_disruption(uint64_t server_id)
 {
     // XXX
 }

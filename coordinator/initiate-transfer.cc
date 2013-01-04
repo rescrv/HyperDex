@@ -36,6 +36,7 @@ using hyperdex::region_id;
 using hyperdex::server_id;
 using hyperdex::space;
 using hyperdex::transfer_id;
+using hyperdex::virtual_server_id;
 
 extern "C"
 {
@@ -96,6 +97,8 @@ hyperdex_coordinator_initiate_transfer(struct replicant_state_machine_context* c
                 r.tid = transfer_id(c->counter);
                 ++c->counter;
                 r.tsi = sid;
+                r.tvi = virtual_server_id(c->counter);
+                ++c->counter;
                 c->regenerate(ctx);
                 return generate_response(ctx, c, hyperdex::COORD_SUCCESS);
             }

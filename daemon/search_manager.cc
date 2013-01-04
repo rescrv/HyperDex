@@ -243,34 +243,34 @@ search_manager :: next(const server_id& from,
 
     if (!m_searches.lookup(sid, &st))
     {
-        std::auto_ptr<e::buffer> msg(e::buffer::create(HYPERDEX_HEADER_SIZE_VS + sizeof(uint64_t)));
-        msg->pack_at(HYPERDEX_HEADER_SIZE_VS) << nonce;
-        m_daemon->m_comm.send(to, from, RESP_SEARCH_DONE, msg);
+        std::auto_ptr<e::buffer> msg(e::buffer::create(HYPERDEX_HEADER_SIZE_VC + sizeof(uint64_t)));
+        msg->pack_at(HYPERDEX_HEADER_SIZE_VC) << nonce;
+        m_daemon->m_comm.send_client(to, from, RESP_SEARCH_DONE, msg);
         return;
     }
 
     po6::threads::mutex::hold hold(&st->lock);
 
-    if (st->snap.has_next())
+    if (st->snap.valid())
     {
         e::slice key;
         std::vector<e::slice> val;
         uint64_t ver;
         st->snap.unpack(&key, &val, &ver);
-        size_t sz = HYPERDEX_HEADER_SIZE_VS
+        size_t sz = HYPERDEX_HEADER_SIZE_VC
                   + sizeof(uint64_t)
                   + pack_size(key)
                   + pack_size(val);
         std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-        msg->pack_at(HYPERDEX_HEADER_SIZE_VS) << nonce << key << val;
-        m_daemon->m_comm.send(to, from, RESP_SEARCH_ITEM, msg);
+        msg->pack_at(HYPERDEX_HEADER_SIZE_VC) << nonce << key << val;
+        m_daemon->m_comm.send_client(to, from, RESP_SEARCH_ITEM, msg);
         st->snap.next();
     }
     else
     {
-        std::auto_ptr<e::buffer> msg(e::buffer::create(HYPERDEX_HEADER_SIZE_VS + sizeof(uint64_t)));
-        msg->pack_at(HYPERDEX_HEADER_SIZE_VS) << nonce;
-        m_daemon->m_comm.send(to, from, RESP_SEARCH_DONE, msg);
+        std::auto_ptr<e::buffer> msg(e::buffer::create(HYPERDEX_HEADER_SIZE_VC + sizeof(uint64_t)));
+        msg->pack_at(HYPERDEX_HEADER_SIZE_VC) << nonce;
+        m_daemon->m_comm.send_client(to, from, RESP_SEARCH_DONE, msg);
         stop(from, to, search_id);
     }
 }
@@ -443,7 +443,7 @@ search_manager :: sorted_search(const server_id& from,
     std::vector<_sorted_search_item> top_n;
     top_n.reserve(limit);
 
-    while (snap.has_next())
+    while (snap.valid())
     {
         top_n.push_back(_sorted_search_item(&params));
         snap.unpack(&top_n.back().key, &top_n.back().value, &top_n.back().version, &top_n.back().ref);
@@ -459,7 +459,7 @@ search_manager :: sorted_search(const server_id& from,
     }
 
     std::sort(top_n.begin(), top_n.end(), std::greater<_sorted_search_item>());
-    size_t sz = HYPERDEX_HEADER_SIZE_VS + sizeof(uint64_t) + sizeof(uint64_t);
+    size_t sz = HYPERDEX_HEADER_SIZE_VC + sizeof(uint64_t) + sizeof(uint64_t);
 
     for (size_t i = 0; i < top_n.size(); ++i)
     {
@@ -467,7 +467,7 @@ search_manager :: sorted_search(const server_id& from,
     }
 
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    e::buffer::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_VS);
+    e::buffer::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_VC);
     pa = pa << nonce << static_cast<uint64_t>(top_n.size());
 
     for (size_t i = 0; i < top_n.size(); ++i)
@@ -475,7 +475,7 @@ search_manager :: sorted_search(const server_id& from,
         pa = pa << top_n[i].key << top_n[i].value;
     }
 
-    m_daemon->m_comm.send(to, from, RESP_SORTED_SEARCH, msg);
+    m_daemon->m_comm.send_client(to, from, RESP_SORTED_SEARCH, msg);
 }
 
 void
@@ -511,7 +511,7 @@ search_manager :: group_keyop(const server_id& from,
             abort();
     }
 
-    while (snap.has_next() && result < UINT64_MAX)
+    while (snap.valid() && result < UINT64_MAX)
     {
         e::slice key;
         std::vector<e::slice> val;
@@ -539,12 +539,12 @@ search_manager :: group_keyop(const server_id& from,
         snap.next();
     }
 
-    size_t sz = HYPERDEX_HEADER_SIZE_VS
+    size_t sz = HYPERDEX_HEADER_SIZE_VC
               + sizeof(uint64_t)
               + sizeof(uint64_t);
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    msg->pack_at(HYPERDEX_HEADER_SIZE_VS) << nonce << result;
-    m_daemon->m_comm.send(to, from, resp, msg);
+    msg->pack_at(HYPERDEX_HEADER_SIZE_VC) << nonce << result;
+    m_daemon->m_comm.send_client(to, from, resp, msg);
 }
 
 void
@@ -577,18 +577,18 @@ search_manager :: count(const server_id& from,
             abort();
     }
 
-    while (snap.has_next() && result < UINT64_MAX)
+    while (snap.valid() && result < UINT64_MAX)
     {
         ++result;
         snap.next();
     }
 
-    size_t sz = HYPERDEX_HEADER_SIZE_VS
+    size_t sz = HYPERDEX_HEADER_SIZE_VC
               + sizeof(uint64_t)
               + sizeof(uint64_t);
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    msg->pack_at(HYPERDEX_HEADER_SIZE_VS) << nonce << result;
-    m_daemon->m_comm.send(to, from, RESP_COUNT, msg);
+    msg->pack_at(HYPERDEX_HEADER_SIZE_VC) << nonce << result;
+    m_daemon->m_comm.send_client(to, from, RESP_COUNT, msg);
 }
 
 uint64_t

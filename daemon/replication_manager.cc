@@ -916,13 +916,13 @@ replication_manager :: respond_to_client(const virtual_server_id& us,
                                          uint64_t nonce,
                                          network_returncode ret)
 {
-    size_t sz = HYPERDEX_HEADER_SIZE_VS
+    size_t sz = HYPERDEX_HEADER_SIZE_VC
               + sizeof(uint64_t)
               + sizeof(uint16_t);
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     uint16_t result = static_cast<uint16_t>(ret);
-    msg->pack_at(HYPERDEX_HEADER_SIZE_VS) << nonce << result;
-    m_daemon->m_comm.send(us, client, RESP_ATOMIC, msg);
+    msg->pack_at(HYPERDEX_HEADER_SIZE_VC) << nonce << result;
+    m_daemon->m_comm.send_client(us, client, RESP_ATOMIC, msg);
 }
 
 void

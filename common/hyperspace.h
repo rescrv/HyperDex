@@ -133,6 +133,7 @@ class region
         bool capture;
         transfer_id tid;
         server_id tsi;
+        virtual_server_id tvi;
 };
 
 e::buffer::packer

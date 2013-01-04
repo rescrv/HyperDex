@@ -25,62 +25,47 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_common_transfer_id_h_
-#define hyperdex_common_transfer_id_h_
+#ifndef hyperdex_common_transfer_h_
+#define hyperdex_common_transfer_h_
 
-// C
-#include <stdint.h>
-
-// C++
-#include <iostream>
+// HyperDex
+#include "common/region_id.h"
+#include "common/server_id.h"
+#include "common/transfer_id.h"
+#include "common/virtual_server_id.h"
 
 namespace hyperdex
 {
 
-class transfer_id
+class transfer
 {
     public:
-        transfer_id() : m_id(0) {}
-        explicit transfer_id(uint64_t id) : m_id(id) {}
+        transfer();
+        transfer(const transfer_id& id,
+                 const region_id& rid,
+                 const server_id& src,
+                 const virtual_server_id& vsrc,
+                 const server_id& dst,
+                 const virtual_server_id& vdst);
+        transfer(const transfer&);
+        ~transfer() throw ();
 
     public:
-        uint64_t get() const { return m_id; }
-        uint64_t hash() const { return m_id; }
+        transfer& operator = (const transfer&);
+        bool operator < (const transfer&) const;
 
-    private:
-        uint64_t m_id;
+    public:
+        transfer_id id;
+        region_id rid;
+        server_id src;
+        virtual_server_id vsrc;
+        server_id dst;
+        virtual_server_id vdst;
 };
 
-inline std::ostream&
-operator << (std::ostream& lhs, const transfer_id& rhs)
-{
-    return lhs << "transfer(" << rhs.get() << ")";
-}
-
-inline bool
-operator < (const transfer_id& lhs, const transfer_id& rhs)
-{
-    return lhs.get() < rhs.get();
-}
-
-inline bool
-operator == (const transfer_id& lhs, const transfer_id& rhs)
-{
-    return lhs.get() == rhs.get();
-}
-
-inline bool
-operator != (const transfer_id& lhs, const transfer_id& rhs)
-{
-    return lhs.get() != rhs.get();
-}
-
-inline bool
-operator > (const transfer_id& lhs, const transfer_id& rhs)
-{
-    return lhs.get() > rhs.get();
-}
+std::ostream&
+operator << (std::ostream& lhs, const transfer& rhs);
 
 } // namespace hyperdex
 
-#endif // hyperdex_common_transfer_id_h_
+#endif // hyperdex_common_transfer_h_

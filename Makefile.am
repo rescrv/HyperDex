@@ -180,6 +180,7 @@ hyperdex_daemon_SOURCES = \
 			common/mapper.cc \
 			common/schema.cc \
 			common/serialization.cc \
+			common/transfer.cc \
 			daemon/communication.cc \
 			daemon/daemon.cc \
 			daemon/datalayer.cc \
@@ -189,6 +190,10 @@ hyperdex_daemon_SOURCES = \
 			daemon/replication_manager_keypair.cc \
 			daemon/replication_manager_pending.cc \
 			daemon/search_manager.cc \
+			daemon/state_transfer_manager.cc \
+			daemon/state_transfer_manager_pending.cc \
+			daemon/state_transfer_manager_transfer_in_state.cc \
+			daemon/state_transfer_manager_transfer_out_state.cc \
 			datatypes/apply.cc \
 			datatypes/compare.cc \
 			datatypes/float.cc \
@@ -256,6 +261,7 @@ libhyperclient_la_SOURCES = \
 			common/network_msgtype.cc \
 			common/schema.cc \
 			common/serialization.cc \
+			common/transfer.cc \
 			datatypes/coercion.cc \
 			datatypes/compare.cc \
 			datatypes/float.cc \

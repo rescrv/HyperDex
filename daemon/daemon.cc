@@ -62,6 +62,7 @@ daemon :: daemon()
     , m_data(this)
     , m_comm(this)
     , m_repl(this)
+    , m_stm(this)
     , m_sm(this)
     , m_config()
 {
@@ -209,6 +210,7 @@ daemon :: run(bool daemonize,
 
     m_comm.setup(bind_to, threads);
     m_repl.setup();
+    m_stm.setup();
     m_sm.setup();
 
     for (size_t i = 0; i < threads; ++i)
@@ -244,6 +246,7 @@ daemon :: run(bool daemonize,
         m_data.prepare(old_config, new_config, m_us);
         m_comm.prepare(old_config, new_config, m_us);
         m_repl.prepare(old_config, new_config, m_us);
+        m_stm.prepare(old_config, new_config, m_us);
         m_sm.prepare(old_config, new_config, m_us);
         // reconfigure
         LOG(INFO) << "preparations for reconfiguration done; pausing network communication";
@@ -252,12 +255,14 @@ daemon :: run(bool daemonize,
         m_data.reconfigure(old_config, new_config, m_us);
         m_comm.reconfigure(old_config, new_config, m_us);
         m_repl.reconfigure(old_config, new_config, m_us);
+        m_stm.reconfigure(old_config, new_config, m_us);
         m_sm.reconfigure(old_config, new_config, m_us);
         m_config = new_config;
         m_comm.unpause();
         LOG(INFO) << "reconfiguration complete; unpausing network communication";
         // cleanup
         m_sm.cleanup(old_config, new_config, m_us);
+        m_stm.cleanup(old_config, new_config, m_us);
         m_repl.cleanup(old_config, new_config, m_us);
         m_comm.cleanup(old_config, new_config, m_us);
         m_data.cleanup(old_config, new_config, m_us);
@@ -273,6 +278,7 @@ daemon :: run(bool daemonize,
     }
 
     m_sm.teardown();
+    m_stm.teardown();
     m_repl.teardown();
     m_comm.teardown();
     m_data.teardown();
@@ -736,6 +742,12 @@ daemon :: loop()
             case CHAIN_ACK:
                 process_chain_ack(from, vfrom, vto, msg, up);
                 break;
+            case XFER_OP:
+                process_xfer_op(from, vfrom, vto, msg, up);
+                break;
+            case XFER_ACK:
+                process_xfer_ack(from, vfrom, vto, msg, up);
+                break;
             case RESP_GET:
             case RESP_ATOMIC:
             case RESP_SEARCH_ITEM:
@@ -793,14 +805,14 @@ daemon :: process_req_get(server_id from,
             break;
     }
 
-    size_t sz = HYPERDEX_HEADER_SIZE_VS
+    size_t sz = HYPERDEX_HEADER_SIZE_VC
               + sizeof(uint64_t)
               + sizeof(uint16_t)
               + pack_size(value);
     msg.reset(e::buffer::create(sz));
-    e::buffer::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_VS);
+    e::buffer::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_VC);
     pa = pa << nonce << static_cast<uint16_t>(result) << value;
-    m_comm.send(vto, from, RESP_GET, msg);
+    m_comm.send_client(vto, from, RESP_GET, msg);
 }
 
 void
@@ -1020,4 +1032,48 @@ daemon :: process_chain_ack(server_id,
 
     bool retransmission = flags & 128;
     m_repl.chain_ack(vfrom, vto, retransmission, region_id(reg_id), seq_id, version, key);
+}
+
+void
+daemon :: process_xfer_op(server_id,
+                          virtual_server_id vfrom,
+                          virtual_server_id,
+                          std::auto_ptr<e::buffer> msg,
+                          e::unpacker up)
+{
+    uint8_t flags;
+    uint64_t xid;
+    uint64_t seq_no;
+    uint64_t version;
+    e::slice key;
+    std::vector<e::slice> value;
+
+    if ((up >> flags >> xid >> seq_no >> version >> key >> value).error())
+    {
+        LOG(WARNING) << "unpack of XFER_OP failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    bool has_value = flags & 1;
+    m_stm.xfer_op(vfrom, transfer_id(xid), seq_no, has_value, version, msg, key, value);
+}
+
+void
+daemon :: process_xfer_ack(server_id from,
+                           virtual_server_id,
+                           virtual_server_id vto,
+                           std::auto_ptr<e::buffer> msg,
+                           e::unpacker up)
+{
+    uint8_t flags;
+    uint64_t xid;
+    uint64_t seq_no;
+
+    if ((up >> flags >> xid >> seq_no).error())
+    {
+        LOG(WARNING) << "unpack of XFER_ACK failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    m_stm.xfer_ack(from, vto, transfer_id(xid), seq_no);
 }
