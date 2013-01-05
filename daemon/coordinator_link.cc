@@ -50,6 +50,7 @@ coordinator_link :: coordinator_link(daemon* d)
     , m_get_config_output_sz(0)
     , m_transfers_go_live()
     , m_transfers_complete()
+    , m_tcp_disconnects()
 {
 }
 
@@ -281,6 +282,7 @@ coordinator_link :: wait_for_config(configuration* config)
 
         need_to_backoff = false;
         std::map<int64_t, std::pair<transfer_id, std::tr1::shared_ptr<replicant_returncode> > >::iterator xfer_iter;
+        std::map<int64_t, std::pair<server_id, std::tr1::shared_ptr<replicant_returncode> > >::iterator tcp_iter;
 
         if (lid == m_wait_config_id)
         {
@@ -362,7 +364,8 @@ coordinator_link :: wait_for_config(configuration* config)
         {
             if (*xfer_iter->second.second != REPLICANT_SUCCESS)
             {
-                LOG(ERROR) << "could not report transfer_go_live because " << *xfer_iter->second.second;
+                LOG(ERROR) << "could not report live transfer " << xfer_iter->second.first
+                           << " because " << *xfer_iter->second.second;
                 continue;
             }
 
@@ -372,11 +375,23 @@ coordinator_link :: wait_for_config(configuration* config)
         {
             if (*xfer_iter->second.second != REPLICANT_SUCCESS)
             {
-                LOG(ERROR) << "could not report transfer_go_live because " << *xfer_iter->second.second;
+                LOG(ERROR) << "could not report complete transfer " << xfer_iter->second.first
+                           << " because " << *xfer_iter->second.second;
                 continue;
             }
 
-            m_transfers_go_live.erase(xfer_iter);
+            m_transfers_complete.erase(xfer_iter);
+        }
+        else if ((tcp_iter = m_tcp_disconnects.find(lid)) != m_tcp_disconnects.end())
+        {
+            if (*tcp_iter->second.second != REPLICANT_SUCCESS)
+            {
+                LOG(ERROR) << "could not report tcp disconnect to " << tcp_iter->second.first
+                           << " because " << *tcp_iter->second.second;
+                continue;
+            }
+
+            m_tcp_disconnects.erase(tcp_iter);
         }
         else
         {
@@ -424,6 +439,26 @@ coordinator_link :: transfer_complete(const transfer_id& id)
     else
     {
         m_transfers_go_live.insert(std::make_pair(req_id, std::make_pair(id, ret)));
+    }
+}
+
+void
+coordinator_link :: report_tcp_disconnect(const server_id& id)
+{
+    LOG(INFO) << "asking the coordinator to record tcp disconnect for " << id;
+    char buf[sizeof(uint64_t)];
+    e::pack64be(id.get(), buf);
+    std::tr1::shared_ptr<replicant_returncode> ret(new replicant_returncode(REPLICANT_GARBAGE));
+    int64_t req_id = m_repl->send("hyperdex", "tcp-disconnect", buf, sizeof(uint64_t),
+                                  ret.get(), NULL, NULL);
+
+    if (req_id < 0)
+    {
+        LOG(ERROR) << "could not tell the coordinator that " << id << " broke a TCP connection";
+    }
+    else
+    {
+        m_tcp_disconnects.insert(std::make_pair(req_id, std::make_pair(id, ret)));
     }
 }
 

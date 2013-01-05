@@ -448,7 +448,11 @@ communication :: recv(server_id* from,
 }
 
 void
-communication :: handle_disruption(uint64_t server_id)
+communication :: handle_disruption(uint64_t id)
 {
-    // XXX
+    if (m_daemon->m_config.get_address(server_id(id)) != po6::net::location())
+    {
+        m_daemon->m_coord.report_tcp_disconnect(server_id(id));
+        // XXX
+    }
 }

@@ -1013,6 +1013,8 @@ replication_manager :: retransmitter()
             kh->resend_committable(this, us, key);
             move_operations_between_queues(us, ri, *sc, key, kh);
         }
+
+        m_daemon->m_comm.wake_one();
     }
 
     LOG(INFO) << "retransmitter thread shutting down";

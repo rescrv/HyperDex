@@ -56,6 +56,7 @@ class coordinator_link
         bool wait_for_config(configuration* config);
         void transfer_go_live(const transfer_id& id);
         void transfer_complete(const transfer_id& id);
+        void report_tcp_disconnect(const server_id& id);
 
     private:
         bool initiate_wait_for_config();
@@ -72,6 +73,7 @@ class coordinator_link
         size_t m_get_config_output_sz;
         std::map<int64_t, std::pair<transfer_id, std::tr1::shared_ptr<replicant_returncode> > > m_transfers_go_live;
         std::map<int64_t, std::pair<transfer_id, std::tr1::shared_ptr<replicant_returncode> > > m_transfers_complete;
+        std::map<int64_t, std::pair<server_id, std::tr1::shared_ptr<replicant_returncode> > > m_tcp_disconnects;
 
     private:
         coordinator_link(const coordinator_link&);

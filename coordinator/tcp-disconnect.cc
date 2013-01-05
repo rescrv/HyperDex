@@ -25,21 +25,35 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// e
+#include <e/endian.h>
+
+// Replicant
+#include <replicant_state_machine.h>
+
 // HyperDex
+#include "common/coordinator_returncode.h"
+#include "common/hyperspace.h"
+#include "common/region_id.h"
+#include "common/server_id.h"
+#include "common/subspace_id.h"
+#include "coordinator/add-space.h"
 #include "coordinator/coordinator.h"
-#include "coordinator/kill.h"
 #include "coordinator/util.h"
 
 using hyperdex::coordinator;
+using hyperdex::region_id;
 using hyperdex::server_id;
 using hyperdex::space;
+using hyperdex::space_id;
+using hyperdex::subspace_id;
 
 extern "C"
 {
 
 void
-hyperdex_coordinator_kill(struct replicant_state_machine_context* ctx,
-                          void* obj, const char* data, size_t data_sz)
+hyperdex_coordinator_tcp_disconnect(struct replicant_state_machine_context* ctx,
+                                    void* obj, const char* data, size_t data_sz)
 {
     PROTECT_UNINITIALIZED;
     coordinator* c = static_cast<coordinator*>(obj);

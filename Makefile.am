@@ -232,6 +232,7 @@ libhypercoordinator_la_SOURCES = \
 			coordinator/register.cc \
 			coordinator/rm-space.cc \
 			coordinator/symtable.c \
+			coordinator/tcp-disconnect.c \
 			coordinator/xfer-complete.c \
 			coordinator/xfer-go-live.c
 libhypercoordinator_la_LIBADD = -le

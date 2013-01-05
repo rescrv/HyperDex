@@ -75,6 +75,7 @@ class communication
         void pause() { m_busybee->pause(); }
         void unpause() { m_busybee->unpause(); }
         void shutdown() { m_busybee->shutdown(); }
+        void wake_one() { m_busybee->wake_one(); }
 
     public:
         bool setup(const po6::net::location& bind_to,
