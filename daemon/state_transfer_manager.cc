@@ -386,12 +386,34 @@ state_transfer_manager :: xfer_ack(const server_id& from,
         tos->window.pop_front();
     }
 
-    transfer_more_state(xid, tos);
+    transfer_more_state(tos);
 }
 
 void
-state_transfer_manager :: transfer_more_state(const transfer_id& tid,
-                                              transfer_out_state* tos)
+state_transfer_manager :: retransmit(const server_id& id)
+{
+    size_t idx = 0;
+
+    while (true)
+    {
+        if (idx >= m_transfers_out.size())
+        {
+            break;
+        }
+
+        po6::threads::mutex::hold hold(&m_transfers_out[idx].second->mtx);
+
+        if (m_transfers_out[idx].second->xfer.dst == id)
+        {
+            retransmit(m_transfers_out[idx].second.get());
+        }
+
+        ++idx;
+    }
+}
+
+void
+state_transfer_manager :: transfer_more_state(transfer_out_state* tos)
 {
     while (tos->window.size() < tos->window_sz)
     {
@@ -405,7 +427,7 @@ state_transfer_manager :: transfer_more_state(const transfer_id& tid,
                 op->has_value = true;
                 tos->snap_iter.unpack(&op->key, &op->value, &op->version, &op->ref);
                 tos->window.push_back(op);
-                send_object(tid, tos);
+                send_object(tos->xfer, op.get());
                 tos->snap_iter.next();
             }
             else
@@ -450,7 +472,7 @@ state_transfer_manager :: transfer_more_state(const transfer_id& tid,
             }
 
             tos->window.push_back(op);
-            send_object(tid, tos);
+            send_object(tos->xfer, op.get());
             ++tos->log_seq_no;
         }
         else
@@ -470,11 +492,19 @@ state_transfer_manager :: transfer_more_state(const transfer_id& tid,
 }
 
 void
-state_transfer_manager :: send_object(const transfer_id& tid,
-                                      transfer_out_state* tos)
+state_transfer_manager :: retransmit(transfer_out_state* tos)
 {
-    assert(!tos->window.empty());
-    pending* op = tos->window.back().get();
+    for (std::list<e::intrusive_ptr<pending> >::iterator it = tos->window.begin();
+            it != tos->window.end(); ++it)
+    {
+        send_object(tos->xfer, it->get());
+    }
+}
+
+void
+state_transfer_manager :: send_object(const transfer& xfer,
+                                      pending* op)
+{
     uint8_t flags = (op->has_value ? 1 : 0);
     size_t sz = HYPERDEX_HEADER_SIZE_VV
               + sizeof(uint8_t)
@@ -484,9 +514,9 @@ state_transfer_manager :: send_object(const transfer_id& tid,
               + sizeof(uint32_t) + op->key.size()
               + pack_size(op->value);
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-    msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << flags << tid.get() << op->seq_no
+    msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << flags << xfer.id.get() << op->seq_no
                                           << op->version << op->key << op->value;
-    m_daemon->m_comm.send(tos->xfer.vsrc, tos->xfer.vdst, XFER_OP, msg);
+    m_daemon->m_comm.send(xfer.vsrc, xfer.vdst, XFER_OP, msg);
 }
 
 void
@@ -525,7 +555,6 @@ state_transfer_manager :: kickstarter()
             m_need_kickstart = false;
         }
 
-        transfer_id tid;
         size_t idx = 0;
 
         while (true)
@@ -538,7 +567,7 @@ state_transfer_manager :: kickstarter()
             }
 
             po6::threads::mutex::hold hold2(&m_transfers_out[idx].second->mtx);
-            transfer_more_state(m_transfers_out[idx].first, m_transfers_out[idx].second.get());
+            transfer_more_state(m_transfers_out[idx].second.get());
             ++idx;
         }
     }

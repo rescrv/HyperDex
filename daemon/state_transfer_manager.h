@@ -80,6 +80,7 @@ class state_transfer_manager
                       const virtual_server_id& to,
                       const transfer_id& xid,
                       uint64_t seq_no);
+        void retransmit(const server_id& id);
 
     private:
         class pending;
@@ -88,12 +89,11 @@ class state_transfer_manager
 
     private:
         // caller must hold mtx on tos
-        void transfer_more_state(const transfer_id& tid,
-                                 transfer_out_state* tos);
+        void transfer_more_state(transfer_out_state* tos);
+        void retransmit(transfer_out_state* tos);
         // caller must hold mtx on tos
         // send the last object in tos
-        void send_object(const transfer_id& tid,
-                         transfer_out_state* tos);
+        void send_object(const transfer& xfer, pending* op);
         void send_ack(const transfer& xfer, uint64_t seq_id);
         void kickstarter();
         void shutdown();
