@@ -45,6 +45,7 @@
 #include "common/server_id.h"
 #include "common/virtual_server_id.h"
 #include "daemon/communication.h"
+#include "daemon/coordinator_link.h"
 #include "daemon/datalayer.h"
 #include "daemon/replication_manager.h"
 #include "daemon/search_manager.h"
@@ -69,8 +70,6 @@ class daemon
                 unsigned threads);
 
     private:
-        int register_id(server_id us, const po6::net::location& bind_to);
-        bool wait_for_config(configuration* config);
         void loop();
         void process_req_get(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_req_atomic(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
@@ -87,16 +86,17 @@ class daemon
         void process_xfer_ack(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
 
     private:
-        friend class replication_manager;
         friend class communication;
+        friend class coordinator_link;
         friend class datalayer;
+        friend class replication_manager;
         friend class search_manager;
         friend class state_transfer_manager;
 
     private:
         server_id m_us;
         std::vector<std::tr1::shared_ptr<po6::threads::thread> > m_threads;
-        std::auto_ptr<replicant_client> m_coord;
+        coordinator_link m_coord;
         datalayer m_data;
         communication m_comm;
         replication_manager m_repl;

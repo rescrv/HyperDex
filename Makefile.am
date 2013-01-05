@@ -176,15 +176,16 @@ hyperdex_daemon_SOURCES = \
 			common/hyperdex.cc \
 			common/hyperspace.cc \
 			common/network_msgtype.cc \
-			daemon/main.cc \
 			common/mapper.cc \
 			common/schema.cc \
 			common/serialization.cc \
 			common/transfer.cc \
 			daemon/communication.cc \
+			daemon/coordinator_link.cc \
 			daemon/daemon.cc \
 			daemon/datalayer.cc \
 			daemon/index_encode.cc \
+			daemon/main.cc \
 			daemon/replication_manager.cc \
 			daemon/replication_manager_keyholder.cc \
 			daemon/replication_manager_keypair.cc \
@@ -230,7 +231,9 @@ libhypercoordinator_la_SOURCES = \
 			coordinator/meta.cc \
 			coordinator/register.cc \
 			coordinator/rm-space.cc \
-			coordinator/symtable.c
+			coordinator/symtable.c \
+			coordinator/xfer-complete.c \
+			coordinator/xfer-go-live.c
 libhypercoordinator_la_LIBADD = -le
 
 ################################################################################

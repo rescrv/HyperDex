@@ -60,14 +60,14 @@ counter_map :: adopt(const std::vector<region_id>& ris)
         }
         else if (lhs->first > *rhs)
         {
-            tmp.push_back(std::make_pair(*rhs, static_cast<uint64_t>(0)));
+            tmp.push_back(std::make_pair(*rhs, static_cast<uint64_t>(1)));
             ++rhs;
         }
     }
 
     while (rhs != ris.end())
     {
-        tmp.push_back(std::make_pair(*rhs, static_cast<uint64_t>(0)));
+        tmp.push_back(std::make_pair(*rhs, static_cast<uint64_t>(1)));
         ++rhs;
     }
 

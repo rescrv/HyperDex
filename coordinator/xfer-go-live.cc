@@ -26,27 +26,63 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // HyperDex
-#include "daemon/state_transfer_manager_pending.h"
-#include "daemon/state_transfer_manager_transfer_out_state.h"
+#include "common/transfer_id.h"
+#include "coordinator/coordinator.h"
+#include "coordinator/util.h"
+#include "coordinator/xfer-go-live.h"
 
-using hyperdex::state_transfer_manager;
+using hyperdex::coordinator;
+using hyperdex::region;
+using hyperdex::replica;
+using hyperdex::space;
+using hyperdex::transfer_id;
 
-state_transfer_manager :: transfer_out_state :: transfer_out_state(const transfer& _xfer,
-                                                                   datalayer* data,
-                                                                   std::tr1::shared_ptr<leveldb::Snapshot> snap)
-    : xfer(_xfer)
-    , mtx()
-    , state(SNAPSHOT_TRANSFER)
-    , next_seq_no(1)
-    , window()
-    , window_sz(1)
-    , snap_iter()
-    , log_seq_no(1)
-    , m_ref(0)
+extern "C"
 {
-    data->make_region_iterator(&snap_iter, snap, xfer.rid);
+
+void
+hyperdex_coordinator_xfer_go_live(struct replicant_state_machine_context* ctx,
+                                  void* obj, const char* data, size_t data_sz)
+{
+    PROTECT_UNINITIALIZED;
+    coordinator* c = static_cast<coordinator*>(obj);
+    uint64_t _xid;
+    e::unpacker up(data, data_sz);
+    up = up >> _xid;
+
+    if (up.error())
+    {
+        return generate_response(ctx, c, hyperdex::COORD_MALFORMED);
+    }
+
+    transfer_id xid(_xid);
+
+    for (std::list<space>::iterator it = c->spaces.begin(); it != c->spaces.end(); ++it)
+    {
+        for (size_t ss = 0; ss < it->subspaces.size(); ++ss)
+        {
+            for (size_t r = 0; r < it->subspaces[ss].regions.size(); ++r)
+            {
+                region& reg(it->subspaces[ss].regions[r]);
+
+                if (reg.tid != xid)
+                {
+                    continue;
+                }
+
+                if (!reg.replicas.empty() &&
+                    reg.replicas.back().si != reg.tsi)
+                {
+                    reg.replicas.push_back(replica());
+                    reg.replicas.back().si = reg.tsi;
+                    reg.replicas.back().vsi = reg.tvi;
+                    c->regenerate(ctx);
+                }
+            }
+        }
+    }
+
+    return generate_response(ctx, c, hyperdex::COORD_SUCCESS);
 }
 
-state_transfer_manager :: transfer_out_state :: ~transfer_out_state() throw ()
-{
-}
+} // extern "C"

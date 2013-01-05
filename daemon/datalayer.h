@@ -116,6 +116,13 @@ class datalayer
         void make_region_iterator(region_iterator* riter,
                                   std::tr1::shared_ptr<leveldb::Snapshot> snap,
                                   const region_id& ri);
+        returncode get_transfer(const region_id& ri,
+                                uint64_t seq_no,
+                                bool* has_value,
+                                e::slice* key,
+                                std::vector<e::slice>* value,
+                                uint64_t* version,
+                                reference* ref);
         // XXX errors are absorbed here; short of crashing we can only log
         bool check_acked(const region_id& reg_id, uint64_t seq_id);
         void mark_acked(const region_id& reg_id, uint64_t seq_id);
@@ -146,9 +153,19 @@ class datalayer
                                 uint64_t* version);
         void encode_transfer(const region_id& ri,
                              uint64_t count,
-                             const e::slice& key,
                              std::vector<char>* backing,
                              leveldb::Slice* tkey);
+        void encode_key_value(const e::slice& key,
+                              /*pointer to make it optional*/
+                              const std::vector<e::slice>* value,
+                              uint64_t version,
+                              std::vector<char>* backing,
+                              leveldb::Slice* slice);
+        returncode decode_key_value(const e::slice& slice,
+                                    bool* has_value,
+                                    e::slice* key,
+                                    std::vector<e::slice>* value,
+                                    uint64_t* version);
         void generate_object_range(const region_id& ri,
                                    backing_t* backing,
                                    leveldb::Range* r);

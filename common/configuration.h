@@ -80,6 +80,8 @@ class configuration
         virtual_server_id head_of_region(const region_id& ri) const;
         virtual_server_id tail_of_region(const region_id& ri) const;
         virtual_server_id next_in_region(const virtual_server_id& vsi) const;
+        bool is_server_blocked_by_live_transfer(const server_id& si, const region_id& ri) const;
+        bool is_transfer_live(const transfer_id& tid) const;
         void transfer_in_regions(const server_id& s, std::vector<transfer>* transfers) const;
         void transfer_out_regions(const server_id& s, std::vector<transfer>* transfers) const;
         void captured_regions(const server_id& s, std::vector<region_id>* servers) const;

@@ -448,8 +448,11 @@ datalayer :: put(const region_id& ri,
     {
         backing.push_back(std::vector<char>());
         leveldb::Slice tkey;
-        encode_transfer(ri, count, key, &backing.back(), &tkey);
-        updates.Put(tkey, lvalue);
+        encode_transfer(ri, count, &backing.back(), &tkey);
+        backing.push_back(std::vector<char>());
+        leveldb::Slice tvalue;
+        encode_key_value(key, &value, version, &backing.back(), &tvalue);
+        updates.Put(tkey, tvalue);
     }
 
     // Perform the write
@@ -525,9 +528,11 @@ datalayer :: del(const region_id& ri,
     {
         backing.push_back(std::vector<char>());
         leveldb::Slice tkey;
-        encode_transfer(ri, count, key, &backing.back(), &tkey);
-        leveldb::Slice tval("", 0);
-        updates.Put(tkey, tval);
+        encode_transfer(ri, count, &backing.back(), &tkey);
+        backing.push_back(std::vector<char>());
+        leveldb::Slice tvalue;
+        encode_key_value(key, NULL, 0, &backing.back(), &tvalue);
+        updates.Put(tkey, tvalue);
     }
 
     // Perform the write
@@ -662,6 +667,51 @@ datalayer :: make_region_iterator(region_iterator* riter,
     ptr = e::pack8be('o', ptr);
     ptr = e::pack64be(riter->m_region.get(), ptr);
     riter->m_iter->Seek(leveldb::Slice(backing, sizeof(uint8_t) + sizeof(uint64_t)));
+}
+
+datalayer::returncode
+datalayer :: get_transfer(const region_id& ri,
+                          uint64_t seq_no,
+                          bool* has_value,
+                          e::slice* key,
+                          std::vector<e::slice>* value,
+                          uint64_t* version,
+                          reference* ref)
+{
+    leveldb::ReadOptions opts;
+    opts.fill_cache = true;
+    opts.verify_checksums = true;
+    std::vector<char> kbacking;
+    leveldb::Slice lkey;
+    encode_transfer(ri, seq_no, &kbacking, &lkey);
+    leveldb::Status st = m_db->Get(opts, lkey, &ref->m_backing);
+
+    if (st.ok())
+    {
+        e::slice v(ref->m_backing.data(), ref->m_backing.size());
+        return decode_key_value(v, has_value, key, value, version);
+    }
+    else if (st.IsNotFound())
+    {
+        return NOT_FOUND;
+    }
+    else if (st.IsCorruption())
+    {
+        LOG(ERROR) << "corruption at the disk layer: region=" << ri
+                   << " seq_no=" << seq_no << " desc=" << st.ToString();
+        return CORRUPTION;
+    }
+    else if (st.IsIOError())
+    {
+        LOG(ERROR) << "IO error at the disk layer: region=" << ri
+                   << " seq_no=" << seq_no << " desc=" << st.ToString();
+        return IO_ERROR;
+    }
+    else
+    {
+        LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
+        return LEVELDB_ERROR;
+    }
 }
 
 bool
@@ -912,18 +962,135 @@ datalayer :: decode_value(const e::slice& value,
 void
 datalayer :: encode_transfer(const region_id& ri,
                              uint64_t count,
-                             const e::slice& key,
                              std::vector<char>* backing,
                              leveldb::Slice* tkey)
 {
-    backing->resize(sizeof(uint8_t) + 3 * sizeof(uint64_t) + key.size());
+    backing->resize(sizeof(uint8_t) + 2 * sizeof(uint64_t));
     char* tmp = &backing->front();
     tmp = e::pack8be('t', tmp);
     tmp = e::pack64be(ri.get(), tmp);
-    tmp = e::pack64be(m_daemon->m_config.version(), tmp);
     tmp = e::pack64be(count, tmp);
-    memmove(tmp, key.data(), key.size());
-    *tkey = leveldb::Slice(&backing->front(), sizeof(uint8_t) + 3 * sizeof(uint64_t) + key.size());
+    *tkey = leveldb::Slice(&backing->front(), sizeof(uint8_t) + 2 * sizeof(uint64_t));
+}
+
+void
+datalayer :: encode_key_value(const e::slice& key,
+                              const std::vector<e::slice>* value,
+                              uint64_t version,
+                              std::vector<char>* backing,
+                              leveldb::Slice* slice)
+{
+    size_t sz = sizeof(uint32_t) + key.size() + sizeof(uint64_t) + sizeof(uint16_t);
+
+    for (size_t i = 0; value && i < value->size(); ++i)
+    {
+        sz += sizeof(uint32_t) + (*value)[i].size();
+    }
+
+    backing->resize(sz);
+    char* ptr = &backing->front();
+    *slice = leveldb::Slice(ptr, sz);
+    ptr = e::pack32be(key.size(), ptr);
+    memmove(ptr, key.data(), key.size());
+    ptr += key.size();
+    ptr = e::pack64be(version, ptr);
+
+    if (value)
+    {
+        ptr = e::pack16be(value->size(), ptr);
+
+        for (size_t i = 0; i < value->size(); ++i)
+        {
+            ptr = e::pack32be((*value)[i].size(), ptr);
+            memmove(ptr, (*value)[i].data(), (*value)[i].size());
+            ptr += (*value)[i].size();
+        }
+    }
+}
+
+datalayer::returncode
+datalayer :: decode_key_value(const e::slice& slice,
+                              bool* has_value,
+                              e::slice* key,
+                              std::vector<e::slice>* value,
+                              uint64_t* version)
+{
+    const uint8_t* ptr = slice.data();
+    const uint8_t* end = ptr + slice.size();
+
+    if (ptr >= end)
+    {
+        return BAD_ENCODING;
+    }
+
+    uint32_t key_sz;
+
+    if (ptr + sizeof(uint32_t) <= end)
+    {
+        ptr = e::unpack32be(ptr, &key_sz);
+    }
+    else
+    {
+        return BAD_ENCODING;
+    }
+
+    if (ptr + key_sz <= end)
+    {
+        *key = e::slice(ptr, key_sz);
+        ptr += key_sz;
+    }
+    else
+    {
+        return BAD_ENCODING;
+    }
+
+    if (ptr + sizeof(uint64_t) <= end)
+    {
+        ptr = e::unpack64be(ptr, version);
+    }
+    else
+    {
+        return BAD_ENCODING;
+    }
+
+    if (ptr == end)
+    {
+        *has_value = false;
+        return SUCCESS;
+    }
+
+    uint16_t num_attrs;
+
+    if (ptr + sizeof(uint16_t) <= end)
+    {
+        ptr = e::unpack16be(ptr, &num_attrs);
+    }
+    else
+    {
+        return BAD_ENCODING;
+    }
+
+    value->clear();
+
+    for (size_t i = 0; i < num_attrs; ++i)
+    {
+        uint32_t sz = 0;
+
+        if (ptr + sizeof(uint32_t) <= end)
+        {
+            ptr = e::unpack32be(ptr, &sz);
+        }
+        else
+        {
+            return BAD_ENCODING;
+        }
+
+        e::slice s(ptr, sz);
+        ptr += sz;
+        value->push_back(s);
+    }
+
+    return SUCCESS;
 }
 
 void

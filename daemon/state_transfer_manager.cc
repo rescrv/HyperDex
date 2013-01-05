@@ -111,6 +111,7 @@ setup_transfer_state(const char* desc,
         }
         else if (transfers[t_idx].id > (*transfer_states)[ts_idx].first)
         {
+            LOG(INFO) << "ending " << desc << " transfer " << (*transfer_states)[ts_idx].first;
             ++ts_idx;
         }
     }
@@ -121,6 +122,12 @@ setup_transfer_state(const char* desc,
         e::intrusive_ptr<S> new_state(new S(transfers[t_idx], data, snap));
         tmp.push_back(std::make_pair(transfers[t_idx].id, new_state));
         ++t_idx;
+    }
+
+    while (ts_idx < transfer_states->size())
+    {
+        LOG(INFO) << "ending " << desc << " transfer " << (*transfer_states)[ts_idx].first;
+        ++ts_idx;
     }
 
     tmp.swap(*transfer_states);
@@ -257,6 +264,18 @@ state_transfer_manager :: xfer_op(const virtual_server_id& from,
 
                 switch (rc)
                 {
+                    case datalayer::SUCCESS:
+                    case datalayer::NOT_FOUND:
+                        break;
+                    case datalayer::BAD_ENCODING:
+                    case datalayer::CORRUPTION:
+                    case datalayer::IO_ERROR:
+                    case datalayer::LEVELDB_ERROR:
+                        LOG(ERROR) << "state transfer caused error " << rc;
+                        break;
+                    default:
+                        LOG(ERROR) << "state transfer caused unknown error";
+                        break;
                 }
             }
         }
@@ -267,6 +286,18 @@ state_transfer_manager :: xfer_op(const virtual_server_id& from,
 
             switch (rc)
             {
+                case datalayer::SUCCESS:
+                    break;
+                case datalayer::NOT_FOUND:
+                case datalayer::BAD_ENCODING:
+                case datalayer::CORRUPTION:
+                case datalayer::IO_ERROR:
+                case datalayer::LEVELDB_ERROR:
+                    LOG(ERROR) << "state transfer caused error " << rc;
+                    break;
+                default:
+                    LOG(ERROR) << "state transfer caused unknown error";
+                    break;
             }
         }
         else
@@ -275,6 +306,18 @@ state_transfer_manager :: xfer_op(const virtual_server_id& from,
 
             switch (rc)
             {
+                case datalayer::SUCCESS:
+                case datalayer::NOT_FOUND:
+                    break;
+                case datalayer::BAD_ENCODING:
+                case datalayer::CORRUPTION:
+                case datalayer::IO_ERROR:
+                case datalayer::LEVELDB_ERROR:
+                    LOG(ERROR) << "state transfer caused error " << rc;
+                    break;
+                default:
+                    LOG(ERROR) << "state transfer caused unknown error";
+                    break;
             }
         }
 
@@ -328,21 +371,19 @@ state_transfer_manager :: xfer_ack(const server_id& from,
         }
     }
 
-    if (it == tos->window.end())
+    if (it != tos->window.end())
     {
-        return;
-    }
+        (*it)->acked = true;
 
-    (*it)->acked = true;
+        if (tos->window_sz < 1024)
+        {
+            ++tos->window_sz;
+        }
+    }
 
     while (!tos->window.empty() && (*tos->window.begin())->acked)
     {
         tos->window.pop_front();
-    }
-
-    if (tos->window_sz < 1024)
-    {
-        ++tos->window_sz;
     }
 
     transfer_more_state(xid, tos);
@@ -374,13 +415,57 @@ state_transfer_manager :: transfer_more_state(const transfer_id& tid,
         }
         else if (tos->state == transfer_out_state::LOG_TRANSFER)
         {
-            // XXX
-            break;
+            e::intrusive_ptr<pending> op(new pending());
+            datalayer::returncode rc;
+            rc = m_daemon->m_data.get_transfer(tos->xfer.rid, tos->log_seq_no,
+                                               &op->has_value,
+                                               &op->key,
+                                               &op->value,
+                                               &op->version,
+                                               &op->ref);
+            bool done = false;
+
+            switch (rc)
+            {
+                case datalayer::SUCCESS:
+                    break;
+                case datalayer::NOT_FOUND:
+                    done = true;
+                    break;
+                case datalayer::BAD_ENCODING:
+                case datalayer::CORRUPTION:
+                case datalayer::IO_ERROR:
+                case datalayer::LEVELDB_ERROR:
+                    LOG(ERROR) << "state transfer caused error " << rc;
+                    break;
+                default:
+                    LOG(ERROR) << "state transfer caused unknown error";
+                    break;
+            }
+
+            if (done)
+            {
+                m_daemon->m_coord.transfer_go_live(tos->xfer.id);
+                break;
+            }
+
+            tos->window.push_back(op);
+            send_object(tid, tos);
+            ++tos->log_seq_no;
         }
         else
         {
             abort();
         }
+    }
+
+    if (tos->window.empty() && m_daemon->m_config.is_transfer_live(tos->xfer.id))
+    {
+        m_daemon->m_coord.transfer_complete(tos->xfer.id);
+    }
+    else if (tos->window.empty())
+    {
+        m_daemon->m_coord.transfer_go_live(tos->xfer.id);
     }
 }
 

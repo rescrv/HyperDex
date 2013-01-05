@@ -65,6 +65,7 @@ class state_transfer_manager::transfer_out_state
         // transfer from the snapshot
         datalayer::region_iterator snap_iter;
         // transfer from the log of new operations
+        uint64_t log_seq_no;
 
     private:
         friend class e::intrusive_ptr<transfer_out_state>;

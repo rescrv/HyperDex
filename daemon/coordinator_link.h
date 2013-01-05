@@ -25,28 +25,59 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#ifndef hyperdex_daemon_coordinator_link_h_
+#define hyperdex_daemon_coordinator_link_h_
+
+// STL
+#include <map>
+#include <tr1/memory>
+
+// Replicant
+#include <replicant.h>
+
 // HyperDex
-#include "daemon/state_transfer_manager_pending.h"
-#include "daemon/state_transfer_manager_transfer_out_state.h"
+#include "common/configuration.h"
+#include "common/server_id.h"
+#include "common/transfer_id.h"
 
-using hyperdex::state_transfer_manager;
-
-state_transfer_manager :: transfer_out_state :: transfer_out_state(const transfer& _xfer,
-                                                                   datalayer* data,
-                                                                   std::tr1::shared_ptr<leveldb::Snapshot> snap)
-    : xfer(_xfer)
-    , mtx()
-    , state(SNAPSHOT_TRANSFER)
-    , next_seq_no(1)
-    , window()
-    , window_sz(1)
-    , snap_iter()
-    , log_seq_no(1)
-    , m_ref(0)
+namespace hyperdex
 {
-    data->make_region_iterator(&snap_iter, snap, xfer.rid);
-}
+class daemon;
 
-state_transfer_manager :: transfer_out_state :: ~transfer_out_state() throw ()
+class coordinator_link
 {
-}
+    public:
+        coordinator_link(daemon*);
+        ~coordinator_link() throw ();
+
+    public:
+        void set_coordinator_address(const char* host, uint16_t port);
+        int register_id(server_id us, const po6::net::location& bind_to);
+        bool wait_for_config(configuration* config);
+        void transfer_go_live(const transfer_id& id);
+        void transfer_complete(const transfer_id& id);
+
+    private:
+        bool initiate_wait_for_config();
+        bool initiate_get_config();
+
+    private:
+        daemon* m_daemon;
+        std::auto_ptr<replicant_client> m_repl;
+        int64_t m_wait_config_id;
+        replicant_returncode m_wait_config_status;
+        int64_t m_get_config_id;
+        replicant_returncode m_get_config_status;
+        const char* m_get_config_output;
+        size_t m_get_config_output_sz;
+        std::map<int64_t, std::pair<transfer_id, std::tr1::shared_ptr<replicant_returncode> > > m_transfers_go_live;
+        std::map<int64_t, std::pair<transfer_id, std::tr1::shared_ptr<replicant_returncode> > > m_transfers_complete;
+
+    private:
+        coordinator_link(const coordinator_link&);
+        coordinator_link& operator = (const coordinator_link&);
+};
+
+} // namespace hyperdex
+
+#endif // hyperdex_daemon_coordinator_link_h_

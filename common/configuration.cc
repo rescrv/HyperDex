@@ -297,6 +297,57 @@ configuration :: next_in_region(const virtual_server_id& vsi) const
     return virtual_server_id();
 }
 
+bool
+configuration :: is_server_blocked_by_live_transfer(const server_id& si, const region_id& id) const
+{
+    for (size_t s = 0; s < m_spaces.size(); ++s)
+    {
+        for (size_t ss = 0; ss < m_spaces[s].subspaces.size(); ++ss)
+        {
+            for (size_t r = 0; r < m_spaces[s].subspaces[ss].regions.size(); ++r)
+            {
+                if (m_spaces[s].subspaces[ss].regions[r].id != id)
+                {
+                    continue;
+                }
+
+                const region& reg(m_spaces[s].subspaces[ss].regions[r]);
+                return reg.replicas.size() >= 2 &&
+                       reg.replicas[reg.replicas.size() - 2].si == si &&
+                       reg.replicas[reg.replicas.size() - 1].si == reg.tsi &&
+                       reg.replicas[reg.replicas.size() - 1].vsi == reg.tvi;
+            }
+        }
+    }
+
+    return false;
+}
+
+bool
+configuration :: is_transfer_live(const transfer_id& id) const
+{
+    for (size_t s = 0; s < m_spaces.size(); ++s)
+    {
+        for (size_t ss = 0; ss < m_spaces[s].subspaces.size(); ++ss)
+        {
+            for (size_t r = 0; r < m_spaces[s].subspaces[ss].regions.size(); ++r)
+            {
+                if (m_spaces[s].subspaces[ss].regions[r].tid != id)
+                {
+                    continue;
+                }
+
+                const region& reg(m_spaces[s].subspaces[ss].regions[r]);
+                return reg.replicas.size() >= 2 &&
+                       reg.replicas.back().si == reg.tsi &&
+                       reg.replicas.back().vsi == reg.tvi;
+            }
+        }
+    }
+
+    return false;
+}
+
 void
 configuration :: transfer_in_regions(const server_id& si, std::vector<transfer>* transfers) const
 {
