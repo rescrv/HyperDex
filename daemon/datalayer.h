@@ -106,6 +106,10 @@ class datalayer
                                  attribute_check* checks,
                                  size_t checks_sz,
                                  snapshot* snap);
+        // XXX errors are absorbed here; short of crashing we can only log
+        bool check_acked(const region_id& reg_id, uint64_t seq_id);
+        void mark_acked(const region_id& reg_id, uint64_t seq_id);
+        void max_seq_id(const region_id& reg_id, uint64_t* seq_id);
 
     private:
         class search_filter;

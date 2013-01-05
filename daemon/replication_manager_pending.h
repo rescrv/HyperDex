@@ -38,11 +38,16 @@ class hyperdex::replication_manager::pending
 {
     public:
         pending(std::tr1::shared_ptr<e::buffer> backing,
+                const region_id& reg_id,
+                uint64_t seq_id,
                 bool fresh,
                 bool has_value,
                 const std::vector<e::slice>& value,
+                uint64_t recv_config_version,
                 const virtual_server_id& recv);
         pending(std::tr1::shared_ptr<e::buffer> backing,
+                const region_id& reg_id,
+                uint64_t seq_id,
                 bool fresh,
                 bool has_value,
                 const std::vector<e::slice>& value,
@@ -52,9 +57,13 @@ class hyperdex::replication_manager::pending
 
     public:
         std::tr1::shared_ptr<e::buffer> backing;
+        region_id reg_id;
+        uint64_t seq_id;
         bool has_value;
         std::vector<e::slice> value;
+        uint64_t recv_config_version;
         virtual_server_id recv; // we recv from here
+        uint64_t sent_config_version;
         virtual_server_id sent; // we sent to here
         bool fresh;
         bool acked;

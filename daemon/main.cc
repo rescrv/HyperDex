@@ -38,6 +38,9 @@
 // e
 #include <e/guard.h>
 
+// BusyBee
+#include <busybee_utils.h>
+
 // HyperDex
 #include "daemon/daemon.h"
 
@@ -174,7 +177,7 @@ main(int argc, const char* argv[])
 
         if (strcmp(_listen_host, "auto") == 0)
         {
-            if (!busybee_mta::discover(&_listen_ip))
+            if (!busybee_discover(&_listen_ip))
             {
                 std::cerr << "cannot automatically discover local address; specify one manually" << std::endl;
                 return EXIT_FAILURE;

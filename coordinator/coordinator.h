@@ -58,7 +58,7 @@ class coordinator
 
     public:
         void initial_layout(space* s);
-        void regenerate();
+        void regenerate(struct replicant_state_machine_context* ctx);
 
     public:
         uint64_t version;

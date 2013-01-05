@@ -72,12 +72,14 @@ class configuration
     public:
         const schema* get_schema(const char* space) const;
         const schema* get_schema(const region_id& ri) const;
+        virtual_server_id get_virtual(const region_id& ri, const server_id& si);
         subspace_id subspace_of(const region_id& ri) const;
         subspace_id subspace_prev(const subspace_id& ss) const;
         subspace_id subspace_next(const subspace_id& ss) const;
         virtual_server_id head_of_region(const region_id& ri) const;
         virtual_server_id tail_of_region(const region_id& ri) const;
         virtual_server_id next_in_region(const virtual_server_id& vsi) const;
+        void point_leaders(const server_id& s, std::vector<region_id>* servers) const;
         bool is_point_leader(const virtual_server_id& e) const;
         virtual_server_id point_leader(const char* space, const e::slice& key);
         // point leader for this key in the same space as ri
@@ -94,6 +96,9 @@ class configuration
         void lookup_search(const char* space,
                            const std::vector<attribute_check>& chks,
                            std::vector<virtual_server_id>* servers) const;
+
+    public:
+        void debug_dump(std::ostream& out);
 
     public:
         configuration& operator = (const configuration& rhs);

@@ -31,14 +31,21 @@
 using hyperdex::replication_manager;
 
 replication_manager :: pending :: pending(std::tr1::shared_ptr<e::buffer> _backing,
+                                          const region_id& _reg_id,
+                                          uint64_t _seq_id,
                                           bool _fresh,
                                           bool _has_value,
                                           const std::vector<e::slice>& _value,
+                                          uint64_t _recv_config_version,
                                           const virtual_server_id& _recv)
     : backing(_backing)
+    , reg_id(_reg_id)
+    , seq_id(_seq_id)
     , has_value(_has_value)
     , value(_value)
+    , recv_config_version(_recv_config_version)
     , recv(_recv)
+    , sent_config_version(0)
     , sent()
     , fresh(_fresh)
     , acked(false)
@@ -55,15 +62,21 @@ replication_manager :: pending :: pending(std::tr1::shared_ptr<e::buffer> _backi
 }
 
 replication_manager :: pending :: pending(std::tr1::shared_ptr<e::buffer> _backing,
+                                          const region_id& _reg_id,
+                                          uint64_t _seq_id,
                                           bool _fresh,
                                           bool _has_value,
                                           const std::vector<e::slice>& _value,
                                           server_id _client,
                                           uint64_t _nonce)
     : backing(_backing)
+    , reg_id(_reg_id)
+    , seq_id(_seq_id)
     , has_value(_has_value)
     , value(_value)
+    , recv_config_version(0)
     , recv()
+    , sent_config_version(0)
     , sent()
     , fresh(_fresh)
     , acked(false)

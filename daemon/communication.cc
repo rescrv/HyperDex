@@ -94,6 +94,7 @@ communication :: setup(const po6::net::location& bind_to,
                        unsigned threads)
 {
     m_busybee.reset(new busybee_mta(&m_busybee_mapper, bind_to, m_daemon->m_us.get(), threads));
+    m_busybee->set_ignore_signals();
     return true;
 }
 
@@ -137,10 +138,6 @@ communication :: send(const virtual_server_id& from,
 {
     assert(msg->size() >= HYPERDEX_HEADER_SIZE_VS);
 
-#ifdef HD_LOG_ALL_MESSAGES
-    LOG(INFO) << "SEND " << from << "->" << to << " " << msg_type << " " << msg->hex();
-#endif
-
     if (m_daemon->m_us != m_daemon->m_config.get_server_id(from))
     {
         return false;
@@ -148,6 +145,10 @@ communication :: send(const virtual_server_id& from,
 
     uint8_t mt = static_cast<uint8_t>(msg_type);
     msg->pack_at(BUSYBEE_HEADER_SIZE) << mt << from.get();
+
+#ifdef HD_LOG_ALL_MESSAGES
+    LOG(INFO) << "SEND " << from << "->" << to << " " << msg_type << " " << msg->hex();
+#endif
 
     if (to == m_daemon->m_us)
     {
@@ -169,6 +170,7 @@ communication :: send(const virtual_server_id& from,
             case BUSYBEE_ADDFDFAIL:
             case BUSYBEE_TIMEOUT:
             case BUSYBEE_EXTERNAL:
+            case BUSYBEE_INTERRUPTED:
             default:
                 LOG(ERROR) << "BusyBee unexpectedly returned " << rc;
                 return false;
@@ -186,10 +188,6 @@ communication :: send(const virtual_server_id& from,
 {
     assert(msg->size() >= HYPERDEX_HEADER_SIZE_VV);
 
-#ifdef HD_LOG_ALL_MESSAGES
-    LOG(INFO) << "SEND " << from << "->" << vto << " " << msg_type << " " << msg->hex();
-#endif
-
     if (m_daemon->m_us != m_daemon->m_config.get_server_id(from))
     {
         return false;
@@ -204,6 +202,10 @@ communication :: send(const virtual_server_id& from,
     {
         return false;
     }
+
+#ifdef HD_LOG_ALL_MESSAGES
+    LOG(INFO) << "SEND " << from << "->" << vto << " " << msg_type << " " << msg->hex();
+#endif
 
     if (to == m_daemon->m_us)
     {
@@ -225,6 +227,7 @@ communication :: send(const virtual_server_id& from,
             case BUSYBEE_ADDFDFAIL:
             case BUSYBEE_TIMEOUT:
             case BUSYBEE_EXTERNAL:
+            case BUSYBEE_INTERRUPTED:
             default:
                 LOG(ERROR) << "BusyBee unexpectedly returned " << rc;
                 return false;
@@ -241,10 +244,6 @@ communication :: send(const virtual_server_id& vto,
 {
     assert(msg->size() >= HYPERDEX_HEADER_SIZE_SV);
 
-#ifdef HD_LOG_ALL_MESSAGES
-    LOG(INFO) << "SEND ->" << vto << " " << msg_type << " " << msg->hex();
-#endif
-
     uint8_t mt = static_cast<uint8_t>(msg_type);
     uint8_t flags = 0;
     msg->pack_at(BUSYBEE_HEADER_SIZE) << mt << flags << m_daemon->m_config.version() << vto.get();
@@ -254,6 +253,10 @@ communication :: send(const virtual_server_id& vto,
     {
         return false;
     }
+
+#ifdef HD_LOG_ALL_MESSAGES
+    LOG(INFO) << "SEND ->" << vto << " " << msg_type << " " << msg->hex();
+#endif
 
     if (to == m_daemon->m_us)
     {
@@ -275,6 +278,64 @@ communication :: send(const virtual_server_id& vto,
             case BUSYBEE_ADDFDFAIL:
             case BUSYBEE_TIMEOUT:
             case BUSYBEE_EXTERNAL:
+            case BUSYBEE_INTERRUPTED:
+            default:
+                LOG(ERROR) << "BusyBee unexpectedly returned " << rc;
+                return false;
+        }
+    }
+
+    return true;
+}
+
+bool
+communication :: send_exact(const virtual_server_id& from,
+                            const virtual_server_id& vto,
+                            network_msgtype msg_type,
+                            std::auto_ptr<e::buffer> msg)
+{
+    assert(msg->size() >= HYPERDEX_HEADER_SIZE_VV);
+
+    if (m_daemon->m_us != m_daemon->m_config.get_server_id(from))
+    {
+        return false;
+    }
+
+    uint8_t mt = static_cast<uint8_t>(msg_type);
+    uint8_t flags = 1 | 2;
+    msg->pack_at(BUSYBEE_HEADER_SIZE) << mt << flags << m_daemon->m_config.version() << vto.get() << from.get();
+    server_id to = m_daemon->m_config.get_server_id(vto);
+
+    if (to == server_id())
+    {
+        return false;
+    }
+
+#ifdef HD_LOG_ALL_MESSAGES
+    LOG(INFO) << "SEND " << from << "->" << vto << " " << msg_type << " " << msg->hex();
+#endif
+
+    if (to == m_daemon->m_us)
+    {
+        m_busybee->deliver(to.get(), msg);
+    }
+    else
+    {
+        busybee_returncode rc = m_busybee->send(to.get(), msg);
+
+        switch (rc)
+        {
+            case BUSYBEE_SUCCESS:
+                break;
+            case BUSYBEE_DISRUPTED:
+                handle_disruption(to.get());
+                return false;
+            case BUSYBEE_SHUTDOWN:
+            case BUSYBEE_POLLFAILED:
+            case BUSYBEE_ADDFDFAIL:
+            case BUSYBEE_TIMEOUT:
+            case BUSYBEE_EXTERNAL:
+            case BUSYBEE_INTERRUPTED:
             default:
                 LOG(ERROR) << "BusyBee unexpectedly returned " << rc;
                 return false;
@@ -316,6 +377,7 @@ communication :: recv(server_id* from,
             case BUSYBEE_ADDFDFAIL:
             case BUSYBEE_TIMEOUT:
             case BUSYBEE_EXTERNAL:
+            case BUSYBEE_INTERRUPTED:
             default:
                 LOG(ERROR) << "busybee unexpectedly returned " << rc;
                 continue;
@@ -357,10 +419,23 @@ communication :: recv(server_id* from,
             from_valid = *from == m_daemon->m_config.get_server_id(virtual_server_id(vidf));
         }
 
+        // No matter what, wait for the config the sender saw
+        if (version > m_daemon->m_config.version())
+        {
+            early_message em(version, id, *msg);
+            m_early_messages.push(em);
+            continue;
+        }
+
+        if ((flags & 0x2) && version < m_daemon->m_config.version())
+        {
+            continue;
+        }
+
         if (from_valid && to_valid)
         {
 #ifdef HD_LOG_ALL_MESSAGES
-            LOG(INFO) << "RECV " << *from << "->" << *vto << " " << *msg_type << " " << (*msg)->hex();
+            LOG(INFO) << "RECV " << *from << "/" << *vfrom << "->" << *vto << " " << *msg_type << " " << (*msg)->hex();
 #endif
             return true;
         }
@@ -371,12 +446,6 @@ communication :: recv(server_id* from,
             mt = static_cast<uint8_t>(CONFIGMISMATCH);
             (*msg)->pack_at(BUSYBEE_HEADER_SIZE) << mt;
             m_busybee->send(id, *msg);
-        }
-        else if (version > m_daemon->m_config.version())
-        {
-            early_message em(version, id, *msg);
-            m_early_messages.push(em);
-            continue;
         }
     }
 }

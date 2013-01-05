@@ -92,7 +92,7 @@ configuration :: get_address(const server_id& id) const
 {
     std::vector<uint64_location_t>::const_iterator it;
     it = std::lower_bound(m_addresses_by_server_id.begin(),
-                          m_addresses_by_server_id.begin(),
+                          m_addresses_by_server_id.end(),
                           uint64_location_t(id.get(), po6::net::location()));
 
     if (it != m_addresses_by_server_id.end() && it->first == id.get())
@@ -163,6 +163,42 @@ configuration :: get_schema(const region_id& ri) const
     }
 
     return NULL;
+}
+
+virtual_server_id
+configuration :: get_virtual(const region_id& ri, const server_id& si)
+{
+    for (size_t w = 0; w < m_spaces.size(); ++w)
+    {
+        space& s(m_spaces[w]);
+
+        for (size_t x = 0; x < s.subspaces.size(); ++x)
+        {
+            subspace& ss(s.subspaces[x]);
+
+            for (size_t y = 0; y < ss.regions.size(); ++y)
+            {
+                region& r(ss.regions[y]);
+
+                if (r.id != ri)
+                {
+                    continue;
+                }
+
+                for (size_t z = 0; z < r.replicas.size(); ++z)
+                {
+                    if (r.replicas[z].si == si)
+                    {
+                        return r.replicas[z].vsi;
+                    }
+                }
+
+                return virtual_server_id();
+            }
+        }
+    }
+
+    return virtual_server_id();
 }
 
 subspace_id
@@ -259,6 +295,25 @@ configuration :: next_in_region(const virtual_server_id& vsi) const
     }
 
     return virtual_server_id();
+}
+
+void
+configuration :: point_leaders(const server_id& si, std::vector<region_id>* servers) const
+{
+    for (size_t s = 0; s < m_spaces.size(); ++s)
+    {
+        for (size_t ss = 0; ss < m_spaces[s].subspaces.size(); ++ss)
+        {
+            for (size_t r = 0; r < m_spaces[s].subspaces[ss].regions.size(); ++r)
+            {
+                if (!m_spaces[s].subspaces[ss].regions[r].replicas.empty() &&
+                    m_spaces[s].subspaces[ss].regions[r].replicas[0].si == si)
+                {
+                    servers->push_back(m_spaces[s].subspaces[ss].regions[r].id);
+                }
+            }
+        }
+    }
 }
 
 bool
@@ -409,9 +464,87 @@ configuration :: lookup_search(const char* space,
     }
 }
 
+void
+configuration :: debug_dump(std::ostream& out)
+{
+    out << "configuration version=" << m_version << std::endl;
+
+    for (size_t i = 0; i < m_addresses_by_server_id.size(); ++i)
+    {
+        out << "server id=" << server_id(m_addresses_by_server_id[i].first)
+            << " address=" << m_addresses_by_server_id[i].second << std::endl;
+    }
+
+    for (size_t w = 0; w < m_spaces.size(); ++w)
+    {
+        space& s(m_spaces[w]);
+        out << "space id=" << s.id << " name=" << s.name << std::endl;
+        out << "  schema" << std::endl;
+
+        for (size_t i = 0; i < s.schema.attrs_sz; ++i)
+        {
+            out << "    attribute name=" << s.schema.attrs[i].name
+                      << " type=" << s.schema.attrs[i].type << std::endl;
+        }
+
+        for (size_t x = 0; x < s.subspaces.size(); ++x)
+        {
+            subspace& ss(s.subspaces[x]);
+            out << "  subspace id=" << ss.id << std::endl;
+            out << "    attributes";
+
+            for (size_t i = 0; i < ss.attrs.size(); ++i)
+            {
+                out << " " << s.schema.attrs[ss.attrs[i]].name;
+            }
+
+            out << std::endl;
+
+            for (size_t y = 0; y < ss.regions.size(); ++y)
+            {
+                region& r(ss.regions[y]);
+                out << "    region id=" << r.id << " lower=<";
+                bool first = true;
+
+                for (size_t i = 0; i < r.lower_coord.size(); ++i)
+                {
+                    out << (first ? "" : ", ") << r.lower_coord[i];
+                    first = false;
+                }
+
+                out << "> upper=<";
+                first = true;
+
+                for (size_t i = 0; i < r.upper_coord.size(); ++i)
+                {
+                    out << (first ? "" : ", ") << r.upper_coord[i];
+                    first = false;
+                }
+
+                out << "> replicas=[";
+                first = true;
+
+                for (size_t z = 0; z < r.replicas.size(); ++z)
+                {
+                    replica& rr(r.replicas[z]);
+                    out << (first ? "" : ", ") << "(id=" << rr.si << " vid=" << rr.vsi << ")";
+                    first = false;
+                }
+
+                out << "]" << std::endl;
+            }
+        }
+    }
+}
+
 configuration&
 configuration :: operator = (const configuration& rhs)
 {
+    if (this == &rhs)
+    {
+        return *this;
+    }
+
     m_version = rhs.m_version;
     m_addresses_by_server_id = rhs.m_addresses_by_server_id;
     m_region_ids_by_virtual = rhs.m_region_ids_by_virtual;
@@ -466,7 +599,13 @@ configuration :: refill_cache()
             for (size_t y = 0; y < ss.regions.size(); ++y)
             {
                 region& r(ss.regions[y]);
-                assert(!r.replicas.empty());
+                m_schemas_by_region.push_back(std::make_pair(r.id.get(), &s.schema));
+                m_subspace_ids_by_region.push_back(std::make_pair(r.id.get(), ss.id.get()));
+
+                if (r.replicas.empty())
+                {
+                    continue;
+                }
 
                 if (x == 0)
                 {
@@ -477,8 +616,6 @@ configuration :: refill_cache()
                                                            r.replicas[0].vsi.get()));
                 m_tails_by_region.push_back(std::make_pair(r.id.get(),
                                                            r.replicas[r.replicas.size() - 1].vsi.get()));
-                m_schemas_by_region.push_back(std::make_pair(r.id.get(), &s.schema));
-                m_subspace_ids_by_region.push_back(std::make_pair(r.id.get(), ss.id.get()));
 
                 for (size_t z = 0; z < r.replicas.size(); ++z)
                 {

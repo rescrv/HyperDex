@@ -68,7 +68,7 @@ hyperdex_coordinator_add_space(struct replicant_state_machine_context* ctx,
     // Check that a space with this name doesn't already exist
     for (std::list<space>::iterator it = c->spaces.begin(); it != c->spaces.end(); ++it)
     {
-        if (it->name == s.name)
+        if (strcmp(it->name, s.name) == 0)
         {
             return generate_response(ctx, c, hyperdex::COORD_DUPLICATE);
         }
@@ -95,7 +95,7 @@ hyperdex_coordinator_add_space(struct replicant_state_machine_context* ctx,
     // this ourselves rather than trusting input
     c->spaces.push_back(s);
     c->initial_layout(&c->spaces.back());
-    c->regenerate();
+    c->regenerate(ctx);
     return generate_response(ctx, c, hyperdex::COORD_SUCCESS);
 }
 

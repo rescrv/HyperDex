@@ -46,6 +46,7 @@
 
 // HyperDex
 #include "common/macros.h"
+#include "common/serialization.h"
 #include "daemon/daemon.h"
 #include "daemon/datalayer.h"
 #include "daemon/index_encode.h"
@@ -174,7 +175,7 @@ datalayer :: setup(const po6::pathname& path,
     ropts.fill_cache = true;
     ropts.verify_checksums = true;
     leveldb::WriteOptions wopts;
-    wopts.sync = true;
+    wopts.sync = false;
 
     leveldb::Slice rk("hyperdex", 8);
     std::string rbacking;
@@ -300,18 +301,11 @@ datalayer :: setup(const po6::pathname& path,
         return true;
     }
 
-    // XXX
-    LOG(ERROR) << "UNIMPLMENTED RECOVERY CASE";
-    abort();
-#if 0
-
+    uint64_t us;
     *saved = true;
-    // XXX inefficient, lazy hack
-    std::auto_ptr<e::buffer> buf(e::buffer::create(sbacking.size()));
-    memmove(buf->data(), sbacking.data(), sbacking.size());
-    buf->resize(sbacking.size());
-    e::buffer::unpacker up = buf->unpack_from(0);
-    up = up >> *saved_us >> *saved_config_manager;
+    e::unpacker up(sbacking.data(), sbacking.size());
+    up = up >> us >> *saved_bind_to >> *saved_coordinator;
+    *saved_us = server_id(us);
 
     if (up.error())
     {
@@ -321,7 +315,6 @@ datalayer :: setup(const po6::pathname& path,
     }
 
     return true;
-#endif
 }
 
 void
@@ -413,7 +406,7 @@ datalayer :: put(const region_id& ri,
     const schema* sc = m_daemon->m_config.get_schema(ri);
     assert(sc);
     leveldb::WriteOptions opts;
-    opts.sync = true;
+    opts.sync = false;
     std::vector<char> kbacking;
     leveldb::Slice lkey;
     encode_key(ri, key, &kbacking, &lkey);
@@ -438,6 +431,8 @@ datalayer :: put(const region_id& ri,
     }
     else if (st.IsNotFound())
     {
+        LOG(ERROR) << "put returned NOT_FOUND at the disk layer: region=" << ri
+                   << " key=0x" << key.hex() << " desc=" << st.ToString();
         return NOT_FOUND;
     }
     else if (st.IsCorruption())
@@ -466,7 +461,7 @@ datalayer :: del(const region_id& ri,
     const schema* sc = m_daemon->m_config.get_schema(ri);
     assert(sc);
     leveldb::WriteOptions opts;
-    opts.sync = true;
+    opts.sync = false;
     std::vector<char> kbacking;
     leveldb::Slice lkey;
     encode_key(ri, key, &kbacking, &lkey);
@@ -507,6 +502,201 @@ datalayer :: del(const region_id& ri,
         LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
         return LEVELDB_ERROR;
     }
+}
+
+datalayer::returncode
+datalayer :: make_snapshot(const region_id& ri,
+                           attribute_check* checks, size_t checks_sz,
+                           snapshot* snap)
+{
+    std::stable_sort(checks, checks + checks_sz);
+    attribute_check* check_ptr = checks;
+    attribute_check* check_end = checks + checks_sz;
+
+    while (check_ptr < check_end)
+    {
+        attribute_check* check_tmp = check_ptr;
+
+        while (check_tmp < check_end && check_tmp->attr == check_ptr->attr)
+        {
+            ++check_tmp;
+        }
+
+        generate_search_filters(ri, check_ptr, check_tmp, &snap->m_backing, &snap->m_sfs);
+        check_ptr = check_tmp;
+    }
+
+    std::vector<leveldb::Range> ranges;
+    ranges.reserve(snap->m_sfs.size() + 1);
+    std::vector<uint64_t> sizes(snap->m_sfs.size() + 1, 0);
+
+    for (size_t i = 0; i < snap->m_sfs.size(); ++i)
+    {
+        ranges.push_back(snap->m_sfs[i].range);
+    }
+
+    ranges.push_back(leveldb::Range());
+    generate_object_range(ri, &snap->m_backing, &ranges[snap->m_sfs.size()]);
+    m_db->GetApproximateSizes(&ranges.front(), ranges.size(), &sizes.front());
+    size_t sum = 0;
+
+    for (size_t i = 0; i < snap->m_sfs.size(); ++i)
+    {
+        sum += sizes[i];
+        snap->m_sfs[i].size = sizes[i];
+    }
+
+    std::sort(snap->m_sfs.begin(), snap->m_sfs.end(), search_filter::sort_by_size);
+
+    while (!snap->m_sfs.empty() && sum > sizes[snap->m_sfs.size()] / 10)
+    {
+        sum -= snap->m_sfs.back().size;
+        snap->m_sfs.pop_back();
+    }
+
+    snap->m_dl = this;
+    snap->m_snap = m_db->GetSnapshot();
+    snap->m_checks = checks;
+    snap->m_checks_sz = checks_sz;
+    leveldb::ReadOptions opts;
+    opts.fill_cache = false;
+    opts.verify_checksums = true;
+    opts.snapshot = snap->m_snap;
+    snap->m_ri = ri;
+    snap->m_obj_range = ranges.back();
+    snap->m_iter = m_db->NewIterator(opts);
+    snap->m_iter->Seek(snap->m_obj_range.start);
+
+    snap->m_iter = m_db->NewIterator(opts);
+    snap->m_iter->Seek(snap->m_obj_range.start);
+
+    for (size_t i = 0; i < snap->m_sfs.size(); ++i)
+    {
+        snap->m_sfs[i].iter = m_db->NewIterator(opts);
+        snap->m_sfs[i].iter->Seek(snap->m_sfs[i].range.start);
+    }
+
+    return SUCCESS;
+}
+
+bool
+datalayer :: check_acked(const region_id& reg_id, uint64_t seq_id)
+{
+    // make it so that increasing seq_ids are ordered in reverse in the KVS
+    seq_id = UINT64_MAX - seq_id;
+    leveldb::ReadOptions opts;
+    opts.fill_cache = true;
+    opts.verify_checksums = true;
+    char backing[sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t)];
+    backing[0] = 'a';
+    e::pack64be(reg_id.get(), backing + sizeof(uint8_t));
+    e::pack64be(seq_id, backing + sizeof(uint8_t) + sizeof(uint64_t));
+    leveldb::Slice key(backing, sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t));
+    std::string val;
+    leveldb::Status st = m_db->Get(opts, key, &val);
+
+    if (st.ok())
+    {
+        return true;
+    }
+    else if (st.IsNotFound())
+    {
+        return false;
+    }
+    else if (st.IsCorruption())
+    {
+        LOG(ERROR) << "corruption at the disk layer: region=" << reg_id
+                   << " seq_id=" << seq_id << " desc=" << st.ToString();
+        return false;
+    }
+    else if (st.IsIOError())
+    {
+        LOG(ERROR) << "IO error at the disk layer: region=" << reg_id
+                   << " seq_id=" << seq_id << " desc=" << st.ToString();
+        return false;
+    }
+    else
+    {
+        LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
+        return false;
+    }
+}
+
+void
+datalayer :: mark_acked(const region_id& reg_id, uint64_t seq_id)
+{
+    // make it so that increasing seq_ids are ordered in reverse in the KVS
+    seq_id = UINT64_MAX - seq_id;
+    leveldb::WriteOptions opts;
+    opts.sync = false;
+    char backing[sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t)];
+    backing[0] = 'a';
+    e::pack64be(reg_id.get(), backing + sizeof(uint8_t));
+    e::pack64be(seq_id, backing + sizeof(uint8_t) + sizeof(uint64_t));
+    leveldb::Slice key(backing, sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t));
+    leveldb::Slice val("", 0);
+    leveldb::Status st = m_db->Put(opts, key, val);
+
+    if (st.ok())
+    {
+        // Yay!
+    }
+    else if (st.IsNotFound())
+    {
+        LOG(ERROR) << "mark_acked returned NOT_FOUND at the disk layer: region=" << reg_id
+                   << " seq_id=" << seq_id << " desc=" << st.ToString();
+    }
+    else if (st.IsCorruption())
+    {
+        LOG(ERROR) << "corruption at the disk layer: region=" << reg_id
+                   << " seq_id=" << seq_id << " desc=" << st.ToString();
+    }
+    else if (st.IsIOError())
+    {
+        LOG(ERROR) << "IO error at the disk layer: region=" << reg_id
+                   << " seq_id=" << seq_id << " desc=" << st.ToString();
+    }
+    else
+    {
+        LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
+    }
+}
+
+void
+datalayer :: max_seq_id(const region_id& reg_id, uint64_t* seq_id)
+{
+    leveldb::ReadOptions opts;
+    opts.fill_cache = false;
+    opts.verify_checksums = true;
+    opts.snapshot = NULL;
+    std::auto_ptr<leveldb::Iterator> it(m_db->NewIterator(opts));
+    char backing[sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t)];
+    backing[0] = 'a';
+    e::pack64be(reg_id.get(), backing + sizeof(uint8_t));
+    e::pack64be(0, backing + sizeof(uint8_t) + sizeof(uint64_t));
+    leveldb::Slice key(backing, sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t));
+    it->Seek(key);
+
+    if (!it->Valid())
+    {
+        *seq_id = 0;
+        return;
+    }
+
+    key = it->key();
+    e::unpacker up(key.data(), key.size());
+    uint8_t p = '\0';
+    uint64_t r;
+    uint64_t s;
+    up = up >> p >> r >> s;
+
+    if (up.error() || p != 'a')
+    {
+        *seq_id = 0;
+        return;
+    }
+
+    *seq_id = s;
 }
 
 void
@@ -1133,81 +1323,6 @@ datalayer :: create_index_changes(const schema* sc,
     {
         updates->Put(new_idxs[new_i], empty);
         ++new_i;
-    }
-
-    return SUCCESS;
-}
-
-datalayer::returncode
-datalayer :: make_snapshot(const region_id& ri,
-                           attribute_check* checks, size_t checks_sz,
-                           snapshot* snap)
-{
-    std::stable_sort(checks, checks + checks_sz);
-    attribute_check* check_ptr = checks;
-    attribute_check* check_end = checks + checks_sz;
-
-    while (check_ptr < check_end)
-    {
-        attribute_check* check_tmp = check_ptr;
-
-        while (check_tmp < check_end && check_tmp->attr == check_ptr->attr)
-        {
-            ++check_tmp;
-        }
-
-        generate_search_filters(ri, check_ptr, check_tmp, &snap->m_backing, &snap->m_sfs);
-        check_ptr = check_tmp;
-    }
-
-    std::vector<leveldb::Range> ranges;
-    ranges.reserve(snap->m_sfs.size() + 1);
-    std::vector<uint64_t> sizes(snap->m_sfs.size() + 1, 0);
-
-    for (size_t i = 0; i < snap->m_sfs.size(); ++i)
-    {
-        ranges.push_back(snap->m_sfs[i].range);
-    }
-
-    ranges.push_back(leveldb::Range());
-    generate_object_range(ri, &snap->m_backing, &ranges[snap->m_sfs.size()]);
-    m_db->GetApproximateSizes(&ranges.front(), ranges.size(), &sizes.front());
-    size_t sum = 0;
-
-    for (size_t i = 0; i < snap->m_sfs.size(); ++i)
-    {
-        sum += sizes[i];
-        snap->m_sfs[i].size = sizes[i];
-    }
-
-    std::sort(snap->m_sfs.begin(), snap->m_sfs.end(), search_filter::sort_by_size);
-
-    while (!snap->m_sfs.empty() && sum > sizes[snap->m_sfs.size()] / 10)
-    {
-        sum -= snap->m_sfs.back().size;
-        snap->m_sfs.pop_back();
-    }
-
-    snap->m_dl = this;
-    snap->m_snap = m_db->GetSnapshot();
-    snap->m_checks = checks;
-    snap->m_checks_sz = checks_sz;
-    leveldb::ReadOptions opts;
-    opts.fill_cache = false;
-    opts.verify_checksums = true;
-    opts.snapshot = snap->m_snap;
-    snap->m_ri = ri;
-    snap->m_obj_range = ranges.back();
-    snap->m_iter = m_db->NewIterator(opts);
-    snap->m_iter->Seek(snap->m_obj_range.start);
-
-    snap->m_iter = m_db->NewIterator(opts);
-    snap->m_iter->Seek(snap->m_obj_range.start);
-
-    for (size_t i = 0; i < snap->m_sfs.size(); ++i)
-    {
-        snap->m_sfs[i].iter = m_db->NewIterator(opts);
-        snap->m_sfs[i].iter->Seek(snap->m_sfs[i].range.start);
     }
 
     return SUCCESS;

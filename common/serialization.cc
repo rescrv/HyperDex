@@ -121,6 +121,27 @@ hyperdex :: pack_size(const po6::net::location& rhs)
 }
 
 e::buffer::packer
+hyperdex :: operator << (e::buffer::packer lhs, const po6::net::hostname& rhs)
+{
+    return lhs << e::slice(rhs.address.data(), rhs.address.size()) << rhs.port;
+}
+
+e::unpacker
+hyperdex :: operator >> (e::unpacker lhs, po6::net::hostname& rhs)
+{
+    e::slice address;
+    lhs = lhs >> address >> rhs.port;
+    rhs.address = std::string(reinterpret_cast<const char*>(address.data()), address.size());
+    return lhs;
+}
+
+size_t
+hyperdex :: pack_size(const po6::net::hostname& rhs)
+{
+    return pack_size(rhs.address.size()) + sizeof(uint16_t);
+}
+
+e::buffer::packer
 hyperdex :: operator << (e::buffer::packer lhs, const attribute_check& rhs)
 {
     return lhs << rhs.attr

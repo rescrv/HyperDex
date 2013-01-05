@@ -60,7 +60,8 @@ bin_PROGRAMS = hyperdex \
 hyperdexexecdir = $(exec_prefix)/libexec/$(PACKAGE)-$(VERSION)
 hyperdexexec_PROGRAMS = \
 			hyperdex-add-space \
-			hyperdex-rm-space
+			hyperdex-rm-space \
+			hyperdex-show-config
 
 noinst_PROGRAMS = \
 			client/c/testcompile \
@@ -129,7 +130,6 @@ noinst_HEADERS = \
 			daemon/datalayer.h \
 			daemon/index_encode.h \
 			daemon/reconfigure_returncode.h \
-			daemon/replication_manager_deferred.h \
 			daemon/replication_manager.h \
 			daemon/replication_manager_keyholder.h \
 			daemon/replication_manager_keypair.h \
@@ -179,7 +179,6 @@ hyperdex_daemon_SOURCES = \
 			daemon/datalayer.cc \
 			daemon/index_encode.cc \
 			daemon/replication_manager.cc \
-			daemon/replication_manager_deferred.cc \
 			daemon/replication_manager_keyholder.cc \
 			daemon/replication_manager_keypair.cc \
 			daemon/replication_manager_pending.cc \
@@ -213,8 +212,9 @@ libhypercoordinator_la_SOURCES = \
 			common/schema.cc \
 			common/serialization.cc \
 			coordinator/add-space.cc \
-			coordinator/get-config.cc \
 			coordinator/coordinator.cc \
+			coordinator/get-config.cc \
+			coordinator/kill.cc \
 			coordinator/meta.cc \
 			coordinator/register.cc \
 			coordinator/rm-space.cc \
@@ -364,10 +364,12 @@ hyperdex_CPPFLAGS = -DHYPERDEX_EXEC_DIR=\""$(hyperdexexecdir)\"" $(CPPFLAGS)
 
 hyperdex_add_space_SOURCES = tools/add-space.cc
 hyperdex_add_space_LDADD = libhyperclient.la
-hyperdex_add_space_LDFLAGS = -no-install
 
 hyperdex_rm_space_SOURCES = tools/rm-space.cc
 hyperdex_rm_space_LDADD = libhyperclient.la
+
+hyperdex_show_config_SOURCES = tools/show-config.cc
+hyperdex_show_config_LDADD = libhyperclient.la
 
 ################################################################################
 ################################## Benchmarks ##################################

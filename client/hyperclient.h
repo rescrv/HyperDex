@@ -97,6 +97,7 @@ enum hyperclient_returncode
     HYPERCLIENT_BADCONFIG    = 8527,
     HYPERCLIENT_BADSPACE     = 8528,
     HYPERCLIENT_DUPLICATE    = 8529,
+    HYPERCLIENT_INTERRUPTED  = 8530,
 
     /* This should never happen.  It indicates a bug */
     HYPERCLIENT_INTERNAL     = 8573,
@@ -110,10 +111,10 @@ void
 hyperclient_destroy(struct hyperclient* client);
 
 enum hyperclient_returncode
-hyperclient_add_space(const char* description);
+hyperclient_add_space(struct hyperclient* client, const char* description);
 
 enum hyperclient_returncode
-hyperclient_rm_space(const char* space);
+hyperclient_rm_space(struct hyperclient* client, const char* space);
 
 /* All values return a 64-bit integer, which uniquely identifies the request
  * until its completion.  Positive values indicate valid identifiers.  Negative
@@ -682,6 +683,7 @@ class funcall;
 class mapper;
 class schema;
 class server_id;
+class tool_wrapper;
 class virtual_server_id;
 } //namespace hyperdex
 
@@ -834,6 +836,12 @@ class hyperclient
         class pending_statusonly;
         class refcount;
         typedef std::map<int64_t, e::intrusive_ptr<pending> > incomplete_map_t;
+        friend class hyperdex::tool_wrapper;
+
+    // these are the only private things that tool_wrapper should touch
+    private:
+        hyperclient_returncode show_config(std::ostream& out);
+        hyperclient_returncode kill(uint64_t server_id);
 
     private:
         int64_t maintain_coord_connection(hyperclient_returncode* status);

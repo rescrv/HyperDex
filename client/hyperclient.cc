@@ -40,6 +40,7 @@
 // BusyBee
 #include <busybee_returncode.h>
 #include <busybee_st.h>
+#include <busybee_utils.h>
 
 // HyperDex
 #include "common/attribute.h"
@@ -96,7 +97,7 @@ using hyperdex::virtual_server_id;
 hyperclient :: hyperclient(const char* coordinator, uint16_t port)
     : m_config(new hyperdex::configuration())
     , m_busybee_mapper(new hyperdex::mapper(m_config.get()))
-    , m_busybee(new busybee_st(m_busybee_mapper.get(), busybee_st::generate_id()))
+    , m_busybee(new busybee_st(m_busybee_mapper.get(), busybee_generate_id()))
     , m_coord(new hyperdex::coordinator_link(po6::net::hostname(coordinator, port)))
     , m_incomplete()
     , m_complete_succeeded()
@@ -562,6 +563,9 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
             case BUSYBEE_TIMEOUT:
                 *status = HYPERCLIENT_TIMEOUT;
                 return -1;
+            case BUSYBEE_INTERRUPTED:
+                *status = HYPERCLIENT_INTERRUPTED;
+                return -1;
             case BUSYBEE_EXTERNAL:
                 continue;
             case BUSYBEE_SHUTDOWN:
@@ -685,6 +689,71 @@ hyperclient :: attribute_type(const char* space, const char* name,
     }
 
     return sc->attrs[attrnum].type;
+}
+
+hyperclient_returncode
+hyperclient :: show_config(std::ostream& out)
+{
+    hyperclient_returncode status;
+
+    if (maintain_coord_connection(&status) < 0)
+    {
+        return status;
+    }
+
+    m_config->debug_dump(out);
+    return HYPERCLIENT_SUCCESS;
+}
+
+hyperclient_returncode
+hyperclient :: kill(uint64_t server_id)
+{
+    hyperclient_returncode status;
+    char data[sizeof(uint64_t)];
+    e::pack64be(server_id, data);
+    const char* output;
+    size_t output_sz;
+
+    if (!m_coord->make_rpc("kill", data, sizeof(uint64_t),
+                           &status, &output, &output_sz))
+    {
+        return status;
+    }
+
+    status = HYPERCLIENT_SUCCESS;
+
+    if (output_sz >= 2)
+    {
+        uint16_t x;
+        e::unpack16be(output, &x);
+        coordinator_returncode rc = static_cast<coordinator_returncode>(x);
+
+        switch (rc)
+        {
+            case hyperdex::COORD_SUCCESS:
+                status = HYPERCLIENT_SUCCESS;
+                break;
+            case hyperdex::COORD_MALFORMED:
+                status = HYPERCLIENT_INTERNAL;
+                break;
+            case hyperdex::COORD_DUPLICATE:
+                status = HYPERCLIENT_DUPLICATE;
+                break;
+            case hyperdex::COORD_NOT_FOUND:
+                status = HYPERCLIENT_NOTFOUND;
+                break;
+            default:
+                status = HYPERCLIENT_INTERNAL;
+                break;
+        }
+    }
+
+    if (output)
+    {
+        replicant_destroy_output(output, output_sz);
+    }
+
+    return status;
 }
 
 int64_t
@@ -1102,6 +1171,7 @@ hyperclient :: send(e::intrusive_ptr<pending> op,
         case BUSYBEE_SHUTDOWN:
         case BUSYBEE_TIMEOUT:
         case BUSYBEE_EXTERNAL:
+        case BUSYBEE_INTERRUPTED:
         default:
             abort();
     }
@@ -1158,6 +1228,7 @@ operator << (std::ostream& lhs, hyperclient_returncode rhs)
         STRINGIFY(HYPERCLIENT_BADCONFIG);
         STRINGIFY(HYPERCLIENT_BADSPACE);
         STRINGIFY(HYPERCLIENT_DUPLICATE);
+        STRINGIFY(HYPERCLIENT_INTERRUPTED);
         STRINGIFY(HYPERCLIENT_INTERNAL);
         STRINGIFY(HYPERCLIENT_EXCEPTION);
         STRINGIFY(HYPERCLIENT_GARBAGE);

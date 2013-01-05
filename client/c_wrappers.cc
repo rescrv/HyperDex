@@ -67,6 +67,52 @@ hyperclient_destroy(struct hyperclient* client)
     delete client;
 }
 
+enum hyperclient_returncode
+hyperclient_add_space(struct hyperclient* client, const char* description)
+{
+    try
+    {
+        return client->add_space(description);
+    }
+    catch (po6::error& e)
+    {
+        errno = e;
+        return HYPERCLIENT_EXCEPTION;
+    }
+    catch (std::bad_alloc& ba)
+    {
+        errno = ENOMEM;
+        return HYPERCLIENT_EXCEPTION;
+    }
+    catch (...)
+    {
+        return HYPERCLIENT_EXCEPTION;
+    }
+}
+
+enum hyperclient_returncode
+hyperclient_rm_space(struct hyperclient* client, const char* space)
+{
+    try
+    {
+        return client->rm_space(space);
+    }
+    catch (po6::error& e)
+    {
+        errno = e;
+        return HYPERCLIENT_EXCEPTION;
+    }
+    catch (std::bad_alloc& ba)
+    {
+        errno = ENOMEM;
+        return HYPERCLIENT_EXCEPTION;
+    }
+    catch (...)
+    {
+        return HYPERCLIENT_EXCEPTION;
+    }
+}
+
 int64_t
 hyperclient_get(struct hyperclient* client, const char* space, const char* key,
                 size_t key_sz, hyperclient_returncode* status,

@@ -26,7 +26,6 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // HyperDex
-#include "daemon/replication_manager_deferred.h"
 #include "daemon/replication_manager_keyholder.h"
 #include "daemon/replication_manager_pending.h"
 
@@ -126,6 +125,29 @@ replication_manager :: keyholder :: version_on_disk() const
     return m_old_version;
 }
 
+uint64_t
+replication_manager :: keyholder :: max_seq_id() const
+{
+    uint64_t ret = 0;
+
+    if (!m_committable.empty())
+    {
+        ret = std::max(ret, m_committable.back().second->seq_id);
+    }
+
+    if (!m_blocked.empty())
+    {
+        ret = std::max(ret, m_blocked.back().second->seq_id);
+    }
+
+    if (!m_deferred.empty())
+    {
+        ret = std::max(ret, m_deferred.back().second->seq_id);
+    }
+
+    return ret;
+}
+
 bool
 replication_manager :: keyholder :: has_committable_ops() const
 {
@@ -194,7 +216,7 @@ replication_manager :: keyholder :: oldest_deferred_version() const
     return m_deferred.front().first;
 }
 
-e::intrusive_ptr<replication_manager::deferred>
+e::intrusive_ptr<replication_manager::pending>
 replication_manager :: keyholder :: oldest_deferred_op() const
 {
     assert(!m_deferred.empty());
@@ -212,6 +234,12 @@ replication_manager :: keyholder :: clear_committable_acked()
 }
 
 void
+replication_manager :: keyholder :: clear_deferred()
+{
+    m_deferred.clear();
+}
+
+void
 replication_manager :: keyholder :: set_version_on_disk(uint64_t version)
 {
     assert(m_old_version < version);
@@ -224,15 +252,8 @@ replication_manager :: keyholder :: set_version_on_disk(uint64_t version)
 }
 
 void
-replication_manager :: keyholder :: append_blocked(uint64_t version,
-                                                   e::intrusive_ptr<pending> op)
-{
-    m_blocked.push_back(std::make_pair(version, op));
-}
-
-void
 replication_manager :: keyholder :: insert_deferred(uint64_t version,
-                                                    e::intrusive_ptr<deferred> op)
+                                                    e::intrusive_ptr<pending> op)
 {
     deferred_list_t::iterator d = m_deferred.begin();
 
@@ -245,6 +266,13 @@ replication_manager :: keyholder :: insert_deferred(uint64_t version,
 }
 
 void
+replication_manager :: keyholder :: pop_oldest_deferred()
+{
+    assert(!m_deferred.empty());
+    m_deferred.pop_front();
+}
+
+void
 replication_manager :: keyholder :: shift_one_blocked_to_committable()
 {
     assert(!m_blocked.empty());
@@ -253,8 +281,23 @@ replication_manager :: keyholder :: shift_one_blocked_to_committable()
 }
 
 void
-replication_manager :: keyholder :: remove_oldest_deferred_op()
+replication_manager :: keyholder :: shift_one_deferred_to_blocked()
 {
     assert(!m_deferred.empty());
+    m_blocked.push_back(m_deferred.front());
     m_deferred.pop_front();
+}
+
+void
+replication_manager :: keyholder :: resend_committable(replication_manager* rm,
+                                                       const virtual_server_id& us,
+                                                       const e::slice& key)
+{
+    for (committable_list_t::iterator it = m_committable.begin();
+            it != m_committable.end(); ++it)
+    {
+        it->second->sent = virtual_server_id();
+        it->second->sent_config_version = 0;
+        rm->send_message(us, true, it->first, key, it->second);
+    }
 }

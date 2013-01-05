@@ -102,6 +102,10 @@ class communication
         bool send(const virtual_server_id& to,
                   network_msgtype msg_type,
                   std::auto_ptr<e::buffer> msg);
+        bool send_exact(const virtual_server_id& from,
+                        const virtual_server_id& to,
+                        network_msgtype msg_type,
+                        std::auto_ptr<e::buffer> msg);
         bool recv(server_id* from,
                   virtual_server_id* vfrom,
                   virtual_server_id* vto,

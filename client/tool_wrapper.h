@@ -25,23 +25,36 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#ifndef hyperdex_client_tool_wrapper_h_
+#define hyperdex_client_tool_wrapper_h_
+
 // HyperDex
-#include "daemon/replication_manager_deferred.h"
+#include "client/hyperclient.h"
 
-using hyperdex::replication_manager;
-
-replication_manager :: deferred :: deferred(std::tr1::shared_ptr<e::buffer> _backing,
-                                            bool _has_value,
-                                            const std::vector<e::slice>& _value,
-                                            const virtual_server_id& _recv)
-    : backing(_backing)
-    , has_value(_has_value)
-    , value(_value)
-    , recv(_recv)
-    , m_ref(0)
+namespace hyperdex
 {
-}
 
-replication_manager :: deferred :: ~deferred() throw ()
+class tool_wrapper
 {
-}
+    public:
+        tool_wrapper(hyperclient* h) : m_h(h) {}
+        tool_wrapper(const tool_wrapper& other) : m_h(other.m_h) {}
+        ~tool_wrapper() throw () {}
+
+    public:
+        hyperclient_returncode show_config(std::ostream& out)
+        { return m_h->show_config(out); }
+        hyperclient_returncode kill(uint64_t server_id)
+        { return m_h->kill(server_id); }
+
+    public:
+        tool_wrapper& operator = (const tool_wrapper& rhs)
+        { m_h = rhs.m_h; return *this; }
+
+    private:
+        hyperclient* m_h;
+};
+
+} // namespace hyperdex
+
+#endif // hyperdex_client_tool_wrapper_h_

@@ -60,10 +60,10 @@ hyperdex_coordinator_register(struct replicant_state_machine_context* ctx,
 
     std::pair<server_id, po6::net::location> target;
     target.first = server_id(id);
+    std::vector<std::pair<server_id, po6::net::location> >::iterator it;
+    it = std::lower_bound(c->servers.begin(), c->servers.end(), target);
 
-    if (std::lower_bound(c->servers.begin(),
-                         c->servers.end(),
-                         target) != c->servers.end())
+    if (it != c->servers.end() && it->first == target.first)
     {
         return generate_response(ctx, c, hyperdex::COORD_DUPLICATE);
     }

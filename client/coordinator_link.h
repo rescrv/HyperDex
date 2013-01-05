@@ -63,6 +63,9 @@ class coordinator_link
     private:
         configuration m_config;
         replicant_client m_repl;
+        bool m_need_wait;
+        int64_t m_wait_config_id;
+        replicant_returncode m_wait_config_status;
         int64_t m_get_config_id;
         replicant_returncode m_get_config_status;
         const char* m_get_config_output;
