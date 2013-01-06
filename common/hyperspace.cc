@@ -350,7 +350,7 @@ region :: region()
     , lower_coord()
     , upper_coord()
     , replicas()
-    , capture(false)
+    , cid()
     , tid()
     , tsi()
     , tvi()
@@ -362,7 +362,7 @@ region :: region(const region& other)
     , lower_coord(other.lower_coord)
     , upper_coord(other.upper_coord)
     , replicas(other.replicas)
-    , capture(other.capture)
+    , cid(other.cid)
     , tid(other.tid)
     , tsi(other.tsi)
     , tvi(other.tvi)
@@ -380,7 +380,7 @@ region :: operator = (const region& rhs)
     lower_coord = rhs.lower_coord;
     upper_coord = rhs.upper_coord;
     replicas = rhs.replicas;
-    capture = rhs.capture;
+    cid = rhs.cid;
     tid = rhs.tid;
     tsi = rhs.tsi;
     tvi = rhs.tvi;
@@ -392,7 +392,7 @@ hyperdex :: operator << (e::buffer::packer pa, const region& r)
 {
     uint16_t num_hashes = r.lower_coord.size();
     uint8_t num_replicas = r.replicas.size();
-    uint8_t flags = (r.capture ? 1 : 0)
+    uint8_t flags = (r.cid != capture_id() ? 1 : 0)
                   | (r.tid != transfer_id() ? 2 : 0);
     pa = pa << r.id.get() << num_hashes << num_replicas << flags;
 
@@ -404,6 +404,11 @@ hyperdex :: operator << (e::buffer::packer pa, const region& r)
     for (size_t i = 0; i < num_replicas; ++i)
     {
         pa = pa << r.replicas[i];
+    }
+
+    if (r.cid != capture_id())
+    {
+        pa = pa << r.cid.get();
     }
 
     if (r.tid != transfer_id())
@@ -426,7 +431,6 @@ hyperdex :: operator >> (e::unpacker up, region& r)
     r.lower_coord.resize(num_hashes);
     r.upper_coord.resize(num_hashes);
     r.replicas.resize(num_replicas);
-    r.capture = flags & 1;
 
     for (size_t i = 0; !up.error() && i < num_hashes; ++i)
     {
@@ -436,6 +440,13 @@ hyperdex :: operator >> (e::unpacker up, region& r)
     for (size_t i = 0; !up.error() && i < num_replicas; ++i)
     {
         up = up >> r.replicas[i];
+    }
+
+    if ((flags & 1))
+    {
+        uint64_t cid;
+        up = up >> cid;
+        r.cid = capture_id(cid);
     }
 
     if ((flags & 2))

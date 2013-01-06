@@ -31,6 +31,7 @@
 #include "coordinator/util.h"
 #include "coordinator/xfer-complete.h"
 
+using hyperdex::capture_id;
 using hyperdex::coordinator;
 using hyperdex::region;
 using hyperdex::server_id;
@@ -74,7 +75,7 @@ hyperdex_coordinator_xfer_complete(struct replicant_state_machine_context* ctx,
                 if (!reg.replicas.empty() &&
                     reg.replicas.back().si == reg.tsi)
                 {
-                    reg.capture = false;
+                    reg.cid = capture_id();
                     reg.tid = transfer_id();
                     reg.tsi = server_id();
                     reg.tvi = virtual_server_id();

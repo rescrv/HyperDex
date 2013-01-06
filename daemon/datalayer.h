@@ -38,9 +38,12 @@
 #include <leveldb/db.h>
 
 // po6
-#include <po6/pathname.h>
 #include <po6/net/hostname.h>
 #include <po6/net/location.h>
+#include <po6/pathname.h>
+#include <po6/threads/cond.h>
+#include <po6/threads/mutex.h>
+#include <po6/threads/thread.h>
 
 // HyperDex
 #include "common/attribute_check.h"
@@ -150,7 +153,7 @@ class datalayer
         returncode decode_value(const e::slice& value,
                                 std::vector<e::slice>* attrs,
                                 uint64_t* version);
-        void encode_transfer(const region_id& ri,
+        void encode_transfer(const capture_id& ci,
                              uint64_t count,
                              std::vector<char>* backing,
                              leveldb::Slice* tkey);
@@ -193,11 +196,18 @@ class datalayer
                                         const std::vector<e::slice>& value,
                                         backing_t* backing,
                                         leveldb::WriteBatch* updates);
+        void cleaner();
+        void shutdown();
 
     private:
         daemon* m_daemon;
         leveldb::DB* m_db;
         counter_map m_counters;
+        po6::threads::thread m_cleaner;
+        po6::threads::mutex m_block_cleaner;
+        po6::threads::cond m_wakeup_cleaner;
+        bool m_need_cleaning;
+        bool m_shutdown;
 };
 
 class datalayer::reference

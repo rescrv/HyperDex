@@ -34,6 +34,7 @@
 #include "common/hash.h"
 #include "common/serialization.h"
 
+using hyperdex::capture_id;
 using hyperdex::configuration;
 using hyperdex::region_id;
 using hyperdex::schema;
@@ -47,6 +48,7 @@ configuration :: configuration()
     , m_region_ids_by_virtual()
     , m_server_ids_by_virtual()
     , m_schemas_by_region()
+    , m_capture_ids_by_region()
     , m_subspace_ids_by_region()
     , m_subspace_ids_for_prev()
     , m_subspace_ids_for_next()
@@ -65,6 +67,7 @@ configuration :: configuration(const configuration& other)
     , m_region_ids_by_virtual(other.m_region_ids_by_virtual)
     , m_server_ids_by_virtual(other.m_server_ids_by_virtual)
     , m_schemas_by_region(other.m_schemas_by_region)
+    , m_capture_ids_by_region(other.m_capture_ids_by_region)
     , m_subspace_ids_by_region(other.m_subspace_ids_by_region)
     , m_subspace_ids_for_prev(other.m_subspace_ids_for_prev)
     , m_subspace_ids_for_next(other.m_subspace_ids_for_next)
@@ -199,6 +202,42 @@ configuration :: get_virtual(const region_id& ri, const server_id& si)
     }
 
     return virtual_server_id();
+}
+
+bool
+configuration :: is_captured_region(const capture_id& ci) const
+{
+    for (size_t s = 0; s < m_spaces.size(); ++s)
+    {
+        for (size_t ss = 0; ss < m_spaces[s].subspaces.size(); ++ss)
+        {
+            for (size_t r = 0; r < m_spaces[s].subspaces[ss].regions.size(); ++r)
+            {
+                if (m_spaces[s].subspaces[ss].regions[r].cid == ci)
+                {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+capture_id
+configuration :: capture_for(const region_id& ri) const
+{
+    std::vector<pair_uint64_t>::const_iterator it;
+    it = std::lower_bound(m_capture_ids_by_region.begin(),
+                          m_capture_ids_by_region.end(),
+                          pair_uint64_t(ri.get(), 0));
+
+    if (it != m_capture_ids_by_region.end() && it->first == ri.get())
+    {
+        return capture_id(it->second);
+    }
+
+    return capture_id();
 }
 
 subspace_id
@@ -447,7 +486,7 @@ configuration :: captured_regions(const server_id& si, std::vector<region_id>* s
         {
             for (size_t r = 0; r < m_spaces[s].subspaces[ss].regions.size(); ++r)
             {
-                if (!m_spaces[s].subspaces[ss].regions[r].capture)
+                if (m_spaces[s].subspaces[ss].regions[r].cid == capture_id())
                 {
                     continue;
                 }
@@ -671,9 +710,14 @@ configuration :: debug_dump(std::ostream& out)
             for (size_t y = 0; y < ss.regions.size(); ++y)
             {
                 region& r(ss.regions[y]);
-                out << "    region id=" << r.id
-                    << (r.capture ? " capture" : "")
-                    << " lower=<";
+                out << "    region id=" << r.id;
+
+                if (r.cid != capture_id())
+                {
+                    out << " " << r.cid;
+                }
+
+                out << " lower=<";
                 bool first = true;
 
                 for (size_t i = 0; i < r.lower_coord.size(); ++i)
@@ -727,6 +771,7 @@ configuration :: operator = (const configuration& rhs)
     m_region_ids_by_virtual = rhs.m_region_ids_by_virtual;
     m_server_ids_by_virtual = rhs.m_server_ids_by_virtual;
     m_schemas_by_region = rhs.m_schemas_by_region;
+    m_capture_ids_by_region = rhs.m_capture_ids_by_region;
     m_subspace_ids_by_region = rhs.m_subspace_ids_by_region;
     m_subspace_ids_for_prev = rhs.m_subspace_ids_for_prev;
     m_subspace_ids_for_next = rhs.m_subspace_ids_for_next;
@@ -745,6 +790,7 @@ configuration :: refill_cache()
     m_region_ids_by_virtual.clear();
     m_server_ids_by_virtual.clear();
     m_schemas_by_region.clear();
+    m_capture_ids_by_region.clear();
     m_subspace_ids_by_region.clear();
     m_subspace_ids_for_prev.clear();
     m_subspace_ids_for_next.clear();
@@ -778,6 +824,11 @@ configuration :: refill_cache()
                 region& r(ss.regions[y]);
                 m_schemas_by_region.push_back(std::make_pair(r.id.get(), &s.schema));
                 m_subspace_ids_by_region.push_back(std::make_pair(r.id.get(), ss.id.get()));
+
+                if (r.cid != capture_id())
+                {
+                    m_capture_ids_by_region.push_back(std::make_pair(r.id.get(), r.cid.get()));
+                }
 
                 if (r.tid != transfer_id())
                 {
@@ -823,6 +874,7 @@ configuration :: refill_cache()
     std::sort(m_region_ids_by_virtual.begin(), m_region_ids_by_virtual.end());
     std::sort(m_server_ids_by_virtual.begin(), m_server_ids_by_virtual.end());
     std::sort(m_schemas_by_region.begin(), m_schemas_by_region.end());
+    std::sort(m_capture_ids_by_region.begin(), m_capture_ids_by_region.end());
     std::sort(m_subspace_ids_by_region.begin(), m_subspace_ids_by_region.end());
     std::sort(m_subspace_ids_for_prev.begin(), m_subspace_ids_for_prev.end());
     std::sort(m_subspace_ids_for_next.begin(), m_subspace_ids_for_next.end());

@@ -71,6 +71,8 @@ class configuration
         const schema* get_schema(const char* space) const;
         const schema* get_schema(const region_id& ri) const;
         virtual_server_id get_virtual(const region_id& ri, const server_id& si);
+        bool is_captured_region(const capture_id& ci) const;
+        capture_id capture_for(const region_id& ri) const;
         subspace_id subspace_of(const region_id& ri) const;
         subspace_id subspace_prev(const subspace_id& ss) const;
         subspace_id subspace_next(const subspace_id& ss) const;
@@ -123,6 +125,7 @@ class configuration
         std::vector<pair_uint64_t> m_region_ids_by_virtual;
         std::vector<pair_uint64_t> m_server_ids_by_virtual;
         std::vector<uint64_schema_t> m_schemas_by_region;
+        std::vector<pair_uint64_t> m_capture_ids_by_region;
         std::vector<pair_uint64_t> m_subspace_ids_by_region;
         std::vector<pair_uint64_t> m_subspace_ids_for_prev;
         std::vector<pair_uint64_t> m_subspace_ids_for_next;

@@ -125,7 +125,7 @@ class region
         std::vector<uint64_t> lower_coord;
         std::vector<uint64_t> upper_coord;
         std::vector<replica> replicas;
-        bool capture;
+        capture_id cid;
         transfer_id tid;
         server_id tsi;
         virtual_server_id tvi;

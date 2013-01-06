@@ -30,6 +30,7 @@
 #include "coordinator/initiate-transfer.h"
 #include "coordinator/util.h"
 
+using hyperdex::capture_id;
 using hyperdex::coordinator;
 using hyperdex::region;
 using hyperdex::region_id;
@@ -93,7 +94,8 @@ hyperdex_coordinator_initiate_transfer(struct replicant_state_machine_context* c
                     return generate_response(ctx, c, hyperdex::COORD_TRANSFER_IN_PROGRESS);
                 }
 
-                r.capture = true;
+                r.cid = capture_id(c->counter);
+                ++c->counter;
                 r.tid = transfer_id(c->counter);
                 ++c->counter;
                 r.tsi = sid;
