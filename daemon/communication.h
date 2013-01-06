@@ -40,13 +40,12 @@
 #include <e/lockfree_fifo.h>
 
 // HyperDex
+#include "common/ids.h"
 #include "common/mapper.h"
 #include "common/network_msgtype.h"
-#include "common/server_id.h"
-#include "common/virtual_server_id.h"
 #include "daemon/reconfigure_returncode.h"
 
-#define HYPERDEX_HEADER_SIZE_VS (BUSYBEE_HEADER_SIZE \
+#define HYPERDEX_HEADER_SIZE_VC (BUSYBEE_HEADER_SIZE \
                                  + sizeof(uint8_t) /*message type*/ \
                                  + sizeof(uint64_t) /*virt from*/)
 #define HYPERDEX_HEADER_SIZE_SV (BUSYBEE_HEADER_SIZE \
@@ -75,6 +74,7 @@ class communication
         void pause() { m_busybee->pause(); }
         void unpause() { m_busybee->unpause(); }
         void shutdown() { m_busybee->shutdown(); }
+        void wake_one() { m_busybee->wake_one(); }
 
     public:
         bool setup(const po6::net::location& bind_to,
@@ -91,10 +91,10 @@ class communication
                                        const server_id& us);
 
     public:
-        bool send(const virtual_server_id& from,
-                  const server_id& to,
-                  network_msgtype msg_type,
-                  std::auto_ptr<e::buffer> msg);
+        bool send_client(const virtual_server_id& from,
+                         const server_id& to,
+                         network_msgtype msg_type,
+                         std::auto_ptr<e::buffer> msg);
         bool send(const virtual_server_id& from,
                   const virtual_server_id& to,
                   network_msgtype msg_type,

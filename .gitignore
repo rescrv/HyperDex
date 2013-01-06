@@ -23,6 +23,7 @@ hyperdex
 hyperdex-add-space
 hyperdex-binary-test
 hyperdex-daemon
+hyperdex-initiate-transfer
 hyperdex-kill
 hyperdex-replication-stress-test
 hyperdex-rm-space
@@ -35,6 +36,7 @@ hyperspacehashing/test/prefix
 hyperspacehashing/utils/cfloat
 install-sh
 *.la
+leveldb-dump
 .libs
 libtool
 *.lo

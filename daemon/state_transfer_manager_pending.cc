@@ -25,47 +25,24 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_common_subspace_id_h_
-#define hyperdex_common_subspace_id_h_
+// HyperDex
+#include "daemon/state_transfer_manager_pending.h"
 
-// C
-#include <stdint.h>
+using hyperdex::state_transfer_manager;
 
-namespace hyperdex
+state_transfer_manager :: state_transfer_manager :: pending :: pending()
+    : seq_no(0)
+    , has_value(false)
+    , version(0)
+    , key()
+    , value()
+    , acked(false)
+    , msg()
+    , ref()
+    , m_ref(0)
 {
-
-class subspace_id
-{
-    public:
-        subspace_id() : m_id() {}
-        explicit subspace_id(uint64_t id) : m_id(id) {}
-
-    public:
-        uint64_t get() const { return m_id; }
-        uint64_t hash() const { return m_id; }
-
-    private:
-        uint64_t m_id;
-}; 
-
-inline std::ostream&
-operator << (std::ostream& lhs, const subspace_id& rhs)
-{
-    return lhs << "subspace(" << rhs.get() << ")";
 }
 
-inline bool
-operator == (const subspace_id& lhs, const subspace_id& rhs)
+state_transfer_manager :: state_transfer_manager :: pending :: ~pending() throw ()
 {
-    return lhs.get() == rhs.get();
 }
-
-inline bool
-operator != (const subspace_id& lhs, const subspace_id& rhs)
-{
-    return lhs.get() != rhs.get();
-}
-
-} // namespace hyperdex
-
-#endif // hyperdex_common_subspace_id_h_

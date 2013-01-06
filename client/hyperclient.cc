@@ -48,11 +48,11 @@
 #include "common/configuration.h"
 #include "common/coordinator_returncode.h"
 #include "common/funcall.h"
+#include "common/ids.h"
 #include "common/macros.h"
 #include "common/mapper.h"
 #include "common/schema.h"
 #include "common/serialization.h"
-#include "common/server_id.h"
 #include "datatypes/coercion.h"
 #include "datatypes/validate.h"
 #include "client/complete.h"
@@ -156,6 +156,9 @@ hyperclient :: add_space(const char* description)
             case hyperdex::COORD_NOT_FOUND:
                 status = HYPERCLIENT_NOTFOUND;
                 break;
+            case hyperdex::COORD_TRANSFER_IN_PROGRESS:
+                status = HYPERCLIENT_INTERNAL;
+                break;
             default:
                 status = HYPERCLIENT_INTERNAL;
                 break;
@@ -204,6 +207,9 @@ hyperclient :: rm_space(const char* space)
                 break;
             case hyperdex::COORD_NOT_FOUND:
                 status = HYPERCLIENT_NOTFOUND;
+                break;
+            case hyperdex::COORD_TRANSFER_IN_PROGRESS:
+                status = HYPERCLIENT_INTERNAL;
                 break;
             default:
                 status = HYPERCLIENT_INTERNAL;
@@ -742,6 +748,64 @@ hyperclient :: kill(uint64_t server_id)
             case hyperdex::COORD_NOT_FOUND:
                 status = HYPERCLIENT_NOTFOUND;
                 break;
+            case hyperdex::COORD_TRANSFER_IN_PROGRESS:
+                status = HYPERCLIENT_INTERNAL;
+                break;
+            default:
+                status = HYPERCLIENT_INTERNAL;
+                break;
+        }
+    }
+
+    if (output)
+    {
+        replicant_destroy_output(output, output_sz);
+    }
+
+    return status;
+}
+
+hyperclient_returncode
+hyperclient :: initiate_transfer(uint64_t region_id, uint64_t server_id)
+{
+    hyperclient_returncode status;
+    char data[2 * sizeof(uint64_t)];
+    e::pack64be(region_id, data);
+    e::pack64be(server_id, data + sizeof(uint64_t));
+    const char* output;
+    size_t output_sz;
+
+    if (!m_coord->make_rpc("initiate-transfer", data, 2 * sizeof(uint64_t),
+                           &status, &output, &output_sz))
+    {
+        return status;
+    }
+
+    status = HYPERCLIENT_SUCCESS;
+
+    if (output_sz >= 2)
+    {
+        uint16_t x;
+        e::unpack16be(output, &x);
+        coordinator_returncode rc = static_cast<coordinator_returncode>(x);
+
+        switch (rc)
+        {
+            case hyperdex::COORD_SUCCESS:
+                status = HYPERCLIENT_SUCCESS;
+                break;
+            case hyperdex::COORD_MALFORMED:
+                status = HYPERCLIENT_INTERNAL;
+                break;
+            case hyperdex::COORD_DUPLICATE:
+                status = HYPERCLIENT_DUPLICATE;
+                break;
+            case hyperdex::COORD_NOT_FOUND:
+                status = HYPERCLIENT_NOTFOUND;
+                break;
+            case hyperdex::COORD_TRANSFER_IN_PROGRESS:
+                status = HYPERCLIENT_DUPLICATE;
+                break;
             default:
                 status = HYPERCLIENT_INTERNAL;
                 break;
@@ -998,7 +1062,6 @@ hyperclient :: prepare_checks(const hyperdex::schema* sc,
             return i;
         }
 
-        // XXX WRONG CHECK
         if (!container_implicit_coercion(sc->attrs[attrnum].type,
                                          e::slice(checks[i].value, checks[i].value_sz),
                                          checks[i].datatype))

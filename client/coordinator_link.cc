@@ -323,6 +323,7 @@ coordinator_link :: poll_for_config(hyperclient_returncode* status)
             return false;
     }
 
+    m_get_config_id = -1;
     e::unpacker up(m_get_config_output, m_get_config_output_sz);
     configuration new_config;
     up = up >> new_config;

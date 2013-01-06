@@ -25,38 +25,44 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_client_tool_wrapper_h_
-#define hyperdex_client_tool_wrapper_h_
+#ifndef hyperdex_common_transfer_h_
+#define hyperdex_common_transfer_h_
 
 // HyperDex
-#include "client/hyperclient.h"
+#include "common/ids.h"
 
 namespace hyperdex
 {
 
-class tool_wrapper
+class transfer
 {
     public:
-        tool_wrapper(hyperclient* h) : m_h(h) {}
-        tool_wrapper(const tool_wrapper& other) : m_h(other.m_h) {}
-        ~tool_wrapper() throw () {}
+        transfer();
+        transfer(const transfer_id& id,
+                 const region_id& rid,
+                 const server_id& src,
+                 const virtual_server_id& vsrc,
+                 const server_id& dst,
+                 const virtual_server_id& vdst);
+        transfer(const transfer&);
+        ~transfer() throw ();
 
     public:
-        hyperclient_returncode show_config(std::ostream& out)
-        { return m_h->show_config(out); }
-        hyperclient_returncode kill(uint64_t server_id)
-        { return m_h->kill(server_id); }
-        hyperclient_returncode initiate_transfer(uint64_t region_id, uint64_t server_id)
-        { return m_h->initiate_transfer(region_id, server_id); }
+        transfer& operator = (const transfer&);
+        bool operator < (const transfer&) const;
 
     public:
-        tool_wrapper& operator = (const tool_wrapper& rhs)
-        { m_h = rhs.m_h; return *this; }
-
-    private:
-        hyperclient* m_h;
+        transfer_id id;
+        region_id rid;
+        server_id src;
+        virtual_server_id vsrc;
+        server_id dst;
+        virtual_server_id vdst;
 };
+
+std::ostream&
+operator << (std::ostream& lhs, const transfer& rhs);
 
 } // namespace hyperdex
 
-#endif // hyperdex_client_tool_wrapper_h_
+#endif // hyperdex_common_transfer_h_

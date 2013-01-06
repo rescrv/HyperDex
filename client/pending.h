@@ -32,8 +32,8 @@
 #include <e/intrusive_ptr.h>
 
 // HyperDex
+#include "common/ids.h"
 #include "common/network_msgtype.h"
-#include "common/virtual_server_id.h"
 #include "client/hyperclient.h"
 
 using hyperdex::server_id;

@@ -61,7 +61,9 @@ hyperdexexecdir = $(exec_prefix)/libexec/$(PACKAGE)-$(VERSION)
 hyperdexexec_PROGRAMS = \
 			hyperdex-add-space \
 			hyperdex-rm-space \
-			hyperdex-show-config
+			hyperdex-kill \
+			hyperdex-show-config \
+			hyperdex-initiate-transfer
 
 noinst_PROGRAMS = \
 			client/c/testcompile \
@@ -88,6 +90,7 @@ noinst_HEADERS = \
 			common/attribute.h \
 			common/configuration.h \
 			common/coordinator_returncode.h \
+			common/counter_map.h \
 			common/float_encode.h \
 			common/funcall.h \
 			common/hash.h \
@@ -96,13 +99,8 @@ noinst_HEADERS = \
 			common/mapper.h \
 			common/network_msgtype.h \
 			common/network_returncode.h \
-			common/region_id.h \
 			common/schema.h \
 			common/serialization.h \
-			common/server_id.h \
-			common/space_id.h \
-			common/subspace_id.h \
-			common/virtual_server_id.h \
 			datatypes/alltypes.h \
 			datatypes/apply.h \
 			datatypes/coercion.h \
@@ -121,6 +119,7 @@ noinst_HEADERS = \
 			coordinator/add-space.h \
 			coordinator/coordinator.h \
 			coordinator/get-config.h \
+			coordinator/kill.h \
 			coordinator/meta.h \
 			coordinator/register.h \
 			coordinator/rm-space.h \
@@ -151,6 +150,7 @@ noinst_HEADERS = \
 			client/pending_statusonly.h \
 			client/refcount.h \
 			client/space_description.h \
+			client/tool_wrapper.h \
 			client/util.h \
 			client/wrap.h \
 			test/common.h \
@@ -164,25 +164,32 @@ hyperdex_daemon_SOURCES = \
 			common/attribute.cc \
 			common/attribute_check.cc \
 			common/configuration.cc \
+			common/counter_map.cc \
 			common/float_encode.cc \
 			common/funcall.cc \
 			common/hash.cc \
 			common/hyperdex.cc \
 			common/hyperspace.cc \
 			common/network_msgtype.cc \
-			daemon/main.cc \
 			common/mapper.cc \
 			common/schema.cc \
 			common/serialization.cc \
+			common/transfer.cc \
 			daemon/communication.cc \
+			daemon/coordinator_link.cc \
 			daemon/daemon.cc \
 			daemon/datalayer.cc \
 			daemon/index_encode.cc \
+			daemon/main.cc \
 			daemon/replication_manager.cc \
 			daemon/replication_manager_keyholder.cc \
 			daemon/replication_manager_keypair.cc \
 			daemon/replication_manager_pending.cc \
 			daemon/search_manager.cc \
+			daemon/state_transfer_manager.cc \
+			daemon/state_transfer_manager_pending.cc \
+			daemon/state_transfer_manager_transfer_in_state.cc \
+			daemon/state_transfer_manager_transfer_out_state.cc \
 			datatypes/apply.cc \
 			datatypes/compare.cc \
 			datatypes/float.cc \
@@ -214,11 +221,15 @@ libhypercoordinator_la_SOURCES = \
 			coordinator/add-space.cc \
 			coordinator/coordinator.cc \
 			coordinator/get-config.cc \
+			coordinator/initiate-transfer.cc \
 			coordinator/kill.cc \
 			coordinator/meta.cc \
 			coordinator/register.cc \
 			coordinator/rm-space.cc \
-			coordinator/symtable.c
+			coordinator/symtable.c \
+			coordinator/tcp-disconnect.c \
+			coordinator/xfer-complete.c \
+			coordinator/xfer-go-live.c
 libhypercoordinator_la_LIBADD = -le
 
 ################################################################################
@@ -230,7 +241,7 @@ libhypercoordinator_la_LIBADD = -le
 libhyperclient_extra_dist = \
 			client/keyop_info.gperf \
 			hyperclient/java/hyperclient.i \
-			client/python/client.pyx
+			client/python/hyperclient.pyx
 
 libhyperclient_includedir = $(includedir)
 libhyperclient_include_HEADERS = \
@@ -249,6 +260,7 @@ libhyperclient_la_SOURCES = \
 			common/network_msgtype.cc \
 			common/schema.cc \
 			common/serialization.cc \
+			common/transfer.cc \
 			datatypes/coercion.cc \
 			datatypes/compare.cc \
 			datatypes/float.cc \
@@ -368,8 +380,14 @@ hyperdex_add_space_LDADD = libhyperclient.la
 hyperdex_rm_space_SOURCES = tools/rm-space.cc
 hyperdex_rm_space_LDADD = libhyperclient.la
 
+hyperdex_kill_SOURCES = tools/kill.cc
+hyperdex_kill_LDADD = libhyperclient.la
+
 hyperdex_show_config_SOURCES = tools/show-config.cc
 hyperdex_show_config_LDADD = libhyperclient.la
+
+hyperdex_initiate_transfer_SOURCES = tools/initiate-transfer.cc
+hyperdex_initiate_transfer_LDADD = libhyperclient.la
 
 ################################################################################
 ################################## Benchmarks ##################################

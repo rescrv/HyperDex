@@ -30,7 +30,7 @@
 
 // HyperDex
 #include "common/configuration.h"
-#include "common/server_id.h"
+#include "common/ids.h"
 #include "client/hyperclient.h"
 
 // Convert the key and value vector returned by entity to an array of

@@ -31,6 +31,7 @@
 #include "coordinator/util.h"
 
 using hyperdex::coordinator;
+using hyperdex::server_id;
 using hyperdex::space;
 
 extern "C"
@@ -42,14 +43,16 @@ hyperdex_coordinator_kill(struct replicant_state_machine_context* ctx,
 {
     PROTECT_UNINITIALIZED;
     coordinator* c = static_cast<coordinator*>(obj);
-    uint64_t sid;
+    uint64_t _sid;
     e::unpacker up(data, data_sz);
-    up = up >> sid;
+    up = up >> _sid;
 
     if (up.error())
     {
         return generate_response(ctx, c, hyperdex::COORD_MALFORMED);
     }
+
+    server_id sid(_sid);
 
     for (std::list<space>::iterator s = c->spaces.begin(); s != c->spaces.end(); ++s)
     {
@@ -61,7 +64,7 @@ hyperdex_coordinator_kill(struct replicant_state_machine_context* ctx,
 
                 while (k < s->subspaces[i].regions[j].replicas.size())
                 {
-                    if (s->subspaces[i].regions[j].replicas[k].si.get() == sid)
+                    if (s->subspaces[i].regions[j].replicas[k].si == sid)
                     {
                         for (size_t r = k; r + 1 < s->subspaces[i].regions[j].replicas.size(); ++r)
                         {

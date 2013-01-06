@@ -25,41 +25,38 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_common_space_id_h_
-#define hyperdex_common_space_id_h_
+#ifndef hyperdex_daemon_state_transfer_manager_pending_h_
+#define hyperdex_daemon_state_transfer_manager_pending_h_
 
-// C
-#include <stdint.h>
+// HyperDex
+#include "daemon/datalayer.h"
+#include "daemon/state_transfer_manager.h"
 
-namespace hyperdex
-{
-
-class space_id
+class hyperdex::state_transfer_manager::pending
 {
     public:
-        space_id() : m_id() {}
-        explicit space_id(uint64_t id) : m_id(id) {}
+        pending();
+        ~pending() throw ();
 
     public:
-        uint64_t get() const { return m_id; }
-        uint64_t hash() const { return m_id; }
+        uint64_t seq_no;
+        bool has_value;
+        uint64_t version;
+        e::slice key;
+        std::vector<e::slice> value;
+        bool acked;
+        std::auto_ptr<e::buffer> msg;
+        datalayer::reference ref;
 
     private:
-        uint64_t m_id;
-}; 
+        friend class e::intrusive_ptr<pending>;
 
-inline std::ostream&
-operator << (std::ostream& lhs, const space_id& rhs)
-{
-    return lhs << "space(" << rhs.get() << ")";
-}
+    private:
+        void inc() { ++m_ref; }
+        void dec() { --m_ref; if (m_ref == 0) delete this; }
 
-inline bool
-operator != (const space_id& lhs, const space_id& rhs)
-{
-    return lhs.get() != rhs.get();
-}
+    private:
+        size_t m_ref;
+};
 
-} // namespace hyperdex
-
-#endif // hyperdex_common_space_id_h_
+#endif // hyperdex_daemon_state_transfer_manager_pending_h_

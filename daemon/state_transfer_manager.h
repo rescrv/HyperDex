@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2012, Cornell University
+// Copyright (c) 2012, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,30 +25,35 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_daemon_search_manager_h_
-#define hyperdex_daemon_search_manager_h_
+#ifndef hyperdex_daemon_state_transfer_manager_h_
+#define hyperdex_daemon_state_transfer_manager_h_
+
+// STL
+#include <memory>
+
+// po6
+#include <po6/threads/cond.h>
+#include <po6/threads/mutex.h>
+#include <po6/threads/thread.h>
 
 // e
 #include <e/intrusive_ptr.h>
-#include <e/lockfree_hash_map.h>
 
 // HyperDex
-#include "common/ids.h"
-#include "common/network_msgtype.h"
-#include "daemon/datalayer.h"
+#include "common/configuration.h"
 #include "daemon/reconfigure_returncode.h"
 
 namespace hyperdex
 {
-// Forward declarations
 class daemon;
 
-class search_manager
+class state_transfer_manager
 {
     public:
-        search_manager(daemon*);
-        ~search_manager() throw ();
+        state_transfer_manager(daemon*);
+        ~state_transfer_manager() throw ();
 
+    // Reconfigure this layer.
     public:
         bool setup();
         void teardown();
@@ -63,54 +68,51 @@ class search_manager
                                        const server_id& us);
 
     public:
-        void start(const server_id& from,
-                   const virtual_server_id& to,
-                   std::auto_ptr<e::buffer> msg,
-                   uint64_t nonce,
-                   uint64_t search_id,
-                   std::vector<attribute_check>* checks);
-        void next(const server_id& from,
-                  const virtual_server_id& to,
-                  uint64_t nonce,
-                  uint64_t search_id);
-        void stop(const server_id& from,
-                  const virtual_server_id& to,
-                  uint64_t search_id);
-        void sorted_search(const server_id& from,
-                           const virtual_server_id& to,
-                           uint64_t nonce,
-                           std::vector<attribute_check>* checks,
-                           uint64_t limit,
-                           uint16_t sort_by,
-                           bool maximize);
-        void group_keyop(const server_id& from,
-                         const virtual_server_id& to,
-                         uint64_t nonce,
-                         std::vector<attribute_check>* checks,
-                         network_msgtype mt,
-                         const e::slice& remain,
-                         network_msgtype resp);
-        void count(const server_id& from,
-                   const virtual_server_id& to,
-                   uint64_t nonce,
-                   std::vector<attribute_check>* checks);
+        void xfer_op(const virtual_server_id& from,
+                     const transfer_id& xid,
+                     uint64_t seq_no,
+                     bool has_value,
+                     uint64_t version,
+                     std::auto_ptr<e::buffer> msg,
+                     const e::slice& key,
+                     const std::vector<e::slice>& value);
+        void xfer_ack(const server_id& from,
+                      const virtual_server_id& to,
+                      const transfer_id& xid,
+                      uint64_t seq_no);
+        void retransmit(const server_id& id);
 
     private:
-        class id;
-        class state;
+        class pending;
+        class transfer_in_state;
+        class transfer_out_state;
 
     private:
-        search_manager(const search_manager&);
-        search_manager& operator = (const search_manager&);
+        // caller must hold mtx on tos
+        void transfer_more_state(transfer_out_state* tos);
+        void retransmit(transfer_out_state* tos);
+        // caller must hold mtx on tos
+        // send the last object in tos
+        void send_object(const transfer& xfer, pending* op);
+        void send_ack(const transfer& xfer, uint64_t seq_id);
+        void kickstarter();
+        void shutdown();
 
     private:
-        static uint64_t hash(const id&);
+        state_transfer_manager(const state_transfer_manager&);
+        state_transfer_manager& operator = (const state_transfer_manager&);
 
     private:
         daemon* m_daemon;
-        e::lockfree_hash_map<id, e::intrusive_ptr<state>, hash> m_searches;
+        std::vector<std::pair<transfer_id, e::intrusive_ptr<transfer_in_state> > > m_transfers_in;
+        std::vector<std::pair<transfer_id, e::intrusive_ptr<transfer_out_state> > > m_transfers_out;
+        po6::threads::thread m_kickstarter;
+        po6::threads::mutex m_block_kickstarter;
+        po6::threads::cond m_wakeup_kickstarter;
+        bool m_need_kickstart;
+        bool m_shutdown;
 };
 
 } // namespace hyperdex
 
-#endif // hyperdex_daemon_search_manager_h_
+#endif // hyperdex_daemon_state_transfer_manager_h_

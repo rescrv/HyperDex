@@ -31,22 +31,26 @@
 // STL
 #include <list>
 #include <string>
+#include <tr1/memory>
 #include <vector>
 
 // LevelDB
 #include <leveldb/db.h>
 
 // po6
-#include <po6/pathname.h>
 #include <po6/net/hostname.h>
 #include <po6/net/location.h>
+#include <po6/pathname.h>
+#include <po6/threads/cond.h>
+#include <po6/threads/mutex.h>
+#include <po6/threads/thread.h>
 
 // HyperDex
 #include "common/attribute_check.h"
 #include "common/configuration.h"
-#include "common/region_id.h"
+#include "common/counter_map.h"
+#include "common/ids.h"
 #include "common/schema.h"
-#include "common/server_id.h"
 #include "daemon/reconfigure_returncode.h"
 
 namespace hyperdex
@@ -67,6 +71,7 @@ class datalayer
             LEVELDB_ERROR
         };
         class reference;
+        class region_iterator;
         class snapshot;
 
     public:
@@ -97,15 +102,29 @@ class datalayer
                        uint64_t* version,
                        reference* ref);
         returncode put(const region_id& ri,
+                       uint64_t seq_id,
                        const e::slice& key,
                        const std::vector<e::slice>& value,
                        uint64_t version);
         returncode del(const region_id& ri,
+                       uint64_t seq_id,
                        const e::slice& key);
         returncode make_snapshot(const region_id& ri,
                                  attribute_check* checks,
                                  size_t checks_sz,
                                  snapshot* snap);
+        // leveldb provides no failure mechanism for this, neither do we
+        std::tr1::shared_ptr<leveldb::Snapshot> make_raw_snapshot();
+        void make_region_iterator(region_iterator* riter,
+                                  std::tr1::shared_ptr<leveldb::Snapshot> snap,
+                                  const region_id& ri);
+        returncode get_transfer(const region_id& ri,
+                                uint64_t seq_no,
+                                bool* has_value,
+                                e::slice* key,
+                                std::vector<e::slice>* value,
+                                uint64_t* version,
+                                reference* ref);
         // XXX errors are absorbed here; short of crashing we can only log
         bool check_acked(const region_id& reg_id, uint64_t seq_id);
         void mark_acked(const region_id& reg_id, uint64_t seq_id);
@@ -134,6 +153,21 @@ class datalayer
         returncode decode_value(const e::slice& value,
                                 std::vector<e::slice>* attrs,
                                 uint64_t* version);
+        void encode_transfer(const capture_id& ci,
+                             uint64_t count,
+                             std::vector<char>* backing,
+                             leveldb::Slice* tkey);
+        void encode_key_value(const e::slice& key,
+                              /*pointer to make it optional*/
+                              const std::vector<e::slice>* value,
+                              uint64_t version,
+                              std::vector<char>* backing,
+                              leveldb::Slice* slice);
+        returncode decode_key_value(const e::slice& slice,
+                                    bool* has_value,
+                                    e::slice* key,
+                                    std::vector<e::slice>* value,
+                                    uint64_t* version);
         void generate_object_range(const region_id& ri,
                                    backing_t* backing,
                                    leveldb::Range* r);
@@ -162,10 +196,18 @@ class datalayer
                                         const std::vector<e::slice>& value,
                                         backing_t* backing,
                                         leveldb::WriteBatch* updates);
+        void cleaner();
+        void shutdown();
 
     private:
         daemon* m_daemon;
         leveldb::DB* m_db;
+        counter_map m_counters;
+        po6::threads::thread m_cleaner;
+        po6::threads::mutex m_block_cleaner;
+        po6::threads::cond m_wakeup_cleaner;
+        bool m_need_cleaning;
+        bool m_shutdown;
 };
 
 class datalayer::reference
@@ -184,6 +226,30 @@ class datalayer::reference
         std::string m_backing;
 };
 
+class datalayer::region_iterator
+{
+    public:
+        region_iterator();
+        ~region_iterator() throw ();
+
+    public:
+        bool valid();
+        void next();
+        void unpack(e::slice* key, std::vector<e::slice>* val, uint64_t* ver, reference* ref);
+        e::slice key();
+
+    private:
+        friend class datalayer;
+        region_iterator(const region_iterator&);
+        region_iterator& operator = (const region_iterator&);
+
+    private:
+        datalayer* m_dl;
+        std::tr1::shared_ptr<leveldb::Snapshot> m_snap;
+        std::auto_ptr<leveldb::Iterator> m_iter;
+        region_id m_region;
+};
+
 class datalayer::snapshot
 {
     public:
@@ -191,7 +257,7 @@ class datalayer::snapshot
         ~snapshot() throw ();
 
     public:
-        bool has_next();
+        bool valid();
         void next();
         void unpack(e::slice* key, std::vector<e::slice>* val, uint64_t* ver);
         void unpack(e::slice* key, std::vector<e::slice>* val, uint64_t* ver, reference* ref);

@@ -34,9 +34,7 @@
 // HyperDex
 #include "common/coordinator_returncode.h"
 #include "common/hyperspace.h"
-#include "common/region_id.h"
-#include "common/server_id.h"
-#include "common/subspace_id.h"
+#include "common/ids.h"
 #include "coordinator/add-space.h"
 #include "coordinator/coordinator.h"
 #include "coordinator/util.h"
@@ -61,6 +59,11 @@ hyperdex_coordinator_add_space(struct replicant_state_machine_context* ctx,
     up = up >> s;
 
     if (up.error())
+    {
+        return generate_response(ctx, c, hyperdex::COORD_MALFORMED);
+    }
+
+    if (!s.validate())
     {
         return generate_response(ctx, c, hyperdex::COORD_MALFORMED);
     }
@@ -91,8 +94,6 @@ hyperdex_coordinator_add_space(struct replicant_state_machine_context* ctx,
         }
     }
 
-    // XXX we trust that regions completely fill all space.  we should validate
-    // this ourselves rather than trusting input
     c->spaces.push_back(s);
     c->initial_layout(&c->spaces.back());
     c->regenerate(ctx);

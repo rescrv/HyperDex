@@ -25,56 +25,57 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_common_server_id_h_
-#define hyperdex_common_server_id_h_
+#ifndef hyperdex_daemon_state_transfer_manager_transfer_out_state_h_
+#define hyperdex_daemon_state_transfer_manager_transfer_out_state_h_
 
-// C
-#include <stdint.h>
+// STL
+#include <list>
+#include <tr1/memory>
 
-// C++
-#include <iostream>
+// LevelDB
+#include <leveldb/db.h>
 
-namespace hyperdex
-{
+// po6
+#include <po6/threads/mutex.h>
 
-class server_id
+// e
+#include <e/intrusive_ptr.h>
+
+// HyperDex
+#include "daemon/datalayer.h"
+#include "daemon/state_transfer_manager.h"
+
+using hyperdex::state_transfer_manager;
+
+class state_transfer_manager::transfer_out_state
 {
     public:
-        server_id() : m_id(0) {}
-        explicit server_id(uint64_t id) : m_id(id) {}
+        transfer_out_state(const transfer& xfer,
+                           datalayer* data,
+                           std::tr1::shared_ptr<leveldb::Snapshot> snap);
+        ~transfer_out_state() throw ();
 
     public:
-        uint64_t get() const { return m_id; }
-        uint64_t hash() const { return m_id; }
+        transfer xfer;
+        po6::threads::mutex mtx;
+        enum { SNAPSHOT_TRANSFER, LOG_TRANSFER } state;
+        uint64_t next_seq_no;
+        std::list<e::intrusive_ptr<pending> > window;
+        size_t window_sz;
+        // transfer from the snapshot
+        datalayer::region_iterator snap_iter;
+        // transfer from the log of new operations
+        uint64_t log_seq_no;
 
     private:
-        uint64_t m_id;
-}; 
+        friend class e::intrusive_ptr<transfer_out_state>;
 
-inline std::ostream&
-operator << (std::ostream& lhs, const server_id& rhs)
-{
-    return lhs << "server(" << rhs.get() << ")";
-}
+    private:
+        void inc() { __sync_add_and_fetch(&m_ref, 1); }
+        void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
 
-inline bool
-operator < (const server_id& lhs, const server_id& rhs)
-{
-    return lhs.get() < rhs.get();
-}
+    private:
+        size_t m_ref;
+};
 
-inline bool
-operator == (const server_id& lhs, const server_id& rhs)
-{
-    return lhs.get() == rhs.get();
-}
-
-inline bool
-operator != (const server_id& lhs, const server_id& rhs)
-{
-    return lhs.get() != rhs.get();
-}
-
-} // namespace hyperdex
-
-#endif // hyperdex_common_server_id_h_
+#endif // hyperdex_daemon_state_transfer_manager_transfer_out_state_h_

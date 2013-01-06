@@ -53,6 +53,7 @@
 #include "datatypes/apply.h"
 #include "datatypes/microerror.h"
 
+using std::tr1::placeholders::_1;
 using hyperdex::datalayer;
 using hyperdex::reconfigure_returncode;
 
@@ -143,13 +144,21 @@ parse_index_sizeof8(const leveldb::Slice& s, e::slice* k)
 datalayer :: datalayer(daemon* d)
     : m_daemon(d)
     , m_db(NULL)
+    , m_counters()
+    , m_cleaner(std::tr1::bind(&datalayer::cleaner, this))
+    , m_block_cleaner()
+    , m_wakeup_cleaner(&m_block_cleaner)
+    , m_need_cleaning(false)
+    , m_shutdown(false)
 {
+    m_cleaner.start();
 }
 
 datalayer :: ~datalayer() throw ()
 {
     // Intentionally leak m_db if destructed.  It must be released from
     // "teardown" to ensure we clean up outstanding snapshots first.
+    shutdown();
 }
 
 bool
@@ -320,6 +329,8 @@ datalayer :: setup(const po6::pathname& path,
 void
 datalayer :: teardown()
 {
+    shutdown();
+
     if (m_db)
     {
         delete m_db;
@@ -332,16 +343,19 @@ datalayer :: prepare(const configuration&,
                      const configuration&,
                      const server_id&)
 {
-    // XXX
+    m_block_cleaner.lock();
     return RECONFIGURE_SUCCESS;
 }
 
 reconfigure_returncode
 datalayer :: reconfigure(const configuration&,
-                         const configuration&,
+                         const configuration& new_config,
                          const server_id&)
 {
-    // XXX
+    std::vector<region_id> regions;
+    new_config.captured_regions(m_daemon->m_us, &regions);
+    std::sort(regions.begin(), regions.end());
+    m_counters.adopt(regions);
     return RECONFIGURE_SUCCESS;
 }
 
@@ -350,7 +364,9 @@ datalayer :: cleanup(const configuration&,
                      const configuration&,
                      const server_id&)
 {
-    // XXX
+    m_wakeup_cleaner.broadcast();
+    m_need_cleaning = true;
+    m_block_cleaner.unlock();
     return RECONFIGURE_SUCCESS;
 }
 
@@ -399,6 +415,7 @@ datalayer :: get(const region_id& ri,
 
 datalayer::returncode
 datalayer :: put(const region_id& ri,
+                 uint64_t seq_id,
                  const e::slice& key,
                  const std::vector<e::slice>& value,
                  uint64_t version)
@@ -423,6 +440,35 @@ datalayer :: put(const region_id& ri,
         return rc;
     }
 
+    // Mark acked as part of this batch write
+    if (seq_id != 0)
+    {
+        char abacking[sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t)];
+        abacking[0] = 'a';
+        e::pack64be(ri.get(), abacking + sizeof(uint8_t));
+        e::pack64be(seq_id, abacking + sizeof(uint8_t) + sizeof(uint64_t));
+        leveldb::Slice akey(abacking, sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t));
+        leveldb::Slice aval("", 0);
+        updates.Put(akey, aval);
+    }
+
+    uint64_t count;
+
+    // If this is a captured region, then we must log this transfer
+    if (m_counters.lookup(ri, &count))
+    {
+        capture_id cid = m_daemon->m_config.capture_for(ri);
+        assert(cid != capture_id());
+        backing.push_back(std::vector<char>());
+        leveldb::Slice tkey;
+        encode_transfer(cid, count, &backing.back(), &tkey);
+        backing.push_back(std::vector<char>());
+        leveldb::Slice tvalue;
+        encode_key_value(key, &value, version, &backing.back(), &tvalue);
+        updates.Put(tkey, tvalue);
+    }
+
+    // Perform the write
     leveldb::Status st = m_db->Write(opts, &updates);
 
     if (st.ok())
@@ -456,6 +502,7 @@ datalayer :: put(const region_id& ri,
 
 datalayer::returncode
 datalayer :: del(const region_id& ri,
+                 uint64_t seq_id,
                  const e::slice& key)
 {
     const schema* sc = m_daemon->m_config.get_schema(ri);
@@ -475,6 +522,35 @@ datalayer :: del(const region_id& ri,
         return rc;
     }
 
+    // Mark acked as part of this batch write
+    if (seq_id != 0)
+    {
+        char abacking[sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t)];
+        abacking[0] = 'a';
+        e::pack64be(ri.get(), abacking + sizeof(uint8_t));
+        e::pack64be(seq_id, abacking + sizeof(uint8_t) + sizeof(uint64_t));
+        leveldb::Slice akey(abacking, sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t));
+        leveldb::Slice aval("", 0);
+        updates.Put(akey, aval);
+    }
+
+    uint64_t count;
+
+    // If this is a captured region, then we must log this transfer
+    if (m_counters.lookup(ri, &count))
+    {
+        capture_id cid = m_daemon->m_config.capture_for(ri);
+        assert(cid != capture_id());
+        backing.push_back(std::vector<char>());
+        leveldb::Slice tkey;
+        encode_transfer(cid, count, &backing.back(), &tkey);
+        backing.push_back(std::vector<char>());
+        leveldb::Slice tvalue;
+        encode_key_value(key, NULL, 0, &backing.back(), &tvalue);
+        updates.Put(tkey, tvalue);
+    }
+
+    // Perform the write
     leveldb::Status st = m_db->Write(opts, &updates);
 
     if (st.ok())
@@ -577,6 +653,82 @@ datalayer :: make_snapshot(const region_id& ri,
     }
 
     return SUCCESS;
+}
+
+std::tr1::shared_ptr<leveldb::Snapshot>
+datalayer :: make_raw_snapshot()
+{
+    std::tr1::function<void (const leveldb::Snapshot*)> dtor;
+    dtor = std::tr1::bind(&leveldb::DB::ReleaseSnapshot, m_db, _1);
+    std::tr1::shared_ptr<leveldb::Snapshot> ret(m_db->GetSnapshot(), dtor);
+    return ret;
+}
+
+void
+datalayer :: make_region_iterator(region_iterator* riter,
+                                  std::tr1::shared_ptr<leveldb::Snapshot> snap,
+                                  const region_id& ri)
+{
+    riter->m_dl = this;
+    riter->m_snap = snap;
+    riter->m_region = ri;
+    leveldb::ReadOptions opts;
+    opts.fill_cache = true;
+    opts.verify_checksums = true;
+    opts.snapshot = riter->m_snap.get();
+    riter->m_iter.reset(m_db->NewIterator(opts));
+    char backing[sizeof(uint8_t) + sizeof(uint64_t)];
+    char* ptr = backing;
+    ptr = e::pack8be('o', ptr);
+    ptr = e::pack64be(riter->m_region.get(), ptr);
+    riter->m_iter->Seek(leveldb::Slice(backing, sizeof(uint8_t) + sizeof(uint64_t)));
+}
+
+datalayer::returncode
+datalayer :: get_transfer(const region_id& ri,
+                          uint64_t seq_no,
+                          bool* has_value,
+                          e::slice* key,
+                          std::vector<e::slice>* value,
+                          uint64_t* version,
+                          reference* ref)
+{
+    leveldb::ReadOptions opts;
+    opts.fill_cache = true;
+    opts.verify_checksums = true;
+    std::vector<char> kbacking;
+    leveldb::Slice lkey;
+    capture_id cid = m_daemon->m_config.capture_for(ri);
+    assert(cid != capture_id());
+    encode_transfer(cid, seq_no, &kbacking, &lkey);
+    leveldb::Status st = m_db->Get(opts, lkey, &ref->m_backing);
+
+    if (st.ok())
+    {
+        e::slice v(ref->m_backing.data(), ref->m_backing.size());
+        return decode_key_value(v, has_value, key, value, version);
+    }
+    else if (st.IsNotFound())
+    {
+        return NOT_FOUND;
+    }
+    else if (st.IsCorruption())
+    {
+        LOG(ERROR) << "corruption at the disk layer: region=" << ri
+                   << " seq_no=" << seq_no << " desc=" << st.ToString();
+        return CORRUPTION;
+    }
+    else if (st.IsIOError())
+    {
+        LOG(ERROR) << "IO error at the disk layer: region=" << ri
+                   << " seq_no=" << seq_no << " desc=" << st.ToString();
+        return IO_ERROR;
+    }
+    else
+    {
+        LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
+        return LEVELDB_ERROR;
+    }
 }
 
 bool
@@ -819,6 +971,140 @@ datalayer :: decode_value(const e::slice& value,
         e::slice s(reinterpret_cast<const uint8_t*>(ptr), sz);
         ptr += sz;
         attrs->push_back(s);
+    }
+
+    return SUCCESS;
+}
+
+void
+datalayer :: encode_transfer(const capture_id& ci,
+                             uint64_t count,
+                             std::vector<char>* backing,
+                             leveldb::Slice* tkey)
+{
+    backing->resize(sizeof(uint8_t) + 2 * sizeof(uint64_t));
+    char* tmp = &backing->front();
+    tmp = e::pack8be('t', tmp);
+    tmp = e::pack64be(ci.get(), tmp);
+    tmp = e::pack64be(count, tmp);
+    *tkey = leveldb::Slice(&backing->front(), sizeof(uint8_t) + 2 * sizeof(uint64_t));
+}
+
+void
+datalayer :: encode_key_value(const e::slice& key,
+                              const std::vector<e::slice>* value,
+                              uint64_t version,
+                              std::vector<char>* backing,
+                              leveldb::Slice* slice)
+{
+    size_t sz = sizeof(uint32_t) + key.size() + sizeof(uint64_t) + sizeof(uint16_t);
+
+    for (size_t i = 0; value && i < value->size(); ++i)
+    {
+        sz += sizeof(uint32_t) + (*value)[i].size();
+    }
+
+    backing->resize(sz);
+    char* ptr = &backing->front();
+    *slice = leveldb::Slice(ptr, sz);
+    ptr = e::pack32be(key.size(), ptr);
+    memmove(ptr, key.data(), key.size());
+    ptr += key.size();
+    ptr = e::pack64be(version, ptr);
+
+    if (value)
+    {
+        ptr = e::pack16be(value->size(), ptr);
+
+        for (size_t i = 0; i < value->size(); ++i)
+        {
+            ptr = e::pack32be((*value)[i].size(), ptr);
+            memmove(ptr, (*value)[i].data(), (*value)[i].size());
+            ptr += (*value)[i].size();
+        }
+    }
+}
+
+datalayer::returncode
+datalayer :: decode_key_value(const e::slice& slice,
+                              bool* has_value,
+                              e::slice* key,
+                              std::vector<e::slice>* value,
+                              uint64_t* version)
+{
+    const uint8_t* ptr = slice.data();
+    const uint8_t* end = ptr + slice.size();
+
+    if (ptr >= end)
+    {
+        return BAD_ENCODING;
+    }
+
+    uint32_t key_sz;
+
+    if (ptr + sizeof(uint32_t) <= end)
+    {
+        ptr = e::unpack32be(ptr, &key_sz);
+    }
+    else
+    {
+        return BAD_ENCODING;
+    }
+
+    if (ptr + key_sz <= end)
+    {
+        *key = e::slice(ptr, key_sz);
+        ptr += key_sz;
+    }
+    else
+    {
+        return BAD_ENCODING;
+    }
+
+    if (ptr + sizeof(uint64_t) <= end)
+    {
+        ptr = e::unpack64be(ptr, version);
+    }
+    else
+    {
+        return BAD_ENCODING;
+    }
+
+    if (ptr == end)
+    {
+        *has_value = false;
+        return SUCCESS;
+    }
+
+    uint16_t num_attrs;
+
+    if (ptr + sizeof(uint16_t) <= end)
+    {
+        ptr = e::unpack16be(ptr, &num_attrs);
+    }
+    else
+    {
+        return BAD_ENCODING;
+    }
+
+    value->clear();
+
+    for (size_t i = 0; i < num_attrs; ++i)
+    {
+        uint32_t sz = 0;
+
+        if (ptr + sizeof(uint32_t) <= end)
+        {
+            ptr = e::unpack32be(ptr, &sz);
+        }
+        else
+        {
+            return BAD_ENCODING;
+        }
+
+        e::slice s(ptr, sz);
+        ptr += sz;
+        value->push_back(s);
     }
 
     return SUCCESS;
@@ -1328,6 +1614,119 @@ datalayer :: create_index_changes(const schema* sc,
     return SUCCESS;
 }
 
+void
+datalayer :: cleaner()
+{
+    LOG(INFO) << "cleanup thread started";
+
+    while (true)
+    {
+        {
+            po6::threads::mutex::hold hold(&m_block_cleaner);
+
+            while (!m_need_cleaning && !m_shutdown)
+            {
+                m_wakeup_cleaner.wait();
+            }
+
+            if (m_shutdown)
+            {
+                break;
+            }
+
+            m_need_cleaning = false;
+        }
+
+        leveldb::ReadOptions opts;
+        opts.fill_cache = true;
+        opts.verify_checksums = true;
+        std::auto_ptr<leveldb::Iterator> it;
+        it.reset(m_db->NewIterator(opts));
+        it->Seek(leveldb::Slice("t", 1));
+        capture_id cached_cid;
+
+        while (it->Valid())
+        {
+            uint8_t prefix;
+            uint64_t cid;
+            uint64_t seq_no;
+            e::unpacker up(it->key().data(), it->key().size());
+            up = up >> prefix >> cid >> seq_no;
+
+            if (up.error() || prefix != 't')
+            {
+                break;
+            }
+
+            if (cid == cached_cid.get())
+            {
+                leveldb::WriteOptions wopts;
+                wopts.sync = false;
+                leveldb::Status st = m_db->Delete(wopts, it->key());
+
+                if (st.ok() || st.IsNotFound())
+                {
+                    // pass
+                }
+                else if (st.IsCorruption())
+                {
+                    LOG(ERROR) << "corruption at the disk layer: could not cleanup old transfers:"
+                               << " desc=" << st.ToString();
+                }
+                else if (st.IsIOError())
+                {
+                    LOG(ERROR) << "IO error at the disk layer: could not cleanup old transfers:"
+                               << " desc=" << st.ToString();
+                }
+                else
+                {
+                    LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
+                }
+
+                it->Next();
+                continue;
+            }
+
+            // If this is not a region we need to keep, we need to iterate and
+            // delete
+            {
+                po6::threads::mutex::hold hold(&m_block_cleaner);
+
+                if (!m_daemon->m_config.is_captured_region(capture_id(cid)))
+                {
+                    cached_cid = capture_id(cid);
+                    continue;
+                }
+            }
+
+            std::vector<char> backing;
+            leveldb::Slice slice;
+            encode_transfer(capture_id(cid + 1), 0, &backing, &slice);
+            it->Seek(slice);
+        }
+    }
+
+    LOG(INFO) << "cleanup thread shutting down";
+}
+
+void
+datalayer :: shutdown()
+{
+    bool is_shutdown;
+
+    {
+        po6::threads::mutex::hold hold(&m_block_cleaner);
+        m_wakeup_cleaner.broadcast();
+        is_shutdown = m_shutdown;
+        m_shutdown = true;
+    }
+
+    if (!is_shutdown)
+    {
+        m_cleaner.join();
+    }
+}
+
 datalayer :: reference :: reference()
     : m_backing()
 {
@@ -1359,6 +1758,86 @@ hyperdex :: operator << (std::ostream& lhs, datalayer::returncode rhs)
     }
 
     return lhs;
+}
+
+datalayer :: region_iterator :: region_iterator()
+    : m_dl()
+    , m_snap()
+    , m_iter()
+    , m_region()
+{
+}
+
+datalayer :: region_iterator :: ~region_iterator() throw ()
+{
+}
+
+bool
+datalayer :: region_iterator :: valid()
+{
+    if (!m_iter->Valid())
+    {
+        return false;
+    }
+
+    leveldb::Slice k = m_iter->key();
+    uint8_t b;
+    uint64_t ri;
+    e::unpacker up(k.data(), k.size());
+    up = up >> b >> ri;
+    return !up.error() && b == 'o' && ri == m_region.get();
+}
+
+void
+datalayer :: region_iterator :: next()
+{
+    m_iter->Next();
+}
+
+void
+datalayer :: region_iterator :: unpack(e::slice* k,
+                                       std::vector<e::slice>* val,
+                                       uint64_t* ver,
+                                       reference* ref)
+{
+    region_id ri;
+    // XXX returncode
+    m_dl->decode_key(e::slice(m_iter->key().data(), m_iter->key().size()), &ri, k);
+    m_dl->decode_value(e::slice(m_iter->value().data(), m_iter->value().size()), val, ver);
+    size_t sz = k->size();
+
+    for (size_t i = 0; i < val->size(); ++i)
+    {
+        sz += (*val)[i].size();
+    }
+
+    std::vector<char> tmp(sz + 1);
+    char* ptr = &tmp.front();
+    memmove(ptr, k->data(), k->size());
+    ptr += k->size();
+
+    for (size_t i = 0; i < val->size(); ++i)
+    {
+        memmove(ptr, (*val)[i].data(), (*val)[i].size());
+        ptr += (*val)[i].size();
+    }
+
+    ref->m_backing = std::string(tmp.begin(), tmp.end());
+    const char* cptr = ref->m_backing.data();
+    *k = e::slice(cptr, k->size());
+    cptr += k->size();
+
+    for (size_t i = 0; i < val->size(); ++i)
+    {
+        (*val)[i] = e::slice(cptr, (*val)[i].size());
+        cptr += (*val)[i].size();
+    }
+}
+
+e::slice
+datalayer :: region_iterator :: key()
+{
+    return e::slice(m_iter->key().data(), m_iter->key().size());
 }
 
 datalayer :: snapshot :: snapshot()
@@ -1400,7 +1879,7 @@ datalayer :: snapshot :: ~snapshot() throw ()
 }
 
 bool
-datalayer :: snapshot :: has_next()
+datalayer :: snapshot :: valid()
 {
     if (m_error != SUCCESS)
     {

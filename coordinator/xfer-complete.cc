@@ -25,45 +25,67 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// e
-#include <e/endian.h>
-
 // HyperDex
-#include "common/coordinator_returncode.h"
-#include "common/hyperspace.h"
 #include "common/ids.h"
-#include "coordinator/rm-space.h"
 #include "coordinator/coordinator.h"
 #include "coordinator/util.h"
+#include "coordinator/xfer-complete.h"
 
+using hyperdex::capture_id;
 using hyperdex::coordinator;
-using hyperdex::region_id;
+using hyperdex::region;
+using hyperdex::server_id;
 using hyperdex::space;
-using hyperdex::space_id;
-using hyperdex::subspace_id;
+using hyperdex::transfer_id;
+using hyperdex::virtual_server_id;
 
 extern "C"
 {
 
 void
-hyperdex_coordinator_rm_space(struct replicant_state_machine_context* ctx,
-                              void* obj, const char* data, size_t data_sz)
+hyperdex_coordinator_xfer_complete(struct replicant_state_machine_context* ctx,
+                                   void* obj, const char* data, size_t data_sz)
 {
     PROTECT_UNINITIALIZED;
     coordinator* c = static_cast<coordinator*>(obj);
+    uint64_t _xid;
+    e::unpacker up(data, data_sz);
+    up = up >> _xid;
 
-    // Check that a space with this name exists
+    if (up.error())
+    {
+        return generate_response(ctx, c, hyperdex::COORD_MALFORMED);
+    }
+
+    transfer_id xid(_xid);
+
     for (std::list<space>::iterator it = c->spaces.begin(); it != c->spaces.end(); ++it)
     {
-        if (strncmp(it->name, data, data_sz) == 0)
+        for (size_t ss = 0; ss < it->subspaces.size(); ++ss)
         {
-            c->spaces.erase(it);
-            c->regenerate(ctx);
-            return generate_response(ctx, c, hyperdex::COORD_SUCCESS);
+            for (size_t r = 0; r < it->subspaces[ss].regions.size(); ++r)
+            {
+                region& reg(it->subspaces[ss].regions[r]);
+
+                if (reg.tid != xid)
+                {
+                    continue;
+                }
+
+                if (!reg.replicas.empty() &&
+                    reg.replicas.back().si == reg.tsi)
+                {
+                    reg.cid = capture_id();
+                    reg.tid = transfer_id();
+                    reg.tsi = server_id();
+                    reg.tvi = virtual_server_id();
+                    c->regenerate(ctx);
+                }
+            }
         }
     }
 
-    return generate_response(ctx, c, hyperdex::COORD_NOT_FOUND);
+    return generate_response(ctx, c, hyperdex::COORD_SUCCESS);
 }
 
 } // extern "C"

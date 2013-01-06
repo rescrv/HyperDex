@@ -36,12 +36,8 @@
 #include <e/buffer.h>
 
 // HyperDex
-#include "common/region_id.h"
+#include "common/ids.h"
 #include "common/schema.h"
-#include "common/server_id.h"
-#include "common/space_id.h"
-#include "common/subspace_id.h"
-#include "common/virtual_server_id.h"
 
 namespace hyperdex
 {
@@ -129,6 +125,10 @@ class region
         std::vector<uint64_t> lower_coord;
         std::vector<uint64_t> upper_coord;
         std::vector<replica> replicas;
+        capture_id cid;
+        transfer_id tid;
+        server_id tsi;
+        virtual_server_id tvi;
 };
 
 e::buffer::packer

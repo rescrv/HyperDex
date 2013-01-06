@@ -25,38 +25,28 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_client_tool_wrapper_h_
-#define hyperdex_client_tool_wrapper_h_
-
 // HyperDex
-#include "client/hyperclient.h"
+#include "daemon/datalayer.h"
+#include "daemon/state_transfer_manager_pending.h"
+#include "daemon/state_transfer_manager_transfer_in_state.h"
 
-namespace hyperdex
+using hyperdex::state_transfer_manager;
+
+state_transfer_manager :: transfer_in_state :: transfer_in_state(const transfer& _xfer,
+                                                                 datalayer* data,
+                                                                 std::tr1::shared_ptr<leveldb::Snapshot> snap)
+    : xfer(_xfer)
+    , mtx()
+    , upper_bound_acked(1)
+    , queued()
+    , need_del(true)
+    , prev()
+    , del_iter()
+    , m_ref(0)
 {
+    data->make_region_iterator(&del_iter, snap, xfer.rid);
+}
 
-class tool_wrapper
+state_transfer_manager :: transfer_in_state :: ~transfer_in_state() throw ()
 {
-    public:
-        tool_wrapper(hyperclient* h) : m_h(h) {}
-        tool_wrapper(const tool_wrapper& other) : m_h(other.m_h) {}
-        ~tool_wrapper() throw () {}
-
-    public:
-        hyperclient_returncode show_config(std::ostream& out)
-        { return m_h->show_config(out); }
-        hyperclient_returncode kill(uint64_t server_id)
-        { return m_h->kill(server_id); }
-        hyperclient_returncode initiate_transfer(uint64_t region_id, uint64_t server_id)
-        { return m_h->initiate_transfer(region_id, server_id); }
-
-    public:
-        tool_wrapper& operator = (const tool_wrapper& rhs)
-        { m_h = rhs.m_h; return *this; }
-
-    private:
-        hyperclient* m_h;
-};
-
-} // namespace hyperdex
-
-#endif // hyperdex_client_tool_wrapper_h_
+}

@@ -28,16 +28,20 @@
 // e
 #include <e/endian.h>
 
+// Replicant
+#include <replicant_state_machine.h>
+
 // HyperDex
 #include "common/coordinator_returncode.h"
 #include "common/hyperspace.h"
 #include "common/ids.h"
-#include "coordinator/rm-space.h"
+#include "coordinator/add-space.h"
 #include "coordinator/coordinator.h"
 #include "coordinator/util.h"
 
 using hyperdex::coordinator;
 using hyperdex::region_id;
+using hyperdex::server_id;
 using hyperdex::space;
 using hyperdex::space_id;
 using hyperdex::subspace_id;
@@ -46,24 +50,57 @@ extern "C"
 {
 
 void
-hyperdex_coordinator_rm_space(struct replicant_state_machine_context* ctx,
-                              void* obj, const char* data, size_t data_sz)
+hyperdex_coordinator_tcp_disconnect(struct replicant_state_machine_context* ctx,
+                                    void* obj, const char* data, size_t data_sz)
 {
     PROTECT_UNINITIALIZED;
     coordinator* c = static_cast<coordinator*>(obj);
+    uint64_t _sid;
+    e::unpacker up(data, data_sz);
+    up = up >> _sid;
 
-    // Check that a space with this name exists
-    for (std::list<space>::iterator it = c->spaces.begin(); it != c->spaces.end(); ++it)
+    if (up.error())
     {
-        if (strncmp(it->name, data, data_sz) == 0)
+        return generate_response(ctx, c, hyperdex::COORD_MALFORMED);
+    }
+
+    server_id sid(_sid);
+
+    for (std::list<space>::iterator s = c->spaces.begin(); s != c->spaces.end(); ++s)
+    {
+        for (size_t i = 0; i < s->subspaces.size(); ++i)
         {
-            c->spaces.erase(it);
-            c->regenerate(ctx);
-            return generate_response(ctx, c, hyperdex::COORD_SUCCESS);
+            for (size_t j = 0; j < s->subspaces[i].regions.size(); ++j)
+            {
+                size_t k = 0;
+
+                while (k < s->subspaces[i].regions[j].replicas.size())
+                {
+                    if (s->subspaces[i].regions[j].replicas[k].si == sid)
+                    {
+                        for (size_t r = k; r + 1 < s->subspaces[i].regions[j].replicas.size(); ++r)
+                        {
+                            s->subspaces[i].regions[j].replicas[r] = s->subspaces[i].regions[j].replicas[r + 1];
+                        }
+
+                        s->subspaces[i].regions[j].replicas.pop_back();
+                    }
+                    else
+                    {
+                        ++k;
+                    }
+                }
+
+                if (s->subspaces[i].regions[j].replicas.empty())
+                {
+                    replicant_state_machine_log_error(ctx, "kill completely emptied a region");
+                }
+            }
         }
     }
 
-    return generate_response(ctx, c, hyperdex::COORD_NOT_FOUND);
+    c->regenerate(ctx);
+    return generate_response(ctx, c, hyperdex::COORD_SUCCESS);
 }
 
 } // extern "C"

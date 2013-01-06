@@ -25,38 +25,64 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_client_tool_wrapper_h_
-#define hyperdex_client_tool_wrapper_h_
-
 // HyperDex
-#include "client/hyperclient.h"
+#include "common/ids.h"
+#include "coordinator/coordinator.h"
+#include "coordinator/util.h"
+#include "coordinator/xfer-go-live.h"
 
-namespace hyperdex
+using hyperdex::coordinator;
+using hyperdex::region;
+using hyperdex::replica;
+using hyperdex::space;
+using hyperdex::transfer_id;
+
+extern "C"
 {
 
-class tool_wrapper
+void
+hyperdex_coordinator_xfer_go_live(struct replicant_state_machine_context* ctx,
+                                  void* obj, const char* data, size_t data_sz)
 {
-    public:
-        tool_wrapper(hyperclient* h) : m_h(h) {}
-        tool_wrapper(const tool_wrapper& other) : m_h(other.m_h) {}
-        ~tool_wrapper() throw () {}
+    PROTECT_UNINITIALIZED;
+    coordinator* c = static_cast<coordinator*>(obj);
+    uint64_t _xid;
+    e::unpacker up(data, data_sz);
+    up = up >> _xid;
 
-    public:
-        hyperclient_returncode show_config(std::ostream& out)
-        { return m_h->show_config(out); }
-        hyperclient_returncode kill(uint64_t server_id)
-        { return m_h->kill(server_id); }
-        hyperclient_returncode initiate_transfer(uint64_t region_id, uint64_t server_id)
-        { return m_h->initiate_transfer(region_id, server_id); }
+    if (up.error())
+    {
+        return generate_response(ctx, c, hyperdex::COORD_MALFORMED);
+    }
 
-    public:
-        tool_wrapper& operator = (const tool_wrapper& rhs)
-        { m_h = rhs.m_h; return *this; }
+    transfer_id xid(_xid);
 
-    private:
-        hyperclient* m_h;
-};
+    for (std::list<space>::iterator it = c->spaces.begin(); it != c->spaces.end(); ++it)
+    {
+        for (size_t ss = 0; ss < it->subspaces.size(); ++ss)
+        {
+            for (size_t r = 0; r < it->subspaces[ss].regions.size(); ++r)
+            {
+                region& reg(it->subspaces[ss].regions[r]);
 
-} // namespace hyperdex
+                if (reg.tid != xid)
+                {
+                    continue;
+                }
 
-#endif // hyperdex_client_tool_wrapper_h_
+                if (!reg.replicas.empty() &&
+                    reg.replicas.back().si != reg.tsi)
+                {
+                    reg.replicas.push_back(replica());
+                    reg.replicas.back().si = reg.tsi;
+                    reg.replicas.back().vsi = reg.tvi;
+                    c->regenerate(ctx);
+                }
+            }
+        }
+    }
+
+    return generate_response(ctx, c, hyperdex::COORD_SUCCESS);
+}
+
+} // extern "C"

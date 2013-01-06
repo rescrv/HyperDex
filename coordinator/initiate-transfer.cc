@@ -25,41 +25,85 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// e
-#include <e/endian.h>
-
 // HyperDex
-#include "common/coordinator_returncode.h"
-#include "common/hyperspace.h"
-#include "common/ids.h"
-#include "coordinator/rm-space.h"
 #include "coordinator/coordinator.h"
+#include "coordinator/initiate-transfer.h"
 #include "coordinator/util.h"
 
+using hyperdex::capture_id;
 using hyperdex::coordinator;
+using hyperdex::region;
 using hyperdex::region_id;
+using hyperdex::server_id;
 using hyperdex::space;
-using hyperdex::space_id;
-using hyperdex::subspace_id;
+using hyperdex::transfer_id;
+using hyperdex::virtual_server_id;
 
 extern "C"
 {
 
 void
-hyperdex_coordinator_rm_space(struct replicant_state_machine_context* ctx,
-                              void* obj, const char* data, size_t data_sz)
+hyperdex_coordinator_initiate_transfer(struct replicant_state_machine_context* ctx,
+                                       void* obj, const char* data, size_t data_sz)
 {
     PROTECT_UNINITIALIZED;
     coordinator* c = static_cast<coordinator*>(obj);
+    uint64_t _rid;
+    uint64_t _sid;
+    e::unpacker up(data, data_sz);
+    up = up >> _rid >> _sid;
+    region_id rid(_rid);
+    server_id sid(_sid);
 
-    // Check that a space with this name exists
+    if (up.error())
+    {
+        return generate_response(ctx, c, hyperdex::COORD_MALFORMED);
+    }
+
+    bool found = false;
+
+    for (size_t i = 0; i < c->servers.size(); ++i)
+    {
+        if (c->servers[i].first == sid)
+        {
+            found = true;
+            break;
+        }
+    }
+
+    if (!found)
+    {
+        return generate_response(ctx, c, hyperdex::COORD_NOT_FOUND);
+    }
+
     for (std::list<space>::iterator it = c->spaces.begin(); it != c->spaces.end(); ++it)
     {
-        if (strncmp(it->name, data, data_sz) == 0)
+        for (size_t i = 0; i < it->subspaces.size(); ++i)
         {
-            c->spaces.erase(it);
-            c->regenerate(ctx);
-            return generate_response(ctx, c, hyperdex::COORD_SUCCESS);
+            for (size_t j = 0; j < it->subspaces[i].regions.size(); ++j)
+            {
+                if (it->subspaces[i].regions[j].id != rid)
+                {
+                    continue;
+                }
+
+                region& r(it->subspaces[i].regions[j]);
+
+                if (r.tid != transfer_id())
+                {
+                    return generate_response(ctx, c, hyperdex::COORD_TRANSFER_IN_PROGRESS);
+                }
+
+                r.cid = capture_id(c->counter);
+                ++c->counter;
+                r.tid = transfer_id(c->counter);
+                ++c->counter;
+                r.tsi = sid;
+                r.tvi = virtual_server_id(c->counter);
+                ++c->counter;
+                c->regenerate(ctx);
+                return generate_response(ctx, c, hyperdex::COORD_SUCCESS);
+            }
         }
     }
 

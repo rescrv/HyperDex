@@ -25,47 +25,41 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_common_virtual_server_id_h_
-#define hyperdex_common_virtual_server_id_h_
+#ifndef hyperdex_common_counter_map_h_
+#define hyperdex_common_counter_map_h_
 
-// C
-#include <stdint.h>
+// STL
+#include <utility>
+#include <vector>
+
+// HyperDex
+#include "common/ids.h"
+
+// The only thread-safe call is "lookup".  "adopt" and "take_max" both require
+// external synchronization.
 
 namespace hyperdex
 {
 
-class virtual_server_id
+class counter_map
 {
     public:
-        virtual_server_id() : m_id(0) {}
-        explicit virtual_server_id(uint64_t id) : m_id(id) {}
+        counter_map();
+        ~counter_map() throw ();
 
     public:
-        uint64_t get() const { return m_id; }
-        uint64_t hash() const { return m_id; }
+        void adopt(const std::vector<region_id>& ris);
+        bool lookup(const region_id& ri, uint64_t* count);
+        bool take_max(const region_id& ri, uint64_t count);
 
     private:
-        uint64_t m_id;
-}; 
+        counter_map(const counter_map&);
+        counter_map& operator = (const counter_map&);
 
-inline std::ostream&
-operator << (std::ostream& lhs, const virtual_server_id& rhs)
-{
-    return lhs << "virtual_server(" << rhs.get() << ")";
-}
-
-inline bool
-operator == (const virtual_server_id& lhs, const virtual_server_id& rhs)
-{
-    return lhs.get() == rhs.get();
-}
-
-inline bool
-operator != (const virtual_server_id& lhs, const virtual_server_id& rhs)
-{
-    return lhs.get() != rhs.get();
-}
+    private:
+        std::vector<std::pair<region_id, uint64_t> > m_counters;
+};
 
 } // namespace hyperdex
 
-#endif // hyperdex_common_virtual_server_id_h_
+#endif // hyperdex_common_counter_map_h_

@@ -25,38 +25,60 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_client_tool_wrapper_h_
-#define hyperdex_client_tool_wrapper_h_
+#ifndef hyperdex_common_ids_h_
+#define hyperdex_common_ids_h_
 
-// HyperDex
-#include "client/hyperclient.h"
+// C
+#include <stdint.h>
+
+// C++
+#include <iostream>
+
+// An ID is a simple wrapper around uint64_t in order to prevent devs from
+// accidently using one type of ID as another.
+
+#define OPERATOR(TYPE, OP) \
+    inline bool \
+    operator OP (const TYPE ## _id& lhs, const TYPE ## _id& rhs) \
+    { \
+        return lhs.get() OP rhs.get(); \
+    }
+#define CREATE_ID(TYPE) \
+    class TYPE ## _id \
+    { \
+        public: \
+            TYPE ## _id() : m_id(0) {} \
+            explicit TYPE ## _id(uint64_t id) : m_id(id) {} \
+        public: \
+            uint64_t get() const { return m_id; } \
+        private: \
+            uint64_t m_id; \
+    }; \
+    inline std::ostream& \
+    operator << (std::ostream& lhs, const TYPE ## _id& rhs) \
+    { \
+        return lhs << #TYPE "(" << rhs.get() << ")"; \
+    } \
+    OPERATOR(TYPE, <) \
+    OPERATOR(TYPE, <=) \
+    OPERATOR(TYPE, ==) \
+    OPERATOR(TYPE, !=) \
+    OPERATOR(TYPE, >=) \
+    OPERATOR(TYPE, >)
 
 namespace hyperdex
 {
 
-class tool_wrapper
-{
-    public:
-        tool_wrapper(hyperclient* h) : m_h(h) {}
-        tool_wrapper(const tool_wrapper& other) : m_h(other.m_h) {}
-        ~tool_wrapper() throw () {}
-
-    public:
-        hyperclient_returncode show_config(std::ostream& out)
-        { return m_h->show_config(out); }
-        hyperclient_returncode kill(uint64_t server_id)
-        { return m_h->kill(server_id); }
-        hyperclient_returncode initiate_transfer(uint64_t region_id, uint64_t server_id)
-        { return m_h->initiate_transfer(region_id, server_id); }
-
-    public:
-        tool_wrapper& operator = (const tool_wrapper& rhs)
-        { m_h = rhs.m_h; return *this; }
-
-    private:
-        hyperclient* m_h;
-};
+CREATE_ID(capture)
+CREATE_ID(region)
+CREATE_ID(server)
+CREATE_ID(space)
+CREATE_ID(subspace)
+CREATE_ID(transfer)
+CREATE_ID(virtual_server)
 
 } // namespace hyperdex
 
-#endif // hyperdex_client_tool_wrapper_h_
+#undef OPERATOR
+#undef CREATE_ID
+#endif // hyperdex_common_ids_h_

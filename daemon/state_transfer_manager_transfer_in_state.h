@@ -25,38 +25,47 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_client_tool_wrapper_h_
-#define hyperdex_client_tool_wrapper_h_
+#ifndef hyperdex_daemon_state_transfer_manager_transfer_in_state_h_
+#define hyperdex_daemon_state_transfer_manager_transfer_in_state_h_
+
+// STL
+#include <tr1/memory>
+
+// LevelDB
+#include <leveldb/db.h>
+
+// e
+#include <e/intrusive_ptr.h>
 
 // HyperDex
-#include "client/hyperclient.h"
+#include "daemon/state_transfer_manager.h"
 
-namespace hyperdex
-{
-
-class tool_wrapper
+class hyperdex::state_transfer_manager::transfer_in_state
 {
     public:
-        tool_wrapper(hyperclient* h) : m_h(h) {}
-        tool_wrapper(const tool_wrapper& other) : m_h(other.m_h) {}
-        ~tool_wrapper() throw () {}
+        transfer_in_state(const transfer& xfer,
+                          datalayer* data,
+                          std::tr1::shared_ptr<leveldb::Snapshot> snap);
+        ~transfer_in_state() throw ();
 
     public:
-        hyperclient_returncode show_config(std::ostream& out)
-        { return m_h->show_config(out); }
-        hyperclient_returncode kill(uint64_t server_id)
-        { return m_h->kill(server_id); }
-        hyperclient_returncode initiate_transfer(uint64_t region_id, uint64_t server_id)
-        { return m_h->initiate_transfer(region_id, server_id); }
-
-    public:
-        tool_wrapper& operator = (const tool_wrapper& rhs)
-        { m_h = rhs.m_h; return *this; }
+        transfer xfer;
+        po6::threads::mutex mtx;
+        uint64_t upper_bound_acked;
+        std::list<e::intrusive_ptr<pending> > queued;
+        bool need_del;
+        e::intrusive_ptr<pending> prev;
+        datalayer::region_iterator del_iter;
 
     private:
-        hyperclient* m_h;
+        friend class e::intrusive_ptr<transfer_in_state>;
+
+    private:
+        void inc() { __sync_add_and_fetch(&m_ref, 1); }
+        void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
+
+    private:
+        size_t m_ref;
 };
 
-} // namespace hyperdex
-
-#endif // hyperdex_client_tool_wrapper_h_
+#endif // hyperdex_daemon_state_transfer_manager_transfer_in_state_h_
