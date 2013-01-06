@@ -57,6 +57,10 @@ class coordinator_link
                       const char** output, size_t* output_sz);
 
     private:
+        bool initiate_wait_for_config(hyperclient_returncode* status);
+        bool initiate_get_config(hyperclient_returncode* status);
+
+    private:
         coordinator_link(const coordinator_link&);
         coordinator_link& operator = (const coordinator_link&);
 
