@@ -55,6 +55,11 @@ exit_on_signal(int /*signum*/)
     s_continue = false;
 }
 
+static void
+dummy(int /*signum*/)
+{
+}
+
 daemon :: daemon()
     : m_us()
     , m_threads()
@@ -73,10 +78,10 @@ daemon :: ~daemon() throw ()
 }
 
 static bool
-install_signal_handler(int signum)
+install_signal_handler(int signum, void (*f)(int))
 {
     struct sigaction handle;
-    handle.sa_handler = exit_on_signal;
+    handle.sa_handler = f;
     sigfillset(&handle.sa_mask);
     handle.sa_flags = SA_RESTART;
     return sigaction(signum, &handle, NULL) >= 0;
@@ -109,21 +114,27 @@ daemon :: run(bool daemonize,
               po6::net::hostname coordinator,
               unsigned threads)
 {
-    if (!install_signal_handler(SIGHUP))
+    if (!install_signal_handler(SIGHUP, exit_on_signal))
     {
         std::cerr << "could not install SIGHUP handler; exiting" << std::endl;
         return EXIT_FAILURE;
     }
 
-    if (!install_signal_handler(SIGINT))
+    if (!install_signal_handler(SIGINT, exit_on_signal))
     {
         std::cerr << "could not install SIGINT handler; exiting" << std::endl;
         return EXIT_FAILURE;
     }
 
-    if (!install_signal_handler(SIGTERM))
+    if (!install_signal_handler(SIGTERM, exit_on_signal))
     {
         std::cerr << "could not install SIGTERM handler; exiting" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    if (!install_signal_handler(SIGUSR1, dummy))
+    {
+        std::cerr << "could not install SIGUSR1 handler; exiting" << std::endl;
         return EXIT_FAILURE;
     }
 

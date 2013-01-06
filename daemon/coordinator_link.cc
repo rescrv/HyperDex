@@ -25,6 +25,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// POSIX
+#include <signal.h>
+
 // Google Log
 #include <glog/logging.h>
 
@@ -41,6 +44,7 @@ using hyperdex::coordinator_link;
 
 coordinator_link :: coordinator_link(daemon* d)
     : m_daemon(d)
+    , m_looper(pthread_self())
     , m_repl()
     , m_wait_config_id(-1)
     , m_wait_config_status(REPLICANT_GARBAGE)
@@ -51,6 +55,10 @@ coordinator_link :: coordinator_link(daemon* d)
     , m_transfers_go_live()
     , m_transfers_complete()
     , m_tcp_disconnects()
+    , m_protect_queues()
+    , m_queue_transfers_go_live()
+    , m_queue_transfers_complete()
+    , m_queue_tcp_disconnects()
 {
 }
 
@@ -238,6 +246,28 @@ coordinator_link :: wait_for_config(configuration* config)
             continue;
         }
 
+        {
+            po6::threads::mutex::hold hold(&m_protect_queues);
+
+            while (!m_queue_transfers_go_live.empty())
+            {
+                initiate_transfer_go_live(m_queue_transfers_go_live.front());
+                m_queue_transfers_go_live.pop();
+            }
+
+            while (!m_queue_transfers_complete.empty())
+            {
+                initiate_transfer_complete(m_queue_transfers_complete.front());
+                m_queue_transfers_complete.pop();
+            }
+
+            while (!m_queue_tcp_disconnects.empty())
+            {
+                initiate_report_tcp_disconnect(m_queue_tcp_disconnects.front());
+                m_queue_tcp_disconnects.pop();
+            }
+        }
+
         replicant_returncode lstatus = REPLICANT_GARBAGE;
         int64_t lid = m_repl->loop(-1, &lstatus);
 
@@ -405,61 +435,25 @@ coordinator_link :: wait_for_config(configuration* config)
 void
 coordinator_link :: transfer_go_live(const transfer_id& id)
 {
-    LOG(INFO) << "asking the coordinator to mark " << id << " live";
-    char buf[sizeof(uint64_t)];
-    e::pack64be(id.get(), buf);
-    std::tr1::shared_ptr<replicant_returncode> ret(new replicant_returncode(REPLICANT_GARBAGE));
-    int64_t req_id = m_repl->send("hyperdex", "xfer-go-live", buf, sizeof(uint64_t),
-                                  ret.get(), NULL, NULL);
-
-    if (req_id < 0)
-    {
-        LOG(ERROR) << "could not tell the coordinator that transfer " << id << " is live";
-    }
-    else
-    {
-        m_transfers_go_live.insert(std::make_pair(req_id, std::make_pair(id, ret)));
-    }
+    po6::threads::mutex::hold hold(&m_protect_queues);
+    m_queue_transfers_go_live.push(id);
+    pthread_kill(m_looper, SIGUSR1);
 }
 
 void
 coordinator_link :: transfer_complete(const transfer_id& id)
 {
-    LOG(INFO) << "asking the coordinator to mark " << id << " complete";
-    char buf[sizeof(uint64_t)];
-    e::pack64be(id.get(), buf);
-    std::tr1::shared_ptr<replicant_returncode> ret(new replicant_returncode(REPLICANT_GARBAGE));
-    int64_t req_id = m_repl->send("hyperdex", "xfer-complete", buf, sizeof(uint64_t),
-                                  ret.get(), NULL, NULL);
-
-    if (req_id < 0)
-    {
-        LOG(ERROR) << "could not tell the coordinator that transfer " << id << " is complete";
-    }
-    else
-    {
-        m_transfers_go_live.insert(std::make_pair(req_id, std::make_pair(id, ret)));
-    }
+    po6::threads::mutex::hold hold(&m_protect_queues);
+    m_queue_transfers_complete.push(id);
+    pthread_kill(m_looper, SIGUSR1);
 }
 
 void
 coordinator_link :: report_tcp_disconnect(const server_id& id)
 {
-    LOG(INFO) << "asking the coordinator to record tcp disconnect for " << id;
-    char buf[sizeof(uint64_t)];
-    e::pack64be(id.get(), buf);
-    std::tr1::shared_ptr<replicant_returncode> ret(new replicant_returncode(REPLICANT_GARBAGE));
-    int64_t req_id = m_repl->send("hyperdex", "tcp-disconnect", buf, sizeof(uint64_t),
-                                  ret.get(), NULL, NULL);
-
-    if (req_id < 0)
-    {
-        LOG(ERROR) << "could not tell the coordinator that " << id << " broke a TCP connection";
-    }
-    else
-    {
-        m_tcp_disconnects.insert(std::make_pair(req_id, std::make_pair(id, ret)));
-    }
+    po6::threads::mutex::hold hold(&m_protect_queues);
+    m_queue_tcp_disconnects.push(id);
+    pthread_kill(m_looper, SIGUSR1);
 }
 
 bool
@@ -500,4 +494,64 @@ coordinator_link :: initiate_get_config()
     }
 
     return true;
+}
+
+void
+coordinator_link :: initiate_transfer_go_live(const transfer_id& id)
+{
+    LOG(INFO) << "asking the coordinator to mark " << id << " live";
+    char buf[sizeof(uint64_t)];
+    e::pack64be(id.get(), buf);
+    std::tr1::shared_ptr<replicant_returncode> ret(new replicant_returncode(REPLICANT_GARBAGE));
+    int64_t req_id = m_repl->send("hyperdex", "xfer-go-live", buf, sizeof(uint64_t),
+                                  ret.get(), NULL, NULL);
+
+    if (req_id < 0)
+    {
+        LOG(ERROR) << "could not tell the coordinator that transfer " << id << " is live";
+    }
+    else
+    {
+        m_transfers_go_live.insert(std::make_pair(req_id, std::make_pair(id, ret)));
+    }
+}
+
+void
+coordinator_link :: initiate_transfer_complete(const transfer_id& id)
+{
+    LOG(INFO) << "asking the coordinator to mark " << id << " complete";
+    char buf[sizeof(uint64_t)];
+    e::pack64be(id.get(), buf);
+    std::tr1::shared_ptr<replicant_returncode> ret(new replicant_returncode(REPLICANT_GARBAGE));
+    int64_t req_id = m_repl->send("hyperdex", "xfer-complete", buf, sizeof(uint64_t),
+                                  ret.get(), NULL, NULL);
+
+    if (req_id < 0)
+    {
+        LOG(ERROR) << "could not tell the coordinator that transfer " << id << " is complete";
+    }
+    else
+    {
+        m_transfers_go_live.insert(std::make_pair(req_id, std::make_pair(id, ret)));
+    }
+}
+
+void
+coordinator_link :: initiate_report_tcp_disconnect(const server_id& id)
+{
+    LOG(INFO) << "asking the coordinator to record tcp disconnect for " << id;
+    char buf[sizeof(uint64_t)];
+    e::pack64be(id.get(), buf);
+    std::tr1::shared_ptr<replicant_returncode> ret(new replicant_returncode(REPLICANT_GARBAGE));
+    int64_t req_id = m_repl->send("hyperdex", "tcp-disconnect", buf, sizeof(uint64_t),
+                                  ret.get(), NULL, NULL);
+
+    if (req_id < 0)
+    {
+        LOG(ERROR) << "could not tell the coordinator that " << id << " broke a TCP connection";
+    }
+    else
+    {
+        m_tcp_disconnects.insert(std::make_pair(req_id, std::make_pair(id, ret)));
+    }
 }

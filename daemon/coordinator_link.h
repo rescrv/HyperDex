@@ -30,7 +30,11 @@
 
 // STL
 #include <map>
+#include <queue>
 #include <tr1/memory>
+
+// po6
+#include <po6/threads/mutex.h>
 
 // Replicant
 #include <replicant.h>
@@ -43,6 +47,9 @@ namespace hyperdex
 {
 class daemon;
 
+// The thread whose pthread_self is passed to "set_looper" can call everything.
+// All other threads are left with the threadsafe block below.
+
 class coordinator_link
 {
     public:
@@ -53,6 +60,9 @@ class coordinator_link
         void set_coordinator_address(const char* host, uint16_t port);
         int register_id(server_id us, const po6::net::location& bind_to);
         bool wait_for_config(configuration* config);
+
+    // threadsafe
+    public:
         void transfer_go_live(const transfer_id& id);
         void transfer_complete(const transfer_id& id);
         void report_tcp_disconnect(const server_id& id);
@@ -60,9 +70,13 @@ class coordinator_link
     private:
         bool initiate_wait_for_config();
         bool initiate_get_config();
+        void initiate_transfer_go_live(const transfer_id& id);
+        void initiate_transfer_complete(const transfer_id& id);
+        void initiate_report_tcp_disconnect(const server_id& id);
 
     private:
         daemon* m_daemon;
+        pthread_t m_looper;
         std::auto_ptr<replicant_client> m_repl;
         int64_t m_wait_config_id;
         replicant_returncode m_wait_config_status;
@@ -73,6 +87,10 @@ class coordinator_link
         std::map<int64_t, std::pair<transfer_id, std::tr1::shared_ptr<replicant_returncode> > > m_transfers_go_live;
         std::map<int64_t, std::pair<transfer_id, std::tr1::shared_ptr<replicant_returncode> > > m_transfers_complete;
         std::map<int64_t, std::pair<server_id, std::tr1::shared_ptr<replicant_returncode> > > m_tcp_disconnects;
+        po6::threads::mutex m_protect_queues;
+        std::queue<transfer_id> m_queue_transfers_go_live;
+        std::queue<transfer_id> m_queue_transfers_complete;
+        std::queue<server_id> m_queue_tcp_disconnects;
 
     private:
         coordinator_link(const coordinator_link&);
