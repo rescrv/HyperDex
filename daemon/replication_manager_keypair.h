@@ -32,7 +32,7 @@
 #include <string>
 
 // HyperDex
-#include "common/region_id.h"
+#include "common/ids.h"
 #include "daemon/replication_manager.h"
 
 class hyperdex::replication_manager::keypair

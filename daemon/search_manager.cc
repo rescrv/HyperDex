@@ -594,5 +594,5 @@ search_manager :: count(const server_id& from,
 uint64_t
 search_manager :: hash(const id& sid)
 {
-    return sid.region.hash() + sid.client.hash() + sid.search_id;
+    return sid.region.get() + sid.client.get() + sid.search_id;
 }

@@ -46,9 +46,8 @@
 #include "common/attribute_check.h"
 #include "common/configuration.h"
 #include "common/counter_map.h"
-#include "common/region_id.h"
+#include "common/ids.h"
 #include "common/schema.h"
-#include "common/server_id.h"
 #include "daemon/reconfigure_returncode.h"
 
 namespace hyperdex

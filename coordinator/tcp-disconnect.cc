@@ -34,9 +34,7 @@
 // HyperDex
 #include "common/coordinator_returncode.h"
 #include "common/hyperspace.h"
-#include "common/region_id.h"
-#include "common/server_id.h"
-#include "common/subspace_id.h"
+#include "common/ids.h"
 #include "coordinator/add-space.h"
 #include "coordinator/coordinator.h"
 #include "coordinator/util.h"

@@ -48,9 +48,8 @@
 #include "common/configuration.h"
 #include "common/counter_map.h"
 #include "common/funcall.h"
+#include "common/ids.h"
 #include "common/network_returncode.h"
-#include "common/server_id.h"
-#include "common/virtual_server_id.h"
 #include "daemon/reconfigure_returncode.h"
 
 namespace hyperdex

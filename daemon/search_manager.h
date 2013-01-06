@@ -33,8 +33,8 @@
 #include <e/lockfree_hash_map.h>
 
 // HyperDex
+#include "common/ids.h"
 #include "common/network_msgtype.h"
-#include "common/server_id.h"
 #include "daemon/datalayer.h"
 #include "daemon/reconfigure_returncode.h"
 

@@ -25,8 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_common_transfer_id_h_
-#define hyperdex_common_transfer_id_h_
+#ifndef hyperdex_common_ids_h_
+#define hyperdex_common_ids_h_
 
 // C
 #include <stdint.h>
@@ -34,53 +34,51 @@
 // C++
 #include <iostream>
 
+// An ID is a simple wrapper around uint64_t in order to prevent devs from
+// accidently using one type of ID as another.
+
+#define OPERATOR(TYPE, OP) \
+    inline bool \
+    operator OP (const TYPE ## _id& lhs, const TYPE ## _id& rhs) \
+    { \
+        return lhs.get() OP rhs.get(); \
+    }
+#define CREATE_ID(TYPE) \
+    class TYPE ## _id \
+    { \
+        public: \
+            TYPE ## _id() : m_id(0) {} \
+            explicit TYPE ## _id(uint64_t id) : m_id(id) {} \
+        public: \
+            uint64_t get() const { return m_id; } \
+        private: \
+            uint64_t m_id; \
+    }; \
+    inline std::ostream& \
+    operator << (std::ostream& lhs, const TYPE ## _id& rhs) \
+    { \
+        return lhs << #TYPE "(" << rhs.get() << ")"; \
+    } \
+    OPERATOR(TYPE, <) \
+    OPERATOR(TYPE, <=) \
+    OPERATOR(TYPE, ==) \
+    OPERATOR(TYPE, !=) \
+    OPERATOR(TYPE, >=) \
+    OPERATOR(TYPE, >)
+
 namespace hyperdex
 {
 
-class transfer_id
-{
-    public:
-        transfer_id() : m_id(0) {}
-        explicit transfer_id(uint64_t id) : m_id(id) {}
-
-    public:
-        uint64_t get() const { return m_id; }
-        uint64_t hash() const { return m_id; }
-
-    private:
-        uint64_t m_id;
-};
-
-inline std::ostream&
-operator << (std::ostream& lhs, const transfer_id& rhs)
-{
-    return lhs << "transfer(" << rhs.get() << ")";
-}
-
-inline bool
-operator < (const transfer_id& lhs, const transfer_id& rhs)
-{
-    return lhs.get() < rhs.get();
-}
-
-inline bool
-operator == (const transfer_id& lhs, const transfer_id& rhs)
-{
-    return lhs.get() == rhs.get();
-}
-
-inline bool
-operator != (const transfer_id& lhs, const transfer_id& rhs)
-{
-    return lhs.get() != rhs.get();
-}
-
-inline bool
-operator > (const transfer_id& lhs, const transfer_id& rhs)
-{
-    return lhs.get() > rhs.get();
-}
+CREATE_ID(capture)
+CREATE_ID(region)
+CREATE_ID(server)
+CREATE_ID(space)
+CREATE_ID(subspace)
+CREATE_ID(transfer)
+CREATE_ID(virtual_server)
 
 } // namespace hyperdex
 
-#endif // hyperdex_common_transfer_id_h_
+#undef OPERATOR
+#undef CREATE_ID
+#endif // hyperdex_common_ids_h_

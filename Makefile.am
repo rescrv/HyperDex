@@ -99,13 +99,8 @@ noinst_HEADERS = \
 			common/mapper.h \
 			common/network_msgtype.h \
 			common/network_returncode.h \
-			common/region_id.h \
 			common/schema.h \
 			common/serialization.h \
-			common/server_id.h \
-			common/space_id.h \
-			common/subspace_id.h \
-			common/virtual_server_id.h \
 			datatypes/alltypes.h \
 			datatypes/apply.h \
 			datatypes/coercion.h \

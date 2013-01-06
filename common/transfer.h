@@ -29,10 +29,7 @@
 #define hyperdex_common_transfer_h_
 
 // HyperDex
-#include "common/region_id.h"
-#include "common/server_id.h"
-#include "common/transfer_id.h"
-#include "common/virtual_server_id.h"
+#include "common/ids.h"
 
 namespace hyperdex
 {

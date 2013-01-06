@@ -42,12 +42,9 @@
 #include "common/attribute.h"
 #include "common/attribute_check.h"
 #include "common/hyperspace.h"
-#include "common/region_id.h"
+#include "common/ids.h"
 #include "common/schema.h"
-#include "common/server_id.h"
-#include "common/subspace_id.h"
 #include "common/transfer.h"
-#include "common/virtual_server_id.h"
 
 namespace hyperdex
 {

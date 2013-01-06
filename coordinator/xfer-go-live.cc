@@ -26,7 +26,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // HyperDex
-#include "common/transfer_id.h"
+#include "common/ids.h"
 #include "coordinator/coordinator.h"
 #include "coordinator/util.h"
 #include "coordinator/xfer-go-live.h"

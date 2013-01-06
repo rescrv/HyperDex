@@ -546,7 +546,7 @@ replication_manager :: hash(const keypair& kp)
 {
     return CityHash64WithSeed(reinterpret_cast<const char*>(kp.key.data()),
                               kp.key.size(),
-                              kp.region.hash());
+                              kp.region.get());
 }
 
 uint64_t
@@ -555,7 +555,7 @@ replication_manager :: get_lock_num(const region_id& reg,
 {
     return CityHash64WithSeed(reinterpret_cast<const char*>(key.data()),
                               key.size(),
-                              reg.hash());
+                              reg.get());
 }
 
 e::intrusive_ptr<replication_manager::keyholder>

@@ -36,13 +36,8 @@
 #include <e/buffer.h>
 
 // HyperDex
-#include "common/region_id.h"
+#include "common/ids.h"
 #include "common/schema.h"
-#include "common/server_id.h"
-#include "common/space_id.h"
-#include "common/subspace_id.h"
-#include "common/transfer_id.h"
-#include "common/virtual_server_id.h"
 
 namespace hyperdex
 {

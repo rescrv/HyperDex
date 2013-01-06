@@ -47,7 +47,7 @@ state_transfer_manager :: state_transfer_manager(daemon* d)
     , m_kickstarter(std::tr1::bind(&state_transfer_manager::kickstarter, this))
     , m_block_kickstarter()
     , m_wakeup_kickstarter(&m_block_kickstarter)
-    , m_need_kickstart()
+    , m_need_kickstart(false)
     , m_shutdown(false)
 {
     m_kickstarter.start();

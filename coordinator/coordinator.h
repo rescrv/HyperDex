@@ -45,7 +45,7 @@
 
 // HyperDex
 #include "common/hyperspace.h"
-#include "common/server_id.h"
+#include "common/ids.h"
 
 namespace hyperdex
 {

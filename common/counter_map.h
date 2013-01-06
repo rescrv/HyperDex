@@ -33,7 +33,7 @@
 #include <vector>
 
 // HyperDex
-#include "common/region_id.h"
+#include "common/ids.h"
 
 // The only thread-safe call is "lookup".  "adopt" and "take_max" both require
 // external synchronization.

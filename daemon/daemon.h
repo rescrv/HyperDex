@@ -42,8 +42,7 @@
 #include <replicant.h>
 
 // HyperDex
-#include "common/server_id.h"
-#include "common/virtual_server_id.h"
+#include "common/ids.h"
 #include "daemon/communication.h"
 #include "daemon/coordinator_link.h"
 #include "daemon/datalayer.h"

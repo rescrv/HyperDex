@@ -37,8 +37,7 @@
 
 // HyperDex
 #include "common/configuration.h"
-#include "common/server_id.h"
-#include "common/transfer_id.h"
+#include "common/ids.h"
 
 namespace hyperdex
 {
