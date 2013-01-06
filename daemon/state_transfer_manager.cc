@@ -104,7 +104,7 @@ setup_transfer_state(const char* desc,
         }
         else if (transfers[t_idx].id < (*transfer_states)[ts_idx].first)
         {
-            LOG(INFO) << "initiating " << desc << " transfer " << transfers[t_idx];
+            LOG(INFO) << "initiating " << desc << " " << transfers[t_idx];
             e::intrusive_ptr<S> new_state(new S(transfers[t_idx], data, snap));
             tmp.push_back(std::make_pair(transfers[t_idx].id, new_state));
             ++t_idx;
@@ -118,7 +118,7 @@ setup_transfer_state(const char* desc,
 
     while (t_idx < transfers.size())
     {
-        LOG(INFO) << "initiating " << desc << " transfer " << transfers[t_idx];
+        LOG(INFO) << "initiating " << desc << " " << transfers[t_idx];
         e::intrusive_ptr<S> new_state(new S(transfers[t_idx], data, snap));
         tmp.push_back(std::make_pair(transfers[t_idx].id, new_state));
         ++t_idx;
@@ -126,7 +126,7 @@ setup_transfer_state(const char* desc,
 
     while (ts_idx < transfer_states->size())
     {
-        LOG(INFO) << "ending " << desc << " transfer " << (*transfer_states)[ts_idx].first;
+        LOG(INFO) << "ending " << desc << " " << (*transfer_states)[ts_idx].first;
         ++ts_idx;
     }
 
