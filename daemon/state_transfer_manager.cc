@@ -246,7 +246,7 @@ state_transfer_manager :: xfer_op(const virtual_server_id& from,
         {
             while (tis->del_iter.valid() && tis->del_iter.key() < op->key)
             {
-                m_daemon->m_data.del(tis->xfer.rid, 0, tis->del_iter.key());
+                m_daemon->m_data.del(tis->xfer.rid, region_id(), 0, tis->del_iter.key());
                 tis->del_iter.next();
             }
         }
@@ -259,7 +259,7 @@ state_transfer_manager :: xfer_op(const virtual_server_id& from,
 
             while (tis->del_iter.valid())
             {
-                datalayer::returncode rc = m_daemon->m_data.del(tis->xfer.rid, 0, tis->del_iter.key());
+                datalayer::returncode rc = m_daemon->m_data.del(tis->xfer.rid, region_id(), 0, tis->del_iter.key());
                 tis->del_iter.next();
 
                 switch (rc)
@@ -282,7 +282,7 @@ state_transfer_manager :: xfer_op(const virtual_server_id& from,
 
         if (op->has_value)
         {
-            datalayer::returncode rc = m_daemon->m_data.put(tis->xfer.rid, 0, op->key, op->value, op->version);
+            datalayer::returncode rc = m_daemon->m_data.put(tis->xfer.rid, region_id(), 0, op->key, op->value, op->version);
 
             switch (rc)
             {
@@ -302,7 +302,7 @@ state_transfer_manager :: xfer_op(const virtual_server_id& from,
         }
         else
         {
-            datalayer::returncode rc = m_daemon->m_data.del(tis->xfer.rid, 0, op->key);
+            datalayer::returncode rc = m_daemon->m_data.del(tis->xfer.rid, region_id(), 0, op->key);
 
             switch (rc)
             {

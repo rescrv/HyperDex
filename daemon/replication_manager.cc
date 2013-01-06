@@ -188,7 +188,7 @@ replication_manager :: client_atomic(const server_id& from,
     e::intrusive_ptr<keyholder> kh = get_or_create_keyholder(ri, key);
     bool has_old_value = false;
     uint64_t old_version = 0;
-    std::vector<e::slice>* old_value = NULL; // don't use pointer?
+    std::vector<e::slice>* old_value = NULL;
     kh->get_latest_version(&has_old_value, &old_version, &old_value);
 
     if (erase && !funcs->empty())
@@ -292,13 +292,6 @@ replication_manager :: chain_op(const virtual_server_id& from,
     HOLD_LOCK_FOR_KEY(ri, key);
     e::intrusive_ptr<keyholder> kh = get_or_create_keyholder(ri, key);
 
-    if (reg_id != ri)
-    {
-        LOG(ERROR) << "dropping CHAIN_OP send to the wrong region";
-        CLEANUP_KEYHOLDER(ri, key, kh);
-        return;
-    }
-
     // Check that a chain's put matches the dimensions of the space.
     if (has_value && sc->attrs_sz != value.size() + 1)
     {
@@ -361,13 +354,6 @@ replication_manager :: chain_subspace(const virtual_server_id& from,
     HOLD_LOCK_FOR_KEY(ri, key);
     e::intrusive_ptr<keyholder> kh = get_or_create_keyholder(ri, key);
 
-    if (reg_id != ri)
-    {
-        LOG(ERROR) << "dropping CHAIN_OP send to the wrong region";
-        CLEANUP_KEYHOLDER(ri, key, kh);
-        return;
-    }
-
     // Check that a chain's put matches the dimensions of the space.
     if (sc->attrs_sz != value.size() + 1 || sc->attrs_sz != hashes.size())
     {
@@ -404,9 +390,9 @@ replication_manager :: chain_subspace(const virtual_server_id& from,
     }
 
     if (!(new_pend->this_old_region == m_daemon->m_config.get_region_id(from) && 
-          m_daemon->m_config.tail_of_region(ri) == from) &&
+          m_daemon->m_config.tail_of_region(new_pend->this_old_region) == from) &&
         !(new_pend->this_new_region == m_daemon->m_config.get_region_id(from) &&
-          m_daemon->m_config.next_in_region(from) != to))
+          m_daemon->m_config.next_in_region(from) == to))
     {
         LOG(INFO) << "dropping CHAIN_SUBSPACE which didn't obey chaining rules";
         CLEANUP_KEYHOLDER(ri, key, kh);
@@ -441,13 +427,6 @@ replication_manager :: chain_ack(const virtual_server_id& from,
     if (!kh)
     {
         LOG(INFO) << "dropping CHAIN_ACK for update we haven't seen";
-        return;
-    }
-
-    if (reg_id != ri)
-    {
-        LOG(ERROR) << "dropping CHAIN_ACK send to the wrong region";
-        CLEANUP_KEYHOLDER(ri, key, kh);
         return;
     }
 
@@ -492,7 +471,6 @@ replication_manager :: chain_ack(const virtual_server_id& from,
 
     if (kh->version_on_disk() < version)
     {
-        assert(reg_id == ri);
         e::intrusive_ptr<pending> op = kh->get_by_version(version);
         assert(op);
 
@@ -500,11 +478,11 @@ replication_manager :: chain_ack(const virtual_server_id& from,
 
         if (!op->has_value || (op->this_old_region != op->this_new_region && ri == op->this_old_region))
         {
-            rc = m_daemon->m_data.del(ri, seq_id, key);
+            rc = m_daemon->m_data.del(ri, reg_id, seq_id, key);
         }
         else
         {
-            rc = m_daemon->m_data.put(ri, seq_id, key, op->value, version);
+            rc = m_daemon->m_data.put(ri, reg_id, seq_id, key, op->value, version);
         }
 
         switch (rc)
@@ -726,31 +704,41 @@ replication_manager :: move_operations_between_queues(const virtual_server_id& u
         uint64_t old_version = 0;
         std::vector<e::slice>* old_value = NULL;
         kh->get_latest_version(&has_old_value, &old_version, &old_value);
+        if (old_version >= kh->oldest_deferred_version()) LOG(INFO) << "VERSIONS " << old_version  << " " << kh->oldest_deferred_version();
         assert(old_version < kh->oldest_deferred_version());
         e::intrusive_ptr<pending> new_pend = kh->oldest_deferred_op();
 
+        // If the version numbers don't line up, and this is not fresh, and it
+        // is not a subspace transfer
         if (old_version + 1 != kh->oldest_deferred_version() &&
-            !new_pend->fresh)
+            !new_pend->fresh &&
+            (new_pend->this_old_region == new_pend->this_new_region ||
+             new_pend->this_old_region == ri))
         {
             break;
         }
 
-        hash_objects(ri, sc, key, new_pend->has_value, new_pend->value, has_old_value, old_value ? *old_value : new_pend->value, new_pend);
-
-        if (new_pend->this_old_region != ri && new_pend->this_new_region != ri)
+        // If this is not a subspace transfer
+        if (new_pend->this_old_region == new_pend->this_new_region ||
+            new_pend->this_old_region == ri)
         {
-            LOG(INFO) << "dropping deferred CHAIN_* which didn't get sent to the right host";
-            kh->pop_oldest_deferred();
-            continue;
-        }
+            hash_objects(ri, sc, key, new_pend->has_value, new_pend->value, has_old_value, old_value ? *old_value : new_pend->value, new_pend);
 
-        if (new_pend->recv != virtual_server_id() &&
-            m_daemon->m_config.next_in_region(new_pend->recv) != us &&
-            !m_daemon->m_config.subspace_adjacent(new_pend->recv, us))
-        {
-            LOG(INFO) << "dropping deferred CHAIN_* which didn't come from the right host";
-            kh->pop_oldest_deferred();
-            continue;
+            if (new_pend->this_old_region != ri && new_pend->this_new_region != ri)
+            {
+                LOG(INFO) << "dropping deferred CHAIN_* which didn't get sent to the right host";
+                kh->pop_oldest_deferred();
+                continue;
+            }
+
+            if (new_pend->recv != virtual_server_id() &&
+                m_daemon->m_config.next_in_region(new_pend->recv) != us &&
+                !m_daemon->m_config.subspace_adjacent(new_pend->recv, us))
+            {
+                LOG(INFO) << "dropping deferred CHAIN_* which didn't come from the right host";
+                kh->pop_oldest_deferred();
+                continue;
+            }
         }
 
         kh->shift_one_deferred_to_blocked();

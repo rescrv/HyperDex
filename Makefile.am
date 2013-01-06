@@ -40,7 +40,7 @@ EXTRA_DIST = \
 			hyperclient/nodejs/async_test.js \
 			hyperclient/nodejs/hyperclient.cc \
 			wscript
-#doc/HyperDex-$(VERSION).pdf
+# XXX doc/HyperDex-$(VERSION).pdf
 
 lib_LTLIBRARIES = \
 			libhyperclient.la \
@@ -54,8 +54,8 @@ include_HEADERS = \
 bin_PROGRAMS = hyperdex \
 			hyperdex-daemon \
 			hyperdex-search-stress-test \
+			hyperdex-replication-stress-test \
 			hyperdex-simple-consistency-stress-test
-# XXX hyperdex-replication-stress-test
 
 hyperdexexecdir = $(exec_prefix)/libexec/$(PACKAGE)-$(VERSION)
 hyperdexexec_PROGRAMS = \
@@ -207,6 +207,10 @@ hyperdex_daemon_LDADD = \
 			-lbusybee \
 			-lreplicant -lcityhash -lpopt -lglog -lrt -lpthread
 hyperdex_daemon_CPPFLAGS = $(CPPFLAGS)
+
+daemon_test_index_encode_SOURCES = runner.cc daemon/test/index_encode.cc daemon/index_encode.cc common/float_encode.cc
+daemon_test_index_encode_CPPFLAGS = $(GTEST_CPPFLAGS) $(CPPFLAGS)
+daemon_test_index_encode_LDADD = $(GTEST_LDFLAGS) -lgtest -lpthread
 
 ################################################################################
 ################################## Coordinator #################################
@@ -420,21 +424,11 @@ endif
 ################################### Binaries ###################################
 ################################################################################
 
-#hyperdex_replication_stress_test_SOURCES = \
-#			replication-stress-test.cc
-#hyperdex_replication_stress_test_CPPFLAGS = \
-#			$(E_CFLAGS) \
-#			$(CPPFLAGS)
-#hyperdex_replication_stress_test_LDADD = \
-#			libhyperclient.la \
-#			-lpopt
+hyperdex_replication_stress_test_SOURCES = replication-stress-test.cc
+hyperdex_replication_stress_test_LDADD = libhyperclient.la -lpopt
 
 hyperdex_search_stress_test_SOURCES = search-stress-test.cc test/common.cc
 hyperdex_search_stress_test_LDADD = libhyperclient.la -lpopt
 
 hyperdex_simple_consistency_stress_test_SOURCES = simple-consistency-stress-test.cc
 hyperdex_simple_consistency_stress_test_LDADD = libhyperclient.la -lpopt -lpthread
-
-daemon_test_index_encode_SOURCES = runner.cc daemon/test/index_encode.cc daemon/index_encode.cc common/float_encode.cc
-daemon_test_index_encode_CPPFLAGS = $(GTEST_CPPFLAGS) $(CPPFLAGS)
-daemon_test_index_encode_LDADD = $(GTEST_LDFLAGS) -lgtest -lpthread

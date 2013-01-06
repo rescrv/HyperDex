@@ -63,13 +63,13 @@ replication_manager :: keyholder :: get_latest_version(bool* has_old_value,
 
     if (has_blocked_ops())
     {
-        *has_old_value = true;
+        *has_old_value = most_recent_blocked_op()->has_value;
         *old_version = most_recent_blocked_version();
         *old_value = &most_recent_blocked_op()->value;
     }
     else if (has_committable_ops())
     {
-        *has_old_value = true;
+        *has_old_value = most_recent_committable_op()->has_value;
         *old_version = most_recent_committable_version();
         *old_value = &most_recent_committable_op()->value;
     }

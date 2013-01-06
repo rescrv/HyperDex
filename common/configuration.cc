@@ -547,7 +547,7 @@ configuration :: point_leader(const char* sname, const e::slice& key)
         for (size_t pl = 0; pl < m_spaces[s].subspaces[0].regions.size(); ++pl)
         {
             if (m_spaces[s].subspaces[0].regions[pl].lower_coord[0] <= h &&
-                h < m_spaces[s].subspaces[0].regions[pl].upper_coord[0])
+                h <= m_spaces[s].subspaces[0].regions[pl].upper_coord[0])
             {
                 assert(!m_spaces[s].subspaces[0].regions[pl].replicas.empty());
                 return m_spaces[s].subspaces[0].regions[pl].replicas[0].vsi;
@@ -580,7 +580,7 @@ configuration :: point_leader(const region_id& rid, const e::slice& key)
                 for (size_t pl = 0; pl < m_spaces[s].subspaces[0].regions.size(); ++pl)
                 {
                     if (m_spaces[s].subspaces[0].regions[pl].lower_coord[0] <= h &&
-                        h < m_spaces[s].subspaces[0].regions[pl].upper_coord[0])
+                        h <= m_spaces[s].subspaces[0].regions[pl].upper_coord[0])
                     {
                         assert(!m_spaces[s].subspaces[0].regions[pl].replicas.empty());
                         return m_spaces[s].subspaces[0].regions[pl].replicas[0].vsi;
@@ -631,7 +631,7 @@ configuration :: lookup_region(const subspace_id& ssid,
                 {
                     assert(a < m_spaces[s].schema.attrs_sz);
                     matches &= m_spaces[s].subspaces[ss].regions[r].lower_coord[a] <= hashes[m_spaces[s].subspaces[ss].attrs[a]] &&
-                               hashes[m_spaces[s].subspaces[ss].attrs[a]] < m_spaces[s].subspaces[ss].regions[r].upper_coord[a];
+                               hashes[m_spaces[s].subspaces[ss].attrs[a]] <= m_spaces[s].subspaces[ss].regions[r].upper_coord[a];
                 }
 
                 if (matches)
