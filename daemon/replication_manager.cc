@@ -280,6 +280,13 @@ replication_manager :: chain_op(const virtual_server_id& from,
                                 const e::slice& key,
                                 const std::vector<e::slice>& value)
 {
+    if (retransmission && m_daemon->m_data.check_acked(reg_id, seq_id))
+    {
+        LOG(INFO) << "acking duplicate CHAIN_*";
+        send_ack(to, from, true, reg_id, seq_id, version, key);
+        return;
+    }
+
     region_id ri(m_daemon->m_config.get_region_id(to));
     const schema* sc = m_daemon->m_config.get_schema(ri);
     HOLD_LOCK_FOR_KEY(ri, key);
@@ -292,18 +299,10 @@ replication_manager :: chain_op(const virtual_server_id& from,
         return;
     }
 
-    if (retransmission && m_daemon->m_data.check_acked(reg_id, seq_id))
-    {
-        LOG(INFO) << "acking duplicate CHAIN_*";
-        send_ack(to, from, true, reg_id, seq_id, version, key);
-        CLEANUP_KEYHOLDER(ri, key, kh);
-        return;
-    }
-
     // Check that a chain's put matches the dimensions of the space.
     if (has_value && sc->attrs_sz != value.size() + 1)
     {
-        LOG(INFO) << "dropping CHAIN_* because the dimensions are incorrect";
+        LOG(INFO) << "dropping CHAIN_OP because the dimensions are incorrect";
         CLEANUP_KEYHOLDER(ri, key, kh);
         return;
     }
@@ -350,6 +349,13 @@ replication_manager :: chain_subspace(const virtual_server_id& from,
                                       const std::vector<e::slice>& value,
                                       const std::vector<uint64_t>& hashes)
 {
+    if (retransmission && m_daemon->m_data.check_acked(reg_id, seq_id))
+    {
+        LOG(INFO) << "acking duplicate CHAIN_SUBSPACE";
+        send_ack(to, from, true, reg_id, seq_id, version, key);
+        return;
+    }
+
     region_id ri(m_daemon->m_config.get_region_id(to));
     const schema* sc = m_daemon->m_config.get_schema(ri);
     HOLD_LOCK_FOR_KEY(ri, key);
@@ -358,14 +364,6 @@ replication_manager :: chain_subspace(const virtual_server_id& from,
     if (reg_id != ri)
     {
         LOG(ERROR) << "dropping CHAIN_OP send to the wrong region";
-        CLEANUP_KEYHOLDER(ri, key, kh);
-        return;
-    }
-
-    if (retransmission && m_daemon->m_data.check_acked(reg_id, seq_id))
-    {
-        LOG(INFO) << "acking duplicate CHAIN_SUBSPACE";
-        send_ack(to, from, true, reg_id, seq_id, version, key);
         CLEANUP_KEYHOLDER(ri, key, kh);
         return;
     }
@@ -429,26 +427,27 @@ replication_manager :: chain_ack(const virtual_server_id& from,
                                  uint64_t version,
                                  const e::slice& key)
 {
-    region_id ri(m_daemon->m_config.get_region_id(to));
-    const schema* sc = m_daemon->m_config.get_schema(ri);
-    HOLD_LOCK_FOR_KEY(ri, key);
-    e::intrusive_ptr<keyholder> kh = get_keyholder(ri, key);
-
-    if (reg_id != ri)
-    {
-        LOG(ERROR) << "dropping CHAIN_OP send to the wrong region";
-        return;
-    }
-
     if (retransmission && m_daemon->m_data.check_acked(reg_id, seq_id))
     {
         LOG(INFO) << "dropping duplicate CHAIN_ACK";
         return;
     }
 
+    region_id ri(m_daemon->m_config.get_region_id(to));
+    const schema* sc = m_daemon->m_config.get_schema(ri);
+    HOLD_LOCK_FOR_KEY(ri, key);
+    e::intrusive_ptr<keyholder> kh = get_keyholder(ri, key);
+
     if (!kh)
     {
         LOG(INFO) << "dropping CHAIN_ACK for update we haven't seen";
+        return;
+    }
+
+    if (reg_id != ri)
+    {
+        LOG(ERROR) << "dropping CHAIN_ACK send to the wrong region";
+        CLEANUP_KEYHOLDER(ri, key, kh);
         return;
     }
 
@@ -457,30 +456,35 @@ replication_manager :: chain_ack(const virtual_server_id& from,
     if (!pend)
     {
         LOG(INFO) << "dropping CHAIN_ACK for update we haven't seen";
+        CLEANUP_KEYHOLDER(ri, key, kh);
         return;
     }
 
     if (pend->sent == virtual_server_id())
     {
         LOG(INFO) << "dropping CHAIN_ACK for update we haven't sent";
+        CLEANUP_KEYHOLDER(ri, key, kh);
         return;
     }
 
     if (from != pend->sent)
     {
         LOG(INFO) << "dropping CHAIN_ACK that came from the wrong host";
+        CLEANUP_KEYHOLDER(ri, key, kh);
         return;
     }
 
     if (m_daemon->m_config.version() != pend->sent_config_version)
     {
         LOG(INFO) << "dropping CHAIN_ACK that was sent in a previous version and hasn't been retransmitted";
+        CLEANUP_KEYHOLDER(ri, key, kh);
         return;
     }
 
     if (pend->reg_id != reg_id || pend->seq_id != seq_id)
     {
         LOG(INFO) << "dropping CHAIN_ACK that was sent with mismatching reg/seq ids";
+        CLEANUP_KEYHOLDER(ri, key, kh);
         return;
     }
 
