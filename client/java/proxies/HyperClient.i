@@ -233,6 +233,7 @@
         memcpy(buf + hac->value_sz, value, value_sz);
         hac->value = buf;
         hac->value_sz += value_sz;
+        hac->datatype = hyperdatatype.HYPERDATATYPE_STRING;
         return 1;
     }
 
@@ -606,43 +607,49 @@
           if ( equalities.size() > 0 )
           {
     
-              for (java.util.Iterator<ByteArray> it=equalities.keySet().iterator(); it.hasNext();)
+              for (java.util.Iterator<ByteArray> it=equalities.keySet().iterator();
+                                                                        it.hasNext();)
               {
                   ByteArray attr = it.next();
-                  hyperclient_attribute_check hac = HyperClient.get_attr_check(hacs,i);
+                  hyperclient_attribute_check hac = HyperClient.get_attr_check(hacs,i++);
                   write_attr_check(hac,attr, equalities.get(attr),
                                         hyperpredicate.HYPERPREDICATE_EQUALS);
-                  i++;
               }
           }
     
           if ( ranges.size() > 0 )
           {
-              for (java.util.Iterator<ByteArray> it=ranges.keySet().iterator(); it.hasNext();)
+              for (java.util.Iterator<ByteArray> it=ranges.keySet().iterator();
+                                                                        it.hasNext();)
               {
                   ByteArray attr = it.next();
     
                   Object params = ranges.get(attr);
     
-                  hyperclient_range_query rq = HyperClient.get_range_query(rn,i);
-    
+                  Object lower = null;
+                  Object upper = null;
+
                   if ( params instanceof java.util.Map.Entry )
                   {
-                      Object lower = ((java.util.Map.Entry)params).getKey();
-                      Object upper = ((java.util.Map.Entry)params).getValue();
-    
-                      write_range_query(rq,attr.getBytes(),lower,upper);
+                      lower = ((java.util.Map.Entry)params).getKey();
+                      upper = ((java.util.Map.Entry)params).getValue();
     
                   }
                   else // Must be a List of Longs of size = 2
                   {
-                      Object lower = ((java.util.List)params).get(0);
-                      Object upper = ((java.util.List)params).get(1);
-    
-                      write_range_query(rq,attr.getBytes(),lower,upper);
+                      lower = ((java.util.List)params).get(0);
+                      upper = ((java.util.List)params).get(1);
                   }
+
+                  hyperclient_attribute_check hac = HyperClient.get_attr_check(hacs,i++);
     
-                  i++;
+                  write_attr_check(hac,attr, lower,
+                                       hyperpredicate.HYPERPREDICATE_GREATER_EQUAL);
+
+                  hyperclient_attribute_check hac = HyperClient.get_attr_check(hacs,i++);
+
+                  write_attr_check(hac,attr, upper,
+                                       hyperpredicate.HYPERPREDICATE_LESS_EQUAL);
               }
           }
     
