@@ -1814,17 +1814,24 @@ datalayer :: region_iterator :: unpack(e::slice* k,
     std::vector<char> tmp(sz + 1);
     char* ptr = &tmp.front();
     memmove(ptr, k->data(), k->size());
-    *k = e::slice(ptr, k->size());
     ptr += k->size();
 
     for (size_t i = 0; i < val->size(); ++i)
     {
         memmove(ptr, (*val)[i].data(), (*val)[i].size());
-        (*val)[i] = e::slice(ptr, (*val)[i].size());
         ptr += (*val)[i].size();
     }
 
     ref->m_backing = std::string(tmp.begin(), tmp.end());
+    const char* cptr = ref->m_backing.data();
+    *k = e::slice(cptr, k->size());
+    cptr += k->size();
+
+    for (size_t i = 0; i < val->size(); ++i)
+    {
+        (*val)[i] = e::slice(cptr, (*val)[i].size());
+        cptr += (*val)[i].size();
+    }
 }
 
 e::slice
