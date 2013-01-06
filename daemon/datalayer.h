@@ -128,9 +128,14 @@ class datalayer
                                 uint64_t* version,
                                 reference* ref);
         // XXX errors are absorbed here; short of crashing we can only log
-        bool check_acked(const region_id& reg_id, uint64_t seq_id);
-        void mark_acked(const region_id& reg_id, uint64_t seq_id);
-        void max_seq_id(const region_id& reg_id, uint64_t* seq_id);
+        bool check_acked(const region_id& ri,
+                         const region_id& reg_id,
+                         uint64_t seq_id);
+        void mark_acked(const region_id& ri,
+                        const region_id& reg_id,
+                        uint64_t seq_id);
+        void max_seq_id(const region_id& reg_id,
+                        uint64_t* seq_id);
 
     private:
         class search_filter;
@@ -155,6 +160,14 @@ class datalayer
         returncode decode_value(const e::slice& value,
                                 std::vector<e::slice>* attrs,
                                 uint64_t* version);
+        void encode_acked(const region_id& ri, /*region we saw an ack for*/
+                          const region_id& reg_id, /*region of the point leader*/
+                          uint64_t seq_id,
+                          char* buf);
+        returncode decode_acked(const e::slice& key,
+                                region_id* ri, /*region we saw an ack for*/
+                                region_id* reg_id, /*region of the point leader*/
+                                uint64_t* seq_id);
         void encode_transfer(const capture_id& ci,
                              uint64_t count,
                              std::vector<char>* backing,

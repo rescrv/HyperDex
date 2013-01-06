@@ -53,6 +53,8 @@
 #include "datatypes/apply.h"
 #include "datatypes/microerror.h"
 
+#define ACKED_BUF_SIZE (sizeof(uint8_t) + 3 * sizeof(uint64_t))
+
 using std::tr1::placeholders::_1;
 using hyperdex::datalayer;
 using hyperdex::reconfigure_returncode;
@@ -444,11 +446,9 @@ datalayer :: put(const region_id& ri,
     // Mark acked as part of this batch write
     if (seq_id != 0)
     {
-        char abacking[sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t)];
-        abacking[0] = 'a';
-        e::pack64be(reg_id.get(), abacking + sizeof(uint8_t));
-        e::pack64be(seq_id, abacking + sizeof(uint8_t) + sizeof(uint64_t));
-        leveldb::Slice akey(abacking, sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t));
+        char abacking[ACKED_BUF_SIZE];
+        encode_acked(ri, reg_id, seq_id, abacking);
+        leveldb::Slice akey(abacking, ACKED_BUF_SIZE);
         leveldb::Slice aval("", 0);
         updates.Put(akey, aval);
     }
@@ -527,11 +527,9 @@ datalayer :: del(const region_id& ri,
     // Mark acked as part of this batch write
     if (seq_id != 0)
     {
-        char abacking[sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t)];
-        abacking[0] = 'a';
-        e::pack64be(reg_id.get(), abacking + sizeof(uint8_t));
-        e::pack64be(seq_id, abacking + sizeof(uint8_t) + sizeof(uint64_t));
-        leveldb::Slice akey(abacking, sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t));
+        char abacking[ACKED_BUF_SIZE];
+        encode_acked(ri, reg_id, seq_id, abacking);
+        leveldb::Slice akey(abacking, ACKED_BUF_SIZE);
         leveldb::Slice aval("", 0);
         updates.Put(akey, aval);
     }
@@ -734,20 +732,20 @@ datalayer :: get_transfer(const region_id& ri,
 }
 
 bool
-datalayer :: check_acked(const region_id& reg_id, uint64_t seq_id)
+datalayer :: check_acked(const region_id& ri,
+                         const region_id& reg_id,
+                         uint64_t seq_id)
 {
     // make it so that increasing seq_ids are ordered in reverse in the KVS
     seq_id = UINT64_MAX - seq_id;
     leveldb::ReadOptions opts;
     opts.fill_cache = true;
     opts.verify_checksums = true;
-    char backing[sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t)];
-    backing[0] = 'a';
-    e::pack64be(reg_id.get(), backing + sizeof(uint8_t));
-    e::pack64be(seq_id, backing + sizeof(uint8_t) + sizeof(uint64_t));
-    leveldb::Slice key(backing, sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t));
+    char abacking[ACKED_BUF_SIZE];
+    encode_acked(ri, reg_id, seq_id, abacking);
+    leveldb::Slice akey(abacking, ACKED_BUF_SIZE);
     std::string val;
-    leveldb::Status st = m_db->Get(opts, key, &val);
+    leveldb::Status st = m_db->Get(opts, akey, &val);
 
     if (st.ok())
     {
@@ -777,19 +775,19 @@ datalayer :: check_acked(const region_id& reg_id, uint64_t seq_id)
 }
 
 void
-datalayer :: mark_acked(const region_id& reg_id, uint64_t seq_id)
+datalayer :: mark_acked(const region_id& ri,
+                        const region_id& reg_id,
+                        uint64_t seq_id)
 {
     // make it so that increasing seq_ids are ordered in reverse in the KVS
     seq_id = UINT64_MAX - seq_id;
     leveldb::WriteOptions opts;
     opts.sync = false;
-    char backing[sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t)];
-    backing[0] = 'a';
-    e::pack64be(reg_id.get(), backing + sizeof(uint8_t));
-    e::pack64be(seq_id, backing + sizeof(uint8_t) + sizeof(uint64_t));
-    leveldb::Slice key(backing, sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t));
+    char abacking[ACKED_BUF_SIZE];
+    encode_acked(ri, reg_id, seq_id, abacking);
+    leveldb::Slice akey(abacking, ACKED_BUF_SIZE);
     leveldb::Slice val("", 0);
-    leveldb::Status st = m_db->Put(opts, key, val);
+    leveldb::Status st = m_db->Put(opts, akey, val);
 
     if (st.ok())
     {
@@ -817,18 +815,17 @@ datalayer :: mark_acked(const region_id& reg_id, uint64_t seq_id)
 }
 
 void
-datalayer :: max_seq_id(const region_id& reg_id, uint64_t* seq_id)
+datalayer :: max_seq_id(const region_id& reg_id,
+                        uint64_t* seq_id)
 {
     leveldb::ReadOptions opts;
     opts.fill_cache = false;
     opts.verify_checksums = true;
     opts.snapshot = NULL;
     std::auto_ptr<leveldb::Iterator> it(m_db->NewIterator(opts));
-    char backing[sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t)];
-    backing[0] = 'a';
-    e::pack64be(reg_id.get(), backing + sizeof(uint8_t));
-    e::pack64be(0, backing + sizeof(uint8_t) + sizeof(uint64_t));
-    leveldb::Slice key(backing, sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t));
+    char abacking[ACKED_BUF_SIZE];
+    encode_acked(reg_id, reg_id, 0, abacking);
+    leveldb::Slice key(abacking, ACKED_BUF_SIZE);
     it->Seek(key);
 
     if (!it->Valid())
@@ -838,19 +835,19 @@ datalayer :: max_seq_id(const region_id& reg_id, uint64_t* seq_id)
     }
 
     key = it->key();
-    e::unpacker up(key.data(), key.size());
-    uint8_t p = '\0';
-    uint64_t r;
-    uint64_t s;
-    up = up >> p >> r >> s;
+    region_id tmp_ri;
+    region_id tmp_reg_id;
+    uint64_t tmp_seq_id;
+    datalayer::returncode rc = decode_acked(e::slice(key.data(), key.size()),
+                                            &tmp_ri, &tmp_reg_id, &tmp_seq_id);
 
-    if (up.error() || p != 'a')
+    if (rc != SUCCESS || tmp_ri != reg_id || tmp_reg_id != reg_id)
     {
         *seq_id = 0;
         return;
     }
 
-    *seq_id = s;
+    *seq_id = UINT64_MAX - tmp_seq_id;
 }
 
 void
@@ -976,6 +973,43 @@ datalayer :: decode_value(const e::slice& value,
     }
 
     return SUCCESS;
+}
+
+void
+datalayer :: encode_acked(const region_id& ri, /*region we saw an ack for*/
+                          const region_id& reg_id, /*region of the point leader*/
+                          uint64_t seq_id,
+                          char* buf)
+{
+    char* ptr = buf;
+    ptr = e::pack8be('a', ptr);
+    ptr = e::pack64be(ri.get(), ptr);
+    ptr = e::pack64be(reg_id.get(), ptr);
+    ptr = e::pack64be(seq_id, ptr);
+}
+
+datalayer::returncode
+datalayer :: decode_acked(const e::slice& key,
+                          region_id* ri, /*region we saw an ack for*/
+                          region_id* reg_id, /*region of the point leader*/
+                          uint64_t* seq_id)
+{
+    if (key.size() != ACKED_BUF_SIZE)
+    {
+        return BAD_ENCODING;
+    }
+
+    uint8_t _p;
+    uint64_t _ri;
+    uint64_t _reg_id;
+    const uint8_t* ptr = key.data();
+    ptr = e::unpack8be(ptr, &_p);
+    ptr = e::unpack64be(ptr, &_ri);
+    ptr = e::unpack64be(ptr, &_reg_id);
+    ptr = e::unpack64be(ptr, seq_id);
+    *ri = region_id(_ri);
+    *reg_id = region_id(_reg_id);
+    return _p == 'a' ? SUCCESS : BAD_ENCODING;
 }
 
 void

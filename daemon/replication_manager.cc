@@ -280,14 +280,15 @@ replication_manager :: chain_op(const virtual_server_id& from,
                                 const e::slice& key,
                                 const std::vector<e::slice>& value)
 {
-    if (retransmission && m_daemon->m_data.check_acked(reg_id, seq_id))
+    region_id ri(m_daemon->m_config.get_region_id(to));
+
+    if (retransmission && m_daemon->m_data.check_acked(ri, reg_id, seq_id))
     {
         LOG(INFO) << "acking duplicate CHAIN_*";
         send_ack(to, from, true, reg_id, seq_id, version, key);
         return;
     }
 
-    region_id ri(m_daemon->m_config.get_region_id(to));
     const schema* sc = m_daemon->m_config.get_schema(ri);
     HOLD_LOCK_FOR_KEY(ri, key);
     e::intrusive_ptr<keyholder> kh = get_or_create_keyholder(ri, key);
@@ -342,14 +343,15 @@ replication_manager :: chain_subspace(const virtual_server_id& from,
                                       const std::vector<e::slice>& value,
                                       const std::vector<uint64_t>& hashes)
 {
-    if (retransmission && m_daemon->m_data.check_acked(reg_id, seq_id))
+    region_id ri(m_daemon->m_config.get_region_id(to));
+
+    if (retransmission && m_daemon->m_data.check_acked(ri, reg_id, seq_id))
     {
         LOG(INFO) << "acking duplicate CHAIN_SUBSPACE";
         send_ack(to, from, true, reg_id, seq_id, version, key);
         return;
     }
 
-    region_id ri(m_daemon->m_config.get_region_id(to));
     const schema* sc = m_daemon->m_config.get_schema(ri);
     HOLD_LOCK_FOR_KEY(ri, key);
     e::intrusive_ptr<keyholder> kh = get_or_create_keyholder(ri, key);
@@ -413,13 +415,14 @@ replication_manager :: chain_ack(const virtual_server_id& from,
                                  uint64_t version,
                                  const e::slice& key)
 {
-    if (retransmission && m_daemon->m_data.check_acked(reg_id, seq_id))
+    region_id ri(m_daemon->m_config.get_region_id(to));
+
+    if (retransmission && m_daemon->m_data.check_acked(ri, reg_id, seq_id))
     {
         LOG(INFO) << "dropping duplicate CHAIN_ACK";
         return;
     }
 
-    region_id ri(m_daemon->m_config.get_region_id(to));
     const schema* sc = m_daemon->m_config.get_schema(ri);
     HOLD_LOCK_FOR_KEY(ri, key);
     e::intrusive_ptr<keyholder> kh = get_keyholder(ri, key);
@@ -505,7 +508,7 @@ replication_manager :: chain_ack(const virtual_server_id& from,
     }
     else
     {
-        m_daemon->m_data.mark_acked(reg_id, seq_id);
+        m_daemon->m_data.mark_acked(ri, reg_id, seq_id);
     }
 
     kh->clear_committable_acked();
