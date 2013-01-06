@@ -113,9 +113,29 @@ communication :: prepare(const configuration&,
 
 reconfigure_returncode
 communication :: reconfigure(const configuration&,
-                             const configuration&,
+                             const configuration& new_config,
                              const server_id&)
 {
+    e::lockfree_fifo<early_message> ems;
+    early_message em;
+
+    while (m_early_messages.pop(&em))
+    {
+        if (em.config_version <= new_config.version())
+        {
+            m_busybee->deliver(em.id, em.msg);
+        }
+        else
+        {
+            ems.push(em);
+        }
+    }
+
+    while (ems.pop(&em))
+    {
+        m_early_messages.push(em);
+    }
+
     return RECONFIGURE_SUCCESS;
 }
 
