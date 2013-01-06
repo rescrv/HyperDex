@@ -723,13 +723,14 @@ replication_manager :: move_operations_between_queues(const virtual_server_id& u
         std::vector<e::slice>* old_value = NULL;
         kh->get_latest_version(&has_old_value, &old_version, &old_value);
         assert(old_version < kh->oldest_deferred_version());
+        e::intrusive_ptr<pending> new_pend = kh->oldest_deferred_op();
 
-        if (old_version + 1 != kh->oldest_deferred_version())
+        if (old_version + 1 != kh->oldest_deferred_version() &&
+            !new_pend->fresh)
         {
             break;
         }
 
-        e::intrusive_ptr<pending> new_pend = kh->oldest_deferred_op();
         hash_objects(ri, sc, key, new_pend->has_value, new_pend->value, has_old_value, old_value ? *old_value : new_pend->value, new_pend);
 
         if (new_pend->this_old_region != ri && new_pend->this_new_region != ri)
