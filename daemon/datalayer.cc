@@ -1107,6 +1107,7 @@ datalayer :: decode_key_value(const e::slice& slice,
         value->push_back(s);
     }
 
+    *has_value = true;
     return SUCCESS;
 }
 
