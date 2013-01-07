@@ -110,6 +110,8 @@ hyperdex :: space_description_to_space(const char* description, space* ret)
         }
     }
 
+    sp.fault_tolerance = parsed->fault_tolerance;
+
     if (!sp.validate())
     {
         return false;
@@ -117,7 +119,7 @@ hyperdex :: space_description_to_space(const char* description, space* ret)
 
     for (size_t i = 0; i < sp.subspaces.size(); ++i)
     {
-        partition(sp.subspaces[i].attrs.size(), 4096, &sp.subspaces[i].regions);
+        partition(sp.subspaces[i].attrs.size(), parsed->partitioning, &sp.subspaces[i].regions);
     }
 
     *ret = sp;

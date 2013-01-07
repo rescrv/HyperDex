@@ -698,6 +698,7 @@ configuration :: debug_dump(std::ostream& out)
     {
         space& s(m_spaces[w]);
         out << "space id=" << s.id << " name=" << s.name << std::endl;
+        out << "  fault_tolerance=" << s.fault_tolerance << std::endl;
         out << "  schema" << std::endl;
 
         for (size_t i = 0; i < s.schema.attrs_sz; ++i)

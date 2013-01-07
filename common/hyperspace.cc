@@ -36,6 +36,7 @@ using hyperdex::replica;
 space :: space()
     : id()
     , name("")
+    , fault_tolerance()
     , schema()
     , subspaces()
     , m_c_strs()
@@ -46,6 +47,7 @@ space :: space()
 space :: space(const char* new_name, const hyperdex::schema& sc)
     : id()
     , name(new_name)
+    , fault_tolerance()
     , schema(sc)
     , subspaces()
     , m_c_strs()
@@ -57,6 +59,7 @@ space :: space(const char* new_name, const hyperdex::schema& sc)
 space :: space(const space& other)
     : id(other.id)
     , name(other.name)
+    , fault_tolerance(other.fault_tolerance)
     , schema(other.schema)
     , subspaces(other.subspaces)
     , m_c_strs()
@@ -121,6 +124,7 @@ space :: operator = (const space& rhs)
 {
     id = rhs.id;
     name = rhs.name;
+    fault_tolerance = rhs.fault_tolerance;
     schema = rhs.schema;
     subspaces = rhs.subspaces;
     reestablish_backing();
@@ -165,7 +169,7 @@ hyperdex :: operator << (e::buffer::packer pa, const space& s)
     e::slice name;
     uint16_t num_subspaces = s.subspaces.size();
     name = e::slice(s.name, strlen(s.name));
-    pa = pa << s.id.get() << name << s.schema.attrs_sz << num_subspaces;
+    pa = pa << s.id.get() << name << s.fault_tolerance << s.schema.attrs_sz << num_subspaces;
 
     for (size_t i = 0; i < s.schema.attrs_sz; ++i)
     {
@@ -188,7 +192,7 @@ hyperdex :: operator >> (e::unpacker up, space& s)
     e::slice name;
     std::vector<e::slice> attrs;
     uint16_t num_subspaces;
-    up = up >> id >> name >> s.schema.attrs_sz >> num_subspaces;
+    up = up >> id >> name >> s.fault_tolerance >> s.schema.attrs_sz >> num_subspaces;
     s.id = space_id(id);
     s.m_attrs = new attribute[s.schema.attrs_sz];
     s.schema.attrs = s.m_attrs.get();
@@ -238,7 +242,8 @@ size_t
 hyperdex :: pack_size(const space& s)
 {
     size_t sz = sizeof(uint64_t) /* id */
-              + sizeof(uint32_t) +strlen(s.name) /* name */
+              + sizeof(uint32_t) + strlen(s.name) /* name */
+              + sizeof(uint64_t) /* fault_tolerance */
               + sizeof(uint16_t) /* schema.attrs_sz */
               + sizeof(uint16_t); /* num subspaces */
 

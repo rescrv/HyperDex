@@ -29,6 +29,9 @@
 #ifndef hyperdex_client_parse_space_aux_h_
 #define hyperdex_client_parse_space_aux_h_
 
+/* C */
+#include <stdint.h>
+
 /* HyperDex */
 #include "hyperdex.h"
 
@@ -48,6 +51,8 @@ struct hyperparse_space
     char* name;
     struct hyperparse_attribute* key;
     struct hyperparse_attribute_list* attrs;
+    uint64_t fault_tolerance;
+    uint64_t partitioning;
     struct hyperparse_subspace_list* subspaces;
 };
 
@@ -89,6 +94,8 @@ struct hyperparse_space*
 hyperparse_create_space(char* name,
                         struct hyperparse_attribute* key,
                         struct hyperparse_attribute_list* attrs,
+                        uint64_t fault_tolerance,
+                        uint64_t partitioning,
                         struct hyperparse_subspace_list* subspaces);
 
 struct hyperparse_attribute_list*

@@ -28,6 +28,7 @@
  */
 
 /* C */
+#include <stdint.h>
 #include <stdlib.h>
 
 /* HyperDex */
@@ -39,6 +40,7 @@ void yyerror(char* s);
 
 %union {
     char* str;
+    uint64_t num;
     struct hyperparse_space* space;
     struct hyperparse_attribute* attr;
     struct hyperparse_attribute_list* attrs;
@@ -51,6 +53,10 @@ void yyerror(char* s);
 %token SPACE
 %token KEY
 %token ATTRIBUTES
+%token TOLERATE
+%token FAILURES
+%token CREATE
+%token PARTITIONS
 %token SUBSPACE
 %token COLON
 %token COMMA
@@ -63,18 +69,29 @@ void yyerror(char* s);
 %token SET
 %token MAP
 %token <str> IDENTIFIER
+%token <num> NUMBER
 
 %type <space> space
 %type <attrs> attribute_list
 %type <attr> attribute
 %type <type> type
+%type <num> fault_tolerance
+%type <num> partitions
 %type <subspaces> subspace_list
 %type <subspace> subspace
 %type <identifiers> identifier_list;
 
 %%
 
-space : SPACE IDENTIFIER KEY attribute ATTRIBUTES attribute_list subspace_list { hyperparsed_space = hyperparse_create_space($2, $4, $6, $7); };
+space : SPACE IDENTIFIER KEY attribute ATTRIBUTES attribute_list
+        subspace_list partitions fault_tolerance
+        { hyperparsed_space = hyperparse_create_space($2, $4, $6, $9, $8, $7); };
+
+fault_tolerance :                          { $$ = 2; }
+                | TOLERATE NUMBER FAILURES { $$ = $2; };
+
+partitions :                          { $$ = 256; }
+           | CREATE NUMBER PARTITIONS { $$ = $2; };
 
 subspace_list :                                 { $$ = NULL; }
               | subspace_list SUBSPACE subspace { $$ = hyperparse_create_subspace_list($3, $1); };
