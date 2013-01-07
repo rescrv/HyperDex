@@ -31,6 +31,9 @@
 #include "config.h"
 #endif
 
+// POSIX
+#include <signal.h>
+
 // STL
 #include <string>
 
@@ -1655,6 +1658,19 @@ void
 datalayer :: cleaner()
 {
     LOG(INFO) << "cleanup thread started";
+    sigset_t ss;
+
+    if (sigfillset(&ss) < 0)
+    {
+        PLOG(ERROR) << "sigfillset";
+        return;
+    }
+
+    if (pthread_sigmask(SIG_BLOCK, &ss, NULL) < 0)
+    {
+        PLOG(ERROR) << "could not block signals";
+        return;
+    }
 
     while (true)
     {
