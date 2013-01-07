@@ -74,6 +74,15 @@ counter_map :: adopt(const std::vector<region_id>& ris)
     tmp.swap(m_counters);
 }
 
+void
+counter_map :: peek(std::map<region_id, uint64_t>* ris)
+{
+    for (size_t i = 0; i < m_counters.size(); ++i)
+    {
+        (*ris)[m_counters[i].first] = m_counters[i].second;
+    }
+}
+
 bool
 counter_map :: lookup(const region_id& ri, uint64_t* count)
 {

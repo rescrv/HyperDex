@@ -60,6 +60,7 @@ enum network_msgtype
     CHAIN_OP        = 64,
     CHAIN_SUBSPACE  = 65,
     CHAIN_ACK       = 66,
+    CHAIN_GC        = 67,
 
     XFER_OP  = 80,
     XFER_ACK = 81,

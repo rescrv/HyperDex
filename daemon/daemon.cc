@@ -47,12 +47,19 @@
 using hyperdex::daemon;
 
 bool s_continue = true;
+bool s_alarm = false;
 
 static void
 exit_on_signal(int /*signum*/)
 {
     RAW_LOG(ERROR, "signal received; triggering exit");
     s_continue = false;
+}
+
+static void
+handle_alarm(int /*signum*/)
+{
+    s_alarm = true;
 }
 
 static void
@@ -132,12 +139,33 @@ daemon :: run(bool daemonize,
         return EXIT_FAILURE;
     }
 
+    if (!install_signal_handler(SIGALRM, handle_alarm))
+    {
+        std::cerr << "could not install SIGUSR1 handler; exiting" << std::endl;
+        return EXIT_FAILURE;
+    }
+
     if (!install_signal_handler(SIGUSR1, dummy))
     {
         std::cerr << "could not install SIGUSR1 handler; exiting" << std::endl;
         return EXIT_FAILURE;
     }
 
+    sigset_t ss;
+
+    if (sigfillset(&ss) < 0)
+    {
+        PLOG(ERROR) << "sigfillset";
+        return EXIT_FAILURE;
+    }
+
+    if (pthread_sigmask(SIG_BLOCK, &ss, NULL) < 0)
+    {
+        PLOG(ERROR) << "could not block signals";
+        return EXIT_FAILURE;
+    }
+
+    alarm(30);
     google::LogToStderr();
     bool saved = false;
     server_id saved_us;
@@ -361,6 +389,9 @@ daemon :: loop()
                 break;
             case CHAIN_ACK:
                 process_chain_ack(from, vfrom, vto, msg, up);
+                break;
+            case CHAIN_GC:
+                process_chain_gc(from, vfrom, vto, msg, up);
                 break;
             case XFER_OP:
                 process_xfer_op(from, vfrom, vto, msg, up);
@@ -629,6 +660,25 @@ daemon :: process_chain_subspace(server_id,
 
     bool retransmission = flags & 128;
     m_repl.chain_subspace(vfrom, vto, retransmission, region_id(reg_id), seq_id, version, msg, key, value, hashes);
+}
+
+void
+daemon :: process_chain_gc(server_id,
+                           virtual_server_id vfrom,
+                           virtual_server_id,
+                           std::auto_ptr<e::buffer> msg,
+                           e::unpacker up)
+{
+    uint64_t seq_id;
+
+    if ((up >> seq_id).error())
+    {
+        LOG(WARNING) << "unpack of CHAIN_GC failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    region_id ri = m_config.get_region_id(vfrom);
+    m_repl.chain_gc(ri, seq_id);
 }
 
 void

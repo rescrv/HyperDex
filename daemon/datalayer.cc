@@ -450,6 +450,7 @@ datalayer :: put(const region_id& ri,
     if (seq_id != 0)
     {
         char abacking[ACKED_BUF_SIZE];
+        seq_id = UINT64_MAX - seq_id;
         encode_acked(ri, reg_id, seq_id, abacking);
         leveldb::Slice akey(abacking, ACKED_BUF_SIZE);
         leveldb::Slice aval("", 0);
@@ -531,6 +532,7 @@ datalayer :: del(const region_id& ri,
     if (seq_id != 0)
     {
         char abacking[ACKED_BUF_SIZE];
+        seq_id = UINT64_MAX - seq_id;
         encode_acked(ri, reg_id, seq_id, abacking);
         leveldb::Slice akey(abacking, ACKED_BUF_SIZE);
         leveldb::Slice aval("", 0);
@@ -854,6 +856,63 @@ datalayer :: max_seq_id(const region_id& reg_id,
 }
 
 void
+datalayer :: clear_acked(const region_id& reg_id,
+                         uint64_t seq_id)
+{
+    leveldb::ReadOptions opts;
+    opts.fill_cache = false;
+    opts.verify_checksums = true;
+    opts.snapshot = NULL;
+    std::auto_ptr<leveldb::Iterator> it(m_db->NewIterator(opts));
+    char abacking[ACKED_BUF_SIZE];
+    encode_acked(region_id(0), reg_id, 0, abacking);
+    it->Seek(leveldb::Slice(abacking, ACKED_BUF_SIZE));
+    encode_acked(region_id(0), region_id(reg_id.get() + 1), 0, abacking);
+    leveldb::Slice upper_bound(abacking, ACKED_BUF_SIZE);
+
+    while (it->Valid() &&
+           it->key().compare(upper_bound) < 0)
+    {
+        region_id tmp_ri;
+        region_id tmp_reg_id;
+        uint64_t tmp_seq_id;
+        datalayer::returncode rc = decode_acked(e::slice(it->key().data(), it->key().size()),
+                                                &tmp_ri, &tmp_reg_id, &tmp_seq_id);
+        tmp_seq_id = UINT64_MAX - tmp_seq_id;
+
+        if (rc == SUCCESS &&
+            tmp_reg_id == reg_id &&
+            tmp_seq_id < seq_id)
+        {
+            leveldb::WriteOptions wopts;
+            wopts.sync = false;
+            leveldb::Status st = m_db->Delete(wopts, it->key());
+
+            if (st.ok() || st.IsNotFound())
+            {
+                // WOOT!
+            }
+            else if (st.IsCorruption())
+            {
+                LOG(ERROR) << "corruption at the disk layer: could not delete "
+                           << reg_id << " " << seq_id << ": desc=" << st.ToString();
+            }
+            else if (st.IsIOError())
+            {
+                LOG(ERROR) << "IO error at the disk layer: could not delete "
+                           << reg_id << " " << seq_id << ": desc=" << st.ToString();
+            }
+            else
+            {
+                LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
+            }
+        }
+
+        it->Next();
+    }
+}
+
+void
 datalayer :: encode_key(const region_id& ri,
                         const e::slice& key,
                         std::vector<char>* kbacking,
@@ -986,9 +1045,9 @@ datalayer :: encode_acked(const region_id& ri, /*region we saw an ack for*/
 {
     char* ptr = buf;
     ptr = e::pack8be('a', ptr);
-    ptr = e::pack64be(ri.get(), ptr);
     ptr = e::pack64be(reg_id.get(), ptr);
     ptr = e::pack64be(seq_id, ptr);
+    ptr = e::pack64be(ri.get(), ptr);
 }
 
 datalayer::returncode
@@ -1007,9 +1066,9 @@ datalayer :: decode_acked(const e::slice& key,
     uint64_t _reg_id;
     const uint8_t* ptr = key.data();
     ptr = e::unpack8be(ptr, &_p);
-    ptr = e::unpack64be(ptr, &_ri);
     ptr = e::unpack64be(ptr, &_reg_id);
     ptr = e::unpack64be(ptr, seq_id);
+    ptr = e::unpack64be(ptr, &_ri);
     *ri = region_id(_ri);
     *reg_id = region_id(_reg_id);
     return _p == 'a' ? SUCCESS : BAD_ENCODING;

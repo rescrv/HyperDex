@@ -136,6 +136,9 @@ class datalayer
                         uint64_t seq_id);
         void max_seq_id(const region_id& reg_id,
                         uint64_t* seq_id);
+        // Clear less than seq_id
+        void clear_acked(const region_id& reg_id,
+                         uint64_t seq_id);
 
     private:
         class search_filter;

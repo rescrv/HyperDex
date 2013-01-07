@@ -29,6 +29,7 @@
 #define hyperdex_daemon_replication_manager_h_
 
 // STL
+#include <list>
 #include <memory>
 #include <tr1/unordered_map>
 
@@ -119,6 +120,8 @@ class replication_manager
                        uint64_t seq_id,
                        uint64_t version,
                        const e::slice& key);
+        void chain_gc(const region_id& reg_id, uint64_t seq_id);
+        void trip_periodic();
 
     private:
         class pending;
@@ -175,20 +178,25 @@ class replication_manager
                                const server_id& client,
                                uint64_t nonce,
                                network_returncode ret);
-        // Retransmit functions
+        // thread functions
         void retransmitter();
+        void garbage_collector();
         void shutdown();
 
     private:
         daemon* m_daemon;
         e::striped_lock<po6::threads::mutex> m_keyholder_locks;
         keyholder_map_t m_keyholders;
+        counter_map m_counters;
+        bool m_shutdown;
         po6::threads::thread m_retransmitter;
         po6::threads::mutex m_block_retransmitter;
         po6::threads::cond m_wakeup_retransmitter;
         bool m_need_retransmit;
-        bool m_shutdown;
-        counter_map m_counters;
+        po6::threads::thread m_garbage_collector;
+        po6::threads::mutex m_block_garbage_collector;
+        po6::threads::cond m_wakeup_garbage_collector;
+        std::list<std::pair<region_id, uint64_t> > m_lower_bounds;
 };
 
 } // namespace hyperdex

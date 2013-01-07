@@ -26,6 +26,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // HyperDex
+#include "daemon/daemon.h"
 #include "daemon/replication_manager_keyholder.h"
 #include "daemon/replication_manager_pending.h"
 
@@ -143,6 +144,29 @@ replication_manager :: keyholder :: max_seq_id() const
     if (!m_deferred.empty())
     {
         ret = std::max(ret, m_deferred.back().second->seq_id);
+    }
+
+    return ret;
+}
+
+uint64_t
+replication_manager :: keyholder :: min_seq_id() const
+{
+    uint64_t ret = 0;
+
+    if (!m_committable.empty())
+    {
+        ret = std::min(ret, m_committable.front().second->seq_id);
+    }
+
+    if (!m_blocked.empty())
+    {
+        ret = std::min(ret, m_blocked.front().second->seq_id);
+    }
+
+    if (!m_deferred.empty())
+    {
+        ret = std::min(ret, m_deferred.front().second->seq_id);
     }
 
     return ret;
@@ -296,6 +320,12 @@ replication_manager :: keyholder :: resend_committable(replication_manager* rm,
     for (committable_list_t::iterator it = m_committable.begin();
             it != m_committable.end(); ++it)
     {
+        // skip those messages already sent in this version
+        if (it->second->sent_config_version == rm->m_daemon->m_config.version())
+        {
+            continue;
+        }
+
         it->second->sent = virtual_server_id();
         it->second->sent_config_version = 0;
         rm->send_message(us, true, it->first, key, it->second);

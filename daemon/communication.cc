@@ -25,6 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#define __STDC_LIMIT_MACROS
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -162,6 +164,63 @@ communication :: send_client(const virtual_server_id& from,
 
     uint8_t mt = static_cast<uint8_t>(msg_type);
     msg->pack_at(BUSYBEE_HEADER_SIZE) << mt << from.get();
+
+#ifdef HD_LOG_ALL_MESSAGES
+    LOG(INFO) << "SEND " << from << "->" << to << " " << msg_type << " " << msg->hex();
+#endif
+
+    if (to == m_daemon->m_us)
+    {
+        m_busybee->deliver(to.get(), msg);
+    }
+    else
+    {
+        busybee_returncode rc = m_busybee->send(to.get(), msg);
+
+        switch (rc)
+        {
+            case BUSYBEE_SUCCESS:
+                break;
+            case BUSYBEE_DISRUPTED:
+                handle_disruption(to.get());
+                return false;
+            case BUSYBEE_SHUTDOWN:
+            case BUSYBEE_POLLFAILED:
+            case BUSYBEE_ADDFDFAIL:
+            case BUSYBEE_TIMEOUT:
+            case BUSYBEE_EXTERNAL:
+            case BUSYBEE_INTERRUPTED:
+            default:
+                LOG(ERROR) << "BusyBee unexpectedly returned " << rc;
+                return false;
+        }
+    }
+
+    return true;
+}
+
+bool
+communication :: send(const virtual_server_id& from,
+                      const server_id& to,
+                      network_msgtype msg_type,
+                      std::auto_ptr<e::buffer> msg)
+{
+    assert(msg->size() >= HYPERDEX_HEADER_SIZE_VV);
+
+    if (m_daemon->m_us != m_daemon->m_config.get_server_id(from))
+    {
+        return false;
+    }
+
+    uint8_t mt = static_cast<uint8_t>(msg_type);
+    uint8_t flags = 1;
+    virtual_server_id vto(UINT64_MAX);
+    msg->pack_at(BUSYBEE_HEADER_SIZE) << mt << flags << m_daemon->m_config.version() << vto.get() << from.get();
+
+    if (to == server_id())
+    {
+        return false;
+    }
 
 #ifdef HD_LOG_ALL_MESSAGES
     LOG(INFO) << "SEND " << from << "->" << to << " " << msg_type << " " << msg->hex();
@@ -428,7 +487,8 @@ communication :: recv(server_id* from,
         }
 
         bool from_valid = true;
-        bool to_valid = m_daemon->m_us == m_daemon->m_config.get_server_id(virtual_server_id(vidt));
+        bool to_valid = m_daemon->m_us == m_daemon->m_config.get_server_id(*vto) ||
+                        *vto == virtual_server_id(UINT64_MAX);
 
         // If this is a virtual-virtual message
         if ((flags & 0x1))

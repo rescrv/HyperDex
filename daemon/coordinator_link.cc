@@ -213,6 +213,7 @@ coordinator_link :: register_id(server_id us, const po6::net::location& bind_to)
 }
 
 extern bool s_continue;
+extern bool s_alarm;
 
 bool
 coordinator_link :: wait_for_config(configuration* config)
@@ -222,6 +223,14 @@ coordinator_link :: wait_for_config(configuration* config)
 
     while (s_continue)
     {
+        if (s_alarm)
+        {
+            alarm(30);
+            s_alarm = false;
+            m_daemon->m_repl.trip_periodic();
+            need_to_backoff = false;
+        }
+
         if (need_to_backoff)
         {
             LOG(ERROR) << "connection to the coordinator failed; retrying in " << retry / 1000000. << " milliseconds";

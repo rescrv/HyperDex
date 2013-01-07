@@ -90,6 +90,18 @@ configuration :: version() const
     return m_version;
 }
 
+void
+configuration :: get_all_addresses(std::vector<std::pair<server_id, po6::net::location> >* addrs)
+{
+    addrs->resize(m_addresses_by_server_id.size());
+
+    for (size_t i = 0; i < m_addresses_by_server_id.size(); ++i)
+    {
+        (*addrs)[i].first = server_id(m_addresses_by_server_id[i].first);
+        (*addrs)[i].second = m_addresses_by_server_id[i].second;
+    }
+}
+
 po6::net::location
 configuration :: get_address(const server_id& id) const
 {

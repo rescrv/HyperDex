@@ -66,12 +66,16 @@ replication_manager :: replication_manager(daemon* d)
     : m_daemon(d)
     , m_keyholder_locks(1024)
     , m_keyholders(16)
+    , m_counters()
+    , m_shutdown(true)
     , m_retransmitter(std::tr1::bind(&replication_manager::retransmitter, this))
     , m_block_retransmitter()
     , m_wakeup_retransmitter(&m_block_retransmitter)
     , m_need_retransmit(false)
-    , m_shutdown(true)
-    , m_counters()
+    , m_garbage_collector(std::tr1::bind(&replication_manager::garbage_collector, this))
+    , m_block_garbage_collector()
+    , m_wakeup_garbage_collector(&m_block_garbage_collector)
+    , m_lower_bounds()
 {
 }
 
@@ -83,7 +87,10 @@ replication_manager :: ~replication_manager() throw ()
 bool
 replication_manager :: setup()
 {
+    po6::threads::mutex::hold holdr(&m_block_retransmitter);
+    po6::threads::mutex::hold holdg(&m_block_garbage_collector);
     m_retransmitter.start();
+    m_garbage_collector.start();
     m_shutdown = false;
     return true;
 }
@@ -527,6 +534,22 @@ replication_manager :: chain_ack(const virtual_server_id& from,
     }
 
     CLEANUP_KEYHOLDER(ri, key, kh);
+}
+
+void
+replication_manager :: chain_gc(const region_id& reg_id, uint64_t seq_id)
+{
+    po6::threads::mutex::hold hold(&m_block_garbage_collector);
+    m_wakeup_garbage_collector.broadcast();
+    m_lower_bounds.push_back(std::make_pair(reg_id, seq_id));
+}
+
+void
+replication_manager :: trip_periodic()
+{
+    po6::threads::mutex::hold hold(&m_block_retransmitter);
+    m_wakeup_retransmitter.broadcast();
+    m_need_retransmit = true;
 }
 
 uint64_t
@@ -981,6 +1004,12 @@ replication_manager :: retransmitter()
         }
 
         std::set<region_id> region_cache;
+        std::map<region_id, uint64_t> seq_id_lower_bounds;
+
+        {
+            po6::threads::mutex::hold hold(&m_block_retransmitter);
+            m_counters.peek(&seq_id_lower_bounds);
+        }
 
         for (keyholder_map_t::iterator it = m_keyholders.begin();
                 it != m_keyholders.end(); it.next())
@@ -1024,12 +1053,114 @@ replication_manager :: retransmitter()
 
             kh->resend_committable(this, us, key);
             move_operations_between_queues(us, ri, *sc, key, kh);
+
+            if (m_daemon->m_config.is_point_leader(us))
+            {
+                uint64_t min_id = kh->min_seq_id();
+                std::map<region_id, uint64_t>::iterator lb = seq_id_lower_bounds.find(ri);
+
+                if (lb == seq_id_lower_bounds.end())
+                {
+                    seq_id_lower_bounds.insert(std::make_pair(ri, min_id));
+                }
+                else
+                {
+                    lb->second = std::min(lb->second, min_id);
+                }
+            }
         }
 
         m_daemon->m_comm.wake_one();
+
+        po6::threads::mutex::hold hold(&m_block_retransmitter);
+        std::vector<std::pair<server_id, po6::net::location> > cluster_members;
+        m_daemon->m_config.get_all_addresses(&cluster_members);
+
+        for (std::map<region_id, uint64_t>::iterator it = seq_id_lower_bounds.begin();
+                it != seq_id_lower_bounds.end(); ++it)
+        {
+            // lookup and check again since we lost/acquired the lock
+            virtual_server_id us = m_daemon->m_config.get_virtual(it->first, m_daemon->m_us);
+
+            if (us == virtual_server_id() || !m_daemon->m_config.is_point_leader(us))
+            {
+                continue;
+            }
+
+            size_t sz = HYPERDEX_HEADER_SIZE_VV
+                      + sizeof(uint64_t);
+
+            for (size_t i = 0; i < cluster_members.size(); ++i)
+            {
+                std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+                msg->pack_at(HYPERDEX_HEADER_SIZE_VS) << it->second;
+                m_daemon->m_comm.send(us, cluster_members[i].first, CHAIN_GC, msg);
+            }
+        }
     }
 
     LOG(INFO) << "retransmitter thread shutting down";
+}
+
+void
+replication_manager :: garbage_collector()
+{
+    LOG(INFO) << "garbage collector thread started";
+    sigset_t ss;
+
+    if (sigfillset(&ss) < 0)
+    {
+        PLOG(ERROR) << "sigfillset";
+        return;
+    }
+
+    if (pthread_sigmask(SIG_BLOCK, &ss, NULL) < 0)
+    {
+        PLOG(ERROR) << "could not block signals";
+        return;
+    }
+
+    while (true)
+    {
+        std::list<std::pair<region_id, uint64_t> > lower_bounds;
+
+        {
+            po6::threads::mutex::hold hold(&m_block_garbage_collector);
+
+            while (m_lower_bounds.empty() && !m_shutdown)
+            {
+                m_wakeup_garbage_collector.wait();
+            }
+
+            if (m_shutdown)
+            {
+                break;
+            }
+
+            lower_bounds.swap(m_lower_bounds);
+        }
+
+        // sort so that we scan disk sequentially
+        lower_bounds.sort();
+
+        while (!lower_bounds.empty())
+        {
+            region_id reg_id = lower_bounds.front().first;
+            uint64_t seq_id = lower_bounds.front().second;
+
+            // I chose to use seq_id - 1 for clearing because i'm too tired to check for
+            // an off by one.  At worst it'll leave a little extra state laying around,
+            // and is guaranteed to be as correct as garbage collecting seq_id.
+            if (seq_id > 0)
+            {
+                m_daemon->m_data.clear_acked(reg_id, seq_id - 1);
+            }
+
+            lower_bounds.pop_front();
+        }
+    }
+
+    LOG(INFO) << "garbage collector thread shutting down";
 }
 
 void
@@ -1038,8 +1169,10 @@ replication_manager :: shutdown()
     bool is_shutdown;
 
     {
-        po6::threads::mutex::hold hold(&m_block_retransmitter);
+        po6::threads::mutex::hold holdr(&m_block_retransmitter);
+        po6::threads::mutex::hold holdg(&m_block_garbage_collector);
         m_wakeup_retransmitter.broadcast();
+        m_wakeup_garbage_collector.broadcast();
         is_shutdown = m_shutdown;
         m_shutdown = true;
     }
@@ -1047,5 +1180,6 @@ replication_manager :: shutdown()
     if (!is_shutdown)
     {
         m_retransmitter.join();
+        m_garbage_collector.join();
     }
 }

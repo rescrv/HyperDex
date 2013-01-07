@@ -29,14 +29,15 @@
 #define hyperdex_common_counter_map_h_
 
 // STL
+#include <map>
 #include <utility>
 #include <vector>
 
 // HyperDex
 #include "common/ids.h"
 
-// The only thread-safe call is "lookup".  "adopt" and "take_max" both require
-// external synchronization.
+// The only thread-safe call is "lookup".  "adopt", "peek", and "take_max" all
+// require external synchronization.
 
 namespace hyperdex
 {
@@ -49,6 +50,7 @@ class counter_map
 
     public:
         void adopt(const std::vector<region_id>& ris);
+        void peek(std::map<region_id, uint64_t>* ris);
         bool lookup(const region_id& ri, uint64_t* count);
         bool take_max(const region_id& ri, uint64_t count);
 
