@@ -25,35 +25,43 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_common_hash_h_
-#define hyperdex_common_hash_h_
-
-// STL
-#include <vector>
+#ifndef hyperdex_common_range_searches_h_
+#define hyperdex_common_range_searches_h_
 
 // e
 #include <e/slice.h>
 
 // HyperDex
-#include "common/schema.h"
+#include "common/attribute_check.h"
 
 namespace hyperdex
 {
 
-uint64_t
-hash(hyperdatatype t, const e::slice& v);
+// a range is inclusive
+class range
+{
+    public:
+        range();
+        range(const range& other);
+        ~range() throw ();
+
+    public:
+        range& operator = (const range& rhs);
+
+    public:
+        uint16_t attr;
+        hyperdatatype type;
+        e::slice start;
+        e::slice end;
+        bool has_start;
+        bool has_end;
+        bool invalid;
+};
 
 void
-hash(const schema& sc,
-     const e::slice& key,
-     uint64_t* h);
+range_searches(const std::vector<attribute_check>& checks,
+               std::vector<range>* ranges);
 
-void
-hash(const schema& sc,
-     const e::slice& key,
-     const std::vector<e::slice>& value,
-     uint64_t* hs);
+}
 
-} // namespace hyperdex
-
-#endif // hyperdex_common_hash_h_
+#endif // hyperdex_common_range_searches_h_

@@ -26,12 +26,15 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#define __STDC_LIMIT_MACROS
+
 // STL
 #include <algorithm>
 
 // HyperDex
 #include "common/configuration.h"
 #include "common/hash.h"
+#include "common/range_searches.h"
 #include "common/serialization.h"
 
 using hyperdex::capture_id;
@@ -658,29 +661,138 @@ configuration :: lookup_region(const subspace_id& ssid,
     *rid = region_id();
 }
 
-// XXX THIS RETURNS ALL REGIONS IN THE SPACE AND DOES NO FILTERING
 void
-configuration :: lookup_search(const char* space,
+configuration :: lookup_search(const char* space_name,
                                const std::vector<attribute_check>& chks,
                                std::vector<virtual_server_id>* servers) const
 {
-    servers->clear();
+    const space* s = NULL;
 
-    for (size_t s = 0; s < m_spaces.size(); ++s)
+    for (size_t i = 0; i < m_spaces.size(); ++i)
     {
-        if (strcmp(space, m_spaces[s].name) != 0)
+        if (strcmp(space_name, m_spaces[i].name) == 0)
         {
-            continue;
-        }
-
-        assert(!m_spaces[s].subspaces.empty());
-
-        for (size_t r = 0; r < m_spaces[s].subspaces[0].regions.size(); ++r)
-        {
-            assert(!m_spaces[s].subspaces[0].regions[r].replicas.empty());
-            servers->push_back(m_spaces[s].subspaces[0].regions[r].replicas[0].vsi);
+            s = &m_spaces[i];
+            break;
         }
     }
+
+    if (!s)
+    {
+        servers->clear();
+        return;
+    }
+
+    std::vector<range> ranges;
+    range_searches(chks, &ranges);
+
+    for (size_t i = 0; i < ranges.size(); ++i)
+    {
+        if (ranges[i].invalid)
+        {
+            servers->clear();
+            return;
+        }
+    }
+
+    bool initialized = false;
+    std::vector<virtual_server_id> smallest_server_set;
+
+    for (size_t i = 0; i < s->subspaces.size(); ++i)
+    {
+        std::vector<virtual_server_id> this_server_set;
+
+        for (size_t j = 0; j < s->subspaces[i].regions.size(); ++j)
+        {
+            const region& reg(s->subspaces[i].regions[j]);
+
+            if (reg.replicas.empty())
+            {
+                continue;
+            }
+
+            bool exclude = false;
+
+            for (size_t k = 0; !exclude && k < ranges.size(); ++k)
+            {
+                assert(reg.lower_coord.size() == reg.upper_coord.size());
+                uint16_t attr = UINT16_MAX;
+
+                for (size_t l = 0; l < s->subspaces[i].attrs.size(); ++l)
+                {
+                    if (s->subspaces[i].attrs[i] == ranges[k].attr)
+                    {
+                        attr = i;
+                        break;
+                    }
+                }
+
+                if (attr == UINT16_MAX)
+                {
+                    continue;
+                }
+
+                if (attr >= reg.lower_coord.size() ||
+                    reg.lower_coord[attr] > reg.upper_coord[attr])
+                {
+                    servers->clear();
+                    return;
+                }
+
+                if (ranges[k].type == HYPERDATATYPE_STRING &&
+                    ranges[k].has_start && ranges[k].has_end &&
+                    ranges[k].start == ranges[k].end)
+                {
+                    uint64_t h = hash(ranges[k].type, ranges[k].start);
+
+                    if (reg.lower_coord[attr] > h ||
+                        reg.upper_coord[attr] < h)
+                    {
+                        exclude = true;
+                    }
+                }
+
+                if (ranges[k].type == HYPERDATATYPE_INT64 ||
+                    ranges[k].type == HYPERDATATYPE_FLOAT)
+                {
+                    if (ranges[k].has_start)
+                    {
+                        uint64_t h = hash(ranges[k].type, ranges[k].start);
+
+                        if (reg.upper_coord[attr] < h)
+                        {
+                            exclude = true;
+                        }
+                    }
+
+                    if (ranges[k].has_end)
+                    {
+                        uint64_t h = hash(ranges[k].type, ranges[k].end);
+
+                        if (reg.lower_coord[attr] > h)
+                        {
+                            exclude = true;
+                        }
+                    }
+                }
+            }
+
+            if (!exclude)
+            {
+                this_server_set.push_back(reg.replicas.back().vsi);
+            }
+        }
+
+        if (!initialized ||
+            (!this_server_set.empty() &&
+             this_server_set.size() <= smallest_server_set.size()))
+        {
+            smallest_server_set.swap(this_server_set);
+            initialized = true;
+        }
+    }
+
+    servers->swap(smallest_server_set);
 }
 
 void

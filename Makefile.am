@@ -172,6 +172,7 @@ hyperdex_daemon_SOURCES = \
 			common/hyperspace.cc \
 			common/network_msgtype.cc \
 			common/mapper.cc \
+			common/range_searches.cc \
 			common/schema.cc \
 			common/serialization.cc \
 			common/transfer.cc \
@@ -262,6 +263,7 @@ libhyperclient_la_SOURCES = \
 			common/hyperspace.cc \
 			common/mapper.cc \
 			common/network_msgtype.cc \
+			common/range_searches.cc \
 			common/schema.cc \
 			common/serialization.cc \
 			common/transfer.cc \
