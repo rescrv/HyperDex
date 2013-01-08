@@ -93,7 +93,7 @@ hyperdex_coordinator_tcp_disconnect(struct replicant_state_machine_context* ctx,
 
                 if (s->subspaces[i].regions[j].replicas.empty())
                 {
-                    replicant_state_machine_log_error(ctx, "kill completely emptied a region");
+                    fprintf(replicant_state_machine_log_stream(ctx), "kill completely emptied a region");
                 }
             }
         }

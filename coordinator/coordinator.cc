@@ -103,7 +103,7 @@ coordinator :: regenerate(struct replicant_state_machine_context* ctx)
 
     if (replicant_state_machine_condition_broadcast(ctx, "config", &cond_state) < 0)
     {
-        replicant_state_machine_log_error(ctx, "could not broadcast on \"config\" condition");
+        fprintf(replicant_state_machine_log_stream(ctx), "could not broadcast on \"config\" condition");
     }
 
     ++version;

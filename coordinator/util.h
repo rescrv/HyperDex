@@ -43,7 +43,7 @@
     { \
         if (!obj) \
         { \
-            replicant_state_machine_log_error(ctx, "cannot operate on NULL object"); \
+            fprintf(replicant_state_machine_log_stream(ctx), "cannot operate on NULL object"); \
             replicant_state_machine_set_response(ctx, "", 0); \
             return; \
         } \

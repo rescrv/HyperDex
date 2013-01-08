@@ -39,7 +39,7 @@ hyperdex_coordinator_create(struct replicant_state_machine_context* ctx)
 {
     if (replicant_state_machine_condition_create(ctx, "config") < 0)
     {
-        replicant_state_machine_log_error(ctx, "condition creation failed");
+        fprintf(replicant_state_machine_log_stream(ctx), "condition creation failed");
         return NULL;
     }
 
@@ -47,7 +47,7 @@ hyperdex_coordinator_create(struct replicant_state_machine_context* ctx)
 
     if (!c)
     {
-        replicant_state_machine_log_error(ctx, "memory allocation failed");
+        fprintf(replicant_state_machine_log_stream(ctx), "memory allocation failed");
     }
 
     c->regenerate(ctx);
@@ -62,10 +62,10 @@ hyperdex_coordinator_recreate(struct replicant_state_machine_context* ctx,
 
     if (!c)
     {
-        replicant_state_machine_log_error(ctx, "memory allocation failed");
+        fprintf(replicant_state_machine_log_stream(ctx), "memory allocation failed");
     }
 
-    replicant_state_machine_log_error(ctx, "recreate is not implemented");
+    fprintf(replicant_state_machine_log_stream(ctx), "recreate is not implemented");
     // XXX recreate from (data,data_sz)
     c->regenerate(ctx);
     return c;
@@ -84,7 +84,7 @@ void
 hyperdex_coordinator_snapshot(struct replicant_state_machine_context* ctx,
                               void* /*obj*/, const char** data, size_t* sz)
 {
-    replicant_state_machine_log_error(ctx, "snapshot is not implemented");
+    fprintf(replicant_state_machine_log_stream(ctx), "snapshot is not implemented");
     // XXX snapshot to (data,data_sz)
     *data = NULL;
     *sz = 0;
