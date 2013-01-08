@@ -58,6 +58,7 @@ class configuration
 
     // configuration metadata
     public:
+        uint64_t cluster() const;
         uint64_t version() const;
 
     // membership metadata
@@ -121,6 +122,7 @@ class configuration
         typedef std::pair<uint64_t, po6::net::location> uint64_location_t;
 
     private:
+        uint64_t m_cluster;
         uint64_t m_version;
         std::vector<uint64_location_t> m_addresses_by_server_id;
         std::vector<pair_uint64_t> m_region_ids_by_virtual;

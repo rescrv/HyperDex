@@ -213,6 +213,13 @@ coordinator_link :: poll_for_config(hyperclient_returncode* status)
             return false;
         }
 
+        if (m_config.cluster() != 0 &&
+            m_config.cluster() != new_config.cluster())
+        {
+            *status = HYPERCLIENT_CLUSTER_JUMP;
+            return false;
+        }
+
         m_config = new_config;
         return initiate_wait_for_config(status);
     }

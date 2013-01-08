@@ -61,6 +61,7 @@ class coordinator
         void regenerate(struct replicant_state_machine_context* ctx);
 
     public:
+        uint64_t cluster;
         uint64_t version;
         uint64_t counter;
         std::auto_ptr<e::buffer> latest_config;

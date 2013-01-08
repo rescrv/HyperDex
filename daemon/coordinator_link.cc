@@ -394,6 +394,19 @@ coordinator_link :: wait_for_config(configuration* config)
             {
                 LOG(ERROR) << "configuration does not parse (file a bug); here's some hex: "
                            << e::slice(m_get_config_output, m_get_config_output_sz).hex();
+                retry = 10000000000;
+                need_to_backoff = true;
+                continue;
+            }
+
+            if (m_daemon->m_config.cluster() != 0 &&
+                m_daemon->m_config.cluster() != config->cluster())
+            {
+                LOG(ERROR) << "coordinator has changed the cluster identity from "
+                           << m_daemon->m_config.cluster() << " to "
+                           << config->cluster() << "; treating it as failed";
+                retry = 10000000000;
+                need_to_backoff = true;
                 continue;
             }
 

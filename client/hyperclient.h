@@ -98,6 +98,7 @@ enum hyperclient_returncode
     HYPERCLIENT_BADSPACE     = 8528,
     HYPERCLIENT_DUPLICATE    = 8529,
     HYPERCLIENT_INTERRUPTED  = 8530,
+    HYPERCLIENT_CLUSTER_JUMP = 8531,
 
     /* This should never happen.  It indicates a bug */
     HYPERCLIENT_INTERNAL     = 8573,

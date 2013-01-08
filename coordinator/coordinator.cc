@@ -35,7 +35,8 @@
 using hyperdex::coordinator;
 
 coordinator :: coordinator()
-    : version(0)
+    : cluster(0)
+    , version(0)
     , counter(1)
     , latest_config()
     , servers()
@@ -107,7 +108,7 @@ coordinator :: regenerate(struct replicant_state_machine_context* ctx)
     }
 
     ++version;
-    size_t sz = 3 * sizeof(uint64_t);
+    size_t sz = 4 * sizeof(uint64_t);
 
     for (size_t i = 0; i < servers.size(); ++i)
     {
@@ -122,7 +123,7 @@ coordinator :: regenerate(struct replicant_state_machine_context* ctx)
 
     std::auto_ptr<e::buffer> new_config(e::buffer::create(sz));
     e::buffer::packer pa = new_config->pack_at(0);
-    pa = pa << version << uint64_t(servers.size()) << uint64_t(spaces.size());
+    pa = pa << cluster << version << uint64_t(servers.size()) << uint64_t(spaces.size());
 
     for (size_t i = 0; i < servers.size(); ++i)
     {

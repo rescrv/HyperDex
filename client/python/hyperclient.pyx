@@ -131,6 +131,8 @@ cdef extern from "../hyperclient.h":
         HYPERCLIENT_BADCONFIG    = 8527
         HYPERCLIENT_BADSPACE     = 8528
         HYPERCLIENT_DUPLICATE    = 8529
+        HYPERCLIENT_INTERRUPTED  = 8530
+        HYPERCLIENT_CLUSTER_JUMP = 8531
         HYPERCLIENT_INTERNAL     = 8573
         HYPERCLIENT_EXCEPTION    = 8574
         HYPERCLIENT_GARBAGE      = 8575
@@ -210,6 +212,8 @@ class HyperClientException(Exception):
                   ,HYPERCLIENT_BADCONFIG: 'The coordinator provided a malformed configuration'
                   ,HYPERCLIENT_BADSPACE: 'The space description does not parse'
                   ,HYPERCLIENT_DUPLICATE: 'The space already exists'
+                  ,HYPERCLIENT_INTERRUPTED: 'Interrupted by a signal'
+                  ,HYPERCLIENT_CLUSTER_JUMP: 'The cluster changed identities'
                   ,HYPERCLIENT_INTERNAL: 'Internal Error (file a bug)'
                   ,HYPERCLIENT_EXCEPTION: 'Internal Exception (file a bug)'
                   ,HYPERCLIENT_GARBAGE: 'Internal Corruption (file a bug)'
@@ -235,6 +239,8 @@ class HyperClientException(Exception):
                   ,HYPERCLIENT_BADCONFIG: 'HYPERCLIENT_BADCONFIG'
                   ,HYPERCLIENT_BADSPACE: 'HYPERCLIENT_BADSPACE'
                   ,HYPERCLIENT_DUPLICATE: 'HYPERCLIENT_DUPLICATE'
+                  ,HYPERCLIENT_INTERRUPTED: 'HYPERCLIENT_INTERRUPTED'
+                  ,HYPERCLIENT_CLUSTER_JUMP: 'HYPERCLIENT_CLUSTER_JUMP'
                   ,HYPERCLIENT_INTERNAL: 'HYPERCLIENT_INTERNAL'
                   ,HYPERCLIENT_EXCEPTION: 'HYPERCLIENT_EXCEPTION'
                   ,HYPERCLIENT_GARBAGE: 'HYPERCLIENT_GARBAGE'

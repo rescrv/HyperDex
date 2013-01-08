@@ -46,7 +46,8 @@ using hyperdex::subspace_id;
 using hyperdex::virtual_server_id;
 
 configuration :: configuration()
-    : m_version(0)
+    : m_cluster(0)
+    , m_version(0)
     , m_addresses_by_server_id()
     , m_region_ids_by_virtual()
     , m_server_ids_by_virtual()
@@ -65,7 +66,8 @@ configuration :: configuration()
 }
 
 configuration :: configuration(const configuration& other)
-    : m_version(other.m_version)
+    : m_cluster(other.m_cluster)
+    , m_version(other.m_version)
     , m_addresses_by_server_id(other.m_addresses_by_server_id)
     , m_region_ids_by_virtual(other.m_region_ids_by_virtual)
     , m_server_ids_by_virtual(other.m_server_ids_by_virtual)
@@ -85,6 +87,12 @@ configuration :: configuration(const configuration& other)
 
 configuration :: ~configuration() throw ()
 {
+}
+
+uint64_t
+configuration :: cluster() const
+{
+    return m_cluster;
 }
 
 uint64_t
@@ -798,7 +806,7 @@ configuration :: lookup_search(const char* space_name,
 void
 configuration :: debug_dump(std::ostream& out)
 {
-    out << "configuration version=" << m_version << std::endl;
+    out << "configuration cluster=" << m_cluster << " version=" << m_version << std::endl;
 
     for (size_t i = 0; i < m_addresses_by_server_id.size(); ++i)
     {
@@ -891,6 +899,7 @@ configuration :: operator = (const configuration& rhs)
         return *this;
     }
 
+    m_cluster = rhs.m_cluster;
     m_version = rhs.m_version;
     m_addresses_by_server_id = rhs.m_addresses_by_server_id;
     m_region_ids_by_virtual = rhs.m_region_ids_by_virtual;
@@ -1014,7 +1023,7 @@ hyperdex :: operator >> (e::unpacker up, configuration& c)
 {
     uint64_t num_servers;
     uint64_t num_spaces;
-    up = up >> c.m_version >> num_servers >> num_spaces;
+    up = up >> c.m_cluster >> c.m_version >> num_servers >> num_spaces;
     c.m_spaces.reserve(num_spaces);
 
     for (size_t i = 0; !up.error() && i < num_servers; ++i)
