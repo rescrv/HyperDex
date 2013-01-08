@@ -33,7 +33,7 @@ using hyperdex::state_transfer_manager;
 
 state_transfer_manager :: transfer_out_state :: transfer_out_state(const transfer& _xfer,
                                                                    datalayer* data,
-                                                                   std::tr1::shared_ptr<leveldb::Snapshot> snap)
+                                                                   leveldb_snapshot_ptr snap)
     : xfer(_xfer)
     , mtx()
     , state(SNAPSHOT_TRANSFER)

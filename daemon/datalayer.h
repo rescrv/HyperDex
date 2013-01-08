@@ -51,6 +51,7 @@
 #include "common/counter_map.h"
 #include "common/ids.h"
 #include "common/schema.h"
+#include "daemon/leveldb.h"
 #include "daemon/reconfigure_returncode.h"
 
 namespace hyperdex
@@ -117,9 +118,9 @@ class datalayer
                                  const std::vector<attribute_check>* checks,
                                  snapshot* snap);
         // leveldb provides no failure mechanism for this, neither do we
-        std::tr1::shared_ptr<leveldb::Snapshot> make_raw_snapshot();
+        leveldb_snapshot_ptr make_raw_snapshot();
         void make_region_iterator(region_iterator* riter,
-                                  std::tr1::shared_ptr<leveldb::Snapshot> snap,
+                                  leveldb_snapshot_ptr snap,
                                   const region_id& ri);
         returncode get_transfer(const region_id& ri,
                                 uint64_t seq_no,
@@ -226,7 +227,7 @@ class datalayer
 
     private:
         daemon* m_daemon;
-        leveldb::DB* m_db;
+        leveldb_db_ptr m_db;
         counter_map m_counters;
         po6::threads::thread m_cleaner;
         po6::threads::mutex m_block_cleaner;
@@ -270,8 +271,8 @@ class datalayer::region_iterator
 
     private:
         datalayer* m_dl;
-        std::tr1::shared_ptr<leveldb::Snapshot> m_snap;
-        std::auto_ptr<leveldb::Iterator> m_iter;
+        leveldb_snapshot_ptr m_snap;
+        leveldb_iterator_ptr m_iter;
         region_id m_region;
 };
 
@@ -294,13 +295,13 @@ class datalayer::snapshot
 
     private:
         datalayer* m_dl;
-        const leveldb::Snapshot* m_snap;
+        leveldb_snapshot_ptr m_snap;
         const std::vector<attribute_check>* m_checks;
         region_id m_ri;
         std::list<std::vector<char> > m_backing;
         leveldb::Range m_range;
         bool (datalayer::*m_parse)(const leveldb::Slice& in, e::slice* out);
-        leveldb::Iterator* m_iter;
+        leveldb_iterator_ptr m_iter;
         returncode m_error;
         uint64_t m_version;
         e::slice m_key;

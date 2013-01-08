@@ -34,6 +34,7 @@
 // HyperDex
 #include "common/serialization.h"
 #include "daemon/daemon.h"
+#include "daemon/leveldb.h"
 #include "daemon/state_transfer_manager.h"
 #include "daemon/state_transfer_manager_pending.h"
 #include "daemon/state_transfer_manager_transfer_in_state.h"
@@ -88,7 +89,7 @@ template <class S>
 static void
 setup_transfer_state(const char* desc,
                      hyperdex::datalayer* data,
-                     std::tr1::shared_ptr<leveldb::Snapshot> snap,
+                     hyperdex::leveldb_snapshot_ptr snap,
                      const std::vector<hyperdex::transfer> transfers,
                      std::vector<std::pair<transfer_id, e::intrusive_ptr<S> > >* transfer_states)
 {
@@ -141,8 +142,7 @@ state_transfer_manager :: reconfigure(const configuration&,
                                       const configuration& new_config,
                                       const server_id&)
 {
-    std::tr1::shared_ptr<leveldb::Snapshot> snap;
-    snap = m_daemon->m_data.make_raw_snapshot();
+    leveldb_snapshot_ptr snap = m_daemon->m_data.make_raw_snapshot();
 
     // Setup transfers in
     std::vector<transfer> transfers_in;

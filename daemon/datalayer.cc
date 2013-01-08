@@ -63,11 +63,12 @@
 
 using std::tr1::placeholders::_1;
 using hyperdex::datalayer;
+using hyperdex::leveldb_snapshot_ptr;
 using hyperdex::reconfigure_returncode;
 
 datalayer :: datalayer(daemon* d)
     : m_daemon(d)
-    , m_db(NULL)
+    , m_db()
     , m_counters()
     , m_cleaner(std::tr1::bind(&datalayer::cleaner, this))
     , m_block_cleaner()
@@ -96,7 +97,8 @@ datalayer :: setup(const po6::pathname& path,
     opts.create_if_missing = true;
     opts.filter_policy = leveldb::NewBloomFilterPolicy(10);
     std::string name(path.get());
-    leveldb::Status st = leveldb::DB::Open(opts, name, &m_db);
+    leveldb::DB* tmp_db;
+    leveldb::Status st = leveldb::DB::Open(opts, name, &tmp_db);
 
     if (!st.ok())
     {
@@ -104,6 +106,7 @@ datalayer :: setup(const po6::pathname& path,
         return false;
     }
 
+    m_db.reset(tmp_db);
     leveldb::ReadOptions ropts;
     ropts.fill_cache = true;
     ropts.verify_checksums = true;
@@ -254,12 +257,6 @@ void
 datalayer :: teardown()
 {
     shutdown();
-
-    if (m_db)
-    {
-        delete m_db;
-        m_db = NULL;
-    }
 }
 
 reconfigure_returncode
@@ -511,7 +508,7 @@ datalayer :: make_snapshot(const region_id& ri,
                            snapshot* snap)
 {
     snap->m_dl = this;
-    snap->m_snap = m_db->GetSnapshot();
+    snap->m_snap.reset(m_db, m_db->GetSnapshot());
     snap->m_checks = checks;
     snap->m_ri = ri;
     std::vector<range> ranges;
@@ -641,24 +638,21 @@ datalayer :: make_snapshot(const region_id& ri,
     leveldb::ReadOptions opts;
     opts.fill_cache = false;
     opts.verify_checksums = true;
-    opts.snapshot = snap->m_snap;
-    snap->m_iter = m_db->NewIterator(opts);
+    opts.snapshot = snap->m_snap.get();
+    snap->m_iter.reset(snap->m_snap, m_db->NewIterator(opts));
     snap->m_iter->Seek(snap->m_range.start);
     return SUCCESS;
 }
 
-std::tr1::shared_ptr<leveldb::Snapshot>
+leveldb_snapshot_ptr
 datalayer :: make_raw_snapshot()
 {
-    std::tr1::function<void (const leveldb::Snapshot*)> dtor;
-    dtor = std::tr1::bind(&leveldb::DB::ReleaseSnapshot, m_db, _1);
-    std::tr1::shared_ptr<leveldb::Snapshot> ret(m_db->GetSnapshot(), dtor);
-    return ret;
+    return leveldb_snapshot_ptr(m_db, m_db->GetSnapshot());
 }
 
 void
 datalayer :: make_region_iterator(region_iterator* riter,
-                                  std::tr1::shared_ptr<leveldb::Snapshot> snap,
+                                  leveldb_snapshot_ptr snap,
                                   const region_id& ri)
 {
     riter->m_dl = this;
@@ -668,7 +662,7 @@ datalayer :: make_region_iterator(region_iterator* riter,
     opts.fill_cache = true;
     opts.verify_checksums = true;
     opts.snapshot = riter->m_snap.get();
-    riter->m_iter.reset(m_db->NewIterator(opts));
+    riter->m_iter.reset(riter->m_snap, m_db->NewIterator(opts));
     char backing[sizeof(uint8_t) + sizeof(uint64_t)];
     char* ptr = backing;
     ptr = e::pack8be('o', ptr);
@@ -1856,8 +1850,8 @@ datalayer :: region_iterator :: key()
 }
 
 datalayer :: snapshot :: snapshot()
-    : m_dl(NULL)
-    , m_snap(NULL)
+    : m_dl()
+    , m_snap()
     , m_checks()
     , m_ri()
     , m_backing()
@@ -1874,23 +1868,12 @@ datalayer :: snapshot :: snapshot()
 
 datalayer :: snapshot :: ~snapshot() throw ()
 {
-    if (m_iter)
-    {
-        delete m_iter;
-        m_iter = NULL;
-    }
-
-    if (m_dl && m_dl->m_db && m_snap)
-    {
-        m_dl->m_db->ReleaseSnapshot(m_snap);
-        m_snap = NULL;
-    }
 }
 
 bool
 datalayer :: snapshot :: valid()
 {
-    if (m_error != SUCCESS || !m_iter || !m_parse)
+    if (m_error != SUCCESS || !m_iter.get() || !m_parse)
     {
         return false;
     }
