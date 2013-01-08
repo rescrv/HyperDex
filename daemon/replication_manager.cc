@@ -34,6 +34,9 @@
 // Google Log
 #include <glog/logging.h>
 
+// e
+#include <e/timer.h>
+
 // HyperDex
 #include "common/hash.h"
 #include "common/serialization.h"
@@ -985,6 +988,8 @@ replication_manager :: retransmitter()
         return;
     }
 
+    uint64_t then = e::time();
+
     while (true)
     {
         {
@@ -1071,7 +1076,15 @@ replication_manager :: retransmitter()
         }
 
         m_daemon->m_comm.wake_one();
+        uint64_t now = e::time();
 
+        // Rate limit CHAIN_GC sending
+        if (((now - then) / 1000 / 1000 / 1000) < 30)
+        {
+            continue;
+        }
+
+        then = now;
         po6::threads::mutex::hold hold(&m_block_retransmitter);
         std::vector<std::pair<server_id, po6::net::location> > cluster_members;
         m_daemon->m_config.get_all_addresses(&cluster_members);
