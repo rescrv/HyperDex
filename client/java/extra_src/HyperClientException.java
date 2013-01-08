@@ -27,10 +27,15 @@ public class HyperClientException extends Exception
 		errorMap.put(hyperclient_returncode.HYPERCLIENT_DONTUSEKEY,"Do not specify the key in a search predicate and do not redundantly specify the key for an insert");
 		errorMap.put(hyperclient_returncode.HYPERCLIENT_WRONGTYPE,"Attribute '%s' has the wrong type");
 		errorMap.put(hyperclient_returncode.HYPERCLIENT_NOMEM,"Memory allocation failed");
-		errorMap.put(hyperclient_returncode.HYPERCLIENT_EXCEPTION,"Internal Error (file a bug)");
+		errorMap.put(hyperclient_returncode.HYPERCLIENT_BADCONFIG,"The coordinator provided a malformed configuration");
+		errorMap.put(hyperclient_returncode.HYPERCLIENT_BADSPACE,"The space description does not parse");
+		errorMap.put(hyperclient_returncode.HYPERCLIENT_DUPLICATE,"The space already exists");
+		errorMap.put(hyperclient_returncode.HYPERCLIENT_INTERNAL,"Internal Error (file a bug)");
+		errorMap.put(hyperclient_returncode.HYPERCLIENT_EXCEPTION,"Internal Exception (file a bug)");
+		errorMap.put(hyperclient_returncode.HYPERCLIENT_GARBAGE,"Internal Corruption (file a bug)");
     }
 
-    private hyperclient_returncode rc = hyperclient_returncode.HYPERCLIENT_ZERO;
+    private hyperclient_returncode rc = hyperclient_returncode.HYPERCLIENT_GARBAGE;
 
     public HyperClientException(hyperclient_returncode rc)
     {

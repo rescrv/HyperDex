@@ -505,6 +505,11 @@
       }
   }
 
+  // Using a Vector<Object> retvals to return multiple values.
+  //
+  // retvals at 0 - hacs (hyperclient_attribute_check type)
+  // retvals at 1 - hacs_sz (long)
+
   java.util.Vector predicate_to_c(java.util.Map predicate) throws TypeError,
                                                                   MemoryError,
                                                                   ValueError
@@ -665,7 +670,12 @@
 
       }
 
-      return hacs;
+      java.util.Vector<Object> retvals = new java.util.Vector<Object>(2);
+
+      retvals.add(hacs);
+      retvals.add(hacs_sz);
+
+      return retvals;
   }
 
   private static boolean isBytes(Object obj)

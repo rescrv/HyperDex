@@ -15,7 +15,7 @@ public class Pending
     {
         this.client = client;
         rc_ptr = hyperclient.new_rc_ptr();
-        hyperclient.rc_ptr_assign(rc_ptr,hyperclient_returncode.HYPERCLIENT_ZERO);
+        hyperclient.rc_ptr_assign(rc_ptr,hyperclient_returncode.HYPERCLIENT_GARBAGE);
     }
 
     public void callback()
@@ -124,28 +124,22 @@ public class Pending
     }
 
     protected void checkReqIdSearch(long reqId,  hyperclient_returncode status,
-                                    hyperclient_attribute eq, int eq_sz,
-                                    hyperclient_range_query rn, int rn_sz)
+                                    hyperclient_attribute_check chks, long chks_sz)
                                                             throws HyperClientException,
                                                                    TypeError
     {
         if (reqId < 0)
         {
-            int idx = (int)(-1 - reqId);
+            long idx = -1 - reqId;
+
             String attrName = null;
 
-            if ( idx >= 0 && idx < eq_sz && eq != null )
-                attrName = ByteArray.decode(HyperClient.get_attr(eq,idx).getAttrNameBytes(),client.getDefaultStringEncoding()); 
-        
-            idx -= eq_sz;
-
-            if ( idx >= 0 && idx < rn_sz && rn != null )
-                attrName
-                    = ByteArray.decode(
-                        HyperClient.get_range_query(rn,idx).getRangeQueryAttrNameBytes(),
-                        client.getDefaultStringEncoding());
-            if ( attrName != null )
+            if ( chks != null && idx >= 0 && idx < chk_sz )
             {
+                attrName = ByteArray.decode(
+                            HyperClient.get_attr_chk(eq,idx).getAttrNameBytes(),
+                            client.getDefaultStringEncoding()); 
+        
                 throw new HyperClientException(status,attrName);
             }
             else
