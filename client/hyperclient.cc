@@ -42,6 +42,9 @@
 #include <busybee_st.h>
 #include <busybee_utils.h>
 
+// Replicant
+#include <replicant.h>
+
 // HyperDex
 #include "common/attribute.h"
 #include "common/attribute_check.h"
@@ -156,6 +159,9 @@ hyperclient :: add_space(const char* description)
             case hyperdex::COORD_NOT_FOUND:
                 status = HYPERCLIENT_NOTFOUND;
                 break;
+            case hyperdex::COORD_UNINITIALIZED:
+                status = HYPERCLIENT_COORDFAIL;
+                break;
             case hyperdex::COORD_TRANSFER_IN_PROGRESS:
                 status = HYPERCLIENT_INTERNAL;
                 break;
@@ -207,6 +213,9 @@ hyperclient :: rm_space(const char* space)
                 break;
             case hyperdex::COORD_NOT_FOUND:
                 status = HYPERCLIENT_NOTFOUND;
+                break;
+            case hyperdex::COORD_UNINITIALIZED:
+                status = HYPERCLIENT_COORDFAIL;
                 break;
             case hyperdex::COORD_TRANSFER_IN_PROGRESS:
                 status = HYPERCLIENT_INTERNAL;
@@ -698,6 +707,157 @@ hyperclient :: attribute_type(const char* space, const char* name,
 }
 
 hyperclient_returncode
+hyperclient :: initialize_cluster(uint64_t cluster, const char* path)
+{
+    replicant_client* repl = m_coord->replicant();
+    replicant_returncode rstatus;
+    const char* errmsg = NULL;
+    size_t errmsg_sz = 0;
+
+    int64_t noid = repl->new_object("hyperdex", path, &rstatus,
+                                    &errmsg, &errmsg_sz);
+
+    if (noid < 0)
+    {
+        switch (rstatus)
+        {
+            case REPLICANT_BAD_LIBRARY:
+                return HYPERCLIENT_NOTFOUND;
+            case REPLICANT_INTERRUPTED:
+                return HYPERCLIENT_INTERRUPTED;
+            case REPLICANT_SERVER_ERROR:
+            case REPLICANT_NEED_BOOTSTRAP:
+            case REPLICANT_MISBEHAVING_SERVER:
+                return HYPERCLIENT_COORDFAIL;
+            case REPLICANT_SUCCESS:
+            case REPLICANT_NAME_TOO_LONG:
+            case REPLICANT_FUNC_NOT_FOUND:
+            case REPLICANT_OBJ_EXIST:
+            case REPLICANT_OBJ_NOT_FOUND:
+            case REPLICANT_COND_NOT_FOUND:
+            case REPLICANT_TIMEOUT:
+            case REPLICANT_INTERNAL_ERROR:
+            case REPLICANT_NONE_PENDING:
+            case REPLICANT_GARBAGE:
+            default:
+                return HYPERCLIENT_INTERNAL;
+        }
+    }
+
+    replicant_returncode lstatus;
+    int64_t lid = repl->loop(noid, -1, &lstatus);
+
+    if (lid < 0)
+    {
+        repl->kill(noid);
+
+        switch (lstatus)
+        {
+            case REPLICANT_INTERRUPTED:
+                return HYPERCLIENT_INTERRUPTED;
+            case REPLICANT_SERVER_ERROR:
+            case REPLICANT_NEED_BOOTSTRAP:
+            case REPLICANT_MISBEHAVING_SERVER:
+                return HYPERCLIENT_COORDFAIL;
+            case REPLICANT_TIMEOUT:
+            case REPLICANT_SUCCESS:
+            case REPLICANT_NAME_TOO_LONG:
+            case REPLICANT_FUNC_NOT_FOUND:
+            case REPLICANT_OBJ_EXIST:
+            case REPLICANT_OBJ_NOT_FOUND:
+            case REPLICANT_COND_NOT_FOUND:
+            case REPLICANT_BAD_LIBRARY:
+            case REPLICANT_INTERNAL_ERROR:
+            case REPLICANT_NONE_PENDING:
+            case REPLICANT_GARBAGE:
+            default:
+                return HYPERCLIENT_INTERNAL;
+        }
+    }
+
+    assert(lid == noid);
+
+    switch (rstatus)
+    {
+        case REPLICANT_SUCCESS:
+            break;
+        case REPLICANT_INTERRUPTED:
+            return HYPERCLIENT_INTERRUPTED;
+        case REPLICANT_OBJ_EXIST:
+            return HYPERCLIENT_DUPLICATE;
+        case REPLICANT_FUNC_NOT_FOUND:
+        case REPLICANT_OBJ_NOT_FOUND:
+        case REPLICANT_COND_NOT_FOUND:
+        case REPLICANT_SERVER_ERROR:
+        case REPLICANT_NEED_BOOTSTRAP:
+        case REPLICANT_MISBEHAVING_SERVER:
+            return HYPERCLIENT_COORDFAIL;
+        case REPLICANT_NAME_TOO_LONG:
+        case REPLICANT_BAD_LIBRARY:
+            return HYPERCLIENT_COORD_LOGGED;
+        case REPLICANT_TIMEOUT:
+        case REPLICANT_INTERNAL_ERROR:
+        case REPLICANT_NONE_PENDING:
+        case REPLICANT_GARBAGE:
+        default:
+            return HYPERCLIENT_INTERNAL;
+    }
+
+    hyperclient_returncode status;
+    char data[sizeof(uint64_t)];
+    e::pack64be(cluster, data);
+    const char* output;
+    size_t output_sz;
+
+    if (!m_coord->make_rpc("initialize", data, sizeof(uint64_t),
+                           &status, &output, &output_sz))
+    {
+        return status;
+    }
+
+    status = HYPERCLIENT_SUCCESS;
+
+    if (output_sz >= 2)
+    {
+        uint16_t x;
+        e::unpack16be(output, &x);
+        coordinator_returncode rc = static_cast<coordinator_returncode>(x);
+
+        switch (rc)
+        {
+            case hyperdex::COORD_SUCCESS:
+                status = HYPERCLIENT_SUCCESS;
+                break;
+            case hyperdex::COORD_MALFORMED:
+                status = HYPERCLIENT_INTERNAL;
+                break;
+            case hyperdex::COORD_DUPLICATE:
+                status = HYPERCLIENT_CLUSTER_JUMP;
+                break;
+            case hyperdex::COORD_NOT_FOUND:
+                status = HYPERCLIENT_INTERNAL;
+                break;
+            case hyperdex::COORD_UNINITIALIZED:
+                status = HYPERCLIENT_COORDFAIL;
+                break;
+            case hyperdex::COORD_TRANSFER_IN_PROGRESS:
+                status = HYPERCLIENT_INTERNAL;
+                break;
+            default:
+                status = HYPERCLIENT_INTERNAL;
+                break;
+        }
+    }
+
+    if (output)
+    {
+        replicant_destroy_output(output, output_sz);
+    }
+
+    return status;
+}
+
+hyperclient_returncode
 hyperclient :: show_config(std::ostream& out)
 {
     hyperclient_returncode status;
@@ -747,6 +907,9 @@ hyperclient :: kill(uint64_t server_id)
                 break;
             case hyperdex::COORD_NOT_FOUND:
                 status = HYPERCLIENT_NOTFOUND;
+                break;
+            case hyperdex::COORD_UNINITIALIZED:
+                status = HYPERCLIENT_COORDFAIL;
                 break;
             case hyperdex::COORD_TRANSFER_IN_PROGRESS:
                 status = HYPERCLIENT_INTERNAL;
@@ -802,6 +965,9 @@ hyperclient :: initiate_transfer(uint64_t region_id, uint64_t server_id)
                 break;
             case hyperdex::COORD_NOT_FOUND:
                 status = HYPERCLIENT_NOTFOUND;
+                break;
+            case hyperdex::COORD_UNINITIALIZED:
+                status = HYPERCLIENT_COORDFAIL;
                 break;
             case hyperdex::COORD_TRANSFER_IN_PROGRESS:
                 status = HYPERCLIENT_DUPLICATE;
@@ -1301,6 +1467,7 @@ operator << (std::ostream& lhs, hyperclient_returncode rhs)
         STRINGIFY(HYPERCLIENT_DUPLICATE);
         STRINGIFY(HYPERCLIENT_INTERRUPTED);
         STRINGIFY(HYPERCLIENT_CLUSTER_JUMP);
+        STRINGIFY(HYPERCLIENT_COORD_LOGGED);
         STRINGIFY(HYPERCLIENT_INTERNAL);
         STRINGIFY(HYPERCLIENT_EXCEPTION);
         STRINGIFY(HYPERCLIENT_GARBAGE);

@@ -193,6 +193,11 @@ coordinator_link :: register_id(server_id us, const po6::net::location& bind_to)
             case COORD_DUPLICATE:
                 ret = 0;
                 break;
+            case COORD_UNINITIALIZED:
+                ret = -1;
+                LOG(ERROR) << "could not register this instance with the coordinator "
+                           << "because the coordinator is uninitialized";
+                break;
             case COORD_MALFORMED:
             case COORD_NOT_FOUND:
             case COORD_TRANSFER_IN_PROGRESS:

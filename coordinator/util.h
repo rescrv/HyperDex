@@ -44,7 +44,14 @@
         if (!obj) \
         { \
             fprintf(replicant_state_machine_log_stream(ctx), "cannot operate on NULL object"); \
-            replicant_state_machine_set_response(ctx, "", 0); \
+            replicant_state_machine_set_response(ctx, "\x22\x84", 20); \
+            return; \
+        } \
+        coordinator* c = static_cast<coordinator*>(obj); \
+        if (c->cluster == 0) \
+        { \
+            fprintf(replicant_state_machine_log_stream(ctx), "cluster not initialized"); \
+            replicant_state_machine_set_response(ctx, "\x22\x84", 2); \
             return; \
         } \
     } \

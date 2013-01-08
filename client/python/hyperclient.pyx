@@ -133,6 +133,7 @@ cdef extern from "../hyperclient.h":
         HYPERCLIENT_DUPLICATE    = 8529
         HYPERCLIENT_INTERRUPTED  = 8530
         HYPERCLIENT_CLUSTER_JUMP = 8531
+        HYPERCLIENT_COORD_LOGGED = 8532
         HYPERCLIENT_INTERNAL     = 8573
         HYPERCLIENT_EXCEPTION    = 8574
         HYPERCLIENT_GARBAGE      = 8575
@@ -214,6 +215,7 @@ class HyperClientException(Exception):
                   ,HYPERCLIENT_DUPLICATE: 'The space already exists'
                   ,HYPERCLIENT_INTERRUPTED: 'Interrupted by a signal'
                   ,HYPERCLIENT_CLUSTER_JUMP: 'The cluster changed identities'
+                  ,HYPERCLIENT_COORD_LOGGED: 'The coordinator has logged an error with details'
                   ,HYPERCLIENT_INTERNAL: 'Internal Error (file a bug)'
                   ,HYPERCLIENT_EXCEPTION: 'Internal Exception (file a bug)'
                   ,HYPERCLIENT_GARBAGE: 'Internal Corruption (file a bug)'
@@ -241,6 +243,7 @@ class HyperClientException(Exception):
                   ,HYPERCLIENT_DUPLICATE: 'HYPERCLIENT_DUPLICATE'
                   ,HYPERCLIENT_INTERRUPTED: 'HYPERCLIENT_INTERRUPTED'
                   ,HYPERCLIENT_CLUSTER_JUMP: 'HYPERCLIENT_CLUSTER_JUMP'
+                  ,HYPERCLIENT_COORD_LOGGED: 'HYPERCLIENT_COORD_LOGGED'
                   ,HYPERCLIENT_INTERNAL: 'HYPERCLIENT_INTERNAL'
                   ,HYPERCLIENT_EXCEPTION: 'HYPERCLIENT_EXCEPTION'
                   ,HYPERCLIENT_GARBAGE: 'HYPERCLIENT_GARBAGE'

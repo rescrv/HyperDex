@@ -38,7 +38,8 @@ enum coordinator_returncode
     COORD_MALFORMED = 8833,
     COORD_DUPLICATE = 8834,
     COORD_NOT_FOUND = 8835,
-    COORD_TRANSFER_IN_PROGRESS = 8836
+    COORD_UNINITIALIZED = 8836, /* this is hardcoded elsewhere; look for \x22\x84 before changing */
+    COORD_TRANSFER_IN_PROGRESS = 8837
 
 };
 

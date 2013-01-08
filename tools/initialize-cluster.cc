@@ -30,6 +30,7 @@
 
 // po6
 #include <po6/error.h>
+#include <po6/io/fd.h>
 
 // e
 #include <e/guard.h>
@@ -51,7 +52,7 @@ main(int argc, const char* argv[])
     poptContext poptcon;
     poptcon = poptGetContext(NULL, argc, argv, popts, POPT_CONTEXT_POSIXMEHARDER);
     e::guard g = e::makeguard(poptFreeContext, poptcon); g.use_variable();
-    poptSetOtherOptionHelp(poptcon, "[OPTIONS] <region> <server>");
+    poptSetOtherOptionHelp(poptcon, "[OPTIONS]");
     int rc;
 
     while ((rc = poptGetNextOpt(poptcon)) != -1)
@@ -93,41 +94,51 @@ main(int argc, const char* argv[])
         ++num_args;
     }
 
-    if (num_args != 2)
+    if (num_args > 1)
     {
-        std::cerr << "command takes two arguments" << std::endl;
+        std::cerr << "command takes at most one argument" << std::endl;
         poptPrintUsage(poptcon, stderr, 0);
         return EXIT_FAILURE;
     }
 
+    const char* path = num_args ? args[0] : HYPERDEX_COORD_LIB;
+
     try
     {
+        uint64_t token;
+        po6::io::fd sysrand(open("/dev/urandom", O_RDONLY));
+
+        if (sysrand.get() < 0 ||
+            sysrand.read(&token, sizeof(token)) != sizeof(token))
+        {
+            std::cerr << "could not generate random token for cluster" << std::endl;
+            return EXIT_FAILURE;
+        }
+
         hyperclient h(_connect_host, _connect_port);
         hyperdex::tool_wrapper t(&h);
-        char* end;
-        end = const_cast<char*>(args[0]);
-        uint64_t rid = strtoull(args[0], &end, 0);
+        hyperclient_returncode e = t.initialize_cluster(token, path);
 
-        if (args[0] == '\0' || *end != '\0')
+        if (e == HYPERCLIENT_NOTFOUND && errno == ENOENT)
         {
-            std::cerr << "first argument must be a region identifier" << std::endl;
+            std::cerr << "could not find library at " << path << std::endl;
+            std::cerr << "provide a path to the library as a command-line argument" << std::endl;
+            std::cerr << "try specifying \".libs/libhypercoordinator.so\" if you did not run \"make install\"" << std::endl;
             return EXIT_FAILURE;
         }
-
-        end = const_cast<char*>(args[1]);
-        uint64_t sid = strtoull(args[1], &end, 0);
-
-        if (args[1] == '\0' || *end != '\0')
+        else if (e == HYPERCLIENT_DUPLICATE)
         {
-            std::cerr << "first argument must be a region identifier" << std::endl;
+            std::cerr << "cluster already initialized" << std::endl;
             return EXIT_FAILURE;
         }
-
-        hyperclient_returncode e = t.initiate_transfer(rid, sid);
-
-        if (e != HYPERCLIENT_SUCCESS)
+        else if (e == HYPERCLIENT_COORD_LOGGED)
         {
-            std::cerr << "could not initiate transfer: " << e << std::endl;
+            std::cerr << "could not initialize cluster: see the replicant error log for details" << std::endl;
+            return EXIT_FAILURE;
+        }
+        else if (e != HYPERCLIENT_SUCCESS)
+        {
+            std::cerr << "could not initialize cluster: " << e << std::endl;
             return EXIT_FAILURE;
         }
 

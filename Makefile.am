@@ -42,9 +42,7 @@ EXTRA_DIST = \
 			wscript
 # XXX doc/HyperDex-$(VERSION).pdf
 
-lib_LTLIBRARIES = \
-			libhyperclient.la \
-			libhypercoordinator.la
+lib_LTLIBRARIES = libhyperclient.la
 
 pyexec_LTLIBRARIES =
 
@@ -59,11 +57,13 @@ bin_PROGRAMS = hyperdex \
 
 hyperdexexecdir = $(exec_prefix)/libexec/$(PACKAGE)-$(VERSION)
 hyperdexexec_PROGRAMS = \
+			hyperdex-initialize-cluster \
 			hyperdex-add-space \
 			hyperdex-rm-space \
 			hyperdex-kill \
 			hyperdex-show-config \
 			hyperdex-initiate-transfer
+hyperdexexec_LTLIBRARIES = libhypercoordinator.la
 
 noinst_PROGRAMS = \
 			client/c/testcompile \
@@ -226,6 +226,7 @@ libhypercoordinator_la_SOURCES = \
 			coordinator/add-space.cc \
 			coordinator/coordinator.cc \
 			coordinator/get-config.cc \
+			coordinator/initialize.cc \
 			coordinator/initiate-transfer.cc \
 			coordinator/kill.cc \
 			coordinator/meta.cc \
@@ -379,6 +380,10 @@ client_cc_testcompile_SOURCES = client/cc/testcompile.cc
 
 hyperdex_SOURCES = hyperdex.cc
 hyperdex_CPPFLAGS = -DHYPERDEX_EXEC_DIR=\""$(hyperdexexecdir)\"" $(CPPFLAGS)
+
+hyperdex_initialize_cluster_SOURCES = tools/initialize-cluster.cc
+hyperdex_initialize_cluster_CPPFLAGS = -DHYPERDEX_COORD_LIB=\""$(hyperdexexecdir)/libhypercoordinator.so\"" $(CPPFLAGS)
+hyperdex_initialize_cluster_LDADD = libhyperclient.la
 
 hyperdex_add_space_SOURCES = tools/add-space.cc
 hyperdex_add_space_LDADD = libhyperclient.la

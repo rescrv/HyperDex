@@ -25,40 +25,42 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_client_tool_wrapper_h_
-#define hyperdex_client_tool_wrapper_h_
-
 // HyperDex
-#include "client/hyperclient.h"
+#include "coordinator/coordinator.h"
+#include "coordinator/initialize.h"
+#include "coordinator/util.h"
 
-namespace hyperdex
+using hyperdex::coordinator;
+using hyperdex::server_id;
+using hyperdex::space;
+
+extern "C"
 {
 
-class tool_wrapper
+void
+hyperdex_coordinator_initialize(struct replicant_state_machine_context* ctx,
+                                void* obj, const char* data, size_t data_sz)
 {
-    public:
-        tool_wrapper(hyperclient* h) : m_h(h) {}
-        tool_wrapper(const tool_wrapper& other) : m_h(other.m_h) {}
-        ~tool_wrapper() throw () {}
+    if (!obj)
+    {
+        fprintf(replicant_state_machine_log_stream(ctx), "cannot operate on NULL object");
+        replicant_state_machine_set_response(ctx, "\x22\x84", 20);
+        return;
+    }
 
-    public:
-        hyperclient_returncode initialize_cluster(uint64_t cluster, const char* path)
-        { return m_h->initialize_cluster(cluster, path); }
-        hyperclient_returncode show_config(std::ostream& out)
-        { return m_h->show_config(out); }
-        hyperclient_returncode kill(uint64_t server_id)
-        { return m_h->kill(server_id); }
-        hyperclient_returncode initiate_transfer(uint64_t region_id, uint64_t server_id)
-        { return m_h->initiate_transfer(region_id, server_id); }
+    coordinator* c = static_cast<coordinator*>(obj);
+    uint64_t cluster;
+    e::unpacker up(data, data_sz);
+    up = up >> cluster;
 
-    public:
-        tool_wrapper& operator = (const tool_wrapper& rhs)
-        { m_h = rhs.m_h; return *this; }
+    if (up.error())
+    {
+        return generate_response(ctx, c, hyperdex::COORD_MALFORMED);
+    }
 
-    private:
-        hyperclient* m_h;
-};
+    c->cluster = cluster;
+    c->regenerate(ctx);
+    return generate_response(ctx, c, hyperdex::COORD_SUCCESS);
+}
 
-} // namespace hyperdex
-
-#endif // hyperdex_client_tool_wrapper_h_
+} // extern "C"

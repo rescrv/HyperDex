@@ -99,6 +99,7 @@ enum hyperclient_returncode
     HYPERCLIENT_DUPLICATE    = 8529,
     HYPERCLIENT_INTERRUPTED  = 8530,
     HYPERCLIENT_CLUSTER_JUMP = 8531,
+    HYPERCLIENT_COORD_LOGGED = 8532,
 
     /* This should never happen.  It indicates a bug */
     HYPERCLIENT_INTERNAL     = 8573,
@@ -841,6 +842,7 @@ class hyperclient
 
     // these are the only private things that tool_wrapper should touch
     private:
+        hyperclient_returncode initialize_cluster(uint64_t cluster, const char* path);
         hyperclient_returncode show_config(std::ostream& out);
         hyperclient_returncode kill(uint64_t server_id);
         hyperclient_returncode initiate_transfer(uint64_t region_id, uint64_t server_id);

@@ -50,7 +50,6 @@ hyperdex_coordinator_create(struct replicant_state_machine_context* ctx)
         fprintf(replicant_state_machine_log_stream(ctx), "memory allocation failed");
     }
 
-    c->regenerate(ctx);
     return c;
 }
 
@@ -67,7 +66,6 @@ hyperdex_coordinator_recreate(struct replicant_state_machine_context* ctx,
 
     fprintf(replicant_state_machine_log_stream(ctx), "recreate is not implemented");
     // XXX recreate from (data,data_sz)
-    c->regenerate(ctx);
     return c;
 }
 

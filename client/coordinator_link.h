@@ -55,6 +55,7 @@ class coordinator_link
                       const char* data, size_t data_sz,
                       hyperclient_returncode* status,
                       const char** output, size_t* output_sz);
+        replicant_client* replicant() { return &m_repl; }
 
     private:
         bool initiate_wait_for_config(hyperclient_returncode* status);
