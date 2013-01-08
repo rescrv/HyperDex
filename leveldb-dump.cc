@@ -92,7 +92,7 @@ decode(const char* data, size_t data_sz, std::vector<char>* out)
             ++ptr;
             *ptr = 'x';
             ++ptr;
-            sprintf(ptr, "%02x", data[i]);
+            sprintf(ptr, "%02x", data[i] & 0xff);
             ptr += 2;
         }
     }
