@@ -25,6 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#define __STDC_LIMIT_MACROS
+
 // C
 #include <cstdlib>
 
@@ -44,6 +46,7 @@ hyperdex :: hash(hyperdatatype t, const e::slice& v)
     uint8_t tmp[sizeof(int64_t)];
     double ret_d;
     int64_t ret_i;
+    uint64_t out;
 
     switch (t)
     {
@@ -53,7 +56,9 @@ hyperdex :: hash(hyperdatatype t, const e::slice& v)
             memset(tmp, 0, sizeof(int64_t));
             memmove(tmp, v.data(), std::min(v.size(), sizeof(int64_t)));
             e::unpack64le(tmp, &ret_i);
-            return ret_i;
+            out = static_cast<uint64_t>(ret_i);
+            out += ret_i >= 0 ? 0x8000000000000000ULL : INT64_MIN;
+            return out;
         case HYPERDATATYPE_FLOAT:
             memset(tmp, 0, sizeof(uint64_t));
             memmove(tmp, v.data(), std::min(v.size(), sizeof(uint64_t)));

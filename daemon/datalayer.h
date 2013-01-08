@@ -66,6 +66,7 @@ class datalayer
             SUCCESS,
             NOT_FOUND,
             BAD_ENCODING,
+            BAD_SEARCH,
             CORRUPTION,
             IO_ERROR,
             LEVELDB_ERROR
@@ -112,8 +113,8 @@ class datalayer
                        uint64_t seq_id,
                        const e::slice& key);
         returncode make_snapshot(const region_id& ri,
-                                 attribute_check* checks,
-                                 size_t checks_sz,
+                                 const schema& sc,
+                                 const std::vector<attribute_check>* checks,
                                  snapshot* snap);
         // leveldb provides no failure mechanism for this, neither do we
         std::tr1::shared_ptr<leveldb::Snapshot> make_raw_snapshot();
@@ -139,10 +140,6 @@ class datalayer
         // Clear less than seq_id
         void clear_acked(const region_id& reg_id,
                          uint64_t seq_id);
-
-    private:
-        class search_filter;
-        typedef std::list<std::vector<char> > backing_t;
 
     private:
         datalayer(const datalayer&);
@@ -186,33 +183,43 @@ class datalayer
                                     e::slice* key,
                                     std::vector<e::slice>* value,
                                     uint64_t* version);
-        void generate_object_range(const region_id& ri,
-                                   backing_t* backing,
-                                   leveldb::Range* r);
+        void encode_index(const region_id& ri,
+                          uint16_t attr,
+                          std::vector<char>* backing);
+        void encode_index(const region_id& ri,
+                          uint16_t attr,
+                          hyperdatatype type,
+                          const e::slice& value,
+                          std::vector<char>* backing);
+        void encode_index(const region_id& ri,
+                          uint16_t attr,
+                          hyperdatatype type,
+                          const e::slice& value,
+                          const e::slice& key,
+                          std::vector<char>* backing);
+        void bump(std::vector<char>* backing);
+        bool parse_index_string(const leveldb::Slice& s, e::slice* k);
+        bool parse_index_sizeof8(const leveldb::Slice& s, e::slice* k);
+        bool parse_object_key(const leveldb::Slice& s, e::slice* k);
         void generate_index(const region_id& ri,
                             uint16_t attr,
                             hyperdatatype type,
                             const e::slice& value,
                             const e::slice& key,
-                            backing_t* backing,
+                            std::list<std::vector<char> >* backing,
                             std::vector<leveldb::Slice>* idxs);
-        void generate_search_filters(const region_id& ri,
-                                     attribute_check* check_ptr,
-                                     attribute_check* check_end,
-                                     backing_t* backing,
-                                     std::vector<search_filter>* sf);
         returncode create_index_changes(const schema* sc,
                                         const region_id& ri,
                                         const e::slice& key,
                                         const leveldb::Slice& lkey,
-                                        backing_t* backing,
+                                        std::list<std::vector<char> >* backing,
                                         leveldb::WriteBatch* updates);
         returncode create_index_changes(const schema* sc,
                                         const region_id& ri,
                                         const e::slice& key,
                                         const leveldb::Slice& lkey,
                                         const std::vector<e::slice>& value,
-                                        backing_t* backing,
+                                        std::list<std::vector<char> >* backing,
                                         leveldb::WriteBatch* updates);
         void cleaner();
         void shutdown();
@@ -288,17 +295,17 @@ class datalayer::snapshot
     private:
         datalayer* m_dl;
         const leveldb::Snapshot* m_snap;
-        backing_t m_backing;
-        std::vector<search_filter> m_sfs;
-        const attribute_check* m_checks;
-        size_t m_checks_sz;
+        const std::vector<attribute_check>* m_checks;
         region_id m_ri;
-        leveldb::Range m_obj_range;
+        std::list<std::vector<char> > m_backing;
+        leveldb::Range m_range;
+        bool (datalayer::*m_parse)(const leveldb::Slice& in, e::slice* out);
         leveldb::Iterator* m_iter;
         returncode m_error;
+        uint64_t m_version;
         e::slice m_key;
         std::vector<e::slice> m_value;
-        uint64_t m_version;
+        reference m_ref;
 };
 
 std::ostream&

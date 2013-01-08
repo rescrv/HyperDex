@@ -58,7 +58,7 @@ class range
         bool invalid;
 };
 
-void
+bool
 range_searches(const std::vector<attribute_check>& checks,
                std::vector<range>* ranges);
 

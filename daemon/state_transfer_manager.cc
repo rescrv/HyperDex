@@ -271,6 +271,7 @@ state_transfer_manager :: xfer_op(const virtual_server_id& from,
                     case datalayer::NOT_FOUND:
                         break;
                     case datalayer::BAD_ENCODING:
+                    case datalayer::BAD_SEARCH:
                     case datalayer::CORRUPTION:
                     case datalayer::IO_ERROR:
                     case datalayer::LEVELDB_ERROR:
@@ -293,6 +294,7 @@ state_transfer_manager :: xfer_op(const virtual_server_id& from,
                     break;
                 case datalayer::NOT_FOUND:
                 case datalayer::BAD_ENCODING:
+                case datalayer::BAD_SEARCH:
                 case datalayer::CORRUPTION:
                 case datalayer::IO_ERROR:
                 case datalayer::LEVELDB_ERROR:
@@ -313,6 +315,7 @@ state_transfer_manager :: xfer_op(const virtual_server_id& from,
                 case datalayer::NOT_FOUND:
                     break;
                 case datalayer::BAD_ENCODING:
+                case datalayer::BAD_SEARCH:
                 case datalayer::CORRUPTION:
                 case datalayer::IO_ERROR:
                 case datalayer::LEVELDB_ERROR:
@@ -458,6 +461,7 @@ state_transfer_manager :: transfer_more_state(transfer_out_state* tos)
                     done = true;
                     break;
                 case datalayer::BAD_ENCODING:
+                case datalayer::BAD_SEARCH:
                 case datalayer::CORRUPTION:
                 case datalayer::IO_ERROR:
                 case datalayer::LEVELDB_ERROR:

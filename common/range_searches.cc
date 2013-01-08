@@ -106,14 +106,20 @@ range_search(const attribute_check* ptr,
                 {
                     return;
                 }
-                lower = ptr;
+                if (!upper || compare_as_type(ptr->value, upper->value, ptr->datatype) < 0)
+                {
+                    upper = ptr;
+                }
                 break;
             case HYPERPREDICATE_GREATER_EQUAL:
                 if (upper && compare_as_type(ptr->value, upper->value, ptr->datatype) > 0)
                 {
                     return;
                 }
-                upper = ptr;
+                if (!lower || compare_as_type(ptr->value, lower->value, ptr->datatype) > 0)
+                {
+                    lower = ptr;
+                }
                 break;
             case HYPERPREDICATE_FAIL:
             default:
@@ -145,7 +151,7 @@ range_search(const attribute_check* ptr,
     }
 }
 
-void
+bool
 hyperdex :: range_searches(const std::vector<attribute_check>& checks,
                            std::vector<range>* ranges)
 {
@@ -159,7 +165,11 @@ hyperdex :: range_searches(const std::vector<attribute_check>& checks,
 
         while (tmp < check_end && check_ptr->attr == tmp->attr)
         {
-            assert(check_ptr->datatype == tmp->datatype);
+            if (check_ptr->datatype != tmp->datatype)
+            {
+                return false;
+            }
+
             ++tmp;
         }
 
@@ -169,4 +179,6 @@ hyperdex :: range_searches(const std::vector<attribute_check>& checks,
         range_search(check_ptr, tmp, &ranges->back());
         check_ptr = tmp;
     }
+
+    return true;
 }

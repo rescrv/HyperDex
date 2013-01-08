@@ -210,7 +210,8 @@ search_manager :: start(const server_id& from,
     assert(sc);
     e::intrusive_ptr<state> st = new state(ri, msg, checks);
     datalayer::returncode rc;
-    rc = m_daemon->m_data.make_snapshot(st->region, &st->checks.front(), st->checks.size(), &st->snap);
+    std::stable_sort(st->checks.begin(), st->checks.end());
+    rc = m_daemon->m_data.make_snapshot(st->region, *sc, &st->checks, &st->snap);
 
     switch (rc)
     {
@@ -218,6 +219,7 @@ search_manager :: start(const server_id& from,
             break;
         case datalayer::NOT_FOUND:
         case datalayer::BAD_ENCODING:
+        case datalayer::BAD_SEARCH:
         case datalayer::CORRUPTION:
         case datalayer::IO_ERROR:
         case datalayer::LEVELDB_ERROR:
@@ -422,7 +424,8 @@ search_manager :: sorted_search(const server_id& from,
     assert(sc);
     datalayer::snapshot snap;
     datalayer::returncode rc;
-    rc = m_daemon->m_data.make_snapshot(m_daemon->m_config.get_region_id(to), &checks->front(), checks->size(), &snap);
+    std::stable_sort(checks->begin(), checks->end());
+    rc = m_daemon->m_data.make_snapshot(m_daemon->m_config.get_region_id(to), *sc, checks, &snap);
 
     switch (rc)
     {
@@ -430,6 +433,7 @@ search_manager :: sorted_search(const server_id& from,
             break;
         case datalayer::NOT_FOUND:
         case datalayer::BAD_ENCODING:
+        case datalayer::BAD_SEARCH:
         case datalayer::CORRUPTION:
         case datalayer::IO_ERROR:
         case datalayer::LEVELDB_ERROR:
@@ -492,7 +496,8 @@ search_manager :: group_keyop(const server_id& from,
     assert(sc);
     datalayer::snapshot snap;
     datalayer::returncode rc;
-    rc = m_daemon->m_data.make_snapshot(m_daemon->m_config.get_region_id(to), &checks->front(), checks->size(), &snap);
+    std::stable_sort(checks->begin(), checks->end());
+    rc = m_daemon->m_data.make_snapshot(m_daemon->m_config.get_region_id(to), *sc, checks, &snap);
     uint64_t result = 0;
 
     switch (rc)
@@ -501,6 +506,7 @@ search_manager :: group_keyop(const server_id& from,
             break;
         case datalayer::NOT_FOUND:
         case datalayer::BAD_ENCODING:
+        case datalayer::BAD_SEARCH:
         case datalayer::CORRUPTION:
         case datalayer::IO_ERROR:
         case datalayer::LEVELDB_ERROR:
@@ -558,7 +564,8 @@ search_manager :: count(const server_id& from,
     assert(sc);
     datalayer::snapshot snap;
     datalayer::returncode rc;
-    rc = m_daemon->m_data.make_snapshot(m_daemon->m_config.get_region_id(to), &checks->front(), checks->size(), &snap);
+    std::stable_sort(checks->begin(), checks->end());
+    rc = m_daemon->m_data.make_snapshot(m_daemon->m_config.get_region_id(to), *sc, checks, &snap);
     uint64_t result = 0;
 
     switch (rc)
@@ -567,6 +574,7 @@ search_manager :: count(const server_id& from,
             break;
         case datalayer::NOT_FOUND:
         case datalayer::BAD_ENCODING:
+        case datalayer::BAD_SEARCH:
         case datalayer::CORRUPTION:
         case datalayer::IO_ERROR:
         case datalayer::LEVELDB_ERROR:

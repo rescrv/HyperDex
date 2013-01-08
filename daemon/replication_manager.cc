@@ -507,6 +507,7 @@ replication_manager :: chain_ack(const virtual_server_id& from,
                 break;
             case datalayer::NOT_FOUND:
             case datalayer::BAD_ENCODING:
+            case datalayer::BAD_SEARCH:
             case datalayer::CORRUPTION:
             case datalayer::IO_ERROR:
             case datalayer::LEVELDB_ERROR:
@@ -614,6 +615,7 @@ replication_manager :: get_or_create_keyholder(const region_id& reg, const e::sl
                 kh->get_old_version() = 0;
                 break;
             case datalayer::BAD_ENCODING:
+            case datalayer::BAD_SEARCH:
             case datalayer::CORRUPTION:
             case datalayer::IO_ERROR:
             case datalayer::LEVELDB_ERROR:

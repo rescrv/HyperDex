@@ -1040,7 +1040,7 @@ hyperclient :: prepare_searchop(const char* space,
         *aux_attrtype = sc->attrs[attrnum].type;
     }
 
-    std::sort(chks->begin(), chks->end());
+    std::stable_sort(chks->begin(), chks->end());
     m_config->lookup_search(space, *chks, servers);
 
     if (servers->empty())
