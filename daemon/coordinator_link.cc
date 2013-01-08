@@ -234,10 +234,34 @@ coordinator_link :: wait_for_config(configuration* config)
         if (need_to_backoff)
         {
             LOG(ERROR) << "connection to the coordinator failed; retrying in " << retry / 1000000. << " milliseconds";
+            uint64_t rem = retry;
             timespec ts;
-            ts.tv_sec = retry / 1000000000UL;
-            ts.tv_nsec = retry % 1000000000UL;
-            nanosleep(&ts, NULL); // don't check the error
+
+            while (rem > 0)
+            {
+                ts.tv_sec = 0;
+                ts.tv_nsec = std::min(static_cast<uint64_t>(10000000), rem);
+
+                sigset_t empty_signals;
+                sigset_t old_signals;
+                sigemptyset(&empty_signals); // should never fail
+                pthread_sigmask(SIG_SETMASK, &empty_signals, &old_signals); // should never fail
+                nanosleep(&ts, NULL); // nothing to gain by checking output
+                pthread_sigmask(SIG_SETMASK, &old_signals, NULL); // should never fail
+
+                if (!s_continue)
+                {
+                    break;
+                }
+
+                rem -= ts.tv_nsec;
+            }
+
+            if (!s_continue)
+            {
+                continue;
+            }
+
             retry = std::min(retry * 2, 1000000000UL);
             need_to_backoff = false;
             continue; // so we can pick up on changes to s_continue and break;
