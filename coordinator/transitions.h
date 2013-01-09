@@ -26,8 +26,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef hyperdex_coordinator_tcp_disconnect_h_
-#define hyperdex_coordinator_tcp_disconnect_h_
+#ifndef hyperdex_coordinator_transitions_h_
+#define hyperdex_coordinator_transitions_h_
 #ifdef __cplusplus
 extern "C"
 {
@@ -36,11 +36,40 @@ extern "C"
 /* Replicant */
 #include <replicant_state_machine.h>
 
+extern void*
+hyperdex_coordinator_create(struct replicant_state_machine_context* ctx);
+
+extern void*
+hyperdex_coordinator_recreate(struct replicant_state_machine_context* ctx,
+                              const char* data, size_t data_sz);
+
 extern void
-hyperdex_coordinator_tcp_disconnect(struct replicant_state_machine_context* ctx,
-                                    void* obj, const char* data, size_t data_sz);
+hyperdex_coordinator_destroy(struct replicant_state_machine_context* ctx,
+                             void* f);
+
+extern void
+hyperdex_coordinator_snapshot(struct replicant_state_machine_context* ctx,
+                              void* obj, const char** data, size_t* sz);
+
+#define TRANSITION(X) extern void \
+    hyperdex_coordinator_ ## X(struct replicant_state_machine_context* ctx, \
+                               void* obj, const char* data, size_t data_sz)
+
+TRANSITION(initialize);
+
+TRANSITION(add_space);
+TRANSITION(rm_space);
+
+TRANSITION(get_config);
+
+TRANSITION(server_register);
+TRANSITION(server_suspect);
+
+TRANSITION(xfer_begin);
+TRANSITION(xfer_complete);
+TRANSITION(xfer_go_live);
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */
-#endif /* hyperdex_coordinator_tcp_disconnect_h_ */
+#endif // hyperdex_coordinator_transitions_h_

@@ -81,7 +81,7 @@ coordinator_link :: register_id(server_id us, const po6::net::location& bind_to)
     *data << us.get() << bind_to;
     const char* output;
     size_t output_sz;
-    int64_t sid = m_repl->send("hyperdex", "register",
+    int64_t sid = m_repl->send("hyperdex", "server-register",
                                reinterpret_cast<const char*>(data->data()), data->size(),
                                &sstatus, &output, &output_sz);
 
@@ -200,6 +200,7 @@ coordinator_link :: register_id(server_id us, const po6::net::location& bind_to)
                 break;
             case COORD_MALFORMED:
             case COORD_NOT_FOUND:
+            case COORD_INITIALIZED:
             case COORD_TRANSFER_IN_PROGRESS:
             default:
                 ret = -1;
@@ -594,7 +595,7 @@ coordinator_link :: initiate_report_tcp_disconnect(const server_id& id)
     char buf[sizeof(uint64_t)];
     e::pack64be(id.get(), buf);
     std::tr1::shared_ptr<replicant_returncode> ret(new replicant_returncode(REPLICANT_GARBAGE));
-    int64_t req_id = m_repl->send("hyperdex", "tcp-disconnect", buf, sizeof(uint64_t),
+    int64_t req_id = m_repl->send("hyperdex", "server-suspect", buf, sizeof(uint64_t),
                                   ret.get(), NULL, NULL);
 
     if (req_id < 0)

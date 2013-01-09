@@ -25,64 +25,44 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#ifndef hyperdex_coordinator_server_state_h_
+#define hyperdex_coordinator_server_state_h_
+
+// po6
+#include <po6/net/location.h>
+
 // HyperDex
 #include "common/ids.h"
-#include "coordinator/coordinator.h"
-#include "coordinator/util.h"
-#include "coordinator/xfer-go-live.h"
 
-using hyperdex::coordinator;
-using hyperdex::region;
-using hyperdex::replica;
-using hyperdex::space;
-using hyperdex::transfer_id;
-
-extern "C"
+namespace hyperdex
 {
 
-void
-hyperdex_coordinator_xfer_go_live(struct replicant_state_machine_context* ctx,
-                                  void* obj, const char* data, size_t data_sz)
+class server_state
 {
-    PROTECT_UNINITIALIZED;
-    coordinator* c = static_cast<coordinator*>(obj);
-    uint64_t _xid;
-    e::unpacker up(data, data_sz);
-    up = up >> _xid;
+    public:
+        server_state() : id(), bind_to() {}
+        server_state(const server_id& _id,
+                     const po6::net::location& _bind_to)
+            : id(_id), bind_to(_bind_to) {}
+        ~server_state() throw () {}
 
-    if (up.error())
-    {
-        return generate_response(ctx, c, hyperdex::COORD_MALFORMED);
-    }
+    public:
+        server_id id;
+        po6::net::location bind_to;
+};
 
-    transfer_id xid(_xid);
-
-    for (std::list<space>::iterator it = c->spaces.begin(); it != c->spaces.end(); ++it)
-    {
-        for (size_t ss = 0; ss < it->subspaces.size(); ++ss)
-        {
-            for (size_t r = 0; r < it->subspaces[ss].regions.size(); ++r)
-            {
-                region& reg(it->subspaces[ss].regions[r]);
-
-                if (reg.tid != xid)
-                {
-                    continue;
-                }
-
-                if (!reg.replicas.empty() &&
-                    reg.replicas.back().si != reg.tsi)
-                {
-                    reg.replicas.push_back(replica());
-                    reg.replicas.back().si = reg.tsi;
-                    reg.replicas.back().vsi = reg.tvi;
-                    c->regenerate(ctx);
-                }
-            }
-        }
-    }
-
-    return generate_response(ctx, c, hyperdex::COORD_SUCCESS);
+inline bool
+operator < (const server_state& lhs, const server_state& rhs)
+{
+    return lhs.id < rhs.id;
 }
 
-} // extern "C"
+bool
+operator < (const server_state& lhs, const server_id& rhs)
+{
+    return lhs.id < rhs;
+}
+
+} // namespace hyperdex
+
+#endif // hyperdex_coordinator_server_state_h_

@@ -55,7 +55,7 @@ class space
         ~space() throw ();
 
     public:
-        bool validate();
+        bool validate() const;
 
     public:
         space& operator = (const space&);

@@ -73,7 +73,7 @@ space :: ~space() throw ()
 }
 
 bool
-space :: validate()
+space :: validate() const
 {
     for (size_t i = 0; i < schema.attrs_sz; ++i)
     {

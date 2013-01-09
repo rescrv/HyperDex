@@ -159,6 +159,9 @@ hyperclient :: add_space(const char* description)
             case hyperdex::COORD_NOT_FOUND:
                 status = HYPERCLIENT_NOTFOUND;
                 break;
+            case hyperdex::COORD_INITIALIZED:
+                status = HYPERCLIENT_COORDFAIL;
+                break;
             case hyperdex::COORD_UNINITIALIZED:
                 status = HYPERCLIENT_COORDFAIL;
                 break;
@@ -186,7 +189,7 @@ hyperclient :: rm_space(const char* space)
     const char* output;
     size_t output_sz;
 
-    if (!m_coord->make_rpc("rm-space", space, strlen(space),
+    if (!m_coord->make_rpc("rm-space", space, strlen(space) + 1,
                            &status, &output, &output_sz))
     {
         return status;
@@ -213,6 +216,9 @@ hyperclient :: rm_space(const char* space)
                 break;
             case hyperdex::COORD_NOT_FOUND:
                 status = HYPERCLIENT_NOTFOUND;
+                break;
+            case hyperdex::COORD_INITIALIZED:
+                status = HYPERCLIENT_COORDFAIL;
                 break;
             case hyperdex::COORD_UNINITIALIZED:
                 status = HYPERCLIENT_COORDFAIL;
@@ -837,6 +843,9 @@ hyperclient :: initialize_cluster(uint64_t cluster, const char* path)
             case hyperdex::COORD_NOT_FOUND:
                 status = HYPERCLIENT_INTERNAL;
                 break;
+            case hyperdex::COORD_INITIALIZED:
+                status = HYPERCLIENT_DUPLICATE;
+                break;
             case hyperdex::COORD_UNINITIALIZED:
                 status = HYPERCLIENT_COORDFAIL;
                 break;
@@ -908,6 +917,9 @@ hyperclient :: kill(uint64_t server_id)
             case hyperdex::COORD_NOT_FOUND:
                 status = HYPERCLIENT_NOTFOUND;
                 break;
+            case hyperdex::COORD_INITIALIZED:
+                status = HYPERCLIENT_INTERNAL;
+                break;
             case hyperdex::COORD_UNINITIALIZED:
                 status = HYPERCLIENT_COORDFAIL;
                 break;
@@ -938,7 +950,7 @@ hyperclient :: initiate_transfer(uint64_t region_id, uint64_t server_id)
     const char* output;
     size_t output_sz;
 
-    if (!m_coord->make_rpc("initiate-transfer", data, 2 * sizeof(uint64_t),
+    if (!m_coord->make_rpc("xfer-begin", data, 2 * sizeof(uint64_t),
                            &status, &output, &output_sz))
     {
         return status;
@@ -965,6 +977,9 @@ hyperclient :: initiate_transfer(uint64_t region_id, uint64_t server_id)
                 break;
             case hyperdex::COORD_NOT_FOUND:
                 status = HYPERCLIENT_NOTFOUND;
+                break;
+            case hyperdex::COORD_INITIALIZED:
+                status = HYPERCLIENT_INTERNAL;
                 break;
             case hyperdex::COORD_UNINITIALIZED:
                 status = HYPERCLIENT_COORDFAIL;

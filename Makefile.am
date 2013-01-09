@@ -60,7 +60,6 @@ hyperdexexec_PROGRAMS = \
 			hyperdex-initialize-cluster \
 			hyperdex-add-space \
 			hyperdex-rm-space \
-			hyperdex-kill \
 			hyperdex-show-config \
 			hyperdex-initiate-transfer
 hyperdexexec_LTLIBRARIES = libhypercoordinator.la
@@ -116,14 +115,7 @@ noinst_HEADERS = \
 			datatypes/string.h \
 			datatypes/validate.h \
 			datatypes/write.h \
-			coordinator/add-space.h \
 			coordinator/coordinator.h \
-			coordinator/get-config.h \
-			coordinator/kill.h \
-			coordinator/meta.h \
-			coordinator/register.h \
-			coordinator/rm-space.h \
-			coordinator/util.h \
 			daemon/communication.h \
 			daemon/daemon.h \
 			daemon/datalayer.h \
@@ -223,19 +215,8 @@ libhypercoordinator_la_SOURCES = \
 			common/hyperspace.cc \
 			common/schema.cc \
 			common/serialization.cc \
-			coordinator/add-space.cc \
 			coordinator/coordinator.cc \
-			coordinator/get-config.cc \
-			coordinator/initialize.cc \
-			coordinator/initiate-transfer.cc \
-			coordinator/kill.cc \
-			coordinator/meta.cc \
-			coordinator/register.cc \
-			coordinator/rm-space.cc \
-			coordinator/symtable.c \
-			coordinator/tcp-disconnect.c \
-			coordinator/xfer-complete.c \
-			coordinator/xfer-go-live.c
+			coordinator/symtable.c
 libhypercoordinator_la_LIBADD = -le
 
 ################################################################################
@@ -390,9 +371,6 @@ hyperdex_add_space_LDADD = libhyperclient.la
 
 hyperdex_rm_space_SOURCES = tools/rm-space.cc
 hyperdex_rm_space_LDADD = libhyperclient.la
-
-hyperdex_kill_SOURCES = tools/kill.cc
-hyperdex_kill_LDADD = libhyperclient.la
 
 hyperdex_show_config_SOURCES = tools/show-config.cc
 hyperdex_show_config_LDADD = libhyperclient.la

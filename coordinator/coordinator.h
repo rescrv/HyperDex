@@ -33,6 +33,7 @@
 
 // STL
 #include <list>
+#include <map>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -46,6 +47,7 @@
 // HyperDex
 #include "common/hyperspace.h"
 #include "common/ids.h"
+#include "coordinator/server_state.h"
 
 namespace hyperdex
 {
@@ -57,20 +59,51 @@ class coordinator
         ~coordinator() throw ();
 
     public:
-        void initial_layout(space* s);
-        void regenerate(struct replicant_state_machine_context* ctx);
+        uint64_t cluster() const;
 
     public:
-        uint64_t cluster;
-        uint64_t version;
-        uint64_t counter;
-        std::auto_ptr<e::buffer> latest_config;
-        std::vector<std::pair<server_id, po6::net::location> > servers;
-        std::list<space> spaces;
-        char resp[sizeof(uint16_t)];
+        // Setup the cluster
+        void initialize(replicant_state_machine_context* ctx, uint64_t token);
+        // Manage spaces
+        void add_space(replicant_state_machine_context* ctx, const space& s);
+        void rm_space(replicant_state_machine_context* ctx, const char* name);
+        // Issue configs
+        void get_config(replicant_state_machine_context* ctx);
+        // Manage cluster membership
+        void server_register(replicant_state_machine_context* ctx,
+                             const server_id& sid,
+                             const po6::net::location& bind_to);
+        void server_suspect(replicant_state_machine_context* ctx,
+                            const server_id& sid, uint64_t version);
+        // Transfers
+        void xfer_begin(replicant_state_machine_context* ctx,
+                        const region_id& rid,
+                        const server_id& sid);
+        void xfer_go_live(replicant_state_machine_context* ctx,
+                          const transfer_id& xid);
+        void xfer_complete(replicant_state_machine_context* ctx,
+                           const transfer_id& xid);
 
     private:
+        bool is_registered(const server_id& sid);
+        region* get_region(const region_id& rid);
+        region* get_region(const transfer_id& xid);
+        void issue_new_config(struct replicant_state_machine_context* ctx);
+        void maintain_layout(struct replicant_state_machine_context* ctx, space* s);
+        void regenerate_cached(struct replicant_state_machine_context* ctx);
+
+    private:
+        uint64_t m_cluster;
+        uint64_t m_version;
+        uint64_t m_counter;
+        std::vector<server_state> m_servers;
+        std::map<std::string, std::tr1::shared_ptr<space> > m_spaces;
+        std::auto_ptr<e::buffer> m_latest_config; // cached config
         drand48_data m_seed;
+
+    private:
+        coordinator(const coordinator&);
+        coordinator& operator = (const coordinator&);
 };
 
 } // namespace hyperdex
