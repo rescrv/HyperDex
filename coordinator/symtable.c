@@ -45,6 +45,8 @@ struct replicant_state_machine rsm = {
 
      {"server-register", hyperdex_coordinator_server_register},
      {"server-suspect", hyperdex_coordinator_server_suspect},
+     {"server-shutdown1", hyperdex_coordinator_server_shutdown1},
+     {"server-shutdown2", hyperdex_coordinator_server_shutdown2},
 
      {"add-space", hyperdex_coordinator_add_space},
      {"rm-space", hyperdex_coordinator_rm_space},

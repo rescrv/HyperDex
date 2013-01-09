@@ -76,6 +76,10 @@ class coordinator
                              const po6::net::location& bind_to);
         void server_suspect(replicant_state_machine_context* ctx,
                             const server_id& sid, uint64_t version);
+        void server_shutdown1(replicant_state_machine_context* ctx,
+                              const server_id& sid);
+        void server_shutdown2(replicant_state_machine_context* ctx,
+                              const server_id& sid);
         // Transfers
         void xfer_begin(replicant_state_machine_context* ctx,
                         const region_id& rid,
@@ -92,15 +96,18 @@ class coordinator
         region* get_region(const transfer_id& xid);
         void issue_new_config(struct replicant_state_machine_context* ctx);
         void maintain_layout(struct replicant_state_machine_context* ctx, space* s);
+        void maintain_acked(struct replicant_state_machine_context* ctx);
         void regenerate_cached(struct replicant_state_machine_context* ctx);
 
     private:
         uint64_t m_cluster;
         uint64_t m_version;
         uint64_t m_counter;
+        uint64_t m_acked;
         std::vector<server_state> m_servers;
         std::map<std::string, std::tr1::shared_ptr<space> > m_spaces;
         std::auto_ptr<e::buffer> m_latest_config; // cached config
+        std::auto_ptr<e::buffer> m_resp; // response space
         drand48_data m_seed;
 
     private:

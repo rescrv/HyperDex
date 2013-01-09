@@ -64,6 +64,8 @@ TRANSITION(get_config);
 TRANSITION(ack_config);
 
 TRANSITION(server_register);
+TRANSITION(server_shutdown1);
+TRANSITION(server_shutdown2);
 TRANSITION(server_suspect);
 
 TRANSITION(xfer_begin);

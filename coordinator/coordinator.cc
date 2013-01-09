@@ -25,6 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#define __STDC_LIMIT_MACROS
+
 // C++
 #include <sstream>
 
@@ -116,7 +118,13 @@ hyperdex_coordinator_create(struct replicant_state_machine_context* ctx)
 {
     if (replicant_state_machine_condition_create(ctx, "config") < 0)
     {
-        fprintf(replicant_state_machine_log_stream(ctx), "condition creation failed\n");
+        fprintf(replicant_state_machine_log_stream(ctx), "could not create condition \"config\"\n");
+        return NULL;
+    }
+
+    if (replicant_state_machine_condition_create(ctx, "acked") < 0)
+    {
+        fprintf(replicant_state_machine_log_stream(ctx), "could not create condition \"acked\"\n");
         return NULL;
     }
 
@@ -277,6 +285,36 @@ hyperdex_coordinator_server_suspect(struct replicant_state_machine_context* ctx,
 }
 
 void
+hyperdex_coordinator_server_shutdown1(struct replicant_state_machine_context* ctx,
+                                      void* obj, const char* data, size_t data_sz)
+{
+    PROTECT_UNINITIALIZED;
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    coordinator* c = static_cast<coordinator*>(obj);
+    uint64_t _sid;
+    e::unpacker up(data, data_sz);
+    up = up >> _sid;
+    CHECK_UNPACK(server_shutdown1);
+    server_id sid(_sid);
+    c->server_shutdown1(ctx, sid);
+}
+
+void
+hyperdex_coordinator_server_shutdown2(struct replicant_state_machine_context* ctx,
+                                      void* obj, const char* data, size_t data_sz)
+{
+    PROTECT_UNINITIALIZED;
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    coordinator* c = static_cast<coordinator*>(obj);
+    uint64_t _sid;
+    e::unpacker up(data, data_sz);
+    up = up >> _sid;
+    CHECK_UNPACK(server_shutdown2);
+    server_id sid(_sid);
+    c->server_shutdown2(ctx, sid);
+}
+
+void
 hyperdex_coordinator_xfer_begin(struct replicant_state_machine_context* ctx,
                                 void* obj, const char* data, size_t data_sz)
 {
@@ -331,9 +369,11 @@ coordinator :: coordinator()
     : m_cluster(0)
     , m_version(0)
     , m_counter(1)
+    , m_acked(0)
     , m_servers()
     , m_spaces()
     , m_latest_config()
+    , m_resp()
     , m_seed()
 {
 }
@@ -461,6 +501,7 @@ coordinator :: ack_config(replicant_state_machine_context* ctx,
     {
         ss->version = version;
         fprintf(log, "server_id(%lu) acks config %lu\n", sid.get(), version);
+        maintain_acked(ctx);
     }
 
     return generate_response(ctx, COORD_SUCCESS);
@@ -531,6 +572,25 @@ coordinator :: server_suspect(replicant_state_machine_context* ctx,
     }
 
 #endif
+    return generate_response(ctx, COORD_SUCCESS);
+}
+
+void
+coordinator :: server_shutdown1(replicant_state_machine_context* ctx,
+                                const server_id& sid)
+{
+    // XXX setup captures
+
+    m_resp.reset(e::buffer::create(sizeof(uint16_t) + sizeof(uint64_t)));
+    *m_resp << static_cast<uint16_t>(COORD_SUCCESS) << m_version;
+    replicant_state_machine_set_response(ctx, reinterpret_cast<const char*>(m_resp->data()), m_resp->size());
+}
+
+void
+coordinator :: server_shutdown2(replicant_state_machine_context* ctx,
+                                const server_id& sid)
+{
+    // XXX remove server
     return generate_response(ctx, COORD_SUCCESS);
 }
 
@@ -727,6 +787,22 @@ coordinator :: get_region(const transfer_id& xid)
 }
 
 void
+coordinator :: issue_new_config(struct replicant_state_machine_context* ctx)
+{
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    uint64_t cond_state;
+
+    if (replicant_state_machine_condition_broadcast(ctx, "config", &cond_state) < 0)
+    {
+        fprintf(log, "could not broadcast on \"config\" condition\n");
+    }
+
+    ++m_version;
+    fprintf(log, "issuing new configuration version %lu\n", m_version);
+    m_latest_config.reset();
+}
+
+void
 coordinator :: maintain_layout(struct replicant_state_machine_context* ctx,
                                space* s)
 {
@@ -774,19 +850,28 @@ coordinator :: maintain_layout(struct replicant_state_machine_context* ctx,
 }
 
 void
-coordinator :: issue_new_config(struct replicant_state_machine_context* ctx)
+coordinator :: maintain_acked(struct replicant_state_machine_context* ctx)
 {
     FILE* log = replicant_state_machine_log_stream(ctx);
-    uint64_t cond_state;
+    uint64_t min_acked = UINT64_MAX;
 
-    if (replicant_state_machine_condition_broadcast(ctx, "config", &cond_state) < 0)
+    for (size_t i = 0; i < m_servers.size(); ++i)
     {
-        fprintf(log, "could not broadcast on \"config\" condition\n");
+        min_acked = std::min(min_acked, m_servers[i].version);
     }
 
-    ++m_version;
-    fprintf(log, "issuing new configuration version %lu\n", m_version);
-    m_latest_config.reset();
+    while (m_acked < min_acked)
+    {
+        if (replicant_state_machine_condition_broadcast(ctx, "acked", &m_acked) < 0)
+        {
+            fprintf(log, "could not broadcast on \"acked\" condition\n");
+            break;
+        }
+        else
+        {
+            fprintf(log, "servers have acked through version %lu\n", m_acked);
+        }
+    }
 }
 
 void

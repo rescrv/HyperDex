@@ -46,14 +46,22 @@
 
 using hyperdex::daemon;
 
-bool s_continue = true;
+int s_interrupts = 0;
 bool s_alarm = false;
 
 static void
 exit_on_signal(int /*signum*/)
 {
-    RAW_LOG(ERROR, "signal received; triggering exit");
-    s_continue = false;
+    if (s_interrupts == 0)
+    {
+        RAW_LOG(ERROR, "interrupted: initiating shutdown (interrupt again to exit immediately)");
+    }
+    else
+    {
+        RAW_LOG(ERROR, "interrupted again: exiting immediately");
+    }
+
+    ++s_interrupts;
 }
 
 static void
@@ -259,7 +267,7 @@ daemon :: run(bool daemonize,
         t->start();
     }
 
-    while (s_continue)
+    while (!m_coord.is_shutdown())
     {
         configuration old_config = m_config;
         configuration new_config;
@@ -309,7 +317,11 @@ daemon :: run(bool daemonize,
         m_coord.ack_config(new_config.version());
     }
 
-    LOG(INFO) << "hyperdex-daemon is gracefully shutting down";
+    if (m_coord.is_clean_shutdown())
+    {
+        LOG(INFO) << "hyperdex-daemon is gracefully shutting down";
+    }
+
     m_comm.shutdown();
 
     for (size_t i = 0; i < m_threads.size(); ++i)
@@ -351,7 +363,7 @@ daemon :: loop()
     std::auto_ptr<e::buffer> msg;
     e::unpacker up;
 
-    while (s_continue && m_comm.recv(&from, &vfrom, &vto, &type, &msg, &up))
+    while (m_comm.recv(&from, &vfrom, &vto, &type, &msg, &up))
     {
         assert(from != server_id());
         assert(vto != virtual_server_id());
