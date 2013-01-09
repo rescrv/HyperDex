@@ -52,6 +52,7 @@ coordinator_link :: coordinator_link(daemon* d)
     , m_get_config_status(REPLICANT_GARBAGE)
     , m_get_config_output(NULL)
     , m_get_config_output_sz(0)
+    , m_acks()
     , m_transfers_go_live()
     , m_transfers_complete()
     , m_tcp_disconnects()
@@ -350,6 +351,7 @@ coordinator_link :: wait_for_config(configuration* config)
         }
 
         need_to_backoff = false;
+        std::map<int64_t, std::pair<uint64_t, std::tr1::shared_ptr<replicant_returncode> > >::iterator ack_iter;
         std::map<int64_t, std::pair<transfer_id, std::tr1::shared_ptr<replicant_returncode> > >::iterator xfer_iter;
         std::map<int64_t, std::pair<server_id, std::tr1::shared_ptr<replicant_returncode> > >::iterator tcp_iter;
 
@@ -442,13 +444,22 @@ coordinator_link :: wait_for_config(configuration* config)
 
             return true;
         }
+        else if ((ack_iter = m_acks.find(lid)) != m_acks.end())
+        {
+            if (*ack_iter->second.second != REPLICANT_SUCCESS)
+            {
+                LOG(ERROR) << "could not ack config " << ack_iter->second.first
+                           << " because " << *ack_iter->second.second;
+            }
+
+            m_acks.erase(ack_iter);
+        }
         else if ((xfer_iter = m_transfers_go_live.find(lid)) != m_transfers_go_live.end())
         {
             if (*xfer_iter->second.second != REPLICANT_SUCCESS)
             {
                 LOG(ERROR) << "could not report live transfer " << xfer_iter->second.first
                            << " because " << *xfer_iter->second.second;
-                continue;
             }
 
             m_transfers_go_live.erase(xfer_iter);
@@ -459,7 +470,6 @@ coordinator_link :: wait_for_config(configuration* config)
             {
                 LOG(ERROR) << "could not report complete transfer " << xfer_iter->second.first
                            << " because " << *xfer_iter->second.second;
-                continue;
             }
 
             m_transfers_complete.erase(xfer_iter);
@@ -470,7 +480,6 @@ coordinator_link :: wait_for_config(configuration* config)
             {
                 LOG(ERROR) << "could not report tcp disconnect to " << tcp_iter->second.first
                            << " because " << *tcp_iter->second.second;
-                continue;
             }
 
             m_tcp_disconnects.erase(tcp_iter);
@@ -482,6 +491,31 @@ coordinator_link :: wait_for_config(configuration* config)
     }
 
     return false;
+}
+
+void
+coordinator_link :: ack_config(uint64_t version)
+{
+    char data[2 * sizeof(uint64_t)];
+    char* ptr = data;
+    ptr = e::pack64be(m_daemon->m_us.get(), ptr);
+    ptr = e::pack64be(version, ptr);
+    std::tr1::shared_ptr<replicant_returncode> ret(new replicant_returncode(REPLICANT_GARBAGE));
+    int64_t req_id = m_repl->send("hyperdex", "ack-config", data, 2 * sizeof(uint64_t),
+                                  ret.get(), NULL, NULL);
+
+    if (req_id < 0)
+    {
+        LOG(ERROR) << "could ack new config: "
+                   << m_repl->last_error_desc()
+                   << "(" << ret.get() << ";"
+                   << m_repl->last_error_file() << ":"
+                   << m_repl->last_error_line() << ")";
+    }
+    else
+    {
+        m_acks.insert(std::make_pair(req_id, std::make_pair(version, ret)));
+    }
 }
 
 void

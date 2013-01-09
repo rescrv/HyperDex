@@ -305,7 +305,8 @@ daemon :: run(bool daemonize,
         m_repl.cleanup(old_config, new_config, m_us);
         m_comm.cleanup(old_config, new_config, m_us);
         m_data.cleanup(old_config, new_config, m_us);
-        // XXX let the coordinator know we've moved to this config
+        // let the coordinator know we've moved to this config
+        m_coord.ack_config(new_config.version());
     }
 
     LOG(INFO) << "hyperdex-daemon is gracefully shutting down";

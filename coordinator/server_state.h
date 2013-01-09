@@ -40,16 +40,38 @@ namespace hyperdex
 class server_state
 {
     public:
-        server_state() : id(), bind_to() {}
+        server_state();
         server_state(const server_id& _id,
-                     const po6::net::location& _bind_to)
-            : id(_id), bind_to(_bind_to) {}
-        ~server_state() throw () {}
+                     const po6::net::location& _bind_to);
+        ~server_state() throw ();
 
     public:
         server_id id;
         po6::net::location bind_to;
+        uint64_t version;
 };
+
+inline
+server_state :: server_state()
+    : id()
+    , bind_to()
+    , version(0)
+{
+}
+
+inline
+server_state :: server_state(const server_id& _id,
+                             const po6::net::location& _bind_to)
+    : id(_id)
+    , bind_to(_bind_to)
+    , version(0)
+{
+}
+
+inline
+server_state :: ~server_state() throw ()
+{
+}
 
 inline bool
 operator < (const server_state& lhs, const server_state& rhs)

@@ -38,7 +38,7 @@ struct replicant_state_machine rsm = {
     hyperdex_coordinator_destroy,
     hyperdex_coordinator_snapshot,
     {{"get-config", hyperdex_coordinator_get_config},
-
+     {"ack-config", hyperdex_coordinator_ack_config},
      {"xfer-begin", hyperdex_coordinator_xfer_begin},
      {"xfer-go-live", hyperdex_coordinator_xfer_go_live},
      {"xfer-complete", hyperdex_coordinator_xfer_complete},

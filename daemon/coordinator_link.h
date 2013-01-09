@@ -47,8 +47,8 @@ namespace hyperdex
 {
 class daemon;
 
-// The thread whose pthread_self is passed to "set_looper" can call everything.
-// All other threads are left with the threadsafe block below.
+// The thread whose calls the constructor can call everything.  All other
+// threads are left with the threadsafe block below.
 
 class coordinator_link
 {
@@ -60,6 +60,7 @@ class coordinator_link
         void set_coordinator_address(const char* host, uint16_t port);
         int register_id(server_id us, const po6::net::location& bind_to);
         bool wait_for_config(configuration* config);
+        void ack_config(uint64_t version);
 
     // threadsafe
     public:
@@ -84,6 +85,7 @@ class coordinator_link
         replicant_returncode m_get_config_status;
         const char* m_get_config_output;
         size_t m_get_config_output_sz;
+        std::map<int64_t, std::pair<uint64_t, std::tr1::shared_ptr<replicant_returncode> > > m_acks;
         std::map<int64_t, std::pair<transfer_id, std::tr1::shared_ptr<replicant_returncode> > > m_transfers_go_live;
         std::map<int64_t, std::pair<transfer_id, std::tr1::shared_ptr<replicant_returncode> > > m_transfers_complete;
         std::map<int64_t, std::pair<server_id, std::tr1::shared_ptr<replicant_returncode> > > m_tcp_disconnects;

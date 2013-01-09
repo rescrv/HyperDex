@@ -61,6 +61,7 @@ TRANSITION(add_space);
 TRANSITION(rm_space);
 
 TRANSITION(get_config);
+TRANSITION(ack_config);
 
 TRANSITION(server_register);
 TRANSITION(server_suspect);

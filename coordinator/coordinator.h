@@ -69,6 +69,7 @@ class coordinator
         void rm_space(replicant_state_machine_context* ctx, const char* name);
         // Issue configs
         void get_config(replicant_state_machine_context* ctx);
+        void ack_config(replicant_state_machine_context* ctx, const server_id&, uint64_t version);
         // Manage cluster membership
         void server_register(replicant_state_machine_context* ctx,
                              const server_id& sid,
@@ -85,6 +86,7 @@ class coordinator
                            const transfer_id& xid);
 
     private:
+        server_state* get_state(const server_id& sid);
         bool is_registered(const server_id& sid);
         region* get_region(const region_id& rid);
         region* get_region(const transfer_id& xid);

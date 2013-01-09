@@ -229,6 +229,22 @@ hyperdex_coordinator_get_config(struct replicant_state_machine_context* ctx,
 }
 
 void
+hyperdex_coordinator_ack_config(struct replicant_state_machine_context* ctx,
+                                void* obj, const char* data, size_t data_sz)
+{
+    PROTECT_UNINITIALIZED;
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    coordinator* c = static_cast<coordinator*>(obj);
+    uint64_t _sid;
+    uint64_t version;
+    e::unpacker up(data, data_sz);
+    up = up >> _sid >> version;
+    CHECK_UNPACK(ack_config);
+    server_id sid(_sid);
+    c->ack_config(ctx, sid, version);
+}
+
+void
 hyperdex_coordinator_server_register(struct replicant_state_machine_context* ctx,
                                      void* obj, const char* data, size_t data_sz)
 {
@@ -434,6 +450,23 @@ coordinator :: get_config(replicant_state_machine_context* ctx)
 }
 
 void
+coordinator :: ack_config(replicant_state_machine_context* ctx,
+                          const server_id& sid,
+                          uint64_t version)
+{
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    server_state* ss = get_state(sid);
+
+    if (ss)
+    {
+        ss->version = version;
+        fprintf(log, "server_id(%lu) acks config %lu\n", sid.get(), version);
+    }
+
+    return generate_response(ctx, COORD_SUCCESS);
+}
+
+void
 coordinator :: server_register(replicant_state_machine_context* ctx,
                                const server_id& sid,
                                const po6::net::location& bind_to)
@@ -619,6 +652,20 @@ coordinator :: xfer_complete(replicant_state_machine_context* ctx,
     fprintf(log, "transfer_id(%lu) is now complete\n", xid.get());
     issue_new_config(ctx);
     return generate_response(ctx, COORD_SUCCESS);
+}
+
+server_state*
+coordinator :: get_state(const server_id& sid)
+{
+    std::vector<server_state>::iterator it;
+    it = std::lower_bound(m_servers.begin(), m_servers.end(), sid);
+
+    if (it != m_servers.end() && it->id == sid)
+    {
+        return &(*it);
+    }
+
+    return NULL;
 }
 
 bool
