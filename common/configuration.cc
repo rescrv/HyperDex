@@ -522,6 +522,11 @@ configuration :: captured_regions(const server_id& si, std::vector<region_id>* s
                         break;
                     }
                 }
+
+                if (m_spaces[s].subspaces[ss].regions[r].tsi == si)
+                {
+                    servers->push_back(m_spaces[s].subspaces[ss].regions[r].id);
+                }
             }
         }
     }
