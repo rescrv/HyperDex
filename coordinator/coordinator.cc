@@ -611,12 +611,6 @@ coordinator :: server_shutdown1(replicant_state_machine_context* ctx,
                                 const server_id& sid)
 {
     // XXX setup captures
-    server_state* state = get_state(sid);
-
-    if (state)
-    {
-        state->suspected = UINT64_MAX;
-    }
 
     m_resp.reset(e::buffer::create(sizeof(uint16_t) + sizeof(uint64_t)));
     *m_resp << static_cast<uint16_t>(COORD_SUCCESS) << m_version;
