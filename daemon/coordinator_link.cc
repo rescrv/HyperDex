@@ -357,14 +357,29 @@ coordinator_link :: wait_for_config(configuration* config)
             }
         }
 
+        int timeout = s_interrupts > 0 ? 10 * 1000: -1;
         replicant_returncode lstatus = REPLICANT_GARBAGE;
-        int64_t lid = m_repl->loop(-1, &lstatus);
+        int64_t lid = m_repl->loop(timeout, &lstatus);
 
         if (lid < 0)
         {
             switch (lstatus)
             {
                 case REPLICANT_TIMEOUT:
+                    if (timeout < 0)
+                    {
+                        LOG(ERROR) << "replicant returned REPLICANT_TIMEOUT when we requested an infinite timeout: "
+                                   << m_repl->last_error_desc()
+                                   << "(" << lstatus << ";"
+                                   << m_repl->last_error_file() << ":"
+                                   << m_repl->last_error_line() << ")";
+                    }
+                    else
+                    {
+                        LOG(ERROR) << "could not shutdown cleanly within " << (timeout / 1000. ) << " seconds; "
+                                   << "performing a dirty shutdown";
+                    }
+                    m_state = DIRTY_SHUTDOWN;
                     break;
                 case REPLICANT_INTERRUPTED:
                     need_to_backoff = false;
@@ -777,7 +792,7 @@ coordinator_link :: initiate_transfer_complete(const transfer_id& id)
     }
     else
     {
-        m_transfers_go_live.insert(std::make_pair(req_id, std::make_pair(id, ret)));
+        m_transfers_complete.insert(std::make_pair(req_id, std::make_pair(id, ret)));
     }
 }
 
@@ -785,10 +800,11 @@ void
 coordinator_link :: initiate_report_tcp_disconnect(const server_id& id)
 {
     LOG(INFO) << "asking the coordinator to record tcp disconnect for " << id;
-    char buf[sizeof(uint64_t)];
+    char buf[2 * sizeof(uint64_t)];
     e::pack64be(id.get(), buf);
+    e::pack64be(m_daemon->m_config.version(), buf + sizeof(uint64_t));
     std::tr1::shared_ptr<replicant_returncode> ret(new replicant_returncode(REPLICANT_GARBAGE));
-    int64_t req_id = m_repl->send("hyperdex", "server-suspect", buf, sizeof(uint64_t),
+    int64_t req_id = m_repl->send("hyperdex", "server-suspect", buf, 2 * sizeof(uint64_t),
                                   ret.get(), NULL, NULL);
 
     if (req_id < 0)

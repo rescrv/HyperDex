@@ -94,8 +94,10 @@ class coordinator
         bool is_registered(const server_id& sid);
         region* get_region(const region_id& rid);
         region* get_region(const transfer_id& xid);
+        server_id select_new_server_for(const std::vector<replica>& replicas);
         void issue_new_config(struct replicant_state_machine_context* ctx);
-        void maintain_layout(struct replicant_state_machine_context* ctx, space* s);
+        void initial_layout(struct replicant_state_machine_context* ctx, space* s);
+        void maintain_layout(struct replicant_state_machine_context* ctx);
         void maintain_acked(struct replicant_state_machine_context* ctx);
         void regenerate_cached(struct replicant_state_machine_context* ctx);
 

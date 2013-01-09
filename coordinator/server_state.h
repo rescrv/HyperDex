@@ -46,9 +46,13 @@ class server_state
         ~server_state() throw ();
 
     public:
+        bool available() const { return version >= suspected; }
+
+    public:
         server_id id;
         po6::net::location bind_to;
         uint64_t version;
+        uint64_t suspected;
 };
 
 inline
@@ -56,6 +60,7 @@ server_state :: server_state()
     : id()
     , bind_to()
     , version(0)
+    , suspected(0)
 {
 }
 
@@ -65,6 +70,7 @@ server_state :: server_state(const server_id& _id,
     : id(_id)
     , bind_to(_bind_to)
     , version(0)
+    , suspected(0)
 {
 }
 

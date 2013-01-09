@@ -356,9 +356,9 @@ hyperdex_coordinator_xfer_complete(struct replicant_state_machine_context* ctx,
     uint64_t _xid;
     e::unpacker up(data, data_sz);
     up = up >> _xid;
-    CHECK_UNPACK(xfer_go_live);
+    CHECK_UNPACK(xfer_complete);
     transfer_id xid(_xid);
-    c->xfer_go_live(ctx, xid);
+    c->xfer_complete(ctx, xid);
 }
 
 } // extern "C"
@@ -448,7 +448,7 @@ coordinator :: add_space(replicant_state_machine_context* ctx, const space& _s)
     }
 
     m_spaces.insert(std::make_pair(std::string(s->name), s));
-    maintain_layout(ctx, s.get());
+    initial_layout(ctx, s.get());
     fprintf(log, "successfully added space \"%s\" with space_id(%lu)\n", s->name, s->id.get());
     issue_new_config(ctx);
     return generate_response(ctx, COORD_SUCCESS);
@@ -525,6 +525,7 @@ coordinator :: server_register(replicant_state_machine_context* ctx,
     m_servers.push_back(server_state(sid, bind_to));
     std::stable_sort(m_servers.begin(), m_servers.end());
     fprintf(log, "registered server_id(%lu) on address %s\n", sid.get(), oss.str().c_str());
+    maintain_layout(ctx);
     return generate_response(ctx, hyperdex::COORD_SUCCESS);
 }
 
@@ -533,29 +534,47 @@ coordinator :: server_suspect(replicant_state_machine_context* ctx,
                               const server_id& sid, uint64_t version)
 {
     FILE* log = replicant_state_machine_log_stream(ctx);
-    fprintf(log, "server_id(%lu) suspected in version %lu\n", sid.get(), version);
-    // XXX
-#if 0
-    server_id sid(_sid);
+    fprintf(log, "server_id(%lu) suspected (reporter sees version %lu)\n", sid.get(), version);
+    uint64_t changes = 0;
 
-    for (std::list<space>::iterator s = c->spaces.begin(); s != c->spaces.end(); ++s)
+    server_state* state = get_state(sid);
+
+    if (state)
     {
-        for (size_t i = 0; i < s->subspaces.size(); ++i)
+        state->suspected = m_version + 1;
+    }
+
+    for (std::map<std::string, std::tr1::shared_ptr<space> >::iterator it = m_spaces.begin();
+            it != m_spaces.end(); ++it)
+    {
+        space& s(*it->second);
+
+        for (size_t i = 0; i < s.subspaces.size(); ++i)
         {
-            for (size_t j = 0; j < s->subspaces[i].regions.size(); ++j)
+            subspace& ss(s.subspaces[i]);
+
+            for (size_t j = 0; j < ss.regions.size(); ++j)
             {
+                region& reg(ss.regions[j]);
                 size_t k = 0;
 
-                while (k < s->subspaces[i].regions[j].replicas.size())
+                while (k < reg.replicas.size())
                 {
-                    if (s->subspaces[i].regions[j].replicas[k].si == sid)
+                    if (reg.replicas[k].si == sid)
                     {
-                        for (size_t r = k; r + 1 < s->subspaces[i].regions[j].replicas.size(); ++r)
+                        fprintf(log, "server_id(%lu) removed from region_id(%lu)\n", sid.get(), reg.id.get());
+
+                        for (size_t x = k; x + 1 < reg.replicas.size(); ++x)
                         {
-                            s->subspaces[i].regions[j].replicas[r] = s->subspaces[i].regions[j].replicas[r + 1];
+                            reg.replicas[x] = reg.replicas[x + 1];
                         }
 
-                        s->subspaces[i].regions[j].replicas.pop_back();
+                        reg.replicas.pop_back();
+                        reg.cid = capture_id();
+                        reg.tid = transfer_id();
+                        reg.tsi = server_id();
+                        reg.tvi = virtual_server_id();
+                        ++changes;
                     }
                     else
                     {
@@ -563,15 +582,27 @@ coordinator :: server_suspect(replicant_state_machine_context* ctx,
                     }
                 }
 
-                if (s->subspaces[i].regions[j].replicas.empty())
+                if (reg.tsi == sid)
                 {
-                    fprintf(replicant_state_machine_log_stream(ctx), "kill completely emptied a region\n");
+                    fprintf(log, "ending transfer_id(%lu) ended because it "
+                                 "involved server_id(%lu)\n",
+                                 reg.tid.get(), reg.tsi.get());
+                    reg.cid = capture_id();
+                    reg.tid = transfer_id();
+                    reg.tsi = server_id();
+                    reg.tvi = virtual_server_id();
+                    ++changes;
                 }
             }
         }
     }
 
-#endif
+    if (changes > 0)
+    {
+        issue_new_config(ctx);
+        maintain_layout(ctx);
+    }
+
     return generate_response(ctx, COORD_SUCCESS);
 }
 
@@ -580,6 +611,12 @@ coordinator :: server_shutdown1(replicant_state_machine_context* ctx,
                                 const server_id& sid)
 {
     // XXX setup captures
+    server_state* state = get_state(sid);
+
+    if (state)
+    {
+        state->suspected = UINT64_MAX;
+    }
 
     m_resp.reset(e::buffer::create(sizeof(uint16_t) + sizeof(uint64_t)));
     *m_resp << static_cast<uint16_t>(COORD_SUCCESS) << m_version;
@@ -590,6 +627,13 @@ void
 coordinator :: server_shutdown2(replicant_state_machine_context* ctx,
                                 const server_id& sid)
 {
+    server_state* state = get_state(sid);
+
+    if (state)
+    {
+        state->suspected = UINT64_MAX;
+    }
+
     // XXX remove server
     return generate_response(ctx, COORD_SUCCESS);
 }
@@ -627,13 +671,22 @@ coordinator :: xfer_begin(replicant_state_machine_context* ctx,
         return generate_response(ctx, COORD_TRANSFER_IN_PROGRESS);
     }
 
+    for (size_t i = 0; i < reg->replicas.size(); ++i)
+    {
+        if (reg->replicas[i].si == sid)
+        {
+            fprintf(log, "cannot begin transfer of region_id(%lu) "
+                         "to server_id(%lu) because server_id(%lu) "
+                         "is already in the region\n", rid.get(), sid.get(), sid.get());
+            return generate_response(ctx, COORD_DUPLICATE);
+        }
+    }
+
     if (reg->cid == capture_id())
     {
         reg->cid = capture_id(m_counter);
         ++m_counter;
     }
-
-    // XXX make sure sid not already in region
 
     reg->tid = transfer_id(m_counter);
     ++m_counter;
@@ -711,6 +764,7 @@ coordinator :: xfer_complete(replicant_state_machine_context* ctx,
     reg->tvi = virtual_server_id();
     fprintf(log, "transfer_id(%lu) is now complete\n", xid.get());
     issue_new_config(ctx);
+    maintain_layout(ctx);
     return generate_response(ctx, COORD_SUCCESS);
 }
 
@@ -786,6 +840,43 @@ coordinator :: get_region(const transfer_id& xid)
     return NULL;
 }
 
+server_id
+coordinator :: select_new_server_for(const std::vector<replica>& replicas)
+{
+    std::vector<server_id> available;
+
+    for (size_t i = 0; i < m_servers.size(); ++i)
+    {
+        if (m_servers[i].available())
+        {
+            available.push_back(m_servers[i].id);
+        }
+    }
+
+    while (available.size() > replicas.size())
+    {
+        long int y;
+        lrand48_r(&m_seed, &y);
+        bool found = false;
+        server_id tmp(m_servers[y % m_servers.size()].id);
+
+        for (size_t x = 0; x < replicas.size(); ++x)
+        {
+            if (tmp == replicas[x].si)
+            {
+                found = true;
+            }
+        }
+
+        if (!found)
+        {
+            return tmp;
+        }
+    }
+
+    return server_id();
+}
+
 void
 coordinator :: issue_new_config(struct replicant_state_machine_context* ctx)
 {
@@ -803,8 +894,8 @@ coordinator :: issue_new_config(struct replicant_state_machine_context* ctx)
 }
 
 void
-coordinator :: maintain_layout(struct replicant_state_machine_context* ctx,
-                               space* s)
+coordinator :: initial_layout(struct replicant_state_machine_context* ctx,
+                              space* s)
 {
     for (size_t i = 0; i < s->subspaces.size(); ++i)
     {
@@ -813,29 +904,15 @@ coordinator :: maintain_layout(struct replicant_state_machine_context* ctx,
         for (size_t j = 0; j < ss.regions.size(); ++j)
         {
             region& reg(ss.regions[j]);
+            server_id new_server;
 
-            while (reg.replicas.size() < std::min(s->fault_tolerance + 1, m_servers.size()))
+            while (reg.replicas.size() < s->fault_tolerance + 1 &&
+                   (new_server = select_new_server_for(reg.replicas)) != server_id())
             {
-                long int y;
-                lrand48_r(&m_seed, &y);
-                server_id sid(m_servers[y % m_servers.size()].id);
-                bool found = false;
-
-                for (size_t k = 0; k < reg.replicas.size(); ++k)
-                {
-                    if (sid == reg.replicas[k].si)
-                    {
-                        found = true;
-                    }
-                }
-
-                if (!found)
-                {
-                    reg.replicas.push_back(replica());
-                    reg.replicas.back().si = sid;
-                    reg.replicas.back().vsi = virtual_server_id(m_counter);
-                    ++m_counter;
-                }
+                reg.replicas.push_back(replica());
+                reg.replicas.back().si = new_server;
+                reg.replicas.back().vsi = virtual_server_id(m_counter);
+                ++m_counter;
             }
         }
     }
@@ -847,6 +924,59 @@ coordinator :: maintain_layout(struct replicant_state_machine_context* ctx,
                      "tolerance; add more servers\n",
                      s->name, s->fault_tolerance, m_servers.empty() ? 0 : m_servers.size() - 1);
     }
+}
+
+void
+coordinator :: maintain_layout(replicant_state_machine_context* ctx)
+{
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    uint64_t changes = 0;
+
+    for (std::map<std::string, std::tr1::shared_ptr<space> >::iterator it = m_spaces.begin();
+            it != m_spaces.end(); ++it)
+    {
+        space& s(*it->second);
+
+        for (size_t i = 0; i < s.subspaces.size(); ++i)
+        {
+            subspace& ss(s.subspaces[i]);
+            server_id replacement;
+
+            for (size_t j = 0; j < ss.regions.size(); ++j)
+            {
+                region& reg(ss.regions[j]);
+
+                if (reg.replicas.empty())
+                {
+                    fprintf(log, "region_id(%lu) completely empty; cannot transfer to another node\n", reg.id.get());
+                }
+                else if (reg.tid == transfer_id() && 
+                         reg.replicas.size() < s.fault_tolerance + 1 &&
+                         (replacement = select_new_server_for(reg.replicas)) != server_id())
+                {
+                    reg.cid = capture_id(m_counter);
+                    ++m_counter;
+                    reg.tid = transfer_id(m_counter);
+                    ++m_counter;
+                    reg.tsi = replacement;
+                    reg.tvi = virtual_server_id(m_counter);
+                    ++m_counter;
+                    fprintf(log, "adding server_id(%lu) to region_id(%lu) "
+                                 "using capture_id(%lu)/transfer_id(%lu)/virtual_server_id(%lu)\n",
+                                 replacement.get(), reg.id.get(),
+                                 reg.cid.get(), reg.tid.get(), reg.tvi.get());
+                    ++changes;
+                }
+            }
+        }
+    }
+
+    if (changes > 0)
+    {
+        issue_new_config(ctx);
+    }
+
+    return generate_response(ctx, COORD_SUCCESS);
 }
 
 void

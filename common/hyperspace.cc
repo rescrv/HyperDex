@@ -476,6 +476,7 @@ hyperdex :: pack_size(const region& r)
               + sizeof(uint8_t) /* num_replicas */
               + sizeof(uint8_t) /* flags */
               + 2 * sizeof(uint64_t) * r.lower_coord.size()
+              + sizeof(uint64_t) /* cid */
               + sizeof(uint64_t) /* tid */
               + sizeof(uint64_t) /* tsi */
               + sizeof(uint64_t); /* tvi */
