@@ -1366,6 +1366,26 @@
     return attrs;
   }
 
+  public void add_space(Object desc) throws HyperClientException
+  {
+    hyperclient_returncode rc = add_space(getBytes(desc,true));
+
+    if ( rc != hyperclient_returncode.HYPERCLIENT_SUCCESS )
+    {
+        throw new HyperClientException(rc);
+    }
+  }
+
+  public void rm_space(Object space) throws HyperClientException
+  {
+    hyperclient_returncode rc = rm_space(getBytes(space,true));
+
+    if ( rc != hyperclient_returncode.HYPERCLIENT_SUCCESS )
+    {
+        throw new HyperClientException(rc);
+    }
+  }
+
   // Synchronous methods
   //
   public java.util.Map get(Object space, Object key) throws HyperClientException,
