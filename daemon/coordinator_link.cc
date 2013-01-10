@@ -447,6 +447,9 @@ coordinator_link :: wait_for_config(configuration* config)
         }
         else if (lid == m_get_config_id)
         {
+            m_get_config_id = -1;
+            need_to_backoff = true;
+
             switch (m_get_config_status)
             {
                 case REPLICANT_SUCCESS:
@@ -496,11 +499,12 @@ coordinator_link :: wait_for_config(configuration* config)
                     abort();
             }
 
+            need_to_backoff = false;
+            m_get_config_status = REPLICANT_GARBAGE;
             e::unpacker up(m_get_config_output, m_get_config_output_sz);
             up = up >> *config;
-            m_get_config_id = -1;
-            m_get_config_status = REPLICANT_GARBAGE;
             replicant_destroy_output(m_get_config_output, m_get_config_output_sz);
+            m_get_config_output = NULL;
 
             if (up.error())
             {
@@ -757,6 +761,12 @@ coordinator_link :: initiate_wait_for_config()
 bool
 coordinator_link :: initiate_get_config()
 {
+    if (m_get_config_output)
+    {
+        replicant_destroy_output(m_get_config_output, m_get_config_output_sz);
+        m_get_config_output = NULL;
+    }
+
     m_get_config_id = m_repl->send("hyperdex", "get-config", "", 0,
                                    &m_get_config_status,
                                    &m_get_config_output, &m_get_config_output_sz);
