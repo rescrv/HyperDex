@@ -46,21 +46,23 @@ class server_state
         ~server_state() throw ();
 
     public:
-        bool available() const { return version >= suspected; }
-
-    public:
         server_id id;
         po6::net::location bind_to;
+        enum { AVAILABLE, NOT_AVAILABLE, SHUTDOWN } state;
+        // the most recent config that this server has acked
+        uint64_t acked;
+        // the most recent config for which this server was available if
+        // this->state != AVAILABLE (undefined if this->state == AVAILABLE)
         uint64_t version;
-        uint64_t suspected;
 };
 
 inline
 server_state :: server_state()
     : id()
     , bind_to()
+    , state(NOT_AVAILABLE)
+    , acked(0)
     , version(0)
-    , suspected(0)
 {
 }
 
@@ -69,8 +71,9 @@ server_state :: server_state(const server_id& _id,
                              const po6::net::location& _bind_to)
     : id(_id)
     , bind_to(_bind_to)
+    , state(AVAILABLE)
+    , acked(0)
     , version(0)
-    , suspected(0)
 {
 }
 

@@ -41,6 +41,7 @@
 #include "common/coordinator_returncode.h"
 #include "common/serialization.h"
 #include "coordinator/coordinator.h"
+#include "coordinator/server_state.h"
 #include "coordinator/transitions.h"
 
 //////////////////////////// C Transition Functions ////////////////////////////
@@ -499,8 +500,15 @@ coordinator :: ack_config(replicant_state_machine_context* ctx,
 
     if (ss)
     {
-        ss->version = version;
+        ss->acked = std::max(ss->acked, version);
         fprintf(log, "server_id(%lu) acks config %lu\n", sid.get(), version);
+
+        if (ss->state == server_state::NOT_AVAILABLE &&
+            ss->acked > ss->version)
+        {
+            ss->state = server_state::AVAILABLE;
+        }
+
         maintain_acked(ctx);
     }
 
@@ -523,6 +531,7 @@ coordinator :: server_register(replicant_state_machine_context* ctx,
     }
 
     m_servers.push_back(server_state(sid, bind_to));
+    m_servers.back().state = server_state::AVAILABLE;
     std::stable_sort(m_servers.begin(), m_servers.end());
     fprintf(log, "registered server_id(%lu) on address %s\n", sid.get(), oss.str().c_str());
     maintain_layout(ctx);
@@ -541,7 +550,8 @@ coordinator :: server_suspect(replicant_state_machine_context* ctx,
 
     if (state)
     {
-        state->suspected = m_version + 1;
+        state->state = server_state::NOT_AVAILABLE;
+        state->version = m_version;
     }
 
     for (std::map<std::string, std::tr1::shared_ptr<space> >::iterator it = m_spaces.begin();
@@ -611,7 +621,6 @@ coordinator :: server_shutdown1(replicant_state_machine_context* ctx,
                                 const server_id& sid)
 {
     // XXX setup captures
-
     m_resp.reset(e::buffer::create(sizeof(uint16_t) + sizeof(uint64_t)));
     *m_resp << static_cast<uint16_t>(COORD_SUCCESS) << m_version;
     replicant_state_machine_set_response(ctx, reinterpret_cast<const char*>(m_resp->data()), m_resp->size());
@@ -621,11 +630,11 @@ void
 coordinator :: server_shutdown2(replicant_state_machine_context* ctx,
                                 const server_id& sid)
 {
-    server_state* state = get_state(sid);
+    server_state* ss = get_state(sid);
 
-    if (state)
+    if (ss)
     {
-        state->suspected = UINT64_MAX;
+        ss->state = server_state::SHUTDOWN;
     }
 
     // XXX remove server
@@ -841,7 +850,7 @@ coordinator :: select_new_server_for(const std::vector<replica>& replicas)
 
     for (size_t i = 0; i < m_servers.size(); ++i)
     {
-        if (m_servers[i].available())
+        if (m_servers[i].state == server_state::AVAILABLE)
         {
             available.push_back(m_servers[i].id);
         }
@@ -981,21 +990,23 @@ coordinator :: maintain_acked(struct replicant_state_machine_context* ctx)
 
     for (size_t i = 0; i < m_servers.size(); ++i)
     {
-        min_acked = std::min(min_acked, m_servers[i].version);
+        if (m_servers[i].state == server_state::AVAILABLE ||
+            m_servers[i].acked < m_servers[i].version)
+        {
+            min_acked = std::min(min_acked, m_servers[i].acked);
+        }
     }
 
-    while (m_acked < min_acked)
+    while (min_acked != UINT64_MAX && m_acked < min_acked)
     {
         if (replicant_state_machine_condition_broadcast(ctx, "acked", &m_acked) < 0)
         {
             fprintf(log, "could not broadcast on \"acked\" condition\n");
             break;
         }
-        else
-        {
-            fprintf(log, "servers have acked through version %lu\n", m_acked);
-        }
     }
+
+    fprintf(log, "servers have acked through version %lu\n", m_acked);
 }
 
 void
