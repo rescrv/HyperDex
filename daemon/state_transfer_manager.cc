@@ -52,9 +52,8 @@ state_transfer_manager :: state_transfer_manager(daemon* d)
     , m_block_kickstarter()
     , m_wakeup_kickstarter(&m_block_kickstarter)
     , m_need_kickstart(false)
-    , m_shutdown(false)
+    , m_shutdown(true)
 {
-    m_kickstarter.start();
 }
 
 state_transfer_manager :: ~state_transfer_manager() throw ()
@@ -65,7 +64,10 @@ state_transfer_manager :: ~state_transfer_manager() throw ()
 bool
 state_transfer_manager :: setup()
 {
-    return false;
+    po6::threads::mutex::hold hold(&m_block_kickstarter);
+    m_kickstarter.start();
+    m_shutdown = false;
+    return true;
 }
 
 void

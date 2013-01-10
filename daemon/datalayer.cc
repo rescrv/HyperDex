@@ -74,15 +74,12 @@ datalayer :: datalayer(daemon* d)
     , m_block_cleaner()
     , m_wakeup_cleaner(&m_block_cleaner)
     , m_need_cleaning(false)
-    , m_shutdown(false)
+    , m_shutdown(true)
 {
-    m_cleaner.start();
 }
 
 datalayer :: ~datalayer() throw ()
 {
-    // Intentionally leak m_db if destructed.  It must be released from
-    // "teardown" to ensure we clean up outstanding snapshots first.
     shutdown();
 }
 
@@ -229,6 +226,12 @@ datalayer :: setup(const po6::pathname& path,
                    << "unknown error that we don't know how to handle:  "
                    << st.ToString();
         return false;
+    }
+
+    {
+        po6::threads::mutex::hold hold(&m_block_cleaner);
+        m_cleaner.start();
+        m_shutdown = false;
     }
 
     if (first_time)
