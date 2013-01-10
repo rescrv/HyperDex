@@ -67,6 +67,9 @@ coordinator_link :: coordinator_link(daemon* d)
     , m_transfers_go_live()
     , m_transfers_complete()
     , m_tcp_disconnects()
+    , m_transfers_go_live_seen()
+    , m_transfers_complete_seen()
+    , m_tcp_disconnects_seen()
     , m_protect_queues()
     , m_queue_transfers_go_live()
     , m_queue_transfers_complete()
@@ -519,6 +522,9 @@ coordinator_link :: wait_for_config(configuration* config)
                 continue;
             }
 
+            m_transfers_go_live_seen.clear();
+            m_transfers_complete_seen.clear();
+            m_tcp_disconnects_seen.clear();
             return true;
         }
         else if (lid == m_shutdown1_id)
@@ -771,7 +777,12 @@ coordinator_link :: initiate_get_config()
 void
 coordinator_link :: initiate_transfer_go_live(const transfer_id& id)
 {
-    LOG(INFO) << "asking the coordinator to mark " << id << " live";
+    if (m_transfers_go_live_seen.find(id) == m_transfers_go_live_seen.end())
+    {
+        LOG(INFO) << "asking the coordinator to mark " << id << " live";
+        m_transfers_go_live_seen.insert(id);
+    }
+
     char buf[sizeof(uint64_t)];
     e::pack64be(id.get(), buf);
     std::tr1::shared_ptr<replicant_returncode> ret(new replicant_returncode(REPLICANT_GARBAGE));
@@ -791,7 +802,12 @@ coordinator_link :: initiate_transfer_go_live(const transfer_id& id)
 void
 coordinator_link :: initiate_transfer_complete(const transfer_id& id)
 {
-    LOG(INFO) << "asking the coordinator to mark " << id << " complete";
+    if (m_transfers_complete_seen.find(id) == m_transfers_complete_seen.end())
+    {
+        LOG(INFO) << "asking the coordinator to mark " << id << " complete";
+        m_transfers_complete_seen.insert(id);
+    }
+
     char buf[sizeof(uint64_t)];
     e::pack64be(id.get(), buf);
     std::tr1::shared_ptr<replicant_returncode> ret(new replicant_returncode(REPLICANT_GARBAGE));
@@ -811,7 +827,12 @@ coordinator_link :: initiate_transfer_complete(const transfer_id& id)
 void
 coordinator_link :: initiate_report_tcp_disconnect(const server_id& id)
 {
-    LOG(INFO) << "asking the coordinator to record tcp disconnect for " << id;
+    if (m_tcp_disconnects_seen.find(id) == m_tcp_disconnects_seen.end())
+    {
+        LOG(INFO) << "asking the coordinator to record tcp disconnect for " << id;
+        m_tcp_disconnects_seen.insert(id);
+    }
+
     char buf[2 * sizeof(uint64_t)];
     e::pack64be(id.get(), buf);
     e::pack64be(m_daemon->m_config.version(), buf + sizeof(uint64_t));

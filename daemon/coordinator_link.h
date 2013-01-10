@@ -30,6 +30,7 @@
 
 // STL
 #include <map>
+#include <set>
 #include <queue>
 #include <tr1/memory>
 
@@ -102,6 +103,9 @@ class coordinator_link
         std::map<int64_t, std::pair<transfer_id, std::tr1::shared_ptr<replicant_returncode> > > m_transfers_go_live;
         std::map<int64_t, std::pair<transfer_id, std::tr1::shared_ptr<replicant_returncode> > > m_transfers_complete;
         std::map<int64_t, std::pair<server_id, std::tr1::shared_ptr<replicant_returncode> > > m_tcp_disconnects;
+        std::set<transfer_id> m_transfers_go_live_seen;
+        std::set<transfer_id> m_transfers_complete_seen;
+        std::set<server_id> m_tcp_disconnects_seen;
         po6::threads::mutex m_protect_queues;
         std::queue<transfer_id> m_queue_transfers_go_live;
         std::queue<transfer_id> m_queue_transfers_complete;
