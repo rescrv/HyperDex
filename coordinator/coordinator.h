@@ -92,6 +92,7 @@ class coordinator
     private:
         server_state* get_state(const server_id& sid);
         bool is_registered(const server_id& sid);
+        bool is_registered(const po6::net::location& bind_to);
         region* get_region(const region_id& rid);
         region* get_region(const transfer_id& xid);
         server_id select_new_server_for(const std::vector<replica>& replicas);

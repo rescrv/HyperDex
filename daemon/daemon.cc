@@ -211,35 +211,33 @@ daemon :: run(bool daemonize,
     {
         LOG(INFO) << "starting new daemon from command-line arguments";
         m_coord.set_coordinator_address(coordinator.address.c_str(), coordinator.port);
+        uint64_t sid;
 
-        while (true)
+        if (!generate_token(&sid))
         {
-            uint64_t sid;
+            PLOG(ERROR) << "could not read random token from /dev/urandom";
+            return EXIT_FAILURE;
+        }
 
-            if (!generate_token(&sid))
-            {
-                PLOG(ERROR) << "could not read random token from /dev/urandom";
-                return EXIT_FAILURE;
-            }
+        LOG(INFO) << "generated new random token:  " << sid;
 
-            LOG(INFO) << "generated new random token:  " << sid;
+        int verify = m_coord.register_id(server_id(sid), bind_to);
 
-            int verify = m_coord.register_id(server_id(sid), bind_to);
-
-            if (verify < 0)
-            {
-                // reason logged by register_id
-                return EXIT_FAILURE;
-            }
-            else if (verify > 0)
-            {
-                m_us = server_id(sid);
-                break;
-            }
-            else
-            {
-                LOG(INFO) << "generated token already in use; you should buy a lotto ticket (we're retrying)";
-            }
+        if (verify < 0)
+        {
+            // reason logged by register_id
+            return EXIT_FAILURE;
+        }
+        else if (verify > 0)
+        {
+            m_us = server_id(sid);
+        }
+        else
+        {
+            LOG(INFO) << "cannot register because another server has registered "
+                      << "with our token or listen address; check the coordinator "
+                      << "for details";
+            return EXIT_FAILURE;
         }
     }
 

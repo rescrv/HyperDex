@@ -530,6 +530,12 @@ coordinator :: server_register(replicant_state_machine_context* ctx,
         return generate_response(ctx, hyperdex::COORD_DUPLICATE);
     }
 
+    if (is_registered(bind_to))
+    {
+        fprintf(log, "cannot register server_id(%lu) on address %s because the address is in use\n", sid.get(), oss.str().c_str());
+        return generate_response(ctx, hyperdex::COORD_DUPLICATE);
+    }
+
     m_servers.push_back(server_state(sid, bind_to));
     m_servers.back().state = server_state::AVAILABLE;
     std::stable_sort(m_servers.begin(), m_servers.end());
@@ -791,6 +797,20 @@ coordinator :: is_registered(const server_id& sid)
     std::vector<server_state>::iterator it;
     it = std::lower_bound(m_servers.begin(), m_servers.end(), sid);
     return it != m_servers.end() && it->id == sid;
+}
+
+bool
+coordinator :: is_registered(const po6::net::location& bind_to)
+{
+    for (size_t i = 0; i < m_servers.size(); ++i)
+    {
+        if (m_servers[i].bind_to == bind_to)
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 region*
