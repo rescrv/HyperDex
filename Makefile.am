@@ -155,6 +155,7 @@ noinst_HEADERS = \
 hyperdex_daemon_SOURCES = \
 			common/attribute.cc \
 			common/attribute_check.cc \
+			common/capture.cc \
 			common/configuration.cc \
 			common/counter_map.cc \
 			common/float_encode.cc \
@@ -211,6 +212,7 @@ daemon_test_index_encode_LDADD = $(GTEST_LDFLAGS) -lgtest -lpthread
 
 libhypercoordinator_la_SOURCES = \
 			common/attribute.cc \
+			common/capture.cc \
 			common/hyperdex.cc \
 			common/hyperspace.cc \
 			common/schema.cc \
@@ -237,6 +239,7 @@ libhyperclient_include_HEADERS = \
 libhyperclient_la_SOURCES = \
 			common/attribute.cc \
 			common/attribute_check.cc \
+			common/capture.cc \
 			common/configuration.cc \
 			common/float_encode.cc \
 			common/funcall.cc \

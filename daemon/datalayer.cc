@@ -271,10 +271,21 @@ datalayer :: prepare(const configuration&,
 reconfigure_returncode
 datalayer :: reconfigure(const configuration&,
                          const configuration& new_config,
-                         const server_id&)
+                         const server_id& us)
 {
+    std::vector<capture> captures;
+    new_config.captures(&captures);
     std::vector<region_id> regions;
-    new_config.captured_regions(m_daemon->m_us, &regions);
+    regions.reserve(captures.size());
+
+    for (size_t i = 0; i < captures.size(); ++i)
+    {
+        if (new_config.get_virtual(captures[i].rid, us) != virtual_server_id())
+        {
+            regions.push_back(captures[i].rid);
+        }
+    }
+
     std::sort(regions.begin(), regions.end());
     m_counters.adopt(regions);
     return RECONFIGURE_SUCCESS;

@@ -373,6 +373,7 @@ coordinator :: coordinator()
     , m_acked(0)
     , m_servers()
     , m_spaces()
+    , m_captures()
     , m_latest_config()
     , m_resp()
     , m_seed()
@@ -441,7 +442,6 @@ coordinator :: add_space(replicant_state_machine_context* ctx, const space& _s)
             s->subspaces[i].regions[j].id = region_id(m_counter);
             ++m_counter;
             s->subspaces[i].regions[j].replicas.clear();
-            s->subspaces[i].regions[j].cid = capture_id();
             s->subspaces[i].regions[j].tid = transfer_id();
             s->subspaces[i].regions[j].tsi = server_id();
             s->subspaces[i].regions[j].tvi = virtual_server_id();
@@ -586,7 +586,6 @@ coordinator :: server_suspect(replicant_state_machine_context* ctx,
                         }
 
                         reg.replicas.pop_back();
-                        reg.cid = capture_id();
                         reg.tid = transfer_id();
                         reg.tsi = server_id();
                         reg.tvi = virtual_server_id();
@@ -603,7 +602,6 @@ coordinator :: server_suspect(replicant_state_machine_context* ctx,
                     fprintf(log, "ending transfer_id(%lu) ended because it "
                                  "involved server_id(%lu)\n",
                                  reg.tid.get(), reg.tsi.get());
-                    reg.cid = capture_id();
                     reg.tid = transfer_id();
                     reg.tsi = server_id();
                     reg.tvi = virtual_server_id();
@@ -691,12 +689,15 @@ coordinator :: xfer_begin(replicant_state_machine_context* ctx,
         }
     }
 
-    if (reg->cid == capture_id())
+    capture* cap = get_capture(reg->id);
+
+    if (!cap)
     {
-        reg->cid = capture_id(m_counter);
-        ++m_counter;
+        // XXX need to tie this capture to this transfer
+        cap = new_capture(reg->id);
     }
 
+    assert(cap);
     reg->tid = transfer_id(m_counter);
     ++m_counter;
     reg->tsi = sid;
@@ -705,7 +706,7 @@ coordinator :: xfer_begin(replicant_state_machine_context* ctx,
     fprintf(log, "successfully began transfer of region_id(%lu) "
                  "to server_id(%lu) using capture_id(%lu)/transfer_id(%lu)/"
                  "virtual_server_id(%lu)\n",
-                 rid.get(), sid.get(), reg->cid.get(), reg->tid.get(), reg->tvi.get());
+                 rid.get(), sid.get(), cap->id.get(), reg->tid.get(), reg->tvi.get());
     issue_new_config(ctx);
     return generate_response(ctx, COORD_SUCCESS);
 }
@@ -767,7 +768,7 @@ coordinator :: xfer_complete(replicant_state_machine_context* ctx,
         return generate_response(ctx, COORD_SUCCESS);
     }
 
-    reg->cid = capture_id(); // XXX don't always reset capture ID
+    // XXX possibly stop the capture of this region
     reg->tid = transfer_id();
     reg->tsi = server_id();
     reg->tvi = virtual_server_id();
@@ -857,6 +858,32 @@ coordinator :: get_region(const transfer_id& xid)
                     return &ss.regions[j];
                 }
             }
+        }
+    }
+
+    return NULL;
+}
+
+capture*
+coordinator :: new_capture(const region_id& rid)
+{
+    assert(get_capture(rid) == NULL);
+    m_captures.push_back(capture());
+    capture* c = &m_captures.back();
+    c->id = capture_id(m_counter);
+    ++m_counter;
+    c->rid = rid;
+    return c;
+}
+
+capture*
+coordinator :: get_capture(const region_id& rid)
+{
+    for (size_t i = 0; i < m_captures.size(); ++i)
+    {
+        if (m_captures[i].rid == rid)
+        {
+            return &m_captures[i];
         }
     }
 
@@ -977,8 +1004,14 @@ coordinator :: maintain_layout(replicant_state_machine_context* ctx)
                          reg.replicas.size() < s.fault_tolerance + 1 &&
                          (replacement = select_new_server_for(reg.replicas)) != server_id())
                 {
-                    reg.cid = capture_id(m_counter);
-                    ++m_counter;
+                    capture* cap = get_capture(reg.id);
+
+                    if (!cap)
+                    {
+                        // XXX need to tie this capture to this transfer
+                        cap = new_capture(reg.id);
+                    }
+
                     reg.tid = transfer_id(m_counter);
                     ++m_counter;
                     reg.tsi = replacement;
@@ -987,7 +1020,7 @@ coordinator :: maintain_layout(replicant_state_machine_context* ctx)
                     fprintf(log, "adding server_id(%lu) to region_id(%lu) "
                                  "using capture_id(%lu)/transfer_id(%lu)/virtual_server_id(%lu)\n",
                                  replacement.get(), reg.id.get(),
-                                 reg.cid.get(), reg.tid.get(), reg.tvi.get());
+                                 cap->id.get(), reg.tid.get(), reg.tvi.get());
                     ++changes;
                 }
             }
@@ -1032,7 +1065,7 @@ coordinator :: maintain_acked(struct replicant_state_machine_context* ctx)
 void
 coordinator :: regenerate_cached(struct replicant_state_machine_context*)
 {
-    size_t sz = 4 * sizeof(uint64_t);
+    size_t sz = 5 * sizeof(uint64_t);
 
     for (size_t i = 0; i < m_servers.size(); ++i)
     {
@@ -1045,9 +1078,17 @@ coordinator :: regenerate_cached(struct replicant_state_machine_context*)
         sz += pack_size(*it->second);
     }
 
+    for (size_t i = 0; i < m_captures.size(); ++i)
+    {
+        sz += pack_size(m_captures[i]);
+    }
+
     std::auto_ptr<e::buffer> new_config(e::buffer::create(sz));
     e::buffer::packer pa = new_config->pack_at(0);
-    pa = pa << m_cluster << m_version << uint64_t(m_servers.size()) << uint64_t(m_spaces.size());
+    pa = pa << m_cluster << m_version
+            << uint64_t(m_servers.size())
+            << uint64_t(m_spaces.size())
+            << uint64_t(m_captures.size());
 
     for (size_t i = 0; i < m_servers.size(); ++i)
     {
@@ -1058,6 +1099,11 @@ coordinator :: regenerate_cached(struct replicant_state_machine_context*)
             it != m_spaces.end(); ++it)
     {
         pa = pa << *it->second;
+    }
+
+    for (size_t i = 0; i < m_captures.size(); ++i)
+    {
+        pa = pa << m_captures[i];
     }
 
     m_latest_config = new_config;
