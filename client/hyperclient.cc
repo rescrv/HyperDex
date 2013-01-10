@@ -734,6 +734,7 @@ hyperclient :: initialize_cluster(uint64_t cluster, const char* path)
             case REPLICANT_SERVER_ERROR:
             case REPLICANT_NEED_BOOTSTRAP:
             case REPLICANT_MISBEHAVING_SERVER:
+            case REPLICANT_BACKOFF:
                 return HYPERCLIENT_COORDFAIL;
             case REPLICANT_SUCCESS:
             case REPLICANT_NAME_TOO_LONG:
@@ -741,6 +742,7 @@ hyperclient :: initialize_cluster(uint64_t cluster, const char* path)
             case REPLICANT_OBJ_EXIST:
             case REPLICANT_OBJ_NOT_FOUND:
             case REPLICANT_COND_NOT_FOUND:
+            case REPLICANT_COND_DESTROYED:
             case REPLICANT_TIMEOUT:
             case REPLICANT_INTERNAL_ERROR:
             case REPLICANT_NONE_PENDING:
@@ -764,6 +766,7 @@ hyperclient :: initialize_cluster(uint64_t cluster, const char* path)
             case REPLICANT_SERVER_ERROR:
             case REPLICANT_NEED_BOOTSTRAP:
             case REPLICANT_MISBEHAVING_SERVER:
+            case REPLICANT_BACKOFF:
                 return HYPERCLIENT_COORDFAIL;
             case REPLICANT_TIMEOUT:
             case REPLICANT_SUCCESS:
@@ -772,6 +775,7 @@ hyperclient :: initialize_cluster(uint64_t cluster, const char* path)
             case REPLICANT_OBJ_EXIST:
             case REPLICANT_OBJ_NOT_FOUND:
             case REPLICANT_COND_NOT_FOUND:
+            case REPLICANT_COND_DESTROYED:
             case REPLICANT_BAD_LIBRARY:
             case REPLICANT_INTERNAL_ERROR:
             case REPLICANT_NONE_PENDING:
@@ -794,6 +798,7 @@ hyperclient :: initialize_cluster(uint64_t cluster, const char* path)
         case REPLICANT_FUNC_NOT_FOUND:
         case REPLICANT_OBJ_NOT_FOUND:
         case REPLICANT_COND_NOT_FOUND:
+        case REPLICANT_COND_DESTROYED:
         case REPLICANT_SERVER_ERROR:
         case REPLICANT_NEED_BOOTSTRAP:
         case REPLICANT_MISBEHAVING_SERVER:
@@ -802,6 +807,7 @@ hyperclient :: initialize_cluster(uint64_t cluster, const char* path)
         case REPLICANT_BAD_LIBRARY:
             return HYPERCLIENT_COORD_LOGGED;
         case REPLICANT_TIMEOUT:
+        case REPLICANT_BACKOFF:
         case REPLICANT_INTERNAL_ERROR:
         case REPLICANT_NONE_PENDING:
         case REPLICANT_GARBAGE:

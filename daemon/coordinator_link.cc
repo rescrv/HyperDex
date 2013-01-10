@@ -110,9 +110,11 @@ coordinator_link :: register_id(server_id us, const po6::net::location& bind_to)
             case REPLICANT_OBJ_EXIST:
             case REPLICANT_OBJ_NOT_FOUND:
             case REPLICANT_COND_NOT_FOUND:
+            case REPLICANT_COND_DESTROYED:
             case REPLICANT_SERVER_ERROR:
             case REPLICANT_BAD_LIBRARY:
             case REPLICANT_TIMEOUT:
+            case REPLICANT_BACKOFF:
             case REPLICANT_MISBEHAVING_SERVER:
             case REPLICANT_INTERNAL_ERROR:
             case REPLICANT_NONE_PENDING:
@@ -142,9 +144,11 @@ coordinator_link :: register_id(server_id us, const po6::net::location& bind_to)
             case REPLICANT_OBJ_EXIST:
             case REPLICANT_OBJ_NOT_FOUND:
             case REPLICANT_COND_NOT_FOUND:
+            case REPLICANT_COND_DESTROYED:
             case REPLICANT_SERVER_ERROR:
             case REPLICANT_BAD_LIBRARY:
             case REPLICANT_TIMEOUT:
+            case REPLICANT_BACKOFF:
             case REPLICANT_MISBEHAVING_SERVER:
             case REPLICANT_INTERNAL_ERROR:
             case REPLICANT_NONE_PENDING:
@@ -171,11 +175,13 @@ coordinator_link :: register_id(server_id us, const po6::net::location& bind_to)
                        << "because the HyperDex object was not found";
             return -1;
         case REPLICANT_NEED_BOOTSTRAP:
+        case REPLICANT_BACKOFF:
             LOG(ERROR) << "could not connect to the coordinator to register this instance";
             return -1;
         case REPLICANT_NAME_TOO_LONG:
         case REPLICANT_OBJ_EXIST:
         case REPLICANT_COND_NOT_FOUND:
+        case REPLICANT_COND_DESTROYED:
         case REPLICANT_SERVER_ERROR:
         case REPLICANT_BAD_LIBRARY:
         case REPLICANT_TIMEOUT:
@@ -384,6 +390,9 @@ coordinator_link :: wait_for_config(configuration* config)
                 case REPLICANT_INTERRUPTED:
                     need_to_backoff = false;
                     break;
+                case REPLICANT_BACKOFF:
+                    need_to_backoff = true;
+                    break;
                 case REPLICANT_NEED_BOOTSTRAP:
                     LOG(ERROR) << "communication error with the coordinator: "
                                << m_repl->last_error_desc()
@@ -397,6 +406,7 @@ coordinator_link :: wait_for_config(configuration* config)
                 case REPLICANT_OBJ_EXIST:
                 case REPLICANT_OBJ_NOT_FOUND:
                 case REPLICANT_COND_NOT_FOUND:
+                case REPLICANT_COND_DESTROYED:
                 case REPLICANT_SERVER_ERROR:
                 case REPLICANT_BAD_LIBRARY:
                 case REPLICANT_MISBEHAVING_SERVER:
@@ -453,6 +463,7 @@ coordinator_link :: wait_for_config(configuration* config)
                                << m_repl->last_error_line() << ")";
                     continue;
                 case REPLICANT_TIMEOUT:
+                case REPLICANT_BACKOFF:
                 case REPLICANT_INTERRUPTED:
                     continue;
                 case REPLICANT_NEED_BOOTSTRAP:
@@ -465,6 +476,7 @@ coordinator_link :: wait_for_config(configuration* config)
                 case REPLICANT_NAME_TOO_LONG:
                 case REPLICANT_OBJ_EXIST:
                 case REPLICANT_COND_NOT_FOUND:
+                case REPLICANT_COND_DESTROYED:
                 case REPLICANT_SERVER_ERROR:
                 case REPLICANT_BAD_LIBRARY:
                 case REPLICANT_MISBEHAVING_SERVER:

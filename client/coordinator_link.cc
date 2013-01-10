@@ -116,6 +116,7 @@ coordinator_link :: poll_for_config(hyperclient_returncode* status)
                 *status = HYPERCLIENT_COORDFAIL;
                 return false;
             case REPLICANT_TIMEOUT:
+            case REPLICANT_BACKOFF:
                 return true;
             case REPLICANT_INTERRUPTED:
                 *status = HYPERCLIENT_INTERRUPTED;
@@ -126,6 +127,7 @@ coordinator_link :: poll_for_config(hyperclient_returncode* status)
             case REPLICANT_OBJ_EXIST:
             case REPLICANT_OBJ_NOT_FOUND:
             case REPLICANT_COND_NOT_FOUND:
+            case REPLICANT_COND_DESTROYED:
             case REPLICANT_BAD_LIBRARY:
             case REPLICANT_INTERNAL_ERROR:
             case REPLICANT_NONE_PENDING:
@@ -152,6 +154,7 @@ coordinator_link :: poll_for_config(hyperclient_returncode* status)
             case REPLICANT_FUNC_NOT_FOUND:
             case REPLICANT_OBJ_NOT_FOUND:
             case REPLICANT_COND_NOT_FOUND:
+            case REPLICANT_COND_DESTROYED:
             case REPLICANT_SERVER_ERROR:
             case REPLICANT_NEED_BOOTSTRAP:
             case REPLICANT_MISBEHAVING_SERVER:
@@ -161,6 +164,7 @@ coordinator_link :: poll_for_config(hyperclient_returncode* status)
             case REPLICANT_OBJ_EXIST:
             case REPLICANT_BAD_LIBRARY:
             case REPLICANT_TIMEOUT:
+            case REPLICANT_BACKOFF:
             case REPLICANT_INTERNAL_ERROR:
             case REPLICANT_NONE_PENDING:
             case REPLICANT_GARBAGE:
@@ -185,6 +189,7 @@ coordinator_link :: poll_for_config(hyperclient_returncode* status)
             case REPLICANT_FUNC_NOT_FOUND:
             case REPLICANT_OBJ_NOT_FOUND:
             case REPLICANT_COND_NOT_FOUND:
+            case REPLICANT_COND_DESTROYED:
             case REPLICANT_SERVER_ERROR:
             case REPLICANT_NEED_BOOTSTRAP:
             case REPLICANT_MISBEHAVING_SERVER:
@@ -194,6 +199,7 @@ coordinator_link :: poll_for_config(hyperclient_returncode* status)
             case REPLICANT_OBJ_EXIST:
             case REPLICANT_BAD_LIBRARY:
             case REPLICANT_TIMEOUT:
+            case REPLICANT_BACKOFF:
             case REPLICANT_INTERNAL_ERROR:
             case REPLICANT_NONE_PENDING:
             case REPLICANT_GARBAGE:
@@ -269,8 +275,10 @@ coordinator_link :: make_rpc(const char* func,
             case REPLICANT_OBJ_EXIST:
             case REPLICANT_OBJ_NOT_FOUND:
             case REPLICANT_COND_NOT_FOUND:
+            case REPLICANT_COND_DESTROYED:
             case REPLICANT_BAD_LIBRARY:
             case REPLICANT_TIMEOUT:
+            case REPLICANT_BACKOFF:
             case REPLICANT_INTERNAL_ERROR:
             case REPLICANT_NONE_PENDING:
             case REPLICANT_GARBAGE:
@@ -295,15 +303,17 @@ coordinator_link :: make_rpc(const char* func,
             case REPLICANT_SERVER_ERROR:
             case REPLICANT_NEED_BOOTSTRAP:
             case REPLICANT_MISBEHAVING_SERVER:
+            case REPLICANT_TIMEOUT:
+            case REPLICANT_BACKOFF:
                 *status = HYPERCLIENT_COORDFAIL;
                 return false;
-            case REPLICANT_TIMEOUT:
             case REPLICANT_SUCCESS:
             case REPLICANT_NAME_TOO_LONG:
             case REPLICANT_FUNC_NOT_FOUND:
             case REPLICANT_OBJ_EXIST:
             case REPLICANT_OBJ_NOT_FOUND:
             case REPLICANT_COND_NOT_FOUND:
+            case REPLICANT_COND_DESTROYED:
             case REPLICANT_BAD_LIBRARY:
             case REPLICANT_INTERNAL_ERROR:
             case REPLICANT_NONE_PENDING:
@@ -324,6 +334,7 @@ coordinator_link :: make_rpc(const char* func,
         case REPLICANT_FUNC_NOT_FOUND:
         case REPLICANT_OBJ_NOT_FOUND:
         case REPLICANT_COND_NOT_FOUND:
+        case REPLICANT_COND_DESTROYED:
         case REPLICANT_SERVER_ERROR:
         case REPLICANT_NEED_BOOTSTRAP:
         case REPLICANT_MISBEHAVING_SERVER:
@@ -333,6 +344,7 @@ coordinator_link :: make_rpc(const char* func,
         case REPLICANT_OBJ_EXIST:
         case REPLICANT_BAD_LIBRARY:
         case REPLICANT_TIMEOUT:
+        case REPLICANT_BACKOFF:
         case REPLICANT_INTERNAL_ERROR:
         case REPLICANT_NONE_PENDING:
         case REPLICANT_GARBAGE:
@@ -357,6 +369,7 @@ coordinator_link :: initiate_wait_for_config(hyperclient_returncode* status)
             case REPLICANT_SERVER_ERROR:
             case REPLICANT_NEED_BOOTSTRAP:
             case REPLICANT_MISBEHAVING_SERVER:
+            case REPLICANT_BACKOFF:
                 *status = HYPERCLIENT_COORDFAIL;
                 return false;
             case REPLICANT_SUCCESS:
@@ -365,6 +378,7 @@ coordinator_link :: initiate_wait_for_config(hyperclient_returncode* status)
             case REPLICANT_OBJ_EXIST:
             case REPLICANT_OBJ_NOT_FOUND:
             case REPLICANT_COND_NOT_FOUND:
+            case REPLICANT_COND_DESTROYED:
             case REPLICANT_BAD_LIBRARY:
             case REPLICANT_TIMEOUT:
             case REPLICANT_INTERNAL_ERROR:
@@ -399,6 +413,7 @@ coordinator_link :: initiate_get_config(hyperclient_returncode* status)
             case REPLICANT_SERVER_ERROR:
             case REPLICANT_NEED_BOOTSTRAP:
             case REPLICANT_MISBEHAVING_SERVER:
+            case REPLICANT_BACKOFF:
                 *status = HYPERCLIENT_COORDFAIL;
                 return false;
             case REPLICANT_SUCCESS:
@@ -407,6 +422,7 @@ coordinator_link :: initiate_get_config(hyperclient_returncode* status)
             case REPLICANT_OBJ_EXIST:
             case REPLICANT_OBJ_NOT_FOUND:
             case REPLICANT_COND_NOT_FOUND:
+            case REPLICANT_COND_DESTROYED:
             case REPLICANT_BAD_LIBRARY:
             case REPLICANT_TIMEOUT:
             case REPLICANT_INTERNAL_ERROR:
