@@ -355,9 +355,6 @@ region :: region()
     , lower_coord()
     , upper_coord()
     , replicas()
-    , tid()
-    , tsi()
-    , tvi()
 {
 }
 
@@ -366,9 +363,6 @@ region :: region(const region& other)
     , lower_coord(other.lower_coord)
     , upper_coord(other.upper_coord)
     , replicas(other.replicas)
-    , tid(other.tid)
-    , tsi(other.tsi)
-    , tvi(other.tvi)
 {
 }
 
@@ -383,9 +377,6 @@ region :: operator = (const region& rhs)
     lower_coord = rhs.lower_coord;
     upper_coord = rhs.upper_coord;
     replicas = rhs.replicas;
-    tid = rhs.tid;
-    tsi = rhs.tsi;
-    tvi = rhs.tvi;
     return *this;
 }
 
@@ -394,8 +385,7 @@ hyperdex :: operator << (e::buffer::packer pa, const region& r)
 {
     uint16_t num_hashes = r.lower_coord.size();
     uint8_t num_replicas = r.replicas.size();
-    uint8_t flags = (r.tid != transfer_id() ? 2 : 0);
-    pa = pa << r.id.get() << num_hashes << num_replicas << flags;
+    pa = pa << r.id.get() << num_hashes << num_replicas;
 
     for (size_t i = 0; i < num_hashes; ++i)
     {
@@ -407,11 +397,6 @@ hyperdex :: operator << (e::buffer::packer pa, const region& r)
         pa = pa << r.replicas[i];
     }
 
-    if (r.tid != transfer_id())
-    {
-        pa = pa << r.tid.get() << r.tsi.get() << r.tvi.get();
-    }
-
     return pa;
 }
 
@@ -421,8 +406,7 @@ hyperdex :: operator >> (e::unpacker up, region& r)
     uint64_t id;
     uint16_t num_hashes;
     uint8_t num_replicas;
-    uint8_t flags;
-    up = up >> id >> num_hashes >> num_replicas >> flags;
+    up = up >> id >> num_hashes >> num_replicas;
     r.id = region_id(id);
     r.lower_coord.resize(num_hashes);
     r.upper_coord.resize(num_hashes);
@@ -438,17 +422,6 @@ hyperdex :: operator >> (e::unpacker up, region& r)
         up = up >> r.replicas[i];
     }
 
-    if ((flags & 2))
-    {
-        uint64_t tid;
-        uint64_t tsi;
-        uint64_t tvi;
-        up = up >> tid >> tsi >> tvi;
-        r.tid = transfer_id(tid);
-        r.tsi = server_id(tsi);
-        r.tvi = virtual_server_id(tvi);
-    }
-
     return up;
 }
 
@@ -458,11 +431,7 @@ hyperdex :: pack_size(const region& r)
     size_t sz = sizeof(uint64_t) /* id */
               + sizeof(uint16_t) /* num_hashes */
               + sizeof(uint8_t) /* num_replicas */
-              + sizeof(uint8_t) /* flags */
-              + 2 * sizeof(uint64_t) * r.lower_coord.size()
-              + sizeof(uint64_t) /* tid */
-              + sizeof(uint64_t) /* tsi */
-              + sizeof(uint64_t); /* tvi */
+              + 2 * sizeof(uint64_t) * r.lower_coord.size();
 
     for (size_t i = 0; i < r.replicas.size(); ++i)
     {
@@ -475,6 +444,13 @@ hyperdex :: pack_size(const region& r)
 replica :: replica()
     : si()
     , vsi()
+{
+}
+
+replica :: replica(const server_id& s,
+                   const virtual_server_id& v)
+    : si(s)
+    , vsi(v)
 {
 }
 

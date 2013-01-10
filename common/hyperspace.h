@@ -126,9 +126,6 @@ class region
         std::vector<uint64_t> lower_coord;
         std::vector<uint64_t> upper_coord;
         std::vector<replica> replicas;
-        transfer_id tid;
-        server_id tsi;
-        virtual_server_id tvi;
 };
 
 e::buffer::packer
@@ -142,6 +139,8 @@ class replica
 {
     public:
         replica();
+        replica(const server_id& si,
+                const virtual_server_id& vsi);
         replica(const replica&);
         ~replica() throw ();
 

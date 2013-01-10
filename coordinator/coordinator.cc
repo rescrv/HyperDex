@@ -111,6 +111,9 @@ generate_response(replicant_state_machine_context* ctx, coordinator_returncode x
         } \
     } while (0)
 
+#define INVARIANT_BROKEN(X) \
+    fprintf(log, "invariant broken at " __FILE__ ":%d:  %s\n", __LINE__, (X))
+
 extern "C"
 {
 
@@ -374,6 +377,7 @@ coordinator :: coordinator()
     , m_servers()
     , m_spaces()
     , m_captures()
+    , m_transfers()
     , m_latest_config()
     , m_resp()
     , m_seed()
@@ -442,9 +446,6 @@ coordinator :: add_space(replicant_state_machine_context* ctx, const space& _s)
             s->subspaces[i].regions[j].id = region_id(m_counter);
             ++m_counter;
             s->subspaces[i].regions[j].replicas.clear();
-            s->subspaces[i].regions[j].tid = transfer_id();
-            s->subspaces[i].regions[j].tsi = server_id();
-            s->subspaces[i].regions[j].tvi = virtual_server_id();
         }
     }
 
@@ -586,9 +587,6 @@ coordinator :: server_suspect(replicant_state_machine_context* ctx,
                         }
 
                         reg.replicas.pop_back();
-                        reg.tid = transfer_id();
-                        reg.tsi = server_id();
-                        reg.tvi = virtual_server_id();
                         ++changes;
                     }
                     else
@@ -596,18 +594,26 @@ coordinator :: server_suspect(replicant_state_machine_context* ctx,
                         ++k;
                     }
                 }
-
-                if (reg.tsi == sid)
-                {
-                    fprintf(log, "ending transfer_id(%lu) ended because it "
-                                 "involved server_id(%lu)\n",
-                                 reg.tid.get(), reg.tsi.get());
-                    reg.tid = transfer_id();
-                    reg.tsi = server_id();
-                    reg.tvi = virtual_server_id();
-                    ++changes;
-                }
             }
+        }
+    }
+
+    size_t i = 0;
+
+    while (i < m_transfers.size())
+    {
+        if (m_transfers[i].src == sid || m_transfers[i].dst == sid)
+        {
+            fprintf(log, "ending transfer_id(%lu) ended because it "
+                         "involved server_id(%lu)\n",
+                         m_transfers[i].id.get(), sid.get());
+            del_transfer(m_transfers[i].id);
+            ++changes;
+            i = 0;
+        }
+        else
+        {
+            ++i;
         }
     }
 
@@ -670,11 +676,13 @@ coordinator :: xfer_begin(replicant_state_machine_context* ctx,
         return generate_response(ctx, COORD_NOT_FOUND);
     }
 
-    if (reg->tid != transfer_id())
+    transfer* xfer = get_transfer(rid);
+
+    if (xfer)
     {
         fprintf(log, "cannot begin transfer of region_id(%lu) "
                      "to server_id(%lu) because transfer_id(%lu) "
-                     "is already in progress\n", rid.get(), sid.get(), reg->tid.get());
+                     "is already in progress\n", rid.get(), sid.get(), xfer->id.get());
         return generate_response(ctx, COORD_TRANSFER_IN_PROGRESS);
     }
 
@@ -689,25 +697,23 @@ coordinator :: xfer_begin(replicant_state_machine_context* ctx,
         }
     }
 
-    capture* cap = get_capture(reg->id);
-
-    if (!cap)
+    if (reg->replicas.empty())
     {
-        // XXX need to tie this capture to this transfer
-        cap = new_capture(reg->id);
+        fprintf(log, "region_id(%lu) completely empty; cannot transfer to another node\n", reg->id.get());
+        return generate_response(ctx, COORD_NOT_FOUND);
     }
 
-    assert(cap);
-    reg->tid = transfer_id(m_counter);
-    ++m_counter;
-    reg->tsi = sid;
-    reg->tvi = virtual_server_id(m_counter);
-    ++m_counter;
-    fprintf(log, "successfully began transfer of region_id(%lu) "
-                 "to server_id(%lu) using capture_id(%lu)/transfer_id(%lu)/"
-                 "virtual_server_id(%lu)\n",
-                 rid.get(), sid.get(), cap->id.get(), reg->tid.get(), reg->tvi.get());
-    issue_new_config(ctx);
+    xfer = new_transfer(reg, sid);
+
+    if (xfer)
+    {
+        issue_new_config(ctx);
+        fprintf(log, "adding server_id(%lu) to region_id(%lu) "
+                     "using transfer_id(%lu)/virtual_server_id(%lu)\n",
+                     sid.get(), reg->id.get(),
+                     xfer->id.get(), xfer->vdst.get());
+    }
+
     return generate_response(ctx, COORD_SUCCESS);
 }
 
@@ -716,28 +722,38 @@ coordinator :: xfer_go_live(replicant_state_machine_context* ctx,
                             const transfer_id& xid)
 {
     FILE* log = replicant_state_machine_log_stream(ctx);
-    region* reg = get_region(xid);
+    transfer* xfer = get_transfer(xid);
 
-    if (!reg)
+    if (!xfer)
     {
         fprintf(log, "cannot make transfer_id(%lu) live because it doesn't exist\n", xid.get());
         return generate_response(ctx, COORD_SUCCESS);
     }
 
-    if (reg->replicas.empty())
+    region* reg = get_region(xfer->rid);
+
+    if (!reg)
     {
-        fprintf(log, "cannot make transfer_id(%lu) live because no replicas are live\n", xid.get());
+        fprintf(log, "cannot make transfer_id(%lu) live because it doesn't exist\n", xid.get());
+        INVARIANT_BROKEN("transfer refers to nonexistent region");
         return generate_response(ctx, COORD_SUCCESS);
     }
 
-    if (reg->replicas.back().si == reg->tsi)
+    // If the transfer is already live
+    if (reg->replicas.size() > 1 &&
+        reg->replicas[reg->replicas.size() - 2].si == xfer->src &&
+        reg->replicas[reg->replicas.size() - 1].si == xfer->dst)
     {
         return generate_response(ctx, COORD_SUCCESS);
     }
 
-    reg->replicas.push_back(replica());
-    reg->replicas.back().si = reg->tsi;
-    reg->replicas.back().vsi = reg->tvi;
+    if (reg->replicas.empty() || reg->replicas.back().si != xfer->src)
+    {
+        INVARIANT_BROKEN("transfer in a bad state");
+        return generate_response(ctx, COORD_SUCCESS);
+    }
+
+    reg->replicas.push_back(replica(xfer->dst, xfer->vdst));
     fprintf(log, "transfer_id(%lu) is now live\n", xid.get());
     issue_new_config(ctx);
     return generate_response(ctx, COORD_SUCCESS);
@@ -748,30 +764,32 @@ coordinator :: xfer_complete(replicant_state_machine_context* ctx,
                              const transfer_id& xid)
 {
     FILE* log = replicant_state_machine_log_stream(ctx);
-    region* reg = get_region(xid);
+    transfer* xfer = get_transfer(xid);
 
-    if (!reg)
+    if (!xfer)
     {
         fprintf(log, "cannot complete transfer_id(%lu) because it doesn't exist\n", xid.get());
         return generate_response(ctx, COORD_SUCCESS);
     }
 
-    if (reg->replicas.empty())
+    region* reg = get_region(xfer->rid);
+
+    if (!reg)
     {
-        fprintf(log, "cannot complete transfer_id(%lu) because no replicas are live\n", xid.get());
+        fprintf(log, "cannot make transfer_id(%lu) live because it doesn't exist\n", xid.get());
+        INVARIANT_BROKEN("transfer refers to nonexistent region");
         return generate_response(ctx, COORD_SUCCESS);
     }
 
-    if (reg->replicas.back().si != reg->tsi)
+    if (!(reg->replicas.size() > 1 &&
+          reg->replicas[reg->replicas.size() - 2].si == xfer->src &&
+          reg->replicas[reg->replicas.size() - 1].si == xfer->dst))
     {
         fprintf(log, "cannot complete transfer_id(%lu) because it is not live\n", xid.get());
         return generate_response(ctx, COORD_SUCCESS);
     }
 
-    // XXX possibly stop the capture of this region
-    reg->tid = transfer_id();
-    reg->tsi = server_id();
-    reg->tvi = virtual_server_id();
+    del_transfer(xfer->id);
     fprintf(log, "transfer_id(%lu) is now complete\n", xid.get());
     issue_new_config(ctx);
     maintain_layout(ctx);
@@ -839,31 +857,6 @@ coordinator :: get_region(const region_id& rid)
     return NULL;
 }
 
-region*
-coordinator :: get_region(const transfer_id& xid)
-{
-    for (std::map<std::string, std::tr1::shared_ptr<space> >::iterator it = m_spaces.begin();
-            it != m_spaces.end(); ++it)
-    {
-        space& s(*it->second);
-
-        for (size_t i = 0; i < s.subspaces.size(); ++i)
-        {
-            subspace& ss(s.subspaces[i]);
-
-            for (size_t j = 0; j < ss.regions.size(); ++j)
-            {
-                if (ss.regions[j].tid == xid)
-                {
-                    return &ss.regions[j];
-                }
-            }
-        }
-    }
-
-    return NULL;
-}
-
 capture*
 coordinator :: new_capture(const region_id& rid)
 {
@@ -888,6 +881,80 @@ coordinator :: get_capture(const region_id& rid)
     }
 
     return NULL;
+}
+
+transfer*
+coordinator :: new_transfer(region* reg,
+                            const server_id& sid)
+{
+    assert(!reg->replicas.empty());
+    capture* cap = get_capture(reg->id);
+
+    if (!cap)
+    {
+        // XXX need to tie this capture to this transfer
+        cap = new_capture(reg->id);
+    }
+
+    m_transfers.push_back(transfer());
+    transfer* t = &m_transfers.back();
+    t->id = transfer_id(m_counter);
+    ++m_counter;
+    t->rid = reg->id;
+    t->src = reg->replicas.back().si;
+    t->vsrc = reg->replicas.back().vsi;
+    t->dst = sid;
+    t->vdst = virtual_server_id(m_counter);
+    ++m_counter;
+    return t;
+}
+
+transfer*
+coordinator :: get_transfer(const region_id& rid)
+{
+    for (size_t i = 0; i < m_transfers.size(); ++i)
+    {
+        if (m_transfers[i].rid == rid)
+        {
+            return &m_transfers[i];
+        }
+    }
+
+    return NULL;
+}
+
+transfer*
+coordinator :: get_transfer(const transfer_id& xid)
+{
+    for (size_t i = 0; i < m_transfers.size(); ++i)
+    {
+        if (m_transfers[i].id == xid)
+        {
+            return &m_transfers[i];
+        }
+    }
+
+    return NULL;
+}
+
+void
+coordinator :: del_transfer(const transfer_id& xid)
+{
+    for (size_t i = 0; i < m_transfers.size(); ++i)
+    {
+        if (m_transfers[i].id == xid)
+        {
+            // XXX possibly stop the capture of this region
+
+            for (size_t j = i; j + 1 < m_transfers.size(); ++j)
+            {
+                m_transfers[j] = m_transfers[j + 1];
+            }
+
+            m_transfers.pop_back();
+            return;
+        }
+    }
 }
 
 server_id
@@ -1000,28 +1067,20 @@ coordinator :: maintain_layout(replicant_state_machine_context* ctx)
                 {
                     fprintf(log, "region_id(%lu) completely empty; cannot transfer to another node\n", reg.id.get());
                 }
-                else if (reg.tid == transfer_id() && 
+                else if (!get_transfer(reg.id) &&
                          reg.replicas.size() < s.fault_tolerance + 1 &&
                          (replacement = select_new_server_for(reg.replicas)) != server_id())
                 {
-                    capture* cap = get_capture(reg.id);
+                    transfer* xfer = new_transfer(&reg, replacement);
 
-                    if (!cap)
+                    if (xfer)
                     {
-                        // XXX need to tie this capture to this transfer
-                        cap = new_capture(reg.id);
+                        ++changes;
+                        fprintf(log, "adding server_id(%lu) to region_id(%lu) "
+                                     "using transfer_id(%lu)/virtual_server_id(%lu)\n",
+                                     replacement.get(), reg.id.get(),
+                                     xfer->id.get(), xfer->vdst.get());
                     }
-
-                    reg.tid = transfer_id(m_counter);
-                    ++m_counter;
-                    reg.tsi = replacement;
-                    reg.tvi = virtual_server_id(m_counter);
-                    ++m_counter;
-                    fprintf(log, "adding server_id(%lu) to region_id(%lu) "
-                                 "using capture_id(%lu)/transfer_id(%lu)/virtual_server_id(%lu)\n",
-                                 replacement.get(), reg.id.get(),
-                                 cap->id.get(), reg.tid.get(), reg.tvi.get());
-                    ++changes;
                 }
             }
         }
@@ -1065,7 +1124,7 @@ coordinator :: maintain_acked(struct replicant_state_machine_context* ctx)
 void
 coordinator :: regenerate_cached(struct replicant_state_machine_context*)
 {
-    size_t sz = 5 * sizeof(uint64_t);
+    size_t sz = 6 * sizeof(uint64_t);
 
     for (size_t i = 0; i < m_servers.size(); ++i)
     {
@@ -1083,12 +1142,18 @@ coordinator :: regenerate_cached(struct replicant_state_machine_context*)
         sz += pack_size(m_captures[i]);
     }
 
+    for (size_t i = 0; i < m_transfers.size(); ++i)
+    {
+        sz += pack_size(m_transfers[i]);
+    }
+
     std::auto_ptr<e::buffer> new_config(e::buffer::create(sz));
     e::buffer::packer pa = new_config->pack_at(0);
     pa = pa << m_cluster << m_version
             << uint64_t(m_servers.size())
             << uint64_t(m_spaces.size())
-            << uint64_t(m_captures.size());
+            << uint64_t(m_captures.size())
+            << uint64_t(m_transfers.size());
 
     for (size_t i = 0; i < m_servers.size(); ++i)
     {
@@ -1104,6 +1169,11 @@ coordinator :: regenerate_cached(struct replicant_state_machine_context*)
     for (size_t i = 0; i < m_captures.size(); ++i)
     {
         pa = pa << m_captures[i];
+    }
+
+    for (size_t i = 0; i < m_transfers.size(); ++i)
+    {
+        pa = pa << m_transfers[i];
     }
 
     m_latest_config = new_config;

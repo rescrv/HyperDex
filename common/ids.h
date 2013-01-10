@@ -34,6 +34,9 @@
 // C++
 #include <iostream>
 
+// e
+#include <e/buffer.h>
+
 // An ID is a simple wrapper around uint64_t in order to prevent devs from
 // accidently using one type of ID as another.
 
@@ -58,6 +61,19 @@
     operator << (std::ostream& lhs, const TYPE ## _id& rhs) \
     { \
         return lhs << #TYPE "(" << rhs.get() << ")"; \
+    } \
+    inline e::buffer::packer \
+    operator << (e::buffer::packer pa, const TYPE ## _id& rhs) \
+    { \
+        return pa << rhs.get(); \
+    } \
+    inline e::unpacker \
+    operator >> (e::unpacker up, TYPE ## _id& rhs) \
+    { \
+        uint64_t id; \
+        up = up >> id; \
+        rhs = TYPE ## _id(id); \
+        return up; \
     } \
     OPERATOR(TYPE, <) \
     OPERATOR(TYPE, <=) \

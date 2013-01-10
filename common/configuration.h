@@ -80,10 +80,6 @@ class configuration
         virtual_server_id head_of_region(const region_id& ri) const;
         virtual_server_id tail_of_region(const region_id& ri) const;
         virtual_server_id next_in_region(const virtual_server_id& vsi) const;
-        bool is_server_blocked_by_live_transfer(const server_id& si, const region_id& ri) const;
-        bool is_transfer_live(const transfer_id& tid) const;
-        void transfer_in_regions(const server_id& s, std::vector<transfer>* transfers) const;
-        void transfer_out_regions(const server_id& s, std::vector<transfer>* transfers) const;
         void point_leaders(const server_id& s, std::vector<region_id>* servers) const;
         bool is_point_leader(const virtual_server_id& e) const;
         virtual_server_id point_leader(const char* space, const e::slice& key);
@@ -98,6 +94,13 @@ class configuration
         void captures(std::vector<capture>* captures) const;
         bool is_captured_region(const capture_id& ci) const;
         capture_id capture_for(const region_id& ri) const;
+
+    // transfers
+    public:
+        bool is_server_blocked_by_live_transfer(const server_id& si, const region_id& ri) const;
+        bool is_transfer_live(const transfer_id& tid) const;
+        void transfer_in_regions(const server_id& s, std::vector<transfer>* transfers) const;
+        void transfer_out_regions(const server_id& s, std::vector<transfer>* transfers) const;
 
     // hashing functions
     public:
@@ -141,6 +144,7 @@ class configuration
         std::vector<uint64_t> m_point_leaders_by_virtual;
         std::vector<space> m_spaces;
         std::vector<capture> m_captures;
+        std::vector<transfer> m_transfers;
 };
 
 e::buffer::packer

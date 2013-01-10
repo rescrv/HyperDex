@@ -217,6 +217,7 @@ libhypercoordinator_la_SOURCES = \
 			common/hyperspace.cc \
 			common/schema.cc \
 			common/serialization.cc \
+			common/transfer.cc \
 			coordinator/coordinator.cc \
 			coordinator/symtable.c
 libhypercoordinator_la_LIBADD = -le

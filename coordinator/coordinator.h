@@ -48,6 +48,7 @@
 #include "common/capture.h"
 #include "common/hyperspace.h"
 #include "common/ids.h"
+#include "common/transfer.h"
 #include "coordinator/server_state.h"
 
 namespace hyperdex
@@ -95,9 +96,15 @@ class coordinator
         bool is_registered(const server_id& sid);
         bool is_registered(const po6::net::location& bind_to);
         region* get_region(const region_id& rid);
-        region* get_region(const transfer_id& xid);
+        // captures
         capture* new_capture(const region_id& rid);
         capture* get_capture(const region_id& rid);
+        // transfers
+        transfer* new_transfer(region* reg, const server_id& sid);
+        transfer* get_transfer(const region_id& rid);
+        transfer* get_transfer(const transfer_id& xid);
+        void del_transfer(const transfer_id& xid);
+        // other
         server_id select_new_server_for(const std::vector<replica>& replicas);
         void issue_new_config(struct replicant_state_machine_context* ctx);
         void initial_layout(struct replicant_state_machine_context* ctx, space* s);
@@ -113,6 +120,7 @@ class coordinator
         std::vector<server_state> m_servers;
         std::map<std::string, std::tr1::shared_ptr<space> > m_spaces;
         std::vector<capture> m_captures;
+        std::vector<transfer> m_transfers;
         std::auto_ptr<e::buffer> m_latest_config; // cached config
         std::auto_ptr<e::buffer> m_resp; // response space
         drand48_data m_seed;

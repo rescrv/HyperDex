@@ -61,6 +61,7 @@ configuration :: configuration()
     , m_point_leaders_by_virtual()
     , m_spaces()
     , m_captures()
+    , m_transfers()
 {
     refill_cache();
 }
@@ -80,7 +81,8 @@ configuration :: configuration(const configuration& other)
     , m_next_by_virtual(other.m_next_by_virtual)
     , m_point_leaders_by_virtual(other.m_point_leaders_by_virtual)
     , m_spaces(other.m_spaces)
-    , m_captures()
+    , m_captures(other.m_captures)
+    , m_transfers(other.m_transfers)
 {
     refill_cache();
 }
@@ -323,147 +325,6 @@ configuration :: next_in_region(const virtual_server_id& vsi) const
     return virtual_server_id();
 }
 
-bool
-configuration :: is_server_blocked_by_live_transfer(const server_id& si, const region_id& id) const
-{
-    for (size_t s = 0; s < m_spaces.size(); ++s)
-    {
-        for (size_t ss = 0; ss < m_spaces[s].subspaces.size(); ++ss)
-        {
-            for (size_t r = 0; r < m_spaces[s].subspaces[ss].regions.size(); ++r)
-            {
-                if (m_spaces[s].subspaces[ss].regions[r].id != id)
-                {
-                    continue;
-                }
-
-                const region& reg(m_spaces[s].subspaces[ss].regions[r]);
-                return reg.replicas.size() >= 2 &&
-                       reg.replicas[reg.replicas.size() - 2].si == si &&
-                       reg.replicas[reg.replicas.size() - 1].si == reg.tsi &&
-                       reg.replicas[reg.replicas.size() - 1].vsi == reg.tvi;
-            }
-        }
-    }
-
-    return false;
-}
-
-bool
-configuration :: is_transfer_live(const transfer_id& id) const
-{
-    for (size_t s = 0; s < m_spaces.size(); ++s)
-    {
-        for (size_t ss = 0; ss < m_spaces[s].subspaces.size(); ++ss)
-        {
-            for (size_t r = 0; r < m_spaces[s].subspaces[ss].regions.size(); ++r)
-            {
-                if (m_spaces[s].subspaces[ss].regions[r].tid != id)
-                {
-                    continue;
-                }
-
-                const region& reg(m_spaces[s].subspaces[ss].regions[r]);
-                return reg.replicas.size() >= 2 &&
-                       reg.replicas.back().si == reg.tsi &&
-                       reg.replicas.back().vsi == reg.tvi;
-            }
-        }
-    }
-
-    return false;
-}
-
-void
-configuration :: transfer_in_regions(const server_id& si, std::vector<transfer>* transfers) const
-{
-    for (size_t s = 0; s < m_spaces.size(); ++s)
-    {
-        for (size_t ss = 0; ss < m_spaces[s].subspaces.size(); ++ss)
-        {
-            for (size_t r = 0; r < m_spaces[s].subspaces[ss].regions.size(); ++r)
-            {
-                if (m_spaces[s].subspaces[ss].regions[r].tid == transfer_id())
-                {
-                    continue;
-                }
-
-                const region& reg(m_spaces[s].subspaces[ss].regions[r]);
-
-                if (reg.tsi != si)
-                {
-                    continue;
-                }
-
-                // if the server we are transferring from is the last one
-                if (reg.replicas.size() >= 1 &&
-                    reg.replicas.back().si != si)
-                {
-                    transfers->push_back(transfer(reg.tid, reg.id,
-                                                  reg.replicas.back().si, reg.replicas.back().vsi,
-                                                  reg.tsi, reg.tvi));
-                }
-
-                // if the server we are transferring from is the last one and we
-                // are the last one
-                if (reg.replicas.size() >= 2 &&
-                    reg.replicas[reg.replicas.size() - 2].si != si &&
-                    reg.replicas[reg.replicas.size() - 1].si == si)
-                {
-                    transfers->push_back(transfer(reg.tid, reg.id,
-                                                  reg.replicas[reg.replicas.size() - 2].si,
-                                                  reg.replicas[reg.replicas.size() - 2].vsi,
-                                                  reg.tsi, reg.tvi));
-                }
-            }
-        }
-    }
-}
-
-void
-configuration :: transfer_out_regions(const server_id& si, std::vector<transfer>* transfers) const
-{
-    for (size_t s = 0; s < m_spaces.size(); ++s)
-    {
-        for (size_t ss = 0; ss < m_spaces[s].subspaces.size(); ++ss)
-        {
-            for (size_t r = 0; r < m_spaces[s].subspaces[ss].regions.size(); ++r)
-            {
-                if (m_spaces[s].subspaces[ss].regions[r].tid == transfer_id())
-                {
-                    continue;
-                }
-
-                const region& reg(m_spaces[s].subspaces[ss].regions[r]);
-
-                // if si is the last in the region and not the same server_id as
-                // the server the region is transferring to
-                if (reg.replicas.size() >= 1 &&
-                    reg.replicas.back().si == si &&
-                    reg.tsi != si)
-                {
-                    transfers->push_back(transfer(reg.tid, reg.id,
-                                                  reg.replicas.back().si, reg.replicas.back().vsi,
-                                                  reg.tsi, reg.tvi));
-                }
-
-                // if si is the second to last in the region and the last in the
-                // region is the same server_id as the server the region is
-                // transferring to
-                if (reg.replicas.size() >= 2 &&
-                    reg.replicas[reg.replicas.size() - 2].si == si &&
-                    reg.replicas[reg.replicas.size() - 1].si == reg.tsi)
-                {
-                    transfers->push_back(transfer(reg.tid, reg.id,
-                                                  reg.replicas[reg.replicas.size() - 2].si,
-                                                  reg.replicas[reg.replicas.size() - 2].vsi,
-                                                  reg.tsi, reg.tvi));
-                }
-            }
-        }
-    }
-}
-
 void
 configuration :: point_leaders(const server_id& si, std::vector<region_id>* servers) const
 {
@@ -599,6 +460,69 @@ configuration :: capture_for(const region_id& ri) const
     }
 
     return capture_id();
+}
+
+bool
+configuration :: is_server_blocked_by_live_transfer(const server_id& si, const region_id& id) const
+{
+    for (size_t i = 0; i < m_transfers.size(); ++i)
+    {
+        if (m_transfers[i].src != si || m_transfers[i].rid != id)
+        {
+            continue;
+        }
+
+        virtual_server_id tail = tail_of_region(m_transfers[i].rid);
+
+        if (tail == m_transfers[i].vdst)
+        {
+            return true;
+        }
+
+        assert(tail == m_transfers[i].vsrc);
+    }
+
+    return false;
+}
+
+bool
+configuration :: is_transfer_live(const transfer_id& id) const
+{
+    for (size_t i = 0; i < m_transfers.size(); ++i)
+    {
+        if (m_transfers[i].id != id)
+        {
+            continue;
+        }
+
+        return m_transfers[i].vdst == tail_of_region(m_transfers[i].rid);
+    }
+
+    return false;
+}
+
+void
+configuration :: transfer_in_regions(const server_id& si, std::vector<transfer>* transfers) const
+{
+    for (size_t i = 0; i < m_transfers.size(); ++i)
+    {
+        if (m_transfers[i].dst == si)
+        {
+            transfers->push_back(m_transfers[i]);
+        }
+    }
+}
+
+void
+configuration :: transfer_out_regions(const server_id& si, std::vector<transfer>* transfers) const
+{
+    for (size_t i = 0; i < m_transfers.size(); ++i)
+    {
+        if (m_transfers[i].src == si)
+        {
+            transfers->push_back(m_transfers[i]);
+        }
+    }
 }
 
 void
@@ -842,21 +766,19 @@ configuration :: debug_dump(std::ostream& out)
                     first = false;
                 }
 
-                out << "]";
-
-                if (r.tid != transfer_id())
-                {
-                    out << " " << r.tid << "->" << r.tsi;
-                }
-
-                out << std::endl;
+                out << "]" << std::endl;
             }
         }
     }
 
     for (size_t i = 0; i < m_captures.size(); ++i)
     {
-        out << "capture " << m_captures[i] << std::endl;
+        out << m_captures[i] << std::endl;
+    }
+
+    for (size_t i = 0; i < m_transfers.size(); ++i)
+    {
+        out << m_transfers[i] << std::endl;
     }
 }
 
@@ -883,6 +805,7 @@ configuration :: operator = (const configuration& rhs)
     m_point_leaders_by_virtual = rhs.m_point_leaders_by_virtual;
     m_spaces = rhs.m_spaces;
     m_captures = rhs.m_captures;
+    m_transfers = rhs.m_transfers;
     refill_cache();
     return *this;
 }
@@ -927,14 +850,6 @@ configuration :: refill_cache()
                 m_schemas_by_region.push_back(std::make_pair(r.id.get(), &s.schema));
                 m_subspace_ids_by_region.push_back(std::make_pair(r.id.get(), ss.id.get()));
 
-                if (r.tid != transfer_id())
-                {
-                    m_region_ids_by_virtual.push_back(std::make_pair(r.tvi.get(),
-                                                                     r.id.get()));
-                    m_server_ids_by_virtual.push_back(std::make_pair(r.tvi.get(),
-                                                                     r.tsi.get()));
-                }
-
                 if (r.replicas.empty())
                 {
                     continue;
@@ -967,6 +882,13 @@ configuration :: refill_cache()
         }
     }
 
+    for (size_t i = 0; i < m_transfers.size(); ++i)
+    {
+        transfer& xfer(m_transfers[i]);
+        m_region_ids_by_virtual.push_back(std::make_pair(xfer.vsrc.get(), xfer.rid.get()));
+        m_server_ids_by_virtual.push_back(std::make_pair(xfer.vdst.get(), xfer.dst.get()));
+    }
+
     std::sort(m_addresses_by_server_id.begin(), m_addresses_by_server_id.end());
     std::sort(m_region_ids_by_virtual.begin(), m_region_ids_by_virtual.end());
     std::sort(m_server_ids_by_virtual.begin(), m_server_ids_by_virtual.end());
@@ -986,8 +908,10 @@ hyperdex :: operator >> (e::unpacker up, configuration& c)
     uint64_t num_servers;
     uint64_t num_spaces;
     uint64_t num_captures;
+    uint64_t num_transfers;
     up = up >> c.m_cluster >> c.m_version
-            >> num_servers >> num_spaces >> num_captures;
+            >> num_servers >> num_spaces
+            >> num_captures >> num_transfers;
     c.m_addresses_by_server_id.clear();
     c.m_addresses_by_server_id.reserve(num_servers);
 
@@ -1017,6 +941,16 @@ hyperdex :: operator >> (e::unpacker up, configuration& c)
         capture cap;
         up = up >> cap;
         c.m_captures.push_back(cap);
+    }
+
+    c.m_transfers.clear();
+    c.m_transfers.reserve(num_transfers);
+
+    for (size_t i = 0; !up.error() && i < num_transfers; ++i)
+    {
+        transfer xfer;
+        up = up >> xfer;
+        c.m_transfers.push_back(xfer);
     }
 
     c.refill_cache();
