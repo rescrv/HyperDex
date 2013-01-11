@@ -92,13 +92,12 @@
 //                                          exp=0x7ff
 //                                          frac=0
 //                                          shift=3
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
 uint64_t
 hyperdex :: float_encode(double x)
 {
     uint64_t out = 0xffffffffffffffffULL;
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wfloat-equal"
 
     if (isinf(x))
     {
@@ -140,7 +139,7 @@ hyperdex :: float_encode(double x)
         out = (sign << 63) | (exp << 52) | (frac);
         out += shift;
     }
-#pragma GCC diagnostic pop
 
     return out;
 }
+#pragma GCC diagnostic pop

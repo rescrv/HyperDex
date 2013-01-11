@@ -25,6 +25,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// STL
+#include <algorithm>
+
 // HyperDex
 #include "common/counter_map.h"
 
