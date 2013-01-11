@@ -378,6 +378,7 @@ coordinator :: coordinator()
     , m_spaces()
     , m_captures()
     , m_transfers()
+    , m_missing_acks()
     , m_latest_config()
     , m_resp()
     , m_seed()
@@ -510,7 +511,40 @@ coordinator :: ack_config(replicant_state_machine_context* ctx,
             ss->state = server_state::AVAILABLE;
         }
 
-        maintain_acked(ctx);
+        uint64_t remove_up_to = 0;
+
+        for (std::list<missing_acks>::iterator it = m_missing_acks.begin();
+                it != m_missing_acks.end(); ++it)
+        {
+            if (it->version() > ss->acked)
+            {
+                break;
+            }
+
+            it->ack(ss->id);
+
+            if (it->empty())
+            {
+                assert(remove_up_to < it->version());
+                remove_up_to = it->version();
+            }
+        }
+
+        while (!m_missing_acks.empty() && m_missing_acks.front().version() <= remove_up_to)
+        {
+            m_missing_acks.pop_front();
+        }
+
+        while (m_acked < remove_up_to)
+        {
+            if (replicant_state_machine_condition_broadcast(ctx, "acked", &m_acked) < 0)
+            {
+                fprintf(log, "could not broadcast on \"acked\" condition\n");
+                break;
+            }
+        }
+
+        fprintf(log, "servers have acked through version %lu\n", m_acked);
     }
 
     return generate_response(ctx, COORD_SUCCESS);
@@ -1060,6 +1094,30 @@ coordinator :: issue_new_config(struct replicant_state_machine_context* ctx)
     }
 
     ++m_version;
+    std::vector<server_id> sids;
+
+    for (std::map<std::string, std::tr1::shared_ptr<space> >::iterator it = m_spaces.begin();
+            it != m_spaces.end(); ++it)
+    {
+        space& s(*it->second);
+
+        for (size_t i = 0; i < s.subspaces.size(); ++i)
+        {
+            subspace& ss(s.subspaces[i]);
+
+            for (size_t j = 0; j < ss.regions.size(); ++j)
+            {
+                region& reg(ss.regions[j]);
+
+                for (size_t k = 0; k < reg.replicas.size(); ++k)
+                {
+                    sids.push_back(reg.replicas[k].si);
+                }
+            }
+        }
+    }
+
+    m_missing_acks.push_back(missing_acks(m_version, sids));
     fprintf(log, "issuing new configuration version %lu\n", m_version);
     m_latest_config.reset();
 }
@@ -1146,33 +1204,6 @@ coordinator :: maintain_layout(replicant_state_machine_context* ctx)
     }
 
     return generate_response(ctx, COORD_SUCCESS);
-}
-
-void
-coordinator :: maintain_acked(struct replicant_state_machine_context* ctx)
-{
-    FILE* log = replicant_state_machine_log_stream(ctx);
-    uint64_t min_acked = UINT64_MAX;
-
-    for (size_t i = 0; i < m_servers.size(); ++i)
-    {
-        if (m_servers[i].state == server_state::AVAILABLE ||
-            m_servers[i].acked < m_servers[i].version)
-        {
-            min_acked = std::min(min_acked, m_servers[i].acked);
-        }
-    }
-
-    while (min_acked != UINT64_MAX && m_acked < min_acked)
-    {
-        if (replicant_state_machine_condition_broadcast(ctx, "acked", &m_acked) < 0)
-        {
-            fprintf(log, "could not broadcast on \"acked\" condition\n");
-            break;
-        }
-    }
-
-    fprintf(log, "servers have acked through version %lu\n", m_acked);
 }
 
 void

@@ -49,6 +49,7 @@
 #include "common/hyperspace.h"
 #include "common/ids.h"
 #include "common/transfer.h"
+#include "coordinator/missing_acks.h"
 #include "coordinator/server_state.h"
 
 namespace hyperdex
@@ -116,7 +117,6 @@ class coordinator
         void issue_new_config(struct replicant_state_machine_context* ctx);
         void initial_layout(struct replicant_state_machine_context* ctx, space* s);
         void maintain_layout(struct replicant_state_machine_context* ctx);
-        void maintain_acked(struct replicant_state_machine_context* ctx);
         void regenerate_cached(struct replicant_state_machine_context* ctx);
 
     private:
@@ -128,6 +128,7 @@ class coordinator
         std::map<std::string, std::tr1::shared_ptr<space> > m_spaces;
         std::vector<capture> m_captures;
         std::vector<transfer> m_transfers;
+        std::list<missing_acks> m_missing_acks;
         std::auto_ptr<e::buffer> m_latest_config; // cached config
         std::auto_ptr<e::buffer> m_resp; // response space
         drand48_data m_seed;
