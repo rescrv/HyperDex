@@ -584,7 +584,13 @@ coordinator :: server_suspect(replicant_state_machine_context* ctx,
                               const server_id& sid, uint64_t version)
 {
     FILE* log = replicant_state_machine_log_stream(ctx);
-    fprintf(log, "server_id(%lu) suspected (reporter sees version %lu)\n", sid.get(), version);
+
+    if (version < m_version)
+    {
+        return generate_response(ctx, COORD_SUCCESS);
+    }
+
+    fprintf(log, "server_id(%lu) suspected\n", sid.get());
 
     server_state* state = get_state(sid);
 
