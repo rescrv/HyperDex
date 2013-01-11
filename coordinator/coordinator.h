@@ -92,9 +92,11 @@ class coordinator
                            const transfer_id& xid);
 
     private:
+        // servers
         server_state* get_state(const server_id& sid);
         bool is_registered(const server_id& sid);
         bool is_registered(const po6::net::location& bind_to);
+        // regions
         region* get_region(const region_id& rid);
         // captures
         capture* new_capture(const region_id& rid);
@@ -104,7 +106,12 @@ class coordinator
         transfer* get_transfer(const region_id& rid);
         transfer* get_transfer(const transfer_id& xid);
         void del_transfer(const transfer_id& xid);
+        // references
+        void add_reference(const server_id& sid, const capture_id& cid);
         // other
+        void remove_server(const server_id& sid, bool dry_run,
+                           std::vector<region_id>* rids,
+                           std::vector<transfer_id>* xids);
         server_id select_new_server_for(const std::vector<replica>& replicas);
         void issue_new_config(struct replicant_state_machine_context* ctx);
         void initial_layout(struct replicant_state_machine_context* ctx, space* s);

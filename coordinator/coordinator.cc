@@ -551,7 +551,6 @@ coordinator :: server_suspect(replicant_state_machine_context* ctx,
 {
     FILE* log = replicant_state_machine_log_stream(ctx);
     fprintf(log, "server_id(%lu) suspected (reporter sees version %lu)\n", sid.get(), version);
-    uint64_t changes = 0;
 
     server_state* state = get_state(sid);
 
@@ -561,63 +560,23 @@ coordinator :: server_suspect(replicant_state_machine_context* ctx,
         state->version = m_version;
     }
 
-    for (std::map<std::string, std::tr1::shared_ptr<space> >::iterator it = m_spaces.begin();
-            it != m_spaces.end(); ++it)
+    std::vector<region_id> rids;
+    std::vector<transfer_id> xids;
+    remove_server(sid, false, &rids, &xids);
+
+    for (size_t i = 0; i < rids.size(); ++i)
     {
-        space& s(*it->second);
-
-        for (size_t i = 0; i < s.subspaces.size(); ++i)
-        {
-            subspace& ss(s.subspaces[i]);
-
-            for (size_t j = 0; j < ss.regions.size(); ++j)
-            {
-                region& reg(ss.regions[j]);
-                size_t k = 0;
-
-                while (k < reg.replicas.size())
-                {
-                    if (reg.replicas[k].si == sid)
-                    {
-                        fprintf(log, "server_id(%lu) removed from region_id(%lu)\n", sid.get(), reg.id.get());
-
-                        for (size_t x = k; x + 1 < reg.replicas.size(); ++x)
-                        {
-                            reg.replicas[x] = reg.replicas[x + 1];
-                        }
-
-                        reg.replicas.pop_back();
-                        ++changes;
-                    }
-                    else
-                    {
-                        ++k;
-                    }
-                }
-            }
-        }
+        fprintf(log, "server_id(%lu) removed from region_id(%lu)\n", sid.get(), rids[i].get());
     }
 
-    size_t i = 0;
-
-    while (i < m_transfers.size())
+    for (size_t i = 0; i < xids.size(); ++i)
     {
-        if (m_transfers[i].src == sid || m_transfers[i].dst == sid)
-        {
-            fprintf(log, "ending transfer_id(%lu) ended because it "
-                         "involved server_id(%lu)\n",
-                         m_transfers[i].id.get(), sid.get());
-            del_transfer(m_transfers[i].id);
-            ++changes;
-            i = 0;
-        }
-        else
-        {
-            ++i;
-        }
+        fprintf(log, "ending transfer_id(%lu) ended because it "
+                     "involved server_id(%lu)\n",
+                     xids[i].get(), sid.get());
     }
 
-    if (changes > 0)
+    if (!rids.empty() || !xids.empty())
     {
         issue_new_config(ctx);
         maintain_layout(ctx);
@@ -630,7 +589,23 @@ void
 coordinator :: server_shutdown1(replicant_state_machine_context* ctx,
                                 const server_id& sid)
 {
-    // XXX setup captures
+    std::vector<region_id> rids;
+    std::vector<transfer_id> xids;
+    remove_server(sid, true, &rids, &xids);
+
+    for (size_t i = 0; i < rids.size(); ++i)
+    {
+        capture* cap = get_capture(rids[i]);
+
+        if (!cap)
+        {
+            cap = new_capture(rids[i]);
+        }
+
+        assert(cap);
+        add_reference(sid, cap->id);
+    }
+
     m_resp.reset(e::buffer::create(sizeof(uint16_t) + sizeof(uint64_t)));
     *m_resp << static_cast<uint16_t>(COORD_SUCCESS) << m_version;
     replicant_state_machine_set_response(ctx, reinterpret_cast<const char*>(m_resp->data()), m_resp->size());
@@ -953,6 +928,85 @@ coordinator :: del_transfer(const transfer_id& xid)
 
             m_transfers.pop_back();
             return;
+        }
+    }
+}
+
+void
+coordinator :: add_reference(const server_id& sid, const capture_id& cid)
+{
+    // XXX
+}
+
+void
+coordinator :: remove_server(const server_id& sid, bool dry_run,
+                             std::vector<region_id>* rids,
+                             std::vector<transfer_id>* xids)
+{
+    for (std::map<std::string, std::tr1::shared_ptr<space> >::iterator it = m_spaces.begin();
+            it != m_spaces.end(); ++it)
+    {
+        space& s(*it->second);
+
+        for (size_t i = 0; i < s.subspaces.size(); ++i)
+        {
+            subspace& ss(s.subspaces[i]);
+
+            for (size_t j = 0; j < ss.regions.size(); ++j)
+            {
+                region& reg(ss.regions[j]);
+                size_t k = 0;
+
+                while (k < reg.replicas.size())
+                {
+                    if (reg.replicas[k].si == sid)
+                    {
+                        rids->push_back(reg.id);
+
+                        if (!dry_run)
+                        {
+                            for (size_t x = k; x + 1 < reg.replicas.size(); ++x)
+                            {
+                                reg.replicas[x] = reg.replicas[x + 1];
+                            }
+
+                            reg.replicas.pop_back();
+                        }
+                        else
+                        {
+                            ++k;
+                        }
+                    }
+                    else
+                    {
+                        ++k;
+                    }
+                }
+            }
+        }
+    }
+
+    size_t i = 0;
+
+    while (i < m_transfers.size())
+    {
+        if (m_transfers[i].src == sid || m_transfers[i].dst == sid)
+        {
+            xids->push_back(m_transfers[i].id);
+
+            if (!dry_run)
+            {
+                del_transfer(m_transfers[i].id);
+                i = 0;
+            }
+            else
+            {
+                ++i;
+            }
+        }
+        else
+        {
+            ++i;
         }
     }
 }
