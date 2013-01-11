@@ -52,6 +52,7 @@ class hyperdex::state_transfer_manager::transfer_in_state
     public:
         transfer xfer;
         po6::threads::mutex mtx;
+        bool cleared_capture;
         uint64_t upper_bound_acked;
         std::list<e::intrusive_ptr<pending> > queued;
         bool need_del;

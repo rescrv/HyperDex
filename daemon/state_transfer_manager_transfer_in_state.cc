@@ -37,6 +37,7 @@ state_transfer_manager :: transfer_in_state :: transfer_in_state(const transfer&
                                                                  leveldb_snapshot_ptr snap)
     : xfer(_xfer)
     , mtx()
+    , cleared_capture(false)
     , upper_bound_acked(1)
     , queued()
     , need_del(true)

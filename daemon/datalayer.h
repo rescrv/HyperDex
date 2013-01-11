@@ -30,6 +30,7 @@
 
 // STL
 #include <list>
+#include <set>
 #include <string>
 #include <tr1/memory>
 #include <vector>
@@ -150,6 +151,10 @@ class datalayer
         // Clear less than seq_id
         void clear_acked(const region_id& reg_id,
                          uint64_t seq_id);
+        // Request that a particular capture_id be wiped.  This is requested by
+        // the state_transfer_manager.  The state_transfer_manger will get a
+        // call back on report_wiped after it is done.
+        void request_wipe(const capture_id& cid);
 
     private:
         datalayer(const datalayer&);
@@ -243,6 +248,7 @@ class datalayer
         po6::threads::cond m_wakeup_cleaner;
         bool m_need_cleaning;
         bool m_shutdown;
+        std::set<capture_id> m_state_transfer_captures;
 };
 
 class datalayer::reference

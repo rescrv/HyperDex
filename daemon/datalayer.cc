@@ -1028,6 +1028,14 @@ datalayer :: clear_acked(const region_id& reg_id,
 }
 
 void
+datalayer :: request_wipe(const capture_id& cid)
+{
+    po6::threads::mutex::hold hold(&m_block_cleaner);
+    m_state_transfer_captures.insert(cid);
+    m_wakeup_cleaner.broadcast();
+}
+
+void
 datalayer :: encode_key(const region_id& ri,
                         const e::slice& key,
                         std::vector<char>* kbacking,
@@ -1763,10 +1771,14 @@ datalayer :: cleaner()
 
     while (true)
     {
+        std::set<capture_id> state_transfer_captures;
+
         {
             po6::threads::mutex::hold hold(&m_block_cleaner);
 
-            while (!m_need_cleaning && !m_shutdown)
+            while (!m_need_cleaning &&
+                   m_state_transfer_captures.empty() &&
+                   !m_shutdown)
             {
                 m_wakeup_cleaner.wait();
             }
@@ -1776,6 +1788,7 @@ datalayer :: cleaner()
                 break;
             }
 
+            m_state_transfer_captures.swap(state_transfer_captures);
             m_need_cleaning = false;
         }
 
@@ -1829,6 +1842,8 @@ datalayer :: cleaner()
                 continue;
             }
 
+            m_daemon->m_stm.report_wiped(cached_cid);
+
             // If this is not a region we need to keep, we need to iterate and
             // delete
             {
@@ -1839,12 +1854,25 @@ datalayer :: cleaner()
                     cached_cid = capture_id(cid);
                     continue;
                 }
+
+                if (state_transfer_captures.find(capture_id(cid)) != state_transfer_captures.end())
+                {
+                    cached_cid = capture_id(cid);
+                    state_transfer_captures.erase(cached_cid);
+                    continue;
+                }
             }
 
             std::vector<char> backing;
             leveldb::Slice slice;
             encode_transfer(capture_id(cid + 1), 0, &backing, &slice);
             it->Seek(slice);
+        }
+
+        while (!state_transfer_captures.empty())
+        {
+            m_daemon->m_stm.report_wiped(*state_transfer_captures.begin());
+            state_transfer_captures.erase(state_transfer_captures.begin());
         }
     }
 
