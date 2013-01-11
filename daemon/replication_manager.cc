@@ -119,6 +119,17 @@ replication_manager :: reconfigure(const configuration&,
                                    const server_id&)
 {
     std::map<uint64_t, uint64_t> seq_ids;
+    std::vector<transfer> transfers_in;
+    new_config.transfer_in_regions(m_daemon->m_us, &transfers_in);
+    std::vector<region_id> transfer_in_regions;
+    transfer_in_regions.reserve(transfers_in.size());
+
+    for (size_t i = 0; i < transfers_in.size(); ++i)
+    {
+        transfer_in_regions.push_back(transfers_in[i].rid);
+    }
+
+    std::sort(transfer_in_regions.begin(), transfer_in_regions.end());
 
     for (keyholder_map_t::iterator it = m_keyholders.begin();
             it != m_keyholders.end(); it.next())
@@ -130,6 +141,11 @@ replication_manager :: reconfigure(const configuration&,
         kh->clear_deferred();
         uint64_t max_seq_id = kh->max_seq_id();
         seq_ids[ri.get()] = std::max(seq_ids[ri.get()], max_seq_id);
+
+        if (std::binary_search(transfer_in_regions.begin(), transfer_in_regions.end(), ri))
+        {
+            m_keyholders.remove(it.key());
+        }
     }
 
     std::vector<region_id> regions;
