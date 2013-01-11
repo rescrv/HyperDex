@@ -87,6 +87,15 @@ class datalayer
                    po6::net::location* saved_bind_to,
                    po6::net::hostname* saved_coordinator);
         void teardown();
+        // perform one-time initialization of the db (call after "setup").
+        // requires that "saved" was false in "setup".
+        bool initialize();
+        // implicit sets the "dirty" bit
+        bool save_state(const server_id& m_us,
+                        const po6::net::location& bind_to,
+                        const po6::net::hostname& coordinator);
+        // clears the "dirty" bit
+        bool clear_dirty();
         reconfigure_returncode prepare(const configuration& old_config,
                                        const configuration& new_config,
                                        const server_id& us);

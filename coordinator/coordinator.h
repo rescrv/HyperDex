@@ -77,6 +77,9 @@ class coordinator
         void server_register(replicant_state_machine_context* ctx,
                              const server_id& sid,
                              const po6::net::location& bind_to);
+        void server_reregister(replicant_state_machine_context* ctx,
+                               const server_id& sid,
+                               const po6::net::location& bind_to);
         void server_suspect(replicant_state_machine_context* ctx,
                             const server_id& sid, uint64_t version);
         void server_shutdown1(replicant_state_machine_context* ctx,
@@ -107,10 +110,18 @@ class coordinator
         transfer* get_transfer(const region_id& rid);
         transfer* get_transfer(const transfer_id& xid);
         void del_transfer(const transfer_id& xid);
-        // references
-        void add_reference(const server_id& sid, const capture_id& cid);
+        // capture references
+        void add_capture_reference(const server_id& sid, const capture_id& cid);
+        void add_capture_reference(const transfer_id& xid, const capture_id& cid);
+        void release_capture_reference(const transfer_id& xid);
+        void release_capture_references(const server_id& sid);
+        // region references
+        void add_region_reference(const server_id& sid, const region_id& rid);
+        server_id get_region_reference(const region_id& rid);
+        void release_region_reference(const region_id& rid);
+        void release_region_references(const server_id& sid);
         // other
-        void remove_server(const server_id& sid, bool dry_run,
+        void remove_server(const server_id& sid, bool dry_run, bool shutdown,
                            std::vector<region_id>* rids,
                            std::vector<transfer_id>* xids);
         server_id select_new_server_for(const std::vector<replica>& replicas);
@@ -129,6 +140,9 @@ class coordinator
         std::vector<capture> m_captures;
         std::vector<transfer> m_transfers;
         std::list<missing_acks> m_missing_acks;
+        std::vector<std::pair<capture_id, server_id> > m_capture_server_references;
+        std::vector<std::pair<capture_id, transfer_id> > m_capture_transfer_references;
+        std::vector<std::pair<region_id, server_id> > m_region_server_references;
         std::auto_ptr<e::buffer> m_latest_config; // cached config
         std::auto_ptr<e::buffer> m_resp; // response space
         drand48_data m_seed;

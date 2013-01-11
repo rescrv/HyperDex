@@ -59,7 +59,8 @@ class coordinator_link
 
     public:
         void set_coordinator_address(const char* host, uint16_t port);
-        int register_id(server_id us, const po6::net::location& bind_to);
+        bool register_id(server_id us, const po6::net::location& bind_to);
+        bool reregister_id(server_id us, const po6::net::location& bind_to);
         bool is_shutdown();
         bool is_clean_shutdown();
         bool wait_for_config(configuration* config);

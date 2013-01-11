@@ -206,6 +206,11 @@ daemon :: run(bool daemonize,
         bind_to = saved_bind_to;
         coordinator = saved_coordinator;
         m_coord.set_coordinator_address(coordinator.address.c_str(), coordinator.port);
+
+        if (!m_coord.reregister_id(m_us, bind_to))
+        {
+            return EXIT_FAILURE;
+        }
     }
     else
     {
@@ -221,24 +226,22 @@ daemon :: run(bool daemonize,
 
         LOG(INFO) << "generated new random token:  " << sid;
 
-        int verify = m_coord.register_id(server_id(sid), bind_to);
+        if (!m_coord.register_id(server_id(sid), bind_to))
+        {
+            return EXIT_FAILURE;
+        }
 
-        if (verify < 0)
+        m_us = server_id(sid);
+
+        if (!m_data.initialize())
         {
-            // reason logged by register_id
             return EXIT_FAILURE;
         }
-        else if (verify > 0)
-        {
-            m_us = server_id(sid);
-        }
-        else
-        {
-            LOG(INFO) << "cannot register because another server has registered "
-                      << "with our token or listen address; check the coordinator "
-                      << "for details";
-            return EXIT_FAILURE;
-        }
+    }
+
+    if (!m_data.save_state(m_us, bind_to, coordinator))
+    {
+        return EXIT_FAILURE;
     }
 
     if (daemonize)
@@ -332,8 +335,19 @@ daemon :: run(bool daemonize,
     m_repl.teardown();
     m_comm.teardown();
     m_data.teardown();
+    int exit_status = EXIT_SUCCESS;
+
+    if (m_coord.is_clean_shutdown())
+    {
+        if (!m_data.clear_dirty())
+        {
+            LOG(ERROR) << "unable to cleanly close the database";
+            exit_status = EXIT_FAILURE;
+        }
+    }
+
     LOG(INFO) << "hyperdex-daemon will now terminate";
-    return EXIT_SUCCESS;
+    return exit_status;
 }
 
 void

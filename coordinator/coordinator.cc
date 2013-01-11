@@ -273,6 +273,22 @@ hyperdex_coordinator_server_register(struct replicant_state_machine_context* ctx
 }
 
 void
+hyperdex_coordinator_server_reregister(struct replicant_state_machine_context* ctx,
+                                       void* obj, const char* data, size_t data_sz)
+{
+    PROTECT_UNINITIALIZED;
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    coordinator* c = static_cast<coordinator*>(obj);
+    uint64_t _sid;
+    po6::net::location bind_to;
+    e::unpacker up(data, data_sz);
+    up = up >> _sid >> bind_to;
+    CHECK_UNPACK(server_reregister);
+    server_id sid(_sid);
+    c->server_reregister(ctx, sid, bind_to);
+}
+
+void
 hyperdex_coordinator_server_suspect(struct replicant_state_machine_context* ctx,
                                     void* obj, const char* data, size_t data_sz)
 {
@@ -580,6 +596,37 @@ coordinator :: server_register(replicant_state_machine_context* ctx,
 }
 
 void
+coordinator :: server_reregister(replicant_state_machine_context* ctx,
+                                 const server_id& sid,
+                                 const po6::net::location& bind_to)
+{
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    std::ostringstream oss;
+    oss << bind_to;
+    server_state* ss = get_state(sid);
+
+    if (!ss)
+    {
+        fprintf(log, "cannot re-register server_id(%lu) on address %s because the server doesn't exist\n", sid.get(), oss.str().c_str());
+        return generate_response(ctx, hyperdex::COORD_DUPLICATE);
+    }
+
+    ss->bind_to = po6::net::location();
+
+    if (is_registered(bind_to))
+    {
+        fprintf(log, "cannot register server_id(%lu) on address %s because the address is in use\n", sid.get(), oss.str().c_str());
+        return generate_response(ctx, hyperdex::COORD_DUPLICATE);
+    }
+
+    ss->bind_to = bind_to;
+    ss->state = server_state::AVAILABLE;
+    fprintf(log, "re-registered server_id(%lu) on address %s\n", sid.get(), oss.str().c_str());
+    maintain_layout(ctx);
+    return generate_response(ctx, hyperdex::COORD_SUCCESS);
+}
+
+void
 coordinator :: server_suspect(replicant_state_machine_context* ctx,
                               const server_id& sid, uint64_t version)
 {
@@ -602,7 +649,7 @@ coordinator :: server_suspect(replicant_state_machine_context* ctx,
 
     std::vector<region_id> rids;
     std::vector<transfer_id> xids;
-    remove_server(sid, false, &rids, &xids);
+    remove_server(sid, false, false, &rids, &xids);
 
     for (size_t i = 0; i < rids.size(); ++i)
     {
@@ -631,7 +678,7 @@ coordinator :: server_shutdown1(replicant_state_machine_context* ctx,
 {
     std::vector<region_id> rids;
     std::vector<transfer_id> xids;
-    remove_server(sid, true, &rids, &xids);
+    remove_server(sid, true, false, &rids, &xids);
 
     for (size_t i = 0; i < rids.size(); ++i)
     {
@@ -643,7 +690,7 @@ coordinator :: server_shutdown1(replicant_state_machine_context* ctx,
         }
 
         assert(cap);
-        add_reference(sid, cap->id);
+        add_capture_reference(sid, cap->id);
     }
 
     m_resp.reset(e::buffer::create(sizeof(uint16_t) + sizeof(uint64_t)));
@@ -655,6 +702,7 @@ void
 coordinator :: server_shutdown2(replicant_state_machine_context* ctx,
                                 const server_id& sid)
 {
+    FILE* log = replicant_state_machine_log_stream(ctx);
     server_state* ss = get_state(sid);
 
     if (ss)
@@ -662,7 +710,12 @@ coordinator :: server_shutdown2(replicant_state_machine_context* ctx,
         ss->state = server_state::SHUTDOWN;
     }
 
-    // XXX remove server
+    std::vector<region_id> rids;
+    std::vector<transfer_id> xids;
+    remove_server(sid, false, true, &rids, &xids);
+    fprintf(log, "server_id(%lu) shutdown cleanly\n", sid.get());
+    issue_new_config(ctx);
+    maintain_layout(ctx);
     return generate_response(ctx, COORD_SUCCESS);
 }
 
@@ -907,7 +960,6 @@ coordinator :: new_transfer(region* reg,
 
     if (!cap)
     {
-        // XXX need to tie this capture to this transfer
         cap = new_capture(reg->id);
     }
 
@@ -921,6 +973,7 @@ coordinator :: new_transfer(region* reg,
     t->dst = sid;
     t->vdst = virtual_server_id(m_counter);
     ++m_counter;
+    add_capture_reference(t->id, cap->id);
     return t;
 }
 
@@ -959,7 +1012,7 @@ coordinator :: del_transfer(const transfer_id& xid)
     {
         if (m_transfers[i].id == xid)
         {
-            // XXX possibly stop the capture of this region
+            release_capture_reference(m_transfers[i].id);
 
             for (size_t j = i; j + 1 < m_transfers.size(); ++j)
             {
@@ -972,17 +1025,142 @@ coordinator :: del_transfer(const transfer_id& xid)
     }
 }
 
-void
-coordinator :: add_reference(const server_id& sid, const capture_id& cid)
+template <class T>
+static void
+uniquify/*not a word*/(std::vector<T>* v)
 {
-    // XXX
+    std::sort(v->begin(), v->end());
+    typename std::vector<T>::iterator it;
+    it = std::unique(v->begin(), v->end());
+    v->resize(it - v->begin());
 }
 
 void
-coordinator :: remove_server(const server_id& sid, bool dry_run,
+coordinator :: add_capture_reference(const server_id& sid, const capture_id& cid)
+{
+    m_capture_server_references.push_back(std::make_pair(cid, sid));
+    uniquify(&m_capture_server_references);
+}
+
+void
+coordinator :: add_capture_reference(const transfer_id& xid, const capture_id& cid)
+{
+    m_capture_transfer_references.push_back(std::make_pair(cid, xid));
+    uniquify(&m_capture_transfer_references);
+}
+
+void
+coordinator :: release_capture_reference(const transfer_id& xid)
+{
+    size_t i = 0;
+
+    while (i < m_capture_transfer_references.size())
+    {
+        if (m_capture_transfer_references[i].second == xid)
+        {
+            m_capture_transfer_references[i] = m_capture_transfer_references.back();
+            m_capture_transfer_references.pop_back();
+        }
+        else
+        {
+            ++i;
+        }
+    }
+
+    uniquify(&m_capture_transfer_references);
+}
+
+void
+coordinator :: release_capture_references(const server_id& sid)
+{
+    size_t i = 0;
+
+    while (i < m_capture_server_references.size())
+    {
+        if (m_capture_server_references[i].second == sid)
+        {
+            m_capture_server_references[i] = m_capture_server_references.back();
+            m_capture_server_references.pop_back();
+        }
+        else
+        {
+            ++i;
+        }
+    }
+
+    uniquify(&m_capture_server_references);
+}
+
+void
+coordinator :: add_region_reference(const server_id& sid, const region_id& rid)
+{
+    m_region_server_references.push_back(std::make_pair(rid, sid));
+    uniquify(&m_region_server_references);
+}
+
+server_id
+coordinator :: get_region_reference(const region_id& rid)
+{
+    for (size_t i = 0; i < m_region_server_references.size(); ++i)
+    {
+        if (m_region_server_references[i].first == rid)
+        {
+            return m_region_server_references[i].second;
+        }
+    }
+
+    return server_id();
+}
+
+void
+coordinator :: release_region_reference(const region_id& rid)
+{
+    size_t i = 0;
+
+    while (i < m_region_server_references.size())
+    {
+        if (m_region_server_references[i].first == rid)
+        {
+            m_region_server_references[i] = m_region_server_references.back();
+            m_region_server_references.pop_back();
+        }
+        else
+        {
+            ++i;
+        }
+    }
+
+    uniquify(&m_region_server_references);
+}
+
+void
+coordinator :: release_region_references(const server_id& sid)
+{
+    size_t i = 0;
+
+    while (i < m_region_server_references.size())
+    {
+        if (m_region_server_references[i].second == sid)
+        {
+            m_region_server_references[i] = m_region_server_references.back();
+            m_region_server_references.pop_back();
+        }
+        else
+        {
+            ++i;
+        }
+    }
+
+    uniquify(&m_region_server_references);
+}
+
+void
+coordinator :: remove_server(const server_id& sid, bool dry_run, bool shutdown,
                              std::vector<region_id>* rids,
                              std::vector<transfer_id>* xids)
 {
+    shutdown = !dry_run && shutdown;
+
     for (std::map<std::string, std::tr1::shared_ptr<space> >::iterator it = m_spaces.begin();
             it != m_spaces.end(); ++it)
     {
@@ -996,6 +1174,15 @@ coordinator :: remove_server(const server_id& sid, bool dry_run,
             {
                 region& reg(ss.regions[j]);
                 size_t k = 0;
+
+                if (shutdown &&
+                    reg.replicas.size() == 1 &&
+                    reg.replicas[0].si == sid)
+                {
+                    rids->push_back(reg.id);
+                    add_region_reference(sid, reg.id);
+                    reg.replicas.clear();
+                }
 
                 while (k < reg.replicas.size())
                 {
@@ -1048,6 +1235,12 @@ coordinator :: remove_server(const server_id& sid, bool dry_run,
         {
             ++i;
         }
+    }
+
+    if (!dry_run && !shutdown)
+    {
+        release_region_references(sid);
+        release_capture_references(sid);
     }
 }
 
@@ -1183,7 +1376,30 @@ coordinator :: maintain_layout(replicant_state_machine_context* ctx)
 
                 if (reg.replicas.empty())
                 {
-                    fprintf(log, "region_id(%lu) completely empty; cannot transfer to another node\n", reg.id.get());
+                    replacement = get_region_reference(reg.id);
+                    server_state* state = get_state(replacement);
+
+                    if (replacement != server_id() && state &&
+                        state->state != server_state::AVAILABLE)
+                    {
+                        fprintf(log, "region_id(%lu) empty and the last server to leave it is offline\n", reg.id.get());
+                    }
+                    else if (replacement == server_id() || !state)
+                    {
+                        fprintf(log, "region_id(%lu) completely empty; cannot transfer to another node\n", reg.id.get());
+                    }
+                    else
+                    {
+                        reg.replicas.push_back(replica());
+                        reg.replicas.back().si = replacement;
+                        reg.replicas.back().vsi = virtual_server_id(m_counter);
+                        ++m_counter;
+                        release_region_reference(reg.id);
+                        ++changes;
+                        fprintf(log, "adding server_id(%lu) to region_id(%lu) because "
+                                     "it was the last surviving server\n",
+                                     replacement.get(), reg.id.get());
+                    }
                 }
                 else if (!get_transfer(reg.id) &&
                          reg.replicas.size() < s.fault_tolerance + 1 &&

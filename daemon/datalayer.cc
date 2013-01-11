@@ -107,8 +107,6 @@ datalayer :: setup(const po6::pathname& path,
     leveldb::ReadOptions ropts;
     ropts.fill_cache = true;
     ropts.verify_checksums = true;
-    leveldb::WriteOptions wopts;
-    wopts.sync = false;
 
     leveldb::Slice rk("hyperdex", 8);
     std::string rbacking;
@@ -131,39 +129,6 @@ datalayer :: setup(const po6::pathname& path,
     else if (st.IsNotFound())
     {
         first_time = true;
-        leveldb::Slice k("hyperdex", 8);
-        leveldb::Slice v(PACKAGE_VERSION, strlen(PACKAGE_VERSION));
-        st = m_db->Put(wopts, k, v);
-
-        if (st.ok())
-        {
-            // fall through
-        }
-        else if (st.IsNotFound())
-        {
-            LOG(ERROR) << "could not restore from LevelDB because Put returned NotFound:  "
-                       << st.ToString();
-            return false;
-        }
-        else if (st.IsCorruption())
-        {
-            LOG(ERROR) << "could not restore from LevelDB because of corruption:  "
-                       << st.ToString();
-            return false;
-        }
-        else if (st.IsIOError())
-        {
-            LOG(ERROR) << "could not restore from LevelDB because of an IO error:  "
-                       << st.ToString();
-            return false;
-        }
-        else
-        {
-            LOG(ERROR) << "could not restore from LevelDB because it returned an "
-                       << "unknown error that we don't know how to handle:  "
-                       << st.ToString();
-            return false;
-        }
     }
     else if (st.IsCorruption())
     {
@@ -260,6 +225,161 @@ void
 datalayer :: teardown()
 {
     shutdown();
+}
+
+bool
+datalayer :: initialize()
+{
+    leveldb::WriteOptions wopts;
+    wopts.sync = true;
+    leveldb::Status st = m_db->Put(wopts, leveldb::Slice("hyperdex", 8),
+                                   leveldb::Slice(PACKAGE_VERSION, strlen(PACKAGE_VERSION)));
+
+    if (st.ok())
+    {
+        return true;
+    }
+    else if (st.IsNotFound())
+    {
+        LOG(ERROR) << "could not initialize LevelDB because Put returned NotFound:  "
+                   << st.ToString();
+        return false;
+    }
+    else if (st.IsCorruption())
+    {
+        LOG(ERROR) << "could not initialize LevelDB because of corruption:  "
+                   << st.ToString();
+        return false;
+    }
+    else if (st.IsIOError())
+    {
+        LOG(ERROR) << "could not initialize LevelDB because of an IO error:  "
+                   << st.ToString();
+        return false;
+    }
+    else
+    {
+        LOG(ERROR) << "could not initialize LevelDB because it returned an "
+                   << "unknown error that we don't know how to handle:  "
+                   << st.ToString();
+        return false;
+    }
+}
+
+bool
+datalayer :: save_state(const server_id& us,
+                        const po6::net::location& bind_to,
+                        const po6::net::hostname& coordinator)
+{
+    leveldb::WriteOptions wopts;
+    wopts.sync = true;
+    leveldb::Status st = m_db->Put(wopts,
+                                   leveldb::Slice("dirty", 5),
+                                   leveldb::Slice("", 0));
+
+    if (st.ok())
+    {
+        // Yay
+    }
+    else if (st.IsNotFound())
+    {
+        LOG(ERROR) << "could not set dirty bit: "
+                   << st.ToString();
+        return false;
+    }
+    else if (st.IsCorruption())
+    {
+        LOG(ERROR) << "corruption at the disk layer: "
+                   << "could not set dirty bit: "
+                   << st.ToString();
+        return false;
+    }
+    else if (st.IsIOError())
+    {
+        LOG(ERROR) << "IO error at the disk layer: "
+                   << "could not set dirty bit: "
+                   << st.ToString();
+        return false;
+    }
+    else
+    {
+        LOG(ERROR) << "LevelDB returned an unknown error that we don't "
+                   << "know how to handle: could not set dirty bit";
+        return false;
+    }
+
+    size_t sz = sizeof(uint64_t)
+              + pack_size(bind_to)
+              + pack_size(coordinator);
+    std::auto_ptr<e::buffer> state(e::buffer::create(sz));
+    *state << us << bind_to << coordinator;
+    st = m_db->Put(wopts, leveldb::Slice("state", 5),
+                   leveldb::Slice(reinterpret_cast<const char*>(state->data()), state->size()));
+
+    if (st.ok())
+    {
+        return true;
+    }
+    else if (st.IsNotFound())
+    {
+        LOG(ERROR) << "could not save state: "
+                   << st.ToString();
+        return false;
+    }
+    else if (st.IsCorruption())
+    {
+        LOG(ERROR) << "corruption at the disk layer: "
+                   << "could not save state: "
+                   << st.ToString();
+        return false;
+    }
+    else if (st.IsIOError())
+    {
+        LOG(ERROR) << "IO error at the disk layer: "
+                   << "could not save state: "
+                   << st.ToString();
+        return false;
+    }
+    else
+    {
+        LOG(ERROR) << "LevelDB returned an unknown error that we don't "
+                   << "know how to handle: could not save state";
+        return false;
+    }
+}
+
+bool
+datalayer :: clear_dirty()
+{
+    leveldb::WriteOptions wopts;
+    wopts.sync = true;
+    leveldb::Slice key("dirty", 5);
+    leveldb::Status st = m_db->Delete(wopts, key);
+
+    if (st.ok() || st.IsNotFound())
+    {
+        return true;
+    }
+    else if (st.IsCorruption())
+    {
+        LOG(ERROR) << "corruption at the disk layer: "
+                   << "could not clear dirty bit: "
+                   << st.ToString();
+        return false;
+    }
+    else if (st.IsIOError())
+    {
+        LOG(ERROR) << "IO error at the disk layer: "
+                   << "could not clear dirty bit: "
+                   << st.ToString();
+        return false;
+    }
+    else
+    {
+        LOG(ERROR) << "LevelDB returned an unknown error that we don't "
+                   << "know how to handle: could not clear dirty bit";
+        return false;
+    }
 }
 
 reconfigure_returncode

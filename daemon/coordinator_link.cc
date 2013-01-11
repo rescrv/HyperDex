@@ -88,7 +88,7 @@ coordinator_link :: set_coordinator_address(const char* host, uint16_t port)
 }
 
 // negative indicates fatal error; zero indicates retry; positive indicates success
-int
+bool
 coordinator_link :: register_id(server_id us, const po6::net::location& bind_to)
 {
     replicant_returncode sstatus = REPLICANT_GARBAGE;
@@ -106,7 +106,7 @@ coordinator_link :: register_id(server_id us, const po6::net::location& bind_to)
         {
             case REPLICANT_NEED_BOOTSTRAP:
                 LOG(ERROR) << "could not connect to the coordinator to register this instance";
-                return -1;
+                return false;
             case REPLICANT_SUCCESS:
             case REPLICANT_NAME_TOO_LONG:
             case REPLICANT_FUNC_NOT_FOUND:
@@ -127,7 +127,7 @@ coordinator_link :: register_id(server_id us, const po6::net::location& bind_to)
                 LOG(ERROR) << "while trying to register with the coordinator "
                            << "we received an error (" << sstatus << ") and "
                            << "don't know what to do (exiting is a safe bet)";
-                return -1;
+                return false;
         }
     }
 
@@ -140,7 +140,7 @@ coordinator_link :: register_id(server_id us, const po6::net::location& bind_to)
         {
             case REPLICANT_NEED_BOOTSTRAP:
                 LOG(ERROR) << "could not connect to the coordinator to register this instance";
-                return -1;
+                return false;
             case REPLICANT_SUCCESS:
             case REPLICANT_NAME_TOO_LONG:
             case REPLICANT_FUNC_NOT_FOUND:
@@ -159,7 +159,7 @@ coordinator_link :: register_id(server_id us, const po6::net::location& bind_to)
             case REPLICANT_GARBAGE:
             default:
                 LOG(ERROR) << "could not register this instance with the coordinator: " << sstatus;
-                return -1;
+                return false;
         }
     }
 
@@ -172,15 +172,15 @@ coordinator_link :: register_id(server_id us, const po6::net::location& bind_to)
         case REPLICANT_FUNC_NOT_FOUND:
             LOG(ERROR) << "could not register this instance with the coordinator "
                        << "because the registration function was not found";
-            return -1;
+            return false;
         case REPLICANT_OBJ_NOT_FOUND:
             LOG(ERROR) << "could not register this instance with the coordinator "
                        << "because the HyperDex object was not found";
-            return -1;
+            return false;
         case REPLICANT_NEED_BOOTSTRAP:
         case REPLICANT_BACKOFF:
             LOG(ERROR) << "could not connect to the coordinator to register this instance";
-            return -1;
+            return false;
         case REPLICANT_NAME_TOO_LONG:
         case REPLICANT_OBJ_EXIST:
         case REPLICANT_COND_NOT_FOUND:
@@ -195,10 +195,10 @@ coordinator_link :: register_id(server_id us, const po6::net::location& bind_to)
         case REPLICANT_GARBAGE:
         default:
             LOG(ERROR) << "could not register this instance with the coordinator: " << sstatus;
-            return -1;
+            return false;
     }
 
-    int ret = 0;
+    bool success = false;
 
     if (output_sz >= 2)
     {
@@ -209,24 +209,27 @@ coordinator_link :: register_id(server_id us, const po6::net::location& bind_to)
         switch (rc)
         {
             case COORD_SUCCESS:
-                ret = 1;
+                success = true;
                 break;
             case COORD_DUPLICATE:
-                ret = 0;
+                LOG(ERROR) << "cannot register because another server has registered "
+                           << "with our token or listen address; check the coordinator "
+                           << "for details";
+                success = false;
                 break;
             case COORD_UNINITIALIZED:
-                ret = -1;
                 LOG(ERROR) << "could not register this instance with the coordinator "
                            << "because the coordinator is uninitialized";
+                success = false;
                 break;
             case COORD_MALFORMED:
             case COORD_NOT_FOUND:
             case COORD_INITIALIZED:
             case COORD_TRANSFER_IN_PROGRESS:
             default:
-                ret = -1;
                 LOG(ERROR) << "could not register this instance with the coordinator "
                            << "because of an internal error";
+                success = false;
                 break;
         }
     }
@@ -236,7 +239,165 @@ coordinator_link :: register_id(server_id us, const po6::net::location& bind_to)
         replicant_destroy_output(output, output_sz);
     }
 
-    return ret;
+    return success;
+}
+
+bool
+coordinator_link :: reregister_id(server_id us, const po6::net::location& bind_to)
+{
+    replicant_returncode sstatus = REPLICANT_GARBAGE;
+    std::auto_ptr<e::buffer> data(e::buffer::create(sizeof(uint64_t) + pack_size(bind_to)));
+    *data << us.get() << bind_to;
+    const char* output;
+    size_t output_sz;
+    int64_t sid = m_repl->send("hyperdex", "server-reregister",
+                               reinterpret_cast<const char*>(data->data()), data->size(),
+                               &sstatus, &output, &output_sz);
+
+    if (sid < 0)
+    {
+        switch (sstatus)
+        {
+            case REPLICANT_NEED_BOOTSTRAP:
+                LOG(ERROR) << "could not connect to the coordinator to re-register this instance";
+                return false;
+            case REPLICANT_SUCCESS:
+            case REPLICANT_NAME_TOO_LONG:
+            case REPLICANT_FUNC_NOT_FOUND:
+            case REPLICANT_OBJ_EXIST:
+            case REPLICANT_OBJ_NOT_FOUND:
+            case REPLICANT_COND_NOT_FOUND:
+            case REPLICANT_COND_DESTROYED:
+            case REPLICANT_SERVER_ERROR:
+            case REPLICANT_BAD_LIBRARY:
+            case REPLICANT_TIMEOUT:
+            case REPLICANT_BACKOFF:
+            case REPLICANT_MISBEHAVING_SERVER:
+            case REPLICANT_INTERNAL_ERROR:
+            case REPLICANT_NONE_PENDING:
+            case REPLICANT_INTERRUPTED:
+            case REPLICANT_GARBAGE:
+            default:
+                LOG(ERROR) << "while trying to re-register with the coordinator "
+                           << "we received an error (" << sstatus << ") and "
+                           << "don't know what to do (exiting is a safe bet)";
+                return false;
+        }
+    }
+
+    replicant_returncode lstatus = REPLICANT_GARBAGE;
+    int64_t lid = m_repl->loop(sid, -1, &lstatus);
+
+    if (lid < 0)
+    {
+        switch (sstatus)
+        {
+            case REPLICANT_NEED_BOOTSTRAP:
+                LOG(ERROR) << "could not connect to the coordinator to re-register this instance";
+                return false;
+            case REPLICANT_SUCCESS:
+            case REPLICANT_NAME_TOO_LONG:
+            case REPLICANT_FUNC_NOT_FOUND:
+            case REPLICANT_OBJ_EXIST:
+            case REPLICANT_OBJ_NOT_FOUND:
+            case REPLICANT_COND_NOT_FOUND:
+            case REPLICANT_COND_DESTROYED:
+            case REPLICANT_SERVER_ERROR:
+            case REPLICANT_BAD_LIBRARY:
+            case REPLICANT_TIMEOUT:
+            case REPLICANT_BACKOFF:
+            case REPLICANT_MISBEHAVING_SERVER:
+            case REPLICANT_INTERNAL_ERROR:
+            case REPLICANT_NONE_PENDING:
+            case REPLICANT_INTERRUPTED:
+            case REPLICANT_GARBAGE:
+            default:
+                LOG(ERROR) << "could not re-register this instance with the coordinator: " << sstatus;
+                return false;
+        }
+    }
+
+    assert(sid == lid);
+
+    switch (sstatus)
+    {
+        case REPLICANT_SUCCESS:
+            break;
+        case REPLICANT_FUNC_NOT_FOUND:
+            LOG(ERROR) << "could not re-register this instance with the coordinator "
+                       << "because the registration function was not found";
+            return false;
+        case REPLICANT_OBJ_NOT_FOUND:
+            LOG(ERROR) << "could not re-register this instance with the coordinator "
+                       << "because the HyperDex object was not found";
+            return false;
+        case REPLICANT_NEED_BOOTSTRAP:
+        case REPLICANT_BACKOFF:
+            LOG(ERROR) << "could not connect to the coordinator to re-register this instance";
+            return false;
+        case REPLICANT_NAME_TOO_LONG:
+        case REPLICANT_OBJ_EXIST:
+        case REPLICANT_COND_NOT_FOUND:
+        case REPLICANT_COND_DESTROYED:
+        case REPLICANT_SERVER_ERROR:
+        case REPLICANT_BAD_LIBRARY:
+        case REPLICANT_TIMEOUT:
+        case REPLICANT_MISBEHAVING_SERVER:
+        case REPLICANT_INTERNAL_ERROR:
+        case REPLICANT_NONE_PENDING:
+        case REPLICANT_INTERRUPTED:
+        case REPLICANT_GARBAGE:
+        default:
+            LOG(ERROR) << "could not re-register this instance with the coordinator: " << sstatus;
+            return false;
+    }
+
+    bool success = false;
+
+    if (output_sz >= 2)
+    {
+        uint16_t x;
+        e::unpack16be(output, &x);
+        coordinator_returncode rc = static_cast<coordinator_returncode>(x);
+
+        switch (rc)
+        {
+            case COORD_SUCCESS:
+                success = true;
+                break;
+            case COORD_NOT_FOUND:
+                LOG(ERROR) << "cannot re-register because the coordinator does not "
+                           << "remember our original registration";
+                success = false;
+                break;
+            case COORD_DUPLICATE:
+                LOG(ERROR) << "cannot re-register because another server has re-registered "
+                           << "with our token or listen address; check the coordinator "
+                           << "for details";
+                success = false;
+                break;
+            case COORD_UNINITIALIZED:
+                LOG(ERROR) << "could not re-register this instance with the coordinator "
+                           << "because the coordinator is uninitialized";
+                success = false;
+                break;
+            case COORD_MALFORMED:
+            case COORD_INITIALIZED:
+            case COORD_TRANSFER_IN_PROGRESS:
+            default:
+                LOG(ERROR) << "could not re-register this instance with the coordinator "
+                           << "because of an internal error";
+                success = false;
+                break;
+        }
+    }
+
+    if (output)
+    {
+        replicant_destroy_output(output, output_sz);
+    }
+
+    return success;
 }
 
 extern int s_interrupts;
