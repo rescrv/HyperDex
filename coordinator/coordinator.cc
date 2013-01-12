@@ -489,6 +489,7 @@ coordinator :: rm_space(replicant_state_machine_context* ctx, const char* name)
     {
         fprintf(log, "successfully removed space \"%s\"/space_id(%lu)\n", name, it->second->id.get());
         m_spaces.erase(it);
+        issue_new_config(ctx);
         return generate_response(ctx, COORD_SUCCESS);
     }
 }
