@@ -623,6 +623,7 @@ coordinator :: server_reregister(replicant_state_machine_context* ctx,
     ss->state = server_state::AVAILABLE;
     fprintf(log, "re-registered server_id(%lu) on address %s\n", sid.get(), oss.str().c_str());
     maintain_layout(ctx);
+    release_capture_references(sid);
     return generate_response(ctx, hyperdex::COORD_SUCCESS);
 }
 
@@ -1035,6 +1036,34 @@ uniquify/*not a word*/(std::vector<T>* v)
     v->resize(it - v->begin());
 }
 
+template <class T, class U>
+static bool
+contains(const std::vector<std::pair<T, U> >& v, const T& e)
+{
+    typename std::vector<std::pair<T, U> >::const_iterator it;
+    it = std::lower_bound(v.begin(), v.end(), std::make_pair(e, U()));
+    return it != v.end() && it->first == e;
+}
+
+template <class T, class TID>
+static void
+remove(std::vector<T>* v, const TID& id)
+{
+    for (size_t i = 0; i < v->size(); ++i)
+    {
+        if ((*v)[i].id == id)
+        {
+            for (size_t j = i; j + 1 < v->size(); ++j)
+            {
+                (*v)[j] = (*v)[j + 1];
+            }
+
+            v->pop_back();
+            return;
+        }
+    }
+}
+
 void
 coordinator :: add_capture_reference(const server_id& sid, const capture_id& cid)
 {
@@ -1058,16 +1087,17 @@ coordinator :: release_capture_reference(const transfer_id& xid)
     {
         if (m_capture_transfer_references[i].second == xid)
         {
+            capture_id cid = m_capture_transfer_references[i].first;
             m_capture_transfer_references[i] = m_capture_transfer_references.back();
             m_capture_transfer_references.pop_back();
+            uniquify(&m_capture_transfer_references);
+            maybe_garbage_collect_references(cid);
         }
         else
         {
             ++i;
         }
     }
-
-    uniquify(&m_capture_transfer_references);
 }
 
 void
@@ -1079,16 +1109,27 @@ coordinator :: release_capture_references(const server_id& sid)
     {
         if (m_capture_server_references[i].second == sid)
         {
+            capture_id cid = m_capture_server_references[i].first;
             m_capture_server_references[i] = m_capture_server_references.back();
             m_capture_server_references.pop_back();
+            uniquify(&m_capture_server_references);
+            maybe_garbage_collect_references(cid);
         }
         else
         {
             ++i;
         }
     }
+}
 
-    uniquify(&m_capture_server_references);
+void
+coordinator :: maybe_garbage_collect_references(const capture_id& cid)
+{
+    if (!contains(m_capture_server_references, cid) &&
+        !contains(m_capture_transfer_references, cid))
+    {
+        remove(&m_captures, cid);
+    }
 }
 
 void

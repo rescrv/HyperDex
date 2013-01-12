@@ -115,6 +115,7 @@ class coordinator
         void add_capture_reference(const transfer_id& xid, const capture_id& cid);
         void release_capture_reference(const transfer_id& xid);
         void release_capture_references(const server_id& sid);
+        void maybe_garbage_collect_references(const capture_id& cid);
         // region references
         void add_region_reference(const server_id& sid, const region_id& rid);
         server_id get_region_reference(const region_id& rid);
