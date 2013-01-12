@@ -641,7 +641,7 @@ coordinator :: server_suspect(replicant_state_machine_context* ctx,
 
     server_state* state = get_state(sid);
 
-    if (state)
+    if (state && state->state == server_state::AVAILABLE)
     {
         state->state = server_state::NOT_AVAILABLE;
         state->version = m_version;
@@ -1432,10 +1432,15 @@ void
 coordinator :: regenerate_cached(struct replicant_state_machine_context*)
 {
     size_t sz = 6 * sizeof(uint64_t);
+    uint64_t num_servers = 0;
 
     for (size_t i = 0; i < m_servers.size(); ++i)
     {
-        sz += sizeof(uint64_t) + pack_size(m_servers[i].bind_to);
+        if (m_servers[i].state == server_state::AVAILABLE)
+        {
+            sz += sizeof(uint64_t) + pack_size(m_servers[i].bind_to);
+            ++num_servers;
+        }
     }
 
     for (std::map<std::string, std::tr1::shared_ptr<space> >::iterator it = m_spaces.begin();
@@ -1457,14 +1462,17 @@ coordinator :: regenerate_cached(struct replicant_state_machine_context*)
     std::auto_ptr<e::buffer> new_config(e::buffer::create(sz));
     e::buffer::packer pa = new_config->pack_at(0);
     pa = pa << m_cluster << m_version
-            << uint64_t(m_servers.size())
+            << num_servers
             << uint64_t(m_spaces.size())
             << uint64_t(m_captures.size())
             << uint64_t(m_transfers.size());
 
     for (size_t i = 0; i < m_servers.size(); ++i)
     {
-        pa = pa << m_servers[i].id.get() << m_servers[i].bind_to;
+        if (m_servers[i].state == server_state::AVAILABLE)
+        {
+            pa = pa << m_servers[i].id.get() << m_servers[i].bind_to;
+        }
     }
 
     for (std::map<std::string, std::tr1::shared_ptr<space> >::iterator it = m_spaces.begin();
