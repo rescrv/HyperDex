@@ -59,10 +59,6 @@ coordinator_link :: coordinator_link(daemon* d)
     , m_shutdown1_output_sz(0)
     , m_wait_acked_id(-1)
     , m_wait_acked_status(REPLICANT_GARBAGE)
-    , m_shutdown2_id(-1)
-    , m_shutdown2_status(REPLICANT_GARBAGE)
-    , m_shutdown2_output(NULL)
-    , m_shutdown2_output_sz(0)
     , m_acks()
     , m_transfers_go_live()
     , m_transfers_complete()
@@ -404,11 +400,9 @@ extern int s_interrupts;
 extern bool s_alarm;
 
 bool
-coordinator_link :: is_shutdown()
+coordinator_link :: exit_wait_loop()
 {
-    return s_interrupts > 1 ||
-           m_state == DIRTY_SHUTDOWN ||
-           m_state == CLEAN_SHUTDOWN;
+    return s_interrupts > 1 || m_state != NORMAL;
 }
 
 bool
@@ -423,7 +417,7 @@ coordinator_link :: wait_for_config(configuration* config)
     uint64_t retry = 1000000UL;
     bool need_to_backoff = false;
 
-    while (!is_shutdown())
+    while (!exit_wait_loop())
     {
         if (s_alarm)
         {
@@ -748,58 +742,11 @@ coordinator_link :: wait_for_config(configuration* config)
                 continue;
             }
 
-            char data[sizeof(uint64_t)];
-            e::pack64be(m_daemon->m_us.get(), data);
-            m_shutdown2_id = m_repl->send("hyperdex", "server-shutdown2", data, sizeof(uint64_t),
-                                          &m_shutdown2_status,
-                                          &m_shutdown2_output, &m_shutdown2_output_sz);
-
-            if (m_shutdown2_id < 0)
+            if (m_state == NORMAL)
             {
-                LOG(ERROR) << "dirty shutdown because shutdown2 failed: "
-                           << m_repl->last_error_desc()
-                           << "(" << m_get_config_status << ";"
-                           << m_repl->last_error_file() << ":"
-                           << m_repl->last_error_line() << ")";
-                m_state = DIRTY_SHUTDOWN;
-            }
-        }
-        else if (lid == m_shutdown2_id)
-        {
-            m_shutdown2_id = -1;
-
-            if (m_shutdown2_status != REPLICANT_SUCCESS ||
-                m_shutdown2_output_sz != sizeof(uint16_t))
-            {
-                if (m_shutdown2_output)
-                {
-                    replicant_destroy_output(m_shutdown2_output, m_shutdown2_output_sz);
-                }
-
-                LOG(ERROR) << "dirty shutdown because shutdown2 failed";
-                m_state = DIRTY_SHUTDOWN;
+                m_state = SHUTTING_DOWN;
                 continue;
             }
-
-            uint16_t status;
-            uint64_t version;
-            const char* ptr = m_shutdown2_output;
-            ptr = e::unpack16be(ptr, &status);
-            ptr = e::unpack64be(ptr, &version);
-
-            if (m_shutdown2_output)
-            {
-                replicant_destroy_output(m_shutdown2_output, m_shutdown2_output_sz);
-            }
-
-            if (static_cast<coordinator_returncode>(status) != COORD_SUCCESS)
-            {
-                LOG(ERROR) << "dirty shutdown because shutdown2 failed";
-                m_state = DIRTY_SHUTDOWN;
-                continue;
-            }
-
-            m_state = CLEAN_SHUTDOWN;
         }
         else if ((ack_iter = m_acks.find(lid)) != m_acks.end())
         {
@@ -848,6 +795,113 @@ coordinator_link :: wait_for_config(configuration* config)
     }
 
     return false;
+}
+
+void
+coordinator_link :: shutdown()
+{
+    char data[sizeof(uint64_t)];
+    e::pack64be(m_daemon->m_us.get(), data);
+    int64_t shutdown2_id;
+    replicant_returncode shutdown2_status;
+    const char* shutdown2_output;
+    size_t shutdown2_output_sz;
+    shutdown2_id = m_repl->send("hyperdex", "server-shutdown2", data, sizeof(uint64_t),
+                                &shutdown2_status, &shutdown2_output, &shutdown2_output_sz);
+
+    if (shutdown2_id < 0)
+    {
+        LOG(ERROR) << "dirty shutdown because shutdown2 failed: "
+                   << m_repl->last_error_desc()
+                   << "(" << m_get_config_status << ";"
+                   << m_repl->last_error_file() << ":"
+                   << m_repl->last_error_line() << ")";
+        m_state = DIRTY_SHUTDOWN;
+        return;
+    }
+
+    int timeout = 10 * 1000;
+    replicant_returncode lstatus = REPLICANT_GARBAGE;
+    int64_t lid = m_repl->loop(timeout, &lstatus);
+
+    if (lid < 0)
+    {
+        switch (lstatus)
+        {
+            case REPLICANT_TIMEOUT:
+                LOG(ERROR) << "could not shutdown cleanly within " << (timeout / 1000. ) << " seconds; "
+                           << "performing a dirty shutdown";
+                m_state = DIRTY_SHUTDOWN;
+                break;
+            case REPLICANT_INTERRUPTED:
+                break;
+            case REPLICANT_BACKOFF:
+                break;
+            case REPLICANT_NEED_BOOTSTRAP:
+                LOG(ERROR) << "communication error with the coordinator: "
+                           << m_repl->last_error_desc()
+                           << "(" << lstatus << ";"
+                           << m_repl->last_error_file() << ":"
+                           << m_repl->last_error_line() << ")";
+                break;
+            case REPLICANT_SUCCESS:
+            case REPLICANT_NAME_TOO_LONG:
+            case REPLICANT_FUNC_NOT_FOUND:
+            case REPLICANT_OBJ_EXIST:
+            case REPLICANT_OBJ_NOT_FOUND:
+            case REPLICANT_COND_NOT_FOUND:
+            case REPLICANT_COND_DESTROYED:
+            case REPLICANT_SERVER_ERROR:
+            case REPLICANT_BAD_LIBRARY:
+            case REPLICANT_MISBEHAVING_SERVER:
+            case REPLICANT_INTERNAL_ERROR:
+            case REPLICANT_NONE_PENDING:
+            case REPLICANT_GARBAGE:
+                LOG(ERROR) << "unexpected error with coordinator connection: "
+                           << m_repl->last_error_desc()
+                           << "(" << lstatus << ";"
+                           << m_repl->last_error_file() << ":"
+                           << m_repl->last_error_line() << ")";
+                break;
+            default:
+                abort();
+        }
+
+        return;
+    }
+
+    if (shutdown2_status != REPLICANT_SUCCESS ||
+        shutdown2_output_sz != sizeof(uint16_t))
+    {
+        if (shutdown2_output)
+        {
+            replicant_destroy_output(shutdown2_output, shutdown2_output_sz);
+        }
+
+        LOG(ERROR) << "dirty shutdown because shutdown2 failed";
+        m_state = DIRTY_SHUTDOWN;
+        return;
+    }
+
+    uint16_t status;
+    uint64_t version;
+    const char* ptr = shutdown2_output;
+    ptr = e::unpack16be(ptr, &status);
+    ptr = e::unpack64be(ptr, &version);
+
+    if (shutdown2_output)
+    {
+        replicant_destroy_output(shutdown2_output, shutdown2_output_sz);
+    }
+
+    if (static_cast<coordinator_returncode>(status) != COORD_SUCCESS)
+    {
+        LOG(ERROR) << "dirty shutdown because shutdown2 failed";
+        m_state = DIRTY_SHUTDOWN;
+        return;
+    }
+
+    m_state = CLEAN_SHUTDOWN;
 }
 
 void

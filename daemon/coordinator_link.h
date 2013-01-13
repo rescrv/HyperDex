@@ -61,9 +61,10 @@ class coordinator_link
         void set_coordinator_address(const char* host, uint16_t port);
         bool register_id(server_id us, const po6::net::location& bind_to);
         bool reregister_id(server_id us, const po6::net::location& bind_to);
-        bool is_shutdown();
+        bool exit_wait_loop();
         bool is_clean_shutdown();
         bool wait_for_config(configuration* config);
+        void shutdown();
         void ack_config(uint64_t version);
 
     // threadsafe
@@ -83,7 +84,7 @@ class coordinator_link
         daemon* m_daemon;
         pthread_t m_looper;
         std::auto_ptr<replicant_client> m_repl;
-        enum { NORMAL, CLEAN_SHUTDOWN, DIRTY_SHUTDOWN } m_state;
+        enum { NORMAL, SHUTTING_DOWN, CLEAN_SHUTDOWN, DIRTY_SHUTDOWN } m_state;
         int64_t m_wait_config_id;
         replicant_returncode m_wait_config_status;
         int64_t m_get_config_id;
@@ -96,10 +97,6 @@ class coordinator_link
         size_t m_shutdown1_output_sz;
         int64_t m_wait_acked_id;
         replicant_returncode m_wait_acked_status;
-        int64_t m_shutdown2_id;
-        replicant_returncode m_shutdown2_status;
-        const char* m_shutdown2_output;
-        size_t m_shutdown2_output_sz;
         std::map<int64_t, std::pair<uint64_t, std::tr1::shared_ptr<replicant_returncode> > > m_acks;
         std::map<int64_t, std::pair<transfer_id, std::tr1::shared_ptr<replicant_returncode> > > m_transfers_go_live;
         std::map<int64_t, std::pair<transfer_id, std::tr1::shared_ptr<replicant_returncode> > > m_transfers_complete;
