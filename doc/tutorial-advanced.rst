@@ -212,40 +212,6 @@ fast.  In fact, their performance is indistinguishable from a normal ``put``,
 all else being equal.  Thus, you can rely heavily upon ``condput``
 operations to avoid race conditions without sacrificing performance.
 
-That's not all HyperDex offers in the way of atomic operations.  In many
-applications, the clients will want to increment or decrement a numerical field.
-For instance, Google +1 and Reddit-style up/down-vote services will want to
-perform such arithmetic atomically. The way we set up our space and data for
-this example is not a good match for a good example, but let's pretend that John
-Smith has switched offices, and the application knows that this simply
-increments his phone number by 1.  We could accomplish this with the following:
-
-.. sourcecode:: pycon
-
-   >>> c.atomic_add('phonebook', 'jsmith1', {'phone': 1})
-   True
-   >>> c.get('phonebook', 'jsmith1')
-   {'first': 'John', 'last': 'Smith', 'phone': 6075552049}
-   >>> c.atomic_sub('phonebook', 'jsmith1', {'phone': 1})
-   True
-   >>> c.get('phonebook', 'jsmith1')
-   {'first': 'John', 'last': 'Smith', 'phone': 6075552048}
-
-Notice that each of these changes requires just one request to the server.
-
-We can increment or decrement by any signed 64-bit value:
-
-.. sourcecode:: pycon
-
-   >>> c.atomic_add('phonebook', 'jsmith1', {'phone': 10})
-   True
-   >>> c.get('phonebook', 'jsmith1')
-   {'first': 'John', 'last': 'Smith', 'phone': 6075552058}
-   >>> c.atomic_sub('phonebook', 'jsmith1', {'phone': 10})
-   True
-   >>> c.get('phonebook', 'jsmith1')
-   {'first': 'John', 'last': 'Smith', 'phone': 6075552048}
-
 Keep in mind that ``condput`` operations can and will fail, as intended, if
 there are interceding operations that update the object fields that must match.
 In these cases, the client will typically want to re-fetch the object,

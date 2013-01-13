@@ -4,8 +4,10 @@ Introduction
 Why HyperDex?
 -------------
 
-HyperDex is a distributed, searchable key-value store.  HyperDex embodies a
-unique set of features not found together in other NoSQL systems or RDMBSs:
+HyperDex is a relatively new distributed key-value store designed from the
+ground up to provide a convenient user interface without sacrificing reliability
+or robustness.  The result is a NoSQL storage system that provides a unique set
+of features not found together in other NoSQL or RDBMS systems.  HyperDex is:
 
  * **Fast**:  HyperDex has lower latency, higher throughput, and lower variance
    than other key-value stores.
@@ -13,59 +15,45 @@ unique set of features not found together in other NoSQL systems or RDMBSs:
  * **Scalable**:  HyperDex scales as more machines are added to the system.
 
  * **Consistent**:  HyperDex guarantees linearizability for key-based
-   operations.  Thus, a ``GET`` always returns the latest value inserted into
+   operations.  Thus, a read always returns the latest value inserted into
    the system.  Not just "eventually," but immediately and always.
 
  * **Fault Tolerant**:  HyperDex automatically replicates data on multiple
    machines so that concurrent failures, up to an application-determined limit,
    will not cause data loss.
 
- * **Searchable**:  HyperDex enables lookups of secondary data attributes. Such
-   searches are implemented efficiently and contact a small number of servers.
+ * **Searchable**:  HyperDex enables efficient lookups of secondary data
+   attributes.
 
- * **Easy-to-Use**:  HyperDex provides an easy-to-use API across a variety of
-   scripting and native languages.
+ * **Easy-to-Use**:  HyperDex provides APIs for a variety of scripting and
+   native languages.
 
- * **Maintainable**:  HyperDex makes it easy to setup and maintain a cluster of
-   servers.
-
-HyperDex is designed from the ground up to make it easy to develop new
-applications.  The user-visible API provides clean semantics with well defined
-behavior under all circumstances.  Further, HyperDex facilitates
-high-performance applications by ensuring that every operation is fast and has
-quantifiable runtime.
+ * **Self-Maintaining**:  A HyperDex is self-maintaining and requires little
+   user maintenance.
 
 About this Book
 ---------------
 
-This book is the definitive reference manual for HyperDex users and developers.
+This book is the definitive reference manual for HyperDex users and developers
+and is updated in tandem with each release.  A free copy of this book is
+available at http://hyperdex.org/ in HTML and PDF form and is distributed in all
+release tarballs.  The HyperDex developers are constantly improving both
+HyperDex and this reference manual.  If you would like to provide feedback on or
+contribute to this manual, please use the contact information provided in the
+next section to help the HyperDex developers make this manual even better.
+
 The first half of the book is devoted to users of HyperDex.
 :ref:`Chapter 2 <installation>` provides instruction for installing the latest
-HyperDex release from either precompiled packages or source tarballs [#devinst]_.
-:ref:`Chapter 3 <datamodel>` describes the HyperDex data model and basic
-terminology used throughout the rest of the book.
-:ref:`Chapter 4 <quickstart>` is a short tutorial that demonstrates how to setup
-and interact with a HyperDex cluster.
-:ref:`Chapter 5 <keyoperations>` and :ref:`Chapter 6 <searchoperations>`
-describe in detail the plethora of operations provided as part of the HyperDex
-API.
-In :ref:`Chapter 7 <administration>`, we cover basic administration of a
-HyperDex cluster.
-The entire API is described in :ref:`Chapter 8 <api>`.
-For completeness, man pages are included in :ref:`Chapter 9 <man>`.
-:ref:`Chapter 10 <dev>` is intended for developers of HyperDex itself.
-
-The HyperDex developers are constantly improving both HyperDex and this
-reference manual.  If you would like to provide feedback on this manual, please
-use the contact information provided in the next section to help the HyperDex
-team make this manual even better.
+HyperDex release from either precompiled packages or source tarballs.
+:ref:`Chapter 3 <quickstart>` is a short tutorial that walks through the
+basics of interacting with and maintaining a HyperDex cluster.
 
 Online Help and Support
 -----------------------
 
 If you run into trouble while working with HyperDex, don't panic!  The HyperDex
 team and community maintain many free resources online designed to help users
-who are having trouble with HyperDex and this reference manual.
+who are having trouble with HyperDex.
 
  * `HyperDex Discuss Mailing List`_:  This open mailing list is most users'
    first resource solving problems.  Anyone may email the list seeking help and
@@ -84,6 +72,10 @@ who are having trouble with HyperDex and this reference manual.
    reported the same problem.  Consider reporting the problem yourself if it
    looks like the problem has not yet been reported.
 
+ * `HyperDex Papers`_:  If you're interested in developing or changing the
+   internals of HyperDex, most of the publications are available online and are
+   a great spot to familiarize oneself with the design of HyperDex.
+
 Please keep in mind that many of the people you'll meet through these resources
 are volunteers working on HyperDex in their free time.  If you have more-urgent
 needs, you can contact the team of core HyperDex developers directly at
@@ -93,7 +85,5 @@ needs, you can contact the team of core HyperDex developers directly at
 .. _mailing list etiquette: http://www.freebsd.org/doc/en_US.ISO8859-1/articles/mailing-list-faq/etiquette.html
 .. _HyperDex IRC Channel: http://webchat.freenode.net/?channels=hyperdex&uio=d4
 .. _HyperDex Bug Tracker: https://github.com/rescrv/HyperDex/issues
+.. _HyperDex Papers: http://hyperdex.org/papers/
 .. _Freenode: http://freenode.net/
-
-.. [#devinst] Instructions for building HyperDex from the Git repo are provided
-   in the developer's section.

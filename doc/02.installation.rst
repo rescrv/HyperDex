@@ -3,7 +3,7 @@
 Installing HyperDex
 ===================
 
-HyperDex provides two modes of installation for users.  The easiest and most
+HyperDex provides two means of installation for users.  The easiest and most
 convenient way to install HyperDex is to use precompiled binary packages.
 Packages are available for a several platforms and more platforms will be
 supported as resources permit.  For users who need more control over their
@@ -117,14 +117,18 @@ list of all packages:
    On Debian and Ubuntu systems, this will have a small number appended to the
    package name indicating the version of the package contained within.
 
-``python-hypercoordinator``:
+``python-hyperclient``:
+   This provides the python module :py:mod:`hyperclient`.  This package is only
+   required for systems that need to interact with HyperDex from Python.
+
+``libhypercoordinator``:
    This package provides the coordinator for a HyperDex cluster.  This package
    is required only on systems which will serve as the coordinator for the
    cluster.
 
-``python-hyperclient``:
-   This provides the python module :py:mod:`hyperclient`.  This package is only
-   required for systems that need to interact with HyperDex from Python.
+``replicant``:
+   This package provides part of the HyperDex coordinator and is only necessary
+   on systems which will serve as the coordinator for the cluster.
 
 Most packages are coplemented by development and debug packages.  In the
 development package, there are header files and static libraries.  The debug
@@ -150,6 +154,7 @@ Required Dependencies:
 
  * `Google CityHash`_:  Used for hashing strings.  Requires version 1.0.x
  * `Google Glog`_:  Used for logging.  Requires version 0.3.x.
+ * `Google LevelDB`_:  Used as the backend for storing data
  * libpopt_:  Used for argument parsing.  The developers use 1.16 but any
    recent version should do.
  * libpo6_:  Used for general POSIX support.  Requires the latest version.
@@ -158,6 +163,8 @@ Required Dependencies:
    This package is maintained by the HyperDex developers.
  * BusyBee_:  Used for server-server communication.  Requires the latest
    version.  This package is maintained by the HyperDex developers.
+ * Replicant_:  Used for making the coordinator fault tolerant.  Requires the
+   latest version.  This package is maintained by the HyperDex developers.
 
 Dependencies for Tests:
 
@@ -180,14 +187,16 @@ Dependencies for Yahoo! Cloud Serving Benchmark (YCSB):
 
 .. _Google CityHash: http://code.google.com/p/cityhash/
 .. _Google Glog: http://code.google.com/p/google-glog/
+.. _Google LevelDB: http://code.google.com/p/leveldb/
 .. _libpopt: http://rpm5.org/
 .. _Google Gtest: http://code.google.com/p/googletest/
 .. _Python: http://python.org/
 .. _Java: http://openjdk.java.net/
 .. _SWIG: http://www.swig.org/
 .. _YCSB: https://github.com/brianfrankcooper/YCSB/wiki
-.. _libpo6: http://hyperdex.org
-.. _libe: http://hyperdex.org
+.. _libpo6: http://hyperdex.org/downloads/
+.. _libe: http://hyperdex.org/downloads/
+.. _Replicant: http://hyperdex.org/downloads/
 .. _BusyBee: http://hyperdex.org
 
 Configuring
@@ -196,9 +205,9 @@ Configuring
 HyperDex uses the Autotools to make configuration and installation as
 straightforward as possible.  After extracting the HyperDex tarball, you'll need
 to configure HyperDex.  The simplest configuration installs HyperDex in its
-default location (``/usr/local``) using the first C++ compiler found on the
-system.  The configuration is performed in the directory extracted from the
-tarball and looks like:
+default location (``/usr/local``) using the C++ compiler found on the system.
+The configuration is performed in the directory extracted from the tarball and
+looks like:
 
 .. sourcecode:: console
 
@@ -267,17 +276,60 @@ current user.
 
    make
    make install
+   ldconfig
 
 Verifying Installation
 ----------------------
 
-Once you have HyperDex installed, you should be able to view the coordinator
-and daemon programs' built-in help with the following:
+Once you have HyperDex installed, you should be able to view the daemon
+program's built-in help with the following:
 
 .. sourcecode:: console
 
-   hyperdex-coordinator --help
-   hyperdex-daemon --help
+   hyperdex daemon --help
 
-If the above commands provide helpful output, then it is very likely that
+If the above command provides helpful output, then it is very likely that
 HyperDex is installed correctly and ready for use.
+
+Installing from Git
+-------------------
+
+Developers wishing to contribute to the development of HyperDex may build
+HyperDex directly from Git.  Building from Git is as straightforward as building
+from source tarballs, but requires a few extra dependencies and some setup
+before the ``./configure`` step.
+
+In order to build the HyperDex repository, you'll need to have the following
+utilities installed.  Most of these utilities are prepacked for Linux
+distributions.  Note that since these dependencies are only required for
+building from Git, they will not be detected at ``./configure`` time and instead
+``make`` will fail with an error message.
+
+Required Dependencies:
+
+ * Autoconf_:  Used as part of the build system.  Required for all builds.
+ * Automake_:  Used as part of the build system.  Required for all builds.
+ * Libtool_:  Used as part of the build system.  Required for all builds.
+ * `Autoconf Archive`_:  Used as part of the build system.  Required for all builds.
+ * Flex_:  Used for building internal parsers.  Required for all builds.
+ * Bison_:  Used for building internal parsers.  Required for all builds.
+ * Cython_:  Used for building Python bindings.  Required for
+   ``--enable-python-bindings``.  Recommmended version:  >= 0.15.
+
+.. _Autoconf: http://www.gnu.org/software/autoconf/
+.. _Automake: http://www.gnu.org/software/automake/
+.. _Libtool: http://www.gnu.org/software/libtool/
+.. _Autoconf Archive: http://www.gnu.org/software/autoconf-archive/
+.. _Flex:  http://flex.sourceforge.net/
+.. _Bison:  http://www.gnu.org/software/bison/
+.. _Cython:  http://cython.org/
+
+After all dependencies are installed, run the ``autoreconf`` command to
+bootstrap the repository:
+
+.. sourcecode:: console
+
+   autoreconf -i
+
+If ``autoreconf`` succeeds, you can proceed with the `Installing Source
+Tarballs`_ step above.

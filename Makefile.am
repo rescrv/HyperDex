@@ -34,13 +34,13 @@ BUILT_SOURCES = client/parse_space_y.h
 EXTRA_DIST = \
 			LICENSE \
 			doc \
+			doc/HyperDex-$(VERSION).pdf \
 			$(libhyperclient_extra_dist) \
 			$(ycsb_extra_dist) \
 			hyperclient/nodejs/sync_test.js \
 			hyperclient/nodejs/async_test.js \
 			hyperclient/nodejs/hyperclient.cc \
 			wscript
-# XXX doc/HyperDex-$(VERSION).pdf
 
 lib_LTLIBRARIES = libhyperclient.la
 
@@ -67,6 +67,11 @@ hyperdexexec_LTLIBRARIES = libhypercoordinator.la
 noinst_PROGRAMS = \
 			client/c/testcompile \
 			client/cc/testcompile
+
+dist_man_MANS = \
+			doc/man/hyperdex-daemon.1 \
+			doc/man/hyperdex-replication-stress-test.1 \
+			doc/man/hyperdex-simple-consistency-stress-test.1
 
 check_PROGRAMS =	\
 			daemon/test/index_encode
@@ -421,3 +426,19 @@ hyperdex_search_stress_test_LDADD = libhyperclient.la -lpopt
 
 hyperdex_simple_consistency_stress_test_SOURCES = simple-consistency-stress-test.cc
 hyperdex_simple_consistency_stress_test_LDADD = libhyperclient.la -lpopt -lpthread
+
+################################################################################
+################################# Documentation ################################
+################################################################################
+
+# These need to be chained so that they'll only build once, and will not rely
+# upon a PHONY rule.
+doc/man/hyperdex-replication-stress-test.1: doc/man/hyperdex-replication-stress-test.rst doc/man/hyperdex-simple-consistency-stress-test.1
+doc/man/hyperdex-simple-consistency-stress-test.1: doc/man/hyperdex-simple-consistency-stress-test.rst doc/man/hyperdex-daemon.1
+doc/man/hyperdex-daemon.1: doc/man/hyperdex-daemon.rst
+	sphinx-build -W -d ${abs_top_builddir}/doc/_build -b man doc doc/man
+
+doc/HyperDex-$(VERSION).pdf:
+	sphinx-build -W -d ${abs_top_builddir}/doc/_build -b latex ${abs_top_srcdir}/doc ${abs_top_builddir}/doc/_build/latex
+	make -C ${abs_top_builddir}/doc/_build/latex all-pdf
+	cp ${abs_top_builddir}/doc/_build/latex/HyperDex.pdf doc/HyperDex-$(VERSION).pdf

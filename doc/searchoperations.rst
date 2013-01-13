@@ -1,5 +1,0 @@
-
-.. _searchoperations:
-
-Search Operations
-=================
