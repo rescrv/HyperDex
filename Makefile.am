@@ -73,13 +73,9 @@ dist_man_MANS = \
 			doc/man/hyperdex-replication-stress-test.1 \
 			doc/man/hyperdex-simple-consistency-stress-test.1
 
-check_PROGRAMS =	\
-			daemon/test/index_encode
-
-TESTS = daemon/test/index_encode
-
 CLEANFILES = \
 			$(java_bindings_cleanfiles) \
+			doc/HyperDex-$(VERSION).pdf \
 			$(ycsb_cleanfiles)
 
 JAVAROOT = $(abs_top_srcdir)
@@ -87,11 +83,15 @@ JAVAROOT = $(abs_top_srcdir)
 .PHONY: coverage doc/HyperDex-$(VERSION).pdf
 
 dist-hook:
-	rm -rf $(distdir)/doc/_build
+	-rm -rf $(distdir)/doc/_build
+
+clean-local:
+	-rm -rf $(abs_top_builddir)/doc/_build
 
 noinst_HEADERS = \
 			common/attribute_check.h \
 			common/attribute.h \
+			common/capture.h \
 			common/configuration.h \
 			common/coordinator_returncode.h \
 			common/counter_map.h \
@@ -99,12 +99,15 @@ noinst_HEADERS = \
 			common/funcall.h \
 			common/hash.h \
 			common/hyperspace.h \
+			common/ids.h \
 			common/macros.h \
 			common/mapper.h \
 			common/network_msgtype.h \
 			common/network_returncode.h \
+			common/range_searches.h \
 			common/schema.h \
 			common/serialization.h \
+			common/transfer.h \
 			datatypes/alltypes.h \
 			datatypes/apply.h \
 			datatypes/coercion.h \
@@ -121,16 +124,25 @@ noinst_HEADERS = \
 			datatypes/validate.h \
 			datatypes/write.h \
 			coordinator/coordinator.h \
+			coordinator/missing_acks.h \
+			coordinator/server_state.h \
+			coordinator/transitions.h \
 			daemon/communication.h \
+			daemon/coordinator_link.h \
 			daemon/daemon.h \
 			daemon/datalayer.h \
 			daemon/index_encode.h \
+			daemon/leveldb.h \
 			daemon/reconfigure_returncode.h \
 			daemon/replication_manager.h \
 			daemon/replication_manager_keyholder.h \
 			daemon/replication_manager_keypair.h \
 			daemon/replication_manager_pending.h \
 			daemon/search_manager.h \
+			daemon/state_transfer_manager.h \
+			daemon/state_transfer_manager_pending.h \
+			daemon/state_transfer_manager_transfer_in_state.h \
+			daemon/state_transfer_manager_transfer_out_state.h \
 			client/complete.h \
 			client/constants.h \
 			client/coordinator_link.h \
@@ -207,9 +219,9 @@ hyperdex_daemon_LDADD = \
 			-lreplicant -lcityhash -lpopt -lglog -lrt -lpthread
 hyperdex_daemon_CPPFLAGS = $(CPPFLAGS)
 
-daemon_test_index_encode_SOURCES = runner.cc daemon/test/index_encode.cc daemon/index_encode.cc common/float_encode.cc
-daemon_test_index_encode_CPPFLAGS = $(GTEST_CPPFLAGS) $(CPPFLAGS)
-daemon_test_index_encode_LDADD = $(GTEST_LDFLAGS) -lgtest -lpthread
+#daemon_test_index_encode_SOURCES = runner.cc daemon/test/index_encode.cc daemon/index_encode.cc common/float_encode.cc
+#daemon_test_index_encode_CPPFLAGS = $(GTEST_CPPFLAGS) $(CPPFLAGS)
+#daemon_test_index_encode_LDADD = $(GTEST_LDFLAGS) -lgtest -lpthread
 
 ################################################################################
 ################################## Coordinator #################################
