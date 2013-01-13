@@ -42,6 +42,8 @@ class tool_wrapper
         ~tool_wrapper() throw () {}
 
     public:
+        hyperclient_returncode initialize_cluster(uint64_t cluster, const char* path)
+        { return m_h->initialize_cluster(cluster, path); }
         hyperclient_returncode show_config(std::ostream& out)
         { return m_h->show_config(out); }
         hyperclient_returncode kill(uint64_t server_id)

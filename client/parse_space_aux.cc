@@ -147,12 +147,16 @@ struct hyperparse_space*
 hyperparse_create_space(char* name,
                         struct hyperparse_attribute* key,
                         struct hyperparse_attribute_list* attrs,
+                        uint64_t fault_tolerance,
+                        uint64_t partitioning,
                         struct hyperparse_subspace_list* subspaces)
 {
     struct hyperparse_space* s = reinterpret_cast<struct hyperparse_space*>(malloc(sizeof(struct hyperparse_space)));
     s->name = name;
     s->key = key;
     s->attrs = attrs;
+    s->fault_tolerance = fault_tolerance;
+    s->partitioning = partitioning;
     s->subspaces = subspaces;
     return s;
 }

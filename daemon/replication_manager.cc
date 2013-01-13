@@ -25,11 +25,17 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// POSIX
+#include <signal.h>
+
 // Google CityHash
 #include <city.h>
 
 // Google Log
 #include <glog/logging.h>
+
+// e
+#include <e/timer.h>
 
 // HyperDex
 #include "common/hash.h"
@@ -63,12 +69,16 @@ replication_manager :: replication_manager(daemon* d)
     : m_daemon(d)
     , m_keyholder_locks(1024)
     , m_keyholders(16)
+    , m_counters()
+    , m_shutdown(true)
     , m_retransmitter(std::tr1::bind(&replication_manager::retransmitter, this))
     , m_block_retransmitter()
     , m_wakeup_retransmitter(&m_block_retransmitter)
     , m_need_retransmit(false)
-    , m_shutdown(true)
-    , m_counters()
+    , m_garbage_collector(std::tr1::bind(&replication_manager::garbage_collector, this))
+    , m_block_garbage_collector()
+    , m_wakeup_garbage_collector(&m_block_garbage_collector)
+    , m_lower_bounds()
 {
 }
 
@@ -80,7 +90,10 @@ replication_manager :: ~replication_manager() throw ()
 bool
 replication_manager :: setup()
 {
+    po6::threads::mutex::hold holdr(&m_block_retransmitter);
+    po6::threads::mutex::hold holdg(&m_block_garbage_collector);
     m_retransmitter.start();
+    m_garbage_collector.start();
     m_shutdown = false;
     return true;
 }
@@ -106,6 +119,17 @@ replication_manager :: reconfigure(const configuration&,
                                    const server_id&)
 {
     std::map<uint64_t, uint64_t> seq_ids;
+    std::vector<transfer> transfers_in;
+    new_config.transfer_in_regions(m_daemon->m_us, &transfers_in);
+    std::vector<region_id> transfer_in_regions;
+    transfer_in_regions.reserve(transfers_in.size());
+
+    for (size_t i = 0; i < transfers_in.size(); ++i)
+    {
+        transfer_in_regions.push_back(transfers_in[i].rid);
+    }
+
+    std::sort(transfer_in_regions.begin(), transfer_in_regions.end());
 
     for (keyholder_map_t::iterator it = m_keyholders.begin();
             it != m_keyholders.end(); it.next())
@@ -117,6 +141,11 @@ replication_manager :: reconfigure(const configuration&,
         kh->clear_deferred();
         uint64_t max_seq_id = kh->max_seq_id();
         seq_ids[ri.get()] = std::max(seq_ids[ri.get()], max_seq_id);
+
+        if (std::binary_search(transfer_in_regions.begin(), transfer_in_regions.end(), ri))
+        {
+            m_keyholders.remove(it.key());
+        }
     }
 
     std::vector<region_id> regions;
@@ -188,7 +217,7 @@ replication_manager :: client_atomic(const server_id& from,
     e::intrusive_ptr<keyholder> kh = get_or_create_keyholder(ri, key);
     bool has_old_value = false;
     uint64_t old_version = 0;
-    std::vector<e::slice>* old_value = NULL; // don't use pointer?
+    std::vector<e::slice>* old_value = NULL;
     kh->get_latest_version(&has_old_value, &old_version, &old_value);
 
     if (erase && !funcs->empty())
@@ -281,29 +310,22 @@ replication_manager :: chain_op(const virtual_server_id& from,
                                 const std::vector<e::slice>& value)
 {
     region_id ri(m_daemon->m_config.get_region_id(to));
+
+    if (retransmission && m_daemon->m_data.check_acked(ri, reg_id, seq_id))
+    {
+        LOG(INFO) << "acking duplicate CHAIN_*";
+        send_ack(to, from, true, reg_id, seq_id, version, key);
+        return;
+    }
+
     const schema* sc = m_daemon->m_config.get_schema(ri);
     HOLD_LOCK_FOR_KEY(ri, key);
     e::intrusive_ptr<keyholder> kh = get_or_create_keyholder(ri, key);
 
-    if (reg_id != ri)
-    {
-        LOG(ERROR) << "dropping CHAIN_OP send to the wrong region";
-        CLEANUP_KEYHOLDER(ri, key, kh);
-        return;
-    }
-
-    if (retransmission && m_daemon->m_data.check_acked(reg_id, seq_id))
-    {
-        LOG(INFO) << "acking duplicate CHAIN_*";
-        send_ack(to, from, true, reg_id, seq_id, version, key);
-        CLEANUP_KEYHOLDER(ri, key, kh);
-        return;
-    }
-
     // Check that a chain's put matches the dimensions of the space.
     if (has_value && sc->attrs_sz != value.size() + 1)
     {
-        LOG(INFO) << "dropping CHAIN_* because the dimensions are incorrect";
+        LOG(INFO) << "dropping CHAIN_OP because the dimensions are incorrect";
         CLEANUP_KEYHOLDER(ri, key, kh);
         return;
     }
@@ -351,24 +373,17 @@ replication_manager :: chain_subspace(const virtual_server_id& from,
                                       const std::vector<uint64_t>& hashes)
 {
     region_id ri(m_daemon->m_config.get_region_id(to));
-    const schema* sc = m_daemon->m_config.get_schema(ri);
-    HOLD_LOCK_FOR_KEY(ri, key);
-    e::intrusive_ptr<keyholder> kh = get_or_create_keyholder(ri, key);
 
-    if (reg_id != ri)
-    {
-        LOG(ERROR) << "dropping CHAIN_OP send to the wrong region";
-        CLEANUP_KEYHOLDER(ri, key, kh);
-        return;
-    }
-
-    if (retransmission && m_daemon->m_data.check_acked(reg_id, seq_id))
+    if (retransmission && m_daemon->m_data.check_acked(ri, reg_id, seq_id))
     {
         LOG(INFO) << "acking duplicate CHAIN_SUBSPACE";
         send_ack(to, from, true, reg_id, seq_id, version, key);
-        CLEANUP_KEYHOLDER(ri, key, kh);
         return;
     }
+
+    const schema* sc = m_daemon->m_config.get_schema(ri);
+    HOLD_LOCK_FOR_KEY(ri, key);
+    e::intrusive_ptr<keyholder> kh = get_or_create_keyholder(ri, key);
 
     // Check that a chain's put matches the dimensions of the space.
     if (sc->attrs_sz != value.size() + 1 || sc->attrs_sz != hashes.size())
@@ -406,9 +421,9 @@ replication_manager :: chain_subspace(const virtual_server_id& from,
     }
 
     if (!(new_pend->this_old_region == m_daemon->m_config.get_region_id(from) && 
-          m_daemon->m_config.tail_of_region(ri) == from) &&
+          m_daemon->m_config.tail_of_region(new_pend->this_old_region) == from) &&
         !(new_pend->this_new_region == m_daemon->m_config.get_region_id(from) &&
-          m_daemon->m_config.next_in_region(from) != to))
+          m_daemon->m_config.next_in_region(from) == to))
     {
         LOG(INFO) << "dropping CHAIN_SUBSPACE which didn't obey chaining rules";
         CLEANUP_KEYHOLDER(ri, key, kh);
@@ -430,21 +445,16 @@ replication_manager :: chain_ack(const virtual_server_id& from,
                                  const e::slice& key)
 {
     region_id ri(m_daemon->m_config.get_region_id(to));
-    const schema* sc = m_daemon->m_config.get_schema(ri);
-    HOLD_LOCK_FOR_KEY(ri, key);
-    e::intrusive_ptr<keyholder> kh = get_keyholder(ri, key);
 
-    if (reg_id != ri)
-    {
-        LOG(ERROR) << "dropping CHAIN_OP send to the wrong region";
-        return;
-    }
-
-    if (retransmission && m_daemon->m_data.check_acked(reg_id, seq_id))
+    if (retransmission && m_daemon->m_data.check_acked(ri, reg_id, seq_id))
     {
         LOG(INFO) << "dropping duplicate CHAIN_ACK";
         return;
     }
+
+    const schema* sc = m_daemon->m_config.get_schema(ri);
+    HOLD_LOCK_FOR_KEY(ri, key);
+    e::intrusive_ptr<keyholder> kh = get_keyholder(ri, key);
 
     if (!kh)
     {
@@ -457,30 +467,35 @@ replication_manager :: chain_ack(const virtual_server_id& from,
     if (!pend)
     {
         LOG(INFO) << "dropping CHAIN_ACK for update we haven't seen";
+        CLEANUP_KEYHOLDER(ri, key, kh);
         return;
     }
 
     if (pend->sent == virtual_server_id())
     {
         LOG(INFO) << "dropping CHAIN_ACK for update we haven't sent";
+        CLEANUP_KEYHOLDER(ri, key, kh);
         return;
     }
 
     if (from != pend->sent)
     {
         LOG(INFO) << "dropping CHAIN_ACK that came from the wrong host";
+        CLEANUP_KEYHOLDER(ri, key, kh);
         return;
     }
 
     if (m_daemon->m_config.version() != pend->sent_config_version)
     {
         LOG(INFO) << "dropping CHAIN_ACK that was sent in a previous version and hasn't been retransmitted";
+        CLEANUP_KEYHOLDER(ri, key, kh);
         return;
     }
 
     if (pend->reg_id != reg_id || pend->seq_id != seq_id)
     {
         LOG(INFO) << "dropping CHAIN_ACK that was sent with mismatching reg/seq ids";
+        CLEANUP_KEYHOLDER(ri, key, kh);
         return;
     }
 
@@ -488,7 +503,6 @@ replication_manager :: chain_ack(const virtual_server_id& from,
 
     if (kh->version_on_disk() < version)
     {
-        assert(reg_id == ri);
         e::intrusive_ptr<pending> op = kh->get_by_version(version);
         assert(op);
 
@@ -496,11 +510,11 @@ replication_manager :: chain_ack(const virtual_server_id& from,
 
         if (!op->has_value || (op->this_old_region != op->this_new_region && ri == op->this_old_region))
         {
-            rc = m_daemon->m_data.del(ri, seq_id, key);
+            rc = m_daemon->m_data.del(ri, reg_id, seq_id, key);
         }
         else
         {
-            rc = m_daemon->m_data.put(ri, seq_id, key, op->value, version);
+            rc = m_daemon->m_data.put(ri, reg_id, seq_id, key, op->value, version);
         }
 
         switch (rc)
@@ -509,6 +523,7 @@ replication_manager :: chain_ack(const virtual_server_id& from,
                 break;
             case datalayer::NOT_FOUND:
             case datalayer::BAD_ENCODING:
+            case datalayer::BAD_SEARCH:
             case datalayer::CORRUPTION:
             case datalayer::IO_ERROR:
             case datalayer::LEVELDB_ERROR:
@@ -523,7 +538,7 @@ replication_manager :: chain_ack(const virtual_server_id& from,
     }
     else
     {
-        m_daemon->m_data.mark_acked(reg_id, seq_id);
+        m_daemon->m_data.mark_acked(ri, reg_id, seq_id);
     }
 
     kh->clear_committable_acked();
@@ -539,6 +554,22 @@ replication_manager :: chain_ack(const virtual_server_id& from,
     }
 
     CLEANUP_KEYHOLDER(ri, key, kh);
+}
+
+void
+replication_manager :: chain_gc(const region_id& reg_id, uint64_t seq_id)
+{
+    po6::threads::mutex::hold hold(&m_block_garbage_collector);
+    m_wakeup_garbage_collector.broadcast();
+    m_lower_bounds.push_back(std::make_pair(reg_id, seq_id));
+}
+
+void
+replication_manager :: trip_periodic()
+{
+    po6::threads::mutex::hold hold(&m_block_retransmitter);
+    m_wakeup_retransmitter.broadcast();
+    m_need_retransmit = true;
 }
 
 uint64_t
@@ -600,6 +631,7 @@ replication_manager :: get_or_create_keyholder(const region_id& reg, const e::sl
                 kh->get_old_version() = 0;
                 break;
             case datalayer::BAD_ENCODING:
+            case datalayer::BAD_SEARCH:
             case datalayer::CORRUPTION:
             case datalayer::IO_ERROR:
             case datalayer::LEVELDB_ERROR:
@@ -722,31 +754,41 @@ replication_manager :: move_operations_between_queues(const virtual_server_id& u
         uint64_t old_version = 0;
         std::vector<e::slice>* old_value = NULL;
         kh->get_latest_version(&has_old_value, &old_version, &old_value);
+        if (old_version >= kh->oldest_deferred_version()) LOG(INFO) << "VERSIONS " << old_version  << " " << kh->oldest_deferred_version();
         assert(old_version < kh->oldest_deferred_version());
         e::intrusive_ptr<pending> new_pend = kh->oldest_deferred_op();
 
+        // If the version numbers don't line up, and this is not fresh, and it
+        // is not a subspace transfer
         if (old_version + 1 != kh->oldest_deferred_version() &&
-            !new_pend->fresh)
+            !new_pend->fresh &&
+            (new_pend->this_old_region == new_pend->this_new_region ||
+             new_pend->this_old_region == ri))
         {
             break;
         }
 
-        hash_objects(ri, sc, key, new_pend->has_value, new_pend->value, has_old_value, old_value ? *old_value : new_pend->value, new_pend);
-
-        if (new_pend->this_old_region != ri && new_pend->this_new_region != ri)
+        // If this is not a subspace transfer
+        if (new_pend->this_old_region == new_pend->this_new_region ||
+            new_pend->this_old_region == ri)
         {
-            LOG(INFO) << "dropping deferred CHAIN_* which didn't get sent to the right host";
-            kh->pop_oldest_deferred();
-            continue;
-        }
+            hash_objects(ri, sc, key, new_pend->has_value, new_pend->value, has_old_value, old_value ? *old_value : new_pend->value, new_pend);
 
-        if (new_pend->recv != virtual_server_id() &&
-            m_daemon->m_config.next_in_region(new_pend->recv) != us &&
-            !m_daemon->m_config.subspace_adjacent(new_pend->recv, us))
-        {
-            LOG(INFO) << "dropping deferred CHAIN_* which didn't come from the right host";
-            kh->pop_oldest_deferred();
-            continue;
+            if (new_pend->this_old_region != ri && new_pend->this_new_region != ri)
+            {
+                LOG(INFO) << "dropping deferred CHAIN_* which didn't get sent to the right host";
+                kh->pop_oldest_deferred();
+                continue;
+            }
+
+            if (new_pend->recv != virtual_server_id() &&
+                m_daemon->m_config.next_in_region(new_pend->recv) != us &&
+                !m_daemon->m_config.subspace_adjacent(new_pend->recv, us))
+            {
+                LOG(INFO) << "dropping deferred CHAIN_* which didn't come from the right host";
+                kh->pop_oldest_deferred();
+                continue;
+            }
         }
 
         kh->shift_one_deferred_to_blocked();
@@ -950,6 +992,21 @@ void
 replication_manager :: retransmitter()
 {
     LOG(INFO) << "retransmitter thread started";
+    sigset_t ss;
+
+    if (sigfillset(&ss) < 0)
+    {
+        PLOG(ERROR) << "sigfillset";
+        return;
+    }
+
+    if (pthread_sigmask(SIG_BLOCK, &ss, NULL) < 0)
+    {
+        PLOG(ERROR) << "could not block signals";
+        return;
+    }
+
+    uint64_t then = e::time();
 
     while (true)
     {
@@ -970,6 +1027,12 @@ replication_manager :: retransmitter()
         }
 
         std::set<region_id> region_cache;
+        std::map<region_id, uint64_t> seq_id_lower_bounds;
+
+        {
+            po6::threads::mutex::hold hold(&m_block_retransmitter);
+            m_counters.peek(&seq_id_lower_bounds);
+        }
 
         for (keyholder_map_t::iterator it = m_keyholders.begin();
                 it != m_keyholders.end(); it.next())
@@ -1013,12 +1076,122 @@ replication_manager :: retransmitter()
 
             kh->resend_committable(this, us, key);
             move_operations_between_queues(us, ri, *sc, key, kh);
+
+            if (m_daemon->m_config.is_point_leader(us))
+            {
+                uint64_t min_id = kh->min_seq_id();
+                std::map<region_id, uint64_t>::iterator lb = seq_id_lower_bounds.find(ri);
+
+                if (lb == seq_id_lower_bounds.end())
+                {
+                    seq_id_lower_bounds.insert(std::make_pair(ri, min_id));
+                }
+                else
+                {
+                    lb->second = std::min(lb->second, min_id);
+                }
+            }
         }
 
         m_daemon->m_comm.wake_one();
+        uint64_t now = e::time();
+
+        // Rate limit CHAIN_GC sending
+        if (((now - then) / 1000 / 1000 / 1000) < 30)
+        {
+            continue;
+        }
+
+        then = now;
+        po6::threads::mutex::hold hold(&m_block_retransmitter);
+        std::vector<std::pair<server_id, po6::net::location> > cluster_members;
+        m_daemon->m_config.get_all_addresses(&cluster_members);
+
+        for (std::map<region_id, uint64_t>::iterator it = seq_id_lower_bounds.begin();
+                it != seq_id_lower_bounds.end(); ++it)
+        {
+            // lookup and check again since we lost/acquired the lock
+            virtual_server_id us = m_daemon->m_config.get_virtual(it->first, m_daemon->m_us);
+
+            if (us == virtual_server_id() || !m_daemon->m_config.is_point_leader(us))
+            {
+                continue;
+            }
+
+            size_t sz = HYPERDEX_HEADER_SIZE_VV
+                      + sizeof(uint64_t);
+
+            for (size_t i = 0; i < cluster_members.size(); ++i)
+            {
+                std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+                msg->pack_at(HYPERDEX_HEADER_SIZE_VS) << it->second;
+                m_daemon->m_comm.send(us, cluster_members[i].first, CHAIN_GC, msg);
+            }
+        }
     }
 
     LOG(INFO) << "retransmitter thread shutting down";
+}
+
+void
+replication_manager :: garbage_collector()
+{
+    LOG(INFO) << "garbage collector thread started";
+    sigset_t ss;
+
+    if (sigfillset(&ss) < 0)
+    {
+        PLOG(ERROR) << "sigfillset";
+        return;
+    }
+
+    if (pthread_sigmask(SIG_BLOCK, &ss, NULL) < 0)
+    {
+        PLOG(ERROR) << "could not block signals";
+        return;
+    }
+
+    while (true)
+    {
+        std::list<std::pair<region_id, uint64_t> > lower_bounds;
+
+        {
+            po6::threads::mutex::hold hold(&m_block_garbage_collector);
+
+            while (m_lower_bounds.empty() && !m_shutdown)
+            {
+                m_wakeup_garbage_collector.wait();
+            }
+
+            if (m_shutdown)
+            {
+                break;
+            }
+
+            lower_bounds.swap(m_lower_bounds);
+        }
+
+        // sort so that we scan disk sequentially
+        lower_bounds.sort();
+
+        while (!lower_bounds.empty())
+        {
+            region_id reg_id = lower_bounds.front().first;
+            uint64_t seq_id = lower_bounds.front().second;
+
+            // I chose to use seq_id - 1 for clearing because i'm too tired to check for
+            // an off by one.  At worst it'll leave a little extra state laying around,
+            // and is guaranteed to be as correct as garbage collecting seq_id.
+            if (seq_id > 0)
+            {
+                m_daemon->m_data.clear_acked(reg_id, seq_id - 1);
+            }
+
+            lower_bounds.pop_front();
+        }
+    }
+
+    LOG(INFO) << "garbage collector thread shutting down";
 }
 
 void
@@ -1027,8 +1200,10 @@ replication_manager :: shutdown()
     bool is_shutdown;
 
     {
-        po6::threads::mutex::hold hold(&m_block_retransmitter);
+        po6::threads::mutex::hold holdr(&m_block_retransmitter);
+        po6::threads::mutex::hold holdg(&m_block_garbage_collector);
         m_wakeup_retransmitter.broadcast();
+        m_wakeup_garbage_collector.broadcast();
         is_shutdown = m_shutdown;
         m_shutdown = true;
     }
@@ -1036,5 +1211,6 @@ replication_manager :: shutdown()
     if (!is_shutdown)
     {
         m_retransmitter.join();
+        m_garbage_collector.join();
     }
 }

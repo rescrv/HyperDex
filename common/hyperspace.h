@@ -55,7 +55,7 @@ class space
         ~space() throw ();
 
     public:
-        bool validate();
+        bool validate() const;
 
     public:
         space& operator = (const space&);
@@ -63,6 +63,7 @@ class space
     public:
         space_id id;
         const char* name;
+        uint64_t fault_tolerance;
         hyperdex::schema schema;
         std::vector<subspace> subspaces;
 
@@ -125,10 +126,6 @@ class region
         std::vector<uint64_t> lower_coord;
         std::vector<uint64_t> upper_coord;
         std::vector<replica> replicas;
-        capture_id cid;
-        transfer_id tid;
-        server_id tsi;
-        virtual_server_id tvi;
 };
 
 e::buffer::packer
@@ -142,6 +139,8 @@ class replica
 {
     public:
         replica();
+        replica(const server_id& si,
+                const virtual_server_id& vsi);
         replica(const replica&);
         ~replica() throw ();
 

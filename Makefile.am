@@ -40,11 +40,9 @@ EXTRA_DIST = \
 			hyperclient/nodejs/async_test.js \
 			hyperclient/nodejs/hyperclient.cc \
 			wscript
-#doc/HyperDex-$(VERSION).pdf
+# XXX doc/HyperDex-$(VERSION).pdf
 
-lib_LTLIBRARIES = \
-			libhyperclient.la \
-			libhypercoordinator.la
+lib_LTLIBRARIES = libhyperclient.la
 
 pyexec_LTLIBRARIES =
 
@@ -54,16 +52,17 @@ include_HEADERS = \
 bin_PROGRAMS = hyperdex \
 			hyperdex-daemon \
 			hyperdex-search-stress-test \
+			hyperdex-replication-stress-test \
 			hyperdex-simple-consistency-stress-test
-# XXX hyperdex-replication-stress-test
 
 hyperdexexecdir = $(exec_prefix)/libexec/$(PACKAGE)-$(VERSION)
 hyperdexexec_PROGRAMS = \
+			hyperdex-initialize-cluster \
 			hyperdex-add-space \
 			hyperdex-rm-space \
-			hyperdex-kill \
 			hyperdex-show-config \
 			hyperdex-initiate-transfer
+hyperdexexec_LTLIBRARIES = libhypercoordinator.la
 
 noinst_PROGRAMS = \
 			client/c/testcompile \
@@ -116,14 +115,7 @@ noinst_HEADERS = \
 			datatypes/string.h \
 			datatypes/validate.h \
 			datatypes/write.h \
-			coordinator/add-space.h \
 			coordinator/coordinator.h \
-			coordinator/get-config.h \
-			coordinator/kill.h \
-			coordinator/meta.h \
-			coordinator/register.h \
-			coordinator/rm-space.h \
-			coordinator/util.h \
 			daemon/communication.h \
 			daemon/daemon.h \
 			daemon/datalayer.h \
@@ -163,6 +155,7 @@ noinst_HEADERS = \
 hyperdex_daemon_SOURCES = \
 			common/attribute.cc \
 			common/attribute_check.cc \
+			common/capture.cc \
 			common/configuration.cc \
 			common/counter_map.cc \
 			common/float_encode.cc \
@@ -172,6 +165,7 @@ hyperdex_daemon_SOURCES = \
 			common/hyperspace.cc \
 			common/network_msgtype.cc \
 			common/mapper.cc \
+			common/range_searches.cc \
 			common/schema.cc \
 			common/serialization.cc \
 			common/transfer.cc \
@@ -208,28 +202,24 @@ hyperdex_daemon_LDADD = \
 			-lreplicant -lcityhash -lpopt -lglog -lrt -lpthread
 hyperdex_daemon_CPPFLAGS = $(CPPFLAGS)
 
+daemon_test_index_encode_SOURCES = runner.cc daemon/test/index_encode.cc daemon/index_encode.cc common/float_encode.cc
+daemon_test_index_encode_CPPFLAGS = $(GTEST_CPPFLAGS) $(CPPFLAGS)
+daemon_test_index_encode_LDADD = $(GTEST_LDFLAGS) -lgtest -lpthread
+
 ################################################################################
 ################################## Coordinator #################################
 ################################################################################
 
 libhypercoordinator_la_SOURCES = \
 			common/attribute.cc \
+			common/capture.cc \
 			common/hyperdex.cc \
 			common/hyperspace.cc \
 			common/schema.cc \
 			common/serialization.cc \
-			coordinator/add-space.cc \
+			common/transfer.cc \
 			coordinator/coordinator.cc \
-			coordinator/get-config.cc \
-			coordinator/initiate-transfer.cc \
-			coordinator/kill.cc \
-			coordinator/meta.cc \
-			coordinator/register.cc \
-			coordinator/rm-space.cc \
-			coordinator/symtable.c \
-			coordinator/tcp-disconnect.c \
-			coordinator/xfer-complete.c \
-			coordinator/xfer-go-live.c
+			coordinator/symtable.c
 libhypercoordinator_la_LIBADD = -le
 
 ################################################################################
@@ -250,6 +240,7 @@ libhyperclient_include_HEADERS = \
 libhyperclient_la_SOURCES = \
 			common/attribute.cc \
 			common/attribute_check.cc \
+			common/capture.cc \
 			common/configuration.cc \
 			common/float_encode.cc \
 			common/funcall.cc \
@@ -258,6 +249,7 @@ libhyperclient_la_SOURCES = \
 			common/hyperspace.cc \
 			common/mapper.cc \
 			common/network_msgtype.cc \
+			common/range_searches.cc \
 			common/schema.cc \
 			common/serialization.cc \
 			common/transfer.cc \
@@ -374,14 +366,15 @@ client_cc_testcompile_SOURCES = client/cc/testcompile.cc
 hyperdex_SOURCES = hyperdex.cc
 hyperdex_CPPFLAGS = -DHYPERDEX_EXEC_DIR=\""$(hyperdexexecdir)\"" $(CPPFLAGS)
 
+hyperdex_initialize_cluster_SOURCES = tools/initialize-cluster.cc
+hyperdex_initialize_cluster_CPPFLAGS = -DHYPERDEX_COORD_LIB=\""$(hyperdexexecdir)/libhypercoordinator.so\"" $(CPPFLAGS)
+hyperdex_initialize_cluster_LDADD = libhyperclient.la
+
 hyperdex_add_space_SOURCES = tools/add-space.cc
 hyperdex_add_space_LDADD = libhyperclient.la
 
 hyperdex_rm_space_SOURCES = tools/rm-space.cc
 hyperdex_rm_space_LDADD = libhyperclient.la
-
-hyperdex_kill_SOURCES = tools/kill.cc
-hyperdex_kill_LDADD = libhyperclient.la
 
 hyperdex_show_config_SOURCES = tools/show-config.cc
 hyperdex_show_config_LDADD = libhyperclient.la
@@ -420,21 +413,11 @@ endif
 ################################### Binaries ###################################
 ################################################################################
 
-#hyperdex_replication_stress_test_SOURCES = \
-#			replication-stress-test.cc
-#hyperdex_replication_stress_test_CPPFLAGS = \
-#			$(E_CFLAGS) \
-#			$(CPPFLAGS)
-#hyperdex_replication_stress_test_LDADD = \
-#			libhyperclient.la \
-#			-lpopt
+hyperdex_replication_stress_test_SOURCES = replication-stress-test.cc
+hyperdex_replication_stress_test_LDADD = libhyperclient.la -lpopt
 
 hyperdex_search_stress_test_SOURCES = search-stress-test.cc test/common.cc
 hyperdex_search_stress_test_LDADD = libhyperclient.la -lpopt
 
 hyperdex_simple_consistency_stress_test_SOURCES = simple-consistency-stress-test.cc
 hyperdex_simple_consistency_stress_test_LDADD = libhyperclient.la -lpopt -lpthread
-
-daemon_test_index_encode_SOURCES = runner.cc daemon/test/index_encode.cc daemon/index_encode.cc common/float_encode.cc
-daemon_test_index_encode_CPPFLAGS = $(GTEST_CPPFLAGS) $(CPPFLAGS)
-daemon_test_index_encode_LDADD = $(GTEST_LDFLAGS) -lgtest -lpthread

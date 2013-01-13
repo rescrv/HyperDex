@@ -32,14 +32,17 @@ namespace hyperdex
 {
 
 // occupies [8832, 8960)
+// these are hardcoded as byte strings in coordinator/coordinator.cc
+// keep them in sync
 enum coordinator_returncode
 {
     COORD_SUCCESS = 8832,
     COORD_MALFORMED = 8833,
     COORD_DUPLICATE = 8834,
     COORD_NOT_FOUND = 8835,
-    COORD_TRANSFER_IN_PROGRESS = 8836
-
+    COORD_INITIALIZED = 8836,
+    COORD_UNINITIALIZED = 8837,
+    COORD_TRANSFER_IN_PROGRESS = 8838
 };
 
 } // namespace hyperdex

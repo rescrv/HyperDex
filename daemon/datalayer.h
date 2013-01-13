@@ -30,6 +30,7 @@
 
 // STL
 #include <list>
+#include <set>
 #include <string>
 #include <tr1/memory>
 #include <vector>
@@ -51,6 +52,7 @@
 #include "common/counter_map.h"
 #include "common/ids.h"
 #include "common/schema.h"
+#include "daemon/leveldb.h"
 #include "daemon/reconfigure_returncode.h"
 
 namespace hyperdex
@@ -66,6 +68,7 @@ class datalayer
             SUCCESS,
             NOT_FOUND,
             BAD_ENCODING,
+            BAD_SEARCH,
             CORRUPTION,
             IO_ERROR,
             LEVELDB_ERROR
@@ -85,6 +88,15 @@ class datalayer
                    po6::net::location* saved_bind_to,
                    po6::net::hostname* saved_coordinator);
         void teardown();
+        // perform one-time initialization of the db (call after "setup").
+        // requires that "saved" was false in "setup".
+        bool initialize();
+        // implicit sets the "dirty" bit
+        bool save_state(const server_id& m_us,
+                        const po6::net::location& bind_to,
+                        const po6::net::hostname& coordinator);
+        // clears the "dirty" bit
+        bool clear_dirty();
         reconfigure_returncode prepare(const configuration& old_config,
                                        const configuration& new_config,
                                        const server_id& us);
@@ -102,21 +114,23 @@ class datalayer
                        uint64_t* version,
                        reference* ref);
         returncode put(const region_id& ri,
+                       const region_id& reg_id,
                        uint64_t seq_id,
                        const e::slice& key,
                        const std::vector<e::slice>& value,
                        uint64_t version);
         returncode del(const region_id& ri,
+                       const region_id& reg_id,
                        uint64_t seq_id,
                        const e::slice& key);
         returncode make_snapshot(const region_id& ri,
-                                 attribute_check* checks,
-                                 size_t checks_sz,
+                                 const schema& sc,
+                                 const std::vector<attribute_check>* checks,
                                  snapshot* snap);
         // leveldb provides no failure mechanism for this, neither do we
-        std::tr1::shared_ptr<leveldb::Snapshot> make_raw_snapshot();
+        leveldb_snapshot_ptr make_raw_snapshot();
         void make_region_iterator(region_iterator* riter,
-                                  std::tr1::shared_ptr<leveldb::Snapshot> snap,
+                                  leveldb_snapshot_ptr snap,
                                   const region_id& ri);
         returncode get_transfer(const region_id& ri,
                                 uint64_t seq_no,
@@ -126,13 +140,21 @@ class datalayer
                                 uint64_t* version,
                                 reference* ref);
         // XXX errors are absorbed here; short of crashing we can only log
-        bool check_acked(const region_id& reg_id, uint64_t seq_id);
-        void mark_acked(const region_id& reg_id, uint64_t seq_id);
-        void max_seq_id(const region_id& reg_id, uint64_t* seq_id);
-
-    private:
-        class search_filter;
-        typedef std::list<std::vector<char> > backing_t;
+        bool check_acked(const region_id& ri,
+                         const region_id& reg_id,
+                         uint64_t seq_id);
+        void mark_acked(const region_id& ri,
+                        const region_id& reg_id,
+                        uint64_t seq_id);
+        void max_seq_id(const region_id& reg_id,
+                        uint64_t* seq_id);
+        // Clear less than seq_id
+        void clear_acked(const region_id& reg_id,
+                         uint64_t seq_id);
+        // Request that a particular capture_id be wiped.  This is requested by
+        // the state_transfer_manager.  The state_transfer_manger will get a
+        // call back on report_wiped after it is done.
+        void request_wipe(const capture_id& cid);
 
     private:
         datalayer(const datalayer&);
@@ -153,6 +175,14 @@ class datalayer
         returncode decode_value(const e::slice& value,
                                 std::vector<e::slice>* attrs,
                                 uint64_t* version);
+        void encode_acked(const region_id& ri, /*region we saw an ack for*/
+                          const region_id& reg_id, /*region of the point leader*/
+                          uint64_t seq_id,
+                          char* buf);
+        returncode decode_acked(const e::slice& key,
+                                region_id* ri, /*region we saw an ack for*/
+                                region_id* reg_id, /*region of the point leader*/
+                                uint64_t* seq_id);
         void encode_transfer(const capture_id& ci,
                              uint64_t count,
                              std::vector<char>* backing,
@@ -168,46 +198,57 @@ class datalayer
                                     e::slice* key,
                                     std::vector<e::slice>* value,
                                     uint64_t* version);
-        void generate_object_range(const region_id& ri,
-                                   backing_t* backing,
-                                   leveldb::Range* r);
+        void encode_index(const region_id& ri,
+                          uint16_t attr,
+                          std::vector<char>* backing);
+        void encode_index(const region_id& ri,
+                          uint16_t attr,
+                          hyperdatatype type,
+                          const e::slice& value,
+                          std::vector<char>* backing);
+        void encode_index(const region_id& ri,
+                          uint16_t attr,
+                          hyperdatatype type,
+                          const e::slice& value,
+                          const e::slice& key,
+                          std::vector<char>* backing);
+        void bump(std::vector<char>* backing);
+        bool parse_index_string(const leveldb::Slice& s, e::slice* k);
+        bool parse_index_sizeof8(const leveldb::Slice& s, e::slice* k);
+        bool parse_object_key(const leveldb::Slice& s, e::slice* k);
         void generate_index(const region_id& ri,
                             uint16_t attr,
                             hyperdatatype type,
                             const e::slice& value,
                             const e::slice& key,
-                            backing_t* backing,
+                            std::list<std::vector<char> >* backing,
                             std::vector<leveldb::Slice>* idxs);
-        void generate_search_filters(const region_id& ri,
-                                     attribute_check* check_ptr,
-                                     attribute_check* check_end,
-                                     backing_t* backing,
-                                     std::vector<search_filter>* sf);
         returncode create_index_changes(const schema* sc,
                                         const region_id& ri,
                                         const e::slice& key,
                                         const leveldb::Slice& lkey,
-                                        backing_t* backing,
+                                        std::list<std::vector<char> >* backing,
                                         leveldb::WriteBatch* updates);
         returncode create_index_changes(const schema* sc,
                                         const region_id& ri,
                                         const e::slice& key,
                                         const leveldb::Slice& lkey,
                                         const std::vector<e::slice>& value,
-                                        backing_t* backing,
+                                        std::list<std::vector<char> >* backing,
                                         leveldb::WriteBatch* updates);
         void cleaner();
         void shutdown();
 
     private:
         daemon* m_daemon;
-        leveldb::DB* m_db;
+        leveldb_db_ptr m_db;
         counter_map m_counters;
         po6::threads::thread m_cleaner;
         po6::threads::mutex m_block_cleaner;
         po6::threads::cond m_wakeup_cleaner;
         bool m_need_cleaning;
         bool m_shutdown;
+        std::set<capture_id> m_state_transfer_captures;
 };
 
 class datalayer::reference
@@ -245,8 +286,8 @@ class datalayer::region_iterator
 
     private:
         datalayer* m_dl;
-        std::tr1::shared_ptr<leveldb::Snapshot> m_snap;
-        std::auto_ptr<leveldb::Iterator> m_iter;
+        leveldb_snapshot_ptr m_snap;
+        leveldb_iterator_ptr m_iter;
         region_id m_region;
 };
 
@@ -269,18 +310,18 @@ class datalayer::snapshot
 
     private:
         datalayer* m_dl;
-        const leveldb::Snapshot* m_snap;
-        backing_t m_backing;
-        std::vector<search_filter> m_sfs;
-        const attribute_check* m_checks;
-        size_t m_checks_sz;
+        leveldb_snapshot_ptr m_snap;
+        const std::vector<attribute_check>* m_checks;
         region_id m_ri;
-        leveldb::Range m_obj_range;
-        leveldb::Iterator* m_iter;
+        std::list<std::vector<char> > m_backing;
+        leveldb::Range m_range;
+        bool (datalayer::*m_parse)(const leveldb::Slice& in, e::slice* out);
+        leveldb_iterator_ptr m_iter;
         returncode m_error;
+        uint64_t m_version;
         e::slice m_key;
         std::vector<e::slice> m_value;
-        uint64_t m_version;
+        reference m_ref;
 };
 
 std::ostream&

@@ -27,6 +27,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+/* C */
+#include <stdint.h>
+
 /* HyperDex */
 #include "hyperdex.h"
 #include "client/parse_space_y.h"
@@ -41,16 +44,25 @@ extern YYSTYPE yylval;
 "space"                 { return SPACE; }
 "key"                   { return KEY; }
 "attributes"            { return ATTRIBUTES; }
+"attribute"             { return ATTRIBUTES; }
+"tolerate"              { return TOLERATE; }
+"failures"              { return FAILURES; }
+"failure"               { return FAILURES; }
+"create"                { return CREATE; }
+"partitions"            { return PARTITIONS; }
+"partition"             { return PARTITIONS; }
 "subspace"              { return SUBSPACE; }
 ":"                     { return COLON; }
 ","                     { return COMMA; }
 "("                     { return OP; }
 ")"                     { return CP; }
 "string"                { return STRING; }
+"int"                   { return INT64; }
 "int64"                 { return INT64; }
 "float"                 { return FLOAT; }
 "list"                  { return LIST; }
 "set"                   { return SET; }
 "map"                   { return MAP; }
 [ \t\n\r]               ;
+[1-9][0-9]*             { yylval.num = strtoull(yytext, NULL, 10); return NUMBER; }
 [a-zA-Z_][a-zA-Z_0-9]*  { yylval.str = strdup(yytext); return IDENTIFIER; }

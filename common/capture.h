@@ -25,41 +25,46 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_coordinator_util_h_
-#define hyperdex_coordinator_util_h_
+#ifndef hyperdex_common_capture_h_
+#define hyperdex_common_capture_h_
 
 // e
-#include <e/endian.h>
-
-// Replicant
-#include <replicant_state_machine.h>
+#include <e/buffer.h>
 
 // HyperDex
-#include "common/coordinator_returncode.h"
-#include "coordinator/coordinator.h"
-
-#define PROTECT_UNINITIALIZED \
-    do \
-    { \
-        if (!obj) \
-        { \
-            replicant_state_machine_log_error(ctx, "cannot operate on NULL object"); \
-            replicant_state_machine_set_response(ctx, "", 0); \
-            return; \
-        } \
-    } \
-    while (0)
+#include "common/ids.h"
 
 namespace hyperdex
 {
 
-inline void
-generate_response(replicant_state_machine_context* ctx, coordinator* c, coordinator_returncode x)
+class capture
 {
-    e::pack16be(static_cast<uint16_t>(x), c->resp);
-    replicant_state_machine_set_response(ctx, c->resp, sizeof(uint16_t));
-}
+    public:
+        capture();
+        capture(const capture_id& id,
+                const region_id& rid);
+        capture(const capture&);
+        ~capture() throw ();
+
+    public:
+        capture& operator = (const capture&);
+        bool operator < (const capture&) const;
+
+    public:
+        capture_id id;
+        region_id rid;
+};
+
+std::ostream&
+operator << (std::ostream& lhs, const capture& rhs);
+
+e::buffer::packer
+operator << (e::buffer::packer, const capture& c);
+e::unpacker
+operator >> (e::unpacker, capture& c);
+size_t
+pack_size(const capture& c);
 
 } // namespace hyperdex
 
-#endif // hyperdex_coordinator_util_h_
+#endif // hyperdex_common_capture_h_

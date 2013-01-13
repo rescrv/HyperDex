@@ -25,36 +25,68 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// Replicant
-#include <replicant_state_machine.h>
-
 // HyperDex
-#include "coordinator/coordinator.h"
-#include "coordinator/get-config.h"
-#include "coordinator/util.h"
+#include "common/capture.h"
 
-using hyperdex::coordinator;
+using hyperdex::capture;
 
-extern "C"
+capture :: capture()
+    : id()
+    , rid()
 {
-
-void
-hyperdex_coordinator_get_config(struct replicant_state_machine_context* ctx,
-                                void* obj, const char* /*data*/, size_t /*data_sz*/)
-{
-    PROTECT_UNINITIALIZED;
-    coordinator* c = static_cast<coordinator*>(obj);
-
-    if (c->latest_config.get())
-    {
-        const char* output = reinterpret_cast<const char*>(c->latest_config->data());
-        size_t output_sz = c->latest_config->size();
-        replicant_state_machine_set_response(ctx, output, output_sz);
-    }
-    else
-    {
-        replicant_state_machine_set_response(ctx, "", 0);
-    }
 }
 
-} // extern "C"
+capture :: capture(const capture_id& _id,
+                   const region_id& _rid)
+    : id(_id)
+    , rid(_rid)
+{
+}
+
+capture :: capture(const capture& other)
+    : id(other.id)
+    , rid(other.rid)
+{
+}
+
+capture :: ~capture() throw ()
+{
+}
+
+capture&
+capture :: operator = (const capture& rhs)
+{
+    id = rhs.id;
+    rid = rhs.rid;
+    return *this;
+}
+
+std::ostream&
+hyperdex :: operator << (std::ostream& lhs, const capture& rhs)
+{
+    return lhs << "capture(id=" << rhs.id
+               << ", region=" << rhs.rid << ")";
+}
+
+e::buffer::packer
+hyperdex :: operator << (e::buffer::packer pa, const capture& c)
+{
+    return pa << c.id.get() << c.rid.get();
+}
+
+e::unpacker
+hyperdex :: operator >> (e::unpacker up, capture& c)
+{
+    uint64_t id;
+    uint64_t rid;
+    up = up >> id >> rid;
+    c.id = capture_id(id);
+    c.rid = region_id(rid);
+    return up;
+}
+
+size_t
+hyperdex :: pack_size(const capture&)
+{
+    return sizeof(uint64_t) + sizeof(uint64_t);
+}

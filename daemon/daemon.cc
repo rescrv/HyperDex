@@ -46,13 +46,28 @@
 
 using hyperdex::daemon;
 
-bool s_continue = true;
+int s_interrupts = 0;
+bool s_alarm = false;
 
 static void
 exit_on_signal(int /*signum*/)
 {
-    RAW_LOG(ERROR, "signal received; triggering exit");
-    s_continue = false;
+    if (s_interrupts == 0)
+    {
+        RAW_LOG(ERROR, "interrupted: initiating shutdown (interrupt again to exit immediately)");
+    }
+    else
+    {
+        RAW_LOG(ERROR, "interrupted again: exiting immediately");
+    }
+
+    ++s_interrupts;
+}
+
+static void
+handle_alarm(int /*signum*/)
+{
+    s_alarm = true;
 }
 
 static void
@@ -132,12 +147,33 @@ daemon :: run(bool daemonize,
         return EXIT_FAILURE;
     }
 
+    if (!install_signal_handler(SIGALRM, handle_alarm))
+    {
+        std::cerr << "could not install SIGUSR1 handler; exiting" << std::endl;
+        return EXIT_FAILURE;
+    }
+
     if (!install_signal_handler(SIGUSR1, dummy))
     {
         std::cerr << "could not install SIGUSR1 handler; exiting" << std::endl;
         return EXIT_FAILURE;
     }
 
+    sigset_t ss;
+
+    if (sigfillset(&ss) < 0)
+    {
+        PLOG(ERROR) << "sigfillset";
+        return EXIT_FAILURE;
+    }
+
+    if (pthread_sigmask(SIG_BLOCK, &ss, NULL) < 0)
+    {
+        PLOG(ERROR) << "could not block signals";
+        return EXIT_FAILURE;
+    }
+
+    alarm(30);
     google::LogToStderr();
     bool saved = false;
     server_id saved_us;
@@ -170,41 +206,42 @@ daemon :: run(bool daemonize,
         bind_to = saved_bind_to;
         coordinator = saved_coordinator;
         m_coord.set_coordinator_address(coordinator.address.c_str(), coordinator.port);
+
+        if (!m_coord.reregister_id(m_us, bind_to))
+        {
+            return EXIT_FAILURE;
+        }
     }
     else
     {
         LOG(INFO) << "starting new daemon from command-line arguments";
         m_coord.set_coordinator_address(coordinator.address.c_str(), coordinator.port);
+        uint64_t sid;
 
-        while (true)
+        if (!generate_token(&sid))
         {
-            uint64_t sid;
-
-            if (!generate_token(&sid))
-            {
-                PLOG(ERROR) << "could not read random token from /dev/urandom";
-                return EXIT_FAILURE;
-            }
-
-            LOG(INFO) << "generated new random token:  " << sid;
-
-            int verify = m_coord.register_id(server_id(sid), bind_to);
-
-            if (verify < 0)
-            {
-                // reason logged by register_id
-                return EXIT_FAILURE;
-            }
-            else if (verify > 0)
-            {
-                m_us = server_id(sid);
-                break;
-            }
-            else
-            {
-                LOG(INFO) << "generated token already in use; you should buy a lotto ticket (we're retrying)";
-            }
+            PLOG(ERROR) << "could not read random token from /dev/urandom";
+            return EXIT_FAILURE;
         }
+
+        LOG(INFO) << "generated new random token:  " << sid;
+
+        if (!m_coord.register_id(server_id(sid), bind_to))
+        {
+            return EXIT_FAILURE;
+        }
+
+        m_us = server_id(sid);
+
+        if (!m_data.initialize())
+        {
+            return EXIT_FAILURE;
+        }
+    }
+
+    if (!m_data.save_state(m_us, bind_to, coordinator))
+    {
+        return EXIT_FAILURE;
     }
 
     if (daemonize)
@@ -231,7 +268,7 @@ daemon :: run(bool daemonize,
         t->start();
     }
 
-    while (s_continue)
+    while (!m_coord.is_shutdown())
     {
         configuration old_config = m_config;
         configuration new_config;
@@ -277,10 +314,15 @@ daemon :: run(bool daemonize,
         m_repl.cleanup(old_config, new_config, m_us);
         m_comm.cleanup(old_config, new_config, m_us);
         m_data.cleanup(old_config, new_config, m_us);
-        // XXX let the coordinator know we've moved to this config
+        // let the coordinator know we've moved to this config
+        m_coord.ack_config(new_config.version());
     }
 
-    LOG(INFO) << "hyperdex-daemon is gracefully shutting down";
+    if (m_coord.is_clean_shutdown())
+    {
+        LOG(INFO) << "hyperdex-daemon is gracefully shutting down";
+    }
+
     m_comm.shutdown();
 
     for (size_t i = 0; i < m_threads.size(); ++i)
@@ -293,8 +335,19 @@ daemon :: run(bool daemonize,
     m_repl.teardown();
     m_comm.teardown();
     m_data.teardown();
+    int exit_status = EXIT_SUCCESS;
+
+    if (m_coord.is_clean_shutdown())
+    {
+        if (!m_data.clear_dirty())
+        {
+            LOG(ERROR) << "unable to cleanly close the database";
+            exit_status = EXIT_FAILURE;
+        }
+    }
+
     LOG(INFO) << "hyperdex-daemon will now terminate";
-    return EXIT_SUCCESS;
+    return exit_status;
 }
 
 void
@@ -322,7 +375,7 @@ daemon :: loop()
     std::auto_ptr<e::buffer> msg;
     e::unpacker up;
 
-    while (s_continue && m_comm.recv(&from, &vfrom, &vto, &type, &msg, &up))
+    while (m_comm.recv(&from, &vfrom, &vto, &type, &msg, &up))
     {
         assert(from != server_id());
         assert(vto != virtual_server_id());
@@ -361,6 +414,9 @@ daemon :: loop()
                 break;
             case CHAIN_ACK:
                 process_chain_ack(from, vfrom, vto, msg, up);
+                break;
+            case CHAIN_GC:
+                process_chain_gc(from, vfrom, vto, msg, up);
                 break;
             case XFER_OP:
                 process_xfer_op(from, vfrom, vto, msg, up);
@@ -416,6 +472,7 @@ daemon :: process_req_get(server_id from,
             result = NET_NOTFOUND;
             break;
         case datalayer::BAD_ENCODING:
+        case datalayer::BAD_SEARCH:
         case datalayer::CORRUPTION:
         case datalayer::IO_ERROR:
         case datalayer::LEVELDB_ERROR:
@@ -629,6 +686,25 @@ daemon :: process_chain_subspace(server_id,
 
     bool retransmission = flags & 128;
     m_repl.chain_subspace(vfrom, vto, retransmission, region_id(reg_id), seq_id, version, msg, key, value, hashes);
+}
+
+void
+daemon :: process_chain_gc(server_id,
+                           virtual_server_id vfrom,
+                           virtual_server_id,
+                           std::auto_ptr<e::buffer> msg,
+                           e::unpacker up)
+{
+    uint64_t seq_id;
+
+    if ((up >> seq_id).error())
+    {
+        LOG(WARNING) << "unpack of CHAIN_GC failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    region_id ri = m_config.get_region_id(vfrom);
+    m_repl.chain_gc(ri, seq_id);
 }
 
 void

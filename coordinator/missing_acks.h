@@ -25,43 +25,87 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_common_counter_map_h_
-#define hyperdex_common_counter_map_h_
+#ifndef hyperdex_coordinator_missing_acks_h_
+#define hyperdex_coordinator_missing_acks_h_
 
 // STL
-#include <map>
-#include <utility>
 #include <vector>
 
 // HyperDex
 #include "common/ids.h"
 
-// The only thread-safe call is "lookup".  "adopt", "peek", and "take_max" all
-// require external synchronization.
-
 namespace hyperdex
 {
 
-class counter_map
+class missing_acks
 {
     public:
-        counter_map();
-        ~counter_map() throw ();
+        missing_acks(uint64_t version, const std::vector<server_id>& servers);
+        missing_acks(const missing_acks&);
+        ~missing_acks() throw ();
 
     public:
-        void adopt(const std::vector<region_id>& ris);
-        void peek(std::map<region_id, uint64_t>* ris);
-        bool lookup(const region_id& ri, uint64_t* count);
-        bool take_max(const region_id& ri, uint64_t count);
+        void ack(const server_id& id);
+        bool empty() const { return m_servers.empty(); }
+        uint64_t version() const { return m_version; }
 
     private:
-        counter_map(const counter_map&);
-        counter_map& operator = (const counter_map&);
-
-    private:
-        std::vector<std::pair<region_id, uint64_t> > m_counters;
+        uint64_t m_version;
+        std::vector<server_id> m_servers;
 };
+
+inline
+missing_acks :: missing_acks(uint64_t _version,
+                             const std::vector<server_id>& servers)
+    : m_version(_version)
+    , m_servers(servers)
+{
+    std::sort(m_servers.begin(), m_servers.end());
+    std::vector<server_id>::iterator last;
+    last = std::unique(m_servers.begin(), m_servers.end());
+    m_servers.resize(last - m_servers.begin());
+}
+
+inline
+missing_acks :: missing_acks(const missing_acks& other)
+    : m_version(other.m_version)
+    , m_servers(other.m_servers)
+{
+}
+
+inline
+missing_acks :: ~missing_acks() throw ()
+{
+}
+
+inline void
+missing_acks :: ack(const server_id& id)
+{
+    for (size_t i = 0; i < m_servers.size(); ++i)
+    {
+        if (m_servers[i] == id)
+        {
+            for (size_t j = i; j + 1 < m_servers.size(); ++j)
+            {
+                m_servers[j] = m_servers[j + 1];
+            }
+
+            m_servers.pop_back();
+            break;
+        }
+        else if (m_servers[i] > id)
+        {
+            break;
+        }
+    }
+}
+
+inline bool
+operator < (const missing_acks& lhs, const missing_acks& rhs)
+{
+    return lhs.version() < rhs.version();
+}
 
 } // namespace hyperdex
 
-#endif // hyperdex_common_counter_map_h_
+#endif // hyperdex_coordinator_missing_acks_h_

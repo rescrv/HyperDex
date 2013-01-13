@@ -131,6 +131,9 @@ cdef extern from "../hyperclient.h":
         HYPERCLIENT_BADCONFIG    = 8527
         HYPERCLIENT_BADSPACE     = 8528
         HYPERCLIENT_DUPLICATE    = 8529
+        HYPERCLIENT_INTERRUPTED  = 8530
+        HYPERCLIENT_CLUSTER_JUMP = 8531
+        HYPERCLIENT_COORD_LOGGED = 8532
         HYPERCLIENT_INTERNAL     = 8573
         HYPERCLIENT_EXCEPTION    = 8574
         HYPERCLIENT_GARBAGE      = 8575
@@ -210,6 +213,9 @@ class HyperClientException(Exception):
                   ,HYPERCLIENT_BADCONFIG: 'The coordinator provided a malformed configuration'
                   ,HYPERCLIENT_BADSPACE: 'The space description does not parse'
                   ,HYPERCLIENT_DUPLICATE: 'The space already exists'
+                  ,HYPERCLIENT_INTERRUPTED: 'Interrupted by a signal'
+                  ,HYPERCLIENT_CLUSTER_JUMP: 'The cluster changed identities'
+                  ,HYPERCLIENT_COORD_LOGGED: 'The coordinator has logged an error with details'
                   ,HYPERCLIENT_INTERNAL: 'Internal Error (file a bug)'
                   ,HYPERCLIENT_EXCEPTION: 'Internal Exception (file a bug)'
                   ,HYPERCLIENT_GARBAGE: 'Internal Corruption (file a bug)'
@@ -235,6 +241,9 @@ class HyperClientException(Exception):
                   ,HYPERCLIENT_BADCONFIG: 'HYPERCLIENT_BADCONFIG'
                   ,HYPERCLIENT_BADSPACE: 'HYPERCLIENT_BADSPACE'
                   ,HYPERCLIENT_DUPLICATE: 'HYPERCLIENT_DUPLICATE'
+                  ,HYPERCLIENT_INTERRUPTED: 'HYPERCLIENT_INTERRUPTED'
+                  ,HYPERCLIENT_CLUSTER_JUMP: 'HYPERCLIENT_CLUSTER_JUMP'
+                  ,HYPERCLIENT_COORD_LOGGED: 'HYPERCLIENT_COORD_LOGGED'
                   ,HYPERCLIENT_INTERNAL: 'HYPERCLIENT_INTERNAL'
                   ,HYPERCLIENT_EXCEPTION: 'HYPERCLIENT_EXCEPTION'
                   ,HYPERCLIENT_GARBAGE: 'HYPERCLIENT_GARBAGE'
@@ -276,6 +285,9 @@ cdef _obj_to_backing(v):
         backing = v
         datatype = HYPERDATATYPE_STRING
     elif isinstance(v, int):
+        backing = struct.pack('<q', v)
+        datatype = HYPERDATATYPE_INT64
+    elif isinstance(v, long):
         backing = struct.pack('<q', v)
         datatype = HYPERDATATYPE_INT64
     elif isinstance(v, float):
@@ -368,6 +380,8 @@ cdef _obj_to_backing(v):
                   (HYPERDATATYPE_FLOAT, HYPERDATATYPE_FLOAT): HYPERDATATYPE_MAP_FLOAT_FLOAT,
                   (HYPERDATATYPE_MAP_GENERIC, HYPERDATATYPE_MAP_GENERIC): HYPERDATATYPE_MAP_GENERIC}
         datatype = dtypes[(keytype, valtype)]
+    else:
+        raise TypeError("Cannot encode {type} for HyperDex".format(type=str(type(v))[7:-2]))
     return datatype, backing
 
 
@@ -710,7 +724,6 @@ cdef _check_reqid_key_attrs(int64_t reqid, hyperclient_returncode status,
         attr = None
         if idx >= 0 and idx < attrs_sz and attrs and attrs[idx].attr:
             attr = attrs[idx].attr
-        print 'THROWING', idx, attr, status
         raise HyperClientException(status, attr)
 
 
@@ -942,13 +955,28 @@ cdef _predicate_to_c(dict predicate,
     raw_checks = []
     for attr, preds in predicate.iteritems():
         if isinstance(preds, list):
-            assert False # XXX
-        elif isinstance(preds, tuple) and len(preds) == 2:
-            assert False # XXX
-        elif type(preds) in (bytes, int, float):
+            for p in preds:
+                if type(p) in (bytes, int, float):
+                    raw_checks.append((attr, HYPERPREDICATE_EQUALS, p))
+                elif isinstance(p, tuple) and len(p) == 2 and \
+                     type(p[0]) == type(p[1]) and type(p[0]) in (bytes, int, long, float):
+                    raw_checks.append((attr, HYPERPREDICATE_GREATER_EQUAL, p[0]))
+                    raw_checks.append((attr, HYPERPREDICATE_LESS_EQUAL, p[1]))
+                elif isinstance(p, Predicate):
+                    raw_checks += p._raw(attr)
+                else:
+                    errstr = "Attribute '{attr}' has incorrect type (expected Predicate, int, float, (int, int), (float, float), bytes or list of these; instead, got {type})"
+                    raise TypeError(errstr.format(attr=attr, type=str(type(p))[7:-2]))
+        elif isinstance(preds, tuple) and len(preds) == 2 and \
+             type(preds[0]) == type(preds[1]) and type(preds[0]) in (bytes, int, long, float):
+            raw_checks.append((attr, HYPERPREDICATE_GREATER_EQUAL, preds[0]))
+            raw_checks.append((attr, HYPERPREDICATE_LESS_EQUAL, preds[1]))
+        elif type(preds) in (bytes, int, long, float):
             raw_checks.append((attr, HYPERPREDICATE_EQUALS, preds))
+        elif isinstance(preds, Predicate):
+            raw_checks += preds._raw(attr)
         else:
-            errstr = "Attribute '{attr}' has incorrect type (expected int, float, (int, int), (float, float) or bytes, got {type})"
+            errstr = "Attribute '{attr}' has incorrect type (expected Predicate, int, float, (int, int), (float, float), bytes or list of these; instead, got {type})"
             raise TypeError(errstr.format(attr=attr, type=str(type(preds))[7:-2]))
     chks_sz[0] = len(raw_checks)
     chks[0] = <hyperclient_attribute_check*> malloc(sizeof(hyperclient_attribute_check) * chks_sz[0])
@@ -958,11 +986,12 @@ cdef _predicate_to_c(dict predicate,
     for i, (attr, pred, val) in enumerate(raw_checks):
         datatype, backing = _obj_to_backing(val)
         backings.append(backing)
-        chks[i].attr = attr
-        chks[i].value = backing
-        chks[i].value_sz = len(backing)
-        chks[i].datatype = datatype
-        chks[i].predicate = pred
+        backings.append(attr)
+        chks[0][i].attr = attr
+        chks[0][i].value = backing
+        chks[0][i].value_sz = len(backing)
+        chks[0][i].datatype = datatype
+        chks[0][i].predicate = pred
     return backings
 
 
@@ -1111,6 +1140,42 @@ cdef class SortedSearch(SearchBase):
             client._ops[self._reqid] = self
         finally:
             if chks: free(chks)
+
+
+cdef class Predicate:
+
+    cdef list _raw_check
+
+    def __init__(self, raw):
+        self._raw_check = raw
+
+    def _raw(self, attr):
+        return [(attr, p, v) for p, v in self._raw_check]
+
+
+cdef class Range(Predicate):
+
+    def __init__(self, lower, upper):
+        if type(lower) != type(upper) or type(lower) not in (bytes, int, long, float):
+            raise AttributeError("Range search bounds must be of like types")
+        Predicate.__init__(self, [(HYPERPREDICATE_GREATER_EQUAL, lower),
+                                  (HYPERPREDICATE_LESS_EQUAL, upper)])
+
+
+cdef class LessEqual(Predicate):
+
+    def __init__(self, upper):
+        if type(upper) not in (bytes, int, long, float):
+            raise AttributeError("LessEqual must be a byte, int, or float")
+        Predicate.__init__(self, [(HYPERPREDICATE_LESS_EQUAL, upper)])
+
+
+cdef class GreaterEqual(Predicate):
+
+    def __init__(self, lower):
+        if type(lower) not in (bytes, int, long, float):
+            raise AttributeError("GreaterEqual must be a byte, int, or float")
+        Predicate.__init__(self, [(HYPERPREDICATE_GREATER_EQUAL, lower)])
 
 
 cdef class Client:

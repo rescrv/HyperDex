@@ -30,16 +30,7 @@
 #include <replicant_state_machine.h>
 
 /* HyperDex */
-#include "coordinator/add-space.h"
-#include "coordinator/get-config.h"
-#include "coordinator/initiate-transfer.h"
-#include "coordinator/kill.h"
-#include "coordinator/meta.h"
-#include "coordinator/register.h"
-#include "coordinator/rm-space.h"
-#include "coordinator/tcp-disconnect.h"
-#include "coordinator/xfer-go-live.h"
-#include "coordinator/xfer-complete.h"
+#include "coordinator/transitions.h"
 
 struct replicant_state_machine rsm = {
     hyperdex_coordinator_create,
@@ -47,14 +38,20 @@ struct replicant_state_machine rsm = {
     hyperdex_coordinator_destroy,
     hyperdex_coordinator_snapshot,
     {{"get-config", hyperdex_coordinator_get_config},
-     {"add-space", hyperdex_coordinator_add_space},
-     {"rm-space", hyperdex_coordinator_rm_space},
-     {"register", hyperdex_coordinator_register},
-     {"kill", hyperdex_coordinator_kill},
+     {"ack-config", hyperdex_coordinator_ack_config},
+     {"xfer-begin", hyperdex_coordinator_xfer_begin},
      {"xfer-go-live", hyperdex_coordinator_xfer_go_live},
      {"xfer-complete", hyperdex_coordinator_xfer_complete},
-     {"xfer-complete", hyperdex_coordinator_xfer_complete},
-     {"tcp-disconnect", hyperdex_coordinator_tcp_disconnect},
-     {"initiate-transfer", hyperdex_coordinator_initiate_transfer},
+
+     {"server-register", hyperdex_coordinator_server_register},
+     {"server-reregister", hyperdex_coordinator_server_reregister},
+     {"server-suspect", hyperdex_coordinator_server_suspect},
+     {"server-shutdown1", hyperdex_coordinator_server_shutdown1},
+     {"server-shutdown2", hyperdex_coordinator_server_shutdown2},
+
+     {"add-space", hyperdex_coordinator_add_space},
+     {"rm-space", hyperdex_coordinator_rm_space},
+
+     {"initialize", hyperdex_coordinator_initialize},
      {NULL, NULL}}
 };

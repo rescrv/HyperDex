@@ -94,7 +94,7 @@ main(int argc, const char* argv[])
 
     if (num_args != 0)
     {
-        std::cerr << "command takes no arguments\n" << std::endl;
+        std::cerr << "command takes no arguments" << std::endl;
         poptPrintUsage(poptcon, stderr, 0);
         return EXIT_FAILURE;
     }

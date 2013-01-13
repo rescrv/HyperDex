@@ -138,7 +138,7 @@ hyperdex :: operator >> (e::unpacker lhs, po6::net::hostname& rhs)
 size_t
 hyperdex :: pack_size(const po6::net::hostname& rhs)
 {
-    return pack_size(rhs.address.size()) + sizeof(uint16_t);
+    return sizeof(uint32_t) + rhs.address.size() + sizeof(uint16_t);
 }
 
 e::buffer::packer

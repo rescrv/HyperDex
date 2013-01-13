@@ -28,6 +28,9 @@
 #ifndef hyperdex_common_transfer_h_
 #define hyperdex_common_transfer_h_
 
+// e
+#include <e/buffer.h>
+
 // HyperDex
 #include "common/ids.h"
 
@@ -62,6 +65,13 @@ class transfer
 
 std::ostream&
 operator << (std::ostream& lhs, const transfer& rhs);
+
+e::buffer::packer
+operator << (e::buffer::packer, const transfer& t);
+e::unpacker
+operator >> (e::unpacker, transfer& t);
+size_t
+pack_size(const transfer& t);
 
 } // namespace hyperdex
 

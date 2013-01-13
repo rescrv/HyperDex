@@ -95,7 +95,7 @@ main(int argc, const char* argv[])
 
     if (num_args != 0)
     {
-        std::cerr << "show-config takes no positional arguments";
+        std::cerr << "show-config takes no positional arguments" << std::endl;
         return EXIT_FAILURE;
     }
 

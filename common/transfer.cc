@@ -142,3 +142,21 @@ hyperdex :: operator << (std::ostream& lhs, const transfer& rhs)
                << ", dst=" << rhs.dst
                << ", vdst=" << rhs.vdst << ")";
 }
+
+e::buffer::packer
+hyperdex :: operator << (e::buffer::packer pa, const transfer& t)
+{
+    return pa << t.id << t.rid << t.src << t.vsrc << t.dst << t.vdst;
+}
+
+e::unpacker
+hyperdex :: operator >> (e::unpacker up, transfer& t)
+{
+    return up >> t.id >> t.rid >> t.src >> t.vsrc >> t.dst >> t.vdst;
+}
+
+size_t
+hyperdex :: pack_size(const transfer&)
+{
+    return 6 * sizeof(uint64_t);
+}

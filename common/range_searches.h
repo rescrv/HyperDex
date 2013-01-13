@@ -25,45 +25,43 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#ifndef hyperdex_common_range_searches_h_
+#define hyperdex_common_range_searches_h_
+
 // e
-#include <e/endian.h>
+#include <e/slice.h>
 
 // HyperDex
-#include "common/coordinator_returncode.h"
-#include "common/hyperspace.h"
-#include "common/ids.h"
-#include "coordinator/rm-space.h"
-#include "coordinator/coordinator.h"
-#include "coordinator/util.h"
+#include "common/attribute_check.h"
 
-using hyperdex::coordinator;
-using hyperdex::region_id;
-using hyperdex::space;
-using hyperdex::space_id;
-using hyperdex::subspace_id;
-
-extern "C"
+namespace hyperdex
 {
 
-void
-hyperdex_coordinator_rm_space(struct replicant_state_machine_context* ctx,
-                              void* obj, const char* data, size_t data_sz)
+// a range is inclusive
+class range
 {
-    PROTECT_UNINITIALIZED;
-    coordinator* c = static_cast<coordinator*>(obj);
+    public:
+        range();
+        range(const range& other);
+        ~range() throw ();
 
-    // Check that a space with this name exists
-    for (std::list<space>::iterator it = c->spaces.begin(); it != c->spaces.end(); ++it)
-    {
-        if (strncmp(it->name, data, data_sz) == 0)
-        {
-            c->spaces.erase(it);
-            c->regenerate(ctx);
-            return generate_response(ctx, c, hyperdex::COORD_SUCCESS);
-        }
-    }
+    public:
+        range& operator = (const range& rhs);
 
-    return generate_response(ctx, c, hyperdex::COORD_NOT_FOUND);
+    public:
+        uint16_t attr;
+        hyperdatatype type;
+        e::slice start;
+        e::slice end;
+        bool has_start;
+        bool has_end;
+        bool invalid;
+};
+
+bool
+range_searches(const std::vector<attribute_check>& checks,
+               std::vector<range>* ranges);
+
 }
 
-} // extern "C"
+#endif // hyperdex_common_range_searches_h_

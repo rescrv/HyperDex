@@ -43,6 +43,7 @@
 
 // HyperDex
 #include "daemon/datalayer.h"
+#include "daemon/leveldb.h"
 #include "daemon/state_transfer_manager.h"
 
 using hyperdex::state_transfer_manager;
@@ -52,7 +53,7 @@ class state_transfer_manager::transfer_out_state
     public:
         transfer_out_state(const transfer& xfer,
                            datalayer* data,
-                           std::tr1::shared_ptr<leveldb::Snapshot> snap);
+                           leveldb_snapshot_ptr snap);
         ~transfer_out_state() throw ();
 
     public:

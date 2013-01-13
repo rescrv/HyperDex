@@ -30,6 +30,7 @@
 
 // STL
 #include <map>
+#include <set>
 #include <queue>
 #include <tr1/memory>
 
@@ -47,8 +48,8 @@ namespace hyperdex
 {
 class daemon;
 
-// The thread whose pthread_self is passed to "set_looper" can call everything.
-// All other threads are left with the threadsafe block below.
+// The thread whose calls the constructor can call everything.  All other
+// threads are left with the threadsafe block below.
 
 class coordinator_link
 {
@@ -58,8 +59,12 @@ class coordinator_link
 
     public:
         void set_coordinator_address(const char* host, uint16_t port);
-        int register_id(server_id us, const po6::net::location& bind_to);
+        bool register_id(server_id us, const po6::net::location& bind_to);
+        bool reregister_id(server_id us, const po6::net::location& bind_to);
+        bool is_shutdown();
+        bool is_clean_shutdown();
         bool wait_for_config(configuration* config);
+        void ack_config(uint64_t version);
 
     // threadsafe
     public:
@@ -78,15 +83,30 @@ class coordinator_link
         daemon* m_daemon;
         pthread_t m_looper;
         std::auto_ptr<replicant_client> m_repl;
+        enum { NORMAL, CLEAN_SHUTDOWN, DIRTY_SHUTDOWN } m_state;
         int64_t m_wait_config_id;
         replicant_returncode m_wait_config_status;
         int64_t m_get_config_id;
         replicant_returncode m_get_config_status;
         const char* m_get_config_output;
         size_t m_get_config_output_sz;
+        int64_t m_shutdown1_id;
+        replicant_returncode m_shutdown1_status;
+        const char* m_shutdown1_output;
+        size_t m_shutdown1_output_sz;
+        int64_t m_wait_acked_id;
+        replicant_returncode m_wait_acked_status;
+        int64_t m_shutdown2_id;
+        replicant_returncode m_shutdown2_status;
+        const char* m_shutdown2_output;
+        size_t m_shutdown2_output_sz;
+        std::map<int64_t, std::pair<uint64_t, std::tr1::shared_ptr<replicant_returncode> > > m_acks;
         std::map<int64_t, std::pair<transfer_id, std::tr1::shared_ptr<replicant_returncode> > > m_transfers_go_live;
         std::map<int64_t, std::pair<transfer_id, std::tr1::shared_ptr<replicant_returncode> > > m_transfers_complete;
         std::map<int64_t, std::pair<server_id, std::tr1::shared_ptr<replicant_returncode> > > m_tcp_disconnects;
+        std::set<transfer_id> m_transfers_go_live_seen;
+        std::set<transfer_id> m_transfers_complete_seen;
+        std::set<server_id> m_tcp_disconnects_seen;
         po6::threads::mutex m_protect_queues;
         std::queue<transfer_id> m_queue_transfers_go_live;
         std::queue<transfer_id> m_queue_transfers_complete;

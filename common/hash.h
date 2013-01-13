@@ -40,16 +40,19 @@
 namespace hyperdex
 {
 
+uint64_t
+hash(hyperdatatype t, const e::slice& v);
+
 void
 hash(const schema& sc,
      const e::slice& key,
-     uint64_t* hash);
+     uint64_t* h);
 
 void
 hash(const schema& sc,
      const e::slice& key,
      const std::vector<e::slice>& value,
-     uint64_t* hashes);
+     uint64_t* hs);
 
 } // namespace hyperdex
 

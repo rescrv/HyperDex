@@ -59,6 +59,7 @@
                                  + sizeof(uint64_t) /*config version*/ \
                                  + sizeof(uint64_t) /*virt to*/ \
                                  + sizeof(uint64_t) /*virt from*/)
+#define HYPERDEX_HEADER_SIZE_VS HYPERDEX_HEADER_SIZE_VV
 
 namespace hyperdex
 {
@@ -95,6 +96,10 @@ class communication
                          const server_id& to,
                          network_msgtype msg_type,
                          std::auto_ptr<e::buffer> msg);
+        bool send(const virtual_server_id& from,
+                  const server_id& to,
+                  network_msgtype msg_type,
+                  std::auto_ptr<e::buffer> msg);
         bool send(const virtual_server_id& from,
                   const virtual_server_id& to,
                   network_msgtype msg_type,

@@ -41,6 +41,7 @@
 // HyperDex
 #include "common/attribute.h"
 #include "common/attribute_check.h"
+#include "common/capture.h"
 #include "common/hyperspace.h"
 #include "common/ids.h"
 #include "common/schema.h"
@@ -58,10 +59,12 @@ class configuration
 
     // configuration metadata
     public:
+        uint64_t cluster() const;
         uint64_t version() const;
 
     // membership metadata
     public:
+        void get_all_addresses(std::vector<std::pair<server_id, po6::net::location> >* addrs);
         po6::net::location get_address(const server_id& id) const;
         region_id get_region_id(const virtual_server_id& id) const;
         server_id get_server_id(const virtual_server_id& id) const;
@@ -70,20 +73,13 @@ class configuration
     public:
         const schema* get_schema(const char* space) const;
         const schema* get_schema(const region_id& ri) const;
-        virtual_server_id get_virtual(const region_id& ri, const server_id& si);
-        bool is_captured_region(const capture_id& ci) const;
-        capture_id capture_for(const region_id& ri) const;
+        virtual_server_id get_virtual(const region_id& ri, const server_id& si) const;
         subspace_id subspace_of(const region_id& ri) const;
         subspace_id subspace_prev(const subspace_id& ss) const;
         subspace_id subspace_next(const subspace_id& ss) const;
         virtual_server_id head_of_region(const region_id& ri) const;
         virtual_server_id tail_of_region(const region_id& ri) const;
         virtual_server_id next_in_region(const virtual_server_id& vsi) const;
-        bool is_server_blocked_by_live_transfer(const server_id& si, const region_id& ri) const;
-        bool is_transfer_live(const transfer_id& tid) const;
-        void transfer_in_regions(const server_id& s, std::vector<transfer>* transfers) const;
-        void transfer_out_regions(const server_id& s, std::vector<transfer>* transfers) const;
-        void captured_regions(const server_id& s, std::vector<region_id>* servers) const;
         void point_leaders(const server_id& s, std::vector<region_id>* servers) const;
         bool is_point_leader(const virtual_server_id& e) const;
         virtual_server_id point_leader(const char* space, const e::slice& key);
@@ -92,6 +88,19 @@ class configuration
         // lhs and rhs are in adjacent subspaces such that lhs sends CHAIN_PUT
         // to rhs and rhs sends CHAIN_ACK to lhs
         bool subspace_adjacent(const virtual_server_id& lhs, const virtual_server_id& rhs) const;
+
+    // captures
+    public:
+        void captures(std::vector<capture>* captures) const;
+        bool is_captured_region(const capture_id& ci) const;
+        capture_id capture_for(const region_id& ri) const;
+
+    // transfers
+    public:
+        bool is_server_blocked_by_live_transfer(const server_id& si, const region_id& ri) const;
+        bool is_transfer_live(const transfer_id& tid) const;
+        void transfer_in_regions(const server_id& s, std::vector<transfer>* transfers) const;
+        void transfer_out_regions(const server_id& s, std::vector<transfer>* transfers) const;
 
     // hashing functions
     public:
@@ -120,12 +129,12 @@ class configuration
         typedef std::pair<uint64_t, po6::net::location> uint64_location_t;
 
     private:
+        uint64_t m_cluster;
         uint64_t m_version;
         std::vector<uint64_location_t> m_addresses_by_server_id;
         std::vector<pair_uint64_t> m_region_ids_by_virtual;
         std::vector<pair_uint64_t> m_server_ids_by_virtual;
         std::vector<uint64_schema_t> m_schemas_by_region;
-        std::vector<pair_uint64_t> m_capture_ids_by_region;
         std::vector<pair_uint64_t> m_subspace_ids_by_region;
         std::vector<pair_uint64_t> m_subspace_ids_for_prev;
         std::vector<pair_uint64_t> m_subspace_ids_for_next;
@@ -134,6 +143,8 @@ class configuration
         std::vector<pair_uint64_t> m_next_by_virtual;
         std::vector<uint64_t> m_point_leaders_by_virtual;
         std::vector<space> m_spaces;
+        std::vector<capture> m_captures;
+        std::vector<transfer> m_transfers;
 };
 
 e::buffer::packer
