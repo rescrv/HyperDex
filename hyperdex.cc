@@ -64,9 +64,12 @@ struct prog
 #define PROG(N) prog(N, "hyperdex " N, HYPERDEX_EXEC_DIR "/hyperdex-" N)
 
 static prog progs[] = {
+    PROG("initialize-cluster"),
+    PROG("daemon"),
     PROG("add-space"),
     PROG("rm-space"),
-    /*PROG("daemon"),*/
+    PROG("show-config"),
+    PROG("initiate-transfer"),
     prog(NULL, NULL, NULL)
 };
 
@@ -76,9 +79,12 @@ help(poptContext poptcon)
     poptPrintHelp(poptcon, stderr, 0);
     std::cerr << "\n"
               << "Available commands:\n"
-              << "    add-space         Create a new space\n"
-              << "    rm-space          Remove an existing space\n"
-              << "    daemon            Start a new HyperDex daemon\n"
+              << "    initialize-cluster    One time initialization of a HyperDex coordinator\n"
+              << "    daemon                Start a new HyperDex daemon\n"
+              << "    add-space             Create a new space\n"
+              << "    rm-space              Remove an existing space\n"
+              << "    show-config           Output a human-readable version of the cluster configuration\n"
+              << "    initiate-transfer     Manually start a data transfer to repair a failure\n"
               << std::flush;
     return EXIT_FAILURE;
 }

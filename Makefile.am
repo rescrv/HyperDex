@@ -50,7 +50,6 @@ include_HEADERS = \
 			hyperdex.h
 
 bin_PROGRAMS = hyperdex \
-			hyperdex-daemon \
 			hyperdex-search-stress-test \
 			hyperdex-replication-stress-test \
 			hyperdex-simple-consistency-stress-test
@@ -58,6 +57,7 @@ bin_PROGRAMS = hyperdex \
 hyperdexexecdir = $(exec_prefix)/libexec/$(PACKAGE)-$(VERSION)
 hyperdexexec_PROGRAMS = \
 			hyperdex-initialize-cluster \
+			hyperdex-daemon \
 			hyperdex-add-space \
 			hyperdex-rm-space \
 			hyperdex-show-config \
