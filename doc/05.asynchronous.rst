@@ -56,7 +56,7 @@ lists in a social network:
 
 .. todo::
 
-   .. sourcecode::
+   .. sourcecode:: pycon
 
       >>> c.add_space('''space rt key x''')
       >>> c.rm_space('rt')

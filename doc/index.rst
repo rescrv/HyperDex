@@ -11,10 +11,9 @@ Welcome to the HyperDex Reference Manual
    03.quickstart
    04.datatypes
    05.asynchronous
+   06.faults
    api/python
    api/c
-   08.man
-   09.dev
    glossary
    tutorial-advanced
    tutorial-datastructure
