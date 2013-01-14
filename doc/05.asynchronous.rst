@@ -54,6 +54,20 @@ lists in a social network:
    ...    set(string) friends
    ... ''')
 
+.. todo::
+
+   .. sourcecode::
+
+      >>> c.add_space('''space rt key x''')
+      >>> c.rm_space('rt')
+
+   .. sourcecode:: pycon
+
+      >>> c.add_space('''
+      ... space userlocks
+      ... key username
+      ... ''')
+
 Finally, our object for John Smith and some others
 
 .. sourcecode:: pycon
@@ -287,8 +301,52 @@ there are interceding operations that update the object fields that must match.
 In these cases, the client will typically want to re-fetch the object,
 re-perform its updates, and re-submit the conditional operation.
 
+Another useful atomic primitive HyperDex provides is the ``put_if_not_exist``
+operation.  This operation succeeds if and only if the object does not already
+exist.  This can be useful to implement locking behavior.  For example, a simple
+lock space can be used to provide per-user locking:
+
+.. sourcecode:: pycon
+
+   >>> c.add_space('''
+   ... space userlocks
+   ... key username
+   ... ''')
+
+With this space, we can atomically check if an object exists, creating it in the
+process; or fail the operation, leaving the object unchanged.
+
+.. sourcecode:: pycon
+
+   >>> c.put_if_not_exist('userlocks', 'jsmith1', {})
+   True
+   >>> c.get('userlocks', 'jsmith1')
+   {}
+   >>> c.put_if_not_exist('userlocks', 'jsmith1', {})
+   False
+   >>> c.delete('userlocks', 'jsmith1')
+   True
+
+This operation approximates the test-and-set mechanism used for implementing
+concurrency controls in memory.  It's easy to build ``lock()`` and ``unlock()``
+using these controls:
+
+.. sourcecode:: pycon
+
+   >>> def lock(client, user):
+   ...     while not client.put_if_not_exist('userlocks', user, {}):
+   ...         pass
+   >>> def unlock(client, user):
+   ...     client.delete('userlocks', user)
+   >>> lock(c, 'jsmith1')
+   >>> unlock(c, 'jsmith1')
+
+Note that a real implementation might want to make provisions for when clients
+fail while holding the lock.
+
 .. todo::
 
    .. sourcecode:: pycon
 
       >>> c.rm_space('''friendlists''')
+      >>> c.rm_space('''userlocks''')

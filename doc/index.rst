@@ -10,6 +10,7 @@ Welcome to the HyperDex Reference Manual
    02.installation
    03.quickstart
    04.datatypes
+   05.asynchronous
    api/python
    api/c
    08.man

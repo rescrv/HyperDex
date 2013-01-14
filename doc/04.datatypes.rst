@@ -94,12 +94,12 @@ is necessary to decode the UTF-8:
 
 .. sourcecode:: pycon
 
-   >>> c.put('profiles', 'jsmith1', {'first': 'John', 'last': 'Smith'})
-   True
    >>> c.get('profiles', 'jsmith1')['first']
    b'J\xc3\xb3hn'
    >>> c.get('profiles', 'jsmith1')['first'].decode('utf8')
    'Jóhn'
+   >>> c.put('profiles', 'jsmith1', {'first': 'John', 'last': 'Smith'})
+   True
 
 Of course, it's always possible to change John's name back to its unaccented
 form:
@@ -312,7 +312,7 @@ Checking where we stand:
 .. sourcecode:: pycon
 
    >>> c.get('profiles', 'jsmith1')['upvotes']
-   {'http://url1.com': 2, , 'http://url2.com': 0}
+   {'http://url1.com': 2, 'http://url2.com': 0}
 
 All of the preceding operations could have been issued concurrently -- the results
 will be the same because they commute with each other and are executed atomically.

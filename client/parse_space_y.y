@@ -85,7 +85,9 @@ void yyerror(char* s);
 
 space : SPACE IDENTIFIER KEY attribute ATTRIBUTES attribute_list
         subspace_list partitions fault_tolerance
-        { hyperparsed_space = hyperparse_create_space($2, $4, $6, $9, $8, $7); };
+        { hyperparsed_space = hyperparse_create_space($2, $4, $6, $9, $8, $7); }
+      | SPACE IDENTIFIER KEY attribute partitions fault_tolerance
+        { hyperparsed_space = hyperparse_create_space($2, $4, NULL, $6, $5, NULL); };
 
 fault_tolerance :                          { $$ = 2; }
                 | TOLERATE NUMBER FAILURES { $$ = $2; };

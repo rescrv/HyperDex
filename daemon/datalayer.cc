@@ -1128,7 +1128,7 @@ datalayer :: decode_value(const e::slice& value,
 
     uint16_t num_attrs;
 
-    if (ptr + sizeof(uint64_t) <= end)
+    if (ptr + sizeof(uint16_t) <= end)
     {
         ptr = e::unpack16be(ptr, &num_attrs);
     }

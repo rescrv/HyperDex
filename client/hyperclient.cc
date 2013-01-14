@@ -262,7 +262,7 @@ hyperclient :: cond_put(const char* space, const char* key, size_t key_sz,
                         hyperclient_returncode* status)
 {
     const hyperclient_keyop_info* opinfo;
-    opinfo = hyperclient_keyop_info_lookup("cond_put", 7);
+    opinfo = hyperclient_keyop_info_lookup("cond_put", 8);
     return perform_funcall1(opinfo, space, key, key_sz,
                             checks, checks_sz,
                             attrs, attrs_sz, status);
