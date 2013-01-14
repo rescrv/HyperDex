@@ -38,34 +38,36 @@ commands (note that each instance binds to a different port and has a different 
 
 This brings up three different daemons ready to serve in the HyperDex cluster.
 Finally, we create a space which makes use of all three systems in the cluster.
-In this example, let's create a space that may be suitable for serving data in a
-social network:
+In this example, let's create a space that may be suitable for storing profiles
+in a social network:
 
 .. sourcecode:: console
 
-   $ hyperdex add-space -h 127.0.0.1 -p 1982 << EOF
-   space socialnetwork
-   key username
-   attributes
-      string first,
-      string last,
-      int profile_views,
-      list(string) pending_requests,
-      set(string) hobbies,
-      map(string, string) unread_messages,
-      map(string, int) upvotes
-   subspace first, last
-   subspace profile_views
-   EOF
+   >>> import hyperclient
+   >>> c = hyperclient.Client('127.0.0.1', 1982)
+   >>> c.add_space('''
+   ... space profiles
+   ... key username
+   ... attributes
+   ...    string first,
+   ...    string last,
+   ...    int profile_views,
+   ...    list(string) pending_requests,
+   ...    set(string) hobbies,
+   ...    map(string, string) unread_messages,
+   ...    map(string, int) upvotes
+   ... subspace first, last
+   ... subspace profile_views
+   ... ''')
 
 Finally, let's create a profile for John Smith that we can use in the rest of
 this chapter.
 
 .. sourcecode:: pycon
 
-   >>> c.put('socialnetwork', 'jsmith1', {'first': 'John', 'last': 'Smith'})
+   >>> c.put('profiles', 'jsmith1', {'first': 'John', 'last': 'Smith'})
    True
-   >>> c.get('socialnetwork', 'jsmith1')
+   >>> c.get('profiles', 'jsmith1')
    {'first': 'John', 'last': 'Smith',
     'profile_views': 0,
     'pending_requests': [],
@@ -84,7 +86,7 @@ social network page, the code could look like:
 
 .. sourcecode:: pycon
 
-   >>> c.put('socialnetwork', 'jsmith1', {'first': u'Jóhn'.encode('utf8')})
+   >>> c.put('profiles', 'jsmith1', {'first': u'Jóhn'.encode('utf8')})
    True
 
 This encodes the string to raw bytes using UTF-8.  When fetching his profile it
@@ -92,11 +94,11 @@ is necessary to decode the UTF-8:
 
 .. sourcecode:: pycon
 
-   >>> c.put('socialnetwork', 'jsmith1', {'first': 'John', 'last': 'Smith'})
+   >>> c.put('profiles', 'jsmith1', {'first': 'John', 'last': 'Smith'})
    True
-   >>> c.get('socialnetwork', 'jsmith1')['first']
-   'J\xc3\xb3hn'
-   >>> c.get('socialnetwork', 'jsmith1')['first'].decode('utf8')
+   >>> c.get('profiles', 'jsmith1')['first']
+   b'J\xc3\xb3hn'
+   >>> c.get('profiles', 'jsmith1')['first'].decode('utf8')
    'Jóhn'
 
 Of course, it's always possible to change John's name back to its unaccented
@@ -104,9 +106,9 @@ form:
 
 .. sourcecode:: pycon
 
-   >>> c.put('socialnetwork', 'jsmith1', {'first': 'John', 'last': 'Smith'})
+   >>> c.put('profiles', 'jsmith1', {'first': 'John', 'last': 'Smith'})
    True
-   >>> c.get('socialnetwork', 'jsmith1')['first']
+   >>> c.get('profiles', 'jsmith1')['first']
    'John'
 
 HyperDex knows nothing about encodings, so it is up to the application to encode
@@ -123,9 +125,9 @@ tracking the profile_views of a page by incrementing the counter:
 
 .. sourcecode:: pycon
 
-   >>> c.atomic_add('socialnetwork', 'jsmith1', {'profile_views': 1})
+   >>> c.atomic_add('profiles', 'jsmith1', {'profile_views': 1})
    True
-   >>> c.get('socialnetwork', 'jsmith1')
+   >>> c.get('profiles', 'jsmith1')
    {'first': 'John', 'last': 'Smith',
     'profile_views': 1,
     'pending_requests': [],
@@ -159,7 +161,7 @@ Lists
 
 Let's add support for friend requests using HyperDex lists the basis of the
 feature.  For this we'll use the ``pending_requests`` attribute in the
-``socialnetwork`` space.
+``profiles`` space.
 
 Imagine that shortly after joining, John Smith receives a friend request from
 his friend Brian Jones.  Behind the scenes, this could be implemented with a 
@@ -167,9 +169,9 @@ simple list operation, pushing the friend request onto John's ``pending_requests
 
 .. sourcecode:: pycon
 
-   >>> c.list_rpush('socialnetwork', 'jsmith1', {'pending_requests': 'bjones1'})
+   >>> c.list_rpush('profiles', 'jsmith1', {'pending_requests': 'bjones1'})
    True
-   >>> c.get('socialnetwork', 'jsmith1')['pending_requests']
+   >>> c.get('profiles', 'jsmith1')['pending_requests']
    ['bjones1']
 
 The operation ``list_rpush`` is guaranteed to be performed atomically, and will
@@ -202,12 +204,12 @@ Let's add some hobbies to John's profile:
 .. sourcecode:: pycon
 
    >>> hobbies = set(['hockey', 'basket weaving', 'hacking',
-   ...                'air guitar rocking']
-   >>> c.set_union('socialnetwork', 'jsmith1', {'hobbies': hobbies})
+   ...                'air guitar rocking'])
+   >>> c.set_union('profiles', 'jsmith1', {'hobbies': hobbies})
    True
-   >>> c.set_add('socialnetwork', 'jsmith1', {'hobbies': 'gaming'})
+   >>> c.set_add('profiles', 'jsmith1', {'hobbies': 'gaming'})
    True
-   >>> c.get('socialnetwork', 'jsmith1')['hobbies']
+   >>> c.get('profiles', 'jsmith1')['hobbies']
    set(['hacking', 'air guitar rocking', 'hockey', 'gaming', 'basket weaving'])
 
 If John Smith decides that his life's dream is to just write code, he may decide
@@ -216,10 +218,10 @@ use HyperDex's intersect primitive to narrow down his interests:
 
 .. sourcecode:: pycon
 
-   >>> c.set_intersect('socialnetwork', 'jsmith1',
+   >>> c.set_intersect('profiles', 'jsmith1',
    ...                 {'hobbies': set(['hacking', 'programming'])})
    True
-   >>> c.get('socialnetwork', 'jsmith1')['hobbies']
+   >>> c.get('profiles', 'jsmith1')['hobbies']
    set(['hacking'])
 
 Notice how John's hobbies become the intersection of his previous hobbies and the 
@@ -242,13 +244,13 @@ that contains the message from that user, as follows:
 
 .. sourcecode:: pycon
 
-   >>> c.map_add('socialnetwork', 'jsmith1',
+   >>> c.map_add('profiles', 'jsmith1',
    ...           {'unread_messages' : {'bjones1' : 'Hi John'}})
    True
-   >>> c.map_add('socialnetwork', 'jsmith1',
+   >>> c.map_add('profiles', 'jsmith1',
    ...           {'unread_messages' : {'timmy' : 'Lunch?'}})
    True
-   >>> c.get('socialnetwork', 'jsmith1')['unread_messages']
+   >>> c.get('profiles', 'jsmith1')['unread_messages']
    {'timmy': 'Lunch?', 'bjones1': 'Hi John'}
 
 HyperDex enables map contents to be modified in-place within the map.  For example, if Brian sent
@@ -257,11 +259,11 @@ the new message:
 
 .. sourcecode:: pycon
 
-   >>> c.map_string_append('socialnetwork', 'jsmith1',
-   ...                      {'unread_messages' : {'bjones' : '| Want to hang out?'}})
+   >>> c.map_string_append('profiles', 'jsmith1',
+   ...                      {'unread_messages' : {'bjones1' : ' | Want to hang out?'}})
    True
-   >>> c.get('socialnetwork', 'jsmith1')['unread_messages']
-   {'timmy': 'Lunch?', 'bjones1': 'Hi John| Want to hang out?'}
+   >>> c.get('profiles', 'jsmith1')['unread_messages']
+   {'timmy': 'Lunch?', 'bjones1': 'Hi John | Want to hang out?'}
 
 Note that maps may have strings or integers as values, and every atomic
 operation available for strings and integers is also available in map form,
@@ -277,7 +279,7 @@ corresponding to John's link posts, with ids "http://url1.com" and "http://url2.
 
    >>> url1 = "http://url1.com"
    >>> url2 = "http://url2.com"
-   >>> c.map_add('socialnetwork', 'jsmith1',
+   >>> c.map_add('profiles', 'jsmith1',
    ...           {'upvotes' : {url1 : 1, url2: 1}})
    True
 
@@ -288,16 +290,16 @@ we would implement it like this:
 
 .. sourcecode:: pycon
 
-   >>> c.map_atomic_add('socialnetwork', 'jsmith1', {'upvotes' : {url1: 1}})
+   >>> c.map_atomic_add('profiles', 'jsmith1', {'upvotes' : {url1: 1}})
    True
-   >>> c.map_atomic_add('socialnetwork', 'jsmith1', {'upvotes' : {url1: 1}})
+   >>> c.map_atomic_add('profiles', 'jsmith1', {'upvotes' : {url1: 1}})
    True
 
 Charlie, sworn enemy of John, can downvote both of John's urls like this:
 
 .. sourcecode:: pycon
 
-   >>> c.map_atomic_add('socialnetwork', 'jsmith1', {'upvotes' : {url1: -1, url2: -1}})
+   >>> c.map_atomic_add('profiles', 'jsmith1', {'upvotes' : {url1: -1, url2: -1}})
    True
 
 This shows that any map operation can operate atomically on a group of map
@@ -309,8 +311,14 @@ Checking where we stand:
 
 .. sourcecode:: pycon
 
-   >>> c.get('socialnetwork', 'jsmith1')['upvotes']
+   >>> c.get('profiles', 'jsmith1')['upvotes']
    {'http://url1.com': 2, , 'http://url2.com': 0}
 
 All of the preceding operations could have been issued concurrently -- the results
 will be the same because they commute with each other and are executed atomically.
+
+.. todo::
+
+   .. sourcecode:: pycon
+
+      >>> c.rm_space('profiles')

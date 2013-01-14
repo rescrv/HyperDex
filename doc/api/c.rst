@@ -118,7 +118,7 @@ Types
    ``HYPERCLIENT_CMPFAIL``:
       A conditional operation failed its comparison.
 
-      .. seealso:: :c:func:`hyperclient_condput`
+      .. seealso:: :c:func:`hyperclient_cond_put`
 
    ``HYPERCLIENT_UNKNOWNSPACE``:
       The space specified does not exist.
@@ -323,9 +323,9 @@ Functions
    The C++ API provides ``hyperclient::put`` in place of this call.
 
 
-.. c:function:: int64_t hyperclient_condput(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_attribute* condattrs, size_t condattrs_sz, const struct hyperclient_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
+.. c:function:: int64_t hyperclient_cond_put(struct hyperclient* client, const char* space, const char* key, size_t key_sz, const struct hyperclient_attribute* condattrs, size_t condattrs_sz, const struct hyperclient_attribute* attrs, size_t attrs_sz, enum hyperclient_returncode* status)
 
-   .. include:: shards/condput.rst
+   .. include:: shards/cond_put.rst
 
    On success, the integer returned will be a positive integer unique to this
    request.  The request will be considered complete when
@@ -369,7 +369,7 @@ Functions
       this function returns successfully, this pointer must remain valid until
       :c:func:`hyperclient_loop` returns the same ID returned by this function.
 
-   The C++ API provides ``hyperclient::condput`` in place of this call.
+   The C++ API provides ``hyperclient::cond_put`` in place of this call.
 
 
 .. c:function:: int64_t hyperclient_del(struct hyperclient* client, const char* space, const char* key, size_t key_sz, enum hyperclient_returncode* status)

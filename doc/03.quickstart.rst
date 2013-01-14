@@ -251,16 +251,25 @@ can also retrieve them when we don't know their key. Here are some examples:
 .. sourcecode:: pycon
 
    >>> [x for x in c.search('phonebook', {'first': 'John'})]
-   [{'first': 'John', 'last': 'Smith', 'phone': 6075551024, 'username': 'jsmith1'}]
+   [{'first': 'John',
+     'last': 'Smith',
+     'phone': 6075551024,
+     'username': 'jsmith1'}]
    >>> [x for x in c.search('phonebook', {'last': 'Smith'})]
-   [{'first': 'John', 'last': 'Smith', 'phone': 6075551024, 'username': 'jsmith1'}]
+   [{'first': 'John',
+     'last': 'Smith',
+     'phone': 6075551024,
+     'username': 'jsmith1'}]
 
 Let's do that reverse phone number search:
 
 .. sourcecode:: pycon
 
    >>> [x for x in c.search('phonebook', {'phone': 6075551024})]
-   [{'first': 'John', 'last': 'Smith', 'phone': 6075551024, 'username': 'jsmith1'}]
+   [{'first': 'John',
+     'last': 'Smith',
+     'phone': 6075551024,
+     'username': 'jsmith1'}]
 
 Here's a fully-qualified search. Hyperspace hashing makes this nearly as fast as
 a key-based lookup:
@@ -269,7 +278,10 @@ a key-based lookup:
 
    >>> [x for x in c.search('phonebook',
    ...  {'first': 'John', 'last': 'Smith', 'phone': 6075551024})]
-   [{'first': 'John', 'last': 'Smith', 'phone': 6075551024, 'username': 'jsmith1'}]
+   [{'first': 'John',
+     'last': 'Smith',
+     'phone': 6075551024,
+     'username': 'jsmith1'}]
 
 Let's add another user named "John Doe":
 
@@ -279,14 +291,29 @@ Let's add another user named "John Doe":
    True
    >>> [x for x in c.search('phonebook',
    ...  {'first': 'John', 'last': 'Smith', 'phone': 6075551024})]
-   [{'first': 'John', 'last': 'Smith', 'phone': 6075551024, 'username': 'jsmith1'}]
+   [{'first': 'John',
+     'last': 'Smith',
+     'phone': 6075551024,
+     'username': 'jsmith1'}]
    >>> [x for x in c.search('phonebook', {'first': 'John'})]
-   [{'first': 'John', 'last': 'Smith', 'phone': 6075551024, 'username': 'jsmith1'},
-    {'first': 'John', 'last': 'Doe', 'phone': 6075557878, 'username': 'jd'}]
+   [{'first': 'John',
+     'last': 'Smith',
+     'phone': 6075551024,
+     'username': 'jsmith1'},
+    {'first': 'John',
+     'last': 'Doe',
+     'phone': 6075557878,
+     'username': 'jd'}]
    >>> [x for x in c.search('phonebook', {'last': 'Smith'})]
-   [{'first': 'John', 'last': 'Smith', 'phone': 6075551024, 'username': 'jsmith1'}]
+   [{'first': 'John',
+     'last': 'Smith',
+     'phone': 6075551024,
+     'username': 'jsmith1'}]
    >>> [x for x in c.search('phonebook', {'last': 'Doe'})]
-   [{'first': 'John', 'last': 'Doe', 'phone': 6075557878, 'username': 'jd'}]
+   [{'first': 'John',
+     'last': 'Doe',
+     'phone': 6075557878,
+     'username': 'jd'}]
 
 Should John Doe decide he no longer wants to be listed in the phonebook, it's
 trivial to remove his listing:
@@ -296,7 +323,10 @@ trivial to remove his listing:
    >>> c.delete('phonebook', 'jd')
    True
    >>> [x for x in c.search('phonebook', {'first': 'John'})]
-   [{'first': 'John', 'last': 'Smith', 'phone': 6075551024, 'username': 'jsmith1'}]
+   [{'first': 'John',
+     'last': 'Smith',
+     'phone': 6075551024,
+     'username': 'jsmith1'}]
 
 Suppose John Smith needs to change his phone number. This is easily accomplished
 by specifying just the key for the object and the changed attribute.  All other
@@ -308,7 +338,9 @@ already exist).
    >>> c.put('phonebook', 'jsmith1', {'phone': 6075552048})
    True
    >>> c.get('phonebook', 'jsmith1')
-   {'first': 'John', 'last': 'Smith', 'phone': 6075552048}
+   {'first': 'John',
+     'last': 'Smith',
+     'phone': 6075552048}
 
 Smith is a popular name.  Let's say there was "John Smith" from Rochester (area
 code 585):
@@ -319,7 +351,9 @@ code 585):
    ...          {'first': 'John', 'last': 'Smith', 'phone': 5855552048})
    True
    >>> c.get('phonebook', 'jsmith2')
-   {'first': 'John', 'last': 'Smith', 'phone': 5855552048}
+   {'first': 'John',
+     'last': 'Smith',
+     'phone': 5855552048}
 
 Suppose we want to locate everyone named "John Smith" from Ithaca (area code
 607). We can do this with a range query in HyperDex.
@@ -328,7 +362,10 @@ Suppose we want to locate everyone named "John Smith" from Ithaca (area code
 
    >>> [x for x in c.search('phonebook',
    ...  {'last': 'Smith', 'phone': (6070000000, 6080000000)})]
-   [{'first': 'John', 'last': 'Smith', 'phone': 6075552048, 'username': 'jsmith1'}]
+   [{'first': 'John',
+     'last': 'Smith',
+     'phone': 6075552048,
+     'username': 'jsmith1'}]
 
 Or perhaps we want to search for everyone whose name falls between ``'Jack'``
 and ``'Joseph'``:
@@ -337,7 +374,10 @@ and ``'Joseph'``:
 
    >>> [x for x in c.search('phonebook',
    ...  {'last': 'Smith', 'phone': (6070000000, 6080000000)})]
-   [{'first': 'John', 'last': 'Smith', 'phone': 6075552048, 'username': 'jsmith1'}]
+   [{'first': 'John',
+     'last': 'Smith',
+     'phone': 6075552048,
+     'username': 'jsmith1'}]
 
 Cleaning Up
 -----------

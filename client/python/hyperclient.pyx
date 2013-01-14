@@ -145,7 +145,7 @@ cdef extern from "../hyperclient.h":
     int64_t hyperclient_get(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_returncode* status, hyperclient_attribute** attrs, size_t* attrs_sz)
     int64_t hyperclient_put(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_put_if_not_exist(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
-    int64_t hyperclient_condput(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute_check* condattrs, size_t condattrs_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_cond_put(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute_check* condattrs, size_t condattrs_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_del(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_returncode* status)
     int64_t hyperclient_atomic_add(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_atomic_sub(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
@@ -872,11 +872,11 @@ cdef class DeferredCondPut(Deferred):
         try:
             backingsc = _predicate_to_c(condition.items(), &condattrs, &condattrs_sz)
             backingsa = _dict_to_attrs(value.items(), &attrs)
-            self._reqid = hyperclient_condput(client._client, space_cstr,
-                                              key_cstr, len(key_backing),
-                                              condattrs, condattrs_sz,
-                                              attrs, len(value),
-                                              &self._status)
+            self._reqid = hyperclient_cond_put(client._client, space_cstr,
+                                               key_cstr, len(key_backing),
+                                               condattrs, condattrs_sz,
+                                               attrs, len(value),
+                                               &self._status)
             _check_reqid_key_attrs2(self._reqid, self._status,
                                     condattrs, len(condition),
                                     attrs, len(value))
@@ -1212,8 +1212,8 @@ cdef class Client:
         async = self.async_put_if_not_exist(space, key, value)
         return async.wait()
 
-    def condput(self, bytes space, key, dict condition, dict value):
-        async = self.async_condput(space, key, condition, value)
+    def cond_put(self, bytes space, key, dict condition, dict value):
+        async = self.async_cond_put(space, key, condition, value)
         return async.wait()
 
     def delete(self, bytes space, key):
@@ -1360,7 +1360,7 @@ cdef class Client:
         d.setcmp()
         return d
 
-    def async_condput(self, bytes space, key, dict condition, dict value):
+    def async_cond_put(self, bytes space, key, dict condition, dict value):
         return DeferredCondPut(self, space, key, condition, value)
 
     def async_delete(self, bytes space, key):
