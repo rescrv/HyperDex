@@ -317,7 +317,7 @@ cdef _obj_to_backing(v):
         for x in sorted(v, key=__sort_key):
             if isinstance(x, bytes):
                 innerxtype = HYPERDATATYPE_SET_STRING
-                innerxbacking = struct.pack('<L', len(x)) + bytes(x)
+                innerxbacking = struct.pack('<L', len(bytes(x))) + bytes(x)
             elif isinstance(x, int):
                 innerxtype = HYPERDATATYPE_SET_INT64
                 innerxbacking = struct.pack('<q', x)

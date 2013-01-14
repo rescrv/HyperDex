@@ -60,7 +60,7 @@ validate_set(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice
 
         if (has_old)
         {
-            if (compare_elem(old, elem) < 0)
+            if (compare_elem(old, elem) >= 0)
             {
                 return false;
             }
