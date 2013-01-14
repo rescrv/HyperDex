@@ -514,11 +514,12 @@
                                                                   MemoryError,
                                                                   ValueError
   {
-      java.util.HashMap<ByteArray,Object> equalities
-            = new java.util.HashMap<ByteArray,Object>();
-
-      java.util.HashMap<ByteArray,Object> ranges
-            = new java.util.HashMap<ByteArray,Object>();
+      java.util.Vector<
+          java.util.Map.Entry<
+            ByteArray,java.util.Map.Entry<hyperpredicate,Object>>> rawChecks
+            = new java.util.Vector<
+                java.util.Map.Entry<
+                    ByteArray,java.util.Map.Entry<hyperpredicate,Object>>>();
 
       hyperclient_attribute_check hacs = null;
       long hacs_sz = 0;
@@ -542,123 +543,97 @@
                   throw new TypeError("Cannot search with a null criteria");
     
     
-              String errStr = "Attribute '" + attrStr + "' has incorrect type ( expected Long, Double, String, Map.Entry<Long,Long>, Map.Entry<Double,Double>, List<Long> or List<Double> (List being of size 2), but got %s";
+              String errStr = "Attribute '" + attrStr + "' has incorrect type ( expected Predicate, Long, Double, String, Map.Entry<Long,Long>, Map.Entry<Double,Double>, List<Long> or List<Double> (List being of size 2), but got %s";
     
               if ( isBytes(params) || params instanceof Long || params instanceof Double )
               {
-                  equalities.put(new ByteArray(attrBytes), params);
+                  rawChecks.add(new java.util.Map.Entry<
+                      java.util.Map.Entry<
+                          ByteArray,java.util.Map.Entry<hyperpredicate,Object>>>(
+                              new ByteArray(attrBytes), 
+                                  new java.util.Map.Entry<hyperpredicate,Object>(
+                                      hyperpredicate.HYPERPREDICATE_EQUALS, params)));
+              }
+              else if ( params instanceof java.util.Map.Entry )
+              {
+                  Object lower = ((java.util.Map.Entry)params).getKey();
+                  Object upper = ((java.util.Map.Entry)params).getValue();
+
+                  if ( ! ( lower instanceof Long && upper instanceof Long ) &&
+                       ! ( lower instanceof Double && upper instanceof Double ) )
+                  {
+                      throw
+                          new TypeError(
+                              String.format(errStr,params.getClass().getName()));
+                  }
+
+                  rawChecks.addAll(
+                      (new Range(lower,upper)).getRawChecks(ByteArray(attrBytes)));
+              }
+              else if ( params instanceof java.util.List )
+              {
+                  try
+                  {
+                      java.util.List listParams = (java.util.List)params;
+
+                      if ( listParams.size() != 2 )
+                          throw new TypeError("Attribute '" + attrStr + "': using a List to specify a range requires its size to be 2, but got size " + listParams.size());
+                  }
+                  catch (TypeError te)
+                  {
+                      throw te;
+                  }
+
+                  Object lower = ((java.util.List)params).get(0);
+                  Object upper = ((java.util.List)params).get(1);
+
+                  if ( ! ( lower instanceof Long && upper instanceof Long ) &&
+                       ! ( lower instanceof Double && upper instanceof Double ) )
+                  {
+                      throw
+                          new TypeError(
+                              String.format(errStr,params.getClass().getName()));
+                  }
+
+                  rawChecks.addAll(
+                      (new Range(lower,upper)).getRawChecks(ByteArray(attrBytes)));
+              }
+              else if ( params instanceof Predicate )
+              {
+                  rawChecks.addAll(
+                      ((Predicate)params).getRawChecks(ByteArray(attrBytes)));
               }
               else
               {
-                  if ( params instanceof java.util.Map.Entry )
-                  {
-                      Object lower = ((java.util.Map.Entry)params).getKey();
-                      Object upper = ((java.util.Map.Entry)params).getValue();
-    
-                      if ( ! ( lower instanceof Long && upper instanceof Long ) &&
-                           ! ( lower instanceof Double && upper instanceof Double ) )
-                      {
-                          throw
-                              new TypeError(
-                                  String.format(errStr,params.getClass().getName()));
-                      }
-                  }
-                  else if ( params instanceof java.util.List )
-                  {
-                      try
-                      {
-                          java.util.List listParams = (java.util.List)params;
-    
-                          if ( listParams.size() != 2 )
-                              throw new TypeError("Attribute '" + attrStr + "': using a List to specify a range requires its size to be 2, but got size " + listParams.size());
-                      }
-                      catch (TypeError te)
-                      {
-                          throw te;
-                      }
-    
-                      Object lower = ((java.util.List)params).get(0);
-                      Object upper = ((java.util.List)params).get(1);
-    
-                      if ( ! ( lower instanceof Long && upper instanceof Long ) &&
-                           ! ( lower instanceof Double && upper instanceof Double ) )
-                      {
-                          throw
-                              new TypeError(
-                                  String.format(errStr,params.getClass().getName()));
-                      }
-                  }
-                  else
-                  {
-                      throw
-                          new TypeError(String.format(errStr,params.getClass().getName()));
-                  }
-    
-                  ranges.put(new ByteArray(attrBytes),params);
+                  throw
+                      new TypeError(String.format(errStr,params.getClass().getName()));
               }
           }
     
-          if ( equalities.size() > 0 ||  ranges.size() > 0 )
+          if ( rawChecks.size() > 0 )
           {
-              hacs_sz = equalities.size() + (2*ranges.size());
+              hacs_sz = rawChecks.size();
     
               hacs = alloc_attrs_check(hacs_sz);
     
               if ( hacs == null ) throw new MemoryError();
-          }
     
-          long i = 0;
-    
-          if ( equalities.size() > 0 )
-          {
-    
-              for (java.util.Iterator<ByteArray> it=equalities.keySet().iterator();
-                                                                        it.hasNext();)
+              foreach ( java.util.Map.Entry<
+                            ByteArray,java.util.Map.Entry<
+                                hyperpredicate,Object>> rawCheck: rawChecks )
               {
-                  ByteArray attr = it.next();
+                  ByteArray attr = rawCheck.getKey();
+                  hyperpredicate p = rawCheck.getValue().getKey();
+                  Object value = rawCheck.getValue().getValue();
+
                   hyperclient_attribute_check hac = HyperClient.get_attr_check(hacs,i++);
-                  write_attr_check(hac,attr, equalities.get(attr),
-                                        hyperpredicate.HYPERPREDICATE_EQUALS);
+                  write_attr_check(hac,attr, value, p);
               }
           }
-    
-          if ( ranges.size() > 0 )
+          else 
           {
-              for (java.util.Iterator<ByteArray> it=ranges.keySet().iterator();
-                                                                        it.hasNext();)
-              {
-                  ByteArray attr = it.next();
-    
-                  Object params = ranges.get(attr);
-    
-                  Object lower = null;
-                  Object upper = null;
-
-                  if ( params instanceof java.util.Map.Entry )
-                  {
-                      lower = ((java.util.Map.Entry)params).getKey();
-                      upper = ((java.util.Map.Entry)params).getValue();
-    
-                  }
-                  else // Must be a List of Longs of size = 2
-                  {
-                      lower = ((java.util.List)params).get(0);
-                      upper = ((java.util.List)params).get(1);
-                  }
-
-                  hyperclient_attribute_check hac = HyperClient.get_attr_check(hacs,i++);
-    
-                  write_attr_check(hac,attr, lower,
-                                       hyperpredicate.HYPERPREDICATE_GREATER_EQUAL);
-
-                  hyperclient_attribute_check hac = HyperClient.get_attr_check(hacs,i++);
-
-                  write_attr_check(hac,attr, upper,
-                                       hyperpredicate.HYPERPREDICATE_LESS_EQUAL);
-              }
+            throw new ValueError("Search criteria can't be empty");
           }
-    
-          if ( i == 0 ) throw new ValueError("Search criteria can't be empty");
       }
       catch(Exception e)
       {

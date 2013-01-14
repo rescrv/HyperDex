@@ -30,6 +30,9 @@ public class HyperClientException extends Exception
 		errorMap.put(hyperclient_returncode.HYPERCLIENT_BADCONFIG,"The coordinator provided a malformed configuration");
 		errorMap.put(hyperclient_returncode.HYPERCLIENT_BADSPACE,"The space description does not parse");
 		errorMap.put(hyperclient_returncode.HYPERCLIENT_DUPLICATE,"The space already exists");
+		errorMap.put(hyperclient_returncode.HYPERCLIENT_INTERRUPTED,"Interrupted by a signal");
+		errorMap.put(hyperclient_returncode.HYPERCLIENT_CLUSTER_JUMP,"The cluster changed identities");
+		errorMap.put(hyperclient_returncode.HYPERCLIENT_COORD_LOGGED,"HYPERCLIENT_COORD_LOGGED");
 		errorMap.put(hyperclient_returncode.HYPERCLIENT_INTERNAL,"Internal Error (file a bug)");
 		errorMap.put(hyperclient_returncode.HYPERCLIENT_EXCEPTION,"Internal Exception (file a bug)");
 		errorMap.put(hyperclient_returncode.HYPERCLIENT_GARBAGE,"Internal Corruption (file a bug)");
