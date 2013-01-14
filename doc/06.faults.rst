@@ -1,4 +1,4 @@
-.. _asynchronous:
+.. _faults:
 
 Fault Tolerance
 ===============
