@@ -160,11 +160,20 @@ the failure threshold.
 Shutting Down and Restoring a Cluster
 -------------------------------------
 
-Completely shutting down a HyperDex cluster is simple.  First, stop all client
-traffic.  Second, interrupt each daemon using SIGHUP, SIGINT, or SIGTERM.  The
-daemons will shutdown properly, informing the coordinator of their state as they
-shutdown.  Finally, once all daemons have exited, interrupt the coordinator
-processes using SIGHUP, SIGINT, or SIGTERM.
+On occasion, you might need to completely shutdown a HyperDex cluster.  For
+example, planned power outages or kernel upgrades might require such shutdowns.
+Note that complete shutdowns, by definition, require every server process to be
+killed and therefore violate the fault tolerance threshold.  Managing and
+recovering from such shutdowns is in general a non-trivial process, but HyperDex
+makes it easy to restart all processes without any data loss.
 
-Restoring a cluster is just the reverse process:  first, restart the coordinator
-nodes, and then restart the data nodes.
+Shutting down a cluster is a three step process.  First, stop all client
+traffic.  Second, kill all the daemon processes using SIGHUP, SIGINT, or
+SIGTERM.  The daemons will inform the coordinator of their departure, and the
+coordinator will track which daemons departed successfully.  Finally, kill each
+coordinator process using SIGHUP, SIGINT, or SIGTERM.
+
+To restore a cluster, all you need to do is first restart the coordinator nodes
+and then restart the daemon nodes.  Because state was cleanly saved to the disk,
+this restart process will bring back the entire state of the database without
+data loss.
