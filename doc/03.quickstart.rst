@@ -155,31 +155,32 @@ operations.  In this simple example, we create a 3-dimensional subspace for the
 ``first``, ``last`` and ``phone`` attributes.  HyperDex always implicitly
 creates a 1-dimensional subspace for the key of objects.
 
-In other NoSQL systems, objects can _only_ be retrieved by the key under which
-they were inserted.  So an object ``<jsmith, John, Smith, 555-1234>`` can only
-be retrieved by its key ``jsmith``.  Subspaces enable HyperDex to retrieve all
-``John`` or ``Smith`` objects or, even, reverse lookups by phone number.  The
-key serves as an object identifer so that objects may be retrieved or stored
-efficiently.  Internally, the key is used to sequence updates and ensure
-consistency.
+In other NoSQL systems, objects can *only* be retrieved efficiently by the key
+under which they were inserted.  So an object ``<jsmith, John, Smith,
+555-1234>`` can only be retrieved by its key ``jsmith``.  Subspaces enable
+HyperDex to retrieve all ``John`` or ``Smith`` objects or, even, reverse lookups
+by phone number.  The key serves as an object identifer so that objects may be
+retrieved or stored efficiently.  Internally, the key is used to sequence
+updates and ensure consistency.
 
-Even we've only deployed one server in this example, we may want to leave room
-for future growth of our HyperDex cluster.  The ``create 8 partitions`` line
-specifies that HyperDex will partition the resulting space into 8 partitions.
-As a general rule, the number of partitions should be greater than the number of
-daemons that will ever join the cluster.  It's perfectly acceptable to omit this
-line, and HyperDex will partition the cluster for 256 daemons.
+Even though we've only deployed one server in this example, we may want to leave
+room for future growth of our HyperDex cluster.  The ``create 8 partitions``
+line specifies that HyperDex will partition the resulting space into 8
+regions.  As a general rule, the number of partitions should be greater than
+the number of daemons that will ever join the cluster.  It's perfectly
+acceptable to omit this line, and HyperDex will partition the cluster for 256
+daemons.
 
 Since large scale cloud-computing deployments are sure to encounter failures, we
 will want to safeguard the data in our key-value store by replicating for fault
 tolerance.  The ``phonebook`` space is configured to tolerate up to two
-concurrent failures (``tolerate 2 failures``).  Behind-the-scenes, HyperDex
-protects against up to two failures by replicating each object three times.
+concurrent failures (``tolerate 2 failures``).  This instructs HyperDex
+to protect against up to two failures by creating three replicas of each object.
 Even if two daemons holding an object fail, there will still be one copy of the
 object remaining.  HyperDex automatically repairs from this one remaining copy.
 
 Finally, it's possible to create objects using command-line tools that ship with
-HyperDex.  Here we create the same space as above using the command-line.
+HyperDex.  One could have created the ``phonebook`` space using the command-line:
 
 .. sourcecode:: console
 
@@ -198,7 +199,8 @@ Interacting with the ``phonebook`` Space
 Now that we have our hyperspace defined and ready to go, it's time to insert
 some information into our ``phonebook``.
 
-Reusing the same client from above, we can put an object onto the server(s):
+Continuing in the same Python session, we can create an object by doing the
+following:
 
 .. sourcecode:: pycon
 
@@ -206,9 +208,9 @@ Reusing the same client from above, we can put an object onto the server(s):
    ...                                'phone': 6075551024})
    True
 
-This operation will determine the right spot in the hyperspace for this object,
-contact the daemons responsible, and issue the ``put`` operation. The operation
-will only return once the object has been committed at all requisite nodes.
+This operation will determine the right spot in the hyperspace for this object
+and issue the ``put`` operation to all replicas.  The operation will only return
+once the object has been committed at all requisite nodes.
 
 We can easily retrieve the same ``jsmith`` object by using a standard ``get``:
 
@@ -328,8 +330,7 @@ trivial to remove his listing:
 
 Suppose John Smith needs to change his phone number. This is easily accomplished
 by specifying just the key for the object and the changed attribute.  All other
-attributes will be preserved (or be blank in the case where the object doesn't
-already exist).
+attributes will be preserved.
 
 .. sourcecode:: pycon
 
@@ -371,17 +372,21 @@ and ``'Joseph'``:
 .. sourcecode:: pycon
 
    >>> [x for x in c.search('phonebook',
-   ...  {'last': 'Smith', 'phone': (6070000000, 6080000000)})]
+   ...  {'first': ('Jack', 'Joseph')})]
    [{'first': 'John',
      'last': 'Smith',
      'phone': 6075552048,
-     'username': 'jsmith1'}]
+     'username': 'jsmith1'},
+    {'first': 'John',
+     'last': 'Smith',
+     'phone': 5855552048,
+     'username': 'jsmith2'}]
 
 Cleaning Up
 -----------
 
-When we're done with the ``phonebook`` space, we can clean it up using the
-Python bindings:
+When we're done with the ``phonebook`` space, we can delete the space and all
+the items in it directly from Python:
 
 .. sourcecode:: pycon
 

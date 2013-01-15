@@ -21,8 +21,7 @@ is unavailable while it is shutdown for obvious reasons.
 
 .. sourcecode:: console
 
-   $ hyperdex coordinator -f -l 127.0.0.1 -p 1982
-   $ hyperdex initialize-cluster -h 127.0.0.1 -p 1982
+   $ hyperdex coordinator -f -l 127.0.0.1 -p 1982 -D /path/to/coord1
 
 A HyperDex coordinator becomes more fault tolerant as more nodes are added.  A
 simple majority of the nodes must remain available for the coordinator to make
@@ -33,7 +32,7 @@ failures.
 Internally, the HyperDex coordinator uses state machine replication [#smr]_ to
 provide fault tolerance.  Running at least five servers is recommended so that
 the cluster can tolerate at least two failures.  To do so, bring additional
-nodes online:
+coordinators online:
 
 .. [#smr] Schneider, Fred (1990). "Implementing Fault-Tolerant Services Using the
    State Machine Approach: A Tutorial" (PS). ACM Computing Surveys 22 (4): 299.
@@ -41,10 +40,10 @@ nodes online:
 
 .. sourcecode:: console
 
-   $ hyperdex coordinator -f -l 127.0.0.1 -p 1983 -c 127.0.0.1 -P 1982 -D /path/to/data1
-   $ hyperdex coordinator -f -l 127.0.0.1 -p 1984 -c 127.0.0.1 -P 1982 -D /path/to/data2
-   $ hyperdex coordinator -f -l 127.0.0.1 -p 1985 -c 127.0.0.1 -P 1982 -D /path/to/data3
-   $ hyperdex coordinator -f -l 127.0.0.1 -p 1986 -c 127.0.0.1 -P 1982 -D /path/to/data4
+   $ hyperdex coordinator -f -l 127.0.0.1 -p 1983 -c 127.0.0.1 -P 1982 -D /path/to/coord2
+   $ hyperdex coordinator -f -l 127.0.0.1 -p 1984 -c 127.0.0.1 -P 1982 -D /path/to/coord3
+   $ hyperdex coordinator -f -l 127.0.0.1 -p 1985 -c 127.0.0.1 -P 1982 -D /path/to/coord4
+   $ hyperdex coordinator -f -l 127.0.0.1 -p 1986 -c 127.0.0.1 -P 1982 -D /path/to/coord5
 
 For each new server in the cluster, the coordinator will automatically transfer
 a copy of the initialized state machine and replicate further operations on
@@ -104,8 +103,8 @@ So now we have a data item we deeply care about. We certainly would not want our
 NoSQL store to lose this data item because of a failure. Let's create a failure
 by killing one of the three hyperdaemon processes we started in the setup phase
 of the tutorial. Feel free to use "kill -9", there is no requirement that the
-nodes shut down in an orderly fashion.  HyperDex is designed to handle a limited
-number of crash failures.
+nodes shut down in an orderly fashion.  HyperDex is designed to handle a
+configurable number of crash failures.
 
 .. sourcecode:: pycon
 
@@ -148,15 +147,15 @@ Fault Tolerance Thresholds
 --------------------------
 
 HyperDex daemons and coordinators each tolerate a configurable number of
-failures before the system fails completely.  For sake of convenience, we refer
-to this threshold as ``f``, the number of servers that may fail at any one time.
-For a given value of ``f``, daemons need ``f + 1`` replicas and coordinators
-needs ``2f + 1``.  Both daemons and coordinators can tolerate up to ``f`` total
-failures where the server crashes or goes up in a blazing fire.  The behavior in
-this case is to simply provision another node to replace the failed node.  As an
-added bonus, both systems are able to tolerate more than ``f`` failures so long
-as enough nodes rejoin the cluster to bring the number of failures back under
+failures before the system fails completely.  For a desired level of fault
+tolerance ``f``, you need to start ``f + 1`` daemons and ``2 f + 1``
+coordinators.  Both are able to tolerate more than ``f`` failures so long as
+enough nodes rejoin the cluster to bring the number of failures back under
 the failure threshold.
+
+.. todo::
+
+   XXX
 
 Shutting Down and Restoring a Cluster
 -------------------------------------
