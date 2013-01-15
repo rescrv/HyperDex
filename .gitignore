@@ -58,3 +58,5 @@ stamp-h1
 ylwrap
 *.cxx
 client/java/hyperclient
+*.jar
+*.stamp

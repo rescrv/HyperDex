@@ -78,6 +78,7 @@ typedef hyperclient_attribute* hyperclient_attribute_asterisk;
 %include "proxies/hyperclient_attribute_check.i"
 %include "proxies/HyperClient.i"
 
+%apply (char *BYTE) { (const char *description) }
 %apply (char *BYTE) { (const char *space) }
 %apply (char *BYTE) { (const char *sort_by) }
 %apply (char *STRING, int LENGTH) { (const char *key, size_t key_sz) }

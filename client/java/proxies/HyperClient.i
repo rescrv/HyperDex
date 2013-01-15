@@ -50,14 +50,6 @@
         memcpy(name, str.data(), name_sz);
     }
 
-    static void read_attr_check_value(hyperclient_attribute_check *hac,
-                                   char *value, size_t value_sz,
-                                   size_t pos)
-    {
-        size_t available = hac->value_sz - pos;
-        memcpy(value, hac->value+pos, value_sz<available?value_sz:available);
-    }
-
     static hyperclient_attribute *alloc_attrs(size_t attrs_sz)
     {
         return (hyperclient_attribute *)calloc(attrs_sz,sizeof(hyperclient_attribute));
@@ -223,7 +215,7 @@
     //
     // If hac->value is already non-NULL, then we are appending to it.
     static int write_attr_check_value(hyperclient_attribute_check *hac,
-                                    const char *value, size_t value_sz)
+                                        const char *value, size_t value_sz)
     {
         char *buf = NULL;
         // Note: Since hyperclient_attribute_check array was calloced
@@ -242,8 +234,7 @@
     // Returns 0 on failure. hac->value will be NULL
     //                       hac->value_sz will be 0
     //
-    static int write_attr_check_value(hyperclient_attribute_check *hac,
-                                    int64_t value)
+    static int write_attr_check_value(hyperclient_attribute_check *hac, int64_t value)
     {
         char *buf = NULL;
         if ((buf = (char *)malloc(sizeof(int64_t))) == NULL) return 0;
@@ -259,8 +250,7 @@
     // Returns 0 on failure. hac->value will be NULL
     //                       hac->value_sz will be 0
     //
-    static int write_attr_check_value(hyperclient_attribute_check *hac,
-                                    double value)
+    static int write_attr_check_value(hyperclient_attribute_check *hac, double value)
     {
         char *buf = NULL;
         if ((buf = (char *)malloc(sizeof(double))) == NULL) return 0;
@@ -467,38 +457,36 @@
     return retType;
   }
 
-  // write_attr_check private static method expects value to satisfy
+  // write_attr_check private method expects value to satisfy
   // either being instance of type Long or Double or isBytes(value) == true
   //
-  private static void write_attr_check(hyperclient_attribute_check hac,
+  private void write_attr_check(hyperclient_attribute_check hac,
                             ByteArray attr, Object value, hyperpredicate pred)
-                                                                throws MemoryError
+                                                                throws MemoryError,
+                                                                       TypeError
   {
-      if ( write_attr_check_name(hac,attr.getBytes,pred) == 0 )
+      if ( write_attr_check_name(hac,attr.getBytes(),pred) == 0 )
       {
           throw new MemoryError();
       }
 
       if ( value instanceof Long )
       {
-          if ( write_attr_check_value(hac,
-                    attr.getBytes(), ((Long)value).longValue()) == 0 )
+          if ( write_attr_check_value(hac,((Long)value).longValue()) == 0 )
           {
               throw new MemoryError();
           }
       }
       else if ( value instanceof Double )
       {
-          if ( write_attr_check_value(hac,
-                    attr.getBytes(), ((Double)value).doubleValue()) == 0 )
+          if ( write_attr_check_value(hac,((Double)value).doubleValue()) == 0 )
           {
               throw new MemoryError();
           }
       } 
       else // isBytes(value) must be true
       {
-          if ( write_attr_check_value(hac,
-                    attr.getBytes(), getBytes(value)) == 0 )
+          if ( write_attr_check_value(hac,getBytes(value)) == 0 )
           {
               throw new MemoryError();
           }
@@ -548,8 +536,7 @@
               if ( isBytes(params) || params instanceof Long || params instanceof Double )
               {
                   rawChecks.add(new java.util.AbstractMap.SimpleEntry<
-                      java.util.Map.Entry<
-                          ByteArray,java.util.Map.Entry<hyperpredicate,Object>>>(
+                          ByteArray,java.util.Map.Entry<hyperpredicate,Object>>(
                               new ByteArray(attrBytes), 
                                   new java.util.AbstractMap.SimpleEntry<
                                     hyperpredicate,Object>(
@@ -569,7 +556,7 @@
                   }
 
                   rawChecks.addAll(
-                      (new Range(lower,upper)).getRawChecks(ByteArray(attrBytes)));
+                      (new Range(lower,upper)).getRawChecks(new ByteArray(attrBytes)));
               }
               else if ( params instanceof java.util.List )
               {
@@ -597,12 +584,12 @@
                   }
 
                   rawChecks.addAll(
-                      (new Range(lower,upper)).getRawChecks(ByteArray(attrBytes)));
+                      (new Range(lower,upper)).getRawChecks(new ByteArray(attrBytes)));
               }
               else if ( params instanceof Predicate )
               {
                   rawChecks.addAll(
-                      ((Predicate)params).getRawChecks(ByteArray(attrBytes)));
+                      ((Predicate)params).getRawChecks(new ByteArray(attrBytes)));
               }
               else
               {
@@ -1344,7 +1331,7 @@
     return attrs;
   }
 
-  public void add_space(Object desc) throws HyperClientException
+  public void add_space(Object desc) throws HyperClientException, TypeError
   {
     hyperclient_returncode rc = add_space(getBytes(desc,true));
 
@@ -1354,7 +1341,7 @@
     }
   }
 
-  public void rm_space(Object space) throws HyperClientException
+  public void rm_space(Object space) throws HyperClientException, TypeError
   {
     hyperclient_returncode rc = rm_space(getBytes(space,true));
 
