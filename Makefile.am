@@ -431,10 +431,10 @@ endif
 ################################################################################
 
 hyperdex_replication_stress_test_SOURCES = replication-stress-test.cc
-hyperdex_replication_stress_test_LDADD = libhyperclient.la -lpopt
+hyperdex_replication_stress_test_LDADD = libhyperclient.la -lpopt -le
 
 hyperdex_search_stress_test_SOURCES = search-stress-test.cc test/common.cc
-hyperdex_search_stress_test_LDADD = libhyperclient.la -lpopt
+hyperdex_search_stress_test_LDADD = libhyperclient.la -lpopt -le
 
 hyperdex_simple_consistency_stress_test_SOURCES = simple-consistency-stress-test.cc
 hyperdex_simple_consistency_stress_test_LDADD = libhyperclient.la -lpopt -lpthread
