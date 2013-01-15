@@ -547,7 +547,7 @@ replication_manager :: chain_ack(const virtual_server_id& from,
     {
         respond_to_client(to, pend->client, pend->nonce, NET_SUCCESS);
     }
-    else
+    else if (m_daemon->m_config.version() == pend->recv_config_version)
     {
         send_ack(to, pend->recv, false, reg_id, seq_id, version, key);
     }
