@@ -94,10 +94,11 @@ To install HyperDex, issue the following command as root:
 Package Names
 ~~~~~~~~~~~~~
 
-Package are named consistently across platforms.  On all architectures, the
-``hyperdex`` meta-package pulls in all HyperDex packages.  For most users
-installing the ``hyperdex`` package is sufficient.  For completeness, here is a
-list of all packages:
+Packages are named consistently across platforms.  On all architectures, the
+``hyperdex`` meta-package pulls in all HyperDex packages.  For most users,
+installing the ``hyperdex`` package is sufficient.
+
+For completeness, here is a list of all packages:
 
 .. note::
 
@@ -130,7 +131,7 @@ list of all packages:
    This package provides part of the HyperDex coordinator and is only necessary
    on systems which will serve as the coordinator for the cluster.
 
-Most packages are coplemented by development and debug packages.  In the
+Most packages are complemented by development and debug packages.  In the
 development package, there are header files and static libraries.  The debug
 packages provide symbols which will aid in providing tracebacks to the HyperDex
 developers.  Please consult your package manager to find these packages.
@@ -138,17 +139,20 @@ developers.  Please consult your package manager to find these packages.
 Installing Source Tarballs
 --------------------------
 
-Installing HyperDex from source is straightforward and should work on most any
-recent Linux distribution.  We'll first list the prerequisites to installing
-HyperDex.  Then, we'll describe how to configure HyperDex.  Finally, we'll
-describe the installation step.
+An alternative to installing a prepackaged binary is to install from source
+tarballs.  This is a straightforward process that should work on most any recent
+Linux distribution for which there isn't a prepackaged binary.  We'll first list
+the prerequisites to installing HyperDex from a source tarball.  Then, we'll
+describe how to configure HyperDex.  Finally, we'll describe the installation
+step.
 
 Prerequisites
 ~~~~~~~~~~~~~
 
-HyperDex has a minimal number of prerequisites for installation.  Although we
-list all prerequisites in this section for completeness, the HyperDex
-configuration step will automatically warn about any missing dependencies.
+HyperDex has a minimal number of prerequisites for installation from source.
+Although we list all prerequisites in this section for completeness, the
+HyperDex configuration step will automatically warn about any missing
+dependencies.
 
 Required Dependencies:
 
