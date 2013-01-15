@@ -75,6 +75,7 @@ datalayer :: datalayer(daemon* d)
     , m_wakeup_cleaner(&m_block_cleaner)
     , m_need_cleaning(false)
     , m_shutdown(true)
+    , m_state_transfer_captures()
 {
 }
 
