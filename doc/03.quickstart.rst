@@ -44,7 +44,7 @@ Starting the Coordinator
 First, we need to start up a coordinator that will oversee the organization of
 the hyperspace.
 
-The following sequence of commands starts and initializes the coordinator:
+The following command starts and initializes the coordinator:
 
 .. sourcecode:: console
 
@@ -53,7 +53,9 @@ The following sequence of commands starts and initializes the coordinator:
 The "coordinator" command spawns a new HyperDex coordinator process listening on
 on the specified address.  All other servers are introduced to the HyperDex
 cluster via this address, so it is important that it be accessible to all
-servers.  In this tutorial, binding to the loopback address will suffice.
+servers.  For the purposes of this tutorial, binding to the loopback address
+will suffice, but you will probably want to use a public IP address for a real
+deployment
 
 At this point, the coordinator is up and running, and we're ready to start up
 additional nodes in our cluster.
@@ -61,8 +63,8 @@ additional nodes in our cluster.
 Starting HyperDex Daemons
 -------------------------
 
-The HyperDex servers are the workhorse processes that actually house the data in
-the data store and respond to client requests. Let's start a server on the the
+The HyperDex daemons are the workhorse processes that actually house the data in
+the data store and respond to client requests. Let's start a daemon on the the
 same machine as the coordinator:
 
 .. sourcecode:: console
@@ -72,23 +74,23 @@ same machine as the coordinator:
 
 This command runs HyperDex in the foreground, listens for incoming connections
 on address 127.0.0.1:2012 and connects to the coordinator that we started
-earlier.  This enables the server to announce its presence, which in turn
+earlier.  This enables the daemon to announce its presence, which in turn
 enables the coordinator to assign partitions of data to the newly arrived
-server.  For example, the coordinator can direct the server to take over some of
-the partitions from an existing server, participate in the data replication
+daemon.  For example, the coordinator can direct the daemon to take over some of
+the partitions from an existing daemon, participate in the data replication
 protocol, and start handling client requests.  But since we have no data yet and
-this is our first node, this particular server does not have much work to do.
+this is our first node, this particular daemons does not have much work to do.
 
 Note that the second argument (127.0.0.1) is the IP address to which we want to
-bind the server.  We are using a loopback address here for the purposes of the
-tutorial, while in real life you will undoubtedly want to use one of the IP
-addresses bound to your internal network.  If no address is specified, HyperDex
-will attempt to autodetect an external address.
+bind the daemon.  Once again, we are using a loopback address here for the
+purposes of the tutorial, while in real life you will undoubtedly want to use
+one of the IP addresses bound to your internal network.  If no address is
+specified, HyperDex will attempt to autodetect an external address.
 
-The last argument is a pointer to a directory where the server will store all
-data.  Each HyperDex server must have its own data directory.
+The last argument is a pointer to a directory where the daemon will store all
+data.  Each HyperDex daemon must have its own data directory.
 
-It doesn't hurt to start a few more server instances at this point (although it
+It doesn't hurt to start a few more daemon instances at this point (although it
 is not required to continue with the tutorial).
 
 You now have a functional HyperDex cluster.  It's time to do something with it.
@@ -100,7 +102,7 @@ Let's imagine that we are building a phone book application.  Such a phonebook
 would end up keeping track of people's first name, last name, and phone number.
 And to distinguish unique users, it might assign a user id to each user.
 In HyperDex, each such collection of data is called a *space* and is
-conceptually similar to *tables* in other systems.  Let's see how we can
+conceptually similar to *tables* in traditional databases.  Let's see how we can
 instruct HyperDex to create a suitable space for holding such objects.
 
 First, let's connect to HyperDex:
@@ -112,13 +114,13 @@ First, let's connect to HyperDex:
 
 This line instructs the client bindings to talk to the coordinator and get the
 current cluster configuration.  There is no need for static configuration
-files. Clients always receive the most up-to-date configuration (and if the
-configuration changes, say, due to failures, the servers will detect that a
+files. Clients always receive the most up-to-date configuration, and if the
+configuration changes, say, due to failures, the coordinator will detect that a
 client is operating with an out-of-date configuration and instruct it to retry
-with a fresh config).  The only thing a client must know to connect to a cluster
+with a fresh config.  The only thing a client must know to connect to a cluster
 is the address of the cluster coordinator.
 
-Then, let's programmatically create a new space using the Python bindings:
+Let's programmatically create a new space using the Python bindings:
 
 .. sourcecode:: pycon
 
@@ -157,7 +159,7 @@ In other NoSQL systems, objects can _only_ be retrieved by the key under which
 they were inserted.  So an object ``<jsmith, John, Smith, 555-1234>`` can only
 be retrieved by its key ``jsmith``.  Subspaces enable HyperDex to retrieve all
 ``John`` or ``Smith`` objects or, even, reverse lookups by phone number.  The
-key servers as an object identifer so that objects may be retrieved or stored
+key serves as an object identifer so that objects may be retrieved or stored
 efficiently.  Internally, the key is used to sequence updates and ensure
 consistency.
 
@@ -165,15 +167,15 @@ Even we've only deployed one server in this example, we may want to leave room
 for future growth of our HyperDex cluster.  The ``create 8 partitions`` line
 specifies that HyperDex will partition the resulting space into 8 partitions.
 As a general rule, the number of partitions should be greater than the number of
-servers that will ever join the cluster.  It's perfectly acceptable to omit this
-line, and HyperDex will partition the cluster for 256 servers.
+daemons that will ever join the cluster.  It's perfectly acceptable to omit this
+line, and HyperDex will partition the cluster for 256 daemons.
 
 Since large scale cloud-computing deployments are sure to encounter failures, we
 will want to safeguard the data in our key-value store by replicating for fault
 tolerance.  The ``phonebook`` space is configured to tolerate up to two
 concurrent failures (``tolerate 2 failures``).  Behind-the-scenes, HyperDex
 protects against up to two failures by replicating each object three times.
-Even if two servers holding an object fail, there will still be one copy of the
+Even if two daemons holding an object fail, there will still be one copy of the
 object remaining.  HyperDex automatically repairs from this one remaining copy.
 
 Finally, it's possible to create objects using command-line tools that ship with
@@ -205,7 +207,7 @@ Reusing the same client from above, we can put an object onto the server(s):
    True
 
 This operation will determine the right spot in the hyperspace for this object,
-contact the servers responsible, and issue the ``put`` operation. The operation
+contact the daemons responsible, and issue the ``put`` operation. The operation
 will only return once the object has been committed at all requisite nodes.
 
 We can easily retrieve the same ``jsmith`` object by using a standard ``get``:
@@ -224,11 +226,11 @@ the precise comparisons, but typically, HyperDex is just way faster than other
 key-value stores.
 
 Second, it's fault-tolerant. When we performed the ``put``, our operation was
-sent through a *value-dependent chain* of servers assigned to the object.
+sent through a *value-dependent chain* of daemons assigned to the object.
 The client received an acknowledgment only when the object was replicated
 on every single server in the chain.  Unlike NoSQL stores that optimistically
 assume that an update was committed before reaching all servers, HyperDex
-responds only when all servers have been updated.  And we can pick the
+responds only when all daemons have been updated.  And we can pick the
 replication level to achieve any level of fault tolerance we desire.
 
 Finally, it's consistent. If we had multiple concurrent ``put`` operations
