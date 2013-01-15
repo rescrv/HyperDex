@@ -69,10 +69,7 @@ noinst_PROGRAMS = \
 			client/c/testcompile \
 			client/cc/testcompile
 
-dist_man_MANS = \
-			doc/man/hyperdex-daemon.1 \
-			doc/man/hyperdex-replication-stress-test.1 \
-			doc/man/hyperdex-simple-consistency-stress-test.1
+dist_man_MANS = doc/man/hyperdex-daemon.1
 
 CLEANFILES = \
 			$(java_bindings_cleanfiles) \
@@ -449,8 +446,6 @@ hyperdex_simple_consistency_stress_test_LDADD = libhyperclient.la -lpopt -lpthre
 
 # These need to be chained so that they'll only build once, and will not rely
 # upon a PHONY rule.
-doc/man/hyperdex-replication-stress-test.1: doc/man/hyperdex-replication-stress-test.rst doc/man/hyperdex-simple-consistency-stress-test.1
-doc/man/hyperdex-simple-consistency-stress-test.1: doc/man/hyperdex-simple-consistency-stress-test.rst doc/man/hyperdex-daemon.1
 doc/man/hyperdex-daemon.1: doc/man/hyperdex-daemon.rst
 	sphinx-build -W -d ${abs_top_builddir}/doc/_build -b man doc doc/man
 

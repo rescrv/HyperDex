@@ -216,10 +216,6 @@ latex_show_pagerefs = True
 man_pages = [
     (u'man/hyperdex-daemon', u'hyperdex-daemon',
         u'HyperDex Daemon', [u'Robert Escriva', u'Bernard Wong', u'Emin Gün Sirer'], 1),
-    (u'man/hyperdex-replication-stress-test', u'hyperdex-replication-stress-test',
-        u'HyperDex Replication Stress Test', [u'Robert Escriva', u'Bernard Wong', u'Emin Gün Sirer'], 1),
-    (u'man/hyperdex-simple-consistency-stress-test', u'hyperdex-simple-consistency-stress-test',
-        u'HyperDex Simple Consistency Stress Test', [u'Robert Escriva', u'Bernard Wong', u'Emin Gün Sirer'], 1)
 ]
 
 # If true, show URL addresses after external links.
