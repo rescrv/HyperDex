@@ -802,10 +802,10 @@ coordinator_link :: shutdown()
 {
     char data[sizeof(uint64_t)];
     e::pack64be(m_daemon->m_us.get(), data);
-    int64_t shutdown2_id;
-    replicant_returncode shutdown2_status;
-    const char* shutdown2_output;
-    size_t shutdown2_output_sz;
+    int64_t shutdown2_id = -1;
+    replicant_returncode shutdown2_status = REPLICANT_GARBAGE;
+    const char* shutdown2_output = NULL;
+    size_t shutdown2_output_sz = 0;
     shutdown2_id = m_repl->send("hyperdex", "server-shutdown2", data, sizeof(uint64_t),
                                 &shutdown2_status, &shutdown2_output, &shutdown2_output_sz);
 
@@ -876,6 +876,7 @@ coordinator_link :: shutdown()
         if (shutdown2_output)
         {
             replicant_destroy_output(shutdown2_output, shutdown2_output_sz);
+            shutdown2_output = NULL;
         }
 
         LOG(ERROR) << "dirty shutdown because shutdown2 failed";
@@ -892,6 +893,7 @@ coordinator_link :: shutdown()
     if (shutdown2_output)
     {
         replicant_destroy_output(shutdown2_output, shutdown2_output_sz);
+        shutdown2_output = NULL;
     }
 
     if (static_cast<coordinator_returncode>(status) != COORD_SUCCESS)
