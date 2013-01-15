@@ -27,6 +27,7 @@ doc/man/hyperdex-simple-consistency-stress-test.1
 hyperdex
 hyperdex-add-space
 hyperdex-binary-test
+hyperdex-coordinator
 hyperdex-daemon
 hyperdex-initialize-cluster
 hyperdex-initiate-transfer
