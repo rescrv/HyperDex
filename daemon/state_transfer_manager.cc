@@ -322,7 +322,7 @@ state_transfer_manager :: retransmit(const server_id& id)
             break;
         }
 
-        po6::threads::mutex::hold hold(&m_transfers_out[idx].second->mtx);
+        po6::threads::mutex::hold hold2(&m_transfers_out[idx].second->mtx);
 
         if (m_transfers_out[idx].second->xfer.dst == id)
         {
@@ -346,7 +346,7 @@ state_transfer_manager :: report_wiped(const capture_id& cid)
             break;
         }
 
-        po6::threads::mutex::hold hold(&m_transfers_in[idx].second->mtx);
+        po6::threads::mutex::hold hold2(&m_transfers_in[idx].second->mtx);
         transfer_in_state* tis = m_transfers_in[idx].second.get();
 
         if (!tis->cleared_capture &&
