@@ -67,8 +67,8 @@ public class Pending
     }
 	
     protected void checkReqIdKeyAttrs2(long reqId, hyperclient_returncode status,
-                                        hyperclient_attribute attrs1, long attrs_sz1,
-                                        hyperclient_attribute attrs2, long attrs_sz2)
+                                       hyperclient_attribute_check attrs1, long attrs_sz1,
+                                       hyperclient_attribute attrs2, long attrs_sz2)
                                                             throws HyperClientException,
                                                                    TypeError
     {
@@ -78,7 +78,7 @@ public class Pending
             String attrName = null;
 
             if ( attrs1 != null && idx >= 0 && idx < attrs_sz1 )
-                attrName = ByteArray.decode(HyperClient.get_attr(attrs1,idx).getAttrNameBytes(),client.getDefaultStringEncoding()); 
+                attrName = ByteArray.decode(HyperClient.get_attr_check(attrs1,idx).getAttrNameBytes(),client.getDefaultStringEncoding()); 
 
             idx -= attrs_sz1;
 
@@ -134,10 +134,10 @@ public class Pending
 
             String attrName = null;
 
-            if ( chks != null && idx >= 0 && idx < chk_sz )
+            if ( chks != null && idx >= 0 && idx < chks_sz )
             {
                 attrName = ByteArray.decode(
-                            HyperClient.get_attr_chk(eq,idx).getAttrNameBytes(),
+                            HyperClient.get_attr_check(chks,idx).getAttrNameBytes(),
                             client.getDefaultStringEncoding()); 
         
                 throw new HyperClientException(status,attrName);

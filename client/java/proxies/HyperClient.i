@@ -233,7 +233,7 @@
         memcpy(buf + hac->value_sz, value, value_sz);
         hac->value = buf;
         hac->value_sz += value_sz;
-        hac->datatype = hyperdatatype.HYPERDATATYPE_STRING;
+        hac->datatype = HYPERDATATYPE_STRING;
         return 1;
     }
 
@@ -247,10 +247,10 @@
     {
         char *buf = NULL;
         if ((buf = (char *)malloc(sizeof(int64_t))) == NULL) return 0;
-        memcpy(buf, value, value_sz);
+        memcpy(buf, &value, sizeof(int64_t));
         hac->value = buf;
         hac->value_sz = sizeof(int64_t);
-        hac->datatype = hyperdatatype.HYPERDATATYPE_INT64;
+        hac->datatype = HYPERDATATYPE_INT64;
         return 1;
     }
 
@@ -264,10 +264,10 @@
     {
         char *buf = NULL;
         if ((buf = (char *)malloc(sizeof(double))) == NULL) return 0;
-        memcpy(buf, value, value_sz);
+        memcpy(buf, &value, sizeof(double));
         hac->value = buf;
         hac->value_sz = sizeof(double);
-        hac->datatype = hyperdatatype.HYPERDATATYPE_FLOAT;
+        hac->datatype = HYPERDATATYPE_FLOAT;
         return 1;
     }
 
@@ -547,11 +547,12 @@
     
               if ( isBytes(params) || params instanceof Long || params instanceof Double )
               {
-                  rawChecks.add(new java.util.Map.Entry<
+                  rawChecks.add(new java.util.AbstractMap.SimpleEntry<
                       java.util.Map.Entry<
                           ByteArray,java.util.Map.Entry<hyperpredicate,Object>>>(
                               new ByteArray(attrBytes), 
-                                  new java.util.Map.Entry<hyperpredicate,Object>(
+                                  new java.util.AbstractMap.SimpleEntry<
+                                    hyperpredicate,Object>(
                                       hyperpredicate.HYPERPREDICATE_EQUALS, params)));
               }
               else if ( params instanceof java.util.Map.Entry )
@@ -618,7 +619,9 @@
     
               if ( hacs == null ) throw new MemoryError();
     
-              foreach ( java.util.Map.Entry<
+              int i = 0; // Collections in java can only hold MAX_INT_SIZE elements
+
+              for ( java.util.Map.Entry<
                             ByteArray,java.util.Map.Entry<
                                 hyperpredicate,Object>> rawCheck: rawChecks )
               {
@@ -653,7 +656,7 @@
       return retvals;
   }
 
-  private static boolean isBytes(Object obj)
+  static boolean isBytes(Object obj)
   {
     return obj instanceof byte[] || obj instanceof ByteArray || obj instanceof String;
   }

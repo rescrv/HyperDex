@@ -11,6 +11,7 @@ client/python/hyperclient.c
 config.guess
 config.h
 config.h.in
+config.h.in~
 config.log
 config.status
 config.sub
@@ -55,3 +56,5 @@ missing
 py-compile
 stamp-h1
 ylwrap
+*.cxx
+client/java/hyperclient
