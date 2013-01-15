@@ -48,19 +48,15 @@ The following sequence of commands starts and initializes the coordinator:
 
 .. sourcecode:: console
 
-   $ replicant daemon -f -l 127.0.0.1 -p 1982
-   $ hyperdex initialize-cluster -h 127.0.0.1 -p 1982
+   $ hyperdex coordinator -f -l 127.0.0.1 -p 1982
 
-Replicant uses state machine replication [#smr]_ to provide fault tolerance.
-The second command bootstraps the HyperDex coordinator's statemachine onto
-Replicant.
+The "coordinator" command spawns a new HyperDex coordinator process listening on
+on the specified address.  All other servers are introduced to the HyperDex
+cluster via this address, so it is important that it be accessible to all
+servers.  In this tutorial, binding to the loopback address will suffice.
 
 At this point, the coordinator is up and running, and we're ready to start up
 additional nodes in our cluster.
-
-.. [#smr] chneider, Fred (1990). "Implementing Fault-Tolerant Services Using the
-   State Machine Approach: A Tutorial" (PS). ACM Computing Surveys 22 (4): 299.
-   http://dl.acm.org/citation.cfm?doid=98163.98167
 
 Starting HyperDex Daemons
 -------------------------

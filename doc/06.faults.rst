@@ -6,8 +6,8 @@ Fault Tolerance
 HyperDex recovers from failures automatically.  When a node fails, HyperDex
 detects the failure, removes the failed node, and automatically reintegrates
 other nodes to restore the desired level of fault tolerance.  The coordinator is
-made fault tolerant using the Replicant replicated state machine.  It, too, is
-fault tolerant and can tolerate a configurable number of failures.
+made fault tolerant using a replicated state machine.  It, too, is fault
+tolerant and can tolerate a configurable number of failures.
 
 Let's see both kinds of fault tolerance in action.
 
@@ -21,32 +21,39 @@ is unavailable while it is shutdown for obvious reasons.
 
 .. sourcecode:: console
 
-   $ replicant daemon -f -l 127.0.0.1 -p 1982
+   $ hyperdex coordinator -f -l 127.0.0.1 -p 1982
    $ hyperdex initialize-cluster -h 127.0.0.1 -p 1982
 
-A Replicant cluster becomes more fault tolerant as more nodes are added.  A
-simple majority of the nodes must remain available for Replicant to make
+A HyperDex coordinator becomes more fault tolerant as more nodes are added.  A
+simple majority of the nodes must remain available for the coordinator to make
 progress.  For example, a cluster with three nodes can fail one node at any
 point in time, while a cluster with five nodes can tolerate two simultaneous
 failures.
 
-In separate terminals we can bring additional nodes online:
+Internally, the HyperDex coordinator uses state machine replication [#smr]_ to
+provide fault tolerance.  Running at least five servers is recommended so that
+the cluster can tolerate at least two failures.  To do so, bring additional
+nodes online:
+
+.. [#smr] Schneider, Fred (1990). "Implementing Fault-Tolerant Services Using the
+   State Machine Approach: A Tutorial" (PS). ACM Computing Surveys 22 (4): 299.
+   http://dl.acm.org/citation.cfm?doid=98163.98167
 
 .. sourcecode:: console
 
-   $ replicant daemon -f -l 127.0.0.1 -p 1983 -c 127.0.0.1 -P 1982 -D /path/to/data1
-   $ replicant daemon -f -l 127.0.0.1 -p 1984 -c 127.0.0.1 -P 1982 -D /path/to/data2
-   $ replicant daemon -f -l 127.0.0.1 -p 1985 -c 127.0.0.1 -P 1982 -D /path/to/data3
-   $ replicant daemon -f -l 127.0.0.1 -p 1986 -c 127.0.0.1 -P 1982 -D /path/to/data4
+   $ hyperdex coordinator -f -l 127.0.0.1 -p 1983 -c 127.0.0.1 -P 1982 -D /path/to/data1
+   $ hyperdex coordinator -f -l 127.0.0.1 -p 1984 -c 127.0.0.1 -P 1982 -D /path/to/data2
+   $ hyperdex coordinator -f -l 127.0.0.1 -p 1985 -c 127.0.0.1 -P 1982 -D /path/to/data3
+   $ hyperdex coordinator -f -l 127.0.0.1 -p 1986 -c 127.0.0.1 -P 1982 -D /path/to/data4
 
-For each new server in the cluster, Replicant will automatically transfer a copy
-of the initialized state machine and replicate further operations on those nodes
-as well.  In it's current form our cluster can tolerate two simultaneous
-failures or planned shutdowns.  Go ahead and shutdown one or more Replicant
-servers by pressing Control-C.  When restarted, they'll rejoin the cluster and
-collect any state changes that occurred in their absence.
+For each new server in the cluster, the coordinator will automatically transfer
+a copy of the initialized state machine and replicate further operations on
+those nodes as well.  In it's current form our cluster can tolerate two
+simultaneous failures or planned shutdowns.  Go ahead and shutdown one or more
+coordinator servers by pressing Control-C.  When restarted, they'll rejoin the
+cluster and collect any state changes that occurred in their absence.
 
-It's even possible to completely shutdown and restart a Replicant cluster by
+It's even possible to completely shutdown and restart the coordinator by
 shutting down and restarting all nodes in the cluster.
 
 HyperDex Daemons
@@ -69,12 +76,11 @@ To see this in action, we first need to start a cluster:
                         --coordinator=127.0.0.1 --coordinator-port=1984 --data=/path/to/data3
 
 If you look carefully, you'll see that we've asked each daemon to connect to a
-different Replicant server.  Each daemon connects to the Replicant cluster in a
+different coordinator server.  Each daemon connects to the coordinator in a
 fault-tolerant manner.  Should the specified server fail after the daemon
 connects, the daemon will simply connect to another server in the cluster.
-When a failure of either a coordinator node or a daemon occurs, the Replicant
-system ensures that all servers in the system will eventually be able to make
-progress.
+When a failure of either a coordinator node or a daemon occurs, the coordinator
+ensures that all servers in the system will eventually be able to make progress.
 
 Let's see this in action by creating some data items we care deeply about and
 checking what happens to our data as failures occur:
@@ -141,13 +147,13 @@ cleaving out the failed node, and normal operations resumed without data loss.
 Fault Tolerance Thresholds
 --------------------------
 
-HyperDex and Replicant each tolerate a configurable number of failures before
-the system fails completely.  For sake of convenience, we refer to this
-threshold as ``f``, the number of servers that may fail at any one time.  For a
-given value of ``f``, HyperDex needs ``f + 1`` replicas and Replicant needs ``2f
-+ 1``.  Both HyperDex and Replicant can tolerate up to ``f`` total failures
-where the server crashes or goes up in a blazing fire.  The behavior in this
-case is to simply provision another node to replace the failed node.  As an
+HyperDex daemons and coordinators each tolerate a configurable number of
+failures before the system fails completely.  For sake of convenience, we refer
+to this threshold as ``f``, the number of servers that may fail at any one time.
+For a given value of ``f``, daemons need ``f + 1`` replicas and coordinators
+needs ``2f + 1``.  Both daemons and coordinators can tolerate up to ``f`` total
+failures where the server crashes or goes up in a blazing fire.  The behavior in
+this case is to simply provision another node to replace the failed node.  As an
 added bonus, both systems are able to tolerate more than ``f`` failures so long
 as enough nodes rejoin the cluster to bring the number of failures back under
 the failure threshold.
@@ -161,5 +167,5 @@ daemons will shutdown properly, informing the coordinator of their state as they
 shutdown.  Finally, once all daemons have exited, interrupt the coordinator
 processes using SIGHUP, SIGINT, or SIGTERM.
 
-Restoring a cluster is just the reverse process:  first, restart the Replicant
-nodes, and then restart the HyperDex nodes.
+Restoring a cluster is just the reverse process:  first, restart the coordinator
+nodes, and then restart the data nodes.

@@ -15,11 +15,6 @@ Welcome to the HyperDex Reference Manual
    api/python
    api/c
    glossary
-   tutorial-advanced
-   tutorial-datastructure
-   man/hyperdex-daemon
-   man/hyperdex-replication-stress-test
-   man/hyperdex-simple-consistency-stress-test
 
 Indices and tables
 ==================

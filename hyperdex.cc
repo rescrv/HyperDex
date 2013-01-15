@@ -65,6 +65,7 @@ struct prog
 
 static prog progs[] = {
     PROG("initialize-cluster"),
+    PROG("coordinator"),
     PROG("daemon"),
     PROG("add-space"),
     PROG("rm-space"),
@@ -79,11 +80,12 @@ help(poptContext poptcon)
     poptPrintHelp(poptcon, stderr, 0);
     std::cerr << "\n"
               << "Available commands:\n"
-              << "    initialize-cluster    One time initialization of a HyperDex coordinator\n"
+              << "    coordinator           Start a new HyperDex coordinator\n"
               << "    daemon                Start a new HyperDex daemon\n"
               << "    add-space             Create a new space\n"
               << "    rm-space              Remove an existing space\n"
               << "    show-config           Output a human-readable version of the cluster configuration\n"
+              << "    initialize-cluster    One time initialization of a HyperDex coordinator\n"
               << "    initiate-transfer     Manually start a data transfer to repair a failure\n"
               << std::flush;
     return EXIT_FAILURE;

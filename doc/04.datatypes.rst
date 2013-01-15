@@ -21,8 +21,7 @@ a client.   First we launch and initialize the coordinator:
 
 .. sourcecode:: console
 
-   $ replicant daemon -f -l 127.0.0.1 -p 1982
-   $ hyperdex initialize-cluster -h 127.0.0.1 -p 1982
+   $ hyperdex coordinator -f -l 127.0.0.1 -p 1982
 
 Next, let's launch a few daemon processes to store data.  Execute the following
 commands (note that each instance binds to a different port and has a different ``/path/to/data``):
@@ -139,16 +138,15 @@ Note that this change required just one request to HyperDex.  The server
 atomically examines the current value, and changes it by the amount specified.
 In this case, the ``profile_views`` attribute is incremented by one.
 
-HyperDex supports a full range of basic operations including:
-
- * :py:meth:`hyperclient.Client.atomic_add`:  Increment the current value by ``arg``
- * :py:meth:`hyperclient.Client.atomic_sub`:  Decrement the current value by ``arg``
- * :py:meth:`hyperclient.Client.atomic_mul`:  Multiply the current value by ``arg``
- * :py:meth:`hyperclient.Client.atomic_div`:  Divide the current value by ``arg``
- * :py:meth:`hyperclient.Client.atomic_mod`:  Store the current modulo ``arg``
- * :py:meth:`hyperclient.Client.atomic_and`:  Store bitwise ``and`` of the current and ``arg``
- * :py:meth:`hyperclient.Client.atomic_or`:  Store bitwise ``or`` of the current and ``arg``
- * :py:meth:`hyperclient.Client.atomic_xor`:  Store bitwise ``xor`` of the current and ``arg``
+HyperDex supports a full range of basic operations including 
+:py:meth:`hyperclient.Client.atomic_add`,
+:py:meth:`hyperclient.Client.atomic_sub`,
+:py:meth:`hyperclient.Client.atomic_mul`,
+:py:meth:`hyperclient.Client.atomic_div`,
+:py:meth:`hyperclient.Client.atomic_mod`,
+:py:meth:`hyperclient.Client.atomic_and`,
+:py:meth:`hyperclient.Client.atomic_or`, and
+:py:meth:`hyperclient.Client.atomic_xor`.
 
 Floats
 ------

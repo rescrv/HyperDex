@@ -58,6 +58,7 @@ hyperdexexecdir = $(exec_prefix)/libexec/$(PACKAGE)-$(VERSION)
 hyperdexexec_PROGRAMS = \
 			hyperdex-initialize-cluster \
 			hyperdex-daemon \
+			hyperdex-coordinator \
 			hyperdex-add-space \
 			hyperdex-rm-space \
 			hyperdex-show-config \
@@ -386,6 +387,9 @@ hyperdex_CPPFLAGS = -DHYPERDEX_EXEC_DIR=\""$(hyperdexexecdir)\"" $(CPPFLAGS)
 hyperdex_initialize_cluster_SOURCES = tools/initialize-cluster.cc
 hyperdex_initialize_cluster_CPPFLAGS = -DHYPERDEX_COORD_LIB=\""$(hyperdexexecdir)/libhypercoordinator.so.0\"" $(CPPFLAGS)
 hyperdex_initialize_cluster_LDADD = libhyperclient.la
+
+hyperdex_coordinator_SOURCES = tools/coordinator.cc
+hyperdex_coordinator_LDADD = libhyperclient.la
 
 hyperdex_add_space_SOURCES = tools/add-space.cc
 hyperdex_add_space_LDADD = libhyperclient.la

@@ -269,7 +269,7 @@ Installing
 ~~~~~~~~~~
 
 Once configured, HyperDex is simple to build and install.  Keep in mind that the
-following commands may fail if the installation directory is not writable to the
+following commands may fail if the installation directory is not writable by the
 current user.
 
 .. sourcecode:: console

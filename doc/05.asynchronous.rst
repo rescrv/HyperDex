@@ -21,8 +21,7 @@ a client.   First we launch and initialize the coordinator:
 
 .. sourcecode:: console
 
-   $ replicant daemon -f -l 127.0.0.1 -p 1982
-   $ hyperdex initialize-cluster -h 127.0.0.1 -p 1982
+   $ hyperdex coordinator -f -l 127.0.0.1 -p 1982
 
 Next, let's launch a few daemon processes to store data.  Execute the following
 commands (note that each instance binds to a different port and has a different ``/path/to/data``):
@@ -199,9 +198,9 @@ friend of John can be done in parallel:
 
 Using the :py:meth:`hyperclient.Client.loop()` method, it is possible to issue
 thousands of requests and then wait for each one in turn without having to
-serialize the round trips to the server.  It's even possible to keep a
-fixed-size window of outstanding requests so as to not issue too many operations
-concurrently.
+serialize the round trips to the server.  Of course, you'll probably want to
+keep a fixed-size window of outstanding requests so as to not issue too many
+operations concurrently.
 
 Note that HyperDex may choose to execute concurrent asynchronous operations in
 any order.  It's up to the programmer to order requests by calling ``wait``
