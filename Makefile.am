@@ -384,7 +384,7 @@ hyperdex_SOURCES = hyperdex.cc
 hyperdex_CPPFLAGS = -DHYPERDEX_EXEC_DIR=\""$(hyperdexexecdir)\"" $(CPPFLAGS)
 
 hyperdex_initialize_cluster_SOURCES = tools/initialize-cluster.cc
-hyperdex_initialize_cluster_CPPFLAGS = -DHYPERDEX_COORD_LIB=\""$(hyperdexexecdir)/libhypercoordinator.so\"" $(CPPFLAGS)
+hyperdex_initialize_cluster_CPPFLAGS = -DHYPERDEX_COORD_LIB=\""$(hyperdexexecdir)/libhypercoordinator.so.0\"" $(CPPFLAGS)
 hyperdex_initialize_cluster_LDADD = libhyperclient.la
 
 hyperdex_add_space_SOURCES = tools/add-space.cc
