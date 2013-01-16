@@ -105,7 +105,7 @@ In HyperDex, each such collection of data is called a *space* and is
 conceptually similar to *tables* in traditional databases.  Let's see how we can
 instruct HyperDex to create a suitable space for holding such objects.
 
-First, let's connect to HyperDex:
+First, let's open a Python shell and connect to HyperDex:
 
 .. sourcecode:: pycon
 
