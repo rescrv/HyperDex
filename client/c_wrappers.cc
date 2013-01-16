@@ -122,13 +122,13 @@ hyperclient_get(struct hyperclient* client, const char* space, const char* key,
 }
 
 int64_t
-hyperclient_condput(struct hyperclient* client, const char* space,
-                    const char* key, size_t key_sz,
-                    const struct hyperclient_attribute_check* checks, size_t checks_sz,
-                    const struct hyperclient_attribute* attrs,
-                    size_t attrs_sz, hyperclient_returncode* status)
+hyperclient_cond_put(struct hyperclient* client, const char* space,
+                     const char* key, size_t key_sz,
+                     const struct hyperclient_attribute_check* checks, size_t checks_sz,
+                     const struct hyperclient_attribute* attrs,
+                     size_t attrs_sz, hyperclient_returncode* status)
 {
-    C_WRAP_EXCEPT(client->condput(space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status));
+    C_WRAP_EXCEPT(client->cond_put(space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status));
 }
 
 int64_t

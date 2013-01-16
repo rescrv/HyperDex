@@ -20,9 +20,15 @@ daemon/test/index_encode
 depcomp
 .deps
 .dirstamp
+doc/_build/
+doc/HyperDex-0.5.dev.pdf
+doc/man/hyperdex-daemon.1
+doc/man/hyperdex-replication-stress-test.1
+doc/man/hyperdex-simple-consistency-stress-test.1
 hyperdex
 hyperdex-add-space
 hyperdex-binary-test
+hyperdex-coordinator
 hyperdex-daemon
 hyperdex-initialize-cluster
 hyperdex-initiate-transfer

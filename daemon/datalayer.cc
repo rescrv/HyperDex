@@ -75,6 +75,7 @@ datalayer :: datalayer(daemon* d)
     , m_wakeup_cleaner(&m_block_cleaner)
     , m_need_cleaning(false)
     , m_shutdown(true)
+    , m_state_transfer_captures()
 {
 }
 
@@ -1128,7 +1129,7 @@ datalayer :: decode_value(const e::slice& value,
 
     uint16_t num_attrs;
 
-    if (ptr + sizeof(uint64_t) <= end)
+    if (ptr + sizeof(uint16_t) <= end)
     {
         ptr = e::unpack16be(ptr, &num_attrs);
     }

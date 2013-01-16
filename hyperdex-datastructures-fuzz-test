@@ -27,22 +27,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-'''  Construct the space shown below and fuzz test it.
-space kv
-dimensions
-    k,
-    s (string),
-    i (int64),
-    ls (list(string)),
-    li (list(int64)),
-    ss (set(string)),
-    si (set(int64)),
-    mss (map(string, string)),
-    msi (map(string, int64)),
-    mis (map(int64, string)),
-    mii (map(int64, int64))
-key k auto 0 1
-'''
+'''Construct the space shown below and fuzz test it.'''
 
 
 import collections
@@ -52,6 +37,7 @@ import pprint
 import random
 import string
 import sys
+import time
 
 import hyperclient
 from hyperclient import *
@@ -278,6 +264,30 @@ class HyperDexClient(object):
 
     def __init__(self, addr, port, space):
         self._client = hyperclient.Client(addr, port)
+        try:
+            self._client.rm_space('fuzz')
+        except:
+            pass
+        try:
+            self._client.add_space('''
+                space fuzz
+                key string k
+                attributes
+                    string s,
+                    int i,
+                    list(string) ls,
+                    list(int) li,
+                    set(string) ss,
+                    set(int) si,
+                    map(string, string) mss,
+                    map(string, int) msi,
+                    map(int, string) mis,
+                    map(int, int) mii
+                create 1 partition
+                ''')
+            time.sleep(1)
+        except:
+            pass
         self._space = space
 
     @inlineexception
@@ -622,8 +632,9 @@ class HyperDexModel(object):
 
 if __name__ == '__main__':
     random.seed(0)
-    hyperdex = HyperDexClient('127.0.0.1', 1234, 'kv')
+    hyperdex = HyperDexClient('127.0.0.1', 1982, 'fuzz')
     model = HyperDexModel()
+
     for op, args in random_generator():
         #print op, args
         m = getattr(model, 'op_' + op)(*args)

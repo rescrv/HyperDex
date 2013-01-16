@@ -1,4 +1,0 @@
-.. _keyoperations:
-
-Key Operations
-==============

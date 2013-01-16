@@ -15,7 +15,7 @@ struct hyperclient_keyop_info;
 %%
 put,                    false,  false,  true,   hyperdex::FUNC_SET,             container_implicit_coercion
 put_if_not_exist,       false,  true,   true,   hyperdex::FUNC_SET,             container_implicit_coercion
-condput,                true,   false,  true,   hyperdex::FUNC_SET,             container_implicit_coercion,
+cond_put,               true,   false,  true,   hyperdex::FUNC_SET,             container_implicit_coercion,
 del,                    true,   false,  false,  hyperdex::FUNC_FAIL,            NULL
 atomic_add,             true,   false,  true,   hyperdex::FUNC_NUM_ADD,         primitive_numeric
 atomic_sub,             true,   false,  true,   hyperdex::FUNC_NUM_SUB,         primitive_numeric

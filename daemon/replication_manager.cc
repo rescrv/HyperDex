@@ -227,15 +227,14 @@ replication_manager :: client_atomic(const server_id& from,
         return;
     }
 
-    if (!has_old_value && erase)
+    if (!has_old_value && (erase || fail_if_not_found))
     {
         respond_to_client(to, from, nonce, NET_NOTFOUND);
         CLEANUP_KEYHOLDER(ri, key, kh);
         return;
     }
 
-    if ((has_old_value && fail_if_found) ||
-        (!has_old_value && fail_if_not_found))
+    if (has_old_value && fail_if_found)
     {
         respond_to_client(to, from, nonce, NET_CMPFAIL);
         CLEANUP_KEYHOLDER(ri, key, kh);
@@ -548,7 +547,7 @@ replication_manager :: chain_ack(const virtual_server_id& from,
     {
         respond_to_client(to, pend->client, pend->nonce, NET_SUCCESS);
     }
-    else
+    else if (m_daemon->m_config.version() == pend->recv_config_version)
     {
         send_ack(to, pend->recv, false, reg_id, seq_id, version, key);
     }

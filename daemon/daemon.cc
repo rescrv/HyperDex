@@ -268,7 +268,7 @@ daemon :: run(bool daemonize,
         t->start();
     }
 
-    while (!m_coord.is_shutdown())
+    while (!m_coord.exit_wait_loop())
     {
         configuration old_config = m_config;
         configuration new_config;
@@ -318,16 +318,18 @@ daemon :: run(bool daemonize,
         m_coord.ack_config(new_config.version());
     }
 
-    if (m_coord.is_clean_shutdown())
-    {
-        LOG(INFO) << "hyperdex-daemon is gracefully shutting down";
-    }
-
     m_comm.shutdown();
 
     for (size_t i = 0; i < m_threads.size(); ++i)
     {
         m_threads[i]->join();
+    }
+
+    m_coord.shutdown();
+
+    if (m_coord.is_clean_shutdown())
+    {
+        LOG(INFO) << "hyperdex-daemon is gracefully shutting down";
     }
 
     m_sm.teardown();

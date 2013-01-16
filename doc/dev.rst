@@ -1,4 +1,0 @@
-.. _dev:
-
-HyperDex Developers
-===================

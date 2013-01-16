@@ -183,11 +183,11 @@ hyperclient_put_if_not_exist(struct hyperclient* client, const char* space, cons
  *   considered complete
  */
 int64_t
-hyperclient_condput(struct hyperclient* client, const char* space,
-                    const char* key, size_t key_sz,
-                    const struct hyperclient_attribute_check* checks, size_t checks_sz,
-                    const struct hyperclient_attribute* attrs, size_t attrs_sz,
-                    enum hyperclient_returncode* status);
+hyperclient_cond_put(struct hyperclient* client, const char* space,
+                     const char* key, size_t key_sz,
+                     const struct hyperclient_attribute_check* checks, size_t checks_sz,
+                     const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                     enum hyperclient_returncode* status);
 
 /* Delete the object under "key".
  *
@@ -715,10 +715,10 @@ class hyperclient
         int64_t put_if_not_exist(const char* space, const char* key, size_t key_sz,
                                  const struct hyperclient_attribute* attrs, size_t attrs_sz,
                                  hyperclient_returncode* status);
-        int64_t condput(const char* space, const char* key, size_t key_sz,
-                        const struct hyperclient_attribute_check* checks, size_t checks_sz,
-                        const struct hyperclient_attribute* attrs, size_t attrs_sz,
-                        hyperclient_returncode* status);
+        int64_t cond_put(const char* space, const char* key, size_t key_sz,
+                         const struct hyperclient_attribute_check* checks, size_t checks_sz,
+                         const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                         hyperclient_returncode* status);
         int64_t del(const char* space, const char* key, size_t key_sz,
                     hyperclient_returncode* status);
         int64_t atomic_add(const char* space, const char* key, size_t key_sz,

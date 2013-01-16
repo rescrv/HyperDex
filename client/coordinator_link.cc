@@ -357,7 +357,8 @@ coordinator_link :: make_rpc(const char* func,
 bool
 coordinator_link :: initiate_wait_for_config(hyperclient_returncode* status)
 {
-    m_wait_config_id = m_repl.wait("hyperdex", "config", m_config.version(), &m_wait_config_status);
+    uint64_t wait_for = m_config.version() > 0 ? m_config.version() - 1 : 0;
+    m_wait_config_id = m_repl.wait("hyperdex", "config", wait_for, &m_wait_config_status);
 
     if (m_wait_config_id < 0)
     {

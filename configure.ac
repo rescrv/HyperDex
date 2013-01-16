@@ -28,6 +28,11 @@ need_swig=no
 
 JNI_CPPFLAGS=
 if test x"${java_bindings}" = xyes; then
+    AC_MSG_ERROR([
+-------------------------------------------------
+The Java bindings are temporarily unavailable.
+They will be available in HyperDex 1.0
+-------------------------------------------------])
     AC_PROG_JAR
     AC_PROG_JAVAC
     AC_JNI_INCLUDE_DIR
@@ -84,6 +89,11 @@ AC_CHECK_HEADER([popt.h],,[AC_MSG_ERROR([
 HyperDex relies upon the popt library.
 Please install popt to continue.
 -------------------------------------------------])])
+AC_CHECK_HEADER([leveldb/db.h],,[AC_MSG_ERROR([
+---------------------------------------
+Replicant relies upon the LevelDB library.
+Please install LevelDB to continue.
+---------------------------------------])])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL

@@ -256,13 +256,13 @@ hyperclient :: get(const char* space, const char* key, size_t key_sz,
 }
 
 int64_t
-hyperclient :: condput(const char* space, const char* key, size_t key_sz,
-                       const struct hyperclient_attribute_check* checks, size_t checks_sz,
-                       const struct hyperclient_attribute* attrs, size_t attrs_sz,
-                       hyperclient_returncode* status)
+hyperclient :: cond_put(const char* space, const char* key, size_t key_sz,
+                        const struct hyperclient_attribute_check* checks, size_t checks_sz,
+                        const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                        hyperclient_returncode* status)
 {
     const hyperclient_keyop_info* opinfo;
-    opinfo = hyperclient_keyop_info_lookup("condput", 7);
+    opinfo = hyperclient_keyop_info_lookup("cond_put", 8);
     return perform_funcall1(opinfo, space, key, key_sz,
                             checks, checks_sz,
                             attrs, attrs_sz, status);

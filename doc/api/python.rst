@@ -40,9 +40,9 @@ Python API
          A dictionary mapping attribute names to their respective values.  Each
          value must match the type defined when :py:obj:`space` was created.
 
-   .. py:method:: condput(space, key, condition, attrs)
+   .. py:method:: cond_put(space, key, condition, attrs)
 
-      .. include:: shards/condput.rst
+      .. include:: shards/cond_put.rst
 
       The return value is a boolean indicating success.  If the value is
       ``True``, the comparison was successful, and the object was updated.  If
@@ -282,9 +282,9 @@ Python API
          A dictionary mapping attribute names to their respective values.  Each
          value must match the type defined when :py:obj:`space` was created.
 
-   .. py:method:: async_condput(space, key, condition, value)
+   .. py:method:: async_cond_put(space, key, condition, value)
 
-      .. include:: shards/condput.rst
+      .. include:: shards/cond_put.rst
 
       The returned object will be a :py:class:`DeferredCondput` instance which
       tracks the request.

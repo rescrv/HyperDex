@@ -34,13 +34,13 @@ BUILT_SOURCES = client/parse_space_y.h
 EXTRA_DIST = \
 			LICENSE \
 			doc \
+			doc/HyperDex-$(VERSION).pdf \
 			$(libhyperclient_extra_dist) \
 			$(ycsb_extra_dist) \
 			hyperclient/nodejs/sync_test.js \
 			hyperclient/nodejs/async_test.js \
 			hyperclient/nodejs/hyperclient.cc \
 			wscript
-# XXX doc/HyperDex-$(VERSION).pdf
 
 lib_LTLIBRARIES = libhyperclient.la
 
@@ -50,7 +50,6 @@ include_HEADERS = \
 			hyperdex.h
 
 bin_PROGRAMS = hyperdex \
-			hyperdex-daemon \
 			hyperdex-search-stress-test \
 			hyperdex-replication-stress-test \
 			hyperdex-simple-consistency-stress-test
@@ -58,6 +57,8 @@ bin_PROGRAMS = hyperdex \
 hyperdexexecdir = $(exec_prefix)/libexec/$(PACKAGE)-$(VERSION)
 hyperdexexec_PROGRAMS = \
 			hyperdex-initialize-cluster \
+			hyperdex-daemon \
+			hyperdex-coordinator \
 			hyperdex-add-space \
 			hyperdex-rm-space \
 			hyperdex-show-config \
@@ -68,13 +69,11 @@ noinst_PROGRAMS = \
 			client/c/testcompile \
 			client/cc/testcompile
 
-check_PROGRAMS =	\
-			daemon/test/index_encode
-
-TESTS = daemon/test/index_encode
+dist_man_MANS = doc/man/hyperdex-daemon.1
 
 CLEANFILES = \
 			$(java_bindings_cleanfiles) \
+			doc/HyperDex-$(VERSION).pdf \
 			$(ycsb_cleanfiles)
 
 JAVAROOT = $(abs_top_srcdir)
@@ -82,11 +81,15 @@ JAVAROOT = $(abs_top_srcdir)
 .PHONY: coverage doc/HyperDex-$(VERSION).pdf
 
 dist-hook:
-	rm -rf $(distdir)/doc/_build
+	-rm -rf $(distdir)/doc/_build
+
+clean-local:
+	-rm -rf $(abs_top_builddir)/doc/_build
 
 noinst_HEADERS = \
 			common/attribute_check.h \
 			common/attribute.h \
+			common/capture.h \
 			common/configuration.h \
 			common/coordinator_returncode.h \
 			common/counter_map.h \
@@ -94,12 +97,15 @@ noinst_HEADERS = \
 			common/funcall.h \
 			common/hash.h \
 			common/hyperspace.h \
+			common/ids.h \
 			common/macros.h \
 			common/mapper.h \
 			common/network_msgtype.h \
 			common/network_returncode.h \
+			common/range_searches.h \
 			common/schema.h \
 			common/serialization.h \
+			common/transfer.h \
 			datatypes/alltypes.h \
 			datatypes/apply.h \
 			datatypes/coercion.h \
@@ -116,16 +122,25 @@ noinst_HEADERS = \
 			datatypes/validate.h \
 			datatypes/write.h \
 			coordinator/coordinator.h \
+			coordinator/missing_acks.h \
+			coordinator/server_state.h \
+			coordinator/transitions.h \
 			daemon/communication.h \
+			daemon/coordinator_link.h \
 			daemon/daemon.h \
 			daemon/datalayer.h \
 			daemon/index_encode.h \
+			daemon/leveldb.h \
 			daemon/reconfigure_returncode.h \
 			daemon/replication_manager.h \
 			daemon/replication_manager_keyholder.h \
 			daemon/replication_manager_keypair.h \
 			daemon/replication_manager_pending.h \
 			daemon/search_manager.h \
+			daemon/state_transfer_manager.h \
+			daemon/state_transfer_manager_pending.h \
+			daemon/state_transfer_manager_transfer_in_state.h \
+			daemon/state_transfer_manager_transfer_out_state.h \
 			client/complete.h \
 			client/constants.h \
 			client/coordinator_link.h \
@@ -202,9 +217,9 @@ hyperdex_daemon_LDADD = \
 			-lreplicant -lcityhash -lpopt -lglog -lrt -lpthread
 hyperdex_daemon_CPPFLAGS = $(CPPFLAGS)
 
-daemon_test_index_encode_SOURCES = runner.cc daemon/test/index_encode.cc daemon/index_encode.cc common/float_encode.cc
-daemon_test_index_encode_CPPFLAGS = $(GTEST_CPPFLAGS) $(CPPFLAGS)
-daemon_test_index_encode_LDADD = $(GTEST_LDFLAGS) -lgtest -lpthread
+#daemon_test_index_encode_SOURCES = runner.cc daemon/test/index_encode.cc daemon/index_encode.cc common/float_encode.cc
+#daemon_test_index_encode_CPPFLAGS = $(GTEST_CPPFLAGS) $(CPPFLAGS)
+#daemon_test_index_encode_LDADD = $(GTEST_LDFLAGS) -lgtest -lpthread
 
 ################################################################################
 ################################## Coordinator #################################
@@ -367,8 +382,11 @@ hyperdex_SOURCES = hyperdex.cc
 hyperdex_CPPFLAGS = -DHYPERDEX_EXEC_DIR=\""$(hyperdexexecdir)\"" $(CPPFLAGS)
 
 hyperdex_initialize_cluster_SOURCES = tools/initialize-cluster.cc
-hyperdex_initialize_cluster_CPPFLAGS = -DHYPERDEX_COORD_LIB=\""$(hyperdexexecdir)/libhypercoordinator.so\"" $(CPPFLAGS)
+hyperdex_initialize_cluster_CPPFLAGS = -DHYPERDEX_COORD_LIB=\""$(hyperdexexecdir)/libhypercoordinator.so.0\"" $(CPPFLAGS)
 hyperdex_initialize_cluster_LDADD = libhyperclient.la
+
+hyperdex_coordinator_SOURCES = tools/coordinator.cc
+hyperdex_coordinator_LDADD = libhyperclient.la -le -lbusybee
 
 hyperdex_add_space_SOURCES = tools/add-space.cc
 hyperdex_add_space_LDADD = libhyperclient.la
@@ -414,10 +432,24 @@ endif
 ################################################################################
 
 hyperdex_replication_stress_test_SOURCES = replication-stress-test.cc
-hyperdex_replication_stress_test_LDADD = libhyperclient.la -lpopt
+hyperdex_replication_stress_test_LDADD = libhyperclient.la -lpopt -le
 
 hyperdex_search_stress_test_SOURCES = search-stress-test.cc test/common.cc
-hyperdex_search_stress_test_LDADD = libhyperclient.la -lpopt
+hyperdex_search_stress_test_LDADD = libhyperclient.la -lpopt -le
 
 hyperdex_simple_consistency_stress_test_SOURCES = simple-consistency-stress-test.cc
 hyperdex_simple_consistency_stress_test_LDADD = libhyperclient.la -lpopt -lpthread
+
+################################################################################
+################################# Documentation ################################
+################################################################################
+
+# These need to be chained so that they'll only build once, and will not rely
+# upon a PHONY rule.
+doc/man/hyperdex-daemon.1: doc/man/hyperdex-daemon.rst
+	sphinx-build -W -d ${abs_top_builddir}/doc/_build -b man doc doc/man
+
+doc/HyperDex-$(VERSION).pdf:
+	sphinx-build -W -d ${abs_top_builddir}/doc/_build -b latex ${abs_top_srcdir}/doc ${abs_top_builddir}/doc/_build/latex
+	make -C ${abs_top_builddir}/doc/_build/latex all-pdf
+	cp ${abs_top_builddir}/doc/_build/latex/HyperDex.pdf doc/HyperDex-$(VERSION).pdf

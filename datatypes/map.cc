@@ -71,7 +71,7 @@ validate_map(bool (*step_key)(const uint8_t** ptr, const uint8_t* end, e::slice*
 
         if (has_old)
         {
-            if (compare_key(old, key) < 0)
+            if (compare_key(old, key) >= 0)
             {
                 return false;
             }

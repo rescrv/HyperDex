@@ -145,7 +145,7 @@ cdef extern from "../hyperclient.h":
     int64_t hyperclient_get(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_returncode* status, hyperclient_attribute** attrs, size_t* attrs_sz)
     int64_t hyperclient_put(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_put_if_not_exist(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
-    int64_t hyperclient_condput(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute_check* condattrs, size_t condattrs_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_cond_put(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute_check* condattrs, size_t condattrs_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_del(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_returncode* status)
     int64_t hyperclient_atomic_add(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_atomic_sub(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
@@ -317,7 +317,7 @@ cdef _obj_to_backing(v):
         for x in sorted(v, key=__sort_key):
             if isinstance(x, bytes):
                 innerxtype = HYPERDATATYPE_SET_STRING
-                innerxbacking = struct.pack('<L', len(x)) + bytes(x)
+                innerxbacking = struct.pack('<L', len(bytes(x))) + bytes(x)
             elif isinstance(x, int):
                 innerxtype = HYPERDATATYPE_SET_INT64
                 innerxbacking = struct.pack('<q', x)
@@ -870,13 +870,13 @@ cdef class DeferredCondPut(Deferred):
         cdef size_t condattrs_sz
         cdef hyperclient_attribute* attrs = NULL
         try:
-            backingsc = _predicate_to_c(condition.items(), &condattrs, &condattrs_sz)
+            backingsc = _predicate_to_c(condition, &condattrs, &condattrs_sz)
             backingsa = _dict_to_attrs(value.items(), &attrs)
-            self._reqid = hyperclient_condput(client._client, space_cstr,
-                                              key_cstr, len(key_backing),
-                                              condattrs, condattrs_sz,
-                                              attrs, len(value),
-                                              &self._status)
+            self._reqid = hyperclient_cond_put(client._client, space_cstr,
+                                               key_cstr, len(key_backing),
+                                               condattrs, condattrs_sz,
+                                               attrs, len(value),
+                                               &self._status)
             _check_reqid_key_attrs2(self._reqid, self._status,
                                     condattrs, len(condition),
                                     attrs, len(value))
@@ -956,28 +956,22 @@ cdef _predicate_to_c(dict predicate,
     for attr, preds in predicate.iteritems():
         if isinstance(preds, list):
             for p in preds:
-                if type(p) in (bytes, int, float):
-                    raw_checks.append((attr, HYPERPREDICATE_EQUALS, p))
-                elif isinstance(p, tuple) and len(p) == 2 and \
-                     type(p[0]) == type(p[1]) and type(p[0]) in (bytes, int, long, float):
+                if isinstance(p, tuple) and len(p) == 2 and \
+                   type(p[0]) == type(p[1]) and type(p[0]):
                     raw_checks.append((attr, HYPERPREDICATE_GREATER_EQUAL, p[0]))
                     raw_checks.append((attr, HYPERPREDICATE_LESS_EQUAL, p[1]))
                 elif isinstance(p, Predicate):
                     raw_checks += p._raw(attr)
                 else:
-                    errstr = "Attribute '{attr}' has incorrect type (expected Predicate, int, float, (int, int), (float, float), bytes or list of these; instead, got {type})"
-                    raise TypeError(errstr.format(attr=attr, type=str(type(p))[7:-2]))
+                    raw_checks.append((attr, HYPERPREDICATE_EQUALS, p))
         elif isinstance(preds, tuple) and len(preds) == 2 and \
-             type(preds[0]) == type(preds[1]) and type(preds[0]) in (bytes, int, long, float):
+             type(preds[0]) == type(preds[1]):
             raw_checks.append((attr, HYPERPREDICATE_GREATER_EQUAL, preds[0]))
             raw_checks.append((attr, HYPERPREDICATE_LESS_EQUAL, preds[1]))
-        elif type(preds) in (bytes, int, long, float):
-            raw_checks.append((attr, HYPERPREDICATE_EQUALS, preds))
         elif isinstance(preds, Predicate):
             raw_checks += preds._raw(attr)
         else:
-            errstr = "Attribute '{attr}' has incorrect type (expected Predicate, int, float, (int, int), (float, float), bytes or list of these; instead, got {type})"
-            raise TypeError(errstr.format(attr=attr, type=str(type(preds))[7:-2]))
+            raw_checks.append((attr, HYPERPREDICATE_EQUALS, preds))
     chks_sz[0] = len(raw_checks)
     chks[0] = <hyperclient_attribute_check*> malloc(sizeof(hyperclient_attribute_check) * chks_sz[0])
     if chks[0] == NULL:
@@ -1212,8 +1206,8 @@ cdef class Client:
         async = self.async_put_if_not_exist(space, key, value)
         return async.wait()
 
-    def condput(self, bytes space, key, dict condition, dict value):
-        async = self.async_condput(space, key, condition, value)
+    def cond_put(self, bytes space, key, dict condition, dict value):
+        async = self.async_cond_put(space, key, condition, value)
         return async.wait()
 
     def delete(self, bytes space, key):
@@ -1360,7 +1354,7 @@ cdef class Client:
         d.setcmp()
         return d
 
-    def async_condput(self, bytes space, key, dict condition, dict value):
+    def async_cond_put(self, bytes space, key, dict condition, dict value):
         return DeferredCondPut(self, space, key, condition, value)
 
     def async_delete(self, bytes space, key):

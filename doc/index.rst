@@ -6,25 +6,14 @@ Welcome to the HyperDex Reference Manual
 .. toctree::
    :maxdepth: 2
 
-   introduction
-   installation
-   datamodel
-   quickstart
-   keyoperations
-   searchoperations
-   administration
-   api
-   man
-   dev
-
-   tutorial-advanced
-   tutorial-datastructure
+   01.introduction
+   02.installation
+   03.quickstart
+   04.datatypes
+   05.asynchronous
+   06.faults
    api/python
    api/c
-   man/hyperdex-daemon
-   man/hyperdex-replication-stress-test
-   man/hyperdex-simple-consistency-stress-test
-
    glossary
 
 Indices and tables
