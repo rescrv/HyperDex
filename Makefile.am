@@ -386,7 +386,7 @@ hyperdex_initialize_cluster_CPPFLAGS = -DHYPERDEX_COORD_LIB=\""$(hyperdexexecdir
 hyperdex_initialize_cluster_LDADD = libhyperclient.la
 
 hyperdex_coordinator_SOURCES = tools/coordinator.cc
-hyperdex_coordinator_LDADD = libhyperclient.la
+hyperdex_coordinator_LDADD = libhyperclient.la -le -lbusybee
 
 hyperdex_add_space_SOURCES = tools/add-space.cc
 hyperdex_add_space_LDADD = libhyperclient.la
