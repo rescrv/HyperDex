@@ -1,8 +1,6 @@
 import hyperclient.*;
 import java.util.*;
 
-/* This example uses the phonebook space from the tutorial */
-
 public class HyperBinaryTest
 {
     public static void printRawBytes(byte[] bytes)
@@ -22,7 +20,16 @@ public class HyperBinaryTest
 
 	public static void main(String[] args) throws Exception
 	{
-		HyperClient c = new HyperClient("127.0.0.1",1234);
+		HyperClient c = new HyperClient("127.0.0.1",1982);
+
+        String desc = "space phonebook "
+                    + "key username "
+                    + "attributes first, last, int phone "
+                    + "subspace first, last, phone";
+
+        System.out.println("\n\nSpace Description:\n\n" + desc + "\n\n");
+
+        c.add_space(desc);
 
         HashMap<Object,Object> attrs = new HashMap<Object,Object>();
 
@@ -90,5 +97,7 @@ public class HyperBinaryTest
         System.out.println("put success: " + c.put("phonebook", "mykey", attrs));
         map = c.get("phonebook", "mykey");
         System.out.println(((ByteArray)(map.get("first"))).decode("UTF-16BE"));
+
+        c.rm_space("phonebook");
 	}
 }

@@ -33,7 +33,7 @@ public class DeferredCondPut extends Deferred
             attrs_sz = value.size();
             attrs = client.dict_to_attrs(value);
 	
-            reqId = client.condput(client.getBytes(space,true),
+            reqId = client.cond_put(client.getBytes(space,true),
                                    client.getBytes(key),
                                    condattrs, condattrs_sz,
                                    attrs, attrs_sz,

@@ -1361,14 +1361,14 @@
     return (java.util.Map)(d.waitFor());
   }
 
-  public boolean condput(Object space, Object key, java.util.Map condition,
+  public boolean cond_put(Object space, Object key, java.util.Map condition,
                                                    java.util.Map value)
                                                             throws HyperClientException,
                                                                    TypeError,
                                                                    MemoryError,
                                                                    ValueError
   {
-    Deferred d = (DeferredCondPut)(async_condput(space, key, condition, value));
+    Deferred d = (DeferredCondPut)(async_cond_put(space, key, condition, value));
     return ((Boolean)(d.waitFor())).booleanValue();
   }
 
@@ -1772,7 +1772,7 @@
     return new DeferredGet(this,space, key);
   }
 
-  public Deferred async_condput(Object space, Object key, java.util.Map condition,
+  public Deferred async_cond_put(Object space, Object key, java.util.Map condition,
                                                           java.util.Map value)
                                                             throws HyperClientException,
                                                             TypeError,

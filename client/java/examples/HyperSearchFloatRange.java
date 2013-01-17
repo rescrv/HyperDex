@@ -1,12 +1,3 @@
-/* This example uses space definition */
-/*
-space weightbook
-dimensions username, first, last, weight (float)
-key username auto 1 3
-subspace first, last, weight auto 2 3
-*/
-
-
 import hyperclient.*;
 import java.util.*;
 
@@ -16,7 +7,16 @@ public class HyperSearchFloatRange
 	{
         HashMap<String,Object> values = new HashMap<String,Object>();
 
-		HyperClient c = new HyperClient("127.0.0.1",1234);
+		HyperClient c = new HyperClient("127.0.0.1",1982);
+
+        String desc = "space weightbook "
+                    + "key username "
+                    + "attributes first, last, float weight "
+                    + "subspace first, last, weight";
+
+        System.out.println("\n\nSpace Description:\n\n" + desc + "\n\n");
+
+        c.add_space(desc);
 
         values.put("first","Nick");
         values.put("last","Tolomiczenko");
@@ -57,11 +57,11 @@ public class HyperSearchFloatRange
             System.out.println(s.next());
         }
 
-        // Now add a range stipulation on the weight: [160.1,165)
+        // Now add a range stipulation on the weight: [160.1,165]
         values.put("weight",
                     new AbstractMap.SimpleEntry<Double,Double>(160.1D,165D));
 
-        System.out.println("\nSearching for last name of 'Tolomiczenko'\n\n  AND\n\nweight in the range [160.1,165):\n");
+        System.out.println("\nSearching for last name of 'Tolomiczenko'\n\n  AND\n\nweight in the range [160.1,165]:\n");
 
         // Do the search again
         s = c.search("weightbook",values);
@@ -86,5 +86,6 @@ public class HyperSearchFloatRange
             System.out.println(s.next());
         }
 
+        c.rm_space("weightbook");
 	}
 }
