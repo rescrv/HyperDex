@@ -107,8 +107,10 @@ instruct HyperDex to create a suitable space for holding such objects.
 
 First, let's open a Python shell and connect to HyperDex:
 
+
 .. sourcecode:: pycon
 
+   $ python
    >>> import hyperclient
    >>> c = hyperclient.Client('127.0.0.1', 1982)
 
@@ -139,18 +141,13 @@ default, HyperDex treats every attribute as an opaque bytestring, but provides
 other types as well.  Here, we specify that the phone number be treated as an
 integer.  The available datatypes are discussed in :ref:`Chapter 4 <datatypes>`.
 
-Note that, under the covers, HyperDex treats all objects as points in a
-multidimensional hyperspace.  Since the ``phonebook`` space has four attributes
-per object, HyperDex can map the data to points in a four-dimensional space.
-The resulting four-dimensional space is hard to visualize, but you can see why
-the name HyperDex is so apt.
-
-Note that, under the covers, HyperDex will not necessarily create one giant
-hyperdimensional space. Doing so would cause lots of problems when trying to map
-objects with large numbers of attributes. Instead, we will typically want to
-create *subspaces* consisting of smaller numbers of dimensions. The lower number
-of dimensions enable the mapping from points in space to nodes in the cluster to
-be more efficient; in particular, fewer nodes need to be contacted during search
+Even though the objects we specify will have many attributes, HyperDex will not
+necessarily create one giant hyperdimensional space spanning as many dimensions
+as attributes.  Doing so would not be desirable, as the space would be to large
+to efficiently map onto a cluster.  Instead, we will typically want to create
+*subspaces* consisting of smaller numbers of dimensions. The lower number of
+dimensions enable the mapping from points in space to nodes in the cluster to be
+more efficient; in particular, fewer nodes need to be contacted during search
 operations.  In this simple example, we create a 3-dimensional subspace for the
 ``first``, ``last`` and ``phone`` attributes.  HyperDex always implicitly
 creates a 1-dimensional subspace for the key of objects.
