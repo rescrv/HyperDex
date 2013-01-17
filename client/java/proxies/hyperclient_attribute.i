@@ -205,8 +205,8 @@
   private java.lang.Object getAttrMapStringStringValue(String defaultStringEncoding)
                                                                         throws ValueError
   {
-    java.util.HashMap<ByteArray,ByteArray> map
-            = new java.util.HashMap<ByteArray,ByteArray>();
+    ByteArrayKeyedSortedMap<ByteArray> map
+            = new ByteArrayKeyedSortedMap<ByteArray>();
 
     // Interpret return value of getValue_sz() as unsigned
     //
@@ -275,7 +275,8 @@
   private java.lang.Object getAttrMapStringLongValue(String defaultStringEncoding)
                                                                         throws ValueError
   {
-    java.util.HashMap<ByteArray,Long> map = new java.util.HashMap<ByteArray,Long>();
+    ByteArrayKeyedSortedMap<Long> map
+        = new ByteArrayKeyedSortedMap<Long>();
 
     // Interpret return value of getValue_sz() as unsigned
     //
@@ -340,8 +341,8 @@
   private java.lang.Object getAttrMapStringDoubleValue(String defaultStringEncoding)
                                                                         throws ValueError
   {
-    java.util.HashMap<ByteArray,Double>
-        map = new java.util.HashMap<ByteArray,Double>();
+    ByteArrayKeyedSortedMap<Double>
+        map = new ByteArrayKeyedSortedMap<Double>();
 
     // Interpret return value of getValue_sz() as unsigned
     //
@@ -715,7 +716,7 @@
         return getAttrDoubleValue();
 
       case HYPERDATATYPE_LIST_STRING:
-        java.util.Vector<ByteArray> ls = new java.util.Vector<ByteArray>();
+        ByteArrayVector ls = new ByteArrayVector();
         getAttrCollectionStringValue(ls,defaultStringEncoding);
         return ls;
 
@@ -730,7 +731,7 @@
         return lf;
 
       case HYPERDATATYPE_SET_STRING:
-        java.util.HashSet<ByteArray> ss = new java.util.HashSet<ByteArray>();
+        ByteArraySortedSet ss = new ByteArraySortedSet();
         getAttrCollectionStringValue(ss,defaultStringEncoding);
         return ss;
 

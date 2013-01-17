@@ -1,5 +1,3 @@
-/* This example uses the phonebook space from the tutorial */
-
 import hyperclient.*;
 import java.util.*;
 
@@ -9,7 +7,16 @@ public class HyperTest
 	{
         HashMap<String,Object> values = new HashMap<String,Object>();
 
-		HyperClient c = new HyperClient("127.0.0.1",1234);
+		HyperClient c = new HyperClient("127.0.0.1",1982);
+
+        String desc = "space phonebook "
+                    + "key username "
+                    + "attributes first, last, int phone "
+                    + "subspace first, last, phone";
+
+        System.out.println("\n\nSpace Description:\n\n" + desc + "\n\n");
+
+        c.add_space(desc);
 
         values.put("first","Nick");
         values.put("last","Tolomiczenko");
@@ -50,11 +57,11 @@ public class HyperTest
             System.out.println(s.next());
         }
 
-        // Now add a range stipulation on the phone number: [4165551024,4165551026)
+        // Now add a range stipulation on the phone number: [4165551024,4165551026]
         values.put("phone",
                     new AbstractMap.SimpleEntry<Long,Long>(4165551024L,4165551026L));
 
-        System.out.println("\nSearching for last name of 'Tolomiczenko'\n\n  AND\n\nphone number in the range [4165551024,4165551026):\n");
+        System.out.println("\nSearching for last name of 'Tolomiczenko'\n\n  AND\n\nphone number in the range [4165551024,4165551026]:\n");
 
         // Do the search again
         s = c.search("phonebook",values);
@@ -138,7 +145,7 @@ public class HyperTest
             System.out.println(s.next());
         }
 
-        System.out.println("\nGroup delete for last name of 'Tolomiczenko'\n\n  AND\n\nphone number in the range [4165551024,4165551026):\n");
+        System.out.println("\nGroup delete for last name of 'Tolomiczenko'\n\n  AND\n\nphone number in the range [4165551024,4165551026]:\n");
         values.put("phone",
                     new AbstractMap.SimpleEntry<Long,Long>(4165551024L,4165551026L));
         System.out.println("result: " + c.group_del("phonebook",values));
@@ -152,5 +159,7 @@ public class HyperTest
         {
             System.out.println(s.next());
         }
+
+        c.rm_space("phonebook");
 	}
 }

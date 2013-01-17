@@ -314,12 +314,12 @@ client/keyop_info.cc: client/keyop_info.gperf
 
 java_bindings_cleanfiles = \
 			$(hyperclient_jarfile) \
-			hyperclient/java/hyperclient_wrap.cxx \
-			hyperclient/java/hyperclient/*.java \
-			hyperclient/java/hyperclient/*.class \
+			client/java/hyperclient_wrap.cxx \
+			client/java/hyperclient/*.java \
+			client/java/hyperclient/*.class \
 			hyperclient-java.stamp
 
-nodist_libhyperclient_java_la_SOURCES = hyperclient/java/hyperclient_wrap.cxx
+nodist_libhyperclient_java_la_SOURCES = client/java/hyperclient_wrap.cxx
 libhyperclient_java_la_CPPFLAGS = \
 			$(JNI_CPPFLAGS) \
 			$(CPPFLAGS)
@@ -329,20 +329,20 @@ libhyperclient_java_la_LIBADD = \
 			libhyperclient.la \
 			$(PYTHON_LDFLAGS)
 
-hyperclient/java/hyperclient_wrap.cxx: hyperclient/java/hyperclient.i hyperclient/hyperclient.h
-	mkdir -p hyperclient/java/hyperclient
-	${SWIG} -java -package hyperclient -outdir $(abs_builddir)/hyperclient/java/hyperclient \
-		-o $(abs_builddir)/hyperclient/java/hyperclient_wrap.cxx -w518 $(abs_top_srcdir)/hyperclient/java/hyperclient.i
+client/java/hyperclient_wrap.cxx: client/java/hyperclient.i client/hyperclient.h
+	mkdir -p client/java/hyperclient
+	${SWIG} -java -package hyperclient -outdir $(abs_builddir)/client/java/hyperclient \
+		-o $(abs_builddir)/client/java/hyperclient_wrap.cxx -w518 $(abs_top_srcdir)/client/java/hyperclient.i
 
 hyperclient_jarfile = hyperclient-$(VERSION).jar
 
-hyperclient-java.stamp: hyperclient/java/hyperclient_wrap.cxx
-	cp hyperclient/java/extra_src/*.java hyperclient/java/hyperclient/.
-	javac hyperclient/java/hyperclient/*.java
+hyperclient-java.stamp: client/java/hyperclient_wrap.cxx
+	cp client/java/extra_src/*.java client/java/hyperclient/.
+	javac client/java/hyperclient/*.java
 	date > hyperclient-java.stamp
 
 $(hyperclient_jarfile): hyperclient-java.stamp
-	cd $(abs_top_builddir)/hyperclient/java ; $(JAR) cvf $(JARFLAGS) $(abs_top_builddir)/$(hyperclient_jarfile) hyperclient/*.class
+	cd $(abs_top_builddir)/client/java ; $(JAR) cvf $(JARFLAGS) $(abs_top_builddir)/$(hyperclient_jarfile) hyperclient/*.class
 
 if ENABLE_JAVA_BINDINGS
 lib_LTLIBRARIES += libhyperclient-java.la

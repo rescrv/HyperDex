@@ -38,14 +38,12 @@
 %{
 #include <limits.h>
 #include <cstdlib>
-#include "hyperclient/hyperclient.h"
+#include "client/hyperclient.h"
 typedef hyperclient_attribute* hyperclient_attribute_asterisk;
-typedef hyperclient_range_query* hyperclient_range_query_asterisk;
 %}
 
 typedef uint16_t in_port_t;
 typedef hyperclient_attribute* hyperclient_attribute_asterisk;
-typedef hyperclient_range_query* hyperclient_range_query_asterisk;
 
 %pragma(java) jniclasscode=
 %{
@@ -69,9 +67,6 @@ typedef hyperclient_range_query* hyperclient_range_query_asterisk;
 //                             essentially a pointer to this java-transparent pointer.  
 %pointer_functions(hyperclient_attribute_asterisk,hyperclient_attribute_ptr);
 
-// Likewise for hyperclient_range_query*
-%pointer_functions(hyperclient_range_query_asterisk,hyperclient_range_query_ptr);
-
 // A couple more c++ pointer handling macros I will need
 //
 %pointer_functions(size_t, size_t_ptr);
@@ -80,9 +75,10 @@ typedef hyperclient_range_query* hyperclient_range_query_asterisk;
 
 %include "proxies/hyperclient_attribute.i"
 %include "proxies/hyperclient_map_attribute.i"
-%include "proxies/hyperclient_range_query.i"
+%include "proxies/hyperclient_attribute_check.i"
 %include "proxies/HyperClient.i"
 
+%apply (char *BYTE) { (const char *description) }
 %apply (char *BYTE) { (const char *space) }
 %apply (char *BYTE) { (const char *sort_by) }
 %apply (char *STRING, int LENGTH) { (const char *key, size_t key_sz) }
@@ -93,7 +89,7 @@ typedef hyperclient_range_query* hyperclient_range_query_asterisk;
 %apply (char *STRING, int LENGTH) { (const char *value, size_t value_sz) }
 
 
-// Pertaining to the include of hyperdex.h and hyperclient/hyperclient.h below:
+// Pertaining to the include of hyperdex.h and client/hyperclient.h below:
 
 // Ignore everything
 %ignore "";
@@ -101,12 +97,13 @@ typedef hyperclient_range_query* hyperclient_range_query_asterisk;
 // Un-ignore a couple of enums
 %rename("%s") "hyperclient_returncode";
 %rename("%s") "hyperdatatype";
+%rename("%s") "hyperpredicate";
 %rename("%s", %$isenumitem) "";
 
 // Un-ignore some classes I want to proxy in java
 %rename("%s") "hyperclient_attribute";
 %rename("%s") "hyperclient_map_attribute";
-%rename("%s") "hyperclient_range_query";
+%rename("%s") "hyperclient_attribute_check";
 %rename("%s",%$isvariable) "";
 
 // Un-ignore the only needed C function
@@ -116,4 +113,4 @@ typedef hyperclient_range_query* hyperclient_range_query_asterisk;
 %rename("%s", %$ismember) "";
 
 %include "hyperdex.h"
-%include "hyperclient/hyperclient.h"
+%include "client/hyperclient.h"

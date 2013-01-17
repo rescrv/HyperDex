@@ -36,17 +36,17 @@
         memcpy(name, str.data(), name_sz);
     }
 
-    static int get_range_query_attr_name_sz(hyperclient_range_query *rq)
+    static int get_attr_check_name_sz(hyperclient_attribute_check *hac)
     {
-        std::string str = std::string(rq->attr);
+        std::string str = std::string(hac->attr);
         size_t name_sz = str.length();
         return name_sz > INT_MAX ? (int)INT_MAX : (int)name_sz;
     }
 
-    static std::string read_range_query_attr_name(hyperclient_range_query *rq,
-                                                    char *name, size_t name_sz)
+    static void read_attr_check_name(hyperclient_attribute_check *hac,
+                                char *name, size_t name_sz)
     {
-        std::string str = std::string(rq->attr);
+        std::string str = std::string(hac->attr);
         memcpy(name, str.data(), name_sz);
     }
 
@@ -84,20 +84,21 @@
         free(attrs);
     }
 
-    static hyperclient_range_query *alloc_range_queries(size_t rqs_sz)
+    static hyperclient_attribute_check *alloc_attrs_check(size_t attrs_sz)
     {
-        return (hyperclient_range_query *)calloc(rqs_sz,
-                                                   sizeof(hyperclient_range_query));
+        return (hyperclient_attribute_check *)calloc(attrs_sz,
+                                                     sizeof(hyperclient_attribute_check));
     }
 
-    static void free_range_queries(hyperclient_range_query *rqs, size_t rqs_sz)
+    static void free_attrs_check(hyperclient_attribute_check *attrs, size_t attrs_sz)
     {
-        for (size_t i=0; i<rqs_sz; i++)
+        for (size_t i=0; i<attrs_sz; i++)
         {
-            if (rqs[i].attr) free((void*)(rqs[i].attr));
+            if (attrs[i].attr) free((void*)(attrs[i].attr));
+            if (attrs[i].value) free((void*)(attrs[i].value));
         }
 
-        free(rqs);
+        free(attrs);
     }
 
     // Returns 1 on success. ha->attr will point to allocated memory
@@ -192,18 +193,71 @@
         return 1;
     }
 
-    static int write_range_query(hyperclient_range_query *rq,
+    // Returns 1 on success. hac->attr will point to allocated memory
+    // Returns 0 on failure. hac->attr will be NULL
+    static int write_attr_check_name(hyperclient_attribute_check *hac,
                                    const char *attr, size_t attr_sz,
-                                   int64_t lower,
-                                   int64_t upper)
+                                   hyperpredicate pred)
     {
         char *buf;
 
         if ((buf = (char *)calloc(attr_sz+1,sizeof(char))) == NULL) return 0;
         memcpy(buf,attr,attr_sz);
-        rq->attr = buf;
-        rq->lower = lower;
-        rq->upper = upper;
+        hac->attr = buf;
+        hac->predicate = pred;
+        return 1;
+    }
+
+    // Returns 1 on success. hac->value will point to allocated memory
+    //                       hac->value_sz will hold the size of this memory
+    // Returns 0 on failure. hac->value will be NULL
+    //                       hac->value_sz will be 0
+    //
+    // If hac->value is already non-NULL, then we are appending to it.
+    static int write_attr_check_value(hyperclient_attribute_check *hac,
+                                        const char *value, size_t value_sz)
+    {
+        char *buf = NULL;
+        // Note: Since hyperclient_attribute_check array was calloced
+        //       hac->value = NULL and hac->value_sz = 0 initially
+        if ((buf = (char *)realloc((void *)(hac->value), hac->value_sz + value_sz))
+                                                                        == NULL) return 0;
+        memcpy(buf + hac->value_sz, value, value_sz);
+        hac->value = buf;
+        hac->value_sz += value_sz;
+        hac->datatype = HYPERDATATYPE_STRING;
+        return 1;
+    }
+
+    // Returns 1 on success. hac->value will point to allocated memory
+    //                       hac->value_sz will hold the size of this memory
+    // Returns 0 on failure. hac->value will be NULL
+    //                       hac->value_sz will be 0
+    //
+    static int write_attr_check_value(hyperclient_attribute_check *hac, int64_t value)
+    {
+        char *buf = NULL;
+        if ((buf = (char *)malloc(sizeof(int64_t))) == NULL) return 0;
+        memcpy(buf, &value, sizeof(int64_t));
+        hac->value = buf;
+        hac->value_sz = sizeof(int64_t);
+        hac->datatype = HYPERDATATYPE_INT64;
+        return 1;
+    }
+
+    // Returns 1 on success. hac->value will point to allocated memory
+    //                       hac->value_sz will hold the size of this memory
+    // Returns 0 on failure. hac->value will be NULL
+    //                       hac->value_sz will be 0
+    //
+    static int write_attr_check_value(hyperclient_attribute_check *hac, double value)
+    {
+        char *buf = NULL;
+        if ((buf = (char *)malloc(sizeof(double))) == NULL) return 0;
+        memcpy(buf, &value, sizeof(double));
+        hac->value = buf;
+        hac->value_sz = sizeof(double);
+        hac->datatype = HYPERDATATYPE_FLOAT;
         return 1;
     }
 
@@ -217,9 +271,9 @@
         return hma + i;
     }
 
-    static hyperclient_range_query *get_range_query(hyperclient_range_query *rqs, size_t i)
+    static hyperclient_attribute_check *get_attr_check(hyperclient_attribute_check *hac, size_t i)
     {
-        return rqs + i;
+        return hac + i;
     }
 };
 
@@ -290,7 +344,7 @@
   java.util.Map attrs_to_dict(hyperclient_attribute attrs, long attrs_sz)
                                                                 throws ValueError
   {
-    java.util.HashMap<Object,Object> map = new java.util.HashMap<Object,Object>();
+    ByteArrayKeyedMap<Object> map = new ByteArrayKeyedMap<Object>(defaultStringEncoding);
 
     int sz = HyperClient.size_t_to_int(attrs_sz);
 
@@ -298,21 +352,11 @@
     {
         hyperclient_attribute ha = get_attr(attrs,i);
 
-        String attrName = null;
-
-        try
-        {
-            attrName = new String(ha.getAttrNameBytes(),defaultStringEncoding);
-        }
-        catch(java.io.UnsupportedEncodingException usee)
-        {
-            throw new ValueError("Could not decode bytes using encoding '"
-                                    + defaultStringEncoding +"'");
-        }
+        byte[] attrBytes = ha.getAttrNameBytes();
 
         Object attrValue = ha.getAttrValue(defaultStringEncoding);
 
-        map.put(attrName, attrValue);
+        map.put(attrBytes, attrValue);
     }
 
     return map;
@@ -413,70 +457,106 @@
     return retType;
   }
 
-  // Using a Vector retvals to return multiple values.
+  // write_attr_check private method expects value to satisfy
+  // either being instance of type Long or Double or isBytes(value) == true
   //
-  // retvals at 0 - eq
-  // retvals at 1 - eq_sz
-  // retvals at 2 - rn
-  // retvals at 3 - rn_sz
-  java.util.Vector predicate_to_c(java.util.Map predicate) throws TypeError,
-                                                                         MemoryError,
-                                                                         ValueError
+  private void write_attr_check(hyperclient_attribute_check hac,
+                            ByteArray attr, Object value, hyperpredicate pred)
+                                                                throws MemoryError,
+                                                                       TypeError
   {
-      java.util.Vector<Object> retvals = new java.util.Vector<Object>(4);
-
-      retvals.add(null);
-      retvals.add(new Integer(0));
-      retvals.add(null);
-      retvals.add(new Integer(0));
-
-      java.util.HashMap<ByteArray,Object> equalities
-            = new java.util.HashMap<ByteArray,Object>();
-
-      java.util.HashMap<ByteArray,Object> ranges
-            = new java.util.HashMap<ByteArray,Object>();
-
-      for (java.util.Iterator it=predicate.keySet().iterator(); it.hasNext();)
+      if ( write_attr_check_name(hac,attr.getBytes(),pred) == 0 )
       {
-          Object attrObject = it.next();
+          throw new MemoryError();
+      }
 
-          if ( attrObject == null )
-              throw new TypeError("Cannot search on a null attribute");
-
-          byte[] attrBytes = getBytes(attrObject);
-
-          String attrStr = ByteArray.decode(attrBytes,defaultStringEncoding);
-
-          Object params = predicate.get(attrObject);
-
-          if ( params == null )
-              throw new TypeError("Cannot search with a null criteria");
-
-
-          String errStr = "Attribute '" + attrStr + "' has incorrect type ( expected Long, Double, String, Map.Entry<Long,Long> or List<Long> (of size 2), but got %s";
-
-          if ( isBytes(params) || params instanceof Long || params instanceof Double )
+      if ( value instanceof Long )
+      {
+          if ( write_attr_check_value(hac,((Long)value).longValue()) == 0 )
           {
-              equalities.put(new ByteArray(attrBytes), params);
+              throw new MemoryError();
           }
-          else
+      }
+      else if ( value instanceof Double )
+      {
+          if ( write_attr_check_value(hac,((Double)value).doubleValue()) == 0 )
           {
-              if ( params instanceof java.util.Map.Entry )
-              {
-                  try
-                  {
-                      long lower
-                        = ((Long)((java.util.Map.Entry)params).getKey()).longValue();
+              throw new MemoryError();
+          }
+      } 
+      else // isBytes(value) must be true
+      {
+          if ( write_attr_check_value(hac,getBytes(value)) == 0 )
+          {
+              throw new MemoryError();
+          }
+      }
+  }
 
-                      long upper
-                        = ((Long)((java.util.Map.Entry)params).getValue()).longValue();
-                  }
-                  catch(Exception e)
+  // Using a Vector<Object> retvals to return multiple values.
+  //
+  // retvals at 0 - hacs (hyperclient_attribute_check type)
+  // retvals at 1 - hacs_sz (long)
+
+  java.util.Vector predicate_to_c(java.util.Map predicate) throws TypeError,
+                                                                  MemoryError,
+                                                                  ValueError
+  {
+      java.util.Vector<
+          java.util.Map.Entry<
+            ByteArray,java.util.Map.Entry<hyperpredicate,Object>>> rawChecks
+            = new java.util.Vector<
+                java.util.Map.Entry<
+                    ByteArray,java.util.Map.Entry<hyperpredicate,Object>>>();
+
+      hyperclient_attribute_check hacs = null;
+      long hacs_sz = 0;
+
+      try
+      {
+          for (java.util.Iterator it=predicate.keySet().iterator(); it.hasNext();)
+          {
+              Object attrObject = it.next();
+    
+              if ( attrObject == null )
+                  throw new TypeError("Cannot search on a null attribute");
+    
+              byte[] attrBytes = getBytes(attrObject);
+    
+              String attrStr = ByteArray.decode(attrBytes,defaultStringEncoding);
+    
+              Object params = predicate.get(attrObject);
+    
+              if ( params == null )
+                  throw new TypeError("Cannot search with a null criteria");
+    
+    
+              String errStr = "Attribute '" + attrStr + "' has incorrect type ( expected Predicate, Long, Double, String, Map.Entry<Long,Long>, Map.Entry<Double,Double>, List<Long> or List<Double> (List being of size 2), but got %s";
+    
+              if ( isBytes(params) || params instanceof Long || params instanceof Double )
+              {
+                  rawChecks.add(new java.util.AbstractMap.SimpleEntry<
+                          ByteArray,java.util.Map.Entry<hyperpredicate,Object>>(
+                              new ByteArray(attrBytes), 
+                                  new java.util.AbstractMap.SimpleEntry<
+                                    hyperpredicate,Object>(
+                                      hyperpredicate.HYPERPREDICATE_EQUALS, params)));
+              }
+              else if ( params instanceof java.util.Map.Entry )
+              {
+                  Object lower = ((java.util.Map.Entry)params).getKey();
+                  Object upper = ((java.util.Map.Entry)params).getValue();
+
+                  if ( ! ( lower instanceof Long && upper instanceof Long ) &&
+                       ! ( lower instanceof Double && upper instanceof Double ) )
                   {
                       throw
                           new TypeError(
-                                String.format(errStr,params.getClass().getName()));
+                              String.format(errStr,params.getClass().getName()));
                   }
+
+                  rawChecks.addAll(
+                      (new Range(lower,upper)).getRawChecks(new ByteArray(attrBytes)));
               }
               else if ( params instanceof java.util.List )
               {
@@ -491,79 +571,79 @@
                   {
                       throw te;
                   }
-                  catch (Exception e)
+
+                  Object lower = ((java.util.List)params).get(0);
+                  Object upper = ((java.util.List)params).get(1);
+
+                  if ( ! ( lower instanceof Long && upper instanceof Long ) &&
+                       ! ( lower instanceof Double && upper instanceof Double ) )
                   {
                       throw
                           new TypeError(
                               String.format(errStr,params.getClass().getName()));
                   }
+
+                  rawChecks.addAll(
+                      (new Range(lower,upper)).getRawChecks(new ByteArray(attrBytes)));
+              }
+              else if ( params instanceof Predicate )
+              {
+                  rawChecks.addAll(
+                      ((Predicate)params).getRawChecks(new ByteArray(attrBytes)));
               }
               else
               {
                   throw
                       new TypeError(String.format(errStr,params.getClass().getName()));
               }
-
-              ranges.put(new ByteArray(attrBytes),params);
           }
-      }
-
-      if ( equalities.size() > 0 )
-      {
-
-          retvals.set(0, dict_to_attrs(equalities));
-          retvals.set(1, equalities.size());
-      }
-
-      if ( ranges.size() > 0 )
-      {
-          int rn_sz = ranges.size();
-          hyperclient_range_query rn = HyperClient.alloc_range_queries(rn_sz);
-
-          if ( rn == null ) throw new MemoryError();
-
-          retvals.set(2, rn);
-          retvals.set(3, ranges.size());
-
-          int i = 0;
-          for (java.util.Iterator<ByteArray> it=ranges.keySet().iterator(); it.hasNext();)
+    
+          if ( rawChecks.size() > 0 )
           {
-              ByteArray attr = it.next();
+              hacs_sz = rawChecks.size();
+    
+              hacs = alloc_attrs_check(hacs_sz);
+    
+              if ( hacs == null ) throw new MemoryError();
+    
+              int i = 0; // Collections in java can only hold MAX_INT_SIZE elements
 
-              String attrStr = ByteArray.decode(attr,defaultStringEncoding);
-
-              Object params = ranges.get(attr);
-
-              long lower = 0;
-              long upper = 0;
-
-              if ( params instanceof java.util.Map.Entry )
+              for ( java.util.Map.Entry<
+                            ByteArray,java.util.Map.Entry<
+                                hyperpredicate,Object>> rawCheck: rawChecks )
               {
-                  lower = (Long)(((java.util.Map.Entry)params).getKey());
-                  upper = (Long)(((java.util.Map.Entry)params).getValue());
+                  ByteArray attr = rawCheck.getKey();
+                  hyperpredicate p = rawCheck.getValue().getKey();
+                  Object value = rawCheck.getValue().getValue();
+
+                  hyperclient_attribute_check hac = HyperClient.get_attr_check(hacs,i++);
+                  write_attr_check(hac,attr, value, p);
               }
-              else // Must be a List of Longs of size = 2
-              {
-                  lower = (Long)(((java.util.List)params).get(0));
-                  upper = (Long)(((java.util.List)params).get(1));
-              }
-
-              hyperclient_range_query rq = HyperClient.get_range_query(rn,i);
-
-              if ( HyperClient.write_range_query(rq,attr.getBytes(),lower,upper) == 0 )
-                  throw new MemoryError();
-
-              i++;
+          }
+          else 
+          {
+            throw new ValueError("Search criteria can't be empty");
           }
       }
+      catch(Exception e)
+      {
+          if ( hacs != null ) free_attrs_check(hacs, hacs_sz);
 
-      if ( retvals.get(0) == null && retvals.get(2) == null )
-            throw new ValueError("Search criteria can't be empty");
+          if ( e instanceof TypeError ) throw (TypeError)e;
+          if ( e instanceof ValueError ) throw (ValueError)e;
+          if ( e instanceof MemoryError ) throw (MemoryError)e;
+
+      }
+
+      java.util.Vector<Object> retvals = new java.util.Vector<Object>(2);
+
+      retvals.add(hacs);
+      retvals.add(hacs_sz);
 
       return retvals;
   }
 
-  private static boolean isBytes(Object obj)
+  static boolean isBytes(Object obj)
   {
     return obj instanceof byte[] || obj instanceof ByteArray || obj instanceof String;
   }
@@ -1251,6 +1331,26 @@
     return attrs;
   }
 
+  public void add_space(Object desc) throws HyperClientException, TypeError
+  {
+    hyperclient_returncode rc = add_space(getBytes(desc,true));
+
+    if ( rc != hyperclient_returncode.HYPERCLIENT_SUCCESS )
+    {
+        throw new HyperClientException(rc);
+    }
+  }
+
+  public void rm_space(Object space) throws HyperClientException, TypeError
+  {
+    hyperclient_returncode rc = rm_space(getBytes(space,true));
+
+    if ( rc != hyperclient_returncode.HYPERCLIENT_SUCCESS )
+    {
+        throw new HyperClientException(rc);
+    }
+  }
+
   // Synchronous methods
   //
   public java.util.Map get(Object space, Object key) throws HyperClientException,
@@ -1261,14 +1361,14 @@
     return (java.util.Map)(d.waitFor());
   }
 
-  public boolean condput(Object space, Object key, java.util.Map condition,
+  public boolean cond_put(Object space, Object key, java.util.Map condition,
                                                    java.util.Map value)
                                                             throws HyperClientException,
                                                                    TypeError,
                                                                    MemoryError,
                                                                    ValueError
   {
-    Deferred d = (DeferredCondPut)(async_condput(space, key, condition, value));
+    Deferred d = (DeferredCondPut)(async_cond_put(space, key, condition, value));
     return ((Boolean)(d.waitFor())).booleanValue();
   }
 
@@ -1672,7 +1772,7 @@
     return new DeferredGet(this,space, key);
   }
 
-  public Deferred async_condput(Object space, Object key, java.util.Map condition,
+  public Deferred async_cond_put(Object space, Object key, java.util.Map condition,
                                                           java.util.Map value)
                                                             throws HyperClientException,
                                                             TypeError,

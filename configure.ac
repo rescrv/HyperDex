@@ -28,11 +28,6 @@ need_swig=no
 
 JNI_CPPFLAGS=
 if test x"${java_bindings}" = xyes; then
-    AC_MSG_ERROR([
--------------------------------------------------
-The Java bindings are temporarily unavailable.
-They will be available in HyperDex 1.0
--------------------------------------------------])
     AC_PROG_JAR
     AC_PROG_JAVAC
     AC_JNI_INCLUDE_DIR
