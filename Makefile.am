@@ -245,7 +245,44 @@ libhypercoordinator_la_LIBADD = -le
 
 libhyperclient_extra_dist = \
 			client/keyop_info.gperf \
-			hyperclient/java/hyperclient.i \
+			client/java/examples/HyperBinaryTest.java \
+			client/java/examples/HyperSearchFloatRange.java \
+			client/java/examples/HyperTest.java \
+			client/java/examples/README.txt \
+			client/java/examples/source_me \
+			client/java/extra_src/AttributeError.java \
+			client/java/extra_src/ByteArray.java \
+			client/java/extra_src/ByteArrayKeyedMap.java \
+			client/java/extra_src/ByteArrayKeyedSortedMap.java \
+			client/java/extra_src/ByteArraySortedSet.java \
+			client/java/extra_src/ByteArrayVector.java \
+			client/java/extra_src/DeferredCondPut.java \
+			client/java/extra_src/DeferredCount.java \
+			client/java/extra_src/DeferredDelete.java \
+			client/java/extra_src/DeferredFromAttrs.java \
+			client/java/extra_src/DeferredGet.java \
+			client/java/extra_src/DeferredGroupDel.java \
+			client/java/extra_src/Deferred.java \
+			client/java/extra_src/DeferredMapOp.java \
+			client/java/extra_src/GreaterEqual.java \
+			client/java/extra_src/HyperClientException.java \
+			client/java/extra_src/LessEqual.java \
+			client/java/extra_src/MapOp.java \
+			client/java/extra_src/MemoryError.java \
+			client/java/extra_src/Pending.java \
+			client/java/extra_src/Predicate.java \
+			client/java/extra_src/Range.java \
+			client/java/extra_src/SearchBase.java \
+			client/java/extra_src/Search.java \
+			client/java/extra_src/SimpleOp.java \
+			client/java/extra_src/SortedSearch.java \
+			client/java/extra_src/TypeError.java \
+			client/java/extra_src/ValueError.java \
+			client/java/hyperclient.i \
+			client/java/proxies/hyperclient_attribute_check.i \
+			client/java/proxies/hyperclient_attribute.i \
+			client/java/proxies/HyperClient.i \
+			client/java/proxies/hyperclient_map_attribute.i \
 			client/python/hyperclient.pyx
 
 libhyperclient_includedir = $(includedir)
@@ -331,15 +368,15 @@ libhyperclient_java_la_LIBADD = \
 
 client/java/hyperclient_wrap.cxx: client/java/hyperclient.i client/hyperclient.h
 	mkdir -p client/java/hyperclient
-	${SWIG} -java -package hyperclient -outdir $(abs_builddir)/client/java/hyperclient \
+	${SWIG} -I${abs_srcdir} -java -package hyperclient -outdir $(abs_builddir)/client/java/hyperclient \
 		-o $(abs_builddir)/client/java/hyperclient_wrap.cxx -w518 $(abs_top_srcdir)/client/java/hyperclient.i
 
 hyperclient_jarfile = hyperclient-$(VERSION).jar
 
 hyperclient-java.stamp: client/java/hyperclient_wrap.cxx
-	cp client/java/extra_src/*.java client/java/hyperclient/.
-	javac client/java/hyperclient/*.java
-	date > hyperclient-java.stamp
+	cp ${abs_srcdir}/client/java/extra_src/*.java ${abs_builddir}/client/java/hyperclient/.
+	javac ${abs_builddir}/client/java/hyperclient/*.java
+	date > ${abs_builddir}/hyperclient-java.stamp
 
 $(hyperclient_jarfile): hyperclient-java.stamp
 	cd $(abs_top_builddir)/client/java ; $(JAR) cvf $(JARFLAGS) $(abs_top_builddir)/$(hyperclient_jarfile) hyperclient/*.class
