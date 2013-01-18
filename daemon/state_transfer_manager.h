@@ -57,15 +57,11 @@ class state_transfer_manager
     public:
         bool setup();
         void teardown();
-        reconfigure_returncode prepare(const configuration& old_config,
-                                       const configuration& new_config,
-                                       const server_id& us);
-        reconfigure_returncode reconfigure(const configuration& old_config,
-                                           const configuration& new_config,
-                                           const server_id& us);
-        reconfigure_returncode cleanup(const configuration& old_config,
-                                       const configuration& new_config,
-                                       const server_id& us);
+        void pause();
+        void unpause();
+        void reconfigure(const configuration& old_config,
+                         const configuration& new_config,
+                         const server_id& us);
 
     public:
         void xfer_op(const virtual_server_id& from,
@@ -112,8 +108,11 @@ class state_transfer_manager
         po6::threads::thread m_kickstarter;
         po6::threads::mutex m_block_kickstarter;
         po6::threads::cond m_wakeup_kickstarter;
+        po6::threads::cond m_wakeup_reconfigurer;
         bool m_need_kickstart;
         bool m_shutdown;
+        bool m_need_pause;
+        bool m_paused;
 };
 
 } // namespace hyperdex

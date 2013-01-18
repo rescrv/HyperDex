@@ -51,8 +51,11 @@ state_transfer_manager :: state_transfer_manager(daemon* d)
     , m_kickstarter(std::tr1::bind(&state_transfer_manager::kickstarter, this))
     , m_block_kickstarter()
     , m_wakeup_kickstarter(&m_block_kickstarter)
+    , m_wakeup_reconfigurer(&m_block_kickstarter)
     , m_need_kickstart(false)
     , m_shutdown(true)
+    , m_need_pause(false)
+    , m_paused(false)
 {
 }
 
@@ -78,13 +81,21 @@ state_transfer_manager :: teardown()
     shutdown();
 }
 
-reconfigure_returncode
-state_transfer_manager :: prepare(const configuration&,
-                                  const configuration&,
-                                  const server_id&)
+void
+state_transfer_manager :: pause()
 {
-    m_block_kickstarter.lock();
-    return RECONFIGURE_SUCCESS;
+    po6::threads::mutex::hold hold(&m_block_kickstarter);
+    assert(!m_need_pause);
+    m_need_pause = true;
+}
+
+void
+state_transfer_manager :: unpause()
+{
+    po6::threads::mutex::hold hold(&m_block_kickstarter);
+    assert(m_need_pause);
+    m_wakeup_kickstarter.broadcast();
+    m_need_pause = false;
 }
 
 template <class S>
@@ -139,11 +150,21 @@ setup_transfer_state(const char* desc,
     tmp.swap(*transfer_states);
 }
 
-reconfigure_returncode
+void
 state_transfer_manager :: reconfigure(const configuration&,
                                       const configuration& new_config,
                                       const server_id&)
 {
+    {
+        po6::threads::mutex::hold hold(&m_block_kickstarter);
+        assert(m_need_pause);
+
+        while (!m_paused)
+        {
+            m_wakeup_reconfigurer.wait();
+        }
+    }
+
     leveldb_snapshot_ptr snap = m_daemon->m_data.make_raw_snapshot();
 
     // Setup transfers in
@@ -157,19 +178,6 @@ state_transfer_manager :: reconfigure(const configuration&,
     new_config.transfer_out_regions(m_daemon->m_us, &transfers_out);
     std::sort(transfers_out.begin(), transfers_out.end());
     setup_transfer_state("outgoing", &m_daemon->m_data, snap, transfers_out, &m_transfers_out);
-
-    return RECONFIGURE_SUCCESS;
-}
-
-reconfigure_returncode
-state_transfer_manager :: cleanup(const configuration&,
-                                  const configuration&,
-                                  const server_id&)
-{
-    m_wakeup_kickstarter.broadcast();
-    m_need_kickstart = true;
-    m_block_kickstarter.unlock();
-    return RECONFIGURE_SUCCESS;
 }
 
 void
@@ -612,9 +620,17 @@ state_transfer_manager :: kickstarter()
         {
             po6::threads::mutex::hold hold(&m_block_kickstarter);
 
-            while (!m_need_kickstart && !m_shutdown)
+            while ((!m_need_kickstart && !m_shutdown) || m_need_pause)
             {
+                m_paused = true;
+
+                if (m_need_pause)
+                {
+                    m_wakeup_reconfigurer.signal();
+                }
+
                 m_wakeup_kickstarter.wait();
+                m_paused = false;
             }
 
             if (m_shutdown)

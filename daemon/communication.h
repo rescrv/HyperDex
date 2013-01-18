@@ -81,15 +81,9 @@ class communication
         bool setup(const po6::net::location& bind_to,
                    unsigned threads);
         void teardown();
-        reconfigure_returncode prepare(const configuration& old_config,
-                                       const configuration& new_config,
-                                       const server_id& us);
-        reconfigure_returncode reconfigure(const configuration& old_config,
-                                           const configuration& new_config,
-                                           const server_id& us);
-        reconfigure_returncode cleanup(const configuration& old_config,
-                                       const configuration& new_config,
-                                       const server_id& us);
+        void reconfigure(const configuration& old_config,
+                         const configuration& new_config,
+                         const server_id& us);
 
     public:
         bool send_client(const virtual_server_id& from,

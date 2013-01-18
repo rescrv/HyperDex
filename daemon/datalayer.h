@@ -97,15 +97,11 @@ class datalayer
                         const po6::net::hostname& coordinator);
         // clears the "dirty" bit
         bool clear_dirty();
-        reconfigure_returncode prepare(const configuration& old_config,
-                                       const configuration& new_config,
-                                       const server_id& us);
-        reconfigure_returncode reconfigure(const configuration& old_config,
-                                           const configuration& new_config,
-                                           const server_id& us);
-        reconfigure_returncode cleanup(const configuration& old_config,
-                                       const configuration& new_config,
-                                       const server_id& us);
+        void pause();
+        void unpause();
+        void reconfigure(const configuration& old_config,
+                         const configuration& new_config,
+                         const server_id& us);
 
     public:
         returncode get(const region_id& ri,
@@ -246,8 +242,11 @@ class datalayer
         po6::threads::thread m_cleaner;
         po6::threads::mutex m_block_cleaner;
         po6::threads::cond m_wakeup_cleaner;
+        po6::threads::cond m_wakeup_reconfigurer;
         bool m_need_cleaning;
         bool m_shutdown;
+        bool m_need_pause;
+        bool m_paused;
         std::set<capture_id> m_state_transfer_captures;
 };
 
