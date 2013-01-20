@@ -149,5 +149,5 @@ AM_CONDITIONAL([ENABLE_JAVA_BINDINGS], [test x"${java_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_PYTHON_BINDINGS], [test x"${python_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_YCSB_DRIVER], [test x"${enable_ycsb}" = xyes])
 
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile hyperclient.pc])
 AC_OUTPUT
