@@ -7,6 +7,5 @@ Name: hyperclient
 Description: Client library for the HyperDex scalable high performance key-value store
 Version: @VERSION@
 
-Requires: libpo6 >= 0.2.3 libe >= 0.2.7 
 Libs: -L${libdir} -lhyperclient
 Cflags: -I${includedir}
