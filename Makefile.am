@@ -71,12 +71,17 @@ noinst_PROGRAMS = \
 
 dist_man_MANS = doc/man/hyperdex-daemon.1
 
+CONFIG_CLEAN_FILES = hyperclient.pc
+
 CLEANFILES = \
 			$(java_bindings_cleanfiles) \
 			doc/HyperDex-$(VERSION).pdf \
 			$(ycsb_cleanfiles)
 
 JAVAROOT = $(abs_top_srcdir)
+
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = hyperclient.pc
 
 .PHONY: coverage doc/HyperDex-$(VERSION).pdf
 
@@ -283,7 +288,8 @@ libhyperclient_extra_dist = \
 			client/java/proxies/hyperclient_attribute.i \
 			client/java/proxies/HyperClient.i \
 			client/java/proxies/hyperclient_map_attribute.i \
-			client/python/hyperclient.pyx
+			client/python/hyperclient.pyx \
+			hyperclient.pc
 
 libhyperclient_includedir = $(includedir)
 libhyperclient_include_HEADERS = \

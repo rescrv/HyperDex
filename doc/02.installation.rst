@@ -319,6 +319,7 @@ Required Dependencies:
  * Bison_:  Used for building internal parsers.  Required for all builds.
  * Cython_:  Used for building Python bindings.  Required for
    ``--enable-python-bindings``.  Recommmended version:  >= 0.15.
+ * Gperf_: Generates perfect hashes.
 
 .. _Autoconf: http://www.gnu.org/software/autoconf/
 .. _Automake: http://www.gnu.org/software/automake/
@@ -327,6 +328,7 @@ Required Dependencies:
 .. _Flex:  http://flex.sourceforge.net/
 .. _Bison:  http://www.gnu.org/software/bison/
 .. _Cython:  http://cython.org/
+.. _Gperf: http://www.gnu.org/software/gperf/
 
 After all dependencies are installed, run the ``autoreconf`` command to
 bootstrap the repository:
