@@ -95,6 +95,7 @@ datalayer :: setup(const po6::pathname& path,
                    po6::net::hostname* saved_coordinator)
 {
     leveldb::Options opts;
+    opts.write_buffer_size = 64ULL * 1024ULL * 1024ULL;
     opts.create_if_missing = true;
     opts.filter_policy = leveldb::NewBloomFilterPolicy(10);
     std::string name(path.get());
