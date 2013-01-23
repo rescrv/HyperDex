@@ -122,6 +122,7 @@ replication_manager :: unpause()
     m_wakeup_retransmitter.broadcast();
     m_wakeup_garbage_collector.broadcast();
     m_need_pause = false;
+    m_need_retransmit = true;
 }
 
 void

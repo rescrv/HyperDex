@@ -402,6 +402,7 @@ datalayer :: unpause()
     assert(m_need_pause);
     m_wakeup_cleaner.broadcast();
     m_need_pause = false;
+    m_need_cleaning = true;
 }
 
 void

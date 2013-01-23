@@ -96,6 +96,7 @@ state_transfer_manager :: unpause()
     assert(m_need_pause);
     m_wakeup_kickstarter.broadcast();
     m_need_pause = false;
+    m_need_kickstart = true;
 }
 
 template <class S>
