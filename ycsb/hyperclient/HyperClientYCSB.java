@@ -113,49 +113,46 @@ public class HyperClientYCSB extends DB
      */
     public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
     {
-    /*
         // XXX I'm going to be lazy and not support "fields" for now.  Patches
         // welcome.
+
         if (!m_scannable)
         {
-            return 1000;
+            return 1;
         }
 
         m_mat.reset(startkey);
 
         if (!m_mat.matches())
         {
-            return 1001;
+            return 2;
         }
 
         long base = Long.parseLong(m_mat.group(2));
         long lower = base << 32;
         long upper = (base + recordcount) << 32;
 
-        HyperVector res = new HyperVector();
+        HashMap<String,Object> values = new HashMap<String,Object>();
+        Vector<Long> vrange = new Vector<Long>(2);
+        vrange.add(lower);
+        vrange.add(upper);
+        values.put("recno", vrange);
 
-        ReturnCode ret = m_client.range_search(table, "recno", lower, upper, res);
-
-        for (int i = 0; i < m_retries && ret != ReturnCode.SUCCESS; ++i)
+        try
         {
-            ret = m_client.range_search(table, "recno", lower, upper, res);
-        }
+            SearchBase s = m_client.search(table, values);
 
-        if (ret == ReturnCode.SUCCESS)
-        {
-            for (int i = 0; i < res.size(); ++i)
+            while (s.hasNext())
             {
-                HyperMap e = HyperMap.dynamic_cast(res.get(i));
-                HashMap<String, ByteIterator> e2 = new HashMap<String, ByteIterator>();
-                convert_to_java(fields, e, e2);
-                result.add(e2);
+                s.next();
             }
+
             return 0;
         }
-
-        return ret.swigValue();
-    */
-    return 0;
+        catch(Exception e)
+        {
+            return 3;
+        }
     }
 
     /**
