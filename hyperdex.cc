@@ -139,7 +139,7 @@ main(int argc, const char* argv[])
 
             if (execv(p->path, const_cast<char*const*>(args)) < 0)
             {
-                std::cerr << "failed to exec " << p->name << ": " << strerror(errno) << std::endl;
+                std::cerr << "failed to exec " << p->name << " from " << p->path << ": " << strerror(errno) << std::endl;
                 return EXIT_FAILURE;
             }
 
@@ -148,6 +148,6 @@ main(int argc, const char* argv[])
         }
     }
 
-    std::cerr << "unknown command " << args[0] << "\n" << std::endl;
+    std::cerr << "hyperdex: '" << args[0] << "' is not a HyperDex command.  See 'hyperdex --help'\n" << std::endl;
     return help(poptcon);
 }

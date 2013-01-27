@@ -286,19 +286,11 @@ daemon :: run(bool daemonize,
             continue;
         }
 
-        // XXX we really should check the reconfigure_returncode even though
-        // nothing right now fails when reconfiguring
-
-        LOG(INFO) << "received new configuration version=" << new_config.version();
-        // prepare
-        m_data.prepare(old_config, new_config, m_us);
-        m_comm.prepare(old_config, new_config, m_us);
-        m_repl.prepare(old_config, new_config, m_us);
-        m_stm.prepare(old_config, new_config, m_us);
-        m_sm.prepare(old_config, new_config, m_us);
-        // reconfigure
-        LOG(INFO) << "preparations for reconfiguration done; pausing network communication";
-        // this line to the "unpause" below are mutually exclusive with network workers
+        LOG(INFO) << "received new configuration version=" << new_config.version()
+                  << "; pausing all activity while we reconfigure";
+        m_stm.pause();
+        m_repl.pause();
+        m_data.pause();
         m_comm.pause();
         m_data.reconfigure(old_config, new_config, m_us);
         m_comm.reconfigure(old_config, new_config, m_us);
@@ -307,13 +299,11 @@ daemon :: run(bool daemonize,
         m_sm.reconfigure(old_config, new_config, m_us);
         m_config = new_config;
         m_comm.unpause();
-        LOG(INFO) << "reconfiguration complete; unpausing network communication";
-        // cleanup
-        m_sm.cleanup(old_config, new_config, m_us);
-        m_stm.cleanup(old_config, new_config, m_us);
-        m_repl.cleanup(old_config, new_config, m_us);
-        m_comm.cleanup(old_config, new_config, m_us);
-        m_data.cleanup(old_config, new_config, m_us);
+        m_data.unpause();
+        m_repl.unpause();
+        m_stm.unpause();
+        LOG(INFO) << "reconfiguration complete; resuming normal operation";
+
         // let the coordinator know we've moved to this config
         m_coord.ack_config(new_config.version());
     }

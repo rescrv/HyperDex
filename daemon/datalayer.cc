@@ -73,8 +73,11 @@ datalayer :: datalayer(daemon* d)
     , m_cleaner(std::tr1::bind(&datalayer::cleaner, this))
     , m_block_cleaner()
     , m_wakeup_cleaner(&m_block_cleaner)
+    , m_wakeup_reconfigurer(&m_block_cleaner)
     , m_need_cleaning(false)
     , m_shutdown(true)
+    , m_need_pause(false)
+    , m_paused(false)
     , m_state_transfer_captures()
 {
 }
@@ -92,6 +95,7 @@ datalayer :: setup(const po6::pathname& path,
                    po6::net::hostname* saved_coordinator)
 {
     leveldb::Options opts;
+    opts.write_buffer_size = 64ULL * 1024ULL * 1024ULL;
     opts.create_if_missing = true;
     opts.filter_policy = leveldb::NewBloomFilterPolicy(10);
     std::string name(path.get());
@@ -383,20 +387,39 @@ datalayer :: clear_dirty()
     }
 }
 
-reconfigure_returncode
-datalayer :: prepare(const configuration&,
-                     const configuration&,
-                     const server_id&)
+void
+datalayer :: pause()
 {
-    m_block_cleaner.lock();
-    return RECONFIGURE_SUCCESS;
+    po6::threads::mutex::hold hold(&m_block_cleaner);
+    assert(!m_need_pause);
+    m_need_pause = true;
 }
 
-reconfigure_returncode
+void
+datalayer :: unpause()
+{
+    po6::threads::mutex::hold hold(&m_block_cleaner);
+    assert(m_need_pause);
+    m_wakeup_cleaner.broadcast();
+    m_need_pause = false;
+    m_need_cleaning = true;
+}
+
+void
 datalayer :: reconfigure(const configuration&,
                          const configuration& new_config,
                          const server_id& us)
 {
+    {
+        po6::threads::mutex::hold hold(&m_block_cleaner);
+        assert(m_need_pause);
+
+        while (!m_paused)
+        {
+            m_wakeup_reconfigurer.wait();
+        }
+    }
+
     std::vector<capture> captures;
     new_config.captures(&captures);
     std::vector<region_id> regions;
@@ -412,18 +435,6 @@ datalayer :: reconfigure(const configuration&,
 
     std::sort(regions.begin(), regions.end());
     m_counters.adopt(regions);
-    return RECONFIGURE_SUCCESS;
-}
-
-reconfigure_returncode
-datalayer :: cleanup(const configuration&,
-                     const configuration&,
-                     const server_id&)
-{
-    m_wakeup_cleaner.broadcast();
-    m_need_cleaning = true;
-    m_block_cleaner.unlock();
-    return RECONFIGURE_SUCCESS;
 }
 
 datalayer::returncode
@@ -1777,11 +1788,19 @@ datalayer :: cleaner()
         {
             po6::threads::mutex::hold hold(&m_block_cleaner);
 
-            while (!m_need_cleaning &&
-                   m_state_transfer_captures.empty() &&
-                   !m_shutdown)
+            while ((!m_need_cleaning &&
+                    m_state_transfer_captures.empty() &&
+                    !m_shutdown) || m_need_pause)
             {
+                m_paused = true;
+
+                if (m_need_pause)
+                {
+                    m_wakeup_reconfigurer.signal();
+                }
+
                 m_wakeup_cleaner.wait();
+                m_paused = false;
             }
 
             if (m_shutdown)
@@ -1845,23 +1864,17 @@ datalayer :: cleaner()
 
             m_daemon->m_stm.report_wiped(cached_cid);
 
-            // If this is not a region we need to keep, we need to iterate and
-            // delete
+            if (!m_daemon->m_config.is_captured_region(capture_id(cid)))
             {
-                po6::threads::mutex::hold hold(&m_block_cleaner);
+                cached_cid = capture_id(cid);
+                continue;
+            }
 
-                if (!m_daemon->m_config.is_captured_region(capture_id(cid)))
-                {
-                    cached_cid = capture_id(cid);
-                    continue;
-                }
-
-                if (state_transfer_captures.find(capture_id(cid)) != state_transfer_captures.end())
-                {
-                    cached_cid = capture_id(cid);
-                    state_transfer_captures.erase(cached_cid);
-                    continue;
-                }
+            if (state_transfer_captures.find(capture_id(cid)) != state_transfer_captures.end())
+            {
+                cached_cid = capture_id(cid);
+                state_transfer_captures.erase(cached_cid);
+                continue;
             }
 
             std::vector<char> backing;

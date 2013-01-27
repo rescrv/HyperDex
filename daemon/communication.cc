@@ -105,15 +105,7 @@ communication :: teardown()
 {
 }
 
-reconfigure_returncode
-communication :: prepare(const configuration&,
-                         const configuration&,
-                         const server_id&)
-{
-    return RECONFIGURE_SUCCESS;
-}
-
-reconfigure_returncode
+void
 communication :: reconfigure(const configuration&,
                              const configuration& new_config,
                              const server_id&)
@@ -137,16 +129,6 @@ communication :: reconfigure(const configuration&,
     {
         m_early_messages.push(em);
     }
-
-    return RECONFIGURE_SUCCESS;
-}
-
-reconfigure_returncode
-communication :: cleanup(const configuration&,
-                         const configuration&,
-                         const server_id&)
-{
-    return RECONFIGURE_SUCCESS;
 }
 
 bool

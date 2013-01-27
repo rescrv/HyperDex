@@ -163,29 +163,12 @@ search_manager :: teardown()
 {
 }
 
-reconfigure_returncode
-search_manager :: prepare(const configuration&,
-                          const configuration&,
-                          const server_id&)
-{
-    return RECONFIGURE_SUCCESS;
-}
-
-reconfigure_returncode
+void
 search_manager :: reconfigure(const configuration&,
                               const configuration&,
                               const server_id&)
 {
-    return RECONFIGURE_SUCCESS;
-}
-
-reconfigure_returncode
-search_manager :: cleanup(const configuration&,
-                          const configuration&,
-                          const server_id&)
-{
-    // XXX
-    return RECONFIGURE_SUCCESS;
+    // XXX cleanup dead or old searches
 }
 
 void
