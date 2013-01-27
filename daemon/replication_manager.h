@@ -194,7 +194,6 @@ class replication_manager
         bool m_need_retransmit;
         std::list<std::pair<region_id, uint64_t> > m_lower_bounds;
         bool m_need_pause;
-        bool m_paused;
         bool m_paused_retransmitter;
         bool m_paused_garbage_collector;
 };
