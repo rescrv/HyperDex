@@ -73,22 +73,6 @@ public class HyperTest
 	            System.out.println(s.next());
 	        }
 	
-	        // Stipulate the range with a List of size 2 instead.
-	        // In particular, use a Vector. 
-	        //
-	        Vector<Long> vrange = new Vector<Long>(2);
-	        vrange.add(4165551024L); vrange.add(4165551026L);
-	        values.put("phone",vrange);
-	
-	        System.out.println("\nDo the search again using a List of size 2 for the range stipulation:\n");
-	        // Do the search again
-	        s = c.search("phonebook",values);
-	
-	        while(s.hasNext())
-	        {
-	            System.out.println(s.next());
-	        }
-	
 	        // Stipulate the range with the Range class.
 	        //
 	        Range range = new Range(4165551024L,4165551026L);
@@ -103,12 +87,11 @@ public class HyperTest
 	            System.out.println(s.next());
 	        }
 	
-	        /*
 	        // Stipulate the range using a List of Predicate based classes.
 	        // In particular, use a Vector implementation of a List and LessEqual,
 	        // GreaterEqual both derived from Predicate.
 	        //
-	        Vector<Object> predicates = new Vector<Object>(2);
+	        Vector<Predicate> predicates = new Vector<Predicate>(2);
 	        predicates.add(new GreaterEqual(4165551024L));
 	        predicates.add(new LessEqual(4165551026L));
 	        values.put("phone",predicates);
@@ -121,7 +104,6 @@ public class HyperTest
 	        {
 	            System.out.println(s.next());
 	        }
-	        */
 	
 	        System.out.println("\nLet's use the same predicate, values, to get the count:");
 	        System.out.println("count = " + c.count("phonebook",values));

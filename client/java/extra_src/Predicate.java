@@ -2,7 +2,7 @@ package hyperclient;
 
 import java.util.*;
 
-class Predicate
+public abstract class Predicate
 {
     protected List<Map.Entry<hyperpredicate,Object>> raw;
 
