@@ -498,9 +498,12 @@
   private java.util.Vector<
           java.util.Map.Entry<
             ByteArray,java.util.Map.Entry<hyperpredicate,Object>>>
-  getRawChecks(ByteArray attr, String errStr, Object pred) throws AttributeError,
+  getRawChecks(ByteArray attr, Object pred) throws AttributeError,
                                                                   TypeError
   {
+    
+      String errStr = "Attribute '" + attr + "' has an invalid predicate type ( expected Predicate, Long, Double, String, Map.Entry<Long,Long>, Map.Entry<Double,Double>, Map.Entry<String,String> or a List of any of the former )";
+    
       java.util.Vector<
           java.util.Map.Entry<
             ByteArray,java.util.Map.Entry<hyperpredicate,Object>>> rawChecks
@@ -526,8 +529,7 @@
                ! ( lower instanceof Double && upper instanceof Double ) )
           {
               throw
-                  new TypeError(
-                      String.format(errStr,pred.getClass().getName()));
+                  new TypeError(errStr);
           }
 
           rawChecks.addAll(
@@ -541,7 +543,7 @@
       else
       {
           throw
-              new TypeError(String.format(errStr,pred.getClass().getName()));
+              new TypeError(errStr);
       }
 
       return rawChecks;
@@ -577,19 +579,14 @@
     
               byte[] attrBytes = getBytes(attrObject);
     
-              String attrStr = ByteArray.decode(attrBytes,defaultStringEncoding);
-    
               Object params = predicate.get(attrObject);
     
               if ( params == null )
                   throw new TypeError("Cannot search with a null criteria");
     
-    
-              String errStr = "Attribute '" + attrStr + "' has incorrect type ( expected Predicate, Long, Double, String, Map.Entry<Long,Long>, Map.Entry<Double,Double> or List, but got %s";
-    
               if ( ! (params instanceof java.util.List) )
               {
-                  rawChecks.addAll(getRawChecks(new ByteArray(attrBytes),errStr,params));
+                  rawChecks.addAll(getRawChecks(new ByteArray(attrBytes),params));
               }
               else
               {
@@ -597,7 +594,7 @@
                                                         paramsIt.hasNext();)
                   {
                       rawChecks.addAll(
-                          getRawChecks(new ByteArray(attrBytes),errStr,paramsIt.next()));
+                          getRawChecks(new ByteArray(attrBytes),paramsIt.next()));
                   }
               }
           }
