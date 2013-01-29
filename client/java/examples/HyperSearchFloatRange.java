@@ -82,7 +82,7 @@ public class HyperSearchFloatRange
 	        predicates.add(new LessEqual(165D));
 	        values.put("weight",predicates);
 	
-	        System.out.println("\nDo the search again using a List of Predicate based classes.:\n");
+	        System.out.println("\nDo the search again using a List of Predicate based classes:\n");
 	        // Do the search again
 	        s = c.search("weightbook",values);
 	

@@ -96,7 +96,7 @@ public class HyperTest
 	        predicates.add(new LessEqual(4165551026L));
 	        values.put("phone",predicates);
 	
-	        System.out.println("\nDo the search again using a List of Predicate based classes.:\n");
+	        System.out.println("\nDo the search again using a List of Predicate based classes:\n");
 	        // Do the search again
 	        s = c.search("phonebook",values);
 	
