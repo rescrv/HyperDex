@@ -1370,6 +1370,8 @@ datalayer :: encode_index(const region_id& ri,
               + sizeof(uint64_t)
               + sizeof(uint16_t);
     char* ptr = NULL;
+    char buf_i[sizeof(int64_t)];
+    char buf_d[sizeof(double)];
     int64_t tmp_i;
     double tmp_d;
 
@@ -1389,7 +1391,9 @@ datalayer :: encode_index(const region_id& ri,
             ptr = e::pack8be('i', ptr);
             ptr = e::pack64be(ri.get(), ptr);
             ptr = e::pack16be(attr, ptr);
-            e::unpack64le(value.data(), &tmp_i);
+            memset(buf_i, 0, sizeof(int64_t));
+            memmove(buf_i, value.data(), std::min(value.size(), sizeof(int64_t)));
+            e::unpack64le(buf_i, &tmp_i);
             ptr = index_encode_int64(tmp_i, ptr);
             break;
         case HYPERDATATYPE_FLOAT:
@@ -1398,7 +1402,9 @@ datalayer :: encode_index(const region_id& ri,
             ptr = e::pack8be('i', ptr);
             ptr = e::pack64be(ri.get(), ptr);
             ptr = e::pack16be(attr, ptr);
-            e::unpackdoublele(value.data(), &tmp_d);
+            memset(buf_d, 0, sizeof(double));
+            memmove(buf_d, value.data(), std::min(value.size(), sizeof(double)));
+            e::unpackdoublele(buf_d, &tmp_d);
             ptr = index_encode_double(tmp_d, ptr);
             break;
         case HYPERDATATYPE_GENERIC:
@@ -1441,6 +1447,8 @@ datalayer :: encode_index(const region_id& ri,
               + sizeof(uint64_t)
               + sizeof(uint16_t);
     char* ptr = NULL;
+    char buf_i[sizeof(int64_t)];
+    char buf_d[sizeof(double)];
     int64_t tmp_i;
     double tmp_d;
 
@@ -1464,7 +1472,9 @@ datalayer :: encode_index(const region_id& ri,
             ptr = e::pack8be('i', ptr);
             ptr = e::pack64be(ri.get(), ptr);
             ptr = e::pack16be(attr, ptr);
-            e::unpack64le(value.data(), &tmp_i);
+            memset(buf_i, 0, sizeof(int64_t));
+            memmove(buf_i, value.data(), std::min(value.size(), sizeof(int64_t)));
+            e::unpack64le(buf_i, &tmp_i);
             ptr = index_encode_int64(tmp_i, ptr);
             memmove(ptr, key.data(), key.size());
             break;
@@ -1474,7 +1484,9 @@ datalayer :: encode_index(const region_id& ri,
             ptr = e::pack8be('i', ptr);
             ptr = e::pack64be(ri.get(), ptr);
             ptr = e::pack16be(attr, ptr);
-            e::unpackdoublele(value.data(), &tmp_d);
+            memset(buf_d, 0, sizeof(double));
+            memmove(buf_d, value.data(), std::min(value.size(), sizeof(double)));
+            e::unpackdoublele(buf_d, &tmp_d);
             ptr = index_encode_double(tmp_d, ptr);
             memmove(ptr, key.data(), key.size());
             break;
