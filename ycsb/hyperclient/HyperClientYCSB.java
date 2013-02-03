@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.AbstractMap;
 import java.util.regex.*;
 
 import com.yahoo.ycsb.DB;
@@ -133,10 +134,9 @@ public class HyperClientYCSB extends DB
         long upper = (base + recordcount) << 32;
 
         HashMap<String,Object> values = new HashMap<String,Object>();
-        Vector<Long> vrange = new Vector<Long>(2);
-        vrange.add(lower);
-        vrange.add(upper);
-        values.put("recno", vrange);
+        AbstractMap.SimpleEntry<Long,Long> range
+            = new AbstractMap.SimpleEntry<Long,Long>(lower,upper);
+        values.put("recno", range);
 
         try
         {
