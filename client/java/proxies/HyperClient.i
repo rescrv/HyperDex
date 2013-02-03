@@ -493,6 +493,62 @@
       }
   }
 
+  // Convenience method used when pred is not an instance of List
+  //
+  private java.util.Vector<
+          java.util.Map.Entry<
+            ByteArray,java.util.Map.Entry<hyperpredicate,Object>>>
+  getRawChecks(ByteArray attr, Object pred) throws AttributeError,
+                                                                  TypeError
+  {
+    
+      String errStr = "Attribute '" + attr + "' has an invalid predicate type ( expected Predicate, Long, Double, String, Map.Entry<Long,Long>, Map.Entry<Double,Double>, Map.Entry<String,String> or a List of any of the former )";
+    
+      java.util.Vector<
+          java.util.Map.Entry<
+            ByteArray,java.util.Map.Entry<hyperpredicate,Object>>> rawChecks
+            = new java.util.Vector<
+                java.util.Map.Entry<
+                    ByteArray,java.util.Map.Entry<hyperpredicate,Object>>>();
+    
+      if ( isBytes(pred) || pred instanceof Long || pred instanceof Double )
+      {
+          rawChecks.add(new java.util.AbstractMap.SimpleEntry<
+                  ByteArray,java.util.Map.Entry<hyperpredicate,Object>>(
+                      attr, 
+                          new java.util.AbstractMap.SimpleEntry<
+                            hyperpredicate,Object>(
+                              hyperpredicate.HYPERPREDICATE_EQUALS, pred)));
+      }
+      else if ( pred instanceof java.util.Map.Entry )
+      {
+          Object lower = ((java.util.Map.Entry)pred).getKey();
+          Object upper = ((java.util.Map.Entry)pred).getValue();
+
+          if ( ! ( lower instanceof Long && upper instanceof Long ) &&
+               ! ( lower instanceof Double && upper instanceof Double ) )
+          {
+              throw
+                  new TypeError(errStr);
+          }
+
+          rawChecks.addAll(
+              (new Range(lower,upper)).getRawChecks(attr));
+      }
+      else if ( pred instanceof Predicate )
+      {
+          rawChecks.addAll(
+              ((Predicate)pred).getRawChecks(attr));
+      }
+      else
+      {
+          throw
+              new TypeError(errStr);
+      }
+
+      return rawChecks;
+  }
+
   // Using a Vector<Object> retvals to return multiple values.
   //
   // retvals at 0 - hacs (hyperclient_attribute_check type)
@@ -523,78 +579,23 @@
     
               byte[] attrBytes = getBytes(attrObject);
     
-              String attrStr = ByteArray.decode(attrBytes,defaultStringEncoding);
-    
               Object params = predicate.get(attrObject);
     
               if ( params == null )
                   throw new TypeError("Cannot search with a null criteria");
     
-    
-              String errStr = "Attribute '" + attrStr + "' has incorrect type ( expected Predicate, Long, Double, String, Map.Entry<Long,Long>, Map.Entry<Double,Double>, List<Long> or List<Double> (List being of size 2), but got %s";
-    
-              if ( isBytes(params) || params instanceof Long || params instanceof Double )
+              if ( ! (params instanceof java.util.List) )
               {
-                  rawChecks.add(new java.util.AbstractMap.SimpleEntry<
-                          ByteArray,java.util.Map.Entry<hyperpredicate,Object>>(
-                              new ByteArray(attrBytes), 
-                                  new java.util.AbstractMap.SimpleEntry<
-                                    hyperpredicate,Object>(
-                                      hyperpredicate.HYPERPREDICATE_EQUALS, params)));
-              }
-              else if ( params instanceof java.util.Map.Entry )
-              {
-                  Object lower = ((java.util.Map.Entry)params).getKey();
-                  Object upper = ((java.util.Map.Entry)params).getValue();
-
-                  if ( ! ( lower instanceof Long && upper instanceof Long ) &&
-                       ! ( lower instanceof Double && upper instanceof Double ) )
-                  {
-                      throw
-                          new TypeError(
-                              String.format(errStr,params.getClass().getName()));
-                  }
-
-                  rawChecks.addAll(
-                      (new Range(lower,upper)).getRawChecks(new ByteArray(attrBytes)));
-              }
-              else if ( params instanceof java.util.List )
-              {
-                  try
-                  {
-                      java.util.List listParams = (java.util.List)params;
-
-                      if ( listParams.size() != 2 )
-                          throw new TypeError("Attribute '" + attrStr + "': using a List to specify a range requires its size to be 2, but got size " + listParams.size());
-                  }
-                  catch (TypeError te)
-                  {
-                      throw te;
-                  }
-
-                  Object lower = ((java.util.List)params).get(0);
-                  Object upper = ((java.util.List)params).get(1);
-
-                  if ( ! ( lower instanceof Long && upper instanceof Long ) &&
-                       ! ( lower instanceof Double && upper instanceof Double ) )
-                  {
-                      throw
-                          new TypeError(
-                              String.format(errStr,params.getClass().getName()));
-                  }
-
-                  rawChecks.addAll(
-                      (new Range(lower,upper)).getRawChecks(new ByteArray(attrBytes)));
-              }
-              else if ( params instanceof Predicate )
-              {
-                  rawChecks.addAll(
-                      ((Predicate)params).getRawChecks(new ByteArray(attrBytes)));
+                  rawChecks.addAll(getRawChecks(new ByteArray(attrBytes),params));
               }
               else
               {
-                  throw
-                      new TypeError(String.format(errStr,params.getClass().getName()));
+                  for (java.util.Iterator paramsIt = ((java.util.List)params).iterator();
+                                                        paramsIt.hasNext();)
+                  {
+                      rawChecks.addAll(
+                          getRawChecks(new ByteArray(attrBytes),paramsIt.next()));
+                  }
               }
           }
     
