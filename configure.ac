@@ -2,8 +2,8 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.66])
-AC_INIT([HyperDex], [1.0.rc1], [escriva@cs.cornell.edu])
-AM_INIT_AUTOMAKE([foreign subdir-objects dist-bzip2 dist-lzma])
+AC_INIT([HyperDex], [1.0.rc2], [escriva@cs.cornell.edu])
+AM_INIT_AUTOMAKE([foreign subdir-objects dist-bzip2])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AM_PATH_PYTHON([2.6])
 LT_PREREQ([2.2])
@@ -28,11 +28,6 @@ need_swig=no
 
 JNI_CPPFLAGS=
 if test x"${java_bindings}" = xyes; then
-    AC_MSG_ERROR([
--------------------------------------------------
-The Java bindings are temporarily unavailable.
-They will be available in HyperDex 1.0
--------------------------------------------------])
     AC_PROG_JAR
     AC_PROG_JAVAC
     AC_JNI_INCLUDE_DIR
@@ -140,7 +135,7 @@ AC_ARG_ENABLE([python_bindings], [AS_HELP_STRING([--enable-python-bindings],
               [build Python bindings @<:@default: no@:>@])],
               [python_bindings=${enableval}], [python_bindings=no])
 if test x"${python_bindings}" = xyes; then
-    AC_PYTHON_DEVEL([>= 2.6])
+    AC_PYTHON_DEVEL([>= '2.6'])
 fi
 
 AC_ARG_ENABLE([log-all-messages], [AS_HELP_STRING([--enable-log-all-messages],
@@ -154,5 +149,5 @@ AM_CONDITIONAL([ENABLE_JAVA_BINDINGS], [test x"${java_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_PYTHON_BINDINGS], [test x"${python_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_YCSB_DRIVER], [test x"${enable_ycsb}" = xyes])
 
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile hyperclient.pc])
 AC_OUTPUT

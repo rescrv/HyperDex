@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.AbstractMap;
 import java.util.regex.*;
 
 import com.yahoo.ycsb.DB;
@@ -59,7 +60,7 @@ public class HyperClientYCSB extends DB
     public void init() throws DBException
     {
         String host = getProperties().getProperty("hyperclient.host", "127.0.0.1");
-        Integer port = Integer.parseInt(getProperties().getProperty("hyperclient.port", "1234"));
+        Integer port = Integer.parseInt(getProperties().getProperty("hyperclient.port", "1982"));
         m_client = new HyperClient(host, port);
         m_pat = Pattern.compile("([a-zA-Z]*)([0-9]*)");
         m_mat = m_pat.matcher("user1");
@@ -98,7 +99,6 @@ public class HyperClientYCSB extends DB
         }
 
         convert_to_java(fields, map, result);
-
         return 0;
     }
 
@@ -114,49 +114,45 @@ public class HyperClientYCSB extends DB
      */
     public int scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String,ByteIterator>> result)
     {
-    /*
         // XXX I'm going to be lazy and not support "fields" for now.  Patches
         // welcome.
+
         if (!m_scannable)
         {
-            return 1000;
+            return 1;
         }
 
         m_mat.reset(startkey);
 
         if (!m_mat.matches())
         {
-            return 1001;
+            return 2;
         }
 
         long base = Long.parseLong(m_mat.group(2));
         long lower = base << 32;
         long upper = (base + recordcount) << 32;
 
-        HyperVector res = new HyperVector();
+        HashMap<String,Object> values = new HashMap<String,Object>();
+        AbstractMap.SimpleEntry<Long,Long> range
+            = new AbstractMap.SimpleEntry<Long,Long>(lower,upper);
+        values.put("recno", range);
 
-        ReturnCode ret = m_client.range_search(table, "recno", lower, upper, res);
-
-        for (int i = 0; i < m_retries && ret != ReturnCode.SUCCESS; ++i)
+        try
         {
-            ret = m_client.range_search(table, "recno", lower, upper, res);
-        }
+            SearchBase s = m_client.search(table, values);
 
-        if (ret == ReturnCode.SUCCESS)
-        {
-            for (int i = 0; i < res.size(); ++i)
+            while (s.hasNext())
             {
-                HyperMap e = HyperMap.dynamic_cast(res.get(i));
-                HashMap<String, ByteIterator> e2 = new HashMap<String, ByteIterator>();
-                convert_to_java(fields, e, e2);
-                result.add(e2);
+                s.next();
             }
+
             return 0;
         }
-
-        return ret.swigValue();
-    */
-    return 0;
+        catch(Exception e)
+        {
+            return 3;
+        }
     }
 
     /**
@@ -168,10 +164,14 @@ public class HyperClientYCSB extends DB
      * @param values A HashMap of field/value pairs to update in the record
      * @return Zero on success, a non-zero error code on error.  See this class's description for a discussion of error codes.
      */
-    public int update(String table, String key, HashMap<String,ByteIterator> values)
+    public int update(String table, String key, HashMap<String,ByteIterator> _values)
     {
-        Map<String,Object> res = new HashMap<String,Object>();
-        convert_from_java(values, res);
+        HashMap<String,Object> values = new HashMap<String,Object>();
+
+        for (Map.Entry<String, ByteIterator> entry : _values.entrySet())
+        {
+            values.put(entry.getKey(), entry.getValue().toArray());
+        }
 
         if (m_scannable)
         {
@@ -183,16 +183,17 @@ public class HyperClientYCSB extends DB
             }
   
             long num = Long.parseLong(m_mat.group(2));
-            res.put("recno", new Long(num << 32));
+            values.put("recno", new Long(num << 32));
         }
 
         try
         {
-            Boolean ret = m_client.put(table, key, res);
-            return ret.booleanValue()?0:1;
+            m_client.put(table, key, values);
+            return 0;
         }
         catch(Exception e)
         {
+            System.out.println(e.toString());
             return 1;
         }
     }
@@ -222,8 +223,8 @@ public class HyperClientYCSB extends DB
     {
         try
         {
-            boolean ret = m_client.del(table, key);
-            return ret?0:1;
+            m_client.del(table, key);
+            return 0;
         }
         catch(Exception e)
         {
@@ -245,15 +246,6 @@ public class HyperClientYCSB extends DB
             {
                 result.put(key, new StringByteIterator(interres.get(key).toString()));
             }
-        }
-    }
-
-    private void convert_from_java(HashMap<String,ByteIterator> result, Map<String,Object> interres)
-    {
-        Map<String, ByteIterator> r = result;
-        for (Map.Entry<String, ByteIterator> entry : r.entrySet())
-        {
-            interres.put(entry.getKey(), entry.getValue().toString());
         }
     }
 }

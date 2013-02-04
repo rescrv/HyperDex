@@ -24,14 +24,11 @@ public class SortedSearch extends SearchBase
         {
             Vector retvals = client.predicate_to_c(predicate);
             
-            eq = (hyperclient_attribute)(retvals.get(0));
-            eq_sz = ((Integer)(retvals.get(1))).intValue();
-            rn = (hyperclient_range_query)(retvals.get(2));
-            rn_sz = ((Integer)(retvals.get(3))).intValue();
+            chks = (hyperclient_attribute_check)(retvals.get(0));
+            chks_sz = ((Long)(retvals.get(1))).longValue();
 
             reqId = client.sorted_search(client.getBytes(space,true),
-                                         eq, eq_sz,
-                                         rn, rn_sz,
+                                         chks, chks_sz,
                                          client.getBytes(sortBy,true),
                                          limit,
                                          descending,
@@ -39,14 +36,13 @@ public class SortedSearch extends SearchBase
                                          attrs_ptr, attrs_sz_ptr);
 
 	
-            checkReqIdSearch(reqId, status(), eq, eq_sz, rn, rn_sz);
+            checkReqIdSearch(reqId, status(), chks, chks_sz);
 	
             client.ops.put(reqId,this);
         }
         finally
         {
-            if ( eq != null ) HyperClient.free_attrs(eq, eq_sz);
-            if ( rn != null ) HyperClient.free_range_queries(rn, rn_sz);
+            if ( chks != null ) HyperClient.free_attrs_check(chks, chks_sz);
         }
     }
 }

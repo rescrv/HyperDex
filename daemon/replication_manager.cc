@@ -72,13 +72,16 @@ replication_manager :: replication_manager(daemon* d)
     , m_counters()
     , m_shutdown(true)
     , m_retransmitter(std::tr1::bind(&replication_manager::retransmitter, this))
-    , m_block_retransmitter()
-    , m_wakeup_retransmitter(&m_block_retransmitter)
-    , m_need_retransmit(false)
     , m_garbage_collector(std::tr1::bind(&replication_manager::garbage_collector, this))
-    , m_block_garbage_collector()
-    , m_wakeup_garbage_collector(&m_block_garbage_collector)
+    , m_block_both()
+    , m_wakeup_retransmitter(&m_block_both)
+    , m_wakeup_garbage_collector(&m_block_both)
+    , m_wakeup_reconfigurer(&m_block_both)
+    , m_need_retransmit(false)
     , m_lower_bounds()
+    , m_need_pause(false)
+    , m_paused_retransmitter(false)
+    , m_paused_garbage_collector(false)
 {
 }
 
@@ -90,8 +93,7 @@ replication_manager :: ~replication_manager() throw ()
 bool
 replication_manager :: setup()
 {
-    po6::threads::mutex::hold holdr(&m_block_retransmitter);
-    po6::threads::mutex::hold holdg(&m_block_garbage_collector);
+    po6::threads::mutex::hold holdr(&m_block_both);
     m_retransmitter.start();
     m_garbage_collector.start();
     m_shutdown = false;
@@ -104,20 +106,40 @@ replication_manager :: teardown()
     shutdown();
 }
 
-reconfigure_returncode
-replication_manager :: prepare(const configuration&,
-                               const configuration&,
-                               const server_id&)
+void
+replication_manager :: pause()
 {
-    m_block_retransmitter.lock();
-    return RECONFIGURE_SUCCESS;
+    po6::threads::mutex::hold hold(&m_block_both);
+    assert(!m_need_pause);
+    m_need_pause = true;
 }
 
-reconfigure_returncode
+void
+replication_manager :: unpause()
+{
+    po6::threads::mutex::hold hold(&m_block_both);
+    assert(m_need_pause);
+    m_wakeup_retransmitter.broadcast();
+    m_wakeup_garbage_collector.broadcast();
+    m_need_pause = false;
+    m_need_retransmit = true;
+}
+
+void
 replication_manager :: reconfigure(const configuration&,
                                    const configuration& new_config,
                                    const server_id&)
 {
+    {
+        po6::threads::mutex::hold hold(&m_block_both);
+        assert(m_need_pause);
+
+        while (!m_paused_retransmitter || !m_paused_garbage_collector)
+        {
+            m_wakeup_reconfigurer.wait();
+        }
+    }
+
     std::map<uint64_t, uint64_t> seq_ids;
     std::vector<transfer> transfers_in;
     new_config.transfer_in_regions(m_daemon->m_us, &transfers_in);
@@ -171,19 +193,6 @@ replication_manager :: reconfigure(const configuration&,
         bool found = m_counters.take_max(regions[i], non_counter_max);
         assert(found);
     }
-
-    return RECONFIGURE_SUCCESS;
-}
-
-reconfigure_returncode
-replication_manager :: cleanup(const configuration&,
-                               const configuration&,
-                               const server_id&)
-{
-    m_wakeup_retransmitter.broadcast();
-    m_need_retransmit = true;
-    m_block_retransmitter.unlock();
-    return RECONFIGURE_SUCCESS;
 }
 
 void
@@ -499,6 +508,12 @@ replication_manager :: chain_ack(const virtual_server_id& from,
     }
 
     pend->acked = true;
+    bool is_head = m_daemon->m_config.head_of_region(ri) == to;
+
+    if (!is_head && m_daemon->m_config.version() == pend->recv_config_version)
+    {
+        send_ack(to, pend->recv, false, reg_id, seq_id, version, key);
+    }
 
     if (kh->version_on_disk() < version)
     {
@@ -547,7 +562,8 @@ replication_manager :: chain_ack(const virtual_server_id& from,
     {
         respond_to_client(to, pend->client, pend->nonce, NET_SUCCESS);
     }
-    else if (m_daemon->m_config.version() == pend->recv_config_version)
+
+    if (is_head && m_daemon->m_config.version() == pend->recv_config_version)
     {
         send_ack(to, pend->recv, false, reg_id, seq_id, version, key);
     }
@@ -558,7 +574,7 @@ replication_manager :: chain_ack(const virtual_server_id& from,
 void
 replication_manager :: chain_gc(const region_id& reg_id, uint64_t seq_id)
 {
-    po6::threads::mutex::hold hold(&m_block_garbage_collector);
+    po6::threads::mutex::hold hold(&m_block_both);
     m_wakeup_garbage_collector.broadcast();
     m_lower_bounds.push_back(std::make_pair(reg_id, seq_id));
 }
@@ -566,7 +582,7 @@ replication_manager :: chain_gc(const region_id& reg_id, uint64_t seq_id)
 void
 replication_manager :: trip_periodic()
 {
-    po6::threads::mutex::hold hold(&m_block_retransmitter);
+    po6::threads::mutex::hold hold(&m_block_both);
     m_wakeup_retransmitter.broadcast();
     m_need_retransmit = true;
 }
@@ -1010,11 +1026,19 @@ replication_manager :: retransmitter()
     while (true)
     {
         {
-            po6::threads::mutex::hold hold(&m_block_retransmitter);
+            po6::threads::mutex::hold hold(&m_block_both);
 
-            while (!m_need_retransmit && !m_shutdown)
+            while ((!m_need_retransmit && !m_shutdown) || m_need_pause)
             {
+                m_paused_retransmitter = true;
+
+                if (m_need_pause)
+                {
+                    m_wakeup_reconfigurer.signal();
+                }
+
                 m_wakeup_retransmitter.wait();
+                m_paused_retransmitter = false;
             }
 
             if (m_shutdown)
@@ -1029,14 +1053,12 @@ replication_manager :: retransmitter()
         std::map<region_id, uint64_t> seq_id_lower_bounds;
 
         {
-            po6::threads::mutex::hold hold(&m_block_retransmitter);
             m_counters.peek(&seq_id_lower_bounds);
         }
 
         for (keyholder_map_t::iterator it = m_keyholders.begin();
                 it != m_keyholders.end(); it.next())
         {
-            po6::threads::mutex::hold hold(&m_block_retransmitter);
             region_id ri(it.key().region);
 
             if (region_cache.find(ri) != region_cache.end() ||
@@ -1102,7 +1124,6 @@ replication_manager :: retransmitter()
         }
 
         then = now;
-        po6::threads::mutex::hold hold(&m_block_retransmitter);
         std::vector<std::pair<server_id, po6::net::location> > cluster_members;
         m_daemon->m_config.get_all_addresses(&cluster_members);
 
@@ -1155,11 +1176,19 @@ replication_manager :: garbage_collector()
         std::list<std::pair<region_id, uint64_t> > lower_bounds;
 
         {
-            po6::threads::mutex::hold hold(&m_block_garbage_collector);
+            po6::threads::mutex::hold hold(&m_block_both);
 
-            while (m_lower_bounds.empty() && !m_shutdown)
+            while ((m_lower_bounds.empty() && !m_shutdown) || m_need_pause)
             {
+                m_paused_garbage_collector = true;
+
+                if (m_need_pause)
+                {
+                    m_wakeup_reconfigurer.signal();
+                }
+
                 m_wakeup_garbage_collector.wait();
+                m_paused_garbage_collector = false;
             }
 
             if (m_shutdown)
@@ -1199,8 +1228,7 @@ replication_manager :: shutdown()
     bool is_shutdown;
 
     {
-        po6::threads::mutex::hold holdr(&m_block_retransmitter);
-        po6::threads::mutex::hold holdg(&m_block_garbage_collector);
+        po6::threads::mutex::hold holdr(&m_block_both);
         m_wakeup_retransmitter.broadcast();
         m_wakeup_garbage_collector.broadcast();
         is_shutdown = m_shutdown;

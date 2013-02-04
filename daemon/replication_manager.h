@@ -68,15 +68,11 @@ class replication_manager
     public:
         bool setup();
         void teardown();
-        reconfigure_returncode prepare(const configuration& old_config,
-                                       const configuration& new_config,
-                                       const server_id& us);
-        reconfigure_returncode reconfigure(const configuration& old_config,
-                                           const configuration& new_config,
-                                           const server_id& us);
-        reconfigure_returncode cleanup(const configuration& old_config,
-                                       const configuration& new_config,
-                                       const server_id& us);
+        void pause();
+        void unpause();
+        void reconfigure(const configuration& old_config,
+                         const configuration& new_config,
+                         const server_id& us);
 
     // Network workers call these methods.
     public:
@@ -190,13 +186,16 @@ class replication_manager
         counter_map m_counters;
         bool m_shutdown;
         po6::threads::thread m_retransmitter;
-        po6::threads::mutex m_block_retransmitter;
-        po6::threads::cond m_wakeup_retransmitter;
-        bool m_need_retransmit;
         po6::threads::thread m_garbage_collector;
-        po6::threads::mutex m_block_garbage_collector;
+        po6::threads::mutex m_block_both;
+        po6::threads::cond m_wakeup_retransmitter;
         po6::threads::cond m_wakeup_garbage_collector;
+        po6::threads::cond m_wakeup_reconfigurer;
+        bool m_need_retransmit;
         std::list<std::pair<region_id, uint64_t> > m_lower_bounds;
+        bool m_need_pause;
+        bool m_paused_retransmitter;
+        bool m_paused_garbage_collector;
 };
 
 } // namespace hyperdex

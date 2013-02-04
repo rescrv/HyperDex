@@ -7,11 +7,8 @@ public class SearchBase extends Pending
     protected SWIGTYPE_p_p_hyperclient_attribute attrs_ptr = null;
     protected SWIGTYPE_p_size_t attrs_sz_ptr = null;
 
-    protected hyperclient_attribute eq = null;
-    protected int eq_sz = 0;
-
-    protected hyperclient_range_query rn = null;
-    protected int rn_sz = 0;
+    protected hyperclient_attribute_check chks = null;
+    protected long chks_sz = 0;
 
     private Vector<Object> backlogged = new Vector<Object>();
 

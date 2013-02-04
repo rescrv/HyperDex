@@ -71,12 +71,17 @@ noinst_PROGRAMS = \
 
 dist_man_MANS = doc/man/hyperdex-daemon.1
 
+CONFIG_CLEAN_FILES = hyperclient.pc
+
 CLEANFILES = \
 			$(java_bindings_cleanfiles) \
 			doc/HyperDex-$(VERSION).pdf \
 			$(ycsb_cleanfiles)
 
 JAVAROOT = $(abs_top_srcdir)
+
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = hyperclient.pc
 
 .PHONY: coverage doc/HyperDex-$(VERSION).pdf
 
@@ -245,8 +250,46 @@ libhypercoordinator_la_LIBADD = -le
 
 libhyperclient_extra_dist = \
 			client/keyop_info.gperf \
-			hyperclient/java/hyperclient.i \
-			client/python/hyperclient.pyx
+			client/java/examples/HyperBinaryTest.java \
+			client/java/examples/HyperSearchFloatRange.java \
+			client/java/examples/HyperTest.java \
+			client/java/examples/README.txt \
+			client/java/examples/source_me \
+			client/java/extra_src/AttributeError.java \
+			client/java/extra_src/ByteArray.java \
+			client/java/extra_src/ByteArrayKeyedMap.java \
+			client/java/extra_src/ByteArrayKeyedSortedMap.java \
+			client/java/extra_src/ByteArraySortedSet.java \
+			client/java/extra_src/ByteArrayVector.java \
+			client/java/extra_src/DeferredCondPut.java \
+			client/java/extra_src/DeferredCount.java \
+			client/java/extra_src/DeferredDelete.java \
+			client/java/extra_src/DeferredFromAttrs.java \
+			client/java/extra_src/DeferredGet.java \
+			client/java/extra_src/DeferredGroupDel.java \
+			client/java/extra_src/Deferred.java \
+			client/java/extra_src/DeferredMapOp.java \
+			client/java/extra_src/GreaterEqual.java \
+			client/java/extra_src/HyperClientException.java \
+			client/java/extra_src/LessEqual.java \
+			client/java/extra_src/MapOp.java \
+			client/java/extra_src/MemoryError.java \
+			client/java/extra_src/Pending.java \
+			client/java/extra_src/Predicate.java \
+			client/java/extra_src/Range.java \
+			client/java/extra_src/SearchBase.java \
+			client/java/extra_src/Search.java \
+			client/java/extra_src/SimpleOp.java \
+			client/java/extra_src/SortedSearch.java \
+			client/java/extra_src/TypeError.java \
+			client/java/extra_src/ValueError.java \
+			client/java/hyperclient.i \
+			client/java/proxies/hyperclient_attribute_check.i \
+			client/java/proxies/hyperclient_attribute.i \
+			client/java/proxies/HyperClient.i \
+			client/java/proxies/hyperclient_map_attribute.i \
+			client/python/hyperclient.pyx \
+			hyperclient.pc
 
 libhyperclient_includedir = $(includedir)
 libhyperclient_include_HEADERS = \
@@ -314,12 +357,12 @@ client/keyop_info.cc: client/keyop_info.gperf
 
 java_bindings_cleanfiles = \
 			$(hyperclient_jarfile) \
-			hyperclient/java/hyperclient_wrap.cxx \
-			hyperclient/java/hyperclient/*.java \
-			hyperclient/java/hyperclient/*.class \
+			client/java/hyperclient_wrap.cxx \
+			client/java/hyperclient/*.java \
+			client/java/hyperclient/*.class \
 			hyperclient-java.stamp
 
-nodist_libhyperclient_java_la_SOURCES = hyperclient/java/hyperclient_wrap.cxx
+nodist_libhyperclient_java_la_SOURCES = client/java/hyperclient_wrap.cxx
 libhyperclient_java_la_CPPFLAGS = \
 			$(JNI_CPPFLAGS) \
 			$(CPPFLAGS)
@@ -329,20 +372,20 @@ libhyperclient_java_la_LIBADD = \
 			libhyperclient.la \
 			$(PYTHON_LDFLAGS)
 
-hyperclient/java/hyperclient_wrap.cxx: hyperclient/java/hyperclient.i hyperclient/hyperclient.h
-	mkdir -p hyperclient/java/hyperclient
-	${SWIG} -java -package hyperclient -outdir $(abs_builddir)/hyperclient/java/hyperclient \
-		-o $(abs_builddir)/hyperclient/java/hyperclient_wrap.cxx -w518 $(abs_top_srcdir)/hyperclient/java/hyperclient.i
+client/java/hyperclient_wrap.cxx: client/java/hyperclient.i client/hyperclient.h
+	mkdir -p client/java/hyperclient
+	${SWIG} -I${abs_srcdir} -java -package hyperclient -outdir $(abs_builddir)/client/java/hyperclient \
+		-o $(abs_builddir)/client/java/hyperclient_wrap.cxx -w518 $(abs_top_srcdir)/client/java/hyperclient.i
 
 hyperclient_jarfile = hyperclient-$(VERSION).jar
 
-hyperclient-java.stamp: hyperclient/java/hyperclient_wrap.cxx
-	cp hyperclient/java/extra_src/*.java hyperclient/java/hyperclient/.
-	javac hyperclient/java/hyperclient/*.java
-	date > hyperclient-java.stamp
+hyperclient-java.stamp: client/java/hyperclient_wrap.cxx
+	cp ${abs_srcdir}/client/java/extra_src/*.java ${abs_builddir}/client/java/hyperclient/.
+	javac ${abs_builddir}/client/java/hyperclient/*.java
+	date > ${abs_builddir}/hyperclient-java.stamp
 
 $(hyperclient_jarfile): hyperclient-java.stamp
-	cd $(abs_top_builddir)/hyperclient/java ; $(JAR) cvf $(JARFLAGS) $(abs_top_builddir)/$(hyperclient_jarfile) hyperclient/*.class
+	cd $(abs_top_builddir)/client/java ; $(JAR) cvf $(JARFLAGS) $(abs_top_builddir)/$(hyperclient_jarfile) hyperclient/*.class
 
 if ENABLE_JAVA_BINDINGS
 lib_LTLIBRARIES += libhyperclient-java.la

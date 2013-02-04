@@ -11,6 +11,7 @@ client/python/hyperclient.c
 config.guess
 config.h
 config.h.in
+config.h.in~
 config.log
 config.status
 config.sub
@@ -24,6 +25,7 @@ doc/HyperDex-0.5.dev.pdf
 doc/man/hyperdex-daemon.1
 doc/man/hyperdex-replication-stress-test.1
 doc/man/hyperdex-simple-consistency-stress-test.1
+hyperclient.pc
 hyperdex
 hyperdex-add-space
 hyperdex-binary-test
@@ -61,3 +63,8 @@ missing
 py-compile
 stamp-h1
 ylwrap
+*.cxx
+client/java/hyperclient
+*.jar
+*.stamp
+
