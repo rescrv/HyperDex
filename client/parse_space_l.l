@@ -64,5 +64,9 @@ extern YYSTYPE yylval;
 "set"                   { return SET; }
 "map"                   { return MAP; }
 [ \t\n\r]               ;
+#ifdef _MSC_VER
+[1-9][0-9]*             { yylval.num = _strtoui64(yytext, NULL, 10); return NUMBER; }
+#else
 [1-9][0-9]*             { yylval.num = strtoull(yytext, NULL, 10); return NUMBER; }
+#endif
 [a-zA-Z_][a-zA-Z_0-9]*  { yylval.str = strdup(yytext); return IDENTIFIER; }

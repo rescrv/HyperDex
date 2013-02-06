@@ -48,7 +48,11 @@ hyperdex :: operator << (e::buffer::packer lhs, const po6::net::ipaddr& rhs)
         type = 6;
         sockaddr_in6 sa;
         rhs.pack(&sa, 0);
+#ifdef _MSC_VER
+        memmove(data, &sa.sin6_addr.u.Byte, 16);
+#else
         memmove(data, &sa.sin6_addr.__in6_u.__u6_addr8, 16);
+#endif
     }
     else
     {
@@ -82,7 +86,11 @@ hyperdex :: operator >> (e::unpacker lhs, po6::net::ipaddr& rhs)
     else if (type == 6)
     {
         in6_addr ia;
+#ifdef _MSC_VER
+        memmove(ia.u.Byte, rem.data(), 16);
+#else
         memmove(ia.__in6_u.__u6_addr8, rem.data(), 16);
+#endif
         rhs = po6::net::ipaddr(ia);
         return lhs.advance(16);
     }

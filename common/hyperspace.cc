@@ -447,8 +447,8 @@ replica :: replica()
 {
 }
 
-replica :: replica(const server_id& s,
-                   const virtual_server_id& v)
+replica :: replica(const hyperdex::server_id& s,
+                   const hyperdex::virtual_server_id& v)
     : si(s)
     , vsi(v)
 {

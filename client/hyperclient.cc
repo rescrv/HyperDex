@@ -389,7 +389,11 @@ hyperclient :: search(const char* space,
 
         if (send(op, tosend) < 0)
         {
+#ifdef _MSC_VER
+            m_complete_failed.push(std::shared_ptr<complete>(new complete(search_id, status, HYPERCLIENT_RECONFIGURE, 0)));
+#else
             m_complete_failed.push(complete(search_id, status, HYPERCLIENT_RECONFIGURE, 0));
+#endif
             m_incomplete.erase(op->server_visible_nonce());
         }
     }
@@ -459,7 +463,11 @@ hyperclient :: sorted_search(const char* space,
 
         if (send(op, tosend) < 0)
         {
+#ifdef _MSC_VER
+            m_complete_failed.push(std::shared_ptr<complete>(new complete(search_id, status, HYPERCLIENT_RECONFIGURE, 0)));
+#else
             m_complete_failed.push(complete(search_id, status, HYPERCLIENT_RECONFIGURE, 0));
+#endif
             m_incomplete.erase(op->server_visible_nonce());
         }
     }
@@ -501,7 +509,11 @@ hyperclient :: group_del(const char* space,
 
         if (send(op, tosend) < 0)
         {
+#ifdef _MSC_VER
+            m_complete_failed.push(std::shared_ptr<complete>(new complete(search_id, status, HYPERCLIENT_RECONFIGURE, 0)));
+#else
             m_complete_failed.push(complete(search_id, status, HYPERCLIENT_RECONFIGURE, 0));
+#endif
             m_incomplete.erase(op->server_visible_nonce());
         }
     }
@@ -544,7 +556,11 @@ hyperclient :: count(const char* space,
 
         if (send(op, tosend) < 0)
         {
+#ifdef _MSC_VER
+            m_complete_failed.push(std::shared_ptr<complete>(new complete(search_id, status, HYPERCLIENT_RECONFIGURE, 0)));
+#else
             m_complete_failed.push(complete(search_id, status, HYPERCLIENT_RECONFIGURE, 0));
+#endif
             m_incomplete.erase(op->server_visible_nonce());
         }
     }
@@ -662,7 +678,11 @@ hyperclient :: loop(int timeout, hyperclient_returncode* status)
 
     if (!m_complete_failed.empty())
     {
+#ifdef _MSC_VER
+        complete c = *m_complete_failed.front();
+#else
         complete c = m_complete_failed.front();
+#endif
         m_complete_failed.pop();
         *c.status = c.why;
 
@@ -1044,7 +1064,11 @@ hyperclient :: maintain_coord_connection(hyperclient_returncode* status)
             // longer true, we just abort the operation.
             if (m_config->get_server_id(i->second->sent_to()) == server_id())
             {
+#ifdef _MSC_VER
+                m_complete_failed.push(std::shared_ptr<complete>(new complete(i->second->client_visible_id(), i->second->status_ptr(), HYPERCLIENT_RECONFIGURE, 0)));
+#else
                 m_complete_failed.push(complete(i->second->client_visible_id(), i->second->status_ptr(), HYPERCLIENT_RECONFIGURE, 0));
+#endif
                 m_incomplete.erase(i);
                 i = m_incomplete.begin();
                 ++reconfigured;
@@ -1445,9 +1469,15 @@ hyperclient :: killall(const hyperdex::server_id& id,
     {
         if (m_config->get_server_id(r->second->sent_to()) == id)
         {
+#ifdef _MSC_VER
+            m_complete_failed.push(std::shared_ptr<complete>(new complete(r->second->client_visible_id(),
+                                            r->second->status_ptr(),
+                                            status, 0)));
+#else
             m_complete_failed.push(complete(r->second->client_visible_id(),
                                             r->second->status_ptr(),
                                             status, 0));
+#endif
             m_incomplete.erase(r);
             r = m_incomplete.begin();
         }
