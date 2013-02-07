@@ -218,8 +218,7 @@ hyperdex_daemon_SOURCES = \
 hyperdex_daemon_LDADD = \
 			$(E_LIBS) \
 			$(BUSYBEE_LIBS) -lleveldb \
-			-lbusybee \
-			-lreplicant -lcityhash -lpopt -lglog -lrt -lpthread
+			$(REPLICANT_LIBS) -lcityhash -lpopt -lglog -lrt -lpthread
 hyperdex_daemon_CPPFLAGS = $(CPPFLAGS)
 
 #daemon_test_index_encode_SOURCES = runner.cc daemon/test/index_encode.cc daemon/index_encode.cc common/float_encode.cc
@@ -240,7 +239,8 @@ libhypercoordinator_la_SOURCES = \
 			common/transfer.cc \
 			coordinator/coordinator.cc \
 			coordinator/symtable.c
-libhypercoordinator_la_LIBADD = -le
+libhypercoordinator_la_LIBADD = $(E_LIBS) 
+libhypercoordinator_la_CPPFLAGS = $(REPLICANT_CFLAGS)
 
 ################################################################################
 #################################### Client ####################################
@@ -344,7 +344,7 @@ libhyperclient_la_SOURCES = \
 libhyperclient_la_LIBADD = \
 			$(E_LIBS) \
 			$(BUSYBEE_LIBS) \
-			-lbusybee -lreplicant -lcityhash
+			$(REPLICANT_LIBS) -lcityhash
 
 gperf_verbose = $(gperf_verbose_$(V))
 gperf_verbose_ = $(gperf_verbose_$(AM_DEFAULT_VERBOSITY))
@@ -429,7 +429,7 @@ hyperdex_initialize_cluster_CPPFLAGS = -DHYPERDEX_COORD_LIB=\""$(hyperdexexecdir
 hyperdex_initialize_cluster_LDADD = libhyperclient.la
 
 hyperdex_coordinator_SOURCES = tools/coordinator.cc
-hyperdex_coordinator_LDADD = libhyperclient.la -le -lbusybee
+hyperdex_coordinator_LDADD = libhyperclient.la $(E_LIBS) $(BUSYBEE_LIBS)
 
 hyperdex_add_space_SOURCES = tools/add-space.cc
 hyperdex_add_space_LDADD = libhyperclient.la
@@ -475,10 +475,10 @@ endif
 ################################################################################
 
 hyperdex_replication_stress_test_SOURCES = replication-stress-test.cc
-hyperdex_replication_stress_test_LDADD = libhyperclient.la -lpopt -le
+hyperdex_replication_stress_test_LDADD = libhyperclient.la -lpopt $(E_LIBS) 
 
 hyperdex_search_stress_test_SOURCES = search-stress-test.cc test/common.cc
-hyperdex_search_stress_test_LDADD = libhyperclient.la -lpopt -le
+hyperdex_search_stress_test_LDADD = libhyperclient.la -lpopt $(E_LIBS)
 
 hyperdex_simple_consistency_stress_test_SOURCES = simple-consistency-stress-test.cc
 hyperdex_simple_consistency_stress_test_LDADD = libhyperclient.la -lpopt -lpthread
