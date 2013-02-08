@@ -36,6 +36,7 @@
 
 // HyperDex
 #include "client/hyperclient.h"
+#include "common/configuration.h"
 
 namespace hyperdex
 {
@@ -50,7 +51,11 @@ class coordinator_link
         const configuration& config();
         bool wait_for_config(hyperclient_returncode* status);
         bool poll_for_config(hyperclient_returncode* status);
+#ifdef _MSC_VER
+        fd_set* poll_fd();
+#else
         int poll_fd();
+#endif
         bool make_rpc(const char* func,
                       const char* data, size_t data_sz,
                       hyperclient_returncode* status,

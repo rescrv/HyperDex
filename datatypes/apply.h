@@ -29,7 +29,11 @@
 #define datatypes_apply_h_
 
 // STL
+#ifdef _MSC_VER
+#include <memory>
+#else
 #include <tr1/memory>
+#endif
 
 // e
 #include <e/buffer.h>

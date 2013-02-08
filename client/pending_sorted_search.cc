@@ -27,6 +27,9 @@
 
 // STL
 #include <algorithm>
+#ifdef _MSC_VER
+#include <functional>
+#endif
 
 // e
 #include <e/endian.h>
@@ -147,7 +150,11 @@ hyperclient :: pending_sorted_search :: handle_response(hyperclient* cl,
 
         if (m_state->m_results.empty())
         {
+#ifdef _MSC_VER 
+            cl->m_complete_failed.push(std::shared_ptr<complete>(new complete(client_visible_id(), status_ptr(), HYPERCLIENT_SEARCHDONE, 0)));
+#else
             cl->m_complete_failed.push(complete(client_visible_id(), status_ptr(), HYPERCLIENT_SEARCHDONE, 0));
+#endif
         }
     }
 
@@ -177,7 +184,11 @@ hyperclient :: pending_sorted_search :: return_one(hyperclient* cl,
 
     if (m_state->m_returned == m_state->m_results.size())
     {
+#ifdef _MSC_VER
+        cl->m_complete_failed.push(std::shared_ptr<complete>(new complete(client_visible_id(), status_ptr(), HYPERCLIENT_SEARCHDONE, 0)));
+#else
         cl->m_complete_failed.push(complete(client_visible_id(), status_ptr(), HYPERCLIENT_SEARCHDONE, 0));
+#endif
     }
 
     return client_visible_id();

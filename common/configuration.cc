@@ -429,7 +429,7 @@ configuration :: subspace_adjacent(const virtual_server_id& lhs, const virtual_s
 }
 
 void
-configuration :: captures(std::vector<capture>* cs) const
+configuration :: captures(std::vector<hyperdex::capture>* cs) const
 {
     *cs = m_captures;
 }
@@ -486,7 +486,7 @@ configuration :: is_server_blocked_by_live_transfer(const server_id& si, const r
 }
 
 bool
-configuration :: is_transfer_live(const transfer_id& id) const
+configuration :: is_transfer_live(const hyperdex::transfer_id& id) const
 {
     for (size_t i = 0; i < m_transfers.size(); ++i)
     {
@@ -502,7 +502,7 @@ configuration :: is_transfer_live(const transfer_id& id) const
 }
 
 void
-configuration :: transfer_in_regions(const server_id& si, std::vector<transfer>* transfers) const
+configuration :: transfer_in_regions(const hyperdex::server_id& si, std::vector<hyperdex::transfer>* transfers) const
 {
     for (size_t i = 0; i < m_transfers.size(); ++i)
     {
@@ -514,7 +514,7 @@ configuration :: transfer_in_regions(const server_id& si, std::vector<transfer>*
 }
 
 void
-configuration :: transfer_out_regions(const server_id& si, std::vector<transfer>* transfers) const
+configuration :: transfer_out_regions(const hyperdex::server_id& si, std::vector<hyperdex::transfer>* transfers) const
 {
     for (size_t i = 0; i < m_transfers.size(); ++i)
     {
@@ -566,7 +566,7 @@ configuration :: lookup_region(const subspace_id& ssid,
 
 void
 configuration :: lookup_search(const char* space_name,
-                               const std::vector<attribute_check>& chks,
+                               const std::vector<hyperdex::attribute_check>& chks,
                                std::vector<virtual_server_id>* servers) const
 {
     const space* s = NULL;
@@ -586,7 +586,7 @@ configuration :: lookup_search(const char* space_name,
         return;
     }
 
-    std::vector<range> ranges;
+    std::vector<hyperdex::range> ranges;
     range_searches(chks, &ranges);
 
     for (size_t i = 0; i < ranges.size(); ++i)
