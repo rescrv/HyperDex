@@ -26,7 +26,9 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // POSIX
+#ifndef _MSC_VER
 #include <poll.h>
+#endif
 
 // HyperDex
 #include "common/configuration.h"
@@ -72,12 +74,27 @@ coordinator_link :: wait_for_config(hyperclient_returncode* status)
 
     while (version >= m_config.version())
     {
+#ifdef _MSC_VER
+	//XXX: There can be at most 64 fds in the set 
+        pollfd pfd[64];
+	    int fd_count = m_repl.poll_fd()->fd_count;
+
+	    for(int i = 0; i < fd_count; ++i)
+	    {
+	        pfd[i].fd=m_repl.poll_fd()->fd_array[i];
+            pfd[i].events = POLLIN;
+            pfd[i].revents = 0;
+        }
+
+        if (WSAPoll(pfd, fd_count, -1) <= 0)
+#else
         pollfd pfd;
         pfd.fd = m_repl.poll_fd();
         pfd.events = POLLIN;
         pfd.revents = 0;
 
         if (poll(&pfd, 1, -1) <= 0)
+#endif
         {
             *status = HYPERCLIENT_POLLFAILED;
             return false;
@@ -241,7 +258,11 @@ coordinator_link :: poll_for_config(hyperclient_returncode* status)
     }
 }
 
+#ifdef _MSC_VER
+fd_set*
+#else
 int
+#endif
 coordinator_link :: poll_fd()
 {
     return m_repl.poll_fd();

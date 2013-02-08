@@ -33,6 +33,9 @@
 /* HyperDex */
 #include "hyperdex.h"
 #include "client/parse_space_y.h"
+#ifdef _MSC_VER
+#define sstrtoull(A, B, C) _strtoui64((A),(B),(C))
+#endif
 
 extern YYSTYPE yylval;
 %}

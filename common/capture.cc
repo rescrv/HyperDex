@@ -36,8 +36,8 @@ capture :: capture()
 {
 }
 
-capture :: capture(const capture_id& _id,
-                   const region_id& _rid)
+capture :: capture(const hyperdex::capture_id& _id,
+                   const hyperdex::region_id& _rid)
     : id(_id)
     , rid(_rid)
 {

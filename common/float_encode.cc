@@ -92,8 +92,11 @@
 //                                          exp=0x7ff
 //                                          frac=0
 //                                          shift=3
+#ifndef _MSC_VER
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-equal"
+#endif
+
 uint64_t
 hyperdex :: float_encode(double x)
 {

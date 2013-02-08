@@ -902,7 +902,11 @@ class hyperclient
         const std::auto_ptr<hyperdex::coordinator_link> m_coord;
         incomplete_map_t m_incomplete;
         std::queue<int64_t> m_complete_succeeded;
+#ifdef _MSC_VER
+        std::queue<std::shared_ptr<complete>> m_complete_failed;
+#else
         std::queue<complete> m_complete_failed;
+#endif
         int64_t m_server_nonce;
         int64_t m_client_id;
         bool m_have_seen_config;

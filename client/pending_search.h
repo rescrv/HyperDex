@@ -29,7 +29,11 @@
 #define hyperdex_client_pending_search_h_
 
 // STL
+#ifdef _MSC_VER
+#include <memory>
+#else
 #include <tr1/memory>
+#endif
 
 // HyperDex
 #include "client/pending.h"

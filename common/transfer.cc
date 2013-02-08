@@ -40,12 +40,12 @@ transfer :: transfer()
 {
 }
 
-transfer :: transfer(const transfer_id& _id,
-                     const region_id& _rid,
-                     const server_id& _src,
-                     const virtual_server_id& _vsrc,
-                     const server_id& _dst,
-                     const virtual_server_id& _vdst)
+transfer :: transfer(const hyperdex::transfer_id& _id,
+                     const hyperdex::region_id& _rid,
+                     const hyperdex::server_id& _src,
+                     const hyperdex::virtual_server_id& _vsrc,
+                     const hyperdex::server_id& _dst,
+                     const hyperdex::virtual_server_id& _vdst)
     : id(_id)
     , rid(_rid)
     , src(_src)

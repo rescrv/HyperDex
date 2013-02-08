@@ -1,0 +1,182 @@
+CXXFLAGS = /EHsc /wd4351 /wd4291
+PO6 = po6
+REPLICANT = Replicant
+BUSYBEE = busybee
+CITYHASH = cityhash-1.0.3/src
+E = e
+HYPERDEX = .
+DOTNET = windows 
+OUTPUT_DIR = output 
+
+# Location of .net4.5, should contain "mscorlib.dll"
+DOTNETFRAMEWORK = C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5
+
+LFLAGS = /MACHINE:X64
+
+PO6_FLAGS = /I$(PO6)
+E_FLAGS = /I$(E) /I$(PO6)
+BUSYBEE_FLAGS = /I$(BUSYBEE) /I$(E) /I$(PO6) /Iwindows /I. /DBUSYBEE_ST
+HYPERDEX_FLAGS = /I$(HYPERDEX)/hyperspacehashing /I$(HYPERDEX) /I$(HYPERDEX)/client /I$(REPLICANT)/client /I$(BUSYBEE) /I$(E) /I$(PO6) /I$(CITYHASH) /Iwindows
+REPLICANT_FLAGS = /I$(REPLICANT) /I$(REPLICANT)/client /I$(E) /I$(PO6) /I$(BUSYBEE) /I.
+CITYHASH_FLAGS = /I$(CITYHASH)
+
+
+LIBS = \
+ 	kernel32.lib \
+	user32.lib \
+	gdi32.lib \
+	winspool.lib \
+	comdlg32.lib \
+	advapi32.lib \
+	shell32.lib \
+	ole32.lib \
+	oleaut32.lib \
+	uuid.lib \
+	odbc32.lib \
+	odbccp32.lib \
+	ws2_32.lib 
+
+
+HYPERDEXOBJS= \
+	/common/attribute.obj \
+	/common/attribute_check.obj \
+	/common/capture.obj \
+	/common/configuration.obj \
+	/common/float_encode.obj \
+	/common/funcall.obj \
+	/common/hash.obj \
+	/common/hyperdex.obj \
+	/common/hyperspace.obj \
+	/common/mapper.obj \
+	/common/network_msgtype.obj \
+	/common/range_searches.obj \
+	/common/schema.obj \
+	/common/serialization.obj \
+	/common/transfer.obj \
+	/datatypes/coercion.obj \
+	/datatypes/compare.obj \
+	/datatypes/float.obj \
+	/datatypes/int64.obj \
+	/datatypes/list.obj \
+	/datatypes/map.obj \
+	/datatypes/set.obj \
+	/datatypes/step.obj \
+	/datatypes/string.obj \
+	/datatypes/validate.obj \
+	/datatypes/write.obj \
+	/client/c_wrappers.obj \
+	/client/complete.obj \
+	/client/coordinator_link.obj \
+	/client/hyperclient.obj \
+	/client/keyop_info.obj \
+	/client/parse_space_l.obj \
+	/client/parse_space_y.obj \
+	/client/parse_space_aux.obj \
+	/client/partition.obj \
+	/client/pending.obj \
+	/client/pending_count.obj \
+	/client/pending_get.obj \
+	/client/pending_group_del.obj \
+	/client/pending_search.obj \
+	/client/pending_sorted_search.obj \
+	/client/pending_statusonly.obj \
+	/client/refcount.obj \
+	/client/space_description.obj \
+	/client/util.obj \
+    /windows/hyperclientclr.obj \
+    /windows/marshal.obj
+HYPERDEXOBJS = hyperdex$(HYPERDEXOBJS: /= hyperdex/)
+
+EOBJS= \
+    /buffer.obj\
+    /slice.obj\
+    /unpacker.obj
+EOBJS = e$(EOBJS: /= e/)
+
+CITYHASHOBJS = \
+    /city.obj
+CITYHASHOBJS = cityhash$(CITYHASHOBJS: /= cityhash/)
+
+REPLICANTOBJS = \
+    /common/bootstrap.obj \
+	/common/chain_node.obj \
+	/common/configuration.obj \
+	/common/mapper.obj \
+	/common/network_msgtype.obj \
+	/common/packing.obj \
+	/common/response_returncode.obj \
+	/client/command.obj \
+	/client/replicant.obj
+REPLICANTOBJS = replicant$(REPLICANTOBJS: /= replicant/) 
+
+BUSYBEEOBJS = \
+    /busybee.obj \
+	/busybee_mapper.obj \
+	/busybee_returncode.obj \
+	/busybee_single.obj \
+	/busybee_utils.obj
+BUSYBEEOBJS = busybee$(BUSYBEEOBJS: /= busybee/) 
+
+ALLOBJS = $(BUSYBEEOBJS) $(CITYHASHOBJS) $(EOBJS) $(BUSYBEEOBJS) $(REPLICANTOBJS) $(HYPERDEXOBJS)
+
+all: hyperclient.dll
+
+OBJ_OUTPUT = $(@:/=_)
+
+COMPILE_CXX = $(CXX) /c /MDd $(CXXFLAGS) $< /Fo$(OUTPUT_DIR)/$(OBJ_OUTPUT) /DEBUG /Zi /Fd"$(OUTPUT_DIR)/vc110.pdb" 
+
+USING = \
+    /AI"$(DOTNET)" \
+    /FU"mscorlib.dll" \
+    /FU"System.Data.dll" \
+    /FU"System.Core.dll" \
+    /FU"System.dll" \
+    /FU"System.Xml.dll"
+
+CLRFLAGS = /wd4291 /wd4099 /I$(E) /I$(DOTNET) /I$(HYPERDEX) /GS /W3 /Zc:wchar_t /Zi /Od /Fd"$(OUTPUT_DIR)/vc110.pdb" /fp:precise /D "WIN32" /D "_DEBUG" /D "_WINDLL" /D "_UNICODE" /D "UNICODE" /errorReport:prompt /WX- /Zc:forScope /clr:nostdlib /clr $(USING) /MDd /EHa /nologo 
+
+
+.cc.obj:
+    @echo $(@) doesn't match any rules.
+
+{$(BUSYBEE)}.cc{busybee}.obj: 
+    $(COMPILE_CXX) $(BUSYBEE_FLAGS)
+ 
+{$(REPLICANT)}.cc{replicant}.obj: 
+    $(COMPILE_CXX) $(REPLICANT_FLAGS)
+
+{$(REPLICANT)/common}.cc{replicant/common}.obj: 
+    $(COMPILE_CXX) $(REPLICANT_FLAGS)
+ 
+{$(REPLICANT)/client}.cc{replicant/client}.obj: 
+    $(COMPILE_CXX) $(REPLICANT_FLAGS)
+ 
+{$(CITYHASH)}.cc{cityhash}.obj: 
+    $(COMPILE_CXX) $(CITYHASH_FLAGS)
+
+{$(E)}.cc{e}.obj: 
+    $(COMPILE_CXX) $(E_FLAGS)
+ 
+{$(E)/e}.cc{e/e}.obj: 
+    $(COMPILE_CXX) $(E_FLAGS)
+
+{$(HYPERDEX)/}.cc{hyperdex}.obj: 
+    $(COMPILE_CXX) $(HYPERDEX_FLAGS)
+
+{$(HYPERDEX)/client}.c{hyperdex/client}.obj: 
+    $(COMPILE_CXX) $(HYPERDEX_FLAGS)
+
+{$(HYPERDEX)/client}.cc{hyperdex/client}.obj: 
+    $(COMPILE_CXX) $(HYPERDEX_FLAGS)
+
+{$(HYPERDEX)/common}.cc{hyperdex/common}.obj: 
+    $(COMPILE_CXX) $(HYPERDEX_FLAGS)
+
+{$(HYPERDEX)/datatypes}.cc{hyperdex/datatypes}.obj: 
+    $(COMPILE_CXX) $(HYPERDEX_FLAGS)
+
+{$(HYPERDEX)/windows}.cpp{hyperdex/windows}.obj:
+    cl /c $(CLRFLAGS) $< /Fo$(OUTPUT_DIR)/$(OBJ_OUTPUT) 
+
+hyperclient.dll: $(ALLOBJS) 
+    LINK /OUT:$(OUTPUT_DIR)/HyperClient.dll /MANIFEST /NXCOMPAT /PDB:$(OUTPUT_DIR)/HyperClient.pdb /DYNAMICBASE $(LIBS) $(OUTPUT_DIR)/*.obj /FIXED:NO /DEBUG /DLL /MACHINE:X64 /INCREMENTAL /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /ManifestFile:$(OUTPUT_DIR)/HyperClient.dll.intermediate.manifest /ERRORREPORT:PROMPT /NOLOGO /LIBPATH:. /ASSEMBLYDEBUG /TLBID:1  
