@@ -15,8 +15,8 @@ LFLAGS = /MACHINE:X64
 
 PO6_FLAGS = /I$(PO6)
 E_FLAGS = /I$(E) /I$(PO6)
-BUSYBEE_FLAGS = /I$(BUSYBEE) /I$(E) /I$(PO6) /DBUSYBEE_ST
-HYPERDEX_FLAGS = /I$(HYPERDEX)/hyperspacehashing /I$(HYPERDEX) /I$(HYPERDEX)/client /I$(REPLICANT)/client /I$(BUSYBEE) /I$(E) /I$(PO6) /I$(CITYHASH)
+BUSYBEE_FLAGS = /I$(BUSYBEE) /I$(E) /I$(PO6) /Iwindows /I. /DBUSYBEE_ST
+HYPERDEX_FLAGS = /I$(HYPERDEX)/hyperspacehashing /I$(HYPERDEX) /I$(HYPERDEX)/client /I$(REPLICANT)/client /I$(BUSYBEE) /I$(E) /I$(PO6) /I$(CITYHASH) /Iwindows
 REPLICANT_FLAGS = /I$(REPLICANT) /I$(REPLICANT)/client /I$(E) /I$(PO6) /I$(BUSYBEE) /I.
 CITYHASH_FLAGS = /I$(CITYHASH)
 
@@ -83,14 +83,14 @@ HYPERDEXOBJS= \
 	/client/refcount.obj \
 	/client/space_description.obj \
 	/client/util.obj \
-    /dotnet/hyperclientclr.obj \
-    /dotnet/marshal.obj
+    /windows/hyperclientclr.obj \
+    /windows/marshal.obj
 HYPERDEXOBJS = hyperdex$(HYPERDEXOBJS: /= hyperdex/)
 
 EOBJS= \
     /buffer.obj\
     /slice.obj\
-    /e/unpacker.obj
+    /unpacker.obj
 EOBJS = e$(EOBJS: /= e/)
 
 CITYHASHOBJS = \
@@ -175,7 +175,7 @@ CLRFLAGS = /wd4291 /wd4099 /I$(E) /I$(DOTNET) /I$(HYPERDEX) /GS /W3 /Zc:wchar_t 
 {$(HYPERDEX)/datatypes}.cc{hyperdex/datatypes}.obj: 
     $(COMPILE_CXX) $(HYPERDEX_FLAGS)
 
-{$(HYPERDEX)/dotnet}.cpp{hyperdex/dotnet}.obj:
+{$(HYPERDEX)/windows}.cpp{hyperdex/windows}.obj:
     cl /c $(CLRFLAGS) $< /Fo$(OUTPUT_DIR)/$(OBJ_OUTPUT) 
 
 hyperclient.dll: $(ALLOBJS) 
