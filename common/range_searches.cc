@@ -93,7 +93,7 @@ range_search(const attribute_check* ptr,
         switch (ptr->predicate)
         {
             case HYPERPREDICATE_EQUALS:
-                if ((lower && compare_as_type(ptr->value, lower->value, ptr->datatype) < 0) || 
+                if ((lower && compare_as_type(ptr->value, lower->value, ptr->datatype) < 0) ||
                     (upper && compare_as_type(ptr->value, upper->value, ptr->datatype) > 0))
                 {
                     return;

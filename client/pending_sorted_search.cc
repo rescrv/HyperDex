@@ -150,7 +150,7 @@ hyperclient :: pending_sorted_search :: handle_response(hyperclient* cl,
 
         if (m_state->m_results.empty())
         {
-#ifdef _MSC_VER 
+#ifdef _MSC_VER
             cl->m_complete_failed.push(std::shared_ptr<complete>(new complete(client_visible_id(), status_ptr(), HYPERCLIENT_SEARCHDONE, 0)));
 #else
             cl->m_complete_failed.push(complete(client_visible_id(), status_ptr(), HYPERCLIENT_SEARCHDONE, 0));

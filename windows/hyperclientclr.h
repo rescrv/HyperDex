@@ -21,7 +21,7 @@ using namespace System::Collections::Generic;
 namespace
 HyperDex
 {
-    public enum class HyperClientReturnCode 
+    public enum class HyperClientReturnCode
     {
         HYPERCLIENT_SUCCESS      = 8448,
                                  HYPERCLIENT_NOTFOUND     = 8449,
@@ -79,7 +79,7 @@ HyperDex
         Dictionary<String ^, Object ^> ^get(String ^space, String ^key);
 
 #define HYPERCLIENT_CLRDEC(OPNAME) \
-        bool OPNAME(String ^space, String ^key, Dictionary<String ^, Object ^> ^ attrs); 
+        bool OPNAME(String ^space, String ^key, Dictionary<String ^, Object ^> ^ attrs);
 
         HYPERCLIENT_CLRDEC(put)
             HYPERCLIENT_CLRDEC(put_if_not_exist)
@@ -101,7 +101,7 @@ HyperDex
             HYPERCLIENT_CLRDEC(set_union)
 
 #define HYPERCLIENT_MAP_CLRDEC(OPNAME) \
-            bool map_ ## OPNAME(String ^space, String ^key, Dictionary<String ^, Dictionary<Object^, Object ^>^ > ^ attrs); 
+            bool map_ ## OPNAME(String ^space, String ^key, Dictionary<String ^, Dictionary<Object^, Object ^>^ > ^ attrs);
 
             HYPERCLIENT_MAP_CLRDEC(add)
             HYPERCLIENT_MAP_CLRDEC(remove)
@@ -116,15 +116,15 @@ HyperDex
             HYPERCLIENT_MAP_CLRDEC(string_prepend)
             HYPERCLIENT_MAP_CLRDEC(string_append)
 
-            List<Dictionary<String ^, Object^>^ >^ 
+            List<Dictionary<String ^, Object^>^ >^
             search(String^ space, Dictionary<String ^, Object^>^ checks);
 
-        List<Dictionary<String ^, Object^>^ >^ 
-            sorted_search(String^ space, String ^sortby, 
+        List<Dictionary<String ^, Object^>^ >^
+            sorted_search(String^ space, String ^sortby,
                     UInt64 limit, bool maximize, Dictionary<String ^, Object^>^ checks);
 
 
-        UInt64 
+        UInt64
             count(String^ space, Dictionary<String ^, Object^>^ checks);
 
 

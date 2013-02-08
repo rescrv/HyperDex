@@ -54,7 +54,7 @@ class atomicfile
         static bool rewrite(const char* dir, const char* file, const char* contents);
 };
 
-inline bool 
+inline bool
 atomicfile::rewrite(const char* dir, const char* file, const char* contents)
 {
     // Using C file I/O as C++ flush and sync are not portable.
@@ -66,7 +66,7 @@ atomicfile::rewrite(const char* dir, const char* file, const char* contents)
     {
         return false;
     }
-    
+
     FILE *f = fdopen(fd.get(), "w");
     if (!f)
     {
@@ -74,14 +74,14 @@ atomicfile::rewrite(const char* dir, const char* file, const char* contents)
         unlink(tmp_name.get());
         return false;
     }
-    
+
     if (EOF == fputs(contents, f))
     {
         fclose(f);
         unlink(tmp_name.get());
         return false;
     }
-    
+
     // Make sure the file is on the disk.
     if (fflush(f))
     {
@@ -96,13 +96,13 @@ atomicfile::rewrite(const char* dir, const char* file, const char* contents)
         unlink(tmp_name.get());
         return false;
     }
-    
+
     if (fclose(f))
     {
         unlink(tmp_name.get());
         return false;
     }
-    
+
     // Rename the temp file into target.
     po6::pathname file_name = po6::join(dir, file);
     if (rename(tmp_name.get(), file_name.get()))

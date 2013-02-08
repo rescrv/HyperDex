@@ -52,7 +52,7 @@ apply_float(const e::slice& old_value,
     if (old_value.size())
     {
         e::unpackdoublele(old_value.data(), &number);
-    }    
+    }
 
     for (size_t i = 0; i < num_funcs; ++i)
     {

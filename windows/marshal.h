@@ -26,7 +26,7 @@ namespace msclr {
         template<>
             ref class context_node<const char*, Double ^> : public context_node_base
             {
-                private: 
+                private:
                     const char* toPtr;
                     marshal_context context;
 
@@ -41,7 +41,7 @@ namespace msclr {
         template<>
             ref class context_node<const char*, Int64 ^> : public context_node_base
             {
-                private: 
+                private:
                     const char* toPtr;
                     marshal_context context;
 
@@ -95,4 +95,4 @@ namespace msclr {
                     !context_node();
             };
     }
-} 
+}

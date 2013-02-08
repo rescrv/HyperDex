@@ -428,7 +428,7 @@ replication_manager :: chain_subspace(const virtual_server_id& from,
         m_daemon->m_config.lookup_region(subspace_next, new_pend->old_hashes, &new_pend->next_region);
     }
 
-    if (!(new_pend->this_old_region == m_daemon->m_config.get_region_id(from) && 
+    if (!(new_pend->this_old_region == m_daemon->m_config.get_region_id(from) &&
           m_daemon->m_config.tail_of_region(new_pend->this_old_region) == from) &&
         !(new_pend->this_new_region == m_daemon->m_config.get_region_id(from) &&
           m_daemon->m_config.next_in_region(from) == to))

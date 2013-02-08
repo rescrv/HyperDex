@@ -75,7 +75,7 @@ coordinator_link :: wait_for_config(hyperclient_returncode* status)
     while (version >= m_config.version())
     {
 #ifdef _MSC_VER
-	//XXX: There can be at most 64 fds in the set 
+	//XXX: There can be at most 64 fds in the set
         pollfd pfd[64];
 	    int fd_count = m_repl.poll_fd()->fd_count;
 
