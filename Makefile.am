@@ -396,8 +396,7 @@ endif
 ################################ Python Bindings ###############################
 
 if ENABLE_PYTHON_BINDINGS
-pyexec_LTLIBRARIES += \
-			client/python/hyperclient.la
+pyexec_LTLIBRARIES += client/python/hyperclient.la
 endif
 
 pyx_verbose = $(pyx_verbose_$(V))
@@ -411,6 +410,18 @@ client_python_hyperclient_la_SOURCES = client/python/hyperclient.c
 client_python_hyperclient_la_CPPFLAGS = $(PYTHON_CPPFLAGS) $(CPPFLAGS)
 client_python_hyperclient_la_LIBADD = libhyperclient.la $(PYTHON_LDFLAGS)
 client_python_hyperclient_la_LDFLAGS = -module -avoid-version -export-symbols-regex inithyperclient
+
+################################# Ruby Bindings ################################
+
+if ENABLE_RUBY_BINDINGS
+rubydir = $(RUBY_EXT_LIB)
+ruby_LTLIBRARIES = client/ruby/hyperclient.la
+endif
+
+client_ruby_hyperclient_la_SOURCES = client/ruby/hyperclient.c client/ruby/type_conversion.cc
+client_ruby_hyperclient_la_CPPFLAGS = -I$(RUBY_EXT_INC) $(RUBY_EXT_CPPFLAGS) $(CPPFLAGS)
+client_ruby_hyperclient_la_LIBADD = libhyperclient.la $(RUBY_EXT_LDFLAGS)
+client_ruby_hyperclient_la_LDFLAGS = -module -avoid-version
 
 ################################ C/C++ Bindings ################################
 

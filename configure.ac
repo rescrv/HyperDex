@@ -139,6 +139,13 @@ if test x"${python_bindings}" = xyes; then
     AC_PYTHON_DEVEL([>= '2.6'])
 fi
 
+AC_ARG_ENABLE([ruby_bindings], [AS_HELP_STRING([--enable-ruby-bindings],
+              [build Ruby bindings @<:@default: no@:>@])],
+              [ruby_bindings=${enableval}], [ruby_bindings=no])
+if test x"${ruby_bindings}" = xyes; then
+    AX_RUBY_EXT
+fi
+
 AC_ARG_ENABLE([log-all-messages], [AS_HELP_STRING([--enable-log-all-messages],
               [enable code to log all messages @<:@default: no@:>@])],
               [enable_logall=${enableval}], [enable_logall=no])
@@ -148,6 +155,7 @@ fi
 
 AM_CONDITIONAL([ENABLE_JAVA_BINDINGS], [test x"${java_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_PYTHON_BINDINGS], [test x"${python_bindings}" = xyes])
+AM_CONDITIONAL([ENABLE_RUBY_BINDINGS], [test x"${ruby_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_YCSB_DRIVER], [test x"${enable_ycsb}" = xyes])
 
 AC_CONFIG_FILES([Makefile hyperclient.pc])

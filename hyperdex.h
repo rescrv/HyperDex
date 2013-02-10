@@ -36,6 +36,15 @@
  * to be determined with simple mask operations.  See datatypes/coercion.{h,cc}
  * for more information.
  */
+
+#define CONTAINER_TYPE(X) ((X) & 9664)
+#define CONTAINER_ELEM(X) ((X) & 9223)
+#define CONTAINER_VAL(X) ((X) & 9223)
+#define CONTAINER_KEY(X) ((((X) & 56) >> 3) | ((X) & 9216))
+#define IS_PRIMITIVE(X) (CONTAINER_TYPE(X) == HYPERDATATYPE_GENERIC)
+#define CREATE_CONTAINER(C, E) ((enum hyperdatatype)((C) | (E & 7)))
+#define CREATE_CONTAINER2(C, K, V) ((enum hyperdatatype)((C) | ((K & 56) >> 3) | (V & 7)))
+
 enum hyperdatatype
 {
     /* Primitive types */
