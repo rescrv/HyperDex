@@ -91,6 +91,17 @@ AC_DEFUN([AX_RUBY_EXT],[
                 AC_SUBST(RUBY_EXT_INC)
 
                 #
+                # Check for Ruby config.h include path.
+                #
+                AC_ARG_VAR(RUBY_EXT_ARCHINC, [Another directory to include ruby headers from])
+                AC_MSG_CHECKING([for other Ruby headers include path])
+                if test -z "$RUBY_EXT_ARCHINC" ; then
+                        [RUBY_EXT_ARCHINC=`$RUBY -rrbconfig -e 'puts RbConfig::CONFIG["rubyhdrdir"] + "/" + RbConfig::CONFIG["arch"]'`];
+                fi
+                AC_MSG_RESULT([$RUBY_EXT_ARCHINC])
+                AC_SUBST(RUBY_EXT_ARCHINC)
+
+                #
                 # Check for the extensions target directory.
                 #
                 AC_ARG_VAR(RUBY_EXT_LIB, [Directory to install ruby extensions into])

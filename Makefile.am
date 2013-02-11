@@ -419,7 +419,7 @@ ruby_LTLIBRARIES = client/ruby/hyperclient.la
 endif
 
 client_ruby_hyperclient_la_SOURCES = client/ruby/hyperclient.c client/ruby/type_conversion.cc
-client_ruby_hyperclient_la_CPPFLAGS = -I$(RUBY_EXT_INC) $(RUBY_EXT_CPPFLAGS) $(CPPFLAGS)
+client_ruby_hyperclient_la_CPPFLAGS = -I$(RUBY_EXT_INC) -I$(RUBY_EXT_ARCHINC) $(RUBY_EXT_CPPFLAGS) $(CPPFLAGS)
 client_ruby_hyperclient_la_LIBADD = libhyperclient.la $(RUBY_EXT_LDFLAGS)
 client_ruby_hyperclient_la_LDFLAGS = -module -avoid-version
 
