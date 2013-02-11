@@ -34,6 +34,10 @@
 // HyperDex
 #include "hyperdex.h"
 
+#define CONTAINER_MASK(X) (CONTAINER_TYPE(X))
+#define PRIMITIVE1_MASK(X) (CONTAINER_ELEM(X))
+#define PRIMITIVE2_MASK(X) (CONTAINER_KEY(X))
+
 bool
 primitive_numeric(hyperdatatype expected,
                   const e::slice& arg1, hyperdatatype arg1_datatype,
