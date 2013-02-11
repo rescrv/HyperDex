@@ -37,7 +37,7 @@ space :: space()
     : id()
     , name("")
     , fault_tolerance()
-    , schema()
+    , sc()
     , subspaces()
     , m_c_strs()
     , m_attrs()
@@ -48,7 +48,7 @@ space :: space(const char* new_name, const hyperdex::schema& sc)
     : id()
     , name(new_name)
     , fault_tolerance()
-    , schema(sc)
+    , sc(sc)
     , subspaces()
     , m_c_strs()
     , m_attrs()
@@ -60,7 +60,7 @@ space :: space(const space& other)
     : id(other.id)
     , name(other.name)
     , fault_tolerance(other.fault_tolerance)
-    , schema(other.schema)
+    , sc(other.sc)
     , subspaces(other.subspaces)
     , m_c_strs()
     , m_attrs()
@@ -75,11 +75,11 @@ space :: ~space() throw ()
 bool
 space :: validate() const
 {
-    for (size_t i = 0; i < schema.attrs_sz; ++i)
+    for (size_t i = 0; i < sc.attrs_sz; ++i)
     {
-        for (size_t j = i + 1; j < schema.attrs_sz; ++j)
+        for (size_t j = i + 1; j < sc.attrs_sz; ++j)
         {
-            if (strcmp(schema.attrs[i].name, schema.attrs[j].name) == 0)
+            if (strcmp(sc.attrs[i].name, sc.attrs[j].name) == 0)
             {
                 return false;
             }
@@ -101,7 +101,7 @@ space :: validate() const
 
         for (size_t j = 0; j < subspaces[i].attrs.size(); ++j)
         {
-            if (subspaces[i].attrs[j] >= schema.attrs_sz)
+            if (subspaces[i].attrs[j] >= sc.attrs_sz)
             {
                 return false;
             }
@@ -125,7 +125,7 @@ space :: operator = (const space& rhs)
     id = rhs.id;
     name = rhs.name;
     fault_tolerance = rhs.fault_tolerance;
-    schema = rhs.schema;
+    sc = rhs.sc;
     subspaces = rhs.subspaces;
     reestablish_backing();
     return *this;
@@ -137,30 +137,30 @@ space :: reestablish_backing()
     // Compute the size of the c_strs backing
     size_t sz = strlen(name) + 1;
 
-    for (size_t i = 0; i < schema.attrs_sz; ++i)
+    for (size_t i = 0; i < sc.attrs_sz; ++i)
     {
-        sz += strlen(schema.attrs[i].name) + 1;
+        sz += strlen(sc.attrs[i].name) + 1;
     }
 
     // Create the two new backings
     m_c_strs = new char[sz];
-    m_attrs = new attribute[schema.attrs_sz];
+    m_attrs = new attribute[sc.attrs_sz];
     char* ptr = m_c_strs.get();
     sz = strlen(name) + 1;
     memmove(ptr, name, sz);
     name = ptr;
     ptr += sz;
 
-    for (size_t i = 0; i < schema.attrs_sz; ++i)
+    for (size_t i = 0; i < sc.attrs_sz; ++i)
     {
-        m_attrs[i].type = schema.attrs[i].type;
-        sz = strlen(schema.attrs[i].name) + 1;
-        memmove(ptr, schema.attrs[i].name, sz);
+        m_attrs[i].type = sc.attrs[i].type;
+        sz = strlen(sc.attrs[i].name) + 1;
+        memmove(ptr, sc.attrs[i].name, sz);
         m_attrs[i].name = ptr;
         ptr += sz;
     }
 
-    schema.attrs = m_attrs.get();
+    sc.attrs = m_attrs.get();
 }
 
 e::buffer::packer
@@ -169,12 +169,12 @@ hyperdex :: operator << (e::buffer::packer pa, const space& s)
     e::slice name;
     uint16_t num_subspaces = s.subspaces.size();
     name = e::slice(s.name, strlen(s.name));
-    pa = pa << s.id.get() << name << s.fault_tolerance << s.schema.attrs_sz << num_subspaces;
+    pa = pa << s.id.get() << name << s.fault_tolerance << s.sc.attrs_sz << num_subspaces;
 
-    for (size_t i = 0; i < s.schema.attrs_sz; ++i)
+    for (size_t i = 0; i < s.sc.attrs_sz; ++i)
     {
-        name = e::slice(s.schema.attrs[i].name, strlen(s.schema.attrs[i].name));
-        pa = pa << name << static_cast<uint16_t>(s.schema.attrs[i].type);
+        name = e::slice(s.sc.attrs[i].name, strlen(s.sc.attrs[i].name));
+        pa = pa << name << static_cast<uint16_t>(s.sc.attrs[i].type);
     }
 
     for (size_t i = 0; i < num_subspaces; ++i)
@@ -192,14 +192,14 @@ hyperdex :: operator >> (e::unpacker up, space& s)
     e::slice name;
     std::vector<e::slice> attrs;
     uint16_t num_subspaces;
-    up = up >> id >> name >> s.fault_tolerance >> s.schema.attrs_sz >> num_subspaces;
+    up = up >> id >> name >> s.fault_tolerance >> s.sc.attrs_sz >> num_subspaces;
     s.id = space_id(id);
-    s.m_attrs = new attribute[s.schema.attrs_sz];
-    s.schema.attrs = s.m_attrs.get();
+    s.m_attrs = new attribute[s.sc.attrs_sz];
+    s.sc.attrs = s.m_attrs.get();
     size_t sz = name.size() + 1;
 
     // Unpack all attributes
-    for (size_t i = 0; !up.error() && i < s.schema.attrs_sz; ++i)
+    for (size_t i = 0; !up.error() && i < s.sc.attrs_sz; ++i)
     {
         e::slice attr;
         uint16_t type;
@@ -218,7 +218,7 @@ hyperdex :: operator >> (e::unpacker up, space& s)
     *ptr = '\0';
     ++ptr;
 
-    for (size_t i = 0; i < s.schema.attrs_sz; ++i)
+    for (size_t i = 0; i < s.sc.attrs_sz; ++i)
     {
         s.m_attrs[i].name = ptr;
         memmove(ptr, attrs[i].data(), attrs[i].size());
@@ -244,12 +244,12 @@ hyperdex :: pack_size(const space& s)
     size_t sz = sizeof(uint64_t) /* id */
               + sizeof(uint32_t) + strlen(s.name) /* name */
               + sizeof(uint64_t) /* fault_tolerance */
-              + sizeof(uint16_t) /* schema.attrs_sz */
+              + sizeof(uint16_t) /* sc.attrs_sz */
               + sizeof(uint16_t); /* num subspaces */
 
-    for (size_t i = 0; i < s.schema.attrs_sz; ++i)
+    for (size_t i = 0; i < s.sc.attrs_sz; ++i)
     {
-        sz += sizeof(uint32_t) + strlen(s.schema.attrs[i].name)
+        sz += sizeof(uint32_t) + strlen(s.sc.attrs[i].name)
             + sizeof(uint16_t);
     }
 

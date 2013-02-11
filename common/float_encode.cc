@@ -28,7 +28,7 @@
 #define __STDC_LIMIT_MACROS
 
 // C
-#include <cmath>
+#include <tr1/cmath>
 #include <cstdlib>
 
 // Linux
@@ -102,7 +102,7 @@ hyperdex :: float_encode(double x)
 {
     uint64_t out = 0xffffffffffffffffULL;
 
-    if (isinf(x))
+    if (std::isinf(x))
     {
         if (x > 0)
         {
@@ -113,7 +113,7 @@ hyperdex :: float_encode(double x)
             out = 0;
         }
     }
-    else if (isnan(x))
+    else if (std::isnan(x))
     {
         out = 0xfff0000000000000ULL + 3;
     }

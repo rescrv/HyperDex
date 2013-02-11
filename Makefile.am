@@ -28,6 +28,7 @@
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 AM_CXXFLAGS = $(PO6_CFLAGS) $(E_CFLAGS) $(BUSYBEE_CFLAGS) $(WANAL_CXXFLAGS) -fpermissive
 AM_YFLAGS = -d
+TARGET_OS = `uname -s`
 
 BUILT_SOURCES = client/parse_space_y.h
 
@@ -69,7 +70,9 @@ noinst_PROGRAMS = \
 			client/c/testcompile \
 			client/cc/testcompile
 
+if ENABLE_DOCS
 dist_man_MANS = doc/man/hyperdex-daemon.1
+endif
 
 CONFIG_CLEAN_FILES = hyperclient.pc
 
@@ -83,7 +86,11 @@ JAVAROOT = $(abs_top_srcdir)
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = hyperclient.pc
 
+if ENABLE_DOCS
 .PHONY: coverage doc/HyperDex-$(VERSION).pdf
+else
+.PHONY: coverage
+endif
 
 dist-hook:
 	-rm -rf $(distdir)/doc/_build
@@ -218,7 +225,7 @@ hyperdex_daemon_SOURCES = \
 hyperdex_daemon_LDADD = \
 			$(E_LIBS) \
 			$(BUSYBEE_LIBS) -lleveldb \
-			$(REPLICANT_LIBS) -lcityhash -lpopt -lglog -lrt -lpthread
+			$(REPLICANT_LIBS) -lcityhash -lpopt -lglog -lpthread
 hyperdex_daemon_CPPFLAGS = $(CPPFLAGS)
 
 #daemon_test_index_encode_SOURCES = runner.cc daemon/test/index_encode.cc daemon/index_encode.cc common/float_encode.cc
@@ -425,7 +432,8 @@ hyperdex_SOURCES = hyperdex.cc
 hyperdex_CPPFLAGS = -DHYPERDEX_EXEC_DIR=\""$(hyperdexexecdir)\"" $(CPPFLAGS)
 
 hyperdex_initialize_cluster_SOURCES = tools/initialize-cluster.cc
-hyperdex_initialize_cluster_CPPFLAGS = -DHYPERDEX_COORD_LIB=\""$(hyperdexexecdir)/libhypercoordinator.so.0\"" $(CPPFLAGS)
+
+hyperdex_initialize_cluster_CPPFLAGS = -DHYPERDEX_COORD_LIB=\""$(hyperdexexecdir)/libhypercoordinator$(SHEXT)\"" $(CPPFLAGS)
 hyperdex_initialize_cluster_LDADD = libhyperclient.la
 
 hyperdex_coordinator_SOURCES = tools/coordinator.cc
@@ -489,6 +497,7 @@ hyperdex_simple_consistency_stress_test_LDADD = libhyperclient.la -lpopt -lpthre
 
 # These need to be chained so that they'll only build once, and will not rely
 # upon a PHONY rule.
+if ENABLE_DOCS
 doc/man/hyperdex-daemon.1: doc/man/hyperdex-daemon.rst
 	sphinx-build -W -d ${abs_top_builddir}/doc/_build -b man doc doc/man
 
@@ -496,3 +505,4 @@ doc/HyperDex-$(VERSION).pdf:
 	sphinx-build -W -d ${abs_top_builddir}/doc/_build -b latex ${abs_top_srcdir}/doc ${abs_top_builddir}/doc/_build/latex
 	make -C ${abs_top_builddir}/doc/_build/latex all-pdf
 	cp ${abs_top_builddir}/doc/_build/latex/HyperDex.pdf doc/HyperDex-$(VERSION).pdf
+endif
