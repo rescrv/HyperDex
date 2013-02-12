@@ -35,7 +35,7 @@
 #include <glog/logging.h>
 
 // e
-#include <e/timer.h>
+#include <e/time.h>
 
 // HyperDex
 #include "common/hash.h"
