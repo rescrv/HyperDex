@@ -40,6 +40,13 @@
 #include "daemon/coordinator_link.h"
 #include "daemon/daemon.h"
 
+#ifndef MIN
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#endif
+#ifndef MAX
+#define MAX(a,b) (((a)>(b))?(a):(b))
+#endif
+
 using hyperdex::coordinator_link;
 
 coordinator_link :: coordinator_link(daemon* d)
@@ -437,7 +444,7 @@ coordinator_link :: wait_for_config(configuration* config)
             while (rem > 0)
             {
                 ts.tv_sec = 0;
-                ts.tv_nsec = std::min(static_cast<uint64_t>(10000000), rem);
+                ts.tv_nsec = MIN(static_cast<uint64_t>(10000000), rem);
 
                 sigset_t empty_signals;
                 sigset_t old_signals;
@@ -461,7 +468,7 @@ coordinator_link :: wait_for_config(configuration* config)
                 continue;
             }
 
-            retry = std::min(retry * 2, 1000000000UL);
+            retry = MIN(retry * 2, 1000000000UL);
             continue; // so we can pick up on changes to s_interrupts and break;
         }
 
