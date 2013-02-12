@@ -163,7 +163,7 @@ fi
 
 AC_ARG_ENABLE([docs], [AS_HELP_STRING([--enable-docs],
               [enable building docs @<:@default: yes@:>@])],
-              [enable_docs=${enableval}], [enable_docs=no])
+              [enable_docs=${enableval}], [enable_docs=yes])
 
 AM_CONDITIONAL([ENABLE_JAVA_BINDINGS], [test x"${java_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_PYTHON_BINDINGS], [test x"${python_bindings}" = xyes])
