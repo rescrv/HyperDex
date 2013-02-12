@@ -122,7 +122,9 @@ datalayer :: setup(const po6::pathname& path,
     {
         first_time = false;
 
-        if (rbacking != PACKAGE_VERSION)
+        if (rbacking != PACKAGE_VERSION &&
+            rbacking != "1.0.rc1" &&
+            rbacking != "1.0.rc2")
         {
             LOG(ERROR) << "could not restore from LevelDB because "
                        << "the existing data was created by "
