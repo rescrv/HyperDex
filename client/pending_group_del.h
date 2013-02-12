@@ -29,7 +29,11 @@
 #define hyperdex_client_pending_group_del_h_
 
 // STL
+#ifdef _MSC_VER
+#include <memory>
+#else
 #include <tr1/memory>
+#endif
 
 // HyperClient
 #include "client/pending.h"

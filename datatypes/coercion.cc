@@ -30,10 +30,6 @@
 #include "datatypes/coercion.h"
 #include "datatypes/validate.h"
 
-#define CONTAINER_MASK(X) ((X) & 9664)
-#define PRIMITIVE1_MASK(X) ((X) & 9223)
-#define PRIMITIVE2_MASK(X) ((((X) & 56) >> 3) | ((X) & 9216))
-
 bool
 primitive_numeric(hyperdatatype expected,
                   const e::slice& arg1, hyperdatatype arg1_datatype,

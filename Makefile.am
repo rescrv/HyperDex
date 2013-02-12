@@ -28,6 +28,7 @@
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 AM_CXXFLAGS = $(PO6_CFLAGS) $(E_CFLAGS) $(BUSYBEE_CFLAGS) $(WANAL_CXXFLAGS) -fpermissive
 AM_YFLAGS = -d
+TARGET_OS = `uname -s`
 
 BUILT_SOURCES = client/parse_space_y.h
 
@@ -69,7 +70,9 @@ noinst_PROGRAMS = \
 			client/c/testcompile \
 			client/cc/testcompile
 
+if ENABLE_DOCS
 dist_man_MANS = doc/man/hyperdex-daemon.1
+endif
 
 CONFIG_CLEAN_FILES = hyperclient.pc
 
@@ -83,7 +86,11 @@ JAVAROOT = $(abs_top_srcdir)
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = hyperclient.pc
 
+if ENABLE_DOCS
 .PHONY: coverage doc/HyperDex-$(VERSION).pdf
+else
+.PHONY: coverage
+endif
 
 dist-hook:
 	-rm -rf $(distdir)/doc/_build
@@ -218,8 +225,7 @@ hyperdex_daemon_SOURCES = \
 hyperdex_daemon_LDADD = \
 			$(E_LIBS) \
 			$(BUSYBEE_LIBS) -lleveldb \
-			-lbusybee \
-			-lreplicant -lcityhash -lpopt -lglog -lrt -lpthread
+			$(REPLICANT_LIBS) -lcityhash -lpopt -lglog -lpthread
 hyperdex_daemon_CPPFLAGS = $(CPPFLAGS)
 
 #daemon_test_index_encode_SOURCES = runner.cc daemon/test/index_encode.cc daemon/index_encode.cc common/float_encode.cc
@@ -240,7 +246,8 @@ libhypercoordinator_la_SOURCES = \
 			common/transfer.cc \
 			coordinator/coordinator.cc \
 			coordinator/symtable.c
-libhypercoordinator_la_LIBADD = -le
+libhypercoordinator_la_LIBADD = $(E_LIBS) 
+libhypercoordinator_la_CPPFLAGS = $(REPLICANT_CFLAGS)
 
 ################################################################################
 #################################### Client ####################################
@@ -344,7 +351,7 @@ libhyperclient_la_SOURCES = \
 libhyperclient_la_LIBADD = \
 			$(E_LIBS) \
 			$(BUSYBEE_LIBS) \
-			-lbusybee -lreplicant -lcityhash
+			$(REPLICANT_LIBS) -lcityhash
 
 gperf_verbose = $(gperf_verbose_$(V))
 gperf_verbose_ = $(gperf_verbose_$(AM_DEFAULT_VERBOSITY))
@@ -396,8 +403,7 @@ endif
 ################################ Python Bindings ###############################
 
 if ENABLE_PYTHON_BINDINGS
-pyexec_LTLIBRARIES += \
-			client/python/hyperclient.la
+pyexec_LTLIBRARIES += client/python/hyperclient.la
 endif
 
 pyx_verbose = $(pyx_verbose_$(V))
@@ -412,6 +418,18 @@ client_python_hyperclient_la_CPPFLAGS = $(PYTHON_CPPFLAGS) $(CPPFLAGS)
 client_python_hyperclient_la_LIBADD = libhyperclient.la $(PYTHON_LDFLAGS)
 client_python_hyperclient_la_LDFLAGS = -module -avoid-version -export-symbols-regex inithyperclient
 
+################################# Ruby Bindings ################################
+
+if ENABLE_RUBY_BINDINGS
+rubydir = $(RUBY_EXT_LIB)
+ruby_LTLIBRARIES = client/ruby/hyperclient.la
+endif
+
+client_ruby_hyperclient_la_SOURCES = client/ruby/hyperclient.c client/ruby/type_conversion.cc
+client_ruby_hyperclient_la_CPPFLAGS = -I$(RUBY_EXT_INC) -I$(RUBY_EXT_ARCHINC) $(RUBY_EXT_CPPFLAGS) $(CPPFLAGS)
+client_ruby_hyperclient_la_LIBADD = libhyperclient.la $(RUBY_EXT_LDFLAGS)
+client_ruby_hyperclient_la_LDFLAGS = -module -avoid-version
+
 ################################ C/C++ Bindings ################################
 
 client_c_testcompile_SOURCES = client/c/testcompile.c
@@ -425,11 +443,12 @@ hyperdex_SOURCES = hyperdex.cc
 hyperdex_CPPFLAGS = -DHYPERDEX_EXEC_DIR=\""$(hyperdexexecdir)\"" $(CPPFLAGS)
 
 hyperdex_initialize_cluster_SOURCES = tools/initialize-cluster.cc
-hyperdex_initialize_cluster_CPPFLAGS = -DHYPERDEX_COORD_LIB=\""$(hyperdexexecdir)/libhypercoordinator.so.0\"" $(CPPFLAGS)
+
+hyperdex_initialize_cluster_CPPFLAGS = -DHYPERDEX_COORD_LIB=\""$(hyperdexexecdir)/libhypercoordinator$(SHEXT)\"" $(CPPFLAGS)
 hyperdex_initialize_cluster_LDADD = libhyperclient.la
 
 hyperdex_coordinator_SOURCES = tools/coordinator.cc
-hyperdex_coordinator_LDADD = libhyperclient.la -le -lbusybee
+hyperdex_coordinator_LDADD = libhyperclient.la $(E_LIBS) $(BUSYBEE_LIBS)
 
 hyperdex_add_space_SOURCES = tools/add-space.cc
 hyperdex_add_space_LDADD = libhyperclient.la
@@ -475,10 +494,10 @@ endif
 ################################################################################
 
 hyperdex_replication_stress_test_SOURCES = replication-stress-test.cc
-hyperdex_replication_stress_test_LDADD = libhyperclient.la -lpopt -le
+hyperdex_replication_stress_test_LDADD = libhyperclient.la -lpopt $(E_LIBS) 
 
 hyperdex_search_stress_test_SOURCES = search-stress-test.cc test/common.cc
-hyperdex_search_stress_test_LDADD = libhyperclient.la -lpopt -le
+hyperdex_search_stress_test_LDADD = libhyperclient.la -lpopt $(E_LIBS)
 
 hyperdex_simple_consistency_stress_test_SOURCES = simple-consistency-stress-test.cc
 hyperdex_simple_consistency_stress_test_LDADD = libhyperclient.la -lpopt -lpthread
@@ -489,6 +508,7 @@ hyperdex_simple_consistency_stress_test_LDADD = libhyperclient.la -lpopt -lpthre
 
 # These need to be chained so that they'll only build once, and will not rely
 # upon a PHONY rule.
+if ENABLE_DOCS
 doc/man/hyperdex-daemon.1: doc/man/hyperdex-daemon.rst
 	sphinx-build -W -d ${abs_top_builddir}/doc/_build -b man doc doc/man
 
@@ -496,3 +516,4 @@ doc/HyperDex-$(VERSION).pdf:
 	sphinx-build -W -d ${abs_top_builddir}/doc/_build -b latex ${abs_top_srcdir}/doc ${abs_top_builddir}/doc/_build/latex
 	make -C ${abs_top_builddir}/doc/_build/latex all-pdf
 	cp ${abs_top_builddir}/doc/_build/latex/HyperDex.pdf doc/HyperDex-$(VERSION).pdf
+endif

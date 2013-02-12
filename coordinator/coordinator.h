@@ -146,7 +146,11 @@ class coordinator
         std::vector<std::pair<region_id, server_id> > m_region_server_references;
         std::auto_ptr<e::buffer> m_latest_config; // cached config
         std::auto_ptr<e::buffer> m_resp; // response space
+#ifdef __APPLE__
+        unsigned int m_seed;
+#else
         drand48_data m_seed;
+#endif
 
     private:
         coordinator(const coordinator&);

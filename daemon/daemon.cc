@@ -37,7 +37,6 @@
 
 // e
 #include <e/endian.h>
-#include <e/timer.h>
 
 // HyperDex
 #include "common/coordinator_returncode.h"

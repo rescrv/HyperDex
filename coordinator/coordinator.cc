@@ -424,7 +424,11 @@ coordinator :: initialize(replicant_state_machine_context* ctx, uint64_t token)
         fprintf(log, "initializing HyperDex cluster with id %lu\n", token);
         m_cluster = token;
         memset(&m_seed, 0, sizeof(m_seed));
+#ifdef __APPLE__
+        srand(m_seed);
+#else
         srand48_r(m_cluster, &m_seed);
+#endif
         issue_new_config(ctx);
         return generate_response(ctx, COORD_SUCCESS);
     }
@@ -1304,8 +1308,13 @@ coordinator :: select_new_server_for(const std::vector<replica>& replicas)
 
     while (available.size() > replicas.size())
     {
+#ifdef __APPLE__
+        int y;
+        y = rand_r(&m_seed);
+#else
         long int y;
         lrand48_r(&m_seed, &y);
+#endif
         bool found = false;
         server_id tmp(m_servers[y % m_servers.size()].id);
 

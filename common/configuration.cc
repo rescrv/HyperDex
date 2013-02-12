@@ -170,7 +170,7 @@ configuration :: get_schema(const char* sname) const
     {
         if (strcmp(sname, m_spaces[s].name) == 0)
         {
-            return &m_spaces[s].schema;
+            return &m_spaces[s].sc;
         }
     }
 
@@ -363,7 +363,7 @@ configuration :: point_leader(const char* sname, const e::slice& key)
         }
 
         uint64_t h;
-        hash(m_spaces[s].schema, key, &h);
+        hash(m_spaces[s].sc, key, &h);
 
         for (size_t pl = 0; pl < m_spaces[s].subspaces[0].regions.size(); ++pl)
         {
@@ -396,7 +396,7 @@ configuration :: point_leader(const region_id& rid, const e::slice& key)
                 }
 
                 uint64_t h;
-                hash(m_spaces[s].schema, key, &h);
+                hash(m_spaces[s].sc, key, &h);
 
                 for (size_t pl = 0; pl < m_spaces[s].subspaces[0].regions.size(); ++pl)
                 {
@@ -429,7 +429,7 @@ configuration :: subspace_adjacent(const virtual_server_id& lhs, const virtual_s
 }
 
 void
-configuration :: captures(std::vector<capture>* cs) const
+configuration :: captures(std::vector<hyperdex::capture>* cs) const
 {
     *cs = m_captures;
 }
@@ -486,7 +486,7 @@ configuration :: is_server_blocked_by_live_transfer(const server_id& si, const r
 }
 
 bool
-configuration :: is_transfer_live(const transfer_id& id) const
+configuration :: is_transfer_live(const hyperdex::transfer_id& id) const
 {
     for (size_t i = 0; i < m_transfers.size(); ++i)
     {
@@ -502,7 +502,7 @@ configuration :: is_transfer_live(const transfer_id& id) const
 }
 
 void
-configuration :: transfer_in_regions(const server_id& si, std::vector<transfer>* transfers) const
+configuration :: transfer_in_regions(const hyperdex::server_id& si, std::vector<hyperdex::transfer>* transfers) const
 {
     for (size_t i = 0; i < m_transfers.size(); ++i)
     {
@@ -514,7 +514,7 @@ configuration :: transfer_in_regions(const server_id& si, std::vector<transfer>*
 }
 
 void
-configuration :: transfer_out_regions(const server_id& si, std::vector<transfer>* transfers) const
+configuration :: transfer_out_regions(const hyperdex::server_id& si, std::vector<hyperdex::transfer>* transfers) const
 {
     for (size_t i = 0; i < m_transfers.size(); ++i)
     {
@@ -539,7 +539,7 @@ configuration :: lookup_region(const subspace_id& ssid,
                 continue;
             }
 
-            assert(m_spaces[s].schema.attrs_sz == hashes.size());
+            assert(m_spaces[s].sc.attrs_sz == hashes.size());
 
             for (size_t r = 0; r < m_spaces[s].subspaces[ss].regions.size(); ++r)
             {
@@ -547,7 +547,7 @@ configuration :: lookup_region(const subspace_id& ssid,
 
                 for (size_t a = 0; matches && a < m_spaces[s].subspaces[ss].attrs.size(); ++a)
                 {
-                    assert(a < m_spaces[s].schema.attrs_sz);
+                    assert(a < m_spaces[s].sc.attrs_sz);
                     matches &= m_spaces[s].subspaces[ss].regions[r].lower_coord[a] <= hashes[m_spaces[s].subspaces[ss].attrs[a]] &&
                                hashes[m_spaces[s].subspaces[ss].attrs[a]] <= m_spaces[s].subspaces[ss].regions[r].upper_coord[a];
                 }
@@ -566,7 +566,7 @@ configuration :: lookup_region(const subspace_id& ssid,
 
 void
 configuration :: lookup_search(const char* space_name,
-                               const std::vector<attribute_check>& chks,
+                               const std::vector<hyperdex::attribute_check>& chks,
                                std::vector<virtual_server_id>* servers) const
 {
     const space* s = NULL;
@@ -586,7 +586,7 @@ configuration :: lookup_search(const char* space_name,
         return;
     }
 
-    std::vector<range> ranges;
+    std::vector<hyperdex::range> ranges;
     range_searches(chks, &ranges);
 
     for (size_t i = 0; i < ranges.size(); ++i)
@@ -716,10 +716,10 @@ configuration :: debug_dump(std::ostream& out)
         out << "  fault_tolerance=" << s.fault_tolerance << std::endl;
         out << "  schema" << std::endl;
 
-        for (size_t i = 0; i < s.schema.attrs_sz; ++i)
+        for (size_t i = 0; i < s.sc.attrs_sz; ++i)
         {
-            out << "    attribute name=" << s.schema.attrs[i].name
-                      << " type=" << s.schema.attrs[i].type << std::endl;
+            out << "    attribute name=" << s.sc.attrs[i].name
+                      << " type=" << s.sc.attrs[i].type << std::endl;
         }
 
         for (size_t x = 0; x < s.subspaces.size(); ++x)
@@ -730,7 +730,7 @@ configuration :: debug_dump(std::ostream& out)
 
             for (size_t i = 0; i < ss.attrs.size(); ++i)
             {
-                out << " " << s.schema.attrs[ss.attrs[i]].name;
+                out << " " << s.sc.attrs[ss.attrs[i]].name;
             }
 
             out << std::endl;
@@ -847,7 +847,7 @@ configuration :: refill_cache()
             for (size_t y = 0; y < ss.regions.size(); ++y)
             {
                 region& r(ss.regions[y]);
-                m_schemas_by_region.push_back(std::make_pair(r.id.get(), &s.schema));
+                m_schemas_by_region.push_back(std::make_pair(r.id.get(), &s.sc));
                 m_subspace_ids_by_region.push_back(std::make_pair(r.id.get(), ss.id.get()));
 
                 if (r.replicas.empty())

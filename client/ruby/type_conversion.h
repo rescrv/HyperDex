@@ -1,4 +1,3 @@
-%{
 /* Copyright (c) 2012, Cornell University
  * All rights reserved.
  *
@@ -27,45 +26,46 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* C */
-#include <stdint.h>
+#ifndef hyperclient_ruby_type_conversion_h_
+#define hyperclient_ruby_type_conversion_h_
+
+/* Ruby */
+#ifdef __cplusplus
+extern "C"
+{
+#endif /* __cplusplus */
+#include <ruby.h>
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
 
 /* HyperDex */
-#include "hyperdex.h"
-#include "client/parse_space_y.h"
-#ifdef _MSC_VER
-#define sstrtoull(A, B, C) _strtoui64((A),(B),(C))
-#endif
+#include "client/hyperclient.h"
 
-extern YYSTYPE yylval;
-%}
+#ifdef __cplusplus
+extern "C"
+{
+#endif /* __cplusplus */
 
-%option noyywrap
+void
+rhc_free_checks(struct hyperclient_attribute_check* chks);
+void
+rhc_free_attrs(struct hyperclient_attribute* attrs);
+void
+rhc_free_map_attrs(struct hyperclient_map_attribute* attrs);
 
-%%
+void
+rhc_ruby_to_hyperdex(VALUE obj, const char** attr, size_t* attr_sz, enum hyperdatatype* type, VALUE* backings);
+void
+rhc_hash_to_checks(VALUE obj, struct hyperclient_attribute_check** chks, size_t* chks_sz, VALUE* backings);
+void
+rhc_hash_to_attrs(VALUE obj, struct hyperclient_attribute** attrs, size_t* attrs_sz, VALUE* backings);
+void
+rhc_hash_to_map_attrs(VALUE obj, struct hyperclient_map_attribute** attrs, size_t* attrs_sz, VALUE* backings);
+VALUE
+rhc_attrs_to_hash(struct hyperclient_attribute* attrs, size_t attrs_sz);
 
-"space"                 { return SPACE; }
-"key"                   { return KEY; }
-"attributes"            { return ATTRIBUTES; }
-"attribute"             { return ATTRIBUTES; }
-"tolerate"              { return TOLERATE; }
-"failures"              { return FAILURES; }
-"failure"               { return FAILURES; }
-"create"                { return CREATE; }
-"partitions"            { return PARTITIONS; }
-"partition"             { return PARTITIONS; }
-"subspace"              { return SUBSPACE; }
-":"                     { return COLON; }
-","                     { return COMMA; }
-"("                     { return OP; }
-")"                     { return CP; }
-"string"                { return STRING; }
-"int"                   { return INT64; }
-"int64"                 { return INT64; }
-"float"                 { return FLOAT; }
-"list"                  { return LIST; }
-"set"                   { return SET; }
-"map"                   { return MAP; }
-[ \t\n\r]               ;
-[1-9][0-9]*             { yylval.num = strtoull(yytext, NULL, 10); return NUMBER; }
-[a-zA-Z_][a-zA-Z_0-9]*  { yylval.str = strdup(yytext); return IDENTIFIER; }
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
+#endif // hyperclient_ruby_type_conversion_h_

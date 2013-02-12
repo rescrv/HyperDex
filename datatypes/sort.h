@@ -30,7 +30,11 @@
 
 // STL
 #include <algorithm>
+#ifdef _MSC_VER
+#include <functional>
+#else
 #include <tr1/functional>
+#endif
 
 using hyperdex::funcall;
 
