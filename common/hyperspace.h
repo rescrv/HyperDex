@@ -64,7 +64,7 @@ class space
         space_id id;
         const char* name;
         uint64_t fault_tolerance;
-        hyperdex::schema schema;
+        hyperdex::schema sc;
         std::vector<subspace> subspaces;
 
     private:

@@ -63,6 +63,14 @@ AC_CHECK_LIB([popt], [poptGetContext], [], [AC_MSG_ERROR([
 HyperDex relies upon the popt library.
 Please install popt to continue.
 -------------------------------------------------])])
+AC_CHECK_LIB([rt], [clock_gettime], [needs_lrt=yes], [needs_lrt=no])
+
+if test x"${needs_lrt}" = xyes; then
+    AC_SUBST([LRT_CFLAGS], ["-lrt"])
+else
+    AC_SUBST([LRT_CFLAGS], [""])
+fi
+
 PKG_CHECK_MODULES([PO6], [libpo6 >= 0.2.3])
 PKG_CHECK_MODULES([E], [libe >= 0.2.7])
 PKG_CHECK_MODULES([BUSYBEE], [busybee >= 0.1.0])
@@ -105,7 +113,7 @@ AC_TYPE_UINT8_T
 # Checks for library functions.
 AC_FUNC_ERROR_AT_LINE
 AC_FUNC_MMAP
-AC_CHECK_FUNCS([alarm clock_gettime ftruncate memmove mkdir munmap rmdir socket])
+AC_CHECK_FUNCS([alarm clock_gettime mach_absolute_time ftruncate memmove mkdir munmap rmdir socket])
 
 # Optional components
 AC_ARG_ENABLE([ycsb], [AS_HELP_STRING([--enable-ycsb],
@@ -153,10 +161,22 @@ if test x"${enable_logall}" = xyes; then
     AC_DEFINE([HD_LOG_ALL_MESSAGES], [], [Log all network traffic at the INFO level])
 fi
 
+AC_ARG_ENABLE([docs], [AS_HELP_STRING([--enable-docs],
+              [enable building docs @<:@default: yes@:>@])],
+              [enable_docs=${enableval}], [enable_docs=no])
+
 AM_CONDITIONAL([ENABLE_JAVA_BINDINGS], [test x"${java_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_PYTHON_BINDINGS], [test x"${python_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_RUBY_BINDINGS], [test x"${ruby_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_YCSB_DRIVER], [test x"${enable_ycsb}" = xyes])
+AM_CONDITIONAL([ENABLE_DOCS], [test x"${enable_docs}" = xyes])
 
+case "`uname -s`" in
+        Darwin)
+                SHEXT=".dylib" ;;
+        *)
+                SHEXT=".so" ;;
+        esac
+        AC_SUBST(SHEXT)
 AC_CONFIG_FILES([Makefile hyperclient.pc])
 AC_OUTPUT
