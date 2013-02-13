@@ -41,7 +41,9 @@ EXTRA_DIST = \
 			hyperclient/nodejs/sync_test.js \
 			hyperclient/nodejs/async_test.js \
 			hyperclient/nodejs/hyperclient.cc \
-			wscript
+			wscript \
+			windows/hyperclientclr.cpp \
+			windows/marshal.cpp
 
 lib_LTLIBRARIES = libhyperclient.la
 
@@ -172,8 +174,13 @@ noinst_HEADERS = \
 			client/tool_wrapper.h \
 			client/util.h \
 			client/wrap.h \
+			osx/ieee754.h \
 			test/common.h \
-			tools/common.h
+			tools/common.h \
+			windows/hyperclientclr.h  \
+			windows/ieee754.h \
+			windows/marshal.h \
+			windows/unistd.h
 
 ################################################################################
 #################################### Daemon ####################################
