@@ -27,8 +27,14 @@
 
 #define __STDC_LIMIT_MACROS
 
+// STL
+#include <sstream>
+
 // Google Log
 #include <glog/logging.h>
+
+// e
+#include <e/time.h>
 
 // HyperDex
 #include "common/attribute_check.h"
@@ -194,7 +200,7 @@ search_manager :: start(const server_id& from,
     e::intrusive_ptr<state> st = new state(ri, msg, checks);
     datalayer::returncode rc;
     std::stable_sort(st->checks.begin(), st->checks.end());
-    rc = m_daemon->m_data.make_snapshot(st->region, *sc, &st->checks, &st->snap);
+    rc = m_daemon->m_data.make_snapshot(st->region, *sc, &st->checks, &st->snap, NULL);
 
     switch (rc)
     {
@@ -408,7 +414,7 @@ search_manager :: sorted_search(const server_id& from,
     datalayer::snapshot snap;
     datalayer::returncode rc;
     std::stable_sort(checks->begin(), checks->end());
-    rc = m_daemon->m_data.make_snapshot(m_daemon->m_config.get_region_id(to), *sc, checks, &snap);
+    rc = m_daemon->m_data.make_snapshot(m_daemon->m_config.get_region_id(to), *sc, checks, &snap, NULL);
 
     switch (rc)
     {
@@ -480,7 +486,7 @@ search_manager :: group_keyop(const server_id& from,
     datalayer::snapshot snap;
     datalayer::returncode rc;
     std::stable_sort(checks->begin(), checks->end());
-    rc = m_daemon->m_data.make_snapshot(m_daemon->m_config.get_region_id(to), *sc, checks, &snap);
+    rc = m_daemon->m_data.make_snapshot(m_daemon->m_config.get_region_id(to), *sc, checks, &snap, NULL);
     uint64_t result = 0;
 
     switch (rc)
@@ -548,7 +554,7 @@ search_manager :: count(const server_id& from,
     datalayer::snapshot snap;
     datalayer::returncode rc;
     std::stable_sort(checks->begin(), checks->end());
-    rc = m_daemon->m_data.make_snapshot(m_daemon->m_config.get_region_id(to), *sc, checks, &snap);
+    rc = m_daemon->m_data.make_snapshot(m_daemon->m_config.get_region_id(to), *sc, checks, &snap, NULL);
     uint64_t result = 0;
 
     switch (rc)
@@ -580,6 +586,64 @@ search_manager :: count(const server_id& from,
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     msg->pack_at(HYPERDEX_HEADER_SIZE_VC) << nonce << result;
     m_daemon->m_comm.send_client(to, from, RESP_COUNT, msg);
+}
+
+void
+search_manager :: search_describe(const server_id& from,
+                                  const virtual_server_id& to,
+                                  uint64_t nonce,
+                                  std::vector<attribute_check>* checks)
+{
+    region_id ri(m_daemon->m_config.get_region_id(to));
+    const schema* sc = m_daemon->m_config.get_schema(ri);
+    assert(sc);
+    datalayer::snapshot snap;
+    datalayer::returncode rc;
+    std::stable_sort(checks->begin(), checks->end());
+    std::ostringstream ostr;
+    ostr << "search\n";
+    uint64_t t_start = e::time();
+    rc = m_daemon->m_data.make_snapshot(m_daemon->m_config.get_region_id(to), *sc, checks, &snap, &ostr);
+    uint64_t t_end = e::time();
+    ostr << " snapshot took " << t_end - t_start << "ns\n";
+
+    switch (rc)
+    {
+        case datalayer::SUCCESS:
+            break;
+        case datalayer::NOT_FOUND:
+        case datalayer::BAD_ENCODING:
+        case datalayer::BAD_SEARCH:
+        case datalayer::CORRUPTION:
+        case datalayer::IO_ERROR:
+        case datalayer::LEVELDB_ERROR:
+            LOG(ERROR) << "could not make snapshot for search:  " << rc;
+            break;
+        default:
+            abort();
+    }
+
+    uint64_t num = 0;
+    t_start = e::time();
+
+    while (snap.valid())
+    {
+        ++num;
+        snap.next();
+    }
+
+    t_end = e::time();
+    ostr << " retrieved " << num << " objects in " << t_end - t_start << "ns\n";
+    std::string str(ostr.str());
+    const char* text = str.c_str();
+    size_t text_sz = strlen(text);
+    size_t sz = HYPERDEX_HEADER_SIZE_VC
+              + sizeof(uint64_t)
+              + text_sz;
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    e::buffer::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_VC) << nonce;
+    pa.copy(e::slice(text, text_sz));
+    m_daemon->m_comm.send_client(to, from, RESP_SEARCH_DESCRIBE, msg);
 }
 
 uint64_t

@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2012, Cornell University
+// Copyright (c) 2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,44 +25,76 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// HyperDex
-#include "common/macros.h"
-#include "common/network_msgtype.h"
+// STL
+#include <sstream>
 
-std::ostream&
-hyperdex :: operator << (std::ostream& lhs, const network_msgtype& rhs)
+// HyperDex
+#include "client/description.h"
+
+hyperclient :: description :: description(const char** desc)
+    : m_ref(0)
+    , m_desc(desc)
+    , m_msgs()
 {
-    switch(rhs)
+}
+
+hyperclient :: description :: ~description() throw ()
+{
+}
+
+void
+hyperclient :: description :: compile()
+{
+    std::ostringstream msg;
+
+    for (size_t i = 0; i < m_msgs.size(); ++i)
     {
-        STRINGIFY(REQ_GET);
-        STRINGIFY(RESP_GET);
-        STRINGIFY(REQ_ATOMIC);
-        STRINGIFY(RESP_ATOMIC);
-        STRINGIFY(REQ_SEARCH_START);
-        STRINGIFY(REQ_SEARCH_NEXT);
-        STRINGIFY(REQ_SEARCH_STOP);
-        STRINGIFY(RESP_SEARCH_ITEM);
-        STRINGIFY(RESP_SEARCH_DONE);
-        STRINGIFY(REQ_SORTED_SEARCH);
-        STRINGIFY(RESP_SORTED_SEARCH);
-        STRINGIFY(REQ_GROUP_DEL);
-        STRINGIFY(RESP_GROUP_DEL);
-        STRINGIFY(REQ_COUNT);
-        STRINGIFY(RESP_COUNT);
-        STRINGIFY(REQ_SEARCH_DESCRIBE);
-        STRINGIFY(RESP_SEARCH_DESCRIBE);
-        STRINGIFY(CHAIN_OP);
-        STRINGIFY(CHAIN_SUBSPACE);
-        STRINGIFY(CHAIN_ACK);
-        STRINGIFY(CHAIN_GC);
-        STRINGIFY(XFER_OP);
-        STRINGIFY(XFER_ACK);
-        STRINGIFY(CONFIGMISMATCH);
-        STRINGIFY(PACKET_NOP);
-        default:
-            lhs << "unknown network_msgtype";
-            break;
+        msg << m_msgs[i].first << ": " << m_msgs[i].second << "\n";
     }
 
-    return lhs;
+    std::string out(msg.str());
+    char* ret = static_cast<char*>(malloc(out.size() + 1));
+
+    if (ret)
+    {
+        strncpy(ret, out.c_str(), out.size() + 1);
+
+        for (size_t i = out.size(); i > 0; --i)
+        {
+            if (ret[i] == '\n' || ret[i] == '\0')
+            {
+                ret[i] = '\0';
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        *m_desc = ret;
+    }
+    else
+    {
+        *m_desc = NULL;
+    }
+}
+
+bool
+hyperclient :: description :: last_reference()
+{
+    return m_ref == 1;
+}
+
+void
+hyperclient :: description :: add_text(const hyperdex::virtual_server_id& vid,
+                                       const e::slice& text)
+{
+    m_msgs.push_back(std::make_pair(vid, std::string(reinterpret_cast<const char*>(text.data()), text.size())));
+}
+
+void
+hyperclient :: description :: add_text(const hyperdex::virtual_server_id& vid,
+                                       const char* text)
+{
+    m_msgs.push_back(std::make_pair(vid, std::string(text)));
 }

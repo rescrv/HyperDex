@@ -167,6 +167,7 @@ noinst_HEADERS = \
 			client/pending_group_del.h \
 			client/pending.h \
 			client/pending_search.h \
+			client/pending_search_description.h \
 			client/pending_sorted_search.h \
 			client/pending_statusonly.h \
 			client/refcount.h \
@@ -339,6 +340,7 @@ libhyperclient_la_SOURCES = \
 			client/c_wrappers.cc \
 			client/complete.cc \
 			client/coordinator_link.cc \
+			client/description.cc \
 			client/hyperclient.cc \
 			client/keyop_info.cc \
 			client/parse_space_y.y \
@@ -350,6 +352,7 @@ libhyperclient_la_SOURCES = \
 			client/pending_get.cc \
 			client/pending_group_del.cc \
 			client/pending_search.cc \
+			client/pending_search_description.cc \
 			client/pending_sorted_search.cc \
 			client/pending_statusonly.cc \
 			client/refcount.cc \

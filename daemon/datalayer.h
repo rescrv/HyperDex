@@ -31,6 +31,7 @@
 // STL
 #include <list>
 #include <set>
+#include <sstream>
 #include <string>
 #include <tr1/memory>
 #include <vector>
@@ -122,7 +123,8 @@ class datalayer
         returncode make_snapshot(const region_id& ri,
                                  const schema& sc,
                                  const std::vector<attribute_check>* checks,
-                                 snapshot* snap);
+                                 snapshot* snap,
+                                 std::ostringstream* ostr);
         // leveldb provides no failure mechanism for this, neither do we
         leveldb_snapshot_ptr make_raw_snapshot();
         void make_region_iterator(region_iterator* riter,
@@ -320,6 +322,8 @@ class datalayer::snapshot
         uint64_t m_version;
         e::slice m_key;
         std::vector<e::slice> m_value;
+        std::ostringstream* m_ostr;
+        uint64_t m_num_gets;
         reference m_ref;
 };
 

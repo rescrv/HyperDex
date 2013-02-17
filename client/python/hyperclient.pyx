@@ -176,6 +176,7 @@ cdef extern from "../hyperclient.h":
     int64_t hyperclient_map_string_prepend(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_map_string_append(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_search(hyperclient* client, char* space, hyperclient_attribute_check* chks, size_t chks_sz, hyperclient_returncode* status, hyperclient_attribute** attrs, size_t* attrs_sz)
+    int64_t hyperclient_search_describe(hyperclient* client, char* space, hyperclient_attribute_check* chks, size_t chks_sz, hyperclient_returncode* status, char** text)
     int64_t hyperclient_sorted_search(hyperclient* client, char* space, hyperclient_attribute_check* chks, size_t chks_sz, char* sort_by, uint64_t limit, int maximize, hyperclient_returncode* status, hyperclient_attribute** attrs, size_t* attrs_sz)
     int64_t hyperclient_group_del(hyperclient* client, char* space, hyperclient_attribute_check* chks, size_t chks_sz, hyperclient_returncode* status)
     int64_t hyperclient_count(hyperclient* client, char* space, hyperclient_attribute_check* chks, size_t chks_sz, hyperclient_returncode* status, uint64_t* result)
@@ -1015,6 +1016,37 @@ cdef class DeferredGroupDel(Deferred):
             raise HyperClientException(self._status)
 
 
+cdef class DeferredSearchDescribe(Deferred):
+
+    cdef char* _text
+
+    def __cinit__(self, Client client, bytes space, dict predicate, bool unsafe):
+        self._client = client
+        self._reqid = 0
+        self._status = HYPERCLIENT_GARBAGE
+        self._text = NULL
+        cdef hyperclient_attribute_check* chks = NULL
+        cdef size_t chks_sz = 0
+        try:
+            backings = _predicate_to_c(predicate, &chks, &chks_sz)
+            self._reqid = hyperclient_search_describe(client._client, space,
+                                                      chks, chks_sz,
+                                                      &self._status, &self._text)
+            _check_reqid_search(self._reqid, self._status, chks, chks_sz)
+            client._ops[self._reqid] = self
+        finally:
+            if chks: free(chks)
+
+    def wait(self):
+        Deferred.wait(self)
+        if self._status == HYPERCLIENT_SUCCESS:
+            if self._text == NULL:
+                return None
+            return self._text.strip()
+        else:
+            raise HyperClientException(self._status)
+
+
 cdef class DeferredCount(Deferred):
 
     cdef uint64_t _result
@@ -1326,6 +1358,10 @@ cdef class Client:
         async = self.async_map_string_append(space, key, value)
         return async.wait()
 
+    def search_describe(self, bytes space, dict predicate, bool unsafe=False):
+        async = self.async_search_describe(space, predicate, unsafe)
+        return async.wait()
+
     def group_del(self, bytes space, dict predicate):
         async = self.async_group_del(space, predicate)
         return async.wait()
@@ -1499,6 +1535,9 @@ cdef class Client:
         d = DeferredMapOp(self)
         d.call(<hyperclient_map_op> hyperclient_map_string_append, space, key, value)
         return d
+
+    def async_search_describe(self, bytes space, dict predicate, bool unsafe=False):
+        return DeferredSearchDescribe(self, space, predicate, unsafe)
 
     def async_group_del(self, bytes space, dict predicate):
         return DeferredGroupDel(self, space, predicate)

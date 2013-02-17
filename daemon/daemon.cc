@@ -397,6 +397,9 @@ daemon :: loop()
             case REQ_COUNT:
                 process_req_count(from, vfrom, vto, msg, up);
                 break;
+            case REQ_SEARCH_DESCRIBE:
+                process_req_search_describe(from, vfrom, vto, msg, up);
+                break;
             case CHAIN_OP:
                 process_chain_op(from, vfrom, vto, msg, up);
                 break;
@@ -422,6 +425,7 @@ daemon :: loop()
             case RESP_SORTED_SEARCH:
             case RESP_GROUP_DEL:
             case RESP_COUNT:
+            case RESP_SEARCH_DESCRIBE:
             case CONFIGMISMATCH:
             case PACKET_NOP:
             default:
@@ -626,6 +630,25 @@ daemon :: process_req_count(server_id from,
     }
 
     m_sm.count(from, vto, nonce, &checks);
+}
+
+void
+daemon :: process_req_search_describe(server_id from,
+                                      virtual_server_id,
+                                      virtual_server_id vto,
+                                      std::auto_ptr<e::buffer> msg,
+                                      e::unpacker up)
+{
+    uint64_t nonce;
+    std::vector<attribute_check> checks;
+
+    if ((up >> nonce >> checks).error())
+    {
+        LOG(WARNING) << "unpack of REQ_SEARCH_DESCRIBE failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    m_sm.search_describe(from, vto, nonce, &checks);
 }
 
 void

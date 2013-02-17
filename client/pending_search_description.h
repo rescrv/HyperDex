@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2012, Cornell University
+// Copyright (c) 2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,44 +25,41 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#ifndef hyperdex_client_pending_search_description_h_
+#define hyperdex_client_pending_search_description_h_
+
+// STL
+#include <tr1/memory>
+
 // HyperDex
-#include "common/macros.h"
-#include "common/network_msgtype.h"
+#include "client/pending.h"
+#include "client/refcount.h"
 
-std::ostream&
-hyperdex :: operator << (std::ostream& lhs, const network_msgtype& rhs)
+class hyperclient::pending_search_description : public hyperclient::pending
 {
-    switch(rhs)
-    {
-        STRINGIFY(REQ_GET);
-        STRINGIFY(RESP_GET);
-        STRINGIFY(REQ_ATOMIC);
-        STRINGIFY(RESP_ATOMIC);
-        STRINGIFY(REQ_SEARCH_START);
-        STRINGIFY(REQ_SEARCH_NEXT);
-        STRINGIFY(REQ_SEARCH_STOP);
-        STRINGIFY(RESP_SEARCH_ITEM);
-        STRINGIFY(RESP_SEARCH_DONE);
-        STRINGIFY(REQ_SORTED_SEARCH);
-        STRINGIFY(RESP_SORTED_SEARCH);
-        STRINGIFY(REQ_GROUP_DEL);
-        STRINGIFY(RESP_GROUP_DEL);
-        STRINGIFY(REQ_COUNT);
-        STRINGIFY(RESP_COUNT);
-        STRINGIFY(REQ_SEARCH_DESCRIBE);
-        STRINGIFY(RESP_SEARCH_DESCRIBE);
-        STRINGIFY(CHAIN_OP);
-        STRINGIFY(CHAIN_SUBSPACE);
-        STRINGIFY(CHAIN_ACK);
-        STRINGIFY(CHAIN_GC);
-        STRINGIFY(XFER_OP);
-        STRINGIFY(XFER_ACK);
-        STRINGIFY(CONFIGMISMATCH);
-        STRINGIFY(PACKET_NOP);
-        default:
-            lhs << "unknown network_msgtype";
-            break;
-    }
+    public:
+        pending_search_description(int64_t searchid,
+                                   hyperclient_returncode* status,
+                                   e::intrusive_ptr<description> sd);
+        virtual ~pending_search_description() throw ();
 
-    return lhs;
-}
+    public:
+        virtual hyperdex::network_msgtype request_type();
+        virtual int64_t handle_response(hyperclient* cl,
+                                        const server_id& id,
+                                        std::auto_ptr<e::buffer> msg,
+                                        hyperdex::network_msgtype type,
+                                        hyperclient_returncode* status);
+
+    private:
+        pending_search_description(const pending_search_description& other);
+
+    private:
+        pending_search_description& operator = (const pending_search_description& rhs);
+
+    private:
+        int64_t m_searchid;
+        e::intrusive_ptr<description> m_sd;
+};
+
+#endif // hyperdex_client_pending_search_description_h_

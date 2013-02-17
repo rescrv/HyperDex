@@ -61,6 +61,7 @@
 #include "client/complete.h"
 #include "client/constants.h"
 #include "client/coordinator_link.h"
+#include "client/description.h"
 #include "client/hyperclient.h"
 #include "client/keyop_info.h"
 #include "client/pending.h"
@@ -68,6 +69,7 @@
 #include "client/pending_get.h"
 #include "client/pending_group_del.h"
 #include "client/pending_search.h"
+#include "client/pending_search_description.h"
 #include "client/pending_sorted_search.h"
 #include "client/pending_statusonly.h"
 #include "client/refcount.h"
@@ -116,12 +118,12 @@ hyperclient :: ~hyperclient() throw ()
 }
 
 hyperclient_returncode
-hyperclient :: add_space(const char* description)
+hyperclient :: add_space(const char* _description)
 {
     hyperclient_returncode status;
     hyperdex::space s;
 
-    if (!space_description_to_space(description, &s))
+    if (!space_description_to_space(_description, &s))
     {
         return HYPERCLIENT_BADSPACE;
     }
@@ -394,6 +396,50 @@ hyperclient :: search(const char* space,
 #else
             m_complete_failed.push(complete(search_id, status, HYPERCLIENT_RECONFIGURE, 0));
 #endif
+            m_incomplete.erase(op->server_visible_nonce());
+        }
+    }
+
+    return search_id;
+}
+
+int64_t
+hyperclient :: search_describe(const char* space,
+                               const struct hyperclient_attribute_check* checks, size_t checks_sz,
+                               enum hyperclient_returncode* status, const char** _description)
+{
+    MAINTAIN_COORD_CONNECTION(status)
+    std::vector<hyperdex::attribute_check> chks;
+    std::vector<hyperdex::virtual_server_id> servers;
+    int64_t ret = prepare_searchop(space, checks, checks_sz, status, &chks, &servers);
+
+    if (ret < 0)
+    {
+        return ret;
+    }
+
+    int64_t search_id = m_client_id;
+    ++m_client_id;
+    size_t sz = HYPERCLIENT_HEADER_SIZE_REQ
+              + pack_size(chks);
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    msg->pack_at(HYPERCLIENT_HEADER_SIZE_REQ) << chks;
+    e::intrusive_ptr<description> sd(new description(_description));
+
+    for (size_t i = 0; i < servers.size(); ++i)
+    {
+        sd->add_text(servers[i], "touched by search");
+        e::intrusive_ptr<pending> op = new pending_search_description(search_id, status, sd);
+        op->set_server_visible_nonce(m_server_nonce);
+        ++m_server_nonce;
+        op->set_sent_to(servers[i]);
+        m_incomplete.insert(std::make_pair(op->server_visible_nonce(), op));
+        std::auto_ptr<e::buffer> tosend(msg->copy());
+
+        if (send(op, tosend) < 0)
+        {
+            sd->add_text(servers[i], "failed");
+            m_complete_failed.push(complete(search_id, status, HYPERCLIENT_RECONFIGURE, 0));
             m_incomplete.erase(op->server_visible_nonce());
         }
     }

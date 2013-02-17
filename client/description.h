@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2012, Cornell University
+// Copyright (c) 2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,44 +25,42 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#ifndef hyperdex_client_description_h_
+#define hyperdex_client_description_h_
+
+// STL
+#include <vector>
+#include <utility>
+
 // HyperDex
-#include "common/macros.h"
-#include "common/network_msgtype.h"
+#include "common/ids.h"
+#include "client/hyperclient.h"
 
-std::ostream&
-hyperdex :: operator << (std::ostream& lhs, const network_msgtype& rhs)
+class hyperclient::description
 {
-    switch(rhs)
-    {
-        STRINGIFY(REQ_GET);
-        STRINGIFY(RESP_GET);
-        STRINGIFY(REQ_ATOMIC);
-        STRINGIFY(RESP_ATOMIC);
-        STRINGIFY(REQ_SEARCH_START);
-        STRINGIFY(REQ_SEARCH_NEXT);
-        STRINGIFY(REQ_SEARCH_STOP);
-        STRINGIFY(RESP_SEARCH_ITEM);
-        STRINGIFY(RESP_SEARCH_DONE);
-        STRINGIFY(REQ_SORTED_SEARCH);
-        STRINGIFY(RESP_SORTED_SEARCH);
-        STRINGIFY(REQ_GROUP_DEL);
-        STRINGIFY(RESP_GROUP_DEL);
-        STRINGIFY(REQ_COUNT);
-        STRINGIFY(RESP_COUNT);
-        STRINGIFY(REQ_SEARCH_DESCRIBE);
-        STRINGIFY(RESP_SEARCH_DESCRIBE);
-        STRINGIFY(CHAIN_OP);
-        STRINGIFY(CHAIN_SUBSPACE);
-        STRINGIFY(CHAIN_ACK);
-        STRINGIFY(CHAIN_GC);
-        STRINGIFY(XFER_OP);
-        STRINGIFY(XFER_ACK);
-        STRINGIFY(CONFIGMISMATCH);
-        STRINGIFY(PACKET_NOP);
-        default:
-            lhs << "unknown network_msgtype";
-            break;
-    }
+    public:
+        description(const char** desc);
+        ~description() throw ();
 
-    return lhs;
-}
+    public:
+        void compile();
+        bool last_reference();
+        void add_text(const hyperdex::virtual_server_id& vid, const e::slice& text);
+        void add_text(const hyperdex::virtual_server_id& vid, const char* text);
+
+    private:
+        friend class e::intrusive_ptr<description>;
+        void inc() { ++m_ref; }
+        void dec() { if (--m_ref == 0) delete this; }
+
+    private:
+        description(const description&);
+        description& operator = (const description&);
+
+    private:
+        uint64_t m_ref;
+        const char** m_desc;
+        std::vector<std::pair<hyperdex::virtual_server_id, std::string> > m_msgs;
+};
+
+#endif // hyperdex_client_description_h_

@@ -35,6 +35,7 @@
 #include <signal.h>
 
 // STL
+#include <sstream>
 #include <string>
 
 // Google Log
@@ -653,18 +654,22 @@ datalayer::returncode
 datalayer :: make_snapshot(const region_id& ri,
                            const schema& sc,
                            const std::vector<attribute_check>* checks,
-                           snapshot* snap)
+                           snapshot* snap,
+                           std::ostringstream* ostr)
 {
     snap->m_dl = this;
     snap->m_snap.reset(m_db, m_db->GetSnapshot());
     snap->m_checks = checks;
     snap->m_ri = ri;
+    snap->m_ostr = ostr;
     std::vector<range> ranges;
 
     if (!range_searches(*checks, &ranges))
     {
         return BAD_SEARCH;
     }
+
+    if (ostr) *ostr << " converted " << checks->size() << " checks to " << ranges.size() << " ranges\n";
 
     char* ptr;
     std::vector<leveldb::Range> level_ranges;
@@ -673,6 +678,11 @@ datalayer :: make_snapshot(const region_id& ri,
     // For each range, setup a leveldb range using encoded values
     for (size_t i = 0; i < ranges.size(); ++i)
     {
+        if (ostr) *ostr << " considering attr " << ranges[i].attr << " Range("
+                        << ranges[i].start.hex() << ", " << ranges[i].end.hex() << " " << ranges[i].type << " "
+                        << (ranges[i].has_start ? "[" : "<") << "-" << (ranges[i].has_end ? "]" : ">")
+                        << " " << (ranges[i].invalid ? "invalid" : "valid") << "\n";
+
         if (ranges[i].attr >= sc.attrs_sz ||
             sc.attrs[ranges[i].attr].type != ranges[i].type)
         {
@@ -753,7 +763,20 @@ datalayer :: make_snapshot(const region_id& ri,
     // Fetch from leveldb the approximate space usage of each computed range
     std::vector<uint64_t> sizes(level_ranges.size());
     m_db->GetApproximateSizes(&level_ranges.front(), level_ranges.size(), &sizes.front());
+
+    if (ostr)
+    {
+        for (size_t i = 0; i < level_ranges.size(); ++i)
+        {
+            *ostr << " index Range(" << e::slice(level_ranges[i].start.data(), level_ranges[i].start.size()).hex()
+                  << ", " << e::slice(level_ranges[i].start.data(), level_ranges[i].start.size()).hex()
+                  << " occupies " << sizes[i] << " bytes\n";
+        }
+    }
+
+    // the size of all objects in the region of the search
     uint64_t object_disk_space = sizes.back();
+    if (ostr) *ostr << " objects for " << ri << " occupies " << object_disk_space << " bytes\n";
     leveldb::Range object_range = level_ranges.back();
     level_ranges.pop_back();
     sizes.pop_back();
@@ -771,13 +794,15 @@ datalayer :: make_snapshot(const region_id& ri,
         }
     }
 
-    if (sizes.empty() || sizes[idx] > object_disk_space / 10.)
+    if (sizes.empty() || sizes[idx] > object_disk_space / 4.)
     {
+        if (ostr) *ostr << " choosing to just enumerate all objects\n";
         snap->m_range = object_range;
         snap->m_parse = &datalayer::parse_object_key;
     }
     else
     {
+        if (ostr) *ostr << " choosing to use index " << idx << "\n";
         snap->m_range = level_ranges[idx];
         snap->m_parse = parsers[idx];
     }
@@ -2052,6 +2077,8 @@ datalayer :: snapshot :: snapshot()
     , m_version()
     , m_key()
     , m_value()
+    , m_ostr()
+    , m_num_gets(0)
     , m_ref()
 {
 }
@@ -2078,6 +2105,7 @@ datalayer :: snapshot :: valid()
     {
         if (m_iter->key().compare(m_range.limit) >= 0)
         {
+            if (m_ostr) *m_ostr << " iterator retrieved " << m_num_gets << " objects from disk\n";
             return false;
         }
 
@@ -2101,6 +2129,8 @@ datalayer :: snapshot :: valid()
                 m_error = rc;
                 return false;
             }
+
+            ++m_num_gets;
         }
         else if (st.IsNotFound())
         {
