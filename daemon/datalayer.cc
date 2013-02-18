@@ -54,11 +54,9 @@
 #include "common/serialization.h"
 #include "daemon/daemon.h"
 #include "daemon/datalayer.h"
-#include "daemon/index_encode.h"
+#include "daemon/datalayer_encodings.h"
 #include "datatypes/apply.h"
 #include "datatypes/microerror.h"
-
-#define ACKED_BUF_SIZE (sizeof(uint8_t) + 3 * sizeof(uint64_t))
 
 // ASSUME:  all keys put into leveldb have a first byte without the high bit set
 
@@ -484,27 +482,24 @@ datalayer :: get(const region_id& ri,
 }
 
 datalayer::returncode
-datalayer :: put(const region_id& ri,
+datalayer :: del(const region_id& ri,
                  const region_id& reg_id,
                  uint64_t seq_id,
                  const e::slice& key,
-                 const std::vector<e::slice>& value,
-                 uint64_t version)
+                 const std::vector<e::slice>& old_value)
 {
     const schema* sc = m_daemon->m_config.get_schema(ri);
-    assert(sc);
-    leveldb::WriteOptions opts;
-    opts.sync = false;
-    std::vector<char> kbacking;
-    leveldb::Slice lkey;
-    encode_key(ri, key, &kbacking, &lkey);
-    std::vector<char> vbacking;
-    leveldb::Slice lvalue;
-    encode_value(value, version, &vbacking, &lvalue);
-    std::list<std::vector<char> > backing;
     leveldb::WriteBatch updates;
-    updates.Put(lkey, lvalue);
-    returncode rc = create_index_changes(sc, ri, key, lkey, value, &backing, &updates);
+    std::vector<char> backing1;
+    std::vector<char> backing2;
+
+    // peform the "del" of the object we want to store
+    leveldb::Slice lkey;
+    encode_key(ri, key, &backing1, &lkey);
+    updates.Delete(lkey);
+
+    // apply the index operations
+    returncode rc = create_index_changes(sc, ri, key, &old_value, NULL, &updates);
 
     if (rc != SUCCESS)
     {
@@ -527,18 +522,105 @@ datalayer :: put(const region_id& ri,
     // If this is a captured region, then we must log this transfer
     if (m_counters.lookup(ri, &count))
     {
+        char tbacking[TRANSFER_BUF_SIZE];
         capture_id cid = m_daemon->m_config.capture_for(ri);
         assert(cid != capture_id());
-        backing.push_back(std::vector<char>());
-        leveldb::Slice tkey;
-        encode_transfer(cid, count, &backing.back(), &tkey);
-        backing.push_back(std::vector<char>());
-        leveldb::Slice tvalue;
-        encode_key_value(key, &value, version, &backing.back(), &tvalue);
-        updates.Put(tkey, tvalue);
+        leveldb::Slice tkey(tbacking, TRANSFER_BUF_SIZE);
+        leveldb::Slice tval;
+        encode_transfer(cid, count, tbacking);
+        encode_key_value(key, NULL, 0, &backing2, &tval);
+        updates.Put(tkey, tval);
     }
 
     // Perform the write
+    leveldb::WriteOptions opts;
+    opts.sync = false;
+    leveldb::Status st = m_db->Write(opts, &updates);
+
+    if (st.ok())
+    {
+        return SUCCESS;
+    }
+    else if (st.IsNotFound())
+    {
+        return NOT_FOUND;
+    }
+    else if (st.IsCorruption())
+    {
+        LOG(ERROR) << "corruption at the disk layer: region=" << ri
+                   << " key=0x" << key.hex() << " desc=" << st.ToString();
+        return CORRUPTION;
+    }
+    else if (st.IsIOError())
+    {
+        LOG(ERROR) << "IO error at the disk layer: region=" << ri
+                   << " key=0x" << key.hex() << " desc=" << st.ToString();
+        return IO_ERROR;
+    }
+    else
+    {
+        LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
+        return LEVELDB_ERROR;
+    }
+}
+
+datalayer::returncode
+datalayer :: put(const region_id& ri,
+                 const region_id& reg_id,
+                 uint64_t seq_id,
+                 const e::slice& key,
+                 const std::vector<e::slice>& new_value,
+                 uint64_t version)
+{
+    const schema* sc = m_daemon->m_config.get_schema(ri);
+    leveldb::WriteBatch updates;
+    std::vector<char> backing1;
+    std::vector<char> backing2;
+
+    // peform the "put" of the object we want to store
+    leveldb::Slice lkey;
+    leveldb::Slice lval;
+    encode_key(ri, key, &backing1, &lkey);
+    encode_value(new_value, version, &backing2, &lval);
+    updates.Put(lkey, lval);
+
+    // apply the index operations
+    returncode rc = create_index_changes(sc, ri, key, NULL, &new_value, &updates);
+
+    if (rc != SUCCESS)
+    {
+        return rc;
+    }
+
+    // Mark acked as part of this batch write
+    if (seq_id != 0)
+    {
+        char abacking[ACKED_BUF_SIZE];
+        seq_id = UINT64_MAX - seq_id;
+        encode_acked(ri, reg_id, seq_id, abacking);
+        leveldb::Slice akey(abacking, ACKED_BUF_SIZE);
+        leveldb::Slice aval("", 0);
+        updates.Put(akey, aval);
+    }
+
+    uint64_t count;
+
+    // If this is a captured region, then we must log this transfer
+    if (m_counters.lookup(ri, &count))
+    {
+        char tbacking[TRANSFER_BUF_SIZE];
+        capture_id cid = m_daemon->m_config.capture_for(ri);
+        assert(cid != capture_id());
+        leveldb::Slice tkey(tbacking, TRANSFER_BUF_SIZE);
+        leveldb::Slice tval;
+        encode_transfer(cid, count, tbacking);
+        encode_key_value(key, &new_value, version, &backing2, &tval);
+        updates.Put(tkey, tval);
+    }
+
+    // Perform the write
+    leveldb::WriteOptions opts;
+    opts.sync = false;
     leveldb::Status st = m_db->Write(opts, &updates);
 
     if (st.ok())
@@ -571,22 +653,28 @@ datalayer :: put(const region_id& ri,
 }
 
 datalayer::returncode
-datalayer :: del(const region_id& ri,
-                 const region_id& reg_id,
-                 uint64_t seq_id,
-                 const e::slice& key)
+datalayer :: overput(const region_id& ri,
+                     const region_id& reg_id,
+                     uint64_t seq_id,
+                     const e::slice& key,
+                     const std::vector<e::slice>& old_value,
+                     const std::vector<e::slice>& new_value,
+                     uint64_t version)
 {
     const schema* sc = m_daemon->m_config.get_schema(ri);
-    assert(sc);
-    leveldb::WriteOptions opts;
-    opts.sync = false;
-    std::vector<char> kbacking;
-    leveldb::Slice lkey;
-    encode_key(ri, key, &kbacking, &lkey);
-    std::list<std::vector<char> > backing;
     leveldb::WriteBatch updates;
-    updates.Delete(lkey);
-    returncode rc = create_index_changes(sc, ri, key, lkey, &backing, &updates);
+    std::vector<char> backing1;
+    std::vector<char> backing2;
+
+    // peform the "put" of the object we want to store
+    leveldb::Slice lkey;
+    leveldb::Slice lval;
+    encode_key(ri, key, &backing1, &lkey);
+    encode_value(new_value, version, &backing2, &lval);
+    updates.Put(lkey, lval);
+
+    // apply the index operations
+    returncode rc = create_index_changes(sc, ri, key, &old_value, &new_value, &updates);
 
     if (rc != SUCCESS)
     {
@@ -609,18 +697,19 @@ datalayer :: del(const region_id& ri,
     // If this is a captured region, then we must log this transfer
     if (m_counters.lookup(ri, &count))
     {
+        char tbacking[TRANSFER_BUF_SIZE];
         capture_id cid = m_daemon->m_config.capture_for(ri);
         assert(cid != capture_id());
-        backing.push_back(std::vector<char>());
-        leveldb::Slice tkey;
-        encode_transfer(cid, count, &backing.back(), &tkey);
-        backing.push_back(std::vector<char>());
-        leveldb::Slice tvalue;
-        encode_key_value(key, NULL, 0, &backing.back(), &tvalue);
-        updates.Put(tkey, tvalue);
+        leveldb::Slice tkey(tbacking, TRANSFER_BUF_SIZE);
+        leveldb::Slice tval;
+        encode_transfer(cid, count, tbacking);
+        encode_key_value(key, &new_value, version, &backing2, &tval);
+        updates.Put(tkey, tval);
     }
 
     // Perform the write
+    leveldb::WriteOptions opts;
+    opts.sync = false;
     leveldb::Status st = m_db->Write(opts, &updates);
 
     if (st.ok())
@@ -629,7 +718,123 @@ datalayer :: del(const region_id& ri,
     }
     else if (st.IsNotFound())
     {
+        LOG(ERROR) << "overput returned NOT_FOUND at the disk layer: region=" << ri
+                   << " key=0x" << key.hex() << " desc=" << st.ToString();
         return NOT_FOUND;
+    }
+    else if (st.IsCorruption())
+    {
+        LOG(ERROR) << "corruption at the disk layer: region=" << ri
+                   << " key=0x" << key.hex() << " desc=" << st.ToString();
+        return CORRUPTION;
+    }
+    else if (st.IsIOError())
+    {
+        LOG(ERROR) << "IO error at the disk layer: region=" << ri
+                   << " key=0x" << key.hex() << " desc=" << st.ToString();
+        return IO_ERROR;
+    }
+    else
+    {
+        LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
+        return LEVELDB_ERROR;
+    }
+}
+
+datalayer::returncode
+datalayer :: uncertain_del(const region_id& ri,
+                           const e::slice& key)
+{
+    leveldb::ReadOptions opts;
+    opts.fill_cache = false;
+    opts.verify_checksums = true;
+    leveldb::Slice lkey;
+    std::vector<char> kbacking;
+    encode_key(ri, key, &kbacking, &lkey);
+    std::string ref;
+    leveldb::Status st = m_db->Get(opts, lkey, &ref);
+
+    if (st.ok())
+    {
+        const schema* sc = m_daemon->m_config.get_schema(ri);
+        std::vector<e::slice> old_value;
+        uint64_t old_version;
+        returncode rc = decode_value(e::slice(ref.data(), ref.size()),
+                                     &old_value, &old_version);
+
+        if (rc != SUCCESS)
+        {
+            return rc;
+        }
+
+        if (old_value.size() + 1 != sc->attrs_sz)
+        {
+            return BAD_ENCODING;
+        }
+
+        return del(ri, region_id(), 0, key, old_value);
+    }
+    else if (st.IsNotFound())
+    {
+        return SUCCESS;
+    }
+    else if (st.IsCorruption())
+    {
+        LOG(ERROR) << "corruption at the disk layer: region=" << ri
+                   << " key=0x" << key.hex() << " desc=" << st.ToString();
+        return CORRUPTION;
+    }
+    else if (st.IsIOError())
+    {
+        LOG(ERROR) << "IO error at the disk layer: region=" << ri
+                   << " key=0x" << key.hex() << " desc=" << st.ToString();
+        return IO_ERROR;
+    }
+    else
+    {
+        LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
+        return LEVELDB_ERROR;
+    }
+}
+
+datalayer::returncode
+datalayer :: uncertain_put(const region_id& ri,
+                           const e::slice& key,
+                           const std::vector<e::slice>& new_value,
+                           uint64_t version)
+{
+    leveldb::ReadOptions opts;
+    opts.fill_cache = false;
+    opts.verify_checksums = true;
+    leveldb::Slice lkey;
+    std::vector<char> kbacking;
+    encode_key(ri, key, &kbacking, &lkey);
+    std::string ref;
+    leveldb::Status st = m_db->Get(opts, lkey, &ref);
+
+    if (st.ok())
+    {
+        const schema* sc = m_daemon->m_config.get_schema(ri);
+        std::vector<e::slice> old_value;
+        uint64_t old_version;
+        returncode rc = decode_value(e::slice(ref.data(), ref.size()),
+                                     &old_value, &old_version);
+
+        if (rc != SUCCESS)
+        {
+            return rc;
+        }
+
+        if (old_value.size() + 1 != sc->attrs_sz)
+        {
+            return BAD_ENCODING;
+        }
+
+        return overput(ri, region_id(), 0, key, old_value, new_value, version);
+    }
+    else if (st.IsNotFound())
+    {
+        return put(ri, region_id(), 0, key, new_value, version);
     }
     else if (st.IsCorruption())
     {
@@ -673,7 +878,7 @@ datalayer :: make_snapshot(const region_id& ri,
 
     char* ptr;
     std::vector<leveldb::Range> level_ranges;
-    std::vector<bool (datalayer::*)(const leveldb::Slice& in, e::slice* out)> parsers;
+    std::vector<bool (*)(const leveldb::Slice& in, e::slice* out)> parsers;
 
     // For each range, setup a leveldb range using encoded values
     for (size_t i = 0; i < ranges.size(); ++i)
@@ -689,7 +894,7 @@ datalayer :: make_snapshot(const region_id& ri,
             return BAD_SEARCH;
         }
 
-        bool (datalayer::*parse)(const leveldb::Slice& in, e::slice* out);
+        bool (*parse)(const leveldb::Slice& in, e::slice* out);
 
         // XXX sometime in the future we could support efficient range search on
         // keys.  Today is not that day.  Tomorrow doesn't look good either.
@@ -700,15 +905,15 @@ datalayer :: make_snapshot(const region_id& ri,
 
         else if (ranges[i].type == HYPERDATATYPE_STRING)
         {
-            parse = &datalayer::parse_index_string;
+            parse = &parse_index_string;
         }
         else if (ranges[i].type == HYPERDATATYPE_INT64)
         {
-            parse = &datalayer::parse_index_sizeof8;
+            parse = &parse_index_sizeof8;
         }
         else if (ranges[i].type == HYPERDATATYPE_FLOAT)
         {
-            parse = &datalayer::parse_index_sizeof8;
+            parse = &parse_index_sizeof8;
         }
         else
         {
@@ -732,7 +937,7 @@ datalayer :: make_snapshot(const region_id& ri,
         {
             snap->m_backing.push_back(std::vector<char>());
             encode_index(ri, ranges[i].attr, ranges[i].type, ranges[i].end, &snap->m_backing.back());
-            bump(&snap->m_backing.back());
+            bump_index(&snap->m_backing.back());
         }
         else
         {
@@ -756,7 +961,7 @@ datalayer :: make_snapshot(const region_id& ri,
     level_ranges.back().start = leveldb::Slice(&snap->m_backing.back()[0],
                                                snap->m_backing.back().size());
     snap->m_backing.push_back(snap->m_backing.back());
-    bump(&snap->m_backing.back());
+    bump_index(&snap->m_backing.back());
     level_ranges.back().limit = leveldb::Slice(&snap->m_backing.back()[0],
                                                snap->m_backing.back().size());
 
@@ -798,7 +1003,7 @@ datalayer :: make_snapshot(const region_id& ri,
     {
         if (ostr) *ostr << " choosing to just enumerate all objects\n";
         snap->m_range = object_range;
-        snap->m_parse = &datalayer::parse_object_key;
+        snap->m_parse = &parse_object_key;
     }
     else
     {
@@ -855,11 +1060,11 @@ datalayer :: get_transfer(const region_id& ri,
     leveldb::ReadOptions opts;
     opts.fill_cache = true;
     opts.verify_checksums = true;
-    std::vector<char> kbacking;
-    leveldb::Slice lkey;
+    char tbacking[TRANSFER_BUF_SIZE];
     capture_id cid = m_daemon->m_config.capture_for(ri);
     assert(cid != capture_id());
-    encode_transfer(cid, seq_no, &kbacking, &lkey);
+    leveldb::Slice lkey(tbacking, TRANSFER_BUF_SIZE);
+    encode_transfer(cid, seq_no, tbacking);
     leveldb::Status st = m_db->Get(opts, lkey, &ref->m_backing);
 
     if (st.ok())
@@ -1075,734 +1280,6 @@ datalayer :: request_wipe(const capture_id& cid)
 }
 
 void
-datalayer :: encode_key(const region_id& ri,
-                        const e::slice& key,
-                        std::vector<char>* kbacking,
-                        leveldb::Slice* lkey)
-{
-    size_t sz = sizeof(uint8_t) + sizeof(uint64_t) + key.size();
-    kbacking->resize(sz);
-    char* ptr = &kbacking->front();
-    ptr = e::pack8be('o', ptr);
-    ptr = e::pack64be(ri.get(), ptr);
-    memmove(ptr, key.data(), key.size());
-    *lkey = leveldb::Slice(&kbacking->front(), sz);
-}
-
-datalayer::returncode
-datalayer :: decode_key(const e::slice& lkey,
-                        region_id* ri,
-                        e::slice* key)
-{
-    const uint8_t* ptr = lkey.data();
-    const uint8_t* end = ptr + lkey.size();
-
-    if (ptr >= end || *ptr != 'o')
-    {
-        return BAD_ENCODING;
-    }
-
-    ++ptr;
-    uint64_t rid;
-
-    if (ptr + sizeof(uint64_t) <= end)
-    {
-        ptr = e::unpack64be(ptr, &rid);
-    }
-    else
-    {
-        return BAD_ENCODING;
-    }
-
-    *ri  = region_id(rid);
-    *key = e::slice(ptr, end - ptr);
-    return SUCCESS;
-}
-
-void
-datalayer :: encode_value(const std::vector<e::slice>& attrs,
-                          uint64_t version,
-                          std::vector<char>* backing,
-                          leveldb::Slice* lvalue)
-{
-    assert(attrs.size() < 65536);
-    size_t sz = sizeof(uint64_t) + sizeof(uint16_t);
-
-    for (size_t i = 0; i < attrs.size(); ++i)
-    {
-        sz += sizeof(uint32_t) + attrs[i].size();
-    }
-
-    backing->resize(sz);
-    char* ptr = &backing->front();
-    ptr = e::pack64be(version, ptr);
-    ptr = e::pack16be(attrs.size(), ptr);
-
-    for (size_t i = 0; i < attrs.size(); ++i)
-    {
-        ptr = e::pack32be(attrs[i].size(), ptr);
-        memmove(ptr, attrs[i].data(), attrs[i].size());
-        ptr += attrs[i].size();
-    }
-
-    *lvalue = leveldb::Slice(&backing->front(), sz);
-}
-
-datalayer::returncode
-datalayer :: decode_value(const e::slice& value,
-                          std::vector<e::slice>* attrs,
-                          uint64_t* version)
-{
-    const uint8_t* ptr = value.data();
-    const uint8_t* end = ptr + value.size();
-
-    if (ptr + sizeof(uint64_t) <= end)
-    {
-        ptr = e::unpack64be(ptr, version);
-    }
-    else
-    {
-        return BAD_ENCODING;
-    }
-
-    uint16_t num_attrs;
-
-    if (ptr + sizeof(uint16_t) <= end)
-    {
-        ptr = e::unpack16be(ptr, &num_attrs);
-    }
-    else
-    {
-        return BAD_ENCODING;
-    }
-
-    attrs->clear();
-
-    for (size_t i = 0; i < num_attrs; ++i)
-    {
-        uint32_t sz = 0;
-
-        if (ptr + sizeof(uint32_t) <= end)
-        {
-            ptr = e::unpack32be(ptr, &sz);
-        }
-        else
-        {
-            return BAD_ENCODING;
-        }
-
-        e::slice s(reinterpret_cast<const uint8_t*>(ptr), sz);
-        ptr += sz;
-        attrs->push_back(s);
-    }
-
-    return SUCCESS;
-}
-
-void
-datalayer :: encode_acked(const region_id& ri, /*region we saw an ack for*/
-                          const region_id& reg_id, /*region of the point leader*/
-                          uint64_t seq_id,
-                          char* buf)
-{
-    char* ptr = buf;
-    ptr = e::pack8be('a', ptr);
-    ptr = e::pack64be(reg_id.get(), ptr);
-    ptr = e::pack64be(seq_id, ptr);
-    ptr = e::pack64be(ri.get(), ptr);
-}
-
-datalayer::returncode
-datalayer :: decode_acked(const e::slice& key,
-                          region_id* ri, /*region we saw an ack for*/
-                          region_id* reg_id, /*region of the point leader*/
-                          uint64_t* seq_id)
-{
-    if (key.size() != ACKED_BUF_SIZE)
-    {
-        return BAD_ENCODING;
-    }
-
-    uint8_t _p;
-    uint64_t _ri;
-    uint64_t _reg_id;
-    const uint8_t* ptr = key.data();
-    ptr = e::unpack8be(ptr, &_p);
-    ptr = e::unpack64be(ptr, &_reg_id);
-    ptr = e::unpack64be(ptr, seq_id);
-    ptr = e::unpack64be(ptr, &_ri);
-    *ri = region_id(_ri);
-    *reg_id = region_id(_reg_id);
-    return _p == 'a' ? SUCCESS : BAD_ENCODING;
-}
-
-void
-datalayer :: encode_transfer(const capture_id& ci,
-                             uint64_t count,
-                             std::vector<char>* backing,
-                             leveldb::Slice* tkey)
-{
-    backing->resize(sizeof(uint8_t) + 2 * sizeof(uint64_t));
-    char* tmp = &backing->front();
-    tmp = e::pack8be('t', tmp);
-    tmp = e::pack64be(ci.get(), tmp);
-    tmp = e::pack64be(count, tmp);
-    *tkey = leveldb::Slice(&backing->front(), sizeof(uint8_t) + 2 * sizeof(uint64_t));
-}
-
-void
-datalayer :: encode_key_value(const e::slice& key,
-                              const std::vector<e::slice>* value,
-                              uint64_t version,
-                              std::vector<char>* backing,
-                              leveldb::Slice* slice)
-{
-    size_t sz = sizeof(uint32_t) + key.size() + sizeof(uint64_t) + sizeof(uint16_t);
-
-    for (size_t i = 0; value && i < value->size(); ++i)
-    {
-        sz += sizeof(uint32_t) + (*value)[i].size();
-    }
-
-    backing->resize(sz);
-    char* ptr = &backing->front();
-    *slice = leveldb::Slice(ptr, sz);
-    ptr = e::pack32be(key.size(), ptr);
-    memmove(ptr, key.data(), key.size());
-    ptr += key.size();
-    ptr = e::pack64be(version, ptr);
-
-    if (value)
-    {
-        ptr = e::pack16be(value->size(), ptr);
-
-        for (size_t i = 0; i < value->size(); ++i)
-        {
-            ptr = e::pack32be((*value)[i].size(), ptr);
-            memmove(ptr, (*value)[i].data(), (*value)[i].size());
-            ptr += (*value)[i].size();
-        }
-    }
-}
-
-datalayer::returncode
-datalayer :: decode_key_value(const e::slice& slice,
-                              bool* has_value,
-                              e::slice* key,
-                              std::vector<e::slice>* value,
-                              uint64_t* version)
-{
-    const uint8_t* ptr = slice.data();
-    const uint8_t* end = ptr + slice.size();
-
-    if (ptr >= end)
-    {
-        return BAD_ENCODING;
-    }
-
-    uint32_t key_sz;
-
-    if (ptr + sizeof(uint32_t) <= end)
-    {
-        ptr = e::unpack32be(ptr, &key_sz);
-    }
-    else
-    {
-        return BAD_ENCODING;
-    }
-
-    if (ptr + key_sz <= end)
-    {
-        *key = e::slice(ptr, key_sz);
-        ptr += key_sz;
-    }
-    else
-    {
-        return BAD_ENCODING;
-    }
-
-    if (ptr + sizeof(uint64_t) <= end)
-    {
-        ptr = e::unpack64be(ptr, version);
-    }
-    else
-    {
-        return BAD_ENCODING;
-    }
-
-    if (ptr == end)
-    {
-        *has_value = false;
-        return SUCCESS;
-    }
-
-    uint16_t num_attrs;
-
-    if (ptr + sizeof(uint16_t) <= end)
-    {
-        ptr = e::unpack16be(ptr, &num_attrs);
-    }
-    else
-    {
-        return BAD_ENCODING;
-    }
-
-    value->clear();
-
-    for (size_t i = 0; i < num_attrs; ++i)
-    {
-        uint32_t sz = 0;
-
-        if (ptr + sizeof(uint32_t) <= end)
-        {
-            ptr = e::unpack32be(ptr, &sz);
-        }
-        else
-        {
-            return BAD_ENCODING;
-        }
-
-        e::slice s(ptr, sz);
-        ptr += sz;
-        value->push_back(s);
-    }
-
-    *has_value = true;
-    return SUCCESS;
-}
-
-void
-datalayer :: encode_index(const region_id& ri,
-                          uint16_t attr,
-                          std::vector<char>* backing)
-{
-    size_t sz = sizeof(uint8_t)
-              + sizeof(uint64_t)
-              + sizeof(uint16_t);
-    backing->resize(sz);
-    char* ptr = &backing->front();
-    ptr = e::pack8be('i', ptr);
-    ptr = e::pack64be(ri.get(), ptr);
-    ptr = e::pack16be(attr, ptr);
-}
-
-void
-datalayer :: encode_index(const region_id& ri,
-                          uint16_t attr,
-                          hyperdatatype type,
-                          const e::slice& value,
-                          std::vector<char>* backing)
-{
-    size_t sz = sizeof(uint8_t)
-              + sizeof(uint64_t)
-              + sizeof(uint16_t);
-    char* ptr = NULL;
-    char buf_i[sizeof(int64_t)];
-    char buf_d[sizeof(double)];
-    int64_t tmp_i;
-    double tmp_d;
-
-    switch (type)
-    {
-        case HYPERDATATYPE_STRING:
-            backing->resize(sz + value.size());
-            ptr = &backing->front();
-            ptr = e::pack8be('i', ptr);
-            ptr = e::pack64be(ri.get(), ptr);
-            ptr = e::pack16be(attr, ptr);
-            memmove(ptr, value.data(), value.size());
-            break;
-        case HYPERDATATYPE_INT64:
-            backing->resize(sz + sizeof(uint64_t));
-            ptr = &backing->front();
-            ptr = e::pack8be('i', ptr);
-            ptr = e::pack64be(ri.get(), ptr);
-            ptr = e::pack16be(attr, ptr);
-            memset(buf_i, 0, sizeof(int64_t));
-            memmove(buf_i, value.data(), std::min(value.size(), sizeof(int64_t)));
-            e::unpack64le(buf_i, &tmp_i);
-            ptr = index_encode_int64(tmp_i, ptr);
-            break;
-        case HYPERDATATYPE_FLOAT:
-            backing->resize(sz + sizeof(double));
-            ptr = &backing->front();
-            ptr = e::pack8be('i', ptr);
-            ptr = e::pack64be(ri.get(), ptr);
-            ptr = e::pack16be(attr, ptr);
-            memset(buf_d, 0, sizeof(double));
-            memmove(buf_d, value.data(), std::min(value.size(), sizeof(double)));
-            e::unpackdoublele(buf_d, &tmp_d);
-            ptr = index_encode_double(tmp_d, ptr);
-            break;
-        case HYPERDATATYPE_GENERIC:
-        case HYPERDATATYPE_LIST_GENERIC:
-        case HYPERDATATYPE_LIST_STRING:
-        case HYPERDATATYPE_LIST_INT64:
-        case HYPERDATATYPE_LIST_FLOAT:
-        case HYPERDATATYPE_SET_GENERIC:
-        case HYPERDATATYPE_SET_STRING:
-        case HYPERDATATYPE_SET_INT64:
-        case HYPERDATATYPE_SET_FLOAT:
-        case HYPERDATATYPE_MAP_GENERIC:
-        case HYPERDATATYPE_MAP_STRING_KEYONLY:
-        case HYPERDATATYPE_MAP_STRING_STRING:
-        case HYPERDATATYPE_MAP_STRING_INT64:
-        case HYPERDATATYPE_MAP_STRING_FLOAT:
-        case HYPERDATATYPE_MAP_INT64_KEYONLY:
-        case HYPERDATATYPE_MAP_INT64_STRING:
-        case HYPERDATATYPE_MAP_INT64_INT64:
-        case HYPERDATATYPE_MAP_INT64_FLOAT:
-        case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
-        case HYPERDATATYPE_MAP_FLOAT_STRING:
-        case HYPERDATATYPE_MAP_FLOAT_INT64:
-        case HYPERDATATYPE_MAP_FLOAT_FLOAT:
-        case HYPERDATATYPE_GARBAGE:
-        default:
-            abort();
-    }
-}
-
-void
-datalayer :: encode_index(const region_id& ri,
-                          uint16_t attr,
-                          hyperdatatype type,
-                          const e::slice& value,
-                          const e::slice& key,
-                          std::vector<char>* backing)
-{
-    size_t sz = sizeof(uint8_t)
-              + sizeof(uint64_t)
-              + sizeof(uint16_t);
-    char* ptr = NULL;
-    char buf_i[sizeof(int64_t)];
-    char buf_d[sizeof(double)];
-    int64_t tmp_i;
-    double tmp_d;
-
-    switch (type)
-    {
-        case HYPERDATATYPE_STRING:
-            backing->resize(sz + value.size() + key.size() + sizeof(uint32_t));
-            ptr = &backing->front();
-            ptr = e::pack8be('i', ptr);
-            ptr = e::pack64be(ri.get(), ptr);
-            ptr = e::pack16be(attr, ptr);
-            memmove(ptr, value.data(), value.size());
-            ptr += value.size();
-            memmove(ptr, key.data(), key.size());
-            ptr += key.size();
-            ptr = e::pack32be(key.size(), ptr);
-            break;
-        case HYPERDATATYPE_INT64:
-            backing->resize(sz + sizeof(uint64_t) + key.size());
-            ptr = &backing->front();
-            ptr = e::pack8be('i', ptr);
-            ptr = e::pack64be(ri.get(), ptr);
-            ptr = e::pack16be(attr, ptr);
-            memset(buf_i, 0, sizeof(int64_t));
-            memmove(buf_i, value.data(), std::min(value.size(), sizeof(int64_t)));
-            e::unpack64le(buf_i, &tmp_i);
-            ptr = index_encode_int64(tmp_i, ptr);
-            memmove(ptr, key.data(), key.size());
-            break;
-        case HYPERDATATYPE_FLOAT:
-            backing->resize(sz + sizeof(double) + key.size());
-            ptr = &backing->front();
-            ptr = e::pack8be('i', ptr);
-            ptr = e::pack64be(ri.get(), ptr);
-            ptr = e::pack16be(attr, ptr);
-            memset(buf_d, 0, sizeof(double));
-            memmove(buf_d, value.data(), std::min(value.size(), sizeof(double)));
-            e::unpackdoublele(buf_d, &tmp_d);
-            ptr = index_encode_double(tmp_d, ptr);
-            memmove(ptr, key.data(), key.size());
-            break;
-        case HYPERDATATYPE_GENERIC:
-        case HYPERDATATYPE_LIST_GENERIC:
-        case HYPERDATATYPE_LIST_STRING:
-        case HYPERDATATYPE_LIST_INT64:
-        case HYPERDATATYPE_LIST_FLOAT:
-        case HYPERDATATYPE_SET_GENERIC:
-        case HYPERDATATYPE_SET_STRING:
-        case HYPERDATATYPE_SET_INT64:
-        case HYPERDATATYPE_SET_FLOAT:
-        case HYPERDATATYPE_MAP_GENERIC:
-        case HYPERDATATYPE_MAP_STRING_KEYONLY:
-        case HYPERDATATYPE_MAP_STRING_STRING:
-        case HYPERDATATYPE_MAP_STRING_INT64:
-        case HYPERDATATYPE_MAP_STRING_FLOAT:
-        case HYPERDATATYPE_MAP_INT64_KEYONLY:
-        case HYPERDATATYPE_MAP_INT64_STRING:
-        case HYPERDATATYPE_MAP_INT64_INT64:
-        case HYPERDATATYPE_MAP_INT64_FLOAT:
-        case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
-        case HYPERDATATYPE_MAP_FLOAT_STRING:
-        case HYPERDATATYPE_MAP_FLOAT_INT64:
-        case HYPERDATATYPE_MAP_FLOAT_FLOAT:
-        case HYPERDATATYPE_GARBAGE:
-        default:
-            abort();
-    }
-}
-
-void
-datalayer :: bump(std::vector<char>* backing)
-{
-    assert(!backing->empty());
-    assert((*backing)[0] ^ 0x80);
-    index_encode_bump(&backing->front(),
-                      &backing->front() + backing->size());
-}
-
-bool
-datalayer :: parse_index_string(const leveldb::Slice& s, e::slice* k)
-{
-    size_t sz = sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint16_t) + sizeof(uint32_t);
-
-    if (s.size() >= sz)
-    {
-        uint32_t key_sz;
-        const char* ptr = s.data() + s.size() - sizeof(uint32_t);
-        e::unpack32be(ptr, &key_sz);
-
-        if (s.size() >= sz + key_sz)
-        {
-            *k = e::slice(s.data() + s.size() - sizeof(uint32_t) - key_sz, key_sz);
-            return true;
-        }
-    }
-
-    return false;
-}
-
-bool
-datalayer :: parse_index_sizeof8(const leveldb::Slice& s, e::slice* k)
-{
-    size_t sz = sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint16_t) + sizeof(uint64_t);
-
-    if (s.size() >= sz && s.data()[0] == 'i')
-    {
-        *k = e::slice(s.data() + sz, s.size() - sz);
-        return true;
-    }
-
-    return false;
-}
-
-bool
-datalayer :: parse_object_key(const leveldb::Slice& s, e::slice* k)
-{
-    region_id tmp;
-    return decode_key(e::slice(s.data(), s.size()), &tmp, k) == SUCCESS;
-}
-
-void
-datalayer :: generate_index(const region_id& ri,
-                            uint16_t attr,
-                            hyperdatatype type,
-                            const e::slice& value,
-                            const e::slice& key,
-                            std::list<std::vector<char> >* backing,
-                            std::vector<leveldb::Slice>* idxs)
-{
-    if (type == HYPERDATATYPE_STRING ||
-        type == HYPERDATATYPE_INT64 ||
-        type == HYPERDATATYPE_FLOAT)
-    {
-        backing->push_back(std::vector<char>());
-        encode_index(ri, attr, type, value, key, &backing->back());
-        idxs->push_back(leveldb::Slice(&backing->back().front(), backing->back().size()));
-    }
-}
-
-datalayer::returncode
-datalayer :: create_index_changes(const schema* sc,
-                                  const region_id& ri,
-                                  const e::slice& key,
-                                  const leveldb::Slice& lkey,
-                                  std::list<std::vector<char> >* backing,
-                                  leveldb::WriteBatch* updates)
-{
-    std::string ref;
-    leveldb::ReadOptions opts;
-    opts.fill_cache = false;
-    opts.verify_checksums = true;
-    leveldb::Status st = m_db->Get(opts, lkey, &ref);
-    std::vector<leveldb::Slice> old_idxs;
-
-    if (st.ok())
-    {
-        std::vector<e::slice> old_value;
-        uint64_t old_version;
-        returncode rc = decode_value(e::slice(ref.data(), ref.size()),
-                                     &old_value, &old_version);
-
-        if (rc != SUCCESS)
-        {
-            return rc;
-        }
-
-        if (old_value.size() + 1 != sc->attrs_sz)
-        {
-            return BAD_ENCODING;
-        }
-
-        for (size_t i = 0; i + 1 < sc->attrs_sz; ++i)
-        {
-            generate_index(ri, i + 1, sc->attrs[i + 1].type, old_value[i], key, backing, &old_idxs);
-        }
-    }
-    else if (st.IsNotFound())
-    {
-        // Nothing (no indices to remove)
-    }
-    else if (st.IsCorruption())
-    {
-        LOG(ERROR) << "corruption at the disk layer: region=" << ri
-                   << " key=0x" << key.hex() << " desc=" << st.ToString();
-        return CORRUPTION;
-    }
-    else if (st.IsIOError())
-    {
-        LOG(ERROR) << "IO error at the disk layer: region=" << ri
-                   << " key=0x" << key.hex() << " desc=" << st.ToString();
-        return IO_ERROR;
-    }
-    else
-    {
-        LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
-        return LEVELDB_ERROR;
-    }
-
-    for (size_t i = 0; i < old_idxs.size(); ++i)
-    {
-        if (!old_idxs.empty())
-        {
-            updates->Delete(old_idxs[i]);
-        }
-    }
-
-    return SUCCESS;
-}
-
-static bool
-sort_idxs(const leveldb::Slice& lhs, const leveldb::Slice& rhs)
-{
-    return lhs.compare(rhs) < 0;
-}
-
-datalayer::returncode
-datalayer :: create_index_changes(const schema* sc,
-                                  const region_id& ri,
-                                  const e::slice& key,
-                                  const leveldb::Slice& lkey,
-                                  const std::vector<e::slice>& new_value,
-                                  std::list<std::vector<char> >* backing,
-                                  leveldb::WriteBatch* updates)
-{
-    std::string ref;
-    leveldb::ReadOptions opts;
-    opts.fill_cache = false;
-    opts.verify_checksums = true;
-    leveldb::Status st = m_db->Get(opts, lkey, &ref);
-    std::vector<leveldb::Slice> old_idxs;
-
-    if (st.ok())
-    {
-        std::vector<e::slice> old_value;
-        uint64_t old_version;
-        returncode rc = decode_value(e::slice(ref.data(), ref.size()),
-                                     &old_value, &old_version);
-
-        if (rc != SUCCESS)
-        {
-            return rc;
-        }
-
-        if (old_value.size() + 1 != sc->attrs_sz)
-        {
-            return BAD_ENCODING;
-        }
-
-        for (size_t i = 0; i + 1 < sc->attrs_sz; ++i)
-        {
-            generate_index(ri, i + 1, sc->attrs[i + 1].type, old_value[i], key, backing, &old_idxs);
-        }
-    }
-    else if (st.IsNotFound())
-    {
-        // Nothing (no indices to remove)
-    }
-    else if (st.IsCorruption())
-    {
-        LOG(ERROR) << "corruption at the disk layer: region=" << ri
-                   << " key=0x" << key.hex() << " desc=" << st.ToString();
-        return CORRUPTION;
-    }
-    else if (st.IsIOError())
-    {
-        LOG(ERROR) << "IO error at the disk layer: region=" << ri
-                   << " key=0x" << key.hex() << " desc=" << st.ToString();
-        return IO_ERROR;
-    }
-    else
-    {
-        LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
-        return LEVELDB_ERROR;
-    }
-
-    std::vector<leveldb::Slice> new_idxs;
-
-    for (size_t i = 0; i + 1 < sc->attrs_sz; ++i)
-    {
-        generate_index(ri, i + 1, sc->attrs[i + 1].type, new_value[i], key, backing, &new_idxs);
-    }
-
-    std::sort(old_idxs.begin(), old_idxs.end(), sort_idxs);
-    std::sort(new_idxs.begin(), new_idxs.end(), sort_idxs);
-
-    size_t old_i = 0;
-    size_t new_i = 0;
-    leveldb::Slice empty("", 0);
-
-    while (old_i < old_idxs.size() && new_i < new_idxs.size())
-    {
-        int cmp = old_idxs[old_i].compare(new_idxs[new_i]);
-
-        // Erase common indexes because we need not insert or remove them
-        if (cmp == 0)
-        {
-            ++old_i;
-            ++new_i;
-        }
-        if (cmp < 0)
-        {
-            updates->Delete(old_idxs[old_i]);
-            ++old_i;
-        }
-        if (cmp > 0)
-        {
-            updates->Put(new_idxs[new_i], empty);
-            ++new_i;
-        }
-    }
-
-    while (old_i < old_idxs.size())
-    {
-        updates->Delete(old_idxs[old_i]);
-        ++old_i;
-    }
-
-    while (new_i < new_idxs.size())
-    {
-        updates->Put(new_idxs[new_i], empty);
-        ++new_i;
-    }
-
-    return SUCCESS;
-}
-
-void
 datalayer :: cleaner()
 {
     LOG(INFO) << "cleanup thread started";
@@ -1916,9 +1393,9 @@ datalayer :: cleaner()
                 continue;
             }
 
-            std::vector<char> backing;
-            leveldb::Slice slice;
-            encode_transfer(capture_id(cid + 1), 0, &backing, &slice);
+            char tbacking[TRANSFER_BUF_SIZE];
+            leveldb::Slice slice(tbacking, TRANSFER_BUF_SIZE);
+            encode_transfer(capture_id(cid + 1), 0, tbacking);
             it->Seek(slice);
         }
 
@@ -2026,8 +1503,8 @@ datalayer :: region_iterator :: unpack(e::slice* k,
 {
     region_id ri;
     // XXX returncode
-    m_dl->decode_key(e::slice(m_iter->key().data(), m_iter->key().size()), &ri, k);
-    m_dl->decode_value(e::slice(m_iter->value().data(), m_iter->value().size()), val, ver);
+    decode_key(e::slice(m_iter->key().data(), m_iter->key().size()), &ri, k);
+    decode_value(e::slice(m_iter->value().data(), m_iter->value().size()), val, ver);
     size_t sz = k->size();
 
     for (size_t i = 0; i < val->size(); ++i)
@@ -2109,20 +1586,20 @@ datalayer :: snapshot :: valid()
             return false;
         }
 
-        (m_dl->*m_parse)(m_iter->key(), &m_key);
+        (*m_parse)(m_iter->key(), &m_key);
         leveldb::ReadOptions opts;
         opts.fill_cache = true;
         opts.verify_checksums = true;
         std::vector<char> kbacking;
         leveldb::Slice lkey;
-        m_dl->encode_key(m_ri, m_key, &kbacking, &lkey);
+        encode_key(m_ri, m_key, &kbacking, &lkey);
 
         leveldb::Status st = m_dl->m_db->Get(opts, lkey, &m_ref.m_backing);
 
         if (st.ok())
         {
             e::slice v(m_ref.m_backing.data(), m_ref.m_backing.size());
-            datalayer::returncode rc = m_dl->decode_value(v, &m_value, &m_version);
+            datalayer::returncode rc = decode_value(v, &m_value, &m_version);
 
             if (rc != SUCCESS)
             {

@@ -522,13 +522,30 @@ replication_manager :: chain_ack(const virtual_server_id& from,
 
         datalayer::returncode rc;
 
+        // if this is a case where we are to remove the object from disk
         if (!op->has_value || (op->this_old_region != op->this_new_region && ri == op->this_old_region))
         {
-            rc = m_daemon->m_data.del(ri, reg_id, seq_id, key);
+            if (kh->exists_on_disk())
+            {
+                rc = m_daemon->m_data.del(ri, reg_id, seq_id, key, kh->value_on_disk());
+            }
+            else
+            {
+                m_daemon->m_data.mark_acked(ri, reg_id, seq_id);
+                rc = datalayer::SUCCESS;
+            }
         }
+        // otherwise it is a case where we are to place this object on disk
         else
         {
-            rc = m_daemon->m_data.put(ri, reg_id, seq_id, key, op->value, version);
+            if (kh->exists_on_disk())
+            {
+                rc = m_daemon->m_data.overput(ri, reg_id, seq_id, key, kh->value_on_disk(), op->value, version);
+            }
+            else
+            {
+                rc = m_daemon->m_data.put(ri, reg_id, seq_id, key, op->value, version);
+            }
         }
 
         switch (rc)

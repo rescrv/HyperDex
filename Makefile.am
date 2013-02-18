@@ -143,6 +143,7 @@ noinst_HEADERS = \
 			daemon/coordinator_link.h \
 			daemon/daemon.h \
 			daemon/datalayer.h \
+			daemon/datalayer_encodings.h \
 			daemon/index_encode.h \
 			daemon/leveldb.h \
 			daemon/reconfigure_returncode.h \
@@ -208,6 +209,7 @@ hyperdex_daemon_SOURCES = \
 			daemon/coordinator_link.cc \
 			daemon/daemon.cc \
 			daemon/datalayer.cc \
+			daemon/datalayer_encodings.cc \
 			daemon/index_encode.cc \
 			daemon/main.cc \
 			daemon/replication_manager.cc \

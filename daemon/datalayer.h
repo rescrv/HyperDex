@@ -105,21 +105,39 @@ class datalayer
                          const server_id& us);
 
     public:
+        // retrieve the current value of a key
         returncode get(const region_id& ri,
                        const e::slice& key,
                        std::vector<e::slice>* value,
                        uint64_t* version,
                        reference* ref);
+        // put, overput, or delete a key where the existing value is known
+        returncode del(const region_id& ri,
+                       const region_id& reg_id,
+                       uint64_t seq_id,
+                       const e::slice& key,
+                       const std::vector<e::slice>& old_value);
         returncode put(const region_id& ri,
                        const region_id& reg_id,
                        uint64_t seq_id,
                        const e::slice& key,
-                       const std::vector<e::slice>& value,
+                       const std::vector<e::slice>& new_value,
                        uint64_t version);
-        returncode del(const region_id& ri,
-                       const region_id& reg_id,
-                       uint64_t seq_id,
-                       const e::slice& key);
+        returncode overput(const region_id& ri,
+                           const region_id& reg_id,
+                           uint64_t seq_id,
+                           const e::slice& key,
+                           const std::vector<e::slice>& old_value,
+                           const std::vector<e::slice>& new_value,
+                           uint64_t version);
+        // put or delete where the previous value is unknown
+        returncode uncertain_del(const region_id& ri,
+                                 const e::slice& key);
+        returncode uncertain_put(const region_id& ri,
+                                 const e::slice& key,
+                                 const std::vector<e::slice>& new_value,
+                                 uint64_t version);
+        // create a snapshot for search
         returncode make_snapshot(const region_id& ri,
                                  const schema& sc,
                                  const std::vector<attribute_check>* checks,
@@ -159,81 +177,6 @@ class datalayer
         datalayer& operator = (const datalayer&);
 
     private:
-        void encode_key(const region_id& ri,
-                        const e::slice& key,
-                        std::vector<char>* kbacking,
-                        leveldb::Slice* lkey);
-        returncode decode_key(const e::slice& lkey,
-                              region_id* ri,
-                              e::slice* key);
-        void encode_value(const std::vector<e::slice>& attrs,
-                          uint64_t version,
-                          std::vector<char>* backing,
-                          leveldb::Slice* lvalue);
-        returncode decode_value(const e::slice& value,
-                                std::vector<e::slice>* attrs,
-                                uint64_t* version);
-        void encode_acked(const region_id& ri, /*region we saw an ack for*/
-                          const region_id& reg_id, /*region of the point leader*/
-                          uint64_t seq_id,
-                          char* buf);
-        returncode decode_acked(const e::slice& key,
-                                region_id* ri, /*region we saw an ack for*/
-                                region_id* reg_id, /*region of the point leader*/
-                                uint64_t* seq_id);
-        void encode_transfer(const capture_id& ci,
-                             uint64_t count,
-                             std::vector<char>* backing,
-                             leveldb::Slice* tkey);
-        void encode_key_value(const e::slice& key,
-                              /*pointer to make it optional*/
-                              const std::vector<e::slice>* value,
-                              uint64_t version,
-                              std::vector<char>* backing,
-                              leveldb::Slice* slice);
-        returncode decode_key_value(const e::slice& slice,
-                                    bool* has_value,
-                                    e::slice* key,
-                                    std::vector<e::slice>* value,
-                                    uint64_t* version);
-        void encode_index(const region_id& ri,
-                          uint16_t attr,
-                          std::vector<char>* backing);
-        void encode_index(const region_id& ri,
-                          uint16_t attr,
-                          hyperdatatype type,
-                          const e::slice& value,
-                          std::vector<char>* backing);
-        void encode_index(const region_id& ri,
-                          uint16_t attr,
-                          hyperdatatype type,
-                          const e::slice& value,
-                          const e::slice& key,
-                          std::vector<char>* backing);
-        void bump(std::vector<char>* backing);
-        bool parse_index_string(const leveldb::Slice& s, e::slice* k);
-        bool parse_index_sizeof8(const leveldb::Slice& s, e::slice* k);
-        bool parse_object_key(const leveldb::Slice& s, e::slice* k);
-        void generate_index(const region_id& ri,
-                            uint16_t attr,
-                            hyperdatatype type,
-                            const e::slice& value,
-                            const e::slice& key,
-                            std::list<std::vector<char> >* backing,
-                            std::vector<leveldb::Slice>* idxs);
-        returncode create_index_changes(const schema* sc,
-                                        const region_id& ri,
-                                        const e::slice& key,
-                                        const leveldb::Slice& lkey,
-                                        std::list<std::vector<char> >* backing,
-                                        leveldb::WriteBatch* updates);
-        returncode create_index_changes(const schema* sc,
-                                        const region_id& ri,
-                                        const e::slice& key,
-                                        const leveldb::Slice& lkey,
-                                        const std::vector<e::slice>& value,
-                                        std::list<std::vector<char> >* backing,
-                                        leveldb::WriteBatch* updates);
         void cleaner();
         void shutdown();
 
@@ -316,7 +259,7 @@ class datalayer::snapshot
         region_id m_ri;
         std::list<std::vector<char> > m_backing;
         leveldb::Range m_range;
-        bool (datalayer::*m_parse)(const leveldb::Slice& in, e::slice* out);
+        bool (*m_parse)(const leveldb::Slice& in, e::slice* out);
         leveldb_iterator_ptr m_iter;
         returncode m_error;
         uint64_t m_version;
