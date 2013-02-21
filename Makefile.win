@@ -78,9 +78,11 @@ HYPERDEXOBJS= \
 	/client/pending_get.obj \
 	/client/pending_group_del.obj \
 	/client/pending_search.obj \
+    /client/pending_search_description.obj \
 	/client/pending_sorted_search.obj \
 	/client/pending_statusonly.obj \
 	/client/refcount.obj \
+    /client/description.obj \
 	/client/space_description.obj \
 	/client/util.obj \
     /windows/hyperclientclr.obj \
@@ -90,7 +92,8 @@ HYPERDEXOBJS = hyperdex$(HYPERDEXOBJS: /= hyperdex/)
 EOBJS= \
     /buffer.obj\
     /slice.obj\
-    /unpacker.obj
+    /unpacker.obj\
+    /time.obj
 EOBJS = e$(EOBJS: /= e/)
 
 CITYHASHOBJS = \
