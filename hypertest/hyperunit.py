@@ -493,8 +493,27 @@ class Mustnt(ContextError):
 
 def expect_equal(context, expect):
     'raises Mismatch if context result does not match'
+    if hasattr(context.result, "next"):
+        # coerce the iterator to a tuple and verify equivalence
+        context.result = tuple(x for x in context.result)
+        expect_subset(context, context.result, expect)
+        expect_subset(context, expect, context.result)
+        return
+   
     if context.result != expect:
         raise Mismatch(context, expect)
+
+def expect_subset(context, domain, subset):
+    'verifies all items in subset are in domain'
+    domain = list(x for x in domain) 
+    subset = list(x for x in subset)
+    for item in domain:
+        if item not in subset:
+            raise Mismatch(context, item)
+        subset.remove(item)
+
+    if len(subset):
+        raise Mismatch(context, subset)
 
 def uncontrolled_error(exc):
     'returns true if exception is not associated with hyperdex or hyperunit'

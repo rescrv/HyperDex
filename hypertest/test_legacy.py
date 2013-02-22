@@ -54,50 +54,53 @@ def test_010_basic_multi_attribute_space(cfg):
         key k
         attributes v1, v2, v3, v4 
     ''')
-    cfg.should().get('kv','k')
+    cfg.should().get('kv','k') #TODO:PRED
     cfg.must().delete('kv','k').equals(False)
     cfg.must().put('kv','k',{'v1': 'v1'}).equals(True)
     cfg.should().get('kv','k').equals({'v1': 'v1', 'v2': '', 'v3': '', 'v4': ''})
     cfg.must().put('kv','k',{'v2': 'v2', 'v3': 'v3'}).equals(True)
     cfg.should().get('kv','k').equals({'v1': 'v1', 'v2': 'v2', 'v3': 'v3', 'v4': ''})
     cfg.must().delete('kv','k').equals(True)
-    cfg.should().get('kv','k')
+    cfg.should().get('kv','k') #TODO:PRED
 
 def test_020_basic_equality_search(cfg):
-    ## TypeError("Argument 'predicate' has incorrect type (expected dict, got str)",)
-    print("!! test 020 needs to be fixed for hyperunit")
-    return 
-    # space kv dimensions k, v key k auto 0 1
     cfg.should().rm_space('kv')
     cfg.must().add_space('''
         space kv
         key k
         attributes v 
     ''')
-    cfg.should().get('kv','ka')
-    cfg.should().get('kv',"ka'")
-    cfg.should().get('kv','kb')
-    cfg.should().get('kv','kc')
-    cfg.should().get('kv','kd')
+    cfg.should().get('kv','ka') #TODO:PRED
+    cfg.should().get('kv',"ka'") #TODO:PRED
+    cfg.should().get('kv','kb') #TODO:PRED
+    cfg.should().get('kv','kc') #TODO:PRED
+    cfg.should().get('kv','kd') #TODO:PRED
     cfg.must().put('kv','ka',{'v': 'a'}).equals(True)
     cfg.must().put('kv',"ka'",{'v': 'a'}).equals(True)
     cfg.must().put('kv','kb',{'v': 'b'}).equals(True)
     cfg.must().put('kv','kc',{'v': 'c'}).equals(True)
     cfg.must().put('kv','kd',{'v': 'd'}).equals(True)
-    cfg.should().search('kv','None').equals([{'k': 'ka', 'v': 'a'}, {'k': "ka'", 'v': 'a'}])
-    cfg.should().search('kv','None').equals([{'k': 'kb', 'v': 'b'}])
-    cfg.should().search('kv','None').equals([{'k': 'kc', 'v': 'c'}])
-    cfg.should().search('kv','None').equals([{'k': 'kd', 'v': 'd'}])
+    cfg.should().search('kv',{}).equals([
+        {'k': 'ka', 'v': 'a'}, 
+        {'k': "ka'", 'v': 'a'},
+        {'k': "kb", 'v': 'b'},
+        {'k': "kc", 'v': 'c'},
+        {'k': "kd", 'v': 'd'}
+    ])
+
+    cfg.should().search('kv',{'v':'b'}).equals([{'k': 'kb', 'v': 'b'}])
+    cfg.should().search('kv',{'v':'c'}).equals([{'k': 'kc', 'v': 'c'}])
+    cfg.should().search('kv',{'v':'d'}).equals([{'k': 'kd', 'v': 'd'}])
     cfg.must().delete('kv','ka').equals(True)
     cfg.must().delete('kv',"ka'").equals(True)
     cfg.must().delete('kv','kb').equals(True)
     cfg.must().delete('kv','kc').equals(True)
     cfg.must().delete('kv','kd').equals(True)
-    cfg.should().get('kv','ka')
-    cfg.should().get('kv',"ka'")
-    cfg.should().get('kv','kb')
-    cfg.should().get('kv','kc')
-    cfg.should().get('kv','kd')
+    cfg.should().get('kv','ka') #TODO:PRED
+    cfg.should().get('kv',"ka'") #TODO:PRED
+    cfg.should().get('kv','kb') #TODO:PRED
+    cfg.should().get('kv','kc') #TODO:PRED
+    cfg.should().get('kv','kd') #TODO:PRED
 
 def test_030_basic_cond_put(cfg):
     cfg.should().rm_space('kv')
@@ -106,7 +109,7 @@ def test_030_basic_cond_put(cfg):
         key k
         attributes v1, v2 
     ''')
-    cfg.should().get('kv','k')
+    cfg.should().get('kv','k') #TODO:PRED
     cfg.must().put('kv','k',{'v1': '1', 'v2': '2'}).equals(True)
     cfg.should().get('kv','k').equals({'v1': '1', 'v2': '2'})
     cfg.should().cond_put('kv','k',{'v1':'1'}, {'v1': '3'}).equals(True)
@@ -118,7 +121,7 @@ def test_030_basic_cond_put(cfg):
     cfg.should().cond_put('kv','k',{'v2':'1'},{'v1': '5'}).equals(False)
     cfg.should().get('kv','k').equals({'v1': '4', 'v2': '2'})
     cfg.must().delete('kv','k').equals(True)
-    cfg.should().get('kv','k')
+    cfg.should().get('kv','k') #TODO:PRED
 
 def test_040_basic_put_if_not_exist(cfg):
     # space kv dimensions k, v1, v2 key k auto 0 1
