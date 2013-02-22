@@ -99,11 +99,7 @@ def test_020_basic_equality_search(cfg):
     cfg.should().get('kv','kc')
     cfg.should().get('kv','kd')
 
-def test_030_basic_condput(cfg):
-    ## AttributeError("'Context' object has no attribute 'condput'",)
-    print("!! test 030 needs to be fixed for hyperunit")
-    return 
-    # space kv dimensions k, v1, v2 key k auto 0 1
+def test_030_basic_cond_put(cfg):
     cfg.should().rm_space('kv')
     cfg.must().add_space('''
         space kv
@@ -113,13 +109,13 @@ def test_030_basic_condput(cfg):
     cfg.should().get('kv','k')
     cfg.must().put('kv','k',{'v1': '1', 'v2': '2'}).equals(True)
     cfg.should().get('kv','k').equals({'v1': '1', 'v2': '2'})
-    cfg.should().condput('kv','k',{'v1': '3'}).equals(True)
+    cfg.should().cond_put('kv','k',{'v1':'1'}, {'v1': '3'}).equals(True)
     cfg.should().get('kv','k').equals({'v1': '3', 'v2': '2'})
-    cfg.should().condput('kv','k',{'v1': '4'}).equals(False)
+    cfg.should().cond_put('kv','k',{'v1':'1'},{'v1': '4'}).equals(False)
     cfg.should().get('kv','k').equals({'v1': '3', 'v2': '2'})
-    cfg.should().condput('kv','k',{'v1': '4'}).equals(True)
+    cfg.should().cond_put('kv','k',{'v2':'2'},{'v1': '4'}).equals(True)
     cfg.should().get('kv','k').equals({'v1': '4', 'v2': '2'})
-    cfg.should().condput('kv','k',{'v1': '5'}).equals(False)
+    cfg.should().cond_put('kv','k',{'v2':'1'},{'v1': '5'}).equals(False)
     cfg.should().get('kv','k').equals({'v1': '4', 'v2': '2'})
     cfg.must().delete('kv','k').equals(True)
     cfg.should().get('kv','k')
