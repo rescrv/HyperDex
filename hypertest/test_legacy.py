@@ -6,29 +6,29 @@ def test_000_basic_key_value_store(cfg):
         key k
         attributes v 
     ''')
-    cfg.should().get('kv','k1')
-    cfg.should().get('kv','k2')
-    cfg.should().get('kv','k3')
-    cfg.should().get('kv','k4')
+    cfg.should().get('kv','k1').equals(None)
+    cfg.should().get('kv','k2').equals(None)
+    cfg.should().get('kv','k3').equals(None)
+    cfg.should().get('kv','k4').equals(None)
     cfg.must().delete('kv','k1').equals(False)
     cfg.must().delete('kv','k2').equals(False)
     cfg.must().delete('kv','k3').equals(False)
     cfg.must().delete('kv','k4').equals(False)
     cfg.must().put('kv','k1',{'v': 'v1'}).equals(True)
     cfg.should().get('kv','k1').equals({'v': 'v1'})
-    cfg.should().get('kv','k2')
-    cfg.should().get('kv','k3')
-    cfg.should().get('kv','k4')
+    cfg.should().get('kv','k2').equals(None)
+    cfg.should().get('kv','k3').equals(None)
+    cfg.should().get('kv','k4').equals(None)
     cfg.must().put('kv','k2',{'v': 'v2'}).equals(True)
     cfg.should().get('kv','k1').equals({'v': 'v1'})
     cfg.should().get('kv','k2').equals({'v': 'v2'})
-    cfg.should().get('kv','k3')
-    cfg.should().get('kv','k4')
+    cfg.should().get('kv','k3').equals(None)
+    cfg.should().get('kv','k4').equals(None)
     cfg.must().put('kv','k3',{'v': 'v3'}).equals(True)
     cfg.should().get('kv','k1').equals({'v': 'v1'})
     cfg.should().get('kv','k2').equals({'v': 'v2'})
     cfg.should().get('kv','k3').equals({'v': 'v3'})
-    cfg.should().get('kv','k4')
+    cfg.should().get('kv','k4').equals(None)
     cfg.must().put('kv','k4',{'v': 'v4'}).equals(True)
     cfg.should().get('kv','k1').equals({'v': 'v1'})
     cfg.should().get('kv','k2').equals({'v': 'v2'})
@@ -38,10 +38,10 @@ def test_000_basic_key_value_store(cfg):
     cfg.must().delete('kv','k2').equals(True)
     cfg.must().delete('kv','k3').equals(True)
     cfg.must().delete('kv','k4').equals(True)
-    cfg.should().get('kv','k1')
-    cfg.should().get('kv','k2')
-    cfg.should().get('kv','k3')
-    cfg.should().get('kv','k4')
+    cfg.should().get('kv','k1').equals(None)
+    cfg.should().get('kv','k2').equals(None)
+    cfg.should().get('kv','k3').equals(None)
+    cfg.should().get('kv','k4').equals(None)
 
 def test_000_error_unknownspace(cfg):
     cfg.shouldnt().get('noexist','k')# HYPERCLIENT_UNKNOWNSPACE
@@ -54,14 +54,14 @@ def test_010_basic_multi_attribute_space(cfg):
         key k
         attributes v1, v2, v3, v4 
     ''')
-    cfg.should().get('kv','k') #TODO:PRED
+    cfg.should().get('kv','k').equals(None)
     cfg.must().delete('kv','k').equals(False)
     cfg.must().put('kv','k',{'v1': 'v1'}).equals(True)
     cfg.should().get('kv','k').equals({'v1': 'v1', 'v2': '', 'v3': '', 'v4': ''})
     cfg.must().put('kv','k',{'v2': 'v2', 'v3': 'v3'}).equals(True)
     cfg.should().get('kv','k').equals({'v1': 'v1', 'v2': 'v2', 'v3': 'v3', 'v4': ''})
     cfg.must().delete('kv','k').equals(True)
-    cfg.should().get('kv','k') #TODO:PRED
+    cfg.should().get('kv','k').equals(None)
 
 def test_020_basic_equality_search(cfg):
     cfg.should().rm_space('kv')
@@ -70,11 +70,11 @@ def test_020_basic_equality_search(cfg):
         key k
         attributes v 
     ''')
-    cfg.should().get('kv','ka') #TODO:PRED
-    cfg.should().get('kv',"ka'") #TODO:PRED
-    cfg.should().get('kv','kb') #TODO:PRED
-    cfg.should().get('kv','kc') #TODO:PRED
-    cfg.should().get('kv','kd') #TODO:PRED
+    cfg.should().get('kv','ka').equals(None)
+    cfg.should().get('kv',"ka'").equals(None)
+    cfg.should().get('kv','kb').equals(None)
+    cfg.should().get('kv','kc').equals(None)
+    cfg.should().get('kv','kd').equals(None)
     cfg.must().put('kv','ka',{'v': 'a'}).equals(True)
     cfg.must().put('kv',"ka'",{'v': 'a'}).equals(True)
     cfg.must().put('kv','kb',{'v': 'b'}).equals(True)
@@ -96,11 +96,11 @@ def test_020_basic_equality_search(cfg):
     cfg.must().delete('kv','kb').equals(True)
     cfg.must().delete('kv','kc').equals(True)
     cfg.must().delete('kv','kd').equals(True)
-    cfg.should().get('kv','ka') #TODO:PRED
-    cfg.should().get('kv',"ka'") #TODO:PRED
-    cfg.should().get('kv','kb') #TODO:PRED
-    cfg.should().get('kv','kc') #TODO:PRED
-    cfg.should().get('kv','kd') #TODO:PRED
+    cfg.should().get('kv','ka').equals(None)
+    cfg.should().get('kv',"ka'").equals(None)
+    cfg.should().get('kv','kb').equals(None)
+    cfg.should().get('kv','kc').equals(None)
+    cfg.should().get('kv','kd').equals(None)
 
 def test_030_basic_cond_put(cfg):
     cfg.should().rm_space('kv')
@@ -109,7 +109,7 @@ def test_030_basic_cond_put(cfg):
         key k
         attributes v1, v2 
     ''')
-    cfg.should().get('kv','k') #TODO:PRED
+    cfg.should().get('kv','k').equals(None)
     cfg.must().put('kv','k',{'v1': '1', 'v2': '2'}).equals(True)
     cfg.should().get('kv','k').equals({'v1': '1', 'v2': '2'})
     cfg.should().cond_put('kv','k',{'v1':'1'}, {'v1': '3'}).equals(True)
@@ -121,7 +121,7 @@ def test_030_basic_cond_put(cfg):
     cfg.should().cond_put('kv','k',{'v2':'1'},{'v1': '5'}).equals(False)
     cfg.should().get('kv','k').equals({'v1': '4', 'v2': '2'})
     cfg.must().delete('kv','k').equals(True)
-    cfg.should().get('kv','k') #TODO:PRED
+    cfg.should().get('kv','k').equals(None)
 
 def test_040_basic_put_if_not_exist(cfg):
     # space kv dimensions k, v1, v2 key k auto 0 1
@@ -131,13 +131,13 @@ def test_040_basic_put_if_not_exist(cfg):
         key k
         attributes v1, v2 
     ''')
-    cfg.should().get('kv','k')
+    cfg.should().get('kv','k').equals(None)
     cfg.should().put_if_not_exist('kv','k',{'v1': '1', 'v2': '2'}).equals(True)
     cfg.should().get('kv','k').equals({'v1': '1', 'v2': '2'})
     cfg.should().put_if_not_exist('kv','k',{'v1': 'a', 'v2': 'b'}).equals(False)
     cfg.should().get('kv','k').equals({'v1': '1', 'v2': '2'})
     cfg.must().delete('kv','k').equals(True)
-    cfg.should().get('kv','k')
+    cfg.should().get('kv','k').equals(None)
 
 def test_100_datatype_string(cfg):
     # space kv dimensions k, v key k auto 0 1
@@ -147,7 +147,7 @@ def test_100_datatype_string(cfg):
         key k
         attributes v 
     ''')
-    cfg.should().get('kv','k')
+    cfg.should().get('kv','k').equals(None)
     cfg.must().put('kv','k',{}).equals(True)
     cfg.must().string_prepend('kv','k',{'v': '5'}).equals(True)
     cfg.should().get('kv','k').equals({'v': '5'})
@@ -170,7 +170,7 @@ def test_100_datatype_string(cfg):
     cfg.must().string_append('kv','k',{'v': '0'}).equals(True)
     cfg.should().get('kv','k').equals({'v': '1234567890'})
     cfg.must().delete('kv','k').equals(True)
-    cfg.should().get('kv','k')
+    cfg.should().get('kv','k').equals(None)
 
 def test_110_datatype_int64(cfg):
     # space kv dimensions k, v (int64) key k auto 0 1
@@ -180,7 +180,7 @@ def test_110_datatype_int64(cfg):
         key k
         attributes int64 v 
     ''')
-    cfg.should().get('kv','k')
+    cfg.should().get('kv','k').equals(None)
     # Test signed-ness and the limits of a two's complement number
     cfg.must().put('kv','k',{'v': 0L}).equals(True)
     cfg.should().get('kv','k').equals({'v': 0L})
@@ -302,7 +302,7 @@ def test_110_datatype_int64(cfg):
     cfg.should().get('kv','k').equals({'v': -1L})
     # Cleanup
     cfg.must().delete('kv','k').equals(True)
-    cfg.should().get('kv','k')
+    cfg.should().get('kv','k').equals(None)
 
 def test_120_datatype_float(cfg):
     # space kv dimensions k, v (float) key k auto 0 1
@@ -312,7 +312,7 @@ def test_120_datatype_float(cfg):
         key k
         attributes float v 
     ''')
-    cfg.should().get('kv','k')
+    cfg.should().get('kv','k').equals(None)
     # Test signed-ness and precise floating point numbers
     cfg.must().put('kv','k',{'v': 0.0}).equals(True)
     cfg.should().get('kv','k').equals({'v': 0.0})
@@ -389,7 +389,7 @@ def test_120_datatype_float(cfg):
     cfg.should().atomic_div('kv','k',{'v': 0.0}).equals(True)
     # Cleanup
     cfg.must().delete('kv','k').equals(True)
-    cfg.should().get('kv','k')
+    cfg.should().get('kv','k').equals(None)
 
 def test_200_datatype_list_string(cfg):
     # space kv dimensions k, v (list(string)) key k auto 0 1
@@ -399,7 +399,7 @@ def test_200_datatype_list_string(cfg):
         key k
         attributes list(string) v 
     ''')
-    cfg.should().get('kv','k')
+    cfg.should().get('kv','k').equals(None)
     cfg.must().put('kv','k',{'v': ['100', '200', '300']}).equals(True)
     cfg.should().get('kv','k').equals({'v': ['100', '200', '300']})
     cfg.must().put('kv','k',{'v': []}).equals(True)
@@ -425,7 +425,7 @@ def test_200_datatype_list_string(cfg):
     cfg.should().list_rpush('kv','k',{'v': '0'}).equals(True)
     cfg.should().get('kv','k').equals({'v': ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']})
     cfg.must().delete('kv','k').equals(True)
-    cfg.should().get('kv','k')
+    cfg.should().get('kv','k').equals(None)
 
 def test_210_datatype_list_int64(cfg):
     # space kv dimensions k, v (list(int64)) key k auto 0 1
@@ -435,7 +435,7 @@ def test_210_datatype_list_int64(cfg):
         key k
         attributes list(int64) v
     ''')
-    cfg.should().get('kv','k')
+    cfg.should().get('kv','k').equals(None)
     cfg.must().put('kv','k',{'v': [100, 200, 300]}).equals(True)
     cfg.should().get('kv','k').equals({'v': [100, 200, 300]})
     cfg.must().put('kv','k',{'v': []}).equals(True)
@@ -461,7 +461,7 @@ def test_210_datatype_list_int64(cfg):
     cfg.should().list_rpush('kv','k',{'v': 0}).equals(True)
     cfg.should().get('kv','k').equals({'v': [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]})
     cfg.must().delete('kv','k').equals(True)
-    cfg.should().get('kv','k')
+    cfg.should().get('kv','k').equals(None)
 
 def test_220_datatype_list_float(cfg):
     # space kv dimensions k, v (list(float)) key k auto 0 1
@@ -471,7 +471,7 @@ def test_220_datatype_list_float(cfg):
         key k
         attributes list(float) v 
     ''')
-    cfg.should().get('kv','k')
+    cfg.should().get('kv','k').equals(None)
     cfg.must().put('kv','k',{'v': [100.0, 200.0, 300.0]}).equals(True)
     cfg.should().get('kv','k').equals({'v': [100.0, 200.0, 300.0]})
     cfg.must().put('kv','k',{'v': []}).equals(True)
@@ -497,7 +497,7 @@ def test_220_datatype_list_float(cfg):
     cfg.should().list_rpush('kv','k',{'v': 0.0}).equals(True)
     cfg.should().get('kv','k').equals({'v': [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 0.0]})
     cfg.must().delete('kv','k').equals(True)
-    cfg.should().get('kv','k')
+    cfg.should().get('kv','k').equals(None)
 
 def test_300_datatype_set_string(cfg):
     # space kv dimensions k, v (set(string)) key k auto 0 1
@@ -507,7 +507,7 @@ def test_300_datatype_set_string(cfg):
         key k
         attributes set(string) v
     ''')
-    cfg.should().get('kv','k')
+    cfg.should().get('kv','k').equals(None)
     cfg.must().put('kv','k',{}).equals(True)
     cfg.must().set_add('kv','k',{'v': '4'}).equals(True)
     cfg.should().get('kv','k').equals({'v': set(['4'])})
@@ -528,7 +528,7 @@ def test_300_datatype_set_string(cfg):
     cfg.must().set_add('kv','k',{'v': '9'}).equals(True)
     cfg.should().get('kv','k').equals({'v': set(['1', '3', '2', '5', '4', '7', '6', '9', '8'])})
     cfg.must().delete('kv','k').equals(True)
-    cfg.should().get('kv','k')
+    cfg.should().get('kv','k').equals(None)
 
 def test_310_datatype_set_int64(cfg):
     # space kv dimensions k, v (set(int64)) key k auto 0 1
@@ -538,7 +538,7 @@ def test_310_datatype_set_int64(cfg):
         key k
         attributes set(int64) v
     ''')
-    cfg.should().get('kv','k')
+    cfg.should().get('kv','k').equals(None)
     cfg.must().put('kv','k',{}).equals(True)
     cfg.must().set_add('kv','k',{'v': 4}).equals(True)
     cfg.should().get('kv','k').equals({'v': set([4])})
@@ -559,7 +559,7 @@ def test_310_datatype_set_int64(cfg):
     cfg.must().set_add('kv','k',{'v': 9}).equals(True)
     cfg.should().get('kv','k').equals({'v': set([1, 2, 3, 4, 5, 6, 7, 8, 9])})
     cfg.must().delete('kv','k').equals(True)
-    cfg.should().get('kv','k')
+    cfg.should().get('kv','k').equals(None)
 
 def test_320_datatype_set_float(cfg):
     # space kv dimensions k, v (set(float)) key k auto 0 1
@@ -569,7 +569,7 @@ def test_320_datatype_set_float(cfg):
         key k
         attributes set(float) v
     ''')
-    cfg.should().get('kv','k')
+    cfg.should().get('kv','k').equals(None)
     cfg.must().put('kv','k',{}).equals(True)
     cfg.must().set_add('kv','k',{'v': 4.0}).equals(True)
     cfg.should().get('kv','k').equals({'v': set([4.0])})
@@ -590,7 +590,7 @@ def test_320_datatype_set_float(cfg):
     cfg.must().set_add('kv','k',{'v': 9.0}).equals(True)
     cfg.should().get('kv','k').equals({'v': set([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0])})
     cfg.must().delete('kv','k').equals(True)
-    cfg.should().get('kv','k')
+    cfg.should().get('kv','k').equals(None)
 
 def test_410_datatype_map_string_string_microops(cfg):
     # space kv dimensions k, v (map(string,string)) key k auto 0 1
@@ -600,7 +600,7 @@ def test_410_datatype_map_string_string_microops(cfg):
         key k
         attributes map(string,string) v
     ''')
-    cfg.should().get('kv','k')
+    cfg.should().get('kv','k').equals(None)
     cfg.must().put('kv','k',{'v': {'1': 'nnn', '100': 'xzvwe', '50': '234*'}}).equals(True)
     cfg.should().get('kv','k').equals({'v': {'1': 'nnn', '100': 'xzvwe', '50': '234*'}})
     cfg.must().put('kv','k',{'v': {}}).equals(True)
@@ -630,5 +630,5 @@ def test_410_datatype_map_string_string_microops(cfg):
     cfg.must().map_string_append('kv','k',{'v': {'1': 'nnn', '100': 'xzvwe', '50': '234*', 'KEY': '1234567890'}}).equals(True)
     cfg.should().get('kv','k').equals({'v': {'1': 'nnnnnn', '100': 'xzvwexzvwe', '50': '234*234*', 'KEY': '12345678901234567890'}})
     cfg.must().delete('kv','k').equals(True)
-    cfg.should().get('kv','k')
+    cfg.should().get('kv','k').equals(None)
 
