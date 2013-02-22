@@ -198,10 +198,10 @@ Dependencies for Yahoo! Cloud Serving Benchmark (YCSB):
 .. _Java: http://openjdk.java.net/
 .. _SWIG: http://www.swig.org/
 .. _YCSB: https://github.com/brianfrankcooper/YCSB/wiki
-.. _libpo6: http://hyperdex.org/downloads/
-.. _libe: http://hyperdex.org/downloads/
-.. _Replicant: http://hyperdex.org/downloads/
-.. _BusyBee: http://hyperdex.org
+.. _libpo6: https://github.com/rescrv/po6
+.. _libe: https://github.com/rescrv/e
+.. _Replicant: https://github.com/rescrv/Replicant/
+.. _BusyBee: https://github.com/rescrv/busybee/
 
 Configuring
 ~~~~~~~~~~~
