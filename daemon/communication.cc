@@ -431,11 +431,12 @@ communication :: recv(server_id* from,
             case BUSYBEE_DISRUPTED:
                 handle_disruption(id);
                 continue;
+            case BUSYBEE_INTERRUPTED:
+                continue;
             case BUSYBEE_POLLFAILED:
             case BUSYBEE_ADDFDFAIL:
             case BUSYBEE_TIMEOUT:
             case BUSYBEE_EXTERNAL:
-            case BUSYBEE_INTERRUPTED:
             default:
                 LOG(ERROR) << "busybee unexpectedly returned " << rc;
                 continue;
