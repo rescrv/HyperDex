@@ -933,7 +933,14 @@ datalayer :: make_snapshot(const region_id& ri,
 
         leveldb::Slice start(&snap->m_backing.back()[0], snap->m_backing.back().size());
 
-        if (ranges[i].has_end && ranges[i].type != HYPERDATATYPE_STRING)
+        if (ranges[i].has_end && ranges[i].type == HYPERDATATYPE_STRING)
+        {
+            e::slice new_end = e::slice(ranges[i].end.data(), std::min(ranges[i].end.size(), ranges[i].end.size()));
+            snap->m_backing.push_back(std::vector<char>());
+            encode_index(ri, ranges[i].attr, ranges[i].type, new_end, &snap->m_backing.back());
+            bump_index(&snap->m_backing.back());
+        }
+        else if (ranges[i].has_end)
         {
             snap->m_backing.push_back(std::vector<char>());
             encode_index(ri, ranges[i].attr, ranges[i].type, ranges[i].end, &snap->m_backing.back());
@@ -945,8 +952,8 @@ datalayer :: make_snapshot(const region_id& ri,
             encode_index(ri, ranges[i].attr + 1, &snap->m_backing.back());
         }
 
-        leveldb::Slice end(&snap->m_backing.back()[0], snap->m_backing.back().size());
-        level_ranges.push_back(leveldb::Range(start, end));
+        leveldb::Slice limit(&snap->m_backing.back()[0], snap->m_backing.back().size());
+        level_ranges.push_back(leveldb::Range(start, limit));
         parsers.push_back(parse);
     }
 
@@ -974,7 +981,7 @@ datalayer :: make_snapshot(const region_id& ri,
         for (size_t i = 0; i < level_ranges.size(); ++i)
         {
             *ostr << " index Range(" << e::slice(level_ranges[i].start.data(), level_ranges[i].start.size()).hex()
-                  << ", " << e::slice(level_ranges[i].start.data(), level_ranges[i].start.size()).hex()
+                  << ", " << e::slice(level_ranges[i].limit.data(), level_ranges[i].limit.size()).hex()
                   << " occupies " << sizes[i] << " bytes\n";
         }
     }
@@ -985,21 +992,45 @@ datalayer :: make_snapshot(const region_id& ri,
     leveldb::Range object_range = level_ranges.back();
     level_ranges.pop_back();
     sizes.pop_back();
-
-    // Find the least costly option and store it in idx
     assert(parsers.size() == sizes.size());
     assert(parsers.size() == level_ranges.size());
-    size_t idx = 0;
+
+    // Figure out the smallest indices
+    std::vector<std::pair<uint64_t, size_t> > size_idxs;
 
     for (size_t i = 0; i < sizes.size(); ++i)
     {
-        if (sizes[i] < sizes[idx])
+        size_idxs.push_back(std::make_pair(sizes[i], i));
+    }
+
+    std::sort(size_idxs.begin(), size_idxs.end());
+
+    // Figure out the plan of attack.  Three options:
+    // 1.  Scan all objects (idx = 0)
+    // 2.  Use the least costly index (idx = 1)
+    // 3.  Use the least costly index plus bloom filters pulled from other
+    //     low-cost indices. (idx > 1)
+    size_t idx = 0;
+    size_t sum = 0;
+
+    while (idx < size_idxs.size())
+    {
+        if (sum + size_idxs[idx].first < object_disk_space / 4. &&
+            (idx == 0 || size_idxs[idx - 1].first * 10 > size_idxs[idx].first))
+
         {
-            idx = i;
+            if (ostr) *ostr << " next smallest index is " << size_idxs[idx].second << ":  small enough\n";
+            sum += size_idxs[idx].first;
+            ++idx;
+        }
+        else
+        {
+            if (ostr) *ostr << " next smallest index is " << size_idxs[idx].second << ":  too big\n";
+            break;
         }
     }
 
-    if (sizes.empty() || sizes[idx] > object_disk_space / 4.)
+    if (idx == 0)
     {
         if (ostr) *ostr << " choosing to just enumerate all objects\n";
         snap->m_range = object_range;
@@ -1007,15 +1038,16 @@ datalayer :: make_snapshot(const region_id& ri,
     }
     else
     {
-        if (ostr) *ostr << " choosing to use index " << idx << "\n";
-        snap->m_range = level_ranges[idx];
-        snap->m_parse = parsers[idx];
+        size_t tidx = size_idxs[0].second;
+        if (ostr) *ostr << " choosing to use index " << tidx << " as the primary\n";
+        snap->m_range = level_ranges[tidx];
+        snap->m_parse = parsers[tidx];
     }
 
     // Create iterator
     leveldb::ReadOptions opts;
     opts.fill_cache = false;
-    opts.verify_checksums = true;
+    opts.verify_checksums = false;
     opts.snapshot = snap->m_snap.get();
     snap->m_iter.reset(snap->m_snap, m_db->NewIterator(opts));
     snap->m_iter->Seek(snap->m_range.start);
