@@ -28,7 +28,6 @@
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 AM_CXXFLAGS = $(PO6_CFLAGS) $(E_CFLAGS) $(BUSYBEE_CFLAGS) $(WANAL_CXXFLAGS) -fpermissive
 AM_YFLAGS = -d
-TARGET_OS = `uname -s`
 
 BUILT_SOURCES = client/parse_space_y.h
 
@@ -456,7 +455,7 @@ hyperdex_CPPFLAGS = -DHYPERDEX_EXEC_DIR=\""$(hyperdexexecdir)\"" $(CPPFLAGS)
 
 hyperdex_initialize_cluster_SOURCES = tools/initialize-cluster.cc
 
-hyperdex_initialize_cluster_CPPFLAGS = -DHYPERDEX_COORD_LIB=\""$(hyperdexexecdir)/libhypercoordinator$(SHEXT)\"" $(CPPFLAGS)
+hyperdex_initialize_cluster_CPPFLAGS = -DHYPERDEX_COORD_LIB=\""$(hyperdexexecdir)/libhypercoordinator\"" $(CPPFLAGS)
 hyperdex_initialize_cluster_LDADD = libhyperclient.la
 
 hyperdex_coordinator_SOURCES = tools/coordinator.cc

@@ -171,12 +171,5 @@ AM_CONDITIONAL([ENABLE_RUBY_BINDINGS], [test x"${ruby_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_YCSB_DRIVER], [test x"${enable_ycsb}" = xyes])
 AM_CONDITIONAL([ENABLE_DOCS], [test x"${enable_docs}" = xyes])
 
-case "`uname -s`" in
-        Darwin)
-                SHEXT=".dylib" ;;
-        *)
-                SHEXT=".so" ;;
-        esac
-        AC_SUBST(SHEXT)
 AC_CONFIG_FILES([Makefile hyperclient.pc])
 AC_OUTPUT

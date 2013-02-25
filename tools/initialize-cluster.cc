@@ -31,6 +31,7 @@
 // po6
 #include <po6/error.h>
 #include <po6/io/fd.h>
+#include <po6/pathname.h>
 
 // e
 #include <e/guard.h>
@@ -101,7 +102,23 @@ main(int argc, const char* argv[])
         return EXIT_FAILURE;
     }
 
-    const char* path = num_args ? args[0] : HYPERDEX_COORD_LIB;
+    std::vector<po6::pathname> paths;
+
+    if (num_args)
+    {
+        for (size_t i = 0; i < num_args; ++i)
+        {
+            paths.push_back(po6::pathname(args[i]));
+        }
+    }
+    else
+    {
+        paths.push_back(po6::pathname(HYPERDEX_COORD_LIB ".so.0"));
+        paths.push_back(po6::pathname(HYPERDEX_COORD_LIB ".so"));
+        paths.push_back(po6::pathname(HYPERDEX_COORD_LIB ".dylib"));
+        paths.push_back(po6::join(po6::pathname(argv[0]).dirname(), "libhypercoordinator.so"));
+        paths.push_back(po6::join(po6::pathname(argv[0]).dirname(), "libhypercoordinator.dylib"));
+    }
 
     try
     {
@@ -117,32 +134,38 @@ main(int argc, const char* argv[])
 
         hyperclient h(_connect_host, _connect_port);
         hyperdex::tool_wrapper t(&h);
-        hyperclient_returncode e = t.initialize_cluster(token, path);
 
-        if (e == HYPERCLIENT_NOTFOUND && errno == ENOENT)
+        for (size_t i = 0; i < paths.size(); ++i)
         {
-            std::cerr << "could not find library at " << path << std::endl;
-            std::cerr << "provide a path to the library as a command-line argument" << std::endl;
-            std::cerr << "try specifying \".libs/libhypercoordinator.so\" if you did not run \"make install\"" << std::endl;
-            return EXIT_FAILURE;
-        }
-        else if (e == HYPERCLIENT_DUPLICATE)
-        {
-            std::cerr << "cluster already initialized" << std::endl;
-            return EXIT_FAILURE;
-        }
-        else if (e == HYPERCLIENT_COORD_LOGGED)
-        {
-            std::cerr << "could not initialize cluster: see the replicant error log for details" << std::endl;
-            return EXIT_FAILURE;
-        }
-        else if (e != HYPERCLIENT_SUCCESS)
-        {
-            std::cerr << "could not initialize cluster: " << e << std::endl;
-            return EXIT_FAILURE;
+            hyperclient_returncode e = t.initialize_cluster(token, paths[i].get());
+
+            if (e == HYPERCLIENT_NOTFOUND && errno == ENOENT)
+            {
+                continue;
+            }
+            else if (e == HYPERCLIENT_DUPLICATE)
+            {
+                std::cerr << "cluster already initialized" << std::endl;
+                return EXIT_FAILURE;
+            }
+            else if (e == HYPERCLIENT_COORD_LOGGED)
+            {
+                std::cerr << "could not initialize cluster: see the replicant error log for details" << std::endl;
+                return EXIT_FAILURE;
+            }
+            else if (e != HYPERCLIENT_SUCCESS)
+            {
+                std::cerr << "could not initialize cluster: " << e << std::endl;
+                return EXIT_FAILURE;
+            }
+
+            return EXIT_SUCCESS;
         }
 
-        return EXIT_SUCCESS;
+        std::cerr << "could not find libhypercoordinator library" << std::endl;
+        std::cerr << "provide a path to the library as a command-line argument" << std::endl;
+        std::cerr << "try specifying \".libs/libhypercoordinator.so\" if you did not run \"make install\"" << std::endl;
+        return EXIT_FAILURE;
     }
     catch (po6::error& e)
     {
