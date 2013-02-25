@@ -158,6 +158,7 @@ noinst_HEADERS = \
 			client/complete.h \
 			client/constants.h \
 			client/coordinator_link.h \
+			client/description.h \
 			client/hyperclient.h \
 			client/keyop_info.h \
 			client/parse_space_aux.h \
