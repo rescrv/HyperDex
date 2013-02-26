@@ -7,6 +7,9 @@ E = e
 HYPERDEX = .
 DOTNET = windows 
 OUTPUT_DIR = output 
+YACC = C:\GnuWin32\bin\bison.exe
+LEX = C:\GnuWin32\bin\flex.exe
+GPERF = "C:\Program Files (x86)\GnuWin32\bin\gperf.exe"
 
 # Location of .net4.5, should contain "mscorlib.dll"
 DOTNETFRAMEWORK = C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5
@@ -78,9 +81,11 @@ HYPERDEXOBJS= \
 	/client/pending_get.obj \
 	/client/pending_group_del.obj \
 	/client/pending_search.obj \
+    /client/pending_search_description.obj \
 	/client/pending_sorted_search.obj \
 	/client/pending_statusonly.obj \
 	/client/refcount.obj \
+    /client/description.obj \
 	/client/space_description.obj \
 	/client/util.obj \
     /windows/hyperclientclr.obj \
@@ -90,7 +95,8 @@ HYPERDEXOBJS = hyperdex$(HYPERDEXOBJS: /= hyperdex/)
 EOBJS= \
     /buffer.obj\
     /slice.obj\
-    /unpacker.obj
+    /unpacker.obj\
+    /time.obj
 EOBJS = e$(EOBJS: /= e/)
 
 CITYHASHOBJS = \
@@ -163,10 +169,10 @@ CLRFLAGS = /wd4291 /wd4099 /I$(E) /I$(DOTNET) /I$(HYPERDEX) /GS /W3 /Zc:wchar_t 
 {$(HYPERDEX)/}.cc{hyperdex}.obj: 
     $(COMPILE_CXX) $(HYPERDEX_FLAGS)
 
-{$(HYPERDEX)/client}.c{hyperdex/client}.obj: 
+{$(HYPERDEX)/client}.cc{hyperdex/client}.obj: 
     $(COMPILE_CXX) $(HYPERDEX_FLAGS)
 
-{$(HYPERDEX)/client}.cc{hyperdex/client}.obj: 
+{$(HYPERDEX)/client}.c{hyperdex/client}.obj: 
     $(COMPILE_CXX) $(HYPERDEX_FLAGS)
 
 {$(HYPERDEX)/common}.cc{hyperdex/common}.obj: 
@@ -177,6 +183,15 @@ CLRFLAGS = /wd4291 /wd4099 /I$(E) /I$(DOTNET) /I$(HYPERDEX) /GS /W3 /Zc:wchar_t 
 
 {$(HYPERDEX)/windows}.cpp{hyperdex/windows}.obj:
     cl /c $(CLRFLAGS) $< /Fo$(OUTPUT_DIR)/$(OBJ_OUTPUT) 
+
+client/parse_space_l.c: client/parse_space_l.l
+    $(LEX) -d -o$@ $**
+
+client/parse_space_y.c: client/parse_space_y.y
+    $(YACC) -d -o$@ $**
+
+client/keyop_info.cc: client/parse_space_l.c client/parse_space_y.c
+    $(GPERF) --output-file="client/keyop_info.cc" "client/keyop_info.gperf"
 
 hyperclient.dll: $(ALLOBJS) 
     LINK /OUT:$(OUTPUT_DIR)/HyperClient.dll /MANIFEST /NXCOMPAT /PDB:$(OUTPUT_DIR)/HyperClient.pdb /DYNAMICBASE $(LIBS) $(OUTPUT_DIR)/*.obj /FIXED:NO /DEBUG /DLL /MACHINE:X64 /INCREMENTAL /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /ManifestFile:$(OUTPUT_DIR)/HyperClient.dll.intermediate.manifest /ERRORREPORT:PROMPT /NOLOGO /LIBPATH:. /ASSEMBLYDEBUG /TLBID:1  

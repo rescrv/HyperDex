@@ -439,7 +439,11 @@ hyperclient :: search_describe(const char* space,
         if (send(op, tosend) < 0)
         {
             sd->add_text(servers[i], "failed");
+#ifdef _MSC_VER
+            m_complete_failed.push(std::shared_ptr<complete>(new complete(search_id, status, HYPERCLIENT_RECONFIGURE, 0)));
+#else
             m_complete_failed.push(complete(search_id, status, HYPERCLIENT_RECONFIGURE, 0));
+#endif
             m_incomplete.erase(op->server_visible_nonce());
         }
     }
