@@ -38,6 +38,7 @@
 
 // C++
 #include <iostream>
+#include <iomanip>
 
 // e
 #include <e/guard.h>
@@ -45,49 +46,56 @@
 extern "C"
 {
 
+static const char* _path = NULL;
+
 static struct poptOption popts[] = {
     {"help", '?', POPT_ARG_NONE, NULL, '?', "Show this help message", NULL},
     {"usage", 0, POPT_ARG_NONE, NULL, 'u', "Display brief usage message", NULL},
+    {"exec-path", 0, POPT_ARG_STRING, &_path, 'p', "Path to where the HyperDex programs are installed", "PATH"},
     POPT_TABLEEND
 };
 
 } // extern "C"
 
-struct prog
+struct subcommand
 {
-    prog(const char* n, const char* r, const char* p) : name(n), rname(r), path(p) {}
+    subcommand(const char* n, const char* d) : name(n), description(d) {}
     const char* name;
-    const char* rname;
-    const char* path;
+    const char* description;
 };
 
-#define PROG(N) prog(N, "hyperdex " N, HYPERDEX_EXEC_DIR "/hyperdex-" N)
-
-static prog progs[] = {
-    PROG("initialize-cluster"),
-    PROG("coordinator"),
-    PROG("daemon"),
-    PROG("add-space"),
-    PROG("rm-space"),
-    PROG("show-config"),
-    PROG("initiate-transfer"),
-    prog(NULL, NULL, NULL)
+static subcommand subcommands[] = {
+    subcommand("coordinator",           "Start a new HyperDex coordinator"),
+    subcommand("daemon",                "Start a new HyperDex daemon"),
+    subcommand("add-space",             "Create a new space"),
+    subcommand("rm-space",              "Remove an existing space"),
+    subcommand("initialize-cluster",    "One time initialization of a HyperDex coordinator"),
+    subcommand("initiate-transfer",     "Manually start a data transfer to repair a failure"),
+    subcommand("show-config",           "Output a human-readable version of the cluster configuration"),
+    subcommand(NULL, NULL)
 };
 
 static int
 help(poptContext poptcon)
 {
     poptPrintHelp(poptcon, stderr, 0);
-    std::cerr << "\n"
-              << "Available commands:\n"
-              << "    coordinator           Start a new HyperDex coordinator\n"
-              << "    daemon                Start a new HyperDex daemon\n"
-              << "    add-space             Create a new space\n"
-              << "    rm-space              Remove an existing space\n"
-              << "    show-config           Output a human-readable version of the cluster configuration\n"
-              << "    initialize-cluster    One time initialization of a HyperDex coordinator\n"
-              << "    initiate-transfer     Manually start a data transfer to repair a failure\n"
-              << std::flush;
+    size_t max_command_sz = 0;
+
+    for (subcommand* s = subcommands; s->name; ++s)
+    {
+        size_t command_sz = strlen(s->name);
+        max_command_sz = std::max(max_command_sz, command_sz);
+    }
+
+    size_t pad = ((max_command_sz + 3ULL) & ~3ULL) + 4;
+
+    std::cerr << std::setfill(' ') << "\nAvailable commands:\n";
+
+    for (subcommand* s = subcommands; s->name; ++s)
+    {
+        std::cerr << "    " << std::left << std::setw(pad) << s->name << s->description << "\n";
+    }
+
     return EXIT_FAILURE;
 }
 
@@ -109,6 +117,8 @@ main(int argc, const char* argv[])
             case 'u':
                 poptPrintUsage(poptcon, stderr, 0);
                 return EXIT_FAILURE;
+            case 'p':
+                break;
             case POPT_ERROR_NOARG:
             case POPT_ERROR_BADOPT:
             case POPT_ERROR_BADNUMBER:
@@ -131,20 +141,49 @@ main(int argc, const char* argv[])
         return help(poptcon);
     }
 
-    for (prog* p = progs; p->name; ++p)
-    {
-        if (strcmp(p->name, args[0]) == 0)
-        {
-            args[0] = p->rname;
+    std::string path;
+    char* hyperdex_exec_path = getenv("HYPERDEX_EXEC_PATH");
 
-            if (execv(p->path, const_cast<char*const*>(args)) < 0)
+    if (_path)
+    {
+        path = std::string(_path);
+    }
+    else if (hyperdex_exec_path)
+    {
+        path = std::string(hyperdex_exec_path);
+    }
+    else
+    {
+        path = std::string(HYPERDEX_EXEC_DIR);
+    }
+
+    char* old_path = getenv("PATH");
+
+    if (old_path)
+    {
+        path += ":" + std::string(old_path);
+    }
+
+    if (setenv("PATH", path.c_str(), 1) < 0)
+    {
+        perror("setting path");
+    }
+
+    for (subcommand* s = subcommands; s->name; ++s)
+    {
+        if (strcmp(s->name, args[0]) == 0)
+        {
+            std::string name("hyperdex-");
+            name += s->name;
+            args[0] = name.c_str();
+
+            if (execvp(args[0], const_cast<char*const*>(args)) < 0)
             {
-                std::cerr << "failed to exec " << p->name << " from " << p->path << ": " << strerror(errno) << std::endl;
+                std::cerr << "failed to exec " << s->name << ": " << strerror(errno) << std::endl;
+                std::cerr << "args[0]=" << args[0] << std::endl;
+                std::cerr << "PATH=" << path << std::endl;
                 return EXIT_FAILURE;
             }
-
-            std::cerr << "failed to exec " << p->name << " for unknown reasons" << std::endl;
-            return EXIT_FAILURE;
         }
     }
 
