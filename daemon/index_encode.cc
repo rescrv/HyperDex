@@ -33,7 +33,11 @@
 #include <cstdlib>
 
 // Linux
+#ifdef __APPLE__
+#include <osx/ieee754.h>
+#else
 #include <ieee754.h>
+#endif
 
 // C++
 #include <iostream>
