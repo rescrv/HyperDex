@@ -32,7 +32,7 @@ public class DeferredCount extends Deferred
             chks = (hyperclient_attribute_check)(retvals.get(0));
             chks_sz = ((Long)(retvals.get(1))).longValue();
 
-            res_ptr = hyperclient.new_uint64_t_ptr();
+            res_ptr = hyperclient_lc.new_uint64_t_ptr();
 
             reqId = client.count(client.getBytes(space,true),
                                  chks, chks_sz,
@@ -55,7 +55,7 @@ public class DeferredCount extends Deferred
 
         if (status() == hyperclient_returncode.HYPERCLIENT_SUCCESS || unsafe == 0)
         {
-            return hyperclient.uint64_t_ptr_value(res_ptr);
+            return hyperclient_lc.uint64_t_ptr_value(res_ptr);
         }
         else
         {
@@ -67,6 +67,6 @@ public class DeferredCount extends Deferred
     {
         super.finalize();
 
-        if (res_ptr != null) hyperclient.delete_uint64_t_ptr(res_ptr);
+        if (res_ptr != null) hyperclient_lc.delete_uint64_t_ptr(res_ptr);
     }
 }

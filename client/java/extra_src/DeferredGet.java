@@ -13,8 +13,8 @@ public class DeferredGet extends Deferred
     {
         super(client);
 
-        attrs_ptr = hyperclient.new_hyperclient_attribute_ptr();
-        attrs_sz_ptr = hyperclient.new_size_t_ptr();
+        attrs_ptr = hyperclient_lc.new_hyperclient_attribute_ptr();
+        attrs_sz_ptr = hyperclient_lc.new_size_t_ptr();
 
         reqId = client.get(client.getBytes(space,true),
                            client.getBytes(key),
@@ -33,8 +33,8 @@ public class DeferredGet extends Deferred
         if (status() == hyperclient_returncode.HYPERCLIENT_SUCCESS)
         {
             hyperclient_attribute attrs
-                = hyperclient.hyperclient_attribute_ptr_value(attrs_ptr);
-            long attrs_sz = hyperclient.size_t_ptr_value(attrs_sz_ptr);
+                = hyperclient_lc.hyperclient_attribute_ptr_value(attrs_ptr);
+            long attrs_sz = hyperclient_lc.size_t_ptr_value(attrs_sz_ptr);
 
             Map map = null;
 
@@ -45,7 +45,7 @@ public class DeferredGet extends Deferred
             finally
             {
                 if ( attrs != null )
-                    hyperclient.hyperclient_destroy_attrs(attrs,attrs_sz);
+                    hyperclient_lc.hyperclient_destroy_attrs(attrs,attrs_sz);
             }
 
             return map;
@@ -64,7 +64,7 @@ public class DeferredGet extends Deferred
     {
         super.finalize();
 
-        if (attrs_ptr != null) hyperclient.delete_hyperclient_attribute_ptr(attrs_ptr);
-        if (attrs_sz_ptr != null) hyperclient.delete_size_t_ptr(attrs_sz_ptr);
+        if (attrs_ptr != null) hyperclient_lc.delete_hyperclient_attribute_ptr(attrs_ptr);
+        if (attrs_sz_ptr != null) hyperclient_lc.delete_size_t_ptr(attrs_sz_ptr);
     }
 }

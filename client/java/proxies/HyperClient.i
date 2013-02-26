@@ -301,13 +301,13 @@
 
   void loop() throws HyperClientException
   {
-    SWIGTYPE_p_hyperclient_returncode rc_ptr = hyperclient.new_rc_ptr();
+    SWIGTYPE_p_hyperclient_returncode rc_ptr = hyperclient_lc.new_rc_ptr();
 
     long ret = loop(-1, rc_ptr);
 
-    hyperclient_returncode rc = hyperclient.rc_ptr_value(rc_ptr);
+    hyperclient_returncode rc = hyperclient_lc.rc_ptr_value(rc_ptr);
 
-    hyperclient.delete_rc_ptr(rc_ptr); // Deallocate the pointer
+    hyperclient_lc.delete_rc_ptr(rc_ptr); // Deallocate the pointer
 
     if ( ret < 0 )
     {
