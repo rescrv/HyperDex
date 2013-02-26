@@ -28,7 +28,11 @@
 #define __STDC_LIMIT_MACROS
 
 // C
+#ifdef _MSC_VER
+#include <cmath>
+#else
 #include <tr1/cmath>
+#endif
 #include <cstdlib>
 
 // Linux
@@ -106,7 +110,11 @@ hyperdex :: float_encode(double x)
 {
     uint64_t out = 0xffffffffffffffffULL;
 
+#ifdef _MSC_VER
+    if (isinf(x))
+#else
     if (std::isinf(x))
+#endif
     {
         if (x > 0)
         {
@@ -117,7 +125,11 @@ hyperdex :: float_encode(double x)
             out = 0;
         }
     }
+#ifdef _MSC_VER
+    else if (isnan(x))
+#else
     else if (std::isnan(x))
+#endif
     {
         out = 0xfff0000000000000ULL + 3;
     }
@@ -149,4 +161,6 @@ hyperdex :: float_encode(double x)
 
     return out;
 }
+#ifndef _MSC_VER
 #pragma GCC diagnostic pop
+#endif
