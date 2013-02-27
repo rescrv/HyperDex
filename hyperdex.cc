@@ -25,6 +25,10 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 // C
 #include <cstdlib>
 #include <cstring>
@@ -48,10 +52,20 @@ extern "C"
 
 static const char* _path = NULL;
 
-static struct poptOption popts[] = {
+static struct poptOption help_popts[] = {
     {"help", '?', POPT_ARG_NONE, NULL, '?', "Show this help message", NULL},
     {"usage", 0, POPT_ARG_NONE, NULL, 'u', "Display brief usage message", NULL},
+    {"version", 0, POPT_ARG_NONE, NULL, 'v', "Print the version of HyperDex and exit", NULL},
+    POPT_TABLEEND
+};
+
+static struct poptOption global_popts[] = {
     {"exec-path", 0, POPT_ARG_STRING, &_path, 'p', "Path to where the HyperDex programs are installed", "PATH"},
+};
+
+static struct poptOption popts[] = {
+    {NULL, 0, POPT_ARG_INCLUDE_TABLE, help_popts, 0, "Help options:", NULL},
+    {NULL, 0, POPT_ARG_INCLUDE_TABLE, global_popts, 0, "Global options:", NULL},
     POPT_TABLEEND
 };
 
@@ -89,11 +103,11 @@ help(poptContext poptcon)
 
     size_t pad = ((max_command_sz + 3ULL) & ~3ULL) + 4;
 
-    std::cerr << std::setfill(' ') << "\nAvailable commands:\n";
+    std::cout << std::setfill(' ') << "\nAvailable commands:\n";
 
     for (subcommand* s = subcommands; s->name; ++s)
     {
-        std::cerr << "    " << std::left << std::setw(pad) << s->name << s->description << "\n";
+        std::cout << "    " << std::left << std::setw(pad) << s->name << s->description << "\n";
     }
 
     return EXIT_FAILURE;
@@ -119,6 +133,9 @@ main(int argc, const char* argv[])
                 return EXIT_FAILURE;
             case 'p':
                 break;
+            case 'v':
+                std::cout << "HyperDex version " VERSION << std::endl;
+                return EXIT_SUCCESS;
             case POPT_ERROR_NOARG:
             case POPT_ERROR_BADOPT:
             case POPT_ERROR_BADNUMBER:
