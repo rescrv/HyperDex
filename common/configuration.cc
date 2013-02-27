@@ -42,6 +42,7 @@ using hyperdex::configuration;
 using hyperdex::region_id;
 using hyperdex::schema;
 using hyperdex::server_id;
+using hyperdex::subspace;
 using hyperdex::subspace_id;
 using hyperdex::virtual_server_id;
 
@@ -52,6 +53,7 @@ configuration :: configuration()
     , m_region_ids_by_virtual()
     , m_server_ids_by_virtual()
     , m_schemas_by_region()
+    , m_subspaces_by_region()
     , m_subspace_ids_by_region()
     , m_subspace_ids_for_prev()
     , m_subspace_ids_for_next()
@@ -73,6 +75,7 @@ configuration :: configuration(const configuration& other)
     , m_region_ids_by_virtual(other.m_region_ids_by_virtual)
     , m_server_ids_by_virtual(other.m_server_ids_by_virtual)
     , m_schemas_by_region(other.m_schemas_by_region)
+    , m_subspaces_by_region(other.m_subspaces_by_region)
     , m_subspace_ids_by_region(other.m_subspace_ids_by_region)
     , m_subspace_ids_for_prev(other.m_subspace_ids_for_prev)
     , m_subspace_ids_for_next(other.m_subspace_ids_for_next)
@@ -186,6 +189,22 @@ configuration :: get_schema(const region_id& ri) const
                           uint64_schema_t(ri.get(), NULL));
 
     if (it != m_schemas_by_region.end() && it->first == ri.get())
+    {
+        return it->second;
+    }
+
+    return NULL;
+}
+
+const subspace*
+configuration :: get_subspace(const region_id& ri) const
+{
+    std::vector<uint64_subspace_t>::const_iterator it;
+    it = std::lower_bound(m_subspaces_by_region.begin(),
+                          m_subspaces_by_region.end(),
+                          uint64_subspace_t(ri.get(), NULL));
+
+    if (it != m_subspaces_by_region.end() && it->first == ri.get())
     {
         return it->second;
     }
@@ -796,6 +815,7 @@ configuration :: operator = (const configuration& rhs)
     m_region_ids_by_virtual = rhs.m_region_ids_by_virtual;
     m_server_ids_by_virtual = rhs.m_server_ids_by_virtual;
     m_schemas_by_region = rhs.m_schemas_by_region;
+    m_subspaces_by_region = rhs.m_subspaces_by_region;
     m_subspace_ids_by_region = rhs.m_subspace_ids_by_region;
     m_subspace_ids_for_prev = rhs.m_subspace_ids_for_prev;
     m_subspace_ids_for_next = rhs.m_subspace_ids_for_next;
@@ -816,6 +836,7 @@ configuration :: refill_cache()
     m_region_ids_by_virtual.clear();
     m_server_ids_by_virtual.clear();
     m_schemas_by_region.clear();
+    m_subspaces_by_region.clear();
     m_subspace_ids_by_region.clear();
     m_subspace_ids_for_prev.clear();
     m_subspace_ids_for_next.clear();
@@ -848,6 +869,7 @@ configuration :: refill_cache()
             {
                 region& r(ss.regions[y]);
                 m_schemas_by_region.push_back(std::make_pair(r.id.get(), &s.sc));
+                m_subspaces_by_region.push_back(std::make_pair(r.id.get(), &ss));
                 m_subspace_ids_by_region.push_back(std::make_pair(r.id.get(), ss.id.get()));
 
                 if (r.replicas.empty())
@@ -893,6 +915,7 @@ configuration :: refill_cache()
     std::sort(m_region_ids_by_virtual.begin(), m_region_ids_by_virtual.end());
     std::sort(m_server_ids_by_virtual.begin(), m_server_ids_by_virtual.end());
     std::sort(m_schemas_by_region.begin(), m_schemas_by_region.end());
+    std::sort(m_subspaces_by_region.begin(), m_subspaces_by_region.end());
     std::sort(m_subspace_ids_by_region.begin(), m_subspace_ids_by_region.end());
     std::sort(m_subspace_ids_for_prev.begin(), m_subspace_ids_for_prev.end());
     std::sort(m_subspace_ids_for_next.begin(), m_subspace_ids_for_next.end());

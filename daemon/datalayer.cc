@@ -488,7 +488,6 @@ datalayer :: del(const region_id& ri,
                  const e::slice& key,
                  const std::vector<e::slice>& old_value)
 {
-    const schema* sc = m_daemon->m_config.get_schema(ri);
     leveldb::WriteBatch updates;
     std::vector<char> backing1;
     std::vector<char> backing2;
@@ -499,7 +498,9 @@ datalayer :: del(const region_id& ri,
     updates.Delete(lkey);
 
     // apply the index operations
-    returncode rc = create_index_changes(sc, ri, key, &old_value, NULL, &updates);
+    const schema* sc = m_daemon->m_config.get_schema(ri);
+    const subspace* su = m_daemon->m_config.get_subspace(ri);
+    returncode rc = create_index_changes(sc, su, ri, key, &old_value, NULL, &updates);
 
     if (rc != SUCCESS)
     {
@@ -572,7 +573,6 @@ datalayer :: put(const region_id& ri,
                  const std::vector<e::slice>& new_value,
                  uint64_t version)
 {
-    const schema* sc = m_daemon->m_config.get_schema(ri);
     leveldb::WriteBatch updates;
     std::vector<char> backing1;
     std::vector<char> backing2;
@@ -585,7 +585,9 @@ datalayer :: put(const region_id& ri,
     updates.Put(lkey, lval);
 
     // apply the index operations
-    returncode rc = create_index_changes(sc, ri, key, NULL, &new_value, &updates);
+    const schema* sc = m_daemon->m_config.get_schema(ri);
+    const subspace* su = m_daemon->m_config.get_subspace(ri);
+    returncode rc = create_index_changes(sc, su, ri, key, NULL, &new_value, &updates);
 
     if (rc != SUCCESS)
     {
@@ -661,7 +663,6 @@ datalayer :: overput(const region_id& ri,
                      const std::vector<e::slice>& new_value,
                      uint64_t version)
 {
-    const schema* sc = m_daemon->m_config.get_schema(ri);
     leveldb::WriteBatch updates;
     std::vector<char> backing1;
     std::vector<char> backing2;
@@ -674,7 +675,9 @@ datalayer :: overput(const region_id& ri,
     updates.Put(lkey, lval);
 
     // apply the index operations
-    returncode rc = create_index_changes(sc, ri, key, &old_value, &new_value, &updates);
+    const schema* sc = m_daemon->m_config.get_schema(ri);
+    const subspace* su = m_daemon->m_config.get_subspace(ri);
+    returncode rc = create_index_changes(sc, su, ri, key, &old_value, &new_value, &updates);
 
     if (rc != SUCCESS)
     {

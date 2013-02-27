@@ -73,6 +73,7 @@ class configuration
     public:
         const schema* get_schema(const char* space) const;
         const schema* get_schema(const region_id& ri) const;
+        const subspace* get_subspace(const region_id& ri) const;
         virtual_server_id get_virtual(const region_id& ri, const server_id& si) const;
         subspace_id subspace_of(const region_id& ri) const;
         subspace_id subspace_prev(const subspace_id& ss) const;
@@ -126,6 +127,7 @@ class configuration
     private:
         typedef std::pair<uint64_t, uint64_t> pair_uint64_t;
         typedef std::pair<uint64_t, schema*> uint64_schema_t;
+        typedef std::pair<uint64_t, subspace*> uint64_subspace_t;
         typedef std::pair<uint64_t, po6::net::location> uint64_location_t;
 
     private:
@@ -135,6 +137,7 @@ class configuration
         std::vector<pair_uint64_t> m_region_ids_by_virtual;
         std::vector<pair_uint64_t> m_server_ids_by_virtual;
         std::vector<uint64_schema_t> m_schemas_by_region;
+        std::vector<uint64_subspace_t> m_subspaces_by_region;
         std::vector<pair_uint64_t> m_subspace_ids_by_region;
         std::vector<pair_uint64_t> m_subspace_ids_for_prev;
         std::vector<pair_uint64_t> m_subspace_ids_for_next;

@@ -583,6 +583,7 @@ generate_index(const hyperdex::region_id& ri,
 
 datalayer::returncode
 hyperdex :: create_index_changes(const schema* sc,
+                                 const subspace* su,
                                  const region_id& ri,
                                  const e::slice& key,
                                  const std::vector<e::slice>* old_value,
@@ -598,13 +599,16 @@ hyperdex :: create_index_changes(const schema* sc,
         assert(old_value->size() + 1 == sc->attrs_sz);
         assert(old_value->size() == new_value->size());
 
-        for (size_t i = 0; i + 1 < sc->attrs_sz; ++i)
+        for (size_t j = 0; j < su->attrs.size(); ++j)
         {
-            if ((*old_value)[i] != (*new_value)[i])
+            size_t attr = su->attrs[j];
+            assert(attr < sc->attrs_sz);
+
+            if (attr > 0 && (*old_value)[attr - 1] != (*new_value)[attr - 1])
             {
-                generate_index(ri, i + 1, sc->attrs[i + 1].type, (*old_value)[i], key, &backing, &slice);
+                generate_index(ri, attr, sc->attrs[attr].type, (*old_value)[attr - 1], key, &backing, &slice);
                 updates->Delete(slice);
-                generate_index(ri, i + 1, sc->attrs[i + 1].type, (*new_value)[i], key, &backing, &slice);
+                generate_index(ri, attr, sc->attrs[attr].type, (*new_value)[attr - 1], key, &backing, &slice);
                 updates->Put(slice, empty);
             }
         }
@@ -613,20 +617,32 @@ hyperdex :: create_index_changes(const schema* sc,
     {
         assert(old_value->size() + 1 == sc->attrs_sz);
 
-        for (size_t i = 0; i + 1 < sc->attrs_sz; ++i)
+        for (size_t j = 0; j < su->attrs.size(); ++j)
         {
-            generate_index(ri, i + 1, sc->attrs[i + 1].type, (*old_value)[i], key, &backing, &slice);
-            updates->Delete(slice);
+            size_t attr = su->attrs[j];
+            assert(attr < sc->attrs_sz);
+
+            if (attr > 0)
+            {
+                generate_index(ri, attr, sc->attrs[attr].type, (*old_value)[attr - 1], key, &backing, &slice);
+                updates->Delete(slice);
+            }
         }
     }
     else if (new_value)
     {
         assert(new_value->size() + 1 == sc->attrs_sz);
 
-        for (size_t i = 0; i + 1 < sc->attrs_sz; ++i)
+        for (size_t j = 0; j < su->attrs.size(); ++j)
         {
-            generate_index(ri, i + 1, sc->attrs[i + 1].type, (*new_value)[i], key, &backing, &slice);
-            updates->Put(slice, empty);
+            size_t attr = su->attrs[j];
+            assert(attr < sc->attrs_sz);
+
+            if (attr > 0)
+            {
+                generate_index(ri, attr, sc->attrs[attr].type, (*new_value)[attr - 1], key, &backing, &slice);
+                updates->Put(slice, empty);
+            }
         }
     }
 

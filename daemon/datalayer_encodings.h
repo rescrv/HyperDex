@@ -123,6 +123,7 @@ parse_object_key(const leveldb::Slice& s, e::slice* k);
 
 datalayer::returncode
 create_index_changes(const schema* sc,
+                     const subspace* su,
                      const region_id& ri,
                      const e::slice& key,
                      const std::vector<e::slice>* old_value,
