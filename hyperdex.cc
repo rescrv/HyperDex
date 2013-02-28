@@ -92,7 +92,7 @@ static subcommand subcommands[] = {
 static int
 help(poptContext poptcon)
 {
-    poptPrintHelp(poptcon, stderr, 0);
+    poptPrintHelp(poptcon, stdout, 0);
     size_t max_command_sz = 0;
 
     for (subcommand* s = subcommands; s->name; ++s)
@@ -129,7 +129,7 @@ main(int argc, const char* argv[])
             case '?':
                 return help(poptcon);
             case 'u':
-                poptPrintUsage(poptcon, stderr, 0);
+                poptPrintUsage(poptcon, stdout, 0);
                 return EXIT_FAILURE;
             case 'p':
                 break;
@@ -197,7 +197,6 @@ main(int argc, const char* argv[])
             if (execvp(args[0], const_cast<char*const*>(args)) < 0)
             {
                 std::cerr << "failed to exec " << s->name << ": " << strerror(errno) << std::endl;
-                std::cerr << "args[0]=" << args[0] << std::endl;
                 std::cerr << "PATH=" << path << std::endl;
                 return EXIT_FAILURE;
             }
