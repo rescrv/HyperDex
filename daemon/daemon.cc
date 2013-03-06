@@ -262,7 +262,7 @@ daemon :: run(bool daemonize,
 
     for (size_t i = 0; i < threads; ++i)
     {
-        std::tr1::shared_ptr<po6::threads::thread> t(new po6::threads::thread(std::tr1::bind(&daemon::loop, this)));
+        std::tr1::shared_ptr<po6::threads::thread> t(new po6::threads::thread(std::tr1::bind(&daemon::loop, this, i)));
         m_threads.push_back(t);
         t->start();
     }
@@ -342,10 +342,19 @@ daemon :: run(bool daemonize,
 }
 
 void
-daemon :: loop()
+daemon :: loop(size_t thread)
 {
-    LOG(INFO) << "network thread started";
     sigset_t ss;
+
+    size_t core = thread % sysconf(_SC_NPROCESSORS_ONLN);
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(core, &cpuset);
+    pthread_t cur = pthread_self();
+    int x = pthread_setaffinity_np(cur, sizeof(cpu_set_t), &cpuset);
+    assert(x == 0);
+
+    LOG(INFO) << "network thread " << thread << " started on core " << core;
 
     if (sigfillset(&ss) < 0)
     {
