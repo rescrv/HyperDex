@@ -116,7 +116,7 @@ REPLICANTOBJS = \
 REPLICANTOBJS = replicant$(REPLICANTOBJS: /= replicant/) 
 
 BUSYBEEOBJS = \
-    /busybee.obj \
+	/busybee_windows.obj \
 	/busybee_mapper.obj \
 	/busybee_returncode.obj \
 	/busybee_single.obj \
