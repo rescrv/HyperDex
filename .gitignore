@@ -3,6 +3,7 @@ autom4te.cache/
 binary-test
 client/cc/testcompile
 client/c/testcompile
+client/java/hyperclient
 client/keyop_info.cc
 client/parse_space_l.c
 client/parse_space_y.c
@@ -16,6 +17,7 @@ config.log
 config.status
 config.sub
 configure
+*.cxx
 daemon/test/index_encode
 depcomp
 .deps
@@ -28,6 +30,8 @@ doc/man/hyperdex-simple-consistency-stress-test.1
 hyperclient.pc
 hyperdex
 hyperdex-add-space
+hyperdex-async-benchmark
+hyperdex-benchmark
 hyperdex-binary-test
 hyperdex-coordinator
 hyperdex-daemon
@@ -44,6 +48,7 @@ hyperspacehashing/test/cfloat
 hyperspacehashing/test/prefix
 hyperspacehashing/utils/cfloat
 install-sh
+*.jar
 *.la
 leveldb-dump
 .libs
@@ -61,10 +66,6 @@ missing
 *.o
 *.pyc
 py-compile
+*.stamp
 stamp-h1
 ylwrap
-*.cxx
-client/java/hyperclient
-*.jar
-*.stamp
-

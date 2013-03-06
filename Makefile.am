@@ -64,6 +64,8 @@ hyperdexexec_PROGRAMS = \
 			hyperdex-add-space \
 			hyperdex-rm-space \
 			hyperdex-show-config \
+			hyperdex-async-benchmark \
+			hyperdex-benchmark \
 			hyperdex-initiate-transfer
 hyperdexexec_LTLIBRARIES = libhypercoordinator.la
 
@@ -470,6 +472,12 @@ hyperdex_rm_space_LDADD = libhyperclient.la
 
 hyperdex_show_config_SOURCES = tools/show-config.cc
 hyperdex_show_config_LDADD = libhyperclient.la
+
+hyperdex_async_benchmark_SOURCES = tools/async-benchmark.cc
+hyperdex_async_benchmark_LDADD = libhyperclient.la -lleveldb
+
+hyperdex_benchmark_SOURCES = tools/benchmark.cc
+hyperdex_benchmark_LDADD = libhyperclient.la -lleveldb
 
 hyperdex_initiate_transfer_SOURCES = tools/initiate-transfer.cc
 hyperdex_initiate_transfer_LDADD = libhyperclient.la
