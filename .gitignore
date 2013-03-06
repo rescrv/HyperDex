@@ -62,6 +62,8 @@ m4/ltsugar.m4
 m4/ltversion.m4
 Makefile
 Makefile.in
+man/hyperdex.1
+man/hyperdex.1.h2m
 missing
 *.o
 *.pyc

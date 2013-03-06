@@ -73,10 +73,6 @@ noinst_PROGRAMS = \
 			client/c/testcompile \
 			client/cc/testcompile
 
-if ENABLE_DOCS
-dist_man_MANS = doc/man/hyperdex-daemon.1
-endif
-
 CONFIG_CLEAN_FILES = hyperclient.pc
 
 CLEANFILES = \
@@ -537,3 +533,28 @@ doc/HyperDex-$(VERSION).pdf:
 	make -C ${abs_top_builddir}/doc/_build/latex all-pdf
 	cp ${abs_top_builddir}/doc/_build/latex/HyperDex.pdf doc/HyperDex-$(VERSION).pdf
 endif
+
+################################################################################
+################################### Man Pages ##################################
+################################################################################
+
+pandoc_verbose = $(pandoc_verbose_$(V))
+pandoc_verbose_ = $(pandoc_verbose_$(AM_DEFAULT_VERBOSITY))
+pandoc_verbose_0 = @echo "  PANDOC" $@;
+sed_verbose = $(sed_verbose_$(V))
+sed_verbose_ = $(sed_verbose_$(AM_DEFAULT_VERBOSITY))
+sed_verbose_0 = @echo "  SED   " $@;
+help2man_verbose = $(help2man_verbose_$(V))
+help2man_verbose_ = $(help2man_verbose_$(AM_DEFAULT_VERBOSITY))
+help2man_verbose_0 = @echo "  MAN   " $@;
+
+EXTRA_DIST += man/hyperdex.1.md man/hyperdex.1.h2m
+dist_man_MANS = man/hyperdex.1
+
+%.h2m: %.md
+	$(pandoc_verbose)pandoc -s -w man -o $@ $<
+	$(sed_verbose)sed -i -e 's/^\.SH \(.*\)$$/[\1]/' $@
+
+man/hyperdex.1: man/hyperdex.1.h2m hyperdex.cc $(top_srcdir)/configure.ac
+	@$(MAKE) --no-print-directory $(AM_MAKEFLAGS) hyperdex$(EXEEXT)
+	$(help2man_verbose)help2man --libtool --no-info --section 1 --output $@ --version-string=$(VERSION) --include man/hyperdex.1.h2m ./hyperdex$(EXEEXT)
