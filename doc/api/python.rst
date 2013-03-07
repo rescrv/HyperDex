@@ -96,6 +96,57 @@ Python API
          search is specified by supplying the value to match.  A range search is
          a 2-tuple specifying the lower and upper bounds on the range.
 
+   .. py:method:: sorted_search(space, predicate):
+
+      .. include:: shards/sorted_search.rst
+
+      This object returns a generator of type :py:class:`Search`.  Both objects
+      retrieved by the search, and errors encountered during the search will be
+      yielded by the generator.  Each object is a ``dict`` mapping attribute
+      names to their respective values.
+
+      space:
+         A string naming the space in which the object will be inserted.
+
+      predicate:
+         A dictionary specifying comparisons used for selecting objects.  Each
+         key-value pair in :py:obj:`predicate` maps the name of an attribute to
+         a value or range of values which constitute the search.  An equality
+         search is specified by supplying the value to match.  A range search is
+         a 2-tuple specifying the lower and upper bounds on the range.
+
+   .. py:method:: count(space, predicate):
+
+      .. include:: shards/count.rst
+
+      This object returns an integer (the count) or raises an exception.
+
+      space:
+         A string naming the space in which the object will be inserted.
+
+      predicate:
+         A dictionary specifying comparisons used for selecting objects.  Each
+         key-value pair in :py:obj:`predicate` maps the name of an attribute to
+         a value or range of values which constitute the search.  An equality
+         search is specified by supplying the value to match.  A range search is
+         a 2-tuple specifying the lower and upper bounds on the range.
+
+   .. py:method:: group_del(space, predicate):
+
+      .. include:: shards/group_del.rst
+
+      This call returns nothing.
+
+      space:
+         A string naming the space in which the object will be inserted.
+
+      predicate:
+         A dictionary specifying comparisons used for selecting objects.  Each
+         key-value pair in :py:obj:`predicate` maps the name of an attribute to
+         a value or range of values which constitute the search.  An equality
+         search is specified by supplying the value to match.  A range search is
+         a 2-tuple specifying the lower and upper bounds on the range.
+
    .. py:method:: atomic_add(space, key, value)
 
       .. include:: shards/atomic_add.rst
@@ -471,14 +522,6 @@ Python API
       .. include:: shards/set_intersect.rst
       .. include:: shards/pydeferred.rst
       .. include:: shards/pystandard_args.rst
-
-   .. py:method:: loop()
-
-      .. include:: shards/loop.rst
-
-      The returned object will be a :py:class:`Deferred` instance which tracks
-      the request.  The object will allow the user to immediately call
-      :py:meth:`wait` without blocking.
 
    .. py:method:: loop()
 
