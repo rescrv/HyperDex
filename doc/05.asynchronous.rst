@@ -343,9 +343,199 @@ using these controls:
 Note that a real implementation might want to make provisions for when clients
 fail while holding the lock.
 
+TODO
+----
+
+.. sourcecode:: pycon
+
+   >>> import hyperclient
+   >>> c = hyperclient.Client('127.0.0.1', 1982)
+   >>> c.add_space('''space alldatatypes key k attributes string s, int i, float f, list(string) ls, set(string) ss, map(string, string) mss, map(string, int) msi''')
+
+   >>> # put_if_not_exist
+   >>> c.put_if_not_exist('alldatatypes', 'gun', {})
+   True
+   >>> c.put_if_not_exist('alldatatypes', 'gun', {})
+   False
+
+   >>> # cond_put.  First is predicate.  May be any valid search predicate
+   >>> c.cond_put('alldatatypes', 'gun', {'s': ''}, {'s': 'some string'})
+   True
+   >>> c.cond_put('alldatatypes', 'gun', {'s': ''}, {'s': 'some string'})
+   False
+   >>> c.get('alldatatypes', 'gun')
+   {'f': 0.0, 'i': 0, 'mss': {}, 'ss': set([]), 's': 'some string', 'ls': [], 'msi': {}}
+
+   >>> # atomic_add
+   >>> c.atomic_add('alldatatypes', 'gun', {'i': 1, 'f': 0.25})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': 0.25, 'i': 1, 'mss': {}, 'ss': set([]), 's': 'some string', 'ls': [], 'msi': {}}
+
+   >>> # atomic_sub
+   >>> c.atomic_sub('alldatatypes', 'gun', {'i': 2, 'f': 0.5})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': -0.25, 'i': -1, 'mss': {}, 'ss': set([]), 's': 'some string', 'ls': [], 'msi': {}}
+
+   >>> # atomic_mul
+   >>> c.atomic_mul('alldatatypes', 'gun', {'i': 2, 'f': 4.})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': -1.0, 'i': -2, 'mss': {}, 'ss': set([]), 's': 'some string', 'ls': [], 'msi': {}}
+
+   >>> # atomic_div
+   >>> c.atomic_div('alldatatypes', 'gun', {'i': 2, 'f': 4.})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': -0.25, 'i': -1, 'mss': {}, 'ss': set([]), 's': 'some string', 'ls': [], 'msi': {}}
+
+   >>> # atomic_and
+   >>> c.put('alldatatypes', 'gun', {'i': 0xdeadbeefcafe})
+   True
+   >>> c.atomic_and('alldatatypes', 'gun', {'i': 0xffffffff0000})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': -0.25, 'i': 244837814042624, 'mss': {}, 'ss': set([]), 's': 'some string', 'ls': [], 'msi': {}}
+
+   >>> # atomic_or
+   >>> c.atomic_or('alldatatypes', 'gun', {'i': 0x00000000cafe})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': -0.25, 'i': 244837814094590, 'mss': {}, 'ss': set([]), 's': 'some string', 'ls': [], 'msi': {}}
+
+   >>> # atomic_xor
+   >>> c.atomic_xor('alldatatypes', 'gun', {'i': 0xdea5a0403af3})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': -0.25, 'i': 34874585101, 'mss': {}, 'ss': set([]), 's': 'some string', 'ls': [], 'msi': {}}
+
+   >>> # string_prepend
+   >>> c.string_prepend('alldatatypes', 'gun', {'s': '->'})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': -0.25, 'i': 34874585101, 'mss': {}, 'ss': set([]), 's': '->some string', 'ls': [], 'msi': {}}
+
+   >>> # string_append
+   >>> c.string_append('alldatatypes', 'gun', {'s': '<-'})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': -0.25, 'i': 34874585101, 'mss': {}, 'ss': set([]), 's': '->some string<-', 'ls': [], 'msi': {}}
+
+   >>> # list_lpush
+   >>> c.put('alldatatypes', 'gun', {'ls': ['B']})
+   True
+   >>> c.list_lpush('alldatatypes', 'gun', {'ls': 'A'})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': -0.25, 'i': 34874585101, 'mss': {}, 'ss': set([]), 's': '->some string<-', 'ls': ['A', 'B'], 'msi': {}}
+
+   >>> # list_rpush
+   >>> c.list_rpush('alldatatypes', 'gun', {'ls': 'C'})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': -0.25, 'i': 34874585101, 'mss': {}, 'ss': set([]), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {}}
+
+   >>> # set_add
+   >>> c.set_add('alldatatypes', 'gun', {'ss': 'C'})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': -0.25, 'i': 34874585101, 'mss': {}, 'ss': set(['C']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {}}
+
+   >>> # set_remove
+   >>> c.set_remove('alldatatypes', 'gun', {'ss': 'C'})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': -0.25, 'i': 34874585101, 'mss': {}, 'ss': set([]), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {}}
+
+   >>> # set_union
+   >>> c.set_union('alldatatypes', 'gun', {'ss': set(['A', 'B', 'C'])})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': -0.25, 'i': 34874585101, 'mss': {}, 'ss': set(['A', 'C', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {}}
+
+   >>> # set_intersect
+   >>> c.set_intersect('alldatatypes', 'gun', {'ss': set(['A', 'B', 'Z'])})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': -0.25, 'i': 34874585101, 'mss': {}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {}}
+
+   >>> # map_add
+   >>> c.map_add('alldatatypes', 'gun', {'mss': {'mapkey': 'mapvalue'}, 'msi': {'mapkey': 16}})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': 'mapvalue'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 16}}
+   >>> c.map_add('alldatatypes', 'gun', {'mss': {'mapkey': 'mapvalue', 'tmp': 'delete me'}, 'msi': {'mapkey': 16}})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': -0.25, 'i': 34874585101, 'mss': {'tmp': 'delete me', 'mapkey': 'mapvalue'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 16}}
+
+   >>> # Map remove  This is a clumsy API.  I should make it work with a set
+   >>> # rather than dict
+   >>> c.map_remove('alldatatypes', 'gun', {'mss': {'tmp': 'X'}})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': 'mapvalue'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 16}}
+
+   >>> # map_atomic_add
+   >>> c.map_atomic_add('alldatatypes', 'gun', {'msi': {'mapkey': 16}})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': 'mapvalue'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 32}}
+
+   >>> # map_atomic_sub
+   >>> c.map_atomic_sub('alldatatypes', 'gun', {'msi': {'mapkey': -32}})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': 'mapvalue'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 64}}
+
+   >>> # map_atomic_mul
+   >>> c.map_atomic_mul('alldatatypes', 'gun', {'msi': {'mapkey': 4}})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': 'mapvalue'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 256}}
+
+   >>> # map_atomic_div
+   >>> c.map_atomic_div('alldatatypes', 'gun', {'msi': {'mapkey': 64}})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': 'mapvalue'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 4}}
+
+   >>> # map_atomic_and
+   >>> c.map_atomic_and('alldatatypes', 'gun', {'msi': {'mapkey': 2}})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': 'mapvalue'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 0}}
+
+   >>> # map_atomic_or
+   >>> c.map_atomic_or('alldatatypes', 'gun', {'msi': {'mapkey': 5}})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': 'mapvalue'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 5}}
+
+   >>> # map_atomic_xor
+   >>> c.map_atomic_xor('alldatatypes', 'gun', {'msi': {'mapkey': 7}})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': 'mapvalue'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 2}}
+
+   >>> # map_string_prepend
+   >>> c.map_string_prepend('alldatatypes', 'gun', {'mss': {'mapkey': '->'}})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': '->mapvalue'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 2}}
+
+   >>> # map_string_append
+   >>> c.map_string_append('alldatatypes', 'gun', {'mss': {'mapkey': '<-'}})
+   True
+   >>> c.get('alldatatypes', 'gun')
+   {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': '->mapvalue<-'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 2}}
+
+
 .. todo::
 
    .. sourcecode:: pycon
 
+      >>> # a hack to clean up the tutorial, not a real TODO
       >>> c.rm_space('''friendlists''')
       >>> c.rm_space('''userlocks''')
