@@ -61,6 +61,7 @@ static struct poptOption help_popts[] = {
 
 static struct poptOption global_popts[] = {
     {"exec-path", 0, POPT_ARG_STRING, &_path, 'p', "Path to where the HyperDex programs are installed", "PATH"},
+    POPT_TABLEEND
 };
 
 static struct poptOption popts[] = {
