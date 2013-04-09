@@ -43,7 +43,7 @@
 #define CONTAINER_KEY(X) ((((X) & 56) >> 3) | ((X) & 9216))
 #define IS_PRIMITIVE(X) (CONTAINER_TYPE(X) == HYPERDATATYPE_GENERIC)
 #define CREATE_CONTAINER(C, E) ((enum hyperdatatype)((C) | (E & 7)))
-#define CREATE_CONTAINER2(C, K, V) ((enum hyperdatatype)((C) | ((K & 56) >> 3) | (V & 7)))
+#define CREATE_CONTAINER2(C, K, V) ((enum hyperdatatype)((C) | ((K & 7) << 3) | (V & 7)))
 
 enum hyperdatatype
 {

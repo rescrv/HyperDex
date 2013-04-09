@@ -595,7 +595,6 @@ rhc_rm_space(VALUE self, VALUE spacename)
                                            &rhcd->status); \
         if (rhcd->reqid < 0) \
         { \
-            printf("HI THERE\n"); \
             RAISEHC(rhcd->status); \
         } \
         rhcd->encode_return = encret; \
@@ -780,6 +779,10 @@ Init_hyperclient()
     chyperclient = rb_define_class("HyperClient", rb_cObject);
     rb_define_singleton_method(chyperclient, "new", rhc_new, 2);
     rb_define_method(chyperclient, "initialize", rhc_init, 2);
+
+    /* space creation methods */
+    rb_define_method(chyperclient, "add_space", rhc_add_space, 1);
+    rb_define_method(chyperclient, "rm_space", rhc_rm_space, 1);
 
     /* methods of HyperClient that are not ruby-specific */
     rb_define_method(chyperclient, "get", rhc_get, 2);
