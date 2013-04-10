@@ -172,6 +172,32 @@ daemon :: run(bool daemonize,
         return EXIT_FAILURE;
     }
 
+    google::LogToStderr();
+
+    if (daemonize)
+    {
+        LOG(INFO) << "forking off to the background";
+        LOG(INFO) << "you can find the log at hyperdex-daemon-YYYYMMDD-HHMMSS.sssss";
+        LOG(INFO) << "provide \"--foreground\" on the command-line if you want to run in the foreground";
+        google::SetLogSymlink(google::INFO, "");
+        google::SetLogSymlink(google::WARNING, "");
+        google::SetLogSymlink(google::ERROR, "");
+        google::SetLogSymlink(google::FATAL, "");
+        google::SetLogDestination(google::INFO, "hyperdex-daemon-");
+
+        if (::daemon(1, 0) < 0)
+        {
+            PLOG(ERROR) << "could not daemonize";
+            return EXIT_FAILURE;
+        }
+    }
+    else
+    {
+        LOG(INFO) << "running in the foreground";
+        LOG(INFO) << "no log will be generated; instead, the log messages will print to the terminal";
+        LOG(INFO) << "provide \"--daemon\" on the command-line if you want to run in the background";
+    }
+
     alarm(30);
     google::LogToStderr();
     bool saved = false;
@@ -241,18 +267,6 @@ daemon :: run(bool daemonize,
     if (!m_data.save_state(m_us, bind_to, coordinator))
     {
         return EXIT_FAILURE;
-    }
-
-    if (daemonize)
-    {
-        LOG(INFO) << "forking off to the background; goodbye!";
-        google::SetLogDestination(google::INFO, "hyperdex-");
-
-        if (::daemon(1, 0) < 0)
-        {
-            PLOG(ERROR) << "could not daemonize";
-            return EXIT_FAILURE;
-        }
     }
 
     m_comm.setup(bind_to, threads);
