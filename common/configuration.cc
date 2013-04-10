@@ -642,9 +642,9 @@ configuration :: lookup_search(const char* space_name,
 
                 for (size_t l = 0; l < s->subspaces[i].attrs.size(); ++l)
                 {
-                    if (s->subspaces[i].attrs[i] == ranges[k].attr)
+                    if (s->subspaces[i].attrs[l] == ranges[k].attr)
                     {
-                        attr = i;
+                        attr = l;
                         break;
                     }
                 }
