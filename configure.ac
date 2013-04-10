@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.62])
-AC_INIT([HyperDex], [1.0.rc3], [escriva@cs.cornell.edu])
+AC_INIT([HyperDex], [1.0.rc4], [escriva@cs.cornell.edu])
 AM_INIT_AUTOMAKE([foreign subdir-objects dist-bzip2])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AM_PATH_PYTHON([2.6])
