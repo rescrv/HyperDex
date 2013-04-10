@@ -148,6 +148,15 @@ hyperclient_search(struct hyperclient* client, const char* space,
 }
 
 int64_t
+hyperclient_search_describe(struct hyperclient* client, const char* space,
+                            const struct hyperclient_attribute_check* checks, size_t checks_sz,
+                            enum hyperclient_returncode* status,
+                            const char** description)
+{
+    C_WRAP_EXCEPT(client->search_describe(space, checks, checks_sz, status, description));
+}
+
+int64_t
 hyperclient_sorted_search(struct hyperclient* client, const char* space,
                           const struct hyperclient_attribute_check* checks, size_t checks_sz,
                           const char* sort_by, uint64_t limit, int maximize,

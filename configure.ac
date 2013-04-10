@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ([2.66])
+AC_PREREQ([2.62])
 AC_INIT([HyperDex], [1.0.rc3], [escriva@cs.cornell.edu])
 AM_INIT_AUTOMAKE([foreign subdir-objects dist-bzip2])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
@@ -71,10 +71,10 @@ else
     AC_SUBST([LRT_CFLAGS], [""])
 fi
 
-PKG_CHECK_MODULES([PO6], [libpo6 >= 0.2.3])
-PKG_CHECK_MODULES([E], [libe >= 0.2.7])
-PKG_CHECK_MODULES([BUSYBEE], [busybee >= 0.1.0])
-PKG_CHECK_MODULES([REPLICANT], [replicant >= 0.0.1])
+PKG_CHECK_MODULES([PO6], [libpo6 >= 0.3.1])
+PKG_CHECK_MODULES([E], [libe >= 0.3.2])
+PKG_CHECK_MODULES([BUSYBEE], [busybee >= 0.3.0])
+PKG_CHECK_MODULES([REPLICANT], [replicant >= 0.2.0])
 
 # Checks for header files.
 AC_CHECK_HEADERS([netinet/in.h stdint.h stdlib.h sys/socket.h unistd.h])
@@ -171,12 +171,5 @@ AM_CONDITIONAL([ENABLE_RUBY_BINDINGS], [test x"${ruby_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_YCSB_DRIVER], [test x"${enable_ycsb}" = xyes])
 AM_CONDITIONAL([ENABLE_DOCS], [test x"${enable_docs}" = xyes])
 
-case "`uname -s`" in
-        Darwin)
-                SHEXT=".dylib" ;;
-        *)
-                SHEXT=".so" ;;
-        esac
-        AC_SUBST(SHEXT)
 AC_CONFIG_FILES([Makefile hyperclient.pc])
 AC_OUTPUT

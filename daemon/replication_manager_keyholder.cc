@@ -120,10 +120,22 @@ replication_manager :: keyholder :: get_by_version(uint64_t version) const
     return NULL;
 }
 
+bool
+replication_manager :: keyholder :: exists_on_disk() const
+{
+    return m_has_old_value;
+}
+
 uint64_t
 replication_manager :: keyholder :: version_on_disk() const
 {
     return m_old_version;
+}
+
+const std::vector<e::slice>&
+replication_manager :: keyholder :: value_on_disk() const
+{
+    return m_old_value;
 }
 
 uint64_t

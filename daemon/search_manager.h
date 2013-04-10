@@ -88,6 +88,10 @@ class search_manager
                    const virtual_server_id& to,
                    uint64_t nonce,
                    std::vector<attribute_check>* checks);
+        void search_describe(const server_id& from,
+                             const virtual_server_id& to,
+                             uint64_t nonce,
+                             std::vector<attribute_check>* checks);
 
     private:
         class id;

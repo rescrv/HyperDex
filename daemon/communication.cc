@@ -431,11 +431,12 @@ communication :: recv(server_id* from,
             case BUSYBEE_DISRUPTED:
                 handle_disruption(id);
                 continue;
+            case BUSYBEE_INTERRUPTED:
+                continue;
             case BUSYBEE_POLLFAILED:
             case BUSYBEE_ADDFDFAIL:
             case BUSYBEE_TIMEOUT:
             case BUSYBEE_EXTERNAL:
-            case BUSYBEE_INTERRUPTED:
             default:
                 LOG(ERROR) << "busybee unexpectedly returned " << rc;
                 continue;
@@ -515,6 +516,9 @@ communication :: handle_disruption(uint64_t id)
     if (m_daemon->m_config.get_address(server_id(id)) != po6::net::location())
     {
         m_daemon->m_coord.report_tcp_disconnect(server_id(id));
-        m_daemon->m_stm.retransmit(server_id(id));
+        // XXX If the above line changes, then we need to sometimes tell
+        // the transfer manager to resend all that is unacked  Right now, it
+        // will cause a deadlock.
+        // m_daemon->m_stm.retransmit(server_id(id));
     }
 }

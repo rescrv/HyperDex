@@ -1,0 +1,27 @@
+% HYPERDEX(1) HyperDex User Manuals
+% Robert Escriva
+% March 05, 2013
+
+# NAME
+
+# SYNOPSIS
+
+# DESCRIPTION
+
+# OPTIONS
+
+# ENVIRONMENT
+
+# FILES
+
+# EXAMPLES
+
+# other
+
+# AUTHOR
+
+# REPORTING BUGS
+
+# COPYRIGHT
+
+# SEE ALSO

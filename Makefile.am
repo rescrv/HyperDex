@@ -28,7 +28,6 @@
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 AM_CXXFLAGS = $(PO6_CFLAGS) $(E_CFLAGS) $(BUSYBEE_CFLAGS) $(WANAL_CXXFLAGS) -fpermissive
 AM_YFLAGS = -d
-TARGET_OS = `uname -s`
 
 BUILT_SOURCES = client/parse_space_y.h
 
@@ -41,7 +40,9 @@ EXTRA_DIST = \
 			hyperclient/nodejs/sync_test.js \
 			hyperclient/nodejs/async_test.js \
 			hyperclient/nodejs/hyperclient.cc \
-			wscript
+			wscript \
+			windows/hyperclientclr.cpp \
+			windows/marshal.cpp
 
 lib_LTLIBRARIES = libhyperclient.la
 
@@ -63,16 +64,14 @@ hyperdexexec_PROGRAMS = \
 			hyperdex-add-space \
 			hyperdex-rm-space \
 			hyperdex-show-config \
+			hyperdex-async-benchmark \
+			hyperdex-benchmark \
 			hyperdex-initiate-transfer
 hyperdexexec_LTLIBRARIES = libhypercoordinator.la
 
 noinst_PROGRAMS = \
 			client/c/testcompile \
 			client/cc/testcompile
-
-if ENABLE_DOCS
-dist_man_MANS = doc/man/hyperdex-daemon.1
-endif
 
 CONFIG_CLEAN_FILES = hyperclient.pc
 
@@ -141,6 +140,7 @@ noinst_HEADERS = \
 			daemon/coordinator_link.h \
 			daemon/daemon.h \
 			daemon/datalayer.h \
+			daemon/datalayer_encodings.h \
 			daemon/index_encode.h \
 			daemon/leveldb.h \
 			daemon/reconfigure_returncode.h \
@@ -156,6 +156,7 @@ noinst_HEADERS = \
 			client/complete.h \
 			client/constants.h \
 			client/coordinator_link.h \
+			client/description.h \
 			client/hyperclient.h \
 			client/keyop_info.h \
 			client/parse_space_aux.h \
@@ -165,6 +166,7 @@ noinst_HEADERS = \
 			client/pending_group_del.h \
 			client/pending.h \
 			client/pending_search.h \
+			client/pending_search_description.h \
 			client/pending_sorted_search.h \
 			client/pending_statusonly.h \
 			client/refcount.h \
@@ -172,8 +174,13 @@ noinst_HEADERS = \
 			client/tool_wrapper.h \
 			client/util.h \
 			client/wrap.h \
+			osx/ieee754.h \
 			test/common.h \
-			tools/common.h
+			tools/common.h \
+			windows/hyperclientclr.h  \
+			windows/ieee754.h \
+			windows/marshal.h \
+			windows/unistd.h
 
 ################################################################################
 #################################### Daemon ####################################
@@ -200,6 +207,7 @@ hyperdex_daemon_SOURCES = \
 			daemon/coordinator_link.cc \
 			daemon/daemon.cc \
 			daemon/datalayer.cc \
+			daemon/datalayer_encodings.cc \
 			daemon/index_encode.cc \
 			daemon/main.cc \
 			daemon/replication_manager.cc \
@@ -296,6 +304,7 @@ libhyperclient_extra_dist = \
 			client/java/proxies/HyperClient.i \
 			client/java/proxies/hyperclient_map_attribute.i \
 			client/python/hyperclient.pyx \
+			client/ruby/type_conversion.h \
 			hyperclient.pc
 
 libhyperclient_includedir = $(includedir)
@@ -332,6 +341,7 @@ libhyperclient_la_SOURCES = \
 			client/c_wrappers.cc \
 			client/complete.cc \
 			client/coordinator_link.cc \
+			client/description.cc \
 			client/hyperclient.cc \
 			client/keyop_info.cc \
 			client/parse_space_y.y \
@@ -343,6 +353,7 @@ libhyperclient_la_SOURCES = \
 			client/pending_get.cc \
 			client/pending_group_del.cc \
 			client/pending_search.cc \
+			client/pending_search_description.cc \
 			client/pending_sorted_search.cc \
 			client/pending_statusonly.cc \
 			client/refcount.cc \
@@ -421,7 +432,7 @@ client_python_hyperclient_la_LDFLAGS = -module -avoid-version -export-symbols-re
 ################################# Ruby Bindings ################################
 
 if ENABLE_RUBY_BINDINGS
-rubydir = $(RUBY_EXT_LIB)
+rubydir = $(DESTDIR)$(RUBY_EXT_LIB)
 ruby_LTLIBRARIES = client/ruby/hyperclient.la
 endif
 
@@ -441,26 +452,33 @@ client_cc_testcompile_SOURCES = client/cc/testcompile.cc
 
 hyperdex_SOURCES = hyperdex.cc
 hyperdex_CPPFLAGS = -DHYPERDEX_EXEC_DIR=\""$(hyperdexexecdir)\"" $(CPPFLAGS)
+hyperdex_LDADD = -lpopt
 
 hyperdex_initialize_cluster_SOURCES = tools/initialize-cluster.cc
 
-hyperdex_initialize_cluster_CPPFLAGS = -DHYPERDEX_COORD_LIB=\""$(hyperdexexecdir)/libhypercoordinator$(SHEXT)\"" $(CPPFLAGS)
-hyperdex_initialize_cluster_LDADD = libhyperclient.la
+hyperdex_initialize_cluster_CPPFLAGS = -DHYPERDEX_COORD_LIB=\""$(hyperdexexecdir)/libhypercoordinator\"" $(CPPFLAGS)
+hyperdex_initialize_cluster_LDADD = libhyperclient.la -lpopt
 
 hyperdex_coordinator_SOURCES = tools/coordinator.cc
-hyperdex_coordinator_LDADD = libhyperclient.la $(E_LIBS) $(BUSYBEE_LIBS)
+hyperdex_coordinator_LDADD = libhyperclient.la $(E_LIBS) $(BUSYBEE_LIBS) -lpopt
 
 hyperdex_add_space_SOURCES = tools/add-space.cc
-hyperdex_add_space_LDADD = libhyperclient.la
+hyperdex_add_space_LDADD = libhyperclient.la -lpopt
 
 hyperdex_rm_space_SOURCES = tools/rm-space.cc
-hyperdex_rm_space_LDADD = libhyperclient.la
+hyperdex_rm_space_LDADD = libhyperclient.la -lpopt
 
 hyperdex_show_config_SOURCES = tools/show-config.cc
-hyperdex_show_config_LDADD = libhyperclient.la
+hyperdex_show_config_LDADD = libhyperclient.la -lpopt
+
+hyperdex_async_benchmark_SOURCES = tools/async-benchmark.cc
+hyperdex_async_benchmark_LDADD = libhyperclient.la -lleveldb $(E_LIBS) -lpopt
+
+hyperdex_benchmark_SOURCES = tools/benchmark.cc
+hyperdex_benchmark_LDADD = libhyperclient.la -lleveldb $(E_LIBS) -lpopt
 
 hyperdex_initiate_transfer_SOURCES = tools/initiate-transfer.cc
-hyperdex_initiate_transfer_LDADD = libhyperclient.la
+hyperdex_initiate_transfer_LDADD = libhyperclient.la -lpopt
 
 ################################################################################
 ################################## Benchmarks ##################################
@@ -517,3 +535,28 @@ doc/HyperDex-$(VERSION).pdf:
 	make -C ${abs_top_builddir}/doc/_build/latex all-pdf
 	cp ${abs_top_builddir}/doc/_build/latex/HyperDex.pdf doc/HyperDex-$(VERSION).pdf
 endif
+
+################################################################################
+################################### Man Pages ##################################
+################################################################################
+
+pandoc_verbose = $(pandoc_verbose_$(V))
+pandoc_verbose_ = $(pandoc_verbose_$(AM_DEFAULT_VERBOSITY))
+pandoc_verbose_0 = @echo "  PANDOC" $@;
+sed_verbose = $(sed_verbose_$(V))
+sed_verbose_ = $(sed_verbose_$(AM_DEFAULT_VERBOSITY))
+sed_verbose_0 = @echo "  SED   " $@;
+help2man_verbose = $(help2man_verbose_$(V))
+help2man_verbose_ = $(help2man_verbose_$(AM_DEFAULT_VERBOSITY))
+help2man_verbose_0 = @echo "  MAN   " $@;
+
+EXTRA_DIST += man/hyperdex.1.md man/hyperdex.1.h2m
+dist_man_MANS = man/hyperdex.1
+
+%.h2m: %.md
+	$(pandoc_verbose)pandoc -s -w man -o $@ $<
+	$(sed_verbose)sed -i -e 's/^\.SH \(.*\)$$/[\1]/' $@
+
+man/hyperdex.1: man/hyperdex.1.h2m hyperdex.cc $(top_srcdir)/configure.ac
+	@$(MAKE) --no-print-directory $(AM_MAKEFLAGS) hyperdex$(EXEEXT)
+	$(help2man_verbose)help2man --libtool --no-info --section 1 --output $@ --version-string=$(VERSION) --include man/hyperdex.1.h2m ./hyperdex$(EXEEXT)

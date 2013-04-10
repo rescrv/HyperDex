@@ -16,8 +16,8 @@ public class SearchBase extends Pending
     {
         super(client);
 
-        attrs_ptr = hyperclient.new_hyperclient_attribute_ptr();
-        attrs_sz_ptr = hyperclient.new_size_t_ptr();
+        attrs_ptr = hyperclient_lc.new_hyperclient_attribute_ptr();
+        attrs_sz_ptr = hyperclient_lc.new_size_t_ptr();
 
     }
 
@@ -35,9 +35,9 @@ public class SearchBase extends Pending
             hyperclient_attribute attrs = null;
             long attrs_sz = 0;
 
-            attrs = hyperclient.hyperclient_attribute_ptr_value(attrs_ptr);
+            attrs = hyperclient_lc.hyperclient_attribute_ptr_value(attrs_ptr);
 
-            attrs_sz = hyperclient.size_t_ptr_value(attrs_sz_ptr);
+            attrs_sz = hyperclient_lc.size_t_ptr_value(attrs_sz_ptr);
             try
             {
                 attrsMap =  client.attrs_to_dict(attrs,attrs_sz);
@@ -50,7 +50,7 @@ public class SearchBase extends Pending
             {
                 if ( attrs != null )
                 {
-                    hyperclient.hyperclient_destroy_attrs(attrs,attrs_sz);
+                    hyperclient_lc.hyperclient_destroy_attrs(attrs,attrs_sz);
                 }
             }
 
@@ -108,7 +108,7 @@ public class SearchBase extends Pending
     {
         super.finalize();
 
-        if (attrs_ptr != null) hyperclient.delete_hyperclient_attribute_ptr(attrs_ptr);
-        if (attrs_sz_ptr != null) hyperclient.delete_size_t_ptr(attrs_sz_ptr);
+        if (attrs_ptr != null) hyperclient_lc.delete_hyperclient_attribute_ptr(attrs_ptr);
+        if (attrs_sz_ptr != null) hyperclient_lc.delete_size_t_ptr(attrs_sz_ptr);
     }
 }

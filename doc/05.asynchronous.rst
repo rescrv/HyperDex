@@ -326,9 +326,8 @@ process; or fail the operation, leaving the object unchanged.
    >>> c.delete('userlocks', 'jsmith1')
    True
 
-This operation approximates the test-and-set mechanism used for implementing
-concurrency controls in memory.  It's easy to build ``lock()`` and ``unlock()``
-using these controls:
+Here's an illustrative example that shows how a test-and-set mechanism can be used to implement
+``lock()`` and ``unlock()``. 
 
 .. sourcecode:: pycon
 
@@ -340,12 +339,232 @@ using these controls:
    >>> lock(c, 'jsmith1')
    >>> unlock(c, 'jsmith1')
 
-Note that a real implementation might want to make provisions for when clients
-fail while holding the lock.
+Note that a real implementation will not want to busy-loop, and will want to make provisions 
+for when clients fail while holding the lock.
+
+A Comprehensive Walk
+--------------------
+
+Having built an intuition for how to structure and use the atomic operations, let's go through them
+and illustrate the various atomic operations for each of the different types. So, let's first
+create a space that can allow us to do this:
+
+.. sourcecode:: pycon
+
+   >>> import hyperclient
+   >>> c = hyperclient.Client('127.0.0.1', 1982)
+   >>> c.add_space('''space alldatatypes key k attributes string s, int i, float f, list(string) ls, set(string) ss, map(string, string) mss, map(string, int) msi''')
+
+The key-based operations ``put_if_not_exist`` and ``cond_put`` can be used to create the object if it does not exist, and to modify it only if certain fields match expected
+values, respectively.
+
+.. sourcecode:: pycon
+
+   >>> c.put_if_not_exist('alldatatypes', 'somekey', {'s': 'initial value'})
+   True
+   >>> c.put_if_not_exist('alldatatypes', 'somekey', {'s': 'initial value'})
+   False
+
+   >>> # cond_put.  First is predicate.  May be any valid search predicate
+   >>> c.cond_put('alldatatypes', 'somekey', {'s': 'initial value'}, {'s': 'some string'})
+   True
+   >>> c.cond_put('alldatatypes', 'somekey', {'s': 'initial value'}, {'s': 'some string'})
+   False
+
+Note how the first operations succeeds, and the second one fails. Let's check to make sure that our object
+reflects the changes we have applied:
+
+.. sourcecode:: pycon
+
+   >>> c.get('alldatatypes', 'somekey')
+   {'f': 0.0, 'i': 0, 'mss': {}, 'ss': set([]), 's': 'some string', 'ls': [], 'msi': {}}
+
+Let's now perform some atomic operations on integers and floats. These are self-explanatory, so we'll let the code do the talking. You will note that the float "f" and integer "i" fields are the ones of interest here, the rest are non-changing:
+
+.. sourcecode:: pycon
+
+   >>> c.atomic_add('alldatatypes', 'somekey', {'i': 1, 'f': 0.25})
+   True
+   >>> c.get('alldatatypes', 'somekey')
+   {'f': 0.25, 'i': 1, 'mss': {}, 'ss': set([]), 's': 'some string', 'ls': [], 'msi': {}}
+
+   >>> c.atomic_sub('alldatatypes', 'somekey', {'i': 2, 'f': 0.5})
+   True
+   >>> c.get('alldatatypes', 'somekey')
+   {'f': -0.25, 'i': -1, 'mss': {}, 'ss': set([]), 's': 'some string', 'ls': [], 'msi': {}}
+
+   >>> c.atomic_mul('alldatatypes', 'somekey', {'i': 2, 'f': 4.})
+   True
+   >>> c.get('alldatatypes', 'somekey')
+   {'f': -1.0, 'i': -2, 'mss': {}, 'ss': set([]), 's': 'some string', 'ls': [], 'msi': {}}
+
+   >>> c.atomic_div('alldatatypes', 'somekey', {'i': 2, 'f': 4.})
+   True
+   >>> c.get('alldatatypes', 'somekey')
+   {'f': -0.25, 'i': -1, 'mss': {}, 'ss': set([]), 's': 'some string', 'ls': [], 'msi': {}}
+
+   >>> c.put('alldatatypes', 'somekey', {'i': 0xdeadbeefcafe})
+   True
+   >>> c.atomic_and('alldatatypes', 'somekey', {'i': 0xffffffff0000})
+   True
+   >>> c.get('alldatatypes', 'somekey')
+   {'f': -0.25, 'i': 244837814042624, 'mss': {}, 'ss': set([]), 's': 'some string', 'ls': [], 'msi': {}}
+   >>> print "0x%x" % (c.get('alldatatypes', 'somekey')['i'],)
+   0xdeadbeef0000
+
+   >>> c.atomic_or('alldatatypes', 'somekey', {'i': 0x00000000cafe})
+   True
+   >>> print "0x%x" % (c.get('alldatatypes', 'somekey')['i'],)
+   0xdeadbeefcafe
+
+   >>> c.atomic_xor('alldatatypes', 'somekey', {'i': 0xdea5a0403af3})
+   True
+   >>> print "0x%x" % (c.get('alldatatypes', 'somekey')['i'],)
+   0x81eaff00d
+
+Ok, now let's perform some atomic operations on strings:
+
+.. sourcecode:: pycon
+
+   >>> c.string_prepend('alldatatypes', 'somekey', {'s': '->'})
+   True
+   >>> c.get('alldatatypes', 'somekey')['s']
+   ->some string
+
+   >>> c.string_append('alldatatypes', 'somekey', {'s': '<-'})
+   True
+   >>> c.get('alldatatypes', 'somekey')['s']
+   ->some string<-
+
+Lists provide atomic operations as well, to push new items on the left or the right of the list:
+
+.. sourcecode:: pycon
+
+   >>> c.put('alldatatypes', 'somekey', {'ls': ['B']})
+   True
+   >>> c.list_lpush('alldatatypes', 'somekey', {'ls': 'A'})
+   True
+   >>> c.get('alldatatypes', 'somekey')['ls']
+   ['A', 'B']
+
+   >>> c.list_rpush('alldatatypes', 'somekey', {'ls': 'C'})
+   True
+   >>> c.get('alldatatypes', 'somekey')['ls']
+   ['A', 'B', 'C']
+
+Sets provide the whole range of atomic set operations:
+
+.. sourcecode:: pycon
+
+   >>> c.set_add('alldatatypes', 'somekey', {'ss': 'C'})
+   True
+   >>> c.get('alldatatypes', 'somekey')['ss']
+   set(['C'])
+
+   >>> c.set_remove('alldatatypes', 'somekey', {'ss': 'C'})
+   True
+   >>> c.get('alldatatypes', 'somekey')['ss']
+   set([])
+
+   >>> c.set_union('alldatatypes', 'somekey', {'ss': set(['A', 'B', 'C'])})
+   True
+   >>> c.get('alldatatypes', 'somekey')['ss']
+   set(['A', 'C', 'B'])
+
+   >>> c.set_intersect('alldatatypes', 'somekey', {'ss': set(['A', 'B', 'Z'])})
+   True
+   >>> c.get('alldatatypes', 'somekey')['ss']
+   set(['A', 'B'])
+
+Finally, we have maps. Maps provide two kinds of atomic operations: the kind that atomically manipulates the map itself, and the kind that atomically manipulates an element of the map. 
+
+Let's atomically add an element to the ``mss`` field while atomically adding another element, with the same key, to the ``msi`` field.
+
+.. sourcecode:: pycon
+
+   >>> c.map_add('alldatatypes', 'somekey', {'mss': {'mapkey': 'mapvalue'}, 'msi': {'mapkey': 16}})
+   True
+   >>> c.get('alldatatypes', 'somekey')
+   {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': 'mapvalue'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 16}}
+
+Let's add another field to one of the maps:
+
+.. sourcecode:: pycon
+
+   >>> c.map_add('alldatatypes', 'somekey', {'mss': {'tmp': 'delete me'}})
+   True
+   >>> c.get('alldatatypes', 'somekey')
+   {'f': -0.25, 'i': 34874585101, 'mss': {'tmp': 'delete me', 'mapkey': 'mapvalue'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 16}}
+
+Let's now atomically delete that field. We need only specify its key, the value does not matter for the ``map_remove`` operation.
+
+.. sourcecode:: pycon
+
+   >>> c.map_remove('alldatatypes', 'somekey', {'mss': {'tmp': 'X'}})
+   True
+   >>> c.get('alldatatypes', 'somekey')
+   {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': 'mapvalue'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 16}}
+
+
+Now we can perform all of the preceding atomic operations on each of the elements of the maps, atomically:
+
+.. sourcecode:: pycon
+
+   >>> c.map_atomic_add('alldatatypes', 'somekey', {'msi': {'mapkey': 16}})
+   True
+   >>> c.get('alldatatypes', 'somekey')
+   {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': 'mapvalue'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 32}}
+
+   >>> c.map_atomic_sub('alldatatypes', 'somekey', {'msi': {'mapkey': -32}})
+   True
+   >>> c.get('alldatatypes', 'somekey')
+   {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': 'mapvalue'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 64}}
+
+   >>> c.map_atomic_mul('alldatatypes', 'somekey', {'msi': {'mapkey': 4}})
+   True
+   >>> c.get('alldatatypes', 'somekey')
+   {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': 'mapvalue'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 256}}
+
+   >>> c.map_atomic_div('alldatatypes', 'somekey', {'msi': {'mapkey': 64}})
+   True
+   >>> c.get('alldatatypes', 'somekey')
+   {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': 'mapvalue'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 4}}
+
+   >>> c.map_atomic_and('alldatatypes', 'somekey', {'msi': {'mapkey': 2}})
+   True
+   >>> c.get('alldatatypes', 'somekey')
+   {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': 'mapvalue'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 0}}
+
+   >>> c.map_atomic_or('alldatatypes', 'somekey', {'msi': {'mapkey': 5}})
+   True
+   >>> c.get('alldatatypes', 'somekey')
+   {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': 'mapvalue'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 5}}
+
+   >>> c.map_atomic_xor('alldatatypes', 'somekey', {'msi': {'mapkey': 7}})
+   True
+   >>> c.get('alldatatypes', 'somekey')
+   {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': 'mapvalue'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 2}}
+
+   >>> c.map_string_prepend('alldatatypes', 'somekey', {'mss': {'mapkey': '->'}})
+   True
+   >>> c.get('alldatatypes', 'somekey')
+   {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': '->mapvalue'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 2}}
+
+   >>> c.map_string_append('alldatatypes', 'somekey', {'mss': {'mapkey': '<-'}})
+   True
+   >>> c.get('alldatatypes', 'somekey')
+   {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': '->mapvalue<-'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 2}}
+
+
+HyperDex's atomic operations are extensive and very expressive. And they are guaranteed to be applied in the same order on all replicas, so the state of the object you are operating
+on is guaranteed to be the same, regardless of failovers. 
+
+
 
 .. todo::
 
    .. sourcecode:: pycon
 
+      >>> # a hack to clean up the tutorial, not a real TODO
       >>> c.rm_space('''friendlists''')
       >>> c.rm_space('''userlocks''')

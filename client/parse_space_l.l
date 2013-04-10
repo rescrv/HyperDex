@@ -34,7 +34,7 @@
 #include "hyperdex.h"
 #include "client/parse_space_y.h"
 #ifdef _MSC_VER
-#define sstrtoull(A, B, C) _strtoui64((A),(B),(C))
+#define strtoull(A, B, C) _strtoui64((A),(B),(C))
 #endif
 
 extern YYSTYPE yylval;
@@ -67,5 +67,5 @@ extern YYSTYPE yylval;
 "set"                   { return SET; }
 "map"                   { return MAP; }
 [ \t\n\r]               ;
-[1-9][0-9]*             { yylval.num = strtoull(yytext, NULL, 10); return NUMBER; }
+[0-9]*                  { yylval.num = strtoull(yytext, NULL, 10); return NUMBER; }
 [a-zA-Z_][a-zA-Z_0-9]*  { yylval.str = strdup(yytext); return IDENTIFIER; }

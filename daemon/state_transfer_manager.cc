@@ -481,7 +481,7 @@ state_transfer_manager :: put_to_disk_and_send_acks(transfer_in_state* tis)
         {
             while (tis->del_iter.valid() && tis->del_iter.key() < op->key)
             {
-                m_daemon->m_data.del(tis->xfer.rid, region_id(), 0, tis->del_iter.key());
+                m_daemon->m_data.uncertain_del(tis->xfer.rid, tis->del_iter.key());
                 tis->del_iter.next();
             }
         }
@@ -494,7 +494,7 @@ state_transfer_manager :: put_to_disk_and_send_acks(transfer_in_state* tis)
 
             while (tis->del_iter.valid())
             {
-                datalayer::returncode rc = m_daemon->m_data.del(tis->xfer.rid, region_id(), 0, tis->del_iter.key());
+                datalayer::returncode rc = m_daemon->m_data.uncertain_del(tis->xfer.rid, tis->del_iter.key());
                 tis->del_iter.next();
 
                 switch (rc)
@@ -518,7 +518,7 @@ state_transfer_manager :: put_to_disk_and_send_acks(transfer_in_state* tis)
 
         if (op->has_value)
         {
-            datalayer::returncode rc = m_daemon->m_data.put(tis->xfer.rid, region_id(), 0, op->key, op->value, op->version);
+            datalayer::returncode rc = m_daemon->m_data.uncertain_put(tis->xfer.rid, op->key, op->value, op->version);
 
             switch (rc)
             {
@@ -539,7 +539,7 @@ state_transfer_manager :: put_to_disk_and_send_acks(transfer_in_state* tis)
         }
         else
         {
-            datalayer::returncode rc = m_daemon->m_data.del(tis->xfer.rid, region_id(), 0, op->key);
+            datalayer::returncode rc = m_daemon->m_data.uncertain_del(tis->xfer.rid, op->key);
 
             switch (rc)
             {

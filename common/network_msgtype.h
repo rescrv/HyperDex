@@ -57,6 +57,9 @@ enum network_msgtype
     REQ_COUNT       = 50,
     RESP_COUNT      = 51,
 
+    REQ_SEARCH_DESCRIBE  = 52,
+    RESP_SEARCH_DESCRIBE = 53,
+
     CHAIN_OP        = 64,
     CHAIN_SUBSPACE  = 65,
     CHAIN_ACK       = 66,

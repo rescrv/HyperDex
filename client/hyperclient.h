@@ -584,6 +584,13 @@ hyperclient_search(struct hyperclient* client, const char* space,
                    enum hyperclient_returncode* status,
                    struct hyperclient_attribute** attrs, size_t* attrs_sz);
 
+/* Perform a search, and build a string describing the costs of the search.
+ */
+int64_t
+hyperclient_search_describe(struct hyperclient* client, const char* space,
+                            const struct hyperclient_attribute_check* checks, size_t checks_sz,
+                            enum hyperclient_returncode* status, const char** description);
+
 /* Perform a search for objects which match "eq" and "rn", sorting the results
  * and limiting the number of objects returned.
  *
@@ -809,6 +816,9 @@ class hyperclient
                        const struct hyperclient_attribute_check* checks, size_t checks_sz,
                        enum hyperclient_returncode* status,
                        struct hyperclient_attribute** attrs, size_t* attrs_sz);
+        int64_t search_describe(const char* space,
+                                const struct hyperclient_attribute_check* checks, size_t checks_sz,
+                                enum hyperclient_returncode* status, const char** description);
         int64_t sorted_search(const char* space,
                               const struct hyperclient_attribute_check* checks, size_t checks_sz,
                               const char* sort_by,
@@ -829,11 +839,13 @@ class hyperclient
 
     private:
         class complete;
+        class description;
         class pending;
         class pending_count;
         class pending_get;
         class pending_group_del;
         class pending_search;
+        class pending_search_description;
         class pending_sorted_search;
         class pending_statusonly;
         class refcount;

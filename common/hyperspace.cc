@@ -44,11 +44,11 @@ space :: space()
 {
 }
 
-space :: space(const char* new_name, const hyperdex::schema& sc)
+space :: space(const char* new_name, const hyperdex::schema& _sc)
     : id()
     , name(new_name)
     , fault_tolerance()
-    , sc(sc)
+    , sc(_sc)
     , subspaces()
     , m_c_strs()
     , m_attrs()

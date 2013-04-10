@@ -14,8 +14,8 @@ public class Pending
     public Pending(HyperClient client)
     {
         this.client = client;
-        rc_ptr = hyperclient.new_rc_ptr();
-        hyperclient.rc_ptr_assign(rc_ptr,hyperclient_returncode.HYPERCLIENT_GARBAGE);
+        rc_ptr = hyperclient_lc.new_rc_ptr();
+        hyperclient_lc.rc_ptr_assign(rc_ptr,hyperclient_returncode.HYPERCLIENT_GARBAGE);
     }
 
     public void callback()
@@ -26,14 +26,14 @@ public class Pending
 
     public hyperclient_returncode status()
     {
-        return hyperclient.rc_ptr_value(rc_ptr);
+        return hyperclient_lc.rc_ptr_value(rc_ptr);
     }
 
     protected void finalize() throws Throwable
     {
         super.finalize();
 
-        hyperclient.delete_rc_ptr(rc_ptr);
+        hyperclient_lc.delete_rc_ptr(rc_ptr);
     }
 
     protected void checkReqId(long reqId, hyperclient_returncode status)

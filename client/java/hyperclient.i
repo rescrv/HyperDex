@@ -26,7 +26,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-%module hyperclient
+%module hyperclient_lc
 
 %include "std_string.i"
 %include "stdint.i"
