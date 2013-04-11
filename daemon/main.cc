@@ -94,6 +94,7 @@ main(int argc, const char* argv[])
     poptcon = poptGetContext(NULL, argc, argv, popts, POPT_CONTEXT_POSIXMEHARDER);
     e::guard g = e::makeguard(poptFreeContext, poptcon); g.use_variable();
     int rc;
+    po6::net::location listen;
 
     while ((rc = poptGetNextOpt(poptcon)) != -1)
     {
@@ -110,25 +111,32 @@ main(int argc, const char* argv[])
             case 'l':
                 try
                 {
+                    _listen = true;
+
                     if (strcmp(_listen_host, "auto") == 0)
                     {
                         break;
                     }
 
                     _listen_ip = po6::net::ipaddr(_listen_host);
+                    break;
                 }
                 catch (po6::error& e)
                 {
-                    std::cerr << "cannot parse listen address" << std::endl;
-                    return EXIT_FAILURE;
                 }
                 catch (std::invalid_argument& e)
                 {
-                    std::cerr << "cannot parse listen address" << std::endl;
+                }
+
+                listen = po6::net::hostname(_listen_host, 0).lookup(AF_UNSPEC, IPPROTO_TCP);
+
+                if (listen == po6::net::location())
+                {
+                    std::cerr << "cannot interpret listen address as hostname or IP address" << std::endl;
                     return EXIT_FAILURE;
                 }
 
-                _listen = true;
+                _listen_ip = listen.address;
                 break;
             case 'L':
                 if (_listen_port >= (1 << 16))
