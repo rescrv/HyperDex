@@ -74,7 +74,7 @@ fi
 PKG_CHECK_MODULES([PO6], [libpo6 >= 0.3.1])
 PKG_CHECK_MODULES([E], [libe >= 0.3.2])
 PKG_CHECK_MODULES([BUSYBEE], [busybee >= 0.3.0])
-PKG_CHECK_MODULES([REPLICANT], [replicant >= 0.2.0])
+PKG_CHECK_MODULES([REPLICANT], [replicant >= 0.2.dev])
 
 # Checks for header files.
 AC_CHECK_HEADERS([netinet/in.h stdint.h stdlib.h sys/socket.h unistd.h])
