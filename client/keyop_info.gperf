@@ -34,6 +34,7 @@ set_remove,             true,   false,  true,   hyperdex::FUNC_SET_REMOVE,      
 set_intersect,          true,   false,  true,   hyperdex::FUNC_SET_INTERSECT,   container_set
 set_union,              true,   false,  true,   hyperdex::FUNC_SET_UNION,       container_set
 map_add,                true,   false,  true,   hyperdex::FUNC_MAP_ADD,         container_map
+cond_map_add,           true,   false,  true,   hyperdex::FUNC_MAP_ADD,         container_map
 map_remove,             true,   false,  true,   hyperdex::FUNC_MAP_REMOVE,      container_map_key_only
 map_atomic_add,         true,   false,  true,   hyperdex::FUNC_NUM_ADD,         container_map_value_numeric
 map_atomic_sub,         true,   false,  true,   hyperdex::FUNC_NUM_SUB,         container_map_value_numeric
