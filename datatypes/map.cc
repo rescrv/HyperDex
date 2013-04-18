@@ -48,7 +48,7 @@ static bool
 validate_map(bool (*step_key)(const uint8_t** ptr, const uint8_t* end, e::slice* elem),
              bool (*step_val)(const uint8_t** ptr, const uint8_t* end, e::slice* elem),
              int (*compare_key)(const e::slice& lhs, const e::slice& rhs),
-             const e::slice& map)
+             const e::slice& map, uint64_t* optional_count)
 {
     const uint8_t* ptr = map.data();
     const uint8_t* end = map.data() + map.size();
@@ -56,6 +56,7 @@ validate_map(bool (*step_key)(const uint8_t** ptr, const uint8_t* end, e::slice*
     e::slice val;
     e::slice old;
     bool has_old = false;
+    uint64_t count = 0;
 
     while (ptr < end)
     {
@@ -79,6 +80,12 @@ validate_map(bool (*step_key)(const uint8_t** ptr, const uint8_t* end, e::slice*
 
         old = key;
         has_old = true;
+        ++count;
+    }
+
+    if (optional_count)
+    {
+        *optional_count = count;
     }
 
     return ptr == end;
@@ -88,7 +95,12 @@ validate_map(bool (*step_key)(const uint8_t** ptr, const uint8_t* end, e::slice*
     bool \
     validate_as_map_ ## KEY_T ## _ ## VAL_T(const e::slice& value) \
     { \
-        return validate_map(step_ ## KEY_T, step_ ## VAL_T, compare_ ## KEY_T, value); \
+        return validate_map(step_ ## KEY_T, step_ ## VAL_T, compare_ ## KEY_T, value, NULL); \
+    } \
+    bool \
+    sizeof_map_ ## KEY_T ## _ ## VAL_T(const e::slice& value, uint64_t* count) \
+    { \
+        return validate_map(step_ ## KEY_T, step_ ## VAL_T, compare_ ## KEY_T, value, count); \
     }
 
 VALIDATE_MAP(string, string)

@@ -43,13 +43,14 @@ using hyperdex::funcall;
 bool
 validate_set(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice* elem),
              int (*compare_elem)(const e::slice& lhs, const e::slice& rhs),
-             const e::slice& set)
+             const e::slice& set, uint64_t* optional_count)
 {
     const uint8_t* ptr = set.data();
     const uint8_t* end = set.data() + set.size();
     e::slice elem;
     e::slice old;
     bool has_old = false;
+    uint64_t count = 0;
 
     while (ptr < end)
     {
@@ -68,6 +69,12 @@ validate_set(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice
 
         old = elem;
         has_old = true;
+        ++count;
+    }
+
+    if (optional_count)
+    {
+        *optional_count = count;
     }
 
     return ptr == end;
@@ -77,7 +84,12 @@ validate_set(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice
     bool \
     validate_as_set_ ## TYPE(const e::slice& value) \
     { \
-        return validate_set(step_ ## TYPE, compare_ ## TYPE, value); \
+        return validate_set(step_ ## TYPE, compare_ ## TYPE, value, NULL); \
+    } \
+    bool \
+    sizeof_set_ ## TYPE(const e::slice& value, uint64_t* count) \
+    { \
+        return validate_set(step_ ## TYPE, compare_ ## TYPE, value, count); \
     }
 
 VALIDATE_SET(string)

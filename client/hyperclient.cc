@@ -1313,6 +1313,29 @@ hyperclient :: prepare_searchop(const char* space,
     return 0;
 }
 
+static bool
+validate_check(const hyperdex::schema* sc,
+               const hyperclient_attribute_check* chk,
+               uint16_t attrnum)
+{
+    switch (chk->predicate)
+    {
+        case HYPERPREDICATE_FAIL:
+            return true;
+        case HYPERPREDICATE_EQUALS:
+        case HYPERPREDICATE_LESS_EQUAL:
+        case HYPERPREDICATE_GREATER_EQUAL:
+            return container_implicit_coercion(sc->attrs[attrnum].type,
+                                               e::slice(chk->value, chk->value_sz),
+                                               chk->datatype);
+        case HYPERPREDICATE_CONTAINS_LESS_THAN:
+            return validate_as_type(e::slice(chk->value, chk->value_sz), chk->datatype) &&
+                   chk->datatype == HYPERDATATYPE_INT64;
+        default:
+            return false;
+    }
+}
+
 size_t
 hyperclient :: prepare_checks(const hyperdex::schema* sc,
                               const hyperclient_attribute_check* checks, size_t checks_sz,
@@ -1331,9 +1354,7 @@ hyperclient :: prepare_checks(const hyperdex::schema* sc,
             return i;
         }
 
-        if (!container_implicit_coercion(sc->attrs[attrnum].type,
-                                         e::slice(checks[i].value, checks[i].value_sz),
-                                         checks[i].datatype))
+        if (!validate_check(sc, &checks[i], attrnum))
         {
             *status = HYPERCLIENT_WRONGTYPE;
             return i;

@@ -121,6 +121,8 @@ range_search(const attribute_check* ptr,
                     lower = ptr;
                 }
                 break;
+            case HYPERPREDICATE_CONTAINS_LESS_THAN:
+                break;
             case HYPERPREDICATE_FAIL:
             default:
                 return;

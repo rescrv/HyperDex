@@ -226,6 +226,7 @@ hyperdex_daemon_SOURCES = \
 			datatypes/list.cc \
 			datatypes/map.cc \
 			datatypes/set.cc \
+			datatypes/sizeof.cc \
 			datatypes/step.cc \
 			datatypes/string.cc \
 			datatypes/validate.cc \

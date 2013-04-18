@@ -25,10 +25,14 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// e
+#include <e/endian.h>
+
 // HyperDex
 #include "datatypes/alltypes.h"
 #include "datatypes/apply.h"
 #include "datatypes/compare.h"
+#include "datatypes/sizeof.h"
 #include "datatypes/validate.h"
 
 using hyperdex::attribute_check;
@@ -40,6 +44,11 @@ passes_attribute_check(hyperdatatype type,
                        const e::slice& value,
                        microerror* error)
 {
+    bool valid = false;
+    char buf_i[sizeof(int64_t)];
+    int64_t tmp_i;
+    uint64_t tmp_u;
+
     switch (check.predicate)
     {
         case HYPERPREDICATE_FAIL:
@@ -59,6 +68,17 @@ passes_attribute_check(hyperdatatype type,
             return validate_as_type(check.value, check.datatype) &&
                    type == check.datatype &&
                    compare_as_type(value, check.value, type) >= 0;
+        case HYPERPREDICATE_CONTAINS_LESS_THAN:
+            memset(buf_i, 0, sizeof(int64_t));
+            memmove(buf_i, check.value.data(), std::min(check.value.size(), sizeof(int64_t)));
+            e::unpack64le(buf_i, &tmp_i);
+            *error = MICROERR_CMPFAIL;
+            valid = sizeof_container(value, type, &tmp_u);
+            return check.datatype == HYPERDATATYPE_INT64 &&
+                   (CONTAINER_TYPE(type) == HYPERDATATYPE_LIST_GENERIC ||
+                    CONTAINER_TYPE(type) == HYPERDATATYPE_SET_GENERIC ||
+                    CONTAINER_TYPE(type) == HYPERDATATYPE_MAP_GENERIC) &&
+                   valid && static_cast<int64_t>(tmp_u) < tmp_i;
         default:
             return false;
     }

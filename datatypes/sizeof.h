@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,51 +25,18 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef datatypes_set_h_
-#define datatypes_set_h_
+#ifndef datatypes_sizeof_h_
+#define datatypes_sizeof_h_
 
 // e
 #include <e/slice.h>
 
 // HyperDex
 #include "hyperdex.h"
-#include "common/funcall.h"
-#include "datatypes/microerror.h"
 
 bool
-validate_as_set_string(const e::slice& value);
+sizeof_container(const e::slice& value,
+                 hyperdatatype datatype,
+                 uint64_t* count);
 
-bool
-parse_as_set_string(const e::slice& value);
-
-bool
-validate_as_set_int64(const e::slice& value);
-
-bool
-validate_as_set_float(const e::slice& value);
-
-bool
-sizeof_set_string(const e::slice& value, uint64_t* count);
-
-bool
-sizeof_set_int64(const e::slice& value, uint64_t* count);
-
-bool
-sizeof_set_float(const e::slice& value, uint64_t* count);
-
-uint8_t*
-apply_set_string(const e::slice& old_value,
-                 const hyperdex::funcall* funcs, size_t num_funcs,
-                 uint8_t* writeto, microerror* error);
-
-uint8_t*
-apply_set_int64(const e::slice& old_value,
-                const hyperdex::funcall* funcs, size_t num_funcs,
-                uint8_t* writeto, microerror* error);
-
-uint8_t*
-apply_set_float(const e::slice& old_value,
-                const hyperdex::funcall* funcs, size_t num_funcs,
-                uint8_t* writeto, microerror* error);
-
-#endif // datatypes_set_h_
+#endif // datatypes_sizeof_h_

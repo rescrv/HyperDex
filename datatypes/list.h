@@ -45,6 +45,15 @@ validate_as_list_int64(const e::slice& value);
 bool
 validate_as_list_float(const e::slice& value);
 
+bool
+sizeof_list_string(const e::slice& value, uint64_t* count);
+
+bool
+sizeof_list_int64(const e::slice& value, uint64_t* count);
+
+bool
+sizeof_list_float(const e::slice& value, uint64_t* count);
+
 uint8_t*
 apply_list_string(const e::slice& old_value,
                   const hyperdex::funcall* funcs, size_t num_funcs,

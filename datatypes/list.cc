@@ -40,11 +40,12 @@ using hyperdex::funcall;
 
 static bool
 validate_list(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slice* elem),
-              const e::slice& list)
+              const e::slice& list, uint64_t* optional_count)
 {
     const uint8_t* ptr = list.data();
     const uint8_t* end = list.data() + list.size();
     e::slice elem;
+    uint64_t count = 0;
 
     while (ptr < end)
     {
@@ -52,6 +53,13 @@ validate_list(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slic
         {
             return false;
         }
+
+        ++count;
+    }
+
+    if (optional_count)
+    {
+        *optional_count = count;
     }
 
     return ptr == end;
@@ -61,8 +69,13 @@ validate_list(bool (*step_elem)(const uint8_t** ptr, const uint8_t* end, e::slic
     bool \
     validate_as_list_ ## TYPE (const e::slice& value) \
     { \
-        return validate_list(step_ ## TYPE, value); \
+        return validate_list(step_ ## TYPE, value, NULL); \
     } \
+    bool \
+    sizeof_list_ ## TYPE (const e::slice& value, uint64_t* count) \
+    { \
+        return validate_list(step_ ## TYPE, value, count); \
+    }
 
 VALIDATE_LIST(string)
 VALIDATE_LIST(int64)
