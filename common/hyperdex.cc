@@ -78,6 +78,7 @@ operator << (std::ostream& lhs, hyperpredicate rhs)
         STRINGIFY(HYPERPREDICATE_LESS_EQUAL);
         STRINGIFY(HYPERPREDICATE_GREATER_EQUAL);
         STRINGIFY(HYPERPREDICATE_CONTAINS_LESS_THAN);
+        STRINGIFY(HYPERPREDICATE_REGEX);
         default:
             lhs << "unknown hyperpredicate";
             break;

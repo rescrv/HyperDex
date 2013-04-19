@@ -82,6 +82,7 @@ cdef extern from "../../hyperdex.h":
         HYPERPREDICATE_EQUALS        = 9729
         HYPERPREDICATE_LESS_EQUAL    = 9730
         HYPERPREDICATE_GREATER_EQUAL = 9731
+        HYPERPREDICATE_REGEX         = 9733
 
 cdef extern from "../hyperclient.h":
 
@@ -1202,6 +1203,14 @@ cdef class GreaterEqual(Predicate):
         if type(lower) not in (bytes, int, long, float):
             raise AttributeError("GreaterEqual must be a byte, int, or float")
         Predicate.__init__(self, [(HYPERPREDICATE_GREATER_EQUAL, lower)])
+
+
+cdef class Regex(Predicate):
+
+    def __init__(self, regex):
+        if type(regex) != bytes:
+            raise AttributeError("Regex must be a byte")
+        Predicate.__init__(self, [(HYPERPREDICATE_REGEX, regex)])
 
 
 cdef class Client:

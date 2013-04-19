@@ -1357,6 +1357,10 @@ validate_check(const hyperdex::schema* sc,
         case HYPERPREDICATE_CONTAINS_LESS_THAN:
             return validate_as_type(e::slice(chk->value, chk->value_sz), chk->datatype) &&
                    chk->datatype == HYPERDATATYPE_INT64;
+        case HYPERPREDICATE_REGEX:
+            return validate_as_type(e::slice(chk->value, chk->value_sz), chk->datatype) &&
+                   sc->attrs[attrnum].type == HYPERDATATYPE_STRING &&
+                   chk->datatype == HYPERDATATYPE_STRING;
         default:
             return false;
     }

@@ -32,6 +32,7 @@
 #include "datatypes/alltypes.h"
 #include "datatypes/apply.h"
 #include "datatypes/compare.h"
+#include "datatypes/regex.h"
 #include "datatypes/sizeof.h"
 #include "datatypes/validate.h"
 
@@ -79,6 +80,10 @@ passes_attribute_check(hyperdatatype type,
                     CONTAINER_TYPE(type) == HYPERDATATYPE_SET_GENERIC ||
                     CONTAINER_TYPE(type) == HYPERDATATYPE_MAP_GENERIC) &&
                    valid && static_cast<int64_t>(tmp_u) < tmp_i;
+        case HYPERPREDICATE_REGEX:
+            return type == HYPERDATATYPE_STRING &&
+                   check.datatype == HYPERDATATYPE_STRING &&
+                   regex_match(check.value.data(), check.value.size(), value.data(), value.size());
         default:
             return false;
     }
