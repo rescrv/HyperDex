@@ -73,6 +73,7 @@ range_search(const attribute_check& check, range* r)
         case HYPERPREDICATE_LENGTH_EQUALS:
         case HYPERPREDICATE_LENGTH_LESS_EQUAL:
         case HYPERPREDICATE_LENGTH_GREATER_EQUAL:
+        case HYPERPREDICATE_CONTAINS:
         default:
             return false;
     }

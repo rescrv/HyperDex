@@ -157,3 +157,36 @@ datatype_list :: apply(const e::slice& old_value,
 
     return writeto;
 }
+
+bool
+datatype_list :: has_contains()
+{
+    return true;
+}
+
+hyperdatatype
+datatype_list :: contains_datatype()
+{
+    return m_elem->datatype();
+}
+
+bool
+datatype_list :: contains(const e::slice& list, const e::slice& needle)
+{
+    const uint8_t* ptr = list.data();
+    const uint8_t* end = list.data() + list.size();
+    e::slice elem;
+
+    while (ptr < end)
+    {
+        bool stepped = m_elem->step(&ptr, end, &elem);
+        assert(stepped);
+
+        if (elem == needle)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}

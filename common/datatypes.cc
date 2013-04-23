@@ -148,6 +148,26 @@ datatype_info :: regex(const e::slice&,
 }
 
 bool
+datatype_info :: has_contains()
+{
+    return false;
+}
+
+hyperdatatype
+datatype_info :: contains_datatype()
+{
+    // if you see an abort here, you overrode "has_contains", but not this method
+    abort();
+}
+
+bool
+datatype_info :: contains(const e::slice&, const e::slice&)
+{
+    // if you see an abort here, you overrode "has_contains", but not this method
+    abort();
+}
+
+bool
 datatype_info :: containable()
 {
     return false;

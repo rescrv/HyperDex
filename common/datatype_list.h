@@ -51,6 +51,11 @@ class datatype_list : public datatype_info
                                const funcall* funcs, size_t funcs_sz,
                                uint8_t* writeto);
 
+    public:
+        virtual bool has_contains();
+        virtual hyperdatatype contains_datatype();
+        virtual bool contains(const e::slice& value, const e::slice& needle);
+
     private:
         datatype_list(const datatype_list&);
         datatype_list& operator = (const datatype_list&);

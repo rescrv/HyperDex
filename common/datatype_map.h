@@ -54,6 +54,11 @@ class datatype_map : public datatype_info
                                const funcall* funcs, size_t funcs_sz,
                                uint8_t* writeto);
 
+    public:
+        virtual bool has_contains();
+        virtual hyperdatatype contains_datatype();
+        virtual bool contains(const e::slice& value, const e::slice& needle);
+
     private:
         typedef std::map<e::slice, e::slice, datatype_info::compares_less> map_t;
 

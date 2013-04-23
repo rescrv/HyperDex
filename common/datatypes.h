@@ -67,6 +67,12 @@ class datatype_info
         virtual bool regex(const e::slice& regex,
                            const e::slice& value);
 
+    // override thes if the type can be matched with "contains"
+    public:
+        virtual bool has_contains();
+        virtual hyperdatatype contains_datatype();
+        virtual bool contains(const e::slice& value, const e::slice& needle);
+
     // override these if the type will be used within containers
     public:
         virtual bool containable();

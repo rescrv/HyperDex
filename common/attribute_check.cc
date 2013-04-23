@@ -78,6 +78,9 @@ hyperdex :: validate_attribute_check(const schema& sc,
         case HYPERPREDICATE_LENGTH_GREATER_EQUAL:
             return di_check->datatype() == HYPERDATATYPE_INT64 &&
                    di_attr->has_length();
+        case HYPERPREDICATE_CONTAINS:
+            return di_attr->has_contains() &&
+                   di_attr->contains_datatype() == di_check->datatype();
         default:
             return false;
     }
@@ -141,6 +144,10 @@ hyperdex :: passes_attribute_check(const schema& sc,
             return di_check->datatype() == HYPERDATATYPE_INT64 &&
                    di_attr->has_length() &&
                    static_cast<int64_t>(di_attr->length(value)) >= tmp_i;
+        case HYPERPREDICATE_CONTAINS:
+            return di_attr->has_contains() &&
+                   di_attr->contains_datatype() == di_check->datatype() &&
+                   di_attr->contains(value, check.value);
         default:
             return false;
     }

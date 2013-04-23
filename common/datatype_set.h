@@ -48,6 +48,11 @@ class datatype_set : public datatype_info
                                const funcall* funcs, size_t funcs_sz,
                                uint8_t* writeto);
 
+    public:
+        virtual bool has_contains();
+        virtual hyperdatatype contains_datatype();
+        virtual bool contains(const e::slice& value, const e::slice& needle);
+
     private:
         datatype_set(const datatype_set&);
         datatype_set& operator = (const datatype_set&);

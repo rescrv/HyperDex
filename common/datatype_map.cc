@@ -235,3 +235,40 @@ datatype_map :: apply_inner(map_t* m,
     (*m)[func->arg2] = e::slice(scratch->get(), writeto - scratch->get());
     return writeto;
 }
+
+bool
+datatype_map :: has_contains()
+{
+    return true;
+}
+
+hyperdatatype
+datatype_map :: contains_datatype()
+{
+    return m_k->datatype();
+}
+
+bool
+datatype_map :: contains(const e::slice& map, const e::slice& needle)
+{
+    const uint8_t* ptr = map.data();
+    const uint8_t* end = map.data() + map.size();
+    e::slice key;
+    e::slice val;
+
+    while (ptr < end)
+    {
+        bool stepped;
+        stepped = m_k->step(&ptr, end, &key);
+        assert(stepped);
+        stepped = m_v->step(&ptr, end, &val);
+        assert(stepped);
+
+        if (key == needle)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}

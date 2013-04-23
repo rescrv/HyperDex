@@ -194,3 +194,36 @@ datatype_set :: apply(const e::slice& old_value,
 
     return writeto;
 }
+
+bool
+datatype_set :: has_contains()
+{
+    return true;
+}
+
+hyperdatatype
+datatype_set :: contains_datatype()
+{
+    return m_elem->datatype();
+}
+
+bool
+datatype_set :: contains(const e::slice& set, const e::slice& needle)
+{
+    const uint8_t* ptr = set.data();
+    const uint8_t* end = set.data() + set.size();
+    e::slice elem;
+
+    while (ptr < end)
+    {
+        bool stepped = m_elem->step(&ptr, end, &elem);
+        assert(stepped);
+
+        if (elem == needle)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
