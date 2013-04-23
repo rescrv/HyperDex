@@ -55,8 +55,6 @@
 #include "daemon/daemon.h"
 #include "daemon/datalayer.h"
 #include "daemon/datalayer_encodings.h"
-#include "datatypes/apply.h"
-#include "datatypes/microerror.h"
 
 // ASSUME:  all keys put into leveldb have a first byte without the high bit set
 
@@ -1681,14 +1679,11 @@ datalayer :: snapshot :: valid()
             }
             else if ((*m_checks)[i].attr == 0)
             {
-                microerror e;
-                passes_checks = passes_attribute_check(sc->attrs[0].type, (*m_checks)[i], m_key, &e);
+                passes_checks = passes_attribute_check(*sc, (*m_checks)[i], m_key);
             }
             else
             {
-                hyperdatatype type = sc->attrs[(*m_checks)[i].attr].type;
-                microerror e;
-                passes_checks = passes_attribute_check(type, (*m_checks)[i], m_value[(*m_checks)[i].attr - 1], &e);
+                passes_checks = passes_attribute_check(*sc, (*m_checks)[i], m_value[(*m_checks)[i].attr - 1]);
             }
         }
 

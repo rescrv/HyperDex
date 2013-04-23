@@ -38,11 +38,12 @@
 
 // HyperDex
 #include "common/attribute_check.h"
+#include "common/datatypes.h"
 #include "common/serialization.h"
 #include "daemon/daemon.h"
 #include "daemon/search_manager.h"
-#include "datatypes/compare.h"
 
+using hyperdex::datatype_info;
 using hyperdex::search_manager;
 using hyperdex::reconfigure_returncode;
 
@@ -344,13 +345,14 @@ operator < (const _sorted_search_item& lhs, const _sorted_search_item& rhs)
 
     if (params->sort_by == 0)
     {
-        cmp = compare_as_type(lhs.key, rhs.key, params->sc->attrs[0].type);
+        datatype_info* di = datatype_info::lookup(params->sc->attrs[0].type);
+        cmp = di->compare(lhs.key, rhs.key);
     }
     else
     {
-        cmp = compare_as_type(lhs.value[params->sort_by - 1],
-                              rhs.value[params->sort_by - 1],
-                              params->sc->attrs[params->sort_by].type);
+        datatype_info* di = datatype_info::lookup(params->sc->attrs[params->sort_by].type);
+        cmp = di->compare(lhs.value[params->sort_by - 1],
+                          rhs.value[params->sort_by - 1]);
     }
 
     if (params->maximize)
@@ -378,13 +380,14 @@ operator > (const _sorted_search_item& lhs, const _sorted_search_item& rhs)
 
     if (params->sort_by == 0)
     {
-        cmp = compare_as_type(lhs.key, rhs.key, params->sc->attrs[0].type);
+        datatype_info* di = datatype_info::lookup(params->sc->attrs[0].type);
+        cmp = di->compare(lhs.key, rhs.key);
     }
     else
     {
-        cmp = compare_as_type(lhs.value[params->sort_by - 1],
-                              rhs.value[params->sort_by - 1],
-                              params->sc->attrs[params->sort_by].type);
+        datatype_info* di = datatype_info::lookup(params->sc->attrs[params->sort_by].type);
+        cmp = di->compare(lhs.value[params->sort_by - 1],
+                          rhs.value[params->sort_by - 1]);
     }
 
     if (params->maximize)

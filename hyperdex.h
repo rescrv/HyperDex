@@ -33,8 +33,7 @@
 
 /* Datatype occupies [9216, 9728)
  * The chosen constants are significant as they allow properties of the datatype
- * to be determined with simple mask operations.  See datatypes/coercion.{h,cc}
- * for more information.
+ * to be determined with simple mask operations.
  */
 
 #define CONTAINER_TYPE(X) ((X) & 9664)
@@ -91,9 +90,11 @@ enum hyperpredicate
     HYPERPREDICATE_EQUALS        = 9729,
     HYPERPREDICATE_LESS_EQUAL    = 9730,
     HYPERPREDICATE_GREATER_EQUAL = 9731,
-    HYPERPREDICATE_CONTAINS_LESS_THAN = 9732,
-    HYPERPREDICATE_REGEX         = 9733
-
+    // skip 9732
+    HYPERPREDICATE_REGEX         = 9733,
+    HYPERPREDICATE_LENGTH_EQUALS        = 9734,
+    HYPERPREDICATE_LENGTH_LESS_EQUAL    = 9735,
+    HYPERPREDICATE_LENGTH_GREATER_EQUAL = 9736
 };
 
 #ifdef __cplusplus

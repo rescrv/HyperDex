@@ -42,9 +42,6 @@ struct hyperclient_keyop_info
     bool fail_if_exist;
     bool has_funcalls;
     hyperdex::funcall_t fname;
-    bool (*check)(hyperdatatype expected,
-                  const e::slice& arg1, hyperdatatype arg1_datatype,
-                  const e::slice& arg2, hyperdatatype arg2_datatype);
 };
 
 const struct hyperclient_keyop_info*

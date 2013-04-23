@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,23 +25,40 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef datatypes_float_h_
-#define datatypes_float_h_
-
-// e
-#include <e/slice.h>
+#ifndef hyperdex_common_datatype_list_h_
+#define hyperdex_common_datatype_list_h_
 
 // HyperDex
-#include "hyperdex.h"
-#include "common/funcall.h"
-#include "datatypes/microerror.h"
+#include "common/datatypes.h"
+#include "common/datatype_string.h"
+#include "common/datatype_int64.h"
+#include "common/datatype_float.h"
 
-bool
-validate_as_float(const e::slice& value);
+namespace hyperdex
+{
 
-uint8_t*
-apply_float(const e::slice& old_value,
-            const hyperdex::funcall* funcs, size_t num_funcs,
-            uint8_t* writeto, microerror* error);
+class datatype_list : public datatype_info
+{
+    public:
+        datatype_list(datatype_info* elem);
+        virtual ~datatype_list() throw ();
 
-#endif // datatypes_float_h_
+    public:
+        virtual hyperdatatype datatype();
+        virtual bool validate(const e::slice& value);
+        virtual bool check_args(const funcall& func);
+        virtual uint8_t* apply(const e::slice& old_value,
+                               const funcall* funcs, size_t funcs_sz,
+                               uint8_t* writeto);
+
+    private:
+        datatype_list(const datatype_list&);
+        datatype_list& operator = (const datatype_list&);
+
+    private:
+        datatype_info* m_elem;
+};
+
+} // namespace hyperdex
+
+#endif // hyperdex_common_datatype_list_h_

@@ -117,21 +117,6 @@ noinst_HEADERS = \
 			common/schema.h \
 			common/serialization.h \
 			common/transfer.h \
-			datatypes/alltypes.h \
-			datatypes/apply.h \
-			datatypes/coercion.h \
-			datatypes/compare.h \
-			datatypes/float.h \
-			datatypes/int64.h \
-			datatypes/list.h \
-			datatypes/map.h \
-			datatypes/microerror.h \
-			datatypes/set.h \
-			datatypes/sort.h \
-			datatypes/step.h \
-			datatypes/string.h \
-			datatypes/validate.h \
-			datatypes/write.h \
 			coordinator/coordinator.h \
 			coordinator/missing_acks.h \
 			coordinator/server_state.h \
@@ -192,6 +177,13 @@ hyperdex_daemon_SOURCES = \
 			common/capture.cc \
 			common/configuration.cc \
 			common/counter_map.cc \
+			common/datatypes.cc \
+			common/datatype_string.cc \
+			common/datatype_int64.cc \
+			common/datatype_float.cc \
+			common/datatype_list.cc \
+			common/datatype_set.cc \
+			common/datatype_map.cc \
 			common/float_encode.cc \
 			common/funcall.cc \
 			common/hash.cc \
@@ -199,7 +191,9 @@ hyperdex_daemon_SOURCES = \
 			common/hyperspace.cc \
 			common/network_msgtype.cc \
 			common/mapper.cc \
+			common/range.cc \
 			common/range_searches.cc \
+			common/regex_match.cc \
 			common/schema.cc \
 			common/serialization.cc \
 			common/transfer.cc \
@@ -218,20 +212,7 @@ hyperdex_daemon_SOURCES = \
 			daemon/state_transfer_manager.cc \
 			daemon/state_transfer_manager_pending.cc \
 			daemon/state_transfer_manager_transfer_in_state.cc \
-			daemon/state_transfer_manager_transfer_out_state.cc \
-			datatypes/apply.cc \
-			datatypes/compare.cc \
-			datatypes/float.cc \
-			datatypes/int64.cc \
-			datatypes/list.cc \
-			datatypes/map.cc \
-			datatypes/set.cc \
-			datatypes/regex.cc \
-			datatypes/sizeof.cc \
-			datatypes/step.cc \
-			datatypes/string.cc \
-			datatypes/validate.cc \
-			datatypes/write.cc
+			daemon/state_transfer_manager_transfer_out_state.cc
 hyperdex_daemon_LDADD = \
 			$(E_LIBS) \
 			$(BUSYBEE_LIBS) -lleveldb \
@@ -318,6 +299,13 @@ libhyperclient_la_SOURCES = \
 			common/attribute_check.cc \
 			common/capture.cc \
 			common/configuration.cc \
+			common/datatypes.cc \
+			common/datatype_string.cc \
+			common/datatype_int64.cc \
+			common/datatype_float.cc \
+			common/datatype_list.cc \
+			common/datatype_set.cc \
+			common/datatype_map.cc \
 			common/float_encode.cc \
 			common/funcall.cc \
 			common/hash.cc \
@@ -325,21 +313,12 @@ libhyperclient_la_SOURCES = \
 			common/hyperspace.cc \
 			common/mapper.cc \
 			common/network_msgtype.cc \
+			common/range.cc \
 			common/range_searches.cc \
+			common/regex_match.cc \
 			common/schema.cc \
 			common/serialization.cc \
 			common/transfer.cc \
-			datatypes/coercion.cc \
-			datatypes/compare.cc \
-			datatypes/float.cc \
-			datatypes/int64.cc \
-			datatypes/list.cc \
-			datatypes/map.cc \
-			datatypes/set.cc \
-			datatypes/step.cc \
-			datatypes/string.cc \
-			datatypes/validate.cc \
-			datatypes/write.cc \
 			client/c_wrappers.cc \
 			client/complete.cc \
 			client/coordinator_link.cc \
@@ -514,7 +493,7 @@ endif
 ################################################################################
 
 hyperdex_replication_stress_test_SOURCES = replication-stress-test.cc
-hyperdex_replication_stress_test_LDADD = libhyperclient.la -lpopt $(E_LIBS) 
+hyperdex_replication_stress_test_LDADD = libhyperclient.la -lpopt $(E_LIBS)
 
 hyperdex_search_stress_test_SOURCES = search-stress-test.cc test/common.cc
 hyperdex_search_stress_test_LDADD = libhyperclient.la -lpopt $(E_LIBS)

@@ -35,11 +35,13 @@
 #include <e/endian.h>
 
 // HyperDex
-#include "datatypes/compare.h"
+#include "common/datatypes.h"
 #include "client/constants.h"
 #include "client/complete.h"
 #include "client/pending_sorted_search.h"
 #include "client/util.h"
+
+using hyperdex::datatype_info;
 
 class hyperclient::pending_sorted_search::state::item
 {
@@ -236,16 +238,16 @@ hyperclient :: pending_sorted_search :: state :: item :: operator < (const item&
     const item& lhs(*this);
     assert(lhs.st == rhs.st);
     int cmp = 0;
+    datatype_info* di = datatype_info::lookup(st->m_sort_type);
 
     if (st->m_sort_by == 0)
     {
-        cmp = compare_as_type(lhs.key, rhs.key, st->m_sort_type);
+        cmp = di->compare(lhs.key, rhs.key);
     }
     else
     {
-        cmp = compare_as_type(lhs.value[st->m_sort_by - 1],
-                              rhs.value[st->m_sort_by - 1],
-                              st->m_sort_type);
+        cmp = di->compare(lhs.value[st->m_sort_by - 1],
+                          rhs.value[st->m_sort_by - 1]);
     }
 
     if (st->m_maximize)
@@ -264,16 +266,16 @@ hyperclient :: pending_sorted_search :: state :: item :: operator > (const item&
     const item& lhs(*this);
     assert(lhs.st == rhs.st);
     int cmp = 0;
+    datatype_info* di = datatype_info::lookup(st->m_sort_type);
 
     if (st->m_sort_by == 0)
     {
-        cmp = compare_as_type(lhs.key, rhs.key, st->m_sort_type);
+        cmp = di->compare(lhs.key, rhs.key);
     }
     else
     {
-        cmp = compare_as_type(lhs.value[st->m_sort_by - 1],
-                              rhs.value[st->m_sort_by - 1],
-                              st->m_sort_type);
+        cmp = di->compare(lhs.value[st->m_sort_by - 1],
+                          rhs.value[st->m_sort_by - 1]);
     }
 
     if (st->m_maximize)

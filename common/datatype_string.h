@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,25 +25,44 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef datatypes_write_h_
-#define datatypes_write_h_
-
-// e
-#include <e/slice.h>
+#ifndef hyperdex_common_datatype_string_h_
+#define hyperdex_common_datatype_string_h_
 
 // HyperDex
-#include "hyperdex.h"
+#include "common/datatypes.h"
 
-uint8_t*
-write_string(uint8_t* writeto,
-             const e::slice& elem);
+namespace hyperdex
+{
 
-uint8_t*
-write_int64(uint8_t* writeto,
-            const e::slice& elem);
+class datatype_string : public datatype_info
+{
+    public:
+        datatype_string();
+        virtual ~datatype_string() throw ();
 
-uint8_t*
-write_float(uint8_t* writeto,
-            const e::slice& elem);
+    public:
+        virtual hyperdatatype datatype();
+        virtual bool validate(const e::slice& value);
+        virtual bool check_args(const funcall& func);
+        virtual uint8_t* apply(const e::slice& old_value,
+                               const funcall* funcs, size_t funcs_sz,
+                               uint8_t* writeto);
 
-#endif // datatypes_write_h_
+    public:
+        virtual bool has_regex();
+        virtual bool regex(const e::slice& regex,
+                           const e::slice& value);
+        virtual bool containable();
+        virtual bool step(const uint8_t** ptr,
+                          const uint8_t* end,
+                          e::slice* elem);
+        virtual uint8_t* write(uint8_t* writeto,
+                               const e::slice& elem);
+        virtual bool comparable();
+        virtual int compare(const e::slice& lhs, const e::slice& rhs);
+        virtual compares_less compare_less();
+};
+
+} // namespace hyperdex
+
+#endif // hyperdex_common_datatype_string_h_

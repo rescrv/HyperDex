@@ -25,20 +25,55 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef datatypes_microerror_h_
-#define datatypes_microerror_h_
+#define __STDC_LIMIT_MACROS
 
-enum microerror
+// HyperDex
+#include "common/range.h"
+
+using hyperdex::range;
+
+range :: range()
+    : attr(UINT16_MAX)
+    , type(HYPERDATATYPE_GARBAGE)
+    , start()
+    , end()
+    , has_start(false)
+    , has_end(false)
+    , invalid(true)
 {
-    MICROERR_UNKNOWNATTR,
-    MICROERR_DONTUSEKEY,
-    MICROERR_UNSORTEDOPS,
-    MICROERR_MALFORMED,
-    MICROERR_WRONGTYPE,
-    MICROERR_WRONGACTION,
-    MICROERR_OVERFLOW,
-    MICROERR_CMPFAIL,
-    MICROERROR
-};
+}
 
-#endif // datatypes_microerror_h_
+range :: range(const range& other)
+    : attr(other.attr)
+    , type(other.type)
+    , start(other.start)
+    , end(other.end)
+    , has_start(other.has_start)
+    , has_end(other.has_end)
+    , invalid(other.invalid)
+{
+}
+
+range :: ~range() throw ()
+{
+}
+
+range&
+range :: operator = (const range& rhs)
+{
+    attr = rhs.attr;
+    type = rhs.type;
+    start = rhs.start;
+    end = rhs.end;
+    has_start = rhs.has_start;
+    has_end = rhs.has_end;
+    invalid = rhs.invalid;
+    return *this;
+}
+
+bool
+range :: operator < (const range& rhs) const
+{
+    const range& lhs(*this);
+    return lhs.attr < rhs.attr;
+}

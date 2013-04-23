@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,25 +25,15 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef datatypes_compare_h_
-#define datatypes_compare_h_
+#ifndef hyperdex_common_regex_match_h_
+#define hyperdex_common_regex_match_h_
 
-// e
-#include <e/slice.h>
+// C
+#include <cstdlib>
+#include <stdint.h>
 
-// HyperDex
-#include "hyperdex.h"
+bool
+regex_match(const uint8_t* regex, size_t regex_sz,
+            const uint8_t* text, size_t text_sz);
 
-int
-compare_as_type(const e::slice& lhs, const e::slice& rhs, hyperdatatype type);
-
-int
-compare_string(const e::slice& lhs, const e::slice& rhs);
-
-int
-compare_int64(const e::slice& lhs, const e::slice& rhs);
-
-int
-compare_float(const e::slice& lhs, const e::slice& rhs);
-
-#endif // datatypes_compare_h_
+#endif // hyperdex_common_regex_match_h_

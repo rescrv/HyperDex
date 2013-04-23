@@ -2,7 +2,7 @@
 #include <cassert>
 
 // HyperDex
-#include "datatypes/regex.h"
+#include "common/regex_match.h"
 
 static bool
 anchored(const char* regex, const char* regex_end,

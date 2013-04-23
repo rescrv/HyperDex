@@ -50,14 +50,13 @@
 #include "common/attribute_check.h"
 #include "common/configuration.h"
 #include "common/coordinator_returncode.h"
+#include "common/datatypes.h"
 #include "common/funcall.h"
 #include "common/ids.h"
 #include "common/macros.h"
 #include "common/mapper.h"
 #include "common/schema.h"
 #include "common/serialization.h"
-#include "datatypes/coercion.h"
-#include "datatypes/validate.h"
 #include "client/complete.h"
 #include "client/constants.h"
 #include "client/coordinator_link.h"
@@ -78,6 +77,7 @@
 
 using hyperdex::attribute_check;
 using hyperdex::coordinator_returncode;
+using hyperdex::datatype_info;
 using hyperdex::funcall;
 using hyperdex::server_id;
 using hyperdex::virtual_server_id;
@@ -93,7 +93,8 @@ using hyperdex::virtual_server_id;
         *status = HYPERCLIENT_UNKNOWNSPACE; \
         return -1; \
     } \
-    if (!validate_as_type(e::slice((KEY), (KEY_SZ)), (SCHEMA)->attrs[0].type)) \
+    datatype_info* CONCAT(_di_, __LINE__) = datatype_info::lookup(SCHEMA->attrs[0].type); \
+    if (!CONCAT(_di_, __LINE__)->validate(e::slice((KEY), (KEY_SZ)))) \
     { \
         *status = HYPERCLIENT_WRONGTYPE; \
         return -1; \
@@ -1339,33 +1340,6 @@ hyperclient :: prepare_searchop(const char* space,
     return 0;
 }
 
-static bool
-validate_check(const hyperdex::schema* sc,
-               const hyperclient_attribute_check* chk,
-               uint16_t attrnum)
-{
-    switch (chk->predicate)
-    {
-        case HYPERPREDICATE_FAIL:
-            return true;
-        case HYPERPREDICATE_EQUALS:
-        case HYPERPREDICATE_LESS_EQUAL:
-        case HYPERPREDICATE_GREATER_EQUAL:
-            return container_implicit_coercion(sc->attrs[attrnum].type,
-                                               e::slice(chk->value, chk->value_sz),
-                                               chk->datatype);
-        case HYPERPREDICATE_CONTAINS_LESS_THAN:
-            return validate_as_type(e::slice(chk->value, chk->value_sz), chk->datatype) &&
-                   chk->datatype == HYPERDATATYPE_INT64;
-        case HYPERPREDICATE_REGEX:
-            return validate_as_type(e::slice(chk->value, chk->value_sz), chk->datatype) &&
-                   sc->attrs[attrnum].type == HYPERDATATYPE_STRING &&
-                   chk->datatype == HYPERDATATYPE_STRING;
-        default:
-            return false;
-    }
-}
-
 size_t
 hyperclient :: prepare_checks(const hyperdex::schema* sc,
                               const hyperclient_attribute_check* checks, size_t checks_sz,
@@ -1378,15 +1352,9 @@ hyperclient :: prepare_checks(const hyperdex::schema* sc,
     {
         uint16_t attrnum = sc->lookup_attr(checks[i].attr);
 
-        if (attrnum == sc->attrs_sz)
+        if (attrnum >= sc->attrs_sz)
         {
             *status = HYPERCLIENT_UNKNOWNATTR;
-            return i;
-        }
-
-        if (!validate_check(sc, &checks[i], attrnum))
-        {
-            *status = HYPERCLIENT_WRONGTYPE;
             return i;
         }
 
@@ -1395,6 +1363,13 @@ hyperclient :: prepare_checks(const hyperdex::schema* sc,
         c.value = e::slice(checks[i].value, checks[i].value_sz);
         c.datatype = checks[i].datatype;
         c.predicate = checks[i].predicate;
+
+        if (!validate_attribute_check(*sc, c))
+        {
+            *status = HYPERCLIENT_WRONGTYPE;
+            return i;
+        }
+
         chks->push_back(c);
     }
 
@@ -1426,19 +1401,19 @@ hyperclient :: prepare_ops(const hyperdex::schema* sc,
             return i;
         }
 
-        if (!opinfo->check(sc->attrs[attrnum].type,
-                           e::slice(attrs[i].value, attrs[i].value_sz), attrs[i].datatype,
-                           e::slice(), HYPERDATATYPE_GARBAGE))
-        {
-            *status = HYPERCLIENT_WRONGTYPE;
-            return i;
-        }
-
         funcall o;
         o.attr = attrnum;
         o.name = opinfo->fname;
         o.arg1 = e::slice(attrs[i].value, attrs[i].value_sz);
         o.arg1_datatype = attrs[i].datatype;
+        datatype_info* type = datatype_info::lookup(sc->attrs[attrnum].type);
+
+        if (!type->check_args(o))
+        {
+            *status = HYPERCLIENT_WRONGTYPE;
+            return i;
+        }
+
         ops->push_back(o);
     }
 
@@ -1470,14 +1445,6 @@ hyperclient :: prepare_ops(const hyperdex::schema* sc,
             return i;
         }
 
-        if (!opinfo->check(sc->attrs[attrnum].type,
-                           e::slice(attrs[i].value, attrs[i].value_sz), attrs[i].value_datatype,
-                           e::slice(attrs[i].map_key, attrs[i].map_key_sz), attrs[i].map_key_datatype))
-        {
-            *status = HYPERCLIENT_WRONGTYPE;
-            return i;
-        }
-
         funcall o;
         o.attr = attrnum;
         o.name = opinfo->fname;
@@ -1485,6 +1452,14 @@ hyperclient :: prepare_ops(const hyperdex::schema* sc,
         o.arg2_datatype = attrs[i].map_key_datatype;
         o.arg1 = e::slice(attrs[i].value, attrs[i].value_sz);
         o.arg1_datatype = attrs[i].value_datatype;
+        datatype_info* type = datatype_info::lookup(sc->attrs[attrnum].type);
+
+        if (!type->check_args(o))
+        {
+            *status = HYPERCLIENT_WRONGTYPE;
+            return i;
+        }
+
         ops->push_back(o);
     }
 

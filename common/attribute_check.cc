@@ -25,9 +25,13 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// e
+#include <e/endian.h>
+
 // HyperDex
-#include "common/serialization.h"
 #include "common/attribute_check.h"
+#include "common/datatypes.h"
+#include "common/serialization.h"
 
 using hyperdex::attribute_check;
 
@@ -41,6 +45,105 @@ attribute_check :: attribute_check()
 
 attribute_check :: ~attribute_check() throw ()
 {
+}
+
+bool
+hyperdex :: validate_attribute_check(const schema& sc,
+                                     const attribute_check& check)
+{
+    assert(check.attr < sc.attrs_sz);
+    datatype_info* di_attr = datatype_info::lookup(sc.attrs[check.attr].type);
+    datatype_info* di_check = datatype_info::lookup(check.datatype);
+
+    if (!di_attr || !di_check || !di_check->validate(check.value))
+    {
+        return false;
+    }
+
+    switch (check.predicate)
+    {
+        case HYPERPREDICATE_FAIL:
+            return true;
+        case HYPERPREDICATE_EQUALS:
+            return di_attr->datatype() == di_check->datatype();
+        case HYPERPREDICATE_LESS_EQUAL:
+        case HYPERPREDICATE_GREATER_EQUAL:
+            return di_attr->datatype() == di_check->datatype() &&
+                   di_attr->comparable();
+        case HYPERPREDICATE_REGEX:
+            return di_check->datatype() == HYPERDATATYPE_STRING &&
+                   di_attr->has_regex();
+        case HYPERPREDICATE_LENGTH_EQUALS:
+        case HYPERPREDICATE_LENGTH_LESS_EQUAL:
+        case HYPERPREDICATE_LENGTH_GREATER_EQUAL:
+            return di_check->datatype() == HYPERDATATYPE_INT64 &&
+                   di_attr->has_length();
+        default:
+            return false;
+    }
+}
+
+bool
+hyperdex :: passes_attribute_check(const schema& sc,
+                                   const attribute_check& check,
+                                   const e::slice& value)
+{
+    assert(check.attr < sc.attrs_sz);
+    datatype_info* di_attr = datatype_info::lookup(sc.attrs[check.attr].type);
+    datatype_info* di_check = datatype_info::lookup(check.datatype);
+
+    if (!di_attr || !di_check ||
+        !di_attr->validate(value) ||
+        !di_check->validate(check.value))
+    {
+        return false;
+    }
+
+    char buf_i[sizeof(int64_t)];
+    int64_t tmp_i;
+
+    switch (check.predicate)
+    {
+        case HYPERPREDICATE_FAIL:
+            return false;
+        case HYPERPREDICATE_EQUALS:
+            return di_attr->datatype() == di_check->datatype() &&
+                   check.value == value;
+        case HYPERPREDICATE_LESS_EQUAL:
+            return di_attr->datatype() == di_check->datatype() &&
+                   di_attr->comparable() &&
+                   di_attr->compare(check.value, value) <= 0;
+        case HYPERPREDICATE_GREATER_EQUAL:
+            return di_attr->datatype() == di_check->datatype() &&
+                   di_attr->comparable() &&
+                   di_attr->compare(check.value, value) >= 0;
+        case HYPERPREDICATE_REGEX:
+            return di_check->datatype() == HYPERDATATYPE_STRING &&
+                   di_attr->has_regex();
+        case HYPERPREDICATE_LENGTH_EQUALS:
+            memset(buf_i, 0, sizeof(int64_t));
+            memmove(buf_i, check.value.data(), std::min(check.value.size(), sizeof(int64_t)));
+            e::unpack64le(buf_i, &tmp_i);
+            return di_check->datatype() == HYPERDATATYPE_INT64 &&
+                   di_attr->has_length() &&
+                   static_cast<int64_t>(di_attr->length(value)) == tmp_i;
+        case HYPERPREDICATE_LENGTH_LESS_EQUAL:
+            memset(buf_i, 0, sizeof(int64_t));
+            memmove(buf_i, check.value.data(), std::min(check.value.size(), sizeof(int64_t)));
+            e::unpack64le(buf_i, &tmp_i);
+            return di_check->datatype() == HYPERDATATYPE_INT64 &&
+                   di_attr->has_length() &&
+                   static_cast<int64_t>(di_attr->length(value)) <= tmp_i;
+        case HYPERPREDICATE_LENGTH_GREATER_EQUAL:
+            memset(buf_i, 0, sizeof(int64_t));
+            memmove(buf_i, check.value.data(), std::min(check.value.size(), sizeof(int64_t)));
+            e::unpack64le(buf_i, &tmp_i);
+            return di_check->datatype() == HYPERDATATYPE_INT64 &&
+                   di_attr->has_length() &&
+                   static_cast<int64_t>(di_attr->length(value)) >= tmp_i;
+        default:
+            return false;
+    }
 }
 
 bool

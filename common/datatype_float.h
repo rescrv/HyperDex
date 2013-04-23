@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,55 +25,41 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// e
-#include <e/endian.h>
+#ifndef hyperdex_common_datatype_float_h_
+#define hyperdex_common_datatype_float_h_
 
 // HyperDex
-#include "datatypes/step.h"
+#include "common/datatypes.h"
 
-bool
-step_string(const uint8_t** ptr,
-            const uint8_t* end,
-            e::slice* elem)
+namespace hyperdex
 {
-    if (static_cast<size_t>(end - *ptr) < sizeof(uint32_t))
-    {
-        return false;
-    }
 
-    uint32_t sz = 0;
-    *ptr = e::unpack32le(*ptr, &sz);
-    *elem = e::slice(*ptr, sz);
-    *ptr += sz;
-    return *ptr <= end;
-}
-
-bool
-step_int64(const uint8_t** ptr,
-           const uint8_t* end,
-           e::slice* elem)
+class datatype_float : public datatype_info
 {
-    if (static_cast<size_t>(end - *ptr) < sizeof(int64_t))
-    {
-        return false;
-    }
+    public:
+        datatype_float();
+        virtual ~datatype_float() throw ();
 
-    *elem = e::slice(*ptr, sizeof(int64_t));
-    *ptr += sizeof(int64_t);
-    return true;
-}
+    public:
+        virtual hyperdatatype datatype();
+        virtual bool validate(const e::slice& value);
+        virtual bool check_args(const funcall& func);
+        virtual uint8_t* apply(const e::slice& old_value,
+                               const funcall* funcs, size_t funcs_sz,
+                               uint8_t* writeto);
 
-bool
-step_float(const uint8_t** ptr,
-           const uint8_t* end,
-           e::slice* elem)
-{
-    if (static_cast<size_t>(end - *ptr) < sizeof(double))
-    {
-        return false;
-    }
+    public:
+        virtual bool containable();
+        virtual bool step(const uint8_t** ptr,
+                          const uint8_t* end,
+                          e::slice* elem);
+        virtual uint8_t* write(uint8_t* writeto,
+                               const e::slice& elem);
+        virtual bool comparable();
+        virtual int compare(const e::slice& lhs, const e::slice& rhs);
+        virtual compares_less compare_less();
+};
 
-    *elem = e::slice(*ptr, sizeof(double));
-    *ptr += sizeof(double);
-    return true;
-}
+} // namespace hyperdex
+
+#endif // hyperdex_common_datatype_float_h_

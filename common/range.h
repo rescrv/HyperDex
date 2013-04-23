@@ -25,8 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef datatypes_validate_h_
-#define datatypes_validate_h_
+#ifndef hyperdex_common_range_h_
+#define hyperdex_common_range_h_
 
 // e
 #include <e/slice.h>
@@ -34,7 +34,31 @@
 // HyperDex
 #include "hyperdex.h"
 
-bool
-validate_as_type(const e::slice& value, hyperdatatype type);
+namespace hyperdex
+{
 
-#endif // datatypes_validate_h_
+// a range is inclusive
+class range
+{
+    public:
+        range();
+        range(const range& other);
+        ~range() throw ();
+
+    public:
+        range& operator = (const range& rhs);
+        bool operator < (const range& rhs) const;
+
+    public:
+        uint16_t attr;
+        hyperdatatype type; // XXX remove
+        e::slice start;
+        e::slice end;
+        bool has_start;
+        bool has_end;
+        bool invalid;
+};
+
+}
+
+#endif // hyperdex_common_range_h_

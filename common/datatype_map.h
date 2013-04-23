@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,51 +25,52 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef datatypes_set_h_
-#define datatypes_set_h_
+#ifndef hyperdex_common_datatype_map_h_
+#define hyperdex_common_datatype_map_h_
+
+// STL
+#include <map>
 
 // e
-#include <e/slice.h>
+#include <e/array_ptr.h>
 
 // HyperDex
-#include "hyperdex.h"
-#include "common/funcall.h"
-#include "datatypes/microerror.h"
+#include "common/datatypes.h"
 
-bool
-validate_as_set_string(const e::slice& value);
+namespace hyperdex
+{
 
-bool
-parse_as_set_string(const e::slice& value);
+class datatype_map : public datatype_info
+{
+    public:
+        datatype_map(datatype_info* k, datatype_info* v);
+        virtual ~datatype_map() throw ();
 
-bool
-validate_as_set_int64(const e::slice& value);
+    public:
+        virtual hyperdatatype datatype();
+        virtual bool validate(const e::slice& value);
+        virtual bool check_args(const funcall& func);
+        virtual uint8_t* apply(const e::slice& old_value,
+                               const funcall* funcs, size_t funcs_sz,
+                               uint8_t* writeto);
 
-bool
-validate_as_set_float(const e::slice& value);
+    private:
+        typedef std::map<e::slice, e::slice, datatype_info::compares_less> map_t;
 
-bool
-sizeof_set_string(const e::slice& value, uint64_t* count);
+    private:
+        datatype_map(const datatype_map&);
+        datatype_map& operator = (const datatype_map&);
 
-bool
-sizeof_set_int64(const e::slice& value, uint64_t* count);
+    private:
+        bool apply_inner(map_t* m,
+                         e::array_ptr<uint8_t>* scratch,
+                         const funcall* func); // XXX don't fail?
 
-bool
-sizeof_set_float(const e::slice& value, uint64_t* count);
+    private:
+        datatype_info* m_k;
+        datatype_info* m_v;
+};
 
-uint8_t*
-apply_set_string(const e::slice& old_value,
-                 const hyperdex::funcall* funcs, size_t num_funcs,
-                 uint8_t* writeto, microerror* error);
+} // namespace hyperdex
 
-uint8_t*
-apply_set_int64(const e::slice& old_value,
-                const hyperdex::funcall* funcs, size_t num_funcs,
-                uint8_t* writeto, microerror* error);
-
-uint8_t*
-apply_set_float(const e::slice& old_value,
-                const hyperdex::funcall* funcs, size_t num_funcs,
-                uint8_t* writeto, microerror* error);
-
-#endif // datatypes_set_h_
+#endif // hyperdex_common_datatype_map_h_

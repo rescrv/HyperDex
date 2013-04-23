@@ -37,4 +37,7 @@
 #define xstr(x) str(x)
 #define stringify(x) case (x): lhs << xstr(x); break
 
+#define XCONCAT(x, y) x ## y
+#define CONCAT(x, y) XCONCAT(x, y)
+
 #endif // hyperdex_common_macros_h_
