@@ -159,6 +159,31 @@ datatype_list :: apply(const e::slice& old_value,
 }
 
 bool
+datatype_list :: has_length()
+{
+    return true;
+}
+
+uint64_t
+datatype_list :: length(const e::slice& list)
+{
+    const uint8_t* ptr = list.data();
+    const uint8_t* end = list.data() + list.size();
+    e::slice elem;
+    uint64_t count = 0;
+
+    while (ptr < end)
+    {
+        bool stepped = m_elem->step(&ptr, end, &elem);
+        assert(stepped);
+        ++count;
+    }
+
+    assert(ptr == end);
+    return count;
+}
+
+bool
 datatype_list :: has_contains()
 {
     return true;
@@ -188,5 +213,6 @@ datatype_list :: contains(const e::slice& list, const e::slice& needle)
         }
     }
 
+    assert(ptr == end);
     return false;
 }

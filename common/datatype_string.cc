@@ -126,6 +126,18 @@ datatype_string :: apply(const e::slice& old_value,
 }
 
 bool
+datatype_string :: has_length()
+{
+    return true;
+}
+
+uint64_t
+datatype_string :: length(const e::slice& value)
+{
+    return value.size();
+}
+
+bool
 datatype_string :: has_regex()
 {
     return true;

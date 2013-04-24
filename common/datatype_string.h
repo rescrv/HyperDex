@@ -49,6 +49,8 @@ class datatype_string : public datatype_info
                                uint8_t* writeto);
 
     public:
+        virtual bool has_length();
+        virtual uint64_t length(const e::slice& value);
         virtual bool has_regex();
         virtual bool regex(const e::slice& regex,
                            const e::slice& value);

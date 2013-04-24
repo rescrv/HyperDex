@@ -196,6 +196,31 @@ datatype_set :: apply(const e::slice& old_value,
 }
 
 bool
+datatype_set :: has_length()
+{
+    return true;
+}
+
+uint64_t
+datatype_set :: length(const e::slice& set)
+{
+    const uint8_t* ptr = set.data();
+    const uint8_t* end = set.data() + set.size();
+    e::slice elem;
+    uint64_t count = 0;
+
+    while (ptr < end)
+    {
+        bool stepped = m_elem->step(&ptr, end, &elem);
+        assert(stepped);
+        ++count;
+    }
+
+    assert(ptr == end);
+    return count;
+}
+
+bool
 datatype_set :: has_contains()
 {
     return true;
@@ -225,5 +250,6 @@ datatype_set :: contains(const e::slice& set, const e::slice& needle)
         }
     }
 
+    assert(ptr == end);
     return false;
 }

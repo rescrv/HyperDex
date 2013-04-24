@@ -49,6 +49,8 @@ class datatype_set : public datatype_info
                                uint8_t* writeto);
 
     public:
+        virtual bool has_length();
+        virtual uint64_t length(const e::slice& value);
         virtual bool has_contains();
         virtual hyperdatatype contains_datatype();
         virtual bool contains(const e::slice& value, const e::slice& needle);

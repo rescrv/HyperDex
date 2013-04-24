@@ -237,6 +237,35 @@ datatype_map :: apply_inner(map_t* m,
 }
 
 bool
+datatype_map :: has_length()
+{
+    return true;
+}
+
+uint64_t
+datatype_map :: length(const e::slice& map)
+{
+    const uint8_t* ptr = map.data();
+    const uint8_t* end = map.data() + map.size();
+    e::slice key;
+    e::slice val;
+    uint64_t count = 0;
+
+    while (ptr < end)
+    {
+        bool stepped;
+        stepped = m_k->step(&ptr, end, &key);
+        assert(stepped);
+        stepped = m_v->step(&ptr, end, &val);
+        assert(stepped);
+        ++count;
+    }
+
+    assert(ptr == end);
+    return count;
+}
+
+bool
 datatype_map :: has_contains()
 {
     return true;
@@ -270,5 +299,6 @@ datatype_map :: contains(const e::slice& map, const e::slice& needle)
         }
     }
 
+    assert(ptr == end);
     return false;
 }

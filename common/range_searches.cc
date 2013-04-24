@@ -69,6 +69,7 @@ range_search(const attribute_check& check, range* r)
             r->invalid = false;
             return true;
         case HYPERPREDICATE_FAIL:
+        case HYPERPREDICATE_CONTAINS_LESS_THAN:
         case HYPERPREDICATE_REGEX:
         case HYPERPREDICATE_LENGTH_EQUALS:
         case HYPERPREDICATE_LENGTH_LESS_EQUAL:
