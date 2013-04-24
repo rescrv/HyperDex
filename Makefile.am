@@ -104,6 +104,13 @@ noinst_HEADERS = \
 			common/configuration.h \
 			common/coordinator_returncode.h \
 			common/counter_map.h \
+			common/datatypes.h \
+			common/datatype_string.h \
+			common/datatype_int64.h \
+			common/datatype_float.h \
+			common/datatype_map.h \
+			common/datatype_set.h \
+			common/datatype_list.h \
 			common/float_encode.h \
 			common/funcall.h \
 			common/hash.h \
@@ -113,7 +120,9 @@ noinst_HEADERS = \
 			common/mapper.h \
 			common/network_msgtype.h \
 			common/network_returncode.h \
+			common/range.h \
 			common/range_searches.h \
+			common/regex_match.h \
 			common/schema.h \
 			common/serialization.h \
 			common/transfer.h \
