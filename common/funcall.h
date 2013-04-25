@@ -31,11 +31,16 @@
 // C
 #include <stdint.h>
 
+// STL
+#include <tr1/memory>
+
 // e
+#include <e/buffer.h>
 #include <e/slice.h>
 
 // HyperDex
 #include "hyperdex.h"
+#include "common/schema.h"
 
 namespace hyperdex
 {
@@ -84,6 +89,14 @@ class funcall
         e::slice arg2;
         hyperdatatype arg2_datatype;
 };
+
+size_t
+apply_funcs(const schema& sc,
+            const std::vector<funcall>& funcs,
+            const e::slice& key,
+            const std::vector<e::slice>& old_value,
+            std::tr1::shared_ptr<e::buffer>* backing,
+            std::vector<e::slice>* new_value);
 
 bool
 operator < (const funcall& lhs, const funcall& rhs);

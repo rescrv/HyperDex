@@ -174,13 +174,6 @@ class replication_manager
                                const server_id& client,
                                uint64_t nonce,
                                network_returncode ret);
-        // manipulate the objects themselves
-        size_t apply_funcs(const hyperdex::schema& sc,
-                           const std::vector<hyperdex::funcall>& funcs,
-                           const e::slice& key,
-                           const std::vector<e::slice>& old_value,
-                           std::tr1::shared_ptr<e::buffer>* backing,
-                           std::vector<e::slice>* new_value);
 
         // thread functions
         void retransmitter();
