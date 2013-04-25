@@ -792,7 +792,6 @@ replication_manager :: move_operations_between_queues(const virtual_server_id& u
         uint64_t old_version = 0;
         std::vector<e::slice>* old_value = NULL;
         kh->get_latest_version(&has_old_value, &old_version, &old_value);
-        if (old_version >= kh->oldest_deferred_version()) LOG(INFO) << "VERSIONS " << old_version  << " " << kh->oldest_deferred_version();
         assert(old_version < kh->oldest_deferred_version());
         e::intrusive_ptr<pending> new_pend = kh->oldest_deferred_op();
 
