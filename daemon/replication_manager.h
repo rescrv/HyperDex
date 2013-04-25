@@ -175,10 +175,6 @@ class replication_manager
                                uint64_t nonce,
                                network_returncode ret);
         // manipulate the objects themselves
-        size_t perform_checks(const schema& sc,
-                              const std::vector<hyperdex::attribute_check>& checks,
-                              const e::slice& key,
-                              const std::vector<e::slice>& value);
         size_t apply_funcs(const hyperdex::schema& sc,
                            const std::vector<hyperdex::funcall>& funcs,
                            const e::slice& key,

@@ -270,7 +270,7 @@ replication_manager :: client_atomic(const server_id& from,
     // version and the funcalls.
     std::tr1::shared_ptr<e::buffer> backing;
     std::vector<e::slice> new_value;
-    size_t checks_passed = perform_checks(*sc, *checks, key, *old_value);
+    size_t checks_passed = passes_attribute_checks(*sc, *checks, key, *old_value);
 
     if (checks_passed != checks->size())
     {
@@ -1024,34 +1024,6 @@ replication_manager :: respond_to_client(const virtual_server_id& us,
     uint16_t result = static_cast<uint16_t>(ret);
     msg->pack_at(HYPERDEX_HEADER_SIZE_VC) << nonce << result;
     m_daemon->m_comm.send_client(us, client, RESP_ATOMIC, msg);
-}
-
-size_t
-replication_manager :: perform_checks(const schema& sc,
-                                      const std::vector<hyperdex::attribute_check>& checks,
-                                      const e::slice& key,
-                                      const std::vector<e::slice>& value)
-{
-    for (size_t i = 0; i < checks.size(); ++i)
-    {
-        if (checks[i].attr >= sc.attrs_sz)
-        {
-            return i;
-        }
-
-        if (checks[i].attr > 0 &&
-            !passes_attribute_check(sc, checks[i], value[checks[i].attr - 1]))
-        {
-            return i;
-        }
-        else if (checks[i].attr == 0 &&
-                 !passes_attribute_check(sc, checks[i], key))
-        {
-            return i;
-        }
-    }
-
-    return checks.size();
 }
 
 size_t

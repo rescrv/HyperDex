@@ -155,6 +155,34 @@ hyperdex :: passes_attribute_check(const schema& sc,
     }
 }
 
+size_t
+hyperdex :: passes_attribute_checks(const schema& sc,
+                                    const std::vector<hyperdex::attribute_check>& checks,
+                                    const e::slice& key,
+                                    const std::vector<e::slice>& value)
+{
+    for (size_t i = 0; i < checks.size(); ++i)
+    {
+        if (checks[i].attr >= sc.attrs_sz)
+        {
+            return i;
+        }
+
+        if (checks[i].attr > 0 &&
+            !passes_attribute_check(sc, checks[i], value[checks[i].attr - 1]))
+        {
+            return i;
+        }
+        else if (checks[i].attr == 0 &&
+                 !passes_attribute_check(sc, checks[i], key))
+        {
+            return i;
+        }
+    }
+
+    return checks.size();
+}
+
 bool
 hyperdex :: operator < (const attribute_check& lhs, const attribute_check& rhs)
 {

@@ -60,6 +60,12 @@ passes_attribute_check(const schema& sc,
                        const attribute_check& chk,
                        const e::slice& value);
 
+size_t
+passes_attribute_checks(const schema& sc,
+                        const std::vector<hyperdex::attribute_check>& checks,
+                        const e::slice& key,
+                        const std::vector<e::slice>& value);
+
 bool
 operator < (const attribute_check& lhs,
             const attribute_check& rhs);
