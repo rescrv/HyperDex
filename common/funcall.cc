@@ -48,6 +48,28 @@ funcall :: ~funcall() throw ()
 }
 
 size_t
+hyperdex :: validate_funcs(const schema& sc,
+                           const std::vector<funcall>& funcs)
+{
+    for (size_t i = 0; i < funcs.size(); ++i)
+    {
+        if (funcs[i].attr >= sc.attrs_sz)
+        {
+            return i;
+        }
+
+        datatype_info* di = datatype_info::lookup(sc.attrs[funcs[i].attr].type);
+
+        if (!di || !di->check_args(funcs[i]))
+        {
+            return i;
+        }
+    }
+
+    return funcs.size();
+}
+
+size_t
 hyperdex :: apply_funcs(const schema& sc,
                         const std::vector<funcall>& funcs,
                         const e::slice& key,

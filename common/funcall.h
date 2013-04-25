@@ -91,6 +91,10 @@ class funcall
 };
 
 size_t
+validate_funcs(const schema& sc,
+               const std::vector<funcall>& funcs);
+
+size_t
 apply_funcs(const schema& sc,
             const std::vector<funcall>& funcs,
             const e::slice& key,
