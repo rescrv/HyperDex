@@ -55,6 +55,10 @@ bool
 validate_attribute_check(const schema& sc,
                          const attribute_check& chk);
 
+size_t
+validate_attribute_checks(const schema& sc,
+                          const std::vector<hyperdex::attribute_check>& checks);
+
 bool
 passes_attribute_check(const schema& sc,
                        const attribute_check& chk,

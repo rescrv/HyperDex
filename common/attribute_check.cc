@@ -87,6 +87,26 @@ hyperdex :: validate_attribute_check(const schema& sc,
     }
 }
 
+size_t
+hyperdex :: validate_attribute_checks(const schema& sc,
+                                      const std::vector<attribute_check>& checks)
+{
+    for (size_t i = 0; i < checks.size(); ++i)
+    {
+        if (checks[i].attr >= sc.attrs_sz)
+        {
+            return i;
+        }
+
+        if (!validate_attribute_check(sc, checks[i]))
+        {
+            return i;
+        }
+    }
+
+    return checks.size();
+}
+
 bool
 hyperdex :: passes_attribute_check(const schema& sc,
                                    const attribute_check& check,
