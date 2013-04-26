@@ -90,6 +90,9 @@ class funcall
         hyperdatatype arg2_datatype;
 };
 
+bool
+validate_func(const schema& sc, const funcall& func);
+
 size_t
 validate_funcs(const schema& sc,
                const std::vector<funcall>& funcs);

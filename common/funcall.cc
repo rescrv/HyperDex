@@ -47,20 +47,31 @@ funcall :: ~funcall() throw ()
 {
 }
 
+bool
+hyperdex :: validate_func(const schema& sc, const funcall& func)
+{
+    if (func.attr >= sc.attrs_sz)
+    {
+        return false;
+    }
+
+    datatype_info* di = datatype_info::lookup(sc.attrs[func.attr].type);
+
+    if (!di || !di->check_args(func))
+    {
+        return false;
+    }
+
+    return true;
+}
+
 size_t
 hyperdex :: validate_funcs(const schema& sc,
                            const std::vector<funcall>& funcs)
 {
     for (size_t i = 0; i < funcs.size(); ++i)
     {
-        if (funcs[i].attr >= sc.attrs_sz)
-        {
-            return i;
-        }
-
-        datatype_info* di = datatype_info::lookup(sc.attrs[funcs[i].attr].type);
-
-        if (!di || !di->check_args(funcs[i]))
+        if (!validate_func(sc, funcs[i]))
         {
             return i;
         }
