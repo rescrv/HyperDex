@@ -83,6 +83,7 @@ cdef extern from "../../hyperdex.h":
         HYPERPREDICATE_LESS_EQUAL    = 9730
         HYPERPREDICATE_GREATER_EQUAL = 9731
         HYPERPREDICATE_REGEX         = 9733
+        HYPERPREDICATE_LENGTH_LESS_EQUAL    = 9735
 
 cdef extern from "../hyperclient.h":
 
@@ -165,6 +166,7 @@ cdef extern from "../hyperclient.h":
     int64_t hyperclient_set_intersect(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_set_union(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_map_add(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_cond_map_add(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute_check* condattrs, size_t condattrs_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_map_remove(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_map_atomic_add(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_map_atomic_sub(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
@@ -186,6 +188,7 @@ cdef extern from "../hyperclient.h":
 
 ctypedef int64_t (*hyperclient_simple_op)(hyperclient*, char*, char*, size_t, hyperclient_attribute*, size_t, hyperclient_returncode*)
 ctypedef int64_t (*hyperclient_map_op)(hyperclient*, char*, char*, size_t, hyperclient_map_attribute*, size_t, hyperclient_returncode*)
+ctypedef int64_t (*hyperclient_cond_map_op)(hyperclient*, char*, char*, size_t, hyperclient_attribute_check* condattrs, size_t condattrs_sz, hyperclient_map_attribute*, size_t, hyperclient_returncode*)
 
 import collections
 import struct
@@ -744,6 +747,21 @@ cdef _check_reqid_key_attrs2(int64_t reqid, hyperclient_returncode status,
         raise HyperClientException(status, attr)
 
 
+cdef _check_reqid_key_cond_map_attrs(int64_t reqid, hyperclient_returncode status,
+                                     hyperclient_attribute_check* attrs1, size_t attrs_sz1,
+                                     hyperclient_map_attribute* attrs2, size_t attrs_sz2):
+    cdef bytes attr
+    if reqid < 0:
+        idx = -2 - reqid
+        attr = None
+        if idx >= 0 and idx < attrs_sz1 and attrs1 and attrs1[idx].attr:
+            attr = attrs1[idx].attr
+        idx -= attrs_sz2
+        if idx >= 0 and idx < attrs_sz2 and attrs2 and attrs2[idx].attr:
+            attr = attrs2[idx].attr
+        raise HyperClientException(status, attr)
+
+
 cdef _check_reqid_key_map_attrs(int64_t reqid, hyperclient_returncode status,
                                 hyperclient_map_attribute* attrs, size_t attrs_sz):
     cdef bytes attr
@@ -948,6 +966,44 @@ cdef class DeferredMapOp(Deferred):
         Deferred.wait(self)
         if self._status == HYPERCLIENT_SUCCESS:
             return True
+        else:
+            raise HyperClientException(self._status)
+
+cdef class DeferredCondMapOp(Deferred):
+
+    def __cinit__(self, Client client):
+        pass
+
+    cdef call(self, hyperclient_cond_map_op op, bytes space, key, dict condition, dict value):
+        cdef bytes key_backing
+        datatype, key_backing = _obj_to_backing(key)
+        cdef char* space_cstr = space
+        cdef char* key_cstr = key_backing
+        cdef hyperclient_attribute_check* condattrs = NULL
+        cdef size_t condattrs_sz = 0
+        cdef hyperclient_map_attribute* attrs = NULL
+        cdef size_t attrs_sz = 0
+        try:
+            backingsc = _predicate_to_c(condition, &condattrs, &condattrs_sz)
+            backingsa = _dict_to_map_attrs(value.items(), &attrs, &attrs_sz)
+            self._reqid = op(self._client._client, space_cstr,
+                             key_cstr, len(key_backing),
+                             condattrs, condattrs_sz,
+                             attrs, attrs_sz, &self._status)
+            _check_reqid_key_cond_map_attrs(self._reqid, self._status, condattrs, condattrs_sz, attrs, attrs_sz)
+            self._client._ops[self._reqid] = self
+        finally:
+            if condattrs:
+                free(condattrs)
+            if attrs:
+                free(attrs)
+
+    def wait(self):
+        Deferred.wait(self)
+        if self._status == HYPERCLIENT_SUCCESS:
+            return True
+        elif self._status == HYPERCLIENT_CMPFAIL:
+            return False
         else:
             raise HyperClientException(self._status)
 
@@ -1213,6 +1269,14 @@ cdef class Regex(Predicate):
         Predicate.__init__(self, [(HYPERPREDICATE_REGEX, regex)])
 
 
+cdef class LengthLessEqual(Predicate):
+
+    def __init__(self, upper):
+        if type(upper) not in (int, long):
+            raise AttributeError("LengthLessEqual must be int or long")
+        Predicate.__init__(self, [(HYPERPREDICATE_LENGTH_LESS_EQUAL, upper)])
+
+
 cdef class Client:
     cdef hyperclient* _client
     cdef dict _ops
@@ -1321,6 +1385,10 @@ cdef class Client:
 
     def map_add(self, bytes space, key, dict value):
         async = self.async_map_add(space, key, value)
+        return async.wait()
+
+    def cond_map_add(self, bytes space, key, dict cond, dict value):
+        async = self.async_cond_map_add(space, key, cond, value)
         return async.wait()
 
     def map_remove(self, bytes space, key, dict value):
@@ -1488,6 +1556,11 @@ cdef class Client:
     def async_map_add(self, bytes space, key, dict value):
         d = DeferredMapOp(self)
         d.call(<hyperclient_map_op> hyperclient_map_add, space, key, value)
+        return d
+
+    def async_cond_map_add(self, bytes space, key, dict cond, dict value):
+        d = DeferredCondMapOp(self)
+        d.call(<hyperclient_cond_map_op> hyperclient_cond_map_add, space, key, cond, value)
         return d
 
     def async_map_remove(self, bytes space, key, dict value):
