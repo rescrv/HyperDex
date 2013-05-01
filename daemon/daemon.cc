@@ -199,7 +199,6 @@ daemon :: run(bool daemonize,
     }
 
     alarm(30);
-    google::LogToStderr();
     bool saved = false;
     server_id saved_us;
     po6::net::location saved_bind_to;
