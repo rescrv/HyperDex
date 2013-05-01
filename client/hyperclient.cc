@@ -1358,10 +1358,19 @@ hyperclient :: prepare_checks(const hyperdex::schema* sc,
             return i;
         }
 
+        hyperdatatype datatype = checks[i].datatype;
+
+        if (datatype == CONTAINER_TYPE(datatype) &&
+            CONTAINER_TYPE(datatype) == CONTAINER_TYPE(sc->attrs[attrnum].type) &&
+            checks[i].value_sz == 0)
+        {
+            datatype = sc->attrs[attrnum].type;
+        }
+
         attribute_check c;
         c.attr = attrnum;
         c.value = e::slice(checks[i].value, checks[i].value_sz);
-        c.datatype = checks[i].datatype;
+        c.datatype = datatype;
         c.predicate = checks[i].predicate;
 
         if (!validate_attribute_check(*sc, c))
@@ -1401,11 +1410,20 @@ hyperclient :: prepare_ops(const hyperdex::schema* sc,
             return i;
         }
 
+        hyperdatatype datatype = attrs[i].datatype;
+
+        if (datatype == CONTAINER_TYPE(datatype) &&
+            CONTAINER_TYPE(datatype) == CONTAINER_TYPE(sc->attrs[attrnum].type) &&
+            attrs[i].value_sz == 0)
+        {
+            datatype = sc->attrs[attrnum].type;
+        }
+
         funcall o;
         o.attr = attrnum;
         o.name = opinfo->fname;
         o.arg1 = e::slice(attrs[i].value, attrs[i].value_sz);
-        o.arg1_datatype = attrs[i].datatype;
+        o.arg1_datatype = datatype;
         datatype_info* type = datatype_info::lookup(sc->attrs[attrnum].type);
 
         if (!type->check_args(o))
@@ -1445,13 +1463,31 @@ hyperclient :: prepare_ops(const hyperdex::schema* sc,
             return i;
         }
 
+        hyperdatatype k_datatype = attrs[i].map_key_datatype;
+
+        if (k_datatype == CONTAINER_TYPE(k_datatype) &&
+            CONTAINER_TYPE(k_datatype) == CONTAINER_TYPE(sc->attrs[attrnum].type) &&
+            attrs[i].value_sz == 0)
+        {
+            k_datatype = sc->attrs[attrnum].type;
+        }
+
+        hyperdatatype v_datatype = attrs[i].value_datatype;
+
+        if (v_datatype == CONTAINER_TYPE(v_datatype) &&
+            CONTAINER_TYPE(v_datatype) == CONTAINER_TYPE(sc->attrs[attrnum].type) &&
+            attrs[i].value_sz == 0)
+        {
+            v_datatype = sc->attrs[attrnum].type;
+        }
+
         funcall o;
         o.attr = attrnum;
         o.name = opinfo->fname;
         o.arg2 = e::slice(attrs[i].map_key, attrs[i].map_key_sz);
-        o.arg2_datatype = attrs[i].map_key_datatype;
+        o.arg2_datatype = k_datatype;
         o.arg1 = e::slice(attrs[i].value, attrs[i].value_sz);
-        o.arg1_datatype = attrs[i].value_datatype;
+        o.arg1_datatype = v_datatype;
         datatype_info* type = datatype_info::lookup(sc->attrs[attrnum].type);
 
         if (!type->check_args(o))

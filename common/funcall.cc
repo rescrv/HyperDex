@@ -85,7 +85,7 @@ hyperdex :: apply_funcs(const schema& sc,
                         const std::vector<funcall>& funcs,
                         const e::slice& key,
                         const std::vector<e::slice>& old_value,
-                        std::tr1::shared_ptr<e::buffer>* backing,
+                        std::auto_ptr<e::buffer>* backing,
                         std::vector<e::slice>* new_value)
 {
     // Figure out the size of the new buffer

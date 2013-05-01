@@ -26,24 +26,24 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // HyperDex
-#include "daemon/replication_manager_keypair.h"
+#include "daemon/replication_manager_key_region.h"
 
 using hyperdex::replication_manager;
 
-replication_manager :: keypair :: keypair()
+replication_manager :: key_region :: key_region()
     : region()
     , key()
 {
 }
 
-replication_manager :: keypair :: keypair(const region_id& r, const e::slice& k)
+replication_manager :: key_region :: key_region(const region_id& r, const e::slice& k)
     : region(r)
-    , key(reinterpret_cast<const char*>(k.data()), k.size())
+    , key(k)
 {
 }
 
 bool
-replication_manager :: keypair :: operator < (const keypair& rhs) const
+replication_manager :: key_region :: operator < (const key_region& rhs) const
 {
     if (region == rhs.region)
     {
@@ -54,7 +54,7 @@ replication_manager :: keypair :: operator < (const keypair& rhs) const
 }
 
 bool
-replication_manager :: keypair :: operator == (const keypair& rhs) const
+replication_manager :: key_region :: operator == (const key_region& rhs) const
 {
     return region == rhs.region && key == rhs.key;
 }

@@ -28,6 +28,7 @@
 #define __STDC_LIMIT_MACROS
 
 // STL
+#include <algorithm>
 #include <sstream>
 
 // Google Log

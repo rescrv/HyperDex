@@ -1,4 +1,4 @@
-// Copyright (c) 2011, Cornell University
+// Copyright (c) 2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,29 +25,31 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_daemon_replication_manager_keypair_h_
-#define hyperdex_daemon_replication_manager_keypair_h_
-
-// STL
-#include <string>
+#ifndef hyperdex_daemon_replication_manager_key_state_reference_h_
+#define hyperdex_daemon_replication_manager_key_state_reference_h_
 
 // HyperDex
-#include "common/ids.h"
 #include "daemon/replication_manager.h"
 
-class hyperdex::replication_manager::keypair
+class hyperdex::replication_manager::key_state_reference
 {
     public:
-        keypair();
-        keypair(const region_id& r, const e::slice& k);
+        key_state_reference();
+        key_state_reference(replication_manager* rm, e::intrusive_ptr<key_state> ks);
+        ~key_state_reference() throw ();
 
     public:
-        bool operator < (const keypair& rhs) const;
-        bool operator == (const keypair& rhs) const;
+        void lock(replication_manager* rm, e::intrusive_ptr<key_state> ks);
+        void unlock();
 
-    public:
-        const region_id region;
-        const std::string key;
+    private:
+        key_state_reference(key_state_reference&);
+        key_state_reference& operator = (key_state_reference&);
+
+    private:
+        bool m_locked;
+        replication_manager* m_rm;
+        e::intrusive_ptr<key_state> m_ks;
 };
 
-#endif // hyperdex_daemon_replication_manager_keypair_h_
+#endif // hyperdex_daemon_replication_manager_key_state_reference_h_

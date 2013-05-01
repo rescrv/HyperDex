@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2011, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,89 +25,26 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_common_funcall_h_
-#define hyperdex_common_funcall_h_
-
-// C
-#include <stdint.h>
-
-// STL
-#include <tr1/memory>
-
-// e
-#include <e/buffer.h>
-#include <e/slice.h>
+#ifndef hyperdex_daemon_replication_manager_key_region_h_
+#define hyperdex_daemon_replication_manager_key_region_h_
 
 // HyperDex
-#include "hyperdex.h"
-#include "common/schema.h"
+#include "common/ids.h"
+#include "daemon/replication_manager.h"
 
-namespace hyperdex
-{
-
-enum funcall_t
-{
-    FUNC_FAIL,
-
-    FUNC_SET,
-
-    FUNC_STRING_APPEND,
-    FUNC_STRING_PREPEND,
-
-    FUNC_NUM_ADD,
-    FUNC_NUM_SUB,
-    FUNC_NUM_MUL,
-    FUNC_NUM_DIV,
-    FUNC_NUM_MOD,
-    FUNC_NUM_AND,
-    FUNC_NUM_OR,
-    FUNC_NUM_XOR,
-
-    FUNC_LIST_LPUSH,
-    FUNC_LIST_RPUSH,
-
-    FUNC_SET_ADD,
-    FUNC_SET_REMOVE,
-    FUNC_SET_INTERSECT,
-    FUNC_SET_UNION,
-
-    FUNC_MAP_ADD,
-    FUNC_MAP_REMOVE
-};
-
-class funcall
+class hyperdex::replication_manager::key_region
 {
     public:
-        funcall();
-        ~funcall() throw ();
+        key_region();
+        key_region(const region_id& r, const e::slice& k);
 
     public:
-        uint16_t attr;
-        funcall_t name;
-        e::slice arg1;
-        hyperdatatype arg1_datatype;
-        e::slice arg2;
-        hyperdatatype arg2_datatype;
+        bool operator < (const key_region& rhs) const;
+        bool operator == (const key_region& rhs) const;
+
+    public:
+        const region_id region;
+        const e::slice key;
 };
 
-bool
-validate_func(const schema& sc, const funcall& func);
-
-size_t
-validate_funcs(const schema& sc,
-               const std::vector<funcall>& funcs);
-
-size_t
-apply_funcs(const schema& sc,
-            const std::vector<funcall>& funcs,
-            const e::slice& key,
-            const std::vector<e::slice>& old_value,
-            std::auto_ptr<e::buffer>* backing,
-            std::vector<e::slice>* new_value);
-
-bool
-operator < (const funcall& lhs, const funcall& rhs);
-
-} // namespace hyperdex
-
-#endif // hyperdex_common_funcall_h_
+#endif // hyperdex_daemon_replication_manager_key_region_h_

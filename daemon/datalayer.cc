@@ -35,6 +35,7 @@
 #include <signal.h>
 
 // STL
+#include <algorithm>
 #include <sstream>
 #include <string>
 

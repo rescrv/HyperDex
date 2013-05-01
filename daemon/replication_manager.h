@@ -81,12 +81,12 @@ class replication_manager
         void client_atomic(const server_id& from,
                            const virtual_server_id& to,
                            uint64_t nonce,
+                           bool erase,
                            bool fail_if_not_found,
                            bool fail_if_found,
-                           bool erase,
                            const e::slice& key,
-                           std::vector<attribute_check>* checks,
-                           std::vector<funcall>* funcs);
+                           const std::vector<attribute_check>& checks,
+                           const std::vector<funcall>& funcs);
         // These are called in response to messages from other hosts.
         void chain_op(const virtual_server_id& from,
                       const virtual_server_id& to,
@@ -120,44 +120,31 @@ class replication_manager
         void trip_periodic();
 
     private:
-        class pending;
-        class keyholder;
-        class keypair;
-        static uint64_t hash(const keypair&);
-        typedef e::lockfree_hash_map<keypair, e::intrusive_ptr<keyholder>, hash> keyholder_map_t;
+        class pending; // state for one pending operation
+        class key_region; // a tuple of (key, region)
+        class key_state; // state for a single key
+        class key_state_reference; // hold a reference for a single key
+        static uint64_t hash(const key_region&);
+        typedef e::lockfree_hash_map<key_region, e::intrusive_ptr<key_state>, hash> key_state_map_t;
 
     private:
         replication_manager(const replication_manager&);
-
-    private:
         replication_manager& operator = (const replication_manager&);
 
     private:
-        uint64_t get_lock_num(const region_id& reg, const e::slice& key);
-        e::intrusive_ptr<keyholder> get_keyholder(const region_id& reg, const e::slice& key);
-        e::intrusive_ptr<keyholder> get_or_create_keyholder(const region_id& reg, const e::slice& key);
-        void erase_keyholder(const region_id& reg, const e::slice& key);
-        void hash_objects(const region_id& reg,
-                          const schema& sc,
-                          const e::slice& key,
-                          bool has_new_value,
-                          const std::vector<e::slice>& new_value,
-                          bool has_old_value,
-                          const std::vector<e::slice>& old_value,
-                          e::intrusive_ptr<pending> pend);
-        bool prev_and_next(const region_id& ri, const e::slice& key,
-                           bool has_new_value, const std::vector<e::slice>& new_value,
-                           bool has_old_value, const std::vector<e::slice>& old_value,
-                           e::intrusive_ptr<pending> pend);
-        // Move operations between the queues in the keyholder.  Blocked
-        // operations will have their blocking criteria checked.  Deferred
-        // operations will be checked for continuity with the blocked
-        // operations.
-        void move_operations_between_queues(const virtual_server_id& us,
-                                            const region_id& ri,
-                                            const schema& sc,
-                                            const e::slice& key,
-                                            e::intrusive_ptr<keyholder> kh);
+        uint64_t get_lock_num(const region_id& ri, const e::slice& key);
+        // Get the state for the specified key.
+        // Returns NULL if there is no key_state that's currently in use.
+        e::intrusive_ptr<key_state> get_key_state(const region_id& ri,
+                                                  const e::slice& key,
+                                                  key_state_reference* ksr);
+        // Get the state for the specified key.
+        // Will retrieve the state from disk and create the key_state when
+        // necessary.
+        e::intrusive_ptr<key_state> get_or_create_key_state(const region_id& ri,
+                                                            const e::slice& key,
+                                                            key_state_reference* ksr);
+        // Send a response to the specified client.
         void send_message(const virtual_server_id& us,
                           bool retransmission,
                           uint64_t version,
@@ -174,7 +161,6 @@ class replication_manager
                                const server_id& client,
                                uint64_t nonce,
                                network_returncode ret);
-
         // thread functions
         void retransmitter();
         void garbage_collector();
@@ -182,8 +168,8 @@ class replication_manager
 
     private:
         daemon* m_daemon;
-        e::striped_lock<po6::threads::mutex> m_keyholder_locks;
-        keyholder_map_t m_keyholders;
+        e::striped_lock<po6::threads::mutex> m_key_states_locks;
+        key_state_map_t m_key_states;
         counter_map m_counters;
         bool m_shutdown;
         po6::threads::thread m_retransmitter;

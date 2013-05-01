@@ -532,10 +532,10 @@ daemon :: process_req_atomic(server_id from,
         return;
     }
 
+    bool erase = !(flags & 128);
     bool fail_if_not_found = flags & 1;
     bool fail_if_found = flags & 2;
-    bool has_funcalls = flags & 128;
-    m_repl.client_atomic(from, vto, nonce, fail_if_not_found, fail_if_found, !has_funcalls, key, &checks, &funcs);
+    m_repl.client_atomic(from, vto, nonce, erase, fail_if_not_found, fail_if_found, key, checks, funcs);
 }
 
 void

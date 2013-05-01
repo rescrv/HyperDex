@@ -28,6 +28,9 @@
 // POSIX
 #include <signal.h>
 
+// STL
+#include <algorithm>
+
 // Google Log
 #include <glog/logging.h>
 

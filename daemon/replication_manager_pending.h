@@ -29,7 +29,7 @@
 #define hyperdex_daemon_replication_manager_pending_h_
 
 // STL
-#include <tr1/memory>
+#include <memory>
 
 // HyperDex
 #include "daemon/replication_manager.h"
@@ -37,26 +37,19 @@
 class hyperdex::replication_manager::pending
 {
     public:
-        pending(std::tr1::shared_ptr<e::buffer> backing,
+        pending(std::auto_ptr<e::buffer> backing,
                 const region_id& reg_id,
                 uint64_t seq_id,
                 bool fresh,
                 bool has_value,
                 const std::vector<e::slice>& value,
-                uint64_t recv_config_version,
-                const virtual_server_id& recv);
-        pending(std::tr1::shared_ptr<e::buffer> backing,
-                const region_id& reg_id,
-                uint64_t seq_id,
-                bool fresh,
-                bool has_value,
-                const std::vector<e::slice>& value,
-                server_id client,
-                uint64_t nonce);
+                server_id _client, uint64_t _nonce,
+                uint64_t _recv_config_version,
+                const virtual_server_id& _recv);
         ~pending() throw ();
 
     public:
-        std::tr1::shared_ptr<e::buffer> backing;
+        std::auto_ptr<e::buffer> backing;
         region_id reg_id;
         uint64_t seq_id;
         bool has_value;
