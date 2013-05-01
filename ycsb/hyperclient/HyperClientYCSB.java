@@ -181,7 +181,7 @@ public class HyperClientYCSB extends DB
             {
                 return -1;
             }
-  
+
             long num = Long.parseLong(m_mat.group(2));
             values.put("recno", new Long(num << 32));
         }
@@ -193,7 +193,7 @@ public class HyperClientYCSB extends DB
         }
         catch(Exception e)
         {
-            System.out.println(e.toString());
+            System.err.println(e.toString());
             return 1;
         }
     }
