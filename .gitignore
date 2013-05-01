@@ -70,4 +70,5 @@ missing
 py-compile
 *.stamp
 stamp-h1
+ycsb/hyperclient/HyperClientYCSB.class
 ylwrap
