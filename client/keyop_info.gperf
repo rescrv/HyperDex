@@ -35,6 +35,7 @@ set_union,              true,   false,  true,   hyperdex::FUNC_SET_UNION
 map_add,                true,   false,  true,   hyperdex::FUNC_MAP_ADD
 cond_map_add,           true,   false,  true,   hyperdex::FUNC_MAP_ADD
 map_remove,             true,   false,  true,   hyperdex::FUNC_MAP_REMOVE
+cond_map_remove,        true,   false,  true,   hyperdex::FUNC_MAP_REMOVE
 map_atomic_add,         true,   false,  true,   hyperdex::FUNC_NUM_ADD
 map_atomic_sub,         true,   false,  true,   hyperdex::FUNC_NUM_SUB
 map_atomic_mul,         true,   false,  true,   hyperdex::FUNC_NUM_MUL

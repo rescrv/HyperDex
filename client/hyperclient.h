@@ -511,6 +511,13 @@ hyperclient_map_remove(struct hyperclient* client, const char* space,
                        enum hyperclient_returncode* status);
 
 int64_t
+hyperclient_cond_map_remove(struct hyperclient* client, const char* space,
+                            const char* key, size_t key_sz,
+                            const struct hyperclient_attribute_check* checks, size_t checks_sz,
+                            const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                            enum hyperclient_returncode* status);
+
+int64_t
 hyperclient_map_atomic_add(struct hyperclient* client, const char* space,
                            const char* key, size_t key_sz,
                            const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
@@ -793,6 +800,10 @@ class hyperclient
         int64_t map_remove(const char* space, const char* key, size_t key_sz,
                            const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
                            enum hyperclient_returncode* status);
+        int64_t cond_map_remove(const char* space, const char* key, size_t key_sz,
+                                const struct hyperclient_attribute_check* checks, size_t checks_sz,
+                                const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                                enum hyperclient_returncode* status);
         int64_t map_atomic_add(const char* space, const char* key, size_t key_sz,
                                const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
                                enum hyperclient_returncode* status);

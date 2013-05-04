@@ -168,6 +168,7 @@ cdef extern from "../hyperclient.h":
     int64_t hyperclient_map_add(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_cond_map_add(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute_check* condattrs, size_t condattrs_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_map_remove(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
+    int64_t hyperclient_cond_map_remove(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_attribute_check* condattrs, size_t condattrs_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_map_atomic_add(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_map_atomic_sub(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
     int64_t hyperclient_map_atomic_mul(hyperclient* client, char* space, char* key, size_t key_sz, hyperclient_map_attribute* attrs, size_t attrs_sz, hyperclient_returncode* status)
@@ -1395,6 +1396,10 @@ cdef class Client:
         async = self.async_map_remove(space, key, value)
         return async.wait()
 
+    def cond_map_remove(self, bytes space, key, dict cond, dict value):
+        async = self.async_cond_map_remove(space, key, cond, value)
+        return async.wait()
+
     def map_atomic_add(self, bytes space, key, dict value):
         async = self.async_map_atomic_add(space, key, value)
         return async.wait()
@@ -1566,6 +1571,11 @@ cdef class Client:
     def async_map_remove(self, bytes space, key, dict value):
         d = DeferredMapOp(self)
         d.call(<hyperclient_map_op> hyperclient_map_remove, space, key, value)
+        return d
+
+    def async_cond_map_remove(self, bytes space, key, dict cond, dict value):
+        d = DeferredCondMapOp(self)
+        d.call(<hyperclient_cond_map_op> hyperclient_cond_map_remove, space, key, cond, value)
         return d
 
     def async_map_atomic_add(self, bytes space, key, dict value):

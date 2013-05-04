@@ -354,6 +354,17 @@ hyperclient :: cond_map_add(const char* space, const char* key, size_t key_sz,
     return perform_funcall2(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status);
 }
 
+int64_t
+hyperclient :: cond_map_remove(const char* space, const char* key, size_t key_sz,
+                               const struct hyperclient_attribute_check* checks, size_t checks_sz,
+                               const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                               enum hyperclient_returncode* status)
+{
+    const hyperclient_keyop_info* opinfo;
+    opinfo = hyperclient_keyop_info_lookup(XSTR(cond_map_remove), strlen(XSTR(cond_map_remove)));
+    return perform_funcall2(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status);
+}
+
 extern "C"
 {
 
@@ -365,6 +376,16 @@ hyperclient_cond_map_add(struct hyperclient* client,
                          hyperclient_returncode* status)
 {
     C_WRAP_EXCEPT(client->cond_map_add(space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status));
+}
+
+int64_t
+hyperclient_cond_map_remove(struct hyperclient* client,
+                            const char* space, const char* key, size_t key_sz,
+                            const struct hyperclient_attribute_check* checks, size_t checks_sz,
+                            const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                            hyperclient_returncode* status)
+{
+    C_WRAP_EXCEPT(client->cond_map_remove(space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status));
 }
 
 }
