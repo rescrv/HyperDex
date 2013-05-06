@@ -27,6 +27,7 @@
 
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 AM_CXXFLAGS = $(PO6_CFLAGS) $(E_CFLAGS) $(BUSYBEE_CFLAGS) $(WANAL_CXXFLAGS) -fpermissive
+AM_MAKEFLAGS = --no-print-directory
 AM_YFLAGS = -d
 
 BUILT_SOURCES = client/parse_space_y.h
