@@ -57,7 +57,7 @@ datatype_int64 :: datatype()
 bool
 datatype_int64 :: validate(const e::slice& value)
 {
-    return value.size() == sizeof(int64_t);
+    return value.size() == sizeof(int64_t) || value.empty();
 }
 
 bool

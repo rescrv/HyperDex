@@ -57,7 +57,7 @@ datatype_float :: datatype()
 bool
 datatype_float :: validate(const e::slice& value)
 {
-    return value.size() == sizeof(double);
+    return value.size() == sizeof(double) || value.empty();
 }
 
 bool
