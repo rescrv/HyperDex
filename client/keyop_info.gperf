@@ -13,39 +13,66 @@ struct hyperclient_keyop_info;
 %}
 %%
 put,                    false,  false,  true,   hyperdex::FUNC_SET
-put_if_not_exist,       false,  true,   true,   hyperdex::FUNC_SET
 cond_put,               true,   false,  true,   hyperdex::FUNC_SET
+put_if_not_exist,       false,  true,   true,   hyperdex::FUNC_SET
 del,                    true,   false,  false,  hyperdex::FUNC_FAIL
+cond_del,               true,   false,  false,  hyperdex::FUNC_FAIL
 atomic_add,             true,   false,  true,   hyperdex::FUNC_NUM_ADD
+cond_atomic_add,        true,   false,  true,   hyperdex::FUNC_NUM_ADD
 atomic_sub,             true,   false,  true,   hyperdex::FUNC_NUM_SUB
+cond_atomic_sub,        true,   false,  true,   hyperdex::FUNC_NUM_SUB
 atomic_mul,             true,   false,  true,   hyperdex::FUNC_NUM_MUL
+cond_atomic_mul,        true,   false,  true,   hyperdex::FUNC_NUM_MUL
 atomic_div,             true,   false,  true,   hyperdex::FUNC_NUM_DIV
+cond_atomic_div,        true,   false,  true,   hyperdex::FUNC_NUM_DIV
 atomic_mod,             true,   false,  true,   hyperdex::FUNC_NUM_MOD
+cond_atomic_mod,        true,   false,  true,   hyperdex::FUNC_NUM_MOD
 atomic_and,             true,   false,  true,   hyperdex::FUNC_NUM_AND
+cond_atomic_and,        true,   false,  true,   hyperdex::FUNC_NUM_AND
 atomic_or,              true,   false,  true,   hyperdex::FUNC_NUM_OR
+cond_atomic_or,         true,   false,  true,   hyperdex::FUNC_NUM_OR
 atomic_xor,             true,   false,  true,   hyperdex::FUNC_NUM_XOR
+cond_atomic_xor,        true,   false,  true,   hyperdex::FUNC_NUM_XOR
 string_prepend,         true,   false,  true,   hyperdex::FUNC_STRING_PREPEND
+cond_string_prepend,    true,   false,  true,   hyperdex::FUNC_STRING_PREPEND
 string_append,          true,   false,  true,   hyperdex::FUNC_STRING_APPEND
+cond_string_append,     true,   false,  true,   hyperdex::FUNC_STRING_APPEND
 list_lpush,             true,   false,  true,   hyperdex::FUNC_LIST_LPUSH
+cond_list_lpush,        true,   false,  true,   hyperdex::FUNC_LIST_LPUSH
 list_rpush,             true,   false,  true,   hyperdex::FUNC_LIST_RPUSH
+cond_list_rpush,        true,   false,  true,   hyperdex::FUNC_LIST_RPUSH
 set_add,                true,   false,  true,   hyperdex::FUNC_SET_ADD
+cond_set_add,           true,   false,  true,   hyperdex::FUNC_SET_ADD
 set_remove,             true,   false,  true,   hyperdex::FUNC_SET_REMOVE
+cond_set_remove,        true,   false,  true,   hyperdex::FUNC_SET_REMOVE
 set_intersect,          true,   false,  true,   hyperdex::FUNC_SET_INTERSECT
+cond_set_intersect,     true,   false,  true,   hyperdex::FUNC_SET_INTERSECT
 set_union,              true,   false,  true,   hyperdex::FUNC_SET_UNION
+cond_set_union,         true,   false,  true,   hyperdex::FUNC_SET_UNION
 map_add,                true,   false,  true,   hyperdex::FUNC_MAP_ADD
 cond_map_add,           true,   false,  true,   hyperdex::FUNC_MAP_ADD
 map_remove,             true,   false,  true,   hyperdex::FUNC_MAP_REMOVE
 cond_map_remove,        true,   false,  true,   hyperdex::FUNC_MAP_REMOVE
 map_atomic_add,         true,   false,  true,   hyperdex::FUNC_NUM_ADD
+cond_map_atomic_add,    true,   false,  true,   hyperdex::FUNC_NUM_ADD
 map_atomic_sub,         true,   false,  true,   hyperdex::FUNC_NUM_SUB
+cond_map_atomic_sub,    true,   false,  true,   hyperdex::FUNC_NUM_SUB
 map_atomic_mul,         true,   false,  true,   hyperdex::FUNC_NUM_MUL
+cond_map_atomic_mul,    true,   false,  true,   hyperdex::FUNC_NUM_MUL
 map_atomic_div,         true,   false,  true,   hyperdex::FUNC_NUM_DIV
+cond_map_atomic_div,    true,   false,  true,   hyperdex::FUNC_NUM_DIV
 map_atomic_mod,         true,   false,  true,   hyperdex::FUNC_NUM_MOD
+cond_map_atomic_mod,    true,   false,  true,   hyperdex::FUNC_NUM_MOD
 map_atomic_and,         true,   false,  true,   hyperdex::FUNC_NUM_AND
+cond_map_atomic_and,    true,   false,  true,   hyperdex::FUNC_NUM_AND
 map_atomic_or,          true,   false,  true,   hyperdex::FUNC_NUM_OR
+cond_map_atomic_or,     true,   false,  true,   hyperdex::FUNC_NUM_OR
 map_atomic_xor,         true,   false,  true,   hyperdex::FUNC_NUM_XOR
+cond_map_atomic_xor,    true,   false,  true,   hyperdex::FUNC_NUM_XOR
 map_string_prepend,     true,   false,  true,   hyperdex::FUNC_STRING_PREPEND
+cond_map_string_prepend,true,   false,  true,   hyperdex::FUNC_STRING_PREPEND
 map_string_append,      true,   false,  true,   hyperdex::FUNC_STRING_APPEND
+cond_map_string_append, true,   false,  true,   hyperdex::FUNC_STRING_APPEND
 %%
 const struct hyperclient_keyop_info*
 hyperclient_keyop_info_lookup(const char* str, unsigned int len)

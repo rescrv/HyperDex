@@ -259,25 +259,32 @@ hyperclient :: get(const char* space, const char* key, size_t key_sz,
 }
 
 int64_t
-hyperclient :: cond_put(const char* space, const char* key, size_t key_sz,
-                        const struct hyperclient_attribute_check* checks, size_t checks_sz,
-                        const struct hyperclient_attribute* attrs, size_t attrs_sz,
-                        hyperclient_returncode* status)
-{
-    const hyperclient_keyop_info* opinfo;
-    opinfo = hyperclient_keyop_info_lookup("cond_put", 8);
-    return perform_funcall1(opinfo, space, key, key_sz,
-                            checks, checks_sz,
-                            attrs, attrs_sz, status);
-}
-
-int64_t
 hyperclient :: del(const char* space, const char* key, size_t key_sz,
                    hyperclient_returncode* status)
 {
     const hyperclient_keyop_info* opinfo;
     opinfo = hyperclient_keyop_info_lookup("del", 3);
     return perform_funcall1(opinfo, space, key, key_sz, NULL, 0, NULL, 0, status);
+}
+
+int64_t
+hyperclient :: cond_del(const char* space, const char* key, size_t key_sz,
+                        const struct hyperclient_attribute_check* checks, size_t checks_sz, \
+                        hyperclient_returncode* status)
+{
+    const hyperclient_keyop_info* opinfo;
+    opinfo = hyperclient_keyop_info_lookup("cond_del", 8);
+    return perform_funcall1(opinfo, space, key, key_sz, checks, checks_sz, NULL, 0, status);
+}
+
+int64_t
+hyperclient :: put_if_not_exist(const char* space, const char* key, size_t key_sz,
+                                const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                                enum hyperclient_returncode* status)
+{
+    const hyperclient_keyop_info* opinfo;
+    opinfo = hyperclient_keyop_info_lookup(XSTR(put_if_not_exist), strlen(XSTR(put_if_not_exist)));
+    return perform_funcall1(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, status);
 }
 
 #define HYPERCLIENT_CPPDEF(OPNAME) \
@@ -290,6 +297,16 @@ hyperclient :: del(const char* space, const char* key, size_t key_sz,
         opinfo = hyperclient_keyop_info_lookup(XSTR(OPNAME), strlen(XSTR(OPNAME))); \
         return perform_funcall1(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, status); \
     } \
+    int64_t \
+    hyperclient :: cond_ ## OPNAME(const char* space, const char* key, size_t key_sz, \
+                                   const struct hyperclient_attribute_check* checks, size_t checks_sz, \
+                                   const struct hyperclient_attribute* attrs, size_t attrs_sz, \
+                                   enum hyperclient_returncode* status) \
+    { \
+        const hyperclient_keyop_info* opinfo; \
+        opinfo = hyperclient_keyop_info_lookup(XSTR(OPNAME), strlen(XSTR(OPNAME))); \
+        return perform_funcall1(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status); \
+    } \
     extern "C" \
     { \
     int64_t \
@@ -300,10 +317,18 @@ hyperclient :: del(const char* space, const char* key, size_t key_sz,
     { \
         C_WRAP_EXCEPT(client->OPNAME(space, key, key_sz, attrs, attrs_sz, status)); \
     } \
+    int64_t \
+    hyperclient_cond_ ## OPNAME(struct hyperclient* client, \
+                                const char* space, const char* key, size_t key_sz, \
+                                const struct hyperclient_attribute_check* checks, size_t checks_sz, \
+                                const struct hyperclient_attribute* attrs, size_t attrs_sz, \
+                                hyperclient_returncode* status) \
+    { \
+        C_WRAP_EXCEPT(client->cond_ ## OPNAME(space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status)); \
+    } \
     }
 
 HYPERCLIENT_CPPDEF(put)
-HYPERCLIENT_CPPDEF(put_if_not_exist)
 HYPERCLIENT_CPPDEF(atomic_add)
 HYPERCLIENT_CPPDEF(atomic_sub)
 HYPERCLIENT_CPPDEF(atomic_mul)
@@ -331,6 +356,16 @@ HYPERCLIENT_CPPDEF(set_union)
         opinfo = hyperclient_keyop_info_lookup(XSTR(OPNAME), strlen(XSTR(OPNAME))); \
         return perform_funcall2(opinfo, space, key, key_sz, NULL, 0, attrs, attrs_sz, status); \
     } \
+    int64_t \
+    hyperclient :: cond_ ## OPNAME(const char* space, const char* key, size_t key_sz, \
+                                   const struct hyperclient_attribute_check* checks, size_t checks_sz, \
+                                   const struct hyperclient_map_attribute* attrs, size_t attrs_sz, \
+                                   enum hyperclient_returncode* status) \
+    { \
+        const hyperclient_keyop_info* opinfo; \
+        opinfo = hyperclient_keyop_info_lookup(XSTR(OPNAME), strlen(XSTR(OPNAME))); \
+        return perform_funcall2(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status); \
+    } \
     extern "C" \
     { \
     int64_t \
@@ -341,57 +376,19 @@ HYPERCLIENT_CPPDEF(set_union)
     { \
         C_WRAP_EXCEPT(client->OPNAME(space, key, key_sz, attrs, attrs_sz, status)); \
     } \
+    int64_t \
+    hyperclient_cond_ ## OPNAME(struct hyperclient* client, \
+                                const char* space, const char* key, size_t key_sz, \
+                                const struct hyperclient_attribute_check* checks, size_t checks_sz, \
+                                const struct hyperclient_map_attribute* attrs, size_t attrs_sz, \
+                                hyperclient_returncode* status) \
+    { \
+        C_WRAP_EXCEPT(client->cond_ ## OPNAME(space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status)); \
+    } \
     }
 
-int64_t
-hyperclient :: cond_map_add(const char* space, const char* key, size_t key_sz,
-                            const struct hyperclient_attribute_check* checks, size_t checks_sz,
-                            const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
-                            enum hyperclient_returncode* status)
-{
-    const hyperclient_keyop_info* opinfo;
-    opinfo = hyperclient_keyop_info_lookup(XSTR(cond_map_add), strlen(XSTR(cond_map_add)));
-    return perform_funcall2(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status);
-}
-
-int64_t
-hyperclient :: cond_map_remove(const char* space, const char* key, size_t key_sz,
-                               const struct hyperclient_attribute_check* checks, size_t checks_sz,
-                               const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
-                               enum hyperclient_returncode* status)
-{
-    const hyperclient_keyop_info* opinfo;
-    opinfo = hyperclient_keyop_info_lookup(XSTR(cond_map_remove), strlen(XSTR(cond_map_remove)));
-    return perform_funcall2(opinfo, space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status);
-}
-
-extern "C"
-{
-
-int64_t
-hyperclient_cond_map_add(struct hyperclient* client,
-                         const char* space, const char* key, size_t key_sz,
-                         const struct hyperclient_attribute_check* checks, size_t checks_sz,
-                         const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
-                         hyperclient_returncode* status)
-{
-    C_WRAP_EXCEPT(client->cond_map_add(space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status));
-}
-
-int64_t
-hyperclient_cond_map_remove(struct hyperclient* client,
-                            const char* space, const char* key, size_t key_sz,
-                            const struct hyperclient_attribute_check* checks, size_t checks_sz,
-                            const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
-                            hyperclient_returncode* status)
-{
-    C_WRAP_EXCEPT(client->cond_map_remove(space, key, key_sz, checks, checks_sz, attrs, attrs_sz, status));
-}
-
-}
-
 HYPERCLIENT_MAP_CPPDEF(map_add)
-HYPERCLIENT_MAP_CPPDEF(map_remove)
+HYPERCLIENT_CPPDEF(map_remove)
 HYPERCLIENT_MAP_CPPDEF(map_atomic_add)
 HYPERCLIENT_MAP_CPPDEF(map_atomic_sub)
 HYPERCLIENT_MAP_CPPDEF(map_atomic_mul)
