@@ -260,7 +260,7 @@ to "John".  The third argument is a set of attributes that must match the object
 for the update to succeed.  The fourth argument takes the same form as a typical
 ``put``.
 
-Not surprisingly, this request succeeded, as John's phone number matched the
+Not surprisingly, this request succeeded, as John's name matched the
 specified values. Let's try issuing the same operation again.
 
 .. sourcecode:: pycon
@@ -277,7 +277,7 @@ Note that the last argument has the same generality as the arguments to a
 regular ``put`` operation. So there is no requirement that a
 ``cond_put`` check and update the same field. The following is a
 perfectly legitimate operation that updates the first name field of Jon's
-profile if and only if his phone number has not changed:
+profile if and only if his set of friends has not changed:
 
 .. sourcecode:: pycon
 
