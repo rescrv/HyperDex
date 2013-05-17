@@ -43,6 +43,13 @@
 #include "common/serialization.h"
 #include "daemon/daemon.h"
 
+#ifdef __FreeBSD__
+#include <sys/param.h>
+#include <sys/cpuset.h>
+#include <pthread_np.h>
+typedef cpuset_t cpu_set_t;
+#endif
+
 using hyperdex::daemon;
 
 int s_interrupts = 0;

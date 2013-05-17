@@ -26,6 +26,8 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // POSIX
+#define _WITH_GETLINE
+#include <stdio.h>
 #include <errno.h>
 
 // LevelDB
