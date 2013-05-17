@@ -36,7 +36,7 @@
 #include <cstdlib>
 
 // Linux
-#ifdef __APPLE__
+#if defined __APPLE__ || defined __FreeBSD__
 #include <osx/ieee754.h>
 #else
 #include <ieee754.h>
