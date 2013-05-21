@@ -25,42 +25,59 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_client_description_h_
-#define hyperdex_client_description_h_
-
-// STL
-#include <vector>
-#include <utility>
+#ifndef hyperdex_client_pending_search_describe_h_
+#define hyperdex_client_pending_search_describe_h_
 
 // HyperDex
-#include "common/ids.h"
-#include "client/hyperclient.h"
+#include "client/pending_aggregation.h"
 
-class hyperclient::description
+namespace hyperdex
+{
+
+class pending_search_describe : public pending_aggregation
 {
     public:
-        description(const char** desc);
-        ~description() throw ();
+        pending_search_describe(uint64_t client_visible_id,
+                                hyperclient_returncode* status,
+                                const char** description);
+        virtual ~pending_search_describe() throw ();
 
+    // return to client
     public:
-        void compile();
-        bool last_reference();
+        virtual bool can_yield();
+        virtual bool yield(hyperclient_returncode* status);
+
+    // events
+    public:
+        virtual void handle_sent_to(const server_id& si,
+                                    const virtual_server_id& vsi);
+        virtual void handle_failure(const server_id& si,
+                                    const virtual_server_id& vsi);
+        virtual bool handle_message(client*,
+                                    const server_id& si,
+                                    const virtual_server_id& vsi,
+                                    network_msgtype mt,
+                                    std::auto_ptr<e::buffer> msg,
+                                    e::unpacker up,
+                                    hyperclient_returncode* status);
+
+    // add text to description
+    private:
         void add_text(const hyperdex::virtual_server_id& vid, const e::slice& text);
         void add_text(const hyperdex::virtual_server_id& vid, const char* text);
 
+    // noncopyable
     private:
-        friend class e::intrusive_ptr<description>;
-        void inc() { ++m_ref; }
-        void dec() { if (--m_ref == 0) delete this; }
+        pending_search_describe(const pending_search_describe& other);
+        pending_search_describe& operator = (const pending_search_describe& rhs);
 
     private:
-        description(const description&);
-        description& operator = (const description&);
-
-    private:
-        uint64_t m_ref;
-        const char** m_desc;
+        const char** m_description;
+        hyperclient_returncode m_error;
+        bool m_done;
         std::vector<std::pair<hyperdex::virtual_server_id, std::string> > m_msgs;
 };
 
-#endif // hyperdex_client_description_h_
+} // namespace hyperdex
+
+#endif // hyperdex_client_pending_search_describe_h_

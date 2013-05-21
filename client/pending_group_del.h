@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2012-2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,41 +28,43 @@
 #ifndef hyperdex_client_pending_group_del_h_
 #define hyperdex_client_pending_group_del_h_
 
-// STL
-#ifdef _MSC_VER
-#include <memory>
-#else
-#include <tr1/memory>
-#endif
+// HyperDex
+#include "client/pending_aggregation.h"
 
-// HyperClient
-#include "client/pending.h"
-#include "client/refcount.h"
+namespace hyperdex
+{
 
-class hyperclient::pending_group_del : public hyperclient::pending
+class pending_group_del : public pending_aggregation
 {
     public:
-        pending_group_del(int64_t group_del_id,
-                          e::intrusive_ptr<refcount> ref,
+        pending_group_del(uint64_t client_visible_id,
                           hyperclient_returncode* status);
         virtual ~pending_group_del() throw ();
 
+    // return to client
     public:
-        virtual hyperdex::network_msgtype request_type();
-        virtual int64_t handle_response(hyperclient* cl,
-                                        const server_id& id,
-                                        std::auto_ptr<e::buffer> msg,
-                                        hyperdex::network_msgtype type,
-                                        hyperclient_returncode* status);
+        virtual bool can_yield();
+        virtual bool yield(hyperclient_returncode* status);
 
+    // events
+    public:
+        virtual bool handle_message(client*,
+                                    const server_id& si,
+                                    const virtual_server_id& vsi,
+                                    network_msgtype mt,
+                                    std::auto_ptr<e::buffer> msg,
+                                    e::unpacker up,
+                                    hyperclient_returncode* status);
+
+    // noncopyable
     private:
         pending_group_del(const pending_group_del& other);
-
-    private:
         pending_group_del& operator = (const pending_group_del& rhs);
 
     private:
-        e::intrusive_ptr<refcount> m_ref;
+        bool m_done;
 };
+
+} // namespace hyperdex
 
 #endif // hyperdex_client_pending_group_del_h_

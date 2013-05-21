@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2012, Cornell University
+// Copyright (c) 2011-2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,77 +27,106 @@
 
 // HyperClient
 #include "common/network_returncode.h"
-#include "client/constants.h"
+#include "client/client.h"
 #include "client/pending_get.h"
 #include "client/util.h"
 
-hyperclient :: pending_get :: pending_get(hyperclient_returncode* status,
-                                          struct hyperclient_attribute** attrs,
-                                          size_t* attrs_sz)
-    : pending(status)
+using hyperdex::pending_get;
+
+pending_get :: pending_get(uint64_t id,
+                           hyperclient_returncode* status,
+                           struct hyperclient_attribute** attrs,
+                           size_t* attrs_sz)
+    : pending(id, status)
+    , m_state(INITIALIZED)
     , m_attrs(attrs)
     , m_attrs_sz(attrs_sz)
 {
 }
 
-hyperclient :: pending_get :: ~pending_get() throw ()
+pending_get :: ~pending_get() throw ()
 {
 }
 
-hyperdex::network_msgtype
-hyperclient :: pending_get :: request_type()
+bool
+pending_get :: can_yield()
 {
-    return hyperdex::REQ_GET;
+    assert(m_state == RECV || m_state == YIELDED);
+    return m_state == RECV;
 }
 
-int64_t
-hyperclient :: pending_get :: handle_response(hyperclient* cl,
-                                              const server_id& id,
-                                              std::auto_ptr<e::buffer> msg,
-                                              hyperdex::network_msgtype type,
-                                              hyperclient_returncode* status)
+bool
+pending_get :: yield(hyperclient_returncode*)
 {
+    m_state = YIELDED;
+    return true;
+}
+
+void
+pending_get :: handle_sent_to(const server_id&,
+                              const virtual_server_id&)
+{
+    assert(m_state == INITIALIZED);
+    m_state = SENT;
+}
+
+void
+pending_get :: handle_failure(const server_id&,
+                              const virtual_server_id&)
+{
+    assert(m_state == SENT);
+    m_state = RECV;
+    set_status(HYPERCLIENT_RECONFIGURE);
+}
+
+bool
+pending_get :: handle_message(client* cl,
+                              const server_id&,
+                              const virtual_server_id& vsi,
+                              network_msgtype mt,
+                              std::auto_ptr<e::buffer>,
+                              e::unpacker up,
+                              hyperclient_returncode* status)
+{
+    m_state = RECV;
     *status = HYPERCLIENT_SUCCESS;
+    set_status(HYPERCLIENT_SERVERERROR);
 
-    if (type != hyperdex::RESP_GET)
+    if (mt != RESP_GET)
     {
-        cl->killall(id, HYPERCLIENT_SERVERERROR);
-        return 0;
+        return true;
     }
 
-    e::unpacker up = msg->unpack_from(HYPERCLIENT_HEADER_SIZE_RESP);
     uint16_t response;
     up = up >> response;
 
     if (up.error())
     {
-        cl->killall(id, HYPERCLIENT_SERVERERROR);
-        return 0;
+        return true;
     }
 
-    switch (static_cast<hyperdex::network_returncode>(response))
+    switch (static_cast<network_returncode>(response))
     {
-        case hyperdex::NET_SUCCESS:
+        case NET_SUCCESS:
             break;
-        case hyperdex::NET_NOTFOUND:
+        case NET_NOTFOUND:
             set_status(HYPERCLIENT_NOTFOUND);
-            return client_visible_id();
-        case hyperdex::NET_BADDIMSPEC:
+            return true;
+        case NET_BADDIMSPEC:
             set_status(HYPERCLIENT_SERVERERROR);
-            return client_visible_id();
-        case hyperdex::NET_NOTUS:
+            return true;
+        case NET_NOTUS:
             set_status(HYPERCLIENT_RECONFIGURE);
-            return client_visible_id();
-        case hyperdex::NET_READONLY:
+            return true;
+        case NET_READONLY:
             set_status(HYPERCLIENT_READONLY);
-            return client_visible_id();
-        case hyperdex::NET_SERVERERROR:
-        case hyperdex::NET_CMPFAIL:
-        case hyperdex::NET_BADMICROS:
-        case hyperdex::NET_OVERFLOW:
+            return true;
+        case NET_SERVERERROR:
+        case NET_CMPFAIL:
+        case NET_BADMICROS:
+        case NET_OVERFLOW:
         default:
-            cl->killall(id, HYPERCLIENT_SERVERERROR);
-            return 0;
+            return false;
     }
 
     std::vector<e::slice> value;
@@ -105,19 +134,19 @@ hyperclient :: pending_get :: handle_response(hyperclient* cl,
 
     if (up.error())
     {
-        cl->killall(id, HYPERCLIENT_SERVERERROR);
-        return 0;
+        return true;
     }
 
     hyperclient_returncode op_status;
 
-    if (!value_to_attributes(*cl->m_config, this->sent_to(), NULL, 0,
-                             value, status, &op_status, m_attrs, m_attrs_sz))
+    if (!value_to_attributes(cl->m_config, cl->m_config.get_region_id(vsi),
+                             NULL, 0, value, status,
+                             &op_status, m_attrs, m_attrs_sz))
     {
         set_status(op_status);
-        return client_visible_id();
+        return true;
     }
 
     set_status(HYPERCLIENT_SUCCESS);
-    return client_visible_id();
+    return true;
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013, Cornell University
+// Copyright (c) 2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,33 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // HyperDex
-#include "client/pending_count.h"
+#include "client/pending_search_describe.h"
 
-using hyperdex::pending_count;
+using hyperdex::pending_search_describe;
 
-pending_count :: pending_count(uint64_t id,
-                               hyperclient_returncode* status,
-                               uint64_t* count)
+pending_search_describe :: pending_search_describe(uint64_t id,
+                                                   hyperclient_returncode* status,
+                                                   const char** description)
     : pending_aggregation(id, status)
+    , m_description(description)
     , m_error(HYPERCLIENT_SUCCESS)
-    , m_count(count)
     , m_done(false)
+    , m_msgs()
 {
 }
 
-pending_count :: ~pending_count() throw ()
+pending_search_describe :: ~pending_search_describe() throw ()
 {
 }
 
 bool
-pending_count :: can_yield()
+pending_search_describe :: can_yield()
 {
     return this->aggregation_done() && !m_done;
 }
 
 bool
-pending_count :: yield(hyperclient_returncode* status)
+pending_search_describe :: yield(hyperclient_returncode* status)
 {
     *status = HYPERCLIENT_SUCCESS;
     assert(this->can_yield());
@@ -61,21 +62,29 @@ pending_count :: yield(hyperclient_returncode* status)
 }
 
 void
-pending_count :: handle_failure(const server_id& si,
-                                const virtual_server_id& vsi)
+pending_search_describe :: handle_sent_to(const server_id& si,
+                                          const virtual_server_id& vsi)
 {
-    m_error = HYPERCLIENT_RECONFIGURE;
-    return pending_aggregation::handle_failure(si, vsi);
+    add_text(vsi, "touched by search");
+    return pending_aggregation::handle_sent_to(si, vsi);
+}
+
+void
+pending_search_describe :: handle_failure(const server_id& si,
+                                          const virtual_server_id& vsi)
+{
+    add_text(vsi, "failed");
+    return pending_aggregation::handle_sent_to(si, vsi);
 }
 
 bool
-pending_count :: handle_message(client* cl,
-                                const server_id& si,
-                                const virtual_server_id& vsi,
-                                network_msgtype mt,
-                                std::auto_ptr<e::buffer>,
-                                e::unpacker up,
-                                hyperclient_returncode* status)
+pending_search_describe :: handle_message(client* cl,
+                                          const server_id& si,
+                                          const virtual_server_id& vsi,
+                                          network_msgtype mt,
+                                          std::auto_ptr<e::buffer>,
+                                          e::unpacker up,
+                                          hyperclient_returncode* status)
 {
     if (!pending_aggregation::handle_message(cl, si, vsi, mt, std::auto_ptr<e::buffer>(), up, status))
     {
@@ -84,21 +93,27 @@ pending_count :: handle_message(client* cl,
 
     *status = HYPERCLIENT_SUCCESS;
 
-    if (mt != RESP_COUNT)
+    if (mt != RESP_SEARCH_DESCRIBE)
     {
         m_error = HYPERCLIENT_SERVERERROR; 
         return true;
     }
 
-    uint64_t local_count;
-    up = up >> local_count;
-
-    if (up.error())
-    {
-        m_error = HYPERCLIENT_SERVERERROR; 
-        return true;
-    }
-
-    *m_count += local_count;
+    e::slice text = up.as_slice();
+    add_text(vsi, text);
     return true;
+}
+
+void
+pending_search_describe :: add_text(const hyperdex::virtual_server_id& vid,
+                                    const e::slice& text)
+{
+    m_msgs.push_back(std::make_pair(vid, std::string(reinterpret_cast<const char*>(text.data()), text.size())));
+}
+
+void
+pending_search_describe :: add_text(const hyperdex::virtual_server_id& vid,
+                                    const char* text)
+{
+    m_msgs.push_back(std::make_pair(vid, std::string(text)));
 }

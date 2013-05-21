@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2012, Cornell University
+// Copyright (c) 2011-2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,85 +25,109 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// HyperClient
+// HyperDex
 #include "common/network_returncode.h"
-#include "client/constants.h"
-#include "client/pending_statusonly.h"
+#include "client/pending_atomic.h"
 
-hyperclient :: pending_statusonly :: pending_statusonly(
-                            hyperdex::network_msgtype reqtype,
-                            hyperdex::network_msgtype resptype,
-                            hyperclient_returncode* status)
-    : pending(status)
-    , m_reqtype(reqtype)
-    , m_resptype(resptype)
+using hyperdex::pending_atomic;
+
+pending_atomic :: pending_atomic(uint64_t id,
+                                 hyperclient_returncode* status)
+    : pending(id, status)
+    , m_state(INITIALIZED)
 {
 }
 
-hyperclient :: pending_statusonly :: ~pending_statusonly() throw ()
+pending_atomic :: ~pending_atomic() throw ()
 {
 }
 
-hyperdex::network_msgtype
-hyperclient :: pending_statusonly :: request_type()
+bool
+pending_atomic :: can_yield()
 {
-    return m_reqtype;
+    assert(m_state == RECV || m_state == YIELDED);
+    return m_state == RECV;
 }
 
-int64_t
-hyperclient :: pending_statusonly :: handle_response(hyperclient* cl,
-                                                     const server_id& id,
-                                                     std::auto_ptr<e::buffer> msg,
-                                                     hyperdex::network_msgtype type,
-                                                     hyperclient_returncode* status)
+bool
+pending_atomic :: yield(hyperclient_returncode*)
 {
+    m_state = YIELDED;
+    return true;
+}
+
+void
+pending_atomic :: handle_sent_to(const server_id&,
+                                 const virtual_server_id&)
+{
+    assert(m_state == INITIALIZED);
+    m_state = SENT;
+}
+
+void
+pending_atomic :: handle_failure(const server_id&,
+                                 const virtual_server_id&)
+{
+    assert(m_state == SENT);
+    m_state = RECV;
+    set_status(HYPERCLIENT_RECONFIGURE);
+}
+
+bool
+pending_atomic :: handle_message(client*,
+                                 const server_id&,
+                                 const virtual_server_id&,
+                                 network_msgtype mt,
+                                 std::auto_ptr<e::buffer>,
+                                 e::unpacker up,
+                                 hyperclient_returncode* status)
+{
+    m_state = RECV;
     *status = HYPERCLIENT_SUCCESS;
+    set_status(HYPERCLIENT_SERVERERROR);
 
-    if (type != m_resptype)
+    if (mt != RESP_ATOMIC)
     {
-        cl->killall(id, HYPERCLIENT_SERVERERROR);
-        return 0;
+        return true;
     }
 
-    e::unpacker up = msg->unpack_from(HYPERCLIENT_HEADER_SIZE_RESP);
     uint16_t response;
     up = up >> response;
 
     if (up.error())
     {
-        cl->killall(id, HYPERCLIENT_SERVERERROR);
-        return 0;
+        return true;
     }
 
-    switch (static_cast<hyperdex::network_returncode>(response))
+    switch (static_cast<network_returncode>(response))
     {
-        case hyperdex::NET_SUCCESS:
+        case NET_SUCCESS:
             set_status(HYPERCLIENT_SUCCESS);
             break;
-        case hyperdex::NET_NOTFOUND:
+        case NET_NOTFOUND:
             set_status(HYPERCLIENT_NOTFOUND);
             break;
-        case hyperdex::NET_BADDIMSPEC:
-        case hyperdex::NET_BADMICROS:
+        case NET_BADDIMSPEC:
+        case NET_BADMICROS:
             set_status(HYPERCLIENT_SERVERERROR);
             break;
-        case hyperdex::NET_NOTUS:
+        case NET_NOTUS:
             set_status(HYPERCLIENT_RECONFIGURE);
             break;
-        case hyperdex::NET_CMPFAIL:
+        case NET_CMPFAIL:
             set_status(HYPERCLIENT_CMPFAIL);
             break;
-        case hyperdex::NET_OVERFLOW:
+        case NET_OVERFLOW:
             set_status(HYPERCLIENT_OVERFLOW);
             break;
-        case hyperdex::NET_READONLY:
+        case NET_READONLY:
             set_status(HYPERCLIENT_READONLY);
             break;
-        case hyperdex::NET_SERVERERROR:
+        case NET_SERVERERROR:
         default:
-            cl->killall(id, HYPERCLIENT_SERVERERROR);
-            return 0;
+            set_status(HYPERCLIENT_SERVERERROR);
+            break;
     }
 
-    return client_visible_id();
+    return true;
 }

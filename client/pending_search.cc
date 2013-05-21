@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2012, Cornell University
+// Copyright (c) 2011-2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,66 +25,107 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// e
-#include <e/guard.h>
-
 // HyperDex
+#include "client/client.h"
 #include "client/constants.h"
-#include "client/complete.h"
 #include "client/pending_search.h"
 #include "client/util.h"
 
-hyperclient :: pending_search :: pending_search(int64_t searchid,
-                                                e::intrusive_ptr<refcount> ref,
-                                                hyperclient_returncode* status,
-                                                hyperclient_attribute** attrs,
-                                                size_t* attrs_sz)
-    : pending(status)
-    , m_searchid(searchid)
-    , m_reqtype(hyperdex::REQ_SEARCH_START)
-    , m_ref(ref)
+using hyperdex::pending_search;
+
+pending_search :: pending_search(uint64_t id,
+                                 hyperclient_returncode* status,
+                                 struct hyperclient_attribute** attrs, size_t* attrs_sz)
+    : pending_aggregation(id, status)
     , m_attrs(attrs)
     , m_attrs_sz(attrs_sz)
+    , m_yield(false)
+    , m_done(false)
 {
-    this->set_client_visible_id(searchid);
+    *m_attrs = NULL;
+    *m_attrs_sz = 0;
 }
 
-hyperclient :: pending_search :: ~pending_search() throw ()
+pending_search :: ~pending_search() throw ()
 {
 }
 
-hyperdex::network_msgtype
-hyperclient :: pending_search :: request_type()
+bool
+pending_search :: can_yield()
 {
-    return m_reqtype;
+    return m_yield;
 }
 
-int64_t
-hyperclient :: pending_search :: handle_response(hyperclient* cl,
-                                                 const hyperdex::server_id& sender,
-                                                 std::auto_ptr<e::buffer> msg,
-                                                 hyperdex::network_msgtype type,
-                                                 hyperclient_returncode* status)
+bool
+pending_search :: yield(hyperclient_returncode* status)
 {
     *status = HYPERCLIENT_SUCCESS;
+    m_yield = false;
 
-    if (type != hyperdex::RESP_SEARCH_ITEM && type != hyperdex::RESP_SEARCH_DONE)
+    if (this->aggregation_done() && !m_done)
     {
-        cl->killall(sender, HYPERCLIENT_SERVERERROR);
-        return 0;
+        m_yield = true;
+        m_done = true;
+    }
+    else if (m_done)
+    {
+        set_status(HYPERCLIENT_SEARCHDONE);
     }
 
-    // If it is a SEARCH_DONE message.
-    if (type == hyperdex::RESP_SEARCH_DONE)
+    return true;
+}
+
+void
+pending_search :: handle_failure(const server_id& si,
+                                 const virtual_server_id& vsi)
+{
+    set_status(HYPERCLIENT_RECONFIGURE);
+    m_yield = true;
+    return pending_aggregation::handle_failure(si, vsi);
+}
+
+bool
+pending_search :: handle_message(client* cl,
+                                 const server_id& si,
+                                 const virtual_server_id& vsi,
+                                 network_msgtype mt,
+                                 std::auto_ptr<e::buffer> msg,
+                                 e::unpacker up,
+                                 hyperclient_returncode* status)
+{
+    if (!pending_aggregation::handle_message(cl, si, vsi, mt, std::auto_ptr<e::buffer>(), up, status))
     {
-        if (m_ref->last_reference())
+        return false;
+    }
+
+    *status = HYPERCLIENT_SUCCESS;
+    set_status(HYPERCLIENT_SERVERERROR);
+
+    if (mt == RESP_SEARCH_DONE)
+    {
+        if (this->aggregation_done())
         {
-            set_status(HYPERCLIENT_SEARCHDONE);
-            return client_visible_id();
+            m_yield = true;
+            m_done = true;
         }
 
-        // Silently remove this operation
-        return 0;
+        return true;
+    }
+    else if (mt != RESP_SEARCH_ITEM)
+    {
+        set_status(HYPERCLIENT_SERVERERROR);
+        m_yield = true;
+        return true;
+    }
+
+    uint16_t response;
+    up = up >> response;
+
+    if (up.error())
+    {
+        set_status(HYPERCLIENT_SERVERERROR);
+        m_yield = true;
+        return true;
     }
 
     // Otheriwise it is a SEARCH_ITEM message.
@@ -93,65 +134,33 @@ hyperclient :: pending_search :: handle_response(hyperclient* cl,
 
     if ((msg->unpack_from(HYPERCLIENT_HEADER_SIZE_RESP) >> key >> value).error())
     {
-        cl->killall(sender, HYPERCLIENT_SERVERERROR);
-
-        if (m_ref->last_reference())
-        {
-#ifdef _MSC_VER
-            cl->m_complete_failed.push(std::shared_ptr<complete>(new complete(client_visible_id(), status_ptr(), HYPERCLIENT_SEARCHDONE, 0)));
-#else
-            cl->m_complete_failed.push(complete(client_visible_id(), status_ptr(), HYPERCLIENT_SEARCHDONE, 0));
-#endif
-        }
-
-        return 0;
+        set_status(HYPERCLIENT_SERVERERROR);
+        m_yield = true;
+        return true;
     }
 
     hyperclient_returncode op_status;
 
-    if (!value_to_attributes(*cl->m_config, this->sent_to(), key.data(), key.size(),
+    if (!value_to_attributes(cl->m_config, cl->m_config.get_region_id(vsi),
+                             key.data(), key.size(),
                              value, status, &op_status, m_attrs, m_attrs_sz))
     {
         set_status(op_status);
-
-        if (m_ref->last_reference())
-        {
-#ifdef _MSC_VER
-            cl->m_complete_failed.push(std::shared_ptr<complete>(new complete(client_visible_id(), status_ptr(), HYPERCLIENT_SEARCHDONE, 0)));
-#else
-            cl->m_complete_failed.push(complete(client_visible_id(), status_ptr(), HYPERCLIENT_SEARCHDONE, 0));
-#endif
-        }
-
-        return client_visible_id();
+        m_yield = true;
+        return true;
     }
 
-    e::guard g = e::makeguard(hyperclient_destroy_attrs, *m_attrs, *m_attrs_sz);
     std::auto_ptr<e::buffer> smsg(e::buffer::create(HYPERCLIENT_HEADER_SIZE_REQ + sizeof(uint64_t)));
-    smsg->pack_at(HYPERCLIENT_HEADER_SIZE_REQ) << static_cast<uint64_t>(m_searchid);
+    smsg->pack_at(HYPERCLIENT_HEADER_SIZE_REQ) << static_cast<uint64_t>(client_visible_id());
 
-    set_server_visible_nonce(cl->m_server_nonce);
-    ++cl->m_server_nonce;
-    m_reqtype = hyperdex::REQ_SEARCH_NEXT;
-
-    if (cl->send(this, smsg) < 0)
+    if (!cl->send(REQ_SEARCH_NEXT, vsi, cl->m_next_server_nonce++, smsg, this, status))
     {
-        cl->killall(sender, HYPERCLIENT_RECONFIGURE);
-
-        if (m_ref->last_reference())
-        {
-#ifdef _MSC_VER
-            cl->m_complete_failed.push(std::shared_ptr<complete>(new complete(client_visible_id(), status_ptr(), HYPERCLIENT_SEARCHDONE, 0)));
-#else
-            cl->m_complete_failed.push(complete(client_visible_id(), status_ptr(), HYPERCLIENT_SEARCHDONE, 0));
-#endif
-        }
-
-        return 0;
+        set_status(HYPERCLIENT_RECONFIGURE);
+        m_yield = true;
+        return true;
     }
 
-    cl->m_incomplete.insert(std::make_pair(server_visible_nonce(), this));
     set_status(HYPERCLIENT_SUCCESS);
-    g.dismiss();
-    return client_visible_id();
+    m_yield = true;
+    return true;
 }

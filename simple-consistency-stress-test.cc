@@ -57,7 +57,7 @@
 #include <e/guard.h>
 
 // HyperClient
-#include "client/hyperclient.h"
+#include "client/hyperclient.hpp"
 
 static long window = 128;
 static long repetitions = 1024;

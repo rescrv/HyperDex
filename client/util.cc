@@ -34,18 +34,18 @@
 #include "client/util.h"
 
 bool
-value_to_attributes(const hyperdex::configuration& config,
-                    const hyperdex::virtual_server_id& id,
-                    const uint8_t* key,
-                    size_t key_sz,
-                    const std::vector<e::slice>& value,
-                    hyperclient_returncode* loop_status,
-                    hyperclient_returncode* op_status,
-                    hyperclient_attribute** attrs,
-                    size_t* attrs_sz)
+hyperdex :: value_to_attributes(const configuration& config,
+                                const region_id& rid,
+                                const uint8_t* key,
+                                size_t key_sz,
+                                const std::vector<e::slice>& value,
+                                hyperclient_returncode* loop_status,
+                                hyperclient_returncode* op_status,
+                                hyperclient_attribute** attrs,
+                                size_t* attrs_sz)
 {
     *loop_status = HYPERCLIENT_SUCCESS;
-    const hyperdex::schema* sc = config.get_schema(config.get_region_id(id));
+    const schema* sc = config.get_schema(rid);
 
     if (value.size() + 1 != sc->attrs_sz)
     {

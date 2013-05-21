@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2012-2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,43 +28,48 @@
 #ifndef hyperdex_client_pending_count_h_
 #define hyperdex_client_pending_count_h_
 
-// STL
-#ifdef _MSC_VER
-#include <memory>
-#else
-#include <tr1/memory>
-#endif
-
 // HyperDex
-#include "client/pending.h"
-#include "client/refcount.h"
+#include "client/pending_aggregation.h"
 
-class hyperclient::pending_count : public hyperclient::pending
+namespace hyperdex
+{
+
+class pending_count : public pending_aggregation
 {
     public:
-        pending_count(int64_t count_id,
-                      e::intrusive_ptr<refcount> ref,
+        pending_count(uint64_t client_visible_id,
                       hyperclient_returncode* status,
-                      uint64_t* result);
+                      uint64_t* count);
         virtual ~pending_count() throw ();
 
+    // return to client
     public:
-        virtual hyperdex::network_msgtype request_type();
-        virtual int64_t handle_response(hyperclient* cl,
-                                        const server_id& id,
-                                        std::auto_ptr<e::buffer> msg,
-                                        hyperdex::network_msgtype type,
-                                        hyperclient_returncode* status);
+        virtual bool can_yield();
+        virtual bool yield(hyperclient_returncode* status);
 
+    // events
+    public:
+        virtual void handle_failure(const server_id& si,
+                                    const virtual_server_id& vsi);
+        virtual bool handle_message(client*,
+                                    const server_id& si,
+                                    const virtual_server_id& vsi,
+                                    network_msgtype mt,
+                                    std::auto_ptr<e::buffer> msg,
+                                    e::unpacker up,
+                                    hyperclient_returncode* status);
+
+    // noncopyable
     private:
         pending_count(const pending_count& other);
-
-    private:
         pending_count& operator = (const pending_count& rhs);
 
     private:
-        e::intrusive_ptr<refcount> m_ref;
-        uint64_t* m_result;
+        hyperclient_returncode m_error;
+        uint64_t* m_count;
+        bool m_done;
 };
+
+} // namespace hyperdex
 
 #endif // hyperdex_client_pending_count_h_

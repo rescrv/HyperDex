@@ -28,12 +28,16 @@
 // Popt
 #include <popt.h>
 
+// STL
+#include <vector>
+
 // e
 #include <e/endian.h>
 #include <e/guard.h>
 
 // HyperDex
-#include "client/hyperclient.h"
+#include "hyperdex.h"
+#include "client/hyperclient.hpp"
 #include "test/common.h"
 
 #define SEARCH_STRESS_TIMEOUT(TESTNO) (10000)

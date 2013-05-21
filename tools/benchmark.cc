@@ -39,7 +39,7 @@
 #include <e/time.h>
 
 // HyperDex
-#include "client/hyperclient.h"
+#include "client/hyperclient.hpp"
 #include "tools/common.h"
 
 static bool _hyperdex = true;

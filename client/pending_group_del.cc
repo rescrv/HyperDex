@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2012-2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -26,52 +26,58 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // HyperDex
-#include "client/constants.h"
-#include "client/complete.h"
 #include "client/pending_group_del.h"
-#include "client/util.h"
 
-hyperclient :: pending_group_del :: pending_group_del(int64_t group_del_id,
-                                                      e::intrusive_ptr<refcount> ref,
-                                                      hyperclient_returncode* status)
-    : pending(status)
-    , m_ref(ref)
-{
-    this->set_client_visible_id(group_del_id);
-}
+using hyperdex::pending_group_del;
 
-hyperclient :: pending_group_del :: ~pending_group_del() throw ()
+pending_group_del :: pending_group_del(uint64_t id,
+                                       hyperclient_returncode* status)
+    : pending_aggregation(id, status)
+    , m_done(false)
 {
 }
 
-hyperdex::network_msgtype
-hyperclient :: pending_group_del :: request_type()
+pending_group_del :: ~pending_group_del() throw ()
 {
-    return hyperdex::REQ_GROUP_DEL;
 }
 
-int64_t
-hyperclient :: pending_group_del :: handle_response(hyperclient* cl,
-                                                    const server_id& sender,
-                                                    std::auto_ptr<e::buffer>,
-                                                    hyperdex::network_msgtype type,
-                                                    hyperclient_returncode* status)
+bool
+pending_group_del :: can_yield()
+{
+    return this->aggregation_done() && !m_done;
+}
+
+bool
+pending_group_del :: yield(hyperclient_returncode* status)
 {
     *status = HYPERCLIENT_SUCCESS;
+    assert(this->can_yield());
+    m_done = true;
+    set_status(HYPERCLIENT_SUCCESS);
+    return true;
+}
 
-    if (type != hyperdex::RESP_GROUP_DEL)
+bool
+pending_group_del :: handle_message(client* cl,
+                                    const server_id& si,
+                                    const virtual_server_id& vsi,
+                                    network_msgtype mt,
+                                    std::auto_ptr<e::buffer>,
+                                    e::unpacker up,
+                                    hyperclient_returncode* status)
+{
+    if (!pending_aggregation::handle_message(cl, si, vsi, mt, std::auto_ptr<e::buffer>(), up, status))
     {
-        cl->killall(sender, HYPERCLIENT_SERVERERROR);
-        return 0;
+        return false;
     }
 
-    if (m_ref->last_reference())
+    *status = HYPERCLIENT_SUCCESS;
+
+    if (mt != RESP_GROUP_DEL)
     {
-        set_status(HYPERCLIENT_SUCCESS);
-        return client_visible_id();
+        // HYPERCLIENT_SERVERERROR
+        return true;
     }
-    else
-    {
-        return 0;
-    }
+
+    return true;
 }

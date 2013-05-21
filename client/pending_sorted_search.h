@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2012-2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,84 +28,90 @@
 #ifndef hyperdex_client_pending_sorted_search_h_
 #define hyperdex_client_pending_sorted_search_h_
 
-// STL
-#ifdef _MSC_VER
-#include <memory>
-#else
-#include <tr1/memory>
-#endif
-
 // HyperDex
-#include "client/pending.h"
+#include "common/datatypes.h"
+#include "client/pending_aggregation.h"
 
-class hyperclient::pending_sorted_search : public hyperclient::pending
+namespace hyperdex
+{
+
+class pending_sorted_search : public pending_aggregation
 {
     public:
-        class state;
-
-    public:
-        pending_sorted_search(int64_t searchid,
-                              e::intrusive_ptr<state> st,
+        pending_sorted_search(client* cl,
+                              uint64_t id,
+                              bool maximize,
+                              uint64_t limit,
+                              uint16_t sort_by_idx,
+                              datatype_info* sort_by_di,
                               hyperclient_returncode* status,
-                              hyperclient_attribute** attrs,
+                              struct hyperclient_attribute** attrs,
                               size_t* attrs_sz);
         virtual ~pending_sorted_search() throw ();
 
+    // return to client
     public:
-        virtual hyperdex::network_msgtype request_type();
-        virtual int64_t handle_response(hyperclient* cl,
-                                        const server_id& id,
-                                        std::auto_ptr<e::buffer> msg,
-                                        hyperdex::network_msgtype type,
-                                        hyperclient_returncode* status);
-        virtual int64_t return_one(hyperclient* cl,
-                                   hyperclient_returncode* status);
+        virtual bool can_yield();
+        virtual bool yield(hyperclient_returncode* status);
 
+    // events
+    public:
+        virtual void handle_sent_to(const server_id& si,
+                                    const virtual_server_id& vsi);
+        virtual void handle_failure(const server_id& si,
+                                    const virtual_server_id& vsi);
+        virtual bool handle_message(client*,
+                                    const server_id& si,
+                                    const virtual_server_id& vsi,
+                                    network_msgtype mt,
+                                    std::auto_ptr<e::buffer> msg,
+                                    e::unpacker up,
+                                    hyperclient_returncode* status);
+
+    public:
+        class item;
+
+    // noncopyable
     private:
         pending_sorted_search(const pending_sorted_search& other);
-
-    private:
         pending_sorted_search& operator = (const pending_sorted_search& rhs);
 
     private:
-        e::intrusive_ptr<state> m_state;
-        hyperclient_attribute** m_attrs;
+        client* m_cl;
+        bool m_yield;
+        region_id m_ri;
+        bool m_maximize;
+        const uint64_t m_limit;
+        const uint16_t m_sort_by_idx;
+        datatype_info* m_sort_by_di;
+        struct hyperclient_attribute** m_attrs;
         size_t* m_attrs_sz;
+        std::vector<item> m_results;
+        size_t m_results_idx;
 };
 
-class hyperclient::pending_sorted_search::state
+class pending_sorted_search :: item
 {
     public:
-        state(std::auto_ptr<e::buffer>* backings,
-              uint64_t limit, uint16_t sort_by,
-              hyperdatatype type, bool maximize);
-        ~state() throw ();
+        item();
+        item(const e::slice& key,
+             const std::vector<e::slice>& value,
+             std::tr1::shared_ptr<e::buffer> backing);
+        item(const item&);
+        ~item() throw ();
 
-    private:
-        friend class e::intrusive_ptr<hyperclient::pending_sorted_search::state>;
-        friend class hyperclient::pending_sorted_search;
-        class item;
+    public:
+        item& operator = (const item&);
 
-    private:
-        state(const state&);
+    public:
+        e::slice key;
+        std::vector<e::slice> value;
+        std::tr1::shared_ptr<e::buffer> backing;
 
-    private:
-        void inc() { ++m_ref; }
-        void dec() { if (--m_ref == 0) delete this; }
-
-    private:
-        state& operator = (const state&);
-
-    private:
-        size_t m_ref;
-        const uint64_t m_limit;
-        const uint16_t m_sort_by;
-        hyperdatatype m_sort_type;
-        bool m_maximize;
-        std::vector<item> m_results;
-        std::auto_ptr<e::buffer>* m_backings;
-        size_t m_backing_idx;
-        size_t m_returned;
+    public:
+        friend class sorted_search_comparator;
 };
+
+} // namespace hyperdex
 
 #endif // hyperdex_client_pending_sorted_search_h_

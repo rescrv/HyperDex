@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2012, Cornell University
+// Copyright (c) 2012-2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,152 +27,73 @@
 
 // STL
 #include <algorithm>
-#ifdef _MSC_VER
-#include <functional>
-#endif
-
-// e
-#include <e/endian.h>
 
 // HyperDex
-#include "common/datatypes.h"
-#include "client/constants.h"
-#include "client/complete.h"
+#include "client/client.h"
 #include "client/pending_sorted_search.h"
 #include "client/util.h"
 
 using hyperdex::datatype_info;
+using hyperdex::pending_sorted_search;
 
-class hyperclient::pending_sorted_search::state::item
-{
-    public:
-        item();
-        item(pending_sorted_search::state* st,
-             const e::slice& key,
-             const std::vector<e::slice>& value);
-        item(const item&);
-        ~item() throw ();
-
-    public:
-        item& operator = (const item&);
-        bool operator < (const item&) const;
-        bool operator > (const item&) const;
-
-    public:
-        pending_sorted_search::state* st;
-        e::slice key;
-        std::vector<e::slice> value;
-};
-
-hyperclient :: pending_sorted_search :: pending_sorted_search(int64_t searchid,
-                                                              e::intrusive_ptr<state> st,
-                                                              hyperclient_returncode* status,
-                                                              hyperclient_attribute** attrs,
-                                                              size_t* attrs_sz)
-    : pending(status)
-    , m_state(st)
+pending_sorted_search :: pending_sorted_search(client* cl,
+                                               uint64_t id,
+                                               bool maximize,
+                                               uint64_t limit,
+                                               uint16_t sort_by_idx,
+                                               datatype_info* sort_by_di,
+                                               hyperclient_returncode* status,
+                                               struct hyperclient_attribute** attrs,
+                                               size_t* attrs_sz)
+    : pending_aggregation(id, status)
+    , m_cl(cl)
+    , m_yield(false)
+    , m_ri()
+    , m_maximize(maximize)
+    , m_limit(limit)
+    , m_sort_by_idx(sort_by_idx)
+    , m_sort_by_di(sort_by_di)
     , m_attrs(attrs)
     , m_attrs_sz(attrs_sz)
-{
-    this->set_client_visible_id(searchid);
-}
-
-hyperclient :: pending_sorted_search :: ~pending_sorted_search() throw ()
+    , m_results()
+    , m_results_idx()
 {
 }
 
-hyperdex::network_msgtype
-hyperclient :: pending_sorted_search :: request_type()
+pending_sorted_search :: ~pending_sorted_search() throw ()
 {
-    return hyperdex::REQ_SORTED_SEARCH;
 }
 
-int64_t
-hyperclient :: pending_sorted_search :: handle_response(hyperclient* cl,
-                                                        const server_id& sender,
-                                                        std::auto_ptr<e::buffer> msg,
-                                                        hyperdex::network_msgtype type,
-                                                        hyperclient_returncode* status)
+bool
+pending_sorted_search :: can_yield()
 {
-    assert(m_state->m_ref > 0);
+    return m_yield;
+}
+
+bool
+pending_sorted_search :: yield(hyperclient_returncode* status)
+{
     *status = HYPERCLIENT_SUCCESS;
+    m_yield = false;
 
-    if (type != hyperdex::RESP_SORTED_SEARCH)
+    if (this->aggregation_done() && m_results_idx > m_results.size())
     {
-        cl->killall(sender, HYPERCLIENT_SERVERERROR);
-        return 0;
+        return false;
+    }
+    else if (this->aggregation_done() && m_results_idx == m_results.size())
+    {
+        set_status(HYPERCLIENT_SEARCHDONE);
+        return true;
     }
 
-    e::unpacker up = msg->unpack_from(HYPERCLIENT_HEADER_SIZE_RESP);
-    uint64_t num_results = 0;
-    up = up >> num_results;
+    m_yield = true;
+    ++m_results_idx;
 
-    if (up.error())
-    {
-        cl->killall(sender, HYPERCLIENT_SERVERERROR);
-        return 0;
-    }
-
-    for (uint64_t i = 0; i < num_results; ++i)
-    {
-        e::slice key;
-        std::vector<e::slice> value;
-        up = up >> key >> value;
-
-        if (up.error())
-        {
-            cl->killall(sender, HYPERCLIENT_SERVERERROR);
-            return 0;
-        }
-
-        m_state->m_results.push_back(state::item(m_state.get(), key, value));
-        std::push_heap(m_state->m_results.begin(), m_state->m_results.end());
-
-        if (m_state->m_results.size() > m_state->m_limit)
-        {
-            std::pop_heap(m_state->m_results.begin(), m_state->m_results.end());
-            m_state->m_results.pop_back();
-        }
-    }
-
-    m_state->m_backings[m_state->m_backing_idx] = msg;
-    ++m_state->m_backing_idx;
-
-    if (m_state->m_ref == 1)
-    {
-        std::sort(m_state->m_results.begin(), m_state->m_results.end(), std::greater<state::item>());
-
-        for (size_t i = 0; i < m_state->m_results.size(); ++i)
-        {
-            int64_t nonce = cl->m_server_nonce;
-            cl->m_incomplete.insert(std::make_pair(nonce, this));
-            cl->m_complete_succeeded.push(nonce);
-            ++cl->m_server_nonce;
-        }
-
-        if (m_state->m_results.empty())
-        {
-#ifdef _MSC_VER
-            cl->m_complete_failed.push(std::shared_ptr<complete>(new complete(client_visible_id(), status_ptr(), HYPERCLIENT_SEARCHDONE, 0)));
-#else
-            cl->m_complete_failed.push(complete(client_visible_id(), status_ptr(), HYPERCLIENT_SEARCHDONE, 0));
-#endif
-        }
-    }
-
-    return 0;
-}
-
-int64_t
-hyperclient :: pending_sorted_search :: return_one(hyperclient* cl,
-                                                   hyperclient_returncode* status)
-{
-    assert(m_state->m_returned < m_state->m_results.size());
     hyperclient_returncode op_status;
-    e::slice& key(m_state->m_results[m_state->m_returned].key);
-    std::vector<e::slice>& value(m_state->m_results[m_state->m_returned].value);
+    const e::slice& key(m_results[m_results_idx].key);
+    const std::vector<e::slice>& value(m_results[m_results_idx].value);
 
-    if (value_to_attributes(*cl->m_config, this->sent_to(), key.data(), key.size(),
+    if (value_to_attributes(m_cl->m_config, m_ri, key.data(), key.size(),
                             value, status, &op_status, m_attrs, m_attrs_sz))
     {
         set_status(HYPERCLIENT_SUCCESS);
@@ -182,133 +103,182 @@ hyperclient :: pending_sorted_search :: return_one(hyperclient* cl,
         set_status(op_status);
     }
 
-    ++m_state->m_returned;
-
-    if (m_state->m_returned == m_state->m_results.size())
-    {
-#ifdef _MSC_VER
-        cl->m_complete_failed.push(std::shared_ptr<complete>(new complete(client_visible_id(), status_ptr(), HYPERCLIENT_SEARCHDONE, 0)));
-#else
-        cl->m_complete_failed.push(complete(client_visible_id(), status_ptr(), HYPERCLIENT_SEARCHDONE, 0));
-#endif
-    }
-
-    return client_visible_id();
+    return true;
 }
 
-hyperclient :: pending_sorted_search :: state :: item :: item()
-    : st(NULL)
-    , key()
-    , value()
+void
+pending_sorted_search :: handle_sent_to(const server_id& si,
+                                        const virtual_server_id& vsi)
+{
+    if (m_ri == region_id())
+    {
+        m_ri = m_cl->m_config.get_region_id(vsi);
+    }
+
+    return pending_aggregation::handle_sent_to(si, vsi);
+}
+
+void
+pending_sorted_search :: handle_failure(const server_id& si,
+                                        const virtual_server_id& vsi)
+{
+    set_status(HYPERCLIENT_RECONFIGURE);
+    m_yield = true;
+    return pending_aggregation::handle_failure(si, vsi);
+}
+
+namespace
+{
+
+class sorted_search_comparator
+{
+    public:
+        sorted_search_comparator(bool maximize,
+                                 uint16_t sort_by_idx,
+                                 datatype_info* sort_by_di);
+
+    public:
+        bool operator () (const pending_sorted_search::item& lhs,
+                          const pending_sorted_search::item& rhs);
+
+    private:
+        bool m_maximize;
+        uint16_t m_sort_by_idx;
+        datatype_info* m_sort_by_di;
+};
+
+} // namespace
+
+sorted_search_comparator :: sorted_search_comparator(bool maximize,
+                                                     uint16_t sort_by_idx,
+                                                     datatype_info* sort_by_di)
+    : m_maximize(maximize)
+    , m_sort_by_idx(sort_by_idx)
+    , m_sort_by_di(sort_by_di)
 {
 }
 
-hyperclient :: pending_sorted_search :: state :: item :: item(pending_sorted_search::state* _st,
-                                                              const e::slice& _key,
-                                                              const std::vector<e::slice>& _value)
-    : st(_st)
-    , key(_key)
+bool
+sorted_search_comparator :: operator () (const pending_sorted_search::item& lhs,
+                                         const pending_sorted_search::item& rhs)
+{
+    e::slice lhs_attr;
+    e::slice rhs_attr;
+
+    if (m_sort_by_idx == 0)
+    {
+        lhs_attr = lhs.key;
+        rhs_attr = rhs.key;
+    }
+    else
+    {
+        if (m_sort_by_idx >= lhs.value.size() + 1 ||
+            m_sort_by_idx >= rhs.value.size() + 1)
+        {
+            return false;
+        }
+
+        lhs_attr = lhs.value[m_sort_by_idx - 1];
+        rhs_attr = rhs.value[m_sort_by_idx - 1];
+    }
+
+    int cmp = m_sort_by_di->compare(lhs_attr, rhs_attr);
+    return m_maximize ? (cmp > 0) : (cmp < 0);
+}
+
+bool
+pending_sorted_search :: handle_message(client* cl,
+                                        const server_id& si,
+                                        const virtual_server_id& vsi,
+                                        network_msgtype mt,
+                                        std::auto_ptr<e::buffer> msg,
+                                        e::unpacker up,
+                                        hyperclient_returncode* status)
+{
+    if (!pending_aggregation::handle_message(cl, si, vsi, mt, std::auto_ptr<e::buffer>(), up, status))
+    {
+        return false;
+    }
+
+    *status = HYPERCLIENT_SUCCESS;
+    set_status(HYPERCLIENT_SERVERERROR);
+
+    if (mt != RESP_SORTED_SEARCH)
+    {
+        set_status(HYPERCLIENT_SERVERERROR);
+        m_yield = true;
+        return true;
+    }
+
+    uint64_t num_results = 0;
+    up = up >> num_results;
+
+    if (up.error())
+    {
+        set_status(HYPERCLIENT_SERVERERROR);
+        m_yield = true;
+        return true;
+    }
+
+    sorted_search_comparator ssc(m_maximize, m_sort_by_idx, m_sort_by_di);
+    std::tr1::shared_ptr<e::buffer> backing(msg.release());
+
+    for (uint64_t i = 0; i < num_results; ++i)
+    {
+        e::slice key;
+        std::vector<e::slice> value;
+        up = up >> key >> value;
+
+        if (up.error())
+        {
+            set_status(HYPERCLIENT_SERVERERROR);
+            m_yield = true;
+            return true;
+        }
+
+        m_results.push_back(item(key, value, backing));
+        std::push_heap(m_results.begin(), m_results.end(), ssc);
+
+        if (m_results.size() > m_limit)
+        {
+            std::pop_heap(m_results.begin(), m_results.end(), ssc);
+            m_results.pop_back();
+        }
+    }
+
+    m_yield = this->aggregation_done();
+    return true;
+}
+
+pending_sorted_search :: item :: item(const e::slice& _key,
+                                      const std::vector<e::slice>& _value,
+                                      std::tr1::shared_ptr<e::buffer> _backing)
+    : key(_key)
     , value(_value)
+    , backing(_backing)
 {
 }
 
-hyperclient :: pending_sorted_search :: state :: item :: item(const item& other)
-    : st(other.st)
-    , key(other.key)
+pending_sorted_search :: item :: item(const item& other)
+    : key(other.key)
     , value(other.value)
+    , backing(other.backing)
 {
 }
 
-hyperclient :: pending_sorted_search :: state :: item :: ~item() throw ()
+pending_sorted_search :: item :: ~item() throw ()
 {
 }
 
-hyperclient::pending_sorted_search::state::item&
-hyperclient :: pending_sorted_search :: state :: item :: operator = (const item& other)
+pending_sorted_search::item&
+pending_sorted_search :: item :: operator = (const item& other)
 {
-    st = other.st;
-    key = other.key;
-    value = other.value;
+    if (this != &other)
+    {
+        key = other.key;
+        value = other.value;
+        backing = other.backing;
+    }
+
     return *this;
-}
-
-bool
-hyperclient :: pending_sorted_search :: state :: item :: operator < (const item& rhs) const
-{
-    const item& lhs(*this);
-    assert(lhs.st == rhs.st);
-    int cmp = 0;
-    datatype_info* di = datatype_info::lookup(st->m_sort_type);
-
-    if (st->m_sort_by == 0)
-    {
-        cmp = di->compare(lhs.key, rhs.key);
-    }
-    else
-    {
-        cmp = di->compare(lhs.value[st->m_sort_by - 1],
-                          rhs.value[st->m_sort_by - 1]);
-    }
-
-    if (st->m_maximize)
-    {
-        return cmp < 0;
-    }
-    else
-    {
-        return cmp > 0;
-    }
-}
-
-bool
-hyperclient :: pending_sorted_search :: state :: item :: operator > (const item& rhs) const
-{
-    const item& lhs(*this);
-    assert(lhs.st == rhs.st);
-    int cmp = 0;
-    datatype_info* di = datatype_info::lookup(st->m_sort_type);
-
-    if (st->m_sort_by == 0)
-    {
-        cmp = di->compare(lhs.key, rhs.key);
-    }
-    else
-    {
-        cmp = di->compare(lhs.value[st->m_sort_by - 1],
-                          rhs.value[st->m_sort_by - 1]);
-    }
-
-    if (st->m_maximize)
-    {
-        return cmp > 0;
-    }
-    else
-    {
-        return cmp < 0;
-    }
-}
-
-hyperclient :: pending_sorted_search :: state :: state(std::auto_ptr<e::buffer>* backings,
-                                                       uint64_t _limit,
-                                                       uint16_t _sort_by,
-                                                       hyperdatatype type,
-                                                       bool maximize)
-    : m_ref(0)
-    , m_limit(_limit)
-    , m_sort_by(_sort_by)
-    , m_sort_type(type)
-    , m_maximize(maximize)
-    , m_results()
-    , m_backings(backings)
-    , m_backing_idx(0)
-    , m_returned(0)
-{
-}
-
-hyperclient :: pending_sorted_search :: state :: ~state() throw ()
-{
-    if (m_backings)
-    {
-        delete[] m_backings;
-    }
 }

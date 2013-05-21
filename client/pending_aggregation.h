@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2013, Cornell University
+// Copyright (c) 2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,32 +25,38 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_client_pending_search_h_
-#define hyperdex_client_pending_search_h_
+#ifndef hyperdex_client_pending_aggregation_h_
+#define hyperdex_client_pending_aggregation_h_
+
+// STL
+#include <utility>
+#include <vector>
 
 // HyperDex
-#include "client/pending_aggregation.h"
+#include "client/pending.h"
 
 namespace hyperdex
 {
 
-class pending_search : public pending_aggregation
+class pending_aggregation : public pending
 {
     public:
-        pending_search(uint64_t client_visible_id,
-                       hyperclient_returncode* status,
-                       struct hyperclient_attribute** attrs, size_t* attrs_sz);
-        virtual ~pending_search() throw ();
+        pending_aggregation(uint64_t client_visible_id,
+                            hyperclient_returncode* status);
+        virtual ~pending_aggregation() throw ();
 
-    // return to client
+    // handle aggregation across servers; must call handle_* messages from
+    // subclasses for this to work
     public:
-        virtual bool can_yield();
-        virtual bool yield(hyperclient_returncode* status);
+        bool aggregation_done();
 
     // events
     public:
+        virtual void handle_sent_to(const server_id& si,
+                                    const virtual_server_id& vsi);
         virtual void handle_failure(const server_id& si,
                                     const virtual_server_id& vsi);
+        // pass NULL for msg; we don't need it
         virtual bool handle_message(client*,
                                     const server_id& si,
                                     const virtual_server_id& vsi,
@@ -59,18 +65,22 @@ class pending_search : public pending_aggregation
                                     e::unpacker up,
                                     hyperclient_returncode* status);
 
+    // refcount
+    protected:
+        friend class e::intrusive_ptr<pending_aggregation>;
+
     // noncopyable
     private:
-        pending_search(const pending_search& other);
-        pending_search& operator = (const pending_search& rhs);
+        pending_aggregation(const pending_aggregation& other);
+        pending_aggregation& operator = (const pending_aggregation& rhs);
 
     private:
-        struct hyperclient_attribute** m_attrs;
-        size_t* m_attrs_sz;
-        bool m_yield;
-        bool m_done;
+        virtual void remove(const server_id& si, const virtual_server_id& vsi);
+
+    private:
+        std::vector<std::pair<server_id, virtual_server_id> > m_outstanding;
 };
 
 } // namespace hyperdex
 
-#endif // hyperdex_client_pending_search_h_
+#endif // hyperdex_client_pending_aggregation_h_

@@ -150,27 +150,25 @@ noinst_HEADERS += daemon/state_transfer_manager.h
 noinst_HEADERS += daemon/state_transfer_manager_pending.h
 noinst_HEADERS += daemon/state_transfer_manager_transfer_in_state.h
 noinst_HEADERS += daemon/state_transfer_manager_transfer_out_state.h
-noinst_HEADERS += client/complete.h
+noinst_HEADERS += client/client.h
 noinst_HEADERS += client/constants.h
 noinst_HEADERS += client/coordinator_link.h
-noinst_HEADERS += client/description.h
 noinst_HEADERS += client/hyperclient.h
+noinst_HEADERS += client/hyperclient.hpp
 noinst_HEADERS += client/keyop_info.h
 noinst_HEADERS += client/parse_space_aux.h
 noinst_HEADERS += client/partition.h
+noinst_HEADERS += client/pending.h
 noinst_HEADERS += client/pending_count.h
 noinst_HEADERS += client/pending_get.h
 noinst_HEADERS += client/pending_group_del.h
-noinst_HEADERS += client/pending.h
 noinst_HEADERS += client/pending_search.h
-noinst_HEADERS += client/pending_search_description.h
+noinst_HEADERS += client/pending_search_describe.h
 noinst_HEADERS += client/pending_sorted_search.h
-noinst_HEADERS += client/pending_statusonly.h
-noinst_HEADERS += client/refcount.h
+noinst_HEADERS += client/pending_aggregation.h
+noinst_HEADERS += client/pending_atomic.h
 noinst_HEADERS += client/space_description.h
-noinst_HEADERS += client/tool_wrapper.h
 noinst_HEADERS += client/util.h
-noinst_HEADERS += client/wrap.h
 noinst_HEADERS += osx/ieee754.h
 noinst_HEADERS += test/common.h
 noinst_HEADERS += tools/common.h
@@ -330,31 +328,31 @@ libhyperclient_la_SOURCES += common/regex_match.cc
 libhyperclient_la_SOURCES += common/schema.cc
 libhyperclient_la_SOURCES += common/serialization.cc
 libhyperclient_la_SOURCES += common/transfer.cc
-libhyperclient_la_SOURCES += client/c_wrappers.cc
-libhyperclient_la_SOURCES += client/complete.cc
+libhyperclient_la_SOURCES += client/client.cc
 libhyperclient_la_SOURCES += client/coordinator_link.cc
-libhyperclient_la_SOURCES += client/description.cc
 libhyperclient_la_SOURCES += client/hyperclient.cc
 libhyperclient_la_SOURCES += client/keyop_info.cc
-libhyperclient_la_SOURCES += client/parse_space_y.y
-libhyperclient_la_SOURCES += client/parse_space_l.l
 libhyperclient_la_SOURCES += client/parse_space_aux.cc
+libhyperclient_la_SOURCES += client/parse_space_l.l
+libhyperclient_la_SOURCES += client/parse_space_y.y
 libhyperclient_la_SOURCES += client/partition.cc
 libhyperclient_la_SOURCES += client/pending.cc
+libhyperclient_la_SOURCES += client/pending_aggregation.cc
+libhyperclient_la_SOURCES += client/pending_atomic.cc
 libhyperclient_la_SOURCES += client/pending_count.cc
 libhyperclient_la_SOURCES += client/pending_get.cc
 libhyperclient_la_SOURCES += client/pending_group_del.cc
 libhyperclient_la_SOURCES += client/pending_search.cc
-libhyperclient_la_SOURCES += client/pending_search_description.cc
+libhyperclient_la_SOURCES += client/pending_search_describe.cc
 libhyperclient_la_SOURCES += client/pending_sorted_search.cc
-libhyperclient_la_SOURCES += client/pending_statusonly.cc
-libhyperclient_la_SOURCES += client/refcount.cc
 libhyperclient_la_SOURCES += client/space_description.cc
 libhyperclient_la_SOURCES += client/util.cc
-libhyperclient_la_LIBADD = \
-			$(E_LIBS) \
-			$(BUSYBEE_LIBS) \
-			$(REPLICANT_LIBS) -lcityhash
+libhyperclient_la_CPPFLAGS = -I${abs_top_srcdir}/client
+libhyperclient_la_LIBADD =
+libhyperclient_la_LIBADD += $(E_LIBS)
+libhyperclient_la_LIBADD += $(BUSYBEE_LIBS)
+libhyperclient_la_LIBADD += $(REPLICANT_LIBS)
+libhyperclient_la_LIBADD += -lcityhash
 
 gperf_verbose = $(gperf_verbose_$(V))
 gperf_verbose_ = $(gperf_verbose_$(AM_DEFAULT_VERBOSITY))
@@ -436,7 +434,9 @@ client_ruby_hyperclient_la_LDFLAGS = -module -avoid-version
 ################################ C/C++ Bindings ################################
 
 client_c_testcompile_SOURCES = client/c/testcompile.c
+client_c_testcompile_CPPFLAGS = -I${abs_top_srcdir}/client $(CPPFLAGS)
 client_cc_testcompile_SOURCES = client/cc/testcompile.cc
+client_cc_testcompile_CPPFLAGS = -I${abs_top_srcdir}/client $(CPPFLAGS)
 
 ################################################################################
 ##################################### Tools ####################################
@@ -447,29 +447,35 @@ hyperdex_CPPFLAGS = -DHYPERDEX_EXEC_DIR=\""$(hyperdexexecdir)\"" $(CPPFLAGS)
 hyperdex_LDADD = -lpopt
 
 hyperdex_initialize_cluster_SOURCES = tools/initialize-cluster.cc
-
-hyperdex_initialize_cluster_CPPFLAGS = -DHYPERDEX_COORD_LIB=\""$(hyperdexexecdir)/libhypercoordinator\"" $(CPPFLAGS)
+hyperdex_initialize_cluster_CPPFLAGS = -DHYPERDEX_COORD_LIB=\""$(hyperdexexecdir)/libhypercoordinator\"" -I${abs_top_srcdir}/client $(CPPFLAGS)
 hyperdex_initialize_cluster_LDADD = libhyperclient.la -lpopt
 
 hyperdex_coordinator_SOURCES = tools/coordinator.cc
+hyperdex_coordinator_CPPFLAGS = -I${abs_top_srcdir}/client $(CPPFLAGS)
 hyperdex_coordinator_LDADD = libhyperclient.la $(E_LIBS) $(BUSYBEE_LIBS) -lpopt
 
 hyperdex_add_space_SOURCES = tools/add-space.cc
+hyperdex_add_space_CPPFLAGS = -I${abs_top_srcdir}/client $(CPPFLAGS)
 hyperdex_add_space_LDADD = libhyperclient.la -lpopt
 
 hyperdex_rm_space_SOURCES = tools/rm-space.cc
+hyperdex_rm_space_CPPFLAGS = -I${abs_top_srcdir}/client $(CPPFLAGS)
 hyperdex_rm_space_LDADD = libhyperclient.la -lpopt
 
 hyperdex_show_config_SOURCES = tools/show-config.cc
+hyperdex_show_config_CPPFLAGS = -I${abs_top_srcdir}/client $(CPPFLAGS)
 hyperdex_show_config_LDADD = libhyperclient.la -lpopt
 
 hyperdex_async_benchmark_SOURCES = tools/async-benchmark.cc
+hyperdex_async_benchmark_CPPFLAGS = -I${abs_top_srcdir}/client $(CPPFLAGS)
 hyperdex_async_benchmark_LDADD = libhyperclient.la -lleveldb $(E_LIBS) -lpopt
 
 hyperdex_benchmark_SOURCES = tools/benchmark.cc
+hyperdex_benchmark_CPPFLAGS = -I${abs_top_srcdir}/client $(CPPFLAGS)
 hyperdex_benchmark_LDADD = libhyperclient.la -lleveldb $(E_LIBS) -lpopt
 
 hyperdex_initiate_transfer_SOURCES = tools/initiate-transfer.cc
+hyperdex_initiate_transfer_CPPFLAGS = -I${abs_top_srcdir}/client $(CPPFLAGS)
 hyperdex_initiate_transfer_LDADD = libhyperclient.la -lpopt
 
 ################################################################################
@@ -504,12 +510,15 @@ endif
 ################################################################################
 
 hyperdex_replication_stress_test_SOURCES = replication-stress-test.cc
+hyperdex_replication_stress_test_CPPFLAGS = -I${abs_top_srcdir}/client
 hyperdex_replication_stress_test_LDADD = libhyperclient.la -lpopt $(E_LIBS)
 
 hyperdex_search_stress_test_SOURCES = search-stress-test.cc test/common.cc
+hyperdex_search_stress_test_CPPFLAGS = -I${abs_top_srcdir}/client
 hyperdex_search_stress_test_LDADD = libhyperclient.la -lpopt $(E_LIBS)
 
 hyperdex_simple_consistency_stress_test_SOURCES = simple-consistency-stress-test.cc
+hyperdex_simple_consistency_stress_test_CPPFLAGS = -I${abs_top_srcdir}/client
 hyperdex_simple_consistency_stress_test_LDADD = libhyperclient.la -lpopt -lpthread
 
 ################################################################################

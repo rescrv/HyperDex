@@ -35,7 +35,7 @@
 #include <e/guard.h>
 
 // HyperDex
-#include "client/hyperclient.h"
+#include "client/hyperclient.hpp"
 #include "tools/common.h"
 
 static struct poptOption popts[] = {

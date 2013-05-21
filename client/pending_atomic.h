@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2011-2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,40 +25,45 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_client_tool_wrapper_h_
-#define hyperdex_client_tool_wrapper_h_
+#ifndef hyperdex_client_pending_atomic_h_
+#define hyperdex_client_pending_atomic_h_
 
 // HyperDex
-#include "client/hyperclient.h"
+#include "client/pending.h"
 
 namespace hyperdex
 {
 
-class tool_wrapper
+class pending_atomic : public pending
 {
     public:
-        tool_wrapper(hyperclient* h) : m_h(h) {}
-        tool_wrapper(const tool_wrapper& other) : m_h(other.m_h) {}
-        ~tool_wrapper() throw () {}
+        pending_atomic(uint64_t client_visible_id,
+                       hyperclient_returncode* status);
+        virtual ~pending_atomic() throw ();
 
+    // return to client
     public:
-        hyperclient_returncode initialize_cluster(uint64_t cluster, const char* path)
-        { return m_h->initialize_cluster(cluster, path); }
-        hyperclient_returncode show_config(std::ostream& out)
-        { return m_h->show_config(out); }
-        hyperclient_returncode kill(uint64_t server_id)
-        { return m_h->kill(server_id); }
-        hyperclient_returncode initiate_transfer(uint64_t region_id, uint64_t server_id)
-        { return m_h->initiate_transfer(region_id, server_id); }
+        virtual bool can_yield();
+        virtual bool yield(hyperclient_returncode* status);
 
+    // events
     public:
-        tool_wrapper& operator = (const tool_wrapper& rhs)
-        { m_h = rhs.m_h; return *this; }
+        virtual void handle_sent_to(const server_id& si,
+                                    const virtual_server_id& vsi);
+        virtual void handle_failure(const server_id& si,
+                                    const virtual_server_id& vsi);
+        virtual bool handle_message(client*,
+                                    const server_id& si,
+                                    const virtual_server_id& vsi,
+                                    network_msgtype mt,
+                                    std::auto_ptr<e::buffer> msg,
+                                    e::unpacker up,
+                                    hyperclient_returncode* status);
 
     private:
-        hyperclient* m_h;
+        enum { INITIALIZED, SENT, RECV, YIELDED } m_state;
 };
 
 } // namespace hyperdex
 
-#endif // hyperdex_client_tool_wrapper_h_
+#endif // hyperdex_client_pending_atomic_h_

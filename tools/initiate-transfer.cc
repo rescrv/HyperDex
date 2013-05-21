@@ -35,8 +35,8 @@
 #include <e/guard.h>
 
 // HyperDex
-#include "client/hyperclient.h"
-#include "client/tool_wrapper.h"
+#include "client/coordinator_link.h"
+#include "client/hyperclient.hpp"
 #include "tools/common.h"
 
 static struct poptOption popts[] = {
@@ -102,8 +102,7 @@ main(int argc, const char* argv[])
 
     try
     {
-        hyperclient h(_connect_host, _connect_port);
-        hyperdex::tool_wrapper t(&h);
+        hyperdex::coordinator_link cl(po6::net::hostname(_connect_host, _connect_port));
         char* end;
         end = const_cast<char*>(args[0]);
         uint64_t rid = strtoull(args[0], &end, 0);
@@ -123,7 +122,7 @@ main(int argc, const char* argv[])
             return EXIT_FAILURE;
         }
 
-        hyperclient_returncode e = t.initiate_transfer(rid, sid);
+        hyperclient_returncode e = cl.initiate_transfer(rid, sid);
 
         if (e != HYPERCLIENT_SUCCESS)
         {

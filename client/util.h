@@ -33,11 +33,14 @@
 #include "common/ids.h"
 #include "client/hyperclient.h"
 
+namespace hyperdex
+{
+
 // Convert the key and value vector returned by entity to an array of
 // hyperclient_attribute using the given configuration.
 bool
-value_to_attributes(const hyperdex::configuration& config,
-                    const hyperdex::virtual_server_id& id,
+value_to_attributes(const configuration& config,
+                    const region_id& rid,
                     const uint8_t* key,
                     size_t key_sz,
                     const std::vector<e::slice>& value,
@@ -45,5 +48,7 @@ value_to_attributes(const hyperdex::configuration& config,
                     hyperclient_returncode* op_status,
                     hyperclient_attribute** attrs,
                     size_t* attrs_sz);
+
+} // namespace hyperdex
 
 #endif // hyperdex_client_util_h_

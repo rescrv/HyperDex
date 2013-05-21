@@ -48,6 +48,14 @@ class coordinator_link
         ~coordinator_link() throw ();
 
     public:
+        hyperclient_returncode add_space(const char* description);
+        hyperclient_returncode rm_space(const char* space);
+        hyperclient_returncode initialize_cluster(uint64_t cluster, const char* path);
+        hyperclient_returncode show_config(std::ostream& out);
+        hyperclient_returncode kill(uint64_t server_id);
+        hyperclient_returncode initiate_transfer(uint64_t region_id, uint64_t server_id);
+
+    public:
         const configuration& config();
         bool wait_for_config(hyperclient_returncode* status);
         bool poll_for_config(hyperclient_returncode* status);
