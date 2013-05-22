@@ -527,6 +527,8 @@ replication_manager :: key_state :: check_version(const schema& sc,
         return true;
     }
 
+    // we can assume !checks.empty() and so we must have an old value to work
+    // with
     if (!has_old_value)
     {
         return false;
