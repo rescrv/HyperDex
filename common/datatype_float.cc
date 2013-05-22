@@ -79,7 +79,7 @@ datatype_float :: apply(const e::slice& old_value,
 {
     double number = 0.0;
 
-    if (validate(old_value))
+    if (validate(old_value) && old_value.size() == sizeof(double))
     {
         e::unpackdoublele(old_value.data(), &number);
     }

@@ -83,11 +83,10 @@ datatype_int64 :: apply(const e::slice& old_value,
 {
     int64_t number = 0;
 
-    if (validate(old_value))
+    if (validate(old_value) && old_value.size() == sizeof(int64_t))
     {
         e::unpack64le(old_value.data(), &number);
     }
-
 
     for (size_t i = 0; i < funcs_sz; ++i)
     {
