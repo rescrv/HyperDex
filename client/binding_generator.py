@@ -238,7 +238,7 @@ int64_t
 hyperclient_{0}(struct hyperclient* _cl,
             {1} const char* space,
             {1} const char* key, size_t key_sz,
-            {1} hyperclient_returncode* status)
+            {1} enum hyperclient_returncode* status)
 {{
     C_WRAP_EXCEPT(
     hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl);
@@ -256,7 +256,7 @@ int64_t
 hyperclient_{0}(struct hyperclient* _cl,
             {1} const char* space,
             {1} const char* key, size_t key_sz,
-            {1} hyperclient_returncode* status,
+            {1} enum hyperclient_returncode* status,
             {1} struct hyperclient_attribute** attrs, size_t* attrs_sz)
 {{
     C_WRAP_EXCEPT(
@@ -273,7 +273,7 @@ hyperclient_{0}(struct hyperclient* _cl,
             {1} const char* space,
             {1} const char* key, size_t key_sz,
             {1} const struct hyperclient_attribute_check* checks, size_t checks_sz,
-            {1} hyperclient_returncode* status)
+            {1} enum hyperclient_returncode* status)
 {{
     C_WRAP_EXCEPT(
     hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl);
@@ -438,9 +438,9 @@ hyperclient_{0}(struct hyperclient* _cl,
         else:
             print "c doesn't support", call.name
     fout.write('''
-
 int64_t
-hyperclient_loop(struct hyperclient* client, int timeout, hyperclient_returncode* status)
+hyperclient_loop(struct hyperclient* client, int timeout,
+                 enum hyperclient_returncode* status)
 {
     C_WRAP_EXCEPT(
     hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(client);

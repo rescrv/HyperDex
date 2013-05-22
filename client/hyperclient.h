@@ -114,438 +114,506 @@ void
 hyperclient_destroy(struct hyperclient* client);
 
 enum hyperclient_returncode
-hyperclient_add_space(struct hyperclient* client, const char* description);
+hyperclient_add_space(struct hyperclient* client,
+                      const char* str);
 
 enum hyperclient_returncode
-hyperclient_rm_space(struct hyperclient* client, const char* space);
+hyperclient_rm_space(struct hyperclient* client,
+                     const char* str);
 
 int64_t
-hyperclient_get(struct hyperclient* client, const char* space, const char* key,
-                size_t key_sz, enum hyperclient_returncode* status,
+hyperclient_get(struct hyperclient* client,
+                const char* space,
+                const char* key, size_t key_sz,
+                enum hyperclient_returncode* status,
                 struct hyperclient_attribute** attrs, size_t* attrs_sz);
 
 int64_t
-hyperclient_put(struct hyperclient* client, const char* space, const char* key,
-                size_t key_sz, const struct hyperclient_attribute* attrs,
-                size_t attrs_sz, enum hyperclient_returncode* status);
+hyperclient_put(struct hyperclient* client,
+                const char* space,
+                const char* key, size_t key_sz,
+                const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_put(struct hyperclient* client, const char* space,
+hyperclient_cond_put(struct hyperclient* client,
+                     const char* space,
                      const char* key, size_t key_sz,
                      const struct hyperclient_attribute_check* checks, size_t checks_sz,
                      const struct hyperclient_attribute* attrs, size_t attrs_sz,
                      enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_put_if_not_exist(struct hyperclient* client, const char* space, const char* key,
-                             size_t key_sz, const struct hyperclient_attribute* attrs,
-                             size_t attrs_sz, enum hyperclient_returncode* status);
+hyperclient_put_if_not_exist(struct hyperclient* client,
+                             const char* space,
+                             const char* key, size_t key_sz,
+                             const struct hyperclient_attribute* attrs, size_t attrs_sz,
+                             enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_del(struct hyperclient* client, const char* space, const char* key,
-                size_t key_sz, enum hyperclient_returncode* status);
+hyperclient_del(struct hyperclient* client,
+                const char* space,
+                const char* key, size_t key_sz,
+                enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_del(struct hyperclient* client, const char* space,
+hyperclient_cond_del(struct hyperclient* client,
+                     const char* space,
                      const char* key, size_t key_sz,
                      const struct hyperclient_attribute_check* checks, size_t checks_sz,
                      enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_atomic_add(struct hyperclient* client, const char* space,
+hyperclient_atomic_add(struct hyperclient* client,
+                       const char* space,
                        const char* key, size_t key_sz,
                        const struct hyperclient_attribute* attrs, size_t attrs_sz,
                        enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_atomic_add(struct hyperclient* client, const char* space,
+hyperclient_cond_atomic_add(struct hyperclient* client,
+                            const char* space,
                             const char* key, size_t key_sz,
                             const struct hyperclient_attribute_check* checks, size_t checks_sz,
                             const struct hyperclient_attribute* attrs, size_t attrs_sz,
                             enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_atomic_sub(struct hyperclient* client, const char* space,
+hyperclient_atomic_sub(struct hyperclient* client,
+                       const char* space,
                        const char* key, size_t key_sz,
                        const struct hyperclient_attribute* attrs, size_t attrs_sz,
                        enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_atomic_sub(struct hyperclient* client, const char* space,
+hyperclient_cond_atomic_sub(struct hyperclient* client,
+                            const char* space,
                             const char* key, size_t key_sz,
                             const struct hyperclient_attribute_check* checks, size_t checks_sz,
                             const struct hyperclient_attribute* attrs, size_t attrs_sz,
                             enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_atomic_mul(struct hyperclient* client, const char* space,
+hyperclient_atomic_mul(struct hyperclient* client,
+                       const char* space,
                        const char* key, size_t key_sz,
                        const struct hyperclient_attribute* attrs, size_t attrs_sz,
                        enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_atomic_mul(struct hyperclient* client, const char* space,
+hyperclient_cond_atomic_mul(struct hyperclient* client,
+                            const char* space,
                             const char* key, size_t key_sz,
                             const struct hyperclient_attribute_check* checks, size_t checks_sz,
                             const struct hyperclient_attribute* attrs, size_t attrs_sz,
                             enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_atomic_div(struct hyperclient* client, const char* space,
+hyperclient_atomic_div(struct hyperclient* client,
+                       const char* space,
                        const char* key, size_t key_sz,
                        const struct hyperclient_attribute* attrs, size_t attrs_sz,
                        enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_atomic_div(struct hyperclient* client, const char* space,
+hyperclient_cond_atomic_div(struct hyperclient* client,
+                            const char* space,
                             const char* key, size_t key_sz,
                             const struct hyperclient_attribute_check* checks, size_t checks_sz,
                             const struct hyperclient_attribute* attrs, size_t attrs_sz,
                             enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_atomic_mod(struct hyperclient* client, const char* space,
+hyperclient_atomic_mod(struct hyperclient* client,
+                       const char* space,
                        const char* key, size_t key_sz,
                        const struct hyperclient_attribute* attrs, size_t attrs_sz,
                        enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_atomic_mod(struct hyperclient* client, const char* space,
+hyperclient_cond_atomic_mod(struct hyperclient* client,
+                            const char* space,
                             const char* key, size_t key_sz,
                             const struct hyperclient_attribute_check* checks, size_t checks_sz,
                             const struct hyperclient_attribute* attrs, size_t attrs_sz,
                             enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_atomic_and(struct hyperclient* client, const char* space,
+hyperclient_atomic_and(struct hyperclient* client,
+                       const char* space,
                        const char* key, size_t key_sz,
                        const struct hyperclient_attribute* attrs, size_t attrs_sz,
                        enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_atomic_and(struct hyperclient* client, const char* space,
+hyperclient_cond_atomic_and(struct hyperclient* client,
+                            const char* space,
                             const char* key, size_t key_sz,
                             const struct hyperclient_attribute_check* checks, size_t checks_sz,
                             const struct hyperclient_attribute* attrs, size_t attrs_sz,
                             enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_atomic_or(struct hyperclient* client, const char* space,
+hyperclient_atomic_or(struct hyperclient* client,
+                      const char* space,
                       const char* key, size_t key_sz,
                       const struct hyperclient_attribute* attrs, size_t attrs_sz,
                       enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_atomic_or(struct hyperclient* client, const char* space,
+hyperclient_cond_atomic_or(struct hyperclient* client,
+                           const char* space,
                            const char* key, size_t key_sz,
                            const struct hyperclient_attribute_check* checks, size_t checks_sz,
                            const struct hyperclient_attribute* attrs, size_t attrs_sz,
                            enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_atomic_xor(struct hyperclient* client, const char* space,
+hyperclient_atomic_xor(struct hyperclient* client,
+                       const char* space,
                        const char* key, size_t key_sz,
                        const struct hyperclient_attribute* attrs, size_t attrs_sz,
                        enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_atomic_xor(struct hyperclient* client, const char* space,
+hyperclient_cond_atomic_xor(struct hyperclient* client,
+                            const char* space,
                             const char* key, size_t key_sz,
                             const struct hyperclient_attribute_check* checks, size_t checks_sz,
                             const struct hyperclient_attribute* attrs, size_t attrs_sz,
                             enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_string_prepend(struct hyperclient* client, const char* space,
+hyperclient_string_prepend(struct hyperclient* client,
+                           const char* space,
                            const char* key, size_t key_sz,
                            const struct hyperclient_attribute* attrs, size_t attrs_sz,
                            enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_string_prepend(struct hyperclient* client, const char* space,
+hyperclient_cond_string_prepend(struct hyperclient* client,
+                                const char* space,
                                 const char* key, size_t key_sz,
                                 const struct hyperclient_attribute_check* checks, size_t checks_sz,
                                 const struct hyperclient_attribute* attrs, size_t attrs_sz,
                                 enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_string_append(struct hyperclient* client, const char* space,
+hyperclient_string_append(struct hyperclient* client,
+                          const char* space,
                           const char* key, size_t key_sz,
                           const struct hyperclient_attribute* attrs, size_t attrs_sz,
                           enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_string_append(struct hyperclient* client, const char* space,
+hyperclient_cond_string_append(struct hyperclient* client,
+                               const char* space,
                                const char* key, size_t key_sz,
                                const struct hyperclient_attribute_check* checks, size_t checks_sz,
                                const struct hyperclient_attribute* attrs, size_t attrs_sz,
                                enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_list_lpush(struct hyperclient* client, const char* space,
+hyperclient_list_lpush(struct hyperclient* client,
+                       const char* space,
                        const char* key, size_t key_sz,
                        const struct hyperclient_attribute* attrs, size_t attrs_sz,
                        enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_list_lpush(struct hyperclient* client, const char* space,
+hyperclient_cond_list_lpush(struct hyperclient* client,
+                            const char* space,
                             const char* key, size_t key_sz,
                             const struct hyperclient_attribute_check* checks, size_t checks_sz,
                             const struct hyperclient_attribute* attrs, size_t attrs_sz,
                             enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_list_rpush(struct hyperclient* client, const char* space,
+hyperclient_list_rpush(struct hyperclient* client,
+                       const char* space,
                        const char* key, size_t key_sz,
                        const struct hyperclient_attribute* attrs, size_t attrs_sz,
                        enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_list_rpush(struct hyperclient* client, const char* space,
+hyperclient_cond_list_rpush(struct hyperclient* client,
+                            const char* space,
                             const char* key, size_t key_sz,
                             const struct hyperclient_attribute_check* checks, size_t checks_sz,
                             const struct hyperclient_attribute* attrs, size_t attrs_sz,
                             enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_set_add(struct hyperclient* client, const char* space,
+hyperclient_set_add(struct hyperclient* client,
+                    const char* space,
                     const char* key, size_t key_sz,
                     const struct hyperclient_attribute* attrs, size_t attrs_sz,
                     enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_set_add(struct hyperclient* client, const char* space,
+hyperclient_cond_set_add(struct hyperclient* client,
+                         const char* space,
                          const char* key, size_t key_sz,
                          const struct hyperclient_attribute_check* checks, size_t checks_sz,
                          const struct hyperclient_attribute* attrs, size_t attrs_sz,
                          enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_set_remove(struct hyperclient* client, const char* space,
+hyperclient_set_remove(struct hyperclient* client,
+                       const char* space,
                        const char* key, size_t key_sz,
                        const struct hyperclient_attribute* attrs, size_t attrs_sz,
                        enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_set_remove(struct hyperclient* client, const char* space,
+hyperclient_cond_set_remove(struct hyperclient* client,
+                            const char* space,
                             const char* key, size_t key_sz,
                             const struct hyperclient_attribute_check* checks, size_t checks_sz,
                             const struct hyperclient_attribute* attrs, size_t attrs_sz,
                             enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_set_intersect(struct hyperclient* client, const char* space,
+hyperclient_set_intersect(struct hyperclient* client,
+                          const char* space,
                           const char* key, size_t key_sz,
                           const struct hyperclient_attribute* attrs, size_t attrs_sz,
                           enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_set_intersect(struct hyperclient* client, const char* space,
+hyperclient_cond_set_intersect(struct hyperclient* client,
+                               const char* space,
                                const char* key, size_t key_sz,
                                const struct hyperclient_attribute_check* checks, size_t checks_sz,
                                const struct hyperclient_attribute* attrs, size_t attrs_sz,
                                enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_set_union(struct hyperclient* client, const char* space,
+hyperclient_set_union(struct hyperclient* client,
+                      const char* space,
                       const char* key, size_t key_sz,
                       const struct hyperclient_attribute* attrs, size_t attrs_sz,
                       enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_set_union(struct hyperclient* client, const char* space,
+hyperclient_cond_set_union(struct hyperclient* client,
+                           const char* space,
                            const char* key, size_t key_sz,
                            const struct hyperclient_attribute_check* checks, size_t checks_sz,
                            const struct hyperclient_attribute* attrs, size_t attrs_sz,
                            enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_map_add(struct hyperclient* client, const char* space,
+hyperclient_map_add(struct hyperclient* client,
+                    const char* space,
                     const char* key, size_t key_sz,
-                    const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                    const struct hyperclient_map_attribute* mapattrs, size_t mapattrs_sz,
                     enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_map_add(struct hyperclient* client, const char* space,
+hyperclient_cond_map_add(struct hyperclient* client,
+                         const char* space,
                          const char* key, size_t key_sz,
                          const struct hyperclient_attribute_check* checks, size_t checks_sz,
-                         const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                         const struct hyperclient_map_attribute* mapattrs, size_t mapattrs_sz,
                          enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_map_remove(struct hyperclient* client, const char* space,
+hyperclient_map_remove(struct hyperclient* client,
+                       const char* space,
                        const char* key, size_t key_sz,
                        const struct hyperclient_attribute* attrs, size_t attrs_sz,
                        enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_map_remove(struct hyperclient* client, const char* space,
+hyperclient_cond_map_remove(struct hyperclient* client,
+                            const char* space,
                             const char* key, size_t key_sz,
                             const struct hyperclient_attribute_check* checks, size_t checks_sz,
                             const struct hyperclient_attribute* attrs, size_t attrs_sz,
                             enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_map_atomic_add(struct hyperclient* client, const char* space,
+hyperclient_map_atomic_add(struct hyperclient* client,
+                           const char* space,
                            const char* key, size_t key_sz,
-                           const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                           const struct hyperclient_map_attribute* mapattrs, size_t mapattrs_sz,
                            enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_map_atomic_add(struct hyperclient* client, const char* space,
+hyperclient_cond_map_atomic_add(struct hyperclient* client,
+                                const char* space,
                                 const char* key, size_t key_sz,
                                 const struct hyperclient_attribute_check* checks, size_t checks_sz,
-                                const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                                const struct hyperclient_map_attribute* mapattrs, size_t mapattrs_sz,
                                 enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_map_atomic_sub(struct hyperclient* client, const char* space,
+hyperclient_map_atomic_sub(struct hyperclient* client,
+                           const char* space,
                            const char* key, size_t key_sz,
-                           const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                           const struct hyperclient_map_attribute* mapattrs, size_t mapattrs_sz,
                            enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_map_atomic_sub(struct hyperclient* client, const char* space,
+hyperclient_cond_map_atomic_sub(struct hyperclient* client,
+                                const char* space,
                                 const char* key, size_t key_sz,
                                 const struct hyperclient_attribute_check* checks, size_t checks_sz,
-                                const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                                const struct hyperclient_map_attribute* mapattrs, size_t mapattrs_sz,
                                 enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_map_atomic_mul(struct hyperclient* client, const char* space,
+hyperclient_map_atomic_mul(struct hyperclient* client,
+                           const char* space,
                            const char* key, size_t key_sz,
-                           const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                           const struct hyperclient_map_attribute* mapattrs, size_t mapattrs_sz,
                            enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_map_atomic_mul(struct hyperclient* client, const char* space,
+hyperclient_cond_map_atomic_mul(struct hyperclient* client,
+                                const char* space,
                                 const char* key, size_t key_sz,
                                 const struct hyperclient_attribute_check* checks, size_t checks_sz,
-                                const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                                const struct hyperclient_map_attribute* mapattrs, size_t mapattrs_sz,
                                 enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_map_atomic_div(struct hyperclient* client, const char* space,
+hyperclient_map_atomic_div(struct hyperclient* client,
+                           const char* space,
                            const char* key, size_t key_sz,
-                           const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                           const struct hyperclient_map_attribute* mapattrs, size_t mapattrs_sz,
                            enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_map_atomic_div(struct hyperclient* client, const char* space,
-                           const char* key, size_t key_sz,
-                           const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
-                           enum hyperclient_returncode* status);
-
-int64_t
-hyperclient_cond_map_atomic_div(struct hyperclient* client, const char* space,
+hyperclient_cond_map_atomic_div(struct hyperclient* client,
+                                const char* space,
                                 const char* key, size_t key_sz,
                                 const struct hyperclient_attribute_check* checks, size_t checks_sz,
-                                const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                                const struct hyperclient_map_attribute* mapattrs, size_t mapattrs_sz,
                                 enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_map_atomic_mod(struct hyperclient* client, const char* space,
+hyperclient_map_atomic_mod(struct hyperclient* client,
+                           const char* space,
                            const char* key, size_t key_sz,
-                           const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                           const struct hyperclient_map_attribute* mapattrs, size_t mapattrs_sz,
                            enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_map_atomic_mod(struct hyperclient* client, const char* space,
+hyperclient_cond_map_atomic_mod(struct hyperclient* client,
+                                const char* space,
                                 const char* key, size_t key_sz,
                                 const struct hyperclient_attribute_check* checks, size_t checks_sz,
-                                const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                                const struct hyperclient_map_attribute* mapattrs, size_t mapattrs_sz,
                                 enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_map_atomic_and(struct hyperclient* client, const char* space,
+hyperclient_map_atomic_and(struct hyperclient* client,
+                           const char* space,
                            const char* key, size_t key_sz,
-                           const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                           const struct hyperclient_map_attribute* mapattrs, size_t mapattrs_sz,
                            enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_map_atomic_and(struct hyperclient* client, const char* space,
+hyperclient_cond_map_atomic_and(struct hyperclient* client,
+                                const char* space,
                                 const char* key, size_t key_sz,
                                 const struct hyperclient_attribute_check* checks, size_t checks_sz,
-                                const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                                const struct hyperclient_map_attribute* mapattrs, size_t mapattrs_sz,
                                 enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_map_atomic_or(struct hyperclient* client, const char* space,
+hyperclient_map_atomic_or(struct hyperclient* client,
+                          const char* space,
                           const char* key, size_t key_sz,
-                          const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                          const struct hyperclient_map_attribute* mapattrs, size_t mapattrs_sz,
                           enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_map_atomic_or(struct hyperclient* client, const char* space,
+hyperclient_cond_map_atomic_or(struct hyperclient* client,
+                               const char* space,
                                const char* key, size_t key_sz,
                                const struct hyperclient_attribute_check* checks, size_t checks_sz,
-                               const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                               const struct hyperclient_map_attribute* mapattrs, size_t mapattrs_sz,
                                enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_map_atomic_xor(struct hyperclient* client, const char* space,
+hyperclient_map_atomic_xor(struct hyperclient* client,
+                           const char* space,
                            const char* key, size_t key_sz,
-                           const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                           const struct hyperclient_map_attribute* mapattrs, size_t mapattrs_sz,
                            enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_map_atomic_xor(struct hyperclient* client, const char* space,
+hyperclient_cond_map_atomic_xor(struct hyperclient* client,
+                                const char* space,
                                 const char* key, size_t key_sz,
                                 const struct hyperclient_attribute_check* checks, size_t checks_sz,
-                                const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                                const struct hyperclient_map_attribute* mapattrs, size_t mapattrs_sz,
                                 enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_map_string_prepend(struct hyperclient* client, const char* space,
+hyperclient_map_string_prepend(struct hyperclient* client,
+                               const char* space,
                                const char* key, size_t key_sz,
-                               const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                               const struct hyperclient_map_attribute* mapattrs, size_t mapattrs_sz,
                                enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_map_string_prepend(struct hyperclient* client, const char* space,
+hyperclient_cond_map_string_prepend(struct hyperclient* client,
+                                    const char* space,
                                     const char* key, size_t key_sz,
                                     const struct hyperclient_attribute_check* checks, size_t checks_sz,
-                                    const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                                    const struct hyperclient_map_attribute* mapattrs, size_t mapattrs_sz,
                                     enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_map_string_append(struct hyperclient* client, const char* space,
+hyperclient_map_string_append(struct hyperclient* client,
+                              const char* space,
                               const char* key, size_t key_sz,
-                              const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                              const struct hyperclient_map_attribute* mapattrs, size_t mapattrs_sz,
                               enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_cond_map_string_append(struct hyperclient* client, const char* space,
+hyperclient_cond_map_string_append(struct hyperclient* client,
+                                   const char* space,
                                    const char* key, size_t key_sz,
                                    const struct hyperclient_attribute_check* checks, size_t checks_sz,
-                                   const struct hyperclient_map_attribute* attrs, size_t attrs_sz,
+                                   const struct hyperclient_map_attribute* mapattrs, size_t mapattrs_sz,
                                    enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_search(struct hyperclient* client, const char* space,
+hyperclient_search(struct hyperclient* client,
+                   const char* space,
                    const struct hyperclient_attribute_check* checks, size_t checks_sz,
                    enum hyperclient_returncode* status,
                    struct hyperclient_attribute** attrs, size_t* attrs_sz);
 
 int64_t
-hyperclient_search_describe(struct hyperclient* client, const char* space,
+hyperclient_search_describe(struct hyperclient* client,
+                            const char* space,
                             const struct hyperclient_attribute_check* checks, size_t checks_sz,
-                            enum hyperclient_returncode* status, const char** description);
+                            enum hyperclient_returncode* status,
+                            const char** str);
 
 int64_t
-hyperclient_sorted_search(struct hyperclient* client, const char* space,
+hyperclient_sorted_search(struct hyperclient* client,
+                          const char* space,
                           const struct hyperclient_attribute_check* checks, size_t checks_sz,
                           const char* sort_by, uint64_t limit, int maximize,
                           enum hyperclient_returncode* status,
                           struct hyperclient_attribute** attrs, size_t* attrs_sz);
 
 int64_t
-hyperclient_group_del(struct hyperclient* client, const char* space,
+hyperclient_group_del(struct hyperclient* client,
+                      const char* space,
                       const struct hyperclient_attribute_check* checks, size_t checks_sz,
                       enum hyperclient_returncode* status);
 
 int64_t
-hyperclient_count(struct hyperclient* client, const char* space,
+hyperclient_count(struct hyperclient* client,
+                  const char* space,
                   const struct hyperclient_attribute_check* checks, size_t checks_sz,
                   enum hyperclient_returncode* status, uint64_t* result);
 

@@ -149,7 +149,7 @@ int64_t
 hyperclient_get(struct hyperclient* _cl,
                 const char* space,
                 const char* key, size_t key_sz,
-                hyperclient_returncode* status,
+                enum hyperclient_returncode* status,
                 struct hyperclient_attribute** attrs, size_t* attrs_sz)
 {
     C_WRAP_EXCEPT(
@@ -208,7 +208,7 @@ int64_t
 hyperclient_del(struct hyperclient* _cl,
                 const char* space,
                 const char* key, size_t key_sz,
-                hyperclient_returncode* status)
+                enum hyperclient_returncode* status)
 {
     C_WRAP_EXCEPT(
     hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl);
@@ -223,7 +223,7 @@ hyperclient_cond_del(struct hyperclient* _cl,
                      const char* space,
                      const char* key, size_t key_sz,
                      const struct hyperclient_attribute_check* checks, size_t checks_sz,
-                     hyperclient_returncode* status)
+                     enum hyperclient_returncode* status)
 {
     C_WRAP_EXCEPT(
     hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl);
@@ -1165,9 +1165,9 @@ hyperclient_count(struct hyperclient* _cl,
     );
 }
 
-
 int64_t
-hyperclient_loop(struct hyperclient* client, int timeout, hyperclient_returncode* status)
+hyperclient_loop(struct hyperclient* client, int timeout,
+                 enum hyperclient_returncode* status)
 {
     C_WRAP_EXCEPT(
     hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(client);
