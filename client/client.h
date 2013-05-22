@@ -163,6 +163,7 @@ class client
         uint64_t m_next_server_nonce;
         pending_map_t m_pending_ops;
         pending_queue_t m_failed;
+        std::list<e::intrusive_ptr<pending> > m_yieldable;
         e::intrusive_ptr<pending> m_yielding;
 };
 

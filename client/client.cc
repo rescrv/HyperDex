@@ -63,6 +63,7 @@ client :: client(const char* coordinator, uint16_t port)
     , m_next_server_nonce(1)
     , m_pending_ops()
     , m_failed()
+    , m_yieldable()
     , m_yielding()
 {
 }
@@ -329,6 +330,7 @@ client :: loop(int timeout, hyperclient_returncode* status)
 
     while (m_yielding ||
            !m_failed.empty() ||
+           !m_yieldable.empty() ||
            !m_pending_ops.empty())
     {
         if (m_yielding)
@@ -352,6 +354,12 @@ client :: loop(int timeout, hyperclient_returncode* status)
             }
 
             return client_id;
+        }
+        else if (!m_yieldable.empty())
+        {
+            m_yielding = m_yieldable.front();
+            m_yieldable.pop_front();
+            continue;
         }
         else if (!m_failed.empty())
         {
