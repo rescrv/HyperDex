@@ -176,6 +176,8 @@ hyperdex :: range_searches(const std::vector<attribute_check>& checks,
         {
             ranges->push_back(r);
         }
+
+        range_ptr = tmp;
     }
 
     return true;
