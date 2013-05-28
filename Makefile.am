@@ -375,13 +375,18 @@ libhyperclient_java_la_CPPFLAGS = \
 			$(JNI_CPPFLAGS) \
 			$(CPPFLAGS)
 libhyperclient_java_la_CXXFLAGS = \
+			-I$(abs_top_srcdir)/client \
 			-fno-strict-aliasing
 libhyperclient_java_la_LIBADD = \
 			libhyperclient.la \
 			$(PYTHON_LDFLAGS)
 
+swig_verbose = $(swig_verbose_$(V))
+swig_verbose_ = $(swig_verbose_$(AM_DEFAULT_VERBOSITY))
+swig_verbose_0 = @echo "  SWIG  " $@;
+
 client/java/hyperclient_wrap.cxx: client/java/hyperclient.i client/hyperclient.h
-	mkdir -p client/java/hyperclient
+	$(swig_verbose)mkdir -p $(abs_top_builddir)/client/java/hyperclient &&  \
 	${SWIG} -I${abs_srcdir} -java -package hyperclient -outdir $(abs_builddir)/client/java/hyperclient \
 		-o $(abs_builddir)/client/java/hyperclient_wrap.cxx -w518 $(abs_top_srcdir)/client/java/hyperclient.i
 

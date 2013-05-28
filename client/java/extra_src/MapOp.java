@@ -34,24 +34,6 @@ class MapOpAdd extends MapOp
     }
 }
 
-class MapOpRemove extends MapOp
-{
-    public MapOpRemove(HyperClient client)
-    {
-        super(client);
-    }
-
-    long call(Object space, Object key,
-              hyperclient_map_attribute attrs, long attrs_sz,
-              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
-    {
-        return client.map_remove(client.getBytes(space,true),
-                               client.getBytes(key),
-                               attrs, attrs_sz,
-                               rc_ptr);
-    }
-}
-
 class MapOpAtomicAdd extends MapOp
 {
     public MapOpAtomicAdd(HyperClient client)

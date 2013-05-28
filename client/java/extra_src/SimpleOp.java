@@ -339,3 +339,21 @@ class SimpleOpSetUnion extends SimpleOp
                                rc_ptr);
     }
 }
+
+class SimpleOpMapRemove extends SimpleOp
+{
+    public SimpleOpMapRemove(HyperClient client)
+    {
+        super(client);
+    }
+
+    long call(Object space, Object key,
+              hyperclient_attribute attrs, long attrs_sz,
+              SWIGTYPE_p_hyperclient_returncode rc_ptr) throws TypeError
+    {
+        return client.map_remove(client.getBytes(space,true),
+                                 client.getBytes(key),
+                                 attrs, attrs_sz,
+                                 rc_ptr);
+    }
+}

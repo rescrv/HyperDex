@@ -1334,7 +1334,7 @@
 
   public void add_space(Object desc) throws HyperClientException, TypeError
   {
-    hyperclient_returncode rc = add_space(getBytes(desc,true));
+    hyperclient_returncode rc = add_space(new String(getBytes(desc,true)));
 
     if ( rc != hyperclient_returncode.HYPERCLIENT_SUCCESS )
     {
@@ -1344,7 +1344,7 @@
 
   public void rm_space(Object space) throws HyperClientException, TypeError
   {
-    hyperclient_returncode rc = rm_space(getBytes(space,true));
+    hyperclient_returncode rc = rm_space(new String(getBytes(space,true)));
 
     if ( rc != hyperclient_returncode.HYPERCLIENT_SUCCESS )
     {
@@ -1660,7 +1660,7 @@
                                                                    MemoryError,
                                                                    ValueError
   {
-    Deferred d = (DeferredMapOp)(async_map_remove(space, key, map));
+    Deferred d = (DeferredFromAttrs)(async_map_remove(space, key, map));
     return ((Boolean)(d.waitFor())).booleanValue();
   }
 
@@ -1998,7 +1998,7 @@
                                                                    MemoryError,
                                                                    ValueError
   {
-    return new DeferredMapOp(this, new MapOpRemove(this), space, key, map);
+    return new DeferredFromAttrs(this, new SimpleOpMapRemove(this), space, key, map);
   }
 
   public Deferred async_map_atomic_add(Object space, Object key, java.util.Map map)

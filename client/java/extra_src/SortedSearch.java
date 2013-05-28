@@ -31,7 +31,7 @@ public class SortedSearch extends SearchBase
                                          chks, chks_sz,
                                          client.getBytes(sortBy,true),
                                          limit,
-                                         descending,
+                                         descending ? 1 : 0,
                                          rc_ptr,
                                          attrs_ptr, attrs_sz_ptr);
 

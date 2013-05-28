@@ -39,6 +39,7 @@
 #include <limits.h>
 #include <cstdlib>
 #include "client/hyperclient.h"
+#include "client/hyperclient.hpp"
 typedef hyperclient_attribute* hyperclient_attribute_asterisk;
 %}
 
@@ -114,3 +115,4 @@ typedef hyperclient_attribute* hyperclient_attribute_asterisk;
 
 %include "hyperdex.h"
 %include "client/hyperclient.h"
+%include "client/hyperclient.hpp"
