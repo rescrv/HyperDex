@@ -33,7 +33,7 @@
 #include <tr1/memory>
 
 // LevelDB
-#include <leveldb/db.h>
+#include <hyperleveldb/db.h>
 
 // po6
 #include <po6/threads/mutex.h>

@@ -43,8 +43,8 @@
 #include <glog/logging.h>
 
 // LevelDB
-#include <leveldb/write_batch.h>
-#include <leveldb/filter_policy.h>
+#include <hyperleveldb/write_batch.h>
+#include <hyperleveldb/filter_policy.h>
 
 // e
 #include <e/endian.h>

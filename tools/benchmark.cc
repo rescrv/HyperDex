@@ -29,7 +29,7 @@
 #include <errno.h>
 
 // LevelDB
-#include <leveldb/db.h>
+#include <hyperleveldb/db.h>
 
 // po6
 #include <po6/error.h>

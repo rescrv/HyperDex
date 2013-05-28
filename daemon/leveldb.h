@@ -33,7 +33,7 @@
 #include <tr1/memory>
 
 // LevelDB
-#include <leveldb/db.h>
+#include <hyperleveldb/db.h>
 
 using std::tr1::placeholders::_1;
 

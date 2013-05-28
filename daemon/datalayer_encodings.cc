@@ -26,7 +26,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // LevelDB
-#include <leveldb/write_batch.h>
+#include <hyperleveldb/write_batch.h>
 
 // e
 #include <e/endian.h>

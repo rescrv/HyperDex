@@ -29,7 +29,7 @@
 #define hyperdex_daemon_datalayer_encodings_h_
 
 // LevelDB
-#include <leveldb/slice.h>
+#include <hyperleveldb/slice.h>
 
 // HyperDex
 #include "common/ids.h"

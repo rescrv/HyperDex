@@ -32,7 +32,7 @@
 #include <tr1/memory>
 
 // LevelDB
-#include <leveldb/db.h>
+#include <hyperleveldb/db.h>
 
 // e
 #include <e/intrusive_ptr.h>
