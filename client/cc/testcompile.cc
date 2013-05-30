@@ -34,6 +34,7 @@
 int
 main(int argc, const char* argv[])
 {
+    HyperClient hc("127.0.0.1", 1982);
     argc = argc;
     argv = argv;
     return 0;

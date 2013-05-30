@@ -67,7 +67,7 @@ perform_hyperdex(void* _cl,
     attr.value_sz = v_sz;
     attr.datatype = HYPERDATATYPE_STRING;
     hyperclient_returncode rstatus;
-    int64_t rid = cl->put("kv", k, k_sz, &attr, 1, &rstatus);
+    int64_t rid = hyperclient_put(cl, "kv", k, k_sz, &attr, 1, &rstatus);
 
     if (rid < 0)
     {
@@ -76,7 +76,7 @@ perform_hyperdex(void* _cl,
     }
 
     hyperclient_returncode lstatus;
-    int64_t lid = cl->loop(-1, &lstatus);
+    int64_t lid = hyperclient_loop(cl, -1, &lstatus);
 
     if (lid < 0)
     {

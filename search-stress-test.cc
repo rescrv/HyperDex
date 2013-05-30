@@ -64,7 +64,7 @@ static struct poptOption popts[] = {
 } // extern "C"
 
 static void
-test(hyperclient* cl);
+test(HyperClient* cl);
 
 int
 main(int argc, const char* argv[])
@@ -85,7 +85,7 @@ main(int argc, const char* argv[])
 
     try
     {
-        hyperclient cl(hyperdex_test_host, hyperdex_test_port);
+        HyperClient cl(hyperdex_test_host, hyperdex_test_port);
 
         if (!hyperdex_test_space)
         {
@@ -120,42 +120,42 @@ main(int argc, const char* argv[])
 
 static void
 empty(size_t testno,
-      hyperclient* cl);
+      HyperClient* cl);
 
 static void
 populate(size_t testno,
-         hyperclient* cl);
+         HyperClient* cl);
 
 static void
 search(size_t testno,
-       hyperclient* cl,
+       HyperClient* cl,
        const struct hyperclient_attribute_check* checks, size_t checks_sz,
        const std::vector<bool>& expected);
 
 static void
 sorted_search(size_t testno,
-              hyperclient* cl,
+              HyperClient* cl,
               const struct hyperclient_attribute_check* checks, size_t checks_sz,
               const std::vector<bool>& expected);
 
 static void
 group_del(size_t testno,
-          hyperclient* cl,
+          HyperClient* cl,
           const struct hyperclient_attribute_check* checks, size_t checks_sz);
 
 static void
 count(size_t testno,
-      hyperclient* cl,
+      HyperClient* cl,
       const struct hyperclient_attribute_check* checks, size_t checks_sz,
       size_t expected);
 
 static void
 all_search_tests(size_t testno,
-                 hyperclient* cl,
+                 HyperClient* cl,
                  const std::vector<bool>& expecting);
 
 void
-test(hyperclient* cl)
+test(HyperClient* cl)
 {
     group_del(16, cl, NULL, 0); // clear everything
     srand(0xdeadbeef); // yes, I know rand+mod is bad
@@ -221,7 +221,7 @@ test(hyperclient* cl)
 
 void
 empty(size_t testno,
-      hyperclient* cl)
+      HyperClient* cl)
 {
     count(testno, cl, NULL, 0, 0);
     std::vector<bool> expected(1ULL << testno, false);
@@ -231,7 +231,7 @@ empty(size_t testno,
 
 static void
 populate(size_t testno,
-         hyperclient* cl)
+         HyperClient* cl)
 {
     for (uint64_t number = 0; number < (1ULL << testno); ++number)
     {
@@ -304,7 +304,7 @@ populate(size_t testno,
 
 void
 search(size_t testno,
-       hyperclient* cl,
+       HyperClient* cl,
        const struct hyperclient_attribute_check* checks, size_t checks_sz,
        const std::vector<bool>& expected)
 {
@@ -452,7 +452,7 @@ search(size_t testno,
 
 void
 sorted_search(size_t testno,
-              hyperclient* cl,
+              HyperClient* cl,
               const struct hyperclient_attribute_check* checks, size_t checks_sz,
               const std::vector<bool>& expected)
 {
@@ -609,7 +609,7 @@ sorted_search(size_t testno,
 
 static void
 group_del(size_t testno,
-          hyperclient* cl,
+          HyperClient* cl,
           const struct hyperclient_attribute_check* checks, size_t checks_sz)
 {
     hyperclient_returncode gstatus;
@@ -641,7 +641,7 @@ group_del(size_t testno,
 
 static void
 count(size_t testno,
-      hyperclient* cl,
+      HyperClient* cl,
       const struct hyperclient_attribute_check* checks, size_t checks_sz,
       size_t expected)
 {
@@ -721,7 +721,7 @@ setup_random_search(size_t,
 
 void
 all_search_tests(size_t testno,
-                 hyperclient* cl,
+                 HyperClient* cl,
                  const std::vector<bool>& expecting)
 {
     search(testno, cl, NULL, 0, expecting);

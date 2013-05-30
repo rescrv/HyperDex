@@ -116,7 +116,7 @@ main(int argc, const char* argv[])
 
     try
     {
-        hyperclient h(_connect_host, _connect_port);
+        HyperClient h(_connect_host, _connect_port);
         hyperclient_returncode e = h.add_space(description.c_str());
 
         if (e != HYPERCLIENT_SUCCESS)

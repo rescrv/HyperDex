@@ -493,10 +493,10 @@ def generate_cc():
 // HyperDex
 #include <hyperclient.h>
 
-class hyperclient
+class HyperClient
 {
     public:
-        hyperclient(const char* coordinator, uint16_t port)
+        HyperClient(const char* coordinator, uint16_t port)
             : m_cl(hyperclient_create(coordinator, port))
         {
             if (!m_cl)
@@ -504,7 +504,7 @@ class hyperclient
                 throw std::bad_alloc();
             }
         }
-        ~hyperclient() throw ()
+        ~HyperClient() throw ()
         {
             hyperclient_destroy(m_cl);
         }
@@ -626,8 +626,8 @@ class hyperclient
             { return hyperclient_loop(m_cl, timeout, status); }
 
     private:
-        hyperclient(const hyperclient&);
-        hyperclient& operator = (const hyperclient&);
+        HyperClient(const HyperClient&);
+        HyperClient& operator = (const HyperClient&);
 
     private:
         hyperclient* m_cl;

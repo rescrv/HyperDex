@@ -102,6 +102,7 @@ typedef hyperclient_attribute* hyperclient_attribute_asterisk;
 %rename("%s", %$isenumitem) "";
 
 // Un-ignore some classes I want to proxy in java
+%rename("%s") "HyperClient";
 %rename("%s") "hyperclient_attribute";
 %rename("%s") "hyperclient_map_attribute";
 %rename("%s") "hyperclient_attribute_check";
@@ -110,7 +111,6 @@ typedef hyperclient_attribute* hyperclient_attribute_asterisk;
 // Un-ignore the only needed C function
 %rename("%s") "hyperclient_destroy_attrs";
 
-%rename("HyperClient",%$isclass) "hyperclient";
 %rename("%s", %$ismember) "";
 
 %include "hyperdex.h"

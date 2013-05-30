@@ -440,8 +440,10 @@ client_ruby_hyperclient_la_LDFLAGS = -module -avoid-version
 
 client_c_testcompile_SOURCES = client/c/testcompile.c
 client_c_testcompile_CPPFLAGS = -I${abs_top_srcdir}/client $(CPPFLAGS)
+client_c_testcompile_LDADD = libhyperclient.la
 client_cc_testcompile_SOURCES = client/cc/testcompile.cc
 client_cc_testcompile_CPPFLAGS = -I${abs_top_srcdir}/client $(CPPFLAGS)
+client_cc_testcompile_LDADD = libhyperclient.la
 
 ################################################################################
 ##################################### Tools ####################################

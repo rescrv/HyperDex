@@ -101,7 +101,7 @@ outstanding :: reset()
 static bool
 readline_and_issue_put(const char* filename,
                        FILE* fin,
-                       hyperclient* cl,
+                       HyperClient* cl,
                        std::tr1::unordered_map<int64_t, size_t>* ops_map,
                        outstanding* o,
                        size_t idx,
@@ -164,11 +164,11 @@ readline_and_issue_put(const char* filename,
         attr.value = v;
         attr.value_sz = v_sz;
         attr.datatype = HYPERDATATYPE_STRING;
-        o->reqid = hyperclient_put(cl, "kv", k, k_sz, &attr, 1, &o->status);
+        o->reqid = cl->put("kv", k, k_sz, &attr, 1, &o->status);
 
         if (o->reqid < 0)
         {
-            fprintf(stderr, "hyperclient_get encountered %d\n", o->status);
+            fprintf(stderr, "hyperclient_put encountered %d\n", o->status);
             return false;
         }
 
@@ -178,7 +178,7 @@ readline_and_issue_put(const char* filename,
 }
 
 static bool
-process_file(struct hyperclient* cl,
+process_file(struct HyperClient* cl,
              struct outstanding* outstanding_ops,
              size_t outstanding_ops_sz,
              const char* filename)
@@ -210,7 +210,7 @@ process_file(struct hyperclient* cl,
     while (!eof || !ops_map.empty())
     {
         hyperclient_returncode rc = HYPERCLIENT_GARBAGE;
-        int64_t reqid = hyperclient_loop(cl, -1, &rc);
+        int64_t reqid = cl->loop(-1, &rc);
 
         if (reqid < 0)
         {
@@ -289,7 +289,7 @@ main(int argc, const char* argv[])
 
     try
     {
-        hyperclient h(_connect_host, _connect_port);
+        HyperClient h(_connect_host, _connect_port);
         size_t outstanding_ops_sz = 1024;
         outstanding* outstanding_ops = new outstanding[outstanding_ops_sz];
 

@@ -244,7 +244,7 @@ writer_thread()
     std::map<hyperclient_returncode, uint64_t> lfailed_loops;
     std::map<hyperclient_returncode, uint64_t> lops;
     uint64_t lfailed_writes = 0;
-    hyperclient cl(host, port);
+    HyperClient cl(host, port);
     bool fail = false;
 
     for (int64_t i = 0; i < window; ++i)
@@ -373,7 +373,7 @@ reader_thread()
     std::map<hyperclient_returncode, uint64_t> lfailed_loops;
     std::map<hyperclient_returncode, uint64_t> lops;
     uint64_t linconsistencies = 0;
-    hyperclient cl(host, port);
+    HyperClient cl(host, port);
     barrier->wait();
 
     while (!__sync_bool_compare_and_swap(&done, 1, 1))

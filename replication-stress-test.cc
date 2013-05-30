@@ -51,7 +51,7 @@ static long _partitions = 4;
 const char* _space = "replication";
 
 static int _testno = 0;
-static hyperclient* _cl = NULL;
+static HyperClient* _cl = NULL;
 static std::map<int64_t, std::tr1::shared_ptr<hyperclient_returncode> > _incompleteops;
 
 extern "C"
@@ -158,7 +158,7 @@ main(int argc, const char* argv[])
 
     try
     {
-        hyperclient cl(_connect_host, _connect_port);
+        HyperClient cl(_connect_host, _connect_port);
         _cl = &cl;
 
         do

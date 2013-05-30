@@ -1,4 +1,4 @@
-%extend hyperclient
+%extend HyperClient
 {
     static int get_attr_name_sz(hyperclient_attribute *ha)
     {
@@ -277,7 +277,7 @@
     }
 };
 
-%typemap(javacode) hyperclient
+%typemap(javacode) HyperClient
 %{
   java.util.HashMap<Long,Pending> ops = new java.util.HashMap<Long,Pending>();
 
