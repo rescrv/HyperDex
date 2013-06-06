@@ -11,8 +11,9 @@ Welcome to the HyperDex Reference Manual
    03.quickstart
    04.datatypes
    05.asynchronous
-   06.faults
-   07.transactions
+   06.atomic
+   07.faults
+   08.transactions
    api/python
    api/c
    glossary
