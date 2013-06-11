@@ -121,6 +121,25 @@ datatype_info :: ~datatype_info() throw ()
 }
 
 bool
+datatype_info :: hashable()
+{
+    return false;
+}
+
+uint64_t
+datatype_info :: hash(const e::slice&)
+{
+    // if you see an abort here, you overrode "hashable", but not this method
+    abort();
+}
+
+bool
+datatype_info :: indexable()
+{
+    return false;
+}
+
+bool
 datatype_info :: has_length()
 {
     return false;

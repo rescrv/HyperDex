@@ -27,69 +27,22 @@
 
 #define __STDC_LIMIT_MACROS
 
-// C
-#include <cstdlib>
-
-// Google CityHash
-#include <city.h>
-
-// e
-#include <e/endian.h>
-
 // HyperDex
-#include "common/float_encode.h"
+#include "common/datatypes.h"
 #include "common/hash.h"
 
 uint64_t
 hyperdex :: hash(hyperdatatype t, const e::slice& v)
 {
-    uint8_t tmp[sizeof(int64_t)];
-    double ret_d;
-    int64_t ret_i;
-    uint64_t out;
+    datatype_info* di = datatype_info::lookup(t);
+    assert(di);
 
-    switch (t)
+    if (!di->hashable())
     {
-        case HYPERDATATYPE_STRING:
-            return CityHash64(reinterpret_cast<const char*>(v.data()), v.size());
-        case HYPERDATATYPE_INT64:
-            memset(tmp, 0, sizeof(int64_t));
-            memmove(tmp, v.data(), std::min(v.size(), sizeof(int64_t)));
-            e::unpack64le(tmp, &ret_i);
-            out = static_cast<uint64_t>(ret_i);
-            out += ret_i >= 0 ? 0x8000000000000000ULL : INT64_MIN;
-            return out;
-        case HYPERDATATYPE_FLOAT:
-            memset(tmp, 0, sizeof(uint64_t));
-            memmove(tmp, v.data(), std::min(v.size(), sizeof(uint64_t)));
-            e::unpackdoublele(tmp, &ret_d);
-            return hyperdex::float_encode(ret_d);
-        case HYPERDATATYPE_GENERIC:
-        case HYPERDATATYPE_LIST_GENERIC:
-        case HYPERDATATYPE_LIST_STRING:
-        case HYPERDATATYPE_LIST_INT64:
-        case HYPERDATATYPE_LIST_FLOAT:
-        case HYPERDATATYPE_SET_GENERIC:
-        case HYPERDATATYPE_SET_STRING:
-        case HYPERDATATYPE_SET_INT64:
-        case HYPERDATATYPE_SET_FLOAT:
-        case HYPERDATATYPE_MAP_GENERIC:
-        case HYPERDATATYPE_MAP_STRING_KEYONLY:
-        case HYPERDATATYPE_MAP_STRING_STRING:
-        case HYPERDATATYPE_MAP_STRING_INT64:
-        case HYPERDATATYPE_MAP_STRING_FLOAT:
-        case HYPERDATATYPE_MAP_INT64_KEYONLY:
-        case HYPERDATATYPE_MAP_INT64_STRING:
-        case HYPERDATATYPE_MAP_INT64_INT64:
-        case HYPERDATATYPE_MAP_INT64_FLOAT:
-        case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
-        case HYPERDATATYPE_MAP_FLOAT_STRING:
-        case HYPERDATATYPE_MAP_FLOAT_INT64:
-        case HYPERDATATYPE_MAP_FLOAT_FLOAT:
-        case HYPERDATATYPE_GARBAGE:
-        default:
-            return 0;
+        return 0;
     }
+
+    return di->hash(v);
 }
 
 void

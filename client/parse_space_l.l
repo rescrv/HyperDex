@@ -31,41 +31,101 @@
 #include <stdint.h>
 
 /* HyperDex */
-#include "hyperdex.h"
+#include "client/hyperspace_builder.h"
 #include "client/parse_space_y.h"
 #ifdef _MSC_VER
 #define strtoull(A, B, C) _strtoui64((A),(B),(C))
 #endif
 
-extern YYSTYPE yylval;
+#define YY_USER_ACTION { \
+        yylloc->first_line = yylineno; \
+        yylloc->last_line = yylineno; \
+        yylloc->first_column = yylloc->last_column; \
+        columns(yytext, &yylloc->last_column); \
+}
+
+struct hyperclient_space_keyword
+{
+    int token;
+    const char* name;
+};
+
+extern struct hyperclient_space_keyword hyperclient_space_keywords[];
+extern void
+columns(const char* text, int* column);
+
 %}
 
 %option noyywrap
+%option yylineno
+%option reentrant
+%option bison-bridge
+%option bison-locations
 
 %%
 
-"space"                 { return SPACE; }
-"key"                   { return KEY; }
-"attributes"            { return ATTRIBUTES; }
-"attribute"             { return ATTRIBUTES; }
-"tolerate"              { return TOLERATE; }
-"failures"              { return FAILURES; }
-"failure"               { return FAILURES; }
-"create"                { return CREATE; }
-"partitions"            { return PARTITIONS; }
-"partition"             { return PARTITIONS; }
-"subspace"              { return SUBSPACE; }
-":"                     { return COLON; }
-","                     { return COMMA; }
-"("                     { return OP; }
-")"                     { return CP; }
-"string"                { return STRING; }
-"int"                   { return INT64; }
-"int64"                 { return INT64; }
-"float"                 { return FLOAT; }
-"list"                  { return LIST; }
-"set"                   { return SET; }
-"map"                   { return MAP; }
-[ \t\n\r]               ;
-[0-9]*                  { yylval.num = strtoull(yytext, NULL, 10); return NUMBER; }
-[a-zA-Z_][a-zA-Z_0-9]*  { yylval.str = strdup(yytext); return IDENTIFIER; }
+[a-zA-Z_][a-zA-Z_0-9]*  { int i = 0;
+                          while (hyperclient_space_keywords[i].name &&
+                                 strcmp(hyperclient_space_keywords[i].name, yytext) != 0)
+                          {
+                              ++i;
+                          }
+                          if (hyperclient_space_keywords[i].name)
+                          {
+                              yylval->str = NULL;
+                              return hyperclient_space_keywords[i].token;
+                          }
+                          yylval->str = strdup(yytext); return IDENTIFIER; }
+[0-9]*                  { yylval->num = strtoull(yytext, NULL, 10); return NUMBER; }
+\#.*$                   ;
+[ \t\r]                 ;
+\n                      ;
+.                       return (int) yytext[0];
+
+%%
+
+struct hyperclient_space_keyword hyperclient_space_keywords[] = {
+    {SPACE, "space"},
+    {KEY, "key"},
+    {ATTRIBUTES, "attributes"},
+    {ATTRIBUTES, "attribute"},
+    {TOLERATE, "tolerate"},
+    {FAILURES, "failures"},
+    {FAILURES, "failure"},
+    {CREATE, "create"},
+    {PARTITIONS, "partitions"},
+    {PARTITIONS, "partition"},
+    {PINDEX, "primary_index"},
+    {SINDEX, "secondary_index"},
+    {SUBSPACE, "subspace"},
+    {STRING, "string"},
+    {INT64, "int"},
+    {INT64, "int64"},
+    {FLOAT, "float"},
+    {LIST, "list"},
+    {SET, "set"},
+    {MAP, "map"},
+    {0, NULL}
+};
+
+void
+columns(const char* text, int* column)
+{
+    int i;
+
+    for (i = 0; text[i] != '\0'; i++)
+    {
+        if (text[i] == '\n')
+        {
+            *column = 1;
+        }
+        else if (text[i] == '\t')
+        {
+            *column += 4 - (*column % 4);
+        }
+        else
+        {
+            (*column)++;
+        }
+    }
+}

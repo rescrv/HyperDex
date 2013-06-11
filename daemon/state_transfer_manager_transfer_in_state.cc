@@ -27,6 +27,7 @@
 
 // HyperDex
 #include "daemon/datalayer.h"
+#include "daemon/datalayer_iterator.h"
 #include "daemon/state_transfer_manager_pending.h"
 #include "daemon/state_transfer_manager_transfer_in_state.h"
 
@@ -34,7 +35,7 @@ using hyperdex::state_transfer_manager;
 
 state_transfer_manager :: transfer_in_state :: transfer_in_state(const transfer& _xfer,
                                                                  datalayer* data,
-                                                                 leveldb_snapshot_ptr snap)
+                                                                 datalayer::snapshot snap)
     : xfer(_xfer)
     , mtx()
     , cleared_capture(false)
@@ -42,10 +43,12 @@ state_transfer_manager :: transfer_in_state :: transfer_in_state(const transfer&
     , queued()
     , need_del(true)
     , prev()
-    , del_iter()
+    , iter()
     , m_ref(0)
 {
-    data->make_region_iterator(&del_iter, snap, xfer.rid);
+    datalayer::returncode rc;
+    iter = data->make_region_iterator(snap, xfer.rid, &rc);
+    assert(rc == datalayer::SUCCESS);
 }
 
 state_transfer_manager :: transfer_in_state :: ~transfer_in_state() throw ()

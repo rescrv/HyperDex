@@ -34,6 +34,7 @@
 // HyperDex
 #include "hyperdex.h"
 #include "common/funcall.h"
+#include "common/ids.h"
 
 namespace hyperdex
 {
@@ -55,6 +56,15 @@ class datatype_info
         virtual uint8_t* apply(const e::slice& old_value,
                                const funcall* funcs, size_t funcs_sz,
                                uint8_t* writeto) = 0;
+
+    // override these if the type is hashable
+    public:
+        virtual bool hashable();
+        virtual uint64_t hash(const e::slice& value);
+
+    // override these if the type is indexable
+    public:
+        virtual bool indexable();
 
     // override these if the type has a "length"
     public:
@@ -83,7 +93,7 @@ class datatype_info
         virtual uint8_t* write(uint8_t* writeto,
                                const e::slice& elem);
 
-    // override these if the type will be used within sorted containers
+    // override these if the type can be compared
     public:
         virtual bool comparable();
         virtual int compare(const e::slice& lhs, const e::slice& rhs);

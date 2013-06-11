@@ -37,7 +37,7 @@
 #include "common/configuration.h"
 #include "common/coordinator_returncode.h"
 #include "client/coordinator_link.h"
-#include "client/space_description.h"
+#include "client/hyperspace_builder_internal.h"
 
 using hyperdex::configuration;
 using hyperdex::coordinator_link;
@@ -60,18 +60,18 @@ coordinator_link :: ~coordinator_link() throw ()
 }
 
 hyperclient_returncode
-coordinator_link :: add_space(const char* _description)
+coordinator_link :: add_space(hyperspace* space)
 {
-    hyperclient_returncode status;
     hyperdex::space s;
 
-    if (!space_description_to_space(_description, &s))
+    if (!space_to_space(space, &s))
     {
         return HYPERCLIENT_BADSPACE;
     }
 
     std::auto_ptr<e::buffer> msg(e::buffer::create(pack_size(s)));
     msg->pack_at(0) << s;
+    hyperclient_returncode status;
     const char* output;
     size_t output_sz;
 

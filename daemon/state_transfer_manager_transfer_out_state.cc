@@ -26,6 +26,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // HyperDex
+#include "daemon/datalayer_iterator.h"
 #include "daemon/state_transfer_manager_pending.h"
 #include "daemon/state_transfer_manager_transfer_out_state.h"
 
@@ -33,18 +34,20 @@ using hyperdex::state_transfer_manager;
 
 state_transfer_manager :: transfer_out_state :: transfer_out_state(const transfer& _xfer,
                                                                    datalayer* data,
-                                                                   leveldb_snapshot_ptr snap)
+                                                                   datalayer::snapshot snap)
     : xfer(_xfer)
     , mtx()
     , state(SNAPSHOT_TRANSFER)
     , next_seq_no(1)
     , window()
     , window_sz(1)
-    , snap_iter()
+    , iter()
     , log_seq_no(1)
     , m_ref(0)
 {
-    data->make_region_iterator(&snap_iter, snap, xfer.rid);
+    datalayer::returncode rc;
+    iter = data->make_region_iterator(snap, xfer.rid, &rc);
+    assert(rc == datalayer::SUCCESS);
 }
 
 state_transfer_manager :: transfer_out_state :: ~transfer_out_state() throw ()

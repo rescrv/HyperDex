@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,18 +25,29 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_client_space_description_h_
-#define hyperdex_client_space_description_h_
+#ifndef hyperdex_daemon_index_float_h_
+#define hyperdex_daemon_index_float_h_
 
 // HyperDex
-#include "common/hyperspace.h"
+#include "daemon/index_primitive.h"
 
 namespace hyperdex
 {
 
-bool
-space_description_to_space(const char* description, space* s);
+class index_float : public index_primitive
+{
+    public:
+        index_float();
+        virtual ~index_float() throw ();
+
+    public:
+        virtual bool encoding_fixed();
+        virtual size_t encoded_size(const e::slice& decoded);
+        virtual char* encode(const e::slice& decoded, char* encoded);
+        virtual size_t decoded_size(const e::slice& encoded);
+        virtual char* decode(const e::slice& encoded, char* decoded);
+};
 
 } // namespace hyperdex
 
-#endif // hyperdex_client_space_description_h_
+#endif // hyperdex_daemon_index_float_h_

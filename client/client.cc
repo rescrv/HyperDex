@@ -43,6 +43,7 @@
 #include "common/serialization.h"
 #include "client/client.h"
 #include "client/constants.h"
+#include "client/hyperspace_builder.h"
 #include "client/pending_atomic.h"
 #include "client/pending_count.h"
 #include "client/pending_get.h"
@@ -75,7 +76,19 @@ client :: ~client() throw ()
 hyperclient_returncode
 client :: add_space(const char* description)
 {
-    return m_coord.add_space(description);
+    hyperspace* space = hyperspace_parse(description);
+
+    if (hyperspace_error(space))
+    {
+        if (space)
+        {
+            hyperspace_destroy(space);
+        }
+
+        return HYPERCLIENT_BADSPACE;
+    }
+
+    return m_coord.add_space(space);
 }
 
 hyperclient_returncode

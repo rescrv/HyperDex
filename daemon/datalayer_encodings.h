@@ -38,19 +38,23 @@
 namespace hyperdex
 {
 
-// Encode the key for objects
+void
+encode_object_region(const region_id& ri,
+                     std::vector<char>* scratch,
+                     leveldb::Slice* out);
+
 void
 encode_key(const region_id& ri,
+           hyperdatatype key_type,
            const e::slice& key,
-           std::vector<char>* backing,
+           std::vector<char>* scratch,
            leveldb::Slice* out);
-// Decode the key for objects themselves
-datalayer::returncode
-decode_key(const e::slice& in,
-           region_id* ri,
-           e::slice* key);
 
-// Encode the value for objects
+bool
+decode_key(const leveldb::Slice& in,
+           region_id* ri,
+           e::slice* internal_key);
+
 void
 encode_value(const std::vector<e::slice>& attrs,
              uint64_t version,
@@ -94,41 +98,17 @@ decode_key_value(const e::slice& in,
                  std::vector<e::slice>* value,
                  uint64_t* version);
 
-// Encode index elements
 void
-encode_index(const region_id& ri,
-             uint16_t attr,
-             std::vector<char>* backing);
-void
-encode_index(const region_id& ri,
-             uint16_t attr,
-             hyperdatatype type,
-             const e::slice& value,
-             std::vector<char>* backing);
-void
-encode_index(const region_id& ri,
-             uint16_t attr,
-             hyperdatatype type,
-             const e::slice& value,
-             const e::slice& key,
-             std::vector<char>* backing);
-void
-bump_index(std::vector<char>* backing);
-bool
-parse_index_string(const leveldb::Slice& s, e::slice* k);
-bool
-parse_index_sizeof8(const leveldb::Slice& s, e::slice* k);
-bool
-parse_object_key(const leveldb::Slice& s, e::slice* k);
-
-datalayer::returncode
-create_index_changes(const schema* sc,
-                     const subspace* su,
+create_index_changes(const schema& sc,
+                     const subspace& sub,
                      const region_id& ri,
                      const e::slice& key,
                      const std::vector<e::slice>* old_value,
                      const std::vector<e::slice>* new_value,
                      leveldb::WriteBatch* updates);
+
+void
+encode_bump(char* start, char* end);
 
 }
 

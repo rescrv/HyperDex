@@ -26,7 +26,7 @@
 ## POSSIBILITY OF SUCH DAMAGE.
 
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
-AM_CXXFLAGS = $(PO6_CFLAGS) $(E_CFLAGS) $(BUSYBEE_CFLAGS) $(WANAL_CXXFLAGS) -fpermissive
+AM_CXXFLAGS = $(PO6_CFLAGS) $(E_CFLAGS) $(BUSYBEE_CFLAGS) $(WANAL_CXXFLAGS)
 AM_MAKEFLAGS = --no-print-directory
 AM_YFLAGS = -d
 
@@ -58,12 +58,16 @@ bin_PROGRAMS += hyperdex-search-stress-test
 bin_PROGRAMS += hyperdex-replication-stress-test
 bin_PROGRAMS += hyperdex-simple-consistency-stress-test
 
+TESTS = $(check_PROGRAMS)
+check_PROGRAMS =
+
 hyperdexexecdir = $(exec_prefix)/libexec/$(PACKAGE)-$(VERSION)
 hyperdexexec_PROGRAMS =
 hyperdexexec_PROGRAMS += hyperdex-initialize-cluster
 hyperdexexec_PROGRAMS += hyperdex-daemon
 hyperdexexec_PROGRAMS += hyperdex-coordinator
 hyperdexexec_PROGRAMS += hyperdex-add-space
+hyperdexexec_PROGRAMS += hyperdex-validate-space
 hyperdexexec_PROGRAMS += hyperdex-rm-space
 hyperdexexec_PROGRAMS += hyperdex-show-config
 hyperdexexec_PROGRAMS += hyperdex-async-benchmark
@@ -113,7 +117,6 @@ noinst_HEADERS += common/datatype_float.h
 noinst_HEADERS += common/datatype_map.h
 noinst_HEADERS += common/datatype_set.h
 noinst_HEADERS += common/datatype_list.h
-noinst_HEADERS += common/float_encode.h
 noinst_HEADERS += common/funcall.h
 noinst_HEADERS += common/hash.h
 noinst_HEADERS += common/hyperspace.h
@@ -137,7 +140,6 @@ noinst_HEADERS += daemon/coordinator_link.h
 noinst_HEADERS += daemon/daemon.h
 noinst_HEADERS += daemon/datalayer.h
 noinst_HEADERS += daemon/datalayer_encodings.h
-noinst_HEADERS += daemon/index_encode.h
 noinst_HEADERS += daemon/leveldb.h
 noinst_HEADERS += daemon/reconfigure_returncode.h
 noinst_HEADERS += daemon/replication_manager.h
@@ -156,7 +158,6 @@ noinst_HEADERS += client/coordinator_link.h
 noinst_HEADERS += client/hyperclient.h
 noinst_HEADERS += client/hyperclient.hpp
 noinst_HEADERS += client/keyop_info.h
-noinst_HEADERS += client/parse_space_aux.h
 noinst_HEADERS += client/partition.h
 noinst_HEADERS += client/pending.h
 noinst_HEADERS += client/pending_count.h
@@ -167,10 +168,8 @@ noinst_HEADERS += client/pending_search_describe.h
 noinst_HEADERS += client/pending_sorted_search.h
 noinst_HEADERS += client/pending_aggregation.h
 noinst_HEADERS += client/pending_atomic.h
-noinst_HEADERS += client/space_description.h
 noinst_HEADERS += client/util.h
 noinst_HEADERS += osx/ieee754.h
-noinst_HEADERS += test/common.h
 noinst_HEADERS += tools/common.h
 noinst_HEADERS += windows/hyperclientclr.h
 noinst_HEADERS += windows/ieee754.h
@@ -194,13 +193,13 @@ hyperdex_daemon_SOURCES += common/datatype_float.cc
 hyperdex_daemon_SOURCES += common/datatype_list.cc
 hyperdex_daemon_SOURCES += common/datatype_set.cc
 hyperdex_daemon_SOURCES += common/datatype_map.cc
-hyperdex_daemon_SOURCES += common/float_encode.cc
 hyperdex_daemon_SOURCES += common/funcall.cc
 hyperdex_daemon_SOURCES += common/hash.cc
 hyperdex_daemon_SOURCES += common/hyperdex.cc
 hyperdex_daemon_SOURCES += common/hyperspace.cc
 hyperdex_daemon_SOURCES += common/network_msgtype.cc
 hyperdex_daemon_SOURCES += common/mapper.cc
+hyperdex_daemon_SOURCES += common/ordered_encoding.cc
 hyperdex_daemon_SOURCES += common/range.cc
 hyperdex_daemon_SOURCES += common/range_searches.cc
 hyperdex_daemon_SOURCES += common/regex_match.cc
@@ -212,7 +211,16 @@ hyperdex_daemon_SOURCES += daemon/coordinator_link.cc
 hyperdex_daemon_SOURCES += daemon/daemon.cc
 hyperdex_daemon_SOURCES += daemon/datalayer.cc
 hyperdex_daemon_SOURCES += daemon/datalayer_encodings.cc
-hyperdex_daemon_SOURCES += daemon/index_encode.cc
+hyperdex_daemon_SOURCES += daemon/datalayer_iterator.cc
+hyperdex_daemon_SOURCES += daemon/index_container.cc
+hyperdex_daemon_SOURCES += daemon/index_float.cc
+hyperdex_daemon_SOURCES += daemon/index_info.cc
+hyperdex_daemon_SOURCES += daemon/index_int64.cc
+hyperdex_daemon_SOURCES += daemon/index_list.cc
+hyperdex_daemon_SOURCES += daemon/index_map.cc
+hyperdex_daemon_SOURCES += daemon/index_primitive.cc
+hyperdex_daemon_SOURCES += daemon/index_set.cc
+hyperdex_daemon_SOURCES += daemon/index_string.cc
 hyperdex_daemon_SOURCES += daemon/main.cc
 hyperdex_daemon_SOURCES += daemon/replication_manager.cc
 hyperdex_daemon_SOURCES += daemon/replication_manager_key_state.cc
@@ -229,10 +237,6 @@ hyperdex_daemon_LDADD = \
 			$(BUSYBEE_LIBS) -lhyperleveldb \
 			$(REPLICANT_LIBS) -lcityhash -lpopt -lglog -lpthread
 hyperdex_daemon_CPPFLAGS = $(CPPFLAGS)
-
-#daemon_test_index_encode_SOURCES = runner.cc daemon/test/index_encode.cc daemon/index_encode.cc common/float_encode.cc
-#daemon_test_index_encode_CPPFLAGS = $(GTEST_CPPFLAGS) $(CPPFLAGS)
-#daemon_test_index_encode_LDADD = $(GTEST_LDFLAGS) -lgtest -lpthread
 
 ################################################################################
 ################################## Coordinator #################################
@@ -315,12 +319,12 @@ libhyperclient_la_SOURCES += common/datatype_float.cc
 libhyperclient_la_SOURCES += common/datatype_list.cc
 libhyperclient_la_SOURCES += common/datatype_set.cc
 libhyperclient_la_SOURCES += common/datatype_map.cc
-libhyperclient_la_SOURCES += common/float_encode.cc
 libhyperclient_la_SOURCES += common/funcall.cc
 libhyperclient_la_SOURCES += common/hash.cc
 libhyperclient_la_SOURCES += common/hyperdex.cc
 libhyperclient_la_SOURCES += common/hyperspace.cc
 libhyperclient_la_SOURCES += common/mapper.cc
+libhyperclient_la_SOURCES += common/ordered_encoding.cc
 libhyperclient_la_SOURCES += common/network_msgtype.cc
 libhyperclient_la_SOURCES += common/range.cc
 libhyperclient_la_SOURCES += common/range_searches.cc
@@ -331,8 +335,8 @@ libhyperclient_la_SOURCES += common/transfer.cc
 libhyperclient_la_SOURCES += client/client.cc
 libhyperclient_la_SOURCES += client/coordinator_link.cc
 libhyperclient_la_SOURCES += client/hyperclient.cc
+libhyperclient_la_SOURCES += client/hyperspace_builder.cc
 libhyperclient_la_SOURCES += client/keyop_info.cc
-libhyperclient_la_SOURCES += client/parse_space_aux.cc
 libhyperclient_la_SOURCES += client/parse_space_l.l
 libhyperclient_la_SOURCES += client/parse_space_y.y
 libhyperclient_la_SOURCES += client/partition.cc
@@ -345,7 +349,6 @@ libhyperclient_la_SOURCES += client/pending_group_del.cc
 libhyperclient_la_SOURCES += client/pending_search.cc
 libhyperclient_la_SOURCES += client/pending_search_describe.cc
 libhyperclient_la_SOURCES += client/pending_sorted_search.cc
-libhyperclient_la_SOURCES += client/space_description.cc
 libhyperclient_la_SOURCES += client/util.cc
 libhyperclient_la_CPPFLAGS = -I${abs_top_srcdir}/client
 libhyperclient_la_LIBADD =
@@ -446,6 +449,15 @@ client_cc_testcompile_CPPFLAGS = -I${abs_top_srcdir}/client $(CPPFLAGS)
 client_cc_testcompile_LDADD = libhyperclient.la
 
 ################################################################################
+##################################### Tests ####################################
+################################################################################
+
+th_sources = test/runner.cc th.cc th.h
+
+check_PROGRAMS += common/test/ordered_encoding
+common_test_ordered_encoding_SOURCES = common/test/ordered_encoding.cc common/ordered_encoding.cc $(th_sources)
+
+################################################################################
 ##################################### Tools ####################################
 ################################################################################
 
@@ -464,6 +476,10 @@ hyperdex_coordinator_LDADD = libhyperclient.la $(E_LIBS) $(BUSYBEE_LIBS) -lpopt
 hyperdex_add_space_SOURCES = tools/add-space.cc
 hyperdex_add_space_CPPFLAGS = -I${abs_top_srcdir}/client $(CPPFLAGS)
 hyperdex_add_space_LDADD = libhyperclient.la -lpopt
+
+hyperdex_validate_space_SOURCES = tools/validate-space.cc
+hyperdex_validate_space_CPPFLAGS = -I${abs_top_srcdir}/client $(CPPFLAGS)
+hyperdex_validate_space_LDADD = libhyperclient.la
 
 hyperdex_rm_space_SOURCES = tools/rm-space.cc
 hyperdex_rm_space_CPPFLAGS = -I${abs_top_srcdir}/client $(CPPFLAGS)
@@ -520,7 +536,7 @@ hyperdex_replication_stress_test_SOURCES = replication-stress-test.cc
 hyperdex_replication_stress_test_CPPFLAGS = -I${abs_top_srcdir}/client
 hyperdex_replication_stress_test_LDADD = libhyperclient.la -lpopt $(E_LIBS)
 
-hyperdex_search_stress_test_SOURCES = search-stress-test.cc test/common.cc
+hyperdex_search_stress_test_SOURCES = search-stress-test.cc
 hyperdex_search_stress_test_CPPFLAGS = -I${abs_top_srcdir}/client
 hyperdex_search_stress_test_LDADD = libhyperclient.la -lpopt $(E_LIBS)
 

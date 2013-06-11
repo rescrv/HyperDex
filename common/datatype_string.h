@@ -49,6 +49,11 @@ class datatype_string : public datatype_info
                                uint8_t* writeto);
 
     public:
+        virtual bool hashable();
+        virtual uint64_t hash(const e::slice& value);
+        virtual bool indexable();
+
+    public:
         virtual bool has_length();
         virtual uint64_t length(const e::slice& value);
         virtual bool has_regex();

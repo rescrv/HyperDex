@@ -32,9 +32,6 @@
 #include <list>
 #include <tr1/memory>
 
-// LevelDB
-#include <hyperleveldb/db.h>
-
 // po6
 #include <po6/threads/mutex.h>
 
@@ -43,7 +40,6 @@
 
 // HyperDex
 #include "daemon/datalayer.h"
-#include "daemon/leveldb.h"
 #include "daemon/state_transfer_manager.h"
 
 using hyperdex::state_transfer_manager;
@@ -53,7 +49,7 @@ class state_transfer_manager::transfer_out_state
     public:
         transfer_out_state(const transfer& xfer,
                            datalayer* data,
-                           leveldb_snapshot_ptr snap);
+                           datalayer::snapshot snap);
         ~transfer_out_state() throw ();
 
     public:
@@ -64,7 +60,7 @@ class state_transfer_manager::transfer_out_state
         std::list<e::intrusive_ptr<pending> > window;
         size_t window_sz;
         // transfer from the snapshot
-        datalayer::region_iterator snap_iter;
+        e::intrusive_ptr<datalayer::iterator> iter;
         // transfer from the log of new operations
         uint64_t log_seq_no;
 

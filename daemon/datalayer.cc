@@ -50,18 +50,18 @@
 #include <e/endian.h>
 
 // HyperDex
+#include "common/datatypes.h"
 #include "common/macros.h"
 #include "common/range_searches.h"
 #include "common/serialization.h"
 #include "daemon/daemon.h"
 #include "daemon/datalayer.h"
 #include "daemon/datalayer_encodings.h"
+#include "daemon/datalayer_iterator.h"
 
 // ASSUME:  all keys put into leveldb have a first byte without the high bit set
 
-using std::tr1::placeholders::_1;
 using hyperdex::datalayer;
-using hyperdex::leveldb_snapshot_ptr;
 using hyperdex::reconfigure_returncode;
 
 datalayer :: datalayer(daemon* d)
@@ -444,12 +444,17 @@ datalayer :: get(const region_id& ri,
                  uint64_t* version,
                  reference* ref)
 {
+    const schema& sc(*m_daemon->m_config.get_schema(ri));
+    std::vector<char> scratch;
+
+    // create the encoded key
+    leveldb::Slice lkey;
+    encode_key(ri, sc.attrs[0].type, key, &scratch, &lkey);
+
+    // perform the read
     leveldb::ReadOptions opts;
     opts.fill_cache = true;
     opts.verify_checksums = true;
-    std::vector<char> kbacking;
-    leveldb::Slice lkey;
-    encode_key(ri, key, &kbacking, &lkey);
     leveldb::Status st = m_db->Get(opts, lkey, &ref->m_backing);
 
     if (st.ok())
@@ -461,22 +466,9 @@ datalayer :: get(const region_id& ri,
     {
         return NOT_FOUND;
     }
-    else if (st.IsCorruption())
-    {
-        LOG(ERROR) << "corruption at the disk layer: region=" << ri
-                   << " key=0x" << key.hex() << " desc=" << st.ToString();
-        return CORRUPTION;
-    }
-    else if (st.IsIOError())
-    {
-        LOG(ERROR) << "IO error at the disk layer: region=" << ri
-                   << " key=0x" << key.hex() << " desc=" << st.ToString();
-        return IO_ERROR;
-    }
     else
     {
-        LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
-        return LEVELDB_ERROR;
+        return handle_error(st);
     }
 }
 
@@ -488,23 +480,19 @@ datalayer :: del(const region_id& ri,
                  const std::vector<e::slice>& old_value)
 {
     leveldb::WriteBatch updates;
-    std::vector<char> backing1;
-    std::vector<char> backing2;
+    const schema& sc(*m_daemon->m_config.get_schema(ri));
+    std::vector<char> scratch;
 
-    // peform the "del" of the object we want to store
+    // create the encoded key
     leveldb::Slice lkey;
-    encode_key(ri, key, &backing1, &lkey);
+    encode_key(ri, sc.attrs[0].type, key, &scratch, &lkey);
+
+    // delete the actual object
     updates.Delete(lkey);
 
-    // apply the index operations
-    const schema* sc = m_daemon->m_config.get_schema(ri);
-    const subspace* su = m_daemon->m_config.get_subspace(ri);
-    returncode rc = create_index_changes(sc, su, ri, key, &old_value, NULL, &updates);
-
-    if (rc != SUCCESS)
-    {
-        return rc;
-    }
+    // delete the index entries
+    const subspace& sub(*m_daemon->m_config.get_subspace(ri));
+    create_index_changes(sc, sub, ri, key, &old_value, NULL, &updates);
 
     // Mark acked as part of this batch write
     if (seq_id != 0)
@@ -528,7 +516,7 @@ datalayer :: del(const region_id& ri,
         leveldb::Slice tkey(tbacking, TRANSFER_BUF_SIZE);
         leveldb::Slice tval;
         encode_transfer(cid, count, tbacking);
-        encode_key_value(key, NULL, 0, &backing2, &tval);
+        encode_key_value(key, NULL, 0, &scratch, &tval);
         updates.Put(tkey, tval);
     }
 
@@ -545,22 +533,9 @@ datalayer :: del(const region_id& ri,
     {
         return NOT_FOUND;
     }
-    else if (st.IsCorruption())
-    {
-        LOG(ERROR) << "corruption at the disk layer: region=" << ri
-                   << " key=0x" << key.hex() << " desc=" << st.ToString();
-        return CORRUPTION;
-    }
-    else if (st.IsIOError())
-    {
-        LOG(ERROR) << "IO error at the disk layer: region=" << ri
-                   << " key=0x" << key.hex() << " desc=" << st.ToString();
-        return IO_ERROR;
-    }
     else
     {
-        LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
-        return LEVELDB_ERROR;
+        return handle_error(st);
     }
 }
 
@@ -573,25 +548,24 @@ datalayer :: put(const region_id& ri,
                  uint64_t version)
 {
     leveldb::WriteBatch updates;
-    std::vector<char> backing1;
-    std::vector<char> backing2;
+    const schema& sc(*m_daemon->m_config.get_schema(ri));
+    std::vector<char> scratch1;
+    std::vector<char> scratch2;
 
-    // peform the "put" of the object we want to store
+    // create the encoded key
     leveldb::Slice lkey;
+    encode_key(ri, sc.attrs[0].type, key, &scratch1, &lkey);
+
+    // create the encoded value
     leveldb::Slice lval;
-    encode_key(ri, key, &backing1, &lkey);
-    encode_value(new_value, version, &backing2, &lval);
+    encode_value(new_value, version, &scratch2, &lval);
+
+    // put the actual object
     updates.Put(lkey, lval);
 
-    // apply the index operations
-    const schema* sc = m_daemon->m_config.get_schema(ri);
-    const subspace* su = m_daemon->m_config.get_subspace(ri);
-    returncode rc = create_index_changes(sc, su, ri, key, NULL, &new_value, &updates);
-
-    if (rc != SUCCESS)
-    {
-        return rc;
-    }
+    // put the index entries
+    const subspace& sub(*m_daemon->m_config.get_subspace(ri));
+    create_index_changes(sc, sub, ri, key, NULL, &new_value, &updates);
 
     // Mark acked as part of this batch write
     if (seq_id != 0)
@@ -615,7 +589,7 @@ datalayer :: put(const region_id& ri,
         leveldb::Slice tkey(tbacking, TRANSFER_BUF_SIZE);
         leveldb::Slice tval;
         encode_transfer(cid, count, tbacking);
-        encode_key_value(key, &new_value, version, &backing2, &tval);
+        encode_key_value(key, &new_value, version, &scratch1, &tval);
         updates.Put(tkey, tval);
     }
 
@@ -628,28 +602,9 @@ datalayer :: put(const region_id& ri,
     {
         return SUCCESS;
     }
-    else if (st.IsNotFound())
-    {
-        LOG(ERROR) << "put returned NOT_FOUND at the disk layer: region=" << ri
-                   << " key=0x" << key.hex() << " desc=" << st.ToString();
-        return NOT_FOUND;
-    }
-    else if (st.IsCorruption())
-    {
-        LOG(ERROR) << "corruption at the disk layer: region=" << ri
-                   << " key=0x" << key.hex() << " desc=" << st.ToString();
-        return CORRUPTION;
-    }
-    else if (st.IsIOError())
-    {
-        LOG(ERROR) << "IO error at the disk layer: region=" << ri
-                   << " key=0x" << key.hex() << " desc=" << st.ToString();
-        return IO_ERROR;
-    }
     else
     {
-        LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
-        return LEVELDB_ERROR;
+        return handle_error(st);
     }
 }
 
@@ -663,25 +618,24 @@ datalayer :: overput(const region_id& ri,
                      uint64_t version)
 {
     leveldb::WriteBatch updates;
-    std::vector<char> backing1;
-    std::vector<char> backing2;
+    const schema& sc(*m_daemon->m_config.get_schema(ri));
+    std::vector<char> scratch1;
+    std::vector<char> scratch2;
 
-    // peform the "put" of the object we want to store
+    // create the encoded key
     leveldb::Slice lkey;
+    encode_key(ri, sc.attrs[0].type, key, &scratch1, &lkey);
+
+    // create the encoded value
     leveldb::Slice lval;
-    encode_key(ri, key, &backing1, &lkey);
-    encode_value(new_value, version, &backing2, &lval);
+    encode_value(new_value, version, &scratch2, &lval);
+
+    // put the actual object
     updates.Put(lkey, lval);
 
-    // apply the index operations
-    const schema* sc = m_daemon->m_config.get_schema(ri);
-    const subspace* su = m_daemon->m_config.get_subspace(ri);
-    returncode rc = create_index_changes(sc, su, ri, key, &old_value, &new_value, &updates);
-
-    if (rc != SUCCESS)
-    {
-        return rc;
-    }
+    // put the index entries
+    const subspace& sub(*m_daemon->m_config.get_subspace(ri));
+    create_index_changes(sc, sub, ri, key, &old_value, &new_value, &updates);
 
     // Mark acked as part of this batch write
     if (seq_id != 0)
@@ -705,7 +659,7 @@ datalayer :: overput(const region_id& ri,
         leveldb::Slice tkey(tbacking, TRANSFER_BUF_SIZE);
         leveldb::Slice tval;
         encode_transfer(cid, count, tbacking);
-        encode_key_value(key, &new_value, version, &backing2, &tval);
+        encode_key_value(key, &new_value, version, &scratch1, &tval);
         updates.Put(tkey, tval);
     }
 
@@ -718,28 +672,9 @@ datalayer :: overput(const region_id& ri,
     {
         return SUCCESS;
     }
-    else if (st.IsNotFound())
-    {
-        LOG(ERROR) << "overput returned NOT_FOUND at the disk layer: region=" << ri
-                   << " key=0x" << key.hex() << " desc=" << st.ToString();
-        return NOT_FOUND;
-    }
-    else if (st.IsCorruption())
-    {
-        LOG(ERROR) << "corruption at the disk layer: region=" << ri
-                   << " key=0x" << key.hex() << " desc=" << st.ToString();
-        return CORRUPTION;
-    }
-    else if (st.IsIOError())
-    {
-        LOG(ERROR) << "IO error at the disk layer: region=" << ri
-                   << " key=0x" << key.hex() << " desc=" << st.ToString();
-        return IO_ERROR;
-    }
     else
     {
-        LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
-        return LEVELDB_ERROR;
+        return handle_error(st);
     }
 }
 
@@ -747,18 +682,22 @@ datalayer::returncode
 datalayer :: uncertain_del(const region_id& ri,
                            const e::slice& key)
 {
-    leveldb::ReadOptions opts;
-    opts.fill_cache = false;
-    opts.verify_checksums = true;
+    const schema& sc(*m_daemon->m_config.get_schema(ri));
+    std::vector<char> scratch;
+
+    // create the encoded key
     leveldb::Slice lkey;
-    std::vector<char> kbacking;
-    encode_key(ri, key, &kbacking, &lkey);
+    encode_key(ri, sc.attrs[0].type, key, &scratch, &lkey);
+
+    // perform the read
     std::string ref;
+    leveldb::ReadOptions opts;
+    opts.fill_cache = true;
+    opts.verify_checksums = true;
     leveldb::Status st = m_db->Get(opts, lkey, &ref);
 
     if (st.ok())
     {
-        const schema* sc = m_daemon->m_config.get_schema(ri);
         std::vector<e::slice> old_value;
         uint64_t old_version;
         returncode rc = decode_value(e::slice(ref.data(), ref.size()),
@@ -769,7 +708,7 @@ datalayer :: uncertain_del(const region_id& ri,
             return rc;
         }
 
-        if (old_value.size() + 1 != sc->attrs_sz)
+        if (old_value.size() + 1 != sc.attrs_sz)
         {
             return BAD_ENCODING;
         }
@@ -780,22 +719,9 @@ datalayer :: uncertain_del(const region_id& ri,
     {
         return SUCCESS;
     }
-    else if (st.IsCorruption())
-    {
-        LOG(ERROR) << "corruption at the disk layer: region=" << ri
-                   << " key=0x" << key.hex() << " desc=" << st.ToString();
-        return CORRUPTION;
-    }
-    else if (st.IsIOError())
-    {
-        LOG(ERROR) << "IO error at the disk layer: region=" << ri
-                   << " key=0x" << key.hex() << " desc=" << st.ToString();
-        return IO_ERROR;
-    }
     else
     {
-        LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
-        return LEVELDB_ERROR;
+        return handle_error(st);
     }
 }
 
@@ -805,18 +731,22 @@ datalayer :: uncertain_put(const region_id& ri,
                            const std::vector<e::slice>& new_value,
                            uint64_t version)
 {
-    leveldb::ReadOptions opts;
-    opts.fill_cache = false;
-    opts.verify_checksums = true;
+    const schema& sc(*m_daemon->m_config.get_schema(ri));
+    std::vector<char> scratch;
+
+    // create the encoded key
     leveldb::Slice lkey;
-    std::vector<char> kbacking;
-    encode_key(ri, key, &kbacking, &lkey);
+    encode_key(ri, sc.attrs[0].type, key, &scratch, &lkey);
+
+    // perform the read
     std::string ref;
+    leveldb::ReadOptions opts;
+    opts.fill_cache = true;
+    opts.verify_checksums = true;
     leveldb::Status st = m_db->Get(opts, lkey, &ref);
 
     if (st.ok())
     {
-        const schema* sc = m_daemon->m_config.get_schema(ri);
         std::vector<e::slice> old_value;
         uint64_t old_version;
         returncode rc = decode_value(e::slice(ref.data(), ref.size()),
@@ -827,7 +757,7 @@ datalayer :: uncertain_put(const region_id& ri,
             return rc;
         }
 
-        if (old_value.size() + 1 != sc->attrs_sz)
+        if (old_value.size() + 1 != sc.attrs_sz)
         {
             return BAD_ENCODING;
         }
@@ -838,248 +768,10 @@ datalayer :: uncertain_put(const region_id& ri,
     {
         return put(ri, region_id(), 0, key, new_value, version);
     }
-    else if (st.IsCorruption())
-    {
-        LOG(ERROR) << "corruption at the disk layer: region=" << ri
-                   << " key=0x" << key.hex() << " desc=" << st.ToString();
-        return CORRUPTION;
-    }
-    else if (st.IsIOError())
-    {
-        LOG(ERROR) << "IO error at the disk layer: region=" << ri
-                   << " key=0x" << key.hex() << " desc=" << st.ToString();
-        return IO_ERROR;
-    }
     else
     {
-        LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
-        return LEVELDB_ERROR;
+        return handle_error(st);
     }
-}
-
-datalayer::returncode
-datalayer :: make_snapshot(const region_id& ri,
-                           const schema& sc,
-                           const std::vector<attribute_check>* checks,
-                           snapshot* snap,
-                           std::ostringstream* ostr)
-{
-    snap->m_dl = this;
-    snap->m_snap.reset(m_db, m_db->GetSnapshot());
-    snap->m_checks = checks;
-    snap->m_ri = ri;
-    snap->m_ostr = ostr;
-    std::vector<range> ranges;
-
-    if (!range_searches(*checks, &ranges))
-    {
-        return BAD_SEARCH;
-    }
-
-    if (ostr) *ostr << " converted " << checks->size() << " checks to " << ranges.size() << " ranges\n";
-
-    char* ptr;
-    std::vector<leveldb::Range> level_ranges;
-    std::vector<bool (*)(const leveldb::Slice& in, e::slice* out)> parsers;
-
-    // For each range, setup a leveldb range using encoded values
-    for (size_t i = 0; i < ranges.size(); ++i)
-    {
-        if (ostr) *ostr << " considering attr " << ranges[i].attr << " Range("
-                        << ranges[i].start.hex() << ", " << ranges[i].end.hex() << " " << ranges[i].type << " "
-                        << (ranges[i].has_start ? "[" : "<") << "-" << (ranges[i].has_end ? "]" : ">")
-                        << " " << (ranges[i].invalid ? "invalid" : "valid") << "\n";
-
-        if (ranges[i].attr >= sc.attrs_sz ||
-            sc.attrs[ranges[i].attr].type != ranges[i].type)
-        {
-            return BAD_SEARCH;
-        }
-
-        bool (*parse)(const leveldb::Slice& in, e::slice* out);
-
-        // XXX sometime in the future we could support efficient range search on
-        // keys.  Today is not that day.  Tomorrow doesn't look good either.
-        if (ranges[i].attr == 0)
-        {
-            continue;
-        }
-
-        else if (ranges[i].type == HYPERDATATYPE_STRING)
-        {
-            parse = &parse_index_string;
-        }
-        else if (ranges[i].type == HYPERDATATYPE_INT64)
-        {
-            parse = &parse_index_sizeof8;
-        }
-        else if (ranges[i].type == HYPERDATATYPE_FLOAT)
-        {
-            parse = &parse_index_sizeof8;
-        }
-        else
-        {
-            continue;
-        }
-
-        if (ranges[i].has_start)
-        {
-            snap->m_backing.push_back(std::vector<char>());
-            encode_index(ri, ranges[i].attr, ranges[i].type, ranges[i].start, &snap->m_backing.back());
-        }
-        else
-        {
-            snap->m_backing.push_back(std::vector<char>());
-            encode_index(ri, ranges[i].attr, &snap->m_backing.back());
-        }
-
-        leveldb::Slice start(&snap->m_backing.back()[0], snap->m_backing.back().size());
-
-        if (ranges[i].has_end && ranges[i].type == HYPERDATATYPE_STRING)
-        {
-            e::slice new_end = e::slice(ranges[i].end.data(), std::min(ranges[i].end.size(), ranges[i].end.size()));
-            snap->m_backing.push_back(std::vector<char>());
-            encode_index(ri, ranges[i].attr, ranges[i].type, new_end, &snap->m_backing.back());
-            bump_index(&snap->m_backing.back());
-        }
-        else if (ranges[i].has_end)
-        {
-            snap->m_backing.push_back(std::vector<char>());
-            encode_index(ri, ranges[i].attr, ranges[i].type, ranges[i].end, &snap->m_backing.back());
-            bump_index(&snap->m_backing.back());
-        }
-        else
-        {
-            snap->m_backing.push_back(std::vector<char>());
-            encode_index(ri, ranges[i].attr + 1, &snap->m_backing.back());
-        }
-
-        leveldb::Slice limit(&snap->m_backing.back()[0], snap->m_backing.back().size());
-        level_ranges.push_back(leveldb::Range(start, limit));
-        parsers.push_back(parse);
-    }
-
-    // Add to level_ranges the size of the object range for the region itself
-    // excluding indices
-    level_ranges.push_back(leveldb::Range());
-    snap->m_backing.push_back(std::vector<char>());
-    snap->m_backing.back().resize(sizeof(uint8_t) + sizeof(uint64_t));
-    ptr = &snap->m_backing.back()[0];
-    ptr = e::pack8be('o', ptr);
-    ptr = e::pack64be(ri.get(), ptr);
-    level_ranges.back().start = leveldb::Slice(&snap->m_backing.back()[0],
-                                               snap->m_backing.back().size());
-    snap->m_backing.push_back(snap->m_backing.back());
-    bump_index(&snap->m_backing.back());
-    level_ranges.back().limit = leveldb::Slice(&snap->m_backing.back()[0],
-                                               snap->m_backing.back().size());
-
-    // Fetch from leveldb the approximate space usage of each computed range
-    std::vector<uint64_t> sizes(level_ranges.size());
-    m_db->GetApproximateSizes(&level_ranges.front(), level_ranges.size(), &sizes.front());
-
-    if (ostr)
-    {
-        for (size_t i = 0; i < level_ranges.size(); ++i)
-        {
-            *ostr << " index Range(" << e::slice(level_ranges[i].start.data(), level_ranges[i].start.size()).hex()
-                  << ", " << e::slice(level_ranges[i].limit.data(), level_ranges[i].limit.size()).hex()
-                  << " occupies " << sizes[i] << " bytes\n";
-        }
-    }
-
-    // the size of all objects in the region of the search
-    uint64_t object_disk_space = sizes.back();
-    if (ostr) *ostr << " objects for " << ri << " occupies " << object_disk_space << " bytes\n";
-    leveldb::Range object_range = level_ranges.back();
-    level_ranges.pop_back();
-    sizes.pop_back();
-    assert(parsers.size() == sizes.size());
-    assert(parsers.size() == level_ranges.size());
-
-    // Figure out the smallest indices
-    std::vector<std::pair<uint64_t, size_t> > size_idxs;
-
-    for (size_t i = 0; i < sizes.size(); ++i)
-    {
-        size_idxs.push_back(std::make_pair(sizes[i], i));
-    }
-
-    std::sort(size_idxs.begin(), size_idxs.end());
-
-    // Figure out the plan of attack.  Three options:
-    // 1.  Scan all objects (idx = 0)
-    // 2.  Use the least costly index (idx = 1)
-    // 3.  Use the least costly index plus bloom filters pulled from other
-    //     low-cost indices. (idx > 1)
-    size_t idx = 0;
-    size_t sum = 0;
-
-    while (idx < size_idxs.size())
-    {
-        if (sum + size_idxs[idx].first < object_disk_space / 4. &&
-            (idx == 0 || size_idxs[idx - 1].first * 10 > size_idxs[idx].first))
-
-        {
-            if (ostr) *ostr << " next smallest index is " << size_idxs[idx].second << ":  small enough\n";
-            sum += size_idxs[idx].first;
-            ++idx;
-        }
-        else
-        {
-            if (ostr) *ostr << " next smallest index is " << size_idxs[idx].second << ":  too big\n";
-            break;
-        }
-    }
-
-    if (idx == 0)
-    {
-        if (ostr) *ostr << " choosing to just enumerate all objects\n";
-        snap->m_range = object_range;
-        snap->m_parse = &parse_object_key;
-    }
-    else
-    {
-        size_t tidx = size_idxs[0].second;
-        if (ostr) *ostr << " choosing to use index " << tidx << " as the primary\n";
-        snap->m_range = level_ranges[tidx];
-        snap->m_parse = parsers[tidx];
-    }
-
-    // Create iterator
-    leveldb::ReadOptions opts;
-    opts.fill_cache = false;
-    opts.verify_checksums = false;
-    opts.snapshot = snap->m_snap.get();
-    snap->m_iter.reset(snap->m_snap, m_db->NewIterator(opts));
-    snap->m_iter->Seek(snap->m_range.start);
-    return SUCCESS;
-}
-
-leveldb_snapshot_ptr
-datalayer :: make_raw_snapshot()
-{
-    return leveldb_snapshot_ptr(m_db, m_db->GetSnapshot());
-}
-
-void
-datalayer :: make_region_iterator(region_iterator* riter,
-                                  leveldb_snapshot_ptr snap,
-                                  const region_id& ri)
-{
-    riter->m_dl = this;
-    riter->m_snap = snap;
-    riter->m_region = ri;
-    leveldb::ReadOptions opts;
-    opts.fill_cache = true;
-    opts.verify_checksums = true;
-    opts.snapshot = riter->m_snap.get();
-    riter->m_iter.reset(riter->m_snap, m_db->NewIterator(opts));
-    char backing[sizeof(uint8_t) + sizeof(uint64_t)];
-    char* ptr = backing;
-    ptr = e::pack8be('o', ptr);
-    ptr = e::pack64be(riter->m_region.get(), ptr);
-    riter->m_iter->Seek(leveldb::Slice(backing, sizeof(uint8_t) + sizeof(uint64_t)));
 }
 
 datalayer::returncode
@@ -1110,22 +802,9 @@ datalayer :: get_transfer(const region_id& ri,
     {
         return NOT_FOUND;
     }
-    else if (st.IsCorruption())
-    {
-        LOG(ERROR) << "corruption at the disk layer: region=" << ri
-                   << " seq_no=" << seq_no << " desc=" << st.ToString();
-        return CORRUPTION;
-    }
-    else if (st.IsIOError())
-    {
-        LOG(ERROR) << "IO error at the disk layer: region=" << ri
-                   << " seq_no=" << seq_no << " desc=" << st.ToString();
-        return IO_ERROR;
-    }
     else
     {
-        LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
-        return LEVELDB_ERROR;
+        return handle_error(st);
     }
 }
 
@@ -1313,6 +992,212 @@ datalayer :: request_wipe(const capture_id& cid)
     m_wakeup_cleaner.broadcast();
 }
 
+datalayer::snapshot
+datalayer :: make_snapshot()
+{
+    return leveldb_snapshot_ptr(m_db, m_db->GetSnapshot());
+}
+
+datalayer::iterator*
+datalayer :: make_region_iterator(snapshot snap,
+                                  const region_id& ri,
+                                  returncode* error)
+{
+    *error = datalayer::SUCCESS;
+    const size_t backing_sz = sizeof(uint8_t) + sizeof(uint64_t);
+    char backing[backing_sz];
+    char* ptr = backing;
+    ptr = e::pack8be('o', ptr);
+    ptr = e::pack64be(ri.get(), ptr);
+
+    leveldb::ReadOptions opts;
+    opts.fill_cache = true;
+    opts.verify_checksums = true;
+    opts.snapshot = snap.get();
+    leveldb_iterator_ptr iter;
+    iter.reset(snap, m_db->NewIterator(opts));
+    const schema& sc(*m_daemon->m_config.get_schema(ri));
+    return new region_iterator(iter, ri, index_info::lookup(sc.attrs[0].type));
+}
+
+datalayer::iterator*
+datalayer :: make_search_iterator(snapshot snap,
+                                  const region_id& ri,
+                                  const std::vector<attribute_check>& checks,
+                                  std::ostringstream* ostr)
+{
+    const schema& sc(*m_daemon->m_config.get_schema(ri));
+    std::vector<e::intrusive_ptr<index_iterator> > iterators;
+
+    // pull a set of range queries from checks
+    std::vector<range> ranges;
+    range_searches(checks, &ranges);
+    index_info* ki = index_info::lookup(sc.attrs[0].type);
+    const subspace& sub(*m_daemon->m_config.get_subspace(ri));
+
+    // for each range query, construct an iterator
+    for (size_t i = 0; i < ranges.size(); ++i)
+    {
+        if (ranges[i].invalid)
+        {
+            if (ostr) *ostr << "encountered invalid range; returning no results\n";
+            return new dummy_iterator();
+        }
+
+        assert(ranges[i].attr < sc.attrs_sz);
+        assert(ranges[i].type == sc.attrs[ranges[i].attr].type);
+
+        if (ostr) *ostr << "considering attr " << ranges[i].attr << " Range("
+                        << ranges[i].start.hex() << ", " << ranges[i].end.hex() << " " << ranges[i].type << " "
+                        << (ranges[i].has_start ? "[" : "<") << "-" << (ranges[i].has_end ? "]" : ">")
+                        << " " << (ranges[i].invalid ? "invalid" : "valid") << "\n";
+
+        if (!sub.indexed(ranges[i].attr))
+        {
+            continue;
+        }
+
+        index_info* ii = index_info::lookup(ranges[i].type);
+
+        if (ii)
+        {
+            e::intrusive_ptr<index_iterator> it = ii->iterator_from_range(snap, ri, ranges[i], ki);
+
+            if (it)
+            {
+                iterators.push_back(it);
+            }
+        }
+    }
+
+    // for everything that is not a range query, construct an iterator
+    for (size_t i = 0; i < checks.size(); ++i)
+    {
+        if (checks[i].predicate == HYPERPREDICATE_EQUALS ||
+            checks[i].predicate == HYPERPREDICATE_LESS_EQUAL ||
+            checks[i].predicate == HYPERPREDICATE_GREATER_EQUAL)
+        {
+            continue;
+        }
+
+        if (!sub.indexed(checks[i].attr))
+        {
+            continue;
+        }
+
+        index_info* ii = index_info::lookup(sc.attrs[checks[i].attr].type);
+
+        if (ii)
+        {
+            e::intrusive_ptr<index_iterator> it = ii->iterator_from_check(snap, ri, checks[i], ki);
+
+            if (it)
+            {
+                iterators.push_back(it);
+            }
+        }
+    }
+
+    // figure out the cost of accessing all objects
+    e::intrusive_ptr<index_iterator> full_scan;
+    range scan;
+    scan.attr = 0;
+    scan.type = sc.attrs[0].type;
+    scan.has_start = false;
+    scan.has_end = false;
+    scan.invalid = false;
+    full_scan = ki->iterator_from_range(snap, ri, scan, ki);
+    if (ostr) *ostr << "accessing all objects has cost " << full_scan->cost(m_db.get()) << "\n";
+
+    // figure out the cost of each iterator
+    // we do this here and not below so that iterators can cache the size and we
+    // don't ping-pong between HyperDex and LevelDB.
+    for (size_t i = 0; i < iterators.size(); ++i)
+    {
+        uint64_t iterator_cost = iterators[i]->cost(m_db.get());
+        if (ostr) *ostr << "iterator " << *iterators[i] << " has cost " << iterator_cost << "\n";
+    }
+
+    std::vector<e::intrusive_ptr<index_iterator> > sorted;
+    std::vector<e::intrusive_ptr<index_iterator> > unsorted;
+
+    for (size_t i = 0; i < iterators.size(); ++i)
+    {
+        if (iterators[i]->sorted())
+        {
+            sorted.push_back(iterators[i]);
+        }
+        else
+        {
+            unsorted.push_back(iterators[i]);
+        }
+    }
+
+    e::intrusive_ptr<index_iterator> best;
+
+    if (!sorted.empty())
+    {
+        best = new intersect_iterator(snap, sorted);
+    }
+
+    if (!best || best->cost(m_db.get()) * 4 > full_scan->cost(m_db.get()))
+    {
+        best = full_scan;
+    }
+
+    // just pick one; do something smart later
+    if (!unsorted.empty() && !best)
+    {
+        best = unsorted[0];
+    }
+
+    assert(best);
+    if (ostr) *ostr << "choosing to use " << *best << "\n";
+    return new search_iterator(this, ri, best, ostr, &checks);
+}
+
+datalayer::returncode
+datalayer :: get_from_iterator(const region_id& ri,
+                               iterator* iter,
+                               e::slice* key,
+                               std::vector<e::slice>* value,
+                               uint64_t* version,
+                               reference* ref)
+{
+    const schema& sc(*m_daemon->m_config.get_schema(ri));
+    std::vector<char> scratch;
+
+    // create the encoded key
+    leveldb::Slice lkey;
+    encode_key(ri, sc.attrs[0].type, iter->key(), &scratch, &lkey);
+
+    // perform the read
+    leveldb::ReadOptions opts;
+    opts.fill_cache = true;
+    opts.verify_checksums = true;
+    opts.snapshot = iter->snap().get();
+    leveldb::Status st = m_db->Get(opts, lkey, &ref->m_backing);
+
+    if (st.ok())
+    {
+        ref->m_backing += std::string(reinterpret_cast<const char*>(iter->key().data()), iter->key().size());
+        *key = e::slice(ref->m_backing.data()
+                        + ref->m_backing.size()
+                        - iter->key().size(),
+                        iter->key().size());
+        e::slice v(ref->m_backing.data(), ref->m_backing.size() - iter->key().size());
+        return decode_value(v, value, version);
+    }
+    else if (st.IsNotFound())
+    {
+        return NOT_FOUND;
+    }
+    else
+    {
+        return handle_error(st);
+    }
+}
+
 void
 datalayer :: cleaner()
 {
@@ -1461,6 +1346,26 @@ datalayer :: shutdown()
     }
 }
 
+datalayer::returncode
+datalayer :: handle_error(leveldb::Status st)
+{
+    if (st.IsCorruption())
+    {
+        LOG(ERROR) << "corruption at the disk layer: " << st.ToString();
+        return CORRUPTION;
+    }
+    else if (st.IsIOError())
+    {
+        LOG(ERROR) << "IO error at the disk layer: " << st.ToString();
+        return IO_ERROR;
+    }
+    else
+    {
+        LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
+        return LEVELDB_ERROR;
+    }
+}
+
 datalayer :: reference :: reference()
     : m_backing()
 {
@@ -1483,7 +1388,6 @@ hyperdex :: operator << (std::ostream& lhs, datalayer::returncode rhs)
     {
         STRINGIFY(datalayer::SUCCESS);
         STRINGIFY(datalayer::NOT_FOUND);
-        STRINGIFY(datalayer::BAD_SEARCH);
         STRINGIFY(datalayer::BAD_ENCODING);
         STRINGIFY(datalayer::CORRUPTION);
         STRINGIFY(datalayer::IO_ERROR);
@@ -1493,250 +1397,4 @@ hyperdex :: operator << (std::ostream& lhs, datalayer::returncode rhs)
     }
 
     return lhs;
-}
-
-datalayer :: region_iterator :: region_iterator()
-    : m_dl()
-    , m_snap()
-    , m_iter()
-    , m_region()
-{
-}
-
-datalayer :: region_iterator :: ~region_iterator() throw ()
-{
-}
-
-bool
-datalayer :: region_iterator :: valid()
-{
-    if (!m_iter->Valid())
-    {
-        return false;
-    }
-
-    leveldb::Slice k = m_iter->key();
-    uint8_t b;
-    uint64_t ri;
-    e::unpacker up(k.data(), k.size());
-    up = up >> b >> ri;
-    return !up.error() && b == 'o' && ri == m_region.get();
-}
-
-void
-datalayer :: region_iterator :: next()
-{
-    m_iter->Next();
-}
-
-void
-datalayer :: region_iterator :: unpack(e::slice* k,
-                                       std::vector<e::slice>* val,
-                                       uint64_t* ver,
-                                       reference* ref)
-{
-    region_id ri;
-    // XXX returncode
-    decode_key(e::slice(m_iter->key().data(), m_iter->key().size()), &ri, k);
-    decode_value(e::slice(m_iter->value().data(), m_iter->value().size()), val, ver);
-    size_t sz = k->size();
-
-    for (size_t i = 0; i < val->size(); ++i)
-    {
-        sz += (*val)[i].size();
-    }
-
-    std::vector<char> tmp(sz + 1);
-    char* ptr = &tmp.front();
-    memmove(ptr, k->data(), k->size());
-    ptr += k->size();
-
-    for (size_t i = 0; i < val->size(); ++i)
-    {
-        memmove(ptr, (*val)[i].data(), (*val)[i].size());
-        ptr += (*val)[i].size();
-    }
-
-    ref->m_backing = std::string(tmp.begin(), tmp.end());
-    const char* cptr = ref->m_backing.data();
-    *k = e::slice(cptr, k->size());
-    cptr += k->size();
-
-    for (size_t i = 0; i < val->size(); ++i)
-    {
-        (*val)[i] = e::slice(cptr, (*val)[i].size());
-        cptr += (*val)[i].size();
-    }
-}
-
-e::slice
-datalayer :: region_iterator :: key()
-{
-    return e::slice(m_iter->key().data(), m_iter->key().size());
-}
-
-datalayer :: snapshot :: snapshot()
-    : m_dl()
-    , m_snap()
-    , m_checks()
-    , m_ri()
-    , m_backing()
-    , m_range()
-    , m_parse()
-    , m_iter()
-    , m_error(SUCCESS)
-    , m_version()
-    , m_key()
-    , m_value()
-    , m_ostr()
-    , m_num_gets(0)
-    , m_ref()
-{
-}
-
-datalayer :: snapshot :: ~snapshot() throw ()
-{
-}
-
-bool
-datalayer :: snapshot :: valid()
-{
-    if (m_error != SUCCESS || !m_iter.get() || !m_parse)
-    {
-        return false;
-    }
-
-    // Don't try to optimize by replacing m_ri with a const schema* because it
-    // won't persist across reconfigurations
-    const schema* sc = m_dl->m_daemon->m_config.get_schema(m_ri);
-    assert(sc);
-
-    // while the most selective iterator is valid and not past the end
-    while (m_iter->Valid())
-    {
-        if (m_iter->key().compare(m_range.limit) >= 0)
-        {
-            if (m_ostr) *m_ostr << " iterator retrieved " << m_num_gets << " objects from disk\n";
-            return false;
-        }
-
-        (*m_parse)(m_iter->key(), &m_key);
-        leveldb::ReadOptions opts;
-        opts.fill_cache = true;
-        opts.verify_checksums = true;
-        std::vector<char> kbacking;
-        leveldb::Slice lkey;
-        encode_key(m_ri, m_key, &kbacking, &lkey);
-
-        leveldb::Status st = m_dl->m_db->Get(opts, lkey, &m_ref.m_backing);
-
-        if (st.ok())
-        {
-            e::slice v(m_ref.m_backing.data(), m_ref.m_backing.size());
-            datalayer::returncode rc = decode_value(v, &m_value, &m_version);
-
-            if (rc != SUCCESS)
-            {
-                m_error = rc;
-                return false;
-            }
-
-            ++m_num_gets;
-        }
-        else if (st.IsNotFound())
-        {
-            LOG(ERROR) << "snapshot points to items (" << m_key.hex() << ") not found in the snapshot";
-            m_error = CORRUPTION;
-            return false;
-        }
-        else if (st.IsCorruption())
-        {
-            LOG(ERROR) << "corruption at the disk layer: region=" << m_ri
-                       << " key=0x" << m_key.hex() << " desc=" << st.ToString();
-            m_error = CORRUPTION;
-            return false;
-        }
-        else if (st.IsIOError())
-        {
-            LOG(ERROR) << "IO error at the disk layer: region=" << m_ri
-                       << " key=0x" << m_key.hex() << " desc=" << st.ToString();
-            m_error = IO_ERROR;
-            return false;
-        }
-        else
-        {
-            LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
-            m_error = LEVELDB_ERROR;
-            return false;
-        }
-
-        bool passes_checks = true;
-
-        for (size_t i = 0; passes_checks && i < m_checks->size(); ++i)
-        {
-            if ((*m_checks)[i].attr >= sc->attrs_sz)
-            {
-                passes_checks = false;
-            }
-            else if ((*m_checks)[i].attr == 0)
-            {
-                passes_checks = passes_attribute_check(*sc, (*m_checks)[i], m_key);
-            }
-            else
-            {
-                passes_checks = passes_attribute_check(*sc, (*m_checks)[i], m_value[(*m_checks)[i].attr - 1]);
-            }
-        }
-
-        if (passes_checks)
-        {
-            return true;
-        }
-        else
-        {
-            m_iter->Next();
-        }
-    }
-
-    return false;
-}
-
-void
-datalayer :: snapshot :: next()
-{
-    assert(m_error == SUCCESS);
-    m_iter->Next();
-}
-
-void
-datalayer :: snapshot :: unpack(e::slice* key, std::vector<e::slice>* val, uint64_t* ver)
-{
-    *key = m_key;
-    *val = m_value;
-    *ver = m_version;
-}
-
-void
-datalayer :: snapshot :: unpack(e::slice* key, std::vector<e::slice>* val, uint64_t* ver, reference* ref)
-{
-    ref->m_backing = std::string();
-    ref->m_backing += std::string(reinterpret_cast<const char*>(m_key.data()), m_key.size());
-
-    for (size_t i = 0; i < m_value.size(); ++i)
-    {
-        ref->m_backing += std::string(reinterpret_cast<const char*>(m_value[i].data()), m_value[i].size());
-    }
-
-    const uint8_t* ptr = reinterpret_cast<const uint8_t*>(ref->m_backing.data());
-    *key = e::slice(ptr, m_key.size());
-    ptr += m_key.size();
-    val->resize(m_value.size());
-
-    for (size_t i = 0; i < m_value.size(); ++i)
-    {
-        (*val)[i] = e::slice(ptr, m_value[i].size());
-        ptr += m_value[i].size();
-    }
-
-    *ver = m_version;
 }

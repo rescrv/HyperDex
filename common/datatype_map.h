@@ -55,6 +55,9 @@ class datatype_map : public datatype_info
                                uint8_t* writeto);
 
     public:
+        virtual bool indexable();
+
+    public:
         virtual bool has_length();
         virtual uint64_t length(const e::slice& value);
         virtual bool has_contains();

@@ -580,7 +580,6 @@ replication_manager :: get_or_create_key_state(const region_id& ri,
             case datalayer::NOT_FOUND:
                 break;
             case datalayer::BAD_ENCODING:
-            case datalayer::BAD_SEARCH:
             case datalayer::CORRUPTION:
             case datalayer::IO_ERROR:
             case datalayer::LEVELDB_ERROR:

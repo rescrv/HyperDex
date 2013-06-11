@@ -96,11 +96,15 @@ class subspace
         ~subspace() throw ();
 
     public:
+        bool indexed(uint16_t attr) const;
+
+    public:
         subspace& operator = (const subspace&);
 
     public:
         subspace_id id;
         std::vector<uint16_t> attrs;
+        std::vector<uint16_t> indices;
         std::vector<region> regions;
 };
 

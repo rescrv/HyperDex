@@ -753,6 +753,14 @@ configuration :: debug_dump(std::ostream& out)
             }
 
             out << std::endl;
+            out << "    indices";
+
+            for (size_t i = 0; i < ss.indices.size(); ++i)
+            {
+                out << " " << s.sc.attrs[ss.indices[i]].name;
+            }
+
+            out << std::endl;
 
             for (size_t y = 0; y < ss.regions.size(); ++y)
             {

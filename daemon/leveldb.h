@@ -56,12 +56,12 @@ class leveldb_snapshot_ptr
 {
     public:
         leveldb_snapshot_ptr() : m_db(), m_snap() {}
-        leveldb_snapshot_ptr(leveldb_db_ptr db, const leveldb::Snapshot* snap)
-            : m_db(db), m_snap()
+        leveldb_snapshot_ptr(leveldb_db_ptr d, const leveldb::Snapshot* snap)
+            : m_db(d), m_snap()
         {
             std::tr1::function<void (const leveldb::Snapshot*)> dtor;
             dtor = std::tr1::bind(&leveldb::DB::ReleaseSnapshot, m_db, _1);
-            std::tr1::shared_ptr<leveldb::Snapshot> tmp(snap, dtor);
+            std::tr1::shared_ptr<const leveldb::Snapshot> tmp(snap, dtor);
             m_snap = tmp;
         }
         leveldb_snapshot_ptr(const leveldb_snapshot_ptr& other)
@@ -69,16 +69,17 @@ class leveldb_snapshot_ptr
         ~leveldb_snapshot_ptr() throw () {}
 
     public:
-        void reset(leveldb_db_ptr db, const leveldb::Snapshot* snap)
+        void reset(leveldb_db_ptr d, const leveldb::Snapshot* snap)
         {
-            m_db = db;
+            m_db = d;
             // keep m_db init above and m_snap init below
             std::tr1::function<void (const leveldb::Snapshot*)> dtor;
             dtor = std::tr1::bind(&leveldb::DB::ReleaseSnapshot, m_db.get(), _1);
-            std::tr1::shared_ptr<leveldb::Snapshot> tmp(snap, dtor);
+            std::tr1::shared_ptr<const leveldb::Snapshot> tmp(snap, dtor);
             m_snap = tmp;
         }
         const leveldb::Snapshot* get() const { return m_snap.get(); }
+        leveldb::DB* db() const { return m_db.get(); }
 
     public:
         leveldb_snapshot_ptr& operator = (const leveldb_snapshot_ptr& rhs)
@@ -93,7 +94,7 @@ class leveldb_snapshot_ptr
 
     private:
         leveldb_db_ptr m_db;
-        std::tr1::shared_ptr<leveldb::Snapshot> m_snap;
+        std::tr1::shared_ptr<const leveldb::Snapshot> m_snap;
 };
 
 class leveldb_iterator_ptr
@@ -103,9 +104,10 @@ class leveldb_iterator_ptr
         ~leveldb_iterator_ptr() throw () {}
 
     public:
-        void reset(leveldb_snapshot_ptr snap, leveldb::Iterator* iter)
-        { m_snap = snap; m_iter.reset(iter); }
+        void reset(leveldb_snapshot_ptr s, leveldb::Iterator* iter)
+        { m_snap = s; m_iter.reset(iter); }
         const leveldb::Iterator* get() const { return m_iter.get(); }
+        leveldb_snapshot_ptr snap() const { return m_snap; }
 
     public:
         leveldb::Iterator* operator -> () const throw () { return m_iter.get(); }

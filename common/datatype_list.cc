@@ -159,6 +159,12 @@ datatype_list :: apply(const e::slice& old_value,
 }
 
 bool
+datatype_list :: indexable()
+{
+    return m_elem->indexable();
+}
+
+bool
 datatype_list :: has_length()
 {
     return true;

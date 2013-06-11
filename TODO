@@ -1,0 +1,4 @@
+ - Only generate index changes for attrs that are indexable
+ - Check the configuration for indexed values
+ - Add "seek" to iterators
+ - Call LevelDB SEEK within iterators

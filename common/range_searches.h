@@ -38,7 +38,7 @@
 namespace hyperdex
 {
 
-bool
+void
 range_searches(const std::vector<attribute_check>& checks,
                std::vector<range>* ranges);
 

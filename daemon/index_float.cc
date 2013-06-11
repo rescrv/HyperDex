@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,27 +25,69 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// e
+#include <e/endian.h>
+
 // HyperDex
-#include "test/common.h"
+#include "common/datatypes.h"
+#include "common/ordered_encoding.h"
+#include "daemon/datalayer_encodings.h"
+#include "daemon/index_float.h"
 
-const char* hyperdex_test_space = NULL;
-const char* hyperdex_test_host = "127.0.0.1";
-long hyperdex_test_port = 1234;
+using hyperdex::index_float;
 
-extern "C"
+index_float :: index_float()
 {
+}
 
-struct poptOption hyperdex_test_popts[] = {
-    {"space", 's', POPT_ARG_STRING, &hyperdex_test_space, 's',
-        "the HyperDex space to use",
-        "space"},
-    {"host", 'h', POPT_ARG_STRING, &hyperdex_test_host, 'h',
-        "connect to an IP address or hostname (default: 127.0.0.1)",
-        "addr"},
-    {"port", 'p', POPT_ARG_LONG, &hyperdex_test_port, 'p',
-        "connect to an alternative port (default: 1982)",
-        "port"},
-    POPT_TABLEEND
-};
+index_float :: ~index_float() throw ()
+{
+}
 
-} // extern "C"
+bool
+index_float :: encoding_fixed()
+{
+    return true;
+}
+
+size_t
+index_float :: encoded_size(const e::slice&)
+{
+    return 2 * sizeof(double);
+}
+
+char*
+index_float :: encode(const e::slice& decoded, char* encoded)
+{
+    datatype_info* di = datatype_info::lookup(HYPERDATATYPE_FLOAT);
+    double number = 0;
+
+    if (di->validate(decoded) && decoded.size() == sizeof(double))
+    {
+        e::unpackdoublele(decoded.data(), &number);
+    }
+
+    char* ptr = encoded;
+    ptr = e::pack64be(di->hash(decoded), ptr);
+    ptr = e::packdoublele(number, ptr);
+    return ptr;
+}
+
+size_t
+index_float :: decoded_size(const e::slice&)
+{
+    return sizeof(double);
+}
+
+char*
+index_float :: decode(const e::slice& encoded, char* decoded)
+{
+    double number = 0;
+
+    if (encoded.size() == 2 * sizeof(double))
+    {
+        e::unpackdoublele(decoded + sizeof(double), &number);
+    }
+
+    return e::packdoublele(number, decoded);
+}

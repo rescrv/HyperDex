@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,15 +25,34 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_common_float_encode_h_
-#define hyperdex_common_float_encode_h_
+#ifndef hyperdex_daemon_index_map_h_
+#define hyperdex_daemon_index_map_h_
+
+// HyperDex
+#include "common/datatypes.h"
+#include "daemon/index_container.h"
 
 namespace hyperdex
 {
 
-uint64_t
-float_encode(double x);
+class index_map : public index_container
+{
+    public:
+        index_map(hyperdatatype key_datatype,
+                  hyperdatatype val_datatype);
+        virtual ~index_map() throw ();
+
+    private:
+        virtual void extract_elements(const e::slice& container,
+                                      std::vector<e::slice>* elems);
+        virtual datatype_info* element_datatype_info();
+        virtual index_info* element_index_info();
+
+    private:
+        hyperdatatype m_key_datatype;
+        hyperdatatype m_val_datatype;
+};
 
 } // namespace hyperdex
 
-#endif // hyperdex_common_float_encode_h_
+#endif // hyperdex_daemon_index_map_h_

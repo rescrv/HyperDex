@@ -9,6 +9,7 @@ client/parse_space_l.c
 client/parse_space_y.c
 client/parse_space_y.h
 client/python/hyperclient.c
+common/test/ordered_encoding
 config.guess
 config.h
 config.h.in
@@ -43,6 +44,7 @@ hyperdex-rm-space
 hyperdex-search-stress-test
 hyperdex-show-config
 hyperdex-simple-consistency-stress-test
+hyperdex-validate-space
 hyperspacehashing/test/bithacks
 hyperspacehashing/test/cfloat
 hyperspacehashing/test/prefix

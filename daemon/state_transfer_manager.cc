@@ -37,7 +37,7 @@
 // HyperDex
 #include "common/serialization.h"
 #include "daemon/daemon.h"
-#include "daemon/leveldb.h"
+#include "daemon/datalayer_iterator.h"
 #include "daemon/state_transfer_manager.h"
 #include "daemon/state_transfer_manager_pending.h"
 #include "daemon/state_transfer_manager_transfer_in_state.h"
@@ -106,7 +106,7 @@ template <class S>
 static void
 setup_transfer_state(const char* desc,
                      hyperdex::datalayer* data,
-                     hyperdex::leveldb_snapshot_ptr snap,
+                     hyperdex::datalayer::snapshot snap,
                      const std::vector<hyperdex::transfer> transfers,
                      std::vector<std::pair<transfer_id, e::intrusive_ptr<S> > >* transfer_states)
 {
@@ -169,7 +169,7 @@ state_transfer_manager :: reconfigure(const configuration&,
         }
     }
 
-    leveldb_snapshot_ptr snap = m_daemon->m_data.make_raw_snapshot();
+    datalayer::snapshot snap = m_daemon->m_data.make_snapshot();
 
     // Setup transfers in
     std::vector<transfer> transfers_in;
@@ -379,16 +379,17 @@ state_transfer_manager :: transfer_more_state(transfer_out_state* tos)
     {
         if (tos->state == transfer_out_state::SNAPSHOT_TRANSFER)
         {
-            if (tos->snap_iter.valid())
+            if (tos->iter->valid())
             {
                 e::intrusive_ptr<pending> op(new pending());
                 op->seq_no = tos->next_seq_no;
                 ++tos->next_seq_no;
                 op->has_value = true;
-                tos->snap_iter.unpack(&op->key, &op->value, &op->version, &op->ref);
+                m_daemon->m_data.get_from_iterator(tos->xfer.rid, tos->iter.get(), &op->key, &op->value, &op->version, &op->ref);
+
                 tos->window.push_back(op);
                 send_object(tos->xfer, op.get());
-                tos->snap_iter.next();
+                tos->iter->next();
             }
             else
             {
@@ -415,7 +416,6 @@ state_transfer_manager :: transfer_more_state(transfer_out_state* tos)
                     done = true;
                     break;
                 case datalayer::BAD_ENCODING:
-                case datalayer::BAD_SEARCH:
                 case datalayer::CORRUPTION:
                 case datalayer::IO_ERROR:
                 case datalayer::LEVELDB_ERROR:
@@ -482,23 +482,23 @@ state_transfer_manager :: put_to_disk_and_send_acks(transfer_in_state* tis)
         if (tis->need_del &&
             (!tis->prev || tis->prev->key < op->key))
         {
-            while (tis->del_iter.valid() && tis->del_iter.key() < op->key)
+            while (tis->iter->valid() && tis->iter->key() < op->key)
             {
-                m_daemon->m_data.uncertain_del(tis->xfer.rid, tis->del_iter.key());
-                tis->del_iter.next();
+                m_daemon->m_data.uncertain_del(tis->xfer.rid, tis->iter->key());
+                tis->iter->next();
             }
         }
         else
         {
             // We've hit a point where we're now going out of order.  Save this
             // to avoid expensive comparison above, and delete everything
-            // leftover in del_iter after this point.
+            // leftover in iter after this point.
             tis->need_del = false;
 
-            while (tis->del_iter.valid())
+            while (tis->iter->valid())
             {
-                datalayer::returncode rc = m_daemon->m_data.uncertain_del(tis->xfer.rid, tis->del_iter.key());
-                tis->del_iter.next();
+                datalayer::returncode rc = m_daemon->m_data.uncertain_del(tis->xfer.rid, tis->iter->key());
+                tis->iter->next();
 
                 switch (rc)
                 {
@@ -506,7 +506,6 @@ state_transfer_manager :: put_to_disk_and_send_acks(transfer_in_state* tis)
                     case datalayer::NOT_FOUND:
                         break;
                     case datalayer::BAD_ENCODING:
-                    case datalayer::BAD_SEARCH:
                     case datalayer::CORRUPTION:
                     case datalayer::IO_ERROR:
                     case datalayer::LEVELDB_ERROR:
@@ -529,7 +528,6 @@ state_transfer_manager :: put_to_disk_and_send_acks(transfer_in_state* tis)
                     break;
                 case datalayer::NOT_FOUND:
                 case datalayer::BAD_ENCODING:
-                case datalayer::BAD_SEARCH:
                 case datalayer::CORRUPTION:
                 case datalayer::IO_ERROR:
                 case datalayer::LEVELDB_ERROR:
@@ -550,7 +548,6 @@ state_transfer_manager :: put_to_disk_and_send_acks(transfer_in_state* tis)
                 case datalayer::NOT_FOUND:
                     break;
                 case datalayer::BAD_ENCODING:
-                case datalayer::BAD_SEARCH:
                 case datalayer::CORRUPTION:
                 case datalayer::IO_ERROR:
                 case datalayer::LEVELDB_ERROR:

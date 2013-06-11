@@ -31,6 +31,10 @@
 // STL
 #include <vector>
 
+// po6
+#include <po6/error.h>
+#include <po6/net/ipaddr.h>
+
 // e
 #include <e/endian.h>
 #include <e/guard.h>
@@ -38,7 +42,82 @@
 // HyperDex
 #include "hyperdex.h"
 #include "client/hyperclient.hpp"
-#include "test/common.h"
+
+const char* hyperdex_test_space = NULL;
+const char* hyperdex_test_host = "127.0.0.1";
+long hyperdex_test_port = 1234;
+
+extern "C"
+{
+
+struct poptOption hyperdex_test_popts[] = {
+    {"space", 's', POPT_ARG_STRING, &hyperdex_test_space, 's',
+        "the HyperDex space to use",
+        "space"},
+    {"host", 'h', POPT_ARG_STRING, &hyperdex_test_host, 'h',
+        "connect to an IP address or hostname (default: 127.0.0.1)",
+        "addr"},
+    {"port", 'p', POPT_ARG_LONG, &hyperdex_test_port, 'p',
+        "connect to an alternative port (default: 1982)",
+        "port"},
+    POPT_TABLEEND
+};
+
+} // extern "C"
+
+#define HYPERDEX_TEST_TABLE {NULL, 0, POPT_ARG_INCLUDE_TABLE, hyperdex_test_popts, 0, "Connect to a cluster:", NULL},
+
+#define HYPERDEX_TEST_POPT_SWITCH \
+    case 's': \
+        break; \
+    case 'h': \
+        try \
+        { \
+            po6::net::ipaddr tst(hyperdex_test_host); \
+        } \
+        catch (po6::error& e) \
+        { \
+            std::cerr << "cannot parse coordinator address" << std::endl; \
+            return EXIT_FAILURE; \
+        } \
+        catch (std::invalid_argument& e) \
+        { \
+            std::cerr << "cannot parse coordinator address" << std::endl; \
+            return EXIT_FAILURE; \
+        } \
+        break; \
+    case 'p': \
+        if (hyperdex_test_port < 0 || hyperdex_test_port >= (1 << 16)) \
+        { \
+            std::cerr << "port number out of range for TCP" << std::endl; \
+            return EXIT_FAILURE; \
+        } \
+        break; \
+    case POPT_ERROR_NOARG: \
+    case POPT_ERROR_BADOPT: \
+    case POPT_ERROR_BADNUMBER: \
+    case POPT_ERROR_OVERFLOW: \
+        std::cerr << poptStrerror(rc) << " " << poptBadOption(poptcon, 0) << std::endl; \
+        return EXIT_FAILURE; \
+    case POPT_ERROR_OPTSTOODEEP: \
+    case POPT_ERROR_BADQUOTE: \
+    case POPT_ERROR_ERRNO: \
+    default: \
+        std::cerr << "logic error in argument parsing" << std::endl; \
+        return EXIT_FAILURE;
+
+#define HYPERDEX_TEST_SUCCESS(TESTNO) \
+    do { \
+        std::cout << "Test " << TESTNO << ":  [\x1b[32mOK\x1b[0m]\n"; \
+    } while (0)
+
+#define HYPERDEX_TEST_FAIL(TESTNO, REASON) \
+    do { \
+        std::cout << "Test " << TESTNO << ":  [\x1b[31mFAIL\x1b[0m]\n" \
+                  << "location: " << __FILE__ << ":" << __LINE__ << "\n" \
+                  << "reason:  " << REASON << "\n"; \
+    abort(); \
+    } while (0)
 
 #define SEARCH_STRESS_TIMEOUT(TESTNO) (10000)
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2012-2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -42,11 +42,24 @@
 #include <ieee754.h>
 #endif
 
-// e
-#include <e/endian.h>
-
 // HyperDex
-#include "common/float_encode.h"
+#include "common/ordered_encoding.h"
+
+uint64_t
+hyperdex :: ordered_encode_int64(int64_t x)
+{
+    uint64_t out = static_cast<uint64_t>(x);
+    out += x >= 0 ? 0x8000000000000000ULL : INT64_MIN;
+    return out;
+}
+
+int64_t
+hyperdex :: ordered_decode_int64(uint64_t x)
+{
+    uint64_t out = static_cast<uint64_t>(x);
+    out -= x >= 0x8000000000000000ULL ? 0x8000000000000000ULL : INT64_MIN;
+    return out;
+}
 
 // A little reminder about IEEE 754 doubles.  Source Patterson&Hennessy 3ed.
 //
@@ -106,7 +119,7 @@
 #endif
 
 uint64_t
-hyperdex :: float_encode(double x)
+hyperdex :: ordered_encode_double(double x)
 {
     uint64_t out = 0xffffffffffffffffULL;
 
@@ -161,6 +174,7 @@ hyperdex :: float_encode(double x)
 
     return out;
 }
+
 #ifndef _MSC_VER
 #pragma GCC diagnostic pop
 #endif

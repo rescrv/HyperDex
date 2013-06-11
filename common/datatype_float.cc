@@ -32,10 +32,10 @@
 
 // e
 #include <e/endian.h>
-#include <e/safe_math.h>
 
 // HyperDex
 #include "common/datatype_float.h"
+#include "common/ordered_encoding.h"
 
 using hyperdex::datatype_info;
 using hyperdex::datatype_float;
@@ -128,6 +128,33 @@ datatype_float :: apply(const e::slice& old_value,
     }
 
     return e::packdoublele(number, writeto);
+}
+
+bool
+datatype_float :: hashable()
+{
+    return true;
+}
+
+
+uint64_t
+datatype_float :: hash(const e::slice& value)
+{
+    assert(validate(value));
+    double number = 0;
+
+    if (value.size() == sizeof(double))
+    {
+        e::unpackdoublele(value.data(), &number);
+    }
+
+    return ordered_encode_double(number);
+}
+
+bool
+datatype_float :: indexable()
+{
+    return true;
 }
 
 bool

@@ -57,7 +57,6 @@ if test x"${need_swig}" = xyes; then
 fi
 
 # Checks for libraries.
-GTEST_LIB_CHECK
 AC_CHECK_LIB([popt], [poptGetContext], [], [AC_MSG_ERROR([
 -------------------------------------------------
 HyperDex relies upon the popt library.

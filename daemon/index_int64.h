@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,29 +25,29 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_daemon_indexing_h_
-#define hyperdex_daemon_indexing_h_
+#ifndef hyperdex_daemon_index_int64_h_
+#define hyperdex_daemon_index_int64_h_
 
-// These encoding functions will encode an int64_t or double into the equivalent
-// number of bytes.  The encoding is order preserving e.g.,
-// memcmp(index_encode(a), index_encode(b)) will return the same comparison as
-// comparing a and b directly.
-
-// C
-#include <stdint.h>
+// HyperDex
+#include "daemon/index_primitive.h"
 
 namespace hyperdex
 {
 
-char*
-index_encode_int64(int64_t x, char* ptr);
+class index_int64 : public index_primitive
+{
+    public:
+        index_int64();
+        virtual ~index_int64() throw ();
 
-char*
-index_encode_double(double x, char* ptr);
-
-void
-index_encode_bump(char* ptr, char* end);
+    public:
+        virtual bool encoding_fixed();
+        virtual size_t encoded_size(const e::slice& decoded);
+        virtual char* encode(const e::slice& decoded, char* encoded);
+        virtual size_t decoded_size(const e::slice& encoded);
+        virtual char* decode(const e::slice& encoded, char* decoded);
+};
 
 } // namespace hyperdex
 
-#endif // hyperdex_daemon_indexing_h_
+#endif // hyperdex_daemon_index_int64_h_

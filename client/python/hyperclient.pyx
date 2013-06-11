@@ -84,6 +84,7 @@ cdef extern from "../../hyperdex.h":
         HYPERPREDICATE_GREATER_EQUAL = 9731
         HYPERPREDICATE_REGEX         = 9733
         HYPERPREDICATE_LENGTH_LESS_EQUAL    = 9735
+        HYPERPREDICATE_CONTAINS      = 9737
 
 cdef extern from "../hyperclient.h":
 
@@ -1319,6 +1320,14 @@ cdef class Range(Predicate):
             raise AttributeError("Range search bounds must be of like types")
         Predicate.__init__(self, [(HYPERPREDICATE_GREATER_EQUAL, lower),
                                   (HYPERPREDICATE_LESS_EQUAL, upper)])
+
+
+cdef class Contains(Predicate):
+
+    def __init__(self, elem):
+        if type(elem) not in (bytes, int, long, float):
+            raise AttributeError("Contains must be a byte, int, or float")
+        Predicate.__init__(self, [(HYPERPREDICATE_CONTAINS, elem)])
 
 
 cdef class LessEqual(Predicate):

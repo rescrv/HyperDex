@@ -35,8 +35,9 @@
 #include <replicant.h>
 
 // HyperDex
-#include "client/hyperclient.h"
 #include "common/configuration.h"
+#include "client/hyperclient.h"
+#include "client/hyperspace_builder.h"
 
 namespace hyperdex
 {
@@ -48,7 +49,7 @@ class coordinator_link
         ~coordinator_link() throw ();
 
     public:
-        hyperclient_returncode add_space(const char* description);
+        hyperclient_returncode add_space(hyperspace* space);
         hyperclient_returncode rm_space(const char* space);
         hyperclient_returncode initialize_cluster(uint64_t cluster, const char* path);
         hyperclient_returncode show_config(std::ostream& out);

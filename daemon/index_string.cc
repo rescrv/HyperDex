@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,66 +25,52 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#define __STDC_LIMIT_MACROS
-
-// C
-#include <cassert>
-#include <cmath>
-#include <cstdlib>
-
-// Linux
-#ifdef __APPLE__
-#include <osx/ieee754.h>
-#else
-#include <ieee754.h>
-#endif
-
-// C++
-#include <iostream>
-
 // e
 #include <e/endian.h>
 
 // HyperDex
-#include "common/float_encode.h"
-#include "daemon/index_encode.h"
+#include "daemon/datalayer_encodings.h"
+#include "daemon/index_string.h"
 
-// We flip the sign bit and shift appropriately to make sure that INT64_MIN
-// corresponds to 0 and INT64_MAX corresponds to UINT64_MAX.
-char*
-hyperdex :: index_encode_int64(int64_t in, char* ptr)
+using hyperdex::datalayer;
+using hyperdex::index_string;
+
+index_string :: index_string()
 {
-    uint64_t out = static_cast<uint64_t>(in);
-    out += in >= 0 ? 0x8000000000000000ULL : INT64_MIN;
-    return e::pack64be(out, ptr);
+}
+
+index_string :: ~index_string() throw ()
+{
+}
+
+bool
+index_string :: encoding_fixed()
+{
+    return false;
+}
+
+size_t
+index_string :: encoded_size(const e::slice& decoded)
+{
+    return decoded.size();
 }
 
 char*
-hyperdex :: index_encode_double(double x, char* ptr)
+index_string :: encode(const e::slice& decoded, char* encoded)
 {
-    return e::pack64be(float_encode(x), ptr);
+    memmove(encoded, decoded.data(), decoded.size());
+    return encoded + decoded.size();
 }
 
-void
-hyperdex :: index_encode_bump(char* _ptr, char* _end)
+size_t
+index_string :: decoded_size(const e::slice& encoded)
 {
-    assert(_ptr);
-    assert(_ptr < _end);
-    uint8_t* ptr = reinterpret_cast<uint8_t*>(_end) - 1;
-    uint8_t* end = reinterpret_cast<uint8_t*>(_ptr);
+    return encoded.size();
+}
 
-    for (; ptr >= end; --ptr)
-    {
-        if (*ptr < 255)
-        {
-            ++(*ptr);
-            return;
-        }
-        else
-        {
-            *ptr = 0;
-        }
-    }
-
-    abort();
+char*
+index_string :: decode(const e::slice& encoded, char* decoded)
+{
+    memmove(decoded, encoded.data(), encoded.size());
+    return decoded + encoded.size();
 }

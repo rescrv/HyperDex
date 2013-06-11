@@ -196,6 +196,12 @@ datatype_set :: apply(const e::slice& old_value,
 }
 
 bool
+datatype_set :: indexable()
+{
+    return m_elem->indexable();
+}
+
+bool
 datatype_set :: has_length()
 {
     return true;

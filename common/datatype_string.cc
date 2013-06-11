@@ -28,6 +28,9 @@
 // C
 #include <cstdlib>
 
+// Google CityHash
+#include <city.h>
+
 // e
 #include <e/endian.h>
 
@@ -123,6 +126,24 @@ datatype_string :: apply(const e::slice& old_value,
     }
 
     return ptr + sz;
+}
+
+bool
+datatype_string :: hashable()
+{
+    return true;
+}
+
+uint64_t
+datatype_string :: hash(const e::slice& value)
+{
+    return CityHash64(reinterpret_cast<const char*>(value.data()), value.size());
+}
+
+bool
+datatype_string :: indexable()
+{
+    return true;
 }
 
 bool

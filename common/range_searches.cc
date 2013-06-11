@@ -38,6 +38,13 @@ using hyperdex::attribute_check;
 using hyperdex::datatype_info;
 using hyperdex::range;
 
+// the caller of this function is safe to assume that only checks with
+//  * HYPERPREDICATE_EQUAL
+//  * HYPERPREDICATE_LESS_EQUAL
+//  * HYPERPREDICATE_GREATER_EQUAL
+// will be used to construct the returned ranges.  If you break this assumption,
+// you will need to look at the way indices are picked in the data layer and the
+// way ranges are picked for hyperspace hashing.
 static bool
 range_search(const attribute_check& check, range* r)
 {
@@ -136,7 +143,7 @@ compress_ranges(const range* range_ptr, const range* range_end, range* r)
     return true;
 }
 
-bool
+void
 hyperdex :: range_searches(const std::vector<attribute_check>& checks,
                            std::vector<range>* ranges)
 {
@@ -180,5 +187,5 @@ hyperdex :: range_searches(const std::vector<attribute_check>& checks,
         range_ptr = tmp;
     }
 
-    return true;
+    assert(ranges->size() <= checks.size());
 }

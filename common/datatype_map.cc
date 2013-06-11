@@ -237,6 +237,12 @@ datatype_map :: apply_inner(map_t* m,
 }
 
 bool
+datatype_map :: indexable()
+{
+    return m_k->indexable();
+}
+
+bool
 datatype_map :: has_length()
 {
     return true;

@@ -90,6 +90,10 @@ class configuration
         // to rhs and rhs sends CHAIN_ACK to lhs
         bool subspace_adjacent(const virtual_server_id& lhs, const virtual_server_id& rhs) const;
 
+    // indices
+    public:
+        const std::vector<uint16_t>& get_indices(const region_id& ri) const;
+
     // captures
     public:
         void captures(std::vector<capture>* captures) const;

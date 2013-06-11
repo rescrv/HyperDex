@@ -29,26 +29,37 @@
 
 /* C */
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 /* HyperDex */
-#include "hyperdex.h"
-#include "client/parse_space_aux.h"
+#include "client/hyperspace_builder.h"
+#include "client/hyperspace_builder_internal.h"
 
-void yyerror(char* s);
+typedef struct YYLTYPE
+{
+  int first_line;
+  int first_column;
+  int last_line;
+  int last_column;
+} YYLTYPE;
+#define YYLTYPE_IS_DECLARED 1
+#define YYLTYPE_IS_TRIVIAL 1
+
+struct hyperspace;
+
+extern struct yy_buffer_state*
+yy_scan_string(const char *bytes, void* yyscanner);
+extern void
+yyerror(YYLTYPE* yylloc, struct hyperspace* space, void* scanner, char* msg);
+
 %}
 
-%union {
-    char* str;
-    uint64_t num;
-    struct hyperparse_space* space;
-    struct hyperparse_attribute* attr;
-    struct hyperparse_attribute_list* attrs;
-    struct hyperparse_subspace* subspace;
-    struct hyperparse_subspace_list* subspaces;
-    struct hyperparse_identifier_list* identifiers;
-    enum hyperdatatype type;
-}
+%locations
+%pure-parser
+%lex-param {void* scanner}
+%parse-param {struct hyperspace* space}
+%parse-param {void* scanner}
 
 %token SPACE
 %token KEY
@@ -58,80 +69,104 @@ void yyerror(char* s);
 %token CREATE
 %token PARTITIONS
 %token SUBSPACE
-%token COLON
-%token COMMA
-%token OP
-%token CP
+%token PINDEX
+%token SINDEX
+
+%token <str> IDENTIFIER
+%token <num> NUMBER
 %token STRING
 %token INT64
 %token FLOAT
 %token LIST
 %token SET
 %token MAP
-%token <str> IDENTIFIER
-%token <num> NUMBER
 
-%type <space> space
-%type <attrs> attribute_list
-%type <attr> attribute
 %type <type> type
-%type <num> fault_tolerance
-%type <num> partitions
-%type <subspaces> subspace_list
-%type <subspace> subspace
-%type <identifiers> identifier_list;
+%type <attr> attribute
+%type <ret> attribute_list
+%type <str> pindex
+%type <str> sindex
+
+%union
+{
+    char* str;
+    uint64_t num;
+    enum hyperdatatype type;
+    enum hyperspace_returncode ret;
+    struct
+    {
+        char* name;
+        enum hyperdatatype type;
+    } attr;
+}
 
 %%
 
-space : SPACE IDENTIFIER KEY attribute ATTRIBUTES attribute_list
-        subspace_list partitions fault_tolerance
-        { hyperparsed_space = hyperparse_create_space($2, $4, $6, $9, $8, $7); }
-      | SPACE IDENTIFIER KEY attribute partitions fault_tolerance
-        { hyperparsed_space = hyperparse_create_space($2, $4, NULL, $6, $5, NULL); };
+space : SPACE name key ATTRIBUTES attribute_list pindices subspaces options
 
-fault_tolerance :                          { $$ = 2; }
-                | TOLERATE NUMBER FAILURES { $$ = $2; };
+name : IDENTIFIER { hyperspace_set_name(space, $1); free($1); }
 
-partitions :                          { $$ = 256; }
-           | CREATE NUMBER PARTITIONS { $$ = $2; };
+key : KEY attribute { hyperspace_set_key(space, $2.name, $2.type); free($2.name); }
 
-subspace_list :                                 { $$ = NULL; }
-              | subspace_list SUBSPACE subspace { $$ = hyperparse_create_subspace_list($3, $1); };
+attribute_list : attribute                    { hyperspace_add_attribute(space, $1.name, $1.type); free($1.name); }
+               | attribute_list ',' attribute { hyperspace_add_attribute(space, $3.name, $3.type); free($3.name); }
 
-subspace : identifier_list { $$ = hyperparse_create_subspace($1); } /*XXX*/
+attribute : IDENTIFIER      { $$.name = $1; $$.type = HYPERDATATYPE_STRING; }
+          | type IDENTIFIER { $$.name = $2; $$.type = $1; }
 
-attribute_list : attribute                      { $$ = hyperparse_create_attribute_list($1, NULL); }
-               | attribute_list COMMA attribute   { $$ = hyperparse_create_attribute_list($3, $1); };
+pindices :
+         | PINDEX pindex
 
-attribute : IDENTIFIER { $$ = hyperparse_create_attribute($1, HYPERDATATYPE_STRING); }
-          | type IDENTIFIER { $$ = hyperparse_create_attribute($2, $1); };
+pindex : IDENTIFIER            { hyperspace_primary_index(space, $1); free($1); }
+       | pindex ',' IDENTIFIER { hyperspace_primary_index(space, $3); free($3); }
 
-identifier_list : IDENTIFIER                        { $$ = hyperparse_create_identifier_list($1, NULL); }
-                | identifier_list COMMA IDENTIFIER    { $$ = hyperparse_create_identifier_list($3, $1); };
+subspaces :
+          | subspaces subspace
+
+subspace : SUBSPACE sattrs sindices
+
+sattrs : IDENTIFIER            { hyperspace_add_subspace(space); hyperspace_add_subspace_attribute(space, $1); free($1); }
+       | sattrs ',' IDENTIFIER { hyperspace_add_subspace_attribute(space, $3); free($3); }
+
+sindices :
+         | SINDEX sindex
+
+sindex : IDENTIFIER            { hyperspace_add_secondary_index(space, $1); free($1); }
+       | sindex ',' IDENTIFIER { hyperspace_add_secondary_index(space, $3); free($3); }
+
+options :                { }
+        | options option { }
+
+option : TOLERATE NUMBER FAILURES { hyperspace_set_fault_tolerance(space, $2); }
+       | CREATE NUMBER PARTITIONS { hyperspace_set_number_of_partitions(space, $2); }
 
 type : STRING                        { $$ = HYPERDATATYPE_STRING; }
      | INT64                         { $$ = HYPERDATATYPE_INT64; }
      | FLOAT                         { $$ = HYPERDATATYPE_FLOAT; }
-     | LIST OP STRING CP             { $$ = HYPERDATATYPE_LIST_STRING; }
-     | LIST OP INT64 CP              { $$ = HYPERDATATYPE_LIST_INT64; }
-     | LIST OP FLOAT CP              { $$ = HYPERDATATYPE_LIST_FLOAT; }
-     | SET OP STRING CP              { $$ = HYPERDATATYPE_SET_STRING; }
-     | SET OP INT64 CP               { $$ = HYPERDATATYPE_SET_INT64; }
-     | SET OP FLOAT CP               { $$ = HYPERDATATYPE_SET_FLOAT; }
-     | MAP OP STRING COMMA STRING CP { $$ = HYPERDATATYPE_MAP_STRING_STRING; }
-     | MAP OP STRING COMMA INT64 CP  { $$ = HYPERDATATYPE_MAP_STRING_INT64; }
-     | MAP OP STRING COMMA FLOAT CP  { $$ = HYPERDATATYPE_MAP_STRING_FLOAT; }
-     | MAP OP INT64 COMMA STRING CP  { $$ = HYPERDATATYPE_MAP_INT64_STRING; }
-     | MAP OP INT64 COMMA INT64 CP   { $$ = HYPERDATATYPE_MAP_INT64_INT64; }
-     | MAP OP INT64 COMMA FLOAT CP   { $$ = HYPERDATATYPE_MAP_INT64_FLOAT; }
-     | MAP OP FLOAT COMMA STRING CP  { $$ = HYPERDATATYPE_MAP_FLOAT_STRING; }
-     | MAP OP FLOAT COMMA INT64 CP   { $$ = HYPERDATATYPE_MAP_FLOAT_INT64; }
-     | MAP OP FLOAT COMMA FLOAT CP   { $$ = HYPERDATATYPE_MAP_FLOAT_FLOAT; };
+     | LIST '(' STRING ')'           { $$ = HYPERDATATYPE_LIST_STRING; }
+     | LIST '(' INT64 ')'            { $$ = HYPERDATATYPE_LIST_INT64; }
+     | LIST '(' FLOAT ')'            { $$ = HYPERDATATYPE_LIST_FLOAT; }
+     | SET '(' STRING ')'            { $$ = HYPERDATATYPE_SET_STRING; }
+     | SET '(' INT64 ')'             { $$ = HYPERDATATYPE_SET_INT64; }
+     | SET '(' FLOAT ')'             { $$ = HYPERDATATYPE_SET_FLOAT; }
+     | MAP '(' STRING ',' STRING ')' { $$ = HYPERDATATYPE_MAP_STRING_STRING; }
+     | MAP '(' STRING ',' INT64 ')'  { $$ = HYPERDATATYPE_MAP_STRING_INT64; }
+     | MAP '(' STRING ',' FLOAT ')'  { $$ = HYPERDATATYPE_MAP_STRING_FLOAT; }
+     | MAP '(' INT64 ',' STRING ')'  { $$ = HYPERDATATYPE_MAP_INT64_STRING; }
+     | MAP '(' INT64 ',' INT64 ')'   { $$ = HYPERDATATYPE_MAP_INT64_INT64; }
+     | MAP '(' INT64 ',' FLOAT ')'   { $$ = HYPERDATATYPE_MAP_INT64_FLOAT; }
+     | MAP '(' FLOAT ',' STRING ')'  { $$ = HYPERDATATYPE_MAP_FLOAT_STRING; }
+     | MAP '(' FLOAT ',' INT64 ')'   { $$ = HYPERDATATYPE_MAP_FLOAT_INT64; }
+     | MAP '(' FLOAT ',' FLOAT ')'   { $$ = HYPERDATATYPE_MAP_FLOAT_FLOAT; };
 
 %%
 
 void
-yyerror(char* s)
+yyerror(YYLTYPE* yylloc, struct hyperspace* space, void* scanner, char* msg)
 {
-    hyperparsed_error = 1;
+    char* buffer = hyperspace_buffer(space);
+    size_t buffer_sz = hyperspace_buffer_sz(space);
+    snprintf(buffer, buffer_sz, "%s at line %d column %d", msg, yylloc->first_line, yylloc->first_column);
+    buffer[buffer_sz - 1] = '\0';
+    hyperspace_set_error(space, buffer);
 }

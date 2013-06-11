@@ -36,6 +36,7 @@
 
 // HyperDex
 #include "common/datatype_int64.h"
+#include "common/ordered_encoding.h"
 
 using hyperdex::datatype_info;
 using hyperdex::datatype_int64;
@@ -155,6 +156,32 @@ datatype_int64 :: apply(const e::slice& old_value,
     }
 
     return e::pack64le(number, writeto);
+}
+
+bool
+datatype_int64 :: hashable()
+{
+    return true;
+}
+
+uint64_t
+datatype_int64 :: hash(const e::slice& value)
+{
+    assert(validate(value));
+    int64_t number = 0;
+
+    if (value.size() == sizeof(int64_t))
+    {
+        e::unpack64le(value.data(), &number);
+    }
+
+    return ordered_encode_int64(number);
+}
+
+bool
+datatype_int64 :: indexable()
+{
+    return true;
 }
 
 bool

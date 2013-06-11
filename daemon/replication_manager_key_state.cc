@@ -180,7 +180,6 @@ replication_manager :: key_state :: initialize(datalayer* data,
             break;
         case datalayer::NOT_FOUND:
         case datalayer::BAD_ENCODING:
-        case datalayer::BAD_SEARCH:
         case datalayer::CORRUPTION:
         case datalayer::IO_ERROR:
         case datalayer::LEVELDB_ERROR:
@@ -336,7 +335,6 @@ replication_manager :: key_state :: persist_to_datalayer(replication_manager* rm
                 break;
             case datalayer::NOT_FOUND:
             case datalayer::BAD_ENCODING:
-            case datalayer::BAD_SEARCH:
             case datalayer::CORRUPTION:
             case datalayer::IO_ERROR:
             case datalayer::LEVELDB_ERROR:

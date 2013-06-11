@@ -491,7 +491,6 @@ daemon :: process_req_get(server_id from,
             result = NET_NOTFOUND;
             break;
         case datalayer::BAD_ENCODING:
-        case datalayer::BAD_SEARCH:
         case datalayer::CORRUPTION:
         case datalayer::IO_ERROR:
         case datalayer::LEVELDB_ERROR:
