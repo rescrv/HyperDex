@@ -33,10 +33,10 @@
 #include <vector>
 
 // HyperDex
+#include "namespace.h"
 #include "client/pending.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class pending_aggregation : public pending
 {
@@ -81,6 +81,6 @@ class pending_aggregation : public pending
         std::vector<std::pair<server_id, virtual_server_id> > m_outstanding;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_client_pending_aggregation_h_

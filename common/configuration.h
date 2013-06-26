@@ -39,6 +39,7 @@
 #include <e/slice.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/attribute.h"
 #include "common/attribute_check.h"
 #include "common/capture.h"
@@ -47,8 +48,7 @@
 #include "common/schema.h"
 #include "common/transfer.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class configuration
 {
@@ -161,6 +161,6 @@ operator >> (e::unpacker, configuration& c);
 size_t
 pack_size(const configuration&);
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_configuration_h_

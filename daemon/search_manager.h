@@ -33,14 +33,13 @@
 #include <e/lockfree_hash_map.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/ids.h"
 #include "common/network_msgtype.h"
 #include "daemon/datalayer.h"
 #include "daemon/reconfigure_returncode.h"
 
-namespace hyperdex
-{
-// Forward declarations
+BEGIN_HYPERDEX_NAMESPACE
 class daemon;
 
 class search_manager
@@ -109,6 +108,6 @@ class search_manager
         e::lockfree_hash_map<id, e::intrusive_ptr<state>, hash> m_searches;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_daemon_search_manager_h_

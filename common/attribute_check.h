@@ -32,11 +32,11 @@
 #include <e/slice.h>
 
 // HyperDex
+#include "namespace.h"
 #include "hyperdex.h"
 #include "common/schema.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class attribute_check
 {
@@ -74,6 +74,6 @@ bool
 operator < (const attribute_check& lhs,
             const attribute_check& rhs);
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_attribute_check_h_

@@ -29,13 +29,13 @@
 #define hyperdex_common_datatype_list_h_
 
 // HyperDex
+#include "namespace.h"
 #include "common/datatypes.h"
 #include "common/datatype_string.h"
 #include "common/datatype_int64.h"
 #include "common/datatype_float.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class datatype_list : public datatype_info
 {
@@ -69,6 +69,6 @@ class datatype_list : public datatype_info
         datatype_info* m_elem;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_datatype_list_h_

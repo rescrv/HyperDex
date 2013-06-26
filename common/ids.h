@@ -37,6 +37,9 @@
 // e
 #include <e/buffer.h>
 
+// HyperDex
+#include "namespace.h"
+
 // An ID is a simple wrapper around uint64_t in order to prevent devs from
 // accidently using one type of ID as another.
 
@@ -82,8 +85,7 @@
     OPERATOR(TYPE, >=) \
     OPERATOR(TYPE, >)
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 CREATE_ID(capture)
 CREATE_ID(region)
@@ -93,7 +95,7 @@ CREATE_ID(subspace)
 CREATE_ID(transfer)
 CREATE_ID(virtual_server)
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #undef OPERATOR
 #undef CREATE_ID

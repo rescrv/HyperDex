@@ -35,41 +35,44 @@
 #include <replicant.h>
 
 // HyperDex
+#include "namespace.h"
+#include "visibility.h"
 #include "common/configuration.h"
 #include "client/hyperclient.h"
 #include "client/hyperspace_builder.h"
 
+// XXX hide this class
 namespace hyperdex
 {
 
-class coordinator_link
+class HYPERDEX_API coordinator_link
 {
     public:
-        coordinator_link(const po6::net::hostname& coord);
-        ~coordinator_link() throw ();
+        HYPERDEX_API coordinator_link(const po6::net::hostname& coord);
+        HYPERDEX_API ~coordinator_link() throw ();
 
     public:
-        hyperclient_returncode add_space(hyperspace* space);
-        hyperclient_returncode rm_space(const char* space);
-        hyperclient_returncode initialize_cluster(uint64_t cluster, const char* path);
-        hyperclient_returncode show_config(std::ostream& out);
-        hyperclient_returncode kill(uint64_t server_id);
-        hyperclient_returncode initiate_transfer(uint64_t region_id, uint64_t server_id);
+        HYPERDEX_API hyperclient_returncode add_space(hyperspace* space);
+        HYPERDEX_API hyperclient_returncode rm_space(const char* space);
+        HYPERDEX_API hyperclient_returncode initialize_cluster(uint64_t cluster, const char* path);
+        HYPERDEX_API hyperclient_returncode show_config(std::ostream& out);
+        HYPERDEX_API hyperclient_returncode kill(uint64_t server_id);
+        HYPERDEX_API hyperclient_returncode initiate_transfer(uint64_t region_id, uint64_t server_id);
 
     public:
-        const configuration& config();
-        bool wait_for_config(hyperclient_returncode* status);
-        bool poll_for_config(hyperclient_returncode* status);
+        HYPERDEX_API const configuration& config();
+        HYPERDEX_API bool wait_for_config(hyperclient_returncode* status);
+        HYPERDEX_API bool poll_for_config(hyperclient_returncode* status);
 #ifdef _MSC_VER
         fd_set* poll_fd();
 #else
         int poll_fd();
 #endif
-        bool make_rpc(const char* func,
+        HYPERDEX_API bool make_rpc(const char* func,
                       const char* data, size_t data_sz,
                       hyperclient_returncode* status,
                       const char** output, size_t* output_sz);
-        replicant_client* replicant() { return &m_repl; }
+        HYPERDEX_API replicant_client* replicant() { return &m_repl; }
 
     private:
         bool initiate_wait_for_config(hyperclient_returncode* status);
@@ -91,6 +94,6 @@ class coordinator_link
         size_t m_get_config_output_sz;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_client_coordinator_link_h_

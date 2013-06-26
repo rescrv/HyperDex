@@ -29,11 +29,11 @@
 #define hyperdex_daemon_index_list_h_
 
 // HyperDex
+#include "namespace.h"
 #include "common/datatypes.h"
 #include "daemon/index_container.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class index_list : public index_container
 {
@@ -51,6 +51,6 @@ class index_list : public index_container
         hyperdatatype m_datatype;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_daemon_index_list_h_

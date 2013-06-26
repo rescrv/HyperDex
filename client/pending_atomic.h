@@ -29,10 +29,10 @@
 #define hyperdex_client_pending_atomic_h_
 
 // HyperDex
+#include "namespace.h"
 #include "client/pending.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class pending_atomic : public pending
 {
@@ -64,6 +64,6 @@ class pending_atomic : public pending
         enum { INITIALIZED, SENT, RECV, YIELDED } m_state;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_client_pending_atomic_h_

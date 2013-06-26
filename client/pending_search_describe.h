@@ -29,10 +29,10 @@
 #define hyperdex_client_pending_search_describe_h_
 
 // HyperDex
+#include "namespace.h"
 #include "client/pending_aggregation.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class pending_search_describe : public pending_aggregation
 {
@@ -78,6 +78,6 @@ class pending_search_describe : public pending_aggregation
         std::vector<std::pair<hyperdex::virtual_server_id, std::string> > m_msgs;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_client_pending_search_describe_h_

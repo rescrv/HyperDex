@@ -31,8 +31,10 @@
 // C++
 #include <iostream>
 
-namespace hyperdex
-{
+// HyperDex
+#include "namespace.h"
+
+BEGIN_HYPERDEX_NAMESPACE
 
 enum network_msgtype
 {
@@ -75,6 +77,6 @@ enum network_msgtype
 std::ostream&
 operator << (std::ostream& lhs, const network_msgtype& rhs);
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_network_msgtype_h_

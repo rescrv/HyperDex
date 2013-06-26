@@ -40,6 +40,7 @@
 #include <e/lockfree_fifo.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/ids.h"
 #include "common/mapper.h"
 #include "common/network_msgtype.h"
@@ -61,8 +62,7 @@
                                  + sizeof(uint64_t) /*virt from*/)
 #define HYPERDEX_HEADER_SIZE_VS HYPERDEX_HEADER_SIZE_VV
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 class daemon;
 
 class communication
@@ -129,6 +129,6 @@ class communication
         e::lockfree_fifo<early_message> m_early_messages;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_daemon_communication_h_

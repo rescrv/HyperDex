@@ -39,11 +39,11 @@
 #include <e/slice.h>
 
 // HyperDex
+#include "namespace.h"
 #include "hyperdex.h"
 #include "common/schema.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 enum funcall_t
 {
@@ -108,6 +108,6 @@ apply_funcs(const schema& sc,
 bool
 operator < (const funcall& lhs, const funcall& rhs);
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_funcall_h_

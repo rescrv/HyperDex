@@ -35,7 +35,8 @@
 // LevelDB
 #include <hyperleveldb/db.h>
 
-using std::tr1::placeholders::_1;
+// HyperDex
+#include "namespace.h"
 
 // Wrappers for leveldb's objects that we use off-the-stack.
 //
@@ -47,8 +48,9 @@ using std::tr1::placeholders::_1;
 // Solution:  wrap each persistent object (iterator, snapshot, db) in a smart
 //      pointer that also refers to all its dependencies.
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
+
+using std::tr1::placeholders::_1;
 
 typedef std::tr1::shared_ptr<leveldb::DB> leveldb_db_ptr;
 
@@ -117,6 +119,6 @@ class leveldb_iterator_ptr
         std::tr1::shared_ptr<leveldb::Iterator> m_iter;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_daemon_leveldb_h_

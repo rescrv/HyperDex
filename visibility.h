@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,54 +25,10 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_common_transfer_h_
-#define hyperdex_common_transfer_h_
+#ifndef hyperdex_visibility_h_
+#define hyperdex_visibility_h_
 
-// e
-#include <e/buffer.h>
+#define HYPERDEX_API __attribute__ ((visibility ("default")))
+#define HYPERDEX_LOCAL  __attribute__ ((visibility ("hidden")))
 
-// HyperDex
-#include "namespace.h"
-#include "common/ids.h"
-
-BEGIN_HYPERDEX_NAMESPACE
-
-class transfer
-{
-    public:
-        transfer();
-        transfer(const transfer_id& id,
-                 const region_id& rid,
-                 const server_id& src,
-                 const virtual_server_id& vsrc,
-                 const server_id& dst,
-                 const virtual_server_id& vdst);
-        transfer(const transfer&);
-        ~transfer() throw ();
-
-    public:
-        transfer& operator = (const transfer&);
-        bool operator < (const transfer&) const;
-
-    public:
-        transfer_id id;
-        region_id rid;
-        server_id src;
-        virtual_server_id vsrc;
-        server_id dst;
-        virtual_server_id vdst;
-};
-
-std::ostream&
-operator << (std::ostream& lhs, const transfer& rhs);
-
-e::buffer::packer
-operator << (e::buffer::packer, const transfer& t);
-e::unpacker
-operator >> (e::unpacker, transfer& t);
-size_t
-pack_size(const transfer& t);
-
-END_HYPERDEX_NAMESPACE
-
-#endif // hyperdex_common_transfer_h_
+#endif // hyperdex_visibility_h_

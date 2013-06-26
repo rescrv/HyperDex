@@ -29,14 +29,14 @@
 #define hyperdex_client_partitioner_h_
 
 // HyperDex
+#include "namespace.h"
 #include "common/hyperspace.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 void
 partition(uint16_t num_attrs, uint32_t num_servers, std::vector<region>* regions);
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_client_partitioner_h_

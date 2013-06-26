@@ -29,10 +29,10 @@
 #define hyperdex_daemon_index_container_h_
 
 // HyperDex
+#include "namespace.h"
 #include "daemon/index_info.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class index_container : public index_info
 {
@@ -67,6 +67,6 @@ class index_container : public index_info
         virtual index_info* element_index_info() = 0;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_daemon_index_container_h_

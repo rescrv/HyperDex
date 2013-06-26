@@ -29,12 +29,12 @@
 #define hyperdex_client_util_h_
 
 // HyperDex
+#include "namespace.h"
 #include "common/configuration.h"
 #include "common/ids.h"
 #include "client/hyperclient.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 // Convert the key and value vector returned by entity to an array of
 // hyperclient_attribute using the given configuration.
@@ -49,6 +49,6 @@ value_to_attributes(const configuration& config,
                     hyperclient_attribute** attrs,
                     size_t* attrs_sz);
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_client_util_h_

@@ -42,6 +42,7 @@
 #include <replicant.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/ids.h"
 #include "daemon/communication.h"
 #include "daemon/coordinator_link.h"
@@ -50,8 +51,7 @@
 #include "daemon/search_manager.h"
 #include "daemon/state_transfer_manager.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class daemon
 {
@@ -106,6 +106,6 @@ class daemon
         configuration m_config;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_daemon_daemon_h_

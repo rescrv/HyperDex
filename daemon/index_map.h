@@ -29,11 +29,11 @@
 #define hyperdex_daemon_index_map_h_
 
 // HyperDex
+#include "namespace.h"
 #include "common/datatypes.h"
 #include "daemon/index_container.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class index_map : public index_container
 {
@@ -53,6 +53,6 @@ class index_map : public index_container
         hyperdatatype m_val_datatype;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_daemon_index_map_h_

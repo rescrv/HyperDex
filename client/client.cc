@@ -35,6 +35,7 @@
 #include <busybee_utils.h>
 
 // HyperDex
+#include "visibility.h"
 #include "common/attribute_check.h"
 #include "common/datatypes.h"
 #include "common/funcall.h"
@@ -830,7 +831,7 @@ client :: handle_disruption(const server_id& si)
     m_busybee.drop(si.get());
 }
 
-std::ostream&
+HYPERDEX_API std::ostream&
 operator << (std::ostream& lhs, hyperclient_returncode rhs)
 {
     switch (rhs)

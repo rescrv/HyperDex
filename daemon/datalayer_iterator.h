@@ -32,11 +32,11 @@
 #include <e/intrusive_ptr.h>
 
 // HyperDex
+#include "namespace.h"
 #include "daemon/datalayer.h"
 #include "daemon/index_info.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class datalayer::iterator
 {
@@ -185,6 +185,6 @@ operator << (std::ostream& lhs, const datalayer::iterator& rhs)
     return rhs.describe(lhs);
 }
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_daemon_datalayer_iterator_h_

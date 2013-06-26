@@ -35,13 +35,13 @@
 #include <e/intrusive_ptr.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/configuration.h"
 #include "common/ids.h"
 #include "common/network_msgtype.h"
 #include "client/hyperclient.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 class client;
 
 class pending
@@ -92,6 +92,6 @@ class pending
         hyperclient_returncode* m_status;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_client_pending_h_

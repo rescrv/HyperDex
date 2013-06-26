@@ -29,10 +29,10 @@
 #define hyperdex_client_pending_get_h_
 
 // HyperDex
+#include "namespace.h"
 #include "client/pending.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class pending_get : public pending
 {
@@ -72,6 +72,6 @@ class pending_get : public pending
         size_t* m_attrs_sz;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_client_pending_get_h_

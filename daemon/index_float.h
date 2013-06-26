@@ -29,10 +29,10 @@
 #define hyperdex_daemon_index_float_h_
 
 // HyperDex
+#include "namespace.h"
 #include "daemon/index_primitive.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class index_float : public index_primitive
 {
@@ -48,6 +48,6 @@ class index_float : public index_primitive
         virtual char* decode(const e::slice& encoded, char* decoded);
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_daemon_index_float_h_

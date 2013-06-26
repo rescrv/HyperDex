@@ -35,10 +35,10 @@
 #include <e/array_ptr.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/datatypes.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class datatype_map : public datatype_info
 {
@@ -81,6 +81,6 @@ class datatype_map : public datatype_info
         datatype_info* m_v;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_datatype_map_h_

@@ -32,10 +32,10 @@
 #include <vector>
 
 // HyperDex
+#include "namespace.h"
 #include "common/ids.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class missing_acks
 {
@@ -106,6 +106,6 @@ operator < (const missing_acks& lhs, const missing_acks& rhs)
     return lhs.version() < rhs.version();
 }
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_coordinator_missing_acks_h_

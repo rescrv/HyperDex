@@ -28,6 +28,7 @@
 // GENERATED!  Do not modify this file directly
 
 // HyperDex
+#include "visibility.h"
 #include "common/macros.h"
 #include "client/client.h"
 #include "client/hyperclient.h"
@@ -60,7 +61,7 @@ extern "C"
 {
 #endif // __cplusplus
 
-struct hyperclient*
+HYPERDEX_API struct hyperclient*
 hyperclient_create(const char* coordinator, uint16_t port)
 {
     try
@@ -83,19 +84,19 @@ hyperclient_create(const char* coordinator, uint16_t port)
     }
 }
 
-void
+HYPERDEX_API void
 hyperclient_destroy(struct hyperclient* client)
 {
     delete reinterpret_cast<hyperdex::client*>(client);
 }
 
-void
+HYPERDEX_API void
 hyperclient_destroy_attrs(struct hyperclient_attribute* attrs, size_t /*attrs_sz*/)
 {
     free(attrs);
 }
 
-enum hyperclient_returncode
+HYPERDEX_API enum hyperclient_returncode
 hyperclient_add_space(struct hyperclient* _cl,
                       const char* str)
 {
@@ -120,7 +121,7 @@ hyperclient_add_space(struct hyperclient* _cl,
     }
 }
 
-enum hyperclient_returncode
+HYPERDEX_API enum hyperclient_returncode
 hyperclient_rm_space(struct hyperclient* _cl,
                      const char* str)
 {
@@ -145,7 +146,7 @@ hyperclient_rm_space(struct hyperclient* _cl,
     }
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_get(struct hyperclient* _cl,
                 const char* space,
                 const char* key, size_t key_sz,
@@ -158,7 +159,7 @@ hyperclient_get(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_put(struct hyperclient* _cl,
                 const char* space,
                 const char* key, size_t key_sz,
@@ -173,7 +174,7 @@ hyperclient_put(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_put(struct hyperclient* _cl,
                      const char* space,
                      const char* key, size_t key_sz,
@@ -189,7 +190,7 @@ hyperclient_cond_put(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_put_if_not_exist(struct hyperclient* _cl,
                              const char* space,
                              const char* key, size_t key_sz,
@@ -204,7 +205,7 @@ hyperclient_put_if_not_exist(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_del(struct hyperclient* _cl,
                 const char* space,
                 const char* key, size_t key_sz,
@@ -218,7 +219,7 @@ hyperclient_del(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_del(struct hyperclient* _cl,
                      const char* space,
                      const char* key, size_t key_sz,
@@ -233,7 +234,7 @@ hyperclient_cond_del(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_atomic_add(struct hyperclient* _cl,
                        const char* space,
                        const char* key, size_t key_sz,
@@ -248,7 +249,7 @@ hyperclient_atomic_add(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_atomic_add(struct hyperclient* _cl,
                             const char* space,
                             const char* key, size_t key_sz,
@@ -264,7 +265,7 @@ hyperclient_cond_atomic_add(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_atomic_sub(struct hyperclient* _cl,
                        const char* space,
                        const char* key, size_t key_sz,
@@ -279,7 +280,7 @@ hyperclient_atomic_sub(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_atomic_sub(struct hyperclient* _cl,
                             const char* space,
                             const char* key, size_t key_sz,
@@ -295,7 +296,7 @@ hyperclient_cond_atomic_sub(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_atomic_mul(struct hyperclient* _cl,
                        const char* space,
                        const char* key, size_t key_sz,
@@ -310,7 +311,7 @@ hyperclient_atomic_mul(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_atomic_mul(struct hyperclient* _cl,
                             const char* space,
                             const char* key, size_t key_sz,
@@ -326,7 +327,7 @@ hyperclient_cond_atomic_mul(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_atomic_div(struct hyperclient* _cl,
                        const char* space,
                        const char* key, size_t key_sz,
@@ -341,7 +342,7 @@ hyperclient_atomic_div(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_atomic_div(struct hyperclient* _cl,
                             const char* space,
                             const char* key, size_t key_sz,
@@ -357,7 +358,7 @@ hyperclient_cond_atomic_div(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_atomic_mod(struct hyperclient* _cl,
                        const char* space,
                        const char* key, size_t key_sz,
@@ -372,7 +373,7 @@ hyperclient_atomic_mod(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_atomic_mod(struct hyperclient* _cl,
                             const char* space,
                             const char* key, size_t key_sz,
@@ -388,7 +389,7 @@ hyperclient_cond_atomic_mod(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_atomic_and(struct hyperclient* _cl,
                        const char* space,
                        const char* key, size_t key_sz,
@@ -403,7 +404,7 @@ hyperclient_atomic_and(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_atomic_and(struct hyperclient* _cl,
                             const char* space,
                             const char* key, size_t key_sz,
@@ -419,7 +420,7 @@ hyperclient_cond_atomic_and(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_atomic_or(struct hyperclient* _cl,
                       const char* space,
                       const char* key, size_t key_sz,
@@ -434,7 +435,7 @@ hyperclient_atomic_or(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_atomic_or(struct hyperclient* _cl,
                            const char* space,
                            const char* key, size_t key_sz,
@@ -450,7 +451,7 @@ hyperclient_cond_atomic_or(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_atomic_xor(struct hyperclient* _cl,
                        const char* space,
                        const char* key, size_t key_sz,
@@ -465,7 +466,7 @@ hyperclient_atomic_xor(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_atomic_xor(struct hyperclient* _cl,
                             const char* space,
                             const char* key, size_t key_sz,
@@ -481,7 +482,7 @@ hyperclient_cond_atomic_xor(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_string_prepend(struct hyperclient* _cl,
                            const char* space,
                            const char* key, size_t key_sz,
@@ -496,7 +497,7 @@ hyperclient_string_prepend(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_string_prepend(struct hyperclient* _cl,
                                 const char* space,
                                 const char* key, size_t key_sz,
@@ -512,7 +513,7 @@ hyperclient_cond_string_prepend(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_string_append(struct hyperclient* _cl,
                           const char* space,
                           const char* key, size_t key_sz,
@@ -527,7 +528,7 @@ hyperclient_string_append(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_string_append(struct hyperclient* _cl,
                                const char* space,
                                const char* key, size_t key_sz,
@@ -543,7 +544,7 @@ hyperclient_cond_string_append(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_list_lpush(struct hyperclient* _cl,
                        const char* space,
                        const char* key, size_t key_sz,
@@ -558,7 +559,7 @@ hyperclient_list_lpush(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_list_lpush(struct hyperclient* _cl,
                             const char* space,
                             const char* key, size_t key_sz,
@@ -574,7 +575,7 @@ hyperclient_cond_list_lpush(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_list_rpush(struct hyperclient* _cl,
                        const char* space,
                        const char* key, size_t key_sz,
@@ -589,7 +590,7 @@ hyperclient_list_rpush(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_list_rpush(struct hyperclient* _cl,
                             const char* space,
                             const char* key, size_t key_sz,
@@ -605,7 +606,7 @@ hyperclient_cond_list_rpush(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_set_add(struct hyperclient* _cl,
                     const char* space,
                     const char* key, size_t key_sz,
@@ -620,7 +621,7 @@ hyperclient_set_add(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_set_add(struct hyperclient* _cl,
                          const char* space,
                          const char* key, size_t key_sz,
@@ -636,7 +637,7 @@ hyperclient_cond_set_add(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_set_remove(struct hyperclient* _cl,
                        const char* space,
                        const char* key, size_t key_sz,
@@ -651,7 +652,7 @@ hyperclient_set_remove(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_set_remove(struct hyperclient* _cl,
                             const char* space,
                             const char* key, size_t key_sz,
@@ -667,7 +668,7 @@ hyperclient_cond_set_remove(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_set_intersect(struct hyperclient* _cl,
                           const char* space,
                           const char* key, size_t key_sz,
@@ -682,7 +683,7 @@ hyperclient_set_intersect(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_set_intersect(struct hyperclient* _cl,
                                const char* space,
                                const char* key, size_t key_sz,
@@ -698,7 +699,7 @@ hyperclient_cond_set_intersect(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_set_union(struct hyperclient* _cl,
                       const char* space,
                       const char* key, size_t key_sz,
@@ -713,7 +714,7 @@ hyperclient_set_union(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_set_union(struct hyperclient* _cl,
                            const char* space,
                            const char* key, size_t key_sz,
@@ -729,7 +730,7 @@ hyperclient_cond_set_union(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_map_add(struct hyperclient* _cl,
                     const char* space,
                     const char* key, size_t key_sz,
@@ -744,7 +745,7 @@ hyperclient_map_add(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_map_add(struct hyperclient* _cl,
                          const char* space,
                          const char* key, size_t key_sz,
@@ -760,7 +761,7 @@ hyperclient_cond_map_add(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_map_remove(struct hyperclient* _cl,
                        const char* space,
                        const char* key, size_t key_sz,
@@ -775,7 +776,7 @@ hyperclient_map_remove(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_map_remove(struct hyperclient* _cl,
                             const char* space,
                             const char* key, size_t key_sz,
@@ -791,7 +792,7 @@ hyperclient_cond_map_remove(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_map_atomic_add(struct hyperclient* _cl,
                            const char* space,
                            const char* key, size_t key_sz,
@@ -806,7 +807,7 @@ hyperclient_map_atomic_add(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_map_atomic_add(struct hyperclient* _cl,
                                 const char* space,
                                 const char* key, size_t key_sz,
@@ -822,7 +823,7 @@ hyperclient_cond_map_atomic_add(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_map_atomic_sub(struct hyperclient* _cl,
                            const char* space,
                            const char* key, size_t key_sz,
@@ -837,7 +838,7 @@ hyperclient_map_atomic_sub(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_map_atomic_sub(struct hyperclient* _cl,
                                 const char* space,
                                 const char* key, size_t key_sz,
@@ -853,7 +854,7 @@ hyperclient_cond_map_atomic_sub(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_map_atomic_mul(struct hyperclient* _cl,
                            const char* space,
                            const char* key, size_t key_sz,
@@ -868,7 +869,7 @@ hyperclient_map_atomic_mul(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_map_atomic_mul(struct hyperclient* _cl,
                                 const char* space,
                                 const char* key, size_t key_sz,
@@ -884,7 +885,7 @@ hyperclient_cond_map_atomic_mul(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_map_atomic_div(struct hyperclient* _cl,
                            const char* space,
                            const char* key, size_t key_sz,
@@ -899,7 +900,7 @@ hyperclient_map_atomic_div(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_map_atomic_div(struct hyperclient* _cl,
                                 const char* space,
                                 const char* key, size_t key_sz,
@@ -915,7 +916,7 @@ hyperclient_cond_map_atomic_div(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_map_atomic_mod(struct hyperclient* _cl,
                            const char* space,
                            const char* key, size_t key_sz,
@@ -930,7 +931,7 @@ hyperclient_map_atomic_mod(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_map_atomic_mod(struct hyperclient* _cl,
                                 const char* space,
                                 const char* key, size_t key_sz,
@@ -946,7 +947,7 @@ hyperclient_cond_map_atomic_mod(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_map_atomic_and(struct hyperclient* _cl,
                            const char* space,
                            const char* key, size_t key_sz,
@@ -961,7 +962,7 @@ hyperclient_map_atomic_and(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_map_atomic_and(struct hyperclient* _cl,
                                 const char* space,
                                 const char* key, size_t key_sz,
@@ -977,7 +978,7 @@ hyperclient_cond_map_atomic_and(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_map_atomic_or(struct hyperclient* _cl,
                           const char* space,
                           const char* key, size_t key_sz,
@@ -992,7 +993,7 @@ hyperclient_map_atomic_or(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_map_atomic_or(struct hyperclient* _cl,
                                const char* space,
                                const char* key, size_t key_sz,
@@ -1008,7 +1009,7 @@ hyperclient_cond_map_atomic_or(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_map_atomic_xor(struct hyperclient* _cl,
                            const char* space,
                            const char* key, size_t key_sz,
@@ -1023,7 +1024,7 @@ hyperclient_map_atomic_xor(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_map_atomic_xor(struct hyperclient* _cl,
                                 const char* space,
                                 const char* key, size_t key_sz,
@@ -1039,7 +1040,7 @@ hyperclient_cond_map_atomic_xor(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_map_string_prepend(struct hyperclient* _cl,
                                const char* space,
                                const char* key, size_t key_sz,
@@ -1054,7 +1055,7 @@ hyperclient_map_string_prepend(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_map_string_prepend(struct hyperclient* _cl,
                                     const char* space,
                                     const char* key, size_t key_sz,
@@ -1070,7 +1071,7 @@ hyperclient_cond_map_string_prepend(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_map_string_append(struct hyperclient* _cl,
                               const char* space,
                               const char* key, size_t key_sz,
@@ -1085,7 +1086,7 @@ hyperclient_map_string_append(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_cond_map_string_append(struct hyperclient* _cl,
                                    const char* space,
                                    const char* key, size_t key_sz,
@@ -1101,7 +1102,7 @@ hyperclient_cond_map_string_append(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_search(struct hyperclient* _cl,
                    const char* space,
                    const struct hyperclient_attribute_check* checks, size_t checks_sz,
@@ -1114,7 +1115,7 @@ hyperclient_search(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_search_describe(struct hyperclient* _cl,
                             const char* space,
                             const struct hyperclient_attribute_check* checks, size_t checks_sz,
@@ -1127,7 +1128,7 @@ hyperclient_search_describe(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_sorted_search(struct hyperclient* _cl,
                           const char* space,
                           const struct hyperclient_attribute_check* checks, size_t checks_sz,
@@ -1141,7 +1142,7 @@ hyperclient_sorted_search(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_group_del(struct hyperclient* _cl,
                       const char* space,
                       const struct hyperclient_attribute_check* checks, size_t checks_sz,
@@ -1153,7 +1154,7 @@ hyperclient_group_del(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_count(struct hyperclient* _cl,
                   const char* space,
                   const struct hyperclient_attribute_check* checks, size_t checks_sz,
@@ -1165,7 +1166,7 @@ hyperclient_count(struct hyperclient* _cl,
     );
 }
 
-int64_t
+HYPERDEX_API int64_t
 hyperclient_loop(struct hyperclient* client, int timeout,
                  enum hyperclient_returncode* status)
 {

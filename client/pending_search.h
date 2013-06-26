@@ -29,10 +29,10 @@
 #define hyperdex_client_pending_search_h_
 
 // HyperDex
+#include "namespace.h"
 #include "client/pending_aggregation.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class pending_search : public pending_aggregation
 {
@@ -71,6 +71,6 @@ class pending_search : public pending_aggregation
         bool m_done;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_client_pending_search_h_

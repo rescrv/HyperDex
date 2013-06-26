@@ -29,11 +29,11 @@
 #define hyperdex_client_pending_sorted_search_h_
 
 // HyperDex
+#include "namespace.h"
 #include "common/datatypes.h"
 #include "client/pending_aggregation.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class pending_sorted_search : public pending_aggregation
 {
@@ -112,6 +112,6 @@ class pending_sorted_search :: item
         friend class sorted_search_comparator;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_client_pending_sorted_search_h_

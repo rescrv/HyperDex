@@ -36,6 +36,7 @@
 #include <busybee_st.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/configuration.h"
 #include "common/mapper.h"
 #include "client/coordinator_link.h"
@@ -44,8 +45,7 @@
 #include "client/pending.h"
 #include "client/pending_aggregation.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class client
 {
@@ -167,6 +167,6 @@ class client
         e::intrusive_ptr<pending> m_yielding;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_client_client_h_

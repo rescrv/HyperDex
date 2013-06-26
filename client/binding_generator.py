@@ -134,6 +134,7 @@ def generate_c():
 // GENERATED!  Do not modify this file directly
 
 // HyperDex
+#include "visibility.h"
 #include "common/macros.h"
 #include "client/client.h"
 #include "client/hyperclient.h"
@@ -166,7 +167,7 @@ extern "C"
 {
 #endif // __cplusplus
 
-struct hyperclient*
+HYPERDEX_API struct hyperclient*
 hyperclient_create(const char* coordinator, uint16_t port)
 {
     try
@@ -189,13 +190,13 @@ hyperclient_create(const char* coordinator, uint16_t port)
     }
 }
 
-void
+HYPERDEX_API void
 hyperclient_destroy(struct hyperclient* client)
 {
     delete reinterpret_cast<hyperdex::client*>(client);
 }
 
-void
+HYPERDEX_API void
 hyperclient_destroy_attrs(struct hyperclient_attribute* attrs, size_t /*attrs_sz*/)
 {
     free(attrs);
@@ -206,7 +207,7 @@ hyperclient_destroy_attrs(struct hyperclient_attribute* attrs, size_t /*attrs_sz
            call.args == 'c-str' and \
            call.ret == 'returncode':
             fout.write('''
-enum hyperclient_returncode
+HYPERDEX_API enum hyperclient_returncode
 hyperclient_{0}(struct hyperclient* _cl,
             {1} const char* str)
 {{
@@ -234,7 +235,7 @@ hyperclient_{0}(struct hyperclient* _cl,
              call.args == ('c-str', 'key') and \
              call.ret == 'status':
             fout.write('''
-int64_t
+HYPERDEX_API int64_t
 hyperclient_{0}(struct hyperclient* _cl,
             {1} const char* space,
             {1} const char* key, size_t key_sz,
@@ -252,7 +253,7 @@ hyperclient_{0}(struct hyperclient* _cl,
              call.args == ('c-str', 'key') and \
              call.ret == 'status-object':
             fout.write('''
-int64_t
+HYPERDEX_API int64_t
 hyperclient_{0}(struct hyperclient* _cl,
             {1} const char* space,
             {1} const char* key, size_t key_sz,
@@ -268,7 +269,7 @@ hyperclient_{0}(struct hyperclient* _cl,
              call.args == ('c-str', 'key', 'checks') and \
              call.ret == 'status':
             fout.write('''
-int64_t
+HYPERDEX_API int64_t
 hyperclient_{0}(struct hyperclient* _cl,
             {1} const char* space,
             {1} const char* key, size_t key_sz,
@@ -286,7 +287,7 @@ hyperclient_{0}(struct hyperclient* _cl,
              call.args == ('c-str', 'key', 'attrs') and \
              call.ret == 'status':
             fout.write('''
-int64_t
+HYPERDEX_API int64_t
 hyperclient_{0}(struct hyperclient* _cl,
             {1} const char* space,
             {1} const char* key, size_t key_sz,
@@ -304,7 +305,7 @@ hyperclient_{0}(struct hyperclient* _cl,
              call.args == ('c-str', 'key', 'checks', 'attrs') and \
              call.ret == 'status':
             fout.write('''
-int64_t
+HYPERDEX_API int64_t
 hyperclient_{0}(struct hyperclient* _cl,
             {1} const char* space,
             {1} const char* key, size_t key_sz,
@@ -323,7 +324,7 @@ hyperclient_{0}(struct hyperclient* _cl,
              call.args == ('c-str', 'key', 'mapattrs') and \
              call.ret == 'status':
             fout.write('''
-int64_t
+HYPERDEX_API int64_t
 hyperclient_{0}(struct hyperclient* _cl,
             {1} const char* space,
             {1} const char* key, size_t key_sz,
@@ -341,7 +342,7 @@ hyperclient_{0}(struct hyperclient* _cl,
              call.args == ('c-str', 'key', 'checks', 'mapattrs') and \
              call.ret == 'status':
             fout.write('''
-int64_t
+HYPERDEX_API int64_t
 hyperclient_{0}(struct hyperclient* _cl,
             {1} const char* space,
             {1} const char* key, size_t key_sz,
@@ -360,7 +361,7 @@ hyperclient_{0}(struct hyperclient* _cl,
              call.args == ('c-str', 'checks') and \
              call.ret == 'status-object':
             fout.write('''
-int64_t
+HYPERDEX_API int64_t
 hyperclient_{0}(struct hyperclient* _cl,
             {1} const char* space,
             {1} const struct hyperclient_attribute_check* checks, size_t checks_sz,
@@ -376,7 +377,7 @@ hyperclient_{0}(struct hyperclient* _cl,
              call.args == ('c-str', 'checks') and \
              call.ret == 'status-c-str':
             fout.write('''
-int64_t
+HYPERDEX_API int64_t
 hyperclient_{0}(struct hyperclient* _cl,
             {1} const char* space,
             {1} const struct hyperclient_attribute_check* checks, size_t checks_sz,
@@ -392,7 +393,7 @@ hyperclient_{0}(struct hyperclient* _cl,
              call.args == ('c-str', 'checks', 'c-str', 'uint64', 'max/min') and \
              call.ret == 'status-object':
             fout.write('''
-int64_t
+HYPERDEX_API int64_t
 hyperclient_{0}(struct hyperclient* _cl,
             {1} const char* space,
             {1} const struct hyperclient_attribute_check* checks, size_t checks_sz,
@@ -409,7 +410,7 @@ hyperclient_{0}(struct hyperclient* _cl,
              call.args == ('c-str', 'checks') and \
              call.ret == 'status':
             fout.write('''
-int64_t
+HYPERDEX_API int64_t
 hyperclient_{0}(struct hyperclient* _cl,
             {1} const char* space,
             {1} const struct hyperclient_attribute_check* checks, size_t checks_sz,
@@ -424,7 +425,7 @@ hyperclient_{0}(struct hyperclient* _cl,
              call.args == ('c-str', 'checks') and \
              call.ret == 'status-uint64':
             fout.write('''
-int64_t
+HYPERDEX_API int64_t
 hyperclient_{0}(struct hyperclient* _cl,
             {1} const char* space,
             {1} const struct hyperclient_attribute_check* checks, size_t checks_sz,
@@ -438,7 +439,7 @@ hyperclient_{0}(struct hyperclient* _cl,
         else:
             print "c doesn't support", call.name
     fout.write('''
-int64_t
+HYPERDEX_API int64_t
 hyperclient_loop(struct hyperclient* client, int timeout,
                  enum hyperclient_returncode* status)
 {

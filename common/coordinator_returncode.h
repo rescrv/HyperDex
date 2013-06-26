@@ -28,8 +28,10 @@
 #ifndef hyperdex_common_coordinator_returncode_h_
 #define hyperdex_common_coordinator_returncode_h_
 
-namespace hyperdex
-{
+// HyperDex
+#include "namespace.h"
+
+BEGIN_HYPERDEX_NAMESPACE
 
 // occupies [8832, 8960)
 // these are hardcoded as byte strings in coordinator/coordinator.cc
@@ -45,6 +47,6 @@ enum coordinator_returncode
     COORD_TRANSFER_IN_PROGRESS = 8838
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_coordinator_returncode_h_

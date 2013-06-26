@@ -45,15 +45,17 @@ hyperspace_set_error(struct hyperspace* space, const char* msg);
 #ifdef __cplusplus
 } /* extern "C" */
 
-namespace hyperdex
-{
+// HyperDex
+#include "namespace.h"
+
+BEGIN_HYPERDEX_NAMESPACE
 
 class space;
 
 bool
 space_to_space(struct hyperspace* in, hyperdex::space* out);
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif /* __cplusplus */
 #endif /* hyperspace_builder_internal_h_ */

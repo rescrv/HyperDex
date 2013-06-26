@@ -45,6 +45,7 @@
 #include <replicant_state_machine.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/capture.h"
 #include "common/hyperspace.h"
 #include "common/ids.h"
@@ -52,8 +53,7 @@
 #include "coordinator/missing_acks.h"
 #include "coordinator/server_state.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class coordinator
 {
@@ -157,6 +157,6 @@ class coordinator
         coordinator& operator = (const coordinator&);
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_coordinator_coordinator_h_

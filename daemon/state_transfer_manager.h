@@ -40,11 +40,11 @@
 #include <e/intrusive_ptr.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/configuration.h"
 #include "daemon/reconfigure_returncode.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 class daemon;
 
 class state_transfer_manager
@@ -115,6 +115,6 @@ class state_transfer_manager
         bool m_paused;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_daemon_state_transfer_manager_h_

@@ -29,10 +29,10 @@
 #define hyperdex_common_datatype_string_h_
 
 // HyperDex
+#include "namespace.h"
 #include "common/datatypes.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class datatype_string : public datatype_info
 {
@@ -70,6 +70,6 @@ class datatype_string : public datatype_info
         virtual compares_less compare_less();
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_datatype_string_h_

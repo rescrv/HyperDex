@@ -32,10 +32,10 @@
 #include <busybee_mapper.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/configuration.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class mapper : public ::busybee_mapper
 {
@@ -54,6 +54,6 @@ class mapper : public ::busybee_mapper
         configuration* m_config;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_mapper_h_

@@ -31,11 +31,13 @@
 // C
 #include <stdint.h>
 
+// HyperDex
+#include "namespace.h"
+
 // These functions encode an int64_t or double into an unsigned long.
 // The encoding preserves order and ensures that a < b => e(a) < e(b).
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 uint64_t
 ordered_encode_int64(int64_t x);
@@ -46,6 +48,6 @@ ordered_decode_int64(uint64_t x);
 uint64_t
 ordered_encode_double(double x);
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_ordered_encoding_h_

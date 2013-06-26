@@ -32,10 +32,10 @@
 #include <e/buffer.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/ids.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class capture
 {
@@ -65,6 +65,6 @@ operator >> (e::unpacker, capture& c);
 size_t
 pack_size(const capture& c);
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_capture_h_

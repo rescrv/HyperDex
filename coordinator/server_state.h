@@ -32,10 +32,10 @@
 #include <po6/net/location.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/ids.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class server_state
 {
@@ -94,6 +94,6 @@ operator < (const server_state& lhs, const server_id& rhs)
     return lhs.id < rhs;
 }
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_coordinator_server_state_h_

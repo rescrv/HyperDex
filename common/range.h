@@ -32,10 +32,10 @@
 #include <e/slice.h>
 
 // HyperDex
+#include "namespace.h"
 #include "hyperdex.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 // a range is inclusive
 class range
@@ -59,6 +59,6 @@ class range
         bool invalid;
 };
 
-}
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_range_h_

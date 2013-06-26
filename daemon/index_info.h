@@ -35,14 +35,14 @@
 #include <e/slice.h>
 
 // HyperDex
+#include "namespace.h"
 #include "hyperdex.h"
 #include "common/attribute_check.h"
 #include "common/ids.h"
 #include "common/range.h"
 #include "daemon/datalayer.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class index_info
 {
@@ -96,6 +96,6 @@ class index_info
                                                                index_info* key_ii);
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_daemon_index_info_h_

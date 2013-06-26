@@ -36,11 +36,11 @@
 #include <e/buffer.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/ids.h"
 #include "common/schema.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 class space;
 class subspace;
 class region;
@@ -163,6 +163,6 @@ operator >> (e::unpacker, replica& r);
 size_t
 pack_size(const replica& r);
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_hyperspace_h_

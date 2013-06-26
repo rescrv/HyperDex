@@ -29,10 +29,10 @@
 #define hyperdex_common_datatype_set_h_
 
 // HyperDex
+#include "namespace.h"
 #include "common/datatypes.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class datatype_set : public datatype_info
 {
@@ -66,6 +66,6 @@ class datatype_set : public datatype_info
         datatype_info* m_elem;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_datatype_set_h_

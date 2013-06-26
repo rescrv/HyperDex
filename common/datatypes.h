@@ -32,12 +32,12 @@
 #include <e/slice.h>
 
 // HyperDex
+#include "namespace.h"
 #include "hyperdex.h"
 #include "common/funcall.h"
 #include "common/ids.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class datatype_info
 {
@@ -101,6 +101,6 @@ class datatype_info
         virtual compares_less compare_less();
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_datatypes_h_

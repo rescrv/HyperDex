@@ -48,6 +48,7 @@
 #include <po6/threads/thread.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/attribute_check.h"
 #include "common/configuration.h"
 #include "common/counter_map.h"
@@ -57,9 +58,7 @@
 #include "daemon/leveldb.h"
 #include "daemon/reconfigure_returncode.h"
 
-namespace hyperdex
-{
-// Forward declarations
+BEGIN_HYPERDEX_NAMESPACE
 class daemon;
 
 class datalayer
@@ -230,6 +229,6 @@ class datalayer::reference
 std::ostream&
 operator << (std::ostream& lhs, datalayer::returncode rhs);
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_daemon_datalayer_h_

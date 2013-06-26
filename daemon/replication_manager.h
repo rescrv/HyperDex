@@ -45,6 +45,7 @@
 #include <e/striped_lock.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/attribute_check.h"
 #include "common/configuration.h"
 #include "common/counter_map.h"
@@ -53,8 +54,7 @@
 #include "common/network_returncode.h"
 #include "daemon/reconfigure_returncode.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 class daemon;
 
 // Manage replication.
@@ -185,6 +185,6 @@ class replication_manager
         bool m_paused_garbage_collector;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_daemon_replication_manager_h_

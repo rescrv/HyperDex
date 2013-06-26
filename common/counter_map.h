@@ -34,13 +34,13 @@
 #include <vector>
 
 // HyperDex
+#include "namespace.h"
 #include "common/ids.h"
 
 // The only thread-safe call is "lookup".  "adopt", "peek", and "take_max" all
 // require external synchronization.
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class counter_map
 {
@@ -62,6 +62,6 @@ class counter_map
         std::vector<std::pair<region_id, uint64_t> > m_counters;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_counter_map_h_

@@ -41,11 +41,11 @@
 #include <replicant.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/configuration.h"
 #include "common/ids.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 class daemon;
 
 // The thread whose calls the constructor can call everything.  All other
@@ -114,6 +114,6 @@ class coordinator_link
         coordinator_link& operator = (const coordinator_link&);
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_daemon_coordinator_link_h_

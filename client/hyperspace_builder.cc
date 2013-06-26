@@ -38,6 +38,7 @@
 #include <vector>
 
 // HyperDex
+#include "visibility.h"
 #include "common/attribute.h"
 #include "common/datatypes.h"
 #include "common/hyperspace.h"
@@ -216,7 +217,7 @@ yyset_lineno(int line_number, void* scanner);
 extern int
 yyparse(struct hyperspace* space, void* scanner);
 
-struct hyperspace*
+HYPERDEX_API struct hyperspace*
 hyperspace_create()
 {
     struct hyperspace* space = new (std::nothrow) hyperspace();
@@ -229,7 +230,7 @@ hyperspace_create()
     return space;
 }
 
-struct hyperspace*
+HYPERDEX_API struct hyperspace*
 hyperspace_parse(const char* desc)
 {
     struct hyperspace* space = hyperspace_create();
@@ -275,13 +276,13 @@ hyperspace_parse(const char* desc)
     return space;
 }
 
-void
+HYPERDEX_API void
 hyperspace_destroy(struct hyperspace* space)
 {
     delete space;
 }
 
-const char*
+HYPERDEX_API const char*
 hyperspace_error(struct hyperspace* space)
 {
     if (!space)
@@ -292,7 +293,7 @@ hyperspace_error(struct hyperspace* space)
     return space->error;
 }
 
-enum hyperspace_returncode
+HYPERDEX_API enum hyperspace_returncode
 hyperspace_set_name(struct hyperspace* space, const char* name)
 {
     if (!is_identifier(name))
@@ -307,7 +308,7 @@ hyperspace_set_name(struct hyperspace* space, const char* name)
     return HYPERSPACE_SUCCESS;
 }
 
-enum hyperspace_returncode
+HYPERDEX_API enum hyperspace_returncode
 hyperspace_set_key(struct hyperspace* space,
                    const char* attr,
                    enum hyperdatatype datatype)
@@ -340,7 +341,7 @@ hyperspace_set_key(struct hyperspace* space,
     return HYPERSPACE_SUCCESS;
 }
 
-enum hyperspace_returncode
+HYPERDEX_API enum hyperspace_returncode
 hyperspace_add_attribute(struct hyperspace* space,
                          const char* attr,
                          enum hyperdatatype datatype)
@@ -381,7 +382,7 @@ hyperspace_add_attribute(struct hyperspace* space,
     return HYPERSPACE_SUCCESS;
 }
 
-enum hyperspace_returncode
+HYPERDEX_API enum hyperspace_returncode
 hyperspace_primary_index(struct hyperspace* space, const char* attr)
 {
     if (strcmp(space->key.name, attr) == 0)
@@ -412,14 +413,14 @@ hyperspace_primary_index(struct hyperspace* space, const char* attr)
     return HYPERSPACE_SUCCESS;
 }
 
-enum hyperspace_returncode
+HYPERDEX_API enum hyperspace_returncode
 hyperspace_add_subspace(struct hyperspace* space)
 {
     space->subspaces.push_back(hypersubspace());
     return HYPERSPACE_SUCCESS;
 }
 
-enum hyperspace_returncode
+HYPERDEX_API enum hyperspace_returncode
 hyperspace_add_subspace_attribute(struct hyperspace* space, const char* attr)
 {
     if (space->subspaces.empty())
@@ -461,7 +462,7 @@ hyperspace_add_subspace_attribute(struct hyperspace* space, const char* attr)
     return HYPERSPACE_SUCCESS;
 }
 
-enum hyperspace_returncode
+HYPERDEX_API enum hyperspace_returncode
 hyperspace_add_secondary_index(struct hyperspace* space, const char* attr)
 {
     if (space->subspaces.empty())
@@ -503,14 +504,14 @@ hyperspace_add_secondary_index(struct hyperspace* space, const char* attr)
     return HYPERSPACE_SUCCESS;
 }
 
-enum hyperspace_returncode
+HYPERDEX_API enum hyperspace_returncode
 hyperspace_set_fault_tolerance(struct hyperspace* space, uint64_t num)
 {
     space->fault_tolerance = num;
     return HYPERSPACE_SUCCESS;
 }
 
-enum hyperspace_returncode
+HYPERDEX_API enum hyperspace_returncode
 hyperspace_set_number_of_partitions(struct hyperspace* space, uint64_t num)
 {
     if (num < 1)

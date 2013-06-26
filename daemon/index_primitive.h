@@ -29,10 +29,10 @@
 #define hyperdex_daemon_index_primitive_h_
 
 // HyperDex
+#include "namespace.h"
 #include "daemon/index_info.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class index_primitive : public index_info
 {
@@ -72,6 +72,6 @@ class index_primitive : public index_info
                          leveldb::Slice* slice);
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_daemon_index_primitive_h_
