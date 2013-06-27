@@ -1,34 +1,30 @@
-% HYPERDEX(1) HyperDex User Manuals
-% Robert Escriva
-% March 05, 2013
-
 # NAME
 
 hyperdex - the next-generation key-value store
 
-# SYNOPSIS
-
-hyperdex [*OPTION*...] <command> [\<args\>]
-
 # DESCRIPTION
 
-HyperDex is a fast, scalable distributed key-value store.
+# OPTIONS
 
 # ENVIRONMENT
 
+# FILES
+
 # EXAMPLES
+
+# AUTHOR
+
+HyperDex started as a project at Cornell University and is currently maintained
+by Robert Escriva and the HyperDex community.  For a complete list of
+contributors, see the AUTHORS file included in the HyperDex distribution.
 
 # REPORTING BUGS
 
 Report bugs to the HyperDex mailing list <hyperdex-discuss@googlegroups.com>
-where the developers can help troubleshoot problems and file reports.
+where the developers can help troubleshoot problems and file bug reports.
+
+# COPYRIGHT
+
+Copyright (c) 2011-2013, The HyperDex Authors
 
 # SEE ALSO
-
-**hyperdex-add-space**(1),
-**hyperdex-coordinator**(1),
-**hyperdex-daemon**(1),
-**hyperdex-initialize-cluster**(1),
-**hyperdex-initiate-transfer**(1),
-**hyperdex-rm-space**(1),
-**hyperdex-show-config**(1)

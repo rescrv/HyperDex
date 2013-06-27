@@ -576,11 +576,13 @@ help2man_verbose_0 = @echo "  MAN   " $@;
 
 EXTRA_DIST += man/hyperdex.1.md man/hyperdex.1.h2m
 dist_man_MANS = man/hyperdex.1
+HELP2MAN_FLAGS = --libtool --no-info --version-string=$(VERSION) --manual="HyperDex User Manual"
 
 %.h2m: %.md
 	$(pandoc_verbose)pandoc -s -w man -o $@ $<
+	$(sed_verbose)sed -i -e 'N;s/^\.SH \(.*\)\n.PP$$/[\1]/' $@
 	$(sed_verbose)sed -i -e 's/^\.SH \(.*\)$$/[\1]/' $@
 
 man/hyperdex.1: man/hyperdex.1.h2m hyperdex.cc $(top_srcdir)/configure.ac
 	@$(MAKE) --no-print-directory $(AM_MAKEFLAGS) hyperdex$(EXEEXT)
-	$(help2man_verbose)help2man --libtool --no-info --section 1 --output $@ --version-string=$(VERSION) --include man/hyperdex.1.h2m ./hyperdex$(EXEEXT)
+	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include man/hyperdex.1.h2m ${abs_top_builddir}/hyperdex$(EXEEXT)
