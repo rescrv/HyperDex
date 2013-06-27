@@ -77,8 +77,8 @@ starred(int c,
 }
 
 bool
-regex_match(const uint8_t* _regex, size_t regex_sz,
-            const uint8_t* _text, size_t text_sz)
+hyperdex :: regex_match(const uint8_t* _regex, size_t regex_sz,
+                        const uint8_t* _text, size_t text_sz)
 {
     const char* regex = reinterpret_cast<const char*>(_regex);
     const char* text  = reinterpret_cast<const char*>(_text);
