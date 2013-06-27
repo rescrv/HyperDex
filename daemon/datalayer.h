@@ -109,6 +109,10 @@ class datalayer
         void reconfigure(const configuration& old_config,
                          const configuration& new_config,
                          const server_id& us);
+        // stats
+        bool get_property(const e::slice& property,
+                          std::string* value);
+        uint64_t approximate_size();
 
     public:
         // retrieve the current value of a key

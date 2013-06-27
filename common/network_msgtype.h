@@ -70,6 +70,8 @@ enum network_msgtype
     XFER_OP  = 80,
     XFER_ACK = 81,
 
+    PERF_COUNTERS = 127,
+
     CONFIGMISMATCH  = 254,
     PACKET_NOP      = 255
 };

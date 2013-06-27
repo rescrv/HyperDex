@@ -437,6 +437,25 @@ datalayer :: reconfigure(const configuration&,
     m_counters.adopt(regions);
 }
 
+bool
+datalayer :: get_property(const e::slice& property,
+                          std::string* value)
+{
+    leveldb::Slice prop(reinterpret_cast<const char*>(property.data()), property.size());
+    return m_db->GetProperty(prop, value);
+}
+
+uint64_t
+datalayer :: approximate_size()
+{
+    leveldb::Slice start("\x00", 1);
+    leveldb::Slice limit("\xff", 1);
+    leveldb::Range r(start, limit);
+    uint64_t ret = 0;
+    m_db->GetApproximateSizes(&r, 1, &ret);
+    return ret;
+}
+
 datalayer::returncode
 datalayer :: get(const region_id& ri,
                  const e::slice& key,

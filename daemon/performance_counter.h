@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2012, Cornell University
+// Copyright (c) 2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,45 +25,38 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// HyperDex
-#include "common/macros.h"
-#include "common/network_msgtype.h"
+#ifndef hyperdex_daemon_performance_counters_h_
+#define hyperdex_daemon_performance_counters_h_
 
-std::ostream&
-hyperdex :: operator << (std::ostream& lhs, const network_msgtype& rhs)
+// e
+#include <e/atomic.h>
+
+namespace hyperdex
 {
-    switch(rhs)
-    {
-        STRINGIFY(REQ_GET);
-        STRINGIFY(RESP_GET);
-        STRINGIFY(REQ_ATOMIC);
-        STRINGIFY(RESP_ATOMIC);
-        STRINGIFY(REQ_SEARCH_START);
-        STRINGIFY(REQ_SEARCH_NEXT);
-        STRINGIFY(REQ_SEARCH_STOP);
-        STRINGIFY(RESP_SEARCH_ITEM);
-        STRINGIFY(RESP_SEARCH_DONE);
-        STRINGIFY(REQ_SORTED_SEARCH);
-        STRINGIFY(RESP_SORTED_SEARCH);
-        STRINGIFY(REQ_GROUP_DEL);
-        STRINGIFY(RESP_GROUP_DEL);
-        STRINGIFY(REQ_COUNT);
-        STRINGIFY(RESP_COUNT);
-        STRINGIFY(REQ_SEARCH_DESCRIBE);
-        STRINGIFY(RESP_SEARCH_DESCRIBE);
-        STRINGIFY(CHAIN_OP);
-        STRINGIFY(CHAIN_SUBSPACE);
-        STRINGIFY(CHAIN_ACK);
-        STRINGIFY(CHAIN_GC);
-        STRINGIFY(XFER_OP);
-        STRINGIFY(XFER_ACK);
-        STRINGIFY(PERF_COUNTERS);
-        STRINGIFY(CONFIGMISMATCH);
-        STRINGIFY(PACKET_NOP);
-        default:
-            lhs << "unknown network_msgtype";
-            break;
-    }
 
-    return lhs;
-}
+// a threadsafe counter
+class performance_counter
+{
+    public:
+        performance_counter() : m_count(0), m_stable(0) {}
+        ~performance_counter() throw () {}
+
+    public:
+        // increment the counter
+        // any number of threads can tap simultaneously
+        void tap() { e::atomic::increment_64_nobarrier(&m_count, 1); }
+        // any number of threads can call "read" simultaneously
+        uint64_t read() { return e::atomic::load_64_nobarrier(&m_count); }
+
+    private:
+        performance_counter(const performance_counter&);
+        performance_counter& operator = (const performance_counter&);
+
+    private:
+        uint64_t m_count;
+        uint64_t m_stable;
+};
+
+} // namespace hyperdex
+
+#endif // hyperdex_daemon_performance_counters_h_

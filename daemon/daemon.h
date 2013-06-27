@@ -47,6 +47,7 @@
 #include "daemon/communication.h"
 #include "daemon/coordinator_link.h"
 #include "daemon/datalayer.h"
+#include "daemon/performance_counter.h"
 #include "daemon/replication_manager.h"
 #include "daemon/search_manager.h"
 #include "daemon/state_transfer_manager.h"
@@ -85,6 +86,10 @@ class daemon
         void process_chain_gc(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_xfer_op(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_xfer_ack(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
+        void process_perf_counters(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
+
+    private:
+        void collect_stats();
 
     private:
         friend class communication;
@@ -104,6 +109,43 @@ class daemon
         state_transfer_manager m_stm;
         search_manager m_sm;
         configuration m_config;
+        // counters
+        performance_counter m_perf_req_get;
+        uint64_t m_prev_perf_req_get;
+        performance_counter m_perf_req_atomic;
+        uint64_t m_prev_perf_req_atomic;
+        performance_counter m_perf_req_search_start;
+        uint64_t m_prev_perf_req_search_start;
+        performance_counter m_perf_req_search_next;
+        uint64_t m_prev_perf_req_search_next;
+        performance_counter m_perf_req_search_stop;
+        uint64_t m_prev_perf_req_search_stop;
+        performance_counter m_perf_req_sorted_search;
+        uint64_t m_prev_perf_req_sorted_search;
+        performance_counter m_perf_req_group_del;
+        uint64_t m_prev_perf_req_group_del;
+        performance_counter m_perf_req_count;
+        uint64_t m_prev_perf_req_count;
+        performance_counter m_perf_req_search_describe;
+        uint64_t m_prev_perf_req_search_describe;
+        performance_counter m_perf_chain_op;
+        uint64_t m_prev_perf_chain_op;
+        performance_counter m_perf_chain_subspace;
+        uint64_t m_prev_perf_chain_subspace;
+        performance_counter m_perf_chain_ack;
+        uint64_t m_prev_perf_chain_ack;
+        performance_counter m_perf_chain_gc;
+        uint64_t m_prev_perf_chain_gc;
+        performance_counter m_perf_xfer_op;
+        uint64_t m_prev_perf_xfer_op;
+        performance_counter m_perf_xfer_ack;
+        uint64_t m_prev_perf_xfer_ack;
+        performance_counter m_perf_perf_counters;
+        uint64_t m_prev_perf_perf_counters;
+        // historical data
+        po6::threads::thread m_stat_collector;
+        po6::threads::mutex m_protect_stats;
+        std::list<std::pair<uint64_t, std::string> > m_stats;
 };
 
 END_HYPERDEX_NAMESPACE

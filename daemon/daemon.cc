@@ -37,6 +37,7 @@
 
 // e
 #include <e/endian.h>
+#include <e/time.h>
 
 // HyperDex
 #include "common/coordinator_returncode.h"
@@ -84,6 +85,41 @@ daemon :: daemon()
     , m_stm(this)
     , m_sm(this)
     , m_config()
+    , m_perf_req_get()
+    , m_prev_perf_req_get()
+    , m_perf_req_atomic()
+    , m_prev_perf_req_atomic()
+    , m_perf_req_search_start()
+    , m_prev_perf_req_search_start()
+    , m_perf_req_search_next()
+    , m_prev_perf_req_search_next()
+    , m_perf_req_search_stop()
+    , m_prev_perf_req_search_stop()
+    , m_perf_req_sorted_search()
+    , m_prev_perf_req_sorted_search()
+    , m_perf_req_group_del()
+    , m_prev_perf_req_group_del()
+    , m_perf_req_count()
+    , m_prev_perf_req_count()
+    , m_perf_req_search_describe()
+    , m_prev_perf_req_search_describe()
+    , m_perf_chain_op()
+    , m_prev_perf_chain_op()
+    , m_perf_chain_subspace()
+    , m_prev_perf_chain_subspace()
+    , m_perf_chain_ack()
+    , m_prev_perf_chain_ack()
+    , m_perf_chain_gc()
+    , m_prev_perf_chain_gc()
+    , m_perf_xfer_op()
+    , m_prev_perf_xfer_op()
+    , m_perf_xfer_ack()
+    , m_prev_perf_xfer_ack()
+    , m_perf_perf_counters()
+    , m_prev_perf_perf_counters()
+    , m_stat_collector(std::tr1::bind(&daemon::collect_stats, this))
+    , m_protect_stats()
+    , m_stats()
 {
 }
 
@@ -280,6 +316,8 @@ daemon :: run(bool daemonize,
         t->start();
     }
 
+    m_stat_collector.start();
+
     while (!m_coord.exit_wait_loop())
     {
         configuration old_config = m_config;
@@ -321,6 +359,8 @@ daemon :: run(bool daemonize,
     }
 
     m_comm.shutdown();
+
+    m_stat_collector.join();
 
     for (size_t i = 0; i < m_threads.size(); ++i)
     {
@@ -399,48 +439,67 @@ daemon :: loop(size_t thread)
         {
             case REQ_GET:
                 process_req_get(from, vfrom, vto, msg, up);
+                m_perf_req_get.tap();
                 break;
             case REQ_ATOMIC:
                 process_req_atomic(from, vfrom, vto, msg, up);
+                m_perf_req_atomic.tap();
                 break;
             case REQ_SEARCH_START:
                 process_req_search_start(from, vfrom, vto, msg, up);
+                m_perf_req_search_start.tap();
                 break;
             case REQ_SEARCH_NEXT:
                 process_req_search_next(from, vfrom, vto, msg, up);
+                m_perf_req_search_next.tap();
                 break;
             case REQ_SEARCH_STOP:
                 process_req_search_stop(from, vfrom, vto, msg, up);
+                m_perf_req_search_stop.tap();
                 break;
             case REQ_SORTED_SEARCH:
                 process_req_sorted_search(from, vfrom, vto, msg, up);
+                m_perf_req_sorted_search.tap();
                 break;
             case REQ_GROUP_DEL:
                 process_req_group_del(from, vfrom, vto, msg, up);
+                m_perf_req_group_del.tap();
                 break;
             case REQ_COUNT:
                 process_req_count(from, vfrom, vto, msg, up);
+                m_perf_req_count.tap();
                 break;
             case REQ_SEARCH_DESCRIBE:
                 process_req_search_describe(from, vfrom, vto, msg, up);
+                m_perf_req_search_describe.tap();
                 break;
             case CHAIN_OP:
                 process_chain_op(from, vfrom, vto, msg, up);
+                m_perf_chain_op.tap();
                 break;
             case CHAIN_SUBSPACE:
                 process_chain_subspace(from, vfrom, vto, msg, up);
+                m_perf_chain_subspace.tap();
                 break;
             case CHAIN_ACK:
                 process_chain_ack(from, vfrom, vto, msg, up);
+                m_perf_chain_ack.tap();
                 break;
             case CHAIN_GC:
                 process_chain_gc(from, vfrom, vto, msg, up);
+                m_perf_chain_gc.tap();
                 break;
             case XFER_OP:
                 process_xfer_op(from, vfrom, vto, msg, up);
+                m_perf_xfer_op.tap();
                 break;
             case XFER_ACK:
                 process_xfer_ack(from, vfrom, vto, msg, up);
+                m_perf_xfer_ack.tap();
+                break;
+            case PERF_COUNTERS:
+                process_perf_counters(from, vfrom, vto, msg, up);
+                m_perf_perf_counters.tap();
                 break;
             case RESP_GET:
             case RESP_ATOMIC:
@@ -809,4 +868,158 @@ daemon :: process_xfer_ack(server_id from,
     }
 
     m_stm.xfer_ack(from, vto, transfer_id(xid), seq_no);
+}
+
+void
+daemon :: process_perf_counters(server_id from,
+                                virtual_server_id,
+                                virtual_server_id vto,
+                                std::auto_ptr<e::buffer> msg,
+                                e::unpacker up)
+{
+    uint64_t nonce;
+    uint64_t when;
+    up = up >> nonce >> when;
+
+    if (up.error())
+    {
+        LOG(WARNING) << "unpack of PERF_COUNTERS failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    std::string out;
+
+    {
+        po6::threads::mutex::hold hold(&m_protect_stats);
+        std::list<std::pair<uint64_t, std::string> >::iterator it;
+        it = m_stats.begin();
+
+        while (it != m_stats.end() && it->first < when)
+        {
+            ++it;
+        }
+
+        while (it != m_stats.end())
+        {
+            out += it->second;
+            ++it;
+        }
+    }
+
+    size_t sz = HYPERDEX_HEADER_SIZE_VC
+              + sizeof(uint64_t)
+              + out.size() + 1;
+    msg.reset(e::buffer::create(sz));
+    e::buffer::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_VC);
+    pa = pa << nonce;
+    pa.copy(e::slice(out));
+    m_comm.send_client(vto, from, PERF_COUNTERS, msg);
+}
+
+#define INTERVAL 100000000ULL
+
+void
+daemon :: collect_stats()
+{
+    uint64_t target = e::time();
+    target = target - (target % INTERVAL) + INTERVAL;
+
+    while (s_interrupts == 0)
+    {
+        // every INTERVAL nanoseconds collect stats
+        uint64_t now = e::time();
+
+        while (now < target)
+        {
+            struct timespec ts;
+            ts.tv_sec = 0;
+            ts.tv_nsec = target - now;
+            nanosleep(&ts, NULL);
+            now = e::time();
+        }
+
+        // collect the stats
+        std::ostringstream ret;
+        uint64_t perf_req_get = m_perf_req_get.read();
+        uint64_t perf_req_atomic = m_perf_req_atomic.read();
+        uint64_t perf_req_search_start = m_perf_req_search_start.read();
+        uint64_t perf_req_search_next = m_perf_req_search_next.read();
+        uint64_t perf_req_search_stop = m_perf_req_search_stop.read();
+        uint64_t perf_req_sorted_search = m_perf_req_sorted_search.read();
+        uint64_t perf_req_group_del = m_perf_req_group_del.read();
+        uint64_t perf_req_count = m_perf_req_count.read();
+        uint64_t perf_req_search_describe = m_perf_req_search_describe.read();
+        uint64_t perf_chain_op = m_perf_chain_op.read();
+        uint64_t perf_chain_subspace = m_perf_chain_subspace.read();
+        uint64_t perf_chain_ack = m_perf_chain_ack.read();
+        uint64_t perf_chain_gc = m_perf_chain_gc.read();
+        uint64_t perf_xfer_op = m_perf_xfer_op.read();
+        uint64_t perf_xfer_ack = m_perf_xfer_ack.read();
+        uint64_t perf_perf_counters = m_perf_perf_counters.read();
+        ret << "time=" << target << " ";
+        ret << "msgs.req_get=" << perf_req_get - m_prev_perf_req_get  << " ";
+        ret << "msgs.req_atomic=" << perf_req_atomic - m_prev_perf_req_atomic  << " ";
+        ret << "msgs.req_search_start=" << perf_req_search_start - m_prev_perf_req_search_start  << " ";
+        ret << "msgs.req_search_next=" << perf_req_search_next - m_prev_perf_req_search_next  << " ";
+        ret << "msgs.req_search_stop=" << perf_req_search_stop - m_prev_perf_req_search_stop  << " ";
+        ret << "msgs.req_sorted_search=" << perf_req_sorted_search - m_prev_perf_req_sorted_search  << " ";
+        ret << "msgs.req_group_del=" << perf_req_group_del - m_prev_perf_req_group_del  << " ";
+        ret << "msgs.req_count=" << perf_req_count - m_prev_perf_req_count  << " ";
+        ret << "msgs.req_search_describe=" << perf_req_search_describe - m_prev_perf_req_search_describe  << " ";
+        ret << "msgs.chain_op=" << perf_chain_op - m_prev_perf_chain_op  << " ";
+        ret << "msgs.chain_subspace=" << perf_chain_subspace - m_prev_perf_chain_subspace  << " ";
+        ret << "msgs.chain_ack=" << perf_chain_ack - m_prev_perf_chain_ack  << " ";
+        ret << "msgs.chain_gc=" << perf_chain_gc - m_prev_perf_chain_gc  << " ";
+        ret << "msgs.xfer_op=" << perf_xfer_op - m_prev_perf_xfer_op  << " ";
+        ret << "msgs.xfer_ack=" << perf_xfer_ack - m_prev_perf_xfer_ack  << " ";
+        ret << "msgs.perf_counters=" << perf_perf_counters - m_prev_perf_perf_counters  << " ";
+        m_prev_perf_req_get = perf_req_get;
+        m_prev_perf_req_atomic = perf_req_atomic;
+        m_prev_perf_req_search_start = perf_req_search_start;
+        m_prev_perf_req_search_next = perf_req_search_next;
+        m_prev_perf_req_search_stop = perf_req_search_stop;
+        m_prev_perf_req_sorted_search = perf_req_sorted_search;
+        m_prev_perf_req_group_del = perf_req_group_del;
+        m_prev_perf_req_count = perf_req_count;
+        m_prev_perf_req_search_describe = perf_req_search_describe;
+        m_prev_perf_chain_op = perf_chain_op;
+        m_prev_perf_chain_subspace = perf_chain_subspace;
+        m_prev_perf_chain_ack = perf_chain_ack;
+        m_prev_perf_chain_gc = perf_chain_gc;
+        m_prev_perf_xfer_op = perf_xfer_op;
+        m_prev_perf_xfer_ack = perf_xfer_ack;
+        m_prev_perf_perf_counters = perf_perf_counters;
+
+        std::string tmp;
+
+#define XXSTR(x) #x
+#define XSTR(x) XXSTR(x)
+#define LEVELDB_FILES_AT_LEVEL(N) \
+    if (m_data.get_property(e::slice("leveldb.num-files-at-level" XSTR(N)), &tmp)) \
+    { \
+        ret << "leveldb.num-files-at-level" XSTR(N) "=" << tmp << " "; \
+    }
+
+        LEVELDB_FILES_AT_LEVEL(0);
+        LEVELDB_FILES_AT_LEVEL(1);
+        LEVELDB_FILES_AT_LEVEL(2);
+        LEVELDB_FILES_AT_LEVEL(3);
+        LEVELDB_FILES_AT_LEVEL(4);
+        LEVELDB_FILES_AT_LEVEL(5);
+        LEVELDB_FILES_AT_LEVEL(6);
+
+        ret << "data.size=" << m_data.approximate_size() << "\n";
+        std::string out = ret.str();
+
+        po6::threads::mutex::hold hold(&m_protect_stats);
+        m_stats.push_back(std::make_pair(target, out));
+
+        if (m_stats.size() > 600)
+        {
+            m_stats.pop_front();
+        }
+
+        // next interval
+        target += INTERVAL;
+    }
 }
