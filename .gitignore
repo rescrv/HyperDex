@@ -1,4 +1,5 @@
 aclocal.m4
+/admin/python/hyperadmin.c
 autom4te.cache/
 binary-test
 client/cc/testcompile

@@ -486,6 +486,18 @@ libhyperdex_admin_la_LIBADD += $(BUSYBEE_LIBS)
 libhyperdex_admin_la_LIBADD += $(REPLICANT_LIBS)
 libhyperdex_admin_la_LIBADD += -lcityhash
 
+if ENABLE_PYTHON_BINDINGS
+pyexec_LTLIBRARIES += admin/python/hyperadmin.la
+endif
+
+admin/python/hyperadmin.c: admin/python/hyperadmin.pyx
+	$(pyx_verbose)cython admin/python/hyperadmin.pyx
+
+admin_python_hyperadmin_la_SOURCES = admin/python/hyperadmin.c
+admin_python_hyperadmin_la_CPPFLAGS = $(PYTHON_CPPFLAGS) $(CPPFLAGS)
+admin_python_hyperadmin_la_LIBADD = libhyperdex-admin.la $(PYTHON_LDFLAGS)
+admin_python_hyperadmin_la_LDFLAGS = -module -avoid-version -export-symbols-regex inithyperadmin
+
 ################################################################################
 ##################################### Tests ####################################
 ################################################################################
