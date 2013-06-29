@@ -52,6 +52,10 @@ admin :: ~admin() throw ()
 {
 }
 
+        int admin :: validate_space(const char* description, enum hyperdex_admin_returncode* status, const char** error_msg) { return -1; }
+        int64_t admin :: add_space(const char* description, enum hyperdex_admin_returncode* status) { return -1; }
+        int64_t admin :: rm_space(const char* name, enum hyperdex_admin_returncode* status) { return -1; }
+
 int64_t
 admin :: enable_perf_counters(hyperdex_admin_returncode* status,
                               hyperdex_admin_perf_counter* pc)

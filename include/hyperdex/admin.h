@@ -77,13 +77,21 @@ hyperdex_admin_create(const char* coordinator, uint16_t port);
 void
 hyperdex_admin_destroy(struct hyperdex_admin* admin);
 
-enum hyperdex_admin_returncode
-hyperdex_admin_add_space(struct hyperdex_admin* admin,
-                         const char* description);
+int
+hyperdex_admin_validate_space(struct hyperdex_admin* admin,
+                              const char* description,
+                              enum hyperdex_admin_returncode* status,
+                              const char** error_msg);
 
-enum hyperdex_admin_returncode
+int64_t
+hyperdex_admin_add_space(struct hyperdex_admin* admin,
+                         const char* description,
+                         enum hyperdex_admin_returncode* status);
+
+int64_t
 hyperdex_admin_rm_space(struct hyperdex_admin* admin,
-                        const char* name);
+                        const char* name,
+                        enum hyperdex_admin_returncode* status);
 
 int64_t
 hyperdex_admin_enable_perf_counters(struct hyperdex_admin* admin,

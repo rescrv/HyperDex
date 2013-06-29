@@ -88,6 +88,40 @@ hyperdex_admin_destroy(struct hyperdex_admin* admin)
     delete reinterpret_cast<hyperdex::admin*>(admin);
 }
 
+HYPERDEX_API int
+hyperdex_admin_validate_space(struct hyperdex_admin* _adm,
+                              const char* description,
+                              hyperdex_admin_returncode* status,
+                              const char** error_msg)
+{
+    C_WRAP_EXCEPT(
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->validate_space(description, status, error_msg);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_admin_add_space(struct hyperdex_admin* _adm,
+                         const char* description,
+                         hyperdex_admin_returncode* status)
+{
+    C_WRAP_EXCEPT(
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->add_space(description, status);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_admin_rm_space(struct hyperdex_admin* _adm,
+                        const char* name,
+                        hyperdex_admin_returncode* status)
+{
+    C_WRAP_EXCEPT(
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->rm_space(name, status);
+    );
+}
+
 HYPERDEX_API int64_t
 hyperdex_admin_enable_perf_counters(struct hyperdex_admin* _adm,
                                     enum hyperdex_admin_returncode* status,
