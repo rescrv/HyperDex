@@ -40,7 +40,7 @@
 
 // HyperDex
 #include "client/hyperclient.hpp"
-#include "tools/common.h"
+#include "tools/old.common.h"
 
 static bool _hyperdex = true;
 static bool _leveldb = false;

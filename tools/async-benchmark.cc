@@ -43,7 +43,7 @@
 
 // HyperDex
 #include "client/hyperclient.hpp"
-#include "tools/common.h"
+#include "tools/old.common.h"
 
 static struct poptOption popts[] = {
     POPT_AUTOHELP

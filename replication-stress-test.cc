@@ -44,7 +44,7 @@
 
 // HyperDex
 #include "client/hyperclient.hpp"
-#include "tools/common.h"
+#include "tools/old.common.h"
 
 static bool _continuous = false;
 static long _partitions = 4;
