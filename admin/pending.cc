@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -26,22 +26,18 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // HyperDex
-#include "common/mapper.h"
+#include "admin/pending.h"
 
-using hyperdex::mapper;
+using hyperdex::pending;
 
-mapper :: mapper(const hyperdex::configuration* config)
-    : m_config(config)
+pending :: pending(uint64_t id,
+                   hyperdex_admin_returncode* s)
+    : m_ref(0)
+    , m_admin_visible_id(id)
+    , m_status(s)
 {
 }
 
-mapper :: ~mapper() throw ()
+pending :: ~pending() throw ()
 {
-}
-
-bool
-mapper :: lookup(uint64_t id, po6::net::location* addr)
-{
-    *addr = m_config->get_address(server_id(id));
-    return *addr != po6::net::location();
 }

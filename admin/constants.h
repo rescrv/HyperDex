@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,23 +25,21 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// HyperDex
-#include "common/mapper.h"
+#ifndef hyperdex_admin_constants_h_
+#define hyperdex_admin_constants_h_
 
-using hyperdex::mapper;
+// BusyBee
+#include <busybee_constants.h>
 
-mapper :: mapper(const hyperdex::configuration* config)
-    : m_config(config)
-{
-}
+#define HYPERDEX_ADMIN_HEADER_SIZE_REQ (BUSYBEE_HEADER_SIZE \
+                                        + sizeof(uint8_t) /*mt*/ \
+                                        + sizeof(uint8_t) /*flags*/ \
+                                        + sizeof(uint64_t) /*version*/ \
+                                        + sizeof(uint64_t) /*vidt*/ \
+                                        + sizeof(uint64_t) /*nonce*/)
+#define HYPERDEX_ADMIN_HEADER_SIZE_RESP (BUSYBEE_HEADER_SIZE \
+                                         + sizeof(uint8_t) /*mt*/ \
+                                         + sizeof(uint64_t) /*vidt*/ \
+                                         + sizeof(uint64_t) /*nonce*/)
 
-mapper :: ~mapper() throw ()
-{
-}
-
-bool
-mapper :: lookup(uint64_t id, po6::net::location* addr)
-{
-    *addr = m_config->get_address(server_id(id));
-    return *addr != po6::net::location();
-}
+#endif // hyperdex_admin_constants_h_

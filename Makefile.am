@@ -45,7 +45,7 @@ EXTRA_DIST += wscript
 EXTRA_DIST += windows/hyperclientclr.cpp
 EXTRA_DIST += windows/marshal.cpp
 
-lib_LTLIBRARIES = libhyperclient.la
+lib_LTLIBRARIES = libhyperclient.la libhyperdex-admin.la
 
 pyexec_LTLIBRARIES =
 
@@ -447,6 +447,44 @@ client_c_testcompile_LDADD = libhyperclient.la
 client_cc_testcompile_SOURCES = client/cc/testcompile.cc
 client_cc_testcompile_CPPFLAGS = -I${abs_top_srcdir}/client $(CPPFLAGS)
 client_cc_testcompile_LDADD = libhyperclient.la
+
+################################################################################
+################################# Admin Library ################################
+################################################################################
+
+libhyperdex_admin_la_SOURCES =
+libhyperdex_admin_la_SOURCES += common/attribute.cc
+libhyperdex_admin_la_SOURCES += common/capture.cc
+libhyperdex_admin_la_SOURCES += common/configuration.cc
+libhyperdex_admin_la_SOURCES += common/coordinator_link.cc
+libhyperdex_admin_la_SOURCES += common/datatype_float.cc
+libhyperdex_admin_la_SOURCES += common/datatype_int64.cc
+libhyperdex_admin_la_SOURCES += common/datatype_list.cc
+libhyperdex_admin_la_SOURCES += common/datatype_map.cc
+libhyperdex_admin_la_SOURCES += common/datatypes.cc
+libhyperdex_admin_la_SOURCES += common/datatype_set.cc
+libhyperdex_admin_la_SOURCES += common/datatype_string.cc
+libhyperdex_admin_la_SOURCES += common/hash.cc
+libhyperdex_admin_la_SOURCES += common/hyperdex.cc
+libhyperdex_admin_la_SOURCES += common/hyperspace.cc
+libhyperdex_admin_la_SOURCES += common/mapper.cc
+libhyperdex_admin_la_SOURCES += common/ordered_encoding.cc
+libhyperdex_admin_la_SOURCES += common/range.cc
+libhyperdex_admin_la_SOURCES += common/range_searches.cc
+libhyperdex_admin_la_SOURCES += common/regex_match.cc
+libhyperdex_admin_la_SOURCES += common/schema.cc
+libhyperdex_admin_la_SOURCES += common/serialization.cc
+libhyperdex_admin_la_SOURCES += common/transfer.cc
+libhyperdex_admin_la_SOURCES += admin/admin.cc
+libhyperdex_admin_la_SOURCES += admin/c.cc
+libhyperdex_admin_la_SOURCES += admin/pending.cc
+libhyperdex_admin_la_SOURCES += admin/pending_perf_counters.cc
+libhyperdex_admin_la_CPPFLAGS = -I${abs_top_srcdir}/include
+libhyperdex_admin_la_LIBADD =
+libhyperdex_admin_la_LIBADD += $(E_LIBS)
+libhyperdex_admin_la_LIBADD += $(BUSYBEE_LIBS)
+libhyperdex_admin_la_LIBADD += $(REPLICANT_LIBS)
+libhyperdex_admin_la_LIBADD += -lcityhash
 
 ################################################################################
 ##################################### Tests ####################################

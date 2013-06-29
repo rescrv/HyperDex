@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,35 +25,70 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_common_mapper_h_
-#define hyperdex_common_mapper_h_
+#ifndef hyperdex_admin_pending_h_
+#define hyperdex_admin_pending_h_
 
-// BusyBee
-#include <busybee_mapper.h>
+// STL
+#include <memory>
+
+// e
+#include <e/intrusive_ptr.h>
 
 // HyperDex
+#include "include/hyperdex/admin.h"
 #include "namespace.h"
 #include "common/configuration.h"
+#include "common/ids.h"
+#include "common/network_msgtype.h"
 
 BEGIN_HYPERDEX_NAMESPACE
+class admin;
 
-class mapper : public ::busybee_mapper
+class pending
 {
     public:
-        mapper(const configuration* config);
-        ~mapper() throw ();
+        pending(uint64_t admin_visible_id,
+                hyperdex_admin_returncode* status);
+        virtual ~pending() throw ();
 
     public:
-        virtual bool lookup(uint64_t id, po6::net::location* addr);
+        int64_t admin_visible_id() const { return m_admin_visible_id; }
+        void set_status(hyperdex_admin_returncode status) { *m_status = status; }
 
-    private:
-        mapper(const mapper&);
-        mapper& operator = (const mapper&);
+    // return to admin
+    public:
+        virtual bool can_yield() = 0;
+        virtual bool yield(hyperdex_admin_returncode* status) = 0;
 
+    // events
+    public:
+        virtual void handle_sent_to(const server_id& si) = 0;
+        virtual void handle_failure(const server_id& si) = 0;
+        virtual bool handle_message(admin* cl,
+                                    const server_id& si,
+                                    network_msgtype mt,
+                                    std::auto_ptr<e::buffer> msg,
+                                    e::unpacker up,
+                                    hyperdex_admin_returncode* status) = 0;
+
+    // refcount
+    protected:
+        friend class e::intrusive_ptr<pending>;
+        void inc() { ++m_ref; }
+        void dec() { if (--m_ref == 0) delete this; }
+        size_t m_ref;
+
+    // noncopyable
     private:
-        const configuration* m_config;
+        pending(const pending& other);
+        pending& operator = (const pending& rhs);
+
+    // operation state
+    private:
+        int64_t m_admin_visible_id;
+        hyperdex_admin_returncode* m_status;
 };
 
 END_HYPERDEX_NAMESPACE
 
-#endif // hyperdex_common_mapper_h_
+#endif // hyperdex_admin_pending_h_

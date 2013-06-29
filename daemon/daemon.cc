@@ -894,7 +894,7 @@ daemon :: process_perf_counters(server_id from,
         std::list<std::pair<uint64_t, std::string> >::iterator it;
         it = m_stats.begin();
 
-        while (it != m_stats.end() && it->first < when)
+        while (it != m_stats.end() && it->first <= when)
         {
             ++it;
         }
@@ -912,7 +912,7 @@ daemon :: process_perf_counters(server_id from,
     msg.reset(e::buffer::create(sz));
     e::buffer::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_VC);
     pa = pa << nonce;
-    pa.copy(e::slice(out));
+    pa.copy(e::slice(out.data(), out.size() + 1));
     m_comm.send_client(vto, from, PERF_COUNTERS, msg);
 }
 
@@ -956,7 +956,7 @@ daemon :: collect_stats()
         uint64_t perf_xfer_op = m_perf_xfer_op.read();
         uint64_t perf_xfer_ack = m_perf_xfer_ack.read();
         uint64_t perf_perf_counters = m_perf_perf_counters.read();
-        ret << "time=" << target << " ";
+        ret << target << " ";
         ret << "msgs.req_get=" << perf_req_get - m_prev_perf_req_get  << " ";
         ret << "msgs.req_atomic=" << perf_req_atomic - m_prev_perf_req_atomic  << " ";
         ret << "msgs.req_search_start=" << perf_req_search_start - m_prev_perf_req_search_start  << " ";

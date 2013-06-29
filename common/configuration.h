@@ -64,7 +64,7 @@ class configuration
 
     // membership metadata
     public:
-        void get_all_addresses(std::vector<std::pair<server_id, po6::net::location> >* addrs);
+        void get_all_addresses(std::vector<std::pair<server_id, po6::net::location> >* addrs) const;
         po6::net::location get_address(const server_id& id) const;
         region_id get_region_id(const virtual_server_id& id) const;
         server_id get_server_id(const virtual_server_id& id) const;

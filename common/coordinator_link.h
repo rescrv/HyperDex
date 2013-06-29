@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,23 +25,59 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#ifndef hyperdex_common_coordinator_link_h_
+#define hyperdex_common_coordinator_link_h_
+
+#define __STDC_LIMIT_MACROS
+
+// C
+#include <stdint.h>
+
+// Replicant
+#include <replicant.h>
+
 // HyperDex
-#include "common/mapper.h"
+#include "namespace.h"
+#include "common/configuration.h"
 
-using hyperdex::mapper;
+BEGIN_HYPERDEX_NAMESPACE
 
-mapper :: mapper(const hyperdex::configuration* config)
-    : m_config(config)
+class coordinator_link
 {
-}
+    public:
+#ifdef _MSC_VER
+        typedef fd_set* poll_fd_t;
+#else
+        typedef int poll_fd_t;
+#endif
 
-mapper :: ~mapper() throw ()
-{
-}
+    public:
+        coordinator_link(const char* coordinator, uint16_t port);
+        ~coordinator_link() throw ();
 
-bool
-mapper :: lookup(uint64_t id, po6::net::location* addr)
-{
-    *addr = m_config->get_address(server_id(id));
-    return *addr != po6::net::location();
-}
+    public:
+        const configuration* config() { return &m_config; }
+        bool ensure_configuration(replicant_returncode* status);
+        poll_fd_t poll_fd();
+
+    private:
+        coordinator_link(const coordinator_link&);
+        coordinator_link& operator = (const coordinator_link&);
+
+    private:
+        bool begin_waiting_on_broadcast(replicant_returncode* status);
+        bool begin_fetching_config(replicant_returncode* status);
+
+    private:
+        replicant_client m_repl;
+        configuration m_config;
+        int64_t m_id;
+        replicant_returncode m_status;
+        enum { WAITING_ON_BROADCAST, FETCHING_CONFIG } m_state;
+        const char* m_output;
+        size_t m_output_sz;
+};
+
+END_HYPERDEX_NAMESPACE
+
+#endif // hyperdex_common_coordinator_link_h_

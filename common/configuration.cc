@@ -107,7 +107,7 @@ configuration :: version() const
 }
 
 void
-configuration :: get_all_addresses(std::vector<std::pair<server_id, po6::net::location> >* addrs)
+configuration :: get_all_addresses(std::vector<std::pair<server_id, po6::net::location> >* addrs) const
 {
     addrs->resize(m_addresses_by_server_id.size());
 
