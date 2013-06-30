@@ -551,6 +551,9 @@ hyperdex_initiate_transfer_SOURCES = tools/initiate-transfer.cc
 hyperdex_initiate_transfer_CPPFLAGS = -I${abs_top_srcdir}/client $(CPPFLAGS)
 hyperdex_initiate_transfer_LDADD = libhyperclient.la -lpopt
 
+hyperdex_perf_counters_SOURCES = tools/perf-counters.cc
+hyperdex_perf_counters_LDADD = libhyperdex-admin.la -lpopt
+
 ################################################################################
 ################################## Benchmarks ##################################
 ################################################################################

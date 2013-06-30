@@ -40,6 +40,7 @@ hyperdex-daemon
 hyperdex-initialize-cluster
 hyperdex-initiate-transfer
 hyperdex-kill
+/hyperdex-perf-counters
 hyperdex-replication-stress-test
 hyperdex-rm-space
 hyperdex-search-stress-test
