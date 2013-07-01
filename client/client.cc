@@ -451,8 +451,8 @@ client :: loop(int timeout, hyperclient_returncode* status)
             continue;
         }
 
-        if (vfrom == it->second.vsi &&
-            id == it->second.si &&
+        if (vfrom == psp.vsi &&
+            id == psp.si &&
             m_config.get_server_id(vfrom) == id)
         {
             if (!op->handle_message(this, id, vfrom, msg_type, msg, up, status))
