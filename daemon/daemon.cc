@@ -26,6 +26,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // POSIX
+#include <dirent.h>
 #include <signal.h>
 
 // STL
@@ -86,39 +87,25 @@ daemon :: daemon()
     , m_sm(this)
     , m_config()
     , m_perf_req_get()
-    , m_prev_perf_req_get()
     , m_perf_req_atomic()
-    , m_prev_perf_req_atomic()
     , m_perf_req_search_start()
-    , m_prev_perf_req_search_start()
     , m_perf_req_search_next()
-    , m_prev_perf_req_search_next()
     , m_perf_req_search_stop()
-    , m_prev_perf_req_search_stop()
     , m_perf_req_sorted_search()
-    , m_prev_perf_req_sorted_search()
     , m_perf_req_group_del()
-    , m_prev_perf_req_group_del()
     , m_perf_req_count()
-    , m_prev_perf_req_count()
     , m_perf_req_search_describe()
-    , m_prev_perf_req_search_describe()
     , m_perf_chain_op()
-    , m_prev_perf_chain_op()
     , m_perf_chain_subspace()
-    , m_prev_perf_chain_subspace()
     , m_perf_chain_ack()
-    , m_prev_perf_chain_ack()
     , m_perf_chain_gc()
-    , m_prev_perf_chain_gc()
     , m_perf_xfer_op()
-    , m_prev_perf_xfer_op()
     , m_perf_xfer_ack()
-    , m_prev_perf_xfer_ack()
     , m_perf_perf_counters()
-    , m_prev_perf_perf_counters()
+    , m_block_stat_path()
     , m_stat_collector(std::tr1::bind(&daemon::collect_stats, this))
     , m_protect_stats()
+    , m_stats_start(0)
     , m_stats()
 {
 }
@@ -245,6 +232,8 @@ daemon :: run(bool daemonize,
     {
         return EXIT_FAILURE;
     }
+
+    determine_block_stat_path(data);
 
     if (saved)
     {
@@ -899,6 +888,13 @@ daemon :: process_perf_counters(server_id from,
             ++it;
         }
 
+        if (it == m_stats.begin())
+        {
+            std::ostringstream ret;
+            ret << m_stats_start << " reset=" << m_stats_start << "\n";
+            out += ret.str();
+        }
+
         while (it != m_stats.end())
         {
             out += it->second;
@@ -924,91 +920,32 @@ daemon :: collect_stats()
     uint64_t target = e::time();
     target = target - (target % INTERVAL) + INTERVAL;
 
+    {
+        po6::threads::mutex::hold hold(&m_protect_stats);
+        m_stats_start = target;
+    }
+
     while (s_interrupts == 0)
     {
         // every INTERVAL nanoseconds collect stats
         uint64_t now = e::time();
 
-        while (now < target)
+        if (now < target)
         {
             struct timespec ts;
             ts.tv_sec = 0;
-            ts.tv_nsec = target - now;
+            ts.tv_nsec = std::min(target - now, 50000000UL);
             nanosleep(&ts, NULL);
-            now = e::time();
+            continue;
         }
 
         // collect the stats
         std::ostringstream ret;
-        uint64_t perf_req_get = m_perf_req_get.read();
-        uint64_t perf_req_atomic = m_perf_req_atomic.read();
-        uint64_t perf_req_search_start = m_perf_req_search_start.read();
-        uint64_t perf_req_search_next = m_perf_req_search_next.read();
-        uint64_t perf_req_search_stop = m_perf_req_search_stop.read();
-        uint64_t perf_req_sorted_search = m_perf_req_sorted_search.read();
-        uint64_t perf_req_group_del = m_perf_req_group_del.read();
-        uint64_t perf_req_count = m_perf_req_count.read();
-        uint64_t perf_req_search_describe = m_perf_req_search_describe.read();
-        uint64_t perf_chain_op = m_perf_chain_op.read();
-        uint64_t perf_chain_subspace = m_perf_chain_subspace.read();
-        uint64_t perf_chain_ack = m_perf_chain_ack.read();
-        uint64_t perf_chain_gc = m_perf_chain_gc.read();
-        uint64_t perf_xfer_op = m_perf_xfer_op.read();
-        uint64_t perf_xfer_ack = m_perf_xfer_ack.read();
-        uint64_t perf_perf_counters = m_perf_perf_counters.read();
-        ret << target << " ";
-        ret << "msgs.req_get=" << perf_req_get - m_prev_perf_req_get  << " ";
-        ret << "msgs.req_atomic=" << perf_req_atomic - m_prev_perf_req_atomic  << " ";
-        ret << "msgs.req_search_start=" << perf_req_search_start - m_prev_perf_req_search_start  << " ";
-        ret << "msgs.req_search_next=" << perf_req_search_next - m_prev_perf_req_search_next  << " ";
-        ret << "msgs.req_search_stop=" << perf_req_search_stop - m_prev_perf_req_search_stop  << " ";
-        ret << "msgs.req_sorted_search=" << perf_req_sorted_search - m_prev_perf_req_sorted_search  << " ";
-        ret << "msgs.req_group_del=" << perf_req_group_del - m_prev_perf_req_group_del  << " ";
-        ret << "msgs.req_count=" << perf_req_count - m_prev_perf_req_count  << " ";
-        ret << "msgs.req_search_describe=" << perf_req_search_describe - m_prev_perf_req_search_describe  << " ";
-        ret << "msgs.chain_op=" << perf_chain_op - m_prev_perf_chain_op  << " ";
-        ret << "msgs.chain_subspace=" << perf_chain_subspace - m_prev_perf_chain_subspace  << " ";
-        ret << "msgs.chain_ack=" << perf_chain_ack - m_prev_perf_chain_ack  << " ";
-        ret << "msgs.chain_gc=" << perf_chain_gc - m_prev_perf_chain_gc  << " ";
-        ret << "msgs.xfer_op=" << perf_xfer_op - m_prev_perf_xfer_op  << " ";
-        ret << "msgs.xfer_ack=" << perf_xfer_ack - m_prev_perf_xfer_ack  << " ";
-        ret << "msgs.perf_counters=" << perf_perf_counters - m_prev_perf_perf_counters  << " ";
-        m_prev_perf_req_get = perf_req_get;
-        m_prev_perf_req_atomic = perf_req_atomic;
-        m_prev_perf_req_search_start = perf_req_search_start;
-        m_prev_perf_req_search_next = perf_req_search_next;
-        m_prev_perf_req_search_stop = perf_req_search_stop;
-        m_prev_perf_req_sorted_search = perf_req_sorted_search;
-        m_prev_perf_req_group_del = perf_req_group_del;
-        m_prev_perf_req_count = perf_req_count;
-        m_prev_perf_req_search_describe = perf_req_search_describe;
-        m_prev_perf_chain_op = perf_chain_op;
-        m_prev_perf_chain_subspace = perf_chain_subspace;
-        m_prev_perf_chain_ack = perf_chain_ack;
-        m_prev_perf_chain_gc = perf_chain_gc;
-        m_prev_perf_xfer_op = perf_xfer_op;
-        m_prev_perf_xfer_ack = perf_xfer_ack;
-        m_prev_perf_perf_counters = perf_perf_counters;
-
-        std::string tmp;
-
-#define XXSTR(x) #x
-#define XSTR(x) XXSTR(x)
-#define LEVELDB_FILES_AT_LEVEL(N) \
-    if (m_data.get_property(e::slice("leveldb.num-files-at-level" XSTR(N)), &tmp)) \
-    { \
-        ret << "leveldb.num-files-at-level" XSTR(N) "=" << tmp << " "; \
-    }
-
-        LEVELDB_FILES_AT_LEVEL(0);
-        LEVELDB_FILES_AT_LEVEL(1);
-        LEVELDB_FILES_AT_LEVEL(2);
-        LEVELDB_FILES_AT_LEVEL(3);
-        LEVELDB_FILES_AT_LEVEL(4);
-        LEVELDB_FILES_AT_LEVEL(5);
-        LEVELDB_FILES_AT_LEVEL(6);
-
-        ret << "data.size=" << m_data.approximate_size() << "\n";
+        ret << target;
+        collect_stats_msgs(&ret);
+        collect_stats_leveldb(&ret);
+        collect_stats_io(&ret);
+        ret << "\n";
         std::string out = ret.str();
 
         po6::threads::mutex::hold hold(&m_protect_stats);
@@ -1021,5 +958,272 @@ daemon :: collect_stats()
 
         // next interval
         target += INTERVAL;
+    }
+}
+
+void
+daemon :: collect_stats_msgs(std::ostringstream* ret)
+{
+    *ret << " msgs.req_get=" << m_perf_req_get.read();
+    *ret << " msgs.req_atomic=" << m_perf_req_atomic.read();
+    *ret << " msgs.req_search_start=" << m_perf_req_search_start.read();
+    *ret << " msgs.req_search_next=" << m_perf_req_search_next.read();
+    *ret << " msgs.req_search_stop=" << m_perf_req_search_stop.read();
+    *ret << " msgs.req_sorted_search=" << m_perf_req_sorted_search.read();
+    *ret << " msgs.req_group_del=" << m_perf_req_group_del.read();
+    *ret << " msgs.req_count=" << m_perf_req_count.read();
+    *ret << " msgs.req_search_describe=" << m_perf_req_search_describe.read();
+    *ret << " msgs.chain_op=" << m_perf_chain_op.read();
+    *ret << " msgs.chain_subspace=" << m_perf_chain_subspace.read();
+    *ret << " msgs.chain_ack=" << m_perf_chain_ack.read();
+    *ret << " msgs.chain_gc=" << m_perf_chain_gc.read();
+    *ret << " msgs.xfer_op=" << m_perf_xfer_op.read();
+    *ret << " msgs.xfer_ack=" << m_perf_xfer_ack.read();
+    *ret << " msgs.perf_counters=" << m_perf_perf_counters.read();
+}
+
+namespace
+{
+
+struct leveldb_stat
+{
+    leveldb_stat() : files(0), size(0), time(0), read(0), write(0) {}
+    uint64_t files;
+    uint64_t size;
+    uint64_t time;
+    uint64_t read;
+    uint64_t write;
+};
+
+} // namespace
+
+void
+daemon :: collect_stats_leveldb(std::ostringstream* ret)
+{
+    *ret << " leveldb.size=" << m_data.approximate_size();
+    std::string tmp;
+
+    if (m_data.get_property(e::slice("leveldb.stats"), &tmp))
+    {
+        std::vector<char> lines(tmp.c_str(), tmp.c_str() + tmp.size() + 1);
+        char* ptr = &lines.front();
+        char* end = ptr + lines.size() - 1;
+        leveldb_stat stats[7];
+
+        while (ptr < end)
+        {
+            char* eol = strchr(ptr, '\n');
+            eol = eol ? eol : end;
+            *eol = 0;
+            int level;
+            int files;
+            double size;
+            double time;
+            double read;
+            double write;
+
+            if (sscanf(ptr, "%d %d %lf %lf %lf %lf",
+                            &level, &files, &size, &time, &read, &write) == 6 &&
+                level < 7)
+            {
+                stats[level].files = files;
+                stats[level].size = size * 1048576ULL;
+                stats[level].time = time;
+                stats[level].read = read * 1048576ULL;
+                stats[level].write = write * 1048576ULL;
+            }
+
+            ptr = eol + 1;
+        }
+
+        for (size_t i = 0; i < 7; ++i)
+        {
+            *ret << " leveldb.files" << i << "=" << stats[i].files;
+            *ret << " leveldb.size" << i << "=" << stats[i].size;
+            *ret << " leveldb.time" << i << "=" << stats[i].time;
+            *ret << " leveldb.read" << i << "=" << stats[i].read;
+            *ret << " leveldb.write" << i << "=" << stats[i].write;
+        }
+    }
+}
+
+namespace
+{
+
+bool
+read_sys_block_star(std::vector<std::string>* blocks)
+{
+    DIR* dir = opendir("/sys/block");
+    struct dirent* ent = NULL;
+
+    if (dir == NULL)
+    {
+        return false;
+    }
+
+    errno = 0;
+
+    while ((ent = readdir(dir)) != NULL)
+    {
+        blocks->push_back(ent->d_name);
+    }
+
+    closedir(dir);
+    return errno == 0;
+}
+
+} // namespace
+
+void
+daemon :: determine_block_stat_path(const po6::pathname& data)
+{
+    po6::pathname dir;
+
+    try
+    {
+       dir = data.realpath();
+    }
+    catch (po6::error& e)
+    {
+        LOG(ERROR) << "could not resolve true path for data: " << e.what();
+        return;
+    }
+
+    std::vector<std::string> block_devs;
+
+    if (!read_sys_block_star(&block_devs))
+    {
+        LOG(ERROR) << "could not ls /sys/block";
+        return;
+    }
+
+    FILE* mounts = fopen("/proc/mounts", "r");
+
+    if (!mounts)
+    {
+        LOG(ERROR) << "could not open /proc/mounts: " << po6::error(errno).what();
+        return;
+    }
+
+    char* line = NULL;
+    size_t line_sz = 0;
+    size_t max_mnt_sz = 0;
+
+    while (true)
+    {
+        ssize_t amt = getline(&line, &line_sz, mounts);
+
+        if (amt < 0)
+        {
+            if (ferror(mounts) != 0)
+            {
+                LOG(WARNING) << "could not read from /proc/mounts: " << po6::error(errno).what();
+                break;
+            }
+
+            if (feof(mounts) != 0)
+            {
+                break;
+            }
+
+            LOG(WARNING) << "unknown error when reading from /proc/mounts\n";
+            break;
+        }
+
+        char dev[4096];
+        char mnt[4096];
+        int pts = sscanf(line, "%4095s %4095s", dev, mnt);
+
+        if (pts != 2)
+        {
+            continue;
+        }
+
+        size_t msz = strlen(mnt);
+
+        if (strncmp(mnt, dir.get(), msz) != 0 ||
+            msz < max_mnt_sz)
+        {
+            continue;
+        }
+
+        std::string stat_path = po6::pathname(dev).basename().get();
+
+        for (size_t i = 0; i < block_devs.size(); ++i)
+        {
+            size_t dsz = std::min(stat_path.size(), block_devs[i].size());
+
+            if (strncmp(block_devs[i].c_str(), stat_path.c_str(), dsz) == 0)
+            {
+                max_mnt_sz = msz;
+                m_block_stat_path = std::string("/sys/block/") + block_devs[i] + "/stat";
+            }
+        }
+    }
+
+    if (!m_block_stat_path.empty())
+    {
+        LOG(INFO) << "using " << m_block_stat_path << " for reporting io.* stats";
+    }
+    else
+    {
+        LOG(WARNING) << "cannot determine device name for reporting io.* stats";
+    }
+
+    if (line)
+    {
+        free(line);
+    }
+
+    fclose(mounts);
+}
+
+void
+daemon :: collect_stats_io(std::ostringstream* ret)
+{
+    if (m_block_stat_path.empty())
+    {
+        return;
+    }
+
+    FILE* fin = fopen(m_block_stat_path.c_str(), "r");
+
+    if (!fin)
+    {
+        LOG(ERROR) << "could not open " << m_block_stat_path << " for reading block-device stats; io.* stats will not be reported";
+        m_block_stat_path = "";
+        return;
+    }
+
+    uint64_t read_ios;
+    uint64_t read_merges;
+    uint64_t read_sectors;
+    uint64_t read_ticks;
+    uint64_t write_ios;
+    uint64_t write_merges;
+    uint64_t write_sectors;
+    uint64_t write_ticks;
+    uint64_t in_flight;
+    uint64_t io_ticks;
+    uint64_t time_in_queue;
+    int x = fscanf(fin, "%lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu",
+                   &read_ios, &read_merges, &read_sectors, &read_ticks,
+                   &write_ios, &write_merges, &write_sectors, &write_ticks,
+                   &in_flight, &io_ticks, &time_in_queue);
+    fclose(fin);
+
+    if (x == 11)
+    {
+        *ret << " io.read_ios=" << read_ios;
+        *ret << " io.read_merges=" << read_merges;
+        *ret << " io.read_bytes=" << read_sectors * 512;
+        *ret << " io.read_ticks=" << read_ticks;
+        *ret << " io.write_ios=" << write_ios;
+        *ret << " io.write_merges=" << write_merges;
+        *ret << " io.write_bytes=" << write_sectors * 512;
+        *ret << " io.write_ticks=" << write_ticks;
+        *ret << " io.in_flight=" << in_flight;
+        *ret << " io.io_ticks=" << io_ticks;
+        *ret << " io.time_in_queue=" << time_in_queue;
     }
 }

@@ -36,7 +36,7 @@
 
 // HyperDex
 #include "admin/admin.h"
-#include "tools/common.h"
+#include "tools/old.common.h"
 
 static struct poptOption popts[] = {
     POPT_AUTOHELP

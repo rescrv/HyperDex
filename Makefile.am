@@ -72,6 +72,7 @@ hyperdexexec_PROGRAMS += hyperdex-rm-space
 hyperdexexec_PROGRAMS += hyperdex-show-config
 hyperdexexec_PROGRAMS += hyperdex-async-benchmark
 hyperdexexec_PROGRAMS += hyperdex-benchmark
+hyperdexexec_PROGRAMS += hyperdex-perf-counters
 hyperdexexec_PROGRAMS += hyperdex-initiate-transfer
 hyperdexexec_LTLIBRARIES = libhypercoordinator.la
 

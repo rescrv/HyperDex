@@ -90,6 +90,10 @@ class daemon
 
     private:
         void collect_stats();
+        void collect_stats_msgs(std::ostringstream* ret);
+        void collect_stats_leveldb(std::ostringstream* ret);
+        void determine_block_stat_path(const po6::pathname& data);
+        void collect_stats_io(std::ostringstream* ret);
 
     private:
         friend class communication;
@@ -111,40 +115,27 @@ class daemon
         configuration m_config;
         // counters
         performance_counter m_perf_req_get;
-        uint64_t m_prev_perf_req_get;
         performance_counter m_perf_req_atomic;
-        uint64_t m_prev_perf_req_atomic;
         performance_counter m_perf_req_search_start;
-        uint64_t m_prev_perf_req_search_start;
         performance_counter m_perf_req_search_next;
-        uint64_t m_prev_perf_req_search_next;
         performance_counter m_perf_req_search_stop;
-        uint64_t m_prev_perf_req_search_stop;
         performance_counter m_perf_req_sorted_search;
-        uint64_t m_prev_perf_req_sorted_search;
         performance_counter m_perf_req_group_del;
-        uint64_t m_prev_perf_req_group_del;
         performance_counter m_perf_req_count;
-        uint64_t m_prev_perf_req_count;
         performance_counter m_perf_req_search_describe;
-        uint64_t m_prev_perf_req_search_describe;
         performance_counter m_perf_chain_op;
-        uint64_t m_prev_perf_chain_op;
         performance_counter m_perf_chain_subspace;
-        uint64_t m_prev_perf_chain_subspace;
         performance_counter m_perf_chain_ack;
-        uint64_t m_prev_perf_chain_ack;
         performance_counter m_perf_chain_gc;
-        uint64_t m_prev_perf_chain_gc;
         performance_counter m_perf_xfer_op;
-        uint64_t m_prev_perf_xfer_op;
         performance_counter m_perf_xfer_ack;
-        uint64_t m_prev_perf_xfer_ack;
         performance_counter m_perf_perf_counters;
-        uint64_t m_prev_perf_perf_counters;
+        // iostat-like stats
+        std::string m_block_stat_path;
         // historical data
         po6::threads::thread m_stat_collector;
         po6::threads::mutex m_protect_stats;
+        uint64_t m_stats_start;
         std::list<std::pair<uint64_t, std::string> > m_stats;
 };
 
