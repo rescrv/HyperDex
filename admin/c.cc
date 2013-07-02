@@ -88,6 +88,17 @@ hyperdex_admin_destroy(struct hyperdex_admin* admin)
     delete reinterpret_cast<hyperdex::admin*>(admin);
 }
 
+HYPERDEX_API int64_t
+hyperdex_admin_dump_config(struct hyperdex_admin* _adm,
+                           hyperdex_admin_returncode* status,
+                           const char** config)
+{
+    C_WRAP_EXCEPT(
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->dump_config(status, config);
+    );
+}
+
 HYPERDEX_API int
 hyperdex_admin_validate_space(struct hyperdex_admin* _adm,
                               const char* description,

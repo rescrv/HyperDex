@@ -354,7 +354,7 @@ coordinator_link :: show_config(std::ostream& out)
         return status;
     }
 
-    m_config.debug_dump(out);
+    m_config.dump(out);
     return HYPERCLIENT_SUCCESS;
 }
 

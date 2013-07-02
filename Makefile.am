@@ -480,6 +480,7 @@ libhyperdex_admin_la_SOURCES += admin/admin.cc
 libhyperdex_admin_la_SOURCES += admin/c.cc
 libhyperdex_admin_la_SOURCES += admin/pending.cc
 libhyperdex_admin_la_SOURCES += admin/pending_perf_counters.cc
+libhyperdex_admin_la_SOURCES += admin/pending_string.cc
 libhyperdex_admin_la_CPPFLAGS = -I${abs_top_srcdir}/include
 libhyperdex_admin_la_LIBADD =
 libhyperdex_admin_la_LIBADD += $(E_LIBS)

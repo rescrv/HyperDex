@@ -52,6 +52,10 @@ class admin
         ~admin() throw ();
 
     public:
+        // introspect the config
+        int64_t dump_config(enum hyperdex_admin_returncode* status,
+                            const char** config);
+        // manage spaces
         int validate_space(const char* description,
                            enum hyperdex_admin_returncode* status,
                            const char** error_msg);
@@ -59,8 +63,6 @@ class admin
                           enum hyperdex_admin_returncode* status);
         int64_t rm_space(const char* name,
                          enum hyperdex_admin_returncode* status);
-
-    public:
         // read performance counters
         int64_t enable_perf_counters(hyperdex_admin_returncode* status,
                                      hyperdex_admin_perf_counter* pc);

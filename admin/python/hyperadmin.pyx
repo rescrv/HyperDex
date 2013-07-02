@@ -72,6 +72,7 @@ cdef extern from "../../include/hyperdex/admin.h":
 
     hyperdex_admin* hyperdex_admin_create(char* coordinator, uint16_t port)
     void hyperdex_admin_destroy(hyperdex_admin* admin)
+    int64_t hyperdex_admin_dump_config(hyperdex_admin* admin, hyperdex_admin_returncode* status, char** config)
     int64_t hyperdex_admin_enable_perf_counters(hyperdex_admin* admin, hyperdex_admin_returncode* status, hyperdex_admin_perf_counter* pc)
     void hyperdex_admin_disable_perf_counters(hyperdex_admin* admin)
     int64_t hyperdex_admin_loop(hyperdex_admin* admin, int timeout, hyperdex_admin_returncode* status) nogil
@@ -127,6 +128,54 @@ class HyperDexAdminException(Exception):
     def __ne__(self, other):
         return not (self == other)
 
+cdef class DeferredString:
+
+    cdef Admin _admin
+    cdef int64_t _reqid
+    cdef hyperdex_admin_returncode _status
+    cdef char* _cstr
+    cdef str _pstr
+    cdef bint _finished
+
+    def __cinit__(self, Admin admin, *args):
+        self._admin = admin
+        self._reqid = 0
+        self._status = HYPERDEX_ADMIN_GARBAGE
+        self._cstr = NULL
+        self._pstr = ""
+        self._finished = False
+        self._reqid = hyperdex_admin_dump_config(self._admin._admin,
+                                                 &self._status,
+                                                 &self._cstr)
+        if self._reqid < 0:
+            raise HyperDexAdminException(self._status)
+        self._admin._ops[self._reqid] = self
+
+    def _callback(self):
+        if self._cstr:
+            self._pstr = self._cstr
+        self._finished = True
+        del self._admin._ops[self._reqid]
+
+    def wait(self):
+        while not self._finished and self._reqid > 0:
+            self._admin.loop()
+        self._finished = True
+        if self._status == HYPERDEX_ADMIN_SUCCESS:
+            ret = {'cluster': 0, 'version': 0, 'servers': []}
+            for line in self._pstr.split('\n'):
+                if line.startswith('cluster'):
+                    ret['cluster'] = int(line.split(' ')[1])
+                if line.startswith('version'):
+                    ret['version'] = int(line.split(' ')[1])
+                if line.startswith('server'):
+                    sid, loc, state = line.split(' ')[1:]
+                    server = {'id': sid, 'location': loc, 'state': state}
+                    ret['servers'].append(server)
+            return ret
+        else:
+            raise HyperDexAdminException(self._status)
+
 cdef class DeferredPerfCounter:
 
     cdef Admin _admin
@@ -175,6 +224,12 @@ cdef class Admin:
     def __dealloc__(self):
         if self._admin:
             hyperdex_admin_destroy(self._admin)
+
+    def async_dump_config(self):
+        return DeferredString(self)
+
+    def dump_config(self):
+        return self.async_dump_config().wait()
 
     def enable_perf_counters(self):
         cdef hyperdex_admin_returncode rc

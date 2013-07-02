@@ -718,33 +718,37 @@ configuration :: lookup_search(const char* space_name,
 }
 
 void
-configuration :: debug_dump(std::ostream& out)
+configuration :: dump(std::ostream& out) const
 {
-    out << "configuration cluster=" << m_cluster << " version=" << m_version << std::endl;
+    out << "cluster " << m_cluster << "\n";
+    out << "version " << m_version << "\n";
 
     for (size_t i = 0; i < m_addresses_by_server_id.size(); ++i)
     {
-        out << "server id=" << server_id(m_addresses_by_server_id[i].first)
-            << " address=" << m_addresses_by_server_id[i].second << std::endl;
+        out << "server "
+            << m_addresses_by_server_id[i].first << " "
+            << m_addresses_by_server_id[i].second << " "
+            << "available" << "\n";
     }
 
     for (size_t w = 0; w < m_spaces.size(); ++w)
     {
-        space& s(m_spaces[w]);
-        out << "space id=" << s.id << " name=" << s.name << std::endl;
-        out << "  fault_tolerance=" << s.fault_tolerance << std::endl;
-        out << "  schema" << std::endl;
+        const space& s(m_spaces[w]);
+        out << "space " << s.id.get() << " " << s.name << "\n";
+        out << "  fault_tolerance " << s.fault_tolerance << "\n";
+        out << "  schema" << "\n";
 
         for (size_t i = 0; i < s.sc.attrs_sz; ++i)
         {
-            out << "    attribute name=" << s.sc.attrs[i].name
-                      << " type=" << s.sc.attrs[i].type << std::endl;
+            out << "    attribute "
+                << s.sc.attrs[i].name << " "
+                << s.sc.attrs[i].type << "\n";
         }
 
         for (size_t x = 0; x < s.subspaces.size(); ++x)
         {
-            subspace& ss(s.subspaces[x]);
-            out << "  subspace id=" << ss.id << std::endl;
+            const subspace& ss(s.subspaces[x]);
+            out << "  subspace " << ss.id.get() << "\n";
             out << "    attributes";
 
             for (size_t i = 0; i < ss.attrs.size(); ++i)
@@ -752,7 +756,7 @@ configuration :: debug_dump(std::ostream& out)
                 out << " " << s.sc.attrs[ss.attrs[i]].name;
             }
 
-            out << std::endl;
+            out << "\n";
             out << "    indices";
 
             for (size_t i = 0; i < ss.indices.size(); ++i)
@@ -760,12 +764,12 @@ configuration :: debug_dump(std::ostream& out)
                 out << " " << s.sc.attrs[ss.indices[i]].name;
             }
 
-            out << std::endl;
+            out << "\n";
 
             for (size_t y = 0; y < ss.regions.size(); ++y)
             {
-                region& r(ss.regions[y]);
-                out << "    region id=" << r.id << " lower=<";
+                const region& r(ss.regions[y]);
+                out << "    region " << r.id.get() << " lower=<";
                 bool first = true;
 
                 for (size_t i = 0; i < r.lower_coord.size(); ++i)
@@ -788,7 +792,7 @@ configuration :: debug_dump(std::ostream& out)
 
                 for (size_t z = 0; z < r.replicas.size(); ++z)
                 {
-                    replica& rr(r.replicas[z]);
+                    const replica& rr(r.replicas[z]);
                     out << (first ? "" : ", ") << "(id=" << rr.si << " vid=" << rr.vsi << ")";
                     first = false;
                 }

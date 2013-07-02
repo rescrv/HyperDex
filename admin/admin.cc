@@ -25,12 +25,16 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// STL
+#include <sstream>
+
 // BusyBee
 #include <busybee_constants.h>
 
 // HyperDex
 #include "admin/admin.h"
 #include "admin/pending_perf_counters.h"
+#include "admin/pending_string.h"
 
 using hyperdex::admin;
 
@@ -52,9 +56,41 @@ admin :: ~admin() throw ()
 {
 }
 
-        int admin :: validate_space(const char* description, enum hyperdex_admin_returncode* status, const char** error_msg) { return -1; }
-        int64_t admin :: add_space(const char* description, enum hyperdex_admin_returncode* status) { return -1; }
-        int64_t admin :: rm_space(const char* name, enum hyperdex_admin_returncode* status) { return -1; }
+int64_t
+admin :: dump_config(enum hyperdex_admin_returncode* status,
+                     const char** config)
+{
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    std::ostringstream ostr;
+    m_coord.config()->dump(ostr);
+    int64_t id = m_next_admin_id;
+    ++m_next_admin_id;
+    e::intrusive_ptr<pending> op = new pending_string(id, status, ostr.str(), config);
+    m_yieldable.push_back(op);
+    return op->admin_visible_id();
+}
+
+int
+admin :: validate_space(const char* description, enum hyperdex_admin_returncode* status, const char** error_msg)
+{
+    return -1;
+}
+
+int64_t
+admin :: add_space(const char* description, enum hyperdex_admin_returncode* status)
+{
+    return -1;
+}
+
+int64_t
+admin :: rm_space(const char* name, enum hyperdex_admin_returncode* status)
+{
+    return -1;
+}
 
 int64_t
 admin :: enable_perf_counters(hyperdex_admin_returncode* status,
