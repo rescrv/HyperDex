@@ -46,7 +46,12 @@
 #include "common/schema.h"
 #include "admin/hyperspace_builder_internal.h"
 #include "admin/partition.h"
+
+// apparently Bison 2.7.1. emits C funcs, but doesn't call them extern.
+extern "C"
+{
 #include "admin/parse_space_y.h"
+}
 
 #define BUFFER_SIZE 1024
 
