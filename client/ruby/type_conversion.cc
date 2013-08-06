@@ -42,6 +42,7 @@ extern "C"
 
 // e
 #include <e/endian.h>
+#include <e/slice.h>
 
 // HyperDex
 #include "common/macros.h"
