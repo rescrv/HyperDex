@@ -36,11 +36,11 @@
 #include <busybee_st.h>
 
 // HyperDex
+#include <hyperdex/client.h>
 #include "namespace.h"
 #include "common/configuration.h"
+#include "common/coordinator_link.h"
 #include "common/mapper.h"
-#include "client/coordinator_link.h"
-#include "client/hyperclient.h"
 #include "client/keyop_info.h"
 #include "client/pending.h"
 #include "client/pending_aggregation.h"
@@ -54,43 +54,50 @@ class client
         ~client() throw ();
 
     public:
-        hyperclient_returncode add_space(const char* description);
-        hyperclient_returncode rm_space(const char* space);
+        hyperdex_client_returncode add_space(const char* description);
+        hyperdex_client_returncode rm_space(const char* space);
 
     public:
         // specific calls
         int64_t get(const char* space, const char* key, size_t key_sz,
-                    hyperclient_returncode* status,
-                    hyperclient_attribute** attrs, size_t* attrs_sz);
+                    hyperdex_client_returncode* status,
+                    const hyperdex_client_attribute** attrs, size_t* attrs_sz);
         int64_t search(const char* space,
-                       const struct hyperclient_attribute_check* checks, size_t checks_sz,
-                       enum hyperclient_returncode* status,
-                       struct hyperclient_attribute** attrs, size_t* attrs_sz);
+                       const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                       hyperdex_client_returncode* status,
+                       const hyperdex_client_attribute** attrs, size_t* attrs_sz);
         int64_t search_describe(const char* space,
-                                const struct hyperclient_attribute_check* checks, size_t checks_sz,
-                                enum hyperclient_returncode* status, const char** description);
+                                const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                hyperdex_client_returncode* status, const char** description);
         int64_t sorted_search(const char* space,
-                              const struct hyperclient_attribute_check* checks, size_t checks_sz,
+                              const hyperdex_client_attribute_check* checks, size_t checks_sz,
                               const char* sort_by,
                               uint64_t limit,
                               bool maximize,
-                              enum hyperclient_returncode* status,
-                              struct hyperclient_attribute** attrs, size_t* attrs_sz);
+                              hyperdex_client_returncode* status,
+                              const hyperdex_client_attribute** attrs, size_t* attrs_sz);
         int64_t group_del(const char* space,
-                          const struct hyperclient_attribute_check* checks, size_t checks_sz,
-                          enum hyperclient_returncode* status);
+                          const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                          hyperdex_client_returncode* status);
         int64_t count(const char* space,
-                      const struct hyperclient_attribute_check* checks, size_t checks_sz,
-                      enum hyperclient_returncode* status, uint64_t* result);
+                      const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                      hyperdex_client_returncode* status, uint64_t* result);
         // general keyop call
-        int64_t perform_funcall(const hyperclient_keyop_info* opinfo,
+        int64_t perform_funcall(const hyperdex_client_keyop_info* opinfo,
                                 const char* space, const char* key, size_t key_sz,
-                                const hyperclient_attribute_check* checks, size_t checks_sz,
-                                const hyperclient_attribute* attrs, size_t attrs_sz,
-                                const hyperclient_map_attribute* mapattrs, size_t mapattrs_sz,
-                                hyperclient_returncode* status);
+                                const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                const hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                                hyperdex_client_returncode* status);
         // looping/polling
-        int64_t loop(int timeout, hyperclient_returncode* status);
+        int64_t loop(int timeout, hyperdex_client_returncode* status);
+        // error handling
+        const char* error_message();
+        const char* error_location();
+        void set_error_message(const char* msg);
+        // helpers for bindings
+        hyperdatatype attribute_type(const char* space, const char* name,
+                                     hyperdex_client_returncode* status);
 
     private:
         struct pending_server_pair
@@ -113,58 +120,56 @@ class client
         friend class pending_sorted_search;
 
     private:
-        size_t prepare_checks(const schema& sc,
-                              const hyperclient_attribute_check* chks, size_t chks_sz,
-                              hyperclient_returncode* status,
+        size_t prepare_checks(const char* space, const schema& sc,
+                              const hyperdex_client_attribute_check* chks, size_t chks_sz,
+                              hyperdex_client_returncode* status,
                               std::vector<attribute_check>* checks);
-        size_t prepare_funcs(const schema& sc,
-                             const hyperclient_keyop_info* opinfo,
-                             const hyperclient_attribute* attrs, size_t attrs_sz,
-                             hyperclient_returncode* status,
+        size_t prepare_funcs(const char* space, const schema& sc,
+                             const hyperdex_client_keyop_info* opinfo,
+                             const hyperdex_client_attribute* attrs, size_t attrs_sz,
+                             hyperdex_client_returncode* status,
                              std::vector<funcall>* funcs);
-        size_t prepare_funcs(const schema& sc,
-                             const hyperclient_keyop_info* opinfo,
-                             const hyperclient_map_attribute* mapattrs, size_t mapattrs_sz,
-                             hyperclient_returncode* status,
+        size_t prepare_funcs(const char* space, const schema& sc,
+                             const hyperdex_client_keyop_info* opinfo,
+                             const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                             hyperdex_client_returncode* status,
                              std::vector<funcall>* funcs);
         size_t prepare_searchop(const schema& sc,
                                 const char* space,
-                                const struct hyperclient_attribute_check* chks, size_t chks_sz,
-                                hyperclient_returncode* status,
+                                const hyperdex_client_attribute_check* chks, size_t chks_sz,
+                                hyperdex_client_returncode* status,
                                 std::vector<attribute_check>* checks,
                                 std::vector<virtual_server_id>* servers);
         int64_t perform_aggregation(const std::vector<virtual_server_id>& servers,
                                     e::intrusive_ptr<pending_aggregation> op,
                                     network_msgtype mt,
                                     std::auto_ptr<e::buffer> msg,
-                                    hyperclient_returncode* status);
-        bool maintain_coord_connection(hyperclient_returncode* status);
+                                    hyperdex_client_returncode* status);
+        bool maintain_coord_connection(hyperdex_client_returncode* status);
         bool send(network_msgtype mt,
                   const virtual_server_id& to,
                   uint64_t nonce,
                   std::auto_ptr<e::buffer> msg,
                   e::intrusive_ptr<pending> op,
-                  hyperclient_returncode* status);
+                  hyperdex_client_returncode* status);
         int64_t send_keyop(const char* space,
                            const e::slice& key,
                            network_msgtype mt,
                            std::auto_ptr<e::buffer> msg,
                            e::intrusive_ptr<pending> op,
-                           hyperclient_returncode* status);
+                           hyperdex_client_returncode* status);
         void handle_disruption(const server_id& si);
 
     private:
-        configuration m_config;
-        bool m_have_seen_config;
+        coordinator_link m_coord;
         mapper m_busybee_mapper;
         busybee_st m_busybee;
-        coordinator_link m_coord;
         int64_t m_next_client_id;
         uint64_t m_next_server_nonce;
         pending_map_t m_pending_ops;
         pending_queue_t m_failed;
-        std::list<e::intrusive_ptr<pending> > m_yieldable;
         e::intrusive_ptr<pending> m_yielding;
+        e::error m_last_error;
 };
 
 END_HYPERDEX_NAMESPACE

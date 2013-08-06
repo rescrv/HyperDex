@@ -102,7 +102,7 @@ main(int argc, const char* argv[])
             {
                 hyperclient_returncode e = t.kill(sid);
 
-                if (e != HYPERCLIENT_SUCCESS)
+                if (e != HYPERDEX_CLIENT_SUCCESS)
                 {
                     std::cerr << "could not kill " << args[i] << ": " << e << std::endl;
                     ++failure;

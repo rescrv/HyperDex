@@ -38,14 +38,14 @@ class pending_get : public pending
 {
     public:
         pending_get(uint64_t client_visible_id,
-                    hyperclient_returncode* status,
-                    struct hyperclient_attribute** attrs, size_t* attrs_sz);
+                    hyperdex_client_returncode* status,
+                    const hyperdex_client_attribute** attrs, size_t* attrs_sz);
         virtual ~pending_get() throw ();
 
     // return to client
     public:
         virtual bool can_yield();
-        virtual bool yield(hyperclient_returncode* status);
+        virtual bool yield(hyperdex_client_returncode* status, e::error* error);
 
     // events
     public:
@@ -59,7 +59,8 @@ class pending_get : public pending
                                     network_msgtype mt,
                                     std::auto_ptr<e::buffer> msg,
                                     e::unpacker up,
-                                    hyperclient_returncode* status);
+                                    hyperdex_client_returncode* status,
+                                    e::error* error);
 
     // noncopyable
     private:
@@ -68,7 +69,7 @@ class pending_get : public pending
 
     private:
         enum { INITIALIZED, SENT, RECV, YIELDED } m_state;
-        hyperclient_attribute** m_attrs;
+        const hyperdex_client_attribute** m_attrs;
         size_t* m_attrs_sz;
 };
 

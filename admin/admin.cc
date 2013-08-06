@@ -32,9 +32,16 @@
 #include <busybee_constants.h>
 
 // HyperDex
+#include <hyperdex/hyperspace_builder.h>
+#include "visibility.h"
+#include "common/macros.h"
 #include "admin/admin.h"
+#include "admin/coord_rpc_add_space.h"
+#include "admin/coord_rpc_rm_space.h"
+#include "admin/hyperspace_builder_internal.h"
 #include "admin/pending_perf_counters.h"
 #include "admin/pending_string.h"
+#include "admin/yieldable.h"
 
 using hyperdex::admin;
 
@@ -44,7 +51,9 @@ admin :: admin(const char* coordinator, uint16_t port)
     , m_busybee(&m_busybee_mapper, 0)
     , m_next_admin_id(1)
     , m_next_server_nonce(1)
-    , m_pending_ops()
+    , m_handle_coord_ops(false)
+    , m_coord_ops()
+    , m_server_ops()
     , m_failed()
     , m_yieldable()
     , m_yielding()
@@ -57,7 +66,7 @@ admin :: ~admin() throw ()
 }
 
 int64_t
-admin :: dump_config(enum hyperdex_admin_returncode* status,
+admin :: dump_config(hyperdex_admin_returncode* status,
                      const char** config)
 {
     if (!maintain_coord_connection(status))
@@ -69,27 +78,109 @@ admin :: dump_config(enum hyperdex_admin_returncode* status,
     m_coord.config()->dump(ostr);
     int64_t id = m_next_admin_id;
     ++m_next_admin_id;
-    e::intrusive_ptr<pending> op = new pending_string(id, status, ostr.str(), config);
-    m_yieldable.push_back(op);
+    e::intrusive_ptr<pending> op = new pending_string(id, status, HYPERDEX_ADMIN_SUCCESS, ostr.str(), config);
+    m_yieldable.push_back(op.get());
     return op->admin_visible_id();
 }
 
 int
-admin :: validate_space(const char* description, enum hyperdex_admin_returncode* status, const char** error_msg)
+admin :: validate_space(const char* description,
+                        hyperdex_admin_returncode* status)
 {
-    return -1;
+    struct hyperspace* space_builder = hyperspace_parse(description);
+
+    if (!space_builder)
+    {
+        *status = HYPERDEX_ADMIN_NOMEM;
+        return -1;
+    }
+
+    if (hyperspace_error(space_builder))
+    {
+        *status = HYPERDEX_ADMIN_BADSPACE;
+        return -1;
+    }
+
+    return 0;
 }
 
 int64_t
-admin :: add_space(const char* description, enum hyperdex_admin_returncode* status)
+admin :: add_space(const char* description,
+                   hyperdex_admin_returncode* status)
 {
-    return -1;
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    struct hyperspace* space_builder = hyperspace_parse(description);
+
+    if (!space_builder)
+    {
+        *status = HYPERDEX_ADMIN_NOMEM;
+        return -1;
+    }
+
+    if (hyperspace_error(space_builder))
+    {
+        *status = HYPERDEX_ADMIN_BADSPACE;
+        return -1;
+    }
+
+    hyperdex::space space;
+
+    if (!space_to_space(space_builder, &space))
+    {
+        *status = HYPERDEX_ADMIN_BADSPACE;
+        return -1;
+    }
+
+    std::auto_ptr<e::buffer> msg(e::buffer::create(pack_size(space)));
+    msg->pack_at(0) << space;
+
+    int64_t id = m_next_admin_id;
+    ++m_next_admin_id;
+    e::intrusive_ptr<coord_rpc> op = new coord_rpc_add_space(id, status);
+    int64_t cid = m_coord.rpc("add-space", reinterpret_cast<const char*>(msg->data()), msg->size(),
+                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+
+    if (cid >= 0)
+    {
+        m_coord_ops[cid] = op;
+        return op->admin_visible_id();
+    }
+    else
+    {
+        *status = interpret_rpc_request_failure(op->repl_status);
+        return -1;
+    }
 }
 
 int64_t
-admin :: rm_space(const char* name, enum hyperdex_admin_returncode* status)
+admin :: rm_space(const char* name,
+                  hyperdex_admin_returncode* status)
 {
-    return -1;
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    int64_t id = m_next_admin_id;
+    ++m_next_admin_id;
+    e::intrusive_ptr<coord_rpc> op = new coord_rpc_rm_space(id, status);
+    int64_t cid = m_coord.rpc("rm-space", name, strlen(name) + 1,
+                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+
+    if (cid >= 0)
+    {
+        m_coord_ops[cid] = op;
+        return op->admin_visible_id();
+    }
+    else
+    {
+        *status = interpret_rpc_request_failure(op->repl_status);
+        return -1;
+    }
 }
 
 int64_t
@@ -130,7 +221,8 @@ admin :: loop(int timeout, hyperdex_admin_returncode* status)
            m_yielding ||
            !m_failed.empty() ||
            !m_yieldable.empty() ||
-           !m_pending_ops.empty())
+           !m_coord_ops.empty() ||
+           !m_server_ops.empty())
     {
         if (m_yielding)
         {
@@ -164,17 +256,17 @@ admin :: loop(int timeout, hyperdex_admin_returncode* status)
         {
             const pending_server_pair& psp(m_failed.front());
             psp.op->handle_failure(psp.si);
-            m_yielding = psp.op;
+            m_yielding = psp.op.get();
             m_failed.pop_front();
             continue;
         }
-
-        assert(!m_pending_ops.empty() || m_pcs);
 
         if (!maintain_coord_connection(status))
         {
             return -1;
         }
+
+        assert(!m_coord_ops.empty() || !m_server_ops.empty() || m_pcs);
 
         if (m_pcs)
         {
@@ -206,6 +298,37 @@ admin :: loop(int timeout, hyperdex_admin_returncode* status)
             m_busybee.set_timeout(timeout);
         }
 
+        if (m_handle_coord_ops)
+        {
+            m_handle_coord_ops = false;
+            replicant_returncode lrc = REPLICANT_GARBAGE;
+            int64_t lid = m_coord.loop(0, &lrc);
+
+            if (lid < 0)
+            {
+                *status = interpret_rpc_loop_failure(lrc);
+                return -1;
+            }
+
+            coord_rpc_map_t::iterator it = m_coord_ops.find(lid);
+
+            if (it == m_coord_ops.end())
+            {
+                continue;
+            }
+
+            e::intrusive_ptr<coord_rpc> op = it->second;
+            m_coord_ops.erase(it);
+
+            if (!op->handle_response(this, status))
+            {
+                return -1;
+            }
+
+            m_yielding = op.get();
+            continue;
+        }
+
         uint64_t sid_num;
         std::auto_ptr<e::buffer> msg;
         busybee_returncode rc = m_busybee.recv(&sid_num, &msg);
@@ -234,6 +357,7 @@ admin :: loop(int timeout, hyperdex_admin_returncode* status)
                 *status = HYPERDEX_ADMIN_INTERRUPTED;
                 return -1;
             case BUSYBEE_EXTERNAL:
+                m_handle_coord_ops = true;
                 continue;
             case BUSYBEE_SHUTDOWN:
             default:
@@ -248,15 +372,14 @@ admin :: loop(int timeout, hyperdex_admin_returncode* status)
 
         if (up.error())
         {
-            std::cout << "FUCKER " << __LINE__ << std::endl;
             *status = HYPERDEX_ADMIN_SERVERERROR;
             return -1;
         }
 
         network_msgtype msg_type = static_cast<network_msgtype>(mt);
-        pending_map_t::iterator it = m_pending_ops.find(nonce);
+        pending_map_t::iterator it = m_server_ops.find(nonce);
 
-        if (it == m_pending_ops.end())
+        if (it == m_server_ops.end())
         {
             continue;
         }
@@ -272,18 +395,17 @@ admin :: loop(int timeout, hyperdex_admin_returncode* status)
 
         if (id == it->second.si)
         {
-            m_pending_ops.erase(it);
+            m_server_ops.erase(it);
 
             if (!op->handle_message(this, id, msg_type, msg, up, status))
             {
                 return -1;
             }
 
-            m_yielding = psp.op;
+            m_yielding = psp.op.get();
         }
         else
         {
-            std::cout << "FUCKER " << __LINE__ << std::endl;
             *status = HYPERDEX_ADMIN_SERVERERROR;
             return -1;
         }
@@ -291,6 +413,99 @@ admin :: loop(int timeout, hyperdex_admin_returncode* status)
 
     *status = HYPERDEX_ADMIN_NONEPENDING;
     return -1;
+}
+
+hyperdex_admin_returncode
+admin :: interpret_rpc_request_failure(replicant_returncode status)
+{
+    switch (status)
+    {
+        case REPLICANT_TIMEOUT:
+            return HYPERDEX_ADMIN_TIMEOUT;
+        case REPLICANT_INTERRUPTED:
+            return HYPERDEX_ADMIN_INTERRUPTED;
+        case REPLICANT_NAME_TOO_LONG:
+        case REPLICANT_NEED_BOOTSTRAP:
+        case REPLICANT_SERVER_ERROR:
+        case REPLICANT_OBJ_NOT_FOUND:
+        case REPLICANT_FUNC_NOT_FOUND:
+        case REPLICANT_BACKOFF:
+            return HYPERDEX_ADMIN_COORDFAIL;
+        case REPLICANT_SUCCESS:
+        case REPLICANT_NONE_PENDING:
+        case REPLICANT_INTERNAL_ERROR:
+        case REPLICANT_MISBEHAVING_SERVER:
+        case REPLICANT_BAD_LIBRARY:
+        case REPLICANT_COND_DESTROYED:
+        case REPLICANT_COND_NOT_FOUND:
+        case REPLICANT_OBJ_EXIST:
+        case REPLICANT_GARBAGE:
+        default:
+            return HYPERDEX_ADMIN_INTERNAL;
+    }
+}
+
+hyperdex_admin_returncode
+admin :: interpret_rpc_loop_failure(replicant_returncode status)
+{
+    switch (status)
+    {
+        case REPLICANT_TIMEOUT:
+            return HYPERDEX_ADMIN_TIMEOUT;
+        case REPLICANT_INTERRUPTED:
+            return HYPERDEX_ADMIN_INTERRUPTED;
+        case REPLICANT_NAME_TOO_LONG:
+        case REPLICANT_NEED_BOOTSTRAP:
+        case REPLICANT_SERVER_ERROR:
+        case REPLICANT_OBJ_NOT_FOUND:
+        case REPLICANT_FUNC_NOT_FOUND:
+        case REPLICANT_BACKOFF:
+            return HYPERDEX_ADMIN_COORDFAIL;
+        case REPLICANT_NONE_PENDING:
+            return HYPERDEX_ADMIN_NONEPENDING;
+        case REPLICANT_SUCCESS:
+        case REPLICANT_INTERNAL_ERROR:
+        case REPLICANT_MISBEHAVING_SERVER:
+        case REPLICANT_BAD_LIBRARY:
+        case REPLICANT_COND_DESTROYED:
+        case REPLICANT_COND_NOT_FOUND:
+        case REPLICANT_OBJ_EXIST:
+        case REPLICANT_GARBAGE:
+        default:
+            return HYPERDEX_ADMIN_INTERNAL;
+    }
+}
+
+hyperdex_admin_returncode
+admin :: interpret_rpc_response_failure(replicant_returncode status)
+{
+    switch (status)
+    {
+        case REPLICANT_SUCCESS:
+            return HYPERDEX_ADMIN_SUCCESS;
+        case REPLICANT_TIMEOUT:
+            return HYPERDEX_ADMIN_TIMEOUT;
+        case REPLICANT_INTERRUPTED:
+            return HYPERDEX_ADMIN_INTERRUPTED;
+        case REPLICANT_NAME_TOO_LONG:
+        case REPLICANT_NEED_BOOTSTRAP:
+        case REPLICANT_SERVER_ERROR:
+        case REPLICANT_OBJ_NOT_FOUND:
+        case REPLICANT_FUNC_NOT_FOUND:
+        case REPLICANT_BACKOFF:
+            return HYPERDEX_ADMIN_COORDFAIL;
+        case REPLICANT_NONE_PENDING:
+            return HYPERDEX_ADMIN_NONEPENDING;
+        case REPLICANT_INTERNAL_ERROR:
+        case REPLICANT_MISBEHAVING_SERVER:
+        case REPLICANT_BAD_LIBRARY:
+        case REPLICANT_COND_DESTROYED:
+        case REPLICANT_COND_NOT_FOUND:
+        case REPLICANT_OBJ_EXIST:
+        case REPLICANT_GARBAGE:
+        default:
+            return HYPERDEX_ADMIN_INTERNAL;
+    }
 }
 
 bool
@@ -329,10 +544,15 @@ admin :: maintain_coord_connection(hyperdex_admin_returncode* status)
         }
     }
 
-    if (m_busybee.set_external_fd(m_coord.poll_fd()) < 0)
+    if (m_busybee.set_external_fd(m_coord.poll_fd()) != BUSYBEE_SUCCESS)
     {
         *status = HYPERDEX_ADMIN_POLLFAILED;
         return false;
+    }
+
+    if (m_coord.queued_responses() > 0)
+    {
+        m_handle_coord_ops = true;
     }
 
     return true;
@@ -357,7 +577,7 @@ admin :: send(network_msgtype mt,
     {
         case BUSYBEE_SUCCESS:
             op->handle_sent_to(id);
-            m_pending_ops.insert(std::make_pair(nonce, pending_server_pair(id, op)));
+            m_server_ops.insert(std::make_pair(nonce, pending_server_pair(id, op)));
             return true;
         case BUSYBEE_DISRUPTED:
             handle_disruption(id);
@@ -378,16 +598,16 @@ admin :: send(network_msgtype mt,
 void
 admin :: handle_disruption(const server_id& si)
 {
-    pending_map_t::iterator it = m_pending_ops.begin();
+    pending_map_t::iterator it = m_server_ops.begin();
 
-    while (it != m_pending_ops.end())
+    while (it != m_server_ops.end())
     {
         if (it->second.si == si)
         {
             m_failed.push_back(it->second);
             pending_map_t::iterator tmp = it;
             ++it;
-            m_pending_ops.erase(tmp);
+            m_server_ops.erase(tmp);
         }
         else
         {
@@ -396,4 +616,30 @@ admin :: handle_disruption(const server_id& si)
     }
 
     m_busybee.drop(si.get());
+}
+
+HYPERDEX_API std::ostream&
+operator << (std::ostream& lhs, hyperdex_admin_returncode rhs)
+{
+    switch (rhs)
+    {
+        STRINGIFY(HYPERDEX_ADMIN_SUCCESS);
+        STRINGIFY(HYPERDEX_ADMIN_NOMEM);
+        STRINGIFY(HYPERDEX_ADMIN_NONEPENDING);
+        STRINGIFY(HYPERDEX_ADMIN_POLLFAILED);
+        STRINGIFY(HYPERDEX_ADMIN_TIMEOUT);
+        STRINGIFY(HYPERDEX_ADMIN_INTERRUPTED);
+        STRINGIFY(HYPERDEX_ADMIN_SERVERERROR);
+        STRINGIFY(HYPERDEX_ADMIN_COORDFAIL);
+        STRINGIFY(HYPERDEX_ADMIN_BADSPACE);
+        STRINGIFY(HYPERDEX_ADMIN_DUPLICATE);
+        STRINGIFY(HYPERDEX_ADMIN_NOTFOUND);
+        STRINGIFY(HYPERDEX_ADMIN_INTERNAL);
+        STRINGIFY(HYPERDEX_ADMIN_EXCEPTION);
+        STRINGIFY(HYPERDEX_ADMIN_GARBAGE);
+        default:
+            lhs << "unknown hyperdex_admin_returncode";
+    }
+
+    return lhs;
 }

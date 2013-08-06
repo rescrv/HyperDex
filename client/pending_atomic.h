@@ -38,13 +38,13 @@ class pending_atomic : public pending
 {
     public:
         pending_atomic(uint64_t client_visible_id,
-                       hyperclient_returncode* status);
+                       hyperdex_client_returncode* status);
         virtual ~pending_atomic() throw ();
 
     // return to client
     public:
         virtual bool can_yield();
-        virtual bool yield(hyperclient_returncode* status);
+        virtual bool yield(hyperdex_client_returncode* status, e::error* error);
 
     // events
     public:
@@ -58,7 +58,8 @@ class pending_atomic : public pending
                                     network_msgtype mt,
                                     std::auto_ptr<e::buffer> msg,
                                     e::unpacker up,
-                                    hyperclient_returncode* status);
+                                    hyperdex_client_returncode* status,
+                                    e::error* error);
 
     private:
         enum { INITIALIZED, SENT, RECV, YIELDED } m_state;

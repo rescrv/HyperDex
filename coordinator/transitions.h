@@ -55,7 +55,7 @@ hyperdex_coordinator_snapshot(struct replicant_state_machine_context* ctx,
     hyperdex_coordinator_ ## X(struct replicant_state_machine_context* ctx, \
                                void* obj, const char* data, size_t data_sz)
 
-TRANSITION(initialize);
+TRANSITION(init);
 
 TRANSITION(add_space);
 TRANSITION(rm_space);

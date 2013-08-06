@@ -34,22 +34,13 @@
 // LevelDB
 #include <hyperleveldb/db.h>
 
-// po6
-#include <po6/error.h>
-
 // e
-#include <e/guard.h>
+#include <e/popt.h>
 #include <e/time.h>
 
 // HyperDex
-#include "client/hyperclient.hpp"
-#include "tools/old.common.h"
-
-static struct poptOption popts[] = {
-    POPT_AUTOHELP
-    CONNECT_TABLE
-    POPT_TABLEEND
-};
+#include <include/hyperdex/client.hpp>
+#include "tools/common.h"
 
 class outstanding
 {
@@ -63,7 +54,7 @@ class outstanding
     public:
         char* line;
         size_t line_sz;
-        enum hyperclient_returncode status;
+        hyperdex_client_returncode status;
         int64_t reqid;
 
     private:
@@ -74,7 +65,7 @@ class outstanding
 outstanding :: outstanding()
     : line(NULL)
     , line_sz(0)
-    , status(HYPERCLIENT_GARBAGE)
+    , status(HYPERDEX_CLIENT_GARBAGE)
     , reqid(-1)
 {
 }
@@ -94,14 +85,14 @@ outstanding :: reset()
 
     line = NULL;
     line_sz = 0;
-    status = HYPERCLIENT_GARBAGE;
+    status = HYPERDEX_CLIENT_GARBAGE;
     reqid = -1;
 }
 
 static bool
 readline_and_issue_put(const char* filename,
                        FILE* fin,
-                       HyperClient* cl,
+                       hyperdex::Client* cl,
                        std::tr1::unordered_map<int64_t, size_t>* ops_map,
                        outstanding* o,
                        size_t idx,
@@ -159,7 +150,7 @@ readline_and_issue_put(const char* filename,
         size_t k_sz = tmp - k;
         char* v = tmp + 1;
         size_t v_sz = (o->line + amt - 1) - v;
-        hyperclient_attribute attr;
+        hyperdex_client_attribute attr;
         attr.attr = "v";
         attr.value = v;
         attr.value_sz = v_sz;
@@ -178,7 +169,7 @@ readline_and_issue_put(const char* filename,
 }
 
 static bool
-process_file(struct HyperClient* cl,
+process_file(hyperdex::Client* cl,
              struct outstanding* outstanding_ops,
              size_t outstanding_ops_sz,
              const char* filename)
@@ -209,7 +200,7 @@ process_file(struct HyperClient* cl,
 
     while (!eof || !ops_map.empty())
     {
-        hyperclient_returncode rc = HYPERCLIENT_GARBAGE;
+        hyperdex_client_returncode rc = HYPERDEX_CLIENT_GARBAGE;
         int64_t reqid = cl->loop(-1, &rc);
 
         if (reqid < 0)
@@ -248,54 +239,32 @@ process_file(struct HyperClient* cl,
 int
 main(int argc, const char* argv[])
 {
-    poptContext poptcon = NULL;
-    poptcon = poptGetContext(NULL, argc, argv, popts, POPT_CONTEXT_POSIXMEHARDER);
-    e::guard g = e::makeguard(poptFreeContext, poptcon); g.use_variable();
-    poptSetOtherOptionHelp(poptcon, "[OPTIONS] [--] [<file> ...]");
-    int rc;
+    hyperdex::connect_opts conn;
+    e::argparser ap;
+    ap.autohelp();
+    ap.add("Connect to a cluster:", conn.parser());
 
-    while ((rc = poptGetNextOpt(poptcon)) != -1)
+    if (!ap.parse(argc, argv))
     {
-        switch (rc)
-        {
-            case 'h':
-                if (!check_host())
-                {
-                    return EXIT_FAILURE;
-                }
-                break;
-            case 'p':
-                if (!check_port())
-                {
-                    return EXIT_FAILURE;
-                }
-                break;
-            case POPT_ERROR_NOARG:
-            case POPT_ERROR_BADOPT:
-            case POPT_ERROR_BADNUMBER:
-            case POPT_ERROR_OVERFLOW:
-                fprintf(stderr, "%s %s\n", poptStrerror(rc), poptBadOption(poptcon, 0));
-                return EXIT_FAILURE;
-            case POPT_ERROR_OPTSTOODEEP:
-            case POPT_ERROR_BADQUOTE:
-            case POPT_ERROR_ERRNO:
-            default:
-                fprintf(stderr, "logic error in argument parsing\n");
-                return EXIT_FAILURE;
-        }
+        return EXIT_FAILURE;
     }
 
-    const char** args = poptGetArgs(poptcon);
+    if (!conn.validate())
+    {
+        std::cerr << "invalid host:port specification\n" << std::endl;
+        ap.usage();
+        return EXIT_FAILURE;
+    }
 
     try
     {
-        HyperClient h(_connect_host, _connect_port);
+        hyperdex::Client h(conn.host(), conn.port());
         size_t outstanding_ops_sz = 1024;
         outstanding* outstanding_ops = new outstanding[outstanding_ops_sz];
 
-        for (size_t i = 0; args && args[i]; ++i)
+        for (size_t i = 0; i < ap.args_sz(); ++i)
         {
-            if (!process_file(&h, outstanding_ops, outstanding_ops_sz, args[i]))
+            if (!process_file(&h, outstanding_ops, outstanding_ops_sz, ap.args()[i]))
             {
                 return EXIT_FAILURE;
             }
@@ -308,11 +277,6 @@ main(int argc, const char* argv[])
 
         delete[] outstanding_ops;
         return EXIT_SUCCESS;
-    }
-    catch (po6::error& e)
-    {
-        std::cerr << "system error: " << e.what() << std::endl;
-        return EXIT_FAILURE;
     }
     catch (std::exception& e)
     {

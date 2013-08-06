@@ -372,7 +372,7 @@ configuration :: is_point_leader(const virtual_server_id& e) const
 }
 
 virtual_server_id
-configuration :: point_leader(const char* sname, const e::slice& key)
+configuration :: point_leader(const char* sname, const e::slice& key) const
 {
     for (size_t s = 0; s < m_spaces.size(); ++s)
     {
@@ -401,7 +401,7 @@ configuration :: point_leader(const char* sname, const e::slice& key)
 }
 
 virtual_server_id
-configuration :: point_leader(const region_id& rid, const e::slice& key)
+configuration :: point_leader(const region_id& rid, const e::slice& key) const
 {
     for (size_t s = 0; s < m_spaces.size(); ++s)
     {

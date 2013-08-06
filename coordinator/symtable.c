@@ -30,9 +30,10 @@
 #include <replicant_state_machine.h>
 
 /* HyperDex */
+#include "visibility.h"
 #include "coordinator/transitions.h"
 
-struct replicant_state_machine rsm = {
+struct replicant_state_machine HYPERDEX_API rsm = {
     hyperdex_coordinator_create,
     hyperdex_coordinator_recreate,
     hyperdex_coordinator_destroy,
@@ -52,6 +53,6 @@ struct replicant_state_machine rsm = {
      {"add-space", hyperdex_coordinator_add_space},
      {"rm-space", hyperdex_coordinator_rm_space},
 
-     {"initialize", hyperdex_coordinator_initialize},
+     {"init", hyperdex_coordinator_init},
      {NULL, NULL}}
 };

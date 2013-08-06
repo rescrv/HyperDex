@@ -62,8 +62,11 @@ enum hyperdex_admin_returncode
     HYPERDEX_ADMIN_POLLFAILED   = 8770,
     HYPERDEX_ADMIN_TIMEOUT      = 8771,
     HYPERDEX_ADMIN_INTERRUPTED  = 8772,
-    HYPERDEX_ADMIN_COORDFAIL    = 8774,
     HYPERDEX_ADMIN_SERVERERROR  = 8773,
+    HYPERDEX_ADMIN_COORDFAIL    = 8774,
+    HYPERDEX_ADMIN_BADSPACE     = 8775,
+    HYPERDEX_ADMIN_DUPLICATE    = 8776,
+    HYPERDEX_ADMIN_NOTFOUND     = 8777,
 
     /* This should never happen.  It indicates a bug */
     HYPERDEX_ADMIN_INTERNAL     = 8829,
@@ -85,8 +88,7 @@ hyperdex_admin_dump_config(struct hyperdex_admin* admin,
 int
 hyperdex_admin_validate_space(struct hyperdex_admin* admin,
                               const char* description,
-                              enum hyperdex_admin_returncode* status,
-                              const char** error_msg);
+                              enum hyperdex_admin_returncode* status);
 
 int64_t
 hyperdex_admin_add_space(struct hyperdex_admin* admin,

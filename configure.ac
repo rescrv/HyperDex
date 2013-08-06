@@ -8,7 +8,7 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AM_PATH_PYTHON([2.6])
 LT_PREREQ([2.2])
 LT_INIT
-AC_CONFIG_SRCDIR([hyperdex.h])
+AC_CONFIG_SRCDIR([include/hyperdex.h])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -19,7 +19,7 @@ AC_PROG_LEX
 AC_PROG_YACC
 AC_LANG(C++)
 
-ANAL_WARNINGS_CXX
+ANAL_WARNINGS
 
 AC_ARG_ENABLE([java-bindings], [AS_HELP_STRING([--enable-java-bindings],
               [enable the Java bindings @<:@default: no@:>@])],
@@ -161,15 +161,41 @@ if test x"${enable_logall}" = xyes; then
     AC_DEFINE([HD_LOG_ALL_MESSAGES], [], [Log all network traffic at the INFO level])
 fi
 
-AC_ARG_ENABLE([docs], [AS_HELP_STRING([--enable-docs],
-              [enable building docs @<:@default: yes@:>@])],
-              [enable_docs=${enableval}], [enable_docs=yes])
-
 AM_CONDITIONAL([ENABLE_JAVA_BINDINGS], [test x"${java_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_PYTHON_BINDINGS], [test x"${python_bindings}" = xyes])
 AM_CONDITIONAL([ENABLE_RUBY_BINDINGS], [test x"${ruby_bindings}" = xyes])
-AM_CONDITIONAL([ENABLE_YCSB_DRIVER], [test x"${enable_ycsb}" = xyes])
-AM_CONDITIONAL([ENABLE_DOCS], [test x"${enable_docs}" = xyes])
+AM_CONDITIONAL([ENABLE_YCSB], [test x"${enable_ycsb}" = xyes])
 
-AC_CONFIG_FILES([Makefile hyperclient.pc])
+# Optional components
+AC_ARG_ENABLE([all-components], [AS_HELP_STRING([--enable-all-components],
+              [enable building all components @<:@default: yes@:>@])],
+              [enable_all_components=${enable_all_components}], [enable_all_components=yes])
+AC_ARG_ENABLE([client], [AS_HELP_STRING([--enable-client],
+              [enable building the client library @<:@default: yes@:>@])],
+              [enable_client=${enable_client}], [enable_client=${enable_all_components}])
+AM_CONDITIONAL([ENABLE_CLIENT], [test x"${enable_client}" = xyes])
+AC_ARG_ENABLE([admin], [AS_HELP_STRING([--enable-admin],
+              [enable building the admin library @<:@default: yes@:>@])],
+              [enable_admin=${enable_admin}], [enable_admin=${enable_all_components}])
+AM_CONDITIONAL([ENABLE_ADMIN], [test x"${enable_admin}" = xyes])
+AC_ARG_ENABLE([tools], [AS_HELP_STRING([--enable-tools],
+              [enable building the command-line tools @<:@default: yes@:>@])],
+              [enable_tools=${enable_tools}], [enable_tools=${enable_all_components}])
+AM_CONDITIONAL([ENABLE_TOOLS], [test x"${enable_tools}" = xyes])
+AC_ARG_ENABLE([coordinator], [AS_HELP_STRING([--enable-coordinator],
+              [enable building the coordinator @<:@default: yes@:>@])],
+              [enable_coordinator=${enable_coordinator}], [enable_coordinator=${enable_all_components}])
+AM_CONDITIONAL([ENABLE_COORDINATOR], [test x"${enable_coordinator}" = xyes])
+AC_ARG_ENABLE([daemon], [AS_HELP_STRING([--enable-daemon],
+              [enable building the daemon @<:@default: yes@:>@])],
+              [enable_daemon=${enable_daemon}], [enable_daemon=${enable_all_components}])
+AM_CONDITIONAL([ENABLE_DAEMON], [test x"${enable_daemon}" = xyes])
+AC_ARG_ENABLE([maintainer-tools], [AS_HELP_STRING([--enable-maintainer-tools],
+              [enable maintainer tools @<:@default: no@:>@])],
+              [enable_maintaine_tools=${enable_maintainer_tools}], [enable_maintaine_tools=no])
+AM_CONDITIONAL([ENABLE_MAINTAINER_TOOLS], [test x"${enable_maintainer_tools}" = xyes])
+
+# Generate outputs and finish
+AC_CONFIG_FILES([Makefile hyperdex-client.pc hyperdex-admin.pc])
+AC_CONFIG_LINKS([test/runner.py:test/runner.py])
 AC_OUTPUT

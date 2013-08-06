@@ -31,13 +31,14 @@
 using hyperdex::pending_count;
 
 pending_count :: pending_count(uint64_t id,
-                               hyperclient_returncode* status,
+                               hyperdex_client_returncode* status,
                                uint64_t* count)
     : pending_aggregation(id, status)
-    , m_error(HYPERCLIENT_SUCCESS)
     , m_count(count)
     , m_done(false)
 {
+    set_status(HYPERDEX_CLIENT_SUCCESS);
+    set_error(e::error());
 }
 
 pending_count :: ~pending_count() throw ()
@@ -51,12 +52,12 @@ pending_count :: can_yield()
 }
 
 bool
-pending_count :: yield(hyperclient_returncode* status)
+pending_count :: yield(hyperdex_client_returncode* status, e::error* err)
 {
-    *status = HYPERCLIENT_SUCCESS;
+    *status = HYPERDEX_CLIENT_SUCCESS;
+    *err = e::error();
     assert(this->can_yield());
     m_done = true;
-    set_status(m_error);
     return true;
 }
 
@@ -64,7 +65,8 @@ void
 pending_count :: handle_failure(const server_id& si,
                                 const virtual_server_id& vsi)
 {
-    m_error = HYPERCLIENT_RECONFIGURE;
+    PENDING_ERROR(RECONFIGURE) << "reconfiguration affecting "
+                               << vsi << "/" << si;
     return pending_aggregation::handle_failure(si, vsi);
 }
 
@@ -73,20 +75,20 @@ pending_count :: handle_message(client* cl,
                                 const server_id& si,
                                 const virtual_server_id& vsi,
                                 network_msgtype mt,
-                                std::auto_ptr<e::buffer>,
+                                std::auto_ptr<e::buffer> msg,
                                 e::unpacker up,
-                                hyperclient_returncode* status)
+                                hyperdex_client_returncode* status,
+                                e::error* err)
 {
-    if (!pending_aggregation::handle_message(cl, si, vsi, mt, std::auto_ptr<e::buffer>(), up, status))
-    {
-        return false;
-    }
+    bool handled = pending_aggregation::handle_message(cl, si, vsi, mt, std::auto_ptr<e::buffer>(), up, status, err);
+    assert(handled);
 
-    *status = HYPERCLIENT_SUCCESS;
+    *status = HYPERDEX_CLIENT_SUCCESS;
+    *err = e::error();
 
     if (mt != RESP_COUNT)
     {
-        m_error = HYPERCLIENT_SERVERERROR; 
+        PENDING_ERROR(SERVERERROR) << "server vsi responded to COUNT with " << mt;
         return true;
     }
 
@@ -95,10 +97,15 @@ pending_count :: handle_message(client* cl,
 
     if (up.error())
     {
-        m_error = HYPERCLIENT_SERVERERROR; 
+        PENDING_ERROR(SERVERERROR) << "communication error: server "
+                                   << vsi << " sent corrupt message="
+                                   << msg->as_slice().hex()
+                                   << " in response to a COUNT";
         return true;
     }
 
     *m_count += local_count;
+    // Don't set the status or error so that errors will carry through.  It was
+    // set to the success state in the constructor
     return true;
 }

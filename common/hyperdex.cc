@@ -26,10 +26,11 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // HyperDex
-#include "hyperdex.h"
+#include <hyperdex.h>
+#include "visibility.h"
 #include "common/macros.h"
 
-std::ostream&
+HYPERDEX_API std::ostream&
 operator << (std::ostream& lhs, hyperdatatype rhs)
 {
     switch (rhs)
@@ -68,7 +69,7 @@ operator << (std::ostream& lhs, hyperdatatype rhs)
     return lhs;
 }
 
-std::ostream&
+HYPERDEX_API std::ostream&
 operator << (std::ostream& lhs, hyperpredicate rhs)
 {
     switch (rhs)

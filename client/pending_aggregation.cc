@@ -31,7 +31,7 @@
 using hyperdex::pending_aggregation;
 
 pending_aggregation :: pending_aggregation(uint64_t id,
-                                           hyperclient_returncode* status)
+                                           hyperdex_client_returncode* status)
     : pending(id, status)
     , m_outstanding()
 {
@@ -68,7 +68,8 @@ pending_aggregation :: handle_message(client*,
                                       network_msgtype,
                                       std::auto_ptr<e::buffer>,
                                       e::unpacker,
-                                      hyperclient_returncode*)
+                                      hyperdex_client_returncode*,
+                                      e::error*)
 {
     remove(si, vsi);
     return true;

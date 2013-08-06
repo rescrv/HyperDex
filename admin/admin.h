@@ -40,6 +40,7 @@
 #include "namespace.h"
 #include "common/coordinator_link.h"
 #include "common/mapper.h"
+#include "admin/coord_rpc.h"
 #include "admin/pending.h"
 #include "admin/pending_perf_counters.h"
 
@@ -57,8 +58,7 @@ class admin
                             const char** config);
         // manage spaces
         int validate_space(const char* description,
-                           enum hyperdex_admin_returncode* status,
-                           const char** error_msg);
+                           enum hyperdex_admin_returncode* status);
         int64_t add_space(const char* description,
                           enum hyperdex_admin_returncode* status);
         int64_t rm_space(const char* name,
@@ -69,6 +69,10 @@ class admin
         void disable_perf_counters();
         // looping/polling
         int64_t loop(int timeout, hyperdex_admin_returncode* status);
+        // translate returncodes
+        hyperdex_admin_returncode interpret_rpc_request_failure(replicant_returncode status);
+        hyperdex_admin_returncode interpret_rpc_loop_failure(replicant_returncode status);
+        hyperdex_admin_returncode interpret_rpc_response_failure(replicant_returncode status);
 
     private:
         struct pending_server_pair
@@ -83,6 +87,7 @@ class admin
             e::intrusive_ptr<pending> op;
         };
         typedef std::map<uint64_t, pending_server_pair> pending_map_t;
+        typedef std::map<uint64_t, e::intrusive_ptr<coord_rpc> > coord_rpc_map_t;
         typedef std::list<pending_server_pair> pending_queue_t;
         friend class pending_perf_counters;
 
@@ -102,10 +107,12 @@ class admin
         busybee_st m_busybee;
         int64_t m_next_admin_id;
         uint64_t m_next_server_nonce;
-        pending_map_t m_pending_ops;
+        bool m_handle_coord_ops;
+        coord_rpc_map_t m_coord_ops;
+        pending_map_t m_server_ops;
         pending_queue_t m_failed;
-        std::list<e::intrusive_ptr<pending> > m_yieldable;
-        e::intrusive_ptr<pending> m_yielding;
+        std::list<e::intrusive_ptr<yieldable> > m_yieldable;
+        e::intrusive_ptr<yieldable> m_yielding;
         e::intrusive_ptr<pending_perf_counters> m_pcs;
 };
 

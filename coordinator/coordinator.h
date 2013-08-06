@@ -66,7 +66,7 @@ class coordinator
 
     public:
         // Setup the cluster
-        void initialize(replicant_state_machine_context* ctx, uint64_t token);
+        void init(replicant_state_machine_context* ctx, uint64_t token);
         // Manage spaces
         void add_space(replicant_state_machine_context* ctx, const space& s);
         void rm_space(replicant_state_machine_context* ctx, const char* name);

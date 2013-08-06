@@ -138,21 +138,21 @@ main(int argc, const char* argv[])
         {
             hyperclient_returncode e = cl.initialize_cluster(token, paths[i].get());
 
-            if (e == HYPERCLIENT_NOTFOUND && errno == ENOENT)
+            if (e == HYPERDEX_CLIENT_NOTFOUND && errno == ENOENT)
             {
                 continue;
             }
-            else if (e == HYPERCLIENT_DUPLICATE)
+            else if (e == HYPERDEX_CLIENT_DUPLICATE)
             {
                 std::cerr << "cluster already initialized" << std::endl;
                 return EXIT_FAILURE;
             }
-            else if (e == HYPERCLIENT_COORD_LOGGED)
+            else if (e == HYPERDEX_CLIENT_COORD_LOGGED)
             {
                 std::cerr << "could not initialize cluster: see the replicant error log for details" << std::endl;
                 return EXIT_FAILURE;
             }
-            else if (e != HYPERCLIENT_SUCCESS)
+            else if (e != HYPERDEX_CLIENT_SUCCESS)
             {
                 std::cerr << "could not initialize cluster: " << e << std::endl;
                 return EXIT_FAILURE;

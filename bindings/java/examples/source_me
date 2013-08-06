@@ -1,0 +1,2 @@
+export CLASSPATH=.:../../../org.hyperdex.client-1.0.dev.jar
+export LD_LIBRARY_PATH=../../../.libs

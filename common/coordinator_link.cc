@@ -38,6 +38,7 @@ coordinator_link :: coordinator_link(const char* coordinator, uint16_t port)
     , m_state()
     , m_output(NULL)
     , m_output_sz(0)
+    , m_pending_ids()
 {
 }
 
@@ -83,7 +84,7 @@ coordinator_link :: ensure_configuration(replicant_returncode* status)
                 abort();
         }
 
-        int64_t lid = m_repl.loop(m_id, timeout, status);
+        int64_t lid = m_repl.loop(timeout, status);
 
         if (lid < 0 && *status == REPLICANT_TIMEOUT && timeout >= 0)
         {
@@ -94,61 +95,118 @@ coordinator_link :: ensure_configuration(replicant_returncode* status)
             return false;
         }
 
-        assert(lid == m_id);
-        m_id = -1;
-
-        if (m_status != REPLICANT_SUCCESS)
+        if (lid != m_id)
         {
-            if (m_output)
-            {
-                replicant_destroy_output(m_output, m_output_sz);
-                m_output = NULL;
-                m_output_sz = 0;
-            }
-
-            *status = m_status;
-            return false;
-        }
-
-        if (m_state == WAITING_ON_BROADCAST)
-        {
-            if (!begin_fetching_config(status))
-            {
-                return false;
-            }
-
+            m_pending_ids.push_back(lid);
             continue;
         }
-
-        e::unpacker up(m_output, m_output_sz);
-        configuration new_config;
-        up = up >> new_config;
-        replicant_destroy_output(m_output, m_output_sz);
-        m_output = NULL;
-        m_output_sz = 0;
-
-        if (up.error())
+        else
         {
-            *status = REPLICANT_MISBEHAVING_SERVER;
-            return false;
-        }
+            bool ensured = false;
 
-        if (m_config.cluster() != 0 &&
-            m_config.cluster() != new_config.cluster())
-        {
-            *status = REPLICANT_MISBEHAVING_SERVER;
-            return false;
+            if (handle_internal_callback(status, &ensured))
+            {
+                return ensured;
+            }
         }
-
-        m_config = new_config;
-        return true;
     }
 }
 
-coordinator_link::poll_fd_t
-coordinator_link :: poll_fd()
+int64_t
+coordinator_link :: rpc(const char* func,
+                        const char* data, size_t data_sz,
+                        replicant_returncode* status,
+                        const char** output, size_t* output_sz)
 {
-    return m_repl.poll_fd();
+    return m_repl.send("hyperdex", func, data, data_sz, status, output, output_sz);
+}
+
+int64_t
+coordinator_link :: loop(int timeout, replicant_returncode* status)
+{
+    if (!m_pending_ids.empty())
+    {
+        int64_t ret = m_pending_ids.front();
+        m_pending_ids.pop_front();
+        return ret;
+    }
+
+    while (true)
+    {
+        int64_t lid = m_repl.loop(timeout, status);
+
+        if (lid < 0 || lid != m_id)
+        {
+            return lid;
+        }
+        else
+        {
+            assert(lid == m_id);
+            bool ensured = false;
+
+            if (handle_internal_callback(status, &ensured) && !ensured)
+            {
+                return INT64_MAX;
+            }
+        }
+    }
+}
+
+bool
+coordinator_link :: handle_internal_callback(replicant_returncode* status, bool* ensured)
+{
+    m_id = -1;
+
+    if (m_status != REPLICANT_SUCCESS)
+    {
+        if (m_output)
+        {
+            replicant_destroy_output(m_output, m_output_sz);
+            m_output = NULL;
+            m_output_sz = 0;
+        }
+
+        *status = m_status;
+        *ensured = false;
+        return true;
+    }
+
+    if (m_state == WAITING_ON_BROADCAST)
+    {
+        if (!begin_fetching_config(status))
+        {
+            *ensured = false;
+            return true;
+        }
+
+        return false;
+    }
+
+    e::unpacker up(m_output, m_output_sz);
+    configuration new_config;
+    up = up >> new_config;
+    replicant_destroy_output(m_output, m_output_sz);
+    m_output = NULL;
+    m_output_sz = 0;
+
+    if (up.error())
+    {
+        *status = REPLICANT_MISBEHAVING_SERVER;
+        *ensured = false;
+        return true;
+    }
+
+    if (m_config.cluster() != 0 &&
+        m_config.cluster() != new_config.cluster())
+    {
+        *status = REPLICANT_MISBEHAVING_SERVER;
+        *ensured = false;
+        return true;
+    }
+
+    m_config = new_config;
+    *ensured = true;
+    return true;
 }
 
 bool

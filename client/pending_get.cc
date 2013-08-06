@@ -34,8 +34,8 @@
 using hyperdex::pending_get;
 
 pending_get :: pending_get(uint64_t id,
-                           hyperclient_returncode* status,
-                           struct hyperclient_attribute** attrs,
+                           hyperdex_client_returncode* status,
+                           const hyperdex_client_attribute** attrs,
                            size_t* attrs_sz)
     : pending(id, status)
     , m_state(INITIALIZED)
@@ -56,8 +56,10 @@ pending_get :: can_yield()
 }
 
 bool
-pending_get :: yield(hyperclient_returncode*)
+pending_get :: yield(hyperdex_client_returncode* status, e::error* err)
 {
+    *status = HYPERDEX_CLIENT_SUCCESS;
+    *err = e::error();
     m_state = YIELDED;
     return true;
 }
@@ -71,29 +73,32 @@ pending_get :: handle_sent_to(const server_id&,
 }
 
 void
-pending_get :: handle_failure(const server_id&,
-                              const virtual_server_id&)
+pending_get :: handle_failure(const server_id& si,
+                              const virtual_server_id& vsi)
 {
     assert(m_state == SENT);
     m_state = RECV;
-    set_status(HYPERCLIENT_RECONFIGURE);
+    PENDING_ERROR(RECONFIGURE) << "reconfiguration affecting "
+                               << vsi << "/" << si;
 }
 
 bool
 pending_get :: handle_message(client* cl,
-                              const server_id&,
+                              const server_id& si,
                               const virtual_server_id& vsi,
                               network_msgtype mt,
-                              std::auto_ptr<e::buffer>,
+                              std::auto_ptr<e::buffer> msg,
                               e::unpacker up,
-                              hyperclient_returncode* status)
+                              hyperdex_client_returncode* status,
+                              e::error* err)
 {
     m_state = RECV;
-    *status = HYPERCLIENT_SUCCESS;
-    set_status(HYPERCLIENT_SERVERERROR);
+    *status = HYPERDEX_CLIENT_SUCCESS;
+    *err = e::error();
 
     if (mt != RESP_GET)
     {
+        PENDING_ERROR(SERVERERROR) << "server vsi responded to GET with " << mt;
         return true;
     }
 
@@ -102,6 +107,10 @@ pending_get :: handle_message(client* cl,
 
     if (up.error())
     {
+        PENDING_ERROR(SERVERERROR) << "communication error: server "
+                                   << vsi << " sent corrupt message="
+                                   << msg->as_slice().hex()
+                                   << " in response to a GET";
         return true;
     }
 
@@ -110,23 +119,43 @@ pending_get :: handle_message(client* cl,
         case NET_SUCCESS:
             break;
         case NET_NOTFOUND:
-            set_status(HYPERCLIENT_NOTFOUND);
+            set_status(HYPERDEX_CLIENT_NOTFOUND);
+            set_error(e::error());
             return true;
         case NET_BADDIMSPEC:
-            set_status(HYPERCLIENT_SERVERERROR);
+            PENDING_ERROR(SERVERERROR) << "server " << si
+                                       << " reports that our request was invalid;"
+                                       << " check its log for details";
             return true;
         case NET_NOTUS:
-            set_status(HYPERCLIENT_RECONFIGURE);
+            PENDING_ERROR(RECONFIGURE) << "server " << si
+                                       << " reports that it is no longer reponsible"
+                                       << " for the requested object";
             return true;
         case NET_READONLY:
-            set_status(HYPERCLIENT_READONLY);
+            PENDING_ERROR(READONLY) << "cluster is in read-only mode, but this was a read:"
+                                    << " please file a bug";
             return true;
         case NET_SERVERERROR:
+            PENDING_ERROR(SERVERERROR) << "server " << si
+                                       << " reports a server error;"
+                                       << " check its log for details";
+            return true;
         case NET_CMPFAIL:
-        case NET_BADMICROS:
+            PENDING_ERROR(SERVERERROR) << "server " << si
+                                       << " unexpectedly reports that a comparison failed;"
+                                       << " check its log for details";
+            return true;
         case NET_OVERFLOW:
+            PENDING_ERROR(OVERFLOW) << "server " << si
+                                    << " reports that the operation would"
+                                    << " cause a number overflow";
+            return true;
         default:
-            return false;
+            PENDING_ERROR(SERVERERROR) << "server " << si
+                                       << " returned non-sensical returncode"
+                                       << response;
+            return true;
     }
 
     std::vector<e::slice> value;
@@ -134,19 +163,27 @@ pending_get :: handle_message(client* cl,
 
     if (up.error())
     {
+        PENDING_ERROR(SERVERERROR) << "communication error: server "
+                                   << vsi << " sent corrupt message="
+                                   << msg->as_slice().hex()
+                                   << " in response to a GET";
         return true;
     }
 
-    hyperclient_returncode op_status;
+    hyperdex_client_returncode op_status;
+    e::error op_error;
 
-    if (!value_to_attributes(cl->m_config, cl->m_config.get_region_id(vsi),
-                             NULL, 0, value, status,
-                             &op_status, m_attrs, m_attrs_sz))
+    if (!value_to_attributes(*cl->m_coord.config(),
+                             cl->m_coord.config()->get_region_id(vsi),
+                             NULL, 0, value, &op_status, &op_error,
+                             m_attrs, m_attrs_sz))
     {
         set_status(op_status);
+        set_error(op_error);
         return true;
     }
 
-    set_status(HYPERCLIENT_SUCCESS);
+    set_status(HYPERDEX_CLIENT_SUCCESS);
+    set_error(e::error());
     return true;
 }

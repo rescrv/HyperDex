@@ -35,7 +35,7 @@
 #include "hyperdex.h"
 #include "common/funcall.h"
 
-struct hyperclient_keyop_info
+struct hyperdex_client_keyop_info
 {
     int name;
     bool erase;
@@ -44,7 +44,7 @@ struct hyperclient_keyop_info
     hyperdex::funcall_t fname;
 };
 
-const struct hyperclient_keyop_info*
-hyperclient_keyop_info_lookup(const char* str, unsigned int len);
+const struct hyperdex_client_keyop_info*
+hyperdex_client_keyop_info_lookup(const char* str, unsigned int len);
 
 #endif // hyperdex_client_keyop_info_h_

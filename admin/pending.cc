@@ -32,9 +32,7 @@ using hyperdex::pending;
 
 pending :: pending(uint64_t id,
                    hyperdex_admin_returncode* s)
-    : m_ref(0)
-    , m_admin_visible_id(id)
-    , m_status(s)
+    : yieldable(id, s)
 {
 }
 

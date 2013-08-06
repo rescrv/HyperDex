@@ -237,21 +237,23 @@ datalayer :: index_iterator :: ~index_iterator() throw ()
 datalayer :: intersect_iterator :: intersect_iterator(leveldb_snapshot_ptr s,
                                                       const std::vector<e::intrusive_ptr<index_iterator> >& iterators)
     : index_iterator(s)
-    , m_iters(iterators)
+    , m_iters()
     , m_cost(0)
     , m_invalid(false)
 {
-    assert(!m_iters.empty());
+    assert(!iterators.empty());
     std::vector<std::pair<uint64_t, e::intrusive_ptr<index_iterator> > > iters;
 
-    for (size_t i = 0; i < m_iters.size(); ++i)
+    for (size_t i = 0; i < iterators.size(); ++i)
     {
-        iters.push_back(std::make_pair(m_iters[i]->cost(s.db()), m_iters[i]));
+        assert(iterators[i]->sorted());
+        iters.push_back(std::make_pair(iterators[i]->cost(s.db()), iterators[i]));
     }
 
     std::sort(iters.begin(), iters.end());
+    m_iters.resize(iters.size());
 
-    for (size_t i = 0; i < m_iters.size(); ++i)
+    for (size_t i = 0; i < iters.size(); ++i)
     {
         m_cost += iters[i].first;
         m_iters[i] = iters[i].second;
@@ -300,12 +302,10 @@ datalayer :: intersect_iterator :: valid()
             assert(cmp == 0);
         }
 
-        if (retry)
+        if (!retry)
         {
-            continue;
+            return true;
         }
-
-        return true;
     }
 
     m_invalid = true;

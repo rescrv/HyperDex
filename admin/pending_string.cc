@@ -32,9 +32,11 @@ using hyperdex::pending_string;
 
 pending_string :: pending_string(uint64_t id,
                                  hyperdex_admin_returncode* status,
+                                 hyperdex_admin_returncode _status,
                                  const std::string& string,
                                  const char** store)
     : pending(id, status)
+    , m_status(_status)
     , m_string(string)
     , m_store(store)
     , m_done(false)
@@ -57,7 +59,7 @@ pending_string :: yield(hyperdex_admin_returncode* status)
     assert(this->can_yield());
     m_done = true;
     *status = HYPERDEX_ADMIN_SUCCESS;
-    set_status(HYPERDEX_ADMIN_SUCCESS);
+    set_status(m_status);
     *m_store = m_string.c_str();
     return true;
 }

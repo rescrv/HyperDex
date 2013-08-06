@@ -35,8 +35,8 @@
 #include <e/slice.h>
 
 // HyperDex
+#include "include/hyperdex.h"
 #include "namespace.h"
-#include "hyperdex.h"
 #include "common/attribute_check.h"
 #include "common/ids.h"
 #include "common/range.h"

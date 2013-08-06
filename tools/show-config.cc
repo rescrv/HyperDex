@@ -104,7 +104,7 @@ main(int argc, const char* argv[])
         hyperdex::coordinator_link cl(po6::net::hostname(_connect_host, _connect_port));
         hyperclient_returncode e = cl.show_config(std::cout);
 
-        if (e != HYPERCLIENT_SUCCESS)
+        if (e != HYPERDEX_CLIENT_SUCCESS)
         {
             std::cerr << "could not show-config: " << e << std::endl;
             return EXIT_FAILURE;

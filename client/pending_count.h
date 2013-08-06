@@ -38,14 +38,14 @@ class pending_count : public pending_aggregation
 {
     public:
         pending_count(uint64_t client_visible_id,
-                      hyperclient_returncode* status,
+                      hyperdex_client_returncode* status,
                       uint64_t* count);
         virtual ~pending_count() throw ();
 
     // return to client
     public:
         virtual bool can_yield();
-        virtual bool yield(hyperclient_returncode* status);
+        virtual bool yield(hyperdex_client_returncode* status, e::error* error);
 
     // events
     public:
@@ -57,7 +57,8 @@ class pending_count : public pending_aggregation
                                     network_msgtype mt,
                                     std::auto_ptr<e::buffer> msg,
                                     e::unpacker up,
-                                    hyperclient_returncode* status);
+                                    hyperdex_client_returncode* status,
+                                    e::error* error);
 
     // noncopyable
     private:
@@ -65,7 +66,6 @@ class pending_count : public pending_aggregation
         pending_count& operator = (const pending_count& rhs);
 
     private:
-        hyperclient_returncode m_error;
         uint64_t* m_count;
         bool m_done;
 };

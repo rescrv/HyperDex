@@ -178,8 +178,8 @@ hyperdex_coordinator_snapshot(struct replicant_state_machine_context* ctx,
 }
 
 void
-hyperdex_coordinator_initialize(struct replicant_state_machine_context* ctx,
-                                void* obj, const char* data, size_t data_sz)
+hyperdex_coordinator_init(struct replicant_state_machine_context* ctx,
+                          void* obj, const char* data, size_t data_sz)
 {
     FILE* log = replicant_state_machine_log_stream(ctx);
     coordinator* c = static_cast<coordinator*>(obj);
@@ -190,11 +190,9 @@ hyperdex_coordinator_initialize(struct replicant_state_machine_context* ctx,
         return generate_response(ctx, COORD_UNINITIALIZED);
     }
 
-    uint64_t cluster;
-    e::unpacker up(data, data_sz);
-    up = up >> cluster;
-    CHECK_UNPACK(initialize);
-    c->initialize(ctx, cluster);
+    std::string id(data, data_sz);
+    uint64_t cluster = strtoull(id.c_str(), NULL, 0);
+    c->init(ctx, cluster);
 }
 
 void
@@ -415,7 +413,7 @@ coordinator :: cluster() const
 }
 
 void
-coordinator :: initialize(replicant_state_machine_context* ctx, uint64_t token)
+coordinator :: init(replicant_state_machine_context* ctx, uint64_t token)
 {
     FILE* log = replicant_state_machine_log_stream(ctx);
 

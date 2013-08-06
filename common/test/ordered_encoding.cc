@@ -32,7 +32,7 @@
 #include <stdint.h>
 
 // HyperDex
-#include "th.h"
+#include "test/th.h"
 #include "common/ordered_encoding.h"
 
 using hyperdex::ordered_encode_int64;

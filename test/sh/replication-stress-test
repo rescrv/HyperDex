@@ -1,0 +1,19 @@
+#!/bin/sh
+
+DAEMONS=8
+
+SPACE="space replication key int A attributes int B, int C subspace B subspace C"
+echo Trial 1
+python test/runner.py --space="${SPACE}" -- {PATH}/test/replication-stress-test -n ${DAEMONS} -h {HOST} -p {PORT} || exit 1
+echo Trial 2
+python test/runner.py --daemons=${DAEMONS} --space="${SPACE}" -- {PATH}/test/replication-stress-test -n ${DAEMONS} -h {HOST} -p {PORT} || exit 1
+SPACE="space replication key int A attributes int B, int C subspace C subspace B"
+echo Trial 3
+python test/runner.py --space="${SPACE}" -- {PATH}/test/replication-stress-test -n ${DAEMONS} -h {HOST} -p {PORT} || exit 1
+echo Trial 4
+python test/runner.py --daemons=${DAEMONS} --space="${SPACE}" -- {PATH}/test/replication-stress-test -n ${DAEMONS} -h {HOST} -p {PORT} || exit 1
+SPACE="space replication key int A attributes int B, int C subspace B, C"
+echo Trial 5
+python test/runner.py --space="${SPACE}" -- {PATH}/test/replication-stress-test -n ${DAEMONS} -h {HOST} -p {PORT} || exit 1
+echo Trial 6
+python test/runner.py --daemons=${DAEMONS} --space="${SPACE}" -- {PATH}/test/replication-stress-test -n ${DAEMONS} -h {HOST} -p {PORT} || exit 1

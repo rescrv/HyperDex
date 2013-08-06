@@ -31,15 +31,27 @@
 // STL
 #include <memory>
 
+// e
+#include <e/popt.h>
+
 // HyperDex
-#include "client/hyperspace_builder.h"
+#include <hyperdex/hyperspace_builder.h>
 
 int
-main(int argc, const char**)
+main(int argc, const char* argv[])
 {
-    if (argc != 1)
+    e::argparser ap;
+    ap.autohelp();
+
+    if (!ap.parse(argc, argv))
+    {
+        return EXIT_FAILURE;
+    }
+
+    if (ap.args_sz() != 0)
     {
         std::cerr << "command takes no arguments" << std::endl;
+        ap.usage();
         return EXIT_FAILURE;
     }
 

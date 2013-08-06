@@ -1,12 +1,12 @@
-struct hyperclient_keyop_info;
+struct hyperdex_client_keyop_info;
 %struct-type
 %language=ANSI-C
-%define hash-function-name _hyperclient_keyop_info_hash
-%define lookup-function-name _hyperclient_keyop_info_lookup
+%define hash-function-name _hyperdex_client_keyop_info_hash
+%define lookup-function-name _hyperdex_client_keyop_info_lookup
 %includes
 %readonly-tables
 %pic
-%define string-pool-name hyperclient_keyop_info_string_pool
+%define string-pool-name hyperdex_client_keyop_info_string_pool
 %{
 #include "client/keyop_info.h"
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
@@ -74,8 +74,8 @@ cond_map_string_prepend, false, true,  false,  hyperdex::FUNC_STRING_PREPEND
 map_string_append,       false, true,  false,  hyperdex::FUNC_STRING_APPEND
 cond_map_string_append,  false, true,  false,  hyperdex::FUNC_STRING_APPEND
 %%
-const struct hyperclient_keyop_info*
-hyperclient_keyop_info_lookup(const char* str, unsigned int len)
+const struct hyperdex_client_keyop_info*
+hyperdex_client_keyop_info_lookup(const char* str, unsigned int len)
 {
-    return _hyperclient_keyop_info_lookup(str, len);
+    return _hyperdex_client_keyop_info_lookup(str, len);
 }

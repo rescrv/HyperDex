@@ -40,27 +40,18 @@
 #include "common/configuration.h"
 #include "common/ids.h"
 #include "common/network_msgtype.h"
+#include "admin/yieldable.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 class admin;
 
-class pending
+class pending : public yieldable
 {
     public:
         pending(uint64_t admin_visible_id,
                 hyperdex_admin_returncode* status);
         virtual ~pending() throw ();
 
-    public:
-        int64_t admin_visible_id() const { return m_admin_visible_id; }
-        void set_status(hyperdex_admin_returncode status) { *m_status = status; }
-
-    // return to admin
-    public:
-        virtual bool can_yield() = 0;
-        virtual bool yield(hyperdex_admin_returncode* status) = 0;
-
-    // events
     public:
         virtual void handle_sent_to(const server_id& si) = 0;
         virtual void handle_failure(const server_id& si) = 0;
@@ -71,22 +62,8 @@ class pending
                                     e::unpacker up,
                                     hyperdex_admin_returncode* status) = 0;
 
-    // refcount
     protected:
         friend class e::intrusive_ptr<pending>;
-        void inc() { ++m_ref; }
-        void dec() { if (--m_ref == 0) delete this; }
-        size_t m_ref;
-
-    // noncopyable
-    private:
-        pending(const pending& other);
-        pending& operator = (const pending& rhs);
-
-    // operation state
-    private:
-        int64_t m_admin_visible_id;
-        hyperdex_admin_returncode* m_status;
 };
 
 END_HYPERDEX_NAMESPACE

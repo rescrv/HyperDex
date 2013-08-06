@@ -95,7 +95,7 @@ main(int argc, const char* argv[])
         {
             hyperclient_returncode e = h.rm_space(args[i]);
 
-            if (e != HYPERCLIENT_SUCCESS)
+            if (e != HYPERDEX_CLIENT_SUCCESS)
             {
                 std::cerr << "could not rm space " << args[i] << ": " << e << std::endl;
                 ++failure;

@@ -14,9 +14,9 @@ hyperdex - the next-generation key-value store
 
 # AUTHOR
 
-HyperDex started as a project at Cornell University and is currently maintained
-by Robert Escriva and the HyperDex community.  For a complete list of
-contributors, see the AUTHORS file included in the HyperDex distribution.
+HyperDex is an open source project started by Cornell University and currently
+maintained by Cornell University and United Networks, LLC.  For a complete list
+of contributors, see the AUTHORS file included in the HyperDex distribution.
 
 # REPORTING BUGS
 

@@ -39,6 +39,7 @@ class pending_string : public pending
     public:
         pending_string(uint64_t admin_visible_id,
                        hyperdex_admin_returncode* status,
+                       hyperdex_admin_returncode set_status,
                        const std::string& string,
                        const char** store);
         virtual ~pending_string() throw ();
@@ -64,6 +65,7 @@ class pending_string : public pending
         pending_string& operator = (const pending_string&);
 
     private:
+        hyperdex_admin_returncode m_status;
         std::string m_string;
         const char** m_store;
         bool m_done;

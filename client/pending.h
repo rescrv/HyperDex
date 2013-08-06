@@ -32,14 +32,15 @@
 #include <memory>
 
 // e
+#include <e/error.h>
 #include <e/intrusive_ptr.h>
 
 // HyperDex
+#include <hyperdex/client.h>
 #include "namespace.h"
 #include "common/configuration.h"
 #include "common/ids.h"
 #include "common/network_msgtype.h"
-#include "client/hyperclient.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 class client;
@@ -48,17 +49,18 @@ class pending
 {
     public:
         pending(uint64_t client_visible_id,
-                hyperclient_returncode* status);
+                hyperdex_client_returncode* status);
         virtual ~pending() throw ();
 
     public:
         int64_t client_visible_id() const { return m_client_visible_id; }
-        void set_status(hyperclient_returncode status) { *m_status = status; }
+        void set_status(hyperdex_client_returncode status) { *m_status = status; }
+        e::error error() const { return m_error; }
 
     // return to client
     public:
         virtual bool can_yield() = 0;
-        virtual bool yield(hyperclient_returncode* status) = 0;
+        virtual bool yield(hyperdex_client_returncode* status, e::error* error) = 0;
 
     // events
     public:
@@ -72,7 +74,8 @@ class pending
                                     network_msgtype mt,
                                     std::auto_ptr<e::buffer> msg,
                                     e::unpacker up,
-                                    hyperclient_returncode* status) = 0;
+                                    hyperdex_client_returncode* status,
+                                    e::error* error) = 0;
 
     // refcount
     protected:
@@ -80,6 +83,10 @@ class pending
         void inc() { ++m_ref; }
         void dec() { if (--m_ref == 0) delete this; }
         size_t m_ref;
+
+    protected:
+        std::ostream& error(const char* file, size_t line);
+        void set_error(const e::error& err);
 
     // noncopyable
     private:
@@ -89,8 +96,13 @@ class pending
     // operation state
     private:
         int64_t m_client_visible_id;
-        hyperclient_returncode* m_status;
+        hyperdex_client_returncode* m_status;
+        e::error m_error;
 };
+
+#define PENDING_ERROR(CODE) \
+    this->set_status(HYPERDEX_CLIENT_ ## CODE); \
+    this->error(__FILE__, __LINE__)
 
 END_HYPERDEX_NAMESPACE
 

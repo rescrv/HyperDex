@@ -276,7 +276,7 @@ writer_thread()
 
         assert(lid == did);
 
-        if (dstatus != HYPERCLIENT_SUCCESS && dstatus != HYPERCLIENT_NOTFOUND)
+        if (dstatus != HYPERDEX_CLIENT_SUCCESS && dstatus != HYPERDEX_CLIENT_NOTFOUND)
         {
             std::cerr << "delete returned " << dstatus << std::endl;
             fail = true;
@@ -412,7 +412,7 @@ reader_thread()
                 assert(lid == gid);
                 ++lops[gstatus];
 
-                if (gstatus == HYPERCLIENT_SUCCESS)
+                if (gstatus == HYPERDEX_CLIENT_SUCCESS)
                 {
                     assert(attrs_sz == 1);
                     assert(strcmp(attrs[0].attr, "repetition") == 0);

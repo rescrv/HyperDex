@@ -31,8 +31,7 @@
 // e
 #include <e/atomic.h>
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 // a threadsafe counter
 class performance_counter
@@ -57,6 +56,6 @@ class performance_counter
         uint64_t m_stable;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_daemon_performance_counters_h_

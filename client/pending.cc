@@ -30,13 +30,27 @@
 
 using hyperdex::pending;
 
-pending :: pending(uint64_t id, hyperclient_returncode* status)
+pending :: pending(uint64_t id, hyperdex_client_returncode* status)
     : m_ref(0)
     , m_client_visible_id(id)
     , m_status(status)
+    , m_error()
 {
 }
 
 pending :: ~pending() throw ()
 {
+}
+
+std::ostream&
+pending :: error(const char* file, size_t line)
+{
+    m_error.set_loc(file, line);
+    return m_error.set_msg();
+}
+
+void
+pending :: set_error(const e::error& err)
+{
+    m_error = err;
 }

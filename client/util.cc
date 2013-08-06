@@ -33,27 +33,33 @@
 #include "common/schema.h"
 #include "client/util.h"
 
+#define UTIL_ERROR(CODE) \
+    *op_status = HYPERDEX_CLIENT_ ## CODE; \
+    op_error->set_loc(__FILE__, __LINE__); \
+    op_error->set_msg()
+
 bool
 hyperdex :: value_to_attributes(const configuration& config,
                                 const region_id& rid,
                                 const uint8_t* key,
                                 size_t key_sz,
                                 const std::vector<e::slice>& value,
-                                hyperclient_returncode* loop_status,
-                                hyperclient_returncode* op_status,
-                                hyperclient_attribute** attrs,
+                                hyperdex_client_returncode* op_status,
+                                e::error* op_error,
+                                const hyperdex_client_attribute** attrs,
                                 size_t* attrs_sz)
 {
-    *loop_status = HYPERCLIENT_SUCCESS;
     const schema* sc = config.get_schema(rid);
 
     if (value.size() + 1 != sc->attrs_sz)
     {
-        *op_status = HYPERCLIENT_SERVERERROR;
+        UTIL_ERROR(SERVERERROR) << "received object with " << value.size()
+                                << " attributes instead of "
+                                << sc->attrs_sz - 1 << " attributes";
         return false;
     }
 
-    size_t sz = sizeof(hyperclient_attribute) * sc->attrs_sz + key_sz
+    size_t sz = sizeof(hyperdex_client_attribute) * sc->attrs_sz + key_sz
               + strlen(sc->attrs[0].name) + 1;
 
     for (size_t i = 0; i < value.size(); ++i)
@@ -61,23 +67,23 @@ hyperdex :: value_to_attributes(const configuration& config,
         sz += strlen(sc->attrs[i + 1].name) + 1 + value[i].size();
     }
 
-    std::vector<hyperclient_attribute> ha;
+    std::vector<hyperdex_client_attribute> ha;
     ha.reserve(sc->attrs_sz);
     char* ret = static_cast<char*>(malloc(sz));
 
     if (!ret)
     {
-        *loop_status = HYPERCLIENT_NOMEM;
+        UTIL_ERROR(NOMEM) << "out of memory";
         return false;
     }
 
     e::guard g = e::makeguard(free, ret);
-    char* data = ret + sizeof(hyperclient_attribute) * value.size();
+    char* data = ret + sizeof(hyperdex_client_attribute) * value.size();
 
     if (key)
     {
-        data += sizeof(hyperclient_attribute);
-        ha.push_back(hyperclient_attribute());
+        data += sizeof(hyperdex_client_attribute);
+        ha.push_back(hyperdex_client_attribute());
         size_t attr_sz = strlen(sc->attrs[0].name) + 1;
         ha.back().attr = data;
         memmove(data, sc->attrs[0].name, attr_sz);
@@ -91,7 +97,7 @@ hyperdex :: value_to_attributes(const configuration& config,
 
     for (size_t i = 0; i < value.size(); ++i)
     {
-        ha.push_back(hyperclient_attribute());
+        ha.push_back(hyperdex_client_attribute());
         size_t attr_sz = strlen(sc->attrs[i + 1].name) + 1;
         ha.back().attr = data;
         memmove(data, sc->attrs[i + 1].name, attr_sz);
@@ -103,9 +109,10 @@ hyperdex :: value_to_attributes(const configuration& config,
         ha.back().datatype = sc->attrs[i + 1].type;
     }
 
-    memmove(ret, &ha.front(), sizeof(hyperclient_attribute) * ha.size());
-    *op_status = HYPERCLIENT_SUCCESS;
-    *attrs = reinterpret_cast<hyperclient_attribute*>(ret);
+    memmove(ret, &ha.front(), sizeof(hyperdex_client_attribute) * ha.size());
+    *op_status = HYPERDEX_CLIENT_SUCCESS;
+    *op_error = e::error();
+    *attrs = reinterpret_cast<hyperdex_client_attribute*>(ret);
     *attrs_sz = ha.size();
     g.dismiss();
     return true;

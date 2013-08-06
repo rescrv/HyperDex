@@ -32,7 +32,7 @@
 using hyperdex::pending_atomic;
 
 pending_atomic :: pending_atomic(uint64_t id,
-                                 hyperclient_returncode* status)
+                                 hyperdex_client_returncode* status)
     : pending(id, status)
     , m_state(INITIALIZED)
 {
@@ -50,8 +50,10 @@ pending_atomic :: can_yield()
 }
 
 bool
-pending_atomic :: yield(hyperclient_returncode*)
+pending_atomic :: yield(hyperdex_client_returncode* status, e::error* err)
 {
+    *status = HYPERDEX_CLIENT_SUCCESS;
+    *err = e::error();
     m_state = YIELDED;
     return true;
 }
@@ -65,29 +67,32 @@ pending_atomic :: handle_sent_to(const server_id&,
 }
 
 void
-pending_atomic :: handle_failure(const server_id&,
-                                 const virtual_server_id&)
+pending_atomic :: handle_failure(const server_id& si,
+                                 const virtual_server_id& vsi)
 {
     assert(m_state == SENT);
     m_state = RECV;
-    set_status(HYPERCLIENT_RECONFIGURE);
+    PENDING_ERROR(RECONFIGURE) << "reconfiguration affecting "
+                               << vsi << "/" << si;
 }
 
 bool
 pending_atomic :: handle_message(client*,
-                                 const server_id&,
-                                 const virtual_server_id&,
+                                 const server_id& si,
+                                 const virtual_server_id& vsi,
                                  network_msgtype mt,
-                                 std::auto_ptr<e::buffer>,
+                                 std::auto_ptr<e::buffer> msg,
                                  e::unpacker up,
-                                 hyperclient_returncode* status)
+                                 hyperdex_client_returncode* status,
+                                 e::error* err)
 {
     m_state = RECV;
-    *status = HYPERCLIENT_SUCCESS;
-    set_status(HYPERCLIENT_SERVERERROR);
+    *status = HYPERDEX_CLIENT_SUCCESS;
+    *err = e::error();
 
     if (mt != RESP_ATOMIC)
     {
+        PENDING_ERROR(SERVERERROR) << "server vsi responded to ATOMIC with " << mt;
         return true;
     }
 
@@ -96,38 +101,54 @@ pending_atomic :: handle_message(client*,
 
     if (up.error())
     {
+        PENDING_ERROR(SERVERERROR) << "communication error: server "
+                                   << vsi << " sent corrupt message="
+                                   << msg->as_slice().hex()
+                                   << " in response to an ATOMIC";
         return true;
     }
 
     switch (static_cast<network_returncode>(response))
     {
         case NET_SUCCESS:
-            set_status(HYPERCLIENT_SUCCESS);
-            break;
+            set_status(HYPERDEX_CLIENT_SUCCESS);
+            set_error(e::error());
+            return true;
         case NET_NOTFOUND:
-            set_status(HYPERCLIENT_NOTFOUND);
-            break;
-        case NET_BADDIMSPEC:
-        case NET_BADMICROS:
-            set_status(HYPERCLIENT_SERVERERROR);
-            break;
-        case NET_NOTUS:
-            set_status(HYPERCLIENT_RECONFIGURE);
-            break;
+            set_status(HYPERDEX_CLIENT_NOTFOUND);
+            set_error(e::error());
+            return true;
         case NET_CMPFAIL:
-            set_status(HYPERCLIENT_CMPFAIL);
-            break;
+            set_status(HYPERDEX_CLIENT_CMPFAIL);
+            set_error(e::error());
+            return true;
+        case NET_BADDIMSPEC:
+            PENDING_ERROR(SERVERERROR) << "server " << si
+                                       << " reports that our request was invalid;"
+                                       << " check its log for details";
+            return true;
+        case NET_NOTUS:
+            PENDING_ERROR(RECONFIGURE) << "server " << si
+                                       << " reports that it is no longer reponsible"
+                                       << " for the requested object";
+            return true;
         case NET_OVERFLOW:
-            set_status(HYPERCLIENT_OVERFLOW);
-            break;
+            PENDING_ERROR(OVERFLOW) << "server " << si
+                                    << " reports that the operation would"
+                                    << " cause a number overflow";
+            return true;
         case NET_READONLY:
-            set_status(HYPERCLIENT_READONLY);
-            break;
+            PENDING_ERROR(READONLY) << "cluster is in read-only mode";
+            return true;
         case NET_SERVERERROR:
+            PENDING_ERROR(SERVERERROR) << "server " << si
+                                       << " reports a server error;"
+                                       << " check its log for details";
+            return true;
         default:
-            set_status(HYPERCLIENT_SERVERERROR);
-            break;
+            PENDING_ERROR(SERVERERROR) << "server " << si
+                                       << " returned non-sensical returncode"
+                                       << response;
+            return true;
     }
-
-    return true;
 }

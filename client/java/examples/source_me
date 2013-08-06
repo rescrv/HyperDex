@@ -1,2 +1,0 @@
-export CLASSPATH=.:../../../hyperclient-1.0.dev.jar
-export LD_LIBRARY_PATH=../../../.libs

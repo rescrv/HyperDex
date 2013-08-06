@@ -124,7 +124,7 @@ main(int argc, const char* argv[])
 
         hyperclient_returncode e = cl.initiate_transfer(rid, sid);
 
-        if (e != HYPERCLIENT_SUCCESS)
+        if (e != HYPERDEX_CLIENT_SUCCESS)
         {
             std::cerr << "could not initiate transfer: " << e << std::endl;
             return EXIT_FAILURE;

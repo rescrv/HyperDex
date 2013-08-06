@@ -5,6 +5,8 @@ Welcome to the HyperDex Reference Manual
 
 .. toctree::
    :maxdepth: 2
+   :glob:
+   :numbered:
 
    01.introduction
    02.installation
@@ -14,9 +16,8 @@ Welcome to the HyperDex Reference Manual
    06.atomic
    07.faults
    08.transactions
-   api/python
-   api/c
-   glossary
+   api/c/index
+   api/ruby/index
 
 Indices and tables
 ==================

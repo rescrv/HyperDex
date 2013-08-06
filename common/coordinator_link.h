@@ -33,6 +33,12 @@
 // C
 #include <stdint.h>
 
+// STL
+#include <list>
+
+// e
+#include <e/error.h>
+
 // Replicant
 #include <replicant.h>
 
@@ -57,14 +63,24 @@ class coordinator_link
 
     public:
         const configuration* config() { return &m_config; }
+        poll_fd_t poll_fd() { return m_repl.poll_fd(); }
         bool ensure_configuration(replicant_returncode* status);
-        poll_fd_t poll_fd();
+        int64_t rpc(const char* func,
+                    const char* data, size_t data_sz,
+                    replicant_returncode* status,
+                    const char** output, size_t* output_sz);
+        int64_t loop(int timeout, replicant_returncode* status);
+        uint64_t queued_responses() { return m_pending_ids.size(); }
+        e::error error() { return m_repl.last_error(); }
 
     private:
         coordinator_link(const coordinator_link&);
         coordinator_link& operator = (const coordinator_link&);
 
     private:
+        // returns true when ensures config one way or the other
+        // returns false when further looping is necessary to ensure config
+        bool handle_internal_callback(replicant_returncode* status, bool* ensured);
         bool begin_waiting_on_broadcast(replicant_returncode* status);
         bool begin_fetching_config(replicant_returncode* status);
 
@@ -76,6 +92,7 @@ class coordinator_link
         enum { WAITING_ON_BROADCAST, FETCHING_CONFIG } m_state;
         const char* m_output;
         size_t m_output_sz;
+        std::list<int64_t> m_pending_ids;
 };
 
 END_HYPERDEX_NAMESPACE

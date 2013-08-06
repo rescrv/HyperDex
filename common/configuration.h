@@ -83,9 +83,9 @@ class configuration
         virtual_server_id next_in_region(const virtual_server_id& vsi) const;
         void point_leaders(const server_id& s, std::vector<region_id>* servers) const;
         bool is_point_leader(const virtual_server_id& e) const;
-        virtual_server_id point_leader(const char* space, const e::slice& key);
+        virtual_server_id point_leader(const char* space, const e::slice& key) const;
         // point leader for this key in the same space as ri
-        virtual_server_id point_leader(const region_id& ri, const e::slice& key);
+        virtual_server_id point_leader(const region_id& ri, const e::slice& key) const;
         // lhs and rhs are in adjacent subspaces such that lhs sends CHAIN_PUT
         // to rhs and rhs sends CHAIN_ACK to lhs
         bool subspace_adjacent(const virtual_server_id& lhs, const virtual_server_id& rhs) const;

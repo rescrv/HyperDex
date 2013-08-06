@@ -38,14 +38,14 @@ class pending_search_describe : public pending_aggregation
 {
     public:
         pending_search_describe(uint64_t client_visible_id,
-                                hyperclient_returncode* status,
+                                hyperdex_client_returncode* status,
                                 const char** description);
         virtual ~pending_search_describe() throw ();
 
     // return to client
     public:
         virtual bool can_yield();
-        virtual bool yield(hyperclient_returncode* status);
+        virtual bool yield(hyperdex_client_returncode* status, e::error* error);
 
     // events
     public:
@@ -59,7 +59,8 @@ class pending_search_describe : public pending_aggregation
                                     network_msgtype mt,
                                     std::auto_ptr<e::buffer> msg,
                                     e::unpacker up,
-                                    hyperclient_returncode* status);
+                                    hyperdex_client_returncode* status,
+                                    e::error* error);
 
     // add text to description
     private:
@@ -73,7 +74,6 @@ class pending_search_describe : public pending_aggregation
 
     private:
         const char** m_description;
-        hyperclient_returncode m_error;
         bool m_done;
         std::vector<std::pair<hyperdex::virtual_server_id, std::string> > m_msgs;
 };
