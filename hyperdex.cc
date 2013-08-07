@@ -42,9 +42,8 @@ main(int argc, const char* argv[])
     cmds.push_back(e::subcommand("coordinator",           "Start a new HyperDex coordinator"));
     cmds.push_back(e::subcommand("daemon",                "Start a new HyperDex daemon"));
     cmds.push_back(e::subcommand("add-space",             "Create a new HyperDex space"));
+    cmds.push_back(e::subcommand("rm-space",              "Remove an existing HyperDex space"));
     cmds.push_back(e::subcommand("validate-space",        "Validate a HyperDex space description"));
-    // XXX cmds.push_back(e::subcommand("add-space",             "Create a new space"));
-    // XXX cmds.push_back(e::subcommand("rm-space",              "Remove an existing space"));
     // XXX cmds.push_back(e::subcommand("initialize-cluster",    "One time initialization of a HyperDex coordinator"));
     // XXX cmds.push_back(e::subcommand("initiate-transfer",     "Manually start a data transfer to repair a failure"));
     // XXX cmds.push_back(e::subcommand("show-config",           "Output a human-readable version of the cluster configuration"));

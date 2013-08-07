@@ -675,9 +675,11 @@ test_search_stress_test_LDADD = libhyperdex-client.la
 if ENABLE_TOOLS
 bin_PROGRAMS += hyperdex-add-space
 bin_PROGRAMS += hyperdex-async-benchmark
+bin_PROGRAMS += hyperdex-rm-space
 bin_PROGRAMS += hyperdex-validate-space
 dist_man_MANS += man/hyperdex-add-space.1
 dist_man_MANS += man/hyperdex-async-benchmark.1
+dist_man_MANS += man/hyperdex-rm-space.1
 dist_man_MANS += man/hyperdex-validate-space.1
 endif
 
@@ -710,6 +712,15 @@ hyperdex_async_benchmark_LDADD = libhyperdex-client.la $(E_LIBS) -lpopt
 man/hyperdex-async-benchmark.1: man/hyperdex-async-benchmark.1.h2m tools/async-benchmark.cc
 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-async-benchmark$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-async-benchmark$(EXEEXT)
+
+# hyperdex-rm-space
+EXTRA_DIST += man/hyperdex-rm-space.1.md
+EXTRA_DIST += man/hyperdex-rm-space.1.h2m
+hyperdex_rm_space_SOURCES = tools/rm-space.cc
+hyperdex_rm_space_LDADD = libhyperdex-admin.la -lpopt
+man/hyperdex-rm-space.1: man/hyperdex-rm-space.1.h2m tools/rm-space.cc
+	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-rm-space$(EXEEXT)
+	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-rm-space$(EXEEXT)
 
 # hyperdex-validate-space
 EXTRA_DIST += man/hyperdex-validate-space.1.md
