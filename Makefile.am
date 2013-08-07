@@ -706,7 +706,7 @@ man/hyperdex-add-space.1: man/hyperdex-add-space.1.h2m tools/add-space.cc
 EXTRA_DIST += man/hyperdex-async-benchmark.1.md
 EXTRA_DIST += man/hyperdex-async-benchmark.1.h2m
 hyperdex_async_benchmark_SOURCES = tools/async-benchmark.cc
-hyperdex_async_benchmark_LDADD = libhyperdex-client.la -lpopt
+hyperdex_async_benchmark_LDADD = libhyperdex-client.la $(E_LIBS) -lpopt
 man/hyperdex-async-benchmark.1: man/hyperdex-async-benchmark.1.h2m tools/async-benchmark.cc
 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-async-benchmark$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-async-benchmark$(EXEEXT)
