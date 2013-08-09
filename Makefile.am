@@ -556,7 +556,7 @@ $(hyperdex_client_jarfile): bindings/java/hyperdex_client_wrap.cxx
 	cd bindings/java ; $(JAR) cvf $(JARFLAGS) ../../$(hyperdex_client_jarfile) org/hyperdex/client/*.class
 
 # YCSB
-$(hyperdex_ycsb_jarfile): bindings/java/org/hyperdex/ycsb/HyperDex.java
+$(hyperdex_ycsb_jarfile): bindings/java/org/hyperdex/ycsb/HyperDex.java $(hyperdex_client_jarfile)
 	javac -cp $(abs_top_builddir)/$(hyperdex_client_jarfile):$(CLASSPATH) bindings/java/org/hyperdex/ycsb/*.java
 	cd bindings/java ; $(JAR) cvf $(JARFLAGS) ../../$(hyperdex_ycsb_jarfile) org/hyperdex/ycsb/*.class
 
@@ -663,7 +663,7 @@ TESTS += $(shellwrappers)
 EXTRA_DIST += $(shellwrappers)
 
 test_replication_stress_test_SOURCES = test/replication-stress-test.cc
-test_replication_stress_test_LDADD = libhyperdex-client.la
+test_replication_stress_test_LDADD = libhyperdex-client.la $(E_LIBS)
 
 test_search_stress_test_SOURCES = test/search-stress-test.cc
 test_search_stress_test_LDADD = libhyperdex-client.la
