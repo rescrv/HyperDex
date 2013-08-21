@@ -38,18 +38,18 @@
 // th
 #include "th.h"
 
-static std::vector<th::base*>* _th_tests = NULL;
+static std::vector<th::test_base*>* _th_tests = NULL;
 
-class throw_this_on_test_failure
+class escape_from_test_failure
 {
     public:
-        throw_this_on_test_failure() {}
+        escape_from_test_failure() {}
 };
 
-th :: base :: base(const char* group,
-                   const char* name,
-                   const char* file,
-                   size_t line)
+th :: test_base :: test_base(const char* group,
+                             const char* name,
+                             const char* file,
+                             size_t line)
     : m_group(group)
     , m_name(name)
     , m_file(file)
@@ -57,18 +57,14 @@ th :: base :: base(const char* group,
 {
     if (_th_tests == NULL)
     {
-        _th_tests = new std::vector<th::base*>();
+        _th_tests = new std::vector<th::test_base*>();
     }
 
     _th_tests->push_back(this);
 }
 
-th :: base :: ~base() throw ()
-{
-}
-
 void
-th :: base :: run(bool* failed)
+th :: test_base :: run(bool* failed)
 {
     std::cerr << "===== Test " << m_group << "::" << m_name << " @ " << m_file << ":" << m_line << std::endl;
 
@@ -77,22 +73,22 @@ th :: base :: run(bool* failed)
         this->_run();
         *failed = false;
     }
-    catch (throw_this_on_test_failure& ttotf)
+    catch (escape_from_test_failure& ttotf)
     {
         *failed = true;
     }
 }
 
 bool
-th :: base :: operator < (const base& rhs) const
+th :: test_base :: operator < (const test_base& rhs) const
 {
     return compare(rhs) < 0;
 }
 
 int
-th :: base :: compare(const base& rhs) const
+th :: test_base :: compare(const test_base& rhs) const
 {
-    const base& lhs(*this);
+    const test_base& lhs(*this);
     int cmp;
 
     // Compare file
@@ -180,7 +176,7 @@ th :: predicate :: fail()
 }
 
 static bool
-compare_base_ptrs(const th::base* lhs, const th::base* rhs)
+compare_test_base_ptrs(const th::test_base* lhs, const th::test_base* rhs)
 {
     return *lhs < *rhs;
 }
@@ -193,8 +189,8 @@ th :: run_tests()
         return 0;
     }
 
-    std::sort(_th_tests->begin(), _th_tests->end(), compare_base_ptrs);
-    const std::vector<th::base*>& th_tests(*_th_tests);
+    std::sort(_th_tests->begin(), _th_tests->end(), compare_test_base_ptrs);
+    const std::vector<th::test_base*>& th_tests(*_th_tests);
     int failures = 0;
 
     for (size_t i = 0; i < th_tests.size(); ++i)
@@ -211,9 +207,11 @@ th :: run_tests()
     return failures;
 }
 
+#pragma GCC diagnostic ignored "-Wsuggest-attribute=noreturn"
+
 void
 th :: fail()
 {
-    throw_this_on_test_failure ttotf;
-    throw ttotf;
+    escape_from_test_failure eftf;
+    throw eftf;
 }

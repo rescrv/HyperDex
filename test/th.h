@@ -48,28 +48,28 @@ run_tests();
 void
 fail();
 
-class base
+class test_base
 {
     public:
-        base(const char* group,
+        test_base(const char* group,
              const char* name,
              const char* file,
              size_t line);
-        virtual ~base() throw ();
+        virtual ~test_base() throw () {}
 
     public:
         void run(bool* failed);
 
     public:
-        bool operator < (const base& rhs) const;
+        bool operator < (const test_base& rhs) const;
 
     private:
         virtual void _run() = 0;
-        int compare(const base& rhs) const;
+        int compare(const test_base& rhs) const;
 
     private:
-        base(const base&);
-        base& operator = (const base&);
+        test_base(const test_base&);
+        test_base& operator = (const test_base&);
 
     private:
         const char* m_group;
@@ -119,11 +119,11 @@ class predicate
 } // namespace th
 
 #define TEST(GROUP, NAME) \
-    class TH_CONCAT(GROUP, TH_CONCAT(_, TH_CONCAT(NAME, TH_CONCAT(_, __LINE__)))) : public th::base \
+    class TH_CONCAT(GROUP, TH_CONCAT(_, TH_CONCAT(NAME, TH_CONCAT(_, __LINE__)))) : public th::test_base \
     { \
         public: \
             TH_CONCAT(GROUP, TH_CONCAT(_, TH_CONCAT(NAME, TH_CONCAT(_, __LINE__))))() \
-                : base(TH_STR(GROUP), TH_STR(NAME), __FILE__, __LINE__) {} \
+                : test_base(TH_STR(GROUP), TH_STR(NAME), __FILE__, __LINE__) {} \
         protected: \
             virtual void _run(); \
     }; \
