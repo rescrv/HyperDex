@@ -48,7 +48,7 @@ Ubuntu
 To access the Ubuntu repository, add the following to
 ``/etc/apt/sources.list``::
 
-   deb [arch=amd64] http://ubuntu.hyperdex.org oneiric main
+   deb [arch=amd64] http://ubuntu.hyperdex.org precise main
 
 Subsequent invocations of the package manager may complain about the absence of
 the relevant package signing key.  You can download the `Ubuntu public key`_ and
