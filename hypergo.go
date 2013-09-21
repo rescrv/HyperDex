@@ -28,35 +28,47 @@ var CHANNEL_BUFFER_SIZE = 1
 // Negative timeout means no timeout.
 var TIMEOUT = -1
 
+// Datatypes
 const (
-	datatype_STRING  = 8960
-	datatype_INT64   = 8961
-	datatype_GARBAGE = 9087
+	datatype_STRING  = 9217
+	datatype_INT64   = 9218
+	datatype_GARBAGE = 9727
 )
 
+// Return codes
 const (
-	returncode_SUCCESS      = 8448
-	returncode_NOTFOUND     = 8449
-	returncode_SEARCHDONE   = 8450
-	returncode_CMPFAIL      = 8451
+	returncode_SUCCESS    = 8448
+	returncode_NOTFOUND   = 8449
+	returncode_SEARCHDONE = 8450
+	returncode_CMPFAIL    = 8451
+	returncode_READONLY   = 8452
+
+	// Error conditions
 	returncode_UNKNOWNSPACE = 8512
 	returncode_COORDFAIL    = 8513
 	returncode_SERVERERROR  = 8514
-	returncode_CONNECTFAIL  = 8515
-	returncode_DISCONNECT   = 8516
+	returncode_POLLFAILED   = 8515
+	returncode_OVERFLOW     = 8516
 	returncode_RECONFIGURE  = 8517
 	returncode_LOGICERROR   = 8518
 	returncode_TIMEOUT      = 8519
 	returncode_UNKNOWNATTR  = 8520
 	returncode_DUPEATTR     = 8521
-	returncode_SEEERRNO     = 8522
 	returncode_NONEPENDING  = 8523
 	returncode_DONTUSEKEY   = 8524
 	returncode_WRONGTYPE    = 8525
-	returncode_EXCEPTION    = 8574
-	returncode_ZERO         = 8575
-	returncode_A            = 8576
-	returncode_B            = 8577
+	returncode_NOMEM        = 8526
+	returncode_BADCONFIG    = 8527
+	returncode_DUPLICATE    = 8529
+	returncode_INTERRUPTED  = 8530
+	returncode_CLUSTER_JUMP = 8531
+	returncode_COORD_LOGGED = 8532
+	returncode_OFFLINE      = 8533
+
+	// The following return codes indicate bugs in Hyperdex
+	returncode_INTERNAL  = 8573
+	returncode_EXCEPTION = 8574
+	returncode_GARBAGE   = 8575
 )
 
 var internalErrorMessages map[int64]string = map[int64]string{
