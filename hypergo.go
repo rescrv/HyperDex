@@ -79,18 +79,18 @@ var internalErrorMessages map[int64]string = map[int64]string{
 	returncode_UNKNOWNSPACE: "Unknown Space",
 	returncode_COORDFAIL:    "Coordinator Failure",
 	returncode_SERVERERROR:  "Server Error",
-	returncode_CONNECTFAIL:  "Connection Failure",
-	returncode_DISCONNECT:   "Connection Reset",
-	returncode_RECONFIGURE:  "Reconfiguration",
-	returncode_LOGICERROR:   "Logic Error (file a bug)",
-	returncode_TIMEOUT:      "Timeout",
-	returncode_UNKNOWNATTR:  "Unknown attribute '%s'",
-	returncode_DUPEATTR:     "Duplicate attribute '%s'",
-	returncode_SEEERRNO:     "See ERRNO",
-	returncode_NONEPENDING:  "None pending",
-	returncode_DONTUSEKEY:   "Do not specify the key in a search predicate and do not redundantly specify the key for an insert",
-	returncode_WRONGTYPE:    "Attribute '%s' has the wrong type",
-	returncode_EXCEPTION:    "Internal Error (file a bug)",
+	// returncode_CONNECTFAIL:  "Connection Failure",
+	// returncode_DISCONNECT:   "Connection Reset",
+	returncode_RECONFIGURE: "Reconfiguration",
+	returncode_LOGICERROR:  "Logic Error (file a bug)",
+	returncode_TIMEOUT:     "Timeout",
+	returncode_UNKNOWNATTR: "Unknown attribute '%s'",
+	returncode_DUPEATTR:    "Duplicate attribute '%s'",
+	// returncode_SEEERRNO:    "See ERRNO",
+	returncode_NONEPENDING: "None pending",
+	returncode_DONTUSEKEY:  "Do not specify the key in a search predicate and do not redundantly specify the key for an insert",
+	returncode_WRONGTYPE:   "Attribute '%s' has the wrong type",
+	returncode_EXCEPTION:   "Internal Error (file a bug)",
 }
 
 // Client is the hyperdex client used to make requests to hyperdex.
@@ -123,12 +123,9 @@ type bundle map[string]interface{}
 
 type request struct {
 	id       int64
-	objch    chan Object
-	errch    chan error
-	bundle   bundle
-	success  func(request)
-	failure  func(request, C.enum_hyperdex_client_returncode)
-	complete func(request)
+	success  func()
+	failure  func(C.enum_hyperdex_client_returncode)
+	complete func()
 }
 
 // NewClient initializes a hyperdex client ready to use.
@@ -176,12 +173,12 @@ func NewClient(ip string, port int) (*Client, error) {
 					for i, req := range client.requests {
 						if req.id == ret {
 							if status == returncode_SUCCESS {
-								req.success(req)
+								req.success()
 							} else {
-								req.failure(req, status)
+								req.failure(status)
 							}
 							if req.complete != nil {
-								req.complete(req)
+								req.complete()
 							}
 							// remove processed request from pending requests
 							client.requests = append(client.requests[:i], client.requests[i+1:]...)
@@ -216,38 +213,78 @@ func (client *Client) AtomicDec(space, key string, attrs Attributes) ErrorChanne
 	return client.atomicIncDec(space, key, attrs, true)
 }
 
-func (client *Client) Get(space, key string) ObjectChannel {
-	objch := make(chan Object, CHANNEL_BUFFER_SIZE)
+func (client *Client) Put(space, key string, attrs Attributes) error {
+	return <-client.AsyncPut(space, key, attrs)
+}
+
+func (client *Client) AsyncPut(space, key string, attrs Attributes) ErrorChannel {
+	errCh := make(chan error, CHANNEL_BUFFER_SIZE)
+	var status C.enum_hyperdex_client_returncode
+
+	C_attrs, C_attrs_sz, err := newCTypeAttributeList(attrs, false)
+	if err != nil {
+		errCh <- err
+		close(errCh)
+		return errCh
+	}
+
+	req_id := int64(C.hyperdex_client_put(client.ptr, C.CString(space),
+		C.CString(key), C.size_t(unsafe.Sizeof(key)),
+		C_attrs, C_attrs_sz,
+		&status))
+
+	if req_id < 0 {
+		errCh <- newInternalError(status)
+		close(errCh)
+		return errCh
+	}
+
+	req := request{
+		id: req_id,
+		success: func() {
+			errCh <- nil
+			close(errCh)
+		},
+		failure: errChannelFailureCallback(errCh),
+		complete: func() {
+			C.hyperdex_client_destroy_attrs(C_attrs, C_attrs_sz)
+		},
+	}
+
+	client.requests = append(client.requests, req)
+	return errCh
+}
+
+func (client *Client) Get(space, key string) Object {
+	return <-client.AsyncGet(space, key)
+}
+
+func (client *Client) AsyncGet(space, key string) ObjectChannel {
+	objCh := make(chan Object, CHANNEL_BUFFER_SIZE)
 	var status C.enum_hyperdex_client_returncode
 	var C_attrs *C.struct_hyperdex_client_attribute
 	var C_attrs_sz C.size_t
 	req_id := int64(C.hyperdex_client_get(client.ptr, C.CString(space), C.CString(key), C.size_t(len([]byte(key))), &status, &C_attrs, &C_attrs_sz))
 	//log.Printf("hyperdex_client_get(%X, \"%s\", \"%s\", %d, %X, %X, %X) -> %d\n", unsafe.Pointer(client.ptr), space, key, len([]byte(key)), unsafe.Pointer(&status), unsafe.Pointer(&C_attrs), unsafe.Pointer(&C_attrs_sz), req_id)
 	if req_id < 0 {
-		objch <- Object{Err: newInternalError(status)}
-		close(objch)
-		return objch
+		objCh <- Object{Err: newInternalError(status)}
+		close(objCh)
+		return objCh
 	}
 	req := request{
-		id:     req_id,
-		objch:  objch,
-		bundle: bundle{"key": key, "status": &status, "C_attrs": &C_attrs, "C_attrs_sz": &C_attrs_sz},
-		success: func(req request) {
-			C_attrs := *req.bundle["C_attrs"].(**C.struct_hyperdex_client_attribute)
-			C_attrs_sz := *req.bundle["C_attrs_sz"].(*C.size_t)
+		id: req_id,
+		success: func() {
 			attrs, err := newAttributeListFromC(C_attrs, C_attrs_sz)
 			if err != nil {
-				req.objch <- Object{Err: err}
-				close(req.objch)
+				objCh <- Object{Err: err}
+				close(objCh)
 				return
 			}
-			req.objch <- Object{Err: nil, Key: req.bundle["key"].(string), Attrs: attrs}
-			close(req.objch)
+			objCh <- Object{Err: nil, Key: key, Attrs: attrs}
+			close(objCh)
 		},
-		failure: objChannelFailureCallback,
-		complete: func(req request) {
-			C_attrs := *req.bundle["C_attrs"].(**C.struct_hyperdex_client_attribute)
-			C_attrs_sz := *req.bundle["C_attrs_sz"].(*C.size_t)
+		failure: objChannelFailureCallback(objCh),
+		complete: func() {
 			if C_attrs_sz > 0 {
 				C.hyperdex_client_destroy_attrs(C_attrs, C_attrs_sz)
 				//log.Printf("hyperdex_client_destroy_attrs(%X, %d)\n", unsafe.Pointer(C_attrs), C_attrs_sz)
@@ -255,50 +292,48 @@ func (client *Client) Get(space, key string) ObjectChannel {
 		},
 	}
 	client.requests = append(client.requests, req)
-	return objch
+	return objCh
 }
 
 func (client *Client) Delete(space, key string) ErrorChannel {
-	errch := make(chan error, CHANNEL_BUFFER_SIZE)
+	errCh := make(chan error, CHANNEL_BUFFER_SIZE)
 	var status C.enum_hyperdex_client_returncode
 	req_id := int64(C.hyperdex_client_del(client.ptr, C.CString(space), C.CString(key), C.size_t(len([]byte(key))), &status))
 	//log.Printf("hyperdex_client_del(%X, \"%s\", \"%s\", %d, %X) -> %d", unsafe.Pointer(client.ptr), space, key, len([]byte(key)), unsafe.Pointer(&status), req_id)
 	if req_id < 0 {
-		errch <- newInternalError(status)
-		close(errch)
-		return errch
+		errCh <- newInternalError(status)
+		close(errCh)
+		return errCh
 	}
 	req := request{
 		id:      req_id,
-		errch:   errch,
-		failure: errChannelFailureCallback,
+		failure: errChannelFailureCallback(errCh),
 	}
 	client.requests = append(client.requests, req)
-	return errch
+	return errCh
 }
 
 func (client *Client) atomicIncDec(space, key string, attrs Attributes, negative bool) ErrorChannel {
-	errch := make(chan error, CHANNEL_BUFFER_SIZE)
+	errCh := make(chan error, CHANNEL_BUFFER_SIZE)
 	var status C.enum_hyperdex_client_returncode
 	C_attrs, C_attrs_sz, err := newCTypeAttributeList(attrs, negative)
 	if err != nil {
-		errch <- err
-		close(errch)
-		return errch
+		errCh <- err
+		close(errCh)
+		return errCh
 	}
 	req_id := int64(C.hyperdex_client_atomic_add(client.ptr, C.CString(space), C.CString(key), C.size_t(len(key)), C_attrs, C_attrs_sz, &status))
 	if req_id < 0 {
-		errch <- newInternalError(status)
-		close(errch)
-		return errch
+		errCh <- newInternalError(status)
+		close(errCh)
+		return errCh
 	}
 	req := request{
 		id:      req_id,
-		errch:   errch,
-		failure: errChannelFailureCallback,
+		failure: errChannelFailureCallback(errCh),
 	}
 	client.requests = append(client.requests, req)
-	return errch
+	return errCh
 }
 
 func newInternalError(status C.enum_hyperdex_client_returncode, a ...interface{}) error {
@@ -309,14 +344,20 @@ func newInternalError(status C.enum_hyperdex_client_returncode, a ...interface{}
 	return fmt.Errorf("Unknown Error %d (file a bug)", status)
 }
 
-func errChannelFailureCallback(req request, status C.enum_hyperdex_client_returncode) {
-	req.errch <- newInternalError(status)
-	close(req.errch)
+// Convenience function for generating a callback
+func errChannelFailureCallback(errCh chan error) func(C.enum_hyperdex_client_returncode) {
+	return func(status C.enum_hyperdex_client_returncode) {
+		errCh <- newInternalError(status)
+		close(errCh)
+	}
 }
 
-func objChannelFailureCallback(req request, status C.enum_hyperdex_client_returncode) {
-	req.objch <- Object{Err: newInternalError(status)}
-	close(req.objch)
+// Convenience function for generating a callback
+func objChannelFailureCallback(objCh chan Object) func(C.enum_hyperdex_client_returncode) {
+	return func(status C.enum_hyperdex_client_returncode) {
+		objCh <- Object{Err: newInternalError(status)}
+		close(objCh)
+	}
 }
 
 func newCTypeAttributeList(attrs Attributes, negative bool) (C_attrs *C.struct_hyperdex_client_attribute, C_attrs_sz C.size_t, err error) {
