@@ -9,3 +9,7 @@ Work in progress.
 ## Credit
 
 As the code currently stands, it's based largely on [hyperclient](https://github.com/tiborvass/hyperclient).  However this will change as I add more stuff.
+
+## License
+
+Please refer to the [license for HyperDex](https://github.com/rescrv/HyperDex/blob/master/LICENSE).
