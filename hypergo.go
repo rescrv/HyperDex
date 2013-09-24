@@ -128,6 +128,11 @@ type request struct {
 	complete func()
 }
 
+// Return the number of bytes of a string
+func bytesOf(str string) int {
+	return len([]byte(str))
+}
+
 // NewClient initializes a hyperdex client ready to use.
 //
 // For every call to NewClient, there must be a call to Destroy.
@@ -163,6 +168,7 @@ func NewClient(ip string, port int) (*Client, error) {
 				// check if there are pending requests
 				// and only if there are, call hyperdex_client_loop
 				if l := len(client.requests); l > 0 {
+					println("processing request!")
 					var status C.enum_hyperdex_client_returncode = 42
 					ret := int64(C.hyperdex_client_loop(client.ptr, C.int(TIMEOUT), &status))
 					//log.Printf("hyperdex_client_loop(%X, %d, %X) -> %d\n", unsafe.Pointer(client.ptr), hyperdex_client_loop_timeout, unsafe.Pointer(&status), ret)
@@ -228,11 +234,23 @@ func (client *Client) AsyncPut(space, key string, attrs Attributes) ErrorChannel
 		return errCh
 	}
 
+	println("BP5")
+
+	fmt.Printf("%v\n", client.ptr)
+	fmt.Printf("%v\n", space)
+	fmt.Printf("%v\n", key)
+	fmt.Printf("%v\n", bytesOf(key))
+	fmt.Printf("%v\n", attrs)
+	fmt.Printf("%v\n", C_attrs)
+	fmt.Printf("%v\n", C_attrs_sz)
+	fmt.Printf("%v\n", status)
+
 	req_id := int64(C.hyperdex_client_put(client.ptr, C.CString(space),
-		C.CString(key), C.size_t(unsafe.Sizeof(key)),
+		C.CString(key), C.size_t(bytesOf(key)),
 		C_attrs, C_attrs_sz,
 		&status))
 
+	println("BP6")
 	if req_id < 0 {
 		errCh <- newInternalError(status)
 		close(errCh)
@@ -264,7 +282,8 @@ func (client *Client) AsyncGet(space, key string) ObjectChannel {
 	var status C.enum_hyperdex_client_returncode
 	var C_attrs *C.struct_hyperdex_client_attribute
 	var C_attrs_sz C.size_t
-	req_id := int64(C.hyperdex_client_get(client.ptr, C.CString(space), C.CString(key), C.size_t(len([]byte(key))), &status, &C_attrs, &C_attrs_sz))
+
+	req_id := int64(C.hyperdex_client_get(client.ptr, C.CString(space), C.CString(key), C.size_t(bytesOf(key)), &status, &C_attrs, &C_attrs_sz))
 	//log.Printf("hyperdex_client_get(%X, \"%s\", \"%s\", %d, %X, %X, %X) -> %d\n", unsafe.Pointer(client.ptr), space, key, len([]byte(key)), unsafe.Pointer(&status), unsafe.Pointer(&C_attrs), unsafe.Pointer(&C_attrs_sz), req_id)
 	if req_id < 0 {
 		objCh <- Object{Err: newInternalError(status)}
