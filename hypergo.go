@@ -444,11 +444,17 @@ func newCTypeAttribute(key string, value interface{}, negative bool) (*C.struct_
 	default:
 		return nil, fmt.Errorf("Attribute with key '%s' has unsupported type '%T'", key, v)
 	}
+
+	fmt.Printf("Key: %v\n", key)
+	fmt.Printf("Val: %v\n", val)
+	fmt.Printf("Size: %v\n", size)
+	fmt.Printf("Datatype: %v\n", datatype)
+
 	return &C.struct_hyperdex_client_attribute{
 		C.CString(key),
 		C.CString(val),
 		C.size_t(size),
-		C.enum_hyperdex_client_returncode(datatype),
+		C.enum_hyperdatatype(datatype),
 		[4]byte{}, // alignment
 	}, nil
 }
