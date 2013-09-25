@@ -28,71 +28,6 @@ var CHANNEL_BUFFER_SIZE = 1
 // Negative timeout means no timeout.
 var TIMEOUT = -1
 
-// Datatypes
-const (
-	datatype_STRING  = 9217
-	datatype_INT64   = 9218
-	datatype_GARBAGE = 9727
-)
-
-// Return codes
-const (
-	returncode_SUCCESS    = 8448
-	returncode_NOTFOUND   = 8449
-	returncode_SEARCHDONE = 8450
-	returncode_CMPFAIL    = 8451
-	returncode_READONLY   = 8452
-
-	// Error conditions
-	returncode_UNKNOWNSPACE = 8512
-	returncode_COORDFAIL    = 8513
-	returncode_SERVERERROR  = 8514
-	returncode_POLLFAILED   = 8515
-	returncode_OVERFLOW     = 8516
-	returncode_RECONFIGURE  = 8517
-	returncode_LOGICERROR   = 8518
-	returncode_TIMEOUT      = 8519
-	returncode_UNKNOWNATTR  = 8520
-	returncode_DUPEATTR     = 8521
-	returncode_NONEPENDING  = 8523
-	returncode_DONTUSEKEY   = 8524
-	returncode_WRONGTYPE    = 8525
-	returncode_NOMEM        = 8526
-	returncode_BADCONFIG    = 8527
-	returncode_DUPLICATE    = 8529
-	returncode_INTERRUPTED  = 8530
-	returncode_CLUSTER_JUMP = 8531
-	returncode_COORD_LOGGED = 8532
-	returncode_OFFLINE      = 8533
-
-	// The following return codes indicate bugs in Hyperdex
-	returncode_INTERNAL  = 8573
-	returncode_EXCEPTION = 8574
-	returncode_GARBAGE   = 8575
-)
-
-var internalErrorMessages map[int64]string = map[int64]string{
-	returncode_SUCCESS:      "Success",
-	returncode_NOTFOUND:     "Not Found",
-	returncode_SEARCHDONE:   "Search Done",
-	returncode_CMPFAIL:      "Conditional Operation Did Not Match Object",
-	returncode_UNKNOWNSPACE: "Unknown Space",
-	returncode_COORDFAIL:    "Coordinator Failure",
-	returncode_SERVERERROR:  "Server Error",
-	// returncode_CONNECTFAIL:  "Connection Failure",
-	// returncode_DISCONNECT:   "Connection Reset",
-	returncode_RECONFIGURE: "Reconfiguration",
-	returncode_LOGICERROR:  "Logic Error (file a bug)",
-	returncode_TIMEOUT:     "Timeout",
-	returncode_UNKNOWNATTR: "Unknown attribute '%s'",
-	returncode_DUPEATTR:    "Duplicate attribute '%s'",
-	// returncode_SEEERRNO:    "See ERRNO",
-	returncode_NONEPENDING: "None pending",
-	returncode_DONTUSEKEY:  "Do not specify the key in a search predicate and do not redundantly specify the key for an insert",
-	returncode_WRONGTYPE:   "Attribute '%s' has the wrong type",
-	returncode_EXCEPTION:   "Internal Error (file a bug)",
-}
-
 // Client is the hyperdex client used to make requests to hyperdex.
 type Client struct {
 	ptr       *C.struct_hyperdex_client
@@ -178,7 +113,7 @@ func NewClient(ip string, port int) (*Client, error) {
 					// find processed request among pending requests
 					for i, req := range client.requests {
 						if req.id == ret {
-							if status == returncode_SUCCESS {
+							if status == C.HYPERDEX_CLIENT_SUCCESS {
 								req.success()
 							} else {
 								req.failure(status)
@@ -359,11 +294,7 @@ func (client *Client) atomicIncDec(space, key string, attrs Attributes, negative
 }
 
 func newInternalError(status C.enum_hyperdex_client_returncode, a ...interface{}) error {
-	s, ok := internalErrorMessages[int64(status)]
-	if ok {
-		return fmt.Errorf(s, a)
-	}
-	return fmt.Errorf("Unknown Error %d (file a bug)", status)
+	return fmt.Errorf("Error code: %d.  Please consult hyperdex/client.h for the meaning of the error code", status)
 }
 
 // Convenience function for generating a callback
@@ -408,7 +339,7 @@ func newCTypeAttribute(key string, value interface{}, negative bool) (*C.struct_
 	switch v := value.(type) {
 	case string:
 		val = v
-		datatype = datatype_STRING
+		datatype = C.HYPERDATATYPE_STRING
 		size = len([]byte(val))
 	case int, int8, int16, int32, int64, uint8, uint16, uint32:
 		var i int64
@@ -444,16 +375,11 @@ func newCTypeAttribute(key string, value interface{}, negative bool) (*C.struct_
 			return nil, fmt.Errorf("Could not convert integer '%d' to bytes", i)
 		}
 		val = buf.String()
-		datatype = datatype_INT64
+		datatype = C.HYPERDATATYPE_INT64
 		size = binary.Size(int64(0))
 	default:
 		return nil, fmt.Errorf("Attribute with key '%s' has unsupported type '%T'", key, v)
 	}
-
-	fmt.Printf("Key: %v\n", key)
-	fmt.Printf("Val: %v\n", val)
-	fmt.Printf("Size: %v\n", size)
-	fmt.Printf("Datatype: %v\n", datatype)
 
 	return &C.struct_hyperdex_client_attribute{
 		C.CString(key),
@@ -470,9 +396,9 @@ func newAttributeListFromC(C_attrs *C.struct_hyperdex_client_attribute, C_attrs_
 		C_attr := C.GetAttribute(C_attrs, C.int(i))
 		attr := C.GoString(C_attr.attr)
 		switch C_attr.datatype {
-		case datatype_STRING:
+		case C.HYPERDATATYPE_STRING:
 			attrs[attr] = C.GoStringN(C_attr.value, C.int(C_attr.value_sz))
-		case datatype_INT64:
+		case C.HYPERDATATYPE_INT64:
 			var value int64
 			buf := bytes.NewBuffer(C.GoBytes(unsafe.Pointer(C_attr.value), C.int(C_attr.value_sz)))
 			err := binary.Read(buf, binary.LittleEndian, &value)
@@ -480,7 +406,7 @@ func newAttributeListFromC(C_attrs *C.struct_hyperdex_client_attribute, C_attrs_
 				return nil, fmt.Errorf("Could not decode INT64 attribute `%s` (#%d)", attr, i)
 			}
 			attrs[attr] = value
-		case datatype_GARBAGE:
+		case C.HYPERDATATYPE_GARBAGE:
 			continue
 		default:
 			return nil, fmt.Errorf("Unknown datatype %d found for attribute `%s` (#%d)", C_attr.datatype, attr, i)
