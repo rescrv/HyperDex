@@ -1,6 +1,7 @@
 package hypergo
 
 import (
+	"fmt"
 	"testing"
 	"unsafe"
 )
@@ -10,7 +11,7 @@ func TestGetAndPut(t *testing.T) {
 	println(len([]byte("abcdefg")))
 	println(bytesOf("abcdefg"))
 	println("BP1")
-	client, err := NewClient("127.0.0.1", 2012)
+	client, err := NewClient("127.0.0.1", 1982)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,11 +30,11 @@ func TestGetAndPut(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	obj := client.Get("phone", "jsmith")
+	obj := client.Get("phonebook", "jsmith")
 	if obj.Err != nil {
 		t.Fatal(obj.Err)
 	}
 
 	println("BP4")
-	t.Logf("%v\n", obj)
+	fmt.Printf("%v\n", obj)
 }

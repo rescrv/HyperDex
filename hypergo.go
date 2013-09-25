@@ -234,23 +234,11 @@ func (client *Client) AsyncPut(space, key string, attrs Attributes) ErrorChannel
 		return errCh
 	}
 
-	println("BP5")
-
-	fmt.Printf("%v\n", client.ptr)
-	fmt.Printf("%v\n", space)
-	fmt.Printf("%v\n", key)
-	fmt.Printf("%v\n", bytesOf(key))
-	fmt.Printf("%v\n", attrs)
-	fmt.Printf("%v\n", C_attrs)
-	fmt.Printf("%v\n", C_attrs_sz)
-	fmt.Printf("%v\n", status)
-
 	req_id := int64(C.hyperdex_client_put(client.ptr, C.CString(space),
 		C.CString(key), C.size_t(bytesOf(key)),
 		C_attrs, C_attrs_sz,
 		&status))
 
-	println("BP6")
 	if req_id < 0 {
 		errCh <- newInternalError(status)
 		close(errCh)
@@ -260,12 +248,25 @@ func (client *Client) AsyncPut(space, key string, attrs Attributes) ErrorChannel
 	req := request{
 		id: req_id,
 		success: func() {
+			println("put success callback")
 			errCh <- nil
 			close(errCh)
 		},
 		failure: errChannelFailureCallback(errCh),
 		complete: func() {
-			C.hyperdex_client_destroy_attrs(C_attrs, C_attrs_sz)
+			// TODO: The invocation of hyperdex_client_destroy_attrs causes
+			// memory error.  But not destroying the C struct list might
+			// cause potential memory leak.
+
+			// println("put complete callback")
+			// C_attrs := *req.bundle["C_attrs"].(**C.struct_hyperdex_client_attribute)
+			// C_attrs_sz := *req.bundle["C_attrs_sz"].(*C.size_t)
+			// if C_attrs_sz > 0 {
+			// 	println("BP8")
+			// 	C.hyperdex_client_destroy_attrs(C_attrs, C_attrs_sz)
+			// 	println("BP9")
+			// 	//log.Printf("hyperdex_client_destroy_attrs(%X, %d)\n", unsafe.Pointer(C_attrs), C_attrs_sz)
+			// }
 		},
 	}
 
@@ -278,6 +279,7 @@ func (client *Client) Get(space, key string) Object {
 }
 
 func (client *Client) AsyncGet(space, key string) ObjectChannel {
+	println("Getting")
 	objCh := make(chan Object, CHANNEL_BUFFER_SIZE)
 	var status C.enum_hyperdex_client_returncode
 	var C_attrs *C.struct_hyperdex_client_attribute
@@ -293,6 +295,7 @@ func (client *Client) AsyncGet(space, key string) ObjectChannel {
 	req := request{
 		id: req_id,
 		success: func() {
+			println("success callback")
 			attrs, err := newAttributeListFromC(C_attrs, C_attrs_sz)
 			if err != nil {
 				objCh <- Object{Err: err}
@@ -306,11 +309,11 @@ func (client *Client) AsyncGet(space, key string) ObjectChannel {
 		complete: func() {
 			if C_attrs_sz > 0 {
 				C.hyperdex_client_destroy_attrs(C_attrs, C_attrs_sz)
-				//log.Printf("hyperdex_client_destroy_attrs(%X, %d)\n", unsafe.Pointer(C_attrs), C_attrs_sz)
 			}
 		},
 	}
 	client.requests = append(client.requests, req)
+	println("Finishing getting")
 	return objCh
 }
 
@@ -366,6 +369,7 @@ func newInternalError(status C.enum_hyperdex_client_returncode, a ...interface{}
 // Convenience function for generating a callback
 func errChannelFailureCallback(errCh chan error) func(C.enum_hyperdex_client_returncode) {
 	return func(status C.enum_hyperdex_client_returncode) {
+		println("failure callback")
 		errCh <- newInternalError(status)
 		close(errCh)
 	}
@@ -374,6 +378,7 @@ func errChannelFailureCallback(errCh chan error) func(C.enum_hyperdex_client_ret
 // Convenience function for generating a callback
 func objChannelFailureCallback(objCh chan Object) func(C.enum_hyperdex_client_returncode) {
 	return func(status C.enum_hyperdex_client_returncode) {
+		println("failure callback")
 		objCh <- Object{Err: newInternalError(status)}
 		close(objCh)
 	}
