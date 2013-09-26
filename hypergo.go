@@ -28,6 +28,20 @@ var CHANNEL_BUFFER_SIZE = 1
 // Negative timeout means no timeout.
 var TIMEOUT = -1
 
+// Predicates
+const (
+	FAIL                 = C.HYPERPREDICATE_FAIL
+	EQUALS               = C.HYPERPREDICATE_EQUALS
+	LESS_EQUAL           = C.HYPERPREDICATE_LESS_EQUAL
+	GREATER_EQUAL        = C.HYPERPREDICATE_GREATER_EQUAL
+	CONTAINS_LESS_THAN   = C.HYPERPREDICATE_CONTAINS_LESS_THAN // alias of LENGTH_LESS_EQUAL
+	REGEX                = C.HYPERPREDICATE_REGEX
+	LENGTH_EQUALS        = C.HYPERPREDICATE_LENGTH_EQUALS
+	LENGTH_LESS_EQUAL    = C.HYPERPREDICATE_LENGTH_LESS_EQUAL
+	LENGTH_GREATER_EQUAL = C.HYPERPREDICATE_LENGTH_GREATER_EQUAL
+	CONTAINS             = C.HYPERPREDICATE_CONTAINS
+)
+
 // Client is the hyperdex client used to make requests to hyperdex.
 type Client struct {
 	ptr       *C.struct_hyperdex_client
@@ -55,6 +69,12 @@ type ObjectChannel <-chan Object
 type ErrorChannel <-chan error
 
 type bundle map[string]interface{}
+
+type SearchCriterion struct {
+	Attr      string
+	Value     string
+	Predicate int
+}
 
 type request struct {
 	id       int64
@@ -154,6 +174,137 @@ func (client *Client) AtomicDec(space, key string, attrs Attributes) ErrorChanne
 	return client.atomicIncDec(space, key, attrs, true)
 }
 
+func (client *Client) Search(space string, sc []SearchCriterion) ObjectChannel {
+	objCh := make(chan Object, CHANNEL_BUFFER_SIZE)
+	var status C.enum_hyperdex_client_returncode
+	var C_attrs *C.struct_hyperdex_client_attribute
+	var C_attrs_sz C.size_t
+
+	acList, acSize, err := newCAttributeCheckList(sc)
+	if err != nil {
+		objCh <- Object{
+			Err: err,
+		}
+		close(objCh)
+		return objCh
+	}
+
+	req_id := int64(C.hyperdex_client_search(client.ptr,
+		C.CString(space), acList, acSize,
+		&status, &C_attrs, &C_attrs_sz))
+
+	if req_id < 0 {
+		objCh <- Object{
+			Err: err,
+		}
+		close(objCh)
+		return objCh
+	}
+
+	req := request{
+		id: req_id,
+		success: func() {
+			println("success callback")
+			attrs, err := newAttributeListFromC(C_attrs, C_attrs_sz)
+			if err != nil {
+				objCh <- Object{Err: err}
+				close(objCh)
+				return
+			}
+			objCh <- Object{Attrs: attrs}
+			close(objCh)
+		},
+		failure: objChannelFailureCallback(objCh),
+		complete: func() {
+			if C_attrs_sz > 0 {
+				C.hyperdex_client_destroy_attrs(C_attrs, C_attrs_sz)
+			}
+		},
+	}
+
+	client.requests = append(client.requests, req)
+	return objCh
+}
+
+func newCAttributeCheckList(sc []SearchCriterion) (*C.struct_hyperdex_client_attribute_check, C.size_t, error) {
+	slice := make([]C.struct_hyperdex_client_attribute_check, 0, len(sc))
+	for _, s := range sc {
+		ac, err := newCAttributeCheck(s)
+		if err != nil {
+			return nil, 0, err
+		}
+		slice = append(slice, *ac)
+	}
+
+	return &slice[0], C.size_t(len(sc)), nil
+}
+
+func newCAttributeCheck(sc SearchCriterion) (*C.struct_hyperdex_client_attribute_check, error) {
+	val, valSize, valType, err := toHyperDexDatatype(sc.Value)
+	if err != nil {
+		return nil, err
+	}
+
+	return &C.struct_hyperdex_client_attribute_check{
+		C.CString(sc.Attr),
+		val,
+		valSize,
+		valType,
+		C.enum_hyperpredicate(sc.Predicate),
+	}, nil
+}
+
+// Return a CString representation of the given value, and return
+// the datatype of the original value.
+func toHyperDexDatatype(value interface{}) (*C.char, C.size_t, C.enum_hyperdatatype, error) {
+	var val string
+	var size int
+	var datatype C.enum_hyperdatatype
+
+	var i int64
+	var buf *bytes.Buffer
+	var err error
+
+	switch v := value.(type) {
+	case string:
+		val = v
+		datatype = C.HYPERDATATYPE_STRING
+		size = len([]byte(val))
+		goto RETURN
+	case int:
+		i = int64(v)
+	case int8:
+		i = int64(v)
+	case int16:
+		i = int64(v)
+	case int32:
+		i = int64(v)
+	case int64:
+		i = v
+	case uint8:
+		i = int64(v)
+	case uint16:
+		i = int64(v)
+	case uint32:
+		i = int64(v)
+	default:
+		return nil, 0, 0, fmt.Errorf("Unsupported type '%T'", v)
+	}
+
+	// Binary encoding
+	buf = new(bytes.Buffer)
+	err = binary.Write(buf, binary.LittleEndian, i)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	val = buf.String()
+	datatype = C.HYPERDATATYPE_INT64
+	size = binary.Size(int64(0))
+
+RETURN:
+	return C.CString(val), C.size_t(size), datatype, nil
+}
+
 func (client *Client) Put(space, key string, attrs Attributes) error {
 	return <-client.AsyncPut(space, key, attrs)
 }
@@ -162,12 +313,14 @@ func (client *Client) AsyncPut(space, key string, attrs Attributes) ErrorChannel
 	errCh := make(chan error, CHANNEL_BUFFER_SIZE)
 	var status C.enum_hyperdex_client_returncode
 
-	C_attrs, C_attrs_sz, err := newCTypeAttributeList(attrs, false)
+	C_attrs, C_attrs_sz, err := newCTypeAttributeList(attrs)
 	if err != nil {
 		errCh <- err
 		close(errCh)
 		return errCh
 	}
+
+	fmt.Printf("C_attrs: %v\n", C_attrs)
 
 	req_id := int64(C.hyperdex_client_put(client.ptr, C.CString(space),
 		C.CString(key), C.size_t(bytesOf(key)),
@@ -273,7 +426,9 @@ func (client *Client) Delete(space, key string) ErrorChannel {
 func (client *Client) atomicIncDec(space, key string, attrs Attributes, negative bool) ErrorChannel {
 	errCh := make(chan error, CHANNEL_BUFFER_SIZE)
 	var status C.enum_hyperdex_client_returncode
-	C_attrs, C_attrs_sz, err := newCTypeAttributeList(attrs, negative)
+
+	// TODO: negate the attributes if negative=true
+	C_attrs, C_attrs_sz, err := newCTypeAttributeList(attrs)
 	if err != nil {
 		errCh <- err
 		close(errCh)
@@ -315,10 +470,10 @@ func objChannelFailureCallback(objCh chan Object) func(C.enum_hyperdex_client_re
 	}
 }
 
-func newCTypeAttributeList(attrs Attributes, negative bool) (C_attrs *C.struct_hyperdex_client_attribute, C_attrs_sz C.size_t, err error) {
+func newCTypeAttributeList(attrs Attributes) (C_attrs *C.struct_hyperdex_client_attribute, C_attrs_sz C.size_t, err error) {
 	slice := make([]C.struct_hyperdex_client_attribute, 0, len(attrs))
 	for key, value := range attrs {
-		attr, err := newCTypeAttribute(key, value, negative)
+		attr, err := newCTypeAttribute(key, value)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -331,61 +486,17 @@ func newCTypeAttributeList(attrs Attributes, negative bool) (C_attrs *C.struct_h
 	return &slice[0], C_attrs_sz, nil
 }
 
-func newCTypeAttribute(key string, value interface{}, negative bool) (*C.struct_hyperdex_client_attribute, error) {
-	var val string
-	var datatype C.enum_hyperdex_client_returncode
-	size := 0
-
-	switch v := value.(type) {
-	case string:
-		val = v
-		datatype = C.HYPERDATATYPE_STRING
-		size = len([]byte(val))
-	case int, int8, int16, int32, int64, uint8, uint16, uint32:
-		var i int64
-		// Converting all int64-compatible integers to int64
-		switch v := v.(type) {
-		case int:
-			i = int64(v)
-		case int8:
-			i = int64(v)
-		case int16:
-			i = int64(v)
-		case int32:
-			i = int64(v)
-		case int64:
-			i = v
-		case uint8:
-			i = int64(v)
-		case uint16:
-			i = int64(v)
-		case uint32:
-			i = int64(v)
-		default:
-			panic("Should not be reached: normalizing integers to int64")
-		}
-
-		if negative {
-			i = -i
-		}
-		// Binary encoding
-		buf := new(bytes.Buffer)
-		err := binary.Write(buf, binary.LittleEndian, i)
-		if err != nil {
-			return nil, fmt.Errorf("Could not convert integer '%d' to bytes", i)
-		}
-		val = buf.String()
-		datatype = C.HYPERDATATYPE_INT64
-		size = binary.Size(int64(0))
-	default:
-		return nil, fmt.Errorf("Attribute with key '%s' has unsupported type '%T'", key, v)
+func newCTypeAttribute(key string, value interface{}) (*C.struct_hyperdex_client_attribute, error) {
+	val, valSize, valType, err := toHyperDexDatatype(value)
+	if err != nil {
+		return nil, err
 	}
 
 	return &C.struct_hyperdex_client_attribute{
 		C.CString(key),
-		C.CString(val),
-		C.size_t(size),
-		C.enum_hyperdatatype(datatype),
+		val,
+		valSize,
+		valType,
 		[4]byte{}, // alignment
 	}, nil
 }

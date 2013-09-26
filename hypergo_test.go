@@ -3,13 +3,9 @@ package hypergo
 import (
 	"fmt"
 	"testing"
-	"unsafe"
 )
 
 func TestGetAndPut(t *testing.T) {
-	println(unsafe.Sizeof("abcdefg"))
-	println(len([]byte("abcdefg")))
-	println(bytesOf("abcdefg"))
 	println("BP1")
 	client, err := NewClient("127.0.0.1", 1982)
 	if err != nil {
