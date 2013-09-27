@@ -16,7 +16,7 @@ func TestGetAndPut(t *testing.T) {
 	attrs := Attributes{
 		"first": "john",
 		"last":  "smith",
-		"phone": "6075551024",
+		"phone": 6075551024,
 	}
 
 	log.Println("BP2")
@@ -38,7 +38,7 @@ func TestGetAndPut(t *testing.T) {
 	err = client.Put("phonebook", "derek", Attributes{
 		"first": "john",
 		"last":  "derek",
-		"phone": "24212141",
+		"phone": 24212141,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -60,9 +60,17 @@ func TestGetAndPut(t *testing.T) {
 		fmt.Printf("%v\n", obj)
 	}
 
-	// err = client.Delete("phonebook", "jsmith")
+	err = client.Delete("phonebook", "jsmith")
 
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	log.Println("BP6")
+	obj = client.Get("phonebook", "jsmith")
+	if obj.Err != nil {
+		t.Fatal(obj.Err)
+	}
+
+	fmt.Printf("%v\n", obj)
 }

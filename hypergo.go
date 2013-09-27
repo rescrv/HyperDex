@@ -139,9 +139,12 @@ func NewClient(ip string, port int) (*Client, error) {
 					// find processed request among pending requests
 					for i, req := range client.requests {
 						if req.id == ret {
-							log.Println("Processing request")
+							log.Printf("Processing request %v\n", req.id)
+							log.Printf("Status: %v\n", status)
 							if status == C.HYPERDEX_CLIENT_SUCCESS {
-								req.success()
+								if req.success != nil {
+									req.success()
+								}
 								if req.isIterator {
 									// We want to break out at here so that the
 									// request won't get removed
@@ -153,7 +156,7 @@ func NewClient(ip string, port int) (*Client, error) {
 								}
 							} else if status == C.HYPERDEX_CLIENT_SEARCHDONE {
 								req.complete()
-							} else {
+							} else if req.failure != nil {
 								req.failure(status)
 							}
 							client.requests = append(client.requests[:i], client.requests[i+1:]...)
@@ -180,12 +183,20 @@ func (client *Client) Destroy() {
 	//log.Printf("hyperdex_client_destroy(%X)\n", unsafe.Pointer(client.ptr))
 }
 
-func (client *Client) AtomicInc(space, key string, attrs Attributes) ErrorChannel {
-	return client.atomicIncDec(space, key, attrs, false)
+func (client *Client) AtomicAdd(space, key string, attrs Attributes) error {
+	return <-client.AsyncAtomicAdd(space, key, attrs)
 }
 
-func (client *Client) AtomicDec(space, key string, attrs Attributes) ErrorChannel {
-	return client.atomicIncDec(space, key, attrs, true)
+func (client *Client) AsyncAtomicAdd(space, key string, attrs Attributes) ErrorChannel {
+	return client.atomicAddSub(space, key, attrs, true)
+}
+
+func (client *Client) AtomicSub(space, key string, attrs Attributes) error {
+	return <-client.AsyncAtomicSub(space, key, attrs)
+}
+
+func (client *Client) AsyncAtomicSub(space, key string, attrs Attributes) ErrorChannel {
+	return client.atomicAddSub(space, key, attrs, false)
 }
 
 func (client *Client) Search(space string, sc []SearchCriterion) ObjectChannel {
@@ -432,33 +443,45 @@ func (client *Client) AsyncDelete(space, key string) ErrorChannel {
 	}
 	req := request{
 		id:      req_id,
+		success: errChannelSuccessCallback(errCh),
 		failure: errChannelFailureCallback(errCh),
 	}
 	client.requests = append(client.requests, req)
 	return errCh
 }
 
-func (client *Client) atomicIncDec(space, key string, attrs Attributes, negative bool) ErrorChannel {
+func (client *Client) atomicAddSub(space, key string, attrs Attributes, isAdd bool) ErrorChannel {
 	errCh := make(chan error, CHANNEL_BUFFER_SIZE)
 	var status C.enum_hyperdex_client_returncode
 
-	// TODO: negate the attributes if negative=true
 	C_attrs, C_attrs_sz, err := newCTypeAttributeList(attrs)
 	if err != nil {
 		errCh <- err
 		close(errCh)
 		return errCh
 	}
-	req_id := int64(C.hyperdex_client_atomic_add(client.ptr, C.CString(space), C.CString(key), C.size_t(len(key)), C_attrs, C_attrs_sz, &status))
+
+	if isAdd {
+		req_id := int64(C.hyperdex_client_atomic_add(client.ptr,
+			C.CString(space), C.CString(key), C.size_t(len(key)),
+			C_attrs, C_attrs_sz, &status))
+	} else {
+		req_id := int64(C.hyperdex_client_atomic_sub(client.ptr,
+			C.CString(space), C.CString(key), C.size_t(len(key)),
+			C_attrs, C_attrs_sz, &status))
+	}
 	if req_id < 0 {
 		errCh <- newInternalError(status)
 		close(errCh)
 		return errCh
 	}
+
 	req := request{
 		id:      req_id,
+		success: errChannelSuccessCallback(errCh),
 		failure: errChannelFailureCallback(errCh),
 	}
+
 	client.requests = append(client.requests, req)
 	return errCh
 }
@@ -471,6 +494,13 @@ func newInternalError(status C.enum_hyperdex_client_returncode, a ...interface{}
 func errChannelFailureCallback(errCh chan error) func(C.enum_hyperdex_client_returncode) {
 	return func(status C.enum_hyperdex_client_returncode) {
 		errCh <- newInternalError(status)
+		close(errCh)
+	}
+}
+
+func errChannelSuccessCallback(errCh chan error) func() {
+	return func() {
+		errCh <- nil
 		close(errCh)
 	}
 }
