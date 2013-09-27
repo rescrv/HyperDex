@@ -15,7 +15,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	//"log"
+	"io"
+	"log"
 	"runtime"
 	"unsafe" // used only for C.GoBytes
 )
@@ -77,10 +78,16 @@ type SearchCriterion struct {
 }
 
 type request struct {
-	id       int64
-	success  func()
-	failure  func(C.enum_hyperdex_client_returncode)
-	complete func()
+	id         int64
+	isIterator bool
+	success    func()
+	failure    func(C.enum_hyperdex_client_returncode)
+	complete   func()
+}
+
+// Set output of log
+func SetLogOutput(w io.Writer) {
+	log.SetOutput(w)
 }
 
 // Return the number of bytes of a string
@@ -122,9 +129,8 @@ func NewClient(ip string, port int) (*Client, error) {
 			default:
 				// check if there are pending requests
 				// and only if there are, call hyperdex_client_loop
-				if l := len(client.requests); l > 0 {
-					println("processing request!")
-					var status C.enum_hyperdex_client_returncode = 42
+				if len(client.requests) > 0 {
+					var status C.enum_hyperdex_client_returncode
 					ret := int64(C.hyperdex_client_loop(client.ptr, C.int(TIMEOUT), &status))
 					//log.Printf("hyperdex_client_loop(%X, %d, %X) -> %d\n", unsafe.Pointer(client.ptr), hyperdex_client_loop_timeout, unsafe.Pointer(&status), ret)
 					if ret < 0 {
@@ -133,15 +139,23 @@ func NewClient(ip string, port int) (*Client, error) {
 					// find processed request among pending requests
 					for i, req := range client.requests {
 						if req.id == ret {
+							log.Println("Processing request")
 							if status == C.HYPERDEX_CLIENT_SUCCESS {
 								req.success()
+								if req.isIterator {
+									// We want to break out at here so that the
+									// request won't get removed
+									break
+								} else if req.complete != nil {
+									// We want to break out at here so that the
+									// request won't get removed
+									req.complete()
+								}
+							} else if status == C.HYPERDEX_CLIENT_SEARCHDONE {
+								req.complete()
 							} else {
 								req.failure(status)
 							}
-							if req.complete != nil {
-								req.complete()
-							}
-							// remove processed request from pending requests
 							client.requests = append(client.requests[:i], client.requests[i+1:]...)
 							break
 						}
@@ -202,23 +216,25 @@ func (client *Client) Search(space string, sc []SearchCriterion) ObjectChannel {
 	}
 
 	req := request{
-		id: req_id,
+		id:         req_id,
+		isIterator: true,
 		success: func() {
-			println("success callback")
+			// attrs, err := newAttributeListFromC(C_attrs, C_attrs_sz)
 			attrs, err := newAttributeListFromC(C_attrs, C_attrs_sz)
 			if err != nil {
 				objCh <- Object{Err: err}
 				close(objCh)
 				return
 			}
-			objCh <- Object{Attrs: attrs}
-			close(objCh)
-		},
-		failure: objChannelFailureCallback(objCh),
-		complete: func() {
+
 			if C_attrs_sz > 0 {
 				C.hyperdex_client_destroy_attrs(C_attrs, C_attrs_sz)
 			}
+			objCh <- Object{Attrs: attrs}
+		},
+		failure: objChannelFailureCallback(objCh),
+		complete: func() {
+			close(objCh)
 		},
 	}
 
@@ -336,7 +352,6 @@ func (client *Client) AsyncPut(space, key string, attrs Attributes) ErrorChannel
 	req := request{
 		id: req_id,
 		success: func() {
-			println("put success callback")
 			errCh <- nil
 			close(errCh)
 		},
@@ -367,7 +382,6 @@ func (client *Client) Get(space, key string) Object {
 }
 
 func (client *Client) AsyncGet(space, key string) ObjectChannel {
-	println("Getting")
 	objCh := make(chan Object, CHANNEL_BUFFER_SIZE)
 	var status C.enum_hyperdex_client_returncode
 	var C_attrs *C.struct_hyperdex_client_attribute
@@ -383,7 +397,6 @@ func (client *Client) AsyncGet(space, key string) ObjectChannel {
 	req := request{
 		id: req_id,
 		success: func() {
-			println("success callback")
 			attrs, err := newAttributeListFromC(C_attrs, C_attrs_sz)
 			if err != nil {
 				objCh <- Object{Err: err}
@@ -392,20 +405,22 @@ func (client *Client) AsyncGet(space, key string) ObjectChannel {
 			}
 			objCh <- Object{Err: nil, Key: key, Attrs: attrs}
 			close(objCh)
-		},
-		failure: objChannelFailureCallback(objCh),
-		complete: func() {
 			if C_attrs_sz > 0 {
 				C.hyperdex_client_destroy_attrs(C_attrs, C_attrs_sz)
 			}
 		},
+		failure:  objChannelFailureCallback(objCh),
+		complete: nil,
 	}
 	client.requests = append(client.requests, req)
-	println("Finishing getting")
 	return objCh
 }
 
-func (client *Client) Delete(space, key string) ErrorChannel {
+func (client *Client) Delete(space, key string) error {
+	return <-client.AsyncDelete(space, key)
+}
+
+func (client *Client) AsyncDelete(space, key string) ErrorChannel {
 	errCh := make(chan error, CHANNEL_BUFFER_SIZE)
 	var status C.enum_hyperdex_client_returncode
 	req_id := int64(C.hyperdex_client_del(client.ptr, C.CString(space), C.CString(key), C.size_t(len([]byte(key))), &status))
@@ -455,7 +470,6 @@ func newInternalError(status C.enum_hyperdex_client_returncode, a ...interface{}
 // Convenience function for generating a callback
 func errChannelFailureCallback(errCh chan error) func(C.enum_hyperdex_client_returncode) {
 	return func(status C.enum_hyperdex_client_returncode) {
-		println("failure callback")
 		errCh <- newInternalError(status)
 		close(errCh)
 	}
@@ -464,7 +478,6 @@ func errChannelFailureCallback(errCh chan error) func(C.enum_hyperdex_client_ret
 // Convenience function for generating a callback
 func objChannelFailureCallback(objCh chan Object) func(C.enum_hyperdex_client_returncode) {
 	return func(status C.enum_hyperdex_client_returncode) {
-		println("failure callback")
 		objCh <- Object{Err: newInternalError(status)}
 		close(objCh)
 	}
