@@ -97,4 +97,7 @@ func TestGetAndPut(t *testing.T) {
 	log.Println("BP8")
 	obj = client.Get("phonebook", "derek")
 	fmt.Printf("%v\n", obj)
+
+	log.Println("BPX")
+	client.Destroy()
 }
