@@ -461,15 +461,17 @@ func (client *Client) atomicAddSub(space, key string, attrs Attributes, isAdd bo
 		return errCh
 	}
 
+	var req_id int64
 	if isAdd {
-		req_id := int64(C.hyperdex_client_atomic_add(client.ptr,
+		req_id = int64(C.hyperdex_client_atomic_add(client.ptr,
 			C.CString(space), C.CString(key), C.size_t(len(key)),
 			C_attrs, C_attrs_sz, &status))
 	} else {
-		req_id := int64(C.hyperdex_client_atomic_sub(client.ptr,
+		req_id = int64(C.hyperdex_client_atomic_sub(client.ptr,
 			C.CString(space), C.CString(key), C.size_t(len(key)),
 			C_attrs, C_attrs_sz, &status))
 	}
+
 	if req_id < 0 {
 		errCh <- newInternalError(status)
 		close(errCh)
