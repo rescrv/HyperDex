@@ -73,4 +73,28 @@ func TestGetAndPut(t *testing.T) {
 	}
 
 	fmt.Printf("%v\n", obj)
+
+	log.Println("BP7")
+	err = client.AtomicAdd("phonebook", "derek", Attributes{
+		"phone": 1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	log.Println("BP8")
+	obj = client.Get("phonebook", "derek")
+	fmt.Printf("%v\n", obj)
+
+	log.Println("BP7")
+	err = client.AtomicSub("phonebook", "derek", Attributes{
+		"phone": 1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	log.Println("BP8")
+	obj = client.Get("phonebook", "derek")
+	fmt.Printf("%v\n", obj)
 }
