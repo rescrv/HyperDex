@@ -64,7 +64,7 @@ type ErrorChannel <-chan error
 
 type bundle map[string]interface{}
 
-type SearchCriterion struct {
+type Condition struct {
 	Attr      string
 	Value     string
 	Predicate int

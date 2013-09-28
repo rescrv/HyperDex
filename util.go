@@ -109,7 +109,7 @@ func newAttributeListFromC(C_attrs *C.struct_hyperdex_client_attribute, C_attrs_
 	return attrs, nil
 }
 
-func newCAttributeCheckList(sc []SearchCriterion) (*C.struct_hyperdex_client_attribute_check, C.size_t, error) {
+func newCAttributeCheckList(sc []Condition) (*C.struct_hyperdex_client_attribute_check, C.size_t, error) {
 	slice := make([]C.struct_hyperdex_client_attribute_check, 0, len(sc))
 	for _, s := range sc {
 		ac, err := newCAttributeCheck(s)
@@ -122,7 +122,7 @@ func newCAttributeCheckList(sc []SearchCriterion) (*C.struct_hyperdex_client_att
 	return &slice[0], C.size_t(len(sc)), nil
 }
 
-func newCAttributeCheck(sc SearchCriterion) (*C.struct_hyperdex_client_attribute_check, error) {
+func newCAttributeCheck(sc Condition) (*C.struct_hyperdex_client_attribute_check, error) {
 	val, valSize, valType, err := toHyperDexDatatype(sc.Value)
 	if err != nil {
 		return nil, err

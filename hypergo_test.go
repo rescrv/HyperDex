@@ -45,8 +45,8 @@ func TestGetAndPut(t *testing.T) {
 	}
 
 	log.Println("BP5")
-	objCh := client.Search("phonebook", []SearchCriterion{
-		SearchCriterion{
+	objCh := client.Search("phonebook", []Condition{
+		Condition{
 			"first", "john", EQUALS,
 		},
 	})

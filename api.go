@@ -9,10 +9,6 @@ package hypergo
 */
 import "C"
 
-import (
-	"fmt"
-)
-
 // Destroy closes the connection between the Client and hyperdex. It has to be used on a client that is not used anymore.
 //
 // For every call to NewClient, there must be a call to Destroy.
@@ -38,8 +34,8 @@ func (client *Client) AsyncAtomicSub(space, key string, attrs Attributes) ErrorC
 	return client.atomicAddSub(space, key, attrs, false)
 }
 
-func (client *Client) Search(space string, sc []SearchCriterion) ObjectChannel {
-	return client.get(space, "", sc, "search")
+func (client *Client) Search(space string, sc []Condition) ObjectChannel {
+	return client.objOp("search", space, "", sc)
 }
 
 func (client *Client) Put(space, key string, attrs Attributes) error {
@@ -47,55 +43,7 @@ func (client *Client) Put(space, key string, attrs Attributes) error {
 }
 
 func (client *Client) AsyncPut(space, key string, attrs Attributes) ErrorChannel {
-	errCh := make(chan error, CHANNEL_BUFFER_SIZE)
-	var status C.enum_hyperdex_client_returncode
-
-	C_attrs, C_attrs_sz, err := newCTypeAttributeList(attrs)
-	if err != nil {
-		errCh <- err
-		close(errCh)
-		return errCh
-	}
-
-	fmt.Printf("C_attrs: %v\n", C_attrs)
-
-	req_id := int64(C.hyperdex_client_put(client.ptr, C.CString(space),
-		C.CString(key), C.size_t(bytesOf(key)),
-		C_attrs, C_attrs_sz,
-		&status))
-
-	if req_id < 0 {
-		errCh <- newInternalError(status)
-		close(errCh)
-		return errCh
-	}
-
-	req := request{
-		id: req_id,
-		success: func() {
-			errCh <- nil
-			close(errCh)
-		},
-		failure: errChannelFailureCallback(errCh),
-		complete: func() {
-			// TODO: The invocation of hyperdex_client_destroy_attrs causes
-			// memory error.  But not destroying the C struct list might
-			// cause potential memory leak.
-
-			// println("put complete callback")
-			// C_attrs := *req.bundle["C_attrs"].(**C.struct_hyperdex_client_attribute)
-			// C_attrs_sz := *req.bundle["C_attrs_sz"].(*C.size_t)
-			// if C_attrs_sz > 0 {
-			// 	println("BP8")
-			// 	C.hyperdex_client_destroy_attrs(C_attrs, C_attrs_sz)
-			// 	println("BP9")
-			// 	//log.Printf("hyperdex_client_destroy_attrs(%X, %d)\n", unsafe.Pointer(C_attrs), C_attrs_sz)
-			// }
-		},
-	}
-
-	client.requests = append(client.requests, req)
-	return errCh
+	return client.errOp("put", space, key, attrs, nil)
 }
 
 func (client *Client) Get(space, key string) Object {
@@ -103,7 +51,7 @@ func (client *Client) Get(space, key string) Object {
 }
 
 func (client *Client) AsyncGet(space, key string) ObjectChannel {
-	return client.get(space, key, nil, "get")
+	return client.objOp("get", space, key, nil)
 }
 
 func (client *Client) Delete(space, key string) error {
