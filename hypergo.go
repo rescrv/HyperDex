@@ -76,6 +76,15 @@ type request struct {
 	success    func()
 	failure    func(C.enum_hyperdex_client_returncode)
 	complete   func()
+	status     *C.enum_hyperdex_client_returncode
+}
+
+type HyperError struct {
+	returnCode C.enum_hyperdex_client_returncode
+}
+
+func (e HyperError) Error() string {
+	return fmt.Sprintf("Error code: %d.  Please consult hyperdex/client.h for the meaning of the error code", e.returnCode)
 }
 
 // Set output of log
@@ -128,26 +137,40 @@ func NewClient(ip string, port int) (*Client, error) {
 					for i, req := range client.requests {
 						if req.id == ret {
 							log.Printf("Processing request %v\n", req.id)
-							log.Printf("Status: %v\n", status)
+							log.Printf("Loop status: %v\n", status)
+							log.Printf("Request status: %v\n", *req.status)
 							if status == C.HYPERDEX_CLIENT_SUCCESS {
-								if req.success != nil {
-									req.success()
+								switch *req.status {
+								case C.HYPERDEX_CLIENT_SUCCESS:
+									log.Println("Request success")
+									if req.success != nil {
+										req.success()
+									}
+									if req.isIterator {
+										// We want to break out at here so that the
+										// request won't get removed
+										goto SKIP_DELETING_REQUEST
+									} else if req.complete != nil {
+										// We want to break out at here so that the
+										// request won't get removed
+										req.complete()
+									}
+								case C.HYPERDEX_CLIENT_SEARCHDONE:
+									log.Println("Request search done")
+									if req.complete != nil {
+										req.complete()
+									}
+								default:
+									log.Println("Request failure")
+									if req.failure != nil {
+										req.failure(*req.status)
+									}
 								}
-								if req.isIterator {
-									// We want to break out at here so that the
-									// request won't get removed
-									break
-								} else if req.complete != nil {
-									// We want to break out at here so that the
-									// request won't get removed
-									req.complete()
-								}
-							} else if status == C.HYPERDEX_CLIENT_SEARCHDONE {
-								req.complete()
 							} else if req.failure != nil {
 								req.failure(status)
 							}
 							client.requests = append(client.requests[:i], client.requests[i+1:]...)
+						SKIP_DELETING_REQUEST:
 							break
 						}
 					}

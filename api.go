@@ -70,6 +70,7 @@ func (client *Client) AsyncDelete(space, key string) ErrorChannel {
 	}
 	req := request{
 		id:      req_id,
+		status:  &status,
 		success: errChannelSuccessCallback(errCh),
 		failure: errChannelFailureCallback(errCh),
 	}
@@ -107,6 +108,7 @@ func (client *Client) atomicAddSub(space, key string, attrs Attributes, isAdd bo
 
 	req := request{
 		id:      req_id,
+		status:  &status,
 		success: errChannelSuccessCallback(errCh),
 		failure: errChannelFailureCallback(errCh),
 	}

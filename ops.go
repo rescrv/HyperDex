@@ -48,49 +48,45 @@ func (client *Client) objOp(funcName string, space string, key string, conds []C
 		return objCh
 	}
 
-	var req request
+	req := request{
+		id:     req_id,
+		status: &status,
+	}
 	switch funcName {
 	case "get":
-		req = request{
-			id: req_id,
-			success: func() {
-				attrs, err := newAttributeListFromC(C_attrs, C_attrs_sz)
-				if err != nil {
-					objCh <- Object{Err: err}
-					close(objCh)
-					return
-				}
-				objCh <- Object{Err: nil, Key: key, Attrs: attrs}
+		req.success = func() {
+			attrs, err := newAttributeListFromC(C_attrs, C_attrs_sz)
+			if err != nil {
+				objCh <- Object{Err: err}
 				close(objCh)
-				if C_attrs_sz > 0 {
-					C.hyperdex_client_destroy_attrs(C_attrs, C_attrs_sz)
-				}
-			},
-			failure:  objChannelFailureCallback(objCh),
-			complete: nil,
+				return
+			}
+			objCh <- Object{Err: nil, Key: key, Attrs: attrs}
+			close(objCh)
+			if C_attrs_sz > 0 {
+				C.hyperdex_client_destroy_attrs(C_attrs, C_attrs_sz)
+			}
 		}
+		req.failure = objChannelFailureCallback(objCh)
 	case "search":
-		req = request{
-			id:         req_id,
-			isIterator: true,
-			success: func() {
-				// attrs, err := newAttributeListFromC(C_attrs, C_attrs_sz)
-				attrs, err := newAttributeListFromC(C_attrs, C_attrs_sz)
-				if err != nil {
-					objCh <- Object{Err: err}
-					close(objCh)
-					return
-				}
-
-				if C_attrs_sz > 0 {
-					C.hyperdex_client_destroy_attrs(C_attrs, C_attrs_sz)
-				}
-				objCh <- Object{Attrs: attrs}
-			},
-			failure: objChannelFailureCallback(objCh),
-			complete: func() {
+		req.isIterator = true
+		req.success = func() {
+			// attrs, err := newAttributeListFromC(C_attrs, C_attrs_sz)
+			attrs, err := newAttributeListFromC(C_attrs, C_attrs_sz)
+			if err != nil {
+				objCh <- Object{Err: err}
 				close(objCh)
-			},
+				return
+			}
+
+			if C_attrs_sz > 0 {
+				C.hyperdex_client_destroy_attrs(C_attrs, C_attrs_sz)
+			}
+			objCh <- Object{Attrs: attrs}
+		}
+		req.failure = objChannelFailureCallback(objCh)
+		req.complete = func() {
+			close(objCh)
 		}
 	}
 
@@ -155,7 +151,8 @@ func (client *Client) errOp(funcName string, space string, key string, attrs Att
 	}
 
 	req := request{
-		id: req_id,
+		id:     req_id,
+		status: &status,
 		success: func() {
 			errCh <- nil
 			close(errCh)

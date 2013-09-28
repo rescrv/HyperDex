@@ -69,7 +69,12 @@ func TestGetAndPut(t *testing.T) {
 	log.Println("BP6")
 	obj = client.Get("phonebook", "jsmith")
 	if obj.Err != nil {
-		t.Fatal(obj.Err)
+		hyperErr := obj.Err.(HyperError)
+		if hyperErr.returnCode != 8449 {
+			t.Fatal("Return code should be NOT_FOUND")
+		}
+	} else {
+		t.Fatal("There should be an error.")
 	}
 
 	fmt.Printf("%v\n", obj)

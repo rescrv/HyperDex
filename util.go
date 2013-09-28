@@ -27,7 +27,7 @@ func bytesOf(str string) int {
 
 // Utility functions
 func newInternalError(status C.enum_hyperdex_client_returncode, a ...interface{}) error {
-	return fmt.Errorf("Error code: %d.  Please consult hyperdex/client.h for the meaning of the error code", status)
+	return HyperError{returnCode: status}
 }
 
 // Convenience function for generating a callback
