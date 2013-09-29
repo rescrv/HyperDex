@@ -23,7 +23,7 @@ func (client *Client) AtomicAdd(space, key string, attrs Attributes) error {
 }
 
 func (client *Client) AsyncAtomicAdd(space, key string, attrs Attributes) ErrorChannel {
-	return client.atomicAddSub(space, key, attrs, true)
+	return client.errOp("atomic_add", space, key, attrs, nil)
 }
 
 func (client *Client) AtomicSub(space, key string, attrs Attributes) error {
@@ -31,7 +31,7 @@ func (client *Client) AtomicSub(space, key string, attrs Attributes) error {
 }
 
 func (client *Client) AsyncAtomicSub(space, key string, attrs Attributes) ErrorChannel {
-	return client.atomicAddSub(space, key, attrs, false)
+	return client.errOp("atomic_sub", space, key, attrs, nil)
 }
 
 func (client *Client) Search(space string, sc []Condition) ObjectChannel {
@@ -59,60 +59,5 @@ func (client *Client) Delete(space, key string) error {
 }
 
 func (client *Client) AsyncDelete(space, key string) ErrorChannel {
-	errCh := make(chan error, CHANNEL_BUFFER_SIZE)
-	var status C.enum_hyperdex_client_returncode
-	req_id := int64(C.hyperdex_client_del(client.ptr, C.CString(space), C.CString(key), C.size_t(len([]byte(key))), &status))
-	//log.Printf("hyperdex_client_del(%X, \"%s\", \"%s\", %d, %X) -> %d", unsafe.Pointer(client.ptr), space, key, len([]byte(key)), unsafe.Pointer(&status), req_id)
-	if req_id < 0 {
-		errCh <- newInternalError(status)
-		close(errCh)
-		return errCh
-	}
-	req := request{
-		id:      req_id,
-		status:  &status,
-		success: errChannelSuccessCallback(errCh),
-		failure: errChannelFailureCallback(errCh),
-	}
-	client.requests = append(client.requests, req)
-	return errCh
-}
-
-func (client *Client) atomicAddSub(space, key string, attrs Attributes, isAdd bool) ErrorChannel {
-	errCh := make(chan error, CHANNEL_BUFFER_SIZE)
-	var status C.enum_hyperdex_client_returncode
-
-	C_attrs, C_attrs_sz, err := newCTypeAttributeList(attrs)
-	if err != nil {
-		errCh <- err
-		close(errCh)
-		return errCh
-	}
-
-	var req_id int64
-	if isAdd {
-		req_id = int64(C.hyperdex_client_atomic_add(client.ptr,
-			C.CString(space), C.CString(key), C.size_t(len(key)),
-			C_attrs, C_attrs_sz, &status))
-	} else {
-		req_id = int64(C.hyperdex_client_atomic_sub(client.ptr,
-			C.CString(space), C.CString(key), C.size_t(len(key)),
-			C_attrs, C_attrs_sz, &status))
-	}
-
-	if req_id < 0 {
-		errCh <- newInternalError(status)
-		close(errCh)
-		return errCh
-	}
-
-	req := request{
-		id:      req_id,
-		status:  &status,
-		success: errChannelSuccessCallback(errCh),
-		failure: errChannelFailureCallback(errCh),
-	}
-
-	client.requests = append(client.requests, req)
-	return errCh
+	return client.errOp("del", space, key, nil, nil)
 }

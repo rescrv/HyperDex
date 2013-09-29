@@ -9,6 +9,10 @@ package hypergo
 */
 import "C"
 
+import (
+	"fmt"
+)
+
 // Generic operation that returns objects
 func (client *Client) objOp(funcName string, space string, key string, conds []Condition) ObjectChannel {
 	objCh := make(chan Object, CHANNEL_BUFFER_SIZE)
@@ -142,6 +146,16 @@ func (client *Client) errOp(funcName string, space string, key string, attrs Att
 		req_id = int64(C.hyperdex_client_cond_del(client.ptr, C.CString(space),
 			C.CString(key), C.size_t(bytesOf(key)),
 			C_attr_checks, C_attr_checks_sz, &status))
+	case "atomic_add":
+		req_id = int64(C.hyperdex_client_atomic_add(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attrs, C_attrs_sz, &status))
+	case "atomic_sub":
+		req_id = int64(C.hyperdex_client_atomic_sub(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attrs, C_attrs_sz, &status))
+	default:
+		panic(fmt.Sprintf("Unsupported function: %s", funcName))
 	}
 
 	if req_id < 0 {
