@@ -117,11 +117,13 @@ func (client *Client) errOp(funcName string, space string, key string, attrs Att
 		}
 	}
 
-	C_attrs, C_attrs_sz, err = newCTypeAttributeList(attrs)
-	if err != nil {
-		errCh <- err
-		close(errCh)
-		return errCh
+	if attrs != nil {
+		C_attrs, C_attrs_sz, err = newCAttributeList(attrs)
+		if err != nil {
+			errCh <- err
+			close(errCh)
+			return errCh
+		}
 	}
 
 	var req_id int64
@@ -130,14 +132,14 @@ func (client *Client) errOp(funcName string, space string, key string, attrs Att
 		req_id = int64(C.hyperdex_client_put(client.ptr, C.CString(space),
 			C.CString(key), C.size_t(bytesOf(key)),
 			C_attrs, C_attrs_sz, &status))
-	case "put_if_not_exist":
-		req_id = int64(C.hyperdex_client_put_if_not_exist(client.ptr, C.CString(space),
-			C.CString(key), C.size_t(bytesOf(key)),
-			C_attrs, C_attrs_sz, &status))
 	case "cond_put":
 		req_id = int64(C.hyperdex_client_cond_put(client.ptr, C.CString(space),
 			C.CString(key), C.size_t(bytesOf(key)),
 			C_attr_checks, C_attr_checks_sz,
+			C_attrs, C_attrs_sz, &status))
+	case "put_if_not_exist":
+		req_id = int64(C.hyperdex_client_put_if_not_exist(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
 			C_attrs, C_attrs_sz, &status))
 	case "del":
 		req_id = int64(C.hyperdex_client_del(client.ptr, C.CString(space),
@@ -150,9 +152,145 @@ func (client *Client) errOp(funcName string, space string, key string, attrs Att
 		req_id = int64(C.hyperdex_client_atomic_add(client.ptr, C.CString(space),
 			C.CString(key), C.size_t(bytesOf(key)),
 			C_attrs, C_attrs_sz, &status))
+	case "cond_atomic_add":
+		req_id = int64(C.hyperdex_client_cond_atomic_add(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attr_checks, C_attr_checks_sz,
+			C_attrs, C_attrs_sz, &status))
 	case "atomic_sub":
 		req_id = int64(C.hyperdex_client_atomic_sub(client.ptr, C.CString(space),
 			C.CString(key), C.size_t(bytesOf(key)),
+			C_attrs, C_attrs_sz, &status))
+	case "cond_atomic_sub":
+		req_id = int64(C.hyperdex_client_cond_atomic_sub(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attr_checks, C_attr_checks_sz,
+			C_attrs, C_attrs_sz, &status))
+	case "atomic_mul":
+		req_id = int64(C.hyperdex_client_atomic_mul(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attrs, C_attrs_sz, &status))
+	case "cond_atomic_mul":
+		req_id = int64(C.hyperdex_client_cond_atomic_mul(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attr_checks, C_attr_checks_sz,
+			C_attrs, C_attrs_sz, &status))
+	case "atomic_div":
+		req_id = int64(C.hyperdex_client_atomic_div(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attrs, C_attrs_sz, &status))
+	case "cond_atomic_div":
+		req_id = int64(C.hyperdex_client_cond_atomic_div(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attr_checks, C_attr_checks_sz,
+			C_attrs, C_attrs_sz, &status))
+	case "atomic_mod":
+		req_id = int64(C.hyperdex_client_atomic_mod(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attrs, C_attrs_sz, &status))
+	case "cond_atomic_mod":
+		req_id = int64(C.hyperdex_client_cond_atomic_mod(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attr_checks, C_attr_checks_sz,
+			C_attrs, C_attrs_sz, &status))
+	case "atomic_and":
+		req_id = int64(C.hyperdex_client_atomic_and(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attrs, C_attrs_sz, &status))
+	case "cond_atomic_and":
+		req_id = int64(C.hyperdex_client_cond_atomic_and(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attr_checks, C_attr_checks_sz,
+			C_attrs, C_attrs_sz, &status))
+	case "atomic_or":
+		req_id = int64(C.hyperdex_client_atomic_or(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attrs, C_attrs_sz, &status))
+	case "cond_atomic_or":
+		req_id = int64(C.hyperdex_client_cond_atomic_or(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attr_checks, C_attr_checks_sz,
+			C_attrs, C_attrs_sz, &status))
+	case "atomic_xor":
+		req_id = int64(C.hyperdex_client_atomic_xor(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attrs, C_attrs_sz, &status))
+	case "cond_atomic_xor":
+		req_id = int64(C.hyperdex_client_cond_atomic_xor(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attr_checks, C_attr_checks_sz,
+			C_attrs, C_attrs_sz, &status))
+	case "string_prepend":
+		req_id = int64(C.hyperdex_client_string_prepend(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attrs, C_attrs_sz, &status))
+	case "cond_string_prepend":
+		req_id = int64(C.hyperdex_client_cond_string_prepend(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attr_checks, C_attr_checks_sz,
+			C_attrs, C_attrs_sz, &status))
+	case "string_append":
+		req_id = int64(C.hyperdex_client_string_append(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attrs, C_attrs_sz, &status))
+	case "cond_string_append":
+		req_id = int64(C.hyperdex_client_cond_string_append(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attr_checks, C_attr_checks_sz,
+			C_attrs, C_attrs_sz, &status))
+	case "list_lpush":
+		req_id = int64(C.hyperdex_client_list_lpush(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attrs, C_attrs_sz, &status))
+	case "cond_list_lpush":
+		req_id = int64(C.hyperdex_client_cond_list_lpush(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attr_checks, C_attr_checks_sz,
+			C_attrs, C_attrs_sz, &status))
+	case "list_rpush":
+		req_id = int64(C.hyperdex_client_list_rpush(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attrs, C_attrs_sz, &status))
+	case "cond_list_rpush":
+		req_id = int64(C.hyperdex_client_cond_list_rpush(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attr_checks, C_attr_checks_sz,
+			C_attrs, C_attrs_sz, &status))
+	case "set_add":
+		req_id = int64(C.hyperdex_client_set_add(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attrs, C_attrs_sz, &status))
+	case "cond_set_add":
+		req_id = int64(C.hyperdex_client_cond_set_add(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attr_checks, C_attr_checks_sz,
+			C_attrs, C_attrs_sz, &status))
+	case "set_remove":
+		req_id = int64(C.hyperdex_client_set_remove(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attrs, C_attrs_sz, &status))
+	case "cond_set_remove":
+		req_id = int64(C.hyperdex_client_cond_set_remove(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attr_checks, C_attr_checks_sz,
+			C_attrs, C_attrs_sz, &status))
+	case "set_intersect":
+		req_id = int64(C.hyperdex_client_set_intersect(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attrs, C_attrs_sz, &status))
+	case "cond_set_intersect":
+		req_id = int64(C.hyperdex_client_cond_set_intersect(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attr_checks, C_attr_checks_sz,
+			C_attrs, C_attrs_sz, &status))
+	case "set_union":
+		req_id = int64(C.hyperdex_client_set_union(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attrs, C_attrs_sz, &status))
+	case "cond_set_union":
+		req_id = int64(C.hyperdex_client_cond_set_union(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_attr_checks, C_attr_checks_sz,
 			C_attrs, C_attrs_sz, &status))
 	default:
 		panic(fmt.Sprintf("Unsupported function: %s", funcName))

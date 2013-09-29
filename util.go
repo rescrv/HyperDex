@@ -53,23 +53,24 @@ func objChannelFailureCallback(objCh chan Object) func(C.enum_hyperdex_client_re
 	}
 }
 
-func newCTypeAttributeList(attrs Attributes) (C_attrs *C.struct_hyperdex_client_attribute, C_attrs_sz C.size_t, err error) {
+func newCAttributeList(attrs Attributes) (*C.struct_hyperdex_client_attribute, C.size_t, err error) {
+	if len(attrs) == 0 {
+		return nil, 0, nil
+	}
+
 	slice := make([]C.struct_hyperdex_client_attribute, 0, len(attrs))
 	for key, value := range attrs {
-		attr, err := newCTypeAttribute(key, value)
+		attr, err := newCAttribute(key, value)
 		if err != nil {
 			return nil, 0, err
 		}
 		slice = append(slice, *attr)
-		C_attrs_sz += 1
 	}
-	if C_attrs_sz == 0 {
-		return nil, C_attrs_sz, nil
-	}
-	return &slice[0], C_attrs_sz, nil
+
+	return &slice[0], 0, nil
 }
 
-func newCTypeAttribute(key string, value interface{}) (*C.struct_hyperdex_client_attribute, error) {
+func newCAttribute(key string, value interface{}) (*C.struct_hyperdex_client_attribute, error) {
 	val, valSize, valType, err := toHyperDexDatatype(value)
 	if err != nil {
 		return nil, err
@@ -120,6 +121,45 @@ func newCAttributeCheckList(sc []Condition) (*C.struct_hyperdex_client_attribute
 	}
 
 	return &slice[0], C.size_t(len(sc)), nil
+}
+
+func newCMapAttributeList(mapAttrs MapAttributes) (*C.struct_hyperdex_client_map_attribute, C.size_t, error) {
+	if len(mapAttrs) == 0 {
+		return nil, 0, nil
+	}
+
+	slice := make([]C.struct_hyperdex_client_map_attribute, 0, len(attrs))
+	for key, item := range mapAttrs {
+		mapAttr, err := newCMapAttribute(key, item)
+		if err != nil {
+			return nil, 0, err
+		}
+		slice = append(slice, *attr)
+	}
+
+	return &slice[0], C.size_t(len(mapAttrs)), nil
+}
+
+func newCMapAttribute(key string, mapItem MapItem) (*C.struct_hyperdex_client_map_attribute, error) {
+	key, keySize, keyType, err := toHyperDexDatatype(mapItem.key)
+	if err != nil {
+		return nil, err
+	}
+
+	val, valSize, valType, err := toHyperDexDatatype(mapItem.value)
+	if err != nil {
+		return nil, err
+	}
+
+	return &C.struct_hyperdex_client_map_attribute{
+		C.CString(key),
+		key,
+		keySize,
+		keyType,
+		val,
+		valSize,
+		valType,
+	}, nil
 }
 
 func newCAttributeCheck(sc Condition) (*C.struct_hyperdex_client_attribute_check, error) {

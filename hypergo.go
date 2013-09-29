@@ -53,6 +53,13 @@ type Client struct {
 // Support for uint has been dropped because it is unspecified whether it is 32 or 64 bits.
 type Attributes map[string]interface{}
 
+type MapItem struct {
+	key   string
+	value string
+}
+
+type MapAttributes map[string]MapItem
+
 type Object struct {
 	Err   error
 	Key   string
