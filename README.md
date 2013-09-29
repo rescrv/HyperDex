@@ -8,7 +8,7 @@ Work in progress.
 
 ## Credit
 
-As the code currently stands, it's based largely on [hyperclient](https://github.com/tiborvass/hyperclient).  However this will change as I add more stuff.
+Thanks to tiborvass for contributing some of the original code via [hyperclient](https://github.com/tiborvass/hyperclient).
 
 ## License
 
