@@ -1,63 +1,71 @@
 package hypergo
 
 import (
-	"fmt"
-	"log"
+	// "fmt"
+	// "log"
 	"testing"
 )
 
-func TestGetAndPut(t *testing.T) {
-	log.Println("BP1")
+func TestGetPutDelete(t *testing.T) {
 	client, err := NewClient("127.0.0.1", 1982)
+	defer client.Destroy()
+
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	attrs := Attributes{
-		"first": "john",
-		"last":  "smith",
-		"phone": 6075551024,
+		"first":     "john",
+		"last":      "smith",
+		"phone":     int64(6075551024),
+		"floatAttr": float64(241.12421),
 	}
 
-	log.Println("BP2")
 	err = client.Put("phonebook", "jsmith", attrs)
 
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	log.Println("BP3")
 	obj := client.Get("phonebook", "jsmith")
 	if obj.Err != nil {
 		t.Fatal(obj.Err)
 	}
 
-	fmt.Printf("%v\n", obj)
+	for key, value := range obj.Attrs {
+		if attrs[key] != value {
+			t.Fatalf("%v != %v", attrs[key], value)
+		}
+	}
 
-	log.Println("BP4")
 	err = client.Put("phonebook", "derek", Attributes{
-		"first": "john",
-		"last":  "derek",
-		"phone": 24212141,
+		"first":     "john",
+		"last":      "derek",
+		"phone":     24212141,
+		"floatAttr": 32.43141,
 	})
+
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	log.Println("BP5")
 	objCh := client.Search("phonebook", []Condition{
 		Condition{
 			"first", "john", EQUALS,
 		},
 	})
 
+	counter := 0
 	for {
-		obj, ok := <-objCh
+		_, ok := <-objCh
 		if !ok {
 			break
 		}
+		counter++
+	}
 
-		fmt.Printf("%v\n", obj)
+	if counter != 2 {
+		t.Fatalf("Should return 2 objects.  Instead, we got %d", counter)
 	}
 
 	err = client.Delete("phonebook", "jsmith")
@@ -66,43 +74,14 @@ func TestGetAndPut(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	log.Println("BP6")
 	obj = client.Get("phonebook", "jsmith")
 	if obj.Err != nil {
 		hyperErr := obj.Err.(HyperError)
 		if hyperErr.returnCode != 8449 {
-			t.Fatal("Return code should be NOT_FOUND")
+			t.Fatal("Return code should be NOT_FOUND; instead we got: %d",
+				hyperErr.returnCode)
 		}
 	} else {
 		t.Fatal("There should be an error.")
 	}
-
-	fmt.Printf("%v\n", obj)
-
-	log.Println("BP7")
-	err = client.AtomicAdd("phonebook", "derek", Attributes{
-		"phone": 1,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	log.Println("BP8")
-	obj = client.Get("phonebook", "derek")
-	fmt.Printf("%v\n", obj)
-
-	log.Println("BP7")
-	err = client.AtomicSub("phonebook", "derek", Attributes{
-		"phone": 1,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	log.Println("BP8")
-	obj = client.Get("phonebook", "derek")
-	fmt.Printf("%v\n", obj)
-
-	log.Println("BPX")
-	client.Destroy()
 }

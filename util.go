@@ -101,6 +101,14 @@ func newAttributeListFromC(C_attrs *C.struct_hyperdex_client_attribute, C_attrs_
 				return nil, fmt.Errorf("Could not decode INT64 attribute `%s` (#%d)", attr, i)
 			}
 			attrs[attr] = value
+		case C.HYPERDATATYPE_FLOAT:
+			var value float64
+			buf := bytes.NewBuffer(C.GoBytes(unsafe.Pointer(C_attr.value), C.int(C_attr.value_sz)))
+			err := binary.Read(buf, binary.LittleEndian, &value)
+			if err != nil {
+				return nil, fmt.Errorf("Could not decode FLOAT64 attribute `%s` (#%d)", attr, i)
+			}
+			attrs[attr] = value
 		case C.HYPERDATATYPE_GARBAGE:
 			continue
 		default:
@@ -187,6 +195,8 @@ func toHyperDexDatatype(value interface{}) (*C.char, C.size_t, C.enum_hyperdatat
 	var datatype C.enum_hyperdatatype
 
 	var i int64
+	var f float64
+	var isFloat bool = false
 	var buf *bytes.Buffer
 	var err error
 
@@ -195,6 +205,7 @@ func toHyperDexDatatype(value interface{}) (*C.char, C.size_t, C.enum_hyperdatat
 		val = v
 		datatype = C.HYPERDATATYPE_STRING
 		size = len([]byte(val))
+		// No need to do any encoding; just return
 		goto RETURN
 	case int:
 		i = int64(v)
@@ -212,23 +223,31 @@ func toHyperDexDatatype(value interface{}) (*C.char, C.size_t, C.enum_hyperdatat
 		i = int64(v)
 	case uint32:
 		i = int64(v)
-	// case float32:
-	// 	i = float64(v)
-	// case float64:
-	// 	i = v
+	case float32:
+		f = float64(v)
+		isFloat = true
+	case float64:
+		f = v
+		isFloat = true
 	default:
 		return nil, 0, 0, fmt.Errorf("Unsupported type '%T'", v)
 	}
 
 	// Binary encoding
 	buf = new(bytes.Buffer)
-	err = binary.Write(buf, binary.LittleEndian, i)
+	if isFloat {
+		err = binary.Write(buf, binary.LittleEndian, f)
+		datatype = C.HYPERDATATYPE_FLOAT
+		size = binary.Size(float64(0.0))
+	} else {
+		err = binary.Write(buf, binary.LittleEndian, i)
+		datatype = C.HYPERDATATYPE_INT64
+		size = binary.Size(int64(0))
+	}
 	if err != nil {
 		return nil, 0, 0, err
 	}
 	val = buf.String()
-	datatype = C.HYPERDATATYPE_INT64
-	size = binary.Size(int64(0))
 
 RETURN:
 	return C.CString(val), C.size_t(size), datatype, nil
