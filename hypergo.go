@@ -51,32 +51,53 @@ type Client struct {
 //
 // Please note that there is no support for uint64 since its negative might be incorrectly evaluated.
 // Support for uint has been dropped because it is unspecified whether it is 32 or 64 bits.
+
+// Correspond to an array of hyperdex_client_attribute
 type Attributes map[string]interface{}
 
+// Correspond to a hyper_client_map_attribute
 type MapItem struct {
 	key   string
 	value string
 }
 
+// Correspond to an array of hyper_client_map_attribute
 type MapAttributes map[string]MapItem
 
+// A hyperdex object.
+// Err contains any error that happened when trying to retrieve
+// this object.
 type Object struct {
 	Err   error
 	Key   string
 	Attrs Attributes
 }
 
+// Read-only channel of objects
 type ObjectChannel <-chan Object
+
+// Read-only channel of errors
 type ErrorChannel <-chan error
 
-type bundle map[string]interface{}
-
+// Correspond to a hyperdex_client_attribute_check
 type Condition struct {
 	Attr      string
 	Value     string
 	Predicate int
 }
 
+// An outstanding request that contains three callback functions:
+// success, failure, and complete.  success() is called when
+// hyperdex returns HYPERDEX_CLIENT_SUCCESS, and failure is called
+// in all other cases.
+//
+// The boolean flag isIterator signifies whether the request is
+// that of an iterator, namely hyperdex_client_search and its
+// variants.
+//
+// complete() is called after success() if the request is not
+// an iterator, or after receiving HYPREDEX_SEARCH_DONE if the
+// request is an iterator.
 type request struct {
 	id         int64
 	isIterator bool
@@ -86,6 +107,7 @@ type request struct {
 	status     *C.enum_hyperdex_client_returncode
 }
 
+// A custom error type that allows for examining HyperDex error code.
 type HyperError struct {
 	returnCode C.enum_hyperdex_client_returncode
 }
@@ -94,7 +116,7 @@ func (e HyperError) Error() string {
 	return fmt.Sprintf("Error code: %d.  Please consult hyperdex/client.h for the meaning of the error code", e.returnCode)
 }
 
-// Set output of log
+// Set output of log.  Simply a wrapper around log.SetOutput.
 func SetLogOutput(w io.Writer) {
 	log.SetOutput(w)
 }

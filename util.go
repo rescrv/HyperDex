@@ -53,7 +53,7 @@ func objChannelFailureCallback(objCh chan Object) func(C.enum_hyperdex_client_re
 	}
 }
 
-func newCAttributeList(attrs Attributes) (*C.struct_hyperdex_client_attribute, C.size_t, err error) {
+func newCAttributeList(attrs Attributes) (*C.struct_hyperdex_client_attribute, C.size_t, error) {
 	if len(attrs) == 0 {
 		return nil, 0, nil
 	}
@@ -67,7 +67,7 @@ func newCAttributeList(attrs Attributes) (*C.struct_hyperdex_client_attribute, C
 		slice = append(slice, *attr)
 	}
 
-	return &slice[0], 0, nil
+	return &slice[0], C.size_t(len(attrs)), nil
 }
 
 func newCAttribute(key string, value interface{}) (*C.struct_hyperdex_client_attribute, error) {
@@ -128,19 +128,19 @@ func newCMapAttributeList(mapAttrs MapAttributes) (*C.struct_hyperdex_client_map
 		return nil, 0, nil
 	}
 
-	slice := make([]C.struct_hyperdex_client_map_attribute, 0, len(attrs))
+	slice := make([]C.struct_hyperdex_client_map_attribute, 0, len(mapAttrs))
 	for key, item := range mapAttrs {
 		mapAttr, err := newCMapAttribute(key, item)
 		if err != nil {
 			return nil, 0, err
 		}
-		slice = append(slice, *attr)
+		slice = append(slice, *mapAttr)
 	}
 
 	return &slice[0], C.size_t(len(mapAttrs)), nil
 }
 
-func newCMapAttribute(key string, mapItem MapItem) (*C.struct_hyperdex_client_map_attribute, error) {
+func newCMapAttribute(attrKey string, mapItem MapItem) (*C.struct_hyperdex_client_map_attribute, error) {
 	key, keySize, keyType, err := toHyperDexDatatype(mapItem.key)
 	if err != nil {
 		return nil, err
@@ -152,13 +152,15 @@ func newCMapAttribute(key string, mapItem MapItem) (*C.struct_hyperdex_client_ma
 	}
 
 	return &C.struct_hyperdex_client_map_attribute{
-		C.CString(key),
+		C.CString(attrKey),
 		key,
 		keySize,
 		keyType,
+		[4]byte{}, // alignment
 		val,
 		valSize,
 		valType,
+		[4]byte{},
 	}, nil
 }
 
