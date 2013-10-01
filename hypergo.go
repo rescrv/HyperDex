@@ -55,14 +55,9 @@ type Client struct {
 // Correspond to an array of hyperdex_client_attribute
 type Attributes map[string]interface{}
 
-// Correspond to a hyper_client_map_attribute
-type MapItem struct {
-	key   string
-	value string
-}
-
-// Correspond to an array of hyper_client_map_attribute
-type MapAttributes map[string]MapItem
+// Correspond to an array of hyper_client_map_attribute, possibly
+// of different map attributes
+type MapAttributes map[string]map[interface{}]interface{}
 
 // A hyperdex object.
 // Err contains any error that happened when trying to retrieve

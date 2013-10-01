@@ -136,25 +136,30 @@ func newCMapAttributeList(mapAttrs MapAttributes) (*C.struct_hyperdex_client_map
 		return nil, 0, nil
 	}
 
+	C_size_t := C.size_t(0)
+
 	slice := make([]C.struct_hyperdex_client_map_attribute, 0, len(mapAttrs))
-	for key, item := range mapAttrs {
-		mapAttr, err := newCMapAttribute(key, item)
-		if err != nil {
-			return nil, 0, err
+	for attrName, maps := range mapAttrs {
+		for key, item := range maps {
+			C_size_t++
+			mapAttr, err := newCMapAttribute(attrName, key, item)
+			if err != nil {
+				return nil, 0, err
+			}
+			slice = append(slice, *mapAttr)
 		}
-		slice = append(slice, *mapAttr)
 	}
 
-	return &slice[0], C.size_t(len(mapAttrs)), nil
+	return &slice[0], C_size_t, nil
 }
 
-func newCMapAttribute(attrKey string, mapItem MapItem) (*C.struct_hyperdex_client_map_attribute, error) {
-	key, keySize, keyType, err := toHyperDexDatatype(mapItem.key)
+func newCMapAttribute(attrKey string, itemKey interface{}, itemValue interface{}) (*C.struct_hyperdex_client_map_attribute, error) {
+	key, keySize, keyType, err := toHyperDexDatatype(itemKey)
 	if err != nil {
 		return nil, err
 	}
 
-	val, valSize, valType, err := toHyperDexDatatype(mapItem.value)
+	val, valSize, valType, err := toHyperDexDatatype(itemValue)
 	if err != nil {
 		return nil, err
 	}

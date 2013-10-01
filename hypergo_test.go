@@ -6,6 +6,16 @@ import (
 	"testing"
 )
 
+// The following tests assume the following space schema:
+/*
+space phonebook
+key username
+attributes first, last, int phone, float floatAttr
+subspace first, last, phone, floatAttr
+create 8 partitions
+tolerate 2 failures
+*/
+
 func TestGetPutDelete(t *testing.T) {
 	client, err := NewClient("127.0.0.1", 1982)
 	defer client.Destroy()
