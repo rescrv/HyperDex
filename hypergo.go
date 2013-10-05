@@ -1,3 +1,4 @@
+// Package hypergo is a client for HyperDex.
 package hypergo
 
 /*
