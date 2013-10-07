@@ -47,7 +47,8 @@ func (client *Client) objOp(funcName string, space string, key string, conds []C
 	}
 
 	if req_id < 0 {
-		objCh <- Object{Err: newInternalError(status)}
+		objCh <- Object{Err: newInternalError(status,
+			C.GoString(C.hyperdex_client_error_message(client.ptr)))}
 		close(objCh)
 		return objCh
 	}
@@ -297,7 +298,8 @@ func (client *Client) errOp(funcName string, space string, key string, attrs Att
 	}
 
 	if req_id < 0 {
-		errCh <- newInternalError(status)
+		errCh <- newInternalError(status,
+			C.GoString(C.hyperdex_client_error_message(client.ptr)))
 		close(errCh)
 		return errCh
 	}

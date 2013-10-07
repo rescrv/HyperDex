@@ -17,6 +17,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"reflect"
 	"unsafe"
 )
 
@@ -25,15 +26,23 @@ func bytesOf(str string) int {
 	return len([]byte(str))
 }
 
+// Concatenate two byte slices to form a new one
+func joinByteSlices(old1, old2 []byte) []byte {
+	newslice := make([]byte, len(old1)+len(old2))
+	copy(newslice, old1)
+	copy(newslice[len(old1):], old2)
+	return newslice
+}
+
 // Utility functions
-func newInternalError(status C.enum_hyperdex_client_returncode, a ...interface{}) error {
-	return HyperError{returnCode: status}
+func newInternalError(status C.enum_hyperdex_client_returncode, msg string) error {
+	return HyperError{returnCode: status, msg: msg}
 }
 
 // Convenience function for generating a callback
-func errChannelFailureCallback(errCh chan error) func(C.enum_hyperdex_client_returncode) {
-	return func(status C.enum_hyperdex_client_returncode) {
-		errCh <- newInternalError(status)
+func errChannelFailureCallback(errCh chan error) func(C.enum_hyperdex_client_returncode, string) {
+	return func(status C.enum_hyperdex_client_returncode, msg string) {
+		errCh <- newInternalError(status, msg)
 		close(errCh)
 	}
 }
@@ -46,9 +55,9 @@ func errChannelSuccessCallback(errCh chan error) func() {
 }
 
 // Convenience function for generating a callback
-func objChannelFailureCallback(objCh chan Object) func(C.enum_hyperdex_client_returncode) {
-	return func(status C.enum_hyperdex_client_returncode) {
-		objCh <- Object{Err: newInternalError(status)}
+func objChannelFailureCallback(objCh chan Object) func(C.enum_hyperdex_client_returncode, string) {
+	return func(status C.enum_hyperdex_client_returncode, msg string) {
+		objCh <- Object{Err: newInternalError(status, msg)}
 		close(objCh)
 	}
 }
@@ -76,6 +85,8 @@ func newCAttribute(key string, value interface{}) (*C.struct_hyperdex_client_att
 		return nil, err
 	}
 
+	println(key)
+	println(valType)
 	return &C.struct_hyperdex_client_attribute{
 		C.CString(key),
 		val,
@@ -93,24 +104,164 @@ func newAttributeListFromC(C_attrs *C.struct_hyperdex_client_attribute, C_attrs_
 		switch C_attr.datatype {
 		case C.HYPERDATATYPE_STRING:
 			attrs[attr] = C.GoStringN(C_attr.value, C.int(C_attr.value_sz))
+
 		case C.HYPERDATATYPE_INT64:
 			var value int64
 			buf := bytes.NewBuffer(C.GoBytes(unsafe.Pointer(C_attr.value), C.int(C_attr.value_sz)))
-			err := binary.Read(buf, binary.LittleEndian, &value)
-			if err != nil {
-				return nil, fmt.Errorf("Could not decode INT64 attribute `%s` (#%d)", attr, i)
+			if buf.Len() == 0 {
+				// TODO: I'm not sure what's the sensible value to put here.
+				// When buf.Len() = 0, that means the user hasn't specified
+				// a value for this attribute, so it's essentially null.
+				// But does it make sense to return nil?
+				attrs[attr] = nil
+			} else {
+				err := binary.Read(buf, binary.LittleEndian, &value)
+				if err != nil {
+					return nil, fmt.Errorf("Could not decode INT64 attribute `%s` (#%d)", attr, i)
+				}
+				attrs[attr] = value
 			}
-			attrs[attr] = value
+
 		case C.HYPERDATATYPE_FLOAT:
 			var value float64
 			buf := bytes.NewBuffer(C.GoBytes(unsafe.Pointer(C_attr.value), C.int(C_attr.value_sz)))
-			err := binary.Read(buf, binary.LittleEndian, &value)
-			if err != nil {
-				return nil, fmt.Errorf("Could not decode FLOAT64 attribute `%s` (#%d)", attr, i)
+			if buf.Len() == 0 {
+				attrs[attr] = nil
+			} else {
+				err := binary.Read(buf, binary.LittleEndian, &value)
+				if err != nil {
+					return nil, fmt.Errorf("Could not decode FLOAT64 attribute `%s` (#%d)", attr, i)
+				}
+				attrs[attr] = value
 			}
-			attrs[attr] = value
+
+		case C.HYPERDATATYPE_LIST_STRING, C.HYPERDATATYPE_SET_STRING:
+			// vals := make([]string, 100)
+			// buf := bytes.NewBuffer(C.GoBytes(unsafe.Pointer(C_attr.value), C.int(C_attr.value_sz)))
+			bs := C.GoBytes(unsafe.Pointer(C_attr.value), C.int(C_attr.value_sz))
+			pos := 0
+			rem := int(C_attr.value_sz)
+			lst := make([]string, 1)
+
+			var buf *bytes.Buffer
+			var size int
+			for rem >= 4 {
+				buf = bytes.NewBuffer(bs[pos : pos+4])
+				err := binary.Read(buf, binary.LittleEndian, &size)
+				if err != nil {
+					return nil, err
+				}
+				lst = append(lst, string(bs[pos+4:pos+4+size]))
+				pos += 4 + size
+				rem -= 4 + size
+			}
+
+			if rem != 0 {
+				return nil, fmt.Errorf("list(string) is improperly structured (file a bug)")
+			}
+
+			attrs[attr] = lst
+
+		case C.HYPERDATATYPE_MAP_STRING_STRING, C.HYPERDATATYPE_MAP_STRING_INT64,
+			C.HYPERDATATYPE_MAP_STRING_FLOAT, C.HYPERDATATYPE_MAP_INT64_STRING,
+			C.HYPERDATATYPE_MAP_INT64_INT64, C.HYPERDATATYPE_MAP_INT64_FLOAT,
+			C.HYPERDATATYPE_MAP_FLOAT_STRING, C.HYPERDATATYPE_MAP_FLOAT_INT64,
+			C.HYPERDATATYPE_MAP_FLOAT_FLOAT:
+			bs := C.GoBytes(unsafe.Pointer(C_attr.value), C.int(C_attr.value_sz))
+			pos := 0
+			rem := int(C_attr.value_sz)
+			m := Map{}
+
+			var buf *bytes.Buffer
+			var size int
+			for rem >= 4 {
+				var key, val interface{}
+				var err error
+				switch C_attr.datatype {
+				// Cases where keys are strings
+				case C.HYPERDATATYPE_MAP_STRING_STRING, C.HYPERDATATYPE_MAP_STRING_INT64,
+					C.HYPERDATATYPE_MAP_STRING_FLOAT:
+					buf = bytes.NewBuffer(bs[pos : pos+4])
+					err = binary.Read(buf, binary.LittleEndian, &size)
+					if err != nil {
+						return nil, err
+					}
+					key = string(bs[pos+4 : pos+4+size])
+					pos += 4 + size
+					rem -= 4 + size
+				// Cases where keys are integers
+				case C.HYPERDATATYPE_MAP_INT64_STRING, C.HYPERDATATYPE_MAP_INT64_INT64,
+					C.HYPERDATATYPE_MAP_INT64_FLOAT:
+					var intKey int64
+					buf = bytes.NewBuffer(bs[pos : pos+8])
+					err = binary.Read(buf, binary.LittleEndian, &intKey)
+					if err != nil {
+						return nil, err
+					}
+					key = intKey
+					pos += 8
+					rem -= 8
+				// Cases where keys are integers
+				case C.HYPERDATATYPE_MAP_FLOAT_STRING, C.HYPERDATATYPE_MAP_FLOAT_INT64,
+					C.HYPERDATATYPE_MAP_FLOAT_FLOAT:
+					var floatKey float64
+					buf = bytes.NewBuffer(bs[pos : pos+8])
+					err = binary.Read(buf, binary.LittleEndian, &floatKey)
+					if err != nil {
+						return nil, err
+					}
+					key = floatKey
+					pos += 8
+					rem -= 8
+				}
+
+				switch C_attr.datatype {
+				// Cases where values are strings
+				case C.HYPERDATATYPE_MAP_STRING_STRING, C.HYPERDATATYPE_MAP_INT64_STRING,
+					C.HYPERDATATYPE_MAP_FLOAT_STRING:
+					buf = bytes.NewBuffer(bs[pos : pos+4])
+					err = binary.Read(buf, binary.LittleEndian, &size)
+					if err != nil {
+						return nil, err
+					}
+					val = string(bs[pos+4 : pos+4+size])
+					pos += 4 + size
+					rem -= 4 + size
+				// Cases where values are integers
+				case C.HYPERDATATYPE_MAP_STRING_INT64, C.HYPERDATATYPE_MAP_INT64_INT64,
+					C.HYPERDATATYPE_MAP_FLOAT_INT64:
+					var intVal int64
+					buf = bytes.NewBuffer(bs[pos : pos+8])
+					err = binary.Read(buf, binary.LittleEndian, &intVal)
+					if err != nil {
+						return nil, err
+					}
+					val = intVal
+					pos += 8
+					rem -= 8
+				// Cases where values are integers
+				case C.HYPERDATATYPE_MAP_STRING_FLOAT, C.HYPERDATATYPE_MAP_INT64_FLOAT,
+					C.HYPERDATATYPE_MAP_FLOAT_FLOAT:
+					var floatVal float64
+					buf = bytes.NewBuffer(bs[pos : pos+8])
+					err = binary.Read(buf, binary.LittleEndian, &floatVal)
+					if err != nil {
+						return nil, err
+					}
+					key = floatVal
+					pos += 8
+					rem -= 8
+				}
+				m[key] = val
+			}
+			if rem != 0 {
+				return nil, fmt.Errorf("list(string) is improperly structured (file a bug)")
+			}
+			attrs[attr] = m
+
 		case C.HYPERDATATYPE_GARBAGE:
 			continue
+
 		default:
 			return nil, fmt.Errorf("Unknown datatype %d found for attribute `%s` (#%d)", C_attr.datatype, attr, i)
 		}
@@ -131,23 +282,19 @@ func newCAttributeCheckList(sc []Condition) (*C.struct_hyperdex_client_attribute
 	return &slice[0], C.size_t(len(sc)), nil
 }
 
-func newCMapAttributeList(mapAttrs MapAttributes) (*C.struct_hyperdex_client_map_attribute, C.size_t, error) {
-	if len(mapAttrs) == 0 {
+func newCMapAttributeList(attr string, mapAttr Map) (*C.struct_hyperdex_client_map_attribute, C.size_t, error) {
+	C_size_t := C.size_t(len(mapAttr))
+	if C_size_t == 0 {
 		return nil, 0, nil
 	}
 
-	C_size_t := C.size_t(0)
-
-	slice := make([]C.struct_hyperdex_client_map_attribute, 0, len(mapAttrs))
-	for attrName, maps := range mapAttrs {
-		for key, item := range maps {
-			C_size_t++
-			mapAttr, err := newCMapAttribute(attrName, key, item)
-			if err != nil {
-				return nil, 0, err
-			}
-			slice = append(slice, *mapAttr)
+	slice := make([]C.struct_hyperdex_client_map_attribute, 0, C_size_t)
+	for key, item := range mapAttr {
+		C_map_attr, err := newCMapAttribute(attr, key, item)
+		if err != nil {
+			return nil, 0, err
 		}
+		slice = append(slice, *C_map_attr)
 	}
 
 	return &slice[0], C_size_t, nil
@@ -195,65 +342,79 @@ func newCAttributeCheck(sc Condition) (*C.struct_hyperdex_client_attribute_check
 // Return a CString representation of the given value, and return
 // the datatype of the original value.
 func toHyperDexDatatype(value interface{}) (*C.char, C.size_t, C.enum_hyperdatatype, error) {
-	var val string
-	var size int
-	var datatype C.enum_hyperdatatype
+	buf := new(bytes.Buffer)
 
-	var i int64
-	var f float64
-	var isFloat bool = false
-	var buf *bytes.Buffer
-	var err error
+	processInt64 := func(val int64) (*C.char, C.size_t, C.enum_hyperdatatype, error) {
+		err := binary.Write(buf, binary.LittleEndian, val)
+		if err != nil {
+			return nil, 0, 0, err
+		}
+		valStr := buf.String()
+		return C.CString(valStr), C.size_t(bytesOf(valStr)), C.HYPERDATATYPE_INT64, nil
+	}
 
-	switch v := value.(type) {
-	case string:
-		val = v
-		datatype = C.HYPERDATATYPE_STRING
-		size = len([]byte(val))
-		// No need to do any encoding; just return
-		goto RETURN
-	case int:
-		i = int64(v)
-	case int8:
-		i = int64(v)
-	case int16:
-		i = int64(v)
-	case int32:
-		i = int64(v)
-	case int64:
-		i = v
-	case uint8:
-		i = int64(v)
-	case uint16:
-		i = int64(v)
-	case uint32:
-		i = int64(v)
-	case float32:
-		f = float64(v)
-		isFloat = true
-	case float64:
-		f = v
-		isFloat = true
+	processFloat64 := func(val float64) (*C.char, C.size_t, C.enum_hyperdatatype, error) {
+		err := binary.Write(buf, binary.LittleEndian, val)
+		if err != nil {
+			return nil, 0, 0, err
+		}
+		valStr := buf.String()
+		return C.CString(valStr), C.size_t(bytesOf(valStr)), C.HYPERDATATYPE_FLOAT, nil
+	}
+
+	processString := func(val string) (*C.char, C.size_t, C.enum_hyperdatatype, error) {
+		return C.CString(val), C.size_t(bytesOf(val)), C.HYPERDATATYPE_STRING, nil
+	}
+
+	processList := func(vals List) (*C.char, C.size_t, C.enum_hyperdatatype, error) {
+		var prev_datatype C.enum_hyperdatatype = 0
+		var valSum []byte
+		var sizeSum int
+		for _, val := range vals {
+			C_string, size_t, datatype, err := toHyperDexDatatype(val)
+			if err != nil {
+				return nil, 0, 0, err
+			}
+			if prev_datatype != 0 && prev_datatype != datatype {
+				return nil, 0, 0, fmt.Errorf("Cannot store heterogeneous list")
+			}
+			prev_datatype = datatype
+
+			// Concatenate byte slices
+			valSum = joinByteSlices(valSum, C.GoBytes(unsafe.Pointer(C_string), C.int(size_t)))
+			sizeSum += int(size_t)
+		}
+
+		var listType C.enum_hyperdatatype
+		switch prev_datatype {
+		case C.HYPERDATATYPE_STRING:
+			listType = C.HYPERDATATYPE_LIST_STRING
+		case C.HYPERDATATYPE_INT64:
+			listType = C.HYPERDATATYPE_LIST_INT64
+		case C.HYPERDATATYPE_FLOAT:
+			listType = C.HYPERDATATYPE_LIST_FLOAT
+		default:
+			return nil, 0, 0, fmt.Errorf("Only lists of type int, float, and string are supported")
+		}
+
+		return C.CString(string(valSum)), C.size_t(sizeSum), listType, nil
+		// return nil, 0, 0, nil
+	}
+
+	t := reflect.TypeOf(value)
+	v := reflect.ValueOf(value)
+	switch t.Kind() {
+	case reflect.String:
+		return processString(v.String())
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32,
+		reflect.Int64:
+		return processInt64(v.Int())
+	case reflect.Float32, reflect.Float64:
+		return processFloat64(v.Float())
+	case reflect.Slice:
+		lst := value.(List)
+		return processList(lst)
 	default:
-		return nil, 0, 0, fmt.Errorf("Unsupported type '%T'", v)
+		return nil, 0, 0, fmt.Errorf("Unsupported type %s", t.String())
 	}
-
-	// Binary encoding
-	buf = new(bytes.Buffer)
-	if isFloat {
-		err = binary.Write(buf, binary.LittleEndian, f)
-		datatype = C.HYPERDATATYPE_FLOAT
-		size = binary.Size(float64(0.0))
-	} else {
-		err = binary.Write(buf, binary.LittleEndian, i)
-		datatype = C.HYPERDATATYPE_INT64
-		size = binary.Size(int64(0))
-	}
-	if err != nil {
-		return nil, 0, 0, err
-	}
-	val = buf.String()
-
-RETURN:
-	return C.CString(val), C.size_t(size), datatype, nil
 }

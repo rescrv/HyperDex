@@ -55,9 +55,11 @@ type Client struct {
 // Correspond to an array of hyperdex_client_attribute
 type Attributes map[string]interface{}
 
-// Correspond to an array of hyper_client_map_attribute, possibly
-// of different map attributes
-type MapAttributes map[string]map[interface{}]interface{}
+type Map map[interface{}]interface{}
+
+type List []interface{}
+
+type Set []interface{}
 
 // A hyperdex object.
 // Err contains any error that happened when trying to retrieve
@@ -97,7 +99,7 @@ type request struct {
 	id         int64
 	isIterator bool
 	success    func()
-	failure    func(C.enum_hyperdex_client_returncode)
+	failure    func(C.enum_hyperdex_client_returncode, string)
 	complete   func()
 	status     *C.enum_hyperdex_client_returncode
 }
@@ -105,10 +107,11 @@ type request struct {
 // A custom error type that allows for examining HyperDex error code.
 type HyperError struct {
 	returnCode C.enum_hyperdex_client_returncode
+	msg        string
 }
 
 func (e HyperError) Error() string {
-	return fmt.Sprintf("Error code: %d.  Please consult hyperdex/client.h for the meaning of the error code", e.returnCode)
+	return fmt.Sprintf("Error %d: %s", e.returnCode, e.msg)
 }
 
 // Set output of log.  Simply a wrapper around log.SetOutput.
@@ -155,7 +158,8 @@ func NewClient(ip string, port int) (*Client, error) {
 					ret := int64(C.hyperdex_client_loop(client.ptr, C.int(TIMEOUT), &status))
 					//log.Printf("hyperdex_client_loop(%X, %d, %X) -> %d\n", unsafe.Pointer(client.ptr), hyperdex_client_loop_timeout, unsafe.Pointer(&status), ret)
 					if ret < 0 {
-						panic(newInternalError(status).Error())
+						panic(newInternalError(status,
+							C.GoString(C.hyperdex_client_error_message(client.ptr))).Error())
 					}
 					// find processed request among pending requests
 					for i, req := range client.requests {
@@ -187,11 +191,13 @@ func NewClient(ip string, port int) (*Client, error) {
 								default:
 									log.Println("Request failure")
 									if req.failure != nil {
-										req.failure(*req.status)
+										req.failure(*req.status,
+											C.GoString(C.hyperdex_client_error_message(client.ptr)))
 									}
 								}
 							} else if req.failure != nil {
-								req.failure(status)
+								req.failure(status,
+									C.GoString(C.hyperdex_client_error_message(client.ptr)))
 							}
 							client.requests = append(client.requests[:i], client.requests[i+1:]...)
 						SKIP_DELETING_REQUEST:

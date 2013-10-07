@@ -8,12 +8,19 @@ import (
 
 // The following tests assume the following space schema:
 /*
-space phonebook
+space profiles
 key username
-attributes first, last, int phone, float floatAttr
-subspace first, last, phone, floatAttr
-create 8 partitions
-tolerate 2 failures
+attributes
+    string name,
+    float height,
+    int profile_views,
+    list(string) pending_requests,
+    set(string) hobbies,
+    map(string, string) unread_messages,
+    map(string, int) upvotes
+subspace name
+subspace height
+subspace profile_views
 */
 
 func TestGetPutDelete(t *testing.T) {
@@ -25,49 +32,54 @@ func TestGetPutDelete(t *testing.T) {
 	}
 
 	attrs := Attributes{
-		"first":     "john",
-		"last":      "smith",
-		"phone":     int64(6075551024),
-		"floatAttr": float64(241.12421),
+		"name":          "john",
+		"profile_views": int64(6075551024),
+		"height":        float64(241.12421),
+		"pending_requests": List{
+			"haha",
+			"hehe",
+		},
 	}
 
-	err = client.Put("phonebook", "jsmith", attrs)
+	err = client.Put("profiles", "jsmith", attrs)
 
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	obj := client.Get("phonebook", "jsmith")
+	obj := client.Get("profiles", "jsmith")
 	if obj.Err != nil {
 		t.Fatal(obj.Err)
 	}
 
 	for key, value := range obj.Attrs {
-		if attrs[key] != value {
+		t.Logf("Key: %v\n", key)
+		t.Logf("Value: %v\n", value)
+		if !((attrs[key] == value) || (attrs[key] == nil)) {
 			t.Fatalf("%v != %v", attrs[key], value)
 		}
 	}
 
-	err = client.Put("phonebook", "derek", Attributes{
-		"first":     "john",
-		"last":      "derek",
-		"phone":     24212141,
-		"floatAttr": 32.43141,
+	err = client.Put("profiles", "derek", Attributes{
+		"name": "john",
 	})
 
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	objCh := client.Search("phonebook", []Condition{
+	objCh := client.Search("profiles", []Condition{
 		Condition{
-			"first", "john", EQUALS,
+			"name", "john", EQUALS,
 		},
 	})
 
 	counter := 0
 	for {
-		_, ok := <-objCh
+		obj, ok := <-objCh
+		if obj.Err != nil {
+			t.Fatal(obj.Err)
+		}
 		if !ok {
 			break
 		}
@@ -78,13 +90,13 @@ func TestGetPutDelete(t *testing.T) {
 		t.Fatalf("Should return 2 objects.  Instead, we got %d", counter)
 	}
 
-	err = client.Delete("phonebook", "jsmith")
+	err = client.Delete("profiles", "jsmith")
 
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	obj = client.Get("phonebook", "jsmith")
+	obj = client.Get("profiles", "jsmith")
 	if obj.Err != nil {
 		hyperErr := obj.Err.(HyperError)
 		if hyperErr.returnCode != 8449 {
