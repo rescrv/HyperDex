@@ -100,69 +100,217 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 	for i := 0; i < int(C_attrs_sz); i++ {
 		C_attr := C.GetAttribute(C_attrs, C.int(i))
 		attr := C.GoString(C_attr.attr)
+		var C_iter C.struct_hyperdex_ds_iterator
+
 		switch C_attr.datatype {
 		case C.HYPERDATATYPE_STRING:
 			attrs[attr] = C.GoStringN(C_attr.value, C.int(C_attr.value_sz))
 
 		case C.HYPERDATATYPE_INT64:
-			var value int64
-			buf := bytes.NewBuffer(C.GoBytes(unsafe.Pointer(C_attr.value), C.int(C_attr.value_sz)))
-			if buf.Len() == 0 {
-				// TODO: I'm not sure what's the sensible value to put here.
-				// When buf.Len() = 0, that means the user hasn't specified
-				// a value for this attribute, so it's essentially null.
-				// But does it make sense to return nil?
-				attrs[attr] = nil
-			} else {
-				err := binary.Read(buf, binary.LittleEndian, &value)
-				if err != nil {
-					return nil, fmt.Errorf("Could not decode INT64 attribute `%s` (#%d)", attr, i)
-				}
-				attrs[attr] = value
+			var C_int C.int64_t
+			status := C.hyperdex_ds_unpack_int(C_attr.value, C_attr.value_sz, &C_int)
+			if status == -1 {
+				return nil, fmt.Errorf("The size of int is not exactly 8B")
 			}
+			attrs[attr] = int64(C_int)
 
 		case C.HYPERDATATYPE_FLOAT:
-			var value float64
-			buf := bytes.NewBuffer(C.GoBytes(unsafe.Pointer(C_attr.value), C.int(C_attr.value_sz)))
-			if buf.Len() == 0 {
-				attrs[attr] = nil
-			} else {
-				err := binary.Read(buf, binary.LittleEndian, &value)
-				if err != nil {
-					return nil, fmt.Errorf("Could not decode FLOAT64 attribute `%s` (#%d)", attr, i)
-				}
-				attrs[attr] = value
+			var C_double C.double
+			status := C.hyperdex_ds_unpack_float(C_attr.value, C_attr.value_sz, &C_double)
+			if status == -1 {
+				return nil, fmt.Errorf("The size of float is not exactly 8B")
 			}
+			attrs[attr] = float64(C_double)
 
-		case C.HYPERDATATYPE_LIST_STRING, C.HYPERDATATYPE_SET_STRING:
-			// vals := make([]string, 100)
-			// buf := bytes.NewBuffer(C.GoBytes(unsafe.Pointer(C_attr.value), C.int(C_attr.value_sz)))
-			bs := C.GoBytes(unsafe.Pointer(C_attr.value), C.int(C_attr.value_sz))
-			pos := 0
-			rem := int(C_attr.value_sz)
-			lst := make([]string, 1)
+		case C.HYPERDATATYPE_LIST_STRING:
+			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_LIST_STRING,
+				C_attr.value, C_attr.value_sz)
+			lst := make([]string, 1) // TODO: do we know the size of the list?
 
-			var buf *bytes.Buffer
-			var size int
-			for rem >= 4 {
-				buf = bytes.NewBuffer(bs[pos : pos+4])
-				err := binary.Read(buf, binary.LittleEndian, &size)
-				if err != nil {
-					return nil, err
+			for {
+				var C_string *C.char
+				var C_size_t C.size_t
+				status := C.hyperdex_ds_iterate_list_string_next(&C_iter,
+					&C_string, &C_size_t)
+				if status > 0 {
+					lst = append(lst, C.GoStringN(C_string, C.int(C_size_t)))
+				} else if status < 0 {
+					return nil, fmt.Errorf("Corrupted list of strings")
+				} else {
+					break
 				}
-				lst = append(lst, string(bs[pos+4:pos+4+size]))
-				pos += 4 + size
-				rem -= 4 + size
-			}
-
-			if rem != 0 {
-				return nil, fmt.Errorf("list(string) is improperly structured (file a bug)")
 			}
 
 			attrs[attr] = lst
 
-		case C.HYPERDATATYPE_MAP_STRING_STRING, C.HYPERDATATYPE_MAP_STRING_INT64,
-			C.HYPERDATATYPE_MAP_STRING_FLOAT, C.HYPERDATATYPE_MAP_INT64_STRING,
+		case C.HYPERDATATYPE_LIST_INT64:
+			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_LIST_INT64,
+				C_attr.value, C_attr.value_sz)
+			lst := make([]int64, 1) // TODO: do we know the size of the list?
+
+			for {
+				var num C.int64_t
+				status := C.hyperdex_ds_iterate_list_int_next(&C_iter, &num)
+				if status > 0 {
+					lst = append(lst, int64(num))
+				} else if status < 0 {
+					return nil, fmt.Errorf("Corrupted list of integers")
+				} else {
+					break
+				}
+			}
+
+			attrs[attr] = lst
+
+		case C.HYPERDATATYPE_LIST_FLOAT:
+			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_LIST_FLOAT,
+				C_attr.value, C_attr.value_sz)
+			lst := make([]float64, 1) // TODO: do we know the size of the list?
+
+			for {
+				var num C.double
+				status := C.hyperdex_ds_iterate_list_float_next(&C_iter, &num)
+				if status > 0 {
+					lst = append(lst, float64(num))
+				} else if status < 0 {
+					return nil, fmt.Errorf("Corrupted list of floats")
+				} else {
+					break
+				}
+			}
+
+			attrs[attr] = lst
+
+		case C.HYPERDATATYPE_SET_STRING:
+			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_SET_STRING,
+				C_attr.value, C_attr.value_sz)
+			lst := make([]string, 1) // TODO: do we know the size of the list?
+
+			for {
+				var C_string *C.char
+				var C_size_t C.size_t
+				status := C.hyperdex_ds_iterate_set_string_next(&C_iter,
+					&C_string, &C_size_t)
+				if status > 0 {
+					lst = append(lst, C.GoStringN(C_string, C.int(C_size_t)))
+				} else if status < 0 {
+					return nil, fmt.Errorf("Corrupted set of strings")
+				} else {
+					break
+				}
+			}
+
+			attrs[attr] = lst
+
+		case C.HYPERDATATYPE_SET_INT64:
+			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_SET_INT64,
+				C_attr.value, C_attr.value_sz)
+			lst := make([]int64, 1) // TODO: do we know the size of the list?
+
+			for {
+				var num C.int64_t
+				status := C.hyperdex_ds_iterate_set_int_next(&C_iter, &num)
+				if status > 0 {
+					lst = append(lst, int64(num))
+				} else if status < 0 {
+					return nil, fmt.Errorf("Corrupted set of integers")
+				} else {
+					break
+				}
+			}
+
+			attrs[attr] = lst
+
+		case C.HYPERDATATYPE_SET_FLOAT:
+			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_SET_FLOAT,
+				C_attr.value, C_attr.value_sz)
+			lst := make([]float64, 1) // TODO: do we know the size of the list?
+
+			for {
+				var num C.double
+				status := C.hyperdex_ds_iterate_set_float_next(&C_iter, &num)
+				if status > 0 {
+					lst = append(lst, float64(num))
+				} else if status < 0 {
+					return nil, fmt.Errorf("Corrupted set of floats")
+				} else {
+					break
+				}
+			}
+
+			attrs[attr] = lst
+
+		case C.HYPERDATATYPE_MAP_STRING_STRING:
+			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_MAP_STRING_STRING,
+				C_attr.value, C_attr.value_sz)
+			m := make(map[string]string) // TODO: do we know the size of the list?
+
+			for {
+				var C_key_string *C.char
+				var C_key_size_t C.size_t
+				var C_value_string *C.char
+				var C_value_size_t C.size_t
+
+				status := C.hyperdex_ds_iterate_map_string_string_next(&C_iter,
+					&C_key_string, &C_key_size_t, &C_value_string, &C_value_size_t)
+				if status > 0 {
+					m[C.GoStringN(C_key_string, C.int(C_key_size_t))] = C.GoStringN(C_value_string, C.int(C_value_size_t))
+				} else if status < 0 {
+					return nil, fmt.Errorf("Corrupted map of strings to strings")
+				} else {
+					break
+				}
+			}
+
+			attrs[attr] = m
+
+		case C.HYPERDATATYPE_MAP_STRING_INT64:
+			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_MAP_STRING_INT64,
+				C_attr.value, C_attr.value_sz)
+			m := make(map[string]int64) // TODO: do we know the size of the list?
+
+			for {
+				var C_key_string *C.char
+				var C_key_size_t C.size_t
+				var C_value C.int64_t
+
+				status := C.hyperdex_ds_iterate_map_string_int_next(&C_iter,
+					&C_key_string, &C_key_size_t, &C_value)
+				if status > 0 {
+					m[C.GoStringN(C_key_string, C.int(C_key_size_t))] = int64(C_value)
+				} else if status < 0 {
+					return nil, fmt.Errorf("Corrupted map of strings to integers")
+				} else {
+					break
+				}
+			}
+
+			attrs[attr] = m
+
+		case C.HYPERDATATYPE_MAP_STRING_FLOAT:
+			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_MAP_STRING_FLOAT,
+				C_attr.value, C_attr.value_sz)
+			m := make(map[string]float64) // TODO: do we know the size of the list?
+
+			for {
+				var C_key_string *C.char
+				var C_key_size_t C.size_t
+				var C_value C.double
+
+				status := C.hyperdex_ds_iterate_map_string_float_next(&C_iter,
+					&C_key_string, &C_key_size_t, &C_value)
+				if status > 0 {
+					m[C.GoStringN(C_key_string, C.int(C_key_size_t))] = float64(C_value)
+				} else if status < 0 {
+					return nil, fmt.Errorf("Corrupted map of strings to floats")
+				} else {
+					break
+				}
+			}
+
+			attrs[attr] = m
+
+		case C.HYPERDATATYPE_MAP_INT64_STRING,
 			C.HYPERDATATYPE_MAP_INT64_INT64, C.HYPERDATATYPE_MAP_INT64_FLOAT,
 			C.HYPERDATATYPE_MAP_FLOAT_STRING, C.HYPERDATATYPE_MAP_FLOAT_INT64,
 			C.HYPERDATATYPE_MAP_FLOAT_FLOAT:
