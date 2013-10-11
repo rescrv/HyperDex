@@ -5,6 +5,7 @@ package hypergo
 #cgo LDFLAGS: -lhyperdex-client
 #include <netinet/in.h>
 #include "hyperdex/client.h"
+#include "hyperdex/datastructures.h"
 */
 import "C"
 
@@ -40,6 +41,7 @@ const (
 // Client is the hyperdex client used to make requests to hyperdex.
 type Client struct {
 	ptr       *C.struct_hyperdex_client
+	arena     *C.struct_hyperdex_ds_arena
 	requests  []request
 	closeChan chan struct{}
 }
@@ -135,12 +137,14 @@ func SetLogOutput(w io.Writer) {
 //		// use client
 func NewClient(ip string, port int) (*Client, error) {
 	C_client := C.hyperdex_client_create(C.CString(ip), C.uint16_t(port))
-	//log.Printf("hyperdex_client_create(\"%s\", %d) -> %X\n", ip, port, unsafe.Pointer(C_client))
+	C_arena := C.hyperdex_ds_arena_create()
+
 	if C_client == nil {
 		return nil, fmt.Errorf("Could not create hyperdex_client (ip=%s, port=%d)", ip, port)
 	}
 	client := &Client{
 		C_client,
+		C_arena,
 		make([]request, 0, 8), // No reallocation within 8 concurrent requests to hyperdex_client_loop
 		make(chan struct{}, 1),
 	}

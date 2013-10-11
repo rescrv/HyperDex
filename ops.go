@@ -24,7 +24,7 @@ func (client *Client) objOp(funcName string, space string, key string, conds []C
 	var err error
 
 	if conds != nil {
-		C_attr_checks, C_attr_checks_sz, err = newCAttributeCheckList(conds)
+		C_attr_checks, C_attr_checks_sz, err = client.newCAttributeCheckList(conds)
 		if err != nil {
 			objCh <- Object{
 				Err: err,
@@ -60,7 +60,7 @@ func (client *Client) objOp(funcName string, space string, key string, conds []C
 	switch funcName {
 	case "get":
 		req.success = func() {
-			attrs, err := newAttributeListFromC(C_attrs, C_attrs_sz)
+			attrs, err := client.newAttributeListFromC(C_attrs, C_attrs_sz)
 			if err != nil {
 				objCh <- Object{Err: err}
 				close(objCh)
@@ -77,7 +77,7 @@ func (client *Client) objOp(funcName string, space string, key string, conds []C
 		req.isIterator = true
 		req.success = func() {
 			// attrs, err := newAttributeListFromC(C_attrs, C_attrs_sz)
-			attrs, err := newAttributeListFromC(C_attrs, C_attrs_sz)
+			attrs, err := client.newAttributeListFromC(C_attrs, C_attrs_sz)
 			if err != nil {
 				objCh <- Object{Err: err}
 				close(objCh)
@@ -110,7 +110,7 @@ func (client *Client) errOp(funcName string, space string, key string, attrs Att
 	var err error
 
 	if conds != nil {
-		C_attr_checks, C_attr_checks_sz, err = newCAttributeCheckList(conds)
+		C_attr_checks, C_attr_checks_sz, err = client.newCAttributeCheckList(conds)
 		if err != nil {
 			errCh <- err
 			close(errCh)
@@ -119,7 +119,7 @@ func (client *Client) errOp(funcName string, space string, key string, attrs Att
 	}
 
 	if attrs != nil {
-		C_attrs, C_attrs_sz, err = newCAttributeList(attrs)
+		C_attrs, C_attrs_sz, err = client.newCAttributeList(attrs)
 		if err != nil {
 			errCh <- err
 			close(errCh)

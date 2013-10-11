@@ -6,6 +6,7 @@ package hypergo
 #cgo LDFLAGS: -lhyperdex-client
 #include <netinet/in.h>
 #include "hyperdex/client.h"
+#include "hyperdex/datastructures.h"
 
 struct hyperdex_client_attribute* GetAttribute(struct hyperdex_client_attribute* list, int i) {
 	return &list[i];
@@ -62,14 +63,14 @@ func objChannelFailureCallback(objCh chan Object) func(C.enum_hyperdex_client_re
 	}
 }
 
-func newCAttributeList(attrs Attributes) (*C.struct_hyperdex_client_attribute, C.size_t, error) {
+func (client *Client) newCAttributeList(attrs Attributes) (*C.struct_hyperdex_client_attribute, C.size_t, error) {
 	if len(attrs) == 0 {
 		return nil, 0, nil
 	}
 
 	slice := make([]C.struct_hyperdex_client_attribute, 0, len(attrs))
 	for key, value := range attrs {
-		attr, err := newCAttribute(key, value)
+		attr, err := client.newCAttribute(key, value)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -79,14 +80,12 @@ func newCAttributeList(attrs Attributes) (*C.struct_hyperdex_client_attribute, C
 	return &slice[0], C.size_t(len(attrs)), nil
 }
 
-func newCAttribute(key string, value interface{}) (*C.struct_hyperdex_client_attribute, error) {
-	val, valSize, valType, err := toHyperDexDatatype(value)
+func (client *Client) newCAttribute(key string, value interface{}) (*C.struct_hyperdex_client_attribute, error) {
+	val, valSize, valType, err := client.toHyperDexDatatype(value)
 	if err != nil {
 		return nil, err
 	}
 
-	println(key)
-	println(valType)
 	return &C.struct_hyperdex_client_attribute{
 		C.CString(key),
 		val,
@@ -96,7 +95,7 @@ func newCAttribute(key string, value interface{}) (*C.struct_hyperdex_client_att
 	}, nil
 }
 
-func newAttributeListFromC(C_attrs *C.struct_hyperdex_client_attribute, C_attrs_sz C.size_t) (attrs Attributes, err error) {
+func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_attribute, C_attrs_sz C.size_t) (attrs Attributes, err error) {
 	attrs = Attributes{}
 	for i := 0; i < int(C_attrs_sz); i++ {
 		C_attr := C.GetAttribute(C_attrs, C.int(i))
@@ -269,10 +268,10 @@ func newAttributeListFromC(C_attrs *C.struct_hyperdex_client_attribute, C_attrs_
 	return attrs, nil
 }
 
-func newCAttributeCheckList(sc []Condition) (*C.struct_hyperdex_client_attribute_check, C.size_t, error) {
+func (client *Client) newCAttributeCheckList(sc []Condition) (*C.struct_hyperdex_client_attribute_check, C.size_t, error) {
 	slice := make([]C.struct_hyperdex_client_attribute_check, 0, len(sc))
 	for _, s := range sc {
-		ac, err := newCAttributeCheck(s)
+		ac, err := client.newCAttributeCheck(s)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -282,7 +281,7 @@ func newCAttributeCheckList(sc []Condition) (*C.struct_hyperdex_client_attribute
 	return &slice[0], C.size_t(len(sc)), nil
 }
 
-func newCMapAttributeList(attr string, mapAttr Map) (*C.struct_hyperdex_client_map_attribute, C.size_t, error) {
+func (client *Client) newCMapAttributeList(attr string, mapAttr Map) (*C.struct_hyperdex_client_map_attribute, C.size_t, error) {
 	C_size_t := C.size_t(len(mapAttr))
 	if C_size_t == 0 {
 		return nil, 0, nil
@@ -290,7 +289,7 @@ func newCMapAttributeList(attr string, mapAttr Map) (*C.struct_hyperdex_client_m
 
 	slice := make([]C.struct_hyperdex_client_map_attribute, 0, C_size_t)
 	for key, item := range mapAttr {
-		C_map_attr, err := newCMapAttribute(attr, key, item)
+		C_map_attr, err := client.newCMapAttribute(attr, key, item)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -300,13 +299,13 @@ func newCMapAttributeList(attr string, mapAttr Map) (*C.struct_hyperdex_client_m
 	return &slice[0], C_size_t, nil
 }
 
-func newCMapAttribute(attrKey string, itemKey interface{}, itemValue interface{}) (*C.struct_hyperdex_client_map_attribute, error) {
-	key, keySize, keyType, err := toHyperDexDatatype(itemKey)
+func (client *Client) newCMapAttribute(attrKey string, itemKey interface{}, itemValue interface{}) (*C.struct_hyperdex_client_map_attribute, error) {
+	key, keySize, keyType, err := client.toHyperDexDatatype(itemKey)
 	if err != nil {
 		return nil, err
 	}
 
-	val, valSize, valType, err := toHyperDexDatatype(itemValue)
+	val, valSize, valType, err := client.toHyperDexDatatype(itemValue)
 	if err != nil {
 		return nil, err
 	}
@@ -324,8 +323,8 @@ func newCMapAttribute(attrKey string, itemKey interface{}, itemValue interface{}
 	}, nil
 }
 
-func newCAttributeCheck(sc Condition) (*C.struct_hyperdex_client_attribute_check, error) {
-	val, valSize, valType, err := toHyperDexDatatype(sc.Value)
+func (client *Client) newCAttributeCheck(sc Condition) (*C.struct_hyperdex_client_attribute_check, error) {
+	val, valSize, valType, err := client.toHyperDexDatatype(sc.Value)
 	if err != nil {
 		return nil, err
 	}
@@ -341,7 +340,7 @@ func newCAttributeCheck(sc Condition) (*C.struct_hyperdex_client_attribute_check
 
 // Return a CString representation of the given value, and return
 // the datatype of the original value.
-func toHyperDexDatatype(value interface{}) (*C.char, C.size_t, C.enum_hyperdatatype, error) {
+func (client *Client) toHyperDexDatatype(value interface{}) (*C.char, C.size_t, C.enum_hyperdatatype, error) {
 	buf := new(bytes.Buffer)
 
 	processInt64 := func(val int64) (*C.char, C.size_t, C.enum_hyperdatatype, error) {
@@ -367,38 +366,37 @@ func toHyperDexDatatype(value interface{}) (*C.char, C.size_t, C.enum_hyperdatat
 	}
 
 	processList := func(vals List) (*C.char, C.size_t, C.enum_hyperdatatype, error) {
-		var prev_datatype C.enum_hyperdatatype = 0
-		var valSum []byte
-		var sizeSum int
+		C_ds_list := C.hyperdex_ds_allocate_list(client.arena)
+		var C_ds_status C.enum_hyperdex_ds_returncode
 		for _, val := range vals {
-			C_string, size_t, datatype, err := toHyperDexDatatype(val)
-			if err != nil {
-				return nil, 0, 0, err
+			t := reflect.TypeOf(val)
+			v := reflect.ValueOf(val)
+			switch t.Kind() {
+			case reflect.String:
+				C_string := C.CString(v.String())
+				C_size_t := C.size_t(v.Len())
+				C.hyperdex_ds_list_append_string(C_ds_list,
+					C_string, C_size_t, &C_ds_status)
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32,
+				reflect.Int64:
+				C.hyperdex_ds_list_append_int(C_ds_list,
+					C.int64_t(v.Int()), &C_ds_status)
+			case reflect.Float32, reflect.Float64:
+				C.hyperdex_ds_list_append_float(C_ds_list,
+					C.double(v.Float()), &C_ds_status)
+			default:
+				return nil, 0, 0, fmt.Errorf("Unsupported type within list %s", t.String())
 			}
-			if prev_datatype != 0 && prev_datatype != datatype {
-				return nil, 0, 0, fmt.Errorf("Cannot store heterogeneous list")
+			if C_ds_status != C.HYPERDEX_DS_SUCCESS {
+				return nil, 0, 0, fmt.Errorf("DS error: %d", C_ds_status)
 			}
-			prev_datatype = datatype
-
-			// Concatenate byte slices
-			valSum = joinByteSlices(valSum, C.GoBytes(unsafe.Pointer(C_string), C.int(size_t)))
-			sizeSum += int(size_t)
 		}
-
-		var listType C.enum_hyperdatatype
-		switch prev_datatype {
-		case C.HYPERDATATYPE_STRING:
-			listType = C.HYPERDATATYPE_LIST_STRING
-		case C.HYPERDATATYPE_INT64:
-			listType = C.HYPERDATATYPE_LIST_INT64
-		case C.HYPERDATATYPE_FLOAT:
-			listType = C.HYPERDATATYPE_LIST_FLOAT
-		default:
-			return nil, 0, 0, fmt.Errorf("Only lists of type int, float, and string are supported")
-		}
-
-		return C.CString(string(valSum)), C.size_t(sizeSum), listType, nil
-		// return nil, 0, 0, nil
+		var C_string *C.char
+		var C_size_t C.size_t
+		var C_datatype C.enum_hyperdatatype
+		C.hyperdex_ds_list_finalize(C_ds_list, &C_ds_status,
+			&C_string, &C_size_t, &C_datatype)
+		return C_string, C_size_t, C_datatype, nil
 	}
 
 	t := reflect.TypeOf(value)
