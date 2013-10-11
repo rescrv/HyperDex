@@ -15,7 +15,9 @@ attributes
     float height,
     int profile_views,
     list(string) pending_requests,
+    list(float) ratings,
     set(string) hobbies,
+    set(int) ages,
     map(string, string) unread_messages,
     map(string, int) upvotes
 subspace name
@@ -38,6 +40,24 @@ func TestGetPutDelete(t *testing.T) {
 		"pending_requests": List{
 			"haha",
 			"hehe",
+		},
+		"hobbies": Set{
+			"qowue",
+			"waoihdwao",
+		},
+		"ratings": List{
+			1.22141,
+			-5235.241,
+			92804.14,
+		},
+		"ages": Set{
+			-41,
+			284,
+			2304,
+		},
+		"unread_messages": Map{
+			"oahd":      "waohdaw",
+			"wapodajwp": "waohdwoqpd",
 		},
 	}
 

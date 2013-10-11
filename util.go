@@ -399,6 +399,96 @@ func (client *Client) toHyperDexDatatype(value interface{}) (*C.char, C.size_t, 
 		return C_string, C_size_t, C_datatype, nil
 	}
 
+	processSet := func(vals Set) (*C.char, C.size_t, C.enum_hyperdatatype, error) {
+		C_ds_set := C.hyperdex_ds_allocate_set(client.arena)
+		var C_ds_status C.enum_hyperdex_ds_returncode
+		for _, val := range vals {
+			t := reflect.TypeOf(val)
+			v := reflect.ValueOf(val)
+			switch t.Kind() {
+			case reflect.String:
+				C_string := C.CString(v.String())
+				C_size_t := C.size_t(v.Len())
+				C.hyperdex_ds_set_insert_string(C_ds_set,
+					C_string, C_size_t, &C_ds_status)
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32,
+				reflect.Int64:
+				C.hyperdex_ds_set_insert_int(C_ds_set,
+					C.int64_t(v.Int()), &C_ds_status)
+			case reflect.Float32, reflect.Float64:
+				C.hyperdex_ds_set_insert_float(C_ds_set,
+					C.double(v.Float()), &C_ds_status)
+			default:
+				return nil, 0, 0, fmt.Errorf("Unsupported type within set %s", t.String())
+			}
+			if C_ds_status != C.HYPERDEX_DS_SUCCESS {
+				return nil, 0, 0, fmt.Errorf("DS error: %d", C_ds_status)
+			}
+		}
+		var C_string *C.char
+		var C_size_t C.size_t
+		var C_datatype C.enum_hyperdatatype
+		C.hyperdex_ds_set_finalize(C_ds_set, &C_ds_status,
+			&C_string, &C_size_t, &C_datatype)
+		return C_string, C_size_t, C_datatype, nil
+	}
+
+	processMap := func(m Map) (*C.char, C.size_t, C.enum_hyperdatatype, error) {
+		C_ds_map := C.hyperdex_ds_allocate_map(client.arena)
+		var C_ds_status C.enum_hyperdex_ds_returncode
+		for key, value := range m {
+			t := reflect.TypeOf(key)
+			v := reflect.ValueOf(key)
+			switch t.Kind() {
+			case reflect.String:
+				C_string := C.CString(v.String())
+				C_size_t := C.size_t(v.Len())
+				C.hyperdex_ds_map_insert_key_string(C_ds_map,
+					C_string, C_size_t, &C_ds_status)
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32,
+				reflect.Int64:
+				C.hyperdex_ds_map_insert_key_int(C_ds_map,
+					C.int64_t(v.Int()), &C_ds_status)
+			case reflect.Float32, reflect.Float64:
+				C.hyperdex_ds_map_insert_key_float(C_ds_map,
+					C.double(v.Float()), &C_ds_status)
+			default:
+				return nil, 0, 0, fmt.Errorf("Unsupported key type within map %s", t.String())
+			}
+			if C_ds_status != C.HYPERDEX_DS_SUCCESS {
+				return nil, 0, 0, fmt.Errorf("DS error: %d", C_ds_status)
+			}
+
+			t = reflect.TypeOf(value)
+			v = reflect.ValueOf(value)
+			switch t.Kind() {
+			case reflect.String:
+				C_string := C.CString(v.String())
+				C_size_t := C.size_t(v.Len())
+				C.hyperdex_ds_map_insert_val_string(C_ds_map,
+					C_string, C_size_t, &C_ds_status)
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32,
+				reflect.Int64:
+				C.hyperdex_ds_map_insert_val_int(C_ds_map,
+					C.int64_t(v.Int()), &C_ds_status)
+			case reflect.Float32, reflect.Float64:
+				C.hyperdex_ds_map_insert_val_float(C_ds_map,
+					C.double(v.Float()), &C_ds_status)
+			default:
+				return nil, 0, 0, fmt.Errorf("Unsupported value type within map %s", t.String())
+			}
+			if C_ds_status != C.HYPERDEX_DS_SUCCESS {
+				return nil, 0, 0, fmt.Errorf("DS error: %d", C_ds_status)
+			}
+		}
+		var C_string *C.char
+		var C_size_t C.size_t
+		var C_datatype C.enum_hyperdatatype
+		C.hyperdex_ds_map_finalize(C_ds_map, &C_ds_status,
+			&C_string, &C_size_t, &C_datatype)
+		return C_string, C_size_t, C_datatype, nil
+	}
+
 	t := reflect.TypeOf(value)
 	v := reflect.ValueOf(value)
 	switch t.Kind() {
@@ -410,8 +500,18 @@ func (client *Client) toHyperDexDatatype(value interface{}) (*C.char, C.size_t, 
 	case reflect.Float32, reflect.Float64:
 		return processFloat64(v.Float())
 	case reflect.Slice:
-		lst := value.(List)
-		return processList(lst)
+		// TODO: a more elegant way to test the type?
+		// Also, if you change the package name, this will break.
+		if t.String() == "hypergo.Set" {
+			set := value.(Set)
+			return processSet(set)
+		} else {
+			lst := value.(List)
+			return processList(lst)
+		}
+	case reflect.Map:
+		m := value.(Map)
+		return processMap(m)
 	default:
 		return nil, 0, 0, fmt.Errorf("Unsupported type %s", t.String())
 	}
