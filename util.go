@@ -19,7 +19,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"reflect"
-	"unsafe"
 )
 
 // Return the number of bytes of a string
@@ -99,6 +98,12 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 	attrs = Attributes{}
 	for i := 0; i < int(C_attrs_sz); i++ {
 		C_attr := C.GetAttribute(C_attrs, C.int(i))
+		if C_attr.value_sz == 0 {
+			// If value_sz is 0, the attribute has not been set.
+			// So we skip it.
+			continue
+		}
+
 		attr := C.GoString(C_attr.attr)
 		var C_iter C.struct_hyperdex_ds_iterator
 
@@ -125,7 +130,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_LIST_STRING:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_LIST_STRING,
 				C_attr.value, C_attr.value_sz)
-			lst := make([]string, 0) // TODO: do we know the size of the list?
+			lst := make([]string, 0)
 
 			for {
 				var C_string *C.char
@@ -146,7 +151,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_LIST_INT64:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_LIST_INT64,
 				C_attr.value, C_attr.value_sz)
-			lst := make([]int64, 0) // TODO: do we know the size of the list?
+			lst := make([]int64, 0)
 
 			for {
 				var num C.int64_t
@@ -165,7 +170,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_LIST_FLOAT:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_LIST_FLOAT,
 				C_attr.value, C_attr.value_sz)
-			lst := make([]float64, 0) // TODO: do we know the size of the list?
+			lst := make([]float64, 0)
 
 			for {
 				var num C.double
@@ -184,7 +189,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_SET_STRING:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_SET_STRING,
 				C_attr.value, C_attr.value_sz)
-			lst := make([]string, 0) // TODO: do we know the size of the list?
+			lst := make([]string, 0)
 
 			for {
 				var C_string *C.char
@@ -205,7 +210,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_SET_INT64:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_SET_INT64,
 				C_attr.value, C_attr.value_sz)
-			lst := make([]int64, 0) // TODO: do we know the size of the list?
+			lst := make([]int64, 0)
 
 			for {
 				var num C.int64_t
@@ -224,7 +229,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_SET_FLOAT:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_SET_FLOAT,
 				C_attr.value, C_attr.value_sz)
-			lst := make([]float64, 0) // TODO: do we know the size of the list?
+			lst := make([]float64, 0)
 
 			for {
 				var num C.double
@@ -243,7 +248,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_MAP_STRING_STRING:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_MAP_STRING_STRING,
 				C_attr.value, C_attr.value_sz)
-			m := make(map[string]string) // TODO: do we know the size of the list?
+			m := make(map[string]string)
 
 			for {
 				var C_key_string *C.char
@@ -267,7 +272,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_MAP_STRING_INT64:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_MAP_STRING_INT64,
 				C_attr.value, C_attr.value_sz)
-			m := make(map[string]int64) // TODO: do we know the size of the list?
+			m := make(map[string]int64)
 
 			for {
 				var C_key_string *C.char
@@ -290,7 +295,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_MAP_STRING_FLOAT:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_MAP_STRING_FLOAT,
 				C_attr.value, C_attr.value_sz)
-			m := make(map[string]float64) // TODO: do we know the size of the list?
+			m := make(map[string]float64)
 
 			for {
 				var C_key_string *C.char
@@ -310,104 +315,139 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 
 			attrs[attr] = m
 
-		case C.HYPERDATATYPE_MAP_INT64_STRING,
-			C.HYPERDATATYPE_MAP_INT64_INT64, C.HYPERDATATYPE_MAP_INT64_FLOAT,
-			C.HYPERDATATYPE_MAP_FLOAT_STRING, C.HYPERDATATYPE_MAP_FLOAT_INT64,
-			C.HYPERDATATYPE_MAP_FLOAT_FLOAT:
-			bs := C.GoBytes(unsafe.Pointer(C_attr.value), C.int(C_attr.value_sz))
-			pos := 0
-			rem := int(C_attr.value_sz)
-			m := Map{}
+		case C.HYPERDATATYPE_MAP_INT64_STRING:
+			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_MAP_INT64_STRING,
+				C_attr.value, C_attr.value_sz)
+			m := make(map[int64]string)
 
-			var buf *bytes.Buffer
-			var size int
-			for rem >= 4 {
-				var key, val interface{}
-				var err error
-				switch C_attr.datatype {
-				// Cases where keys are strings
-				case C.HYPERDATATYPE_MAP_STRING_STRING, C.HYPERDATATYPE_MAP_STRING_INT64,
-					C.HYPERDATATYPE_MAP_STRING_FLOAT:
-					buf = bytes.NewBuffer(bs[pos : pos+4])
-					err = binary.Read(buf, binary.LittleEndian, &size)
-					if err != nil {
-						return nil, err
-					}
-					key = string(bs[pos+4 : pos+4+size])
-					pos += 4 + size
-					rem -= 4 + size
-				// Cases where keys are integers
-				case C.HYPERDATATYPE_MAP_INT64_STRING, C.HYPERDATATYPE_MAP_INT64_INT64,
-					C.HYPERDATATYPE_MAP_INT64_FLOAT:
-					var intKey int64
-					buf = bytes.NewBuffer(bs[pos : pos+8])
-					err = binary.Read(buf, binary.LittleEndian, &intKey)
-					if err != nil {
-						return nil, err
-					}
-					key = intKey
-					pos += 8
-					rem -= 8
-				// Cases where keys are integers
-				case C.HYPERDATATYPE_MAP_FLOAT_STRING, C.HYPERDATATYPE_MAP_FLOAT_INT64,
-					C.HYPERDATATYPE_MAP_FLOAT_FLOAT:
-					var floatKey float64
-					buf = bytes.NewBuffer(bs[pos : pos+8])
-					err = binary.Read(buf, binary.LittleEndian, &floatKey)
-					if err != nil {
-						return nil, err
-					}
-					key = floatKey
-					pos += 8
-					rem -= 8
-				}
+			for {
+				var C_key C.int64_t
+				var C_val_string *C.char
+				var C_val_size_t C.size_t
 
-				switch C_attr.datatype {
-				// Cases where values are strings
-				case C.HYPERDATATYPE_MAP_STRING_STRING, C.HYPERDATATYPE_MAP_INT64_STRING,
-					C.HYPERDATATYPE_MAP_FLOAT_STRING:
-					buf = bytes.NewBuffer(bs[pos : pos+4])
-					err = binary.Read(buf, binary.LittleEndian, &size)
-					if err != nil {
-						return nil, err
-					}
-					val = string(bs[pos+4 : pos+4+size])
-					pos += 4 + size
-					rem -= 4 + size
-				// Cases where values are integers
-				case C.HYPERDATATYPE_MAP_STRING_INT64, C.HYPERDATATYPE_MAP_INT64_INT64,
-					C.HYPERDATATYPE_MAP_FLOAT_INT64:
-					var intVal int64
-					buf = bytes.NewBuffer(bs[pos : pos+8])
-					err = binary.Read(buf, binary.LittleEndian, &intVal)
-					if err != nil {
-						return nil, err
-					}
-					val = intVal
-					pos += 8
-					rem -= 8
-				// Cases where values are integers
-				case C.HYPERDATATYPE_MAP_STRING_FLOAT, C.HYPERDATATYPE_MAP_INT64_FLOAT,
-					C.HYPERDATATYPE_MAP_FLOAT_FLOAT:
-					var floatVal float64
-					buf = bytes.NewBuffer(bs[pos : pos+8])
-					err = binary.Read(buf, binary.LittleEndian, &floatVal)
-					if err != nil {
-						return nil, err
-					}
-					key = floatVal
-					pos += 8
-					rem -= 8
+				status := C.hyperdex_ds_iterate_map_int_string_next(&C_iter,
+					&C_key, &C_val_string, &C_val_size_t)
+				if status > 0 {
+					m[int64(C_key)] = C.GoStringN(C_val_string, C.int(C_val_size_t))
+				} else if status < 0 {
+					return nil, fmt.Errorf("Corrupted map of integers to strings")
+				} else {
+					break
 				}
-				m[key] = val
 			}
-			if rem != 0 {
-				return nil, fmt.Errorf("list(string) is improperly structured (file a bug)")
-			}
+
 			attrs[attr] = m
 
-		case C.HYPERDATATYPE_GARBAGE:
-			continue
+		case C.HYPERDATATYPE_MAP_INT64_INT64:
+			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_MAP_INT64_INT64,
+				C_attr.value, C_attr.value_sz)
+			m := make(map[int64]int64)
+
+			for {
+				var C_key C.int64_t
+				var C_val C.int64_t
+
+				status := C.hyperdex_ds_iterate_map_int_int_next(&C_iter,
+					&C_key, &C_val)
+				if status > 0 {
+					m[int64(C_key)] = int64(C_val)
+				} else if status < 0 {
+					return nil, fmt.Errorf("Corrupted map of integers to integers")
+				} else {
+					break
+				}
+			}
+
+			attrs[attr] = m
+
+		case C.HYPERDATATYPE_MAP_INT64_FLOAT:
+			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_MAP_INT64_FLOAT,
+				C_attr.value, C_attr.value_sz)
+			m := make(map[int64]float64)
+
+			for {
+				var C_key C.int64_t
+				var C_val C.double
+
+				status := C.hyperdex_ds_iterate_map_int_float_next(&C_iter,
+					&C_key, &C_val)
+				if status > 0 {
+					m[int64(C_key)] = float64(C_val)
+				} else if status < 0 {
+					return nil, fmt.Errorf("Corrupted map of integers to floats")
+				} else {
+					break
+				}
+			}
+
+			attrs[attr] = m
+
+		case C.HYPERDATATYPE_MAP_FLOAT_STRING:
+			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_MAP_FLOAT_STRING,
+				C_attr.value, C_attr.value_sz)
+			m := make(map[float64]string)
+
+			for {
+				var C_key C.double
+				var C_val_string *C.char
+				var C_val_size_t C.size_t
+
+				status := C.hyperdex_ds_iterate_map_float_string_next(&C_iter,
+					&C_key, &C_val_string, &C_val_size_t)
+				if status > 0 {
+					m[float64(C_key)] = C.GoStringN(C_val_string, C.int(C_val_size_t))
+				} else if status < 0 {
+					return nil, fmt.Errorf("Corrupted map of floats to strings")
+				} else {
+					break
+				}
+			}
+
+			attrs[attr] = m
+
+		case C.HYPERDATATYPE_MAP_FLOAT_INT64:
+			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_MAP_FLOAT_INT64,
+				C_attr.value, C_attr.value_sz)
+			m := make(map[float64]int64)
+
+			for {
+				var C_key C.double
+				var C_val C.int64_t
+
+				status := C.hyperdex_ds_iterate_map_float_int_next(&C_iter,
+					&C_key, &C_val)
+				if status > 0 {
+					m[float64(C_key)] = int64(C_val)
+				} else if status < 0 {
+					return nil, fmt.Errorf("Corrupted map of floats to integers")
+				} else {
+					break
+				}
+			}
+
+			attrs[attr] = m
+
+		case C.HYPERDATATYPE_MAP_FLOAT_FLOAT:
+			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_MAP_FLOAT_FLOAT,
+				C_attr.value, C_attr.value_sz)
+			m := make(map[float64]float64)
+
+			for {
+				var C_key C.double
+				var C_val C.double
+
+				status := C.hyperdex_ds_iterate_map_float_float_next(&C_iter,
+					&C_key, &C_val)
+				if status > 0 {
+					m[float64(C_key)] = float64(C_val)
+				} else if status < 0 {
+					return nil, fmt.Errorf("Corrupted map of floats to floats")
+				} else {
+					break
+				}
+			}
+
+			attrs[attr] = m
 
 		default:
 			return nil, fmt.Errorf("Unknown datatype %d found for attribute `%s` (#%d)", C_attr.datatype, attr, i)
