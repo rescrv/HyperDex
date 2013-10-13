@@ -125,7 +125,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_LIST_STRING:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_LIST_STRING,
 				C_attr.value, C_attr.value_sz)
-			lst := make([]string, 1) // TODO: do we know the size of the list?
+			lst := make([]string, 0) // TODO: do we know the size of the list?
 
 			for {
 				var C_string *C.char
@@ -146,7 +146,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_LIST_INT64:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_LIST_INT64,
 				C_attr.value, C_attr.value_sz)
-			lst := make([]int64, 1) // TODO: do we know the size of the list?
+			lst := make([]int64, 0) // TODO: do we know the size of the list?
 
 			for {
 				var num C.int64_t
@@ -165,7 +165,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_LIST_FLOAT:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_LIST_FLOAT,
 				C_attr.value, C_attr.value_sz)
-			lst := make([]float64, 1) // TODO: do we know the size of the list?
+			lst := make([]float64, 0) // TODO: do we know the size of the list?
 
 			for {
 				var num C.double
@@ -184,7 +184,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_SET_STRING:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_SET_STRING,
 				C_attr.value, C_attr.value_sz)
-			lst := make([]string, 1) // TODO: do we know the size of the list?
+			lst := make([]string, 0) // TODO: do we know the size of the list?
 
 			for {
 				var C_string *C.char
@@ -205,7 +205,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_SET_INT64:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_SET_INT64,
 				C_attr.value, C_attr.value_sz)
-			lst := make([]int64, 1) // TODO: do we know the size of the list?
+			lst := make([]int64, 0) // TODO: do we know the size of the list?
 
 			for {
 				var num C.int64_t
@@ -224,7 +224,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_SET_FLOAT:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_SET_FLOAT,
 				C_attr.value, C_attr.value_sz)
-			lst := make([]float64, 1) // TODO: do we know the size of the list?
+			lst := make([]float64, 0) // TODO: do we know the size of the list?
 
 			for {
 				var num C.double
