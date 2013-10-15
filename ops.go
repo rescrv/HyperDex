@@ -11,10 +11,11 @@ import "C"
 
 import (
 	"fmt"
+	"strings"
 )
 
 // Generic operation that returns objects
-func (client *Client) objOp(funcName string, space string, key string, conds []Condition) ObjectChannel {
+func (client *Client) objOp(funcName, space, key string, conds []Condition) ObjectChannel {
 	objCh := make(chan Object, CHANNEL_BUFFER_SIZE)
 	var status C.enum_hyperdex_client_returncode
 	var C_attrs *C.struct_hyperdex_client_attribute
@@ -100,11 +101,13 @@ func (client *Client) objOp(funcName string, space string, key string, conds []C
 }
 
 // Generic operation that returns errors
-func (client *Client) errOp(funcName string, space string, key string, attrs Attributes, conds []Condition) ErrorChannel {
+func (client *Client) errOp(funcName, space, key string, attrs Attributes, conds []Condition) ErrorChannel {
 	errCh := make(chan error, CHANNEL_BUFFER_SIZE)
 	var status C.enum_hyperdex_client_returncode
 	var C_attrs *C.struct_hyperdex_client_attribute
 	var C_attrs_sz C.size_t
+	var C_map_attrs *C.struct_hyperdex_client_map_attribute
+	var C_map_attrs_sz C.size_t
 	var C_attr_checks *C.struct_hyperdex_client_attribute_check
 	var C_attr_checks_sz C.size_t
 	var err error
@@ -119,7 +122,19 @@ func (client *Client) errOp(funcName string, space string, key string, attrs Att
 	}
 
 	if attrs != nil {
-		C_attrs, C_attrs_sz, err = client.newCAttributeList(attrs)
+		// Check if it's a map operation
+		if strings.Contains(funcName, "map") {
+			// Annoyingly, some map functions expect hyperdex_client_attribute
+			// rather than hyperdex_client_map_attribute, so we need to further check:
+			switch funcName {
+			case "map_remove", "cond_map_remove":
+				C_attrs, C_attrs_sz, err = client.newCAttributeListFromMaps(attrs)
+			default:
+				C_map_attrs, C_map_attrs_sz, err = client.newCMapAttributeList(attrs)
+			}
+		} else {
+			C_attrs, C_attrs_sz, err = client.newCAttributeList(attrs)
+		}
 		if err != nil {
 			errCh <- err
 			close(errCh)
@@ -293,6 +308,10 @@ func (client *Client) errOp(funcName string, space string, key string, attrs Att
 			C.CString(key), C.size_t(bytesOf(key)),
 			C_attr_checks, C_attr_checks_sz,
 			C_attrs, C_attrs_sz, &status))
+	case "map_add":
+		req_id = int64(C.hyperdex_client_map_add(client.ptr, C.CString(space),
+			C.CString(key), C.size_t(bytesOf(key)),
+			C_map_attrs, C_map_attrs_sz, &status))
 	default:
 		panic(fmt.Sprintf("Unsupported function: %s", funcName))
 	}

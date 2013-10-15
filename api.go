@@ -313,6 +313,10 @@ func (client *Client) AsyncCondSetUnion(space, key string, attrs Attributes, con
 	return client.errOp("cond_set_union", space, key, attrs, conds)
 }
 
+func (client *Client) MapAdd(space, key string, attrs Attributes) ErrorChannel {
+	return client.errOp("map_add", space, key, attrs, nil)
+}
+
 func (client *Client) Search(space string, sc []Condition) ObjectChannel {
 	return client.objOp("search", space, "", sc)
 }

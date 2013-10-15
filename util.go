@@ -94,6 +94,78 @@ func (client *Client) newCAttribute(key string, value interface{}) (*C.struct_hy
 	}, nil
 }
 
+func (client *Client) newCAttributeListFromMaps(attrs Attributes) (*C.struct_hyperdex_client_attribute, C.size_t, error) {
+	slice := make([]C.struct_hyperdex_client_attribute, 0)
+	size := 0
+	for attr, value := range attrs {
+		if mapAttr, ok := value.(Map); ok {
+			if len(mapAttr) == 0 {
+				continue
+			}
+
+			for key, _ := range mapAttr {
+				C_attr, err := client.newCAttribute(attr, key)
+				if err != nil {
+					return nil, 0, err
+				}
+				slice = append(slice, *C_attr)
+				size++
+			}
+		} else {
+			return nil, 0, fmt.Errorf("%s is not a map.", attr)
+		}
+	}
+	return &slice[0], C.size_t(size), nil
+}
+
+func (client *Client) newCMapAttributeList(attrs Attributes) (*C.struct_hyperdex_client_map_attribute, C.size_t, error) {
+	slice := make([]C.struct_hyperdex_client_map_attribute, 0)
+	size := 0
+	for attr, value := range attrs {
+		if mapAttr, ok := value.(Map); ok {
+			if len(mapAttr) == 0 {
+				continue
+			}
+
+			for key, value := range mapAttr {
+				C_map_attr, err := client.newCMapAttribute(attr, key, value)
+				if err != nil {
+					return nil, 0, err
+				}
+				slice = append(slice, *C_map_attr)
+				size++
+			}
+		} else {
+			return nil, 0, fmt.Errorf("%s is not a map.", attr)
+		}
+	}
+	return &slice[0], C.size_t(size), nil
+}
+
+func (client *Client) newCMapAttribute(attrKey string, itemKey interface{}, itemValue interface{}) (*C.struct_hyperdex_client_map_attribute, error) {
+	key, keySize, keyType, err := client.toHyperDexDatatype(itemKey)
+	if err != nil {
+		return nil, err
+	}
+
+	val, valSize, valType, err := client.toHyperDexDatatype(itemValue)
+	if err != nil {
+		return nil, err
+	}
+
+	return &C.struct_hyperdex_client_map_attribute{
+		C.CString(attrKey),
+		key,
+		keySize,
+		keyType,
+		[4]byte{}, // alignment
+		val,
+		valSize,
+		valType,
+		[4]byte{},
+	}, nil
+}
+
 func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_attribute, C_attrs_sz C.size_t) (attrs Attributes, err error) {
 	attrs = Attributes{}
 	for i := 0; i < int(C_attrs_sz); i++ {
@@ -467,48 +539,6 @@ func (client *Client) newCAttributeCheckList(sc []Condition) (*C.struct_hyperdex
 	}
 
 	return &slice[0], C.size_t(len(sc)), nil
-}
-
-func (client *Client) newCMapAttributeList(attr string, mapAttr Map) (*C.struct_hyperdex_client_map_attribute, C.size_t, error) {
-	C_size_t := C.size_t(len(mapAttr))
-	if C_size_t == 0 {
-		return nil, 0, nil
-	}
-
-	slice := make([]C.struct_hyperdex_client_map_attribute, 0, C_size_t)
-	for key, item := range mapAttr {
-		C_map_attr, err := client.newCMapAttribute(attr, key, item)
-		if err != nil {
-			return nil, 0, err
-		}
-		slice = append(slice, *C_map_attr)
-	}
-
-	return &slice[0], C_size_t, nil
-}
-
-func (client *Client) newCMapAttribute(attrKey string, itemKey interface{}, itemValue interface{}) (*C.struct_hyperdex_client_map_attribute, error) {
-	key, keySize, keyType, err := client.toHyperDexDatatype(itemKey)
-	if err != nil {
-		return nil, err
-	}
-
-	val, valSize, valType, err := client.toHyperDexDatatype(itemValue)
-	if err != nil {
-		return nil, err
-	}
-
-	return &C.struct_hyperdex_client_map_attribute{
-		C.CString(attrKey),
-		key,
-		keySize,
-		keyType,
-		[4]byte{}, // alignment
-		val,
-		valSize,
-		valType,
-		[4]byte{},
-	}, nil
 }
 
 func (client *Client) newCAttributeCheck(sc Condition) (*C.struct_hyperdex_client_attribute_check, error) {
