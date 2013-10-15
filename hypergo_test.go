@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// The following tests assume the following space schema:
+// The following tests use the following space schema:
 /*
 space profiles
 key username
@@ -35,20 +35,20 @@ func TestGetPutDelete(t *testing.T) {
 
 	attrs := Attributes{
 		"name":          "john",
-		"profile_views": int64(6075551024),
 		"height":        float64(241.12421),
+		"profile_views": int64(6075551024),
 		"pending_requests": List{
 			"haha",
 			"hehe",
-		},
-		"hobbies": Set{
-			"qowue",
-			"waoihdwao",
 		},
 		"ratings": List{
 			1.22141,
 			-5235.241,
 			92804.14,
+		},
+		"hobbies": Set{
+			"qowue",
+			"waoihdwao",
 		},
 		"ages": Set{
 			-41,

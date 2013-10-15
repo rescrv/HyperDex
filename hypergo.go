@@ -219,3 +219,12 @@ func NewClient(ip string, port int) (*Client, error) {
 
 	return client, nil
 }
+
+// Destroy closes the connection between the Client and hyperdex. It has to be used on a client that is not used anymore.
+//
+// For every call to NewClient, there must be a call to Destroy.
+func (client *Client) Destroy() {
+	close(client.closeChan)
+	C.hyperdex_client_destroy(client.ptr)
+	//log.Printf("hyperdex_client_destroy(%X)\n", unsafe.Pointer(client.ptr))
+}
