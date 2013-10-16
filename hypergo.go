@@ -64,11 +64,6 @@ type List []interface{}
 
 type Set []interface{}
 
-type MapItem struct {
-	Key   interface{}
-	Value interface{}
-}
-
 // A hyperdex object.
 // Err contains any error that happened when trying to retrieve
 // this object.
