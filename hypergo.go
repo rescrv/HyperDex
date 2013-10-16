@@ -87,7 +87,7 @@ type ErrorChannel <-chan error
 // Correspond to a hyperdex_client_attribute_check
 type Condition struct {
 	Attr      string
-	Value     string
+	Value     interface{}
 	Predicate int
 }
 
@@ -197,6 +197,12 @@ func NewClient(ip string, port int) (*Client, error) {
 									log.Println("Request search done")
 									if req.complete != nil {
 										req.complete()
+									}
+								case C.HYPERDEX_CLIENT_CMPFAIL:
+									log.Println("Comparison failure")
+									if req.failure != nil {
+										req.failure(*req.status,
+											C.GoString(C.hyperdex_client_error_message(client.ptr)))
 									}
 								default:
 									log.Println("Request failure")

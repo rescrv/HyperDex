@@ -25,14 +25,8 @@ subspace height
 subspace profile_views
 */
 
-func TestGetPutDelete(t *testing.T) {
-	client, err := NewClient("127.0.0.1", 1982)
-	defer client.Destroy()
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
+// Put something for testing
+func putSomething(client *Client, t *testing.T) {
 	attrs := Attributes{
 		"name":          "john",
 		"height":        float64(241.12421),
@@ -65,11 +59,21 @@ func TestGetPutDelete(t *testing.T) {
 		},
 	}
 
-	err = client.Put("profiles", "jsmith", attrs)
+	err := client.Put("profiles", "jsmith", attrs)
 
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestGetPutDelete(t *testing.T) {
+	client, err := NewClient("127.0.0.1", 1982)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Destroy()
+
+	putSomething(client, t)
 
 	obj := client.Get("profiles", "jsmith")
 	if obj.Err != nil {
@@ -129,5 +133,96 @@ func TestGetPutDelete(t *testing.T) {
 		}
 	} else {
 		t.Fatal("There should be an error.")
+	}
+}
+
+func TestAtomicAddSub(t *testing.T) {
+	client, err := NewClient("127.0.0.1", 1982)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Destroy()
+
+	putSomething(client, t)
+	obj := client.Get("profiles", "jsmith")
+	if obj.Err != nil {
+		t.Fatal(obj.Err)
+	}
+
+	original := obj.Attrs["height"].(float64)
+	delta := 10.2
+
+	err = client.AtomicAdd("profiles", "jsmith", Attributes{
+		"height": delta,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	obj = client.Get("profiles", "jsmith")
+
+	if obj.Err != nil {
+		t.Fatal(err)
+	}
+
+	if obj.Attrs["height"] != original+delta {
+		t.Fatal("Atomic add failed.")
+	}
+
+	err = client.AtomicSub("profiles", "jsmith", Attributes{
+		"height": delta,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	obj = client.Get("profiles", "jsmith")
+
+	if obj.Err != nil {
+		t.Fatal(err)
+	}
+
+	if obj.Attrs["height"] != original {
+		t.Fatal("Atomic add failed.")
+	}
+}
+
+func TestCondPut(t *testing.T) {
+	client, err := NewClient("127.0.0.1", 1982)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Destroy()
+
+	putSomething(client, t)
+
+	value := 214.15
+
+	err = client.CondPut("profiles", "jsmith", Attributes{
+		"height": value,
+	}, []Condition{
+		Condition{
+			Attr:      "profile_views",
+			Value:     124312141241,
+			Predicate: LESS_EQUAL,
+		},
+	})
+
+	if err == nil {
+		t.Fatalf("There should be a comparison failure")
+	} else {
+		hyperErr := err.(HyperError)
+		if hyperErr.returnCode != 8451 {
+			t.Fatalf("The failure code should be C.HYPERDEX_CLIENT_COMFAIL")
+		}
+	}
+
+	obj := client.Get("profiles", "jsmith")
+	if obj.Err != nil {
+		t.Fatal(obj.Err)
+	}
+
+	if obj.Attrs["height"].(float64) == value {
+		t.Fatal("The value shouldn't be set because the conditions did not hold")
 	}
 }

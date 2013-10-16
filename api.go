@@ -313,10 +313,215 @@ func (client *Client) AsyncCondSetUnion(space, key string, attrs Attributes, con
 	return client.errOp("cond_set_union", space, key, attrs, conds)
 }
 
-func (client *Client) MapAdd(space, key string, attrs Attributes) ErrorChannel {
+func (client *Client) MapAdd(space, key string, attrs Attributes) error {
+	return <-client.AsyncMapAdd(space, key, attrs)
+}
+
+func (client *Client) AsyncMapAdd(space, key string, attrs Attributes) ErrorChannel {
 	return client.errOp("map_add", space, key, attrs, nil)
 }
 
-func (client *Client) Search(space string, sc []Condition) ObjectChannel {
-	return client.objOp("search", space, "", sc)
+func (client *Client) CondMapAdd(space, key string, attrs Attributes, conds []Condition) error {
+	return <-client.AsyncCondMapAdd(space, key, attrs, conds)
+}
+
+func (client *Client) AsyncCondMapAdd(space, key string, attrs Attributes, conds []Condition) ErrorChannel {
+	return client.errOp("cond_map_add", space, key, attrs, conds)
+}
+
+func (client *Client) MapRemove(space, key string, attrs Attributes) error {
+	return <-client.AsyncMapRemove(space, key, attrs)
+}
+
+func (client *Client) AsyncMapRemove(space, key string, attrs Attributes) ErrorChannel {
+	return client.errOp("map_remove", space, key, attrs, nil)
+}
+
+func (client *Client) CondMapRemove(space, key string, attrs Attributes, conds []Condition) error {
+	return <-client.AsyncCondMapRemove(space, key, attrs, conds)
+}
+
+func (client *Client) AsyncCondMapRemove(space, key string, attrs Attributes, conds []Condition) ErrorChannel {
+	return client.errOp("cond_map_remove", space, key, attrs, conds)
+}
+
+func (client *Client) MapAtomicAdd(space, key string, attrs Attributes) error {
+	return <-client.AsyncMapAtomicAdd(space, key, attrs)
+}
+
+func (client *Client) AsyncMapAtomicAdd(space, key string, attrs Attributes) ErrorChannel {
+	return client.errOp("map_atomic_add", space, key, attrs, nil)
+}
+
+func (client *Client) CondMapAtomicAdd(space, key string, attrs Attributes, conds []Condition) error {
+	return <-client.AsyncCondMapAtomicAdd(space, key, attrs, conds)
+}
+
+func (client *Client) AsyncCondMapAtomicAdd(space, key string, attrs Attributes, conds []Condition) ErrorChannel {
+	return client.errOp("cond_map_atomic_add", space, key, attrs, conds)
+}
+
+func (client *Client) MapAtomicSub(space, key string, attrs Attributes) error {
+	return <-client.AsyncMapAtomicSub(space, key, attrs)
+}
+
+func (client *Client) AsyncMapAtomicSub(space, key string, attrs Attributes) ErrorChannel {
+	return client.errOp("map_atomic_sub", space, key, attrs, nil)
+}
+
+func (client *Client) CondMapAtomicSub(space, key string, attrs Attributes, conds []Condition) error {
+	return <-client.AsyncCondMapAtomicSub(space, key, attrs, conds)
+}
+
+func (client *Client) AsyncCondMapAtomicSub(space, key string, attrs Attributes, conds []Condition) ErrorChannel {
+	return client.errOp("cond_map_atomic_sub", space, key, attrs, conds)
+}
+
+func (client *Client) MapAtomicMul(space, key string, attrs Attributes) error {
+	return <-client.AsyncMapAtomicMul(space, key, attrs)
+}
+
+func (client *Client) AsyncMapAtomicMul(space, key string, attrs Attributes) ErrorChannel {
+	return client.errOp("map_atomic_mul", space, key, attrs, nil)
+}
+
+func (client *Client) CondMapAtomicMul(space, key string, attrs Attributes, conds []Condition) error {
+	return <-client.AsyncCondMapAtomicMul(space, key, attrs, conds)
+}
+
+func (client *Client) AsyncCondMapAtomicMul(space, key string, attrs Attributes, conds []Condition) ErrorChannel {
+	return client.errOp("cond_map_atomic_mul", space, key, attrs, conds)
+}
+
+func (client *Client) MapAtomicDiv(space, key string, attrs Attributes) error {
+	return <-client.AsyncMapAtomicDiv(space, key, attrs)
+}
+
+func (client *Client) AsyncMapAtomicDiv(space, key string, attrs Attributes) ErrorChannel {
+	return client.errOp("map_atomic_div", space, key, attrs, nil)
+}
+
+func (client *Client) CondMapAtomicDiv(space, key string, attrs Attributes, conds []Condition) error {
+	return <-client.AsyncCondMapAtomicDiv(space, key, attrs, conds)
+}
+
+func (client *Client) AsyncCondMapAtomicDiv(space, key string, attrs Attributes, conds []Condition) ErrorChannel {
+	return client.errOp("cond_map_atomic_div", space, key, attrs, conds)
+}
+
+func (client *Client) MapAtomicMod(space, key string, attrs Attributes) error {
+	return <-client.AsyncMapAtomicMod(space, key, attrs)
+}
+
+func (client *Client) AsyncMapAtomicMod(space, key string, attrs Attributes) ErrorChannel {
+	return client.errOp("map_atomic_mod", space, key, attrs, nil)
+}
+
+func (client *Client) CondMapAtomicMod(space, key string, attrs Attributes, conds []Condition) error {
+	return <-client.AsyncCondMapAtomicMod(space, key, attrs, conds)
+}
+
+func (client *Client) AsyncCondMapAtomicMod(space, key string, attrs Attributes, conds []Condition) ErrorChannel {
+	return client.errOp("cond_map_atomic_mod", space, key, attrs, conds)
+}
+
+func (client *Client) MapAtomicAnd(space, key string, attrs Attributes) error {
+	return <-client.AsyncMapAtomicMul(space, key, attrs)
+}
+
+func (client *Client) AsyncMapAtomicAnd(space, key string, attrs Attributes) ErrorChannel {
+	return client.errOp("map_atomic_and", space, key, attrs, nil)
+}
+
+func (client *Client) CondMapAtomicAnd(space, key string, attrs Attributes, conds []Condition) error {
+	return <-client.AsyncCondMapAtomicMul(space, key, attrs, conds)
+}
+
+func (client *Client) AsyncCondMapAtomicAnd(space, key string, attrs Attributes, conds []Condition) ErrorChannel {
+	return client.errOp("cond_map_atomic_and", space, key, attrs, conds)
+}
+
+func (client *Client) MapAtomicOr(space, key string, attrs Attributes) error {
+	return <-client.AsyncMapAtomicOr(space, key, attrs)
+}
+
+func (client *Client) AsyncMapAtomicOr(space, key string, attrs Attributes) ErrorChannel {
+	return client.errOp("map_atomic_or", space, key, attrs, nil)
+}
+
+func (client *Client) CondMapAtomicOr(space, key string, attrs Attributes, conds []Condition) error {
+	return <-client.AsyncCondMapAtomicOr(space, key, attrs, conds)
+}
+
+func (client *Client) AsyncCondMapAtomicOr(space, key string, attrs Attributes, conds []Condition) ErrorChannel {
+	return client.errOp("cond_map_atomic_or", space, key, attrs, conds)
+}
+
+func (client *Client) MapAtomicXor(space, key string, attrs Attributes) error {
+	return <-client.AsyncMapAtomicXor(space, key, attrs)
+}
+
+func (client *Client) AsyncMapAtomicXor(space, key string, attrs Attributes) ErrorChannel {
+	return client.errOp("map_atomic_xor", space, key, attrs, nil)
+}
+
+func (client *Client) CondMapAtomicXor(space, key string, attrs Attributes, conds []Condition) error {
+	return <-client.AsyncCondMapAtomicXor(space, key, attrs, conds)
+}
+
+func (client *Client) AsyncCondMapAtomicXor(space, key string, attrs Attributes, conds []Condition) ErrorChannel {
+	return client.errOp("cond_map_atomic_xor", space, key, attrs, conds)
+}
+
+func (client *Client) MapStringPrepend(space, key string, attrs Attributes) error {
+	return <-client.AsyncMapStringPrepend(space, key, attrs)
+}
+
+func (client *Client) AsyncMapStringPrepend(space, key string, attrs Attributes) ErrorChannel {
+	return client.errOp("map_string_prepend", space, key, attrs, nil)
+}
+
+func (client *Client) CondMapStringPrepend(space, key string, attrs Attributes, conds []Condition) error {
+	return <-client.AsyncCondMapStringPrepend(space, key, attrs, conds)
+}
+
+func (client *Client) AsyncCondMapStringPrepend(space, key string, attrs Attributes, conds []Condition) ErrorChannel {
+	return client.errOp("cond_map_string_prepend", space, key, attrs, conds)
+}
+
+func (client *Client) MapStringAppend(space, key string, attrs Attributes) error {
+	return <-client.AsyncMapStringAppend(space, key, attrs)
+}
+
+func (client *Client) AsyncMapStringAppend(space, key string, attrs Attributes) ErrorChannel {
+	return client.errOp("map_string_append", space, key, attrs, nil)
+}
+
+func (client *Client) CondMapStringAppend(space, key string, attrs Attributes, conds []Condition) error {
+	return <-client.AsyncCondMapStringAppend(space, key, attrs, conds)
+}
+
+func (client *Client) AsyncCondMapStringAppend(space, key string, attrs Attributes, conds []Condition) ErrorChannel {
+	return client.errOp("cond_map_string_append", space, key, attrs, conds)
+}
+
+func (client *Client) Search(space string, conds []Condition) ObjectChannel {
+	return client.objOp("search", space, "", conds)
+}
+
+func (client *Client) SortedSearch(space string, conds []Condition, sort_by string,
+	limit int, maxmin int) ObjectChannel {
+	return nil
+}
+
+func (client *Client) GroupDel(space string, conds []Condition) ErrorChannel {
+	return client.AsyncGroupDel(space, conds)
+}
+
+func (client *Client) AsyncGroupDel(space string, conds []Condition) ErrorChannel {
+	return client.errOp("group_del", space, "", nil, conds)
+}
+
+func (client *Client) Count(space string, conds []Condition) int {
+	return 0
 }
