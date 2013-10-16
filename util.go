@@ -202,7 +202,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_LIST_STRING:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_LIST_STRING,
 				C_attr.value, C_attr.value_sz)
-			lst := make([]string, 0)
+			lst := make(ListStr, 0)
 
 			for {
 				var C_string *C.char
@@ -223,7 +223,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_LIST_INT64:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_LIST_INT64,
 				C_attr.value, C_attr.value_sz)
-			lst := make([]int64, 0)
+			lst := make(ListI64, 0)
 
 			for {
 				var num C.int64_t
@@ -242,7 +242,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_LIST_FLOAT:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_LIST_FLOAT,
 				C_attr.value, C_attr.value_sz)
-			lst := make([]float64, 0)
+			lst := make(ListF64, 0)
 
 			for {
 				var num C.double
@@ -261,7 +261,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_SET_STRING:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_SET_STRING,
 				C_attr.value, C_attr.value_sz)
-			lst := make([]string, 0)
+			lst := make(SetStr, 0)
 
 			for {
 				var C_string *C.char
@@ -282,7 +282,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_SET_INT64:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_SET_INT64,
 				C_attr.value, C_attr.value_sz)
-			lst := make([]int64, 0)
+			lst := make(SetI64, 0)
 
 			for {
 				var num C.int64_t
@@ -301,7 +301,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_SET_FLOAT:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_SET_FLOAT,
 				C_attr.value, C_attr.value_sz)
-			lst := make([]float64, 0)
+			lst := make(SetF64, 0)
 
 			for {
 				var num C.double
@@ -320,7 +320,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_MAP_STRING_STRING:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_MAP_STRING_STRING,
 				C_attr.value, C_attr.value_sz)
-			m := make(map[string]string)
+			m := make(MapStrStr)
 
 			for {
 				var C_key_string *C.char
@@ -344,7 +344,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_MAP_STRING_INT64:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_MAP_STRING_INT64,
 				C_attr.value, C_attr.value_sz)
-			m := make(map[string]int64)
+			m := make(MapStrI64)
 
 			for {
 				var C_key_string *C.char
@@ -367,7 +367,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_MAP_STRING_FLOAT:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_MAP_STRING_FLOAT,
 				C_attr.value, C_attr.value_sz)
-			m := make(map[string]float64)
+			m := make(MapStrF64)
 
 			for {
 				var C_key_string *C.char
@@ -390,7 +390,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_MAP_INT64_STRING:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_MAP_INT64_STRING,
 				C_attr.value, C_attr.value_sz)
-			m := make(map[int64]string)
+			m := make(MapI64Str)
 
 			for {
 				var C_key C.int64_t
@@ -413,7 +413,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_MAP_INT64_INT64:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_MAP_INT64_INT64,
 				C_attr.value, C_attr.value_sz)
-			m := make(map[int64]int64)
+			m := make(MapI64I64)
 
 			for {
 				var C_key C.int64_t
@@ -435,7 +435,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_MAP_INT64_FLOAT:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_MAP_INT64_FLOAT,
 				C_attr.value, C_attr.value_sz)
-			m := make(map[int64]float64)
+			m := make(MapI64F64)
 
 			for {
 				var C_key C.int64_t
@@ -457,7 +457,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_MAP_FLOAT_STRING:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_MAP_FLOAT_STRING,
 				C_attr.value, C_attr.value_sz)
-			m := make(map[float64]string)
+			m := make(MapF64Str)
 
 			for {
 				var C_key C.double
@@ -480,7 +480,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_MAP_FLOAT_INT64:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_MAP_FLOAT_INT64,
 				C_attr.value, C_attr.value_sz)
-			m := make(map[float64]int64)
+			m := make(MapF64I64)
 
 			for {
 				var C_key C.double
@@ -502,7 +502,7 @@ func (client *Client) newAttributeListFromC(C_attrs *C.struct_hyperdex_client_at
 		case C.HYPERDATATYPE_MAP_FLOAT_FLOAT:
 			C.hyperdex_ds_iterator_init(&C_iter, C.HYPERDATATYPE_MAP_FLOAT_FLOAT,
 				C_attr.value, C_attr.value_sz)
-			m := make(map[float64]float64)
+			m := make(MapF64F64)
 
 			for {
 				var C_key C.double
@@ -556,36 +556,36 @@ func (client *Client) newCAttributeCheck(sc Condition) (*C.struct_hyperdex_clien
 	}, nil
 }
 
-// Return a CString representation of the given value, and return
-// the datatype of the original value.
-func (client *Client) toHyperDexDatatype(value interface{}) (*C.char, C.size_t, C.enum_hyperdatatype, error) {
+func (client *Client) convertInt64(val int64) (*C.char, C.size_t, C.enum_hyperdatatype, error) {
 	buf := new(bytes.Buffer)
-
-	processInt64 := func(val int64) (*C.char, C.size_t, C.enum_hyperdatatype, error) {
-		err := binary.Write(buf, binary.LittleEndian, val)
-		if err != nil {
-			return nil, 0, 0, err
-		}
-		valStr := buf.String()
-		return C.CString(valStr), C.size_t(bytesOf(valStr)), C.HYPERDATATYPE_INT64, nil
+	err := binary.Write(buf, binary.LittleEndian, val)
+	if err != nil {
+		return nil, 0, 0, err
 	}
+	valStr := buf.String()
+	return C.CString(valStr), C.size_t(bytesOf(valStr)), C.HYPERDATATYPE_INT64, nil
+}
 
-	processFloat64 := func(val float64) (*C.char, C.size_t, C.enum_hyperdatatype, error) {
-		err := binary.Write(buf, binary.LittleEndian, val)
-		if err != nil {
-			return nil, 0, 0, err
-		}
-		valStr := buf.String()
-		return C.CString(valStr), C.size_t(bytesOf(valStr)), C.HYPERDATATYPE_FLOAT, nil
+func (client *Client) convertFloat64(val float64) (*C.char, C.size_t, C.enum_hyperdatatype, error) {
+	buf := new(bytes.Buffer)
+	err := binary.Write(buf, binary.LittleEndian, val)
+	if err != nil {
+		return nil, 0, 0, err
 	}
+	valStr := buf.String()
+	return C.CString(valStr), C.size_t(bytesOf(valStr)), C.HYPERDATATYPE_FLOAT, nil
+}
 
-	processString := func(val string) (*C.char, C.size_t, C.enum_hyperdatatype, error) {
-		return C.CString(val), C.size_t(bytesOf(val)), C.HYPERDATATYPE_STRING, nil
-	}
+func (client *Client) convertString(val string) (*C.char, C.size_t, C.enum_hyperdatatype, error) {
+	return C.CString(val), C.size_t(bytesOf(val)), C.HYPERDATATYPE_STRING, nil
+}
 
-	processList := func(vals List) (*C.char, C.size_t, C.enum_hyperdatatype, error) {
-		C_ds_list := C.hyperdex_ds_allocate_list(client.arena)
-		var C_ds_status C.enum_hyperdex_ds_returncode
+func (client *Client) convertList(lst interface{}) (*C.char, C.size_t, C.enum_hyperdatatype, error) {
+	C_ds_list := C.hyperdex_ds_allocate_list(client.arena)
+	var C_ds_status C.enum_hyperdex_ds_returncode
+
+	switch vals := lst.(type) {
+	case List:
 		for _, val := range vals {
 			t := reflect.TypeOf(val)
 			v := reflect.ValueOf(val)
@@ -609,17 +609,42 @@ func (client *Client) toHyperDexDatatype(value interface{}) (*C.char, C.size_t, 
 				return nil, 0, 0, fmt.Errorf("DS error: %d", C_ds_status)
 			}
 		}
-		var C_string *C.char
-		var C_size_t C.size_t
-		var C_datatype C.enum_hyperdatatype
-		C.hyperdex_ds_list_finalize(C_ds_list, &C_ds_status,
-			&C_string, &C_size_t, &C_datatype)
-		return C_string, C_size_t, C_datatype, nil
+
+	case ListStr:
+		for _, val := range vals {
+			C_string := C.CString(val)
+			C_size_t := C.size_t(bytesOf(val))
+			C.hyperdex_ds_list_append_string(C_ds_list,
+				C_string, C_size_t, &C_ds_status)
+		}
+
+	case ListI64:
+		for _, val := range vals {
+			C.hyperdex_ds_list_append_int(C_ds_list,
+				C.int64_t(val), &C_ds_status)
+		}
+
+	case ListF64:
+		for _, val := range vals {
+			C.hyperdex_ds_list_append_float(C_ds_list,
+				C.double(val), &C_ds_status)
+		}
 	}
 
-	processSet := func(vals Set) (*C.char, C.size_t, C.enum_hyperdatatype, error) {
-		C_ds_set := C.hyperdex_ds_allocate_set(client.arena)
-		var C_ds_status C.enum_hyperdex_ds_returncode
+	var C_string *C.char
+	var C_size_t C.size_t
+	var C_datatype C.enum_hyperdatatype
+	C.hyperdex_ds_list_finalize(C_ds_list, &C_ds_status,
+		&C_string, &C_size_t, &C_datatype)
+	return C_string, C_size_t, C_datatype, nil
+}
+
+func (client *Client) convertSet(set interface{}) (*C.char, C.size_t, C.enum_hyperdatatype, error) {
+	C_ds_set := C.hyperdex_ds_allocate_set(client.arena)
+	var C_ds_status C.enum_hyperdex_ds_returncode
+
+	switch vals := set.(type) {
+	case Set:
 		for _, val := range vals {
 			t := reflect.TypeOf(val)
 			v := reflect.ValueOf(val)
@@ -643,17 +668,42 @@ func (client *Client) toHyperDexDatatype(value interface{}) (*C.char, C.size_t, 
 				return nil, 0, 0, fmt.Errorf("DS error: %d", C_ds_status)
 			}
 		}
-		var C_string *C.char
-		var C_size_t C.size_t
-		var C_datatype C.enum_hyperdatatype
-		C.hyperdex_ds_set_finalize(C_ds_set, &C_ds_status,
-			&C_string, &C_size_t, &C_datatype)
-		return C_string, C_size_t, C_datatype, nil
+
+	case SetStr:
+		for _, val := range vals {
+			C_string := C.CString(val)
+			C_size_t := C.size_t(bytesOf(val))
+			C.hyperdex_ds_set_insert_string(C_ds_set,
+				C_string, C_size_t, &C_ds_status)
+		}
+
+	case SetI64:
+		for _, val := range vals {
+			C.hyperdex_ds_set_insert_int(C_ds_set,
+				C.int64_t(val), &C_ds_status)
+		}
+
+	case SetF64:
+		for _, val := range vals {
+			C.hyperdex_ds_set_insert_float(C_ds_set,
+				C.double(val), &C_ds_status)
+		}
 	}
 
-	processMap := func(m Map) (*C.char, C.size_t, C.enum_hyperdatatype, error) {
-		C_ds_map := C.hyperdex_ds_allocate_map(client.arena)
-		var C_ds_status C.enum_hyperdex_ds_returncode
+	var C_string *C.char
+	var C_size_t C.size_t
+	var C_datatype C.enum_hyperdatatype
+	C.hyperdex_ds_set_finalize(C_ds_set, &C_ds_status,
+		&C_string, &C_size_t, &C_datatype)
+	return C_string, C_size_t, C_datatype, nil
+}
+
+func (client *Client) convertMap(v interface{}) (*C.char, C.size_t, C.enum_hyperdatatype, error) {
+	C_ds_map := C.hyperdex_ds_allocate_map(client.arena)
+	var C_ds_status C.enum_hyperdex_ds_returncode
+
+	switch m := v.(type) {
+	case Map:
 		for key, value := range m {
 			t := reflect.TypeOf(key)
 			v := reflect.ValueOf(key)
@@ -699,38 +749,186 @@ func (client *Client) toHyperDexDatatype(value interface{}) (*C.char, C.size_t, 
 				return nil, 0, 0, fmt.Errorf("DS error: %d", C_ds_status)
 			}
 		}
-		var C_string *C.char
-		var C_size_t C.size_t
-		var C_datatype C.enum_hyperdatatype
-		C.hyperdex_ds_map_finalize(C_ds_map, &C_ds_status,
-			&C_string, &C_size_t, &C_datatype)
-		return C_string, C_size_t, C_datatype, nil
+
+	case MapStrStr:
+		for key, value := range m {
+			C_string := C.CString(key)
+			C_size_t := C.size_t(bytesOf(key))
+			C.hyperdex_ds_map_insert_key_string(C_ds_map,
+				C_string, C_size_t, &C_ds_status)
+			if C_ds_status != C.HYPERDEX_DS_SUCCESS {
+				return nil, 0, 0, fmt.Errorf("DS error: %d", C_ds_status)
+			}
+
+			C_string = C.CString(value)
+			C_size_t = C.size_t(bytesOf(value))
+			C.hyperdex_ds_map_insert_val_string(C_ds_map,
+				C_string, C_size_t, &C_ds_status)
+			if C_ds_status != C.HYPERDEX_DS_SUCCESS {
+				return nil, 0, 0, fmt.Errorf("DS error: %d", C_ds_status)
+			}
+		}
+
+	case MapStrI64:
+		for key, value := range m {
+			C_string := C.CString(key)
+			C_size_t := C.size_t(bytesOf(key))
+			C.hyperdex_ds_map_insert_key_string(C_ds_map,
+				C_string, C_size_t, &C_ds_status)
+			if C_ds_status != C.HYPERDEX_DS_SUCCESS {
+				return nil, 0, 0, fmt.Errorf("DS error: %d", C_ds_status)
+			}
+
+			C.hyperdex_ds_map_insert_val_int(C_ds_map,
+				C.int64_t(value), &C_ds_status)
+			if C_ds_status != C.HYPERDEX_DS_SUCCESS {
+				return nil, 0, 0, fmt.Errorf("DS error: %d", C_ds_status)
+			}
+		}
+
+	case MapStrF64:
+		for key, value := range m {
+			C_string := C.CString(key)
+			C_size_t := C.size_t(bytesOf(key))
+			C.hyperdex_ds_map_insert_key_string(C_ds_map,
+				C_string, C_size_t, &C_ds_status)
+			if C_ds_status != C.HYPERDEX_DS_SUCCESS {
+				return nil, 0, 0, fmt.Errorf("DS error: %d", C_ds_status)
+			}
+
+			C.hyperdex_ds_map_insert_val_float(C_ds_map,
+				C.double(value), &C_ds_status)
+			if C_ds_status != C.HYPERDEX_DS_SUCCESS {
+				return nil, 0, 0, fmt.Errorf("DS error: %d", C_ds_status)
+			}
+		}
+
+	case MapI64Str:
+		for key, value := range m {
+			C.hyperdex_ds_map_insert_key_int(C_ds_map,
+				C.int64_t(key), &C_ds_status)
+			if C_ds_status != C.HYPERDEX_DS_SUCCESS {
+				return nil, 0, 0, fmt.Errorf("DS error: %d", C_ds_status)
+			}
+
+			C_string := C.CString(value)
+			C_size_t := C.size_t(bytesOf(value))
+			C.hyperdex_ds_map_insert_val_string(C_ds_map,
+				C_string, C_size_t, &C_ds_status)
+			if C_ds_status != C.HYPERDEX_DS_SUCCESS {
+				return nil, 0, 0, fmt.Errorf("DS error: %d", C_ds_status)
+			}
+		}
+
+	case MapI64I64:
+		for key, value := range m {
+			C.hyperdex_ds_map_insert_key_int(C_ds_map,
+				C.int64_t(key), &C_ds_status)
+			if C_ds_status != C.HYPERDEX_DS_SUCCESS {
+				return nil, 0, 0, fmt.Errorf("DS error: %d", C_ds_status)
+			}
+
+			C.hyperdex_ds_map_insert_val_int(C_ds_map,
+				C.int64_t(value), &C_ds_status)
+			if C_ds_status != C.HYPERDEX_DS_SUCCESS {
+				return nil, 0, 0, fmt.Errorf("DS error: %d", C_ds_status)
+			}
+		}
+
+	case MapI64F64:
+		for key, value := range m {
+			C.hyperdex_ds_map_insert_key_int(C_ds_map,
+				C.int64_t(key), &C_ds_status)
+			if C_ds_status != C.HYPERDEX_DS_SUCCESS {
+				return nil, 0, 0, fmt.Errorf("DS error: %d", C_ds_status)
+			}
+
+			C.hyperdex_ds_map_insert_val_float(C_ds_map,
+				C.double(value), &C_ds_status)
+			if C_ds_status != C.HYPERDEX_DS_SUCCESS {
+				return nil, 0, 0, fmt.Errorf("DS error: %d", C_ds_status)
+			}
+		}
+
+	case MapF64Str:
+		for key, value := range m {
+			C.hyperdex_ds_map_insert_key_float(C_ds_map,
+				C.double(key), &C_ds_status)
+			if C_ds_status != C.HYPERDEX_DS_SUCCESS {
+				return nil, 0, 0, fmt.Errorf("DS error: %d", C_ds_status)
+			}
+
+			C_string := C.CString(value)
+			C_size_t := C.size_t(bytesOf(value))
+			C.hyperdex_ds_map_insert_val_string(C_ds_map,
+				C_string, C_size_t, &C_ds_status)
+			if C_ds_status != C.HYPERDEX_DS_SUCCESS {
+				return nil, 0, 0, fmt.Errorf("DS error: %d", C_ds_status)
+			}
+		}
+
+	case MapF64I64:
+		for key, value := range m {
+			C.hyperdex_ds_map_insert_key_float(C_ds_map,
+				C.double(key), &C_ds_status)
+			if C_ds_status != C.HYPERDEX_DS_SUCCESS {
+				return nil, 0, 0, fmt.Errorf("DS error: %d", C_ds_status)
+			}
+
+			C.hyperdex_ds_map_insert_val_int(C_ds_map,
+				C.int64_t(value), &C_ds_status)
+			if C_ds_status != C.HYPERDEX_DS_SUCCESS {
+				return nil, 0, 0, fmt.Errorf("DS error: %d", C_ds_status)
+			}
+		}
+
+	case MapF64F64:
+		for key, value := range m {
+			C.hyperdex_ds_map_insert_key_float(C_ds_map,
+				C.double(key), &C_ds_status)
+			if C_ds_status != C.HYPERDEX_DS_SUCCESS {
+				return nil, 0, 0, fmt.Errorf("DS error: %d", C_ds_status)
+			}
+
+			C.hyperdex_ds_map_insert_val_float(C_ds_map,
+				C.double(value), &C_ds_status)
+			if C_ds_status != C.HYPERDEX_DS_SUCCESS {
+				return nil, 0, 0, fmt.Errorf("DS error: %d", C_ds_status)
+			}
+		}
 	}
 
+	var C_string *C.char
+	var C_size_t C.size_t
+	var C_datatype C.enum_hyperdatatype
+	C.hyperdex_ds_map_finalize(C_ds_map, &C_ds_status,
+		&C_string, &C_size_t, &C_datatype)
+	return C_string, C_size_t, C_datatype, nil
+}
+
+// Return a CString representation of the given value, and return
+// the datatype of the original value.
+func (client *Client) toHyperDexDatatype(value interface{}) (*C.char, C.size_t, C.enum_hyperdatatype, error) {
 	t := reflect.TypeOf(value)
 	v := reflect.ValueOf(value)
 	switch t.Kind() {
 	case reflect.String:
-		return processString(v.String())
+		return client.convertString(v.String())
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32,
 		reflect.Int64:
-		return processInt64(v.Int())
+		return client.convertInt64(v.Int())
 	case reflect.Float32, reflect.Float64:
-		return processFloat64(v.Float())
+		return client.convertFloat64(v.Float())
 	case reflect.Slice:
-		// TODO: a more elegant way to test the type?
-		// Also, if you change the package name, this will break.
-		if t.String() == "hypergo.Set" {
-			set := value.(Set)
-			return processSet(set)
-		} else {
-			lst := value.(List)
-			return processList(lst)
+		switch value.(type) {
+		case Set, SetStr, SetI64, SetF64:
+			return client.convertSet(value)
+		case List, ListStr, ListI64, ListF64:
+			return client.convertList(value)
 		}
 	case reflect.Map:
-		m := value.(Map)
-		return processMap(m)
-	default:
-		return nil, 0, 0, fmt.Errorf("Unsupported type %s", t.String())
+		return client.convertMap(value)
 	}
+
+	return nil, 0, 0, fmt.Errorf("Unsupported type %s", t.String())
 }

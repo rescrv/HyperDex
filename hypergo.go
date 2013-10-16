@@ -58,11 +58,26 @@ type Client struct {
 // Correspond to an array of hyperdex_client_attribute
 type Attributes map[string]interface{}
 
-type Map map[interface{}]interface{}
+type Set []interface{}
+type SetStr []string
+type SetI64 []int64
+type SetF64 []float64
 
 type List []interface{}
+type ListStr []string
+type ListI64 []int64
+type ListF64 []float64
 
-type Set []interface{}
+type Map map[interface{}]interface{}
+type MapStrStr map[string]string
+type MapStrI64 map[string]int64
+type MapStrF64 map[string]float64
+type MapI64Str map[int64]string
+type MapI64I64 map[int64]int64
+type MapI64F64 map[int64]float64
+type MapF64Str map[float64]string
+type MapF64I64 map[float64]int64
+type MapF64F64 map[float64]float64
 
 // A hyperdex object.
 // Err contains any error that happened when trying to retrieve

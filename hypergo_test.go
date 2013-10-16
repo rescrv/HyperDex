@@ -25,6 +25,11 @@ subspace height
 subspace profile_views
 */
 
+const (
+	SPACE = "profiles"
+	KEY   = "jsmith"
+)
+
 // Put something for testing
 func putSomething(client *Client, t *testing.T) {
 	attrs := Attributes{
@@ -225,4 +230,140 @@ func TestCondPut(t *testing.T) {
 	if obj.Attrs["height"].(float64) == value {
 		t.Fatal("The value shouldn't be set because the conditions did not hold")
 	}
+}
+
+func TestListOps(t *testing.T) {
+	client, err := NewClient("127.0.0.1", 1982)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Destroy()
+
+	putSomething(client, t)
+
+	// Test ListLPush and ListRPush
+	obj := client.Get(SPACE, KEY)
+	if obj.Err != nil {
+		t.Fatal(obj.Err)
+	}
+
+	oldSize := len(obj.Attrs["ratings"].(ListF64))
+
+	floatToInsert := 2141.2142
+
+	err = client.ListLPush(SPACE, KEY, Attributes{
+		"ratings": floatToInsert,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = client.ListRPush(SPACE, KEY, Attributes{
+		"ratings": floatToInsert,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	obj = client.Get(SPACE, KEY)
+	if obj.Err != nil {
+		t.Fatal(obj.Err)
+	}
+
+	ratings := obj.Attrs["ratings"].(ListF64)
+	newSize := len(ratings)
+	if newSize != oldSize+2 {
+		t.Fatal("New size should be old size + 2")
+	}
+
+	if ratings[0] != floatToInsert || ratings[len(ratings)-1] != floatToInsert {
+		t.Fatal("The first and the last elements should both be floatToInsert.")
+	}
+}
+
+func TestSetOps(t *testing.T) {
+	client, err := NewClient("127.0.0.1", 1982)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Destroy()
+
+	putSomething(client, t)
+
+	// Test SetAdd
+	obj := client.Get(SPACE, KEY)
+	if obj.Err != nil {
+		t.Fatal(obj.Err)
+	}
+
+	oldSize := len(obj.Attrs["ages"].(SetI64))
+
+	client.SetAdd(SPACE, KEY, Attributes{
+		"ages": 0, // 0 is not in the set
+	})
+
+	obj = client.Get(SPACE, KEY)
+	if obj.Err != nil {
+		t.Fatal(obj.Err)
+	}
+
+	newSize := len(obj.Attrs["ages"].(SetI64))
+
+	if newSize != oldSize+1 {
+		t.Fatal("New size should be old size + 1")
+	}
+
+	found := false
+	for _, elem := range obj.Attrs["ages"].(SetI64) {
+		if elem == 0 {
+			found = true
+		}
+	}
+
+	if !found {
+		t.Fatal("0 should be in the set.")
+	}
+
+	// Test SetIntersect
+	newSet := Set{
+		0, 284, // these two elements are in the original set
+		41, 532, // these two are not
+	}
+
+	err = client.SetIntersect(SPACE, KEY, Attributes{
+		"ages": newSet,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	obj = client.Get(SPACE, KEY)
+	set := obj.Attrs["ages"].(SetI64)
+
+	if len(set) != 2 {
+		t.Fatal("The length of set should be 2.")
+	}
+
+	if !((set[0] == 0 && set[1] == 284) || (set[0] == 284 && set[1] == 0)) {
+		t.Fatal("The set should contain 0 and 284.")
+	}
+}
+
+func TestMapOps(t *testing.T) {
+	client, err := NewClient("127.0.0.1", 1982)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Destroy()
+
+	putSomething(client, t)
+
+	// Test MapAdd
+	obj := client.Get(SPACE, KEY)
+	if obj.Err != nil {
+		t.Fatal(obj.Err)
+	}
+
+	// oldSize := obj.Attrs["upvotes"].(map[string]int64)
+	// println(oldSize)
 }
