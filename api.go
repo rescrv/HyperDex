@@ -511,7 +511,64 @@ func (client *Client) Search(space string, conds []Condition) ObjectChannel {
 
 func (client *Client) SortedSearch(space string, conds []Condition, sort_by string,
 	limit int, maxmin int) ObjectChannel {
-	return nil
+
+	objCh := make(chan Object, CHANNEL_BUFFER_SIZE)
+	var status C.enum_hyperdex_client_returncode
+	var C_attrs *C.struct_hyperdex_client_attribute
+	var C_attrs_sz C.size_t
+	var C_attr_checks *C.struct_hyperdex_client_attribute_check
+	var C_attr_checks_sz C.size_t
+	var err error
+
+	if conds != nil {
+		C_attr_checks, C_attr_checks_sz, err = client.newCAttributeCheckList(conds)
+		if err != nil {
+			objCh <- Object{
+				Err: err,
+			}
+			close(objCh)
+			return objCh
+		}
+	}
+
+	req_id := int64(C.hyperdex_client_sorted_search(client.ptr,
+		C.CString(space), C_attr_checks, C_attr_checks_sz,
+		C.CString(sort_by), C.uint64_t(limit), C.int(maxmin),
+		&status, &C_attrs, &C_attrs_sz))
+
+	if req_id < 0 {
+		objCh <- Object{Err: newInternalError(status,
+			C.GoString(C.hyperdex_client_error_message(client.ptr)))}
+		close(objCh)
+		return objCh
+	}
+
+	req := request{
+		id:         req_id,
+		status:     &status,
+		isIterator: true,
+		success: func() {
+			// attrs, err := newAttributeListFromC(C_attrs, C_attrs_sz)
+			attrs, err := client.newAttributeListFromC(C_attrs, C_attrs_sz)
+			if err != nil {
+				objCh <- Object{Err: err}
+				close(objCh)
+				return
+			}
+
+			if C_attrs_sz > 0 {
+				C.hyperdex_client_destroy_attrs(C_attrs, C_attrs_sz)
+			}
+			objCh <- Object{Attrs: attrs}
+		},
+		failure: objChannelFailureCallback(objCh),
+		complete: func() {
+			close(objCh)
+		},
+	}
+
+	client.requests = append(client.requests, req)
+	return objCh
 }
 
 func (client *Client) GroupDel(space string, conds []Condition) ErrorChannel {
@@ -522,6 +579,51 @@ func (client *Client) AsyncGroupDel(space string, conds []Condition) ErrorChanne
 	return client.errOp("group_del", space, "", nil, conds)
 }
 
-func (client *Client) Count(space string, conds []Condition) int {
-	return 0
+func (client *Client) Count(space string, conds []Condition) uint64 {
+	return <-client.AsyncCount(space, conds)
+}
+
+func (client *Client) AsyncCount(space string, conds []Condition) chan uint64 {
+	countCh := make(chan uint64, CHANNEL_BUFFER_SIZE)
+	var status C.enum_hyperdex_client_returncode
+	var C_attr_checks *C.struct_hyperdex_client_attribute_check
+	var C_attr_checks_sz C.size_t
+	var C_count C.uint64_t
+	var err error
+
+	if conds != nil {
+		C_attr_checks, C_attr_checks_sz, err = client.newCAttributeCheckList(conds)
+		if err != nil {
+			close(countCh)
+			return countCh
+		}
+	}
+
+	req_id := int64(C.hyperdex_client_count(client.ptr,
+		C.CString(space), C_attr_checks, C_attr_checks_sz,
+		&status, &C_count))
+
+	if req_id < 0 {
+		close(countCh)
+		return countCh
+	}
+
+	req := request{
+		id:         req_id,
+		status:     &status,
+		isIterator: true,
+		success: func() {
+			// attrs, err := newAttributeListFromC(C_attrs, C_attrs_sz)
+			countCh <- uint64(C_count)
+		},
+		failure: func(_ uint32, _ string) {
+			close(countCh)
+		},
+		complete: func() {
+			close(countCh)
+		},
+	}
+
+	client.requests = append(client.requests, req)
+	return countCh
 }
