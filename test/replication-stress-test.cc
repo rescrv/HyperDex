@@ -174,7 +174,7 @@ put(uint64_t A, uint64_t B, uint64_t C)
 
     if (id < 0)
     {
-        FAIL("put encountered error " << status);
+        FAIL("put encountered error " << *status);
     }
 
     std::pair<std::map<int64_t, std::tr1::shared_ptr<hyperdex_client_returncode> >::iterator, bool> res;
