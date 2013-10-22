@@ -1032,8 +1032,14 @@ replication_manager :: background_thread()
 
         if (seq_id > 1)
         {
-            m_idcol.bump(reg_id, seq_id - 1);
+            bool x;
+            x = m_idcol.bump(reg_id, seq_id - 1);
             m_daemon->m_data.clear_acked(reg_id, seq_id - 2);
+
+            if (x)
+            {
+                check_stable(reg_id);
+            }
         }
     }
 
