@@ -75,6 +75,10 @@ class Admin
     public:
         int64_t loop(int timeout, enum hyperdex_admin_returncode* status)
             { return hyperdex_admin_loop(m_adm, timeout, status); }
+        std::string error_message()
+            { return hyperdex_admin_error_message(m_adm); }
+        std::string error_location()
+            { return hyperdex_admin_error_location(m_adm); }
 
     private:
         Admin(const Admin&);

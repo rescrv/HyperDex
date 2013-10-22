@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2012-2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,6 +28,9 @@
 #ifndef hyperdex_common_coordinator_returncode_h_
 #define hyperdex_common_coordinator_returncode_h_
 
+// C++
+#include <iostream>
+
 // HyperDex
 #include "namespace.h"
 
@@ -42,10 +45,12 @@ enum coordinator_returncode
     COORD_MALFORMED = 8833,
     COORD_DUPLICATE = 8834,
     COORD_NOT_FOUND = 8835,
-    COORD_INITIALIZED = 8836,
     COORD_UNINITIALIZED = 8837,
-    COORD_TRANSFER_IN_PROGRESS = 8838
+    COORD_NO_CAN_DO = 8839
 };
+
+std::ostream&
+operator << (std::ostream& lhs, coordinator_returncode rhs);
 
 END_HYPERDEX_NAMESPACE
 

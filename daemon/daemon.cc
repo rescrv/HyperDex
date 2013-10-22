@@ -45,24 +45,32 @@
 #include "common/serialization.h"
 #include "daemon/daemon.h"
 
+#define ALARM_INTERVAL 30
+
 using hyperdex::daemon;
 
 int s_interrupts = 0;
 bool s_alarm = false;
+bool s_debug = false;
 
 static void
 exit_on_signal(int /*signum*/)
 {
-    if (s_interrupts == 0)
+    if (__sync_fetch_and_add(&s_interrupts, 1) == 0)
     {
-        RAW_LOG(ERROR, "interrupted: initiating shutdown (interrupt again to exit immediately)");
+        RAW_LOG(ERROR, "interrupted: initiating shutdown; we'll try for up to 10 seconds (interrupt again to exit immediately)");
     }
     else
     {
         RAW_LOG(ERROR, "interrupted again: exiting immediately");
     }
+}
 
-    ++s_interrupts;
+static void
+exit_after_timeout(int /*signum*/)
+{
+    __sync_fetch_and_add(&s_interrupts, 1);
+    RAW_LOG(ERROR, "took too long to shutdown; just exiting");
 }
 
 static void
@@ -72,12 +80,19 @@ handle_alarm(int /*signum*/)
 }
 
 static void
+handle_debug(int /*signum*/)
+{
+    s_debug = true;
+}
+
+static void
 dummy(int /*signum*/)
 {
 }
 
 daemon :: daemon()
     : m_us()
+    , m_bind_to()
     , m_threads()
     , m_coord(this)
     , m_data(this)
@@ -99,8 +114,13 @@ daemon :: daemon()
     , m_perf_chain_subspace()
     , m_perf_chain_ack()
     , m_perf_chain_gc()
+    , m_perf_xfer_handshake_syn()
+    , m_perf_xfer_handshake_synack()
+    , m_perf_xfer_handshake_ack()
+    , m_perf_xfer_handshake_wiped()
     , m_perf_xfer_op()
     , m_perf_xfer_ack()
+    , m_perf_backup()
     , m_perf_perf_counters()
     , m_block_stat_path()
     , m_stat_collector(std::tr1::bind(&daemon::collect_stats, this))
@@ -171,13 +191,19 @@ daemon :: run(bool daemonize,
 
     if (!install_signal_handler(SIGALRM, handle_alarm))
     {
-        std::cerr << "could not install SIGUSR1 handler; exiting" << std::endl;
+        std::cerr << "could not install SIGALRM handler; exiting" << std::endl;
         return EXIT_FAILURE;
     }
 
     if (!install_signal_handler(SIGUSR1, dummy))
     {
         std::cerr << "could not install SIGUSR1 handler; exiting" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    if (!install_signal_handler(SIGUSR2, handle_debug))
+    {
+        std::cerr << "could not install SIGUSR2 handler; exiting" << std::endl;
         return EXIT_FAILURE;
     }
 
@@ -221,50 +247,47 @@ daemon :: run(bool daemonize,
         LOG(INFO) << "provide \"--daemon\" on the command-line if you want to run in the background";
     }
 
-    alarm(30);
     bool saved = false;
     server_id saved_us;
     po6::net::location saved_bind_to;
     po6::net::hostname saved_coordinator;
-    LOG(INFO) << "initializing persistent storage";
+    LOG(INFO) << "initializing local storage";
 
-    if (!m_data.setup(data, &saved, &saved_us, &saved_bind_to, &saved_coordinator))
+    if (!m_data.initialize(data, &saved, &saved_us, &saved_bind_to, &saved_coordinator))
     {
         return EXIT_FAILURE;
     }
 
-    determine_block_stat_path(data);
-
     if (saved)
     {
-        LOG(INFO) << "starting daemon from state found in the persistent storage";
-
         if (set_bind_to && bind_to != saved_bind_to)
         {
-            LOG(ERROR) << "cannot bind to address; it conflicts with our previous address at " << saved_bind_to;
-            return EXIT_FAILURE;
+            LOG(INFO) << "changing bind address from "
+                      << saved_bind_to << " to " << bind_to;
+        }
+        else
+        {
+            bind_to = saved_bind_to;
         }
 
         if (set_coordinator && coordinator != saved_coordinator)
         {
-            LOG(ERROR) << "cannot connect to coordinator; it conflicts with our previous coordinator at " << saved_coordinator;
-            return EXIT_FAILURE;
+            LOG(INFO) << "changing coordinator address from "
+                      << saved_coordinator << " to " << coordinator;
+        }
+        else
+        {
+            coordinator = saved_coordinator;
         }
 
         m_us = saved_us;
-        bind_to = saved_bind_to;
-        coordinator = saved_coordinator;
-        m_coord.set_coordinator_address(coordinator.address.c_str(), coordinator.port);
-
-        if (!m_coord.reregister_id(m_us, bind_to))
-        {
-            return EXIT_FAILURE;
-        }
     }
-    else
+
+    m_bind_to = bind_to;
+    m_coord.set_coordinator_address(coordinator.address.c_str(), coordinator.port);
+
+    if (!saved)
     {
-        LOG(INFO) << "starting new daemon from command-line arguments";
-        m_coord.set_coordinator_address(coordinator.address.c_str(), coordinator.port);
         uint64_t sid;
 
         if (!generate_token(&sid))
@@ -281,11 +304,6 @@ daemon :: run(bool daemonize,
         }
 
         m_us = server_id(sid);
-
-        if (!m_data.initialize())
-        {
-            return EXIT_FAILURE;
-        }
     }
 
     if (!m_data.save_state(m_us, bind_to, coordinator))
@@ -293,6 +311,7 @@ daemon :: run(bool daemonize,
         return EXIT_FAILURE;
     }
 
+    determine_block_stat_path(data);
     m_comm.setup(bind_to, threads);
     m_repl.setup();
     m_stm.setup();
@@ -306,33 +325,106 @@ daemon :: run(bool daemonize,
     }
 
     m_stat_collector.start();
+    alarm(ALARM_INTERVAL);
+    bool cluster_jump = false;
+    bool requested_exit = false;
+    uint64_t checkpoint = 0;
+    uint64_t checkpoint_stable = 0;
+    uint64_t checkpoint_gc = 0;
 
-    while (!m_coord.exit_wait_loop())
+    while (__sync_fetch_and_add(&s_interrupts, 0) < 2 &&
+           !m_coord.should_exit())
     {
-        configuration old_config = m_config;
-        configuration new_config;
+        if (s_alarm)
+        {
+            s_alarm = false;
+            alarm(ALARM_INTERVAL);
+            m_repl.trip_periodic();
+        }
 
-        if (!m_coord.wait_for_config(&new_config))
+        if (s_debug)
+        {
+            s_debug = false;
+            LOG(INFO) << "recieved SIGUSR2; dumping internal tables";
+            // XXX m_coord.debug_dump();
+            // XXX m_data.debug_dump();
+            // XXX m_comm.debug_dump();
+            m_repl.debug_dump();
+            // XXX m_stm.debug_dump();
+            // XXX m_sm.debug_dump();
+            LOG(INFO) << "end debug dump";
+        }
+
+        if (s_interrupts > 0 && !requested_exit)
+        {
+            if (!install_signal_handler(SIGALRM, exit_after_timeout))
+            {
+                __sync_fetch_and_add(&s_interrupts, 2);
+                break;
+            }
+
+            alarm(10);
+            m_coord.request_shutdown();
+            requested_exit = true;
+        }
+
+        if (m_config.version() > 0 &&
+            checkpoint < m_coord.checkpoint())
+        {
+            checkpoint = m_coord.checkpoint();
+            m_repl.begin_checkpoint(checkpoint);
+        }
+
+        if (m_config.version() > 0 &&
+            checkpoint_stable < m_coord.checkpoint_stable())
+        {
+            checkpoint_stable = m_coord.checkpoint_stable();
+            m_repl.end_checkpoint(checkpoint_stable);
+        }
+
+        if (m_config.version() > 0 &&
+            checkpoint_gc < m_coord.checkpoint_gc())
+        {
+            checkpoint_gc = m_coord.checkpoint_gc();
+            m_data.set_checkpoint_lower_gc(checkpoint_gc);
+        }
+
+        if (!m_coord.maintain_link())
         {
             continue;
         }
 
-        if (old_config.version() >= new_config.version())
+        const configuration& old_config(m_config);
+        const configuration& new_config(m_coord.config());
+
+        if (old_config.cluster() != 0 &&
+            old_config.cluster() != new_config.cluster())
         {
-            LOG(INFO) << "received new configuration version=" << new_config.version()
-                      << " that's not newer than our current configuration version="
-                      << old_config.version();
+            cluster_jump = true;
+            break;
+        }
+
+        if (old_config.version() > new_config.version())
+        {
+            LOG(ERROR) << "received new configuration version=" << new_config.version()
+                       << " that's older than our current configuration version="
+                       << old_config.version();
+            continue;
+        }
+        else if (old_config.version() > new_config.version())
+        {
             continue;
         }
 
-        LOG(INFO) << "received new configuration version=" << new_config.version()
+        LOG(INFO) << "moving to configuration version=" << new_config.version()
                   << "; pausing all activity while we reconfigure";
+        m_sm.pause();
         m_stm.pause();
         m_repl.pause();
         m_data.pause();
         m_comm.pause();
-        m_data.reconfigure(old_config, new_config, m_us);
         m_comm.reconfigure(old_config, new_config, m_us);
+        m_data.reconfigure(old_config, new_config, m_us);
         m_repl.reconfigure(old_config, new_config, m_us);
         m_stm.reconfigure(old_config, new_config, m_us);
         m_sm.reconfigure(old_config, new_config, m_us);
@@ -341,26 +433,39 @@ daemon :: run(bool daemonize,
         m_data.unpause();
         m_repl.unpause();
         m_stm.unpause();
+        m_sm.unpause();
         LOG(INFO) << "reconfiguration complete; resuming normal operation";
 
         // let the coordinator know we've moved to this config
-        m_coord.ack_config(new_config.version());
+        m_coord.config_ack(new_config.version());
     }
 
-    m_comm.shutdown();
+    if (cluster_jump)
+    {
+        LOG(INFO) << "\n================================================================================\n"
+                  << "Exiting because the coordinator changed on us.\n"
+                  << "This is most likely an operations error.  Did you deploy a new HyperDex\n"
+                  << "cluster at the same address as the old cluster?\n"
+                  << "================================================================================";
+    }
+    else if (m_coord.should_exit() && !m_coord.config().exists(m_us))
+    {
+        LOG(INFO) << "\n================================================================================\n"
+                  << "Exiting because the coordinator says it doesn't know about this node.\n"
+                  << "Check the coordinator logs for details, but it's most likely the case that\n"
+                  << "this server was killed, or this server tried reconnecting to a different\n"
+                  << "coordinator.  You may just have to restart the daemon with a different \n"
+                  << "coordinator address or this node may be dead and you can simply erase it.\n"
+                  << "================================================================================";
+    }
 
+    __sync_fetch_and_add(&s_interrupts, 2);
     m_stat_collector.join();
+    m_comm.shutdown();
 
     for (size_t i = 0; i < m_threads.size(); ++i)
     {
         m_threads[i]->join();
-    }
-
-    m_coord.shutdown();
-
-    if (m_coord.is_clean_shutdown())
-    {
-        LOG(INFO) << "hyperdex-daemon is gracefully shutting down";
     }
 
     m_sm.teardown();
@@ -368,19 +473,8 @@ daemon :: run(bool daemonize,
     m_repl.teardown();
     m_comm.teardown();
     m_data.teardown();
-    int exit_status = EXIT_SUCCESS;
-
-    if (m_coord.is_clean_shutdown())
-    {
-        if (!m_data.clear_dirty())
-        {
-            LOG(ERROR) << "unable to cleanly close the database";
-            exit_status = EXIT_FAILURE;
-        }
-    }
-
     LOG(INFO) << "hyperdex-daemon will now terminate";
-    return exit_status;
+    return EXIT_SUCCESS;
 }
 
 void
@@ -478,6 +572,22 @@ daemon :: loop(size_t thread)
                 process_chain_gc(from, vfrom, vto, msg, up);
                 m_perf_chain_gc.tap();
                 break;
+            case XFER_HS:
+                process_xfer_handshake_syn(from, vfrom, vto, msg, up);
+                m_perf_xfer_handshake_syn.tap();
+                break;
+            case XFER_HSA:
+                process_xfer_handshake_synack(from, vfrom, vto, msg, up);
+                m_perf_xfer_handshake_synack.tap();
+                break;
+            case XFER_HA:
+                process_xfer_handshake_ack(from, vfrom, vto, msg, up);
+                m_perf_xfer_handshake_ack.tap();
+                break;
+            case XFER_HW:
+                process_xfer_handshake_wiped(from, vfrom, vto, msg, up);
+                m_perf_xfer_handshake_wiped.tap();
+                break;
             case XFER_OP:
                 process_xfer_op(from, vfrom, vto, msg, up);
                 m_perf_xfer_op.tap();
@@ -486,6 +596,9 @@ daemon :: loop(size_t thread)
                 process_xfer_ack(from, vfrom, vto, msg, up);
                 m_perf_xfer_ack.tap();
                 break;
+            case BACKUP:
+                process_backup(from, vfrom, vto, msg, up);
+                m_perf_backup.tap();
             case PERF_COUNTERS:
                 process_perf_counters(from, vfrom, vto, msg, up);
                 m_perf_perf_counters.tap();
@@ -816,6 +929,81 @@ daemon :: process_chain_ack(server_id,
 }
 
 void
+daemon :: process_xfer_handshake_syn(server_id,
+                                     virtual_server_id vfrom,
+                                     virtual_server_id,
+                                     std::auto_ptr<e::buffer> msg,
+                                     e::unpacker up)
+{
+    transfer_id xid;
+
+    if ((up >> xid).error())
+    {
+        LOG(WARNING) << "unpack of XFER_HS failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    m_stm.handshake_syn(vfrom, xid);
+}
+
+void
+daemon :: process_xfer_handshake_synack(server_id from,
+                                        virtual_server_id,
+                                        virtual_server_id to,
+                                        std::auto_ptr<e::buffer> msg,
+                                        e::unpacker up)
+{
+    transfer_id xid;
+    uint64_t timestamp;
+
+    if ((up >> xid >> timestamp).error())
+    {
+        LOG(WARNING) << "unpack of XFER_HSA failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    m_stm.handshake_synack(from, to, xid, timestamp);
+}
+
+void
+daemon :: process_xfer_handshake_ack(server_id,
+                                     virtual_server_id vfrom,
+                                     virtual_server_id,
+                                     std::auto_ptr<e::buffer> msg,
+                                     e::unpacker up)
+{
+    transfer_id xid;
+    uint8_t flags;
+
+    if ((up >> xid >> flags).error())
+    {
+        LOG(WARNING) << "unpack of XFER_HA failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    bool wipe = flags & 0x1;
+    m_stm.handshake_ack(vfrom, xid, wipe);
+}
+
+void
+daemon :: process_xfer_handshake_wiped(server_id from,
+                                       virtual_server_id,
+                                       virtual_server_id to,
+                                       std::auto_ptr<e::buffer> msg,
+                                       e::unpacker up)
+{
+    transfer_id xid;
+
+    if ((up >> xid).error())
+    {
+        LOG(WARNING) << "unpack of XFER_HW failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    m_stm.handshake_wiped(from, to, xid);
+}
+
+void
 daemon :: process_xfer_op(server_id,
                           virtual_server_id vfrom,
                           virtual_server_id,
@@ -857,6 +1045,16 @@ daemon :: process_xfer_ack(server_id from,
     }
 
     m_stm.xfer_ack(from, vto, transfer_id(xid), seq_no);
+}
+
+void
+daemon :: process_backup(server_id from,
+                         virtual_server_id,
+                         virtual_server_id vto,
+                         std::auto_ptr<e::buffer> msg,
+                         e::unpacker up)
+{
+    abort(); // XXX
 }
 
 void
@@ -925,7 +1123,7 @@ daemon :: collect_stats()
         m_stats_start = target;
     }
 
-    while (s_interrupts == 0)
+    while (__sync_fetch_and_add(&s_interrupts, 0) == 0)
     {
         // every INTERVAL nanoseconds collect stats
         uint64_t now = e::time();

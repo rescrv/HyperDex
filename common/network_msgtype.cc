@@ -57,6 +57,11 @@ hyperdex :: operator << (std::ostream& lhs, const network_msgtype& rhs)
         STRINGIFY(CHAIN_GC);
         STRINGIFY(XFER_OP);
         STRINGIFY(XFER_ACK);
+        STRINGIFY(XFER_HS);
+        STRINGIFY(XFER_HSA);
+        STRINGIFY(XFER_HA);
+        STRINGIFY(XFER_HW);
+        STRINGIFY(BACKUP);
         STRINGIFY(PERF_COUNTERS);
         STRINGIFY(CONFIGMISMATCH);
         STRINGIFY(PACKET_NOP);

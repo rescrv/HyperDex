@@ -43,6 +43,11 @@
 #include "admin/pending_string.h"
 #include "admin/yieldable.h"
 
+#define ERROR(CODE) \
+    *status = HYPERDEX_ADMIN_ ## CODE; \
+    m_last_error.set_loc(__FILE__, __LINE__); \
+    m_last_error.set_msg()
+
 using hyperdex::admin;
 
 admin :: admin(const char* coordinator, uint16_t port)
@@ -57,7 +62,9 @@ admin :: admin(const char* coordinator, uint16_t port)
     , m_failed()
     , m_yieldable()
     , m_yielding()
+    , m_yielded()
     , m_pcs()
+    , m_last_error()
 {
 }
 
@@ -74,11 +81,10 @@ admin :: dump_config(hyperdex_admin_returncode* status,
         return -1;
     }
 
-    std::ostringstream ostr;
-    m_coord.config()->dump(ostr);
     int64_t id = m_next_admin_id;
     ++m_next_admin_id;
-    e::intrusive_ptr<pending> op = new pending_string(id, status, HYPERDEX_ADMIN_SUCCESS, ostr.str(), config);
+    std::string tmp = m_coord.config()->dump();
+    e::intrusive_ptr<pending> op = new pending_string(id, status, HYPERDEX_ADMIN_SUCCESS, tmp, config);
     m_yieldable.push_back(op.get());
     return op->admin_visible_id();
 }
@@ -91,13 +97,13 @@ admin :: validate_space(const char* description,
 
     if (!space_builder)
     {
-        *status = HYPERDEX_ADMIN_NOMEM;
+        ERROR(NOMEM) << "ran out of memory";
         return -1;
     }
 
     if (hyperspace_error(space_builder))
     {
-        *status = HYPERDEX_ADMIN_BADSPACE;
+        ERROR(BADSPACE) << "bad space " << hyperspace_error(space_builder);
         return -1;
     }
 
@@ -117,13 +123,13 @@ admin :: add_space(const char* description,
 
     if (!space_builder)
     {
-        *status = HYPERDEX_ADMIN_NOMEM;
+        ERROR(NOMEM) << "ran out of memory";
         return -1;
     }
 
     if (hyperspace_error(space_builder))
     {
-        *status = HYPERDEX_ADMIN_BADSPACE;
+        ERROR(BADSPACE) << "bad space " << hyperspace_error(space_builder);
         return -1;
     }
 
@@ -131,7 +137,7 @@ admin :: add_space(const char* description,
 
     if (!space_to_space(space_builder, &space))
     {
-        *status = HYPERDEX_ADMIN_BADSPACE;
+        ERROR(BADSPACE) << "bad space";
         return -1;
     }
 
@@ -141,7 +147,7 @@ admin :: add_space(const char* description,
     int64_t id = m_next_admin_id;
     ++m_next_admin_id;
     e::intrusive_ptr<coord_rpc> op = new coord_rpc_add_space(id, status);
-    int64_t cid = m_coord.rpc("add-space", reinterpret_cast<const char*>(msg->data()), msg->size(),
+    int64_t cid = m_coord.rpc("space_add", reinterpret_cast<const char*>(msg->data()), msg->size(),
                               &op->repl_status, &op->repl_output, &op->repl_output_sz);
 
     if (cid >= 0)
@@ -151,7 +157,7 @@ admin :: add_space(const char* description,
     }
     else
     {
-        *status = interpret_rpc_request_failure(op->repl_status);
+        interpret_rpc_request_failure(op->repl_status, status);
         return -1;
     }
 }
@@ -168,7 +174,7 @@ admin :: rm_space(const char* name,
     int64_t id = m_next_admin_id;
     ++m_next_admin_id;
     e::intrusive_ptr<coord_rpc> op = new coord_rpc_rm_space(id, status);
-    int64_t cid = m_coord.rpc("rm-space", name, strlen(name) + 1,
+    int64_t cid = m_coord.rpc("space_rm", name, strlen(name) + 1,
                               &op->repl_status, &op->repl_output, &op->repl_output_sz);
 
     if (cid >= 0)
@@ -178,7 +184,7 @@ admin :: rm_space(const char* name,
     }
     else
     {
-        *status = interpret_rpc_request_failure(op->repl_status);
+        interpret_rpc_request_failure(op->repl_status, status);
         return -1;
     }
 }
@@ -238,9 +244,11 @@ admin :: loop(int timeout, hyperdex_admin_returncode* status)
             }
 
             int64_t admin_id = m_yielding->admin_visible_id();
+            m_last_error = m_yielding->error();
 
             if (!m_yielding->can_yield())
             {
+                m_yielded = m_yielding;
                 m_yielding = NULL;
             }
 
@@ -260,6 +268,8 @@ admin :: loop(int timeout, hyperdex_admin_returncode* status)
             m_failed.pop_front();
             continue;
         }
+
+        m_yielded = NULL;
 
         if (!maintain_coord_connection(status))
         {
@@ -304,9 +314,9 @@ admin :: loop(int timeout, hyperdex_admin_returncode* status)
             replicant_returncode lrc = REPLICANT_GARBAGE;
             int64_t lid = m_coord.loop(0, &lrc);
 
-            if (lid < 0)
+            if (lid < 0 && lrc != REPLICANT_TIMEOUT)
             {
-                *status = interpret_rpc_loop_failure(lrc);
+                interpret_rpc_loop_failure(lrc, status);
                 return -1;
             }
 
@@ -340,7 +350,7 @@ admin :: loop(int timeout, hyperdex_admin_returncode* status)
                 break;
             case BUSYBEE_POLLFAILED:
             case BUSYBEE_ADDFDFAIL:
-                *status = HYPERDEX_ADMIN_POLLFAILED;
+                ERROR(POLLFAILED) << "poll failed";
                 return -1;
             case BUSYBEE_DISRUPTED:
                 handle_disruption(id);
@@ -351,10 +361,10 @@ admin :: loop(int timeout, hyperdex_admin_returncode* status)
                     continue;
                 }
 
-                *status = HYPERDEX_ADMIN_TIMEOUT;
+                ERROR(TIMEOUT) << "operation timed out";
                 return -1;
             case BUSYBEE_INTERRUPTED:
-                *status = HYPERDEX_ADMIN_INTERRUPTED;
+                ERROR(INTERRUPTED) << "signal received";
                 return -1;
             case BUSYBEE_EXTERNAL:
                 m_handle_coord_ops = true;
@@ -372,7 +382,10 @@ admin :: loop(int timeout, hyperdex_admin_returncode* status)
 
         if (up.error())
         {
-            *status = HYPERDEX_ADMIN_SERVERERROR;
+            ERROR(SERVERERROR) << "communication error: server "
+                               << sid_num << " sent message="
+                               << msg->as_slice().hex()
+                               << " with invalid header";
             return -1;
         }
 
@@ -406,31 +419,64 @@ admin :: loop(int timeout, hyperdex_admin_returncode* status)
         }
         else
         {
-            *status = HYPERDEX_ADMIN_SERVERERROR;
+            ERROR(SERVERERROR) << "server " << sid_num
+                               << " responded for nonce " << nonce
+                               << " which belongs to server " << it->second.si.get();
             return -1;
         }
     }
 
-    *status = HYPERDEX_ADMIN_NONEPENDING;
+    ERROR(NONEPENDING) << "no outstanding operations to process";
     return -1;
 }
 
-hyperdex_admin_returncode
-admin :: interpret_rpc_request_failure(replicant_returncode status)
+const char*
+admin :: error_message()
 {
-    switch (status)
+    return m_last_error.msg();
+}
+
+const char*
+admin :: error_location()
+{
+    return m_last_error.loc();
+}
+
+void
+admin :: set_error_message(const char* msg)
+{
+    m_last_error = e::error();
+    m_last_error.set_loc(__FILE__, __LINE__);
+    m_last_error.set_msg() << msg;
+}
+
+void
+admin :: interpret_rpc_request_failure(replicant_returncode rstatus,
+                                       hyperdex_admin_returncode* status)
+{
+    e::error err;
+
+    switch (rstatus)
     {
         case REPLICANT_TIMEOUT:
-            return HYPERDEX_ADMIN_TIMEOUT;
+            ERROR(TIMEOUT) << "operation timed out";
+            break;
         case REPLICANT_INTERRUPTED:
-            return HYPERDEX_ADMIN_INTERRUPTED;
+            ERROR(INTERRUPTED) << "signal received";
+            break;
         case REPLICANT_NAME_TOO_LONG:
-        case REPLICANT_NEED_BOOTSTRAP:
-        case REPLICANT_SERVER_ERROR:
         case REPLICANT_OBJ_NOT_FOUND:
         case REPLICANT_FUNC_NOT_FOUND:
+        case REPLICANT_CLUSTER_JUMP:
+            err = m_coord.error();
+            ERROR(COORDFAIL) << "persistent coordinator error: " << err.msg() << " @ " << err.loc();
+            break;
+        case REPLICANT_SERVER_ERROR:
+        case REPLICANT_NEED_BOOTSTRAP:
         case REPLICANT_BACKOFF:
-            return HYPERDEX_ADMIN_COORDFAIL;
+            err = m_coord.error();
+            ERROR(COORDFAIL) << "transient coordinator error: " << err.msg() << " @ " << err.loc();
+            break;
         case REPLICANT_SUCCESS:
         case REPLICANT_NONE_PENDING:
         case REPLICANT_INTERNAL_ERROR:
@@ -439,30 +485,45 @@ admin :: interpret_rpc_request_failure(replicant_returncode status)
         case REPLICANT_COND_DESTROYED:
         case REPLICANT_COND_NOT_FOUND:
         case REPLICANT_OBJ_EXIST:
+        case REPLICANT_CTOR_FAILED:
         case REPLICANT_GARBAGE:
         default:
-            return HYPERDEX_ADMIN_INTERNAL;
+            err = m_coord.error();
+            ERROR(COORDFAIL) << "internal library error: " << err.msg() << " @ " << err.loc();
+            break;
     }
 }
 
-hyperdex_admin_returncode
-admin :: interpret_rpc_loop_failure(replicant_returncode status)
+void
+admin :: interpret_rpc_loop_failure(replicant_returncode rstatus,
+                                    hyperdex_admin_returncode* status)
 {
-    switch (status)
+    e::error err;
+
+    switch (rstatus)
     {
         case REPLICANT_TIMEOUT:
-            return HYPERDEX_ADMIN_TIMEOUT;
+            ERROR(TIMEOUT) << "operation timed out";
+            break;
         case REPLICANT_INTERRUPTED:
-            return HYPERDEX_ADMIN_INTERRUPTED;
+            ERROR(INTERRUPTED) << "signal received";
+            break;
         case REPLICANT_NAME_TOO_LONG:
-        case REPLICANT_NEED_BOOTSTRAP:
-        case REPLICANT_SERVER_ERROR:
         case REPLICANT_OBJ_NOT_FOUND:
         case REPLICANT_FUNC_NOT_FOUND:
+        case REPLICANT_CLUSTER_JUMP:
+            err = m_coord.error();
+            ERROR(COORDFAIL) << "persistent coordinator error: " << err.msg() << " @ " << err.loc();
+            break;
+        case REPLICANT_SERVER_ERROR:
+        case REPLICANT_NEED_BOOTSTRAP:
         case REPLICANT_BACKOFF:
-            return HYPERDEX_ADMIN_COORDFAIL;
+            err = m_coord.error();
+            ERROR(COORDFAIL) << "transient coordinator error: " << err.msg() << " @ " << err.loc();
+            break;
         case REPLICANT_NONE_PENDING:
-            return HYPERDEX_ADMIN_NONEPENDING;
+            ERROR(NONEPENDING) << "no outstanding operations to process";
+            break;
         case REPLICANT_SUCCESS:
         case REPLICANT_INTERNAL_ERROR:
         case REPLICANT_MISBEHAVING_SERVER:
@@ -470,73 +531,107 @@ admin :: interpret_rpc_loop_failure(replicant_returncode status)
         case REPLICANT_COND_DESTROYED:
         case REPLICANT_COND_NOT_FOUND:
         case REPLICANT_OBJ_EXIST:
+        case REPLICANT_CTOR_FAILED:
         case REPLICANT_GARBAGE:
         default:
-            return HYPERDEX_ADMIN_INTERNAL;
+            err = m_coord.error();
+            ERROR(COORDFAIL) << "internal library error: " << err.msg() << " @ " << err.loc();
+            break;
     }
 }
 
-hyperdex_admin_returncode
-admin :: interpret_rpc_response_failure(replicant_returncode status)
+void
+admin :: interpret_rpc_response_failure(replicant_returncode rstatus,
+                                        hyperdex_admin_returncode* status,
+                                        e::error* ret_err)
 {
-    switch (status)
+    e::error err;
+    e::error tmp = m_last_error;
+    m_last_error = e::error();
+
+    switch (rstatus)
     {
         case REPLICANT_SUCCESS:
-            return HYPERDEX_ADMIN_SUCCESS;
+            *status = HYPERDEX_ADMIN_SUCCESS;
+            break;
         case REPLICANT_TIMEOUT:
-            return HYPERDEX_ADMIN_TIMEOUT;
+            ERROR(TIMEOUT) << "operation timed out";
+            break;
         case REPLICANT_INTERRUPTED:
-            return HYPERDEX_ADMIN_INTERRUPTED;
+            ERROR(INTERRUPTED) << "signal received";
+            break;
         case REPLICANT_NAME_TOO_LONG:
-        case REPLICANT_NEED_BOOTSTRAP:
-        case REPLICANT_SERVER_ERROR:
         case REPLICANT_OBJ_NOT_FOUND:
         case REPLICANT_FUNC_NOT_FOUND:
+        case REPLICANT_CLUSTER_JUMP:
+            err = m_coord.error();
+            ERROR(COORDFAIL) << "persistent coordinator error: " << err.msg() << " @ " << err.loc();
+            break;
+        case REPLICANT_SERVER_ERROR:
+        case REPLICANT_NEED_BOOTSTRAP:
         case REPLICANT_BACKOFF:
-            return HYPERDEX_ADMIN_COORDFAIL;
+            err = m_coord.error();
+            ERROR(COORDFAIL) << "transient coordinator error: " << err.msg() << " @ " << err.loc();
+            break;
         case REPLICANT_NONE_PENDING:
-            return HYPERDEX_ADMIN_NONEPENDING;
+            ERROR(NONEPENDING) << "no outstanding operations to process";
+            break;
         case REPLICANT_INTERNAL_ERROR:
         case REPLICANT_MISBEHAVING_SERVER:
         case REPLICANT_BAD_LIBRARY:
         case REPLICANT_COND_DESTROYED:
         case REPLICANT_COND_NOT_FOUND:
         case REPLICANT_OBJ_EXIST:
+        case REPLICANT_CTOR_FAILED:
         case REPLICANT_GARBAGE:
         default:
-            return HYPERDEX_ADMIN_INTERNAL;
+            err = m_coord.error();
+            ERROR(COORDFAIL) << "internal library error: " << err.msg() << " @ " << err.loc();
+            break;
     }
+
+    *ret_err = m_last_error;
+    m_last_error = tmp;
 }
 
 bool
 admin :: maintain_coord_connection(hyperdex_admin_returncode* status)
 {
     replicant_returncode rc;
+    e::error err;
 
     if (!m_coord.ensure_configuration(&rc))
     {
         switch (rc)
         {
-            case REPLICANT_INTERRUPTED:
-                *status = HYPERDEX_ADMIN_INTERRUPTED;
+            case REPLICANT_TIMEOUT:
+                ERROR(TIMEOUT) << "operation timed out";
                 return false;
+            case REPLICANT_INTERRUPTED:
+                ERROR(INTERRUPTED) << "signal received";
+                return false;
+            case REPLICANT_NAME_TOO_LONG:
+            case REPLICANT_OBJ_NOT_FOUND:
+            case REPLICANT_FUNC_NOT_FOUND:
+            case REPLICANT_CLUSTER_JUMP:
+                err = m_coord.error();
+                ERROR(COORDFAIL) << "persistent coordinator error: " << err.msg() << " @ " << err.loc();
+                break;
+            case REPLICANT_MISBEHAVING_SERVER:
             case REPLICANT_SERVER_ERROR:
             case REPLICANT_NEED_BOOTSTRAP:
-            case REPLICANT_MISBEHAVING_SERVER:
             case REPLICANT_BACKOFF:
-                *status = HYPERDEX_ADMIN_COORDFAIL;
+                err = m_coord.error();
+                ERROR(COORDFAIL) << "transient coordinator error: " << err.msg() << " @ " << err.loc();
                 return false;
             case REPLICANT_SUCCESS:
-            case REPLICANT_NAME_TOO_LONG:
-            case REPLICANT_FUNC_NOT_FOUND:
             case REPLICANT_OBJ_EXIST:
-            case REPLICANT_OBJ_NOT_FOUND:
             case REPLICANT_COND_NOT_FOUND:
             case REPLICANT_COND_DESTROYED:
             case REPLICANT_BAD_LIBRARY:
-            case REPLICANT_TIMEOUT:
             case REPLICANT_INTERNAL_ERROR:
             case REPLICANT_NONE_PENDING:
+            case REPLICANT_CTOR_FAILED:
             case REPLICANT_GARBAGE:
             default:
                 *status = HYPERDEX_ADMIN_INTERNAL;
@@ -546,7 +641,7 @@ admin :: maintain_coord_connection(hyperdex_admin_returncode* status)
 
     if (m_busybee.set_external_fd(m_coord.poll_fd()) != BUSYBEE_SUCCESS)
     {
-        *status = HYPERDEX_ADMIN_POLLFAILED;
+        ERROR(POLLFAILED) << "poll failed";
         return false;
     }
 
@@ -581,10 +676,11 @@ admin :: send(network_msgtype mt,
             return true;
         case BUSYBEE_DISRUPTED:
             handle_disruption(id);
+            ERROR(SERVERERROR) << "server " << id.get() << " had a communication disruption";
             return false;
         case BUSYBEE_POLLFAILED:
         case BUSYBEE_ADDFDFAIL:
-            *status = HYPERDEX_ADMIN_POLLFAILED;
+            ERROR(POLLFAILED) << "poll failed";
             return false;
         case BUSYBEE_SHUTDOWN:
         case BUSYBEE_TIMEOUT:

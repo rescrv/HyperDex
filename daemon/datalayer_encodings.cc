@@ -215,136 +215,34 @@ hyperdex :: decode_acked(const e::slice& in,
 }
 
 void
-hyperdex :: encode_transfer(const capture_id& ci,
-                            uint64_t count,
-                            char* out)
+hyperdex :: encode_checkpoint(const region_id& ri,
+                              uint64_t checkpoint,
+                              char* out)
 {
     char* ptr = out;
-    ptr = e::pack8be('t', ptr);
-    ptr = e::pack64be(ci.get(), ptr);
-    ptr = e::pack64be(count, ptr);
-}
-
-void
-hyperdex :: encode_key_value(const e::slice& key,
-                             /*pointer to make it optional*/
-                             const std::vector<e::slice>* value,
-                             uint64_t version,
-                             std::vector<char>* backing, /*XXX*/
-                             leveldb::Slice* out)
-{
-    size_t sz = sizeof(uint32_t) + key.size() + sizeof(uint64_t) + sizeof(uint16_t);
-
-    for (size_t i = 0; value && i < value->size(); ++i)
-    {
-        sz += sizeof(uint32_t) + (*value)[i].size();
-    }
-
-    backing->resize(sz);
-    char* ptr = &backing->front();
-    *out = leveldb::Slice(ptr, sz);
-    ptr = e::pack32be(key.size(), ptr);
-    memmove(ptr, key.data(), key.size());
-    ptr += key.size();
-    ptr = e::pack64be(version, ptr);
-
-    if (value)
-    {
-        ptr = e::pack16be(value->size(), ptr);
-
-        for (size_t i = 0; i < value->size(); ++i)
-        {
-            ptr = e::pack32be((*value)[i].size(), ptr);
-            memmove(ptr, (*value)[i].data(), (*value)[i].size());
-            ptr += (*value)[i].size();
-        }
-    }
+    ptr = e::pack8be('c', ptr);
+    ptr = e::pack64be(ri.get(), ptr);
+    ptr = e::pack64be(checkpoint, ptr);
 }
 
 datalayer::returncode
-hyperdex :: decode_key_value(const e::slice& in,
-                             bool* has_value,
-                             e::slice* key,
-                             std::vector<e::slice>* value,
-                             uint64_t* version)
+hyperdex :: decode_checkpoint(const e::slice& in,
+                              region_id* ri,
+                              uint64_t* checkpoint)
 {
+    if (in.size() != CHECKPOINT_BUF_SIZE)
+    {
+        return datalayer::BAD_ENCODING;
+    }
+
     const uint8_t* ptr = in.data();
-    const uint8_t* end = ptr + in.size();
-
-    if (ptr >= end)
-    {
-        return datalayer::BAD_ENCODING;
-    }
-
-    uint32_t key_sz;
-
-    if (ptr + sizeof(uint32_t) <= end)
-    {
-        ptr = e::unpack32be(ptr, &key_sz);
-    }
-    else
-    {
-        return datalayer::BAD_ENCODING;
-    }
-
-    if (ptr + key_sz <= end)
-    {
-        *key = e::slice(ptr, key_sz);
-        ptr += key_sz;
-    }
-    else
-    {
-        return datalayer::BAD_ENCODING;
-    }
-
-    if (ptr + sizeof(uint64_t) <= end)
-    {
-        ptr = e::unpack64be(ptr, version);
-    }
-    else
-    {
-        return datalayer::BAD_ENCODING;
-    }
-
-    if (ptr == end)
-    {
-        *has_value = false;
-        return datalayer::SUCCESS;
-    }
-
-    uint16_t num_attrs;
-
-    if (ptr + sizeof(uint16_t) <= end)
-    {
-        ptr = e::unpack16be(ptr, &num_attrs);
-    }
-    else
-    {
-        return datalayer::BAD_ENCODING;
-    }
-
-    value->clear();
-
-    for (size_t i = 0; i < num_attrs; ++i)
-    {
-        uint32_t sz = 0;
-
-        if (ptr + sizeof(uint32_t) <= end)
-        {
-            ptr = e::unpack32be(ptr, &sz);
-        }
-        else
-        {
-            return datalayer::BAD_ENCODING;
-        }
-
-        e::slice s(ptr, sz);
-        ptr += sz;
-        value->push_back(s);
-    }
-
-    *has_value = true;
-    return datalayer::SUCCESS;
+    uint8_t t;
+    uint64_t _ri;
+    ptr = e::unpack8be(ptr, &t);
+    ptr = e::unpack64be(ptr, &_ri);
+    ptr = e::unpack64be(ptr, checkpoint);
+    *ri = region_id(_ri);
+    return t == 'c' ? datalayer::SUCCESS : datalayer::BAD_ENCODING;
 }
 
 void

@@ -67,8 +67,10 @@ coord_rpc_rm_space :: handle_response(admin* adm,
 {
     *status = HYPERDEX_ADMIN_SUCCESS;
     hyperdex_admin_returncode resp_status;
-    resp_status = adm->interpret_rpc_response_failure(repl_status);
+    e::error err;
+    adm->interpret_rpc_response_failure(repl_status, &resp_status, &err);
     set_status(resp_status);
+    set_error(err);
 
     if (resp_status != HYPERDEX_ADMIN_SUCCESS)
     {
@@ -87,19 +89,20 @@ coord_rpc_rm_space :: handle_response(admin* adm,
                 set_status(HYPERDEX_ADMIN_SUCCESS);
                 break;
             case hyperdex::COORD_NOT_FOUND:
-                set_status(HYPERDEX_ADMIN_NOTFOUND);
+                YIELDING_ERROR(NOTFOUND) << "space does not exist";
                 break;
             case hyperdex::COORD_DUPLICATE:
-                set_status(HYPERDEX_ADMIN_DUPLICATE);
+                YIELDING_ERROR(DUPLICATE) << "space already exists";
                 break;
-            case hyperdex::COORD_INITIALIZED:
             case hyperdex::COORD_UNINITIALIZED:
-                set_status(HYPERDEX_ADMIN_COORDFAIL);
+                YIELDING_ERROR(COORDFAIL) << "coordinator is uninitialized";
+                break;
+            case hyperdex::COORD_NO_CAN_DO:
+                YIELDING_ERROR(COORDFAIL) << "coordinator cannot rm space; see coordinator log for details";
                 break;
             case hyperdex::COORD_MALFORMED:
-            case hyperdex::COORD_TRANSFER_IN_PROGRESS:
             default:
-                set_status(HYPERDEX_ADMIN_INTERNAL);
+                YIELDING_ERROR(INTERNAL) << "internal error interfacing with coordinator";
                 break;
         }
     }

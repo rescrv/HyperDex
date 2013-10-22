@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, Cornell University
+/* Copyright (c) 2012-2013, Cornell University
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,26 +33,33 @@
 #include "visibility.h"
 #include "coordinator/transitions.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-pedantic"
+
 struct replicant_state_machine HYPERDEX_API rsm = {
     hyperdex_coordinator_create,
     hyperdex_coordinator_recreate,
     hyperdex_coordinator_destroy,
     hyperdex_coordinator_snapshot,
-    {{"get-config", hyperdex_coordinator_get_config},
-     {"ack-config", hyperdex_coordinator_ack_config},
-     {"xfer-begin", hyperdex_coordinator_xfer_begin},
-     {"xfer-go-live", hyperdex_coordinator_xfer_go_live},
-     {"xfer-complete", hyperdex_coordinator_xfer_complete},
-
-     {"server-register", hyperdex_coordinator_server_register},
-     {"server-reregister", hyperdex_coordinator_server_reregister},
-     {"server-suspect", hyperdex_coordinator_server_suspect},
-     {"server-shutdown1", hyperdex_coordinator_server_shutdown1},
-     {"server-shutdown2", hyperdex_coordinator_server_shutdown2},
-
-     {"add-space", hyperdex_coordinator_add_space},
-     {"rm-space", hyperdex_coordinator_rm_space},
-
+    {{"config_get", hyperdex_coordinator_config_get},
+     {"config_ack", hyperdex_coordinator_config_ack},
+     {"config_stable", hyperdex_coordinator_config_stable},
+     {"server_register", hyperdex_coordinator_server_register},
+     {"server_online", hyperdex_coordinator_server_online},
+     {"server_offline", hyperdex_coordinator_server_offline},
+     {"server_shutdown", hyperdex_coordinator_server_shutdown},
+     {"server_kill", hyperdex_coordinator_server_kill},
+     {"server_forget", hyperdex_coordinator_server_forget},
+     {"server_suspect", hyperdex_coordinator_server_suspect},
+     {"space_add", hyperdex_coordinator_space_add},
+     {"space_rm", hyperdex_coordinator_space_rm},
+     {"transfer_go_live", hyperdex_coordinator_transfer_go_live},
+     {"transfer_complete", hyperdex_coordinator_transfer_complete},
+     {"checkpoint_stable", hyperdex_coordinator_checkpoint_stable},
+     {"alarm", hyperdex_coordinator_alarm},
+     {"debug_dump", hyperdex_coordinator_debug_dump},
      {"init", hyperdex_coordinator_init},
      {NULL, NULL}}
 };
+
+#pragma GCC diagnostic pop

@@ -1,0 +1,65 @@
+\documentclass[10pt,oneside]{book}
+\usepackage{hyperref}
+\usepackage{nameref}
+\usepackage{minted}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{calc}
+\usepackage[margin=1in]{geometry}
+\usepackage[small,compact]{titlesec}
+\usepackage[binary,squaren]{SIunits}
+
+\AtBeginDocument{\renewcommand{\bibname}{References}}
+
+\newcommand{\hdhref}[2]{\href{#1}{#2}\footnote{\href{#1}{#1}}}
+\newcommand{\funcdesc}{\vspace{-0.5\baselineskip}\noindent}
+\newcommand{\funcsep}{\vspace{0.5\baselineskip}}
+\newcommand{\HyperDexVersion}{1.0.dev}
+
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{3}
+
+\title{HyperDex Reference Manual v1.0.dev}
+\date{October 07, 2013}
+\author{Robert Escriva, Bernard Wong, and Emin Gün Sirer}
+
+\newminted{c}{samepage}
+\newminted{console}{samepage}
+\newminted{python}{samepage}
+
+\begin{document}
+
+\frontmatter
+\maketitle
+\tableofcontents
+
+\mainmatter
+
+\input{introduction}
+\input{installation}
+
+\part{For Developers}
+\label{part:for-developers}
+\input{quick-start}
+\input{data-types}
+\input{async-ops}
+\input{atomic-ops}
+\input{transactions}
+
+\part{For Administrators}
+\label{part:for-admins}
+\input{fault-tolerance}
+
+\part{For Hackers}
+\label{part:for-hackers}
+\input{client-bindings}
+
+\part{API Reference}
+\label{part:api-ref}
+\input{api/c}
+
+\backmatter
+\bibliographystyle{plain}
+\bibliography{hyperdex}
+
+\end{document}

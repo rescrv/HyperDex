@@ -81,6 +81,7 @@ client :: client(const char* coordinator, uint16_t port)
     , m_pending_ops()
     , m_failed()
     , m_yielding()
+    , m_yielded()
     , m_last_error()
 {
 }
@@ -360,6 +361,7 @@ client :: loop(int timeout, hyperdex_client_returncode* status)
 
             if (!m_yielding->can_yield())
             {
+                m_yielded = m_yielding;
                 m_yielding = NULL;
             }
 
@@ -374,6 +376,7 @@ client :: loop(int timeout, hyperdex_client_returncode* status)
             continue;
         }
 
+        m_yielded = NULL;
         assert(!m_pending_ops.empty());
 
         if (!maintain_coord_connection(status))
@@ -730,24 +733,21 @@ client :: prepare_searchop(const schema& sc,
 
 int64_t
 client :: perform_aggregation(const std::vector<virtual_server_id>& servers,
-                              e::intrusive_ptr<pending_aggregation> op,
+                              e::intrusive_ptr<pending_aggregation> _op,
                               network_msgtype mt,
                               std::auto_ptr<e::buffer> msg,
                               hyperdex_client_returncode* status)
 {
+    e::intrusive_ptr<pending> op(_op.get());
+
     for (size_t i = 0; i < servers.size(); ++i)
     {
         uint64_t nonce = m_next_server_nonce++;
-        pending_server_pair psp(m_coord.config()->get_server_id(servers[i]), servers[i], op.get());
-        std::pair<pending_map_t::iterator, bool> inserted;
-        inserted = m_pending_ops.insert(std::make_pair(nonce, psp));
-        assert(inserted.second);
+        pending_server_pair psp(m_coord.config()->get_server_id(servers[i]), servers[i], op);
         std::auto_ptr<e::buffer> msg_copy(msg->copy());
 
-        if (!send(mt, psp.vsi, nonce, msg_copy, op.get(), status))
+        if (!send(mt, psp.vsi, nonce, msg_copy, op, status))
         {
-            m_pending_ops.erase(inserted.first);
-            psp.op->handle_sent_to(psp.si, psp.vsi);
             m_failed.push_back(psp);
         }
     }
@@ -837,6 +837,7 @@ client :: send(network_msgtype mt,
             return true;
         case BUSYBEE_DISRUPTED:
             handle_disruption(id);
+            ERROR(SERVERERROR) << "server " << id.get() << " had a communication disruption";
             return false;
         BUSYBEE_ERROR_CASE_FALSE(SHUTDOWN);
         BUSYBEE_ERROR_CASE_FALSE(POLLFAILED);

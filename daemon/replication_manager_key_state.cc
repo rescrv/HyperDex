@@ -37,12 +37,13 @@
 
 using hyperdex::replication_manager;
 
-replication_manager :: key_state :: key_state(const region_id& r, const e::slice& k)
-    : m_ri(r)
-    , m_key_backing(reinterpret_cast<const char*>(k.data()), k.size())
+replication_manager :: key_state :: key_state(const key_region& kr)
+    : m_ri(kr.region)
+    , m_key_backing(reinterpret_cast<const char*>(kr.key.data()), kr.key.size())
     , m_key(m_key_backing.data(), m_key_backing.size())
     , m_lock()
     , m_marked_garbage(false)
+    , m_initialized(false)
     , m_ref(0)
     , m_committable()
     , m_blocked()
@@ -59,16 +60,34 @@ replication_manager :: key_state :: ~key_state() throw ()
 {
 }
 
-e::slice
-replication_manager :: key_state :: key() const
-{
-    return m_key;
-}
-
 replication_manager::key_region
-replication_manager :: key_state :: kr() const
+replication_manager :: key_state :: state_key() const
 {
     return key_region(m_ri, m_key);
+}
+
+void
+replication_manager :: key_state :: lock()
+{
+    m_lock.lock();
+}
+
+void
+replication_manager :: key_state :: unlock()
+{
+    m_lock.unlock();
+}
+
+bool
+replication_manager :: key_state :: finished()
+{
+    return empty();
+}
+
+void
+replication_manager :: key_state :: mark_garbage()
+{
+    m_marked_garbage = true;
 }
 
 bool
@@ -78,9 +97,24 @@ replication_manager :: key_state :: marked_garbage() const
 }
 
 bool
+replication_manager :: key_state :: initialized() const
+{
+    return m_initialized;
+}
+
+bool
 replication_manager :: key_state :: empty() const
 {
     return m_committable.empty() && m_blocked.empty() && m_deferred.empty();
+}
+
+void
+replication_manager :: key_state :: clear()
+{
+    m_committable.clear();
+    m_blocked.clear();
+    m_deferred.clear();
+    assert(empty());
 }
 
 uint64_t
@@ -171,6 +205,7 @@ hyperdex::datalayer::returncode
 replication_manager :: key_state :: initialize(datalayer* data,
                                                const region_id& ri)
 {
+    assert(!m_initialized);
     datalayer::returncode rc = data->get(ri, m_key, &m_old_value, &m_old_version, &m_old_disk_ref);
 
     switch (rc)
@@ -189,6 +224,7 @@ replication_manager :: key_state :: initialize(datalayer* data,
             break;
     }
 
+    m_initialized = true;
     return rc;
 }
 
@@ -392,6 +428,35 @@ replication_manager :: key_state :: resend_committable(replication_manager* rm,
 }
 
 void
+replication_manager :: key_state :: append_seq_ids(std::vector<std::pair<region_id, uint64_t> >* seq_ids)
+{
+    size_t sz = seq_ids->size() + m_committable.size() + m_blocked.size() + m_deferred.size();
+
+    if (seq_ids->capacity() < sz)
+    {
+        seq_ids->reserve(sz);
+    }
+
+    for (pending_list_t::iterator it = m_committable.begin();
+            it != m_committable.end(); ++it)
+    {
+        seq_ids->push_back(std::make_pair(m_ri, it->second->seq_id));
+    }
+
+    for (pending_list_t::iterator it = m_blocked.begin();
+            it != m_blocked.end(); ++it)
+    {
+        seq_ids->push_back(std::make_pair(m_ri, it->second->seq_id));
+    }
+
+    for (pending_list_t::iterator it = m_deferred.begin();
+            it != m_deferred.end(); ++it)
+    {
+        seq_ids->push_back(std::make_pair(m_ri, it->second->seq_id));
+    }
+}
+
+void
 replication_manager :: key_state :: move_operations_between_queues(replication_manager* rm,
                                                                    const virtual_server_id& us,
                                                                    const region_id& ri,
@@ -404,7 +469,18 @@ replication_manager :: key_state :: move_operations_between_queues(replication_m
         uint64_t old_version = 0;
         std::vector<e::slice>* old_value = NULL;
         get_latest(&has_old_value, &old_version, &old_value);
-        assert(old_version < m_deferred.front().first);
+
+        if (old_version >= m_deferred.front().first)
+        {
+            LOG(WARNING) << "dropping deferred CHAIN_* which was sent out of order: "
+                         << "we're using key " << state_key().key.hex() << " in region "
+                         << state_key().region
+                         << ".  We've already seen " << old_version << " and the CHAIN_* "
+                         << "is for version " << m_deferred.front().first;
+            m_deferred.pop_front();
+            continue;
+        }
+
         e::intrusive_ptr<pending> op = m_deferred.front().second;
 
         // If the version numbers don't line up, and this is not fresh, and it
@@ -466,6 +542,31 @@ replication_manager :: key_state :: move_operations_between_queues(replication_m
 }
 
 void
+replication_manager :: key_state :: debug_dump()
+{
+    for (pending_list_t::iterator it = m_committable.begin();
+            it != m_committable.end(); ++it)
+    {
+        LOG(INFO) << " committable " << it->first;
+        it->second->debug_dump();
+    }
+
+    for (pending_list_t::iterator it = m_blocked.begin();
+            it != m_blocked.end(); ++it)
+    {
+        LOG(INFO) << " blocked " << it->first;
+        it->second->debug_dump();
+    }
+
+    for (pending_list_t::iterator it = m_deferred.begin();
+            it != m_deferred.end(); ++it)
+    {
+        LOG(INFO) << " deferred " << it->first;
+        it->second->debug_dump();
+    }
+}
+
+void
 replication_manager :: key_state :: get_latest(bool* has_old_value,
                                                uint64_t* old_version,
                                                std::vector<e::slice>** old_value)
@@ -491,7 +592,7 @@ replication_manager :: key_state :: get_latest(bool* has_old_value,
 }
 
 bool
-replication_manager :: key_state :: check_version(const schema& sc, 
+replication_manager :: key_state :: check_version(const schema& sc,
                                                   bool erase,
                                                   bool fail_if_not_found,
                                                   bool fail_if_found,

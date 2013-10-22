@@ -38,14 +38,22 @@
 class hyperdex::replication_manager::key_state
 {
     public:
-        key_state(const region_id& ri, const e::slice& key);
+        key_state(const key_region& kr);
         ~key_state() throw ();
 
+    // for use with state_hash_table
     public:
-        e::slice key() const;
-        key_region kr() const;
+        key_region state_key() const;
+        void lock();
+        void unlock();
+        bool finished();
+        void mark_garbage();
         bool marked_garbage() const;
+
+    public:
+        bool initialized() const;
         bool empty() const;
+        void clear();
         uint64_t max_seq_id() const;
         uint64_t min_seq_id() const;
         e::intrusive_ptr<pending> get_version(uint64_t version) const;
@@ -74,6 +82,7 @@ class hyperdex::replication_manager::key_state
         void clear_acked_prefix();
         void resend_committable(replication_manager* rm,
                                 const virtual_server_id& us);
+        void append_seq_ids(std::vector<std::pair<region_id, uint64_t> >* seq_ids);
         // Move operations between the queues in the key_state.  Blocked
         // operations will have their blocking criteria checked.  Deferred
         // operations will be checked for continuity with the blocked
@@ -82,6 +91,7 @@ class hyperdex::replication_manager::key_state
                                             const virtual_server_id& us,
                                             const region_id& ri,
                                             const schema& sc);
+        void debug_dump();
 
     private:
         typedef std::list<std::pair<uint64_t, e::intrusive_ptr<pending> > >
@@ -119,6 +129,7 @@ class hyperdex::replication_manager::key_state
         const e::slice m_key;
         po6::threads::mutex m_lock;
         bool m_marked_garbage;
+        bool m_initialized;
         size_t m_ref;
         pending_list_t m_committable;
         pending_list_t m_blocked;

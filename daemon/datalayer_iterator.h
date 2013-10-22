@@ -66,6 +66,33 @@ class datalayer::iterator
         leveldb_snapshot_ptr m_snap;
 };
 
+class datalayer::replay_iterator
+{
+    public:
+        replay_iterator(const region_id& ri, leveldb_replay_iterator_ptr ptr, index_info* di);
+
+    public:
+        bool valid();
+        void next();
+        bool has_value();
+        e::slice key();
+        returncode unpack_value(std::vector<e::slice>* value,
+                                uint64_t* version,
+                                reference* ref);
+        leveldb::Status status();
+
+    private:
+        region_id m_ri;
+        leveldb::ReplayIterator* m_iter;
+        leveldb_replay_iterator_ptr m_ptr;
+        std::vector<char> m_decoded;
+        index_info* m_di;
+
+    private:
+        replay_iterator(const replay_iterator&);
+        replay_iterator& operator = (const replay_iterator&);
+};
+
 class datalayer::dummy_iterator : public iterator
 {
     public:

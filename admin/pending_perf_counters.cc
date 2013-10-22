@@ -193,7 +193,7 @@ pending_perf_counters :: handle_message(admin*,
 
     if (mt != PERF_COUNTERS)
     {
-        set_status(HYPERDEX_ADMIN_SERVERERROR);
+        YIELDING_ERROR(SERVERERROR) << "server " << si.get() << " responded to PERF_COUNTERS with wrong message type";
         return true;
     }
 

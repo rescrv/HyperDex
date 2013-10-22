@@ -42,6 +42,12 @@ replication_manager :: key_region :: key_region(const region_id& r, const e::sli
 {
 }
 
+replication_manager :: key_region :: key_region(const key_region& other)
+    : region(other.region)
+    , key(other.key)
+{
+}
+
 bool
 replication_manager :: key_region :: operator < (const key_region& rhs) const
 {
@@ -57,4 +63,16 @@ bool
 replication_manager :: key_region :: operator == (const key_region& rhs) const
 {
     return region == rhs.region && key == rhs.key;
+}
+
+replication_manager::key_region&
+replication_manager :: key_region :: operator = (const key_region& rhs)
+{
+    if (this != &rhs)
+    {
+        region = rhs.region;
+        key = rhs.key;
+    }
+
+    return *this;
 }

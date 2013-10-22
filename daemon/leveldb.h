@@ -57,29 +57,16 @@ typedef std::tr1::shared_ptr<leveldb::DB> leveldb_db_ptr;
 class leveldb_snapshot_ptr
 {
     public:
-        leveldb_snapshot_ptr() : m_db(), m_snap() {}
+        leveldb_snapshot_ptr()
+            : m_db(), m_snap() {}
         leveldb_snapshot_ptr(leveldb_db_ptr d, const leveldb::Snapshot* snap)
-            : m_db(d), m_snap()
-        {
-            std::tr1::function<void (const leveldb::Snapshot*)> dtor;
-            dtor = std::tr1::bind(&leveldb::DB::ReleaseSnapshot, m_db, _1);
-            std::tr1::shared_ptr<const leveldb::Snapshot> tmp(snap, dtor);
-            m_snap = tmp;
-        }
+            : m_db(d), m_snap() { reset(d, snap); }
         leveldb_snapshot_ptr(const leveldb_snapshot_ptr& other)
             : m_db(other.m_db), m_snap(other.m_snap) {}
         ~leveldb_snapshot_ptr() throw () {}
 
     public:
-        void reset(leveldb_db_ptr d, const leveldb::Snapshot* snap)
-        {
-            m_db = d;
-            // keep m_db init above and m_snap init below
-            std::tr1::function<void (const leveldb::Snapshot*)> dtor;
-            dtor = std::tr1::bind(&leveldb::DB::ReleaseSnapshot, m_db.get(), _1);
-            std::tr1::shared_ptr<const leveldb::Snapshot> tmp(snap, dtor);
-            m_snap = tmp;
-        }
+        void reset(leveldb_db_ptr d, const leveldb::Snapshot* snap);
         const leveldb::Snapshot* get() const { return m_snap.get(); }
         leveldb::DB* db() const { return m_db.get(); }
 
@@ -88,6 +75,7 @@ class leveldb_snapshot_ptr
         {
             if (this != &rhs)
             {
+                leveldb_db_ptr tmp = m_db; // make db outlast snap
                 m_db = rhs.m_db;
                 m_snap = rhs.m_snap;
             }
@@ -98,6 +86,18 @@ class leveldb_snapshot_ptr
         leveldb_db_ptr m_db;
         std::tr1::shared_ptr<const leveldb::Snapshot> m_snap;
 };
+
+inline void
+leveldb_snapshot_ptr :: reset(leveldb_db_ptr d, const leveldb::Snapshot* snap)
+{
+    leveldb_db_ptr tmp = m_db;
+    m_db = d;
+    // keep m_db init above and m_snap init below
+    std::tr1::function<void (const leveldb::Snapshot*)> dtor;
+    dtor = std::tr1::bind(&leveldb::DB::ReleaseSnapshot, m_db.get(), _1);
+    std::tr1::shared_ptr<const leveldb::Snapshot> s(snap, dtor);
+    m_snap = s;
+}
 
 class leveldb_iterator_ptr
 {
@@ -118,6 +118,51 @@ class leveldb_iterator_ptr
         leveldb_snapshot_ptr m_snap;
         std::tr1::shared_ptr<leveldb::Iterator> m_iter;
 };
+
+class leveldb_replay_iterator_ptr
+{
+    public:
+        leveldb_replay_iterator_ptr()
+            : m_db(), m_snap() {}
+        leveldb_replay_iterator_ptr(leveldb_db_ptr d, leveldb::ReplayIterator* snap)
+            : m_db(), m_snap() { reset(d, snap); }
+        leveldb_replay_iterator_ptr(const leveldb_replay_iterator_ptr& other)
+            : m_db(other.m_db), m_snap(other.m_snap) {}
+        ~leveldb_replay_iterator_ptr() throw () {}
+
+    public:
+        void reset(leveldb_db_ptr d, leveldb::ReplayIterator* snap);
+        leveldb::ReplayIterator* get() const { return m_snap.get(); }
+        leveldb::DB* db() const { return m_db.get(); }
+
+    public:
+        leveldb_replay_iterator_ptr& operator = (const leveldb_replay_iterator_ptr& rhs)
+        {
+            if (this != &rhs)
+            {
+                leveldb_db_ptr tmp = m_db; // make db outlast snap
+                m_db = rhs.m_db;
+                m_snap = rhs.m_snap;
+            }
+            return *this;
+        }
+
+    private:
+        leveldb_db_ptr m_db;
+        std::tr1::shared_ptr<leveldb::ReplayIterator> m_snap;
+};
+
+inline void
+leveldb_replay_iterator_ptr :: reset(leveldb_db_ptr d, leveldb::ReplayIterator* snap)
+{
+    leveldb_db_ptr tmp = m_db;
+    m_db = d;
+    // keep m_db init above and m_snap init below
+    std::tr1::function<void (leveldb::ReplayIterator*)> dtor;
+    dtor = std::tr1::bind(&leveldb::DB::ReleaseReplayIterator, m_db.get(), _1);
+    std::tr1::shared_ptr<leveldb::ReplayIterator> s(snap, dtor);
+    m_snap = s;
+}
 
 END_HYPERDEX_NAMESPACE
 

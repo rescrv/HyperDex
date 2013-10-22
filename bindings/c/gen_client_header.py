@@ -137,6 +137,9 @@ const char*
 hyperdex_client_error_message(struct hyperdex_client* client);
 
 const char*
+hyperdex_client_error_location(struct hyperdex_client* client);
+
+const char*
 hyperdex_client_returncode_to_string(enum hyperdex_client_returncode);
 
 void

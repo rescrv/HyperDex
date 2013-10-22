@@ -64,11 +64,17 @@ class coordinator_link
     public:
         const configuration* config() { return &m_config; }
         poll_fd_t poll_fd() { return m_repl.poll_fd(); }
+        // true if there's a configuration to use
+        // false if there's an error to report
+        //
+        // blocks if there's progress to be made toward getting a config
         bool ensure_configuration(replicant_returncode* status);
         int64_t rpc(const char* func,
                     const char* data, size_t data_sz,
                     replicant_returncode* status,
                     const char** output, size_t* output_sz);
+        int64_t wait(const char* cond, uint64_t state,
+                     replicant_returncode* status);
         int64_t loop(int timeout, replicant_returncode* status);
         uint64_t queued_responses() { return m_pending_ids.size(); }
         e::error error() { return m_repl.last_error(); }
@@ -78,18 +84,23 @@ class coordinator_link
         coordinator_link& operator = (const coordinator_link&);
 
     private:
-        // returns true when ensures config one way or the other
-        // returns false when further looping is necessary to ensure config
-        bool handle_internal_callback(replicant_returncode* status, bool* ensured);
+        bool prime_state_machine(replicant_returncode* status);
+        // call this when m_repl.loop returns m_id
+        // returns true if there's a new configuration to handle
+        // returns false otherwise and sets failed:
+        //      failed == true:  there's an error stored in *status;
+        //      failed == false:  no error, just working the state machine
+        bool handle_internal_callback(replicant_returncode* status, bool* failed);
         bool begin_waiting_on_broadcast(replicant_returncode* status);
         bool begin_fetching_config(replicant_returncode* status);
+        void reset();
 
     private:
         replicant_client m_repl;
         configuration m_config;
+        enum { NOTHING, WAITING_ON_BROADCAST, FETCHING_CONFIG } m_state;
         int64_t m_id;
         replicant_returncode m_status;
-        enum { WAITING_ON_BROADCAST, FETCHING_CONFIG } m_state;
         const char* m_output;
         size_t m_output_sz;
         std::list<int64_t> m_pending_ids;

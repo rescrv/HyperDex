@@ -87,8 +87,8 @@
 
 BEGIN_HYPERDEX_NAMESPACE
 
-CREATE_ID(capture)
 CREATE_ID(region)
+CREATE_ID(replica_set)
 CREATE_ID(server)
 CREATE_ID(space)
 CREATE_ID(subspace)

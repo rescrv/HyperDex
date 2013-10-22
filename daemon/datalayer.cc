@@ -59,6 +59,8 @@
 #include "daemon/datalayer_encodings.h"
 #include "daemon/datalayer_iterator.h"
 
+#define STRLENOF(x)	(sizeof(x)-1)
+
 // ASSUME:  all keys put into leveldb have a first byte without the high bit set
 
 using hyperdex::datalayer;
@@ -67,17 +69,20 @@ using hyperdex::reconfigure_returncode;
 datalayer :: datalayer(daemon* d)
     : m_daemon(d)
     , m_db()
-    , m_counters()
-    , m_cleaner(std::tr1::bind(&datalayer::cleaner, this))
-    , m_block_cleaner()
-    , m_wakeup_cleaner(&m_block_cleaner)
-    , m_wakeup_reconfigurer(&m_block_cleaner)
-    , m_need_cleaning(false)
+    , m_checkpointer(std::tr1::bind(&datalayer::checkpointer, this))
+    , m_wiper(std::tr1::bind(&datalayer::wiper, this))
+    , m_protect()
+    , m_wakeup_checkpointer(&m_protect)
+    , m_wakeup_wiper(&m_protect)
+    , m_wakeup_reconfigurer(&m_protect)
     , m_shutdown(true)
     , m_need_pause(false)
-    , m_paused(false)
-    , m_state_transfer_captures()
+    , m_checkpointer_paused(false)
+    , m_wiper_paused(false)
+    , m_checkpoint_gc(0)
+    , m_wiping()
 {
+    po6::threads::mutex::hold hold(&m_protect);
 }
 
 datalayer :: ~datalayer() throw ()
@@ -86,16 +91,17 @@ datalayer :: ~datalayer() throw ()
 }
 
 bool
-datalayer :: setup(const po6::pathname& path,
-                   bool* saved,
-                   server_id* saved_us,
-                   po6::net::location* saved_bind_to,
-                   po6::net::hostname* saved_coordinator)
+datalayer :: initialize(const po6::pathname& path,
+                        bool* saved,
+                        server_id* saved_us,
+                        po6::net::location* saved_bind_to,
+                        po6::net::hostname* saved_coordinator)
 {
     leveldb::Options opts;
-    opts.write_buffer_size = 64ULL * 1024ULL * 1024ULL;
+    opts.write_buffer_size = 16ULL * 1024ULL * 1024ULL;
     opts.create_if_missing = true;
     opts.filter_policy = leveldb::NewBloomFilterPolicy(10);
+    opts.manual_garbage_collection = true;
     std::string name(path.get());
     leveldb::DB* tmp_db;
     leveldb::Status st = leveldb::DB::Open(opts, name, &tmp_db);
@@ -110,10 +116,12 @@ datalayer :: setup(const po6::pathname& path,
     leveldb::ReadOptions ropts;
     ropts.fill_cache = true;
     ropts.verify_checksums = true;
+    leveldb::WriteOptions wopts;
+    wopts.sync = true;
 
-    leveldb::Slice rk("hyperdex", 8);
+    // read the "hyperdex" key and check the version
     std::string rbacking;
-    st = m_db->Get(ropts, rk, &rbacking);
+    st = m_db->Get(ropts, leveldb::Slice("hyperdex", 8), &rbacking);
     bool first_time = false;
 
     if (st.ok())
@@ -124,7 +132,17 @@ datalayer :: setup(const po6::pathname& path,
             rbacking != "1.0.rc1" &&
             rbacking != "1.0.rc2")
         {
-            LOG(ERROR) << "could not restore from LevelDB because "
+        }
+    }
+
+
+    if (st.ok())
+    {
+        first_time = false;
+
+        if (rbacking != PACKAGE_VERSION)
+        {
+            LOG(ERROR) << "could not restore from disk because "
                        << "the existing data was created by "
                        << "HyperDex " << rbacking << " but "
                        << "this is version " << PACKAGE_VERSION;
@@ -134,30 +152,25 @@ datalayer :: setup(const po6::pathname& path,
     else if (st.IsNotFound())
     {
         first_time = true;
-    }
-    else if (st.IsCorruption())
-    {
-        LOG(ERROR) << "could not restore from LevelDB because of corruption:  "
-                   << st.ToString();
-        return false;
-    }
-    else if (st.IsIOError())
-    {
-        LOG(ERROR) << "could not restore from LevelDB because of an IO error:  "
-                   << st.ToString();
-        return false;
+        leveldb::Slice k("hyperdex", 8);
+        leveldb::Slice v(PACKAGE_VERSION, STRLENOF(PACKAGE_VERSION));
+        st = m_db->Put(wopts, k, v);
+
+        if (!st.ok())
+        {
+            LOG(ERROR) << "could not save \"hyperdex\" key to disk: " << st.ToString();
+            return false;
+        }
     }
     else
     {
-        LOG(ERROR) << "could not restore from LevelDB because it returned an "
-                   << "unknown error that we don't know how to handle:  "
-                   << st.ToString();
+        LOG(ERROR) << "could not read \"hyperdex\" key from LevelDB: " << st.ToString();
         return false;
     }
 
-    leveldb::Slice sk("state", 5);
+    // read the "state" key and parse it
     std::string sbacking;
-    st = m_db->Get(ropts, sk, &sbacking);
+    st = m_db->Get(ropts, leveldb::Slice("state", 5), &sbacking);
 
     if (st.ok())
     {
@@ -165,64 +178,47 @@ datalayer :: setup(const po6::pathname& path,
         {
             LOG(ERROR) << "could not restore from LevelDB because a previous "
                        << "execution crashed and the database was tampered with; "
-                       << "you're on your own with this one";
+                       << "you'll need to manually erase this DB and create a new one";
+            return false;
+        }
+
+        e::unpacker up(sbacking.data(), sbacking.size());
+        uint64_t us;
+        up = up >> us >> *saved_bind_to >> *saved_coordinator;
+        *saved_us = server_id(us);
+
+        if (up.error())
+        {
+            LOG(ERROR) << "could not restore from LevelDB because a previous "
+                       << "execution wrote an invalid state; "
+                       << "you'll need to manually erase this DB and create a new one";
             return false;
         }
     }
     else if (st.IsNotFound())
     {
-        if (!first_time)
+        if (!only_key_is_hyperdex_key())
         {
             LOG(ERROR) << "could not restore from LevelDB because a previous "
-                       << "execution crashed; run the recovery program and try again";
+                       << "execution didn't save state and wrote other data; "
+                       << "you'll need to manually erase this DB and create a new one";
             return false;
         }
     }
-    else if (st.IsCorruption())
-    {
-        LOG(ERROR) << "could not restore from LevelDB because of corruption:  "
-                   << st.ToString();
-        return false;
-    }
-    else if (st.IsIOError())
-    {
-        LOG(ERROR) << "could not restore from LevelDB because of an IO error:  "
-                   << st.ToString();
-        return false;
-    }
     else
     {
-        LOG(ERROR) << "could not restore from LevelDB because it returned an "
-                   << "unknown error that we don't know how to handle:  "
-                   << st.ToString();
+        LOG(ERROR) << "could not read \"hyperdex\" key from LevelDB: " << st.ToString();
         return false;
     }
 
     {
-        po6::threads::mutex::hold hold(&m_block_cleaner);
-        m_cleaner.start();
+        po6::threads::mutex::hold hold(&m_protect);
+        m_checkpointer.start();
+        m_wiper.start();
         m_shutdown = false;
     }
 
-    if (first_time)
-    {
-        *saved = false;
-        return true;
-    }
-
-    uint64_t us;
-    *saved = true;
-    e::unpacker up(sbacking.data(), sbacking.size());
-    up = up >> us >> *saved_bind_to >> *saved_coordinator;
-    *saved_us = server_id(us);
-
-    if (up.error())
-    {
-        LOG(ERROR) << "could not restore from LevelDB because a previous "
-                   << "execution saved invalid state; run the recovery program and try again";
-        return false;
-    }
-
+    *saved = !first_time;
     return true;
 }
 
@@ -233,156 +229,27 @@ datalayer :: teardown()
 }
 
 bool
-datalayer :: initialize()
-{
-    leveldb::WriteOptions wopts;
-    wopts.sync = true;
-    leveldb::Status st = m_db->Put(wopts, leveldb::Slice("hyperdex", 8),
-                                   leveldb::Slice(PACKAGE_VERSION, strlen(PACKAGE_VERSION)));
-
-    if (st.ok())
-    {
-        return true;
-    }
-    else if (st.IsNotFound())
-    {
-        LOG(ERROR) << "could not initialize LevelDB because Put returned NotFound:  "
-                   << st.ToString();
-        return false;
-    }
-    else if (st.IsCorruption())
-    {
-        LOG(ERROR) << "could not initialize LevelDB because of corruption:  "
-                   << st.ToString();
-        return false;
-    }
-    else if (st.IsIOError())
-    {
-        LOG(ERROR) << "could not initialize LevelDB because of an IO error:  "
-                   << st.ToString();
-        return false;
-    }
-    else
-    {
-        LOG(ERROR) << "could not initialize LevelDB because it returned an "
-                   << "unknown error that we don't know how to handle:  "
-                   << st.ToString();
-        return false;
-    }
-}
-
-bool
 datalayer :: save_state(const server_id& us,
                         const po6::net::location& bind_to,
                         const po6::net::hostname& coordinator)
 {
     leveldb::WriteOptions wopts;
     wopts.sync = true;
-    leveldb::Status st = m_db->Put(wopts,
-                                   leveldb::Slice("dirty", 5),
-                                   leveldb::Slice("", 0));
-
-    if (st.ok())
-    {
-        // Yay
-    }
-    else if (st.IsNotFound())
-    {
-        LOG(ERROR) << "could not set dirty bit: "
-                   << st.ToString();
-        return false;
-    }
-    else if (st.IsCorruption())
-    {
-        LOG(ERROR) << "corruption at the disk layer: "
-                   << "could not set dirty bit: "
-                   << st.ToString();
-        return false;
-    }
-    else if (st.IsIOError())
-    {
-        LOG(ERROR) << "IO error at the disk layer: "
-                   << "could not set dirty bit: "
-                   << st.ToString();
-        return false;
-    }
-    else
-    {
-        LOG(ERROR) << "LevelDB returned an unknown error that we don't "
-                   << "know how to handle: could not set dirty bit";
-        return false;
-    }
-
     size_t sz = sizeof(uint64_t)
               + pack_size(bind_to)
               + pack_size(coordinator);
     std::auto_ptr<e::buffer> state(e::buffer::create(sz));
     *state << us << bind_to << coordinator;
-    st = m_db->Put(wopts, leveldb::Slice("state", 5),
-                   leveldb::Slice(reinterpret_cast<const char*>(state->data()), state->size()));
+    leveldb::Status st = m_db->Put(wopts, leveldb::Slice("state", 5),
+                                   leveldb::Slice(reinterpret_cast<const char*>(state->data()), state->size()));
 
     if (st.ok())
     {
         return true;
     }
-    else if (st.IsNotFound())
-    {
-        LOG(ERROR) << "could not save state: "
-                   << st.ToString();
-        return false;
-    }
-    else if (st.IsCorruption())
-    {
-        LOG(ERROR) << "corruption at the disk layer: "
-                   << "could not save state: "
-                   << st.ToString();
-        return false;
-    }
-    else if (st.IsIOError())
-    {
-        LOG(ERROR) << "IO error at the disk layer: "
-                   << "could not save state: "
-                   << st.ToString();
-        return false;
-    }
     else
     {
-        LOG(ERROR) << "LevelDB returned an unknown error that we don't "
-                   << "know how to handle: could not save state";
-        return false;
-    }
-}
-
-bool
-datalayer :: clear_dirty()
-{
-    leveldb::WriteOptions wopts;
-    wopts.sync = true;
-    leveldb::Slice key("dirty", 5);
-    leveldb::Status st = m_db->Delete(wopts, key);
-
-    if (st.ok() || st.IsNotFound())
-    {
-        return true;
-    }
-    else if (st.IsCorruption())
-    {
-        LOG(ERROR) << "corruption at the disk layer: "
-                   << "could not clear dirty bit: "
-                   << st.ToString();
-        return false;
-    }
-    else if (st.IsIOError())
-    {
-        LOG(ERROR) << "IO error at the disk layer: "
-                   << "could not clear dirty bit: "
-                   << st.ToString();
-        return false;
-    }
-    else
-    {
-        LOG(ERROR) << "LevelDB returned an unknown error that we don't "
-                   << "know how to handle: could not clear dirty bit";
+        LOG(ERROR) << "could not save state: " << st.ToString();
         return false;
     }
 }
@@ -390,7 +257,7 @@ datalayer :: clear_dirty()
 void
 datalayer :: pause()
 {
-    po6::threads::mutex::hold hold(&m_block_cleaner);
+    po6::threads::mutex::hold hold(&m_protect);
     assert(!m_need_pause);
     m_need_pause = true;
 }
@@ -398,43 +265,27 @@ datalayer :: pause()
 void
 datalayer :: unpause()
 {
-    po6::threads::mutex::hold hold(&m_block_cleaner);
+    po6::threads::mutex::hold hold(&m_protect);
     assert(m_need_pause);
-    m_wakeup_cleaner.broadcast();
+    m_wakeup_checkpointer.broadcast();
+    m_wakeup_wiper.broadcast();
     m_need_pause = false;
-    m_need_cleaning = true;
 }
 
 void
 datalayer :: reconfigure(const configuration&,
-                         const configuration& new_config,
-                         const server_id& us)
+                         const configuration&,
+                         const server_id&)
 {
     {
-        po6::threads::mutex::hold hold(&m_block_cleaner);
+        po6::threads::mutex::hold hold(&m_protect);
         assert(m_need_pause);
 
-        while (!m_paused)
+        while (!m_checkpointer_paused || !m_wiper_paused)
         {
             m_wakeup_reconfigurer.wait();
         }
     }
-
-    std::vector<capture> captures;
-    new_config.captures(&captures);
-    std::vector<region_id> regions;
-    regions.reserve(captures.size());
-
-    for (size_t i = 0; i < captures.size(); ++i)
-    {
-        if (new_config.get_virtual(captures[i].rid, us) != virtual_server_id())
-        {
-            regions.push_back(captures[i].rid);
-        }
-    }
-
-    std::sort(regions.begin(), regions.end());
-    m_counters.adopt(regions);
 }
 
 bool
@@ -443,6 +294,14 @@ datalayer :: get_property(const e::slice& property,
 {
     leveldb::Slice prop(reinterpret_cast<const char*>(property.data()), property.size());
     return m_db->GetProperty(prop, value);
+}
+
+std::string
+datalayer :: get_timestamp()
+{
+    std::string timestamp;
+    m_db->GetReplayTimestamp(&timestamp);
+    return timestamp;
 }
 
 uint64_t
@@ -524,21 +383,6 @@ datalayer :: del(const region_id& ri,
         updates.Put(akey, aval);
     }
 
-    uint64_t count;
-
-    // If this is a captured region, then we must log this transfer
-    if (m_counters.lookup(ri, &count))
-    {
-        char tbacking[TRANSFER_BUF_SIZE];
-        capture_id cid = m_daemon->m_config.capture_for(ri);
-        assert(cid != capture_id());
-        leveldb::Slice tkey(tbacking, TRANSFER_BUF_SIZE);
-        leveldb::Slice tval;
-        encode_transfer(cid, count, tbacking);
-        encode_key_value(key, NULL, 0, &scratch, &tval);
-        updates.Put(tkey, tval);
-    }
-
     // Perform the write
     leveldb::WriteOptions opts;
     opts.sync = false;
@@ -597,21 +441,6 @@ datalayer :: put(const region_id& ri,
         updates.Put(akey, aval);
     }
 
-    uint64_t count;
-
-    // If this is a captured region, then we must log this transfer
-    if (m_counters.lookup(ri, &count))
-    {
-        char tbacking[TRANSFER_BUF_SIZE];
-        capture_id cid = m_daemon->m_config.capture_for(ri);
-        assert(cid != capture_id());
-        leveldb::Slice tkey(tbacking, TRANSFER_BUF_SIZE);
-        leveldb::Slice tval;
-        encode_transfer(cid, count, tbacking);
-        encode_key_value(key, &new_value, version, &scratch1, &tval);
-        updates.Put(tkey, tval);
-    }
-
     // Perform the write
     leveldb::WriteOptions opts;
     opts.sync = false;
@@ -665,21 +494,6 @@ datalayer :: overput(const region_id& ri,
         leveldb::Slice akey(abacking, ACKED_BUF_SIZE);
         leveldb::Slice aval("", 0);
         updates.Put(akey, aval);
-    }
-
-    uint64_t count;
-
-    // If this is a captured region, then we must log this transfer
-    if (m_counters.lookup(ri, &count))
-    {
-        char tbacking[TRANSFER_BUF_SIZE];
-        capture_id cid = m_daemon->m_config.capture_for(ri);
-        assert(cid != capture_id());
-        leveldb::Slice tkey(tbacking, TRANSFER_BUF_SIZE);
-        leveldb::Slice tval;
-        encode_transfer(cid, count, tbacking);
-        encode_key_value(key, &new_value, version, &scratch1, &tval);
-        updates.Put(tkey, tval);
     }
 
     // Perform the write
@@ -786,40 +600,6 @@ datalayer :: uncertain_put(const region_id& ri,
     else if (st.IsNotFound())
     {
         return put(ri, region_id(), 0, key, new_value, version);
-    }
-    else
-    {
-        return handle_error(st);
-    }
-}
-
-datalayer::returncode
-datalayer :: get_transfer(const region_id& ri,
-                          uint64_t seq_no,
-                          bool* has_value,
-                          e::slice* key,
-                          std::vector<e::slice>* value,
-                          uint64_t* version,
-                          reference* ref)
-{
-    leveldb::ReadOptions opts;
-    opts.fill_cache = true;
-    opts.verify_checksums = true;
-    char tbacking[TRANSFER_BUF_SIZE];
-    capture_id cid = m_daemon->m_config.capture_for(ri);
-    assert(cid != capture_id());
-    leveldb::Slice lkey(tbacking, TRANSFER_BUF_SIZE);
-    encode_transfer(cid, seq_no, tbacking);
-    leveldb::Status st = m_db->Get(opts, lkey, &ref->m_backing);
-
-    if (st.ok())
-    {
-        e::slice v(ref->m_backing.data(), ref->m_backing.size());
-        return decode_key_value(v, has_value, key, value, version);
-    }
-    else if (st.IsNotFound())
-    {
-        return NOT_FOUND;
     }
     else
     {
@@ -1001,14 +781,6 @@ datalayer :: clear_acked(const region_id& reg_id,
 
         it->Next();
     }
-}
-
-void
-datalayer :: request_wipe(const capture_id& cid)
-{
-    po6::threads::mutex::hold hold(&m_block_cleaner);
-    m_state_transfer_captures.insert(cid);
-    m_wakeup_cleaner.broadcast();
 }
 
 datalayer::snapshot
@@ -1217,10 +989,293 @@ datalayer :: get_from_iterator(const region_id& ri,
     }
 }
 
-void
-datalayer :: cleaner()
+datalayer::returncode
+datalayer :: create_checkpoint(const region_timestamp& rt)
 {
-    LOG(INFO) << "cleanup thread started";
+    po6::threads::mutex::hold hold(&m_protect);
+
+    for (wipe_list_t::iterator it = m_wiping.begin(); it != m_wiping.end(); ++it)
+    {
+        if (it->second == rt.rid)
+        {
+            return SUCCESS;
+        }
+    }
+
+    char cbacking[CHECKPOINT_BUF_SIZE + 1024];
+    encode_checkpoint(rt.rid, rt.checkpoint, cbacking);
+    leveldb::WriteOptions opts;
+    opts.sync = false;
+    leveldb::Slice ckey(cbacking, CHECKPOINT_BUF_SIZE);
+    leveldb::Slice val(rt.local_timestamp);
+    leveldb::Status st = m_db->Put(opts, ckey, val);
+
+    if (!st.ok())
+    {
+        return handle_error(st);
+    }
+
+    return SUCCESS;
+}
+
+void
+datalayer :: set_checkpoint_lower_gc(uint64_t checkpoint_gc)
+{
+    po6::threads::mutex::hold hold(&m_protect);
+    m_checkpoint_gc = std::max(checkpoint_gc, m_checkpoint_gc);
+    m_wakeup_checkpointer.signal();
+}
+
+void
+datalayer :: largest_checkpoint_for(const region_id& ri, uint64_t* checkpoint)
+{
+    po6::threads::mutex::hold hold(&m_protect);
+
+    for (wipe_list_t::iterator it = m_wiping.begin(); it != m_wiping.end(); ++it)
+    {
+        if (it->second == ri)
+        {
+            *checkpoint = 0;
+            return;
+        }
+    }
+
+    leveldb::ReadOptions opts;
+    opts.verify_checksums = true;
+    std::auto_ptr<leveldb::Iterator> it;
+    it.reset(m_db->NewIterator(opts));
+    char cbacking[CHECKPOINT_BUF_SIZE];
+    encode_checkpoint(ri, 0, cbacking);
+    it->Seek(leveldb::Slice(cbacking, CHECKPOINT_BUF_SIZE));
+    *checkpoint = 0;
+
+    while (it->Valid())
+    {
+        region_timestamp rt;
+        e::slice key(it->key().data(), it->key().size());
+        returncode rc = decode_checkpoint(key, &rt.rid, &rt.checkpoint);
+
+        if (rc != datalayer::SUCCESS)
+        {
+            break;
+        }
+
+        if (rt.rid != ri)
+        {
+            break;
+        }
+
+        *checkpoint = std::max(*checkpoint, rt.checkpoint);
+        it->Next();
+    }
+}
+
+void
+datalayer :: request_wipe(const transfer_id& xid,
+                          const region_id& ri)
+{
+    po6::threads::mutex::hold hold(&m_protect);
+    m_wiping.push_back(std::make_pair(xid, ri));
+    m_wakeup_wiper.broadcast();
+}
+
+datalayer::replay_iterator*
+datalayer :: replay_region_from_checkpoint(const region_id& ri,
+                                           uint64_t checkpoint,
+                                           bool* wipe)
+{
+    po6::threads::mutex::hold hold(&m_protect);
+    leveldb::ReadOptions opts;
+    opts.verify_checksums = true;
+    std::auto_ptr<leveldb::Iterator> it;
+    it.reset(m_db->NewIterator(opts));
+    char cbacking[CHECKPOINT_BUF_SIZE];
+    encode_checkpoint(ri, 0, cbacking);
+    it->Seek(leveldb::Slice(cbacking, CHECKPOINT_BUF_SIZE));
+    std::string local_timestamp("all");
+
+    while (it->Valid())
+    {
+        region_timestamp rt;
+        e::slice key(it->key().data(), it->key().size());
+        returncode rc = decode_checkpoint(key, &rt.rid, &rt.checkpoint);
+
+        if (rc != datalayer::SUCCESS)
+        {
+            break;
+        }
+
+        if (rt.rid != ri || rt.checkpoint > checkpoint)
+        {
+            break;
+        }
+
+        local_timestamp.assign(it->value().data(), it->value().size());
+        it->Next();
+    }
+
+    for (wipe_list_t::iterator w = m_wiping.begin(); w != m_wiping.end(); ++w)
+    {
+        if (w->second == ri)
+        {
+            local_timestamp = "all";
+            break;
+        }
+    }
+
+    *wipe = local_timestamp == "all";
+    leveldb::ReplayIterator* iter;
+    leveldb::Status st = m_db->GetReplayIterator(local_timestamp, &iter);
+
+    if (!st.ok())
+    {
+        LOG(ERROR) << "LevelDB corruption: invalid timestamp";
+        abort();
+    }
+
+    leveldb_replay_iterator_ptr ptr(m_db, iter);
+    const schema& sc(*m_daemon->m_config.get_schema(ri));
+    return new replay_iterator(ri, ptr, index_info::lookup(sc.attrs[0].type));
+}
+
+void
+datalayer :: collect_lower_checkpoints(uint64_t checkpoint_gc)
+{
+    po6::threads::mutex::hold hold(&m_protect);
+    leveldb::ReadOptions opts;
+    opts.verify_checksums = true;
+    std::auto_ptr<leveldb::Iterator> it;
+    it.reset(m_db->NewIterator(opts));
+    it->Seek(leveldb::Slice("c", 1));
+    std::string lower_bound_timestamp("now");
+
+    while (it->Valid())
+    {
+        region_timestamp rt;
+        e::slice key(it->key().data(), it->key().size());
+        returncode rc = decode_checkpoint(key, &rt.rid, &rt.checkpoint);
+
+        if (rc != datalayer::SUCCESS)
+        {
+            break;
+        }
+
+        rt.local_timestamp = std::string(it->value().data(), it->value().size());
+
+        if (rt.checkpoint >= checkpoint_gc &&
+            m_db->ValidateTimestamp(rt.local_timestamp))
+        {
+            if (m_db->CompareTimestamps(rt.local_timestamp, lower_bound_timestamp) < 0)
+            {
+                lower_bound_timestamp = rt.local_timestamp;
+            }
+
+            it->Next();
+            continue;
+        }
+
+        leveldb::WriteOptions wopts;
+        wopts.sync = false;
+        leveldb::Status st = m_db->Delete(wopts, it->key());
+
+        if (!st.ok())
+        {
+            break;
+        }
+
+        it->Next();
+    }
+
+    m_db->AllowGarbageCollectBeforeTimestamp(lower_bound_timestamp);
+}
+
+bool
+datalayer :: only_key_is_hyperdex_key()
+{
+    leveldb::ReadOptions opts;
+    opts.fill_cache = false;
+    opts.verify_checksums = true;
+    opts.snapshot = NULL;
+    std::auto_ptr<leveldb::Iterator> it(m_db->NewIterator(opts));
+    it->SeekToFirst();
+    bool seen = false;
+
+    while (it->Valid())
+    {
+        if (it->key().compare(leveldb::Slice("hyperdex", 8)) != 0)
+        {
+            return false;
+        }
+
+        it->Next();
+        seen = true;
+    }
+
+    return seen;
+}
+
+void
+datalayer :: checkpointer()
+{
+    LOG(INFO) << "checkpoint thread started";
+    sigset_t ss;
+
+    if (sigfillset(&ss) < 0)
+    {
+        PLOG(ERROR) << "sigfillset";
+        return;
+    }
+
+    if (pthread_sigmask(SIG_BLOCK, &ss, NULL) < 0)
+    {
+        PLOG(ERROR) << "could not block signals";
+        return;
+    }
+
+    bool need_checkpoint_gc = false;
+    uint64_t checkpoint_gc = 0;
+
+    while (true)
+    {
+        {
+            po6::threads::mutex::hold hold(&m_protect);
+
+            while ((checkpoint_gc >= m_checkpoint_gc && !m_shutdown) ||
+                   m_need_pause)
+            {
+                m_checkpointer_paused = true;
+
+                if (m_need_pause)
+                {
+                    m_wakeup_reconfigurer.signal();
+                }
+
+                m_wakeup_checkpointer.wait();
+                m_checkpointer_paused = false;
+            }
+
+            if (m_shutdown)
+            {
+                break;
+            }
+
+            need_checkpoint_gc = checkpoint_gc < m_checkpoint_gc;
+            checkpoint_gc = m_checkpoint_gc;
+        }
+
+        if (need_checkpoint_gc)
+        {
+            collect_lower_checkpoints(checkpoint_gc);
+        }
+    }
+
+    LOG(INFO) << "checkpoint thread shutting down";
+}
+
+void
+datalayer :: wiper()
+{
+    LOG(INFO) << "wiping thread started";
     sigset_t ss;
 
     if (sigfillset(&ss) < 0)
@@ -1237,24 +1292,23 @@ datalayer :: cleaner()
 
     while (true)
     {
-        std::set<capture_id> state_transfer_captures;
+        transfer_id xid;
+        region_id rid;
 
         {
-            po6::threads::mutex::hold hold(&m_block_cleaner);
+            po6::threads::mutex::hold hold(&m_protect);
 
-            while ((!m_need_cleaning &&
-                    m_state_transfer_captures.empty() &&
-                    !m_shutdown) || m_need_pause)
+            while ((m_wiping.empty() && !m_shutdown) || m_need_pause)
             {
-                m_paused = true;
+                m_wiper_paused = true;
 
                 if (m_need_pause)
                 {
                     m_wakeup_reconfigurer.signal();
                 }
 
-                m_wakeup_cleaner.wait();
-                m_paused = false;
+                m_wakeup_wiper.wait();
+                m_wiper_paused = false;
             }
 
             if (m_shutdown)
@@ -1262,89 +1316,89 @@ datalayer :: cleaner()
                 break;
             }
 
-            m_state_transfer_captures.swap(state_transfer_captures);
-            m_need_cleaning = false;
+            if (!m_wiping.empty())
+            {
+                xid = m_wiping.front().first;
+                rid = m_wiping.front().second;
+            }
         }
 
-        leveldb::ReadOptions opts;
-        opts.fill_cache = true;
-        opts.verify_checksums = true;
-        std::auto_ptr<leveldb::Iterator> it;
-        it.reset(m_db->NewIterator(opts));
-        it->Seek(leveldb::Slice("t", 1));
-        capture_id cached_cid;
+        assert(rid != region_id());
+        wipe_checkpoints(rid);
 
-        while (it->Valid())
+        if (wipe_some_indices(rid) &&
+            wipe_some_objects(rid))
         {
-            uint8_t prefix;
-            uint64_t cid;
-            uint64_t seq_no;
-            e::unpacker up(it->key().data(), it->key().size());
-            up = up >> prefix >> cid >> seq_no;
-
-            if (up.error() || prefix != 't')
-            {
-                break;
-            }
-
-            if (cid == cached_cid.get())
-            {
-                leveldb::WriteOptions wopts;
-                wopts.sync = false;
-                leveldb::Status st = m_db->Delete(wopts, it->key());
-
-                if (st.ok() || st.IsNotFound())
-                {
-                    // pass
-                }
-                else if (st.IsCorruption())
-                {
-                    LOG(ERROR) << "corruption at the disk layer: could not cleanup old transfers:"
-                               << " desc=" << st.ToString();
-                }
-                else if (st.IsIOError())
-                {
-                    LOG(ERROR) << "IO error at the disk layer: could not cleanup old transfers:"
-                               << " desc=" << st.ToString();
-                }
-                else
-                {
-                    LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
-                }
-
-                it->Next();
-                continue;
-            }
-
-            m_daemon->m_stm.report_wiped(cached_cid);
-
-            if (!m_daemon->m_config.is_captured_region(capture_id(cid)))
-            {
-                cached_cid = capture_id(cid);
-                continue;
-            }
-
-            if (state_transfer_captures.find(capture_id(cid)) != state_transfer_captures.end())
-            {
-                cached_cid = capture_id(cid);
-                state_transfer_captures.erase(cached_cid);
-                continue;
-            }
-
-            char tbacking[TRANSFER_BUF_SIZE];
-            leveldb::Slice slice(tbacking, TRANSFER_BUF_SIZE);
-            encode_transfer(capture_id(cid + 1), 0, tbacking);
-            it->Seek(slice);
-        }
-
-        while (!state_transfer_captures.empty())
-        {
-            m_daemon->m_stm.report_wiped(*state_transfer_captures.begin());
-            state_transfer_captures.erase(state_transfer_captures.begin());
+            m_daemon->m_stm.report_wiped(xid);
+            po6::threads::mutex::hold hold(&m_protect);
+            m_wiping.pop_front();
         }
     }
 
-    LOG(INFO) << "cleanup thread shutting down";
+    LOG(INFO) << "wiping thread shutting down";
+}
+
+void
+datalayer :: wipe_checkpoints(const region_id& ri)
+{
+    po6::threads::mutex::hold hold(&m_protect);
+    std::auto_ptr<leveldb::Iterator> it;
+    it.reset(m_db->NewIterator(leveldb::ReadOptions()));
+    char cbacking[CHECKPOINT_BUF_SIZE];
+    encode_checkpoint(ri, 0, cbacking);
+    it->Seek(leveldb::Slice(cbacking, CHECKPOINT_BUF_SIZE));
+
+    while (it->Valid())
+    {
+        region_timestamp rt;
+        e::slice key(it->key().data(), it->key().size());
+        returncode rc = decode_checkpoint(key, &rt.rid, &rt.checkpoint);
+
+        if (rc != datalayer::SUCCESS || rt.rid != ri)
+        {
+            break;
+        }
+
+        m_db->Delete(leveldb::WriteOptions(), it->key());
+        it->Next();
+    }
+}
+
+bool
+datalayer :: wipe_some_indices(const region_id& ri)
+{
+    return wipe_some_common('i', ri);
+}
+
+bool
+datalayer :: wipe_some_objects(const region_id& ri)
+{
+    return wipe_some_common('o', ri);
+}
+
+bool
+datalayer :: wipe_some_common(uint8_t c, const region_id& ri)
+{
+    std::auto_ptr<leveldb::Iterator> it;
+    it.reset(m_db->NewIterator(leveldb::ReadOptions()));
+    char backing[sizeof(uint8_t) + sizeof(uint64_t)];
+    e::pack8be(c, backing);
+    e::pack64be(ri.get(), backing + sizeof(uint8_t));
+    leveldb::Slice prefix(backing, sizeof(uint8_t) + sizeof(uint64_t));
+    it->Seek(prefix);
+
+    for (uint64_t i = 0; i < 65536 && it->Valid(); ++i)
+    {
+        if (!it->key().starts_with(prefix))
+        {
+            return true;
+        }
+
+        m_db->Delete(leveldb::WriteOptions(), it->key());
+        it->Next();
+    }
+
+    return false;
 }
 
 void
@@ -1353,15 +1407,17 @@ datalayer :: shutdown()
     bool is_shutdown;
 
     {
-        po6::threads::mutex::hold hold(&m_block_cleaner);
-        m_wakeup_cleaner.broadcast();
+        po6::threads::mutex::hold hold(&m_protect);
+        m_wakeup_checkpointer.broadcast();
+        m_wakeup_wiper.broadcast();
         is_shutdown = m_shutdown;
         m_shutdown = true;
     }
 
     if (!is_shutdown)
     {
-        m_cleaner.join();
+        m_checkpointer.join();
+        m_wiper.join();
     }
 }
 

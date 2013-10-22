@@ -118,7 +118,7 @@ perform_leveldb(void* _db,
 
 static int
 process_file(const char* filename,
-             int (*func)(void* ptr, 
+             int (*func)(void* ptr,
                          const char* k, size_t k_sz,
                          const char* v, size_t v_sz),
              void* ptr)
@@ -255,7 +255,7 @@ main(int argc, const char* argv[])
 
     try
     {
-        int (*func)(void* ptr, 
+        int (*func)(void* ptr,
                     const char* k, size_t k_sz,
                     const char* v, size_t v_sz) = NULL;
         void* ptr = NULL;

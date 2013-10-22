@@ -56,6 +56,8 @@ static hyperdex::Client* _cl = NULL;
 static std::map<int64_t, std::tr1::shared_ptr<hyperdex_client_returncode> > _incompleteops;
 
 static void
+wipe();
+static void
 test0();
 static void
 test1();
@@ -112,6 +114,7 @@ main(int argc, const char* argv[])
 
         do
         {
+            wipe();
             test0();
             test1();
             test2();
@@ -352,6 +355,18 @@ absent(uint64_t A)
     }
 
     assert(!attrs && !attrs_sz);
+}
+
+void
+wipe()
+{
+    for (long i = 0; i < _partitions; ++i)
+    {
+        uint64_t A = generate_attr(i);
+        put(A, A, A);
+        del(A);
+        flush();
+    }
 }
 
 // This test continually puts keys, ensuring that every way in which one could

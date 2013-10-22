@@ -45,7 +45,7 @@ hyperspace_set_error(struct hyperspace* space, const char* msg);
 #ifdef __cplusplus
 } /* extern "C" */
 
-// HyperDex
+/* HyperDex */
 #include "namespace.h"
 
 BEGIN_HYPERDEX_NAMESPACE

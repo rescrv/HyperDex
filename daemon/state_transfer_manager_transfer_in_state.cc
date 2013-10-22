@@ -33,22 +33,16 @@
 
 using hyperdex::state_transfer_manager;
 
-state_transfer_manager :: transfer_in_state :: transfer_in_state(const transfer& _xfer,
-                                                                 datalayer* data,
-                                                                 datalayer::snapshot snap)
+state_transfer_manager :: transfer_in_state :: transfer_in_state(const transfer& _xfer)
     : xfer(_xfer)
     , mtx()
-    , cleared_capture(false)
     , upper_bound_acked(1)
     , queued()
-    , need_del(true)
-    , prev()
-    , iter()
+    , handshake_complete(false)
+    , wipe(false)
+    , wiped(false)
     , m_ref(0)
 {
-    datalayer::returncode rc;
-    iter = data->make_region_iterator(snap, xfer.rid, &rc);
-    assert(rc == datalayer::SUCCESS);
 }
 
 state_transfer_manager :: transfer_in_state :: ~transfer_in_state() throw ()

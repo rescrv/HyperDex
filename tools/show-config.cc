@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2012-2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,94 +28,69 @@
 // C
 #include <cstdlib>
 
-// po6
-#include <po6/error.h>
-
-// e
-#include <e/guard.h>
-
 // HyperDex
-#include "client/coordinator_link.h"
-#include "client/hyperclient.hpp"
-#include "tools/old.common.h"
-
-static struct poptOption popts[] = {
-    POPT_AUTOHELP
-    CONNECT_TABLE
-    POPT_TABLEEND
-};
+#include <hyperdex/admin.hpp>
+#include "tools/common.h"
 
 int
 main(int argc, const char* argv[])
 {
-    poptContext poptcon;
-    poptcon = poptGetContext(NULL, argc, argv, popts, POPT_CONTEXT_POSIXMEHARDER);
-    e::guard g = e::makeguard(poptFreeContext, poptcon); g.use_variable();
-    poptSetOtherOptionHelp(poptcon, "[OPTIONS]");
-    int rc;
+    hyperdex::connect_opts conn;
+    e::argparser ap;
+    ap.autohelp();
+    ap.add("Connect to a cluster:", conn.parser());
 
-    while ((rc = poptGetNextOpt(poptcon)) != -1)
+    if (!ap.parse(argc, argv))
     {
-        switch (rc)
-        {
-            case 'h':
-                if (!check_host())
-                {
-                    return EXIT_FAILURE;
-                }
-                break;
-            case 'p':
-                if (!check_port())
-                {
-                    return EXIT_FAILURE;
-                }
-                break;
-            case POPT_ERROR_NOARG:
-            case POPT_ERROR_BADOPT:
-            case POPT_ERROR_BADNUMBER:
-            case POPT_ERROR_OVERFLOW:
-                std::cerr << poptStrerror(rc) << " " << poptBadOption(poptcon, 0) << std::endl;
-                return EXIT_FAILURE;
-            case POPT_ERROR_OPTSTOODEEP:
-            case POPT_ERROR_BADQUOTE:
-            case POPT_ERROR_ERRNO:
-            default:
-                std::cerr << "logic error in argument parsing" << std::endl;
-                return EXIT_FAILURE;
-        }
+        return EXIT_FAILURE;
     }
 
-    const char** args = poptGetArgs(poptcon);
-    size_t num_args = 0;
-
-    while (args && args[num_args])
+    if (!conn.validate())
     {
-        ++num_args;
+        std::cerr << "invalid host:port specification\n" << std::endl;
+        ap.usage();
+        return EXIT_FAILURE;
     }
 
-    if (num_args != 0)
+    if (ap.args_sz() != 0)
     {
-        std::cerr << "show-config takes no positional arguments" << std::endl;
+        std::cerr << "command takes no positional arguments" << std::endl;
+        ap.usage();
         return EXIT_FAILURE;
     }
 
     try
     {
-        hyperdex::coordinator_link cl(po6::net::hostname(_connect_host, _connect_port));
-        hyperclient_returncode e = cl.show_config(std::cout);
+        hyperdex::Admin h(conn.host(), conn.port());
+        hyperdex_admin_returncode rrc;
+        const char* config = NULL;
+        int64_t rid = h.dump_config(&rrc, &config);
 
-        if (e != HYPERDEX_CLIENT_SUCCESS)
+        if (rid < 0)
         {
-            std::cerr << "could not show-config: " << e << std::endl;
+            std::cerr << "could not show config: " << h.error_message() << std::endl;
             return EXIT_FAILURE;
         }
 
+        hyperdex_admin_returncode lrc;
+        int64_t lid = h.loop(-1, &lrc);
+
+        if (lid < 0)
+        {
+            std::cerr << "could not show config: " << h.error_message() << std::endl;
+            return EXIT_FAILURE;
+        }
+
+        assert(rid == lid);
+
+        if (rrc != HYPERDEX_ADMIN_SUCCESS)
+        {
+            std::cerr << "could not show config: " << h.error_message() << std::endl;
+            return EXIT_FAILURE;
+        }
+
+        std::cout << config;
         return EXIT_SUCCESS;
-    }
-    catch (po6::error& e)
-    {
-        std::cerr << "system error: " << e.what() << std::endl;
-        return EXIT_FAILURE;
     }
     catch (std::exception& e)
     {

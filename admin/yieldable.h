@@ -32,6 +32,7 @@
 #include <memory>
 
 // e
+#include <e/error.h>
 #include <e/intrusive_ptr.h>
 
 // HyperDex
@@ -54,6 +55,7 @@ class yieldable
     public:
         int64_t admin_visible_id() const { return m_admin_visible_id; }
         void set_status(hyperdex_admin_returncode status) { *m_status = status; }
+        e::error error() const { return m_error; }
 
     // return to admin
     public:
@@ -67,6 +69,10 @@ class yieldable
         void dec() { if (--m_ref == 0) delete this; }
         size_t m_ref;
 
+    protected:
+        std::ostream& error(const char* file, size_t line);
+        void set_error(const e::error& err);
+
     // noncopyable
     private:
         yieldable(const yieldable& other);
@@ -76,7 +82,12 @@ class yieldable
     private:
         int64_t m_admin_visible_id;
         hyperdex_admin_returncode* m_status;
+        e::error m_error;
 };
+
+#define YIELDING_ERROR(CODE) \
+    this->set_status(HYPERDEX_ADMIN_ ## CODE); \
+    this->error(__FILE__, __LINE__)
 
 END_HYPERDEX_NAMESPACE
 

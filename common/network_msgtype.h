@@ -69,7 +69,12 @@ enum network_msgtype
 
     XFER_OP  = 80,
     XFER_ACK = 81,
+    XFER_HS  = 82, // handshake syn
+    XFER_HSA = 83, // handshake syn-ack
+    XFER_HA  = 84, // handshake ack
+    XFER_HW  = 85, // wiped
 
+    BACKUP = 126,
     PERF_COUNTERS = 127,
 
     CONFIGMISMATCH  = 254,

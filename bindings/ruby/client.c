@@ -74,7 +74,7 @@ hyperdex_ruby_client_throw_exception(enum hyperdex_client_returncode status,
 {
     VALUE exception = hyperdex_ruby_client_create_exception(status, error_message);
     rb_exc_raise(exception);
-    abort(); // unreachable?
+    abort(); /* unreachable? */
 }
 
 /******************************* Predicate class ******************************/
@@ -107,7 +107,7 @@ hyperdex_ruby_client_convert_cstring(VALUE x, const char* error_message)
     else
     {
         rb_exc_raise(rb_exc_new2(rb_eTypeError, error_message));
-        abort(); // unreachable?
+        abort(); /* unreachable? */
     }
 }
 
@@ -557,7 +557,6 @@ hyperdex_ruby_client_convert_predicate(struct hyperdex_ds_arena* arena,
     VALUE pred = Qnil;
     struct hyperdex_ruby_client_predicate* p = NULL;
     size_t i = 0;
-    size_t j = 0;
 
     if (TYPE(x) == T_OBJECT &&
         rb_obj_is_instance_of(x, class_predicate) == Qtrue)
@@ -1657,4 +1656,4 @@ Init_hyperdex_client()
     class_contains = rb_define_class_under(mod_hyperdex_client, "Contains", class_predicate);
     rb_define_alloc_func(class_contains , hyperdex_ruby_client_predicate_alloc1);
     rb_define_method(class_contains , "initialize", hyperdex_ruby_client_predicate_contains_init, 1);
-};
+}

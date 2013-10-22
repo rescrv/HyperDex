@@ -79,9 +79,9 @@ state_transfer_manager :: setup()
 void
 state_transfer_manager :: teardown()
 {
+    shutdown();
     m_transfers_in.clear();
     m_transfers_out.clear();
-    shutdown();
 }
 
 void
@@ -105,34 +105,32 @@ state_transfer_manager :: unpause()
 template <class S>
 static void
 setup_transfer_state(const char* desc,
-                     hyperdex::datalayer* data,
-                     hyperdex::datalayer::snapshot snap,
                      const std::vector<hyperdex::transfer> transfers,
-                     std::vector<std::pair<transfer_id, e::intrusive_ptr<S> > >* transfer_states)
+                     std::vector<e::intrusive_ptr<S> >* transfer_states)
 {
-    std::vector<std::pair<transfer_id, e::intrusive_ptr<S> > > tmp;
+    std::vector<e::intrusive_ptr<S> > tmp;
     tmp.reserve(transfers.size());
     size_t t_idx = 0;
     size_t ts_idx = 0;
 
     while (t_idx < transfers.size() && ts_idx < transfer_states->size())
     {
-        if (transfers[t_idx].id == (*transfer_states)[ts_idx].first)
+        if (transfers[t_idx].id == (*transfer_states)[ts_idx]->xfer.id)
         {
             tmp.push_back((*transfer_states)[ts_idx]);
             ++t_idx;
             ++ts_idx;
         }
-        else if (transfers[t_idx].id < (*transfer_states)[ts_idx].first)
+        else if (transfers[t_idx].id < (*transfer_states)[ts_idx]->xfer.id)
         {
             LOG(INFO) << "initiating " << desc << " " << transfers[t_idx];
-            e::intrusive_ptr<S> new_state(new S(transfers[t_idx], data, snap));
-            tmp.push_back(std::make_pair(transfers[t_idx].id, new_state));
+            e::intrusive_ptr<S> new_state(new S(transfers[t_idx]));
+            tmp.push_back(new_state);
             ++t_idx;
         }
-        else if (transfers[t_idx].id > (*transfer_states)[ts_idx].first)
+        else if (transfers[t_idx].id > (*transfer_states)[ts_idx]->xfer.id)
         {
-            LOG(INFO) << "ending " << desc << " transfer " << (*transfer_states)[ts_idx].first;
+            LOG(INFO) << "ending " << desc << " " << (*transfer_states)[ts_idx]->xfer.id;
             ++ts_idx;
         }
     }
@@ -140,14 +138,14 @@ setup_transfer_state(const char* desc,
     while (t_idx < transfers.size())
     {
         LOG(INFO) << "initiating " << desc << " " << transfers[t_idx];
-        e::intrusive_ptr<S> new_state(new S(transfers[t_idx], data, snap));
-        tmp.push_back(std::make_pair(transfers[t_idx].id, new_state));
+        e::intrusive_ptr<S> new_state(new S(transfers[t_idx]));
+        tmp.push_back(new_state);
         ++t_idx;
     }
 
     while (ts_idx < transfer_states->size())
     {
-        LOG(INFO) << "ending " << desc << " " << (*transfer_states)[ts_idx].first;
+        LOG(INFO) << "ending " << desc << " " << (*transfer_states)[ts_idx]->xfer.id;
         ++ts_idx;
     }
 
@@ -169,19 +167,149 @@ state_transfer_manager :: reconfigure(const configuration&,
         }
     }
 
-    datalayer::snapshot snap = m_daemon->m_data.make_snapshot();
-
     // Setup transfers in
     std::vector<transfer> transfers_in;
-    new_config.transfer_in_regions(m_daemon->m_us, &transfers_in);
+    new_config.transfers_in(m_daemon->m_us, &transfers_in);
     std::sort(transfers_in.begin(), transfers_in.end());
-    setup_transfer_state("incoming", &m_daemon->m_data, snap, transfers_in, &m_transfers_in);
+    setup_transfer_state("incoming", transfers_in, &m_transfers_in);
 
     // Setup transfers out
     std::vector<transfer> transfers_out;
-    new_config.transfer_out_regions(m_daemon->m_us, &transfers_out);
+    new_config.transfers_out(m_daemon->m_us, &transfers_out);
     std::sort(transfers_out.begin(), transfers_out.end());
-    setup_transfer_state("outgoing", &m_daemon->m_data, snap, transfers_out, &m_transfers_out);
+    setup_transfer_state("outgoing", transfers_out, &m_transfers_out);
+}
+
+void
+state_transfer_manager :: handshake_syn(const virtual_server_id& from,
+                                        const transfer_id& xid)
+{
+    transfer_in_state* tis = get_tis(xid);
+
+    if (!tis)
+    {
+        LOG(INFO) << "dropping XFER_HS for " << xid << " which we don't know about";
+        return;
+    }
+
+    po6::threads::mutex::hold hold(&tis->mtx);
+
+    if (tis->xfer.vsrc != from || tis->xfer.id != xid)
+    {
+        LOG(INFO) << "dropping XFER_HS that came from the wrong host";
+        return;
+    }
+
+    uint64_t timestamp = 0;
+    m_daemon->m_data.largest_checkpoint_for(tis->xfer.rid, &timestamp);
+    send_handshake_synack(tis->xfer, timestamp);
+    LOG(INFO) << "received handshake_syn for " << xid;
+}
+
+void
+state_transfer_manager :: handshake_synack(const server_id& from,
+                                           const virtual_server_id& to,
+                                           const transfer_id& xid,
+                                           uint64_t timestamp)
+{
+    transfer_out_state* tos = get_tos(xid);
+
+    if (!tos)
+    {
+        LOG(INFO) << "dropping XFER_HSA for " << xid << " which we don't know about";
+        return;
+    }
+
+    po6::threads::mutex::hold hold(&tos->mtx);
+
+    if (tos->xfer.dst != from || tos->xfer.vsrc != to || tos->xfer.id != xid)
+    {
+        LOG(INFO) << "dropping XFER_HSA that came from the wrong host";
+        return;
+    }
+
+    bool wipe = false;
+    std::auto_ptr<datalayer::replay_iterator> iter;
+    iter.reset(m_daemon->m_data.replay_region_from_checkpoint(tos->xfer.rid, timestamp, &wipe));
+    tos->handshake_syn = true;
+    tos->wipe = wipe;
+    tos->iter = iter;
+    send_handshake_ack(tos->xfer, tos->wipe);
+    transfer_more_state(tos);
+    LOG(INFO) << "received handshake_synack for " << xid << " @ " << timestamp;
+}
+
+void
+state_transfer_manager :: handshake_ack(const virtual_server_id& from,
+                                        const transfer_id& xid,
+                                        bool wipe)
+{
+    transfer_in_state* tis = get_tis(xid);
+
+    if (!tis)
+    {
+        LOG(INFO) << "dropping XFER_HA for " << xid << " which we don't know about";
+        return;
+    }
+
+    po6::threads::mutex::hold hold(&tis->mtx);
+
+    if (tis->xfer.vsrc != from || tis->xfer.id != xid)
+    {
+        LOG(INFO) << "dropping XFER_HA that came from the wrong host";
+        return;
+    }
+
+    if (!tis->handshake_complete)
+    {
+        tis->handshake_complete = true;
+        tis->wipe = wipe;
+        LOG(INFO) << "received handshake_ack for " << xid << (wipe ? " (and we must wipe our previous state)" : "");
+    }
+
+    put_to_disk_and_send_acks(tis);
+}
+
+void
+state_transfer_manager :: handshake_wiped(const server_id& from,
+                                          const virtual_server_id& to,
+                                          const transfer_id& xid)
+{
+    transfer_out_state* tos = get_tos(xid);
+
+    if (!tos)
+    {
+        LOG(INFO) << "dropping XFER_HW for " << xid << " which we don't know about";
+        return;
+    }
+
+    po6::threads::mutex::hold hold(&tos->mtx);
+
+    if (tos->xfer.dst != from || tos->xfer.vsrc != to || tos->xfer.id != xid)
+    {
+        LOG(INFO) << "dropping XFER_HW that came from the wrong host";
+        return;
+    }
+
+    tos->handshake_ack = true;
+    transfer_more_state(tos);
+    LOG(INFO) << "received handshake_wiped for " << xid;
+}
+
+void
+state_transfer_manager :: report_wiped(const transfer_id& xid)
+{
+    transfer_in_state* tis = get_tis(xid);
+
+    if (!tis)
+    {
+        return;
+    }
+
+    po6::threads::mutex::hold hold(&tis->mtx);
+    tis->wiped = true;
+    put_to_disk_and_send_acks(tis);
+    LOG(INFO) << "we've wiped our state for " << xid;
 }
 
 void
@@ -194,21 +322,11 @@ state_transfer_manager :: xfer_op(const virtual_server_id& from,
                                   const e::slice& key,
                                   const std::vector<e::slice>& value)
 {
-    std::vector<std::pair<transfer_id, e::intrusive_ptr<transfer_in_state> > >::iterator it;
-    it = std::lower_bound(m_transfers_in.begin(),
-                          m_transfers_in.end(),
-                          std::make_pair(xid, e::intrusive_ptr<transfer_in_state>()));
-
-    if (it == m_transfers_in.end() || it->first != xid)
-    {
-        LOG(INFO) << "dropping XFER_OP for transfer we don't know about";
-        return;
-    }
-
-    transfer_in_state* tis = it->second.get();
+    transfer_in_state* tis = get_tis(xid);
 
     if (!tis)
     {
+        LOG(INFO) << "dropping XFER_OP for " << xid << " which we don't know about";
         return;
     }
 
@@ -250,14 +368,6 @@ state_transfer_manager :: xfer_op(const virtual_server_id& from,
     op->value = value;
     op->msg = msg;
     tis->queued.insert(where_to_put_it, op);
-
-    if (!tis->cleared_capture)
-    {
-        capture_id cid = m_daemon->m_config.capture_for(tis->xfer.rid);
-        m_daemon->m_data.request_wipe(cid);
-        return;
-    }
-
     put_to_disk_and_send_acks(tis);
 }
 
@@ -267,21 +377,11 @@ state_transfer_manager :: xfer_ack(const server_id& from,
                                    const transfer_id& xid,
                                    uint64_t seq_no)
 {
-    std::vector<std::pair<transfer_id, e::intrusive_ptr<transfer_out_state> > >::iterator _it;
-    _it = std::lower_bound(m_transfers_out.begin(),
-                          m_transfers_out.end(),
-                          std::make_pair(xid, e::intrusive_ptr<transfer_out_state>()));
-
-    if (_it == m_transfers_out.end() || _it->first != xid)
-    {
-        LOG(INFO) << "dropping XFER_OP for transfer we don't know about";
-        return;
-    }
-
-    transfer_out_state* tos = _it->second.get();
+    transfer_out_state* tos = get_tos(xid);
 
     if (!tos)
     {
+        LOG(INFO) << "dropping XFER_ACK for " << xid << " which we don't know about";
         return;
     }
 
@@ -289,7 +389,7 @@ state_transfer_manager :: xfer_ack(const server_id& from,
 
     if (tos->xfer.dst != from || tos->xfer.vsrc != to || tos->xfer.id != xid)
     {
-        LOG(INFO) << "dropping XFER_OP that came from the wrong host";
+        LOG(INFO) << "dropping XFER_ACK that came from the wrong host";
         return;
     }
 
@@ -306,6 +406,7 @@ state_transfer_manager :: xfer_ack(const server_id& from,
     if (it != tos->window.end())
     {
         (*it)->acked = true;
+        tos->handshake_ack = true;
 
         if (tos->window_sz < 1024)
         {
@@ -321,130 +422,85 @@ state_transfer_manager :: xfer_ack(const server_id& from,
     transfer_more_state(tos);
 }
 
-void
-state_transfer_manager :: retransmit(const server_id& id)
+state_transfer_manager::transfer_in_state*
+state_transfer_manager :: get_tis(const transfer_id& xid)
 {
-    po6::threads::mutex::hold hold(&m_block_kickstarter);
-    size_t idx = 0;
-
-    while (true)
+    for (size_t i = 0; i < m_transfers_in.size(); ++i)
     {
-        if (idx >= m_transfers_out.size())
+        if (m_transfers_in[i]->xfer.id == xid)
         {
-            break;
+            return m_transfers_in[i].get();
         }
-
-        po6::threads::mutex::hold hold2(&m_transfers_out[idx].second->mtx);
-
-        if (m_transfers_out[idx].second->xfer.dst == id)
-        {
-            retransmit(m_transfers_out[idx].second.get());
-        }
-
-        ++idx;
     }
+
+    return NULL;
 }
 
-void
-state_transfer_manager :: report_wiped(const capture_id& cid)
+state_transfer_manager::transfer_out_state*
+state_transfer_manager :: get_tos(const transfer_id& xid)
 {
-    po6::threads::mutex::hold hold(&m_block_kickstarter);
-    size_t idx = 0;
-
-    while (true)
+    for (size_t i = 0; i < m_transfers_out.size(); ++i)
     {
-        if (idx >= m_transfers_in.size())
+        if (m_transfers_out[i]->xfer.id == xid)
         {
-            break;
+            return m_transfers_out[i].get();
         }
-
-        po6::threads::mutex::hold hold2(&m_transfers_in[idx].second->mtx);
-        transfer_in_state* tis = m_transfers_in[idx].second.get();
-
-        if (!tis->cleared_capture &&
-            m_daemon->m_config.capture_for(tis->xfer.rid) == cid)
-        {
-            tis->cleared_capture = true;
-            put_to_disk_and_send_acks(tis);
-        }
-
-        ++idx;
     }
+
+    return NULL;
 }
 
 void
 state_transfer_manager :: transfer_more_state(transfer_out_state* tos)
 {
-    while (tos->window.size() < tos->window_sz)
+    if (!tos->handshake_syn)
     {
-        if (tos->state == transfer_out_state::SNAPSHOT_TRANSFER)
+        send_handshake_syn(tos->xfer);
+        return;
+    }
+
+    if (!tos->handshake_ack)
+    {
+        send_handshake_ack(tos->xfer, tos->wipe);
+    }
+
+    assert(tos->iter.get());
+
+    while (tos->window.size() < tos->window_sz && tos->iter->valid())
+    {
+        e::intrusive_ptr<pending> op(new pending());
+        op->seq_no = tos->next_seq_no;
+        ++tos->next_seq_no;
+        op->kref.assign(reinterpret_cast<const char*>(tos->iter->key().data()), tos->iter->key().size());
+        op->key = e::slice(op->kref);
+
+        if (tos->iter->has_value())
         {
-            if (tos->iter->valid())
-            {
-                e::intrusive_ptr<pending> op(new pending());
-                op->seq_no = tos->next_seq_no;
-                ++tos->next_seq_no;
-                op->has_value = true;
-                m_daemon->m_data.get_from_iterator(tos->xfer.rid, tos->iter.get(), &op->key, &op->value, &op->version, &op->ref);
+            op->has_value = true;
 
-                tos->window.push_back(op);
-                send_object(tos->xfer, op.get());
-                tos->iter->next();
-            }
-            else
+            if (tos->iter->unpack_value(&op->value, &op->version, &op->vref) != datalayer::SUCCESS)
             {
-                tos->state = transfer_out_state::LOG_TRANSFER;
-            }
-        }
-        else if (tos->state == transfer_out_state::LOG_TRANSFER)
-        {
-            e::intrusive_ptr<pending> op(new pending());
-            datalayer::returncode rc;
-            rc = m_daemon->m_data.get_transfer(tos->xfer.rid, tos->log_seq_no,
-                                               &op->has_value,
-                                               &op->key,
-                                               &op->value,
-                                               &op->version,
-                                               &op->ref);
-            bool done = false;
-
-            switch (rc)
-            {
-                case datalayer::SUCCESS:
-                    break;
-                case datalayer::NOT_FOUND:
-                    done = true;
-                    break;
-                case datalayer::BAD_ENCODING:
-                case datalayer::CORRUPTION:
-                case datalayer::IO_ERROR:
-                case datalayer::LEVELDB_ERROR:
-                    LOG(ERROR) << "state transfer caused error " << rc;
-                    break;
-                default:
-                    LOG(ERROR) << "state transfer caused unknown error";
-                    break;
-            }
-
-            if (done)
-            {
-                m_daemon->m_coord.transfer_go_live(tos->xfer.id);
+                LOG(ERROR) << "error doing state transfer";
                 break;
             }
-
-            op->seq_no = tos->next_seq_no;
-            ++tos->next_seq_no;
-            tos->window.push_back(op);
-            send_object(tos->xfer, op.get());
-            ++tos->log_seq_no;
         }
         else
         {
-            abort();
+            op->has_value = false;
+            op->version = 0;
         }
+
+        tos->window.push_back(op);
+        send_object(tos->xfer, op.get());
+        tos->iter->next();
     }
 
-    if (tos->window.empty() && m_daemon->m_config.is_transfer_live(tos->xfer.id))
+    if (!tos->handshake_ack)
+    {
+        // pass!  we need the other end to give us some sign that it's ready,
+        // otherwise we cannot consider moving forward, even if we're ready.
+    }
+    else if (tos->window.empty() && m_daemon->m_config.is_transfer_live(tos->xfer.id))
     {
         m_daemon->m_coord.transfer_complete(tos->xfer.id);
     }
@@ -467,56 +523,26 @@ state_transfer_manager :: retransmit(transfer_out_state* tos)
 void
 state_transfer_manager :: put_to_disk_and_send_acks(transfer_in_state* tis)
 {
-    if (!tis->cleared_capture)
+    if (!tis->handshake_complete)
     {
         return;
+    }
+
+    if (tis->wipe && !tis->wiped)
+    {
+        m_daemon->m_data.request_wipe(tis->xfer.id, tis->xfer.rid);
+        return;
+    }
+
+    if (tis->queued.empty())
+    {
+        send_handshake_wiped(tis->xfer);
     }
 
     while (!tis->queued.empty() &&
            tis->queued.front()->seq_no == tis->upper_bound_acked)
     {
         e::intrusive_ptr<pending> op = tis->queued.front();
-
-        // if we are still processing keys in sorted order, then delete
-        // everything less than op->key
-        if (tis->need_del &&
-            (!tis->prev || tis->prev->key < op->key))
-        {
-            while (tis->iter->valid() && tis->iter->key() < op->key)
-            {
-                m_daemon->m_data.uncertain_del(tis->xfer.rid, tis->iter->key());
-                tis->iter->next();
-            }
-        }
-        else
-        {
-            // We've hit a point where we're now going out of order.  Save this
-            // to avoid expensive comparison above, and delete everything
-            // leftover in iter after this point.
-            tis->need_del = false;
-
-            while (tis->iter->valid())
-            {
-                datalayer::returncode rc = m_daemon->m_data.uncertain_del(tis->xfer.rid, tis->iter->key());
-                tis->iter->next();
-
-                switch (rc)
-                {
-                    case datalayer::SUCCESS:
-                    case datalayer::NOT_FOUND:
-                        break;
-                    case datalayer::BAD_ENCODING:
-                    case datalayer::CORRUPTION:
-                    case datalayer::IO_ERROR:
-                    case datalayer::LEVELDB_ERROR:
-                        LOG(ERROR) << "state transfer caused error " << rc;
-                        break;
-                    default:
-                        LOG(ERROR) << "state transfer caused unknown error";
-                        break;
-                }
-            }
-        }
 
         if (op->has_value)
         {
@@ -561,10 +587,51 @@ state_transfer_manager :: put_to_disk_and_send_acks(transfer_in_state* tis)
 
         send_ack(tis->xfer, op->seq_no);
         tis->upper_bound_acked = std::max(tis->upper_bound_acked, op->seq_no + 1);
-
-        tis->prev = tis->queued.front();
         tis->queued.pop_front();
     }
+}
+
+void
+state_transfer_manager :: send_handshake_syn(const transfer& xfer)
+{
+    size_t sz = HYPERDEX_HEADER_SIZE_VV
+              + sizeof(uint64_t);
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << xfer.id;
+    m_daemon->m_comm.send_exact(xfer.vsrc, xfer.vdst, XFER_HS, msg);
+}
+
+void
+state_transfer_manager :: send_handshake_synack(const transfer& xfer, uint64_t timestamp)
+{
+    size_t sz = HYPERDEX_HEADER_SIZE_VV
+              + sizeof(uint64_t)
+              + sizeof(uint64_t);
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << xfer.id << timestamp;
+    m_daemon->m_comm.send_exact(xfer.vdst, xfer.vsrc, XFER_HSA, msg);
+}
+
+void
+state_transfer_manager :: send_handshake_ack(const transfer& xfer, bool wipe)
+{
+    uint8_t flags = wipe ? 0x1 : 0;
+    size_t sz = HYPERDEX_HEADER_SIZE_VV
+              + sizeof(uint64_t)
+              + sizeof(uint8_t);
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << xfer.id << flags;
+    m_daemon->m_comm.send_exact(xfer.vsrc, xfer.vdst, XFER_HA, msg);
+}
+
+void
+state_transfer_manager :: send_handshake_wiped(const transfer& xfer)
+{
+    size_t sz = HYPERDEX_HEADER_SIZE_VV
+              + sizeof(uint64_t);
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << xfer.id;
+    m_daemon->m_comm.send_exact(xfer.vdst, xfer.vsrc, XFER_HW, msg);
 }
 
 void
@@ -582,7 +649,7 @@ state_transfer_manager :: send_object(const transfer& xfer,
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << flags << xfer.id.get() << op->seq_no
                                           << op->version << op->key << op->value;
-    m_daemon->m_comm.send(xfer.vsrc, xfer.vdst, XFER_OP, msg);
+    m_daemon->m_comm.send_exact(xfer.vsrc, xfer.vdst, XFER_OP, msg);
 }
 
 void
@@ -595,7 +662,7 @@ state_transfer_manager :: send_ack(const transfer& xfer, uint64_t seq_no)
               + sizeof(uint64_t);
     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
     msg->pack_at(HYPERDEX_HEADER_SIZE_VV) << flags << xfer.id.get() << seq_no;
-    m_daemon->m_comm.send(xfer.vdst, xfer.vsrc, XFER_ACK, msg);
+    m_daemon->m_comm.send_exact(xfer.vdst, xfer.vsrc, XFER_ACK, msg);
 }
 
 void
@@ -653,24 +720,9 @@ state_transfer_manager :: kickstarter()
                 break;
             }
 
-            po6::threads::mutex::hold hold2(&m_transfers_out[idx].second->mtx);
-            transfer_more_state(m_transfers_out[idx].second.get());
-            ++idx;
-        }
-
-        idx = 0;
-
-        while (true)
-        {
-            po6::threads::mutex::hold hold(&m_block_kickstarter);
-
-            if (idx >= m_transfers_in.size())
-            {
-                break;
-            }
-
-            po6::threads::mutex::hold hold2(&m_transfers_in[idx].second->mtx);
-            put_to_disk_and_send_acks(m_transfers_in[idx].second.get());
+            po6::threads::mutex::hold hold2(&m_transfers_out[idx]->mtx);
+            retransmit(m_transfers_out[idx].get());
+            transfer_more_state(m_transfers_out[idx].get());
             ++idx;
         }
     }

@@ -25,6 +25,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// Google Log
+#include <glog/logging.h>
+
 // HyperDex
 #include "daemon/replication_manager_pending.h"
 
@@ -64,4 +67,19 @@ replication_manager :: pending :: pending(std::auto_ptr<e::buffer> _backing,
 
 replication_manager :: pending :: ~pending() throw ()
 {
+}
+
+void
+replication_manager :: pending :: debug_dump()
+{
+    LOG(INFO) << "  unique op id: reg_id=" << reg_id << " seq_id=" << seq_id;
+    LOG(INFO) << "  has value: " << (has_value ? "yes" : "no");
+    LOG(INFO) << "  recv: version=" << recv_config_version << " from=" << recv;
+    LOG(INFO) << "  sent: version=" << sent_config_version << " to=" << sent;
+    LOG(INFO) << "  fresh: " << (fresh ? "yes" : "no");
+    LOG(INFO) << "  acked: " << (acked ? "yes" : "no");
+    LOG(INFO) << "  prev: " << prev_region;
+    LOG(INFO) << "  this_old: " << this_old_region;
+    LOG(INFO) << "  this_new: " << this_new_region;
+    LOG(INFO) << "  next: " << next_region;
 }

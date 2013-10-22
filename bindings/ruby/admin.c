@@ -34,4 +34,4 @@ extern VALUE mod_hyperdex;
 void
 Init_hyperdex_admin()
 {
-};
+}

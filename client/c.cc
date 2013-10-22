@@ -63,12 +63,12 @@ extern "C"
 {
 #endif // __cplusplus
 
-HYPERDEX_API struct hyperdex_client*
+HYPERDEX_API hyperdex_client*
 hyperdex_client_create(const char* coordinator, uint16_t port)
 {
     try
     {
-        return reinterpret_cast<struct hyperdex_client*>(new hyperdex::client(coordinator, port));
+        return reinterpret_cast<hyperdex_client*>(new hyperdex::client(coordinator, port));
     }
     catch (po6::error& e)
     {
@@ -87,20 +87,20 @@ hyperdex_client_create(const char* coordinator, uint16_t port)
 }
 
 HYPERDEX_API void
-hyperdex_client_destroy(struct hyperdex_client* client)
+hyperdex_client_destroy(hyperdex_client* client)
 {
     delete reinterpret_cast<hyperdex::client*>(client);
 }
 
 HYPERDEX_API const char*
-hyperdex_client_error_message(struct hyperdex_client* _cl)
+hyperdex_client_error_message(hyperdex_client* _cl)
 {
     hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl);
     return cl->error_message();
 }
 
 HYPERDEX_API const char*
-hyperdex_client_error_location(struct hyperdex_client* _cl)
+hyperdex_client_error_location(hyperdex_client* _cl)
 {
     hyperdex::client* cl = reinterpret_cast<hyperdex::client*>(_cl);
     return cl->error_location();
@@ -144,7 +144,7 @@ hyperdex_client_returncode_to_string(enum hyperdex_client_returncode status)
 }
 
 HYPERDEX_API enum hyperdatatype
-hyperdex_client_attribute_type(struct hyperdex_client* _cl,
+hyperdex_client_attribute_type(hyperdex_client* _cl,
                                const char* space, const char* name,
                                enum hyperdex_client_returncode* status)
 {
@@ -177,17 +177,17 @@ hyperdex_client_attribute_type(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API void
-hyperdex_client_destroy_attrs(const struct hyperdex_client_attribute* attrs, size_t /*attrs_sz*/)
+hyperdex_client_destroy_attrs(const hyperdex_client_attribute* attrs, size_t /*attrs_sz*/)
 {
-    free(const_cast<struct hyperdex_client_attribute*>(attrs));
+    free(const_cast<hyperdex_client_attribute*>(attrs));
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_get(struct hyperdex_client* _cl,
+hyperdex_client_get(hyperdex_client* _cl,
                     const char* space,
                     const char* key, size_t key_sz,
                     hyperdex_client_returncode* status,
-                    const struct hyperdex_client_attribute** attrs, size_t* attrs_sz)
+                    const hyperdex_client_attribute** attrs, size_t* attrs_sz)
 {
     C_WRAP_EXCEPT(
     return cl->get(space, key, key_sz, status, attrs, attrs_sz);
@@ -195,10 +195,10 @@ hyperdex_client_get(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_put(struct hyperdex_client* _cl,
+hyperdex_client_put(hyperdex_client* _cl,
                     const char* space,
                     const char* key, size_t key_sz,
-                    const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                    const hyperdex_client_attribute* attrs, size_t attrs_sz,
                     hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -209,11 +209,11 @@ hyperdex_client_put(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_put(struct hyperdex_client* _cl,
+hyperdex_client_cond_put(hyperdex_client* _cl,
                          const char* space,
                          const char* key, size_t key_sz,
-                         const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                         const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                         const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                         const hyperdex_client_attribute* attrs, size_t attrs_sz,
                          hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -224,10 +224,10 @@ hyperdex_client_cond_put(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_put_if_not_exist(struct hyperdex_client* _cl,
+hyperdex_client_put_if_not_exist(hyperdex_client* _cl,
                                  const char* space,
                                  const char* key, size_t key_sz,
-                                 const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                 const hyperdex_client_attribute* attrs, size_t attrs_sz,
                                  hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -238,7 +238,7 @@ hyperdex_client_put_if_not_exist(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_del(struct hyperdex_client* _cl,
+hyperdex_client_del(hyperdex_client* _cl,
                     const char* space,
                     const char* key, size_t key_sz,
                     hyperdex_client_returncode* status)
@@ -251,10 +251,10 @@ hyperdex_client_del(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_del(struct hyperdex_client* _cl,
+hyperdex_client_cond_del(hyperdex_client* _cl,
                          const char* space,
                          const char* key, size_t key_sz,
-                         const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
+                         const hyperdex_client_attribute_check* checks, size_t checks_sz,
                          hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -265,10 +265,10 @@ hyperdex_client_cond_del(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_atomic_add(struct hyperdex_client* _cl,
+hyperdex_client_atomic_add(hyperdex_client* _cl,
                            const char* space,
                            const char* key, size_t key_sz,
-                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                           const hyperdex_client_attribute* attrs, size_t attrs_sz,
                            hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -279,11 +279,11 @@ hyperdex_client_atomic_add(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_atomic_add(struct hyperdex_client* _cl,
+hyperdex_client_cond_atomic_add(hyperdex_client* _cl,
                                 const char* space,
                                 const char* key, size_t key_sz,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                const hyperdex_client_attribute* attrs, size_t attrs_sz,
                                 hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -294,10 +294,10 @@ hyperdex_client_cond_atomic_add(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_atomic_sub(struct hyperdex_client* _cl,
+hyperdex_client_atomic_sub(hyperdex_client* _cl,
                            const char* space,
                            const char* key, size_t key_sz,
-                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                           const hyperdex_client_attribute* attrs, size_t attrs_sz,
                            hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -308,11 +308,11 @@ hyperdex_client_atomic_sub(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_atomic_sub(struct hyperdex_client* _cl,
+hyperdex_client_cond_atomic_sub(hyperdex_client* _cl,
                                 const char* space,
                                 const char* key, size_t key_sz,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                const hyperdex_client_attribute* attrs, size_t attrs_sz,
                                 hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -323,10 +323,10 @@ hyperdex_client_cond_atomic_sub(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_atomic_mul(struct hyperdex_client* _cl,
+hyperdex_client_atomic_mul(hyperdex_client* _cl,
                            const char* space,
                            const char* key, size_t key_sz,
-                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                           const hyperdex_client_attribute* attrs, size_t attrs_sz,
                            hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -337,11 +337,11 @@ hyperdex_client_atomic_mul(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_atomic_mul(struct hyperdex_client* _cl,
+hyperdex_client_cond_atomic_mul(hyperdex_client* _cl,
                                 const char* space,
                                 const char* key, size_t key_sz,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                const hyperdex_client_attribute* attrs, size_t attrs_sz,
                                 hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -352,10 +352,10 @@ hyperdex_client_cond_atomic_mul(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_atomic_div(struct hyperdex_client* _cl,
+hyperdex_client_atomic_div(hyperdex_client* _cl,
                            const char* space,
                            const char* key, size_t key_sz,
-                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                           const hyperdex_client_attribute* attrs, size_t attrs_sz,
                            hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -366,11 +366,11 @@ hyperdex_client_atomic_div(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_atomic_div(struct hyperdex_client* _cl,
+hyperdex_client_cond_atomic_div(hyperdex_client* _cl,
                                 const char* space,
                                 const char* key, size_t key_sz,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                const hyperdex_client_attribute* attrs, size_t attrs_sz,
                                 hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -381,10 +381,10 @@ hyperdex_client_cond_atomic_div(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_atomic_mod(struct hyperdex_client* _cl,
+hyperdex_client_atomic_mod(hyperdex_client* _cl,
                            const char* space,
                            const char* key, size_t key_sz,
-                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                           const hyperdex_client_attribute* attrs, size_t attrs_sz,
                            hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -395,11 +395,11 @@ hyperdex_client_atomic_mod(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_atomic_mod(struct hyperdex_client* _cl,
+hyperdex_client_cond_atomic_mod(hyperdex_client* _cl,
                                 const char* space,
                                 const char* key, size_t key_sz,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                const hyperdex_client_attribute* attrs, size_t attrs_sz,
                                 hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -410,10 +410,10 @@ hyperdex_client_cond_atomic_mod(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_atomic_and(struct hyperdex_client* _cl,
+hyperdex_client_atomic_and(hyperdex_client* _cl,
                            const char* space,
                            const char* key, size_t key_sz,
-                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                           const hyperdex_client_attribute* attrs, size_t attrs_sz,
                            hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -424,11 +424,11 @@ hyperdex_client_atomic_and(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_atomic_and(struct hyperdex_client* _cl,
+hyperdex_client_cond_atomic_and(hyperdex_client* _cl,
                                 const char* space,
                                 const char* key, size_t key_sz,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                const hyperdex_client_attribute* attrs, size_t attrs_sz,
                                 hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -439,10 +439,10 @@ hyperdex_client_cond_atomic_and(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_atomic_or(struct hyperdex_client* _cl,
+hyperdex_client_atomic_or(hyperdex_client* _cl,
                           const char* space,
                           const char* key, size_t key_sz,
-                          const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                          const hyperdex_client_attribute* attrs, size_t attrs_sz,
                           hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -453,11 +453,11 @@ hyperdex_client_atomic_or(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_atomic_or(struct hyperdex_client* _cl,
+hyperdex_client_cond_atomic_or(hyperdex_client* _cl,
                                const char* space,
                                const char* key, size_t key_sz,
-                               const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                               const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                               const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                               const hyperdex_client_attribute* attrs, size_t attrs_sz,
                                hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -468,10 +468,10 @@ hyperdex_client_cond_atomic_or(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_atomic_xor(struct hyperdex_client* _cl,
+hyperdex_client_atomic_xor(hyperdex_client* _cl,
                            const char* space,
                            const char* key, size_t key_sz,
-                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                           const hyperdex_client_attribute* attrs, size_t attrs_sz,
                            hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -482,11 +482,11 @@ hyperdex_client_atomic_xor(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_atomic_xor(struct hyperdex_client* _cl,
+hyperdex_client_cond_atomic_xor(hyperdex_client* _cl,
                                 const char* space,
                                 const char* key, size_t key_sz,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                const hyperdex_client_attribute* attrs, size_t attrs_sz,
                                 hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -497,10 +497,10 @@ hyperdex_client_cond_atomic_xor(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_string_prepend(struct hyperdex_client* _cl,
+hyperdex_client_string_prepend(hyperdex_client* _cl,
                                const char* space,
                                const char* key, size_t key_sz,
-                               const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                               const hyperdex_client_attribute* attrs, size_t attrs_sz,
                                hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -511,11 +511,11 @@ hyperdex_client_string_prepend(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_string_prepend(struct hyperdex_client* _cl,
+hyperdex_client_cond_string_prepend(hyperdex_client* _cl,
                                     const char* space,
                                     const char* key, size_t key_sz,
-                                    const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                    const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                    const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                    const hyperdex_client_attribute* attrs, size_t attrs_sz,
                                     hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -526,10 +526,10 @@ hyperdex_client_cond_string_prepend(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_string_append(struct hyperdex_client* _cl,
+hyperdex_client_string_append(hyperdex_client* _cl,
                               const char* space,
                               const char* key, size_t key_sz,
-                              const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                              const hyperdex_client_attribute* attrs, size_t attrs_sz,
                               hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -540,11 +540,11 @@ hyperdex_client_string_append(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_string_append(struct hyperdex_client* _cl,
+hyperdex_client_cond_string_append(hyperdex_client* _cl,
                                    const char* space,
                                    const char* key, size_t key_sz,
-                                   const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                   const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                   const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                   const hyperdex_client_attribute* attrs, size_t attrs_sz,
                                    hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -555,10 +555,10 @@ hyperdex_client_cond_string_append(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_list_lpush(struct hyperdex_client* _cl,
+hyperdex_client_list_lpush(hyperdex_client* _cl,
                            const char* space,
                            const char* key, size_t key_sz,
-                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                           const hyperdex_client_attribute* attrs, size_t attrs_sz,
                            hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -569,11 +569,11 @@ hyperdex_client_list_lpush(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_list_lpush(struct hyperdex_client* _cl,
+hyperdex_client_cond_list_lpush(hyperdex_client* _cl,
                                 const char* space,
                                 const char* key, size_t key_sz,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                const hyperdex_client_attribute* attrs, size_t attrs_sz,
                                 hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -584,10 +584,10 @@ hyperdex_client_cond_list_lpush(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_list_rpush(struct hyperdex_client* _cl,
+hyperdex_client_list_rpush(hyperdex_client* _cl,
                            const char* space,
                            const char* key, size_t key_sz,
-                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                           const hyperdex_client_attribute* attrs, size_t attrs_sz,
                            hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -598,11 +598,11 @@ hyperdex_client_list_rpush(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_list_rpush(struct hyperdex_client* _cl,
+hyperdex_client_cond_list_rpush(hyperdex_client* _cl,
                                 const char* space,
                                 const char* key, size_t key_sz,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                const hyperdex_client_attribute* attrs, size_t attrs_sz,
                                 hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -613,10 +613,10 @@ hyperdex_client_cond_list_rpush(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_set_add(struct hyperdex_client* _cl,
+hyperdex_client_set_add(hyperdex_client* _cl,
                         const char* space,
                         const char* key, size_t key_sz,
-                        const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                        const hyperdex_client_attribute* attrs, size_t attrs_sz,
                         hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -627,11 +627,11 @@ hyperdex_client_set_add(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_set_add(struct hyperdex_client* _cl,
+hyperdex_client_cond_set_add(hyperdex_client* _cl,
                              const char* space,
                              const char* key, size_t key_sz,
-                             const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                             const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                             const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                             const hyperdex_client_attribute* attrs, size_t attrs_sz,
                              hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -642,10 +642,10 @@ hyperdex_client_cond_set_add(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_set_remove(struct hyperdex_client* _cl,
+hyperdex_client_set_remove(hyperdex_client* _cl,
                            const char* space,
                            const char* key, size_t key_sz,
-                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                           const hyperdex_client_attribute* attrs, size_t attrs_sz,
                            hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -656,11 +656,11 @@ hyperdex_client_set_remove(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_set_remove(struct hyperdex_client* _cl,
+hyperdex_client_cond_set_remove(hyperdex_client* _cl,
                                 const char* space,
                                 const char* key, size_t key_sz,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                const hyperdex_client_attribute* attrs, size_t attrs_sz,
                                 hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -671,10 +671,10 @@ hyperdex_client_cond_set_remove(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_set_intersect(struct hyperdex_client* _cl,
+hyperdex_client_set_intersect(hyperdex_client* _cl,
                               const char* space,
                               const char* key, size_t key_sz,
-                              const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                              const hyperdex_client_attribute* attrs, size_t attrs_sz,
                               hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -685,11 +685,11 @@ hyperdex_client_set_intersect(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_set_intersect(struct hyperdex_client* _cl,
+hyperdex_client_cond_set_intersect(hyperdex_client* _cl,
                                    const char* space,
                                    const char* key, size_t key_sz,
-                                   const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                   const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                   const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                   const hyperdex_client_attribute* attrs, size_t attrs_sz,
                                    hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -700,10 +700,10 @@ hyperdex_client_cond_set_intersect(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_set_union(struct hyperdex_client* _cl,
+hyperdex_client_set_union(hyperdex_client* _cl,
                           const char* space,
                           const char* key, size_t key_sz,
-                          const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                          const hyperdex_client_attribute* attrs, size_t attrs_sz,
                           hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -714,11 +714,11 @@ hyperdex_client_set_union(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_set_union(struct hyperdex_client* _cl,
+hyperdex_client_cond_set_union(hyperdex_client* _cl,
                                const char* space,
                                const char* key, size_t key_sz,
-                               const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                               const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                               const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                               const hyperdex_client_attribute* attrs, size_t attrs_sz,
                                hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -729,10 +729,10 @@ hyperdex_client_cond_set_union(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_map_add(struct hyperdex_client* _cl,
+hyperdex_client_map_add(hyperdex_client* _cl,
                         const char* space,
                         const char* key, size_t key_sz,
-                        const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                        const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                         hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -743,11 +743,11 @@ hyperdex_client_map_add(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_map_add(struct hyperdex_client* _cl,
+hyperdex_client_cond_map_add(hyperdex_client* _cl,
                              const char* space,
                              const char* key, size_t key_sz,
-                             const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                             const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                             const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                             const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                              hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -758,10 +758,10 @@ hyperdex_client_cond_map_add(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_map_remove(struct hyperdex_client* _cl,
+hyperdex_client_map_remove(hyperdex_client* _cl,
                            const char* space,
                            const char* key, size_t key_sz,
-                           const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
+                           const hyperdex_client_attribute* attrs, size_t attrs_sz,
                            hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -772,12 +772,12 @@ hyperdex_client_map_remove(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_map_remove(struct hyperdex_client* _cl,
-                            const char* space,
-                            const char* key, size_t key_sz,
-                            const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                            const struct hyperdex_client_attribute* attrs, size_t attrs_sz,
-                            hyperdex_client_returncode* status)
+hyperdex_client_cond_map_remove(hyperdex_client* _cl,
+                                const char* space,
+                                const char* key, size_t key_sz,
+                                const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                const hyperdex_client_attribute* attrs, size_t attrs_sz,
+                                hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
     const hyperdex_client_keyop_info* opinfo;
@@ -787,10 +787,10 @@ hyperdex_client_cond_map_remove(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_map_atomic_add(struct hyperdex_client* _cl,
+hyperdex_client_map_atomic_add(hyperdex_client* _cl,
                                const char* space,
                                const char* key, size_t key_sz,
-                               const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                               const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -801,11 +801,11 @@ hyperdex_client_map_atomic_add(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_map_atomic_add(struct hyperdex_client* _cl,
+hyperdex_client_cond_map_atomic_add(hyperdex_client* _cl,
                                     const char* space,
                                     const char* key, size_t key_sz,
-                                    const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                    const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                                    const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                    const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                     hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -816,10 +816,10 @@ hyperdex_client_cond_map_atomic_add(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_map_atomic_sub(struct hyperdex_client* _cl,
+hyperdex_client_map_atomic_sub(hyperdex_client* _cl,
                                const char* space,
                                const char* key, size_t key_sz,
-                               const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                               const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -830,11 +830,11 @@ hyperdex_client_map_atomic_sub(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_map_atomic_sub(struct hyperdex_client* _cl,
+hyperdex_client_cond_map_atomic_sub(hyperdex_client* _cl,
                                     const char* space,
                                     const char* key, size_t key_sz,
-                                    const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                    const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                                    const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                    const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                     hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -845,10 +845,10 @@ hyperdex_client_cond_map_atomic_sub(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_map_atomic_mul(struct hyperdex_client* _cl,
+hyperdex_client_map_atomic_mul(hyperdex_client* _cl,
                                const char* space,
                                const char* key, size_t key_sz,
-                               const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                               const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -859,11 +859,11 @@ hyperdex_client_map_atomic_mul(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_map_atomic_mul(struct hyperdex_client* _cl,
+hyperdex_client_cond_map_atomic_mul(hyperdex_client* _cl,
                                     const char* space,
                                     const char* key, size_t key_sz,
-                                    const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                    const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                                    const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                    const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                     hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -874,10 +874,10 @@ hyperdex_client_cond_map_atomic_mul(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_map_atomic_div(struct hyperdex_client* _cl,
+hyperdex_client_map_atomic_div(hyperdex_client* _cl,
                                const char* space,
                                const char* key, size_t key_sz,
-                               const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                               const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -888,11 +888,11 @@ hyperdex_client_map_atomic_div(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_map_atomic_div(struct hyperdex_client* _cl,
+hyperdex_client_cond_map_atomic_div(hyperdex_client* _cl,
                                     const char* space,
                                     const char* key, size_t key_sz,
-                                    const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                    const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                                    const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                    const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                     hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -903,10 +903,10 @@ hyperdex_client_cond_map_atomic_div(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_map_atomic_mod(struct hyperdex_client* _cl,
+hyperdex_client_map_atomic_mod(hyperdex_client* _cl,
                                const char* space,
                                const char* key, size_t key_sz,
-                               const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                               const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -917,11 +917,11 @@ hyperdex_client_map_atomic_mod(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_map_atomic_mod(struct hyperdex_client* _cl,
+hyperdex_client_cond_map_atomic_mod(hyperdex_client* _cl,
                                     const char* space,
                                     const char* key, size_t key_sz,
-                                    const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                    const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                                    const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                    const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                     hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -932,10 +932,10 @@ hyperdex_client_cond_map_atomic_mod(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_map_atomic_and(struct hyperdex_client* _cl,
+hyperdex_client_map_atomic_and(hyperdex_client* _cl,
                                const char* space,
                                const char* key, size_t key_sz,
-                               const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                               const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -946,11 +946,11 @@ hyperdex_client_map_atomic_and(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_map_atomic_and(struct hyperdex_client* _cl,
+hyperdex_client_cond_map_atomic_and(hyperdex_client* _cl,
                                     const char* space,
                                     const char* key, size_t key_sz,
-                                    const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                    const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                                    const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                    const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                     hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -961,10 +961,10 @@ hyperdex_client_cond_map_atomic_and(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_map_atomic_or(struct hyperdex_client* _cl,
+hyperdex_client_map_atomic_or(hyperdex_client* _cl,
                               const char* space,
                               const char* key, size_t key_sz,
-                              const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                              const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                               hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -975,11 +975,11 @@ hyperdex_client_map_atomic_or(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_map_atomic_or(struct hyperdex_client* _cl,
+hyperdex_client_cond_map_atomic_or(hyperdex_client* _cl,
                                    const char* space,
                                    const char* key, size_t key_sz,
-                                   const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                   const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                                   const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                   const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                    hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -990,10 +990,10 @@ hyperdex_client_cond_map_atomic_or(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_map_atomic_xor(struct hyperdex_client* _cl,
+hyperdex_client_map_atomic_xor(hyperdex_client* _cl,
                                const char* space,
                                const char* key, size_t key_sz,
-                               const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                               const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -1004,11 +1004,11 @@ hyperdex_client_map_atomic_xor(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_map_atomic_xor(struct hyperdex_client* _cl,
+hyperdex_client_cond_map_atomic_xor(hyperdex_client* _cl,
                                     const char* space,
                                     const char* key, size_t key_sz,
-                                    const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                    const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                                    const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                    const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                     hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -1019,10 +1019,10 @@ hyperdex_client_cond_map_atomic_xor(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_map_string_prepend(struct hyperdex_client* _cl,
+hyperdex_client_map_string_prepend(hyperdex_client* _cl,
                                    const char* space,
                                    const char* key, size_t key_sz,
-                                   const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                                   const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                    hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -1033,11 +1033,11 @@ hyperdex_client_map_string_prepend(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_map_string_prepend(struct hyperdex_client* _cl,
+hyperdex_client_cond_map_string_prepend(hyperdex_client* _cl,
                                         const char* space,
                                         const char* key, size_t key_sz,
-                                        const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                        const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                                        const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                        const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                         hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -1048,10 +1048,10 @@ hyperdex_client_cond_map_string_prepend(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_map_string_append(struct hyperdex_client* _cl,
+hyperdex_client_map_string_append(hyperdex_client* _cl,
                                   const char* space,
                                   const char* key, size_t key_sz,
-                                  const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                                  const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                   hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -1062,11 +1062,11 @@ hyperdex_client_map_string_append(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_cond_map_string_append(struct hyperdex_client* _cl,
+hyperdex_client_cond_map_string_append(hyperdex_client* _cl,
                                        const char* space,
                                        const char* key, size_t key_sz,
-                                       const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                                       const struct hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
+                                       const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                       const hyperdex_client_map_attribute* mapattrs, size_t mapattrs_sz,
                                        hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -1077,11 +1077,11 @@ hyperdex_client_cond_map_string_append(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_search(struct hyperdex_client* _cl,
+hyperdex_client_search(hyperdex_client* _cl,
                        const char* space,
-                       const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
+                       const hyperdex_client_attribute_check* checks, size_t checks_sz,
                        hyperdex_client_returncode* status,
-                       const struct hyperdex_client_attribute** attrs, size_t* attrs_sz)
+                       const hyperdex_client_attribute** attrs, size_t* attrs_sz)
 {
     C_WRAP_EXCEPT(
     return cl->search(space, checks, checks_sz, status, attrs, attrs_sz);
@@ -1089,34 +1089,36 @@ hyperdex_client_search(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_search_describe(struct hyperdex_client* _cl,
+hyperdex_client_search_describe(hyperdex_client* _cl,
                                 const char* space,
-                                const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
+                                const hyperdex_client_attribute_check* checks, size_t checks_sz,
                                 hyperdex_client_returncode* status,
-                                const char** str)
+                                const char** description)
 {
     C_WRAP_EXCEPT(
-    return cl->search_describe(space, checks, checks_sz, status, str);
+    return cl->search_describe(space, checks, checks_sz, status, description);
     );
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_sorted_search(struct hyperdex_client* _cl,
+hyperdex_client_sorted_search(hyperdex_client* _cl,
                               const char* space,
-                              const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                              const char* sort_by, uint64_t limit, int maximize,
+                              const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                              const char* sort_by,
+                              uint64_t limit,
+                              int maxmin,
                               hyperdex_client_returncode* status,
-                              const struct hyperdex_client_attribute** attrs, size_t* attrs_sz)
+                              const hyperdex_client_attribute** attrs, size_t* attrs_sz)
 {
     C_WRAP_EXCEPT(
-    return cl->sorted_search(space, checks, checks_sz, sort_by, limit, maximize, status, attrs, attrs_sz);
+    return cl->sorted_search(space, checks, checks_sz, sort_by, limit, maxmin, status, attrs, attrs_sz);
     );
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_group_del(struct hyperdex_client* _cl,
+hyperdex_client_group_del(hyperdex_client* _cl,
                           const char* space,
-                          const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
+                          const hyperdex_client_attribute_check* checks, size_t checks_sz,
                           hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(
@@ -1125,18 +1127,19 @@ hyperdex_client_group_del(struct hyperdex_client* _cl,
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_count(struct hyperdex_client* _cl,
+hyperdex_client_count(hyperdex_client* _cl,
                       const char* space,
-                      const struct hyperdex_client_attribute_check* checks, size_t checks_sz,
-                      hyperdex_client_returncode* status, uint64_t* result)
+                      const hyperdex_client_attribute_check* checks, size_t checks_sz,
+                      hyperdex_client_returncode* status,
+                      uint64_t* count)
 {
     C_WRAP_EXCEPT(
-    return cl->count(space, checks, checks_sz, status, result);
+    return cl->count(space, checks, checks_sz, status, count);
     );
 }
 
 HYPERDEX_API int64_t
-hyperdex_client_loop(struct hyperdex_client* _cl, int timeout,
+hyperdex_client_loop(hyperdex_client* _cl, int timeout,
                      hyperdex_client_returncode* status)
 {
     C_WRAP_EXCEPT(

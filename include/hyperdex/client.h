@@ -622,6 +622,7 @@ hyperdex_client_attribute_type(struct hyperdex_client* client,
 
 const char*
 hyperdex_client_error_message(struct hyperdex_client* client);
+
 const char*
 hyperdex_client_error_location(struct hyperdex_client* client);
 

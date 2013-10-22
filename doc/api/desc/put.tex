@@ -1,0 +1,11 @@
+Store an object in space "space" under key "key".
+
+The object will be created if it does not exist.  In the event that the object
+already exists, the attributes specified by \texttt{attrs} will overwritten with
+their respective values.  Any values not specified will be preserved.  In the
+event that the put creates a new object, attributes not specified by
+\texttt{attrs} will be initialized to their default values.
+
+\input{api/shards/chain-rtt}
+
+\input{api/shards/linearizable}

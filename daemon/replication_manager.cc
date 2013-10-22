@@ -25,6 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#define __STDC_LIMIT_MACROS
+
 // POSIX
 #include <signal.h>
 
@@ -48,7 +50,6 @@
 #include "daemon/replication_manager.h"
 #include "daemon/replication_manager_key_region.h"
 #include "daemon/replication_manager_key_state.h"
-#include "daemon/replication_manager_key_state_reference.h"
 #include "daemon/replication_manager_pending.h"
 
 using hyperdex::reconfigure_returncode;
@@ -56,22 +57,28 @@ using hyperdex::replication_manager;
 
 replication_manager :: replication_manager(daemon* d)
     : m_daemon(d)
-    , m_key_states_locks(256)
-    , m_key_states(16)
-    , m_counters()
+    , m_key_states()
+    , m_idgen()
+    , m_idcol()
+    , m_stable_counters()
+    , m_unstable_regions()
+    , m_checkpoint(0)
+    , m_need_check(1)
+    , m_timestamps()
+    , m_background_thread(std::tr1::bind(&replication_manager::background_thread, this))
+    , m_block_background_thread()
+    , m_wakeup_background_thread(&m_block_background_thread)
+    , m_wakeup_reconfigurer(&m_block_background_thread)
     , m_shutdown(true)
-    , m_retransmitter(std::tr1::bind(&replication_manager::retransmitter, this))
-    , m_garbage_collector(std::tr1::bind(&replication_manager::garbage_collector, this))
-    , m_block_both()
-    , m_wakeup_retransmitter(&m_block_both)
-    , m_wakeup_garbage_collector(&m_block_both)
-    , m_wakeup_reconfigurer(&m_block_both)
-    , m_need_retransmit(false)
-    , m_lower_bounds()
     , m_need_pause(false)
-    , m_paused_retransmitter(false)
-    , m_paused_garbage_collector(false)
+    , m_paused(false)
+    , m_need_post_reconfigure(false)
+    , m_need_periodic(false)
+    , m_lower_bounds()
 {
+    m_key_states.set_empty_key(key_region(region_id(UINT64_MAX), e::slice("", 0)));
+    m_key_states.set_deleted_key(key_region(region_id(UINT64_MAX - 1), e::slice("", 0)));
+    check_is_needed();
 }
 
 replication_manager :: ~replication_manager() throw ()
@@ -82,9 +89,8 @@ replication_manager :: ~replication_manager() throw ()
 bool
 replication_manager :: setup()
 {
-    po6::threads::mutex::hold holdr(&m_block_both);
-    m_retransmitter.start();
-    m_garbage_collector.start();
+    po6::threads::mutex::hold holdr(&m_block_background_thread);
+    m_background_thread.start();
     m_shutdown = false;
     return true;
 }
@@ -98,7 +104,7 @@ replication_manager :: teardown()
 void
 replication_manager :: pause()
 {
-    po6::threads::mutex::hold hold(&m_block_both);
+    po6::threads::mutex::hold hold(&m_block_background_thread);
     assert(!m_need_pause);
     m_need_pause = true;
 }
@@ -106,12 +112,11 @@ replication_manager :: pause()
 void
 replication_manager :: unpause()
 {
-    po6::threads::mutex::hold hold(&m_block_both);
+    po6::threads::mutex::hold hold(&m_block_background_thread);
     assert(m_need_pause);
-    m_wakeup_retransmitter.broadcast();
-    m_wakeup_garbage_collector.broadcast();
+    m_wakeup_background_thread.broadcast();
     m_need_pause = false;
-    m_need_retransmit = true;
+    m_need_post_reconfigure = true;
 }
 
 void
@@ -119,67 +124,98 @@ replication_manager :: reconfigure(const configuration&,
                                    const configuration& new_config,
                                    const server_id&)
 {
+    wait_until_paused();
+
+    std::vector<region_id> key_regions;
+    new_config.key_regions(m_daemon->m_us, &key_regions);
+    std::sort(key_regions.begin(), key_regions.end());
+    m_idgen.adopt(&key_regions[0], key_regions.size());
+    m_idcol.adopt(&key_regions[0], key_regions.size());
+
+    // iterate over all key states; cleanup dead ones, and bump idgen
+    std::vector<region_id> transfers_in_regions;
+    new_config.transfers_in_regions(m_daemon->m_us, &transfers_in_regions);
+    std::sort(transfers_in_regions.begin(), transfers_in_regions.end());
+
+    for (key_map_t::iterator it(&m_key_states); it.valid(); it.next())
     {
-        po6::threads::mutex::hold hold(&m_block_both);
-        assert(m_need_pause);
-
-        while (!m_paused_retransmitter || !m_paused_garbage_collector)
-        {
-            m_wakeup_reconfigurer.wait();
-        }
-    }
-
-    std::map<uint64_t, uint64_t> seq_ids;
-    std::vector<transfer> transfers_in;
-    new_config.transfer_in_regions(m_daemon->m_us, &transfers_in);
-    std::vector<region_id> transfer_in_regions;
-    transfer_in_regions.reserve(transfers_in.size());
-
-    for (size_t i = 0; i < transfers_in.size(); ++i)
-    {
-        transfer_in_regions.push_back(transfers_in[i].rid);
-    }
-
-    std::sort(transfer_in_regions.begin(), transfer_in_regions.end());
-
-    for (key_state_map_t::iterator it = m_key_states.begin();
-            it != m_key_states.end(); it.next())
-    {
-        e::intrusive_ptr<key_state> ks = it.value();
-        key_state_reference ksr(this, ks);
+        key_state* ks = it.get();
         ks->clear_deferred();
-        uint64_t max_seq_id = ks->max_seq_id();
-        seq_ids[it.key().region.get()] = std::max(seq_ids[it.key().region.get()], max_seq_id);
 
-        if (std::binary_search(transfer_in_regions.begin(), transfer_in_regions.end(), it.key().region))
+        if (std::binary_search(transfers_in_regions.begin(),
+                               transfers_in_regions.end(),
+                               ks->state_key().region))
         {
-            m_key_states.remove(it.key());
+            ks->clear();
+        }
+
+        if (std::binary_search(key_regions.begin(),
+                               key_regions.end(),
+                               ks->state_key().region))
+        {
+            bool x;
+            x = m_idgen.bump(ks->state_key().region, ks->max_seq_id());
+            assert(x);
         }
     }
 
+    // iterate over all regions on disk, and bump idgen
+    for (size_t i = 0; i < key_regions.size(); ++i)
+    {
+        uint64_t max_seq_id = 0;
+        m_daemon->m_data.max_seq_id(key_regions[i], &max_seq_id);
+        bool x;
+        x = m_idgen.bump(key_regions[i], max_seq_id);
+        assert(x);
+    }
+
+    // figure out when we're stable
+    m_stable_counters.copy_from(m_idgen);
+    m_unstable_regions.clear();
+    new_config.point_leaders(m_daemon->m_us, &m_unstable_regions);
+    check_is_needed();
+}
+
+void
+replication_manager :: debug_dump()
+{
+    pause();
+    wait_until_paused();
     std::vector<region_id> regions;
-    new_config.point_leaders(m_daemon->m_us, &regions);
-    std::sort(regions.begin(), regions.end());
-    m_counters.adopt(regions);
+    m_daemon->m_config.key_regions(m_daemon->m_us, &regions);
+
+    // print counters
+    LOG(INFO) << "region counters ===============================================================";
 
     for (size_t i = 0; i < regions.size(); ++i)
     {
-        std::map<uint64_t, uint64_t>::iterator it = seq_ids.find(regions[i].get());
-        uint64_t non_counter_max = 0;
-
-        if (it == seq_ids.end())
-        {
-            m_daemon->m_data.max_seq_id(regions[i], &non_counter_max);
-            ++non_counter_max;
-        }
-        else
-        {
-            non_counter_max = it->second + 1;
-        }
-
-        bool found = m_counters.take_max(regions[i], non_counter_max);
-        assert(found);
+        bool x;
+        uint64_t idgen;
+        x = m_idgen.peek(regions[i], &idgen);
+        assert(x);
+        uint64_t lb;
+        x = m_idcol.lower_bound(regions[i], &lb);
+        assert(x);
+        uint64_t stable;
+        x = m_stable_counters.peek(regions[i], &stable);
+        assert(x);
+        LOG(INFO) << regions[i] << " idgen=" << idgen << " lb=" << lb << " stable=" << stable;
     }
+
+    LOG(INFO) << "===============================================================================";
+
+    // print key state
+    LOG(INFO) << "key states ====================================================================";
+
+    for (key_map_t::iterator it(&m_key_states); it.valid(); it.next())
+    {
+        key_state* ks = it.get();
+        LOG(INFO) << "state for " << ks->state_key().region << " " << ks->state_key().key.hex();
+        ks->debug_dump();
+    }
+
+    LOG(INFO) << "===============================================================================";
+    unpause();
 }
 
 void
@@ -215,8 +251,8 @@ replication_manager :: client_atomic(const server_id& from,
         return;
     }
 
-    key_state_reference ksr;
-    e::intrusive_ptr<key_state> ks = get_or_create_key_state(ri, key, &ksr);
+    key_map_t::state_reference ksr;
+    key_state* ks = get_or_create_key_state(ri, key, &ksr);
     network_returncode nrc;
 
     if (!ks->check_against_latest_version(sc, erase, fail_if_not_found, fail_if_found, checks, &nrc))
@@ -226,7 +262,7 @@ replication_manager :: client_atomic(const server_id& from,
     }
 
     uint64_t seq_id;
-    bool found = m_counters.lookup(ri, &seq_id);
+    bool found = m_idgen.generate_id(ri, &seq_id);
     assert(found);
 
     if (erase)
@@ -286,8 +322,8 @@ replication_manager :: chain_op(const virtual_server_id& from,
         return;
     }
 
-    key_state_reference ksr;
-    e::intrusive_ptr<key_state> ks = get_or_create_key_state(ri, key, &ksr);
+    key_map_t::state_reference ksr;
+    key_state* ks = get_or_create_key_state(ri, key, &ksr);
     e::intrusive_ptr<pending> op = ks->get_version(version);
 
     if (op)
@@ -348,11 +384,25 @@ replication_manager :: chain_subspace(const virtual_server_id& from,
         return;
     }
 
-    key_state_reference ksr;
-    e::intrusive_ptr<key_state> ks = get_or_create_key_state(ri, key, &ksr);
+    key_map_t::state_reference ksr;
+    key_state* ks = get_or_create_key_state(ri, key, &ksr);
 
     // Create a new pending object to set as pending.
-    e::intrusive_ptr<pending> op;
+    e::intrusive_ptr<pending> op = ks->get_version(version);
+
+    if (op)
+    {
+        op->recv_config_version = m_daemon->m_config.version();
+        op->recv = from;
+
+        if (op->acked)
+        {
+            send_ack(to, from, false, reg_id, seq_id, version, key);
+        }
+
+        return;
+    }
+
     op = new pending(backing,
                      reg_id, seq_id, false,
                      true, value,
@@ -413,8 +463,8 @@ replication_manager :: chain_ack(const virtual_server_id& from,
         return;
     }
 
-    key_state_reference ksr;
-    e::intrusive_ptr<key_state> ks = get_key_state(ri, key, &ksr);
+    key_map_t::state_reference ksr;
+    key_state* ks = get_key_state(ri, key, &ksr);
 
     if (!ks)
     {
@@ -473,122 +523,133 @@ replication_manager :: chain_ack(const virtual_server_id& from,
     {
         send_ack(to, op->recv, false, reg_id, seq_id, version, key);
     }
+
+    if (op->reg_id == ri)
+    {
+        bool x;
+        x = m_idcol.collect(ri, op->seq_id);
+        assert(x);
+        check_stable(ri);
+    }
 }
 
 void
 replication_manager :: chain_gc(const region_id& reg_id, uint64_t seq_id)
 {
-    po6::threads::mutex::hold hold(&m_block_both);
-    m_wakeup_garbage_collector.broadcast();
+    po6::threads::mutex::hold hold(&m_block_background_thread);
+    m_wakeup_background_thread.broadcast();
     m_lower_bounds.push_back(std::make_pair(reg_id, seq_id));
 }
 
 void
 replication_manager :: trip_periodic()
 {
-    po6::threads::mutex::hold hold(&m_block_both);
-    m_wakeup_retransmitter.broadcast();
-    m_need_retransmit = true;
+    po6::threads::mutex::hold hold(&m_block_background_thread);
+    m_wakeup_background_thread.broadcast();
+    m_need_periodic = true;
 }
 
-uint64_t
-replication_manager :: hash(const key_region& kr)
+void
+replication_manager :: begin_checkpoint(uint64_t seq)
 {
-    return CityHash64WithSeed(reinterpret_cast<const char*>(kr.key.data()),
-                              kr.key.size(),
-                              kr.region.get());
-}
+    std::vector<region_id> key_regions;
+    std::vector<region_id> mapped_regions;
+    m_daemon->m_coord.config().key_regions(m_daemon->m_us, &key_regions);
+    m_daemon->m_coord.config().mapped_regions(m_daemon->m_us, &mapped_regions);
+    std::string timestamp = m_daemon->m_data.get_timestamp();
 
-uint64_t
-replication_manager :: get_lock_num(const region_id& ri,
-                                    const e::slice& key)
-{
-    return CityHash64WithSeed(reinterpret_cast<const char*>(key.data()),
-                              key.size(), ri.get());
-}
-
-e::intrusive_ptr<replication_manager::key_state>
-replication_manager :: get_key_state(const region_id& ri,
-                                     const e::slice& key,
-                                     key_state_reference* ksr)
-{
-    key_region kr(ri, key);
-    e::intrusive_ptr<key_state> ks;
-
-    while (true)
     {
-        e::striped_lock<po6::threads::mutex>::hold hold(&m_key_states_locks,
-                get_lock_num(ri, key));
+        po6::threads::mutex::hold hold(&m_block_background_thread);
 
-        if (!m_key_states.lookup(kr, &ks))
+        if (m_checkpoint >= seq)
         {
-            return NULL;
+            return;
         }
 
-        ksr->lock(this, ks);
+        m_checkpoint = seq;
+        m_unstable_regions.clear();
+        m_daemon->m_config.point_leaders(m_daemon->m_us, &m_unstable_regions);
+        check_is_needed();
 
-        if (ks->marked_garbage())
+        for (size_t i = 0; i < mapped_regions.size(); ++i)
         {
-            ksr->unlock();
-            continue;
+            m_timestamps.push_back(region_timestamp(mapped_regions[i], m_checkpoint, timestamp));
+        }
+    }
+
+    for (size_t i = 0; i < key_regions.size(); ++i)
+    {
+        bool x;
+        uint64_t id = 0;
+        x = m_idgen.peek(key_regions[i], &id);
+        assert(x);
+
+        if (id > 0)
+        {
+            x = m_stable_counters.bump(key_regions[i], id - 1);
+            assert(x);
         }
 
-        return ks;
+        check_stable(key_regions[i]);
+    }
+
+    check_stable();
+}
+
+void
+replication_manager :: end_checkpoint(uint64_t seq)
+{
+    po6::threads::mutex::hold hold(&m_block_background_thread);
+
+    for (size_t i = 0; i < m_timestamps.size(); )
+    {
+        if (m_timestamps[i].checkpoint <= seq)
+        {
+            m_daemon->m_data.create_checkpoint(m_timestamps[i]);
+            std::swap(m_timestamps[i], m_timestamps.back());
+            m_timestamps.pop_back();
+        }
+        else
+        {
+            ++i;
+        }
     }
 }
 
-e::intrusive_ptr<replication_manager::key_state>
-replication_manager :: get_or_create_key_state(const region_id& ri,
-                                               const e::slice& key,
-                                               key_state_reference* ksr)
+replication_manager::key_state*
+replication_manager :: get_key_state(const region_id& ri,
+                                     const e::slice& key,
+                                     key_map_t::state_reference* ksr)
 {
     key_region kr(ri, key);
-    e::intrusive_ptr<key_state> ks;
+    return m_key_states.get_state(kr, ksr);
+}
 
-    while (true)
+replication_manager::key_state*
+replication_manager :: get_or_create_key_state(const region_id& ri,
+                                               const e::slice& key,
+                                               key_map_t::state_reference* ksr)
+{
+    key_region kr(ri, key);
+    key_state* ks = m_key_states.get_or_create_state(kr, ksr);
+
+    if (!ks || ks->initialized())
     {
-        {
-            e::striped_lock<po6::threads::mutex>::hold hold(&m_key_states_locks,
-                    get_lock_num(ri, key));
-
-            if (m_key_states.lookup(kr, &ks))
-            {
-                ksr->lock(this, ks);
-
-                if (ks->marked_garbage())
-                {
-                    ksr->unlock();
-                    continue;
-                }
-
-                assert(ks);
-                return ks;
-            }
-
-            ks = new key_state(ri, key);
-            ksr->lock(this, ks);
-
-            if (!m_key_states.insert(ks->kr(), ks))
-            {
-                abort();
-            }
-        }
-
-        switch (ks->initialize(&m_daemon->m_data, ri))
-        {
-            case datalayer::SUCCESS:
-            case datalayer::NOT_FOUND:
-                break;
-            case datalayer::BAD_ENCODING:
-            case datalayer::CORRUPTION:
-            case datalayer::IO_ERROR:
-            case datalayer::LEVELDB_ERROR:
-            default:
-                LOG(ERROR) << "Data layer returned unexpected result when reading old value.";
-                return NULL;
-        }
-
         return ks;
+    }
+
+    switch (ks->initialize(&m_daemon->m_data, ri))
+    {
+        case datalayer::SUCCESS:
+        case datalayer::NOT_FOUND:
+            return ks;
+        case datalayer::BAD_ENCODING:
+        case datalayer::CORRUPTION:
+        case datalayer::IO_ERROR:
+        case datalayer::LEVELDB_ERROR:
+        default:
+            LOG(ERROR) << "Data layer returned unexpected result when reading old value.";
+            return NULL;
     }
 }
 
@@ -603,6 +664,12 @@ replication_manager :: send_message(const virtual_server_id& us,
     // resend, they should clear "sent" first.
     assert(op->sent == virtual_server_id());
     region_id ri(m_daemon->m_config.get_region_id(us));
+
+    // If there's an ongoing transfer, don't actually send
+    if (m_daemon->m_config.is_server_blocked_by_live_transfer(m_daemon->m_us, ri))
+    {
+        return;
+    }
 
     // facts we use to decide what to do
     assert(ri == op->this_old_region || ri == op->this_new_region);
@@ -768,10 +835,111 @@ replication_manager :: respond_to_client(const virtual_server_id& us,
     m_daemon->m_comm.send_client(us, client, RESP_ATOMIC, msg);
 }
 
-void
-replication_manager :: retransmitter()
+bool
+replication_manager :: is_check_needed()
 {
-    LOG(INFO) << "retransmitter thread started";
+    return e::atomic::compare_and_swap_32_nobarrier(&m_need_check, 0, 0) == 1;
+}
+
+void
+replication_manager :: check_is_needed()
+{
+    e::atomic::compare_and_swap_32_nobarrier(&m_need_check, 0, 1);
+}
+
+void
+replication_manager :: check_is_not_needed()
+{
+    e::atomic::compare_and_swap_32_nobarrier(&m_need_check, 1, 0);
+}
+
+void
+replication_manager :: check_stable()
+{
+    bool tell_coord_stable = false;
+    uint64_t checkpoint = 0;
+
+    if (is_check_needed())
+    {
+        po6::threads::mutex::hold hold(&m_block_background_thread);
+        tell_coord_stable = m_unstable_regions.empty();
+        checkpoint = m_checkpoint;
+
+        if (tell_coord_stable)
+        {
+            check_is_not_needed();
+        }
+    }
+
+    if (tell_coord_stable)
+    {
+        m_daemon->m_coord.config_stable(m_daemon->m_coord.config().version());
+        m_daemon->m_coord.checkpoint_report_stable(checkpoint);
+    }
+}
+
+void
+replication_manager :: check_stable(const region_id& ri)
+{
+    bool x;
+    uint64_t lb = 0;
+    x = m_idcol.lower_bound(ri, &lb);
+    assert(x);
+    uint64_t stable = 0;
+    x = m_stable_counters.peek(ri, &stable);
+    assert(x);
+    bool tell_coord_stable = false;
+    uint64_t checkpoint = 0;
+
+    if (stable <= lb && is_check_needed())
+    {
+        po6::threads::mutex::hold hold(&m_block_background_thread);
+
+        for (size_t i = 0; i < m_unstable_regions.size(); )
+        {
+            if (m_unstable_regions[i] == ri)
+            {
+                std::swap(m_unstable_regions[i], m_unstable_regions.back());
+                m_unstable_regions.pop_back();
+            }
+            else
+            {
+                ++i;
+            }
+        }
+
+        tell_coord_stable = m_unstable_regions.empty();
+        checkpoint = m_checkpoint;
+
+        if (tell_coord_stable)
+        {
+            check_is_not_needed();
+        }
+    }
+
+    if (tell_coord_stable)
+    {
+        m_daemon->m_coord.config_stable(m_daemon->m_coord.config().version());
+        m_daemon->m_coord.checkpoint_report_stable(checkpoint);
+    }
+}
+
+void
+replication_manager :: wait_until_paused()
+{
+    po6::threads::mutex::hold hold(&m_block_background_thread);
+    assert(m_need_pause);
+
+    while (!m_paused)
+    {
+        m_wakeup_reconfigurer.wait();
+    }
+}
+
+void
+replication_manager :: background_thread()
+{
+    LOG(INFO) << "replication background thread started";
     sigset_t ss;
 
     if (sigfillset(&ss) < 0)
@@ -786,24 +954,30 @@ replication_manager :: retransmitter()
         return;
     }
 
-    uint64_t then = e::time();
-
     while (true)
     {
-        {
-            po6::threads::mutex::hold hold(&m_block_both);
+        bool need_post_reconfigure = false;
+        bool need_periodic = false;
+        region_id reg_id;
+        uint64_t seq_id = 0;
 
-            while ((!m_need_retransmit && !m_shutdown) || m_need_pause)
+        {
+            po6::threads::mutex::hold hold(&m_block_background_thread);
+
+            while ((!(m_need_post_reconfigure ||
+                      m_need_periodic ||
+                      !m_lower_bounds.empty()) && !m_shutdown) ||
+                   m_need_pause)
             {
-                m_paused_retransmitter = true;
+                m_paused = true;
 
                 if (m_need_pause)
                 {
                     m_wakeup_reconfigurer.signal();
                 }
 
-                m_wakeup_retransmitter.wait();
-                m_paused_retransmitter = false;
+                m_wakeup_background_thread.wait();
+                m_paused = false;
             }
 
             if (m_shutdown)
@@ -811,177 +985,168 @@ replication_manager :: retransmitter()
                 break;
             }
 
-            m_need_retransmit = false;
+            need_post_reconfigure = m_need_post_reconfigure;
+            m_need_post_reconfigure = false;
+            need_periodic = m_need_periodic;
+            m_need_periodic = false;
+
+            if (!m_lower_bounds.empty())
+            {
+                reg_id = m_lower_bounds.front().first;
+                seq_id = m_lower_bounds.front().second;
+                m_lower_bounds.pop_front();
+            }
         }
 
-        std::set<region_id> region_cache;
-        std::map<region_id, uint64_t> seq_id_lower_bounds;
 
+        if (need_post_reconfigure)
         {
-            m_counters.peek(&seq_id_lower_bounds);
+            // get the list of point leaders
+            std::vector<region_id> point_leaders;
+            m_daemon->m_coord.config().point_leaders(m_daemon->m_us, &point_leaders);
+            std::sort(point_leaders.begin(), point_leaders.end());
+
+            // peek at the next-to-generate values of m_idgen
+            identifier_generator peeked_values;
+            peeked_values.copy_from(m_idgen);
+            std::vector<std::pair<region_id, uint64_t> > seq_ids;
+
+            // retransmit everything
+            retransmit(point_leaders, &seq_ids);
+
+            // now close all gaps
+            close_gaps(point_leaders, peeked_values, &seq_ids);
+
+            for (size_t i = 0; i < point_leaders.size(); ++i)
+            {
+                check_stable(point_leaders[i]);
+            }
+
+            check_stable();
         }
 
-        for (key_state_map_t::iterator it = m_key_states.begin();
-                it != m_key_states.end(); it.next())
+        if (need_periodic)
         {
-            region_id ri(it.key().region);
-
-            if (region_cache.find(ri) != region_cache.end() ||
-                m_daemon->m_config.is_server_blocked_by_live_transfer(m_daemon->m_us, ri))
-            {
-                region_cache.insert(ri);
-                continue;
-            }
-
-            e::slice key(it.key().key.data(), it.key().key.size());
-            key_state_reference ksr;
-            e::intrusive_ptr<key_state> ks = get_key_state(ri, key, &ksr);
-
-            if (!ks)
-            {
-                continue;
-            }
-
-            virtual_server_id us = m_daemon->m_config.get_virtual(ri, m_daemon->m_us);
-
-            if (us == virtual_server_id())
-            {
-                m_key_states.remove(it.key());
-                continue;
-            }
-
-            const schema& sc(*m_daemon->m_config.get_schema(ri));
-
-            if (ks->empty())
-            {
-                continue;
-            }
-
-            ks->resend_committable(this, us);
-            ks->move_operations_between_queues(this, us, ri, sc);
-
-            if (m_daemon->m_config.is_point_leader(us))
-            {
-                uint64_t min_id = ks->min_seq_id();
-                std::map<region_id, uint64_t>::iterator lb = seq_id_lower_bounds.find(ri);
-
-                if (lb == seq_id_lower_bounds.end())
-                {
-                    seq_id_lower_bounds.insert(std::make_pair(ri, min_id));
-                }
-                else
-                {
-                    lb->second = std::min(lb->second, min_id);
-                }
-            }
+            send_chain_gc();
         }
 
-        m_daemon->m_comm.wake_one();
-        uint64_t now = e::time();
+        if (seq_id > 1)
+        {
+            m_idcol.bump(reg_id, seq_id - 1);
+            m_daemon->m_data.clear_acked(reg_id, seq_id - 2);
+        }
+    }
 
-        // Rate limit CHAIN_GC sending
-        if (((now - then) / 1000 / 1000 / 1000) < 30)
+    LOG(INFO) << "replication background thread shutting down";
+}
+
+void
+replication_manager :: send_chain_gc()
+{
+    std::vector<std::pair<server_id, po6::net::location> > cluster_members;
+    m_daemon->m_config.get_all_addresses(&cluster_members);
+    std::vector<region_id> regions;
+    m_daemon->m_config.point_leaders(m_daemon->m_us, &regions);
+
+    for (size_t i = 0; i < regions.size(); ++i)
+    {
+        for (size_t j = 0; j < cluster_members.size(); ++j)
+        {
+            virtual_server_id us = m_daemon->m_config.get_virtual(regions[i], m_daemon->m_us);
+            uint64_t lb = 0;
+            bool x = m_idcol.lower_bound(regions[i], &lb);
+
+            if (!x || lb == 0 || us == virtual_server_id())
+            {
+                continue;
+            }
+
+            size_t sz = HYPERDEX_HEADER_SIZE_VS + sizeof(uint64_t);
+            std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+            msg->pack_at(HYPERDEX_HEADER_SIZE_VS) << lb;
+            m_daemon->m_comm.send(us, cluster_members[j].first, CHAIN_GC, msg);
+        }
+    }
+
+    m_daemon->m_comm.wake_one();
+}
+
+void
+replication_manager :: retransmit(const std::vector<region_id>& point_leaders,
+                                  std::vector<std::pair<region_id, uint64_t> >* seq_ids)
+{
+    for (key_map_t::iterator it(&m_key_states); it.valid(); it.next())
+    {
+        key_state* ks = it.get();
+        region_id ri = ks->state_key().region;
+
+        if (std::binary_search(point_leaders.begin(),
+                               point_leaders.end(), ri))
+        {
+            ks->append_seq_ids(seq_ids);
+        }
+
+        if (m_daemon->m_config.is_server_blocked_by_live_transfer(m_daemon->m_us, ri))
         {
             continue;
         }
 
-        then = now;
-        std::vector<std::pair<server_id, po6::net::location> > cluster_members;
-        m_daemon->m_config.get_all_addresses(&cluster_members);
+        virtual_server_id us = m_daemon->m_config.get_virtual(ri, m_daemon->m_us);
 
-        for (std::map<region_id, uint64_t>::iterator it = seq_id_lower_bounds.begin();
-                it != seq_id_lower_bounds.end(); ++it)
+        if (us == virtual_server_id() || ks->empty())
         {
-            // lookup and check again since we lost/acquired the lock
-            virtual_server_id us = m_daemon->m_config.get_virtual(it->first, m_daemon->m_us);
+            ks->clear();
+            continue;
+        }
 
-            if (us == virtual_server_id() || !m_daemon->m_config.is_point_leader(us))
+        const schema& sc(*m_daemon->m_config.get_schema(ri));
+        ks->resend_committable(this, us);
+        ks->move_operations_between_queues(this, us, ri, sc);
+    }
+
+    m_daemon->m_comm.wake_one();
+}
+
+void
+replication_manager :: close_gaps(const std::vector<region_id>& point_leaders,
+                                  const identifier_generator& peek_ids,
+                                  std::vector<std::pair<region_id, uint64_t> >* seq_ids)
+{
+    std::sort(seq_ids->begin(), seq_ids->end());
+
+    for (size_t idx = 0; idx < seq_ids->size(); )
+    {
+        // bump the idcol
+        region_id ri = (*seq_ids)[idx].first;
+        assert(std::binary_search(point_leaders.begin(),
+                                  point_leaders.end(), ri));
+        bool x;
+        x = m_idcol.bump(ri, (*seq_ids)[idx].second);
+        assert(x);
+        uint64_t maybe_next_to_collect = (*seq_ids)[idx].second;
+        uint64_t dont_touch_above;
+        x = peek_ids.peek(ri, &dont_touch_above);
+        assert(x);
+
+        // now evaluate everthing up to
+        for (; idx < seq_ids->size() && (*seq_ids)[idx].first == ri; ++idx)
+        {
+            if ((*seq_ids)[idx].second >= dont_touch_above)
             {
                 continue;
             }
 
-            size_t sz = HYPERDEX_HEADER_SIZE_VV
-                      + sizeof(uint64_t);
-
-            for (size_t i = 0; i < cluster_members.size(); ++i)
+            // collect everything [maybe_next_to_collect, seq_id.second)
+            while (maybe_next_to_collect < (*seq_ids)[idx].second)
             {
-                std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-                msg->pack_at(HYPERDEX_HEADER_SIZE_VS) << it->second;
-                m_daemon->m_comm.send(us, cluster_members[i].first, CHAIN_GC, msg);
+                m_idcol.collect(ri, maybe_next_to_collect);
+                ++maybe_next_to_collect;
             }
         }
+
+        uint64_t tmp;
+        m_idcol.lower_bound(ri, &tmp);
     }
-
-    LOG(INFO) << "retransmitter thread shutting down";
-}
-
-void
-replication_manager :: garbage_collector()
-{
-    LOG(INFO) << "garbage collector thread started";
-    sigset_t ss;
-
-    if (sigfillset(&ss) < 0)
-    {
-        PLOG(ERROR) << "sigfillset";
-        return;
-    }
-
-    if (pthread_sigmask(SIG_BLOCK, &ss, NULL) < 0)
-    {
-        PLOG(ERROR) << "could not block signals";
-        return;
-    }
-
-    while (true)
-    {
-        std::list<std::pair<region_id, uint64_t> > lower_bounds;
-
-        {
-            po6::threads::mutex::hold hold(&m_block_both);
-
-            while ((m_lower_bounds.empty() && !m_shutdown) || m_need_pause)
-            {
-                m_paused_garbage_collector = true;
-
-                if (m_need_pause)
-                {
-                    m_wakeup_reconfigurer.signal();
-                }
-
-                m_wakeup_garbage_collector.wait();
-                m_paused_garbage_collector = false;
-            }
-
-            if (m_shutdown)
-            {
-                break;
-            }
-
-            lower_bounds.swap(m_lower_bounds);
-        }
-
-        // sort so that we scan disk sequentially
-        lower_bounds.sort();
-
-        while (!lower_bounds.empty())
-        {
-            region_id reg_id = lower_bounds.front().first;
-            uint64_t seq_id = lower_bounds.front().second;
-
-            // I chose to use seq_id - 1 for clearing because i'm too tired to check for
-            // an off by one.  At worst it'll leave a little extra state laying around,
-            // and is guaranteed to be as correct as garbage collecting seq_id.
-            if (seq_id > 0)
-            {
-                m_daemon->m_data.clear_acked(reg_id, seq_id - 1);
-            }
-
-            lower_bounds.pop_front();
-        }
-    }
-
-    LOG(INFO) << "garbage collector thread shutting down";
 }
 
 void
@@ -990,16 +1155,14 @@ replication_manager :: shutdown()
     bool is_shutdown;
 
     {
-        po6::threads::mutex::hold holdr(&m_block_both);
-        m_wakeup_retransmitter.broadcast();
-        m_wakeup_garbage_collector.broadcast();
+        po6::threads::mutex::hold holdr(&m_block_background_thread);
+        m_wakeup_background_thread.broadcast();
         is_shutdown = m_shutdown;
         m_shutdown = true;
     }
 
     if (!is_shutdown)
     {
-        m_retransmitter.join();
-        m_garbage_collector.join();
+        m_background_thread.join();
     }
 }

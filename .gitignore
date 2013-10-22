@@ -49,6 +49,8 @@
 /config.status
 /config.sub
 /configure
+/daemon/test/identifier_collector
+/daemon/test/identifier_generator
 /daemon/test/index_encode
 /depcomp
 /doc/_build/

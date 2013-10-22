@@ -82,7 +82,7 @@ main(int argc, const char* argv[])
 
         if (rid < 0)
         {
-            std::cerr << "could not add space: " << rrc << std::endl;
+            std::cerr << "could not add space: " << h.error_message() << std::endl;
             return EXIT_FAILURE;
         }
 
@@ -91,7 +91,7 @@ main(int argc, const char* argv[])
 
         if (lid < 0)
         {
-            std::cerr << "could not add space: " << lrc << std::endl;
+            std::cerr << "could not add space: " << h.error_message() << std::endl;
             return EXIT_FAILURE;
         }
 
@@ -99,7 +99,7 @@ main(int argc, const char* argv[])
 
         if (rrc != HYPERDEX_ADMIN_SUCCESS)
         {
-            std::cerr << "could not add space: " << rrc << std::endl;
+            std::cerr << "could not add space: " << h.error_message() << std::endl;
             return EXIT_FAILURE;
         }
 

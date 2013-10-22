@@ -38,7 +38,8 @@ state_transfer_manager :: state_transfer_manager :: pending :: pending()
     , value()
     , acked(false)
     , msg()
-    , ref()
+    , kref()
+    , vref()
     , m_ref(0)
 {
 }

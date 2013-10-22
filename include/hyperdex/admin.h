@@ -112,6 +112,14 @@ int64_t
 hyperdex_admin_loop(struct hyperdex_admin* admin, int timeout,
                     enum hyperdex_admin_returncode* status);
 
+const char*
+hyperdex_admin_error_message(struct hyperdex_admin* admin);
+const char*
+hyperdex_admin_error_location(struct hyperdex_admin* admin);
+
+const char*
+hyperdex_admin_returncode_to_string(enum hyperdex_admin_returncode);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */

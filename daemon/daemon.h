@@ -45,7 +45,7 @@
 #include "namespace.h"
 #include "common/ids.h"
 #include "daemon/communication.h"
-#include "daemon/coordinator_link.h"
+#include "daemon/coordinator_link_wrapper.h"
 #include "daemon/datalayer.h"
 #include "daemon/performance_counter.h"
 #include "daemon/replication_manager.h"
@@ -84,8 +84,13 @@ class daemon
         void process_chain_subspace(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_chain_ack(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_chain_gc(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
+        void process_xfer_handshake_syn(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
+        void process_xfer_handshake_synack(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
+        void process_xfer_handshake_ack(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
+        void process_xfer_handshake_wiped(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_xfer_op(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_xfer_ack(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
+        void process_backup(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
         void process_perf_counters(server_id from, virtual_server_id vfrom, virtual_server_id vto, std::auto_ptr<e::buffer> msg, e::unpacker up);
 
     private:
@@ -97,7 +102,7 @@ class daemon
 
     private:
         friend class communication;
-        friend class coordinator_link;
+        friend class coordinator_link_wrapper;
         friend class datalayer;
         friend class replication_manager;
         friend class search_manager;
@@ -105,8 +110,9 @@ class daemon
 
     private:
         server_id m_us;
+        po6::net::location m_bind_to;
         std::vector<std::tr1::shared_ptr<po6::threads::thread> > m_threads;
-        coordinator_link m_coord;
+        coordinator_link_wrapper m_coord;
         datalayer m_data;
         communication m_comm;
         replication_manager m_repl;
@@ -127,8 +133,13 @@ class daemon
         performance_counter m_perf_chain_subspace;
         performance_counter m_perf_chain_ack;
         performance_counter m_perf_chain_gc;
+        performance_counter m_perf_xfer_handshake_syn;
+        performance_counter m_perf_xfer_handshake_synack;
+        performance_counter m_perf_xfer_handshake_ack;
+        performance_counter m_perf_xfer_handshake_wiped;
         performance_counter m_perf_xfer_op;
         performance_counter m_perf_xfer_ack;
+        performance_counter m_perf_backup;
         performance_counter m_perf_perf_counters;
         // iostat-like stats
         std::string m_block_stat_path;

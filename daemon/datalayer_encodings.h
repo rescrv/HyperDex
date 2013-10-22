@@ -78,25 +78,16 @@ decode_acked(const e::slice& in,
              region_id* reg_id, /*region of the point leader*/
              uint64_t* seq_id);
 
-// Encode the transfer
-#define TRANSFER_BUF_SIZE (sizeof(uint8_t) + 2 * sizeof(uint64_t))
+// checkpoints
+#define CHECKPOINT_BUF_SIZE (sizeof(uint8_t) + 2 * sizeof(uint64_t))
 void
-encode_transfer(const capture_id& ci,
-                uint64_t count,
-                char* out);
-void
-encode_key_value(const e::slice& key,
-                 /*pointer to make it optional*/
-                 const std::vector<e::slice>* value,
-                 uint64_t version,
-                 std::vector<char>* backing, /*XXX*/
-                 leveldb::Slice* out);
+encode_checkpoint(const region_id& ri,
+                  uint64_t checkpoint,
+                  char* out);
 datalayer::returncode
-decode_key_value(const e::slice& in,
-                 bool* has_value,
-                 e::slice* key,
-                 std::vector<e::slice>* value,
-                 uint64_t* version);
+decode_checkpoint(const e::slice& in,
+                  region_id* ri,
+                  uint64_t* checkpoint);
 
 void
 create_index_changes(const schema& sc,

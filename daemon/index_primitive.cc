@@ -254,7 +254,7 @@ class range_iterator : public datalayer::index_iterator
 {
     public:
         range_iterator(leveldb_snapshot_ptr snap,
-                       const region_id& ri, 
+                       const region_id& ri,
                        const range& r,
                        index_primitive* val_ii,
                        index_info* key_ii);
@@ -285,7 +285,7 @@ class range_iterator : public datalayer::index_iterator
 };
 
 range_iterator :: range_iterator(leveldb_snapshot_ptr s,
-                                 const region_id& ri, 
+                                 const region_id& ri,
                                  const range& r,
                                  index_primitive* val_ii,
                                  index_info* key_ii)
@@ -472,7 +472,7 @@ class key_iterator : public datalayer::index_iterator
 {
     public:
         key_iterator(leveldb_snapshot_ptr snap,
-                     const region_id& ri, 
+                     const region_id& ri,
                      const range& r,
                      index_info* key_ii);
         virtual ~key_iterator() throw ();
@@ -501,7 +501,7 @@ class key_iterator : public datalayer::index_iterator
 };
 
 key_iterator :: key_iterator(leveldb_snapshot_ptr s,
-                             const region_id& ri, 
+                             const region_id& ri,
                              const range& r,
                              index_info* key_ii)
     : index_iterator(s)
@@ -655,7 +655,7 @@ key_iterator :: seek(const e::slice& ik)
 
 datalayer::index_iterator*
 index_primitive :: iterator_from_range(leveldb_snapshot_ptr snap,
-                                       const region_id& ri, 
+                                       const region_id& ri,
                                        const range& r,
                                        index_info* key_ii)
 {

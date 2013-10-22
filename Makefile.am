@@ -109,11 +109,9 @@ noinst_HEADERS += namespace.h
 noinst_HEADERS += visibility.h
 noinst_HEADERS += common/attribute_check.h
 noinst_HEADERS += common/attribute.h
-noinst_HEADERS += common/capture.h
 noinst_HEADERS += common/configuration.h
 noinst_HEADERS += common/coordinator_link.h
 noinst_HEADERS += common/coordinator_returncode.h
-noinst_HEADERS += common/counter_map.h
 noinst_HEADERS += common/datatype_float.h
 noinst_HEADERS += common/datatype_int64.h
 noinst_HEADERS += common/datatype_list.h
@@ -154,7 +152,6 @@ dist_man_MANS += man/hyperdex-daemon.1
 endif
 
 noinst_HEADERS += daemon/communication.h
-noinst_HEADERS += daemon/coordinator_link.h
 noinst_HEADERS += daemon/daemon.h
 noinst_HEADERS += daemon/datalayer_encodings.h
 noinst_HEADERS += daemon/datalayer.h
@@ -174,7 +171,6 @@ noinst_HEADERS += daemon/reconfigure_returncode.h
 noinst_HEADERS += daemon/replication_manager.h
 noinst_HEADERS += daemon/replication_manager_key_region.h
 noinst_HEADERS += daemon/replication_manager_key_state.h
-noinst_HEADERS += daemon/replication_manager_key_state_reference.h
 noinst_HEADERS += daemon/replication_manager_pending.h
 noinst_HEADERS += daemon/search_manager.h
 noinst_HEADERS += daemon/state_transfer_manager.h
@@ -187,9 +183,9 @@ EXTRA_DIST += man/hyperdex-daemon.1.h2m
 hyperdex_daemon_SOURCES =
 hyperdex_daemon_SOURCES += common/attribute.cc
 hyperdex_daemon_SOURCES += common/attribute_check.cc
-hyperdex_daemon_SOURCES += common/capture.cc
 hyperdex_daemon_SOURCES += common/configuration.cc
-hyperdex_daemon_SOURCES += common/counter_map.cc
+hyperdex_daemon_SOURCES += common/coordinator_link.cc
+hyperdex_daemon_SOURCES += common/coordinator_returncode.cc
 hyperdex_daemon_SOURCES += common/datatype_float.cc
 hyperdex_daemon_SOURCES += common/datatype_int64.cc
 hyperdex_daemon_SOURCES += common/datatype_list.cc
@@ -209,13 +205,16 @@ hyperdex_daemon_SOURCES += common/range_searches.cc
 hyperdex_daemon_SOURCES += common/regex_match.cc
 hyperdex_daemon_SOURCES += common/schema.cc
 hyperdex_daemon_SOURCES += common/serialization.cc
+hyperdex_daemon_SOURCES += common/server.cc
 hyperdex_daemon_SOURCES += common/transfer.cc
 hyperdex_daemon_SOURCES += daemon/communication.cc
-hyperdex_daemon_SOURCES += daemon/coordinator_link.cc
+hyperdex_daemon_SOURCES += daemon/coordinator_link_wrapper.cc
 hyperdex_daemon_SOURCES += daemon/daemon.cc
 hyperdex_daemon_SOURCES += daemon/datalayer.cc
 hyperdex_daemon_SOURCES += daemon/datalayer_encodings.cc
 hyperdex_daemon_SOURCES += daemon/datalayer_iterator.cc
+hyperdex_daemon_SOURCES += daemon/identifier_collector.cc
+hyperdex_daemon_SOURCES += daemon/identifier_generator.cc
 hyperdex_daemon_SOURCES += daemon/index_container.cc
 hyperdex_daemon_SOURCES += daemon/index_float.cc
 hyperdex_daemon_SOURCES += daemon/index_info.cc
@@ -229,7 +228,6 @@ hyperdex_daemon_SOURCES += daemon/main.cc
 hyperdex_daemon_SOURCES += daemon/replication_manager.cc
 hyperdex_daemon_SOURCES += daemon/replication_manager_key_region.cc
 hyperdex_daemon_SOURCES += daemon/replication_manager_key_state.cc
-hyperdex_daemon_SOURCES += daemon/replication_manager_key_state_reference.cc
 hyperdex_daemon_SOURCES += daemon/replication_manager_pending.cc
 hyperdex_daemon_SOURCES += daemon/search_manager.cc
 hyperdex_daemon_SOURCES += daemon/state_transfer_manager.cc
@@ -243,9 +241,20 @@ hyperdex_daemon_LDADD += $(BUSYBEE_LIBS)
 hyperdex_daemon_LDADD += $(HYPERLEVELDB_LIBS)
 hyperdex_daemon_LDADD += $(REPLICANT_LIBS)
 hyperdex_daemon_LDADD += -lcityhash -lpopt -lglog -lpthread
-man/hyperdex-daemon.1: man/hyperdex-daemon.1.h2m daemon/daemon.cc
+man/hyperdex-daemon.1: man/hyperdex-daemon.1.h2m daemon/main.cc
 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-daemon$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-daemon$(EXEEXT)
+
+check_PROGRAMS += daemon/test/identifier_collector
+check_PROGRAMS += daemon/test/identifier_generator
+TESTS += daemon/test/identifier_collector
+TESTS += daemon/test/identifier_generator
+
+daemon_test_identifier_collector_SOURCES = daemon/test/identifier_collector.cc daemon/identifier_collector.cc $(th_sources)
+daemon_test_identifier_collector_CXXFLAGS = $(AM_CXXFLAGS) $(CXXFLAGS)
+
+daemon_test_identifier_generator_SOURCES = daemon/test/identifier_generator.cc daemon/identifier_generator.cc $(th_sources)
+daemon_test_identifier_generator_CXXFLAGS = $(AM_CXXFLAGS) $(CXXFLAGS)
 
 ################################################################################
 ################################## Coordinator #################################
@@ -258,22 +267,22 @@ dist_man_MANS += man/hyperdex-coordinator.1
 endif
 
 noinst_HEADERS += coordinator/coordinator.h
-noinst_HEADERS += coordinator/missing_acks.h
-noinst_HEADERS += coordinator/server_state.h
 noinst_HEADERS += coordinator/transitions.h
 
 libhyperdex_coordinator_la_SOURCES =
 libhyperdex_coordinator_la_SOURCES += common/attribute.cc
-libhyperdex_coordinator_la_SOURCES += common/capture.cc
-libhyperdex_coordinator_la_SOURCES += common/hyperdex.cc
 libhyperdex_coordinator_la_SOURCES += common/hyperspace.cc
 libhyperdex_coordinator_la_SOURCES += common/schema.cc
 libhyperdex_coordinator_la_SOURCES += common/serialization.cc
+libhyperdex_coordinator_la_SOURCES += common/server.cc
 libhyperdex_coordinator_la_SOURCES += common/transfer.cc
 libhyperdex_coordinator_la_SOURCES += coordinator/coordinator.cc
+libhyperdex_coordinator_la_SOURCES += coordinator/replica_sets.c
+libhyperdex_coordinator_la_SOURCES += coordinator/server_barrier.c
 libhyperdex_coordinator_la_SOURCES += coordinator/symtable.c
-libhyperdex_coordinator_la_LIBADD =
-libhyperdex_coordinator_la_LIBADD += $(E_LIBS)
+libhyperdex_coordinator_la_SOURCES += coordinator/transitions.cc
+# libhyperdex_coordinator_la_LIBADD =
+# libhyperdex_coordinator_la_LIBADD += $(E_LIBS)
 
 EXTRA_DIST += man/hyperdex-coordinator.1.md
 EXTRA_DIST += man/hyperdex-coordinator.1.h2m
@@ -322,7 +331,6 @@ noinst_HEADERS += client/util.h
 libhyperdex_client_la_SOURCES =
 libhyperdex_client_la_SOURCES += common/attribute.cc
 libhyperdex_client_la_SOURCES += common/attribute_check.cc
-libhyperdex_client_la_SOURCES += common/capture.cc
 libhyperdex_client_la_SOURCES += common/configuration.cc
 libhyperdex_client_la_SOURCES += common/coordinator_link.cc
 libhyperdex_client_la_SOURCES += common/datatype_float.cc
@@ -343,6 +351,7 @@ libhyperdex_client_la_SOURCES += common/range.cc
 libhyperdex_client_la_SOURCES += common/range_searches.cc
 libhyperdex_client_la_SOURCES += common/regex_match.cc
 libhyperdex_client_la_SOURCES += common/schema.cc
+libhyperdex_client_la_SOURCES += common/server.cc
 libhyperdex_client_la_SOURCES += common/serialization.cc
 libhyperdex_client_la_SOURCES += common/transfer.cc
 libhyperdex_client_la_SOURCES += client/c.cc
@@ -404,7 +413,6 @@ noinst_HEADERS += admin/yieldable.h
 
 libhyperdex_admin_la_SOURCES =
 libhyperdex_admin_la_SOURCES += common/attribute.cc
-libhyperdex_admin_la_SOURCES += common/capture.cc
 libhyperdex_admin_la_SOURCES += common/configuration.cc
 libhyperdex_admin_la_SOURCES += common/coordinator_link.cc
 libhyperdex_admin_la_SOURCES += common/datatype_float.cc
@@ -424,6 +432,7 @@ libhyperdex_admin_la_SOURCES += common/range_searches.cc
 libhyperdex_admin_la_SOURCES += common/regex_match.cc
 libhyperdex_admin_la_SOURCES += common/schema.cc
 libhyperdex_admin_la_SOURCES += common/serialization.cc
+libhyperdex_admin_la_SOURCES += common/server.cc
 libhyperdex_admin_la_SOURCES += common/transfer.cc
 libhyperdex_admin_la_SOURCES += admin/admin.cc
 libhyperdex_admin_la_SOURCES += admin/c.cc
@@ -590,7 +599,7 @@ bindings_python__hyperdex_client_la_CFLAGS += $(CFLAGS)
 bindings_python__hyperdex_client_la_LIBADD =
 bindings_python__hyperdex_client_la_LIBADD += libhyperdex-client.la
 bindings_python__hyperdex_client_la_LIBADD += $(PYTHON_LDFLAGS)
-bindings_python__hyperdex_client_la_LDFLAGS = -module -avoid-version -export-symbols-regex init_hyperdex_client
+bindings_python__hyperdex_client_la_LDFLAGS = -module -avoid-version -export-symbols-regex init_hyperdex_client $(AM_LDFLAGS) $(LDFLAGS)
 bindings/python/_hyperdex_client.c: bindings/python/client.pyx
 	cp bindings/python/client.pyx bindings/python/_hyperdex_client.pyx
 	$(pyx_verbose)cython bindings/python/_hyperdex_client.pyx
@@ -609,7 +618,7 @@ bindings_python__hyperdex_admin_la_CFLAGS += $(CFLAGS)
 bindings_python__hyperdex_admin_la_LIBADD =
 bindings_python__hyperdex_admin_la_LIBADD += libhyperdex-admin.la
 bindings_python__hyperdex_admin_la_LIBADD += $(PYTHON_LDFLAGS)
-bindings_python__hyperdex_admin_la_LDFLAGS = -module -avoid-version -export-symbols-regex init_hyperdex_admin
+bindings_python__hyperdex_admin_la_LDFLAGS = -module -avoid-version -export-symbols-regex init_hyperdex_admin $(AM_LDFLAGS) $(LDFLAGS)
 bindings/python/_hyperdex_admin.c: bindings/python/admin.pyx
 	cp bindings/python/admin.pyx bindings/python/_hyperdex_admin.pyx
 	$(pyx_verbose)cython bindings/python/_hyperdex_admin.pyx
@@ -635,7 +644,7 @@ bindings_ruby_hyperdex_la_CPPFLAGS += $(CPPFLAGS)
 bindings_ruby_hyperdex_la_CFLAGS =
 bindings_ruby_hyperdex_la_CFLAGS += $(AM_CFLAGS)
 bindings_ruby_hyperdex_la_CFLAGS += $(CFLAGS)
-bindings_ruby_hyperdex_la_LDFLAGS = -module -avoid-version
+bindings_ruby_hyperdex_la_LDFLAGS = -module -avoid-version $(AM_LDFLAGS) $(LDFLAGS)
 bindings_ruby_hyperdex_la_LIBADD = $(RUBY_EXT_LDFLAGS)
 
 if ENABLE_CLIENT
@@ -677,10 +686,12 @@ bin_PROGRAMS += hyperdex-add-space
 bin_PROGRAMS += hyperdex-async-benchmark
 bin_PROGRAMS += hyperdex-rm-space
 bin_PROGRAMS += hyperdex-validate-space
+bin_PROGRAMS += hyperdex-show-config
 dist_man_MANS += man/hyperdex-add-space.1
 dist_man_MANS += man/hyperdex-async-benchmark.1
 dist_man_MANS += man/hyperdex-rm-space.1
 dist_man_MANS += man/hyperdex-validate-space.1
+dist_man_MANS += man/hyperdex-show-config.1
 endif
 
 # hyperdex
@@ -730,6 +741,15 @@ hyperdex_validate_space_LDADD = libhyperdex-admin.la -lpopt
 man/hyperdex-validate-space.1: man/hyperdex-validate-space.1.h2m tools/validate-space.cc
 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-validate-space$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-validate-space$(EXEEXT)
+
+# hyperdex-show-config
+EXTRA_DIST += man/hyperdex-show-config.1.md
+EXTRA_DIST += man/hyperdex-show-config.1.h2m
+hyperdex_show_config_SOURCES = tools/show-config.cc
+hyperdex_show_config_LDADD = libhyperdex-admin.la -lpopt
+man/hyperdex-show-config.1: man/hyperdex-show-config.1.h2m tools/show-config.cc
+	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-show-config$(EXEEXT)
+	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-show-config$(EXEEXT)
 
 ################################################################################
 ################################# Documentation ################################

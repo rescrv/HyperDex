@@ -51,6 +51,8 @@ class search_manager
     public:
         bool setup();
         void teardown();
+        void pause();
+        void unpause();
         void reconfigure(const configuration& old_config,
                          const configuration& new_config,
                          const server_id& us);

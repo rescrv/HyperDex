@@ -44,6 +44,11 @@
         columns(yytext, &yylloc->last_column); \
 }
 
+#pragma GCC diagnostic ignored "-Wredundant-decls"
+#pragma GCC diagnostic ignored "-Wswitch-default"
+#pragma GCC diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
 struct hyperdex_admin_space_keyword
 {
     int token;

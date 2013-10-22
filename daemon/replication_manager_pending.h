@@ -49,6 +49,9 @@ class hyperdex::replication_manager::pending
         ~pending() throw ();
 
     public:
+        void debug_dump();
+
+    public:
         std::auto_ptr<e::buffer> backing;
         region_id reg_id;
         uint64_t seq_id;

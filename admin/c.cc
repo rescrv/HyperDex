@@ -160,4 +160,42 @@ hyperdex_admin_loop(struct hyperdex_admin* _adm, int timeout,
     );
 }
 
+HYPERDEX_API const char*
+hyperdex_admin_error_message(struct hyperdex_admin* _adm)
+{
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->error_message();
+}
+
+HYPERDEX_API const char*
+hyperdex_admin_error_location(struct hyperdex_admin* _adm)
+{
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->error_location();
+}
+
+HYPERDEX_API const char*
+hyperdex_admin_returncode_to_string(enum hyperdex_admin_returncode status)
+{
+    switch (status)
+    {
+        CSTRINGIFY(HYPERDEX_ADMIN_SUCCESS);
+        CSTRINGIFY(HYPERDEX_ADMIN_NOMEM);
+        CSTRINGIFY(HYPERDEX_ADMIN_NONEPENDING);
+        CSTRINGIFY(HYPERDEX_ADMIN_POLLFAILED);
+        CSTRINGIFY(HYPERDEX_ADMIN_TIMEOUT);
+        CSTRINGIFY(HYPERDEX_ADMIN_INTERRUPTED);
+        CSTRINGIFY(HYPERDEX_ADMIN_SERVERERROR);
+        CSTRINGIFY(HYPERDEX_ADMIN_COORDFAIL);
+        CSTRINGIFY(HYPERDEX_ADMIN_BADSPACE);
+        CSTRINGIFY(HYPERDEX_ADMIN_DUPLICATE);
+        CSTRINGIFY(HYPERDEX_ADMIN_NOTFOUND);
+        CSTRINGIFY(HYPERDEX_ADMIN_INTERNAL);
+        CSTRINGIFY(HYPERDEX_ADMIN_EXCEPTION);
+        CSTRINGIFY(HYPERDEX_ADMIN_GARBAGE);
+        default:
+            return "unknown hyperdex_admin_returncode";
+    }
+}
+
 } // extern "C"

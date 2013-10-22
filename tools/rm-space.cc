@@ -52,8 +52,6 @@ main(int argc, const char* argv[])
         return EXIT_FAILURE;
     }
 
-    const char** args = ap.args();
-
     try
     {
         hyperdex::Admin h(conn.host(), conn.port());
@@ -66,7 +64,7 @@ main(int argc, const char* argv[])
 
             if (rid < 0)
             {
-                std::cerr << "could not rm space: " << rrc << std::endl;
+                std::cerr << "could not rm space: " << h.error_message() << std::endl;
                 failure = true;
                 continue;
             }
@@ -76,7 +74,7 @@ main(int argc, const char* argv[])
 
             if (lid < 0)
             {
-                std::cerr << "could not rm space: " << lrc << std::endl;
+                std::cerr << "could not rm space: " << h.error_message() << std::endl;
                 failure = true;
                 continue;
             }
@@ -85,7 +83,7 @@ main(int argc, const char* argv[])
 
             if (rrc != HYPERDEX_ADMIN_SUCCESS)
             {
-                std::cerr << "could not rm space: " << rrc << std::endl;
+                std::cerr << "could not rm space: " << h.error_message() << std::endl;
                 failure = true;
                 continue;
             }

@@ -69,10 +69,18 @@ class admin
         void disable_perf_counters();
         // looping/polling
         int64_t loop(int timeout, hyperdex_admin_returncode* status);
+        // error handling
+        const char* error_message();
+        const char* error_location();
+        void set_error_message(const char* msg);
         // translate returncodes
-        hyperdex_admin_returncode interpret_rpc_request_failure(replicant_returncode status);
-        hyperdex_admin_returncode interpret_rpc_loop_failure(replicant_returncode status);
-        hyperdex_admin_returncode interpret_rpc_response_failure(replicant_returncode status);
+        void interpret_rpc_request_failure(replicant_returncode rstatus,
+                                           hyperdex_admin_returncode* status);
+        void interpret_rpc_loop_failure(replicant_returncode rstatus,
+                                        hyperdex_admin_returncode* status);
+        void interpret_rpc_response_failure(replicant_returncode rstatus,
+                                            hyperdex_admin_returncode* status,
+                                            e::error* err);
 
     private:
         struct pending_server_pair
@@ -113,7 +121,9 @@ class admin
         pending_queue_t m_failed;
         std::list<e::intrusive_ptr<yieldable> > m_yieldable;
         e::intrusive_ptr<yieldable> m_yielding;
+        e::intrusive_ptr<yieldable> m_yielded;
         e::intrusive_ptr<pending_perf_counters> m_pcs;
+        e::error m_last_error;
 };
 
 END_HYPERDEX_NAMESPACE

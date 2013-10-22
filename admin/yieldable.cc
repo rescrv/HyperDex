@@ -35,9 +35,23 @@ yieldable :: yieldable(uint64_t id,
     : m_ref(0)
     , m_admin_visible_id(id)
     , m_status(s)
+    , m_error()
 {
 }
 
 yieldable :: ~yieldable() throw ()
 {
+}
+
+std::ostream&
+yieldable :: error(const char* file, size_t line)
+{
+    m_error.set_loc(file, line);
+    return m_error.set_msg();
+}
+
+void
+yieldable :: set_error(const e::error& err)
+{
+    m_error = err;
 }

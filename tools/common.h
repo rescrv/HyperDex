@@ -83,17 +83,20 @@ class connect_opts
 };
 
 #ifdef HYPERDEX_EXEC_DIR
+#define HYPERDEX_LIB_NAME "libhyperdex-coordinator"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wlarger-than="
 inline bool
 locate_coordinator_lib(const char* argv0, po6::pathname* path)
 {
     // find the right library
     std::vector<po6::pathname> paths;
     const char* env = getenv("HYPERDEX_COORD_LIB");
-    static const char* exts[] = { ".so.0.0.0", ".so.0", ".so", ".dylib", 0 };
+    static const char* exts[] = { "", ".so.0.0.0", ".so.0", ".so", ".dylib", 0 };
 
     for (size_t i = 0; exts[i]; ++i)
     {
-        std::string base("libhyperdex-coordinator");
+        std::string base(HYPERDEX_LIB_NAME);
         base += exts[i];
         paths.push_back(po6::join(HYPERDEX_EXEC_DIR, base));
         paths.push_back(po6::join(po6::pathname(argv0).dirname(),
@@ -104,6 +107,31 @@ locate_coordinator_lib(const char* argv0, po6::pathname* path)
             std::string envlib(env);
             envlib += exts[i];
             paths.push_back(envlib);
+        }
+    }
+
+    // maybe we're running out of Git.  make it "just work"
+    char selfbuf[PATH_MAX + 1];
+    memset(selfbuf, 0, sizeof(selfbuf));
+
+    if (readlink("/proc/self/exe", selfbuf, PATH_MAX) >= 0)
+    {
+        po6::pathname workdir(selfbuf);
+        workdir = workdir.dirname();
+        po6::pathname gitdir(po6::join(workdir, ".git"));
+        struct stat buf;
+
+        if (stat(gitdir.get(), &buf) == 0 &&
+            S_ISDIR(buf.st_mode))
+        {
+            po6::pathname libdir(po6::join(workdir, ".libs"));
+
+            for (size_t i = 0; exts[i]; ++i)
+            {
+                std::string libname(HYPERDEX_LIB_NAME);
+                libname += exts[i];
+                paths.push_back(po6::join(libdir, libname));
+            }
         }
     }
 
@@ -124,6 +152,8 @@ locate_coordinator_lib(const char* argv0, po6::pathname* path)
 
     return false;
 }
+#pragma GCC diagnostic pop
+#undef HYPERDEX_LIB_NAME
 #endif // HYPERDEX_EXEC_DIR
 
 END_HYPERDEX_NAMESPACE

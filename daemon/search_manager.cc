@@ -174,6 +174,16 @@ search_manager :: teardown()
 }
 
 void
+search_manager :: pause()
+{
+}
+
+void
+search_manager :: unpause()
+{
+}
+
+void
 search_manager :: reconfigure(const configuration&,
                               const configuration&,
                               const server_id&)
@@ -529,10 +539,6 @@ search_manager :: group_keyop(const server_id& from,
         if (vsi != virtual_server_id())
         {
             m_daemon->m_comm.send(vsi, mt, msg);
-        }
-        else
-        {
-            LOG(ERROR) << "group_keyop could not compute point leader (serious bug; please report)";
         }
 
         iter->next();

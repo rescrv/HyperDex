@@ -1,0 +1,809 @@
+\chapter{C API}
+
+\section{Client Library}
+\input{api/c.client}
+
+\section{Data Structures}
+
+HyperDex encodes as a bytestring all data structures passed between the
+application and HyperDex.  This format of this bytestring varies according to
+its type.  Below we describe the format of HyperDex data structures, and an API
+for serializing and deserializing HyperDex's datatypes.
+
+\subsection{Bytestring Format}
+
+The format of the data structures is defined to be the same on all platforms.
+
+For each format, Python-like psuedocode is provided that shows example
+encodings.
+
+\subsubsection{string}
+
+A string is an 8-bit byte string.  HyperDex is agnostic to the contents of the
+string, and it may contain any bytes, including \texttt{\\x00}.  By convention,
+the trailing \texttt{NULL} should be omitted for C-strings to ensure
+interoperability across languages.  For example:
+
+\begin{pythoncode}
+>>> encode_string('Hello\x00World!')
+b'Hello\x00World!'
+\end{pythoncode}
+
+\subsubsection{int}
+
+Integers are encoded as signed 8-byte little-endian integers.  For example:
+
+\begin{pythoncode}
+>>> encode_int(1)
+b'\x01\x00\x00\x00\x00\x00\x00\x00'
+>>> encode_int(-1)
+b'\xff\xff\xff\xff\xff\xff\xff\xff'
+>>> encode_int(0xdeadbeef)
+b'\xef\xbe\xad\xde\x00\x00\x00\x00'
+\end{pythoncode}
+
+\subsubsection{float}
+
+Floats are encoded as IEEE 754 binary64 values in little-endian format.  For
+example:
+
+\begin{pythoncode}
+>>> encode_double(0)
+b'\x00\x00\x00\x00\x00\x00\x00\x00'
+>>> encode_double(3.1415)
+b'o\x12\x83\xc0\xca!\t@'
+\end{pythoncode}
+
+\subsubsection{list(string)}
+
+Lists of strings are encoded by concatenating the encoding of each string,
+prefixed by an unsigned 4-byte little endian integer indicating the length of
+the string.  For example:
+
+\begin{pythoncode}
+>>> encode_list_string([])
+b''
+>>> encode_list_string(['hello', 'world'])
+b'\x05\x00\x00\x00hello\x05\x00\x00\x00world'
+\end{pythoncode}
+
+\subsubsection{list(int)}
+
+Lists of integers are encoded by concatenating the encoded form of each integer.
+For example:
+
+\begin{pythoncode}
+>>> encode_list_int([])
+b''
+>>> encode_list_int([1, -1, 0xdeadbeef])
+b'\x01\x00\x00\x00\x00\x00\x00\x00' \
+b'\xff\xff\xff\xff\xff\xff\xff\xff' \
+b'\xef\xbe\xad\xde\x00\x00\x00\x00'
+\end{pythoncode}
+
+\subsubsection{list(floats)}
+
+Lists of floats are encoded by concatenating the encoded form of each float.
+For example:
+
+\begin{pythoncode}
+>>> encode_list_float([])
+b''
+>>> encode_list_float([0, 3.1415])
+b'\x00\x00\x00\x00\x00\x00\x00\x00' \
+b'o\x12\x83\xc0\xca!\t@'
+\end{pythoncode}
+
+\subsubsection{set(string)}
+
+Sets of strings are encoded by concatenating the encoding of each string in
+sorted order, where each string is prefixed by an unsigned 4-byte little endian
+integer indicating the length of the string.  For example:
+
+\begin{pythoncode}
+>>> encode_set_string([])
+b''
+>>> encode_set_string(['world', 'hello'])
+b'\x05\x00\x00\x00hello\x05\x00\x00\x00world'
+\end{pythoncode}
+
+\subsubsection{set(int)}
+
+Sets of integers are encoded by concatenating the encoded form of each integer
+in sorted order.  For example:
+
+\begin{pythoncode}
+>>> encode_set_int([])
+b''
+>>> encode_set_int([1, -1, 0xdeadbeef])
+b'\xff\xff\xff\xff\xff\xff\xff\xff' \
+b'\x01\x00\x00\x00\x00\x00\x00\x00' \
+b'\xef\xbe\xad\xde\x00\x00\x00\x00'
+\end{pythoncode}
+
+\subsubsection{set(float)}
+
+Sets of floats are encoded by concatenating the encoded form of each float in
+sorted order.  For example:
+
+\begin{pythoncode}
+>>> encode_set_float([])
+b''
+>>> encode_set_float([3.1415, 0])
+b'\x00\x00\x00\x00\x00\x00\x00\x00' \
+b'o\x12\x83\xc0\xca!\t@'
+\end{pythoncode}
+
+\subsubsection{map(string, string)}
+
+Maps from strings to strings are formed by encoding the individual elements,
+each prefixed by an unsigned 4-byte little endian integer indicating their
+length.  The pairs of elements are stored in sorted order according to the first
+element of the pair (the map's key).  For example:
+
+\begin{pythoncode}
+>>> encode_map_string_string({})
+b''
+>>> encode_map_string_string({'hello': 'world',
+...                           'map key': 'map val',
+...                           'map', 'encoding'})
+b'\x05\x00\x00\x00hello\x05\x00\x00\x00world' \
+b'\x03\x00\x00\x00map\x08\x00\x00\x00encoding' \
+b'\x07\x00\x00\x00map key\x07\x00\x00\x00map val'
+\end{pythoncode}
+
+\subsubsection{map(string, int)}
+
+Maps from strings to ints are formed by encoding the individual elements, where
+keys are prefixed by an unsigned 4-byte little endian integer indicating their
+length.  The pairs of elements are stored in sorted order according to the first
+element of the pair (the map's key).  For example:
+
+\begin{pythoncode}
+>>> encode_map_string_int({})
+b''
+>>> encode_map_string_int({'world': -1,
+...                        'hello': 1})
+b'\x05\x00\x00\x00hello\x01\x00\x00\x00\x00\x00\x00\x00' \
+b'\x05\x00\x00\x00world\xff\xff\xff\xff\xff\xff\xff\xff'
+\end{pythoncode}
+
+\subsubsection{map(string, float)}
+
+Maps from strings to ints are formed by encoding the individual elements, where
+keys are prefixed by an unsigned 4-byte little endian integer indicating their
+length.  The pairs of elements are stored in sorted order according to the first
+element of the pair (the map's key).  For example:
+
+\begin{pythoncode}
+>>> encode_map_string_float({})
+b''
+>>> encode_map_string_float({'zero': 0,
+...                          'pi': 3.1415})
+b'\x02\x00\x00\x00pio\x12\x83\xc0\xca!\t@' \
+b'\x04\x00\x00\x00zero\x00\x00\x00\x00\x00\x00\x00\x00'
+\end{pythoncode}
+
+\subsubsection{map(int, string)}
+
+Maps from ints to strings are formed by encoding the individual elements, where
+values are prefixed by an unsigned 4-byte little endian integer indicating their
+length.  The pairs of elements are stored in sorted order according to the first
+element of the pair (the map's key).  For example:
+
+\begin{pythoncode}
+>>> encode_map_int_string({})
+b''
+>>> encode_map_int_string({1: 'hello',
+...                        -1: 'world'})
+b'\xff\xff\xff\xff\xff\xff\xff\xff\x05\x00\x00\x00world' \
+b'\x01\x00\x00\x00\x00\x00\x00\x00\x05\x00\x00\x00hello'
+\end{pythoncode}
+
+\subsubsection{map(int, int)}
+
+Maps from ints to ints are formed by encoding the individual elements.  The
+pairs of elements are stored in sorted order according to the first element of
+the pair (the map's key).  For example:
+
+\begin{pythoncode}
+>>> encode_map_int_int({})
+b''
+>>> encode_map_int_int({1: 0xdeadbeef,
+...                     -1: 0x1eaff00d})
+b'\xff\xff\xff\xff\xff\xff\xff\xff\x0d\xf0\xaf\x1e\x00\x00\x00\x00' \
+b'\x01\x00\x00\x00\x00\x00\x00\x00\xef\xbe\xad\xde\x00\x00\x00\x00'
+\end{pythoncode}
+
+\subsubsection{map(int, float)}
+
+Maps from ints to floats are formed by encoding the individual elements.  The
+pairs of elements are stored in sorted order according to the first element of
+the pair (the map's key).  For example:
+
+\begin{pythoncode}
+>>> encode_map_int_float({})
+b''
+>>> encode_map_int_float({1: 0,
+...                       -1: 3.1415})
+b'\xff\xff\xff\xff\xff\xff\xff\xffo\x12\x83\xc0\xca!\t@' \
+b'\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+\end{pythoncode}
+
+\subsubsection{map(float, string)}
+
+Maps from floats to strings are formed by encoding the individual elements,
+where values are prefixed by an unsigned 4-byte little endian integer indicating
+their length.  The pairs of elements are stored in sorted order according to the
+first element of the pair (the map's key).  For example:
+
+\begin{pythoncode}
+>>> encode_map_float_string({})
+b''
+>>> encode_map_float_string({0: 'hello',
+...                          3.1415: 'world'})
+b'\x00\x00\x00\x00\x00\x00\x00\x00\x05\x00\x00\x00hello' \
+b'o\x12\x83\xc0\xca!\t@\x05\x00\x00\x00world'
+\end{pythoncode}
+
+\subsubsection{map(float, int)}
+
+Maps from floats to ints are formed by encoding the individual elements.  The
+pairs of elements are stored in sorted order according to the first element of
+the pair (the map's key).  For example:
+
+\begin{pythoncode}
+>>> encode_map_float_int({})
+b''
+>>> encode_map_float_int({0: 1,
+...                       3.1415: -1})
+b'\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00' \
+b'o\x12\x83\xc0\xca!\t@\xff\xff\xff\xff\xff\xff\xff\xff'
+\end{pythoncode}
+
+\subsubsection{map(float, float)}
+
+Maps from floats to floats are formed by encoding the individual elements.  The
+pairs of elements are stored in sorted order according to the first element of
+the pair (the map's key).  For example:
+
+\begin{pythoncode}
+>>> encode_map_float_float({})
+b''
+>>> encode_map_float_float({0: 1,
+...                         3.1415: -1})
+b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf0?' \
+b'o\x12\x83\xc0\xca!\t@\x00\x00\x00\x00\x00\x00\xf0\xbf'
+\end{pythoncode}
+
+\subsection{Serialization API}
+
+The serialization API supports serialization of all datatypes supported by
+HyperDex.  Of course, feel free to manually encode data structures, especially
+where doing so can make use of efficient stack-allocated data structures.
+
+\subsubsection{struct hyperdex\_ds\_arena}
+
+The packing routines described below may occasionally have to allocate memory
+into which the encoded forms of the datatypes are copied.  To free the
+programmer from the burden of having to manually allocate and free each of these
+pieces of memory, the data structures API allocates all memory via an instance
+of \texttt{struct hyperdex\_ds\_arena}.  Via a single call to
+\texttt{hyperdex\_ds\_arena\_destroy}, all memory allocated via the arena is
+free'd.
+
+\texttt{struct hyperdex\_ds\_arena} is intentionally defined as an incomplete
+type because its internals are subject to change.  To create an arena, call
+\texttt{hyperdex\_ds\_arena\_create}.  The arena should subsequently be
+destroyed via \texttt{hyperdex\_ds\_arena\_destroy}.
+
+\begin{ccode}
+struct hyperdex_ds_arena* hyperdex_ds_arena_create();
+\end{ccode}
+\funcdesc Create a new arena for alocating memory.  On success, this function
+returns a non-null pointer for the new arena.  On failure, the function returns
+\texttt{NULL}, indicating that memory allocation failed.  It is the caller's
+responsibility to pass this function to \texttt{hyperdex\_ds\_arena\_destroy}
+when finished.
+
+\funcsep
+\begin{ccode}
+void hyperdex_ds_arena_destroy(struct hyperdex_ds_arena* arena);
+\end{ccode}
+\funcdesc Free all memory associated with \texttt{arena}.  This function always
+succeeds.
+
+\subsubsection{string}
+
+No serialization is necessary for string data types.  For convenience, the
+serialization API provides a copy function that copies a string into
+arena-allocated memory.
+
+\begin{ccode}
+int hyperdex_ds_copy_string(struct hyperdex_ds_arena* arena, const char* str,
+                            size_t str_sz, enum hyperdex_ds_returncode* status,
+                            const char** value, size_t* value_sz);
+\end{ccode}
+\funcdesc  Copy the string \texttt{str}/\texttt{str\_sz} into memory allocated
+via \texttt{arena} and return the copy via \texttt{value} and
+\texttt{value\_sz}.  This function will fail and return -1 if there is
+insufficient memory available for copying the string.  All pointers returned by
+this function remain valid until \texttt{arena} is destroyed.  The client should
+not attempt to free the returned copy.
+
+\subsubsection{int}
+
+\begin{ccode}
+void hyperdex_ds_pack_int(int64_t num, char* value);
+\end{ccode}
+\funcdesc Packs \texttt{num} into the bytes pointed to by \texttt{buf}.  This
+function always succeeds.  It is the caller's responsibility to ensure that
+\texttt{buf} points to at least \unit{8}{\byte}.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_copy_int(struct hyperdex_ds_arena* arena, int64_t num,
+                         enum hyperdex_ds_returncode* status,
+                         const char** value, size_t* value_sz);
+\end{ccode}
+\funcdesc Encode \texttt{num} into memory allocated via \texttt{arena} and
+return the value via \texttt{value} and \texttt{value\_sz}.  This function will
+fail and return -1 if there is insufficient memory available for encoding the
+nubmer.  All pointers returned by this function remain valid until
+\texttt{arena} is destroyed.  The client should not attempt to free the returned
+copy.
+
+\subsubsection{float}
+
+\begin{ccode}
+void hyperdex_ds_pack_float(double num, char* value);
+\end{ccode}
+\funcdesc Pack \texttt{num} into the bytes pointed to by \texttt{buf}.  This
+function always succeeds.  It is the caller's responsibility to ensure that
+\texttt{buf} points to at least \unit{8}{\byte}.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_copy_float(struct hyperdex_ds_arena* arena, double num,
+                           enum hyperdex_ds_returncode* status,
+                           const char** value, size_t* value_sz);
+\end{ccode}
+\funcdesc Encode \texttt{num} into memory allocated via \texttt{arena} and
+return the value via \texttt{value} and \texttt{value\_sz}.  This function will
+fail and return -1 if there is insufficient memory available for encoding the
+nubmer.  All pointers returned by this function remain valid until
+\texttt{arena} is destroyed.  The client should not attempt to free the returned
+copy.
+
+\subsubsection{lists}
+
+The below functions incrementally build lists, performing all relevant error
+checking to ensure that the resuling HyperDex list is well-formed.  The first
+element appended to the list implicitly determines the type of the list.  All
+subsequent calls that push elements of a different type will fail.
+
+\begin{ccode}
+struct hyperdex_ds_list* hyperdex_ds_allocate_list(struct hyperdex_ds_arena* arena);
+\end{ccode}
+\funcdesc Create a new dynamic list.  This function will fail and return
+\texttt{NULL} should memory allocation fail.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_list_insert_string(struct hyperdex_ds_list* list,
+                                   const char* str, size_t str_sz,
+                                   enum hyperdex_ds_returncode* status);
+\end{ccode}
+\funcdesc Append the string \texttt{str}/\texttt{str\_sz} to \texttt{list}.
+This function will fail and return -1 if memory allocation fails, or the list is
+not a list of strings.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_list_insert_int(struct hyperdex_ds_list* list, int64_t num,
+                                enum hyperdex_ds_returncode* status);
+\end{ccode}
+\funcdesc Append the integer \texttt{num} to \texttt{list}.  This function will
+fail and return -1 if memory allocation fails, or the list is not a list of
+integers.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_list_insert_float(struct hyperdex_ds_list* list, double num,
+                                  enum hyperdex_ds_returncode* status);
+\end{ccode}
+\funcdesc Append the float \texttt{num} to \texttt{list}.  This function will
+fail and return -1 if memory allocation fails or the list is not a list of
+floats.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_list_finalize(struct hyperdex_ds_list*,
+                              enum hyperdex_ds_returncode* status,
+                              const char** value, size_t* value_sz,
+                              enum hyperdatatype* datatype);
+\end{ccode}
+\funcdesc Finalize the list by writing its elements into a bytestring.  This
+function returns the bytestring and the list type.  It will fail and return -1
+if memory allocation fails.
+
+\subsubsection{sets}
+
+The below functions incrementally build sets, performing all relevant error
+checking to ensure that the resuling HyperDex set is well-formed.  The first
+element inserted into the set implicitly determines the type of the set.  All
+subsequent calls that insert elements of different types will fail.
+
+\begin{ccode}
+struct hyperdex_ds_set* hyperdex_ds_allocate_set(struct hyperdex_ds_arena* arena);
+\end{ccode}
+\funcdesc Create a new dynamic set.  This function will fail and return
+\texttt{NULL} should memory allocation fail.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_set_insert_string(struct hyperdex_ds_set* set,
+                                  const char* str, size_t str_sz,
+                                  enum hyperdex_ds_returncode* status);
+\end{ccode}
+\funcdesc Insert the string \texttt{str}/\texttt{str\_sz} into \texttt{set}.
+This function will fail and return -1 if memory allocation fails, or the set is
+not a set of strings.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_set_insert_int(struct hyperdex_ds_set* set, int64_t num,
+                               enum hyperdex_ds_returncode* status);
+\end{ccode}
+\funcdesc Insert the integer \texttt{num} into \texttt{set}.  This function will
+fail and return -1 if memory allocation fails, or the set is not a set of
+integers.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_set_insert_float(struct hyperdex_ds_set* set, double num,
+                                 enum hyperdex_ds_returncode* status);
+\end{ccode}
+\funcdesc Insert the float \texttt{num} into \texttt{set}.  This function will
+fail and return -1 if memory allocation fails, or the set is not a set of
+floats.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_set_finalize(struct hyperdex_ds_set*,
+                             enum hyperdex_ds_returncode* status,
+                             const char** value, size_t* value_sz,
+                             enum hyperdatatype* datatype);
+\end{ccode}
+\funcdesc Finalize the set by writing its elements into a bytestring.  This
+function returns the bytestring and the set type.  It will fail and return -1 if
+memory allocation fails.
+
+\subsubsection{maps}
+
+The below functions incrementally build maps, performing all relevant error
+checking to ensure that the resuling HyperDex map is well-formed.  The first
+key/value-pair inserted into the map implicitly determines the type of the map.  All
+subsequent calls that insert elements of different types will fail.
+
+The map is built by alternating calls to the key/value functions described
+below, starting with a key-based function.  This keeps the number of cases
+linear in the number of primitive types a map may contain, rather than appending
+key-value pairs directly (which would require a quadratic number of calls).
+
+\begin{ccode}
+struct hyperdex_ds_map* hyperdex_ds_allocate_map(struct hyperdex_ds_arena* arena);
+\end{ccode}
+\funcdesc Create a new dynamic map.  This function will fail and return
+\texttt{NULL} should memory allocation fail.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_map_insert_key_string(struct hyperdex_ds_map* map,
+                                      const char* str, size_t str_sz,
+                                      enum hyperdex_ds_returncode* status);
+\end{ccode}
+\funcdesc Set the key of the next pair to be inserted into \texttt{map} to the
+string specified by \texttt{str} and \texttt{str\_sz}.  This function will fail
+and return -1 if memory allocation fails, or the map does not use strings for
+keys.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_map_insert_val_string(struct hyperdex_ds_map* map,
+                                      const char* str, size_t str_sz,
+                                      enum hyperdex_ds_returncode* status);
+\end{ccode}
+\funcdesc Set the value of the next pair to be inserted into \texttt{map} to the
+string specified by \texttt{str} and \texttt{str\_sz}, and insert the pair.
+This function will fail and return -1 if memory allocation fails, or the map
+does not use strings for values.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_map_insert_key_int(struct hyperdex_ds_map* map,
+                                   int64_t num,
+                                   enum hyperdex_ds_returncode* status);
+\end{ccode}
+\funcdesc Set the key of the next pair to be inserted into \texttt{map} to the
+integer specified by \texttt{num}.  This function will fail and return -1 if
+memory allocation fails, or the map does not nuse integers for keys.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_map_insert_val_int(struct hyperdex_ds_map* map,
+                                   int64_t num,
+                                   enum hyperdex_ds_returncode* status);
+\end{ccode}
+\funcdesc Set the value of the next pair to be inserted into \texttt{map} to the
+integer specified by \texttt{num}, and insert the pair.  This function will fail
+and return -1 if memory allocation fails, or the map does not use integers for
+values.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_map_insert_key_float(struct hyperdex_ds_map* map,
+                                     double num,
+                                     enum hyperdex_ds_returncode* status);
+\end{ccode}
+\funcdesc Set the key of the next pair to be inserted into \texttt{map} to the
+float specified by \texttt{num}.  This function will fail and return -1 if
+memory allocation fails, or the map does not use floats for keys.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_map_insert_val_float(struct hyperdex_ds_map* map,
+                                     double num,
+                                     enum hyperdex_ds_returncode* status);
+\end{ccode}
+\funcdesc Set the value of the next pair to be inserted into \texttt{map} to the
+float specified by \texttt{num}.  This function will fail and return -1 if
+memory allocation fails, or the map does not use floats for values.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_map_finalize(struct hyperdex_ds_map*,
+                             enum hyperdex_ds_returncode* status,
+                             const char** value, size_t* value_sz,
+                             enum hyperdatatype* datatype);
+\end{ccode}
+\funcdesc Finalize the map by writing its key/value-pairs  into a bytestring.
+This function returns the bytestring and the map type.  It will fail and return
+-1 if memory allocation fails, or an uneven number of key/value calls were made.
+
+\subsection{Deserialization API}
+
+The deserialization API provides routines to unpack ints and floats, and iterate
+the elements in lists, sets, and maps.  Iterators return elements one-by-one
+with a minimal amount of copying and allocation.  All iterators are used in the
+same pattern.  For example, to iterate a list of integers:
+
+\inputminted{c}{api/c/iterate.c}
+
+Compile and run this example with:
+
+\begin{consolecode}
+$ cc -o iterate iterate.c `pkg-config --cflags --libs hyperdex-client`
+$ ./iterate
+1
+-1
+3735928559
+\end{consolecode}
+
+The function \texttt{hyperdex\_ds\_iterator\_init} sets up the iterator.  Each
+container data type has a specialized iteration function.  All iterators share
+the same initialization function.
+
+\begin{ccode}
+void hyperdex_ds_iterator_init(struct hyperdex_ds_iterator* iter,
+                               enum hyperdatatype datatype,
+                               const char* value,
+                               size_t value_sz);
+\end{ccode}
+\funcdesc Initialize an iterator for the given data type/value.  This function
+always succeeds.
+
+\subsubsection{string}
+
+No deserialization is necessary for string data types.
+
+\subsubsection{int}
+
+\begin{ccode}
+int hyperdex_ds_unpack_int(const char* buf, size_t buf_sz, int64_t* num);
+\end{ccode}
+\funcdesc Unpack \texttt{num} from \texttt{buf}/\texttt{buf\_sz}.  This function
+will fail and return -1 if \texttt{buf\_sz} is not exactly \unit{8}{\byte}.
+
+\subsubsection{float}
+
+\begin{ccode}
+int hyperdex_ds_unpack_float(const char* buf, size_t buf_sz, double* num);
+\end{ccode}
+\funcdesc Unpack \texttt{num} from \texttt{buf}/\texttt{buf\_sz}.  This function
+will fail and return -1 if \texttt{buf\_sz} is not exactly \unit{8}{\byte}.
+
+\subsubsection{lists}
+
+\begin{ccode}
+int hyperdex_ds_iterate_list_string_next(struct hyperdex_ds_iterator* iter,
+                                         const char** str, size_t* str_sz);
+\end{ccode}
+\funcdesc Return the next string element in the list.  This function will return
+1 if an element is returned, 0 if there are no elements to return, and -1 if the
+list of strings is malformed.  The falue stored in \texttt{*str} is a pointer
+into the list of strings and should not be free'd by the application.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_iterate_list_int_next(struct hyperdex_ds_iterator* iter, int64_t* num);
+\end{ccode}
+\funcdesc Return the next integer element in the list.  This function will
+return 1 if an element is returned, 0 if there are no elements to return, and -1
+if the list of integers is malformed.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_iterate_list_float_next(struct hyperdex_ds_iterator* iter, double* num);
+\end{ccode}
+\funcdesc Return the next float element in the list.  This function will return
+1 if an element is returned, 0 if there are no elements to return, and -1 if the
+list of floats is malformed.
+
+\subsubsection{sets}
+
+\begin{ccode}
+int hyperdex_ds_iterate_set_string_next(struct hyperdex_ds_iterator* iter,
+                                        const char** str, size_t* str_sz);
+\end{ccode}
+\funcdesc Return the next string element in the set.  This function will return
+1 if an element is returned, 0 if there are no elements to return, and -1 if the
+set of strings is malformed.  The value stored in \texttt{*str} is a pointer
+into the set of strings and should not be free'd by the application.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_iterate_set_int_next(struct hyperdex_ds_iterator* iter, int64_t* num);
+\end{ccode}
+\funcdesc Return the next integer element in the set.  This function will return
+1 if an element is returned, 0 if there are no elements to return, and -1 if the
+set of ints is malformed.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_iterate_set_float_next(struct hyperdex_ds_iterator* iter, double* num);
+\end{ccode}
+\funcdesc Return the next float element in the set.  This function will return 1
+if an element is returned, 0 if there are no elements to return, and -1 if the
+set of ints is malformed.
+
+\subsubsection{maps}
+
+\begin{ccode}
+int hyperdex_ds_iterate_map_string_string_next(struct hyperdex_ds_iterator* iter,
+                                               const char** key, size_t* key_sz,
+                                               const char** val, size_t* val_sz);
+\end{ccode}
+\funcdesc Return the next pair of (string, string) in the map.  This function
+will return 1 if an element is returned, 0 if there are no elements to return,
+and -1 if the map is malformed.  The values stored in \texttt{*key} and
+\texttt{*val} are pointers into the map and should not be free'd by the
+application.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_iterate_map_string_int_next(struct hyperdex_ds_iterator* iter,
+                                            const char** key, size_t* key_sz,
+                                            int64_t* val);
+\end{ccode}
+\funcdesc Return the next pair of (string, int) in the map.  This function will
+return 1 if an element is returned, 0 if there are no elements to return, and -1
+if the map is malformed.  The value stored in \texttt{*key} is a pointer into
+the map and should not be free'd by the application.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_iterate_map_string_float_next(struct hyperdex_ds_iterator* iter,
+                                              const char** key, size_t* key_sz,
+                                              double* val);
+\end{ccode}
+\funcdesc Return the next pair of (string, float) in the map.  This function
+will return 1 if an element is returned, 0 if there are no elements to return,
+and -1 if the map is malformed.  The value stored in \texttt{*key} is a pointer
+into the map and should not be free'd by the application.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_iterate_map_int_string_next(struct hyperdex_ds_iterator* iter,
+                                            int64_t* key,
+                                            const char** val, size_t* val_sz);
+\end{ccode}
+\funcdesc Return the next pair of (int, string) in the map.  This function will
+return 1 if an element is returned, 0 if there are no elements to return, and -1
+if the map is malformed.  The value stored in \texttt{*val} is a pointer into
+the map and should not be free'd by the application.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_iterate_map_int_int_next(struct hyperdex_ds_iterator* iter,
+                                         int64_t* key, int64_t* val);
+\end{ccode}
+\funcdesc Return the next pair of (int, int) in the map.  This function will
+return 1 if an element is returned, 0 if there are no elements to return, and -1
+if the map is malformed.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_iterate_map_int_float_next(struct hyperdex_ds_iterator* iter,
+                                           int64_t* key, double* val);
+\end{ccode}
+\funcdesc Return the next pair of (int, float) in the map.  This function will
+return 1 if an element is returned, 0 if there are no elements to return, and -1
+if the map is malformed.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_iterate_map_float_string_next(struct hyperdex_ds_iterator* iter,
+                                              double* key,
+                                              const char** val, size_t* val_sz);
+\end{ccode}
+\funcdesc Return the next pair of (float, string) in the map.  This function
+will return 1 if an element is returned, 0 if there are no elements to return,
+and -1 if the map is malformed.  The value stored in \texttt{*val} is a pointer
+into the map and should not be free'd by the application.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_iterate_map_float_int_next(struct hyperdex_ds_iterator* iter,
+                                           double* key, int64_t* val);
+\end{ccode}
+\funcdesc Return the next pair of (float, int) in the map.  This function will
+return 1 if an element is returned, 0 if there are no elements to return, and -1
+if the map is malformed.
+
+\funcsep
+\begin{ccode}
+int hyperdex_ds_iterate_map_float_float_next(struct hyperdex_ds_iterator* iter,
+                                             double* key, double* val);
+\end{ccode}
+\funcdesc Return the next pair of (float, float) in the map.  This function will
+return 1 if an element is returned, 0 if there are no elements to return, and -1
+if the map is malformed.
+
+\subsection{Memory Management Utilties}
+
+The data structures API provides utility functions for allocating structures
+from the arena, obviating the need to free them individually.
+
+\funcsep
+\begin{ccode}
+struct hyperdex_client_attribute*
+hyperdex_ds_allocate_attribute(struct hyperdex_ds_arena* arena, size_t sz);
+\end{ccode}
+\funcdesc Allocate an array of \texttt{struct hyperdex\_client\_attribute}.
+On success, this function returns a non-null pointer containing \texttt{sz}
+elements.  On failure, the function returns \texttt{NULL}, indicating that
+memory allocation failed.  The memory will remain valid until the arena is
+destroyed and should not be free'd independently by the application.
+
+\funcsep
+\begin{ccode}
+struct hyperdex_client_attribute_check*
+hyperdex_ds_allocate_attribute_check(struct hyperdex_ds_arena* arena, size_t sz);
+\end{ccode}
+\funcdesc Allocate an array of \texttt{struct hyperdex\_client\_attribute\_check}.
+On success, this function returns a non-null pointer containing \texttt{sz}
+elements.  On failure, the function returns \texttt{NULL}, indicating that
+memory allocation failed.  The memory will remain valid until the arena is
+destroyed and should not be free'd independently by the application.
+
+\funcsep
+\begin{ccode}
+struct hyperdex_client_map_attribute*
+hyperdex_ds_allocate_map_attribute(struct hyperdex_ds_arena* arena, size_t sz);
+\end{ccode}
+\funcdesc Allocate an array of \texttt{struct hyperdex\_client\_map\_attribute}.
+On success, this function returns a non-null pointer containing \texttt{sz}
+elements.  On failure, the function returns \texttt{NULL}, indicating that
+memory allocation failed.  The memory will remain valid until the arena is
+destroyed and should not be free'd independently by the application.

@@ -169,6 +169,7 @@ class client
         pending_map_t m_pending_ops;
         pending_queue_t m_failed;
         e::intrusive_ptr<pending> m_yielding;
+        e::intrusive_ptr<pending> m_yielded;
         e::error m_last_error;
 };
 

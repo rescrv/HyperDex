@@ -28,6 +28,12 @@
 #ifndef hyperdex_daemon_replication_manager_key_region_h_
 #define hyperdex_daemon_replication_manager_key_region_h_
 
+// STL
+#include <tr1/unordered_map>
+
+// Google CityHash
+#include <city.h>
+
 // HyperDex
 #include "common/ids.h"
 #include "daemon/replication_manager.h"
@@ -37,14 +43,38 @@ class hyperdex::replication_manager::key_region
     public:
         key_region();
         key_region(const region_id& r, const e::slice& k);
+        key_region(const key_region& other);
 
     public:
         bool operator < (const key_region& rhs) const;
         bool operator == (const key_region& rhs) const;
+        key_region& operator = (const key_region& rhs);
 
     public:
-        const region_id region;
-        const e::slice key;
+        region_id region;
+        e::slice key;
+
+    private:
+        friend class std::tr1::hash<key_region>;
 };
+
+namespace std
+{
+namespace tr1
+{
+
+template <>
+struct hash<hyperdex::replication_manager::key_region>
+{
+    size_t operator()(const hyperdex::replication_manager::key_region& kr) const
+    {
+        return CityHash64WithSeed(reinterpret_cast<const char*>(kr.key.data()),
+                                  kr.key.size(),
+                                  std::tr1::hash<uint64_t>()(kr.region.get()));
+    }
+};
+
+} // namespace tr1
+} // namespace std
 
 #endif // hyperdex_daemon_replication_manager_key_region_h_

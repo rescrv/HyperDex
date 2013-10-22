@@ -51,7 +51,10 @@ struct hyperspace;
 extern struct yy_buffer_state*
 yy_scan_string(const char *bytes, void* yyscanner);
 extern void
-yyerror(YYLTYPE* yylloc, struct hyperspace* space, void* scanner, char* msg);
+yyerror(YYLTYPE* yylloc, struct hyperspace* space, void* scanner, const char* msg);
+
+#pragma GCC diagnostic ignored "-Wswitch-enum"
+#pragma GCC diagnostic ignored "-Wimplicit-function-declaration"
 
 %}
 
@@ -162,11 +165,12 @@ type : STRING                        { $$ = HYPERDATATYPE_STRING; }
 %%
 
 void
-yyerror(YYLTYPE* yylloc, struct hyperspace* space, void* scanner, char* msg)
+yyerror(YYLTYPE* yylloc, struct hyperspace* space, void* scanner, const char* msg)
 {
     char* buffer = hyperspace_buffer(space);
     size_t buffer_sz = hyperspace_buffer_sz(space);
     snprintf(buffer, buffer_sz, "%s at line %d column %d", msg, yylloc->first_line, yylloc->first_column);
     buffer[buffer_sz - 1] = '\0';
     hyperspace_set_error(space, buffer);
+    (void)scanner;
 }

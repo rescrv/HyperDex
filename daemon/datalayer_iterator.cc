@@ -84,6 +84,86 @@ datalayer :: iterator :: ~iterator() throw ()
 {
 }
 
+///////////////////////////// class replay_iterator ////////////////////////////
+
+datalayer :: replay_iterator :: replay_iterator(const region_id& ri,
+                                                leveldb_replay_iterator_ptr ptr,
+                                                index_info* di)
+    : m_ri(ri)
+    , m_iter(ptr.get())
+    , m_ptr(ptr)
+    , m_decoded()
+    , m_di(di)
+{
+}
+
+bool
+datalayer :: replay_iterator :: valid()
+{
+    char buf[sizeof(uint8_t) + sizeof(uint64_t)];
+    char* ptr = buf;
+    ptr = e::pack8be('o', ptr);
+    ptr = e::pack64be(m_ri.get(), ptr);
+    leveldb::Slice prefix(buf, sizeof(uint8_t) + sizeof(uint64_t));
+
+    while (m_iter->Valid())
+    {
+        if (m_iter->key().starts_with(prefix))
+        {
+            return true;
+        }
+
+        m_iter->Next();
+    }
+
+    return false;
+}
+
+void
+datalayer :: replay_iterator :: next()
+{
+    m_iter->Next();
+}
+
+bool
+datalayer :: replay_iterator :: has_value()
+{
+    return m_iter->HasValue();
+}
+
+e::slice
+datalayer :: replay_iterator :: key()
+{
+    const size_t sz = sizeof(uint8_t) + sizeof(uint64_t);
+    leveldb::Slice _k = m_iter->key();
+    e::slice k = e::slice(_k.data() + sz, _k.size() - sz);
+    size_t decoded_sz = m_di->decoded_size(k);
+
+    if (m_decoded.size() < decoded_sz)
+    {
+        m_decoded.resize(decoded_sz);
+    }
+
+    m_di->decode(k, &m_decoded.front());
+    return e::slice(&m_decoded.front(), decoded_sz);
+}
+
+datalayer::returncode
+datalayer :: replay_iterator :: unpack_value(std::vector<e::slice>* value,
+                                             uint64_t* version,
+                                             reference* ref)
+{
+    ref->m_backing.assign(m_iter->value().data(), m_iter->value().size());
+    e::slice v(ref->m_backing.data(), ref->m_backing.size());
+    return decode_value(v, value, version);
+}
+
+leveldb::Status
+datalayer :: replay_iterator :: status()
+{
+    return m_iter->status();
+}
+
 ///////////////////////////// class dummy_iterator /////////////////////////////
 
 datalayer :: dummy_iterator :: dummy_iterator()
