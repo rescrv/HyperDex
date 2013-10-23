@@ -1,29 +1,10 @@
 package hypergo
 
 import (
-	// "fmt"
+	"fmt"
 	// "log"
 	"testing"
 )
-
-// The following tests use the following space schema:
-/*
-space profiles
-key username
-attributes
-    string name,
-    float height,
-    int profile_views,
-    list(string) pending_requests,
-    list(float) ratings,
-    set(string) hobbies,
-    set(int) ages,
-    map(string, string) unread_messages,
-    map(string, int) upvotes
-subspace name
-subspace height
-subspace profile_views
-*/
 
 const (
 	SPACE = "profiles"
@@ -64,11 +45,31 @@ func putSomething(client *Client, t *testing.T) {
 		},
 	}
 
-	err := client.Put("profiles", "jsmith", attrs)
+	err := client.Put("profiles", KEY, attrs)
 
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func init() {
+	fmt.Println(`Please make sure you have created the following space:
+space profiles
+key username
+attributes
+    string name,
+    float height,
+    int profile_views,
+    list(string) pending_requests,
+    list(float) ratings,
+    set(string) hobbies,
+    set(int) ages,
+    map(string, string) unread_messages,
+    map(string, int) upvotes
+subspace name
+subspace height
+subspace profile_views
+`)
 }
 
 func TestGetPutDelete(t *testing.T) {
@@ -77,10 +78,14 @@ func TestGetPutDelete(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer client.Destroy()
+	defer func() {
+		client.Delete("profiles", KEY)
+		client.Delete("profiles", "derek")
+	}()
 
 	putSomething(client, t)
 
-	obj := client.Get("profiles", "jsmith")
+	obj := client.Get("profiles", KEY)
 	if obj.Err != nil {
 		t.Fatal(obj.Err)
 	}
@@ -123,13 +128,13 @@ func TestGetPutDelete(t *testing.T) {
 		t.Fatalf("Should return 2 objects.  Instead, we got %d", counter)
 	}
 
-	err = client.Delete("profiles", "jsmith")
+	err = client.Delete("profiles", KEY)
 
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	obj = client.Get("profiles", "jsmith")
+	obj = client.Get("profiles", KEY)
 	if obj.Err != nil {
 		hyperErr := obj.Err.(HyperError)
 		if hyperErr.returnCode != 8449 {
@@ -147,9 +152,12 @@ func TestAtomicAddSub(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer client.Destroy()
+	defer func() {
+		client.Delete("profiles", KEY)
+	}()
 
 	putSomething(client, t)
-	obj := client.Get("profiles", "jsmith")
+	obj := client.Get("profiles", KEY)
 	if obj.Err != nil {
 		t.Fatal(obj.Err)
 	}
@@ -157,14 +165,14 @@ func TestAtomicAddSub(t *testing.T) {
 	original := obj.Attrs["height"].(float64)
 	delta := 10.2
 
-	err = client.AtomicAdd("profiles", "jsmith", Attributes{
+	err = client.AtomicAdd("profiles", KEY, Attributes{
 		"height": delta,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	obj = client.Get("profiles", "jsmith")
+	obj = client.Get("profiles", KEY)
 
 	if obj.Err != nil {
 		t.Fatal(err)
@@ -174,14 +182,14 @@ func TestAtomicAddSub(t *testing.T) {
 		t.Fatal("Atomic add failed.")
 	}
 
-	err = client.AtomicSub("profiles", "jsmith", Attributes{
+	err = client.AtomicSub("profiles", KEY, Attributes{
 		"height": delta,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	obj = client.Get("profiles", "jsmith")
+	obj = client.Get("profiles", KEY)
 
 	if obj.Err != nil {
 		t.Fatal(err)
@@ -198,12 +206,15 @@ func TestCondPut(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer client.Destroy()
+	defer func() {
+		client.Delete("profiles", KEY)
+	}()
 
 	putSomething(client, t)
 
 	value := 214.15
 
-	err = client.CondPut("profiles", "jsmith", Attributes{
+	err = client.CondPut("profiles", KEY, Attributes{
 		"height": value,
 	}, []Condition{
 		Condition{
@@ -222,7 +233,7 @@ func TestCondPut(t *testing.T) {
 		}
 	}
 
-	obj := client.Get("profiles", "jsmith")
+	obj := client.Get("profiles", KEY)
 	if obj.Err != nil {
 		t.Fatal(obj.Err)
 	}
@@ -287,6 +298,9 @@ func TestSetOps(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer client.Destroy()
+	defer func() {
+		client.Delete("profiles", KEY)
+	}()
 
 	putSomething(client, t)
 
@@ -355,6 +369,9 @@ func TestMapOps(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer client.Destroy()
+	defer func() {
+		client.Delete("profiles", KEY)
+	}()
 
 	putSomething(client, t)
 
