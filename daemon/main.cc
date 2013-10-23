@@ -46,6 +46,7 @@
 
 static bool _daemonize = true;
 static const char* _data = ".";
+static const char* _log = NULL;
 static const char* _listen_host = "auto";
 static unsigned long _listen_port = 2012;
 static po6::net::ipaddr _listen_ip;
@@ -66,6 +67,9 @@ static struct poptOption popts[] = {
      "run replicant in the foreground", 0},
     {"data", 'D', POPT_ARG_STRING, &_data, 'D',
      "store persistent state in this directory (default: .)",
+     "dir"},
+    {"log", 'L', POPT_ARG_STRING, &_log, 'O',
+     "store persistent state in this directory (default: --data)",
      "dir"},
     {"listen", 'l', POPT_ARG_STRING, &_listen_host, 'l',
      "listen on a specific IP address (default: auto)",
@@ -107,6 +111,7 @@ main(int argc, const char* argv[])
                 _daemonize = false;
                 break;
             case 'D':
+            case 'O':
                 break;
             case 'l':
                 try
@@ -193,6 +198,7 @@ main(int argc, const char* argv[])
         }
 
         po6::pathname data(_data);
+        po6::pathname log(_log ? _log : _data);
         po6::net::location bind_to(_listen_ip, _listen_port);
         po6::net::hostname coord(_coordinator_host, _coordinator_port);
 
@@ -212,7 +218,7 @@ main(int argc, const char* argv[])
             return EXIT_FAILURE;
         }
 
-        return d.run(_daemonize, data, _listen, bind_to, _coordinator, coord, _threads);
+        return d.run(_daemonize, data, log, _listen, bind_to, _coordinator, coord, _threads);
     }
     catch (po6::error& e)
     {

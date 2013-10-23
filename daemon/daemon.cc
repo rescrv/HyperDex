@@ -165,6 +165,7 @@ generate_token(uint64_t* token)
 int
 daemon :: run(bool daemonize,
               po6::pathname data,
+              po6::pathname log,
               bool set_bind_to,
               po6::net::location bind_to,
               bool set_coordinator,
@@ -226,13 +227,14 @@ daemon :: run(bool daemonize,
     if (daemonize)
     {
         LOG(INFO) << "forking off to the background";
-        LOG(INFO) << "you can find the log at hyperdex-daemon-YYYYMMDD-HHMMSS.sssss";
+        LOG(INFO) << "you can find the log at " << log.get() << "/hyperdex-daemon-YYYYMMDD-HHMMSS.sssss";
         LOG(INFO) << "provide \"--foreground\" on the command-line if you want to run in the foreground";
         google::SetLogSymlink(google::INFO, "");
         google::SetLogSymlink(google::WARNING, "");
         google::SetLogSymlink(google::ERROR, "");
         google::SetLogSymlink(google::FATAL, "");
-        google::SetLogDestination(google::INFO, "hyperdex-daemon-");
+        log = po6::join(log, "hyperdex-daemon-");
+        google::SetLogDestination(google::INFO, log.get());
 
         if (::daemon(1, 0) < 0)
         {
