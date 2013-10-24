@@ -202,6 +202,12 @@ main(int argc, const char* argv[])
         po6::net::location bind_to(_listen_ip, _listen_port);
         po6::net::hostname coord(_coordinator_host, _coordinator_port);
 
+        if (bind_to.address == po6::net::ipaddr("0.0.0.0"))
+        {
+            std::cerr << "cannot bind to " << bind_to << " because it is not routable" << std::endl;
+            return EXIT_FAILURE;
+        }
+
         if (_threads <= 0)
         {
             _threads += sysconf(_SC_NPROCESSORS_ONLN);
