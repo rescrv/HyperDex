@@ -34,9 +34,20 @@
 
 using hyperdex::pending_perf_counters;
 
+#if defined(__APPLE__)
+#include <mach/mach_time.h>
+#endif
+
 static uint64_t
 monotonic_time()
 {
+#if defined(__APPLE__)
+    static mach_timebase_info_data_t tb = { 0 };
+    if ( !tb.denom )
+        mach_timebase_info(&tb);
+
+    return mach_absolute_time() * tb.numer / tb.denom;
+#else
     timespec ts;
 
     if (clock_gettime(CLOCK_MONOTONIC, &ts) < 0)
@@ -45,6 +56,7 @@ monotonic_time()
     }
 
     return ts.tv_sec * 1000000000ULL + ts.tv_nsec;
+#endif
 }
 
 struct pending_perf_counters::perf_counter
