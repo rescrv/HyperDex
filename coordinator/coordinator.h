@@ -146,6 +146,7 @@ class coordinator
                              region* reg, region_intent* ri);
         region_intent* new_region_intent(const region_id& rid);
         region_intent* get_region_intent(const region_id& rid);
+        void del_region_intent(const region_id& rid);
         // transfers
         transfer* new_transfer(region* reg, const server_id& si);
         transfer* get_transfer(const region_id& rid);

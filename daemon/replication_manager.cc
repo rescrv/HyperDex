@@ -159,14 +159,24 @@ replication_manager :: reconfigure(const configuration&,
         }
     }
 
-    // iterate over all regions on disk, and bump idgen
+    // iterate over all regions on disk/lb, and bump idgen
     for (size_t i = 0; i < key_regions.size(); ++i)
     {
-        uint64_t max_seq_id = 0;
-        m_daemon->m_data.max_seq_id(key_regions[i], &max_seq_id);
+        // from disk
+        uint64_t seq_id = 0;
+        m_daemon->m_data.max_seq_id(key_regions[i], &seq_id);
         bool x;
-        x = m_idgen.bump(key_regions[i], max_seq_id);
+        x = m_idgen.bump(key_regions[i], seq_id);
         assert(x);
+        // from lower bound
+        x = m_idcol.lower_bound(key_regions[i], &seq_id);
+        assert(x);
+
+        if (seq_id > 0)
+        {
+            x = m_idgen.bump(key_regions[i], seq_id - 1);
+            assert(x);
+        }
     }
 
     // figure out when we're stable
@@ -1120,38 +1130,60 @@ replication_manager :: close_gaps(const std::vector<region_id>& point_leaders,
 {
     std::sort(seq_ids->begin(), seq_ids->end());
 
-    for (size_t idx = 0; idx < seq_ids->size(); )
+    for (size_t i = 0; i < point_leaders.size(); ++i)
     {
-        // bump the idcol
-        region_id ri = (*seq_ids)[idx].first;
-        assert(std::binary_search(point_leaders.begin(),
-                                  point_leaders.end(), ri));
-        bool x;
-        x = m_idcol.bump(ri, (*seq_ids)[idx].second);
-        assert(x);
-        uint64_t maybe_next_to_collect = (*seq_ids)[idx].second;
-        uint64_t dont_touch_above;
-        x = peek_ids.peek(ri, &dont_touch_above);
-        assert(x);
+        // figure out the start and end ptrs within seq_ids
+        // s.t. [start, limit) contains all point_leaders[i]
+        std::pair<region_id, uint64_t>* start = &(*seq_ids)[0];
+        std::pair<region_id, uint64_t>* const end = start + seq_ids->size();
 
-        // now evaluate everthing up to
-        for (; idx < seq_ids->size() && (*seq_ids)[idx].first == ri; ++idx)
+        while (start < end && start->first == point_leaders[i])
         {
-            if ((*seq_ids)[idx].second >= dont_touch_above)
-            {
-                continue;
-            }
+            ++start;
+        }
 
-            // collect everything [maybe_next_to_collect, seq_id.second)
-            while (maybe_next_to_collect < (*seq_ids)[idx].second)
+        std::pair<region_id, uint64_t>* limit = start;
+
+        while (limit < end && limit->first == start->first)
+        {
+            ++limit;
+        }
+
+        // find the next ID to generate for point_leaders[i] (cant_touch_this)
+        bool x;
+        uint64_t cant_touch_this;
+        x = peek_ids.peek(point_leaders[i], &cant_touch_this);
+        assert(x);
+
+        // if start == limit, then there are no seq_ids and everything less than
+        // cant_touch_this is collectable and we can short-circuit the
+        // complexity below
+        if (start == limit)
+        {
+            m_idcol.bump(point_leaders[i], cant_touch_this);
+            continue;
+        }
+
+        // find the lower bound for point_leaders[i] (lb)
+        uint64_t lb;
+        x = m_idcol.lower_bound(point_leaders[i], &lb);
+        assert(x);
+
+        // for every value [lb, cant_touch_this), call collect if not found in
+        // seq_ids [start, limit)
+        for (uint64_t maybe_next_to_collect = lb;
+                maybe_next_to_collect < cant_touch_this; ++maybe_next_to_collect)
+        {
+            if (!std::binary_search(start, limit,
+                        std::make_pair(point_leaders[i], maybe_next_to_collect)))
             {
-                m_idcol.collect(ri, maybe_next_to_collect);
-                ++maybe_next_to_collect;
+                m_idcol.collect(point_leaders[i], maybe_next_to_collect);
             }
         }
 
+        // compute the lower bound on point_leaders[i] to squash gaps
         uint64_t tmp;
-        m_idcol.lower_bound(ri, &tmp);
+        m_idcol.lower_bound(point_leaders[i], &tmp);
     }
 }
 

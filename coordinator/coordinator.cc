@@ -893,36 +893,48 @@ coordinator :: setup_intents(replicant_state_machine_context* ctx,
 
             if (!need_change)
             {
+                del_region_intent(reg->id);
+                transfer* xfer = get_transfer(reg->id);
+
+                // delete the transfer if we're OK with 0 replicas, or the
+                // transfer is adding a replica (that is, it's not gone-live
+                // yet).
+                if (xfer && (reg->replicas.empty() || xfer->dst != reg->replicas.back().si))
+                {
+                    del_transfer(xfer->id);
+                }
+
                 continue;
             }
 
-            region_intent* ri = get_region_intent(reg->id);
-
-            if (!ri)
-            {
-                ri = new_region_intent(reg->id);
-            }
-
-            ri->replicas.resize(replica_sets[idx].size());
-
-            for (size_t i = 0; i < replica_sets[idx].size(); ++i)
-            {
-                ri->replicas[i] = replica_sets[idx][i];
-            }
-
-            if (!skip_transfers)
-            {
-                converge_intent(ctx, reg, ri);
-            }
-            else
+            if (skip_transfers)
             {
                 assert(reg->replicas.empty());
 
-                for (size_t i = 0; i < ri->replicas.size(); ++i)
+                for (size_t i = 0; i < replica_sets[idx].size(); ++i)
                 {
-                    reg->replicas.push_back(replica(ri->replicas[i], virtual_server_id(m_counter)));
+                    reg->replicas.push_back(replica(replica_sets[idx][i], virtual_server_id(m_counter)));
                     ++m_counter;
                 }
+            }
+            else
+            {
+                region_intent* ri = get_region_intent(reg->id);
+
+                if (!ri)
+                {
+                    ri = new_region_intent(reg->id);
+                }
+
+                ri->replicas.resize(replica_sets[idx].size());
+                ri->checkpoint = 0;
+
+                for (size_t i = 0; i < replica_sets[idx].size(); ++i)
+                {
+                    ri->replicas[i] = replica_sets[idx][i];
+                }
+
+                converge_intent(ctx, reg, ri);
             }
         }
     }
@@ -1049,6 +1061,7 @@ coordinator :: converge_intent(replicant_state_machine_context* ctx,
             reg->replicas[j - 1] = reg->replicas[j];
         }
 
+        ri->checkpoint = 0;
         reg->replicas.pop_back();
         xfer = new_transfer(reg, sid);
         assert(xfer);
@@ -1059,15 +1072,7 @@ coordinator :: converge_intent(replicant_state_machine_context* ctx,
         return;
     }
 
-    for (size_t i = 0; i < m_intents.size(); ++i)
-    {
-        if (&m_intents[i] == ri)
-        {
-            std::swap(m_intents[i], m_intents.back());
-            m_intents.pop_back();
-            break;
-        }
-    }
+    del_region_intent(reg->id);
 }
 
 region_intent*
@@ -1101,6 +1106,12 @@ coordinator :: get_region_intent(const region_id& rid)
     }
 
     return NULL;
+}
+
+void
+coordinator :: del_region_intent(const region_id& rid)
+{
+    remove_id(rid, &m_intents);
 }
 
 transfer*
