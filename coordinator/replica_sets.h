@@ -55,53 +55,6 @@ class replica_set
         std::vector<server_id>* m_storage;
 };
 
-inline
-replica_set :: replica_set()
-    : m_start(0)
-    , m_size(0)
-    , m_storage(NULL)
-{
-}
-
-inline
-replica_set :: replica_set(size_t start, size_t sz,
-                           std::vector<server_id>* storage)
-    : m_start(start)
-    , m_size(sz)
-    , m_storage(storage)
-{
-}
-
-inline
-replica_set :: replica_set(const replica_set& other)
-    : m_start(other.m_start)
-    , m_size(other.m_size)
-    , m_storage(other.m_storage)
-{
-}
-
-inline size_t
-replica_set :: size() const
-{
-    return m_size;
-}
-
-inline server_id
-replica_set :: operator [] (size_t idx) const
-{
-    assert(idx < m_size);
-    return (*m_storage)[m_start + idx];
-}
-
-inline replica_set&
-replica_set :: operator = (const replica_set& rhs)
-{
-    m_start = rhs.m_start;
-    m_size = rhs.m_size;
-    m_storage = rhs.m_storage;
-    return *this;
-}
-
 void
 compute_replica_sets(uint64_t R, uint64_t P,
                      const std::vector<server_id>& permutation,
