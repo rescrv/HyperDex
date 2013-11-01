@@ -5,9 +5,12 @@
 \usepackage{graphicx}
 \usepackage{enumitem}
 \usepackage{calc}
+\usepackage{tikz}
 \usepackage[margin=1in]{geometry}
 \usepackage[small,compact]{titlesec}
 \usepackage[binary,squaren]{SIunits}
+\usetikzlibrary{arrows}
+\usetikzlibrary{decorations.markings}
 
 \AtBeginDocument{\renewcommand{\bibname}{References}}
 
@@ -15,6 +18,15 @@
 \newcommand{\funcdesc}{\vspace{-0.5\baselineskip}\noindent}
 \newcommand{\funcsep}{\vspace{0.5\baselineskip}}
 \newcommand{\HyperDexVersion}{1.0.dev}
+
+% http://texblog.org/2012/03/21/cross-referencing-list-items/
+\makeatletter
+\def\namedlabel#1#2{\begingroup
+    #2%
+    \def\@currentlabel{#2}%
+    \phantomsection\label{#1}\endgroup
+}
+\makeatother
 
 \setcounter{secnumdepth}{3}
 \setcounter{tocdepth}{3}
@@ -49,6 +61,7 @@
 \part{For Administrators}
 \label{part:for-admins}
 \input{fault-tolerance}
+\input{cluster-membership}
 
 \part{For Hackers}
 \label{part:for-hackers}
