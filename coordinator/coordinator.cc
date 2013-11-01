@@ -38,7 +38,7 @@
 #include "coordinator/transitions.h"
 #include "coordinator/util.h"
 
-#define ALARM_INTERVAL 10
+#define ALARM_INTERVAL 30
 
 using hyperdex::coordinator;
 using hyperdex::region;
@@ -1326,7 +1326,7 @@ coordinator :: regions_in_space(space_ptr s, std::vector<region_id>* rids)
     }
 }
 
-#define OUTSTANDING_CHECKPOINTS 10
+#define OUTSTANDING_CHECKPOINTS 120
 
 void
 coordinator :: check_checkpoint_stable_condition(replicant_state_machine_context* ctx)
