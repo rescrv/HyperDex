@@ -143,7 +143,8 @@ hyperdex :: passes_attribute_check(const schema& sc,
                    di_attr->compare(check.value, value) >= 0;
         case HYPERPREDICATE_REGEX:
             return di_check->datatype() == HYPERDATATYPE_STRING &&
-                   di_attr->has_regex();
+                   di_attr->has_regex() &&
+                   di_attr->regex(check.value, value);
         case HYPERPREDICATE_LENGTH_EQUALS:
             memset(buf_i, 0, sizeof(int64_t));
             memmove(buf_i, check.value.data(), std::min(check.value.size(), sizeof(int64_t)));
