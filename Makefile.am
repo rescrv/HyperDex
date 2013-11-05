@@ -133,6 +133,7 @@ noinst_HEADERS += common/range_searches.h
 noinst_HEADERS += common/regex_match.h
 noinst_HEADERS += common/schema.h
 noinst_HEADERS += common/serialization.h
+noinst_HEADERS += common/server.h
 noinst_HEADERS += common/transfer.h
 noinst_HEADERS += tools/common.h
 
@@ -267,7 +268,11 @@ dist_man_MANS += man/hyperdex-coordinator.1
 endif
 
 noinst_HEADERS += coordinator/coordinator.h
+noinst_HEADERS += coordinator/region_intent.h
+noinst_HEADERS += coordinator/replica_sets.h
+noinst_HEADERS += coordinator/server_barrier.h
 noinst_HEADERS += coordinator/transitions.h
+noinst_HEADERS += coordinator/util.h
 
 libhyperdex_coordinator_la_SOURCES =
 libhyperdex_coordinator_la_SOURCES += common/attribute.cc
@@ -755,13 +760,10 @@ man/hyperdex-show-config.1: man/hyperdex-show-config.1.h2m tools/show-config.cc
 ################################# Documentation ################################
 ################################################################################
 
-EXTRA_DIST += $(wildcard doc/*.rst)
-EXTRA_DIST += $(wildcard doc/*/*.rst)
-EXTRA_DIST += $(wildcard doc/*/*/*.rst)
-EXTRA_DIST += doc/conf.py
+EXTRA_DIST += $(wildcard doc/*.tex)
+EXTRA_DIST += $(wildcard doc/*/*.tex)
+EXTRA_DIST += $(wildcard doc/*/*/*.tex)
 EXTRA_DIST += doc/Makefile
-EXTRA_DIST += doc/HyperDex-$(VERSION).pdf
-EXTRA_DIST += man/template.md
 
 CLEANFILES += doc/HyperDex-$(VERSION).pdf
 
