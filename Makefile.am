@@ -153,10 +153,13 @@ dist_man_MANS += man/hyperdex-daemon.1
 endif
 
 noinst_HEADERS += daemon/communication.h
+noinst_HEADERS += daemon/coordinator_link_wrapper.h
 noinst_HEADERS += daemon/daemon.h
 noinst_HEADERS += daemon/datalayer_encodings.h
 noinst_HEADERS += daemon/datalayer.h
 noinst_HEADERS += daemon/datalayer_iterator.h
+noinst_HEADERS += daemon/identifier_collector.h
+noinst_HEADERS += daemon/identifier_generator.h
 noinst_HEADERS += daemon/index_container.h
 noinst_HEADERS += daemon/index_float.h
 noinst_HEADERS += daemon/index_info.h
@@ -169,11 +172,13 @@ noinst_HEADERS += daemon/index_string.h
 noinst_HEADERS += daemon/leveldb.h
 noinst_HEADERS += daemon/performance_counter.h
 noinst_HEADERS += daemon/reconfigure_returncode.h
+noinst_HEADERS += daemon/region_timestamp.h
 noinst_HEADERS += daemon/replication_manager.h
 noinst_HEADERS += daemon/replication_manager_key_region.h
 noinst_HEADERS += daemon/replication_manager_key_state.h
 noinst_HEADERS += daemon/replication_manager_pending.h
 noinst_HEADERS += daemon/search_manager.h
+noinst_HEADERS += daemon/state_hash_table.h
 noinst_HEADERS += daemon/state_transfer_manager.h
 noinst_HEADERS += daemon/state_transfer_manager_pending.h
 noinst_HEADERS += daemon/state_transfer_manager_transfer_in_state.h

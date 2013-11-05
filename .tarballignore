@@ -3,3 +3,4 @@ doc/.gitignore
 m4/ax_check_link_flag.m4
 m4/ax_check_preproc_flag.m4
 m4/.gitignore
+.tarballignore
