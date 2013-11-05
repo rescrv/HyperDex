@@ -66,6 +66,17 @@ class Admin
         int64_t rm_space(const char* name,
                          enum hyperdex_admin_returncode* status)
             { return hyperdex_admin_rm_space(m_adm, name, status); }
+        int64_t server_register(uint64_t token, const char* address,
+                                enum hyperdex_admin_returncode* status)
+            { return hyperdex_admin_server_register(m_adm, token, address, status); }
+        int64_t server_online(uint64_t token, enum hyperdex_admin_returncode* status)
+            { return hyperdex_admin_server_online(m_adm, token, status); }
+        int64_t server_offline(uint64_t token, enum hyperdex_admin_returncode* status)
+            { return hyperdex_admin_server_offline(m_adm, token, status); }
+        int64_t server_forget(uint64_t token, enum hyperdex_admin_returncode* status)
+            { return hyperdex_admin_server_forget(m_adm, token, status); }
+        int64_t server_kill(uint64_t token, enum hyperdex_admin_returncode* status)
+            { return hyperdex_admin_server_kill(m_adm, token, status); }
         int64_t enable_perf_counters(enum hyperdex_admin_returncode* status,
                                      struct hyperdex_admin_perf_counter* pc)
             { return hyperdex_admin_enable_perf_counters(m_adm, status, pc); }

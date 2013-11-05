@@ -406,9 +406,8 @@ noinst_HEADERS += include/hyperdex/admin.hpp
 noinst_HEADERS += include/hyperdex/hyperspace_builder.h
 noinst_HEADERS += admin/admin.h
 noinst_HEADERS += admin/constants.h
-noinst_HEADERS += admin/coord_rpc_add_space.h
 noinst_HEADERS += admin/coord_rpc.h
-noinst_HEADERS += admin/coord_rpc_rm_space.h
+noinst_HEADERS += admin/coord_rpc_generic.h
 noinst_HEADERS += admin/hyperspace_builder_internal.h
 noinst_HEADERS += admin/partition.h
 noinst_HEADERS += admin/pending.h
@@ -442,8 +441,7 @@ libhyperdex_admin_la_SOURCES += common/transfer.cc
 libhyperdex_admin_la_SOURCES += admin/admin.cc
 libhyperdex_admin_la_SOURCES += admin/c.cc
 libhyperdex_admin_la_SOURCES += admin/coord_rpc.cc
-libhyperdex_admin_la_SOURCES += admin/coord_rpc_add_space.cc
-libhyperdex_admin_la_SOURCES += admin/coord_rpc_rm_space.cc
+libhyperdex_admin_la_SOURCES += admin/coord_rpc_generic.cc
 libhyperdex_admin_la_SOURCES += admin/hyperspace_builder.cc
 libhyperdex_admin_la_SOURCES += admin/parse_space_l.l
 libhyperdex_admin_la_SOURCES += admin/parse_space_y.y
@@ -688,15 +686,23 @@ test_search_stress_test_LDADD = libhyperdex-client.la
 
 if ENABLE_TOOLS
 bin_PROGRAMS += hyperdex-add-space
-bin_PROGRAMS += hyperdex-async-benchmark
 bin_PROGRAMS += hyperdex-rm-space
 bin_PROGRAMS += hyperdex-validate-space
 bin_PROGRAMS += hyperdex-show-config
+bin_PROGRAMS += hyperdex-server-register
+bin_PROGRAMS += hyperdex-server-online
+bin_PROGRAMS += hyperdex-server-offline
+bin_PROGRAMS += hyperdex-server-kill
+bin_PROGRAMS += hyperdex-server-forget
 dist_man_MANS += man/hyperdex-add-space.1
-dist_man_MANS += man/hyperdex-async-benchmark.1
 dist_man_MANS += man/hyperdex-rm-space.1
 dist_man_MANS += man/hyperdex-validate-space.1
 dist_man_MANS += man/hyperdex-show-config.1
+dist_man_MANS += man/hyperdex-server-register.1
+dist_man_MANS += man/hyperdex-server-online.1
+dist_man_MANS += man/hyperdex-server-offline.1
+dist_man_MANS += man/hyperdex-server-kill.1
+dist_man_MANS += man/hyperdex-server-forget.1
 endif
 
 # hyperdex
@@ -719,15 +725,6 @@ hyperdex_add_space_LDADD = libhyperdex-admin.la -lpopt
 man/hyperdex-add-space.1: man/hyperdex-add-space.1.h2m tools/add-space.cc
 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-add-space$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-add-space$(EXEEXT)
-
-# hyperdex-async-benchmark
-EXTRA_DIST += man/hyperdex-async-benchmark.1.md
-EXTRA_DIST += man/hyperdex-async-benchmark.1.h2m
-hyperdex_async_benchmark_SOURCES = tools/async-benchmark.cc
-hyperdex_async_benchmark_LDADD = libhyperdex-client.la $(E_LIBS) -lpopt
-man/hyperdex-async-benchmark.1: man/hyperdex-async-benchmark.1.h2m tools/async-benchmark.cc
-	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-async-benchmark$(EXEEXT)
-	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-async-benchmark$(EXEEXT)
 
 # hyperdex-rm-space
 EXTRA_DIST += man/hyperdex-rm-space.1.md
@@ -755,6 +752,51 @@ hyperdex_show_config_LDADD = libhyperdex-admin.la -lpopt
 man/hyperdex-show-config.1: man/hyperdex-show-config.1.h2m tools/show-config.cc
 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-show-config$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-show-config$(EXEEXT)
+
+# hyperdex-server-register
+EXTRA_DIST += man/hyperdex-server-register.1.md
+EXTRA_DIST += man/hyperdex-server-register.1.h2m
+hyperdex_server_register_SOURCES = tools/server-register.cc
+hyperdex_server_register_LDADD = libhyperdex-admin.la -lpopt
+man/hyperdex-server-register.1: man/hyperdex-server-register.1.h2m tools/server-register.cc
+	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-server-register$(EXEEXT)
+	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-server-register$(EXEEXT)
+
+# hyperdex-server-online
+EXTRA_DIST += man/hyperdex-server-online.1.md
+EXTRA_DIST += man/hyperdex-server-online.1.h2m
+hyperdex_server_online_SOURCES = tools/server-online.cc
+hyperdex_server_online_LDADD = libhyperdex-admin.la -lpopt
+man/hyperdex-server-online.1: man/hyperdex-server-online.1.h2m tools/server-online.cc
+	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-server-online$(EXEEXT)
+	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-server-online$(EXEEXT)
+
+# hyperdex-server-offline
+EXTRA_DIST += man/hyperdex-server-offline.1.md
+EXTRA_DIST += man/hyperdex-server-offline.1.h2m
+hyperdex_server_offline_SOURCES = tools/server-offline.cc
+hyperdex_server_offline_LDADD = libhyperdex-admin.la -lpopt
+man/hyperdex-server-offline.1: man/hyperdex-server-offline.1.h2m tools/server-offline.cc
+	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-server-offline$(EXEEXT)
+	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-server-offline$(EXEEXT)
+
+# hyperdex-server-forget
+EXTRA_DIST += man/hyperdex-server-forget.1.md
+EXTRA_DIST += man/hyperdex-server-forget.1.h2m
+hyperdex_server_forget_SOURCES = tools/server-forget.cc
+hyperdex_server_forget_LDADD = libhyperdex-admin.la -lpopt
+man/hyperdex-server-forget.1: man/hyperdex-server-forget.1.h2m tools/server-forget.cc
+	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-server-forget$(EXEEXT)
+	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-server-forget$(EXEEXT)
+
+# hyperdex-server-kill
+EXTRA_DIST += man/hyperdex-server-kill.1.md
+EXTRA_DIST += man/hyperdex-server-kill.1.h2m
+hyperdex_server_kill_SOURCES = tools/server-kill.cc
+hyperdex_server_kill_LDADD = libhyperdex-admin.la -lpopt
+man/hyperdex-server-kill.1: man/hyperdex-server-kill.1.h2m tools/server-kill.cc
+	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-server-kill$(EXEEXT)
+	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-server-kill$(EXEEXT)
 
 ################################################################################
 ################################# Documentation ################################

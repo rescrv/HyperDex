@@ -133,6 +133,61 @@ hyperdex_admin_rm_space(struct hyperdex_admin* _adm,
 }
 
 HYPERDEX_API int64_t
+hyperdex_admin_server_register(struct hyperdex_admin* _adm,
+                               uint64_t token, const char* address,
+                               hyperdex_admin_returncode* status)
+{
+    C_WRAP_EXCEPT(
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->server_register(token, address, status);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_admin_server_online(struct hyperdex_admin* _adm,
+                             uint64_t token,
+                             hyperdex_admin_returncode* status)
+{
+    C_WRAP_EXCEPT(
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->server_online(token, status);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_admin_server_offline(struct hyperdex_admin* _adm,
+                              uint64_t token,
+                              hyperdex_admin_returncode* status)
+{
+    C_WRAP_EXCEPT(
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->server_offline(token, status);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_admin_server_forget(struct hyperdex_admin* _adm,
+                             uint64_t token,
+                             hyperdex_admin_returncode* status)
+{
+    C_WRAP_EXCEPT(
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->server_forget(token, status);
+    );
+}
+
+HYPERDEX_API int64_t
+hyperdex_admin_server_kill(struct hyperdex_admin* _adm,
+                           uint64_t token,
+                           hyperdex_admin_returncode* status)
+{
+    C_WRAP_EXCEPT(
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->server_kill(token, status);
+    );
+}
+
+HYPERDEX_API int64_t
 hyperdex_admin_enable_perf_counters(struct hyperdex_admin* _adm,
                                     enum hyperdex_admin_returncode* status,
                                     struct hyperdex_admin_perf_counter* pc)

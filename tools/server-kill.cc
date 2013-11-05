@@ -74,7 +74,7 @@ main(int argc, const char* argv[])
     {
         hyperdex::Admin h(conn.host(), conn.port());
         hyperdex_admin_returncode rrc;
-        int64_t rid = h.server_kill(token);
+        int64_t rid = h.server_kill(token, &rrc);
 
         if (rid < 0)
         {

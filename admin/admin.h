@@ -63,6 +63,13 @@ class admin
                           enum hyperdex_admin_returncode* status);
         int64_t rm_space(const char* name,
                          enum hyperdex_admin_returncode* status);
+        // manage servers
+        int64_t server_register(uint64_t token, const char* address,
+                                enum hyperdex_admin_returncode* status);
+        int64_t server_online(uint64_t token, enum hyperdex_admin_returncode* status);
+        int64_t server_offline(uint64_t token, enum hyperdex_admin_returncode* status);
+        int64_t server_forget(uint64_t token, enum hyperdex_admin_returncode* status);
+        int64_t server_kill(uint64_t token, enum hyperdex_admin_returncode* status);
         // read performance counters
         int64_t enable_perf_counters(hyperdex_admin_returncode* status,
                                      hyperdex_admin_perf_counter* pc);

@@ -71,6 +71,11 @@
 /hyperdex-kill
 /hyperdex-perf-counters
 /hyperdex-rm-space
+/hyperdex-server-register
+/hyperdex-server-online
+/hyperdex-server-offline
+/hyperdex-server-forget
+/hyperdex-server-kill
 /hyperdex-show-config
 /hyperdex-simple-consistency-stress-test
 /hyperdex-validate-space

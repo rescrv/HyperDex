@@ -25,8 +25,13 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#define __STDC_LIMIT_MACROS
+
 // STL
 #include <sstream>
+
+// e
+#include <e/endian.h>
 
 // BusyBee
 #include <busybee_constants.h>
@@ -35,9 +40,9 @@
 #include <hyperdex/hyperspace_builder.h>
 #include "visibility.h"
 #include "common/macros.h"
+#include "common/serialization.h"
 #include "admin/admin.h"
-#include "admin/coord_rpc_add_space.h"
-#include "admin/coord_rpc_rm_space.h"
+#include "admin/coord_rpc_generic.h"
 #include "admin/hyperspace_builder_internal.h"
 #include "admin/pending_perf_counters.h"
 #include "admin/pending_string.h"
@@ -146,7 +151,7 @@ admin :: add_space(const char* description,
 
     int64_t id = m_next_admin_id;
     ++m_next_admin_id;
-    e::intrusive_ptr<coord_rpc> op = new coord_rpc_add_space(id, status);
+    e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "add space");
     int64_t cid = m_coord.rpc("space_add", reinterpret_cast<const char*>(msg->data()), msg->size(),
                               &op->repl_status, &op->repl_output, &op->repl_output_sz);
 
@@ -173,8 +178,166 @@ admin :: rm_space(const char* name,
 
     int64_t id = m_next_admin_id;
     ++m_next_admin_id;
-    e::intrusive_ptr<coord_rpc> op = new coord_rpc_rm_space(id, status);
+    e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "rm space");
     int64_t cid = m_coord.rpc("space_rm", name, strlen(name) + 1,
+                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+
+    if (cid >= 0)
+    {
+        m_coord_ops[cid] = op;
+        return op->admin_visible_id();
+    }
+    else
+    {
+        interpret_rpc_request_failure(op->repl_status, status);
+        return -1;
+    }
+}
+
+int64_t
+admin :: server_register(uint64_t token, const char* address,
+                         enum hyperdex_admin_returncode* status)
+{
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    server_id sid(token);
+    po6::net::location loc;
+
+    try
+    {
+        loc = po6::net::location(address);
+    }
+    catch (po6::error& e)
+    {
+        ERROR(TIMEOUT) << "could not parse address";
+        return -1;
+    }
+
+    int64_t id = m_next_admin_id;
+    ++m_next_admin_id;
+    e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "register server");
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sizeof(uint64_t) + pack_size(loc)));
+    *msg << sid << loc;
+    int64_t cid = m_coord.rpc("server_register", reinterpret_cast<const char*>(msg->data()), msg->size(),
+                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+
+    if (cid >= 0)
+    {
+        m_coord_ops[cid] = op;
+        return op->admin_visible_id();
+    }
+    else
+    {
+        interpret_rpc_request_failure(op->repl_status, status);
+        return -1;
+    }
+}
+
+int64_t
+admin :: server_online(uint64_t token, enum hyperdex_admin_returncode* status)
+{
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+
+    int64_t id = m_next_admin_id;
+    ++m_next_admin_id;
+    e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "bring server online");
+    char buf[sizeof(uint64_t)];
+    e::pack64be(token, buf);
+    int64_t cid = m_coord.rpc("server_online", buf, sizeof(uint64_t),
+                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+
+    if (cid >= 0)
+    {
+        m_coord_ops[cid] = op;
+        return op->admin_visible_id();
+    }
+    else
+    {
+        interpret_rpc_request_failure(op->repl_status, status);
+        return -1;
+    }
+}
+
+int64_t
+admin :: server_offline(uint64_t token, enum hyperdex_admin_returncode* status)
+{
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+
+    int64_t id = m_next_admin_id;
+    ++m_next_admin_id;
+    e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "bring server offline");
+    char buf[sizeof(uint64_t)];
+    e::pack64be(token, buf);
+    int64_t cid = m_coord.rpc("server_offline", buf, sizeof(uint64_t),
+                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+
+    if (cid >= 0)
+    {
+        m_coord_ops[cid] = op;
+        return op->admin_visible_id();
+    }
+    else
+    {
+        interpret_rpc_request_failure(op->repl_status, status);
+        return -1;
+    }
+}
+
+int64_t
+admin :: server_forget(uint64_t token, enum hyperdex_admin_returncode* status)
+{
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+
+    int64_t id = m_next_admin_id;
+    ++m_next_admin_id;
+    e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "forget server");
+    char buf[sizeof(uint64_t)];
+    e::pack64be(token, buf);
+    int64_t cid = m_coord.rpc("server_forget", buf, sizeof(uint64_t),
+                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+
+    if (cid >= 0)
+    {
+        m_coord_ops[cid] = op;
+        return op->admin_visible_id();
+    }
+    else
+    {
+        interpret_rpc_request_failure(op->repl_status, status);
+        return -1;
+    }
+}
+
+int64_t
+admin :: server_kill(uint64_t token, enum hyperdex_admin_returncode* status)
+{
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+
+    int64_t id = m_next_admin_id;
+    ++m_next_admin_id;
+    e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "kill server");
+    char buf[sizeof(uint64_t)];
+    e::pack64be(token, buf);
+    int64_t cid = m_coord.rpc("server_kill", buf, sizeof(uint64_t),
                               &op->repl_status, &op->repl_output, &op->repl_output_sz);
 
     if (cid >= 0)

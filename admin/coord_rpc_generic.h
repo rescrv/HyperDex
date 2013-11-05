@@ -25,31 +25,42 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#ifndef hyperdex_admin_coord_rpc_generic_h_
+#define hyperdex_admin_coord_rpc_generic_h_
 
-// STL
-#include <vector>
+// HyperDex
+#include "admin/coord_rpc.h"
 
-// e
-#include <e/subcommand.h>
+BEGIN_HYPERDEX_NAMESPACE
 
-int
-main(int argc, const char* argv[])
+class coord_rpc_generic : public coord_rpc
 {
-    std::vector<e::subcommand> cmds;
-    cmds.push_back(e::subcommand("coordinator",           "Start a new HyperDex coordinator"));
-    cmds.push_back(e::subcommand("daemon",                "Start a new HyperDex daemon"));
-    cmds.push_back(e::subcommand("add-space",             "Create a new HyperDex space"));
-    cmds.push_back(e::subcommand("rm-space",              "Remove an existing HyperDex space"));
-    cmds.push_back(e::subcommand("validate-space",        "Validate a HyperDex space description"));
-    cmds.push_back(e::subcommand("server-register",       "Manually register a new HyperDex server"));
-    cmds.push_back(e::subcommand("show-config",           "Output a human-readable version of the cluster configuration"));
-    return dispatch_to_subcommands(argc, argv,
-                                   "hyperdex", "HyperDex",
-                                   PACKAGE_VERSION,
-                                   "hyperdex-",
-                                   "HYPERDEX_EXEC_PATH", HYPERDEX_EXEC_DIR,
-                                   &cmds.front(), cmds.size());
-}
+    public:
+        coord_rpc_generic(uint64_t admin_visible_id,
+                          hyperdex_admin_returncode* status,
+                          const char* opname);
+        virtual ~coord_rpc_generic() throw ();
+
+    public:
+        virtual bool can_yield();
+        virtual bool yield(hyperdex_admin_returncode* status);
+
+    public:
+        virtual bool handle_response(admin* adm,
+                                     hyperdex_admin_returncode* status);
+
+    protected:
+        friend class e::intrusive_ptr<coord_rpc>;
+
+    private:
+        coord_rpc_generic(const coord_rpc_generic&);
+        coord_rpc_generic& operator = (const coord_rpc_generic&);
+
+    private:
+        const char* m_opname;
+        bool m_done;
+};
+
+END_HYPERDEX_NAMESPACE
+
+#endif // hyperdex_admin_coord_rpc_generic_h_

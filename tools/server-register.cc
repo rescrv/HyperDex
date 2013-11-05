@@ -38,7 +38,7 @@ main(int argc, const char* argv[])
     hyperdex::connect_opts conn;
     e::argparser ap;
     ap.autohelp();
-    ap.option_string("[OPTIONS] <server-id>");
+    ap.option_string("[OPTIONS] <server-id> <address:port>");
     ap.add("Connect to a cluster:", conn.parser());
 
     if (!ap.parse(argc, argv))
@@ -53,9 +53,9 @@ main(int argc, const char* argv[])
         return EXIT_FAILURE;
     }
 
-    if (ap.args_sz() != 1)
+    if (ap.args_sz() != 2)
     {
-        std::cerr << "please specify the server id" << std::endl;
+        std::cerr << "please specify the server id and address:port" << std::endl;
         ap.usage();
         return EXIT_FAILURE;
     }
@@ -74,7 +74,7 @@ main(int argc, const char* argv[])
     {
         hyperdex::Admin h(conn.host(), conn.port());
         hyperdex_admin_returncode rrc;
-        int64_t rid = h.server_register(token);
+        int64_t rid = h.server_register(token, ap.args()[1], &rrc);
 
         if (rid < 0)
         {

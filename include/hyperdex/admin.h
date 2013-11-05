@@ -101,6 +101,31 @@ hyperdex_admin_rm_space(struct hyperdex_admin* admin,
                         enum hyperdex_admin_returncode* status);
 
 int64_t
+hyperdex_admin_server_register(struct hyperdex_admin* admin,
+                               uint64_t token, const char* address,
+                               enum hyperdex_admin_returncode* status);
+
+int64_t
+hyperdex_admin_server_online(struct hyperdex_admin* admin,
+                             uint64_t token,
+                             enum hyperdex_admin_returncode* status);
+
+int64_t
+hyperdex_admin_server_offline(struct hyperdex_admin* admin,
+                              uint64_t token,
+                              enum hyperdex_admin_returncode* status);
+
+int64_t
+hyperdex_admin_server_forget(struct hyperdex_admin* admin,
+                             uint64_t token,
+                             enum hyperdex_admin_returncode* status);
+
+int64_t
+hyperdex_admin_server_kill(struct hyperdex_admin* admin,
+                           uint64_t token,
+                           enum hyperdex_admin_returncode* status);
+
+int64_t
 hyperdex_admin_enable_perf_counters(struct hyperdex_admin* admin,
                                     enum hyperdex_admin_returncode* status,
                                     struct hyperdex_admin_perf_counter* pc);
