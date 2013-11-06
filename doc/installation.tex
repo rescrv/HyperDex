@@ -22,7 +22,7 @@ deb http://debian.hyperdex.org wheezy main
 
 Subsequent invocations of the package manager may complain about the absence of
 the relevant package signing key.  You can download the
-\hdhref{http://debian.hyperdex.org/hyperdex.gpg.key}{Debian public key} and add
+\href{http://debian.hyperdex.org/hyperdex.gpg.key}{Debian public key} and add
 it with:
 
 \begin{consolecode}
@@ -52,7 +52,7 @@ deb [arch=amd64] http://ubuntu.hyperdex.org precise main
 
 Subsequent invocations of the package manager may complain about the absence of
 the relevant package signing key.  You can download the
-\hdhref{http://ubuntu.hyperdex.org/hyperdex.gpg.key}{Ubuntu public key} and add
+\href{http://ubuntu.hyperdex.org/hyperdex.gpg.key}{Ubuntu public key} and add
 it with:
 
 \begin{consolecode}
@@ -147,24 +147,24 @@ dependencies.
 Required Dependencies:
 
 \begin{itemize}
-\item \hdhref{http://code.google.com/p/cityhash/}{Google CityHash}:  Used for
+\item \href{http://code.google.com/p/cityhash/}{Google CityHash}:  Used for
     hashing strings.  Requires version 1.0.x
-\item \hdhref{http://code.google.com/p/google-glog/}{Google Glog}:  Used for
+\item \href{http://code.google.com/p/google-glog/}{Google Glog}:  Used for
     logging.  Requires version 0.3.x.
-\item \hdhref{http://rpm5.org/}{libpopt}: Used for argument parsing.  The
+\item \href{http://rpm5.org/}{libpopt}: Used for argument parsing.  The
     developers use 1.16 but any recent version should do.
-\item \hdhref{http://hyperdex.org/downloads/}{libpo6}: Used for general POSIX
+\item \href{http://hyperdex.org/downloads/}{libpo6}: Used for general POSIX
     wrappers.  Requires the latest version.  This package is maintained by the
     HyperDex developers.
-\item \hdhref{http://hyperdex.org/downloads/}{libe}: Used for general C++:
+\item \href{http://hyperdex.org/downloads/}{libe}: Used for general C++:
     utilities.  Requires the latest version.  This package is maintained by the
     HyperDex developers.
-\item \hdhref{http://hyperdex.org/downloads/}{BusyBee}: Used for server-server
+\item \href{http://hyperdex.org/downloads/}{BusyBee}: Used for server-server
     and client-server communication.  Requires the latest version.  This package
     is maintained by the HyperDex developers.
-\item \hdhref{http://hyperdex.org/downloads/}{HyperLevelDB}  Used to store data
+\item \href{http://hyperdex.org/downloads/}{HyperLevelDB}  Used to store data
     on the servers.
-\item \hdhref{http://hyperdex.org/downloads/}{Replicant} Used for making the
+\item \href{http://hyperdex.org/downloads/}{Replicant} Used for making the
     coordinator fault tolerant.  Requires the latest version.  This package is
     maintained by the HyperDex developers.
 \end{itemize}
@@ -172,24 +172,24 @@ Required Dependencies:
 Dependencies for Python Bindings:
 
 \begin{itemize}
-\item \hdhref{http://python.org/}{Python}: Version 2.6 or 2.7 with the
+\item \href{http://python.org/}{Python}: Version 2.6 or 2.7 with the
     development headers installed.
 \end{itemize}
 
 Dependencies for Java Bindings:
 
 \begin{itemize}
-\item \hdhref{http://openjdk.java.net/}{Java}: We test against OpenJDK 6.  Your
+\item \href{http://openjdk.java.net/}{Java}: We test against OpenJDK 6.  Your
     system must include \texttt{javac}, \texttt{jar}, and the JNI development
     headers.
-\item \hdhref{http://www.swig.org/}{SWIG}: Used to generate part of the
+\item \href{http://www.swig.org/}{SWIG}: Used to generate part of the
     bindings.  We test SWIG 2.0.
 \end{itemize}
 
 Dependencies for Yahoo! Cloud Serving Benchmark (YCSB):
 
 \begin{itemize}
-\item \hdhref{https://github.com/brianfrankcooper/YCSB/wiki}{YCSB} The YCSB
+\item \href{https://github.com/brianfrankcooper/YCSB/wiki}{YCSB} The YCSB
     distribution is a moving target.  We generally build against the latest Git
     release.
 \end{itemize}
@@ -294,22 +294,22 @@ instead \texttt{make} will fail with an error message.
 Required Dependencies:
 
 \begin{itemize}
-\item \hdhref{http://www.gnu.org/software/autoconf/}{Autoconf} Used as part of
+\item \href{http://www.gnu.org/software/autoconf/}{Autoconf} Used as part of
     the build system.  Required for all builds.
-\item \hdhref{http://www.gnu.org/software/automake/}{Automake} Used as part of
+\item \href{http://www.gnu.org/software/automake/}{Automake} Used as part of
     the build system.  Required for all builds.
-\item \hdhref{http://www.gnu.org/software/libtool/}{Libtool} Used as part of the
+\item \href{http://www.gnu.org/software/libtool/}{Libtool} Used as part of the
     build system.  Required for all builds.
-\item \hdhref{http://www.gnu.org/software/autoconf-archive/}{Autoconf Archive}
+\item \href{http://www.gnu.org/software/autoconf-archive/}{Autoconf Archive}
     Used as part of the build system.  Required for all builds.
-\item \hdhref{http://flex.sourceforge.net/}{Flex} Used for building internal
+\item \href{http://flex.sourceforge.net/}{Flex} Used for building internal
     parsers.  Required for all builds.
-\item \hdhref{http://www.gnu.org/software/bison/}{Bison} Used for building
+\item \href{http://www.gnu.org/software/bison/}{Bison} Used for building
     internal parsers.  Required for all builds.
-\item \hdhref{http://cython.org/}{Cython} Used for building Python bindings.
+\item \href{http://cython.org/}{Cython} Used for building Python bindings.
     Required for \texttt{--enable-python-bindings}.
     Recommmended version: $\ge$ 0.15.
-\item \hdhref{http://www.gnu.org/software/gperf/}{Gperf}  Generate perfect
+\item \href{http://www.gnu.org/software/gperf/}{Gperf}  Generate perfect
     hashes.  Used in the client library.
 \end{itemize}
 

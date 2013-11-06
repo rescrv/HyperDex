@@ -71,10 +71,11 @@ ARGS_OUT = {(generator.AsyncCall, generator.Status): 'The status of the '
 
 def generate_doc_block(x):
     output = ''
+    output += '\\index{{{0}!C API Reference}}\n'.format(c.name.replace('_', '\\_'))
     output += '\\begin{ccode}\n'
     output += generate_func(c)
     output += '\\end{ccode}\n'
-    output += '\\funcdesc \input{{api/desc/{0}}}\n\n'.format(c.name)
+    output += '\\funcdesc \input{{\\topdir/api/desc/{0}}}\n\n'.format(c.name)
     output += '\\noindent\\textbf{Parameters:}\n'
     max_label = ''
     parameters = ''

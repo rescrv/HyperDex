@@ -6,25 +6,25 @@ export CROSSTEX_FLAGS:= --add-in --add-proceedings --titlecase=title --cite-by i
 
 # Rules that derive from configuration variables
 
-.PHONY: all $(TARGET).dvi
+.PHONY: all
 .SUFFIXES: .gnuplot .tex
 
 all: $(TARGET).pdf $(TARGET).ps
-		@echo "SUCCESS: dvi, ps, pdf all up-to-date"
+	@echo "SUCCESS: dvi, ps, pdf all up-to-date"
 
 $(TARGET).dvi: hyperdex.tex $(wildcard */*.tex) $(wildcard */*/*.tex)
-		python latex.py $(TARGET)
+	python latex.py $(TARGET)
 
 $(TARGET).ps: $(TARGET).dvi
-		dvips $(TARGET).dvi
+	dvips $(TARGET).dvi
 
 $(TARGET).pdf: $(TARGET).ps
-		ps2pdf -dPDFSETTINGS=/prepress $(TARGET).ps $(TARGET).pdf
+	ps2pdf -dPDFSETTINGS=/prepress $(TARGET).ps $(TARGET).pdf
 
 -include $(TARGET).P
 
 clean:
-		rm -f $(TARGET).aux $(TARGET).bbl $(TARGET).log .$(TARGET).xtx.cache data/*.tex data/*.aux data/*.eps
+	rm -f $(TARGET).aux $(TARGET).bbl $(TARGET).log .$(TARGET).xtx.cache data/*.tex data/*.aux data/*.eps
 
 clobber: clean
-		rm -f $(TARGET).dvi $(TARGET).P $(TARGET).pdf $(TARGET).ps
+	rm -f $(TARGET).dvi $(TARGET).P $(TARGET).pdf $(TARGET).ps

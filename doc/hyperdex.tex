@@ -11,10 +11,17 @@
 \usepackage[binary,squaren]{SIunits}
 \usetikzlibrary{arrows}
 \usetikzlibrary{decorations.markings}
+\usepackage{makeidx}
 
+\ifx \HCode\Undef
+\newcommand*{\topdir}{.}%
+\else
+\newcommand*{\topdir}{..}%
+\fi
+
+\makeindex
 \AtBeginDocument{\renewcommand{\bibname}{References}}
 
-\newcommand{\hdhref}[2]{\href{#1}{#2}\footnote{\href{#1}{#1}}}
 \newcommand{\funcdesc}{\vspace{-0.5\baselineskip}\noindent}
 \newcommand{\funcsep}{\vspace{0.5\baselineskip}}
 \newcommand{\HyperDexVersion}{1.0.dev}
@@ -33,7 +40,7 @@
 
 \title{HyperDex Reference Manual v1.0.dev}
 \date{October 07, 2013}
-\author{Robert Escriva, Bernard Wong, and Emin Gün Sirer}
+\author{Robert Escriva, Bernard Wong, and Emin G{\"u}n Sirer}
 
 \newminted{c}{samepage}
 \newminted{console}{samepage}
@@ -47,31 +54,40 @@
 
 \mainmatter
 
-\input{introduction}
-\input{installation}
+\input{\topdir/introduction}
+\input{\topdir/installation}
 
 \part{For Developers}
 \label{part:for-developers}
-\input{quick-start}
-\input{data-types}
-\input{async-ops}
-\input{atomic-ops}
-\input{transactions}
+\input{\topdir/quick-start}
+\input{\topdir/data-types}
+\input{\topdir/async-ops}
+\input{\topdir/atomic-ops}
+\input{\topdir/transactions}
 
 \part{For Administrators}
 \label{part:for-admins}
-\input{fault-tolerance}
-\input{cluster-membership}
+\input{\topdir/fault-tolerance}
+\input{\topdir/cluster-membership}
 
 \part{For Hackers}
 \label{part:for-hackers}
-\input{client-bindings}
+\input{\topdir/client-bindings}
 
 \part{API Reference}
 \label{part:api-ref}
-\input{api/c}
+\input{\topdir/api/c}
 
 \backmatter
+
+% Index
+\clearpage
+\addcontentsline{toc}{chapter}{Index}
+\printindex
+
+% References
+\clearpage
+\addcontentsline{toc}{chapter}{References}
 \bibliographystyle{plain}
 \bibliography{hyperdex}
 

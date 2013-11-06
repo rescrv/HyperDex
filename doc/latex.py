@@ -43,11 +43,13 @@ import sys
 #
 # If you're adding a new file type, and you're not sure whether it impacts
 # LaTeX, CrossTeX, or both, it is safe (but inefficient) to mark both as True.
-EXTENSIONS = (('.tex', True, False),
-              ('.xtx', False, True),
-              ('.aux', True, True),
-              ('.bbl', True, False),
-              ('.log', True, False))
+EXTENSIONS = (('.tex', True,  False, False),
+              ('.xtx', False, True,  False),
+              ('.aux', True,  True,  False),
+              ('.bbl', True,  False, False),
+              ('.idx', False, False, True),
+              ('.ind', True,  False, False),
+              ('.log', True,  False, False))
 
 
 # Lines that start with any of these strings will be cut
@@ -111,12 +113,13 @@ def cat_tex_log(name):
 def process_tex_log(name):
     filtered = os.path.exists(name + '.filtered')
     deps = []
-    tli = TeXLineIterator(name + '.log')
+    tli = TeXLineIterator(name + '.stdout.log')
+    if not filtered:
+        logging.getLogger().setLevel(logging.CRITICAL)
     for line in tli:
         line = line.strip('\n')
         if not filtered:
             print line
-            continue
         if line.startswith('This is'):
             match = latex_version_re.match(line)
             if match:
@@ -201,14 +204,17 @@ def older_than(name, target, dep):
 def build(name):
     need_tex = True
     need_xtx = older_than(name, '.bbl', '.xtx')
+    need_idx = older_than(name, '.ind', '.idx')
+    if not need_tex and not need_xtx and not need_idx:
+        need_tex = True
     sha1s = compute_sha1s(name)
-    if not need_tex and not need_xtx:
+    if not need_tex and not need_xtx and not need_idx:
         subprocess.check_call(['touch', name + '.dvi'])
         subprocess.check_call(['touch', name + '.P'])
         return 0
     iters = 0
     deps = set([])
-    while need_tex or need_xtx:
+    while need_tex or need_xtx or need_idx:
         if iters > 16:
             logging.error("error, iterated 16 times; you'd think tex would converge by now; bailing")
             return -1
@@ -218,8 +224,8 @@ def build(name):
             rc = subprocess.call(['latex', '-interaction=nonstopmode',
                                   '-shell-escape', '-halt-on-error', name],
                                  stdin  = open('/dev/null', 'r'),
-                                 stdout = open('/dev/null', 'w'),
-                                 stderr = open('/dev/null', 'w'),
+                                 stdout = open(name + '.stdout.log', 'w'),
+                                 stderr = subprocess.STDOUT,
                                  env = env)
             if rc != 0:
                 cat_tex_log(name)
@@ -234,11 +240,18 @@ def build(name):
                 logging.error("CrossTeX failed")
                 return rc
             need_xtx = False
+        if need_idx:
+            rc = subprocess.call(['makeindex', name])
+            if rc != 0:
+                logging.error("makeindex failed")
+                return rc
+            need_idx = False
         new_sha1s = compute_sha1s(name)
-        for ext, tex, xtx in EXTENSIONS:
+        for ext, tex, xtx, idx in EXTENSIONS:
             if sha1s[name + ext] != new_sha1s[name + ext]:
                 need_tex = need_tex or tex
                 need_xtx = need_xtx or xtx
+                need_idx = need_idx or idx
         sha1s = new_sha1s
         iters += 1
     write_deps(name, deps)
