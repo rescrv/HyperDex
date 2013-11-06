@@ -1,0 +1,3 @@
+[submodule "bindings/go"]
+	path = bindings/go
+	url = git@github.com:derekchiang/hypergo.git
