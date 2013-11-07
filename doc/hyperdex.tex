@@ -1,4 +1,12 @@
 \documentclass[10pt,oneside]{book}
+
+\ifx \HCode\Undef
+\newcommand*{\topdir}{.}%
+\else
+\def\pgfsysdriver{pgfsys-tex4ht.def}
+\newcommand*{\topdir}{..}%
+\fi
+
 \usepackage{hyperref}
 \usepackage{nameref}
 \usepackage{minted}
@@ -12,12 +20,6 @@
 \usetikzlibrary{arrows}
 \usetikzlibrary{decorations.markings}
 \usepackage{makeidx}
-
-\ifx \HCode\Undef
-\newcommand*{\topdir}{.}%
-\else
-\newcommand*{\topdir}{..}%
-\fi
 
 \makeindex
 \AtBeginDocument{\renewcommand{\bibname}{References}}
