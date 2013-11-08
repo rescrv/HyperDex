@@ -478,6 +478,10 @@ if ENABLE_ADMIN
 noinst_PROGRAMS += bindings/c/admin_testcompile
 endif
 
+EXTRA_DIST += bindings/c/gen_client_header.py
+EXTRA_DIST += bindings/c/gen_doc.py
+EXTRA_DIST += bindings/c/gen_wrappers.py
+
 bindings_c_client_testcompile_SOURCES = bindings/c/client-testcompile.c
 bindings_c_client_testcompile_LDADD = libhyperdex-client.la
 
@@ -498,6 +502,14 @@ bindings_cc_client_testcompile_LDADD = libhyperdex-client.la
 
 bindings_cc_admin_testcompile_SOURCES = bindings/cc/admin-testcompile.cc
 bindings_cc_admin_testcompile_LDADD = libhyperdex-admin.la
+
+###################################### Go ######################################
+
+EXTRA_DIST += bindings/go/api.go
+EXTRA_DIST += bindings/go/hypergo.go
+EXTRA_DIST += bindings/go/hypergo_test.go
+EXTRA_DIST += bindings/go/ops.go
+EXTRA_DIST += bindings/go/util.go
 
 ##################################### Java #####################################
 
@@ -812,9 +824,13 @@ man/hyperdex-server-kill.1: man/hyperdex-server-kill.1.h2m tools/server-kill.cc
 ################################################################################
 
 EXTRA_DIST += $(wildcard doc/*.tex)
+EXTRA_DIST += $(wildcard doc/*.xtx)
 EXTRA_DIST += $(wildcard doc/*/*.tex)
 EXTRA_DIST += $(wildcard doc/*/*/*.tex)
 EXTRA_DIST += doc/Makefile
+EXTRA_DIST += doc/latex.py
+EXTRA_DIST += doc/api/c/iterate.c
+EXTRA_DIST += doc/api/c/iterate.c
 
 CLEANFILES += doc/HyperDex-$(VERSION).pdf
 
@@ -825,12 +841,14 @@ doc/HyperDex-$(VERSION).pdf:
 	rm -r ${abs_top_builddir}/doc/_build
 
 ################################################################################
-############################## Maintainer Targets ##############################
+################################## Maintenance #################################
 ################################################################################
 
 if ENABLE_MAINTAINER_TOOLS
 noinst_PROGRAMS += maint/lib-check
 endif
+
+EXTRA_DIST += bindings/generator.py
 
 maint_lib_check_SOURCES = maint/lib-check.c
 maint_lib_check_LDADD = -ldl

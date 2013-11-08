@@ -12,7 +12,7 @@ export CROSSTEX_FLAGS:= --add-in --add-proceedings --titlecase=title --cite-by i
 all: $(TARGET).pdf $(TARGET).ps
 	@echo "SUCCESS: dvi, ps, pdf all up-to-date"
 
-$(TARGET).dvi: hyperdex.tex $(wildcard */*.tex) $(wildcard */*/*.tex)
+$(TARGET).dvi: hyperdex.tex $(wildcard *.tex) $(wildcard */*.tex) $(wildcard */*/*.tex)
 	python latex.py $(TARGET)
 
 $(TARGET).ps: $(TARGET).dvi

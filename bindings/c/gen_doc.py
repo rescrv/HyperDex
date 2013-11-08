@@ -22,36 +22,36 @@ def generate_func(x):
 
 ARGS_IN = {(generator.AsyncCall, generator.SpaceName): 'The name of the space as a c-string.'
           ,(generator.AsyncCall, generator.Key): 'The key for the operation where '
-           '\\texttt{key} is a bytestring and \\texttt{key\\_sz} specifies '
-           'the number of bytes in \\texttt{key}.'
+           '\\code{key} is a bytestring and \\code{key\\_sz} specifies '
+           'the number of bytes in \\code{key}.'
           ,(generator.AsyncCall, generator.Attributes): 'The set of attributes '
-           'to modify and their respective values.  \\texttt{attrs} points to '
-           'an array of length \\texttt{attrs\_sz}.'
+           'to modify and their respective values.  \\code{attrs} points to '
+           'an array of length \\code{attrs\_sz}.'
           ,(generator.AsyncCall, generator.MapAttributes): 'The set of map '
            'attributes to modify and their respective key/values.  '
-           '\\texttt{mapattrs} points to an array of length '
-           '\\texttt{mapattrs\_sz}.  Each entry specify an attribute that is a '
+           '\\code{mapattrs} points to an array of length '
+           '\\code{mapattrs\_sz}.  Each entry specify an attribute that is a '
            'map and a key within that map.'
           ,(generator.AsyncCall, generator.Predicates): 'A set of predicates '
-           'to check against.  \\texttt{checks} points to an array of length '
-           '\\texttt{checks\_sz}.'
+           'to check against.  \\code{checks} points to an array of length '
+           '\\code{checks\_sz}.'
           ,(generator.Iterator, generator.SpaceName): 'The name of the space as a c-string.'
           ,(generator.Iterator, generator.SortBy): 'The attribute to sort by.'
           ,(generator.Iterator, generator.Limit): 'The number of results to return.'
           ,(generator.Iterator, generator.MaxMin): 'Maximize (!= 0) or minimize (== 0).'
           ,(generator.Iterator, generator.Predicates): 'A set of predicates '
-           'to check against.  \\texttt{checks} points to an array of length '
-           '\\texttt{checks\_sz}.'
+           'to check against.  \\code{checks} points to an array of length '
+           '\\code{checks\_sz}.'
           }
 ARGS_OUT = {(generator.AsyncCall, generator.Status): 'The status of the '
             'operation.  The client library will fill in this variable before '
             'returning this operation\'s request id from '
-            '\\texttt{hyperdex\\_client\\_loop}.  The pointer must remain valid '
+            '\\code{hyperdex\\_client\\_loop}.  The pointer must remain valid '
             'until then, and the pointer should not be aliased to the status '
             'for any other outstanding operation.'
            ,(generator.AsyncCall, generator.Attributes): 'An array of attributes '
             'that comprise a returned object.  The application must free the '
-            'returned values with \\texttt{hyperdex\_client\_destroy\_attrs}.  The '
+            'returned values with \\code{hyperdex\_client\_destroy\_attrs}.  The '
             'pointers must remain valid until the operation completes.'
            ,(generator.AsyncCall, generator.Count): 'The number of objects which '
             'match the predicates.'
@@ -60,12 +60,12 @@ ARGS_OUT = {(generator.AsyncCall, generator.Status): 'The status of the '
            ,(generator.Iterator, generator.Status): 'The status of the '
             'operation.  The client library will fill in this variable before '
             'returning this operation\'s request id from '
-            '\\texttt{hyperdex\\_client\\_loop}.  The pointer must remain valid '
+            '\\code{hyperdex\\_client\\_loop}.  The pointer must remain valid '
             'until the operation completes, and the pointer should not be '
             'aliased to the status for any other outstanding operation.'
            ,(generator.Iterator, generator.Attributes): 'An array of attributes '
             'that comprise a returned object.  The application must free the '
-            'returned values with \\texttt{hyperdex\_client\_destroy\_attrs}.  The '
+            'returned values with \\code{hyperdex\_client\_destroy\_attrs}.  The '
             'pointers must remain valid until the operation completes.'
            }
 
@@ -83,7 +83,7 @@ def generate_doc_block(x):
         if (c.form, arg) not in ARGS_IN:
             print 'missing in', (c.form, arg)
             continue
-        label = ', '.join(['\\texttt{' + a[1].replace('_', '\\_') + '}' for a in arg.args])
+        label = ', '.join(['\\code{' + a[1].replace('_', '\\_') + '}' for a in arg.args])
         parameters += '\\item[{0}] {1}\n'.format(label, ARGS_IN[(c.form, arg)])
         if len(label) > len(max_label):
             max_label = label
@@ -100,7 +100,7 @@ def generate_doc_block(x):
         if (c.form, arg) not in ARGS_OUT:
             print 'missing out', (c.form, arg)
             continue
-        label = ', '.join(['\\texttt{' + a[1].replace('_', '\\_') + '}' for a in arg.args])
+        label = ', '.join(['\\code{' + a[1].replace('_', '\\_') + '}' for a in arg.args])
         returns += '\\item[{0}] {1}\n'.format(label, ARGS_OUT[(c.form, arg)])
         if len(label) > len(max_label):
             max_label = label

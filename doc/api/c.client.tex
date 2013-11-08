@@ -11,15 +11,15 @@ int64_t hyperdex_client_get(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/get}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{key}, \texttt{key\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
+\begin{description}[labelindent=\widthof{{\code{key}, \code{key\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{attrs}, \texttt{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] An array of attributes that comprise a returned object.  The application must free the returned values with \texttt{hyperdex\_client\_destroy\_attrs}.  The pointers must remain valid until the operation completes.
+\begin{description}[labelindent=\widthof{{\code{attrs}, \code{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item[\code{attrs}, \code{attrs\_sz}] An array of attributes that comprise a returned object.  The application must free the returned values with \code{hyperdex\_client\_destroy\_attrs}.  The pointers must remain valid until the operation completes.
 \end{description}
 
 \funcsep
@@ -34,15 +34,15 @@ int64_t hyperdex_client_put(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/put}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{attrs}, \texttt{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{attrs}, \code{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -58,16 +58,16 @@ int64_t hyperdex_client_cond_put(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_put}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{checks}, \texttt{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{checks}, \code{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -82,15 +82,15 @@ int64_t hyperdex_client_put_if_not_exist(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/put_if_not_exist}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{attrs}, \texttt{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{attrs}, \code{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -104,14 +104,14 @@ int64_t hyperdex_client_del(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/del}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{key}, \texttt{key\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
+\begin{description}[labelindent=\widthof{{\code{key}, \code{key\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -126,15 +126,15 @@ int64_t hyperdex_client_cond_del(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_del}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{checks}, \texttt{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
+\begin{description}[labelindent=\widthof{{\code{checks}, \code{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -149,15 +149,15 @@ int64_t hyperdex_client_atomic_add(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/atomic_add}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{attrs}, \texttt{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{attrs}, \code{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -173,16 +173,16 @@ int64_t hyperdex_client_cond_atomic_add(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_atomic_add}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{checks}, \texttt{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{checks}, \code{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -197,15 +197,15 @@ int64_t hyperdex_client_atomic_sub(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/atomic_sub}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{attrs}, \texttt{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{attrs}, \code{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -221,16 +221,16 @@ int64_t hyperdex_client_cond_atomic_sub(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_atomic_sub}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{checks}, \texttt{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{checks}, \code{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -245,15 +245,15 @@ int64_t hyperdex_client_atomic_mul(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/atomic_mul}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{attrs}, \texttt{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{attrs}, \code{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -269,16 +269,16 @@ int64_t hyperdex_client_cond_atomic_mul(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_atomic_mul}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{checks}, \texttt{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{checks}, \code{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -293,15 +293,15 @@ int64_t hyperdex_client_atomic_div(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/atomic_div}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{attrs}, \texttt{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{attrs}, \code{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -317,16 +317,16 @@ int64_t hyperdex_client_cond_atomic_div(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_atomic_div}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{checks}, \texttt{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{checks}, \code{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -341,15 +341,15 @@ int64_t hyperdex_client_atomic_mod(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/atomic_mod}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{attrs}, \texttt{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{attrs}, \code{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -365,16 +365,16 @@ int64_t hyperdex_client_cond_atomic_mod(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_atomic_mod}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{checks}, \texttt{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{checks}, \code{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -389,15 +389,15 @@ int64_t hyperdex_client_atomic_and(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/atomic_and}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{attrs}, \texttt{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{attrs}, \code{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -413,16 +413,16 @@ int64_t hyperdex_client_cond_atomic_and(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_atomic_and}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{checks}, \texttt{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{checks}, \code{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -437,15 +437,15 @@ int64_t hyperdex_client_atomic_or(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/atomic_or}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{attrs}, \texttt{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{attrs}, \code{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -461,16 +461,16 @@ int64_t hyperdex_client_cond_atomic_or(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_atomic_or}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{checks}, \texttt{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{checks}, \code{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -485,15 +485,15 @@ int64_t hyperdex_client_atomic_xor(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/atomic_xor}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{attrs}, \texttt{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{attrs}, \code{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -509,16 +509,16 @@ int64_t hyperdex_client_cond_atomic_xor(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_atomic_xor}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{checks}, \texttt{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{checks}, \code{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -533,15 +533,15 @@ int64_t hyperdex_client_string_prepend(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/string_prepend}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{attrs}, \texttt{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{attrs}, \code{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -557,16 +557,16 @@ int64_t hyperdex_client_cond_string_prepend(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_string_prepend}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{checks}, \texttt{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{checks}, \code{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -581,15 +581,15 @@ int64_t hyperdex_client_string_append(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/string_append}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{attrs}, \texttt{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{attrs}, \code{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -605,16 +605,16 @@ int64_t hyperdex_client_cond_string_append(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_string_append}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{checks}, \texttt{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{checks}, \code{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -629,15 +629,15 @@ int64_t hyperdex_client_list_lpush(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/list_lpush}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{attrs}, \texttt{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{attrs}, \code{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -653,16 +653,16 @@ int64_t hyperdex_client_cond_list_lpush(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_list_lpush}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{checks}, \texttt{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{checks}, \code{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -677,15 +677,15 @@ int64_t hyperdex_client_list_rpush(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/list_rpush}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{attrs}, \texttt{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{attrs}, \code{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -701,16 +701,16 @@ int64_t hyperdex_client_cond_list_rpush(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_list_rpush}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{checks}, \texttt{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{checks}, \code{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -725,15 +725,15 @@ int64_t hyperdex_client_set_add(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/set_add}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{attrs}, \texttt{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{attrs}, \code{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -749,16 +749,16 @@ int64_t hyperdex_client_cond_set_add(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_set_add}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{checks}, \texttt{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{checks}, \code{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -773,15 +773,15 @@ int64_t hyperdex_client_set_remove(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/set_remove}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{attrs}, \texttt{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{attrs}, \code{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -797,16 +797,16 @@ int64_t hyperdex_client_cond_set_remove(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_set_remove}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{checks}, \texttt{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{checks}, \code{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -821,15 +821,15 @@ int64_t hyperdex_client_set_intersect(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/set_intersect}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{attrs}, \texttt{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{attrs}, \code{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -845,16 +845,16 @@ int64_t hyperdex_client_cond_set_intersect(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_set_intersect}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{checks}, \texttt{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{checks}, \code{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -869,15 +869,15 @@ int64_t hyperdex_client_set_union(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/set_union}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{attrs}, \texttt{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{attrs}, \code{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -893,16 +893,16 @@ int64_t hyperdex_client_cond_set_union(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_set_union}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{checks}, \texttt{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{checks}, \code{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -917,15 +917,15 @@ int64_t hyperdex_client_map_add(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/map_add}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{mapattrs}, \texttt{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{mapattrs}, \texttt{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \texttt{mapattrs} points to an array of length \texttt{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\begin{description}[labelindent=\widthof{{\code{mapattrs}, \code{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{mapattrs}, \code{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -941,16 +941,16 @@ int64_t hyperdex_client_cond_map_add(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_map_add}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{mapattrs}, \texttt{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{mapattrs}, \texttt{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \texttt{mapattrs} points to an array of length \texttt{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\begin{description}[labelindent=\widthof{{\code{mapattrs}, \code{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{mapattrs}, \code{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -965,15 +965,15 @@ int64_t hyperdex_client_map_remove(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/map_remove}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{attrs}, \texttt{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{attrs}, \code{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -989,16 +989,16 @@ int64_t hyperdex_client_cond_map_remove(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_map_remove}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{checks}, \texttt{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] The set of attributes to modify and their respective values.  \texttt{attrs} points to an array of length \texttt{attrs\_sz}.
+\begin{description}[labelindent=\widthof{{\code{checks}, \code{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{attrs}, \code{attrs\_sz}] The set of attributes to modify and their respective values.  \code{attrs} points to an array of length \code{attrs\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -1013,15 +1013,15 @@ int64_t hyperdex_client_map_atomic_add(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/map_atomic_add}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{mapattrs}, \texttt{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{mapattrs}, \texttt{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \texttt{mapattrs} points to an array of length \texttt{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\begin{description}[labelindent=\widthof{{\code{mapattrs}, \code{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{mapattrs}, \code{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -1037,16 +1037,16 @@ int64_t hyperdex_client_cond_map_atomic_add(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_map_atomic_add}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{mapattrs}, \texttt{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{mapattrs}, \texttt{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \texttt{mapattrs} points to an array of length \texttt{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\begin{description}[labelindent=\widthof{{\code{mapattrs}, \code{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{mapattrs}, \code{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -1061,15 +1061,15 @@ int64_t hyperdex_client_map_atomic_sub(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/map_atomic_sub}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{mapattrs}, \texttt{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{mapattrs}, \texttt{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \texttt{mapattrs} points to an array of length \texttt{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\begin{description}[labelindent=\widthof{{\code{mapattrs}, \code{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{mapattrs}, \code{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -1085,16 +1085,16 @@ int64_t hyperdex_client_cond_map_atomic_sub(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_map_atomic_sub}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{mapattrs}, \texttt{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{mapattrs}, \texttt{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \texttt{mapattrs} points to an array of length \texttt{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\begin{description}[labelindent=\widthof{{\code{mapattrs}, \code{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{mapattrs}, \code{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -1109,15 +1109,15 @@ int64_t hyperdex_client_map_atomic_mul(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/map_atomic_mul}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{mapattrs}, \texttt{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{mapattrs}, \texttt{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \texttt{mapattrs} points to an array of length \texttt{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\begin{description}[labelindent=\widthof{{\code{mapattrs}, \code{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{mapattrs}, \code{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -1133,16 +1133,16 @@ int64_t hyperdex_client_cond_map_atomic_mul(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_map_atomic_mul}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{mapattrs}, \texttt{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{mapattrs}, \texttt{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \texttt{mapattrs} points to an array of length \texttt{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\begin{description}[labelindent=\widthof{{\code{mapattrs}, \code{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{mapattrs}, \code{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -1157,15 +1157,15 @@ int64_t hyperdex_client_map_atomic_div(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/map_atomic_div}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{mapattrs}, \texttt{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{mapattrs}, \texttt{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \texttt{mapattrs} points to an array of length \texttt{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\begin{description}[labelindent=\widthof{{\code{mapattrs}, \code{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{mapattrs}, \code{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -1181,16 +1181,16 @@ int64_t hyperdex_client_cond_map_atomic_div(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_map_atomic_div}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{mapattrs}, \texttt{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{mapattrs}, \texttt{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \texttt{mapattrs} points to an array of length \texttt{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\begin{description}[labelindent=\widthof{{\code{mapattrs}, \code{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{mapattrs}, \code{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -1205,15 +1205,15 @@ int64_t hyperdex_client_map_atomic_mod(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/map_atomic_mod}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{mapattrs}, \texttt{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{mapattrs}, \texttt{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \texttt{mapattrs} points to an array of length \texttt{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\begin{description}[labelindent=\widthof{{\code{mapattrs}, \code{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{mapattrs}, \code{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -1229,16 +1229,16 @@ int64_t hyperdex_client_cond_map_atomic_mod(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_map_atomic_mod}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{mapattrs}, \texttt{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{mapattrs}, \texttt{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \texttt{mapattrs} points to an array of length \texttt{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\begin{description}[labelindent=\widthof{{\code{mapattrs}, \code{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{mapattrs}, \code{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -1253,15 +1253,15 @@ int64_t hyperdex_client_map_atomic_and(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/map_atomic_and}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{mapattrs}, \texttt{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{mapattrs}, \texttt{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \texttt{mapattrs} points to an array of length \texttt{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\begin{description}[labelindent=\widthof{{\code{mapattrs}, \code{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{mapattrs}, \code{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -1277,16 +1277,16 @@ int64_t hyperdex_client_cond_map_atomic_and(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_map_atomic_and}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{mapattrs}, \texttt{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{mapattrs}, \texttt{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \texttt{mapattrs} points to an array of length \texttt{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\begin{description}[labelindent=\widthof{{\code{mapattrs}, \code{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{mapattrs}, \code{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -1301,15 +1301,15 @@ int64_t hyperdex_client_map_atomic_or(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/map_atomic_or}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{mapattrs}, \texttt{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{mapattrs}, \texttt{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \texttt{mapattrs} points to an array of length \texttt{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\begin{description}[labelindent=\widthof{{\code{mapattrs}, \code{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{mapattrs}, \code{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -1325,16 +1325,16 @@ int64_t hyperdex_client_cond_map_atomic_or(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_map_atomic_or}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{mapattrs}, \texttt{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{mapattrs}, \texttt{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \texttt{mapattrs} points to an array of length \texttt{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\begin{description}[labelindent=\widthof{{\code{mapattrs}, \code{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{mapattrs}, \code{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -1349,15 +1349,15 @@ int64_t hyperdex_client_map_atomic_xor(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/map_atomic_xor}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{mapattrs}, \texttt{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{mapattrs}, \texttt{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \texttt{mapattrs} points to an array of length \texttt{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\begin{description}[labelindent=\widthof{{\code{mapattrs}, \code{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{mapattrs}, \code{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -1373,16 +1373,16 @@ int64_t hyperdex_client_cond_map_atomic_xor(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_map_atomic_xor}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{mapattrs}, \texttt{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{mapattrs}, \texttt{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \texttt{mapattrs} points to an array of length \texttt{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\begin{description}[labelindent=\widthof{{\code{mapattrs}, \code{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{mapattrs}, \code{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -1397,15 +1397,15 @@ int64_t hyperdex_client_map_string_prepend(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/map_string_prepend}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{mapattrs}, \texttt{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{mapattrs}, \texttt{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \texttt{mapattrs} points to an array of length \texttt{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\begin{description}[labelindent=\widthof{{\code{mapattrs}, \code{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{mapattrs}, \code{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -1421,16 +1421,16 @@ int64_t hyperdex_client_cond_map_string_prepend(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_map_string_prepend}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{mapattrs}, \texttt{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{mapattrs}, \texttt{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \texttt{mapattrs} points to an array of length \texttt{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\begin{description}[labelindent=\widthof{{\code{mapattrs}, \code{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{mapattrs}, \code{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -1445,15 +1445,15 @@ int64_t hyperdex_client_map_string_append(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/map_string_append}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{mapattrs}, \texttt{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{mapattrs}, \texttt{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \texttt{mapattrs} points to an array of length \texttt{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\begin{description}[labelindent=\widthof{{\code{mapattrs}, \code{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{mapattrs}, \code{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -1469,16 +1469,16 @@ int64_t hyperdex_client_cond_map_string_append(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/cond_map_string_append}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{mapattrs}, \texttt{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{key}, \texttt{key\_sz}] The key for the operation where \texttt{key} is a bytestring and \texttt{key\_sz} specifies the number of bytes in \texttt{key}.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{mapattrs}, \texttt{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \texttt{mapattrs} points to an array of length \texttt{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
+\begin{description}[labelindent=\widthof{{\code{mapattrs}, \code{mapattrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{key}, \code{key\_sz}] The key for the operation where \code{key} is a bytestring and \code{key\_sz} specifies the number of bytes in \code{key}.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{mapattrs}, \code{mapattrs\_sz}] The set of map attributes to modify and their respective key/values.  \code{mapattrs} points to an array of length \code{mapattrs\_sz}.  Each entry specify an attribute that is a map and a key within that map.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -1493,15 +1493,15 @@ int64_t hyperdex_client_search(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/search}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{checks}, \texttt{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
+\begin{description}[labelindent=\widthof{{\code{checks}, \code{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{attrs}, \texttt{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until the operation completes, and the pointer should not be aliased to the status for any other outstanding operation.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] An array of attributes that comprise a returned object.  The application must free the returned values with \texttt{hyperdex\_client\_destroy\_attrs}.  The pointers must remain valid until the operation completes.
+\begin{description}[labelindent=\widthof{{\code{attrs}, \code{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until the operation completes, and the pointer should not be aliased to the status for any other outstanding operation.
+\item[\code{attrs}, \code{attrs\_sz}] An array of attributes that comprise a returned object.  The application must free the returned values with \code{hyperdex\_client\_destroy\_attrs}.  The pointers must remain valid until the operation completes.
 \end{description}
 
 \funcsep
@@ -1516,15 +1516,15 @@ int64_t hyperdex_client_search_describe(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/search_describe}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{checks}, \texttt{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
+\begin{description}[labelindent=\widthof{{\code{checks}, \code{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{description}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
-\item[\texttt{description}] The description of the search.  This is a c-string that the client must free.
+\begin{description}[labelindent=\widthof{{\code{description}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item[\code{description}] The description of the search.  This is a c-string that the client must free.
 \end{description}
 
 \funcsep
@@ -1542,18 +1542,18 @@ int64_t hyperdex_client_sorted_search(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/sorted_search}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{checks}, \texttt{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
-\item[\texttt{sort\_by}] The attribute to sort by.
-\item[\texttt{limit}] The number of results to return.
-\item[\texttt{maxmin}] Maximize (!= 0) or minimize (== 0).
+\begin{description}[labelindent=\widthof{{\code{checks}, \code{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
+\item[\code{sort\_by}] The attribute to sort by.
+\item[\code{limit}] The number of results to return.
+\item[\code{maxmin}] Maximize (!= 0) or minimize (== 0).
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{attrs}, \texttt{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until the operation completes, and the pointer should not be aliased to the status for any other outstanding operation.
-\item[\texttt{attrs}, \texttt{attrs\_sz}] An array of attributes that comprise a returned object.  The application must free the returned values with \texttt{hyperdex\_client\_destroy\_attrs}.  The pointers must remain valid until the operation completes.
+\begin{description}[labelindent=\widthof{{\code{attrs}, \code{attrs\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until the operation completes, and the pointer should not be aliased to the status for any other outstanding operation.
+\item[\code{attrs}, \code{attrs\_sz}] An array of attributes that comprise a returned object.  The application must free the returned values with \code{hyperdex\_client\_destroy\_attrs}.  The pointers must remain valid until the operation completes.
 \end{description}
 
 \funcsep
@@ -1567,14 +1567,14 @@ int64_t hyperdex_client_group_del(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/group_del}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{checks}, \texttt{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
+\begin{description}[labelindent=\widthof{{\code{checks}, \code{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
 \end{description}
 
 \funcsep
@@ -1589,13 +1589,13 @@ int64_t hyperdex_client_count(struct hyperdex_client* client,
 \funcdesc \input{\topdir/api/desc/count}
 
 \noindent\textbf{Parameters:}
-\begin{description}[labelindent=\widthof{{\texttt{checks}, \texttt{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{space}] The name of the space as a c-string.
-\item[\texttt{checks}, \texttt{checks\_sz}] A set of predicates to check against.  \texttt{checks} points to an array of length \texttt{checks\_sz}.
+\begin{description}[labelindent=\widthof{{\code{checks}, \code{checks\_sz}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{space}] The name of the space as a c-string.
+\item[\code{checks}, \code{checks\_sz}] A set of predicates to check against.  \code{checks} points to an array of length \code{checks\_sz}.
 \end{description}
 
 \noindent\textbf{Returns:}
-\begin{description}[labelindent=\widthof{{\texttt{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
-\item[\texttt{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \texttt{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
-\item[\texttt{count}] The number of objects which match the predicates.
+\begin{description}[labelindent=\widthof{{\code{status}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{status}] The status of the operation.  The client library will fill in this variable before returning this operation's request id from \code{hyperdex\_client\_loop}.  The pointer must remain valid until then, and the pointer should not be aliased to the status for any other outstanding operation.
+\item[\code{count}] The number of objects which match the predicates.
 \end{description}
