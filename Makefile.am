@@ -715,6 +715,7 @@ bin_PROGRAMS += hyperdex-server-online
 bin_PROGRAMS += hyperdex-server-offline
 bin_PROGRAMS += hyperdex-server-kill
 bin_PROGRAMS += hyperdex-server-forget
+bin_PROGRAMS += hyperdex-perf-counters
 dist_man_MANS += man/hyperdex-add-space.1
 dist_man_MANS += man/hyperdex-rm-space.1
 dist_man_MANS += man/hyperdex-validate-space.1
@@ -724,6 +725,7 @@ dist_man_MANS += man/hyperdex-server-online.1
 dist_man_MANS += man/hyperdex-server-offline.1
 dist_man_MANS += man/hyperdex-server-kill.1
 dist_man_MANS += man/hyperdex-server-forget.1
+dist_man_MANS += man/hyperdex-perf-counters.1
 endif
 
 # hyperdex
@@ -818,6 +820,15 @@ hyperdex_server_kill_LDADD = libhyperdex-admin.la -lpopt
 man/hyperdex-server-kill.1: man/hyperdex-server-kill.1.h2m tools/server-kill.cc
 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-server-kill$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-server-kill$(EXEEXT)
+
+# hyperdex-perf-counters
+EXTRA_DIST += man/hyperdex-perf-counters.1.md
+EXTRA_DIST += man/hyperdex-perf-counters.1.h2m
+hyperdex_perf_counters_SOURCES = tools/perf-counters.cc
+hyperdex_perf_counters_LDADD = libhyperdex-admin.la -lpopt
+man/hyperdex-perf-counters.1: man/hyperdex-perf-counters.1.h2m tools/perf-counters.cc
+	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-perf-counters$(EXEEXT)
+	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-perf-counters$(EXEEXT)
 
 ################################################################################
 ################################# Documentation ################################

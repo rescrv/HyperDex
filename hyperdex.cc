@@ -46,6 +46,7 @@ main(int argc, const char* argv[])
     cmds.push_back(e::subcommand("validate-space",        "Validate a HyperDex space description"));
     cmds.push_back(e::subcommand("server-register",       "Manually register a new HyperDex server"));
     cmds.push_back(e::subcommand("show-config",           "Output a human-readable version of the cluster configuration"));
+    cmds.push_back(e::subcommand("perf-counters",         "Collect performance counters from a cluster"));
     return dispatch_to_subcommands(argc, argv,
                                    "hyperdex", "HyperDex",
                                    PACKAGE_VERSION,

@@ -35,91 +35,60 @@
 #include <e/guard.h>
 
 // HyperDex
-#include "admin/admin.h"
-#include "tools/old.common.h"
-
-static struct poptOption popts[] = {
-    POPT_AUTOHELP
-    CONNECT_TABLE
-    POPT_TABLEEND
-};
+#include <hyperdex/admin.hpp>
+#include "tools/common.h"
 
 int
 main(int argc, const char* argv[])
 {
-    poptContext poptcon;
-    poptcon = poptGetContext(NULL, argc, argv, popts, POPT_CONTEXT_POSIXMEHARDER);
-    e::guard g = e::makeguard(poptFreeContext, poptcon); g.use_variable();
-    poptSetOtherOptionHelp(poptcon, "[OPTIONS]");
-    int rc;
+    hyperdex::connect_opts conn;
+    e::argparser ap;
+    ap.autohelp();
+    ap.add("Connect to a cluster:", conn.parser());
 
-    while ((rc = poptGetNextOpt(poptcon)) != -1)
+    if (!ap.parse(argc, argv))
     {
-        switch (rc)
-        {
-            case 'h':
-                if (!check_host())
-                {
-                    return EXIT_FAILURE;
-                }
-                break;
-            case 'p':
-                if (!check_port())
-                {
-                    return EXIT_FAILURE;
-                }
-                break;
-            case POPT_ERROR_NOARG:
-            case POPT_ERROR_BADOPT:
-            case POPT_ERROR_BADNUMBER:
-            case POPT_ERROR_OVERFLOW:
-                std::cerr << poptStrerror(rc) << " " << poptBadOption(poptcon, 0) << std::endl;
-                return EXIT_FAILURE;
-            case POPT_ERROR_OPTSTOODEEP:
-            case POPT_ERROR_BADQUOTE:
-            case POPT_ERROR_ERRNO:
-            default:
-                std::cerr << "logic error in argument parsing" << std::endl;
-                return EXIT_FAILURE;
-        }
+        return EXIT_FAILURE;
     }
 
-    const char** args = poptGetArgs(poptcon);
-    size_t num_args = 0;
-
-    while (args && args[num_args])
+    if (!conn.validate())
     {
-        ++num_args;
+        std::cerr << "invalid host:port specification\n" << std::endl;
+        ap.usage();
+        return EXIT_FAILURE;
     }
 
-    if (num_args != 0)
+    if (ap.args_sz() != 0)
     {
         std::cerr << "command takes no arguments" << std::endl;
-        poptPrintUsage(poptcon, stderr, 0);
+        ap.usage();
         return EXIT_FAILURE;
     }
 
     try
     {
-        hyperdex_admin* admin = hyperdex_admin_create(_connect_host, _connect_port);
+        hyperdex::Admin h(conn.host(), conn.port());
         hyperdex_admin_returncode prc;
         hyperdex_admin_perf_counter pc;
-        int64_t pid = hyperdex_admin_enable_perf_counters(admin, &prc, &pc);
+        int64_t pid = h.enable_perf_counters(&prc, &pc);
         assert(pid>=0);
+
         while(true)
         {
             hyperdex_admin_returncode lrc;
-            int64_t lid = hyperdex_admin_loop(admin, -1, &lrc);
+            int64_t lid = h.loop(-1, &lrc);
+
+            if (lid != pid)
+            {
+                continue;
+            }
+
             assert(lid==pid);
             assert(prc == HYPERDEX_ADMIN_SUCCESS);
             std::cout << pc.id << " " << pc.time << " " << pc.property << " = " << pc.measurement << std::endl;
         }
+
         return EXIT_SUCCESS;
-    }
-    catch (po6::error& e)
-    {
-        std::cerr << "system error: " << e.what() << std::endl;
-        return EXIT_FAILURE;
     }
     catch (std::exception& e)
     {
