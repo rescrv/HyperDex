@@ -31,6 +31,7 @@
 // HyperDex
 #include "namespace.h"
 #include "common/ids.h"
+#include "common/server.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 
@@ -58,6 +59,7 @@ class replica_set
 void
 compute_replica_sets(uint64_t R, uint64_t P,
                      const std::vector<server_id>& permutation,
+                     const std::vector<server>& servers,
                      std::vector<server_id>* replica_storage,
                      std::vector<replica_set>* replica_sets);
 

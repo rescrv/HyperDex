@@ -25,10 +25,14 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// STL
+#include <algorithm>
+
 // HyperDex
 #include "coordinator/replica_sets.h"
 
 using hyperdex::replica_set;
+using hyperdex::server;
 using hyperdex::server_id;
 
 namespace
@@ -37,23 +41,36 @@ namespace
 void
 _small_replica_sets(uint64_t, uint64_t,
                     const std::vector<server_id>& permutation,
+                    const std::vector<server_id>& servers,
                     std::vector<server_id>* replica_storage,
                     std::vector<replica_set>* replica_sets)
 {
     for (size_t i = 0; i < permutation.size(); ++i)
     {
-        replica_sets->push_back(replica_set(replica_storage->size(), permutation.size(), replica_storage));
+        size_t repls = 0;
+        size_t start = replica_storage->size();
 
         for (size_t j = 0; j < permutation.size(); ++j)
         {
-            replica_storage->push_back(permutation[(i + j) % permutation.size()]);
+            size_t idx = (i + j) % permutation.size();
+
+            if (std::binary_search(servers.begin(),
+                                   servers.end(),
+                                   permutation[idx]))
+            {
+                replica_storage->push_back(permutation[idx]);
+                ++repls;
+            }
         }
+
+        replica_sets->push_back(replica_set(start, repls, replica_storage));
     }
 }
 
 void
 _permutation_replica_sets(uint64_t R, uint64_t P,
                           const std::vector<server_id>& permutation,
+                          const std::vector<server_id>& servers,
                           std::vector<server_id>* replica_storage,
                           std::vector<replica_set>* replica_sets)
 {
@@ -66,13 +83,23 @@ _permutation_replica_sets(uint64_t R, uint64_t P,
                 break;
             }
 
-            replica_sets->push_back(replica_set(replica_storage->size(), R, replica_storage));
+            size_t repls = 0;
+            size_t start = replica_storage->size();
 
             for (size_t r = 0; r < R; ++r)
             {
                 size_t idx = n + p * r;
-                replica_storage->push_back(permutation[idx]);
+
+                if (std::binary_search(servers.begin(),
+                                       servers.end(),
+                                       permutation[idx]))
+                {
+                    replica_storage->push_back(permutation[idx]);
+                    ++repls;
+                }
             }
+
+            replica_sets->push_back(replica_set(start, repls, replica_storage));
         }
     }
 }
@@ -126,6 +153,7 @@ replica_set :: operator = (const replica_set& rhs)
 void
 hyperdex :: compute_replica_sets(uint64_t R, uint64_t P,
                                  const std::vector<server_id>& permutation,
+                                 const std::vector<server>& _servers,
                                  std::vector<server_id>* replica_storage,
                                  std::vector<replica_set>* replica_sets)
 {
@@ -133,12 +161,24 @@ hyperdex :: compute_replica_sets(uint64_t R, uint64_t P,
     replica_storage->clear();
     replica_sets->clear();
 
+    std::vector<server_id> servers;
+
+    for (size_t i = 0; i < _servers.size(); ++i)
+    {
+        if (_servers[i].state == server::AVAILABLE)
+        {
+            servers.push_back(_servers[i].id);
+        }
+    }
+
+    std::sort(servers.begin(), servers.end());
+
     if (permutation.size() <= R)
     {
-        _small_replica_sets(R, P, permutation, replica_storage, replica_sets);
+        _small_replica_sets(R, P, permutation, servers, replica_storage, replica_sets);
     }
     else
     {
-        _permutation_replica_sets(R, P, permutation, replica_storage, replica_sets);
+        _permutation_replica_sets(R, P, permutation, servers, replica_storage, replica_sets);
     }
 }

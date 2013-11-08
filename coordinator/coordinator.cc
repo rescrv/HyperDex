@@ -59,18 +59,25 @@ to_string(const po6::net::location& loc)
 
 template <typename T>
 void
+shift_and_pop(size_t idx, std::vector<T>* v)
+{
+    for (size_t i = idx + 1; i < v->size(); ++i)
+    {
+        (*v)[i - 1] = (*v)[i];
+    }
+
+    v->pop_back();
+}
+
+template <typename T>
+void
 remove(const T& t, std::vector<T>* v)
 {
     for (size_t i = 0; i < v->size(); )
     {
         if ((*v)[i] == t)
         {
-            for (size_t j = 0; j + 1 < v->size(); ++j)
-            {
-                (*v)[j] = (*v)[j + 1];
-            }
-
-            v->pop_back();
+            shift_and_pop(i, v);
         }
         else
         {
@@ -87,12 +94,7 @@ remove_id(const TID& id, std::vector<T>* v)
     {
         if ((*v)[i].id == id)
         {
-            for (size_t j = i + 1; j < v->size(); ++j)
-            {
-                (*v)[j - 1] = (*v)[j];
-            }
-
-            v->pop_back();
+            shift_and_pop(i, v);
         }
         else
         {
@@ -236,13 +238,9 @@ coordinator :: server_online(replicant_state_machine_context* ctx,
                      server::to_string(server::AVAILABLE));
         srv->state = server::AVAILABLE;
 
-        if (m_spares.size() < m_desired_spares)
+        if (!in_permutation(sid))
         {
-            m_spares.push_back(sid);
-        }
-        else
-        {
-            m_permutation.push_back(sid);
+            add_permutation(sid);
         }
 
         rebalance_replica_sets(ctx);
@@ -281,14 +279,13 @@ coordinator :: server_offline(replicant_state_machine_context* ctx,
         return generate_response(ctx, hyperdex::COORD_NO_CAN_DO);
     }
 
-    if (srv->state != server::NOT_AVAILABLE)
+    if (srv->state != server::NOT_AVAILABLE && srv->state != server::SHUTDOWN)
     {
         fprintf(log, "changing server(%lu) from %s to %s\n",
                      sid.get(), server::to_string(srv->state),
                      server::to_string(server::NOT_AVAILABLE));
         srv->state = server::NOT_AVAILABLE;
-        remove(sid, &m_permutation);
-        remove(sid, &m_spares);
+        remove_permutation(sid);
         rebalance_replica_sets(ctx);
         generate_next_configuration(ctx);
     }
@@ -326,9 +323,6 @@ coordinator :: server_shutdown(replicant_state_machine_context* ctx,
                      sid.get(), server::to_string(srv->state),
                      server::to_string(server::SHUTDOWN));
         srv->state = server::SHUTDOWN;
-        // XXX we can do it better
-        remove(sid, &m_permutation);
-        remove(sid, &m_spares);
         rebalance_replica_sets(ctx);
         generate_next_configuration(ctx);
     }
@@ -356,8 +350,7 @@ coordinator :: server_kill(replicant_state_machine_context* ctx,
                      sid.get(), server::to_string(srv->state),
                      server::to_string(server::KILLED));
         srv->state = server::KILLED;
-        remove(sid, &m_permutation);
-        remove(sid, &m_spares);
+        remove_permutation(sid);
         rebalance_replica_sets(ctx);
         generate_next_configuration(ctx);
     }
@@ -389,8 +382,7 @@ coordinator :: server_forget(replicant_state_machine_context* ctx,
     }
 
     std::stable_sort(m_servers.begin(), m_servers.end());
-    remove(sid, &m_permutation);
-    remove(sid, &m_spares);
+    remove_permutation(sid);
     rebalance_replica_sets(ctx);
     generate_next_configuration(ctx);
     return generate_response(ctx, COORD_SUCCESS);
@@ -444,7 +436,7 @@ coordinator :: space_add(replicant_state_machine_context* ctx, const space& _s)
     }
 
     m_spaces.insert(std::make_pair(std::string(s->name), s));
-    fprintf(log, "successfully added space \"%s\" with space_id(%lu)\n", s->name, s->id.get());
+    fprintf(log, "successfully added space \"%s\" with space(%lu)\n", s->name, s->id.get());
     initial_space_layout(ctx, s.get());
     generate_next_configuration(ctx);
     return generate_response(ctx, COORD_SUCCESS);
@@ -465,7 +457,7 @@ coordinator :: space_rm(replicant_state_machine_context* ctx, const char* name)
     else
     {
         space_id sid(it->second->id.get());
-        fprintf(log, "successfully removed space \"%s\"/space_id(%lu)\n", name, sid.get());
+        fprintf(log, "successfully removed space \"%s\"/space(%lu)\n", name, sid.get());
         std::vector<region_id> rids;
         regions_in_space(it->second, &rids);
         std::sort(rids.begin(), rids.end());
@@ -518,7 +510,7 @@ coordinator :: transfer_go_live(replicant_state_machine_context* ctx,
             return;
         }
 
-        fprintf(log, "cannot make transfer_id(%lu) live because it doesn't exist\n", xid.get());
+        fprintf(log, "cannot make transfer(%lu) live because it doesn't exist\n", xid.get());
         return generate_response(ctx, COORD_SUCCESS);
     }
 
@@ -526,7 +518,7 @@ coordinator :: transfer_go_live(replicant_state_machine_context* ctx,
 
     if (!reg)
     {
-        fprintf(log, "cannot make transfer_id(%lu) live because it doesn't exist\n", xid.get());
+        fprintf(log, "cannot make transfer(%lu) live because it doesn't exist\n", xid.get());
         INVARIANT_BROKEN("transfer refers to nonexistent region");
         return generate_response(ctx, COORD_SUCCESS);
     }
@@ -546,7 +538,7 @@ coordinator :: transfer_go_live(replicant_state_machine_context* ctx,
     }
 
     reg->replicas.push_back(replica(xfer->dst, xfer->vdst));
-    fprintf(log, "transfer_id(%lu) is live\n", xid.get());
+    fprintf(log, "transfer(%lu) is live\n", xid.get());
     generate_next_configuration(ctx);
     return generate_response(ctx, COORD_SUCCESS);
 }
@@ -566,7 +558,7 @@ coordinator :: transfer_complete(replicant_state_machine_context* ctx,
             return;
         }
 
-        fprintf(log, "cannot complete transfer_id(%lu) because it doesn't exist\n", xid.get());
+        fprintf(log, "cannot complete transfer(%lu) because it doesn't exist\n", xid.get());
         return generate_response(ctx, COORD_SUCCESS);
     }
 
@@ -574,7 +566,7 @@ coordinator :: transfer_complete(replicant_state_machine_context* ctx,
 
     if (!reg)
     {
-        fprintf(log, "cannot complete transfer_id(%lu) because it doesn't exist\n", xid.get());
+        fprintf(log, "cannot complete transfer(%lu) because it doesn't exist\n", xid.get());
         INVARIANT_BROKEN("transfer refers to nonexistent region");
         return generate_response(ctx, COORD_SUCCESS);
     }
@@ -583,12 +575,12 @@ coordinator :: transfer_complete(replicant_state_machine_context* ctx,
           reg->replicas[reg->replicas.size() - 2].si == xfer->src &&
           reg->replicas[reg->replicas.size() - 1].si == xfer->dst))
     {
-        fprintf(log, "cannot complete transfer_id(%lu) because it is not live\n", xid.get());
+        fprintf(log, "cannot complete transfer(%lu) because it is not live\n", xid.get());
         return generate_response(ctx, COORD_SUCCESS);
     }
 
     del_transfer(xfer->id);
-    fprintf(log, "transfer_id(%lu) is complete\n", xid.get());
+    fprintf(log, "transfer(%lu) is complete\n", xid.get());
     converge_intent(ctx, reg);
     generate_next_configuration(ctx);
     return generate_response(ctx, COORD_SUCCESS);
@@ -754,6 +746,67 @@ coordinator :: get_server(const server_id& sid)
     return NULL;
 }
 
+bool
+coordinator :: in_permutation(const server_id& sid)
+{
+    for (size_t i = 0; i < m_permutation.size(); ++i)
+    {
+        if (m_permutation[i] == sid)
+        {
+            return true;
+        }
+    }
+
+    for (size_t i = 0; i < m_spares.size(); ++i)
+    {
+        if (m_spares[i] == sid)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void
+coordinator :: add_permutation(const server_id& sid)
+{
+    if (m_spares.size() < m_desired_spares)
+    {
+        m_spares.push_back(sid);
+    }
+    else
+    {
+        m_permutation.push_back(sid);
+    }
+}
+
+void
+coordinator :: remove_permutation(const server_id& sid)
+{
+    remove(sid, &m_spares);
+
+    for (size_t i = 0; i < m_permutation.size(); ++i)
+    {
+        if (m_permutation[i] != sid)
+        {
+            continue;
+        }
+
+        if (m_spares.empty())
+        {
+            shift_and_pop(i, &m_permutation);
+        }
+        else
+        {
+            m_permutation[i] = m_spares.back();
+            m_spares.pop_back();
+        }
+
+        break;
+    }
+}
+
 namespace
 {
 
@@ -811,7 +864,7 @@ coordinator :: rebalance_replica_sets(replicant_state_machine_context* ctx)
         {
             R = spaces[i]->fault_tolerance + 1;
             P = spaces[i]->predecessor_width;
-            compute_replica_sets(R, P, m_permutation,
+            compute_replica_sets(R, P, m_permutation, m_servers,
                                  &replica_storage,
                                  &replica_sets);
         }
@@ -834,7 +887,7 @@ coordinator :: initial_space_layout(replicant_state_machine_context* ctx,
     uint64_t P = s->predecessor_width;
     std::vector<server_id> replica_storage;
     std::vector<replica_set> replica_sets;
-    compute_replica_sets(R, P, m_permutation,
+    compute_replica_sets(R, P, m_permutation, m_servers,
                          &replica_storage,
                          &replica_sets);
     setup_intents(ctx, replica_sets, s, true);
@@ -957,6 +1010,7 @@ coordinator :: converge_intent(replicant_state_machine_context* ctx,
                                region* reg, region_intent* ri)
 {
     FILE* log = replicant_state_machine_log_stream(ctx);
+    fprintf(log, "converging region(%lu) toward its expected state\n", reg->id.get());
     // if there is a transfer
     transfer* xfer = get_transfer(reg->id);
 
@@ -978,30 +1032,62 @@ coordinator :: converge_intent(replicant_state_machine_context* ctx,
 
     // there are no transfers for this region at this point
 
-    // remove excess, unneeded servers
-    while (reg->replicas.size() > ri->replicas.size())
+    // remove every server that is not AVAILABLE
+    for (size_t i = 0; i < reg->replicas.size(); )
     {
-        for (size_t i = 0; i < reg->replicas.size(); ++i)
+        server* s = get_server(reg->replicas[i].si);
+
+        if (!s)
         {
-            if (std::find(ri->replicas.begin(),
-                          ri->replicas.end(),
-                          reg->replicas[i].si) != ri->replicas.end())
-            {
-                continue;
-            }
+            INVARIANT_BROKEN("server referenced but not found");
+            continue;
+        }
 
-            fprintf(log, "removing server_id(%lu) from region_id(%lu) "
-                         "to make progress toward desired state\n",
-                         reg->replicas[i].si.get(), reg->id.get());
+        if (s->state != server::AVAILABLE)
+        {
+            fprintf(log, "removing server(%lu) from region(%lu) "
+                         "because it is not in state %s\n",
+                         reg->replicas[i].si.get(), reg->id.get(),
+                         server::to_string(server::AVAILABLE));
+            shift_and_pop(i, &reg->replicas);
+        }
+        else
+        {
+            ++i;
+        }
+    }
 
-            for (size_t j = i + 1; j < reg->replicas.size(); ++j)
-            {
-                reg->replicas[j - 1] = reg->replicas[j];
-            }
-
-            reg->replicas.pop_back();
+    // now remove any excess replicas
+    for (size_t i = 0; i < reg->replicas.size(); )
+    {
+        // no excess exist yet
+        if (reg->replicas.size() <= ri->replicas.size())
+        {
             break;
         }
+
+        // if we don't intend to converge with this replica, remove it
+        if (std::find(ri->replicas.begin(),
+                      ri->replicas.end(),
+                      reg->replicas[i].si) == ri->replicas.end())
+        {
+            fprintf(log, "removing server(%lu) from region(%lu) "
+                         "to make progress toward desired state\n",
+                         reg->replicas[i].si.get(), reg->id.get());
+            shift_and_pop(i, &reg->replicas);
+        }
+        else
+        {
+            ++i;
+        }
+    }
+
+    if (reg->replicas.empty())
+    {
+        fprintf(log, "cannot transfer state to new servers in "
+                     "region(%lu) because all servers are offline\n",
+                     reg->id.get());
+        return;
     }
 
     // add up to one server from the region_intent
@@ -1025,54 +1111,58 @@ coordinator :: converge_intent(replicant_state_machine_context* ctx,
 
         xfer = new_transfer(reg, ri->replicas[i]);
         assert(xfer);
-        fprintf(log, "adding server_id(%lu) to region_id(%lu) "
-                     "copying from server_id(%lu)/virtual_server_id(%lu) "
-                     "using transfer_id(%lu)/virtual_server_id(%lu)\n",
+        fprintf(log, "adding server(%lu) to region(%lu) "
+                     "copying from server(%lu)/virtual_server(%lu) "
+                     "using transfer(%lu)/virtual_server(%lu)\n",
                      xfer->dst.get(), reg->id.get(),
                      xfer->src.get(), xfer->vsrc.get(),
                      xfer->id.get(), xfer->vdst.get());
         return;
     }
 
-    assert(ri->replicas.size() == reg->replicas.size());
-
     if (ri->checkpoint == 0)
     {
-        ri->checkpoint = m_checkpoint;
+        ri->checkpoint = m_checkpoint > 0 ? m_checkpoint : 1;
     }
 
-    if (ri->checkpoint >= m_checkpoint_stable_through)
+    // now shuffle to make the order consistent with ri->replicas
+    for (size_t i = 1; i < reg->replicas.size(); ++i)
     {
-        return;
-    }
+        server_id* start = &ri->replicas[0];
+        server_id* limit = start + ri->replicas.size();
+        // idx1 is the index of reg->replicas[i - 1] in ri->replicas
+        size_t idx1 = std::find(start, limit, reg->replicas[i - 1].si) - start;
+        // idx2 is the index of reg->replicas[i - 0] in ri->replicas
+        size_t idx2 = std::find(start, limit, reg->replicas[i - 0].si) - start;
 
-    // now shuffle to make the order correct
-    for (size_t i = 0; i < reg->replicas.size(); ++i)
-    {
-        if (reg->replicas[i].si == ri->replicas[i])
+        if (idx1 < idx2)
         {
             continue;
         }
 
-        server_id sid = reg->replicas[i].si;
-
-        for (size_t j = i + 1; j < reg->replicas.size(); ++j)
+        if (ri->checkpoint >= m_checkpoint_stable_through)
         {
-            reg->replicas[j - 1] = reg->replicas[j];
+            fprintf(log, "postponing convergence until after checkpoint %lu is stable\n", ri->checkpoint);
+            return;
         }
 
+        // grab the server id
+        server_id sid = reg->replicas[i - 1].si;
+        // remove the idx1 replica
+        shift_and_pop(i - 1, &reg->replicas);
+        // now do a transfer to roll it to the end
         ri->checkpoint = 0;
-        reg->replicas.pop_back();
         xfer = new_transfer(reg, sid);
         assert(xfer);
-        fprintf(log, "rolling server_id(%lu) to the back of region_id(%lu) "
-                     "using transfer_id(%lu)/virtual_server_id(%lu)\n",
+        fprintf(log, "rolling server(%lu) to the back of region(%lu) "
+                     "using transfer(%lu)/virtual_server(%lu)\n",
                      xfer->dst.get(), reg->id.get(),
                      xfer->id.get(), xfer->vdst.get());
         return;
     }
 
     del_region_intent(reg->id);
+    fprintf(log, "region(%lu) converged to its expected state\n", reg->id.get());
 }
 
 region_intent*

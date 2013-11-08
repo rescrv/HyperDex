@@ -128,6 +128,9 @@ class coordinator
         server* new_server(const server_id& sid);
         server* get_server(const server_id& sid);
         // replica sets
+        bool in_permutation(const server_id& sid);
+        void add_permutation(const server_id& sid);
+        void remove_permutation(const server_id& sid);
         void rebalance_replica_sets(replicant_state_machine_context* ctx);
         // hyperspace
         void initial_space_layout(replicant_state_machine_context* ctx,
