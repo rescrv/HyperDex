@@ -478,9 +478,9 @@ void
 test3()
 {
     _testno = 3;
-    uint64_t A;
-    uint64_t B;
-    uint64_t C;
+    uint64_t A = 0;
+    uint64_t B = 0;
+    uint64_t C = 0;
 
     for (long i = 0; i < _partitions; ++i)
     {

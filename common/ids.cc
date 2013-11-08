@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,53 +25,28 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_common_ids_h_
-#define hyperdex_common_ids_h_
-
-// C
-#include <stdint.h>
-
-// C++
-#include <iostream>
-
-// e
-#include <e/buffer.h>
-
 // HyperDex
-#include "namespace.h"
+#include "common/ids.h"
 
-// An ID is a simple wrapper around uint64_t in order to prevent devs from
-// accidently using one type of ID as another.
-
-#define OPERATOR(TYPE, OP) \
-    inline bool \
-    operator OP (const TYPE ## _id& lhs, const TYPE ## _id& rhs) \
-    { \
-        return lhs.get() OP rhs.get(); \
-    }
 #define CREATE_ID(TYPE) \
-    class TYPE ## _id \
-    { \
-        public: \
-            TYPE ## _id() : m_id(0) {} \
-            explicit TYPE ## _id(uint64_t id) : m_id(id) {} \
-        public: \
-            uint64_t get() const { return m_id; } \
-        private: \
-            uint64_t m_id; \
-    }; \
     std::ostream& \
-    operator << (std::ostream& lhs, const TYPE ## _id& rhs); \
+    operator << (std::ostream& lhs, const TYPE ## _id& rhs) \
+    { \
+        return lhs << #TYPE "(" << rhs.get() << ")"; \
+    } \
     e::buffer::packer \
-    operator << (e::buffer::packer pa, const TYPE ## _id& rhs); \
+    operator << (e::buffer::packer pa, const TYPE ## _id& rhs) \
+    { \
+        return pa << rhs.get(); \
+    } \
     e::unpacker \
-    operator >> (e::unpacker up, TYPE ## _id& rhs); \
-    OPERATOR(TYPE, <) \
-    OPERATOR(TYPE, <=) \
-    OPERATOR(TYPE, ==) \
-    OPERATOR(TYPE, !=) \
-    OPERATOR(TYPE, >=) \
-    OPERATOR(TYPE, >)
+    operator >> (e::unpacker up, TYPE ## _id& rhs) \
+    { \
+        uint64_t id; \
+        up = up >> id; \
+        rhs = TYPE ## _id(id); \
+        return up; \
+    }
 
 BEGIN_HYPERDEX_NAMESPACE
 
@@ -85,6 +60,4 @@ CREATE_ID(virtual_server)
 
 END_HYPERDEX_NAMESPACE
 
-#undef OPERATOR
 #undef CREATE_ID
-#endif // hyperdex_common_ids_h_
