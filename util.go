@@ -6,6 +6,7 @@ package hypergo
 #cgo LDFLAGS: -lhyperdex-client
 #include <netinet/in.h>
 #include "hyperdex/client.h"
+#include "hyperdex/admin.h"
 #include "hyperdex/datastructures.h"
 
 struct hyperdex_client_attribute* GetAttribute(struct hyperdex_client_attribute* list, int i) {
@@ -43,6 +44,17 @@ func newInternalError(status C.enum_hyperdex_client_returncode, msg string) erro
 func errChannelFailureCallback(errCh chan error) func(C.enum_hyperdex_client_returncode, string) {
 	return func(status C.enum_hyperdex_client_returncode, msg string) {
 		errCh <- newInternalError(status, msg)
+		close(errCh)
+	}
+}
+
+func newInternalErrorForAdmin(status C.enum_hyperdex_admin_returncode, msg string) error {
+	return HyperError{returnCode: status, msg: msg}
+}
+
+func errChannelFailureCallbackForAdmin(errCh chan error) func(C.enum_hyperdex_admin_returncode, string) {
+	return func(status C.enum_hyperdex_admin_returncode, msg string) {
+		errCh <- newInternalErrorForAdmin(status, msg)
 		close(errCh)
 	}
 }
