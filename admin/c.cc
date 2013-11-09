@@ -133,6 +133,17 @@ hyperdex_admin_rm_space(struct hyperdex_admin* _adm,
 }
 
 HYPERDEX_API int64_t
+hyperdex_admin_list_spaces(struct hyperdex_admin* _adm,
+                           hyperdex_admin_returncode* status,
+                           const char** spaces)
+{
+    C_WRAP_EXCEPT(
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->list_spaces(status, spaces);
+    );
+}
+
+HYPERDEX_API int64_t
 hyperdex_admin_server_register(struct hyperdex_admin* _adm,
                                uint64_t token, const char* address,
                                hyperdex_admin_returncode* status)

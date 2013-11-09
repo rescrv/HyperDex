@@ -119,6 +119,7 @@ class configuration
 
     public:
         std::string dump() const;
+        std::string list_spaces() const;
 
     public:
         configuration& operator = (const configuration& rhs);

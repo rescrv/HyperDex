@@ -101,6 +101,11 @@ hyperdex_admin_rm_space(struct hyperdex_admin* admin,
                         enum hyperdex_admin_returncode* status);
 
 int64_t
+hyperdex_admin_list_spaces(struct hyperdex_admin* admin,
+                           enum hyperdex_admin_returncode* status,
+                           const char** spaces);
+
+int64_t
 hyperdex_admin_server_register(struct hyperdex_admin* admin,
                                uint64_t token, const char* address,
                                enum hyperdex_admin_returncode* status);
