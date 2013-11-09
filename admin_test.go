@@ -64,3 +64,14 @@ subspace profile_views
 			"but ValidateSpace says otherwise: %s", validSpace)
 	}
 }
+
+func TestListSpaces(t *testing.T) {
+	admin, err := NewAdmin("127.0.0.1", 1982)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer admin.Destroy()
+	for _, space := range admin.ListSpaces() {
+		println(space)
+	}
+}

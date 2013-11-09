@@ -6,27 +6,73 @@ package hypergo
 */
 import "C"
 
+import (
+	"fmt"
+	"strings"
+)
+
 // Admin APIs
 func (admin *Admin) DumpConfig() string {
 	return <-admin.AsyncDumpConfig()
 }
 
 func (admin *Admin) AsyncDumpConfig() chan string {
+	return admin.AsyncDumpConfigOrListSpaces("dump_config")
+}
+
+func (admin *Admin) ListSpaces() []string {
+	c := admin.AsyncListSpaces()
+	strs := make([]string, 0)
+	for {
+		s, ok := <-c
+		if ok {
+			if len(s) > 0 {
+				strs = append(strs, s)
+			}
+		} else {
+			break
+		}
+	}
+
+	return strs
+}
+
+func (admin *Admin) AsyncListSpaces() chan string {
+	return admin.AsyncDumpConfigOrListSpaces("list_spaces")
+}
+
+func (admin *Admin) AsyncDumpConfigOrListSpaces(funcName string) chan string {
 	c := make(chan string, CHANNEL_BUFFER_SIZE)
 	var C_return_code C.enum_hyperdex_admin_returncode
 	var C_string *C.char
+	var req_id int64
+	var success func()
 
-	req_id := int64(C.hyperdex_admin_dump_config(admin.ptr, &C_return_code, &C_string))
+	switch funcName {
+	case "dump_config":
+		req_id = int64(C.hyperdex_admin_dump_config(admin.ptr, &C_return_code, &C_string))
+		success = func() {
+			c <- C.GoString(C_string)
+		}
+	case "list_spaces":
+		req_id = int64(C.hyperdex_admin_list_spaces(admin.ptr, &C_return_code, &C_string))
+		success = func() {
+			spaces := C.GoString(C_string)
+			for _, s := range strings.Split(spaces, "\n") {
+				c <- s
+			}
+			close(c)
+		}
+	}
+
 	if req_id < 0 {
-		panic("AsyncDumpConfig failed")
+		panic(fmt.Sprintf("%s failed", funcName))
 	}
 
 	req := adminRequest{
-		id:     req_id,
-		status: &C_return_code,
-		success: func() {
-			c <- C.GoString(C_string)
-		},
+		id:      req_id,
+		status:  &C_return_code,
+		success: success,
 	}
 
 	admin.requests = append(admin.requests, req)
