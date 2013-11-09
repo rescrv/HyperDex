@@ -458,6 +458,7 @@ libhyperdex_admin_la_SOURCES += admin/partition.cc
 libhyperdex_admin_la_SOURCES += admin/pending.cc
 libhyperdex_admin_la_SOURCES += admin/pending_perf_counters.cc
 libhyperdex_admin_la_SOURCES += admin/pending_string.cc
+libhyperdex_admin_la_SOURCES += admin/raw_backup.cc
 libhyperdex_admin_la_SOURCES += admin/yieldable.cc
 libhyperdex_admin_la_LIBADD =
 libhyperdex_admin_la_LIBADD += $(E_LIBS)
@@ -718,6 +719,7 @@ bin_PROGRAMS += hyperdex-server-forget
 bin_PROGRAMS += hyperdex-perf-counters
 bin_PROGRAMS += hyperdex-set-read-only
 bin_PROGRAMS += hyperdex-set-read-write
+bin_PROGRAMS += hyperdex-raw-backup
 dist_man_MANS += man/hyperdex-add-space.1
 dist_man_MANS += man/hyperdex-rm-space.1
 dist_man_MANS += man/hyperdex-validate-space.1
@@ -730,6 +732,7 @@ dist_man_MANS += man/hyperdex-server-forget.1
 dist_man_MANS += man/hyperdex-perf-counters.1
 dist_man_MANS += man/hyperdex-set-read-only.1
 dist_man_MANS += man/hyperdex-set-read-write.1
+dist_man_MANS += man/hyperdex-raw-backup.1
 endif
 
 # hyperdex
@@ -851,6 +854,15 @@ hyperdex_set_read_write_LDADD = libhyperdex-admin.la -lpopt
 man/hyperdex-set-read-write.1: man/hyperdex-set-read-write.1.h2m tools/set-read-write.cc
 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-set-read-write$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-set-read-write$(EXEEXT)
+
+# hyperdex-raw-backup
+EXTRA_DIST += man/hyperdex-raw-backup.1.md
+EXTRA_DIST += man/hyperdex-raw-backup.1.h2m
+hyperdex_raw_backup_SOURCES = tools/raw-backup.cc
+hyperdex_raw_backup_LDADD = libhyperdex-admin.la -lpopt
+man/hyperdex-raw-backup.1: man/hyperdex-raw-backup.1.h2m tools/raw-backup.cc
+	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-raw-backup$(EXEEXT)
+	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-raw-backup$(EXEEXT)
 
 ################################################################################
 ################################# Documentation ################################

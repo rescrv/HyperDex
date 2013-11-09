@@ -70,6 +70,7 @@
 /hyperdex-initiate-transfer
 /hyperdex-kill
 /hyperdex-perf-counters
+/hyperdex-raw-backup
 /hyperdex-rm-space
 /hyperdex-server-forget
 /hyperdex-server-kill

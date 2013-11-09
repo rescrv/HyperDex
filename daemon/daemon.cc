@@ -38,6 +38,7 @@
 
 // e
 #include <e/endian.h>
+#include <e/strescape.h>
 #include <e/time.h>
 
 // HyperDex
@@ -1056,7 +1057,36 @@ daemon :: process_backup(server_id from,
                          std::auto_ptr<e::buffer> msg,
                          e::unpacker up)
 {
-    abort(); // XXX
+    uint64_t nonce;
+    e::slice _name;
+
+    if ((up >> nonce >> _name).error())
+    {
+        LOG(WARNING) << "unpack of BACKUP failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    std::string name(reinterpret_cast<const char*>(_name.data()));
+    network_returncode result = NET_SUCCESS;
+
+    if (!m_data.backup(e::slice(name)))
+    {
+        result = NET_SERVERERROR;
+    }
+    else
+    {
+        LOG(INFO) << "Backup succeeded and is available in the directory \"backup-"
+                  << e::strescape(name) << "\" within the data directory."
+                  << "  Copy the complete directory to elsewhere so your backup is safe.";
+    }
+
+    size_t sz = HYPERDEX_HEADER_SIZE_VC
+              + sizeof(uint64_t)
+              + sizeof(uint16_t);
+    msg.reset(e::buffer::create(sz));
+    e::buffer::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_VC);
+    pa = pa << nonce << static_cast<uint16_t>(result);
+    m_comm.send_client(vto, from, BACKUP, msg);
 }
 
 void

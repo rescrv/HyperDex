@@ -947,6 +947,33 @@ datalayer :: make_search_iterator(snapshot snap,
     return new search_iterator(this, ri, best, ostr, &checks);
 }
 
+bool
+datalayer :: backup(const e::slice& _name)
+{
+    leveldb::Slice name(reinterpret_cast<const char*>(_name.data()), _name.size());
+    leveldb::Status st = m_db->LiveBackup(name);
+
+    if (st.ok())
+    {
+        return true;
+    }
+    else if (st.IsCorruption())
+    {
+        LOG(ERROR) << "corruption while taking a backup: " << st.ToString();
+        return false;
+    }
+    else if (st.IsIOError())
+    {
+        LOG(ERROR) << "IO error while taking a backup: " << st.ToString();
+        return false;
+    }
+    else
+    {
+        LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle: " << st.ToString();
+        return false;
+    }
+}
+
 datalayer::returncode
 datalayer :: get_from_iterator(const region_id& ri,
                                iterator* iter,

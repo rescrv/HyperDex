@@ -141,6 +141,11 @@ int64_t
 hyperdex_admin_loop(struct hyperdex_admin* admin, int timeout,
                     enum hyperdex_admin_returncode* status);
 
+int
+hyperdex_admin_raw_backup(const char* host, uint16_t port,
+                          const char* name,
+                          enum hyperdex_admin_returncode* status);
+
 const char*
 hyperdex_admin_error_message(struct hyperdex_admin* admin);
 const char*

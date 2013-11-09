@@ -167,6 +167,8 @@ class datalayer
                                        const region_id& ri,
                                        const std::vector<attribute_check>& checks,
                                        std::ostringstream* ostr);
+        // backups
+        bool backup(const e::slice& name);
         // get the object pointed to by the iterator
         returncode get_from_iterator(const region_id& ri,
                                      iterator* iter,
