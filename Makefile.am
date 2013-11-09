@@ -692,6 +692,7 @@ test_search_stress_test_LDADD = libhyperdex-client.la
 if ENABLE_TOOLS
 bin_PROGRAMS += hyperdex-add-space
 bin_PROGRAMS += hyperdex-rm-space
+bin_PROGRAMS += hyperdex-list-spaces
 bin_PROGRAMS += hyperdex-validate-space
 bin_PROGRAMS += hyperdex-show-config
 bin_PROGRAMS += hyperdex-server-register
@@ -701,6 +702,7 @@ bin_PROGRAMS += hyperdex-server-kill
 bin_PROGRAMS += hyperdex-server-forget
 dist_man_MANS += man/hyperdex-add-space.1
 dist_man_MANS += man/hyperdex-rm-space.1
+dist_man_MANS += man/hyperdex-list-spaces.1
 dist_man_MANS += man/hyperdex-validate-space.1
 dist_man_MANS += man/hyperdex-show-config.1
 dist_man_MANS += man/hyperdex-server-register.1
@@ -739,6 +741,15 @@ hyperdex_rm_space_LDADD = libhyperdex-admin.la -lpopt
 man/hyperdex-rm-space.1: man/hyperdex-rm-space.1.h2m tools/rm-space.cc
 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-rm-space$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-rm-space$(EXEEXT)
+
+# hyperdex-list-spaces
+EXTRA_DIST += man/hyperdex-list-spaces.1.md
+EXTRA_DIST += man/hyperdex-list-spaces.1.h2m
+hyperdex_list_spaces_SOURCES = tools/list-spaces.cc
+hyperdex_list_spaces_LDADD = libhyperdex-admin.la -lpopt
+man/hyperdex-list-spaces.1: man/hyperdex-list-spaces.1.h2m tools/list-spaces.cc
+	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-list-spaces$(EXEEXT)
+	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-list-spaces$(EXEEXT)
 
 # hyperdex-validate-space
 EXTRA_DIST += man/hyperdex-validate-space.1.md
