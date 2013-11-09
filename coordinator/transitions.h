@@ -57,6 +57,8 @@ hyperdex_coordinator_snapshot(struct replicant_state_machine_context* ctx,
 
 TRANSITION(init);
 
+TRANSITION(read_only);
+
 TRANSITION(config_get);
 TRANSITION(config_ack);
 TRANSITION(config_stable);

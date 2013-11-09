@@ -182,6 +182,20 @@ hyperdex_coordinator_init(struct replicant_state_machine_context* ctx,
 }
 
 void
+hyperdex_coordinator_read_only(struct replicant_state_machine_context* ctx,
+                               void* obj, const char* data, size_t data_sz)
+{
+    PROTECT_UNINITIALIZED;
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    coordinator* c = static_cast<coordinator*>(obj);
+    uint8_t set;
+    e::unpacker up(data, data_sz);
+    up = up >> set;
+    CHECK_UNPACK(read_only);
+    c->read_only(ctx, set != 0);
+}
+
+void
 hyperdex_coordinator_config_get(struct replicant_state_machine_context* ctx,
                                 void* obj, const char*, size_t)
 {

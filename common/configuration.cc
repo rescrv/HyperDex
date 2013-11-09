@@ -34,6 +34,7 @@
 
 // HyperDex
 #include "common/configuration.h"
+#include "common/configuration_flags.h"
 #include "common/hash.h"
 #include "common/range_searches.h"
 #include "common/serialization.h"
@@ -50,6 +51,7 @@ using hyperdex::virtual_server_id;
 configuration :: configuration()
     : m_cluster(0)
     , m_version(0)
+    , m_flags(0)
     , m_servers()
     , m_region_ids_by_virtual()
     , m_server_ids_by_virtual()
@@ -71,6 +73,7 @@ configuration :: configuration()
 configuration :: configuration(const configuration& other)
     : m_cluster(other.m_cluster)
     , m_version(other.m_version)
+    , m_flags(other.m_flags)
     , m_servers(other.m_servers)
     , m_region_ids_by_virtual(other.m_region_ids_by_virtual)
     , m_server_ids_by_virtual(other.m_server_ids_by_virtual)
@@ -103,6 +106,12 @@ uint64_t
 configuration :: version() const
 {
     return m_version;
+}
+
+bool
+configuration :: read_only() const
+{
+    return m_flags & HYPERDEX_CONFIG_READ_ONLY;
 }
 
 void
@@ -784,6 +793,7 @@ configuration :: dump() const
     std::ostringstream out;
     out << "cluster " << m_cluster << "\n";
     out << "version " << m_version << "\n";
+    out << "flags " << std::hex << m_flags << std::dec << "\n";
 
     for (size_t i = 0; i < m_servers.size(); ++i)
     {
@@ -879,6 +889,7 @@ configuration :: operator = (const configuration& rhs)
 
     m_cluster = rhs.m_cluster;
     m_version = rhs.m_version;
+    m_flags = rhs.m_flags;
     m_servers = rhs.m_servers;
     m_region_ids_by_virtual = rhs.m_region_ids_by_virtual;
     m_server_ids_by_virtual = rhs.m_server_ids_by_virtual;
@@ -998,7 +1009,7 @@ hyperdex :: operator >> (e::unpacker up, configuration& c)
     uint64_t num_servers;
     uint64_t num_spaces;
     uint64_t num_transfers;
-    up = up >> c.m_cluster >> c.m_version
+    up = up >> c.m_cluster >> c.m_version >> c.m_flags
             >> num_servers >> num_spaces
             >> num_transfers;
     c.m_servers.clear();

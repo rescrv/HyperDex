@@ -99,6 +99,16 @@ hyperdex_admin_dump_config(struct hyperdex_admin* _adm,
     );
 }
 
+HYPERDEX_API int64_t
+hyperdex_admin_read_only(struct hyperdex_admin* _adm, int ro,
+                         hyperdex_admin_returncode* status)
+{
+    C_WRAP_EXCEPT(
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->read_only(ro, status);
+    );
+}
+
 HYPERDEX_API int
 hyperdex_admin_validate_space(struct hyperdex_admin* _adm,
                               const char* description,

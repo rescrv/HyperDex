@@ -94,6 +94,35 @@ admin :: dump_config(hyperdex_admin_returncode* status,
     return op->admin_visible_id();
 }
 
+int64_t
+admin :: read_only(int ro, hyperdex_admin_returncode* status)
+{
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    bool set = ro != 0;
+    int64_t id = m_next_admin_id;
+    ++m_next_admin_id;
+    e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, (set ? "set read-only" : "set read-write"));
+    char buf[sizeof(uint8_t)];
+    buf[0] = set ? 1 : 0;
+    int64_t cid = m_coord.rpc("read_only", buf, sizeof(uint8_t),
+                              &op->repl_status, &op->repl_output, &op->repl_output_sz);
+
+    if (cid >= 0)
+    {
+        m_coord_ops[cid] = op;
+        return op->admin_visible_id();
+    }
+    else
+    {
+        interpret_rpc_request_failure(op->repl_status, status);
+        return -1;
+    }
+}
+
 int
 admin :: validate_space(const char* description,
                         hyperdex_admin_returncode* status)

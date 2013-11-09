@@ -716,6 +716,8 @@ bin_PROGRAMS += hyperdex-server-offline
 bin_PROGRAMS += hyperdex-server-kill
 bin_PROGRAMS += hyperdex-server-forget
 bin_PROGRAMS += hyperdex-perf-counters
+bin_PROGRAMS += hyperdex-set-read-only
+bin_PROGRAMS += hyperdex-set-read-write
 dist_man_MANS += man/hyperdex-add-space.1
 dist_man_MANS += man/hyperdex-rm-space.1
 dist_man_MANS += man/hyperdex-validate-space.1
@@ -726,6 +728,8 @@ dist_man_MANS += man/hyperdex-server-offline.1
 dist_man_MANS += man/hyperdex-server-kill.1
 dist_man_MANS += man/hyperdex-server-forget.1
 dist_man_MANS += man/hyperdex-perf-counters.1
+dist_man_MANS += man/hyperdex-set-read-only.1
+dist_man_MANS += man/hyperdex-set-read-write.1
 endif
 
 # hyperdex
@@ -829,6 +833,24 @@ hyperdex_perf_counters_LDADD = libhyperdex-admin.la -lpopt
 man/hyperdex-perf-counters.1: man/hyperdex-perf-counters.1.h2m tools/perf-counters.cc
 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-perf-counters$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-perf-counters$(EXEEXT)
+
+# hyperdex-set-read-only
+EXTRA_DIST += man/hyperdex-set-read-only.1.md
+EXTRA_DIST += man/hyperdex-set-read-only.1.h2m
+hyperdex_set_read_only_SOURCES = tools/set-read-only.cc
+hyperdex_set_read_only_LDADD = libhyperdex-admin.la -lpopt
+man/hyperdex-set-read-only.1: man/hyperdex-set-read-only.1.h2m tools/set-read-only.cc
+	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-set-read-only$(EXEEXT)
+	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-set-read-only$(EXEEXT)
+
+# hyperdex-set-read-write
+EXTRA_DIST += man/hyperdex-set-read-write.1.md
+EXTRA_DIST += man/hyperdex-set-read-write.1.h2m
+hyperdex_set_read_write_SOURCES = tools/set-read-write.cc
+hyperdex_set_read_write_LDADD = libhyperdex-admin.la -lpopt
+man/hyperdex-set-read-write.1: man/hyperdex-set-read-write.1.h2m tools/set-read-write.cc
+	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-set-read-write$(EXEEXT)
+	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-set-read-write$(EXEEXT)
 
 ################################################################################
 ################################# Documentation ################################

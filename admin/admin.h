@@ -56,6 +56,9 @@ class admin
         // introspect the config
         int64_t dump_config(enum hyperdex_admin_returncode* status,
                             const char** config);
+        // cluster
+        int64_t read_only(int ro,
+                          enum hyperdex_admin_returncode* status);
         // manage spaces
         int validate_space(const char* description,
                            enum hyperdex_admin_returncode* status);

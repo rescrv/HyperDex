@@ -57,6 +57,7 @@ struct replicant_state_machine HYPERDEX_API rsm = {
      {"transfer_complete", hyperdex_coordinator_transfer_complete},
      {"checkpoint_stable", hyperdex_coordinator_checkpoint_stable},
      {"alarm", hyperdex_coordinator_alarm},
+     {"read_only", hyperdex_coordinator_read_only},
      {"debug_dump", hyperdex_coordinator_debug_dump},
      {"init", hyperdex_coordinator_init},
      {NULL, NULL}}

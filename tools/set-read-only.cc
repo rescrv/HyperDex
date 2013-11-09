@@ -25,34 +25,75 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+// C
+#include <cstdlib>
 
-// STL
-#include <vector>
-
-// e
-#include <e/subcommand.h>
+// HyperDex
+#include <hyperdex/admin.hpp>
+#include "tools/common.h"
 
 int
 main(int argc, const char* argv[])
 {
-    std::vector<e::subcommand> cmds;
-    cmds.push_back(e::subcommand("coordinator",           "Start a new HyperDex coordinator"));
-    cmds.push_back(e::subcommand("daemon",                "Start a new HyperDex daemon"));
-    cmds.push_back(e::subcommand("add-space",             "Create a new HyperDex space"));
-    cmds.push_back(e::subcommand("rm-space",              "Remove an existing HyperDex space"));
-    cmds.push_back(e::subcommand("validate-space",        "Validate a HyperDex space description"));
-    cmds.push_back(e::subcommand("server-register",       "Manually register a new HyperDex server"));
-    cmds.push_back(e::subcommand("show-config",           "Output a human-readable version of the cluster configuration"));
-    cmds.push_back(e::subcommand("perf-counters",         "Collect performance counters from a cluster"));
-    cmds.push_back(e::subcommand("set-read-only",         "Put the cluster into read-only mode, blocking writes"));
-    cmds.push_back(e::subcommand("set-read-write",        "Put the cluster into read-write mode, permitting writes"));
-    return dispatch_to_subcommands(argc, argv,
-                                   "hyperdex", "HyperDex",
-                                   PACKAGE_VERSION,
-                                   "hyperdex-",
-                                   "HYPERDEX_EXEC_PATH", HYPERDEX_EXEC_DIR,
-                                   &cmds.front(), cmds.size());
+    hyperdex::connect_opts conn;
+    e::argparser ap;
+    ap.autohelp();
+    ap.option_string("[OPTIONS] <server-id>");
+    ap.add("Connect to a cluster:", conn.parser());
+
+    if (!ap.parse(argc, argv))
+    {
+        return EXIT_FAILURE;
+    }
+
+    if (!conn.validate())
+    {
+        std::cerr << "invalid host:port specification\n" << std::endl;
+        ap.usage();
+        return EXIT_FAILURE;
+    }
+
+    if (ap.args_sz() != 0)
+    {
+        std::cerr << "command takes no arguments" << std::endl;
+        ap.usage();
+        return EXIT_FAILURE;
+    }
+
+    try
+    {
+        hyperdex::Admin h(conn.host(), conn.port());
+        hyperdex_admin_returncode rrc;
+        int64_t rid = h.read_only(true, &rrc);
+
+        if (rid < 0)
+        {
+            std::cerr << "could not make cluster read-only: " << rrc << std::endl;
+            return EXIT_FAILURE;
+        }
+
+        hyperdex_admin_returncode lrc;
+        int64_t lid = h.loop(-1, &lrc);
+
+        if (lid < 0)
+        {
+            std::cerr << "could not make cluster read-only: " << lrc << std::endl;
+            return EXIT_FAILURE;
+        }
+
+        assert(rid == lid);
+
+        if (rrc != HYPERDEX_ADMIN_SUCCESS)
+        {
+            std::cerr << "could not make cluster read-only: " << rrc << std::endl;
+            return EXIT_FAILURE;
+        }
+
+        return EXIT_SUCCESS;
+    }
+    catch (std::exception& e)
+    {
+        std::cerr << "error: " << e.what() << std::endl;
+        return EXIT_FAILURE;
+    }
 }

@@ -239,6 +239,12 @@ replication_manager :: client_atomic(const server_id& from,
                                      const std::vector<attribute_check>& checks,
                                      const std::vector<funcall>& funcs)
 {
+    if (m_daemon->m_config.read_only())
+    {
+        respond_to_client(to, from, nonce, NET_READONLY);
+        return;
+    }
+
     const region_id ri(m_daemon->m_config.get_region_id(to));
     const schema& sc(*m_daemon->m_config.get_schema(ri));
 

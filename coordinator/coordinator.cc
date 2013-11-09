@@ -33,6 +33,7 @@
 #include <replicant_state_machine.h>
 
 // HyperDex
+#include "common/configuration_flags.h"
 #include "common/serialization.h"
 #include "coordinator/coordinator.h"
 #include "coordinator/transitions.h"
@@ -109,6 +110,7 @@ coordinator :: coordinator()
     : m_cluster(0)
     , m_counter(1)
     , m_version(0)
+    , m_flags(0)
     , m_servers()
     , m_permutation()
     , m_spares()
@@ -153,6 +155,49 @@ coordinator :: init(replicant_state_machine_context* ctx, uint64_t token)
     fprintf(log, "initializing HyperDex cluster with id %lu\n", token);
     m_cluster = token;
     generate_next_configuration(ctx);
+    return generate_response(ctx, COORD_SUCCESS);
+}
+
+void
+coordinator :: read_only(replicant_state_machine_context* ctx, bool ro)
+{
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    uint64_t old_flags = m_flags;
+
+    if (ro)
+    {
+        if ((m_flags & HYPERDEX_CONFIG_READ_ONLY))
+        {
+            fprintf(log, "cluster already in read-only mode\n");
+        }
+        else
+        {
+            fprintf(log, "putting cluster into read-only mode\n");
+        }
+
+        m_flags |= HYPERDEX_CONFIG_READ_ONLY;
+    }
+    else
+    {
+        if ((m_flags & HYPERDEX_CONFIG_READ_ONLY))
+        {
+            fprintf(log, "putting cluster into read-write mode\n");
+        }
+        else
+        {
+            fprintf(log, "cluster already in read-write mode\n");
+        }
+
+        uint64_t mask = HYPERDEX_CONFIG_READ_ONLY;
+        mask = ~mask;
+        m_flags &= mask;
+    }
+
+    if (old_flags != m_flags)
+    {
+        generate_next_configuration(ctx);
+    }
+
     return generate_response(ctx, COORD_SUCCESS);
 }
 
@@ -1322,7 +1367,7 @@ coordinator :: generate_next_configuration(replicant_state_machine_context* ctx)
     check_stable_condition(ctx);
 
     m_latest_config.reset();
-    size_t sz = 6 * sizeof(uint64_t);
+    size_t sz = 7 * sizeof(uint64_t);
 
     for (size_t i = 0; i < m_servers.size(); ++i)
     {
@@ -1342,7 +1387,7 @@ coordinator :: generate_next_configuration(replicant_state_machine_context* ctx)
 
     std::auto_ptr<e::buffer> new_config(e::buffer::create(sz));
     e::buffer::packer pa = new_config->pack_at(0);
-    pa = pa << m_cluster << m_version
+    pa = pa << m_cluster << m_version << m_flags
             << uint64_t(m_servers.size())
             << uint64_t(m_spaces.size())
             << uint64_t(m_transfers.size());

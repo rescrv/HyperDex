@@ -25,34 +25,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#ifndef hyperdex_common_configuration_flags_h_
+#define hyperdex_common_configuration_flags_h_
 
-// STL
-#include <vector>
+#define HYPERDEX_CONFIG_READ_ONLY 1
 
-// e
-#include <e/subcommand.h>
-
-int
-main(int argc, const char* argv[])
-{
-    std::vector<e::subcommand> cmds;
-    cmds.push_back(e::subcommand("coordinator",           "Start a new HyperDex coordinator"));
-    cmds.push_back(e::subcommand("daemon",                "Start a new HyperDex daemon"));
-    cmds.push_back(e::subcommand("add-space",             "Create a new HyperDex space"));
-    cmds.push_back(e::subcommand("rm-space",              "Remove an existing HyperDex space"));
-    cmds.push_back(e::subcommand("validate-space",        "Validate a HyperDex space description"));
-    cmds.push_back(e::subcommand("server-register",       "Manually register a new HyperDex server"));
-    cmds.push_back(e::subcommand("show-config",           "Output a human-readable version of the cluster configuration"));
-    cmds.push_back(e::subcommand("perf-counters",         "Collect performance counters from a cluster"));
-    cmds.push_back(e::subcommand("set-read-only",         "Put the cluster into read-only mode, blocking writes"));
-    cmds.push_back(e::subcommand("set-read-write",        "Put the cluster into read-write mode, permitting writes"));
-    return dispatch_to_subcommands(argc, argv,
-                                   "hyperdex", "HyperDex",
-                                   PACKAGE_VERSION,
-                                   "hyperdex-",
-                                   "HYPERDEX_EXEC_PATH", HYPERDEX_EXEC_DIR,
-                                   &cmds.front(), cmds.size());
-}
+#endif // hyperdex_common_configuration_flags_h_

@@ -71,11 +71,13 @@
 /hyperdex-kill
 /hyperdex-perf-counters
 /hyperdex-rm-space
-/hyperdex-server-register
-/hyperdex-server-online
-/hyperdex-server-offline
 /hyperdex-server-forget
 /hyperdex-server-kill
+/hyperdex-server-offline
+/hyperdex-server-online
+/hyperdex-server-register
+/hyperdex-set-read-only
+/hyperdex-set-read-write
 /hyperdex-show-config
 /hyperdex-simple-consistency-stress-test
 /hyperdex-validate-space

@@ -61,6 +61,10 @@ class coordinator
         void init(replicant_state_machine_context* ctx, uint64_t token);
         uint64_t cluster() const { return m_cluster; }
 
+    // cluster management
+    public:
+        void read_only(replicant_state_machine_context* ctx, bool ro);
+
     // server management
     public:
         void server_register(replicant_state_machine_context* ctx,
@@ -169,6 +173,7 @@ class coordinator
         uint64_t m_cluster;
         uint64_t m_counter;
         uint64_t m_version;
+        uint64_t m_flags;
         // servers
         std::vector<server> m_servers;
         // replica sets

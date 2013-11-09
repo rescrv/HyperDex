@@ -57,6 +57,8 @@ class Admin
         int64_t dump_config(enum hyperdex_admin_returncode* status,
                             const char** config)
             { return hyperdex_admin_dump_config(m_adm, status, config); }
+        int64_t read_only(int ro, enum hyperdex_admin_returncode* status)
+            { return hyperdex_admin_read_only(m_adm, ro, status); }
         int validate_space(const char* description,
                            enum hyperdex_admin_returncode* status)
             { return hyperdex_admin_validate_space(m_adm, description, status); }

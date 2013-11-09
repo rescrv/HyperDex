@@ -85,6 +85,10 @@ hyperdex_admin_dump_config(struct hyperdex_admin* admin,
                            enum hyperdex_admin_returncode* status,
                            const char** config);
 
+int64_t
+hyperdex_admin_read_only(struct hyperdex_admin* admin, int ro,
+                         enum hyperdex_admin_returncode* status);
+
 int
 hyperdex_admin_validate_space(struct hyperdex_admin* admin,
                               const char* description,

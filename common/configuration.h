@@ -61,6 +61,7 @@ class configuration
     public:
         uint64_t cluster() const;
         uint64_t version() const;
+        bool read_only() const;
 
     // membership metadata
     public:
@@ -138,6 +139,7 @@ class configuration
     private:
         uint64_t m_cluster;
         uint64_t m_version;
+        uint64_t m_flags;
         std::vector<server> m_servers;
         std::vector<pair_uint64_t> m_region_ids_by_virtual;
         std::vector<pair_uint64_t> m_server_ids_by_virtual;
