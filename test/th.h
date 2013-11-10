@@ -43,7 +43,7 @@ namespace th
 {
 
 int
-run_tests();
+run_tests(bool quiet);
 
 void
 fail();
@@ -58,7 +58,7 @@ class test_base
         virtual ~test_base() throw () {}
 
     public:
-        void run(bool* failed);
+        void run(bool quiet, bool* failed);
 
     public:
         bool operator < (const test_base& rhs) const;

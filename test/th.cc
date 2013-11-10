@@ -64,9 +64,9 @@ th :: test_base :: test_base(const char* group,
 }
 
 void
-th :: test_base :: run(bool* failed)
+th :: test_base :: run(bool quiet, bool* failed)
 {
-    std::cerr << "===== Test " << m_group << "::" << m_name << " @ " << m_file << ":" << m_line << std::endl;
+    if (!quiet) std::cerr << "===== Test " << m_group << "::" << m_name << " @ " << m_file << ":" << m_line << std::endl;
 
     try
     {
@@ -182,7 +182,7 @@ compare_test_base_ptrs(const th::test_base* lhs, const th::test_base* rhs)
 }
 
 int
-th :: run_tests()
+th :: run_tests(bool quiet)
 {
     if (!_th_tests)
     {
@@ -196,7 +196,7 @@ th :: run_tests()
     for (size_t i = 0; i < th_tests.size(); ++i)
     {
         bool fail = false;
-        th_tests[i]->run(&fail);
+        th_tests[i]->run(quiet, &fail);
 
         if (fail)
         {

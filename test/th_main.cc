@@ -25,11 +25,21 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// C
+#include <cstring>
+
 // th
 #include "th.h"
 
 int
-main(int, char**)
+main(int argc, char* argv[])
 {
-    return th::run_tests();
+    bool quiet = false;
+
+    for (int i = 1; i < argc; ++i)
+    {
+        quiet = quiet || strcmp(argv[i], "--quiet") == 0;
+    }
+
+    return th::run_tests(quiet);
 }
