@@ -45,6 +45,10 @@ main(int argc, const char* argv[])
     cmds.push_back(e::subcommand("rm-space",              "Remove an existing HyperDex space"));
     cmds.push_back(e::subcommand("validate-space",        "Validate a HyperDex space description"));
     cmds.push_back(e::subcommand("server-register",       "Manually register a new HyperDex server"));
+    cmds.push_back(e::subcommand("server-offline",        "Manually take a daemon offline"));
+    cmds.push_back(e::subcommand("server-online",         "Manually bring a daemon online"));
+    cmds.push_back(e::subcommand("server-kill",           "Manually and permanently kill a daemon"));
+    cmds.push_back(e::subcommand("server-forget",         "Manually remove all trace that a daemon exists"));
     cmds.push_back(e::subcommand("show-config",           "Output a human-readable version of the cluster configuration"));
     cmds.push_back(e::subcommand("perf-counters",         "Collect performance counters from a cluster"));
     cmds.push_back(e::subcommand("set-read-only",         "Put the cluster into read-only mode, blocking writes"));
