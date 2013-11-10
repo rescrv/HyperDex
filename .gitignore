@@ -69,6 +69,7 @@
 /hyperdex-initialize-cluster
 /hyperdex-initiate-transfer
 /hyperdex-kill
+/hyperdex-list-spaces
 /hyperdex-perf-counters
 /hyperdex-raw-backup
 /hyperdex-rm-space

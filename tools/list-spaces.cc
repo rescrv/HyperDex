@@ -56,11 +56,10 @@ main(int argc, const char* argv[])
     try
     {
         hyperdex::Admin h(conn.host(), conn.port());
-        bool failure = false;
-
         hyperdex_admin_returncode rrc;
         const char* spaces;
         int64_t rid = h.list_spaces(&rrc, &spaces);
+
         if (rid < 0)
         {
             std::cerr << "could not list spaces: " << h.error_message() << std::endl;
@@ -78,14 +77,18 @@ main(int argc, const char* argv[])
 
         assert(rid == lid);
 
-        if (rrc != HYPERDEX_ADMIN_SUCCESS) {
+        if (rrc != HYPERDEX_ADMIN_SUCCESS)
+        {
             std::cerr << "could not list spaces: " << h.error_message() << std::endl;
             return EXIT_FAILURE;
         }
 
-        if (strcmp(spaces, "") == 0) {
+        if (strcmp(spaces, "") == 0)
+        {
             std::cout << "No spaces are found." << std::endl;
-        } else {
+        }
+        else
+        {
             std::cout << spaces;
             return EXIT_SUCCESS;
         }
