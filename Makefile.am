@@ -275,6 +275,7 @@ dist_man_MANS += man/hyperdex-coordinator.1
 endif
 
 noinst_HEADERS += coordinator/coordinator.h
+noinst_HEADERS += coordinator/offline_server.h
 noinst_HEADERS += coordinator/region_intent.h
 noinst_HEADERS += coordinator/replica_sets.h
 noinst_HEADERS += coordinator/server_barrier.h
