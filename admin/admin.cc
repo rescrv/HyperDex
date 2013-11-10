@@ -224,6 +224,23 @@ admin :: rm_space(const char* name,
 }
 
 int64_t
+admin :: list_spaces(hyperdex_admin_returncode* status,
+                     const char** spaces)
+{
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    int64_t id = m_next_admin_id;
+    ++m_next_admin_id;
+    std::string tmp = m_coord.config()->list_spaces();
+    e::intrusive_ptr<pending> op = new pending_string(id, status, HYPERDEX_ADMIN_SUCCESS, tmp, spaces);
+    m_yieldable.push_back(op.get());
+    return op->admin_visible_id();
+}
+
+int64_t
 admin :: server_register(uint64_t token, const char* address,
                          enum hyperdex_admin_returncode* status)
 {
