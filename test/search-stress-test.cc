@@ -57,7 +57,7 @@ main(int argc, const char* argv[])
     hyperdex::connect_opts conn;
     e::argparser st;
     st.arg().name('s', "space")
-            .description("perform all operations on the specified space (default: \"replication\")")
+            .description("perform all operations on the specified space (default: \"search\")")
             .metavar("space").as_string(&_space);
     st.arg().name('k', "key-type")
             .description("one of \"int\", \"string\" (default: \"int\")")
@@ -132,7 +132,7 @@ main(int argc, const char* argv[])
     abort(); \
     } while (0)
 
-#define SEARCH_STRESS_TIMEOUT(testno) 10000
+#define SEARCH_STRESS_TIMEOUT(testno) (25000 * (1 + testno))
 
 static void
 empty(size_t testno,
@@ -179,7 +179,7 @@ test(hyperdex::Client* cl)
     chk.datatype = HYPERDATATYPE_STRING;
     chk.predicate = HYPERPREDICATE_EQUALS;
 
-    for (size_t testno = 0; testno < 16; ++testno)
+    for (size_t testno = 0; testno < 10; ++testno)
     {
         // Check that we start out clean
         empty(testno, cl);
@@ -637,6 +637,13 @@ group_del(size_t testno,
     {
         HYPERDEX_TEST_FAIL(testno, "operation " << gid << " (group_del) returned " << gstatus << ": " << cl->error_message() << " at " << cl->error_location());
     }
+
+    uint64_t sleep = 10000000ULL;
+    sleep *= (1 + testno);
+    struct timespec ts;
+    ts.tv_sec = sleep / 1000000000ULL;
+    ts.tv_nsec = sleep % 1000000000ULL;
+    nanosleep(&ts, NULL);
 }
 
 static void

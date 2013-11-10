@@ -98,14 +98,14 @@ HyperDex, each such collection of data is called a {\em space} and is
 conceptually similar to {\em tables} in traditional databases.  Let's see how we
 can instruct HyperDex to create a suitable space for holding such objects.
 
-First, let's open a Python shell and connect to HyperDex:
+First, let's open a Python shell and connect to HyperDex via the Admin interface:
 
 \begin{pythoncode}
->>> import hyperclient
->>> c = hyperclient.Client('127.0.0.1', 1982)
+>>> import hyperdex.admin
+>>> a = hyperdex.admin.Admin('127.0.0.1', 1982)
 \end{pythoncode}
 
-This line instructs the client bindings to talk to the coordinator and get the
+This line instructs the admin bindings to talk to the coordinator and get the
 current cluster configuration.  There is no need for static configuration files.
 Clients always receive the most up-to-date configuration, and if the
 configuration changes, say, due to failures, the coordinator will detect that a
@@ -116,7 +116,7 @@ is the address of the cluster coordinator.
 Let's programmatically create a new space using the Python bindings:
 
 \begin{pythoncode}
->>> c.add_space('''
+>>> a.add_space('''
 ... space phonebook
 ... key username
 ... attributes first, last, int phone
@@ -124,6 +124,7 @@ Let's programmatically create a new space using the Python bindings:
 ... create 8 partitions
 ... tolerate 2 failures
 ... ''')
+True
 \end{pythoncode}
 
 This command creates a new space called ``phonebook'' that has a key of
@@ -187,8 +188,16 @@ EOF
 Now that we have our hyperspace defined and ready to go, it's time to insert
 some information into our phonebook.
 
-Continuing in the same Python session, we can create an object by doing the
-following:
+Continuing in the same Python session, lets open a new Client connection to the
+cluster.  HyperDex separates the metadata manipulation provided by the Admin
+library from the data manipulation provided by the Client library.
+
+\begin{pythoncode}
+>>> import hyperdex.client
+>>> c = hyperdex.client.Client('127.0.0.1', 1982)
+\end{pythoncode}
+
+We can create an object by doing the following:
 
 \begin{pythoncode}
 >>> c.put('phonebook', 'jsmith1', {'first': 'John', 'last': 'Smith',
@@ -328,7 +337,7 @@ True
 {'first': 'John',
   'last': 'Smith',
   'phone': 6075552048}
-\begin{pythoncode}
+\end{pythoncode}
 
 Smith is a popular name.  Let's say there was ``John Smith'' from Rochester
 (area code 585):
@@ -377,5 +386,6 @@ When we're done with the ``phonebook'' space, we can delete the space and all
 the items in it directly from Python:
 
 \begin{pythoncode}
->>> c.rm_space('phonebook')
+>>> a.rm_space('phonebook')
+True
 \end{pythoncode}

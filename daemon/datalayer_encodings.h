@@ -45,6 +45,12 @@ encode_object_region(const region_id& ri,
 
 void
 encode_key(const region_id& ri,
+           const e::slice& internal_key,
+           std::vector<char>* scratch,
+           leveldb::Slice* out);
+
+void
+encode_key(const region_id& ri,
            hyperdatatype key_type,
            const e::slice& key,
            std::vector<char>* scratch,

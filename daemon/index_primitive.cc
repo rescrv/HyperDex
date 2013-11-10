@@ -127,6 +127,38 @@ index_primitive :: index_entry(const region_id& ri,
 void
 index_primitive :: index_entry(const region_id& ri,
                                uint16_t attr,
+                               const e::slice& internal_key,
+                               const e::slice& value,
+                               std::vector<char>* scratch,
+                               leveldb::Slice* slice)
+{
+    size_t key_sz = internal_key.size();
+    size_t val_sz = this->encoded_size(value);
+    size_t sz = sizeof(uint8_t)
+              + sizeof(uint64_t)
+              + sizeof(uint16_t)
+              + val_sz
+              + key_sz;
+
+    if (scratch->size() < sz)
+    {
+        scratch->resize(sz);
+    }
+
+    char* ptr = &scratch->front();
+    ptr = e::pack8be('i', ptr);
+    ptr = e::pack64be(ri.get(), ptr);
+    ptr = e::pack16be(attr, ptr);
+    ptr = this->encode(value, ptr);
+    memmove(ptr, internal_key.data(), key_sz);
+    ptr += key_sz;
+    assert(ptr == &scratch->front() + sz);
+    *slice = leveldb::Slice(&scratch->front(), sz);
+}
+
+void
+index_primitive :: index_entry(const region_id& ri,
+                               uint16_t attr,
                                index_info* key_ii,
                                const e::slice& key,
                                const e::slice& value,
@@ -330,10 +362,10 @@ range_iterator :: valid()
         leveldb::Slice _k = m_iter->key();
         region_id ri;
         uint16_t attr;
-        e::slice v;
+        e::slice _v;
         e::slice k;
 
-        if (!decode_entry(_k, m_val_ii, m_key_ii, &ri, &attr, &v, &k))
+        if (!decode_entry(_k, m_val_ii, m_key_ii, &ri, &attr, &_v, &k))
         {
             m_invalid = true;
             return false;
@@ -344,6 +376,16 @@ range_iterator :: valid()
             m_invalid = true;
             return false;
         }
+
+        size_t decoded_sz = m_val_ii->decoded_size(_v);
+
+        if (m_scratch.size() < decoded_sz)
+        {
+            m_scratch.resize(decoded_sz);
+        }
+
+        m_val_ii->decode(_v, &m_scratch.front());
+        e::slice v(&m_scratch.front(), decoded_sz);
 
         // if there is a start, and the current value is less than it, advance
         // the iterator
@@ -379,6 +421,7 @@ range_iterator :: valid()
                 m_iter->Next();
                 continue;
             }
+
             // XXX this will iterate to the end, unnecessarily
         }
 
@@ -397,7 +440,6 @@ range_iterator :: next()
 uint64_t
 range_iterator :: cost(leveldb::DB* db)
 {
-    assert(this->sorted());
     leveldb::Slice upper;
 
     if (m_range.has_end)
@@ -409,7 +451,7 @@ range_iterator :: cost(leveldb::DB* db)
         m_val_ii->index_entry(m_ri, m_range.attr, &m_scratch, &upper);
     }
 
-    hyperdex::encode_bump(&m_scratch.front(), &m_scratch.front() + m_scratch.size());
+    hyperdex::encode_bump(&m_scratch.front(), &m_scratch.front() + upper.size());
     // create the range
     leveldb::Range r;
     r.start = m_iter->key();
@@ -464,7 +506,7 @@ range_iterator :: seek(const e::slice& ik)
 {
     assert(sorted());
     leveldb::Slice slice;
-    m_val_ii->index_entry(m_ri, m_range.attr, m_key_ii, ik, m_range.start, &m_scratch, &slice);
+    m_val_ii->index_entry(m_ri, m_range.attr, ik, m_range.start, &m_scratch, &slice);
     m_iter->Seek(slice);
 }
 
@@ -583,7 +625,6 @@ key_iterator :: next()
 uint64_t
 key_iterator :: cost(leveldb::DB* db)
 {
-    assert(this->sorted());
     leveldb::Slice upper;
 
     if (m_range.has_end)
@@ -595,7 +636,7 @@ key_iterator :: cost(leveldb::DB* db)
         encode_object_region(m_ri, &m_scratch, &upper);
     }
 
-    hyperdex::encode_bump(&m_scratch.front(), &m_scratch.front() + m_scratch.size());
+    hyperdex::encode_bump(&m_scratch.front(), &m_scratch.front() + upper.size());
     // create the range
     leveldb::Range r;
     r.start = m_iter->key();
@@ -647,7 +688,7 @@ void
 key_iterator :: seek(const e::slice& ik)
 {
     leveldb::Slice slice;
-    encode_key(m_ri, m_range.type, ik, &m_scratch, &slice);
+    encode_key(m_ri, ik, &m_scratch, &slice);
     m_iter->Seek(slice);
 }
 

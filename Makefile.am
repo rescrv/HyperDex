@@ -695,8 +695,46 @@ endif
 check_PROGRAMS += test/replication-stress-test
 check_PROGRAMS += test/search-stress-test
 shellwrappers =
-shellwrappers += test/sh/replication-stress-test
-shellwrappers += test/sh/search-stress-test
+shellwrappers += test/sh/doc.quick-start.sh
+shellwrappers += test/sh/doc.data-types.sh
+shellwrappers += test/sh/doc.async-ops.sh
+shellwrappers += test/sh/doc.atomic-ops.sh
+shellwrappers += test/sh/replication.simple.daemons=1.fault-tolerance=0.sh
+shellwrappers += test/sh/replication.simple.daemons=8.fault-tolerance=0.sh
+shellwrappers += test/sh/replication.simple.daemons=8.fault-tolerance=1.sh
+shellwrappers += test/sh/replication.simple.daemons=8.fault-tolerance=2.sh
+shellwrappers += test/sh/replication.reverse.daemons=1.fault-tolerance=0.sh
+shellwrappers += test/sh/replication.reverse.daemons=8.fault-tolerance=0.sh
+shellwrappers += test/sh/replication.reverse.daemons=8.fault-tolerance=1.sh
+shellwrappers += test/sh/replication.reverse.daemons=8.fault-tolerance=2.sh
+shellwrappers += test/sh/replication.composite.daemons=1.fault-tolerance=0.sh
+shellwrappers += test/sh/replication.composite.daemons=8.fault-tolerance=0.sh
+shellwrappers += test/sh/replication.composite.daemons=8.fault-tolerance=1.sh
+shellwrappers += test/sh/replication.composite.daemons=8.fault-tolerance=2.sh
+shellwrappers += test/sh/search.simple.keytype=int,daemons=1.fault-tolerance=0.sh
+shellwrappers += test/sh/search.simple.keytype=int,daemons=8.fault-tolerance=0.sh
+shellwrappers += test/sh/search.simple.keytype=int,daemons=8.fault-tolerance=1.sh
+shellwrappers += test/sh/search.simple.keytype=string,daemons=1.fault-tolerance=0.sh
+shellwrappers += test/sh/search.simple.keytype=string,daemons=8.fault-tolerance=0.sh
+shellwrappers += test/sh/search.simple.keytype=string,daemons=8.fault-tolerance=1.sh
+shellwrappers += test/sh/search.index.keytype=int,daemons=1.fault-tolerance=0.sh
+shellwrappers += test/sh/search.index.keytype=int,daemons=8.fault-tolerance=0.sh
+shellwrappers += test/sh/search.index.keytype=int,daemons=8.fault-tolerance=1.sh
+shellwrappers += test/sh/search.index.keytype=string,daemons=1.fault-tolerance=0.sh
+shellwrappers += test/sh/search.index.keytype=string,daemons=8.fault-tolerance=0.sh
+shellwrappers += test/sh/search.index.keytype=string,daemons=8.fault-tolerance=1.sh
+shellwrappers += test/sh/search.subspace.keytype=int,daemons=1.fault-tolerance=0.sh
+shellwrappers += test/sh/search.subspace.keytype=int,daemons=8.fault-tolerance=0.sh
+shellwrappers += test/sh/search.subspace.keytype=int,daemons=8.fault-tolerance=1.sh
+shellwrappers += test/sh/search.subspace.keytype=string,daemons=1.fault-tolerance=0.sh
+shellwrappers += test/sh/search.subspace.keytype=string,daemons=8.fault-tolerance=0.sh
+shellwrappers += test/sh/search.subspace.keytype=string,daemons=8.fault-tolerance=1.sh
+shellwrappers += test/sh/search.combination.keytype=int,daemons=1.fault-tolerance=0.sh
+shellwrappers += test/sh/search.combination.keytype=int,daemons=8.fault-tolerance=0.sh
+shellwrappers += test/sh/search.combination.keytype=int,daemons=8.fault-tolerance=1.sh
+shellwrappers += test/sh/search.combination.keytype=string,daemons=1.fault-tolerance=0.sh
+shellwrappers += test/sh/search.combination.keytype=string,daemons=8.fault-tolerance=0.sh
+shellwrappers += test/sh/search.combination.keytype=string,daemons=8.fault-tolerance=1.sh
 TESTS += $(shellwrappers)
 EXTRA_DIST += $(shellwrappers)
 
@@ -912,3 +950,15 @@ EXTRA_DIST += bindings/generator.py
 
 maint_lib_check_SOURCES = maint/lib-check.c
 maint_lib_check_LDADD = -ldl
+
+maintainer-generate:
+	python bindings/c/gen_client_header.py
+	python bindings/c/gen_doc.py
+	python bindings/c/gen_wrappers.py
+	python bindings/ruby/gen_ruby.py
+	python maint/generate-replication-shell-stubs.py
+	python maint/generate-search-shell-stubs.py
+	python test/doc-extract.py python doc/quick-start.tex test/doc.quick-start.py
+	python test/doc-extract.py python doc/data-types.tex test/doc.data-types.py
+	python test/doc-extract.py python doc/async-ops.tex test/doc.async-ops.py
+	python test/doc-extract.py python doc/atomic-ops.tex test/doc.atomic-ops.py

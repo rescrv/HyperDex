@@ -499,7 +499,6 @@ datalayer :: search_iterator :: valid()
         std::vector<char> kbacking;
         leveldb::Slice lkey;
         encode_key(m_ri, sc.attrs[0].type, m_iter->key(), &kbacking, &lkey);
-
         leveldb::Status st = m_dl->m_db->Get(opts, lkey, &ref.m_backing);
 
         if (st.ok())

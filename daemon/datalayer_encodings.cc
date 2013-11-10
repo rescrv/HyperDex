@@ -57,6 +57,26 @@ hyperdex :: encode_object_region(const region_id& ri,
 
 void
 hyperdex :: encode_key(const region_id& ri,
+                       const e::slice& internal_key,
+                       std::vector<char>* scratch,
+                       leveldb::Slice* out)
+{
+    size_t sz = sizeof(uint8_t) + sizeof(uint64_t) + internal_key.size();
+
+    if (scratch->size() < sz)
+    {
+        scratch->resize(sz);
+    }
+
+    char* ptr = &scratch->front();
+    *out = leveldb::Slice(ptr, sz);
+    ptr = e::pack8be('o', ptr);
+    ptr = e::pack64be(ri.get(), ptr);
+    memmove(ptr, internal_key.data(), internal_key.size());
+}
+
+void
+hyperdex :: encode_key(const region_id& ri,
                        hyperdatatype key_type,
                        const e::slice& key,
                        std::vector<char>* scratch,

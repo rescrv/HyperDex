@@ -136,11 +136,11 @@ hyperdex :: passes_attribute_check(const schema& sc,
         case HYPERPREDICATE_LESS_EQUAL:
             return di_attr->datatype() == di_check->datatype() &&
                    di_attr->comparable() &&
-                   di_attr->compare(check.value, value) <= 0;
+                   di_attr->compare(check.value, value) >= 0;
         case HYPERPREDICATE_GREATER_EQUAL:
             return di_attr->datatype() == di_check->datatype() &&
                    di_attr->comparable() &&
-                   di_attr->compare(check.value, value) >= 0;
+                   di_attr->compare(check.value, value) <= 0;
         case HYPERPREDICATE_REGEX:
             return di_check->datatype() == HYPERDATATYPE_STRING &&
                    di_attr->has_regex() &&

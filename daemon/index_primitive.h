@@ -65,6 +65,12 @@ class index_primitive : public index_info
                          leveldb::Slice* slice);
         void index_entry(const region_id& ri,
                          uint16_t attr,
+                         const e::slice& internal_key,
+                         const e::slice& value,
+                         std::vector<char>* scratch,
+                         leveldb::Slice* slice);
+        void index_entry(const region_id& ri,
+                         uint16_t attr,
                          index_info* key_ii,
                          const e::slice& key,
                          const e::slice& value,

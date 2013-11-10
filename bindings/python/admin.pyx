@@ -73,6 +73,7 @@ cdef extern from "../../include/hyperdex/admin.h":
     hyperdex_admin* hyperdex_admin_create(char* coordinator, uint16_t port)
     void hyperdex_admin_destroy(hyperdex_admin* admin)
     int64_t hyperdex_admin_add_space(hyperdex_admin* admin, char* description, hyperdex_admin_returncode* status)
+    int64_t hyperdex_admin_rm_space(hyperdex_admin* admin, char* space, hyperdex_admin_returncode* status)
     int64_t hyperdex_admin_dump_config(hyperdex_admin* admin, hyperdex_admin_returncode* status, char** config)
     int64_t hyperdex_admin_enable_perf_counters(hyperdex_admin* admin, hyperdex_admin_returncode* status, hyperdex_admin_perf_counter* pc)
     void hyperdex_admin_disable_perf_counters(hyperdex_admin* admin)
@@ -143,6 +144,37 @@ cdef class DeferredAddSpace:
         self._finished = False
         self._reqid = hyperdex_admin_add_space(self._admin._admin,
                                                space, &self._status)
+        if self._reqid < 0:
+            raise HyperDexAdminException(self._status)
+        self._admin._ops[self._reqid] = self
+
+    def _callback(self):
+        self._finished = True
+        del self._admin._ops[self._reqid]
+
+    def wait(self):
+        while not self._finished and self._reqid > 0:
+            self._admin.loop()
+        self._finished = True
+        if self._status == HYPERDEX_ADMIN_SUCCESS:
+            return True
+        else:
+            raise HyperDexAdminException(self._status)
+
+cdef class DeferredRmSpace:
+
+    cdef Admin _admin
+    cdef int64_t _reqid
+    cdef hyperdex_admin_returncode _status
+    cdef bint _finished
+
+    def __cinit__(self, Admin admin, bytes space):
+        self._admin = admin
+        self._reqid = 0
+        self._status = HYPERDEX_ADMIN_GARBAGE
+        self._finished = False
+        self._reqid = hyperdex_admin_rm_space(self._admin._admin,
+                                              space, &self._status)
         if self._reqid < 0:
             raise HyperDexAdminException(self._status)
         self._admin._ops[self._reqid] = self
@@ -268,6 +300,12 @@ cdef class Admin:
 
     def add_space(self, space):
         return self.async_add_space(space).wait()
+
+    def async_rm_space(self, space):
+        return DeferredRmSpace(self, space)
+
+    def rm_space(self, space):
+        return self.async_rm_space(space).wait()
 
     def enable_perf_counters(self):
         cdef hyperdex_admin_returncode rc

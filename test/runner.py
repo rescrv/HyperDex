@@ -113,7 +113,7 @@ def main(argv):
     parser.add_argument('--daemons', default=1, type=int)
     parser.add_argument('args', nargs='*')
     args = parser.parse_args(argv)
-    hdc = HyperDexCluster(args.coordinators, args.daemons)
+    hdc = HyperDexCluster(args.coordinators, args.daemons, True)
     try:
         hdc.setup()
         adm = hyperdex.admin.Admin('localhost', 1982)
