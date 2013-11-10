@@ -51,6 +51,7 @@ static bool _continuous = false;
 static long _partitions = 4;
 const char* _space = "replication";
 
+static bool _quiet = false;
 static int _testno = 0;
 static hyperdex::Client* _cl = NULL;
 static std::map<int64_t, std::tr1::shared_ptr<hyperdex_client_returncode> > _incompleteops;
@@ -82,6 +83,9 @@ main(int argc, const char* argv[])
     st.arg().name('s', "space")
             .description("perform all operations on the specified space (default: \"replication\")")
             .metavar("space").as_string(&_space);
+    st.arg().name('q', "quiet")
+            .description("silence all output")
+            .set_true(&_quiet);
 
     e::argparser ap;
     ap.autohelp();
@@ -135,12 +139,12 @@ main(int argc, const char* argv[])
 static void
 success()
 {
-    std::cout << "Test " << _testno << ":  [\x1b[32mOK\x1b[0m]\n";
+    if (!_quiet) std::cout << "Test " << _testno << ":  [\x1b[32mOK\x1b[0m]\n";
 }
 
 #define FAIL(REASON) \
     do { \
-    std::cout << "Test " << _testno << ":  [\x1b[31mFAIL\x1b[0m]\n" \
+    if (!_quiet) std::cout << "Test " << _testno << ":  [\x1b[31mFAIL\x1b[0m]\n" \
               << "location: " << __FILE__ << ":" << __LINE__ << "\n" \
               << "reason:  " << REASON << "\n"; \
     abort(); \

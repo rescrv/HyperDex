@@ -42,6 +42,7 @@ const char* _colnames[] = {"bit01", "bit02", "bit03", "bit04", "bit05", "bit06",
                            "bit19", "bit20", "bit21", "bit22", "bit23", "bit24",
                            "bit25", "bit26", "bit27", "bit28", "bit29", "bit30",
                            "bit31", "bit32"};
+static bool _quiet = false;
 static const char* _space = "search";
 static unsigned long _random_iters = 16;
 static const char* _key_type_s = "int";
@@ -61,6 +62,9 @@ main(int argc, const char* argv[])
     st.arg().name('k', "key-type")
             .description("one of \"int\", \"string\" (default: \"int\")")
             .metavar("type").as_string(&_key_type_s);
+    st.arg().name('q', "quiet")
+            .description("silence all output")
+            .set_true(&_quiet);
 
     e::argparser ap;
     ap.autohelp();
@@ -117,12 +121,12 @@ main(int argc, const char* argv[])
 
 #define HYPERDEX_TEST_SUCCESS(TESTNO) \
     do { \
-        std::cout << "Test " << TESTNO << ":  [\x1b[32mOK\x1b[0m]\n"; \
+        if (!_quiet) std::cout << "Test " << TESTNO << ":  [\x1b[32mOK\x1b[0m]\n"; \
     } while (0)
 
 #define HYPERDEX_TEST_FAIL(TESTNO, REASON) \
     do { \
-        std::cout << "Test " << TESTNO << ":  [\x1b[31mFAIL\x1b[0m]\n" \
+        if (!_quiet) std::cout << "Test " << TESTNO << ":  [\x1b[31mFAIL\x1b[0m]\n" \
                   << "location: " << __FILE__ << ":" << __LINE__ << "\n" \
                   << "reason:  " << REASON << "\n"; \
     abort(); \
