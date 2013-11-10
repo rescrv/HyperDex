@@ -47,6 +47,10 @@ using hyperdex::region_intent;
 using hyperdex::server;
 using hyperdex::transfer;
 
+// ASSUME:  I'm assuming only one server ever changes state at a time for a
+//          given transition.  If you violate this assumption, fixup
+//          converge_intent.
+
 namespace
 {
 
@@ -88,6 +92,22 @@ remove(const T& t, std::vector<T>* v)
 }
 
 template <class T, class TID>
+bool
+find_id(const TID& id, std::vector<T>& v, T** found)
+{
+    for (size_t i = 0; i < v.size(); ++i)
+    {
+        if (v[i].id == id)
+        {
+            *found = &v[i];
+            return true;
+        }
+    }
+
+    return false;
+}
+
+template <class T, class TID>
 void
 remove_id(const TID& id, std::vector<T>* v)
 {
@@ -118,6 +138,7 @@ coordinator :: coordinator()
     , m_spaces()
     , m_intents()
     , m_deferred_init()
+    , m_offline()
     , m_transfers()
     , m_config_ack_through(0)
     , m_config_ack_barrier()
@@ -396,6 +417,7 @@ coordinator :: server_kill(replicant_state_machine_context* ctx,
                      server::to_string(server::KILLED));
         srv->state = server::KILLED;
         remove_permutation(sid);
+        remove_offline(sid);
         rebalance_replica_sets(ctx);
         generate_next_configuration(ctx);
     }
@@ -428,6 +450,7 @@ coordinator :: server_forget(replicant_state_machine_context* ctx,
 
     std::stable_sort(m_servers.begin(), m_servers.end());
     remove_permutation(sid);
+    remove_offline(sid);
     rebalance_replica_sets(ctx);
     generate_next_configuration(ctx);
     return generate_response(ctx, COORD_SUCCESS);
@@ -751,6 +774,14 @@ coordinator :: debug_dump(replicant_state_machine_context* ctx)
                 m_transfers[i].dst.get(), m_transfers[i].vdst.get());
     }
 
+    fprintf(log, "offline servers:\n");
+
+    for (size_t i = 0; i < m_offline.size(); ++i)
+    {
+        fprintf(log, " - rid=%lu sid=%lu\n",
+                     m_offline[i].id.get(), m_offline[i].sid.get());
+    }
+
     fprintf(log, "config ack through: %lu\n", m_config_ack_through);
     fprintf(log, "config stable through: %lu\n", m_config_stable_through);
     fprintf(log, "checkpoint: latest=%lu, stable=%lu, gc=%lu\n",
@@ -1055,7 +1086,6 @@ coordinator :: converge_intent(replicant_state_machine_context* ctx,
                                region* reg, region_intent* ri)
 {
     FILE* log = replicant_state_machine_log_stream(ctx);
-    fprintf(log, "converging region(%lu) toward its expected state\n", reg->id.get());
     // if there is a transfer
     transfer* xfer = get_transfer(reg->id);
 
@@ -1077,6 +1107,12 @@ coordinator :: converge_intent(replicant_state_machine_context* ctx,
 
     // there are no transfers for this region at this point
 
+    if (!reg->replicas.empty() &&
+        !((m_flags & HYPERDEX_CONFIG_READ_ONLY) && m_version == m_config_stable_through))
+    {
+        remove_offline(reg->id);
+    }
+
     // remove every server that is not AVAILABLE
     for (size_t i = 0; i < reg->replicas.size(); )
     {
@@ -1090,10 +1126,24 @@ coordinator :: converge_intent(replicant_state_machine_context* ctx,
 
         if (s->state != server::AVAILABLE)
         {
+            if ((reg->replicas.size() == 1 ||
+                 ((m_flags & HYPERDEX_CONFIG_READ_ONLY) && m_version == m_config_stable_through)) &&
+                s->state == server::SHUTDOWN)
+            {
+                m_offline.push_back(offline_server(reg->id, s->id));
+            }
+            else if (reg->replicas.size() == 1)
+            {
+                fprintf(log, "refusing to remove the last server from "
+                             "region(%lu) because it was not a clean shutdown\n",
+                             reg->id.get());
+                return;
+            }
+
             fprintf(log, "removing server(%lu) from region(%lu) "
-                         "because it is not in state %s\n",
+                         "because it is in state %s\n",
                          reg->replicas[i].si.get(), reg->id.get(),
-                         server::to_string(server::AVAILABLE));
+                         server::to_string(s->state));
             shift_and_pop(i, &reg->replicas);
         }
         else
@@ -1116,6 +1166,14 @@ coordinator :: converge_intent(replicant_state_machine_context* ctx,
                       ri->replicas.end(),
                       reg->replicas[i].si) == ri->replicas.end())
         {
+            if (reg->replicas.size() == 1)
+            {
+                fprintf(log, "refusing to remove the last server from "
+                             "region(%lu) because we need it to transfer data\n",
+                             reg->id.get());
+                return;
+            }
+
             fprintf(log, "removing server(%lu) from region(%lu) "
                          "to make progress toward desired state\n",
                          reg->replicas[i].si.get(), reg->id.get());
@@ -1124,6 +1182,35 @@ coordinator :: converge_intent(replicant_state_machine_context* ctx,
         else
         {
             ++i;
+        }
+    }
+
+    if (reg->replicas.empty() && ri->replicas.empty())
+    {
+        del_region_intent(reg->id);
+        return;
+    }
+
+    if (reg->replicas.empty())
+    {
+        for (size_t i = 0; i < m_offline.size(); ++i)
+        {
+            if (m_offline[i].id != reg->id)
+            {
+                continue;
+            }
+
+            server* s = get_server(m_offline[i].sid);
+
+            if (s && s->state == server::AVAILABLE)
+            {
+                reg->replicas.push_back(replica(m_offline[i].sid, virtual_server_id(m_counter)));
+                ++m_counter;
+                fprintf(log, "restoring offline server(%lu) to region(%lu)\n",
+                             m_offline[i].sid.get(), reg->id.get());
+                remove_offline(reg->id);
+                break;
+            }
         }
     }
 
@@ -1207,7 +1294,6 @@ coordinator :: converge_intent(replicant_state_machine_context* ctx,
     }
 
     del_region_intent(reg->id);
-    fprintf(log, "region(%lu) converged to its expected state\n", reg->id.get());
 }
 
 region_intent*
@@ -1247,6 +1333,38 @@ void
 coordinator :: del_region_intent(const region_id& rid)
 {
     remove_id(rid, &m_intents);
+}
+
+void
+coordinator :: remove_offline(const region_id& rid)
+{
+    for (size_t i = 0; i < m_offline.size(); )
+    {
+        if (m_offline[i].id == rid)
+        {
+            shift_and_pop(i, &m_offline);
+        }
+        else
+        {
+            ++i;
+        }
+    }
+}
+
+void
+coordinator :: remove_offline(const server_id& sid)
+{
+    for (size_t i = 0; i < m_offline.size(); )
+    {
+        if (m_offline[i].sid == sid)
+        {
+            shift_and_pop(i, &m_offline);
+        }
+        else
+        {
+            ++i;
+        }
+    }
 }
 
 transfer*

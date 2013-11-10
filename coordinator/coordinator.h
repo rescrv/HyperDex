@@ -44,6 +44,7 @@
 #include "common/ids.h"
 #include "common/server.h"
 #include "common/transfer.h"
+#include "coordinator/offline_server.h"
 #include "coordinator/region_intent.h"
 #include "coordinator/replica_sets.h"
 #include "coordinator/server_barrier.h"
@@ -154,6 +155,8 @@ class coordinator
         region_intent* new_region_intent(const region_id& rid);
         region_intent* get_region_intent(const region_id& rid);
         void del_region_intent(const region_id& rid);
+        void remove_offline(const region_id& rid);
+        void remove_offline(const server_id& sid);
         // transfers
         transfer* new_transfer(region* reg, const server_id& si);
         transfer* get_transfer(const region_id& rid);
@@ -185,6 +188,7 @@ class coordinator
         // intents
         std::vector<region_intent> m_intents;
         std::vector<space_id> m_deferred_init;
+        std::vector<offline_server> m_offline;
         // transfers
         std::vector<transfer> m_transfers;
         // barriers
