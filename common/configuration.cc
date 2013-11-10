@@ -879,6 +879,17 @@ configuration :: dump() const
     return out.str();
 }
 
+std::string
+configuration :: list_spaces() const
+{
+    std::ostringstream out;
+    for (size_t i = 0; i < m_spaces.size(); ++i)
+    {
+        out << m_spaces[i].name << std::endl;
+    }
+    return out.str();
+}
+
 configuration&
 configuration :: operator = (const configuration& rhs)
 {
