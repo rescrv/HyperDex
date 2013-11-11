@@ -104,6 +104,8 @@ th_sources = test/th_main.cc test/th.cc test/th.h
 EXTRA_DIST += LICENSE
 EXTRA_DIST += SIGNED-OFF-BY
 
+include_HEADERS = include/hyperdex.h
+
 noinst_HEADERS += include/hyperdex.h
 noinst_HEADERS += namespace.h
 noinst_HEADERS += visibility.h
