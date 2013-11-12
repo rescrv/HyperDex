@@ -94,11 +94,6 @@ AC_CHECK_HEADER([popt.h],,[AC_MSG_ERROR([
 HyperDex relies upon the popt library.
 Please install popt to continue.
 -------------------------------------------------])])
-AC_CHECK_HEADER([hyperleveldb/db.h],,[AC_MSG_ERROR([
-----------------------------------------------
-HyperDex relies upon the HyperLevelDB library.
-Please install HyperLevelDB to continue.
-----------------------------------------------])])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
