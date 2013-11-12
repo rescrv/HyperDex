@@ -106,6 +106,7 @@ yyerror(YYLTYPE* yylloc, struct hyperspace* space, void* scanner, const char* ms
 %%
 
 space : SPACE name key ATTRIBUTES attribute_list pindices subspaces options
+      | SPACE name key options
 
 name : IDENTIFIER { hyperspace_set_name(space, $1); free($1); }
 

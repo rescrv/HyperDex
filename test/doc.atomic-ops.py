@@ -17,7 +17,8 @@
 True
 >>> import hyperdex.client
 >>> c = hyperdex.client.Client(HOST, PORT)
->>> c.put('friendlists', 'jsmith1', {'first': 'John', 'last': 'Smith'})
+>>> c.put('friendlists', 'jsmith1', {'first': 'John', 'last': 'Smith',
+...                                  'friends': set(['bjones1', 'jd', 'jj'])})
 True
 >>> c.put('friendlists', 'jd', {'first': 'John', 'last': 'Doe'})
 True
@@ -45,6 +46,7 @@ True
 ... space userlocks
 ... key username
 ... ''')
+True
 >>> c.put_if_not_exist('userlocks', 'jsmith1', {})
 True
 >>> c.get('userlocks', 'jsmith1')
@@ -60,9 +62,18 @@ True
 ...     client.delete('userlocks', user)
 >>> lock(c, 'jsmith1')
 >>> unlock(c, 'jsmith1')
->>> import hyperclient
->>> c = hyperclient.Client('127.0.0.1', 1982)
->>> c.add_space('''space alldatatypes key k attributes string s, int i, float f, list(string) ls, set(string) ss, map(string, string) mss, map(string, int) msi''')
+>>> a.add_space('''
+... space alldatatypes
+... key k
+... attributes
+...    string s,
+...    int i,
+...    float f,
+...    list(string) ls,
+...    set(string) ss,
+...    map(string, string) mss,
+...    map(string, int) msi''')
+True
 >>> c.put_if_not_exist('alldatatypes', 'somekey', {'s': 'initial value'})
 True
 >>> c.put_if_not_exist('alldatatypes', 'somekey', {'s': 'initial value'})
@@ -116,12 +127,12 @@ True
 >>> c.string_prepend('alldatatypes', 'somekey', {'s': '->'})
 True
 >>> c.get('alldatatypes', 'somekey')['s']
-->some string
+'->some string'
 
 >>> c.string_append('alldatatypes', 'somekey', {'s': '<-'})
 True
 >>> c.get('alldatatypes', 'somekey')['s']
-->some string<-
+'->some string<-'
 >>> c.put('alldatatypes', 'somekey', {'ls': ['B']})
 True
 >>> c.list_lpush('alldatatypes', 'somekey', {'ls': 'A'})
@@ -160,7 +171,7 @@ True
 True
 >>> c.get('alldatatypes', 'somekey')
 {'f': -0.25, 'i': 34874585101, 'mss': {'tmp': 'delete me', 'mapkey': 'mapvalue'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 16}}
->>> c.map_remove('alldatatypes', 'somekey', {'mss': {'tmp': 'X'}})
+>>> c.map_remove('alldatatypes', 'somekey', {'mss': 'tmp'})
 True
 >>> c.get('alldatatypes', 'somekey')
 {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': 'mapvalue'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 16}}

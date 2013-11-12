@@ -78,7 +78,8 @@ True
 Finally, our object for John Smith and some others
 
 \begin{pythoncode}
->>> c.put('friendlists', 'jsmith1', {'first': 'John', 'last': 'Smith'})
+>>> c.put('friendlists', 'jsmith1', {'first': 'John', 'last': 'Smith',
+...                                  'friends': set(['bjones1', 'jd', 'jj'])})
 True
 >>> c.put('friendlists', 'jd', {'first': 'John', 'last': 'Doe'})
 True
@@ -164,6 +165,7 @@ locking:
 ... space userlocks
 ... key username
 ... ''')
+True
 \end{pythoncode}
 
 With this space, we can atomically check if an object exists, creating it in the
@@ -204,9 +206,18 @@ the different types. So, let's first create a space that can allow us to do
 this:
 
 \begin{pythoncode}
->>> import hyperclient
->>> c = hyperclient.Client('127.0.0.1', 1982)
->>> c.add_space('''space alldatatypes key k attributes string s, int i, float f, list(string) ls, set(string) ss, map(string, string) mss, map(string, int) msi''')
+>>> a.add_space('''
+... space alldatatypes
+... key k
+... attributes
+...    string s,
+...    int i,
+...    float f,
+...    list(string) ls,
+...    set(string) ss,
+...    map(string, string) mss,
+...    map(string, int) msi''')
+True
 \end{pythoncode}
 
 The key-based operations \code{put\_if\_not\_exist} and \code{cond\_put} can be
@@ -286,12 +297,12 @@ Ok, now let's perform some atomic operations on strings:
 >>> c.string_prepend('alldatatypes', 'somekey', {'s': '->'})
 True
 >>> c.get('alldatatypes', 'somekey')['s']
-->some string
+'->some string'
 
 >>> c.string_append('alldatatypes', 'somekey', {'s': '<-'})
 True
 >>> c.get('alldatatypes', 'somekey')['s']
-->some string<-
+'->some string<-'
 \end{pythoncode}
 
 Lists provide atomic operations as well, to push new items on the left or the
@@ -362,7 +373,7 @@ Let's now atomically delete that field. We need only specify its key, the value
 does not matter for the \code{map\_remove} operation.
 
 \begin{pythoncode}
->>> c.map_remove('alldatatypes', 'somekey', {'mss': {'tmp': 'X'}})
+>>> c.map_remove('alldatatypes', 'somekey', {'mss': 'tmp'})
 True
 >>> c.get('alldatatypes', 'somekey')
 {'f': -0.25, 'i': 34874585101, 'mss': {'mapkey': 'mapvalue'}, 'ss': set(['A', 'B']), 's': '->some string<-', 'ls': ['A', 'B', 'C'], 'msi': {'mapkey': 16}}

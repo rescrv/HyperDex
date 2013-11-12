@@ -105,8 +105,8 @@ datatype_map :: check_args(const funcall& func)
             m_v->validate(func.arg1) &&
             m_k->validate(func.arg2) &&
             func.name == FUNC_MAP_ADD) ||
-           (func.arg2_datatype == m_k->datatype() &&
-            m_k->validate(func.arg2) &&
+           (func.arg1_datatype == m_k->datatype() &&
+            m_k->validate(func.arg1) &&
             func.name == FUNC_MAP_REMOVE) ||
            (func.arg2_datatype == m_k->datatype() &&
             m_k->validate(func.arg2) &&
@@ -171,7 +171,7 @@ datatype_map :: apply(const e::slice& old_value,
                 map[funcs[i].arg2] = funcs[i].arg1;
                 break;
             case FUNC_MAP_REMOVE:
-                map.erase(funcs[i].arg2);
+                map.erase(funcs[i].arg1);
                 break;
             case FUNC_STRING_APPEND:
             case FUNC_STRING_PREPEND:

@@ -182,7 +182,7 @@ cdef extern from "hyperdex/client.h":
     int64_t hyperdex_client_cond_set_union(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* condattrs, size_t condattrs_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_map_add(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_map_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_add(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* condattrs, size_t condattrs_sz, hyperdex_client_map_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
-    int64_t hyperdex_client_map_remove(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_map_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
+    int64_t hyperdex_client_map_remove(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_remove(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* condattrs, size_t condattrs_sz, hyperdex_client_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_map_atomic_add(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_map_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
     int64_t hyperdex_client_cond_map_atomic_add(hyperdex_client* client, char* space, char* key, size_t key_sz, hyperdex_client_attribute_check* condattrs, size_t condattrs_sz, hyperdex_client_map_attribute* attrs, size_t attrs_sz, hyperdex_client_returncode* status)
@@ -1831,8 +1831,8 @@ cdef class Client:
         return d
 
     def async_map_remove(self, bytes space, key, dict value):
-        d = DeferredMapOp(self)
-        d.call(<hyperdex_client_map_op> hyperdex_client_map_remove, space, key, value)
+        d = DeferredFromAttrs(self)
+        d.call(<hyperdex_client_simple_op> hyperdex_client_map_remove, space, key, value)
         return d
 
     def async_cond_map_remove(self, bytes space, key, dict cond, dict value):
