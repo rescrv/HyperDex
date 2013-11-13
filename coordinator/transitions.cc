@@ -129,22 +129,9 @@ hyperdex_coordinator_create(struct replicant_state_machine_context* ctx)
 
 void*
 hyperdex_coordinator_recreate(struct replicant_state_machine_context* ctx,
-                              const char* /*data*/, size_t /*data_sz*/)
+                              const char* data, size_t data_sz)
 {
-// XXX
-#if 0
-    coordinator* c = new (std::nothrow) coordinator();
-
-    if (!c)
-    {
-        fprintf(replicant_state_machine_log_stream(ctx), "memory allocation failed\n");
-    }
-
-    fprintf(replicant_state_machine_log_stream(ctx), "recreate is not implemented\n");
-    // XXX recreate from (data,data_sz)
-    return c;
-#endif
-    return NULL;
+    return coordinator::recreate(ctx, data, data_sz);
 }
 
 void
@@ -158,15 +145,11 @@ hyperdex_coordinator_destroy(struct replicant_state_machine_context*, void* obj)
 
 void
 hyperdex_coordinator_snapshot(struct replicant_state_machine_context* ctx,
-                              void* /*obj*/, const char** data, size_t* sz)
+                              void* obj, const char** data, size_t* data_sz)
 {
-// XXX
-#if 0
-    fprintf(replicant_state_machine_log_stream(ctx), "snapshot is not implemented\n");
-    // XXX snapshot to (data,data_sz)
-    *data = NULL;
-    *sz = 0;
-#endif
+    PROTECT_NULL;
+    coordinator* c = static_cast<coordinator*>(obj);
+    c->snapshot(ctx, data, data_sz);
 }
 
 void

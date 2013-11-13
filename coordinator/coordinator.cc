@@ -789,6 +789,105 @@ coordinator :: debug_dump(replicant_state_machine_context* ctx)
     fprintf(log, "=== end debug dump =============================================================\n");
 }
 
+coordinator*
+coordinator :: recreate(replicant_state_machine_context* ctx,
+                        const char* data, size_t data_sz)
+{
+    std::auto_ptr<coordinator> c(new coordinator());
+
+    if (!c.get())
+    {
+        fprintf(replicant_state_machine_log_stream(ctx), "memory allocation failed\n");
+        return NULL;
+    }
+
+    e::unpacker up(data, data_sz);
+    up = up >> c->m_cluster >> c->m_counter >> c->m_version >> c->m_flags >> c->m_servers
+            >> c->m_permutation >> c->m_spares >> c->m_desired_spares >> c->m_intents
+            >> c->m_deferred_init >> c->m_offline >> c->m_transfers
+            >> c->m_config_ack_through >> c->m_config_ack_barrier
+            >> c->m_config_stable_through >> c->m_config_stable_barrier
+            >> c->m_checkpoint >> c->m_checkpoint_stable_through
+            >> c->m_checkpoint_gc_through >> c->m_checkpoint_stable_barrier;
+
+    while (!up.error() && up.remain())
+    {
+        e::slice name;
+        space_ptr ptr(new space());
+        up = up >> name >> *ptr;
+        c->m_spaces[std::string(reinterpret_cast<const char*>(name.data()), name.size())] = ptr;
+    }
+
+    if (up.error())
+    {
+        fprintf(replicant_state_machine_log_stream(ctx), "unpacking failed\n");
+        return NULL;
+    }
+
+    c->generate_cached_configuration(ctx);
+    replicant_state_machine_alarm(ctx, "alarm", ALARM_INTERVAL);
+    return c.release();
+}
+
+void
+coordinator :: snapshot(replicant_state_machine_context* /*ctx*/,
+                        const char** data, size_t* data_sz)
+{
+    size_t sz = sizeof(m_cluster)
+              + sizeof(m_counter)
+              + sizeof(m_version)
+              + sizeof(m_flags)
+              + pack_size(m_servers)
+              + pack_size(m_permutation)
+              + pack_size(m_spares)
+              + sizeof(m_desired_spares)
+              + pack_size(m_intents)
+              + pack_size(m_deferred_init)
+              + pack_size(m_offline)
+              + pack_size(m_transfers)
+              + sizeof(m_config_ack_through)
+              + pack_size(m_config_ack_barrier)
+              + sizeof(m_config_stable_through)
+              + pack_size(m_config_stable_barrier)
+              + sizeof(m_checkpoint)
+              + sizeof(m_checkpoint_stable_through)
+              + sizeof(m_checkpoint_gc_through)
+              + pack_size(m_checkpoint_stable_barrier);
+
+    for (space_map_t::iterator it = m_spaces.begin();
+            it != m_spaces.end(); ++it)
+    {
+        e::slice name(it->first);
+        sz += pack_size(name) + pack_size(*it->second);
+    }
+
+    std::auto_ptr<e::buffer> buf(e::buffer::create(sz));
+    e::buffer::packer pa = buf->pack_at(0);
+    pa = pa << m_cluster << m_counter << m_version << m_flags << m_servers
+            << m_permutation << m_spares << m_desired_spares << m_intents
+            << m_deferred_init << m_offline << m_transfers
+            << m_config_ack_through << m_config_ack_barrier
+            << m_config_stable_through << m_config_stable_barrier
+            << m_checkpoint << m_checkpoint_stable_through
+            << m_checkpoint_gc_through << m_checkpoint_stable_barrier;
+
+    for (space_map_t::iterator it = m_spaces.begin();
+            it != m_spaces.end(); ++it)
+    {
+        e::slice name(it->first);
+        pa = pa << name << (*it->second);
+    }
+
+    char* ptr = static_cast<char*>(malloc(buf->size()));
+    *data = ptr;
+    *data_sz = buf->size();
+
+    if (*data)
+    {
+        memmove(ptr, buf->data(), buf->size());
+    }
+}
+
 server*
 coordinator :: new_server(const server_id& sid)
 {
@@ -1483,7 +1582,12 @@ coordinator :: generate_next_configuration(replicant_state_machine_context* ctx)
     m_config_stable_barrier.new_version(m_version, sids);
     check_ack_condition(ctx);
     check_stable_condition(ctx);
+    generate_cached_configuration(ctx);
+}
 
+void
+coordinator :: generate_cached_configuration(replicant_state_machine_context*)
+{
     m_latest_config.reset();
     size_t sz = 7 * sizeof(uint64_t);
 

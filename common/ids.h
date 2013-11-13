@@ -62,6 +62,11 @@
     }; \
     std::ostream& \
     operator << (std::ostream& lhs, const TYPE ## _id& rhs); \
+    inline size_t \
+    pack_size(const TYPE ## _id&) \
+    { \
+        return sizeof(uint64_t); \
+    } \
     e::buffer::packer \
     operator << (e::buffer::packer pa, const TYPE ## _id& rhs); \
     e::unpacker \

@@ -123,6 +123,13 @@ class coordinator
     public:
         void debug_dump(replicant_state_machine_context* ctx);
 
+    // backup/restore
+    public:
+        static coordinator* recreate(replicant_state_machine_context* ctx,
+                                     const char* data, size_t data_sz);
+        void snapshot(replicant_state_machine_context* ctx,
+                      const char** data, size_t* data_sz);
+
     private:
         typedef std::tr1::shared_ptr<space> space_ptr;
         typedef std::map<std::string, space_ptr > space_map_t;
@@ -166,6 +173,7 @@ class coordinator
         void check_ack_condition(replicant_state_machine_context* ctx);
         void check_stable_condition(replicant_state_machine_context* ctx);
         void generate_next_configuration(replicant_state_machine_context* ctx);
+        void generate_cached_configuration(replicant_state_machine_context* ctx);
         void servers_in_configuration(std::vector<server_id>* sids);
         void regions_in_space(space_ptr s, std::vector<region_id>* rids);
         // checkpoints

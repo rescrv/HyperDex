@@ -49,6 +49,24 @@ class region_intent
         uint64_t checkpoint;
 };
 
+inline size_t
+pack_size(const region_intent& ri)
+{
+    return pack_size(ri.id) + pack_size(ri.replicas) + sizeof(ri.checkpoint);
+}
+
+inline e::buffer::packer
+operator << (e::buffer::packer pa, const region_intent& ri)
+{
+    return pa << ri.id << ri.replicas << ri.checkpoint;
+}
+
+inline e::unpacker
+operator >> (e::unpacker up, region_intent& ri)
+{
+    return up >> ri.id >> ri.replicas >> ri.checkpoint;
+}
+
 inline
 region_intent :: region_intent()
     : id()

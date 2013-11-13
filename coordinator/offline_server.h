@@ -45,6 +45,24 @@ class offline_server
         server_id sid;
 };
 
+inline size_t
+pack_size(const offline_server& os)
+{
+    return pack_size(os.id) + pack_size(os.sid);
+}
+
+inline e::buffer::packer
+operator << (e::buffer::packer pa, const offline_server& os)
+{
+    return pa << os.id << os.sid;
+}
+
+inline e::unpacker
+operator >> (e::unpacker up, offline_server& os)
+{
+    return up >> os.id >> os.sid;
+}
+
 inline
 offline_server :: offline_server()
     : id()
