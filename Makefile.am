@@ -739,10 +739,10 @@ TESTS += $(shellwrappers)
 EXTRA_DIST += $(shellwrappers)
 
 test_replication_stress_test_SOURCES = test/replication-stress-test.cc
-test_replication_stress_test_LDADD = libhyperdex-client.la
+test_replication_stress_test_LDADD = libhyperdex-client.la -le
 
 test_search_stress_test_SOURCES = test/search-stress-test.cc
-test_search_stress_test_LDADD = libhyperdex-client.la
+test_search_stress_test_LDADD = libhyperdex-client.la -le
 
 ################################################################################
 ##################################### Tools ####################################
