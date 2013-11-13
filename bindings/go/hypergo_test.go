@@ -1,7 +1,7 @@
 package hypergo
 
 import (
-	"fmt"
+	// "fmt"
 	// "log"
 	"testing"
 )
@@ -9,6 +9,8 @@ import (
 const (
 	SPACE = "profiles"
 	KEY   = "jsmith"
+	IP    = "127.0.0.1"
+	PORT  = 1982
 )
 
 // Put something for testing
@@ -53,8 +55,11 @@ func putSomething(client *Client, t *testing.T) {
 }
 
 func init() {
-	fmt.Println(`Please make sure you have created the following space:
-space profiles
+	admin, err := NewAdmin(IP, PORT)
+	if err != nil {
+		panic(err)
+	}
+	admin.AddSpace(`space profiles
 key username
 attributes
     string name,
