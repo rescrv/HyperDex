@@ -1,7 +1,5 @@
 # File generated from python blocks in "doc/async-ops.tex"
 >>> import sys
->>> sys.path.append('bindings/python')
->>> sys.path.append('bindings/python/.libs')
 >>> HOST = sys.argv[2]
 >>> PORT = int(sys.argv[3])
 >>> import hyperdex.admin

@@ -2,8 +2,8 @@ import os
 
 template = '''#!/bin/sh
 SPACE="{space} create {daemons} partitions tolerate {ft} failures"
-exec python test/runner.py --daemons={daemons} --space="${{SPACE}}" -- \\
-     {{PATH}}/test/replication-stress-test --quiet -n {daemons} -h {{HOST}} -p {{PORT}}
+exec python "${{HYPERDEX_SRCDIR}}"/test/runner.py --daemons={daemons} --space="${{SPACE}}" -- \\
+     "${{HYPERDEX_BUILDDIR}}"/test/replication-stress-test --quiet -n {daemons} -h {{HOST}} -p {{PORT}}
 '''
 
 SIMPLE = "space replication key int A attributes int B, int C subspace B subspace C"

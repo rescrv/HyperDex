@@ -30,8 +30,6 @@ PREAMBLE = {
 'python':
 '''# File generated from {code} blocks in "{infile}"
 >>> import sys
->>> sys.path.append('bindings/python')
->>> sys.path.append('bindings/python/.libs')
 >>> HOST = sys.argv[2]
 >>> PORT = int(sys.argv[3])
 '''}

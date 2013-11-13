@@ -33,6 +33,7 @@ AM_CXXFLAGS  = -fvisibility=hidden -fvisibility-inlines-hidden $(PO6_CFLAGS) $(E
 AM_MAKEFLAGS = --no-print-directory
 AM_YFLAGS = -d
 HELP2MAN_FLAGS = --libtool --no-info --version-string=$(VERSION) --manual="HyperDex User Manual"
+TESTS_ENVIRONMENT = . $(abs_top_srcdir)/test/env.sh "${abs_top_srcdir}" "${abs_top_builddir}";
 
 hyperdexexecdir = $(libexecdir)/$(PACKAGE)-$(VERSION)
 hyperdexheaderdir = $(includedir)/hyperdex
@@ -737,6 +738,14 @@ shellwrappers += test/sh/search.combination.keytype=string,daemons=8.fault-toler
 shellwrappers += test/sh/search.combination.keytype=string,daemons=8.fault-tolerance=1.sh
 TESTS += $(shellwrappers)
 EXTRA_DIST += $(shellwrappers)
+EXTRA_DIST += test/doc.async-ops.py
+EXTRA_DIST += test/doc.atomic-ops.py
+EXTRA_DIST += test/doc.data-types.py
+EXTRA_DIST += test/doc-extract.py
+EXTRA_DIST += test/doc.quick-start.py
+EXTRA_DIST += test/doctest-runner.py
+EXTRA_DIST += test/env.sh
+EXTRA_DIST += test/runner.py
 
 test_replication_stress_test_SOURCES = test/replication-stress-test.cc
 test_replication_stress_test_LDADD = libhyperdex-client.la -le
@@ -958,6 +967,7 @@ maintainer-generate:
 	python bindings/ruby/gen_ruby.py
 	python maint/generate-replication-shell-stubs.py
 	python maint/generate-search-shell-stubs.py
+	python maint/generate-doc-shell-stubs.py
 	python test/doc-extract.py python doc/quick-start.tex test/doc.quick-start.py
 	python test/doc-extract.py python doc/data-types.tex test/doc.data-types.py
 	python test/doc-extract.py python doc/async-ops.tex test/doc.async-ops.py

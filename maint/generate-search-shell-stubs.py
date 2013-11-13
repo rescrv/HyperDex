@@ -2,8 +2,8 @@ import os
 
 template = '''#!/bin/sh
 SPACE="{space} create {daemons} partitions tolerate {ft} failures"
-exec python test/runner.py --daemons={daemons} --space="${{SPACE}}" -- \\
-     {{PATH}}/test/search-stress-test --quiet -h {{HOST}} -p {{PORT}} -k {keytype}
+exec python "${{HYPERDEX_SRCDIR}}"/test/runner.py --daemons={daemons} --space="${{SPACE}}" -- \\
+     "${{HYPERDEX_BUILDDIR}}"/test/search-stress-test --quiet -h {{HOST}} -p {{PORT}} -k {keytype}
 '''
 
 SIMPLE = '''space search key {keytype} number attributes

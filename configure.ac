@@ -193,5 +193,4 @@ AM_CONDITIONAL([ENABLE_MAINTAINER_TOOLS], [test x"${enable_maintainer_tools}" = 
 
 # Generate outputs and finish
 AC_CONFIG_FILES([Makefile hyperdex-client.pc hyperdex-admin.pc])
-AC_CONFIG_LINKS([test/runner.py:test/runner.py])
 AC_OUTPUT

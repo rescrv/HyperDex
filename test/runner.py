@@ -33,10 +33,13 @@ from __future__ import with_statement
 
 import os.path
 import sys
-PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.append(os.path.join(PATH, './bindings/python'))
-sys.path.append(os.path.join(PATH, './bindings/python/.libs'))
 
+DOTDOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+SRCDIR = os.getenv('HYPERDEX_SRCDIR') or DOTDOT
+BUILDDIR = os.getenv('HYPERDEX_BUILDDIR') or DOTDOT
+
+sys.path.append(os.path.join(BUILDDIR, './bindings/python'))
+sys.path.append(os.path.join(BUILDDIR, './bindings/python/.libs'))
 
 import collections
 import os
@@ -69,9 +72,9 @@ class HyperDexCluster(object):
             self.base = tempfile.mkdtemp(prefix='hyperdex-test-')
         env = {'GLOG_logtostderr': '',
                'GLOG_minloglevel': '0',
-               'HYPERDEX_EXEC_PATH': PATH,
-               'HYPERDEX_COORD_LIB': os.path.join(PATH, '.libs/libhyperdex-coordinator'),
-               'PATH': ((os.getenv('PATH') or '') + ':' + PATH).strip(':')}
+               'HYPERDEX_EXEC_PATH': BUILDDIR,
+               'HYPERDEX_COORD_LIB': os.path.join(BUILDDIR, '.libs/libhyperdex-coordinator'),
+               'PATH': ((os.getenv('PATH') or '') + ':' + BUILDDIR).strip(':')}
         for i in range(self.coordinators):
             cmd = ['/usr/bin/env', 'hyperdex', 'coordinator',
                    '--foreground', '--listen', 'localhost', '--listen-port', str(1982 + i)]
@@ -121,7 +124,7 @@ def main(argv):
             time.sleep(1) # XXX use a barrier tool on cluster
             adm.add_space(args.space)
         time.sleep(1) # XXX use a barrier tool on cluster
-        ctx = {'PATH': PATH, 'HOST': 'localhost', 'PORT': 1982}
+        ctx = {'HOST': 'localhost', 'PORT': 1982}
         cmd_args = [arg.format(**ctx) for arg in args.args]
         return subprocess.call(cmd_args)
     finally:
