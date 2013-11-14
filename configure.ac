@@ -192,5 +192,5 @@ AC_ARG_ENABLE([maintainer-tools], [AS_HELP_STRING([--enable-maintainer-tools],
 AM_CONDITIONAL([ENABLE_MAINTAINER_TOOLS], [test x"${enable_maintainer_tools}" = xyes])
 
 # Generate outputs and finish
-AC_CONFIG_FILES([Makefile hyperdex-client.pc hyperdex-admin.pc])
+AC_CONFIG_FILES([Makefile hyperdex-client.pc hyperdex-admin.pc hyperdex.upack])
 AC_OUTPUT

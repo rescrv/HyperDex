@@ -82,6 +82,7 @@
 /hyperdex-set-read-write
 /hyperdex-show-config
 /hyperdex-simple-consistency-stress-test
+/hyperdex.upack
 /hyperdex-validate-space
 /install-sh
 /leveldb-dump
