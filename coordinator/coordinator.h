@@ -65,6 +65,8 @@ class coordinator
     // cluster management
     public:
         void read_only(replicant_state_machine_context* ctx, bool ro);
+        void fault_tolerance(replicant_state_machine_context* ctx,
+                             const char* space, uint64_t consistency);
 
     // server management
     public:

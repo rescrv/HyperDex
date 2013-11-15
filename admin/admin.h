@@ -59,6 +59,8 @@ class admin
         // cluster
         int64_t read_only(int ro,
                           enum hyperdex_admin_returncode* status);
+        int64_t fault_tolerance(const char* space, uint64_t ft,
+                                enum hyperdex_admin_returncode* status);
         // manage spaces
         int validate_space(const char* description,
                            enum hyperdex_admin_returncode* status);

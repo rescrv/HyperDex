@@ -196,6 +196,21 @@ hyperdex_coordinator_read_only(struct replicant_state_machine_context* ctx,
 }
 
 void
+hyperdex_coordinator_fault_tolerance(struct replicant_state_machine_context* ctx,
+                                     void* obj, const char* data, size_t data_sz)
+{
+    PROTECT_UNINITIALIZED;
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    coordinator* c = static_cast<coordinator*>(obj);
+    uint64_t ft;
+    const char* ft_ptr = data + data_sz - sizeof(uint64_t);
+    e::unpacker up(ft_ptr, sizeof(uint64_t));
+    up = up >> ft;
+    CHECK_UNPACK(fault_tolerance);
+    c->fault_tolerance(ctx, data, ft);
+}
+
+void
 hyperdex_coordinator_config_get(struct replicant_state_machine_context* ctx,
                                 void* obj, const char*, size_t)
 {
