@@ -9,7 +9,7 @@ package hyperdex
 | tarball="http://hyperdex.org/src/hyperdex-{version}.tar.gz"
 | configure="--disable-static --enable-python-bindings"
 | summary="A feature-rich distributed key-value store"
-| debian build-requires="pkg-config, libpo6-dev, libe-dev, libbusybee-dev, libpopt-dev, libhyperleveldb-dev, libgoogle-glog-dev, replicant, libreplicant-dev, libreplicant-state-machine-dev, python2-dev, libsparsehash-dev"
+| debian build-requires="pkg-config, libpo6-dev, libe-dev, libbusybee-dev, libpopt-dev, libhyperleveldb-dev, libgoogle-glog-dev, replicant, libreplicant-dev, libreplicant-state-machine-dev, python-dev, libsparsehash-dev"
 | fedora build-requires="pkgconfig libpo6-devel libe-devel libbusybee-devel popt-devel hyperleveldb-devel glog-devel replicant libreplicant-devel libreplicant-state-machine-devel python-devel sparsehash-devel"
 | requires="hyperdex-coordinator hyperdex-daemon hyperdex-tools python-hyperdex-client python-hyperdex-admin"
 '''{{summary}}'''
