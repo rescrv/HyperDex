@@ -75,7 +75,6 @@ PKG_CHECK_MODULES([E], [libe >= 0.3.2])
 PKG_CHECK_MODULES([BUSYBEE], [busybee >= 0.3.0])
 PKG_CHECK_MODULES([HYPERLEVELDB], [libhyperleveldb >= 1.0.dev])
 PKG_CHECK_MODULES([REPLICANT], [replicant >= 0.2.dev])
-PKG_CHECK_MODULES([SPARSEHASH], [libsparsehash >= 2.0.0])
 
 # Checks for header files.
 AC_CHECK_HEADERS([netinet/in.h stdint.h stdlib.h sys/socket.h unistd.h])
@@ -88,6 +87,11 @@ AC_CHECK_HEADER([popt.h],,[AC_MSG_ERROR([
 -------------------------------------------------
 HyperDex relies upon the popt library.
 Please install popt to continue.
+-------------------------------------------------])])
+AC_CHECK_HEADER([google/dense_hash_map],,[AC_MSG_ERROR([
+-------------------------------------------------
+HyperDex relies upon the sparsehash library.
+Please install sparsehash to continue.
 -------------------------------------------------])])
 
 # Checks for typedefs, structures, and compiler characteristics.

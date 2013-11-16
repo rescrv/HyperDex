@@ -67,6 +67,7 @@ jar_DATA =
 pythonmoddir = $(pyexecdir)/hyperdex
 pythonmod_DATA =
 pythonmod_LTLIBRARIES =
+pyexec_LTLIBRARIES =
 
 rubydir = $(DESTDIR)$(RUBY_EXT_LIB)
 ruby_LTLIBRARIES =
@@ -619,10 +620,10 @@ pythonmod_DATA += bindings/python/hyperdex/__init__.py
 pythonmod_DATA += bindings/python/hyperdex/admin.py
 pythonmod_DATA += bindings/python/hyperdex/client.py
 if ENABLE_CLIENT
-pythonmod_LTLIBRARIES += bindings/python/_hyperdex_client.la
+pyexec_LTLIBRARIES += bindings/python/_hyperdex_client.la
 endif
 if ENABLE_ADMIN
-pythonmod_LTLIBRARIES += bindings/python/_hyperdex_admin.la
+pyexec_LTLIBRARIES += bindings/python/_hyperdex_admin.la
 endif
 endif
 
@@ -771,20 +772,20 @@ test_search_stress_test_LDADD = libhyperdex-client.la -le
 ################################################################################
 
 if ENABLE_TOOLS
-bin_PROGRAMS += hyperdex-add-space
-bin_PROGRAMS += hyperdex-rm-space
-bin_PROGRAMS += hyperdex-list-spaces
-bin_PROGRAMS += hyperdex-validate-space
-bin_PROGRAMS += hyperdex-show-config
-bin_PROGRAMS += hyperdex-server-register
-bin_PROGRAMS += hyperdex-server-online
-bin_PROGRAMS += hyperdex-server-offline
-bin_PROGRAMS += hyperdex-server-kill
-bin_PROGRAMS += hyperdex-server-forget
-bin_PROGRAMS += hyperdex-perf-counters
-bin_PROGRAMS += hyperdex-set-read-only
-bin_PROGRAMS += hyperdex-set-read-write
-bin_PROGRAMS += hyperdex-raw-backup
+hyperdexexec_PROGRAMS += hyperdex-add-space
+hyperdexexec_PROGRAMS += hyperdex-rm-space
+hyperdexexec_PROGRAMS += hyperdex-list-spaces
+hyperdexexec_PROGRAMS += hyperdex-validate-space
+hyperdexexec_PROGRAMS += hyperdex-show-config
+hyperdexexec_PROGRAMS += hyperdex-server-register
+hyperdexexec_PROGRAMS += hyperdex-server-online
+hyperdexexec_PROGRAMS += hyperdex-server-offline
+hyperdexexec_PROGRAMS += hyperdex-server-kill
+hyperdexexec_PROGRAMS += hyperdex-server-forget
+hyperdexexec_PROGRAMS += hyperdex-perf-counters
+hyperdexexec_PROGRAMS += hyperdex-set-read-only
+hyperdexexec_PROGRAMS += hyperdex-set-read-write
+hyperdexexec_PROGRAMS += hyperdex-raw-backup
 dist_man_MANS += man/hyperdex-add-space.1
 dist_man_MANS += man/hyperdex-rm-space.1
 dist_man_MANS += man/hyperdex-list-spaces.1
