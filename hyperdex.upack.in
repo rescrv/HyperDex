@@ -117,23 +117,23 @@ subpackage libhyperdex-devel
 subpackage python-hyperdex
 | summary="Python bindings for HyperDex"
 + {pythondir}/hyperdex/__init__.py
-+ {pythondir}/hyperdex/__init__.pyc
-+ {pythondir}/hyperdex/__init__.pyo
++ fedora {pythondir}/hyperdex/__init__.pyc
++ fedora {pythondir}/hyperdex/__init__.pyo
 '''{summary}'''
 
 subpackage python-hyperdex-client
 | summary="Python client bindings for HyperDex"
 + {pythondir}/hyperdex/client.py
-+ {pythondir}/hyperdex/admin.pyc
-+ {pythondir}/hyperdex/admin.pyo
++ fedora {pythondir}/hyperdex/admin.pyc
++ fedora {pythondir}/hyperdex/admin.pyo
 + {pythondir}/_hyperdex_client.so
 '''{summary}'''
 
 subpackage python-hyperdex-admin
 | summary="Python admin bindings for HyperDex"
 + {pythondir}/hyperdex/admin.py
-+ {pythondir}/hyperdex/client.pyc
-+ {pythondir}/hyperdex/client.pyo
++ fedora {pythondir}/hyperdex/client.pyc
++ fedora {pythondir}/hyperdex/client.pyo
 + {pythondir}/_hyperdex_admin.so
 '''{summary}'''
 
