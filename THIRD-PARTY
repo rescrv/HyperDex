@@ -1,0 +1,8 @@
+cityhash:
+    Copyright: 2011 Google, Inc.
+    License: BSD
+
+    Everything included by default to give a consistent hash function that is
+    invariant of distribution.  Different distributions ship different and
+    incompatible Cityhash functions.  Because HyperDex relies upon its output to
+    be consistent across hosts, we intern cityhash and avoid packaging problems.

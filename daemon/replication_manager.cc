@@ -33,9 +33,6 @@
 // STL
 #include <algorithm>
 
-// Google CityHash
-#include <city.h>
-
 // Google Log
 #include <glog/logging.h>
 
@@ -46,6 +43,7 @@
 #include "common/datatypes.h"
 #include "common/hash.h"
 #include "common/serialization.h"
+#include "cityhash/city.h"
 #include "daemon/daemon.h"
 #include "daemon/replication_manager.h"
 #include "daemon/replication_manager_key_region.h"

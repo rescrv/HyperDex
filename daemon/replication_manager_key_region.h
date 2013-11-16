@@ -31,11 +31,9 @@
 // STL
 #include <tr1/unordered_map>
 
-// Google CityHash
-#include <city.h>
-
 // HyperDex
 #include "common/ids.h"
+#include "cityhash/city.h"
 #include "daemon/replication_manager.h"
 
 class hyperdex::replication_manager::key_region

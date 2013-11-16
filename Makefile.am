@@ -148,6 +148,18 @@ common_test_ordered_encoding_SOURCES = common/test/ordered_encoding.cc common/or
 common_test_ordered_encoding_CXXFLAGS = $(AM_CXXFLAGS) $(CXXFLAGS)
 
 ################################################################################
+################################### City Hash ##################################
+################################################################################
+
+noinst_HEADERS += cityhash/city.h
+
+check_PROGRAMS += cityhash/test/city
+TESTS += cityhash/test/city
+
+cityhash_test_city_SOURCES = cityhash/test/city.cc cityhash/city.cc
+cityhash_test_city_CXXFLAGS = $(AM_CXXFLAGS) $(CXXFLAGS)
+
+################################################################################
 #################################### Daemon ####################################
 ################################################################################
 
@@ -218,6 +230,7 @@ hyperdex_daemon_SOURCES += common/schema.cc
 hyperdex_daemon_SOURCES += common/serialization.cc
 hyperdex_daemon_SOURCES += common/server.cc
 hyperdex_daemon_SOURCES += common/transfer.cc
+hyperdex_daemon_SOURCES += cityhash/city.cc
 hyperdex_daemon_SOURCES += daemon/communication.cc
 hyperdex_daemon_SOURCES += daemon/coordinator_link_wrapper.cc
 hyperdex_daemon_SOURCES += daemon/daemon.cc
@@ -251,7 +264,7 @@ hyperdex_daemon_LDADD += $(E_LIBS)
 hyperdex_daemon_LDADD += $(BUSYBEE_LIBS)
 hyperdex_daemon_LDADD += $(HYPERLEVELDB_LIBS)
 hyperdex_daemon_LDADD += $(REPLICANT_LIBS)
-hyperdex_daemon_LDADD += -lcityhash -lpopt -lglog -lpthread
+hyperdex_daemon_LDADD += -lpopt -lglog -lpthread
 man/hyperdex-daemon.1: man/hyperdex-daemon.1.h2m daemon/main.cc
 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-daemon$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-daemon$(EXEEXT)
@@ -372,6 +385,7 @@ libhyperdex_client_la_SOURCES += common/schema.cc
 libhyperdex_client_la_SOURCES += common/server.cc
 libhyperdex_client_la_SOURCES += common/serialization.cc
 libhyperdex_client_la_SOURCES += common/transfer.cc
+libhyperdex_client_la_SOURCES += cityhash/city.cc
 libhyperdex_client_la_SOURCES += client/c.cc
 libhyperdex_client_la_SOURCES += client/client.cc
 libhyperdex_client_la_SOURCES += client/datastructures.cc
@@ -390,7 +404,6 @@ libhyperdex_client_la_LIBADD =
 libhyperdex_client_la_LIBADD += $(E_LIBS)
 libhyperdex_client_la_LIBADD += $(BUSYBEE_LIBS)
 libhyperdex_client_la_LIBADD += $(REPLICANT_LIBS)
-libhyperdex_client_la_LIBADD += -lcityhash
 
 client/keyop_info.cc: client/keyop_info.gperf client/keyop_info.h
 	$(gperf_verbose)gperf -m 100 $(abs_top_srcdir)/client/keyop_info.gperf --output-file=$(abs_top_builddir)/client/keyop_info.cc
@@ -452,6 +465,7 @@ libhyperdex_admin_la_SOURCES += common/schema.cc
 libhyperdex_admin_la_SOURCES += common/serialization.cc
 libhyperdex_admin_la_SOURCES += common/server.cc
 libhyperdex_admin_la_SOURCES += common/transfer.cc
+libhyperdex_admin_la_SOURCES += cityhash/city.cc
 libhyperdex_admin_la_SOURCES += admin/admin.cc
 libhyperdex_admin_la_SOURCES += admin/c.cc
 libhyperdex_admin_la_SOURCES += admin/coord_rpc.cc
@@ -469,7 +483,6 @@ libhyperdex_admin_la_LIBADD =
 libhyperdex_admin_la_LIBADD += $(E_LIBS)
 libhyperdex_admin_la_LIBADD += $(BUSYBEE_LIBS)
 libhyperdex_admin_la_LIBADD += $(REPLICANT_LIBS)
-libhyperdex_admin_la_LIBADD += -lcityhash
 
 ################################################################################
 ################################### Bindings ###################################

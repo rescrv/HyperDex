@@ -79,11 +79,6 @@ PKG_CHECK_MODULES([SPARSEHASH], [libsparsehash >= 2.0.0])
 
 # Checks for header files.
 AC_CHECK_HEADERS([netinet/in.h stdint.h stdlib.h sys/socket.h unistd.h])
-AC_CHECK_HEADER([city.h],,[AC_MSG_ERROR([
--------------------------------------------------
-HyperDex relies upon the cityhash library.
-Please install cityhash to continue.
--------------------------------------------------])])
 AC_CHECK_HEADER([glog/logging.h],,[AC_MSG_ERROR([
 -------------------------------------------------
 HyperDex relies upon the glog library.

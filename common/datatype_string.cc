@@ -28,15 +28,13 @@
 // C
 #include <cstdlib>
 
-// Google CityHash
-#include <city.h>
-
 // e
 #include <e/endian.h>
 
 // HyperDex
 #include "common/datatype_string.h"
 #include "common/regex_match.h"
+#include "cityhash/city.h"
 
 using hyperdex::datatype_info;
 using hyperdex::datatype_string;

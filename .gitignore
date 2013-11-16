@@ -38,6 +38,7 @@
 /bindings/java/org/hyperdex/client/SWIGTYPE_p_unsigned_long_long.java
 /bindings/python/_hyperdex_admin.c
 /bindings/python/_hyperdex_client.c
+/cityhash/test/city
 /client/keyop_info.cc
 /client/test/datastructures
 /common/test/ordered_encoding
