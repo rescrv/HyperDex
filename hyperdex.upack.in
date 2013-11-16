@@ -17,7 +17,7 @@ package hyperdex
 subpackage hyperdex-common
 | summary="The \"hyperdex\" command"
 + {bindir}/hyperdex
-+ {mandir}/man1/hyperdex.1
++ {mandir}/man1/hyperdex.1*
 '''{summary}'''
 
 subpackage hyperdex-coordinator
@@ -28,14 +28,14 @@ subpackage hyperdex-coordinator
 + {libexecdir}/hyperdex-1.0.dev/libhyperdex-coordinator.so
 + {libexecdir}/hyperdex-1.0.dev/libhyperdex-coordinator.so.0
 + {libexecdir}/hyperdex-1.0.dev/libhyperdex-coordinator.so.0.0.0
-+ {mandir}/man1/hyperdex-coordinator.1
++ {mandir}/man1/hyperdex-coordinator.1*
 '''{summary}'''
 
 subpackage hyperdex-daemon
 | summary="The daemon for HyperDex"
 | debian requires="hyperdex-common"
 + {libexecdir}/hyperdex-1.0.dev/hyperdex-daemon
-+ {mandir}/man1/hyperdex-daemon.1
++ {mandir}/man1/hyperdex-daemon.1*
 '''{summary}'''
 
 subpackage hyperdex-tools
@@ -54,20 +54,20 @@ subpackage hyperdex-tools
 + {libexecdir}/hyperdex-1.0.dev/hyperdex-set-read-write
 + {libexecdir}/hyperdex-1.0.dev/hyperdex-show-config
 + {libexecdir}/hyperdex-1.0.dev/hyperdex-validate-space
-+ {mandir}/man1/hyperdex-add-space.1
-+ {mandir}/man1/hyperdex-list-spaces.1
-+ {mandir}/man1/hyperdex-perf-counters.1
-+ {mandir}/man1/hyperdex-raw-backup.1
-+ {mandir}/man1/hyperdex-rm-space.1
-+ {mandir}/man1/hyperdex-server-forget.1
-+ {mandir}/man1/hyperdex-server-kill.1
-+ {mandir}/man1/hyperdex-server-offline.1
-+ {mandir}/man1/hyperdex-server-online.1
-+ {mandir}/man1/hyperdex-server-register.1
-+ {mandir}/man1/hyperdex-set-read-only.1
-+ {mandir}/man1/hyperdex-set-read-write.1
-+ {mandir}/man1/hyperdex-show-config.1
-+ {mandir}/man1/hyperdex-validate-space.1
++ {mandir}/man1/hyperdex-add-space.1*
++ {mandir}/man1/hyperdex-list-spaces.1*
++ {mandir}/man1/hyperdex-perf-counters.1*
++ {mandir}/man1/hyperdex-raw-backup.1*
++ {mandir}/man1/hyperdex-rm-space.1*
++ {mandir}/man1/hyperdex-server-forget.1*
++ {mandir}/man1/hyperdex-server-kill.1*
++ {mandir}/man1/hyperdex-server-offline.1*
++ {mandir}/man1/hyperdex-server-online.1*
++ {mandir}/man1/hyperdex-server-register.1*
++ {mandir}/man1/hyperdex-set-read-only.1*
++ {mandir}/man1/hyperdex-set-read-write.1*
++ {mandir}/man1/hyperdex-show-config.1*
++ {mandir}/man1/hyperdex-validate-space.1*
 '''{summary}'''
 
 subpackage libhyperdex-client
