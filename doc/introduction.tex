@@ -8,35 +8,37 @@ or performance.  First and foremost, HyperDex enables developers to create new
 applications quickly and with strong correctness guarantees.
 HyperDex features:
 
-\paragraph{Performance:}  HyperDex achieves lower latency and higher throughput
-than many other key-value stores.  Deploy fewer machines to support your
-application, and save on operational costs.
+\begin{description}
+\item[Performance:]  HyperDex achieves lower latency and higher throughput than
+many other key-value stores.  Deploy fewer machines to support your application,
+and save on operational costs.
 
-\paragraph{Consistency:}  HyperDex provides strongly-consistent reads, writes,
-and atomic operations, making strong guarantees to your application.  Other
+\item[Consistency:]  HyperDex provides strongly-consistent reads, writes, and
+atomic operations, making strong guarantees to your application.  Other
 key-value stores promise \texttt{eventual} consistency, leaving your application
 to pick up the slack.  HyperDex solves the tough problems, enabling you to write
 correct applications quickly with less effort.
 
-\paragraph{Fault Tolerance:}  HyperDex employs a unique, built-in
-fault-tolerance mechanism to safe-guard your data.  Simply tell HyperDex how
-many failures your cluster is likely to experience, and HyperDex ensures that
-your data is replicated to withstand at least that many failures.  Where other
-systems require you to fully understand the replication internals to bring
+\item[Fault Tolerance:]  HyperDex employs a unique, built-in fault-tolerance
+mechanism to safe-guard your data.  Simply tell HyperDex how many failures your
+cluster is likely to experience, and HyperDex ensures that your data is
+replicated to withstand at least that many failures.  Where other systems
+require you to fully understand the replication internals to bring
 fault-tolerance your data, HyperDex's fault-tolerance mechanism is simple to
 understand and straightforward to use.
 
-\paragraph{Scalability:}  HyperDex automatically scales as more machines are
-added to the system.  Add additional servers to your HyperDex cluster to
-increase storage capacity and achievable throughput.
+\item[Scalability:]  HyperDex automatically scales as more machines are added to
+the system.  Add additional servers to your HyperDex cluster to increase storage
+capacity and achievable throughput.
 
-\paragraph{Easy-to-Use:}  HyperDex is easy to use in both development and
-production environments.  Set up a HyperDex cluster quickly, and scale out to
-multiple machines without any application-level changes.  Other systems may
-require that your application know about internals of the deployment, such as
-cluster membership, replication options, and sharding configurations.  HyperDex
+\item[Easy-to-Use:]  HyperDex is easy to use in both development and production
+environments.  Set up a HyperDex cluster quickly, and scale out to multiple
+machines without any application-level changes.  Other systems may require that
+your application know about internals of the deployment, such as cluster
+membership, replication options, and sharding configurations.  HyperDex
 internally and automatically manages your cluster so your application doesn't
 have to.
+\end{description}
 
 \section{About this Book}
 
