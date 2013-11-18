@@ -785,6 +785,7 @@ hyperdexexec_PROGRAMS += hyperdex-server-forget
 hyperdexexec_PROGRAMS += hyperdex-perf-counters
 hyperdexexec_PROGRAMS += hyperdex-set-read-only
 hyperdexexec_PROGRAMS += hyperdex-set-read-write
+hyperdexexec_PROGRAMS += hyperdex-wait-until-stable
 hyperdexexec_PROGRAMS += hyperdex-raw-backup
 dist_man_MANS += man/hyperdex-add-space.1
 dist_man_MANS += man/hyperdex-rm-space.1
@@ -799,6 +800,7 @@ dist_man_MANS += man/hyperdex-server-forget.1
 dist_man_MANS += man/hyperdex-perf-counters.1
 dist_man_MANS += man/hyperdex-set-read-only.1
 dist_man_MANS += man/hyperdex-set-read-write.1
+dist_man_MANS += man/hyperdex-wait-until-stable.1
 dist_man_MANS += man/hyperdex-raw-backup.1
 endif
 
@@ -930,6 +932,15 @@ hyperdex_set_read_write_LDADD = libhyperdex-admin.la -lpopt
 man/hyperdex-set-read-write.1: man/hyperdex-set-read-write.1.h2m tools/set-read-write.cc
 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-set-read-write$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-set-read-write$(EXEEXT)
+
+# hyperdex-wait-until-stable
+EXTRA_DIST += man/hyperdex-wait_until_stable.1.md
+EXTRA_DIST += man/hyperdex-wait_until_stable.1.h2m
+hyperdex_wait_until_stable_SOURCES = tools/wait-until-stable.cc
+hyperdex_wait_until_stable_LDADD = libhyperdex-admin.la -lpopt
+man/hyperdex-wait-until-stable.1: man/hyperdex-wait-until-stable.1.h2m tools/wait-until-stable.cc
+	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-wait-until-stable$(EXEEXT)
+	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-wait-until-stable$(EXEEXT)
 
 # hyperdex-raw-backup
 EXTRA_DIST += man/hyperdex-raw-backup.1.md

@@ -123,6 +123,39 @@ admin :: read_only(int ro, hyperdex_admin_returncode* status)
     }
 }
 
+int64_t
+admin :: wait_until_stable(enum hyperdex_admin_returncode* status)
+{
+    replicant_returncode rc;
+
+    if (!m_coord.force_configuration_fetch(&rc))
+    {
+        interpret_rpc_request_failure(rc, status);
+        return -1;
+    }
+
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    int64_t id = m_next_admin_id;
+    ++m_next_admin_id;
+    e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "wait for stability");
+    int64_t cid = m_coord.wait("stable", m_coord.config()->version(), &op->repl_status);
+
+    if (cid >= 0)
+    {
+        m_coord_ops[cid] = op;
+        return op->admin_visible_id();
+    }
+    else
+    {
+        interpret_rpc_request_failure(op->repl_status, status);
+        return -1;
+    }
+}
+
 int
 admin :: validate_space(const char* description,
                         hyperdex_admin_returncode* status)

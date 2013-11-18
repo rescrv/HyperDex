@@ -64,6 +64,7 @@ class coordinator_link
     public:
         const configuration* config() { return &m_config; }
         poll_fd_t poll_fd() { return m_repl.poll_fd(); }
+        bool force_configuration_fetch(replicant_returncode* status);
         // true if there's a configuration to use
         // false if there's an error to report
         //

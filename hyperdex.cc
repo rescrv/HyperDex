@@ -54,6 +54,7 @@ main(int argc, const char* argv[])
     cmds.push_back(e::subcommand("perf-counters",         "Collect performance counters from a cluster"));
     cmds.push_back(e::subcommand("set-read-only",         "Put the cluster into read-only mode, blocking writes"));
     cmds.push_back(e::subcommand("set-read-write",        "Put the cluster into read-write mode, permitting writes"));
+    cmds.push_back(e::subcommand("wait-until-stable",     "Wait for the cluster to become stable on the new configuration"));
     return dispatch_to_subcommands(argc, argv,
                                    "hyperdex", "HyperDex",
                                    PACKAGE_VERSION,

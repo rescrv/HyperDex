@@ -85,6 +85,7 @@
 /hyperdex-simple-consistency-stress-test
 /hyperdex.upack
 /hyperdex-validate-space
+/hyperdex-wait-until-stable
 /install-sh
 /leveldb-dump
 /libtool

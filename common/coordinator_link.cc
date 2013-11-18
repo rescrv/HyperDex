@@ -48,6 +48,27 @@ coordinator_link :: ~coordinator_link() throw ()
 }
 
 bool
+coordinator_link :: force_configuration_fetch(replicant_returncode* status)
+{
+    if (m_id >= 0)
+    {
+        m_repl.kill(m_id);
+    }
+
+    if (m_output)
+    {
+        replicant_destroy_output(m_output, m_output_sz);
+    }
+
+    m_id = -1;
+    m_state = WAITING_ON_BROADCAST;
+    m_status = REPLICANT_SUCCESS;
+    m_output = NULL;
+    m_output_sz = 0;
+    return begin_fetching_config(status);
+}
+
+bool
 coordinator_link :: ensure_configuration(replicant_returncode* status)
 {
     while (true)
