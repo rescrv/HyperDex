@@ -24,37 +24,37 @@ subpackage hyperdex-coordinator
 | summary="The coordinator for HyperDex"
 | debian requires="hyperdex-common, replicant-daemon"
 | fedora requires="hyperdex-common replicant-daemon"
-+ {libexecdir}/hyperdex-1.0.dev/hyperdex-coordinator
-+ {libexecdir}/hyperdex-1.0.dev/libhyperdex-coordinator.so
-+ {libexecdir}/hyperdex-1.0.dev/libhyperdex-coordinator.so.0
-+ {libexecdir}/hyperdex-1.0.dev/libhyperdex-coordinator.so.0.0.0
++ {libexecdir}/hyperdex-{version}/hyperdex-coordinator
++ {libexecdir}/hyperdex-{version}/libhyperdex-coordinator.so
++ {libexecdir}/hyperdex-{version}/libhyperdex-coordinator.so.0
++ {libexecdir}/hyperdex-{version}/libhyperdex-coordinator.so.0.0.0
 + {mandir}/man1/hyperdex-coordinator.1*
 '''{summary}'''
 
 subpackage hyperdex-daemon
 | summary="The daemon for HyperDex"
 | debian requires="hyperdex-common"
-+ {libexecdir}/hyperdex-1.0.dev/hyperdex-daemon
++ {libexecdir}/hyperdex-{version}/hyperdex-daemon
 + {mandir}/man1/hyperdex-daemon.1*
 '''{summary}'''
 
 subpackage hyperdex-tools
 | summary="Tools for managing a HyperDex cluster"
-+ {libexecdir}/hyperdex-1.0.dev/hyperdex-add-space
-+ {libexecdir}/hyperdex-1.0.dev/hyperdex-list-spaces
-+ {libexecdir}/hyperdex-1.0.dev/hyperdex-perf-counters
-+ {libexecdir}/hyperdex-1.0.dev/hyperdex-raw-backup
-+ {libexecdir}/hyperdex-1.0.dev/hyperdex-rm-space
-+ {libexecdir}/hyperdex-1.0.dev/hyperdex-server-forget
-+ {libexecdir}/hyperdex-1.0.dev/hyperdex-server-kill
-+ {libexecdir}/hyperdex-1.0.dev/hyperdex-server-offline
-+ {libexecdir}/hyperdex-1.0.dev/hyperdex-server-online
-+ {libexecdir}/hyperdex-1.0.dev/hyperdex-server-register
-+ {libexecdir}/hyperdex-1.0.dev/hyperdex-set-read-only
-+ {libexecdir}/hyperdex-1.0.dev/hyperdex-set-read-write
-+ {libexecdir}/hyperdex-1.0.dev/hyperdex-show-config
-+ {libexecdir}/hyperdex-1.0.dev/hyperdex-validate-space
-+ {libexecdir}/hyperdex-1.0.dev/hyperdex-wait-until-stable
++ {libexecdir}/hyperdex-{version}/hyperdex-add-space
++ {libexecdir}/hyperdex-{version}/hyperdex-list-spaces
++ {libexecdir}/hyperdex-{version}/hyperdex-perf-counters
++ {libexecdir}/hyperdex-{version}/hyperdex-raw-backup
++ {libexecdir}/hyperdex-{version}/hyperdex-rm-space
++ {libexecdir}/hyperdex-{version}/hyperdex-server-forget
++ {libexecdir}/hyperdex-{version}/hyperdex-server-kill
++ {libexecdir}/hyperdex-{version}/hyperdex-server-offline
++ {libexecdir}/hyperdex-{version}/hyperdex-server-online
++ {libexecdir}/hyperdex-{version}/hyperdex-server-register
++ {libexecdir}/hyperdex-{version}/hyperdex-set-read-only
++ {libexecdir}/hyperdex-{version}/hyperdex-set-read-write
++ {libexecdir}/hyperdex-{version}/hyperdex-show-config
++ {libexecdir}/hyperdex-{version}/hyperdex-validate-space
++ {libexecdir}/hyperdex-{version}/hyperdex-wait-until-stable
 + {mandir}/man1/hyperdex-add-space.1*
 + {mandir}/man1/hyperdex-list-spaces.1*
 + {mandir}/man1/hyperdex-perf-counters.1*
@@ -143,7 +143,7 @@ subpackage python-hyperdex-admin
 + {pythondir}/_hyperdex_admin.so
 '''{summary}'''
 
-exclude {libexecdir}/hyperdex-1.0.dev/libhyperdex-coordinator.la
+exclude {libexecdir}/hyperdex-{version}/libhyperdex-coordinator.la
 exclude {libdir}/libhyperdex-admin.la
 exclude {libdir}/libhyperdex-client.la
 exclude {pythondir}/_hyperdex_admin.la
