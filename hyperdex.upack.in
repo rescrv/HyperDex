@@ -125,7 +125,7 @@ subpackage python-hyperdex
 
 subpackage python-hyperdex-client
 | summary="Python client bindings for HyperDex"
-| debian requires="libpython2.7 libhyperdex-client0, python-hyperdex"
+| debian requires="libpython2.7, libhyperdex-client0, python-hyperdex"
 | fedora requires="libhyperdex-client python-hyperdex"
 + {pythondir}/hyperdex/client.py
 + fedora {pythondir}/hyperdex/client.pyc
