@@ -54,6 +54,7 @@ subpackage hyperdex-tools
 + {libexecdir}/hyperdex-1.0.dev/hyperdex-set-read-write
 + {libexecdir}/hyperdex-1.0.dev/hyperdex-show-config
 + {libexecdir}/hyperdex-1.0.dev/hyperdex-validate-space
++ {libexecdir}/hyperdex-1.0.dev/hyperdex-wait-until-stable
 + {mandir}/man1/hyperdex-add-space.1*
 + {mandir}/man1/hyperdex-list-spaces.1*
 + {mandir}/man1/hyperdex-perf-counters.1*
@@ -68,6 +69,7 @@ subpackage hyperdex-tools
 + {mandir}/man1/hyperdex-set-read-write.1*
 + {mandir}/man1/hyperdex-show-config.1*
 + {mandir}/man1/hyperdex-validate-space.1*
++ {mandir}/man1/hyperdex-wait-until-stable.1*
 '''{summary}'''
 
 subpackage libhyperdex-client
