@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2012, Robert Escriva
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,46 +25,137 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// Popt
-#include <popt.h>
+#ifndef hyperdex_tools_util_h_
+#define hyperdex_tools_util_h_
 
-// C++
-#include <iostream>
+// POSIX
+#include <sys/stat.h>
 
-static const char* _connect_host = "127.0.0.1";
-static unsigned long _connect_port = 1982;
+// po6
+#include <po6/pathname.h>
 
-extern "C"
+// e
+#include <e/popt.h>
+
+// HyperDex
+#include "namespace.h"
+
+BEGIN_HYPERDEX_NAMESPACE
+
+class connect_opts
 {
+    public:
+        connect_opts()
+            : m_ap() , m_host("127.0.0.1") , m_port(1982)
+        {
+            m_ap.arg().name('h', "host")
+                      .description("connect to the coordinator on an IP address or hostname (default: 127.0.0.1)")
+                      .metavar("addr").as_string(&m_host);
+            m_ap.arg().name('p', "port")
+                      .description("connect to the coordinator on an alternative port (default: 1982)")
+                      .metavar("port").as_long(&m_port);
+        }
+        ~connect_opts() throw () {}
 
-static struct poptOption connect_popts[] = {
-    {"host", 'h', POPT_ARG_STRING, &_connect_host, 'h',
-     "connect to the coordinator on an IP address or hostname (default: 127.0.0.1)",
-     "addr"},
-    {"port", 'p', POPT_ARG_LONG, &_connect_port, 'p',
-     "connect to the coordinator on an alternative port (default: 1982)",
-     "port"},
-    POPT_TABLEEND
+    public:
+        const e::argparser& parser() { return m_ap; }
+        const char* host() { return m_host; }
+        uint16_t port() { return m_port; }
+        bool validate()
+        {
+            if (m_port <= 0 || m_port >= (1 << 16))
+            {
+                std::cerr << "port number to connect to is out of range" << std::endl;
+                return false;
+            }
+
+            return true;
+        }
+
+        private:
+            connect_opts(const connect_opts&);
+            connect_opts& operator = (const connect_opts&);
+
+    private:
+        e::argparser m_ap;
+        const char* m_host;
+        long m_port;
 };
 
-} // extern "C"
-
-#define CONNECT_TABLE {NULL, 0, POPT_ARG_INCLUDE_TABLE, connect_popts, 0, "Connect to a cluster:", NULL},
-
-static bool
-check_host()
+#ifdef HYPERDEX_EXEC_DIR
+#define HYPERDEX_LIB_NAME "libhyperdex-coordinator"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wlarger-than="
+inline bool
+locate_coordinator_lib(const char* argv0, po6::pathname* path)
 {
-    return true;
-}
+    // find the right library
+    std::vector<po6::pathname> paths;
+    const char* env = getenv("HYPERDEX_COORD_LIB");
+    static const char* exts[] = { "", ".so.0.0.0", ".so.0", ".so", ".dylib", 0 };
 
-static bool
-check_port()
-{
-    if (_connect_port >= (1 << 16))
+    for (size_t i = 0; exts[i]; ++i)
     {
-        std::cerr << "port number to connect to is out of range" << std::endl;
-        return false;
+        std::string base(HYPERDEX_LIB_NAME);
+        base += exts[i];
+        paths.push_back(po6::join(HYPERDEX_EXEC_DIR, base));
+        paths.push_back(po6::join(po6::pathname(argv0).dirname(),
+                                  po6::join(".libs", base)));
+
+        if (env)
+        {
+            std::string envlib(env);
+            envlib += exts[i];
+            paths.push_back(envlib);
+        }
     }
 
-    return true;
+    // maybe we're running out of Git.  make it "just work"
+    char selfbuf[PATH_MAX + 1];
+    memset(selfbuf, 0, sizeof(selfbuf));
+
+    if (readlink("/proc/self/exe", selfbuf, PATH_MAX) >= 0)
+    {
+        po6::pathname workdir(selfbuf);
+        workdir = workdir.dirname();
+        po6::pathname gitdir(po6::join(workdir, ".git"));
+        struct stat buf;
+
+        if (stat(gitdir.get(), &buf) == 0 &&
+            S_ISDIR(buf.st_mode))
+        {
+            po6::pathname libdir(po6::join(workdir, ".libs"));
+
+            for (size_t i = 0; exts[i]; ++i)
+            {
+                std::string libname(HYPERDEX_LIB_NAME);
+                libname += exts[i];
+                paths.push_back(po6::join(libdir, libname));
+            }
+        }
+    }
+
+    size_t idx = 0;
+
+    while (idx < paths.size())
+    {
+        struct stat buf;
+
+        if (stat(paths[idx].get(), &buf) == 0)
+        {
+            *path = paths[idx];
+            return true;
+        }
+
+        ++idx;
+    }
+
+    return false;
 }
+#pragma GCC diagnostic pop
+#undef HYPERDEX_LIB_NAME
+#endif // HYPERDEX_EXEC_DIR
+
+END_HYPERDEX_NAMESPACE
+
+#endif // hyperdex_tools_util_h_

@@ -37,6 +37,9 @@
 // e
 #include <e/buffer.h>
 
+// HyperDex
+#include "namespace.h"
+
 // An ID is a simple wrapper around uint64_t in order to prevent devs from
 // accidently using one type of ID as another.
 
@@ -57,24 +60,17 @@
         private: \
             uint64_t m_id; \
     }; \
-    inline std::ostream& \
-    operator << (std::ostream& lhs, const TYPE ## _id& rhs) \
+    std::ostream& \
+    operator << (std::ostream& lhs, const TYPE ## _id& rhs); \
+    inline size_t \
+    pack_size(const TYPE ## _id&) \
     { \
-        return lhs << #TYPE "(" << rhs.get() << ")"; \
+        return sizeof(uint64_t); \
     } \
-    inline e::buffer::packer \
-    operator << (e::buffer::packer pa, const TYPE ## _id& rhs) \
-    { \
-        return pa << rhs.get(); \
-    } \
-    inline e::unpacker \
-    operator >> (e::unpacker up, TYPE ## _id& rhs) \
-    { \
-        uint64_t id; \
-        up = up >> id; \
-        rhs = TYPE ## _id(id); \
-        return up; \
-    } \
+    e::buffer::packer \
+    operator << (e::buffer::packer pa, const TYPE ## _id& rhs); \
+    e::unpacker \
+    operator >> (e::unpacker up, TYPE ## _id& rhs); \
     OPERATOR(TYPE, <) \
     OPERATOR(TYPE, <=) \
     OPERATOR(TYPE, ==) \
@@ -82,18 +78,17 @@
     OPERATOR(TYPE, >=) \
     OPERATOR(TYPE, >)
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
-CREATE_ID(capture)
 CREATE_ID(region)
+CREATE_ID(replica_set)
 CREATE_ID(server)
 CREATE_ID(space)
 CREATE_ID(subspace)
 CREATE_ID(transfer)
 CREATE_ID(virtual_server)
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #undef OPERATOR
 #undef CREATE_ID

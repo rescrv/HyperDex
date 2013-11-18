@@ -25,226 +25,74 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// Popt
-#include <popt.h>
+// C
+#include <cstdio>
+#include <stdint.h>
 
-// C++
-#include <sstream>
+// STL
+#include <vector>
 
 // po6
-#include <po6/net/ipaddr.h>
-#include <po6/net/hostname.h>
+#include <po6/io/fd.h>
 
-// e
-#include <e/guard.h>
-
-// BusyBee
-#include <busybee_utils.h>
-
-static bool _daemonize = true;
-static const char* _data = ".";
-static const char* _listen_host = "auto";
-static unsigned long _listen_port = 1982;
-static po6::net::ipaddr _listen_ip;
-static bool _listen = false;
-static const char* _connect_host = "127.0.0.1";
-static unsigned long _connect_port = 1982;
-static bool _connect = false;
-
-extern "C"
-{
-
-static struct poptOption popts[] = {
-    POPT_AUTOHELP
-    {"daemon", 'd', POPT_ARG_NONE, NULL, 'd',
-     "run the coordinator the background", 0},
-    {"foreground", 'f', POPT_ARG_NONE, NULL, 'f',
-     "run the coordinator the foreground", 0},
-    {"data", 'D', POPT_ARG_STRING, &_data, 'D',
-     "store persistent state in this directory (default: .)",
-     "dir"},
-    {"listen", 'l', POPT_ARG_STRING, &_listen_host, 'l',
-     "listen on a specific IP address (default: auto)",
-     "IP"},
-    {"listen-port", 'p', POPT_ARG_LONG, &_listen_port, 'L',
-     "listen on an alternative port (default: 1982)",
-     "port"},
-    {"connect", 'c', POPT_ARG_STRING, &_connect_host, 'c',
-     "join an existing the coordinator through IP address or hostname",
-     "addr"},
-    {"connect-port", 'P', POPT_ARG_LONG, &_connect_port, 'C',
-     "connect to an alternative port (default: 1982)",
-     "port"},
-    POPT_TABLEEND
-};
-
-} // extern "C"
+// HyperDex
+#include "tools/common.h"
 
 int
 main(int argc, const char* argv[])
 {
-    poptContext poptcon;
-    poptcon = poptGetContext(NULL, argc, argv, popts, POPT_CONTEXT_POSIXMEHARDER);
-    e::guard g = e::makeguard(poptFreeContext, poptcon); g.use_variable();
-    int rc;
+    po6::pathname libpath;
 
-    while ((rc = poptGetNextOpt(poptcon)) != -1)
+    if (!hyperdex::locate_coordinator_lib(argv[0], &libpath))
     {
-        switch (rc)
-        {
-            case 'd':
-                _daemonize = true;
-                break;
-            case 'f':
-                _daemonize = false;
-                break;
-            case 'D':
-                break;
-            case 'l':
-                try
-                {
-                    if (strcmp(_listen_host, "auto") == 0)
-                    {
-                        break;
-                    }
-
-                    _listen_ip = po6::net::ipaddr(_listen_host);
-                }
-                catch (po6::error& e)
-                {
-                    std::cerr << "cannot parse listen address" << std::endl;
-                    return EXIT_FAILURE;
-                }
-                catch (std::invalid_argument& e)
-                {
-                    std::cerr << "cannot parse listen address" << std::endl;
-                    return EXIT_FAILURE;
-                }
-
-                _listen = true;
-                break;
-            case 'L':
-                if (_listen_port >= (1 << 16))
-                {
-                    std::cerr << "port number to listen on is out of range" << std::endl;
-                    return EXIT_FAILURE;
-                }
-
-                _listen = true;
-                break;
-            case 'c':
-                _connect = true;
-                break;
-            case 'C':
-                if (_connect_port >= (1 << 16))
-                {
-                    std::cerr << "port number to connect to is out of range" << std::endl;
-                    return EXIT_FAILURE;
-                }
-
-                _connect = true;
-                break;
-            case POPT_ERROR_NOARG:
-            case POPT_ERROR_BADOPT:
-            case POPT_ERROR_BADNUMBER:
-            case POPT_ERROR_OVERFLOW:
-                std::cerr << poptStrerror(rc) << " " << poptBadOption(poptcon, 0) << std::endl;
-                return EXIT_FAILURE;
-            case POPT_ERROR_OPTSTOODEEP:
-            case POPT_ERROR_BADQUOTE:
-            case POPT_ERROR_ERRNO:
-            default:
-                std::cerr << "logic error in argument parsing" << std::endl;
-                return EXIT_FAILURE;
-        }
-    }
-
-    try
-    {
-        std::ostringstream oss;
-        const char* init_listen = _listen_host;
-
-        if (strcmp(_listen_host, "auto") == 0)
-        {
-            if (!busybee_discover(&_listen_ip))
-            {
-                std::cerr << "cannot automatically discover local address; specify one manually" << std::endl;
-                return EXIT_FAILURE;
-            }
-
-            oss << _listen_ip;
-            init_listen = oss.str().c_str();
-        }
-
-        char lport[21];
-        sprintf(lport, "%lu", _listen_port);
-        char cport[21];
-        sprintf(cport, "%lu", _connect_port);
-
-        const char* args[14];
-        args[0] = "replicant";
-        args[1] = "daemon";
-        args[2] = _daemonize ? "-d" : "-f";
-        args[3] = "--data";
-        args[4] = _data;
-        args[5] = "--listen";
-        args[6] = _listen_host;
-        args[7] = "--listen-port";
-        args[8] = lport;
-        args[9] = 0;
-
-        if (_connect)
-        {
-            args[9] = "--connect";
-            args[10] = _connect_host;
-            args[11] = "--connect-port";
-            args[12] = cport;
-            args[13] = 0;
-        }
-
-        if (!_connect)
-        {
-            pid_t child = fork();
-
-            if (child < 0)
-            {
-                perror("could not fork coordinator");
-                return EXIT_FAILURE;
-            }
-            else if (child == 0)
-            {
-                sleep(1);
-                args[0] = "hyperdex";
-                args[1] = "initialize-cluster";
-                args[2] = "--host";
-                args[3] = init_listen;
-                args[4] = "--port";
-                args[5] = lport;
-                args[6] = 0;
-
-                if (execvp("hyperdex", const_cast<char*const*>(args)) < 0)
-                {
-                    perror("could not initialize coordinator");
-                    return EXIT_FAILURE;
-                }
-
-                abort();
-            }
-            else
-            {
-                // pass
-            }
-        }
-
-        if (execvp("replicant", const_cast<char*const*>(args)) < 0)
-        {
-            perror("could not exec coordinator");
-            return EXIT_FAILURE;
-        }
-    }
-    catch (po6::error& e)
-    {
-        std::cerr << "system error:  " << e.what() << std::endl;
+        std::cerr << "cannot locate the HyperDex coordinator library" << std::endl;
         return EXIT_FAILURE;
     }
+
+    // setup the environment
+    if (setenv("REPLICANT_WRAP", "hyperdex-coordinator", 1) < 0)
+    {
+        std::cerr << "could not setup the environment: " << strerror(errno) << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    // generate a random token
+    uint64_t token;
+    po6::io::fd sysrand(open("/dev/urandom", O_RDONLY));
+
+    if (sysrand.get() < 0 ||
+        sysrand.read(&token, sizeof(token)) != sizeof(token))
+    {
+        std::cerr << "could not generate random token for cluster" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    char token_buf[21];
+    snprintf(token_buf, 21, "%ld", token);
+
+    // exec replicant daemon
+    std::vector<const char*> args;
+    args.push_back("replicant");
+    args.push_back("daemon");
+
+    for (int i = 1; i < argc; ++i)
+    {
+        args.push_back(argv[i]);
+    }
+
+    args.push_back("--object");
+    args.push_back("hyperdex");
+    args.push_back("--library");
+    args.push_back(libpath.get());
+    args.push_back("--init-string");
+    args.push_back(token_buf);
+    args.push_back(NULL);
+
+    if (execvp("replicant", const_cast<char*const*>(&args[0])) < 0)
+    {
+        perror("could not exec replicant");
+        return EXIT_FAILURE;
+    }
+
+    abort();
 }

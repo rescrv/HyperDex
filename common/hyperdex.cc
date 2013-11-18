@@ -26,10 +26,11 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // HyperDex
-#include "hyperdex.h"
+#include <hyperdex.h>
+#include "visibility.h"
 #include "common/macros.h"
 
-std::ostream&
+HYPERDEX_API std::ostream&
 operator << (std::ostream& lhs, hyperdatatype rhs)
 {
     switch (rhs)
@@ -68,7 +69,7 @@ operator << (std::ostream& lhs, hyperdatatype rhs)
     return lhs;
 }
 
-std::ostream&
+HYPERDEX_API std::ostream&
 operator << (std::ostream& lhs, hyperpredicate rhs)
 {
     switch (rhs)
@@ -77,6 +78,12 @@ operator << (std::ostream& lhs, hyperpredicate rhs)
         STRINGIFY(HYPERPREDICATE_EQUALS);
         STRINGIFY(HYPERPREDICATE_LESS_EQUAL);
         STRINGIFY(HYPERPREDICATE_GREATER_EQUAL);
+        STRINGIFY(HYPERPREDICATE_CONTAINS_LESS_THAN);
+        STRINGIFY(HYPERPREDICATE_REGEX);
+        STRINGIFY(HYPERPREDICATE_LENGTH_EQUALS);
+        STRINGIFY(HYPERPREDICATE_LENGTH_LESS_EQUAL);
+        STRINGIFY(HYPERPREDICATE_LENGTH_GREATER_EQUAL);
+        STRINGIFY(HYPERPREDICATE_CONTAINS);
         default:
             lhs << "unknown hyperpredicate";
             break;

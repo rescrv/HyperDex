@@ -1,0 +1,316 @@
+\chapter{Data Types}
+\label{chap:data-types}
+
+As we saw in the previous chapter, HyperDex offers support for the basic
+\code{get}, \code{put}, and \code{search} operations on strings and integers.
+In this chapter, we explore HyperDex's richer datatypes and atomic operations on
+lists, sets, and maps.  We will see how providing efficient atomic operations on
+these rich, native datastructures greatly simplifies design for applications
+with complicated data layout requirements.
+
+By the end of this chapter you'll be familiar with all datatypes provided by
+HyperDex, and a number of atomic operations.
+
+\section{Setup}
+
+As in the previous chapter, the first step is to deploy the cluster and connect
+a client.   First we launch and initialize the coordinator:
+
+\begin{consolecode}
+hyperdex coordinator -f -l 127.0.0.1 -p 1982
+\end{consolecode}
+
+Next, let's launch a few daemon processes to store data.  Execute the following
+commands (note that each instance binds to a different port and has a different
+\code{/path/to/data}):
+
+\begin{consolecode}
+hyperdex daemon -f --listen=127.0.0.1 --listen-port=2012 \
+                   --coordinator=127.0.0.1 --coordinator-port=1982 --data=/path/to/data1
+hyperdex daemon -f --listen=127.0.0.1 --listen-port=2013 \
+                   --coordinator=127.0.0.1 --coordinator-port=1982 --data=/path/to/data2
+hyperdex daemon -f --listen=127.0.0.1 --listen-port=2014 \
+                   --coordinator=127.0.0.1 --coordinator-port=1982 --data=/path/to/data3
+\end{consolecode}
+
+This brings up three different daemons ready to serve in the HyperDex cluster.
+Finally, we create a space which makes use of all three systems in the cluster.
+In this example, let's create a space that may be suitable for storing profiles
+in a social network:
+
+\begin{pythoncode}
+>>> import hyperdex.admin
+>>> a = hyperdex.admin.Admin('127.0.0.1', 1982)
+>>> a.add_space('''
+... space profiles
+... key username
+... attributes
+...    string first,
+...    string last,
+...    int profile_views,
+...    list(string) pending_requests,
+...    set(string) hobbies,
+...    map(string, string) unread_messages,
+...    map(string, int) upvotes
+... subspace first, last
+... subspace profile_views
+... ''')
+True
+>>> import hyperdex.client
+>>> c = hyperdex.client.Client('127.0.0.1', 1982)
+\end{pythoncode}
+
+Finally, let's create a profile for John Smith that we can use in the rest of
+this chapter.
+
+\begin{pythoncode}
+>>> c.put('profiles', 'jsmith1', {'first': 'John', 'last': 'Smith'})
+True
+>>> c.get('profiles', 'jsmith1')
+{'first': 'John', 'last': 'Smith',
+ 'profile_views': 0,
+ 'pending_requests': [],
+ 'hobbies': set([]),
+ 'unread_messages': {},
+ 'upvotes': {}}
+\end{pythoncode}
+
+\section{Strings}
+
+The basic datatype in HyperDex is a byte string.  If you don't specify the type
+of an attribute when creating a space, it is automatically treated as an 8-bit
+bytestring.  This means that you'll have to encode and decode unicode strings as
+appropriate.  For example, if John wanted to add an accent to his name on his
+social network page, the code could look like:
+
+\begin{pythoncode}
+>>> c.put('profiles', 'jsmith1', {'first': u'Jóhn'.encode('utf8')})
+True
+\end{pythoncode}
+
+This encodes the string to raw bytes using UTF-8.  When fetching his profile it
+is necessary to decode the UTF-8:
+
+\begin{pythoncode}
+>>> c.get('profiles', 'jsmith1')['first']
+'J\xc3\x83\xc2\xb3hn'
+>>> c.get('profiles', 'jsmith1')['first'].decode('utf8')
+u'Jóhn'
+>>> c.put('profiles', 'jsmith1', {'first': 'John', 'last': 'Smith'})
+True
+\end{pythoncode}
+
+Of course, it's always possible to change John's name back to its unaccented
+form:
+
+\begin{pythoncode}
+>>> c.put('profiles', 'jsmith1', {'first': 'John', 'last': 'Smith'})
+True
+>>> c.get('profiles', 'jsmith1')['first']
+'John'
+\end{pythoncode}
+
+HyperDex knows nothing about encodings, so it is up to the application to encode
+or decode data appropriately.
+
+\section{Integers}
+
+As we've already seen, HyperDex supports \code{get} and \code{put} operations on
+integers.  In addition to these basic operations, HyperDex provides atomic
+opertions to manipulate integers using basic math operations.  This is useful
+when implementing features such as page-view counters.  Let's add support for
+tracking the profile views of a page by incrementing the counter:
+
+\begin{pythoncode}
+>>> c.atomic_add('profiles', 'jsmith1', {'profile_views': 1})
+True
+>>> c.get('profiles', 'jsmith1')
+{'first': 'John', 'last': 'Smith',
+ 'profile_views': 1,
+ 'pending_requests': [],
+ 'hobbies': set([]),
+ 'unread_messages': {},
+ 'upvotes': {}}
+\end{pythoncode}
+
+Note that this change required just one request to HyperDex.  The server
+atomically examines the current value, and changes it by the amount specified.
+In this case, the \code{profile\_views} attribute is incremented by one.
+
+HyperDex supports a full range of basic operations including:
+\begin{itemize}[noitemsep,nolistsep]
+\item \code{atomic\_add}
+\item \code{atomic\_sub}
+\item \code{atomic\_mul}
+\item \code{atomic\_div}
+\item \code{atomic\_mod}
+\item \code{atomic\_and}
+\item \code{atomic\_or}
+\item \code{atomic\_xor}
+\end{itemize}
+
+\section{Floats}
+
+HyperDex also supports double-precision floating point types.  Like integers,
+floats support range searches and atomic operations.
+
+\section{Lists}
+
+Let's add support for friend requests using HyperDex lists the basis of the
+feature.  For this we'll use the \code{pending\_requests} attribute in the
+\code{profiles} space.
+ 
+Imagine that shortly after joining, John Smith receives a friend request from
+his friend Brian Jones.  Behind the scenes, this could be implemented with a
+simple list operation, pushing the friend request onto John's
+\code{pending\_requests}:
+
+\begin{pythoncode}
+>>> c.list_rpush('profiles', 'jsmith1', {'pending_requests': 'bjones1'})
+True
+>>> c.get('profiles', 'jsmith1')['pending_requests']
+['bjones1']
+\end{pythoncode}
+
+The operation \code{list\_rpush} is guaranteed to be performed atomically, and
+will be applied consistently with respect to all other operations on the same
+list.
+
+\begin{comment} % XXX
+Note that lists provide both an lpush and rpush operation. The former adds the
+new element at the head of the list, while the latter adds at the tail. They
+also provide lpop operation for taking an element off the head of the list.
+Coupled together, these operations provide a comprehensive list datatype that
+can be used to implement fault-tolerant lists of all kinds. For instnace, one
+can implement work queues and generalized producer-consumer patterns on top of
+HyperDex lists in a pretty straightforward fashion. In this case, producers
+would push at one end of the list (the tail, with an rpush) and consumers would
+pop from the other (the head, with a pop). Since the operations are atomic, no
+additional synchronization would be necessary, enabling a high-performance
+implementation.
+\end{comment}
+
+\section{Sets}
+
+Our social networking app captures the notion of hobbies.  A set of strings is a
+natural representation for a user's hobbies, as each hobby is represented just
+once and may be added or removed.
+
+Let's add some hobbies to John's profile:
+
+\begin{pythoncode}
+>>> hobbies = set(['hockey', 'basket weaving', 'hacking',
+...                'air guitar rocking'])
+>>> c.set_union('profiles', 'jsmith1', {'hobbies': hobbies})
+True
+>>> c.set_add('profiles', 'jsmith1', {'hobbies': 'gaming'})
+True
+>>> c.get('profiles', 'jsmith1')['hobbies']
+set(['hacking', 'air guitar rocking', 'hockey', 'gaming', 'basket weaving'])
+\end{pythoncode}
+
+If John Smith decides that his life's dream is to just write code, he may decide
+to join a group on the social network filled with like-minded individuals.  We
+can use HyperDex's intersect primitive to narrow down his interests:
+
+\begin{pythoncode}
+>>> c.set_intersect('profiles', 'jsmith1',
+...                 {'hobbies': set(['hacking', 'programming'])})
+True
+>>> c.get('profiles', 'jsmith1')['hobbies']
+set(['hacking'])
+\end{pythoncode}
+
+Notice how John's hobbies become the intersection of his previous hobbies and
+the ones named in the operation.
+
+Overall, HyperDex supports simple set assignment (using the \code{put}
+interface), adding and removing elements with \code{set\_add} and
+\code{set\_remove}, taking the union of a set with \code{set\_union} and storing
+the intersection of a set with \code{set\_intersect}.
+
+\section{Maps}
+
+Lastly, our social networking system needs a means for allowing users to
+exchange messages.  Let's demonstrate how we can accomplish this with the
+\code{unread\_messages} attribute. In this contrived example, we're going to use
+an object attribute as a map (aka dictionary) to map from a user name to a
+string that contains the message from that user, as follows:
+
+\begin{pythoncode}
+>>> c.map_add('profiles', 'jsmith1',
+...           {'unread_messages' : {'bjones1' : 'Hi John'}})
+True
+>>> c.map_add('profiles', 'jsmith1',
+...           {'unread_messages' : {'timmy' : 'Lunch?'}})
+True
+>>> c.get('profiles', 'jsmith1')['unread_messages']
+{'timmy': 'Lunch?', 'bjones1': 'Hi John'}
+\end{pythoncode}
+
+HyperDex enables map contents to be modified in-place within the map.  For
+example, if Brian sent another message to John, we could separate the messages
+with "|" and just append the new message:
+
+\begin{pythoncode}
+>>> c.map_string_append('profiles', 'jsmith1',
+...                      {'unread_messages' : {'bjones1' : ' | Want to hang out?'}})
+True
+>>> c.get('profiles', 'jsmith1')['unread_messages']
+{'timmy': 'Lunch?', 'bjones1': 'Hi John | Want to hang out?'}
+\end{pythoncode}
+
+Note that maps may have strings or integers as values, and every atomic
+operation available for strings and integers is also available in map form,
+operating on the values of the map.
+
+For the sake of illustrating maps involving integers, let's imagine that we will
+use a map to keep track of the plus-one's and like/dislike's on John's status
+updates. 
+
+First, let's create some counters that will keep the net count of up and down
+votes corresponding to John's link posts, with ids "http://url1.com" and
+"http://url2.com". 
+
+\begin{pythoncode}
+>>> url1 = "http://url1.com"
+>>> url2 = "http://url2.com"
+>>> c.map_add('profiles', 'jsmith1',
+...           {'upvotes' : {url1 : 1, url2: 1}})
+True
+\end{pythoncode}
+
+So John's posts start out with a counter set to 1, as shown above. 
+
+Imagine that two other users, Jane and Elaine, upvote John's first link post, we
+would implement it like this:
+
+\begin{pythoncode}
+>>> c.map_atomic_add('profiles', 'jsmith1', {'upvotes' : {url1: 1}})
+True
+>>> c.map_atomic_add('profiles', 'jsmith1', {'upvotes' : {url1: 1}})
+True
+\end{pythoncode}
+
+Charlie, sworn enemy of John, can downvote both of John's urls like this:
+
+\begin{pythoncode}
+>>> c.map_atomic_add('profiles', 'jsmith1', {'upvotes' : {url1: -1, url2: -1}})
+True
+\end{pythoncode}
+
+This shows that any map operation can operate atomically on a group of map
+attributes at the same time. This is fully transactional; all such operations
+will be ordered in exactly the same way on all replicas, and there is no
+opportunity for divergence, even through failures.
+
+Checking where we stand:
+
+\begin{pythoncode}
+>>> c.get('profiles', 'jsmith1')['upvotes']
+{'http://url1.com': 2, 'http://url2.com': 0}
+\end{pythoncode}
+
+All of the preceding operations could have been issued concurrently -- the
+results will be the same because they commute with each other and are executed
+atomically.

@@ -32,10 +32,10 @@
 #include <e/buffer.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/ids.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class transfer
 {
@@ -73,6 +73,6 @@ operator >> (e::unpacker, transfer& t);
 size_t
 pack_size(const transfer& t);
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_transfer_h_

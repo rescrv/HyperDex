@@ -28,13 +28,12 @@
 #ifndef hyperdex_common_macros_h_
 #define hyperdex_common_macros_h_
 
-// XXX get rid of these ones
-#define XXSTR(x) #x
-#define XSTR(x) XXSTR(x)
-#define STRINGIFY(x) case (x): lhs << XSTR(x); break
+#define XSTR(x) #x
+#define STR(x) XSTR(x)
+#define STRINGIFY(x) case (x): lhs << STR(x); break
+#define CSTRINGIFY(x) case (x): return STR(x);
 
-#define str(x) #x
-#define xstr(x) str(x)
-#define stringify(x) case (x): lhs << xstr(x); break
+#define XCONCAT(x, y) x ## y
+#define CONCAT(x, y) XCONCAT(x, y)
 
 #endif // hyperdex_common_macros_h_

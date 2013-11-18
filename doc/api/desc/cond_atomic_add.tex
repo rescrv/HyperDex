@@ -1,0 +1,9 @@
+Conditionally add the specified number to the existing value for each attribute.
+
+The operation will modify the object if and only if all \texttt{checks} are true
+for the latest version of the object.  This test is atomic with the write.  If
+the object does not exist, the checks will fail.
+
+\input{\topdir/api/shards/chain-rtt}
+
+\input{\topdir/api/shards/linearizable}

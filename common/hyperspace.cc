@@ -37,6 +37,7 @@ space :: space()
     : id()
     , name("")
     , fault_tolerance()
+    , predecessor_width(1)
     , sc()
     , subspaces()
     , m_c_strs()
@@ -48,6 +49,7 @@ space :: space(const char* new_name, const hyperdex::schema& _sc)
     : id()
     , name(new_name)
     , fault_tolerance()
+    , predecessor_width(1)
     , sc(_sc)
     , subspaces()
     , m_c_strs()
@@ -60,6 +62,7 @@ space :: space(const space& other)
     : id(other.id)
     , name(other.name)
     , fault_tolerance(other.fault_tolerance)
+    , predecessor_width(other.predecessor_width)
     , sc(other.sc)
     , subspaces(other.subspaces)
     , m_c_strs()
@@ -264,6 +267,7 @@ hyperdex :: pack_size(const space& s)
 subspace :: subspace()
     : id()
     , attrs()
+    , indices()
     , regions()
 {
 }
@@ -271,6 +275,7 @@ subspace :: subspace()
 subspace :: subspace(const subspace& other)
     : id(other.id)
     , attrs(other.attrs)
+    , indices(other.indices)
     , regions(other.regions)
 {
 }
@@ -279,11 +284,34 @@ subspace :: ~subspace() throw ()
 {
 }
 
+bool
+subspace :: indexed(uint16_t attr) const
+{
+    for (size_t i = 0; i < attrs.size(); ++i)
+    {
+        if (attrs[i] == attr)
+        {
+            return true;
+        }
+    }
+
+    for (size_t i = 0; i < indices.size(); ++i)
+    {
+        if (indices[i] == attr)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 subspace&
 subspace :: operator = (const subspace& rhs)
 {
     id = rhs.id;
     attrs = rhs.attrs;
+    indices = rhs.indices;
     regions = rhs.regions;
     return *this;
 }
@@ -292,12 +320,18 @@ e::buffer::packer
 hyperdex :: operator << (e::buffer::packer pa, const subspace& s)
 {
     uint16_t num_attrs = s.attrs.size();
+    uint16_t num_indices = s.indices.size();
     uint32_t num_regions = s.regions.size();
-    pa = pa << s.id.get() << num_attrs << num_regions;
+    pa = pa << s.id.get() << num_attrs << num_indices << num_regions;
 
     for (size_t i = 0; i < num_attrs; ++i)
     {
         pa = pa << s.attrs[i];
+    }
+
+    for (size_t i = 0; i < num_indices; ++i)
+    {
+        pa = pa << s.indices[i];
     }
 
     for (size_t i = 0; i < num_regions; ++i)
@@ -313,10 +347,12 @@ hyperdex :: operator >> (e::unpacker up, subspace& s)
 {
     uint64_t id;
     uint16_t num_attrs;
+    uint16_t num_indices;
     uint32_t num_regions;
-    up = up >> id >> num_attrs >> num_regions;
+    up = up >> id >> num_attrs >> num_indices >> num_regions;
     s.id = subspace_id(id);
     s.attrs.clear();
+    s.indices.clear();
     s.regions.resize(num_regions);
 
     for (size_t i = 0; !up.error() && i < num_attrs; ++i)
@@ -324,6 +360,13 @@ hyperdex :: operator >> (e::unpacker up, subspace& s)
         uint16_t attr;
         up = up >> attr;
         s.attrs.push_back(attr);
+    }
+
+    for (size_t i = 0; !up.error() && i < num_indices; ++i)
+    {
+        uint16_t attr;
+        up = up >> attr;
+        s.indices.push_back(attr);
     }
 
     for (size_t i = 0; !up.error() && i < num_regions; ++i)
@@ -340,7 +383,9 @@ hyperdex :: pack_size(const subspace& s)
     size_t sz = sizeof(uint64_t) /* id */
               + sizeof(uint16_t) /* num_attrs */
               + sizeof(uint32_t) /* num_regions */
-              + sizeof(uint16_t) * s.attrs.size();
+              + sizeof(uint16_t) * s.attrs.size()
+              + sizeof(uint16_t) /* indices.size() */
+              + sizeof(uint16_t) * s.indices.size(); /* indices */
 
     for (size_t i = 0; i < s.regions.size(); ++i)
     {

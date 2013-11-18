@@ -31,33 +31,26 @@
 // STL
 #include <tr1/memory>
 
-// LevelDB
-#include <leveldb/db.h>
-
 // e
 #include <e/intrusive_ptr.h>
 
 // HyperDex
-#include "daemon/leveldb.h"
 #include "daemon/state_transfer_manager.h"
 
 class hyperdex::state_transfer_manager::transfer_in_state
 {
     public:
-        transfer_in_state(const transfer& xfer,
-                          datalayer* data,
-                          leveldb_snapshot_ptr snap);
+        transfer_in_state(const transfer& xfer);
         ~transfer_in_state() throw ();
 
     public:
         transfer xfer;
         po6::threads::mutex mtx;
-        bool cleared_capture;
         uint64_t upper_bound_acked;
         std::list<e::intrusive_ptr<pending> > queued;
-        bool need_del;
-        e::intrusive_ptr<pending> prev;
-        datalayer::region_iterator del_iter;
+        bool handshake_complete;
+        bool wipe;
+        bool wiped;
 
     private:
         friend class e::intrusive_ptr<transfer_in_state>;

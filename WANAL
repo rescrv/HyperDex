@@ -1,1 +1,0 @@
--pedantic -std=c++98 -Wabi -Wall -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Weffc++ -Wextra -Wfloat-equal -Wformat=2 -Winit-self -Winline -Woverloaded-virtual -Wshadow -Wsign-promo -Wstrict-overflow -Wstrict-aliasing -Wswitch-default -Wswitch-enum -Wunsafe-loop-optimizations -Wwrite-strings -Wno-long-long

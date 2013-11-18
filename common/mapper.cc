@@ -30,7 +30,7 @@
 
 using hyperdex::mapper;
 
-mapper :: mapper(hyperdex::configuration* config)
+mapper :: mapper(const hyperdex::configuration* config)
     : m_config(config)
 {
 }

@@ -31,8 +31,10 @@
 // C++
 #include <iostream>
 
-namespace hyperdex
-{
+// HyperDex
+#include "namespace.h"
+
+BEGIN_HYPERDEX_NAMESPACE
 
 // reconfigure_returncode occupies [8704, 8832)
 enum reconfigure_returncode
@@ -46,6 +48,6 @@ enum reconfigure_returncode
 std::ostream&
 operator << (std::ostream& lhs, reconfigure_returncode rhs);
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_daemon_reconfigure_returncode_h_

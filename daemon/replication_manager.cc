@@ -25,11 +25,13 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#define __STDC_LIMIT_MACROS
+
 // POSIX
 #include <signal.h>
 
-// Google CityHash
-#include <city.h>
+// STL
+#include <algorithm>
 
 // Google Log
 #include <glog/logging.h>
@@ -38,51 +40,43 @@
 #include <e/time.h>
 
 // HyperDex
+#include "common/datatypes.h"
 #include "common/hash.h"
 #include "common/serialization.h"
-#include "datatypes/apply.h"
-#include "datatypes/validate.h"
+#include "cityhash/city.h"
 #include "daemon/daemon.h"
 #include "daemon/replication_manager.h"
-#include "daemon/replication_manager_keyholder.h"
-#include "daemon/replication_manager_keypair.h"
+#include "daemon/replication_manager_key_region.h"
+#include "daemon/replication_manager_key_state.h"
 #include "daemon/replication_manager_pending.h"
 
 using hyperdex::reconfigure_returncode;
 using hyperdex::replication_manager;
 
-#define _CONCAT(x, y) x ## y
-#define CONCAT(x, y) _CONCAT(x, y)
-
-// This macro should be used in the body of non-static members to hold the
-// appropriate lock for the request.  E should be an entity whose region the key
-// resides in.  K is the key for the object being protected.
-#define HOLD_LOCK_FOR_KEY(R, K) \
-    e::striped_lock<po6::threads::mutex>::hold CONCAT(_anon, __LINE__)(&m_keyholder_locks, get_lock_num(R, K))
-#define CLEANUP_KEYHOLDER(R, K, KH) \
-    if (kh->empty()) \
-    { \
-        erase_keyholder(ri, key); \
-    }
-
 replication_manager :: replication_manager(daemon* d)
     : m_daemon(d)
-    , m_keyholder_locks(1024)
-    , m_keyholders(16)
-    , m_counters()
+    , m_key_states()
+    , m_idgen()
+    , m_idcol()
+    , m_stable_counters()
+    , m_unstable_regions()
+    , m_checkpoint(0)
+    , m_need_check(1)
+    , m_timestamps()
+    , m_background_thread(std::tr1::bind(&replication_manager::background_thread, this))
+    , m_block_background_thread()
+    , m_wakeup_background_thread(&m_block_background_thread)
+    , m_wakeup_reconfigurer(&m_block_background_thread)
     , m_shutdown(true)
-    , m_retransmitter(std::tr1::bind(&replication_manager::retransmitter, this))
-    , m_garbage_collector(std::tr1::bind(&replication_manager::garbage_collector, this))
-    , m_block_both()
-    , m_wakeup_retransmitter(&m_block_both)
-    , m_wakeup_garbage_collector(&m_block_both)
-    , m_wakeup_reconfigurer(&m_block_both)
-    , m_need_retransmit(false)
-    , m_lower_bounds()
     , m_need_pause(false)
-    , m_paused_retransmitter(false)
-    , m_paused_garbage_collector(false)
+    , m_paused(false)
+    , m_need_post_reconfigure(false)
+    , m_need_periodic(false)
+    , m_lower_bounds()
 {
+    m_key_states.set_empty_key(key_region(region_id(UINT64_MAX), e::slice("", 0)));
+    m_key_states.set_deleted_key(key_region(region_id(UINT64_MAX - 1), e::slice("", 0)));
+    check_is_needed();
 }
 
 replication_manager :: ~replication_manager() throw ()
@@ -93,9 +87,8 @@ replication_manager :: ~replication_manager() throw ()
 bool
 replication_manager :: setup()
 {
-    po6::threads::mutex::hold holdr(&m_block_both);
-    m_retransmitter.start();
-    m_garbage_collector.start();
+    po6::threads::mutex::hold holdr(&m_block_background_thread);
+    m_background_thread.start();
     m_shutdown = false;
     return true;
 }
@@ -109,7 +102,7 @@ replication_manager :: teardown()
 void
 replication_manager :: pause()
 {
-    po6::threads::mutex::hold hold(&m_block_both);
+    po6::threads::mutex::hold hold(&m_block_background_thread);
     assert(!m_need_pause);
     m_need_pause = true;
 }
@@ -117,12 +110,11 @@ replication_manager :: pause()
 void
 replication_manager :: unpause()
 {
-    po6::threads::mutex::hold hold(&m_block_both);
+    po6::threads::mutex::hold hold(&m_block_background_thread);
     assert(m_need_pause);
-    m_wakeup_retransmitter.broadcast();
-    m_wakeup_garbage_collector.broadcast();
+    m_wakeup_background_thread.broadcast();
     m_need_pause = false;
-    m_need_retransmit = true;
+    m_need_post_reconfigure = true;
 }
 
 void
@@ -130,178 +122,177 @@ replication_manager :: reconfigure(const configuration&,
                                    const configuration& new_config,
                                    const server_id&)
 {
-    {
-        po6::threads::mutex::hold hold(&m_block_both);
-        assert(m_need_pause);
+    wait_until_paused();
 
-        while (!m_paused_retransmitter || !m_paused_garbage_collector)
+    std::vector<region_id> key_regions;
+    new_config.key_regions(m_daemon->m_us, &key_regions);
+    std::sort(key_regions.begin(), key_regions.end());
+    m_idgen.adopt(&key_regions[0], key_regions.size());
+    m_idcol.adopt(&key_regions[0], key_regions.size());
+
+    // iterate over all key states; cleanup dead ones, and bump idgen
+    std::vector<region_id> transfers_in_regions;
+    new_config.transfers_in_regions(m_daemon->m_us, &transfers_in_regions);
+    std::sort(transfers_in_regions.begin(), transfers_in_regions.end());
+
+    for (key_map_t::iterator it(&m_key_states); it.valid(); it.next())
+    {
+        key_state* ks = it.get();
+        ks->clear_deferred();
+
+        if (std::binary_search(transfers_in_regions.begin(),
+                               transfers_in_regions.end(),
+                               ks->state_key().region))
         {
-            m_wakeup_reconfigurer.wait();
+            ks->clear();
+        }
+
+        if (std::binary_search(key_regions.begin(),
+                               key_regions.end(),
+                               ks->state_key().region))
+        {
+            bool x;
+            x = m_idgen.bump(ks->state_key().region, ks->max_seq_id());
+            assert(x);
         }
     }
 
-    std::map<uint64_t, uint64_t> seq_ids;
-    std::vector<transfer> transfers_in;
-    new_config.transfer_in_regions(m_daemon->m_us, &transfers_in);
-    std::vector<region_id> transfer_in_regions;
-    transfer_in_regions.reserve(transfers_in.size());
-
-    for (size_t i = 0; i < transfers_in.size(); ++i)
+    // iterate over all regions on disk/lb, and bump idgen
+    for (size_t i = 0; i < key_regions.size(); ++i)
     {
-        transfer_in_regions.push_back(transfers_in[i].rid);
-    }
+        // from disk
+        uint64_t seq_id = 0;
+        m_daemon->m_data.max_seq_id(key_regions[i], &seq_id);
+        bool x;
+        x = m_idgen.bump(key_regions[i], seq_id);
+        assert(x);
+        // from lower bound
+        x = m_idcol.lower_bound(key_regions[i], &seq_id);
+        assert(x);
 
-    std::sort(transfer_in_regions.begin(), transfer_in_regions.end());
-
-    for (keyholder_map_t::iterator it = m_keyholders.begin();
-            it != m_keyholders.end(); it.next())
-    {
-        region_id ri(it.key().region);
-        e::slice key(it.key().key.data(), it.key().key.size());
-        HOLD_LOCK_FOR_KEY(ri, key);
-        e::intrusive_ptr<keyholder> kh = it.value();
-        kh->clear_deferred();
-        uint64_t max_seq_id = kh->max_seq_id();
-        seq_ids[ri.get()] = std::max(seq_ids[ri.get()], max_seq_id);
-
-        if (std::binary_search(transfer_in_regions.begin(), transfer_in_regions.end(), ri))
+        if (seq_id > 0)
         {
-            m_keyholders.remove(it.key());
+            x = m_idgen.bump(key_regions[i], seq_id - 1);
+            assert(x);
         }
     }
 
+    // figure out when we're stable
+    m_stable_counters.copy_from(m_idgen);
+    m_unstable_regions.clear();
+    new_config.point_leaders(m_daemon->m_us, &m_unstable_regions);
+    check_is_needed();
+}
+
+void
+replication_manager :: debug_dump()
+{
+    pause();
+    wait_until_paused();
     std::vector<region_id> regions;
-    new_config.point_leaders(m_daemon->m_us, &regions);
-    std::sort(regions.begin(), regions.end());
-    m_counters.adopt(regions);
+    m_daemon->m_config.key_regions(m_daemon->m_us, &regions);
+
+    // print counters
+    LOG(INFO) << "region counters ===============================================================";
 
     for (size_t i = 0; i < regions.size(); ++i)
     {
-        std::map<uint64_t, uint64_t>::iterator it = seq_ids.find(regions[i].get());
-        uint64_t non_counter_max = 0;
-
-        if (it == seq_ids.end())
-        {
-            m_daemon->m_data.max_seq_id(regions[i], &non_counter_max);
-            ++non_counter_max;
-        }
-        else
-        {
-            non_counter_max = it->second + 1;
-        }
-
-        bool found = m_counters.take_max(regions[i], non_counter_max);
-        assert(found);
+        bool x;
+        uint64_t idgen;
+        x = m_idgen.peek(regions[i], &idgen);
+        assert(x);
+        uint64_t lb;
+        x = m_idcol.lower_bound(regions[i], &lb);
+        assert(x);
+        uint64_t stable;
+        x = m_stable_counters.peek(regions[i], &stable);
+        assert(x);
+        LOG(INFO) << regions[i] << " idgen=" << idgen << " lb=" << lb << " stable=" << stable;
     }
+
+    LOG(INFO) << "===============================================================================";
+
+    // print key state
+    LOG(INFO) << "key states ====================================================================";
+
+    for (key_map_t::iterator it(&m_key_states); it.valid(); it.next())
+    {
+        key_state* ks = it.get();
+        LOG(INFO) << "state for " << ks->state_key().region << " " << ks->state_key().key.hex();
+        ks->debug_dump();
+    }
+
+    LOG(INFO) << "===============================================================================";
+    unpause();
 }
 
 void
 replication_manager :: client_atomic(const server_id& from,
                                      const virtual_server_id& to,
                                      uint64_t nonce,
+                                     bool erase,
                                      bool fail_if_not_found,
                                      bool fail_if_found,
-                                     bool erase,
                                      const e::slice& key,
-                                     std::vector<attribute_check>* checks,
-                                     std::vector<funcall>* funcs)
+                                     const std::vector<attribute_check>& checks,
+                                     const std::vector<funcall>& funcs)
 {
-    region_id ri(m_daemon->m_config.get_region_id(to));
-    const schema* sc = m_daemon->m_config.get_schema(ri);
-
-    if (!validate_as_type(key, sc->attrs[0].type))
+    if (m_daemon->m_config.read_only())
     {
+        respond_to_client(to, from, nonce, NET_READONLY);
+        return;
+    }
+
+    const region_id ri(m_daemon->m_config.get_region_id(to));
+    const schema& sc(*m_daemon->m_config.get_schema(ri));
+
+    if (!datatype_info::lookup(sc.attrs[0].type)->validate(key) ||
+        validate_attribute_checks(sc, checks) != checks.size() ||
+        validate_funcs(sc, funcs) != funcs.size() ||
+        (erase && !funcs.empty()))
+    {
+        LOG(ERROR) << "dropping nonce=" << nonce << " from client=" << from
+                   << " because the key, checks, or funcs don't validate";
         respond_to_client(to, from, nonce, NET_BADDIMSPEC);
         return;
     }
 
-    // Make sure this message is to the point-leader.
-    if (!m_daemon->m_config.is_point_leader(to))
+    if (m_daemon->m_config.point_leader(ri, key) != to)
     {
+        LOG(ERROR) << "dropping nonce=" << nonce << " from client=" << from
+                   << " because it doesn't map to " << ri;
         respond_to_client(to, from, nonce, NET_NOTUS);
         return;
     }
 
-    HOLD_LOCK_FOR_KEY(ri, key);
-    e::intrusive_ptr<keyholder> kh = get_or_create_keyholder(ri, key);
-    bool has_old_value = false;
-    uint64_t old_version = 0;
-    std::vector<e::slice>* old_value = NULL;
-    kh->get_latest_version(&has_old_value, &old_version, &old_value);
+    key_map_t::state_reference ksr;
+    key_state* ks = get_or_create_key_state(ri, key, &ksr);
+    network_returncode nrc;
 
-    if (erase && !funcs->empty())
+    if (!ks->check_against_latest_version(sc, erase, fail_if_not_found, fail_if_found, checks, &nrc))
     {
-        respond_to_client(to, from, nonce, NET_BADDIMSPEC);
-        CLEANUP_KEYHOLDER(ri, key, kh);
+        respond_to_client(to, from, nonce, nrc);
         return;
     }
 
-    if (!has_old_value && (erase || fail_if_not_found))
-    {
-        respond_to_client(to, from, nonce, NET_NOTFOUND);
-        CLEANUP_KEYHOLDER(ri, key, kh);
-        return;
-    }
-
-    if (has_old_value && fail_if_found)
-    {
-        respond_to_client(to, from, nonce, NET_CMPFAIL);
-        CLEANUP_KEYHOLDER(ri, key, kh);
-        return;
-    }
-
-    if (has_old_value && old_value->size() + 1 != sc->attrs_sz)
-    {
-        LOG(ERROR) << "received a corrupt object"; // XXX don't leave the client hanging
-        CLEANUP_KEYHOLDER(ri, key, kh);
-        return;
-    }
-
-    std::vector<e::slice> tmp_value;
-
-    if (!old_value)
-    {
-        old_value = &tmp_value;
-    }
-
-    old_value->resize(sc->attrs_sz - 1);
-
-    // Create a new version of the object in a contiguous buffer using the old
-    // version and the funcalls.
-    std::tr1::shared_ptr<e::buffer> backing;
-    std::vector<e::slice> new_value;
-    microerror error;
-    size_t passed = perform_checks_and_apply_funcs(sc, *checks, *funcs, key, *old_value,
-                                                   &backing, &new_value, &error);
-
-    if (passed != checks->size() + funcs->size())
-    {
-        /* XXX say why */
-        respond_to_client(to, from, nonce, error == MICROERR_OVERFLOW ? NET_OVERFLOW : NET_CMPFAIL);
-        CLEANUP_KEYHOLDER(ri, key, kh);
-        return;
-    }
-
-    bool has_new_value = !erase;
     uint64_t seq_id;
-    bool found = m_counters.lookup(ri, &seq_id);
+    bool found = m_idgen.generate_id(ri, &seq_id);
     assert(found);
 
-    e::intrusive_ptr<pending> new_pend(new pending(backing, ri, seq_id, !has_old_value && has_new_value, has_new_value, new_value, from, nonce));
-    hash_objects(ri, *sc, key, has_new_value, new_value, has_old_value, *old_value, new_pend);
-
-    if (new_pend->this_old_region != ri && new_pend->this_new_region != ri)
+    if (erase)
     {
-        respond_to_client(to, from, nonce, NET_NOTUS);
-        CLEANUP_KEYHOLDER(ri, key, kh);
-        return;
+        ks->delete_latest(sc, ri, seq_id, from, nonce);
+    }
+    else
+    {
+        if (!ks->put_from_funcs(sc, ri, seq_id, funcs, from, nonce))
+        {
+            respond_to_client(to, from, nonce, NET_OVERFLOW);
+            return;
+        }
     }
 
-    assert(!kh->has_deferred_ops());
-    kh->insert_deferred(old_version + 1, new_pend);
-    move_operations_between_queues(to, ri, *sc, key, kh);
-    assert(!kh->has_deferred_ops());
-    CLEANUP_KEYHOLDER(ri, key, kh);
+    ks->move_operations_between_queues(this, to, ri, sc);
 }
 
 void
@@ -317,55 +308,58 @@ replication_manager :: chain_op(const virtual_server_id& from,
                                 const e::slice& key,
                                 const std::vector<e::slice>& value)
 {
-    region_id ri(m_daemon->m_config.get_region_id(to));
+    const region_id ri(m_daemon->m_config.get_region_id(to));
+    const schema& sc(*m_daemon->m_config.get_schema(ri));
 
     if (retransmission && m_daemon->m_data.check_acked(ri, reg_id, seq_id))
     {
-        LOG(INFO) << "acking duplicate CHAIN_*";
         send_ack(to, from, true, reg_id, seq_id, version, key);
         return;
     }
 
-    const schema* sc = m_daemon->m_config.get_schema(ri);
-    HOLD_LOCK_FOR_KEY(ri, key);
-    e::intrusive_ptr<keyholder> kh = get_or_create_keyholder(ri, key);
+    bool valid = sc.attrs_sz > 0 &&
+                 datatype_info::lookup(sc.attrs[0].type)->validate(key);
 
-    // Check that a chain's put matches the dimensions of the space.
-    if (has_value && sc->attrs_sz != value.size() + 1)
+    if (has_value)
     {
-        LOG(INFO) << "dropping CHAIN_OP because the dimensions are incorrect";
-        CLEANUP_KEYHOLDER(ri, key, kh);
+        valid = valid && sc.attrs_sz == value.size() + 1;
+
+        for (size_t i = 0; valid && i + 1 < sc.attrs_sz; ++i)
+        {
+            valid = datatype_info::lookup(sc.attrs[i + 1].type)->validate(value[i]);
+        }
+    }
+
+    if (!valid)
+    {
+        LOG(ERROR) << "dropping CHAIN_OP because the dimensions are incorrect";
         return;
     }
 
-    e::intrusive_ptr<pending> new_op = kh->get_by_version(version);
+    key_map_t::state_reference ksr;
+    key_state* ks = get_or_create_key_state(ri, key, &ksr);
+    e::intrusive_ptr<pending> op = ks->get_version(version);
 
-    if (new_op)
+    if (op)
     {
-        new_op->recv_config_version = m_daemon->m_config.version();
-        new_op->recv = from;
+        op->recv_config_version = m_daemon->m_config.version();
+        op->recv = from;
 
-        if (new_op->acked)
+        if (op->acked)
         {
             send_ack(to, from, false, reg_id, seq_id, version, key);
         }
 
-        CLEANUP_KEYHOLDER(ri, key, kh);
         return;
     }
 
-    if (version <= kh->version_on_disk())
-    {
-        send_ack(to, from, false, reg_id, seq_id, version, key);
-        CLEANUP_KEYHOLDER(ri, key, kh);
-        return;
-    }
-
-    std::tr1::shared_ptr<e::buffer> new_backing(backing.release());
-    e::intrusive_ptr<pending> new_defer(new pending(new_backing, reg_id, seq_id, fresh, has_value, value, m_daemon->m_config.version(), from));
-    kh->insert_deferred(version, new_defer);
-    move_operations_between_queues(to, ri, *sc, key, kh);
-    CLEANUP_KEYHOLDER(ri, key, kh);
+    op = new pending(backing,
+                     reg_id, seq_id, fresh,
+                     has_value, value,
+                     server_id(), 0,
+                     m_daemon->m_config.version(), from);
+    ks->insert_deferred(version, op);
+    ks->move_operations_between_queues(this, to, ri, sc);
 }
 
 void
@@ -380,67 +374,90 @@ replication_manager :: chain_subspace(const virtual_server_id& from,
                                       const std::vector<e::slice>& value,
                                       const std::vector<uint64_t>& hashes)
 {
-    region_id ri(m_daemon->m_config.get_region_id(to));
+    const region_id ri(m_daemon->m_config.get_region_id(to));
+    const schema& sc(*m_daemon->m_config.get_schema(ri));
 
     if (retransmission && m_daemon->m_data.check_acked(ri, reg_id, seq_id))
     {
-        LOG(INFO) << "acking duplicate CHAIN_SUBSPACE";
         send_ack(to, from, true, reg_id, seq_id, version, key);
         return;
     }
 
-    const schema* sc = m_daemon->m_config.get_schema(ri);
-    HOLD_LOCK_FOR_KEY(ri, key);
-    e::intrusive_ptr<keyholder> kh = get_or_create_keyholder(ri, key);
+    bool valid = sc.attrs_sz == value.size() + 1 &&
+                 sc.attrs_sz == hashes.size() &&
+                 datatype_info::lookup(sc.attrs[0].type)->validate(key);
 
-    // Check that a chain's put matches the dimensions of the space.
-    if (sc->attrs_sz != value.size() + 1 || sc->attrs_sz != hashes.size())
+    for (size_t i = 0; valid && i + 1 < sc.attrs_sz; ++i)
     {
-        CLEANUP_KEYHOLDER(ri, key, kh);
+        valid = datatype_info::lookup(sc.attrs[i + 1].type)->validate(value[i]);
+    }
+
+    if (!valid)
+    {
+        LOG(ERROR) << "dropping CHAIN_SUBSPACE because the dimensions are incorrect";
         return;
     }
 
+    key_map_t::state_reference ksr;
+    key_state* ks = get_or_create_key_state(ri, key, &ksr);
+
     // Create a new pending object to set as pending.
-    std::tr1::shared_ptr<e::buffer> new_backing(backing.release());
-    e::intrusive_ptr<pending> new_pend(new pending(new_backing, reg_id, seq_id, false, true, value, m_daemon->m_config.version(), from));
-    new_pend->old_hashes.resize(sc->attrs_sz);
-    new_pend->new_hashes.resize(sc->attrs_sz);
-    new_pend->this_old_region = region_id();
-    new_pend->this_new_region = region_id();
-    new_pend->prev_region = region_id();
-    new_pend->next_region = region_id();
+    e::intrusive_ptr<pending> op = ks->get_version(version);
+
+    if (op)
+    {
+        op->recv_config_version = m_daemon->m_config.version();
+        op->recv = from;
+
+        if (op->acked)
+        {
+            send_ack(to, from, false, reg_id, seq_id, version, key);
+        }
+
+        return;
+    }
+
+    op = new pending(backing,
+                     reg_id, seq_id, false,
+                     true, value,
+                     server_id(), 0,
+                     m_daemon->m_config.version(), from);
+    op->old_hashes.resize(sc.attrs_sz);
+    op->new_hashes.resize(sc.attrs_sz);
+    op->this_old_region = region_id();
+    op->this_new_region = region_id();
+    op->prev_region = region_id();
+    op->next_region = region_id();
     subspace_id subspace_this = m_daemon->m_config.subspace_of(ri);
     subspace_id subspace_prev = m_daemon->m_config.subspace_prev(subspace_this);
     subspace_id subspace_next = m_daemon->m_config.subspace_next(subspace_this);
-    hyperdex::hash(*sc, key, value, &new_pend->new_hashes.front());
-    new_pend->old_hashes = hashes;
+    op->old_hashes = hashes;
+    hyperdex::hash(sc, key, value, &op->new_hashes.front());
 
     if (subspace_prev != subspace_id())
     {
-        m_daemon->m_config.lookup_region(subspace_prev, new_pend->new_hashes, &new_pend->prev_region);
+        m_daemon->m_config.lookup_region(subspace_prev, op->new_hashes, &op->prev_region);
     }
 
-    m_daemon->m_config.lookup_region(subspace_this, new_pend->old_hashes, &new_pend->this_old_region);
-    m_daemon->m_config.lookup_region(subspace_this, new_pend->new_hashes, &new_pend->this_new_region);
+    m_daemon->m_config.lookup_region(subspace_this, op->old_hashes, &op->this_old_region);
+    m_daemon->m_config.lookup_region(subspace_this, op->new_hashes, &op->this_new_region);
 
     if (subspace_next != subspace_id())
     {
-        m_daemon->m_config.lookup_region(subspace_next, new_pend->old_hashes, &new_pend->next_region);
+        m_daemon->m_config.lookup_region(subspace_next, op->old_hashes, &op->next_region);
     }
 
-    if (!(new_pend->this_old_region == m_daemon->m_config.get_region_id(from) &&
-          m_daemon->m_config.tail_of_region(new_pend->this_old_region) == from) &&
-        !(new_pend->this_new_region == m_daemon->m_config.get_region_id(from) &&
+    if (!(op->this_old_region == m_daemon->m_config.get_region_id(from) &&
+          m_daemon->m_config.tail_of_region(op->this_old_region) == from) &&
+        !(op->this_new_region == m_daemon->m_config.get_region_id(from) &&
           m_daemon->m_config.next_in_region(from) == to))
     {
-        LOG(INFO) << "dropping CHAIN_SUBSPACE which didn't obey chaining rules";
-        CLEANUP_KEYHOLDER(ri, key, kh);
+        LOG(ERROR) << "dropping CHAIN_SUBSPACE which didn't obey chaining rules";
         return;
     }
 
-    kh->insert_deferred(version, new_pend);
-    move_operations_between_queues(to, ri, *sc, key, kh);
-    CLEANUP_KEYHOLDER(ri, key, kh);
+    ks->insert_deferred(version, op);
+    ks->move_operations_between_queues(this, to, ri, sc);
 }
 
 void
@@ -452,395 +469,201 @@ replication_manager :: chain_ack(const virtual_server_id& from,
                                  uint64_t version,
                                  const e::slice& key)
 {
-    region_id ri(m_daemon->m_config.get_region_id(to));
+    const region_id ri(m_daemon->m_config.get_region_id(to));
+    const schema& sc(*m_daemon->m_config.get_schema(ri));
 
     if (retransmission && m_daemon->m_data.check_acked(ri, reg_id, seq_id))
     {
-        LOG(INFO) << "dropping duplicate CHAIN_ACK";
         return;
     }
 
-    const schema* sc = m_daemon->m_config.get_schema(ri);
-    HOLD_LOCK_FOR_KEY(ri, key);
-    e::intrusive_ptr<keyholder> kh = get_keyholder(ri, key);
+    key_map_t::state_reference ksr;
+    key_state* ks = get_key_state(ri, key, &ksr);
 
-    if (!kh)
+    if (!ks)
+    {
+        LOG(ERROR) << "dropping CHAIN_ACK for update we haven't seen";
+        return;
+    }
+
+    e::intrusive_ptr<pending> op = ks->get_version(version);
+
+    if (!op)
     {
         LOG(INFO) << "dropping CHAIN_ACK for update we haven't seen";
         return;
     }
 
-    e::intrusive_ptr<pending> pend = kh->get_by_version(version);
-
-    if (!pend)
+    if (op->sent == virtual_server_id() ||
+        from != op->sent ||
+        m_daemon->m_config.version() != op->sent_config_version)
     {
-        LOG(INFO) << "dropping CHAIN_ACK for update we haven't seen";
-        CLEANUP_KEYHOLDER(ri, key, kh);
+        LOG(ERROR) << "dropping CHAIN_ACK that came from " << from
+                   << " in version " << m_daemon->m_config.version()
+                   << " but should have come from " << op->sent
+                   << " in version " << op->sent_config_version;
         return;
     }
 
-    if (pend->sent == virtual_server_id())
+    if (op->reg_id != reg_id || op->seq_id != seq_id)
     {
-        LOG(INFO) << "dropping CHAIN_ACK for update we haven't sent";
-        CLEANUP_KEYHOLDER(ri, key, kh);
+        LOG(ERROR) << "dropping CHAIN_ACK that was sent with mismatching reg/seq ids";
         return;
     }
 
-    if (from != pend->sent)
-    {
-        LOG(INFO) << "dropping CHAIN_ACK that came from the wrong host";
-        CLEANUP_KEYHOLDER(ri, key, kh);
-        return;
-    }
-
-    if (m_daemon->m_config.version() != pend->sent_config_version)
-    {
-        LOG(INFO) << "dropping CHAIN_ACK that was sent in a previous version and hasn't been retransmitted";
-        CLEANUP_KEYHOLDER(ri, key, kh);
-        return;
-    }
-
-    if (pend->reg_id != reg_id || pend->seq_id != seq_id)
-    {
-        LOG(INFO) << "dropping CHAIN_ACK that was sent with mismatching reg/seq ids";
-        CLEANUP_KEYHOLDER(ri, key, kh);
-        return;
-    }
-
-    pend->acked = true;
+    op->acked = true;
     bool is_head = m_daemon->m_config.head_of_region(ri) == to;
 
-    if (!is_head && m_daemon->m_config.version() == pend->recv_config_version)
+    if (!is_head && m_daemon->m_config.version() == op->recv_config_version)
     {
-        send_ack(to, pend->recv, false, reg_id, seq_id, version, key);
+        send_ack(to, op->recv, false, reg_id, seq_id, version, key);
     }
 
-    if (kh->version_on_disk() < version)
+    if (!ks->persist_to_datalayer(this, ri, reg_id, seq_id, version))
     {
-        e::intrusive_ptr<pending> op = kh->get_by_version(version);
-        assert(op);
-
-        datalayer::returncode rc;
-
-        // if this is a case where we are to remove the object from disk
-        if (!op->has_value || (op->this_old_region != op->this_new_region && ri == op->this_old_region))
-        {
-            if (kh->exists_on_disk())
-            {
-                rc = m_daemon->m_data.del(ri, reg_id, seq_id, key, kh->value_on_disk());
-            }
-            else
-            {
-                m_daemon->m_data.mark_acked(ri, reg_id, seq_id);
-                rc = datalayer::SUCCESS;
-            }
-        }
-        // otherwise it is a case where we are to place this object on disk
-        else
-        {
-            if (kh->exists_on_disk())
-            {
-                rc = m_daemon->m_data.overput(ri, reg_id, seq_id, key, kh->value_on_disk(), op->value, version);
-            }
-            else
-            {
-                rc = m_daemon->m_data.put(ri, reg_id, seq_id, key, op->value, version);
-            }
-        }
-
-        switch (rc)
-        {
-            case datalayer::SUCCESS:
-                break;
-            case datalayer::NOT_FOUND:
-            case datalayer::BAD_ENCODING:
-            case datalayer::BAD_SEARCH:
-            case datalayer::CORRUPTION:
-            case datalayer::IO_ERROR:
-            case datalayer::LEVELDB_ERROR:
-                LOG(ERROR) << "commit caused error " << rc;
-                break;
-            default:
-                LOG(ERROR) << "commit caused unknown error";
-                break;
-        }
-
-        kh->set_version_on_disk(version);
-    }
-    else
-    {
-        m_daemon->m_data.mark_acked(ri, reg_id, seq_id);
+        LOG(ERROR) << "commit encountered unrecoverable error";
+        return;
     }
 
-    kh->clear_committable_acked();
-    move_operations_between_queues(to, ri, *sc, key, kh);
+    ks->clear_acked_prefix();
+    ks->move_operations_between_queues(this, to, ri, sc);
 
-    if (m_daemon->m_config.is_point_leader(to))
+    if (op->client != server_id())
     {
-        respond_to_client(to, pend->client, pend->nonce, NET_SUCCESS);
+        respond_to_client(to, op->client, op->nonce, NET_SUCCESS);
     }
 
-    if (is_head && m_daemon->m_config.version() == pend->recv_config_version)
+    if (is_head && m_daemon->m_config.version() == op->recv_config_version)
     {
-        send_ack(to, pend->recv, false, reg_id, seq_id, version, key);
+        send_ack(to, op->recv, false, reg_id, seq_id, version, key);
     }
 
-    CLEANUP_KEYHOLDER(ri, key, kh);
+    if (op->reg_id == ri)
+    {
+        bool x;
+        x = m_idcol.collect(ri, op->seq_id);
+        assert(x);
+        check_stable(ri);
+    }
 }
 
 void
 replication_manager :: chain_gc(const region_id& reg_id, uint64_t seq_id)
 {
-    po6::threads::mutex::hold hold(&m_block_both);
-    m_wakeup_garbage_collector.broadcast();
+    po6::threads::mutex::hold hold(&m_block_background_thread);
+    m_wakeup_background_thread.broadcast();
     m_lower_bounds.push_back(std::make_pair(reg_id, seq_id));
 }
 
 void
 replication_manager :: trip_periodic()
 {
-    po6::threads::mutex::hold hold(&m_block_both);
-    m_wakeup_retransmitter.broadcast();
-    m_need_retransmit = true;
-}
-
-uint64_t
-replication_manager :: hash(const keypair& kp)
-{
-    return CityHash64WithSeed(reinterpret_cast<const char*>(kp.key.data()),
-                              kp.key.size(),
-                              kp.region.get());
-}
-
-uint64_t
-replication_manager :: get_lock_num(const region_id& reg,
-                                    const e::slice& key)
-{
-    return CityHash64WithSeed(reinterpret_cast<const char*>(key.data()),
-                              key.size(),
-                              reg.get());
-}
-
-e::intrusive_ptr<replication_manager::keyholder>
-replication_manager :: get_keyholder(const region_id& reg, const e::slice& key)
-{
-    keypair kp(reg, std::string(reinterpret_cast<const char*>(key.data()), key.size()));
-    e::intrusive_ptr<keyholder> kh;
-
-    if (!m_keyholders.lookup(kp, &kh))
-    {
-        return NULL;
-    }
-
-    return kh;
-}
-
-e::intrusive_ptr<replication_manager::keyholder>
-replication_manager :: get_or_create_keyholder(const region_id& reg, const e::slice& key)
-{
-    keypair kp(reg, std::string(reinterpret_cast<const char*>(key.data()), key.size()));
-    e::intrusive_ptr<keyholder> kh;
-
-    if (!m_keyholders.lookup(kp, &kh))
-    {
-        kh = new keyholder();
-
-        if (!m_keyholders.insert(kp, kh))
-        {
-            abort();
-        }
-
-        switch (m_daemon->m_data.get(reg, key,
-                                     &kh->get_old_value(),
-                                     &kh->get_old_version(),
-                                     &kh->get_old_disk_ref()))
-        {
-            case datalayer::SUCCESS:
-                kh->get_has_old_value() = true;
-                break;
-            case datalayer::NOT_FOUND:
-                kh->get_has_old_value() = false;
-                kh->get_old_version() = 0;
-                break;
-            case datalayer::BAD_ENCODING:
-            case datalayer::BAD_SEARCH:
-            case datalayer::CORRUPTION:
-            case datalayer::IO_ERROR:
-            case datalayer::LEVELDB_ERROR:
-            default:
-                LOG(ERROR) << "Data layer returned unexpected result when reading old value.";
-                return NULL;
-        }
-    }
-
-    return kh;
+    po6::threads::mutex::hold hold(&m_block_background_thread);
+    m_wakeup_background_thread.broadcast();
+    m_need_periodic = true;
 }
 
 void
-replication_manager :: erase_keyholder(const region_id& reg,
-                                       const e::slice& key)
+replication_manager :: begin_checkpoint(uint64_t seq)
 {
-    keypair kp(reg, std::string(reinterpret_cast<const char*>(key.data()), key.size()));
-    m_keyholders.remove(kp);
+    std::vector<region_id> key_regions;
+    std::vector<region_id> mapped_regions;
+    m_daemon->m_coord.config().key_regions(m_daemon->m_us, &key_regions);
+    m_daemon->m_coord.config().mapped_regions(m_daemon->m_us, &mapped_regions);
+    std::string timestamp = m_daemon->m_data.get_timestamp();
+
+    {
+        po6::threads::mutex::hold hold(&m_block_background_thread);
+
+        if (m_checkpoint >= seq)
+        {
+            return;
+        }
+
+        m_checkpoint = seq;
+        m_unstable_regions.clear();
+        m_daemon->m_config.point_leaders(m_daemon->m_us, &m_unstable_regions);
+        check_is_needed();
+
+        for (size_t i = 0; i < mapped_regions.size(); ++i)
+        {
+            m_timestamps.push_back(region_timestamp(mapped_regions[i], m_checkpoint, timestamp));
+        }
+    }
+
+    for (size_t i = 0; i < key_regions.size(); ++i)
+    {
+        bool x;
+        uint64_t id = 0;
+        x = m_idgen.peek(key_regions[i], &id);
+        assert(x);
+
+        if (id > 0)
+        {
+            x = m_stable_counters.bump(key_regions[i], id - 1);
+            assert(x);
+        }
+
+        check_stable(key_regions[i]);
+    }
+
+    check_stable();
 }
 
 void
-replication_manager :: hash_objects(const region_id& reg,
-                                    const schema& sc,
-                                    const e::slice& key,
-                                    bool has_new_value,
-                                    const std::vector<e::slice>& new_value,
-                                    bool has_old_value,
-                                    const std::vector<e::slice>& old_value,
-                                    e::intrusive_ptr<pending> pend)
+replication_manager :: end_checkpoint(uint64_t seq)
 {
-    pend->old_hashes.resize(sc.attrs_sz);
-    pend->new_hashes.resize(sc.attrs_sz);
-    pend->this_old_region = region_id();
-    pend->this_new_region = region_id();
-    pend->prev_region = region_id();
-    pend->next_region = region_id();
-    subspace_id subspace_this = m_daemon->m_config.subspace_of(reg);
-    subspace_id subspace_prev = m_daemon->m_config.subspace_prev(subspace_this);
-    subspace_id subspace_next = m_daemon->m_config.subspace_next(subspace_this);
+    po6::threads::mutex::hold hold(&m_block_background_thread);
 
-    if (has_old_value && has_new_value)
+    for (size_t i = 0; i < m_timestamps.size(); )
     {
-        hyperdex::hash(sc, key, new_value, &pend->new_hashes.front());
-        hyperdex::hash(sc, key, old_value, &pend->old_hashes.front());
-
-        if (subspace_prev != subspace_id())
+        if (m_timestamps[i].checkpoint <= seq)
         {
-            m_daemon->m_config.lookup_region(subspace_prev, pend->new_hashes, &pend->prev_region);
+            m_daemon->m_data.create_checkpoint(m_timestamps[i]);
+            std::swap(m_timestamps[i], m_timestamps.back());
+            m_timestamps.pop_back();
         }
-
-        m_daemon->m_config.lookup_region(subspace_this, pend->old_hashes, &pend->this_old_region);
-        m_daemon->m_config.lookup_region(subspace_this, pend->new_hashes, &pend->this_new_region);
-
-        if (subspace_next != subspace_id())
+        else
         {
-            m_daemon->m_config.lookup_region(subspace_next, pend->old_hashes, &pend->next_region);
+            ++i;
         }
-    }
-    else if (has_old_value)
-    {
-        hyperdex::hash(sc, key, old_value, &pend->old_hashes.front());
-
-        for (size_t i = 0; i < sc.attrs_sz; ++i)
-        {
-            pend->new_hashes[i] = pend->old_hashes[i];
-        }
-
-        if (subspace_prev != subspace_id())
-        {
-            m_daemon->m_config.lookup_region(subspace_prev, pend->old_hashes, &pend->prev_region);
-        }
-
-        m_daemon->m_config.lookup_region(subspace_this, pend->old_hashes, &pend->this_old_region);
-        pend->this_new_region = pend->this_old_region;
-
-        if (subspace_next != subspace_id())
-        {
-            m_daemon->m_config.lookup_region(subspace_next, pend->old_hashes, &pend->next_region);
-        }
-    }
-    else if (has_new_value)
-    {
-        hyperdex::hash(sc, key, new_value, &pend->new_hashes.front());
-
-        for (size_t i = 0; i < sc.attrs_sz; ++i)
-        {
-            pend->old_hashes[i] = pend->new_hashes[i];
-        }
-
-        if (subspace_prev != subspace_id())
-        {
-            m_daemon->m_config.lookup_region(subspace_prev, pend->old_hashes, &pend->prev_region);
-        }
-
-        m_daemon->m_config.lookup_region(subspace_this, pend->old_hashes, &pend->this_new_region);
-        pend->this_old_region = pend->this_new_region;
-
-        if (subspace_next != subspace_id())
-        {
-            m_daemon->m_config.lookup_region(subspace_next, pend->old_hashes, &pend->next_region);
-        }
-    }
-    else
-    {
-        abort();
     }
 }
 
-void
-replication_manager :: move_operations_between_queues(const virtual_server_id& us,
-                                                      const region_id& ri,
-                                                      const schema& sc,
-                                                      const e::slice& key,
-                                                      e::intrusive_ptr<keyholder> kh)
+replication_manager::key_state*
+replication_manager :: get_key_state(const region_id& ri,
+                                     const e::slice& key,
+                                     key_map_t::state_reference* ksr)
 {
-    // See if we can re-use some of the deferred operations
-    while (kh->has_deferred_ops())
+    key_region kr(ri, key);
+    return m_key_states.get_state(kr, ksr);
+}
+
+replication_manager::key_state*
+replication_manager :: get_or_create_key_state(const region_id& ri,
+                                               const e::slice& key,
+                                               key_map_t::state_reference* ksr)
+{
+    key_region kr(ri, key);
+    key_state* ks = m_key_states.get_or_create_state(kr, ksr);
+
+    if (!ks || ks->initialized())
     {
-        bool has_old_value = false;
-        uint64_t old_version = 0;
-        std::vector<e::slice>* old_value = NULL;
-        kh->get_latest_version(&has_old_value, &old_version, &old_value);
-        if (old_version >= kh->oldest_deferred_version()) LOG(INFO) << "VERSIONS " << old_version  << " " << kh->oldest_deferred_version();
-        assert(old_version < kh->oldest_deferred_version());
-        e::intrusive_ptr<pending> new_pend = kh->oldest_deferred_op();
-
-        // If the version numbers don't line up, and this is not fresh, and it
-        // is not a subspace transfer
-        if (old_version + 1 != kh->oldest_deferred_version() &&
-            !new_pend->fresh &&
-            (new_pend->this_old_region == new_pend->this_new_region ||
-             new_pend->this_old_region == ri))
-        {
-            break;
-        }
-
-        // If this is not a subspace transfer
-        if (new_pend->this_old_region == new_pend->this_new_region ||
-            new_pend->this_old_region == ri)
-        {
-            hash_objects(ri, sc, key, new_pend->has_value, new_pend->value, has_old_value, old_value ? *old_value : new_pend->value, new_pend);
-
-            if (new_pend->this_old_region != ri && new_pend->this_new_region != ri)
-            {
-                LOG(INFO) << "dropping deferred CHAIN_* which didn't get sent to the right host";
-                kh->pop_oldest_deferred();
-                continue;
-            }
-
-            if (new_pend->recv != virtual_server_id() &&
-                m_daemon->m_config.next_in_region(new_pend->recv) != us &&
-                !m_daemon->m_config.subspace_adjacent(new_pend->recv, us))
-            {
-                LOG(INFO) << "dropping deferred CHAIN_* which didn't come from the right host";
-                kh->pop_oldest_deferred();
-                continue;
-            }
-        }
-
-        kh->shift_one_deferred_to_blocked();
+        return ks;
     }
 
-    // Issue blocked operations
-    while (kh->has_blocked_ops())
+    switch (ks->initialize(&m_daemon->m_data, ri))
     {
-        uint64_t version = kh->oldest_blocked_version();
-        e::intrusive_ptr<pending> op = kh->oldest_blocked_op();
-
-        // If the op is on either side of a delete, wait until there are no more
-        // committable ops
-        if ((op->fresh || !op->has_value) && kh->has_committable_ops())
-        {
-            break;
-        }
-
-        kh->shift_one_blocked_to_committable();
-        send_message(us, false, version, key, op);
+        case datalayer::SUCCESS:
+        case datalayer::NOT_FOUND:
+            return ks;
+        case datalayer::BAD_ENCODING:
+        case datalayer::CORRUPTION:
+        case datalayer::IO_ERROR:
+        case datalayer::LEVELDB_ERROR:
+        default:
+            LOG(ERROR) << "Data layer returned unexpected result when reading old value.";
+            return NULL;
     }
 }
 
@@ -855,6 +678,12 @@ replication_manager :: send_message(const virtual_server_id& us,
     // resend, they should clear "sent" first.
     assert(op->sent == virtual_server_id());
     region_id ri(m_daemon->m_config.get_region_id(us));
+
+    // If there's an ongoing transfer, don't actually send
+    if (m_daemon->m_config.is_server_blocked_by_live_transfer(m_daemon->m_us, ri))
+    {
+        return;
+    }
 
     // facts we use to decide what to do
     assert(ri == op->this_old_region || ri == op->this_new_region);
@@ -1020,10 +849,111 @@ replication_manager :: respond_to_client(const virtual_server_id& us,
     m_daemon->m_comm.send_client(us, client, RESP_ATOMIC, msg);
 }
 
-void
-replication_manager :: retransmitter()
+bool
+replication_manager :: is_check_needed()
 {
-    LOG(INFO) << "retransmitter thread started";
+    return e::atomic::compare_and_swap_32_nobarrier(&m_need_check, 0, 0) == 1;
+}
+
+void
+replication_manager :: check_is_needed()
+{
+    e::atomic::compare_and_swap_32_nobarrier(&m_need_check, 0, 1);
+}
+
+void
+replication_manager :: check_is_not_needed()
+{
+    e::atomic::compare_and_swap_32_nobarrier(&m_need_check, 1, 0);
+}
+
+void
+replication_manager :: check_stable()
+{
+    bool tell_coord_stable = false;
+    uint64_t checkpoint = 0;
+
+    if (is_check_needed())
+    {
+        po6::threads::mutex::hold hold(&m_block_background_thread);
+        tell_coord_stable = m_unstable_regions.empty();
+        checkpoint = m_checkpoint;
+
+        if (tell_coord_stable)
+        {
+            check_is_not_needed();
+        }
+    }
+
+    if (tell_coord_stable)
+    {
+        m_daemon->m_coord.config_stable(m_daemon->m_coord.config().version());
+        m_daemon->m_coord.checkpoint_report_stable(checkpoint);
+    }
+}
+
+void
+replication_manager :: check_stable(const region_id& ri)
+{
+    bool x;
+    uint64_t lb = 0;
+    x = m_idcol.lower_bound(ri, &lb);
+    assert(x);
+    uint64_t stable = 0;
+    x = m_stable_counters.peek(ri, &stable);
+    assert(x);
+    bool tell_coord_stable = false;
+    uint64_t checkpoint = 0;
+
+    if (stable <= lb && is_check_needed())
+    {
+        po6::threads::mutex::hold hold(&m_block_background_thread);
+
+        for (size_t i = 0; i < m_unstable_regions.size(); )
+        {
+            if (m_unstable_regions[i] == ri)
+            {
+                std::swap(m_unstable_regions[i], m_unstable_regions.back());
+                m_unstable_regions.pop_back();
+            }
+            else
+            {
+                ++i;
+            }
+        }
+
+        tell_coord_stable = m_unstable_regions.empty();
+        checkpoint = m_checkpoint;
+
+        if (tell_coord_stable)
+        {
+            check_is_not_needed();
+        }
+    }
+
+    if (tell_coord_stable)
+    {
+        m_daemon->m_coord.config_stable(m_daemon->m_coord.config().version());
+        m_daemon->m_coord.checkpoint_report_stable(checkpoint);
+    }
+}
+
+void
+replication_manager :: wait_until_paused()
+{
+    po6::threads::mutex::hold hold(&m_block_background_thread);
+    assert(m_need_pause);
+
+    while (!m_paused)
+    {
+        m_wakeup_reconfigurer.wait();
+    }
+}
+
+void
+replication_manager :: background_thread()
+{
+    LOG(INFO) << "replication background thread started";
     sigset_t ss;
 
     if (sigfillset(&ss) < 0)
@@ -1038,24 +968,30 @@ replication_manager :: retransmitter()
         return;
     }
 
-    uint64_t then = e::time();
-
     while (true)
     {
-        {
-            po6::threads::mutex::hold hold(&m_block_both);
+        bool need_post_reconfigure = false;
+        bool need_periodic = false;
+        region_id reg_id;
+        uint64_t seq_id = 0;
 
-            while ((!m_need_retransmit && !m_shutdown) || m_need_pause)
+        {
+            po6::threads::mutex::hold hold(&m_block_background_thread);
+
+            while ((!(m_need_post_reconfigure ||
+                      m_need_periodic ||
+                      !m_lower_bounds.empty()) && !m_shutdown) ||
+                   m_need_pause)
             {
-                m_paused_retransmitter = true;
+                m_paused = true;
 
                 if (m_need_pause)
                 {
                     m_wakeup_reconfigurer.signal();
                 }
 
-                m_wakeup_retransmitter.wait();
-                m_paused_retransmitter = false;
+                m_wakeup_background_thread.wait();
+                m_paused = false;
             }
 
             if (m_shutdown)
@@ -1063,180 +999,196 @@ replication_manager :: retransmitter()
                 break;
             }
 
-            m_need_retransmit = false;
+            need_post_reconfigure = m_need_post_reconfigure;
+            m_need_post_reconfigure = false;
+            need_periodic = m_need_periodic;
+            m_need_periodic = false;
+
+            if (!m_lower_bounds.empty())
+            {
+                reg_id = m_lower_bounds.front().first;
+                seq_id = m_lower_bounds.front().second;
+                m_lower_bounds.pop_front();
+            }
         }
 
-        std::set<region_id> region_cache;
-        std::map<region_id, uint64_t> seq_id_lower_bounds;
 
+        if (need_post_reconfigure)
         {
-            m_counters.peek(&seq_id_lower_bounds);
+            // get the list of point leaders
+            std::vector<region_id> point_leaders;
+            m_daemon->m_coord.config().point_leaders(m_daemon->m_us, &point_leaders);
+            std::sort(point_leaders.begin(), point_leaders.end());
+
+            // peek at the next-to-generate values of m_idgen
+            identifier_generator peeked_values;
+            peeked_values.copy_from(m_idgen);
+            std::vector<std::pair<region_id, uint64_t> > seq_ids;
+
+            // retransmit everything
+            retransmit(point_leaders, &seq_ids);
+
+            // now close all gaps
+            close_gaps(point_leaders, peeked_values, &seq_ids);
+
+            for (size_t i = 0; i < point_leaders.size(); ++i)
+            {
+                check_stable(point_leaders[i]);
+            }
+
+            check_stable();
         }
 
-        for (keyholder_map_t::iterator it = m_keyholders.begin();
-                it != m_keyholders.end(); it.next())
+        if (need_periodic)
         {
-            region_id ri(it.key().region);
-
-            if (region_cache.find(ri) != region_cache.end() ||
-                m_daemon->m_config.is_server_blocked_by_live_transfer(m_daemon->m_us, ri))
-            {
-                region_cache.insert(ri);
-                continue;
-            }
-
-            e::slice key(it.key().key.data(), it.key().key.size());
-            HOLD_LOCK_FOR_KEY(ri, key);
-            e::intrusive_ptr<keyholder> kh = get_keyholder(ri, key);
-
-            if (!kh)
-            {
-                continue;
-            }
-
-            virtual_server_id us = m_daemon->m_config.get_virtual(ri, m_daemon->m_us);
-
-            if (us == virtual_server_id())
-            {
-                m_keyholders.remove(it.key());
-                continue;
-            }
-
-            const schema* sc = m_daemon->m_config.get_schema(ri);
-            assert(sc);
-
-            if (kh->empty())
-            {
-                LOG(WARNING) << "leaking keyholders (this is harmless if you reconfigure enough)";
-                m_keyholders.remove(it.key());
-                continue;
-            }
-
-            kh->resend_committable(this, us, key);
-            move_operations_between_queues(us, ri, *sc, key, kh);
-
-            if (m_daemon->m_config.is_point_leader(us))
-            {
-                uint64_t min_id = kh->min_seq_id();
-                std::map<region_id, uint64_t>::iterator lb = seq_id_lower_bounds.find(ri);
-
-                if (lb == seq_id_lower_bounds.end())
-                {
-                    seq_id_lower_bounds.insert(std::make_pair(ri, min_id));
-                }
-                else
-                {
-                    lb->second = std::min(lb->second, min_id);
-                }
-            }
+            send_chain_gc();
         }
 
-        m_daemon->m_comm.wake_one();
-        uint64_t now = e::time();
+        if (seq_id > 1)
+        {
+            bool x;
+            x = m_idcol.bump(reg_id, seq_id - 1);
+            m_daemon->m_data.clear_acked(reg_id, seq_id - 2);
 
-        // Rate limit CHAIN_GC sending
-        if (((now - then) / 1000 / 1000 / 1000) < 30)
+            if (x)
+            {
+                check_stable(reg_id);
+            }
+        }
+    }
+
+    LOG(INFO) << "replication background thread shutting down";
+}
+
+void
+replication_manager :: send_chain_gc()
+{
+    std::vector<std::pair<server_id, po6::net::location> > cluster_members;
+    m_daemon->m_config.get_all_addresses(&cluster_members);
+    std::vector<region_id> regions;
+    m_daemon->m_config.point_leaders(m_daemon->m_us, &regions);
+
+    for (size_t i = 0; i < regions.size(); ++i)
+    {
+        for (size_t j = 0; j < cluster_members.size(); ++j)
+        {
+            virtual_server_id us = m_daemon->m_config.get_virtual(regions[i], m_daemon->m_us);
+            uint64_t lb = 0;
+            bool x = m_idcol.lower_bound(regions[i], &lb);
+
+            if (!x || lb == 0 || us == virtual_server_id())
+            {
+                continue;
+            }
+
+            size_t sz = HYPERDEX_HEADER_SIZE_VS + sizeof(uint64_t);
+            std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+            msg->pack_at(HYPERDEX_HEADER_SIZE_VS) << lb;
+            m_daemon->m_comm.send(us, cluster_members[j].first, CHAIN_GC, msg);
+        }
+    }
+
+    m_daemon->m_comm.wake_one();
+}
+
+void
+replication_manager :: retransmit(const std::vector<region_id>& point_leaders,
+                                  std::vector<std::pair<region_id, uint64_t> >* seq_ids)
+{
+    for (key_map_t::iterator it(&m_key_states); it.valid(); it.next())
+    {
+        key_state* ks = it.get();
+        region_id ri = ks->state_key().region;
+
+        if (std::binary_search(point_leaders.begin(),
+                               point_leaders.end(), ri))
+        {
+            ks->append_seq_ids(seq_ids);
+        }
+
+        if (m_daemon->m_config.is_server_blocked_by_live_transfer(m_daemon->m_us, ri))
         {
             continue;
         }
 
-        then = now;
-        std::vector<std::pair<server_id, po6::net::location> > cluster_members;
-        m_daemon->m_config.get_all_addresses(&cluster_members);
+        virtual_server_id us = m_daemon->m_config.get_virtual(ri, m_daemon->m_us);
 
-        for (std::map<region_id, uint64_t>::iterator it = seq_id_lower_bounds.begin();
-                it != seq_id_lower_bounds.end(); ++it)
+        if (us == virtual_server_id() || ks->empty())
         {
-            // lookup and check again since we lost/acquired the lock
-            virtual_server_id us = m_daemon->m_config.get_virtual(it->first, m_daemon->m_us);
-
-            if (us == virtual_server_id() || !m_daemon->m_config.is_point_leader(us))
-            {
-                continue;
-            }
-
-            size_t sz = HYPERDEX_HEADER_SIZE_VV
-                      + sizeof(uint64_t);
-
-            for (size_t i = 0; i < cluster_members.size(); ++i)
-            {
-                std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
-                msg->pack_at(HYPERDEX_HEADER_SIZE_VS) << it->second;
-                m_daemon->m_comm.send(us, cluster_members[i].first, CHAIN_GC, msg);
-            }
+            ks->clear();
+            continue;
         }
+
+        const schema& sc(*m_daemon->m_config.get_schema(ri));
+        ks->resend_committable(this, us);
+        ks->move_operations_between_queues(this, us, ri, sc);
     }
 
-    LOG(INFO) << "retransmitter thread shutting down";
+    m_daemon->m_comm.wake_one();
 }
 
 void
-replication_manager :: garbage_collector()
+replication_manager :: close_gaps(const std::vector<region_id>& point_leaders,
+                                  const identifier_generator& peek_ids,
+                                  std::vector<std::pair<region_id, uint64_t> >* seq_ids)
 {
-    LOG(INFO) << "garbage collector thread started";
-    sigset_t ss;
+    std::sort(seq_ids->begin(), seq_ids->end());
 
-    if (sigfillset(&ss) < 0)
+    for (size_t i = 0; i < point_leaders.size(); ++i)
     {
-        PLOG(ERROR) << "sigfillset";
-        return;
-    }
+        // figure out the start and end ptrs within seq_ids
+        // s.t. [start, limit) contains all point_leaders[i]
+        std::pair<region_id, uint64_t>* start = &(*seq_ids)[0];
+        std::pair<region_id, uint64_t>* const end = start + seq_ids->size();
 
-    if (pthread_sigmask(SIG_BLOCK, &ss, NULL) < 0)
-    {
-        PLOG(ERROR) << "could not block signals";
-        return;
-    }
-
-    while (true)
-    {
-        std::list<std::pair<region_id, uint64_t> > lower_bounds;
-
+        while (start < end && start->first == point_leaders[i])
         {
-            po6::threads::mutex::hold hold(&m_block_both);
-
-            while ((m_lower_bounds.empty() && !m_shutdown) || m_need_pause)
-            {
-                m_paused_garbage_collector = true;
-
-                if (m_need_pause)
-                {
-                    m_wakeup_reconfigurer.signal();
-                }
-
-                m_wakeup_garbage_collector.wait();
-                m_paused_garbage_collector = false;
-            }
-
-            if (m_shutdown)
-            {
-                break;
-            }
-
-            lower_bounds.swap(m_lower_bounds);
+            ++start;
         }
 
-        // sort so that we scan disk sequentially
-        lower_bounds.sort();
+        std::pair<region_id, uint64_t>* limit = start;
 
-        while (!lower_bounds.empty())
+        while (limit < end && limit->first == start->first)
         {
-            region_id reg_id = lower_bounds.front().first;
-            uint64_t seq_id = lower_bounds.front().second;
-
-            // I chose to use seq_id - 1 for clearing because i'm too tired to check for
-            // an off by one.  At worst it'll leave a little extra state laying around,
-            // and is guaranteed to be as correct as garbage collecting seq_id.
-            if (seq_id > 0)
-            {
-                m_daemon->m_data.clear_acked(reg_id, seq_id - 1);
-            }
-
-            lower_bounds.pop_front();
+            ++limit;
         }
-    }
 
-    LOG(INFO) << "garbage collector thread shutting down";
+        // find the next ID to generate for point_leaders[i] (cant_touch_this)
+        bool x;
+        uint64_t cant_touch_this;
+        x = peek_ids.peek(point_leaders[i], &cant_touch_this);
+        assert(x);
+
+        // if start == limit, then there are no seq_ids and everything less than
+        // cant_touch_this is collectable and we can short-circuit the
+        // complexity below
+        if (start == limit)
+        {
+            m_idcol.bump(point_leaders[i], cant_touch_this);
+            continue;
+        }
+
+        // find the lower bound for point_leaders[i] (lb)
+        uint64_t lb;
+        x = m_idcol.lower_bound(point_leaders[i], &lb);
+        assert(x);
+
+        // for every value [lb, cant_touch_this), call collect if not found in
+        // seq_ids [start, limit)
+        for (uint64_t maybe_next_to_collect = lb;
+                maybe_next_to_collect < cant_touch_this; ++maybe_next_to_collect)
+        {
+            if (!std::binary_search(start, limit,
+                        std::make_pair(point_leaders[i], maybe_next_to_collect)))
+            {
+                m_idcol.collect(point_leaders[i], maybe_next_to_collect);
+            }
+        }
+
+        // compute the lower bound on point_leaders[i] to squash gaps
+        uint64_t tmp;
+        m_idcol.lower_bound(point_leaders[i], &tmp);
+    }
 }
 
 void
@@ -1245,16 +1197,14 @@ replication_manager :: shutdown()
     bool is_shutdown;
 
     {
-        po6::threads::mutex::hold holdr(&m_block_both);
-        m_wakeup_retransmitter.broadcast();
-        m_wakeup_garbage_collector.broadcast();
+        po6::threads::mutex::hold holdr(&m_block_background_thread);
+        m_wakeup_background_thread.broadcast();
         is_shutdown = m_shutdown;
         m_shutdown = true;
     }
 
     if (!is_shutdown)
     {
-        m_retransmitter.join();
-        m_garbage_collector.join();
+        m_background_thread.join();
     }
 }

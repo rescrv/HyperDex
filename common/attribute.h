@@ -29,10 +29,10 @@
 #define hyperdex_common_attribute_h_
 
 // HyperDex
+#include "namespace.h"
 #include "hyperdex.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class attribute
 {
@@ -49,6 +49,6 @@ class attribute
         hyperdatatype type;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_attribute_h_

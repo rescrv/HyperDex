@@ -31,8 +31,10 @@
 // C++
 #include <iostream>
 
-namespace hyperdex
-{
+// HyperDex
+#include "namespace.h"
+
+BEGIN_HYPERDEX_NAMESPACE
 
 enum network_msgtype
 {
@@ -67,6 +69,13 @@ enum network_msgtype
 
     XFER_OP  = 80,
     XFER_ACK = 81,
+    XFER_HS  = 82, // handshake syn
+    XFER_HSA = 83, // handshake syn-ack
+    XFER_HA  = 84, // handshake ack
+    XFER_HW  = 85, // wiped
+
+    BACKUP = 126,
+    PERF_COUNTERS = 127,
 
     CONFIGMISMATCH  = 254,
     PACKET_NOP      = 255
@@ -75,6 +84,6 @@ enum network_msgtype
 std::ostream&
 operator << (std::ostream& lhs, const network_msgtype& rhs);
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_network_msgtype_h_

@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2012, Cornell University
+// Copyright (c) 2011-2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,61 +28,82 @@
 #ifndef hyperdex_client_pending_h_
 #define hyperdex_client_pending_h_
 
+// STL
+#include <memory>
+
 // e
+#include <e/error.h>
 #include <e/intrusive_ptr.h>
 
 // HyperDex
+#include <hyperdex/client.h>
+#include "namespace.h"
+#include "common/configuration.h"
 #include "common/ids.h"
 #include "common/network_msgtype.h"
-#include "client/hyperclient.h"
 
-using hyperdex::server_id;
+BEGIN_HYPERDEX_NAMESPACE
+class client;
 
-class hyperclient::pending
+class pending
 {
     public:
-        pending(hyperclient_returncode* status);
+        pending(uint64_t client_visible_id,
+                hyperdex_client_returncode* status);
         virtual ~pending() throw ();
 
     public:
-        int64_t client_visible_id() const { return m_id; }
-        int64_t server_visible_nonce() const { return m_nonce; }
-        const hyperdex::virtual_server_id& sent_to() const { return m_sent_to; }
-        hyperclient_returncode* status_ptr() const { return m_status; }
+        int64_t client_visible_id() const { return m_client_visible_id; }
+        void set_status(hyperdex_client_returncode status) { *m_status = status; }
+        e::error error() const { return m_error; }
 
+    // return to client
     public:
-        void set_client_visible_id(uint64_t _id) { m_id = _id; }
-        void set_server_visible_nonce(uint64_t _nonce) { m_nonce = _nonce; }
-        void set_sent_to(const hyperdex::virtual_server_id& _sent_to) { m_sent_to = _sent_to; }
-        void set_status(hyperclient_returncode status) { *m_status = status; }
+        virtual bool can_yield() = 0;
+        virtual bool yield(hyperdex_client_returncode* status, e::error* error) = 0;
 
+    // events
     public:
-        virtual hyperdex::network_msgtype request_type() = 0;
-        virtual int64_t handle_response(hyperclient* cl,
-                                        const server_id& id,
-                                        std::auto_ptr<e::buffer> msg,
-                                        hyperdex::network_msgtype type,
-                                        hyperclient_returncode* status) = 0;
-        virtual int64_t return_one(hyperclient* cl,
-                                   hyperclient_returncode* status);
+        virtual void handle_sent_to(const server_id& si,
+                                    const virtual_server_id& vsi) = 0;
+        virtual void handle_failure(const server_id& si,
+                                    const virtual_server_id& vsi) = 0;
+        virtual bool handle_message(client* cl,
+                                    const server_id& si,
+                                    const virtual_server_id& vsi,
+                                    network_msgtype mt,
+                                    std::auto_ptr<e::buffer> msg,
+                                    e::unpacker up,
+                                    hyperdex_client_returncode* status,
+                                    e::error* error) = 0;
 
-    private:
+    // refcount
+    protected:
         friend class e::intrusive_ptr<pending>;
-
-    private:
         void inc() { ++m_ref; }
         void dec() { if (--m_ref == 0) delete this; }
+        size_t m_ref;
 
+    protected:
+        std::ostream& error(const char* file, size_t line);
+        void set_error(const e::error& err);
+
+    // noncopyable
     private:
         pending(const pending& other);
         pending& operator = (const pending& rhs);
 
+    // operation state
     private:
-        size_t m_ref;
-        int64_t m_id;
-        int64_t m_nonce;
-        hyperdex::virtual_server_id m_sent_to;
-        hyperclient_returncode* m_status;
+        int64_t m_client_visible_id;
+        hyperdex_client_returncode* m_status;
+        e::error m_error;
 };
+
+#define PENDING_ERROR(CODE) \
+    this->set_status(HYPERDEX_CLIENT_ ## CODE); \
+    this->error(__FILE__, __LINE__)
+
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_client_pending_h_

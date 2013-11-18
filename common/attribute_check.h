@@ -32,10 +32,11 @@
 #include <e/slice.h>
 
 // HyperDex
+#include "namespace.h"
 #include "hyperdex.h"
+#include "common/schema.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class attribute_check
 {
@@ -51,9 +52,28 @@ class attribute_check
 };
 
 bool
+validate_attribute_check(const schema& sc,
+                         const attribute_check& chk);
+
+size_t
+validate_attribute_checks(const schema& sc,
+                          const std::vector<hyperdex::attribute_check>& checks);
+
+bool
+passes_attribute_check(const schema& sc,
+                       const attribute_check& chk,
+                       const e::slice& value);
+
+size_t
+passes_attribute_checks(const schema& sc,
+                        const std::vector<hyperdex::attribute_check>& checks,
+                        const e::slice& key,
+                        const std::vector<e::slice>& value);
+
+bool
 operator < (const attribute_check& lhs,
             const attribute_check& rhs);
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_attribute_check_h_

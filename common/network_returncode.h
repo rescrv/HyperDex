@@ -28,8 +28,10 @@
 #ifndef hyperdex_common_network_returncode_h_
 #define hyperdex_common_network_returncode_h_
 
-namespace hyperdex
-{
+// HyperDex
+#include "namespace.h"
+
+BEGIN_HYPERDEX_NAMESPACE
 
 // HyperDisk returncode occupies [8320, 8448)
 enum network_returncode
@@ -40,11 +42,10 @@ enum network_returncode
     NET_NOTUS       = 8323,
     NET_SERVERERROR = 8324,
     NET_CMPFAIL     = 8325,
-    NET_BADMICROS   = 8326,
     NET_READONLY    = 8327,
     NET_OVERFLOW    = 8328
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_network_returncode_h_

@@ -23,37 +23,37 @@ HyperDex
 {
     public enum class HyperClientReturnCode
     {
-        HYPERCLIENT_SUCCESS      = 8448,
-                                 HYPERCLIENT_NOTFOUND     = 8449,
-                                 HYPERCLIENT_SEARCHDONE   = 8450,
-                                 HYPERCLIENT_CMPFAIL      = 8451,
-                                 HYPERCLIENT_READONLY     = 8452,
+        HYPERDEX_CLIENT_SUCCESS      = 8448,
+                                 HYPERDEX_CLIENT_NOTFOUND     = 8449,
+                                 HYPERDEX_CLIENT_SEARCHDONE   = 8450,
+                                 HYPERDEX_CLIENT_CMPFAIL      = 8451,
+                                 HYPERDEX_CLIENT_READONLY     = 8452,
 
                                  /* Error conditions */
-                                 HYPERCLIENT_UNKNOWNSPACE = 8512,
-                                 HYPERCLIENT_COORDFAIL    = 8513,
-                                 HYPERCLIENT_SERVERERROR  = 8514,
-                                 HYPERCLIENT_POLLFAILED   = 8515,
-                                 HYPERCLIENT_OVERFLOW     = 8516,
-                                 HYPERCLIENT_RECONFIGURE  = 8517,
-                                 HYPERCLIENT_TIMEOUT      = 8519,
-                                 HYPERCLIENT_UNKNOWNATTR  = 8520,
-                                 HYPERCLIENT_DUPEATTR     = 8521,
-                                 HYPERCLIENT_NONEPENDING  = 8523,
-                                 HYPERCLIENT_DONTUSEKEY   = 8524,
-                                 HYPERCLIENT_WRONGTYPE    = 8525,
-                                 HYPERCLIENT_NOMEM        = 8526,
-                                 HYPERCLIENT_BADCONFIG    = 8527,
-                                 HYPERCLIENT_BADSPACE     = 8528,
-                                 HYPERCLIENT_DUPLICATE    = 8529,
-                                 HYPERCLIENT_INTERRUPTED  = 8530,
-                                 HYPERCLIENT_CLUSTER_JUMP = 8531,
-                                 HYPERCLIENT_COORD_LOGGED = 8532,
+                                 HYPERDEX_CLIENT_UNKNOWNSPACE = 8512,
+                                 HYPERDEX_CLIENT_COORDFAIL    = 8513,
+                                 HYPERDEX_CLIENT_SERVERERROR  = 8514,
+                                 HYPERDEX_CLIENT_POLLFAILED   = 8515,
+                                 HYPERDEX_CLIENT_OVERFLOW     = 8516,
+                                 HYPERDEX_CLIENT_RECONFIGURE  = 8517,
+                                 HYPERDEX_CLIENT_TIMEOUT      = 8519,
+                                 HYPERDEX_CLIENT_UNKNOWNATTR  = 8520,
+                                 HYPERDEX_CLIENT_DUPEATTR     = 8521,
+                                 HYPERDEX_CLIENT_NONEPENDING  = 8523,
+                                 HYPERDEX_CLIENT_DONTUSEKEY   = 8524,
+                                 HYPERDEX_CLIENT_WRONGTYPE    = 8525,
+                                 HYPERDEX_CLIENT_NOMEM        = 8526,
+                                 HYPERDEX_CLIENT_BADCONFIG    = 8527,
+                                 HYPERDEX_CLIENT_BADSPACE     = 8528,
+                                 HYPERDEX_CLIENT_DUPLICATE    = 8529,
+                                 HYPERDEX_CLIENT_INTERRUPTED  = 8530,
+                                 HYPERDEX_CLIENT_CLUSTER_JUMP = 8531,
+                                 HYPERDEX_CLIENT_COORD_LOGGED = 8532,
 
                                  /* This should never happen.  It indicates a bug */
-                                 HYPERCLIENT_INTERNAL     = 8573,
-                                 HYPERCLIENT_EXCEPTION    = 8574,
-                                 HYPERCLIENT_GARBAGE      = 8575
+                                 HYPERDEX_CLIENT_INTERNAL     = 8573,
+                                 HYPERDEX_CLIENT_EXCEPTION    = 8574,
+                                 HYPERDEX_CLIENT_GARBAGE      = 8575
     };
 
     public ref struct HyperClientException : public System::Exception
@@ -78,43 +78,43 @@ HyperDex
         public:
         Dictionary<String ^, Object ^> ^get(String ^space, String ^key);
 
-#define HYPERCLIENT_CLRDEC(OPNAME) \
+#define HYPERDEX_CLIENT_CLRDEC(OPNAME) \
         bool OPNAME(String ^space, String ^key, Dictionary<String ^, Object ^> ^ attrs);
 
-        HYPERCLIENT_CLRDEC(put)
-            HYPERCLIENT_CLRDEC(put_if_not_exist)
-            HYPERCLIENT_CLRDEC(atomic_add)
-            HYPERCLIENT_CLRDEC(atomic_sub)
-            HYPERCLIENT_CLRDEC(atomic_mul)
-            HYPERCLIENT_CLRDEC(atomic_div)
-            HYPERCLIENT_CLRDEC(atomic_mod)
-            HYPERCLIENT_CLRDEC(atomic_and)
-            HYPERCLIENT_CLRDEC(atomic_or)
-            HYPERCLIENT_CLRDEC(atomic_xor)
-            HYPERCLIENT_CLRDEC(string_prepend)
-            HYPERCLIENT_CLRDEC(string_append)
-            HYPERCLIENT_CLRDEC(list_lpush)
-            HYPERCLIENT_CLRDEC(list_rpush)
-            HYPERCLIENT_CLRDEC(set_add)
-            HYPERCLIENT_CLRDEC(set_remove)
-            HYPERCLIENT_CLRDEC(set_intersect)
-            HYPERCLIENT_CLRDEC(set_union)
+        HYPERDEX_CLIENT_CLRDEC(put)
+            HYPERDEX_CLIENT_CLRDEC(put_if_not_exist)
+            HYPERDEX_CLIENT_CLRDEC(atomic_add)
+            HYPERDEX_CLIENT_CLRDEC(atomic_sub)
+            HYPERDEX_CLIENT_CLRDEC(atomic_mul)
+            HYPERDEX_CLIENT_CLRDEC(atomic_div)
+            HYPERDEX_CLIENT_CLRDEC(atomic_mod)
+            HYPERDEX_CLIENT_CLRDEC(atomic_and)
+            HYPERDEX_CLIENT_CLRDEC(atomic_or)
+            HYPERDEX_CLIENT_CLRDEC(atomic_xor)
+            HYPERDEX_CLIENT_CLRDEC(string_prepend)
+            HYPERDEX_CLIENT_CLRDEC(string_append)
+            HYPERDEX_CLIENT_CLRDEC(list_lpush)
+            HYPERDEX_CLIENT_CLRDEC(list_rpush)
+            HYPERDEX_CLIENT_CLRDEC(set_add)
+            HYPERDEX_CLIENT_CLRDEC(set_remove)
+            HYPERDEX_CLIENT_CLRDEC(set_intersect)
+            HYPERDEX_CLIENT_CLRDEC(set_union)
 
-#define HYPERCLIENT_MAP_CLRDEC(OPNAME) \
+#define HYPERDEX_CLIENT_MAP_CLRDEC(OPNAME) \
             bool map_ ## OPNAME(String ^space, String ^key, Dictionary<String ^, Dictionary<Object^, Object ^>^ > ^ attrs);
 
-            HYPERCLIENT_MAP_CLRDEC(add)
-            HYPERCLIENT_MAP_CLRDEC(remove)
-            HYPERCLIENT_MAP_CLRDEC(atomic_add)
-            HYPERCLIENT_MAP_CLRDEC(atomic_sub)
-            HYPERCLIENT_MAP_CLRDEC(atomic_mul)
-            HYPERCLIENT_MAP_CLRDEC(atomic_div)
-            HYPERCLIENT_MAP_CLRDEC(atomic_mod)
-            HYPERCLIENT_MAP_CLRDEC(atomic_and)
-            HYPERCLIENT_MAP_CLRDEC(atomic_or)
-            HYPERCLIENT_MAP_CLRDEC(atomic_xor)
-            HYPERCLIENT_MAP_CLRDEC(string_prepend)
-            HYPERCLIENT_MAP_CLRDEC(string_append)
+            HYPERDEX_CLIENT_MAP_CLRDEC(add)
+            HYPERDEX_CLIENT_MAP_CLRDEC(remove)
+            HYPERDEX_CLIENT_MAP_CLRDEC(atomic_add)
+            HYPERDEX_CLIENT_MAP_CLRDEC(atomic_sub)
+            HYPERDEX_CLIENT_MAP_CLRDEC(atomic_mul)
+            HYPERDEX_CLIENT_MAP_CLRDEC(atomic_div)
+            HYPERDEX_CLIENT_MAP_CLRDEC(atomic_mod)
+            HYPERDEX_CLIENT_MAP_CLRDEC(atomic_and)
+            HYPERDEX_CLIENT_MAP_CLRDEC(atomic_or)
+            HYPERDEX_CLIENT_MAP_CLRDEC(atomic_xor)
+            HYPERDEX_CLIENT_MAP_CLRDEC(string_prepend)
+            HYPERDEX_CLIENT_MAP_CLRDEC(string_append)
 
             List<Dictionary<String ^, Object^>^ >^
             search(String^ space, Dictionary<String ^, Object^>^ checks);

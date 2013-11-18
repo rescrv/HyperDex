@@ -36,12 +36,12 @@
 #include <e/buffer.h>
 
 // HyperDex
+#include "namespace.h"
 #include "hyperdex.h"
 #include "common/attribute_check.h"
 #include "common/funcall.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 e::buffer::packer
 operator << (e::buffer::packer lhs, const po6::net::ipaddr& rhs);
@@ -119,6 +119,6 @@ pack_size(const std::vector<T>& v)
     return sz;
 }
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_serialization_h_

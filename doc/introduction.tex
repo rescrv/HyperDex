@@ -1,0 +1,123 @@
+\chapter{Introduction}
+
+\section{Why HyperDex?}
+
+HyperDex is the next-generation key-value store, designed from the ground up to
+provide a convenient user interface without sacrificing reliability, robustness,
+or performance.  First and foremost, HyperDex enables developers to create new
+applications quickly and with strong correctness guarantees.
+HyperDex features:
+
+\begin{description}
+\item[Performance:]  HyperDex achieves lower latency and higher throughput than
+many other key-value stores.  Deploy fewer machines to support your application,
+and save on operational costs.
+
+\item[Consistency:]  HyperDex provides strongly-consistent reads, writes, and
+atomic operations, making strong guarantees to your application.  Other
+key-value stores promise \texttt{eventual} consistency, leaving your application
+to pick up the slack.  HyperDex solves the tough problems, enabling you to write
+correct applications quickly with less effort.
+
+\item[Fault Tolerance:]  HyperDex employs a unique, built-in fault-tolerance
+mechanism to safe-guard your data.  Simply tell HyperDex how many failures your
+cluster is likely to experience, and HyperDex ensures that your data is
+replicated to withstand at least that many failures.  Where other systems
+require you to fully understand the replication internals to bring
+fault-tolerance your data, HyperDex's fault-tolerance mechanism is simple to
+understand and straightforward to use.
+
+\item[Scalability:]  HyperDex automatically scales as more machines are added to
+the system.  Add additional servers to your HyperDex cluster to increase storage
+capacity and achievable throughput.
+
+\item[Easy-to-Use:]  HyperDex is easy to use in both development and production
+environments.  Set up a HyperDex cluster quickly, and scale out to multiple
+machines without any application-level changes.  Other systems may require that
+your application know about internals of the deployment, such as cluster
+membership, replication options, and sharding configurations.  HyperDex
+internally and automatically manages your cluster so your application doesn't
+have to.
+\end{description}
+
+\section{About this Book}
+
+This book is the definitive HyperDex reference manual for users, administrators,
+and developers.  The HyperDex developers update this manual in tandem with each
+release to ensure that the book serves as the best reference for HyperDex.
+
+This book is divided into four parts, each of which is directed to a different
+audience.  Part~\ref{part:for-developers}, ``For Developers'', provides an
+introduction to HyperDex suitable for developers looking to build applications
+on top of HyperDex.  The ``For Developers'' part of this book is written as a
+series of tutorials that acquaint you with HyperDex's API and describe many of
+the features available within HyperDex.
+
+Part~\ref{part:for-admins}, ``For Administrators'', describes the day-to-day
+maintenance of a HyperDex cluster.  The ``For Administrators'' portion of this
+book is written as a series of small, isolated recipes that provide instruction
+for maintaining and monitoring HyperDex clusters.
+
+Part~\ref{part:for-hackers}, ``For Hackers'', should be of interest to
+individuals looking to hack on HyperDex itself.  This portion of the book
+provides pointers to enterprising individuals looking to extend, modify, or
+contribute to HyperDex development.
+
+Finally, Part~\ref{part:api-ref} provides an API reference for HyperDex.  This
+section serves primarily as a reference of the developer-visible, and
+operations-visible, components of HyperDex and should probably be used for
+reference rather than read in its entirety.
+
+This book is a continuous work in progress, and newer versions are available at
+the \href{http://hyperdex.org/}{HyperDex website}.  The book's sources are
+maintained alongside the HyperDex source code as the de-facto documentation for
+HyperDex.  Patches, suggestions, and feedback about this book are welcome and
+may be submitted using the contact information in the next section.
+
+\section{Help and Support}
+
+If you run into trouble while working with HyperDex, don't panic!  The HyperDex
+team have put together many support avenues to assist you with HyperDex.  Many
+of the available resources are freely available online.  When you need more
+support than that, the HyperDex team is on standby with commercial support
+options that ensure that you're never left in the dark.
+
+\subsection{Online and Free Resources}
+
+The HyperDex team have assembled several free online resources to help you make
+the most of HyperDex:
+
+\begin{itemize}
+\item HyperDex Reference Manual:  This document is the best avenue for support
+    and assistance.  It serves as the canonical documentation of HyperDex and
+    should be your first stop with any questions or problems.
+\item \href{https://groups.google.com/group/hyperdex-discuss}{HyperDex Mailing List}:
+    This open mailing list is most users' first resource solving problems.
+    Messages to the list are archived which makes it easy to search for
+    solutions to your problem.  If you don't find a solution in the archives,
+    start a new thread with your question and the HyperDex developers will try
+    to help answer your questions.
+\item \href{http://webchat.freenode.net/?channels=hyperdex\&uio=d4}{HyperDex IRC Channel}:
+    The \texttt{\#hyperdex} IRC channel on Freenode is a great place to ask
+    questions and interact with the HyperDex developers in real-time.
+\item \href{https://github.com/rescrv/HyperDex/issues}{HyperDex Bug Tracker}:
+    If you've encountered an error in the code that you think may be a bug,
+    check the bug tracker to see if other users have reported the same problem.
+    Consider reporting the problem yourself if it looks like the problem has not
+    yet been reported.
+\item \href{http://hyperdex.org/FAQ/}{HyperDex FAQ}:
+    If you've got a question, check out the FAQ for frequently asked (and
+    answered) questions.  The FAQ contains pointers to other resources to help
+    solve your problems.
+\item \href{http://hyperdex.org/papers/}{HyperDex Papers}:
+    If you're interested in developing or changing the internals of HyperDex,
+    we've published papers that detail the internal architecture and design
+    principles of HyperDex.
+\end{itemize}
+
+\subsection{Commercial Support}
+
+The HyperDex team provides commercial support for HyperDex, which includes
+around-the-clock email support and consulting services.  If you're in need of
+support, you can contact the HyperDex developers directly at {\em support}@{\em
+hyperdex.org}.

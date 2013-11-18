@@ -32,36 +32,16 @@
 #include <e/slice.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/attribute_check.h"
+#include "common/range.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
-// a range is inclusive
-class range
-{
-    public:
-        range();
-        range(const range& other);
-        ~range() throw ();
-
-    public:
-        range& operator = (const range& rhs);
-
-    public:
-        uint16_t attr;
-        hyperdatatype type;
-        e::slice start;
-        e::slice end;
-        bool has_start;
-        bool has_end;
-        bool invalid;
-};
-
-bool
+void
 range_searches(const std::vector<attribute_check>& checks,
                std::vector<range>* ranges);
 
-}
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_range_searches_h_

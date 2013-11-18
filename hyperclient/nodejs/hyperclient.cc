@@ -332,46 +332,46 @@ void raise_exception(enum hyperclient_returncode ret)
         switch(ret)
         {
 
-                case HYPERCLIENT_NOTFOUND:
+                case HYPERDEX_CLIENT_NOTFOUND:
                         exception("Not Found");
                         break;
-                case HYPERCLIENT_SEARCHDONE:
+                case HYPERDEX_CLIENT_SEARCHDONE:
                         exception("Search Done");
                         break;
-                case HYPERCLIENT_CMPFAIL:
+                case HYPERDEX_CLIENT_CMPFAIL:
                         exception("Conditional Operation Did Not Match Object");
                         break;
-                case HYPERCLIENT_UNKNOWNSPACE:
+                case HYPERDEX_CLIENT_UNKNOWNSPACE:
                         exception("Unknown Space");
                         break;
-                case HYPERCLIENT_COORDFAIL:
+                case HYPERDEX_CLIENT_COORDFAIL:
                         exception("Coordinator Failure");
                         break;
-                case HYPERCLIENT_SERVERERROR:
+                case HYPERDEX_CLIENT_SERVERERROR:
                         exception("Server Error");
                         break;
-                case HYPERCLIENT_RECONFIGURE:
+                case HYPERDEX_CLIENT_RECONFIGURE:
                         exception("Reconfiguration");
                         break;
-                case HYPERCLIENT_TIMEOUT:
+                case HYPERDEX_CLIENT_TIMEOUT:
                         exception("Timeout");
                         break;
-                case HYPERCLIENT_UNKNOWNATTR:
+                case HYPERDEX_CLIENT_UNKNOWNATTR:
                         exception("Unknown attribute");
                         break;
-                case HYPERCLIENT_DUPEATTR:
+                case HYPERDEX_CLIENT_DUPEATTR:
                         exception("Duplicate attribute ");
                         break;
-                case HYPERCLIENT_NONEPENDING:
+                case HYPERDEX_CLIENT_NONEPENDING:
                         exception("None pending");
                         break;
-                case HYPERCLIENT_DONTUSEKEY:
+                case HYPERDEX_CLIENT_DONTUSEKEY:
                         exception("Do not specify the key in a search predicate and do not redundantly specify the key for an insert");
                         break;
-                case HYPERCLIENT_WRONGTYPE:
+                case HYPERDEX_CLIENT_WRONGTYPE:
                         exception("Attribute has the wrong type");
                         break;
-                case HYPERCLIENT_EXCEPTION:
+                case HYPERDEX_CLIENT_EXCEPTION:
                         exception("Internal Error (file a bug)");
                         break;
         }
@@ -572,7 +572,7 @@ void dict_to_attrs(Local<Object> obj, int isinc, struct hyperclient_attribute** 
                 }
                 else
                 {
-            raise_exception(HYPERCLIENT_WRONGTYPE);
+            raise_exception(HYPERDEX_CLIENT_WRONGTYPE);
                 }
 
                 if(val->IsString())
@@ -1168,7 +1168,7 @@ Local<Array> attrs_to_dict(struct hyperclient_attribute* attrs, size_t attrs_siz
         {
             Local<Array> nullarr;
             //Wrong type
-            raise_exception(HYPERCLIENT_WRONGTYPE);
+            raise_exception(HYPERDEX_CLIENT_WRONGTYPE);
             return nullarr;
         }
         obj->Set(key, val);
@@ -1248,7 +1248,7 @@ Handle<Value> HyperClient::wait()
     do
     {
         val = hyperclient_loop(obj->client, -1, obj->ret);
-        if(*(obj->ret) != HYPERCLIENT_SUCCESS && *(obj->ret) != HYPERCLIENT_NOTFOUND && *(obj->ret) != HYPERCLIENT_CMPFAIL && *(obj->ret) != HYPERCLIENT_SEARCHDONE)
+        if(*(obj->ret) != HYPERDEX_CLIENT_SUCCESS && *(obj->ret) != HYPERDEX_CLIENT_NOTFOUND && *(obj->ret) != HYPERDEX_CLIENT_CMPFAIL && *(obj->ret) != HYPERDEX_CLIENT_SEARCHDONE)
         {
             raise_exception(*(obj->ret));
             return v8::Undefined();
@@ -1263,7 +1263,7 @@ Handle<Value> HyperClient::wait()
         if(op == 1)
         {
             attr = (struct hc_attrs*) malloc(sizeof(struct hc_attrs));
-            if(*(obj->ret) == HYPERCLIENT_SUCCESS)
+            if(*(obj->ret) == HYPERDEX_CLIENT_SUCCESS)
             {
                 attr->isAttr = true;
                 attr->attrs = *(obj->attrs);
@@ -1281,13 +1281,13 @@ Handle<Value> HyperClient::wait()
         else if(op == 7)
         {
             attr = (struct hc_attrs*) malloc(sizeof(struct hc_attrs));
-                        if(*(obj->ret) == HYPERCLIENT_SUCCESS)
+                        if(*(obj->ret) == HYPERDEX_CLIENT_SUCCESS)
                         {
                                 attr->isAttr = true;
                                 attr->attrs = *(obj->attrs);
                                 attr->attrs_size = *(obj->attrs_size);
                         }
-            else if(*(obj->ret) == HYPERCLIENT_SEARCHDONE)
+            else if(*(obj->ret) == HYPERDEX_CLIENT_SEARCHDONE)
             {
                 attr->isAttr = false;
                                 attr->retval = false;
@@ -1305,7 +1305,7 @@ Handle<Value> HyperClient::wait()
         else
         {
             attr = (struct hc_attrs*) malloc(sizeof(struct hc_attrs));
-            if(*(obj->ret) == HYPERCLIENT_SUCCESS)
+            if(*(obj->ret) == HYPERDEX_CLIENT_SUCCESS)
             {
                 attr->isAttr = false;
                                 attr->retval = true;
@@ -1516,7 +1516,7 @@ Handle<Value> HyperClient::async_search(const Arguments& args)
                 }
                 else
                 {
-                        raise_exception(HYPERCLIENT_WRONGTYPE);
+                        raise_exception(HYPERDEX_CLIENT_WRONGTYPE);
                 }
 
         v1 = v_arr->Get(0);
@@ -1524,7 +1524,7 @@ Handle<Value> HyperClient::async_search(const Arguments& args)
 
         if(!v1->IsNumber() || !v2->IsNumber())
         {
-            raise_exception(HYPERCLIENT_WRONGTYPE);
+            raise_exception(HYPERDEX_CLIENT_WRONGTYPE);
             return v8::Undefined();
         }
                 else

@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2012, Cornell University
+// Copyright (c) 2011-2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -29,33 +29,50 @@
 #define hyperdex_client_pending_get_h_
 
 // HyperDex
+#include "namespace.h"
 #include "client/pending.h"
 
-class hyperclient::pending_get : public hyperclient::pending
+BEGIN_HYPERDEX_NAMESPACE
+
+class pending_get : public pending
 {
     public:
-        pending_get(hyperclient_returncode* status,
-                    struct hyperclient_attribute** attrs,
-                    size_t* attrs_sz);
+        pending_get(uint64_t client_visible_id,
+                    hyperdex_client_returncode* status,
+                    const hyperdex_client_attribute** attrs, size_t* attrs_sz);
         virtual ~pending_get() throw ();
 
+    // return to client
     public:
-        virtual hyperdex::network_msgtype request_type();
-        virtual int64_t handle_response(hyperclient* cl,
-                                        const server_id& id,
-                                        std::auto_ptr<e::buffer> msg,
-                                        hyperdex::network_msgtype type,
-                                        hyperclient_returncode* status);
+        virtual bool can_yield();
+        virtual bool yield(hyperdex_client_returncode* status, e::error* error);
 
+    // events
+    public:
+        virtual void handle_sent_to(const server_id& si,
+                                    const virtual_server_id& vsi);
+        virtual void handle_failure(const server_id& si,
+                                    const virtual_server_id& vsi);
+        virtual bool handle_message(client*,
+                                    const server_id& si,
+                                    const virtual_server_id& vsi,
+                                    network_msgtype mt,
+                                    std::auto_ptr<e::buffer> msg,
+                                    e::unpacker up,
+                                    hyperdex_client_returncode* status,
+                                    e::error* error);
+
+    // noncopyable
     private:
         pending_get(const pending_get& other);
-
-    private:
         pending_get& operator = (const pending_get& rhs);
 
     private:
-        hyperclient_attribute** m_attrs;
+        enum { INITIALIZED, SENT, RECV, YIELDED } m_state;
+        const hyperdex_client_attribute** m_attrs;
         size_t* m_attrs_sz;
 };
+
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_client_pending_get_h_

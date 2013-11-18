@@ -25,8 +25,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef hyperdex_client_keyp_info_h_
-#define hyperdex_client_keyp_info_h_
+#ifndef hyperdex_client_keyop_info_h_
+#define hyperdex_client_keyop_info_h_
 
 // e
 #include <e/slice.h>
@@ -35,19 +35,16 @@
 #include "hyperdex.h"
 #include "common/funcall.h"
 
-struct hyperclient_keyop_info
+struct hyperdex_client_keyop_info
 {
     int name;
-    bool fail_if_not_exist;
-    bool fail_if_exist;
-    bool has_funcalls;
+    bool erase;
+    bool fail_if_not_found;
+    bool fail_if_found;
     hyperdex::funcall_t fname;
-    bool (*check)(hyperdatatype expected,
-                  const e::slice& arg1, hyperdatatype arg1_datatype,
-                  const e::slice& arg2, hyperdatatype arg2_datatype);
 };
 
-const struct hyperclient_keyop_info*
-hyperclient_keyop_info_lookup(const char* str, unsigned int len);
+const struct hyperdex_client_keyop_info*
+hyperdex_client_keyop_info_lookup(const char* str, unsigned int len);
 
-#endif // hyperdex_client_keyp_info_h_
+#endif // hyperdex_client_keyop_info_h_

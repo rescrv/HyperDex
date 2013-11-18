@@ -35,10 +35,10 @@
 #include <e/slice.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/schema.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 uint64_t
 hash(hyperdatatype t, const e::slice& v);
@@ -54,6 +54,6 @@ hash(const schema& sc,
      const std::vector<e::slice>& value,
      uint64_t* hs);
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_hash_h_

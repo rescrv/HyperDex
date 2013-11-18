@@ -28,21 +28,25 @@
 #define __STDC_LIMIT_MACROS
 
 // STL
+#include <algorithm>
 #include <sstream>
 
 // Google Log
 #include <glog/logging.h>
 
 // e
+#include <e/intrusive_ptr.h>
 #include <e/time.h>
 
 // HyperDex
 #include "common/attribute_check.h"
+#include "common/datatypes.h"
 #include "common/serialization.h"
 #include "daemon/daemon.h"
+#include "daemon/datalayer_iterator.h"
 #include "daemon/search_manager.h"
-#include "datatypes/compare.h"
 
+using hyperdex::datatype_info;
 using hyperdex::search_manager;
 using hyperdex::reconfigure_returncode;
 
@@ -116,7 +120,7 @@ class search_manager::state
         const region_id region;
         const std::auto_ptr<e::buffer> backing;
         std::vector<attribute_check> checks;
-        datalayer::snapshot snap;
+        e::intrusive_ptr<datalayer::iterator> iter;
 
     private:
         friend class e::intrusive_ptr<state>;
@@ -136,7 +140,7 @@ search_manager :: state :: state(const region_id& r,
     , region(r)
     , backing(msg)
     , checks()
-    , snap()
+    , iter()
     , m_ref(0)
 {
     checks.swap(*c);
@@ -170,6 +174,16 @@ search_manager :: teardown()
 }
 
 void
+search_manager :: pause()
+{
+}
+
+void
+search_manager :: unpause()
+{
+}
+
+void
 search_manager :: reconfigure(const configuration&,
                               const configuration&,
                               const server_id&)
@@ -195,12 +209,11 @@ search_manager :: start(const server_id& from,
         return;
     }
 
-    const schema* sc = m_daemon->m_config.get_schema(ri);
-    assert(sc);
     e::intrusive_ptr<state> st = new state(ri, msg, checks);
-    datalayer::returncode rc;
     std::stable_sort(st->checks.begin(), st->checks.end());
-    rc = m_daemon->m_data.make_snapshot(st->region, *sc, &st->checks, &st->snap, NULL);
+    datalayer::returncode rc = datalayer::SUCCESS;
+    datalayer::snapshot snap = m_daemon->m_data.make_snapshot();
+    st->iter = m_daemon->m_data.make_search_iterator(snap, ri, st->checks, NULL);
 
     switch (rc)
     {
@@ -208,7 +221,6 @@ search_manager :: start(const server_id& from,
             break;
         case datalayer::NOT_FOUND:
         case datalayer::BAD_ENCODING:
-        case datalayer::BAD_SEARCH:
         case datalayer::CORRUPTION:
         case datalayer::IO_ERROR:
         case datalayer::LEVELDB_ERROR:
@@ -242,12 +254,13 @@ search_manager :: next(const server_id& from,
 
     po6::threads::mutex::hold hold(&st->lock);
 
-    if (st->snap.valid())
+    if (st->iter->valid())
     {
         e::slice key;
         std::vector<e::slice> val;
         uint64_t ver;
-        st->snap.unpack(&key, &val, &ver);
+        datalayer::reference tmp;
+        m_daemon->m_data.get_from_iterator(ri, st->iter.get(), &key, &val, &ver, &tmp);
         size_t sz = HYPERDEX_HEADER_SIZE_VC
                   + sizeof(uint64_t)
                   + pack_size(key)
@@ -255,7 +268,7 @@ search_manager :: next(const server_id& from,
         std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
         msg->pack_at(HYPERDEX_HEADER_SIZE_VC) << nonce << key << val;
         m_daemon->m_comm.send_client(to, from, RESP_SEARCH_ITEM, msg);
-        st->snap.next();
+        st->iter->next();
     }
     else
     {
@@ -344,13 +357,14 @@ operator < (const _sorted_search_item& lhs, const _sorted_search_item& rhs)
 
     if (params->sort_by == 0)
     {
-        cmp = compare_as_type(lhs.key, rhs.key, params->sc->attrs[0].type);
+        datatype_info* di = datatype_info::lookup(params->sc->attrs[0].type);
+        cmp = di->compare(lhs.key, rhs.key);
     }
     else
     {
-        cmp = compare_as_type(lhs.value[params->sort_by - 1],
-                              rhs.value[params->sort_by - 1],
-                              params->sc->attrs[params->sort_by].type);
+        datatype_info* di = datatype_info::lookup(params->sc->attrs[params->sort_by].type);
+        cmp = di->compare(lhs.value[params->sort_by - 1],
+                          rhs.value[params->sort_by - 1]);
     }
 
     if (params->maximize)
@@ -378,13 +392,14 @@ operator > (const _sorted_search_item& lhs, const _sorted_search_item& rhs)
 
     if (params->sort_by == 0)
     {
-        cmp = compare_as_type(lhs.key, rhs.key, params->sc->attrs[0].type);
+        datatype_info* di = datatype_info::lookup(params->sc->attrs[0].type);
+        cmp = di->compare(lhs.key, rhs.key);
     }
     else
     {
-        cmp = compare_as_type(lhs.value[params->sort_by - 1],
-                              rhs.value[params->sort_by - 1],
-                              params->sc->attrs[params->sort_by].type);
+        datatype_info* di = datatype_info::lookup(params->sc->attrs[params->sort_by].type);
+        cmp = di->compare(lhs.value[params->sort_by - 1],
+                          rhs.value[params->sort_by - 1]);
     }
 
     if (params->maximize)
@@ -409,12 +424,11 @@ search_manager :: sorted_search(const server_id& from,
                                 bool maximize)
 {
     region_id ri(m_daemon->m_config.get_region_id(to));
-    const schema* sc = m_daemon->m_config.get_schema(ri);
-    assert(sc);
-    datalayer::snapshot snap;
-    datalayer::returncode rc;
     std::stable_sort(checks->begin(), checks->end());
-    rc = m_daemon->m_data.make_snapshot(m_daemon->m_config.get_region_id(to), *sc, checks, &snap, NULL);
+    datalayer::returncode rc = datalayer::SUCCESS;
+    datalayer::snapshot snap = m_daemon->m_data.make_snapshot();
+    e::intrusive_ptr<datalayer::iterator> iter;
+    iter = m_daemon->m_data.make_search_iterator(snap, ri, *checks, NULL);
 
     switch (rc)
     {
@@ -422,7 +436,6 @@ search_manager :: sorted_search(const server_id& from,
             break;
         case datalayer::NOT_FOUND:
         case datalayer::BAD_ENCODING:
-        case datalayer::BAD_SEARCH:
         case datalayer::CORRUPTION:
         case datalayer::IO_ERROR:
         case datalayer::LEVELDB_ERROR:
@@ -432,14 +445,16 @@ search_manager :: sorted_search(const server_id& from,
             abort();
     }
 
+    const schema* sc = m_daemon->m_config.get_schema(ri);
+    assert(sc);
     _sorted_search_params params(sc, sort_by, maximize);
     std::vector<_sorted_search_item> top_n;
     top_n.reserve(limit);
 
-    while (snap.valid())
+    while (iter->valid())
     {
         top_n.push_back(_sorted_search_item(&params));
-        snap.unpack(&top_n.back().key, &top_n.back().value, &top_n.back().version, &top_n.back().ref);
+        m_daemon->m_data.get_from_iterator(ri, iter.get(), &top_n.back().key, &top_n.back().value, &top_n.back().version, &top_n.back().ref);
         std::push_heap(top_n.begin(), top_n.end());
 
         if (top_n.size() > limit)
@@ -448,7 +463,7 @@ search_manager :: sorted_search(const server_id& from,
             top_n.pop_back();
         }
 
-        snap.next();
+        iter->next();
     }
 
     std::sort(top_n.begin(), top_n.end(), std::greater<_sorted_search_item>());
@@ -481,12 +496,11 @@ search_manager :: group_keyop(const server_id& from,
                               network_msgtype resp)
 {
     region_id ri(m_daemon->m_config.get_region_id(to));
-    const schema* sc = m_daemon->m_config.get_schema(ri);
-    assert(sc);
-    datalayer::snapshot snap;
-    datalayer::returncode rc;
     std::stable_sort(checks->begin(), checks->end());
-    rc = m_daemon->m_data.make_snapshot(m_daemon->m_config.get_region_id(to), *sc, checks, &snap, NULL);
+    datalayer::returncode rc = datalayer::SUCCESS;
+    datalayer::snapshot snap = m_daemon->m_data.make_snapshot();
+    e::intrusive_ptr<datalayer::iterator> iter;
+    iter = m_daemon->m_data.make_search_iterator(snap, ri, *checks, NULL);
     uint64_t result = 0;
 
     switch (rc)
@@ -495,7 +509,6 @@ search_manager :: group_keyop(const server_id& from,
             break;
         case datalayer::NOT_FOUND:
         case datalayer::BAD_ENCODING:
-        case datalayer::BAD_SEARCH:
         case datalayer::CORRUPTION:
         case datalayer::IO_ERROR:
         case datalayer::LEVELDB_ERROR:
@@ -506,12 +519,13 @@ search_manager :: group_keyop(const server_id& from,
             abort();
     }
 
-    while (snap.valid() && result < UINT64_MAX)
+    while (iter->valid() && result < UINT64_MAX)
     {
         e::slice key;
         std::vector<e::slice> val;
         uint64_t ver;
-        snap.unpack(&key, &val, &ver);
+        datalayer::reference tmp;
+        m_daemon->m_data.get_from_iterator(ri, iter.get(), &key, &val, &ver, &tmp);
         size_t sz = HYPERDEX_HEADER_SIZE_SV // SV because we imitate a client
                   + sizeof(uint64_t)
                   + pack_size(key)
@@ -526,12 +540,8 @@ search_manager :: group_keyop(const server_id& from,
         {
             m_daemon->m_comm.send(vsi, mt, msg);
         }
-        else
-        {
-            LOG(ERROR) << "group_keyop could not compute point leader (serious bug; please report)";
-        }
 
-        snap.next();
+        iter->next();
     }
 
     size_t sz = HYPERDEX_HEADER_SIZE_VC
@@ -549,12 +559,11 @@ search_manager :: count(const server_id& from,
                         std::vector<attribute_check>* checks)
 {
     region_id ri(m_daemon->m_config.get_region_id(to));
-    const schema* sc = m_daemon->m_config.get_schema(ri);
-    assert(sc);
-    datalayer::snapshot snap;
-    datalayer::returncode rc;
     std::stable_sort(checks->begin(), checks->end());
-    rc = m_daemon->m_data.make_snapshot(m_daemon->m_config.get_region_id(to), *sc, checks, &snap, NULL);
+    datalayer::returncode rc = datalayer::SUCCESS;
+    datalayer::snapshot snap = m_daemon->m_data.make_snapshot();
+    e::intrusive_ptr<datalayer::iterator> iter;
+    iter = m_daemon->m_data.make_search_iterator(snap, ri, *checks, NULL);
     uint64_t result = 0;
 
     switch (rc)
@@ -563,7 +572,6 @@ search_manager :: count(const server_id& from,
             break;
         case datalayer::NOT_FOUND:
         case datalayer::BAD_ENCODING:
-        case datalayer::BAD_SEARCH:
         case datalayer::CORRUPTION:
         case datalayer::IO_ERROR:
         case datalayer::LEVELDB_ERROR:
@@ -574,10 +582,10 @@ search_manager :: count(const server_id& from,
             abort();
     }
 
-    while (snap.valid() && result < UINT64_MAX)
+    while (iter->valid() && result < UINT64_MAX)
     {
         ++result;
-        snap.next();
+        iter->next();
     }
 
     size_t sz = HYPERDEX_HEADER_SIZE_VC
@@ -595,17 +603,19 @@ search_manager :: search_describe(const server_id& from,
                                   std::vector<attribute_check>* checks)
 {
     region_id ri(m_daemon->m_config.get_region_id(to));
-    const schema* sc = m_daemon->m_config.get_schema(ri);
-    assert(sc);
-    datalayer::snapshot snap;
-    datalayer::returncode rc;
     std::stable_sort(checks->begin(), checks->end());
+    datalayer::returncode rc = datalayer::SUCCESS;
     std::ostringstream ostr;
     ostr << "search\n";
     uint64_t t_start = e::time();
-    rc = m_daemon->m_data.make_snapshot(m_daemon->m_config.get_region_id(to), *sc, checks, &snap, &ostr);
+    datalayer::snapshot snap = m_daemon->m_data.make_snapshot();
     uint64_t t_end = e::time();
     ostr << " snapshot took " << t_end - t_start << "ns\n";
+    e::intrusive_ptr<datalayer::iterator> iter;
+    t_start = e::time();
+    iter = m_daemon->m_data.make_search_iterator(snap, ri, *checks, &ostr);
+    t_end = e::time();
+    ostr << " iterator took " << t_end - t_start << "ns\n";
 
     switch (rc)
     {
@@ -613,7 +623,6 @@ search_manager :: search_describe(const server_id& from,
             break;
         case datalayer::NOT_FOUND:
         case datalayer::BAD_ENCODING:
-        case datalayer::BAD_SEARCH:
         case datalayer::CORRUPTION:
         case datalayer::IO_ERROR:
         case datalayer::LEVELDB_ERROR:
@@ -626,10 +635,10 @@ search_manager :: search_describe(const server_id& from,
     uint64_t num = 0;
     t_start = e::time();
 
-    while (snap.valid())
+    while (iter->valid())
     {
         ++num;
-        snap.next();
+        iter->next();
     }
 
     t_end = e::time();

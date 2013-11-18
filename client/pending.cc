@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2012, Cornell University
+// Copyright (c) 2011-2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,22 +28,29 @@
 // HyperDex
 #include "client/pending.h"
 
-hyperclient :: pending :: pending(hyperclient_returncode* status)
+using hyperdex::pending;
+
+pending :: pending(uint64_t id, hyperdex_client_returncode* status)
     : m_ref(0)
-    , m_id(0)
-    , m_nonce(0)
-    , m_sent_to()
+    , m_client_visible_id(id)
     , m_status(status)
+    , m_error()
 {
 }
 
-hyperclient :: pending :: ~pending() throw ()
+pending :: ~pending() throw ()
 {
 }
 
-int64_t
-hyperclient :: pending :: return_one(hyperclient*,
-                                     hyperclient_returncode*)
+std::ostream&
+pending :: error(const char* file, size_t line)
 {
-    abort();
+    m_error.set_loc(file, line);
+    return m_error.set_msg();
+}
+
+void
+pending :: set_error(const e::error& err)
+{
+    m_error = err;
 }

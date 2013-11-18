@@ -57,7 +57,7 @@
 #include <e/guard.h>
 
 // HyperClient
-#include "client/hyperclient.h"
+#include "client/hyperclient.hpp"
 
 static long window = 128;
 static long repetitions = 1024;
@@ -244,7 +244,7 @@ writer_thread()
     std::map<hyperclient_returncode, uint64_t> lfailed_loops;
     std::map<hyperclient_returncode, uint64_t> lops;
     uint64_t lfailed_writes = 0;
-    hyperclient cl(host, port);
+    HyperClient cl(host, port);
     bool fail = false;
 
     for (int64_t i = 0; i < window; ++i)
@@ -276,7 +276,7 @@ writer_thread()
 
         assert(lid == did);
 
-        if (dstatus != HYPERCLIENT_SUCCESS && dstatus != HYPERCLIENT_NOTFOUND)
+        if (dstatus != HYPERDEX_CLIENT_SUCCESS && dstatus != HYPERDEX_CLIENT_NOTFOUND)
         {
             std::cerr << "delete returned " << dstatus << std::endl;
             fail = true;
@@ -373,7 +373,7 @@ reader_thread()
     std::map<hyperclient_returncode, uint64_t> lfailed_loops;
     std::map<hyperclient_returncode, uint64_t> lops;
     uint64_t linconsistencies = 0;
-    hyperclient cl(host, port);
+    HyperClient cl(host, port);
     barrier->wait();
 
     while (!__sync_bool_compare_and_swap(&done, 1, 1))
@@ -412,7 +412,7 @@ reader_thread()
                 assert(lid == gid);
                 ++lops[gstatus];
 
-                if (gstatus == HYPERCLIENT_SUCCESS)
+                if (gstatus == HYPERDEX_CLIENT_SUCCESS)
                 {
                     assert(attrs_sz == 1);
                     assert(strcmp(attrs[0].attr, "repetition") == 0);

@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2012-2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,7 @@
 #include <vector>
 
 // LevelDB
-#include <leveldb/db.h>
+#include <hyperleveldb/db.h>
 
 // po6
 #include <po6/net/hostname.h>
@@ -48,17 +48,17 @@
 #include <po6/threads/thread.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/attribute_check.h"
 #include "common/configuration.h"
-#include "common/counter_map.h"
+#include "common/datatypes.h"
 #include "common/ids.h"
 #include "common/schema.h"
 #include "daemon/leveldb.h"
 #include "daemon/reconfigure_returncode.h"
+#include "daemon/region_timestamp.h"
 
-namespace hyperdex
-{
-// Forward declarations
+BEGIN_HYPERDEX_NAMESPACE
 class daemon;
 
 class datalayer
@@ -69,40 +69,47 @@ class datalayer
             SUCCESS,
             NOT_FOUND,
             BAD_ENCODING,
-            BAD_SEARCH,
             CORRUPTION,
             IO_ERROR,
             LEVELDB_ERROR
         };
         class reference;
+        class iterator;
+        class replay_iterator;
+        class dummy_iterator;
         class region_iterator;
-        class snapshot;
+        class search_iterator;
+        class index_iterator;
+        class sorted_iterator;
+        class unsorted_iterator;
+        class intersect_iterator;
+        typedef leveldb_snapshot_ptr snapshot;
 
     public:
         datalayer(daemon*);
         ~datalayer() throw ();
 
     public:
-        bool setup(const po6::pathname& path,
-                   bool* saved,
-                   server_id* saved_us,
-                   po6::net::location* saved_bind_to,
-                   po6::net::hostname* saved_coordinator);
-        void teardown();
-        // perform one-time initialization of the db (call after "setup").
-        // requires that "saved" was false in "setup".
-        bool initialize();
-        // implicit sets the "dirty" bit
+        bool initialize(const po6::pathname& path,
+                        bool* saved,
+                        server_id* saved_us,
+                        po6::net::location* saved_bind_to,
+                        po6::net::hostname* saved_coordinator);
         bool save_state(const server_id& m_us,
                         const po6::net::location& bind_to,
                         const po6::net::hostname& coordinator);
-        // clears the "dirty" bit
-        bool clear_dirty();
+        void teardown();
+        // reconfiguration
         void pause();
         void unpause();
         void reconfigure(const configuration& old_config,
                          const configuration& new_config,
                          const server_id& us);
+        // stats
+        bool get_property(const e::slice& property,
+                          std::string* value);
+        std::string get_timestamp();
+        uint64_t approximate_size();
 
     public:
         // retrieve the current value of a key
@@ -137,24 +144,7 @@ class datalayer
                                  const e::slice& key,
                                  const std::vector<e::slice>& new_value,
                                  uint64_t version);
-        // create a snapshot for search
-        returncode make_snapshot(const region_id& ri,
-                                 const schema& sc,
-                                 const std::vector<attribute_check>* checks,
-                                 snapshot* snap,
-                                 std::ostringstream* ostr);
-        // leveldb provides no failure mechanism for this, neither do we
-        leveldb_snapshot_ptr make_raw_snapshot();
-        void make_region_iterator(region_iterator* riter,
-                                  leveldb_snapshot_ptr snap,
-                                  const region_id& ri);
-        returncode get_transfer(const region_id& ri,
-                                uint64_t seq_no,
-                                bool* has_value,
-                                e::slice* key,
-                                std::vector<e::slice>* value,
-                                uint64_t* version,
-                                reference* ref);
+        // state from retransmitted messages
         // XXX errors are absorbed here; short of crashing we can only log
         bool check_acked(const region_id& ri,
                          const region_id& reg_id,
@@ -167,32 +157,67 @@ class datalayer
         // Clear less than seq_id
         void clear_acked(const region_id& reg_id,
                          uint64_t seq_id);
-        // Request that a particular capture_id be wiped.  This is requested by
-        // the state_transfer_manager.  The state_transfer_manger will get a
-        // call back on report_wiped after it is done.
-        void request_wipe(const capture_id& cid);
+        // leveldb provides no failure mechanism for this, neither do we
+        snapshot make_snapshot();
+        // create iterators from snapshots
+        iterator* make_region_iterator(snapshot snap,
+                                       const region_id& ri,
+                                       returncode* error);
+        iterator* make_search_iterator(snapshot snap,
+                                       const region_id& ri,
+                                       const std::vector<attribute_check>& checks,
+                                       std::ostringstream* ostr);
+        // backups
+        bool backup(const e::slice& name);
+        // get the object pointed to by the iterator
+        returncode get_from_iterator(const region_id& ri,
+                                     iterator* iter,
+                                     e::slice* key,
+                                     std::vector<e::slice>* value,
+                                     uint64_t* version,
+                                     reference* ref);
+        // checkpointing
+        returncode create_checkpoint(const region_timestamp& rt);
+        void set_checkpoint_lower_gc(uint64_t checkpoint_gc);
+        void largest_checkpoint_for(const region_id& ri, uint64_t* checkpoint);
+        void request_wipe(const transfer_id& xid,
+                          const region_id& ri);
+        replay_iterator* replay_region_from_checkpoint(const region_id& ri,
+                                                       uint64_t checkpoint, bool* wipe);
+        // used on startup
+        bool only_key_is_hyperdex_key();
 
     private:
         datalayer(const datalayer&);
         datalayer& operator = (const datalayer&);
 
     private:
-        void cleaner();
+        void checkpointer();
+        void wiper();
+        void wipe_checkpoints(const region_id& rid);
+        bool wipe_some_indices(const region_id& rid);
+        bool wipe_some_objects(const region_id& rid);
+        bool wipe_some_common(uint8_t c, const region_id& rid);
         void shutdown();
+        returncode handle_error(leveldb::Status st);
+        void collect_lower_checkpoints(uint64_t checkpoint_gc);
 
     private:
         daemon* m_daemon;
         leveldb_db_ptr m_db;
-        counter_map m_counters;
-        po6::threads::thread m_cleaner;
-        po6::threads::mutex m_block_cleaner;
-        po6::threads::cond m_wakeup_cleaner;
+        po6::threads::thread m_checkpointer;
+        po6::threads::thread m_wiper;
+        po6::threads::mutex m_protect;
+        po6::threads::cond m_wakeup_checkpointer;
+        po6::threads::cond m_wakeup_wiper;
         po6::threads::cond m_wakeup_reconfigurer;
-        bool m_need_cleaning;
         bool m_shutdown;
         bool m_need_pause;
-        bool m_paused;
-        std::set<capture_id> m_state_transfer_captures;
+        bool m_checkpointer_paused;
+        bool m_wiper_paused;
+        uint64_t m_checkpoint_gc;
+        typedef std::list<std::pair<transfer_id, region_id> > wipe_list_t;
+        wipe_list_t m_wiping;
 };
 
 class datalayer::reference
@@ -211,68 +236,9 @@ class datalayer::reference
         std::string m_backing;
 };
 
-class datalayer::region_iterator
-{
-    public:
-        region_iterator();
-        ~region_iterator() throw ();
-
-    public:
-        bool valid();
-        void next();
-        void unpack(e::slice* key, std::vector<e::slice>* val, uint64_t* ver, reference* ref);
-        e::slice key();
-
-    private:
-        friend class datalayer;
-        region_iterator(const region_iterator&);
-        region_iterator& operator = (const region_iterator&);
-
-    private:
-        datalayer* m_dl;
-        leveldb_snapshot_ptr m_snap;
-        leveldb_iterator_ptr m_iter;
-        region_id m_region;
-};
-
-class datalayer::snapshot
-{
-    public:
-        snapshot();
-        ~snapshot() throw ();
-
-    public:
-        bool valid();
-        void next();
-        void unpack(e::slice* key, std::vector<e::slice>* val, uint64_t* ver);
-        void unpack(e::slice* key, std::vector<e::slice>* val, uint64_t* ver, reference* ref);
-
-    private:
-        friend class datalayer;
-        snapshot(const snapshot&);
-        snapshot& operator = (const snapshot&);
-
-    private:
-        datalayer* m_dl;
-        leveldb_snapshot_ptr m_snap;
-        const std::vector<attribute_check>* m_checks;
-        region_id m_ri;
-        std::list<std::vector<char> > m_backing;
-        leveldb::Range m_range;
-        bool (*m_parse)(const leveldb::Slice& in, e::slice* out);
-        leveldb_iterator_ptr m_iter;
-        returncode m_error;
-        uint64_t m_version;
-        e::slice m_key;
-        std::vector<e::slice> m_value;
-        std::ostringstream* m_ostr;
-        uint64_t m_num_gets;
-        reference m_ref;
-};
-
 std::ostream&
 operator << (std::ostream& lhs, datalayer::returncode rhs);
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_daemon_datalayer_h_

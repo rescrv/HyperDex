@@ -26,66 +26,95 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // LevelDB
-#include <leveldb/write_batch.h>
+#include <hyperleveldb/write_batch.h>
 
 // e
 #include <e/endian.h>
 
 // HyperDex
 #include "daemon/datalayer_encodings.h"
-#include "daemon/index_encode.h"
+#include "daemon/index_info.h"
 
 using hyperdex::datalayer;
 
 void
-hyperdex :: encode_key(const region_id& ri,
-                       const e::slice& key,
-                       std::vector<char>* backing,
-                       leveldb::Slice* out)
+hyperdex :: encode_object_region(const region_id& ri,
+                                 std::vector<char>* scratch,
+                                 leveldb::Slice* out)
 {
-    size_t sz = sizeof(uint8_t) + sizeof(uint64_t) + key.size();
+    size_t sz = sizeof(uint8_t) + sizeof(uint64_t);
 
-    if (backing->size() < sz)
+    if (scratch->size() < sz)
     {
-        backing->clear();
-        backing->resize(sz);
+        scratch->resize(sz);
     }
 
-    char* ptr = &backing->front();
+    char* ptr = &scratch->front();
+    *out = leveldb::Slice(ptr, sz);
     ptr = e::pack8be('o', ptr);
     ptr = e::pack64be(ri.get(), ptr);
-    memmove(ptr, key.data(), key.size());
-    *out = leveldb::Slice(&backing->front(), sz);
 }
 
-datalayer::returncode
-hyperdex :: decode_key(const e::slice& in,
-                       region_id* ri,
-                       e::slice* key)
+void
+hyperdex :: encode_key(const region_id& ri,
+                       const e::slice& internal_key,
+                       std::vector<char>* scratch,
+                       leveldb::Slice* out)
 {
-    const uint8_t* ptr = in.data();
-    const uint8_t* end = ptr + in.size();
+    size_t sz = sizeof(uint8_t) + sizeof(uint64_t) + internal_key.size();
 
-    if (ptr >= end || *ptr != 'o')
+    if (scratch->size() < sz)
     {
-        return datalayer::BAD_ENCODING;
+        scratch->resize(sz);
     }
 
-    ++ptr;
-    uint64_t rid;
+    char* ptr = &scratch->front();
+    *out = leveldb::Slice(ptr, sz);
+    ptr = e::pack8be('o', ptr);
+    ptr = e::pack64be(ri.get(), ptr);
+    memmove(ptr, internal_key.data(), internal_key.size());
+}
 
-    if (ptr + sizeof(uint64_t) <= end)
+void
+hyperdex :: encode_key(const region_id& ri,
+                       hyperdatatype key_type,
+                       const e::slice& key,
+                       std::vector<char>* scratch,
+                       leveldb::Slice* out)
+{
+    index_info* ii(index_info::lookup(key_type));
+    size_t sz = sizeof(uint8_t) + sizeof(uint64_t) + ii->encoded_size(key);
+
+    if (scratch->size() < sz)
     {
-        ptr = e::unpack64be(ptr, &rid);
-    }
-    else
-    {
-        return datalayer::BAD_ENCODING;
+        scratch->resize(sz);
     }
 
-    *ri  = region_id(rid);
-    *key = e::slice(ptr, end - ptr);
-    return datalayer::SUCCESS;
+    char* ptr = &scratch->front();
+    *out = leveldb::Slice(ptr, sz);
+    ptr = e::pack8be('o', ptr);
+    ptr = e::pack64be(ri.get(), ptr);
+    ii->encode(key, ptr);
+}
+
+bool
+hyperdex :: decode_key(const leveldb::Slice& in,
+                       region_id* ri,
+                       e::slice* internal_key)
+{
+    const size_t prefix_sz = sizeof(uint8_t) + sizeof(uint64_t);
+
+    if (in.size() < prefix_sz ||
+        in.data()[0] != 'o')
+    {
+        return false;
+    }
+
+    uint64_t r;
+    e::unpack64be(in.data() + sizeof(uint8_t), &r);
+    *ri = region_id(r);
+    *internal_key = e::slice(in.data() + prefix_sz, in.size() - prefix_sz);
+    return true;
 }
 
 void
@@ -206,445 +235,113 @@ hyperdex :: decode_acked(const e::slice& in,
 }
 
 void
-hyperdex :: encode_transfer(const capture_id& ci,
-                            uint64_t count,
-                            char* out)
+hyperdex :: encode_checkpoint(const region_id& ri,
+                              uint64_t checkpoint,
+                              char* out)
 {
     char* ptr = out;
-    ptr = e::pack8be('t', ptr);
-    ptr = e::pack64be(ci.get(), ptr);
-    ptr = e::pack64be(count, ptr);
-}
-
-void
-hyperdex :: encode_key_value(const e::slice& key,
-                             /*pointer to make it optional*/
-                             const std::vector<e::slice>* value,
-                             uint64_t version,
-                             std::vector<char>* backing, /*XXX*/
-                             leveldb::Slice* out)
-{
-    size_t sz = sizeof(uint32_t) + key.size() + sizeof(uint64_t) + sizeof(uint16_t);
-
-    for (size_t i = 0; value && i < value->size(); ++i)
-    {
-        sz += sizeof(uint32_t) + (*value)[i].size();
-    }
-
-    backing->resize(sz);
-    char* ptr = &backing->front();
-    *out = leveldb::Slice(ptr, sz);
-    ptr = e::pack32be(key.size(), ptr);
-    memmove(ptr, key.data(), key.size());
-    ptr += key.size();
-    ptr = e::pack64be(version, ptr);
-
-    if (value)
-    {
-        ptr = e::pack16be(value->size(), ptr);
-
-        for (size_t i = 0; i < value->size(); ++i)
-        {
-            ptr = e::pack32be((*value)[i].size(), ptr);
-            memmove(ptr, (*value)[i].data(), (*value)[i].size());
-            ptr += (*value)[i].size();
-        }
-    }
-}
-
-datalayer::returncode
-hyperdex :: decode_key_value(const e::slice& in,
-                             bool* has_value,
-                             e::slice* key,
-                             std::vector<e::slice>* value,
-                             uint64_t* version)
-{
-    const uint8_t* ptr = in.data();
-    const uint8_t* end = ptr + in.size();
-
-    if (ptr >= end)
-    {
-        return datalayer::BAD_ENCODING;
-    }
-
-    uint32_t key_sz;
-
-    if (ptr + sizeof(uint32_t) <= end)
-    {
-        ptr = e::unpack32be(ptr, &key_sz);
-    }
-    else
-    {
-        return datalayer::BAD_ENCODING;
-    }
-
-    if (ptr + key_sz <= end)
-    {
-        *key = e::slice(ptr, key_sz);
-        ptr += key_sz;
-    }
-    else
-    {
-        return datalayer::BAD_ENCODING;
-    }
-
-    if (ptr + sizeof(uint64_t) <= end)
-    {
-        ptr = e::unpack64be(ptr, version);
-    }
-    else
-    {
-        return datalayer::BAD_ENCODING;
-    }
-
-    if (ptr == end)
-    {
-        *has_value = false;
-        return datalayer::SUCCESS;
-    }
-
-    uint16_t num_attrs;
-
-    if (ptr + sizeof(uint16_t) <= end)
-    {
-        ptr = e::unpack16be(ptr, &num_attrs);
-    }
-    else
-    {
-        return datalayer::BAD_ENCODING;
-    }
-
-    value->clear();
-
-    for (size_t i = 0; i < num_attrs; ++i)
-    {
-        uint32_t sz = 0;
-
-        if (ptr + sizeof(uint32_t) <= end)
-        {
-            ptr = e::unpack32be(ptr, &sz);
-        }
-        else
-        {
-            return datalayer::BAD_ENCODING;
-        }
-
-        e::slice s(ptr, sz);
-        ptr += sz;
-        value->push_back(s);
-    }
-
-    *has_value = true;
-    return datalayer::SUCCESS;
-}
-
-void
-hyperdex :: encode_index(const region_id& ri,
-                         uint16_t attr,
-                         std::vector<char>* backing)
-{
-    size_t sz = sizeof(uint8_t)
-              + sizeof(uint64_t)
-              + sizeof(uint16_t);
-    backing->resize(sz);
-    char* ptr = &backing->front();
-    ptr = e::pack8be('i', ptr);
+    ptr = e::pack8be('c', ptr);
     ptr = e::pack64be(ri.get(), ptr);
-    ptr = e::pack16be(attr, ptr);
-}
-
-void
-hyperdex :: encode_index(const region_id& ri,
-                         uint16_t attr,
-                         hyperdatatype type,
-                         const e::slice& value,
-                         std::vector<char>* backing)
-{
-    size_t sz = sizeof(uint8_t)
-              + sizeof(uint64_t)
-              + sizeof(uint16_t);
-    char* ptr = NULL;
-    char buf_i[sizeof(int64_t)];
-    char buf_d[sizeof(double)];
-    int64_t tmp_i;
-    double tmp_d;
-
-    switch (type)
-    {
-        case HYPERDATATYPE_STRING:
-            backing->resize(sz + value.size());
-            ptr = &backing->front();
-            ptr = e::pack8be('i', ptr);
-            ptr = e::pack64be(ri.get(), ptr);
-            ptr = e::pack16be(attr, ptr);
-            memmove(ptr, value.data(), value.size());
-            break;
-        case HYPERDATATYPE_INT64:
-            backing->resize(sz + sizeof(uint64_t));
-            ptr = &backing->front();
-            ptr = e::pack8be('i', ptr);
-            ptr = e::pack64be(ri.get(), ptr);
-            ptr = e::pack16be(attr, ptr);
-            memset(buf_i, 0, sizeof(int64_t));
-            memmove(buf_i, value.data(), std::min(value.size(), sizeof(int64_t)));
-            e::unpack64le(buf_i, &tmp_i);
-            ptr = index_encode_int64(tmp_i, ptr);
-            break;
-        case HYPERDATATYPE_FLOAT:
-            backing->resize(sz + sizeof(double));
-            ptr = &backing->front();
-            ptr = e::pack8be('i', ptr);
-            ptr = e::pack64be(ri.get(), ptr);
-            ptr = e::pack16be(attr, ptr);
-            memset(buf_d, 0, sizeof(double));
-            memmove(buf_d, value.data(), std::min(value.size(), sizeof(double)));
-            e::unpackdoublele(buf_d, &tmp_d);
-            ptr = index_encode_double(tmp_d, ptr);
-            break;
-        case HYPERDATATYPE_GENERIC:
-        case HYPERDATATYPE_LIST_GENERIC:
-        case HYPERDATATYPE_LIST_STRING:
-        case HYPERDATATYPE_LIST_INT64:
-        case HYPERDATATYPE_LIST_FLOAT:
-        case HYPERDATATYPE_SET_GENERIC:
-        case HYPERDATATYPE_SET_STRING:
-        case HYPERDATATYPE_SET_INT64:
-        case HYPERDATATYPE_SET_FLOAT:
-        case HYPERDATATYPE_MAP_GENERIC:
-        case HYPERDATATYPE_MAP_STRING_KEYONLY:
-        case HYPERDATATYPE_MAP_STRING_STRING:
-        case HYPERDATATYPE_MAP_STRING_INT64:
-        case HYPERDATATYPE_MAP_STRING_FLOAT:
-        case HYPERDATATYPE_MAP_INT64_KEYONLY:
-        case HYPERDATATYPE_MAP_INT64_STRING:
-        case HYPERDATATYPE_MAP_INT64_INT64:
-        case HYPERDATATYPE_MAP_INT64_FLOAT:
-        case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
-        case HYPERDATATYPE_MAP_FLOAT_STRING:
-        case HYPERDATATYPE_MAP_FLOAT_INT64:
-        case HYPERDATATYPE_MAP_FLOAT_FLOAT:
-        case HYPERDATATYPE_GARBAGE:
-        default:
-            abort();
-    }
-}
-
-void
-hyperdex :: encode_index(const region_id& ri,
-                         uint16_t attr,
-                         hyperdatatype type,
-                         const e::slice& value,
-                         const e::slice& key,
-                         std::vector<char>* backing)
-{
-    size_t sz = sizeof(uint8_t)
-              + sizeof(uint64_t)
-              + sizeof(uint16_t);
-    char* ptr = NULL;
-    char buf_i[sizeof(int64_t)];
-    char buf_d[sizeof(double)];
-    int64_t tmp_i;
-    double tmp_d;
-
-    switch (type)
-    {
-        case HYPERDATATYPE_STRING:
-            backing->resize(sz + value.size() + key.size() + sizeof(uint32_t));
-            ptr = &backing->front();
-            ptr = e::pack8be('i', ptr);
-            ptr = e::pack64be(ri.get(), ptr);
-            ptr = e::pack16be(attr, ptr);
-            memmove(ptr, value.data(), value.size());
-            ptr += value.size();
-            memmove(ptr, key.data(), key.size());
-            ptr += key.size();
-            ptr = e::pack32be(key.size(), ptr);
-            break;
-        case HYPERDATATYPE_INT64:
-            backing->resize(sz + sizeof(uint64_t) + key.size());
-            ptr = &backing->front();
-            ptr = e::pack8be('i', ptr);
-            ptr = e::pack64be(ri.get(), ptr);
-            ptr = e::pack16be(attr, ptr);
-            memset(buf_i, 0, sizeof(int64_t));
-            memmove(buf_i, value.data(), std::min(value.size(), sizeof(int64_t)));
-            e::unpack64le(buf_i, &tmp_i);
-            ptr = index_encode_int64(tmp_i, ptr);
-            memmove(ptr, key.data(), key.size());
-            break;
-        case HYPERDATATYPE_FLOAT:
-            backing->resize(sz + sizeof(double) + key.size());
-            ptr = &backing->front();
-            ptr = e::pack8be('i', ptr);
-            ptr = e::pack64be(ri.get(), ptr);
-            ptr = e::pack16be(attr, ptr);
-            memset(buf_d, 0, sizeof(double));
-            memmove(buf_d, value.data(), std::min(value.size(), sizeof(double)));
-            e::unpackdoublele(buf_d, &tmp_d);
-            ptr = index_encode_double(tmp_d, ptr);
-            memmove(ptr, key.data(), key.size());
-            break;
-        case HYPERDATATYPE_GENERIC:
-        case HYPERDATATYPE_LIST_GENERIC:
-        case HYPERDATATYPE_LIST_STRING:
-        case HYPERDATATYPE_LIST_INT64:
-        case HYPERDATATYPE_LIST_FLOAT:
-        case HYPERDATATYPE_SET_GENERIC:
-        case HYPERDATATYPE_SET_STRING:
-        case HYPERDATATYPE_SET_INT64:
-        case HYPERDATATYPE_SET_FLOAT:
-        case HYPERDATATYPE_MAP_GENERIC:
-        case HYPERDATATYPE_MAP_STRING_KEYONLY:
-        case HYPERDATATYPE_MAP_STRING_STRING:
-        case HYPERDATATYPE_MAP_STRING_INT64:
-        case HYPERDATATYPE_MAP_STRING_FLOAT:
-        case HYPERDATATYPE_MAP_INT64_KEYONLY:
-        case HYPERDATATYPE_MAP_INT64_STRING:
-        case HYPERDATATYPE_MAP_INT64_INT64:
-        case HYPERDATATYPE_MAP_INT64_FLOAT:
-        case HYPERDATATYPE_MAP_FLOAT_KEYONLY:
-        case HYPERDATATYPE_MAP_FLOAT_STRING:
-        case HYPERDATATYPE_MAP_FLOAT_INT64:
-        case HYPERDATATYPE_MAP_FLOAT_FLOAT:
-        case HYPERDATATYPE_GARBAGE:
-        default:
-            abort();
-    }
-}
-
-void
-hyperdex :: bump_index(std::vector<char>* backing)
-{
-    assert(!backing->empty());
-    assert((*backing)[0] ^ 0x80);
-    index_encode_bump(&backing->front(),
-                      &backing->front() + backing->size());
-}
-
-bool
-hyperdex :: parse_index_string(const leveldb::Slice& s, e::slice* k)
-{
-    size_t sz = sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint16_t) + sizeof(uint32_t);
-
-    if (s.size() >= sz)
-    {
-        uint32_t key_sz;
-        const char* ptr = s.data() + s.size() - sizeof(uint32_t);
-        e::unpack32be(ptr, &key_sz);
-
-        if (s.size() >= sz + key_sz)
-        {
-            *k = e::slice(s.data() + s.size() - sizeof(uint32_t) - key_sz, key_sz);
-            return true;
-        }
-    }
-
-    return false;
-}
-
-bool
-hyperdex :: parse_index_sizeof8(const leveldb::Slice& s, e::slice* k)
-{
-    size_t sz = sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint16_t) + sizeof(uint64_t);
-
-    if (s.size() >= sz && s.data()[0] == 'i')
-    {
-        *k = e::slice(s.data() + sz, s.size() - sz);
-        return true;
-    }
-
-    return false;
-}
-
-bool
-hyperdex :: parse_object_key(const leveldb::Slice& s, e::slice* k)
-{
-    region_id tmp;
-    return decode_key(e::slice(s.data(), s.size()), &tmp, k) == datalayer::SUCCESS;
-}
-
-static void
-generate_index(const hyperdex::region_id& ri,
-               uint16_t attr,
-               hyperdatatype type,
-               const e::slice& value,
-               const e::slice& key,
-               std::vector<char>* backing,
-               leveldb::Slice* idx)
-{
-    if (type == HYPERDATATYPE_STRING ||
-        type == HYPERDATATYPE_INT64 ||
-        type == HYPERDATATYPE_FLOAT)
-    {
-        encode_index(ri, attr, type, value, key, backing);
-        *idx = leveldb::Slice(&backing->front(), backing->size());
-    }
+    ptr = e::pack64be(checkpoint, ptr);
 }
 
 datalayer::returncode
-hyperdex :: create_index_changes(const schema* sc,
-                                 const subspace* su,
+hyperdex :: decode_checkpoint(const e::slice& in,
+                              region_id* ri,
+                              uint64_t* checkpoint)
+{
+    if (in.size() != CHECKPOINT_BUF_SIZE)
+    {
+        return datalayer::BAD_ENCODING;
+    }
+
+    const uint8_t* ptr = in.data();
+    uint8_t t;
+    uint64_t _ri;
+    ptr = e::unpack8be(ptr, &t);
+    ptr = e::unpack64be(ptr, &_ri);
+    ptr = e::unpack64be(ptr, checkpoint);
+    *ri = region_id(_ri);
+    return t == 'c' ? datalayer::SUCCESS : datalayer::BAD_ENCODING;
+}
+
+void
+hyperdex :: create_index_changes(const schema& sc,
+                                 const subspace& sub,
                                  const region_id& ri,
                                  const e::slice& key,
                                  const std::vector<e::slice>* old_value,
                                  const std::vector<e::slice>* new_value,
                                  leveldb::WriteBatch* updates)
 {
-    std::vector<char> backing;
-    leveldb::Slice slice;
-    leveldb::Slice empty("", 0);
+    assert(!old_value || !new_value || old_value->size() == new_value->size());
+    assert(!old_value || old_value->size() + 1 == sc.attrs_sz);
+    assert(!new_value || new_value->size() + 1 == sc.attrs_sz);
+    std::vector<uint16_t> attrs;
 
-    if (old_value && new_value)
+    for (size_t i = 0; i < sub.attrs.size(); ++i)
     {
-        assert(old_value->size() + 1 == sc->attrs_sz);
-        assert(old_value->size() == new_value->size());
-
-        for (size_t j = 0; j < su->attrs.size(); ++j)
-        {
-            size_t attr = su->attrs[j];
-            assert(attr < sc->attrs_sz);
-
-            if (attr > 0 && (*old_value)[attr - 1] != (*new_value)[attr - 1])
-            {
-                generate_index(ri, attr, sc->attrs[attr].type, (*old_value)[attr - 1], key, &backing, &slice);
-                updates->Delete(slice);
-                generate_index(ri, attr, sc->attrs[attr].type, (*new_value)[attr - 1], key, &backing, &slice);
-                updates->Put(slice, empty);
-            }
-        }
-    }
-    else if (old_value)
-    {
-        assert(old_value->size() + 1 == sc->attrs_sz);
-
-        for (size_t j = 0; j < su->attrs.size(); ++j)
-        {
-            size_t attr = su->attrs[j];
-            assert(attr < sc->attrs_sz);
-
-            if (attr > 0)
-            {
-                generate_index(ri, attr, sc->attrs[attr].type, (*old_value)[attr - 1], key, &backing, &slice);
-                updates->Delete(slice);
-            }
-        }
-    }
-    else if (new_value)
-    {
-        assert(new_value->size() + 1 == sc->attrs_sz);
-
-        for (size_t j = 0; j < su->attrs.size(); ++j)
-        {
-            size_t attr = su->attrs[j];
-            assert(attr < sc->attrs_sz);
-
-            if (attr > 0)
-            {
-                generate_index(ri, attr, sc->attrs[attr].type, (*new_value)[attr - 1], key, &backing, &slice);
-                updates->Put(slice, empty);
-            }
-        }
+        uint16_t attr = sub.attrs[i];
+        attrs.push_back(attr);
     }
 
-    return datalayer::SUCCESS;
+    for (size_t i = 0; i < sub.indices.size(); ++i)
+    {
+        uint16_t attr = sub.indices[i];
+        attrs.push_back(attr);
+    }
+
+    for (size_t i = 0; i < attrs.size(); ++i)
+    {
+        uint16_t attr = attrs[i];
+        assert(attr < sc.attrs_sz);
+
+        if (attr == 0)
+        {
+            continue;
+        }
+
+        if (!sub.indexed(attr))
+        {
+            continue;
+        }
+
+        index_info* ki = index_info::lookup(sc.attrs[0].type);
+        index_info* ai = index_info::lookup(sc.attrs[attr].type);
+
+        if (!ai)
+        {
+            continue;
+        }
+
+        assert(ki);
+        ai->index_changes(ri, attr, ki, key,
+                          old_value ? &(*old_value)[attr - 1] : NULL,
+                          new_value ? &(*new_value)[attr - 1] : NULL,
+                          updates);
+    }
+}
+
+void
+hyperdex :: encode_bump(char* _ptr, char* _end)
+{
+    assert(_ptr);
+    assert(_ptr < _end);
+    uint8_t* ptr = reinterpret_cast<uint8_t*>(_end) - 1;
+    uint8_t* end = reinterpret_cast<uint8_t*>(_ptr);
+
+    for (; ptr >= end; --ptr)
+    {
+        if (*ptr < 255)
+        {
+            ++(*ptr);
+            return;
+        }
+        else
+        {
+            *ptr = 0;
+        }
+    }
+
+    abort();
 }

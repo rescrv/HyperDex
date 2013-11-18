@@ -1,4 +1,4 @@
-// Copyright (c) 2012, Cornell University
+// Copyright (c) 2012-2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -26,52 +26,69 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // HyperDex
-#include "client/constants.h"
-#include "client/complete.h"
 #include "client/pending_group_del.h"
-#include "client/util.h"
 
-hyperclient :: pending_group_del :: pending_group_del(int64_t group_del_id,
-                                                      e::intrusive_ptr<refcount> ref,
-                                                      hyperclient_returncode* status)
-    : pending(status)
-    , m_ref(ref)
+using hyperdex::pending_group_del;
+
+pending_group_del :: pending_group_del(uint64_t id,
+                                       hyperdex_client_returncode* status)
+    : pending_aggregation(id, status)
+    , m_done(false)
 {
-    this->set_client_visible_id(group_del_id);
+    set_status(HYPERDEX_CLIENT_SUCCESS);
+    set_error(e::error());
 }
 
-hyperclient :: pending_group_del :: ~pending_group_del() throw ()
+pending_group_del :: ~pending_group_del() throw ()
 {
 }
 
-hyperdex::network_msgtype
-hyperclient :: pending_group_del :: request_type()
+bool
+pending_group_del :: can_yield()
 {
-    return hyperdex::REQ_GROUP_DEL;
+    return this->aggregation_done() && !m_done;
 }
 
-int64_t
-hyperclient :: pending_group_del :: handle_response(hyperclient* cl,
-                                                    const server_id& sender,
-                                                    std::auto_ptr<e::buffer>,
-                                                    hyperdex::network_msgtype type,
-                                                    hyperclient_returncode* status)
+bool
+pending_group_del :: yield(hyperdex_client_returncode* status, e::error* err)
 {
-    *status = HYPERCLIENT_SUCCESS;
+    *status = HYPERDEX_CLIENT_SUCCESS;
+    *err = e::error();
+    assert(this->can_yield());
+    m_done = true;
+    return true;
+}
 
-    if (type != hyperdex::RESP_GROUP_DEL)
+void
+pending_group_del :: handle_failure(const server_id& si,
+                                    const virtual_server_id& vsi)
+{
+    PENDING_ERROR(RECONFIGURE) << "reconfiguration affecting "
+                               << vsi << "/" << si;
+    return pending_aggregation::handle_failure(si, vsi);
+}
+
+bool
+pending_group_del :: handle_message(client* cl,
+                                    const server_id& si,
+                                    const virtual_server_id& vsi,
+                                    network_msgtype mt,
+                                    std::auto_ptr<e::buffer>,
+                                    e::unpacker up,
+                                    hyperdex_client_returncode* status,
+                                    e::error* err)
+{
+    bool handled = pending_aggregation::handle_message(cl, si, vsi, mt, std::auto_ptr<e::buffer>(), up, status, err);
+    assert(handled);
+
+    *status = HYPERDEX_CLIENT_SUCCESS;
+    *err = e::error();
+
+    if (mt != RESP_GROUP_DEL)
     {
-        cl->killall(sender, HYPERCLIENT_SERVERERROR);
-        return 0;
+        PENDING_ERROR(SERVERERROR) << "server vsi responded to GROUP DEL with " << mt;
+        return true;
     }
 
-    if (m_ref->last_reference())
-    {
-        set_status(HYPERCLIENT_SUCCESS);
-        return client_visible_id();
-    }
-    else
-    {
-        return 0;
-    }
+    return true;
 }

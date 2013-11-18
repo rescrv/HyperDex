@@ -39,16 +39,16 @@
 #include <e/slice.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/attribute.h"
 #include "common/attribute_check.h"
-#include "common/capture.h"
 #include "common/hyperspace.h"
 #include "common/ids.h"
 #include "common/schema.h"
+#include "common/server.h"
 #include "common/transfer.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class configuration
 {
@@ -61,11 +61,14 @@ class configuration
     public:
         uint64_t cluster() const;
         uint64_t version() const;
+        bool read_only() const;
 
     // membership metadata
     public:
-        void get_all_addresses(std::vector<std::pair<server_id, po6::net::location> >* addrs);
+        void get_all_addresses(std::vector<std::pair<server_id, po6::net::location> >* addrs) const;
+        bool exists(const server_id& id) const;
         po6::net::location get_address(const server_id& id) const;
+        server::state_t get_state(const server_id& id) const;
         region_id get_region_id(const virtual_server_id& id) const;
         server_id get_server_id(const virtual_server_id& id) const;
 
@@ -82,26 +85,29 @@ class configuration
         virtual_server_id tail_of_region(const region_id& ri) const;
         virtual_server_id next_in_region(const virtual_server_id& vsi) const;
         void point_leaders(const server_id& s, std::vector<region_id>* servers) const;
+        void key_regions(const server_id& s, std::vector<region_id>* servers) const;
         bool is_point_leader(const virtual_server_id& e) const;
-        virtual_server_id point_leader(const char* space, const e::slice& key);
+        virtual_server_id point_leader(const char* space, const e::slice& key) const;
         // point leader for this key in the same space as ri
-        virtual_server_id point_leader(const region_id& ri, const e::slice& key);
+        virtual_server_id point_leader(const region_id& ri, const e::slice& key) const;
         // lhs and rhs are in adjacent subspaces such that lhs sends CHAIN_PUT
         // to rhs and rhs sends CHAIN_ACK to lhs
         bool subspace_adjacent(const virtual_server_id& lhs, const virtual_server_id& rhs) const;
+        // mapped regions -- regions mapped for server "us"
+        void mapped_regions(const server_id& s, std::vector<region_id>* servers) const;
 
-    // captures
+    // indices
     public:
-        void captures(std::vector<capture>* captures) const;
-        bool is_captured_region(const capture_id& ci) const;
-        capture_id capture_for(const region_id& ri) const;
+        const std::vector<uint16_t>& get_indices(const region_id& ri) const;
 
     // transfers
     public:
         bool is_server_blocked_by_live_transfer(const server_id& si, const region_id& ri) const;
         bool is_transfer_live(const transfer_id& tid) const;
-        void transfer_in_regions(const server_id& s, std::vector<transfer>* transfers) const;
-        void transfer_out_regions(const server_id& s, std::vector<transfer>* transfers) const;
+        void transfers_in(const server_id& s, std::vector<transfer>* transfers) const;
+        void transfers_out(const server_id& s, std::vector<transfer>* transfers) const;
+        void transfers_in_regions(const server_id& s, std::vector<region_id>* transfers) const;
+        void transfers_out_regions(const server_id& s, std::vector<region_id>* transfers) const;
 
     // hashing functions
     public:
@@ -113,7 +119,8 @@ class configuration
                            std::vector<virtual_server_id>* servers) const;
 
     public:
-        void debug_dump(std::ostream& out);
+        std::string dump() const;
+        std::string list_spaces() const;
 
     public:
         configuration& operator = (const configuration& rhs);
@@ -133,7 +140,8 @@ class configuration
     private:
         uint64_t m_cluster;
         uint64_t m_version;
-        std::vector<uint64_location_t> m_addresses_by_server_id;
+        uint64_t m_flags;
+        std::vector<server> m_servers;
         std::vector<pair_uint64_t> m_region_ids_by_virtual;
         std::vector<pair_uint64_t> m_server_ids_by_virtual;
         std::vector<uint64_schema_t> m_schemas_by_region;
@@ -146,7 +154,6 @@ class configuration
         std::vector<pair_uint64_t> m_next_by_virtual;
         std::vector<uint64_t> m_point_leaders_by_virtual;
         std::vector<space> m_spaces;
-        std::vector<capture> m_captures;
         std::vector<transfer> m_transfers;
 };
 
@@ -157,6 +164,6 @@ operator >> (e::unpacker, configuration& c);
 size_t
 pack_size(const configuration&);
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_configuration_h_

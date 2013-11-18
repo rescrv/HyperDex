@@ -30,17 +30,19 @@
 
 // STL
 #include <algorithm>
+#include <sstream>
 
 // HyperDex
 #include "common/configuration.h"
+#include "common/configuration_flags.h"
 #include "common/hash.h"
 #include "common/range_searches.h"
 #include "common/serialization.h"
 
-using hyperdex::capture_id;
 using hyperdex::configuration;
 using hyperdex::region_id;
 using hyperdex::schema;
+using hyperdex::server;
 using hyperdex::server_id;
 using hyperdex::subspace;
 using hyperdex::subspace_id;
@@ -49,7 +51,8 @@ using hyperdex::virtual_server_id;
 configuration :: configuration()
     : m_cluster(0)
     , m_version(0)
-    , m_addresses_by_server_id()
+    , m_flags(0)
+    , m_servers()
     , m_region_ids_by_virtual()
     , m_server_ids_by_virtual()
     , m_schemas_by_region()
@@ -62,7 +65,6 @@ configuration :: configuration()
     , m_next_by_virtual()
     , m_point_leaders_by_virtual()
     , m_spaces()
-    , m_captures()
     , m_transfers()
 {
     refill_cache();
@@ -71,7 +73,8 @@ configuration :: configuration()
 configuration :: configuration(const configuration& other)
     : m_cluster(other.m_cluster)
     , m_version(other.m_version)
-    , m_addresses_by_server_id(other.m_addresses_by_server_id)
+    , m_flags(other.m_flags)
+    , m_servers(other.m_servers)
     , m_region_ids_by_virtual(other.m_region_ids_by_virtual)
     , m_server_ids_by_virtual(other.m_server_ids_by_virtual)
     , m_schemas_by_region(other.m_schemas_by_region)
@@ -84,7 +87,6 @@ configuration :: configuration(const configuration& other)
     , m_next_by_virtual(other.m_next_by_virtual)
     , m_point_leaders_by_virtual(other.m_point_leaders_by_virtual)
     , m_spaces(other.m_spaces)
-    , m_captures(other.m_captures)
     , m_transfers(other.m_transfers)
 {
     refill_cache();
@@ -106,32 +108,64 @@ configuration :: version() const
     return m_version;
 }
 
-void
-configuration :: get_all_addresses(std::vector<std::pair<server_id, po6::net::location> >* addrs)
+bool
+configuration :: read_only() const
 {
-    addrs->resize(m_addresses_by_server_id.size());
+    return m_flags & HYPERDEX_CONFIG_READ_ONLY;
+}
 
-    for (size_t i = 0; i < m_addresses_by_server_id.size(); ++i)
+void
+configuration :: get_all_addresses(std::vector<std::pair<server_id, po6::net::location> >* addrs) const
+{
+    addrs->resize(m_servers.size());
+
+    for (size_t i = 0; i < m_servers.size(); ++i)
     {
-        (*addrs)[i].first = server_id(m_addresses_by_server_id[i].first);
-        (*addrs)[i].second = m_addresses_by_server_id[i].second;
+        (*addrs)[i].first = m_servers[i].id;
+        (*addrs)[i].second = m_servers[i].bind_to;
     }
+}
+
+bool
+configuration :: exists(const server_id& id) const
+{
+    for (size_t i = 0; i < m_servers.size(); ++i)
+    {
+        if (m_servers[i].id == id)
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 po6::net::location
 configuration :: get_address(const server_id& id) const
 {
-    std::vector<uint64_location_t>::const_iterator it;
-    it = std::lower_bound(m_addresses_by_server_id.begin(),
-                          m_addresses_by_server_id.end(),
-                          uint64_location_t(id.get(), po6::net::location()));
-
-    if (it != m_addresses_by_server_id.end() && it->first == id.get())
+    for (size_t i = 0; i < m_servers.size(); ++i)
     {
-        return it->second;
+        if (m_servers[i].id == id)
+        {
+            return m_servers[i].bind_to;
+        }
     }
 
     return po6::net::location();
+}
+
+server::state_t
+configuration :: get_state(const server_id& id) const
+{
+    for (size_t i = 0; i < m_servers.size(); ++i)
+    {
+        if (m_servers[i].id == id)
+        {
+            return m_servers[i].state;
+        }
+    }
+
+    return server::KILLED;
 }
 
 region_id
@@ -349,14 +383,30 @@ configuration :: point_leaders(const server_id& si, std::vector<region_id>* serv
 {
     for (size_t s = 0; s < m_spaces.size(); ++s)
     {
-        for (size_t ss = 0; ss < m_spaces[s].subspaces.size(); ++ss)
+        for (size_t r = 0; r < m_spaces[s].subspaces[0].regions.size(); ++r)
         {
-            for (size_t r = 0; r < m_spaces[s].subspaces[ss].regions.size(); ++r)
+            if (!m_spaces[s].subspaces[0].regions[r].replicas.empty() &&
+                m_spaces[s].subspaces[0].regions[r].replicas[0].si == si)
             {
-                if (!m_spaces[s].subspaces[ss].regions[r].replicas.empty() &&
-                    m_spaces[s].subspaces[ss].regions[r].replicas[0].si == si)
+                servers->push_back(m_spaces[s].subspaces[0].regions[r].id);
+            }
+        }
+    }
+}
+
+void
+configuration :: key_regions(const server_id& si, std::vector<region_id>* servers) const
+{
+    for (size_t s = 0; s < m_spaces.size(); ++s)
+    {
+        for (size_t r = 0; r < m_spaces[s].subspaces[0].regions.size(); ++r)
+        {
+            for (size_t R = 0; R < m_spaces[s].subspaces[0].regions[r].replicas.size(); ++R)
+            {
+                if (m_spaces[s].subspaces[0].regions[r].replicas[R].si == si)
                 {
-                    servers->push_back(m_spaces[s].subspaces[ss].regions[r].id);
+                    servers->push_back(m_spaces[s].subspaces[0].regions[r].id);
+                    break;
                 }
             }
         }
@@ -372,7 +422,7 @@ configuration :: is_point_leader(const virtual_server_id& e) const
 }
 
 virtual_server_id
-configuration :: point_leader(const char* sname, const e::slice& key)
+configuration :: point_leader(const char* sname, const e::slice& key) const
 {
     for (size_t s = 0; s < m_spaces.size(); ++s)
     {
@@ -389,7 +439,11 @@ configuration :: point_leader(const char* sname, const e::slice& key)
             if (m_spaces[s].subspaces[0].regions[pl].lower_coord[0] <= h &&
                 h <= m_spaces[s].subspaces[0].regions[pl].upper_coord[0])
             {
-                assert(!m_spaces[s].subspaces[0].regions[pl].replicas.empty());
+                if (m_spaces[s].subspaces[0].regions[pl].replicas.empty())
+                {
+                    return virtual_server_id();
+                }
+
                 return m_spaces[s].subspaces[0].regions[pl].replicas[0].vsi;
             }
         }
@@ -401,7 +455,7 @@ configuration :: point_leader(const char* sname, const e::slice& key)
 }
 
 virtual_server_id
-configuration :: point_leader(const region_id& rid, const e::slice& key)
+configuration :: point_leader(const region_id& rid, const e::slice& key) const
 {
     for (size_t s = 0; s < m_spaces.size(); ++s)
     {
@@ -422,7 +476,11 @@ configuration :: point_leader(const region_id& rid, const e::slice& key)
                     if (m_spaces[s].subspaces[0].regions[pl].lower_coord[0] <= h &&
                         h <= m_spaces[s].subspaces[0].regions[pl].upper_coord[0])
                     {
-                        assert(!m_spaces[s].subspaces[0].regions[pl].replicas.empty());
+                        if (m_spaces[s].subspaces[0].regions[pl].replicas.empty())
+                        {
+                            return virtual_server_id();
+                        }
+
                         return m_spaces[s].subspaces[0].regions[pl].replicas[0].vsi;
                     }
                 }
@@ -448,37 +506,25 @@ configuration :: subspace_adjacent(const virtual_server_id& lhs, const virtual_s
 }
 
 void
-configuration :: captures(std::vector<hyperdex::capture>* cs) const
+configuration :: mapped_regions(const server_id& si, std::vector<region_id>* servers) const
 {
-    *cs = m_captures;
-}
-
-bool
-configuration :: is_captured_region(const capture_id& ci) const
-{
-    for (size_t i = 0; i < m_captures.size(); ++i)
+    for (size_t s = 0; s < m_spaces.size(); ++s)
     {
-        if (m_captures[i].id == ci)
+        for (size_t ss = 0; ss < m_spaces[s].subspaces.size(); ++ss)
         {
-            return true;
+            for (size_t r = 0; r < m_spaces[s].subspaces[ss].regions.size(); ++r)
+            {
+                for (size_t R = 0; R < m_spaces[s].subspaces[ss].regions[r].replicas.size(); ++R)
+                {
+                    if (m_spaces[s].subspaces[ss].regions[r].replicas[R].si == si)
+                    {
+                        servers->push_back(m_spaces[s].subspaces[ss].regions[r].id);
+                        break;
+                    }
+                }
+            }
         }
     }
-
-    return false;
-}
-
-capture_id
-configuration :: capture_for(const region_id& ri) const
-{
-    for (size_t i = 0; i < m_captures.size(); ++i)
-    {
-        if (m_captures[i].rid == ri)
-        {
-            return m_captures[i].id;
-        }
-    }
-
-    return capture_id();
 }
 
 bool
@@ -505,7 +551,7 @@ configuration :: is_server_blocked_by_live_transfer(const server_id& si, const r
 }
 
 bool
-configuration :: is_transfer_live(const hyperdex::transfer_id& id) const
+configuration :: is_transfer_live(const transfer_id& id) const
 {
     for (size_t i = 0; i < m_transfers.size(); ++i)
     {
@@ -521,7 +567,7 @@ configuration :: is_transfer_live(const hyperdex::transfer_id& id) const
 }
 
 void
-configuration :: transfer_in_regions(const hyperdex::server_id& si, std::vector<hyperdex::transfer>* transfers) const
+configuration :: transfers_in(const server_id& si, std::vector<transfer>* transfers) const
 {
     for (size_t i = 0; i < m_transfers.size(); ++i)
     {
@@ -533,13 +579,37 @@ configuration :: transfer_in_regions(const hyperdex::server_id& si, std::vector<
 }
 
 void
-configuration :: transfer_out_regions(const hyperdex::server_id& si, std::vector<hyperdex::transfer>* transfers) const
+configuration :: transfers_out(const server_id& si, std::vector<transfer>* transfers) const
 {
     for (size_t i = 0; i < m_transfers.size(); ++i)
     {
         if (m_transfers[i].src == si)
         {
             transfers->push_back(m_transfers[i]);
+        }
+    }
+}
+
+void
+configuration :: transfers_in_regions(const server_id& si, std::vector<region_id>* transfers) const
+{
+    for (size_t i = 0; i < m_transfers.size(); ++i)
+    {
+        if (m_transfers[i].dst == si)
+        {
+            transfers->push_back(m_transfers[i].rid);
+        }
+    }
+}
+
+void
+configuration :: transfers_out_regions(const server_id& si, std::vector<region_id>* transfers) const
+{
+    for (size_t i = 0; i < m_transfers.size(); ++i)
+    {
+        if (m_transfers[i].src == si)
+        {
+            transfers->push_back(m_transfers[i].rid);
         }
     }
 }
@@ -585,7 +655,7 @@ configuration :: lookup_region(const subspace_id& ssid,
 
 void
 configuration :: lookup_search(const char* space_name,
-                               const std::vector<hyperdex::attribute_check>& chks,
+                               const std::vector<attribute_check>& chks,
                                std::vector<virtual_server_id>* servers) const
 {
     const space* s = NULL;
@@ -605,7 +675,7 @@ configuration :: lookup_search(const char* space_name,
         return;
     }
 
-    std::vector<hyperdex::range> ranges;
+    std::vector<range> ranges;
     range_searches(chks, &ranges);
 
     for (size_t i = 0; i < ranges.size(); ++i)
@@ -717,34 +787,41 @@ configuration :: lookup_search(const char* space_name,
     servers->swap(smallest_server_set);
 }
 
-void
-configuration :: debug_dump(std::ostream& out)
+std::string
+configuration :: dump() const
 {
-    out << "configuration cluster=" << m_cluster << " version=" << m_version << std::endl;
+    std::ostringstream out;
+    out << "cluster " << m_cluster << "\n";
+    out << "version " << m_version << "\n";
+    out << "flags " << std::hex << m_flags << std::dec << "\n";
 
-    for (size_t i = 0; i < m_addresses_by_server_id.size(); ++i)
+    for (size_t i = 0; i < m_servers.size(); ++i)
     {
-        out << "server id=" << server_id(m_addresses_by_server_id[i].first)
-            << " address=" << m_addresses_by_server_id[i].second << std::endl;
+        out << "server "
+            << m_servers[i].id.get() << " "
+            << m_servers[i].bind_to << " "
+            << server::to_string(m_servers[i].state) << "\n";
     }
 
     for (size_t w = 0; w < m_spaces.size(); ++w)
     {
-        space& s(m_spaces[w]);
-        out << "space id=" << s.id << " name=" << s.name << std::endl;
-        out << "  fault_tolerance=" << s.fault_tolerance << std::endl;
-        out << "  schema" << std::endl;
+        const space& s(m_spaces[w]);
+        out << "space " << s.id.get() << " " << s.name << "\n";
+        out << "  fault_tolerance " << s.fault_tolerance << "\n";
+        out << "  predecessor_width " << s.predecessor_width << "\n";
+        out << "  schema" << "\n";
 
         for (size_t i = 0; i < s.sc.attrs_sz; ++i)
         {
-            out << "    attribute name=" << s.sc.attrs[i].name
-                      << " type=" << s.sc.attrs[i].type << std::endl;
+            out << "    attribute "
+                << s.sc.attrs[i].name << " "
+                << s.sc.attrs[i].type << "\n";
         }
 
         for (size_t x = 0; x < s.subspaces.size(); ++x)
         {
-            subspace& ss(s.subspaces[x]);
-            out << "  subspace id=" << ss.id << std::endl;
+            const subspace& ss(s.subspaces[x]);
+            out << "  subspace " << ss.id.get() << "\n";
             out << "    attributes";
 
             for (size_t i = 0; i < ss.attrs.size(); ++i)
@@ -752,36 +829,40 @@ configuration :: debug_dump(std::ostream& out)
                 out << " " << s.sc.attrs[ss.attrs[i]].name;
             }
 
-            out << std::endl;
+            out << "\n";
+            out << "    indices";
+
+            for (size_t i = 0; i < ss.indices.size(); ++i)
+            {
+                out << " " << s.sc.attrs[ss.indices[i]].name;
+            }
+
+            out << "\n";
 
             for (size_t y = 0; y < ss.regions.size(); ++y)
             {
-                region& r(ss.regions[y]);
-                out << "    region id=" << r.id << " lower=<";
-                bool first = true;
+                const region& r(ss.regions[y]);
+                out << "    region " << r.id.get() << " lower=(";
 
                 for (size_t i = 0; i < r.lower_coord.size(); ++i)
                 {
-                    out << (first ? "" : ", ") << r.lower_coord[i];
-                    first = false;
+                    out << r.lower_coord[i] << ",";
                 }
 
-                out << "> upper=<";
-                first = true;
+                out << ") upper=(";
 
                 for (size_t i = 0; i < r.upper_coord.size(); ++i)
                 {
-                    out << (first ? "" : ", ") << r.upper_coord[i];
-                    first = false;
+                    out << r.upper_coord[i] << ",";
                 }
 
-                out << "> replicas=[";
-                first = true;
+                out << ") replicas=[";
+                bool first = true;
 
                 for (size_t z = 0; z < r.replicas.size(); ++z)
                 {
-                    replica& rr(r.replicas[z]);
-                    out << (first ? "" : ", ") << "(id=" << rr.si << " vid=" << rr.vsi << ")";
+                    const replica& rr(r.replicas[z]);
+                    out << (first ? "" : ", ") << rr.si << "/" << rr.vsi;
                     first = false;
                 }
 
@@ -790,15 +871,25 @@ configuration :: debug_dump(std::ostream& out)
         }
     }
 
-    for (size_t i = 0; i < m_captures.size(); ++i)
-    {
-        out << m_captures[i] << std::endl;
-    }
-
     for (size_t i = 0; i < m_transfers.size(); ++i)
     {
         out << m_transfers[i] << std::endl;
     }
+
+    return out.str();
+}
+
+std::string
+configuration :: list_spaces() const
+{
+    std::ostringstream out;
+
+    for (size_t i = 0; i < m_spaces.size(); ++i)
+    {
+        out << m_spaces[i].name << std::endl;
+    }
+
+    return out.str();
 }
 
 configuration&
@@ -811,7 +902,8 @@ configuration :: operator = (const configuration& rhs)
 
     m_cluster = rhs.m_cluster;
     m_version = rhs.m_version;
-    m_addresses_by_server_id = rhs.m_addresses_by_server_id;
+    m_flags = rhs.m_flags;
+    m_servers = rhs.m_servers;
     m_region_ids_by_virtual = rhs.m_region_ids_by_virtual;
     m_server_ids_by_virtual = rhs.m_server_ids_by_virtual;
     m_schemas_by_region = rhs.m_schemas_by_region;
@@ -824,7 +916,6 @@ configuration :: operator = (const configuration& rhs)
     m_next_by_virtual = rhs.m_next_by_virtual;
     m_point_leaders_by_virtual = rhs.m_point_leaders_by_virtual;
     m_spaces = rhs.m_spaces;
-    m_captures = rhs.m_captures;
     m_transfers = rhs.m_transfers;
     refill_cache();
     return *this;
@@ -911,7 +1002,7 @@ configuration :: refill_cache()
         m_server_ids_by_virtual.push_back(std::make_pair(xfer.vdst.get(), xfer.dst.get()));
     }
 
-    std::sort(m_addresses_by_server_id.begin(), m_addresses_by_server_id.end());
+    std::sort(m_servers.begin(), m_servers.end());
     std::sort(m_region_ids_by_virtual.begin(), m_region_ids_by_virtual.end());
     std::sort(m_server_ids_by_virtual.begin(), m_server_ids_by_virtual.end());
     std::sort(m_schemas_by_region.begin(), m_schemas_by_region.end());
@@ -930,20 +1021,18 @@ hyperdex :: operator >> (e::unpacker up, configuration& c)
 {
     uint64_t num_servers;
     uint64_t num_spaces;
-    uint64_t num_captures;
     uint64_t num_transfers;
-    up = up >> c.m_cluster >> c.m_version
+    up = up >> c.m_cluster >> c.m_version >> c.m_flags
             >> num_servers >> num_spaces
-            >> num_captures >> num_transfers;
-    c.m_addresses_by_server_id.clear();
-    c.m_addresses_by_server_id.reserve(num_servers);
+            >> num_transfers;
+    c.m_servers.clear();
+    c.m_servers.reserve(num_servers);
 
     for (size_t i = 0; !up.error() && i < num_servers; ++i)
     {
-        uint64_t id;
-        po6::net::location loc;
-        up = up >> id >> loc;
-        c.m_addresses_by_server_id.push_back(std::make_pair(id, loc));
+        server s;
+        up = up >> s;
+        c.m_servers.push_back(s);
     }
 
     c.m_spaces.clear();
@@ -954,16 +1043,6 @@ hyperdex :: operator >> (e::unpacker up, configuration& c)
         space s;
         up = up >> s;
         c.m_spaces.push_back(s);
-    }
-
-    c.m_captures.clear();
-    c.m_captures.reserve(num_captures);
-
-    for (size_t i = 0; !up.error() && i < num_captures; ++i)
-    {
-        capture cap;
-        up = up >> cap;
-        c.m_captures.push_back(cap);
     }
 
     c.m_transfers.clear();

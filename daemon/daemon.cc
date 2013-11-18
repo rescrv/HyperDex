@@ -26,6 +26,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // POSIX
+#include <dirent.h>
 #include <signal.h>
 
 // STL
@@ -37,30 +38,40 @@
 
 // e
 #include <e/endian.h>
+#include <e/strescape.h>
+#include <e/time.h>
 
 // HyperDex
 #include "common/coordinator_returncode.h"
 #include "common/serialization.h"
 #include "daemon/daemon.h"
 
+#define ALARM_INTERVAL 30
+
 using hyperdex::daemon;
 
 int s_interrupts = 0;
 bool s_alarm = false;
+bool s_debug = false;
 
 static void
 exit_on_signal(int /*signum*/)
 {
-    if (s_interrupts == 0)
+    if (__sync_fetch_and_add(&s_interrupts, 1) == 0)
     {
-        RAW_LOG(ERROR, "interrupted: initiating shutdown (interrupt again to exit immediately)");
+        RAW_LOG(ERROR, "interrupted: initiating shutdown; we'll try for up to 10 seconds (interrupt again to exit immediately)");
     }
     else
     {
         RAW_LOG(ERROR, "interrupted again: exiting immediately");
     }
+}
 
-    ++s_interrupts;
+static void
+exit_after_timeout(int /*signum*/)
+{
+    __sync_fetch_and_add(&s_interrupts, 1);
+    RAW_LOG(ERROR, "took too long to shutdown; just exiting");
 }
 
 static void
@@ -70,12 +81,19 @@ handle_alarm(int /*signum*/)
 }
 
 static void
+handle_debug(int /*signum*/)
+{
+    s_debug = true;
+}
+
+static void
 dummy(int /*signum*/)
 {
 }
 
 daemon :: daemon()
     : m_us()
+    , m_bind_to()
     , m_threads()
     , m_coord(this)
     , m_data(this)
@@ -84,6 +102,32 @@ daemon :: daemon()
     , m_stm(this)
     , m_sm(this)
     , m_config()
+    , m_perf_req_get()
+    , m_perf_req_atomic()
+    , m_perf_req_search_start()
+    , m_perf_req_search_next()
+    , m_perf_req_search_stop()
+    , m_perf_req_sorted_search()
+    , m_perf_req_group_del()
+    , m_perf_req_count()
+    , m_perf_req_search_describe()
+    , m_perf_chain_op()
+    , m_perf_chain_subspace()
+    , m_perf_chain_ack()
+    , m_perf_chain_gc()
+    , m_perf_xfer_handshake_syn()
+    , m_perf_xfer_handshake_synack()
+    , m_perf_xfer_handshake_ack()
+    , m_perf_xfer_handshake_wiped()
+    , m_perf_xfer_op()
+    , m_perf_xfer_ack()
+    , m_perf_backup()
+    , m_perf_perf_counters()
+    , m_block_stat_path()
+    , m_stat_collector(std::tr1::bind(&daemon::collect_stats, this))
+    , m_protect_stats()
+    , m_stats_start(0)
+    , m_stats()
 {
 }
 
@@ -122,6 +166,7 @@ generate_token(uint64_t* token)
 int
 daemon :: run(bool daemonize,
               po6::pathname data,
+              po6::pathname log,
               bool set_bind_to,
               po6::net::location bind_to,
               bool set_coordinator,
@@ -148,13 +193,19 @@ daemon :: run(bool daemonize,
 
     if (!install_signal_handler(SIGALRM, handle_alarm))
     {
-        std::cerr << "could not install SIGUSR1 handler; exiting" << std::endl;
+        std::cerr << "could not install SIGALRM handler; exiting" << std::endl;
         return EXIT_FAILURE;
     }
 
     if (!install_signal_handler(SIGUSR1, dummy))
     {
         std::cerr << "could not install SIGUSR1 handler; exiting" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    if (!install_signal_handler(SIGUSR2, handle_debug))
+    {
+        std::cerr << "could not install SIGUSR2 handler; exiting" << std::endl;
         return EXIT_FAILURE;
     }
 
@@ -177,13 +228,14 @@ daemon :: run(bool daemonize,
     if (daemonize)
     {
         LOG(INFO) << "forking off to the background";
-        LOG(INFO) << "you can find the log at hyperdex-daemon-YYYYMMDD-HHMMSS.sssss";
+        LOG(INFO) << "you can find the log at " << log.get() << "/hyperdex-daemon-YYYYMMDD-HHMMSS.sssss";
         LOG(INFO) << "provide \"--foreground\" on the command-line if you want to run in the foreground";
         google::SetLogSymlink(google::INFO, "");
         google::SetLogSymlink(google::WARNING, "");
         google::SetLogSymlink(google::ERROR, "");
         google::SetLogSymlink(google::FATAL, "");
-        google::SetLogDestination(google::INFO, "hyperdex-daemon-");
+        log = po6::join(log, "hyperdex-daemon-");
+        google::SetLogDestination(google::INFO, log.get());
 
         if (::daemon(1, 0) < 0)
         {
@@ -198,49 +250,47 @@ daemon :: run(bool daemonize,
         LOG(INFO) << "provide \"--daemon\" on the command-line if you want to run in the background";
     }
 
-    alarm(30);
-    google::LogToStderr();
     bool saved = false;
     server_id saved_us;
     po6::net::location saved_bind_to;
     po6::net::hostname saved_coordinator;
-    LOG(INFO) << "initializing persistent storage";
+    LOG(INFO) << "initializing local storage";
 
-    if (!m_data.setup(data, &saved, &saved_us, &saved_bind_to, &saved_coordinator))
+    if (!m_data.initialize(data, &saved, &saved_us, &saved_bind_to, &saved_coordinator))
     {
         return EXIT_FAILURE;
     }
 
     if (saved)
     {
-        LOG(INFO) << "starting daemon from state found in the persistent storage";
-
         if (set_bind_to && bind_to != saved_bind_to)
         {
-            LOG(ERROR) << "cannot bind to address; it conflicts with our previous address at " << saved_bind_to;
-            return EXIT_FAILURE;
+            LOG(INFO) << "changing bind address from "
+                      << saved_bind_to << " to " << bind_to;
+        }
+        else
+        {
+            bind_to = saved_bind_to;
         }
 
         if (set_coordinator && coordinator != saved_coordinator)
         {
-            LOG(ERROR) << "cannot connect to coordinator; it conflicts with our previous coordinator at " << saved_coordinator;
-            return EXIT_FAILURE;
+            LOG(INFO) << "changing coordinator address from "
+                      << saved_coordinator << " to " << coordinator;
+        }
+        else
+        {
+            coordinator = saved_coordinator;
         }
 
         m_us = saved_us;
-        bind_to = saved_bind_to;
-        coordinator = saved_coordinator;
-        m_coord.set_coordinator_address(coordinator.address.c_str(), coordinator.port);
-
-        if (!m_coord.reregister_id(m_us, bind_to))
-        {
-            return EXIT_FAILURE;
-        }
     }
-    else
+
+    m_bind_to = bind_to;
+    m_coord.set_coordinator_address(coordinator.address.c_str(), coordinator.port);
+
+    if (!saved)
     {
-        LOG(INFO) << "starting new daemon from command-line arguments";
-        m_coord.set_coordinator_address(coordinator.address.c_str(), coordinator.port);
         uint64_t sid;
 
         if (!generate_token(&sid))
@@ -257,11 +307,6 @@ daemon :: run(bool daemonize,
         }
 
         m_us = server_id(sid);
-
-        if (!m_data.initialize())
-        {
-            return EXIT_FAILURE;
-        }
     }
 
     if (!m_data.save_state(m_us, bind_to, coordinator))
@@ -269,6 +314,7 @@ daemon :: run(bool daemonize,
         return EXIT_FAILURE;
     }
 
+    determine_block_stat_path(data);
     m_comm.setup(bind_to, threads);
     m_repl.setup();
     m_stm.setup();
@@ -281,32 +327,107 @@ daemon :: run(bool daemonize,
         t->start();
     }
 
-    while (!m_coord.exit_wait_loop())
+    m_stat_collector.start();
+    alarm(ALARM_INTERVAL);
+    bool cluster_jump = false;
+    bool requested_exit = false;
+    uint64_t checkpoint = 0;
+    uint64_t checkpoint_stable = 0;
+    uint64_t checkpoint_gc = 0;
+
+    while (__sync_fetch_and_add(&s_interrupts, 0) < 2 &&
+           !m_coord.should_exit())
     {
-        configuration old_config = m_config;
-        configuration new_config;
+        if (s_alarm)
+        {
+            s_alarm = false;
+            alarm(ALARM_INTERVAL);
+            m_repl.trip_periodic();
+        }
 
-        if (!m_coord.wait_for_config(&new_config))
+        if (s_debug)
+        {
+            s_debug = false;
+            LOG(INFO) << "recieved SIGUSR2; dumping internal tables";
+            // XXX m_coord.debug_dump();
+            // XXX m_data.debug_dump();
+            // XXX m_comm.debug_dump();
+            m_repl.debug_dump();
+            // XXX m_stm.debug_dump();
+            // XXX m_sm.debug_dump();
+            LOG(INFO) << "end debug dump";
+        }
+
+        if (s_interrupts > 0 && !requested_exit)
+        {
+            if (!install_signal_handler(SIGALRM, exit_after_timeout))
+            {
+                __sync_fetch_and_add(&s_interrupts, 2);
+                break;
+            }
+
+            alarm(10);
+            m_coord.request_shutdown();
+            requested_exit = true;
+        }
+
+        if (m_config.version() > 0 &&
+            checkpoint < m_coord.checkpoint())
+        {
+            checkpoint = m_coord.checkpoint();
+            m_repl.begin_checkpoint(checkpoint);
+        }
+
+        if (m_config.version() > 0 &&
+            checkpoint_stable < m_coord.checkpoint_stable())
+        {
+            checkpoint_stable = m_coord.checkpoint_stable();
+            m_repl.end_checkpoint(checkpoint_stable);
+        }
+
+        if (m_config.version() > 0 &&
+            checkpoint_gc < m_coord.checkpoint_gc())
+        {
+            checkpoint_gc = m_coord.checkpoint_gc();
+            m_data.set_checkpoint_lower_gc(checkpoint_gc);
+        }
+
+        if (!m_coord.maintain_link())
         {
             continue;
         }
 
-        if (old_config.version() >= new_config.version())
+        const configuration& old_config(m_config);
+        const configuration& new_config(m_coord.config());
+
+        if (old_config.cluster() != 0 &&
+            old_config.cluster() != new_config.cluster())
         {
-            LOG(INFO) << "received new configuration version=" << new_config.version()
-                      << " that's not newer than our current configuration version="
-                      << old_config.version();
+            cluster_jump = true;
+            break;
+        }
+
+        if (old_config.version() > new_config.version())
+        {
+            LOG(ERROR) << "received new configuration version=" << new_config.version()
+                       << " that's older than our current configuration version="
+                       << old_config.version();
+            continue;
+        }
+        else if (old_config.version() > new_config.version())
+        {
             continue;
         }
 
-        LOG(INFO) << "received new configuration version=" << new_config.version()
+        LOG(INFO) << "moving to configuration version=" << new_config.version()
                   << "; pausing all activity while we reconfigure";
+        m_sm.pause();
         m_stm.pause();
         m_repl.pause();
         m_data.pause();
         m_comm.pause();
-        m_data.reconfigure(old_config, new_config, m_us);
         m_comm.reconfigure(old_config, new_config, m_us);
+        m_data.reconfigure(old_config, new_config, m_us);
         m_repl.reconfigure(old_config, new_config, m_us);
         m_stm.reconfigure(old_config, new_config, m_us);
         m_sm.reconfigure(old_config, new_config, m_us);
@@ -315,12 +436,34 @@ daemon :: run(bool daemonize,
         m_data.unpause();
         m_repl.unpause();
         m_stm.unpause();
+        m_sm.unpause();
         LOG(INFO) << "reconfiguration complete; resuming normal operation";
 
         // let the coordinator know we've moved to this config
-        m_coord.ack_config(new_config.version());
+        m_coord.config_ack(new_config.version());
     }
 
+    if (cluster_jump)
+    {
+        LOG(INFO) << "\n================================================================================\n"
+                  << "Exiting because the coordinator changed on us.\n"
+                  << "This is most likely an operations error.  Did you deploy a new HyperDex\n"
+                  << "cluster at the same address as the old cluster?\n"
+                  << "================================================================================";
+    }
+    else if (m_coord.should_exit() && !m_coord.config().exists(m_us))
+    {
+        LOG(INFO) << "\n================================================================================\n"
+                  << "Exiting because the coordinator says it doesn't know about this node.\n"
+                  << "Check the coordinator logs for details, but it's most likely the case that\n"
+                  << "this server was killed, or this server tried reconnecting to a different\n"
+                  << "coordinator.  You may just have to restart the daemon with a different \n"
+                  << "coordinator address or this node may be dead and you can simply erase it.\n"
+                  << "================================================================================";
+    }
+
+    __sync_fetch_and_add(&s_interrupts, 2);
+    m_stat_collector.join();
     m_comm.shutdown();
 
     for (size_t i = 0; i < m_threads.size(); ++i)
@@ -328,31 +471,13 @@ daemon :: run(bool daemonize,
         m_threads[i]->join();
     }
 
-    m_coord.shutdown();
-
-    if (m_coord.is_clean_shutdown())
-    {
-        LOG(INFO) << "hyperdex-daemon is gracefully shutting down";
-    }
-
     m_sm.teardown();
     m_stm.teardown();
     m_repl.teardown();
     m_comm.teardown();
     m_data.teardown();
-    int exit_status = EXIT_SUCCESS;
-
-    if (m_coord.is_clean_shutdown())
-    {
-        if (!m_data.clear_dirty())
-        {
-            LOG(ERROR) << "unable to cleanly close the database";
-            exit_status = EXIT_FAILURE;
-        }
-    }
-
     LOG(INFO) << "hyperdex-daemon will now terminate";
-    return exit_status;
+    return EXIT_SUCCESS;
 }
 
 void
@@ -400,48 +525,86 @@ daemon :: loop(size_t thread)
         {
             case REQ_GET:
                 process_req_get(from, vfrom, vto, msg, up);
+                m_perf_req_get.tap();
                 break;
             case REQ_ATOMIC:
                 process_req_atomic(from, vfrom, vto, msg, up);
+                m_perf_req_atomic.tap();
                 break;
             case REQ_SEARCH_START:
                 process_req_search_start(from, vfrom, vto, msg, up);
+                m_perf_req_search_start.tap();
                 break;
             case REQ_SEARCH_NEXT:
                 process_req_search_next(from, vfrom, vto, msg, up);
+                m_perf_req_search_next.tap();
                 break;
             case REQ_SEARCH_STOP:
                 process_req_search_stop(from, vfrom, vto, msg, up);
+                m_perf_req_search_stop.tap();
                 break;
             case REQ_SORTED_SEARCH:
                 process_req_sorted_search(from, vfrom, vto, msg, up);
+                m_perf_req_sorted_search.tap();
                 break;
             case REQ_GROUP_DEL:
                 process_req_group_del(from, vfrom, vto, msg, up);
+                m_perf_req_group_del.tap();
                 break;
             case REQ_COUNT:
                 process_req_count(from, vfrom, vto, msg, up);
+                m_perf_req_count.tap();
                 break;
             case REQ_SEARCH_DESCRIBE:
                 process_req_search_describe(from, vfrom, vto, msg, up);
+                m_perf_req_search_describe.tap();
                 break;
             case CHAIN_OP:
                 process_chain_op(from, vfrom, vto, msg, up);
+                m_perf_chain_op.tap();
                 break;
             case CHAIN_SUBSPACE:
                 process_chain_subspace(from, vfrom, vto, msg, up);
+                m_perf_chain_subspace.tap();
                 break;
             case CHAIN_ACK:
                 process_chain_ack(from, vfrom, vto, msg, up);
+                m_perf_chain_ack.tap();
                 break;
             case CHAIN_GC:
                 process_chain_gc(from, vfrom, vto, msg, up);
+                m_perf_chain_gc.tap();
+                break;
+            case XFER_HS:
+                process_xfer_handshake_syn(from, vfrom, vto, msg, up);
+                m_perf_xfer_handshake_syn.tap();
+                break;
+            case XFER_HSA:
+                process_xfer_handshake_synack(from, vfrom, vto, msg, up);
+                m_perf_xfer_handshake_synack.tap();
+                break;
+            case XFER_HA:
+                process_xfer_handshake_ack(from, vfrom, vto, msg, up);
+                m_perf_xfer_handshake_ack.tap();
+                break;
+            case XFER_HW:
+                process_xfer_handshake_wiped(from, vfrom, vto, msg, up);
+                m_perf_xfer_handshake_wiped.tap();
                 break;
             case XFER_OP:
                 process_xfer_op(from, vfrom, vto, msg, up);
+                m_perf_xfer_op.tap();
                 break;
             case XFER_ACK:
                 process_xfer_ack(from, vfrom, vto, msg, up);
+                m_perf_xfer_ack.tap();
+                break;
+            case BACKUP:
+                process_backup(from, vfrom, vto, msg, up);
+                m_perf_backup.tap();
+            case PERF_COUNTERS:
+                process_perf_counters(from, vfrom, vto, msg, up);
+                m_perf_perf_counters.tap();
                 break;
             case RESP_GET:
             case RESP_ATOMIC:
@@ -492,7 +655,6 @@ daemon :: process_req_get(server_id from,
             result = NET_NOTFOUND;
             break;
         case datalayer::BAD_ENCODING:
-        case datalayer::BAD_SEARCH:
         case datalayer::CORRUPTION:
         case datalayer::IO_ERROR:
         case datalayer::LEVELDB_ERROR:
@@ -532,10 +694,10 @@ daemon :: process_req_atomic(server_id from,
         return;
     }
 
+    bool erase = !(flags & 128);
     bool fail_if_not_found = flags & 1;
     bool fail_if_found = flags & 2;
-    bool has_funcalls = flags & 128;
-    m_repl.client_atomic(from, vto, nonce, fail_if_not_found, fail_if_found, !has_funcalls, key, &checks, &funcs);
+    m_repl.client_atomic(from, vto, nonce, erase, fail_if_not_found, fail_if_found, key, checks, funcs);
 }
 
 void
@@ -770,6 +932,81 @@ daemon :: process_chain_ack(server_id,
 }
 
 void
+daemon :: process_xfer_handshake_syn(server_id,
+                                     virtual_server_id vfrom,
+                                     virtual_server_id,
+                                     std::auto_ptr<e::buffer> msg,
+                                     e::unpacker up)
+{
+    transfer_id xid;
+
+    if ((up >> xid).error())
+    {
+        LOG(WARNING) << "unpack of XFER_HS failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    m_stm.handshake_syn(vfrom, xid);
+}
+
+void
+daemon :: process_xfer_handshake_synack(server_id from,
+                                        virtual_server_id,
+                                        virtual_server_id to,
+                                        std::auto_ptr<e::buffer> msg,
+                                        e::unpacker up)
+{
+    transfer_id xid;
+    uint64_t timestamp;
+
+    if ((up >> xid >> timestamp).error())
+    {
+        LOG(WARNING) << "unpack of XFER_HSA failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    m_stm.handshake_synack(from, to, xid, timestamp);
+}
+
+void
+daemon :: process_xfer_handshake_ack(server_id,
+                                     virtual_server_id vfrom,
+                                     virtual_server_id,
+                                     std::auto_ptr<e::buffer> msg,
+                                     e::unpacker up)
+{
+    transfer_id xid;
+    uint8_t flags;
+
+    if ((up >> xid >> flags).error())
+    {
+        LOG(WARNING) << "unpack of XFER_HA failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    bool wipe = flags & 0x1;
+    m_stm.handshake_ack(vfrom, xid, wipe);
+}
+
+void
+daemon :: process_xfer_handshake_wiped(server_id from,
+                                       virtual_server_id,
+                                       virtual_server_id to,
+                                       std::auto_ptr<e::buffer> msg,
+                                       e::unpacker up)
+{
+    transfer_id xid;
+
+    if ((up >> xid).error())
+    {
+        LOG(WARNING) << "unpack of XFER_HW failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    m_stm.handshake_wiped(from, to, xid);
+}
+
+void
 daemon :: process_xfer_op(server_id,
                           virtual_server_id vfrom,
                           virtual_server_id,
@@ -811,4 +1048,412 @@ daemon :: process_xfer_ack(server_id from,
     }
 
     m_stm.xfer_ack(from, vto, transfer_id(xid), seq_no);
+}
+
+void
+daemon :: process_backup(server_id from,
+                         virtual_server_id,
+                         virtual_server_id vto,
+                         std::auto_ptr<e::buffer> msg,
+                         e::unpacker up)
+{
+    uint64_t nonce;
+    e::slice _name;
+
+    if ((up >> nonce >> _name).error())
+    {
+        LOG(WARNING) << "unpack of BACKUP failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    std::string name(reinterpret_cast<const char*>(_name.data()));
+    network_returncode result = NET_SUCCESS;
+
+    if (!m_data.backup(e::slice(name)))
+    {
+        result = NET_SERVERERROR;
+    }
+    else
+    {
+        LOG(INFO) << "Backup succeeded and is available in the directory \"backup-"
+                  << e::strescape(name) << "\" within the data directory."
+                  << "  Copy the complete directory to elsewhere so your backup is safe.";
+    }
+
+    size_t sz = HYPERDEX_HEADER_SIZE_VC
+              + sizeof(uint64_t)
+              + sizeof(uint16_t);
+    msg.reset(e::buffer::create(sz));
+    e::buffer::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_VC);
+    pa = pa << nonce << static_cast<uint16_t>(result);
+    m_comm.send_client(vto, from, BACKUP, msg);
+}
+
+void
+daemon :: process_perf_counters(server_id from,
+                                virtual_server_id,
+                                virtual_server_id vto,
+                                std::auto_ptr<e::buffer> msg,
+                                e::unpacker up)
+{
+    uint64_t nonce;
+    uint64_t when;
+    up = up >> nonce >> when;
+
+    if (up.error())
+    {
+        LOG(WARNING) << "unpack of PERF_COUNTERS failed; here's some hex:  " << msg->hex();
+        return;
+    }
+
+    std::string out;
+
+    {
+        po6::threads::mutex::hold hold(&m_protect_stats);
+        std::list<std::pair<uint64_t, std::string> >::iterator it;
+        it = m_stats.begin();
+
+        while (it != m_stats.end() && it->first <= when)
+        {
+            ++it;
+        }
+
+        if (it == m_stats.begin())
+        {
+            std::ostringstream ret;
+            ret << m_stats_start << " reset=" << m_stats_start << "\n";
+            out += ret.str();
+        }
+
+        while (it != m_stats.end())
+        {
+            out += it->second;
+            ++it;
+        }
+    }
+
+    size_t sz = HYPERDEX_HEADER_SIZE_VC
+              + sizeof(uint64_t)
+              + out.size() + 1;
+    msg.reset(e::buffer::create(sz));
+    e::buffer::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_VC);
+    pa = pa << nonce;
+    pa.copy(e::slice(out.data(), out.size() + 1));
+    m_comm.send_client(vto, from, PERF_COUNTERS, msg);
+}
+
+#define INTERVAL 100000000ULL
+
+void
+daemon :: collect_stats()
+{
+    uint64_t target = e::time();
+    target = target - (target % INTERVAL) + INTERVAL;
+
+    {
+        po6::threads::mutex::hold hold(&m_protect_stats);
+        m_stats_start = target;
+    }
+
+    while (__sync_fetch_and_add(&s_interrupts, 0) == 0)
+    {
+        // every INTERVAL nanoseconds collect stats
+        uint64_t now = e::time();
+
+        if (now < target)
+        {
+            struct timespec ts;
+            ts.tv_sec = 0;
+            ts.tv_nsec = std::min(target - now, 50000000UL);
+            nanosleep(&ts, NULL);
+            continue;
+        }
+
+        // collect the stats
+        std::ostringstream ret;
+        ret << target;
+        collect_stats_msgs(&ret);
+        collect_stats_leveldb(&ret);
+        collect_stats_io(&ret);
+        ret << "\n";
+        std::string out = ret.str();
+
+        po6::threads::mutex::hold hold(&m_protect_stats);
+        m_stats.push_back(std::make_pair(target, out));
+
+        if (m_stats.size() > 600)
+        {
+            m_stats.pop_front();
+        }
+
+        // next interval
+        target += INTERVAL;
+    }
+}
+
+void
+daemon :: collect_stats_msgs(std::ostringstream* ret)
+{
+    *ret << " msgs.req_get=" << m_perf_req_get.read();
+    *ret << " msgs.req_atomic=" << m_perf_req_atomic.read();
+    *ret << " msgs.req_search_start=" << m_perf_req_search_start.read();
+    *ret << " msgs.req_search_next=" << m_perf_req_search_next.read();
+    *ret << " msgs.req_search_stop=" << m_perf_req_search_stop.read();
+    *ret << " msgs.req_sorted_search=" << m_perf_req_sorted_search.read();
+    *ret << " msgs.req_group_del=" << m_perf_req_group_del.read();
+    *ret << " msgs.req_count=" << m_perf_req_count.read();
+    *ret << " msgs.req_search_describe=" << m_perf_req_search_describe.read();
+    *ret << " msgs.chain_op=" << m_perf_chain_op.read();
+    *ret << " msgs.chain_subspace=" << m_perf_chain_subspace.read();
+    *ret << " msgs.chain_ack=" << m_perf_chain_ack.read();
+    *ret << " msgs.chain_gc=" << m_perf_chain_gc.read();
+    *ret << " msgs.xfer_op=" << m_perf_xfer_op.read();
+    *ret << " msgs.xfer_ack=" << m_perf_xfer_ack.read();
+    *ret << " msgs.perf_counters=" << m_perf_perf_counters.read();
+}
+
+namespace
+{
+
+struct leveldb_stat
+{
+    leveldb_stat() : files(0), size(0), time(0), read(0), write(0) {}
+    uint64_t files;
+    uint64_t size;
+    uint64_t time;
+    uint64_t read;
+    uint64_t write;
+};
+
+} // namespace
+
+void
+daemon :: collect_stats_leveldb(std::ostringstream* ret)
+{
+    *ret << " leveldb.size=" << m_data.approximate_size();
+    std::string tmp;
+
+    if (m_data.get_property(e::slice("leveldb.stats"), &tmp))
+    {
+        std::vector<char> lines(tmp.c_str(), tmp.c_str() + tmp.size() + 1);
+        char* ptr = &lines.front();
+        char* end = ptr + lines.size() - 1;
+        leveldb_stat stats[7];
+
+        while (ptr < end)
+        {
+            char* eol = strchr(ptr, '\n');
+            eol = eol ? eol : end;
+            *eol = 0;
+            int level;
+            int files;
+            double size;
+            double time;
+            double read;
+            double write;
+
+            if (sscanf(ptr, "%d %d %lf %lf %lf %lf",
+                            &level, &files, &size, &time, &read, &write) == 6 &&
+                level < 7)
+            {
+                stats[level].files = files;
+                stats[level].size = size * 1048576ULL;
+                stats[level].time = time;
+                stats[level].read = read * 1048576ULL;
+                stats[level].write = write * 1048576ULL;
+            }
+
+            ptr = eol + 1;
+        }
+
+        for (size_t i = 0; i < 7; ++i)
+        {
+            *ret << " leveldb.files" << i << "=" << stats[i].files;
+            *ret << " leveldb.size" << i << "=" << stats[i].size;
+            *ret << " leveldb.time" << i << "=" << stats[i].time;
+            *ret << " leveldb.read" << i << "=" << stats[i].read;
+            *ret << " leveldb.write" << i << "=" << stats[i].write;
+        }
+    }
+}
+
+namespace
+{
+
+bool
+read_sys_block_star(std::vector<std::string>* blocks)
+{
+    DIR* dir = opendir("/sys/block");
+    struct dirent* ent = NULL;
+
+    if (dir == NULL)
+    {
+        return false;
+    }
+
+    errno = 0;
+
+    while ((ent = readdir(dir)) != NULL)
+    {
+        blocks->push_back(ent->d_name);
+    }
+
+    closedir(dir);
+    return errno == 0;
+}
+
+} // namespace
+
+void
+daemon :: determine_block_stat_path(const po6::pathname& data)
+{
+    po6::pathname dir;
+
+    try
+    {
+       dir = data.realpath();
+    }
+    catch (po6::error& e)
+    {
+        LOG(ERROR) << "could not resolve true path for data: " << e.what();
+        return;
+    }
+
+    std::vector<std::string> block_devs;
+
+    if (!read_sys_block_star(&block_devs))
+    {
+        LOG(ERROR) << "could not ls /sys/block";
+        return;
+    }
+
+    FILE* mounts = fopen("/proc/mounts", "r");
+
+    if (!mounts)
+    {
+        LOG(ERROR) << "could not open /proc/mounts: " << po6::error(errno).what();
+        return;
+    }
+
+    char* line = NULL;
+    size_t line_sz = 0;
+    size_t max_mnt_sz = 0;
+
+    while (true)
+    {
+        ssize_t amt = getline(&line, &line_sz, mounts);
+
+        if (amt < 0)
+        {
+            if (ferror(mounts) != 0)
+            {
+                LOG(WARNING) << "could not read from /proc/mounts: " << po6::error(errno).what();
+                break;
+            }
+
+            if (feof(mounts) != 0)
+            {
+                break;
+            }
+
+            LOG(WARNING) << "unknown error when reading from /proc/mounts\n";
+            break;
+        }
+
+        char dev[4096];
+        char mnt[4096];
+        int pts = sscanf(line, "%4095s %4095s", dev, mnt);
+
+        if (pts != 2)
+        {
+            continue;
+        }
+
+        size_t msz = strlen(mnt);
+
+        if (strncmp(mnt, dir.get(), msz) != 0 ||
+            msz < max_mnt_sz)
+        {
+            continue;
+        }
+
+        std::string stat_path = po6::pathname(dev).basename().get();
+
+        for (size_t i = 0; i < block_devs.size(); ++i)
+        {
+            size_t dsz = std::min(stat_path.size(), block_devs[i].size());
+
+            if (strncmp(block_devs[i].c_str(), stat_path.c_str(), dsz) == 0)
+            {
+                max_mnt_sz = msz;
+                m_block_stat_path = std::string("/sys/block/") + block_devs[i] + "/stat";
+            }
+        }
+    }
+
+    if (!m_block_stat_path.empty())
+    {
+        LOG(INFO) << "using " << m_block_stat_path << " for reporting io.* stats";
+    }
+    else
+    {
+        LOG(WARNING) << "cannot determine device name for reporting io.* stats";
+    }
+
+    if (line)
+    {
+        free(line);
+    }
+
+    fclose(mounts);
+}
+
+void
+daemon :: collect_stats_io(std::ostringstream* ret)
+{
+    if (m_block_stat_path.empty())
+    {
+        return;
+    }
+
+    FILE* fin = fopen(m_block_stat_path.c_str(), "r");
+
+    if (!fin)
+    {
+        LOG(ERROR) << "could not open " << m_block_stat_path << " for reading block-device stats; io.* stats will not be reported";
+        m_block_stat_path = "";
+        return;
+    }
+
+    uint64_t read_ios;
+    uint64_t read_merges;
+    uint64_t read_sectors;
+    uint64_t read_ticks;
+    uint64_t write_ios;
+    uint64_t write_merges;
+    uint64_t write_sectors;
+    uint64_t write_ticks;
+    uint64_t in_flight;
+    uint64_t io_ticks;
+    uint64_t time_in_queue;
+    int x = fscanf(fin, "%lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu",
+                   &read_ios, &read_merges, &read_sectors, &read_ticks,
+                   &write_ios, &write_merges, &write_sectors, &write_ticks,
+                   &in_flight, &io_ticks, &time_in_queue);
+    fclose(fin);
+
+    if (x == 11)
+    {
+        *ret << " io.read_ios=" << read_ios;
+        *ret << " io.read_merges=" << read_merges;
+        *ret << " io.read_bytes=" << read_sectors * 512;
+        *ret << " io.read_ticks=" << read_ticks;
+        *ret << " io.write_ios=" << write_ios;
+        *ret << " io.write_merges=" << write_merges;
+        *ret << " io.write_bytes=" << write_sectors * 512;
+        *ret << " io.write_ticks=" << write_ticks;
+        *ret << " io.in_flight=" << in_flight;
+        *ret << " io.io_ticks=" << io_ticks;
+        *ret << " io.time_in_queue=" << time_in_queue;
+    }
 }

@@ -32,10 +32,10 @@
 #include <stdint.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/attribute.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class schema
 {
@@ -50,6 +50,6 @@ class schema
         const attribute* attrs;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_schema_h_

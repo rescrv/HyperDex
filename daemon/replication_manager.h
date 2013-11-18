@@ -30,7 +30,7 @@
 
 // STL
 #include <list>
-#include <memory>
+#include <tr1/memory>
 #include <tr1/unordered_map>
 
 // po6
@@ -45,16 +45,19 @@
 #include <e/striped_lock.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/attribute_check.h"
 #include "common/configuration.h"
-#include "common/counter_map.h"
 #include "common/funcall.h"
 #include "common/ids.h"
 #include "common/network_returncode.h"
+#include "daemon/identifier_collector.h"
+#include "daemon/identifier_generator.h"
 #include "daemon/reconfigure_returncode.h"
+#include "daemon/region_timestamp.h"
+#include "daemon/state_hash_table.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 class daemon;
 
 // Manage replication.
@@ -73,6 +76,7 @@ class replication_manager
         void reconfigure(const configuration& old_config,
                          const configuration& new_config,
                          const server_id& us);
+        void debug_dump();
 
     // Network workers call these methods.
     public:
@@ -81,12 +85,12 @@ class replication_manager
         void client_atomic(const server_id& from,
                            const virtual_server_id& to,
                            uint64_t nonce,
+                           bool erase,
                            bool fail_if_not_found,
                            bool fail_if_found,
-                           bool erase,
                            const e::slice& key,
-                           std::vector<attribute_check>* checks,
-                           std::vector<funcall>* funcs);
+                           const std::vector<attribute_check>& checks,
+                           const std::vector<funcall>& funcs);
         // These are called in response to messages from other hosts.
         void chain_op(const virtual_server_id& from,
                       const virtual_server_id& to,
@@ -118,46 +122,33 @@ class replication_manager
                        const e::slice& key);
         void chain_gc(const region_id& reg_id, uint64_t seq_id);
         void trip_periodic();
+        void begin_checkpoint(uint64_t seq);
+        void end_checkpoint(uint64_t seq);
 
     private:
-        class pending;
-        class keyholder;
-        class keypair;
-        static uint64_t hash(const keypair&);
-        typedef e::lockfree_hash_map<keypair, e::intrusive_ptr<keyholder>, hash> keyholder_map_t;
+        class pending; // state for one pending operation
+        class key_region; // a tuple of (key, region)
+        class key_state; // state for a single key
+        typedef state_hash_table<key_region, key_state> key_map_t;
+        friend class std::tr1::hash<key_region>;
 
     private:
         replication_manager(const replication_manager&);
-
-    private:
         replication_manager& operator = (const replication_manager&);
 
     private:
-        uint64_t get_lock_num(const region_id& reg, const e::slice& key);
-        e::intrusive_ptr<keyholder> get_keyholder(const region_id& reg, const e::slice& key);
-        e::intrusive_ptr<keyholder> get_or_create_keyholder(const region_id& reg, const e::slice& key);
-        void erase_keyholder(const region_id& reg, const e::slice& key);
-        void hash_objects(const region_id& reg,
-                          const schema& sc,
-                          const e::slice& key,
-                          bool has_new_value,
-                          const std::vector<e::slice>& new_value,
-                          bool has_old_value,
-                          const std::vector<e::slice>& old_value,
-                          e::intrusive_ptr<pending> pend);
-        bool prev_and_next(const region_id& ri, const e::slice& key,
-                           bool has_new_value, const std::vector<e::slice>& new_value,
-                           bool has_old_value, const std::vector<e::slice>& old_value,
-                           e::intrusive_ptr<pending> pend);
-        // Move operations between the queues in the keyholder.  Blocked
-        // operations will have their blocking criteria checked.  Deferred
-        // operations will be checked for continuity with the blocked
-        // operations.
-        void move_operations_between_queues(const virtual_server_id& us,
-                                            const region_id& ri,
-                                            const schema& sc,
-                                            const e::slice& key,
-                                            e::intrusive_ptr<keyholder> kh);
+        // Get the state for the specified key.
+        // Returns NULL if there is no key_state that's currently in use.
+        key_state* get_key_state(const region_id& ri,
+                                 const e::slice& key,
+                                 key_map_t::state_reference* ksr);
+        // Get the state for the specified key.
+        // Will retrieve the state from disk and create the key_state when
+        // necessary.
+        key_state* get_or_create_key_state(const region_id& ri,
+                                           const e::slice& key,
+                                           key_map_t::state_reference* ksr);
+        // Send a response to the specified client.
         void send_message(const virtual_server_id& us,
                           bool retransmission,
                           uint64_t version,
@@ -174,30 +165,46 @@ class replication_manager
                                const server_id& client,
                                uint64_t nonce,
                                network_returncode ret);
-        // thread functions
-        void retransmitter();
-        void garbage_collector();
+        // check stability
+        bool is_check_needed();
+        void check_is_needed();
+        void check_is_not_needed();
+        // stability
+        void check_stable();
+        void check_stable(const region_id& ri);
+        // background thread
+        void wait_until_paused();
+        void background_thread();
+        void retransmit(const std::vector<region_id>& point_leaders,
+                        std::vector<std::pair<region_id, uint64_t> >* seq_ids);
+        void close_gaps(const std::vector<region_id>& point_leaders,
+                        const identifier_generator& peek_ids,
+                        std::vector<std::pair<region_id, uint64_t> >* seq_ids);
+        void send_chain_gc();
         void shutdown();
 
     private:
         daemon* m_daemon;
-        e::striped_lock<po6::threads::mutex> m_keyholder_locks;
-        keyholder_map_t m_keyholders;
-        counter_map m_counters;
-        bool m_shutdown;
-        po6::threads::thread m_retransmitter;
-        po6::threads::thread m_garbage_collector;
-        po6::threads::mutex m_block_both;
-        po6::threads::cond m_wakeup_retransmitter;
-        po6::threads::cond m_wakeup_garbage_collector;
+        key_map_t m_key_states;
+        identifier_generator m_idgen;
+        identifier_collector m_idcol;
+        identifier_generator m_stable_counters;
+        std::vector<region_id> m_unstable_regions;
+        uint64_t m_checkpoint;
+        uint32_t m_need_check;
+        std::vector<region_timestamp> m_timestamps;
+        po6::threads::thread m_background_thread;
+        po6::threads::mutex m_block_background_thread;
+        po6::threads::cond m_wakeup_background_thread;
         po6::threads::cond m_wakeup_reconfigurer;
-        bool m_need_retransmit;
-        std::list<std::pair<region_id, uint64_t> > m_lower_bounds;
+        bool m_shutdown;
         bool m_need_pause;
-        bool m_paused_retransmitter;
-        bool m_paused_garbage_collector;
+        bool m_paused;
+        bool m_need_post_reconfigure;
+        bool m_need_periodic;
+        std::list<std::pair<region_id, uint64_t> > m_lower_bounds;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_daemon_replication_manager_h_

@@ -25,9 +25,13 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// e
+#include <e/endian.h>
+
 // HyperDex
-#include "common/serialization.h"
 #include "common/attribute_check.h"
+#include "common/datatypes.h"
+#include "common/serialization.h"
 
 using hyperdex::attribute_check;
 
@@ -41,6 +45,163 @@ attribute_check :: attribute_check()
 
 attribute_check :: ~attribute_check() throw ()
 {
+}
+
+bool
+hyperdex :: validate_attribute_check(const schema& sc,
+                                     const attribute_check& check)
+{
+    assert(check.attr < sc.attrs_sz);
+    datatype_info* di_attr = datatype_info::lookup(sc.attrs[check.attr].type);
+    datatype_info* di_check = datatype_info::lookup(check.datatype);
+
+    if (!di_attr || !di_check || !di_check->validate(check.value))
+    {
+        return false;
+    }
+
+    switch (check.predicate)
+    {
+        case HYPERPREDICATE_FAIL:
+            return true;
+        case HYPERPREDICATE_EQUALS:
+            return di_attr->datatype() == di_check->datatype();
+        case HYPERPREDICATE_LESS_EQUAL:
+        case HYPERPREDICATE_GREATER_EQUAL:
+            return di_attr->datatype() == di_check->datatype() &&
+                   di_attr->comparable();
+        case HYPERPREDICATE_REGEX:
+            return di_check->datatype() == HYPERDATATYPE_STRING &&
+                   di_attr->has_regex();
+        case HYPERPREDICATE_CONTAINS_LESS_THAN:
+        case HYPERPREDICATE_LENGTH_EQUALS:
+        case HYPERPREDICATE_LENGTH_LESS_EQUAL:
+        case HYPERPREDICATE_LENGTH_GREATER_EQUAL:
+            return di_check->datatype() == HYPERDATATYPE_INT64 &&
+                   di_attr->has_length();
+        case HYPERPREDICATE_CONTAINS:
+            return di_attr->has_contains() &&
+                   di_attr->contains_datatype() == di_check->datatype();
+        default:
+            return false;
+    }
+}
+
+size_t
+hyperdex :: validate_attribute_checks(const schema& sc,
+                                      const std::vector<attribute_check>& checks)
+{
+    for (size_t i = 0; i < checks.size(); ++i)
+    {
+        if (checks[i].attr >= sc.attrs_sz)
+        {
+            return i;
+        }
+
+        if (!validate_attribute_check(sc, checks[i]))
+        {
+            return i;
+        }
+    }
+
+    return checks.size();
+}
+
+bool
+hyperdex :: passes_attribute_check(const schema& sc,
+                                   const attribute_check& check,
+                                   const e::slice& value)
+{
+    assert(check.attr < sc.attrs_sz);
+    datatype_info* di_attr = datatype_info::lookup(sc.attrs[check.attr].type);
+    datatype_info* di_check = datatype_info::lookup(check.datatype);
+
+    if (!di_attr || !di_check ||
+        !di_attr->validate(value) ||
+        !di_check->validate(check.value))
+    {
+        return false;
+    }
+
+    char buf_i[sizeof(int64_t)];
+    int64_t tmp_i;
+
+    switch (check.predicate)
+    {
+        case HYPERPREDICATE_FAIL:
+            return false;
+        case HYPERPREDICATE_EQUALS:
+            return di_attr->datatype() == di_check->datatype() &&
+                   check.value == value;
+        case HYPERPREDICATE_LESS_EQUAL:
+            return di_attr->datatype() == di_check->datatype() &&
+                   di_attr->comparable() &&
+                   di_attr->compare(check.value, value) >= 0;
+        case HYPERPREDICATE_GREATER_EQUAL:
+            return di_attr->datatype() == di_check->datatype() &&
+                   di_attr->comparable() &&
+                   di_attr->compare(check.value, value) <= 0;
+        case HYPERPREDICATE_REGEX:
+            return di_check->datatype() == HYPERDATATYPE_STRING &&
+                   di_attr->has_regex() &&
+                   di_attr->regex(check.value, value);
+        case HYPERPREDICATE_LENGTH_EQUALS:
+            memset(buf_i, 0, sizeof(int64_t));
+            memmove(buf_i, check.value.data(), std::min(check.value.size(), sizeof(int64_t)));
+            e::unpack64le(buf_i, &tmp_i);
+            return di_check->datatype() == HYPERDATATYPE_INT64 &&
+                   di_attr->has_length() &&
+                   static_cast<int64_t>(di_attr->length(value)) == tmp_i;
+        case HYPERPREDICATE_CONTAINS_LESS_THAN:
+        case HYPERPREDICATE_LENGTH_LESS_EQUAL:
+            memset(buf_i, 0, sizeof(int64_t));
+            memmove(buf_i, check.value.data(), std::min(check.value.size(), sizeof(int64_t)));
+            e::unpack64le(buf_i, &tmp_i);
+            return di_check->datatype() == HYPERDATATYPE_INT64 &&
+                   di_attr->has_length() &&
+                   static_cast<int64_t>(di_attr->length(value)) <= tmp_i;
+        case HYPERPREDICATE_LENGTH_GREATER_EQUAL:
+            memset(buf_i, 0, sizeof(int64_t));
+            memmove(buf_i, check.value.data(), std::min(check.value.size(), sizeof(int64_t)));
+            e::unpack64le(buf_i, &tmp_i);
+            return di_check->datatype() == HYPERDATATYPE_INT64 &&
+                   di_attr->has_length() &&
+                   static_cast<int64_t>(di_attr->length(value)) >= tmp_i;
+        case HYPERPREDICATE_CONTAINS:
+            return di_attr->has_contains() &&
+                   di_attr->contains_datatype() == di_check->datatype() &&
+                   di_attr->contains(value, check.value);
+        default:
+            return false;
+    }
+}
+
+size_t
+hyperdex :: passes_attribute_checks(const schema& sc,
+                                    const std::vector<hyperdex::attribute_check>& checks,
+                                    const e::slice& key,
+                                    const std::vector<e::slice>& value)
+{
+    for (size_t i = 0; i < checks.size(); ++i)
+    {
+        if (checks[i].attr >= sc.attrs_sz)
+        {
+            return i;
+        }
+
+        if (checks[i].attr > 0 &&
+            !passes_attribute_check(sc, checks[i], value[checks[i].attr - 1]))
+        {
+            return i;
+        }
+        else if (checks[i].attr == 0 &&
+                 !passes_attribute_check(sc, checks[i], key))
+        {
+            return i;
+        }
+    }
+
+    return checks.size();
 }
 
 bool

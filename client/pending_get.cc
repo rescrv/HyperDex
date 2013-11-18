@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2012, Cornell University
+// Copyright (c) 2011-2013, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,77 +27,135 @@
 
 // HyperClient
 #include "common/network_returncode.h"
-#include "client/constants.h"
+#include "client/client.h"
 #include "client/pending_get.h"
 #include "client/util.h"
 
-hyperclient :: pending_get :: pending_get(hyperclient_returncode* status,
-                                          struct hyperclient_attribute** attrs,
-                                          size_t* attrs_sz)
-    : pending(status)
+using hyperdex::pending_get;
+
+pending_get :: pending_get(uint64_t id,
+                           hyperdex_client_returncode* status,
+                           const hyperdex_client_attribute** attrs,
+                           size_t* attrs_sz)
+    : pending(id, status)
+    , m_state(INITIALIZED)
     , m_attrs(attrs)
     , m_attrs_sz(attrs_sz)
 {
 }
 
-hyperclient :: pending_get :: ~pending_get() throw ()
+pending_get :: ~pending_get() throw ()
 {
 }
 
-hyperdex::network_msgtype
-hyperclient :: pending_get :: request_type()
+bool
+pending_get :: can_yield()
 {
-    return hyperdex::REQ_GET;
+    assert(m_state == RECV || m_state == YIELDED);
+    return m_state == RECV;
 }
 
-int64_t
-hyperclient :: pending_get :: handle_response(hyperclient* cl,
-                                              const server_id& id,
-                                              std::auto_ptr<e::buffer> msg,
-                                              hyperdex::network_msgtype type,
-                                              hyperclient_returncode* status)
+bool
+pending_get :: yield(hyperdex_client_returncode* status, e::error* err)
 {
-    *status = HYPERCLIENT_SUCCESS;
+    *status = HYPERDEX_CLIENT_SUCCESS;
+    *err = e::error();
+    m_state = YIELDED;
+    return true;
+}
 
-    if (type != hyperdex::RESP_GET)
+void
+pending_get :: handle_sent_to(const server_id&,
+                              const virtual_server_id&)
+{
+    assert(m_state == INITIALIZED);
+    m_state = SENT;
+}
+
+void
+pending_get :: handle_failure(const server_id& si,
+                              const virtual_server_id& vsi)
+{
+    assert(m_state == SENT);
+    m_state = RECV;
+    PENDING_ERROR(RECONFIGURE) << "reconfiguration affecting "
+                               << vsi << "/" << si;
+}
+
+bool
+pending_get :: handle_message(client* cl,
+                              const server_id& si,
+                              const virtual_server_id& vsi,
+                              network_msgtype mt,
+                              std::auto_ptr<e::buffer> msg,
+                              e::unpacker up,
+                              hyperdex_client_returncode* status,
+                              e::error* err)
+{
+    m_state = RECV;
+    *status = HYPERDEX_CLIENT_SUCCESS;
+    *err = e::error();
+
+    if (mt != RESP_GET)
     {
-        cl->killall(id, HYPERCLIENT_SERVERERROR);
-        return 0;
+        PENDING_ERROR(SERVERERROR) << "server vsi responded to GET with " << mt;
+        return true;
     }
 
-    e::unpacker up = msg->unpack_from(HYPERCLIENT_HEADER_SIZE_RESP);
     uint16_t response;
     up = up >> response;
 
     if (up.error())
     {
-        cl->killall(id, HYPERCLIENT_SERVERERROR);
-        return 0;
+        PENDING_ERROR(SERVERERROR) << "communication error: server "
+                                   << vsi << " sent corrupt message="
+                                   << msg->as_slice().hex()
+                                   << " in response to a GET";
+        return true;
     }
 
-    switch (static_cast<hyperdex::network_returncode>(response))
+    switch (static_cast<network_returncode>(response))
     {
-        case hyperdex::NET_SUCCESS:
+        case NET_SUCCESS:
             break;
-        case hyperdex::NET_NOTFOUND:
-            set_status(HYPERCLIENT_NOTFOUND);
-            return client_visible_id();
-        case hyperdex::NET_BADDIMSPEC:
-            set_status(HYPERCLIENT_SERVERERROR);
-            return client_visible_id();
-        case hyperdex::NET_NOTUS:
-            set_status(HYPERCLIENT_RECONFIGURE);
-            return client_visible_id();
-        case hyperdex::NET_READONLY:
-            set_status(HYPERCLIENT_READONLY);
-            return client_visible_id();
-        case hyperdex::NET_SERVERERROR:
-        case hyperdex::NET_CMPFAIL:
-        case hyperdex::NET_BADMICROS:
-        case hyperdex::NET_OVERFLOW:
+        case NET_NOTFOUND:
+            set_status(HYPERDEX_CLIENT_NOTFOUND);
+            set_error(e::error());
+            return true;
+        case NET_BADDIMSPEC:
+            PENDING_ERROR(SERVERERROR) << "server " << si
+                                       << " reports that our request was invalid;"
+                                       << " check its log for details";
+            return true;
+        case NET_NOTUS:
+            PENDING_ERROR(RECONFIGURE) << "server " << si
+                                       << " reports that it is no longer reponsible"
+                                       << " for the requested object";
+            return true;
+        case NET_READONLY:
+            PENDING_ERROR(READONLY) << "cluster is in read-only mode, but this was a read:"
+                                    << " please file a bug";
+            return true;
+        case NET_SERVERERROR:
+            PENDING_ERROR(SERVERERROR) << "server " << si
+                                       << " reports a server error;"
+                                       << " check its log for details";
+            return true;
+        case NET_CMPFAIL:
+            PENDING_ERROR(SERVERERROR) << "server " << si
+                                       << " unexpectedly reports that a comparison failed;"
+                                       << " check its log for details";
+            return true;
+        case NET_OVERFLOW:
+            PENDING_ERROR(OVERFLOW) << "server " << si
+                                    << " reports that the operation would"
+                                    << " cause a number overflow";
+            return true;
         default:
-            cl->killall(id, HYPERCLIENT_SERVERERROR);
-            return 0;
+            PENDING_ERROR(SERVERERROR) << "server " << si
+                                       << " returned non-sensical returncode"
+                                       << response;
+            return true;
     }
 
     std::vector<e::slice> value;
@@ -105,19 +163,27 @@ hyperclient :: pending_get :: handle_response(hyperclient* cl,
 
     if (up.error())
     {
-        cl->killall(id, HYPERCLIENT_SERVERERROR);
-        return 0;
+        PENDING_ERROR(SERVERERROR) << "communication error: server "
+                                   << vsi << " sent corrupt message="
+                                   << msg->as_slice().hex()
+                                   << " in response to a GET";
+        return true;
     }
 
-    hyperclient_returncode op_status;
+    hyperdex_client_returncode op_status;
+    e::error op_error;
 
-    if (!value_to_attributes(*cl->m_config, this->sent_to(), NULL, 0,
-                             value, status, &op_status, m_attrs, m_attrs_sz))
+    if (!value_to_attributes(*cl->m_coord.config(),
+                             cl->m_coord.config()->get_region_id(vsi),
+                             NULL, 0, value, &op_status, &op_error,
+                             m_attrs, m_attrs_sz))
     {
         set_status(op_status);
-        return client_visible_id();
+        set_error(op_error);
+        return true;
     }
 
-    set_status(HYPERCLIENT_SUCCESS);
-    return client_visible_id();
+    set_status(HYPERDEX_CLIENT_SUCCESS);
+    set_error(e::error());
+    return true;
 }

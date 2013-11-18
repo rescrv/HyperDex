@@ -31,14 +31,19 @@
 // C
 #include <stdint.h>
 
+// STL
+#include <tr1/memory>
+
 // e
+#include <e/buffer.h>
 #include <e/slice.h>
 
 // HyperDex
+#include "namespace.h"
 #include "hyperdex.h"
+#include "common/schema.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 enum funcall_t
 {
@@ -86,8 +91,23 @@ class funcall
 };
 
 bool
+validate_func(const schema& sc, const funcall& func);
+
+size_t
+validate_funcs(const schema& sc,
+               const std::vector<funcall>& funcs);
+
+size_t
+apply_funcs(const schema& sc,
+            const std::vector<funcall>& funcs,
+            const e::slice& key,
+            const std::vector<e::slice>& old_value,
+            std::auto_ptr<e::buffer>* backing,
+            std::vector<e::slice>* new_value);
+
+bool
 operator < (const funcall& lhs, const funcall& rhs);
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_funcall_h_

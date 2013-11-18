@@ -32,15 +32,15 @@
 #include <busybee_mapper.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/configuration.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
 class mapper : public ::busybee_mapper
 {
     public:
-        mapper(configuration* config);
+        mapper(const configuration* config);
         ~mapper() throw ();
 
     public:
@@ -51,9 +51,9 @@ class mapper : public ::busybee_mapper
         mapper& operator = (const mapper&);
 
     private:
-        configuration* m_config;
+        const configuration* m_config;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_mapper_h_

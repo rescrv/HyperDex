@@ -29,28 +29,38 @@
 #define hyperdex_daemon_datalayer_encodings_h_
 
 // LevelDB
-#include <leveldb/slice.h>
+#include <hyperleveldb/slice.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/ids.h"
 #include "daemon/datalayer.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 
-// Encode the key for objects
+void
+encode_object_region(const region_id& ri,
+                     std::vector<char>* scratch,
+                     leveldb::Slice* out);
+
 void
 encode_key(const region_id& ri,
-           const e::slice& key,
-           std::vector<char>* backing,
+           const e::slice& internal_key,
+           std::vector<char>* scratch,
            leveldb::Slice* out);
-// Decode the key for objects themselves
-datalayer::returncode
-decode_key(const e::slice& in,
-           region_id* ri,
-           e::slice* key);
 
-// Encode the value for objects
+void
+encode_key(const region_id& ri,
+           hyperdatatype key_type,
+           const e::slice& key,
+           std::vector<char>* scratch,
+           leveldb::Slice* out);
+
+bool
+decode_key(const leveldb::Slice& in,
+           region_id* ri,
+           e::slice* internal_key);
+
 void
 encode_value(const std::vector<e::slice>& attrs,
              uint64_t version,
@@ -74,62 +84,29 @@ decode_acked(const e::slice& in,
              region_id* reg_id, /*region of the point leader*/
              uint64_t* seq_id);
 
-// Encode the transfer
-#define TRANSFER_BUF_SIZE (sizeof(uint8_t) + 2 * sizeof(uint64_t))
+// checkpoints
+#define CHECKPOINT_BUF_SIZE (sizeof(uint8_t) + 2 * sizeof(uint64_t))
 void
-encode_transfer(const capture_id& ci,
-                uint64_t count,
-                char* out);
-void
-encode_key_value(const e::slice& key,
-                 /*pointer to make it optional*/
-                 const std::vector<e::slice>* value,
-                 uint64_t version,
-                 std::vector<char>* backing, /*XXX*/
-                 leveldb::Slice* out);
+encode_checkpoint(const region_id& ri,
+                  uint64_t checkpoint,
+                  char* out);
 datalayer::returncode
-decode_key_value(const e::slice& in,
-                 bool* has_value,
-                 e::slice* key,
-                 std::vector<e::slice>* value,
-                 uint64_t* version);
+decode_checkpoint(const e::slice& in,
+                  region_id* ri,
+                  uint64_t* checkpoint);
 
-// Encode index elements
 void
-encode_index(const region_id& ri,
-             uint16_t attr,
-             std::vector<char>* backing);
-void
-encode_index(const region_id& ri,
-             uint16_t attr,
-             hyperdatatype type,
-             const e::slice& value,
-             std::vector<char>* backing);
-void
-encode_index(const region_id& ri,
-             uint16_t attr,
-             hyperdatatype type,
-             const e::slice& value,
-             const e::slice& key,
-             std::vector<char>* backing);
-void
-bump_index(std::vector<char>* backing);
-bool
-parse_index_string(const leveldb::Slice& s, e::slice* k);
-bool
-parse_index_sizeof8(const leveldb::Slice& s, e::slice* k);
-bool
-parse_object_key(const leveldb::Slice& s, e::slice* k);
-
-datalayer::returncode
-create_index_changes(const schema* sc,
-                     const subspace* su,
+create_index_changes(const schema& sc,
+                     const subspace& sub,
                      const region_id& ri,
                      const e::slice& key,
                      const std::vector<e::slice>* old_value,
                      const std::vector<e::slice>* new_value,
                      leveldb::WriteBatch* updates);
 
-}
+void
+encode_bump(char* start, char* end);
+
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_daemon_datalayer_encodings_h_

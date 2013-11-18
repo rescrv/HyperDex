@@ -28,90 +28,72 @@
 // C
 #include <cstdlib>
 
-// po6
-#include <po6/error.h>
-
-// e
-#include <e/guard.h>
-
 // HyperDex
-#include "client/hyperclient.h"
+#include <hyperdex/admin.hpp>
 #include "tools/common.h"
-
-static struct poptOption popts[] = {
-    POPT_AUTOHELP
-    CONNECT_TABLE
-    POPT_TABLEEND
-};
 
 int
 main(int argc, const char* argv[])
 {
-    poptContext poptcon;
-    poptcon = poptGetContext(NULL, argc, argv, popts, POPT_CONTEXT_POSIXMEHARDER);
-    e::guard g = e::makeguard(poptFreeContext, poptcon); g.use_variable();
-    poptSetOtherOptionHelp(poptcon, "[OPTIONS]");
-    int rc;
+    hyperdex::connect_opts conn;
+    e::argparser ap;
+    ap.autohelp();
+    ap.add("Connect to a cluster:", conn.parser());
 
-    while ((rc = poptGetNextOpt(poptcon)) != -1)
+    if (!ap.parse(argc, argv))
     {
-        switch (rc)
-        {
-            case 'h':
-                if (!check_host())
-                {
-                    return EXIT_FAILURE;
-                }
-                break;
-            case 'p':
-                if (!check_port())
-                {
-                    return EXIT_FAILURE;
-                }
-                break;
-            case POPT_ERROR_NOARG:
-            case POPT_ERROR_BADOPT:
-            case POPT_ERROR_BADNUMBER:
-            case POPT_ERROR_OVERFLOW:
-                std::cerr << poptStrerror(rc) << " " << poptBadOption(poptcon, 0) << std::endl;
-                return EXIT_FAILURE;
-            case POPT_ERROR_OPTSTOODEEP:
-            case POPT_ERROR_BADQUOTE:
-            case POPT_ERROR_ERRNO:
-            default:
-                std::cerr << "logic error in argument parsing" << std::endl;
-                return EXIT_FAILURE;
-        }
+        return EXIT_FAILURE;
     }
 
-    const char** args = poptGetArgs(poptcon);
-    size_t failure = 0;
+    if (!conn.validate())
+    {
+        std::cerr << "invalid host:port specification\n" << std::endl;
+        ap.usage();
+        return EXIT_FAILURE;
+    }
 
     try
     {
-        hyperclient h(_connect_host, _connect_port);
+        hyperdex::Admin h(conn.host(), conn.port());
+        bool failure = false;
 
-        for (size_t i = 0; args && args[i]; ++i)
+        for (size_t i = 0; i < ap.args_sz(); ++i)
         {
-            hyperclient_returncode e = h.rm_space(args[i]);
+            hyperdex_admin_returncode rrc;
+            int64_t rid = h.rm_space(ap.args()[i], &rrc);
 
-            if (e != HYPERCLIENT_SUCCESS)
+            if (rid < 0)
             {
-                std::cerr << "could not rm space " << args[i] << ": " << e << std::endl;
-                ++failure;
+                std::cerr << "could not rm space: " << h.error_message() << std::endl;
+                failure = true;
+                continue;
+            }
+
+            hyperdex_admin_returncode lrc;
+            int64_t lid = h.loop(-1, &lrc);
+
+            if (lid < 0)
+            {
+                std::cerr << "could not rm space: " << h.error_message() << std::endl;
+                failure = true;
+                continue;
+            }
+
+            assert(rid == lid);
+
+            if (rrc != HYPERDEX_ADMIN_SUCCESS)
+            {
+                std::cerr << "could not rm space: " << h.error_message() << std::endl;
+                failure = true;
+                continue;
             }
         }
-    }
-    catch (po6::error& e)
-    {
-        std::cerr << "system error: " << e.what() << std::endl;
-        return EXIT_FAILURE;
+
+        return failure ? EXIT_FAILURE : EXIT_SUCCESS;
     }
     catch (std::exception& e)
     {
         std::cerr << "error: " << e.what() << std::endl;
         return EXIT_FAILURE;
     }
-
-    return failure;
 }

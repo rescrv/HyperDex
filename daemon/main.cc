@@ -46,6 +46,7 @@
 
 static bool _daemonize = true;
 static const char* _data = ".";
+static const char* _log = NULL;
 static const char* _listen_host = "auto";
 static unsigned long _listen_port = 2012;
 static po6::net::ipaddr _listen_ip;
@@ -66,6 +67,9 @@ static struct poptOption popts[] = {
      "run replicant in the foreground", 0},
     {"data", 'D', POPT_ARG_STRING, &_data, 'D',
      "store persistent state in this directory (default: .)",
+     "dir"},
+    {"log", 'L', POPT_ARG_STRING, &_log, 'O',
+     "store persistent state in this directory (default: --data)",
      "dir"},
     {"listen", 'l', POPT_ARG_STRING, &_listen_host, 'l',
      "listen on a specific IP address (default: auto)",
@@ -94,6 +98,7 @@ main(int argc, const char* argv[])
     poptcon = poptGetContext(NULL, argc, argv, popts, POPT_CONTEXT_POSIXMEHARDER);
     e::guard g = e::makeguard(poptFreeContext, poptcon); g.use_variable();
     int rc;
+    po6::net::location listen;
 
     while ((rc = poptGetNextOpt(poptcon)) != -1)
     {
@@ -106,29 +111,37 @@ main(int argc, const char* argv[])
                 _daemonize = false;
                 break;
             case 'D':
+            case 'O':
                 break;
             case 'l':
                 try
                 {
+                    _listen = true;
+
                     if (strcmp(_listen_host, "auto") == 0)
                     {
                         break;
                     }
 
                     _listen_ip = po6::net::ipaddr(_listen_host);
+                    break;
                 }
                 catch (po6::error& e)
                 {
-                    std::cerr << "cannot parse listen address" << std::endl;
-                    return EXIT_FAILURE;
                 }
                 catch (std::invalid_argument& e)
                 {
-                    std::cerr << "cannot parse listen address" << std::endl;
+                }
+
+                listen = po6::net::hostname(_listen_host, 0).lookup(AF_UNSPEC, IPPROTO_TCP);
+
+                if (listen == po6::net::location())
+                {
+                    std::cerr << "cannot interpret listen address as hostname or IP address" << std::endl;
                     return EXIT_FAILURE;
                 }
 
-                _listen = true;
+                _listen_ip = listen.address;
                 break;
             case 'L':
                 if (_listen_port >= (1 << 16))
@@ -185,8 +198,15 @@ main(int argc, const char* argv[])
         }
 
         po6::pathname data(_data);
+        po6::pathname log(_log ? _log : _data);
         po6::net::location bind_to(_listen_ip, _listen_port);
         po6::net::hostname coord(_coordinator_host, _coordinator_port);
+
+        if (bind_to.address == po6::net::ipaddr("0.0.0.0"))
+        {
+            std::cerr << "cannot bind to " << bind_to << " because it is not routable" << std::endl;
+            return EXIT_FAILURE;
+        }
 
         if (_threads <= 0)
         {
@@ -204,7 +224,7 @@ main(int argc, const char* argv[])
             return EXIT_FAILURE;
         }
 
-        return d.run(_daemonize, data, _listen, bind_to, _coordinator, coord, _threads);
+        return d.run(_daemonize, data, log, _listen, bind_to, _coordinator, coord, _threads);
     }
     catch (po6::error& e)
     {

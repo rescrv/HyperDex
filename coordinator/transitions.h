@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, Cornell University
+/* Copyright (c) 2012-2013, Cornell University
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -9,7 +9,7 @@
  *     * Redistributions in binary form must reproduce the above copyright
  *       notice, this list of conditions and the following disclaimer in the
  *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of Replicant nor the names of its contributors may be
+ *     * Neither the name of NyperDex nor the names of its contributors may be
  *       used to endorse or promote products derived from this software without
  *       specific prior written permission.
  *
@@ -36,44 +36,54 @@ extern "C"
 /* Replicant */
 #include <replicant_state_machine.h>
 
-extern void*
+void*
 hyperdex_coordinator_create(struct replicant_state_machine_context* ctx);
 
-extern void*
+void*
 hyperdex_coordinator_recreate(struct replicant_state_machine_context* ctx,
                               const char* data, size_t data_sz);
 
-extern void
+void
 hyperdex_coordinator_destroy(struct replicant_state_machine_context* ctx,
                              void* f);
 
-extern void
+void
 hyperdex_coordinator_snapshot(struct replicant_state_machine_context* ctx,
                               void* obj, const char** data, size_t* sz);
 
-#define TRANSITION(X) extern void \
+#define TRANSITION(X) void \
     hyperdex_coordinator_ ## X(struct replicant_state_machine_context* ctx, \
                                void* obj, const char* data, size_t data_sz)
 
-TRANSITION(initialize);
+TRANSITION(init);
 
-TRANSITION(add_space);
-TRANSITION(rm_space);
+TRANSITION(read_only);
 
-TRANSITION(get_config);
-TRANSITION(ack_config);
+TRANSITION(config_get);
+TRANSITION(config_ack);
+TRANSITION(config_stable);
 
 TRANSITION(server_register);
-TRANSITION(server_reregister);
-TRANSITION(server_shutdown1);
-TRANSITION(server_shutdown2);
+TRANSITION(server_online);
+TRANSITION(server_offline);
+TRANSITION(server_shutdown);
+TRANSITION(server_kill);
+TRANSITION(server_forget);
 TRANSITION(server_suspect);
 
-TRANSITION(xfer_begin);
-TRANSITION(xfer_complete);
-TRANSITION(xfer_go_live);
+TRANSITION(space_add);
+TRANSITION(space_rm);
+
+TRANSITION(transfer_go_live);
+TRANSITION(transfer_complete);
+
+TRANSITION(checkpoint_stable);
+
+TRANSITION(alarm);
+
+TRANSITION(debug_dump);
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */
-#endif // hyperdex_coordinator_transitions_h_
+#endif /* hyperdex_coordinator_transitions_h_ */

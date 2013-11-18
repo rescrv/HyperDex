@@ -40,11 +40,11 @@
 #include <e/intrusive_ptr.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/configuration.h"
 #include "daemon/reconfigure_returncode.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 class daemon;
 
 class state_transfer_manager
@@ -64,6 +64,19 @@ class state_transfer_manager
                          const server_id& us);
 
     public:
+        void handshake_syn(const virtual_server_id& from,
+                           const transfer_id& xid);
+        void handshake_synack(const server_id& from,
+                              const virtual_server_id& to,
+                              const transfer_id& xid,
+                              uint64_t timestamp);
+        void handshake_ack(const virtual_server_id& from,
+                           const transfer_id& xid,
+                           bool wipe);
+        void handshake_wiped(const server_id& from,
+                             const virtual_server_id& to,
+                             const transfer_id& xid);
+        void report_wiped(const transfer_id& xid);
         void xfer_op(const virtual_server_id& from,
                      const transfer_id& xid,
                      uint64_t seq_no,
@@ -76,8 +89,6 @@ class state_transfer_manager
                       const virtual_server_id& to,
                       const transfer_id& xid,
                       uint64_t seq_no);
-        void retransmit(const server_id& id);
-        void report_wiped(const capture_id& cid);
 
     private:
         class pending;
@@ -85,6 +96,9 @@ class state_transfer_manager
         class transfer_out_state;
 
     private:
+        // get the appropriate state
+        transfer_in_state* get_tis(const transfer_id& xid);
+        transfer_out_state* get_tos(const transfer_id& xid);
         // caller must hold mtx on tos
         void transfer_more_state(transfer_out_state* tos);
         void retransmit(transfer_out_state* tos);
@@ -92,6 +106,10 @@ class state_transfer_manager
         void put_to_disk_and_send_acks(transfer_in_state* tis);
         // caller must hold mtx on tos
         // send the last object in tos
+        void send_handshake_syn(const transfer& xfer);
+        void send_handshake_synack(const transfer& xfer, uint64_t timestamp);
+        void send_handshake_ack(const transfer& xfer, bool wipe);
+        void send_handshake_wiped(const transfer& xfer);
         void send_object(const transfer& xfer, pending* op);
         void send_ack(const transfer& xfer, uint64_t seq_id);
         void kickstarter();
@@ -103,8 +121,8 @@ class state_transfer_manager
 
     private:
         daemon* m_daemon;
-        std::vector<std::pair<transfer_id, e::intrusive_ptr<transfer_in_state> > > m_transfers_in;
-        std::vector<std::pair<transfer_id, e::intrusive_ptr<transfer_out_state> > > m_transfers_out;
+        std::vector<e::intrusive_ptr<transfer_in_state> > m_transfers_in;
+        std::vector<e::intrusive_ptr<transfer_out_state> > m_transfers_out;
         po6::threads::thread m_kickstarter;
         po6::threads::mutex m_block_kickstarter;
         po6::threads::cond m_wakeup_kickstarter;
@@ -115,6 +133,6 @@ class state_transfer_manager
         bool m_paused;
 };
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_daemon_state_transfer_manager_h_

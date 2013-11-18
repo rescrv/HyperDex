@@ -139,7 +139,8 @@ communication :: send_client(const virtual_server_id& from,
 {
     assert(msg->size() >= HYPERDEX_HEADER_SIZE_VC);
 
-    if (m_daemon->m_us != m_daemon->m_config.get_server_id(from))
+    if (m_daemon->m_us != m_daemon->m_config.get_server_id(from) &&
+        from != virtual_server_id(UINT64_MAX))
     {
         return false;
     }

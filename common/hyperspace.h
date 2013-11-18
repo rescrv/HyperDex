@@ -36,11 +36,11 @@
 #include <e/buffer.h>
 
 // HyperDex
+#include "namespace.h"
 #include "common/ids.h"
 #include "common/schema.h"
 
-namespace hyperdex
-{
+BEGIN_HYPERDEX_NAMESPACE
 class space;
 class subspace;
 class region;
@@ -64,6 +64,7 @@ class space
         space_id id;
         const char* name;
         uint64_t fault_tolerance;
+        uint64_t predecessor_width;
         hyperdex::schema sc;
         std::vector<subspace> subspaces;
 
@@ -96,11 +97,15 @@ class subspace
         ~subspace() throw ();
 
     public:
+        bool indexed(uint16_t attr) const;
+
+    public:
         subspace& operator = (const subspace&);
 
     public:
         subspace_id id;
         std::vector<uint16_t> attrs;
+        std::vector<uint16_t> indices;
         std::vector<region> regions;
 };
 
@@ -159,6 +164,6 @@ operator >> (e::unpacker, replica& r);
 size_t
 pack_size(const replica& r);
 
-} // namespace hyperdex
+END_HYPERDEX_NAMESPACE
 
 #endif // hyperdex_common_hyperspace_h_
