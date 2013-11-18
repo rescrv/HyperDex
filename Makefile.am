@@ -934,8 +934,8 @@ man/hyperdex-set-read-write.1: man/hyperdex-set-read-write.1.h2m tools/set-read-
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-set-read-write$(EXEEXT)
 
 # hyperdex-wait-until-stable
-EXTRA_DIST += man/hyperdex-wait_until_stable.1.md
-EXTRA_DIST += man/hyperdex-wait_until_stable.1.h2m
+EXTRA_DIST += man/hyperdex-wait-until-stable.1.md
+EXTRA_DIST += man/hyperdex-wait-until-stable.1.h2m
 hyperdex_wait_until_stable_SOURCES = tools/wait-until-stable.cc
 hyperdex_wait_until_stable_LDADD = libhyperdex-admin.la -lpopt
 man/hyperdex-wait-until-stable.1: man/hyperdex-wait-until-stable.1.h2m tools/wait-until-stable.cc
