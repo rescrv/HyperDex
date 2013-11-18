@@ -125,6 +125,7 @@ subpackage python-hyperdex
 
 subpackage python-hyperdex-client
 | summary="Python client bindings for HyperDex"
+| requires="python-hyperdex"
 + {pythondir}/hyperdex/client.py
 + fedora {pythondir}/hyperdex/admin.pyc
 + fedora {pythondir}/hyperdex/admin.pyo
@@ -133,6 +134,7 @@ subpackage python-hyperdex-client
 
 subpackage python-hyperdex-admin
 | summary="Python admin bindings for HyperDex"
+| requires="python-hyperdex"
 + {pythondir}/hyperdex/admin.py
 + fedora {pythondir}/hyperdex/client.pyc
 + fedora {pythondir}/hyperdex/client.pyo
