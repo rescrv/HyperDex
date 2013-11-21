@@ -1665,7 +1665,7 @@ Init_hyperdex_client()
     /* create the Range class */
     class_range = rb_define_class_under(mod_hyperdex_client, "Range", class_predicate);
     rb_define_alloc_func(class_range , hyperdex_ruby_client_predicate_alloc2);
-    rb_define_method(class_range , "initialize", hyperdex_ruby_client_predicate_range_init, 1);
+    rb_define_method(class_range , "initialize", hyperdex_ruby_client_predicate_range_init, 2);
 
     /* create the Regex class */
     class_regex = rb_define_class_under(mod_hyperdex_client, "Regex", class_predicate);

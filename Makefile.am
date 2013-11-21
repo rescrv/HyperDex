@@ -990,6 +990,7 @@ maintainer-generate:
 	python bindings/c/gen_doc.py
 	python bindings/c/gen_wrappers.py
 	python bindings/ruby/gen_ruby.py
+	python bindings/ruby/gen_doc.py
 	python maint/generate-replication-shell-stubs.py
 	python maint/generate-search-shell-stubs.py
 	python maint/generate-doc-shell-stubs.py
