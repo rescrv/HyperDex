@@ -1,23 +1,286 @@
 \chapter{C API}
 
 \section{Client Library}
-\input{\topdir/api/c.client}
 
-\section{Data Structures}
+The HyperDex Client library, \code{libhyperdex-client} is the de facto way to
+access a HyperDex cluster for storing and retrieving data.  All data-store
+operations are provided by the this library.
 
-HyperDex encodes as a bytestring all data structures passed between the
-application and HyperDex.  This format of this bytestring varies according to
-its type.  Below we describe the format of HyperDex data structures, and an API
-for serializing and deserializing HyperDex's datatypes.
+Until release 1.0.rc5, \code{libhyperdex-client} was called
+\code{libhyperclient}.  It was changed to be more consistent with the naming of
+other HyperDex C libraries.
 
-\subsection{Bytestring Format}
+\subsection{Building the HyperDex C Binding}
+
+The HyperDex C Binding is automatically built and installed via the normal
+HyperDex build and install process.  You can ensure that the client is always
+built by providing the \code{--enable-client} option to \code{./configure} like
+so:
+
+\begin{consolecode}
+% ./configure --enable-client
+\end{consolecode}
+
+\subsection{Compiling and Linking Your Application}
+Unless otherwise noted, all Client operations are defined in the
+\code{hyperdex/client.h} include.  You can include this in your own program
+with:
+
+\begin{ccode}
+#include <hyperdex/client.h>
+\end{ccode}
+
+To link against \code{libhyperdex-client}, provide the \code{-lhyperdex-client}
+option at link time:
+
+\begin{consolecode}
+% cc -o output input.c -I/path/to/hyperdex/include -L/path/to/hyperdex/lib -lhyperdex-client
+\end{consolecode}
+
+HyperDex provides support for the automatically determining the compiler and
+linker flags for \code{libhyperdex-client}.  First, ensure the \code{pkg-config}
+program is installed, and then run:
+
+\begin{consolecode}
+% pkg-config --cflags hyperdex-client -I/usr/local/include
+% pkg-config --libs hyperdex-client -L/usr/local/lib -lhyperdex-client
+\end{consolecode}
+
+The first command outputs the compiler flags necessary to include the
+\code{hyperdex/client.h} file, while the second command outputs the flags
+necessary for linking against \code{libhyperdex-client}.
+
+To put it all together, you can compile your application with:
+
+\begin{consolecode}
+% cc -o output input.c `pkg-config --cflags --libs hyperdex-client`
+\end{consolecode}
+
+For more information about \code{pkg-config}, see the
+\href{http://people.freedesktop.org/~dbn/pkg-config-guide.html#using}{pkg-config
+documentation}.
+
+\subsection{Hello World}
+
+The following is a minimal application that stores the value "Hello World" and
+then immediately retrieves the value:
+
+\inputminted{c}{api/c/hello-world.c}
+
+You can compile and run this example with:
+
+\begin{consolecode}
+% cc -o hello-world hello-world.c `pkg-config --cflags --libs hyperdex-client`
+% ./hello-world
+put "Hello World!"
+get done
+got attribute "v" = "Hello World!"
+\end{consolecode}
+
+Right away, there are several points worth noting in this example:
+
+\begin{itemize}
+\item Each operation, whether it is a PUT or a GET, is broken down into a
+request and a response.  The \code{hyperdex\_client\_put} and
+\code{hyperdex\_client\_get} operations each initiate the request.  The
+application then calls \code{hyperdex\_client\_loop} to wait for the completion
+of the operation.
+
+\item The stored value is passed via \code{struct hyperdex\_client\_attribute}
+which specifies both the value of the string "Hello World!" and that this value
+is, in fact, a string.  All HyperDex datatypes are passed to HyperDex as
+bytestrings via this interface.
+
+\item This code omits error checking, assuming that all operations succeed.  In
+the subsequent documentation we'll explore proper error checking, which should
+be in place for all non-example code.
+\end{itemize}
+
+\subsection{Asynchronous Patterns}
+
+All operations are issued {\em asynchronously}, that is, the operation's start
+is decoupled from its completion, and it is up to the application to wait for
+its completion.
+
+The C API provides a unified, event-loop-like interface for polling events for
+their completion.  An application can issue any number of operations, and poll
+for their completion using the \code{hyperdex\_client\_loop} call.  This
+provides you with several advantages unavailable in any other distributed
+key-value store:
+
+\begin{itemize}
+\item Asynchronous events free your application to perform other operations
+while waiting for events to complete.
+
+\item Asynchronous events re-use underlying resources, such as TCP connections
+to the cluster, across operations.  This enables improved performance and
+consumes fewer resources than would be consumed by synchronous clients
+generating a similar workload.
+
+\item Operations will be buffered in userspace when they cannot be immediately
+sent to a server.  This ensures that applications will never block waiting for
+slow servers.
+\end{itemize}
+
+Of course, applications do not need to embrace this asynchronous design pattern.
+It's always possible to use the library in a synchronous manner by immediately
+following every operation with a call to \code{hyperdex\_client\_loop}.
+
+Applications that do embrace this asynchronous design pattern will have a
+certain structure.  Specifically:
+
+\begin{itemize}
+\item Each operation must eventually be followed by a call to
+\code{hyperdex\_client\_loop}.  This is the core of the HyperDex client.  All
+work, including flushing userspace buffers, occurs via the call to loop.
+
+\item Pointers used for output from operations must remain valid until
+\code{hyperdex\_client\_loop} indicates that the operation has successfully
+finished.  Consequently, they must not be aliased to pointers passed to other
+operations.
+\end{itemize}
+
+Finally, it's important to realize that calling \code{hyperdex\_client\_loop} is
+necessary to complete operations.  An operation's outcome is not determined
+until the application calls \code{hyperdex\_client\_loop}.  Do not simply issue
+\code{hyperdex\_client\_put} operations (or similar) and assume that the
+operations complete because there is no guarantee that they will do so.
+
+\subsection{Creating a Client}
+
+A HyperDex client is encapsulated within the incomplete \code{struct
+hyperdex\_client} type.  This type is created by the HyperDex client library,
+and should only be freed using the provided method.
+
+\funcsep
+\begin{ccode}
+struct hyperdex_client*
+hyperdex_client_create(const char* coordinator, uint16_t port);
+\end{ccode}
+\funcdesc Create a new client instance.  This call allocates and initializes
+local structures.  If allocation or initialization fail, the call will return
+NULL and set \code{errno} appropriately.  This call does not establish the
+connection to the coordinator; that will be established and maintained
+automatically by other calls made with this client instance.
+
+\noindent\textbf{Parameters:}
+\begin{description}[labelindent=\widthof{{\code{coordinator}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{coordinator}] A C-string containing IP address or hostname of the
+    coordinator.
+\item[\code{port}] The port number for the coordinator.
+\end{description}
+
+\funcsep
+\begin{ccode}
+void
+hyperdex_client_destroy(struct hyperdex_client* client);
+\end{ccode}
+\funcdesc Destroy a previously instantiated client, and release all associated
+resources.  This call always succeeds.
+
+\noindent\textbf{Parameters:}
+\begin{description}[labelindent=\widthof{{\code{client}}},leftmargin=*,noitemsep,nolistsep,align=right]
+\item[\code{client}] A previously created client instance.
+\end{description}
+
+\subsection{Data Structures}
+
+HyperDex natively supports a variety of data structures.  This section describes
+the available data structures and their encoding within C.  HyperDex encodes as
+a byte string all data structures passed between the application and HyperDex.
+This format of this byte string varies according to its type.  In this section,
+we'll describe the format of data structures, and provide an API for serializing
+to and from the prescribed format.  All APIs discussed in this section are
+provided by \code{libhyperdex-client}.
+
+\subsubsection{\code{enum hyperdatatype}}
+
+The \code{enum hyperdatatype} is used to represent the type of a byte string to
+HyperDex.  Whenever a structure accepts a byte string as a value, it will
+typically accept an \code{enum hyperdatatype} to convey the type of the string.
+
+\paragraph{Primitive Data Types}
+
+Primitive data types are the basic data types of HyperDex.  Applications may use
+these primitives as the key and dimensions of hyperspaces within HyperDex.
+
+\begin{description}[noitemsep]
+\item[\code{HYPERDATATYPE\_STRING}] A byte string.
+\item[\code{HYPERDATATYPE\_INT64}] A 64-bit signed integer.
+\item[\code{HYPERDATATYPE\_FLOAT}] A 64-bit floating point value.
+\end{description}
+
+\paragraph{Container Data Types}
+
+Container data types contain a collection of primitive data types.  Container
+data types cannot be used as the key or dimensions of the hyperspace.
+
+There are three container types available within HyperDex:
+
+\begin{description}
+\item[Lists] A list contains elements of one primitive type.  The order of
+    elements in a list is preserved, and it's possible for duplicate elements to
+    exist.
+\item[Sets] A set contains elements of one primitive type.  Each element exists
+    in the set at most once.  Although the implementation enforces an order on
+    the set for efficiency purposes, set operations are agnostic to the order of
+    the included elements.
+\item[Maps] A map contains key-value pairs of elements, where the key and value
+    may be of different types.  Each key is unique and has an associated value.
+    Maps also offer the ability to perform most primitive operations on the
+    values within the map.
+\end{description}
+
+Each of these containers may be instantiated with a primitive data type as the
+contained elements.  In total, HyperDex supports all of the following container
+data types:
+
+\begin{description}[noitemsep]
+\item[\code{HYPERDATATYPE\_LIST\_STRING}] A list of strings.
+\item[\code{HYPERDATATYPE\_LIST\_INT64}] A list of integers.
+\item[\code{HYPERDATATYPE\_LIST\_FLOAT}] A list of floats.
+\item[\code{HYPERDATATYPE\_SET\_STRING}] A set of strings.
+\item[\code{HYPERDATATYPE\_SET\_INT64}] A set of integers.
+\item[\code{HYPERDATATYPE\_SET\_FLOAT}] A set of floats.
+\item[\code{HYPERDATATYPE\_MAP\_STRING\_STRING}] A map from strings to strings.
+\item[\code{HYPERDATATYPE\_MAP\_STRING\_INT64}] A map from strings to integers.
+\item[\code{HYPERDATATYPE\_MAP\_STRING\_FLOAT}] A map from strings to floats.
+\item[\code{HYPERDATATYPE\_MAP\_INT64\_STRING}] A map from integers to strings.
+\item[\code{HYPERDATATYPE\_MAP\_INT64\_INT64}] A map from integers to integers.
+\item[\code{HYPERDATATYPE\_MAP\_INT64\_FLOAT}] A map from integers to floats.
+\item[\code{HYPERDATATYPE\_MAP\_FLOAT\_STRING}] A map from floats to strings.
+\item[\code{HYPERDATATYPE\_MAP\_FLOAT\_INT64}] A map from floats to integers.
+\item[\code{HYPERDATATYPE\_MAP\_FLOAT\_FLOAT}] A map from floats to floats.
+\end{description}
+
+The following data types are defined as well, and are generally only of interest
+to HyperDex developers and those who are writing client bindings:
+
+\begin{description}[noitemsep]
+\item[\code{HYPERDATATYPE\_LIST\_GENERIC}] A list whose element type is
+    unspecified.
+\item[\code{HYPERDATATYPE\_SET\_GENERIC}] A set whose element type is
+    unspecified.
+\item[\code{HYPERDATATYPE\_MAP\_GENERIC}] A map whose key/value types are
+    unspecified.
+\item[\code{HYPERDATATYPE\_MAP\_STRING\_KEYONLY}] A map whose key is a string
+    and whose value is unspecified.
+\item[\code{HYPERDATATYPE\_MAP\_INT64\_KEYONLY}] A map whose key is an integer
+    and whose value type is unspecified.
+\item[\code{HYPERDATATYPE\_MAP\_FLOAT\_KEYONLY}] A map whose key is a float and
+    whose value type is unspecified.
+\item[\code{HYPERDATATYPE\_GARBAGE}] A reserved constant never used within
+    HyperDex.
+\end{description}
+
+\subsubsection{Bytestring Format}
 
 The format of the data structures is defined to be the same on all platforms.
 
 For each format, Python-like psuedocode is provided that shows example
 encodings.
 
-\subsubsection{string}
+\paragraph{string format}
 
 A string is an 8-bit byte string.  HyperDex is agnostic to the contents of the
 string, and it may contain any bytes, including \code{\\x00}.  By convention,
@@ -29,7 +292,7 @@ interoperability across languages.  For example:
 b'Hello\x00World!'
 \end{pythoncode}
 
-\subsubsection{int}
+\paragraph{int format}
 
 Integers are encoded as signed 8-byte little-endian integers.  For example:
 
@@ -42,7 +305,7 @@ b'\xff\xff\xff\xff\xff\xff\xff\xff'
 b'\xef\xbe\xad\xde\x00\x00\x00\x00'
 \end{pythoncode}
 
-\subsubsection{float}
+\paragraph{float format}
 
 Floats are encoded as IEEE 754 binary64 values in little-endian format.  For
 example:
@@ -54,7 +317,7 @@ b'\x00\x00\x00\x00\x00\x00\x00\x00'
 b'o\x12\x83\xc0\xca!\t@'
 \end{pythoncode}
 
-\subsubsection{list(string)}
+\paragraph{list(string) format}
 
 Lists of strings are encoded by concatenating the encoding of each string,
 prefixed by an unsigned 4-byte little endian integer indicating the length of
@@ -67,7 +330,7 @@ b''
 b'\x05\x00\x00\x00hello\x05\x00\x00\x00world'
 \end{pythoncode}
 
-\subsubsection{list(int)}
+\paragraph{list(int) format}
 
 Lists of integers are encoded by concatenating the encoded form of each integer.
 For example:
@@ -81,7 +344,7 @@ b'\xff\xff\xff\xff\xff\xff\xff\xff' \
 b'\xef\xbe\xad\xde\x00\x00\x00\x00'
 \end{pythoncode}
 
-\subsubsection{list(floats)}
+\paragraph{list(floats) format}
 
 Lists of floats are encoded by concatenating the encoded form of each float.
 For example:
@@ -94,7 +357,7 @@ b'\x00\x00\x00\x00\x00\x00\x00\x00' \
 b'o\x12\x83\xc0\xca!\t@'
 \end{pythoncode}
 
-\subsubsection{set(string)}
+\paragraph{set(string) format}
 
 Sets of strings are encoded by concatenating the encoding of each string in
 sorted order, where each string is prefixed by an unsigned 4-byte little endian
@@ -107,7 +370,7 @@ b''
 b'\x05\x00\x00\x00hello\x05\x00\x00\x00world'
 \end{pythoncode}
 
-\subsubsection{set(int)}
+\paragraph{set(int) format}
 
 Sets of integers are encoded by concatenating the encoded form of each integer
 in sorted order.  For example:
@@ -121,7 +384,7 @@ b'\x01\x00\x00\x00\x00\x00\x00\x00' \
 b'\xef\xbe\xad\xde\x00\x00\x00\x00'
 \end{pythoncode}
 
-\subsubsection{set(float)}
+\paragraph{set(float) format}
 
 Sets of floats are encoded by concatenating the encoded form of each float in
 sorted order.  For example:
@@ -134,7 +397,7 @@ b'\x00\x00\x00\x00\x00\x00\x00\x00' \
 b'o\x12\x83\xc0\xca!\t@'
 \end{pythoncode}
 
-\subsubsection{map(string, string)}
+\paragraph{map(string, string) format}
 
 Maps from strings to strings are formed by encoding the individual elements,
 each prefixed by an unsigned 4-byte little endian integer indicating their
@@ -152,7 +415,7 @@ b'\x03\x00\x00\x00map\x08\x00\x00\x00encoding' \
 b'\x07\x00\x00\x00map key\x07\x00\x00\x00map val'
 \end{pythoncode}
 
-\subsubsection{map(string, int)}
+\paragraph{map(string, int) format}
 
 Maps from strings to ints are formed by encoding the individual elements, where
 keys are prefixed by an unsigned 4-byte little endian integer indicating their
@@ -168,7 +431,7 @@ b'\x05\x00\x00\x00hello\x01\x00\x00\x00\x00\x00\x00\x00' \
 b'\x05\x00\x00\x00world\xff\xff\xff\xff\xff\xff\xff\xff'
 \end{pythoncode}
 
-\subsubsection{map(string, float)}
+\paragraph{map(string, float) format}
 
 Maps from strings to ints are formed by encoding the individual elements, where
 keys are prefixed by an unsigned 4-byte little endian integer indicating their
@@ -184,7 +447,7 @@ b'\x02\x00\x00\x00pio\x12\x83\xc0\xca!\t@' \
 b'\x04\x00\x00\x00zero\x00\x00\x00\x00\x00\x00\x00\x00'
 \end{pythoncode}
 
-\subsubsection{map(int, string)}
+\paragraph{map(int, string) format}
 
 Maps from ints to strings are formed by encoding the individual elements, where
 values are prefixed by an unsigned 4-byte little endian integer indicating their
@@ -200,7 +463,7 @@ b'\xff\xff\xff\xff\xff\xff\xff\xff\x05\x00\x00\x00world' \
 b'\x01\x00\x00\x00\x00\x00\x00\x00\x05\x00\x00\x00hello'
 \end{pythoncode}
 
-\subsubsection{map(int, int)}
+\paragraph{map(int, int) format}
 
 Maps from ints to ints are formed by encoding the individual elements.  The
 pairs of elements are stored in sorted order according to the first element of
@@ -215,7 +478,7 @@ b'\xff\xff\xff\xff\xff\xff\xff\xff\x0d\xf0\xaf\x1e\x00\x00\x00\x00' \
 b'\x01\x00\x00\x00\x00\x00\x00\x00\xef\xbe\xad\xde\x00\x00\x00\x00'
 \end{pythoncode}
 
-\subsubsection{map(int, float)}
+\paragraph{map(int, float) format}
 
 Maps from ints to floats are formed by encoding the individual elements.  The
 pairs of elements are stored in sorted order according to the first element of
@@ -230,7 +493,7 @@ b'\xff\xff\xff\xff\xff\xff\xff\xffo\x12\x83\xc0\xca!\t@' \
 b'\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 \end{pythoncode}
 
-\subsubsection{map(float, string)}
+\paragraph{map(float, string) format}
 
 Maps from floats to strings are formed by encoding the individual elements,
 where values are prefixed by an unsigned 4-byte little endian integer indicating
@@ -246,7 +509,7 @@ b'\x00\x00\x00\x00\x00\x00\x00\x00\x05\x00\x00\x00hello' \
 b'o\x12\x83\xc0\xca!\t@\x05\x00\x00\x00world'
 \end{pythoncode}
 
-\subsubsection{map(float, int)}
+\paragraph{map(float, int) format}
 
 Maps from floats to ints are formed by encoding the individual elements.  The
 pairs of elements are stored in sorted order according to the first element of
@@ -261,7 +524,7 @@ b'\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00' \
 b'o\x12\x83\xc0\xca!\t@\xff\xff\xff\xff\xff\xff\xff\xff'
 \end{pythoncode}
 
-\subsubsection{map(float, float)}
+\paragraph{map(float, float) format}
 
 Maps from floats to floats are formed by encoding the individual elements.  The
 pairs of elements are stored in sorted order according to the first element of
@@ -276,13 +539,13 @@ b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf0?' \
 b'o\x12\x83\xc0\xca!\t@\x00\x00\x00\x00\x00\x00\xf0\xbf'
 \end{pythoncode}
 
-\subsection{Serialization API}
+\subsubsection{Serialization API}
 
 The serialization API supports serialization of all datatypes supported by
 HyperDex.  Of course, feel free to manually encode data structures, especially
 where doing so can make use of efficient stack-allocated data structures.
 
-\subsubsection{struct hyperdex\_ds\_arena}
+\paragraph{struct hyperdex\_ds\_arena}
 
 The packing routines described below may occasionally have to allocate memory
 into which the encoded forms of the datatypes are copied.  To free the
@@ -313,7 +576,7 @@ void hyperdex_ds_arena_destroy(struct hyperdex_ds_arena* arena);
 \funcdesc Free all memory associated with \code{arena}.  This function always
 succeeds.
 
-\subsubsection{string}
+\paragraph{serialize string}
 
 No serialization is necessary for string data types.  For convenience, the
 serialization API provides a copy function that copies a string into
@@ -331,7 +594,7 @@ copying the string.  All pointers returned by this function remain valid until
 \code{arena} is destroyed.  The client should not attempt to free the returned
 copy.
 
-\subsubsection{int}
+\paragraph{serialize int}
 
 \begin{ccode}
 void hyperdex_ds_pack_int(int64_t num, char* value);
@@ -352,7 +615,7 @@ return -1 if there is insufficient memory available for encoding the nubmer.
 All pointers returned by this function remain valid until \code{arena} is
 destroyed.  The client should not attempt to free the returned copy.
 
-\subsubsection{float}
+\paragraph{serialize float}
 
 \begin{ccode}
 void hyperdex_ds_pack_float(double num, char* value);
@@ -373,7 +636,7 @@ return -1 if there is insufficient memory available for encoding the nubmer.
 All pointers returned by this function remain valid until \code{arena} is
 destroyed.  The client should not attempt to free the returned copy.
 
-\subsubsection{lists}
+\paragraph{serialize lists}
 
 The below functions incrementally build lists, performing all relevant error
 checking to ensure that the resuling HyperDex list is well-formed.  The first
@@ -423,7 +686,7 @@ int hyperdex_ds_list_finalize(struct hyperdex_ds_list*,
 function returns the bytestring and the list type.  It will fail and return -1
 if memory allocation fails.
 
-\subsubsection{sets}
+\paragraph{serialize sets}
 
 The below functions incrementally build sets, performing all relevant error
 checking to ensure that the resuling HyperDex set is well-formed.  The first
@@ -474,7 +737,7 @@ int hyperdex_ds_set_finalize(struct hyperdex_ds_set*,
 function returns the bytestring and the set type.  It will fail and return -1 if
 memory allocation fails.
 
-\subsubsection{maps}
+\paragraph{serialize maps}
 
 The below functions incrementally build maps, performing all relevant error
 checking to ensure that the resuling HyperDex map is well-formed.  The first
@@ -565,7 +828,7 @@ int hyperdex_ds_map_finalize(struct hyperdex_ds_map*,
 This function returns the bytestring and the map type.  It will fail and return
 -1 if memory allocation fails, or an uneven number of key/value calls were made.
 
-\subsection{Deserialization API}
+\subsubsection{Deserialization API}
 
 The deserialization API provides routines to unpack ints and floats, and iterate
 the elements in lists, sets, and maps.  Iterators return elements one-by-one
@@ -597,11 +860,11 @@ void hyperdex_ds_iterator_init(struct hyperdex_ds_iterator* iter,
 \funcdesc Initialize an iterator for the given data type/value.  This function
 always succeeds.
 
-\subsubsection{string}
+\paragraph{deserialize string}
 
 No deserialization is necessary for string data types.
 
-\subsubsection{int}
+\paragraph{deserialize int}
 
 \begin{ccode}
 int hyperdex_ds_unpack_int(const char* buf, size_t buf_sz, int64_t* num);
@@ -609,7 +872,7 @@ int hyperdex_ds_unpack_int(const char* buf, size_t buf_sz, int64_t* num);
 \funcdesc Unpack \code{num} from \code{buf}/\code{buf\_sz}.  This function will
 fail and return -1 if \code{buf\_sz} is not exactly \unit{8}{\byte}.
 
-\subsubsection{float}
+\paragraph{deserialize float}
 
 \begin{ccode}
 int hyperdex_ds_unpack_float(const char* buf, size_t buf_sz, double* num);
@@ -617,7 +880,7 @@ int hyperdex_ds_unpack_float(const char* buf, size_t buf_sz, double* num);
 \funcdesc Unpack \code{num} from \code{buf}/\code{buf\_sz}.  This function will
 fail and return -1 if \code{buf\_sz} is not exactly \unit{8}{\byte}.
 
-\subsubsection{lists}
+\paragraph{deserialize lists}
 
 \begin{ccode}
 int hyperdex_ds_iterate_list_string_next(struct hyperdex_ds_iterator* iter,
@@ -644,7 +907,7 @@ int hyperdex_ds_iterate_list_float_next(struct hyperdex_ds_iterator* iter, doubl
 1 if an element is returned, 0 if there are no elements to return, and -1 if the
 list of floats is malformed.
 
-\subsubsection{sets}
+\paragraph{deserialize sets}
 
 \begin{ccode}
 int hyperdex_ds_iterate_set_string_next(struct hyperdex_ds_iterator* iter,
@@ -671,7 +934,7 @@ int hyperdex_ds_iterate_set_float_next(struct hyperdex_ds_iterator* iter, double
 if an element is returned, 0 if there are no elements to return, and -1 if the
 set of ints is malformed.
 
-\subsubsection{maps}
+\paragraph{deserialize maps}
 
 \begin{ccode}
 int hyperdex_ds_iterate_map_string_string_next(struct hyperdex_ds_iterator* iter,
@@ -764,7 +1027,7 @@ int hyperdex_ds_iterate_map_float_float_next(struct hyperdex_ds_iterator* iter,
 return 1 if an element is returned, 0 if there are no elements to return, and -1
 if the map is malformed.
 
-\subsection{Memory Management Utilties}
+\subsubsection{Memory Management Utilties}
 
 The data structures API provides utility functions for allocating structures
 from the arena, obviating the need to free them individually.
@@ -801,3 +1064,160 @@ On success, this function returns a non-null pointer containing \code{sz}
 elements.  On failure, the function returns \code{NULL}, indicating that memory
 allocation failed.  The memory will remain valid until the arena is destroyed
 and should not be free'd independently by the application.
+
+\subsection{Attributes}
+
+\subsection{Map Attributes}
+
+\subsection{Predicates}
+
+\subsection{Error Handling}
+
+Every call in the client provides a means for reporting failure.  After each
+call, your application should for the error and react appropriately.  Depending
+upon the error, your application may retry the request, or may need to take more
+drastic action.
+
+Errors are typically reported via \code{enum hyperdex\_client\_returncode}
+defined in \code{hyperdex/client.h}.  Values for this enum fall into three
+categories:  values returned during normal operation, values returned to
+indicate anticipated errors, and values that should never be returned in
+practice.
+
+The common-case returncodes are:
+
+\begin{description}
+\item[\code{HYPERDEX\_CLIENT\_SUCCESS}]  The operation was successful and no
+    errors occurred.
+\item[\code{HYPERDEX\_CLIENT\_NOTFOUND}]  The operation finished because the
+    requested object was not found.
+\item[\code{HYPERDEX\_CLIENT\_SEARCHDONE}]  An operation that potentially
+    returns multiple objects.  For instance, a search has
+    finished and will no longer be returned via loop.
+\item[\code{HYPERDEX\_CLIENT\_CMPFAIL}]  The predicate specified as part of a
+    conditional operation was not true.
+\item[\code{HYPERDEX\_CLIENT\_READONLY}] The cluster is in read-only mode and
+    not accepting write operations.
+\end{description}
+
+The following errors stem from environmental problems or problems with the
+application's usage of HyperDex.  These errors are generally easy to remedy and
+are anticipated by the client library.
+
+\begin{description}
+\item[\code{HYPERDEX\_CLIENT\_UNKNOWNSPACE}] The specified space does not exist.
+    Ensure that a space exists before trying to manipulate its data.
+\item[\code{HYPERDEX\_CLIENT\_COORDFAIL}] The connection to the coordinator has
+    failed.  The application should back off before retrying.
+
+    Note that the connection to the coordinator is not a simple TCP connection,
+    and is redundant if the coordinator consists of multiple servers.  This
+    error indicates to the application that the redundancy has failed and that
+    the application should back-off.
+\item[\code{HYPERDEX\_CLIENT\_SERVERERROR}] A server returned a nonsensical
+    result to the client library.  Generally retrying the request should be
+    sufficient to overcome the problem.
+\item[\code{HYPERDEX\_CLIENT\_POLLFAILED}] The poll system call failed in an
+    unexpected manner.  Typically, this means that the application using the
+    HyperDex library has mismanaged its file descriptors and improperly altered
+    descriptors in use by the HyperDex library.
+
+    This generally indicates that there is a bug in the HyperDex client library,
+    the application using the library, or both.
+\item[\code{HYPERDEX\_CLIENT\_OVERFLOW}] An integer operation failed to complete
+    because it would have resulted in signed overflow.
+\item[\code{HYPERDEX\_CLIENT\_RECONFIGURE}] The server responsible for managing
+    the operation failed while the operation was in-flight.
+\item[\code{HYPERDEX\_CLIENT\_TIMEOUT}] The \code{hyperdex\_client\_loop}
+    operation exceeded its timeout without completing an outstanding operation.
+    This does not affect the status of any outstanding operation.
+\item[\code{HYPERDEX\_CLIENT\_UNKNOWNATTR}] The operation references an
+    attribute that is not part of the space.  Make sure to use attributes within
+    the space's schema.
+\item[\code{HYPERDEX\_CLIENT\_DUPEATTR}] The operation references an attribute
+    multiple times in a way that is not permitted.
+\item[\code{HYPERDEX\_CLIENT\_NONEPENDING}] The \code{hyperdex\_client\_loop}
+    call was made, but no operations were outstanding.  This generally indicates
+    that the loop call was called too many times for the operations issued.
+\item[\code{HYPERDEX\_CLIENT\_DONTUSEKEY}] The operation attempted to mutate the
+    key, which is not permitted.
+\item[\code{HYPERDEX\_CLIENT\_WRONGTYPE}] The attribute or predicate was not
+    compatible with the type in the space's schema.  For example, the operation
+    may have attempted to issue a PUT operation that writes an integer to a
+    non-integer datatype, or tries to perform string operations on a non-string
+    data type.  Check that the operation performed is compatible with the data
+    type of the affected attributes.
+\item[\code{HYPERDEX\_CLIENT\_NOMEM}] The library failed to allocate memory.
+\item[\code{HYPERDEX\_CLIENT\_INTERRUPTED}] The HyperDex library was interrupted
+    by a signal.  Read more about signals in Section~\ref{XXX}.
+\item[\code{HYPERDEX\_CLIENT\_CLUSTER\_JUMP}] The client library started
+    receiving configurations for a different HyperDex cluster.  This can happen
+    if a new coordinator is restarted on the same address that the client
+    connects to.  This error will not be persistent.  The client library will
+    switch to the new cluster configuration, and this error just serves as a
+    notification to the application.
+\item[\code{HYPERDEX\_CLIENT\_OFFLINE}] All servers responsible for handling the
+    specified operation are currently offline and unavailable, whether due to
+    failure or planned downtime.
+\end{description}
+
+The following errors indicate significant bugs within the client or application.
+In practice they should never happen and indicate bugs within HyperDex itself.
+They are used as one would use an \code{assert} statement to enforce an
+invariant.
+
+\begin{description}
+\item[\code{HYPERDEX\_CLIENT\_INTERNAL}] One or more of the HyperDex client
+    library's internal invariants have been broken.  It's best to destroy and
+    recreate the client.
+\item[\code{HYPERDEX\_CLIENT\_EXCEPTION}] The C library is implemented
+    internally using C++.  C++ generated an unhandled exception that was caught
+    at the C boundary.  This indicates a bug in HyperDex, and exists only as a
+    safeguard.  Applications should never see this error.
+\item[\code{HYPERDEX\_CLIENT\_GARBAGE}] This value is reserved as a well-defined
+    value that the library will never return, and that is not used as a constant
+    anywhere else within HyperDex.
+\end{description}
+
+Note that an asynchronous application should distinguish between {\em local}
+errors which affect one outstanding operation, and {\em global} errors that
+transiently affect all operations, but do not change the completion status of
+those operations.
+
+Local errors are always returned via the \code{enum
+hyperdex\_client\_returncode*} pointer passed at the time the application
+initated the operation.  These errors may either result from the application
+returning a negative operation id, in which case the operation immediately
+completes, or from the result of a successful \code{hyperdex\_client\_loop}
+call.  In either case, the error has no impact on the result of any other
+operation.
+
+Global errors are always returned via the \code{enum
+hyperdex\_client\_returncode*} pointer passed to the most recent invocation of
+\code{hyperdex\_client\_loop}.  These errors are not localized to any particular
+operation and indicate errors that are non-permanent.  Example global errors
+include application-requested timeouts, interruptions by signals, and temporary
+non-connectivity with the coordinator.
+
+\subsection{Operations}
+
+\input{\topdir/api/c.client}
+
+\subsection{Working with Signals}
+
+The HyperDex client library provides a simple mechanism to cleanly integrate
+with applications that work with signals.
+
+Your application must mask all signals prior to making any calls into the
+library.  The library will unmask the signals during blocking operations and
+return \code{HYPERDEX\_CLIENT\_INTERRUPTED} should any signals be received.
+
+\subsection{Working with Threads}
+
+The HyperDex client library is fully reentrant.  Instances of \code{struct
+hyperdex\_client} and their associated state may be accessed from multiple
+threads, provided that the application employes its own synchronization that
+provides mutual exclusion.
+
+Put simply, a multi-threaded application should protect each \code{struct
+hyperdex\_client} instance with a mutex or lock to ensure correct operation.

@@ -131,11 +131,8 @@ cdef extern from "hyperdex/client.h":
         HYPERDEX_CLIENT_DONTUSEKEY   = 8524
         HYPERDEX_CLIENT_WRONGTYPE    = 8525
         HYPERDEX_CLIENT_NOMEM        = 8526
-        HYPERDEX_CLIENT_BADCONFIG    = 8527
-        HYPERDEX_CLIENT_DUPLICATE    = 8529
         HYPERDEX_CLIENT_INTERRUPTED  = 8530
         HYPERDEX_CLIENT_CLUSTER_JUMP = 8531
-        HYPERDEX_CLIENT_COORD_LOGGED = 8532
         HYPERDEX_CLIENT_INTERNAL     = 8573
         HYPERDEX_CLIENT_EXCEPTION    = 8574
         HYPERDEX_CLIENT_GARBAGE      = 8575
@@ -242,11 +239,8 @@ class HyperClientException(Exception):
                   ,HYPERDEX_CLIENT_DONTUSEKEY: "Do not specify the key in a search predicate and do not redundantly specify the key for an insert"
                   ,HYPERDEX_CLIENT_WRONGTYPE: 'Attribute "%s" has the wrong type' % attr
                   ,HYPERDEX_CLIENT_NOMEM: 'Memory allocation failed'
-                  ,HYPERDEX_CLIENT_BADCONFIG: 'The coordinator provided a malformed configuration'
-                  ,HYPERDEX_CLIENT_DUPLICATE: 'The space already exists'
                   ,HYPERDEX_CLIENT_INTERRUPTED: 'Interrupted by a signal'
                   ,HYPERDEX_CLIENT_CLUSTER_JUMP: 'The cluster changed identities'
-                  ,HYPERDEX_CLIENT_COORD_LOGGED: 'The coordinator has logged an error with details'
                   ,HYPERDEX_CLIENT_INTERNAL: 'Internal Error (file a bug)'
                   ,HYPERDEX_CLIENT_EXCEPTION: 'Internal Exception (file a bug)'
                   ,HYPERDEX_CLIENT_GARBAGE: 'Internal Corruption (file a bug)'
@@ -269,11 +263,8 @@ class HyperClientException(Exception):
                   ,HYPERDEX_CLIENT_DONTUSEKEY: 'HYPERDEX_CLIENT_DONTUSEKEY'
                   ,HYPERDEX_CLIENT_WRONGTYPE: 'HYPERDEX_CLIENT_WRONGTYPE'
                   ,HYPERDEX_CLIENT_NOMEM: 'HYPERDEX_CLIENT_NOMEM'
-                  ,HYPERDEX_CLIENT_BADCONFIG: 'HYPERDEX_CLIENT_BADCONFIG'
-                  ,HYPERDEX_CLIENT_DUPLICATE: 'HYPERDEX_CLIENT_DUPLICATE'
                   ,HYPERDEX_CLIENT_INTERRUPTED: 'HYPERDEX_CLIENT_INTERRUPTED'
                   ,HYPERDEX_CLIENT_CLUSTER_JUMP: 'HYPERDEX_CLIENT_CLUSTER_JUMP'
-                  ,HYPERDEX_CLIENT_COORD_LOGGED: 'HYPERDEX_CLIENT_COORD_LOGGED'
                   ,HYPERDEX_CLIENT_INTERNAL: 'HYPERDEX_CLIENT_INTERNAL'
                   ,HYPERDEX_CLIENT_EXCEPTION: 'HYPERDEX_CLIENT_EXCEPTION'
                   ,HYPERDEX_CLIENT_GARBAGE: 'HYPERDEX_CLIENT_GARBAGE'

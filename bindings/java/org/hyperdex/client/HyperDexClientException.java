@@ -27,11 +27,8 @@ public class HyperDexClientException extends Exception
 		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_DONTUSEKEY,"Do not specify the key in a search predicate and do not redundantly specify the key for an insert");
 		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_WRONGTYPE,"Attribute '%s' has the wrong type");
 		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_NOMEM,"Memory allocation failed");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_BADCONFIG,"The coordinator provided a malformed configuration");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_DUPLICATE,"The space already exists");
 		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_INTERRUPTED,"Interrupted by a signal");
 		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_CLUSTER_JUMP,"The cluster changed identities");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_COORD_LOGGED,"HYPERDEX_CLIENT_COORD_LOGGED");
 		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_INTERNAL,"Internal Error (file a bug)");
 		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_EXCEPTION,"Internal Exception (file a bug)");
 		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_GARBAGE,"Internal Corruption (file a bug)");
