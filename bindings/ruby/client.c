@@ -982,10 +982,10 @@ hyperdex_ruby_client_build_attributes(const struct hyperdex_client_attribute* at
     for (i = 0; i < attrs_sz; ++i)
     {
         val = hyperdex_ruby_client_build_attribute(attrs + i);
-        rb_hash_aset(ret, rb_intern(attrs[i].attr), val);
+        rb_hash_aset(ret, ID2SYM(rb_intern(attrs[i].attr)), val);
     }
 
-    return Qnil;
+    return ret;
 }
 
 /******************************* Deferred Class *******************************/
@@ -1051,7 +1051,14 @@ hyperdex_ruby_client_deferred_alloc(VALUE class)
 
     memset(dfrd, 0, sizeof(struct hyperdex_ruby_client_deferred));
     dfrd->client = Qnil;
-    dfrd->arena = NULL;
+    dfrd->arena = hyperdex_ds_arena_create();
+
+    if (!dfrd->arena)
+    {
+        rb_raise(rb_eNoMemError, "failed to allocate memory");
+        return Qnil;
+    }
+
     dfrd->reqid = -1;
     dfrd->status = HYPERDEX_CLIENT_GARBAGE;
     dfrd->attrs = NULL;
@@ -1254,7 +1261,14 @@ hyperdex_ruby_client_iterator_alloc(VALUE class)
     memset(iter, 0, sizeof(struct hyperdex_ruby_client_iterator));
     iter->client = Qnil;
     iter->backlogged = rb_ary_new();
-    iter->arena = NULL;
+    iter->arena = hyperdex_ds_arena_create();
+
+    if (!iter->arena)
+    {
+        rb_raise(rb_eNoMemError, "failed to allocate memory");
+        return Qnil;
+    }
+
     iter->reqid = -1;
     iter->status = HYPERDEX_CLIENT_GARBAGE;
     iter->attrs = NULL;
@@ -1602,7 +1616,7 @@ Init_hyperdex_client()
     /* create the Client class */
     class_client = rb_define_class_under(mod_hyperdex_client, "Client", rb_cObject);
     rb_define_alloc_func(class_client, hyperdex_ruby_client_alloc);
-    rb_define_method(class_client, "initialize", hyperdex_ruby_client_init, 1);
+    rb_define_method(class_client, "initialize", hyperdex_ruby_client_init, 2);
     rb_define_method(class_client, "loop", hyperdex_ruby_client_loop, 0);
     /* include the generated rb_define_* calls */
 #include "bindings/ruby/prototypes.c"
