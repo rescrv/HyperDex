@@ -56,6 +56,12 @@ static VALUE class_contains;
 
 /******************************* Error Handling *******************************/
 
+void
+hyperdex_ruby_out_of_memory()
+{
+    rb_raise(rb_eNoMemError, "failed to allocate memory");
+}
+
 static VALUE
 hyperdex_ruby_client_create_exception(enum hyperdex_client_returncode status,
                                       const char* error_message)
@@ -115,6 +121,20 @@ typedef int (*elem_string_fptr)(void*, const char*, size_t, enum hyperdex_ds_ret
 typedef int (*elem_int_fptr)(void*, int64_t, enum hyperdex_ds_returncode*);
 typedef int (*elem_float_fptr)(void*, double, enum hyperdex_ds_returncode*);
 
+#define HDRB_HANDLE_ELEM_ERROR(X, TYPE) \
+    switch (X) \
+    { \
+        case HYPERDEX_DS_NOMEM: \
+            hyperdex_ruby_out_of_memory(); \
+        case HYPERDEX_DS_MIXED_TYPES: \
+            rb_raise(rb_eTypeError, "Cannot add " TYPE " to a heterogenous container"); \
+        case HYPERDEX_DS_SUCCESS: \
+        case HYPERDEX_DS_STRING_TOO_LONG: \
+        case HYPERDEX_DS_WRONG_STATE: \
+        default: \
+            rb_raise(rb_eTypeError, "Cannot convert " TYPE " to a HyperDex type"); \
+    }
+
 static void
 hyperdex_ruby_client_convert_elem(VALUE e,
                                   void* x,
@@ -135,7 +155,7 @@ hyperdex_ruby_client_convert_elem(VALUE e,
             tmp_str_sz = strlen(tmp_str);
             if (f_string(x, tmp_str, tmp_str_sz, &error) < 0)
             {
-                // XXX
+                HDRB_HANDLE_ELEM_ERROR(error, "string");
             }
             break;
         case T_STRING:
@@ -143,7 +163,7 @@ hyperdex_ruby_client_convert_elem(VALUE e,
             tmp_str_sz = RSTRING_LEN(e);
             if (f_string(x, tmp_str, tmp_str_sz, &error) < 0)
             {
-                // XXX
+                HDRB_HANDLE_ELEM_ERROR(error, "string");
             }
             break;
         case T_FIXNUM:
@@ -151,18 +171,18 @@ hyperdex_ruby_client_convert_elem(VALUE e,
             tmp_i = NUM2LL(e);
             if (f_int(x, tmp_i, &error) < 0)
             {
-                // XXX
+                HDRB_HANDLE_ELEM_ERROR(error, "integer");
             }
             break;
         case T_FLOAT:
             tmp_d = NUM2DBL(e);
             if (f_float(x, tmp_d, &error) < 0)
             {
-                // XXX
+                HDRB_HANDLE_ELEM_ERROR(error, "float");
             }
             break;
         default:
-            rb_raise(rb_eTypeError, "Cannot convert object to a HyperDex type");
+            rb_raise(rb_eTypeError, "Cannot convert object to a HyperDex container element");
             break;
     }
 }
@@ -183,7 +203,7 @@ hyperdex_ruby_client_convert_list(struct hyperdex_ds_arena* arena,
 
     if (!list)
     {
-        // XXX
+        hyperdex_ruby_out_of_memory();
     }
 
     for (i = 0; i < RARRAY_LEN(x); ++i)
@@ -197,7 +217,7 @@ hyperdex_ruby_client_convert_list(struct hyperdex_ds_arena* arena,
 
     if (hyperdex_ds_list_finalize(list, &error, value, value_sz, datatype) < 0)
     {
-        // XXX
+        hyperdex_ruby_out_of_memory();
     }
 }
 
@@ -218,7 +238,7 @@ hyperdex_ruby_client_convert_set(struct hyperdex_ds_arena* arena,
 
     if (!set)
     {
-        // XXX
+        hyperdex_ruby_out_of_memory();
     }
 
     for (i = 0; i < RARRAY_LEN(x); ++i)
@@ -232,7 +252,7 @@ hyperdex_ruby_client_convert_set(struct hyperdex_ds_arena* arena,
 
     if (hyperdex_ds_set_finalize(set, &error, value, value_sz, datatype) < 0)
     {
-        // XXX
+        hyperdex_ruby_out_of_memory();
     }
 }
 
@@ -255,7 +275,7 @@ hyperdex_ruby_client_convert_map(struct hyperdex_ds_arena* arena,
 
     if (!map)
     {
-        // XXX
+        hyperdex_ruby_out_of_memory();
     }
 
     for (i = 0; i < RARRAY_LEN(x); ++i)
@@ -275,7 +295,7 @@ hyperdex_ruby_client_convert_map(struct hyperdex_ds_arena* arena,
 
     if (hyperdex_ds_map_finalize(map, &error, value, value_sz, datatype) < 0)
     {
-        // XXX
+        hyperdex_ruby_out_of_memory();
     }
 }
 
@@ -301,7 +321,7 @@ hyperdex_ruby_client_convert_type(struct hyperdex_ds_arena* arena,
             if (hyperdex_ds_copy_string(arena, tmp_str, tmp_str_sz,
                                         &error, value, value_sz) < 0)
             {
-                // XXX
+                hyperdex_ruby_out_of_memory();
             }
 
             *datatype = HYPERDATATYPE_STRING;
@@ -313,7 +333,7 @@ hyperdex_ruby_client_convert_type(struct hyperdex_ds_arena* arena,
             if (hyperdex_ds_copy_string(arena, tmp_str, tmp_str_sz,
                                         &error, value, value_sz) < 0)
             {
-                // XXX
+                hyperdex_ruby_out_of_memory();
             }
 
             *datatype = HYPERDATATYPE_STRING;
@@ -325,7 +345,7 @@ hyperdex_ruby_client_convert_type(struct hyperdex_ds_arena* arena,
             if (hyperdex_ds_copy_int(arena, tmp_i,
                                      &error, value, value_sz) < 0)
             {
-                // XXX
+                hyperdex_ruby_out_of_memory();
             }
 
             *datatype = HYPERDATATYPE_INT64;
@@ -336,7 +356,7 @@ hyperdex_ruby_client_convert_type(struct hyperdex_ds_arena* arena,
             if (hyperdex_ds_copy_float(arena, tmp_d,
                                        &error, value, value_sz) < 0)
             {
-                // XXX
+                hyperdex_ruby_out_of_memory();
             }
 
             *datatype = HYPERDATATYPE_FLOAT;
@@ -350,7 +370,8 @@ hyperdex_ruby_client_convert_type(struct hyperdex_ds_arena* arena,
         case T_OBJECT:
             if (!rb_obj_is_instance_of(x, Set) == Qtrue)
             {
-                // XXX
+                rb_raise(rb_eTypeError, "Cannot convert object to a HyperDex type");
+                break;
             }
 
             hyperdex_ruby_client_convert_set(arena, x, value, value_sz, datatype);
@@ -387,7 +408,7 @@ hyperdex_ruby_client_convert_attributes(struct hyperdex_ds_arena* arena,
 
     if (!attrs)
     {
-        // XXX
+        hyperdex_ruby_out_of_memory();
     }
 
     *_attrs = attrs;
@@ -412,7 +433,6 @@ hyperdex_ruby_client_convert_key(struct hyperdex_ds_arena* arena,
 {
     enum hyperdatatype datatype;
     hyperdex_ruby_client_convert_type(arena, x, key, key_sz, &datatype);
-    /* XXX if datatype is not key type */
 }
 
 static void
@@ -468,7 +488,7 @@ hyperdex_ruby_client_convert_mapattributes(struct hyperdex_ds_arena* arena,
 
     if (!mapattrs)
     {
-        // XXX
+        hyperdex_ruby_out_of_memory();
     }
 
     *_mapattrs = mapattrs;
@@ -532,7 +552,8 @@ hyperdex_ruby_client_estimate_predicate_size(VALUE x)
             if (TYPE(pred) != T_OBJECT ||
                 rb_obj_is_instance_of(pred, class_predicate) != Qtrue)
             {
-                // XXX
+                rb_raise(rb_eTypeError, "Cannot convert predicate to a HyperDex type");
+                return 0;
             }
 
             Data_Get_Struct(pred, struct hyperdex_ruby_client_predicate, p);
@@ -637,7 +658,7 @@ hyperdex_ruby_client_convert_predicates(struct hyperdex_ds_arena* arena,
 
     if (!checks)
     {
-        // XXX
+        hyperdex_ruby_out_of_memory();
     }
 
     *_checks = checks;
@@ -1045,7 +1066,7 @@ hyperdex_ruby_client_deferred_alloc(VALUE class)
 
     if (!dfrd)
     {
-        rb_raise(rb_eNoMemError, "failed to allocate memory");
+        hyperdex_ruby_out_of_memory();
         return Qnil;
     }
 
@@ -1055,7 +1076,7 @@ hyperdex_ruby_client_deferred_alloc(VALUE class)
 
     if (!dfrd->arena)
     {
-        rb_raise(rb_eNoMemError, "failed to allocate memory");
+        hyperdex_ruby_out_of_memory();
         return Qnil;
     }
 
@@ -1254,7 +1275,7 @@ hyperdex_ruby_client_iterator_alloc(VALUE class)
 
     if (!iter)
     {
-        rb_raise(rb_eNoMemError, "failed to allocate memory");
+        hyperdex_ruby_out_of_memory();
         return Qnil;
     }
 
@@ -1265,7 +1286,7 @@ hyperdex_ruby_client_iterator_alloc(VALUE class)
 
     if (!iter->arena)
     {
-        rb_raise(rb_eNoMemError, "failed to allocate memory");
+        hyperdex_ruby_out_of_memory();
         return Qnil;
     }
 
@@ -1451,7 +1472,7 @@ hyperdex_ruby_client_predicate_alloc1(VALUE class)
 
     if (!pred)
     {
-        rb_raise(rb_eNoMemError, "failed to allocate memory");
+        hyperdex_ruby_out_of_memory();
         return Qnil;
     }
 
@@ -1470,7 +1491,7 @@ hyperdex_ruby_client_predicate_alloc2(VALUE class)
 
     if (!pred)
     {
-        rb_raise(rb_eNoMemError, "failed to allocate memory");
+        hyperdex_ruby_out_of_memory();
         return Qnil;
     }
 
