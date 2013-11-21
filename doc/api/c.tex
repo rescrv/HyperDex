@@ -1067,9 +1067,105 @@ and should not be free'd independently by the application.
 
 \subsection{Attributes}
 
+In HyperDex, {\em attributes} specified named values that comprise an object.
+For instance, in Chapter~\nameref{chap:quick-start}, the phonebook space has
+attributes ``username'', ``first'', ``last'', and ``phone''.  The C API
+represents such attributes using \code{struct hyperdex\_client\_attribute}.  The
+C definition of this struct is:
+
+\begin{ccode}
+struct hyperdex_client_attribute
+{
+    const char* attr; /* NULL-terminated */
+    const char* value;
+    size_t value_sz;
+    enum hyperdatatype datatype;
+};
+\end{ccode}
+
+This struct specifies the name, value, and data type of the attribute.  The
+\code{attr} field is a NULL-terminated C-string that names the attribute
+affected by the value.  The \code{value} and \code{value\_sz} fields contain a
+properly formatted byte string and its size.  The \code{datatype} field
+indicates the encoding of the byte string.
+
+The interpretation of an attribute is dependent upon the operation being
+performed.  In the case of \code{hyperdex\_client\_put}, the attributes directly
+convey the values to be stored; \code{hyperdex\_client\_get} returns the
+stored attributes.  Other operations, such as
+\code{hyperdex\_client\_string\_prepend} interpret the attribute as an argument
+to the operation.  In the case of prepend, the attribute specifies the value to
+be prepended.
+
 \subsection{Map Attributes}
 
+Some HyperDex operations affect key-value pairs contained within maps.  These
+operations use \code{struct hyperdex\_client\_map\_attribute} to specify the
+name of the attribute affected, the key within the map, and the value associated
+with that key.  The C definition of this struct is:
+
+\begin{ccode}
+struct hyperdex_client_map_attribute
+{
+    const char* attr; /* NULL-terminated */
+    const char* map_key;
+    size_t map_key_sz;
+    enum hyperdatatype map_key_datatype;
+    const char* value;
+    size_t value_sz;
+    enum hyperdatatype value_datatype;
+};
+\end{ccode}
+
+The struct specifies the name, key, and value of to be used for the operation.
+The \code{map\_key\_*} and \code{value\_*} fields specify, respectively, the key
+and value of the element within the map.  The relative fields are specified as
+byte strings with associated data types.  The \code{attr} field specifies the
+name of the map.
+
 \subsection{Predicates}
+
+In HyperDex, a {\em predicate} is an expression about an attribute that is true
+or false.  Predicates are specified to HyperDex using \code{struct
+hyperdex\_client\_attribute\_check} which is defined as:
+
+\begin{ccode}
+struct hyperdex_client_attribute_check
+{
+    const char* attr; /* NULL-terminated */
+    const char* value;
+    size_t value_sz;
+    enum hyperdatatype datatype;
+    enum hyperpredicate predicate;
+};
+\end{ccode}
+
+Note that this struct closely resembes \code{struct
+hyperdex\_client\_attribute}, with the addition of a field named
+\code{predicate}.  This field is an enum with the following values:
+
+\begin{description}
+\item[\code{HYPERPREDICATE\_FAIL}] Always fail.
+\item[\code{HYPERPREDICATE\_EQUALS}] Check that the existing value is equal to
+    the one specified by \code{value}/\code{value\_sz}.
+\item[\code{HYPERPREDICATE\_LESS\_EQUAL}] Check that the existing value is less
+    than or equal to the one specified by \code{value}/\code{value\_sz}.
+\item[\code{HYPERPREDICATE\_GREATER\_EQUAL}] Check that the existing value is
+    greater than or equal to the one specified by \code{value}/\code{value\_sz}.
+\item[\code{HYPERPREDICATE\_REGEX}] Check that the existing value matches the
+    regular expression stored in as a string in \code{value}/\code{value\_sz}.
+\item[\code{HYPERPREDICATE\_LENGTH\_EQUALS}] Check that the existing container
+    or string has a length equal to the integer stored in
+    \code{value}/\code{value\_sz}.
+\item[\code{HYPERPREDICATE\_LENGTH\_LESS\_EQUAL}] Check that the existing
+    container or string has a length less than or equal to the integer stored in
+    \code{value}/\code{value\_sz}.
+\item[\code{HYPERPREDICATE\_LENGTH\_GREATER\_EQUAL}] Check that the existing
+    container or string has a length greater than or equal to the integer stored
+    in \code{value}/\code{value\_sz}.
+\item[\code{HYPERPREDICATE\_CONTAINS}] Check that the container contains an
+    element matching \code{value}/\code{value\_sz}.
+\end{description}
 
 \subsection{Error Handling}
 
