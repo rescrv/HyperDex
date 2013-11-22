@@ -47,7 +47,7 @@ def generate_doc_block(x):
         if (c.form, arg) not in ARGS_IN:
             print 'missing in', (c.form, arg)
             continue
-        label = LaTeX(str(arg).lower()[18:-2])
+        label = '\\code{' + LaTeX(str(arg).lower()[18:-2]) + '}'
         parameters += '\\item[{0}] {1}\n'.format(label, ARGS_IN[(c.form, arg)])
         if len(label) > len(max_label):
             max_label = label
@@ -58,23 +58,20 @@ def generate_doc_block(x):
     else:
         output += 'None\n'
     output += '\n\\noindent\\textbf{Returns:}\n'
-    max_label = ''
-    returns = ''
-    #for arg in c.args_out:
-    #    if (c.form, arg) not in ARGS_OUT:
-    #        print 'missing out', (c.form, arg)
-    #        continue
-    #    label = ', '.join(['\\code{' + a[1].replace('_', '\\_') + '}' for a in arg.args])
-    #    returns += '\\item[{0}] {1}\n'.format(label, ARGS_OUT[(c.form, arg)])
-    #    if len(label) > len(max_label):
-    #        max_label = label
-    if returns:
-        output += '\\begin{description}[labelindent=\\widthof{{' + max_label + '}},leftmargin=*,noitemsep,nolistsep,align=right]\n'
-        output += returns
-        output += '\\end{description}\n'
+    if c.args_out == (generator.Status,):
+        if generator.Predicates in c.args_in:
+            output += 'True if predicate, False if not predicate.  Raises exception on error.'
+        else:
+            output += 'True.  Raises exception on error.'
+    elif c.args_out == (generator.Status, generator.Attributes):
+        output += 'Object if found, nil if not found.  Raises exception on error.'
+    elif c.args_out == (generator.Status, generator.Count):
+        output += 'Number of objects found.  Raises exception on error.'
+    elif c.args_out == (generator.Status, generator.Description):
+        output += 'Description of search.  Raises exception on error.'
     else:
-        output += 'Nothing\n'
-    output += '\n'
+        assert False
+    output += '\n\n'
     return output
 
 if __name__ == '__main__':
