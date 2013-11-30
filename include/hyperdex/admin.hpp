@@ -73,6 +73,10 @@ class Admin
         int64_t list_spaces(enum hyperdex_admin_returncode* status,
                             const char** spaces)
             { return hyperdex_admin_list_spaces(m_adm, status, spaces); }
+        int64_t migrate_data(const char* space_from,
+                             const char* space_to,
+                             enum hyperdex_admin_returncode* status)
+            { return hyperdex_admin_migrate_data(m_adm, space_from, space_to, status); };
         int64_t server_register(uint64_t token, const char* address,
                                 enum hyperdex_admin_returncode* status)
             { return hyperdex_admin_server_register(m_adm, token, address, status); }

@@ -59,6 +59,7 @@ TRANSITION(init);
 
 TRANSITION(read_only);
 TRANSITION(fault_tolerance);
+TRANSITION(migrate_data);
 
 TRANSITION(config_get);
 TRANSITION(config_ack);

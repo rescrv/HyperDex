@@ -47,6 +47,7 @@
 #include "common/schema.h"
 #include "common/server.h"
 #include "common/transfer.h"
+#include "common/migration.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 
@@ -155,6 +156,7 @@ class configuration
         std::vector<uint64_t> m_point_leaders_by_virtual;
         std::vector<space> m_spaces;
         std::vector<transfer> m_transfers;
+        std::vector<migration> m_migrations;
 };
 
 e::buffer::packer

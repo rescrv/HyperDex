@@ -1,4 +1,4 @@
-// Copyright (c) 2013, Cornell University
+// Copyright (c) 2012, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -26,39 +26,53 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // HyperDex
-#include "common/ids.h"
+#include "common/migration.h"
 
-#define CREATE_ID(TYPE) \
-    std::ostream& \
-    operator << (std::ostream& lhs, const TYPE ## _id& rhs) \
-    { \
-        return lhs << #TYPE "(" << rhs.get() << ")"; \
-    } \
-    e::buffer::packer \
-    operator << (e::buffer::packer pa, const TYPE ## _id& rhs) \
-    { \
-        return pa << rhs.get(); \
-    } \
-    e::unpacker \
-    operator >> (e::unpacker up, TYPE ## _id& rhs) \
-    { \
-        uint64_t id; \
-        up = up >> id; \
-        rhs = TYPE ## _id(id); \
-        return up; \
-    }
+using hyperdex::migration;
 
-BEGIN_HYPERDEX_NAMESPACE
+migration :: migration()
+    : id()
+    , space_from()
+    , space_to()
+{
+}
 
-CREATE_ID(region)
-CREATE_ID(replica_set)
-CREATE_ID(server)
-CREATE_ID(space)
-CREATE_ID(subspace)
-CREATE_ID(transfer)
-CREATE_ID(migration)
-CREATE_ID(virtual_server)
+migration :: migration(migration_id  _id,
+                       space_id _space_from,
+                       space_id _space_to)
+    : id(id)
+    , space_from(_space_from)
+    , space_to(_space_to)
+{
+}
 
-END_HYPERDEX_NAMESPACE
+std::ostream&
+hyperdex :: operator << (std::ostream& lhs, const migration& rhs)
+{
+    return lhs << "migration(id=" << rhs.id
+               << ", space_from=" << rhs.space_from
+               << ", space_to=" << rhs.space_to;
+}
 
-#undef CREATE_ID
+e::buffer::packer
+hyperdex :: operator << (e::buffer::packer pa, const migration& m)
+{
+    pa = pa << m.space_from << m.space_to;
+    return pa;
+}
+
+e::unpacker
+hyperdex :: operator >> (e::unpacker up, migration& m)
+{
+    space_id s_space_from, s_space_to;
+    up >> s_space_from >> s_space_to;
+    m.space_from = s_space_from;
+    m.space_to = s_space_to;
+    return up;
+}
+
+size_t
+hyperdex :: pack_size(const migration&)
+{
+    return 2 * sizeof(uint64_t);
+}

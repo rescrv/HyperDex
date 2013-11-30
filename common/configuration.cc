@@ -66,6 +66,7 @@ configuration :: configuration()
     , m_point_leaders_by_virtual()
     , m_spaces()
     , m_transfers()
+    , m_migrations()
 {
     refill_cache();
 }
@@ -88,6 +89,7 @@ configuration :: configuration(const configuration& other)
     , m_point_leaders_by_virtual(other.m_point_leaders_by_virtual)
     , m_spaces(other.m_spaces)
     , m_transfers(other.m_transfers)
+    , m_migrations(other.m_migrations)
 {
     refill_cache();
 }
@@ -876,6 +878,11 @@ configuration :: dump() const
         out << m_transfers[i] << std::endl;
     }
 
+    for (size_t i = 0; i < m_migrations.size(); ++i)
+    {
+        out << m_migrations[i] << std::endl;
+    }
+
     return out.str();
 }
 
@@ -917,6 +924,7 @@ configuration :: operator = (const configuration& rhs)
     m_point_leaders_by_virtual = rhs.m_point_leaders_by_virtual;
     m_spaces = rhs.m_spaces;
     m_transfers = rhs.m_transfers;
+    m_migrations = rhs.m_migrations;
     refill_cache();
     return *this;
 }
@@ -1022,9 +1030,11 @@ hyperdex :: operator >> (e::unpacker up, configuration& c)
     uint64_t num_servers;
     uint64_t num_spaces;
     uint64_t num_transfers;
+    uint64_t num_migrations;
     up = up >> c.m_cluster >> c.m_version >> c.m_flags
             >> num_servers >> num_spaces
-            >> num_transfers;
+            >> num_transfers >> num_migrations;
+
     c.m_servers.clear();
     c.m_servers.reserve(num_servers);
 
@@ -1053,6 +1063,16 @@ hyperdex :: operator >> (e::unpacker up, configuration& c)
         transfer xfer;
         up = up >> xfer;
         c.m_transfers.push_back(xfer);
+    }
+
+    c.m_migrations.clear();
+    c.m_migrations.reserve(num_migrations);
+
+    for (size_t i = 0; !up.error() && i < num_migrations; ++i)
+    {
+        migration m;
+        up = up >> m;
+        c.m_migrations.push_back(m);
     }
 
     c.refill_cache();
