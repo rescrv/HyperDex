@@ -1147,7 +1147,7 @@ daemon :: collect_stats()
         {
             struct timespec ts;
             ts.tv_sec = 0;
-            ts.tv_nsec = std::min(target - now, 50000000UL);
+            ts.tv_nsec = std::min(target - now, (uint64_t)50000000UL);
             nanosleep(&ts, NULL);
             continue;
         }
