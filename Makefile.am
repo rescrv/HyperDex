@@ -97,9 +97,6 @@ pyx_verbose_0 = @echo "  PYX   " $@;
 sed_verbose = $(sed_verbose_$(V))
 sed_verbose_ = $(sed_verbose_$(AM_DEFAULT_VERBOSITY))
 sed_verbose_0 = @echo "  SED   " $@;
-swig_verbose = $(swig_verbose_$(V))
-swig_verbose_ = $(swig_verbose_$(AM_DEFAULT_VERBOSITY))
-swig_verbose_0 = @echo "  SWIG  " $@;
 
 th_sources = test/th_main.cc test/th.cc test/th.h
 
@@ -550,61 +547,23 @@ endif
 CLEANFILES += $(hyperdex_client_jarfile)
 CLEANFILES += $(hyperdex_ycsb_jarfile)
 
-EXTRA_DIST += bindings/java/examples/HyperBinaryTest.java
-EXTRA_DIST += bindings/java/examples/HyperSearchFloatRange.java
-EXTRA_DIST += bindings/java/examples/HyperTest.java
-EXTRA_DIST += bindings/java/examples/README.txt
-EXTRA_DIST += bindings/java/examples/source_me
-EXTRA_DIST += bindings/java/gen_code/MapOp.template.java
-EXTRA_DIST += bindings/java/gen_code/SimpleOp.template.java
-EXTRA_DIST += bindings/java/gen_code/gen_op_files
-EXTRA_DIST += bindings/java/gen_code/op_list.txt
-EXTRA_DIST += bindings/java/hyperdex_client.i
-EXTRA_DIST += bindings/java/org/hyperdex/client/AttributeError.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/ByteArray.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/ByteArrayKeyedMap.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/ByteArrayKeyedSortedMap.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/ByteArraySortedSet.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/ByteArrayVector.java
+EXTRA_DIST += bindings/java/org/hyperdex/client/ByteString.java
+EXTRA_DIST += bindings/java/org/hyperdex/client/Client.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Deferred.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/DeferredCondPut.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/DeferredCount.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/DeferredDelete.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/DeferredFromAttrs.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/DeferredGet.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/DeferredGroupDel.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/DeferredMapOp.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/GreaterEqual.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/HyperDexClientException.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/LessEqual.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/MapOp.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/MemoryError.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/Pending.java
+EXTRA_DIST += bindings/java/org/hyperdex/client/Iterator.java
+EXTRA_DIST += bindings/java/org/hyperdex/client/Operation.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Predicate.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/Range.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/Search.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/SearchBase.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/SimpleOp.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/SortedSearch.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/TypeError.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/ValueError.java
 EXTRA_DIST += bindings/java/org/hyperdex/ycsb/HyperDex.java
-EXTRA_DIST += bindings/java/proxies/Client.i
-EXTRA_DIST += bindings/java/proxies/hyperdex_client_attribute.i
-EXTRA_DIST += bindings/java/proxies/hyperdex_client_attribute_check.i
-EXTRA_DIST += bindings/java/proxies/hyperdex_client_map_attribute.i
 
 # Client
-nodist_libhyperdex_client_java_la_SOURCES = bindings/java/hyperdex_client_wrap.cxx
+libhyperdex_client_java_la_SOURCES =
+libhyperdex_client_java_la_SOURCES += bindings/java/org_hyperdex_client_Client.c
 libhyperdex_client_java_la_CPPFLAGS = $(JNI_CPPFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS)
-libhyperdex_client_java_la_CXXFLAGS = -fno-strict-aliasing $(AM_CXXFLAGS) -fvisibility=default $(CXXFLAGS)
+libhyperdex_client_java_la_CFLAGS = $(AM_CFLAGS) $(CFLAGS) -Wmissing-prototypes
 libhyperdex_client_java_la_LIBADD = libhyperdex-client.la
-bindings/java/hyperdex_client_wrap.cxx: bindings/java/hyperdex_client.i include/hyperdex/client.h
-	$(swig_verbose)mkdir -p $(abs_top_builddir)/bindings/java/org/hyperdex/client &&  \
-	${SWIG} -I${abs_srcdir} -java -package org.hyperdex.client -outdir $(abs_builddir)/bindings/java/org/hyperdex/client \
-		-o $(abs_builddir)/$@ -w518 $(abs_top_srcdir)/$<
 
-$(hyperdex_client_jarfile): bindings/java/hyperdex_client_wrap.cxx
+$(hyperdex_client_jarfile): $(wildcard bindings/java/org/hyperdex/client/*.java)
 	javac bindings/java/org/hyperdex/client/*.java
 	cd bindings/java ; $(JAR) cvf $(JARFLAGS) ../../$(hyperdex_client_jarfile) org/hyperdex/client/*.class
 
@@ -1054,6 +1013,7 @@ maintainer-generate:
 	python bindings/c/gen_client_header.py
 	python bindings/c/gen_doc.py
 	python bindings/c/gen_wrappers.py
+	python bindings/java/gen_java.py
 	python bindings/ruby/gen_ruby.py
 	python bindings/ruby/gen_doc.py
 	python maint/generate-replication-shell-stubs.py

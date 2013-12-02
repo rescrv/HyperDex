@@ -24,14 +24,12 @@ ANAL_WARNINGS
 AC_ARG_ENABLE([java-bindings], [AS_HELP_STRING([--enable-java-bindings],
               [enable the Java bindings @<:@default: no@:>@])],
               [java_bindings=${enableval}], [java_bindings=no])
-need_swig=no
 
 JNI_CPPFLAGS=
 if test x"${java_bindings}" = xyes; then
     AC_PROG_JAR
     AC_PROG_JAVAC
     AC_JNI_INCLUDE_DIR
-    need_swig=yes
     found_jnidir=no
     for jnidir in ${JNI_INCLUDE_DIRS}
     do
@@ -50,11 +48,6 @@ Set JAVAC to point to your Java compiler.
     fi
 fi
 AC_SUBST([JNI_CPPFLAGS], [${JNI_CPPFLAGS}])
-
-if test x"${need_swig}" = xyes; then
-    AX_PKG_SWIG(1.3)
-    SWIG_ENABLE_CXX
-fi
 
 # Checks for libraries.
 AC_CHECK_LIB([popt], [poptGetContext], [], [AC_MSG_ERROR([
@@ -114,16 +107,6 @@ AC_CHECK_FUNCS([alarm clock_gettime mach_absolute_time ftruncate memmove mkdir m
 AC_ARG_ENABLE([ycsb], [AS_HELP_STRING([--enable-ycsb],
               [enable the Yahoo Cloud Serving Benchmark @<:@default: no@:>@])],
               [enable_ycsb=${enableval}], [enable_ycsb=no])
-if test x"${swig_version}" = x; then
-    if test x"${java_bindings}" = xyes; then
-        AC_MSG_ERROR([
--------------------------------------------------
-Cannot build Java bindings without SWIG
-Java bindings will not be built.
--------------------------------------------------])
-        java_bindings=no
-    fi
-fi
 if test x"${enable_ycsb}" = xyes; then
     if test x"${java_bindings}" = xno; then
         AC_MSG_ERROR([

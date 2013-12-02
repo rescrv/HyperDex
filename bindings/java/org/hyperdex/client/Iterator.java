@@ -28,34 +28,42 @@
 
 package org.hyperdex.client;
 
-import java.util.*;
-
-public class HyperDexClientException extends Exception
+public class Iterator implements Operation
 {
-    private long _status;
-    private String _symbol;
-    private String _message;
+    private long ptr = 0;
+    private Client c;
 
-    public HyperDexClientException(long status, String symbol, String message)
+    public Iterator(Client c)
     {
-        super(message);
-        this._status = status;
-        this._symbol = symbol;
-        this._message = message;
+        this.c = c;
+        create();
     }
 
-    public long status()
+    protected void finalize() throws Throwable
     {
-        return _status;
+        try
+        {
+            if (ptr != 0)
+            {
+                destroy();
+            }
+        }
+        finally
+        {
+            super.finalize();
+        }
     }
 
-    public String symbol()
-    {
-        return _symbol;
-    }
+    /* ctor/dtor */
+    private native void create();
+    private native void destroy();
 
-    public String message()
+    /* Other calls */
+    public native void callback();
+
+    /* Utilities */
+    private void loop()
     {
-        return _message;
+        this.c.loop();
     }
 }

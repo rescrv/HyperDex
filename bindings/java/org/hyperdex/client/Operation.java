@@ -28,34 +28,7 @@
 
 package org.hyperdex.client;
 
-import java.util.*;
-
-public class HyperDexClientException extends Exception
+public interface Operation
 {
-    private long _status;
-    private String _symbol;
-    private String _message;
-
-    public HyperDexClientException(long status, String symbol, String message)
-    {
-        super(message);
-        this._status = status;
-        this._symbol = symbol;
-        this._message = message;
-    }
-
-    public long status()
-    {
-        return _status;
-    }
-
-    public String symbol()
-    {
-        return _symbol;
-    }
-
-    public String message()
-    {
-        return _message;
-    }
+    public void callback();
 }
