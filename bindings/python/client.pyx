@@ -381,8 +381,8 @@ cdef _obj_to_backing(v):
                 innerytype = HYPERDATATYPE_INT64
                 innerybacking = struct.pack('<q', y)
             elif isinstance(y, float):
-                innerxtype = HYPERDATATYPE_FLOAT
-                innerxbacking = struct.pack('<d', y)
+                innerytype = HYPERDATATYPE_FLOAT
+                innerybacking = struct.pack('<d', y)
             else:
                 raise TypeError("Cannot store heterogeneous sets")
             assert keytype == HYPERDATATYPE_MAP_GENERIC or keytype == innerxtype
