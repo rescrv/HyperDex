@@ -36,6 +36,7 @@
 #include <hyperdex/datastructures.h>
 #include "bindings/java/org_hyperdex_client_Client.h"
 #include "bindings/java/org_hyperdex_client_Deferred.h"
+#include "bindings/java/org_hyperdex_client_Iterator.h"
 
 /********************************* Cached IDs *********************************/
 
@@ -87,9 +88,9 @@ static jclass _hash_map;
 static jmethodID _hash_map_init;
 static jmethodID _hash_map_put;
 
-static jclass _iterator;
-static jmethodID _iterator_hasNext;
-static jmethodID _iterator_next;
+static jclass _java_iterator;
+static jmethodID _java_iterator_hasNext;
+static jmethodID _java_iterator_next;
 
 static jclass _hd_except;
 static jmethodID _hd_except_init;
@@ -105,8 +106,10 @@ static jmethodID _deferred_init;
 static jmethodID _deferred_loop;
 
 static jclass _iterator;
+static jfieldID _iterator_c;
 static jfieldID _iterator_ptr;
 static jmethodID _iterator_init;
+static jmethodID _iterator_appendBacklogged;
 
 static jclass _client;
 static jfieldID _client_ptr;
@@ -177,9 +180,9 @@ Java_org_hyperdex_client_Client_initialize(JNIEnv* env, jclass client)
     _hash_map_init = (*env)->GetMethodID(env, _hash_map, "<init>", "()V");
     _hash_map_put = (*env)->GetMethodID(env, _hash_map, "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
     /* cache class Iterator */
-    REF(_iterator, (*env)->FindClass(env, "java/util/Iterator"));
-    _iterator_hasNext = (*env)->GetMethodID(env, _iterator, "hasNext", "()Z");
-    _iterator_next = (*env)->GetMethodID(env, _iterator, "next", "()Ljava/lang/Object;");
+    REF(_java_iterator, (*env)->FindClass(env, "java/util/Iterator"));
+    _java_iterator_hasNext = (*env)->GetMethodID(env, _java_iterator, "hasNext", "()Z");
+    _java_iterator_next = (*env)->GetMethodID(env, _java_iterator, "next", "()Ljava/lang/Object;");
     /* cache class HyperDexException */
     REF(_hd_except, (*env)->FindClass(env, "org/hyperdex/client/HyperDexClientException"));
     _hd_except_init = (*env)->GetMethodID(env, _hd_except, "<init>", "(JLjava/lang/String;Ljava/lang/String;)V");
@@ -195,8 +198,10 @@ Java_org_hyperdex_client_Client_initialize(JNIEnv* env, jclass client)
     _deferred_loop = (*env)->GetMethodID(env, _deferred, "loop", "()V");
     /* cache class Iterator */
     REF(_iterator, (*env)->FindClass(env, "org/hyperdex/client/Iterator"));
+    _iterator_c = (*env)->GetFieldID(env, _iterator, "c", "Lorg/hyperdex/client/Client;");
     _iterator_ptr = (*env)->GetFieldID(env, _iterator, "ptr", "J");
     _iterator_init = (*env)->GetMethodID(env, _iterator, "<init>", "(Lorg/hyperdex/client/Client;)V");
+    _iterator_appendBacklogged = (*env)->GetMethodID(env, _iterator, "appendBacklogged", "(Ljava/lang/Object;)V");
     /* cache class Client */
     REF(_client, (*env)->FindClass(env, "org/hyperdex/client/Client"));
     _client_ptr = (*env)->GetFieldID(env, _client, "ptr", "J");
@@ -238,9 +243,9 @@ Java_org_hyperdex_client_Client_initialize(JNIEnv* env, jclass client)
     CHECK_CACHE(_hash_map);
     CHECK_CACHE(_hash_map_init);
     CHECK_CACHE(_hash_map_put);
-    CHECK_CACHE(_iterator);
-    CHECK_CACHE(_iterator_hasNext);
-    CHECK_CACHE(_iterator_next);
+    CHECK_CACHE(_java_iterator);
+    CHECK_CACHE(_java_iterator_hasNext);
+    CHECK_CACHE(_java_iterator_next);
     CHECK_CACHE(_hd_except);
     CHECK_CACHE(_hd_except_init);
     CHECK_CACHE(_predicate);
@@ -252,8 +257,10 @@ Java_org_hyperdex_client_Client_initialize(JNIEnv* env, jclass client)
     CHECK_CACHE(_deferred_init);
     CHECK_CACHE(_deferred_loop);
     CHECK_CACHE(_iterator);
+    CHECK_CACHE(_iterator_c);
     CHECK_CACHE(_iterator_ptr);
     CHECK_CACHE(_iterator_init);
+    CHECK_CACHE(_iterator_appendBacklogged);
     CHECK_CACHE(_client);
     CHECK_CACHE(_client_ptr);
     CHECK_CACHE(_client_add_op);
@@ -278,7 +285,7 @@ Java_org_hyperdex_client_Client_terminate(JNIEnv* env, jclass client)
     (*env)->DeleteGlobalRef(env, _map);
     (*env)->DeleteGlobalRef(env, _map_entry);
     (*env)->DeleteGlobalRef(env, _hash_map);
-    (*env)->DeleteGlobalRef(env, _iterator);
+    (*env)->DeleteGlobalRef(env, _java_iterator);
     (*env)->DeleteGlobalRef(env, _hd_except);
     (*env)->DeleteGlobalRef(env, _predicate);
     (*env)->DeleteGlobalRef(env, _deferred);
@@ -338,15 +345,26 @@ hyperdex_java_out_of_memory(JNIEnv* env)
     return -1;
 }
 
-static int
-hyperdex_java_client_throw_exception(JNIEnv* env,
-                                     enum hyperdex_client_returncode _rc,
-                                     const char* message)
+static jobject
+hyperdex_java_client_create_exception(JNIEnv* env,
+                                      enum hyperdex_client_returncode _rc,
+                                      const char* message)
 {
     jlong rc = _rc;
     jstring str = (*env)->NewStringUTF(env, hyperdex_client_returncode_to_string(_rc));
     jstring msg = (*env)->NewStringUTF(env, message);
     jobject err = (*env)->NewObject(env, _hd_except, _hd_except_init, rc, str, msg);
+    ERROR_CHECK(0);
+    return err;
+}
+
+static int
+hyperdex_java_client_throw_exception(JNIEnv* env,
+                                     enum hyperdex_client_returncode _rc,
+                                     const char* message)
+{
+    jobject err = hyperdex_java_client_create_exception(env, _rc, message);
+    ERROR_CHECK(-1);
     (*env)->ExceptionClear(env);
     return (*env)->Throw(env, err);
 }
@@ -518,9 +536,9 @@ hyperdex_java_client_convert_list(JNIEnv* env,
         return -1;
     }
 
-    while ((jboolean)(size_t)(*env)->CallObjectMethod(env, it, _iterator_hasNext) == JNI_TRUE)
+    while ((jboolean)(size_t)(*env)->CallObjectMethod(env, it, _java_iterator_hasNext) == JNI_TRUE)
     {
-        entry = (*env)->CallObjectMethod(env, it, _iterator_next);
+        entry = (*env)->CallObjectMethod(env, it, _java_iterator_next);
         ERROR_CHECK(-1);
 
         if (hyperdex_java_client_convert_elem(env, entry, list,
@@ -566,9 +584,9 @@ hyperdex_java_client_convert_set(JNIEnv* env,
         return -1;
     }
 
-    while ((jboolean)(size_t)(*env)->CallObjectMethod(env, it, _iterator_hasNext) == JNI_TRUE)
+    while ((jboolean)(size_t)(*env)->CallObjectMethod(env, it, _java_iterator_hasNext) == JNI_TRUE)
     {
-        entry = (*env)->CallObjectMethod(env, it, _iterator_next);
+        entry = (*env)->CallObjectMethod(env, it, _java_iterator_next);
         ERROR_CHECK(-1);
 
         if (hyperdex_java_client_convert_elem(env, entry, set,
@@ -620,9 +638,9 @@ hyperdex_java_client_convert_map(JNIEnv* env,
         return hyperdex_java_out_of_memory(env);
     }
 
-    while ((jboolean)(size_t)(*env)->CallObjectMethod(env, it, _iterator_hasNext) == JNI_TRUE)
+    while ((jboolean)(size_t)(*env)->CallObjectMethod(env, it, _java_iterator_hasNext) == JNI_TRUE)
     {
-        entry = (*env)->CallObjectMethod(env, it, _iterator_next);
+        entry = (*env)->CallObjectMethod(env, it, _java_iterator_next);
         ERROR_CHECK(-1);
         key = (*env)->CallObjectMethod(env, entry, _map_entry_getKey);
         ERROR_CHECK(-1);
@@ -856,10 +874,10 @@ hyperdex_java_client_convert_attributes(JNIEnv* env, jobject client,
     *_attrs_sz = attrs_sz;
     attrs_idx = 0;
 
-    while ((jboolean)(size_t)(*env)->CallObjectMethod(env, it, _iterator_hasNext) == JNI_TRUE)
+    while ((jboolean)(size_t)(*env)->CallObjectMethod(env, it, _java_iterator_hasNext) == JNI_TRUE)
     {
         assert(attrs_idx < attrs_sz);
-        entry = (*env)->CallObjectMethod(env, it, _iterator_next);
+        entry = (*env)->CallObjectMethod(env, it, _java_iterator_next);
         ERROR_CHECK(-1);
         key = (*env)->CallObjectMethod(env, entry, _map_entry_getKey);
         ERROR_CHECK(-1);
@@ -919,9 +937,9 @@ hyperdex_java_client_convert_mapattributes(JNIEnv* env, jobject client,
     outer_it = (*env)->CallObjectMethod(env, outer_set, _set_iterator);
     ERROR_CHECK(-1);
 
-    while ((jboolean)(size_t)(*env)->CallObjectMethod(env, outer_it, _iterator_hasNext) == JNI_TRUE)
+    while ((jboolean)(size_t)(*env)->CallObjectMethod(env, outer_it, _java_iterator_hasNext) == JNI_TRUE)
     {
-        outer_entry = (*env)->CallObjectMethod(env, outer_it, _iterator_next);
+        outer_entry = (*env)->CallObjectMethod(env, outer_it, _java_iterator_next);
         ERROR_CHECK(-1);
         inner_map = (*env)->CallObjectMethod(env, outer_entry, _map_entry_getValue);
         ERROR_CHECK(-1);
@@ -950,9 +968,9 @@ hyperdex_java_client_convert_mapattributes(JNIEnv* env, jobject client,
     outer_it = (*env)->CallObjectMethod(env, outer_set, _set_iterator);
     ERROR_CHECK(-1);
 
-    while ((jboolean)(size_t)(*env)->CallObjectMethod(env, outer_it, _iterator_hasNext) == JNI_TRUE)
+    while ((jboolean)(size_t)(*env)->CallObjectMethod(env, outer_it, _java_iterator_hasNext) == JNI_TRUE)
     {
-        outer_entry = (*env)->CallObjectMethod(env, outer_it, _iterator_next);
+        outer_entry = (*env)->CallObjectMethod(env, outer_it, _java_iterator_next);
         ERROR_CHECK(-1);
         attr = (*env)->CallObjectMethod(env, outer_entry, _map_entry_getKey);
         ERROR_CHECK(-1);
@@ -969,10 +987,10 @@ hyperdex_java_client_convert_mapattributes(JNIEnv* env, jobject client,
             return -1;
         }
 
-        while (!(jboolean)(size_t)(*env)->CallObjectMethod(env, inner_it, _iterator_hasNext))
+        while (!(jboolean)(size_t)(*env)->CallObjectMethod(env, inner_it, _java_iterator_hasNext))
         {
             assert(mapattrs_idx < mapattrs_sz);
-            inner_entry = (*env)->CallObjectMethod(env, inner_it, _iterator_next);
+            inner_entry = (*env)->CallObjectMethod(env, inner_it, _java_iterator_next);
             ERROR_CHECK(-1);
             key = (*env)->CallObjectMethod(env, inner_entry, _map_entry_getKey);
             ERROR_CHECK(-1);
@@ -1041,9 +1059,9 @@ hyperdex_java_client_estimate_predicate_size(JNIEnv* env, jobject x)
         it = (*env)->CallObjectMethod(env, x, _list_iterator);
         ERROR_CHECK(-1);
 
-        while ((jboolean)(size_t)(*env)->CallObjectMethod(env, it, _iterator_hasNext) == JNI_TRUE)
+        while ((jboolean)(size_t)(*env)->CallObjectMethod(env, it, _java_iterator_hasNext) == JNI_TRUE)
         {
-            entry = (*env)->CallObjectMethod(env, it, _iterator_next);
+            entry = (*env)->CallObjectMethod(env, it, _java_iterator_next);
             ERROR_CHECK(-1);
 
             if ((*env)->IsInstanceOf(env, entry, _predicate) != JNI_TRUE)
@@ -1092,9 +1110,9 @@ hyperdex_java_client_convert_predicate(JNIEnv* env,
         it = (*env)->CallObjectMethod(env, x, _list_iterator);
         ERROR_CHECK(-1);
 
-        while (!(jboolean)(size_t)(*env)->CallObjectMethod(env, it, _iterator_hasNext))
+        while (!(jboolean)(size_t)(*env)->CallObjectMethod(env, it, _java_iterator_hasNext))
         {
-            entry = (*env)->CallObjectMethod(env, it, _iterator_next);
+            entry = (*env)->CallObjectMethod(env, it, _java_iterator_next);
             ERROR_CHECK(-1);
             tmp = (jlong)(*env)->CallObjectMethod(env, entry, _predicate_convertChecks, checks, checks_idx);
             ERROR_CHECK(-1);
@@ -1143,9 +1161,9 @@ hyperdex_java_client_convert_predicates(JNIEnv* env, jobject client,
     it = (*env)->CallObjectMethod(env, set, _set_iterator);
     ERROR_CHECK(-1);
 
-    while ((jboolean)(size_t)(*env)->CallObjectMethod(env, it, _iterator_hasNext) == JNI_TRUE)
+    while ((jboolean)(size_t)(*env)->CallObjectMethod(env, it, _java_iterator_hasNext) == JNI_TRUE)
     {
-        entry = (*env)->CallObjectMethod(env, it, _iterator_next);
+        entry = (*env)->CallObjectMethod(env, it, _java_iterator_next);
         ERROR_CHECK(-1);
         val = (*env)->CallObjectMethod(env, entry, _map_entry_getValue);
         ERROR_CHECK(-1);
@@ -1175,10 +1193,10 @@ hyperdex_java_client_convert_predicates(JNIEnv* env, jobject client,
     *_checks = checks;
     *_checks_sz = checks_sz;
 
-    while ((jboolean)(size_t)(*env)->CallObjectMethod(env, it, _iterator_hasNext) == JNI_TRUE)
+    while ((jboolean)(size_t)(*env)->CallObjectMethod(env, it, _java_iterator_hasNext) == JNI_TRUE)
     {
         assert(checks_idx < checks_sz);
-        entry = (*env)->CallObjectMethod(env, it, _iterator_next);
+        entry = (*env)->CallObjectMethod(env, it, _java_iterator_next);
         ERROR_CHECK(-1);
         key = (*env)->CallObjectMethod(env, entry, _map_entry_getKey);
         ERROR_CHECK(-1);
@@ -1888,8 +1906,6 @@ hyperdex_java_client_deferred_encode_status_description(JNIEnv* env, jobject obj
 
 struct hyperdex_java_client_iterator
 {
-    /* VALUE client; */
-    /* VALUE backlogged; */
     struct hyperdex_ds_arena* arena;
     int64_t reqid;
     enum hyperdex_client_returncode status;
@@ -1898,6 +1914,126 @@ struct hyperdex_java_client_iterator
     int finished;
     jobject (*encode_return)(JNIEnv* env, jobject obj, struct hyperdex_java_client_iterator* d);
 };
+
+JNIEXPORT void JNICALL
+Java_org_hyperdex_client_Iterator_create(JNIEnv* env, jobject iterator)
+{
+    jlong lptr;
+    struct hyperdex_java_client_iterator* ptr;
+
+    lptr = (*env)->GetLongField(env, iterator, _iterator_ptr);
+    ERROR_CHECK_VOID();
+    ptr = malloc(sizeof(struct hyperdex_java_client_iterator));
+
+    if (!ptr)
+    {
+        hyperdex_java_out_of_memory(env);
+        return;
+    }
+
+    memset(ptr, 0, sizeof(struct hyperdex_java_client_iterator));
+    lptr = (long) ptr;
+    (*env)->SetLongField(env, iterator, _iterator_ptr, lptr);
+    ERROR_CHECK_VOID();
+
+    ptr->arena = hyperdex_ds_arena_create();
+
+    if (!ptr->arena)
+    {
+        /* all other resources are caught by the finalizer? */
+        hyperdex_java_out_of_memory(env);
+        return;
+    }
+
+    ptr->reqid = -1;
+    ptr->status = HYPERDEX_CLIENT_GARBAGE;
+    ptr->attrs = NULL;
+    ptr->attrs_sz = 0;
+    ptr->finished = 0;
+    ptr->encode_return = NULL;
+}
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
+JNIEXPORT void JNICALL
+Java_org_hyperdex_client_Iterator_destroy(JNIEnv* env, jobject iter)
+{
+    jlong lptr;
+    struct hyperdex_java_client_iterator* ptr;
+
+    lptr = (*env)->GetLongField(env, iter, _iterator_ptr);
+    ERROR_CHECK_VOID();
+    ptr = (struct hyperdex_java_client_iterator*)lptr;
+
+    if (ptr)
+    {
+        if (ptr->arena)
+        {
+            hyperdex_ds_arena_destroy(ptr->arena);
+        }
+
+        if (ptr->attrs)
+        {
+            hyperdex_client_destroy_attrs(ptr->attrs, ptr->attrs_sz);
+        }
+
+        free(ptr);
+    }
+
+    (*env)->SetLongField(env, iter, _iterator_ptr, 0);
+    ERROR_CHECK_VOID();
+}
+
+JNIEXPORT jboolean JNICALL
+Java_org_hyperdex_client_Iterator_finished(JNIEnv* env, jobject obj)
+{
+    struct hyperdex_java_client_iterator* iter = NULL;
+    iter = hyperdex_get_iterator_ptr(env, obj);
+    return iter->finished == 1 ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL
+Java_org_hyperdex_client_Iterator_callback(JNIEnv* env, jobject obj)
+{
+    jobject tmp;
+    jobject client_obj;
+    struct hyperdex_client* client;
+    struct hyperdex_java_client_iterator* iter = NULL;
+    iter = hyperdex_get_iterator_ptr(env, obj);
+    ERROR_CHECK_VOID();
+    client_obj = (*env)->GetObjectField(env, obj, _iterator_c);
+    ERROR_CHECK_VOID();
+
+    if (iter->status == HYPERDEX_CLIENT_SEARCHDONE)
+    {
+        iter->finished = 1;
+        (*env)->CallObjectMethod(env, client_obj, _client_remove_op, iter->reqid);
+        ERROR_CHECK_VOID();
+    }
+    else if (iter->status == HYPERDEX_CLIENT_SUCCESS)
+    {
+        tmp = iter->encode_return(env, obj, iter);
+
+        if (!iter->attrs)
+        {
+            hyperdex_client_destroy_attrs(iter->attrs, iter->attrs_sz);
+        }
+
+        iter->attrs = NULL;
+        iter->attrs_sz = 0;
+        (*env)->CallObjectMethod(env, obj, _iterator_appendBacklogged, tmp);
+        ERROR_CHECK_VOID();
+    }
+    else
+    {
+        client_obj = (*env)->GetObjectField(env, obj, _iterator_c);
+        client = hyperdex_get_client_ptr(env, client_obj);
+        tmp = hyperdex_java_client_create_exception(env, iter->status,
+                                                    hyperdex_client_error_message(client));
+        (*env)->CallObjectMethod(env, obj, _iterator_appendBacklogged, tmp);
+        ERROR_CHECK_VOID();
+    }
+}
 
 static jobject
 hyperdex_java_client_iterator_encode_status_attributes(JNIEnv* env, jobject obj, struct hyperdex_java_client_iterator* it)

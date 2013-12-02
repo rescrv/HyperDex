@@ -474,7 +474,7 @@ public class Client
         return (Boolean) async_cond_map_string_append(spacename, key, predicates, mapattributes).waitForIt();
     }
 
-    private native Iterator search(String spacename, Map<String, Object> predicates);
+    public native Iterator search(String spacename, Map<String, Object> predicates);
 
     public native Deferred async_search_describe(String spacename, Map<String, Object> predicates) throws HyperDexClientException;
     public String search_describe(String spacename, Map<String, Object> predicates) throws HyperDexClientException
@@ -482,7 +482,7 @@ public class Client
         return (String) async_search_describe(spacename, predicates).waitForIt();
     }
 
-    private native Iterator sorted_search(String spacename, Map<String, Object> predicates, String sortby, int limit, boolean maxmin);
+    public native Iterator sorted_search(String spacename, Map<String, Object> predicates, String sortby, int limit, boolean maxmin);
 
     public native Deferred async_group_del(String spacename, Map<String, Object> predicates) throws HyperDexClientException;
     public Boolean group_del(String spacename, Map<String, Object> predicates) throws HyperDexClientException

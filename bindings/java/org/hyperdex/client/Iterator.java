@@ -28,14 +28,19 @@
 
 package org.hyperdex.client;
 
+import java.util.LinkedList;
+import java.util.Queue;
+
 public class Iterator implements Operation
 {
     private long ptr = 0;
     private Client c;
+    private Queue<Object> backlogged;
 
     public Iterator(Client c)
     {
         this.c = c;
+        this.backlogged = new LinkedList<Object>();
         create();
     }
 
@@ -59,11 +64,27 @@ public class Iterator implements Operation
     private native void destroy();
 
     /* Other calls */
+    public Boolean hasNext()
+    {
+        while (!finished() && backlogged.isEmpty())
+        {
+            this.c.loop();
+        }
+
+        return !backlogged.isEmpty();
+    }
+
+    public Object next()
+    {
+        return backlogged.poll();
+    }
+
+    private native boolean finished();
     public native void callback();
 
     /* Utilities */
-    private void loop()
+    private void appendBacklogged(Object ret)
     {
-        this.c.loop();
+        backlogged.add(ret);
     }
 }

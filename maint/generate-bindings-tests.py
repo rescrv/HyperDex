@@ -56,9 +56,10 @@ class BindingGenerator(object):
 
     def test(self, name, space): pass
     def finish(self): pass
-    def get(self, space, key, expected): pass
-    def put(self, space, key, value, expected): pass
-    def delete(self, space, key, expected): pass
+    def get(self, space, key, expected): print 'XXX Get', str(self)
+    def put(self, space, key, value, expected): print 'XXX Pet', str(self)
+    def delete(self, space, key, expected): print 'XXX Del', str(self)
+    def search(self, space, predicate, expected): print 'XXX Search', str(self)
 
 class PythonGenerator(BindingGenerator):
 
@@ -74,6 +75,8 @@ class PythonGenerator(BindingGenerator):
 import sys
 import hyperdex.client
 c = hyperdex.client.Client(sys.argv[1], int(sys.argv[2]))
+def to_objectset(xs):
+    return set([frozenset(x.items()) for x in xs])
 ''')
 
     def finish(self):
@@ -91,6 +94,9 @@ c = hyperdex.client.Client(sys.argv[1], int(sys.argv[2]))
     def delete(self, space, key, expected):
         self.f.write('assert c.delete({0!r}, {1!r}) == {2!r}\n'.format(space, key, expected))
 
+    def search(self, space, predicate, expected):
+        self.f.write('assert to_objectset(c.search({0!r}, {1!r})) == to_objectset({2!r})\n'.format(space, predicate, expected))
+
 class RubyGenerator(BindingGenerator):
 
     def __init__(self):
@@ -98,6 +104,7 @@ class RubyGenerator(BindingGenerator):
 
     def test(self, name, space):
         assert self.f is None
+        self.count = 0
         self.name = 'test/ruby/{0}.rb'.format(name)
         gen_shell('ruby', name, 'ruby "${HYPERDEX_SRCDIR}"/' + self.name, space)
         self.f = open(self.name, 'w')
@@ -106,6 +113,25 @@ require 'hyperdex'
 
 def assert &block
     raise RuntimeError unless yield
+end
+
+def collapse_iterator(xs)
+    s = Set.new []
+    while xs.has_next() do
+        x = xs.next()
+        x.freeze
+        s.add(x)
+    end
+    s
+end
+
+def to_objectset(xs)
+    s = Set.new []
+    xs.each do |x|
+        x.freeze
+        s.add(x)
+    end
+    s
 end
 
 c = HyperDex::Client::Client.new(ARGV[0], ARGV[1].to_i)
@@ -129,6 +155,14 @@ c = HyperDex::Client::Client.new(ARGV[0], ARGV[1].to_i)
         self.f.write('assert {{ c.del({0}, {1}) == {2} }}\n'
                      .format(self.to_ruby(space), self.to_ruby(key), self.to_ruby(expected)))
 
+    def search(self, space, predicate, expected):
+        c = self.count
+        self.count += 1
+        self.f.write('X{0} = collapse_iterator(c.search({1}, {2}))\n'
+                     .format(c, self.to_ruby(space), self.to_ruby(predicate)))
+        self.f.write('Y{0} = to_objectset({1})\n'.format(c, self.to_ruby(expected, symbol=True)))
+        self.f.write('assert {{ X{0}.subset?Y{0} and Y{0}.subset?X{0} }}\n'.format(c))
+
     def to_ruby(self, x, symbol=False):
         if x is True:
             return 'true'
@@ -143,7 +177,7 @@ c = HyperDex::Client::Client.new(ARGV[0], ARGV[1].to_i)
         elif isinstance(x, float):
             return str(x)
         elif isinstance(x, list):
-            return repr(x)
+            return '[' + ', '.join([self.to_ruby(y, symbol) for y in x]) + ']'
         elif isinstance(x, set):
             return '(Set.new ' + repr(list(x)) + ')'
         elif isinstance(x, dict) and symbol:
@@ -177,6 +211,7 @@ class JavaGenerator(BindingGenerator):
 import org.hyperdex.client.Client;
 import org.hyperdex.client.ByteString;
 import org.hyperdex.client.HyperDexClientException;
+import org.hyperdex.client.Iterator;
 
 public class {0}
 {{
@@ -221,9 +256,9 @@ public class {0}
         self.f.write('        Object obj{0} = c.put({1}, {2}, attrs{0});\n'
                      .format(c, self.to_java(space),
                                 self.to_java(key)))
-        self.f.write('        assert obj{0} != null;\n'.format(c))
+        self.f.write('        assert(obj{0} != null);\n'.format(c))
         self.f.write('        Boolean bool{0} = (Boolean)obj{0};\n'.format(c))
-        self.f.write('        assert bool{0} == {1};\n'
+        self.f.write('        assert(bool{0} == {1});\n'
                      .format(c, self.to_java(expected)))
 
     def delete(self, space, key, expected):
@@ -233,10 +268,25 @@ public class {0}
         self.f.write('        Object obj{0} = c.del({1}, {2});\n'
                      .format(c, self.to_java(space),
                                 self.to_java(key)))
-        self.f.write('        assert obj{0} != null;\n'.format(c))
+        self.f.write('        assert(obj{0} != null);\n'.format(c))
         self.f.write('        Boolean bool{0} = (Boolean)obj{0};\n'.format(c))
-        self.f.write('        assert bool{0} == {1};\n'
+        self.f.write('        assert(bool{0} == {1});\n'
                      .format(c, self.to_java(expected)))
+
+    def search(self, space, predicate, expected):
+        c = self.count
+        self.count += 1
+        self.f.write('        Map<String, Object> checks{0} = new HashMap<String, Object>();\n'.format(c))
+        for k, v in sorted(predicate.iteritems()):
+            self.f.write('        checks{0}.put({1}, {2});\n'
+                             .format(c, self.to_java(k), self.to_java(v)))
+        self.f.write('        Set<Object> X{0} = new HashSet<Object>();\n'.format(c))
+        self.f.write('        Iterator it{0} = c.search({1}, checks{0});\n'
+                     .format(c, self.to_java(space)))
+        self.f.write('        while (it{0}.hasNext())\n'.format(c))
+        self.f.write('        {\n')
+        self.f.write('            X{0}.add(it{0}.next());\n'.format(c))
+        self.f.write('        }\n')
 
     def to_java(self, x):
         if x is True:
@@ -316,6 +366,10 @@ class TestGenerator(object):
     def delete(self, space, key, expected):
         for x in self.generators:
             x.delete(space, key, expected)
+
+    def search(self, space, predicate, expected):
+        for x in self.generators:
+            x.search(space, predicate, expected)
 
 t = TestGenerator()
 
@@ -503,4 +557,12 @@ t.put('kv', 'k', {'v': {3.14: 1.0, 0.25: 2.0, 1.0: 3.0}}, True)
 t.get('kv', 'k', {'v': {3.14: 1.0, 0.25: 2.0, 1.0: 3.0}})
 t.put('kv', 'k', {'v': {}}, True)
 t.get('kv', 'k', {'v': {}})
+t.finish()
+
+t.test('BasicSearch', 'space kv key k attribute v')
+t.search('kv', {'v': 'v1'}, set())
+t.put('kv', 'k1', {'v': 'v1'}, True)
+t.search('kv', {'v': 'v1'}, [{'k': 'k1', 'v': 'v1'}])
+t.put('kv', 'k2', {'v': 'v1'}, True)
+t.search('kv', {'v': 'v1'}, [{'k': 'k1', 'v': 'v1'}, {'k': 'k2', 'v': 'v1'}])
 t.finish()

@@ -228,7 +228,7 @@ def generate_prototype(x):
         proto += '    }\n'
         return proto
     if x.form == generator.Iterator:
-        return '    private native Iterator {0}({1});\n'.format(x.name, args_list)
+        return '    public native Iterator {0}({1});\n'.format(x.name, args_list)
 
 def generate_worker_asynccall(call, x):
     xp = copy.deepcopy(x)

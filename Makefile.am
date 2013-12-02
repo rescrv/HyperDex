@@ -773,6 +773,9 @@ shellwrappers += test/sh/bindings.java.DataTypeMapFloatInt.sh
 shellwrappers += test/sh/bindings.python.DataTypeMapFloatFloat.sh
 shellwrappers += test/sh/bindings.ruby.DataTypeMapFloatFloat.sh
 shellwrappers += test/sh/bindings.java.DataTypeMapFloatFloat.sh
+shellwrappers += test/sh/bindings.python.BasicSearch.sh
+shellwrappers += test/sh/bindings.ruby.BasicSearch.sh
+shellwrappers += test/sh/bindings.java.BasicSearch.sh
 
 TESTS += $(shellwrappers)
 EXTRA_DIST += $(shellwrappers)
