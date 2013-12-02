@@ -709,11 +709,13 @@ endif
 
 check_PROGRAMS += test/replication-stress-test
 check_PROGRAMS += test/search-stress-test
+
 shellwrappers =
 shellwrappers += test/sh/doc.quick-start.sh
 shellwrappers += test/sh/doc.data-types.sh
 shellwrappers += test/sh/doc.async-ops.sh
 shellwrappers += test/sh/doc.atomic-ops.sh
+
 shellwrappers += test/sh/replication.simple.daemons=1.fault-tolerance=0.sh
 shellwrappers += test/sh/replication.simple.daemons=8.fault-tolerance=0.sh
 shellwrappers += test/sh/replication.simple.daemons=8.fault-tolerance=1.sh
@@ -726,6 +728,7 @@ shellwrappers += test/sh/replication.composite.daemons=1.fault-tolerance=0.sh
 shellwrappers += test/sh/replication.composite.daemons=8.fault-tolerance=0.sh
 shellwrappers += test/sh/replication.composite.daemons=8.fault-tolerance=1.sh
 shellwrappers += test/sh/replication.composite.daemons=8.fault-tolerance=2.sh
+
 shellwrappers += test/sh/search.simple.keytype=int,daemons=1.fault-tolerance=0.sh
 shellwrappers += test/sh/search.simple.keytype=int,daemons=8.fault-tolerance=0.sh
 shellwrappers += test/sh/search.simple.keytype=int,daemons=8.fault-tolerance=1.sh
@@ -750,6 +753,68 @@ shellwrappers += test/sh/search.combination.keytype=int,daemons=8.fault-toleranc
 shellwrappers += test/sh/search.combination.keytype=string,daemons=1.fault-tolerance=0.sh
 shellwrappers += test/sh/search.combination.keytype=string,daemons=8.fault-tolerance=0.sh
 shellwrappers += test/sh/search.combination.keytype=string,daemons=8.fault-tolerance=1.sh
+
+shellwrappers += test/sh/bindings.python.Basic.sh
+shellwrappers += test/sh/bindings.ruby.Basic.sh
+shellwrappers += test/sh/bindings.java.Basic.sh
+shellwrappers += test/sh/bindings.python.MultiAttribute.sh
+shellwrappers += test/sh/bindings.ruby.MultiAttribute.sh
+shellwrappers += test/sh/bindings.java.MultiAttribute.sh
+shellwrappers += test/sh/bindings.python.DataTypeString.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeString.sh
+shellwrappers += test/sh/bindings.java.DataTypeString.sh
+shellwrappers += test/sh/bindings.python.DataTypeInt.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeInt.sh
+shellwrappers += test/sh/bindings.java.DataTypeInt.sh
+shellwrappers += test/sh/bindings.python.DataTypeFloat.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeFloat.sh
+shellwrappers += test/sh/bindings.java.DataTypeFloat.sh
+shellwrappers += test/sh/bindings.python.DataTypeListString.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeListString.sh
+shellwrappers += test/sh/bindings.java.DataTypeListString.sh
+shellwrappers += test/sh/bindings.python.DataTypeListInt.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeListInt.sh
+shellwrappers += test/sh/bindings.java.DataTypeListInt.sh
+shellwrappers += test/sh/bindings.python.DataTypeListFloat.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeListFloat.sh
+shellwrappers += test/sh/bindings.java.DataTypeListFloat.sh
+shellwrappers += test/sh/bindings.python.DataTypeSetString.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeSetString.sh
+shellwrappers += test/sh/bindings.java.DataTypeSetString.sh
+shellwrappers += test/sh/bindings.python.DataTypeSetInt.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeSetInt.sh
+shellwrappers += test/sh/bindings.java.DataTypeSetInt.sh
+shellwrappers += test/sh/bindings.python.DataTypeSetFloat.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeSetFloat.sh
+shellwrappers += test/sh/bindings.java.DataTypeSetFloat.sh
+shellwrappers += test/sh/bindings.python.DataTypeMapStringString.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeMapStringString.sh
+shellwrappers += test/sh/bindings.java.DataTypeMapStringString.sh
+shellwrappers += test/sh/bindings.python.DataTypeMapStringInt.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeMapStringInt.sh
+shellwrappers += test/sh/bindings.java.DataTypeMapStringInt.sh
+shellwrappers += test/sh/bindings.python.DataTypeMapStringFloat.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeMapStringFloat.sh
+shellwrappers += test/sh/bindings.java.DataTypeMapStringFloat.sh
+shellwrappers += test/sh/bindings.python.DataTypeMapIntString.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeMapIntString.sh
+shellwrappers += test/sh/bindings.java.DataTypeMapIntString.sh
+shellwrappers += test/sh/bindings.python.DataTypeMapIntInt.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeMapIntInt.sh
+shellwrappers += test/sh/bindings.java.DataTypeMapIntInt.sh
+shellwrappers += test/sh/bindings.python.DataTypeMapIntFloat.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeMapIntFloat.sh
+shellwrappers += test/sh/bindings.java.DataTypeMapIntFloat.sh
+shellwrappers += test/sh/bindings.python.DataTypeMapFloatString.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeMapFloatString.sh
+shellwrappers += test/sh/bindings.java.DataTypeMapFloatString.sh
+shellwrappers += test/sh/bindings.python.DataTypeMapFloatInt.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeMapFloatInt.sh
+shellwrappers += test/sh/bindings.java.DataTypeMapFloatInt.sh
+shellwrappers += test/sh/bindings.python.DataTypeMapFloatFloat.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeMapFloatFloat.sh
+shellwrappers += test/sh/bindings.java.DataTypeMapFloatFloat.sh
+
 TESTS += $(shellwrappers)
 EXTRA_DIST += $(shellwrappers)
 EXTRA_DIST += test/doc.async-ops.py
@@ -994,6 +1059,7 @@ maintainer-generate:
 	python maint/generate-replication-shell-stubs.py
 	python maint/generate-search-shell-stubs.py
 	python maint/generate-doc-shell-stubs.py
+	python maint/generate-bindings-tests.py
 	python test/doc-extract.py python doc/quick-start.tex test/doc.quick-start.py
 	python test/doc-extract.py python doc/data-types.tex test/doc.data-types.py
 	python test/doc-extract.py python doc/async-ops.tex test/doc.async-ops.py

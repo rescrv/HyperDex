@@ -8,6 +8,7 @@
 *.o
 *.pyc
 /bindings/java/org/hyperdex/*/*.class
+/test/java/*.class
 /man/hyperdex*.1
 /man/hyperdex*.1.h2m
 # specific files
