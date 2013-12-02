@@ -283,11 +283,11 @@ hyperdex_ruby_client_convert_map(struct hyperdex_ds_arena* arena,
         entry = rb_ary_entry(x, i);
         key = rb_ary_entry(entry, 0);
         val = rb_ary_entry(entry, 1);
-        hyperdex_ruby_client_convert_elem(entry, map,
+        hyperdex_ruby_client_convert_elem(key, map,
                 (elem_string_fptr) hyperdex_ds_map_insert_key_string,
                 (elem_int_fptr) hyperdex_ds_map_insert_key_int,
                 (elem_float_fptr) hyperdex_ds_map_insert_key_float);
-        hyperdex_ruby_client_convert_elem(entry, map,
+        hyperdex_ruby_client_convert_elem(val, map,
                 (elem_string_fptr) hyperdex_ds_map_insert_val_string,
                 (elem_int_fptr) hyperdex_ds_map_insert_val_int,
                 (elem_float_fptr) hyperdex_ds_map_insert_val_float);
@@ -399,7 +399,7 @@ hyperdex_ruby_client_convert_attributes(struct hyperdex_ds_arena* arena,
     if (TYPE(x) != T_HASH)
     {
         rb_exc_raise(rb_exc_new2(rb_eTypeError, "Attributes must be specified as a hash"));
-        abort(); // unreachable?
+        abort(); /* unreachable? */
     }
 
     hash_pairs = rb_funcall(x, rb_intern("to_a"), 0);
@@ -441,6 +441,7 @@ hyperdex_ruby_client_convert_limit(struct hyperdex_ds_arena* arena,
                                    uint64_t* limit)
 {
     *limit = rb_num2ulong(x);
+    (void) arena;
 }
 
 static void
@@ -459,13 +460,13 @@ hyperdex_ruby_client_convert_mapattributes(struct hyperdex_ds_arena* arena,
     struct hyperdex_client_map_attribute* mapattrs = NULL;
     size_t mapattrs_sz = 0;
     size_t mapattrs_idx = 0;
-    size_t i = 0;
+    ssize_t i = 0;
     size_t j = 0;
 
     if (TYPE(x) != T_HASH)
     {
         rb_exc_raise(rb_exc_new2(rb_eTypeError, "Map attributes must be specified as a hash"));
-        abort(); // unreachable?
+        abort(); /* unreachable? */
     }
 
     outer_pairs = rb_funcall(x, rb_intern("to_a"), 0);
@@ -478,7 +479,7 @@ hyperdex_ruby_client_convert_mapattributes(struct hyperdex_ds_arena* arena,
         if (TYPE(inner_pairs) != T_HASH)
         {
             rb_exc_raise(rb_exc_new2(rb_eTypeError, "Map attributes must be specified as a hash"));
-            abort(); // unreachable?
+            abort(); /* unreachable? */
         }
 
         mapattrs_sz += RHASH_SIZE(inner_pairs);
@@ -506,15 +507,16 @@ hyperdex_ruby_client_convert_mapattributes(struct hyperdex_ds_arena* arena,
             inner_pair = rb_ary_entry(inner_pairs, j);
             key = rb_ary_entry(inner_pair, 0);
             val = rb_ary_entry(inner_pair, 1);
-            mapattrs[mapattrs_idx].attr = hyperdex_ruby_client_convert_cstring(key, "Attribute name must be a string or symbol");
+            mapattrs[mapattrs_idx].attr = hyperdex_ruby_client_convert_cstring(attr, "Attribute name must be a string or symbol");
             hyperdex_ruby_client_convert_type(arena, key,
                                               &mapattrs[mapattrs_idx].map_key,
                                               &mapattrs[mapattrs_idx].map_key_sz,
                                               &mapattrs[mapattrs_idx].map_key_datatype);
-            hyperdex_ruby_client_convert_type(arena, key,
+            hyperdex_ruby_client_convert_type(arena, val,
                                               &mapattrs[mapattrs_idx].value,
                                               &mapattrs[mapattrs_idx].value_sz,
                                               &mapattrs[mapattrs_idx].value_datatype);
+            ++mapattrs_idx;
         }
     }
 }
@@ -525,6 +527,7 @@ hyperdex_ruby_client_convert_maxmin(struct hyperdex_ds_arena* arena,
                                     int* maxmin)
 {
     *maxmin = x == Qtrue ? 1: 0;
+    (void) arena;
 }
 
 static size_t
@@ -532,7 +535,7 @@ hyperdex_ruby_client_estimate_predicate_size(VALUE x)
 {
     VALUE pred = Qnil;
     struct hyperdex_ruby_client_predicate* p = NULL;
-    size_t i = 0;
+    ssize_t i = 0;
     size_t sum = 0;
 
     if (TYPE(x) == T_OBJECT &&
@@ -600,7 +603,7 @@ hyperdex_ruby_client_convert_predicate(struct hyperdex_ds_arena* arena,
              RARRAY_LEN(x) > 0 &&
              rb_obj_is_instance_of(rb_ary_entry(x, 0), class_predicate) == Qtrue)
     {
-        for (i = 0; i < RARRAY_LEN(x); ++i)
+        for (i = 0; i < (size_t)RARRAY_LEN(x); ++i)
         {
             pred = rb_ary_entry(x, i);
             assert(TYPE(pred) == T_OBJECT);
@@ -641,7 +644,7 @@ hyperdex_ruby_client_convert_predicates(struct hyperdex_ds_arena* arena,
     if (TYPE(x) != T_HASH)
     {
         rb_exc_raise(rb_exc_new2(rb_eTypeError, "Predicates must be specified as a hash"));
-        abort(); // unreachable?
+        abort(); /* unreachable? */
     }
 
     hash_pairs = rb_funcall(x, rb_intern("to_a"), 0);
@@ -683,6 +686,7 @@ hyperdex_ruby_client_convert_sortby(struct hyperdex_ds_arena* arena,
                                     const char** sortby)
 {
     *sortby = hyperdex_ruby_client_convert_cstring(x, "sortby must be a string or symbol");
+    (void) arena;
 }
 
 static void
@@ -691,6 +695,7 @@ hyperdex_ruby_client_convert_spacename(struct hyperdex_ds_arena* arena,
                                        const char** spacename)
 {
     *spacename = hyperdex_ruby_client_convert_cstring(x, "spacename must be a string or symbol");
+    (void) arena;
 }
 
 /********************************** C -> Ruby *********************************/
@@ -989,6 +994,7 @@ hyperdex_ruby_client_build_attribute(const struct hyperdex_client_attribute* att
         case HYPERDATATYPE_GARBAGE:
         default:
             hyperdex_ruby_client_throw_exception(HYPERDEX_CLIENT_SERVERERROR, "server sent malformed attributes");
+            return Qnil;
     }
 }
 
@@ -1034,6 +1040,8 @@ hyperdex_ruby_client_deferred_mark(struct hyperdex_ruby_client_deferred* dfrd)
     }
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
 void
 hyperdex_ruby_client_deferred_free(struct hyperdex_ruby_client_deferred* dfrd)
 {
@@ -1057,6 +1065,7 @@ hyperdex_ruby_client_deferred_free(struct hyperdex_ruby_client_deferred* dfrd)
         free(dfrd);
     }
 }
+#pragma GCC diagnostic pop
 
 static VALUE
 hyperdex_ruby_client_deferred_alloc(VALUE class)
@@ -1149,6 +1158,7 @@ hyperdex_ruby_client_deferred_encode_status(struct hyperdex_ruby_client_deferred
     {
         Data_Get_Struct(d->client, struct hyperdex_client, client);
         hyperdex_ruby_client_throw_exception(d->status, hyperdex_client_error_message(client));
+        return Qnil;
     }
 }
 
@@ -1173,6 +1183,7 @@ hyperdex_ruby_client_deferred_encode_status_attributes(struct hyperdex_ruby_clie
     {
         Data_Get_Struct(d->client, struct hyperdex_client, client);
         hyperdex_ruby_client_throw_exception(d->status, hyperdex_client_error_message(client));
+        return Qnil;
     }
 }
 
@@ -1197,6 +1208,7 @@ hyperdex_ruby_client_deferred_encode_status_count(struct hyperdex_ruby_client_de
     {
         Data_Get_Struct(d->client, struct hyperdex_client, client);
         hyperdex_ruby_client_throw_exception(d->status, hyperdex_client_error_message(client));
+        return Qnil;
     }
 }
 
@@ -1221,6 +1233,7 @@ hyperdex_ruby_client_deferred_encode_status_description(struct hyperdex_ruby_cli
     {
         Data_Get_Struct(d->client, struct hyperdex_client, client);
         hyperdex_ruby_client_throw_exception(d->status, hyperdex_client_error_message(client));
+        return Qnil;
     }
 }
 
@@ -1384,6 +1397,7 @@ hyperdex_ruby_client_iterator_encode_status_attributes(struct hyperdex_ruby_clie
     {
         Data_Get_Struct(it->client, struct hyperdex_client, client);
         hyperdex_ruby_client_throw_exception(it->status, hyperdex_client_error_message(client));
+        return Qnil;
     }
 }
 
@@ -1432,6 +1446,7 @@ hyperdex_ruby_client_loop(VALUE self)
     if (ret < 0)
     {
         hyperdex_ruby_client_throw_exception(rc, hyperdex_client_error_message(client));
+        return Qnil;
     }
     else
     {
@@ -1547,7 +1562,7 @@ hyperdex_ruby_client_predicate_range_init(VALUE self, VALUE lower, VALUE upper)
     Data_Get_Struct(self, struct hyperdex_ruby_client_predicate, pred);
     pred->checks[0].v = lower;
     pred->checks[0].predicate = HYPERPREDICATE_LESS_EQUAL;
-    pred->checks[1].v = lower;
+    pred->checks[1].v = upper;
     pred->checks[1].predicate = HYPERPREDICATE_GREATER_EQUAL;
     return self;
 }
