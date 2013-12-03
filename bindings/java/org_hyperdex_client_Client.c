@@ -37,6 +37,13 @@
 #include "bindings/java/org_hyperdex_client_Client.h"
 #include "bindings/java/org_hyperdex_client_Deferred.h"
 #include "bindings/java/org_hyperdex_client_Iterator.h"
+#include "bindings/java/org_hyperdex_client_LessEqual.h"
+#include "bindings/java/org_hyperdex_client_GreaterEqual.h"
+#include "bindings/java/org_hyperdex_client_Range.h"
+#include "bindings/java/org_hyperdex_client_Regex.h"
+#include "bindings/java/org_hyperdex_client_LengthEquals.h"
+#include "bindings/java/org_hyperdex_client_LengthLessEqual.h"
+#include "bindings/java/org_hyperdex_client_LengthGreaterEqual.h"
 
 /********************************* Cached IDs *********************************/
 
@@ -116,6 +123,28 @@ static jfieldID _client_ptr;
 static jmethodID _client_add_op;
 static jmethodID _client_remove_op;
 
+static jclass _pred_less_equal;
+static jfieldID _pred_less_equal_x;
+
+static jclass _pred_greater_equal;
+static jfieldID _pred_greater_equal_x;
+
+static jclass _pred_range;
+static jfieldID _pred_range_x;
+static jfieldID _pred_range_y;
+
+static jclass _pred_regex;
+static jfieldID _pred_regex_x;
+
+static jclass _pred_length_equals;
+static jfieldID _pred_length_equals_x;
+
+static jclass _pred_length_less_equal;
+static jfieldID _pred_length_less_equal_x;
+
+static jclass _pred_length_greater_equal;
+static jfieldID _pred_length_greater_equal_x;
+
 #define CHECK_CACHE(X) assert((X))
 
 #define ERROR_CHECK(RET) if ((*env)->ExceptionCheck(env) == JNI_TRUE) return (RET)
@@ -189,7 +218,7 @@ Java_org_hyperdex_client_Client_initialize(JNIEnv* env, jclass client)
     /* cache class Predicate */
     REF(_predicate, (*env)->FindClass(env, "org/hyperdex/client/Predicate"));
     _predicate_checksSize = (*env)->GetMethodID(env, _predicate, "checksSize", "()J");
-    _predicate_convertChecks = (*env)->GetMethodID(env, _predicate, "convertChecks", "(JJ)J");
+    _predicate_convertChecks = (*env)->GetMethodID(env, _predicate, "convertChecks", "(JJJ)J");
     /* cache class Deferred */
     REF(_deferred, (*env)->FindClass(env, "org/hyperdex/client/Deferred"));
     _deferred_c = (*env)->GetFieldID(env, _deferred, "c", "Lorg/hyperdex/client/Client;");
@@ -207,6 +236,28 @@ Java_org_hyperdex_client_Client_initialize(JNIEnv* env, jclass client)
     _client_ptr = (*env)->GetFieldID(env, _client, "ptr", "J");
     _client_add_op = (*env)->GetMethodID(env, _client, "add_op", "(JLorg/hyperdex/client/Operation;)V");
     _client_remove_op = (*env)->GetMethodID(env, _client, "remove_op", "(J)V");
+    /* cache class LessEqual */
+    REF(_pred_less_equal, (*env)->FindClass(env, "org/hyperdex/client/LessEqual"));
+    _pred_less_equal_x = (*env)->GetFieldID(env, _pred_less_equal, "x", "Ljava/lang/Object;");
+    /* cache class GreaterEqual */
+    REF(_pred_greater_equal, (*env)->FindClass(env, "org/hyperdex/client/GreaterEqual"));
+    _pred_greater_equal_x = (*env)->GetFieldID(env, _pred_greater_equal, "x", "Ljava/lang/Object;");
+    /* cache class Range */
+    REF(_pred_range, (*env)->FindClass(env, "org/hyperdex/client/Range"));
+    _pred_range_x = (*env)->GetFieldID(env, _pred_range, "x", "Ljava/lang/Object;");
+    _pred_range_y = (*env)->GetFieldID(env, _pred_range, "y", "Ljava/lang/Object;");
+    /* cache class Regex */
+    REF(_pred_regex, (*env)->FindClass(env, "org/hyperdex/client/Regex"));
+    _pred_regex_x = (*env)->GetFieldID(env, _pred_regex, "x", "Ljava/lang/String;");
+    /* cache class LengthEquals */
+    REF(_pred_length_equals, (*env)->FindClass(env, "org/hyperdex/client/LengthEquals"));
+    _pred_length_equals_x = (*env)->GetFieldID(env, _pred_length_equals, "x", "Ljava/lang/Object;");
+    /* cache class LengthLessEqual */
+    REF(_pred_length_less_equal, (*env)->FindClass(env, "org/hyperdex/client/LengthLessEqual"));
+    _pred_length_less_equal_x = (*env)->GetFieldID(env, _pred_length_less_equal, "x", "Ljava/lang/Object;");
+    /* cache class LengthGreaterEqual */
+    REF(_pred_length_greater_equal, (*env)->FindClass(env, "org/hyperdex/client/LengthGreaterEqual"));
+    _pred_length_greater_equal_x = (*env)->GetFieldID(env, _pred_length_greater_equal, "x", "Ljava/lang/Object;");
 
     CHECK_CACHE(_string);
     CHECK_CACHE(_byte_string);
@@ -265,6 +316,21 @@ Java_org_hyperdex_client_Client_initialize(JNIEnv* env, jclass client)
     CHECK_CACHE(_client_ptr);
     CHECK_CACHE(_client_add_op);
     CHECK_CACHE(_client_remove_op);
+    CHECK_CACHE(_pred_less_equal);
+    CHECK_CACHE(_pred_less_equal_x);
+    CHECK_CACHE(_pred_greater_equal);
+    CHECK_CACHE(_pred_greater_equal_x);
+    CHECK_CACHE(_pred_range);
+    CHECK_CACHE(_pred_range_x);
+    CHECK_CACHE(_pred_range_y);
+    CHECK_CACHE(_pred_regex);
+    CHECK_CACHE(_pred_regex_x);
+    CHECK_CACHE(_pred_length_equals);
+    CHECK_CACHE(_pred_length_equals_x);
+    CHECK_CACHE(_pred_length_less_equal);
+    CHECK_CACHE(_pred_length_less_equal_x);
+    CHECK_CACHE(_pred_length_greater_equal);
+    CHECK_CACHE(_pred_length_greater_equal_x);
 
     (void) client;
 }
@@ -291,6 +357,13 @@ Java_org_hyperdex_client_Client_terminate(JNIEnv* env, jclass client)
     (*env)->DeleteGlobalRef(env, _deferred);
     (*env)->DeleteGlobalRef(env, _iterator);
     (*env)->DeleteGlobalRef(env, _client);
+    (*env)->DeleteGlobalRef(env, _pred_less_equal);
+    (*env)->DeleteGlobalRef(env, _pred_greater_equal);
+    (*env)->DeleteGlobalRef(env, _pred_range);
+    (*env)->DeleteGlobalRef(env, _pred_regex);
+    (*env)->DeleteGlobalRef(env, _pred_length_equals);
+    (*env)->DeleteGlobalRef(env, _pred_length_less_equal);
+    (*env)->DeleteGlobalRef(env, _pred_length_greater_equal);
 
     (void) client;
 }
@@ -876,7 +949,6 @@ hyperdex_java_client_convert_attributes(JNIEnv* env, jobject client,
 
     while ((jboolean)(size_t)(*env)->CallObjectMethod(env, it, _java_iterator_hasNext) == JNI_TRUE)
     {
-        assert(attrs_idx < attrs_sz);
         entry = (*env)->CallObjectMethod(env, it, _java_iterator_next);
         ERROR_CHECK(-1);
         key = (*env)->CallObjectMethod(env, entry, _map_entry_getKey);
@@ -1096,11 +1168,18 @@ hyperdex_java_client_convert_predicate(JNIEnv* env,
     jobject it;
     jobject entry;
     jlong tmp;
+    size_t i;
 
     if ((*env)->IsInstanceOf(env, x, _predicate) == JNI_TRUE)
     {
-        tmp = (jlong)(*env)->CallObjectMethod(env, x, _predicate_convertChecks, checks, checks_idx);
+        tmp = (jlong)(*env)->CallObjectMethod(env, x, _predicate_convertChecks, arena, checks, checks_idx);
         ERROR_CHECK(-1);
+
+        for (i = checks_idx; i < tmp; ++i)
+        {
+            checks[i].attr = attr;
+        }
+
         return tmp;
     }
     else if ((*env)->IsInstanceOf(env, x, _list) == JNI_TRUE &&
@@ -1109,17 +1188,22 @@ hyperdex_java_client_convert_predicate(JNIEnv* env,
     {
         it = (*env)->CallObjectMethod(env, x, _list_iterator);
         ERROR_CHECK(-1);
+        tmp = checks_idx;
 
         while (!(jboolean)(size_t)(*env)->CallObjectMethod(env, it, _java_iterator_hasNext))
         {
             entry = (*env)->CallObjectMethod(env, it, _java_iterator_next);
             ERROR_CHECK(-1);
-            tmp = (jlong)(*env)->CallObjectMethod(env, entry, _predicate_convertChecks, checks, checks_idx);
+            tmp = (jlong)(*env)->CallObjectMethod(env, entry, _predicate_convertChecks, arena, checks, tmp);
             ERROR_CHECK(-1);
-            checks_idx = tmp;
         }
 
-        return checks_idx;
+        for (i = checks_idx; i < tmp; ++i)
+        {
+            checks[i].attr = attr;
+        }
+
+        return tmp;
     }
     else
     {
@@ -1195,7 +1279,6 @@ hyperdex_java_client_convert_predicates(JNIEnv* env, jobject client,
 
     while ((jboolean)(size_t)(*env)->CallObjectMethod(env, it, _java_iterator_hasNext) == JNI_TRUE)
     {
-        assert(checks_idx < checks_sz);
         entry = (*env)->CallObjectMethod(env, it, _java_iterator_next);
         ERROR_CHECK(-1);
         key = (*env)->CallObjectMethod(env, entry, _map_entry_getKey);
@@ -2068,6 +2151,80 @@ hyperdex_java_client_iterator_encode_status_attributes(JNIEnv* env, jobject obj,
         return 0;
     }
 }
+
+/********************************* Predicates *********************************/
+
+#define SINGLE_OBJECT_PREDICATE(CamelCase, lower_case, PREDICATE) \
+    JNIEXPORT jlong JNICALL \
+    Java_org_hyperdex_client_ ## CamelCase ## _checksSize(JNIEnv* env, jobject obj) \
+    { \
+        return 1; \
+    } \
+    JNIEXPORT jlong JNICALL \
+    Java_org_hyperdex_client_ ## CamelCase ## _convertChecks(JNIEnv* env, jobject obj, jlong arena, \
+                                                             jlong _checks, jlong checks_sz) \
+    { \
+        struct hyperdex_client_attribute_check* checks = (struct hyperdex_client_attribute_check*) _checks; \
+        jobject x = (*env)->GetObjectField(env, obj, _pred_ ## lower_case ## _x); \
+        ERROR_CHECK(-1); \
+        checks[checks_sz].predicate = HYPERPREDICATE_ ## PREDICATE; \
+        if (hyperdex_java_client_convert_type(env, (struct hyperdex_ds_arena*)arena, x, \
+                                              &checks[checks_sz].value, \
+                                              &checks[checks_sz].value_sz, \
+                                              &checks[checks_sz].datatype) < 0) \
+        { \
+            return -1; \
+        } \
+        ERROR_CHECK(-1); \
+        return checks_sz + 1; \
+    }
+
+SINGLE_OBJECT_PREDICATE(LessEqual, less_equal, LESS_EQUAL)
+SINGLE_OBJECT_PREDICATE(GreaterEqual, greater_equal, LESS_EQUAL)
+
+JNIEXPORT jlong JNICALL
+Java_org_hyperdex_client_Range_checksSize(JNIEnv* env, jobject obj)
+{
+    return 2;
+}
+
+JNIEXPORT jlong JNICALL
+Java_org_hyperdex_client_Range_convertChecks(JNIEnv* env, jobject obj, jlong arena,
+                                             jlong _checks, jlong checks_sz)
+{
+    struct hyperdex_client_attribute_check* checks = (struct hyperdex_client_attribute_check*) _checks;
+    jobject x;
+    jobject y;
+    x = (*env)->GetObjectField(env, obj, _pred_range_x);
+    y = (*env)->GetObjectField(env, obj, _pred_range_y);
+    ERROR_CHECK(-1);
+    checks[checks_sz + 0].predicate = HYPERPREDICATE_GREATER_EQUAL;
+    checks[checks_sz + 1].predicate = HYPERPREDICATE_LESS_EQUAL;
+
+    if (hyperdex_java_client_convert_type(env, (struct hyperdex_ds_arena*)arena, x,
+                                          &checks[checks_sz].value,
+                                          &checks[checks_sz].value_sz,
+                                          &checks[checks_sz].datatype) < 0)
+    {
+        return -1;
+    }
+
+    if (hyperdex_java_client_convert_type(env, (struct hyperdex_ds_arena*)arena, y,
+                                          &checks[checks_sz + 1].value,
+                                          &checks[checks_sz + 1].value_sz,
+                                          &checks[checks_sz + 1].datatype) < 0)
+    {
+        return -1;
+    }
+
+    ERROR_CHECK(-1);
+    return checks_sz + 2;
+}
+
+SINGLE_OBJECT_PREDICATE(Regex, regex, REGEX)
+SINGLE_OBJECT_PREDICATE(LengthEquals, length_equals, LENGTH_EQUALS)
+SINGLE_OBJECT_PREDICATE(LengthLessEqual, length_less_equal, LENGTH_LESS_EQUAL)
+SINGLE_OBJECT_PREDICATE(LengthGreaterEqual, length_greater_equal, LENGTH_GREATER_EQUAL)
 
 /******************************** Client Class ********************************/
 

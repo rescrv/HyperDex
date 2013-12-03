@@ -83,7 +83,9 @@ cdef extern from "hyperdex.h":
         HYPERPREDICATE_LESS_EQUAL    = 9730
         HYPERPREDICATE_GREATER_EQUAL = 9731
         HYPERPREDICATE_REGEX         = 9733
+        HYPERPREDICATE_LENGTH_EQUALS        = 9734
         HYPERPREDICATE_LENGTH_LESS_EQUAL    = 9735
+        HYPERPREDICATE_LENGTH_GREATER_EQUAL = 9736
         HYPERPREDICATE_CONTAINS      = 9737
 
 cdef extern from "hyperdex/client.h":
@@ -1340,12 +1342,28 @@ cdef class Regex(Predicate):
         Predicate.__init__(self, [(HYPERPREDICATE_REGEX, regex)])
 
 
+cdef class LengthEquals(Predicate):
+
+    def __init__(self, length):
+        if type(length) not in (int, long):
+            raise AttributeError("LengthEquals must be int or long")
+        Predicate.__init__(self, [(HYPERPREDICATE_LENGTH_EQUALS, length)])
+
+
 cdef class LengthLessEqual(Predicate):
 
     def __init__(self, upper):
         if type(upper) not in (int, long):
             raise AttributeError("LengthLessEqual must be int or long")
         Predicate.__init__(self, [(HYPERPREDICATE_LENGTH_LESS_EQUAL, upper)])
+
+
+cdef class LengthGreaterEqual(Predicate):
+
+    def __init__(self, lower):
+        if type(lower) not in (int, long):
+            raise AttributeError("LengthGreaterEqual must be int or long")
+        Predicate.__init__(self, [(HYPERPREDICATE_LENGTH_GREATER_EQUAL, lower)])
 
 
 cdef class Client:

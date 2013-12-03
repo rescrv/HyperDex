@@ -26,6 +26,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import abc
+import collections
 import os
 import sys
 
@@ -49,6 +50,49 @@ python "${{HYPERDEX_SRCDIR}}"/test/runner.py --space="{0}" --daemons=1 -- \\
     f.close()
     os.chmod(path, 0755)
     print 'shellwrappers += ' + path
+
+class LessEqual(object):
+    def __init__(self, x):
+        self.x = x
+    def __repr__(self):
+        return 'LessEqual({0!r})'.format(self.x)
+
+class GreaterEqual(object):
+    def __init__(self, x):
+        self.x = x
+    def __repr__(self):
+        return 'GreaterEqual({0!r})'.format(self.x)
+
+class Range(object):
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+    def __repr__(self):
+        return 'Range({0!r}, {1!r})'.format(self.x, self.y)
+
+class Regex(object):
+    def __init__(self, x):
+        self.x = x
+    def __repr__(self):
+        return 'Regex({0!r})'.format(self.x)
+
+class LengthEquals(object):
+    def __init__(self, x):
+        self.x = x
+    def __repr__(self):
+        return 'LengthEquals({0!r})'.format(self.x)
+
+class LengthLessEqual(object):
+    def __init__(self, x):
+        self.x = x
+    def __repr__(self):
+        return 'LengthLessEqual({0!r})'.format(self.x)
+
+class LengthGreaterEqual(object):
+    def __init__(self, x):
+        self.x = x
+    def __repr__(self):
+        return 'LengthGreaterEqual({0!r})'.format(self.x)
 
 class BindingGenerator(object):
 
@@ -74,6 +118,7 @@ class PythonGenerator(BindingGenerator):
         self.f.write('''#!/usr/bin/env python
 import sys
 import hyperdex.client
+from hyperdex.client import LessEqual, GreaterEqual, Range, Regex, LengthEquals, LengthLessEqual, LengthGreaterEqual
 c = hyperdex.client.Client(sys.argv[1], int(sys.argv[2]))
 def to_objectset(xs):
     return set([frozenset(x.items()) for x in xs])
@@ -170,6 +215,20 @@ c = HyperDex::Client::Client.new(ARGV[0], ARGV[1].to_i)
             return 'false'
         elif x is None:
             return 'nil'
+        elif isinstance(x, LessEqual):
+            return '(HyperDex::Client::LessEqual.new {0})'.format(self.to_ruby(x.x))
+        elif isinstance(x, GreaterEqual):
+            return '(HyperDex::Client::GreaterEqual.new {0})'.format(self.to_ruby(x.x))
+        elif isinstance(x, Range):
+            return '(HyperDex::Client::Range.new {0}, {1})'.format(self.to_ruby(x.x), self.to_ruby(x.y))
+        elif isinstance(x, Regex):
+            return '(HyperDex::Client::Regex.new {0})'.format(self.to_ruby(x.x))
+        elif isinstance(x, LengthEquals):
+            return '(HyperDex::Client::LengthEquals.new {0})'.format(self.to_ruby(x.x))
+        elif isinstance(x, LengthLessEqual):
+            return '(HyperDex::Client::LengthLessEqual.new {0})'.format(self.to_ruby(x.x))
+        elif isinstance(x, LengthGreaterEqual):
+            return '(HyperDex::Client::LengthGreaterEqual.new {0})'.format(self.to_ruby(x.x))
         elif isinstance(x, str):
             return double_quote(x)
         elif isinstance(x, int) or isinstance(x, long):
@@ -212,6 +271,13 @@ import org.hyperdex.client.Client;
 import org.hyperdex.client.ByteString;
 import org.hyperdex.client.HyperDexClientException;
 import org.hyperdex.client.Iterator;
+import org.hyperdex.client.LessEqual;
+import org.hyperdex.client.GreaterEqual;
+import org.hyperdex.client.Range;
+import org.hyperdex.client.Regex;
+import org.hyperdex.client.LengthEquals;
+import org.hyperdex.client.LengthLessEqual;
+import org.hyperdex.client.LengthGreaterEqual;
 
 public class {0}
 {{
@@ -295,6 +361,20 @@ public class {0}
             return 'false'
         elif x is None:
             return 'null'
+        elif isinstance(x, LessEqual):
+            return 'new LessEqual({0})'.format(self.to_java(x.x))
+        elif isinstance(x, GreaterEqual):
+            return 'new GreaterEqual({0})'.format(self.to_java(x.x))
+        elif isinstance(x, Range):
+            return 'new Range({0}, {1})'.format(self.to_java(x.x), self.to_java(x.y))
+        elif isinstance(x, Regex):
+            return 'new Regex({0})'.format(self.to_java(x.x))
+        elif isinstance(x, LengthEquals):
+            return 'new LengthEquals({0})'.format(self.to_java(x.x))
+        elif isinstance(x, LengthLessEqual):
+            return 'new LengthLessEqual({0})'.format(self.to_java(x.x))
+        elif isinstance(x, LengthGreaterEqual):
+            return 'new LengthGreaterEqual({0})'.format(self.to_java(x.x))
         elif isinstance(x, str):
             if any([len(repr(c)) > 3 for c in x]):
                 c = self.count
@@ -565,4 +645,113 @@ t.put('kv', 'k1', {'v': 'v1'}, True)
 t.search('kv', {'v': 'v1'}, [{'k': 'k1', 'v': 'v1'}])
 t.put('kv', 'k2', {'v': 'v1'}, True)
 t.search('kv', {'v': 'v1'}, [{'k': 'k1', 'v': 'v1'}, {'k': 'k2', 'v': 'v1'}])
+t.finish()
+
+t.test('RangeSearchString', 'space kv key k attribute v')
+t.put('kv', 'A', {'v': 'A'}, True)
+t.put('kv', 'B', {'v': 'B'}, True)
+t.put('kv', 'C', {'v': 'C'}, True)
+t.put('kv', 'D', {'v': 'D'}, True)
+t.put('kv', 'E', {'v': 'E'}, True)
+# LessEqual
+t.search('kv', {'k': LessEqual('C')},
+         [{'k': 'A', 'v': 'A'},
+          {'k': 'B', 'v': 'B'},
+          {'k': 'C', 'v': 'C'}])
+t.search('kv', {'v': LessEqual('C')},
+         [{'k': 'A', 'v': 'A'},
+          {'k': 'B', 'v': 'B'},
+          {'k': 'C', 'v': 'C'}])
+# GreaterEqual
+t.search('kv', {'k': GreaterEqual('C')},
+         [{'k': 'C', 'v': 'C'},
+          {'k': 'D', 'v': 'D'},
+          {'k': 'E', 'v': 'E'}])
+t.search('kv', {'v': GreaterEqual('C')},
+         [{'k': 'C', 'v': 'C'},
+          {'k': 'D', 'v': 'D'},
+          {'k': 'E', 'v': 'E'}])
+# Range
+t.search('kv', {'k': Range('B', 'D')},
+         [{'k': 'B', 'v': 'B'},
+          {'k': 'C', 'v': 'C'},
+          {'k': 'D', 'v': 'D'}])
+t.search('kv', {'v': Range('B', 'D')},
+         [{'k': 'B', 'v': 'B'},
+          {'k': 'C', 'v': 'C'},
+          {'k': 'D', 'v': 'D'}])
+# done
+t.finish()
+
+t.test('RangeSearchInt', 'space kv key int k attribute int v primary_index v create 4 partitions')
+t.put('kv', -2, {'v': -2}, True)
+t.put('kv', -1, {'v': -1}, True)
+t.put('kv', 0, {'v': 0}, True)
+t.put('kv', 1, {'v': 1}, True)
+t.put('kv', 2, {'v': 2}, True)
+# LessEqual
+t.search('kv', {'k': LessEqual(0)},
+         [{'k': -2, 'v': -2},
+          {'k': -1, 'v': -1},
+          {'k': 0, 'v': 0}])
+t.search('kv', {'v': LessEqual(0)},
+         [{'k': -2, 'v': -2},
+          {'k': -1, 'v': -1},
+          {'k': 0, 'v': 0}])
+# GreaterEqual
+t.search('kv', {'k': GreaterEqual(0)},
+         [{'k': 0, 'v': 0},
+          {'k': 1, 'v': 1},
+          {'k': 2, 'v': 2}])
+t.search('kv', {'v': GreaterEqual(0)},
+         [{'k': 0, 'v': 0},
+          {'k': 1, 'v': 1},
+          {'k': 2, 'v': 2}])
+# Range
+t.search('kv', {'k': Range(-1, 1)},
+         [{'k': -1, 'v': -1},
+          {'k': 0, 'v': 0},
+          {'k': 1, 'v': 1}])
+t.search('kv', {'v': Range(-1, 1)},
+         [{'k': -1, 'v': -1},
+          {'k': 0, 'v': 0},
+          {'k': 1, 'v': 1}])
+# done
+t.finish()
+
+t.test('RegexSearch', 'space kv key k')
+WORDS = ('foo', 'bar', 'baz')
+for x in WORDS:
+    for y in WORDS:
+        for z in WORDS:
+            k = x + '/' + y + '/' + z
+            t.put('kv', k, {}, True)
+t.search('kv', {'k': Regex('^foo')},
+         [{'k': 'foo/foo/foo'}, {'k': 'foo/foo/bar'}, {'k': 'foo/foo/baz'},
+          {'k': 'foo/bar/foo'}, {'k': 'foo/bar/bar'}, {'k': 'foo/bar/baz'},
+          {'k': 'foo/baz/foo'}, {'k': 'foo/baz/bar'}, {'k': 'foo/baz/baz'}])
+t.search('kv', {'k': Regex('foo$')},
+         [{'k': 'foo/foo/foo'}, {'k': 'foo/bar/foo'}, {'k': 'foo/baz/foo'},
+          {'k': 'bar/foo/foo'}, {'k': 'bar/bar/foo'}, {'k': 'bar/baz/foo'},
+          {'k': 'baz/foo/foo'}, {'k': 'baz/bar/foo'}, {'k': 'baz/baz/foo'}])
+t.search('kv', {'k': Regex('^b.*/foo/.*$')},
+         [{'k': 'bar/foo/foo'}, {'k': 'bar/foo/bar'}, {'k': 'bar/foo/baz'},
+          {'k': 'baz/foo/foo'}, {'k': 'baz/foo/bar'}, {'k': 'baz/foo/baz'}])
+t.finish()
+
+t.test('LengthString', 'space kv key k')
+t.put('kv', 'A', {}, True)
+t.put('kv', 'AB', {}, True)
+t.put('kv', 'ABC', {}, True)
+t.put('kv', 'ABCD', {}, True)
+t.put('kv', 'ABCDE', {}, True)
+t.search('kv', {'k': LengthEquals(1)}, [{'k': 'A'}])
+t.search('kv', {'k': LengthEquals(2)}, [{'k': 'AB'}])
+t.search('kv', {'k': LengthEquals(3)}, [{'k': 'ABC'}])
+t.search('kv', {'k': LengthEquals(4)}, [{'k': 'ABCD'}])
+t.search('kv', {'k': LengthEquals(5)}, [{'k': 'ABCDE'}])
+t.search('kv', {'k': LengthLessEqual(3)},
+         [{'k': 'A'}, {'k': 'AB'}, {'k': 'ABC'}])
+t.search('kv', {'k': LengthGreaterEqual(3)},
+         [{'k': 'ABC'}, {'k': 'ABCD'}, {'k': 'ABCDE'}])
 t.finish()

@@ -31,8 +31,8 @@ package org.hyperdex.client;
 
 import java.util.*;
 
-public interface Predicate
+interface Predicate
 {
     long checksSize();
-    long convertChecks(long checks, long checks_sz);
+    long convertChecks(long arena, long checks, long checks_sz);
 }

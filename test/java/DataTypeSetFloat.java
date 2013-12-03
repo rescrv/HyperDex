@@ -4,6 +4,13 @@ import org.hyperdex.client.Client;
 import org.hyperdex.client.ByteString;
 import org.hyperdex.client.HyperDexClientException;
 import org.hyperdex.client.Iterator;
+import org.hyperdex.client.LessEqual;
+import org.hyperdex.client.GreaterEqual;
+import org.hyperdex.client.Range;
+import org.hyperdex.client.Regex;
+import org.hyperdex.client.LengthEquals;
+import org.hyperdex.client.LengthLessEqual;
+import org.hyperdex.client.LengthGreaterEqual;
 
 public class DataTypeSetFloat
 {
