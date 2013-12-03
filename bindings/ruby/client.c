@@ -368,7 +368,7 @@ hyperdex_ruby_client_convert_type(struct hyperdex_ds_arena* arena,
             hyperdex_ruby_client_convert_map(arena, x, value, value_sz, datatype);
             break;
         case T_OBJECT:
-            if (!rb_obj_is_instance_of(x, Set) == Qtrue)
+            if (!rb_obj_is_kind_of(x, Set) == Qtrue)
             {
                 rb_raise(rb_eTypeError, "Cannot convert object to a HyperDex type");
                 break;
@@ -538,22 +538,22 @@ hyperdex_ruby_client_estimate_predicate_size(VALUE x)
     ssize_t i = 0;
     size_t sum = 0;
 
-    if (TYPE(x) == T_OBJECT &&
-        rb_obj_is_instance_of(x, class_predicate) == Qtrue)
+    if (TYPE(x) == T_DATA &&
+        rb_obj_is_kind_of(x, class_predicate) == Qtrue)
     {
         Data_Get_Struct(x, struct hyperdex_ruby_client_predicate, p);
         return p->num_checks;
     }
     else if (TYPE(x) == T_ARRAY &&
              RARRAY_LEN(x) > 0 &&
-             rb_obj_is_instance_of(rb_ary_entry(x, 0), class_predicate) == Qtrue)
+             rb_obj_is_kind_of(rb_ary_entry(x, 0), class_predicate) == Qtrue)
     {
         for (i = 0; i < RARRAY_LEN(x); ++i)
         {
             pred = rb_ary_entry(x, i);
 
-            if (TYPE(pred) != T_OBJECT ||
-                rb_obj_is_instance_of(pred, class_predicate) != Qtrue)
+            if (TYPE(pred) != T_DATA ||
+                rb_obj_is_kind_of(pred, class_predicate) != Qtrue)
             {
                 rb_raise(rb_eTypeError, "Cannot convert predicate to a HyperDex type");
                 return 0;
@@ -582,8 +582,8 @@ hyperdex_ruby_client_convert_predicate(struct hyperdex_ds_arena* arena,
     struct hyperdex_ruby_client_predicate* p = NULL;
     size_t i = 0;
 
-    if (TYPE(x) == T_OBJECT &&
-        rb_obj_is_instance_of(x, class_predicate) == Qtrue)
+    if (TYPE(x) == T_DATA &&
+        rb_obj_is_kind_of(x, class_predicate) == Qtrue)
     {
         Data_Get_Struct(x, struct hyperdex_ruby_client_predicate, p);
 
@@ -601,13 +601,13 @@ hyperdex_ruby_client_convert_predicate(struct hyperdex_ds_arena* arena,
     }
     else if (TYPE(x) == T_ARRAY &&
              RARRAY_LEN(x) > 0 &&
-             rb_obj_is_instance_of(rb_ary_entry(x, 0), class_predicate) == Qtrue)
+             rb_obj_is_kind_of(rb_ary_entry(x, 0), class_predicate) == Qtrue)
     {
         for (i = 0; i < (size_t)RARRAY_LEN(x); ++i)
         {
             pred = rb_ary_entry(x, i);
-            assert(TYPE(pred) == T_OBJECT);
-            assert(rb_obj_is_instance_of(pred, class_predicate) == Qtrue);
+            assert(TYPE(pred) == T_DATA);
+            assert(rb_obj_is_kind_of(pred, class_predicate) == Qtrue);
             checks_idx = hyperdex_ruby_client_convert_predicate(arena, attr, pred, checks, checks_idx);
         }
 
@@ -1561,9 +1561,9 @@ hyperdex_ruby_client_predicate_range_init(VALUE self, VALUE lower, VALUE upper)
     struct hyperdex_ruby_client_predicate* pred = NULL;
     Data_Get_Struct(self, struct hyperdex_ruby_client_predicate, pred);
     pred->checks[0].v = lower;
-    pred->checks[0].predicate = HYPERPREDICATE_LESS_EQUAL;
+    pred->checks[0].predicate = HYPERPREDICATE_GREATER_EQUAL;
     pred->checks[1].v = upper;
-    pred->checks[1].predicate = HYPERPREDICATE_GREATER_EQUAL;
+    pred->checks[1].predicate = HYPERPREDICATE_LESS_EQUAL;
     return self;
 }
 
