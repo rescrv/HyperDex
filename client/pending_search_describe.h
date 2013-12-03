@@ -76,6 +76,7 @@ class pending_search_describe : public pending_aggregation
         const char** m_description;
         bool m_done;
         std::vector<std::pair<hyperdex::virtual_server_id, std::string> > m_msgs;
+        std::string m_text;
 };
 
 END_HYPERDEX_NAMESPACE
