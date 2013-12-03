@@ -838,8 +838,8 @@ datalayer :: make_search_iterator(snapshot snap,
         assert(ranges[i].attr < sc.attrs_sz);
         assert(ranges[i].type == sc.attrs[ranges[i].attr].type);
 
-        if (ostr) *ostr << "considering attr " << ranges[i].attr << " Range("
-                        << ranges[i].start.hex() << ", " << ranges[i].end.hex() << " " << ranges[i].type << " "
+        if (ostr) *ostr << " considering attr " << ranges[i].attr << " Range("
+                        << ranges[i].start.hex() << ", " << ranges[i].end.hex() << ") " << ranges[i].type << " "
                         << (ranges[i].has_start ? "[" : "<") << "-" << (ranges[i].has_end ? "]" : ">")
                         << " " << (ranges[i].invalid ? "invalid" : "valid") << "\n";
 
@@ -898,7 +898,7 @@ datalayer :: make_search_iterator(snapshot snap,
     scan.has_end = false;
     scan.invalid = false;
     full_scan = ki->iterator_from_range(snap, ri, scan, ki);
-    if (ostr) *ostr << "accessing all objects has cost " << full_scan->cost(m_db.get()) << "\n";
+    if (ostr) *ostr << " accessing all objects has cost " << full_scan->cost(m_db.get()) << "\n";
 
     // figure out the cost of each iterator
     // we do this here and not below so that iterators can cache the size and we
@@ -906,7 +906,7 @@ datalayer :: make_search_iterator(snapshot snap,
     for (size_t i = 0; i < iterators.size(); ++i)
     {
         uint64_t iterator_cost = iterators[i]->cost(m_db.get());
-        if (ostr) *ostr << "iterator " << *iterators[i] << " has cost " << iterator_cost << "\n";
+        if (ostr) *ostr << " iterator " << *iterators[i] << " has cost " << iterator_cost << "\n";
     }
 
     std::vector<e::intrusive_ptr<index_iterator> > sorted;
@@ -926,24 +926,28 @@ datalayer :: make_search_iterator(snapshot snap,
 
     e::intrusive_ptr<index_iterator> best;
 
-    if (!sorted.empty())
+    if (!best && !sorted.empty())
     {
         best = new intersect_iterator(snap, sorted);
     }
-
-    if (!best || best->cost(m_db.get()) * 4 > full_scan->cost(m_db.get()))
+    else if (!best && !unsorted.empty())
+    {
+        best = unsorted[0];
+    }
+    else
     {
         best = full_scan;
     }
 
-    // just pick one; do something smart later
-    if (!unsorted.empty() && !best)
+    assert(best);
+    uint64_t cost = best->cost(m_db.get());
+
+    if (cost > 0 && cost * 4 > full_scan->cost(m_db.get()))
     {
-        best = unsorted[0];
+        best = full_scan;
     }
 
-    assert(best);
-    if (ostr) *ostr << "choosing to use " << *best << "\n";
+    if (ostr) *ostr << " choosing to use " << *best << "\n";
     return new search_iterator(this, ri, best, ostr, &checks);
 }
 
