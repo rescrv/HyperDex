@@ -76,7 +76,7 @@ class HyperDexCluster(object):
                'HYPERDEX_COORD_LIB': os.path.join(BUILDDIR, '.libs/libhyperdex-coordinator'),
                'PATH': ((os.getenv('PATH') or '') + ':' + BUILDDIR).strip(':')}
         for i in range(self.coordinators):
-            cmd = ['/usr/bin/env', 'hyperdex', 'coordinator',
+            cmd = ['hyperdex', 'coordinator',
                    '--foreground', '--listen', 'localhost', '--listen-port', str(1982 + i)]
             if i > 0:
                 cmd += ['--connect', 'localhost', '--connect-port', '1982']
@@ -89,7 +89,7 @@ class HyperDexCluster(object):
             self.processes.append(proc)
         time.sleep(0.25) # XXX use a barrier tool on cluster
         for i in range(self.daemons):
-            cmd = ['/usr/bin/env', 'hyperdex', 'daemon', '-t', '1',
+            cmd = ['hyperdex', 'daemon', '-t', '1',
                    '--foreground', '--listen', 'localhost', '--listen-port', str(2012 + i),
                    '--coordinator', 'localhost', '--coordinator-port', '1982']
             cwd = os.path.join(self.base, 'daemon%i' % i)

@@ -172,7 +172,12 @@ AC_ARG_ENABLE([maintainer-tools], [AS_HELP_STRING([--enable-maintainer-tools],
               [enable maintainer tools @<:@default: no@:>@])],
               [enable_maintaine_tools=${enable_maintainer_tools}], [enable_maintaine_tools=no])
 AM_CONDITIONAL([ENABLE_MAINTAINER_TOOLS], [test x"${enable_maintainer_tools}" = xyes])
+AC_ARG_ENABLE([time-consuming-tests], [AS_HELP_STRING([--enable-time-consuming-tests],
+              [enable tests that can take quite awhile to run @<:@default: yes@:>@])],
+              [enable_time_consuming_tests=${enable_time_consuming_tests}], [enable_time_consuming_tests=yes])
+AM_CONDITIONAL([ENABLE_TIME_CONSUMING_TESTS], [test x"${enable_time_consuming_tests}" = xyes])
 
 # Generate outputs and finish
 AC_CONFIG_FILES([Makefile hyperdex-client.pc hyperdex-admin.pc hyperdex.upack])
+AC_CONFIG_LINKS([test/java/.exists:test/java/.exists])
 AC_OUTPUT

@@ -261,8 +261,8 @@ class JavaGenerator(BindingGenerator):
         assert self.f is None
         self.count = 0
         self.path = 'test/java/{0}.java'.format(name)
-        precmd = 'javac -cp "${{HYPERDEX_SRCDIR}}"/bindings/java "${{HYPERDEX_SRCDIR}}"/test/java/{0}.java'.format(name)
-        cmd = 'java -Djava.library.path="${{HYPERDEX_SRCDIR}}"/.libs -cp "${{HYPERDEX_SRCDIR}}"/bindings/java:"${{HYPERDEX_SRCDIR}}"/test/java {0}'.format(name)
+        precmd = 'javac -d "${{HYPERDEX_BUILDDIR}}"/test/java "${{HYPERDEX_SRCDIR}}"/test/java/{0}.java'.format(name)
+        cmd = 'java -Djava.library.path="${{HYPERDEX_BUILDDIR}}"/.libs {0}'.format(name)
         gen_shell('java', name, cmd, space, precmd=precmd)
         self.f = open(self.path, 'w')
         self.f.write('''import java.util.*;
@@ -683,7 +683,7 @@ t.search('kv', {'v': Range('B', 'D')},
 # done
 t.finish()
 
-t.test('RangeSearchInt', 'space kv key int k attribute int v primary_index v create 4 partitions')
+t.test('RangeSearchInt', 'space kv key int k attribute int v')
 t.put('kv', -2, {'v': -2}, True)
 t.put('kv', -1, {'v': -1}, True)
 t.put('kv', 0, {'v': 0}, True)

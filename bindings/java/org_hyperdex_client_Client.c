@@ -504,7 +504,8 @@ hyperdex_java_client_convert_elem(JNIEnv* env,
     size_t tmp_str_sz;
     jbyte* tmp_bytes;
     size_t tmp_bytes_sz;
-    int64_t tmp_i;
+    int64_t tmp_l;
+    int32_t tmp_i;
     double tmp_d;
 
     if ((*env)->IsInstanceOf(env, obj, _string) == JNI_TRUE)
@@ -545,10 +546,10 @@ hyperdex_java_client_convert_elem(JNIEnv* env,
     }
     else if ((*env)->IsInstanceOf(env, obj, _long) == JNI_TRUE)
     {
-        tmp_i = (jlong)(*env)->CallObjectMethod(env, obj, _long_longValue);
+        tmp_l = (*env)->CallLongMethod(env, obj, _long_longValue);
         ERROR_CHECK(-1);
 
-        if (f_int(container, tmp_i, &error) < 0)
+        if (f_int(container, tmp_l, &error) < 0)
         {
             HDJAVA_HANDLE_ELEM_ERROR(error, "long");
         }
@@ -557,7 +558,7 @@ hyperdex_java_client_convert_elem(JNIEnv* env,
     }
     else if ((*env)->IsInstanceOf(env, obj, _integer) == JNI_TRUE)
     {
-        tmp_i = (jlong)(*env)->CallObjectMethod(env, obj, _integer_intValue);
+        tmp_i = (*env)->CallIntMethod(env, obj, _integer_intValue);
         ERROR_CHECK(-1);
 
         if (f_int(container, tmp_i, &error) < 0)
@@ -569,7 +570,7 @@ hyperdex_java_client_convert_elem(JNIEnv* env,
     }
     else if ((*env)->IsInstanceOf(env, obj, _double) == JNI_TRUE)
     {
-        tmp_d = (double)(long)(*env)->CallObjectMethod(env, obj, _double_doubleValue);
+        tmp_d = (*env)->CallDoubleMethod(env, obj, _double_doubleValue);
         ERROR_CHECK(-1);
 
         if (f_float(container, tmp_d, &error) < 0)
@@ -609,7 +610,7 @@ hyperdex_java_client_convert_list(JNIEnv* env,
         return -1;
     }
 
-    while ((jboolean)(size_t)(*env)->CallObjectMethod(env, it, _java_iterator_hasNext) == JNI_TRUE)
+    while ((*env)->CallBooleanMethod(env, it, _java_iterator_hasNext) == JNI_TRUE)
     {
         entry = (*env)->CallObjectMethod(env, it, _java_iterator_next);
         ERROR_CHECK(-1);
@@ -657,7 +658,7 @@ hyperdex_java_client_convert_set(JNIEnv* env,
         return -1;
     }
 
-    while ((jboolean)(size_t)(*env)->CallObjectMethod(env, it, _java_iterator_hasNext) == JNI_TRUE)
+    while ((*env)->CallBooleanMethod(env, it, _java_iterator_hasNext) == JNI_TRUE)
     {
         entry = (*env)->CallObjectMethod(env, it, _java_iterator_next);
         ERROR_CHECK(-1);
@@ -711,7 +712,7 @@ hyperdex_java_client_convert_map(JNIEnv* env,
         return hyperdex_java_out_of_memory(env);
     }
 
-    while ((jboolean)(size_t)(*env)->CallObjectMethod(env, it, _java_iterator_hasNext) == JNI_TRUE)
+    while ((*env)->CallBooleanMethod(env, it, _java_iterator_hasNext) == JNI_TRUE)
     {
         entry = (*env)->CallObjectMethod(env, it, _java_iterator_next);
         ERROR_CHECK(-1);
@@ -766,7 +767,8 @@ hyperdex_java_client_convert_type(JNIEnv* env,
     size_t tmp_str_sz;
     jbyte* tmp_bytes;
     size_t tmp_bytes_sz;
-    int64_t tmp_i;
+    int64_t tmp_l;
+    int32_t tmp_i;
     double tmp_d;
 
     if ((*env)->IsInstanceOf(env, x, _string) == JNI_TRUE)
@@ -812,10 +814,10 @@ hyperdex_java_client_convert_type(JNIEnv* env,
     }
     else if ((*env)->IsInstanceOf(env, x, _long) == JNI_TRUE)
     {
-        tmp_i = (jlong)(*env)->CallObjectMethod(env, x, _long_longValue);
+        tmp_l = (*env)->CallLongMethod(env, x, _long_longValue);
         ERROR_CHECK(-1);
 
-        if (hyperdex_ds_copy_int(arena, tmp_i, &error, value, value_sz) < 0)
+        if (hyperdex_ds_copy_int(arena, tmp_l, &error, value, value_sz) < 0)
         {
             hyperdex_java_out_of_memory(env);
             return -1;
@@ -826,7 +828,7 @@ hyperdex_java_client_convert_type(JNIEnv* env,
     }
     else if ((*env)->IsInstanceOf(env, x, _integer) == JNI_TRUE)
     {
-        tmp_i = (jlong)(*env)->CallObjectMethod(env, x, _integer_intValue);
+        tmp_i = (*env)->CallIntMethod(env, x, _integer_intValue);
         ERROR_CHECK(-1);
 
         if (hyperdex_ds_copy_int(arena, tmp_i, &error, value, value_sz) < 0)
@@ -840,7 +842,7 @@ hyperdex_java_client_convert_type(JNIEnv* env,
     }
     else if ((*env)->IsInstanceOf(env, x, _double) == JNI_TRUE)
     {
-        tmp_d = (double)(long)(*env)->CallObjectMethod(env, x, _double_doubleValue);
+        tmp_d = (*env)->CallDoubleMethod(env, x, _double_doubleValue);
         ERROR_CHECK(-1);
 
         if (hyperdex_ds_copy_float(arena, tmp_d, &error, value, value_sz) < 0)
@@ -933,7 +935,7 @@ hyperdex_java_client_convert_attributes(JNIEnv* env, jobject client,
     ERROR_CHECK(-1);
     it = (*env)->CallObjectMethod(env, set, _set_iterator);
     ERROR_CHECK(-1);
-    attrs_sz = (size_t)(*env)->CallObjectMethod(env, x, _map_size);
+    attrs_sz = (*env)->CallIntMethod(env, x, _map_size);
     ERROR_CHECK(-1);
     attrs = hyperdex_ds_allocate_attribute(arena, attrs_sz);
 
@@ -947,7 +949,7 @@ hyperdex_java_client_convert_attributes(JNIEnv* env, jobject client,
     *_attrs_sz = attrs_sz;
     attrs_idx = 0;
 
-    while ((jboolean)(size_t)(*env)->CallObjectMethod(env, it, _java_iterator_hasNext) == JNI_TRUE)
+    while ((*env)->CallBooleanMethod(env, it, _java_iterator_hasNext) == JNI_TRUE)
     {
         entry = (*env)->CallObjectMethod(env, it, _java_iterator_next);
         ERROR_CHECK(-1);
@@ -1009,13 +1011,13 @@ hyperdex_java_client_convert_mapattributes(JNIEnv* env, jobject client,
     outer_it = (*env)->CallObjectMethod(env, outer_set, _set_iterator);
     ERROR_CHECK(-1);
 
-    while ((jboolean)(size_t)(*env)->CallObjectMethod(env, outer_it, _java_iterator_hasNext) == JNI_TRUE)
+    while ((*env)->CallBooleanMethod(env, outer_it, _java_iterator_hasNext) == JNI_TRUE)
     {
         outer_entry = (*env)->CallObjectMethod(env, outer_it, _java_iterator_next);
         ERROR_CHECK(-1);
         inner_map = (*env)->CallObjectMethod(env, outer_entry, _map_entry_getValue);
         ERROR_CHECK(-1);
-        mapattrs_sz += (size_t)(*env)->CallObjectMethod(env, inner_map, _map_size);
+        mapattrs_sz += (*env)->CallIntMethod(env, inner_map, _map_size);
         ERROR_CHECK(-1);
         (*env)->DeleteLocalRef(env, outer_entry);
         ERROR_CHECK(-1);
@@ -1040,7 +1042,7 @@ hyperdex_java_client_convert_mapattributes(JNIEnv* env, jobject client,
     outer_it = (*env)->CallObjectMethod(env, outer_set, _set_iterator);
     ERROR_CHECK(-1);
 
-    while ((jboolean)(size_t)(*env)->CallObjectMethod(env, outer_it, _java_iterator_hasNext) == JNI_TRUE)
+    while ((*env)->CallBooleanMethod(env, outer_it, _java_iterator_hasNext) == JNI_TRUE)
     {
         outer_entry = (*env)->CallObjectMethod(env, outer_it, _java_iterator_next);
         ERROR_CHECK(-1);
@@ -1059,7 +1061,7 @@ hyperdex_java_client_convert_mapattributes(JNIEnv* env, jobject client,
             return -1;
         }
 
-        while (!(jboolean)(size_t)(*env)->CallObjectMethod(env, inner_it, _java_iterator_hasNext))
+        while ((*env)->CallBooleanMethod(env, inner_it, _java_iterator_hasNext) == JNI_TRUE)
         {
             assert(mapattrs_idx < mapattrs_sz);
             inner_entry = (*env)->CallObjectMethod(env, inner_it, _java_iterator_next);
@@ -1120,7 +1122,7 @@ hyperdex_java_client_estimate_predicate_size(JNIEnv* env, jobject x)
 
     if ((*env)->IsInstanceOf(env, x, _predicate) == JNI_TRUE)
     {
-        sum = (size_t)(*env)->CallObjectMethod(env, x, _predicate_checksSize);
+        sum = (*env)->CallLongMethod(env, x, _predicate_checksSize);
         ERROR_CHECK(-1);
         return sum;
     }
@@ -1131,7 +1133,7 @@ hyperdex_java_client_estimate_predicate_size(JNIEnv* env, jobject x)
         it = (*env)->CallObjectMethod(env, x, _list_iterator);
         ERROR_CHECK(-1);
 
-        while ((jboolean)(size_t)(*env)->CallObjectMethod(env, it, _java_iterator_hasNext) == JNI_TRUE)
+        while ((*env)->CallBooleanMethod(env, it, _java_iterator_hasNext) == JNI_TRUE)
         {
             entry = (*env)->CallObjectMethod(env, it, _java_iterator_next);
             ERROR_CHECK(-1);
@@ -1144,7 +1146,7 @@ hyperdex_java_client_estimate_predicate_size(JNIEnv* env, jobject x)
             }
 
             ERROR_CHECK(-1);
-            sum += (size_t)(*env)->CallObjectMethod(env, x, _predicate_checksSize);
+            sum += (*env)->CallLongMethod(env, x, _predicate_checksSize);
             ERROR_CHECK(-1);
         }
 
@@ -1172,7 +1174,7 @@ hyperdex_java_client_convert_predicate(JNIEnv* env,
 
     if ((*env)->IsInstanceOf(env, x, _predicate) == JNI_TRUE)
     {
-        tmp = (jlong)(*env)->CallObjectMethod(env, x, _predicate_convertChecks, arena, checks, checks_idx);
+        tmp = (*env)->CallLongMethod(env, x, _predicate_convertChecks, arena, checks, checks_idx);
         ERROR_CHECK(-1);
 
         for (i = checks_idx; i < tmp; ++i)
@@ -1190,11 +1192,11 @@ hyperdex_java_client_convert_predicate(JNIEnv* env,
         ERROR_CHECK(-1);
         tmp = checks_idx;
 
-        while (!(jboolean)(size_t)(*env)->CallObjectMethod(env, it, _java_iterator_hasNext))
+        while ((*env)->CallBooleanMethod(env, it, _java_iterator_hasNext))
         {
             entry = (*env)->CallObjectMethod(env, it, _java_iterator_next);
             ERROR_CHECK(-1);
-            tmp = (jlong)(*env)->CallObjectMethod(env, entry, _predicate_convertChecks, arena, checks, tmp);
+            tmp = (*env)->CallLongMethod(env, entry, _predicate_convertChecks, arena, checks, tmp);
             ERROR_CHECK(-1);
         }
 
@@ -1245,7 +1247,7 @@ hyperdex_java_client_convert_predicates(JNIEnv* env, jobject client,
     it = (*env)->CallObjectMethod(env, set, _set_iterator);
     ERROR_CHECK(-1);
 
-    while ((jboolean)(size_t)(*env)->CallObjectMethod(env, it, _java_iterator_hasNext) == JNI_TRUE)
+    while ((*env)->CallBooleanMethod(env, it, _java_iterator_hasNext) == JNI_TRUE)
     {
         entry = (*env)->CallObjectMethod(env, it, _java_iterator_next);
         ERROR_CHECK(-1);
@@ -1277,7 +1279,7 @@ hyperdex_java_client_convert_predicates(JNIEnv* env, jobject client,
     *_checks = checks;
     *_checks_sz = checks_sz;
 
-    while ((jboolean)(size_t)(*env)->CallObjectMethod(env, it, _java_iterator_hasNext) == JNI_TRUE)
+    while ((*env)->CallBooleanMethod(env, it, _java_iterator_hasNext) == JNI_TRUE)
     {
         entry = (*env)->CallObjectMethod(env, it, _java_iterator_next);
         ERROR_CHECK(-1);
@@ -1401,7 +1403,7 @@ hyperdex_java_client_build_attribute(JNIEnv* env,
             while ((result = hyperdex_ds_iterate_list_string_next(&iter, &tmp_str, &tmp_str_sz)) > 0)
             {
                 BUILD_STRING(tmp, tmp_str, tmp_str_sz);
-                (*env)->CallObjectMethod(env, ret, _array_list_add, tmp);
+                (*env)->CallBooleanMethod(env, ret, _array_list_add, tmp);
                 ERROR_CHECK(0);
             }
 
@@ -1420,7 +1422,7 @@ hyperdex_java_client_build_attribute(JNIEnv* env,
             while ((result = hyperdex_ds_iterate_list_int_next(&iter, &tmp_i)) > 0)
             {
                 BUILD_INT(tmp, tmp_i);
-                (*env)->CallObjectMethod(env, ret, _array_list_add, tmp);
+                (*env)->CallBooleanMethod(env, ret, _array_list_add, tmp);
                 ERROR_CHECK(0);
             }
 
@@ -1439,7 +1441,7 @@ hyperdex_java_client_build_attribute(JNIEnv* env,
             while ((result = hyperdex_ds_iterate_list_float_next(&iter, &tmp_d)) > 0)
             {
                 BUILD_FLOAT(tmp, tmp_d);
-                (*env)->CallObjectMethod(env, ret, _array_list_add, tmp);
+                (*env)->CallBooleanMethod(env, ret, _array_list_add, tmp);
                 ERROR_CHECK(0);
             }
 
@@ -1458,7 +1460,7 @@ hyperdex_java_client_build_attribute(JNIEnv* env,
             while ((result = hyperdex_ds_iterate_set_string_next(&iter, &tmp_str, &tmp_str_sz)) > 0)
             {
                 BUILD_STRING(tmp, tmp_str, tmp_str_sz);
-                (*env)->CallObjectMethod(env, ret, _hash_set_add, tmp);
+                (*env)->CallBooleanMethod(env, ret, _hash_set_add, tmp);
                 ERROR_CHECK(0);
             }
 
@@ -2180,7 +2182,7 @@ hyperdex_java_client_iterator_encode_status_attributes(JNIEnv* env, jobject obj,
     }
 
 SINGLE_OBJECT_PREDICATE(LessEqual, less_equal, LESS_EQUAL)
-SINGLE_OBJECT_PREDICATE(GreaterEqual, greater_equal, LESS_EQUAL)
+SINGLE_OBJECT_PREDICATE(GreaterEqual, greater_equal, GREATER_EQUAL)
 
 JNIEXPORT jlong JNICALL
 Java_org_hyperdex_client_Range_checksSize(JNIEnv* env, jobject obj)

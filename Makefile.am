@@ -33,7 +33,7 @@ AM_CXXFLAGS  = -fvisibility=hidden -fvisibility-inlines-hidden $(PO6_CFLAGS) $(E
 AM_MAKEFLAGS = --no-print-directory
 AM_YFLAGS = -d
 HELP2MAN_FLAGS = --libtool --no-info --version-string=$(VERSION) --manual="HyperDex User Manual"
-TESTS_ENVIRONMENT = . $(abs_top_srcdir)/test/env.sh "${abs_top_srcdir}" "${abs_top_builddir}";
+TESTS_ENVIRONMENT = . $(abs_top_srcdir)/test/env.sh "${abs_top_srcdir}" "${abs_top_builddir}" "${VERSION}";
 
 hyperdexexecdir = $(libexecdir)/$(PACKAGE)-$(VERSION)
 hyperdexheaderdir = $(includedir)/hyperdex
@@ -42,6 +42,7 @@ pkgconfigdir = $(libdir)/pkgconfig
 BUILT_SOURCES =
 
 EXTRA_DIST =
+EXTRA_DIST += test/java/.exists
 
 CLEANFILES =
 
@@ -546,31 +547,58 @@ endif
 
 CLEANFILES += $(hyperdex_client_jarfile)
 CLEANFILES += $(hyperdex_ycsb_jarfile)
+CLEANFILES += bindings/java/org/hyperdex/client/*.class
 
 EXTRA_DIST += bindings/java/org/hyperdex/client/ByteString.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Client.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Deferred.java
+EXTRA_DIST += bindings/java/org/hyperdex/client/GreaterEqual.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/HyperDexClientException.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Iterator.java
+EXTRA_DIST += bindings/java/org/hyperdex/client/LengthEquals.java
+EXTRA_DIST += bindings/java/org/hyperdex/client/LengthGreaterEqual.java
+EXTRA_DIST += bindings/java/org/hyperdex/client/LengthLessEqual.java
+EXTRA_DIST += bindings/java/org/hyperdex/client/LessEqual.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Operation.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Predicate.java
+EXTRA_DIST += bindings/java/org/hyperdex/client/Range.java
+EXTRA_DIST += bindings/java/org/hyperdex/client/Regex.java
 EXTRA_DIST += bindings/java/org/hyperdex/ycsb/HyperDex.java
 
 # Client
+noinst_HEADERS += bindings/java/org_hyperdex_client_Client.h
+noinst_HEADERS += bindings/java/org_hyperdex_client_Deferred.h
+noinst_HEADERS += bindings/java/org_hyperdex_client_GreaterEqual.h
+noinst_HEADERS += bindings/java/org_hyperdex_client_Iterator.h
+noinst_HEADERS += bindings/java/org_hyperdex_client_LengthEquals.h
+noinst_HEADERS += bindings/java/org_hyperdex_client_LengthGreaterEqual.h
+noinst_HEADERS += bindings/java/org_hyperdex_client_LengthLessEqual.h
+noinst_HEADERS += bindings/java/org_hyperdex_client_LessEqual.h
+noinst_HEADERS += bindings/java/org_hyperdex_client_Range.h
+noinst_HEADERS += bindings/java/org_hyperdex_client_Regex.h
+
+EXTRA_DIST += bindings/java/org_hyperdex_client_Client.definitions.c
+
 libhyperdex_client_java_la_SOURCES =
 libhyperdex_client_java_la_SOURCES += bindings/java/org_hyperdex_client_Client.c
 libhyperdex_client_java_la_CPPFLAGS = $(JNI_CPPFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS)
 libhyperdex_client_java_la_CFLAGS = $(AM_CFLAGS) $(CFLAGS) -Wmissing-prototypes
 libhyperdex_client_java_la_LIBADD = libhyperdex-client.la
 
-$(hyperdex_client_jarfile): $(wildcard bindings/java/org/hyperdex/client/*.java)
-	javac bindings/java/org/hyperdex/client/*.java
-	cd bindings/java ; $(JAR) cvf $(JARFLAGS) ../../$(hyperdex_client_jarfile) org/hyperdex/client/*.class
+JAVA_SRC_BASE=${abs_top_srcdir}/bindings/java
+JAVA_BUILD_BASE=${abs_top_builddir}/bindings/java
+JAVA_SRC_PKG=${JAVA_SRC_BASE}/org/hyperdex
+JAVA_BUILD_PKG=${JAVA_BUILD_BASE}/org/hyperdex
+
+$(hyperdex_client_jarfile): $(wildcard ${JAVA_SRC_PKG}/client/*.java)
+	javac -d ${JAVA_BUILD_BASE} ${JAVA_SRC_PKG}/client/*.java
+	cd ${JAVA_BUILD_BASE} && $(JAR) cvf $(JARFLAGS) ${abs_top_builddir}/${hyperdex_client_jarfile} org/hyperdex/client/*.class
 
 # YCSB
-$(hyperdex_ycsb_jarfile): bindings/java/org/hyperdex/ycsb/HyperDex.java
-	javac -cp $(abs_top_builddir)/$(hyperdex_client_jarfile):$(CLASSPATH) bindings/java/org/hyperdex/ycsb/*.java
-	cd bindings/java ; $(JAR) cvf $(JARFLAGS) ../../$(hyperdex_ycsb_jarfile) org/hyperdex/ycsb/*.class
+$(hyperdex_ycsb_jarfile): ${JAVA_SRC_PKG}/ycsb/HyperDex.java
+	javac -d ${JAVA_BUILD_BASE} ${JAVA_SRC_PKG}/client/*.java
+	javac -cp $(abs_top_builddir)/$(hyperdex_client_jarfile):$(CLASSPATH) -d ${JAVA_BUILD_BASE} ${JAVA_SRC_PKG}/ycsb/*.java
+	cd ${JAVA_BUILD_BASE} && $(JAR) cvf $(JARFLAGS) ${abs_top_builddir}/${hyperdex_ycsb_jarfile} org/hyperdex/ycsb/*.class
 
 #################################### Python ####################################
 
@@ -670,11 +698,15 @@ check_PROGRAMS += test/replication-stress-test
 check_PROGRAMS += test/search-stress-test
 
 shellwrappers =
+if ENABLE_ADMIN
+if ENABLE_CLIENT
+if ENABLE_PYTHON_BINDINGS
 shellwrappers += test/sh/doc.quick-start.sh
 shellwrappers += test/sh/doc.data-types.sh
 shellwrappers += test/sh/doc.async-ops.sh
 shellwrappers += test/sh/doc.atomic-ops.sh
 
+if ENABLE_TIME_CONSUMING_TESTS
 shellwrappers += test/sh/replication.simple.daemons=1.fault-tolerance=0.sh
 shellwrappers += test/sh/replication.simple.daemons=8.fault-tolerance=0.sh
 shellwrappers += test/sh/replication.simple.daemons=8.fault-tolerance=1.sh
@@ -712,82 +744,93 @@ shellwrappers += test/sh/search.combination.keytype=int,daemons=8.fault-toleranc
 shellwrappers += test/sh/search.combination.keytype=string,daemons=1.fault-tolerance=0.sh
 shellwrappers += test/sh/search.combination.keytype=string,daemons=8.fault-tolerance=0.sh
 shellwrappers += test/sh/search.combination.keytype=string,daemons=8.fault-tolerance=1.sh
+endif
 
-shellwrappers += test/sh/bindings.python.Basic.sh
-shellwrappers += test/sh/bindings.ruby.Basic.sh
-shellwrappers += test/sh/bindings.java.Basic.sh
-shellwrappers += test/sh/bindings.python.MultiAttribute.sh
-shellwrappers += test/sh/bindings.ruby.MultiAttribute.sh
-shellwrappers += test/sh/bindings.java.MultiAttribute.sh
-shellwrappers += test/sh/bindings.python.DataTypeString.sh
-shellwrappers += test/sh/bindings.ruby.DataTypeString.sh
-shellwrappers += test/sh/bindings.java.DataTypeString.sh
-shellwrappers += test/sh/bindings.python.DataTypeInt.sh
-shellwrappers += test/sh/bindings.ruby.DataTypeInt.sh
-shellwrappers += test/sh/bindings.java.DataTypeInt.sh
-shellwrappers += test/sh/bindings.python.DataTypeFloat.sh
-shellwrappers += test/sh/bindings.ruby.DataTypeFloat.sh
-shellwrappers += test/sh/bindings.java.DataTypeFloat.sh
-shellwrappers += test/sh/bindings.python.DataTypeListString.sh
-shellwrappers += test/sh/bindings.ruby.DataTypeListString.sh
-shellwrappers += test/sh/bindings.java.DataTypeListString.sh
-shellwrappers += test/sh/bindings.python.DataTypeListInt.sh
-shellwrappers += test/sh/bindings.ruby.DataTypeListInt.sh
-shellwrappers += test/sh/bindings.java.DataTypeListInt.sh
-shellwrappers += test/sh/bindings.python.DataTypeListFloat.sh
-shellwrappers += test/sh/bindings.ruby.DataTypeListFloat.sh
-shellwrappers += test/sh/bindings.java.DataTypeListFloat.sh
-shellwrappers += test/sh/bindings.python.DataTypeSetString.sh
-shellwrappers += test/sh/bindings.ruby.DataTypeSetString.sh
-shellwrappers += test/sh/bindings.java.DataTypeSetString.sh
-shellwrappers += test/sh/bindings.python.DataTypeSetInt.sh
-shellwrappers += test/sh/bindings.ruby.DataTypeSetInt.sh
-shellwrappers += test/sh/bindings.java.DataTypeSetInt.sh
-shellwrappers += test/sh/bindings.python.DataTypeSetFloat.sh
-shellwrappers += test/sh/bindings.ruby.DataTypeSetFloat.sh
-shellwrappers += test/sh/bindings.java.DataTypeSetFloat.sh
-shellwrappers += test/sh/bindings.python.DataTypeMapStringString.sh
-shellwrappers += test/sh/bindings.ruby.DataTypeMapStringString.sh
-shellwrappers += test/sh/bindings.java.DataTypeMapStringString.sh
-shellwrappers += test/sh/bindings.python.DataTypeMapStringInt.sh
-shellwrappers += test/sh/bindings.ruby.DataTypeMapStringInt.sh
-shellwrappers += test/sh/bindings.java.DataTypeMapStringInt.sh
-shellwrappers += test/sh/bindings.python.DataTypeMapStringFloat.sh
-shellwrappers += test/sh/bindings.ruby.DataTypeMapStringFloat.sh
-shellwrappers += test/sh/bindings.java.DataTypeMapStringFloat.sh
-shellwrappers += test/sh/bindings.python.DataTypeMapIntString.sh
-shellwrappers += test/sh/bindings.ruby.DataTypeMapIntString.sh
-shellwrappers += test/sh/bindings.java.DataTypeMapIntString.sh
-shellwrappers += test/sh/bindings.python.DataTypeMapIntInt.sh
-shellwrappers += test/sh/bindings.ruby.DataTypeMapIntInt.sh
-shellwrappers += test/sh/bindings.java.DataTypeMapIntInt.sh
-shellwrappers += test/sh/bindings.python.DataTypeMapIntFloat.sh
-shellwrappers += test/sh/bindings.ruby.DataTypeMapIntFloat.sh
-shellwrappers += test/sh/bindings.java.DataTypeMapIntFloat.sh
-shellwrappers += test/sh/bindings.python.DataTypeMapFloatString.sh
-shellwrappers += test/sh/bindings.ruby.DataTypeMapFloatString.sh
-shellwrappers += test/sh/bindings.java.DataTypeMapFloatString.sh
-shellwrappers += test/sh/bindings.python.DataTypeMapFloatInt.sh
-shellwrappers += test/sh/bindings.ruby.DataTypeMapFloatInt.sh
-shellwrappers += test/sh/bindings.java.DataTypeMapFloatInt.sh
-shellwrappers += test/sh/bindings.python.DataTypeMapFloatFloat.sh
-shellwrappers += test/sh/bindings.ruby.DataTypeMapFloatFloat.sh
-shellwrappers += test/sh/bindings.java.DataTypeMapFloatFloat.sh
 shellwrappers += test/sh/bindings.python.BasicSearch.sh
-shellwrappers += test/sh/bindings.ruby.BasicSearch.sh
-shellwrappers += test/sh/bindings.java.BasicSearch.sh
-shellwrappers += test/sh/bindings.python.RangeSearchString.sh
-shellwrappers += test/sh/bindings.ruby.RangeSearchString.sh
-shellwrappers += test/sh/bindings.java.RangeSearchString.sh
-shellwrappers += test/sh/bindings.python.RangeSearchInt.sh
-shellwrappers += test/sh/bindings.ruby.RangeSearchInt.sh
-shellwrappers += test/sh/bindings.java.RangeSearchInt.sh
-shellwrappers += test/sh/bindings.python.RegexSearch.sh
-shellwrappers += test/sh/bindings.ruby.RegexSearch.sh
-shellwrappers += test/sh/bindings.java.RegexSearch.sh
+shellwrappers += test/sh/bindings.python.Basic.sh
+shellwrappers += test/sh/bindings.python.DataTypeFloat.sh
+shellwrappers += test/sh/bindings.python.DataTypeInt.sh
+shellwrappers += test/sh/bindings.python.DataTypeListFloat.sh
+shellwrappers += test/sh/bindings.python.DataTypeListInt.sh
+shellwrappers += test/sh/bindings.python.DataTypeListString.sh
+shellwrappers += test/sh/bindings.python.DataTypeMapFloatFloat.sh
+shellwrappers += test/sh/bindings.python.DataTypeMapFloatInt.sh
+shellwrappers += test/sh/bindings.python.DataTypeMapFloatString.sh
+shellwrappers += test/sh/bindings.python.DataTypeMapIntFloat.sh
+shellwrappers += test/sh/bindings.python.DataTypeMapIntInt.sh
+shellwrappers += test/sh/bindings.python.DataTypeMapIntString.sh
+shellwrappers += test/sh/bindings.python.DataTypeMapStringFloat.sh
+shellwrappers += test/sh/bindings.python.DataTypeMapStringInt.sh
+shellwrappers += test/sh/bindings.python.DataTypeMapStringString.sh
+shellwrappers += test/sh/bindings.python.DataTypeSetFloat.sh
+shellwrappers += test/sh/bindings.python.DataTypeSetInt.sh
+shellwrappers += test/sh/bindings.python.DataTypeSetString.sh
+shellwrappers += test/sh/bindings.python.DataTypeString.sh
 shellwrappers += test/sh/bindings.python.LengthString.sh
-shellwrappers += test/sh/bindings.ruby.LengthString.sh
+shellwrappers += test/sh/bindings.python.MultiAttribute.sh
+shellwrappers += test/sh/bindings.python.RangeSearchInt.sh
+shellwrappers += test/sh/bindings.python.RangeSearchString.sh
+shellwrappers += test/sh/bindings.python.RegexSearch.sh
+
+if ENABLE_JAVA_BINDINGS
+shellwrappers += test/sh/bindings.java.BasicSearch.sh
+shellwrappers += test/sh/bindings.java.Basic.sh
+shellwrappers += test/sh/bindings.java.DataTypeFloat.sh
+shellwrappers += test/sh/bindings.java.DataTypeInt.sh
+shellwrappers += test/sh/bindings.java.DataTypeListFloat.sh
+shellwrappers += test/sh/bindings.java.DataTypeListInt.sh
+shellwrappers += test/sh/bindings.java.DataTypeListString.sh
+shellwrappers += test/sh/bindings.java.DataTypeMapFloatFloat.sh
+shellwrappers += test/sh/bindings.java.DataTypeMapFloatInt.sh
+shellwrappers += test/sh/bindings.java.DataTypeMapFloatString.sh
+shellwrappers += test/sh/bindings.java.DataTypeMapIntFloat.sh
+shellwrappers += test/sh/bindings.java.DataTypeMapIntInt.sh
+shellwrappers += test/sh/bindings.java.DataTypeMapIntString.sh
+shellwrappers += test/sh/bindings.java.DataTypeMapStringFloat.sh
+shellwrappers += test/sh/bindings.java.DataTypeMapStringInt.sh
+shellwrappers += test/sh/bindings.java.DataTypeMapStringString.sh
+shellwrappers += test/sh/bindings.java.DataTypeSetFloat.sh
+shellwrappers += test/sh/bindings.java.DataTypeSetInt.sh
+shellwrappers += test/sh/bindings.java.DataTypeSetString.sh
+shellwrappers += test/sh/bindings.java.DataTypeString.sh
 shellwrappers += test/sh/bindings.java.LengthString.sh
+shellwrappers += test/sh/bindings.java.MultiAttribute.sh
+shellwrappers += test/sh/bindings.java.RangeSearchInt.sh
+shellwrappers += test/sh/bindings.java.RangeSearchString.sh
+shellwrappers += test/sh/bindings.java.RegexSearch.sh
+endif
+
+if ENABLE_RUBY_BINDINGS
+shellwrappers += test/sh/bindings.ruby.BasicSearch.sh
+shellwrappers += test/sh/bindings.ruby.Basic.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeFloat.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeInt.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeListFloat.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeListInt.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeListString.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeMapFloatFloat.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeMapFloatInt.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeMapFloatString.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeMapIntFloat.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeMapIntInt.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeMapIntString.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeMapStringFloat.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeMapStringInt.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeMapStringString.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeSetFloat.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeSetInt.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeSetString.sh
+shellwrappers += test/sh/bindings.ruby.DataTypeString.sh
+shellwrappers += test/sh/bindings.ruby.LengthString.sh
+shellwrappers += test/sh/bindings.ruby.MultiAttribute.sh
+shellwrappers += test/sh/bindings.ruby.RangeSearchInt.sh
+shellwrappers += test/sh/bindings.ruby.RangeSearchString.sh
+shellwrappers += test/sh/bindings.ruby.RegexSearch.sh
+endif
+
+endif # ENABLE_PYTHON_BINDINGS
+endif # ENABLE_CLIENT
+endif # ENABLE_ADMIN
 
 TESTS += $(shellwrappers)
 EXTRA_DIST += $(shellwrappers)
@@ -799,6 +842,81 @@ EXTRA_DIST += test/doc.quick-start.py
 EXTRA_DIST += test/doctest-runner.py
 EXTRA_DIST += test/env.sh
 EXTRA_DIST += test/runner.py
+EXTRA_DIST += test/python/Basic.py
+EXTRA_DIST += test/python/BasicSearch.py
+EXTRA_DIST += test/python/DataTypeFloat.py
+EXTRA_DIST += test/python/DataTypeInt.py
+EXTRA_DIST += test/python/DataTypeListFloat.py
+EXTRA_DIST += test/python/DataTypeListInt.py
+EXTRA_DIST += test/python/DataTypeListString.py
+EXTRA_DIST += test/python/DataTypeMapFloatFloat.py
+EXTRA_DIST += test/python/DataTypeMapFloatInt.py
+EXTRA_DIST += test/python/DataTypeMapFloatString.py
+EXTRA_DIST += test/python/DataTypeMapIntFloat.py
+EXTRA_DIST += test/python/DataTypeMapIntInt.py
+EXTRA_DIST += test/python/DataTypeMapIntString.py
+EXTRA_DIST += test/python/DataTypeMapStringFloat.py
+EXTRA_DIST += test/python/DataTypeMapStringInt.py
+EXTRA_DIST += test/python/DataTypeMapStringString.py
+EXTRA_DIST += test/python/DataTypeSetFloat.py
+EXTRA_DIST += test/python/DataTypeSetInt.py
+EXTRA_DIST += test/python/DataTypeSetString.py
+EXTRA_DIST += test/python/DataTypeString.py
+EXTRA_DIST += test/python/LengthString.py
+EXTRA_DIST += test/python/MultiAttribute.py
+EXTRA_DIST += test/python/RangeSearchInt.py
+EXTRA_DIST += test/python/RangeSearchString.py
+EXTRA_DIST += test/python/RegexSearch.py
+EXTRA_DIST += test/java/Basic.java
+EXTRA_DIST += test/java/BasicSearch.java
+EXTRA_DIST += test/java/DataTypeFloat.java
+EXTRA_DIST += test/java/DataTypeInt.java
+EXTRA_DIST += test/java/DataTypeListFloat.java
+EXTRA_DIST += test/java/DataTypeListInt.java
+EXTRA_DIST += test/java/DataTypeListString.java
+EXTRA_DIST += test/java/DataTypeMapFloatFloat.java
+EXTRA_DIST += test/java/DataTypeMapFloatInt.java
+EXTRA_DIST += test/java/DataTypeMapFloatString.java
+EXTRA_DIST += test/java/DataTypeMapIntFloat.java
+EXTRA_DIST += test/java/DataTypeMapIntInt.java
+EXTRA_DIST += test/java/DataTypeMapIntString.java
+EXTRA_DIST += test/java/DataTypeMapStringFloat.java
+EXTRA_DIST += test/java/DataTypeMapStringInt.java
+EXTRA_DIST += test/java/DataTypeMapStringString.java
+EXTRA_DIST += test/java/DataTypeSetFloat.java
+EXTRA_DIST += test/java/DataTypeSetInt.java
+EXTRA_DIST += test/java/DataTypeSetString.java
+EXTRA_DIST += test/java/DataTypeString.java
+EXTRA_DIST += test/java/LengthString.java
+EXTRA_DIST += test/java/MultiAttribute.java
+EXTRA_DIST += test/java/RangeSearchInt.java
+EXTRA_DIST += test/java/RangeSearchString.java
+EXTRA_DIST += test/java/RegexSearch.java
+EXTRA_DIST += test/ruby/Basic.rb
+EXTRA_DIST += test/ruby/BasicSearch.rb
+EXTRA_DIST += test/ruby/DataTypeFloat.rb
+EXTRA_DIST += test/ruby/DataTypeInt.rb
+EXTRA_DIST += test/ruby/DataTypeListFloat.rb
+EXTRA_DIST += test/ruby/DataTypeListInt.rb
+EXTRA_DIST += test/ruby/DataTypeListString.rb
+EXTRA_DIST += test/ruby/DataTypeMapFloatFloat.rb
+EXTRA_DIST += test/ruby/DataTypeMapFloatInt.rb
+EXTRA_DIST += test/ruby/DataTypeMapFloatString.rb
+EXTRA_DIST += test/ruby/DataTypeMapIntFloat.rb
+EXTRA_DIST += test/ruby/DataTypeMapIntInt.rb
+EXTRA_DIST += test/ruby/DataTypeMapIntString.rb
+EXTRA_DIST += test/ruby/DataTypeMapStringFloat.rb
+EXTRA_DIST += test/ruby/DataTypeMapStringInt.rb
+EXTRA_DIST += test/ruby/DataTypeMapStringString.rb
+EXTRA_DIST += test/ruby/DataTypeSetFloat.rb
+EXTRA_DIST += test/ruby/DataTypeSetInt.rb
+EXTRA_DIST += test/ruby/DataTypeSetString.rb
+EXTRA_DIST += test/ruby/DataTypeString.rb
+EXTRA_DIST += test/ruby/LengthString.rb
+EXTRA_DIST += test/ruby/MultiAttribute.rb
+EXTRA_DIST += test/ruby/RangeSearchInt.rb
+EXTRA_DIST += test/ruby/RangeSearchString.rb
+EXTRA_DIST += test/ruby/RegexSearch.rb
 
 test_replication_stress_test_SOURCES = test/replication-stress-test.cc
 test_replication_stress_test_LDADD = libhyperdex-client.la -le
