@@ -3,7 +3,13 @@
 
 AC_PREREQ([2.62])
 AC_INIT([HyperDex], [1.0.dev], [escriva@cs.cornell.edu])
-AM_INIT_AUTOMAKE([foreign subdir-objects dist-bzip2])
+m4_define([serial_tests], [
+    m4_esyscmd([case `automake --version | head -n 1` in
+                *1.11*);;
+                *) echo serial-tests;;
+                esac])
+])
+AM_INIT_AUTOMAKE(foreign serial_tests subdir-objects dist-bzip2)
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AM_PATH_PYTHON([2.6])
 LT_PREREQ([2.2])
