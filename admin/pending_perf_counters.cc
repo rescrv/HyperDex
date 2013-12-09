@@ -37,6 +37,10 @@
 
 using hyperdex::pending_perf_counters;
 
+#if defined(__APPLE__)
+#include <mach/mach_time.h>
+#endif
+
 static uint64_t
 monotonic_time()
 {

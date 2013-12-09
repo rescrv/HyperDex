@@ -81,7 +81,8 @@ TESTS =
 
 %.h2m: %.md
 	$(pandoc_verbose)pandoc -s -w man -o $@ $<
-	$(sed_verbose)sed -i -e 's/^\.SH \(.*\)$$/[\1]/' -e 's/^.PP$$//' $@
+	$(sed_verbose)sed -e 's/^\.SH \(.*\)$$/[\1]/' -e 's/^.PP$$//' $@ > $@.tmp
+	@mv $@.tmp $@
 
 gperf_verbose = $(gperf_verbose_$(V))
 gperf_verbose_ = $(gperf_verbose_$(AM_DEFAULT_VERBOSITY))
