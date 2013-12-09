@@ -27,6 +27,9 @@
 
 #define __STDC_LIMIT_MACROS
 
+// e
+#include <e/time.h>
+
 // HyperDex
 #include "admin/admin.h"
 #include "admin/constants.h"
@@ -37,6 +40,9 @@ using hyperdex::pending_perf_counters;
 static uint64_t
 monotonic_time()
 {
+#ifdef __APPLE__
+    return e::time();
+#else
     timespec ts;
 
     if (clock_gettime(CLOCK_MONOTONIC, &ts) < 0)
@@ -45,6 +51,7 @@ monotonic_time()
     }
 
     return ts.tv_sec * 1000000000ULL + ts.tv_nsec;
+#endif
 }
 
 struct pending_perf_counters::perf_counter
