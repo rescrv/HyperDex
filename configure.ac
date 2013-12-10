@@ -40,7 +40,7 @@ if test x"${java_bindings}" = xyes; then
     for jnidir in ${JNI_INCLUDE_DIRS}
     do
         if test x"${found_jnidir}" = xno; then
-            JNI_CPPFLAGS="-I${jnidir}"
+            JNI_CPPFLAGS="-I${jnidir} -I${jnidir}/linux"
             found_jnidir=yes
         fi
     done
