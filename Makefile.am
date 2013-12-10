@@ -549,6 +549,7 @@ endif
 CLEANFILES += $(hyperdex_client_jarfile)
 CLEANFILES += $(hyperdex_ycsb_jarfile)
 CLEANFILES += bindings/java/org/hyperdex/client/*.class
+CLEANFILES += test/java/*.class
 
 EXTRA_DIST += bindings/java/org/hyperdex/client/ByteString.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Client.java
