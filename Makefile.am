@@ -524,7 +524,9 @@ bindings_cc_admin_testcompile_LDADD = libhyperdex-admin.la
 
 ###################################### Go ######################################
 
-EXTRA_DIST += bindings/go/api.go
+EXTRA_DIST += bindings/go/admin_api.go
+EXTRA_DIST += bindings/go/admin_test.go
+EXTRA_DIST += bindings/go/client_api.go
 EXTRA_DIST += bindings/go/hypergo.go
 EXTRA_DIST += bindings/go/hypergo_test.go
 EXTRA_DIST += bindings/go/ops.go
