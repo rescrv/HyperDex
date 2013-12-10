@@ -223,6 +223,40 @@ coordinator :: read_only(replicant_state_machine_context* ctx, bool ro)
 }
 
 void
+coordinator :: fault_tolerance(replicant_state_machine_context* ctx,
+                               const char* space, uint64_t ft)
+{
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    uint64_t R = 0;
+    uint64_t P = 0;
+    std::vector<server_id> replica_storage;
+    std::vector<replica_set> replica_sets;
+    space_ptr s;
+
+    for (space_map_t::iterator it = m_spaces.begin();
+            it != m_spaces.end(); ++it)
+    {
+        if (it->first == space) {
+            s = it->second;
+            break;
+        }
+    }
+
+    s->fault_tolerance = ft;
+
+    R = ft + 1;
+    P = s->predecessor_width;
+    compute_replica_sets(R, P, m_permutation, m_servers,
+                         &replica_storage,
+                         &replica_sets);
+
+    setup_intents(ctx, replica_sets, s.get(), false);
+
+    generate_next_configuration(ctx);
+    return generate_response(ctx, COORD_SUCCESS);
+}
+
+void
 coordinator :: server_register(replicant_state_machine_context* ctx,
                                const server_id& sid,
                                const po6::net::location& bind_to)

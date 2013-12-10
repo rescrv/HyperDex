@@ -326,7 +326,12 @@ hyperdex_ds_pack_int(int64_t num, char* buf)
 HYPERDEX_API int
 hyperdex_ds_unpack_int(const char* value, size_t value_sz, int64_t* num)
 {
-    if (value_sz != sizeof(int64_t))
+    if (value_sz == 0)
+    {
+        *num = 0;
+        return 0;
+    }
+    else if (value_sz != sizeof(int64_t))
     {
         return -1;
     }
@@ -344,7 +349,12 @@ hyperdex_ds_pack_float(double num, char* buf)
 HYPERDEX_API int
 hyperdex_ds_unpack_float(const char* value, size_t value_sz, double* num)
 {
-    if (value_sz != sizeof(double))
+    if (value_sz == 0)
+    {
+        *num = 0;
+        return 0;
+    }
+    else if (value_sz != sizeof(double))
     {
         return -1;
     }
@@ -1504,7 +1514,7 @@ hyperdex_ds_iterate_map_float_int_next(struct hyperdex_ds_iterator* iter,
         return -1;
     }
 
-    datatype_info* dik = datatype_info::lookup(HYPERDATATYPE_STRING);
+    datatype_info* dik = datatype_info::lookup(HYPERDATATYPE_FLOAT);
     datatype_info* div = datatype_info::lookup(HYPERDATATYPE_INT64);
     e::slice mkey;
     e::slice mval;
@@ -1539,7 +1549,7 @@ hyperdex_ds_iterate_map_float_float_next(struct hyperdex_ds_iterator* iter,
         return -1;
     }
 
-    datatype_info* dik = datatype_info::lookup(HYPERDATATYPE_STRING);
+    datatype_info* dik = datatype_info::lookup(HYPERDATATYPE_FLOAT);
     datatype_info* div = datatype_info::lookup(HYPERDATATYPE_FLOAT);
     e::slice mkey;
     e::slice mval;

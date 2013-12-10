@@ -153,7 +153,7 @@ identifier_generator :: adopt(region_id* ris, size_t ris_sz)
 
     // get the old counters
     counter* old_counters = NULL;
-    size_t old_sz = 0;
+    uint64_t old_sz = 0;
     get_base(&old_counters, &old_sz);
 
     // carry over values

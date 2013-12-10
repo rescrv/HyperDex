@@ -22,6 +22,9 @@
 \usetikzlibrary{decorations.markings}
 \usepackage{makeidx}
 
+\titleformat{\paragraph}[hang]{\normalfont\normalsize\bfseries}{\theparagraph}{1em}{}
+\titlespacing*{\paragraph}{0pt}{3.25ex plus 1ex minus .2ex}{1em}
+
 \makeindex
 \AtBeginDocument{\renewcommand{\bibname}{References}}
 
@@ -39,16 +42,17 @@
 }
 \makeatother
 
-\setcounter{secnumdepth}{3}
+\setcounter{secnumdepth}{4}
 \setcounter{tocdepth}{3}
 
 \title{HyperDex Reference Manual v1.0.dev}
-\date{October 07, 2013}
+%\date{October 07, 2013}
 \author{Robert Escriva, Bernard Wong, and Emin G{\"u}n Sirer}
 
 \newminted{c}{samepage}
 \newminted{console}{samepage}
 \newminted{python}{samepage}
+\newminted{ruby}{samepage}
 
 \begin{document}
 
@@ -72,6 +76,7 @@
 \part{For Administrators}
 \label{part:for-admins}
 \input{\topdir/fault-tolerance}
+\input{\topdir/tuning}
 \input{\topdir/cluster-membership}
 
 \part{For Hackers}
@@ -81,6 +86,7 @@
 \part{API Reference}
 \label{part:api-ref}
 \input{\topdir/api/c}
+\input{\topdir/api/ruby}
 
 \backmatter
 

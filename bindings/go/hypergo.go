@@ -2,9 +2,10 @@
 package hypergo
 
 /*
-#cgo LDFLAGS: -lhyperdex-client
+#cgo LDFLAGS: -lhyperdex-client -lhyperdex-admin
 #include <netinet/in.h>
 #include "hyperdex/client.h"
+#include "hyperdex/admin.h"
 #include "hyperdex/datastructures.h"
 */
 import "C"
@@ -43,7 +44,14 @@ type Client struct {
 	ptr       *C.struct_hyperdex_client
 	arena     *C.struct_hyperdex_ds_arena
 	requests  []request
-	closeChan chan struct{}
+	closeChan chan bool
+}
+
+// Admin is a priviledged client used to do meta operations to hyperdex
+type Admin struct {
+	ptr       *C.struct_hyperdex_admin
+	requests  []adminRequest
+	closeChan chan bool
 }
 
 // Attributes represents a map of key-value attribute pairs.
@@ -122,6 +130,13 @@ type request struct {
 	status     *C.enum_hyperdex_client_returncode
 }
 
+type adminRequest struct {
+	id      int64
+	success func()
+	failure func(C.enum_hyperdex_admin_returncode, string)
+	status  *C.enum_hyperdex_admin_returncode
+}
+
 // A custom error type that allows for examining HyperDex error code.
 type HyperError struct {
 	returnCode C.enum_hyperdex_client_returncode
@@ -161,7 +176,7 @@ func NewClient(ip string, port int) (*Client, error) {
 		C_client,
 		C_arena,
 		make([]request, 0, 8), // No reallocation within 8 concurrent requests to hyperdex_client_loop
-		make(chan struct{}, 1),
+		make(chan bool, 1),
 	}
 
 	go func() {
@@ -184,13 +199,9 @@ func NewClient(ip string, port int) (*Client, error) {
 					// find processed request among pending requests
 					for i, req := range client.requests {
 						if req.id == ret {
-							log.Printf("Processing request %v\n", req.id)
-							log.Printf("Loop status: %v\n", status)
-							log.Printf("Request status: %v\n", *req.status)
 							if status == C.HYPERDEX_CLIENT_SUCCESS {
 								switch *req.status {
 								case C.HYPERDEX_CLIENT_SUCCESS:
-									log.Println("Request success")
 									if req.success != nil {
 										req.success()
 									}
@@ -204,18 +215,15 @@ func NewClient(ip string, port int) (*Client, error) {
 										req.complete()
 									}
 								case C.HYPERDEX_CLIENT_SEARCHDONE:
-									log.Println("Request search done")
 									if req.complete != nil {
 										req.complete()
 									}
 								case C.HYPERDEX_CLIENT_CMPFAIL:
-									log.Println("Comparison failure")
 									if req.failure != nil {
 										req.failure(*req.status,
 											C.GoString(C.hyperdex_client_error_message(client.ptr)))
 									}
 								default:
-									log.Println("Request failure")
 									if req.failure != nil {
 										req.failure(*req.status,
 											C.GoString(C.hyperdex_client_error_message(client.ptr)))
@@ -248,4 +256,74 @@ func (client *Client) Destroy() {
 	close(client.closeChan)
 	C.hyperdex_client_destroy(client.ptr)
 	//log.Printf("hyperdex_client_destroy(%X)\n", unsafe.Pointer(client.ptr))
+}
+
+func NewAdmin(ip string, port int) (*Admin, error) {
+	C_admin := C.hyperdex_admin_create(C.CString(ip), C.uint16_t(port))
+
+	if C_admin == nil {
+		return nil, fmt.Errorf("Could not create hyperdex_admin (ip=%s, port=%d)", ip, port)
+	}
+
+	admin := &Admin{
+		C_admin,
+		make([]adminRequest, 0, 8),
+		make(chan bool, 1),
+	}
+
+	go func() {
+		for {
+			select {
+			// quit goroutine when client is destroyed
+			case <-admin.closeChan:
+				return
+			default:
+				// check if there are pending requests
+				// and only if there are, call hyperdex_client_loop
+				if len(admin.requests) > 0 {
+					var status C.enum_hyperdex_admin_returncode
+					ret := int64(C.hyperdex_admin_loop(admin.ptr, C.int(TIMEOUT), &status))
+					//log.Printf("hyperdex_client_loop(%X, %d, %X) -> %d\n", unsafe.Pointer(client.ptr), hyperdex_client_loop_timeout, unsafe.Pointer(&status), ret)
+					if ret < 0 {
+						panic(newInternalError(status, "Admin error"))
+					}
+					// find processed request among pending requests
+					for i, req := range admin.requests {
+						if req.id == ret {
+							if status == C.HYPERDEX_ADMIN_SUCCESS {
+								switch *req.status {
+								case C.HYPERDEX_ADMIN_SUCCESS:
+									if req.success != nil {
+										req.success()
+									}
+								default:
+									if req.failure != nil {
+										req.failure(*req.status,
+											C.GoString(C.hyperdex_admin_error_message(admin.ptr)))
+									}
+								}
+							} else if req.failure != nil {
+								req.failure(status,
+									C.GoString(C.hyperdex_admin_error_message(admin.ptr)))
+							}
+							admin.requests = append(admin.requests[:i], admin.requests[i+1:]...)
+						}
+					}
+				}
+				// prevent other goroutines from starving
+				runtime.Gosched()
+			}
+		}
+		panic("Should not be reached: end of infinite loop")
+	}()
+
+	return admin, nil
+}
+
+// Destroy closes the connection between the Admin and hyperdex. It has to be used on a admin that is not used anymore.
+//
+// For every call to NewAdmin, there must be a call to Destroy.
+func (admin *Admin) Destroy() {
+	close(admin.closeChan)
+	C.hyperdex_admin_destroy(admin.ptr)
 }

@@ -37,6 +37,7 @@ pending_search_describe :: pending_search_describe(uint64_t id,
     , m_description(description)
     , m_done(false)
     , m_msgs()
+    , m_text()
 {
 }
 
@@ -53,7 +54,16 @@ pending_search_describe :: can_yield()
 bool
 pending_search_describe :: yield(hyperdex_client_returncode* status, e::error* err)
 {
+    std::ostringstream ostr;
+
+    for (size_t i = 0; i < m_msgs.size(); ++i)
+    {
+        ostr << m_msgs[i].first << " " << m_msgs[i].second << "\n";
+    }
+
+    m_text = ostr.str();
     *status = HYPERDEX_CLIENT_SUCCESS;
+    *m_description = m_text.c_str();
     *err = e::error();
     assert(this->can_yield());
     m_done = true;

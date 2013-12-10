@@ -93,6 +93,10 @@ int64_t
 hyperdex_admin_wait_until_stable(struct hyperdex_admin* admin,
                                  enum hyperdex_admin_returncode* status);
 
+int64_t
+hyperdex_admin_fault_tolerance(struct hyperdex_admin* admin, const char* space,
+                               uint64_t ft, enum hyperdex_admin_returncode* status);
+
 int
 hyperdex_admin_validate_space(struct hyperdex_admin* admin,
                               const char* description,

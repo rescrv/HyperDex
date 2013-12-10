@@ -313,8 +313,29 @@ class range_iterator : public datalayer::index_iterator
         index_primitive* m_val_ii;
         index_info* m_key_ii;
         std::vector<char> m_scratch;
+        std::vector<char> m_start_buf;
+        std::vector<char> m_limit_buf;
+        e::slice m_start;
+        e::slice m_limit;
         bool m_invalid;
 };
+
+void
+convert_to_ordered_encoding(const e::slice& in,
+                            index_info* ii,
+                            std::vector<char>* scratch,
+                            e::slice* out)
+{
+    size_t encoded_sz = ii->encoded_size(in);
+
+    if (scratch->size() < encoded_sz)
+    {
+        scratch->resize(encoded_sz);
+    }
+
+    ii->encode(in, &scratch->front());
+    *out = e::slice(&scratch->front(), encoded_sz);
+}
 
 range_iterator :: range_iterator(leveldb_snapshot_ptr s,
                                  const region_id& ri,
@@ -328,6 +349,10 @@ range_iterator :: range_iterator(leveldb_snapshot_ptr s,
     , m_val_ii(val_ii)
     , m_key_ii(key_ii)
     , m_scratch()
+    , m_start_buf()
+    , m_limit_buf()
+    , m_start()
+    , m_limit()
     , m_invalid(false)
 {
     leveldb::ReadOptions opts;
@@ -341,10 +366,16 @@ range_iterator :: range_iterator(leveldb_snapshot_ptr s,
     if (m_range.has_start)
     {
         m_val_ii->index_entry(m_ri, m_range.attr, m_range.start, &m_scratch, &slice);
+        convert_to_ordered_encoding(m_range.start, m_val_ii, &m_start_buf, &m_start);
     }
     else
     {
         m_val_ii->index_entry(m_ri, m_range.attr, &m_scratch, &slice);
+    }
+
+    if (m_range.has_end)
+    {
+        convert_to_ordered_encoding(m_range.end, m_val_ii, &m_limit_buf, &m_limit);
     }
 
     m_iter->Seek(slice);
@@ -362,10 +393,10 @@ range_iterator :: valid()
         leveldb::Slice _k = m_iter->key();
         region_id ri;
         uint16_t attr;
-        e::slice _v;
-        e::slice k;
+        e::slice iv;
+        e::slice ik;
 
-        if (!decode_entry(_k, m_val_ii, m_key_ii, &ri, &attr, &_v, &k))
+        if (!decode_entry(_k, m_val_ii, m_key_ii, &ri, &attr, &iv, &ik))
         {
             m_invalid = true;
             return false;
@@ -377,25 +408,15 @@ range_iterator :: valid()
             return false;
         }
 
-        size_t decoded_sz = m_val_ii->decoded_size(_v);
-
-        if (m_scratch.size() < decoded_sz)
-        {
-            m_scratch.resize(decoded_sz);
-        }
-
-        m_val_ii->decode(_v, &m_scratch.front());
-        e::slice v(&m_scratch.front(), decoded_sz);
-
         // if there is a start, and the current value is less than it, advance
         // the iterator
         if (m_range.has_start)
         {
-            size_t sz = std::min(m_range.start.size(), v.size());
-            int cmp = memcmp(m_range.start.data(), v.data(), sz);
+            size_t sz = std::min(m_start.size(), iv.size());
+            int cmp = memcmp(m_start.data(), iv.data(), sz);
 
             if (cmp > 0 ||
-                (cmp == 0 && m_range.start.size() > v.size()))
+                (cmp == 0 && m_start.size() > iv.size()))
             {
                 m_iter->Next();
                 continue;
@@ -407,8 +428,8 @@ range_iterator :: valid()
         // advance to the end
         if (m_range.has_end)
         {
-            size_t sz = std::min(m_range.end.size(), v.size());
-            int cmp = memcmp(m_range.end.data(), v.data(), sz);
+            size_t sz = std::min(m_limit.size(), iv.size());
+            int cmp = memcmp(m_limit.data(), iv.data(), sz);
 
             if (cmp < 0)
             {
@@ -416,13 +437,11 @@ range_iterator :: valid()
                 return false;
             }
 
-            if (cmp == 0 && m_range.end.size() < v.size())
+            if (cmp == 0 && m_limit.size() < iv.size())
             {
                 m_iter->Next();
                 continue;
             }
-
-            // XXX this will iterate to the end, unnecessarily
         }
 
         return true;
@@ -539,6 +558,8 @@ class key_iterator : public datalayer::index_iterator
         range m_range;
         index_info* m_key_ii;
         std::vector<char> m_scratch;
+        std::vector<char> m_limit_buf;
+        e::slice m_limit;
         bool m_invalid;
 };
 
@@ -572,6 +593,11 @@ key_iterator :: key_iterator(leveldb_snapshot_ptr s,
         encode_object_region(m_ri, &m_scratch, &slice);
     }
 
+    if (m_range.has_end)
+    {
+        convert_to_ordered_encoding(m_range.end, m_key_ii, &m_limit_buf, &m_limit);
+    }
+
     m_iter->Seek(slice);
 }
 
@@ -586,9 +612,9 @@ key_iterator :: valid()
     {
         leveldb::Slice _k = m_iter->key();
         region_id ri;
-        e::slice k;
+        e::slice ik;
 
-        if (!decode_key(_k, &ri, &k) ||
+        if (!decode_key(_k, &ri, &ik) ||
             m_ri < ri)
         {
             m_invalid = true;
@@ -600,14 +626,19 @@ key_iterator :: valid()
             return true;
         }
 
-        size_t sz = std::min(m_range.end.size(), k.size());
-        int cmp = memcmp(m_range.end.data(), k.data(), sz);
+        size_t sz = std::min(m_limit.size(), ik.size());
+        int cmp = memcmp(m_limit.data(), ik.data(), sz);
 
-        if (cmp > 0 ||
-            (cmp == 0 && m_range.end.size() < k.size()))
+        if (cmp < 0)
         {
             m_invalid = true;
             return false;
+        }
+
+        if (cmp == 0 && m_limit.size() < ik.size())
+        {
+            m_iter->Next();
+            continue;
         }
 
         return true;

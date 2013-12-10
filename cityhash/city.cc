@@ -38,22 +38,6 @@ typedef uint32_t uint32;
 typedef uint64_t uint64;
 typedef std::pair<uint64, uint64> uint128;
 
-inline uint64 Uint128Low64(const uint128& x) { return x.first; }
-inline uint64 Uint128High64(const uint128& x) { return x.second; }
-
-// Hash 128 input bits down to 64 bits of output.
-// This is intended to be a reasonably good hash function.
-inline uint64 Hash128to64(const uint128& x) {
-  // Murmur-inspired hashing.
-  const uint64 kMul = 0x9ddfea08eb382d69ULL;
-  uint64 a = (Uint128Low64(x) ^ Uint128High64(x)) * kMul;
-  a ^= (a >> 47);
-  uint64 b = (Uint128High64(x) ^ a) * kMul;
-  b ^= (b >> 47);
-  b *= kMul;
-  return b;
-}
-
 using namespace std;
 
 static uint64 UNALIGNED_LOAD64(const char *p) {
@@ -173,7 +157,7 @@ static uint32 Hash32Len13to24(const char *s, size_t len) {
 static uint32 Hash32Len0to4(const char *s, size_t len) {
   uint32 b = 0;
   uint32 c = 9;
-  for (int i = 0; i < len; i++) {
+  for (size_t i = 0; i < len; i++) {
     signed char v = s[i];
     b = b * c1 + v;
     c ^= b;
@@ -220,28 +204,28 @@ uint32 CityHash32(const char *s, size_t len) {
   f = f * 5 + 0xe6546b64;
   size_t iters = (len - 1) / 20;
   do {
-    uint32 a0 = Rotate32(Fetch32(s) * c1, 17) * c2;
-    uint32 a1 = Fetch32(s + 4);
-    uint32 a2 = Rotate32(Fetch32(s + 8) * c1, 17) * c2;
-    uint32 a3 = Rotate32(Fetch32(s + 12) * c1, 17) * c2;
-    uint32 a4 = Fetch32(s + 16);
-    h ^= a0;
+    uint32 b0 = Rotate32(Fetch32(s) * c1, 17) * c2;
+    uint32 b1 = Fetch32(s + 4);
+    uint32 b2 = Rotate32(Fetch32(s + 8) * c1, 17) * c2;
+    uint32 b3 = Rotate32(Fetch32(s + 12) * c1, 17) * c2;
+    uint32 b4 = Fetch32(s + 16);
+    h ^= b0;
     h = Rotate32(h, 18);
     h = h * 5 + 0xe6546b64;
-    f += a1;
+    f += b1;
     f = Rotate32(f, 19);
     f = f * c1;
-    g += a2;
+    g += b2;
     g = Rotate32(g, 18);
     g = g * 5 + 0xe6546b64;
-    h ^= a3 + a1;
+    h ^= b3 + b1;
     h = Rotate32(h, 19);
     h = h * 5 + 0xe6546b64;
-    g ^= a4;
+    g ^= b4;
     g = bswap_32(g) * 5;
-    h += a4 * 5;
+    h += b4 * 5;
     h = bswap_32(h);
-    f += a0;
+    f += b0;
     PERMUTE3(f, h, g);
     s += 20;
   } while (--iters != 0);

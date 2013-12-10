@@ -175,7 +175,7 @@ identifier_collector :: adopt(region_id* ris, size_t ris_sz)
 
     // get the old counters
     counter* old_lower_bounds = NULL;
-    size_t old_sz = 0;
+    uint64_t old_sz = 0;
     get_base(&old_lower_bounds, &old_sz);
 
     // carry over values

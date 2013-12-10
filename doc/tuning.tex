@@ -1,0 +1,42 @@
+\chapter{Tuning HyperDex}
+
+Out of the box, HyperDex provides a stable system with decent performance.  This
+chapter is dedicated to those who are looking to get even more performance out
+of their system.  In this chapter, we'll explore system settings that can impact
+HyperDex's performance.
+
+\section{Filesystem}
+
+By default, most filesystems are not tuned for optimal performance with
+HyperDex.  In particular, many Linux filesystems update filesystem metadata
+on each read or write operation, and will totally order all operations on disk,
+adversely affecting performance.
+
+\subsection{Access Time}
+
+HyperDex stores its data in many files on disk, with each file containing a
+small amount of the overall data.  Each read in HyperDex may access multiple
+files to satisfy the read.  While reads are generally cheap, and may be served
+from cache, most filesystems maintain information associated with each file
+about the last time the file was accessed.  Many filesystems can write this
+information to disk each time a file is accessed, converting relatively cheap
+reads into more expensive write operations.
+
+For that reason, we recommend that the volume containing the HyperDex daemons'
+data directories be mounted with the ``noatime'' flag.  This prevents the
+filesytem from recording last-accessed times on files with each read.  Although
+the details are filesystem-dependent, the ``noatime'' flag is generally
+configured by modifying \code{/etc/fstab} to contain the flag:
+
+\begin{verbatim}
+/dev/sda /hyperdex/data/dir ext4 defaults,noatime 0 2
+\end{verbatim}
+
+Consult your filesystem and distribution's documentation for the proper way to
+disable access-time updates.
+
+\subsection{Open Files}
+
+Internally, HyperDex maintains multiple open file descriptors corresponding to
+network sockets and data files.  Most Linux systems restrict the number of open
+files to 1024 by default.  We recommend setting this value to 65536 or higher.

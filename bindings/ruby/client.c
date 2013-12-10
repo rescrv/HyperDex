@@ -56,6 +56,12 @@ static VALUE class_contains;
 
 /******************************* Error Handling *******************************/
 
+void
+hyperdex_ruby_out_of_memory()
+{
+    rb_raise(rb_eNoMemError, "failed to allocate memory");
+}
+
 static VALUE
 hyperdex_ruby_client_create_exception(enum hyperdex_client_returncode status,
                                       const char* error_message)
@@ -115,6 +121,20 @@ typedef int (*elem_string_fptr)(void*, const char*, size_t, enum hyperdex_ds_ret
 typedef int (*elem_int_fptr)(void*, int64_t, enum hyperdex_ds_returncode*);
 typedef int (*elem_float_fptr)(void*, double, enum hyperdex_ds_returncode*);
 
+#define HDRB_HANDLE_ELEM_ERROR(X, TYPE) \
+    switch (X) \
+    { \
+        case HYPERDEX_DS_NOMEM: \
+            hyperdex_ruby_out_of_memory(); \
+        case HYPERDEX_DS_MIXED_TYPES: \
+            rb_raise(rb_eTypeError, "Cannot add " TYPE " to a heterogenous container"); \
+        case HYPERDEX_DS_SUCCESS: \
+        case HYPERDEX_DS_STRING_TOO_LONG: \
+        case HYPERDEX_DS_WRONG_STATE: \
+        default: \
+            rb_raise(rb_eTypeError, "Cannot convert " TYPE " to a HyperDex type"); \
+    }
+
 static void
 hyperdex_ruby_client_convert_elem(VALUE e,
                                   void* x,
@@ -135,7 +155,7 @@ hyperdex_ruby_client_convert_elem(VALUE e,
             tmp_str_sz = strlen(tmp_str);
             if (f_string(x, tmp_str, tmp_str_sz, &error) < 0)
             {
-                // XXX
+                HDRB_HANDLE_ELEM_ERROR(error, "string");
             }
             break;
         case T_STRING:
@@ -143,7 +163,7 @@ hyperdex_ruby_client_convert_elem(VALUE e,
             tmp_str_sz = RSTRING_LEN(e);
             if (f_string(x, tmp_str, tmp_str_sz, &error) < 0)
             {
-                // XXX
+                HDRB_HANDLE_ELEM_ERROR(error, "string");
             }
             break;
         case T_FIXNUM:
@@ -151,18 +171,18 @@ hyperdex_ruby_client_convert_elem(VALUE e,
             tmp_i = NUM2LL(e);
             if (f_int(x, tmp_i, &error) < 0)
             {
-                // XXX
+                HDRB_HANDLE_ELEM_ERROR(error, "integer");
             }
             break;
         case T_FLOAT:
             tmp_d = NUM2DBL(e);
             if (f_float(x, tmp_d, &error) < 0)
             {
-                // XXX
+                HDRB_HANDLE_ELEM_ERROR(error, "float");
             }
             break;
         default:
-            rb_raise(rb_eTypeError, "Cannot convert object to a HyperDex type");
+            rb_raise(rb_eTypeError, "Cannot convert object to a HyperDex container element");
             break;
     }
 }
@@ -183,7 +203,7 @@ hyperdex_ruby_client_convert_list(struct hyperdex_ds_arena* arena,
 
     if (!list)
     {
-        // XXX
+        hyperdex_ruby_out_of_memory();
     }
 
     for (i = 0; i < RARRAY_LEN(x); ++i)
@@ -197,7 +217,7 @@ hyperdex_ruby_client_convert_list(struct hyperdex_ds_arena* arena,
 
     if (hyperdex_ds_list_finalize(list, &error, value, value_sz, datatype) < 0)
     {
-        // XXX
+        hyperdex_ruby_out_of_memory();
     }
 }
 
@@ -218,7 +238,7 @@ hyperdex_ruby_client_convert_set(struct hyperdex_ds_arena* arena,
 
     if (!set)
     {
-        // XXX
+        hyperdex_ruby_out_of_memory();
     }
 
     for (i = 0; i < RARRAY_LEN(x); ++i)
@@ -232,7 +252,7 @@ hyperdex_ruby_client_convert_set(struct hyperdex_ds_arena* arena,
 
     if (hyperdex_ds_set_finalize(set, &error, value, value_sz, datatype) < 0)
     {
-        // XXX
+        hyperdex_ruby_out_of_memory();
     }
 }
 
@@ -255,7 +275,7 @@ hyperdex_ruby_client_convert_map(struct hyperdex_ds_arena* arena,
 
     if (!map)
     {
-        // XXX
+        hyperdex_ruby_out_of_memory();
     }
 
     for (i = 0; i < RARRAY_LEN(x); ++i)
@@ -263,11 +283,11 @@ hyperdex_ruby_client_convert_map(struct hyperdex_ds_arena* arena,
         entry = rb_ary_entry(x, i);
         key = rb_ary_entry(entry, 0);
         val = rb_ary_entry(entry, 1);
-        hyperdex_ruby_client_convert_elem(entry, map,
+        hyperdex_ruby_client_convert_elem(key, map,
                 (elem_string_fptr) hyperdex_ds_map_insert_key_string,
                 (elem_int_fptr) hyperdex_ds_map_insert_key_int,
                 (elem_float_fptr) hyperdex_ds_map_insert_key_float);
-        hyperdex_ruby_client_convert_elem(entry, map,
+        hyperdex_ruby_client_convert_elem(val, map,
                 (elem_string_fptr) hyperdex_ds_map_insert_val_string,
                 (elem_int_fptr) hyperdex_ds_map_insert_val_int,
                 (elem_float_fptr) hyperdex_ds_map_insert_val_float);
@@ -275,7 +295,7 @@ hyperdex_ruby_client_convert_map(struct hyperdex_ds_arena* arena,
 
     if (hyperdex_ds_map_finalize(map, &error, value, value_sz, datatype) < 0)
     {
-        // XXX
+        hyperdex_ruby_out_of_memory();
     }
 }
 
@@ -301,7 +321,7 @@ hyperdex_ruby_client_convert_type(struct hyperdex_ds_arena* arena,
             if (hyperdex_ds_copy_string(arena, tmp_str, tmp_str_sz,
                                         &error, value, value_sz) < 0)
             {
-                // XXX
+                hyperdex_ruby_out_of_memory();
             }
 
             *datatype = HYPERDATATYPE_STRING;
@@ -313,7 +333,7 @@ hyperdex_ruby_client_convert_type(struct hyperdex_ds_arena* arena,
             if (hyperdex_ds_copy_string(arena, tmp_str, tmp_str_sz,
                                         &error, value, value_sz) < 0)
             {
-                // XXX
+                hyperdex_ruby_out_of_memory();
             }
 
             *datatype = HYPERDATATYPE_STRING;
@@ -325,7 +345,7 @@ hyperdex_ruby_client_convert_type(struct hyperdex_ds_arena* arena,
             if (hyperdex_ds_copy_int(arena, tmp_i,
                                      &error, value, value_sz) < 0)
             {
-                // XXX
+                hyperdex_ruby_out_of_memory();
             }
 
             *datatype = HYPERDATATYPE_INT64;
@@ -336,7 +356,7 @@ hyperdex_ruby_client_convert_type(struct hyperdex_ds_arena* arena,
             if (hyperdex_ds_copy_float(arena, tmp_d,
                                        &error, value, value_sz) < 0)
             {
-                // XXX
+                hyperdex_ruby_out_of_memory();
             }
 
             *datatype = HYPERDATATYPE_FLOAT;
@@ -348,9 +368,10 @@ hyperdex_ruby_client_convert_type(struct hyperdex_ds_arena* arena,
             hyperdex_ruby_client_convert_map(arena, x, value, value_sz, datatype);
             break;
         case T_OBJECT:
-            if (!rb_obj_is_instance_of(x, Set) == Qtrue)
+            if (!rb_obj_is_kind_of(x, Set) == Qtrue)
             {
-                // XXX
+                rb_raise(rb_eTypeError, "Cannot convert object to a HyperDex type");
+                break;
             }
 
             hyperdex_ruby_client_convert_set(arena, x, value, value_sz, datatype);
@@ -378,7 +399,7 @@ hyperdex_ruby_client_convert_attributes(struct hyperdex_ds_arena* arena,
     if (TYPE(x) != T_HASH)
     {
         rb_exc_raise(rb_exc_new2(rb_eTypeError, "Attributes must be specified as a hash"));
-        abort(); // unreachable?
+        abort(); /* unreachable? */
     }
 
     hash_pairs = rb_funcall(x, rb_intern("to_a"), 0);
@@ -387,7 +408,7 @@ hyperdex_ruby_client_convert_attributes(struct hyperdex_ds_arena* arena,
 
     if (!attrs)
     {
-        // XXX
+        hyperdex_ruby_out_of_memory();
     }
 
     *_attrs = attrs;
@@ -412,7 +433,6 @@ hyperdex_ruby_client_convert_key(struct hyperdex_ds_arena* arena,
 {
     enum hyperdatatype datatype;
     hyperdex_ruby_client_convert_type(arena, x, key, key_sz, &datatype);
-    /* XXX if datatype is not key type */
 }
 
 static void
@@ -421,6 +441,7 @@ hyperdex_ruby_client_convert_limit(struct hyperdex_ds_arena* arena,
                                    uint64_t* limit)
 {
     *limit = rb_num2ulong(x);
+    (void) arena;
 }
 
 static void
@@ -439,13 +460,13 @@ hyperdex_ruby_client_convert_mapattributes(struct hyperdex_ds_arena* arena,
     struct hyperdex_client_map_attribute* mapattrs = NULL;
     size_t mapattrs_sz = 0;
     size_t mapattrs_idx = 0;
-    size_t i = 0;
+    ssize_t i = 0;
     size_t j = 0;
 
     if (TYPE(x) != T_HASH)
     {
         rb_exc_raise(rb_exc_new2(rb_eTypeError, "Map attributes must be specified as a hash"));
-        abort(); // unreachable?
+        abort(); /* unreachable? */
     }
 
     outer_pairs = rb_funcall(x, rb_intern("to_a"), 0);
@@ -458,7 +479,7 @@ hyperdex_ruby_client_convert_mapattributes(struct hyperdex_ds_arena* arena,
         if (TYPE(inner_pairs) != T_HASH)
         {
             rb_exc_raise(rb_exc_new2(rb_eTypeError, "Map attributes must be specified as a hash"));
-            abort(); // unreachable?
+            abort(); /* unreachable? */
         }
 
         mapattrs_sz += RHASH_SIZE(inner_pairs);
@@ -468,7 +489,7 @@ hyperdex_ruby_client_convert_mapattributes(struct hyperdex_ds_arena* arena,
 
     if (!mapattrs)
     {
-        // XXX
+        hyperdex_ruby_out_of_memory();
     }
 
     *_mapattrs = mapattrs;
@@ -486,15 +507,16 @@ hyperdex_ruby_client_convert_mapattributes(struct hyperdex_ds_arena* arena,
             inner_pair = rb_ary_entry(inner_pairs, j);
             key = rb_ary_entry(inner_pair, 0);
             val = rb_ary_entry(inner_pair, 1);
-            mapattrs[mapattrs_idx].attr = hyperdex_ruby_client_convert_cstring(key, "Attribute name must be a string or symbol");
+            mapattrs[mapattrs_idx].attr = hyperdex_ruby_client_convert_cstring(attr, "Attribute name must be a string or symbol");
             hyperdex_ruby_client_convert_type(arena, key,
                                               &mapattrs[mapattrs_idx].map_key,
                                               &mapattrs[mapattrs_idx].map_key_sz,
                                               &mapattrs[mapattrs_idx].map_key_datatype);
-            hyperdex_ruby_client_convert_type(arena, key,
+            hyperdex_ruby_client_convert_type(arena, val,
                                               &mapattrs[mapattrs_idx].value,
                                               &mapattrs[mapattrs_idx].value_sz,
                                               &mapattrs[mapattrs_idx].value_datatype);
+            ++mapattrs_idx;
         }
     }
 }
@@ -505,6 +527,7 @@ hyperdex_ruby_client_convert_maxmin(struct hyperdex_ds_arena* arena,
                                     int* maxmin)
 {
     *maxmin = x == Qtrue ? 1: 0;
+    (void) arena;
 }
 
 static size_t
@@ -512,27 +535,28 @@ hyperdex_ruby_client_estimate_predicate_size(VALUE x)
 {
     VALUE pred = Qnil;
     struct hyperdex_ruby_client_predicate* p = NULL;
-    size_t i = 0;
+    ssize_t i = 0;
     size_t sum = 0;
 
-    if (TYPE(x) == T_OBJECT &&
-        rb_obj_is_instance_of(x, class_predicate) == Qtrue)
+    if (TYPE(x) == T_DATA &&
+        rb_obj_is_kind_of(x, class_predicate) == Qtrue)
     {
         Data_Get_Struct(x, struct hyperdex_ruby_client_predicate, p);
         return p->num_checks;
     }
     else if (TYPE(x) == T_ARRAY &&
              RARRAY_LEN(x) > 0 &&
-             rb_obj_is_instance_of(rb_ary_entry(x, 0), class_predicate) == Qtrue)
+             rb_obj_is_kind_of(rb_ary_entry(x, 0), class_predicate) == Qtrue)
     {
         for (i = 0; i < RARRAY_LEN(x); ++i)
         {
             pred = rb_ary_entry(x, i);
 
-            if (TYPE(pred) != T_OBJECT ||
-                rb_obj_is_instance_of(pred, class_predicate) != Qtrue)
+            if (TYPE(pred) != T_DATA ||
+                rb_obj_is_kind_of(pred, class_predicate) != Qtrue)
             {
-                // XXX
+                rb_raise(rb_eTypeError, "Cannot convert predicate to a HyperDex type");
+                return 0;
             }
 
             Data_Get_Struct(pred, struct hyperdex_ruby_client_predicate, p);
@@ -558,8 +582,8 @@ hyperdex_ruby_client_convert_predicate(struct hyperdex_ds_arena* arena,
     struct hyperdex_ruby_client_predicate* p = NULL;
     size_t i = 0;
 
-    if (TYPE(x) == T_OBJECT &&
-        rb_obj_is_instance_of(x, class_predicate) == Qtrue)
+    if (TYPE(x) == T_DATA &&
+        rb_obj_is_kind_of(x, class_predicate) == Qtrue)
     {
         Data_Get_Struct(x, struct hyperdex_ruby_client_predicate, p);
 
@@ -577,13 +601,13 @@ hyperdex_ruby_client_convert_predicate(struct hyperdex_ds_arena* arena,
     }
     else if (TYPE(x) == T_ARRAY &&
              RARRAY_LEN(x) > 0 &&
-             rb_obj_is_instance_of(rb_ary_entry(x, 0), class_predicate) == Qtrue)
+             rb_obj_is_kind_of(rb_ary_entry(x, 0), class_predicate) == Qtrue)
     {
-        for (i = 0; i < RARRAY_LEN(x); ++i)
+        for (i = 0; i < (size_t)RARRAY_LEN(x); ++i)
         {
             pred = rb_ary_entry(x, i);
-            assert(TYPE(pred) == T_OBJECT);
-            assert(rb_obj_is_instance_of(pred, class_predicate) == Qtrue);
+            assert(TYPE(pred) == T_DATA);
+            assert(rb_obj_is_kind_of(pred, class_predicate) == Qtrue);
             checks_idx = hyperdex_ruby_client_convert_predicate(arena, attr, pred, checks, checks_idx);
         }
 
@@ -620,7 +644,7 @@ hyperdex_ruby_client_convert_predicates(struct hyperdex_ds_arena* arena,
     if (TYPE(x) != T_HASH)
     {
         rb_exc_raise(rb_exc_new2(rb_eTypeError, "Predicates must be specified as a hash"));
-        abort(); // unreachable?
+        abort(); /* unreachable? */
     }
 
     hash_pairs = rb_funcall(x, rb_intern("to_a"), 0);
@@ -637,7 +661,7 @@ hyperdex_ruby_client_convert_predicates(struct hyperdex_ds_arena* arena,
 
     if (!checks)
     {
-        // XXX
+        hyperdex_ruby_out_of_memory();
     }
 
     *_checks = checks;
@@ -662,6 +686,7 @@ hyperdex_ruby_client_convert_sortby(struct hyperdex_ds_arena* arena,
                                     const char** sortby)
 {
     *sortby = hyperdex_ruby_client_convert_cstring(x, "sortby must be a string or symbol");
+    (void) arena;
 }
 
 static void
@@ -670,6 +695,7 @@ hyperdex_ruby_client_convert_spacename(struct hyperdex_ds_arena* arena,
                                        const char** spacename)
 {
     *spacename = hyperdex_ruby_client_convert_cstring(x, "spacename must be a string or symbol");
+    (void) arena;
 }
 
 /********************************** C -> Ruby *********************************/
@@ -968,6 +994,7 @@ hyperdex_ruby_client_build_attribute(const struct hyperdex_client_attribute* att
         case HYPERDATATYPE_GARBAGE:
         default:
             hyperdex_ruby_client_throw_exception(HYPERDEX_CLIENT_SERVERERROR, "server sent malformed attributes");
+            return Qnil;
     }
 }
 
@@ -982,10 +1009,10 @@ hyperdex_ruby_client_build_attributes(const struct hyperdex_client_attribute* at
     for (i = 0; i < attrs_sz; ++i)
     {
         val = hyperdex_ruby_client_build_attribute(attrs + i);
-        rb_hash_aset(ret, rb_intern(attrs[i].attr), val);
+        rb_hash_aset(ret, ID2SYM(rb_intern(attrs[i].attr)), val);
     }
 
-    return Qnil;
+    return ret;
 }
 
 /******************************* Deferred Class *******************************/
@@ -1013,6 +1040,8 @@ hyperdex_ruby_client_deferred_mark(struct hyperdex_ruby_client_deferred* dfrd)
     }
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
 void
 hyperdex_ruby_client_deferred_free(struct hyperdex_ruby_client_deferred* dfrd)
 {
@@ -1036,6 +1065,7 @@ hyperdex_ruby_client_deferred_free(struct hyperdex_ruby_client_deferred* dfrd)
         free(dfrd);
     }
 }
+#pragma GCC diagnostic pop
 
 static VALUE
 hyperdex_ruby_client_deferred_alloc(VALUE class)
@@ -1045,13 +1075,20 @@ hyperdex_ruby_client_deferred_alloc(VALUE class)
 
     if (!dfrd)
     {
-        rb_raise(rb_eNoMemError, "failed to allocate memory");
+        hyperdex_ruby_out_of_memory();
         return Qnil;
     }
 
     memset(dfrd, 0, sizeof(struct hyperdex_ruby_client_deferred));
     dfrd->client = Qnil;
-    dfrd->arena = NULL;
+    dfrd->arena = hyperdex_ds_arena_create();
+
+    if (!dfrd->arena)
+    {
+        hyperdex_ruby_out_of_memory();
+        return Qnil;
+    }
+
     dfrd->reqid = -1;
     dfrd->status = HYPERDEX_CLIENT_GARBAGE;
     dfrd->attrs = NULL;
@@ -1121,6 +1158,7 @@ hyperdex_ruby_client_deferred_encode_status(struct hyperdex_ruby_client_deferred
     {
         Data_Get_Struct(d->client, struct hyperdex_client, client);
         hyperdex_ruby_client_throw_exception(d->status, hyperdex_client_error_message(client));
+        return Qnil;
     }
 }
 
@@ -1145,6 +1183,7 @@ hyperdex_ruby_client_deferred_encode_status_attributes(struct hyperdex_ruby_clie
     {
         Data_Get_Struct(d->client, struct hyperdex_client, client);
         hyperdex_ruby_client_throw_exception(d->status, hyperdex_client_error_message(client));
+        return Qnil;
     }
 }
 
@@ -1169,6 +1208,7 @@ hyperdex_ruby_client_deferred_encode_status_count(struct hyperdex_ruby_client_de
     {
         Data_Get_Struct(d->client, struct hyperdex_client, client);
         hyperdex_ruby_client_throw_exception(d->status, hyperdex_client_error_message(client));
+        return Qnil;
     }
 }
 
@@ -1193,6 +1233,7 @@ hyperdex_ruby_client_deferred_encode_status_description(struct hyperdex_ruby_cli
     {
         Data_Get_Struct(d->client, struct hyperdex_client, client);
         hyperdex_ruby_client_throw_exception(d->status, hyperdex_client_error_message(client));
+        return Qnil;
     }
 }
 
@@ -1247,14 +1288,21 @@ hyperdex_ruby_client_iterator_alloc(VALUE class)
 
     if (!iter)
     {
-        rb_raise(rb_eNoMemError, "failed to allocate memory");
+        hyperdex_ruby_out_of_memory();
         return Qnil;
     }
 
     memset(iter, 0, sizeof(struct hyperdex_ruby_client_iterator));
     iter->client = Qnil;
     iter->backlogged = rb_ary_new();
-    iter->arena = NULL;
+    iter->arena = hyperdex_ds_arena_create();
+
+    if (!iter->arena)
+    {
+        hyperdex_ruby_out_of_memory();
+        return Qnil;
+    }
+
     iter->reqid = -1;
     iter->status = HYPERDEX_CLIENT_GARBAGE;
     iter->attrs = NULL;
@@ -1349,6 +1397,7 @@ hyperdex_ruby_client_iterator_encode_status_attributes(struct hyperdex_ruby_clie
     {
         Data_Get_Struct(it->client, struct hyperdex_client, client);
         hyperdex_ruby_client_throw_exception(it->status, hyperdex_client_error_message(client));
+        return Qnil;
     }
 }
 
@@ -1397,6 +1446,7 @@ hyperdex_ruby_client_loop(VALUE self)
     if (ret < 0)
     {
         hyperdex_ruby_client_throw_exception(rc, hyperdex_client_error_message(client));
+        return Qnil;
     }
     else
     {
@@ -1437,7 +1487,7 @@ hyperdex_ruby_client_predicate_alloc1(VALUE class)
 
     if (!pred)
     {
-        rb_raise(rb_eNoMemError, "failed to allocate memory");
+        hyperdex_ruby_out_of_memory();
         return Qnil;
     }
 
@@ -1456,7 +1506,7 @@ hyperdex_ruby_client_predicate_alloc2(VALUE class)
 
     if (!pred)
     {
-        rb_raise(rb_eNoMemError, "failed to allocate memory");
+        hyperdex_ruby_out_of_memory();
         return Qnil;
     }
 
@@ -1511,9 +1561,9 @@ hyperdex_ruby_client_predicate_range_init(VALUE self, VALUE lower, VALUE upper)
     struct hyperdex_ruby_client_predicate* pred = NULL;
     Data_Get_Struct(self, struct hyperdex_ruby_client_predicate, pred);
     pred->checks[0].v = lower;
-    pred->checks[0].predicate = HYPERPREDICATE_LESS_EQUAL;
-    pred->checks[1].v = lower;
-    pred->checks[1].predicate = HYPERPREDICATE_GREATER_EQUAL;
+    pred->checks[0].predicate = HYPERPREDICATE_GREATER_EQUAL;
+    pred->checks[1].v = upper;
+    pred->checks[1].predicate = HYPERPREDICATE_LESS_EQUAL;
     return self;
 }
 
@@ -1602,7 +1652,7 @@ Init_hyperdex_client()
     /* create the Client class */
     class_client = rb_define_class_under(mod_hyperdex_client, "Client", rb_cObject);
     rb_define_alloc_func(class_client, hyperdex_ruby_client_alloc);
-    rb_define_method(class_client, "initialize", hyperdex_ruby_client_init, 1);
+    rb_define_method(class_client, "initialize", hyperdex_ruby_client_init, 2);
     rb_define_method(class_client, "loop", hyperdex_ruby_client_loop, 0);
     /* include the generated rb_define_* calls */
 #include "bindings/ruby/prototypes.c"
@@ -1630,7 +1680,7 @@ Init_hyperdex_client()
     /* create the Range class */
     class_range = rb_define_class_under(mod_hyperdex_client, "Range", class_predicate);
     rb_define_alloc_func(class_range , hyperdex_ruby_client_predicate_alloc2);
-    rb_define_method(class_range , "initialize", hyperdex_ruby_client_predicate_range_init, 1);
+    rb_define_method(class_range , "initialize", hyperdex_ruby_client_predicate_range_init, 2);
 
     /* create the Regex class */
     class_regex = rb_define_class_under(mod_hyperdex_client, "Regex", class_predicate);

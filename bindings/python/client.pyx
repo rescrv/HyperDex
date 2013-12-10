@@ -83,7 +83,9 @@ cdef extern from "hyperdex.h":
         HYPERPREDICATE_LESS_EQUAL    = 9730
         HYPERPREDICATE_GREATER_EQUAL = 9731
         HYPERPREDICATE_REGEX         = 9733
+        HYPERPREDICATE_LENGTH_EQUALS        = 9734
         HYPERPREDICATE_LENGTH_LESS_EQUAL    = 9735
+        HYPERPREDICATE_LENGTH_GREATER_EQUAL = 9736
         HYPERPREDICATE_CONTAINS      = 9737
 
 cdef extern from "hyperdex/client.h":
@@ -131,11 +133,8 @@ cdef extern from "hyperdex/client.h":
         HYPERDEX_CLIENT_DONTUSEKEY   = 8524
         HYPERDEX_CLIENT_WRONGTYPE    = 8525
         HYPERDEX_CLIENT_NOMEM        = 8526
-        HYPERDEX_CLIENT_BADCONFIG    = 8527
-        HYPERDEX_CLIENT_DUPLICATE    = 8529
         HYPERDEX_CLIENT_INTERRUPTED  = 8530
         HYPERDEX_CLIENT_CLUSTER_JUMP = 8531
-        HYPERDEX_CLIENT_COORD_LOGGED = 8532
         HYPERDEX_CLIENT_INTERNAL     = 8573
         HYPERDEX_CLIENT_EXCEPTION    = 8574
         HYPERDEX_CLIENT_GARBAGE      = 8575
@@ -242,11 +241,8 @@ class HyperClientException(Exception):
                   ,HYPERDEX_CLIENT_DONTUSEKEY: "Do not specify the key in a search predicate and do not redundantly specify the key for an insert"
                   ,HYPERDEX_CLIENT_WRONGTYPE: 'Attribute "%s" has the wrong type' % attr
                   ,HYPERDEX_CLIENT_NOMEM: 'Memory allocation failed'
-                  ,HYPERDEX_CLIENT_BADCONFIG: 'The coordinator provided a malformed configuration'
-                  ,HYPERDEX_CLIENT_DUPLICATE: 'The space already exists'
                   ,HYPERDEX_CLIENT_INTERRUPTED: 'Interrupted by a signal'
                   ,HYPERDEX_CLIENT_CLUSTER_JUMP: 'The cluster changed identities'
-                  ,HYPERDEX_CLIENT_COORD_LOGGED: 'The coordinator has logged an error with details'
                   ,HYPERDEX_CLIENT_INTERNAL: 'Internal Error (file a bug)'
                   ,HYPERDEX_CLIENT_EXCEPTION: 'Internal Exception (file a bug)'
                   ,HYPERDEX_CLIENT_GARBAGE: 'Internal Corruption (file a bug)'
@@ -269,11 +265,8 @@ class HyperClientException(Exception):
                   ,HYPERDEX_CLIENT_DONTUSEKEY: 'HYPERDEX_CLIENT_DONTUSEKEY'
                   ,HYPERDEX_CLIENT_WRONGTYPE: 'HYPERDEX_CLIENT_WRONGTYPE'
                   ,HYPERDEX_CLIENT_NOMEM: 'HYPERDEX_CLIENT_NOMEM'
-                  ,HYPERDEX_CLIENT_BADCONFIG: 'HYPERDEX_CLIENT_BADCONFIG'
-                  ,HYPERDEX_CLIENT_DUPLICATE: 'HYPERDEX_CLIENT_DUPLICATE'
                   ,HYPERDEX_CLIENT_INTERRUPTED: 'HYPERDEX_CLIENT_INTERRUPTED'
                   ,HYPERDEX_CLIENT_CLUSTER_JUMP: 'HYPERDEX_CLIENT_CLUSTER_JUMP'
-                  ,HYPERDEX_CLIENT_COORD_LOGGED: 'HYPERDEX_CLIENT_COORD_LOGGED'
                   ,HYPERDEX_CLIENT_INTERNAL: 'HYPERDEX_CLIENT_INTERNAL'
                   ,HYPERDEX_CLIENT_EXCEPTION: 'HYPERDEX_CLIENT_EXCEPTION'
                   ,HYPERDEX_CLIENT_GARBAGE: 'HYPERDEX_CLIENT_GARBAGE'
@@ -390,8 +383,8 @@ cdef _obj_to_backing(v):
                 innerytype = HYPERDATATYPE_INT64
                 innerybacking = struct.pack('<q', y)
             elif isinstance(y, float):
-                innerxtype = HYPERDATATYPE_FLOAT
-                innerxbacking = struct.pack('<d', y)
+                innerytype = HYPERDATATYPE_FLOAT
+                innerybacking = struct.pack('<d', y)
             else:
                 raise TypeError("Cannot store heterogeneous sets")
             assert keytype == HYPERDATATYPE_MAP_GENERIC or keytype == innerxtype
@@ -1349,12 +1342,28 @@ cdef class Regex(Predicate):
         Predicate.__init__(self, [(HYPERPREDICATE_REGEX, regex)])
 
 
+cdef class LengthEquals(Predicate):
+
+    def __init__(self, length):
+        if type(length) not in (int, long):
+            raise AttributeError("LengthEquals must be int or long")
+        Predicate.__init__(self, [(HYPERPREDICATE_LENGTH_EQUALS, length)])
+
+
 cdef class LengthLessEqual(Predicate):
 
     def __init__(self, upper):
         if type(upper) not in (int, long):
             raise AttributeError("LengthLessEqual must be int or long")
         Predicate.__init__(self, [(HYPERPREDICATE_LENGTH_LESS_EQUAL, upper)])
+
+
+cdef class LengthGreaterEqual(Predicate):
+
+    def __init__(self, lower):
+        if type(lower) not in (int, long):
+            raise AttributeError("LengthGreaterEqual must be int or long")
+        Predicate.__init__(self, [(HYPERPREDICATE_LENGTH_GREATER_EQUAL, lower)])
 
 
 cdef class Client:

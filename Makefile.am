@@ -33,7 +33,7 @@ AM_CXXFLAGS  = -fvisibility=hidden -fvisibility-inlines-hidden $(PO6_CFLAGS) $(E
 AM_MAKEFLAGS = --no-print-directory
 AM_YFLAGS = -d
 HELP2MAN_FLAGS = --libtool --no-info --version-string=$(VERSION) --manual="HyperDex User Manual"
-TESTS_ENVIRONMENT = . $(abs_top_srcdir)/test/env.sh "${abs_top_srcdir}" "${abs_top_builddir}";
+TESTS_ENVIRONMENT = . $(abs_top_srcdir)/test/env.sh "${abs_top_srcdir}" "${abs_top_builddir}" "${VERSION}";
 
 hyperdexexecdir = $(libexecdir)/$(PACKAGE)-$(VERSION)
 hyperdexheaderdir = $(includedir)/hyperdex
@@ -42,6 +42,7 @@ pkgconfigdir = $(libdir)/pkgconfig
 BUILT_SOURCES =
 
 EXTRA_DIST =
+EXTRA_DIST += test/java/.exists
 
 CLEANFILES =
 
@@ -80,7 +81,8 @@ TESTS =
 
 %.h2m: %.md
 	$(pandoc_verbose)pandoc -s -w man -o $@ $<
-	$(sed_verbose)sed -i -e 's/^\.SH \(.*\)$$/[\1]/' -e 's/^.PP$$//' $@
+	$(sed_verbose)sed -e 's/^\.SH \(.*\)$$/[\1]/' -e 's/^.PP$$//' $@ > $@.tmp
+	@mv $@.tmp $@
 
 gperf_verbose = $(gperf_verbose_$(V))
 gperf_verbose_ = $(gperf_verbose_$(AM_DEFAULT_VERBOSITY))
@@ -97,9 +99,6 @@ pyx_verbose_0 = @echo "  PYX   " $@;
 sed_verbose = $(sed_verbose_$(V))
 sed_verbose_ = $(sed_verbose_$(AM_DEFAULT_VERBOSITY))
 sed_verbose_0 = @echo "  SED   " $@;
-swig_verbose = $(swig_verbose_$(V))
-swig_verbose_ = $(swig_verbose_$(AM_DEFAULT_VERBOSITY))
-swig_verbose_0 = @echo "  SWIG  " $@;
 
 th_sources = test/th_main.cc test/th.cc test/th.h
 
@@ -525,7 +524,9 @@ bindings_cc_admin_testcompile_LDADD = libhyperdex-admin.la
 
 ###################################### Go ######################################
 
-EXTRA_DIST += bindings/go/api.go
+EXTRA_DIST += bindings/go/admin_api.go
+EXTRA_DIST += bindings/go/admin_test.go
+EXTRA_DIST += bindings/go/client_api.go
 EXTRA_DIST += bindings/go/hypergo.go
 EXTRA_DIST += bindings/go/hypergo_test.go
 EXTRA_DIST += bindings/go/ops.go
@@ -549,69 +550,59 @@ endif
 
 CLEANFILES += $(hyperdex_client_jarfile)
 CLEANFILES += $(hyperdex_ycsb_jarfile)
+CLEANFILES += bindings/java/org/hyperdex/client/*.class
+CLEANFILES += test/java/*.class
 
-EXTRA_DIST += bindings/java/examples/HyperBinaryTest.java
-EXTRA_DIST += bindings/java/examples/HyperSearchFloatRange.java
-EXTRA_DIST += bindings/java/examples/HyperTest.java
-EXTRA_DIST += bindings/java/examples/README.txt
-EXTRA_DIST += bindings/java/examples/source_me
-EXTRA_DIST += bindings/java/gen_code/MapOp.template.java
-EXTRA_DIST += bindings/java/gen_code/SimpleOp.template.java
-EXTRA_DIST += bindings/java/gen_code/gen_op_files
-EXTRA_DIST += bindings/java/gen_code/op_list.txt
-EXTRA_DIST += bindings/java/hyperdex_client.i
-EXTRA_DIST += bindings/java/org/hyperdex/client/AttributeError.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/ByteArray.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/ByteArrayKeyedMap.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/ByteArrayKeyedSortedMap.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/ByteArraySortedSet.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/ByteArrayVector.java
+EXTRA_DIST += bindings/java/org/hyperdex/client/ByteString.java
+EXTRA_DIST += bindings/java/org/hyperdex/client/Client.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Deferred.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/DeferredCondPut.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/DeferredCount.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/DeferredDelete.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/DeferredFromAttrs.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/DeferredGet.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/DeferredGroupDel.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/DeferredMapOp.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/GreaterEqual.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/HyperDexClientException.java
+EXTRA_DIST += bindings/java/org/hyperdex/client/Iterator.java
+EXTRA_DIST += bindings/java/org/hyperdex/client/LengthEquals.java
+EXTRA_DIST += bindings/java/org/hyperdex/client/LengthGreaterEqual.java
+EXTRA_DIST += bindings/java/org/hyperdex/client/LengthLessEqual.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/LessEqual.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/MapOp.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/MemoryError.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/Pending.java
+EXTRA_DIST += bindings/java/org/hyperdex/client/Operation.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Predicate.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Range.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/Search.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/SearchBase.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/SimpleOp.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/SortedSearch.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/TypeError.java
-EXTRA_DIST += bindings/java/org/hyperdex/client/ValueError.java
+EXTRA_DIST += bindings/java/org/hyperdex/client/Regex.java
 EXTRA_DIST += bindings/java/org/hyperdex/ycsb/HyperDex.java
-EXTRA_DIST += bindings/java/proxies/Client.i
-EXTRA_DIST += bindings/java/proxies/hyperdex_client_attribute.i
-EXTRA_DIST += bindings/java/proxies/hyperdex_client_attribute_check.i
-EXTRA_DIST += bindings/java/proxies/hyperdex_client_map_attribute.i
 
 # Client
-nodist_libhyperdex_client_java_la_SOURCES = bindings/java/hyperdex_client_wrap.cxx
-libhyperdex_client_java_la_CPPFLAGS = $(JNI_CPPFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS)
-libhyperdex_client_java_la_CXXFLAGS = -fno-strict-aliasing $(AM_CXXFLAGS) -fvisibility=default $(CXXFLAGS)
-libhyperdex_client_java_la_LIBADD = libhyperdex-client.la
-bindings/java/hyperdex_client_wrap.cxx: bindings/java/hyperdex_client.i include/hyperdex/client.h
-	$(swig_verbose)mkdir -p $(abs_top_builddir)/bindings/java/org/hyperdex/client &&  \
-	${SWIG} -I${abs_srcdir} -java -package org.hyperdex.client -outdir $(abs_builddir)/bindings/java/org/hyperdex/client \
-		-o $(abs_builddir)/$@ -w518 $(abs_top_srcdir)/$<
+noinst_HEADERS += bindings/java/org_hyperdex_client_Client.h
+noinst_HEADERS += bindings/java/org_hyperdex_client_Deferred.h
+noinst_HEADERS += bindings/java/org_hyperdex_client_GreaterEqual.h
+noinst_HEADERS += bindings/java/org_hyperdex_client_Iterator.h
+noinst_HEADERS += bindings/java/org_hyperdex_client_LengthEquals.h
+noinst_HEADERS += bindings/java/org_hyperdex_client_LengthGreaterEqual.h
+noinst_HEADERS += bindings/java/org_hyperdex_client_LengthLessEqual.h
+noinst_HEADERS += bindings/java/org_hyperdex_client_LessEqual.h
+noinst_HEADERS += bindings/java/org_hyperdex_client_Range.h
+noinst_HEADERS += bindings/java/org_hyperdex_client_Regex.h
 
-$(hyperdex_client_jarfile): bindings/java/hyperdex_client_wrap.cxx
-	javac bindings/java/org/hyperdex/client/*.java
-	cd bindings/java ; $(JAR) cvf $(JARFLAGS) ../../$(hyperdex_client_jarfile) org/hyperdex/client/*.class
+EXTRA_DIST += bindings/java/org_hyperdex_client_Client.definitions.c
+
+libhyperdex_client_java_la_SOURCES =
+libhyperdex_client_java_la_SOURCES += bindings/java/org_hyperdex_client_Client.c
+libhyperdex_client_java_la_CPPFLAGS = $(JNI_CPPFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS)
+libhyperdex_client_java_la_CFLAGS = $(AM_CFLAGS) $(CFLAGS) -Wmissing-prototypes
+libhyperdex_client_java_la_LIBADD = libhyperdex-client.la
+
+JAVA_SRC_BASE=${abs_top_srcdir}/bindings/java
+JAVA_BUILD_BASE=${abs_top_builddir}/bindings/java
+JAVA_SRC_PKG=${JAVA_SRC_BASE}/org/hyperdex
+JAVA_BUILD_PKG=${JAVA_BUILD_BASE}/org/hyperdex
+
+$(hyperdex_client_jarfile): $(wildcard ${JAVA_SRC_PKG}/client/*.java)
+	javac -d ${JAVA_BUILD_BASE} ${JAVA_SRC_PKG}/client/*.java
+	cd ${JAVA_BUILD_BASE} && $(JAR) cvf $(JARFLAGS) ${abs_top_builddir}/${hyperdex_client_jarfile} org/hyperdex/client/*.class
 
 # YCSB
-$(hyperdex_ycsb_jarfile): bindings/java/org/hyperdex/ycsb/HyperDex.java
-	javac -cp $(abs_top_builddir)/$(hyperdex_client_jarfile):$(CLASSPATH) bindings/java/org/hyperdex/ycsb/*.java
-	cd bindings/java ; $(JAR) cvf $(JARFLAGS) ../../$(hyperdex_ycsb_jarfile) org/hyperdex/ycsb/*.class
+$(hyperdex_ycsb_jarfile): ${JAVA_SRC_PKG}/ycsb/HyperDex.java
+	javac -d ${JAVA_BUILD_BASE} ${JAVA_SRC_PKG}/client/*.java
+	javac -cp $(abs_top_builddir)/$(hyperdex_client_jarfile):$(CLASSPATH) -d ${JAVA_BUILD_BASE} ${JAVA_SRC_PKG}/ycsb/*.java
+	cd ${JAVA_BUILD_BASE} && $(JAR) cvf $(JARFLAGS) ${abs_top_builddir}/${hyperdex_ycsb_jarfile} org/hyperdex/ycsb/*.class
 
 #################################### Python ####################################
 
@@ -709,49 +700,163 @@ endif
 
 check_PROGRAMS += test/replication-stress-test
 check_PROGRAMS += test/search-stress-test
-shellwrappers =
-shellwrappers += test/sh/doc.quick-start.sh
-shellwrappers += test/sh/doc.data-types.sh
-shellwrappers += test/sh/doc.async-ops.sh
-shellwrappers += test/sh/doc.atomic-ops.sh
-shellwrappers += test/sh/replication.simple.daemons=1.fault-tolerance=0.sh
-shellwrappers += test/sh/replication.simple.daemons=8.fault-tolerance=0.sh
-shellwrappers += test/sh/replication.simple.daemons=8.fault-tolerance=1.sh
-shellwrappers += test/sh/replication.simple.daemons=8.fault-tolerance=2.sh
-shellwrappers += test/sh/replication.reverse.daemons=1.fault-tolerance=0.sh
-shellwrappers += test/sh/replication.reverse.daemons=8.fault-tolerance=0.sh
-shellwrappers += test/sh/replication.reverse.daemons=8.fault-tolerance=1.sh
-shellwrappers += test/sh/replication.reverse.daemons=8.fault-tolerance=2.sh
-shellwrappers += test/sh/replication.composite.daemons=1.fault-tolerance=0.sh
-shellwrappers += test/sh/replication.composite.daemons=8.fault-tolerance=0.sh
-shellwrappers += test/sh/replication.composite.daemons=8.fault-tolerance=1.sh
-shellwrappers += test/sh/replication.composite.daemons=8.fault-tolerance=2.sh
-shellwrappers += test/sh/search.simple.keytype=int,daemons=1.fault-tolerance=0.sh
-shellwrappers += test/sh/search.simple.keytype=int,daemons=8.fault-tolerance=0.sh
-shellwrappers += test/sh/search.simple.keytype=int,daemons=8.fault-tolerance=1.sh
-shellwrappers += test/sh/search.simple.keytype=string,daemons=1.fault-tolerance=0.sh
-shellwrappers += test/sh/search.simple.keytype=string,daemons=8.fault-tolerance=0.sh
-shellwrappers += test/sh/search.simple.keytype=string,daemons=8.fault-tolerance=1.sh
-shellwrappers += test/sh/search.index.keytype=int,daemons=1.fault-tolerance=0.sh
-shellwrappers += test/sh/search.index.keytype=int,daemons=8.fault-tolerance=0.sh
-shellwrappers += test/sh/search.index.keytype=int,daemons=8.fault-tolerance=1.sh
-shellwrappers += test/sh/search.index.keytype=string,daemons=1.fault-tolerance=0.sh
-shellwrappers += test/sh/search.index.keytype=string,daemons=8.fault-tolerance=0.sh
-shellwrappers += test/sh/search.index.keytype=string,daemons=8.fault-tolerance=1.sh
-shellwrappers += test/sh/search.subspace.keytype=int,daemons=1.fault-tolerance=0.sh
-shellwrappers += test/sh/search.subspace.keytype=int,daemons=8.fault-tolerance=0.sh
-shellwrappers += test/sh/search.subspace.keytype=int,daemons=8.fault-tolerance=1.sh
-shellwrappers += test/sh/search.subspace.keytype=string,daemons=1.fault-tolerance=0.sh
-shellwrappers += test/sh/search.subspace.keytype=string,daemons=8.fault-tolerance=0.sh
-shellwrappers += test/sh/search.subspace.keytype=string,daemons=8.fault-tolerance=1.sh
-shellwrappers += test/sh/search.combination.keytype=int,daemons=1.fault-tolerance=0.sh
-shellwrappers += test/sh/search.combination.keytype=int,daemons=8.fault-tolerance=0.sh
-shellwrappers += test/sh/search.combination.keytype=int,daemons=8.fault-tolerance=1.sh
-shellwrappers += test/sh/search.combination.keytype=string,daemons=1.fault-tolerance=0.sh
-shellwrappers += test/sh/search.combination.keytype=string,daemons=8.fault-tolerance=0.sh
-shellwrappers += test/sh/search.combination.keytype=string,daemons=8.fault-tolerance=1.sh
-TESTS += $(shellwrappers)
-EXTRA_DIST += $(shellwrappers)
+
+shell_wrappers =
+
+doctest_wrappers =
+doctest_wrappers += test/sh/doc.quick-start.sh
+doctest_wrappers += test/sh/doc.data-types.sh
+doctest_wrappers += test/sh/doc.async-ops.sh
+doctest_wrappers += test/sh/doc.atomic-ops.sh
+shell_wrappers += $(doctest_wrappers)
+
+stress_wrappers =
+stress_wrappers += test/sh/replication.simple.daemons=1.fault-tolerance=0.sh
+stress_wrappers += test/sh/replication.simple.daemons=8.fault-tolerance=0.sh
+stress_wrappers += test/sh/replication.simple.daemons=8.fault-tolerance=1.sh
+stress_wrappers += test/sh/replication.simple.daemons=8.fault-tolerance=2.sh
+stress_wrappers += test/sh/replication.reverse.daemons=1.fault-tolerance=0.sh
+stress_wrappers += test/sh/replication.reverse.daemons=8.fault-tolerance=0.sh
+stress_wrappers += test/sh/replication.reverse.daemons=8.fault-tolerance=1.sh
+stress_wrappers += test/sh/replication.reverse.daemons=8.fault-tolerance=2.sh
+stress_wrappers += test/sh/replication.composite.daemons=1.fault-tolerance=0.sh
+stress_wrappers += test/sh/replication.composite.daemons=8.fault-tolerance=0.sh
+stress_wrappers += test/sh/replication.composite.daemons=8.fault-tolerance=1.sh
+stress_wrappers += test/sh/replication.composite.daemons=8.fault-tolerance=2.sh
+stress_wrappers += test/sh/search.simple.keytype=int,daemons=1.fault-tolerance=0.sh
+stress_wrappers += test/sh/search.simple.keytype=int,daemons=8.fault-tolerance=0.sh
+stress_wrappers += test/sh/search.simple.keytype=int,daemons=8.fault-tolerance=1.sh
+stress_wrappers += test/sh/search.simple.keytype=string,daemons=1.fault-tolerance=0.sh
+stress_wrappers += test/sh/search.simple.keytype=string,daemons=8.fault-tolerance=0.sh
+stress_wrappers += test/sh/search.simple.keytype=string,daemons=8.fault-tolerance=1.sh
+stress_wrappers += test/sh/search.index.keytype=int,daemons=1.fault-tolerance=0.sh
+stress_wrappers += test/sh/search.index.keytype=int,daemons=8.fault-tolerance=0.sh
+stress_wrappers += test/sh/search.index.keytype=int,daemons=8.fault-tolerance=1.sh
+stress_wrappers += test/sh/search.index.keytype=string,daemons=1.fault-tolerance=0.sh
+stress_wrappers += test/sh/search.index.keytype=string,daemons=8.fault-tolerance=0.sh
+stress_wrappers += test/sh/search.index.keytype=string,daemons=8.fault-tolerance=1.sh
+stress_wrappers += test/sh/search.subspace.keytype=int,daemons=1.fault-tolerance=0.sh
+stress_wrappers += test/sh/search.subspace.keytype=int,daemons=8.fault-tolerance=0.sh
+stress_wrappers += test/sh/search.subspace.keytype=int,daemons=8.fault-tolerance=1.sh
+stress_wrappers += test/sh/search.subspace.keytype=string,daemons=1.fault-tolerance=0.sh
+stress_wrappers += test/sh/search.subspace.keytype=string,daemons=8.fault-tolerance=0.sh
+stress_wrappers += test/sh/search.subspace.keytype=string,daemons=8.fault-tolerance=1.sh
+stress_wrappers += test/sh/search.combination.keytype=int,daemons=1.fault-tolerance=0.sh
+stress_wrappers += test/sh/search.combination.keytype=int,daemons=8.fault-tolerance=0.sh
+stress_wrappers += test/sh/search.combination.keytype=int,daemons=8.fault-tolerance=1.sh
+stress_wrappers += test/sh/search.combination.keytype=string,daemons=1.fault-tolerance=0.sh
+stress_wrappers += test/sh/search.combination.keytype=string,daemons=8.fault-tolerance=0.sh
+stress_wrappers += test/sh/search.combination.keytype=string,daemons=8.fault-tolerance=1.sh
+shell_wrappers += $(stress_wrappers)
+
+python_wrappers =
+python_wrappers += test/sh/bindings.python.BasicSearch.sh
+python_wrappers += test/sh/bindings.python.Basic.sh
+python_wrappers += test/sh/bindings.python.DataTypeFloat.sh
+python_wrappers += test/sh/bindings.python.DataTypeInt.sh
+python_wrappers += test/sh/bindings.python.DataTypeListFloat.sh
+python_wrappers += test/sh/bindings.python.DataTypeListInt.sh
+python_wrappers += test/sh/bindings.python.DataTypeListString.sh
+python_wrappers += test/sh/bindings.python.DataTypeMapFloatFloat.sh
+python_wrappers += test/sh/bindings.python.DataTypeMapFloatInt.sh
+python_wrappers += test/sh/bindings.python.DataTypeMapFloatString.sh
+python_wrappers += test/sh/bindings.python.DataTypeMapIntFloat.sh
+python_wrappers += test/sh/bindings.python.DataTypeMapIntInt.sh
+python_wrappers += test/sh/bindings.python.DataTypeMapIntString.sh
+python_wrappers += test/sh/bindings.python.DataTypeMapStringFloat.sh
+python_wrappers += test/sh/bindings.python.DataTypeMapStringInt.sh
+python_wrappers += test/sh/bindings.python.DataTypeMapStringString.sh
+python_wrappers += test/sh/bindings.python.DataTypeSetFloat.sh
+python_wrappers += test/sh/bindings.python.DataTypeSetInt.sh
+python_wrappers += test/sh/bindings.python.DataTypeSetString.sh
+python_wrappers += test/sh/bindings.python.DataTypeString.sh
+python_wrappers += test/sh/bindings.python.LengthString.sh
+python_wrappers += test/sh/bindings.python.MultiAttribute.sh
+python_wrappers += test/sh/bindings.python.RangeSearchInt.sh
+python_wrappers += test/sh/bindings.python.RangeSearchString.sh
+python_wrappers += test/sh/bindings.python.RegexSearch.sh
+shell_wrappers += $(python_wrappers)
+
+java_wrappers =
+java_wrappers += test/sh/bindings.java.BasicSearch.sh
+java_wrappers += test/sh/bindings.java.Basic.sh
+java_wrappers += test/sh/bindings.java.DataTypeFloat.sh
+java_wrappers += test/sh/bindings.java.DataTypeInt.sh
+java_wrappers += test/sh/bindings.java.DataTypeListFloat.sh
+java_wrappers += test/sh/bindings.java.DataTypeListInt.sh
+java_wrappers += test/sh/bindings.java.DataTypeListString.sh
+java_wrappers += test/sh/bindings.java.DataTypeMapFloatFloat.sh
+java_wrappers += test/sh/bindings.java.DataTypeMapFloatInt.sh
+java_wrappers += test/sh/bindings.java.DataTypeMapFloatString.sh
+java_wrappers += test/sh/bindings.java.DataTypeMapIntFloat.sh
+java_wrappers += test/sh/bindings.java.DataTypeMapIntInt.sh
+java_wrappers += test/sh/bindings.java.DataTypeMapIntString.sh
+java_wrappers += test/sh/bindings.java.DataTypeMapStringFloat.sh
+java_wrappers += test/sh/bindings.java.DataTypeMapStringInt.sh
+java_wrappers += test/sh/bindings.java.DataTypeMapStringString.sh
+java_wrappers += test/sh/bindings.java.DataTypeSetFloat.sh
+java_wrappers += test/sh/bindings.java.DataTypeSetInt.sh
+java_wrappers += test/sh/bindings.java.DataTypeSetString.sh
+java_wrappers += test/sh/bindings.java.DataTypeString.sh
+java_wrappers += test/sh/bindings.java.LengthString.sh
+java_wrappers += test/sh/bindings.java.MultiAttribute.sh
+java_wrappers += test/sh/bindings.java.RangeSearchInt.sh
+java_wrappers += test/sh/bindings.java.RangeSearchString.sh
+java_wrappers += test/sh/bindings.java.RegexSearch.sh
+shell_wrappers += $(java_wrappers)
+
+ruby_wrappers =
+ruby_wrappers += test/sh/bindings.ruby.BasicSearch.sh
+ruby_wrappers += test/sh/bindings.ruby.Basic.sh
+ruby_wrappers += test/sh/bindings.ruby.DataTypeFloat.sh
+ruby_wrappers += test/sh/bindings.ruby.DataTypeInt.sh
+ruby_wrappers += test/sh/bindings.ruby.DataTypeListFloat.sh
+ruby_wrappers += test/sh/bindings.ruby.DataTypeListInt.sh
+ruby_wrappers += test/sh/bindings.ruby.DataTypeListString.sh
+ruby_wrappers += test/sh/bindings.ruby.DataTypeMapFloatFloat.sh
+ruby_wrappers += test/sh/bindings.ruby.DataTypeMapFloatInt.sh
+ruby_wrappers += test/sh/bindings.ruby.DataTypeMapFloatString.sh
+ruby_wrappers += test/sh/bindings.ruby.DataTypeMapIntFloat.sh
+ruby_wrappers += test/sh/bindings.ruby.DataTypeMapIntInt.sh
+ruby_wrappers += test/sh/bindings.ruby.DataTypeMapIntString.sh
+ruby_wrappers += test/sh/bindings.ruby.DataTypeMapStringFloat.sh
+ruby_wrappers += test/sh/bindings.ruby.DataTypeMapStringInt.sh
+ruby_wrappers += test/sh/bindings.ruby.DataTypeMapStringString.sh
+ruby_wrappers += test/sh/bindings.ruby.DataTypeSetFloat.sh
+ruby_wrappers += test/sh/bindings.ruby.DataTypeSetInt.sh
+ruby_wrappers += test/sh/bindings.ruby.DataTypeSetString.sh
+ruby_wrappers += test/sh/bindings.ruby.DataTypeString.sh
+ruby_wrappers += test/sh/bindings.ruby.LengthString.sh
+ruby_wrappers += test/sh/bindings.ruby.MultiAttribute.sh
+ruby_wrappers += test/sh/bindings.ruby.RangeSearchInt.sh
+ruby_wrappers += test/sh/bindings.ruby.RangeSearchString.sh
+ruby_wrappers += test/sh/bindings.ruby.RegexSearch.sh
+shell_wrappers += $(ruby_wrappers)
+
+if ENABLE_ADMIN
+if ENABLE_CLIENT
+if ENABLE_PYTHON_BINDINGS
+TESTS += $(doctest_wrappers)
+
+if ENABLE_TIME_CONSUMING_TESTS
+TESTS += $(stress_wrappers)
+endif
+
+TESTS += $(python_wrappers)
+
+if ENABLE_JAVA_BINDINGS
+TESTS += $(java_wrappers)
+endif
+
+if ENABLE_RUBY_BINDINGS
+TESTS += $(ruby_wrappers)
+endif
+
+endif # ENABLE_PYTHON_BINDINGS
+endif # ENABLE_CLIENT
+endif # ENABLE_ADMIN
+
+EXTRA_DIST += $(shell_wrappers)
 EXTRA_DIST += test/doc.async-ops.py
 EXTRA_DIST += test/doc.atomic-ops.py
 EXTRA_DIST += test/doc.data-types.py
@@ -760,6 +865,81 @@ EXTRA_DIST += test/doc.quick-start.py
 EXTRA_DIST += test/doctest-runner.py
 EXTRA_DIST += test/env.sh
 EXTRA_DIST += test/runner.py
+EXTRA_DIST += test/python/Basic.py
+EXTRA_DIST += test/python/BasicSearch.py
+EXTRA_DIST += test/python/DataTypeFloat.py
+EXTRA_DIST += test/python/DataTypeInt.py
+EXTRA_DIST += test/python/DataTypeListFloat.py
+EXTRA_DIST += test/python/DataTypeListInt.py
+EXTRA_DIST += test/python/DataTypeListString.py
+EXTRA_DIST += test/python/DataTypeMapFloatFloat.py
+EXTRA_DIST += test/python/DataTypeMapFloatInt.py
+EXTRA_DIST += test/python/DataTypeMapFloatString.py
+EXTRA_DIST += test/python/DataTypeMapIntFloat.py
+EXTRA_DIST += test/python/DataTypeMapIntInt.py
+EXTRA_DIST += test/python/DataTypeMapIntString.py
+EXTRA_DIST += test/python/DataTypeMapStringFloat.py
+EXTRA_DIST += test/python/DataTypeMapStringInt.py
+EXTRA_DIST += test/python/DataTypeMapStringString.py
+EXTRA_DIST += test/python/DataTypeSetFloat.py
+EXTRA_DIST += test/python/DataTypeSetInt.py
+EXTRA_DIST += test/python/DataTypeSetString.py
+EXTRA_DIST += test/python/DataTypeString.py
+EXTRA_DIST += test/python/LengthString.py
+EXTRA_DIST += test/python/MultiAttribute.py
+EXTRA_DIST += test/python/RangeSearchInt.py
+EXTRA_DIST += test/python/RangeSearchString.py
+EXTRA_DIST += test/python/RegexSearch.py
+EXTRA_DIST += test/java/Basic.java
+EXTRA_DIST += test/java/BasicSearch.java
+EXTRA_DIST += test/java/DataTypeFloat.java
+EXTRA_DIST += test/java/DataTypeInt.java
+EXTRA_DIST += test/java/DataTypeListFloat.java
+EXTRA_DIST += test/java/DataTypeListInt.java
+EXTRA_DIST += test/java/DataTypeListString.java
+EXTRA_DIST += test/java/DataTypeMapFloatFloat.java
+EXTRA_DIST += test/java/DataTypeMapFloatInt.java
+EXTRA_DIST += test/java/DataTypeMapFloatString.java
+EXTRA_DIST += test/java/DataTypeMapIntFloat.java
+EXTRA_DIST += test/java/DataTypeMapIntInt.java
+EXTRA_DIST += test/java/DataTypeMapIntString.java
+EXTRA_DIST += test/java/DataTypeMapStringFloat.java
+EXTRA_DIST += test/java/DataTypeMapStringInt.java
+EXTRA_DIST += test/java/DataTypeMapStringString.java
+EXTRA_DIST += test/java/DataTypeSetFloat.java
+EXTRA_DIST += test/java/DataTypeSetInt.java
+EXTRA_DIST += test/java/DataTypeSetString.java
+EXTRA_DIST += test/java/DataTypeString.java
+EXTRA_DIST += test/java/LengthString.java
+EXTRA_DIST += test/java/MultiAttribute.java
+EXTRA_DIST += test/java/RangeSearchInt.java
+EXTRA_DIST += test/java/RangeSearchString.java
+EXTRA_DIST += test/java/RegexSearch.java
+EXTRA_DIST += test/ruby/Basic.rb
+EXTRA_DIST += test/ruby/BasicSearch.rb
+EXTRA_DIST += test/ruby/DataTypeFloat.rb
+EXTRA_DIST += test/ruby/DataTypeInt.rb
+EXTRA_DIST += test/ruby/DataTypeListFloat.rb
+EXTRA_DIST += test/ruby/DataTypeListInt.rb
+EXTRA_DIST += test/ruby/DataTypeListString.rb
+EXTRA_DIST += test/ruby/DataTypeMapFloatFloat.rb
+EXTRA_DIST += test/ruby/DataTypeMapFloatInt.rb
+EXTRA_DIST += test/ruby/DataTypeMapFloatString.rb
+EXTRA_DIST += test/ruby/DataTypeMapIntFloat.rb
+EXTRA_DIST += test/ruby/DataTypeMapIntInt.rb
+EXTRA_DIST += test/ruby/DataTypeMapIntString.rb
+EXTRA_DIST += test/ruby/DataTypeMapStringFloat.rb
+EXTRA_DIST += test/ruby/DataTypeMapStringInt.rb
+EXTRA_DIST += test/ruby/DataTypeMapStringString.rb
+EXTRA_DIST += test/ruby/DataTypeSetFloat.rb
+EXTRA_DIST += test/ruby/DataTypeSetInt.rb
+EXTRA_DIST += test/ruby/DataTypeSetString.rb
+EXTRA_DIST += test/ruby/DataTypeString.rb
+EXTRA_DIST += test/ruby/LengthString.rb
+EXTRA_DIST += test/ruby/MultiAttribute.rb
+EXTRA_DIST += test/ruby/RangeSearchInt.rb
+EXTRA_DIST += test/ruby/RangeSearchString.rb
+EXTRA_DIST += test/ruby/RegexSearch.rb
 
 test_replication_stress_test_SOURCES = test/replication-stress-test.cc
 test_replication_stress_test_LDADD = libhyperdex-client.la -le
@@ -989,10 +1169,13 @@ maintainer-generate:
 	python bindings/c/gen_client_header.py
 	python bindings/c/gen_doc.py
 	python bindings/c/gen_wrappers.py
+	python bindings/java/gen_java.py
 	python bindings/ruby/gen_ruby.py
+	python bindings/ruby/gen_doc.py
 	python maint/generate-replication-shell-stubs.py
 	python maint/generate-search-shell-stubs.py
 	python maint/generate-doc-shell-stubs.py
+	python maint/generate-bindings-tests.py
 	python test/doc-extract.py python doc/quick-start.tex test/doc.quick-start.py
 	python test/doc-extract.py python doc/data-types.tex test/doc.data-types.py
 	python test/doc-extract.py python doc/async-ops.tex test/doc.async-ops.py

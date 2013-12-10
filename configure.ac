@@ -2,8 +2,14 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.62])
-AC_INIT([HyperDex], [1.0.rc5], [robert@hyperdex.org])
-AM_INIT_AUTOMAKE([foreign subdir-objects dist-bzip2])
+AC_INIT([HyperDex], [1.0.0], [robert@hyperdex.org])
+m4_define([serial_tests], [
+    m4_esyscmd([case `automake --version | head -n 1` in
+                *1.11*);;
+                *) echo serial-tests;;
+                esac])
+])
+AM_INIT_AUTOMAKE(foreign serial_tests subdir-objects dist-bzip2)
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AM_PATH_PYTHON([2.6])
 LT_PREREQ([2.2])
@@ -24,14 +30,12 @@ ANAL_WARNINGS
 AC_ARG_ENABLE([java-bindings], [AS_HELP_STRING([--enable-java-bindings],
               [enable the Java bindings @<:@default: no@:>@])],
               [java_bindings=${enableval}], [java_bindings=no])
-need_swig=no
 
 JNI_CPPFLAGS=
 if test x"${java_bindings}" = xyes; then
     AC_PROG_JAR
     AC_PROG_JAVAC
     AC_JNI_INCLUDE_DIR
-    need_swig=yes
     found_jnidir=no
     for jnidir in ${JNI_INCLUDE_DIRS}
     do
@@ -51,11 +55,6 @@ Set JAVAC to point to your Java compiler.
 fi
 AC_SUBST([JNI_CPPFLAGS], [${JNI_CPPFLAGS}])
 
-if test x"${need_swig}" = xyes; then
-    AX_PKG_SWIG(1.3)
-    SWIG_ENABLE_CXX
-fi
-
 # Checks for libraries.
 AC_CHECK_LIB([popt], [poptGetContext], [], [AC_MSG_ERROR([
 -------------------------------------------------
@@ -73,7 +72,7 @@ fi
 PKG_CHECK_MODULES([PO6], [libpo6 >= 0.3.1])
 PKG_CHECK_MODULES([E], [libe >= 0.3.2])
 PKG_CHECK_MODULES([BUSYBEE], [busybee >= 0.3.0])
-PKG_CHECK_MODULES([HYPERLEVELDB], [libhyperleveldb >= 1.0.0])
+PKG_CHECK_MODULES([HYPERLEVELDB], [libhyperleveldb >= 1.0])
 PKG_CHECK_MODULES([REPLICANT], [replicant >= 0.2.dev])
 
 # Checks for header files.
@@ -114,16 +113,6 @@ AC_CHECK_FUNCS([alarm clock_gettime mach_absolute_time ftruncate memmove mkdir m
 AC_ARG_ENABLE([ycsb], [AS_HELP_STRING([--enable-ycsb],
               [enable the Yahoo Cloud Serving Benchmark @<:@default: no@:>@])],
               [enable_ycsb=${enableval}], [enable_ycsb=no])
-if test x"${swig_version}" = x; then
-    if test x"${java_bindings}" = xyes; then
-        AC_MSG_ERROR([
--------------------------------------------------
-Cannot build Java bindings without SWIG
-Java bindings will not be built.
--------------------------------------------------])
-        java_bindings=no
-    fi
-fi
 if test x"${enable_ycsb}" = xyes; then
     if test x"${java_bindings}" = xno; then
         AC_MSG_ERROR([
@@ -189,7 +178,12 @@ AC_ARG_ENABLE([maintainer-tools], [AS_HELP_STRING([--enable-maintainer-tools],
               [enable maintainer tools @<:@default: no@:>@])],
               [enable_maintaine_tools=${enable_maintainer_tools}], [enable_maintaine_tools=no])
 AM_CONDITIONAL([ENABLE_MAINTAINER_TOOLS], [test x"${enable_maintainer_tools}" = xyes])
+AC_ARG_ENABLE([time-consuming-tests], [AS_HELP_STRING([--enable-time-consuming-tests],
+              [enable tests that can take quite awhile to run @<:@default: yes@:>@])],
+              [enable_time_consuming_tests=${enable_time_consuming_tests}], [enable_time_consuming_tests=yes])
+AM_CONDITIONAL([ENABLE_TIME_CONSUMING_TESTS], [test x"${enable_time_consuming_tests}" = xyes])
 
 # Generate outputs and finish
 AC_CONFIG_FILES([Makefile hyperdex-client.pc hyperdex-admin.pc hyperdex.upack])
+AC_CONFIG_LINKS([test/java/.exists:test/java/.exists])
 AC_OUTPUT

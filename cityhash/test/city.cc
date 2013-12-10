@@ -27,6 +27,11 @@ using std::cout;
 using std::cerr;
 using std::hex;
 
+typedef uint8_t uint8;
+typedef uint32_t uint32;
+typedef uint64_t uint64;
+typedef std::pair<uint64, uint64> uint128;
+
 static const uint64 k0 = 0xc3a5c85c97cb3127ULL;
 static const uint64 kSeed0 = 1234567;
 static const uint64 kSeed1 = k0;

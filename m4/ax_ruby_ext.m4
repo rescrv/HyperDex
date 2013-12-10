@@ -32,6 +32,7 @@
 # LICENSE
 #
 #   Copyright (c) 2011 Stanislav Sedov <stas@FreeBSD.org>
+#   Copyright (c) 2013 Robert Escriva <robert@hyperdex.org>
 #
 #   Redistribution and use in source and binary forms, with or without
 #   modification, are permitted provided that the following conditions are
@@ -102,17 +103,6 @@ AC_DEFUN([AX_RUBY_EXT],[
                 AC_SUBST(RUBY_EXT_ARCHINC)
 
                 #
-                # Check for the extensions target directory.
-                #
-                AC_ARG_VAR(RUBY_EXT_LIB, [Directory to install ruby extensions into])
-                AC_MSG_CHECKING([for Ruby extensions target directory])
-                if test -z "$RUBY_EXT_LIB" ; then
-                        [RUBY_EXT_LIB=`$RUBY -rrbconfig -e 'puts RbConfig::CONFIG["sitearchdir"]'`];
-                fi
-                AC_MSG_RESULT([$RUBY_EXT_LIB])
-                AC_SUBST(RUBY_EXT_LIB)
-
-                #
                 # Check for Ruby CPP flags.
                 #
                 AC_ARG_VAR(RUBY_EXT_CPPFLAGS, [CPPFLAGS to compile Ruby extensions])
@@ -153,5 +143,49 @@ AC_DEFUN([AX_RUBY_EXT],[
                 fi
                 AC_MSG_RESULT([$RUBY_EXT_DLEXT])
                 AC_SUBST(RUBY_EXT_DLEXT)
+
+                #
+                # Check for the site arch dir
+                #
+                AC_ARG_VAR(RUBY_EXT_SITEARCH, [Ruby site arch dir])
+                AC_MSG_CHECKING([for Ruby extensions site arch dir])
+                if test -z "$RUBY_EXT_SITEARCH" ; then
+                    [RUBY_EXT_SITEARCH=`$RUBY -rrbconfig -e 'puts RbConfig::CONFIG["sitearchdir"]'`];
+                elif test -z "$RUBY_EXT_LIB" ; then
+                    [RUBY_EXT_LIB="${RUBY_EXT_SITEARCH}"];
+                fi
+                AC_MSG_RESULT([$RUBY_EXT_SITEARCH])
+                AC_SUBST(RUBY_EXT_SITEARCH)
+
+                #
+                # Check for the vendor arch dir
+                #
+                AC_ARG_VAR(RUBY_EXT_VENDORARCH, [Ruby vendor arch dir])
+                AC_MSG_CHECKING([for Ruby extensions vendor arch dir])
+                if test -z "$RUBY_EXT_VENDORARCH" ; then
+                    [RUBY_EXT_VENDORARCH=`$RUBY -rrbconfig -e 'puts RbConfig::CONFIG["vendorarchdir"]'`];
+                elif test -z "$RUBY_EXT_LIB" ; then
+                    [RUBY_EXT_LIB="$RUBY_EXT_VENDORARCH"];
+                fi
+                AC_MSG_RESULT([$RUBY_EXT_VENDORARCH])
+                AC_SUBST(RUBY_EXT_VENDORARCH)
+
+                AC_ARG_VAR(RUBY_EXT_LIB, [Ruby extension dir])
+                if test -z "$RUBY_EXT_LIB" ; then
+                     test "_$prefix" = _NONE && prefix="$ac_default_prefix"
+                     if echo $RUBY_EXT_VENDORARCH | sed -e "s:^${prefix}:.:" | grep '^\.' >/dev/null; then
+                         RUBY_EXT_LIB='$(prefix)'/`echo $RUBY_EXT_VENDORARCH | sed -e "s:^${prefix}:.:"`
+                     elif echo $RUBY_EXT_SITEARCH | sed -e "s:^${prefix}:.:" | grep '^\.' >/dev/null; then
+                         RUBY_EXT_LIB='$(prefix)'/`echo $RUBY_EXT_SITEARCH | sed -e "s:^${prefix}:.:"`
+                     fi
+                fi
+                if test -z "$RUBY_EXT_LIB" ; then
+                    AC_MSG_ERROR([
+-------------------------------------------------
+Could not auto-detect the Ruby extension dir
+Set RUBY_EXT_SITEARCH or RUBY_EXT_VENDORARCH
+-------------------------------------------------])
+                fi
+                AC_SUBST(RUBY_EXT_LIB)
         fi
 ])

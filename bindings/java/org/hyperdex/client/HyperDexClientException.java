@@ -1,58 +1,61 @@
+/* Copyright (c) 2013, Cornell University
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *     * Redistributions of source code must retain the above copyright notice,
+ *       this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of HyperDex nor the names of its contributors may be
+ *       used to endorse or promote products derived from this software without
+ *       specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
 package org.hyperdex.client;
 
 import java.util.*;
 
 public class HyperDexClientException extends Exception
 {
-    private static HashMap<hyperdex_client_returncode,String> errorMap;
-    static
-    {
-        errorMap = new HashMap<hyperdex_client_returncode,String>();
+    private long _status;
+    private String _symbol;
+    private String _message;
 
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_SUCCESS,"Success");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_NOTFOUND,"Not Found");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_SEARCHDONE,"Search Done");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_CMPFAIL,"Conditional Operation Did Not Match Object");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_READONLY,"Cluster is in a Read-Only State");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_UNKNOWNSPACE,"Unknown Space");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_COORDFAIL,"Coordinator Failure");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_SERVERERROR,"Server Error");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_POLLFAILED,"Polling Failed");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_OVERFLOW,"Integer-overflow or divide-by-zero");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_RECONFIGURE,"Reconfiguration");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_TIMEOUT,"Timeout");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_UNKNOWNATTR,"Unknown attribute '%s'");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_DUPEATTR,"Duplicate attribute '%s'");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_NONEPENDING,"None pending");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_DONTUSEKEY,"Do not specify the key in a search predicate and do not redundantly specify the key for an insert");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_WRONGTYPE,"Attribute '%s' has the wrong type");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_NOMEM,"Memory allocation failed");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_BADCONFIG,"The coordinator provided a malformed configuration");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_DUPLICATE,"The space already exists");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_INTERRUPTED,"Interrupted by a signal");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_CLUSTER_JUMP,"The cluster changed identities");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_COORD_LOGGED,"HYPERDEX_CLIENT_COORD_LOGGED");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_INTERNAL,"Internal Error (file a bug)");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_EXCEPTION,"Internal Exception (file a bug)");
-		errorMap.put(hyperdex_client_returncode.HYPERDEX_CLIENT_GARBAGE,"Internal Corruption (file a bug)");
+    public HyperDexClientException(long status, String symbol, String message)
+    {
+        super(message);
+        this._status = status;
+        this._symbol = symbol;
+        this._message = message;
     }
 
-    private hyperdex_client_returncode rc = hyperdex_client_returncode.HYPERDEX_CLIENT_GARBAGE;
-
-    public HyperDexClientException(hyperdex_client_returncode rc)
+    public long status()
     {
-        super(errorMap.get(rc));
-        this.rc = rc;
-    }
-
-    public HyperDexClientException(hyperdex_client_returncode rc, String attr)
-    {
-        super(String.format(errorMap.get(rc),attr));
-        this.rc = rc;
+        return _status;
     }
 
     public String symbol()
     {
-        return rc.toString();
+        return _symbol;
+    }
+
+    public String message()
+    {
+        return _message;
     }
 }
