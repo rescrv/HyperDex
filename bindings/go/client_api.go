@@ -1,6 +1,6 @@
 package hypergo
 
-// User-facing APIs
+// Data-manipulating APIs
 
 /*
 #cgo LDFLAGS: -lhyperdex-client
