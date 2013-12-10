@@ -119,6 +119,16 @@ hyperdex_admin_wait_until_stable(struct hyperdex_admin* _adm,
     );
 }
 
+HYPERDEX_API int64_t
+hyperdex_admin_fault_tolerance(struct hyperdex_admin* _adm, const char* space,
+                               uint64_t ft, hyperdex_admin_returncode* status)
+{
+    C_WRAP_EXCEPT(
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->fault_tolerance(space, ft, status);
+    );
+}
+
 HYPERDEX_API int
 hyperdex_admin_validate_space(struct hyperdex_admin* _adm,
                               const char* description,
