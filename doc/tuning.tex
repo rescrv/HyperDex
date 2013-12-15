@@ -1,4 +1,5 @@
 \chapter{Tuning HyperDex}
+\label{chap:tuning}
 
 Out of the box, HyperDex provides a stable system with decent performance.  This
 chapter is dedicated to those who are looking to get even more performance out
@@ -6,6 +7,7 @@ of their system.  In this chapter, we'll explore system settings that can impact
 HyperDex's performance.
 
 \section{Filesystem}
+\label{sec:tuning:filesystem}
 
 By default, most filesystems are not tuned for optimal performance with
 HyperDex.  In particular, many Linux filesystems update filesystem metadata
@@ -13,6 +15,7 @@ on each read or write operation, and will totally order all operations on disk,
 adversely affecting performance.
 
 \subsection{Access Time}
+\label{sec:tuning:atime}
 
 HyperDex stores its data in many files on disk, with each file containing a
 small amount of the overall data.  Each read in HyperDex may access multiple
@@ -36,6 +39,7 @@ Consult your filesystem and distribution's documentation for the proper way to
 disable access-time updates.
 
 \subsection{Open Files}
+\label{sec:tuning:ulimit-n}
 
 Internally, HyperDex maintains multiple open file descriptors corresponding to
 network sockets and data files.  Most Linux systems restrict the number of open

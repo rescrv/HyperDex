@@ -1,4 +1,5 @@
 \chapter{Fault Tolerance}
+\label{chap:fault-tolerance}
 
 HyperDex recovers from failures automatically.  When a node fails, HyperDex
 detects the failure, removes the failed node, and automatically reintegrates
@@ -9,6 +10,7 @@ tolerant and can tolerate a configurable number of failures.
 Let's see both kinds of fault tolerance in action.
 
 \section{Coordinator}
+\label{chap:fault-tolerance:coordinator}
 
 First, let's demonstrate the coordinator's fault tolerance.  Bring up a
 singly-fault tolerant coordinator using the same procedure as in previous
@@ -48,6 +50,7 @@ It's even possible to completely shutdown and restart the coordinator by
 shutting down and restarting all nodes in the cluster.
 
 \section{HyperDex Daemons}
+\label{chap:fault-tolerance:daemons}
 
 HyperDex daemons are organized by the coordinator.  In response to failures and
 shutdowns, the coordinator automatically responds by assigning a new server to
@@ -135,6 +138,7 @@ triply-replicated space. Each failure was detected, the space was repaired by
 cleaving out the failed node, and normal operations resumed without data loss.
 
 \section{Fault Tolerance Thresholds}
+\label{chap:fault-tolerance:thresholds}
 
 HyperDex daemons and coordinators each tolerate a configurable number of
 failures before the system fails completely.  For a desired level of fault
@@ -143,6 +147,7 @@ Both are able to tolerate more than $f$ failures so long as enough nodes rejoin
 the cluster to bring the number of failures back under the failure threshold.
 
 \section{Shutting Down and Restoring a Cluster}
+\label{chap:fault-tolerance:reboot}
 
 On occasion, you might need to completely shutdown a HyperDex cluster.  For
 example, planned power outages or kernel upgrades might require such shutdowns.

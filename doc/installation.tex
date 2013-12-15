@@ -1,4 +1,5 @@
 \chapter{Installing HyperDex}
+\label{chap:installation}
 
 HyperDex provides two means of installation for users.  The easiest and most
 convenient way to install HyperDex is to use precompiled binary packages.
@@ -7,11 +8,13 @@ supported as resources permit.  For users who need more control over their
 installation, HyperDex provides the option to compile from source tarballs.
 
 \section{Installing Binary Packages}
+\label{sec:installation:binaries}
 
 The HyperDex team maintains repositories for Debian, Ubuntu, and Fedora so that
 the latest version is always conveniently available.
 
 \subsection{Debian}
+\label{sec:installation:binaries:debian}
 
 To access the Debian repository, add the following to
 \texttt{/etc/apt/sources.list}:
@@ -42,6 +45,7 @@ aptitude install hyperdex
 \end{consolecode}
 
 \subsection{Ubuntu}
+\label{sec:installation:binaries:ubuntu}
 
 To access the Ubuntu repository, add the following to
 \texttt{/etc/apt/sources.list}:
@@ -72,6 +76,7 @@ sudo apt-get install hyperdex
 \end{consolecode}
 
 \subsection{Fedora}
+\label{sec:installation:binaries:fedora}
 
 To access the Fedora repository, add the following to \texttt{/etc/yum.conf}:
 
@@ -90,6 +95,7 @@ yum install hyperdex
 \end{consolecode}
 
 \subsection{Package Names}
+\label{sec:installation:package-names}
 
 Packages are named consistently across platforms.  On all architectures, the
 \texttt{hyperdex} meta-package pulls in all HyperDex packages.  For most users,
@@ -129,6 +135,7 @@ packages provide symbols which will aid in providing tracebacks to the HyperDex
 developers.  Please consult your package manager to find these packages.
 
 \section{Installing Source Tarballs}
+\label{sec:installation:source}
 
 An alternative to installing a prepackaged binary is to install from source
 tarballs.  This is a straightforward process that should work on most any recent
@@ -138,6 +145,7 @@ describe how to configure HyperDex.  Finally, we'll describe the installation
 step.
 
 \subsection{Prerequisites}
+\label{sec:installation:source:deps}
 
 HyperDex has a minimal number of prerequisites for installation from source.
 Although we list all prerequisites in this section for completeness, the
@@ -195,6 +203,7 @@ Dependencies for Yahoo! Cloud Serving Benchmark (YCSB):
 \end{itemize}
 
 \subsection{Configuring}
+\label{sec:installation:source:configure}
 
 HyperDex uses the Autotools to make configuration and installation as
 straightforward as possible.  After extracting the HyperDex tarball, you'll need
@@ -214,6 +223,7 @@ configure HyperDex.  Unless otherwise noted, all options should work well
 together.
 
 \subsubsection{Java Bindings}
+\label{sec:installation:source:java}
 
 HyperDex does not build Java bindings by default.  To enable the Java bindings,
 you must pass \texttt{--enable-java-bindings} to \texttt{./configure} like so:
@@ -229,6 +239,7 @@ Java bindings are currently unavailable in \HyperDexVersion.
 \end{quote}
 
 \subsubsection{Python Bindings}
+\label{sec:installation:source:python}
 
 HyperDex does not build Python bindings by default.  To enable the Python
 bindings, you must pass \texttt{--enable-python-bindings} to
@@ -241,6 +252,7 @@ bindings, you must pass \texttt{--enable-python-bindings} to
 If Python or its headers cannot be found, \texttt{./configure} will fail.
 
 \subsubsection{Yahoo! Cloud Serving Benchmark}
+\label{sec:installation:source:ycsb}
 
 HyperDex provides all the source code necessary to build a HyperDex driver
 for the YCSB benchmark.  If Java bindings are enabled, then YCSB can be built
@@ -254,6 +266,7 @@ Note that YCSB must be in your Java \texttt{CLASSPATH}.  Configure cannot detect
 YCSB by itself.
 
 \subsubsection{Changing the Installation Directory}
+\label{sec:installation:source:prefix}
 
 By default HyperDex installs files in \texttt{/usr/local}.  If you'd like to
 install HyperDex elsewhere, you can specify the installation prefix at configure
@@ -267,6 +280,7 @@ Check the \texttt{--help} option to configure for more ways to tune where
 HyperDex places files.
 
 \subsection{Installing}
+\label{sec:installation:source:make}
 
 Once configured, HyperDex is simple to build and install.  Keep in mind that the
 following commands may fail if the installation directory is not writable by the
@@ -279,6 +293,7 @@ ldconfig
 \end{consolecode}
 
 \section{Installing from Git}
+\label{sec:installation:git}
 
 Developers wishing to contribute to the development of HyperDex may build
 HyperDex directly from Git.  Building from Git is as straightforward as building
@@ -329,6 +344,7 @@ ldconfig
 \end{consolecode}
 
 \section{Verifying Installation}
+\label{sec:installation:verify}
 
 Once you have HyperDex installed, you should be able to view the built-in help.
 If the following commands provide meaningful output, then it is very likely that

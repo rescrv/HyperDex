@@ -1,5 +1,5 @@
 \chapter{Asynchronous Operations}
-\label{sec:async-ops}
+\label{chap:async-ops}
 
 Thus far, all HyperDex operations we've seen are {\em synchronous}, that is, the
 application calls the HyperDex operation and blocks until the operation is
@@ -12,6 +12,7 @@ In this chapter, we'll look at the asynchronous operations HyperDex supports,
 and see different ways to use them to increase concurrency in the system.
 
 \section{Setup}
+\label{sec:async-ops:setup}
 
 As in the previous chapters, the first step is to deploy the cluster and connect
 a client.   First we launch and initialize the coordinator:
@@ -66,6 +67,7 @@ True
 \end{pythoncode}
 
 \section{Asynchronous Operations}
+\label{sec:async-ops:ops}
 
 Asynchronous operations permit applications to retrieve or modify multiple
 objects simultaneously and to perform local computation while doing the same.
@@ -187,6 +189,7 @@ and then wait for each one in turn without having to serialize the round trips
 to the server.
 
 \section{Potential Pitfalls}
+\label{sec:async-ops:pitfalls}
 
 Keep in mind that HyperDex may (and will!) maximize performance by executing
 concurrent asynchronous operations in any order.  If a client wants to ensure
@@ -209,6 +212,7 @@ is committed, it really is committed to sufficiently many replicas to withstand
 the number of simultaneous failures in the space specification).
 
 \section{A Common Window Pattern}
+\label{sec:async-ops:window}
 
 The last point necessitates a common pattern, where a client will want to keep a
 fixed-size window of outstanding requests so as to not issue too many operations

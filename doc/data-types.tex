@@ -12,6 +12,7 @@ By the end of this chapter you'll be familiar with all datatypes provided by
 HyperDex, and a number of atomic operations.
 
 \section{Setup}
+\label{sec:data-types:setup}
 
 As in the previous chapter, the first step is to deploy the cluster and connect
 a client.   First we launch and initialize the coordinator:
@@ -76,6 +77,7 @@ True
 \end{pythoncode}
 
 \section{Strings}
+\label{sec:data-types:strings}
 
 The basic datatype in HyperDex is a byte string.  If you don't specify the type
 of an attribute when creating a space, it is automatically treated as an 8-bit
@@ -114,6 +116,7 @@ HyperDex knows nothing about encodings, so it is up to the application to encode
 or decode data appropriately.
 
 \section{Integers}
+\label{sec:data-types:integers}
 
 As we've already seen, HyperDex supports \code{get} and \code{put} operations on
 integers.  In addition to these basic operations, HyperDex provides atomic
@@ -150,11 +153,13 @@ HyperDex supports a full range of basic operations including:
 \end{itemize}
 
 \section{Floats}
+\label{sec:data-types:floats}
 
 HyperDex also supports double-precision floating point types.  Like integers,
 floats support range searches and atomic operations.
 
 \section{Lists}
+\label{sec:data-types:lists}
 
 Let's add support for friend requests using HyperDex lists the basis of the
 feature.  For this we'll use the \code{pending\_requests} attribute in the
@@ -191,6 +196,7 @@ implementation.
 \end{comment}
 
 \section{Sets}
+\label{sec:data-types:sets}
 
 Our social networking app captures the notion of hobbies.  A set of strings is a
 natural representation for a user's hobbies, as each hobby is represented just
@@ -230,6 +236,7 @@ interface), adding and removing elements with \code{set\_add} and
 the intersection of a set with \code{set\_intersect}.
 
 \section{Maps}
+\label{sec:data-types:maps}
 
 Lastly, our social networking system needs a means for allowing users to
 exchange messages.  Let's demonstrate how we can accomplish this with the
