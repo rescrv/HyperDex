@@ -1,4 +1,5 @@
 \chapter{Atomic Operations}
+\label{chap:atomic-ops}
 
 The operations we have discussed until now have consisted of lone read or write
 operations (though we did examine both synchronous and asynchronous versions of
@@ -33,6 +34,7 @@ Let's see how they're used. The setup below is identical to the previous
 chapter, so if you have that space already set up, you can skip it.
 
 \section{Setup}
+\label{sec:atomic-ops:setup}
 
 As in the previous chapters, the first step is to deploy the cluster and connect
 a client.   First we launch and initialize the coordinator:
@@ -88,6 +90,7 @@ True
 \end{pythoncode}
 
 \section{Atomic Operations}
+\label{sec:atomic-ops:ops}
 
 HyperDex supports a few different types of atomic operations. Perhaps the most
 general one is the \code{cond\_put}.  A \code{cond\_put} performs an \code{put}
@@ -199,6 +202,7 @@ Note that a real implementation will not want to busy-loop, and will want to
 make provisions for when clients fail while holding the lock.
 
 \section{A Comprehensive Walk}
+\label{sec:atomic-ops:walk}
 
 Having built an intuition for how to structure and use the atomic operations,
 let's go through them and illustrate the various atomic operations for each of

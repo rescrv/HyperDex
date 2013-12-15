@@ -1,6 +1,8 @@
 \chapter{Ruby API}
+\label{chap:api:ruby}
 
 \section{Client Library}
+\label{sec:api:ruby:client}
 
 HyperDex provides ruby bindings under the module \code{HyperDex::Client}.  This
 library wraps the HyperDex C Client library and enables use of native Ruby data
@@ -9,6 +11,7 @@ types.
 This library was brought up-to-date following the 1.0.rc5 release.
 
 \subsection{Building the HyperDex Ruby Binding}
+\label{sec:api:ruby:building}
 
 The HyperDex Ruby Binding must be requested at configure time as it is not
 automatically built.  You can ensure that the Ruby bindings are always built by
@@ -20,6 +23,7 @@ so:
 \end{consolecode}
 
 \subsection{Using Ruby Within Your Application}
+\label{sec:api:ruby:using}
 
 All client operation are defined in the \code{HyperDex::Ruby} module.  You can
 access this in your program with:
@@ -29,11 +33,12 @@ require 'hyperdex'
 \end{rubycode}
 
 \subsection{Hello World}
+\label{sec:api:ruby:hello-world}
 
 The following is a minimal application that stores the value "Hello World" and
 then immediately retrieves the value:
 
-\inputminted{ruby}{api/ruby/hello-world.rb}
+\inputminted{ruby}{\topdir/api/ruby/hello-world.rb}
 
 You can run this example with:
 
@@ -61,6 +66,7 @@ too.
 \end{itemize}
 
 \subsection{Asynchronous Operations}
+\label{sec:api:ruby:async-ops}
 
 For convenience, the Ruby bindings treat every operation as synchronous.  This
 enables you to write short scripts without concern for asynchronous operations.
@@ -68,21 +74,23 @@ Most operations come with an asynchronous form, denoted by the \code{async\_}
 prefix.  For example, the above Hello World example could be rewritten in
 asynchronous fashion as such:
 
-\inputminted{ruby}{api/ruby/hello-world-async-wait.rb}
+\inputminted{ruby}{\topdir/api/ruby/hello-world-async-wait.rb}
 
 This enables applications to issue multiple requests simultaneously and wait for
 their completion in an application-specific order.  It's also possible to use
 the \code{loop} method on the client object to wait for the next request to
 complete:
 
-\inputminted{ruby}{api/ruby/hello-world-async-loop.rb}
+\inputminted{ruby}{\topdir/api/ruby/hello-world-async-loop.rb}
 
 \subsection{Data Structures}
+\label{sec:api:ruby:data-structures}
 
 The Ruby bindings automatically manage conversion of data types from Ruby to
 HyperDex types, enabling applications to be written in idiomatic Ruby.
 
 \subsubsection{Examples}
+\label{sec:api:ruby:examples}
 
 This section shows examples of Ruby data structures that are recognized by
 HyperDex.  The examples here are for illustration purposes and are not
@@ -163,6 +171,7 @@ c.put(:kv, "somekey", {:v3 => {"a" => 1}})
 \end{rubycode}
 
 \subsection{Attributes}
+\label{sec:api:ruby:attributes}
 
 Attributes in Ruby are specified in the form of a hash from attribute names to
 their values.  As you can see in the examples above, attributes are specified in
@@ -173,6 +182,7 @@ the form:
 \end{rubycode}
 
 \subsection{Map Attributes}
+\label{sec:api:ruby:map-attributes}
 
 Map attributes in Ruby are specified in the form of a nested hash.  The outer
 hash key specifies the name, while the inner hash key-value pair specifies the
@@ -183,6 +193,7 @@ key-value pair of the map.  For example:
 \end{rubycode}
 
 \subsection{Predicates}
+\label{sec:api:ruby:predicates}
 
 Predicates in Ruby are specified in the form of a hash from attribute names to
 their predicates.  In the simple case, the predicate is just a value to be
@@ -213,6 +224,7 @@ itself.  For example:
 \end{rubycode}
 
 \subsection{Error Handling}
+\label{sec:api:ruby:error-handling}
 
 All error handling within the Ruby bindings is done via the
 \code{begin}/\code{rescue} mechanism of Ruby.  Errors will be raised by the
@@ -243,10 +255,12 @@ invalid attribute "v": attribute has the wrong type
 \end{verbatim}
 
 \subsection{Operations}
+\label{sec:api:ruby:ops}
 
 \input{\topdir/api/ruby.client}
 
 \subsection{Working with Signals}
+\label{sec:api:ruby:signals}
 
 Your application must mask all signals prior to making any calls into the
 Ruby bindings.  The Ruby bindings will unmask the signals during blocking
@@ -254,6 +268,7 @@ operations and raise a \code{HyperDexClientException} with status
 \code{'HYPERDEX\_CLIENT\_INTERRUPTED'} should any signals be received.
 
 \subsection{Working with Threads}
+\label{sec:api:ruby:threads}
 
 The Ruby module is fully reentrant.  Instances of
 \code{HyperDex::Client::Client} and their associated state may be accessed from

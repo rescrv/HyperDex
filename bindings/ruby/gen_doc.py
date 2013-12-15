@@ -35,6 +35,7 @@ ARGS_IN = {(generator.AsyncCall, generator.SpaceName): 'The name of the space as
 def generate_doc_block(x):
     output = ''
     output += '\\paragraph{{\code{{{0}}}}}\n'.format(LaTeX(c.name))
+    output += '\\label{{api:ruby:{0}}}\n'.format(c.name)
     output += '\\index{{{0}!Ruby API}}\n'.format(LaTeX(c.name))
     output += '\\begin{ccode}\n'
     output += generate_func(c)

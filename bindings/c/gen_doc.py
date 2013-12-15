@@ -72,6 +72,7 @@ ARGS_OUT = {(generator.AsyncCall, generator.Status): 'The status of the '
 def generate_doc_block(x):
     output = ''
     output += '\\paragraph{{\code{{{0}}}}}\n'.format(c.name.replace('_', '\\_'))
+    output += '\\label{{api:c:{0}}}\n'.format(c.name)
     output += '\\index{{{0}!C API}}\n'.format(c.name.replace('_', '\\_'))
     output += '\\begin{ccode}\n'
     output += generate_func(c)

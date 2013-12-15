@@ -8,6 +8,7 @@ HyperDex could be used to build store data for a hypothetical phone book
 application.
 
 \section{High-Level Overview}
+\label{sec:quick-start:overview}
 
 A HyperDex cluster consists of three types of components: clients, servers, and
 coordinators.
@@ -36,6 +37,7 @@ particular, we'll create a simple space, insert objects into it, retrieve those
 objects, and then perform queries over these objects.
 
 \section{Starting the Coordinator}
+\label{sec:quick-start:coordinator}
 
 First, we need to start up a coordinator that will oversee the organization of
 the hyperspace.
@@ -57,6 +59,7 @@ At this point, the coordinator is up and running, and we're ready to start up
 additional nodes in our cluster.
 
 \section{Starting HyperDex Daemons}
+\label{sec:quick-start:daemon}
 
 The HyperDex daemons are the workhorse processes that actually house the data in
 the data store and respond to client requests. Let's start a daemon on the the
@@ -91,6 +94,7 @@ is not required to continue with the tutorial).
 You now have a functional HyperDex cluster.  It's time to do something with it.
 
 \section{Creating a new Space}
+\label{sec:quick-start:space}
 
 Let's imagine that we are building a phone book application.  Such a phonebook
 would end up keeping track of people's first name, last name, and phone number.
@@ -185,6 +189,7 @@ EOF
 \end{consolecode}
 
 \section{Interacting with the ``phonebook'' Space}
+\label{sec:quick-start:phonebook}
 
 Now that we have our hyperspace defined and ready to go, it's time to insert
 some information into our phonebook.
@@ -382,6 +387,7 @@ and ``'Joseph'``:
 \end{pythoncode}
 
 \section{Cleaning Up}
+\label{sec:quick-start:cleanup}
 
 When we're done with the ``phonebook'' space, we can delete the space and all
 the items in it directly from Python:
