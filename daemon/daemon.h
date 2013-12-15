@@ -51,6 +51,7 @@
 #include "daemon/replication_manager.h"
 #include "daemon/search_manager.h"
 #include "daemon/state_transfer_manager.h"
+#include "daemon/migration_manager.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 
@@ -108,6 +109,7 @@ class daemon
         friend class replication_manager;
         friend class search_manager;
         friend class state_transfer_manager;
+        friend class migration_manager;
 
     private:
         server_id m_us;
@@ -119,6 +121,7 @@ class daemon
         communication m_comm;
         replication_manager m_repl;
         state_transfer_manager m_stm;
+        migration_manager m_mm;
         search_manager m_sm;
         configuration m_config;
         // counters

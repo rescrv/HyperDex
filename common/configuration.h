@@ -79,6 +79,7 @@ class configuration
         const schema* get_schema(const region_id& ri) const;
         const subspace* get_subspace(const region_id& ri) const;
         virtual_server_id get_virtual(const region_id& ri, const server_id& si) const;
+        space_id space_of(const region_id& ri) const;
         subspace_id subspace_of(const region_id& ri) const;
         subspace_id subspace_prev(const subspace_id& ss) const;
         subspace_id subspace_next(const subspace_id& ss) const;
@@ -109,6 +110,11 @@ class configuration
         void transfers_out(const server_id& s, std::vector<transfer>* transfers) const;
         void transfers_in_regions(const server_id& s, std::vector<region_id>* transfers) const;
         void transfers_out_regions(const server_id& s, std::vector<region_id>* transfers) const;
+
+    // migrations
+    public:
+        void migrations_in(const server_id& s, std::vector<migration>* migrations) const;
+        void migrations_out(const server_id& s, std::vector<migration>* migrations) const;
 
     // hashing functions
     public:

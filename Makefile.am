@@ -202,6 +202,8 @@ noinst_HEADERS += daemon/state_transfer_manager.h
 noinst_HEADERS += daemon/state_transfer_manager_pending.h
 noinst_HEADERS += daemon/state_transfer_manager_transfer_in_state.h
 noinst_HEADERS += daemon/state_transfer_manager_transfer_out_state.h
+noinst_HEADERS += daemon/migration_manager.h
+noinst_HEADERS += daemon/migration_out_state.h
 
 EXTRA_DIST += man/hyperdex-daemon.1.md
 EXTRA_DIST += man/hyperdex-daemon.1.h2m
@@ -262,6 +264,8 @@ hyperdex_daemon_SOURCES += daemon/state_transfer_manager.cc
 hyperdex_daemon_SOURCES += daemon/state_transfer_manager_pending.cc
 hyperdex_daemon_SOURCES += daemon/state_transfer_manager_transfer_in_state.cc
 hyperdex_daemon_SOURCES += daemon/state_transfer_manager_transfer_out_state.cc
+hyperdex_daemon_SOURCES += daemon/migration_manager.cc
+hyperdex_daemon_SOURCES += daemon/migration_out_state.cc
 hyperdex_daemon_CXXFLAGS = $(AM_CXXFLAGS) $(CXXFLAGS)
 hyperdex_daemon_LDADD =
 hyperdex_daemon_LDADD += $(E_LIBS)

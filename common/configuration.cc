@@ -45,6 +45,7 @@ using hyperdex::schema;
 using hyperdex::server;
 using hyperdex::server_id;
 using hyperdex::subspace;
+using hyperdex::space_id;
 using hyperdex::subspace_id;
 using hyperdex::virtual_server_id;
 
@@ -282,6 +283,21 @@ configuration :: get_virtual(const region_id& ri, const server_id& si) const
     }
 
     return virtual_server_id();
+}
+
+space_id
+configuration :: space_of(const region_id& ri) const
+{
+    subspace_id ssid = subspace_of(ri);
+    for (size_t s = 0; s < m_spaces.size(); ++s)
+    {
+        for (size_t ss = 0; ss < m_spaces[s].subspaces.size(); ++ss)
+        {
+            if (m_spaces[s].subspaces[ss].id == ssid) {
+                return m_spaces[s].id;
+            }
+        }
+    }
 }
 
 subspace_id
@@ -612,6 +628,41 @@ configuration :: transfers_out_regions(const server_id& si, std::vector<region_i
         if (m_transfers[i].src == si)
         {
             transfers->push_back(m_transfers[i].rid);
+        }
+    }
+}
+
+void configuration :: migrations_in(const server_id& s, std::vector<migration>* migrations) const
+{
+
+}
+
+void configuration :: migrations_out(const server_id& sid, std::vector<migration>* migrations) const
+{
+    for (size_t m = 0; m < m_migrations.size(); ++m)
+    {
+        const migration& mi(m_migrations[m]);
+        for (size_t w = 0; w < m_spaces.size(); ++w)
+        {
+            const space& s(m_spaces[w]);
+            if (s.id == mi.space_from) {
+                for (size_t x = 0; x < s.subspaces.size(); ++x)
+                {
+                    const subspace& ss(s.subspaces[x]);
+                    for (size_t y = 0; y < ss.regions.size(); ++y)
+                    {
+                        const region& r(ss.regions[y]);
+                        for (size_t z = 0; z < r.replicas.size(); ++z)
+                        {
+                            const replica& rr(r.replicas[z]);
+                            if (rr.si == sid)
+                            {
+                                migrations->push_back(mi);
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
