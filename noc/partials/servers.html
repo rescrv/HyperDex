@@ -1,0 +1,61 @@
+<div ng-controller="ServerListCtrl" ng-init="init(widget.arg);">
+  <button type="button" ng-click="open()" class="close"><i class="icon-pencil"></i></button>
+  <div class="clearfix"></div>
+  <div modal="shouldBeOpen" close="close()" options="opts">
+    <div class="modal-header">
+      <h3>Add Sparklines</h3>
+    </div>
+    <div class="modal-body">
+      <form class="form-horizontal">
+        <div class="control-group" ng-repeat="sparkline in sparklines">
+          <label ng-show="$first" class="control-label">Data</label>
+          <div class="controls">
+            <select ng-model="sparklines[$index]"
+              ng-options="x as label(x) group by x.category for x in properties">
+            </select>
+            <button ng-click="sparklines.splice($index, 1)" ng-show="!$first || sparklines.length > 1" type="button">
+              <i class="icon-remove"></i>
+            </button>
+          </div>
+        </div>
+        <div class="control-group">
+          <div class="controls">
+            <button ng-click="sparklines.push(sparklines[sparklines.length - 1])" type="button">
+              <i class="icon-plus"></i>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-warning cancel" ng-click="close()">Done</button>
+    </div>
+  </div>
+  <table class="clearfix table table-condensed">
+    <thead>
+      <tr>
+        <th width="0"></th>
+        <th>State</th>
+        <th>Server Address</th>
+        <th>ID</th>
+        <th ng-repeat="sparkline in sparklines">
+          <i ng-click="expandSparkline($index)" class="icon-search"></i>
+          <i ng-click="removeSparkline($index)" class="icon-remove"></i>
+          {{ sparkline.name }}
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+    <tr class="{{ classes(server); }}" ng-repeat="server in servers">
+      <td width="0"><i ng-click="expandServer($index);" class="icon-search"></i></td>
+      <td>{{ server.state }}</td>
+      <td>{{ server.location }}</td>
+      <td>{{ server.id }}</td>
+      <td ng-repeat="sparkline in sparklines" ng-controller="SparklineChartCtrl"
+        ng-init="setup(sparkline.tag, server.id)">
+        <div chart source="chart"></div>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+</div>

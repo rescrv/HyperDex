@@ -1,0 +1,16 @@
+<div class="chart" ng-controller="DefaultChartCtrl" ng-init="init(widget.arg);">
+  <button type="button" ng-click="open()" class="close"><i class="icon-pencil"></i></button>
+  <div class="clearfix"></div>
+  <div modal="shouldBeOpen" close="close()" options="opts">
+    <div class="modal-header">
+      <h3>Edit Chart</h3>
+    </div>
+    <div class="modal-body">
+      <div class="edit" ng-include src="'/partials/edit_chart.html'"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-warning cancel" ng-click="close()">Done</button>
+    </div>
+  </div>
+  <div class="chart render" chart source="chart"></div>
+</div>

@@ -1,0 +1,17 @@
+.title {
+  color: #B31B1B;
+}
+
+.nav > li > input {
+  margin-top: 5px;
+  margin-bottom: 0;
+}
+
+.navbar {
+  margin-bottom: 0.7692em;
+}
+
+.modal {
+  width: 790px;
+  margin-left: -395px;
+}

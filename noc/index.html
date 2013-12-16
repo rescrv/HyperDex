@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="hyperdexnoc">
+  <head>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script src="/lib/angular/angular.js"></script>
+    <script src="/lib/angular/ui-bootstrap.js"></script>
+    <script src="/js/noc.js"></script>
+    <script type="text/javascript">
+      google.load("visualization", "1", {packages:["corechart"]});
+      google.setOnLoadCallback(SetGoogleGood);
+    </script>
+    <link href="/css/bootstrap.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <title>HyperDex :: Network Operations Console</title>
+  </head>
+  <body>
+    <div class="container">
+      <img class="pull-left" width="64px" src="/img/hyperdex.png" />
+      <h1>
+        <span class=title>HyperDex</span>
+        <small>Network Operations Console</small>
+      </h1>
+      <div ng-controller="WidgetsDisplayCtrl">
+        <div class="navbar navbar-static-top">
+          <div class="navbar-inner">
+            <ul class="nav pull-left">
+              <li class="dropdown">
+                <a class="dropdown-toggle" data-toggle="dropdown">Add</a>
+                <ul class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu">
+                  <li><a ng-click="addChart()">Chart</a></li>
+                  <li><a ng-click="addServers()">Server Summary</a></li>
+                </ul>
+              </li>
+            </ul><!-- nav pull-left -->
+            <ul class="nav pull-right">
+              <li ng-controller="BackendSelectorCtrl">
+                <input ng-show="edit" type="text" ng-model="tmp.url" placeholder="HyperDex NOC URL" />
+                <input ng-show="edit" class="btn-primary" type="submit" ng-click="save()" value="Switch" />
+                <a ng-show="!edit" ng-click="toggle()">{{ url }}</a>
+              </li><!-- BackendSelectorCtrl -->
+            </ul><!-- nav pull-right -->
+          </div><!-- navbar-inner -->
+        </div><!-- navbar -->
+        <div class="well widget" ng-repeat="widget in widgets">
+          <button type="button" ng-click="remove($index)" class="close"><i class="icon-remove"></i></button>
+          <button type="button" ng-click="down($index)" ng-show="!$last" class="close"><i class="icon-chevron-down"></i></button>
+          <button type="button" ng-click="up($index)" ng-show="!$first" class="close"><i class="icon-chevron-up"></i></button>
+          <div ng-include src="widget.template"></div>
+        </div><!-- ng-repeat -->
+      </div><!-- WidgetsDisplayCtrl -->
+    </div><!-- container -->
+  </body>
+</html>

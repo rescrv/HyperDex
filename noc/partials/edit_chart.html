@@ -1,0 +1,113 @@
+<div ng-controller="EditChartCtrl">
+  <form class="form-horizontal">
+    <tabset>
+      <tab heading="Chart Type">
+        <div class="control-group">
+          <label class="control-label">Data Format</label>
+          <div class="controls">
+            <select ng-model="format">
+              <option value="timeseries">Timeseries</option>
+            </select>
+         </div>
+        </div>
+        <div ng-show="format == 'timeseries'" class="control-group">
+          <label class="control-label">Interval</label>
+          <div class="controls">
+            <input type="text" ng-model="chart.fetch.interval"></input>
+          </div>
+        </div>
+        <div ng-show="format == 'timeseries'" class="control-group">
+          <label class="control-label">Duration</label>
+          <div class="controls">
+            <input type="text" ng-model="chart.fetch.duration"></input>
+          </div>
+        </div>
+        <div class="control-group">
+          <label class="control-label">Display</label>
+          <div class="controls">
+            <select ng-model="chart.type" ng-options="x.type as x.name for x in types" required></select>
+         </div>
+        </div>
+      </tab>
+      <tab heading="Series">
+        <div ng-repeat="data in chart.fetch.data" heading="Series #{{ $index + 1 }}">
+          <legend>Series #{{ $index + 1}}</legend>
+          <div class="control-group">
+            <label class="control-label">Label</label>
+            <div class="controls">
+              <input type="text" ng-model="data.label"></input>
+            </div>
+          </div>
+          <div class="control-group" ng-repeat="prop in data.props">
+            <label ng-show="$first" class="control-label">Data</label>
+            <div class="controls">
+              <select ng-model="data.props[$index]"
+                ng-options="x.tag as labelProperty(x) group by x.category for x in properties">
+              </select>
+              <button ng-click="data.props.splice($index, 1)" ng-show="!$first || data.props.length > 1" type="button">
+                <i class="icon-remove"></i>
+              </button>
+            </div>
+          </div>
+          <div class="control-group">
+            <div class="controls">
+              <button ng-click="data.props.push(data.props[data.props.length - 1])" type="button">
+                <i class="icon-plus"></i>
+              </button>
+            </div>
+          </div>
+          <div class="control-group">
+            <label class="control-label">Select</label>
+            <div class="controls">
+              <select ng-model="data.group"
+                ng-options="x.type as x.name for x in groups">
+              </select>
+              <select ng-show="data.group == 'server'"
+                ng_model="data.group_opts.id" ng-options="x.id as labelServer(x) for x in servers">
+              </select>
+            </div>
+          </div>
+          <div ng-show="chart.fetch.data.length > 1" class="control-group">
+            <div class="controls">
+              <button ng-click="chart.fetch.data.splice($index, 1);" class="btn btn-danger">Remove Series</button>
+            </div>
+          </div>
+        </div><!-- ng-repeat -->
+        <legend></legend>
+        <div class="control-group">
+          <div class="controls">
+            <button ng-click="addSeries();" class="btn btn-info">Add Series</button>
+          </div>
+        </div>
+      </tab>
+      <tab heading="Display Options">
+        <div class="control-group">
+          <label class="control-label">Title</label>
+          <div class="controls">
+            <input type="text" ng-model="chart.options.title"></input>
+          </div>
+        </div>
+      </tab>
+      <tab heading="Horizontal Axis">
+        <div class="control-group">
+          <label class="control-label">Title</label>
+          <div class="controls">
+            <input type="text" ng-model="chart.options.hAxis.title"></input>
+            {{$index | json}}
+          </div>
+        </div>
+      </tab>
+      <tab heading="Vertical Axes">
+        <div ng-repeat="axis in axes">
+          <legend>Vertical Axis {{ $index + 1 }}</legend>
+          <div class="control-group">
+            <label class="control-label">Title</label>
+            <div class="controls">
+              <input type="text" ng-model="chart.options.vAxes[$index].title"></input>
+            </div>
+          </div>
+        </div><!-- ng-repeat-->
+      </tab>
+    </tabset>
+  </form><!-- form-horizontal -->
+</div><!-- CustomChartCtrl -->
