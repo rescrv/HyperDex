@@ -56,7 +56,7 @@ fi
 AC_SUBST([JNI_CPPFLAGS], [${JNI_CPPFLAGS}])
 
 # Checks for libraries.
-AC_CHECK_LIB([popt], [poptGetContext], [], [AC_MSG_ERROR([
+AC_CHECK_LIB([popt], [poptGetContext], [has_popt=true], [AC_MSG_ERROR([
 -------------------------------------------------
 HyperDex relies upon the popt library.
 Please install popt to continue.
