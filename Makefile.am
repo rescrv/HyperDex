@@ -235,8 +235,8 @@ hyperdex_daemon_SOURCES += common/schema.cc
 hyperdex_daemon_SOURCES += common/serialization.cc
 hyperdex_daemon_SOURCES += common/server.cc
 hyperdex_daemon_SOURCES += common/transfer.cc
-hyperdex_daemon_SOURCES += cityhash/city.cc
 hyperdex_daemon_SOURCES += common/migration.cc
+hyperdex_daemon_SOURCES += cityhash/city.cc
 hyperdex_daemon_SOURCES += daemon/communication.cc
 hyperdex_daemon_SOURCES += daemon/coordinator_link_wrapper.cc
 hyperdex_daemon_SOURCES += daemon/daemon.cc
@@ -394,8 +394,8 @@ libhyperdex_client_la_SOURCES += common/schema.cc
 libhyperdex_client_la_SOURCES += common/server.cc
 libhyperdex_client_la_SOURCES += common/serialization.cc
 libhyperdex_client_la_SOURCES += common/transfer.cc
-libhyperdex_client_la_SOURCES += cityhash/city.cc
 libhyperdex_client_la_SOURCES += common/migration.cc
+libhyperdex_client_la_SOURCES += cityhash/city.cc
 libhyperdex_client_la_SOURCES += client/c.cc
 libhyperdex_client_la_SOURCES += client/client.cc
 libhyperdex_client_la_SOURCES += client/datastructures.cc
@@ -480,8 +480,8 @@ libhyperdex_admin_la_SOURCES += common/schema.cc
 libhyperdex_admin_la_SOURCES += common/serialization.cc
 libhyperdex_admin_la_SOURCES += common/server.cc
 libhyperdex_admin_la_SOURCES += common/transfer.cc
-libhyperdex_admin_la_SOURCES += cityhash/city.cc
 libhyperdex_admin_la_SOURCES += common/migration.cc
+libhyperdex_admin_la_SOURCES += cityhash/city.cc
 libhyperdex_admin_la_SOURCES += admin/admin.cc
 libhyperdex_admin_la_SOURCES += admin/backup_state_machine.cc
 libhyperdex_admin_la_SOURCES += admin/c.cc
@@ -723,7 +723,6 @@ endif
 
 check_PROGRAMS += test/replication-stress-test
 check_PROGRAMS += test/search-stress-test
-<<<<<<< HEAD
 
 shell_wrappers =
 
@@ -964,8 +963,6 @@ EXTRA_DIST += test/ruby/MultiAttribute.rb
 EXTRA_DIST += test/ruby/RangeSearchInt.rb
 EXTRA_DIST += test/ruby/RangeSearchString.rb
 EXTRA_DIST += test/ruby/RegexSearch.rb
-=======
->>>>>>> Adding migration-related stuff
 
 test_replication_stress_test_SOURCES = test/replication-stress-test.cc
 test_replication_stress_test_LDADD = libhyperdex-client.la -le
@@ -978,7 +975,6 @@ test_search_stress_test_LDADD = libhyperdex-client.la -le
 ################################################################################
 
 if ENABLE_TOOLS
-<<<<<<< HEAD
 hyperdexexec_PROGRAMS += hyperdex-add-space
 hyperdexexec_PROGRAMS += hyperdex-rm-space
 hyperdexexec_PROGRAMS += hyperdex-list-spaces
@@ -996,23 +992,7 @@ hyperdexexec_PROGRAMS += hyperdex-wait-until-stable
 hyperdexexec_PROGRAMS += hyperdex-backup
 hyperdexexec_PROGRAMS += hyperdex-backup-manager
 hyperdexexec_PROGRAMS += hyperdex-raw-backup
-=======
-bin_PROGRAMS += hyperdex-add-space
-bin_PROGRAMS += hyperdex-rm-space
-bin_PROGRAMS += hyperdex-list-spaces
-bin_PROGRAMS += hyperdex-validate-space
-bin_PROGRAMS += hyperdex-show-config
-bin_PROGRAMS += hyperdex-server-register
-bin_PROGRAMS += hyperdex-server-online
-bin_PROGRAMS += hyperdex-server-offline
-bin_PROGRAMS += hyperdex-server-kill
-bin_PROGRAMS += hyperdex-server-forget
-bin_PROGRAMS += hyperdex-perf-counters
-bin_PROGRAMS += hyperdex-set-read-only
-bin_PROGRAMS += hyperdex-set-read-write
-bin_PROGRAMS += hyperdex-raw-backup
-bin_PROGRAMS += hyperdex-migrate-data
->>>>>>> Adding migration-related stuff
+hyperdexexec_PROGRAMS += hyperdex-migrate-data
 dist_man_MANS += man/hyperdex-add-space.1
 dist_man_MANS += man/hyperdex-rm-space.1
 dist_man_MANS += man/hyperdex-list-spaces.1
@@ -1201,9 +1181,9 @@ man/hyperdex-raw-backup.1: man/hyperdex-raw-backup.1.h2m tools/raw-backup.cc
 # hyperdex-migrate-data
 EXTRA_DIST += man/hyperdex-migrate-data.1.md
 EXTRA_DIST += man/hyperdex-migrate-data.1.h2m
-hyperdex_migrate_data_SOURCES = tools/migrate_data.cc
+hyperdex_migrate_data_SOURCES = tools/migrate-data.cc
 hyperdex_migrate_data_LDADD = libhyperdex-admin.la -lpopt
-man/hyperdex-migrate-data.1: man/hyperdex-migrate-data.1.h2m tools/migrate_data.cc
+man/hyperdex-migrate-data.1: man/hyperdex-migrate-data.1.h2m tools/migrate-data.cc
 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-migrate-data$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-migrate-data$(EXEEXT)
 

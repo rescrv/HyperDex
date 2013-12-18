@@ -108,6 +108,7 @@ migration_manager :: reconfigure(const configuration&,
                                  const configuration& new_config,
                                  const server_id& sid)
 {
+    std::cout << "reconfiguring!!!" << std::endl;
     {
         po6::threads::mutex::hold hold(&m_block_kickstarter);
         assert(m_need_pause);
@@ -134,21 +135,30 @@ migration_manager :: reconfigure(const configuration&,
 
     leveldb_snapshot_ptr s = m_daemon->m_data.make_snapshot();
 
+    int data_counter = 0;
     std::vector<hyperdex::migration>::iterator m_iter;
     for (m_iter = migrations_out.begin(); m_iter != migrations_out.end(); m_iter++) {
+        std::cout << "BP1" << std::endl;
         std::vector<hyperdex::region_id>::iterator r_iter;
         for (r_iter = regions.begin(); r_iter != regions.end(); r_iter++) {
+            std::cout << "BP2" << std::endl;
             region_id rid = (*r_iter);
             if (new_config.space_of(rid) == (*m_iter).space_from) {
+                std::cout << "migrating data!!!" << std::endl;
                 datalayer::returncode err;
                 datalayer::iterator* data_iter = m_daemon->m_data.make_region_iterator(s, rid, &err);
                 if (err != datalayer::SUCCESS) {
                     return;
                 }
+                while (data_iter->valid()) {
+                    data_counter++;
+                    data_iter->next();
+                }
             }
         }
     }
 
+    std::cout << "Number of objects: " << data_counter << std::endl;
     // setup_migration_state("outgoing", migrations_out, &m_migrations_out);
 }
 
