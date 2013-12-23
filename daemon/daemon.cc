@@ -100,6 +100,7 @@ daemon :: daemon()
     , m_bind_to()
     , m_threads()
     , m_coord(this)
+    , m_data_dir()
     , m_data(this)
     , m_comm(this)
     , m_repl(this)
@@ -259,6 +260,7 @@ daemon :: run(bool daemonize,
     po6::net::location saved_bind_to;
     po6::net::hostname saved_coordinator;
     LOG(INFO) << "initializing local storage";
+    m_data_dir = data.get();
 
     if (!m_data.initialize(data, &saved, &saved_us, &saved_bind_to, &saved_coordinator))
     {
@@ -1073,7 +1075,8 @@ daemon :: process_backup(server_id from,
     uint64_t nonce;
     e::slice _name;
 
-    if ((up >> nonce >> _name).error())
+    if ((up >> nonce >> _name).error() ||
+        strnlen(reinterpret_cast<const char*>(_name.data()), _name.size()) == _name.size())
     {
         LOG(WARNING) << "unpack of BACKUP failed; here's some hex:  " << msg->hex();
         return;
@@ -1093,12 +1096,20 @@ daemon :: process_backup(server_id from,
                   << "  Copy the complete directory to elsewhere so your backup is safe.";
     }
 
+    using po6::join;
+    using po6::pathname;
+    pathname _path(join(pathname(m_data_dir),
+                        pathname(("backup-" + name).c_str())).get());
+    _path = _path.realpath();
+    e::slice path(_path.get());
+
     size_t sz = HYPERDEX_HEADER_SIZE_VC
               + sizeof(uint64_t)
-              + sizeof(uint16_t);
+              + sizeof(uint16_t)
+              + pack_size(path);
     msg.reset(e::buffer::create(sz));
     e::buffer::packer pa = msg->pack_at(HYPERDEX_HEADER_SIZE_VC);
-    pa = pa << nonce << static_cast<uint16_t>(result);
+    pa = pa << nonce << static_cast<uint16_t>(result) << path;
     m_comm.send_client(vto, from, BACKUP, msg);
 }
 

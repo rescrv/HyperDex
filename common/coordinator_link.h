@@ -74,6 +74,8 @@ class coordinator_link
                     const char* data, size_t data_sz,
                     replicant_returncode* status,
                     const char** output, size_t* output_sz);
+        int64_t backup(replicant_returncode* status,
+                       const char** output, size_t* output_sz);
         int64_t wait(const char* cond, uint64_t state,
                      replicant_returncode* status);
         int64_t loop(int timeout, replicant_returncode* status);

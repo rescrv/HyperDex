@@ -47,6 +47,8 @@
 /hyperdex-add-space
 /hyperdex-admin.pc
 /hyperdex-async-benchmark
+/hyperdex-backup
+/hyperdex-backup-manager
 /hyperdex-benchmark
 /hyperdex-binary-test
 /hyperdex-client.pc

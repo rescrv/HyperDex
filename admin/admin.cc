@@ -42,9 +42,13 @@
 #include "common/macros.h"
 #include "common/serialization.h"
 #include "admin/admin.h"
+#include "admin/backup_state_machine.h"
+#include "admin/constants.h"
+#include "admin/coord_rpc_backup.h"
 #include "admin/coord_rpc_generic.h"
 #include "admin/hyperspace_builder_internal.h"
 #include "admin/pending_perf_counters.h"
+#include "admin/pending_raw_backup.h"
 #include "admin/pending_string.h"
 #include "admin/yieldable.h"
 
@@ -64,6 +68,7 @@ admin :: admin(const char* coordinator, uint16_t port)
     , m_handle_coord_ops(false)
     , m_coord_ops()
     , m_server_ops()
+    , m_multi_ops()
     , m_failed()
     , m_yieldable()
     , m_yielding()
@@ -354,7 +359,6 @@ admin :: server_online(uint64_t token, enum hyperdex_admin_returncode* status)
         return -1;
     }
 
-
     int64_t id = m_next_admin_id;
     ++m_next_admin_id;
     e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "bring server online");
@@ -382,7 +386,6 @@ admin :: server_offline(uint64_t token, enum hyperdex_admin_returncode* status)
     {
         return -1;
     }
-
 
     int64_t id = m_next_admin_id;
     ++m_next_admin_id;
@@ -412,7 +415,6 @@ admin :: server_forget(uint64_t token, enum hyperdex_admin_returncode* status)
         return -1;
     }
 
-
     int64_t id = m_next_admin_id;
     ++m_next_admin_id;
     e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "forget server");
@@ -441,7 +443,6 @@ admin :: server_kill(uint64_t token, enum hyperdex_admin_returncode* status)
         return -1;
     }
 
-
     int64_t id = m_next_admin_id;
     ++m_next_admin_id;
     e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "kill server");
@@ -460,6 +461,82 @@ admin :: server_kill(uint64_t token, enum hyperdex_admin_returncode* status)
         interpret_rpc_request_failure(op->repl_status, status);
         return -1;
     }
+}
+
+int64_t
+admin :: backup(const char* name, enum hyperdex_admin_returncode* status, const char** backups)
+{
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    int64_t id = m_next_admin_id;
+    ++m_next_admin_id;
+    e::intrusive_ptr<backup_state_machine> op;
+    op = new backup_state_machine(name, id, status, backups);
+
+    if (!op->initialize(this, status))
+    {
+        return -1;
+    }
+
+    return op->admin_visible_id();
+}
+
+int64_t
+admin :: coord_backup(const char* path,
+                      enum hyperdex_admin_returncode* status)
+{
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    int64_t id = m_next_admin_id;
+    ++m_next_admin_id;
+    e::intrusive_ptr<coord_rpc> op = new coord_rpc_backup(id, status, path);
+    int64_t cid = m_coord.backup(&op->repl_status, &op->repl_output, &op->repl_output_sz);
+
+    if (cid >= 0)
+    {
+        m_coord_ops[cid] = op;
+        return op->admin_visible_id();
+    }
+    else
+    {
+        interpret_rpc_request_failure(op->repl_status, status);
+        return -1;
+    }
+}
+
+int64_t
+admin :: raw_backup(const server_id& sid, const char* name,
+                    enum hyperdex_admin_returncode* status,
+                    const char** path)
+{
+    if (!maintain_coord_connection(status))
+    {
+        return -1;
+    }
+
+    e::slice name_s(name, strlen(name) + 1);
+    size_t sz = HYPERDEX_ADMIN_HEADER_SIZE_REQ
+              + pack_size(name_s);
+    std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
+    msg->pack_at(HYPERDEX_ADMIN_HEADER_SIZE_REQ) << name_s;
+    uint64_t id = m_next_admin_id;
+    ++m_next_admin_id;
+    uint64_t nonce = m_next_server_nonce;
+    ++m_next_server_nonce;
+    e::intrusive_ptr<pending> op = new pending_raw_backup(id, status, path);
+
+    if (!send(BACKUP, sid, nonce, msg, op, status))
+    {
+        return -1;
+    }
+
+    return op->admin_visible_id();
 }
 
 int64_t
@@ -523,6 +600,22 @@ admin :: loop(int timeout, hyperdex_admin_returncode* status)
             {
                 m_yielded = m_yielding;
                 m_yielding = NULL;
+            }
+
+            multi_yieldable_map_t::iterator it = m_multi_ops.find(admin_id);
+
+            if (it != m_multi_ops.end())
+            {
+                e::intrusive_ptr<multi_yieldable> op = it->second;
+                m_multi_ops.erase(it);
+
+                if (!op->callback(this, admin_id, status))
+                {
+                    return -1;
+                }
+
+                m_yielding = op.get();
+                continue;
             }
 
             return admin_id;
@@ -1003,6 +1096,7 @@ operator << (std::ostream& lhs, hyperdex_admin_returncode rhs)
         STRINGIFY(HYPERDEX_ADMIN_BADSPACE);
         STRINGIFY(HYPERDEX_ADMIN_DUPLICATE);
         STRINGIFY(HYPERDEX_ADMIN_NOTFOUND);
+        STRINGIFY(HYPERDEX_ADMIN_LOCALERROR);
         STRINGIFY(HYPERDEX_ADMIN_INTERNAL);
         STRINGIFY(HYPERDEX_ADMIN_EXCEPTION);
         STRINGIFY(HYPERDEX_ADMIN_GARBAGE);

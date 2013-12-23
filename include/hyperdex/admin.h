@@ -31,6 +31,7 @@
 
 /* C */
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 /* HyperDex */
@@ -67,6 +68,7 @@ enum hyperdex_admin_returncode
     HYPERDEX_ADMIN_BADSPACE     = 8775,
     HYPERDEX_ADMIN_DUPLICATE    = 8776,
     HYPERDEX_ADMIN_NOTFOUND     = 8777,
+    HYPERDEX_ADMIN_LOCALERROR   = 8778,
 
     /* This should never happen.  It indicates a bug */
     HYPERDEX_ADMIN_INTERNAL     = 8829,
@@ -141,6 +143,12 @@ int64_t
 hyperdex_admin_server_kill(struct hyperdex_admin* admin,
                            uint64_t token,
                            enum hyperdex_admin_returncode* status);
+
+int64_t
+hyperdex_admin_backup(struct hyperdex_admin* admin,
+                      const char* name,
+                      enum hyperdex_admin_returncode* status,
+                      const char** backups);
 
 int64_t
 hyperdex_admin_enable_perf_counters(struct hyperdex_admin* admin,

@@ -84,6 +84,8 @@ class Admin
             { return hyperdex_admin_server_forget(m_adm, token, status); }
         int64_t server_kill(uint64_t token, enum hyperdex_admin_returncode* status)
             { return hyperdex_admin_server_kill(m_adm, token, status); }
+        int64_t backup(const char* name, enum hyperdex_admin_returncode* status, const char** backups)
+            { return hyperdex_admin_backup(m_adm, name, status, backups); }
         int64_t enable_perf_counters(enum hyperdex_admin_returncode* status,
                                      struct hyperdex_admin_perf_counter* pc)
             { return hyperdex_admin_enable_perf_counters(m_adm, status, pc); }
