@@ -437,6 +437,7 @@ noinst_HEADERS += admin/coord_rpc.h
 noinst_HEADERS += admin/coord_rpc_backup.h
 noinst_HEADERS += admin/coord_rpc_generic.h
 noinst_HEADERS += admin/hyperspace_builder_internal.h
+noinst_HEADERS += admin/multi_yieldable.h
 noinst_HEADERS += admin/partition.h
 noinst_HEADERS += admin/pending.h
 noinst_HEADERS += admin/pending_perf_counters.h
