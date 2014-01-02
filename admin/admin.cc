@@ -173,11 +173,12 @@ admin :: fault_tolerance(const char* space, uint64_t ft,
     int64_t id = m_next_admin_id;
     ++m_next_admin_id;
     e::intrusive_ptr<coord_rpc> op = new coord_rpc_generic(id, status, "fault tolerance");
-    char buf[strlen(space) + sizeof(uint64_t)];
-    memcpy(buf, space, strlen(space));
-    e::pack64be(ft, buf + strlen(space));
+    size_t space_sz = strlen(space);
+    std::vector<char> buf(space_sz + sizeof(uint64_t));
+    memcpy(&buf[0], space, space_sz);
+    e::pack64be(ft, &buf[0] + space_sz);
 
-    int64_t cid = m_coord.rpc("fault_tolerance", buf, strlen(space) + sizeof(uint64_t),
+    int64_t cid = m_coord.rpc("fault_tolerance", &buf[0], space_sz + sizeof(uint64_t),
                               &op->repl_status, &op->repl_output, &op->repl_output_sz);
 
     if (cid >= 0)

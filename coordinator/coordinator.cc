@@ -226,7 +226,6 @@ void
 coordinator :: fault_tolerance(replicant_state_machine_context* ctx,
                                const char* space, uint64_t ft)
 {
-    FILE* log = replicant_state_machine_log_stream(ctx);
     uint64_t R = 0;
     uint64_t P = 0;
     std::vector<server_id> replica_storage;

@@ -86,7 +86,7 @@ class connect_opts
 #define HYPERDEX_LIB_NAME "libhyperdex-coordinator"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wlarger-than="
-inline bool
+bool
 locate_coordinator_lib(const char* argv0, po6::pathname* path)
 {
     // find the right library

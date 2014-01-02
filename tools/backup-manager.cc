@@ -48,6 +48,7 @@ struct daemon_backup
                   const std::string& a,
                   const std::string& p)
         : sid(s), addr(a), path(p) {}
+    ~daemon_backup() {}
     uint64_t sid;
     std::string addr;
     std::string path;

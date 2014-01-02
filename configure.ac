@@ -104,6 +104,22 @@ AC_TYPE_UINT32_T
 AC_TYPE_UINT64_T
 AC_TYPE_UINT8_T
 
+AC_MSG_CHECKING([for builtin expect])
+AC_COMPILE_IFELSE(
+  [AC_LANG_PROGRAM(, [[return __builtin_expect(1, 1) ? 1 : 0;]])],
+  [
+    hyperdex_have_builtin_expect=yes
+    AC_MSG_RESULT([yes])
+], [
+    hyperdex_have_builtin_expect=no
+    AC_MSG_RESULT([no])
+])
+if test x"${hyperdex_have_builtin_expect}" = xyes ; then
+    AC_DEFINE([HAVE_BUILTIN_EXPECT], [1], [Define to 1 if the compiler supports __builtin_expect.])
+else
+    AC_DEFINE([HAVE_BUILTIN_EXPECT], [0], [Define to 1 if the compiler supports __builtin_expect.])
+fi
+
 # Checks for library functions.
 AC_FUNC_ERROR_AT_LINE
 AC_FUNC_MMAP
