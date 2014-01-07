@@ -74,7 +74,7 @@ class HyperDexCluster(object):
                'GLOG_minloglevel': '0',
                'PATH': ((os.getenv('PATH') or '') + ':' + BUILDDIR).strip(':')}
         env['CLASSPATH'] = ((os.getenv('CLASSPATH') or '') + BUILDDIR + '/*').strip(':')
-        if 'HYPERDEX_BUILDDIR' not in os.environ:
+        if 'HYPERDEX_BUILDDIR' in os.environ:
             env['HYPERDEX_EXEC_PATH'] = BUILDDIR
             env['HYPERDEX_COORD_LIB'] = os.path.join(BUILDDIR, '.libs/libhyperdex-coordinator')
         for i in range(self.coordinators):
