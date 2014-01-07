@@ -359,6 +359,18 @@ if __name__ == '__main__':
         fout.flush();
     os.system('cd bindings/java && javac -cp . org/hyperdex/client/Client.java')
     os.system('cd bindings/java && javah -cp . org.hyperdex.client.Client')
+    os.system('cd bindings/java && javah -cp . org.hyperdex.client.Client')
+    os.system('cd bindings/java && javah -cp . org.hyperdex.client.Client')
+    os.system('cd bindings/java && javah -cp . org.hyperdex.client.Deferred')
+    os.system('cd bindings/java && javah -cp . org.hyperdex.client.GreaterEqual')
+    os.system('cd bindings/java && javah -cp . org.hyperdex.client.Iterator')
+    os.system('cd bindings/java && javah -cp . org.hyperdex.client.LengthEquals')
+    os.system('cd bindings/java && javah -cp . org.hyperdex.client.LengthGreaterEqual')
+    os.system('cd bindings/java && javah -cp . org.hyperdex.client.LengthLessEqual')
+    os.system('cd bindings/java && javah -cp . org.hyperdex.client.LessEqual')
+    os.system('cd bindings/java && javah -cp . org.hyperdex.client.Range')
+    os.system('cd bindings/java && javah -cp . org.hyperdex.client.Regex')
+    os.system('cd bindings/java && sed -i -e "s/JNIEXPORT/JNIEXPORT HYPERDEX_API/" *.h')
     with open(os.path.join(BASE, 'bindings/java/org_hyperdex_client_Client.definitions.c'), 'w') as fout:
         fout.write(definitions_header)
         fout.write('\n'.join(generate_workers(generator.Client)))
