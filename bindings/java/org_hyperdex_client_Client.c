@@ -34,6 +34,7 @@
 #include <hyperdex.h>
 #include <hyperdex/client.h>
 #include <hyperdex/datastructures.h>
+#include "visibility.h"
 #include "bindings/java/org_hyperdex_client_Client.h"
 #include "bindings/java/org_hyperdex_client_Deferred.h"
 #include "bindings/java/org_hyperdex_client_Iterator.h"
