@@ -46,13 +46,7 @@ def generate_test_tarball(name, tests):
     add_from_content(tar, archive + '/test-hyperdex', '#!/bin/sh\necho SUCCESS\n', 0755)
     version = subprocess.check_output('grep AC_INIT configure.ac',
                                       shell=True).split(' ')[1].strip('[,] ')
-    makefile = '''HYPERDEX_SRCDIR := .
-HYPERDEX_BUILDDIR := .
-HYPERDEX_VERSION := {version}
-CLASSPATH := /usr/share/java/*:test/java:.
-export HYPERDEX_SRCDIR
-export HYPERDEX_BUILDDIR
-export HYPERDEX_VERSION
+    makefile = '''CLASSPATH := /usr/share/java/*:test/java:.
 export CLASSPATH
 
 all:
