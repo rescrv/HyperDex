@@ -12,7 +12,7 @@ extern "C" {
  * Method:    create
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_org_hyperdex_client_Iterator_create
+JNIEXPORT HYPERDEX_API void JNICALL Java_org_hyperdex_client_Iterator_create
   (JNIEnv *, jobject);
 
 /*
@@ -20,7 +20,7 @@ JNIEXPORT void JNICALL Java_org_hyperdex_client_Iterator_create
  * Method:    destroy
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_org_hyperdex_client_Iterator_destroy
+JNIEXPORT HYPERDEX_API void JNICALL Java_org_hyperdex_client_Iterator_destroy
   (JNIEnv *, jobject);
 
 /*
@@ -28,7 +28,7 @@ JNIEXPORT void JNICALL Java_org_hyperdex_client_Iterator_destroy
  * Method:    finished
  * Signature: ()Z
  */
-JNIEXPORT jboolean JNICALL Java_org_hyperdex_client_Iterator_finished
+JNIEXPORT HYPERDEX_API jboolean JNICALL Java_org_hyperdex_client_Iterator_finished
   (JNIEnv *, jobject);
 
 /*
@@ -36,7 +36,7 @@ JNIEXPORT jboolean JNICALL Java_org_hyperdex_client_Iterator_finished
  * Method:    callback
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_org_hyperdex_client_Iterator_callback
+JNIEXPORT HYPERDEX_API void JNICALL Java_org_hyperdex_client_Iterator_callback
   (JNIEnv *, jobject);
 
 #ifdef __cplusplus

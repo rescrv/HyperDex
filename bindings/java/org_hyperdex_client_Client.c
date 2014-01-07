@@ -155,7 +155,7 @@ static jfieldID _pred_length_greater_equal_x;
     NAME = (jclass) (*env)->NewGlobalRef(env, tmp_cls); \
     (*env)->DeleteLocalRef(env, tmp_cls);
 
-JNIEXPORT void JNICALL
+JNIEXPORT HYPERDEX_API void JNICALL
 Java_org_hyperdex_client_Client_initialize(JNIEnv* env, jclass client)
 {
     jclass tmp_cls;
@@ -335,7 +335,7 @@ Java_org_hyperdex_client_Client_initialize(JNIEnv* env, jclass client)
     (void) client;
 }
 
-JNIEXPORT void JNICALL
+JNIEXPORT HYPERDEX_API void JNICALL
 Java_org_hyperdex_client_Client_terminate(JNIEnv* env, jclass client)
 {
     (*env)->DeleteGlobalRef(env, _string);
@@ -1749,7 +1749,7 @@ struct hyperdex_java_client_deferred
     jobject (*encode_return)(JNIEnv* env, jobject obj, struct hyperdex_java_client_deferred* d);
 };
 
-JNIEXPORT void JNICALL
+JNIEXPORT HYPERDEX_API void JNICALL
 Java_org_hyperdex_client_Deferred_create(JNIEnv* env, jobject deferred)
 {
     jlong lptr;
@@ -1791,7 +1791,7 @@ Java_org_hyperdex_client_Deferred_create(JNIEnv* env, jobject deferred)
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
-JNIEXPORT void JNICALL
+JNIEXPORT HYPERDEX_API void JNICALL
 Java_org_hyperdex_client_Deferred_destroy(JNIEnv* env, jobject dfrd)
 {
     jlong lptr;
@@ -1826,7 +1826,7 @@ Java_org_hyperdex_client_Deferred_destroy(JNIEnv* env, jobject dfrd)
 }
 #pragma GCC diagnostic pop
 
-JNIEXPORT jobject JNICALL
+JNIEXPORT HYPERDEX_API jobject JNICALL
 Java_org_hyperdex_client_Deferred_waitForIt(JNIEnv* env, jobject obj)
 {
     struct hyperdex_java_client_deferred* dfrd = NULL;
@@ -1843,7 +1843,7 @@ Java_org_hyperdex_client_Deferred_waitForIt(JNIEnv* env, jobject obj)
     return dfrd->encode_return(env, obj, dfrd);
 }
 
-JNIEXPORT void JNICALL
+JNIEXPORT HYPERDEX_API void JNICALL
 Java_org_hyperdex_client_Deferred_callback(JNIEnv* env, jobject obj)
 {
     jobject client_obj;
@@ -2000,7 +2000,7 @@ struct hyperdex_java_client_iterator
     jobject (*encode_return)(JNIEnv* env, jobject obj, struct hyperdex_java_client_iterator* d);
 };
 
-JNIEXPORT void JNICALL
+JNIEXPORT HYPERDEX_API void JNICALL
 Java_org_hyperdex_client_Iterator_create(JNIEnv* env, jobject iterator)
 {
     jlong lptr;
@@ -2040,7 +2040,7 @@ Java_org_hyperdex_client_Iterator_create(JNIEnv* env, jobject iterator)
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
-JNIEXPORT void JNICALL
+JNIEXPORT HYPERDEX_API void JNICALL
 Java_org_hyperdex_client_Iterator_destroy(JNIEnv* env, jobject iter)
 {
     jlong lptr;
@@ -2069,7 +2069,7 @@ Java_org_hyperdex_client_Iterator_destroy(JNIEnv* env, jobject iter)
     ERROR_CHECK_VOID();
 }
 
-JNIEXPORT jboolean JNICALL
+JNIEXPORT HYPERDEX_API jboolean JNICALL
 Java_org_hyperdex_client_Iterator_finished(JNIEnv* env, jobject obj)
 {
     struct hyperdex_java_client_iterator* iter = NULL;
@@ -2077,7 +2077,7 @@ Java_org_hyperdex_client_Iterator_finished(JNIEnv* env, jobject obj)
     return iter->finished == 1 ? JNI_TRUE : JNI_FALSE;
 }
 
-JNIEXPORT void JNICALL
+JNIEXPORT HYPERDEX_API void JNICALL
 Java_org_hyperdex_client_Iterator_callback(JNIEnv* env, jobject obj)
 {
     jobject tmp;
@@ -2157,12 +2157,12 @@ hyperdex_java_client_iterator_encode_status_attributes(JNIEnv* env, jobject obj,
 /********************************* Predicates *********************************/
 
 #define SINGLE_OBJECT_PREDICATE(CamelCase, lower_case, PREDICATE) \
-    JNIEXPORT jlong JNICALL \
+    JNIEXPORT HYPERDEX_API jlong JNICALL \
     Java_org_hyperdex_client_ ## CamelCase ## _checksSize(JNIEnv* env, jobject obj) \
     { \
         return 1; \
     } \
-    JNIEXPORT jlong JNICALL \
+    JNIEXPORT HYPERDEX_API jlong JNICALL \
     Java_org_hyperdex_client_ ## CamelCase ## _convertChecks(JNIEnv* env, jobject obj, jlong arena, \
                                                              jlong _checks, jlong checks_sz) \
     { \
@@ -2184,13 +2184,13 @@ hyperdex_java_client_iterator_encode_status_attributes(JNIEnv* env, jobject obj,
 SINGLE_OBJECT_PREDICATE(LessEqual, less_equal, LESS_EQUAL)
 SINGLE_OBJECT_PREDICATE(GreaterEqual, greater_equal, GREATER_EQUAL)
 
-JNIEXPORT jlong JNICALL
+JNIEXPORT HYPERDEX_API jlong JNICALL
 Java_org_hyperdex_client_Range_checksSize(JNIEnv* env, jobject obj)
 {
     return 2;
 }
 
-JNIEXPORT jlong JNICALL
+JNIEXPORT HYPERDEX_API jlong JNICALL
 Java_org_hyperdex_client_Range_convertChecks(JNIEnv* env, jobject obj, jlong arena,
                                              jlong _checks, jlong checks_sz)
 {
@@ -2230,7 +2230,7 @@ SINGLE_OBJECT_PREDICATE(LengthGreaterEqual, length_greater_equal, LENGTH_GREATER
 
 /******************************** Client Class ********************************/
 
-JNIEXPORT void JNICALL
+JNIEXPORT HYPERDEX_API void JNICALL
 Java_org_hyperdex_client_Client_create(JNIEnv* env, jobject client, jstring _host, jint port)
 {
     jlong lptr;
@@ -2257,7 +2257,7 @@ Java_org_hyperdex_client_Client_create(JNIEnv* env, jobject client, jstring _hos
     assert(sizeof(long) >= sizeof(struct hyperdex_client*));
 }
 
-JNIEXPORT void JNICALL
+JNIEXPORT HYPERDEX_API void JNICALL
 Java_org_hyperdex_client_Client_destroy(JNIEnv* env, jobject client)
 {
     jlong lptr;
@@ -2276,7 +2276,7 @@ Java_org_hyperdex_client_Client_destroy(JNIEnv* env, jobject client)
     ERROR_CHECK_VOID();
 }
 
-JNIEXPORT jlong JNICALL
+JNIEXPORT HYPERDEX_API jlong JNICALL
 Java_org_hyperdex_client_Client_inner_1loop(JNIEnv* env, jobject client)
 {
     struct hyperdex_client* ptr;
