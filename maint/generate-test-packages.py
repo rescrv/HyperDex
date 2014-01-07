@@ -49,7 +49,7 @@ def generate_test_tarball(name, tests):
     makefile = '''HYPERDEX_SRCDIR := .
 HYPERDEX_BUILDDIR := .
 HYPERDEX_VERSION := {version}
-CLASSPATH := /usr/share/java/org.hyperdex.client-{version}.jar
+CLASSPATH := /usr/share/java/*
 export HYPERDEX_SRCDIR
 export HYPERDEX_BUILDDIR
 export HYPERDEX_VERSION
