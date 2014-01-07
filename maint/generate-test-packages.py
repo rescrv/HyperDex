@@ -48,17 +48,19 @@ def generate_test_tarball(name, tests):
                                       shell=True).split(' ')[1].strip('[,] ')
     makefile = '''HYPERDEX_SRCDIR := .
 HYPERDEX_BUILDDIR := .
-HYPERDEX_VERSION := %s
+HYPERDEX_VERSION := {version}
+CLASSPATH := /usr/share/java/org.hyperdex.client-{version}.jar
 export HYPERDEX_SRCDIR
 export HYPERDEX_BUILDDIR
 export HYPERDEX_VERSION
+export CLASSPATH
 
 all:
-%s
+{rules}
 install:
 	mkdir -p $(DESTDIR)/usr/bin
 	cp test-hyperdex $(DESTDIR)/usr/bin/test-hyperdex
-''' % (version, ''.join(['\t%s\n' % s for s, t in tests]))
+'''.format(version=version, rules=''.join(['\t%s\n' % s for s, t in tests]))
     add_from_content(tar, archive + '/Makefile', makefile, 0644)
     for sh, test in tests:
         tar.add(sh, archive + '/' + sh)
