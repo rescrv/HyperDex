@@ -31,25 +31,25 @@ from __future__ import unicode_literals
 from __future__ import with_statement
 
 
+import collections
+import os
 import os.path
+import random
+import shutil
+import subprocess
 import sys
+import tempfile
+import time
+
+import argparse
+
 
 DOTDOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-SRCDIR = os.getenv('HYPERDEX_SRCDIR') or DOTDOT
 BUILDDIR = os.getenv('HYPERDEX_BUILDDIR') or DOTDOT
 
 sys.path.append(os.path.join(BUILDDIR, './bindings/python'))
 sys.path.append(os.path.join(BUILDDIR, './bindings/python/.libs'))
 
-import collections
-import os
-import random
-import shutil
-import subprocess
-import tempfile
-import time
-
-import argparse
 
 import hyperdex.admin
 
@@ -72,9 +72,10 @@ class HyperDexCluster(object):
             self.base = tempfile.mkdtemp(prefix='hyperdex-test-')
         env = {'GLOG_logtostderr': '',
                'GLOG_minloglevel': '0',
-               'HYPERDEX_EXEC_PATH': BUILDDIR,
-               'HYPERDEX_COORD_LIB': os.path.join(BUILDDIR, '.libs/libhyperdex-coordinator'),
                'PATH': ((os.getenv('PATH') or '') + ':' + BUILDDIR).strip(':')}
+        if 'HYPERDEX_BUILDDIR' not in os.environ:
+            env['HYPERDEX_EXEC_PATH'] = BUILDDIR
+            env['HYPERDEX_COORD_LIB'] = os.path.join(BUILDDIR, '.libs/libhyperdex-coordinator')
         for i in range(self.coordinators):
             cmd = ['hyperdex', 'coordinator',
                    '--foreground', '--listen', 'localhost', '--listen-port', str(1982 + i)]
