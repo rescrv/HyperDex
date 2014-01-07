@@ -172,6 +172,8 @@ definitions_header = '''/* Copyright (c) 2013, Cornell University
 
 /* GENERATED!  Do not modify this file directly */
 
+#include "visibility.h"
+
 '''
 
 def JTYPEOF(x):
@@ -237,7 +239,7 @@ def generate_worker_asynccall(call, x):
     c_func = c_func.replace('hyperdex_client_WXYZ', '(*f)')
     c_func = ' '.join([c.strip() for c in c_func.split('\n')])
     c_func = c_func.strip('; ')
-    func = 'JNIEXPORT jobject JNICALL\n'
+    func = 'JNIEXPORT HYPERDEX_API jobject JNICALL\n'
     func += '_hyperdex_java_client_{0}(JNIEnv* env, jobject obj, {1}'.format(call, c_func)
     for arg in x.args_in:
         func += ', ' + CTYPEOF(arg) + ' ' + arg.__name__.lower()
@@ -278,7 +280,7 @@ def generate_worker_iterator(call, x):
     c_func = c_func.replace('hyperdex_client_WXYZ', '(*f)')
     c_func = ' '.join([c.strip() for c in c_func.split('\n')])
     c_func = c_func.strip('; ')
-    func = 'JNIEXPORT jobject JNICALL\n'
+    func = 'JNIEXPORT HYPERDEX_API jobject JNICALL\n'
     func += '_hyperdex_java_client_{0}(JNIEnv* env, jobject obj, {1}'.format(call, c_func)
     for arg in x.args_in:
         func += ', ' + CTYPEOF(arg) + ' ' + arg.__name__.lower()
@@ -335,7 +337,7 @@ def generate_workers(xs):
 
 def generate_definition(x):
     assert x.form in (generator.AsyncCall, generator.Iterator)
-    func = 'JNIEXPORT jobject JNICALL\n'
+    func = 'JNIEXPORT HYPERDEX_API jobject JNICALL\n'
     if x.form == generator.AsyncCall:
         func += 'Java_org_hyperdex_client_Client_async_1{0}(JNIEnv* env, jobject obj'.format(x.name.replace('_', '_1'))
     if x.form == generator.Iterator:
