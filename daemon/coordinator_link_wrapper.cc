@@ -384,7 +384,7 @@ coordinator_link_wrapper :: report_tcp_disconnect(const server_id& id)
     e::pack64be(version, buf + sizeof(uint64_t));
     e::intrusive_ptr<coord_rpc> rpc = new coord_rpc();
     rpc->msg << "report TCP disconnect id=" << version;
-    make_rpc("server_suspect", buf, 2 * sizeof(uint64_t), rpc);
+    make_rpc("report_disconnect", buf, 2 * sizeof(uint64_t), rpc);
 }
 
 void

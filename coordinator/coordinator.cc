@@ -29,6 +29,9 @@
 #include <algorithm>
 #include <sstream>
 
+// e
+#include <e/endian.h>
+
 // Replicant
 #include <replicant_state_machine.h>
 
@@ -351,6 +354,10 @@ coordinator :: server_online(replicant_state_machine_context* ctx,
         generate_next_configuration(ctx);
     }
 
+    char buf[sizeof(uint64_t)];
+    e::pack64be(sid.get(), buf);
+    uint64_t client = replicant_state_machine_get_client(ctx);
+    replicant_state_machine_suspect(ctx, client, "server_suspect",  buf, sizeof(uint64_t));
     return generate_response(ctx, COORD_SUCCESS);
 }
 
@@ -491,14 +498,79 @@ coordinator :: server_forget(replicant_state_machine_context* ctx,
 
 void
 coordinator :: server_suspect(replicant_state_machine_context* ctx,
-                              const server_id& sid, uint64_t version)
+                              const server_id& sid)
 {
-    if (m_version == version)
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    server* srv = get_server(sid);
+
+    if (!srv)
     {
-        server_offline(ctx, sid);
+        fprintf(log, "cannot suspect server(%lu) because "
+                     "the server doesn't exist\n", sid.get());
+        return generate_response(ctx, hyperdex::COORD_NOT_FOUND);
+    }
+
+    if (srv->state == server::SHUTDOWN)
+    {
+        return generate_response(ctx, COORD_SUCCESS);
+    }
+
+    if (srv->state != server::ASSIGNED &&
+        srv->state != server::NOT_AVAILABLE &&
+        srv->state != server::AVAILABLE)
+    {
+        fprintf(log, "cannot suspect server(%lu) because the server is "
+                     "%s\n", sid.get(), server::to_string(srv->state));
+        return generate_response(ctx, hyperdex::COORD_NO_CAN_DO);
+    }
+
+    if (srv->state != server::NOT_AVAILABLE && srv->state != server::SHUTDOWN)
+    {
+        fprintf(log, "changing server(%lu) from %s to %s because we suspect it failed\n",
+                     sid.get(), server::to_string(srv->state),
+                     server::to_string(server::NOT_AVAILABLE));
+        srv->state = server::NOT_AVAILABLE;
+        remove_permutation(sid);
+        rebalance_replica_sets(ctx);
+        generate_next_configuration(ctx);
     }
 
     return generate_response(ctx, COORD_SUCCESS);
+}
+
+void
+coordinator :: report_disconnect(replicant_state_machine_context*,
+                                 const server_id& sid, uint64_t version)
+{
+    if (m_version != version)
+    {
+        return;
+    }
+
+    for (space_map_t::iterator it = m_spaces.begin();
+            it != m_spaces.end(); ++it)
+    {
+        space* s(it->second.get());
+
+        for (size_t ss_idx = 0; ss_idx < s->subspaces.size(); ++ss_idx)
+        {
+            subspace* ss(&s->subspaces[ss_idx]);
+
+            for (size_t reg_idx = 0; reg_idx < ss->regions.size(); ++reg_idx)
+            {
+                region* reg = &ss->regions[reg_idx];
+
+                for (size_t repl_idx = 0; repl_idx < reg->replicas.size(); ++repl_idx)
+                {
+                    if (reg->replicas[repl_idx].si == sid)
+                    {
+                        reg->replicas[repl_idx].vsi = virtual_server_id(m_counter);
+                        ++m_counter;
+                    }
+                }
+            }
+        }
+    }
 }
 
 void

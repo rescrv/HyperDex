@@ -51,6 +51,7 @@ struct replicant_state_machine HYPERDEX_API rsm = {
      {"server_kill", hyperdex_coordinator_server_kill},
      {"server_forget", hyperdex_coordinator_server_forget},
      {"server_suspect", hyperdex_coordinator_server_suspect},
+     {"report_disconnect", hyperdex_coordinator_report_disconnect},
      {"space_add", hyperdex_coordinator_space_add},
      {"space_rm", hyperdex_coordinator_space_rm},
      {"transfer_go_live", hyperdex_coordinator_transfer_go_live},
