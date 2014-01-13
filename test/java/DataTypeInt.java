@@ -26,7 +26,8 @@ public class DataTypeInt
         assert(get1 != null);
         Map<String, Object> expected1 = new HashMap<String, Object>();
         expected1.put("v", 0);
-        get1.equals(expected1);
+        get1.entrySet().containsAll(expected1.entrySet());
+        expected1.entrySet().containsAll(get1.entrySet());
         Map<String, Object> attrs2 = new HashMap<String, Object>();
         attrs2.put("v", 1);
         Object obj2 = c.put("kv", "k", attrs2);
@@ -37,7 +38,8 @@ public class DataTypeInt
         assert(get3 != null);
         Map<String, Object> expected3 = new HashMap<String, Object>();
         expected3.put("v", 1);
-        get3.equals(expected3);
+        get3.entrySet().containsAll(expected3.entrySet());
+        expected3.entrySet().containsAll(get3.entrySet());
         Map<String, Object> attrs4 = new HashMap<String, Object>();
         attrs4.put("v", -1);
         Object obj4 = c.put("kv", "k", attrs4);
@@ -48,7 +50,8 @@ public class DataTypeInt
         assert(get5 != null);
         Map<String, Object> expected5 = new HashMap<String, Object>();
         expected5.put("v", -1);
-        get5.equals(expected5);
+        get5.entrySet().containsAll(expected5.entrySet());
+        expected5.entrySet().containsAll(get5.entrySet());
         Map<String, Object> attrs6 = new HashMap<String, Object>();
         attrs6.put("v", 0);
         Object obj6 = c.put("kv", "k", attrs6);
@@ -59,7 +62,8 @@ public class DataTypeInt
         assert(get7 != null);
         Map<String, Object> expected7 = new HashMap<String, Object>();
         expected7.put("v", 0);
-        get7.equals(expected7);
+        get7.entrySet().containsAll(expected7.entrySet());
+        expected7.entrySet().containsAll(get7.entrySet());
         Map<String, Object> attrs8 = new HashMap<String, Object>();
         attrs8.put("v", 9223372036854775807L);
         Object obj8 = c.put("kv", "k", attrs8);
@@ -70,7 +74,8 @@ public class DataTypeInt
         assert(get9 != null);
         Map<String, Object> expected9 = new HashMap<String, Object>();
         expected9.put("v", 9223372036854775807L);
-        get9.equals(expected9);
+        get9.entrySet().containsAll(expected9.entrySet());
+        expected9.entrySet().containsAll(get9.entrySet());
         Map<String, Object> attrs10 = new HashMap<String, Object>();
         attrs10.put("v", -9223372036854775808L);
         Object obj10 = c.put("kv", "k", attrs10);
@@ -81,6 +86,7 @@ public class DataTypeInt
         assert(get11 != null);
         Map<String, Object> expected11 = new HashMap<String, Object>();
         expected11.put("v", -9223372036854775808L);
-        get11.equals(expected11);
+        get11.entrySet().containsAll(expected11.entrySet());
+        expected11.entrySet().containsAll(get11.entrySet());
     }
 }

@@ -27,7 +27,8 @@ public class DataTypeListInt
         Map<String, Object> expected1 = new HashMap<String, Object>();
         List<Object> list2 = new ArrayList<Object>();
         expected1.put("v", list2);
-        get1.equals(expected1);
+        get1.entrySet().containsAll(expected1.entrySet());
+        expected1.entrySet().containsAll(get1.entrySet());
         Map<String, Object> attrs3 = new HashMap<String, Object>();
         List<Object> list4 = new ArrayList<Object>();
         list4.add(1);
@@ -46,7 +47,8 @@ public class DataTypeListInt
         list6.add(2);
         list6.add(3);
         expected5.put("v", list6);
-        get5.equals(expected5);
+        get5.entrySet().containsAll(expected5.entrySet());
+        expected5.entrySet().containsAll(get5.entrySet());
         Map<String, Object> attrs7 = new HashMap<String, Object>();
         List<Object> list8 = new ArrayList<Object>();
         attrs7.put("v", list8);
@@ -59,6 +61,7 @@ public class DataTypeListInt
         Map<String, Object> expected9 = new HashMap<String, Object>();
         List<Object> list10 = new ArrayList<Object>();
         expected9.put("v", list10);
-        get9.equals(expected9);
+        get9.entrySet().containsAll(expected9.entrySet());
+        expected9.entrySet().containsAll(get9.entrySet());
     }
 }

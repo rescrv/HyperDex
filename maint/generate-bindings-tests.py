@@ -309,7 +309,8 @@ public class {0}
             for k, v in sorted(expected.iteritems()):
                 self.f.write('        expected{0}.put({1}, {2});\n'
                                  .format(c, self.to_java(k), self.to_java(v)))
-            self.f.write('        get{0}.equals(expected{0});\n'.format(c))
+            self.f.write('        get{0}.entrySet().containsAll(expected{0}.entrySet());\n'.format(c))
+            self.f.write('        expected{0}.entrySet().containsAll(get{0}.entrySet());\n'.format(c))
 
     def put(self, space, key, value, expected):
         assert expected in (True, False)

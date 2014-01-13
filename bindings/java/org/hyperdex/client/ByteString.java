@@ -96,7 +96,7 @@ public class ByteString
     public static String toString(byte[] bytes, String encoding)
         throws UnsupportedEncodingException
     {
-        return  decode(bytes, encoding);
+        return decode(bytes, encoding);
     }
 
     public String toString()
@@ -154,9 +154,26 @@ public class ByteString
         return compare(bytes,((ByteString)o).getBytes());
     }
 
+    public boolean equals(String s)
+    {
+        try
+        {
+            return Arrays.equals(bytes, (new ByteString(s, defaultEncoding)).bytes);
+        }
+        catch(UnsupportedEncodingException e)
+        {
+            return false;
+        }
+    }
+
     public boolean equals(Object o)
     {
-        return Arrays.equals(bytes,((ByteString)o).getBytes());
+        if (o instanceof String)
+        {
+            return this.equals((String) o);
+        }
+
+        return Arrays.equals(bytes, ((ByteString)o).getBytes());
     }
 
     public int hashCode()

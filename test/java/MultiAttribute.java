@@ -30,7 +30,8 @@ public class MultiAttribute
         Map<String, Object> expected2 = new HashMap<String, Object>();
         expected2.put("v1", "ABC");
         expected2.put("v2", "");
-        get2.equals(expected2);
+        get2.entrySet().containsAll(expected2.entrySet());
+        expected2.entrySet().containsAll(get2.entrySet());
         Map<String, Object> attrs3 = new HashMap<String, Object>();
         attrs3.put("v2", "123");
         Object obj3 = c.put("kv", "k", attrs3);
@@ -42,6 +43,7 @@ public class MultiAttribute
         Map<String, Object> expected4 = new HashMap<String, Object>();
         expected4.put("v1", "ABC");
         expected4.put("v2", "123");
-        get4.equals(expected4);
+        get4.entrySet().containsAll(expected4.entrySet());
+        expected4.entrySet().containsAll(get4.entrySet());
     }
 }

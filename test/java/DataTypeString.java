@@ -26,7 +26,8 @@ public class DataTypeString
         assert(get1 != null);
         Map<String, Object> expected1 = new HashMap<String, Object>();
         expected1.put("v", "");
-        get1.equals(expected1);
+        get1.entrySet().containsAll(expected1.entrySet());
+        expected1.entrySet().containsAll(get1.entrySet());
         Map<String, Object> attrs2 = new HashMap<String, Object>();
         attrs2.put("v", "xxx");
         Object obj2 = c.put("kv", "k", attrs2);
@@ -37,7 +38,8 @@ public class DataTypeString
         assert(get3 != null);
         Map<String, Object> expected3 = new HashMap<String, Object>();
         expected3.put("v", "xxx");
-        get3.equals(expected3);
+        get3.entrySet().containsAll(expected3.entrySet());
+        expected3.entrySet().containsAll(get3.entrySet());
         Map<String, Object> attrs4 = new HashMap<String, Object>();
         byte[] bytes5 = {(byte) 0xde, (byte) 0xad, (byte) 0xbe, (byte) 0xef};
         attrs4.put("v", new ByteString(bytes5));
@@ -50,6 +52,7 @@ public class DataTypeString
         Map<String, Object> expected6 = new HashMap<String, Object>();
         byte[] bytes7 = {(byte) 0xde, (byte) 0xad, (byte) 0xbe, (byte) 0xef};
         expected6.put("v", new ByteString(bytes7));
-        get6.equals(expected6);
+        get6.entrySet().containsAll(expected6.entrySet());
+        expected6.entrySet().containsAll(get6.entrySet());
     }
 }

@@ -27,7 +27,8 @@ public class DataTypeSetFloat
         Map<String, Object> expected1 = new HashMap<String, Object>();
         Set<Object> set2 = new HashSet<Object>();
         expected1.put("v", set2);
-        get1.equals(expected1);
+        get1.entrySet().containsAll(expected1.entrySet());
+        expected1.entrySet().containsAll(get1.entrySet());
         Map<String, Object> attrs3 = new HashMap<String, Object>();
         Set<Object> set4 = new HashSet<Object>();
         set4.add(0.25);
@@ -46,7 +47,8 @@ public class DataTypeSetFloat
         set6.add(1.0);
         set6.add(3.14);
         expected5.put("v", set6);
-        get5.equals(expected5);
+        get5.entrySet().containsAll(expected5.entrySet());
+        expected5.entrySet().containsAll(get5.entrySet());
         Map<String, Object> attrs7 = new HashMap<String, Object>();
         Set<Object> set8 = new HashSet<Object>();
         attrs7.put("v", set8);
@@ -59,6 +61,7 @@ public class DataTypeSetFloat
         Map<String, Object> expected9 = new HashMap<String, Object>();
         Set<Object> set10 = new HashSet<Object>();
         expected9.put("v", set10);
-        get9.equals(expected9);
+        get9.entrySet().containsAll(expected9.entrySet());
+        expected9.entrySet().containsAll(get9.entrySet());
     }
 }

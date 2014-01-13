@@ -27,7 +27,8 @@ public class DataTypeMapStringString
         Map<String, Object> expected1 = new HashMap<String, Object>();
         Map<Object, Object> map2 = new HashMap<Object, Object>();
         expected1.put("v", map2);
-        get1.equals(expected1);
+        get1.entrySet().containsAll(expected1.entrySet());
+        expected1.entrySet().containsAll(get1.entrySet());
         Map<String, Object> attrs3 = new HashMap<String, Object>();
         Map<Object, Object> map4 = new HashMap<Object, Object>();
         map4.put("A", "X");
@@ -46,7 +47,8 @@ public class DataTypeMapStringString
         map6.put("B", "Y");
         map6.put("C", "Z");
         expected5.put("v", map6);
-        get5.equals(expected5);
+        get5.entrySet().containsAll(expected5.entrySet());
+        expected5.entrySet().containsAll(get5.entrySet());
         Map<String, Object> attrs7 = new HashMap<String, Object>();
         Map<Object, Object> map8 = new HashMap<Object, Object>();
         attrs7.put("v", map8);
@@ -59,6 +61,7 @@ public class DataTypeMapStringString
         Map<String, Object> expected9 = new HashMap<String, Object>();
         Map<Object, Object> map10 = new HashMap<Object, Object>();
         expected9.put("v", map10);
-        get9.equals(expected9);
+        get9.entrySet().containsAll(expected9.entrySet());
+        expected9.entrySet().containsAll(get9.entrySet());
     }
 }
