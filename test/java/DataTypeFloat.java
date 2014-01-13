@@ -26,7 +26,8 @@ public class DataTypeFloat
         assert(get1 != null);
         Map<String, Object> expected1 = new HashMap<String, Object>();
         expected1.put("v", 0.0);
-        get1.equals(expected1);
+        get1.entrySet().containsAll(expected1.entrySet());
+        expected1.entrySet().containsAll(get1.entrySet());
         Map<String, Object> attrs2 = new HashMap<String, Object>();
         attrs2.put("v", 3.14);
         Object obj2 = c.put("kv", "k", attrs2);
@@ -37,6 +38,7 @@ public class DataTypeFloat
         assert(get3 != null);
         Map<String, Object> expected3 = new HashMap<String, Object>();
         expected3.put("v", 3.14);
-        get3.equals(expected3);
+        get3.entrySet().containsAll(expected3.entrySet());
+        expected3.entrySet().containsAll(get3.entrySet());
     }
 }

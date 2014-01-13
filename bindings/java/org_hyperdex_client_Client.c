@@ -1334,9 +1334,8 @@ hyperdex_java_client_convert_spacename(JNIEnv* env, jobject client,
     do { \
         tmp_array = (*env)->NewByteArray(env, X_SZ); \
         ERROR_CHECK(0); \
-        tmp_bytes = (*env)->GetByteArrayElements(env, tmp_array, 0); \
+        (*env)->SetByteArrayRegion(env, tmp_array, 0, X_SZ, X); \
         ERROR_CHECK(0); \
-        memmove(tmp_bytes, X, X_SZ); \
         OUT = (*env)->NewObject(env, _byte_string, _byte_string_init, tmp_array); \
         ERROR_CHECK(0); \
     } while (0)
