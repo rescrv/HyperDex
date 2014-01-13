@@ -129,18 +129,10 @@ datalayer :: initialize(const po6::pathname& path,
         first_time = false;
 
         if (rbacking != PACKAGE_VERSION &&
-            rbacking != "1.0.rc1" &&
-            rbacking != "1.0.rc2")
-        {
-        }
-    }
-
-
-    if (st.ok())
-    {
-        first_time = false;
-
-        if (rbacking != PACKAGE_VERSION)
+            rbacking != "1.0.3" &&
+            rbacking != "1.0.2" &&
+            rbacking != "1.0.1" &&
+            rbacking != "1.0.0")
         {
             LOG(ERROR) << "could not restore from disk because "
                        << "the existing data was created by "
