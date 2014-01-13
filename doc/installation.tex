@@ -343,6 +343,35 @@ make install
 ldconfig
 \end{consolecode}
 
+\subsection{Troubleshooting}
+
+\subsubsection{Missing \texttt{libtool}}
+
+If your system is missing \texttt{libtool}, you'll see an error message like the
+following:
+
+\begin{consolecode}
+configure.ac:6: installing `./install-sh'
+configure.ac:6: installing `./missing'
+Makefile.am:48: Libtool library used but `LIBTOOL' is undefined
+Makefile.am:48:   The usual way to define `LIBTOOL' is to add `LT_INIT'
+Makefile.am:48:   to `configure.ac' and run `aclocal' and `autoconf' again.
+Makefile.am:48:   If `LT_INIT' is in `configure.ac', make sure
+Makefile.am:48:   its definition is in aclocal's search path.
+Makefile.am: installing `./depcomp'
+autoreconf: automake failed with exit status: 1
+\end{consolecode}
+
+\subsubsection{Missing \texttt{pkgconfig}}
+
+If your system is missing \texttt{pkgconfig}, you'll see an error message like
+the following:
+
+\begin{consolecode}
+./configure: line 18348: syntax error near unexpected token `PO6,'
+./configure: line 18348: `PKG_CHECK_MODULES(PO6, libpo6 >= 0.3.1)'
+\end{consolecode}
+
 \section{Verifying Installation}
 \label{sec:installation:verify}
 
