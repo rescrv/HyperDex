@@ -557,9 +557,13 @@ coordinator_link_wrapper :: coord_rpc_available :: callback(coordinator_link_wra
 void
 coordinator_link_wrapper :: ensure_available()
 {
-    if (m_online_id >= 0 || m_shutdown_requested ||
-        !(m_coord->config()->get_address(m_daemon->m_us) != m_daemon->m_bind_to ||
-          m_coord->config()->get_state(m_daemon->m_us) != server::AVAILABLE))
+    if (m_online_id >= 0 || m_shutdown_requested)
+    {
+        return;
+    }
+
+    if (m_coord->config()->get_address(m_daemon->m_us) == m_daemon->m_bind_to &&
+        m_coord->config()->get_state(m_daemon->m_us) == server::AVAILABLE)
     {
         return;
     }
