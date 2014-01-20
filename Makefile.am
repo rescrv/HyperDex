@@ -42,7 +42,7 @@ pkgconfigdir = $(libdir)/pkgconfig
 BUILT_SOURCES =
 
 EXTRA_DIST =
-EXTRA_DIST += test/java/.exists
+EXTRA_DIST += THIRD-PARTY
 
 CLEANFILES =
 
@@ -150,6 +150,8 @@ common_test_ordered_encoding_CXXFLAGS = $(AM_CXXFLAGS) $(CXXFLAGS)
 ################################################################################
 ################################### City Hash ##################################
 ################################################################################
+
+EXTRA_DIST += cityhash/COPYING
 
 noinst_HEADERS += cityhash/city.h
 
@@ -562,6 +564,7 @@ CLEANFILES += $(hyperdex_ycsb_jarfile)
 CLEANFILES += bindings/java/org/hyperdex/client/*.class
 CLEANFILES += test/java/*.class
 
+EXTRA_DIST += bindings/java/gen_java.py
 EXTRA_DIST += bindings/java/org/hyperdex/client/ByteString.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Client.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Deferred.java
@@ -577,6 +580,7 @@ EXTRA_DIST += bindings/java/org/hyperdex/client/Predicate.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Range.java
 EXTRA_DIST += bindings/java/org/hyperdex/client/Regex.java
 EXTRA_DIST += bindings/java/org/hyperdex/ycsb/HyperDex.java
+EXTRA_DIST += test/java/.exists
 
 # Client
 noinst_HEADERS += bindings/java/org_hyperdex_client_Client.h
@@ -674,6 +678,7 @@ if ENABLE_RUBY_BINDINGS
 ruby_LTLIBRARIES += bindings/ruby/hyperdex.la
 endif
 
+EXTRA_DIST += bindings/ruby/gen_doc.py
 EXTRA_DIST += bindings/ruby/gen_ruby.py
 EXTRA_DIST += bindings/ruby/definitions.c
 EXTRA_DIST += bindings/ruby/prototypes.c
@@ -1172,8 +1177,11 @@ EXTRA_DIST += $(wildcard doc/*/*.tex)
 EXTRA_DIST += $(wildcard doc/*/*/*.tex)
 EXTRA_DIST += doc/Makefile
 EXTRA_DIST += doc/latex.py
+EXTRA_DIST += doc/api/c/hello-world.c
 EXTRA_DIST += doc/api/c/iterate.c
-EXTRA_DIST += doc/api/c/iterate.c
+EXTRA_DIST += doc/api/ruby/hello-world-async-loop.rb
+EXTRA_DIST += doc/api/ruby/hello-world-async-wait.rb
+EXTRA_DIST += doc/api/ruby/hello-world.rb
 
 CLEANFILES += doc/HyperDex-$(VERSION).pdf
 
