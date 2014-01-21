@@ -2099,7 +2099,7 @@ Java_org_hyperdex_client_Iterator_callback(JNIEnv* env, jobject obj)
     {
         tmp = iter->encode_return(env, obj, iter);
 
-        if (!iter->attrs)
+        if (iter->attrs)
         {
             hyperdex_client_destroy_attrs(iter->attrs, iter->attrs_sz);
         }
