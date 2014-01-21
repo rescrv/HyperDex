@@ -43,8 +43,9 @@ import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.StringByteIterator;
 
+import org.hyperdex.client.ByteString;
 import org.hyperdex.client.Client;
-import org.hyperdex.client.SearchBase;
+import org.hyperdex.client.Iterator;
 
 public class HyperDex extends DB
 {
@@ -141,7 +142,7 @@ public class HyperDex extends DB
 
         try
         {
-            SearchBase s = m_client.search(table, values);
+            Iterator s = m_client.search(table, values);
 
             while (s.hasNext())
             {
@@ -171,7 +172,7 @@ public class HyperDex extends DB
 
         for (Map.Entry<String, ByteIterator> entry : _values.entrySet())
         {
-            values.put(entry.getKey(), entry.getValue().toArray());
+            values.put(entry.getKey(), new ByteString(entry.getValue().toArray()));
         }
 
         if (m_scannable)
