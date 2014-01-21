@@ -262,7 +262,7 @@ class JavaGenerator(BindingGenerator):
         self.count = 0
         self.path = 'test/java/{0}.java'.format(name)
         precmd = 'javac -d "${{HYPERDEX_BUILDDIR}}"/test/java "${{HYPERDEX_SRCDIR}}"/test/java/{0}.java'.format(name)
-        cmd = 'java -Djava.library.path="${{HYPERDEX_BUILDDIR}}"/.libs {0}'.format(name)
+        cmd = 'java -Djava.library.path="${{HYPERDEX_BUILDDIR}}"/.libs:/usr/local/lib:/usr/local/lib64:/usr/lib:/usr/lib64 {0}'.format(name)
         gen_shell('java', name, cmd, space, precmd=precmd)
         self.f = open(self.path, 'w')
         self.f.write('''import java.util.*;
@@ -309,7 +309,8 @@ public class {0}
             for k, v in sorted(expected.iteritems()):
                 self.f.write('        expected{0}.put({1}, {2});\n'
                                  .format(c, self.to_java(k), self.to_java(v)))
-            self.f.write('        get{0}.equals(expected{0});\n'.format(c))
+            self.f.write('        get{0}.entrySet().containsAll(expected{0}.entrySet());\n'.format(c))
+            self.f.write('        expected{0}.entrySet().containsAll(get{0}.entrySet());\n'.format(c))
 
     def put(self, space, key, value, expected):
         assert expected in (True, False)

@@ -71,6 +71,7 @@ TRANSITION(server_shutdown);
 TRANSITION(server_kill);
 TRANSITION(server_forget);
 TRANSITION(server_suspect);
+TRANSITION(report_disconnect);
 
 TRANSITION(space_add);
 TRANSITION(space_rm);

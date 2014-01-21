@@ -573,6 +573,8 @@ key_iterator :: key_iterator(leveldb_snapshot_ptr s,
     , m_range(r)
     , m_key_ii(key_ii)
     , m_scratch()
+    , m_limit_buf()
+    , m_limit()
     , m_invalid(false)
 {
     assert(m_range.attr == 0);

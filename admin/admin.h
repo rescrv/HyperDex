@@ -41,6 +41,7 @@
 #include "common/coordinator_link.h"
 #include "common/mapper.h"
 #include "admin/coord_rpc.h"
+#include "admin/multi_yieldable.h"
 #include "admin/pending.h"
 #include "admin/pending_perf_counters.h"
 
@@ -78,6 +79,13 @@ class admin
         int64_t server_offline(uint64_t token, enum hyperdex_admin_returncode* status);
         int64_t server_forget(uint64_t token, enum hyperdex_admin_returncode* status);
         int64_t server_kill(uint64_t token, enum hyperdex_admin_returncode* status);
+        // backups
+        int64_t backup(const char* name, enum hyperdex_admin_returncode* status, const char** backups);
+        int64_t coord_backup(const char* path,
+                             enum hyperdex_admin_returncode* status);
+        int64_t raw_backup(const server_id& sid, const char* name,
+                           enum hyperdex_admin_returncode* status,
+                           const char** path);
         // read performance counters
         int64_t enable_perf_counters(hyperdex_admin_returncode* status,
                                      hyperdex_admin_perf_counter* pc);
@@ -110,8 +118,10 @@ class admin
             e::intrusive_ptr<pending> op;
         };
         typedef std::map<uint64_t, pending_server_pair> pending_map_t;
-        typedef std::map<uint64_t, e::intrusive_ptr<coord_rpc> > coord_rpc_map_t;
+        typedef std::map<int64_t, e::intrusive_ptr<coord_rpc> > coord_rpc_map_t;
+        typedef std::map<int64_t, e::intrusive_ptr<multi_yieldable> > multi_yieldable_map_t;
         typedef std::list<pending_server_pair> pending_queue_t;
+        friend class backup_state_machine;
         friend class pending_perf_counters;
 
     private:
@@ -133,6 +143,7 @@ class admin
         bool m_handle_coord_ops;
         coord_rpc_map_t m_coord_ops;
         pending_map_t m_server_ops;
+        multi_yieldable_map_t m_multi_ops;
         pending_queue_t m_failed;
         std::list<e::intrusive_ptr<yieldable> > m_yieldable;
         e::intrusive_ptr<yieldable> m_yielding;

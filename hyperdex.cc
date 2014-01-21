@@ -54,6 +54,8 @@ main(int argc, const char* argv[])
     cmds.push_back(e::subcommand("perf-counters",         "Collect performance counters from a cluster"));
     cmds.push_back(e::subcommand("set-read-only",         "Put the cluster into read-only mode, blocking writes"));
     cmds.push_back(e::subcommand("set-read-write",        "Put the cluster into read-write mode, permitting writes"));
+    cmds.push_back(e::subcommand("backup",                "Take a backup of the entire HyperDex cluster"));
+    cmds.push_back(e::subcommand("backup-manager",        "Manage incremental backups of the entire HyperDex cluster"));
     cmds.push_back(e::subcommand("raw-backup",            "Take a raw backup of a single HyperDex daemon"));
     cmds.push_back(e::subcommand("wait-until-stable",     "Wait for the cluster to become stable on the new configuration"));
     return dispatch_to_subcommands(argc, argv,

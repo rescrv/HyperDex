@@ -431,13 +431,17 @@ noinst_HEADERS += include/hyperdex/admin.h
 noinst_HEADERS += include/hyperdex/admin.hpp
 noinst_HEADERS += include/hyperdex/hyperspace_builder.h
 noinst_HEADERS += admin/admin.h
+noinst_HEADERS += admin/backup_state_machine.h
 noinst_HEADERS += admin/constants.h
 noinst_HEADERS += admin/coord_rpc.h
+noinst_HEADERS += admin/coord_rpc_backup.h
 noinst_HEADERS += admin/coord_rpc_generic.h
 noinst_HEADERS += admin/hyperspace_builder_internal.h
+noinst_HEADERS += admin/multi_yieldable.h
 noinst_HEADERS += admin/partition.h
 noinst_HEADERS += admin/pending.h
 noinst_HEADERS += admin/pending_perf_counters.h
+noinst_HEADERS += admin/pending_raw_backup.h
 noinst_HEADERS += admin/pending_string.h
 noinst_HEADERS += admin/yieldable.h
 
@@ -457,6 +461,7 @@ libhyperdex_admin_la_SOURCES += common/hyperdex.cc
 libhyperdex_admin_la_SOURCES += common/hyperspace.cc
 libhyperdex_admin_la_SOURCES += common/ids.cc
 libhyperdex_admin_la_SOURCES += common/mapper.cc
+libhyperdex_admin_la_SOURCES += common/network_msgtype.cc
 libhyperdex_admin_la_SOURCES += common/ordered_encoding.cc
 libhyperdex_admin_la_SOURCES += common/range.cc
 libhyperdex_admin_la_SOURCES += common/range_searches.cc
@@ -467,15 +472,19 @@ libhyperdex_admin_la_SOURCES += common/server.cc
 libhyperdex_admin_la_SOURCES += common/transfer.cc
 libhyperdex_admin_la_SOURCES += cityhash/city.cc
 libhyperdex_admin_la_SOURCES += admin/admin.cc
+libhyperdex_admin_la_SOURCES += admin/backup_state_machine.cc
 libhyperdex_admin_la_SOURCES += admin/c.cc
 libhyperdex_admin_la_SOURCES += admin/coord_rpc.cc
+libhyperdex_admin_la_SOURCES += admin/coord_rpc_backup.cc
 libhyperdex_admin_la_SOURCES += admin/coord_rpc_generic.cc
 libhyperdex_admin_la_SOURCES += admin/hyperspace_builder.cc
+libhyperdex_admin_la_SOURCES += admin/multi_yieldable.cc
 libhyperdex_admin_la_SOURCES += admin/parse_space_l.l
 libhyperdex_admin_la_SOURCES += admin/parse_space_y.y
 libhyperdex_admin_la_SOURCES += admin/partition.cc
 libhyperdex_admin_la_SOURCES += admin/pending.cc
 libhyperdex_admin_la_SOURCES += admin/pending_perf_counters.cc
+libhyperdex_admin_la_SOURCES += admin/pending_raw_backup.cc
 libhyperdex_admin_la_SOURCES += admin/pending_string.cc
 libhyperdex_admin_la_SOURCES += admin/raw_backup.cc
 libhyperdex_admin_la_SOURCES += admin/yieldable.cc
@@ -966,6 +975,8 @@ hyperdexexec_PROGRAMS += hyperdex-perf-counters
 hyperdexexec_PROGRAMS += hyperdex-set-read-only
 hyperdexexec_PROGRAMS += hyperdex-set-read-write
 hyperdexexec_PROGRAMS += hyperdex-wait-until-stable
+hyperdexexec_PROGRAMS += hyperdex-backup
+hyperdexexec_PROGRAMS += hyperdex-backup-manager
 hyperdexexec_PROGRAMS += hyperdex-raw-backup
 dist_man_MANS += man/hyperdex-add-space.1
 dist_man_MANS += man/hyperdex-rm-space.1
@@ -981,6 +992,8 @@ dist_man_MANS += man/hyperdex-perf-counters.1
 dist_man_MANS += man/hyperdex-set-read-only.1
 dist_man_MANS += man/hyperdex-set-read-write.1
 dist_man_MANS += man/hyperdex-wait-until-stable.1
+dist_man_MANS += man/hyperdex-backup.1
+dist_man_MANS += man/hyperdex-backup-manager.1
 dist_man_MANS += man/hyperdex-raw-backup.1
 endif
 
@@ -1121,6 +1134,24 @@ hyperdex_wait_until_stable_LDADD = libhyperdex-admin.la -lpopt
 man/hyperdex-wait-until-stable.1: man/hyperdex-wait-until-stable.1.h2m tools/wait-until-stable.cc
 	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-wait-until-stable$(EXEEXT)
 	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-wait-until-stable$(EXEEXT)
+
+# hyperdex-backup
+EXTRA_DIST += man/hyperdex-backup.1.md
+EXTRA_DIST += man/hyperdex-backup.1.h2m
+hyperdex_backup_SOURCES = tools/backup.cc
+hyperdex_backup_LDADD = libhyperdex-admin.la -lpopt
+man/hyperdex-backup.1: man/hyperdex-backup.1.h2m tools/backup.cc
+	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-backup$(EXEEXT)
+	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-backup$(EXEEXT)
+
+# hyperdex-backup-manager
+EXTRA_DIST += man/hyperdex-backup-manager.1.md
+EXTRA_DIST += man/hyperdex-backup-manager.1.h2m
+hyperdex_backup_manager_SOURCES = tools/backup-manager.cc
+hyperdex_backup_manager_LDADD = libhyperdex-admin.la -lpopt
+man/hyperdex-backup-manager.1: man/hyperdex-backup-manager.1.h2m tools/backup-manager.cc
+	@$(MAKE) --silent $(AM_MAKEFLAGS) hyperdex-backup-manager$(EXEEXT)
+	$(help2man_verbose)help2man $(HELP2MAN_FLAGS) --section 1 --output $@ --include $< ${abs_top_builddir}/hyperdex-backup-manager$(EXEEXT)
 
 # hyperdex-raw-backup
 EXTRA_DIST += man/hyperdex-raw-backup.1.md

@@ -29,7 +29,8 @@ public class Basic
         assert(get2 != null);
         Map<String, Object> expected2 = new HashMap<String, Object>();
         expected2.put("v", "v1");
-        get2.equals(expected2);
+        get2.entrySet().containsAll(expected2.entrySet());
+        expected2.entrySet().containsAll(get2.entrySet());
         Map<String, Object> attrs3 = new HashMap<String, Object>();
         attrs3.put("v", "v2");
         Object obj3 = c.put("kv", "k", attrs3);
@@ -40,7 +41,8 @@ public class Basic
         assert(get4 != null);
         Map<String, Object> expected4 = new HashMap<String, Object>();
         expected4.put("v", "v2");
-        get4.equals(expected4);
+        get4.entrySet().containsAll(expected4.entrySet());
+        expected4.entrySet().containsAll(get4.entrySet());
         Map<String, Object> attrs5 = new HashMap<String, Object>();
         attrs5.put("v", "v3");
         Object obj5 = c.put("kv", "k", attrs5);
@@ -51,7 +53,8 @@ public class Basic
         assert(get6 != null);
         Map<String, Object> expected6 = new HashMap<String, Object>();
         expected6.put("v", "v3");
-        get6.equals(expected6);
+        get6.entrySet().containsAll(expected6.entrySet());
+        expected6.entrySet().containsAll(get6.entrySet());
         Object obj7 = c.del("kv", "k");
         assert(obj7 != null);
         Boolean bool7 = (Boolean)obj7;

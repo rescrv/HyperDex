@@ -59,8 +59,8 @@ class connect_opts
 
     public:
         const e::argparser& parser() { return m_ap; }
-        const char* host() { return m_host; }
-        uint16_t port() { return m_port; }
+        const char* host() const { return m_host; }
+        uint16_t port() const { return m_port; }
         bool validate()
         {
             if (m_port <= 0 || m_port >= (1 << 16))
@@ -86,7 +86,7 @@ class connect_opts
 #define HYPERDEX_LIB_NAME "libhyperdex-coordinator"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wlarger-than="
-inline bool
+bool
 locate_coordinator_lib(const char* argv0, po6::pathname* path)
 {
     // find the right library

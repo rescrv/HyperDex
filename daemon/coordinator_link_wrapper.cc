@@ -384,7 +384,7 @@ coordinator_link_wrapper :: report_tcp_disconnect(const server_id& id)
     e::pack64be(version, buf + sizeof(uint64_t));
     e::intrusive_ptr<coord_rpc> rpc = new coord_rpc();
     rpc->msg << "report TCP disconnect id=" << version;
-    make_rpc("server_suspect", buf, 2 * sizeof(uint64_t), rpc);
+    make_rpc("report_disconnect", buf, 2 * sizeof(uint64_t), rpc);
 }
 
 void
@@ -557,9 +557,13 @@ coordinator_link_wrapper :: coord_rpc_available :: callback(coordinator_link_wra
 void
 coordinator_link_wrapper :: ensure_available()
 {
-    if (m_online_id >= 0 || m_shutdown_requested ||
-        !(m_coord->config()->get_address(m_daemon->m_us) != m_daemon->m_bind_to ||
-          m_coord->config()->get_state(m_daemon->m_us) != server::AVAILABLE))
+    if (m_online_id >= 0 || m_shutdown_requested)
+    {
+        return;
+    }
+
+    if (m_coord->config()->get_address(m_daemon->m_us) == m_daemon->m_bind_to &&
+        m_coord->config()->get_state(m_daemon->m_us) == server::AVAILABLE)
     {
         return;
     }

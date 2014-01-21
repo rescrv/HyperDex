@@ -335,11 +335,25 @@ hyperdex_coordinator_server_suspect(struct replicant_state_machine_context* ctx,
     FILE* log = replicant_state_machine_log_stream(ctx);
     coordinator* c = static_cast<coordinator*>(obj);
     server_id sid;
+    e::unpacker up(data, data_sz);
+    up = up >> sid;
+    CHECK_UNPACK(server_suspect);
+    c->server_suspect(ctx, sid);
+}
+
+void
+hyperdex_coordinator_report_disconnect(struct replicant_state_machine_context* ctx,
+                                       void* obj, const char* data, size_t data_sz)
+{
+    PROTECT_UNINITIALIZED;
+    FILE* log = replicant_state_machine_log_stream(ctx);
+    coordinator* c = static_cast<coordinator*>(obj);
+    server_id sid;
     uint64_t version;
     e::unpacker up(data, data_sz);
     up = up >> sid >> version;
-    CHECK_UNPACK(server_suspect);
-    c->server_suspect(ctx, sid, version);
+    CHECK_UNPACK(report_disconnect);
+    c->report_disconnect(ctx, sid, version);
 }
 
 void

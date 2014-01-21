@@ -229,6 +229,18 @@ hyperdex_admin_server_kill(struct hyperdex_admin* _adm,
 }
 
 HYPERDEX_API int64_t
+hyperdex_admin_backup(struct hyperdex_admin* _adm,
+                      const char* name,
+                      enum hyperdex_admin_returncode* status,
+                      const char** backups)
+{
+    C_WRAP_EXCEPT(
+    hyperdex::admin* adm = reinterpret_cast<hyperdex::admin*>(_adm);
+    return adm->backup(name, status, backups);
+    );
+}
+
+HYPERDEX_API int64_t
 hyperdex_admin_enable_perf_counters(struct hyperdex_admin* _adm,
                                     enum hyperdex_admin_returncode* status,
                                     struct hyperdex_admin_perf_counter* pc)
@@ -286,6 +298,7 @@ hyperdex_admin_returncode_to_string(enum hyperdex_admin_returncode status)
         CSTRINGIFY(HYPERDEX_ADMIN_BADSPACE);
         CSTRINGIFY(HYPERDEX_ADMIN_DUPLICATE);
         CSTRINGIFY(HYPERDEX_ADMIN_NOTFOUND);
+        CSTRINGIFY(HYPERDEX_ADMIN_LOCALERROR);
         CSTRINGIFY(HYPERDEX_ADMIN_INTERNAL);
         CSTRINGIFY(HYPERDEX_ADMIN_EXCEPTION);
         CSTRINGIFY(HYPERDEX_ADMIN_GARBAGE);

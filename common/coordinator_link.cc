@@ -137,6 +137,13 @@ coordinator_link :: rpc(const char* func,
 }
 
 int64_t
+coordinator_link :: backup(replicant_returncode* status,
+                           const char** output, size_t* output_sz)
+{
+    return m_repl.backup_object("hyperdex", status, output, output_sz);
+}
+
+int64_t
 coordinator_link :: wait(const char* cond, uint64_t state,
                          replicant_returncode* status)
 {

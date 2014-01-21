@@ -12,7 +12,7 @@ extern "C" {
  * Method:    initialize
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_org_hyperdex_client_Client_initialize
+JNIEXPORT HYPERDEX_API void JNICALL Java_org_hyperdex_client_Client_initialize
   (JNIEnv *, jclass);
 
 /*
@@ -20,7 +20,7 @@ JNIEXPORT void JNICALL Java_org_hyperdex_client_Client_initialize
  * Method:    terminate
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_org_hyperdex_client_Client_terminate
+JNIEXPORT HYPERDEX_API void JNICALL Java_org_hyperdex_client_Client_terminate
   (JNIEnv *, jclass);
 
 /*
@@ -28,7 +28,7 @@ JNIEXPORT void JNICALL Java_org_hyperdex_client_Client_terminate
  * Method:    create
  * Signature: (Ljava/lang/String;I)V
  */
-JNIEXPORT void JNICALL Java_org_hyperdex_client_Client_create
+JNIEXPORT HYPERDEX_API void JNICALL Java_org_hyperdex_client_Client_create
   (JNIEnv *, jobject, jstring, jint);
 
 /*
@@ -36,7 +36,7 @@ JNIEXPORT void JNICALL Java_org_hyperdex_client_Client_create
  * Method:    destroy
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_org_hyperdex_client_Client_destroy
+JNIEXPORT HYPERDEX_API void JNICALL Java_org_hyperdex_client_Client_destroy
   (JNIEnv *, jobject);
 
 /*
@@ -44,7 +44,7 @@ JNIEXPORT void JNICALL Java_org_hyperdex_client_Client_destroy
  * Method:    inner_loop
  * Signature: ()J
  */
-JNIEXPORT jlong JNICALL Java_org_hyperdex_client_Client_inner_1loop
+JNIEXPORT HYPERDEX_API jlong JNICALL Java_org_hyperdex_client_Client_inner_1loop
   (JNIEnv *, jobject);
 
 /*
@@ -52,7 +52,7 @@ JNIEXPORT jlong JNICALL Java_org_hyperdex_client_Client_inner_1loop
  * Method:    async_get
  * Signature: (Ljava/lang/String;Ljava/lang/Object;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1get
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1get
   (JNIEnv *, jobject, jstring, jobject);
 
 /*
@@ -60,7 +60,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1get
  * Method:    async_put
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1put
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1put
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -68,7 +68,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1put
  * Method:    async_cond_put
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1put
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1put
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -76,7 +76,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1put
  * Method:    async_put_if_not_exist
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1put_1if_1not_1exist
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1put_1if_1not_1exist
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -84,7 +84,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1put_1if_1not_1e
  * Method:    async_del
  * Signature: (Ljava/lang/String;Ljava/lang/Object;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1del
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1del
   (JNIEnv *, jobject, jstring, jobject);
 
 /*
@@ -92,7 +92,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1del
  * Method:    async_cond_del
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1del
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1del
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -100,7 +100,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1del
  * Method:    async_atomic_add
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1atomic_1add
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1atomic_1add
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -108,7 +108,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1atomic_1add
  * Method:    async_cond_atomic_add
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1atomic_1add
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1atomic_1add
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -116,7 +116,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1atomic_1a
  * Method:    async_atomic_sub
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1atomic_1sub
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1atomic_1sub
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -124,7 +124,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1atomic_1sub
  * Method:    async_cond_atomic_sub
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1atomic_1sub
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1atomic_1sub
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -132,7 +132,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1atomic_1s
  * Method:    async_atomic_mul
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1atomic_1mul
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1atomic_1mul
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -140,7 +140,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1atomic_1mul
  * Method:    async_cond_atomic_mul
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1atomic_1mul
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1atomic_1mul
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -148,7 +148,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1atomic_1m
  * Method:    async_atomic_div
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1atomic_1div
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1atomic_1div
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -156,7 +156,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1atomic_1div
  * Method:    async_cond_atomic_div
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1atomic_1div
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1atomic_1div
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -164,7 +164,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1atomic_1d
  * Method:    async_atomic_mod
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1atomic_1mod
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1atomic_1mod
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -172,7 +172,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1atomic_1mod
  * Method:    async_cond_atomic_mod
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1atomic_1mod
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1atomic_1mod
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -180,7 +180,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1atomic_1m
  * Method:    async_atomic_and
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1atomic_1and
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1atomic_1and
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -188,7 +188,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1atomic_1and
  * Method:    async_cond_atomic_and
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1atomic_1and
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1atomic_1and
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -196,7 +196,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1atomic_1a
  * Method:    async_atomic_or
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1atomic_1or
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1atomic_1or
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -204,7 +204,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1atomic_1or
  * Method:    async_cond_atomic_or
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1atomic_1or
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1atomic_1or
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -212,7 +212,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1atomic_1o
  * Method:    async_atomic_xor
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1atomic_1xor
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1atomic_1xor
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -220,7 +220,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1atomic_1xor
  * Method:    async_cond_atomic_xor
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1atomic_1xor
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1atomic_1xor
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -228,7 +228,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1atomic_1x
  * Method:    async_string_prepend
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1string_1prepend
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1string_1prepend
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -236,7 +236,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1string_1prepend
  * Method:    async_cond_string_prepend
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1string_1prepend
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1string_1prepend
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -244,7 +244,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1string_1p
  * Method:    async_string_append
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1string_1append
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1string_1append
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -252,7 +252,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1string_1append
  * Method:    async_cond_string_append
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1string_1append
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1string_1append
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -260,7 +260,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1string_1a
  * Method:    async_list_lpush
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1list_1lpush
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1list_1lpush
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -268,7 +268,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1list_1lpush
  * Method:    async_cond_list_lpush
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1list_1lpush
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1list_1lpush
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -276,7 +276,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1list_1lpu
  * Method:    async_list_rpush
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1list_1rpush
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1list_1rpush
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -284,7 +284,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1list_1rpush
  * Method:    async_cond_list_rpush
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1list_1rpush
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1list_1rpush
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -292,7 +292,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1list_1rpu
  * Method:    async_set_add
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1set_1add
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1set_1add
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -300,7 +300,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1set_1add
  * Method:    async_cond_set_add
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1set_1add
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1set_1add
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -308,7 +308,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1set_1add
  * Method:    async_set_remove
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1set_1remove
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1set_1remove
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -316,7 +316,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1set_1remove
  * Method:    async_cond_set_remove
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1set_1remove
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1set_1remove
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -324,7 +324,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1set_1remo
  * Method:    async_set_intersect
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1set_1intersect
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1set_1intersect
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -332,7 +332,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1set_1intersect
  * Method:    async_cond_set_intersect
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1set_1intersect
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1set_1intersect
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -340,7 +340,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1set_1inte
  * Method:    async_set_union
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1set_1union
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1set_1union
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -348,7 +348,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1set_1union
  * Method:    async_cond_set_union
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1set_1union
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1set_1union
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -356,7 +356,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1set_1unio
  * Method:    async_map_add
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1add
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1add
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -364,7 +364,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1add
  * Method:    async_cond_map_add
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1add
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1add
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -372,7 +372,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1add
  * Method:    async_map_remove
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1remove
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1remove
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -380,7 +380,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1remove
  * Method:    async_cond_map_remove
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1remove
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1remove
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -388,7 +388,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1remo
  * Method:    async_map_atomic_add
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1atomic_1add
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1atomic_1add
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -396,7 +396,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1atomic_1ad
  * Method:    async_cond_map_atomic_add
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1atomic_1add
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1atomic_1add
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -404,7 +404,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1atom
  * Method:    async_map_atomic_sub
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1atomic_1sub
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1atomic_1sub
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -412,7 +412,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1atomic_1su
  * Method:    async_cond_map_atomic_sub
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1atomic_1sub
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1atomic_1sub
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -420,7 +420,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1atom
  * Method:    async_map_atomic_mul
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1atomic_1mul
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1atomic_1mul
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -428,7 +428,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1atomic_1mu
  * Method:    async_cond_map_atomic_mul
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1atomic_1mul
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1atomic_1mul
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -436,7 +436,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1atom
  * Method:    async_map_atomic_div
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1atomic_1div
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1atomic_1div
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -444,7 +444,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1atomic_1di
  * Method:    async_cond_map_atomic_div
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1atomic_1div
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1atomic_1div
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -452,7 +452,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1atom
  * Method:    async_map_atomic_mod
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1atomic_1mod
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1atomic_1mod
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -460,7 +460,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1atomic_1mo
  * Method:    async_cond_map_atomic_mod
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1atomic_1mod
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1atomic_1mod
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -468,7 +468,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1atom
  * Method:    async_map_atomic_and
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1atomic_1and
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1atomic_1and
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -476,7 +476,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1atomic_1an
  * Method:    async_cond_map_atomic_and
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1atomic_1and
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1atomic_1and
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -484,7 +484,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1atom
  * Method:    async_map_atomic_or
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1atomic_1or
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1atomic_1or
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -492,7 +492,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1atomic_1or
  * Method:    async_cond_map_atomic_or
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1atomic_1or
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1atomic_1or
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -500,7 +500,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1atom
  * Method:    async_map_atomic_xor
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1atomic_1xor
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1atomic_1xor
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -508,7 +508,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1atomic_1xo
  * Method:    async_cond_map_atomic_xor
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1atomic_1xor
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1atomic_1xor
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -516,7 +516,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1atom
  * Method:    async_map_string_prepend
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1string_1prepend
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1string_1prepend
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -524,7 +524,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1string_1pr
  * Method:    async_cond_map_string_prepend
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1string_1prepend
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1string_1prepend
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -532,7 +532,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1stri
  * Method:    async_map_string_append
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1string_1append
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1string_1append
   (JNIEnv *, jobject, jstring, jobject, jobject);
 
 /*
@@ -540,7 +540,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1map_1string_1ap
  * Method:    async_cond_map_string_append
  * Signature: (Ljava/lang/String;Ljava/lang/Object;Ljava/util/Map;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1string_1append
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1string_1append
   (JNIEnv *, jobject, jstring, jobject, jobject, jobject);
 
 /*
@@ -548,7 +548,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1cond_1map_1stri
  * Method:    search
  * Signature: (Ljava/lang/String;Ljava/util/Map;)Lorg/hyperdex/client/Iterator;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_search
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_search
   (JNIEnv *, jobject, jstring, jobject);
 
 /*
@@ -556,7 +556,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_search
  * Method:    async_search_describe
  * Signature: (Ljava/lang/String;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1search_1describe
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1search_1describe
   (JNIEnv *, jobject, jstring, jobject);
 
 /*
@@ -564,7 +564,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1search_1describ
  * Method:    sorted_search
  * Signature: (Ljava/lang/String;Ljava/util/Map;Ljava/lang/String;IZ)Lorg/hyperdex/client/Iterator;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_sorted_1search
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_sorted_1search
   (JNIEnv *, jobject, jstring, jobject, jstring, jint, jboolean);
 
 /*
@@ -572,7 +572,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_sorted_1search
  * Method:    async_group_del
  * Signature: (Ljava/lang/String;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1group_1del
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1group_1del
   (JNIEnv *, jobject, jstring, jobject);
 
 /*
@@ -580,7 +580,7 @@ JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1group_1del
  * Method:    async_count
  * Signature: (Ljava/lang/String;Ljava/util/Map;)Lorg/hyperdex/client/Deferred;
  */
-JNIEXPORT jobject JNICALL Java_org_hyperdex_client_Client_async_1count
+JNIEXPORT HYPERDEX_API jobject JNICALL Java_org_hyperdex_client_Client_async_1count
   (JNIEnv *, jobject, jstring, jobject);
 
 #ifdef __cplusplus

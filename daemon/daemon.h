@@ -114,6 +114,7 @@ class daemon
         po6::net::location m_bind_to;
         std::vector<std::tr1::shared_ptr<po6::threads::thread> > m_threads;
         coordinator_link_wrapper m_coord;
+        std::string m_data_dir;
         datalayer m_data;
         communication m_comm;
         replication_manager m_repl;

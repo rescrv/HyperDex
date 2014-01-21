@@ -85,7 +85,9 @@ class coordinator
         void server_forget(replicant_state_machine_context* ctx,
                            const server_id& sid);
         void server_suspect(replicant_state_machine_context* ctx,
-                            const server_id& sid, uint64_t version);
+                            const server_id& sid);
+        void report_disconnect(replicant_state_machine_context* ctx,
+                               const server_id& sid, uint64_t version);
 
     // space management
     public:
