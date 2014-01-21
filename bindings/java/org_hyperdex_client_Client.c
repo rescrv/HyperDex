@@ -1171,7 +1171,7 @@ hyperdex_java_client_convert_predicate(JNIEnv* env,
     jobject it;
     jobject entry;
     jlong tmp;
-    size_t i;
+    ssize_t i;
 
     if ((*env)->IsInstanceOf(env, x, _predicate) == JNI_TRUE)
     {
@@ -1334,7 +1334,7 @@ hyperdex_java_client_convert_spacename(JNIEnv* env, jobject client,
     do { \
         tmp_array = (*env)->NewByteArray(env, X_SZ); \
         ERROR_CHECK(0); \
-        (*env)->SetByteArrayRegion(env, tmp_array, 0, X_SZ, X); \
+        (*env)->SetByteArrayRegion(env, tmp_array, 0, X_SZ, (const jbyte*)X); \
         ERROR_CHECK(0); \
         OUT = (*env)->NewObject(env, _byte_string, _byte_string_init, tmp_array); \
         ERROR_CHECK(0); \
@@ -1358,7 +1358,6 @@ hyperdex_java_client_build_attribute(JNIEnv* env,
 {
     struct hyperdex_ds_iterator iter;
     jbyteArray tmp_array;
-    jbyte* tmp_bytes;
     const char* tmp_str = NULL;
     size_t tmp_str_sz = 0;
     const char* tmp_str2 = NULL;
@@ -2099,7 +2098,7 @@ Java_org_hyperdex_client_Iterator_callback(JNIEnv* env, jobject obj)
     {
         tmp = iter->encode_return(env, obj, iter);
 
-        if (!iter->attrs)
+        if (iter->attrs)
         {
             hyperdex_client_destroy_attrs(iter->attrs, iter->attrs_sz);
         }
@@ -2160,6 +2159,8 @@ hyperdex_java_client_iterator_encode_status_attributes(JNIEnv* env, jobject obj,
     JNIEXPORT HYPERDEX_API jlong JNICALL \
     Java_org_hyperdex_client_ ## CamelCase ## _checksSize(JNIEnv* env, jobject obj) \
     { \
+        (void) env; \
+        (void) obj; \
         return 1; \
     } \
     JNIEXPORT HYPERDEX_API jlong JNICALL \
@@ -2187,6 +2188,8 @@ SINGLE_OBJECT_PREDICATE(GreaterEqual, greater_equal, GREATER_EQUAL)
 JNIEXPORT HYPERDEX_API jlong JNICALL
 Java_org_hyperdex_client_Range_checksSize(JNIEnv* env, jobject obj)
 {
+    (void) env;
+    (void) obj;
     return 2;
 }
 

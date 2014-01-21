@@ -101,7 +101,6 @@ coordinator_link_wrapper :: coord_rpc :: callback(coordinator_link_wrapper* clw)
         e::error err = clw->m_coord->error();
         LOG(ERROR) << "coordinator error: " << msg.str()
                    << ": " << err.msg() << " @ " << err.loc();
-        LOG(INFO) << status;
     }
 
     if (status == REPLICANT_CLUSTER_JUMP)
