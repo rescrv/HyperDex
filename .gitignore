@@ -86,3 +86,4 @@
 /test/replication-stress-test
 /test/search-stress-test
 /ylwrap
+hyperdex-migrate-data
