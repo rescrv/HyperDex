@@ -473,6 +473,39 @@ configuration :: point_leader(const char* sname, const e::slice& key) const
 }
 
 virtual_server_id
+configuration :: point_leader(const space_id& sid, const e::slice& key) const
+{
+    for (size_t s = 0; s < m_spaces.size(); ++s)
+    {
+        if (sid != m_spaces[s].id)
+        {
+            continue;
+        }
+
+        uint64_t h;
+        hash(m_spaces[s].sc, key, &h);
+
+        for (size_t pl = 0; pl < m_spaces[s].subspaces[0].regions.size(); ++pl)
+        {
+            if (m_spaces[s].subspaces[0].regions[pl].lower_coord[0] <= h &&
+                h <= m_spaces[s].subspaces[0].regions[pl].upper_coord[0])
+            {
+                if (m_spaces[s].subspaces[0].regions[pl].replicas.empty())
+                {
+                    return virtual_server_id();
+                }
+
+                return m_spaces[s].subspaces[0].regions[pl].replicas[0].vsi;
+            }
+        }
+
+        abort();
+    }
+
+    return virtual_server_id();
+}
+
+virtual_server_id
 configuration :: point_leader(const region_id& rid, const e::slice& key) const
 {
     for (size_t s = 0; s < m_spaces.size(); ++s)
@@ -630,11 +663,6 @@ configuration :: transfers_out_regions(const server_id& si, std::vector<region_i
             transfers->push_back(m_transfers[i].rid);
         }
     }
-}
-
-void configuration :: migrations_in(const server_id& s, std::vector<migration>* migrations) const
-{
-
 }
 
 void configuration :: migrations_out(const server_id& sid, std::vector<migration>* migrations) const

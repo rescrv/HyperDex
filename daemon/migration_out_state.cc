@@ -31,16 +31,9 @@
 
 using hyperdex::migration_manager;
 
-migration_manager :: migration_out_state :: migration_out_state(const migration& _mgt)
-    : mgt(_mgt)
-    , mtx()
-    , next_seq_no(1)
-    // , window()
-    // , window_sz(1)
-    , iter()
-    , handshake_syn(false)
-    , handshake_ack(false)
-    , wipe(false)
+migration_manager :: migration_out_state :: migration_out_state()
+    : mtx()
+    , region_iters()
     , m_ref(0)
 {
 }

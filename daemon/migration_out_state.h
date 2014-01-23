@@ -39,6 +39,7 @@
 #include <e/intrusive_ptr.h>
 
 // HyperDex
+#include "common/ids.h"
 #include "daemon/datalayer.h"
 #include "daemon/migration_manager.h"
 
@@ -47,19 +48,12 @@ using hyperdex::migration_manager;
 class migration_manager::migration_out_state
 {
     public:
-        migration_out_state(const migration& xfer);
+        migration_out_state();
         ~migration_out_state() throw ();
 
     public:
-        migration mgt;
         po6::threads::mutex mtx;
-        uint64_t next_seq_no;
-        // std::list<e::intrusive_ptr<pending> > window;
-        // size_t window_sz;
-        std::auto_ptr<datalayer::replay_iterator> iter;
-        bool handshake_syn; // do we know the other end got a syn?
-        bool handshake_ack; // do we know the other end got a ack?
-        bool wipe;
+        std::vector<std::pair<space_id, region_id>* > region_iters;
 
     private:
         friend class e::intrusive_ptr<migration_out_state>;

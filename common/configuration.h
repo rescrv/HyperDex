@@ -90,6 +90,7 @@ class configuration
         void key_regions(const server_id& s, std::vector<region_id>* servers) const;
         bool is_point_leader(const virtual_server_id& e) const;
         virtual_server_id point_leader(const char* space, const e::slice& key) const;
+        virtual_server_id point_leader(const space_id& sid, const e::slice& key) const;
         // point leader for this key in the same space as ri
         virtual_server_id point_leader(const region_id& ri, const e::slice& key) const;
         // lhs and rhs are in adjacent subspaces such that lhs sends CHAIN_PUT
@@ -113,7 +114,6 @@ class configuration
 
     // migrations
     public:
-        void migrations_in(const server_id& s, std::vector<migration>* migrations) const;
         void migrations_out(const server_id& s, std::vector<migration>* migrations) const;
 
     // hashing functions

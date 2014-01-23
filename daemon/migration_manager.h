@@ -43,6 +43,7 @@
 #include "namespace.h"
 #include "common/configuration.h"
 #include "daemon/reconfigure_returncode.h"
+#include "daemon/datalayer.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 class daemon;
@@ -90,27 +91,9 @@ class migration_manager
     //                   uint64_t seq_no);
 
     private:
-        // class pending;
-        // class migration_in_state;
         class migration_out_state;
 
     private:
-        // // get the appropriate state
-        // migration_in_state* get_mis(const migration_id& mid);
-        // migration_out_state* get_mos(const migration_id& mid);
-        // // caller must hold mtx on tos
-        // void migration_more_state(migration_out_state* tos);
-        // void retransmit(migration_out_state* tos);
-        // // caller must hold mtx on tis
-        // void put_to_disk_and_send_acks(migration_in_state* tis);
-        // // caller must hold mtx on tos
-        // // send the last object in tos
-        // void send_handshake_syn(const migration& xfer);
-        // void send_handshake_synack(const migration& xfer, uint64_t timestamp);
-        // void send_handshake_ack(const migration& xfer, bool wipe);
-        // void send_handshake_wiped(const migration& xfer);
-        // void send_object(const migration& xfer, pending* op);
-        // void send_ack(const migration& xfer, uint64_t seq_id);
         void kickstarter();
         void shutdown();
 
@@ -120,7 +103,6 @@ class migration_manager
 
     private:
         daemon* m_daemon;
-        // std::vector<e::intrusive_ptr<migration_in_state>> m_migrations_in;
         std::vector<e::intrusive_ptr<migration_out_state> > m_migrations_out;
         po6::threads::thread m_kickstarter;
         po6::threads::mutex m_block_kickstarter;
