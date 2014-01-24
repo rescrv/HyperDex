@@ -230,7 +230,6 @@ migration_manager :: kickstarter()
                         uint16_t attrnum = i;
 
                         hyperdatatype datatype = sc->attrs[attrnum + 1].type;
-                        std::cout << "datatype " << i << ": " << datatype << std::endl;
 
                         funcall o;
                         o.attr = attrnum + 1;
@@ -239,8 +238,6 @@ migration_manager :: kickstarter()
                         o.arg1_datatype = datatype;
                         funcs.push_back(o);
                     }
-
-                    std::cout << "funcs size: " << funcs.size() << std::endl;
 
                     size_t HEADER_SIZE = BUSYBEE_HEADER_SIZE
                               + sizeof(uint8_t) /*mt*/ \
@@ -254,7 +251,6 @@ migration_manager :: kickstarter()
                               + pack_size(key)
                               + pack_size(checks)
                               + pack_size(funcs);
-                    std::cout << "sent size: " << sz << std::endl;
                     std::auto_ptr<e::buffer> msg(e::buffer::create(sz));
                     uint8_t flags = (0 | 0 | 128);
                     uint64_t nonce = 0; // TODO: what should it be?

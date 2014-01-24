@@ -246,11 +246,6 @@ replication_manager :: client_atomic(const server_id& from,
     const region_id ri(m_daemon->m_config.get_region_id(to));
     const schema& sc(*m_daemon->m_config.get_schema(ri));
 
-    std::cout << !datatype_info::lookup(sc.attrs[0].type)->validate(key) << std::endl;
-    std::cout << (validate_attribute_checks(sc, checks) != checks.size()) << std::endl;
-    std::cout << (validate_funcs(sc, funcs) != funcs.size()) << std::endl;
-    std::cout << (erase && !funcs.empty()) << std::endl;
-
     if (!datatype_info::lookup(sc.attrs[0].type)->validate(key) ||
         validate_attribute_checks(sc, checks) != checks.size() ||
         validate_funcs(sc, funcs) != funcs.size() ||
@@ -277,7 +272,6 @@ replication_manager :: client_atomic(const server_id& from,
     if (!ks->check_against_latest_version(sc, erase, fail_if_not_found, fail_if_found, checks, &nrc))
     {
         respond_to_client(to, from, nonce, nrc);
-        std::cout << "BP1" << std::endl;
         return;
     }
 
@@ -294,7 +288,6 @@ replication_manager :: client_atomic(const server_id& from,
         if (!ks->put_from_funcs(sc, ri, seq_id, funcs, from, nonce))
         {
             respond_to_client(to, from, nonce, NET_OVERFLOW);
-            std::cout << "BP2" << std::endl;
             return;
         }
     }

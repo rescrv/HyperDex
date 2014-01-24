@@ -52,7 +52,6 @@ hyperdex :: validate_func(const schema& sc, const funcall& func)
 {
     if (func.attr >= sc.attrs_sz)
     {
-        std::cout << "sup1" << std::endl;
         return false;
     }
 
@@ -60,10 +59,6 @@ hyperdex :: validate_func(const schema& sc, const funcall& func)
 
     if (!di || !di->check_args(func))
     {
-        std::cout << __FILE__ ":" << __LINE__ << " attr=" << func.attr << " name=" << func.name << " arg1=" << func.arg1.hex() << " arg1_datatype="<<func.arg1_datatype<<std::endl;
-        std::cout << "sup2" << std::endl;
-        std::cout << func.name << std::endl;
-        std::cout << func.arg1_datatype << std::endl;
         return false;
     }
 
