@@ -18,6 +18,15 @@
 import os
 import hyperdex.admin
 import subprocess
+from flask import current_app
+
+
+nodedata = current_app.config.get('NODEDATA')
+nodelog = current_app.config.get('NODELOG')
+coordata = current_app.config.get('COORDATA')
+coorlog = current_app.config.get('COORLOG')
+coorip = current_app.config.get('COORIP')
+coorport = current_app.config.get('COORPORT')
 
 def checkcoordstatus():
 	try:
@@ -44,7 +53,7 @@ def checknodestatus():
 		elif results == 0:
 			nodestatus = 'Online'
 		else:
-				nodestatus = '%s' % results
+			nodestatus = '%s' % results
 
 	except:
 		pass
@@ -53,7 +62,10 @@ def checknodestatus():
 
 def startnode():
 	try:
-		startnode = 'hyperdex daemon --daemon --data=/home/pierre/c4/app/hyperdata --log=/home/pierre/c4/app/hyperdata/logs --coordinator=127.0.0.1 --coordinator-port=1982'
+		# For debugging
+		print nodedata nodelog coorip coorport 
+
+		startnode = 'hyperdex daemon --daemon --data=%s --log=%s --coordinator=%s --coordinator-port=%s' % (nodedata, nodelog, coorip, coorport)
 
 		os.system(startnode)
 
@@ -79,7 +91,11 @@ def stopnodes():
 def startcoord():
 
 	try:
-		startcoord = 'hyperdex coordinator --daemon --data=/home/pierre/c4/app/coordata --log=/home/pierre/c4/app/coordata/logs --listen=127.0.0.1  --listen-port=1982'
+
+		# For debugging
+		print coordata coorlog coorip coorport 
+
+		startcoord = 'hyperdex coordinator --daemon --data=%s --log=%s --listen=%s  --listen-port=%s' % (coordata, coorlog, coorip, coorport)
 		os.system(startcoord)
 
 		return 1
