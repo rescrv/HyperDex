@@ -1,0 +1,149 @@
+<!--Copyright (c) 2014, Pierre Rochard
+    All rights reserved.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the Affero GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the Affero
+    GNU General Public License for more details.
+
+    You should have received a copy of the Affero GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>. -->
+
+{% extends "base.html" %}
+{% block content %}
+
+    <div class="container">
+
+      <div class="row row-offcanvas row-offcanvas-right">
+
+        <div class="col-xs-12 col-sm-9">
+          <p class="pull-right visible-xs">
+            <button type="button" class="btn btn-primary btn-xs" data-toggle="offcanvas">Toggle nav</button>
+          </p>
+          <div class="jumbotron">
+            <h2>Network Operations Console</h2>
+          </div>
+
+
+          <div class="row">
+
+
+            <div class="col-6 col-sm-6 col-lg-4">
+              <center>
+                <h2>Coordinator</h2>
+              </center>
+              <br>
+              {% if coordstatus == 'Offline' %}
+              <p>
+                <center>
+                  <button type="button" disabled="disabled" class="btn btn-lg btn-danger">{{coordstatus}}</button>
+                </center>
+              </p>
+              <br>
+
+              <p>
+                <center>
+                  <form  method="POST" action="/noc">
+                      <input class="btn btn-default" type="submit" name ='submit' value="Start Coordinator" />
+                  </form>
+                </center>
+              </p>
+
+              {% elif coordstatus == 'Online' %}
+
+              <p>
+                <center>
+                  <button type="button"  disabled="disabled" class="btn btn-lg btn-success">{{coordstatus}}</button>
+                </center>
+              </p>
+              <p>
+                <center>
+                  <form  method="POST" action="/noc">
+                      <input class="btn btn-default" type="submit" name ='submit' value="Stop Coordinator" />
+                  </form>
+                </center>
+              </p>
+              {% else %}
+
+              Problem
+
+              {% endif %}
+
+
+            </div><!--/span-->
+
+
+
+            <div class="col-6 col-sm-6 col-lg-4">
+              <center>
+                <h2>Nodes</h2>
+              </center>
+              <br>
+              {% if nodestatus == 'Offline' %}
+              <p>
+                <center>
+                  <button type="button" disabled="disabled" class="btn btn-lg btn-danger">{{nodestatus}}</button>
+                </center>
+              </p>
+              <br>
+
+              <p>
+                <center>
+                  <form  method="POST" action="/noc">
+                      <input class="btn btn-default" type="submit" name ='submit' value="Start Node" />
+                  </form>
+                </center>
+              </p>
+
+              {% elif nodestatus == 'Online' %}
+
+              <p>
+                <center>
+                  <button type="button"  disabled="disabled" class="btn btn-lg btn-success">{{nodestatus}}</button>
+                </center>
+              </p>
+              <p>
+                <center>
+                  <form  method="POST" action="/noc">
+                      <input class="btn btn-default" type="submit" name ='submit' value="Stop Node" />
+                  </form>
+                </center>
+              </p>
+              {% else %}
+
+              Problem
+
+              {% endif %}
+
+
+            </div><!--/span-->
+
+
+
+
+            <div class="col-6 col-sm-6 col-lg-4">
+              <center>
+                <h2>Spaces</h2>
+              </center>
+              {% for space in spacelist %}
+              <br>
+              <p>
+              <center>
+                <a type="button" href="data#{{space}}" class="btn btn-primary">{{space}}</a>
+              </center>
+
+              </p>
+
+              {% endfor %}
+            </div><!--/span-->
+      
+          </div><!--/row-->
+        </div><!--/span-->
+      </div><!--/row-->
+    </div><!--/.container-->
+{% endblock %}

@@ -1,0 +1,290 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"check",
+				"checknodestatus"
+			],
+			[
+				"hyperdex",
+				"hyperdexetc"
+			],
+			[
+				"star",
+				"startdaemon"
+			],
+			[
+				"pageid",
+				"pageid"
+			],
+			[
+				"tx1",
+				"tx1"
+			],
+			[
+				"fco",
+				"fcotuplesplit"
+			],
+			[
+				"ty1",
+				"ty1"
+			],
+			[
+				"xml",
+				"xmlfilename"
+			],
+			[
+				"figure",
+				"figureidcoord"
+			],
+			[
+				"tex",
+				"textlinecoord"
+			],
+			[
+				"textl",
+				"textlinecoord"
+			],
+			[
+				"pdf",
+				"pdfname"
+			],
+			[
+				"text",
+				"textboxid"
+			],
+			[
+				"anal",
+				"analws"
+			],
+			[
+				"i",
+				"idlocation"
+			]
+		]
+	},
+	"buffers":
+	[
+	],
+	"build_system": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 125.0
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/home/pierre/NOC Project/HyperDex/noc-py/run.py",
+		"/home/pierre/NOC Project/HyperDex/noc-py/config.py",
+		"/home/pierre/NOC Project/HyperDex/noc-py/app/views.py",
+		"/home/pierre/NOC Project/HyperDex/noc-py/app/hyperdex-func.py",
+		"/home/pierre/NOC Project/HyperDex/noc-py/app/__init__.py",
+		"/home/pierre/NOC Project/HyperDex/noc-py/app/templates/noc.html",
+		"/home/pierre/NOC Project/HyperDex/noc-py/app/templates/base.html",
+		"/home/pierre/NOC Project/HyperDex/noc-py/app/templates/index.html",
+		"/home/pierre/NOC Project/HyperDex/noc-py/app/forms.py",
+		"/home/pierre/NOC Project/HyperDex/noc-py/app/templates/admin.html",
+		"/home/pierre/c4/app/templates/base.html",
+		"/home/pierre/c4/app/templates/index.html",
+		"/home/pierre/c4/app/templates/strats.html",
+		"/home/pierre/c4/app/hyperdexetc",
+		"/home/pierre/c4/config.py",
+		"/home/pierre/c4/run.py",
+		"/home/pierre/c4/app/forms.py",
+		"/home/pierre/c4/app/__init__.py",
+		"/home/pierre/Documents/autodd/hyperspace.py",
+		"/home/pierre/Documents/autodd/cotuple.py",
+		"/home/pierre/Documents/autodd/11706s/xmls/OCR-clayton oaks 11706.pdf.xml",
+		"/home/pierre/Documents/autodd/multiautoXML.py",
+		"/home/pierre/Documents/autodd/11705er.py",
+		"/home/pierre/Documents/autodd/11706s/OCR-clayton oaks 11706.pdf",
+		"/home/pierre/Documents/autodd/ocred/xmls/OCR-Brentwood Senior 11705.pdf.xml",
+		"/home/pierre/Documents/autodd/11705s/xmls/OCR-Brunswick at Attleboro 11705.pdf.xml",
+		"/home/pierre/Documents/autodd/ocred/xmls/OCR-Lebanon Village 11705.pdf.xml",
+		"/home/pierre/Documents/autodd/ocred/xmls/OCR-Central Nursing 11705.pdf.xml",
+		"/home/pierre/Documents/autodd/ocred/xmls/OCR-Ithica Heights 11705.pdf.xml",
+		"/home/pierre/Documents/autodd/multiautoOCR.py",
+		"/home/pierre/Documents/autodd/gnmasummarizer3.py",
+		"/home/pierre/Documents/autodd/gnmaplc.py",
+		"/home/pierre/Documents/autodd/GNMA2014/xmls/Andover Park - Prospectus.pdf.xml",
+		"/home/pierre/Documents/autodd/multiautoxmlfunc.py",
+		"/home/pierre/Documents/autodd/GNMA2014/xmls/OCR-New Albany Care Prospectus.pdf.xml",
+		"/home/pierre/Documents/autodd/gnma.sublime-workspace",
+		"/home/pierre/Documents/autodd/autodd/gnmasummarizer.py",
+		"/home/pierre/Documents/autodd/autodd/gnma.sublime-project",
+		"/home/pierre/Documents/autodd/autodd/gnmaclc.py",
+		"/home/pierre/Documents/autodd/autodd/gnmaplc.py",
+		"/home/pierre/Documents/autodd/autodd/multiauto.py"
+	],
+	"find":
+	{
+		"height": 47.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": true,
+		"find_history":
+		[
+			"hyperdexetc",
+			"admin",
+			"index",
+			"lo",
+			"print",
+			"<text>",
+			"text",
+			"page",
+			"glob",
+			"page",
+			"36.000,161.772,37.995,172.410",
+			"36.000",
+			"36.000,161.772,37.995,172.410\n",
+			"float(",
+			"anal",
+			"print",
+			"495.438",
+			"495.438\n",
+			"P",
+			"508.54\n",
+			"P",
+			"texting",
+			"re",
+			"pooltype",
+			"linspace",
+			"crange",
+			"X",
+			"sectype",
+			"textboxid",
+			"X",
+			"/",
+			"files",
+			"P",
+			"O",
+			"SAVE",
+			"files",
+			"%r",
+			"G"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			"hyperdexfunc",
+			"text",
+			"textline",
+			"textbox",
+			"text",
+			"textline",
+			"textbox",
+			"",
+			"arange",
+			"numpy.linspace",
+			"pooltype"
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"sheets":
+			[
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 0.0
+	},
+	"input":
+	{
+		"height": 31.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.exec":
+	{
+		"height": 100.0
+	},
+	"replace":
+	{
+		"height": 62.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 500.0,
+		"selected_items":
+		[
+			[
+				"",
+				"/home/pierre/Documents/autodd/autodd/gnma.sublime-project"
+			]
+		],
+		"width": 380.0
+	},
+	"show_minimap": false,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 213.0,
+	"status_bar_visible": true
+}
