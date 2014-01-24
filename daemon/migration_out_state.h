@@ -1,4 +1,4 @@
-// Copyright (c) 2013, Cornell University
+// Copyright (c) 2012, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,40 +25,49 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#ifndef hyperdex_daemon_migration_manager_migration_out_state_h_
+#define hyperdex_daemon_migration_manager_migration_out_state_h_
+
+// STL
+#include <list>
+#include <tr1/memory>
+
+// po6
+#include <po6/threads/mutex.h>
+
+// e
+#include <e/intrusive_ptr.h>
+
 // HyperDex
 #include "common/ids.h"
+#include "daemon/datalayer.h"
+#include "daemon/migration_manager.h"
 
-#define CREATE_ID(TYPE) \
-    std::ostream& \
-    operator << (std::ostream& lhs, const TYPE ## _id& rhs) \
-    { \
-        return lhs << #TYPE "(" << rhs.get() << ")"; \
-    } \
-    e::buffer::packer \
-    operator << (e::buffer::packer pa, const TYPE ## _id& rhs) \
-    { \
-        return pa << rhs.get(); \
-    } \
-    e::unpacker \
-    operator >> (e::unpacker up, TYPE ## _id& rhs) \
-    { \
-        uint64_t id; \
-        up = up >> id; \
-        rhs = TYPE ## _id(id); \
-        return up; \
-    }
+using hyperdex::migration_manager;
 
-BEGIN_HYPERDEX_NAMESPACE
+class migration_manager::migration_out_state
+{
+    public:
+        migration_out_state();
+        ~migration_out_state() throw ();
 
-CREATE_ID(region)
-CREATE_ID(replica_set)
-CREATE_ID(server)
-CREATE_ID(space)
-CREATE_ID(subspace)
-CREATE_ID(transfer)
-CREATE_ID(migration)
-CREATE_ID(virtual_server)
+    public:
+        po6::threads::mutex mtx;
+        std::vector<std::pair<space_id, region_id>* > region_iters;
 
-END_HYPERDEX_NAMESPACE
+    private:
+        friend class e::intrusive_ptr<migration_out_state>;
 
-#undef CREATE_ID
+    private:
+        void inc() { __sync_add_and_fetch(&m_ref, 1); }
+        void dec() { if (__sync_sub_and_fetch(&m_ref, 1) == 0) delete this; }
+
+    private:
+        size_t m_ref;
+
+    private:
+        migration_out_state(const migration_out_state&);
+        migration_out_state& operator = (const migration_out_state&);
+};
+
+#endif // hyperdex_daemon_migration_manager_migration_out_state_h_

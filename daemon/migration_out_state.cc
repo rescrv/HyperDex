@@ -1,4 +1,4 @@
-// Copyright (c) 2013, Cornell University
+// Copyright (c) 2012, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -26,39 +26,18 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // HyperDex
-#include "common/ids.h"
+#include "daemon/datalayer_iterator.h"
+#include "daemon/migration_out_state.h"
 
-#define CREATE_ID(TYPE) \
-    std::ostream& \
-    operator << (std::ostream& lhs, const TYPE ## _id& rhs) \
-    { \
-        return lhs << #TYPE "(" << rhs.get() << ")"; \
-    } \
-    e::buffer::packer \
-    operator << (e::buffer::packer pa, const TYPE ## _id& rhs) \
-    { \
-        return pa << rhs.get(); \
-    } \
-    e::unpacker \
-    operator >> (e::unpacker up, TYPE ## _id& rhs) \
-    { \
-        uint64_t id; \
-        up = up >> id; \
-        rhs = TYPE ## _id(id); \
-        return up; \
-    }
+using hyperdex::migration_manager;
 
-BEGIN_HYPERDEX_NAMESPACE
+migration_manager :: migration_out_state :: migration_out_state()
+    : mtx()
+    , region_iters()
+    , m_ref(0)
+{
+}
 
-CREATE_ID(region)
-CREATE_ID(replica_set)
-CREATE_ID(server)
-CREATE_ID(space)
-CREATE_ID(subspace)
-CREATE_ID(transfer)
-CREATE_ID(migration)
-CREATE_ID(virtual_server)
-
-END_HYPERDEX_NAMESPACE
-
-#undef CREATE_ID
+migration_manager :: migration_out_state :: ~migration_out_state() throw ()
+{
+}

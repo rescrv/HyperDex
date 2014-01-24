@@ -86,6 +86,7 @@ CREATE_ID(server)
 CREATE_ID(space)
 CREATE_ID(subspace)
 CREATE_ID(transfer)
+CREATE_ID(migration)
 CREATE_ID(virtual_server)
 
 END_HYPERDEX_NAMESPACE

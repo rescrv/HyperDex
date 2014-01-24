@@ -44,6 +44,7 @@
 #include "common/ids.h"
 #include "common/server.h"
 #include "common/transfer.h"
+#include "common/migration.h"
 #include "coordinator/offline_server.h"
 #include "coordinator/region_intent.h"
 #include "coordinator/replica_sets.h"
@@ -67,6 +68,14 @@ class coordinator
         void read_only(replicant_state_machine_context* ctx, bool ro);
         void fault_tolerance(replicant_state_machine_context* ctx,
                              const char* space, uint64_t consistency);
+        // migrations
+        void new_migration(replicant_state_machine_context* ctx,
+                                 const char* space_from,
+                                 const char* space_to);
+        migration* get_migration(space_id space_from,
+                                 space_id space_to);
+        void del_migration(space_id space_from,
+                           space_id space_to);
 
     // server management
     public:
@@ -203,6 +212,8 @@ class coordinator
         std::vector<offline_server> m_offline;
         // transfers
         std::vector<transfer> m_transfers;
+        // migrations
+        std::vector<migration> m_migrations;
         // barriers
         uint64_t m_config_ack_through;
         server_barrier m_config_ack_barrier;

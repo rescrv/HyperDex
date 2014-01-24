@@ -120,6 +120,12 @@ hyperdex_admin_list_spaces(struct hyperdex_admin* admin,
                            const char** spaces);
 
 int64_t
+hyperdex_admin_migrate_data(struct hyperdex_admin* admin,
+                            const char* space_from,
+                            const char* space_to,
+                            enum hyperdex_admin_returncode* status);
+
+int64_t
 hyperdex_admin_server_register(struct hyperdex_admin* admin,
                                uint64_t token, const char* address,
                                enum hyperdex_admin_returncode* status);

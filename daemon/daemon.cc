@@ -105,6 +105,7 @@ daemon :: daemon()
     , m_comm(this)
     , m_repl(this)
     , m_stm(this)
+    , m_mm(this)
     , m_sm(this)
     , m_config()
     , m_perf_req_get()
@@ -324,6 +325,7 @@ daemon :: run(bool daemonize,
     m_comm.setup(bind_to, threads);
     m_repl.setup();
     m_stm.setup();
+    m_mm.setup();
     m_sm.setup();
 
     for (size_t i = 0; i < threads; ++i)
@@ -429,6 +431,7 @@ daemon :: run(bool daemonize,
                   << "; pausing all activity while we reconfigure";
         m_sm.pause();
         m_stm.pause();
+        m_mm.pause();
         m_repl.pause();
         m_data.pause();
         m_comm.pause();
@@ -436,12 +439,14 @@ daemon :: run(bool daemonize,
         m_data.reconfigure(old_config, new_config, m_us);
         m_repl.reconfigure(old_config, new_config, m_us);
         m_stm.reconfigure(old_config, new_config, m_us);
+        m_mm.reconfigure(old_config, new_config, m_us);
         m_sm.reconfigure(old_config, new_config, m_us);
         m_config = new_config;
         m_comm.unpause();
         m_data.unpause();
         m_repl.unpause();
         m_stm.unpause();
+        m_mm.unpause();
         m_sm.unpause();
         LOG(INFO) << "reconfiguration complete; resuming normal operation";
 
@@ -479,6 +484,7 @@ daemon :: run(bool daemonize,
 
     m_sm.teardown();
     m_stm.teardown();
+    m_mm.teardown();
     m_repl.teardown();
     m_comm.teardown();
     m_data.teardown();

@@ -1,4 +1,4 @@
-// Copyright (c) 2013, Cornell University
+// Copyright (c) 2012, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,40 +25,42 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// HyperDex
-#include "common/ids.h"
+#ifndef hyperdex_common_migration_h_
+#define hyperdex_common_migration_h_
 
-#define CREATE_ID(TYPE) \
-    std::ostream& \
-    operator << (std::ostream& lhs, const TYPE ## _id& rhs) \
-    { \
-        return lhs << #TYPE "(" << rhs.get() << ")"; \
-    } \
-    e::buffer::packer \
-    operator << (e::buffer::packer pa, const TYPE ## _id& rhs) \
-    { \
-        return pa << rhs.get(); \
-    } \
-    e::unpacker \
-    operator >> (e::unpacker up, TYPE ## _id& rhs) \
-    { \
-        uint64_t id; \
-        up = up >> id; \
-        rhs = TYPE ## _id(id); \
-        return up; \
-    }
+// HyperDex
+#include "namespace.h"
+#include "common/ids.h"
 
 BEGIN_HYPERDEX_NAMESPACE
 
-CREATE_ID(region)
-CREATE_ID(replica_set)
-CREATE_ID(server)
-CREATE_ID(space)
-CREATE_ID(subspace)
-CREATE_ID(transfer)
-CREATE_ID(migration)
-CREATE_ID(virtual_server)
+class migration
+{
+    public:
+        migration();
+        migration(migration_id id,
+                  space_id space_from,
+                  space_id space_to);
+
+    public:
+        migration_id id;
+        space_id space_from;
+        space_id space_to;
+};
+
+std::ostream&
+operator << (std::ostream& lhs, const migration& rhs);
+
+e::buffer::packer
+operator << (e::buffer::packer, const migration& t);
+
+e::unpacker
+operator >> (e::unpacker, migration& t);
+
+size_t
+pack_size(const migration&);
+
 
 END_HYPERDEX_NAMESPACE
 
-#undef CREATE_ID
+#endif // hyperdex_common_migration_h_
