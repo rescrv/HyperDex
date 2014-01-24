@@ -63,7 +63,7 @@ def checknodestatus():
 def startnode():
 	try:
 		# For debugging
-		print nodedata nodelog coorip coorport 
+		print nodedata, nodelog, coorip, coorport 
 
 		startnode = 'hyperdex daemon --daemon --data=%s --log=%s --coordinator=%s --coordinator-port=%s' % (nodedata, nodelog, coorip, coorport)
 
@@ -93,7 +93,7 @@ def startcoord():
 	try:
 
 		# For debugging
-		print coordata coorlog coorip coorport 
+		print coordata, coorlog, coorip, coorport 
 
 		startcoord = 'hyperdex coordinator --daemon --data=%s --log=%s --listen=%s  --listen-port=%s' % (coordata, coorlog, coorip, coorport)
 		os.system(startcoord)
