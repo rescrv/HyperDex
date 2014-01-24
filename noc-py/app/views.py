@@ -94,13 +94,3 @@ def noc():
 			title = 'NOC', coordstatus = coordstatus, nodestatus = nodestatus, spacelist = spacelist)
 
 
-
-@app.route('/settings', methods(['GET','POST'])
-
-
-	form = nodeform(request.form)
-	if request.method == 'POST' and form.validate():
-		nodeinfo = NodeInfo(form.dataloc.data, form.logloc.data, form.coordip.data, form.coordport.data)
-
-		return render_template("settings.html",
-			title= 'Settings')
