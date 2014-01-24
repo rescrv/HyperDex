@@ -97,7 +97,7 @@ class HyperDexAdminException(Exception):
                   ,HYPERDEX_ADMIN_EXCEPTION: 'Internal Exception (file a bug)'
                   ,HYPERDEX_ADMIN_GARBAGE: 'Internal Corruption (file a bug)'
                   }.get(status, 'Unknown Error (file a bug)')
-        self.e = {HYPERDEX_ADMIN_SUCCESS: 'HYPERDEX_ADMIN_SUCCESS'
+        self._e = {HYPERDEX_ADMIN_SUCCESS: 'HYPERDEX_ADMIN_SUCCESS'
                  ,HYPERDEX_ADMIN_NOMEM: 'HYPERDEX_ADMIN_NOMEM'
                  ,HYPERDEX_ADMIN_NONEPENDING: 'HYPERDEX_ADMIN_NONEPENDING'
                  ,HYPERDEX_ADMIN_POLLFAILED: 'HYPERDEX_ADMIN_POLLFAILED'
