@@ -36,13 +36,14 @@ def noc():
 	if request.method == 'POST':
 		print request.form
 		if request.form['submit'] == 'Start Coordinator':
-
+			print 1
 			try:
 				hyperdexfunc.startcoord()
 			except: 
 				pass
 
 		elif request.form['submit'] == 'Stop Coordinator':
+			print 1
 			try:
 
 				hyperdexfunc.stopcoord()
@@ -54,9 +55,10 @@ def noc():
 
 
 		elif request.form['submit'] == 'Start Node':
+			print 1
 			try:
 
-				hyperdexfunc.startnode(nodeinfo)
+				hyperdexfunc.startnode()
 
 			except: pass
 

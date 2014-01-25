@@ -82,10 +82,6 @@
 /Makefile
 /Makefile.in
 /missing
-/noc-py/app/data/coordata/*
-/noc-py/app/data/coorlog/*
-/noc-py/app/data/nodedata/*
-/noc-py/app/data/nodelog/*
 /stamp-h1
 /test/replication-stress-test
 /test/search-stress-test

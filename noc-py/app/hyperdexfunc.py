@@ -21,12 +21,24 @@ import subprocess
 from flask import current_app
 
 
-nodedata = current_app.config.get('NODEDATA')
-nodelog = current_app.config.get('NODELOG')
-coordata = current_app.config.get('COORDATA')
-coorlog = current_app.config.get('COORLOG')
-coorip = current_app.config.get('COORIP')
-coorport = current_app.config.get('COORPORT')
+approot = os.path.dirname(os.path.abspath(__file__))
+
+nodedata = os.path.join(approot, 'data/nodedata/')
+
+nodelog = os.path.join(approot, 'data/nodelog/')
+
+
+coordata = os.path.join(approot, 'data/coordata/')
+
+
+coorlog = os.path.join(approot, 'data/coorlog/')
+
+
+coorip = '127.0.0.1'
+
+coorport = '1982'
+
+print nodedata
 
 def checkcoordstatus():
 	try:
@@ -61,17 +73,22 @@ def checknodestatus():
 
 
 def startnode():
+	print 1
 	try:
-		# For debugging
-		print nodedata, nodelog, coorip, coorport 
+		print 1
+		print nodedata
+		print nodelog
+		print coorip
+		print coorport
 
-		startnode = 'hyperdex daemon --daemon --data=%s --log=%s --coordinator=%s --coordinator-port=%s' % (nodedata, nodelog, coorip, coorport)
-
+		startnode = 'hyperdex daemon --daemon --data=%s --log=%s --listen=%s --coordinator-port=%s' % (nodedata, nodelog, coorip, coorport)
+		print startnode 
 		os.system(startnode)
-
+		print 1
 		return 1
 
 	except:
+		print 2
 		return 0
 
 def stopnodes():
@@ -91,18 +108,23 @@ def stopnodes():
 def startcoord():
 
 	try:
-
+		print 1
 		# For debugging
-		print coordata, coorlog, coorip, coorport 
-
+		print coordata
+		print coorlog
+		print coorip
+		print coorport
 		startcoord = 'hyperdex coordinator --daemon --data=%s --log=%s --listen=%s  --listen-port=%s' % (coordata, coorlog, coorip, coorport)
+		print startcoord
 		os.system(startcoord)
 
 		return 1
 
 	except:
-		return 0
 
+		print 2
+
+		return 0
 
 def stopcoord():
 	try:
