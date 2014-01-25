@@ -70,8 +70,8 @@ pythonmod_DATA =
 pythonmod_LTLIBRARIES =
 pyexec_LTLIBRARIES =
 
-rubydir = $(DESTDIR)$(RUBY_EXT_LIB)
-ruby_LTLIBRARIES =
+rubyexecdir = $(DESTDIR)$(RUBY_EXT_LIB)
+rubyexec_LTLIBRARIES =
 
 TESTS =
 
@@ -675,7 +675,7 @@ bindings/python/_hyperdex_admin.c: bindings/python/admin.pyx
 ##################################### Ruby #####################################
 
 if ENABLE_RUBY_BINDINGS
-ruby_LTLIBRARIES += bindings/ruby/hyperdex.la
+rubyexec_LTLIBRARIES += bindings/ruby/hyperdex.la
 endif
 
 EXTRA_DIST += bindings/ruby/gen_doc.py
