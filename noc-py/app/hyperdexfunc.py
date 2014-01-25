@@ -18,8 +18,8 @@
 import os
 import hyperdex.admin
 import subprocess
-from flask import current_app
 
+# Configuration Variables - will be added to settings form eventually
 
 approot = os.path.dirname(os.path.abspath(__file__))
 
@@ -38,7 +38,6 @@ coorip = '127.0.0.1'
 
 coorport = '1982'
 
-print nodedata
 
 def checkcoordstatus():
 	try:
@@ -73,22 +72,17 @@ def checknodestatus():
 
 
 def startnode():
-	print 1
+
 	try:
-		print 1
-		print nodedata
-		print nodelog
-		print coorip
-		print coorport
 
 		startnode = 'hyperdex daemon --daemon --data=%s --log=%s --listen=%s --coordinator-port=%s' % (nodedata, nodelog, coorip, coorport)
 		print startnode 
 		os.system(startnode)
-		print 1
+
 		return 1
 
 	except:
-		print 2
+
 		return 0
 
 def stopnodes():
@@ -108,21 +102,14 @@ def stopnodes():
 def startcoord():
 
 	try:
-		print 1
-		# For debugging
-		print coordata
-		print coorlog
-		print coorip
-		print coorport
+
 		startcoord = 'hyperdex coordinator --daemon --data=%s --log=%s --listen=%s  --listen-port=%s' % (coordata, coorlog, coorip, coorport)
-		print startcoord
+
 		os.system(startcoord)
 
 		return 1
 
 	except:
-
-		print 2
 
 		return 0
 

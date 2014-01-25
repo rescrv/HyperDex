@@ -22,8 +22,6 @@ import hyperdex.client
 import hyperdex.admin
 import hyperdexfunc
 
-
-
 @app.route('/', methods=['GET', 'POST'])
 @app.route('/index', methods=['GET', 'POST'])
 @app.route('/noc', methods=['GET', 'POST'])
@@ -79,9 +77,6 @@ def noc():
 
 		return render_template("noc.html",
 			title = 'NOC', coordstatus = coordstatus, nodestatus = nodestatus, spacelist = spacelist)
-
-
-
 
 
 	else:
