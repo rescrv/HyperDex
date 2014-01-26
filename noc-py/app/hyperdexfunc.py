@@ -151,16 +151,18 @@ def stopcoord():
 
 
 		while checkcoordstatus() == 'Online':
-			stopnodes = 'killall hyperdex-daemon'
 
-			os.system(stopnodes)
+			setreadonly()
 
-
-
+			waituntilstable()
 
 			stopcoord = 'killall replicant-daemon'
 
 			os.system(stopcoord)
+
+			stopnodes()
+
+
 		return 1
 
 	except:
@@ -218,3 +220,47 @@ def deletecoordata():
 		return 0
 
 
+def setreadonly():
+
+	try:
+
+		setreadonly = 'hyperdex set-read-only --host=%s  --port=%s' % (coorip, coorport)
+
+		os.system(setreadonly)
+
+		return 1
+
+	except:
+
+		return 0
+
+
+def setreadwrite():
+
+	try:
+
+		setreadonly = 'hyperdex set-read-write --host=%s  --port=%s' % (coorip, coorport)
+
+		os.system(setreadwrite)
+
+		return 1
+
+	except:
+
+		return 0
+
+
+
+def waituntilstable():
+
+	try:
+
+		waituntilstable = 'hyperdex wait-until-stable --host=%s  --port=%s' % (coorip, coorport)
+
+		os.system(waituntilstable)
+
+		return 1
+
+	except:
+
+		return 0
