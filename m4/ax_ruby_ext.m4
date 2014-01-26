@@ -172,12 +172,15 @@ AC_DEFUN([AX_RUBY_EXT],[
 
                 AC_ARG_VAR(RUBY_EXT_LIB, [Ruby extension dir])
                 if test -z "$RUBY_EXT_LIB" ; then
-                     test "_$prefix" = _NONE && prefix="$ac_default_prefix"
-                     if echo $RUBY_EXT_VENDORARCH | sed -e "s:^${prefix}:.:" | grep '^\.' >/dev/null; then
-                         RUBY_EXT_LIB='$(prefix)'/`echo $RUBY_EXT_VENDORARCH | sed -e "s:^${prefix}:.:"`
-                     elif echo $RUBY_EXT_SITEARCH | sed -e "s:^${prefix}:.:" | grep '^\.' >/dev/null; then
-                         RUBY_EXT_LIB='$(prefix)'/`echo $RUBY_EXT_SITEARCH | sed -e "s:^${prefix}:.:"`
-                     fi
+                    if test -n "$prefix" && echo $RUBY_EXT_VENDORARCH | sed -e "s:^${prefix}:.:" | grep '^\.' >/dev/null; then
+                        RUBY_EXT_LIB=$RUBY_EXT_VENDORARCH
+                    elif test -n "$prefix" && echo $RUBY_EXT_SITEARCH | sed -e "s:^${prefix}:.:" | grep '^\.' >/dev/null; then
+                        RUBY_EXT_LIB=$RUBY_EXT_SITEARCH
+                    elif echo $RUBY_EXT_VENDORARCH | sed -e "s:^${ac_default_prefix}:.:" | grep '^\.' >/dev/null; then
+                        RUBY_EXT_LIB='$(prefix)'/`echo $RUBY_EXT_VENDORARCH | sed -e "s:^${ac_default_prefix}:.:"`
+                    elif echo $RUBY_EXT_SITEARCH | sed -e "s:^${ac_default_prefix}:.:" | grep '^\.' >/dev/null; then
+                        RUBY_EXT_LIB='$(prefix)'/`echo $RUBY_EXT_SITEARCH | sed -e "s:^${ac_default_prefix}:.:"`
+                    fi
                 fi
                 if test -z "$RUBY_EXT_LIB" ; then
                     AC_MSG_ERROR([
@@ -186,6 +189,8 @@ Could not auto-detect the Ruby extension dir
 Set RUBY_EXT_SITEARCH or RUBY_EXT_VENDORARCH
 -------------------------------------------------])
                 fi
+                AC_MSG_CHECKING([for Ruby extensions dir])
+                AC_MSG_RESULT([$RUBY_EXT_LIB])
                 AC_SUBST(RUBY_EXT_LIB)
         fi
 ])

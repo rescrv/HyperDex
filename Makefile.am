@@ -70,7 +70,7 @@ pythonmod_DATA =
 pythonmod_LTLIBRARIES =
 pyexec_LTLIBRARIES =
 
-rubyexecdir = $(DESTDIR)$(RUBY_EXT_LIB)
+rubyexecdir = $(RUBY_EXT_LIB)
 rubyexec_LTLIBRARIES =
 
 TESTS =
