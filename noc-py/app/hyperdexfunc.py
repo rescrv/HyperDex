@@ -55,6 +55,38 @@ def checkcoordstatus():
 	return coordstatus
 
 
+def getconfig():
+
+	try: 
+		cmd = 'hyperdex show-config'
+		proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+		(out,err) = proc.communicate()
+
+		print out
+		if out != '':
+			try:
+				configlist = out.split()
+				cluster = configlist[1]
+				version = configlist[3]
+				flags = configlist[5]
+				try:
+					server = configlist[7]
+				except:
+					server = ''
+				print configlist
+
+				return cluster, version, flags, server
+
+			except: pass
+		else:
+			pass
+
+	except:
+		pass
+
+
+
+
 def checknodestatus():
 
 	try:
@@ -76,7 +108,6 @@ def startnode():
 	try:
 
 		startnode = 'hyperdex daemon --daemon --data=%s --log=%s --listen=%s --coordinator-port=%s' % (nodedata, nodelog, coorip, coorport)
-		print startnode 
 		os.system(startnode)
 
 		return 1
@@ -109,16 +140,23 @@ def startcoord():
 
 		return 1
 
+
+
 	except:
 
 		return 0
 
 def stopcoord():
 	try:
+
+
 		while checkcoordstatus() == 'Online':
 			stopnodes = 'killall hyperdex-daemon'
 
 			os.system(stopnodes)
+
+
+
 
 			stopcoord = 'killall replicant-daemon'
 
@@ -141,3 +179,42 @@ def listspaces():
 
 	except:
 		pass
+
+
+def deletenodedata():
+
+	try:
+
+		delnodedata = 'rm -r %s*' % nodedata
+		delnodelog = 'rm -r %s*' % nodelog
+
+		os.system(delnodedata)
+
+		os.system(delnodelog)
+
+		return 1
+
+	except:
+
+		return 0
+
+
+
+def deletecoordata():
+
+	try:
+
+		delcoordata = 'rm -r %s*' % coordata
+		delcoorlog = 'rm -r %s*' % coorlog
+
+		os.system(delcoordata)
+
+		os.system(delcoorlog)
+
+		return 1
+
+	except:
+
+		return 0
+
+

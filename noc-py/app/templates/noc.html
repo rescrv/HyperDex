@@ -41,7 +41,7 @@
               {% if coordstatus == 'Offline' %}
               <p>
                 <center>
-                  <button type="button" disabled="disabled" class="btn btn-lg btn-danger">{{coordstatus}}</button>
+                  <button type="button" disabled="disabled" class="btn btn-lg btn-warning">{{coordstatus}}</button>
                 </center>
               </p>
               <br>
@@ -61,6 +61,7 @@
                   <button type="button"  disabled="disabled" class="btn btn-lg btn-success">{{coordstatus}}</button>
                 </center>
               </p>
+              <br>
               <p>
                 <center>
                   <form  method="POST" action="/noc">
@@ -73,7 +74,11 @@
               Problem
 
               {% endif %}
-
+              <br>
+              <p>Cluster: {{cluster}}</p>
+              <p>Version: {{version}}</p>
+              <p>Flags: {{flags}}</p>
+              <p>Server: {{server}}</p>
 
             </div><!--/span-->
 
@@ -87,7 +92,7 @@
               {% if nodestatus == 'Offline' %}
               <p>
                 <center>
-                  <button type="button" disabled="disabled" class="btn btn-lg btn-danger">{{nodestatus}}</button>
+                  <button type="button" disabled="disabled" class="btn btn-lg btn-warning">{{nodestatus}}</button>
                 </center>
               </p>
               <br>
@@ -107,6 +112,7 @@
                   <button type="button"  disabled="disabled" class="btn btn-lg btn-success">{{nodestatus}}</button>
                 </center>
               </p>
+              <br>
               <p>
                 <center>
                   <form  method="POST" action="/noc">
@@ -141,8 +147,51 @@
 
               {% endfor %}
             </div><!--/span-->
+
       
+
+
+
           </div><!--/row-->
+            <br>
+            <br>
+            <div class="alert-danger">
+              <center>
+                Warning: These currently remove all coordinator and node data without confirmation.
+              </center>
+            </div><!--/span-->
+
+          <div class="row">
+
+
+            <div class="col-6 col-sm-6 col-lg-4">
+              <p>
+                <center>
+                  <form  method="POST" action="/noc">
+                      <input class="btn btn-danger" type="submit" name ='submit' value="Delete Coordinator Data" />
+                  </form>
+                </center>
+              </p>
+            </div>
+
+            <div class="col-6 col-sm-6 col-lg-4">
+              <p>
+                <center>
+                  <form  method="POST" action="/noc">
+                      <input class="btn btn-danger" type="submit" name ='submit' value="Delete Node Data" />
+                  </form>
+                </center>
+              </p>
+            </div>
+
+            <div class="col-6 col-sm-6 col-lg-4">
+              <br>  
+              <p> Delete Spaces Coming Soon </p>
+            </div>
+          </div>
+
+
+
         </div><!--/span-->
       </div><!--/row-->
     </div><!--/.container-->
