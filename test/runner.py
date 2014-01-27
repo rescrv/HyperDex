@@ -66,6 +66,7 @@ class HyperDexCluster(object):
         self.daemons = daemons
         self.clean = clean
         self.base = base
+        self.log_output = False
 
     def setup(self):
         if self.base is None:
@@ -107,6 +108,16 @@ class HyperDexCluster(object):
         for p in self.processes:
             p.kill()
             p.wait()
+        if self.log_output:
+            for i in range(self.coordinators):
+                log = os.path.join(self.base, 'coord%i' % i, 'hyperdex-test-runner.log')
+                print('coordinator', i)
+                print(open(log).read())
+                print
+            for i in range(self.coordinators):
+                log = os.path.join(self.base, 'daemon%i' % i, 'hyperdex-test-runner.log')
+                print('daemon', i)
+                print(open(log).read())
         if self.clean and self.base is not None:
             shutil.rmtree(self.base)
 
@@ -128,7 +139,10 @@ def main(argv):
         time.sleep(1) # XXX use a barrier tool on cluster
         ctx = {'HOST': 'localhost', 'PORT': 1982}
         cmd_args = [arg.format(**ctx) for arg in args.args]
-        return subprocess.call(cmd_args)
+        status = subprocess.call(cmd_args)
+        if status != 0:
+            hdc.log_output = True
+        return status
     finally:
         hdc.cleanup()
 
