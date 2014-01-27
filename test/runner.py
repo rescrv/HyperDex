@@ -81,9 +81,9 @@ class HyperDexCluster(object):
             env['HYPERDEX_COORD_LIB'] = os.path.join(BUILDDIR, '.libs/libhyperdex-coordinator')
         for i in range(self.coordinators):
             cmd = ['hyperdex', 'coordinator',
-                   '--foreground', '--listen', 'localhost', '--listen-port', str(1982 + i)]
+                   '--foreground', '--listen', '127.0.0.1', '--listen-port', str(1982 + i)]
             if i > 0:
-                cmd += ['--connect', 'localhost', '--connect-port', '1982']
+                cmd += ['--connect', '127.0.0.1', '--connect-port', '1982']
             cwd = os.path.join(self.base, 'coord%i' % i)
             if os.path.exists(cwd):
                 raise RuntimeError('environment already exists (at least partially)')
@@ -94,8 +94,8 @@ class HyperDexCluster(object):
         time.sleep(1) # XXX use a barrier tool on cluster
         for i in range(self.daemons):
             cmd = ['hyperdex', 'daemon', '-t', '1',
-                   '--foreground', '--listen', 'localhost', '--listen-port', str(2012 + i),
-                   '--coordinator', 'localhost', '--coordinator-port', '1982']
+                   '--foreground', '--listen', '127.0.0.1', '--listen-port', str(2012 + i),
+                   '--coordinator', '127.0.0.1', '--coordinator-port', '1982']
             cwd = os.path.join(self.base, 'daemon%i' % i)
             if os.path.exists(cwd):
                 raise RuntimeError('environment already exists (at least partially)')
@@ -143,12 +143,12 @@ def main(argv):
     hdc = HyperDexCluster(args.coordinators, args.daemons, True)
     try:
         hdc.setup()
-        adm = hyperdex.admin.Admin('localhost', 1982)
+        adm = hyperdex.admin.Admin('127.0.0.1', 1982)
         if args.space is not None:
             time.sleep(1) # XXX use a barrier tool on cluster
             adm.add_space(args.space)
         time.sleep(1) # XXX use a barrier tool on cluster
-        ctx = {'HOST': 'localhost', 'PORT': 1982}
+        ctx = {'HOST': '127.0.0.1', 'PORT': 1982}
         cmd_args = [arg.format(**ctx) for arg in args.args]
         status = subprocess.call(cmd_args)
         if status != 0:
