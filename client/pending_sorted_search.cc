@@ -205,7 +205,7 @@ pending_sorted_search :: handle_message(client* cl,
 
     if (mt != RESP_SORTED_SEARCH)
     {
-        PENDING_ERROR(SERVERERROR) << "server vsi responded to SORTED_SEARCH with " << mt;
+        PENDING_ERROR(SERVERERROR) << "server " << vsi << " responded to SORTED_SEARCH with " << mt;
         m_yield = true;
         return true;
     }

@@ -114,7 +114,7 @@ pending_search :: handle_message(client* cl,
     }
     else if (mt != RESP_SEARCH_ITEM)
     {
-        PENDING_ERROR(SERVERERROR) << "server vsi responded to SEARCH with " << mt;
+        PENDING_ERROR(SERVERERROR) << "server " << vsi << " responded to SEARCH with " << mt;
         m_yield = true;
         return true;
     }
