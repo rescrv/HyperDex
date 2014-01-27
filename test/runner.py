@@ -114,7 +114,7 @@ class HyperDexCluster(object):
                 print('coordinator', i)
                 print(open(log).read())
                 print
-            for i in range(self.coordinators):
+            for i in range(self.daemons):
                 log = os.path.join(self.base, 'daemon%i' % i, 'hyperdex-test-runner.log')
                 print('daemon', i)
                 print(open(log).read())
