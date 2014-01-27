@@ -32,6 +32,7 @@ from __future__ import with_statement
 
 
 import collections
+import glob
 import os
 import os.path
 import random
@@ -105,6 +106,16 @@ class HyperDexCluster(object):
         time.sleep(1) # XXX use a barrier tool on cluster
 
     def cleanup(self):
+        for i in range(self.coordinators):
+            core = os.path.join(self.base, 'coord%i' % i, 'core*')
+            if glob.glob(core):
+                print('coordinator', i, 'dumped core')
+                self.clean = False
+        for i in range(self.daemons):
+            core = os.path.join(self.base, 'daemon%i' % i, 'core*')
+            if glob.glob(core):
+                print('daemon', i, 'dumped core')
+                self.clean = False
         for p in self.processes:
             p.kill()
             p.wait()
