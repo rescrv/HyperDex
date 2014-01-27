@@ -1459,7 +1459,8 @@ datalayer :: handle_error(leveldb::Status st)
     }
     else
     {
-        LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle";
+        LOG(ERROR) << "LevelDB returned an unknown error that we don't know how to handle:";
+        LOG(ERROR) << st.ToString();
         return LEVELDB_ERROR;
     }
 }
