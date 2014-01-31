@@ -37,6 +37,7 @@ import os
 import os.path
 import random
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -118,16 +119,20 @@ class HyperDexCluster(object):
                 print('daemon', i, 'dumped core')
                 self.clean = False
         for p in self.processes:
+            p.send_signal(signal.SIGSTOP)
+        for p in self.processes:
             p.kill()
             p.wait()
         if self.log_output:
+            print("logging output of failed test run's daemons")
             for i in range(self.coordinators):
                 log = os.path.join(self.base, 'coord%i' % i, 'hyperdex-test-runner.log')
+                print
                 print('coordinator', i)
                 print(open(log).read())
-                print
             for i in range(self.daemons):
                 log = os.path.join(self.base, 'daemon%i' % i, 'hyperdex-test-runner.log')
+                print
                 print('daemon', i)
                 print(open(log).read())
         if self.clean and self.base is not None:
@@ -153,6 +158,7 @@ def main(argv):
         cmd_args = [arg.format(**ctx) for arg in args.args]
         status = subprocess.call(cmd_args)
         if status != 0:
+            print('process exited non-zero; dumping logs')
             hdc.log_output = True
         return status
     finally:
