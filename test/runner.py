@@ -156,7 +156,7 @@ def main(argv):
         cmd_args = [arg.format(**ctx) for arg in args.args]
         status = subprocess.call(cmd_args, stderr=subprocess.STDOUT)
         if status != 0:
-            print('process exited non-zero; dumping logs')
+            print('process exited', status, '; dumping logs')
             hdc.log_output = True
         return status
     finally:
