@@ -154,7 +154,7 @@ def main(argv):
         time.sleep(1) # XXX use a barrier tool on cluster
         ctx = {'HOST': '127.0.0.1', 'PORT': 1982}
         cmd_args = [arg.format(**ctx) for arg in args.args]
-        status = subprocess.call(cmd_args)
+        status = subprocess.call(cmd_args, stderr=subprocess.STDOUT)
         if status != 0:
             print('process exited non-zero; dumping logs')
             hdc.log_output = True
