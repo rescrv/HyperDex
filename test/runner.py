@@ -119,8 +119,6 @@ class HyperDexCluster(object):
                 print('daemon', i, 'dumped core')
                 self.clean = False
         for p in self.processes:
-            p.send_signal(signal.SIGSTOP)
-        for p in self.processes:
             p.kill()
             p.wait()
         if self.log_output:
