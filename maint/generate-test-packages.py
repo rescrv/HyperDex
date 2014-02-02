@@ -49,6 +49,7 @@ def generate_test_tarball(name, tests):
     makefile = '''CLASSPATH := /usr/share/java/*:test/java:.
 export CLASSPATH
 export HYPERDEX_SRCDIR=.
+export HYPERDEX_BUILDDIR=.
 
 all:
 {rules}
