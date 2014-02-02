@@ -32,6 +32,7 @@ from __future__ import with_statement
 
 
 import collections
+import glob
 import os
 import os.path
 import random
@@ -66,6 +67,7 @@ class HyperDexCluster(object):
         self.daemons = daemons
         self.clean = clean
         self.base = base
+        self.log_output = False
 
     def setup(self):
         if self.base is None:
@@ -74,14 +76,15 @@ class HyperDexCluster(object):
                'GLOG_minloglevel': '0',
                'PATH': ((os.getenv('PATH') or '') + ':' + BUILDDIR).strip(':')}
         env['CLASSPATH'] = ((os.getenv('CLASSPATH') or '') + BUILDDIR + '/*').strip(':')
+        env['GLOG_logbufsecs'] = '0'
         if 'HYPERDEX_BUILDDIR' in os.environ:
             env['HYPERDEX_EXEC_PATH'] = BUILDDIR
             env['HYPERDEX_COORD_LIB'] = os.path.join(BUILDDIR, '.libs/libhyperdex-coordinator')
         for i in range(self.coordinators):
             cmd = ['hyperdex', 'coordinator',
-                   '--foreground', '--listen', 'localhost', '--listen-port', str(1982 + i)]
+                   '--foreground', '--listen', '127.0.0.1', '--listen-port', str(1982 + i)]
             if i > 0:
-                cmd += ['--connect', 'localhost', '--connect-port', '1982']
+                cmd += ['--connect', '127.0.0.1', '--connect-port', '1982']
             cwd = os.path.join(self.base, 'coord%i' % i)
             if os.path.exists(cwd):
                 raise RuntimeError('environment already exists (at least partially)')
@@ -92,8 +95,8 @@ class HyperDexCluster(object):
         time.sleep(1) # XXX use a barrier tool on cluster
         for i in range(self.daemons):
             cmd = ['hyperdex', 'daemon', '-t', '1',
-                   '--foreground', '--listen', 'localhost', '--listen-port', str(2012 + i),
-                   '--coordinator', 'localhost', '--coordinator-port', '1982']
+                   '--foreground', '--listen', '127.0.0.1', '--listen-port', str(2012 + i),
+                   '--coordinator', '127.0.0.1', '--coordinator-port', '1982']
             cwd = os.path.join(self.base, 'daemon%i' % i)
             if os.path.exists(cwd):
                 raise RuntimeError('environment already exists (at least partially)')
@@ -104,9 +107,29 @@ class HyperDexCluster(object):
         time.sleep(1) # XXX use a barrier tool on cluster
 
     def cleanup(self):
+        for i in range(self.coordinators):
+            core = os.path.join(self.base, 'coord%i' % i, 'core*')
+            if glob.glob(core):
+                print('coordinator', i, 'dumped core')
+                self.clean = False
+        for i in range(self.daemons):
+            core = os.path.join(self.base, 'daemon%i' % i, 'core*')
+            if glob.glob(core):
+                print('daemon', i, 'dumped core')
+                self.clean = False
         for p in self.processes:
             p.kill()
             p.wait()
+        if self.log_output:
+            for i in range(self.coordinators):
+                log = os.path.join(self.base, 'coord%i' % i, 'hyperdex-test-runner.log')
+                print('coordinator', i)
+                print(open(log).read())
+                print
+            for i in range(self.daemons):
+                log = os.path.join(self.base, 'daemon%i' % i, 'hyperdex-test-runner.log')
+                print('daemon', i)
+                print(open(log).read())
         if self.clean and self.base is not None:
             shutil.rmtree(self.base)
 
@@ -121,14 +144,17 @@ def main(argv):
     hdc = HyperDexCluster(args.coordinators, args.daemons, True)
     try:
         hdc.setup()
-        adm = hyperdex.admin.Admin('localhost', 1982)
+        adm = hyperdex.admin.Admin('127.0.0.1', 1982)
         if args.space is not None:
             time.sleep(1) # XXX use a barrier tool on cluster
             adm.add_space(args.space)
         time.sleep(1) # XXX use a barrier tool on cluster
-        ctx = {'HOST': 'localhost', 'PORT': 1982}
+        ctx = {'HOST': '127.0.0.1', 'PORT': 1982}
         cmd_args = [arg.format(**ctx) for arg in args.args]
-        return subprocess.call(cmd_args)
+        status = subprocess.call(cmd_args)
+        if status != 0:
+            hdc.log_output = True
+        return status
     finally:
         hdc.cleanup()
 

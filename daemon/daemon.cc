@@ -1340,6 +1340,7 @@ daemon :: determine_block_stat_path(const po6::pathname& data)
     catch (po6::error& e)
     {
         LOG(ERROR) << "could not resolve true path for data: " << e.what();
+        LOG(ERROR) << "iostat-like statistics will not be reported";
         return;
     }
 
@@ -1348,6 +1349,7 @@ daemon :: determine_block_stat_path(const po6::pathname& data)
     if (!read_sys_block_star(&block_devs))
     {
         LOG(ERROR) << "could not ls /sys/block";
+        LOG(ERROR) << "iostat-like statistics will not be reported";
         return;
     }
 
@@ -1356,6 +1358,7 @@ daemon :: determine_block_stat_path(const po6::pathname& data)
     if (!mounts)
     {
         LOG(ERROR) << "could not open /proc/mounts: " << po6::error(errno).what();
+        LOG(ERROR) << "iostat-like statistics will not be reported";
         return;
     }
 
@@ -1422,6 +1425,7 @@ daemon :: determine_block_stat_path(const po6::pathname& data)
     else
     {
         LOG(WARNING) << "cannot determine device name for reporting io.* stats";
+        LOG(WARNING) << "iostat-like statistics will not be reported";
     }
 
     if (line)

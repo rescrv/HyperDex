@@ -772,7 +772,14 @@ hyperdex_java_client_convert_type(JNIEnv* env,
     int32_t tmp_i;
     double tmp_d;
 
-    if ((*env)->IsInstanceOf(env, x, _string) == JNI_TRUE)
+    if (x == NULL)
+    {
+        *value = "";
+        *value_sz = 0;
+        *datatype = HYPERDATATYPE_GENERIC;
+        return 0;
+    }
+    else if ((*env)->IsInstanceOf(env, x, _string) == JNI_TRUE)
     {
         tmp_str = (*env)->GetStringUTFChars(env, x, 0);
         ERROR_CHECK(-1);

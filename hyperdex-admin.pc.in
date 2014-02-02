@@ -3,9 +3,9 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: hyperdex-client
-Description: Client library for the HyperDex scalable high performance key-value store
+Name: hyperdex-admin
+Description: Admin library for the HyperDex scalable high performance key-value store
 Version: @VERSION@
 
-Libs: -L${libdir} -lhyperdex-client
+Libs: -L${libdir} -lhyperdex-admin
 Cflags: -I${includedir}
