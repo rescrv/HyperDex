@@ -88,7 +88,7 @@ pending_count :: handle_message(client* cl,
 
     if (mt != RESP_COUNT)
     {
-        PENDING_ERROR(SERVERERROR) << "server vsi responded to COUNT with " << mt;
+        PENDING_ERROR(SERVERERROR) << "server " << vsi << " responded to COUNT with " << mt;
         return true;
     }
 

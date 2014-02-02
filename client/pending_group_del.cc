@@ -86,7 +86,7 @@ pending_group_del :: handle_message(client* cl,
 
     if (mt != RESP_GROUP_DEL)
     {
-        PENDING_ERROR(SERVERERROR) << "server vsi responded to GROUP DEL with " << mt;
+        PENDING_ERROR(SERVERERROR) << "server " << vsi << " responded to GROUP DEL with " << mt;
         return true;
     }
 

@@ -98,7 +98,7 @@ pending_get :: handle_message(client* cl,
 
     if (mt != RESP_GET)
     {
-        PENDING_ERROR(SERVERERROR) << "server vsi responded to GET with " << mt;
+        PENDING_ERROR(SERVERERROR) << "server " << vsi << " responded to GET with " << mt;
         return true;
     }
 

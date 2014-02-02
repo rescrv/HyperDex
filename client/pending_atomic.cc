@@ -92,7 +92,7 @@ pending_atomic :: handle_message(client*,
 
     if (mt != RESP_ATOMIC)
     {
-        PENDING_ERROR(SERVERERROR) << "server vsi responded to ATOMIC with " << mt;
+        PENDING_ERROR(SERVERERROR) << "server " << vsi << " responded to ATOMIC with " << mt;
         return true;
     }
 

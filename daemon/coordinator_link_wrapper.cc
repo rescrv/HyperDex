@@ -263,7 +263,9 @@ coordinator_link_wrapper :: maintain_link()
         else if (id < 0 && (status == REPLICANT_BACKOFF ||
                             status == REPLICANT_NEED_BOOTSTRAP))
         {
+            e::error err = m_coord->error();
             LOG(ERROR) << "coordinator disconnected: backing off before retrying";
+            LOG(ERROR) << "details: " << err.msg() << " @ " << err.loc();
             do_sleep();
             exit_status = false;
             break;

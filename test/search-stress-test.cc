@@ -121,14 +121,14 @@ main(int argc, const char* argv[])
 
 #define HYPERDEX_TEST_SUCCESS(TESTNO) \
     do { \
-        if (!_quiet) std::cout << "Test " << TESTNO << ":  [\x1b[32mOK\x1b[0m]\n"; \
+        if (!_quiet) std::cout << "Test " << TESTNO << ":  [\x1b[32mOK\x1b[0m]" << std::endl; \
     } while (0)
 
 #define HYPERDEX_TEST_FAIL(TESTNO, REASON) \
     do { \
         if (!_quiet) std::cout << "Test " << TESTNO << ":  [\x1b[31mFAIL\x1b[0m]\n" \
                   << "location: " << __FILE__ << ":" << __LINE__ << "\n" \
-                  << "reason:  " << REASON << "\n"; \
+                  << "reason:  " << REASON << std::endl; \
     abort(); \
     } while (0)
 
