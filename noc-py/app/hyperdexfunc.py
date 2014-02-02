@@ -31,6 +31,10 @@ import os
 import hyperdex.admin
 import subprocess
 
+
+a = hyperdex.admin.Admin('127.0.0.1', 1982)
+c = hyperdex.client.Client('127.0.0.1',1982)
+
 # Configuration Variables - will be added to settings form eventually
 
 approot = os.path.dirname(os.path.abspath(__file__))
@@ -276,3 +280,7 @@ def waituntilstable():
 	except:
 
 		return 0
+
+def delspace(space):
+
+	a.rm_space(space.encode('utf-8'))

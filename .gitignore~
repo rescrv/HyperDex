@@ -87,7 +87,6 @@ us
 /noc-py/app/data/coorlog/*
 /noc-py/app/data/nodedata/*
 /noc-py/app/data/nodelog/*
-/noc-py/ignore/*
 /stats/*
 /stamp-h1
 /test/replication-stress-test
