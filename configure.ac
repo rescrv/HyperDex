@@ -201,5 +201,7 @@ AM_CONDITIONAL([ENABLE_TIME_CONSUMING_TESTS], [test x"${enable_time_consuming_te
 
 # Generate outputs and finish
 AC_CONFIG_FILES([Makefile hyperdex-client.pc hyperdex-admin.pc hyperdex.upack])
-AC_CONFIG_LINKS([test/java/.exists:test/java/.exists])
+AC_CONFIG_LINKS([test/java/.exists:test/java/.exists
+                 bindings/python/hyperdex/admin.so:bindings/python/hyperdex/.libs/admin.so
+                 bindings/python/hyperdex/client.so:bindings/python/hyperdex/.libs/client.so])
 AC_OUTPUT
