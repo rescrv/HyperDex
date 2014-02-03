@@ -47,7 +47,7 @@ cdef extern from "sys/socket.h":
     ctypedef uint16_t in_port_t
     cdef struct sockaddr
 
-cdef extern from "../../include/hyperdex/admin.h":
+cdef extern from "hyperdex/admin.h":
 
     cdef struct hyperdex_admin
 

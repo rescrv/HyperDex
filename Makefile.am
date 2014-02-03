@@ -65,10 +65,9 @@ pkgconfig_DATA =
 jardir = $(datadir)/java
 jar_DATA =
 
-pythonmoddir = $(pyexecdir)/hyperdex
-pythonmod_DATA =
-pythonmod_LTLIBRARIES =
-pyexec_LTLIBRARIES =
+pkgpyexecdir = $(pyexecdir)/hyperdex
+pkgpyexec_DATA =
+pkgpyexec_LTLIBRARIES =
 
 rubyexecdir = $(RUBY_EXT_LIB)
 rubyexec_LTLIBRARIES =
@@ -620,57 +619,50 @@ $(hyperdex_ycsb_jarfile): ${JAVA_SRC_PKG}/ycsb/HyperDex.java
 #################################### Python ####################################
 
 if ENABLE_PYTHON_BINDINGS
-pythonmod_DATA += bindings/python/hyperdex/__init__.py
-pythonmod_DATA += bindings/python/hyperdex/admin.py
-pythonmod_DATA += bindings/python/hyperdex/client.py
+pkgpyexec_DATA += bindings/python/hyperdex/__init__.py
 if ENABLE_CLIENT
-pyexec_LTLIBRARIES += bindings/python/_hyperdex_client.la
+pkgpyexec_LTLIBRARIES += bindings/python/hyperdex/client.la
 endif
 if ENABLE_ADMIN
-pyexec_LTLIBRARIES += bindings/python/_hyperdex_admin.la
+pkgpyexec_LTLIBRARIES += bindings/python/hyperdex/admin.la
 endif
 endif
 
-EXTRA_DIST += bindings/python/client.pyx
-EXTRA_DIST += bindings/python/hyperdex/admin.py
-EXTRA_DIST += bindings/python/hyperdex/client.py
 EXTRA_DIST += bindings/python/hyperdex/__init__.py
-bindings_python__hyperdex_client_la_SOURCES = bindings/python/_hyperdex_client.c
-bindings_python__hyperdex_client_la_CPPFLAGS =
-bindings_python__hyperdex_client_la_CPPFLAGS += $(PYTHON_CPPFLAGS)
-bindings_python__hyperdex_client_la_CPPFLAGS += $(AM_CPPFLAGS)
-bindings_python__hyperdex_client_la_CPPFLAGS += $(CPPFLAGS)
-bindings_python__hyperdex_client_la_CFLAGS =
-bindings_python__hyperdex_client_la_CFLAGS += $(AM_CFLAGS)
-bindings_python__hyperdex_client_la_CFLAGS += -fvisibility=default
-bindings_python__hyperdex_client_la_CFLAGS += $(CFLAGS)
-bindings_python__hyperdex_client_la_LIBADD =
-bindings_python__hyperdex_client_la_LIBADD += libhyperdex-client.la
-bindings_python__hyperdex_client_la_LIBADD += $(PYTHON_LDFLAGS)
-bindings_python__hyperdex_client_la_LDFLAGS = -module -avoid-version -export-symbols-regex init_hyperdex_client $(AM_LDFLAGS) $(LDFLAGS)
-bindings/python/_hyperdex_client.c: bindings/python/client.pyx
-	cp bindings/python/client.pyx bindings/python/_hyperdex_client.pyx
-	$(pyx_verbose)cython bindings/python/_hyperdex_client.pyx
-	rm bindings/python/_hyperdex_client.pyx
 
-EXTRA_DIST += bindings/python/admin.pyx
-bindings_python__hyperdex_admin_la_SOURCES = bindings/python/_hyperdex_admin.c
-bindings_python__hyperdex_admin_la_CPPFLAGS =
-bindings_python__hyperdex_admin_la_CPPFLAGS += $(PYTHON_CPPFLAGS)
-bindings_python__hyperdex_admin_la_CPPFLAGS += $(AM_CPPFLAGS)
-bindings_python__hyperdex_admin_la_CPPFLAGS += $(CPPFLAGS)
-bindings_python__hyperdex_admin_la_CFLAGS =
-bindings_python__hyperdex_admin_la_CFLAGS += $(AM_CFLAGS)
-bindings_python__hyperdex_admin_la_CFLAGS += -fvisibility=default
-bindings_python__hyperdex_admin_la_CFLAGS += $(CFLAGS)
-bindings_python__hyperdex_admin_la_LIBADD =
-bindings_python__hyperdex_admin_la_LIBADD += libhyperdex-admin.la
-bindings_python__hyperdex_admin_la_LIBADD += $(PYTHON_LDFLAGS)
-bindings_python__hyperdex_admin_la_LDFLAGS = -module -avoid-version -export-symbols-regex init_hyperdex_admin $(AM_LDFLAGS) $(LDFLAGS)
-bindings/python/_hyperdex_admin.c: bindings/python/admin.pyx
-	cp bindings/python/admin.pyx bindings/python/_hyperdex_admin.pyx
-	$(pyx_verbose)cython bindings/python/_hyperdex_admin.pyx
-	rm bindings/python/_hyperdex_admin.pyx
+EXTRA_DIST += bindings/python/hyperdex/client.pyx
+bindings_python_hyperdex_client_la_SOURCES = bindings/python/hyperdex/client.c
+bindings_python_hyperdex_client_la_CPPFLAGS =
+bindings_python_hyperdex_client_la_CPPFLAGS += $(PYTHON_CPPFLAGS)
+bindings_python_hyperdex_client_la_CPPFLAGS += $(AM_CPPFLAGS)
+bindings_python_hyperdex_client_la_CPPFLAGS += $(CPPFLAGS)
+bindings_python_hyperdex_client_la_CFLAGS =
+bindings_python_hyperdex_client_la_CFLAGS += $(AM_CFLAGS)
+bindings_python_hyperdex_client_la_CFLAGS += -fvisibility=default
+bindings_python_hyperdex_client_la_CFLAGS += $(CFLAGS)
+bindings_python_hyperdex_client_la_LIBADD =
+bindings_python_hyperdex_client_la_LIBADD += libhyperdex-client.la
+bindings_python_hyperdex_client_la_LIBADD += $(PYTHON_LDFLAGS)
+bindings_python_hyperdex_client_la_LDFLAGS = -module -avoid-version -export-symbols-regex initclient $(AM_LDFLAGS) $(LDFLAGS)
+bindings/python/hyperdex/client.c: bindings/python/hyperdex/client.pyx
+	$(pyx_verbose)cython bindings/python/hyperdex/client.pyx
+
+EXTRA_DIST += bindings/python/hyperdex/admin.pyx
+bindings_python_hyperdex_admin_la_SOURCES = bindings/python/hyperdex/admin.c
+bindings_python_hyperdex_admin_la_CPPFLAGS =
+bindings_python_hyperdex_admin_la_CPPFLAGS += $(PYTHON_CPPFLAGS)
+bindings_python_hyperdex_admin_la_CPPFLAGS += $(AM_CPPFLAGS)
+bindings_python_hyperdex_admin_la_CPPFLAGS += $(CPPFLAGS)
+bindings_python_hyperdex_admin_la_CFLAGS =
+bindings_python_hyperdex_admin_la_CFLAGS += $(AM_CFLAGS)
+bindings_python_hyperdex_admin_la_CFLAGS += -fvisibility=default
+bindings_python_hyperdex_admin_la_CFLAGS += $(CFLAGS)
+bindings_python_hyperdex_admin_la_LIBADD =
+bindings_python_hyperdex_admin_la_LIBADD += libhyperdex-admin.la
+bindings_python_hyperdex_admin_la_LIBADD += $(PYTHON_LDFLAGS)
+bindings_python_hyperdex_admin_la_LDFLAGS = -module -avoid-version -export-symbols-regex initadmin $(AM_LDFLAGS) $(LDFLAGS)
+bindings/python/hyperdex/admin.c: bindings/python/hyperdex/admin.pyx
+	$(pyx_verbose)cython bindings/python/hyperdex/admin.pyx
 
 ##################################### Ruby #####################################
 

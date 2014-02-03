@@ -23,7 +23,7 @@ True
 True
 >>> d = c.async_put('friendlists', 'jj', {'first': 'John', 'last': 'Jackson'})
 >>> d
-<_hyperdex_client.DeferredFromAttrs object at ...>
+<hyperdex.client.Deferred object at ...>
 >>> # do some work
 >>> d.wait()
 True

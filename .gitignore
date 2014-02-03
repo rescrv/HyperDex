@@ -21,8 +21,8 @@
 /bindings/cc/admin_testcompile
 /bindings/cc/client_testcompile
 /bindings/c/client_testcompile
-/bindings/python/_hyperdex_admin.c
-/bindings/python/_hyperdex_client.c
+/bindings/python/hyperdex/admin.c
+/bindings/python/hyperdex/client.c
 /cityhash/test/city
 /client/keyop_info.cc
 /client/test/datastructures

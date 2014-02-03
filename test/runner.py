@@ -157,7 +157,7 @@ def main(argv):
         ctx = {'HOST': '127.0.0.1', 'PORT': 1982}
         cmd_args = [arg.format(**ctx) for arg in args.args]
         status = subprocess.call(cmd_args, stderr=subprocess.STDOUT)
-        if status != 0:
+        if False and status != 0:
             print('process exited', status, '; dumping logs')
             hdc.log_output = True
         return status

@@ -1,0 +1,1037 @@
+# Copyright (c) 2011-2014, Cornell University
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+#     * Redistributions of source code must retain the above copyright notice,
+#       this list of conditions and the following disclaimer.
+#     * Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#     * Neither the name of HyperDex nor the names of its contributors may be
+#       used to endorse or promote products derived from this software without
+#       specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+from cpython cimport bool
+
+
+cdef extern from "stdint.h":
+
+    ctypedef short int int16_t
+    ctypedef unsigned short int uint16_t
+    ctypedef int int32_t
+    ctypedef unsigned int uint32_t
+    ctypedef long int int64_t
+    ctypedef unsigned long int uint64_t
+    ctypedef long unsigned int size_t
+
+
+cdef extern from "stdlib.h":
+
+    void* malloc(size_t size)
+    void free(void* ptr)
+
+
+cdef extern from "hyperdex.h":
+
+    cdef enum hyperdatatype:
+        HYPERDATATYPE_GENERIC            = 9216
+        HYPERDATATYPE_STRING             = 9217
+        HYPERDATATYPE_INT64              = 9218
+        HYPERDATATYPE_FLOAT              = 9219
+        HYPERDATATYPE_LIST_GENERIC       = 9280
+        HYPERDATATYPE_LIST_STRING        = 9281
+        HYPERDATATYPE_LIST_INT64         = 9282
+        HYPERDATATYPE_LIST_FLOAT         = 9283
+        HYPERDATATYPE_SET_GENERIC        = 9344
+        HYPERDATATYPE_SET_STRING         = 9345
+        HYPERDATATYPE_SET_INT64          = 9346
+        HYPERDATATYPE_SET_FLOAT          = 9347
+        HYPERDATATYPE_MAP_GENERIC        = 9408
+        HYPERDATATYPE_MAP_STRING_KEYONLY = 9416
+        HYPERDATATYPE_MAP_STRING_STRING  = 9417
+        HYPERDATATYPE_MAP_STRING_INT64   = 9418
+        HYPERDATATYPE_MAP_STRING_FLOAT   = 9419
+        HYPERDATATYPE_MAP_INT64_KEYONLY  = 9424
+        HYPERDATATYPE_MAP_INT64_STRING   = 9425
+        HYPERDATATYPE_MAP_INT64_INT64    = 9426
+        HYPERDATATYPE_MAP_INT64_FLOAT    = 9427
+        HYPERDATATYPE_MAP_FLOAT_KEYONLY  = 9432
+        HYPERDATATYPE_MAP_FLOAT_STRING   = 9433
+        HYPERDATATYPE_MAP_FLOAT_INT64    = 9434
+        HYPERDATATYPE_MAP_FLOAT_FLOAT    = 9435
+        HYPERDATATYPE_GARBAGE            = 9727
+
+    cdef enum hyperpredicate:
+        HYPERPREDICATE_FAIL          = 9728
+        HYPERPREDICATE_EQUALS        = 9729
+        HYPERPREDICATE_LESS_EQUAL    = 9730
+        HYPERPREDICATE_GREATER_EQUAL = 9731
+        HYPERPREDICATE_REGEX         = 9733
+        HYPERPREDICATE_LENGTH_EQUALS        = 9734
+        HYPERPREDICATE_LENGTH_LESS_EQUAL    = 9735
+        HYPERPREDICATE_LENGTH_GREATER_EQUAL = 9736
+        HYPERPREDICATE_CONTAINS      = 9737
+
+
+cdef extern from "hyperdex/client.h":
+
+    cdef struct hyperdex_client
+
+    cdef struct hyperdex_client_attribute:
+        char* attr
+        char* value
+        size_t value_sz
+        hyperdatatype datatype
+
+    cdef struct hyperdex_client_map_attribute:
+        char* attr
+        char* map_key
+        size_t map_key_sz
+        hyperdatatype map_key_datatype
+        char* value
+        size_t value_sz
+        hyperdatatype value_datatype
+
+    cdef struct hyperdex_client_attribute_check:
+        char* attr
+        char* value
+        size_t value_sz
+        hyperdatatype datatype
+        hyperpredicate predicate
+
+    cdef enum hyperdex_client_returncode:
+        HYPERDEX_CLIENT_SUCCESS      = 8448
+        HYPERDEX_CLIENT_NOTFOUND     = 8449
+        HYPERDEX_CLIENT_SEARCHDONE   = 8450
+        HYPERDEX_CLIENT_CMPFAIL      = 8451
+        HYPERDEX_CLIENT_READONLY     = 8452
+        HYPERDEX_CLIENT_UNKNOWNSPACE = 8512
+        HYPERDEX_CLIENT_COORDFAIL    = 8513
+        HYPERDEX_CLIENT_SERVERERROR  = 8514
+        HYPERDEX_CLIENT_POLLFAILED   = 8515
+        HYPERDEX_CLIENT_OVERFLOW     = 8516
+        HYPERDEX_CLIENT_RECONFIGURE  = 8517
+        HYPERDEX_CLIENT_TIMEOUT      = 8519
+        HYPERDEX_CLIENT_UNKNOWNATTR  = 8520
+        HYPERDEX_CLIENT_DUPEATTR     = 8521
+        HYPERDEX_CLIENT_NONEPENDING  = 8523
+        HYPERDEX_CLIENT_DONTUSEKEY   = 8524
+        HYPERDEX_CLIENT_WRONGTYPE    = 8525
+        HYPERDEX_CLIENT_NOMEM        = 8526
+        HYPERDEX_CLIENT_INTERRUPTED  = 8530
+        HYPERDEX_CLIENT_CLUSTER_JUMP = 8531
+        HYPERDEX_CLIENT_INTERNAL     = 8573
+        HYPERDEX_CLIENT_EXCEPTION    = 8574
+        HYPERDEX_CLIENT_GARBAGE      = 8575
+
+    hyperdex_client* hyperdex_client_create(char* coordinator, uint16_t port)
+    void hyperdex_client_destroy(hyperdex_client* client)
+    int64_t hyperdex_client_loop(hyperdex_client* client, int timeout, hyperdex_client_returncode* status)
+    void hyperdex_client_destroy_attrs(hyperdex_client_attribute* attrs, size_t attrs_sz)
+    char* hyperdex_client_error_message(hyperdex_client* client)
+    char* hyperdex_client_error_location(hyperdex_client* client)
+    char* hyperdex_client_returncode_to_string(hyperdex_client_returncode)
+{prototypes}
+
+cdef extern from "hyperdex/datastructures.h":
+
+    cdef struct hyperdex_ds_arena
+
+    cdef enum hyperdex_ds_returncode:
+        HYPERDEX_DS_SUCCESS
+        HYPERDEX_DS_NOMEM
+        HYPERDEX_DS_MIXED_TYPES
+        HYPERDEX_DS_WRONG_STATE
+        HYPERDEX_DS_STRING_TOO_LONG
+
+    hyperdex_ds_arena* hyperdex_ds_arena_create()
+    void hyperdex_ds_arena_destroy(hyperdex_ds_arena* arena)
+
+    hyperdex_client_attribute* hyperdex_ds_allocate_attribute(hyperdex_ds_arena* arena, size_t sz)
+    hyperdex_client_attribute_check* hyperdex_ds_allocate_attribute_check(hyperdex_ds_arena* arena, size_t sz)
+    hyperdex_client_map_attribute* hyperdex_ds_allocate_map_attribute(hyperdex_ds_arena* arena, size_t sz)
+
+    int hyperdex_ds_unpack_int(char* buf, size_t buf_sz, int64_t* num)
+    int hyperdex_ds_unpack_float(char* buf, size_t buf_sz, double* num)
+
+    int hyperdex_ds_copy_string(hyperdex_ds_arena* arena, char* str, size_t str_sz, hyperdex_ds_returncode* status, char** value, size_t* value_sz)
+    int hyperdex_ds_copy_int(hyperdex_ds_arena* arena, int64_t num, hyperdex_ds_returncode* status, char** value, size_t* value_sz)
+    int hyperdex_ds_copy_float(hyperdex_ds_arena* arena, double num, hyperdex_ds_returncode* status, char** value, size_t* value_sz)
+
+    cdef struct hyperdex_ds_list
+    hyperdex_ds_list* hyperdex_ds_allocate_list(hyperdex_ds_arena* arena)
+    int hyperdex_ds_list_append_string(hyperdex_ds_list* list, char* str, size_t str_sz, hyperdex_ds_returncode* status)
+    int hyperdex_ds_list_append_int(hyperdex_ds_list* list, int64_t num, hyperdex_ds_returncode* status)
+    int hyperdex_ds_list_append_float(hyperdex_ds_list* list, double num, hyperdex_ds_returncode* status)
+    int hyperdex_ds_list_finalize(hyperdex_ds_list* list, hyperdex_ds_returncode* status, char** value, size_t* value_sz, hyperdatatype* datatype)
+
+    cdef struct hyperdex_ds_set
+    hyperdex_ds_set* hyperdex_ds_allocate_set(hyperdex_ds_arena* arena)
+    int hyperdex_ds_set_insert_string(hyperdex_ds_set* set, char* str, size_t str_sz, hyperdex_ds_returncode* status)
+    int hyperdex_ds_set_insert_int(hyperdex_ds_set* set, int64_t num, hyperdex_ds_returncode* status)
+    int hyperdex_ds_set_insert_float(hyperdex_ds_set* set, double num, hyperdex_ds_returncode* status)
+    int hyperdex_ds_set_finalize(hyperdex_ds_set*, hyperdex_ds_returncode* status, char** value, size_t* value_sz, hyperdatatype* datatype)
+
+    cdef struct hyperdex_ds_map
+    hyperdex_ds_map* hyperdex_ds_allocate_map(hyperdex_ds_arena* arena)
+    int hyperdex_ds_map_insert_key_string(hyperdex_ds_map* map, char* str, size_t str_sz, hyperdex_ds_returncode* status)
+    int hyperdex_ds_map_insert_val_string(hyperdex_ds_map* map, char* str, size_t str_sz, hyperdex_ds_returncode* status)
+    int hyperdex_ds_map_insert_key_int(hyperdex_ds_map* map, int64_t num, hyperdex_ds_returncode* status)
+    int hyperdex_ds_map_insert_val_int(hyperdex_ds_map* map, int64_t num, hyperdex_ds_returncode* status)
+    int hyperdex_ds_map_insert_key_float(hyperdex_ds_map* map, double num, hyperdex_ds_returncode* status)
+    int hyperdex_ds_map_insert_val_float(hyperdex_ds_map* map, double num, hyperdex_ds_returncode* status)
+    int hyperdex_ds_map_finalize(hyperdex_ds_map*, hyperdex_ds_returncode* status, char** value, size_t* value_sz, hyperdatatype* datatype)
+
+    cdef struct hyperdex_ds_iterator:
+        pass
+    void hyperdex_ds_iterator_init(hyperdex_ds_iterator* it, hyperdatatype datatype, char* value, size_t value_sz)
+    int hyperdex_ds_iterate_list_string_next(hyperdex_ds_iterator* it, char** str, size_t* str_sz)
+    int hyperdex_ds_iterate_list_int_next(hyperdex_ds_iterator* it, int64_t* num)
+    int hyperdex_ds_iterate_list_float_next(hyperdex_ds_iterator* it, double* num)
+    int hyperdex_ds_iterate_set_string_next(hyperdex_ds_iterator* it, char** str, size_t* str_sz)
+    int hyperdex_ds_iterate_set_int_next(hyperdex_ds_iterator* it, int64_t* num)
+    int hyperdex_ds_iterate_set_float_next(hyperdex_ds_iterator* it, double* num)
+    int hyperdex_ds_iterate_map_string_string_next(hyperdex_ds_iterator* it, char** key, size_t* key_sz, char** val, size_t* val_sz)
+    int hyperdex_ds_iterate_map_string_int_next(hyperdex_ds_iterator* it, char** key, size_t* key_sz, int64_t* val)
+    int hyperdex_ds_iterate_map_string_float_next(hyperdex_ds_iterator* it, char** key, size_t* key_sz, double* val)
+    int hyperdex_ds_iterate_map_int_string_next(hyperdex_ds_iterator* it, int64_t* key, char** val, size_t* val_sz)
+    int hyperdex_ds_iterate_map_int_int_next(hyperdex_ds_iterator* it, int64_t* key, int64_t* val)
+    int hyperdex_ds_iterate_map_int_float_next(hyperdex_ds_iterator* it, int64_t* key, double* val)
+    int hyperdex_ds_iterate_map_float_string_next(hyperdex_ds_iterator* it, double* key, char** val, size_t* val_sz)
+    int hyperdex_ds_iterate_map_float_int_next(hyperdex_ds_iterator* it, double* key, int64_t* val)
+    int hyperdex_ds_iterate_map_float_float_next(hyperdex_ds_iterator* it, double* key, double* val)
+
+
+ctypedef object (*encret_deferred_fptr)(Deferred d)
+ctypedef object (*encret_iterator_fptr)(Iterator it)
+{function_pointers}
+
+class HyperDexClientException(Exception):
+
+    def __init__(self, status, message):
+        super(HyperDexClientException, self).__init__(self)
+        self._status = status
+        self._symbol = hyperdex_client_returncode_to_string(self._status)
+        self._message = message
+
+    def status(self):
+        return self._status
+
+    def symbol(self):
+        return self._symbol
+
+    def message(self):
+        return self._message
+
+    def __str__(self):
+        return 'HyperDexClientException: {{0}} [{{1}}]'.format(self.message(), self.symbol())
+
+    def __repr__(self):
+        return str(self)
+
+
+cdef hyperdex_python_client_convert_string(hyperdex_ds_arena* arena, bytes x,
+                                           char** value,
+                                           size_t* value_sz,
+                                           hyperdatatype* datatype):
+    cdef hyperdex_ds_returncode error
+    if hyperdex_ds_copy_string(arena, x, len(x), &error, value, value_sz) < 0:
+        raise MemoryError()
+    datatype[0] = HYPERDATATYPE_STRING
+
+
+cdef hyperdex_python_client_convert_int(hyperdex_ds_arena* arena, long x,
+                                        char** value,
+                                        size_t* value_sz,
+                                        hyperdatatype* datatype):
+    cdef hyperdex_ds_returncode error
+    if hyperdex_ds_copy_int(arena, x, &error, value, value_sz) < 0:
+        raise MemoryError()
+    datatype[0] = HYPERDATATYPE_INT64
+
+
+cdef hyperdex_python_client_convert_float(hyperdex_ds_arena* arena, double x,
+                                          char** value,
+                                          size_t* value_sz,
+                                          hyperdatatype* datatype):
+    cdef hyperdex_ds_returncode error
+    if hyperdex_ds_copy_float(arena, x, &error, value, value_sz) < 0:
+        raise MemoryError()
+    datatype[0] = HYPERDATATYPE_FLOAT
+
+
+cdef hyperdex_python_client_handle_elem_error(hyperdex_ds_returncode error, str etype):
+    if error == HYPERDEX_DS_NOMEM:
+        raise MemoryError()
+    elif error == HYPERDEX_DS_MIXED_TYPES:
+        raise TypeError("Cannot add " + etype + " to a heterogenous container")
+    else:
+        raise TypeError("Cannot convert " + etype + " to a HyperDex type")
+
+
+cdef hyperdex_python_client_convert_list(hyperdex_ds_arena* arena, list xs,
+                                         char** value,
+                                         size_t* value_sz,
+                                         hyperdatatype* datatype):
+    cdef hyperdex_ds_list* lst = hyperdex_ds_allocate_list(arena)
+    cdef hyperdex_ds_returncode error
+    for x in xs:
+        if isinstance(x, bytes):
+            if hyperdex_ds_list_append_string(lst, x, len(x), &error) < 0:
+                hyperdex_python_client_handle_elem_error(error, "string")
+        elif isinstance(x, long):
+            if hyperdex_ds_list_append_int(lst, x, &error) < 0:
+                hyperdex_python_client_handle_elem_error(error, "long")
+        elif isinstance(x, int):
+            if hyperdex_ds_list_append_int(lst, x, &error) < 0:
+                hyperdex_python_client_handle_elem_error(error, "int")
+        elif isinstance(x, float):
+            if hyperdex_ds_list_append_float(lst, x, &error) < 0:
+                hyperdex_python_client_handle_elem_error(error, "float")
+        else:
+            raise TypeError("Cannot convert object to a HyperDex container element")
+    if hyperdex_ds_list_finalize(lst, &error, value, value_sz, datatype) < 0:
+        raise MemoryError()
+
+
+cdef hyperdex_python_client_convert_set(hyperdex_ds_arena* arena, set xs,
+                                        char** value,
+                                        size_t* value_sz,
+                                        hyperdatatype* datatype):
+    cdef hyperdex_ds_set* st = hyperdex_ds_allocate_set(arena)
+    cdef hyperdex_ds_returncode error
+    for x in xs:
+        if isinstance(x, bytes):
+            if hyperdex_ds_set_insert_string(st, x, len(x), &error) < 0:
+                hyperdex_python_client_handle_elem_error(error, "string")
+        elif isinstance(x, long):
+            if hyperdex_ds_set_insert_int(st, x, &error) < 0:
+                hyperdex_python_client_handle_elem_error(error, "long")
+        elif isinstance(x, int):
+            if hyperdex_ds_set_insert_int(st, x, &error) < 0:
+                hyperdex_python_client_handle_elem_error(error, "int")
+        elif isinstance(x, float):
+            if hyperdex_ds_set_insert_float(st, x, &error) < 0:
+                hyperdex_python_client_handle_elem_error(error, "float")
+        else:
+            raise TypeError("Cannot convert object to a HyperDex container element")
+    if hyperdex_ds_set_finalize(st, &error, value, value_sz, datatype) < 0:
+        raise MemoryError()
+
+
+cdef hyperdex_python_client_convert_map(hyperdex_ds_arena* arena, dict xs,
+                                        char** value,
+                                        size_t* value_sz,
+                                        hyperdatatype* datatype):
+    cdef hyperdex_ds_map* mp = hyperdex_ds_allocate_map(arena)
+    cdef hyperdex_ds_returncode error
+    for k, v in xs.iteritems():
+        if isinstance(k, bytes):
+            if hyperdex_ds_map_insert_key_string(mp, k, len(k), &error) < 0:
+                hyperdex_python_client_handle_elem_error(error, "string")
+        elif isinstance(k, long):
+            if hyperdex_ds_map_insert_key_int(mp, k, &error) < 0:
+                hyperdex_python_client_handle_elem_error(error, "long")
+        elif isinstance(k, int):
+            if hyperdex_ds_map_insert_key_int(mp, k, &error) < 0:
+                hyperdex_python_client_handle_elem_error(error, "int")
+        elif isinstance(k, float):
+            if hyperdex_ds_map_insert_key_float(mp, k, &error) < 0:
+                hyperdex_python_client_handle_elem_error(error, "float")
+        else:
+            raise TypeError("Cannot convert object to a HyperDex map key")
+        if isinstance(v, bytes):
+            if hyperdex_ds_map_insert_val_string(mp, v, len(v), &error) < 0:
+                hyperdex_python_client_handle_elem_error(error, "string")
+        elif isinstance(v, long):
+            if hyperdex_ds_map_insert_val_int(mp, v, &error) < 0:
+                hyperdex_python_client_handle_elem_error(error, "long")
+        elif isinstance(v, int):
+            if hyperdex_ds_map_insert_val_int(mp, v, &error) < 0:
+                hyperdex_python_client_handle_elem_error(error, "int")
+        elif isinstance(v, float):
+            if hyperdex_ds_map_insert_val_float(mp, v, &error) < 0:
+                hyperdex_python_client_handle_elem_error(error, "float")
+        else:
+            raise TypeError("Cannot convert object to a HyperDex map value")
+    if hyperdex_ds_map_finalize(mp, &error, value, value_sz, datatype) < 0:
+        raise MemoryError()
+
+
+cdef hyperdex_python_client_convert_type(hyperdex_ds_arena* arena, x,
+                                         char** value,
+                                         size_t* value_sz,
+                                         hyperdatatype* datatype):
+    if isinstance(x, bytes):
+        return hyperdex_python_client_convert_string(arena, x, value, value_sz, datatype)
+    elif isinstance(x, long):
+        return hyperdex_python_client_convert_int(arena, x, value, value_sz, datatype)
+    elif isinstance(x, int):
+        return hyperdex_python_client_convert_int(arena, x, value, value_sz, datatype)
+    elif isinstance(x, float):
+        return hyperdex_python_client_convert_float(arena, x, value, value_sz, datatype)
+    elif isinstance(x, list):
+        return hyperdex_python_client_convert_list(arena, x, value, value_sz, datatype)
+    elif isinstance(x, set):
+        return hyperdex_python_client_convert_set(arena, x, value, value_sz, datatype)
+    elif isinstance(x, dict):
+        return hyperdex_python_client_convert_map(arena, x, value, value_sz, datatype)
+    else:
+        raise TypeError("Cannot convert object to a HyperDex type")
+
+
+cdef hyperdex_python_client_build_string(char* value, size_t value_sz):
+    return value[:value_sz]
+
+
+cdef hyperdex_python_client_build_int(char* value, size_t value_sz):
+    cdef int64_t i = 0
+    if hyperdex_ds_unpack_int(value, value_sz, &i) < 0:
+        raise HyperDexClientException(HYPERDEX_CLIENT_SERVERERROR, "server sent malformed attributes")
+    return long(i)
+
+
+cdef hyperdex_python_client_build_float(char* value, size_t value_sz):
+    cdef double d = 0
+    if hyperdex_ds_unpack_float(value, value_sz, &d) < 0:
+        raise HyperDexClientException(HYPERDEX_CLIENT_SERVERERROR, "server sent malformed attributes")
+    return float(d)
+
+
+cdef hyperdex_python_client_build_list_string(char* value, size_t value_sz):
+    cdef hyperdex_ds_iterator it
+    cdef int result = 0
+    cdef char* tmp
+    cdef size_t tmp_sz
+    hyperdex_ds_iterator_init(&it, HYPERDATATYPE_LIST_STRING, value, value_sz)
+    ret = []
+    while True:
+        result = hyperdex_ds_iterate_list_string_next(&it, &tmp, &tmp_sz)
+        if result <= 0:
+            break
+        ret.append(tmp[:tmp_sz])
+    if result < 0:
+        raise HyperDexClientException(HYPERDEX_CLIENT_SERVERERROR, "server sent malformed list(string)")
+    return ret
+
+
+cdef hyperdex_python_client_build_list_int(char* value, size_t value_sz):
+    cdef hyperdex_ds_iterator it
+    cdef int result = 0
+    cdef int64_t tmp
+    hyperdex_ds_iterator_init(&it, HYPERDATATYPE_LIST_INT64, value, value_sz)
+    ret = []
+    while True:
+        result = hyperdex_ds_iterate_list_int_next(&it, &tmp)
+        if result <= 0:
+            break
+        ret.append(tmp)
+    if result < 0:
+        raise HyperDexClientException(HYPERDEX_CLIENT_SERVERERROR, "server sent malformed list(int)")
+    return ret
+
+
+cdef hyperdex_python_client_build_list_float(char* value, size_t value_sz):
+    cdef hyperdex_ds_iterator it
+    cdef int result = 0
+    cdef double tmp
+    hyperdex_ds_iterator_init(&it, HYPERDATATYPE_LIST_FLOAT, value, value_sz)
+    ret = []
+    while True:
+        result = hyperdex_ds_iterate_list_float_next(&it, &tmp)
+        if result <= 0:
+            break
+        ret.append(tmp)
+    if result < 0:
+        raise HyperDexClientException(HYPERDEX_CLIENT_SERVERERROR, "server sent malformed list(float)")
+    return ret
+
+
+cdef hyperdex_python_client_build_set_string(char* value, size_t value_sz):
+    cdef hyperdex_ds_iterator it
+    cdef int result = 0
+    cdef char* tmp
+    cdef size_t tmp_sz
+    hyperdex_ds_iterator_init(&it, HYPERDATATYPE_SET_STRING, value, value_sz)
+    ret = set([])
+    while True:
+        result = hyperdex_ds_iterate_set_string_next(&it, &tmp, &tmp_sz)
+        if result <= 0:
+            break
+        ret.add(tmp[:tmp_sz])
+    if result < 0:
+        raise HyperDexClientException(HYPERDEX_CLIENT_SERVERERROR, "server sent malformed set(string)")
+    return ret
+
+
+cdef hyperdex_python_client_build_set_int(char* value, size_t value_sz):
+    cdef hyperdex_ds_iterator it
+    cdef int result = 0
+    cdef int64_t tmp
+    hyperdex_ds_iterator_init(&it, HYPERDATATYPE_SET_INT64, value, value_sz)
+    ret = set([])
+    while True:
+        result = hyperdex_ds_iterate_set_int_next(&it, &tmp)
+        if result <= 0:
+            break
+        ret.add(tmp)
+    if result < 0:
+        raise HyperDexClientException(HYPERDEX_CLIENT_SERVERERROR, "server sent malformed set(int)")
+    return ret
+
+
+cdef hyperdex_python_client_build_set_float(char* value, size_t value_sz):
+    cdef hyperdex_ds_iterator it
+    cdef int result = 0
+    cdef double tmp
+    hyperdex_ds_iterator_init(&it, HYPERDATATYPE_SET_FLOAT, value, value_sz)
+    ret = set([])
+    while True:
+        result = hyperdex_ds_iterate_set_float_next(&it, &tmp)
+        if result <= 0:
+            break
+        ret.add(tmp)
+    if result < 0:
+        raise HyperDexClientException(HYPERDEX_CLIENT_SERVERERROR, "server sent malformed set(float)")
+    return ret
+
+
+cdef hyperdex_python_client_build_map_string_string(char* value, size_t value_sz):
+    cdef hyperdex_ds_iterator it
+    cdef int result = 0
+    cdef char* key
+    cdef size_t key_sz
+    cdef char* val
+    cdef size_t val_sz
+    hyperdex_ds_iterator_init(&it, HYPERDATATYPE_MAP_STRING_STRING, value, value_sz)
+    ret = {{}}
+    while True:
+        result = hyperdex_ds_iterate_map_string_string_next(&it, &key, &key_sz, &val, &val_sz)
+        if result <= 0:
+            break
+        ret[key[:key_sz]] = val[:val_sz]
+    if result < 0:
+        raise HyperDexClientException(HYPERDEX_CLIENT_SERVERERROR, "server sent malformed map(string, string)")
+    return ret
+
+
+cdef hyperdex_python_client_build_map_string_int(char* value, size_t value_sz):
+    cdef hyperdex_ds_iterator it
+    cdef int result = 0
+    cdef char* key
+    cdef size_t key_sz
+    cdef int64_t val
+    hyperdex_ds_iterator_init(&it, HYPERDATATYPE_MAP_STRING_INT64, value, value_sz)
+    ret = {{}}
+    while True:
+        result = hyperdex_ds_iterate_map_string_int_next(&it, &key, &key_sz, &val)
+        if result <= 0:
+            break
+        ret[key[:key_sz]] = val
+    if result < 0:
+        raise HyperDexClientException(HYPERDEX_CLIENT_SERVERERROR, "server sent malformed map(string, int)")
+    return ret
+
+
+cdef hyperdex_python_client_build_map_string_float(char* value, size_t value_sz):
+    cdef hyperdex_ds_iterator it
+    cdef int result = 0
+    cdef char* key
+    cdef size_t key_sz
+    cdef double val
+    hyperdex_ds_iterator_init(&it, HYPERDATATYPE_MAP_STRING_FLOAT, value, value_sz)
+    ret = {{}}
+    while True:
+        result = hyperdex_ds_iterate_map_string_float_next(&it, &key, &key_sz, &val)
+        if result <= 0:
+            break
+        ret[key[:key_sz]] = val
+    if result < 0:
+        raise HyperDexClientException(HYPERDEX_CLIENT_SERVERERROR, "server sent malformed map(string, float)")
+    return ret
+
+
+cdef hyperdex_python_client_build_map_int_string(char* value, size_t value_sz):
+    cdef hyperdex_ds_iterator it
+    cdef int result = 0
+    cdef int64_t key
+    cdef char* val
+    cdef size_t val_sz
+    hyperdex_ds_iterator_init(&it, HYPERDATATYPE_MAP_INT64_STRING, value, value_sz)
+    ret = {{}}
+    while True:
+        result = hyperdex_ds_iterate_map_int_string_next(&it, &key, &val, &val_sz)
+        if result <= 0:
+            break
+        ret[key] = val[:val_sz]
+    if result < 0:
+        raise HyperDexClientException(HYPERDEX_CLIENT_SERVERERROR, "server sent malformed map(int, string)")
+    return ret
+
+
+cdef hyperdex_python_client_build_map_int_int(char* value, size_t value_sz):
+    cdef hyperdex_ds_iterator it
+    cdef int result = 0
+    cdef int64_t key
+    cdef int64_t val
+    hyperdex_ds_iterator_init(&it, HYPERDATATYPE_MAP_INT64_INT64, value, value_sz)
+    ret = {{}}
+    while True:
+        result = hyperdex_ds_iterate_map_int_int_next(&it, &key, &val)
+        if result <= 0:
+            break
+        ret[key] = val
+    if result < 0:
+        raise HyperDexClientException(HYPERDEX_CLIENT_SERVERERROR, "server sent malformed map(int, int)")
+    return ret
+
+
+cdef hyperdex_python_client_build_map_int_float(char* value, size_t value_sz):
+    cdef hyperdex_ds_iterator it
+    cdef int result = 0
+    cdef int64_t key
+    cdef double val
+    hyperdex_ds_iterator_init(&it, HYPERDATATYPE_MAP_INT64_FLOAT, value, value_sz)
+    ret = {{}}
+    while True:
+        result = hyperdex_ds_iterate_map_int_float_next(&it, &key, &val)
+        if result <= 0:
+            break
+        ret[key] = val
+    if result < 0:
+        raise HyperDexClientException(HYPERDEX_CLIENT_SERVERERROR, "server sent malformed map(int, float)")
+    return ret
+
+
+cdef hyperdex_python_client_build_map_float_string(char* value, size_t value_sz):
+    cdef hyperdex_ds_iterator it
+    cdef int result = 0
+    cdef double key
+    cdef char* val
+    cdef size_t val_sz
+    hyperdex_ds_iterator_init(&it, HYPERDATATYPE_MAP_FLOAT_STRING, value, value_sz)
+    ret = {{}}
+    while True:
+        result = hyperdex_ds_iterate_map_float_string_next(&it, &key, &val, &val_sz)
+        if result <= 0:
+            break
+        ret[key] = val[:val_sz]
+    if result < 0:
+        raise HyperDexClientException(HYPERDEX_CLIENT_SERVERERROR, "server sent malformed map(float, string)")
+    return ret
+
+
+cdef hyperdex_python_client_build_map_float_int(char* value, size_t value_sz):
+    cdef hyperdex_ds_iterator it
+    cdef int result = 0
+    cdef double key
+    cdef int64_t val
+    hyperdex_ds_iterator_init(&it, HYPERDATATYPE_MAP_FLOAT_INT64, value, value_sz)
+    ret = {{}}
+    while True:
+        result = hyperdex_ds_iterate_map_float_int_next(&it, &key, &val)
+        if result <= 0:
+            break
+        ret[key] = val
+    if result < 0:
+        raise HyperDexClientException(HYPERDEX_CLIENT_SERVERERROR, "server sent malformed map(float, int)")
+    return ret
+
+
+cdef hyperdex_python_client_build_map_float_float(char* value, size_t value_sz):
+    cdef hyperdex_ds_iterator it
+    cdef int result = 0
+    cdef double key
+    cdef double val
+    hyperdex_ds_iterator_init(&it, HYPERDATATYPE_MAP_FLOAT_FLOAT, value, value_sz)
+    ret = {{}}
+    while True:
+        result = hyperdex_ds_iterate_map_float_float_next(&it, &key, &val)
+        if result <= 0:
+            break
+        ret[key] = val
+    if result < 0:
+        raise HyperDexClientException(HYPERDEX_CLIENT_SERVERERROR, "server sent malformed map(float, float)")
+    return ret
+
+
+cdef hyperdex_python_client_build_attributes(hyperdex_client_attribute* attrs, size_t attrs_sz):
+    ret = {{}}
+    for i in range(attrs_sz):
+        val = None
+        if attrs[i].datatype == HYPERDATATYPE_STRING:
+            val = hyperdex_python_client_build_string(attrs[i].value, attrs[i].value_sz)
+        elif attrs[i].datatype == HYPERDATATYPE_INT64:
+            val = hyperdex_python_client_build_int(attrs[i].value, attrs[i].value_sz)
+        elif attrs[i].datatype == HYPERDATATYPE_FLOAT:
+            val = hyperdex_python_client_build_float(attrs[i].value, attrs[i].value_sz)
+        elif attrs[i].datatype == HYPERDATATYPE_LIST_STRING:
+            val = hyperdex_python_client_build_list_string(attrs[i].value, attrs[i].value_sz)
+        elif attrs[i].datatype == HYPERDATATYPE_LIST_INT64:
+            val = hyperdex_python_client_build_list_int(attrs[i].value, attrs[i].value_sz)
+        elif attrs[i].datatype == HYPERDATATYPE_LIST_FLOAT:
+            val = hyperdex_python_client_build_list_float(attrs[i].value, attrs[i].value_sz)
+        elif attrs[i].datatype == HYPERDATATYPE_SET_STRING:
+            val = hyperdex_python_client_build_set_string(attrs[i].value, attrs[i].value_sz)
+        elif attrs[i].datatype == HYPERDATATYPE_SET_INT64:
+            val = hyperdex_python_client_build_set_int(attrs[i].value, attrs[i].value_sz)
+        elif attrs[i].datatype == HYPERDATATYPE_SET_FLOAT:
+            val = hyperdex_python_client_build_set_float(attrs[i].value, attrs[i].value_sz)
+        elif attrs[i].datatype == HYPERDATATYPE_MAP_STRING_STRING:
+            val = hyperdex_python_client_build_map_string_string(attrs[i].value, attrs[i].value_sz)
+        elif attrs[i].datatype == HYPERDATATYPE_MAP_STRING_INT64:
+            val = hyperdex_python_client_build_map_string_int(attrs[i].value, attrs[i].value_sz)
+        elif attrs[i].datatype == HYPERDATATYPE_MAP_STRING_FLOAT:
+            val = hyperdex_python_client_build_map_string_float(attrs[i].value, attrs[i].value_sz)
+        elif attrs[i].datatype == HYPERDATATYPE_MAP_INT64_STRING:
+            val = hyperdex_python_client_build_map_int_string(attrs[i].value, attrs[i].value_sz)
+        elif attrs[i].datatype == HYPERDATATYPE_MAP_INT64_INT64:
+            val = hyperdex_python_client_build_map_int_int(attrs[i].value, attrs[i].value_sz)
+        elif attrs[i].datatype == HYPERDATATYPE_MAP_INT64_FLOAT:
+            val = hyperdex_python_client_build_map_int_float(attrs[i].value, attrs[i].value_sz)
+        elif attrs[i].datatype == HYPERDATATYPE_MAP_FLOAT_STRING:
+            val = hyperdex_python_client_build_map_float_string(attrs[i].value, attrs[i].value_sz)
+        elif attrs[i].datatype == HYPERDATATYPE_MAP_FLOAT_INT64:
+            val = hyperdex_python_client_build_map_float_int(attrs[i].value, attrs[i].value_sz)
+        elif attrs[i].datatype == HYPERDATATYPE_MAP_FLOAT_FLOAT:
+            val = hyperdex_python_client_build_map_float_float(attrs[i].value, attrs[i].value_sz)
+        else:
+            raise HyperDexClientException(HYPERDEX_CLIENT_SERVERERROR, "server sent malformed attributes")
+        ret[attrs[i].attr] = val
+    return ret
+
+
+cdef hyperdex_python_client_deferred_encode_status(Deferred d):
+    if d.status == HYPERDEX_CLIENT_SUCCESS:
+        return True
+    elif d.status == HYPERDEX_CLIENT_NOTFOUND:
+        return None
+    elif d.status == HYPERDEX_CLIENT_CMPFAIL:
+        return False
+    else:
+        raise HyperDexClientException(d.status, hyperdex_client_error_message(d.client.client))
+
+cdef hyperdex_python_client_deferred_encode_status_attributes(Deferred d):
+    if d.status == HYPERDEX_CLIENT_SUCCESS:
+        return hyperdex_python_client_build_attributes(d.attrs, d.attrs_sz)
+    elif d.status == HYPERDEX_CLIENT_NOTFOUND:
+        return None
+    elif d.status == HYPERDEX_CLIENT_CMPFAIL:
+        return False
+    else:
+        raise HyperDexClientException(d.status, hyperdex_client_error_message(d.client.client))
+
+cdef hyperdex_python_client_deferred_encode_status_count(Deferred d):
+    if d.status == HYPERDEX_CLIENT_SUCCESS:
+        return long(d.count)
+    elif d.status == HYPERDEX_CLIENT_NOTFOUND:
+        return None
+    elif d.status == HYPERDEX_CLIENT_CMPFAIL:
+        return False
+    else:
+        raise HyperDexClientException(d.status, hyperdex_client_error_message(d.client.client))
+
+cdef hyperdex_python_client_deferred_encode_status_description(Deferred d):
+    if d.status == HYPERDEX_CLIENT_SUCCESS:
+        return str(d.description)
+    elif d.status == HYPERDEX_CLIENT_NOTFOUND:
+        return None
+    elif d.status == HYPERDEX_CLIENT_CMPFAIL:
+        return False
+    else:
+        raise HyperDexClientException(d.status, hyperdex_client_error_message(d.client.client))
+
+cdef hyperdex_python_client_iterator_encode_status_attributes(Iterator it):
+    if it.status == HYPERDEX_CLIENT_SUCCESS:
+        return hyperdex_python_client_build_attributes(it.attrs, it.attrs_sz)
+    elif it.status == HYPERDEX_CLIENT_NOTFOUND:
+        return None
+    elif it.status == HYPERDEX_CLIENT_CMPFAIL:
+        return False
+    else:
+        raise HyperDexClientException(it.status, hyperdex_client_error_message(it.client.client))
+
+
+cdef class Predicate:
+
+    cdef list _checks
+
+    def __init__(self, raw):
+        self._checks = list(raw)
+
+    def checks(self, attr):
+        return [(attr, p, v) for p, v in self._checks]
+
+cdef class Equals(Predicate):
+
+    def __init__(self, elem):
+        Predicate.__init__(self, ((HYPERPREDICATE_EQUALS, elem),))
+
+cdef class LessEqual(Predicate):
+
+    def __init__(self, upper):
+        Predicate.__init__(self, ((HYPERPREDICATE_LESS_EQUAL, upper),))
+
+cdef class GreaterEqual(Predicate):
+
+    def __init__(self, lower):
+        Predicate.__init__(self, ((HYPERPREDICATE_GREATER_EQUAL, lower),))
+
+cdef class Range(Predicate):
+
+    def __init__(self, lower, upper):
+        Predicate.__init__(self, ((HYPERPREDICATE_GREATER_EQUAL, lower),
+                                  (HYPERPREDICATE_LESS_EQUAL, upper)))
+
+cdef class Regex(Predicate):
+
+    def __init__(self, regex):
+        Predicate.__init__(self, ((HYPERPREDICATE_REGEX, regex),))
+
+cdef class LengthEquals(Predicate):
+
+    def __init__(self, length):
+        Predicate.__init__(self, ((HYPERPREDICATE_LENGTH_EQUALS, length),))
+
+cdef class LengthLessEqual(Predicate):
+
+    def __init__(self, upper):
+        Predicate.__init__(self, ((HYPERPREDICATE_LENGTH_LESS_EQUAL, upper),))
+
+cdef class LengthGreaterEqual(Predicate):
+
+    def __init__(self, lower):
+        Predicate.__init__(self, ((HYPERPREDICATE_LENGTH_GREATER_EQUAL, lower),))
+
+cdef class Contains(Predicate):
+
+    def __init__(self, elem):
+        Predicate.__init__(self, ((HYPERPREDICATE_CONTAINS, elem),))
+
+
+cdef class Deferred:
+    cdef Client client
+    cdef hyperdex_ds_arena* arena
+    cdef encret_deferred_fptr encode_return
+    cdef int64_t reqid
+    cdef hyperdex_client_returncode status
+    cdef hyperdex_client_attribute* attrs
+    cdef size_t attrs_sz
+    cdef char* description
+    cdef uint64_t count
+    cdef bint finished
+
+    def __cinit__(self, Client client):
+        self.client = client
+        self.arena = hyperdex_ds_arena_create()
+        if self.arena == NULL:
+            raise MemoryError()
+        self.reqid = -1
+        self.status = HYPERDEX_CLIENT_GARBAGE
+        self.attrs = NULL
+        self.attrs_sz = 0
+        self.description = NULL
+        self.count = 0
+        self.finished = False
+
+    def __dealloc__(self):
+        if self.arena:
+            hyperdex_ds_arena_destroy(self.arena)
+        if self.attrs:
+            hyperdex_client_destroy_attrs(self.attrs, self.attrs_sz)
+            self.attrs = NULL
+            self.attrs_sz = 0
+        if self.description:
+            free(self.description)
+
+    def _callback(self):
+        self.finished = True
+        del self.client.ops[self.reqid]
+
+    def wait(self):
+        while not self.finished and self.reqid > 0:
+            self.client.loop()
+        self.finished = True
+        return self.encode_return(self)
+
+
+cdef class Iterator:
+    cdef Client client
+    cdef hyperdex_ds_arena* arena
+    cdef encret_iterator_fptr encode_return
+    cdef int64_t reqid
+    cdef hyperdex_client_returncode status
+    cdef hyperdex_client_attribute* attrs
+    cdef size_t attrs_sz
+    cdef list backlogged
+    cdef bint finished
+
+    def __cinit__(self, Client client):
+        self.client = client
+        self.arena = hyperdex_ds_arena_create()
+        if self.arena == NULL:
+            raise MemoryError()
+        self.reqid = -1
+        self.status = HYPERDEX_CLIENT_GARBAGE
+        self.attrs = NULL
+        self.attrs_sz = 0
+        self.backlogged = []
+        self.finished = False
+
+    def __dealloc__(self):
+        if self.arena:
+            hyperdex_ds_arena_destroy(self.arena)
+        if self.attrs:
+            hyperdex_client_destroy_attrs(self.attrs, self.attrs_sz)
+            self.attrs = NULL
+            self.attrs_sz = 0
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        while not self.finished and not self.backlogged:
+            self.client.loop()
+        if self.backlogged:
+            return self.backlogged.pop()
+        raise StopIteration()
+
+    def _callback(self):
+        if self.status == HYPERDEX_CLIENT_SEARCHDONE:
+            self.finished = True
+            del self.client.ops[self.reqid]
+        else:
+            try:
+                obj = self.encode_return(self)
+                self.backlogged.append(obj)
+            except HyperDexClientException as e:
+                self.backlogged.append(e)
+            finally:
+                if self.attrs:
+                    hyperdex_client_destroy_attrs(self.attrs, self.attrs_sz)
+                    self.attrs = NULL
+                    self.attrs_sz = 0
+
+
+cdef class Client:
+    cdef hyperdex_client* client
+    cdef dict ops
+
+    def __cinit__(self, address, port):
+        self.client = hyperdex_client_create(address, port)
+        self.ops = {{}}
+
+    def __dealloc__(self):
+        if self.client:
+            hyperdex_client_destroy(self.client)
+
+    cdef convert_spacename(self, hyperdex_ds_arena* arena, bytes spacename, char** spacename_str):
+        spacename_str[0] = spacename
+
+    cdef convert_key(self, hyperdex_ds_arena* arena, key, char** _key, size_t* _key_sz):
+        cdef hyperdatatype dt
+        hyperdex_python_client_convert_type(arena, key, _key, _key_sz, &dt)
+
+    cdef convert_attributes(self, hyperdex_ds_arena* arena, attrs,
+                            hyperdex_client_attribute** _attrs, size_t* _attrs_sz):
+        _attrs[0] = hyperdex_ds_allocate_attribute(arena, len(attrs))
+        if _attrs[0] == NULL:
+            raise MemoryError()
+        for i, (name, value) in enumerate(attrs.iteritems()):
+            _attrs[0][i].attr = name
+            hyperdex_python_client_convert_type(arena, value,
+                                                &_attrs[0][i].value,
+                                                &_attrs[0][i].value_sz,
+                                                &_attrs[0][i].datatype)
+        _attrs_sz[0] = len(attrs)
+
+    cdef convert_predicate(self, attr, pred):
+        if isinstance(pred, tuple) and len(pred) == 2 and \
+           type(pred[0]) == type(pred[1]):
+            return [(attr, HYPERPREDICATE_GREATER_EQUAL, pred[0]),
+                    (attr, HYPERPREDICATE_LESS_EQUAL,    pred[1])]
+        elif isinstance(pred, Predicate):
+            return pred.checks(attr)
+        else:
+            return [(attr, HYPERPREDICATE_EQUALS, pred)]
+
+    cdef convert_predicates(self, hyperdex_ds_arena* arena, preds,
+                            hyperdex_client_attribute_check** _checks, size_t* _checks_sz):
+        checks = []
+        for attr, pred in preds.iteritems():
+            if isinstance(pred, list):
+                for p in pred:
+                    checks += self.convert_predicate(attr, p)
+            else:
+                checks += self.convert_predicate(attr, pred)
+        _checks_sz[0] = len(checks)
+        _checks[0] = hyperdex_ds_allocate_attribute_check(arena, len(checks))
+        if _checks[0] == NULL:
+            raise MemoryError()
+        for i, (attr, pred, val) in enumerate(checks):
+            _checks[0][i].attr = attr
+            _checks[0][i].predicate = pred
+            hyperdex_python_client_convert_type(arena, val,
+                                                &_checks[0][i].value,
+                                                &_checks[0][i].value_sz,
+                                                &_checks[0][i].datatype)
+
+    cdef convert_mapattributes(self, hyperdex_ds_arena* arena, mapattrs,
+                               hyperdex_client_map_attribute** _mapattrs, size_t* _mapattrs_sz):
+        length = sum([len(v) for k, v in mapattrs.iteritems()])
+        _mapattrs[0] = hyperdex_ds_allocate_map_attribute(arena, length)
+        if _mapattrs[0] == NULL:
+            raise MemoryError()
+        i = 0
+        for name, mapvalue in mapattrs.iteritems():
+            for k, v in mapvalue.iteritems():
+                assert i < length
+                _mapattrs[0][i].attr = name
+                hyperdex_python_client_convert_type(arena, k,
+                                                    &_mapattrs[0][i].map_key,
+                                                    &_mapattrs[0][i].map_key_sz,
+                                                    &_mapattrs[0][i].map_key_datatype)
+                hyperdex_python_client_convert_type(arena, v,
+                                                    &_mapattrs[0][i].value,
+                                                    &_mapattrs[0][i].value_sz,
+                                                    &_mapattrs[0][i].value_datatype)
+                i += 1
+        _mapattrs_sz[0] = i
+
+    cdef convert_sortby(self, hyperdex_ds_arena* arena, bytes sortby, char** sortby_str):
+        sortby_str[0] = sortby
+
+    cdef convert_limit(self, hyperdex_ds_arena* arena, long limit, uint64_t* count):
+        count[0] = limit
+
+    cdef convert_maxmin(self, hyperdex_ds_arena* arena, str compare, int* maximize):
+        if compare not in ('maximize', 'max', 'minimize', 'min'):
+            raise ValueError("Comparison must be either 'max' or 'min'")
+        maximize[0] = 1 if compare in ('max', 'maximize') else 0
+
+    def loop(self):
+        cdef hyperdex_client_returncode status
+        ret = hyperdex_client_loop(self.client, -1, &status)
+        if ret < 0:
+            raise HyperDexClientException(status, hyperdex_client_error_message(self.client))
+        else:
+            assert ret in self.ops
+            op = self.ops[ret]
+            # We cannot refer to self.ops[ret] after this call as
+            # _callback() may remove ret from self.ops.
+            op._callback()
+            return op
