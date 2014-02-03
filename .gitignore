@@ -23,6 +23,7 @@
 /bindings/c/client_testcompile
 /bindings/python/_hyperdex_admin.c
 /bindings/python/_hyperdex_client.c
+/bindings/python/_hyperdex_admin.pyx
 /cityhash/test/city
 /client/keyop_info.cc
 /client/test/datastructures
