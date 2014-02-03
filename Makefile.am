@@ -139,6 +139,7 @@ noinst_HEADERS += common/serialization.h
 noinst_HEADERS += common/server.h
 noinst_HEADERS += common/transfer.h
 noinst_HEADERS += tools/common.h
+noinst_HEADERS += osx/ieee754.h
 
 check_PROGRAMS += common/test/ordered_encoding
 TESTS += common/test/ordered_encoding
@@ -628,7 +629,9 @@ pkgpyexec_LTLIBRARIES += bindings/python/hyperdex/admin.la
 endif
 endif
 
+EXTRA_DIST += bindings/python/gen_python.py
 EXTRA_DIST += bindings/python/hyperdex/__init__.py
+EXTRA_DIST += bindings/python/hyperdex/client.pyx.in
 
 EXTRA_DIST += bindings/python/hyperdex/client.pyx
 bindings_python_hyperdex_client_la_SOURCES = bindings/python/hyperdex/client.c
@@ -706,6 +709,7 @@ endif
 
 check_PROGRAMS += test/replication-stress-test
 check_PROGRAMS += test/search-stress-test
+check_PROGRAMS += test/simple-consistency-stress-test
 
 shell_wrappers =
 
@@ -953,6 +957,9 @@ test_replication_stress_test_LDADD = libhyperdex-client.la -le -lpopt
 test_search_stress_test_SOURCES = test/search-stress-test.cc
 test_search_stress_test_LDADD = libhyperdex-client.la -le -lpopt
 
+test_simple_consistency_stress_test_SOURCES = test/simple-consistency-stress-test.cc
+test_simple_consistency_stress_test_LDADD = libhyperdex-client.la -le -lpopt
+
 ################################################################################
 ##################################### Tools ####################################
 ################################################################################
@@ -1192,6 +1199,11 @@ noinst_PROGRAMS += maint/lib-check
 endif
 
 EXTRA_DIST += bindings/generator.py
+EXTRA_DIST += maint/generate-bindings-tests.py
+EXTRA_DIST += maint/generate-doc-shell-stubs.py
+EXTRA_DIST += maint/generate-replication-shell-stubs.py
+EXTRA_DIST += maint/generate-search-shell-stubs.py
+EXTRA_DIST += maint/generate-test-packages.py
 
 maint_lib_check_SOURCES = maint/lib-check.c
 maint_lib_check_LDADD = -ldl

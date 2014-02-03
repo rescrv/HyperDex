@@ -56,8 +56,8 @@
 // e
 #include <e/guard.h>
 
-// HyperClient
-#include "client/hyperclient.hpp"
+// HyperDex
+#include <hyperdex/client.hpp>
 
 static long window = 128;
 static long repetitions = 1024;
@@ -69,9 +69,9 @@ static long port = 1982;
 static std::auto_ptr<po6::threads::barrier> barrier;
 static po6::threads::mutex results_lock;
 static int done = 0;
-static std::map<hyperclient_returncode, uint64_t> failed_puts;
-static std::map<hyperclient_returncode, uint64_t> failed_loops;
-static std::map<hyperclient_returncode, uint64_t> ops;
+static std::map<hyperdex_client_returncode, uint64_t> failed_puts;
+static std::map<hyperdex_client_returncode, uint64_t> failed_loops;
+static std::map<hyperdex_client_returncode, uint64_t> ops;
 static uint64_t failed_writes = 0;
 static uint64_t inconsistencies = 0;
 
@@ -210,7 +210,7 @@ main(int argc, const char* argv[])
     }
 
     po6::threads::mutex::hold hold(&results_lock);
-    typedef std::map<hyperclient_returncode, uint64_t>::iterator result_iter_t;
+    typedef std::map<hyperdex_client_returncode, uint64_t>::iterator result_iter_t;
     std::cout << "Failed puts:" << std::endl;
 
     for (result_iter_t o = failed_puts.begin(); o != failed_puts.end(); ++o)
@@ -240,18 +240,18 @@ main(int argc, const char* argv[])
 static void
 writer_thread()
 {
-    std::map<hyperclient_returncode, uint64_t> lfailed_puts;
-    std::map<hyperclient_returncode, uint64_t> lfailed_loops;
-    std::map<hyperclient_returncode, uint64_t> lops;
+    std::map<hyperdex_client_returncode, uint64_t> lfailed_puts;
+    std::map<hyperdex_client_returncode, uint64_t> lfailed_loops;
+    std::map<hyperdex_client_returncode, uint64_t> lops;
     uint64_t lfailed_writes = 0;
-    HyperClient cl(host, port);
+    hyperdex::Client cl(host, port);
     bool fail = false;
 
     for (int64_t i = 0; i < window; ++i)
     {
         int64_t key = i;
         int64_t did;
-        hyperclient_returncode dstatus;
+        hyperdex_client_returncode dstatus;
 
         const char* keystr = reinterpret_cast<const char*>(&key);
         did = cl.del(space, keystr, sizeof(key), &dstatus);
@@ -264,7 +264,7 @@ writer_thread()
         }
 
         int64_t lid;
-        hyperclient_returncode lstatus;
+        hyperdex_client_returncode lstatus;
         lid = cl.loop(-1, &lstatus);
 
         if (lid < 0)
@@ -305,8 +305,8 @@ writer_thread()
                 int64_t key = i;
                 int64_t val = r;
                 int64_t pid;
-                hyperclient_attribute attr;
-                hyperclient_returncode pstatus;
+                hyperdex_client_attribute attr;
+                hyperdex_client_returncode pstatus;
 
                 const char* keystr = reinterpret_cast<const char*>(&key);
                 attr.attr = "repetition";
@@ -322,7 +322,7 @@ writer_thread()
                 }
 
                 int64_t lid;
-                hyperclient_returncode lstatus;
+                hyperdex_client_returncode lstatus;
                 lid = cl.loop(-1, &lstatus);
 
                 if (lid < 0)
@@ -346,7 +346,7 @@ writer_thread()
     }
 
     po6::threads::mutex::hold hold(&results_lock);
-    typedef std::map<hyperclient_returncode, uint64_t>::iterator result_iter_t;
+    typedef std::map<hyperdex_client_returncode, uint64_t>::iterator result_iter_t;
 
     for (result_iter_t o = lfailed_puts.begin(); o != lfailed_puts.end(); ++o)
     {
@@ -369,11 +369,11 @@ writer_thread()
 static void
 reader_thread()
 {
-    std::map<hyperclient_returncode, uint64_t> lfailed_puts;
-    std::map<hyperclient_returncode, uint64_t> lfailed_loops;
-    std::map<hyperclient_returncode, uint64_t> lops;
+    std::map<hyperdex_client_returncode, uint64_t> lfailed_puts;
+    std::map<hyperdex_client_returncode, uint64_t> lfailed_loops;
+    std::map<hyperdex_client_returncode, uint64_t> lops;
     uint64_t linconsistencies = 0;
-    HyperClient cl(host, port);
+    hyperdex::Client cl(host, port);
     barrier->wait();
 
     while (!__sync_bool_compare_and_swap(&done, 1, 1))
@@ -386,9 +386,9 @@ reader_thread()
             {
                 int64_t key = i;
                 int64_t gid;
-                hyperclient_attribute* attrs = NULL;
+                const hyperdex_client_attribute* attrs = NULL;
                 size_t attrs_sz = 0;
-                hyperclient_returncode gstatus;
+                hyperdex_client_returncode gstatus;
 
                 const char* keystr = reinterpret_cast<const char*>(&key);
                 gid = cl.get(space, keystr, sizeof(key), &gstatus, &attrs, &attrs_sz);
@@ -400,7 +400,7 @@ reader_thread()
                 }
 
                 int64_t lid;
-                hyperclient_returncode lstatus;
+                hyperdex_client_returncode lstatus;
                 lid = cl.loop(-1, &lstatus);
 
                 if (lid < 0)
@@ -430,7 +430,7 @@ reader_thread()
 
                 if (attrs)
                 {
-                    hyperclient_destroy_attrs(attrs, attrs_sz);
+                    hyperdex_client_destroy_attrs(attrs, attrs_sz);
                 }
 
                 break;
@@ -439,7 +439,7 @@ reader_thread()
     }
 
     po6::threads::mutex::hold hold(&results_lock);
-    typedef std::map<hyperclient_returncode, uint64_t>::iterator result_iter_t;
+    typedef std::map<hyperdex_client_returncode, uint64_t>::iterator result_iter_t;
 
     for (result_iter_t o = lfailed_puts.begin(); o != lfailed_puts.end(); ++o)
     {
