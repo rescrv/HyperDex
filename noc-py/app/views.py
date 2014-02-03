@@ -28,6 +28,7 @@
 
 from flask import render_template, request, redirect, url_for
 from app import app
+from forms import DesignSpace
 import hyperdex.client
 import hyperdex.admin
 import hyperdexfunc
@@ -99,10 +100,15 @@ def delete_space(space):
 	hyperdexfunc.delspace(space)
 	return redirect(url_for('noc'))
 
-
-@app.route('/spaces/<space>')
-
-def show_space(space):
-	return render_template("space.html",
-		title = '%s' % space, space = space)
-
+@app.route('/spaces/new', methods=['GET', 'POST'])
+def design_space():
+	form = DesignSpace()
+	if request.method == 'POST':
+		print 'ok'	
+		spacename = form.spacename.data.encode('utf-8')
+		keyname = form.keyname.data.encode('utf-8')
+		partitions = form.partitions.data
+		failures = form.failures.data
+		hyperdexfunc.create_space(spacename, keyname, partitions, failures)
+		return redirect(url_for('noc'))
+	return render_template('createspace.html', form=form)

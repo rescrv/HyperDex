@@ -78,7 +78,6 @@ def getconfig():
 		proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
 		(out,err) = proc.communicate()
 
-		print out
 		if out != '':
 			try:
 				configlist = out.split()
@@ -89,7 +88,7 @@ def getconfig():
 					server = configlist[7]
 				except:
 					server = ''
-				print configlist
+
 
 				return cluster, version, flags, server
 
@@ -284,3 +283,12 @@ def waituntilstable():
 def delspace(space):
 
 	a.rm_space(space.encode('utf-8'))
+
+def create_space(spacename, keyname, partitions, failures):
+	a.add_space('''
+		space %s
+		key %s
+		create %d partitions
+		tolerate %d failures
+		''' % (spacename, keyname, partitions, failures))
+	
