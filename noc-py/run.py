@@ -27,5 +27,9 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import hyperdexfunc
+
+hyperdexfunc.stopcoord()
+
 from app import app
 app.run(port=4000, debug = True)

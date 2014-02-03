@@ -26,12 +26,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from flask import render_template, request, redirect, url_for
+from flask import render_template, request, redirect, url_for, session, escape
 from app import app
-from forms import DesignSpace
+from forms import DesignSpace, AddAttribute
 import hyperdex.client
 import hyperdex.admin
 import hyperdexfunc
+
+
 
 @app.route('/', methods=['GET', 'POST'])
 @app.route('/index', methods=['GET', 'POST'])
@@ -98,17 +100,41 @@ def delete_node():
 @app.route('/delete/<space>')
 def delete_space(space):
 	hyperdexfunc.delspace(space)
-	return redirect(url_for('noc'))
+	return redirect(urlf_or('noc'))
 
 @app.route('/spaces/new', methods=['GET', 'POST'])
 def design_space():
 	form = DesignSpace()
 	if request.method == 'POST':
-		print 'ok'	
 		spacename = form.spacename.data.encode('utf-8')
 		keyname = form.keyname.data.encode('utf-8')
 		partitions = form.partitions.data
 		failures = form.failures.data
-		hyperdexfunc.create_space(spacename, keyname, partitions, failures)
-		return redirect(url_for('noc'))
-	return render_template('createspace.html', form=form)
+		session['newspace'] = [spacename, keyname,partitions, failures]
+		session['attrlist'] = []
+		return redirect(url_for('design_attributes'))
+	return render_template('newspace.html', form=form)
+
+@app.route('/spaces/attributes', methods=['GET','POST'])
+def design_attributes():
+	form = AddAttribute()
+	spacename = session['newspace'][0]
+
+	if request.method == 'POST':
+		attributetype = form.attributetype.data.encode('utf-8')
+		attributename = form.attributename.data.encode('utf-8')
+		attributesub = form.attributesub.data
+		session['attrlist'].append([attributetype, attributename, attributesub])
+		return render_template('newchar.html', form=form,
+			attrlist=session['attrlist'],
+			spacename=spacename)
+	return render_template('newchar.html', form=form,
+		spacename=spacename,
+		attrlist=session['attrlist'])
+
+@app.route('/space/create',methods=['POST','GET'])
+def create_space():
+	newspace = session['newspace']
+	attrlist = session['attrlist']
+	hyperdexfunc.create_space(newspace, attrlist)
+	return redirect(url_for('noc'))
