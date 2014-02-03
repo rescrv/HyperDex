@@ -50,7 +50,6 @@ DOTDOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 BUILDDIR = os.getenv('HYPERDEX_BUILDDIR') or DOTDOT
 
 sys.path.append(os.path.join(BUILDDIR, './bindings/python'))
-sys.path.append(os.path.join(BUILDDIR, './bindings/python/.libs'))
 
 
 import hyperdex.admin

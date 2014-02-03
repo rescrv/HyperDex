@@ -629,6 +629,10 @@ pkgpyexec_LTLIBRARIES += bindings/python/hyperdex/admin.la
 endif
 endif
 
+CLEANFILES += bindings/python/hyperdex/admin.so
+CLEANFILES += bindings/python/hyperdex/client.so
+CLEANFILES += bindings/python/hyperdex/*.pyc
+
 EXTRA_DIST += bindings/python/gen_python.py
 EXTRA_DIST += bindings/python/hyperdex/__init__.py
 EXTRA_DIST += bindings/python/hyperdex/client.pyx.in
@@ -650,6 +654,9 @@ bindings_python_hyperdex_client_la_LDFLAGS = -module -avoid-version -export-symb
 bindings/python/hyperdex/client.c: bindings/python/hyperdex/client.pyx
 	$(pyx_verbose)cython bindings/python/hyperdex/client.pyx
 
+bindings/python/hyperdex/client.so: bindings/python/hyperdex/client.la
+	$(LN_S) -f ${abs_top_builddir}/bindings/python/hyperdex/.libs/client.so $@
+
 EXTRA_DIST += bindings/python/hyperdex/admin.pyx
 bindings_python_hyperdex_admin_la_SOURCES = bindings/python/hyperdex/admin.c
 bindings_python_hyperdex_admin_la_CPPFLAGS =
@@ -666,6 +673,9 @@ bindings_python_hyperdex_admin_la_LIBADD += $(PYTHON_LDFLAGS)
 bindings_python_hyperdex_admin_la_LDFLAGS = -module -avoid-version -export-symbols-regex initadmin $(AM_LDFLAGS) $(LDFLAGS)
 bindings/python/hyperdex/admin.c: bindings/python/hyperdex/admin.pyx
 	$(pyx_verbose)cython bindings/python/hyperdex/admin.pyx
+
+bindings/python/hyperdex/admin.so: bindings/python/hyperdex/admin.la
+	$(LN_S) -f ${abs_top_builddir}/bindings/python/hyperdex/.libs/admin.so $@
 
 ##################################### Ruby #####################################
 
@@ -853,6 +863,8 @@ TESTS += $(stress_wrappers)
 endif
 
 TESTS += $(python_wrappers)
+check_PROGRAMS += bindings/python/hyperdex/admin.so
+check_PROGRAMS += bindings/python/hyperdex/client.so
 
 if ENABLE_JAVA_BINDINGS
 TESTS += $(java_wrappers)
