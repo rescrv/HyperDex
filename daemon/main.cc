@@ -1,4 +1,4 @@
-// Copyright (c) 2011, Cornell University
+// Copyright (c) 2011-2014, Cornell University
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,9 +25,6 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// Popt
-#include <popt.h>
-
 // Google Log
 #include <glog/logging.h>
 
@@ -36,7 +33,7 @@
 #include <po6/net/hostname.h>
 
 // e
-#include <e/guard.h>
+#include <e/popt.h>
 
 // BusyBee
 #include <busybee_utils.h>
@@ -44,191 +41,164 @@
 // HyperDex
 #include "daemon/daemon.h"
 
-static bool _daemonize = true;
-static const char* _data = ".";
-static const char* _log = NULL;
-static const char* _listen_host = "auto";
-static unsigned long _listen_port = 2012;
-static po6::net::ipaddr _listen_ip;
-static bool _listen = false;
-static const char* _coordinator_host = "127.0.0.1";
-static unsigned long _coordinator_port = 1982;
-static bool _coordinator = false;
-static long _threads = 0;
-
-extern "C"
-{
-
-static struct poptOption popts[] = {
-    POPT_AUTOHELP
-    {"daemon", 'd', POPT_ARG_NONE, NULL, 'd',
-     "run HyperDex in the background", 0},
-    {"foreground", 'f', POPT_ARG_NONE, NULL, 'f',
-     "run replicant in the foreground", 0},
-    {"data", 'D', POPT_ARG_STRING, &_data, 'D',
-     "store persistent state in this directory (default: .)",
-     "dir"},
-    {"log", 'L', POPT_ARG_STRING, &_log, 'O',
-     "store persistent state in this directory (default: --data)",
-     "dir"},
-    {"listen", 'l', POPT_ARG_STRING, &_listen_host, 'l',
-     "listen on a specific IP address (default: auto)",
-     "IP"},
-    {"listen-port", 'p', POPT_ARG_LONG, &_listen_port, 'L',
-     "listen on an alternative port (default: 2012)",
-     "port"},
-    {"coordinator", 'c', POPT_ARG_STRING, &_coordinator_host, 'c',
-     "join an existing HyperDex cluster through IP address or hostname",
-     "addr"},
-    {"coordinator-port", 'P', POPT_ARG_LONG, &_coordinator_port, 'C',
-     "connect to an alternative port on the coordinator (default: 2013)",
-     "port"},
-    {"threads", 't', POPT_ARG_LONG, &_threads, 't',
-     "the number of threads which will handle network traffic",
-     "N"},
-    POPT_TABLEEND
-};
-
-} // extern "C"
-
 int
 main(int argc, const char* argv[])
 {
-    poptContext poptcon;
-    poptcon = poptGetContext(NULL, argc, argv, popts, POPT_CONTEXT_POSIXMEHARDER);
-    e::guard g = e::makeguard(poptFreeContext, poptcon); g.use_variable();
-    int rc;
-    po6::net::location listen;
+    bool daemonize = true;
+    const char* data = ".";
+    const char* log = NULL;
+    bool listen = false;
+    const char* listen_host = "auto";
+    long listen_port = 2012;
+    bool coordinator = false;
+    const char* coordinator_host = "127.0.0.1";
+    long coordinator_port = 1982;
+    long threads = 0;
+    bool log_immediate = false;
 
-    while ((rc = poptGetNextOpt(poptcon)) != -1)
+    e::argparser ap;
+    ap.autohelp();
+    ap.arg().name('d', "daemon")
+            .description("run in the background")
+            .set_true(&daemonize);
+    ap.arg().name('f', "foreground")
+            .description("run in the foreground")
+            .set_false(&daemonize);
+    ap.arg().name('D', "data")
+            .description("store persistent state in this directory (default: .)")
+            .metavar("dir").as_string(&data);
+    ap.arg().name('L', "log")
+            .description("store logs in this directory (default: --data)")
+            .metavar("dir").as_string(&log);
+    ap.arg().name('l', "listen")
+            .description("listen on a specific IP address (default: auto)")
+            .metavar("IP").as_string(&listen_host).set_true(&listen);
+    ap.arg().name('p', "listen-port")
+            .description("listen on an alternative port (default: 1982)")
+            .metavar("port").as_long(&listen_port).set_true(&listen);
+    ap.arg().name('c', "coordinator")
+            .description("join an existing HyperDex cluster through IP address or hostname")
+            .metavar("addr").as_string(&coordinator_host).set_true(&coordinator);
+    ap.arg().name('P', "coordinator-port")
+            .description("connect to an alternative port on the coordinator (default: 1982)")
+            .metavar("port").as_long(&coordinator_port).set_true(&coordinator);
+    ap.arg().name('t', "threads")
+            .description("the number of threads which will handle network traffic")
+            .metavar("N").as_long(&threads);
+    ap.arg().long_name("log-immediate")
+            .description("immediately flush all log output")
+            .set_true(&log_immediate).hidden();
+
+    if (!ap.parse(argc, argv))
     {
-        switch (rc)
+        return EXIT_FAILURE;
+    }
+
+    if (ap.args_sz() != 0)
+    {
+        std::cerr << "command takes no positional arguments\n" << std::endl;
+        ap.usage();
+        return EXIT_FAILURE;
+    }
+
+    if (listen_port >= (1 << 16))
+    {
+        std::cerr << "listen-port is out of range" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    if (coordinator_port >= (1 << 16))
+    {
+        std::cerr << "coordinator-port is out of range" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    po6::net::ipaddr listen_ip;
+    po6::net::location bind_to;
+
+    if (strcmp(listen_host, "auto") == 0)
+    {
+        if (!busybee_discover(&listen_ip))
         {
-            case 'd':
-                _daemonize = true;
-                break;
-            case 'f':
-                _daemonize = false;
-                break;
-            case 'D':
-            case 'O':
-                break;
-            case 'l':
-                try
-                {
-                    _listen = true;
-
-                    if (strcmp(_listen_host, "auto") == 0)
-                    {
-                        break;
-                    }
-
-                    _listen_ip = po6::net::ipaddr(_listen_host);
-                    break;
-                }
-                catch (po6::error& e)
-                {
-                }
-                catch (std::invalid_argument& e)
-                {
-                }
-
-                listen = po6::net::hostname(_listen_host, 0).lookup(AF_UNSPEC, IPPROTO_TCP);
-
-                if (listen == po6::net::location())
-                {
-                    std::cerr << "cannot interpret listen address as hostname or IP address" << std::endl;
-                    return EXIT_FAILURE;
-                }
-
-                _listen_ip = listen.address;
-                break;
-            case 'L':
-                if (_listen_port >= (1 << 16))
-                {
-                    std::cerr << "port number to listen on is out of range" << std::endl;
-                    return EXIT_FAILURE;
-                }
-
-                _listen = true;
-                break;
-            case 'c':
-                _coordinator = true;
-                break;
-            case 'C':
-                if (_coordinator_port >= (1 << 16))
-                {
-                    std::cerr << "port number to coordinator to is out of range" << std::endl;
-                    return EXIT_FAILURE;
-                }
-
-                _coordinator = true;
-                break;
-            case 't':
-                break;
-            case POPT_ERROR_NOARG:
-            case POPT_ERROR_BADOPT:
-            case POPT_ERROR_BADNUMBER:
-            case POPT_ERROR_OVERFLOW:
-                std::cerr << poptStrerror(rc) << " " << poptBadOption(poptcon, 0) << std::endl;
-                return EXIT_FAILURE;
-            case POPT_ERROR_OPTSTOODEEP:
-            case POPT_ERROR_BADQUOTE:
-            case POPT_ERROR_ERRNO:
-            default:
-                std::cerr << "logic error in argument parsing" << std::endl;
-                return EXIT_FAILURE;
+            std::cerr << "cannot automatically discover local address; specify one manually" << std::endl;
+            return EXIT_FAILURE;
         }
+
+        bind_to = po6::net::location(listen_ip, listen_port);
+    }
+    else
+    {
+        try
+        {
+            listen_ip = po6::net::ipaddr(listen_host);
+            bind_to = po6::net::location(listen_ip, listen_port);
+        }
+        catch (po6::error& e)
+        {
+            // fallthrough
+        }
+        catch (std::invalid_argument& e)
+        {
+            // fallthrough
+        }
+
+        if (bind_to == po6::net::location())
+        {
+            bind_to = po6::net::hostname(listen_host, 0).lookup(AF_UNSPEC, IPPROTO_TCP);
+            bind_to.port = listen_port;
+        }
+    }
+
+    if (bind_to == po6::net::location())
+    {
+        std::cerr << "cannot interpret listen address as hostname or IP address" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    if (bind_to.address == po6::net::ipaddr("0.0.0.0"))
+    {
+        std::cerr << "cannot bind to " << bind_to << " because it is not routable" << std::endl;
+        return EXIT_FAILURE;
     }
 
     google::InitGoogleLogging(argv[0]);
     google::InstallFailureSignalHandler();
 
+    if (log_immediate)
+    {
+        FLAGS_logbufsecs = 0;
+    }
+
     try
     {
         hyperdex::daemon d;
 
-        if (strcmp(_listen_host, "auto") == 0)
+        if (threads <= 0)
         {
-            if (!busybee_discover(&_listen_ip))
-            {
-                std::cerr << "cannot automatically discover local address; specify one manually" << std::endl;
-                return EXIT_FAILURE;
-            }
-        }
+            threads += sysconf(_SC_NPROCESSORS_ONLN);
 
-        po6::pathname data(_data);
-        po6::pathname log(_log ? _log : _data);
-        po6::net::location bind_to(_listen_ip, _listen_port);
-        po6::net::hostname coord(_coordinator_host, _coordinator_port);
-
-        if (bind_to.address == po6::net::ipaddr("0.0.0.0"))
-        {
-            std::cerr << "cannot bind to " << bind_to << " because it is not routable" << std::endl;
-            return EXIT_FAILURE;
-        }
-
-        if (_threads <= 0)
-        {
-            _threads += sysconf(_SC_NPROCESSORS_ONLN);
-
-            if (_threads <= 0)
+            if (threads <= 0)
             {
                 std::cerr << "cannot create a non-positive number of threads" << std::endl;
                 return EXIT_FAILURE;
             }
         }
-        else if (_threads > 512)
+        else if (threads > 512)
         {
             std::cerr << "refusing to create more than 512 threads" << std::endl;
             return EXIT_FAILURE;
         }
 
-        return d.run(_daemonize, data, log, _listen, bind_to, _coordinator, coord, _threads);
+        return d.run(daemonize,
+                     po6::pathname(data),
+                     po6::pathname(log ? log : data),
+                     listen, bind_to,
+                     coordinator, po6::net::hostname(coordinator_host, coordinator_port),
+                     threads);
     }
-    catch (po6::error& e)
+    catch (std::exception& e)
     {
-        std::cerr << "system error:  " << e.what() << std::endl;
+        std::cerr << "error:  " << e.what() << std::endl;
         return EXIT_FAILURE;
     }
 }
