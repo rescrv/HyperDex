@@ -33,8 +33,8 @@
 #include <ruby.h>
 
 /* HyperDex */
-#include <hyperdex/client.h>
-#include <hyperdex/datastructures.h>
+#include "hyperdex/client.h"
+#include "hyperdex/datastructures.h"
 
 extern VALUE mod_hyperdex;
 static VALUE mod_hyperdex_client;
