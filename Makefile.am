@@ -612,7 +612,7 @@ $(hyperdex_client_jarfile): $(wildcard ${JAVA_SRC_PKG}/client/*.java)
 	cd ${JAVA_BUILD_BASE} && $(JAR) cvf $(JARFLAGS) ${abs_top_builddir}/${hyperdex_client_jarfile} org/hyperdex/client/*.class
 
 # YCSB
-$(hyperdex_ycsb_jarfile): ${JAVA_SRC_PKG}/ycsb/HyperDex.java
+$(hyperdex_ycsb_jarfile): ${JAVA_SRC_PKG}/ycsb/HyperDex.java $(hyperdex_client_jarfile)
 	javac -d ${JAVA_BUILD_BASE} ${JAVA_SRC_PKG}/client/*.java
 	javac -cp $(abs_top_builddir)/$(hyperdex_client_jarfile):$(CLASSPATH) -d ${JAVA_BUILD_BASE} ${JAVA_SRC_PKG}/ycsb/*.java
 	cd ${JAVA_BUILD_BASE} && $(JAR) cvf $(JARFLAGS) ${abs_top_builddir}/${hyperdex_ycsb_jarfile} org/hyperdex/ycsb/*.class
