@@ -28,6 +28,9 @@
 // POSIX
 #include <dirent.h>
 #include <signal.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 // STL
 #include <sstream>
@@ -232,6 +235,15 @@ daemon :: run(bool daemonize,
 
     if (daemonize)
     {
+        struct stat x;
+
+        if (lstat(log.get(), &x) < 0 || !S_ISDIR(x.st_mode))
+        {
+            LOG(ERROR) << "cannot fork off to the background because the "
+                       << log.get() << " does not exist or is not writable";
+            return EXIT_FAILURE;
+        }
+
         LOG(INFO) << "forking off to the background";
         LOG(INFO) << "you can find the log at " << log.get() << "/hyperdex-daemon-YYYYMMDD-HHMMSS.sssss";
         LOG(INFO) << "provide \"--foreground\" on the command-line if you want to run in the foreground";
