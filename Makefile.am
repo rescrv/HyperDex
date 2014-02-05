@@ -967,13 +967,13 @@ EXTRA_DIST += test/ruby/RangeSearchString.rb
 EXTRA_DIST += test/ruby/RegexSearch.rb
 
 test_replication_stress_test_SOURCES = test/replication-stress-test.cc
-test_replication_stress_test_LDADD = libhyperdex-client.la -le -lpopt
+test_replication_stress_test_LDADD = libhyperdex-client.la $(E_LIBS) -lpopt
 
 test_search_stress_test_SOURCES = test/search-stress-test.cc
-test_search_stress_test_LDADD = libhyperdex-client.la -le -lpopt
+test_search_stress_test_LDADD = libhyperdex-client.la $(E_LIBS) -lpopt
 
 test_simple_consistency_stress_test_SOURCES = test/simple-consistency-stress-test.cc
-test_simple_consistency_stress_test_LDADD = libhyperdex-client.la -le -lpopt
+test_simple_consistency_stress_test_LDADD = libhyperdex-client.la $(E_LIBS) -lpopt
 
 ################################################################################
 ##################################### Tools ####################################
