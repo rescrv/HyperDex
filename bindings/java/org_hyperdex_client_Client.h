@@ -25,18 +25,18 @@ JNIEXPORT HYPERDEX_API void JNICALL Java_org_hyperdex_client_Client_terminate
 
 /*
  * Class:     org_hyperdex_client_Client
- * Method:    create
+ * Method:    _create
  * Signature: (Ljava/lang/String;I)V
  */
-JNIEXPORT HYPERDEX_API void JNICALL Java_org_hyperdex_client_Client_create
+JNIEXPORT HYPERDEX_API void JNICALL Java_org_hyperdex_client_Client__1create
   (JNIEnv *, jobject, jstring, jint);
 
 /*
  * Class:     org_hyperdex_client_Client
- * Method:    destroy
+ * Method:    _destroy
  * Signature: ()V
  */
-JNIEXPORT HYPERDEX_API void JNICALL Java_org_hyperdex_client_Client_destroy
+JNIEXPORT HYPERDEX_API void JNICALL Java_org_hyperdex_client_Client__1destroy
   (JNIEnv *, jobject);
 
 /*

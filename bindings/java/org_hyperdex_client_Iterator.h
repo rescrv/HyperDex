@@ -9,18 +9,18 @@ extern "C" {
 #endif
 /*
  * Class:     org_hyperdex_client_Iterator
- * Method:    create
+ * Method:    _create
  * Signature: ()V
  */
-JNIEXPORT HYPERDEX_API void JNICALL Java_org_hyperdex_client_Iterator_create
+JNIEXPORT HYPERDEX_API void JNICALL Java_org_hyperdex_client_Iterator__1create
   (JNIEnv *, jobject);
 
 /*
  * Class:     org_hyperdex_client_Iterator
- * Method:    destroy
+ * Method:    _destroy
  * Signature: ()V
  */
-JNIEXPORT HYPERDEX_API void JNICALL Java_org_hyperdex_client_Iterator_destroy
+JNIEXPORT HYPERDEX_API void JNICALL Java_org_hyperdex_client_Iterator__1destroy
   (JNIEnv *, jobject);
 
 /*

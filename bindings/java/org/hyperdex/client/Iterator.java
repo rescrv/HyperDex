@@ -41,17 +41,14 @@ public class Iterator implements Operation
     {
         this.c = c;
         this.backlogged = new LinkedList<Object>();
-        create();
+        _create();
     }
 
     protected void finalize() throws Throwable
     {
         try
         {
-            if (ptr != 0)
-            {
-                destroy();
-            }
+            destroy();
         }
         finally
         {
@@ -59,9 +56,18 @@ public class Iterator implements Operation
         }
     }
 
+    public synchronized void destroy()
+    {
+        if (ptr != 0)
+        {
+            _destroy();
+            ptr = 0;
+        }
+    }
+
     /* ctor/dtor */
-    private native void create();
-    private native void destroy();
+    private native void _create();
+    private native void _destroy();
 
     /* Other calls */
     public Boolean hasNext()
