@@ -30,7 +30,9 @@
 
 // STL
 #include <tr1/functional>
-#include <tr1/memory>
+
+// e
+#include <e/compat.h>
 
 // LevelDB
 #include <hyperleveldb/db.h>
@@ -52,7 +54,7 @@ BEGIN_HYPERDEX_NAMESPACE
 
 using std::tr1::placeholders::_1;
 
-typedef std::tr1::shared_ptr<leveldb::DB> leveldb_db_ptr;
+typedef e::compat::shared_ptr<leveldb::DB> leveldb_db_ptr;
 
 class leveldb_snapshot_ptr
 {
@@ -84,7 +86,7 @@ class leveldb_snapshot_ptr
 
     private:
         leveldb_db_ptr m_db;
-        std::tr1::shared_ptr<const leveldb::Snapshot> m_snap;
+        e::compat::shared_ptr<const leveldb::Snapshot> m_snap;
 };
 
 inline void
@@ -95,7 +97,7 @@ leveldb_snapshot_ptr :: reset(leveldb_db_ptr d, const leveldb::Snapshot* snap)
     // keep m_db init above and m_snap init below
     std::tr1::function<void (const leveldb::Snapshot*)> dtor;
     dtor = std::tr1::bind(&leveldb::DB::ReleaseSnapshot, m_db.get(), _1);
-    std::tr1::shared_ptr<const leveldb::Snapshot> s(snap, dtor);
+    e::compat::shared_ptr<const leveldb::Snapshot> s(snap, dtor);
     m_snap = s;
 }
 
@@ -116,7 +118,7 @@ class leveldb_iterator_ptr
 
     private:
         leveldb_snapshot_ptr m_snap;
-        std::tr1::shared_ptr<leveldb::Iterator> m_iter;
+        e::compat::shared_ptr<leveldb::Iterator> m_iter;
 };
 
 class leveldb_replay_iterator_ptr
@@ -149,7 +151,7 @@ class leveldb_replay_iterator_ptr
 
     private:
         leveldb_db_ptr m_db;
-        std::tr1::shared_ptr<leveldb::ReplayIterator> m_snap;
+        e::compat::shared_ptr<leveldb::ReplayIterator> m_snap;
 };
 
 inline void
@@ -160,7 +162,7 @@ leveldb_replay_iterator_ptr :: reset(leveldb_db_ptr d, leveldb::ReplayIterator* 
     // keep m_db init above and m_snap init below
     std::tr1::function<void (leveldb::ReplayIterator*)> dtor;
     dtor = std::tr1::bind(&leveldb::DB::ReleaseReplayIterator, m_db.get(), _1);
-    std::tr1::shared_ptr<leveldb::ReplayIterator> s(snap, dtor);
+    e::compat::shared_ptr<leveldb::ReplayIterator> s(snap, dtor);
     m_snap = s;
 }
 

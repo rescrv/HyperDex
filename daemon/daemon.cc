@@ -340,7 +340,7 @@ daemon :: run(bool daemonize,
 
     for (size_t i = 0; i < threads; ++i)
     {
-        std::tr1::shared_ptr<po6::threads::thread> t(new po6::threads::thread(std::tr1::bind(&daemon::loop, this, i)));
+        e::compat::shared_ptr<po6::threads::thread> t(new po6::threads::thread(std::tr1::bind(&daemon::loop, this, i)));
         m_threads.push_back(t);
         t->start();
     }

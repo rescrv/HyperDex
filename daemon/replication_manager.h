@@ -30,7 +30,6 @@
 
 // STL
 #include <list>
-#include <tr1/memory>
 #include <tr1/unordered_map>
 
 // po6

@@ -32,7 +32,7 @@
 #include <stdint.h>
 
 // STL
-#include <tr1/memory>
+#include <memory>
 
 // e
 #include <e/buffer.h>

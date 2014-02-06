@@ -28,9 +28,6 @@
 #ifndef hyperdex_daemon_state_transfer_manager_transfer_in_state_h_
 #define hyperdex_daemon_state_transfer_manager_transfer_in_state_h_
 
-// STL
-#include <tr1/memory>
-
 // e
 #include <e/intrusive_ptr.h>
 

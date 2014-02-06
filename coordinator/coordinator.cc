@@ -591,7 +591,7 @@ coordinator :: space_add(replicant_state_machine_context* ctx, const space& _s)
     }
 
     // Assign unique ids throughout the space
-    std::tr1::shared_ptr<space> s(new space(_s));
+    e::compat::shared_ptr<space> s(new space(_s));
     s->id = space_id(m_counter);
     ++m_counter;
 
@@ -1091,8 +1091,8 @@ namespace
 {
 
 bool
-compare_space_ptr_by_r_p(const std::tr1::shared_ptr<hyperdex::space>& lhs,
-                         const std::tr1::shared_ptr<hyperdex::space>& rhs)
+compare_space_ptr_by_r_p(const e::compat::shared_ptr<hyperdex::space>& lhs,
+                         const e::compat::shared_ptr<hyperdex::space>& rhs)
 {
     if (lhs->fault_tolerance < rhs->fault_tolerance)
     {
@@ -1701,7 +1701,7 @@ coordinator :: generate_cached_configuration(replicant_state_machine_context*)
         sz += pack_size(m_servers[i]);
     }
 
-    for (std::map<std::string, std::tr1::shared_ptr<space> >::iterator it = m_spaces.begin();
+    for (std::map<std::string, e::compat::shared_ptr<space> >::iterator it = m_spaces.begin();
             it != m_spaces.end(); ++it)
     {
         sz += pack_size(*it->second);
@@ -1724,7 +1724,7 @@ coordinator :: generate_cached_configuration(replicant_state_machine_context*)
         pa = pa << m_servers[i];
     }
 
-    for (std::map<std::string, std::tr1::shared_ptr<space> >::iterator it = m_spaces.begin();
+    for (std::map<std::string, e::compat::shared_ptr<space> >::iterator it = m_spaces.begin();
             it != m_spaces.end(); ++it)
     {
         pa = pa << *it->second;
@@ -1741,7 +1741,7 @@ coordinator :: generate_cached_configuration(replicant_state_machine_context*)
 void
 coordinator :: servers_in_configuration(std::vector<server_id>* sids)
 {
-    for (std::map<std::string, std::tr1::shared_ptr<space> >::iterator it = m_spaces.begin();
+    for (std::map<std::string, e::compat::shared_ptr<space> >::iterator it = m_spaces.begin();
             it != m_spaces.end(); ++it)
     {
         space& s(*it->second);
