@@ -52,13 +52,13 @@ def checknodestatus():
 		nodestatus = False
 	return nodestatus
 
-def stopall():
-	setreadonly()
-	waituntilstable()
-	while checkcoordstatus():
-		stopcoord()
-	while checknodestatus():
-		stopnodes()
+def setreadonly():
+	setreadonly = 'hyperdex set-read-only --host=%s  --port=%s' % (coorip, coorport)
+	os.system(setreadonly)
+
+def waituntilstable():
+	waituntilstable = 'hyperdex wait-until-stable --host=%s  --port=%s' % (coorip, coorport)
+	os.system(waituntilstable)
 
 def stopnodes():
 	stopnodes = 'killall hyperdex-daemon'
@@ -68,10 +68,12 @@ def stopcoord():
 	stopcoord = 'killall replicant-daemon'
 	os.system(stopcoord)
 
-def setreadonly():
-	setreadonly = 'hyperdex set-read-only --host=%s  --port=%s' % (coorip, coorport)
-	os.system(setreadonly)
+def stopall():
+	setreadonly()
+	waituntilstable()
+	while checkcoordstatus():
+		stopcoord()
+	while checknodestatus():
+		stopnodes()
 
-def waituntilstable():
-	waituntilstable = 'hyperdex wait-until-stable --host=%s  --port=%s' % (coorip, coorport)
-	os.system(waituntilstable)
+
