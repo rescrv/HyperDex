@@ -26,12 +26,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-
 import os
+import subprocess
 import hyperdex.admin
 import hyperdex.client
-import subprocess
-
 
 a = hyperdex.admin.Admin('127.0.0.1', 1982)
 c = hyperdex.client.Client('127.0.0.1',1982)
@@ -44,240 +42,100 @@ nodedata = os.path.join(approot, 'data/nodedata/')
 
 nodelog = os.path.join(approot, 'data/nodelog/')
 
-
 coordata = os.path.join(approot, 'data/coordata/')
 
-
 coorlog = os.path.join(approot, 'data/coorlog/')
-
 
 coorip = '127.0.0.1'
 
 coorport = '1982'
 
-
 def checkcoordstatus():
-	try:
-		results = os.system('ps -C "replicant-daemon"')
-		if results == 256:
-			coordstatus = 'Offline'
-		elif results == 0:
-			coordstatus = 'Online'
-		else:
-				coordstatus = '%s' % results
-
-	except:
-		pass
-
+	cmd = 'ps -C "replicant-daemon"'
+	status = os.system(cmd)
+	if status == 256:
+		coordstatus = 'Offline'
+	elif results == 0:
+		coordstatus = 'Online'
+	else:
+		coordstatus = '%s' % results
 	return coordstatus
-
-
+	
 def getconfig():
-
-	try: 
-		cmd = 'hyperdex show-config'
-		proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-		(out,err) = proc.communicate()
-
-		if out != '':
-			try:
-				configlist = out.split()
-				cluster = configlist[1]
-				version = configlist[3]
-				flags = configlist[5]
-				try:
-					server = configlist[7]
-				except:
-					server = ''
-
-
-				return cluster, version, flags, server
-
-			except: pass
-		else:
-			pass
-
-	except:
-		pass
-
-
-
-
-def checknodestatus():
-
+	cmd = 'hyperdex show-config'
+	proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+	(out,err) = proc.communicate()
+	configlist = out.split()
+	cluster = configlist[1]
+	version = configlist[3]
+	flags = configlist[5]
 	try:
-		results = os.system('ps -C "hyperdex-daemon"')
-		if results == 256:
-			nodestatus = 'Offline'
-		elif results == 0:
-			nodestatus = 'Online'
-		else:
-			nodestatus = '%s' % results
-
+		server = configlist[7]
 	except:
-		pass
+		server = ''
+	return cluster, version, flags, server
+	
+def checknodestatus():
+	results = os.system('ps -C "hyperdex-daemon"')
+	if results == 256:
+		nodestatus = 'Offline'
+	elif results == 0:
+		nodestatus = 'Online'
+	else:
+		nodestatus = '%s' % results
 	return nodestatus
 
-
 def startnode():
-
-	try:
-
-		startnode = 'hyperdex daemon --daemon --data=%s --log=%s --listen=%s --coordinator-port=%s' % (nodedata, nodelog, coorip, coorport)
-		os.system(startnode)
-
-		return 1
-
-	except:
-
-		return 0
+	startnode = 'hyperdex daemon --daemon --data=%s --log=%s --listen=%s --coordinator-port=%s' % 
+		(nodedata, nodelog, coorip, coorport)
+	os.system(startnode)
 
 def stopnodes():
-	try:
-		while checknodestatus() == 'Online':
-			stopnodes = 'killall hyperdex-daemon'
-
-			os.system(stopnodes)
-		return 1
-
-	except:
-		return 0
-
-
-
-
+	while checknodestatus() == 'Online':
+		stopnodes = 'killall hyperdex-daemon'
+		os.system(stopnodes)
+		
 def startcoord():
-
-	try:
-
-		startcoord = 'hyperdex coordinator --daemon --data=%s --log=%s --listen=%s  --listen-port=%s' % (coordata, coorlog, coorip, coorport)
-
-		os.system(startcoord)
-
-		return 1
-
-
-
-	except:
-
-		return 0
+	startcoord = 'hyperdex coordinator --daemon --data=%s --log=%s --listen=%s  --listen-port=%s' %
+		(coordata, coorlog, coorip, coorport)
+	os.system(startcoord)
 
 def stopcoord():
-	try:
-
-
-		while checkcoordstatus() == 'Online':
-
-			setreadonly()
-
-			waituntilstable()
-
-			stopcoord = 'killall replicant-daemon'
-
-			os.system(stopcoord)
-
-			stopnodes()
-
-
-		return 1
-
-	except:
-		return 0
-
+	while checkcoordstatus() == 'Online':
+		setreadonly()
+		waituntilstable()
+		stopcoord = 'killall replicant-daemon'
+		os.system(stopcoord)
+		stopnodes()
 
 def listspaces():
-	try:
-		cmd = 'hyperdex list-spaces'
-		proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-		(out,err) = proc.communicate()
-		spacelist = out.split('\n')
-		spacelist = spacelist[:-1]
-
-		return spacelist
-
-	except:
-		pass
-
-
+	cmd = 'hyperdex list-spaces'
+	proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+	(out,err) = proc.communicate()
+	spacelist = out.split('\n')
+	spacelist = spacelist[:-1]
+	return spacelist
+	
 def deletenodedata():
-
-	try:
-
-		delnodedata = 'rm -r %s*' % nodedata
-		delnodelog = 'rm -r %s*' % nodelog
-
-		os.system(delnodedata)
-
-		os.system(delnodelog)
-
-		return 1
-
-	except:
-
-		return 0
-
-
+	delnodedata = 'rm -r %s*' % nodedata
+	delnodelog = 'rm -r %s*' % nodelog
+	os.system(delnodedata)
+	os.system(delnodelog)
 
 def deletecoordata():
-
-	try:
-
-		delcoordata = 'rm -r %s*' % coordata
-		delcoorlog = 'rm -r %s*' % coorlog
-
-		os.system(delcoordata)
-
-		os.system(delcoorlog)
-
-		return 1
-
-	except:
-
-		return 0
-
+	delcoordata = 'rm -r %s*' % coordata
+	delcoorlog = 'rm -r %s*' % coorlog
+	os.system(delcoordata)
+	os.system(delcoorlog)
 
 def setreadonly():
-
-	try:
-
-		setreadonly = 'hyperdex set-read-only --host=%s  --port=%s' % (coorip, coorport)
-
-		os.system(setreadonly)
-
-		return 1
-
-	except:
-
-		return 0
-
+	setreadonly = 'hyperdex set-read-only --host=%s  --port=%s' % (coorip, coorport)
+	os.system(setreadonly)
 
 def setreadwrite():
-
-	try:
-
-		setreadonly = 'hyperdex set-read-write --host=%s  --port=%s' % (coorip, coorport)
-
-		os.system(setreadwrite)
-
-		return 1
-
-	except:
-
-		return 0
-
-
+	setreadonly = 'hyperdex set-read-write --host=%s  --port=%s' % (coorip, coorport)
+	os.system(setreadwrite)
 
 def waituntilstable():
-
-	try:
-
-		waituntilstable = 'hyperdex wait-until-stable --host=%s  --port=%s' % (coorip, coorport)
-
-		os.system(waituntilstable)
-
-		return 1
-
-	except:
-
-		return 0
-
+	waituntilstable = 'hyperdex wait-until-stable --host=%s  --port=%s' % (coorip, coorport)
+	os.system(waituntilstable)
