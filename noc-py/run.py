@@ -29,7 +29,7 @@
 
 import hyperdexfunc
 
-hyperdexfunc.stopcoord()
+hyperutil.stopall()
 
 from app import app
 app.run(port=4000, debug = True)
