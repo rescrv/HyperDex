@@ -84,7 +84,7 @@ def startnode():
 	os.system(startnode)
 
 def stopnodes():
-	while checknodestatus() == 'Online':
+	while checknodestatus():
 		stopnodes = 'killall hyperdex-daemon'
 		os.system(stopnodes)
 		
@@ -93,10 +93,22 @@ def startcoord():
 	(coordata, coorlog, coorip, coorport)
 	os.system(startcoord)
 
+def setreadonly():
+	setreadonly = 'hyperdex set-read-only --host=%s  --port=%s' % (coorip, coorport)
+	os.system(setreadonly)
+
+def setreadwrite():
+	setreadonly = 'hyperdex set-read-write --host=%s  --port=%s' % (coorip, coorport)
+	os.system(setreadwrite)
+
+def waituntilstable():
+	waituntilstable = 'hyperdex wait-until-stable --host=%s  --port=%s' % (coorip, coorport)
+	os.system(waituntilstable)
+
 def stopcoord():
-	while checkcoordstatus() == 'Online':
-		setreadonly()
-		waituntilstable()
+	setreadonly()
+	waituntilstable()
+	while checkcoordstatus():
 		stopcoord = 'killall replicant-daemon'
 		os.system(stopcoord)
 		stopnodes()
@@ -120,18 +132,6 @@ def deletecoordata():
 	delcoorlog = 'rm -r %s*' % coorlog
 	os.system(delcoordata)
 	os.system(delcoorlog)
-	
-def setreadonly():
-	setreadonly = 'hyperdex set-read-only --host=%s  --port=%s' % (coorip, coorport)
-	os.system(setreadonly)
-
-def setreadwrite():
-	setreadonly = 'hyperdex set-read-write --host=%s  --port=%s' % (coorip, coorport)
-	os.system(setreadwrite)
-
-def waituntilstable():
-	waituntilstable = 'hyperdex wait-until-stable --host=%s  --port=%s' % (coorip, coorport)
-	os.system(waituntilstable)
 
 def delspace(space):
 	a.rm_space(space.encode('utf-8'))
@@ -143,28 +143,19 @@ def create_space(newspace, attrlist):
 	failures = newspace[3]
 
 	attributes = ''
-
 	for attribute in attrlist[:-1]:
 		attributes = attributes + attribute[0] + ' ' + attribute[1] + ', '
-
 	lastattr = attrlist[-1]
-
 	attributes = attributes + lastattr[0] + ' ' + lastattr[1]
-
 	subslist = []
-
 	for attribute in attrlist:
 		if attribute[2] is True:
 			subslist.append(attribute)
 	subspaces = ''
-
 	for attribute in subslist[:-1]:
 		subspaces = subspaces + subslist[1] + ', '
-
 	lastsub = subslist[-1]
-
 	subspaces = subspaces + lastsub[1]
-
 
 	a.add_space('''
 		space %s
