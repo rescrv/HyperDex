@@ -26,9 +26,10 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 #define __STDC_LIMIT_MACROS
+#include <ciso646>
 
 // C
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(_LIBCPP_VERSION)
 #include <cmath>
 #else
 #include <tr1/cmath>
