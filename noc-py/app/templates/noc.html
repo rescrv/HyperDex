@@ -50,11 +50,11 @@ POSSIBILITY OF SUCH DAMAGE. -->
               </center>
               <br>
 
-              {% if coordstatus == 'Offline' %}
+              {% if not coordstatus %}
 
               <p>
                 <center>
-                  <button type="button" disabled="disabled" class="btn btn-lg btn-warning">{{coordstatus}}</button>
+                  <button type="button" disabled="disabled" class="btn btn-lg btn-warning">Offline</button>
                 </center>
               </p>
               <br>
@@ -67,11 +67,11 @@ POSSIBILITY OF SUCH DAMAGE. -->
                 </center>
               </p>
 
-              {% elif coordstatus == 'Online' %}
+              {% elif coordstatus %}
 
               <p>
                 <center>
-                  <button type="button"  disabled="disabled" class="btn btn-lg btn-success">{{coordstatus}}</button>
+                  <button type="button"  disabled="disabled" class="btn btn-lg btn-success">Online</button>
                 </center>
               </p>
               <br>
@@ -102,10 +102,10 @@ POSSIBILITY OF SUCH DAMAGE. -->
                 <h2>Nodes</h2>
               </center>
               <br>
-              {% if nodestatus == 'Offline' %}
+              {% if not nodestatus %}
               <p>
                 <center>
-                  <button type="button" disabled="disabled" class="btn btn-lg btn-warning">{{nodestatus}}</button>
+                  <button type="button" disabled="disabled" class="btn btn-lg btn-warning">Offline</button>
                 </center>
               </p>
               <br>
@@ -118,11 +118,11 @@ POSSIBILITY OF SUCH DAMAGE. -->
                 </center>
               </p>
 
-              {% elif nodestatus == 'Online' %}
+              {% elif nodestatus %}
 
               <p>
                 <center>
-                  <button type="button"  disabled="disabled" class="btn btn-lg btn-success">{{nodestatus}}</button>
+                  <button type="button"  disabled="disabled" class="btn btn-lg btn-success">Online</button>
                 </center>
               </p>
               <br>

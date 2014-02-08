@@ -79,7 +79,7 @@ def checknodestatus():
 	return nodestatus
 
 def startnode():
-	startnode = 'hyperdex daemon --daemon --data=%s --log=%s --listen=%s --coordinator-port=%s' % 
+	startnode = 'hyperdex daemon --daemon --data=%s --log=%s --listen=%s --coordinator-port=%s' % \
 	(nodedata, nodelog, coorip, coorport)
 	os.system(startnode)
 
@@ -89,8 +89,8 @@ def stopnodes():
 		os.system(stopnodes)
 		
 def startcoord():
-	startcoord = 'hyperdex coordinator --daemon --data=%s --log=%s --listen=%s  --listen-port=%s' % 
-	(coordata, coorlog, coorip, coorport)
+	startcoord = 'hyperdex coordinator --daemon --data=%s --log=%s --listen=%s  --listen-port=%s' % \
+		(coordata, coorlog, coorip, coorport)
 	os.system(startcoord)
 
 def setreadonly():
