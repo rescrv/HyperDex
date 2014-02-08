@@ -1,8 +1,7 @@
-#!/usr/bin/python
-
   # Copyright (c) 2014, Pierre Rochard
   # All rights reserved.
 
+  
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
 
@@ -27,9 +26,54 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import hyperdexfunc
+import os
 
-hyperutil.stopall()
+coorip = '127.0.0.1'
+coorport = '1982'
 
-from app import app
-app.run(port=4000, debug = True)
+def checkcoordstatus():
+	cmd = 'ps -C "replicant-daemon"'
+	status = os.system(cmd)
+	if status == 256:
+		coordstatus = False
+	elif results == 0:
+		coordstatus = True
+	else:
+		coordstatus = False
+	return coordstatus
+
+def checknodestatus():
+	results = os.system('ps -C "hyperdex-daemon"')
+	if results == 256:
+		nodestatus = False
+	elif results == 0:
+		nodestatus = True
+	else:
+		nodestatus = False
+	return nodestatus
+
+def setreadonly():
+	setreadonly = 'hyperdex set-read-only --host=%s  --port=%s' % (coorip, coorport)
+	os.system(setreadonly)
+
+def waituntilstable():
+	waituntilstable = 'hyperdex wait-until-stable --host=%s  --port=%s' % (coorip, coorport)
+	os.system(waituntilstable)
+
+def stopnodes():
+	stopnodes = 'killall hyperdex-daemon'
+	os.system(stopnodes)
+
+def stopcoord():
+	stopcoord = 'killall replicant-daemon'
+	os.system(stopcoord)
+
+def stopall():
+	setreadonly()
+	waituntilstable()
+	while checkcoordstatus():
+		stopcoord()
+	while checknodestatus():
+		stopnodes()
+
+

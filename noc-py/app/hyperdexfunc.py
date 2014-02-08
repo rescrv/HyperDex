@@ -26,11 +26,9 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-
 import os
-import hyperdex.admin
 import subprocess
-
+import hyperdex.admin
 
 a = hyperdex.admin.Admin('127.0.0.1', 1982)
 c = hyperdex.client.Client('127.0.0.1',1982)
@@ -38,282 +36,126 @@ c = hyperdex.client.Client('127.0.0.1',1982)
 # Configuration Variables - will be added to settings form eventually
 
 approot = os.path.dirname(os.path.abspath(__file__))
-
 nodedata = os.path.join(approot, 'data/nodedata/')
-
 nodelog = os.path.join(approot, 'data/nodelog/')
-
-
 coordata = os.path.join(approot, 'data/coordata/')
-
-
 coorlog = os.path.join(approot, 'data/coorlog/')
-
-
 coorip = '127.0.0.1'
-
 coorport = '1982'
 
-
 def checkcoordstatus():
-	try:
-		results = os.system('ps -C "replicant-daemon"')
-		if results == 256:
-			coordstatus = 'Offline'
-		elif results == 0:
-			coordstatus = 'Online'
-		else:
-				coordstatus = '%s' % results
-
-	except:
-		pass
-
+	cmd = 'ps -C "replicant-daemon"'
+	results = os.system(cmd)
+	if results == 256:
+		coordstatus = False
+	elif results == 0:
+		coordstatus = True
+	else:
+		coordstatus = False
 	return coordstatus
 
-
 def getconfig():
-
-	try: 
-		cmd = 'hyperdex show-config'
-		proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-		(out,err) = proc.communicate()
-
-		if out != '':
-			try:
-				configlist = out.split()
-				cluster = configlist[1]
-				version = configlist[3]
-				flags = configlist[5]
-				try:
-					server = configlist[7]
-				except:
-					server = ''
-
-
-				return cluster, version, flags, server
-
-			except: pass
-		else:
-			pass
-
+	cmd = 'hyperdex show-config'
+	proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+	(out,err) = proc.communicate()
+	configlist = out.split()
+	cluster = configlist[1]
+	version = configlist[3]
+	flags = configlist[5]
+	try:
+		server = configlist[7]
 	except:
-		pass
-
-
-
+		server = ''
+	return cluster, version, flags, server
 
 def checknodestatus():
-
-	try:
-		results = os.system('ps -C "hyperdex-daemon"')
-		if results == 256:
-			nodestatus = 'Offline'
-		elif results == 0:
-			nodestatus = 'Online'
-		else:
-			nodestatus = '%s' % results
-
-	except:
-		pass
+	results = os.system('ps -C "hyperdex-daemon"')
+	if results == 256:
+		nodestatus = False
+	elif results == 0:
+		nodestatus = True
+	else:
+		nodestatus = False
 	return nodestatus
 
-
 def startnode():
-
-	try:
-
-		startnode = 'hyperdex daemon --daemon --data=%s --log=%s --listen=%s --coordinator-port=%s' % (nodedata, nodelog, coorip, coorport)
-		os.system(startnode)
-
-		return 1
-
-	except:
-
-		return 0
+	startnode = 'hyperdex daemon --daemon --data=%s --log=%s --listen=%s --coordinator-port=%s' % 
+	(nodedata, nodelog, coorip, coorport)
+	os.system(startnode)
 
 def stopnodes():
-	try:
-		while checknodestatus() == 'Online':
-			stopnodes = 'killall hyperdex-daemon'
-
-			os.system(stopnodes)
-		return 1
-
-	except:
-		return 0
-
-
-
-
+	while checknodestatus():
+		stopnodes = 'killall hyperdex-daemon'
+		os.system(stopnodes)
+		
 def startcoord():
-
-	try:
-
-		startcoord = 'hyperdex coordinator --daemon --data=%s --log=%s --listen=%s  --listen-port=%s' % (coordata, coorlog, coorip, coorport)
-
-		os.system(startcoord)
-
-		return 1
-
-
-
-	except:
-
-		return 0
-
-def stopcoord():
-	try:
-
-
-		while checkcoordstatus() == 'Online':
-
-			setreadonly()
-
-			waituntilstable()
-
-			stopcoord = 'killall replicant-daemon'
-
-			os.system(stopcoord)
-
-			stopnodes()
-
-
-		return 1
-
-	except:
-		return 0
-
-
-def listspaces():
-	try:
-		cmd = 'hyperdex list-spaces'
-		proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-		(out,err) = proc.communicate()
-		spacelist = out.split('\n')
-		spacelist = spacelist[:-1]
-
-		return spacelist
-
-	except:
-		pass
-
-
-def deletenodedata():
-
-	try:
-
-		delnodedata = 'rm -r %s*' % nodedata
-		delnodelog = 'rm -r %s*' % nodelog
-
-		os.system(delnodedata)
-
-		os.system(delnodelog)
-
-		return 1
-
-	except:
-
-		return 0
-
-
-
-def deletecoordata():
-
-	try:
-
-		delcoordata = 'rm -r %s*' % coordata
-		delcoorlog = 'rm -r %s*' % coorlog
-
-		os.system(delcoordata)
-
-		os.system(delcoorlog)
-
-		return 1
-
-	except:
-
-		return 0
-
+	startcoord = 'hyperdex coordinator --daemon --data=%s --log=%s --listen=%s  --listen-port=%s' % 
+	(coordata, coorlog, coorip, coorport)
+	os.system(startcoord)
 
 def setreadonly():
-
-	try:
-
-		setreadonly = 'hyperdex set-read-only --host=%s  --port=%s' % (coorip, coorport)
-
-		os.system(setreadonly)
-
-		return 1
-
-	except:
-
-		return 0
-
+	setreadonly = 'hyperdex set-read-only --host=%s  --port=%s' % (coorip, coorport)
+	os.system(setreadonly)
 
 def setreadwrite():
-
-	try:
-
-		setreadonly = 'hyperdex set-read-write --host=%s  --port=%s' % (coorip, coorport)
-
-		os.system(setreadwrite)
-
-		return 1
-
-	except:
-
-		return 0
-
-
+	setreadonly = 'hyperdex set-read-write --host=%s  --port=%s' % (coorip, coorport)
+	os.system(setreadwrite)
 
 def waituntilstable():
+	waituntilstable = 'hyperdex wait-until-stable --host=%s  --port=%s' % (coorip, coorport)
+	os.system(waituntilstable)
 
-	try:
+def stopcoord():
+	setreadonly()
+	waituntilstable()
+	while checkcoordstatus():
+		stopcoord = 'killall replicant-daemon'
+		os.system(stopcoord)
+		stopnodes()
 
-		waituntilstable = 'hyperdex wait-until-stable --host=%s  --port=%s' % (coorip, coorport)
+def listspaces():
+	cmd = 'hyperdex list-spaces'
+	proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+	(out,err) = proc.communicate()
+	spacelist = out.split('\n')
+	spacelist = spacelist[:-1]
+	return spacelist
 
-		os.system(waituntilstable)
-
-		return 1
-
-	except:
-
-		return 0
+def deletenodedata():
+	delnodedata = 'rm -r %s*' % nodedata
+	delnodelog = 'rm -r %s*' % nodelog
+	os.system(delnodedata)
+	os.system(delnodelog)
+	
+def deletecoordata():
+	delcoordata = 'rm -r %s*' % coordata
+	delcoorlog = 'rm -r %s*' % coorlog
+	os.system(delcoordata)
+	os.system(delcoorlog)
 
 def delspace(space):
-
 	a.rm_space(space.encode('utf-8'))
 
 def create_space(newspace, attrlist):
-
 	spacename = newspace[0]
 	keyname = newspace[1]
 	partitions = newspace[2]
 	failures = newspace[3]
 
 	attributes = ''
-
 	for attribute in attrlist[:-1]:
 		attributes = attributes + attribute[0] + ' ' + attribute[1] + ', '
-
 	lastattr = attrlist[-1]
-
 	attributes = attributes + lastattr[0] + ' ' + lastattr[1]
-
 	subslist = []
-
 	for attribute in attrlist:
 		if attribute[2] is True:
 			subslist.append(attribute)
 	subspaces = ''
-
 	for attribute in subslist[:-1]:
 		subspaces = subspaces + subslist[1] + ', '
-
 	lastsub = subslist[-1]
-
 	subspaces = subspaces + lastsub[1]
-
 
 	a.add_space('''
 		space %s
