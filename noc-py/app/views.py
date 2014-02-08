@@ -104,14 +104,15 @@ def delete_space(space):
 
 @app.route('/spaces/new', methods=['GET', 'POST'])
 def design_space():
+	session['newspace'] = []
+	session['attrlist'] = []
 	form = DesignSpace()
 	if request.method == 'POST':
 		spacename = form.spacename.data.encode('utf-8')
 		keyname = form.keyname.data.encode('utf-8')
 		partitions = form.partitions.data
 		failures = form.failures.data
-		session['newspace'] = [spacename, keyname,partitions, failures]
-		session['attrlist'] = []
+		session['newspace'].extend([spacename, keyname,partitions, failures])
 		return redirect(url_for('design_attributes'))
 	return render_template('newspace.html', form=form)
 

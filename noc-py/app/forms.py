@@ -13,32 +13,26 @@ class DesignSpace(Form):
 
 class AddAttribute(Form):
 
-	attributetype = SelectField('Attribute Type', choices=[('string','String'),
+	attributetype = SelectField('Attribute Type', choices=[
+		('string','String'),
 		('int','Integer'),
 		('float', 'Float'),
-		('list(string)', 'String List')])
+		('list(string)', 'String List'),
+		('list(int)', 'Integer List'),
+		('list(float)', 'Float List'),
+		('set(string)', 'String Set'),
+		('set(int)', 'Integer Set'),
+		('set(float)','Float Set'),
+		('map(string,string)','Map two Strings'),
+		('map(int,int', 'Map two Integers'),
+		('map(float,float', 'Map two Floats'),
+		('map(string,int', 'Map String and Integer'),
+		('map(string,float', 'Map String and Float'),
+		('map(int,float', 'Map Integer and Float')
+		])
+
 
  	attributename = TextField('Attribute Name', [validators.Length(min=4,max=25)])
 
  	attributesub = BooleanField('attributesub', default=False)
 
-		# except:
-		# a.add_space('''
-		# 	space %s
-		# 	key id
-		# 	attributes
-		# 		string title,
-		# 		string text
-		# 	subspace title
-		# 	create 8 partitions
-		# 	tolerate 2 failures
-		# 	''' % spacename)
-
-# class DesignAttribute(Form):
-
-# 	attributetype = SelectField('Attribute Type', choices=[('string','String'),
-# 		('int','Integer'),
-# 		('float', 'Float'),
-# 		('list(string)', 'String List')])
-
-# 	attributename = TextField('Attribute Name', [validators.Length(min=4,max=25)])
